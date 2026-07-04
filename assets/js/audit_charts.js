@@ -24,6 +24,7 @@
   let state = { family: 'TODAS', modelId: '', eventKey: '', scope: 'all', mainModelName: '' };
 
   function init() {
+    enforceLightAndLayout();
     mainModels = readMainModels();
     const wrap = document.querySelector('.wrap') || document.body;
     const notes = document.querySelector('.notes');
@@ -67,6 +68,7 @@
       })
       .then(data => {
         payload = data;
+        rewriteIntroForResults();
         setupControls();
         installModelClickBridge();
         selectFromUrlHash();
@@ -76,6 +78,79 @@
         section.querySelector('#audit-scatter').innerHTML =
           '<div class="audit-empty">Não foi possível carregar a base dos auditáveis: ' + escapeHtml(err.message) + '.</div>';
       });
+  }
+
+  function enforceLightAndLayout() {
+    document.documentElement.setAttribute('data-theme', 'light');
+    const vars = {
+      '--page': '#f7f8f1',
+      '--surface': '#ffffff',
+      '--surface-2': '#f1f5ec',
+      '--ink': '#151812',
+      '--ink-2': '#4e564a',
+      '--muted': '#6f786c',
+      '--grid': '#e4e8dc',
+      '--baseline': '#c8cfbd',
+      '--border': 'rgba(21,24,18,.13)',
+      '--accent': '#2a78d6',
+      '--chrome': '#1e5b3c',
+      '--shadow': '0 12px 32px rgba(38,49,31,.08)'
+    };
+    Object.entries(vars).forEach(([key, value]) => {
+      document.documentElement.style.setProperty(key, value, 'important');
+    });
+    if (document.getElementById('audit-light-override')) return;
+    const style = document.createElement('style');
+    style.id = 'audit-light-override';
+    style.textContent = `
+      :root, :root[data-theme="light"], :root[data-theme="dark"] {
+        --page:#f7f8f1 !important;
+        --surface:#ffffff !important;
+        --surface-2:#f1f5ec !important;
+        --ink:#151812 !important;
+        --ink-2:#4e564a !important;
+        --muted:#6f786c !important;
+        --grid:#e4e8dc !important;
+        --baseline:#c8cfbd !important;
+        --border:rgba(21,24,18,.13) !important;
+        --accent:#2a78d6 !important;
+        --chrome:#1e5b3c !important;
+        --shadow:0 12px 32px rgba(38,49,31,.08) !important;
+      }
+      html, body { background:#f7f8f1 !important; color:#151812 !important; }
+      body, .wrap, main, section, .sec { color:#151812 !important; }
+      #kpis { display:none !important; }
+      .grid2 { grid-template-columns:1fr !important; }
+      .grid2 > *, .grid2 figure.card, .grid2 .card { width:100% !important; min-width:0 !important; }
+      .card, figure.card, .audit-card, .audit-selected, .audit-toolbar { background:#fff !important; color:#151812 !important; }
+      .muted, .sec-sub, figcaption, .audit-sub { color:#6f786c !important; }
+      .modal-card, #modal .card { background:#fff !important; color:#151812 !important; }
+      .soon, .step.soon, [data-audit-hide="true"] { display:none !important; }
+    `;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  function rewriteIntroForResults() {
+    const kpis = document.getElementById('kpis');
+    if (kpis) kpis.setAttribute('data-audit-hide', 'true');
+
+    document.querySelectorAll('.step, .s-card, .steps > *, article, .card').forEach(el => {
+      const text = norm(el.textContent);
+      if (text.includes('PROXIMO_PASSO') && text.includes('DISPERSOES_E_SUBIDAS')) {
+        el.setAttribute('data-audit-hide', 'true');
+      }
+    });
+
+    document.querySelectorAll('#soon, .soon, [id*="soon"]').forEach(el => {
+      el.setAttribute('data-audit-hide', 'true');
+    });
+
+    document.querySelectorAll('li, p, .find').forEach(el => {
+      const text = norm(el.textContent);
+      if (text.includes('SERAO_ANEXADAS_AO_PAINEL') || text.includes('EM_PREPARACAO_PARA_ESTE_MODELO')) {
+        el.setAttribute('data-audit-hide', 'true');
+      }
+    });
   }
 
   function readMainModels() {
@@ -216,10 +291,14 @@
     }
     const main = currentMainModel();
     const source = model.sourceRef || model.file || '-';
+    const workbook = model.workbookUrl
+      ? '<a class="audit-download-btn" href="' + escapeAttr(model.workbookUrl) + '" download>Baixar planilha auditavel (.xlsx)</a>'
+      : '<span class="audit-muted">Planilha individual nao copiada para o site.</span>';
     box.innerHTML = [
       '<div><strong>Selecionado:</strong> ' + escapeHtml(model.name) + '</div>',
       '<div><strong>Família:</strong> ' + escapeHtml(labelFamily(model.family)) + '</div>',
       '<div><strong>Fonte auditável:</strong> <code>' + escapeHtml(source) + '</code></div>',
+      '<div class="audit-selected-actions">' + workbook + '<a class="audit-secondary-link" href="#audit-evidence">Ver logs/MAT associados</a></div>',
       main ? '<div><strong>Modelo do planilhão associado:</strong> <code>' + escapeHtml(main.modelo) + '</code></div>' : '<div><strong>Modelo do planilhão associado:</strong> não encontrado por nome/combinação.</div>'
     ].join('');
   }
@@ -424,6 +503,7 @@
     const scoredFiles = scoreInventoryFiles(model, main, inventory.files || []).filter(x => x.score > 0).slice(0, 80);
     const logs = scoreInventoryFiles(model, main, inventory.textLogs || []).filter(x => x.score > 0).slice(0, 10);
     const csvs = scoreInventoryFiles(model, main, inventory.csvTables || []).filter(x => x.score > 0).slice(0, 8);
+    const mats = scoreInventoryFiles(model, main, inventory.matSummaries || []).filter(x => x.score > 0).slice(0, 8);
     const summary = inventory.meta || {};
     box.innerHTML = [
       '<div class="audit-inventory-summary">',
@@ -431,9 +511,11 @@
       '<span><strong>' + nf.format(summary.auditModelCount || 0) + '</strong> modelos com série</span>',
       '<span><strong>' + nf.format(summary.csvTableCount || 0) + '</strong> CSVs parseados</span>',
       '<span><strong>' + nf.format(summary.textLogCount || 0) + '</strong> logs/textos</span>',
+      '<span><strong>' + nf.format(summary.matParsedCount || 0) + '</strong> MAT lidos</span>',
       '<span><strong>' + nf.format(summary.rawBundleFileCount || 0) + '</strong> arquivos no pacote bruto</span>',
       '</div>',
-      '<p class="audit-raw-link"><a href="' + RAW_BUNDLE_URL + '">Baixar pacote bruto de logs/CSV/JSON/TXT/códigos</a></p>',
+      renderDownloadPanel(model, scoredFiles),
+      renderMatSummaries(mats),
       renderAssociatedFiles(scoredFiles),
       renderCsvTables(csvs),
       renderLogPreviews(logs),
@@ -441,56 +523,157 @@
     ].join('');
   }
 
+  function renderDownloadPanel(model, scoredFiles) {
+    const workbookLinks = [];
+    if (model && model.workbookUrl) {
+      workbookLinks.push({
+        href: model.workbookUrl,
+        label: 'Baixar planilha auditavel do modelo',
+        note: model.workbookFile || model.name
+      });
+    }
+    scoredFiles.filter(x => x.item && x.item.downloadUrl && x.item.downloadUrl !== (model && model.workbookUrl))
+      .slice(0, 5)
+      .forEach(x => workbookLinks.push({
+        href: x.item.downloadUrl,
+        label: 'Baixar planilha associada',
+        note: x.item.name || x.item.ref
+      }));
+
+    const links = workbookLinks.map(x =>
+      '<a class="audit-download-btn" href="' + escapeAttr(x.href) + '" download>' +
+      '<span>' + escapeHtml(x.label) + '</span><small>' + escapeHtml(x.note || '') + '</small></a>'
+    ).join('');
+
+    return '<section class="audit-evidence-group audit-downloads">' +
+      '<h4>Downloads auditaveis</h4>' +
+      '<div class="audit-download-list">' +
+      (links || '<div class="audit-empty">Nenhuma planilha individual encontrada para este modelo.</div>') +
+      '<a class="audit-download-btn audit-download-raw" href="' + RAW_BUNDLE_URL + '" download><span>Baixar pacote bruto</span><small>logs, CSVs, JSON, TXT, M e PS1</small></a>' +
+      '</div></section>';
+  }
+
   function renderAssociatedFiles(scored) {
-    if (!scored.length) return '<h4>Arquivos associados</h4><div class="audit-empty">Nenhum arquivo associado por família/combo/rotação. Veja o inventário completo no pacote bruto.</div>';
-    return '<h4>Arquivos associados ao modelo/recorte</h4>' +
-      tableHtml(['Tipo', 'Família', 'Arquivo', 'Tamanho', 'Modificado'],
+    if (!scored.length) return '<section class="audit-evidence-group"><h4>Arquivos associados</h4><div class="audit-empty">Nenhum arquivo associado por família/combo/rotação. Veja o inventário completo no pacote bruto.</div></section>';
+    return '<section class="audit-evidence-group"><h4>Arquivos associados ao modelo/recorte</h4>' +
+      tableHtml(['Tipo', 'Família', 'Arquivo', 'Tamanho', 'Modificado', 'Ação'],
         scored.slice(0, 40).map(x => [
           x.item.category || '-',
           labelFamily(x.item.family || ''),
           '<code>' + escapeHtml(x.item.ref || '') + '</code>',
           fmtBytes(x.item.size || 0),
-          x.item.modified || '-'
-        ]), true);
+          x.item.modified || '-',
+          fileActionHtml(x.item)
+        ]), true) + '</section>';
+  }
+
+  function fileActionHtml(item) {
+    if (item && item.downloadUrl) {
+      return '<a class="audit-mini-link" href="' + escapeAttr(item.downloadUrl) + '" download>Baixar</a>';
+    }
+    if (item && item.ext === '.mat') return '<span class="audit-muted">Resumo no bloco MAT</span>';
+    return '<span class="audit-muted">No pacote bruto</span>';
+  }
+
+  function renderMatSummaries(scored) {
+    if (!scored.length) {
+      return '<section class="audit-evidence-group"><h4>Resumo dos arquivos MAT</h4><div class="audit-empty">Sem MAT associado por chave. Os MAT encontrados seguem resumidos no inventário e os arquivos brutos ficam no pacote de logs.</div></section>';
+    }
+    const rows = scored.map(x => {
+      const item = x.item;
+      const picked = matExtractSummary(item);
+      return [
+        '<code>' + escapeHtml(item.ref || '') + '</code>',
+        labelFamily(item.family || ''),
+        fmtBytes(item.size || 0),
+        item.modified || '-',
+        picked.map(kv => '<strong>' + escapeHtml(kv[0]) + ':</strong> ' + escapeHtml(formatAny(kv[1]))).join('<br>')
+      ];
+    });
+    const details = scored.map(x => {
+      const item = x.item;
+      const metrics = (item.metrics || []).filter(m => matMetricAllowed(m.name)).slice(0, 80);
+      const vars = (item.variables || []).slice(0, 40);
+      return '<details class="audit-detail"><summary><code>' + escapeHtml(item.ref || '') + '</code> · ' +
+        nf.format((item.metrics || []).length) + ' métricas pequenas · ' +
+        nf.format((item.variables || []).length) + ' variáveis</summary>' +
+        '<h5>Métricas extraídas do MAT</h5>' +
+        tableHtml(['Campo', 'Valor'], metrics.map(m => [m.name, formatMatValue(m.value)])) +
+        '<h5>Variáveis do MAT</h5>' +
+        tableHtml(['Variável', 'Dimensão', 'Classe'], vars.map(v => [
+          v.name || '-',
+          Array.isArray(v.shape) ? v.shape.join(' x ') : '-',
+          v.class || '-'
+        ])) +
+        '</details>';
+    }).join('');
+    return '<section class="audit-evidence-group"><h4>Resumo dos arquivos MAT associados</h4>' +
+      tableHtml(['MAT', 'Família', 'Tamanho', 'Modificado', 'Principais métricas'], rows, true) +
+      details + '</section>';
   }
 
   function renderCsvTables(scored) {
-    if (!scored.length) return '<h4>CSVs de métricas/status associados</h4><div class="audit-empty">Sem CSV associado por chave. Os CSVs seguem no inventário bruto.</div>';
-    return '<h4>CSVs de métricas/status associados</h4>' + scored.map(x => {
+    if (!scored.length) return '<section class="audit-evidence-group"><h4>CSVs de métricas/status associados</h4><div class="audit-empty">Sem CSV associado por chave. Os CSVs seguem no inventário bruto.</div></section>';
+    return '<section class="audit-evidence-group"><h4>CSVs de métricas/status associados</h4>' + scored.map(x => {
       const rows = (x.item.rows || []).slice(0, 12);
       const cols = (x.item.columns || []).slice(0, 8);
       const body = rows.map(r => cols.map(c => formatAny(r[c])));
       return '<details class="audit-detail"><summary><code>' + escapeHtml(x.item.ref) + '</code> · ' +
         nf.format(x.item.rowCountShown || rows.length) + ' linhas' + (x.item.truncated ? ' (prévia)' : '') + '</summary>' +
         tableHtml(cols, body) + '</details>';
-    }).join('');
+    }).join('') + '</section>';
   }
 
   function renderLogPreviews(scored) {
-    if (!scored.length) return '<h4>Logs/textos associados</h4><div class="audit-empty">Sem log textual associado por chave. O pacote bruto contém os logs encontrados.</div>';
-    return '<h4>Logs/textos associados</h4>' + scored.map(x => {
+    if (!scored.length) return '<section class="audit-evidence-group"><h4>Logs/textos associados</h4><div class="audit-empty">Sem log textual associado por chave. O pacote bruto contém os logs encontrados.</div></section>';
+    return '<section class="audit-evidence-group"><h4>Logs/textos associados</h4>' + scored.map(x => {
       const txt = x.item.truncated && x.item.tail ? x.item.tail : x.item.preview;
       return '<details class="audit-detail"><summary><code>' + escapeHtml(x.item.ref) + '</code> · ' +
         nf.format(x.item.chars || 0) + ' caracteres' + (x.item.truncated ? ' (fim do arquivo)' : '') + '</summary>' +
         '<pre>' + escapeHtml(txt || '') + '</pre></details>';
-    }).join('');
+    }).join('') + '</section>';
   }
 
   function renderSkipped(rows) {
     if (!rows.length) return '';
-    return '<h4>Planilhas encontradas mas não lidas</h4>' +
+    return '<section class="audit-evidence-group"><h4>Planilhas encontradas mas não lidas</h4>' +
       tableHtml(['Arquivo', 'Motivo', 'Tamanho'], rows.slice(0, 20).map(r => [
         '<code>' + escapeHtml(r.ref) + '</code>',
         r.reason || '-',
         fmtBytes(r.size || 0)
-      ]), true);
+      ]), true) + '</section>';
+  }
+
+  function matExtractSummary(item) {
+    const wanted = ['J', 'PERS', 'NASH', 'NASH_VAL', 'CORRELACAO', 'ERRO_RELATIVO', 'emed_abs', 'emed_abs_mean', 'e95', 'input', 'nh', 'nit', 'Cic', 'EVmin'];
+    const metrics = new Map((item.metrics || []).map(m => [String(m.name || '').toUpperCase(), m.value]));
+    return wanted
+      .filter(name => metrics.has(name.toUpperCase()))
+      .map(name => [name, metrics.get(name.toUpperCase())])
+      .slice(0, 10);
+  }
+
+  function matMetricAllowed() {
+    return true;
+  }
+
+  function formatMatValue(value) {
+    if (Array.isArray(value)) {
+      const shown = value.slice(0, 10).map(v => typeof v === 'number' ? nf.format(Math.round(v * 1000000) / 1000000) : String(v));
+      return shown.join(', ') + (value.length > shown.length ? ' ... (' + nf.format(value.length) + ' valores)' : '');
+    }
+    if (value && typeof value === 'object') {
+      const text = JSON.stringify(value);
+      return text.length > 260 ? text.slice(0, 260) + '...' : text;
+    }
+    return formatAny(value);
   }
 
   function scoreInventoryFiles(model, main, items) {
     if (!items || !items.length) return [];
     const keys = matchTokens(model, main);
     return items.map(item => {
-      const hay = norm([item.ref, item.name, item.family, item.rotation, item.category].join(' '));
+      const hay = norm([item.ref, item.name, item.family, item.rotation, item.category, (item.auditModels || []).join(' ')].join(' '));
       let score = 0;
       keys.strong.forEach(k => { if (k && hay.includes(k)) score += 12; });
       keys.medium.forEach(k => { if (k && hay.includes(k)) score += 5; });
@@ -756,6 +939,10 @@
     return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[ch]));
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value).replace(/`/g, '&#96;');
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
