@@ -125,7 +125,7 @@
       .card, figure.card, .audit-card, .audit-selected, .audit-toolbar { background:#fff !important; color:#151812 !important; }
       .muted, .sec-sub, figcaption, .audit-sub { color:#6f786c !important; }
       .modal-card, #modal .card { background:#fff !important; color:#151812 !important; }
-      .soon, .step.soon, [data-audit-hide="true"] { display:none !important; }
+      .soon, .step.soon, .m-soon, [data-audit-hide="true"] { display:none !important; }
     `;
     (document.head || document.documentElement).appendChild(style);
   }
@@ -145,11 +145,101 @@
       el.setAttribute('data-audit-hide', 'true');
     });
 
+    rewriteStaticCopy();
+
     document.querySelectorAll('li, p, .find').forEach(el => {
       const text = norm(el.textContent);
-      if (text.includes('SERAO_ANEXADAS_AO_PAINEL') || text.includes('EM_PREPARACAO_PARA_ESTE_MODELO')) {
+      if (text.includes('SERAO_ANEXADAS_AO_PAINEL') ||
+          text.includes('EM_PREPARACAO_PARA_ESTE_MODELO') ||
+          text.includes('O_4H_FICOU_FORA_DESTA_LEITURA')) {
         el.setAttribute('data-audit-hide', 'true');
       }
+    });
+  }
+
+  function rewriteStaticCopy() {
+    const sub = document.querySelector('header .sub');
+    if (sub) {
+      sub.innerHTML = 'Varredura dos modelos RNA treinados para prever o nível do rio na bacia Taquari-Antas com antecedência de 2h, 4h, 8h e 12h, integrando planilhão, planilhas auditáveis, arquivos <span style="font-variant-numeric:tabular-nums">.mat</span>, logs, CSVs e métricas rastreáveis.';
+    }
+
+    const stamp = document.getElementById('stamp');
+    if (stamp) {
+      stamp.textContent = 'Pesquisa em desenvolvimento · 239 modelos no planilhão principal + 377 séries auditáveis no painel de auditoria · base atualizada em 04/07/2026';
+    }
+
+    const src = document.getElementById('src');
+    if (src) {
+      src.textContent = 'Dados integrados: planilhão principal, planilhas auditáveis ponto a ponto, arquivos MAT, logs e CSVs de status/resultado. Clique em qualquer modelo para abrir a ficha auditável com gráficos, métricas e fontes associadas.';
+    }
+
+    rewriteStep('PASSO_3', {
+      title: 'Famílias e montagens testadas',
+      text: 'As famílias são lidas por horizonte e por montagem: ALT e CONV não são um ranking único, mas formas diferentes de montar os inputs. A CONV preserva a leitura clássica das estações da bacia; a ALT concentra e reorganiza defasagens de Santa Tereza, montante e variáveis associadas. Cada comparação precisa ser conferida junto da rotação de eventos, das métricas e dos arquivos auditáveis.'
+    });
+
+    setSectionSub('Desempenho por família',
+      'Leitura comparativa por família e métrica. As barras ajudam a localizar modelos de interesse, mas a escolha precisa ser conferida na ficha auditável: dispersão, ondas, subidas, planilha, MAT, logs e CSVs associados.');
+    setSectionSub('Modelo de referência de cada família',
+      'Um modelo representativo por família, escolhido para inspeção. Use como ponto de entrada para auditoria, não como decisão final isolada.');
+    setSectionSub('Principais achados',
+      'Síntese do planilhão principal, agora complementada pelo painel auditável com séries ponto a ponto. Onde o texto antigo dependia de anexar planilhas, a auditoria já está disponível abaixo.');
+    setSectionTitle('Exploração dos 239 modelos', 'Exploração do planilhão principal');
+
+    replaceTextNode('.lb-note', 'A barra mostra o valor relativo dentro da família; clique no modelo para abrir gráficos, métricas e arquivos auditáveis.');
+    replaceTextNode('#fcount', '');
+    rewriteChartTitle('Inputs mais usados pelos melhores modelos', 'Inputs mais frequentes no recorte');
+    rewriteChartSubtitle('% de modelos que usam cada input', '% de modelos que usam cada input no recorte selecionado');
+    rewriteChartTitle('Ranking — top 12 pelo score de equilíbrio', 'Modelos para inspeção pelo score de equilíbrio');
+
+    document.querySelectorAll('.m-soon').forEach(el => el.setAttribute('data-audit-hide', 'true'));
+  }
+
+  function rewriteStep(stepToken, copy) {
+    document.querySelectorAll('.step').forEach(step => {
+      const num = step.querySelector('.s-num');
+      if (!num || !norm(num.textContent).includes(stepToken)) return;
+      const title = step.querySelector('.s-title');
+      const text = step.querySelector('.s-text');
+      if (title) title.textContent = copy.title;
+      if (text) text.textContent = copy.text;
+    });
+  }
+
+  function setSectionSub(title, copy) {
+    const section = sectionByHeading(title);
+    const sub = section && section.querySelector('.sec-sub');
+    if (sub) sub.textContent = copy;
+  }
+
+  function setSectionTitle(oldTitle, newTitle) {
+    const section = sectionByHeading(oldTitle);
+    const h = section && section.querySelector('h2');
+    if (h) h.textContent = newTitle;
+  }
+
+  function sectionByHeading(title) {
+    const want = norm(title);
+    return [...document.querySelectorAll('section.sec')].find(section => {
+      const h = section.querySelector('h2');
+      return h && norm(h.textContent) === want;
+    });
+  }
+
+  function replaceTextNode(selector, text) {
+    const node = document.querySelector(selector);
+    if (node) node.textContent = text;
+  }
+
+  function rewriteChartTitle(oldText, newText) {
+    document.querySelectorAll('.c-title').forEach(node => {
+      if (norm(node.textContent) === norm(oldText)) node.textContent = newText;
+    });
+  }
+
+  function rewriteChartSubtitle(oldStart, newText) {
+    document.querySelectorAll('.c-sub').forEach(node => {
+      if (norm(node.textContent).startsWith(norm(oldStart))) node.textContent = newText;
     });
   }
 
