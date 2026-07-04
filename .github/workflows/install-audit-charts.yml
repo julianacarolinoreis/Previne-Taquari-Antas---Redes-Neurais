@@ -21,7 +21,7 @@ jobs:
       - name: Download audit chart assets
         run: |
           set -euo pipefail
-          curl -fL "https://tmpfiles.org/dl/wpwvacd51Plf/audit_core_package_v2.zip" -o audit_core_package.zip
+          curl -fL "https://tmpfiles.org/dl/wMwUaKorMfZH/audit_core_package_v3.zip" -o audit_core_package.zip
           unzip -o audit_core_package.zip -d .
           rm -rf assets/audit_workbooks
           mkdir -p assets/audit_workbooks
@@ -58,8 +58,8 @@ jobs:
           html = p.read_text(encoding='utf-8')
           html = re.sub(r'\s*<link rel="stylesheet" href="assets/css/audit_charts\.css(?:\?v=[^"]*)?">\s*', '\n', html)
           html = re.sub(r'\s*<script src="assets/js/audit_charts\.js(?:\?v=[^"]*)?"></script>\s*', '\n', html)
-          css = '  <link rel="stylesheet" href="assets/css/audit_charts.css?v=20260704-copy2">'
-          js = '  <script src="assets/js/audit_charts.js?v=20260704-copy2"></script>'
+          css = '  <link rel="stylesheet" href="assets/css/audit_charts.css?v=20260704-copy3">'
+          js = '  <script src="assets/js/audit_charts.js?v=20260704-copy3"></script>'
           html = html.replace('</head>', css + '\n</head>')
           html = html.replace('</body>', js + '\n</body>')
           p.write_text(html, encoding='utf-8')
@@ -73,7 +73,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Audit charts already installed."
           else
-            git commit -m "Install audit charts copy fixes [skip sync] [skip audit install]"
+            git commit -m "Install audit charts light-mode hardening [skip sync] [skip audit install]"
             git pull --rebase origin main
             git push
           fi
