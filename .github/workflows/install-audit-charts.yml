@@ -1,0 +1,51 @@
+name: Install audit charts
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    if: ${{ !contains(github.event.head_commit.message, '[skip audit install]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Download audit chart assets
+        run: |
+          curl -fL "https://tmpfiles.org/dl/wtw5aLnHtdCO/audit_charts_package.zip" -o audit_charts_package.zip
+          unzip -o audit_charts_package.zip -d .
+
+      - name: Link audit charts in index
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          html = p.read_text(encoding='utf-8')
+          css = '  <link rel="stylesheet" href="assets/css/audit_charts.css">'
+          js = '  <script src="assets/js/audit_charts.js"></script>'
+          if 'assets/css/audit_charts.css' not in html:
+              html = html.replace('</head>', css + '\n</head>')
+          if 'assets/js/audit_charts.js' not in html:
+              html = html.replace('</body>', js + '\n</body>')
+          p.write_text(html, encoding='utf-8')
+          PY
+
+      - name: Commit installed charts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html assets/css/audit_charts.css assets/js/audit_charts.js assets/data/auditaveis_series.json
+          if git diff --cached --quiet; then
+            echo "Audit charts already installed."
+          else
+            git commit -m "Install audit charts [skip sync] [skip audit install]"
+            git push
+          fi
