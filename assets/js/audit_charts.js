@@ -60,6 +60,7 @@
     ].join('');
     if (notes && notes.parentNode) notes.parentNode.insertBefore(section, notes);
     else wrap.appendChild(section);
+    rewriteIntroForResults();
 
     fetch(DATA_URL, { cache: 'no-store' })
       .then(resp => {
@@ -384,11 +385,14 @@
     const workbook = model.workbookUrl
       ? '<a class="audit-download-btn" href="' + escapeAttr(model.workbookUrl) + '" download>Baixar planilha auditavel (.xlsx)</a>'
       : '<span class="audit-muted">Planilha individual nao copiada para o site.</span>';
+    const mat = model.matUrl
+      ? '<a class="audit-download-btn audit-download-mat" href="' + escapeAttr(model.matUrl) + '" download>Baixar modelo treinado (.mat)</a>'
+      : '<span class="audit-muted">Modelo treinado (.mat) ainda nao publicado para este item.</span>';
     box.innerHTML = [
       '<div><strong>Selecionado:</strong> ' + escapeHtml(model.name) + '</div>',
       '<div><strong>Família:</strong> ' + escapeHtml(labelFamily(model.family)) + '</div>',
       '<div><strong>Fonte auditável:</strong> <code>' + escapeHtml(source) + '</code></div>',
-      '<div class="audit-selected-actions">' + workbook + '<a class="audit-secondary-link" href="#audit-evidence">Ver logs/MAT associados</a></div>',
+      '<div class="audit-selected-actions">' + workbook + mat + '<a class="audit-secondary-link" href="#audit-evidence">Ver logs/MAT associados</a></div>',
       main ? '<div><strong>Modelo do planilhão associado:</strong> <code>' + escapeHtml(main.modelo) + '</code></div>' : '<div><strong>Modelo do planilhão associado:</strong> não encontrado por nome/combinação.</div>'
     ].join('');
   }
@@ -619,19 +623,29 @@
       workbookLinks.push({
         href: model.workbookUrl,
         label: 'Baixar planilha auditavel do modelo',
-        note: model.workbookFile || model.name
+        note: model.workbookFile || model.name,
+        kind: 'xlsx'
+      });
+    }
+    if (model && model.matUrl) {
+      workbookLinks.push({
+        href: model.matUrl,
+        label: 'Baixar modelo treinado (.mat)',
+        note: model.matFile || model.matSourceRef || model.name,
+        kind: 'mat'
       });
     }
     scoredFiles.filter(x => x.item && x.item.downloadUrl && x.item.downloadUrl !== (model && model.workbookUrl))
       .slice(0, 5)
       .forEach(x => workbookLinks.push({
         href: x.item.downloadUrl,
-        label: 'Baixar planilha associada',
-        note: x.item.name || x.item.ref
+        label: x.item.ext === '.mat' ? 'Baixar MAT associado' : 'Baixar planilha associada',
+        note: x.item.name || x.item.ref,
+        kind: x.item.ext === '.mat' ? 'mat' : 'xlsx'
       }));
 
     const links = workbookLinks.map(x =>
-      '<a class="audit-download-btn" href="' + escapeAttr(x.href) + '" download>' +
+      '<a class="audit-download-btn' + (x.kind === 'mat' ? ' audit-download-mat' : '') + '" href="' + escapeAttr(x.href) + '" download>' +
       '<span>' + escapeHtml(x.label) + '</span><small>' + escapeHtml(x.note || '') + '</small></a>'
     ).join('');
 
@@ -659,7 +673,7 @@
 
   function fileActionHtml(item) {
     if (item && item.downloadUrl) {
-      return '<a class="audit-mini-link" href="' + escapeAttr(item.downloadUrl) + '" download>Baixar</a>';
+      return '<a class="audit-mini-link" href="' + escapeAttr(item.downloadUrl) + '" download>' + (item.ext === '.mat' ? 'Baixar MAT' : 'Baixar') + '</a>';
     }
     if (item && item.ext === '.mat') return '<span class="audit-muted">Resumo no bloco MAT</span>';
     return '<span class="audit-muted">No pacote bruto</span>';
@@ -677,7 +691,8 @@
         labelFamily(item.family || ''),
         fmtBytes(item.size || 0),
         item.modified || '-',
-        picked.map(kv => '<strong>' + escapeHtml(kv[0]) + ':</strong> ' + escapeHtml(formatAny(kv[1]))).join('<br>')
+        picked.map(kv => '<strong>' + escapeHtml(kv[0]) + ':</strong> ' + escapeHtml(formatAny(kv[1]))).join('<br>'),
+        fileActionHtml(item)
       ];
     });
     const details = scored.map(x => {
@@ -698,7 +713,7 @@
         '</details>';
     }).join('');
     return '<section class="audit-evidence-group"><h4>Resumo dos arquivos MAT associados</h4>' +
-      tableHtml(['MAT', 'Família', 'Tamanho', 'Modificado', 'Principais métricas'], rows, true) +
+      tableHtml(['MAT', 'Família', 'Tamanho', 'Modificado', 'Principais métricas', 'Ação'], rows, true) +
       details + '</section>';
   }
 
