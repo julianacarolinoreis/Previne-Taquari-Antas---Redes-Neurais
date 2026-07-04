@@ -18,28 +18,12 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Download audit chart assets
+      - name: Download audit chart and MAT assets
         run: |
           set -euo pipefail
           curl -fL "https://tmpfiles.org/dl/wtwoaL7fSoBL/audit_core_package_v4.zip" -o audit_core_package.zip
           unzip -o audit_core_package.zip -d .
-          rm -rf assets/audit_workbooks
-          mkdir -p assets/audit_workbooks
-
-          curl -fL "https://tmpfiles.org/dl/wTwbasd6z23g/audit_workbooks_12h_alt.zip" -o audit_workbooks_12H_ALT.zip
-          unzip -o audit_workbooks_12H_ALT.zip -d assets/audit_workbooks
-          curl -fL "https://tmpfiles.org/dl/wNwhaKdDz5uL/audit_workbooks_12h_conv.zip" -o audit_workbooks_12H_CONV.zip
-          unzip -o audit_workbooks_12H_CONV.zip -d assets/audit_workbooks
-          curl -fL "https://tmpfiles.org/dl/wTwkavdjzxIH/audit_workbooks_2h_alt.zip" -o audit_workbooks_2H_ALT.zip
-          unzip -o audit_workbooks_2H_ALT.zip -d assets/audit_workbooks
-          curl -fL "https://tmpfiles.org/dl/wAw0aCdAz4Bf/audit_workbooks_2h_conv.zip" -o audit_workbooks_2H_CONV.zip
-          unzip -o audit_workbooks_2H_CONV.zip -d assets/audit_workbooks
-          curl -fL "https://tmpfiles.org/dl/w5wpa3daz1sL/audit_workbooks_4h_alt.zip" -o audit_workbooks_4H_ALT.zip
-          unzip -o audit_workbooks_4H_ALT.zip -d assets/audit_workbooks
-          curl -fL "https://tmpfiles.org/dl/wPwPa9dXzUx6/audit_workbooks_8h_alt.zip" -o audit_workbooks_8H_ALT.zip
-          unzip -o audit_workbooks_8H_ALT.zip -d assets/audit_workbooks
-          curl -fL "https://tmpfiles.org/dl/wSwSaRdCiLla/audit_workbooks_8h_conv.zip" -o audit_workbooks_8H_CONV.zip
-          unzip -o audit_workbooks_8H_CONV.zip -d assets/audit_workbooks
+          test -d assets/audit_workbooks
 
           rm -rf assets/mat
           mkdir -p assets/mat
@@ -71,10 +55,10 @@ jobs:
           workbook_count = len(list(Path('assets/audit_workbooks').glob('*.xlsx')))
           mat_count = len(list(Path('assets/mat').glob('*.mat')))
           if workbook_count != 377:
-              raise SystemExit(f'Expected 377 workbook files, found {workbook_count}')
+              raise SystemExit(f'Expected 377 workbook files already in repo, found {workbook_count}')
           if mat_count != 329:
               raise SystemExit(f'Expected 329 MAT files, found {mat_count}')
-          print(f'Installed {workbook_count} workbook files and {mat_count} MAT files')
+          print(f'Installed {mat_count} MAT files and kept {workbook_count} workbook files')
           PY
 
       - name: Link audit charts in index
@@ -86,8 +70,8 @@ jobs:
           html = p.read_text(encoding='utf-8')
           html = re.sub(r'\s*<link rel="stylesheet" href="assets/css/audit_charts\.css(?:\?v=[^"]*)?">\s*', '\n', html)
           html = re.sub(r'\s*<script src="assets/js/audit_charts\.js(?:\?v=[^"]*)?"></script>\s*', '\n', html)
-          css = '  <link rel="stylesheet" href="assets/css/audit_charts.css?v=20260704-mat-v4">'
-          js = '  <script src="assets/js/audit_charts.js?v=20260704-mat-v4"></script>'
+          css = '  <link rel="stylesheet" href="assets/css/audit_charts.css?v=20260704-mat-v5">'
+          js = '  <script src="assets/js/audit_charts.js?v=20260704-mat-v5"></script>'
           html = html.replace('</head>', css + '\n</head>')
           html = html.replace('</body>', js + '\n</body>')
           p.write_text(html, encoding='utf-8')
