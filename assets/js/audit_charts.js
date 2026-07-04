@@ -1,5 +1,7 @@
 (function () {
   const DATA_URL = 'assets/data/auditaveis_series.json';
+  const INVENTORY_URL = 'assets/data/auditoria_inventario.json';
+  const RAW_BUNDLE_URL = 'assets/data/logs_metricas_brutos.zip';
   const COLORS = {
     treino: '#898781',
     validacao: '#2a78d6',
@@ -10,34 +12,49 @@
     riseRna: '#c78d00',
     bar: '#1e5b3c'
   };
-  const SET_NAMES = ['Treino', 'Validacao', 'Teste', 'Outro'];
+  const SET_NAMES = ['Treino', 'Validação', 'Teste', 'Outro'];
+  const SCOPE_LABELS = { all: 'Geral', '0': 'Treino', '1': 'Validação', '2': 'Teste' };
   const FAMILY_ORDER = ['2H_ALT', '2H_CONV', '4H_ALT', '4H_CONV', '8H_ALT', '8H_CONV', '12H_ALT', '12H_CONV'];
   const nf = new Intl.NumberFormat('pt-BR');
 
   let payload = null;
-  let state = { family: 'TODAS', modelId: '', eventKey: '' };
+  let inventory = null;
+  let inventoryLoading = null;
+  let mainModels = [];
+  let state = { family: 'TODAS', modelId: '', eventKey: '', scope: 'all', mainModelName: '' };
 
   function init() {
+    mainModels = readMainModels();
     const wrap = document.querySelector('.wrap') || document.body;
     const notes = document.querySelector('.notes');
     const section = document.createElement('section');
     section.className = 'sec audit-sec';
     section.id = 'graficos-auditaveis';
     section.innerHTML = [
-      '<h2>Gráficos dos auditáveis</h2>',
-      '<p class="sec-sub">Séries ponto a ponto extraídas das planilhas auditáveis: observado x RNA, evolução por evento e subidas de nível.</p>',
+      '<h2>Gráficos, métricas e logs auditáveis</h2>',
+      '<p class="sec-sub">Clique em qualquer modelo do pódio, ranking, gráfico ou tabela: este painel seleciona o modelo correspondente e mostra dispersão, ondas, subidas, métricas e arquivos de rastreio.</p>',
       '<div class="audit-toolbar">',
-      '  <div class="audit-field"><label for="audit-model">Modelo</label><select id="audit-model"></select></div>',
+      '  <div class="audit-field"><label for="audit-model">Modelo auditável</label><select id="audit-model"></select></div>',
       '  <div class="audit-field"><label for="audit-family">Família</label><select id="audit-family"></select></div>',
-      '  <div class="audit-field"><label for="audit-event">Evento</label><select id="audit-event"></select></div>',
+      '  <div class="audit-field"><label for="audit-event">Evento/onda</label><select id="audit-event"></select></div>',
+      '  <div class="audit-field"><label for="audit-scope">Dispersão</label><select id="audit-scope"><option value="all">Geral</option><option value="0">Treino</option><option value="1">Validação</option><option value="2">Teste</option></select></div>',
       '</div>',
+      '<div class="audit-selected" id="audit-selected"></div>',
       '<div class="audit-kpis" id="audit-kpis"></div>',
       '<div class="audit-grid">',
-      '  <figure class="audit-card"><figcaption><div class="audit-title">Observado x RNA</div><div class="audit-sub">Cada ponto é uma linha auditável do modelo selecionado</div></figcaption><div class="audit-legend" id="audit-leg-scatter"></div><div class="audit-chart" id="audit-scatter"></div></figure>',
-      '  <figure class="audit-card"><figcaption><div class="audit-title">Série do evento</div><div class="audit-sub">Nível observado e previsto ao longo do evento escolhido</div></figcaption><div class="audit-legend" id="audit-leg-series"></div><div class="audit-chart" id="audit-series"></div></figure>',
-      '  <figure class="audit-card"><figcaption><div class="audit-title">Subida do evento</div><div class="audit-sub">Variação acumulada em relação ao início do evento</div></figcaption><div class="audit-legend" id="audit-leg-rise"></div><div class="audit-chart" id="audit-rise"></div></figure>',
-      '  <figure class="audit-card"><figcaption><div class="audit-title">Maiores subidas observadas</div><div class="audit-sub">Eventos com maior aumento de nível nas planilhas auditáveis</div></figcaption><div class="audit-chart" id="audit-top-rises"></div></figure>',
+      '  <figure class="audit-card"><figcaption><div class="audit-title">Observado x RNA</div><div class="audit-sub">Dispersão do recorte escolhido: geral, treino, validação ou teste</div></figcaption><div class="audit-legend" id="audit-leg-scatter"></div><div class="audit-chart" id="audit-scatter"></div></figure>',
+      '  <figure class="audit-card"><figcaption><div class="audit-title">Série do evento</div><div class="audit-sub">Onda observada e prevista no evento selecionado</div></figcaption><div class="audit-legend" id="audit-leg-series"></div><div class="audit-chart" id="audit-series"></div></figure>',
+      '  <figure class="audit-card"><figcaption><div class="audit-title">Subida do evento</div><div class="audit-sub">Variação acumulada em relação ao início da onda</div></figcaption><div class="audit-legend" id="audit-leg-rise"></div><div class="audit-chart" id="audit-rise"></div></figure>',
+      '  <figure class="audit-card"><figcaption><div class="audit-title">Maiores subidas observadas</div><div class="audit-sub">Eventos com maior aumento de nível em toda a base auditável</div></figcaption><div class="audit-chart" id="audit-top-rises"></div></figure>',
       '</div>',
+      '<div class="audit-grid audit-grid-wide">',
+      '  <section class="audit-card audit-wide"><h3>Métricas calculadas da planilha auditável</h3><div id="audit-metrics-table"></div></section>',
+      '  <section class="audit-card audit-wide"><h3>Métricas do planilhão/modelo clicado</h3><div id="audit-main-metrics"></div></section>',
+      '</div>',
+      '<section class="audit-card audit-wide audit-evidence-card">',
+      '  <div class="audit-evidence-head"><div><h3>Logs, status, CSVs e arquivos associados</h3><p>Inventário completo da varredura: logs brutos, CSVs de status/resultado, planilhas, MAT e códigos encontrados.</p></div><button type="button" id="audit-load-inventory">Carregar logs</button></div>',
+      '  <div id="audit-evidence"></div>',
+      '</section>',
       '<p class="audit-note" id="audit-note"></p>'
     ].join('');
     if (notes && notes.parentNode) notes.parentNode.insertBefore(section, notes);
@@ -51,6 +68,8 @@
       .then(data => {
         payload = data;
         setupControls();
+        installModelClickBridge();
+        selectFromUrlHash();
         renderAll();
       })
       .catch(err => {
@@ -59,31 +78,56 @@
       });
   }
 
+  function readMainModels() {
+    const node = document.getElementById('data');
+    if (!node) return [];
+    try {
+      const data = JSON.parse(node.textContent || '{}');
+      return Array.isArray(data.models) ? data.models : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
   function setupControls() {
     const families = ['TODAS'].concat([...new Set(payload.models.map(m => m.family || 'OUTROS'))]
-      .sort((a, b) => (FAMILY_ORDER.indexOf(a) < 0 ? 99 : FAMILY_ORDER.indexOf(a)) -
-                      (FAMILY_ORDER.indexOf(b) < 0 ? 99 : FAMILY_ORDER.indexOf(b))));
+      .sort((a, b) => familyRank(a) - familyRank(b) || String(a).localeCompare(String(b))));
     const familySelect = document.getElementById('audit-family');
     familySelect.replaceChildren(...families.map(f => option(f, f === 'TODAS' ? 'Todas' : labelFamily(f))));
     familySelect.value = state.family;
     familySelect.addEventListener('change', () => {
       state.family = familySelect.value;
       state.modelId = '';
+      state.mainModelName = '';
       fillModels();
       renderAll();
     });
 
     document.getElementById('audit-model').addEventListener('change', ev => {
       state.modelId = ev.target.value;
+      state.mainModelName = '';
       fillEvents();
       renderAll();
+      updateHash();
     });
     document.getElementById('audit-event').addEventListener('change', ev => {
       state.eventKey = ev.target.value;
       renderAll();
     });
+    document.getElementById('audit-scope').addEventListener('change', ev => {
+      state.scope = ev.target.value;
+      renderAll();
+    });
+    document.getElementById('audit-load-inventory').addEventListener('click', () => {
+      loadInventory().then(renderEvidence);
+    });
 
     fillModels();
+  }
+
+  function familyRank(f) {
+    const i = FAMILY_ORDER.indexOf(f);
+    return i < 0 ? 99 : i;
   }
 
   function fillModels() {
@@ -91,7 +135,7 @@
     const rows = filteredModels().sort((a, b) => {
       const ac = a.metrics.corr == null ? -2 : a.metrics.corr;
       const bc = b.metrics.corr == null ? -2 : b.metrics.corr;
-      return (bc - ac) || ((a.metrics.mae || 1e9) - (b.metrics.mae || 1e9));
+      return (bc - ac) || ((a.metrics.mae || 1e9) - (b.metrics.mae || 1e9)) || a.name.localeCompare(b.name);
     });
     modelSelect.replaceChildren(...rows.map(m => option(m.id, labelModel(m))));
     state.modelId = state.modelId || (rows[0] && rows[0].id) || '';
@@ -129,24 +173,55 @@
     return payload && payload.models.find(m => m.id === state.modelId);
   }
 
+  function currentMainModel() {
+    const audit = currentModel();
+    if (state.mainModelName) {
+      const exact = mainModels.find(m => norm(m.modelo) === norm(state.mainModelName));
+      if (exact) return exact;
+    }
+    if (!audit) return null;
+    return findMainForAudit(audit);
+  }
+
   function renderAll() {
     if (!payload) return;
     const model = currentModel();
+    renderSelected(model);
     renderKpis(model);
-    renderLegend('audit-leg-scatter', [
-      ['Treino', COLORS.treino], ['Validacao', COLORS.validacao], ['Teste', COLORS.teste]
-    ]);
+    renderLegend('audit-leg-scatter', state.scope === 'all'
+      ? [['Treino', COLORS.treino], ['Validação', COLORS.validacao], ['Teste', COLORS.teste]]
+      : [[SCOPE_LABELS[state.scope], setColor(Number(state.scope))]]);
     renderLegend('audit-leg-series', [['Observado', COLORS.obs], ['RNA', COLORS.rna]]);
     renderLegend('audit-leg-rise', [['Subida observada', COLORS.riseObs], ['Subida RNA', COLORS.riseRna]]);
     renderScatter(model);
     renderSeries(model);
     renderRise(model);
     renderTopRises();
+    renderAuditMetrics(model);
+    renderMainMetrics(currentMainModel(), model);
+    renderEvidence();
     const note = document.getElementById('audit-note');
     note.textContent = 'Base gerada em ' + payload.meta.generatedAt + ': ' +
-      nf.format(payload.meta.modelCount) + ' modelos, ' +
-      nf.format(payload.meta.pointCount) + ' pontos auditáveis, famílias ' +
-      Object.entries(payload.meta.families).map(([k, v]) => labelFamily(k) + ' (' + v + ')').join(', ') + '.';
+      nf.format(payload.meta.modelCount) + ' modelos com série auditável, ' +
+      nf.format(payload.meta.pointCount) + ' pontos, famílias ' +
+      Object.entries(payload.meta.families).map(([k, v]) => labelFamily(k) + ' (' + v + ')').join(', ') +
+      '. Planilhas não lidas/parseadas: ' + nf.format(payload.meta.skippedCount || 0) + '.';
+  }
+
+  function renderSelected(model) {
+    const box = document.getElementById('audit-selected');
+    if (!model) {
+      box.innerHTML = '<div class="audit-empty">Nenhum modelo auditável selecionado.</div>';
+      return;
+    }
+    const main = currentMainModel();
+    const source = model.sourceRef || model.file || '-';
+    box.innerHTML = [
+      '<div><strong>Selecionado:</strong> ' + escapeHtml(model.name) + '</div>',
+      '<div><strong>Família:</strong> ' + escapeHtml(labelFamily(model.family)) + '</div>',
+      '<div><strong>Fonte auditável:</strong> <code>' + escapeHtml(source) + '</code></div>',
+      main ? '<div><strong>Modelo do planilhão associado:</strong> <code>' + escapeHtml(main.modelo) + '</code></div>' : '<div><strong>Modelo do planilhão associado:</strong> não encontrado por nome/combinação.</div>'
+    ].join('');
   }
 
   function renderKpis(model) {
@@ -155,12 +230,14 @@
       box.innerHTML = '<div class="audit-empty">Nenhum modelo encontrado para o filtro atual.</div>';
       return;
     }
+    const m = (model.metricsBySet && model.metricsBySet[state.scope]) || model.metrics || {};
     const items = [
-      ['Pontos auditáveis', nf.format(model.metrics.n)],
-      ['MAE geral', fmtCm(model.metrics.mae)],
-      ['Erro máximo', fmtCm(model.metrics.maxAbs)],
-      ['Correlação', model.metrics.corr == null ? '-' : model.metrics.corr.toFixed(3).replace('.', ',')],
-      ['Viés médio', fmtCm(model.metrics.bias)]
+      ['Pontos ' + SCOPE_LABELS[state.scope].toLowerCase(), nf.format(m.n || 0)],
+      ['MAE', fmtCm(m.mae)],
+      ['RMSE', fmtCm(m.rmse)],
+      ['Erro máximo', fmtCm(m.maxAbs)],
+      ['Correlação', m.corr == null ? '-' : Number(m.corr).toFixed(3).replace('.', ',')],
+      ['Viés médio', fmtCm(m.bias)]
     ];
     box.replaceChildren(...items.map(([k, v]) => {
       const el = document.createElement('div');
@@ -173,9 +250,10 @@
   function renderScatter(model) {
     const box = document.getElementById('audit-scatter');
     box.replaceChildren();
-    if (!model || !model.scatter || !model.scatter.length) return empty(box);
+    const rows = model && model.scatterBySet ? (model.scatterBySet[state.scope] || []) : (model && model.scatter);
+    if (!model || !rows || !rows.length) return empty(box);
     const W = 620, H = 330, pad = { l: 54, r: 18, t: 18, b: 42 };
-    const vals = model.scatter.flatMap(p => [p[0], p[1]]).filter(v => typeof v === 'number');
+    const vals = rows.flatMap(p => [p[0], p[1]]).filter(v => typeof v === 'number');
     const minV = Math.floor(Math.min(...vals) / 100) * 100;
     const maxV = Math.ceil(Math.max(...vals) / 100) * 100;
     const x = scale(minV, maxV, pad.l, W - pad.r);
@@ -188,10 +266,10 @@
       svgText(svg, pad.l - 8, y(t) + 4, fmtShort(t), 'audit-axis', 'end');
     });
     svg.append(svgEl('line', { x1: x(minV), y1: y(minV), x2: x(maxV), y2: y(maxV), class: 'audit-diagonal' }));
-    model.scatter.forEach(p => {
+    rows.forEach(p => {
       svg.append(svgEl('circle', {
-        cx: x(p[0]), cy: y(p[1]), r: 3.2,
-        fill: setColor(p[2]), opacity: p[2] === 2 ? 0.78 : 0.45
+        cx: x(p[0]), cy: y(p[1]), r: state.scope === 'all' ? 3.2 : 3.7,
+        fill: setColor(p[2]), opacity: p[2] === 2 ? 0.78 : 0.5
       }));
     });
     svgText(svg, (pad.l + W - pad.r) / 2, H - 8, 'Observado (cm)', 'audit-axis', 'middle');
@@ -206,8 +284,8 @@
     const rows = model && model.series && model.series[state.eventKey];
     if (!rows || !rows.length) return empty(box);
     renderLineChart(box, rows, {
-      columns: [{ i: 1, color: COLORS.obs, label: 'Observado' }, { i: 2, color: COLORS.rna, label: 'RNA' }],
-      yLabel: 'Nivel (cm)',
+      columns: [{ i: 1, color: COLORS.obs }, { i: 2, color: COLORS.rna }],
+      yLabel: 'Nível (cm)',
       aria: 'Série temporal do evento'
     });
   }
@@ -218,7 +296,7 @@
     const rows = model && model.series && model.series[state.eventKey];
     if (!rows || !rows.length) return empty(box);
     renderLineChart(box, rows, {
-      columns: [{ i: 4, color: COLORS.riseObs, label: 'Subida observada' }, { i: 5, color: COLORS.riseRna, label: 'Subida RNA' }],
+      columns: [{ i: 4, color: COLORS.riseObs }, { i: 5, color: COLORS.riseRna }],
       yLabel: 'Subida (cm)',
       zeroLine: true,
       aria: 'Subida acumulada do evento'
@@ -261,9 +339,9 @@
   function renderTopRises() {
     const box = document.getElementById('audit-top-rises');
     box.replaceChildren();
-    const rows = (payload.eventRiseTop || []).slice(0, 12);
+    const rows = (payload.eventRiseTop || []).slice(0, 14);
     if (!rows.length) return empty(box);
-    const W = 620, rowH = 24, H = 34 + rows.length * rowH + 28, pad = { l: 112, r: 46, t: 14, b: 22 };
+    const W = 620, rowH = 22, H = 34 + rows.length * rowH + 28, pad = { l: 112, r: 46, t: 14, b: 22 };
     const maxV = Math.max(...rows.map(r => r.riseObs || 0), 1);
     const x = scale(0, maxV, pad.l, W - pad.r);
     const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Maiores subidas observadas por evento' });
@@ -272,13 +350,307 @@
       svgText(svg, x(t), H - 5, fmtShort(t), 'audit-axis', 'middle');
     });
     rows.forEach((r, i) => {
-      const y = pad.t + i * rowH + 6;
-      svgText(svg, pad.l - 9, y + 12, 'Evento ' + r.evento, 'audit-label', 'end');
+      const y = pad.t + i * rowH + 5;
+      svgText(svg, pad.l - 9, y + 11, 'Evento ' + r.evento, 'audit-label', 'end');
       const width = Math.max(1, x(r.riseObs || 0) - pad.l);
-      svg.append(svgEl('rect', { x: pad.l, y, width, height: 16, rx: 4, fill: COLORS.bar, opacity: 0.86 }));
+      svg.append(svgEl('rect', { x: pad.l, y, width, height: 15, rx: 4, fill: COLORS.bar, opacity: 0.86 }));
       svgText(svg, pad.l + width + 6, y + 12, fmtCm(r.riseObs), 'audit-value', 'start');
     });
     box.append(svg);
+  }
+
+  function renderAuditMetrics(model) {
+    const box = document.getElementById('audit-metrics-table');
+    if (!model || !model.metricsBySet) return empty(box);
+    const rows = [['all', 'Geral'], ['0', 'Treino'], ['1', 'Validação'], ['2', 'Teste']]
+      .map(([key, label]) => Object.assign({ key, label }, model.metricsBySet[key] || {}));
+    box.innerHTML = tableHtml(['Recorte', 'N', 'MAE', 'RMSE', 'Viés', 'Erro máx.', 'Corr.'],
+      rows.map(r => [r.label, nf.format(r.n || 0), fmtCm(r.mae), fmtCm(r.rmse), fmtCm(r.bias), fmtCm(r.maxAbs), r.corr == null ? '-' : Number(r.corr).toFixed(4).replace('.', ',')]));
+  }
+
+  function renderMainMetrics(main, audit) {
+    const box = document.getElementById('audit-main-metrics');
+    if (!main) {
+      box.innerHTML = '<div class="audit-empty">Sem modelo equivalente no planilhão embutido para este auditável. As métricas calculadas da planilha continuam acima.</div>';
+      return;
+    }
+    const preferred = [
+      'modelo', 'familia', 'rotacao', 'combo_id', 'evento_teste', 'eventos_validacao',
+      'n_inputs', 'neuronios', 'nit', 'ciclos', 'J',
+      'N_geral', 'N_treino', 'N_validacao', 'N_teste',
+      'PERS_geral', 'PERS_treino', 'PERS_validacao', 'PERS_teste', 'score_equilibrio',
+      'MAE_geral_cm', 'MAE_validacao_cm', 'MAE_teste_cm',
+      'E95_geral_cm', 'E95_validacao_cm', 'E95_teste_cm',
+      'NASH_validacao_csv', 'NASH_teste_csv', 'correlacao_teste_csv',
+      'fim', 'usar_decisao'
+    ];
+    const keys = preferred.filter(k => Object.prototype.hasOwnProperty.call(main, k))
+      .concat(Object.keys(main).filter(k => !preferred.includes(k) && k !== 'inputs' && k !== 'obs'));
+    const rows = keys.map(k => [humanKey(k), formatAny(main[k])]);
+    if (audit && audit.sourceRef) rows.push(['Fonte auditável selecionada', audit.sourceRef]);
+    box.innerHTML = tableHtml(['Campo', 'Valor'], rows);
+  }
+
+  function loadInventory() {
+    if (inventory) return Promise.resolve(inventory);
+    if (inventoryLoading) return inventoryLoading;
+    const box = document.getElementById('audit-evidence');
+    box.innerHTML = '<div class="audit-empty">Carregando inventário de logs e métricas...</div>';
+    inventoryLoading = fetch(INVENTORY_URL, { cache: 'no-store' })
+      .then(resp => {
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        return resp.json();
+      })
+      .then(data => {
+        inventory = data;
+        return inventory;
+      })
+      .catch(err => {
+        box.innerHTML = '<div class="audit-empty">Não foi possível carregar o inventário: ' + escapeHtml(err.message) + '.</div>';
+        throw err;
+      });
+    return inventoryLoading;
+  }
+
+  function renderEvidence() {
+    const box = document.getElementById('audit-evidence');
+    if (!box) return;
+    if (!inventory) {
+      box.innerHTML = '<div class="audit-empty">Clique em “Carregar logs” para abrir o inventário completo. O pacote bruto fica disponível em <a href="' + RAW_BUNDLE_URL + '">logs_metricas_brutos.zip</a>.</div>';
+      return;
+    }
+    const model = currentModel();
+    const main = currentMainModel();
+    const scoredFiles = scoreInventoryFiles(model, main, inventory.files || []).filter(x => x.score > 0).slice(0, 80);
+    const logs = scoreInventoryFiles(model, main, inventory.textLogs || []).filter(x => x.score > 0).slice(0, 10);
+    const csvs = scoreInventoryFiles(model, main, inventory.csvTables || []).filter(x => x.score > 0).slice(0, 8);
+    const summary = inventory.meta || {};
+    box.innerHTML = [
+      '<div class="audit-inventory-summary">',
+      '<span><strong>' + nf.format(summary.fileCount || 0) + '</strong> arquivos inventariados</span>',
+      '<span><strong>' + nf.format(summary.auditModelCount || 0) + '</strong> modelos com série</span>',
+      '<span><strong>' + nf.format(summary.csvTableCount || 0) + '</strong> CSVs parseados</span>',
+      '<span><strong>' + nf.format(summary.textLogCount || 0) + '</strong> logs/textos</span>',
+      '<span><strong>' + nf.format(summary.rawBundleFileCount || 0) + '</strong> arquivos no pacote bruto</span>',
+      '</div>',
+      '<p class="audit-raw-link"><a href="' + RAW_BUNDLE_URL + '">Baixar pacote bruto de logs/CSV/JSON/TXT/códigos</a></p>',
+      renderAssociatedFiles(scoredFiles),
+      renderCsvTables(csvs),
+      renderLogPreviews(logs),
+      renderSkipped(inventory.skippedWorkbooks || [])
+    ].join('');
+  }
+
+  function renderAssociatedFiles(scored) {
+    if (!scored.length) return '<h4>Arquivos associados</h4><div class="audit-empty">Nenhum arquivo associado por família/combo/rotação. Veja o inventário completo no pacote bruto.</div>';
+    return '<h4>Arquivos associados ao modelo/recorte</h4>' +
+      tableHtml(['Tipo', 'Família', 'Arquivo', 'Tamanho', 'Modificado'],
+        scored.slice(0, 40).map(x => [
+          x.item.category || '-',
+          labelFamily(x.item.family || ''),
+          '<code>' + escapeHtml(x.item.ref || '') + '</code>',
+          fmtBytes(x.item.size || 0),
+          x.item.modified || '-'
+        ]), true);
+  }
+
+  function renderCsvTables(scored) {
+    if (!scored.length) return '<h4>CSVs de métricas/status associados</h4><div class="audit-empty">Sem CSV associado por chave. Os CSVs seguem no inventário bruto.</div>';
+    return '<h4>CSVs de métricas/status associados</h4>' + scored.map(x => {
+      const rows = (x.item.rows || []).slice(0, 12);
+      const cols = (x.item.columns || []).slice(0, 8);
+      const body = rows.map(r => cols.map(c => formatAny(r[c])));
+      return '<details class="audit-detail"><summary><code>' + escapeHtml(x.item.ref) + '</code> · ' +
+        nf.format(x.item.rowCountShown || rows.length) + ' linhas' + (x.item.truncated ? ' (prévia)' : '') + '</summary>' +
+        tableHtml(cols, body) + '</details>';
+    }).join('');
+  }
+
+  function renderLogPreviews(scored) {
+    if (!scored.length) return '<h4>Logs/textos associados</h4><div class="audit-empty">Sem log textual associado por chave. O pacote bruto contém os logs encontrados.</div>';
+    return '<h4>Logs/textos associados</h4>' + scored.map(x => {
+      const txt = x.item.truncated && x.item.tail ? x.item.tail : x.item.preview;
+      return '<details class="audit-detail"><summary><code>' + escapeHtml(x.item.ref) + '</code> · ' +
+        nf.format(x.item.chars || 0) + ' caracteres' + (x.item.truncated ? ' (fim do arquivo)' : '') + '</summary>' +
+        '<pre>' + escapeHtml(txt || '') + '</pre></details>';
+    }).join('');
+  }
+
+  function renderSkipped(rows) {
+    if (!rows.length) return '';
+    return '<h4>Planilhas encontradas mas não lidas</h4>' +
+      tableHtml(['Arquivo', 'Motivo', 'Tamanho'], rows.slice(0, 20).map(r => [
+        '<code>' + escapeHtml(r.ref) + '</code>',
+        r.reason || '-',
+        fmtBytes(r.size || 0)
+      ]), true);
+  }
+
+  function scoreInventoryFiles(model, main, items) {
+    if (!items || !items.length) return [];
+    const keys = matchTokens(model, main);
+    return items.map(item => {
+      const hay = norm([item.ref, item.name, item.family, item.rotation, item.category].join(' '));
+      let score = 0;
+      keys.strong.forEach(k => { if (k && hay.includes(k)) score += 12; });
+      keys.medium.forEach(k => { if (k && hay.includes(k)) score += 5; });
+      if (model && item.family && norm(item.family) === norm(model.family)) score += 8;
+      if (main && item.family && norm(item.family) === norm(main.familia)) score += 8;
+      return { item, score };
+    }).sort((a, b) => b.score - a.score || String(a.item.ref).localeCompare(String(b.item.ref)));
+  }
+
+  function matchTokens(model, main) {
+    const strong = [];
+    const medium = [];
+    if (model) {
+      strong.push(norm(model.name), norm(model.id), norm(model.combo), norm(model.rotation));
+      medium.push(norm(model.family), norm(model.horizon), norm(model.type));
+    }
+    if (main) {
+      strong.push(norm(main.modelo), norm(main.combo_id), norm(main.rotacao));
+      medium.push(norm(main.familia), norm(main.horizonte), norm(main.tipo));
+    }
+    return {
+      strong: [...new Set(strong.filter(Boolean))],
+      medium: [...new Set(medium.filter(Boolean))]
+    };
+  }
+
+  function installModelClickBridge() {
+    document.addEventListener('click', ev => {
+      if (ev.target.closest('#graficos-auditaveis')) return;
+      if (ev.target.closest('#m-close,#m-backdrop')) return;
+      const likely = ev.target.closest('.champ,.lb-item,#tbody tr.clickable,svg rect,svg circle,svg path');
+      if (!likely) return;
+      const scope = inferScopeFromClick(ev.target);
+      setTimeout(() => {
+        const name = modalModelName();
+        if (!name) return;
+        const main = mainModels.find(m => norm(m.modelo) === norm(name));
+        selectFromMainModel(main || { modelo: name }, scope, true);
+        closeExistingModal();
+      }, 80);
+    }, true);
+  }
+
+  function inferScopeFromClick(target) {
+    const tab = target.closest('#lb') ? document.querySelector('#lb-tabs .tab[aria-pressed="true"]') : null;
+    const label = tab ? norm(tab.textContent) : '';
+    if (label.includes('TESTE')) return '2';
+    if (label.includes('VALID')) return '1';
+    if (label.includes('TREINO')) return '0';
+    return 'all';
+  }
+
+  function modalModelName() {
+    const node = document.querySelector('#m-body .m-name');
+    if (!node) return '';
+    return node.textContent.trim();
+  }
+
+  function closeExistingModal() {
+    const modal = document.getElementById('modal');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  function selectFromMainModel(main, scope, scroll) {
+    if (!payload || !main) return;
+    const match = findAuditForMain(main);
+    state.mainModelName = main.modelo || '';
+    state.scope = scope || 'all';
+    document.getElementById('audit-scope').value = state.scope;
+    if (match) {
+      state.family = match.family || 'TODAS';
+      state.modelId = match.id;
+      document.getElementById('audit-family').value = state.family;
+      fillModels();
+      state.modelId = match.id;
+      document.getElementById('audit-model').value = state.modelId;
+      fillEvents();
+    } else if (main.familia) {
+      state.family = main.familia;
+      document.getElementById('audit-family').value = state.family;
+      state.modelId = '';
+      fillModels();
+    }
+    renderAll();
+    updateHash();
+    if (scroll) {
+      document.getElementById('graficos-auditaveis').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      loadInventory().then(renderEvidence).catch(() => {});
+    }
+  }
+
+  function findAuditForMain(main) {
+    if (!main) return null;
+    const exact = payload.models.find(m => norm(m.name) === norm(main.modelo) || norm(m.id) === norm(main.modelo));
+    if (exact) return exact;
+    const combo = norm(main.combo_id);
+    const rot = norm(main.rotacao);
+    const fam = norm(main.familia);
+    const scored = payload.models.map(m => {
+      let score = 0;
+      if (fam && norm(m.family) === fam) score += 25;
+      if (combo && (norm(m.combo) === combo || norm(m.name).includes(combo))) score += 25;
+      if (rot && (norm(m.rotation) === rot || norm(m.name).includes(rot))) score += 25;
+      if (norm(m.name).includes(norm(main.modelo)) || norm(main.modelo).includes(norm(m.name))) score += 40;
+      return { m, score };
+    }).filter(x => x.score >= 40).sort((a, b) => b.score - a.score);
+    return scored[0] && scored[0].m;
+  }
+
+  function findMainForAudit(audit) {
+    if (!audit || !mainModels.length) return null;
+    const exact = mainModels.find(m => norm(m.modelo) === norm(audit.name) || norm(m.modelo) === norm(audit.id));
+    if (exact) return exact;
+    const combo = norm(audit.combo);
+    const rot = norm(audit.rotation);
+    const fam = norm(audit.family);
+    const scored = mainModels.map(m => {
+      let score = 0;
+      if (fam && norm(m.familia) === fam) score += 20;
+      if (combo && (norm(m.combo_id) === combo || norm(m.modelo).includes(combo))) score += 25;
+      if (rot && (norm(m.rotacao) === rot || norm(m.modelo).includes(rot))) score += 20;
+      if (norm(audit.name).includes(norm(m.modelo)) || norm(m.modelo).includes(norm(audit.name))) score += 40;
+      return { m, score };
+    }).filter(x => x.score >= 40).sort((a, b) => b.score - a.score);
+    return scored[0] && scored[0].m;
+  }
+
+  function selectFromUrlHash() {
+    const params = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+    const model = params.get('auditModel');
+    if (!model || !payload) return;
+    const match = payload.models.find(m => norm(m.id) === norm(model) || norm(m.name) === norm(model));
+    if (!match) return;
+    state.family = match.family || 'TODAS';
+    state.modelId = match.id;
+    state.scope = params.get('scope') || 'all';
+    const fs = document.getElementById('audit-family');
+    const sc = document.getElementById('audit-scope');
+    if (fs) fs.value = state.family;
+    if (sc) sc.value = state.scope;
+    fillModels();
+  }
+
+  function updateHash() {
+    const model = currentModel();
+    if (!model) return;
+    const params = new URLSearchParams();
+    params.set('auditModel', model.id);
+    params.set('scope', state.scope);
+    history.replaceState(null, '', '#' + params.toString());
+  }
+
+  function tableHtml(headers, rows, trusted) {
+    return '<div class="audit-table-wrap"><table class="audit-table"><thead><tr>' +
+      headers.map(h => '<th>' + escapeHtml(h) + '</th>').join('') +
+      '</tr></thead><tbody>' +
+      rows.map(r => '<tr>' + r.map(v => '<td>' + (trusted ? String(v) : escapeHtml(v)) + '</td>').join('') + '</tr>').join('') +
+      '</tbody></table></div>';
   }
 
   function renderLegend(id, items) {
@@ -306,15 +678,32 @@
   }
 
   function labelFamily(f) {
-    return String(f || 'OUTROS').replace('_', ' ');
+    return String(f || 'OUTROS').replace(/_/g, ' ');
   }
 
   function labelModel(m) {
     return labelFamily(m.family) + ' | ' + m.name + ' | MAE ' + fmtCm(m.metrics.mae);
   }
 
+  function humanKey(k) {
+    return String(k).replace(/_/g, ' ').replace(/\bcm\b/i, '(cm)').replace(/\bcsv\b/i, 'CSV').replace(/\bpers\b/i, 'PERS').replace(/\bnash\b/i, 'NASH');
+  }
+
+  function formatAny(v) {
+    if (v == null || v === '') return '-';
+    if (typeof v === 'number') return nf.format(Math.round(v * 10000) / 10000);
+    if (Array.isArray(v)) return v.join(', ');
+    return String(v);
+  }
+
   function fmtCm(v) {
     return v == null ? '-' : nf.format(Math.round(v)) + ' cm';
+  }
+
+  function fmtBytes(v) {
+    if (v >= 1024 * 1024) return nf.format(Math.round(v / 1024 / 102.4) / 10) + ' MB';
+    if (v >= 1024) return nf.format(Math.round(v / 102.4) / 10) + ' kB';
+    return nf.format(v) + ' B';
   }
 
   function fmtShort(v) {
@@ -359,8 +748,12 @@
     return t;
   }
 
+  function norm(value) {
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+
   function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, ch => ({
+    return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[ch]));
   }
