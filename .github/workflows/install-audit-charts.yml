@@ -20,8 +20,34 @@ jobs:
 
       - name: Download audit chart assets
         run: |
-          curl -fL "https://tmpfiles.org/dl/wnw4aFMoLoGC/audit_charts_package.zip" -o audit_charts_package.zip
-          unzip -o audit_charts_package.zip -d .
+          set -euo pipefail
+          curl -fL "https://tmpfiles.org/dl/w8w6aGH25h25/audit_core_package.zip" -o audit_core_package.zip
+          unzip -o audit_core_package.zip -d .
+          rm -rf assets/audit_workbooks
+          mkdir -p assets/audit_workbooks
+
+          curl -fL "https://tmpfiles.org/dl/wlwsazH65HPV/audit_workbooks_12h_alt.zip" -o audit_workbooks_12H_ALT.zip
+          unzip -o audit_workbooks_12H_ALT.zip -d assets/audit_workbooks
+          curl -fL "https://tmpfiles.org/dl/wawuaRHk57xC/audit_workbooks_12h_conv.zip" -o audit_workbooks_12H_CONV.zip
+          unzip -o audit_workbooks_12H_CONV.zip -d assets/audit_workbooks
+          curl -fL "https://tmpfiles.org/dl/wDwAauHdWoAt/audit_workbooks_2h_alt.zip" -o audit_workbooks_2H_ALT.zip
+          unzip -o audit_workbooks_2H_ALT.zip -d assets/audit_workbooks
+          curl -fL "https://tmpfiles.org/dl/whwsaaHZWIgi/audit_workbooks_2h_conv.zip" -o audit_workbooks_2H_CONV.zip
+          unzip -o audit_workbooks_2H_CONV.zip -d assets/audit_workbooks
+          curl -fL "https://tmpfiles.org/dl/wQwbaEHAWY6w/audit_workbooks_4h_alt.zip" -o audit_workbooks_4H_ALT.zip
+          unzip -o audit_workbooks_4H_ALT.zip -d assets/audit_workbooks
+          curl -fL "https://tmpfiles.org/dl/w6whaEH6WDLL/audit_workbooks_8h_alt.zip" -o audit_workbooks_8H_ALT.zip
+          unzip -o audit_workbooks_8H_ALT.zip -d assets/audit_workbooks
+          curl -fL "https://tmpfiles.org/dl/wdwIaPHGWg7C/audit_workbooks_8h_conv.zip" -o audit_workbooks_8H_CONV.zip
+          unzip -o audit_workbooks_8H_CONV.zip -d assets/audit_workbooks
+
+          python3 - <<'PY'
+          from pathlib import Path
+          count = len(list(Path('assets/audit_workbooks').glob('*.xlsx')))
+          if count != 377:
+              raise SystemExit(f'Expected 377 workbook files, found {count}')
+          print(f'Installed {count} workbook files')
+          PY
 
       - name: Link audit charts in index
         run: >-
@@ -31,10 +57,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html assets/css/audit_charts.css assets/js/audit_charts.js assets/data/auditaveis_series.json assets/data/auditoria_inventario.json assets/data/logs_metricas_brutos.zip
+          git add -A index.html assets
           if git diff --cached --quiet; then
             echo "Audit charts already installed."
           else
-            git commit -m "Install complete audit charts and logs [skip sync] [skip audit install]"
+            git commit -m "Install audit charts logs and workbook downloads [skip sync] [skip audit install]"
             git push
           fi
