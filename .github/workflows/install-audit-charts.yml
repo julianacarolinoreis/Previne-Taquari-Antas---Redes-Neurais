@@ -21,7 +21,7 @@ jobs:
       - name: Download audit chart assets
         run: |
           set -euo pipefail
-          curl -fL "https://tmpfiles.org/dl/wMwUaKorMfZH/audit_core_package_v3.zip" -o audit_core_package.zip
+          curl -fL "https://tmpfiles.org/dl/wtwoaL7fSoBL/audit_core_package_v4.zip" -o audit_core_package.zip
           unzip -o audit_core_package.zip -d .
           rm -rf assets/audit_workbooks
           mkdir -p assets/audit_workbooks
@@ -41,12 +41,40 @@ jobs:
           curl -fL "https://tmpfiles.org/dl/wSwSaRdCiLla/audit_workbooks_8h_conv.zip" -o audit_workbooks_8H_CONV.zip
           unzip -o audit_workbooks_8H_CONV.zip -d assets/audit_workbooks
 
+          rm -rf assets/mat
+          mkdir -p assets/mat
+          curl -fL "https://tmpfiles.org/dl/wfwQal7CSx8y/mat_assets_01.zip" -o mat_assets_01.zip
+          unzip -o mat_assets_01.zip -d assets/mat
+          curl -fL "https://tmpfiles.org/dl/wcwfan7JCOVQ/mat_assets_02.zip" -o mat_assets_02.zip
+          unzip -o mat_assets_02.zip -d assets/mat
+          curl -fL "https://tmpfiles.org/dl/w3wcaj7FC9tK/mat_assets_03.zip" -o mat_assets_03.zip
+          unzip -o mat_assets_03.zip -d assets/mat
+          curl -fL "https://tmpfiles.org/dl/wnwGar7aC9Y6/mat_assets_04.zip" -o mat_assets_04.zip
+          unzip -o mat_assets_04.zip -d assets/mat
+          curl -fL "https://tmpfiles.org/dl/wuwCaJ7wCYie/mat_assets_05.zip" -o mat_assets_05.zip
+          unzip -o mat_assets_05.zip -d assets/mat
+          curl -fL "https://tmpfiles.org/dl/wcwJax7YC34n/mat_assets_06.zip" -o mat_assets_06.zip
+          unzip -o mat_assets_06.zip -d assets/mat
+          curl -fL "https://tmpfiles.org/dl/wUw5aj7FCkEG/mat_assets_07.zip" -o mat_assets_07.zip
+          unzip -o mat_assets_07.zip -d assets/mat
+          curl -fL "https://tmpfiles.org/dl/wgwDae7BraVe/mat_assets_08.zip" -o mat_assets_08.zip
+          unzip -o mat_assets_08.zip -d assets/mat
+          curl -fL "https://tmpfiles.org/dl/wvwGaR7Nrg0E/mat_assets_09.zip" -o mat_assets_09.zip
+          unzip -o mat_assets_09.zip -d assets/mat
+          curl -fL "https://tmpfiles.org/dl/wzwvaq7vr93v/mat_assets_10.zip" -o mat_assets_10.zip
+          unzip -o mat_assets_10.zip -d assets/mat
+          curl -fL "https://tmpfiles.org/dl/w4w8ar7erdQN/mat_assets_11.zip" -o mat_assets_11.zip
+          unzip -o mat_assets_11.zip -d assets/mat
+
           python3 - <<'PY'
           from pathlib import Path
-          count = len(list(Path('assets/audit_workbooks').glob('*.xlsx')))
-          if count != 377:
-              raise SystemExit(f'Expected 377 workbook files, found {count}')
-          print(f'Installed {count} workbook files')
+          workbook_count = len(list(Path('assets/audit_workbooks').glob('*.xlsx')))
+          mat_count = len(list(Path('assets/mat').glob('*.mat')))
+          if workbook_count != 377:
+              raise SystemExit(f'Expected 377 workbook files, found {workbook_count}')
+          if mat_count != 329:
+              raise SystemExit(f'Expected 329 MAT files, found {mat_count}')
+          print(f'Installed {workbook_count} workbook files and {mat_count} MAT files')
           PY
 
       - name: Link audit charts in index
@@ -58,8 +86,8 @@ jobs:
           html = p.read_text(encoding='utf-8')
           html = re.sub(r'\s*<link rel="stylesheet" href="assets/css/audit_charts\.css(?:\?v=[^"]*)?">\s*', '\n', html)
           html = re.sub(r'\s*<script src="assets/js/audit_charts\.js(?:\?v=[^"]*)?"></script>\s*', '\n', html)
-          css = '  <link rel="stylesheet" href="assets/css/audit_charts.css?v=20260704-copy3">'
-          js = '  <script src="assets/js/audit_charts.js?v=20260704-copy3"></script>'
+          css = '  <link rel="stylesheet" href="assets/css/audit_charts.css?v=20260704-mat-v4">'
+          js = '  <script src="assets/js/audit_charts.js?v=20260704-mat-v4"></script>'
           html = html.replace('</head>', css + '\n</head>')
           html = html.replace('</body>', js + '\n</body>')
           p.write_text(html, encoding='utf-8')
@@ -71,9 +99,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A index.html assets
           if git diff --cached --quiet; then
-            echo "Audit charts already installed."
+            echo "Audit charts and MAT downloads already installed."
           else
-            git commit -m "Install audit charts light-mode hardening [skip sync] [skip audit install]"
+            git commit -m "Install audit MAT downloads [skip sync] [skip audit install]"
             git pull --rebase origin main
             git push
           fi
