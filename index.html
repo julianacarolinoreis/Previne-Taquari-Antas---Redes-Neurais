@@ -214,6 +214,21 @@
   .net-diagram svg{display:block;width:100%;height:auto;max-width:340px}
   .m-soon{border:1.5px dashed var(--baseline);border-radius:8px;padding:10px 14px;color:var(--muted);font-size:12.5px;margin-top:18px;line-height:1.5}
 
+  /* ---------- mapa das estações ---------- */
+  .map-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;align-items:stretch}
+  @media (max-width:820px){ .map-grid{grid-template-columns:1fr} }
+  #mapa{height:440px;border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow);background:var(--surface-2)}
+  .map-fallback{display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:13px;padding:24px}
+  .stations{display:flex;flex-direction:column;gap:8px;max-height:440px;overflow:auto}
+  .station{
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:10px 14px;box-shadow:var(--shadow);display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start;
+  }
+  .station .st-dot{width:12px;height:12px;border-radius:50%;margin-top:4px;border:2px solid var(--surface)}
+  .station .st-name{font-weight:650;font-size:13.5px}
+  .station .st-meta{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .map-note{font-size:12px;color:var(--muted);margin-top:10px;text-align:center}
+
   /* ---------- achados ---------- */
   .finds-h{font-size:13.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:30px 0 12px;font-weight:700;text-align:center;display:flex;align-items:center;gap:10px;justify-content:center}
   .finds-h::before,.finds-h::after{content:"";height:1px;background:var(--grid);flex:1;max-width:180px}
@@ -482,6 +497,19 @@
           modelo, e só dele.</div>
       </div>
     </div>
+  </section>
+
+  <section class="sec">
+    <span class="kicker">a bacia</span>
+    <h2>Onde ficam as estações</h2>
+    <p class="sec-sub">A estação-alvo em Santa Tereza, a estação de montante que alimenta a montagem alternativa
+      e as estações vizinhas da bacia das Antas usadas na convencional. Clique nos marcadores para os detalhes.</p>
+    <div class="map-grid">
+      <div id="mapa"><div class="map-fallback">Carregando o mapa…</div></div>
+      <div class="stations" id="stations"></div>
+    </div>
+    <p class="map-note">Posições aproximadas (sede municipal ou trecho do rio) — serão refinadas com as coordenadas
+      oficiais da rede de hidrotelemetria. Dados de nível: estações fluviométricas da rede ANA/SGB — séries históricas no Hidroweb (snirh.gov.br/hidroweb).</p>
   </section>
 
   <section class="sec">
@@ -966,6 +994,124 @@
   }
   renderLb();
 
+  const MATDESC = {
+    'EXCEL':'planilha de origem dos dados', 'PLAN':'aba da planilha usada',
+    'input':'número de inputs da rede', 'faixaEntrada':'células dos inputs na planilha',
+    'faixaSaida':'células da saída (alvo)', 'CEL':'células auxiliares', 'SERIE':'células da coluna de série/conjunto',
+    'nh':'neurônios na camada oculta', 'nit':'inicializações independentes do treino',
+    'Cic':'ciclos máximos de treinamento', 'file':'caminho do próprio arquivo .mat',
+    'gravarExcel':'flag: gravar resultados no Excel', 'arquivoCSV':'CSV de resultados da rodada',
+    'DADOS':'matriz completa de dados da planilha', 'f':'folga dos limites de escalonamento',
+    'Prc':'precisão/taxa de aprendizado', 'Mom':'momentum do gradiente',
+    'X':'vetor auxiliar da série', 'treina':'conjunto de treino', 'valida':'conjunto de validação',
+    'verifica':'conjunto de teste (verificação)', 'i':'contador da inicialização retida',
+    'unisig':'função de ativação sigmóide', 'dunisig':'derivada da sigmóide',
+    'limsup':'limite superior com folga', 'liminf':'limite inferior com folga',
+    'esclin':'escalonamento linear (normalização)', 'reclin':'reescalonamento (desnormalização)',
+    'Pt':'inputs do treino (escalonados)', 'Tt':'alvo do treino', 'Ptv':'inputs da validação',
+    'Ttv':'alvo da validação', 'Pv':'inputs do teste', 'Tv':'alvo do teste',
+    'Ptot':'inputs da série completa', 'Ttot':'alvo da série completa',
+    'EVmin':'menor erro de validação atingido', 'As':'ativação da saída', 'Ds':'derivada da ativação da saída',
+    'Ah':'ativação da camada oculta', 'Dh':'derivada da ativação da oculta',
+    'Ut':'nível atual no treino (persistência)', 'Utv':'nível atual na validação', 'Uv':'nível atual no teste',
+    'Utot':'nível atual na série completa', 'ae':'coeficientes de escala dos inputs',
+    'be':'interceptos de escala dos inputs', 'ls':'limite superior da saída', 'li':'limite inferior da saída',
+    'au':'escala da saída', 'bu':'intercepto da saída',
+    'pt':'inputs do treino normalizados', 'ptv':'inputs da validação normalizados', 'pv':'inputs do teste normalizados',
+    'ptot':'série completa normalizada', 'tt':'alvo do treino normalizado', 'ttv':'alvo da validação normalizado',
+    'tv':'alvo do teste normalizado', 'ttot':'alvo completo normalizado',
+    'wh':'pesos da camada oculta', 'bh':'vieses da camada oculta',
+    'ws':'pesos da camada de saída', 'bs':'viés da saída', 'J':'custo final do treino',
+    'EQ':'curva do erro quadrático no treino, por ciclo', 'EV':'curva do erro na validação, por ciclo',
+    'TX':'taxa de aprendizado por ciclo', 'DE':'variação do erro por ciclo',
+    'ATUAL_TOT':'persistência (nível atual) na série completa', 'ATUAL_VER':'persistência no teste',
+    'ATUAL_VAL':'persistência na validação', 'Tctot1':'saída calculada na série completa',
+    'Tc1':'saída calculada no teste', 'Tcval1':'saída calculada na validação',
+    'Tv1':'alvo do teste (cm)', 'Ttv1':'alvo da validação (cm)',
+    'eabs':'erros absolutos no teste', 'p':'percentis analisados (50–100%)',
+    'emed_abs':'erro absoluto médio (cm)', 'g':'erro em cada percentil (cm)',
+    'e2':'erros quadráticos no teste', 'e2val':'erros quadráticos na validação',
+    'NASH':'Nash-Sutcliffe no teste', 'MPERS':'série da métrica de persistência',
+    'NASH_VAL':'Nash-Sutcliffe na validação', 'PERS':'índice de persistência no teste',
+    'CORRELACAO':'matriz de correlação obs × RNA', 'ERRO_RELATIVO':'erro relativo médio',
+    'emed_abs_mean':'erro absoluto médio normalizado', 'e95':'percentil 95 do erro absoluto (cm)',
+    'RESULTS':'vetor-resumo: NASH, PERS, correlação, erros, NASH_VAL, J'
+  };
+  /* ---------------- mapa das estações ---------------- */
+  const STATIONS=[
+    {name:'Santa Tereza', code:'86472600', papel:'Estação-alvo — onde o nível é previsto', grp:'alvo', lat:-29.166, lon:-51.735,
+     extra:'Rio Taquari · inputs de nível atual e defasagens em todos os modelos'},
+    {name:'Santa Tereza montante', code:'86472000', papel:'Estação de montante — telemetria de alta frequência (ALT)', grp:'alt', lat:-29.135, lon:-51.712,
+     extra:'Alimenta as defasagens D-1h a A-20h da montagem alternativa'},
+    {name:'Veranópolis', code:'86448000', papel:'Estação vizinha — bacia das Antas', grp:'conv', lat:-28.936, lon:-51.549,
+     extra:'Níveis com defasagens D-12h/D-14h'},
+    {name:'Carreiro', code:'86507000', papel:'Estação no rio Carreiro', grp:'conv', lat:null, lon:null,
+     extra:'Níveis com defasagens D-14h/D-16h · coordenada a confirmar'},
+    {name:'Ituim', code:'86125130', papel:'Estação no rio Ituim', grp:'conv', lat:null, lon:null,
+     extra:'Níveis com defasagem D-11h/D-12h · coordenada a confirmar'},
+    {name:'Prata Caxias', code:'86125500', papel:'Estação no rio da Prata', grp:'conv', lat:null, lon:null,
+     extra:'Coordenada a confirmar'},
+    {name:'Estação 86298000', code:'86298000', papel:'Estação usada na montagem convencional do 2h', grp:'conv', lat:null, lon:null,
+     extra:'Identificação e coordenada a confirmar'},
+    {name:'Antônio Prado', code:'—', papel:'Município com estação vizinha (CONV)', grp:'conv', lat:-28.858, lon:-51.283, extra:''},
+    {name:'Nova Roma do Sul', code:'—', papel:'Município com estação vizinha (CONV)', grp:'conv', lat:-28.988, lon:-51.410, extra:''},
+    {name:'Caxias do Sul', code:'—', papel:'Município com estação vizinha (CONV)', grp:'conv', lat:-29.168, lon:-51.179, extra:''},
+    {name:'Muitos Capões', code:'—', papel:'Município com estação vizinha (CONV)', grp:'conv', lat:-28.317, lon:-51.184, extra:''},
+    {name:'Cotiporã', code:'—', papel:'Município com estação vizinha (CONV)', grp:'conv', lat:-28.987, lon:-51.697, extra:''}
+  ];
+  const GRPCOLOR={alvo:'#e8a317', alt:'#2532e4', conv:'#1b7a5a'};
+  (function renderStations(){
+    const list=document.getElementById('stations'); if(!list) return;
+    STATIONS.forEach(st=>{
+      const c=document.createElement('div'); c.className='station';
+      const d=document.createElement('span'); d.className='st-dot'; d.style.background=GRPCOLOR[st.grp];
+      const body=document.createElement('div');
+      const n=document.createElement('div'); n.className='st-name'; n.textContent=st.name;
+      const meta=document.createElement('div'); meta.className='st-meta';
+      meta.textContent=(st.code!=='—'?'código '+st.code+' · ':'')+st.papel+(st.extra?' · '+st.extra:'');
+      body.append(n,meta);
+      if(st.code!=='—'){
+        const lk=document.createElement('a'); lk.className='st-meta';
+        lk.href='https://www.snirh.gov.br/hidroweb/serieshistoricas'; lk.target='_blank'; lk.rel='noopener';
+        lk.textContent='consultar no Hidroweb/ANA (buscar pelo código '+st.code+') ↗';
+        lk.style.display='inline-block'; lk.style.marginTop='2px'; lk.style.color='var(--chrome)';
+        body.appendChild(lk);
+      }
+      c.append(d,body); list.appendChild(c);
+    });
+  })();
+  (function initMap(){
+    const box=document.getElementById('mapa'); if(!box) return;
+    const fail=msg=>{ box.replaceChildren(); const f=document.createElement('div'); f.className='map-fallback';
+      f.textContent=msg; box.appendChild(f); };
+    const css=document.createElement('link'); css.rel='stylesheet';
+    css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head ? document.head.appendChild(css) : document.body.appendChild(css);
+    const js=document.createElement('script');
+    js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    js.onerror=()=>fail('O mapa interativo carrega no site publicado (requer acesso à internet para o Leaflet/OpenStreetMap).');
+    js.onload=()=>{
+      try{
+        box.replaceChildren();
+        const map=L.map(box,{scrollWheelZoom:false}).setView([-28.95,-51.45],9);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+          maxZoom:17, attribution:'© OpenStreetMap'
+        }).addTo(map);
+        STATIONS.filter(s=>s.lat!=null).forEach(st=>{
+          const mk=L.circleMarker([st.lat,st.lon],{
+            radius:st.grp==='alvo'?11:8, color:'#fff', weight:2,
+            fillColor:GRPCOLOR[st.grp], fillOpacity:0.95
+          }).addTo(map);
+          mk.bindPopup('<strong>'+st.name+'</strong><br>'+
+            (st.code!=='—'?'Código: '+st.code+'<br>':'')+st.papel+
+            (st.extra?'<br><small>'+st.extra+'</small>':'')+
+            '<br><small>posição aproximada</small>');
+        });
+      }catch(e){ fail('Não foi possível montar o mapa: '+e.message); }
+    };
+    document.body.appendChild(js);
+  })();
+
   /* ---------------- base auditável (séries ponto a ponto) ---------------- */
   const AUDIT_URL='assets/data/auditaveis_series.json';
   let AUDIT=null, AUDIT_ERR=null, AUDIT_LOADING=null, AUDIT_IDX=null;
@@ -1258,38 +1404,37 @@
         (mt.mod?', gravado em '+mt.mod.replace('T',' '):'')+
         '). Ativação: sigmóide logística na camada oculta, linear na saída. Métricas do MATLAB calculadas nos recortes da própria rodada.';
       mb.appendChild(note);
-      if(mt.all && mt.all.length){
-        const det=document.createElement('details'); det.className='m-det';
-        const sum=document.createElement('summary'); sum.textContent='Todas as variáveis de métrica do .mat ('+mt.all.length+')';
+      if(mt.vars && mt.vars.length){
+        const det=document.createElement('details'); det.className='m-det'; det.open=true;
+        const sum=document.createElement('summary');
+        sum.textContent='Workspace do MATLAB — todas as '+mt.vars.length+' variáveis do .mat';
         det.appendChild(sum);
         const wrap=document.createElement('div'); wrap.className='det-wrap';
         const tb=document.createElement('table');
         const thr=document.createElement('tr');
-        ['Variável','Valor'].forEach(t=>{const th=document.createElement('th'); th.textContent=t; thr.appendChild(th);});
+        ['Variável','O que é','Dimensões','Valor'].forEach(t=>{const th=document.createElement('th'); th.textContent=t; thr.appendChild(th);});
         tb.appendChild(thr);
-        mt.all.forEach(([nm,vl])=>{
-          const tr=document.createElement('tr');
-          const t1=document.createElement('td'); t1.textContent=nm;
-          const t2=document.createElement('td'); t2.textContent=vl;
-          tr.append(t1,t2); tb.appendChild(tr);
-        });
-        wrap.appendChild(tb); det.appendChild(wrap); mb.appendChild(det);
-      }
-      if(mt.vars && mt.vars.length){
-        const det2=document.createElement('details'); det2.className='m-det';
-        const sum2=document.createElement('summary'); sum2.textContent='Estrutura do arquivo — todas as variáveis e dimensões ('+mt.vars.length+')';
-        det2.appendChild(sum2);
-        const wrap2=document.createElement('div'); wrap2.className='det-wrap';
-        const tb2=document.createElement('table');
-        const thr2=document.createElement('tr');
-        ['Variável','Classe','Dimensões'].forEach(t=>{const th=document.createElement('th'); th.textContent=t; thr2.appendChild(th);});
-        tb2.appendChild(thr2);
+        const valMap=new Map((mt.all||[]).map(([n,v])=>[n,v]));
         mt.vars.forEach(([nm,cl,sh])=>{
           const tr=document.createElement('tr');
-          [nm,cl,sh].forEach(x=>{const td=document.createElement('td'); td.textContent=x; tr.appendChild(td);});
-          tb2.appendChild(tr);
+          const t1=document.createElement('td'); t1.textContent=nm;
+          const t2=document.createElement('td'); t2.textContent=MATDESC[nm]||'';
+          const t3=document.createElement('td'); t3.textContent=(sh||'')+(cl?' ('+cl+')':'');
+          const t4=document.createElement('td');
+          t4.textContent = valMap.has(nm) ? valMap.get(nm) : 'valores completos no arquivo .mat';
+          if(!valMap.has(nm)) t4.style.color='var(--muted)';
+          tr.append(t1,t2,t3,t4); tb.appendChild(tr);
         });
-        wrap2.appendChild(tb2); det2.appendChild(wrap2); mb.appendChild(det2);
+        (mt.all||[]).forEach(([nm,v])=>{
+          if(mt.vars.some(x=>x[0]===nm)) return;
+          const tr=document.createElement('tr');
+          const t1=document.createElement('td'); t1.textContent=nm;
+          const t2=document.createElement('td'); t2.textContent=MATDESC[nm]||'';
+          const t3=document.createElement('td'); t3.textContent='';
+          const t4=document.createElement('td'); t4.textContent=v;
+          tr.append(t1,t2,t3,t4); tb.appendChild(tr);
+        });
+        wrap.appendChild(tb); det.appendChild(wrap); mb.appendChild(det);
       }
       box.appendChild(mb);
     }
