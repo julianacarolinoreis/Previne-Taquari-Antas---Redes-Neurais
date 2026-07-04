@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   install:
-    if: ${{ !contains(github.event.head_commit.message, '[skip audit install]') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip audit install]') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,23 +20,12 @@ jobs:
 
       - name: Download audit chart assets
         run: |
-          curl -fL "https://tmpfiles.org/dl/wtw5aLnHtdCO/audit_charts_package.zip" -o audit_charts_package.zip
+          curl -fL "https://tmpfiles.org/dl/wdwjaYnouNZB/audit_charts_package.zip" -o audit_charts_package.zip
           unzip -o audit_charts_package.zip -d .
 
       - name: Link audit charts in index
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('index.html')
-          html = p.read_text(encoding='utf-8')
-          css = '  <link rel="stylesheet" href="assets/css/audit_charts.css">'
-          js = '  <script src="assets/js/audit_charts.js"></script>'
-          if 'assets/css/audit_charts.css' not in html:
-              html = html.replace('</head>', css + '\n</head>')
-          if 'assets/js/audit_charts.js' not in html:
-              html = html.replace('</body>', js + '\n</body>')
-          p.write_text(html, encoding='utf-8')
-          PY
+        run: >-
+          python3 -c "from pathlib import Path; p=Path('index.html'); html=p.read_text(encoding='utf-8'); css='  <link rel=\"stylesheet\" href=\"assets/css/audit_charts.css\">'; js='  <script src=\"assets/js/audit_charts.js\"></script>'; html=html if 'assets/css/audit_charts.css' in html else html.replace('</head>', css + '\n</head>'); html=html if 'assets/js/audit_charts.js' in html else html.replace('</body>', js + '\n</body>'); p.write_text(html, encoding='utf-8')"
 
       - name: Commit installed charts
         run: |
