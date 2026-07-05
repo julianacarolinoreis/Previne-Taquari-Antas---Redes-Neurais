@@ -1117,7 +1117,15 @@
 
   /* ---------------- base auditável (séries ponto a ponto) ---------------- */
   const AUDIT_URL='assets/data/auditaveis_series.json';
+  const DOWNLOAD_BASE='https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/download-assets/';
   let AUDIT=null, AUDIT_ERR=null, AUDIT_LOADING=null, AUDIT_IDX=null;
+  function downloadUrl(url){
+    if(!url) return url;
+    const value=String(url);
+    if(/^https?:\/\//i.test(value)) return value;
+    if(value.indexOf('assets/audit_workbooks/')===0 || value.indexOf('assets/mat/')===0) return DOWNLOAD_BASE+value;
+    return value;
+  }
   function loadAudit(){
     if(AUDIT||AUDIT_ERR) return Promise.resolve();
     if(!AUDIT_LOADING){
@@ -1141,11 +1149,6 @@
     return null;
   }
   const MESES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  function fmtEventoData(value){
-    if(!value) return '';
-    const m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
-    return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
-  }
   function fmtEventoData(value){
     if(!value) return '';
     const m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -1392,11 +1395,11 @@
     const hf=document.createElement('h4'); hf.textContent='Arquivos de rastreio'; files.appendChild(hf);
     const fl=document.createElement('div'); fl.className='m-files';
     const au=auditFor(m);
-    if(au && au.workbookUrl) fl.appendChild(fileRow('⬇ Baixar planilha auditável (.xlsx)', '', au.workbookUrl));
+    if(au && au.workbookUrl) fl.appendChild(fileRow('⬇ Baixar planilha auditável (.xlsx)', '', downloadUrl(au.workbookUrl)));
     if(m.arquivo_auditavel) fl.appendChild(fileRow('Planilha auditável', m.arquivo_auditavel));
     if(m.arquivo_mat){
       const base = m.arquivo_mat.replace(/\\/g,'/').split('/').pop();
-      const matUrl = 'assets/mat/'+base;
+      const matUrl = downloadUrl('assets/mat/'+base);
       const slot=document.createElement('div'); fl.appendChild(slot);
       slot.appendChild(fileRow('Modelo treinado (.mat)', m.arquivo_mat));
       fetch(matUrl,{method:'HEAD'}).then(r=>{
@@ -1761,7 +1764,7 @@
             btn.textContent='…';
             loadAudit().then(()=>{
               const au=auditFor(m);
-              if(au&&au.workbookUrl){ btn.textContent='⬇ xlsx'; window.open(au.workbookUrl,'_blank'); }
+              if(au&&au.workbookUrl){ btn.textContent='⬇ xlsx'; window.open(downloadUrl(au.workbookUrl),'_blank'); }
               else { btn.textContent='indisponível'; }
             });
           });

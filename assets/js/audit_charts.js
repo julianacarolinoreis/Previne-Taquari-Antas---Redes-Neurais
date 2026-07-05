@@ -2,6 +2,7 @@
   const DATA_URL = 'assets/data/auditaveis_series.json';
   const INVENTORY_URL = 'assets/data/auditoria_inventario.json';
   const RAW_BUNDLE_URL = 'assets/data/logs_metricas_brutos.zip';
+  const DOWNLOAD_BASE = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/download-assets/';
   const COLORS = {
     treino: '#898781',
     validacao: '#2a78d6',
@@ -23,6 +24,16 @@
   let inventoryLoading = null;
   let mainModels = [];
   let state = { family: 'TODAS', modelId: '', eventKey: '', scope: 'all', mainModelName: '' };
+
+  function downloadUrl(url) {
+    if (!url) return url;
+    const value = String(url);
+    if (/^https?:\/\//i.test(value)) return value;
+    if (value.indexOf('assets/audit_workbooks/') === 0 || value.indexOf('assets/mat/') === 0) {
+      return DOWNLOAD_BASE + value;
+    }
+    return value;
+  }
 
   function init() {
     enforceLightAndLayout();
@@ -418,11 +429,13 @@
     }
     const main = currentMainModel();
     const source = model.sourceRef || model.file || '-';
-    const workbook = model.workbookUrl
-      ? '<a class="audit-download-btn" href="' + escapeAttr(model.workbookUrl) + '" download>Baixar planilha auditavel (.xlsx)</a>'
+    const workbookHref = downloadUrl(model.workbookUrl);
+    const matHref = downloadUrl(model.matUrl);
+    const workbook = workbookHref
+      ? '<a class="audit-download-btn" href="' + escapeAttr(workbookHref) + '" download>Baixar planilha auditavel (.xlsx)</a>'
       : '<span class="audit-muted">Planilha individual nao copiada para o site.</span>';
-    const mat = model.matUrl
-      ? '<a class="audit-download-btn audit-download-mat" href="' + escapeAttr(model.matUrl) + '" download>Baixar modelo treinado (.mat)</a>'
+    const mat = matHref
+      ? '<a class="audit-download-btn audit-download-mat" href="' + escapeAttr(matHref) + '" download>Baixar modelo treinado (.mat)</a>'
       : '<span class="audit-muted">Modelo treinado (.mat) ainda nao publicado para este item.</span>';
     box.innerHTML = [
       '<div><strong>Selecionado:</strong> ' + escapeHtml(model.name) + '</div>',
@@ -661,7 +674,7 @@
     const workbookLinks = [];
     if (model && model.workbookUrl) {
       workbookLinks.push({
-        href: model.workbookUrl,
+        href: downloadUrl(model.workbookUrl),
         label: 'Baixar planilha auditavel do modelo',
         note: model.workbookFile || model.name,
         kind: 'xlsx'
@@ -669,7 +682,7 @@
     }
     if (model && model.matUrl) {
       workbookLinks.push({
-        href: model.matUrl,
+        href: downloadUrl(model.matUrl),
         label: 'Baixar modelo treinado (.mat)',
         note: model.matFile || model.matSourceRef || model.name,
         kind: 'mat'
@@ -678,7 +691,7 @@
     scoredFiles.filter(x => x.item && x.item.downloadUrl && x.item.ext !== '.mat' && x.item.downloadUrl !== (model && model.workbookUrl))
       .slice(0, 5)
       .forEach(x => workbookLinks.push({
-        href: x.item.downloadUrl,
+        href: downloadUrl(x.item.downloadUrl),
         label: 'Baixar planilha associada',
         note: x.item.name || x.item.ref,
         kind: 'xlsx'
@@ -714,7 +727,7 @@
   function fileActionHtml(item) {
     if (item && item.downloadUrl) {
       const isMat = item.ext === '.mat' || item.matFile || /\.mat($|\?)/i.test(String(item.downloadUrl || item.name || item.ref || ''));
-      return '<a class="audit-mini-link" href="' + escapeAttr(item.downloadUrl) + '" download>' + (isMat ? 'Baixar MAT' : 'Baixar') + '</a>';
+      return '<a class="audit-mini-link" href="' + escapeAttr(downloadUrl(item.downloadUrl)) + '" download>' + (isMat ? 'Baixar MAT' : 'Baixar') + '</a>';
     }
     if (item && item.ext === '.mat') return '<span class="audit-muted">Resumo no bloco MAT</span>';
     return '<span class="audit-muted">No pacote bruto</span>';
