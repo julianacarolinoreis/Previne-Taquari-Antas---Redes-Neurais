@@ -1,5 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">  <link rel="stylesheet" href="assets/css/audit_charts.css?v=20260704-mat-v5">
-</head><body><title>PREVINE Taquari-Antas — Redes Neurais</title>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><title>PREVINE Taquari-Antas — Redes Neurais</title>
 <!-- auditável integrado nesta página; guards de injeção: assets/css/audit_charts.css assets/js/audit_charts.js -->
 
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -509,8 +508,9 @@
       <div id="mapa"><div class="map-fallback">Carregando o mapa…</div></div>
       <div class="stations" id="stations"></div>
     </div>
-    <p class="map-note">Posições aproximadas (sede municipal ou trecho do rio) — serão refinadas com as coordenadas
-      oficiais da rede de hidrotelemetria. Dados de nível: estações fluviométricas da rede ANA/SGB — séries históricas no Hidroweb (snirh.gov.br/hidroweb).</p>
+    <p class="map-note">Marcadores cheios: posição aproximada (sede municipal ou trecho documentado). Marcadores
+      tracejados e translúcidos: <strong>posição estimada</strong>, aguardando a coordenada oficial do Hidroweb/SACE.
+      Dados de nível: estações fluviométricas da rede ANA/SGB — séries históricas no Hidroweb (snirh.gov.br/hidroweb).</p>
   </section>
 
   <section class="sec">
@@ -1041,19 +1041,19 @@
   /* ---------------- mapa das estações ---------------- */
   const STATIONS=[
     {name:'Santa Tereza', code:'86472600', papel:'Estação-alvo — onde o nível é previsto', grp:'alvo', lat:-29.166, lon:-51.735,
-     extra:'Rio Taquari · inputs de nível atual e defasagens em todos os modelos'},
-    {name:'Santa Tereza montante', code:'86472000', papel:'Estação de montante — telemetria de alta frequência (ALT)', grp:'alt', lat:-29.135, lon:-51.712,
-     extra:'Alimenta as defasagens D-1h a A-20h da montagem alternativa'},
+     extra:'Rio Taquari, junto à antiga estação ferroviária · inputs de nível em todos os modelos'},
+    {name:'Linha José Júlio (montante)', code:'86472000', papel:'Estação de montante — telemetria de alta frequência (ALT)', grp:'alt', lat:-29.0900, lon:-51.7133,
+     extra:'Rio das Antas, na divisa Cotiporã / São Valentim do Sul / Santa Tereza · alimenta as defasagens da montagem alternativa'},
     {name:'Veranópolis', code:'86448000', papel:'Estação vizinha — bacia das Antas', grp:'conv', lat:-28.936, lon:-51.549,
      extra:'Níveis com defasagens D-12h/D-14h'},
-    {name:'Carreiro', code:'86507000', papel:'Estação no rio Carreiro', grp:'conv', lat:null, lon:null,
-     extra:'Níveis com defasagens D-14h/D-16h · coordenada a confirmar'},
-    {name:'Ituim', code:'86125130', papel:'Estação no rio Ituim', grp:'conv', lat:null, lon:null,
-     extra:'Níveis com defasagem D-11h/D-12h · coordenada a confirmar'},
-    {name:'Prata Caxias', code:'86125500', papel:'Estação no rio da Prata', grp:'conv', lat:null, lon:null,
-     extra:'Coordenada a confirmar'},
+    {name:'Carreiro', code:'86507000', papel:'Estação no rio Carreiro', grp:'conv', lat:-29.005, lon:-51.760, est:true,
+     extra:'Níveis com defasagens D-14h/D-16h · posição estimada no baixo rio Carreiro'},
+    {name:'Ituim', code:'86125130', papel:'Estação no rio Ituim', grp:'conv', lat:-28.640, lon:-51.150, est:true,
+     extra:'Níveis com defasagem D-11h/D-12h · posição estimada no rio Ituim (alto Antas)'},
+    {name:'Prata Caxias', code:'86125500', papel:'Estação no rio da Prata', grp:'conv', lat:-28.900, lon:-51.100, est:true,
+     extra:'Posição estimada no rio da Prata, região de Caxias do Sul'},
     {name:'Estação 86298000', code:'86298000', papel:'Estação usada na montagem convencional do 2h', grp:'conv', lat:null, lon:null,
-     extra:'Identificação e coordenada a confirmar'},
+     extra:'Identificação e coordenada a confirmar no Hidroweb'},
     {name:'Antônio Prado', code:'—', papel:'Município com estação vizinha (CONV)', grp:'conv', lat:-28.858, lon:-51.283, extra:''},
     {name:'Nova Roma do Sul', code:'—', papel:'Município com estação vizinha (CONV)', grp:'conv', lat:-28.988, lon:-51.410, extra:''},
     {name:'Caxias do Sul', code:'—', papel:'Município com estação vizinha (CONV)', grp:'conv', lat:-29.168, lon:-51.179, extra:''},
@@ -1100,13 +1100,15 @@
         }).addTo(map);
         STATIONS.filter(s=>s.lat!=null).forEach(st=>{
           const mk=L.circleMarker([st.lat,st.lon],{
-            radius:st.grp==='alvo'?11:8, color:'#fff', weight:2,
-            fillColor:GRPCOLOR[st.grp], fillOpacity:0.95
+            radius:st.grp==='alvo'?11:8,
+            color:st.est?GRPCOLOR[st.grp]:'#fff', weight:2,
+            fillColor:GRPCOLOR[st.grp], fillOpacity:st.est?0.25:0.95,
+            dashArray:st.est?'4 3':null
           }).addTo(map);
           mk.bindPopup('<strong>'+st.name+'</strong><br>'+
             (st.code!=='—'?'Código: '+st.code+'<br>':'')+st.papel+
             (st.extra?'<br><small>'+st.extra+'</small>':'')+
-            '<br><small>posição aproximada</small>');
+            '<br><small>'+(st.est?'posição ESTIMADA — aguardando coordenada oficial':'posição aproximada')+'</small>');
         });
       }catch(e){ fail('Não foi possível montar o mapa: '+e.message); }
     };
@@ -1806,5 +1808,4 @@
   renderCharts();
 })();
 </script>
-  <script src="assets/js/audit_charts.js?v=20260704-mat-v5"></script>
 </body></html>
