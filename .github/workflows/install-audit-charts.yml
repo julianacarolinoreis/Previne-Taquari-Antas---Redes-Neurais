@@ -18,50 +18,55 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Download audit chart assets
+      - name: Download filtered audit/site assets
         run: |
           set -euo pipefail
-          curl -fL "https://tmpfiles.org/dl/wowca9tPk1wl/audit_core_package_v6.zip" -o audit_core_package.zip
+          curl -fL "https://tmpfiles.org/dl/wYwXawu87SJg/audit_core_package_pers_positive_v1.zip" -o audit_core_package.zip
           unzip -o audit_core_package.zip -d .
           test -d assets/audit_workbooks
           test -d assets/mat
 
           python3 - <<'PY'
+          import json
+          import re
           from pathlib import Path
+
+          pers_keys = ['PERS_geral', 'PERS_treino', 'PERS_validacao', 'PERS_teste']
+          html = Path('index.html').read_text(encoding='utf-8')
+          match = re.search(r'<script id="data" type="application/json">(.*?)</script>', html, re.S)
+          if not match:
+              raise SystemExit('Main data JSON block not found in index.html')
+          data = json.loads(match.group(1))
+          models = data.get('models', [])
+          if len(models) != 158:
+              raise SystemExit(f'Expected 158 positive-PERS main models, found {len(models)}')
+          bad = [m.get('modelo') for m in models if any(m.get(k) is None or m.get(k) <= 0 for k in pers_keys)]
+          if bad:
+              raise SystemExit('Found non-positive PERS models after filtering: ' + ', '.join(map(str, bad[:10])))
+
+          audit = json.loads(Path('assets/data/auditaveis_series.json').read_text(encoding='utf-8'))
+          audit_count = len(audit.get('models', []))
+          if audit_count != 313:
+              raise SystemExit(f'Expected 313 filtered audit series, found {audit_count}')
+
           workbook_count = len(list(Path('assets/audit_workbooks').glob('*.xlsx')))
           mat_count = len(list(Path('assets/mat').glob('*.mat')))
           if workbook_count != 377:
               raise SystemExit(f'Expected 377 workbook files already in repo, found {workbook_count}')
           if mat_count != 329:
               raise SystemExit(f'Expected 329 MAT files already in repo, found {mat_count}')
-          print(f'Installed audit panel v7; kept {workbook_count} workbook files and {mat_count} MAT files')
+          print(f'Installed positive-PERS site: {len(models)} main models, {audit_count} audit series, {workbook_count} workbooks, {mat_count} MAT files')
           PY
 
-      - name: Link audit charts in index
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          p = Path('index.html')
-          html = p.read_text(encoding='utf-8')
-          html = re.sub(r'\s*<link rel="stylesheet" href="assets/css/audit_charts\.css(?:\?v=[^"]*)?">\s*', '\n', html)
-          html = re.sub(r'\s*<script src="assets/js/audit_charts\.js(?:\?v=[^"]*)?"></script>\s*', '\n', html)
-          css = '  <link rel="stylesheet" href="assets/css/audit_charts.css?v=20260704-mat-v7">'
-          js = '  <script src="assets/js/audit_charts.js?v=20260704-mat-v7"></script>'
-          html = html.replace('</head>', css + '\n</head>')
-          html = html.replace('</body>', js + '\n</body>')
-          p.write_text(html, encoding='utf-8')
-          PY
-
-      - name: Commit installed charts
+      - name: Commit installed filtered site
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A index.html assets
           if git diff --cached --quiet; then
-            echo "Audit charts already installed."
+            echo "Positive-PERS site already installed."
           else
-            git commit -m "Clarify audit MAT evidence panel [skip sync] [skip audit install]"
+            git commit -m "Filter site to positive PERS models [skip sync] [skip audit install]"
             git pull --rebase origin main
             git push
           fi
