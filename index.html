@@ -1161,6 +1161,11 @@
     const m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
     return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
   }
+  function fmtEventoData(value){
+    if(!value) return '';
+    const m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+  }
   function evLabel(ev){
     const ini=fmtEventoData(ev.start), fim=fmtEventoData(ev.end);
     const periodo=ini && fim ? ini+' a '+fim : ini;
