@@ -18,52 +18,181 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Download filtered audit/site package
-        run: |
-          set -euo pipefail
-          curl --retry 5 --retry-delay 5 --retry-all-errors -A "Mozilla/5.0" -fL "https://tmpfiles.org/dl/wYwXawu87SJg/audit_core_package_pers_positive_v1.zip" -o audit_core_package.zip
-          unzip -o audit_core_package.zip -d .
-          test -f index.html
-          test -f assets/data/auditaveis_series.json
-          test -f assets/js/audit_charts.js
-          test -f assets/css/audit_charts.css
-
-      - name: Validate positive PERS filter
+      - name: Filter site to positive PERS models
         run: |
           python3 - <<'PY'
           import json
           import re
+          from collections import Counter
           from pathlib import Path
 
-          pers_keys = ['PERS_geral', 'PERS_treino', 'PERS_validacao', 'PERS_teste']
-          html = Path('index.html').read_text(encoding='utf-8')
-          match = re.search(r'<script id="data" type="application/json">(.*?)</script>', html, re.S)
+          PERS_KEYS = ['PERS_geral', 'PERS_treino', 'PERS_validacao', 'PERS_teste']
+
+          def norm(value):
+              return re.sub(r'[^a-z0-9]+', '_', str(value or '').lower()).strip('_')
+
+          def has_all_positive_pers(model):
+              return all(isinstance(model.get(key), (int, float)) and model.get(key) > 0 for key in PERS_KEYS)
+
+          def main_score(audit, main):
+              score = 0
+              family = norm(audit.get('family'))
+              combo = norm(audit.get('combo'))
+              rotation = norm(audit.get('rotation'))
+              audit_name = norm(audit.get('name'))
+              audit_id = norm(audit.get('id'))
+              main_name = norm(main.get('modelo'))
+              main_family = norm(main.get('familia'))
+              main_combo = norm(main.get('combo_id'))
+              main_rotation = norm(main.get('rotacao'))
+              if audit_name and audit_name == main_name:
+                  return 999
+              if audit_id and audit_id == main_name:
+                  return 999
+              if family and family == main_family:
+                  score += 20
+              if combo and (combo == main_combo or combo in main_name):
+                  score += 25
+              if rotation and (rotation == main_rotation or rotation in main_name):
+                  score += 20
+              if audit_name and main_name and (audit_name in main_name or main_name in audit_name):
+                  score += 40
+              return score
+
+          def find_positive_main(audit, positive_models):
+              best_score = -1
+              best = None
+              for main in positive_models:
+                  score = main_score(audit, main)
+                  if score > best_score:
+                      best_score = score
+                      best = main
+              return best if best_score >= 40 else None
+
+          index_path = Path('index.html')
+          html = index_path.read_text(encoding='utf-8')
+          match = re.search(r'(<script id="data" type="application/json">)(.*?)(</script>)', html, re.S)
           if not match:
               raise SystemExit('Main data JSON block not found in index.html')
-          data = json.loads(match.group(1))
-          models = data.get('models', [])
-          if len(models) != 158:
-              raise SystemExit(f'Expected 158 positive-PERS main models, found {len(models)}')
-          bad = [m.get('modelo') for m in models if any(m.get(k) is None or m.get(k) <= 0 for k in pers_keys)]
-          if bad:
-              raise SystemExit('Found non-positive PERS models after filtering: ' + ', '.join(map(str, bad[:10])))
+          data = json.loads(match.group(2))
+          original_main = data.get('models', [])
+          positive_main = [model for model in original_main if has_all_positive_pers(model)]
+          data['models'] = positive_main
+          data['positivePersFilter'] = {
+              'rule': 'PERS_geral, PERS_treino, PERS_validacao e PERS_teste precisam ser positivos.',
+              'originalModelCount': len(original_main),
+              'keptModelCount': len(positive_main),
+              'removedModelCount': len(original_main) - len(positive_main),
+          }
+          compact = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+          html = html[:match.start(2)] + compact + html[match.end(2):]
+          html = re.sub(r'audit_charts\.css(?:\?v=[^"\']*)?', 'audit_charts.css?v=20260705-pers-positive-v1', html)
+          html = re.sub(r'audit_charts\.js(?:\?v=[^"\']*)?', 'audit_charts.js?v=20260705-pers-positive-v1', html)
+          html = html.replace('239 modelos em 10 rodadas', '158 modelos com PERS positivos')
+          html = html.replace('Exploração dos 239 modelos', 'Exploração dos modelos com PERS positivos')
+          html = html.replace('todos os 239 modelos', 'os 158 modelos com todos os PERS positivos')
+          html = html.replace('239 modelos', '158 modelos com PERS positivos')
+          index_path.write_text(html, encoding='utf-8')
 
-          audit = json.loads(Path('assets/data/auditaveis_series.json').read_text(encoding='utf-8'))
-          audit_count = len(audit.get('models', []))
-          if audit_count != 313:
-              raise SystemExit(f'Expected 313 filtered audit series, found {audit_count}')
+          audit_path = Path('assets/data/auditaveis_series.json')
+          audit = json.loads(audit_path.read_text(encoding='utf-8'))
+          original_audit = audit.get('models', [])
+          kept_audit = []
+          kept_names = set()
+          for item in original_audit:
+              main = find_positive_main(item, positive_main)
+              if main:
+                  item['positivePersMainModel'] = main.get('modelo')
+                  kept_audit.append(item)
+                  kept_names.add(norm(item.get('id')))
+                  kept_names.add(norm(item.get('name')))
+          audit['models'] = kept_audit
+          audit['eventRiseTop'] = [row for row in audit.get('eventRiseTop', []) if norm(row.get('model')) in kept_names]
+          families = Counter(model.get('family') or 'OUTROS' for model in kept_audit)
+          point_count = 0
+          for model in kept_audit:
+              by_set = model.get('scatterBySet') or {}
+              if by_set:
+                  point_count += sum(len(points) for points in by_set.values() if isinstance(points, list))
+              elif isinstance(model.get('scatter'), list):
+                  point_count += len(model['scatter'])
+          meta = dict(audit.get('meta') or {})
+          meta.update({
+              'modelCount': len(kept_audit),
+              'pointCount': point_count,
+              'families': dict(sorted(families.items())),
+              'positivePersFilter': 'Mantidos apenas modelos associados ao planilhao principal com PERS_geral, PERS_treino, PERS_validacao e PERS_teste positivos.',
+              'originalAuditModelCount': len(original_audit),
+              'removedAuditModelCount': len(original_audit) - len(kept_audit),
+          })
+          audit['meta'] = meta
+          audit_path.write_text(json.dumps(audit, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
 
-          workbook_count = len(list(Path('assets/audit_workbooks').glob('*.xlsx')))
-          mat_count = len(list(Path('assets/mat').glob('*.mat')))
-          print(f'Positive-PERS validation OK: {len(models)} main models, {audit_count} audit series')
-          print(f'Published evidence files visible after checkout: {workbook_count} workbooks, {mat_count} MAT files')
+          js_path = Path('assets/js/audit_charts.js')
+          js = js_path.read_text(encoding='utf-8')
+          if 'POSITIVE_PERS_KEYS' not in js:
+              js = js.replace(
+                  "  const FAMILY_ORDER = ['2H_ALT', '2H_CONV', '4H_ALT', '4H_CONV', '8H_ALT', '8H_CONV', '12H_ALT', '12H_CONV'];\n  const nf = new Intl.NumberFormat('pt-BR');",
+                  "  const FAMILY_ORDER = ['2H_ALT', '2H_CONV', '4H_ALT', '4H_CONV', '8H_ALT', '8H_CONV', '12H_ALT', '12H_CONV'];\n  const POSITIVE_PERS_KEYS = ['PERS_geral', 'PERS_treino', 'PERS_validacao', 'PERS_teste'];\n  const nf = new Intl.NumberFormat('pt-BR');"
+              )
+              js = js.replace('        payload = data;\n        rewriteIntroForResults();', '        payload = data;\n        applyPositivePersFilterToAuditPayload();\n        rewriteIntroForResults();')
+              js = js.replace('      return Array.isArray(data.models) ? data.models : [];', '      return Array.isArray(data.models) ? data.models.filter(hasAllPositivePers) : [];')
+              helpers = """
+
+  function hasAllPositivePers(model) {
+    return !!model && POSITIVE_PERS_KEYS.every(key => typeof model[key] === 'number' && model[key] > 0);
+  }
+
+  function applyPositivePersFilterToAuditPayload() {
+    if (!payload || !Array.isArray(payload.models) || !mainModels.length) return;
+    payload.models = payload.models.filter(model => !!findMainForAudit(model));
+    const keptNames = new Set(payload.models.flatMap(model => [norm(model.id), norm(model.name)]).filter(Boolean));
+    payload.eventRiseTop = (payload.eventRiseTop || []).filter(row => keptNames.has(norm(row.model)));
+    const families = {};
+    let pointCount = 0;
+    payload.models.forEach(model => {
+      const family = model.family || 'OUTROS';
+      families[family] = (families[family] || 0) + 1;
+      if (model.scatterBySet) {
+        Object.values(model.scatterBySet).forEach(points => { pointCount += Array.isArray(points) ? points.length : 0; });
+      } else if (Array.isArray(model.scatter)) {
+        pointCount += model.scatter.length;
+      }
+    });
+    payload.meta = Object.assign({}, payload.meta || {}, {
+      modelCount: payload.models.length,
+      pointCount: pointCount || (payload.meta && payload.meta.pointCount) || 0,
+      families,
+      positivePersFilter: 'Mantidos apenas modelos associados a registros do planilhão com PERS_geral, PERS_treino, PERS_validacao e PERS_teste positivos.'
+    });
+  }
+"""
+              js = js.replace('\n  function setupControls() {', helpers + '\n  function setupControls() {')
+          js = re.sub(
+              r"stamp\.textContent = 'Pesquisa em desenvolvimento.*?base atualizada em 04/07/2026';",
+              "stamp.textContent = 'Pesquisa em desenvolvimento · ' + nf.format(mainModels.length || 158) + ' modelos com todos os PERS positivos no planilhão principal' + (payload && payload.meta ? ' + ' + nf.format(payload.meta.modelCount) + ' séries auditáveis filtradas' : '') + ' · base atualizada em 05/07/2026';",
+              js,
+              flags=re.S,
+          )
+          js = js.replace("setSectionTitle('Exploração dos 239 modelos', 'Exploração do planilhão principal');", "setSectionTitle('Exploração dos 239 modelos', 'Exploração dos modelos com PERS positivos');")
+          js_path.write_text(js, encoding='utf-8')
+
+          if len(positive_main) != 158:
+              raise SystemExit(f'Expected 158 positive main models, found {len(positive_main)}')
+          if any(any(model.get(key) is None or model.get(key) <= 0 for key in PERS_KEYS) for model in positive_main):
+              raise SystemExit('Found a model with non-positive PERS after filtering')
+          if len(kept_audit) != 313:
+              raise SystemExit(f'Expected 313 filtered audit series, found {len(kept_audit)}')
+          print('Filtered main models:', len(original_main), '->', len(positive_main))
+          print('Filtered audit series:', len(original_audit), '->', len(kept_audit))
+          print('Positive family counts:', dict(Counter(model.get('familia') for model in positive_main)))
           PY
 
       - name: Commit installed filtered site
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A index.html assets
+          git add -A index.html assets/js/audit_charts.js assets/data/auditaveis_series.json
           if git diff --cached --quiet; then
             echo "Positive-PERS site already installed."
           else
