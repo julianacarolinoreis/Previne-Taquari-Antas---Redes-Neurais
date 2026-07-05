@@ -6,6 +6,20 @@ from pathlib import Path
 
 PERS_KEYS = ["PERS_geral", "PERS_treino", "PERS_validacao", "PERS_teste"]
 CACHE_VERSION = "20260705-lazy-audit-v3"
+MOBILE_REDIRECT = """<script id=\"mobile-light-redirect\">
+(function () {
+  var full = /(?:[?&])full=1(?:&|$)/.test(location.search);
+  var small = false;
+  try {
+    small = window.matchMedia && window.matchMedia('(max-width: 820px)').matches;
+  } catch (e) {
+    small = screen && screen.width <= 820;
+  }
+  if (small && !full && !/\/mobile\.html$/i.test(location.pathname)) {
+    location.replace('mobile.html' + location.search + location.hash);
+  }
+})();
+</script>"""
 
 
 def norm(value):
@@ -14,6 +28,13 @@ def norm(value):
 
 def has_all_positive_pers(model):
     return all(isinstance(model.get(key), (int, float)) and model.get(key) > 0 for key in PERS_KEYS)
+
+
+def ensure_mobile_redirect(html):
+    html = re.sub(r'<script id="mobile-light-redirect">.*?</script>', '', html, flags=re.S)
+    if "<head>" not in html:
+        raise SystemExit("HTML head tag not found")
+    return html.replace("<head>", "<head>" + MOBILE_REDIRECT, 1)
 
 
 def main_score(audit, main):
@@ -56,6 +77,7 @@ def find_positive_main(audit, positive_models):
 def filter_index():
     path = Path("index.html")
     html = path.read_text(encoding="utf-8")
+    html = ensure_mobile_redirect(html)
     match = re.search(r'(<script id="data" type="application/json">)(.*?)(</script>)', html, re.S)
     if not match:
         raise SystemExit("Main data JSON block not found in index.html")
@@ -141,6 +163,7 @@ def main():
     print("Filtered audit series:", len(original_audit), "->", len(kept_audit))
     print("Positive family counts:", dict(Counter(model.get("familia") for model in positive_main)))
     print("Cache version:", CACHE_VERSION)
+    print("Mobile redirect: mobile.html")
 
 
 if __name__ == "__main__":
