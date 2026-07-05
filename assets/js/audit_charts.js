@@ -15,6 +15,7 @@
   const SET_NAMES = ['Treino', 'Validação', 'Teste', 'Outro'];
   const SCOPE_LABELS = { all: 'Geral', '0': 'Treino', '1': 'Validação', '2': 'Teste' };
   const FAMILY_ORDER = ['2H_ALT', '2H_CONV', '4H_ALT', '4H_CONV', '8H_ALT', '8H_CONV', '12H_ALT', '12H_CONV'];
+  const POSITIVE_PERS_KEYS = ['PERS_geral', 'PERS_treino', 'PERS_validacao', 'PERS_teste'];
   const nf = new Intl.NumberFormat('pt-BR');
 
   let payload = null;
@@ -69,6 +70,7 @@
       })
       .then(data => {
         payload = data;
+        applyPositivePersFilterToAuditPayload();
         rewriteIntroForResults();
         setupControls();
         installModelClickBridge();
@@ -166,7 +168,7 @@
 
     const stamp = document.getElementById('stamp');
     if (stamp) {
-      stamp.textContent = 'Pesquisa em desenvolvimento · 239 modelos no planilhão principal + 377 séries auditáveis no painel de auditoria · base atualizada em 04/07/2026';
+      stamp.textContent = 'Pesquisa em desenvolvimento · ' + nf.format(mainModels.length || 158) + ' modelos com todos os PERS positivos no planilhão principal' + (payload && payload.meta ? ' + ' + nf.format(payload.meta.modelCount) + ' séries auditáveis filtradas' : '') + ' · base atualizada em 05/07/2026';
     }
 
     const src = document.getElementById('src');
@@ -185,7 +187,7 @@
       'Um modelo representativo por família, escolhido para inspeção. Use como ponto de entrada para auditoria, não como decisão final isolada.');
     setSectionSub('Principais achados',
       'Síntese do planilhão principal, agora complementada pelo painel auditável com séries ponto a ponto. Onde o texto antigo dependia de anexar planilhas, a auditoria já está disponível abaixo.');
-    setSectionTitle('Exploração dos 239 modelos', 'Exploração do planilhão principal');
+    setSectionTitle('Exploração dos 239 modelos', 'Exploração dos modelos com PERS positivos');
 
     replaceTextNode('.lb-note', 'A barra mostra o valor relativo dentro da família; clique no modelo para abrir gráficos, métricas e arquivos auditáveis.');
     replaceTextNode('#fcount', '');
@@ -249,10 +251,39 @@
     if (!node) return [];
     try {
       const data = JSON.parse(node.textContent || '{}');
-      return Array.isArray(data.models) ? data.models : [];
+      return Array.isArray(data.models) ? data.models.filter(hasAllPositivePers) : [];
     } catch (err) {
       return [];
     }
+  }
+
+
+  function hasAllPositivePers(model) {
+    return !!model && POSITIVE_PERS_KEYS.every(key => typeof model[key] === 'number' && model[key] > 0);
+  }
+
+  function applyPositivePersFilterToAuditPayload() {
+    if (!payload || !Array.isArray(payload.models) || !mainModels.length) return;
+    payload.models = payload.models.filter(model => !!findMainForAudit(model));
+    const keptNames = new Set(payload.models.flatMap(model => [norm(model.id), norm(model.name)]).filter(Boolean));
+    payload.eventRiseTop = (payload.eventRiseTop || []).filter(row => keptNames.has(norm(row.model)));
+    const families = {};
+    let pointCount = 0;
+    payload.models.forEach(model => {
+      const family = model.family || 'OUTROS';
+      families[family] = (families[family] || 0) + 1;
+      if (model.scatterBySet) {
+        Object.values(model.scatterBySet).forEach(points => { pointCount += Array.isArray(points) ? points.length : 0; });
+      } else if (Array.isArray(model.scatter)) {
+        pointCount += model.scatter.length;
+      }
+    });
+    payload.meta = Object.assign({}, payload.meta || {}, {
+      modelCount: payload.models.length,
+      pointCount: pointCount || (payload.meta && payload.meta.pointCount) || 0,
+      families,
+      positivePersFilter: 'Mantidos apenas modelos associados a registros do planilhão com PERS_geral, PERS_treino, PERS_validacao e PERS_teste positivos.'
+    });
   }
 
   function setupControls() {
