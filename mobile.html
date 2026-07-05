@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PREVINE - Redes neurais</title>
+<style>
+:root { --bg:#f7f8f1; --surface:#fff; --ink:#151812; --muted:#687364; --line:#e2e7da; --green:#1e6b4f; --blue:#2269b5; }
+* { box-sizing:border-box }
+body { margin:0; font-family:Arial, Helvetica, sans-serif; color:var(--ink); background:var(--bg); line-height:1.45; }
+a { color:var(--green); font-weight:700; }
+.wrap { width:min(100%, 760px); margin:auto; padding:18px 16px 38px; }
+.hero { padding:22px 0 14px; }
+.eyebrow { color:var(--green); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+h1 { margin:8px 0 10px; font-size:30px; line-height:1.05; letter-spacing:0; }
+h2 { margin:30px 0 12px; font-size:22px; letter-spacing:0; }
+p { color:var(--muted); margin:0 0 12px; }
+.actions { display:grid; gap:10px; margin:18px 0 8px; }
+.btn { display:block; text-align:center; text-decoration:none; padding:13px 14px; border-radius:10px; background:var(--green); color:#fff; }
+.btn.secondary { background:#fff; color:var(--green); border:1px solid var(--line); }
+.kpis { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; margin:18px 0; }
+.kpi,.card { background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:0 8px 24px rgba(38,49,31,.06); }
+.kpi { padding:14px; }
+.kpi strong { display:block; font-size:24px; }
+.kpi span { color:var(--muted); font-size:12px; }
+.card { padding:15px; margin:12px 0; }
+.result-head { display:flex; justify-content:space-between; gap:12px; align-items:center; }
+.result-head span { color:var(--muted); font-size:12px; }
+.model { margin:9px 0 11px; font-family:Consolas, monospace; font-size:13px; overflow-wrap:anywhere; color:#30382d; }
+.bars { display:grid; gap:8px; }
+.bars div { position:relative; display:grid; grid-template-columns:1fr auto; gap:8px; padding-bottom:9px; border-bottom:1px solid #edf0e8; font-size:13px; }
+.bars i { position:absolute; left:0; bottom:-1px; height:3px; width:var(--w); background:linear-gradient(90deg,var(--green),var(--blue)); border-radius:99px; }
+dl { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0 0; }
+dt { color:var(--muted); font-size:11px; }
+dd { margin:0; font-weight:700; font-size:13px; }
+.table-wrap { overflow:auto; border:1px solid var(--line); border-radius:12px; background:#fff; }
+table { width:100%; border-collapse:collapse; min-width:680px; }
+th,td { padding:10px; border-bottom:1px solid var(--line); text-align:left; font-size:12px; vertical-align:top; }
+th { background:#f0f4ea; font-size:11px; text-transform:uppercase; color:#4d5b48; }
+.stations { list-style:none; padding:0; margin:0; display:grid; gap:10px; }
+.stations li { display:grid; grid-template-columns:18px 1fr; gap:10px; padding:14px; background:#fff; border:1px solid var(--line); border-radius:13px; }
+.stations span { width:10px; height:10px; border-radius:50%; background:var(--green); margin-top:6px; }
+.stations small { display:block; color:var(--muted); margin-top:2px; }
+.note { font-size:12px; color:var(--muted); text-align:center; margin:18px 0 0; }
+.footer { margin:30px 0 0; padding-top:18px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); }
+@media (min-width:680px) { .kpis { grid-template-columns:repeat(4,1fr); } .actions { grid-template-columns:1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">PREVINE - Bacia Taquari-Antas</div>
+    <h1>Redes neurais de previsao de nivel</h1>
+    <p>Versao leve para celular. Mostra os resultados principais sem carregar o painel completo e pesado logo na abertura.</p>
+    <div class="actions">
+      <a class="btn" href="index.html?full=1">Abrir painel completo</a>
+      <a class="btn secondary" href="https://github.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais">Ver repositorio</a>
+    </div>
+  </header>
+  <section class="kpis" aria-label="Resumo">
+    <div class="kpi"><strong>158</strong><span>modelos com todos os PERS positivos</span></div>
+    <div class="kpi"><strong>7</strong><span>familias ALT/CONV</span></div>
+    <div class="kpi"><strong>12h, 2h, 4h, 8h</strong><span>horizontes no painel</span></div>
+    <div class="kpi"><strong>0</strong><span>modelos com PERS negativo exibidos</span></div>
+  </section>
+  <section>
+    <h2>Como ler</h2>
+    <div class="card">
+      <p>O filtro atual mantem somente modelos em que PERS geral, treino, validacao e teste sao positivos. PERS maior indica ganho maior em relacao a persistencia.</p>
+      <p>Para abrir dispersao, ondas, subidas, logs, planilha auditavel e arquivo MAT, use o painel completo. No celular ele pode demorar porque carrega muitos dados.</p>
+    </div>
+  </section>
+  <section>
+    <h2>Desempenho por familia</h2>
+    <article class="card result">
+      <div class="result-head"><strong>2H ALT</strong><span>25 modelos</span></div><div class="model">rot_003_07_2h_alt_2H_ALT_C0096</div>
+      <div class="bars"><div><span>PERS geral</span><b>0.698</b><i style="--w:69.8%"></i></div><div><span>PERS validacao</span><b>0.674</b><i style="--w:67.4%"></i></div><div><span>PERS teste</span><b>0.655</b><i style="--w:65.5%"></i></div></div>
+      <dl><dt>MAE teste</dt><dd>5.5 cm</dd><dt>NASH teste</dt><dd>0.987</dd><dt>Score</dt><dd>0.655</dd></dl>
+    </article>
+    <article class="card result">
+      <div class="result-head"><strong>2H CONV</strong><span>15 modelos</span></div><div class="model">rot_002_21_2h_conv_2H_CONV_C0361</div>
+      <div class="bars"><div><span>PERS geral</span><b>0.713</b><i style="--w:71.3%"></i></div><div><span>PERS validacao</span><b>0.777</b><i style="--w:77.7%"></i></div><div><span>PERS teste</span><b>0.468</b><i style="--w:46.8%"></i></div></div>
+      <dl><dt>MAE teste</dt><dd>7.1 cm</dd><dt>NASH teste</dt><dd>0.983</dd><dt>Score</dt><dd>0.468</dd></dl>
+    </article>
+    <article class="card result">
+      <div class="result-head"><strong>4H ALT</strong><span>4 modelos</span></div><div class="model">4h_alt_Planilha2</div>
+      <div class="bars"><div><span>PERS geral</span><b>0.539</b><i style="--w:53.9%"></i></div><div><span>PERS validacao</span><b>0.474</b><i style="--w:47.4%"></i></div><div><span>PERS teste</span><b>0.648</b><i style="--w:64.8%"></i></div></div>
+      <dl><dt>MAE teste</dt><dd>23.9 cm</dd><dt>NASH teste</dt><dd>0.974</dd><dt>Score</dt><dd>0.474</dd></dl>
+    </article>
+    <article class="card result">
+      <div class="result-head"><strong>8H ALT</strong><span>50 modelos</span></div><div class="model">altR_004_08_8h_alt_8H_ALT_C0289</div>
+      <div class="bars"><div><span>PERS geral</span><b>0.739</b><i style="--w:73.9%"></i></div><div><span>PERS validacao</span><b>0.811</b><i style="--w:81.1%"></i></div><div><span>PERS teste</span><b>0.694</b><i style="--w:69.4%"></i></div></div>
+      <dl><dt>MAE teste</dt><dd>32.0 cm</dd><dt>NASH teste</dt><dd>0.940</dd><dt>Score</dt><dd>0.694</dd></dl>
+    </article>
+    <article class="card result">
+      <div class="result-head"><strong>8H CONV</strong><span>34 modelos</span></div><div class="model">rot8h_002_24_8h_conv_8H_CONV_C0289</div>
+      <div class="bars"><div><span>PERS geral</span><b>0.757</b><i style="--w:75.7%"></i></div><div><span>PERS validacao</span><b>0.707</b><i style="--w:70.7%"></i></div><div><span>PERS teste</span><b>0.651</b><i style="--w:65.1%"></i></div></div>
+      <dl><dt>MAE teste</dt><dd>19.4 cm</dd><dt>NASH teste</dt><dd>0.933</dd><dt>Score</dt><dd>0.651</dd></dl>
+    </article>
+    <article class="card result">
+      <div class="result-head"><strong>12H ALT</strong><span>18 modelos</span></div><div class="model">003_alt_C0149_R01_T2_V1_3</div>
+      <div class="bars"><div><span>PERS geral</span><b>0.574</b><i style="--w:57.4%"></i></div><div><span>PERS validacao</span><b>0.686</b><i style="--w:68.6%"></i></div><div><span>PERS teste</span><b>0.764</b><i style="--w:76.4%"></i></div></div>
+      <dl><dt>MAE teste</dt><dd>41.2 cm</dd><dt>NASH teste</dt><dd>0.911</dd><dt>Score</dt><dd>0.574</dd></dl>
+    </article>
+    <article class="card result">
+      <div class="result-head"><strong>12H CONV</strong><span>12 modelos</span></div><div class="model">004_conv_C0149_R01_T2_V1_3</div>
+      <div class="bars"><div><span>PERS geral</span><b>0.824</b><i style="--w:82.4%"></i></div><div><span>PERS validacao</span><b>0.690</b><i style="--w:69.0%"></i></div><div><span>PERS teste</span><b>0.696</b><i style="--w:69.6%"></i></div></div>
+      <dl><dt>MAE teste</dt><dd>40.9 cm</dd><dt>NASH teste</dt><dd>0.885</dd><dt>Score</dt><dd>0.690</dd></dl>
+    </article>
+  </section>
+  <section>
+    <h2>Modelos para inspecao</h2>
+    <div class="table-wrap"><table><thead><tr><th>#</th><th>Familia</th><th>Modelo</th><th>Score</th><th>PERS teste</th><th>MAE teste</th></tr></thead><tbody>
+      <tr><td>1</td><td>8H ALT</td><td>altR_004_08_8h_alt_8H_ALT_C0289</td><td>0.694</td><td>0.694</td><td>32.0 cm</td></tr>
+      <tr><td>2</td><td>12H CONV</td><td>004_conv_C0149_R01_T2_V1_3</td><td>0.690</td><td>0.696</td><td>40.9 cm</td></tr>
+      <tr><td>3</td><td>2H ALT</td><td>rot_003_07_2h_alt_2H_ALT_C0096</td><td>0.655</td><td>0.655</td><td>5.5 cm</td></tr>
+      <tr><td>4</td><td>2H ALT</td><td>rot_001_06_2h_alt_2H_ALT_C0472</td><td>0.654</td><td>0.654</td><td>5.7 cm</td></tr>
+      <tr><td>5</td><td>8H CONV</td><td>rot8h_002_24_8h_conv_8H_CONV_C0289</td><td>0.651</td><td>0.651</td><td>19.4 cm</td></tr>
+      <tr><td>6</td><td>2H ALT</td><td>rot_003_12_2h_alt_2H_ALT_C0095</td><td>0.650</td><td>0.672</td><td>5.5 cm</td></tr>
+      <tr><td>7</td><td>2H ALT</td><td>rot_003_10_2h_alt_2H_ALT_C0087</td><td>0.643</td><td>0.676</td><td>5.4 cm</td></tr>
+      <tr><td>8</td><td>2H ALT</td><td>rot_002_02_2h_alt_2H_ALT_C0224</td><td>0.636</td><td>0.666</td><td>5.3 cm</td></tr>
+    </tbody></table></div>
+  </section>
+  <section>
+    <h2>Estacoes</h2>
+    <ul class="stations"><li><span></span><div><strong>Santa Tereza</strong><small>Estacao principal prevista: nivel observado e previsto.</small></div></li><li><span></span><div><strong>Veranopolis</strong><small>Estacao hidrologica de montante usada em varias montagens.</small></div></li><li><span></span><div><strong>Antonio Prado</strong><small>Municipio com estacao vizinha em montagens CONV.</small></div></li><li><span></span><div><strong>Nova Roma do Sul</strong><small>Municipio com estacao vizinha em montagens CONV.</small></div></li><li><span></span><div><strong>Caxias do Sul</strong><small>Municipio com estacao vizinha em montagens CONV.</small></div></li><li><span></span><div><strong>Muitos Capoes</strong><small>Municipio com estacao vizinha em montagens CONV.</small></div></li><li><span></span><div><strong>Cotipora</strong><small>Municipio com estacao vizinha em montagens CONV.</small></div></li></ul>
+    <p class="note">Marcadores e coordenadas seguem como apoio visual. A auditoria numerica esta nas planilhas, MAT, logs e CSVs do painel completo.</p>
+  </section>
+  <footer class="footer">Atualizado em 05/07/2026. Esta pagina e a entrada leve para celular; o painel completo continua preservado no site.</footer>
+</div>
+</body>
+</html>
