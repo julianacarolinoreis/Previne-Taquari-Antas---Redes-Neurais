@@ -59,7 +59,12 @@
       '</section>',
       '<p class="audit-note" id="audit-note"></p>'
     ].join('');
-    if (notes && notes.parentNode) notes.parentNode.insertBefore(section, notes);
+    const refs = sectionByHeading('Referências') || [...document.querySelectorAll('section.sec')].find(sec => {
+      const h = sec.querySelector('h2');
+      return h && norm(h.textContent) === 'REFERENCIAS';
+    });
+    if (refs && refs.parentNode) refs.parentNode.insertBefore(section, refs);
+    else if (notes && notes.parentNode) notes.parentNode.insertBefore(section, notes);
     else wrap.appendChild(section);
     rewriteIntroForResults();
 
@@ -177,8 +182,8 @@
     }
 
     rewriteStep('PASSO_3', {
-      title: 'Famílias e montagens testadas',
-      text: 'As famílias são lidas por horizonte e por montagem: ALT e CONV não são um ranking único, mas formas diferentes de montar os inputs. A CONV preserva a leitura clássica das estações da bacia; a ALT concentra e reorganiza defasagens de Santa Tereza, montante e variáveis associadas. Cada comparação precisa ser conferida junto da rotação de eventos, das métricas e dos arquivos auditáveis.'
+      title: 'Cenários, inputs e rotações',
+      text: 'A pesquisa não compara ALT e CONV como se fossem duas equações de saída diferentes. Cada rodada precisa ser lida pela própria ficha auditável: horizonte de antecedência, conjunto de inputs, defasagens, número de neurônios, rotação dos eventos de cheia, planilha, arquivo .mat, logs e métricas calculadas. Assim, o resultado não é só o nome da família; é o pacote completo que acompanha aquele modelo.'
     });
 
     setSectionSub('Desempenho por família',
@@ -352,7 +357,7 @@
     const opts = keys.map(key => {
       const ev = model.events.find(x => x.key === key);
       const label = ev
-        ? 'Evento ' + ev.evento + ' - ' + ev.conjunto + ' | subida ' + fmtCm(ev.riseObs) + ' | MAE ' + fmtCm(ev.mae)
+        ? eventLabel(ev, true) + ' - ' + ev.conjunto + ' | subida ' + fmtCm(ev.riseObs) + ' | MAE ' + fmtCm(ev.mae)
         : key;
       return option(key, label);
     });
@@ -545,7 +550,7 @@
     box.replaceChildren();
     const rows = (payload.eventRiseTop || []).slice(0, 14);
     if (!rows.length) return empty(box);
-    const W = 620, rowH = 22, H = 34 + rows.length * rowH + 28, pad = { l: 112, r: 46, t: 14, b: 22 };
+    const W = 620, rowH = 22, H = 34 + rows.length * rowH + 28, pad = { l: 150, r: 46, t: 14, b: 22 };
     const maxV = Math.max(...rows.map(r => r.riseObs || 0), 1);
     const x = scale(0, maxV, pad.l, W - pad.r);
     const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Maiores subidas observadas por evento' });
@@ -555,12 +560,15 @@
     });
     rows.forEach((r, i) => {
       const y = pad.t + i * rowH + 5;
-      svgText(svg, pad.l - 9, y + 11, 'Evento ' + r.evento, 'audit-label', 'end');
+      svgText(svg, pad.l - 9, y + 11, eventLabel(r, false), 'audit-label', 'end');
       const width = Math.max(1, x(r.riseObs || 0) - pad.l);
       svg.append(svgEl('rect', { x: pad.l, y, width, height: 15, rx: 4, fill: COLORS.bar, opacity: 0.86 }));
       svgText(svg, pad.l + width + 6, y + 12, fmtCm(r.riseObs), 'audit-value', 'start');
     });
-    box.append(svg);
+    const note = document.createElement('div');
+    note.className = 'audit-event-note';
+    note.textContent = '* A data exibida é o início da onda na planilha auditável; quando há fim registrado, o seletor mostra o período completo.';
+    box.append(svg, note);
   }
 
   function renderAuditMetrics(model) {
@@ -1076,6 +1084,32 @@
   function fmtShort(v) {
     if (Math.abs(v) >= 1000) return nf.format(Math.round(v / 100) / 10) + 'k';
     return nf.format(Math.round(v));
+  }
+
+  function fmtDate(value) {
+    const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return match ? match[3] + '/' + match[2] + '/' + match[1] : '';
+  }
+
+  function fmtMonthYear(value) {
+    const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    const match = String(value || '').match(/^(\d{4})-(\d{2})-/);
+    if (!match) return '';
+    const index = Number(match[2]) - 1;
+    return months[index] ? months[index] + '/' + match[1].slice(2) : '';
+  }
+
+  function eventLabel(ev, full) {
+    const base = 'Evento ' + (ev && ev.evento != null ? ev.evento : '-');
+    if (!ev) return base;
+    if (!full) {
+      const month = fmtMonthYear(ev.start);
+      return base + (month ? ' · ' + month : '');
+    }
+    const start = fmtDate(ev.start);
+    const end = fmtDate(ev.end);
+    const period = start && end ? start + ' a ' + end : start;
+    return base + (period ? ' · ' + period : '');
   }
 
   function scale(a, b, x0, x1) {

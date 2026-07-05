@@ -52,6 +52,93 @@ def find_positive_main(audit, positive_models):
     return best if best_score >= 40 else None
 
 
+def replace_once(text, pattern, replacement, label):
+    updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+    if count == 0:
+        print(f"Warning: static patch not applied ({label})")
+    return updated
+
+
+def patch_static_copy(html):
+    step3 = """      <div class="step">
+        <div class="s-num">Passo 3 · A varredura dos cenários</div>
+        <div class="s-title">Cenários, inputs e rotações</div>
+        <div class="s-text">A pesquisa não compara <strong>ALT</strong> e <strong>CONV</strong> como se fossem duas equações de
+          saída diferentes. Cada rodada precisa ser lida pela própria ficha auditável: horizonte de antecedência,
+          conjunto de inputs, defasagens, número de neurônios, rotação dos eventos de cheia, planilha, arquivo
+          <span style="font-variant-numeric:tabular-nums">.mat</span>, logs e métricas calculadas. Assim, o resultado
+          não é só o nome da família; é o pacote completo que acompanha aquele modelo.</div>
+      </div>"""
+    html = replace_once(
+        html,
+        r'\s*<div class="step">\s*<div class="s-num">Passo 3 .*?</div>\s*<div class="s-title">.*?</div>\s*<div class="s-text">.*?</div>\s*</div>',
+        "\n" + step3,
+        "passo 3",
+    )
+    html = replace_once(
+        html,
+        r'(<h2>Onde ficam.*?</h2>\s*)<p class="sec-sub">.*?</p>',
+        r'\1<p class="sec-sub">A estação-alvo em Santa Tereza, a estação de montante e as estações/municípios de apoio usados nas rodadas de modelagem. Quando a identificação ou a coordenada ainda precisa ser confirmada, o cartão indica isso e abre o HidroWeb para conferência.</p>',
+        "subtitulo estacoes",
+    )
+    html = replace_once(
+        html,
+        r'(<h2>Desempenho por fam.*?</h2>\s*)<p class="sec-sub">.*?</p>',
+        r'\1<p class="sec-sub">Todos os modelos de cada família com a métrica escolhida <strong>acima de 0,500</strong> (até dez por quadro). Use como leitura comparativa por horizonte e rodada; a conferência final fica na ficha auditável de cada modelo. <strong>Clique em qualquer modelo</strong> para abrir tudo dele.</p>',
+        "subtitulo desempenho",
+    )
+    if "<dt>CONV / ALT</dt>" not in html:
+        html = replace_once(
+            html,
+            r'<dt>CONV</dt><dd>.*?</dd>\s*<dt>ALT</dt><dd>.*?</dd>',
+            '<dt>CONV / ALT</dt><dd>Siglas de famílias/rodadas no planilhão. Elas não devem ser lidas isoladamente como equações de saída diferentes; a interpretação correta vem da ficha auditável de cada modelo: inputs, defasagens, horizonte, eventos, planilha, .mat, logs e métricas.</dd>',
+            "glossario conv alt",
+        )
+    stations = """    {name:'Estação 86298000', code:'86298000', papel:'Identificação e coordenada a confirmar', grp:'conv', lat:null, lon:null,
+     extra:'Estação usada nas rodadas; confirmar ficha oficial no HidroWeb/ANA'},
+    {name:'Antônio Prado', code:'—', papel:'Identificação e coordenada a confirmar no HidroWeb/ANA', grp:'conv', lat:-28.858, lon:-51.283, hidro:true,
+     extra:'Município de apoio usado nas rodadas; conferir código e coordenada oficial'},
+    {name:'Nova Roma do Sul', code:'—', papel:'Identificação e coordenada a confirmar no HidroWeb/ANA', grp:'conv', lat:-28.988, lon:-51.410, hidro:true,
+     extra:'Município de apoio usado nas rodadas; conferir código e coordenada oficial'},
+    {name:'Caxias do Sul', code:'—', papel:'Identificação e coordenada a confirmar no HidroWeb/ANA', grp:'conv', lat:-29.168, lon:-51.179, hidro:true,
+     extra:'Município de apoio usado nas rodadas; conferir código e coordenada oficial'},
+    {name:'Muitos Capões', code:'—', papel:'Identificação e coordenada a confirmar no HidroWeb/ANA', grp:'conv', lat:-28.317, lon:-51.184, hidro:true,
+     extra:'Município de apoio usado nas rodadas; conferir código e coordenada oficial'},
+    {name:'Cotiporã', code:'—', papel:'Identificação e coordenada a confirmar no HidroWeb/ANA', grp:'conv', lat:-28.987, lon:-51.697, hidro:true,
+     extra:'Município de apoio usado nas rodadas; conferir código e coordenada oficial'}"""
+    html = replace_once(
+        html,
+        r"    \{name:'Estação 86298000'.*?    \{name:'Cotiporã'.*?\}",
+        stations,
+        "estacoes hidroweb",
+    )
+    html = html.replace("if(st.code!=='—'){", "if(st.code!=='—' || st.hidro){")
+    html = html.replace(
+        "lk.textContent='consultar no Hidroweb/ANA (buscar pelo código '+st.code+') ↗';",
+        "lk.textContent=st.code!=='—'\n          ? 'consultar no HidroWeb/ANA (buscar pelo código '+st.code+') ↗'\n          : 'consultar no HidroWeb/ANA (confirmar identificação e coordenada) ↗';",
+    )
+    ev_label = """function fmtEventoData(value){
+    if(!value) return '';
+    const m=String(value).match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+  }
+  function evLabel(ev){
+    const ini=fmtEventoData(ev.start), fim=fmtEventoData(ev.end);
+    const periodo=ini && fim ? ini+' a '+fim : ini;
+    return 'Evento '+ev.evento+(periodo?' · '+periodo:'');
+  }"""
+    html, count = re.subn(
+        r"function evLabel\(ev\)\{.*?return 'Evento '\+ev\.evento.*?\n  \}",
+        lambda _match: ev_label,
+        html,
+        count=1,
+        flags=re.S,
+    )
+    if count == 0:
+        print("Warning: static patch not applied (datas eventos modal)")
+    return html
+
+
 def filter_index():
     path = Path("index.html")
     html = path.read_text(encoding="utf-8")
@@ -78,6 +165,7 @@ def filter_index():
     html = html.replace("Exploração dos 239 modelos", "Exploração dos modelos com PERS positivos")
     html = html.replace("todos os 239 modelos", "os 158 modelos com todos os PERS positivos")
     html = html.replace("239 modelos", "158 modelos com PERS positivos")
+    html = patch_static_copy(html)
     path.write_text(html, encoding="utf-8")
     return original, positive
 
@@ -183,6 +271,63 @@ def patch_audit_js():
         "setSectionTitle('Exploração dos 239 modelos', 'Exploração do planilhão principal');",
         "setSectionTitle('Exploração dos 239 modelos', 'Exploração dos modelos com PERS positivos');",
     )
+    if "const refs = sectionByHeading('Referências')" not in js:
+        js = js.replace(
+            "    if (notes && notes.parentNode) notes.parentNode.insertBefore(section, notes);\n    else wrap.appendChild(section);",
+            "    const refs = sectionByHeading('Referências') || [...document.querySelectorAll('section.sec')].find(sec => {\n      const h = sec.querySelector('h2');\n      return h && norm(h.textContent) === 'REFERENCIAS';\n    });\n    if (refs && refs.parentNode) refs.parentNode.insertBefore(section, refs);\n    else if (notes && notes.parentNode) notes.parentNode.insertBefore(section, notes);\n    else wrap.appendChild(section);",
+        )
+    js = re.sub(
+        r"rewriteStep\('PASSO_3', \{.*?\n    \}\);",
+        "rewriteStep('PASSO_3', {\n      title: 'Cenários, inputs e rotações',\n      text: 'A pesquisa não compara ALT e CONV como se fossem duas equações de saída diferentes. Cada rodada precisa ser lida pela própria ficha auditável: horizonte de antecedência, conjunto de inputs, defasagens, número de neurônios, rotação dos eventos de cheia, planilha, arquivo .mat, logs e métricas calculadas. Assim, o resultado não é só o nome da família; é o pacote completo que acompanha aquele modelo.'\n    });",
+        js,
+        flags=re.S,
+    )
+    js = js.replace(
+        "? 'Evento ' + ev.evento + ' - ' + ev.conjunto + ' | subida ' + fmtCm(ev.riseObs) + ' | MAE ' + fmtCm(ev.mae)",
+        "? eventLabel(ev, true) + ' - ' + ev.conjunto + ' | subida ' + fmtCm(ev.riseObs) + ' | MAE ' + fmtCm(ev.mae)",
+    )
+    js = js.replace(
+        "const W = 620, rowH = 22, H = 34 + rows.length * rowH + 28, pad = { l: 112, r: 46, t: 14, b: 22 };",
+        "const W = 620, rowH = 22, H = 34 + rows.length * rowH + 28, pad = { l: 150, r: 46, t: 14, b: 22 };",
+    )
+    js = js.replace(
+        "svgText(svg, pad.l - 9, y + 11, 'Evento ' + r.evento, 'audit-label', 'end');",
+        "svgText(svg, pad.l - 9, y + 11, eventLabel(r, false), 'audit-label', 'end');",
+    )
+    js = js.replace(
+        "box.append(svg);\n  }\n\n  function renderAuditMetrics(model) {",
+        "const note = document.createElement('div');\n    note.className = 'audit-event-note';\n    note.textContent = '* A data exibida é o início da onda na planilha auditável; quando há fim registrado, o seletor mostra o período completo.';\n    box.append(svg, note);\n  }\n\n  function renderAuditMetrics(model) {",
+    )
+    if "function eventLabel(ev, full)" not in js:
+        helpers = """
+
+  function fmtDate(value) {
+    const match = String(value || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+    return match ? match[3] + '/' + match[2] + '/' + match[1] : '';
+  }
+
+  function fmtMonthYear(value) {
+    const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    const match = String(value || '').match(/^(\\d{4})-(\\d{2})-/);
+    if (!match) return '';
+    const index = Number(match[2]) - 1;
+    return months[index] ? months[index] + '/' + match[1].slice(2) : '';
+  }
+
+  function eventLabel(ev, full) {
+    const base = 'Evento ' + (ev && ev.evento != null ? ev.evento : '-');
+    if (!ev) return base;
+    if (!full) {
+      const month = fmtMonthYear(ev.start);
+      return base + (month ? ' · ' + month : '');
+    }
+    const start = fmtDate(ev.start);
+    const end = fmtDate(ev.end);
+    const period = start && end ? start + ' a ' + end : start;
+    return base + (period ? ' · ' + period : '');
+  }
+"""
+        js = js.replace("\n  function scale(a, b, x0, x1) {", helpers + "\n  function scale(a, b, x0, x1) {")
     path.write_text(js, encoding="utf-8")
 
 
