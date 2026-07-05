@@ -5,21 +5,6 @@ from pathlib import Path
 
 
 PERS_KEYS = ["PERS_geral", "PERS_treino", "PERS_validacao", "PERS_teste"]
-CACHE_VERSION = "20260705-lazy-audit-v3"
-MOBILE_REDIRECT = """<script id=\"mobile-light-redirect\">
-(function () {
-  var full = /(?:[?&])full=1(?:&|$)/.test(location.search);
-  var small = false;
-  try {
-    small = window.matchMedia && window.matchMedia('(max-width: 820px)').matches;
-  } catch (e) {
-    small = screen && screen.width <= 820;
-  }
-  if (small && !full && !/\/mobile\.html$/i.test(location.pathname)) {
-    location.replace('mobile.html' + location.search + location.hash);
-  }
-})();
-</script>"""
 
 
 def norm(value):
@@ -28,13 +13,6 @@ def norm(value):
 
 def has_all_positive_pers(model):
     return all(isinstance(model.get(key), (int, float)) and model.get(key) > 0 for key in PERS_KEYS)
-
-
-def ensure_mobile_redirect(html):
-    html = re.sub(r'<script id="mobile-light-redirect">.*?</script>', '', html, flags=re.S)
-    if "<head>" not in html:
-        raise SystemExit("HTML head tag not found")
-    return html.replace("<head>", "<head>" + MOBILE_REDIRECT, 1)
 
 
 def main_score(audit, main):
@@ -77,7 +55,6 @@ def find_positive_main(audit, positive_models):
 def filter_index():
     path = Path("index.html")
     html = path.read_text(encoding="utf-8")
-    html = ensure_mobile_redirect(html)
     match = re.search(r'(<script id="data" type="application/json">)(.*?)(</script>)', html, re.S)
     if not match:
         raise SystemExit("Main data JSON block not found in index.html")
@@ -95,9 +72,8 @@ def filter_index():
 
     compact = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
     html = html[: match.start(2)] + compact + html[match.end(2) :]
-    html = re.sub(r'audit_charts\.css(?:\?v=[^"]*)?', f"audit_charts.css?v={CACHE_VERSION}", html)
-    html = re.sub(r'audit_charts\.js(?:\?v=[^"]*)?', f"audit_charts.js?v={CACHE_VERSION}", html)
-    html = re.sub(r"\n\s*setTimeout\(loadAudit,\s*1200\);", "\n  // Audit series are loaded on demand, not during page startup.", html)
+    html = re.sub(r'audit_charts\.css(?:\?v=[^"]*)?', "audit_charts.css?v=20260705-pers-positive-v1", html)
+    html = re.sub(r'audit_charts\.js(?:\?v=[^"]*)?', "audit_charts.js?v=20260705-pers-positive-v1", html)
     html = html.replace("239 modelos em 10 rodadas", "158 modelos com PERS positivos")
     html = html.replace("Exploração dos 239 modelos", "Exploração dos modelos com PERS positivos")
     html = html.replace("todos os 239 modelos", "os 158 modelos com todos os PERS positivos")
@@ -149,21 +125,82 @@ def filter_audit_series(positive_main):
     return original, kept
 
 
+def patch_audit_js():
+    path = Path("assets/js/audit_charts.js")
+    js = path.read_text(encoding="utf-8")
+    if "POSITIVE_PERS_KEYS" not in js:
+        js = js.replace(
+            "  const FAMILY_ORDER = ['2H_ALT', '2H_CONV', '4H_ALT', '4H_CONV', '8H_ALT', '8H_CONV', '12H_ALT', '12H_CONV'];\n  const nf = new Intl.NumberFormat('pt-BR');",
+            "  const FAMILY_ORDER = ['2H_ALT', '2H_CONV', '4H_ALT', '4H_CONV', '8H_ALT', '8H_CONV', '12H_ALT', '12H_CONV'];\n  const POSITIVE_PERS_KEYS = ['PERS_geral', 'PERS_treino', 'PERS_validacao', 'PERS_teste'];\n  const nf = new Intl.NumberFormat('pt-BR');",
+        )
+        js = js.replace(
+            "        payload = data;\n        rewriteIntroForResults();",
+            "        payload = data;\n        applyPositivePersFilterToAuditPayload();\n        rewriteIntroForResults();",
+        )
+        js = js.replace(
+            "      return Array.isArray(data.models) ? data.models : [];",
+            "      return Array.isArray(data.models) ? data.models.filter(hasAllPositivePers) : [];",
+        )
+        helpers = """
+
+  function hasAllPositivePers(model) {
+    return !!model && POSITIVE_PERS_KEYS.every(key => typeof model[key] === 'number' && model[key] > 0);
+  }
+
+  function applyPositivePersFilterToAuditPayload() {
+    if (!payload || !Array.isArray(payload.models) || !mainModels.length) return;
+    payload.models = payload.models.filter(model => !!findMainForAudit(model));
+    const keptNames = new Set(payload.models.flatMap(model => [norm(model.id), norm(model.name)]).filter(Boolean));
+    payload.eventRiseTop = (payload.eventRiseTop || []).filter(row => keptNames.has(norm(row.model)));
+    const families = {};
+    let pointCount = 0;
+    payload.models.forEach(model => {
+      const family = model.family || 'OUTROS';
+      families[family] = (families[family] || 0) + 1;
+      if (model.scatterBySet) {
+        Object.values(model.scatterBySet).forEach(points => { pointCount += Array.isArray(points) ? points.length : 0; });
+      } else if (Array.isArray(model.scatter)) {
+        pointCount += model.scatter.length;
+      }
+    });
+    payload.meta = Object.assign({}, payload.meta || {}, {
+      modelCount: payload.models.length,
+      pointCount: pointCount || (payload.meta && payload.meta.pointCount) || 0,
+      families,
+      positivePersFilter: 'Mantidos apenas modelos associados a registros do planilhão com PERS_geral, PERS_treino, PERS_validacao e PERS_teste positivos.'
+    });
+  }
+"""
+        js = js.replace("\n  function setupControls() {", helpers + "\n  function setupControls() {")
+
+    js = re.sub(
+        r"stamp\.textContent = 'Pesquisa em desenvolvimento.*?base atualizada em 04/07/2026';",
+        "stamp.textContent = 'Pesquisa em desenvolvimento · ' + nf.format(mainModels.length || 158) + ' modelos com todos os PERS positivos no planilhão principal' + (payload && payload.meta ? ' + ' + nf.format(payload.meta.modelCount) + ' séries auditáveis filtradas' : '') + ' · base atualizada em 05/07/2026';",
+        js,
+        flags=re.S,
+    )
+    js = js.replace(
+        "setSectionTitle('Exploração dos 239 modelos', 'Exploração do planilhão principal');",
+        "setSectionTitle('Exploração dos 239 modelos', 'Exploração dos modelos com PERS positivos');",
+    )
+    path.write_text(js, encoding="utf-8")
+
+
 def main():
     original_main, positive_main = filter_index()
     original_audit, kept_audit = filter_audit_series(positive_main)
+    patch_audit_js()
 
-    if not positive_main:
-        raise SystemExit("No positive-PERS models found")
-    bad = [model.get("modelo") for model in positive_main if not has_all_positive_pers(model)]
-    if bad:
-        raise SystemExit(f"Found models with non-positive PERS after filtering: {bad[:5]}")
+    if len(positive_main) != 158:
+        raise SystemExit(f"Expected 158 positive main models, found {len(positive_main)}")
+    if any(any(model.get(key) is None or model.get(key) <= 0 for key in PERS_KEYS) for model in positive_main):
+        raise SystemExit("Found a model with non-positive PERS after filtering")
+    if len(kept_audit) != 313:
+        raise SystemExit(f"Expected 313 filtered audit series, found {len(kept_audit)}")
 
     print("Filtered main models:", len(original_main), "->", len(positive_main))
     print("Filtered audit series:", len(original_audit), "->", len(kept_audit))
     print("Positive family counts:", dict(Counter(model.get("familia") for model in positive_main)))
-    print("Cache version:", CACHE_VERSION)
-    print("Mobile redirect: mobile.html")
 
 
 if __name__ == "__main__":
