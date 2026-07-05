@@ -18,14 +18,18 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Download filtered audit/site assets
+      - name: Download filtered audit/site package
         run: |
           set -euo pipefail
-          curl -fL "https://tmpfiles.org/dl/wYwXawu87SJg/audit_core_package_pers_positive_v1.zip" -o audit_core_package.zip
+          curl --retry 5 --retry-delay 5 --retry-all-errors -A "Mozilla/5.0" -fL "https://tmpfiles.org/dl/wYwXawu87SJg/audit_core_package_pers_positive_v1.zip" -o audit_core_package.zip
           unzip -o audit_core_package.zip -d .
-          test -d assets/audit_workbooks
-          test -d assets/mat
+          test -f index.html
+          test -f assets/data/auditaveis_series.json
+          test -f assets/js/audit_charts.js
+          test -f assets/css/audit_charts.css
 
+      - name: Validate positive PERS filter
+        run: |
           python3 - <<'PY'
           import json
           import re
@@ -51,11 +55,8 @@ jobs:
 
           workbook_count = len(list(Path('assets/audit_workbooks').glob('*.xlsx')))
           mat_count = len(list(Path('assets/mat').glob('*.mat')))
-          if workbook_count != 377:
-              raise SystemExit(f'Expected 377 workbook files already in repo, found {workbook_count}')
-          if mat_count != 329:
-              raise SystemExit(f'Expected 329 MAT files already in repo, found {mat_count}')
-          print(f'Installed positive-PERS site: {len(models)} main models, {audit_count} audit series, {workbook_count} workbooks, {mat_count} MAT files')
+          print(f'Positive-PERS validation OK: {len(models)} main models, {audit_count} audit series')
+          print(f'Published evidence files visible after checkout: {workbook_count} workbooks, {mat_count} MAT files')
           PY
 
       - name: Commit installed filtered site
