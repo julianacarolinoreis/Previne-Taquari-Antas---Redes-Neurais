@@ -34,7 +34,7 @@ jobs:
               raise SystemExit(f'Expected 377 workbook files already in repo, found {workbook_count}')
           if mat_count != 329:
               raise SystemExit(f'Expected 329 MAT files already in repo, found {mat_count}')
-          print(f'Installed audit panel v6; kept {workbook_count} workbook files and {mat_count} MAT files')
+          print(f'Installed audit panel v7; kept {workbook_count} workbook files and {mat_count} MAT files')
           PY
 
       - name: Link audit charts in index
@@ -46,8 +46,8 @@ jobs:
           html = p.read_text(encoding='utf-8')
           html = re.sub(r'\s*<link rel="stylesheet" href="assets/css/audit_charts\.css(?:\?v=[^"]*)?">\s*', '\n', html)
           html = re.sub(r'\s*<script src="assets/js/audit_charts\.js(?:\?v=[^"]*)?"></script>\s*', '\n', html)
-          css = '  <link rel="stylesheet" href="assets/css/audit_charts.css?v=20260704-mat-v6">'
-          js = '  <script src="assets/js/audit_charts.js?v=20260704-mat-v6"></script>'
+          css = '  <link rel="stylesheet" href="assets/css/audit_charts.css?v=20260704-mat-v7">'
+          js = '  <script src="assets/js/audit_charts.js?v=20260704-mat-v7"></script>'
           html = html.replace('</head>', css + '\n</head>')
           html = html.replace('</body>', js + '\n</body>')
           p.write_text(html, encoding='utf-8')
