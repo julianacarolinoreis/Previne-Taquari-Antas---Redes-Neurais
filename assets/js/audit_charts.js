@@ -597,7 +597,8 @@
     const scoredFiles = scoreInventoryFiles(model, main, inventory.files || []).filter(x => x.score > 0).slice(0, 80);
     const logs = scoreInventoryFiles(model, main, inventory.textLogs || []).filter(x => x.score > 0).slice(0, 10);
     const csvs = scoreInventoryFiles(model, main, inventory.csvTables || []).filter(x => x.score > 0).slice(0, 8);
-    const mats = scoreInventoryFiles(model, main, inventory.matSummaries || []).filter(x => x.score > 0).slice(0, 8);
+    const matGroups = splitMatSummaries(model, scoreInventoryFiles(model, main, inventory.matSummaries || []).filter(x => x.score > 0));
+    const associatedFiles = scoredFiles.filter(x => !(x.item && x.item.ext === '.mat'));
     const summary = inventory.meta || {};
     box.innerHTML = [
       '<div class="audit-inventory-summary">',
@@ -608,9 +609,9 @@
       '<span><strong>' + nf.format(summary.matParsedCount || 0) + '</strong> MAT lidos</span>',
       '<span><strong>' + nf.format(summary.rawBundleFileCount || 0) + '</strong> arquivos no pacote bruto</span>',
       '</div>',
-      renderDownloadPanel(model, scoredFiles),
-      renderMatSummaries(mats),
-      renderAssociatedFiles(scoredFiles),
+      renderDownloadPanel(model, associatedFiles),
+      renderMatSummaries(matGroups.primary, matGroups.related),
+      renderAssociatedFiles(associatedFiles),
       renderCsvTables(csvs),
       renderLogPreviews(logs),
       renderSkipped(inventory.skippedWorkbooks || [])
@@ -635,13 +636,13 @@
         kind: 'mat'
       });
     }
-    scoredFiles.filter(x => x.item && x.item.downloadUrl && x.item.downloadUrl !== (model && model.workbookUrl))
+    scoredFiles.filter(x => x.item && x.item.downloadUrl && x.item.ext !== '.mat' && x.item.downloadUrl !== (model && model.workbookUrl))
       .slice(0, 5)
       .forEach(x => workbookLinks.push({
         href: x.item.downloadUrl,
-        label: x.item.ext === '.mat' ? 'Baixar MAT associado' : 'Baixar planilha associada',
+        label: 'Baixar planilha associada',
         note: x.item.name || x.item.ref,
-        kind: x.item.ext === '.mat' ? 'mat' : 'xlsx'
+        kind: 'xlsx'
       }));
 
     const links = workbookLinks.map(x =>
@@ -673,48 +674,95 @@
 
   function fileActionHtml(item) {
     if (item && item.downloadUrl) {
-      return '<a class="audit-mini-link" href="' + escapeAttr(item.downloadUrl) + '" download>' + (item.ext === '.mat' ? 'Baixar MAT' : 'Baixar') + '</a>';
+      const isMat = item.ext === '.mat' || item.matFile || /\.mat($|\?)/i.test(String(item.downloadUrl || item.name || item.ref || ''));
+      return '<a class="audit-mini-link" href="' + escapeAttr(item.downloadUrl) + '" download>' + (isMat ? 'Baixar MAT' : 'Baixar') + '</a>';
     }
     if (item && item.ext === '.mat') return '<span class="audit-muted">Resumo no bloco MAT</span>';
     return '<span class="audit-muted">No pacote bruto</span>';
   }
 
-  function renderMatSummaries(scored) {
-    if (!scored.length) {
-      return '<section class="audit-evidence-group"><h4>Resumo dos arquivos MAT</h4><div class="audit-empty">Sem MAT associado por chave. Os MAT encontrados seguem resumidos no inventário e os arquivos brutos ficam no pacote de logs.</div></section>';
+  function splitMatSummaries(model, scored) {
+    const primary = scored.find(x => isPrimaryMat(model, x.item)) || syntheticPrimaryMat(model);
+    const related = scored
+      .filter(x => !isPrimaryMat(model, x.item))
+      .slice(0, 10);
+    return { primary, related };
+  }
+
+  function syntheticPrimaryMat(model) {
+    if (!model || !model.matUrl) return null;
+    return {
+      item: {
+        ref: model.matSourceRef || model.matFile || model.name,
+        name: model.matFile || model.name,
+        family: model.family,
+        size: model.matSize || 0,
+        downloadUrl: model.matUrl,
+        matFile: model.matFile,
+        ext: '.mat',
+        metrics: [],
+        variables: []
+      },
+      score: 999
+    };
+  }
+
+  function isPrimaryMat(model, item) {
+    if (!model || !item) return false;
+    const ref = cleanRef(item.ref);
+    const src = cleanRef(model.matSourceRef);
+    const file = String(model.matFile || '').toLowerCase();
+    if (src && ref && ref === src) return true;
+    if (model.matUrl && item.downloadUrl === model.matUrl) return true;
+    if (file && String(item.matFile || item.name || '').toLowerCase() === file) return true;
+    return false;
+  }
+
+  function cleanRef(value) {
+    return String(value || '').replace(/\\/g, '/').toLowerCase();
+  }
+
+  function renderMatSummaries(primary, related) {
+    const item = primary && primary.item;
+    if (!item) {
+      return '<section class="audit-evidence-group"><h4>MAT principal do modelo</h4><div class="audit-empty">Sem MAT principal associado para este modelo no inventário.</div></section>';
     }
-    const rows = scored.map(x => {
-      const item = x.item;
-      const picked = matExtractSummary(item);
-      return [
-        '<code>' + escapeHtml(item.ref || '') + '</code>',
-        labelFamily(item.family || ''),
-        fmtBytes(item.size || 0),
-        item.modified || '-',
-        picked.map(kv => '<strong>' + escapeHtml(kv[0]) + ':</strong> ' + escapeHtml(formatAny(kv[1]))).join('<br>'),
-        fileActionHtml(item)
-      ];
-    });
-    const details = scored.map(x => {
-      const item = x.item;
-      const metrics = (item.metrics || []).filter(m => matMetricAllowed(m.name)).slice(0, 80);
-      const vars = (item.variables || []).slice(0, 40);
-      return '<details class="audit-detail"><summary><code>' + escapeHtml(item.ref || '') + '</code> · ' +
-        nf.format((item.metrics || []).length) + ' métricas pequenas · ' +
-        nf.format((item.variables || []).length) + ' variáveis</summary>' +
-        '<h5>Métricas extraídas do MAT</h5>' +
-        tableHtml(['Campo', 'Valor'], metrics.map(m => [m.name, formatMatValue(m.value)])) +
-        '<h5>Variáveis do MAT</h5>' +
-        tableHtml(['Variável', 'Dimensão', 'Classe'], vars.map(v => [
-          v.name || '-',
-          Array.isArray(v.shape) ? v.shape.join(' x ') : '-',
-          v.class || '-'
-        ])) +
-        '</details>';
-    }).join('');
-    return '<section class="audit-evidence-group"><h4>Resumo dos arquivos MAT associados</h4>' +
-      tableHtml(['MAT', 'Família', 'Tamanho', 'Modificado', 'Principais métricas', 'Ação'], rows, true) +
-      details + '</section>';
+    const picked = matExtractSummary(item);
+    const metrics = (item.metrics || []).filter(m => matMetricAllowed(m.name)).slice(0, 80);
+    const vars = (item.variables || []).slice(0, 40);
+    const metricBadges = picked.length
+      ? '<div class="audit-mat-metrics">' + picked.map(kv => '<span><strong>' + escapeHtml(kv[0]) + '</strong> ' + escapeHtml(formatAny(kv[1])) + '</span>').join('') + '</div>'
+      : '<div class="audit-muted">Métricas pequenas do MAT disponíveis no detalhe, quando extraídas.</div>';
+    const relatedBlock = related && related.length
+      ? '<details class="audit-detail audit-related-mats"><summary>Ver outros MAT parecidos encontrados no inventário (' + nf.format(related.length) + ')</summary>' +
+        '<p class="audit-related-note">Esses arquivos não são novas opções do modelo selecionado; são rastros de auditoria com nomes/famílias próximos.</p>' +
+        tableHtml(['MAT relacionado', 'Família', 'Tamanho', 'Ação'], related.map(x => [
+          '<code>' + escapeHtml(x.item.ref || '') + '</code>',
+          labelFamily(x.item.family || ''),
+          fmtBytes(x.item.size || 0),
+          fileActionHtml(x.item)
+        ]), true) + '</details>'
+      : '';
+    return '<section class="audit-evidence-group"><h4>MAT principal do modelo selecionado</h4>' +
+      '<div class="audit-mat-main">' +
+      '<div><div class="audit-mat-label">Arquivo treinado</div><code>' + escapeHtml(item.ref || item.name || '') + '</code></div>' +
+      '<div class="audit-mat-actions">' + fileActionHtml(item) + '</div>' +
+      '<div><div class="audit-mat-label">Tamanho</div><strong>' + fmtBytes(item.size || 0) + '</strong></div>' +
+      '<div><div class="audit-mat-label">Família</div><strong>' + escapeHtml(labelFamily(item.family || '')) + '</strong></div>' +
+      '</div>' +
+      metricBadges +
+      '<details class="audit-detail"><summary>Ver métricas e variáveis extraídas do MAT principal</summary>' +
+      '<h5>Métricas extraídas do MAT</h5>' +
+      tableHtml(['Campo', 'Valor'], metrics.map(m => [m.name, formatMatValue(m.value)])) +
+      '<h5>Variáveis do MAT</h5>' +
+      tableHtml(['Variável', 'Dimensão', 'Classe'], vars.map(v => [
+        v.name || '-',
+        Array.isArray(v.shape) ? v.shape.join(' x ') : '-',
+        v.class || '-'
+      ])) +
+      '</details>' +
+      relatedBlock +
+      '</section>';
   }
 
   function renderCsvTables(scored) {
