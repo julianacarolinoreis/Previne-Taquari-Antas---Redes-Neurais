@@ -488,13 +488,6 @@
     <p class="lb-note">A barra mostra o valor da métrica selecionada em relação ao melhor da família.</p>
   </section>
 
-  <section class="sec">
-    <span class="kicker">referência</span>
-    <h2>Modelo de referência de cada família</h2>
-    <p class="sec-sub">Os três modelos mais equilibrados de cada família pelo <strong>score de equilíbrio</strong> — o menor
-      valor de persistência entre geral, validação e teste, para evitar escolher modelo que só vai bem em um recorte.</p>
-    <div class="champs" id="champs"></div>
-  </section>
 
   <section class="sec">
     <span class="kicker">achados</span>
@@ -751,47 +744,6 @@
       const v=document.createElement('div'); v.className='k-value'; v.textContent=d.value;
       const n=document.createElement('div'); n.className='k-note'; n.textContent=d.note;
       c.append(l,v,n); root.appendChild(c);
-    });
-  })();
-
-  (function renderChamps(){
-    const root=document.getElementById('champs');
-    FAMS.forEach(f=>{
-      const pool = [...MODELS.filter(m=>m.familia===f)].sort((a,x)=>x.score_equilibrio-a.score_equilibrio);
-      if(!pool.length) return;
-      const b = pool[0], runners = pool.slice(1,3);
-      const c=document.createElement('div'); c.className='champ';
-      const head=document.createElement('div'); head.className='horizon';
-      const dot=document.createElement('span'); dot.className='dot'; dot.style.background=HCOLOR[b.horizonte];
-      head.append(dot, document.createTextNode(FAMFULL(f)));
-      const name=document.createElement('div'); name.className='model'; name.textContent=b.modelo;
-      const big=document.createElement('div'); big.className='big'; big.textContent=fmt(b.score_equilibrio);
-      const bl=document.createElement('div'); bl.className='big-label'; bl.textContent='score de equilíbrio (pior recorte entre geral, validação e teste)';
-      const mrow=document.createElement('div'); mrow.className='mrow';
-      [['PERS geral',fmt(b.PERS_geral)],['MAE teste',fmt1(b.MAE_teste_cm)+' cm'],['E95 teste',fmt1(b.E95_teste_cm)+' cm']].forEach(([l,v])=>{
-        const m=document.createElement('div'); m.className='m';
-        const vv=document.createElement('div'); vv.className='v'; vv.textContent=v;
-        const ll=document.createElement('div'); ll.className='l'; ll.textContent=l;
-        m.append(vv,ll); mrow.appendChild(m);
-      });
-      c.append(head,name,big,bl,mrow);
-      if(runners.length){
-        const rl=document.createElement('div'); rl.className='champ-runners';
-        runners.forEach((r,i)=>{
-          const row=document.createElement('button'); row.className='champ-runner';
-          const rk=document.createElement('span'); rk.className='cr-rank'; rk.textContent=(i+2)+'º';
-          const nm=document.createElement('span'); nm.className='cr-name'; nm.textContent=r.modelo; nm.title=r.modelo;
-          const vv=document.createElement('span'); vv.className='cr-val'; vv.textContent=fmt(r.score_equilibrio);
-          row.append(rk,nm,vv);
-          row.addEventListener('click',ev=>{ev.stopPropagation();openModal(r);});
-          rl.appendChild(row);
-        });
-        c.appendChild(rl);
-      }
-      c.classList.add('clickable'); c.tabIndex=0; c.setAttribute('role','button');
-      c.addEventListener('click',()=>openModal(b));
-      c.addEventListener('keydown',ev=>{ if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openModal(b);} });
-      root.appendChild(c);
     });
   })();
 
