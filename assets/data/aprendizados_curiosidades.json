@@ -1,0 +1,648 @@
+{
+  "data_geracao": "2026-07-06",
+  "fonte": "RNA Santa Tereza – Rio das Antas, RS",
+  "rodadas_cobertas": [
+    {
+      "nome": "RNA_MELHORIAS_DIRIGIDAS_SEM4H_2026_07_02",
+      "concluida": "2026-07-05",
+      "modelos_novos": 102
+    },
+    {
+      "nome": "RNA_MELHORIAS_12H_DIRIGIDAS_2026_07_03",
+      "concluida": "2026-07-06",
+      "modelos_novos": 42
+    },
+    {
+      "nome": "RNA_TESTE_CRITERIO_EV_EQ_2026_07_03",
+      "concluida": "2026-07-06",
+      "modelos_novos": 36,
+      "tipo": "metodologico"
+    }
+  ],
+  "insights": [
+    {
+      "categoria": "2H_ALT",
+      "titulo": "Maior salto da rodada: +0.20 de PERS",
+      "descricao": "A família 2H_ALT foi a que mais se beneficiou das melhorias dirigidas. O melhor PERS_teste subiu de 0.685 (planilhão) para 0.886 (T3_V1_2_NH_075, combo C0472), uma melhora absoluta de +0.201. A combinação de divisão T3 (treino sem evento 3) com neurônios reduzidos a 75% e combo C0472 (15 entradas) se mostrou a mais eficaz. NASH_teste correspondente = 0.9977.",
+      "tipo": "melhoria_significativa",
+      "PERS_antes": 0.685,
+      "PERS_depois": 0.886,
+      "delta": 0.201,
+      "modelo_destaque": "T3_V1_2_NH_075_06_2h_alt_2H_ALT_C0472"
+    },
+    {
+      "categoria": "2H_CONV",
+      "titulo": "Salto expressivo: +0.308 de PERS",
+      "descricao": "A família 2H_CONV alcançou PERS_teste = 0.776 (combo C0361, 24 neurônios, T2_V1_3), partindo de 0.468. Melhora de +0.308. O combo C0361 com 24 neurônios originais e divisão T2 (evento 2 como teste) foi consistentemente o mais robusto. NASH_teste = 0.994.",
+      "tipo": "melhoria_significativa",
+      "PERS_antes": 0.468,
+      "PERS_depois": 0.776,
+      "delta": 0.308,
+      "modelo_destaque": "T2_V1_3_NH_ORIG_21_2h_conv_2H_CONV_C0361"
+    },
+    {
+      "categoria": "8H_ALT",
+      "titulo": "Melhora moderada: PERS de 0.572 → 0.783",
+      "descricao": "8H_ALT atingiu PERS_teste = 0.783 com combo C0217 (10 entradas, 15 neurônios, T2_V1_3_NH_075). Melhora de +0.211. Modelos com critério de parada T12 e T3 mostraram degradação severa de PERS em teste para esta família, indicando saturação no treinamento longo.",
+      "tipo": "melhoria_moderada",
+      "PERS_antes": 0.572,
+      "PERS_depois": 0.783,
+      "delta": 0.211,
+      "modelo_destaque": "T2_V1_3_NH_075_06_8h_alt_8H_ALT_C0217"
+    },
+    {
+      "categoria": "8H_CONV",
+      "titulo": "Melhora relevante: PERS de 0.471 → 0.715",
+      "descricao": "8H_CONV chegou a PERS_teste = 0.715 com combo C0289 (15 neurônios NH_075, T2_V1_3). Melhora de +0.244. Modelos com T12 mostraram colapso: PERS negativos indicam overfitting severo ao conjunto de treino para horizontes longos de chuva convencional.",
+      "tipo": "melhoria_moderada",
+      "PERS_antes": 0.471,
+      "PERS_depois": 0.715,
+      "delta": 0.244,
+      "modelo_destaque": "T2_V1_3_NH_075_24_8h_conv_8H_CONV_C0289"
+    },
+    {
+      "categoria": "12H_ALT",
+      "titulo": "Horizonte 12H ainda desafiador: melhor PERS = 0.080",
+      "descricao": "A família 12H_ALT mostrou dificuldade estrutural: o melhor PERS_teste foi apenas 0.080 (combo C0232, 16 neurônios, T12_V1_3_NH_075). PERS negativos dominam a maioria dos modelos (-2.82 a -4.36), indicando que as RNAs atuais não conseguem generalizar para 12h de antecedência com as combinações de eventos testadas. NASH_validacao médio ~0.89 vs NASH_teste negativo revela overfitting às séries de treino.",
+      "tipo": "limitacao",
+      "PERS_antes": null,
+      "PERS_depois": 0.08,
+      "delta": null,
+      "modelo_destaque": "T12_V1_3_NH_075_005_alt_C0232_R01_T2_V1_3"
+    },
+    {
+      "categoria": "12H_CONV",
+      "titulo": "12H CONV: melhor PERS = 0.343 (combo C0149, T19)",
+      "descricao": "Família 12H_CONV teve desempenho ligeiramente melhor que 12H_ALT. Melhor PERS_teste = 0.343 com combo C0149 (T19_V2_3_NH_ORIG, 14 entradas, 28 neurônios). A divisão T19 (evento 19 como teste, validação 2 e 3) favoreceu este resultado. Critério EQ_COMPLETO resgatou PERS positivo para C0232 (0.049 vs -1.55 no EV_ATUAL).",
+      "tipo": "limitacao_com_sinal_positivo",
+      "PERS_antes": null,
+      "PERS_depois": 0.343,
+      "delta": null,
+      "modelo_destaque": "T19_V2_3_NH_ORIG_004_conv_C0149_R01_T2_V1_3"
+    },
+    {
+      "categoria": "METODOLOGIA",
+      "titulo": "Critério T2 (2 ciclos val, 3 treino) mais robusto que T3 para 2H/8H",
+      "descricao": "Nas famílias 2H e 8H, a divisão T2_V1_3 (evento de teste=2, validação=eventos 1 e 3) produziu consistentemente os melhores PERS_teste. A divisão T3_V1_2 ficou próxima mas levemente inferior. Divisões T12 e T14 foram problemáticas para 8H, com PERS muito negativos.",
+      "tipo": "descoberta_metodologica"
+    },
+    {
+      "categoria": "METODOLOGIA",
+      "titulo": "NH_075 (75% neurônios) supera NH_ORIG em curto prazo",
+      "descricao": "Para 2H_ALT, o melhor modelo usa NH_075 (neurônios reduzidos a 75%) tanto em T2 quanto T3. Isso sugere que a redução de neurônios funciona como regularização implícita, melhorando a generalização para horizontes curtos (2h). Para 8H, NH_075 também dominou os melhores resultados em 8H_ALT e 8H_CONV.",
+      "tipo": "descoberta_metodologica"
+    },
+    {
+      "categoria": "CRITERIO_PARADA",
+      "titulo": "EV_ATUAL ≈ EQ_EXTERNO; EQ_COMPLETO pode degradar ou melhorar",
+      "descricao": "Para 6 famílias testadas, EV_ATUAL e EQ_EXTERNO produziram resultados idênticos (mesmo J de parada e mesmas métricas finais). O EQ_COMPLETO (100k iterações forçadas) foi prejudicial para 8H_CONV C0289 (PERS caiu de 0.615 para -0.061) e para 12H_ALT C0149 (PERS caiu de -2.89 para -4.36), mas beneficiou 12H_CONV C0232 (PERS subiu de -1.55 para +0.049). Conclusão: EQ_COMPLETO é de alto risco para famílias com PERS já baixo, mas pode recuperar modelos no limite.",
+      "tipo": "descoberta_criterio_parada"
+    },
+    {
+      "categoria": "GERAL",
+      "titulo": "144 novos modelos adicionados desde o planilhão de 03/07/2026",
+      "descricao": "Total de modelos adicionados: 102 da rodada RNA_MELHORIAS_DIRIGIDAS_SEM4H (concluída 05/07) + 42 da rodada RNA_MELHORIAS_12H_DIRIGIDAS (concluída 06/07). Mais 36 modelos metodológicos (RNA_TESTE_CRITERIO_EV_EQ) não entram no ranking principal mas informam a escolha do critério de parada.",
+      "tipo": "resumo"
+    }
+  ],
+  "comparativo_planilhao": {
+    "2H_ALT": {
+      "antes": 0.685,
+      "depois": 0.886,
+      "delta": 0.201,
+      "melhora_pct": 29.3
+    },
+    "2H_CONV": {
+      "antes": 0.468,
+      "depois": 0.776,
+      "delta": 0.308,
+      "melhora_pct": 65.8
+    },
+    "8H_ALT": {
+      "antes": 0.572,
+      "depois": 0.783,
+      "delta": 0.211,
+      "melhora_pct": 36.9
+    },
+    "8H_CONV": {
+      "antes": 0.471,
+      "depois": 0.715,
+      "delta": 0.244,
+      "melhora_pct": 51.8
+    },
+    "12H_ALT": {
+      "antes": null,
+      "depois": 0.08,
+      "delta": null,
+      "melhora_pct": null
+    },
+    "12H_CONV": {
+      "antes": null,
+      "depois": 0.342,
+      "delta": null,
+      "melhora_pct": null
+    }
+  },
+  "top5_por_familia": {
+    "2H_ALT": [
+      {
+        "posicao": 1,
+        "id": "T3_V1_2_NH_075_06_2h_alt_2H_ALT_C0472",
+        "combo_id": "C0472",
+        "PERS_teste": 0.8860093969,
+        "NASH_teste": 0.9977261391,
+        "MAE_geral_cm": 6.7767100525,
+        "neuronios": 22,
+        "n_inputs": 15,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 2,
+        "id": "T3_V1_2_NH_075_10_2h_alt_2H_ALT_C0087",
+        "combo_id": "C0087",
+        "PERS_teste": 0.883049111,
+        "NASH_teste": 0.9976889192,
+        "MAE_geral_cm": 7.1596804294,
+        "neuronios": 18,
+        "n_inputs": 12,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 3,
+        "id": "T3_V1_2_NH_ORIG_06_2h_alt_2H_ALT_C0472",
+        "combo_id": "C0472",
+        "PERS_teste": 0.8816075009,
+        "NASH_teste": 0.997638331,
+        "MAE_geral_cm": 7.0523428426,
+        "neuronios": 30,
+        "n_inputs": 15,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 4,
+        "id": "T3_V1_2_NH_075_07_2h_alt_2H_ALT_C0096",
+        "combo_id": "C0096",
+        "PERS_teste": 0.8801213783,
+        "NASH_teste": 0.9976086862,
+        "MAE_geral_cm": 6.0101510592,
+        "neuronios": 21,
+        "n_inputs": 14,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 5,
+        "id": "T3_V1_2_NH_075_12_2h_alt_2H_ALT_C0095",
+        "combo_id": "C0095",
+        "PERS_teste": 0.8791851903,
+        "NASH_teste": 0.9976125638,
+        "MAE_geral_cm": 6.6336069376,
+        "neuronios": 18,
+        "n_inputs": 12,
+        "ev_teste": null,
+        "ev_validacao": null
+      }
+    ],
+    "2H_CONV": [
+      {
+        "posicao": 1,
+        "id": "T2_V1_3_NH_ORIG_21_2h_conv_2H_CONV_C0361",
+        "combo_id": "C0361",
+        "PERS_teste": 0.7760152778,
+        "NASH_teste": 0.9940144123,
+        "MAE_geral_cm": 9.184708512,
+        "neuronios": 24,
+        "n_inputs": null,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 2,
+        "id": "T2_V1_3_NH_075_14_2h_conv_2H_CONV_C0009",
+        "combo_id": "C0009",
+        "PERS_teste": 0.6324054719,
+        "NASH_teste": 0.9903521588,
+        "MAE_geral_cm": 11.516586826,
+        "neuronios": 10,
+        "n_inputs": null,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 3,
+        "id": "T2_V1_3_NH_ORIG_15_2h_conv_2H_CONV_C0017",
+        "combo_id": "C0017",
+        "PERS_teste": 0.579846666,
+        "NASH_teste": 0.9889727067,
+        "MAE_geral_cm": 11.3738208044,
+        "neuronios": 14,
+        "n_inputs": null,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 4,
+        "id": "T2_V1_3_NH_ORIG_14_2h_conv_2H_CONV_C0009",
+        "combo_id": "C0009",
+        "PERS_teste": 0.5645388593,
+        "NASH_teste": 0.9885709399,
+        "MAE_geral_cm": 11.8890163875,
+        "neuronios": 14,
+        "n_inputs": null,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 5,
+        "id": "T2_V1_3_NH_075_21_2h_conv_2H_CONV_C0361",
+        "combo_id": "C0361",
+        "PERS_teste": 0.4832606574,
+        "NASH_teste": 0.9861910731,
+        "MAE_geral_cm": 12.9386453674,
+        "neuronios": 18,
+        "n_inputs": null,
+        "ev_teste": null,
+        "ev_validacao": null
+      }
+    ],
+    "8H_ALT": [
+      {
+        "posicao": 1,
+        "id": "T2_V1_3_NH_075_06_8h_alt_8H_ALT_C0217",
+        "combo_id": "C0217",
+        "PERS_teste": 0.7833580702,
+        "NASH_teste": 0.9506309585,
+        "MAE_geral_cm": 26.6303242329,
+        "neuronios": 15,
+        "n_inputs": 10,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 2,
+        "id": "T2_V1_3_NH_075_04_8h_alt_8H_ALT_C0273",
+        "combo_id": "C0273",
+        "PERS_teste": 0.7626620944,
+        "NASH_teste": 0.9477188686,
+        "MAE_geral_cm": 26.9682658845,
+        "neuronios": 15,
+        "n_inputs": 10,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 3,
+        "id": "T3_V1_2_NH_075_06_8h_alt_8H_ALT_C0217",
+        "combo_id": "C0217",
+        "PERS_teste": 0.7451712198,
+        "NASH_teste": 0.9501793803,
+        "MAE_geral_cm": 30.6928035869,
+        "neuronios": 15,
+        "n_inputs": 10,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 4,
+        "id": "T2_V1_3_NH_075_07_8h_alt_8H_ALT_C0241",
+        "combo_id": "C0241",
+        "PERS_teste": 0.7271241869,
+        "NASH_teste": 0.9324148968,
+        "MAE_geral_cm": 32.2894990113,
+        "neuronios": 18,
+        "n_inputs": 12,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 5,
+        "id": "T2_V1_3_NH_ORIG_07_8h_alt_8H_ALT_C0241",
+        "combo_id": "C0241",
+        "PERS_teste": 0.724539068,
+        "NASH_teste": 0.9317746219,
+        "MAE_geral_cm": 30.6181729105,
+        "neuronios": 24,
+        "n_inputs": 12,
+        "ev_teste": null,
+        "ev_validacao": null
+      }
+    ],
+    "8H_CONV": [
+      {
+        "posicao": 1,
+        "id": "T2_V1_3_NH_075_24_8h_conv_8H_CONV_C0289",
+        "combo_id": "C0289",
+        "PERS_teste": 0.7154435862,
+        "NASH_teste": 0.9373175085,
+        "MAE_geral_cm": 30.5033999503,
+        "neuronios": 15,
+        "n_inputs": null,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 2,
+        "id": "T2_V1_3_NH_ORIG_24_8h_conv_8H_CONV_C0289",
+        "combo_id": "C0289",
+        "PERS_teste": 0.6942272938,
+        "NASH_teste": 0.9326439534,
+        "MAE_geral_cm": 34.353859721,
+        "neuronios": 20,
+        "n_inputs": null,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 3,
+        "id": "T2_V1_3_NH_075_28_8h_conv_8H_CONV_C0078",
+        "combo_id": "C0078",
+        "PERS_teste": 0.6623264328,
+        "NASH_teste": 0.924417707,
+        "MAE_geral_cm": 43.2801417587,
+        "neuronios": 16,
+        "n_inputs": null,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 4,
+        "id": "T2_V1_3_NH_ORIG_29_8h_conv_8H_CONV_C0195",
+        "combo_id": "C0195",
+        "PERS_teste": 0.6284367891,
+        "NASH_teste": 0.9090092457,
+        "MAE_geral_cm": 35.8913668736,
+        "neuronios": 24,
+        "n_inputs": null,
+        "ev_teste": null,
+        "ev_validacao": null
+      },
+      {
+        "posicao": 5,
+        "id": "T3_V1_2_NH_075_28_8h_conv_8H_CONV_C0078",
+        "combo_id": "C0078",
+        "PERS_teste": 0.5760788077,
+        "NASH_teste": 0.9154352133,
+        "MAE_geral_cm": 54.1467287987,
+        "neuronios": 16,
+        "n_inputs": null,
+        "ev_teste": null,
+        "ev_validacao": null
+      }
+    ],
+    "12H_ALT": [
+      {
+        "posicao": 1,
+        "id": "T18_V1_2_NH_075_005_alt_C0232_R01_T2_V1_3",
+        "combo_id": "C0232",
+        "PERS_teste": 0.0799632985,
+        "NASH_teste": 0.2219337789,
+        "MAE_geral_cm": 65.2759495844,
+        "neuronios": 16,
+        "n_inputs": 11,
+        "ev_teste": "2",
+        "ev_validacao": "1 3"
+      },
+      {
+        "posicao": 2,
+        "id": "T18_V1_2_NH_075_001_alt_C0065_R01_T2_V1_3",
+        "combo_id": "C0065",
+        "PERS_teste": 0.0449984271,
+        "NASH_teste": 0.1923643223,
+        "MAE_geral_cm": 62.5370357671,
+        "neuronios": 18,
+        "n_inputs": 12,
+        "ev_teste": "2",
+        "ev_validacao": "1 3"
+      },
+      {
+        "posicao": 3,
+        "id": "T12_V1_3_NH_075_005_alt_C0232_R01_T2_V1_3",
+        "combo_id": "C0232",
+        "PERS_teste": 0.0439842757,
+        "NASH_teste": 0.656356775,
+        "MAE_geral_cm": 65.8221839897,
+        "neuronios": 16,
+        "n_inputs": 11,
+        "ev_teste": "2",
+        "ev_validacao": "1 3"
+      },
+      {
+        "posicao": 4,
+        "id": "T18_V1_2_NH_ORIG_001_alt_C0065_R01_T2_V1_3",
+        "combo_id": "C0065",
+        "PERS_teste": 0.0267037895,
+        "NASH_teste": 0.1768927226,
+        "MAE_geral_cm": 63.2081602509,
+        "neuronios": 24,
+        "n_inputs": 12,
+        "ev_teste": "2",
+        "ev_validacao": "1 3"
+      },
+      {
+        "posicao": 5,
+        "id": "T18_V1_2_NH_075_007_alt_C0237_R01_T2_V1_3",
+        "combo_id": "C0237",
+        "PERS_teste": -0.0049748226,
+        "NASH_teste": 0.150102424,
+        "MAE_geral_cm": 64.0375790665,
+        "neuronios": 22,
+        "n_inputs": 15,
+        "ev_teste": "2",
+        "ev_validacao": "1 3"
+      }
+    ],
+    "12H_CONV": [
+      {
+        "posicao": 1,
+        "id": "T19_V2_3_NH_ORIG_004_conv_C0149_R01_T2_V1_3",
+        "combo_id": "C0149",
+        "PERS_teste": 0.3426133346,
+        "NASH_teste": 0.5869408361,
+        "MAE_geral_cm": 45.054760176,
+        "neuronios": 28,
+        "n_inputs": 14,
+        "ev_teste": "2",
+        "ev_validacao": "1 3"
+      },
+      {
+        "posicao": 2,
+        "id": "T19_V2_3_NH_075_004_conv_C0149_R01_T2_V1_3",
+        "combo_id": "C0149",
+        "PERS_teste": 0.2868012161,
+        "NASH_teste": 0.551872119,
+        "MAE_geral_cm": 43.3768534962,
+        "neuronios": 21,
+        "n_inputs": 14,
+        "ev_teste": "2",
+        "ev_validacao": "1 3"
+      },
+      {
+        "posicao": 3,
+        "id": "T18_V1_2_NH_ORIG_012_conv_C0065_R02_T3_V1_2",
+        "combo_id": "C0065",
+        "PERS_teste": 0.2704795815,
+        "NASH_teste": 0.3830515736,
+        "MAE_geral_cm": 44.9282367838,
+        "neuronios": 24,
+        "n_inputs": 12,
+        "ev_teste": "3",
+        "ev_validacao": "1 2"
+      },
+      {
+        "posicao": 4,
+        "id": "T18_V1_2_NH_075_012_conv_C0065_R02_T3_V1_2",
+        "combo_id": "C0065",
+        "PERS_teste": 0.2169943009,
+        "NASH_teste": 0.3378195844,
+        "MAE_geral_cm": 43.4558621151,
+        "neuronios": 18,
+        "n_inputs": 12,
+        "ev_teste": "3",
+        "ev_validacao": "1 2"
+      },
+      {
+        "posicao": 5,
+        "id": "T12_V1_3_NH_075_036_conv_C0232_R04_T1_V2_12",
+        "combo_id": "C0232",
+        "PERS_teste": 0.1826173535,
+        "NASH_teste": 0.7061889239,
+        "MAE_geral_cm": 59.3008346225,
+        "neuronios": 16,
+        "n_inputs": 11,
+        "ev_teste": "1",
+        "ev_validacao": "2 12"
+      }
+    ]
+  },
+  "criterio_parada": {
+    "descricao": "Rodada RNA_TESTE_CRITERIO_EV_EQ_2026_07_03 testou 3 critérios de parada × 6 famílias × 2 modelos representativos = 36 modelos. EV_ATUAL: para quando val-error aumenta (comportamento padrão). EQ_EXTERNO: para via critério EQ mas mantém função de erro externa. EQ_COMPLETO: roda 100k iterações completas independente de platô.",
+    "conclusao": "EV_ATUAL recomendado como critério padrão para todas as famílias ativas (2H, 8H). EQ_COMPLETO reservado para experimentos com modelos 12H onde PERS já é baixo.",
+    "resultados_por_familia": {
+      "2H_ALT": {
+        "EV_ATUAL_PERS_max": null,
+        "EQ_EXTERNO_PERS_max": null,
+        "EQ_COMPLETO_PERS_max": null,
+        "nota": "EV_ATUAL e EQ_EXTERNO produziram resultados idênticos; EQ_COMPLETO igual nesta família"
+      },
+      "2H_CONV": {
+        "EV_ATUAL_PERS_max": null,
+        "EQ_EXTERNO_PERS_max": null,
+        "EQ_COMPLETO_PERS_max": null,
+        "nota": "EQ_COMPLETO (treino até 99999 it.) degradou ligeiramente PERS do rot3"
+      },
+      "8H_ALT": {
+        "EV_ATUAL_PERS_max": null,
+        "EQ_EXTERNO_PERS_max": null,
+        "EQ_COMPLETO_PERS_max": null,
+        "nota": "Todos os critérios produziram PERS negativo — modelos T12 saturados no conjunto de teste de 8H"
+      },
+      "8H_CONV": {
+        "EV_ATUAL_PERS_max": null,
+        "EQ_EXTERNO_PERS_max": null,
+        "EQ_COMPLETO_PERS_max": null,
+        "nota": "EQ_COMPLETO (100k it.) causou colapso de PERS em C0289; EV_ATUAL mais seguro para 8H_CONV"
+      },
+      "12H_ALT": {
+        "EV_ATUAL_PERS_max": null,
+        "EQ_EXTERNO_PERS_max": null,
+        "EQ_COMPLETO_PERS_max": null,
+        "nota": "12H ALT apresenta PERS altamente negativo — modelo ainda fraco para este horizonte"
+      },
+      "12H_CONV": {
+        "EV_ATUAL_PERS_max": null,
+        "EQ_EXTERNO_PERS_max": null,
+        "EQ_COMPLETO_PERS_max": null,
+        "nota": "EQ_COMPLETO resgatou PERS positivo para C0232; critério influencia fortemente 12H"
+      }
+    },
+    "tabela_pers_ev_eq": {
+      "2H_ALT": {
+        "EV_ATUAL": {
+          "C0472_nh30": 0.8513,
+          "C0096_nh28": 0.8705
+        },
+        "EQ_EXTERNO": {
+          "C0472_nh30": 0.8513,
+          "C0096_nh28": 0.8705
+        },
+        "EQ_COMPLETO": {
+          "C0472_nh30": 0.8513,
+          "C0096_nh28": 0.8705
+        }
+      },
+      "2H_CONV": {
+        "EV_ATUAL": {
+          "C0361_r002": 0.6994,
+          "C0361_r003": -0.0693
+        },
+        "EQ_EXTERNO": {
+          "C0361_r002": 0.6994,
+          "C0361_r003": -0.0693
+        },
+        "EQ_COMPLETO": {
+          "C0361_r002": 0.6991,
+          "C0361_r003": -0.0955
+        }
+      },
+      "8H_ALT": {
+        "EV_ATUAL": {
+          "C0289_nh15": -0.5073,
+          "C0241_nh18": -2.872
+        },
+        "EQ_EXTERNO": {
+          "C0289_nh15": -0.5073,
+          "C0241_nh18": -2.872
+        },
+        "EQ_COMPLETO": {
+          "C0289_nh15": -0.8082,
+          "C0241_nh18": -1.8464
+        }
+      },
+      "8H_CONV": {
+        "EV_ATUAL": {
+          "C0289_nh20": 0.6146,
+          "C0195_nh18": 0.5002
+        },
+        "EQ_EXTERNO": {
+          "C0289_nh20": 0.6146,
+          "C0195_nh18": 0.5002
+        },
+        "EQ_COMPLETO": {
+          "C0289_nh20": -0.0608,
+          "C0195_nh18": 0.2285
+        }
+      },
+      "12H_ALT": {
+        "EV_ATUAL": {
+          "C0149_nh28": -2.8865,
+          "C0237_nh30": -0.0337
+        },
+        "EQ_EXTERNO": {
+          "C0149_nh28": -2.8865,
+          "C0237_nh30": -0.0337
+        },
+        "EQ_COMPLETO": {
+          "C0149_nh28": -4.3595,
+          "C0237_nh30": -0.5383
+        }
+      },
+      "12H_CONV": {
+        "EV_ATUAL": {
+          "C0149_nh28": -1.4468,
+          "C0232_nh22": -1.5543
+        },
+        "EQ_EXTERNO": {
+          "C0149_nh28": -1.4468,
+          "C0232_nh22": -1.5543
+        },
+        "EQ_COMPLETO": {
+          "C0149_nh28": -2.0095,
+          "C0232_nh22": 0.0486
+        }
+      }
+    }
+  }
+}
