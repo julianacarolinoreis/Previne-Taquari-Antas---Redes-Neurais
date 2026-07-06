@@ -1081,6 +1081,8 @@
   })();
 
   /* ---------------- base auditável (séries ponto a ponto) ---------------- */
+  const WB_RAW='https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/6601cf09a2b247a1fa03a12810f681c2c796ba18/';
+  const wbHref=u=>u? (u.startsWith('http')?u:WB_RAW+u) : '';
   const AUDIT_URL='assets/data/auditaveis_series.json';
   let AUDIT=null, AUDIT_ERR=null, AUDIT_LOADING=null, AUDIT_IDX=null;
   function loadAudit(){
@@ -1333,7 +1335,7 @@
     const hf=document.createElement('h4'); hf.textContent='Arquivos de rastreio'; files.appendChild(hf);
     const fl=document.createElement('div'); fl.className='m-files';
     const au=auditFor(m);
-    if(au && au.workbookUrl) fl.appendChild(fileRow('⬇ Baixar planilha auditável (.xlsx)', '', au.workbookUrl));
+    if(au && au.workbookUrl) fl.appendChild(fileRow('⬇ Baixar planilha auditável (.xlsx)', '', wbHref(au.workbookUrl)));
     if(m.arquivo_auditavel) fl.appendChild(fileRow('Planilha auditável', m.arquivo_auditavel));
     if(m.arquivo_mat){
       const base = m.arquivo_mat.replace(/\\/g,'/').split('/').pop();
@@ -1702,7 +1704,7 @@
             btn.textContent='…';
             loadAudit().then(()=>{
               const au=auditFor(m);
-              if(au&&au.workbookUrl){ btn.textContent='⬇ xlsx'; window.open(au.workbookUrl,'_blank'); }
+              if(au&&au.workbookUrl){ btn.textContent='⬇ xlsx'; window.open(wbHref(au.workbookUrl),'_blank'); }
               else { btn.textContent='indisponível'; }
             });
           });
