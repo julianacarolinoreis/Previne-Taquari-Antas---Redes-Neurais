@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><title>PREVINE Taquari-Antas — Redes Neurais</title>
+<title>PREVINE Taquari-Antas — Redes Neurais</title>
 <!-- auditável integrado nesta página; guards de injeção: assets/css/audit_charts.css assets/js/audit_charts.js -->
 
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -191,10 +191,21 @@
   .station{
     background:var(--surface);border:1px solid var(--border);border-radius:12px;
     padding:10px 14px;box-shadow:var(--shadow);display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start;
+    cursor:pointer;transition:border-color .15s, box-shadow .15s, transform .15s;
   }
+  .station:hover{border-color:var(--chrome);transform:translateY(-1px)}
+  .station.sel{border-color:var(--chrome);box-shadow:0 0 0 2px color-mix(in srgb, var(--chrome) 35%, transparent), var(--shadow)}
   .station .st-dot{width:12px;height:12px;border-radius:50%;margin-top:4px;border:2px solid var(--surface)}
-  .station .st-name{font-weight:650;font-size:13.5px}
+  .station .st-name{font-weight:650;font-size:13.5px;display:flex;align-items:center;gap:6px}
+  .station .st-name .st-caret{margin-left:auto;color:var(--muted);font-size:11px;transition:transform .15s}
+  .station.sel .st-name .st-caret{transform:rotate(90deg)}
   .station .st-meta{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .station .st-detail{margin-top:8px;padding-top:8px;border-top:1px dashed var(--grid);display:none;font-size:11.5px;color:var(--ink)}
+  .station.sel .st-detail{display:block}
+  .station .st-detail dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0}
+  .station .st-detail dt{color:var(--muted)}
+  .station .st-detail dd{margin:0;font-variant-numeric:tabular-nums}
+  .station .st-detail .st-hint{margin-top:6px;color:var(--muted);font-size:11px}
   .map-note{font-size:12px;color:var(--muted);margin-top:10px;text-align:center}
 
   /* ---------- achados ---------- */
@@ -468,7 +479,8 @@
     <span class="kicker">a bacia</span>
     <h2>Onde ficam as estações</h2>
     <p class="sec-sub">A estação-alvo em Santa Tereza, a estação de montante que alimenta a montagem alternativa
-      e as estações vizinhas da bacia das Antas usadas na convencional. Clique nos marcadores para os detalhes.</p>
+      e as estações vizinhas da bacia das Antas usadas na convencional. Clique em uma estação na lista para abrir
+      os detalhes ali mesmo e localizá-la no mapa.</p>
     <div class="map-grid">
       <div id="mapa"><div class="map-fallback">Carregando o mapa…</div></div>
       <div class="stations" id="stations"></div>
@@ -499,21 +511,6 @@
     <div id="finds-root"></div>
     <h3 class="finds-h">Limitações desta leitura</h3>
     <ul class="limits" id="limits"></ul>
-  </section>
-
-  <section class="sec">
-    <span class="kicker">comparativo</span>
-    <h2>Recorte de dados — família 2H_ALT</h2>
-    <p class="sec-sub">Persistência e MAE de teste dos 12 modelos 2H_ALT, comparando o histórico completo com o recorte de dados aplicado.</p>
-    <div class="twrap" style="max-height:none">
-      <table id="tbl-recorte" aria-label="Comparativo de recorte 2H_ALT" style="min-width:640px">
-        <thead><tr>
-          <th>Modelo</th><th class="num">PERS antes</th><th class="num">PERS recorte</th><th class="num">Δ PERS</th>
-          <th class="num">MAE antes (cm)</th><th class="num">MAE recorte (cm)</th><th class="num">Δ MAE</th><th class="num">Inputs</th>
-        </tr></thead>
-        <tbody id="tbody-recorte"></tbody>
-      </table>
-    </div>
   </section>
 
   <section class="sec">
@@ -744,15 +741,17 @@
     'Dados: RELATORIO_TECNICO_PLANILHAO_NOVA_PLANILHA_2H_8H_2026_06_30, aba TODOS_MODELOS (somente linhas completas: planilha auditável + .mat + status/CSV MATLAB). Valores por modelo estão íntegros na tabela acima; os gráficos são leituras agregadas do mesmo recorte.';
 
   (function renderKpis(){
-    const bestEq = MODELS.filter(m=>m.score_equilibrio!=null).reduce((a,b)=> b.score_equilibrio>a.score_equilibrio?b:a);
-    const bestT = MODELS.filter(m=>m.PERS_teste!=null).reduce((a,b)=> b.PERS_teste>a.PERS_teste?b:a);
     const nNovos = MODELS.filter(m=>m.novo).length;
-    const best2h = MODELS.filter(m=>m.horizonte==='2h'&&m.MAE_teste_cm!=null).reduce((a,b)=> b.MAE_teste_cm<a.MAE_teste_cm?b:a);
+    const isAlt = m => /ALT/i.test(m.familia||'');
+    const nAlt = MODELS.filter(isAlt).length;
+    const nConv = MODELS.length - nAlt;
+    const horizontes = Array.from(new Set(MODELS.map(m=>m.horizonte).filter(Boolean)))
+      .sort((a,b)=> (parseInt(a)||0)-(parseInt(b)||0));
     const data=[
-      {label:'Modelos no painel', value:nf.format(MODELS.length), note:nNovos+' das rodadas de julho'},
-      {label:'Melhor equilíbrio', value:fmt(bestEq.score_equilibrio), note:FAMLABEL(bestEq.familia)+' · '+bestEq.combo_id+(bestEq.novo?' · rodada de julho':'')},
-      {label:'Melhor PERS no teste', value:fmt(bestT.PERS_teste), note:FAMLABEL(bestT.familia)+' · '+bestT.combo_id},
-      {label:'Melhor MAE no teste (2h)', value:fmt1(best2h.MAE_teste_cm)+' cm', note:'E95 de '+fmt1(best2h.E95_teste_cm)+' cm'}
+      {label:'Redes apresentadas', value:nf.format(MODELS.length), note:'todas com persistência positiva em todos os recortes'},
+      {label:'Horizontes de previsão', value:nf.format(horizontes.length), note:horizontes.join(' · ')},
+      {label:'Por abordagem', value:nf.format(nConv)+' CONV · '+nf.format(nAlt)+' ALT', note:'previsão direta do nível · previsão da variação'},
+      {label:'Rodadas de julho', value:nf.format(nNovos), note:'redes incorporadas nas melhorias dirigidas'}
     ];
     const root=document.getElementById('kpis');
     data.forEach(d=>{
@@ -864,33 +863,6 @@
     });
     const lu=document.getElementById('limits');
     limits.forEach(l=>{ const li=document.createElement('li'); li.textContent=l; lu.appendChild(li); });
-  })();
-
-  /* ---------------- comparativo de recorte 2H_ALT ---------------- */
-  (function renderRecorte(){
-    const tbody=document.getElementById('tbody-recorte');
-    if(!tbody) return;
-    fetch('assets/data/comparativo_recorte_2h_alt.json').then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-      .then(d=>{
-        const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-        const nf4=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4});
-        (d.modelos||[]).forEach(m=>{
-          const tr=document.createElement('tr');
-          const cell=(v,cls)=>{ const td=document.createElement('td'); if(cls) td.className=cls; td.textContent=v; return td; };
-          tr.append(
-            cell(m.id,'model'),
-            cell(nf4.format(m.pers_antes),'num'),
-            cell(nf4.format(m.pers_recorte),'num'),
-            cell((m.delta_pers>=0?'+':'')+nf4.format(m.delta_pers),'num'),
-            cell(nf2.format(m.mae_antes),'num'),
-            cell(nf2.format(m.mae_recorte),'num'),
-            cell((m.delta_mae>=0?'+':'')+nf2.format(m.delta_mae),'num'),
-            cell(String(m.n_inputs),'num')
-          );
-          tbody.appendChild(tr);
-        });
-      })
-      .catch(e=>{ tbody.innerHTML='<tr><td colspan="8">Não foi possível carregar o comparativo ('+e.message+').</td></tr>'; });
   })();
 
   /* ---------------- leaderboard (os melhores) ---------------- */
@@ -1023,24 +995,52 @@
     {name:'Cotiporã', code:'—', papel:'Município com estação vizinha (CONV)', grp:'conv', lat:-28.987, lon:-51.697, extra:''}
   ];
   const GRPCOLOR={alvo:'#e8a317', alt:'#2532e4', conv:'#1b7a5a'};
+  const GRPLABEL={alvo:'estação-alvo', alt:'montagem alternativa (ALT)', conv:'montagem convencional (CONV)'};
+  const fmtCoord=(v,pos,neg)=> v==null?'—':(Math.abs(v).toFixed(4)+'° '+(v>=0?pos:neg));
+  let MAP=null; const MARKERS={}; let SELCARD=null;
+  function focusStation(st, card){
+    if(SELCARD) SELCARD.classList.remove('sel');
+    if(SELCARD===card){ SELCARD=null; return; } // toggle off
+    card.classList.add('sel'); SELCARD=card;
+    card.scrollIntoView({block:'nearest', behavior:'smooth'});
+    const mk=MARKERS[st.code+'|'+st.name];
+    if(MAP && mk){
+      MAP.flyTo([st.lat,st.lon], st.grp==='alvo'?12:11, {duration:.6});
+      mk.openPopup();
+    }
+  }
   (function renderStations(){
     const list=document.getElementById('stations'); if(!list) return;
     STATIONS.forEach(st=>{
       const c=document.createElement('div'); c.className='station';
       const d=document.createElement('span'); d.className='st-dot'; d.style.background=GRPCOLOR[st.grp];
       const body=document.createElement('div');
-      const n=document.createElement('div'); n.className='st-name'; n.textContent=st.name;
+      const n=document.createElement('div'); n.className='st-name';
+      const nm=document.createElement('span'); nm.textContent=st.name; n.appendChild(nm);
+      const car=document.createElement('span'); car.className='st-caret'; car.textContent='▸'; n.appendChild(car);
       const meta=document.createElement('div'); meta.className='st-meta';
-      meta.textContent=(st.code!=='—'?'código '+st.code+' · ':'')+st.papel+(st.extra?' · '+st.extra:'');
+      meta.textContent=(st.code!=='—'?'código '+st.code+' · ':'')+st.papel;
       body.append(n,meta);
-      if(st.code!=='—'){
-        const lk=document.createElement('a'); lk.className='st-meta';
-        lk.href='https://www.snirh.gov.br/hidroweb/serieshistoricas'; lk.target='_blank'; lk.rel='noopener';
-        lk.textContent='consultar no Hidroweb/ANA (buscar pelo código '+st.code+') ↗';
-        lk.style.display='inline-block'; lk.style.marginTop='2px'; lk.style.color='var(--chrome)';
-        body.appendChild(lk);
-      }
-      c.append(d,body); list.appendChild(c);
+      // painel de detalhes inline — tudo ali, sem sair do site
+      const det=document.createElement('div'); det.className='st-detail';
+      const dl=document.createElement('dl');
+      const row=(k,v)=>{ if(v==null||v==='') return; const dt=document.createElement('dt'); dt.textContent=k;
+        const dd=document.createElement('dd'); dd.textContent=v; dl.append(dt,dd); };
+      row('Papel', st.papel);
+      row('Código ANA', st.code!=='—'?st.code:'não catalogado');
+      row('Tipo', GRPLABEL[st.grp]);
+      if(st.lat!=null){ row('Latitude', fmtCoord(st.lat,'N','S')); row('Longitude', fmtCoord(st.lon,'E','O')); }
+      det.appendChild(dl);
+      if(st.extra){ const ex=document.createElement('div'); ex.className='st-hint'; ex.textContent=st.extra; det.appendChild(ex); }
+      if(st.lat!=null){ const hint=document.createElement('div'); hint.className='st-hint';
+        hint.textContent=(st.est?'Posição estimada — aguardando coordenada oficial. ':'')+'Clique para localizar no mapa ao lado.';
+        det.appendChild(hint); }
+      else { const hint=document.createElement('div'); hint.className='st-hint';
+        hint.textContent='Coordenada a confirmar no inventário ANA.'; det.appendChild(hint); }
+      body.appendChild(det);
+      c.append(d,body);
+      c.addEventListener('click', ()=>focusStation(st,c));
+      list.appendChild(c);
     });
   })();
   (function initMap(){
@@ -1056,7 +1056,7 @@
     js.onload=()=>{
       try{
         box.replaceChildren();
-        const map=L.map(box,{scrollWheelZoom:false}).setView([-28.95,-51.45],9);
+        const map=L.map(box,{scrollWheelZoom:false}).setView([-28.95,-51.45],9); MAP=map;
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
           maxZoom:17, attribution:'© OpenStreetMap'
         }).addTo(map);
@@ -1068,9 +1068,11 @@
             dashArray:st.est?'4 3':null
           }).addTo(map);
           mk.bindPopup('<strong>'+st.name+'</strong><br>'+
-            (st.code!=='—'?'Código: '+st.code+'<br>':'')+st.papel+
+            (st.code!=='—'?'Código ANA: '+st.code+'<br>':'')+st.papel+
             (st.extra?'<br><small>'+st.extra+'</small>':'')+
+            '<br><small>lat '+fmtCoord(st.lat,'N','S')+' · lon '+fmtCoord(st.lon,'E','O')+'</small>'+
             '<br><small>'+(st.est?'posição ESTIMADA — aguardando coordenada oficial':'posição aproximada')+'</small>');
+          MARKERS[st.code+'|'+st.name]=mk;
         });
       }catch(e){ fail('Não foi possível montar o mapa: '+e.message); }
     };
@@ -1784,4 +1786,3 @@
   renderCharts();
 })();
 </script>
-</body></html>
