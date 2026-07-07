@@ -502,6 +502,21 @@
   </section>
 
   <section class="sec">
+    <span class="kicker">comparativo</span>
+    <h2>Recorte de dados — família 2H_ALT</h2>
+    <p class="sec-sub">Persistência e MAE de teste dos 12 modelos 2H_ALT, comparando o histórico completo com o recorte de dados aplicado.</p>
+    <div class="twrap" style="max-height:none">
+      <table id="tbl-recorte" aria-label="Comparativo de recorte 2H_ALT" style="min-width:640px">
+        <thead><tr>
+          <th>Modelo</th><th class="num">PERS antes</th><th class="num">PERS recorte</th><th class="num">Δ PERS</th>
+          <th class="num">MAE antes (cm)</th><th class="num">MAE recorte (cm)</th><th class="num">Δ MAE</th><th class="num">Inputs</th>
+        </tr></thead>
+        <tbody id="tbody-recorte"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="sec">
     <span class="kicker">explore os dados</span>
     <h2>Exploração dos modelos</h2>
     <p class="sec-sub">Os filtros abaixo recortam todos os gráficos e a tabela ao mesmo tempo.</p>
@@ -849,6 +864,33 @@
     });
     const lu=document.getElementById('limits');
     limits.forEach(l=>{ const li=document.createElement('li'); li.textContent=l; lu.appendChild(li); });
+  })();
+
+  /* ---------------- comparativo de recorte 2H_ALT ---------------- */
+  (function renderRecorte(){
+    const tbody=document.getElementById('tbody-recorte');
+    if(!tbody) return;
+    fetch('assets/data/comparativo_recorte_2h_alt.json').then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(d=>{
+        const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+        const nf4=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4});
+        (d.modelos||[]).forEach(m=>{
+          const tr=document.createElement('tr');
+          const cell=(v,cls)=>{ const td=document.createElement('td'); if(cls) td.className=cls; td.textContent=v; return td; };
+          tr.append(
+            cell(m.id,'model'),
+            cell(nf4.format(m.pers_antes),'num'),
+            cell(nf4.format(m.pers_recorte),'num'),
+            cell((m.delta_pers>=0?'+':'')+nf4.format(m.delta_pers),'num'),
+            cell(nf2.format(m.mae_antes),'num'),
+            cell(nf2.format(m.mae_recorte),'num'),
+            cell((m.delta_mae>=0?'+':'')+nf2.format(m.delta_mae),'num'),
+            cell(String(m.n_inputs),'num')
+          );
+          tbody.appendChild(tr);
+        });
+      })
+      .catch(e=>{ tbody.innerHTML='<tr><td colspan="8">Não foi possível carregar o comparativo ('+e.message+').</td></tr>'; });
   })();
 
   /* ---------------- leaderboard (os melhores) ---------------- */
