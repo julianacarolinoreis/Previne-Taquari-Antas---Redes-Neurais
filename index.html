@@ -1353,11 +1353,12 @@
     if(m.arquivo_mat) fl.appendChild(fileRow('Modelo treinado (.mat) — caminho original', m.arquivo_mat));
     files.appendChild(fl);
 
-    if(m.mat){
+    const _mat = m.mat || (au && au.mat);
+    if(_mat){
       const mb=document.createElement('div'); mb.className='m-block'; mb.style.marginTop='18px';
       const hm=document.createElement('h4'); hm.textContent='Informações do MATLAB (.mat)'; mb.appendChild(hm);
       const grid=document.createElement('div'); grid.className='m-stats';
-      const mt=m.mat;
+      const mt=_mat;
       const items=[
         ['Neurônios ocultos (nh)', mt.nh!=null?nf.format(mt.nh):'—'],
         ['Inicializações (nit)', mt.nit!=null?nf.format(mt.nit):'—'],
@@ -1782,7 +1783,3 @@
   });
   let resizeT;
   window.addEventListener('resize',()=>{ clearTimeout(resizeT); resizeT=setTimeout(renderCharts,150); });
-
-  renderCharts();
-})();
-</script>
