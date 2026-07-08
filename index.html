@@ -1083,7 +1083,7 @@
   const WB_RAW='https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/6601cf09a2b247a1fa03a12810f681c2c796ba18/';
   const wbHref=u=>u? (u.startsWith('http')?u:WB_RAW+u) : '';
   const AUDIT_URL='assets/data/auditaveis_series.json';
-  const NOVOS_URL='https://raw.githubusercontent.com/julianacarolinoreis/PMRR-Porto-Alegre/main/previne/novos_series.json';
+  const NOVOS_URL='assets/data/novos_series.json';
   let NOVOS=null, NOVOS_LOADING=null;
   function loadNovos(){
     if(NOVOS) return Promise.resolve();
@@ -1371,7 +1371,7 @@
         ['Erro médio abs. (cm)', mt.emed!=null?fmt1(mt.emed):'—'],
         ['Taxa de aprendizado (Prc)', mt.Prc!=null?String(mt.Prc).replace('.',','):'—'],
         ['Momentum', mt.Mom!=null?String(mt.Mom).replace('.',','):'—'],
-        ['Pesos da camada oculta', mt.wh?mt.wh[0]+' × '+mt.wh[1]:'—']
+        ['Pesos da camada oculta', mt.wh?(Array.isArray(mt.wh)?mt.wh[0]+' × '+mt.wh[1]:String(mt.wh).replace('x',' × ')):'—']
       ];
       items.forEach(([l,v])=>grid.appendChild(statTile(l,v)));
       mb.appendChild(grid);
@@ -1390,8 +1390,8 @@
         const thr=document.createElement('tr');
         ['Variável','O que é','Dimensões','Valor'].forEach(t=>{const th=document.createElement('th'); th.textContent=t; thr.appendChild(th);});
         tb.appendChild(thr);
-        const valMap=new Map((mt.all||[]).map(([n,v])=>[n,v]));
-        mt.vars.forEach(([nm,cl,sh])=>{
+        const valMap=new Map((mt.all||[]).map(a=>Array.isArray(a)?[a[0],a[1]]:[a.name,a.value]));
+        mt.vars.forEach(v=>{ const nm=Array.isArray(v)?v[0]:v, cl=Array.isArray(v)?v[1]:null, sh=Array.isArray(v)?v[2]:null;
           const tr=document.createElement('tr');
           const t1=document.createElement('td'); t1.textContent=nm;
           const t2=document.createElement('td'); t2.textContent=MATDESC[nm]||'';
@@ -1401,8 +1401,8 @@
           if(!valMap.has(nm)) t4.style.color='var(--muted)';
           tr.append(t1,t2,t3,t4); tb.appendChild(tr);
         });
-        (mt.all||[]).forEach(([nm,v])=>{
-          if(mt.vars.some(x=>x[0]===nm)) return;
+        (mt.all||[]).forEach(a=>{ const nm=Array.isArray(a)?a[0]:a.name, v=Array.isArray(a)?a[1]:a.value;
+          if(mt.vars.some(x=>Array.isArray(x)?x[0]===nm:x===nm)) return;
           const tr=document.createElement('tr');
           const t1=document.createElement('td'); t1.textContent=nm;
           const t2=document.createElement('td'); t2.textContent=MATDESC[nm]||'';
