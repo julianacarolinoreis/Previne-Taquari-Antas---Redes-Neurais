@@ -1,0 +1,28 @@
+{
+  "name": "protocolo_evento_estrangulado_leave_one_out",
+  "status": "proposto_para_execucao_rna",
+  "objective": "treinar RNAs deixando fora um evento critico com evidencia de estrangulamento/controle hidraulico e testar previsao + espacializacao nele",
+  "primary_event_candidate": {
+    "label": "cheia_setembro_2023_ponte_santa_barbara",
+    "reason": "evento destruiu a ponte antiga Santa Barbara / ERS-431; anteprojeto usa vestigio da cheia como referencia de cota da nova ponte",
+    "spatial_control": "ponte_santa_barbara_confluencia",
+    "holdout_role": "teste_externo",
+    "rna_event_id": "a_confirmar_nas_planilhas_SERIE"
+  },
+  "secondary_event_candidate": {
+    "label": "cheia_maio_2024_santa_tereza",
+    "reason": "evento com cota SGB forte em Santa Tereza e camadas de inundacao/impacto disponiveis",
+    "sgb_cota_nivelada_m": 22.42,
+    "holdout_role": "validacao_espacial_e_temporal",
+    "rna_event_id": "a_confirmar_nas_planilhas_SERIE"
+  },
+  "execution_steps": [
+    "mapear id SERIE/evento para datas reais nas planilhas auditaveis",
+    "selecionar evento estrangulado e remove-lo de treino/validacao",
+    "treinar 2h e 8h com mesmo conjunto de inputs do melhor modelo comparavel",
+    "rodar previsao no evento holdout inteiro",
+    "comparar H_previsto contra observado e persistencia",
+    "traduzir H_atual, H_2h, H_8h para camada espacial usando a mancha/cenario disponivel",
+    "medir erro temporal separadamente do erro espacial"
+  ]
+}

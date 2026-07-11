@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PREVINE - Mancha Santa Tereza</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    :root{--bg:#f4f6f2;--panel:#fff;--ink:#17201b;--muted:#667069;--line:#d8ded5;--blue:#1f6fbf}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;background:var(--panel);border-bottom:1px solid var(--line)}
+    h1{font-size:20px;margin:0}
+    .tag{font-size:12px;color:var(--muted)}
+    main{display:grid;grid-template-columns:minmax(0,1fr) 360px;height:calc(100vh - 58px)}
+    #map{min-height:520px}
+    aside{background:var(--panel);border-left:1px solid var(--line);padding:14px;overflow:auto}
+    h2{font-size:14px;margin:16px 0 8px}
+    h2:first-child{margin-top:0}
+    p{font-size:13px;line-height:1.45;color:var(--muted);margin:0 0 10px}
+    .metric{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+    .metric b{font-weight:700}
+    .legend{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin:8px 0}
+    .sw{width:22px;height:12px;border-radius:2px;background:linear-gradient(90deg,rgba(20,92,230,.45),rgba(250,92,185,.65));border:1px solid rgba(0,0,0,.15)}
+    .link{display:block;margin-top:8px;color:var(--blue);font-size:13px;text-decoration:none}
+    @media(max-width:900px){main{grid-template-columns:1fr;height:auto}#map{height:70vh}aside{border-left:0;border-top:1px solid var(--line)}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>PREVINE - mancha preliminar Santa Tereza</h1>
+  <span class="tag">prova de conceito geoespacial</span>
+</header>
+<main>
+  <div id="map"></div>
+  <aside>
+    <h2>Camada</h2>
+    <p>Mancha preliminar recortada de raster local de profundidade/inundacao. Nao substitui produto oficial nem modelagem hidrodinamica.</p>
+    <div class="legend"><span class="sw"></span><span>pixels positivos do raster recortado</span></div>
+    <div id="metrics"></div>
+    <h2>Controle hidraulico</h2>
+    <p>Ponte Santa Barbara / ERS-431, junto a confluencia Rio das Antas + Rio Carreiro e inicio do Rio Taquari.</p>
+    <h2>Arquivos</h2>
+    <a class="link" href="assets/data/santa_tereza_inundacao/mancha_preliminar_santa_tereza.geojson">GeoJSON - raster local</a>
+    <a class="link" href="assets/data/santa_tereza_inundacao/cenario_dem_na9765_santa_tereza.geojson">GeoJSON - cenario DEM NA 97,65</a>
+    <a class="link" href="assets/data/santa_tereza_inundacao/mancha_preliminar_santa_tereza.json">Metadados</a>
+    <a class="link" href="assets/data/santa_tereza_inundacao/protocolo_leave_one_event_out_estrangulamento.json">Protocolo leave-one-event-out</a>
+  </aside>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+async function main(){
+  const cfg = await fetch('assets/data/santa_tereza_inundacao/mancha_preliminar_santa_tereza.json').then(r=>r.json());
+  const map = L.map('map',{scrollWheelZoom:true}).setView([-29.14,-51.725],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'OpenStreetMap'}).addTo(map);
+  const overlays = {};
+  const fitBounds = [];
+  for(const layer of cfg.layers){
+    const b = layer.overlay_bounds;
+    const bounds = [[b.south,b.west],[b.north,b.east]];
+    fitBounds.push(bounds[0], bounds[1]);
+    const item = L.imageOverlay('assets/data/santa_tereza_inundacao/'+layer.overlay_png, bounds, {opacity:layer.opacity ?? .72});
+    overlays[layer.label] = item;
+    item.addTo(map);
+    fetch('assets/data/santa_tereza_inundacao/'+layer.geojson).then(r=>r.json()).then(g=>{
+      L.geoJSON(g,{style:{color:layer.outline || '#064b8f',weight:1,fillOpacity:0}}).addTo(map);
+    });
+  }
+  L.control.layers(null, overlays, {collapsed:false}).addTo(map);
+  map.fitBounds(fitBounds);
+  for(const p of cfg.points){
+    L.circleMarker([p.lat,p.lon],{radius:p.kind==='controle_hidraulico'?8:6,color:'#fff',weight:2,fillColor:p.kind==='estacao'?'#276fbf':'#b04538',fillOpacity:.95}).addTo(map).bindPopup(`<b>${p.label}</b><br>${p.id}`);
+  }
+  const metrics = document.getElementById('metrics');
+  const rows = cfg.layers.flatMap(layer => [
+    [layer.label, ''],
+    ['Area aprox.', layer.stats.area_ha_aprox + ' ha'],
+    ['Pixels', layer.stats.positive_pixels],
+    ['Fonte', layer.source_label]
+  ]);
+  metrics.innerHTML = rows.map(([k,v])=>`<div class="metric"><span>${k}</span><b>${v}</b></div>`).join('');
+}
+main().catch(err=>{document.getElementById('map').textContent='Erro ao carregar camada: '+err.message});
+</script>
+</body>
+</html>
