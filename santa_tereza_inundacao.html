@@ -13,7 +13,7 @@
     h1{font-size:20px;margin:0}
     .tag{font-size:12px;color:var(--muted)}
     main{display:grid;grid-template-columns:minmax(0,1fr) 360px;height:calc(100vh - 58px)}
-    #map{min-height:520px}
+    #map{min-height:520px;position:relative}
     aside{background:var(--panel);border-left:1px solid var(--line);padding:14px;overflow:auto}
     h2{font-size:14px;margin:16px 0 8px}
     h2:first-child{margin-top:0}
@@ -23,6 +23,13 @@
     .legend{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin:8px 0}
     .sw{width:22px;height:12px;border-radius:2px;background:linear-gradient(90deg,rgba(20,92,230,.45),rgba(250,92,185,.65));border:1px solid rgba(0,0,0,.15)}
     .link{display:block;margin-top:8px;color:var(--blue);font-size:13px;text-decoration:none}
+    /* fallback estatico quando o Leaflet nao carrega */
+    .fallback{position:absolute;inset:0;display:flex;flex-direction:column;background:#eef1ec;overflow:auto}
+    .fallback .banner{background:#fff4e5;color:#8a5a12;border-bottom:1px solid #f0d9b5;padding:10px 14px;font-size:12.5px;line-height:1.4}
+    .fallback .imgs{display:flex;flex-wrap:wrap;gap:14px;padding:14px;align-items:flex-start}
+    .fallback figure{margin:0;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px;max-width:340px}
+    .fallback img{display:block;max-width:100%;height:auto;background:#dfe6dc;border-radius:4px}
+    .fallback figcaption{font-size:12px;color:var(--muted);margin-top:6px}
     @media(max-width:900px){main{grid-template-columns:1fr;height:auto}#map{height:70vh}aside{border-left:0;border-top:1px solid var(--line)}}
   </style>
 </head>
@@ -49,38 +56,77 @@
 </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-async function main(){
-  const cfg = await fetch('assets/data/santa_tereza_inundacao/mancha_preliminar_santa_tereza.json').then(r=>r.json());
-  const map = L.map('map',{scrollWheelZoom:true}).setView([-29.14,-51.725],12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'OpenStreetMap'}).addTo(map);
-  const overlays = {};
-  const fitBounds = [];
-  for(const layer of cfg.layers){
-    const b = layer.overlay_bounds;
-    const bounds = [[b.south,b.west],[b.north,b.east]];
-    fitBounds.push(bounds[0], bounds[1]);
-    const item = L.imageOverlay('assets/data/santa_tereza_inundacao/'+layer.overlay_png, bounds, {opacity:layer.opacity ?? .72});
-    overlays[layer.label] = item;
-    item.addTo(map);
-    fetch('assets/data/santa_tereza_inundacao/'+layer.geojson).then(r=>r.json()).then(g=>{
-      L.geoJSON(g,{style:{color:layer.outline || '#064b8f',weight:1,fillOpacity:0}}).addTo(map);
-    });
-  }
-  L.control.layers(null, overlays, {collapsed:false}).addTo(map);
-  map.fitBounds(fitBounds);
-  for(const p of cfg.points){
-    L.circleMarker([p.lat,p.lon],{radius:p.kind==='controle_hidraulico'?8:6,color:'#fff',weight:2,fillColor:p.kind==='estacao'?'#276fbf':'#b04538',fillOpacity:.95}).addTo(map).bindPopup(`<b>${p.label}</b><br>${p.id}`);
-  }
+const DATA_DIR = 'assets/data/santa_tereza_inundacao/';
+
+function renderMetrics(cfg){
   const metrics = document.getElementById('metrics');
+  if(!metrics) return;
   const rows = cfg.layers.flatMap(layer => [
     [layer.label, ''],
-    ['Area aprox.', layer.stats.area_ha_aprox + ' ha'],
-    ['Pixels', layer.stats.positive_pixels],
-    ['Fonte', layer.source_label]
+    ['Area aprox.', (layer.stats.area_ha_aprox ?? '-') + ' ha'],
+    ['Pixels', layer.stats.positive_pixels ?? '-'],
+    ['Fonte', layer.source_label || '-']
   ]);
   metrics.innerHTML = rows.map(([k,v])=>`<div class="metric"><span>${k}</span><b>${v}</b></div>`).join('');
 }
-main().catch(err=>{document.getElementById('map').textContent='Erro ao carregar camada: '+err.message});
+
+// fallback estatico: mostra a mancha mesmo sem Leaflet/tiles/internet
+function renderFallback(cfg, motivo){
+  const box = document.getElementById('map');
+  if(!box) return;
+  const layers = (cfg && cfg.layers) || [];
+  const figs = layers.map(l => `
+    <figure>
+      <img src="${DATA_DIR}${l.overlay_png}" alt="${l.label}" loading="lazy">
+      <figcaption><b>${l.label}</b><br>${l.source_label || ''}${l.stats && l.stats.area_ha_aprox ? ' &middot; '+l.stats.area_ha_aprox+' ha' : ''}</figcaption>
+    </figure>`).join('');
+  box.innerHTML = `<div class="fallback">
+    <div class="banner">${motivo} Mostrando as camadas como imagem estatica. Para o mapa interativo, abra esta pagina publicada pelo <b>GitHub Pages</b> (nao pelo link "raw", que exibe o codigo).</div>
+    <div class="imgs">${figs || '<p style="padding:14px">Sem camadas para exibir.</p>'}</div>
+  </div>`;
+  renderMetrics(cfg || {layers:[]});
+}
+
+async function main(){
+  let cfg;
+  try{
+    cfg = await fetch(DATA_DIR + 'mancha_preliminar_santa_tereza.json').then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+  }catch(e){
+    renderFallback({layers:[]}, 'Nao foi possivel carregar os metadados da mancha ('+e.message+').');
+    return;
+  }
+  // Leaflet nao carregou (CDN bloqueado / sem internet) -> fallback estatico
+  if(typeof L === 'undefined'){
+    renderFallback(cfg, 'O mapa interativo (Leaflet) nao carregou.');
+    return;
+  }
+  try{
+    const map = L.map('map',{scrollWheelZoom:true}).setView([-29.14,-51.725],12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'OpenStreetMap'}).addTo(map);
+    const overlays = {};
+    const fitBounds = [];
+    for(const layer of cfg.layers){
+      const b = layer.overlay_bounds;
+      const bounds = [[b.south,b.west],[b.north,b.east]];
+      fitBounds.push(bounds[0], bounds[1]);
+      const item = L.imageOverlay(DATA_DIR + layer.overlay_png, bounds, {opacity:layer.opacity ?? .72});
+      overlays[layer.label] = item;
+      item.addTo(map);
+      fetch(DATA_DIR + layer.geojson).then(r=>r.json()).then(g=>{
+        L.geoJSON(g,{style:{color:layer.outline || '#064b8f',weight:1,fillOpacity:0}}).addTo(map);
+      }).catch(()=>{});
+    }
+    L.control.layers(null, overlays, {collapsed:false}).addTo(map);
+    if(fitBounds.length) map.fitBounds(fitBounds);
+    for(const p of (cfg.points||[])){
+      L.circleMarker([p.lat,p.lon],{radius:p.kind==='controle_hidraulico'?8:6,color:'#fff',weight:2,fillColor:p.kind==='estacao'?'#276fbf':'#b04538',fillOpacity:.95}).addTo(map).bindPopup(`<b>${p.label}</b><br>${p.id}`);
+    }
+    renderMetrics(cfg);
+  }catch(err){
+    renderFallback(cfg, 'Falha ao montar o mapa interativo ('+err.message+').');
+  }
+}
+main();
 </script>
 </body>
 </html>
