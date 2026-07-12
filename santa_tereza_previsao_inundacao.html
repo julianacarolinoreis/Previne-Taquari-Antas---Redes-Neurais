@@ -39,7 +39,7 @@
   .hydro{margin-top:4px}
   .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:8px}
   .banner{position:absolute;z-index:500;left:10px;top:10px;background:#fff4e5;color:#8a5a12;border:1px solid #f0d9b5;border-radius:8px;padding:7px 11px;font-size:12px;max-width:70%}
-  .flood-ov{image-rendering:pixelated;image-rendering:crisp-edges}
+  .flood-ov{image-rendering:auto}
   @media(max-width:900px){main{grid-template-columns:1fr;height:auto}#map{height:58vh}aside{border-left:0;border-top:1px solid var(--line)}}
 </style>
 </head>
@@ -94,19 +94,35 @@ const COTA_INUND=1500; // cota de inundacao oficial SGB/SACE (cm) — primeiro p
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
 const nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
 const nf1=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
-let handArr=null;     // Uint8 decimetros, 255=sem dado
+const SS=3;                        // supersampling: interpola o HAND numa grade SSx mais fina (borda suave)
+const FCOLS=COLS*SS, FROWS=ROWS*SS;
+let handArr=null;                  // HAND fino (decimetros), 255 = fora do alcance
 let curEv=Object.keys(EVENTS)[0];
 let bankfull=300, tIdx=0, playing=false, timer=null, map=null, waterOverlay=null;
-const outCanvas=document.createElement('canvas'); outCanvas.width=COLS; outCanvas.height=ROWS;
+const outCanvas=document.createElement('canvas'); outCanvas.width=FCOLS; outCanvas.height=FROWS;
 const octx=outCanvas.getContext('2d');
 
 function loadHand(){
   return new Promise(res=>{
     const img=new Image();
-    img.onload=()=>{ const c=document.createElement('canvas'); c.width=COLS;c.height=ROWS;
+    img.onload=()=>{
+      // 1) HAND cru na grade original (255 -> 250 = 25 m, pra interpolar como "terreno alto")
+      const c=document.createElement('canvas'); c.width=COLS;c.height=ROWS;
       const x=c.getContext('2d'); x.drawImage(img,0,0);
-      const d=x.getImageData(0,0,COLS,ROWS).data; handArr=new Uint8Array(COLS*ROWS);
-      for(let i=0;i<COLS*ROWS;i++) handArr[i]=d[i*4]; res(); };
+      const d=x.getImageData(0,0,COLS,ROWS).data;
+      const sc=document.createElement('canvas'); sc.width=COLS;sc.height=ROWS;
+      const sx=sc.getContext('2d'); const sd=sx.createImageData(COLS,ROWS);
+      for(let i=0;i<COLS*ROWS;i++){ const v=d[i*4]===255?250:d[i*4]; sd.data[i*4]=sd.data[i*4+1]=sd.data[i*4+2]=v; sd.data[i*4+3]=255; }
+      sx.putImageData(sd,0,0);
+      // 2) upscale bilinear SSx -> borda da mancha vira curva suave
+      const bc=document.createElement('canvas'); bc.width=FCOLS;bc.height=FROWS;
+      const bx=bc.getContext('2d'); bx.imageSmoothingEnabled=true; bx.imageSmoothingQuality='high';
+      bx.drawImage(sc,0,0,FCOLS,FROWS);
+      const bd=bx.getImageData(0,0,FCOLS,FROWS).data;
+      handArr=new Uint8Array(FCOLS*FROWS);
+      for(let i=0;i<FCOLS*FROWS;i++) handArr[i]=bd[i*4];
+      res();
+    };
     img.onerror=()=>{ handArr=null; res(); };
     img.src='data:image/png;base64,'+HAND.hand_png_b64;
   });
@@ -126,30 +142,30 @@ function renderFrame(){
   const nowCm=s[1], obsCm=s[2], foreCm=s[3];
   const hNow=stageToHand(nowCm), hFore=stageToHand(foreCm);
   const nowDm=hNow*10, foreDm=hFore*10;
-  const img=octx.createImageData(COLS,ROWS);
-  const foreMask=new Uint8Array(COLS*ROWS);
+  const N=FCOLS*FROWS;
+  const img=octx.createImageData(FCOLS,FROWS);
+  const foreMask=new Uint8Array(N);
   let aNow=0,aFore=0;
-  for(let i=0;i<COLS*ROWS;i++){
-    const hd=handArr[i];
-    const valid=hd!==255;
-    const inNow=valid && hd<=nowDm;
-    const inFore=valid && hd<=foreDm;
+  for(let i=0;i<N;i++){
+    const hd=handArr[i];             // decimetros (0..250); 250 = terreno alto
+    const inNow=hd<=nowDm;
+    const inFore=foreDm>0 && hd<=foreDm;
     if(inFore) foreMask[i]=1;
-    if(inNow){ const [r,g,b]=depthColor(nowDm-hd); img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=205; aNow++; }
+    if(inNow){ const [r,g,b]=depthColor(nowDm-hd); img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=200; aNow++; }
     if(inFore) aFore++;
   }
-  // contorno da previsao (borda do foreMask)
-  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
-    const i=y*COLS+x; if(!foreMask[i])continue;
-    const edge = x===0||x===COLS-1||y===0||y===ROWS-1 ||
-      !foreMask[i-1]||!foreMask[i+1]||!foreMask[i-COLS]||!foreMask[i+COLS];
+  // contorno da previsao (borda do foreMask) — na grade fina fica suave
+  for(let y=0;y<FROWS;y++)for(let x=0;x<FCOLS;x++){
+    const i=y*FCOLS+x; if(!foreMask[i])continue;
+    const edge = x===0||x===FCOLS-1||y===0||y===FROWS-1 ||
+      !foreMask[i-1]||!foreMask[i+1]||!foreMask[i-FCOLS]||!foreMask[i+FCOLS];
     if(edge){ img.data[i*4]=232;img.data[i*4+1]=115;img.data[i*4+2]=12;img.data[i*4+3]=255; }
   }
   octx.putImageData(img,0,0);
   const url=outCanvas.toDataURL();
   if(waterOverlay) waterOverlay.setUrl(url);
   // leituras
-  const cellHa=0.0835;
+  const cellHa=0.0835/(SS*SS);
   document.getElementById('r-now').textContent=nf1.format(nowCm/100)+' m';
   document.getElementById('r-fore').textContent=(foreCm!=null?nf1.format(foreCm/100)+' m':'—');
   document.getElementById('r-obs').textContent=(obsCm!=null?nf1.format(obsCm/100)+' m':'—');
@@ -193,7 +209,7 @@ function setEvent(ev){
   curEv=ev; tIdx=0;
   document.querySelectorAll('#evseg button').forEach(b=>b.classList.toggle('on',b.dataset.ev===ev));
   const E=EVENTS[ev];
-  if(playing){ playing=false; clearInterval(timer); document.getElementById('play').textContent='▶'; }
+  if(playing){ playing=false; clearTimeout(timer); document.getElementById('play').textContent='▶'; }
   document.getElementById('time').max=Math.max(0,E.series.length-1);
   document.getElementById('time').value=0;
   document.getElementById('hz').textContent=E.horizonte;
@@ -211,7 +227,7 @@ function setEvent(ev){
   renderFrame();
 }
 
-function tick(){ const E=EVENTS[curEv]; tIdx=(tIdx+1)%E.series.length; document.getElementById('time').value=tIdx; renderFrame(); }
+function tick(){ const E=EVENTS[curEv]; tIdx=(tIdx+1)%E.series.length; document.getElementById('time').value=tIdx; renderFrame(); if(playing) timer=setTimeout(tick,300); }
 
 async function init(){
   // segmentos de evento
@@ -226,7 +242,7 @@ async function init(){
   document.getElementById('bankfull').oninput=e=>{ bankfull=+e.target.value; document.getElementById('bfval').textContent=(bankfull/100).toFixed(1)+' m'; renderFrame(); };
   document.getElementById('play').onclick=()=>{ playing=!playing;
     document.getElementById('play').textContent=playing?'⏸':'▶';
-    if(playing) timer=setInterval(tick,350); else clearInterval(timer); };
+    if(playing) tick(); else clearTimeout(timer); };
 
   await loadHand();
   if(typeof L!=='undefined'){
