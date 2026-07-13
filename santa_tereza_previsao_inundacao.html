@@ -28,14 +28,17 @@
   .time{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:center;margin:2px 0 4px}
   .read{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
   .read b{font-variant-numeric:tabular-nums}
-  .read .now{color:var(--brand-2)} .read .fore{color:var(--fore)}
+  .read .now{color:var(--brand-2)} .read .fore{color:var(--fore)} .read .add{color:#b06a12}
+  .info{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;
+    background:var(--line);color:var(--muted);font-size:10px;font-weight:700;cursor:help;margin-left:5px;vertical-align:middle}
   .cal{font-size:12px;color:var(--muted)}
   .cal b{color:var(--ink)}
   .legend{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);margin-top:4px}
   .legend .row{display:flex;align-items:center;gap:8px}
   .legend .sw{width:20px;height:12px;border-radius:3px;flex:0 0 auto}
   .legend .sw.water{background:linear-gradient(90deg,#8fc0ff,#123f9e)}
-  .legend .sw.fore{background:transparent;border:2px solid var(--fore)}
+  .legend .sw.add{background:rgba(232,115,12,.5);border:1px solid #b06a12}
+  .legend .sw.maxln{background:transparent;border:2px solid var(--fore)}
   .hydro{margin-top:4px}
   .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:8px}
   .banner{position:absolute;z-index:500;left:10px;top:10px;background:#fff4e5;color:#8a5a12;border:1px solid #f0d9b5;border-radius:8px;padding:7px 11px;font-size:12px;max-width:70%}
@@ -61,24 +64,36 @@
     <div class="ctl"><button class="play" id="play">▶</button><input type="range" id="time" min="0" max="1" value="0"></div>
     <div class="time" id="tlabel">—</div>
 
-    <h2>Leitura</h2>
+    <h2>Leitura <span class="info" title="Nível: leitura da régua da estação 86472600 (m). PERS (persistência): quanto a rede ganha da previsão ingênua 'o nível daqui a N h será o de agora' — 0 = igual à ingênua, 1 = perfeito; negativo = pior que a ingênua. Área: superfície alagada estimada pelo HAND (ha).">ⓘ</span></h2>
     <div class="read"><span class="now">Nível atual (rio)</span><b class="now" id="r-now">—</b></div>
     <div class="read"><span class="fore">Previsão RNA (+<span id="hz">?</span>)</span><b class="fore" id="r-fore">—</b></div>
+    <div class="read"><span>Δ nível (previsto − atual)</span><b id="r-dnivel">—</b></div>
     <div class="read"><span>Observado (+<span id="hz2">?</span>)</span><b id="r-obs">—</b></div>
+    <div class="read"><span>Erro de nível (prev − obs)</span><b id="r-errniv">—</b></div>
     <div class="read"><span class="now">Área alagada agora</span><b class="now" id="r-anow">—</b></div>
-    <div class="read"><span class="fore">Área prevista (RNA)</span><b class="fore" id="r-afore">—</b></div>
+    <div class="read"><span class="fore">Área prevista</span><b class="fore" id="r-afore">—</b></div>
+    <div class="read"><span class="add">Nova área (avanço)</span><b class="add" id="r-anew">—</b></div>
+    <div class="read"><span class="add">Crescimento</span><b class="add" id="r-growth">—</b></div>
 
-    <h2>Hidrograma do evento</h2>
-    <div class="hydro"><svg id="hydro" viewBox="0 0 320 90" width="100%"></svg></div>
+    <div id="valblock" style="display:none">
+      <h2>Validação espacial <span class="info" title="Compara a mancha prevista com a mancha do nível OBSERVADO (a que de fato ocorreu +N h). IoU/CSI = interseção ÷ união (1 = idêntico). Falso positivo = área que a previsão pôs água e não teve. Falso negativo = área que teve água e a previsão não pegou.">ⓘ</span></h2>
+      <div class="read"><span>IoU / CSI</span><b id="v-iou">—</b></div>
+      <div class="read"><span>Falso positivo (excesso)</span><b id="v-fp">—</b></div>
+      <div class="read"><span>Falso negativo (faltou)</span><b id="v-fn">—</b></div>
+    </div>
+
+    <h2>Hidrograma do evento <span class="info" title="Nível observado ao longo do evento. Clique no gráfico para pular para aquele instante — o mapa acompanha.">ⓘ</span></h2>
+    <div class="hydro"><svg id="hydro" viewBox="0 0 320 90" width="100%" style="cursor:pointer"></svg></div>
 
     <h2>Calibração · régua ↔ terreno</h2>
-    <p class="cal">Leitura da régua correspondente ao <b>leito do rio</b> (HAND 0). Suba ou desça até a mancha bater com onde você sabe que a água chegou naquele evento. Atual: <b id="bfval">—</b></p>
+    <p class="cal">Leitura da régua correspondente ao <b>leito do rio</b> (HAND 0). Suba ou desça até a mancha bater com onde você sabe que a água chegou naquele evento. Atual: <b id="bfval">—</b> · registrado para este cenário: <b id="bfevent">—</b></p>
     <input type="range" id="bankfull" min="100" max="700" step="10" value="300">
 
     <h2>Legenda</h2>
     <div class="legend">
-      <div class="row"><span class="sw water"></span>água (nível atual) — mais escuro, mais fundo</div>
-      <div class="row"><span class="sw fore"></span>contorno da previsão da RNA (+N h)</div>
+      <div class="row"><span class="sw water"></span>área alagada agora (nível atual)</div>
+      <div class="row"><span class="sw add"></span>área adicional prevista (avanço da água)</div>
+      <div class="row"><span class="sw maxln"></span>limite máximo previsto (+N h)</div>
     </div>
     <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> HAND derivado do <b>ANADEM 30 m (terreno nu)</b>, que remove o viés da copa de árvore do Copernicus (aqui, ~6 m mais baixo em média, até 15 m nas encostas florestadas). A mecânica (o nível previsto virando mancha ao longo do vale) é real e o terreno melhorou, mas os <b>30 m ainda não resolvem casa a casa</b> e a calibração régua↔terreno segue aproximada. A <b>cota de inundação oficial é 15 m</b> (SGB/SACE); no hidrograma, os eventos de teste <b>ficam abaixo dos 15 m</b> — subiram no canal/várzea, sem atingir o primeiro ponto de interesse. Para validar: um MDT mais fino (LiDAR/5 m) e uma <b>mancha observada</b> de cota conhecida.</div>
   </aside>
@@ -99,6 +114,7 @@ const FCOLS=COLS*SS, FROWS=ROWS*SS;
 let handArr=null;                  // HAND fino (decimetros), 255 = fora do alcance
 let curEv=Object.keys(EVENTS)[0];
 let bankfull=300, tIdx=0, playing=false, timer=null, map=null, waterOverlay=null;
+const calibByEvent={};   // 10) calibracao (bankfull) registrada por cenario
 const outCanvas=document.createElement('canvas'); outCanvas.width=FCOLS; outCanvas.height=FROWS;
 const octx=outCanvas.getContext('2d');
 
@@ -136,42 +152,65 @@ function depthColor(dep){
 }
 function stageToHand(cm){ return (cm-bankfull)/100; } // metros acima do leito
 
+const sgn1=v=>Math.abs(v)<0.05?'0,0':(v>0?'+':'−')+nf1.format(Math.abs(v));
+const set=(id,txt)=>{const e=document.getElementById(id); if(e)e.textContent=txt;};
+
 function renderFrame(){
   if(!handArr) return;
   const ev=EVENTS[curEv], s=ev.series[tIdx];
   const nowCm=s[1], obsCm=s[2], foreCm=s[3];
-  const hNow=stageToHand(nowCm), hFore=stageToHand(foreCm);
-  const nowDm=hNow*10, foreDm=hFore*10;
+  const nowDm=stageToHand(nowCm)*10;
+  const hasFore=foreCm!=null, foreDm=hasFore?stageToHand(foreCm)*10:-1;
+  const hasObs=obsCm!=null,  obsDm =hasObs ?stageToHand(obsCm)*10 :-1;
   const N=FCOLS*FROWS;
   const img=octx.createImageData(FCOLS,FROWS);
   const foreMask=new Uint8Array(N);
-  let aNow=0,aFore=0;
+  let aNow=0,aFore=0,TP=0,FP=0,FN=0;
   for(let i=0;i<N;i++){
-    const hd=handArr[i];             // decimetros (0..250); 250 = terreno alto
+    const hd=handArr[i];                 // decimetros (0..250); 250 = terreno alto
     const inNow=hd<=nowDm;
-    const inFore=foreDm>0 && hd<=foreDm;
-    if(inFore) foreMask[i]=1;
-    if(inNow){ const [r,g,b]=depthColor(nowDm-hd); img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=200; aNow++; }
-    if(inFore) aFore++;
+    const inFore=hasFore && hd<=foreDm;
+    const inObs=hasObs && hd<=obsDm;
+    if(inNow) aNow++;
+    if(inFore){ foreMask[i]=1; aFore++; }
+    // camadas: agua atual (azul, por profundidade) | area adicional prevista (ambar)
+    if(inNow){ const [r,g,b]=depthColor(nowDm-hd); img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=200; }
+    else if(inFore){ img.data[i*4]=236;img.data[i*4+1]=146;img.data[i*4+2]=48;img.data[i*4+3]=150; }
+    // validacao espacial: previsto vs mancha do nivel observado
+    if(hasObs){ if(inFore&&inObs)TP++; else if(inFore&&!inObs)FP++; else if(!inFore&&inObs)FN++; }
   }
-  // contorno da previsao (borda do foreMask) — na grade fina fica suave
-  for(let y=0;y<FROWS;y++)for(let x=0;x<FCOLS;x++){
+  // limite maximo previsto (borda do foreMask) — na grade fina fica suave
+  if(hasFore) for(let y=0;y<FROWS;y++)for(let x=0;x<FCOLS;x++){
     const i=y*FCOLS+x; if(!foreMask[i])continue;
     const edge = x===0||x===FCOLS-1||y===0||y===FROWS-1 ||
       !foreMask[i-1]||!foreMask[i+1]||!foreMask[i-FCOLS]||!foreMask[i+FCOLS];
     if(edge){ img.data[i*4]=232;img.data[i*4+1]=115;img.data[i*4+2]=12;img.data[i*4+3]=255; }
   }
   octx.putImageData(img,0,0);
-  const url=outCanvas.toDataURL();
-  if(waterOverlay) waterOverlay.setUrl(url);
-  // leituras
+  if(waterOverlay) waterOverlay.setUrl(outCanvas.toDataURL());
+
   const cellHa=0.0835/(SS*SS);
-  document.getElementById('r-now').textContent=nf1.format(nowCm/100)+' m';
-  document.getElementById('r-fore').textContent=(foreCm!=null?nf1.format(foreCm/100)+' m':'—');
-  document.getElementById('r-obs').textContent=(obsCm!=null?nf1.format(obsCm/100)+' m':'—');
-  document.getElementById('r-anow').textContent=nf.format(aNow*cellHa)+' ha';
-  document.getElementById('r-afore').textContent=nf.format(aFore*cellHa)+' ha';
-  document.getElementById('tlabel').textContent=s[0];
+  const areaNow=aNow*cellHa, areaFore=aFore*cellHa, areaNew=(aFore-aNow)*cellHa;
+  const growth=aNow>0?(aFore-aNow)/aNow*100:0;
+  // 1-5) leituras
+  set('r-now', nf1.format(nowCm/100)+' m');
+  set('r-fore', hasFore?nf1.format(foreCm/100)+' m':'—');
+  set('r-dnivel', hasFore?sgn1((foreCm-nowCm)/100)+' m':'—');
+  set('r-obs', hasObs?nf1.format(obsCm/100)+' m':'—');
+  set('r-errniv', (hasFore&&hasObs)?sgn1((foreCm-obsCm)/100)+' m':'—');
+  set('r-anow', nf.format(areaNow)+' ha');
+  set('r-afore', hasFore?nf.format(areaFore)+' ha':'—');
+  set('r-anew', hasFore?sgn1(areaNew)+' ha':'—');
+  set('r-growth', hasFore?sgn1(growth)+' %':'—');
+  // 6) validacao espacial (so quando ha nivel observado)
+  const vb=document.getElementById('valblock');
+  if(hasObs){ vb.style.display='';
+    const den=TP+FP+FN, iou=den>0?TP/den*100:0;
+    set('v-iou', nf.format(iou)+' %');
+    set('v-fp', nf.format(FP*cellHa)+' ha');
+    set('v-fn', nf.format(FN*cellHa)+' ha');
+  } else vb.style.display='none';
+  set('tlabel', s[0]);
   drawHydro();
 }
 
@@ -214,6 +253,11 @@ function setEvent(ev){
   document.getElementById('time').value=0;
   document.getElementById('hz').textContent=E.horizonte;
   document.getElementById('hz2').textContent=E.horizonte;
+  // 10) restaura a calibracao registrada para este cenario (ou mantem a atual como padrao)
+  if(calibByEvent[ev]!=null) bankfull=calibByEvent[ev];
+  document.getElementById('bankfull').value=bankfull;
+  document.getElementById('bfval').textContent=(bankfull/100).toFixed(1)+' m';
+  document.getElementById('bfevent').textContent = calibByEvent[ev]!=null ? (calibByEvent[ev]/100).toFixed(1)+' m (ajustado)' : 'padrão';
   const est=!!E.estatico;
   document.getElementById('play').style.display=est?'none':'';
   document.getElementById('time').style.display=est?'none':'';
@@ -239,7 +283,17 @@ async function init(){
   document.getElementById('bankfull').value=bankfull;
   document.getElementById('bfval').textContent=(bankfull/100).toFixed(1)+' m';
   document.getElementById('time').oninput=e=>{ tIdx=+e.target.value; renderFrame(); };
-  document.getElementById('bankfull').oninput=e=>{ bankfull=+e.target.value; document.getElementById('bfval').textContent=(bankfull/100).toFixed(1)+' m'; renderFrame(); };
+  document.getElementById('bankfull').oninput=e=>{ bankfull=+e.target.value; calibByEvent[curEv]=bankfull;
+    document.getElementById('bfval').textContent=(bankfull/100).toFixed(1)+' m';
+    document.getElementById('bfevent').textContent=(bankfull/100).toFixed(1)+' m (ajustado)'; renderFrame(); };
+  // 8) hidrograma sincronizado: clicar pula para aquele instante
+  document.getElementById('hydro').addEventListener('click', e=>{
+    const E=EVENTS[curEv]; if(E.series.length<2) return;
+    const r=e.currentTarget.getBoundingClientRect(); const svgx=(e.clientX-r.left)/r.width*320;
+    let i=Math.round((svgx-6)/(320-12)*(E.series.length-1));
+    i=Math.max(0,Math.min(E.series.length-1,i));
+    tIdx=i; document.getElementById('time').value=i; renderFrame();
+  });
   document.getElementById('play').onclick=()=>{ playing=!playing;
     document.getElementById('play').textContent=playing?'⏸':'▶';
     if(playing) tick(); else clearTimeout(timer); };
