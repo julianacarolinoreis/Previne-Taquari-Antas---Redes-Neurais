@@ -51,52 +51,60 @@ def nivel(serie, t):
     return serie.get(t)                                     # nível na hora t (ou None)
 
 def montar_inputs(series, t):
-    """Monta os 15 inputs na hora t. Ordem/def confirmadas com a aba INPUTS do modelo."""
-    ST, ANT, ITU, CAR = (series["86472600"], series["86472000"], series["86125130"], series["86507000"])
+    """Monta os 15 inputs na hora t, na ORDEM EXATA das colunas K..Y do modelo
+    (workbook AUDITAVEL_INPUTS_RNA, validado 100% contra o .mat).
+
+    Convenções (validadas linha a linha):
+      D-Xh(s) = n(t) - n(t-Xh)                                  (diferença p/ trás)
+      A-Xh(s) = [n(t)-n(t-1h)] - [n(t-Xh)-n(t-Xh-1h)]           (aceleração)
+    """
+    ST, ANT, ITU, CAR = (series["86472600"], series["86472000"],
+                         series["86125130"], series["86507000"])
     def n(s, h=0): return nivel(s, t - dt.timedelta(hours=h))
-    # ST 86472600
+    def D(s, h):
+        a, b = n(s, 0), n(s, h)
+        return None if None in (a, b) else a - b
+    def A(s, h):
+        a, b, c, d = n(s, 0), n(s, 1), n(s, h), n(s, h + 1)
+        return None if None in (a, b, c, d) else (a - b) - (c - d)
     st0 = n(ST, 0)
-    d1  = None if None in (st0, n(ST,1)) else st0 - n(ST,1)   # Δ1h
-    d2  = None if None in (st0, n(ST,2)) else st0 - n(ST,2)   # Δ2h
-    d4  = None if None in (st0, n(ST,4)) else st0 - n(ST,4)   # Δ4h
-    def dd(k):  # 2ª derivada na escala k:  n(t) - 2 n(t-k) + n(t-2k)
-        a, b, c = n(ST,0), n(ST,k), n(ST,2*k)
-        return None if None in (a,b,c) else a - 2*b + c
     inputs = [
-        st0, d1, d2, d4, dd(1), dd(2), dd(4), dd(12),          # ST: 8
-        n(ANT,0), n(ANT,5), n(ANT,20),                          # R.Antas 86472000: nível, D-5h, A-20h
-        n(ITU,0), n(ITU,12),                                    # Ituim 86125130: nível, D-12h
-        n(CAR,0), n(CAR,16),                                    # Carreiro 86507000: nível, D-16h
+        n(ST, 0),        # K inp01  nível ST 86472600
+        D(ST, 1),        # L inp02  ST D-1h
+        n(ANT, 0),       # M inp03  nível R.Antas 86472000
+        D(ANT, 5),       # N inp04  Antas D-5h
+        A(ANT, 20),      # O inp05  Antas A-20h  (passado, t-20/t-21)
+        n(ITU, 0),       # P inp06  nível Ituim 86125130
+        D(ITU, 12),      # Q inp07  Ituim D-12h
+        n(CAR, 0),       # R inp08  nível Carreiro 86507000
+        D(CAR, 16),      # S inp09  Carreiro D-16h
+        D(ST, 2),        # T inp10  ST D-2h
+        D(ST, 4),        # U inp11  ST D-4h
+        A(ST, 1),        # V inp12  ST A-1h
+        A(ST, 2),        # W inp13  ST A-2h
+        A(ST, 4),        # X inp14  ST A-4h
+        A(ST, 12),       # Y inp15  ST A-12h
     ]
     return inputs, st0
 
 def prever(mat_path, x):
-    """Forward pass da MLP (MATLAB feedforwardnet). x: lista de 15 inputs.
-       *** A confirmar com a estrutura real do .mat (nomes das variáveis) ***
-       Padrão MATLAB: mapminmax nos inputs -> tansig(IW*xn+b1) -> purelin(LW*h+b2) -> denorm.
-       Modelo ALT devolve a VARIAÇÃO (Δnível em 2h)."""
-    m = loadmat(mat_path)
-    # nomes tentativos — Dispatch confirma/ajusta:
-    def pick(*names):
-        for nm in names:
-            if nm in m: return np.array(m[nm]).squeeze()
-        raise KeyError(f"variável não encontrada no .mat: {names}")
-    IW = np.atleast_2d(pick("IW","W1","iw","net_IW"))
-    b1 = pick("b1","B1","bias1")
-    LW = np.atleast_2d(pick("LW","W2","lw","net_LW"))
-    b2 = float(np.atleast_1d(pick("b2","B2","bias2"))[0])
-    xin = np.array(x, dtype=float)
-    # normalização de entrada (mapminmax) — se salva no .mat
-    xmin = pick("xmin","inmin","xoffset") if any(k in m for k in ("xmin","inmin","xoffset")) else xin*0-1
-    xmax = pick("xmax","inmax") if any(k in m for k in ("xmax","inmax")) else xin*0+1
-    xn = 2*(xin - xmin)/(np.where(xmax-xmin==0,1,xmax-xmin)) - 1
-    h = np.tanh(IW.dot(xn) + b1)                # tansig
-    yn = LW.dot(h) + b2                          # purelin
-    yn = float(np.atleast_1d(yn)[0])
-    ymin = float(np.atleast_1d(pick("ymin","outmin"))[0]) if any(k in m for k in ("ymin","outmin")) else -1
-    ymax = float(np.atleast_1d(pick("ymax","outmax"))[0]) if any(k in m for k in ("ymax","outmax")) else 1
-    y = (yn + 1)/2*(ymax - ymin) + ymin
-    return y                                     # variação prevista (cm)
+    """Forward pass da MLP (validado: reproduz Tctot1 do .mat com RMSE 0).
+       Entrada normalizada: pn=(P-be)/ae ; oculta e saída = logsig ;
+       desnorm: variação = yn*au + bu.  Modelo ALT -> devolve a VARIAÇÃO (cm)."""
+    m = loadmat(mat_path, squeeze_me=True)
+    wh = np.atleast_2d(np.asarray(m["wh"], float))    # (30,15)
+    bh = np.asarray(m["bh"], float).ravel()           # (30,)
+    ws = np.asarray(m["ws"], float).ravel()           # (30,)
+    bs = float(np.atleast_1d(m["bs"])[0])
+    ae = np.asarray(m["ae"], float).ravel()           # desvio por input
+    be = np.asarray(m["be"], float).ravel()           # média por input
+    au = float(np.atleast_1d(m["au"])[0])
+    bu = float(np.atleast_1d(m["bu"])[0])
+    logsig = lambda z: 1.0 / (1.0 + np.exp(-z))
+    pn = (np.asarray(x, float) - be) / ae
+    h  = logsig(wh.dot(pn) + bh)
+    yn = logsig(ws.dot(h) + bs)
+    return float(yn * au + bu)                        # variação prevista (cm)
 
 def escrever(nivel_atual, nivel_prev, t, status, aviso):
     out = {
