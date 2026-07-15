@@ -1,3 +1,14 @@
+"""
+REGISTRO do experimento de corte da subida (não roda de um checkout limpo).
+
+Entradas intermediárias esperadas na pasta de trabalho (produzidas nas etapas
+anteriores do experimento, não versionadas aqui):
+  - payload-merged.json : catálogo dos modelos (PERS por horizonte/família)
+  - file_map.json       : mapa modelo -> planilha auditável
+Baixa as planilhas do repositório e aplica `seg.segment` (ver seg.py).
+Documenta COMO os datasets limpos foram gerados; para reexecutar, forneça os
+dois manifestos acima.
+"""
 import json, os, urllib.request, csv
 from collections import OrderedDict
 from seg import segment

@@ -1,3 +1,8 @@
+"""
+REGISTRO: gera prévias SVG do corte da subida. Requer a planilha auditável de
+trabalho `wb_top12h.xlsx` (não versionada aqui) e `seg.py`. Documenta como as
+prévias foram feitas; não roda de um checkout limpo sem a planilha.
+"""
 import json
 from seg import load_events, segment
 

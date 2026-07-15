@@ -15,11 +15,14 @@ import numpy as np
 from scipy.io import loadmat
 
 # ---- config ----
-MODELO_MAT = "assets/mat/rot_003_06_2h_alt_2H_ALT_C0472.mat"   # <- Dispatch commita o .mat aqui
+MODELO_MAT = "previne/assets/mat/rot_003_06_2h_alt_2H_ALT_C0472.mat"   # relativo à raiz do repo
 HORIZONTE = "2h"
 COMBO = "C0472"
-BANKFULL_CM = 300           # calibração régua<->leito (mesma do site)
-SAIDA = "previsao_ao_vivo.json"
+BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
+                            # inundação oficial (15 m) via ANADEM — ver
+                            # codigo_python/04_zero_regua/. Definitivo aguarda a
+                            # cota oficial do zero da régua (SGB/ANA).
+SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
 ESTACOES = ["86472600", "86472000", "86125130", "86507000"]   # ST, R.Antas, Ituim, Carreiro
 

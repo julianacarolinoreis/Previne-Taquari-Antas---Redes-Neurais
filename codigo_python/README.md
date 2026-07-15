@@ -102,6 +102,23 @@ descartando a oscilação de água baixa regulada pelas barragens (o
 
 ---
 
+## `04_zero_regua/` — calibração do "zero" da mancha (datum)
+
+A mancha precisa saber **em que leitura da régua a água começa a sair do rio**
+(o parâmetro `bankfull`). Esse era o ponto mais frágil (estava chutado em 300 cm).
+
+| Arquivo | O que faz |
+|---|---|
+| `calibrar_zero_regua.py` | Deriva o `bankfull` **ancorando na cota de inundação oficial (15 m)**: mede no ANADEM a cota do leito (54 m) e do terraço da cidade (~65 m, HAND ≈ 11 m) e impõe que a cidade alague exatamente aos 15 m → `bankfull ≈ 400 cm`. |
+| `consulta_estacao_ana.py` | Busca a ficha oficial da estação na ANA (`HidroInventario`) para obter a **cota oficial do zero da régua** e fechar o datum com precisão. Rodar onde a ANA responde (PC/servidor). |
+
+**Situação:** a calibração passou de um chute (300 cm) para um valor **ancorado
+em dado oficial** (~400 cm, cota de inundação 15 m + ANADEM). O valor definitivo
+(sem o ±1–2 m do ANADEM) depende da cota oficial do zero da régua no nivelamento
+SGB/ANA — por isso o `bankfull` está marcado como **provisório** no robô.
+
+---
+
 ## Programas e bibliotecas
 
 - **Linguagem:** Python 3.11.
@@ -123,8 +140,9 @@ Instalar: `pip install numpy scipy rasterio Pillow openpyxl`
 - ✅ **Robô ao vivo** buscando a ANA e prevendo, automático a cada 30 min.
 - ✅ **HAND com ANADEM** (terreno nu) — mancha segue o rio principal.
 - ✅ **Site se atualiza sozinho** e abre já mostrando a previsão.
-- ⏳ **Zero da régua:** a mancha ainda usa uma calibração aproximada
-  (`bankfull`); falta amarrar o **zero oficial da régua** (ficha SGB/ANA) ao
-  MDT, no mesmo datum vertical, para validar em nível de rua.
+- 🟡 **Zero da régua:** calibração agora **ancorada na cota de inundação oficial
+  (15 m)** via ANADEM → `bankfull ≈ 400 cm` (era um chute de 300). Definitivo
+  aguarda a cota oficial do zero da régua (nivelamento SGB/ANA) — script de
+  consulta pronto em `04_zero_regua/`.
 - ⏭️ Próximos: impactos (casas/escolas atingidas), busca por endereço,
   alerta ao passar da cota de inundação (15 m), horizontes de 8 h e 12 h ao vivo.
