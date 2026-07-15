@@ -163,7 +163,8 @@ def escrever(nivel_atual, nivel_prev, t, status, aviso):
         "status": status,
         "aviso": aviso,
     }
-    json.dump(out, open(SAIDA, "w"), ensure_ascii=False, indent=1)
+    with open(SAIDA, "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False, indent=1)
     print("escrito", SAIDA, "->", out["nivel_atual_cm"], "->", out["nivel_previsto_cm"], status)
 
 def main():

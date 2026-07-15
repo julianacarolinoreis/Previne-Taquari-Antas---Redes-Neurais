@@ -208,9 +208,9 @@
       <div class="hydro"><svg id="hydro" viewBox="0 0 320 90" width="100%" style="cursor:pointer"></svg></div>
 
       <h4>Calibração · régua ↔ terreno</h4>
-      <p class="disc" style="margin-top:2px">Régua correspondente ao <b>leito do rio</b> (HAND 0). Ajuste até a mancha bater com o observado. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
-      <input type="range" id="bankfull" min="100" max="700" step="10" value="300" style="width:100%">
-      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> MDT ANADEM 30 m (terreno nu). Cota de inundação oficial: 15 m (SGB/SACE). Precisão fina depende de LiDAR e mancha observada.</div>
+      <p class="disc" style="margin-top:2px">Régua correspondente ao <b>leito do rio</b> (HAND 0). Padrão provisório calibrado em <b>4,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
+      <input type="range" id="bankfull" min="100" max="700" step="10" value="400" style="width:100%">
+      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> Zero/mancha ancorado no MDT ANADEM 30 m e na cota de inundação oficial de 15 m (SGB/SACE). O valor definitivo depende da cota oficial do zero da régua e de validação com mancha observada.</div>
     </div>
   </aside>
 </main>
@@ -231,7 +231,7 @@ const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 const UNCERT={'2h':0.3,'4h':0.5,'8h':0.7,'12h':1.0,'—':0};
 const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'8h':['Moderada','#c98a1a'],'12h':['Baixa','#c0392b'],'—':['—','#999']};
 let handArr=null, curEv=Object.keys(EVENTS)[0];
-let bankfull=300, tIdx=0, playing=false, timer=null, map=null, waterOverlay=null, curS=null;
+let bankfull=400, tIdx=0, playing=false, timer=null, map=null, waterOverlay=null, curS=null;
 const calibByEvent={};
 const LIVE_URL='previsao_ao_vivo.json';
 function fmtWhen(s){ if(!s) return '—'; const m=String(s).replace('T',' ').match(/(\d{4})-(\d{2})-(\d{2})[ ]+(\d{2}):(\d{2})/); return m?`${m[3]}/${m[2]} ${m[4]}:${m[5]}`:String(s); }
@@ -349,7 +349,7 @@ function setEvent(ev){
   if(calibByEvent[ev]!=null) bankfull=calibByEvent[ev];
   document.getElementById('bankfull').value=bankfull;
   set('bfval',(bankfull/100).toFixed(1)+' m');
-  set('bfevent', calibByEvent[ev]!=null?(bankfull/100).toFixed(1)+' m (ajustado)':'padrão');
+  set('bfevent', calibByEvent[ev]!=null?(bankfull/100).toFixed(1)+' m (ajustado)':'padrão provisório');
   const est=!!E.estatico;
   document.getElementById('play').style.display=est?'none':'';
   document.getElementById('time').style.display=est?'none':'';
@@ -371,7 +371,7 @@ function liveFromEvent(key, tipo){
     horizonte:E.horizonte,
     modelo:E.combo,
     tipo:tipo||'ALT',
-    bankfull_cm:liveData&&liveData.bankfull_cm?liveData.bankfull_cm:300,
+    bankfull_cm:liveData&&liveData.bankfull_cm?liveData.bankfull_cm:400,
     aviso:liveData&&liveData.aviso?liveData.aviso:'',
     passos:E.series.map(s=>[s[0],s[1],s[2],s[3]])
   };
@@ -410,7 +410,7 @@ function renderLiveStep(){
     const P=L.passos[liveIdx%L.passos.length]; // [datahora, atual, previsto] ou [datahora, atual, observado, previsto]
     const obs=P.length>3?P[2]:null, prev=P.length>3?P[3]:P[2];
     EVENTS['__live__']={label:'AO VIVO',horizonte:L.horizonte||liveHz||'2h',combo:L.modelo||'—',pers:null,ilustra:false,estatico:false,n:1,pico_obs_cm:P[1],series:[[P[0],P[1],obs,prev]]};
-    bankfull=L.bankfull_cm||(liveData&&liveData.bankfull_cm)||300;
+    bankfull=L.bankfull_cm||(liveData&&liveData.bankfull_cm)||400;
     curEv='__live__'; tIdx=0;
     const hz=L.horizonte||liveHz||'2h';
     set('hz',hz); set('hz2',hz); set('s-hz','+'+hz); set('s-hz2',hz.replace('h',''));
@@ -425,7 +425,7 @@ function renderLiveStep(){
   }
   const P=liveData.passos[liveIdx]; // [datahora, nivel_atual_cm, nivel_previsto_cm]
   EVENTS['__live__']={label:'AO VIVO',horizonte:liveData.horizonte||'2h',combo:liveData.modelo||'—',pers:null,ilustra:false,estatico:false,n:1,pico_obs_cm:P[1],series:[[P[0],P[1],null,P[2]]]};
-  bankfull=liveData.bankfull_cm||300;
+  bankfull=liveData.bankfull_cm||400;
   curEv='__live__'; tIdx=0;
   const hz=liveData.horizonte||'2h';
   set('hz',hz); set('hz2',hz); set('s-hz','+'+hz); set('s-hz2',hz.replace('h',''));
