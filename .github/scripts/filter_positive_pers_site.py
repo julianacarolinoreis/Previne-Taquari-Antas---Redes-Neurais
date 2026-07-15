@@ -161,10 +161,11 @@ def filter_index():
     html = html[: match.start(2)] + compact + html[match.end(2) :]
     html = re.sub(r'audit_charts\.css(?:\?v=[^"]*)?', "audit_charts.css?v=20260705-pers-positive-v1", html)
     html = re.sub(r'audit_charts\.js(?:\?v=[^"]*)?', "audit_charts.js?v=20260705-pers-positive-v1", html)
-    html = html.replace("239 modelos em 10 rodadas", "158 modelos com PERS positivos")
+    positive_count_text = f"{len(positive)} modelos com PERS positivos"
+    html = re.sub(r"\d+ modelos em 10 rodadas", positive_count_text, html)
     html = html.replace("Exploração dos 239 modelos", "Exploração dos modelos com PERS positivos")
-    html = html.replace("todos os 239 modelos", "os 158 modelos com todos os PERS positivos")
-    html = html.replace("239 modelos", "158 modelos com PERS positivos")
+    html = re.sub(r"todos os \d+ modelos", f"os {len(positive)} modelos com todos os PERS positivos", html)
+    html = re.sub(r"\d+ modelos", positive_count_text, html)
     html = patch_static_copy(html)
     path.write_text(html, encoding="utf-8")
     return original, positive
@@ -263,7 +264,7 @@ def patch_audit_js():
 
     js = re.sub(
         r"stamp\.textContent = 'Pesquisa em desenvolvimento.*?base atualizada em 04/07/2026';",
-        "stamp.textContent = 'Pesquisa em desenvolvimento · ' + nf.format(mainModels.length || 158) + ' modelos com todos os PERS positivos no planilhão principal' + (payload && payload.meta ? ' + ' + nf.format(payload.meta.modelCount) + ' séries auditáveis filtradas' : '') + ' · base atualizada em 05/07/2026';",
+        "stamp.textContent = 'Pesquisa em desenvolvimento · ' + nf.format(mainModels.length || 0) + ' modelos com todos os PERS positivos no planilhão principal' + (payload && payload.meta ? ' + ' + nf.format(payload.meta.modelCount) + ' séries auditáveis filtradas' : '') + ' · base atualizada em 05/07/2026';",
         js,
         flags=re.S,
     )
@@ -336,12 +337,14 @@ def main():
     original_audit, kept_audit = filter_audit_series(positive_main)
     patch_audit_js()
 
-    if len(positive_main) != 158:
-        raise SystemExit(f"Expected 158 positive main models, found {len(positive_main)}")
+    if not positive_main:
+        raise SystemExit("No positive main models found after filtering")
     if any(any(model.get(key) is None or model.get(key) <= 0 for key in PERS_KEYS) for model in positive_main):
         raise SystemExit("Found a model with non-positive PERS after filtering")
-    if len(kept_audit) != 313:
-        raise SystemExit(f"Expected 313 filtered audit series, found {len(kept_audit)}")
+    if not kept_audit:
+        raise SystemExit("No audit series remained after filtering")
+    if len(kept_audit) > len(original_audit):
+        raise SystemExit(f"Filtered audit series count is invalid: {len(kept_audit)} > {len(original_audit)}")
 
     print("Filtered main models:", len(original_main), "->", len(positive_main))
     print("Filtered audit series:", len(original_audit), "->", len(kept_audit))
