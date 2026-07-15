@@ -23,29 +23,69 @@ SAIDA = "previsao_ao_vivo.json"
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
 ESTACOES = ["86472600", "86472000", "86125130", "86507000"]   # ST, R.Antas, Ituim, Carreiro
 
-def buscar_ana(cod):
-    """Retorna dict {datetime_hora_cheia: nivel_cm} da estação.
-    Datas em branco: a ANA devolve a série recente (últimos registros)."""
-    url = f"{ANA}?codEstacao={cod}&dataInicio=&dataFim="
-    req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
-    xml = urllib.request.urlopen(req, timeout=60).read()
-    root = ET.fromstring(xml)
-    def local(tag):                     # remove {namespace} do nome
-        return tag.rsplit("}", 1)[-1]
+def _local(tag):                          # remove {namespace} do nome da tag
+    return tag.rsplit("}", 1)[-1]
+
+def _parse_hora(dh):
+    dh = dh.strip()
+    try:
+        return dt.datetime.fromisoformat(dh.replace("T", " ")[:19])
+    except Exception:
+        for fmt in ("%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M"):
+            try: return dt.datetime.strptime(dh[:19], fmt)
+            except Exception: pass
+    return None
+
+def _extrair_serie(root):
+    """Percorre o XML e monta {hora_cheia: nivel_cm}. Aceita variações de tag."""
     serie = {}
     for row in root.iter():
-        campos = {local(ch.tag): (ch.text or "") for ch in row}
-        dh, niv = campos.get("DataHora"), campos.get("Nivel")
+        campos = {_local(ch.tag): (ch.text or "") for ch in row}
+        dh = campos.get("DataHora") or campos.get("Data_Hora") or campos.get("DataHoraMedicao")
+        niv = campos.get("Nivel")
+        if niv in (None, ""):
+            niv = campos.get("nivel") or campos.get("NivelSensor") or campos.get("Cota")
         if not dh or niv in (None, ""):  continue
-        try:
-            t = dt.datetime.fromisoformat(dh.strip().replace("T", " ")[:19])
-        except Exception:
-            try: t = dt.datetime.strptime(dh.strip()[:16], "%d/%m/%Y %H:%M")
-            except Exception: continue
-        t = t.replace(minute=0, second=0, microsecond=0)     # normaliza p/ hora cheia
+        t = _parse_hora(dh)
+        if t is None:  continue
+        t = t.replace(minute=0, second=0, microsecond=0)
         try: serie[t] = float(str(niv).replace(",", "."))
         except Exception: pass
     return serie
+
+def _serie_de_xml(xml):
+    """Extrai a série; trata o caso .asmx em que o DataTable vem como
+    string XML escapada dentro de um <string>...</string>."""
+    root = ET.fromstring(xml)
+    serie = _extrair_serie(root)
+    if not serie and (root.text or "").strip().startswith("<"):
+        try:
+            serie = _extrair_serie(ET.fromstring(root.text))   # XML aninhado (desescapado)
+        except Exception:
+            pass
+    return serie, len(xml)
+
+def buscar_ana(cod, dias=5):
+    """Retorna dict {hora_cheia: nivel_cm}. Tenta datas em branco (série recente);
+    se vier vazio, tenta uma janela explícita dos últimos `dias`."""
+    tentativas = [f"{ANA}?codEstacao={cod}&dataInicio=&dataFim="]
+    fim = dt.datetime.utcnow() - dt.timedelta(hours=3)          # UTC-3
+    ini = fim - dt.timedelta(days=dias)
+    tentativas.append(f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}")
+    for url in tentativas:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
+            xml = urllib.request.urlopen(req, timeout=60).read()
+            serie, nbytes = _serie_de_xml(xml)
+            print(f"[ANA {cod}] {url.split('?')[1][:40]}... bytes={nbytes} linhas={len(serie)}")
+            if serie:
+                return serie
+            if nbytes:                          # veio resposta mas 0 linhas -> mostra amostra
+                amostra = xml[:600].decode("utf-8", "replace").replace("\n", " ")
+                print(f"[ANA {cod}] amostra: {amostra}")
+        except Exception as e:
+            print(f"[ANA {cod}] erro: {e}")
+    return {}
 
 def nivel(serie, t):
     return serie.get(t)                                     # nível na hora t (ou None)
