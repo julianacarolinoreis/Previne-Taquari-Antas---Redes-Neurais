@@ -207,10 +207,10 @@
       <h4>Hidrograma do evento <span class="info" title="Nível observado ao longo do evento. Clique para pular no tempo; o mapa acompanha.">ⓘ</span></h4>
       <div class="hydro"><svg id="hydro" viewBox="0 0 320 90" width="100%" style="cursor:pointer"></svg></div>
 
-      <h4>Calibração · régua ↔ terreno</h4>
-      <p class="disc" style="margin-top:2px">Régua correspondente ao <b>leito do rio</b> (HAND 0). Padrão provisório calibrado em <b>4,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
+      <h4>Calibração · nível normal ↔ terreno</h4>
+      <p class="disc" style="margin-top:2px"><b>Nível normal / zero operacional da régua</b>: leitura adotada como início da mancha no leito do rio (HAND 0). Padrão provisório calibrado em <b>4,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
       <input type="range" id="bankfull" min="100" max="700" step="10" value="400" style="width:100%">
-      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> Zero/mancha ancorado no MDT ANADEM 30 m e na cota de inundação oficial de 15 m (SGB/SACE). O valor definitivo depende da cota oficial do zero da régua e de validação com mancha observada.</div>
+      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> O nível normal usado na mancha foi estimado pelo MDT ANADEM 30 m em ~405 cm e arredondado para 400 cm. A cota de inundação oficial permanece 15 m (SGB/SACE). O refinamento depende de validação com mancha observada.</div>
     </div>
   </aside>
 </main>
@@ -349,7 +349,7 @@ function setEvent(ev){
   if(calibByEvent[ev]!=null) bankfull=calibByEvent[ev];
   document.getElementById('bankfull').value=bankfull;
   set('bfval',(bankfull/100).toFixed(1)+' m');
-  set('bfevent', calibByEvent[ev]!=null?(bankfull/100).toFixed(1)+' m (ajustado)':'padrão provisório');
+  set('bfevent', calibByEvent[ev]!=null?(bankfull/100).toFixed(1)+' m (ajustado)':'nível normal padrão');
   const est=!!E.estatico;
   document.getElementById('play').style.display=est?'none':'';
   document.getElementById('time').style.display=est?'none':'';
