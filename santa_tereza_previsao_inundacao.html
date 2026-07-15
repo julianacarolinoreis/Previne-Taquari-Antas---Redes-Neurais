@@ -3,99 +3,206 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PREVINE · Até onde a água chega — Santa Tereza</title>
+<title>PREVINE · Até onde a água pode chegar — Santa Tereza</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-  :root{--bg:#eef3f1;--panel:#fff;--ink:#132019;--muted:#5c6b63;--line:#dde5df;--brand:#0f6b4a;--brand-2:#1f6fbf;--fore:#e8730c;--shadow:0 1px 3px rgba(20,40,30,.08),0 6px 20px rgba(20,40,30,.06)}
+  :root{
+    --bg:#eef3f1;--panel:#fff;--ink:#132019;--muted:#5c6b63;--line:#e0e6e1;
+    --brand:#0f6b4a;--agora:#1e5fbf;--prev:#e8730c;--crit:#c0392b;
+    --shadow:0 1px 3px rgba(20,40,30,.07),0 8px 26px rgba(20,40,30,.06);
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-  header{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--panel);border-bottom:1px solid var(--line)}
-  header .mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand-2));flex:0 0 auto}
-  header h1{font-size:16px;margin:0;font-weight:750}
-  header .sub{font-size:11.5px;color:var(--muted)}
-  .badge{margin-left:auto;font-size:11px;color:var(--brand);background:#e6f2ec;border:1px solid #cfe6da;border-radius:20px;padding:3px 10px;font-weight:600}
-  main{display:grid;grid-template-columns:minmax(0,1fr) 340px;height:calc(100vh - 54px)}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  /* header */
+  header{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:600}
+  header .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--agora));flex:0 0 auto}
+  header h1{font-size:16.5px;margin:0;font-weight:750;letter-spacing:-.01em;line-height:1.15}
+  header .loc{font-size:11.5px;color:var(--muted)}
+  .modes{margin-left:auto;display:flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px}
+  .modes button{border:none;background:transparent;color:var(--muted);font-size:12.5px;font-weight:650;padding:6px 13px;border-radius:999px;cursor:pointer}
+  .modes button.on{background:var(--brand);color:#fff}
+  /* layout */
+  main{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:calc(100vh - 55px)}
   #map{position:relative;background:var(--bg)}
-  aside{background:var(--panel);border-left:1px solid var(--line);padding:14px;overflow:auto}
-  h2{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;font-weight:700}
-  h2:first-child{margin-top:0}
-  .seg{display:flex;gap:6px;margin-bottom:6px}
-  .seg button{flex:1;padding:8px;border:1px solid var(--line);background:#fff;border-radius:9px;font-size:12.5px;font-weight:650;cursor:pointer;color:var(--ink)}
-  .seg button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
-  .ctl{display:flex;align-items:center;gap:8px;margin:8px 0}
-  .ctl button.play{width:38px;height:38px;border-radius:50%;border:none;background:var(--brand-2);color:#fff;font-size:15px;cursor:pointer;flex:0 0 auto}
-  input[type=range]{width:100%}
-  .time{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:center;margin:2px 0 4px}
-  .read{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
+  aside{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:15px 15px 40px}
+  /* cenario compacto */
+  .scn{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+  .scn button{font-size:11.5px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:5px 9px;cursor:pointer}
+  .scn button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .scn .grp{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);width:100%;margin:6px 0 0;font-weight:700}
+  /* perguntas / resumo (modo simples) */
+  .q{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:14px 0 3px}
+  .big{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
+  .big.agora{color:var(--agora)} .big.prev{color:var(--prev)}
+  .big small{font-size:14px;font-weight:600;color:var(--muted)}
+  .muda{background:linear-gradient(180deg,#fff,#fbf7f1);border:1px solid #f0e2cf;border-radius:14px;padding:13px 15px;margin-top:8px;box-shadow:var(--shadow)}
+  .muda h3{margin:0 0 8px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#a8650f}
+  .muda .row{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;padding:5px 0;border-bottom:1px dashed #efe0cb}
+  .muda .row:last-child{border-bottom:0}
+  .muda .row b{font-size:17px;font-variant-numeric:tabular-nums}
+  .muda .row b.prev{color:var(--prev)}
+  .conf{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:8px}
+  .conf .dot{width:9px;height:9px;border-radius:50%}
+  /* timeline */
+  .tl{margin:16px 0 6px}
+  .tl .head{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  .tl .play{width:40px;height:40px;border-radius:50%;border:none;background:var(--agora);color:#fff;font-size:15px;cursor:pointer;flex:0 0 auto}
+  .tl .tlab{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .tl input[type=range]{width:100%}
+  .tl .hint{font-size:11px;color:var(--muted);margin-top:3px}
+  /* card recolhivel */
+  .card{border:1px solid var(--line);border-radius:12px;margin-top:10px;overflow:hidden;background:#fff}
+  .card>summary{list-style:none;cursor:pointer;padding:11px 14px;font-size:13px;font-weight:650;display:flex;align-items:center;gap:8px}
+  .card>summary::-webkit-details-marker{display:none}
+  .card>summary::after{content:"▸";margin-left:auto;color:var(--muted);transition:transform .15s}
+  .card[open]>summary::after{transform:rotate(90deg)}
+  .card .body{padding:0 14px 13px}
+  /* leituras tecnicas */
+  .read{display:grid;grid-template-columns:1fr auto;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .read:last-child{border-bottom:0}
   .read b{font-variant-numeric:tabular-nums}
-  .read .now{color:var(--brand-2)} .read .fore{color:var(--fore)} .read .add{color:#b06a12}
-  .info{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;
-    background:var(--line);color:var(--muted);font-size:10px;font-weight:700;cursor:help;margin-left:5px;vertical-align:middle}
-  .cal{font-size:12px;color:var(--muted)}
-  .cal b{color:var(--ink)}
-  .legend{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);margin-top:4px}
-  .legend .row{display:flex;align-items:center;gap:8px}
-  .legend .sw{width:20px;height:12px;border-radius:3px;flex:0 0 auto}
-  .legend .sw.water{background:linear-gradient(90deg,#8fc0ff,#123f9e)}
-  .legend .sw.add{background:rgba(232,115,12,.5);border:1px solid #b06a12}
-  .legend .sw.maxln{background:transparent;border:2px solid var(--fore)}
-  .hydro{margin-top:4px}
-  .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:8px}
-  .banner{position:absolute;z-index:500;left:10px;top:10px;background:#fff4e5;color:#8a5a12;border:1px solid #f0d9b5;border-radius:8px;padding:7px 11px;font-size:12px;max-width:70%}
+  .read .now{color:var(--agora)} .read .fore{color:var(--prev)} .read .add{color:#b06a12}
+  h4{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 5px;font-weight:700}
+  .info{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--line);color:var(--muted);font-size:10px;font-weight:700;cursor:help;margin-left:5px}
+  /* metodologia */
+  .method{display:flex;flex-direction:column;gap:4px;font-size:12.5px}
+  .method .step{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer}
+  .method .step:hover{border-color:var(--agora)}
+  .method .step b{font-weight:650}
+  .method .arw{text-align:center;color:var(--muted);font-size:11px;line-height:.6}
+  .method .exp{font-size:11.5px;color:var(--muted);padding:4px 2px 0}
+  /* legenda */
+  .legend{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);margin-top:6px}
+  .legend .row2{display:flex;align-items:center;gap:8px}
+  .legend .sw{width:22px;height:12px;border-radius:3px;flex:0 0 auto}
+  .legend .sw.a{background:linear-gradient(90deg,#8fc0ff,#123f9e)}
+  .legend .sw.b{background:rgba(232,115,12,.55);border:1px solid #b06a12}
+  .legend .sw.u{background:repeating-linear-gradient(45deg,rgba(232,115,12,.25),rgba(232,115,12,.25) 3px,transparent 3px,transparent 6px);border:1px dashed #d98a3a}
+  .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:10px}
+  .banner{position:absolute;z-index:500;left:10px;top:10px;background:#fff4e5;color:#8a5a12;border:1px solid #f0d9b5;border-radius:8px;padding:7px 11px;font-size:12px;max-width:66%}
   .flood-ov{image-rendering:auto}
-  @media(max-width:900px){main{grid-template-columns:1fr;height:auto}#map{height:58vh}aside{border-left:0;border-top:1px solid var(--line)}}
+  .live-btn{width:100%;margin-bottom:12px;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#c0392b,#e8730c);color:#fff;font-size:13.5px;font-weight:750;cursor:pointer;box-shadow:var(--shadow)}
+  .live-bar{display:flex;align-items:center;gap:8px;background:#fdecea;border:1px solid #f3c0b8;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:700;color:#a5281c}
+  .live-bar .ldot{width:10px;height:10px;border-radius:50%;background:#c0392b;animation:pulse 1.2s infinite;flex:0 0 auto}
+  .live-bar a{margin-left:auto;color:#a5281c;cursor:pointer;text-decoration:underline;font-weight:600}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .live-note{font-size:11px;color:#a5281c;background:#fff6f5;border:1px solid #f3d3cd;border-radius:9px;padding:7px 10px;margin-bottom:10px;line-height:1.4}
+  body.live #scn, body.live .tl{display:none}
+  body.live .simple-only{display:block}
+  .hydro{margin-top:4px}
+  .leaflet-popup-content{font-size:13px;margin:9px 12px}
+  .pt-pop b{color:var(--agora)} .pt-pop .pf{color:var(--prev)}
+  /* modo: esconde tecnico/simples */
+  body.tech .simple-only{display:none}
+  body:not(.tech) .tech-only{display:none}
+  @media(max-width:900px){
+    main{grid-template-columns:1fr;height:auto}
+    #map{height:56vh}
+    aside{border-left:0;border-top:1px solid var(--line)}
+  }
 </style>
 </head>
 <body>
 <header>
   <span class="mark"></span>
-  <div><h1>Até onde a água chega — Santa Tereza</h1>
-  <div class="sub">PREVINE Taquari-Antas · previsão da RNA espacializada no MDT (HAND · ANADEM 30 m, terreno nu)</div></div>
-  <span class="badge">prova de conceito</span>
+  <div><h1>Até onde a água pode chegar?</h1><div class="loc">Santa Tereza · bacia Taquari-Antas</div></div>
+  <div class="modes"><button id="mode-s" class="on">Visualização simples</button><button id="mode-t">Dados técnicos</button></div>
 </header>
 <main>
   <div id="map"></div>
   <aside>
-    <h2>Evento de teste</h2>
-    <div class="seg" id="evseg"></div>
-    <div class="cal" id="evinfo"></div>
+    <button class="live-btn" id="live-btn">🔴 Ver modo AO VIVO (ensaio com a cheia de 2024)</button>
+    <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · atualizado: <span id="live-when">—</span> <a id="live-exit">sair do ao vivo</a></div>
+    <div class="live-note" id="live-note" style="display:none"></div>
 
-    <h2>Linha do tempo</h2>
-    <div class="ctl"><button class="play" id="play">▶</button><input type="range" id="time" min="0" max="1" value="0"></div>
-    <div class="time" id="tlabel">—</div>
+    <div class="scn" id="scn"></div>
 
-    <h2>Leitura <span class="info" title="Nível: leitura da régua da estação 86472600 (m). PERS (persistência): quanto a rede ganha da previsão ingênua 'o nível daqui a N h será o de agora' — 0 = igual à ingênua, 1 = perfeito; negativo = pior que a ingênua. Área: superfície alagada estimada pelo HAND (ha).">ⓘ</span></h2>
-    <div class="read"><span class="now">Nível atual (rio)</span><b class="now" id="r-now">—</b></div>
-    <div class="read"><span class="fore">Previsão RNA (+<span id="hz">?</span>)</span><b class="fore" id="r-fore">—</b></div>
-    <div class="read"><span>Δ nível (previsto − atual)</span><b id="r-dnivel">—</b></div>
-    <div class="read"><span>Observado (+<span id="hz2">?</span>)</span><b id="r-obs">—</b></div>
-    <div class="read"><span>Erro de nível (prev − obs)</span><b id="r-errniv">—</b></div>
-    <div class="read"><span class="now">Área alagada agora</span><b class="now" id="r-anow">—</b></div>
-    <div class="read"><span class="fore">Área prevista</span><b class="fore" id="r-afore">—</b></div>
-    <div class="read"><span class="add">Nova área (avanço)</span><b class="add" id="r-anew">—</b></div>
-    <div class="read"><span class="add">Crescimento</span><b class="add" id="r-growth">—</b></div>
-
-    <div id="valblock" style="display:none">
-      <h2>Validação espacial <span class="info" title="Compara a mancha prevista com a mancha do nível OBSERVADO (a que de fato ocorreu +N h). IoU/CSI = interseção ÷ união (1 = idêntico). Falso positivo = área que a previsão pôs água e não teve. Falso negativo = área que teve água e a previsão não pegou.">ⓘ</span></h2>
-      <div class="read"><span>IoU / CSI</span><b id="v-iou">—</b></div>
-      <div class="read"><span>Falso positivo (excesso)</span><b id="v-fp">—</b></div>
-      <div class="read"><span>Falso negativo (faltou)</span><b id="v-fn">—</b></div>
+    <!-- ===== LINHA DO TEMPO (compartilhada) ===== -->
+    <div class="tl">
+      <div class="q" style="margin-top:2px">Quando isso pode acontecer?</div>
+      <div class="head"><button class="play" id="play">▶</button>
+        <div style="flex:1"><div class="tlab" id="tlab">—</div><input type="range" id="time" min="0" max="1" value="0"></div></div>
+      <div class="hint">Arraste a linha do tempo (ou dê play) para ver a água avançar. Clique em um ponto do mapa para a profundidade ali.</div>
     </div>
 
-    <h2>Hidrograma do evento <span class="info" title="Nível observado ao longo do evento. Clique no gráfico para pular para aquele instante — o mapa acompanha.">ⓘ</span></h2>
-    <div class="hydro"><svg id="hydro" viewBox="0 0 320 90" width="100%" style="cursor:pointer"></svg></div>
+    <!-- ===== MODO SIMPLES ===== -->
+    <div class="simple-only">
+      <div class="q">Como está agora?</div>
+      <div class="big agora"><span id="s-now">—</span> <small>no rio</small></div>
 
-    <h2>Calibração · régua ↔ terreno</h2>
-    <p class="cal">Leitura da régua correspondente ao <b>leito do rio</b> (HAND 0). Suba ou desça até a mancha bater com onde você sabe que a água chegou naquele evento. Atual: <b id="bfval">—</b> · registrado para este cenário: <b id="bfevent">—</b></p>
-    <input type="range" id="bankfull" min="100" max="700" step="10" value="300">
+      <div class="q">O que pode acontecer (<span id="s-hz">+N h</span>)?</div>
+      <div class="big prev"><span id="s-fore">—</span></div>
 
-    <h2>Legenda</h2>
-    <div class="legend">
-      <div class="row"><span class="sw water"></span>área alagada agora (nível atual)</div>
-      <div class="row"><span class="sw add"></span>área adicional prevista (avanço da água)</div>
-      <div class="row"><span class="sw maxln"></span>limite máximo previsto (+N h)</div>
+      <div class="muda">
+        <h3>O que muda nas próximas <span id="s-hz2">N</span> horas</h3>
+        <div class="row"><span>Rio</span><b id="s-drio" class="prev">—</b></div>
+        <div class="row"><span>Nova área potencial</span><b id="s-newarea" class="prev">—</b></div>
+        <div class="row"><span>Área total prevista</span><b id="s-atot">—</b></div>
+        <div class="conf">Confiança da previsão: <span class="dot" id="s-confdot"></span><b id="s-conf">—</b></div>
+      </div>
+
+      <div class="tl">
+        <div class="q" style="margin-top:14px">Quando isso pode acontecer?</div>
+        <div class="head"><button class="play" id="play">▶</button>
+          <div><div class="tlab" id="tlab">—</div><input type="range" id="time" min="0" max="1" value="0"></div></div>
+        <div class="hint">Arraste a linha do tempo (ou dê play) para ver a água avançar. Clique em um ponto do mapa para a profundidade ali.</div>
+      </div>
+
+      <details class="card"><summary>Como esta previsão é feita?</summary><div class="body">
+        <div class="method">
+          <div class="step" data-exp="A régua da estação 86472600 mede o nível do rio agora."><b>Nível atual</b> do rio</div>
+          <div class="arw">↓</div>
+          <div class="step" data-exp="A rede neural usa o nível atual e outras variáveis (montante, chuva) para prever o nível daqui a N horas."><b>Rede neural (RNA)</b></div>
+          <div class="arw">↓</div>
+          <div class="step" data-exp="Some-se a variação prevista ao nível atual → o nível que o rio pode atingir."><b>Nível futuro</b> previsto</div>
+          <div class="arw">↓</div>
+          <div class="step" data-exp="O relevo (modelo digital de terreno + HAND, altura acima do rio) define onde uma dada cota de água chega."><b>Terreno (MDT · HAND)</b></div>
+          <div class="arw">↓</div>
+          <div class="step" data-exp="O resultado é a mancha: até onde a água pode chegar naquele nível."><b>Mapa de inundação</b></div>
+          <div class="exp" id="method-exp">Toque em cada etapa para entender.</div>
+        </div>
+      </div></details>
+
+      <details class="card"><summary>Legenda e confiança</summary><div class="body">
+        <div class="legend">
+          <div class="row2"><span class="sw a"></span>área já alagada (nível atual)</div>
+          <div class="row2"><span class="sw b"></span>área que <b>ainda está seca</b> mas pode ser atingida</div>
+          <div class="row2"><span class="sw u"></span>faixa de incerteza (a borda pode variar)</div>
+        </div>
+        <div class="disc">A <b>confiança</b> cai quanto maior o horizonte (2 h é mais confiável que 12 h). A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata. Base: MDT ANADEM 30 m (prova de conceito); precisão fina depende de LiDAR e calibração com cheias observadas.</div>
+      </div></details>
     </div>
-    <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> HAND derivado do <b>ANADEM 30 m (terreno nu)</b>, que remove o viés da copa de árvore do Copernicus (aqui, ~6 m mais baixo em média, até 15 m nas encostas florestadas). A mecânica (o nível previsto virando mancha ao longo do vale) é real e o terreno melhorou, mas os <b>30 m ainda não resolvem casa a casa</b> e a calibração régua↔terreno segue aproximada. A <b>cota de inundação oficial é 15 m</b> (SGB/SACE); no hidrograma, os eventos de teste <b>ficam abaixo dos 15 m</b> — subiram no canal/várzea, sem atingir o primeiro ponto de interesse. Para validar: um MDT mais fino (LiDAR/5 m) e uma <b>mancha observada</b> de cota conhecida.</div>
+
+    <!-- ===== MODO TÉCNICO ===== -->
+    <div class="tech-only">
+      <div id="evinfo" class="disc" style="margin-top:0"></div>
+      <h4>Leitura <span class="info" title="Nível na régua da estação 86472600 (m). PERS (persistência): quanto a rede ganha da previsão ingênua — 1 perfeito, 0 igual à ingênua, negativo pior. Área: superfície alagada estimada pelo HAND.">ⓘ</span></h4>
+      <div class="read"><span class="now">Nível atual (rio)</span><b class="now" id="r-now">—</b></div>
+      <div class="read"><span class="fore">Previsão RNA (+<span id="hz">?</span>)</span><b class="fore" id="r-fore">—</b></div>
+      <div class="read"><span>Δ nível (previsto − atual)</span><b id="r-dnivel">—</b></div>
+      <div class="read"><span>Observado (+<span id="hz2">?</span>)</span><b id="r-obs">—</b></div>
+      <div class="read"><span>Erro de nível (prev − obs)</span><b id="r-errniv">—</b></div>
+      <div class="read"><span class="now">Área alagada agora</span><b class="now" id="r-anow">—</b></div>
+      <div class="read"><span class="fore">Área prevista</span><b class="fore" id="r-afore">—</b></div>
+      <div class="read"><span class="add">Nova área (avanço)</span><b class="add" id="r-anew">—</b></div>
+      <div class="read"><span class="add">Crescimento</span><b class="add" id="r-growth">—</b></div>
+
+      <div id="valblock" style="display:none">
+        <h4>Validação espacial <span class="info" title="Compara a mancha prevista com a mancha do nível OBSERVADO. IoU/CSI: interseção÷união. Falso positivo: pôs água a mais. Falso negativo: faltou pegar água.">ⓘ</span></h4>
+        <div class="read"><span>IoU / CSI</span><b id="v-iou">—</b></div>
+        <div class="read"><span>Falso positivo (excesso)</span><b id="v-fp">—</b></div>
+        <div class="read"><span>Falso negativo (faltou)</span><b id="v-fn">—</b></div>
+      </div>
+
+      <h4>Hidrograma do evento <span class="info" title="Nível observado ao longo do evento. Clique para pular no tempo; o mapa acompanha.">ⓘ</span></h4>
+      <div class="hydro"><svg id="hydro" viewBox="0 0 320 90" width="100%" style="cursor:pointer"></svg></div>
+
+      <h4>Calibração · régua ↔ terreno</h4>
+      <p class="disc" style="margin-top:2px">Régua correspondente ao <b>leito do rio</b> (HAND 0). Ajuste até a mancha bater com o observado. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
+      <input type="range" id="bankfull" min="100" max="700" step="10" value="300" style="width:100%">
+      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> MDT ANADEM 30 m (terreno nu). Cota de inundação oficial: 15 m (SGB/SACE). Precisão fina depende de LiDAR e mancha observada.</div>
+    </div>
   </aside>
 </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -104,95 +211,88 @@
 <script>
 const HAND=JSON.parse(document.getElementById('hand-data').textContent);
 const EVENTS=JSON.parse(document.getElementById('event-data').textContent);
-const COLS=HAND.cols, ROWS=HAND.rows;
-const COTA_INUND=1500; // cota de inundacao oficial SGB/SACE (cm) — primeiro ponto de interesse atingido
+const COTA_INUND=1500;
+const COLS=HAND.cols, ROWS=HAND.rows, SS=3, FCOLS=COLS*SS, FROWS=ROWS*SS;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
 const nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
 const nf1=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
-const SS=3;                        // supersampling: interpola o HAND numa grade SSx mais fina (borda suave)
-const FCOLS=COLS*SS, FROWS=ROWS*SS;
-let handArr=null;                  // HAND fino (decimetros), 255 = fora do alcance
-let curEv=Object.keys(EVENTS)[0];
-let bankfull=300, tIdx=0, playing=false, timer=null, map=null, waterOverlay=null;
-const calibByEvent={};   // 10) calibracao (bankfull) registrada por cenario
+const sgn1=v=>Math.abs(v)<0.05?'0,0':(v>0?'+':'−')+nf1.format(Math.abs(v));
+const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
+// margem de incerteza (m) por horizonte — cresce com o lead
+const UNCERT={'2h':0.3,'4h':0.5,'8h':0.7,'12h':1.0,'—':0};
+const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'8h':['Moderada','#c98a1a'],'12h':['Baixa','#c0392b'],'—':['—','#999']};
+let handArr=null, curEv=Object.keys(EVENTS)[0];
+let bankfull=300, tIdx=0, playing=false, timer=null, map=null, waterOverlay=null, curS=null;
+const calibByEvent={};
+const LIVE_URL='previsao_ao_vivo.json';
+let liveMode=false, liveTimer=null, liveIdx=0, liveData=null;
 const outCanvas=document.createElement('canvas'); outCanvas.width=FCOLS; outCanvas.height=FROWS;
 const octx=outCanvas.getContext('2d');
 
-function loadHand(){
-  return new Promise(res=>{
-    const img=new Image();
-    img.onload=()=>{
-      // 1) HAND cru na grade original (255 -> 250 = 25 m, pra interpolar como "terreno alto")
-      const c=document.createElement('canvas'); c.width=COLS;c.height=ROWS;
-      const x=c.getContext('2d'); x.drawImage(img,0,0);
-      const d=x.getImageData(0,0,COLS,ROWS).data;
-      const sc=document.createElement('canvas'); sc.width=COLS;sc.height=ROWS;
-      const sx=sc.getContext('2d'); const sd=sx.createImageData(COLS,ROWS);
-      for(let i=0;i<COLS*ROWS;i++){ const v=d[i*4]===255?250:d[i*4]; sd.data[i*4]=sd.data[i*4+1]=sd.data[i*4+2]=v; sd.data[i*4+3]=255; }
-      sx.putImageData(sd,0,0);
-      // 2) upscale bilinear SSx -> borda da mancha vira curva suave
-      const bc=document.createElement('canvas'); bc.width=FCOLS;bc.height=FROWS;
-      const bx=bc.getContext('2d'); bx.imageSmoothingEnabled=true; bx.imageSmoothingQuality='high';
-      bx.drawImage(sc,0,0,FCOLS,FROWS);
-      const bd=bx.getImageData(0,0,FCOLS,FROWS).data;
-      handArr=new Uint8Array(FCOLS*FROWS);
-      for(let i=0;i<FCOLS*FROWS;i++) handArr[i]=bd[i*4];
-      res();
-    };
-    img.onerror=()=>{ handArr=null; res(); };
-    img.src='data:image/png;base64,'+HAND.hand_png_b64;
-  });
-}
+function loadHand(){return new Promise(res=>{
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas'); c.width=COLS;c.height=ROWS; const x=c.getContext('2d'); x.drawImage(img,0,0);
+    const d=x.getImageData(0,0,COLS,ROWS).data;
+    const sc=document.createElement('canvas'); sc.width=COLS;sc.height=ROWS; const sx=sc.getContext('2d'); const sd=sx.createImageData(COLS,ROWS);
+    for(let i=0;i<COLS*ROWS;i++){const v=d[i*4]===255?250:d[i*4]; sd.data[i*4]=sd.data[i*4+1]=sd.data[i*4+2]=v; sd.data[i*4+3]=255;}
+    sx.putImageData(sd,0,0);
+    const bc=document.createElement('canvas'); bc.width=FCOLS;bc.height=FROWS; const bx=bc.getContext('2d'); bx.imageSmoothingEnabled=true; bx.imageSmoothingQuality='high';
+    bx.drawImage(sc,0,0,FCOLS,FROWS);
+    const bd=bx.getImageData(0,0,FCOLS,FROWS).data; handArr=new Uint8Array(FCOLS*FROWS);
+    for(let i=0;i<FCOLS*FROWS;i++) handArr[i]=bd[i*4];
+    res();
+  };
+  img.onerror=()=>{handArr=null;res();};
+  img.src='data:image/png;base64,'+HAND.hand_png_b64;
+});}
 
-// cor por profundidade (decimetros) -> azul claro->escuro
-function depthColor(dep){
-  const t=Math.max(0,Math.min(1, dep/120)); // 0..12m
-  const r=Math.round(143+(18-143)*t), g=Math.round(192+(63-192)*t), b=Math.round(255+(158-255)*t);
-  return [r,g,b];
+function depthColor(dep){const t=Math.max(0,Math.min(1,dep/120));
+  return [Math.round(143+(18-143)*t),Math.round(192+(63-192)*t),Math.round(255+(158-255)*t)];}
+function stageToHand(cm){return (cm-bankfull)/100;}
+function handAt(lat,lon){ // decimetros no ponto, ou null
+  const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*FCOLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*FROWS);
+  if(fx<0||fx>=FCOLS||fy<0||fy>=FROWS) return null;
+  return handArr[fy*FCOLS+fx];
 }
-function stageToHand(cm){ return (cm-bankfull)/100; } // metros acima do leito
-
-const sgn1=v=>Math.abs(v)<0.05?'0,0':(v>0?'+':'−')+nf1.format(Math.abs(v));
-const set=(id,txt)=>{const e=document.getElementById(id); if(e)e.textContent=txt;};
 
 function renderFrame(){
   if(!handArr) return;
-  const ev=EVENTS[curEv], s=ev.series[tIdx];
+  const ev=EVENTS[curEv], s=ev.series[tIdx]; curS=s;
   const nowCm=s[1], obsCm=s[2], foreCm=s[3];
   const nowDm=stageToHand(nowCm)*10;
   const hasFore=foreCm!=null, foreDm=hasFore?stageToHand(foreCm)*10:-1;
-  const hasObs=obsCm!=null,  obsDm =hasObs ?stageToHand(obsCm)*10 :-1;
-  const N=FCOLS*FROWS;
-  const img=octx.createImageData(FCOLS,FROWS);
-  const foreMask=new Uint8Array(N);
-  let aNow=0,aFore=0,TP=0,FP=0,FN=0;
+  const hasObs=obsCm!=null, obsDm=hasObs?stageToHand(obsCm)*10:-1;
+  const uDm=(UNCERT[ev.horizonte]||0)*10, uMaxDm=foreDm+uDm; // borda de incerteza
+  const N=FCOLS*FROWS; const img=octx.createImageData(FCOLS,FROWS);
+  const foreMask=new Uint8Array(N); let aNow=0,aFore=0,TP=0,FP=0,FN=0;
   for(let i=0;i<N;i++){
-    const hd=handArr[i];                 // decimetros (0..250); 250 = terreno alto
-    const inNow=hd<=nowDm;
-    const inFore=hasFore && hd<=foreDm;
-    const inObs=hasObs && hd<=obsDm;
-    if(inNow) aNow++;
-    if(inFore){ foreMask[i]=1; aFore++; }
-    // camadas: agua atual (azul, por profundidade) | area adicional prevista (ambar)
-    if(inNow){ const [r,g,b]=depthColor(nowDm-hd); img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=200; }
-    else if(inFore){ img.data[i*4]=236;img.data[i*4+1]=146;img.data[i*4+2]=48;img.data[i*4+3]=150; }
-    // validacao espacial: previsto vs mancha do nivel observado
+    const hd=handArr[i];
+    const inNow=hd<=nowDm, inFore=hasFore&&hd<=foreDm, inUnc=hasFore&&hd<=uMaxDm;
+    const inObs=hasObs&&hd<=obsDm;
+    if(inNow) aNow++; if(inFore){foreMask[i]=1; aFore++;}
+    if(inNow){const [r,g,b]=depthColor(nowDm-hd); img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=205;}
+    else if(inFore){ img.data[i*4]=236;img.data[i*4+1]=140;img.data[i*4+2]=44;img.data[i*4+3]=150;} // area que pode ser atingida
+    else if(inUnc){ img.data[i*4]=236;img.data[i*4+1]=140;img.data[i*4+2]=44;img.data[i*4+3]=52;}   // faixa de incerteza (suave)
     if(hasObs){ if(inFore&&inObs)TP++; else if(inFore&&!inObs)FP++; else if(!inFore&&inObs)FN++; }
   }
-  // limite maximo previsto (borda do foreMask) — na grade fina fica suave
-  if(hasFore) for(let y=0;y<FROWS;y++)for(let x=0;x<FCOLS;x++){
-    const i=y*FCOLS+x; if(!foreMask[i])continue;
-    const edge = x===0||x===FCOLS-1||y===0||y===FROWS-1 ||
-      !foreMask[i-1]||!foreMask[i+1]||!foreMask[i-FCOLS]||!foreMask[i+FCOLS];
-    if(edge){ img.data[i*4]=232;img.data[i*4+1]=115;img.data[i*4+2]=12;img.data[i*4+3]=255; }
-  }
+  if(hasFore) for(let y=0;y<FROWS;y++)for(let x=0;x<FCOLS;x++){const i=y*FCOLS+x; if(!foreMask[i])continue;
+    const edge=x===0||x===FCOLS-1||y===0||y===FROWS-1||!foreMask[i-1]||!foreMask[i+1]||!foreMask[i-FCOLS]||!foreMask[i+FCOLS];
+    if(edge){img.data[i*4]=232;img.data[i*4+1]=115;img.data[i*4+2]=12;img.data[i*4+3]=255;}}
   octx.putImageData(img,0,0);
   if(waterOverlay) waterOverlay.setUrl(outCanvas.toDataURL());
 
   const cellHa=0.0835/(SS*SS);
   const areaNow=aNow*cellHa, areaFore=aFore*cellHa, areaNew=(aFore-aNow)*cellHa;
   const growth=aNow>0?(aFore-aNow)/aNow*100:0;
-  // 1-5) leituras
+  // ---- modo simples ----
+  set('s-now', nf1.format(nowCm/100)+' m');
+  set('s-fore', hasFore?'pode chegar a '+nf1.format(foreCm/100)+' m':'—');
+  set('s-drio', hasFore?sgn1((foreCm-nowCm)/100)+' m':'—');
+  set('s-newarea', hasFore?sgn1(areaNew)+' ha':'—');
+  set('s-atot', hasFore?nf.format(areaFore)+' ha':nf.format(areaNow)+' ha');
+  const cf=CONF[ev.horizonte]||CONF['—']; set('s-conf',cf[0]); const cd=document.getElementById('s-confdot'); if(cd)cd.style.background=cf[1];
+  // ---- modo tecnico ----
   set('r-now', nf1.format(nowCm/100)+' m');
   set('r-fore', hasFore?nf1.format(foreCm/100)+' m':'—');
   set('r-dnivel', hasFore?sgn1((foreCm-nowCm)/100)+' m':'—');
@@ -202,124 +302,143 @@ function renderFrame(){
   set('r-afore', hasFore?nf.format(areaFore)+' ha':'—');
   set('r-anew', hasFore?sgn1(areaNew)+' ha':'—');
   set('r-growth', hasFore?sgn1(growth)+' %':'—');
-  // 6) validacao espacial (so quando ha nivel observado)
   const vb=document.getElementById('valblock');
-  if(hasObs){ vb.style.display='';
-    const den=TP+FP+FN, iou=den>0?TP/den*100:0;
-    set('v-iou', nf.format(iou)+' %');
-    set('v-fp', nf.format(FP*cellHa)+' ha');
-    set('v-fn', nf.format(FN*cellHa)+' ha');
+  if(hasObs){vb.style.display=''; const den=TP+FP+FN,iou=den>0?TP/den*100:0;
+    set('v-iou',nf.format(iou)+' %'); set('v-fp',nf.format(FP*cellHa)+' ha'); set('v-fn',nf.format(FN*cellHa)+' ha');
   } else vb.style.display='none';
-  set('tlabel', s[0]);
+  set('tlab', s[0]);
   drawHydro();
 }
 
 function drawHydro(){
-  const ev=EVENTS[curEv], S=ev.series;
-  const W=320,H=90,pad=6;
-  const svgEl=document.getElementById('hydro');
-  if(S.length<2){ // cena estatica (so o pico conhecido)
-    const rec=S[0][1], top=Math.max(rec,COTA_INUND)+60, bot=200;
-    const Yr=v=>H-pad-(H-2*pad)*(v-bot)/((top-bot)||1);
-    svgEl.innerHTML=`
-      <line x1="${pad}" y1="${Yr(COTA_INUND).toFixed(1)}" x2="${W-pad}" y2="${Yr(COTA_INUND).toFixed(1)}" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="4 2"/>
+  const ev=EVENTS[curEv], S=ev.series, W=320,H=90,pad=6, svgEl=document.getElementById('hydro');
+  if(S.length<2){const rec=S[0][1], top=Math.max(rec,COTA_INUND)+60, bot=200, Yr=v=>H-pad-(H-2*pad)*(v-bot)/((top-bot)||1);
+    svgEl.innerHTML=`<line x1="${pad}" y1="${Yr(COTA_INUND).toFixed(1)}" x2="${W-pad}" y2="${Yr(COTA_INUND).toFixed(1)}" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="4 2"/>
       <text x="${W-pad}" y="${(Yr(COTA_INUND)-3).toFixed(1)}" text-anchor="end" font-size="8" fill="#c0392b">cota de inundação · 15 m</text>
-      <line x1="${pad}" y1="${Yr(rec).toFixed(1)}" x2="${W-pad}" y2="${Yr(rec).toFixed(1)}" stroke="#1f6fbf" stroke-width="2"/>
-      <text x="${pad}" y="${(Yr(rec)-3).toFixed(1)}" font-size="8" fill="#1f6fbf">nível recorde · ${(rec/100).toFixed(2)} m</text>`;
-    return;
-  }
-  const vals=S.map(s=>s[1]).filter(v=>v!=null);
-  const lo=Math.min(...vals), hi=Math.max(Math.max(...vals), COTA_INUND+40);
-  const X=i=>pad+(W-2*pad)*i/(S.length-1);
-  const Y=v=>H-pad-(H-2*pad)*(v-lo)/((hi-lo)||1);
-  let path='M'+S.map((s,i)=>X(i).toFixed(1)+','+Y(s[1]).toFixed(1)).join('L');
-  const yi=Y(COTA_INUND);
-  const cx=X(tIdx);
-  const svg=document.getElementById('hydro');
-  svg.innerHTML=`
-    <line x1="${pad}" y1="${yi.toFixed(1)}" x2="${W-pad}" y2="${yi.toFixed(1)}" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="4 2"/>
+      <line x1="${pad}" y1="${Yr(rec).toFixed(1)}" x2="${W-pad}" y2="${Yr(rec).toFixed(1)}" stroke="#1e5fbf" stroke-width="2"/>
+      <text x="${pad}" y="${(Yr(rec)-3).toFixed(1)}" font-size="8" fill="#1e5fbf">nível recorde · ${(rec/100).toFixed(2)} m</text>`; return;}
+  const vals=S.map(s=>s[1]).filter(v=>v!=null), lo=Math.min(...vals), hi=Math.max(Math.max(...vals),COTA_INUND+40);
+  const X=i=>pad+(W-2*pad)*i/(S.length-1), Y=v=>H-pad-(H-2*pad)*(v-lo)/((hi-lo)||1);
+  const path='M'+S.map((s,i)=>X(i).toFixed(1)+','+Y(s[1]).toFixed(1)).join('L'), yi=Y(COTA_INUND), cx=X(tIdx);
+  svgEl.innerHTML=`<line x1="${pad}" y1="${yi.toFixed(1)}" x2="${W-pad}" y2="${yi.toFixed(1)}" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="4 2"/>
     <text x="${W-pad}" y="${(yi-3).toFixed(1)}" text-anchor="end" font-size="8" fill="#c0392b">cota de inundação · 15 m</text>
-    <path d="${path}" fill="none" stroke="#1f6fbf" stroke-width="1.6"/>
+    <path d="${path}" fill="none" stroke="#1e5fbf" stroke-width="1.6"/>
     <line x1="${cx.toFixed(1)}" y1="${pad}" x2="${cx.toFixed(1)}" y2="${H-pad}" stroke="#0f6b4a" stroke-width="1.5"/>
     <circle cx="${cx.toFixed(1)}" cy="${Y(S[tIdx][1]).toFixed(1)}" r="3" fill="#0f6b4a"/>`;
 }
 
 function setEvent(ev){
   curEv=ev; tIdx=0;
-  document.querySelectorAll('#evseg button').forEach(b=>b.classList.toggle('on',b.dataset.ev===ev));
+  document.querySelectorAll('#scn button').forEach(b=>b.classList.toggle('on',b.dataset.ev===ev));
   const E=EVENTS[ev];
-  if(playing){ playing=false; clearTimeout(timer); document.getElementById('play').textContent='▶'; }
+  if(playing){playing=false; clearTimeout(timer); document.getElementById('play').textContent='▶';}
   document.getElementById('time').max=Math.max(0,E.series.length-1);
   document.getElementById('time').value=0;
-  document.getElementById('hz').textContent=E.horizonte;
-  document.getElementById('hz2').textContent=E.horizonte;
-  // 10) restaura a calibracao registrada para este cenario (ou mantem a atual como padrao)
+  const hzt=E.horizonte==='—'?'':'+'+E.horizonte;
+  set('hz',E.horizonte); set('hz2',E.horizonte); set('s-hz',hzt||'—'); set('s-hz2',(E.horizonte||'').replace('h',''));
   if(calibByEvent[ev]!=null) bankfull=calibByEvent[ev];
   document.getElementById('bankfull').value=bankfull;
-  document.getElementById('bfval').textContent=(bankfull/100).toFixed(1)+' m';
-  document.getElementById('bfevent').textContent = calibByEvent[ev]!=null ? (calibByEvent[ev]/100).toFixed(1)+' m (ajustado)' : 'padrão';
+  set('bfval',(bankfull/100).toFixed(1)+' m');
+  set('bfevent', calibByEvent[ev]!=null?(bankfull/100).toFixed(1)+' m (ajustado)':'padrão');
   const est=!!E.estatico;
   document.getElementById('play').style.display=est?'none':'';
   document.getElementById('time').style.display=est?'none':'';
-  if(est){
-    document.getElementById('evinfo').innerHTML=`<b style="color:#1f6fbf">Cena estática de referência</b> — cheia <b>recorde de 02/05/2024</b> (${nf1.format(E.pico_obs_cm/100)} m, dado SGB/SACE). Só o pico é conhecido, então não há animação — a mancha mostra o alcance máximo naquela cota.`;
-  } else if(E.ilustra){
-    document.getElementById('evinfo').innerHTML=`<b style="color:#b06a12">Cheia de referência</b> — evento de treino (ilustração de como uma cheia grande alaga a cidade), <b>não é teste de previsão</b> · pico observado <b>${nf1.format(E.pico_obs_cm/100)} m</b> (acima da cota de inundação de 15 m).`;
-  } else {
-    document.getElementById('evinfo').innerHTML=`Modelo <b>${E.combo}</b> (${E.horizonte}, ALT) · PERS teste <b>${E.pers.toFixed(2)}</b> · pico observado <b>${nf1.format(E.pico_obs_cm/100)} m</b>`;
-  }
+  // texto tecnico
+  const ei=document.getElementById('evinfo');
+  if(est) ei.innerHTML=`<b>Cena estática de referência</b> — cheia recorde de 02/05/2024 (${nf1.format(E.pico_obs_cm/100)} m, SGB/SACE). Só o pico é conhecido; a mancha mostra o alcance máximo.`;
+  else if(E.ilustra) ei.innerHTML=`<b>Cheia de referência</b> — evento de treino (ilustração), <b>não é teste de previsão</b> · pico ${nf1.format(E.pico_obs_cm/100)} m.`;
+  else ei.innerHTML=`Modelo <b>${E.combo}</b> (${E.horizonte}, ALT) · PERS teste <b>${E.pers!=null?E.pers.toFixed(2):'—'}</b> · pico ${nf1.format(E.pico_obs_cm/100)} m.`;
   renderFrame();
 }
+function tick(){const E=EVENTS[curEv]; tIdx=(tIdx+1)%E.series.length; document.getElementById('time').value=tIdx; renderFrame(); if(playing) timer=setTimeout(tick,300);}
 
-function tick(){ const E=EVENTS[curEv]; tIdx=(tIdx+1)%E.series.length; document.getElementById('time').value=tIdx; renderFrame(); if(playing) timer=setTimeout(tick,300); }
+// ===== MODO AO VIVO =====
+function renderLiveStep(){
+  const P=liveData.passos[liveIdx]; // [datahora, nivel_atual_cm, nivel_previsto_cm]
+  EVENTS['__live__']={label:'AO VIVO',horizonte:liveData.horizonte||'2h',combo:liveData.modelo||'—',pers:null,ilustra:false,estatico:false,n:1,pico_obs_cm:P[1],series:[[P[0],P[1],null,P[2]]]};
+  bankfull=liveData.bankfull_cm||300;
+  curEv='__live__'; tIdx=0;
+  const hz=liveData.horizonte||'2h';
+  set('hz',hz); set('hz2',hz); set('s-hz','+'+hz); set('s-hz2',hz.replace('h',''));
+  set('live-when', P[0]);
+  renderFrame();
+}
+async function enterLive(){
+  let d; try{ const r=await fetch(LIVE_URL,{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); d=await r.json(); }
+  catch(e){ document.getElementById('live-note').style.display=''; document.getElementById('live-note').textContent='Não consegui carregar a previsão ao vivo ('+e.message+'). No site publicado, o robô agendado preenche esse arquivo.'; return; }
+  liveData=d; liveMode=true; document.body.classList.add('live'); liveIdx=0;
+  document.getElementById('live-bar').style.display='';
+  const note=document.getElementById('live-note'); note.style.display=''; note.textContent=d.aviso||'EXPERIMENTAL — não é alerta oficial.';
+  if(playing){playing=false; clearTimeout(timer); document.getElementById('play').textContent='▶';}
+  if(d.modo==='replay' && Array.isArray(d.passos)){
+    renderLiveStep(); clearInterval(liveTimer);
+    liveTimer=setInterval(()=>{ liveIdx=(liveIdx+1)%liveData.passos.length; renderLiveStep(); }, d.intervalo_ms||2500);
+  } else { // ao_vivo real: um ponto + repesca a cada 60 s
+    liveData.passos=[[d.gerado_em, d.nivel_atual_cm, d.nivel_previsto_cm]]; renderLiveStep();
+    clearInterval(liveTimer);
+    liveTimer=setInterval(async()=>{ try{const r=await fetch(LIVE_URL,{cache:'no-store'}); const j=await r.json(); liveData=j; liveData.passos=[[j.gerado_em,j.nivel_atual_cm,j.nivel_previsto_cm]]; liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
+  }
+}
+function exitLive(){ liveMode=false; clearInterval(liveTimer); document.body.classList.remove('live');
+  document.getElementById('live-bar').style.display='none'; document.getElementById('live-note').style.display='none';
+  delete EVENTS['__live__']; setEvent(Object.keys(EVENTS)[0]); }
+
+function buildScenarios(){
+  const scn=document.getElementById('scn'); const groups={'Cheias que transbordaram':[],'Testes de previsão':[],'Referência':[]};
+  Object.keys(EVENTS).forEach(k=>{const E=EVENTS[k];
+    if(E.estatico) groups['Referência'].push(k);
+    else if(E.ilustra) groups['Cheias que transbordaram'].push(k);
+    else groups['Testes de previsão'].push(k);});
+  Object.entries(groups).forEach(([g,ks])=>{ if(!ks.length)return;
+    const lab=document.createElement('div'); lab.className='grp'; lab.textContent=g; scn.appendChild(lab);
+    ks.forEach(k=>{const b=document.createElement('button'); b.dataset.ev=k; b.textContent=EVENTS[k].label; b.onclick=()=>setEvent(k); scn.appendChild(b);});
+  });
+}
 
 async function init(){
-  // segmentos de evento
-  const seg=document.getElementById('evseg');
-  Object.keys(EVENTS).forEach(ev=>{
-    const b=document.createElement('button'); b.dataset.ev=ev; b.textContent=EVENTS[ev].label; seg.appendChild(b);
-    b.onclick=()=>{ setEvent(ev); };
-  });
-  document.getElementById('bankfull').value=bankfull;
-  document.getElementById('bfval').textContent=(bankfull/100).toFixed(1)+' m';
-  document.getElementById('time').oninput=e=>{ tIdx=+e.target.value; renderFrame(); };
-  document.getElementById('bankfull').oninput=e=>{ bankfull=+e.target.value; calibByEvent[curEv]=bankfull;
-    document.getElementById('bfval').textContent=(bankfull/100).toFixed(1)+' m';
-    document.getElementById('bfevent').textContent=(bankfull/100).toFixed(1)+' m (ajustado)'; renderFrame(); };
-  // 8) hidrograma sincronizado: clicar pula para aquele instante
-  document.getElementById('hydro').addEventListener('click', e=>{
-    const E=EVENTS[curEv]; if(E.series.length<2) return;
-    const r=e.currentTarget.getBoundingClientRect(); const svgx=(e.clientX-r.left)/r.width*320;
-    let i=Math.round((svgx-6)/(320-12)*(E.series.length-1));
-    i=Math.max(0,Math.min(E.series.length-1,i));
-    tIdx=i; document.getElementById('time').value=i; renderFrame();
-  });
-  document.getElementById('play').onclick=()=>{ playing=!playing;
-    document.getElementById('play').textContent=playing?'⏸':'▶';
-    if(playing) tick(); else clearTimeout(timer); };
+  buildScenarios();
+  // modo simples/tecnico
+  document.getElementById('mode-s').onclick=()=>{document.body.classList.remove('tech'); document.getElementById('mode-s').classList.add('on'); document.getElementById('mode-t').classList.remove('on'); if(map)setTimeout(()=>map.invalidateSize(),50);};
+  document.getElementById('mode-t').onclick=()=>{document.body.classList.add('tech'); document.getElementById('mode-t').classList.add('on'); document.getElementById('mode-s').classList.remove('on'); if(map)setTimeout(()=>map.invalidateSize(),50);};
+  document.getElementById('time').oninput=e=>{tIdx=+e.target.value; renderFrame();};
+  document.getElementById('bankfull').oninput=e=>{bankfull=+e.target.value; calibByEvent[curEv]=bankfull; set('bfval',(bankfull/100).toFixed(1)+' m'); set('bfevent',(bankfull/100).toFixed(1)+' m (ajustado)'); renderFrame();};
+  document.getElementById('play').onclick=()=>{playing=!playing; document.getElementById('play').textContent=playing?'⏸':'▶'; if(playing)tick(); else clearTimeout(timer);};
+  document.getElementById('hydro').addEventListener('click',e=>{const E=EVENTS[curEv]; if(E.series.length<2)return;
+    const r=e.currentTarget.getBoundingClientRect(), sx=(e.clientX-r.left)/r.width*320;
+    let i=Math.round((sx-6)/(320-12)*(E.series.length-1)); i=Math.max(0,Math.min(E.series.length-1,i)); tIdx=i; document.getElementById('time').value=i; renderFrame();});
+  document.querySelectorAll('.method .step').forEach(s=>s.onclick=()=>set('method-exp',s.dataset.exp));
+  document.getElementById('live-btn').onclick=enterLive;
+  document.getElementById('live-exit').onclick=exitLive;
 
   await loadHand();
   if(typeof L!=='undefined'){
     map=L.map('map',{scrollWheelZoom:true}).fitBounds(BOUNDS);
-    // satelite de alta resolucao (Esri World Imagery) para enxergar as casas
-    const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'Imagery © Esri, Maxar, Earthstar Geographics'});
-    const labels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,pane:'overlayPane'});
+    const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'© Esri, Maxar'});
+    const labels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19});
     const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
-    sat.on('tileerror',()=>{ if(!map.hasLayer(osm)&&!map.hasLayer(sat)) osm.addTo(map); });
+    sat.on('tileerror',()=>{if(!map.hasLayer(osm)&&!map.hasLayer(sat)) osm.addTo(map);});
     sat.addTo(map); labels.addTo(map);
-    L.control.layers({'Satélite':sat,'Ruas':osm},{'Rótulos de ruas':labels},{position:'topright'}).addTo(map);
-    waterOverlay=L.imageOverlay(outCanvas.toDataURL(), BOUNDS, {opacity:.6, className:'flood-ov'}).addTo(map);
-    const cav=document.createElement('div'); cav.className='banner';
-    cav.innerHTML='Prova de conceito &middot; extensão <b>não validada em nível de rua</b> (DEM 30 m, calibração aproximada). A posição da mancha é indicativa.';
-    document.getElementById('map').appendChild(cav);
+    L.control.layers({'Satélite':sat,'Ruas':osm},{'Rótulos':labels},{position:'topright'}).addTo(map);
+    waterOverlay=L.imageOverlay(outCanvas.toDataURL(),BOUNDS,{opacity:.6,className:'flood-ov'}).addTo(map);
     const st=HAND.station, pt=HAND.ponte;
-    L.circleMarker([st.lat,st.lon],{radius:7,color:'#fff',weight:2,fillColor:'#1f6fbf',fillOpacity:.95}).addTo(map).bindPopup('<b>Estação '+st.code+'</b><br>Santa Tereza');
+    L.circleMarker([st.lat,st.lon],{radius:7,color:'#fff',weight:2,fillColor:'#1e5fbf',fillOpacity:.95}).addTo(map).bindPopup('<b>Estação '+st.code+'</b><br>Santa Tereza');
     if(pt) L.circleMarker([pt.lat,pt.lon],{radius:6,color:'#fff',weight:2,fillColor:'#b04538',fillOpacity:.95}).addTo(map).bindPopup('<b>'+pt.label+'</b>');
-  }else{
+    // clique no mapa -> profundidade humana no ponto
+    map.on('click', e=>{
+      if(!curS) return; const hd=handAt(e.latlng.lat,e.latlng.lng); if(hd==null) return;
+      const pointHand=hd/10, ev=EVENTS[curEv];
+      const dNow=stageToHand(curS[1])-pointHand, dFore=curS[3]!=null?stageToHand(curS[3])-pointHand:null;
+      const fmt=d=>d>0.03?('<b class="pf">'+nf1.format(d*100)+' cm</b>'):'seco';
+      const hz=ev.horizonte==='—'?'':' (+'+ev.horizonte+')';
+      let html='<div class="pt-pop"><b>Neste ponto</b><br>Agora: '+(dNow>0.03?nf1.format(dNow*100)+' cm de água':'sem inundação estimada');
+      if(dFore!=null) html+='<br>Previsto'+hz+': '+fmt(dFore);
+      html+='</div>';
+      L.popup({closeButton:true}).setLatLng(e.latlng).setContent(html).openOn(map);
+    });
+  } else {
     const box=document.getElementById('map');
-    const b=document.createElement('div'); b.className='banner'; b.textContent='Mapa base (Leaflet) não carregou aqui — a mancha aparece sobre fundo neutro. Abra pelo GitHub Pages para o mapa completo.'; box.appendChild(b);
-    outCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:auto';
-    box.appendChild(outCanvas);
+    const b=document.createElement('div'); b.className='banner'; b.textContent='Mapa base (Leaflet) não carregou aqui — abra pelo GitHub Pages.'; box.appendChild(b);
+    outCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain'; box.appendChild(outCanvas);
     waterOverlay={setUrl:()=>{}};
   }
   setEvent(curEv);
