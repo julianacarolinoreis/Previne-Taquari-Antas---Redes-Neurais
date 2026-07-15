@@ -66,12 +66,15 @@ def _serie_de_xml(xml):
     return serie, len(xml)
 
 def buscar_ana(cod, dias=5):
-    """Retorna dict {hora_cheia: nivel_cm}. Tenta datas em branco (série recente);
-    se vier vazio, tenta uma janela explícita dos últimos `dias`."""
-    tentativas = [f"{ANA}?codEstacao={cod}&dataInicio=&dataFim="]
+    """Retorna dict {hora_cheia: nivel_cm}. Usa uma janela de datas explícita
+    (a ANA responde ErrorTable quando as datas vêm em branco); mantém o modo
+    'datas em branco' apenas como reserva."""
     fim = dt.datetime.utcnow() - dt.timedelta(hours=3)          # UTC-3
     ini = fim - dt.timedelta(days=dias)
-    tentativas.append(f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}")
+    tentativas = [
+        f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
+        f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
+    ]
     for url in tentativas:
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
