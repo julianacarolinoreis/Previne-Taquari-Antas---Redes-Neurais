@@ -116,7 +116,7 @@
 <main>
   <div id="map"></div>
   <aside>
-    <button class="live-btn" id="live-btn">🔴 Ver modo AO VIVO (ensaio com a cheia de 2024)</button>
+    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (Santa Tereza · 2h)</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · atualizado: <span id="live-when">—</span> <a id="live-exit">sair do ao vivo</a></div>
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
@@ -234,6 +234,7 @@ let handArr=null, curEv=Object.keys(EVENTS)[0];
 let bankfull=300, tIdx=0, playing=false, timer=null, map=null, waterOverlay=null, curS=null;
 const calibByEvent={};
 const LIVE_URL='previsao_ao_vivo.json';
+function fmtWhen(s){ if(!s) return '—'; const m=String(s).replace('T',' ').match(/(\d{4})-(\d{2})-(\d{2})[ ]+(\d{2}):(\d{2})/); return m?`${m[3]}/${m[2]} ${m[4]}:${m[5]}`:String(s); }
 let liveMode=false, liveTimer=null, liveIdx=0, liveData=null, liveHz='2h';
 const outCanvas=document.createElement('canvas'); outCanvas.width=FCOLS; outCanvas.height=FROWS;
 const octx=outCanvas.getContext('2d');
@@ -417,8 +418,8 @@ function renderLiveStep(){
     const tipoTxt=tipo?' '+tipo:'';
     const modoTxt=(L.modo||liveData.modo)==='replay'?'replay':'ao vivo';
     const ei=document.getElementById('evinfo');
-    if(ei) ei.innerHTML=`Modo ${modoTxt} · Modelo <b>${L.modelo||'—'}</b> (${hz}${tipoTxt}) · atualizado em <b>${P[0]}</b>.`;
-    set('live-when', P[0]);
+    if(ei) ei.innerHTML=`Modo ${modoTxt} · Modelo <b>${L.modelo||'—'}</b> (${hz}${tipoTxt}) · atualizado em <b>${fmtWhen(P[0])}</b>.`;
+    set('live-when', fmtWhen(P[0]));
     renderFrame();
     return;
   }
@@ -432,7 +433,7 @@ function renderLiveStep(){
   const tipoTxt=tipo?' '+tipo:'';
   const modoTxt=liveData.modo==='replay'?'replay':'ao vivo';
   const ei=document.getElementById('evinfo');
-  if(ei) ei.innerHTML=`Modo ${modoTxt} · Modelo <b>${liveData.modelo||'—'}</b> (${hz}${tipoTxt}) · atualizado em <b>${P[0]}</b>.`;
+  if(ei) ei.innerHTML=`Modo ${modoTxt} · Modelo <b>${liveData.modelo||'—'}</b> (${hz}${tipoTxt}) · atualizado em <b>${fmtWhen(P[0])}</b>.`;
   set('live-when', P[0]);
   renderFrame();
 }
