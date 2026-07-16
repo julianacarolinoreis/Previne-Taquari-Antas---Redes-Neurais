@@ -1,8 +1,3 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PREVINE Taquari-Antas — Redes Neurais</title>
 <!-- auditável integrado nesta página; guards de injeção: assets/css/audit_charts.css assets/js/audit_charts.js -->
 
@@ -278,19 +273,13 @@
   .clickable{cursor:pointer}
 
   /* ---------- model detail (modal) ---------- */
-  .modal{
-    position:fixed;inset:0;z-index:50;display:flex;align-items:flex-start;justify-content:center;
-    padding:4vh 16px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
-  }
+  .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:4vh 16px}
   .modal[hidden]{display:none}
   .m-backdrop{position:absolute;inset:0;background:rgba(8,12,16,.55);backdrop-filter:blur(2px)}
   .m-card{
     position:relative;background:var(--surface);border:1px solid var(--border);border-radius:14px;
     box-shadow:0 18px 60px rgba(0,0,0,.35);width:min(1020px,100%);max-height:92vh;overflow:auto;
-    padding:24px 26px 26px;-webkit-overflow-scrolling:touch;touch-action:pan-y;
-  }
-  @supports (height:100dvh){
-    .m-card{max-height:calc(100dvh - 8vh)}
+    padding:24px 26px 26px;
   }
   @media (prefers-reduced-motion: no-preference){
     .m-card{animation:pop .28s cubic-bezier(.2,.8,.3,1) both}
@@ -339,25 +328,6 @@
   }
   .m-det[open] summary{border-bottom:1px solid var(--grid)}
   .m-det .det-wrap{max-height:340px;overflow:auto}
-  @media (max-width:700px){
-    .modal{
-      display:block;left:0;right:auto;width:100%;max-width:100%;overflow-x:hidden;
-      padding:10px 10px calc(88px + env(safe-area-inset-bottom));
-    }
-    .m-card{
-      width:100%;max-width:100%;margin:0 auto;max-height:none;min-height:auto;overflow:visible;border-radius:12px;
-      padding:18px 14px 22px;
-    }
-    .m-grid{grid-template-columns:1fr;gap:14px}
-    .m-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .m-close{top:8px}
-  }
-  @supports (width:100dvw){
-    @media (max-width:700px){
-      .modal{width:100dvw;max-width:100dvw}
-      .m-card{width:calc(100dvw - 20px);max-width:calc(100dvw - 20px)}
-    }
-  }
   .m-det table{border-collapse:collapse;width:100%;font-size:11.5px;min-width:0}
   .m-det td,.m-det th{padding:5px 12px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top}
   .m-det th{position:sticky;top:0;background:var(--surface-2);color:var(--muted);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase}
@@ -442,8 +412,6 @@
   }
 </style>
 
-</head>
-<body>
 <div class="wrap">
   <header class="hero">
     <div class="brandbar" aria-hidden="true"></div>
@@ -1371,9 +1339,6 @@
     renderAuditBlock(m, auditBox);
 
     modal.hidden=false; document.body.style.overflow='hidden';
-    modal.scrollTop=0;
-    const card=document.querySelector('.m-card');
-    if(card) card.scrollTop=0;
     document.getElementById('m-close').focus();
   }
 
@@ -1842,5 +1807,3 @@
   renderCharts();
 })();
 </script>
-</body>
-</html>
