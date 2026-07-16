@@ -14,6 +14,11 @@ import sys, json, datetime as dt, urllib.request, xml.etree.ElementTree as ET
 import numpy as np
 from scipy.io import loadmat
 
+BRT = dt.timezone(dt.timedelta(hours=-3))
+
+def agora_brt():
+    return dt.datetime.now(BRT).replace(tzinfo=None)
+
 # ---- config ----
 MODELO_MAT = "previne/assets/mat/rot_003_06_2h_alt_2H_ALT_C0472.mat"   # relativo à raiz do repo
 HORIZONTE = "2h"
@@ -84,7 +89,7 @@ def buscar_ana(cod, dias=5):
     """Retorna dict {hora_cheia: nivel_cm}. Usa uma janela de datas explícita
     (a ANA responde ErrorTable quando as datas vêm em branco); mantém o modo
     'datas em branco' apenas como reserva."""
-    fim = dt.datetime.utcnow() - dt.timedelta(hours=3)          # UTC-3
+    fim = agora_brt()
     ini = fim - dt.timedelta(days=dias)
     tentativas = [
         f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
@@ -167,7 +172,7 @@ def prever(mat_path, x):
     return float(yn * au + bu)                        # variação prevista (cm)
 
 def escrever(nivel_atual, nivel_prev, t, status, aviso):
-    consultado_em = dt.datetime.now()
+    consultado_em = agora_brt()
     raw_st = ULTIMA_RAW.get("86472600")
     idade_min = None
     status_dados = None
@@ -176,7 +181,7 @@ def escrever(nivel_atual, nivel_prev, t, status, aviso):
         status_dados = "telemetria recente" if idade_min <= 120 else f"telemetria atrasada ({idade_min} min)"
     out = {
         "modo": "ao_vivo",
-        "gerado_em": (t.isoformat() if t else dt.datetime.now().isoformat()),
+        "gerado_em": (t.isoformat() if t else consultado_em.isoformat()),
         "hora_modelo": (t.isoformat() if t else None),
         "consultado_em": consultado_em.isoformat(timespec="seconds"),
         "telemetria_ultima_em": (raw_st[0].isoformat() if raw_st else None),

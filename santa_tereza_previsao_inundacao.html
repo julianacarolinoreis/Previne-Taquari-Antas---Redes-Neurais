@@ -119,7 +119,7 @@
   <div id="map"></div>
   <aside>
     <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (Santa Tereza · 2h)</button>
-    <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · leitura: <span id="live-when">—</span> <a id="live-exit">ver cenários de cheia</a></div>
+    <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span> <a id="live-exit">ver cenários de cheia</a></div>
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
       <button data-live-hz="2h" class="on">2h</button>
@@ -229,7 +229,7 @@ const nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
 const nf1=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
 const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const sgn1=v=>Math.abs(v)<0.05?'0,0':(v>0?'+':'−')+nf1.format(Math.abs(v));
-const fmtNivel=cm=>nf2.format(cm/100)+' m';
+const fmtNivel=cm=>cm==null||!Number.isFinite(Number(cm))?'—':nf2.format(Number(cm)/100)+' m';
 const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 // margem de incerteza (m) por horizonte — cresce com o lead
 const UNCERT={'2h':0.3,'4h':0.5,'8h':0.7,'12h':1.0,'—':0};
@@ -274,7 +274,8 @@ function renderFrame(){
   if(!handArr) return;
   const ev=EVENTS[curEv], s=ev.series[tIdx]; curS=s;
   const nowCm=s[1], obsCm=s[2], foreCm=s[3];
-  const nowDm=stageToHand(nowCm)*10;
+  const hasNow=nowCm!=null&&Number.isFinite(Number(nowCm));
+  const nowDm=hasNow?stageToHand(nowCm)*10:-1;
   const hasFore=foreCm!=null, foreDm=hasFore?stageToHand(foreCm)*10:-1;
   const hasObs=obsCm!=null, obsDm=hasObs?stageToHand(obsCm)*10:-1;
   const uDm=(UNCERT[ev.horizonte]||0)*10, uMaxDm=foreDm+uDm; // borda de incerteza
@@ -282,7 +283,7 @@ function renderFrame(){
   const foreMask=new Uint8Array(N); let aNow=0,aFore=0,TP=0,FP=0,FN=0;
   for(let i=0;i<N;i++){
     const hd=handArr[i];
-    const inNow=hd<=nowDm, inFore=hasFore&&hd<=foreDm, inUnc=hasFore&&hd<=uMaxDm;
+    const inNow=hasNow&&hd<=nowDm, inFore=hasFore&&hd<=foreDm, inUnc=hasFore&&hd<=uMaxDm;
     const inObs=hasObs&&hd<=obsDm;
     if(inNow) aNow++; if(inFore){foreMask[i]=1; aFore++;}
     if(inNow){const [r,g,b]=depthColor(nowDm-hd); img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=205;}
@@ -302,20 +303,20 @@ function renderFrame(){
   // ---- modo simples ----
   set('s-now', fmtNivel(nowCm));
   set('s-fore', hasFore?fmtNivel(foreCm):'—');
-  set('s-drio', hasFore?sgn1((foreCm-nowCm)/100)+' m':'—');
+  set('s-drio', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
   set('s-newarea', hasFore?sgn1(areaNew)+' ha':'—');
-  set('s-atot', hasFore?nf.format(areaFore)+' ha':nf.format(areaNow)+' ha');
+  set('s-atot', hasFore?nf.format(areaFore)+' ha':(hasNow?nf.format(areaNow)+' ha':'—'));
   const cf=CONF[ev.horizonte]||CONF['—']; set('s-conf',cf[0]); const cd=document.getElementById('s-confdot'); if(cd)cd.style.background=cf[1];
   // ---- modo tecnico ----
   set('r-now', fmtNivel(nowCm));
   set('r-fore', hasFore?fmtNivel(foreCm):'—');
-  set('r-dnivel', hasFore?sgn1((foreCm-nowCm)/100)+' m':'—');
+  set('r-dnivel', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
   set('r-obs', hasObs?fmtNivel(obsCm):'—');
   set('r-errniv', (hasFore&&hasObs)?sgn1((foreCm-obsCm)/100)+' m':'—');
-  set('r-anow', nf.format(areaNow)+' ha');
+  set('r-anow', hasNow?nf.format(areaNow)+' ha':'—');
   set('r-afore', hasFore?nf.format(areaFore)+' ha':'—');
   set('r-anew', hasFore?sgn1(areaNew)+' ha':'—');
-  set('r-growth', hasFore?sgn1(growth)+' %':'—');
+  set('r-growth', hasFore&&hasNow?sgn1(growth)+' %':'—');
   const vb=document.getElementById('valblock');
   if(hasObs){vb.style.display=''; const den=TP+FP+FN,iou=den>0?TP/den*100:0;
     set('v-iou',nf.format(iou)+' %'); set('v-fp',nf.format(FP*cellHa)+' ha'); set('v-fn',nf.format(FN*cellHa)+' ha');
@@ -421,7 +422,7 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   return partes.join(' · ')+'.';
 }
 function liveWhenText(D,P){
-  const base=fmtWhen(D.telemetria_ultima_em||D.hora_modelo||P[0]);
+  const base=fmtWhen(D.telemetria_ultima_em||D.hora_modelo||D.consultado_em||P[0]);
   const idade=D.idade_telemetria_min;
   if(idade!=null && idade>120){                    // telemetria atrasada (>2 h)
     const h=Math.floor(idade/60), m=idade%60;
@@ -431,6 +432,9 @@ function liveWhenText(D,P){
   }
   document.getElementById('live-bar').classList.remove('stale');
   return base;
+}
+function liveWhenKind(D){
+  return (D.telemetria_ultima_em||D.hora_modelo)?'leitura':'consulta';
 }
 function renderLiveStep(){
   const L=activeLiveData();
@@ -447,6 +451,7 @@ function renderLiveStep(){
     const modoTxt=(L.modo||liveData.modo)==='replay'?'replay':'ao vivo';
     const ei=document.getElementById('evinfo');
     if(ei) ei.innerHTML=liveInfoHtml(L,P,hz,tipoTxt,modoTxt);
+    set('live-kind', liveWhenKind(L));
     set('live-when', liveWhenText(L,P));
     renderFrame();
     return;
@@ -462,6 +467,7 @@ function renderLiveStep(){
   const modoTxt=liveData.modo==='replay'?'replay':'ao vivo';
   const ei=document.getElementById('evinfo');
   if(ei) ei.innerHTML=liveInfoHtml(liveData,P,hz,tipoTxt,modoTxt);
+  set('live-kind', liveWhenKind(liveData));
   set('live-when', liveWhenText(liveData,P));
   renderFrame();
 }
