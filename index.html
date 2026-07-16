@@ -1133,7 +1133,7 @@
   const WB_RAW='https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/6601cf09a2b247a1fa03a12810f681c2c796ba18/';
   const wbHref=u=>u? (u.startsWith('http')?u:WB_RAW+u) : '';
   const AUDIT_URL='assets/data/auditaveis_series.json';
-  const NOVOS_URL='https://raw.githubusercontent.com/julianacarolinoreis/PMRR-Porto-Alegre/main/previne/novos_series.json';
+  const NOVOS_URL='assets/data/novos_series.json';
   let NOVOS=null, NOVOS_LOADING=null;
   function loadNovos(){
     if(NOVOS) return Promise.resolve();
@@ -1437,33 +1437,48 @@
         (mt.mod?', gravado em '+mt.mod.replace('T',' '):'')+
         '). Ativação: sigmóide logística na camada oculta, linear na saída. Métricas do MATLAB calculadas nos recortes da própria rodada.';
       mb.appendChild(note);
-      if(mt.vars && mt.vars.length){
+      const allRows = Array.isArray(mt.all)
+        ? mt.all.map(x=>{
+            if(Array.isArray(x)) return [x[0], x[1], ''];
+            if(x && typeof x==='object') return [x.name||x.var||'', x.value??x.valor??'', Array.isArray(x.dims)?x.dims.join('×'):(x.dims||'')];
+            return ['', x, ''];
+          }).filter(x=>x[0])
+        : Object.entries(mt.all||{}).map(([n,v])=>[n,v,'']);
+      const varRows = Array.isArray(mt.vars)
+        ? mt.vars.map(x=>{
+            if(Array.isArray(x)) return [x[0], x[1]||'', x[2]||''];
+            if(x && typeof x==='object') return [x.name||x.var||'', x.class||x.type||'', Array.isArray(x.dims)?x.dims.join('×'):(x.dims||'')];
+            return [String(x), '', ''];
+          }).filter(x=>x[0])
+        : [];
+      if(varRows.length || allRows.length){
         const det=document.createElement('details'); det.className='m-det'; det.open=true;
         const sum=document.createElement('summary');
-        sum.textContent='Workspace do MATLAB — todas as '+mt.vars.length+' variáveis do .mat';
+        sum.textContent='Workspace do MATLAB — todas as '+(varRows.length || allRows.length)+' variáveis do .mat';
         det.appendChild(sum);
         const wrap=document.createElement('div'); wrap.className='det-wrap';
         const tb=document.createElement('table');
         const thr=document.createElement('tr');
         ['Variável','O que é','Dimensões','Valor'].forEach(t=>{const th=document.createElement('th'); th.textContent=t; thr.appendChild(th);});
         tb.appendChild(thr);
-        const valMap=new Map((mt.all||[]).map(([n,v])=>[n,v]));
-        mt.vars.forEach(([nm,cl,sh])=>{
+        const valMap=new Map(allRows.map(([n,v])=>[n,v]));
+        const dimMap=new Map(allRows.map(([n,,d])=>[n,d]));
+        varRows.forEach(([nm,cl,sh])=>{
           const tr=document.createElement('tr');
           const t1=document.createElement('td'); t1.textContent=nm;
           const t2=document.createElement('td'); t2.textContent=MATDESC[nm]||'';
-          const t3=document.createElement('td'); t3.textContent=(sh||'')+(cl?' ('+cl+')':'');
+          const t3=document.createElement('td'); t3.textContent=(sh||dimMap.get(nm)||'')+(cl?' ('+cl+')':'');
           const t4=document.createElement('td');
           t4.textContent = valMap.has(nm) ? valMap.get(nm) : 'valores completos no arquivo .mat';
           if(!valMap.has(nm)) t4.style.color='var(--muted)';
           tr.append(t1,t2,t3,t4); tb.appendChild(tr);
         });
-        (mt.all||[]).forEach(([nm,v])=>{
-          if(mt.vars.some(x=>x[0]===nm)) return;
+        allRows.forEach(([nm,v,dims])=>{
+          if(varRows.some(x=>x[0]===nm)) return;
           const tr=document.createElement('tr');
           const t1=document.createElement('td'); t1.textContent=nm;
           const t2=document.createElement('td'); t2.textContent=MATDESC[nm]||'';
-          const t3=document.createElement('td'); t3.textContent='';
+          const t3=document.createElement('td'); t3.textContent=dims||'';
           const t4=document.createElement('td'); t4.textContent=v;
           tr.append(t1,t2,t3,t4); tb.appendChild(tr);
         });
