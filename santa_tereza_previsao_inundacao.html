@@ -553,7 +553,8 @@ async function init(){
     waterOverlay={setUrl:()=>{}};
   }
   setEvent(curEv);            // cenário padrão como fallback
-  enterLive();                // abre já em AO VIVO (previsão real); se falhar, fica no cenário
+  const modoParam=new URLSearchParams(location.search).get('modo');
+  if(modoParam!=='cenarios') enterLive(); // abre já em AO VIVO (previsão real); se falhar, fica no cenário
 }
 init();
 </script>
