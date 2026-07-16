@@ -404,6 +404,21 @@ function setLiveHorizon(hz){
   if(!liveData || !liveData.horizontes || !liveData.horizontes[hz]) return;
   liveHz=hz; liveIdx=0; updateLiveHzButtons(); renderLiveStep();
 }
+function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
+  const modelo=D.modelo||'—';
+  const horaModelo=D.hora_modelo||P[0];
+  const partes=[`Modo ${modoTxt} · Modelo <b>${modelo}</b> (${hz}${tipoTxt}) · hora do modelo <b>${fmtWhen(horaModelo)}</b>`];
+  if(D.telemetria_ultima_em){
+    const nivel=D.telemetria_ultima_nivel_cm!=null?` (${D.telemetria_ultima_nivel_cm} cm)`:'';
+    partes.push(`telemetria ANA até <b>${fmtWhen(D.telemetria_ultima_em)}</b>${nivel}`);
+  }
+  if(D.consultado_em) partes.push(`robô consultou <b>${fmtWhen(D.consultado_em)}</b>`);
+  if(D.status_dados) partes.push(`<b>${D.status_dados}</b>`);
+  return partes.join(' · ')+'.';
+}
+function liveWhenText(D,P){
+  return fmtWhen(D.telemetria_ultima_em||D.hora_modelo||P[0]);
+}
 function renderLiveStep(){
   const L=activeLiveData();
   if(L && Array.isArray(L.passos) && L.passos.length){
@@ -418,8 +433,8 @@ function renderLiveStep(){
     const tipoTxt=tipo?' '+tipo:'';
     const modoTxt=(L.modo||liveData.modo)==='replay'?'replay':'ao vivo';
     const ei=document.getElementById('evinfo');
-    if(ei) ei.innerHTML=`Modo ${modoTxt} · Modelo <b>${L.modelo||'—'}</b> (${hz}${tipoTxt}) · atualizado em <b>${fmtWhen(P[0])}</b>.`;
-    set('live-when', fmtWhen(P[0]));
+    if(ei) ei.innerHTML=liveInfoHtml(L,P,hz,tipoTxt,modoTxt);
+    set('live-when', liveWhenText(L,P));
     renderFrame();
     return;
   }
@@ -433,8 +448,8 @@ function renderLiveStep(){
   const tipoTxt=tipo?' '+tipo:'';
   const modoTxt=liveData.modo==='replay'?'replay':'ao vivo';
   const ei=document.getElementById('evinfo');
-  if(ei) ei.innerHTML=`Modo ${modoTxt} · Modelo <b>${liveData.modelo||'—'}</b> (${hz}${tipoTxt}) · atualizado em <b>${fmtWhen(P[0])}</b>.`;
-  set('live-when', P[0]);
+  if(ei) ei.innerHTML=liveInfoHtml(liveData,P,hz,tipoTxt,modoTxt);
+  set('live-when', liveWhenText(liveData,P));
   renderFrame();
 }
 async function enterLive(){

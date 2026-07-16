@@ -25,6 +25,7 @@ BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
 SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
 ESTACOES = ["86472600", "86472000", "86125130", "86507000"]   # ST, R.Antas, Ituim, Carreiro
+ULTIMA_RAW = {}
 
 def _local(tag):                          # remove {namespace} do nome da tag
     return tag.rsplit("}", 1)[-1]
@@ -40,8 +41,14 @@ def _parse_hora(dh):
     return None
 
 def _extrair_serie(root):
-    """Percorre o XML e monta {hora_cheia: nivel_cm}. Aceita variações de tag."""
+    """Percorre o XML e monta {hora_cheia: nivel_cm}. Aceita variações de tag.
+
+    A RNA foi treinada com dados horários. Por isso, a série do modelo usa
+    apenas leituras exatamente na hora cheia. A última leitura bruta fica
+    guardada separadamente para auditoria/frescor no site.
+    """
     serie = {}
+    ultima_raw = None
     for row in root.iter():
         campos = {_local(ch.tag): (ch.text or "") for ch in row}
         dh = campos.get("DataHora") or campos.get("Data_Hora") or campos.get("DataHoraMedicao")
@@ -51,22 +58,27 @@ def _extrair_serie(root):
         if not dh or niv in (None, ""):  continue
         t = _parse_hora(dh)
         if t is None:  continue
-        t = t.replace(minute=0, second=0, microsecond=0)
-        try: serie[t] = float(str(niv).replace(",", "."))
-        except Exception: pass
-    return serie
+        try:
+            valor = float(str(niv).replace(",", "."))
+        except Exception:
+            continue
+        if ultima_raw is None or t > ultima_raw[0]:
+            ultima_raw = (t, valor)
+        if t.minute == 0 and t.second == 0:
+            serie[t.replace(minute=0, second=0, microsecond=0)] = valor
+    return serie, ultima_raw
 
 def _serie_de_xml(xml):
     """Extrai a série; trata o caso .asmx em que o DataTable vem como
     string XML escapada dentro de um <string>...</string>."""
     root = ET.fromstring(xml)
-    serie = _extrair_serie(root)
+    serie, ultima_raw = _extrair_serie(root)
     if not serie and (root.text or "").strip().startswith("<"):
         try:
-            serie = _extrair_serie(ET.fromstring(root.text))   # XML aninhado (desescapado)
+            serie, ultima_raw = _extrair_serie(ET.fromstring(root.text))   # XML aninhado (desescapado)
         except Exception:
             pass
-    return serie, len(xml)
+    return serie, len(xml), ultima_raw
 
 def buscar_ana(cod, dias=5):
     """Retorna dict {hora_cheia: nivel_cm}. Usa uma janela de datas explícita
@@ -82,8 +94,10 @@ def buscar_ana(cod, dias=5):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
             xml = urllib.request.urlopen(req, timeout=60).read()
-            serie, nbytes = _serie_de_xml(xml)
+            serie, nbytes, ultima_raw = _serie_de_xml(xml)
             print(f"[ANA {cod}] {url.split('?')[1][:40]}... bytes={nbytes} linhas={len(serie)}")
+            if ultima_raw:
+                ULTIMA_RAW[cod] = ultima_raw
             if serie:
                 return serie
             if nbytes:                          # veio resposta mas 0 linhas -> mostra amostra
@@ -153,9 +167,22 @@ def prever(mat_path, x):
     return float(yn * au + bu)                        # variação prevista (cm)
 
 def escrever(nivel_atual, nivel_prev, t, status, aviso):
+    consultado_em = dt.datetime.now()
+    raw_st = ULTIMA_RAW.get("86472600")
+    idade_min = None
+    status_dados = None
+    if raw_st:
+        idade_min = round((consultado_em - raw_st[0]).total_seconds() / 60)
+        status_dados = "telemetria recente" if idade_min <= 120 else f"telemetria atrasada ({idade_min} min)"
     out = {
         "modo": "ao_vivo",
         "gerado_em": (t.isoformat() if t else dt.datetime.now().isoformat()),
+        "hora_modelo": (t.isoformat() if t else None),
+        "consultado_em": consultado_em.isoformat(timespec="seconds"),
+        "telemetria_ultima_em": (raw_st[0].isoformat() if raw_st else None),
+        "telemetria_ultima_nivel_cm": (round(raw_st[1]) if raw_st else None),
+        "idade_telemetria_min": idade_min,
+        "status_dados": status_dados,
         "estacao": "86472600", "local": "Santa Tereza",
         "horizonte": HORIZONTE, "modelo": COMBO, "bankfull_cm": BANKFULL_CM,
         "nivel_atual_cm": (round(nivel_atual) if nivel_atual is not None else None),
