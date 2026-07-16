@@ -137,10 +137,10 @@
 
     <!-- ===== MODO SIMPLES ===== -->
     <div class="simple-only">
-      <div class="q">Como está agora?</div>
-      <div class="big agora"><span id="s-now">—</span> <small>no rio</small></div>
+      <div class="q">Nível do rio agora</div>
+      <div class="big agora"><span id="s-now">—</span></div>
 
-      <div class="q">O que pode acontecer (<span id="s-hz">+N h</span>)?</div>
+      <div class="q">Nível previsto do rio (<span id="s-hz">+N h</span>)</div>
       <div class="big prev"><span id="s-fore">—</span></div>
 
       <div class="muda">
@@ -160,7 +160,7 @@
 
       <details class="card"><summary>Como esta previsão é feita?</summary><div class="body">
         <div class="method">
-          <div class="step" data-exp="A régua da estação 86472600 mede o nível do rio agora."><b>Nível atual</b> do rio</div>
+          <div class="step" data-exp="A estação 86472600 informa o nível atual do rio em Santa Tereza."><b>Nível atual</b> do rio</div>
           <div class="arw">↓</div>
           <div class="step" data-exp="A rede neural usa o nível atual e outras variáveis (montante, chuva) para prever o nível daqui a N horas."><b>Rede neural (RNA)</b></div>
           <div class="arw">↓</div>
@@ -186,9 +186,9 @@
     <!-- ===== MODO TÉCNICO ===== -->
     <div class="tech-only">
       <div id="evinfo" class="disc" style="margin-top:0"></div>
-      <h4>Leitura <span class="info" title="Leitura local da régua da estação 86472600. Ex.: 2,04 m = 204 cm acima do zero local da régua; não é profundidade do rio nem altitude do terreno. PERS: ganho contra persistência. Área: superfície alagada estimada pelo HAND.">ⓘ</span></h4>
-      <div class="read"><span class="now">Nível na régua (não é profundidade)</span><b class="now" id="r-now">—</b></div>
-      <div class="read"><span class="fore">Previsão RNA (+<span id="hz">?</span>)</span><b class="fore" id="r-fore">—</b></div>
+      <h4>Leitura <span class="info" title="Nível do rio informado pela estação 86472600, na escala local da estação. A referência técnica é a régua local, mas para leitura pública o valor representa o nível do rio em Santa Tereza. PERS: ganho contra persistência. Área: superfície alagada estimada pelo HAND.">ⓘ</span></h4>
+      <div class="read"><span class="now">Nível do rio agora</span><b class="now" id="r-now">—</b></div>
+      <div class="read"><span class="fore">Nível previsto do rio (+<span id="hz">?</span>)</span><b class="fore" id="r-fore">—</b></div>
       <div class="read"><span>Δ nível (previsto − atual)</span><b id="r-dnivel">—</b></div>
       <div class="read"><span>Observado (+<span id="hz2">?</span>)</span><b id="r-obs">—</b></div>
       <div class="read"><span>Erro de nível (prev − obs)</span><b id="r-errniv">—</b></div>
@@ -225,7 +225,9 @@ const COLS=HAND.cols, ROWS=HAND.rows, SS=3, FCOLS=COLS*SS, FROWS=ROWS*SS;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
 const nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
 const nf1=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
+const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const sgn1=v=>Math.abs(v)<0.05?'0,0':(v>0?'+':'−')+nf1.format(Math.abs(v));
+const fmtNivel=cm=>nf2.format(cm/100)+' m';
 const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 // margem de incerteza (m) por horizonte — cresce com o lead
 const UNCERT={'2h':0.3,'4h':0.5,'8h':0.7,'12h':1.0,'—':0};
@@ -296,17 +298,17 @@ function renderFrame(){
   const areaNow=aNow*cellHa, areaFore=aFore*cellHa, areaNew=(aFore-aNow)*cellHa;
   const growth=aNow>0?(aFore-aNow)/aNow*100:0;
   // ---- modo simples ----
-  set('s-now', nf1.format(nowCm/100)+' m');
-  set('s-fore', hasFore?'pode chegar a '+nf1.format(foreCm/100)+' m':'—');
+  set('s-now', fmtNivel(nowCm));
+  set('s-fore', hasFore?fmtNivel(foreCm):'—');
   set('s-drio', hasFore?sgn1((foreCm-nowCm)/100)+' m':'—');
   set('s-newarea', hasFore?sgn1(areaNew)+' ha':'—');
   set('s-atot', hasFore?nf.format(areaFore)+' ha':nf.format(areaNow)+' ha');
   const cf=CONF[ev.horizonte]||CONF['—']; set('s-conf',cf[0]); const cd=document.getElementById('s-confdot'); if(cd)cd.style.background=cf[1];
   // ---- modo tecnico ----
-  set('r-now', nf1.format(nowCm/100)+' m');
-  set('r-fore', hasFore?nf1.format(foreCm/100)+' m':'—');
+  set('r-now', fmtNivel(nowCm));
+  set('r-fore', hasFore?fmtNivel(foreCm):'—');
   set('r-dnivel', hasFore?sgn1((foreCm-nowCm)/100)+' m':'—');
-  set('r-obs', hasObs?nf1.format(obsCm/100)+' m':'—');
+  set('r-obs', hasObs?fmtNivel(obsCm):'—');
   set('r-errniv', (hasFore&&hasObs)?sgn1((foreCm-obsCm)/100)+' m':'—');
   set('r-anow', nf.format(areaNow)+' ha');
   set('r-afore', hasFore?nf.format(areaFore)+' ha':'—');
