@@ -85,13 +85,15 @@
   .live-btn{width:100%;margin-bottom:12px;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#c0392b,#e8730c);color:#fff;font-size:13.5px;font-weight:750;cursor:pointer;box-shadow:var(--shadow)}
   .live-bar{display:flex;align-items:center;gap:8px;background:#fdecea;border:1px solid #f3c0b8;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:700;color:#a5281c}
   .live-bar .ldot{width:10px;height:10px;border-radius:50%;background:#c0392b;animation:pulse 1.2s infinite;flex:0 0 auto}
-  .live-bar a{margin-left:auto;color:#a5281c;cursor:pointer;text-decoration:underline;font-weight:600}
+  .live-bar.stale{background:#fff4e0;border-color:#f0c98a;color:#8a5a12}
+  .live-bar.stale .ldot{background:#e08a1e;animation:none}
+  .live-bar a{margin-left:auto;color:inherit;cursor:pointer;text-decoration:underline;font-weight:600}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
   .live-note{font-size:11px;color:#a5281c;background:#fff6f5;border:1px solid #f3d3cd;border-radius:9px;padding:7px 10px;margin-bottom:10px;line-height:1.4}
   .live-hz{display:none;gap:6px;margin:-2px 0 10px}
   .live-hz button{flex:1;border:1px solid #f3c0b8;background:#fff;color:#a5281c;border-radius:9px;padding:7px 8px;font-size:12px;font-weight:750;cursor:pointer}
   .live-hz button.on{background:#a5281c;color:#fff;border-color:#a5281c}
-  body.live #scn, body.live .tl{display:none}
+  body.live #scn, body.live .tl, body.live #live-btn{display:none}
   body.live .live-hz{display:flex}
   body.live .simple-only{display:block}
   .hydro{margin-top:4px}
@@ -117,7 +119,7 @@
   <div id="map"></div>
   <aside>
     <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (Santa Tereza · 2h)</button>
-    <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · atualizado: <span id="live-when">—</span> <a id="live-exit">sair do ao vivo</a></div>
+    <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · leitura: <span id="live-when">—</span> <a id="live-exit">ver cenários de cheia</a></div>
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
       <button data-live-hz="2h" class="on">2h</button>
@@ -419,7 +421,16 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   return partes.join(' · ')+'.';
 }
 function liveWhenText(D,P){
-  return fmtWhen(D.telemetria_ultima_em||D.hora_modelo||P[0]);
+  const base=fmtWhen(D.telemetria_ultima_em||D.hora_modelo||P[0]);
+  const idade=D.idade_telemetria_min;
+  if(idade!=null && idade>120){                    // telemetria atrasada (>2 h)
+    const h=Math.floor(idade/60), m=idade%60;
+    const dur=h>0?(m?`${h}h${m}`:`${h}h`):`${m}min`;
+    document.getElementById('live-bar').classList.add('stale');
+    return `${base} · ⚠ estação ANA sem dados há ${dur}`;
+  }
+  document.getElementById('live-bar').classList.remove('stale');
+  return base;
 }
 function renderLiveStep(){
   const L=activeLiveData();
@@ -535,7 +546,8 @@ async function init(){
     outCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain'; box.appendChild(outCanvas);
     waterOverlay={setUrl:()=>{}};
   }
-  setEvent(curEv);
+  setEvent(curEv);            // cenário padrão como fallback
+  enterLive();                // abre já em AO VIVO (previsão real); se falhar, fica no cenário
 }
 init();
 </script>
