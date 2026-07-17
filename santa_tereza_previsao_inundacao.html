@@ -190,9 +190,9 @@
       <div id="evinfo" class="disc" style="margin-top:0"></div>
       <h4>Leitura <span class="info" title="Nível do rio informado pela estação 86472600, na escala local da estação. A referência técnica é a régua local, mas para leitura pública o valor representa o nível do rio em Santa Tereza. PERS: ganho contra persistência. Área: superfície alagada estimada pelo HAND.">ⓘ</span></h4>
       <div class="read"><span class="now">Nível do rio agora</span><b class="now" id="r-now">—</b></div>
-      <div class="read" id="r-modelbase-row" style="display:none"><span>Nível usado pela RNA</span><b id="r-modelbase">—</b></div>
+      <div class="read" id="r-modelbase-row" style="display:none"><span>Base do cálculo da RNA</span><b id="r-modelbase">—</b></div>
       <div class="read"><span class="fore">Nível previsto do rio (+<span id="hz">?</span>)</span><b class="fore" id="r-fore">—</b></div>
-      <div class="read"><span>Δ nível (previsto − agora)</span><b id="r-dnivel">—</b></div>
+      <div class="read"><span>Mudança prevista desde agora</span><b id="r-dnivel">—</b></div>
       <div class="read"><span>Observado (+<span id="hz2">?</span>)</span><b id="r-obs">—</b></div>
       <div class="read"><span>Erro de nível (prev − obs)</span><b id="r-errniv">—</b></div>
       <div class="read"><span class="now">Área alagada agora</span><b class="now" id="r-anow">—</b></div>
@@ -469,7 +469,7 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   const horaModelo=D.hora_modelo||P[0];
   const nivelModelo=liveModelBaseCm(D);
   const nivelModeloTxt=nivelModelo!=null?` (${Math.round(nivelModelo)} cm)`:'';
-  const partes=[`Modo ${modoTxt} · Modelo <b>${modelo}</b> (${hz}${tipoTxt}) · base da RNA <b>${fmtWhen(horaModelo)}</b>${nivelModeloTxt}`];
+  const partes=[`Modo ${modoTxt} · Modelo <b>${modelo}</b> (${hz}${tipoTxt}) · base do cálculo <b>${fmtWhen(horaModelo)}</b>${nivelModeloTxt}`];
   if(D.telemetria_ultima_em){
     const nivel=D.telemetria_ultima_nivel_cm!=null?` (${D.telemetria_ultima_nivel_cm} cm)`:'';
     partes.push(`nível agora ANA até <b>${fmtWhen(D.telemetria_ultima_em)}</b>${nivel}`);
