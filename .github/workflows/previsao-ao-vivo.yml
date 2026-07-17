@@ -2,7 +2,8 @@ name: Previsão ao vivo — Santa Tereza
 
 on:
   schedule:
-    - cron: '*/30 * * * *'   # a cada 30 minutos
+    # Tentativas a cada 15 min, fora do :00/:30 para reduzir atraso/drop do GitHub Actions.
+    - cron: '7,22,37,52 * * * *'
   workflow_dispatch:           # permite rodar manualmente
 
 jobs:

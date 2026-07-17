@@ -417,6 +417,28 @@ function liveMissingInputsHtml(D){
   }).join('; ');
   return `<b>sem RNA: faltam ${D.inputs_faltantes_n||faltantes.length}/${D.inputs_total||15} inputs</b>${itens?` — ${itens}`:''}`;
 }
+function parseBrtMs(v){
+  if(!v) return NaN;
+  const s=String(v);
+  return Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(s)?s:s+'-03:00');
+}
+function ageMin(v){
+  const ms=parseBrtMs(v);
+  return Number.isFinite(ms)?Math.max(0,Math.round((Date.now()-ms)/60000)):null;
+}
+function durMin(min){
+  const h=Math.floor(min/60), m=min%60;
+  return h>0?(m?`${h}h${m}`:`${h}h`):`${m}min`;
+}
+function liveFreshnessHtml(D){
+  const partes=[];
+  const idadeRobo=ageMin(D.consultado_em);
+  const idadeAna=ageMin(D.telemetria_ultima_em);
+  if(idadeRobo!=null && idadeRobo>60) partes.push(`<b>robô sem publicar há ${durMin(idadeRobo)}</b>`);
+  if(idadeAna!=null && idadeAna>120) partes.push(`<b>ANA sem hora nova há ${durMin(idadeAna)}</b>`);
+  if(!partes.length && D.status_dados) partes.push(`<b>${escLive(D.status_dados)}</b>`);
+  return partes;
+}
 function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   const modelo=D.modelo||'—';
   const horaModelo=D.hora_modelo||P[0];
@@ -426,7 +448,7 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
     partes.push(`telemetria ANA até <b>${fmtWhen(D.telemetria_ultima_em)}</b>${nivel}`);
   }
   if(D.consultado_em) partes.push(`robô consultou <b>${fmtWhen(D.consultado_em)}</b>`);
-  if(D.status_dados) partes.push(`<b>${D.status_dados}</b>`);
+  partes.push(...liveFreshnessHtml(D));
   if(D.status && D.status!=='ok') partes.push(`<b>${escLive(D.status)}</b>`);
   const faltantes=liveMissingInputsHtml(D);
   if(faltantes) partes.push(faltantes);
@@ -434,12 +456,14 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
 }
 function liveWhenText(D,P){
   const base=fmtWhen(D.telemetria_ultima_em||D.hora_modelo||D.consultado_em||P[0]);
-  const idade=D.idade_telemetria_min;
-  if(idade!=null && idade>120){                    // telemetria atrasada (>2 h)
-    const h=Math.floor(idade/60), m=idade%60;
-    const dur=h>0?(m?`${h}h${m}`:`${h}h`):`${m}min`;
+  const avisos=[];
+  const idadeRobo=ageMin(D.consultado_em);
+  const idadeAna=ageMin(D.telemetria_ultima_em);
+  if(idadeRobo!=null && idadeRobo>60) avisos.push(`robô sem publicar há ${durMin(idadeRobo)}`);
+  if(idadeAna!=null && idadeAna>120) avisos.push(`ANA sem hora nova há ${durMin(idadeAna)}`);
+  if(avisos.length){
     document.getElementById('live-bar').classList.add('stale');
-    return `${base} · ⚠ estação ANA sem dados há ${dur}`;
+    return `${base} · ⚠ ${avisos.join(' · ')}`;
   }
   document.getElementById('live-bar').classList.remove('stale');
   return base;
