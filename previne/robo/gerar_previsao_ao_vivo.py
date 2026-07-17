@@ -20,20 +20,20 @@ def agora_brt():
     return dt.datetime.now(BRT).replace(tzinfo=None)
 
 # ---- config ----
-MODELO_MAT = "previne/assets/mat/rot_003_06_2h_alt_2H_ALT_C0472.mat"   # relativo à raiz do repo
+MODELO_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__02h__ALT__15inputs_VFINAL.mat"   # relativo à raiz do repo
 HORIZONTE = "2h"
-COMBO = "C0472"
+COMBO = "VFINAL_15IN"
 BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
                             # inundação oficial (15 m) via ANADEM — ver
                             # codigo_python/04_zero_regua/. Definitivo aguarda a
                             # cota oficial do zero da régua (SGB/ANA).
 SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
-ESTACOES = ["86472600", "86472000", "86125130", "86507000"]   # ST, R.Antas, Ituim, Carreiro
+ESTACOES = ["86472600", "86472000"]   # ST, Linha Jose Julio / R.Antas montante
 ULTIMA_RAW = {}
 NOMES_ESTACOES = {
     "86472600": "Santa Tereza",
-    "86472000": "Rio das Antas / Santa Tereza montante",
+    "86472000": "Linha Jose Julio / Rio das Antas montante",
     "86125130": "Ituim",
     "86507000": "Carreiro",
 }
@@ -139,21 +139,21 @@ def montar_inputs(series, t):
         return None if None in (a, b, c, d) else (a - b) - (c - d)
     st0 = n("86472600", 0)
     inputs = [
-        n("86472600", 0),      # K inp01  nível ST 86472600
-        D("86472600", 1),      # L inp02  ST D-1h
-        n("86472000", 0),      # M inp03  nível R.Antas 86472000
-        D("86472000", 5),      # N inp04  Antas D-5h
-        A("86472000", 20),     # O inp05  Antas A-20h  (passado, t-20/t-21)
-        n("86125130", 0),      # P inp06  nível Ituim 86125130
-        D("86125130", 12),     # Q inp07  Ituim D-12h
-        n("86507000", 0),      # R inp08  nível Carreiro 86507000
-        D("86507000", 16),     # S inp09  Carreiro D-16h
-        D("86472600", 2),      # T inp10  ST D-2h
-        D("86472600", 4),      # U inp11  ST D-4h
-        A("86472600", 1),      # V inp12  ST A-1h
-        A("86472600", 2),      # W inp13  ST A-2h
-        A("86472600", 4),      # X inp14  ST A-4h
-        A("86472600", 12),     # Y inp15  ST A-12h
+        n("86472600", 0),      # inp01 ST nivel atual
+        D("86472600", 1),      # inp02 ST D-1h
+        D("86472600", 2),      # inp03 ST D-2h
+        D("86472600", 4),      # inp04 ST D-4h
+        A("86472600", 1),      # inp05 ST A-1h
+        A("86472600", 2),      # inp06 ST A-2h
+        A("86472600", 4),      # inp07 ST A-4h
+        A("86472600", 8),      # inp08 ST A-8h
+        A("86472600", 12),     # inp09 ST A-12h
+        n("86472000", 0),      # inp10 Linha Jose Julio / Antas nivel atual
+        D("86472000", 1),      # inp11 Linha Jose Julio / Antas D-1h
+        D("86472000", 2),      # inp12 Linha Jose Julio / Antas D-2h
+        D("86472000", 5),      # inp13 Linha Jose Julio / Antas D-5h
+        A("86472000", 12),     # inp14 Linha Jose Julio / Antas A-12h
+        A("86472000", 20),     # inp15 Linha Jose Julio / Antas A-20h
     ]
     return inputs, st0
 
@@ -162,19 +162,19 @@ def diagnosticar_inputs_faltantes(series, t, inputs):
     especificacoes = [
         ("inp01", "Santa Tereza - nivel atual", "86472600", [0]),
         ("inp02", "Santa Tereza - nivel D-1h", "86472600", [0, 1]),
-        ("inp03", "Rio das Antas montante - nivel atual", "86472000", [0]),
-        ("inp04", "Rio das Antas montante - nivel D-5h", "86472000", [0, 5]),
-        ("inp05", "Rio das Antas montante - aceleracao A-20h", "86472000", [0, 1, 20, 21]),
-        ("inp06", "Ituim - nivel atual", "86125130", [0]),
-        ("inp07", "Ituim - nivel D-12h", "86125130", [0, 12]),
-        ("inp08", "Carreiro - nivel atual", "86507000", [0]),
-        ("inp09", "Carreiro - nivel D-16h", "86507000", [0, 16]),
-        ("inp10", "Santa Tereza - nivel D-2h", "86472600", [0, 2]),
-        ("inp11", "Santa Tereza - nivel D-4h", "86472600", [0, 4]),
-        ("inp12", "Santa Tereza - aceleracao A-1h", "86472600", [0, 1, 2]),
-        ("inp13", "Santa Tereza - aceleracao A-2h", "86472600", [0, 1, 2, 3]),
-        ("inp14", "Santa Tereza - aceleracao A-4h", "86472600", [0, 1, 4, 5]),
-        ("inp15", "Santa Tereza - aceleracao A-12h", "86472600", [0, 1, 12, 13]),
+        ("inp03", "Santa Tereza - nivel D-2h", "86472600", [0, 2]),
+        ("inp04", "Santa Tereza - nivel D-4h", "86472600", [0, 4]),
+        ("inp05", "Santa Tereza - aceleracao A-1h", "86472600", [0, 1, 2]),
+        ("inp06", "Santa Tereza - aceleracao A-2h", "86472600", [0, 1, 2, 3]),
+        ("inp07", "Santa Tereza - aceleracao A-4h", "86472600", [0, 1, 4, 5]),
+        ("inp08", "Santa Tereza - aceleracao A-8h", "86472600", [0, 1, 8, 9]),
+        ("inp09", "Santa Tereza - aceleracao A-12h", "86472600", [0, 1, 12, 13]),
+        ("inp10", "Linha Jose Julio / Rio das Antas - nivel atual", "86472000", [0]),
+        ("inp11", "Linha Jose Julio / Rio das Antas - nivel D-1h", "86472000", [0, 1]),
+        ("inp12", "Linha Jose Julio / Rio das Antas - nivel D-2h", "86472000", [0, 2]),
+        ("inp13", "Linha Jose Julio / Rio das Antas - nivel D-5h", "86472000", [0, 5]),
+        ("inp14", "Linha Jose Julio / Rio das Antas - aceleracao A-12h", "86472000", [0, 1, 12, 13]),
+        ("inp15", "Linha Jose Julio / Rio das Antas - aceleracao A-20h", "86472000", [0, 1, 20, 21]),
     ]
     faltantes = []
     for valor, (codigo_input, descricao, cod_estacao, atrasos) in zip(inputs, especificacoes):
@@ -220,20 +220,36 @@ def prever(mat_path, x):
     """Forward pass da MLP (validado: reproduz Tctot1 do .mat com RMSE 0).
        Entrada normalizada: pn=(P-be)/ae ; oculta e saída = logsig ;
        desnorm: variação = yn*au + bu.  Modelo ALT -> devolve a VARIAÇÃO (cm)."""
-    m = loadmat(mat_path, squeeze_me=True)
-    wh = np.atleast_2d(np.asarray(m["wh"], float))    # (30,15)
-    bh = np.asarray(m["bh"], float).ravel()           # (30,)
-    ws = np.asarray(m["ws"], float).ravel()           # (30,)
-    bs = float(np.atleast_1d(m["bs"])[0])
-    ae = np.asarray(m["ae"], float).ravel()           # desvio por input
-    be = np.asarray(m["be"], float).ravel()           # média por input
-    au = float(np.atleast_1d(m["au"])[0])
-    bu = float(np.atleast_1d(m["bu"])[0])
+    try:
+        m = loadmat(mat_path, squeeze_me=True)
+        wh = np.atleast_2d(np.asarray(m["wh"], float))
+        bh = np.asarray(m["bh"], float).ravel()
+        ws = np.asarray(m["ws"], float).ravel()
+        bs = float(np.atleast_1d(m["bs"])[0])
+        ae = np.asarray(m["ae"], float).ravel()
+        be = np.asarray(m["be"], float).ravel()
+        au = float(np.atleast_1d(m["au"])[0])
+        bu = float(np.atleast_1d(m["bu"])[0])
+    except NotImplementedError:
+        import h5py
+        with h5py.File(mat_path, "r") as f:
+            wh = np.asarray(f["wh"], float)
+            bh = np.asarray(f["bh"], float).ravel()
+            ws = np.asarray(f["ws"], float)
+            bs = float(np.asarray(f["bs"]).ravel()[0])
+            ae = np.asarray(f["ae"], float).ravel()
+            be = np.asarray(f["be"], float).ravel()
+            au = float(np.asarray(f["au"]).ravel()[0])
+            bu = float(np.asarray(f["bu"]).ravel()[0])
     logsig = lambda z: 1.0 / (1.0 + np.exp(-z))
     pn = (np.asarray(x, float) - be) / ae
-    h  = logsig(wh.dot(pn) + bh)
-    yn = logsig(ws.dot(h) + bs)
-    return float(yn * au + bu)                        # variação prevista (cm)
+    if wh.shape[0] == pn.size:
+        h = logsig(pn @ wh + bh)
+        yn = logsig(h @ np.asarray(ws).reshape(-1, 1) + bs)
+    else:
+        h = logsig(wh.dot(pn) + bh)
+        yn = logsig(np.asarray(ws).ravel().dot(h) + bs)
+    return float(np.asarray(yn).ravel()[0] * au + bu)  # variação prevista (cm)
 
 def escrever(nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes=None, estacoes_status=None):
     consultado_em = agora_brt()
