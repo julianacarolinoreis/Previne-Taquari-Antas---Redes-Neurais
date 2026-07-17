@@ -159,8 +159,8 @@ def filter_index():
 
     compact = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
     html = html[: match.start(2)] + compact + html[match.end(2) :]
-    html = re.sub(r'audit_charts\.css(?:\?v=[^"]*)?', "audit_charts.css?v=20260705-pers-positive-v1", html)
-    html = re.sub(r'audit_charts\.js(?:\?v=[^"]*)?', "audit_charts.js?v=20260705-pers-positive-v1", html)
+    html = re.sub(r'audit_charts\.css(?:\?v=[^\s"\'<>]*)?', "audit_charts.css?v=20260705-pers-positive-v1", html)
+    html = re.sub(r'audit_charts\.js(?:\?v=[^\s"\'<>]*)?', "audit_charts.js?v=20260705-pers-positive-v1", html)
     positive_count_text = f"{len(positive)} modelos com PERS positivos"
     html = re.sub(r"\d+ modelos em 10 rodadas", positive_count_text, html)
     html = html.replace("Exploração dos 239 modelos", "Exploração dos modelos com PERS positivos")
