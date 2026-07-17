@@ -311,8 +311,9 @@ function renderFrame(){
   set('r-now', fmtNivel(nowCm));
   set('r-fore', hasFore?fmtNivel(foreCm):'—');
   set('r-dnivel', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
-  set('r-obs', hasObs?fmtNivel(obsCm):'—');
-  set('r-errniv', (hasFore&&hasObs)?sgn1((foreCm-obsCm)/100)+' m':'—');
+  const aoVivoSemObs = liveMode && liveData && liveData.modo!=='replay' && !hasObs;
+  set('r-obs', hasObs?fmtNivel(obsCm):(aoVivoSemObs?'a confirmar após +'+ev.horizonte:'—'));
+  set('r-errniv', (hasFore&&hasObs)?sgn1((foreCm-obsCm)/100)+' m':(aoVivoSemObs?'aguardando observado':'—'));
   set('r-anow', hasNow?nf.format(areaNow)+' ha':'—');
   set('r-afore', hasFore?nf.format(areaFore)+' ha':'—');
   set('r-anew', hasFore?sgn1(areaNew)+' ha':'—');
