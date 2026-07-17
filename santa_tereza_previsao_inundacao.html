@@ -190,8 +190,9 @@
       <div id="evinfo" class="disc" style="margin-top:0"></div>
       <h4>Leitura <span class="info" title="Nível do rio informado pela estação 86472600, na escala local da estação. A referência técnica é a régua local, mas para leitura pública o valor representa o nível do rio em Santa Tereza. PERS: ganho contra persistência. Área: superfície alagada estimada pelo HAND.">ⓘ</span></h4>
       <div class="read"><span class="now">Nível do rio agora</span><b class="now" id="r-now">—</b></div>
+      <div class="read" id="r-modelbase-row" style="display:none"><span>Nível usado pela RNA</span><b id="r-modelbase">—</b></div>
       <div class="read"><span class="fore">Nível previsto do rio (+<span id="hz">?</span>)</span><b class="fore" id="r-fore">—</b></div>
-      <div class="read"><span>Δ nível (previsto − atual)</span><b id="r-dnivel">—</b></div>
+      <div class="read"><span>Δ nível (previsto − agora)</span><b id="r-dnivel">—</b></div>
       <div class="read"><span>Observado (+<span id="hz2">?</span>)</span><b id="r-obs">—</b></div>
       <div class="read"><span>Erro de nível (prev − obs)</span><b id="r-errniv">—</b></div>
       <div class="read"><span class="now">Área alagada agora</span><b class="now" id="r-anow">—</b></div>
@@ -239,6 +240,18 @@ let bankfull=400, tIdx=0, playing=false, timer=null, map=null, waterOverlay=null
 const calibByEvent={};
 const LIVE_URL='previsao_ao_vivo.json';
 function fmtWhen(s){ if(!s) return '—'; const m=String(s).replace('T',' ').match(/(\d{4})-(\d{2})-(\d{2})[ ]+(\d{2}):(\d{2})/); return m?`${m[3]}/${m[2]} ${m[4]}:${m[5]}`:String(s); }
+function firstNumber(){
+  for(const v of arguments){
+    if(v!==null && v!==undefined && v!=='' && Number.isFinite(Number(v))) return Number(v);
+  }
+  return null;
+}
+function liveNowCm(D){
+  return firstNumber(D&&D.nivel_rio_agora_cm, D&&D.telemetria_ultima_nivel_cm, D&&D.nivel_atual_cm);
+}
+function liveModelBaseCm(D){
+  return firstNumber(D&&D.nivel_modelo_cm, D&&D.nivel_atual_cm);
+}
 let liveMode=false, liveTimer=null, liveIdx=0, liveData=null, liveHz='2h';
 const outCanvas=document.createElement('canvas'); outCanvas.width=FCOLS; outCanvas.height=FROWS;
 const octx=outCanvas.getContext('2d');
@@ -309,6 +322,13 @@ function renderFrame(){
   const cf=CONF[ev.horizonte]||CONF['—']; set('s-conf',cf[0]); const cd=document.getElementById('s-confdot'); if(cd)cd.style.background=cf[1];
   // ---- modo tecnico ----
   set('r-now', fmtNivel(nowCm));
+  const modelBaseCm=liveMode&&liveData?liveModelBaseCm(liveData):null;
+  const modelBaseRow=document.getElementById('r-modelbase-row');
+  if(modelBaseRow){
+    const showBase=modelBaseCm!=null && nowCm!=null && Math.abs(modelBaseCm-nowCm)>=1;
+    modelBaseRow.style.display=showBase?'':'none';
+  }
+  set('r-modelbase', modelBaseCm!=null?`${fmtNivel(modelBaseCm)} (${fmtWhen(liveData&&liveData.hora_modelo)})`:'—');
   set('r-fore', hasFore?fmtNivel(foreCm):'—');
   set('r-dnivel', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
   const aoVivoSemObs = liveMode && liveData && liveData.modo!=='replay' && !hasObs;
@@ -447,10 +467,12 @@ function liveFreshnessHtml(D){
 function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   const modelo=D.modelo||'—';
   const horaModelo=D.hora_modelo||P[0];
-  const partes=[`Modo ${modoTxt} · Modelo <b>${modelo}</b> (${hz}${tipoTxt}) · hora do modelo <b>${fmtWhen(horaModelo)}</b>`];
+  const nivelModelo=liveModelBaseCm(D);
+  const nivelModeloTxt=nivelModelo!=null?` (${Math.round(nivelModelo)} cm)`:'';
+  const partes=[`Modo ${modoTxt} · Modelo <b>${modelo}</b> (${hz}${tipoTxt}) · base da RNA <b>${fmtWhen(horaModelo)}</b>${nivelModeloTxt}`];
   if(D.telemetria_ultima_em){
     const nivel=D.telemetria_ultima_nivel_cm!=null?` (${D.telemetria_ultima_nivel_cm} cm)`:'';
-    partes.push(`telemetria ANA até <b>${fmtWhen(D.telemetria_ultima_em)}</b>${nivel}`);
+    partes.push(`nível agora ANA até <b>${fmtWhen(D.telemetria_ultima_em)}</b>${nivel}`);
   }
   if(D.consultado_em) partes.push(`robô consultou <b>${fmtWhen(D.consultado_em)}</b>`);
   partes.push(...liveFreshnessHtml(D));
@@ -523,9 +545,9 @@ async function enterLive(){
     renderLiveStep(); clearInterval(liveTimer);
     liveTimer=setInterval(()=>{ const L=activeLiveData(); const n=L&&L.passos?L.passos.length:liveData.passos.length; liveIdx=(liveIdx+1)%n; renderLiveStep(); }, d.intervalo_ms||2500);
   } else { // ao_vivo real: um ponto + repesca a cada 60 s
-    liveData.passos=[[d.gerado_em, d.nivel_atual_cm, d.nivel_previsto_cm]]; renderLiveStep();
+    liveData.passos=[[d.gerado_em, liveNowCm(d), d.nivel_previsto_cm]]; renderLiveStep();
     clearInterval(liveTimer);
-    liveTimer=setInterval(async()=>{ try{const r=await fetch(LIVE_URL,{cache:'no-store'}); const j=await r.json(); liveData=j; liveData.passos=[[j.gerado_em,j.nivel_atual_cm,j.nivel_previsto_cm]]; prepareLiveData(liveData); liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
+    liveTimer=setInterval(async()=>{ try{const r=await fetch(LIVE_URL,{cache:'no-store'}); const j=await r.json(); liveData=j; liveData.passos=[[j.gerado_em,liveNowCm(j),j.nivel_previsto_cm]]; prepareLiveData(liveData); liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
   }
 }
 function exitLive(){ liveMode=false; clearInterval(liveTimer); document.body.classList.remove('live');
