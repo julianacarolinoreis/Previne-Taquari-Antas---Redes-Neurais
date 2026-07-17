@@ -119,15 +119,13 @@
   <div id="map"></div>
   <aside>
     <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (Santa Tereza · 2h)</button>
-    <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span> <a id="live-exit">ver cenários de cheia</a></div>
+    <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
       <button data-live-hz="2h" class="on">2h</button>
       <button data-live-hz="8h">8h</button>
       <button data-live-hz="12h">12h</button>
     </div>
-
-    <div class="scn" id="scn"></div>
 
     <!-- ===== LINHA DO TEMPO (compartilhada) ===== -->
     <div class="tl">
@@ -506,7 +504,6 @@ function buildScenarios(){
 }
 
 async function init(){
-  buildScenarios();
   // modo simples/tecnico
   document.getElementById('mode-s').onclick=()=>{document.body.classList.remove('tech'); document.getElementById('mode-s').classList.add('on'); document.getElementById('mode-t').classList.remove('on'); if(map)setTimeout(()=>map.invalidateSize(),50);};
   document.getElementById('mode-t').onclick=()=>{document.body.classList.add('tech'); document.getElementById('mode-t').classList.add('on'); document.getElementById('mode-s').classList.remove('on'); if(map)setTimeout(()=>map.invalidateSize(),50);};
@@ -518,7 +515,6 @@ async function init(){
     let i=Math.round((sx-6)/(320-12)*(E.series.length-1)); i=Math.max(0,Math.min(E.series.length-1,i)); tIdx=i; document.getElementById('time').value=i; renderFrame();});
   document.querySelectorAll('.method .step').forEach(s=>s.onclick=()=>set('method-exp',s.dataset.exp));
   document.getElementById('live-btn').onclick=enterLive;
-  document.getElementById('live-exit').onclick=exitLive;
   document.querySelectorAll('[data-live-hz]').forEach(b=>b.onclick=()=>setLiveHorizon(b.dataset.liveHz));
 
   await loadHand();
@@ -552,9 +548,8 @@ async function init(){
     outCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain'; box.appendChild(outCanvas);
     waterOverlay={setUrl:()=>{}};
   }
-  setEvent(curEv);            // cenário padrão como fallback
-  const modoParam=new URLSearchParams(location.search).get('modo');
-  if(modoParam!=='cenarios') enterLive(); // abre já em AO VIVO (previsão real); se falhar, fica no cenário
+  setEvent(curEv);            // frame inicial (sobrescrito pelo ao vivo)
+  enterLive();                // simulador = só AO VIVO (previsão real)
 }
 init();
 </script>
