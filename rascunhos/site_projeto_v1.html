@@ -77,11 +77,16 @@ footer { background: var(--dark); padding: 48px 40px; display: flex; justify-con
 footer .f-left { color: rgba(255,255,255,0.5); font-size: 13px; line-height: 1.8; }
 footer .f-right { color: rgba(255,255,255,0.3); font-size: 12px; text-align: right; }
 
-.rv { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+.rv { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .7s ease; }
 .rv.in { opacity: 1; transform: none; }
+.rv[data-d="1"] { transition-delay: .08s; }
+.rv[data-d="2"] { transition-delay: .18s; }
+.rv[data-d="3"] { transition-delay: .28s; }
+.rv[data-d="4"] { transition-delay: .38s; }
 
 @media (prefers-reduced-motion: reduce) {
   .rv { opacity: 1; transform: none; transition: none; }
+  .rv[data-d] { transition-delay: 0s; }
 }
 
 @media (max-width: 640px) {
@@ -121,11 +126,11 @@ footer .f-right { color: rgba(255,255,255,0.3); font-size: 12px; text-align: rig
 
 <!-- STATS -->
 <section class="stats">
-  <div class="stats-grid rv">
-    <div class="stat"><span class="sn">18</span><span class="sl">munic&iacute;pios na bacia</span></div>
-    <div class="stat"><span class="sn">&asymp;15.800</span><span class="sl">km&sup2; de &aacute;rea de drenagem</span></div>
-    <div class="stat"><span class="sn">24</span><span class="sl">meses de pesquisa</span></div>
-    <div class="stat"><span class="sn">6</span><span class="sl">institui&ccedil;&otilde;es parceiras</span></div>
+  <div class="stats-grid">
+    <div class="stat rv" data-d="1"><span class="sn">18</span><span class="sl">munic&iacute;pios na bacia</span></div>
+    <div class="stat rv" data-d="2"><span class="sn">&asymp;15.800</span><span class="sl">km&sup2; de &aacute;rea de drenagem</span></div>
+    <div class="stat rv" data-d="3"><span class="sn">24</span><span class="sl">meses de pesquisa</span></div>
+    <div class="stat rv" data-d="4"><span class="sn">6</span><span class="sl">institui&ccedil;&otilde;es parceiras</span></div>
   </div>
 </section>
 
@@ -138,21 +143,21 @@ footer .f-right { color: rgba(255,255,255,0.3); font-size: 12px; text-align: rig
 <section class="eixos" id="eixos">
   <p class="sec-label">Os tr&ecirc;s eixos</p>
   <div class="eixo-list">
-    <div class="eixo rv">
+    <div class="eixo rv" data-d="1">
       <span class="num">01</span>
       <div>
         <h3>Monitoramento, Modelagem e Mapeamento</h3>
         <p>Modelagem hidrol&oacute;gica SWAT, previs&atilde;o de inunda&ccedil;&otilde;es por redes neurais, mapeamento de movimentos de massa, GNSS-R e mancha d&rsquo;&aacute;gua. Dados em tempo real da esta&ccedil;&atilde;o de Santa Tereza.</p>
       </div>
     </div>
-    <div class="eixo rv">
+    <div class="eixo rv" data-d="2">
       <span class="num">02</span>
       <div>
         <h3>Ci&ecirc;ncia Cidad&atilde;</h3>
         <p>Rede de monitoramento participativo com moradores dos 18 munic&iacute;pios da bacia. Coleta de dados de campo, registro de eventos e valida&ccedil;&atilde;o comunit&aacute;ria dos resultados cient&iacute;ficos.</p>
       </div>
     </div>
-    <div class="eixo rv">
+    <div class="eixo rv" data-d="3">
       <span class="num">03</span>
       <div>
         <h3>Alerta e Comunica&ccedil;&atilde;o de Risco</h3>
@@ -165,53 +170,53 @@ footer .f-right { color: rgba(255,255,255,0.3); font-size: 12px; text-align: rig
 <!-- FRENTES -->
 <section class="frentes" id="frentes">
   <p class="sec-label">Frentes de pesquisa</p>
-  <div class="rv">
-    <div class="frente-row">
+  <div>
+    <div class="frente-row rv" data-d="1">
       <span class="frente-nome">Redes Neurais</span>
       <span class="frente-desc">Previs&atilde;o de n&iacute;vel do Rio das Antas em Santa Tereza</span>
       <span class="frente-status status-live">&bull; No ar</span>
     </div>
-    <div class="frente-row">
+    <div class="frente-row rv" data-d="2">
       <span class="frente-nome">Modelagem SWAT</span>
       <span class="frente-desc">Modelagem hidrol&oacute;gica distribu&iacute;da da bacia</span>
       <span class="frente-status status-dev">Em desenvolvimento</span>
     </div>
-    <div class="frente-row">
+    <div class="frente-row rv" data-d="3">
       <span class="frente-nome">Movimentos de Massa</span>
       <span class="frente-desc">Mapeamento de suscetibilidade a escorregamentos</span>
       <span class="frente-status status-dev">Em desenvolvimento</span>
     </div>
-    <div class="frente-row">
+    <div class="frente-row rv" data-d="4">
       <span class="frente-nome">GNSS-R</span>
       <span class="frente-desc">Detec&ccedil;&atilde;o de umidade do solo por sinais GNSS refletidos</span>
       <span class="frente-status status-dev">Em desenvolvimento</span>
     </div>
-    <div class="frente-row">
+    <div class="frente-row rv" data-d="1">
       <span class="frente-nome">Mancha d&rsquo;&Aacute;gua</span>
       <span class="frente-desc">Mapeamento de &aacute;reas inundadas por sensoriamento remoto</span>
       <span class="frente-status status-dev">Em desenvolvimento</span>
     </div>
-    <div class="frente-row">
+    <div class="frente-row rv" data-d="2">
       <span class="frente-nome">Ci&ecirc;ncia Cidad&atilde;</span>
       <span class="frente-desc">Rede participativa de monitoramento hidrol&oacute;gico</span>
       <span class="frente-status status-plan">Planejado</span>
     </div>
-    <div class="frente-row">
+    <div class="frente-row rv" data-d="3">
       <span class="frente-nome">Comunica&ccedil;&atilde;o de Risco</span>
       <span class="frente-desc">Estrat&eacute;gias de alerta e dissemina&ccedil;&atilde;o para comunidades</span>
       <span class="frente-status status-plan">Planejado</span>
     </div>
-    <div class="frente-row">
+    <div class="frente-row rv" data-d="4">
       <span class="frente-nome">Clima Futuro</span>
       <span class="frente-desc">Proje&ccedil;&otilde;es clim&aacute;ticas e impactos na bacia at&eacute; 2050</span>
       <span class="frente-status status-plan">Planejado</span>
     </div>
-    <div class="frente-row">
+    <div class="frente-row rv" data-d="1">
       <span class="frente-nome">Mapas Multicrit&eacute;rio</span>
       <span class="frente-desc">Vulnerabilidade integrada &mdash; social, ambiental e f&iacute;sico-natural</span>
       <span class="frente-status status-plan">Planejado</span>
     </div>
-    <div class="frente-row">
+    <div class="frente-row rv" data-d="2">
       <span class="frente-nome">WebSIG</span>
       <span class="frente-desc">Plataforma interativa de visualiza&ccedil;&atilde;o de riscos</span>
       <span class="frente-status status-plan">Planejado</span>
@@ -274,7 +279,7 @@ footer .f-right { color: rgba(255,255,255,0.3); font-size: 12px; text-align: rig
     entries.forEach(function(e){
       if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); }
     });
-  }, {threshold: 0.1});
+  }, {threshold: 0.08, rootMargin: '0px 0px -60px 0px'});
   document.querySelectorAll('.rv').forEach(function(el){ obs.observe(el); });
 })();
 </script>
