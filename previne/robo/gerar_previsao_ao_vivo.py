@@ -31,6 +31,12 @@ SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
 ESTACOES = ["86472600", "86472000", "86125130", "86507000"]   # ST, R.Antas, Ituim, Carreiro
 ULTIMA_RAW = {}
+NOMES_ESTACOES = {
+    "86472600": "Santa Tereza",
+    "86472000": "Rio das Antas / Santa Tereza montante",
+    "86125130": "Ituim",
+    "86507000": "Carreiro",
+}
 
 def _local(tag):                          # remove {namespace} do nome da tag
     return tag.rsplit("}", 1)[-1]
@@ -123,34 +129,92 @@ def montar_inputs(series, t):
       D-Xh(s) = n(t) - n(t-Xh)                                  (diferença p/ trás)
       A-Xh(s) = [n(t)-n(t-1h)] - [n(t-Xh)-n(t-Xh-1h)]           (aceleração)
     """
-    ST, ANT, ITU, CAR = (series["86472600"], series["86472000"],
-                         series["86125130"], series["86507000"])
-    def n(s, h=0): return nivel(s, t - dt.timedelta(hours=h))
-    def D(s, h):
-        a, b = n(s, 0), n(s, h)
+    def n(cod, h=0):
+        return nivel(series[cod], t - dt.timedelta(hours=h))
+    def D(cod, h):
+        a, b = n(cod, 0), n(cod, h)
         return None if None in (a, b) else a - b
-    def A(s, h):
-        a, b, c, d = n(s, 0), n(s, 1), n(s, h), n(s, h + 1)
+    def A(cod, h):
+        a, b, c, d = n(cod, 0), n(cod, 1), n(cod, h), n(cod, h + 1)
         return None if None in (a, b, c, d) else (a - b) - (c - d)
-    st0 = n(ST, 0)
+    st0 = n("86472600", 0)
     inputs = [
-        n(ST, 0),        # K inp01  nível ST 86472600
-        D(ST, 1),        # L inp02  ST D-1h
-        n(ANT, 0),       # M inp03  nível R.Antas 86472000
-        D(ANT, 5),       # N inp04  Antas D-5h
-        A(ANT, 20),      # O inp05  Antas A-20h  (passado, t-20/t-21)
-        n(ITU, 0),       # P inp06  nível Ituim 86125130
-        D(ITU, 12),      # Q inp07  Ituim D-12h
-        n(CAR, 0),       # R inp08  nível Carreiro 86507000
-        D(CAR, 16),      # S inp09  Carreiro D-16h
-        D(ST, 2),        # T inp10  ST D-2h
-        D(ST, 4),        # U inp11  ST D-4h
-        A(ST, 1),        # V inp12  ST A-1h
-        A(ST, 2),        # W inp13  ST A-2h
-        A(ST, 4),        # X inp14  ST A-4h
-        A(ST, 12),       # Y inp15  ST A-12h
+        n("86472600", 0),      # K inp01  nível ST 86472600
+        D("86472600", 1),      # L inp02  ST D-1h
+        n("86472000", 0),      # M inp03  nível R.Antas 86472000
+        D("86472000", 5),      # N inp04  Antas D-5h
+        A("86472000", 20),     # O inp05  Antas A-20h  (passado, t-20/t-21)
+        n("86125130", 0),      # P inp06  nível Ituim 86125130
+        D("86125130", 12),     # Q inp07  Ituim D-12h
+        n("86507000", 0),      # R inp08  nível Carreiro 86507000
+        D("86507000", 16),     # S inp09  Carreiro D-16h
+        D("86472600", 2),      # T inp10  ST D-2h
+        D("86472600", 4),      # U inp11  ST D-4h
+        A("86472600", 1),      # V inp12  ST A-1h
+        A("86472600", 2),      # W inp13  ST A-2h
+        A("86472600", 4),      # X inp14  ST A-4h
+        A("86472600", 12),     # Y inp15  ST A-12h
     ]
     return inputs, st0
+
+def diagnosticar_inputs_faltantes(series, t, inputs):
+    """Explica quais leituras horarias faltaram para montar cada input."""
+    especificacoes = [
+        ("inp01", "Santa Tereza - nivel atual", "86472600", [0]),
+        ("inp02", "Santa Tereza - nivel D-1h", "86472600", [0, 1]),
+        ("inp03", "Rio das Antas montante - nivel atual", "86472000", [0]),
+        ("inp04", "Rio das Antas montante - nivel D-5h", "86472000", [0, 5]),
+        ("inp05", "Rio das Antas montante - aceleracao A-20h", "86472000", [0, 1, 20, 21]),
+        ("inp06", "Ituim - nivel atual", "86125130", [0]),
+        ("inp07", "Ituim - nivel D-12h", "86125130", [0, 12]),
+        ("inp08", "Carreiro - nivel atual", "86507000", [0]),
+        ("inp09", "Carreiro - nivel D-16h", "86507000", [0, 16]),
+        ("inp10", "Santa Tereza - nivel D-2h", "86472600", [0, 2]),
+        ("inp11", "Santa Tereza - nivel D-4h", "86472600", [0, 4]),
+        ("inp12", "Santa Tereza - aceleracao A-1h", "86472600", [0, 1, 2]),
+        ("inp13", "Santa Tereza - aceleracao A-2h", "86472600", [0, 1, 2, 3]),
+        ("inp14", "Santa Tereza - aceleracao A-4h", "86472600", [0, 1, 4, 5]),
+        ("inp15", "Santa Tereza - aceleracao A-12h", "86472600", [0, 1, 12, 13]),
+    ]
+    faltantes = []
+    for valor, (codigo_input, descricao, cod_estacao, atrasos) in zip(inputs, especificacoes):
+        if valor is not None:
+            continue
+        horarios = []
+        for h in dict.fromkeys(atrasos):
+            hora = t - dt.timedelta(hours=h)
+            disponivel = hora in series.get(cod_estacao, {})
+            horarios.append({
+                "atraso_h": h,
+                "hora": hora.isoformat(timespec="minutes"),
+                "disponivel": disponivel,
+            })
+        faltantes.append({
+            "input": codigo_input,
+            "descricao": descricao,
+            "estacao": cod_estacao,
+            "estacao_nome": NOMES_ESTACOES.get(cod_estacao, cod_estacao),
+            "horarios_necessarios": [h["hora"] for h in horarios],
+            "horarios_faltantes": [h["hora"] for h in horarios if not h["disponivel"]],
+        })
+    return faltantes
+
+def resumo_estacoes(series):
+    resumo = []
+    for cod in ESTACOES:
+        serie = series.get(cod, {})
+        raw = ULTIMA_RAW.get(cod)
+        ultima_hora = max(serie) if serie else None
+        resumo.append({
+            "estacao": cod,
+            "nome": NOMES_ESTACOES.get(cod, cod),
+            "horas_modelo_disponiveis": len(serie),
+            "ultima_hora_modelo": (ultima_hora.isoformat(timespec="minutes") if ultima_hora else None),
+            "ultima_hora_modelo_nivel_cm": (round(serie[ultima_hora]) if ultima_hora else None),
+            "ultima_leitura_bruta": (raw[0].isoformat(timespec="minutes") if raw else None),
+            "ultima_leitura_bruta_nivel_cm": (round(raw[1]) if raw else None),
+        })
+    return resumo
 
 def prever(mat_path, x):
     """Forward pass da MLP (validado: reproduz Tctot1 do .mat com RMSE 0).
@@ -171,7 +235,7 @@ def prever(mat_path, x):
     yn = logsig(ws.dot(h) + bs)
     return float(yn * au + bu)                        # variação prevista (cm)
 
-def escrever(nivel_atual, nivel_prev, t, status, aviso):
+def escrever(nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes=None, estacoes_status=None):
     consultado_em = agora_brt()
     raw_st = ULTIMA_RAW.get("86472600")
     idade_min = None
@@ -192,6 +256,10 @@ def escrever(nivel_atual, nivel_prev, t, status, aviso):
         "horizonte": HORIZONTE, "modelo": COMBO, "bankfull_cm": BANKFULL_CM,
         "nivel_atual_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_previsto_cm": (round(nivel_prev) if nivel_prev is not None else None),
+        "inputs_total": 15,
+        "inputs_faltantes_n": len(inputs_faltantes or []),
+        "inputs_faltantes": inputs_faltantes or [],
+        "estacoes_status": estacoes_status or [],
         "status": status,
         "aviso": aviso,
     }
@@ -211,14 +279,16 @@ def main():
         escrever(None, None, None, "sem dado recente em Santa Tereza", aviso); return
     t = horas[-1]
     x, st0 = montar_inputs(series, t)
+    estacoes_status = resumo_estacoes(series)
     if st0 is None or any(v is None for v in x):
         faltando = sum(v is None for v in x)
-        escrever(st0, None, t, f"inputs incompletos ({faltando}/15 faltando) — sem previsão nesta hora", aviso); return
+        inputs_faltantes = diagnosticar_inputs_faltantes(series, t, x)
+        escrever(st0, None, t, f"inputs incompletos ({faltando}/15 faltando) — sem previsão nesta hora", aviso, inputs_faltantes, estacoes_status); return
     try:
         delta = prever(MODELO_MAT, x)
-        escrever(st0, st0 + delta, t, "ok", aviso)
+        escrever(st0, st0 + delta, t, "ok", aviso, [], estacoes_status)
     except Exception as e:
-        escrever(st0, None, t, f"falha no modelo: {e}", aviso)
+        escrever(st0, None, t, f"falha no modelo: {e}", aviso, [], estacoes_status)
 
 if __name__ == "__main__":
     main()

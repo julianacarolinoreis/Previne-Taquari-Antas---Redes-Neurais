@@ -409,6 +409,18 @@ function setLiveHorizon(hz){
   if(!liveData || !liveData.horizontes || !liveData.horizontes[hz]) return;
   liveHz=hz; liveIdx=0; updateLiveHzButtons(); renderLiveStep();
 }
+function escLive(v){
+  return String(v==null?'':v).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+function liveMissingInputsHtml(D){
+  const faltantes=Array.isArray(D.inputs_faltantes)?D.inputs_faltantes:[];
+  if(!faltantes.length) return '';
+  const itens=faltantes.map(i=>{
+    const horas=(i.horarios_faltantes||[]).map(fmtWhen).join(', ');
+    return `${escLive(i.input)} ${escLive(i.estacao_nome||i.estacao)}${horas?` (${escLive(horas)})`:''}`;
+  }).join('; ');
+  return `<b>sem RNA: faltam ${D.inputs_faltantes_n||faltantes.length}/${D.inputs_total||15} inputs</b>${itens?` — ${itens}`:''}`;
+}
 function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   const modelo=D.modelo||'—';
   const horaModelo=D.hora_modelo||P[0];
@@ -419,6 +431,9 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   }
   if(D.consultado_em) partes.push(`robô consultou <b>${fmtWhen(D.consultado_em)}</b>`);
   if(D.status_dados) partes.push(`<b>${D.status_dados}</b>`);
+  if(D.status && D.status!=='ok') partes.push(`<b>${escLive(D.status)}</b>`);
+  const faltantes=liveMissingInputsHtml(D);
+  if(faltantes) partes.push(faltantes);
   return partes.join(' · ')+'.';
 }
 function liveWhenText(D,P){
