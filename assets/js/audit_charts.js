@@ -372,7 +372,10 @@
         : key;
       return option(key, label);
     });
-    opts.unshift(option('__all__', 'Geral - serie completa (todos os eventos)'));
+    const cobertura = keys.length >= (model.events || []).length
+      ? 'Geral - serie completa (' + keys.length + ' eventos)'
+      : 'Geral - eventos disponiveis (' + keys.length + ' de ' + model.events.length + ')';
+    opts.unshift(option('__all__', cobertura));
     eventSelect.replaceChildren(...opts);
     if (state.eventKey !== '__all__' && !keys.includes(state.eventKey)) state.eventKey = keys[0] || '';
     eventSelect.value = state.eventKey;
@@ -504,9 +507,13 @@
   function getEventRows(model) {
     if (!model || !model.series) return null;
     if (state.eventKey === '__all__') {
+      const grupos = Object.values(model.series).filter(a => Array.isArray(a) && a.length);
+      grupos.sort((p, q) => (p[0][0] < q[0][0] ? -1 : 1));
       const all = [];
-      Object.values(model.series).forEach(a => { if (Array.isArray(a)) all.push(...a); });
-      all.sort((p, q) => (p[0] < q[0] ? -1 : 1));
+      grupos.forEach((a, gi) => {
+        if (gi) all.push(['', null, null, null, null, null, null]);  // quebra entre eventos
+        all.push(...a);
+      });
       return all;
     }
     return model.series[state.eventKey];
@@ -579,8 +586,16 @@
       svgText(svg, x(i), H - pad.b + 17, rows[i][0].slice(5), 'audit-axis', 'middle');
     });
     cfg.columns.forEach(col => {
-      const d = rows.map((r, i) => [x(i), y(r[col.i])]).filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]));
-      svg.append(svgEl('path', { d: pathLine(d), fill: 'none', stroke: col.color, 'stroke-width': 2.4, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+      let seg = [];
+      const flush = () => {
+        if (seg.length > 1) svg.append(svgEl('path', { d: pathLine(seg), fill: 'none', stroke: col.color, 'stroke-width': 2.4, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+        seg = [];
+      };
+      rows.forEach((r, i) => {
+        const v = r[col.i];
+        if (Number.isFinite(v)) seg.push([x(i), y(v)]); else flush();
+      });
+      flush();
     });
     svgText(svg, 14, (pad.t + H - pad.b) / 2, cfg.yLabel, 'audit-axis', 'middle')
       .setAttribute('transform', `rotate(-90 14 ${(pad.t + H - pad.b) / 2})`);
