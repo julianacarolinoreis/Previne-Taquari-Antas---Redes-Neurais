@@ -612,16 +612,12 @@
 
   <section class="sec" id="sec-eventos">
     <h2>Eventos sob a lupa</h2>
-    <p class="sec-sub">Todos os eventos de cheia usados nas rodadas — dificuldade objetiva (o quanto a <strong>persistência</strong> sozinha acerta), desempenho das redes quando o evento foi <strong>teste</strong> ou <strong>validação</strong>, e as séries observado × RNA de cada evento dos modelos campeões.</p>
+    <p class="sec-sub">Todos os eventos de cheia usados nas rodadas — dificuldade objetiva (o quanto a <strong>persistência</strong> sozinha acerta), desempenho das redes quando o evento foi <strong>teste</strong> ou <strong>validação</strong>, As séries observado × RNA de cada evento estão na <strong>ficha individual</strong> de cada modelo (clique num modelo do ranking ou da tabela).</p>
     <div id="ev-curios" style="max-width:860px;margin:0 auto 18px;display:grid;gap:8px"></div>
     <div style="overflow-x:auto"><table id="ev-tab" style="margin:0 auto;border-collapse:collapse;font-size:12.5px;min-width:640px">
       <thead><tr style="text-align:right"><th style="text-align:left;padding:6px 10px">Evento (pico)</th><th style="padding:6px 10px">Pico</th><th style="padding:6px 10px">Dificuldade — NSE persistência</th><th style="padding:6px 10px">NSE teste (n)</th><th style="padding:6px 10px">NSE validação (n)</th><th style="text-align:left;padding:6px 10px">Leitura</th></tr></thead>
       <tbody></tbody></table></div>
-    <div style="text-align:center;margin:22px 0 10px">
-      <label style="font-size:12.5px;color:var(--ink-2)">Modelo: <select id="ev-mod" style="font-size:12.5px;padding:4px 8px"></select></label>
-      <div id="ev-chips" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px"></div>
-    </div>
-    <div id="ev-charts" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;max-width:980px;margin:0 auto"></div>
+    
   </section>
 
   <script>
@@ -634,23 +630,7 @@
         var dif=e.dificuldade_nse_pers, tag=dif==null?'—':(dif>=0.85?'<b style="color:var(--warn)">evento fácil — ler teste com cautela</b>':(dif<=0.55?'<b style="color:var(--bad)">evento difícil</b>':'intermediário'));
         return '<tr style="border-top:1px solid var(--grid);text-align:right"><td style="text-align:left;padding:6px 10px"><b>'+mes(e.pico_data)+'</b></td><td style="padding:6px 10px">'+(e.pico_cm/100).toFixed(1)+' m</td><td style="padding:6px 10px">'+f2(dif)+'</td><td style="padding:6px 10px">'+f2(e.nse_teste)+(e.n_teste?' ('+e.n_teste+')':'')+'</td><td style="padding:6px 10px">'+f2(e.nse_validacao)+(e.n_validacao?' ('+e.n_validacao+')':'')+'</td><td style="text-align:left;padding:6px 10px">'+tag+'</td></tr>';
       }).join('');
-      var sel=document.getElementById('ev-mod'), mods=Object.keys(D.campeoes);
-      sel.innerHTML=mods.map(m=>'<option>'+m+'</option>').join('');
-      function draw(){
-        var m=D.campeoes[sel.value], keys=Object.keys(m).sort(), box=document.getElementById('ev-charts');
-        document.getElementById('ev-chips').innerHTML=keys.map(k=>'<span style="font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink-2)">'+mes(k)+' · '+m[k].conj+'</span>').join('');
-        box.innerHTML=keys.map(k=>{
-          var s0=m[k].serie, W=320,H=150,P=26;
-          var vs=s0.flatMap(r=>[r[1],r[2]]).filter(v=>v!=null), lo=Math.min.apply(0,vs), hi=Math.max.apply(0,vs), rg=hi-lo||1;
-          var X=i=>P+(W-P-6)*i/Math.max(1,s0.length-1), Y=v=>H-16-(H-24-8)*(v-lo)/rg;
-          var pl=c=>s0.map((r,i)=>(r[c]==null?null:X(i).toFixed(1)+','+Y(r[c]).toFixed(1))).filter(Boolean).join(' ');
-          var sc=s0.filter(r=>r[2]!=null).map(r=>'<circle cx="'+(P+(W-P-6)*(r[1]-lo)/rg).toFixed(1)+'" cy="'+Y(r[2]).toFixed(1)+'" r="2" fill="var(--accent)" fill-opacity=".55"/>').join('');
-          return '<figure style="margin:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px"><figcaption style="font-size:12px;font-weight:700;margin-bottom:6px">'+mes(k)+' · '+m[k].conj+'</figcaption>'
-            +'<svg viewBox="0 0 '+W+' '+H+'" style="width:100%"><polyline points="'+pl(1)+'" fill="none" stroke="var(--ink)" stroke-width="1.6"/><polyline points="'+pl(2)+'" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="4 3"/><text x="'+P+'" y="12" font-size="9" fill="var(--muted)">observado — · RNA ┅ (hidrograma)</text></svg>'
-            +'<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;margin-top:6px"><line x1="'+P+'" y1="'+Y(lo)+'" x2="'+(P+(W-P-6))+'" y2="'+Y(hi)+'" stroke="var(--baseline)" stroke-width="1"/>'+sc+'<text x="'+P+'" y="12" font-size="9" fill="var(--muted)">dispersão observado × RNA (linha 1:1)</text></svg></figure>';
-        }).join('');
-      }
-      sel.onchange=draw; draw();
+      
     }).catch(e=>{ document.getElementById('sec-eventos').insertAdjacentHTML('beforeend','<p class="sec-sub">Não foi possível carregar eventos_analise.json ('+e.message+').</p>'); });
   })();
   </script>
