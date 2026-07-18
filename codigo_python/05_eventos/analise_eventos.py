@@ -82,7 +82,7 @@ def main():
         name=os.path.basename(fp).replace("_AUDITAVEL_INPUTS_RNA.xlsx","")
         try: evs=processa(fp)
         except Exception as ex: print("erro",name,ex); continue
-        eh_campeao=any(k in name for k in CAMPEOES)
+        eh_campeao=True  # séries completas para TODOS os modelos com planilha auditável
         for ev,d in evs.items():
             import datetime as _dt
             pd=_dt.date.fromisoformat(d["pico_data"])
