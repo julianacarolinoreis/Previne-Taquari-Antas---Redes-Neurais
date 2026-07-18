@@ -57,7 +57,7 @@
       '<div class="audit-grid">',
       '  <figure class="audit-card"><figcaption><div class="audit-title">Observado x RNA</div><div class="audit-sub">Dispersão do recorte escolhido: geral, treino, validação ou teste</div></figcaption><div class="audit-legend" id="audit-leg-scatter"></div><div class="audit-chart" id="audit-scatter"></div></figure>',
       '  <figure class="audit-card"><figcaption><div class="audit-title">Série do evento</div><div class="audit-sub">Onda observada e prevista no evento selecionado</div></figcaption><div class="audit-legend" id="audit-leg-series"></div><div class="audit-chart" id="audit-series"></div></figure>',
-      '  <figure class="audit-card"><figcaption><div class="audit-title">Subida do evento</div><div class="audit-sub">Variação acumulada em relação ao início da onda</div></figcaption><div class="audit-legend" id="audit-leg-rise"></div><div class="audit-chart" id="audit-rise"></div></figure>',
+      '  <figure class="audit-card"><figcaption><div class="audit-title">Dispersão do evento</div><div class="audit-sub">Observado × RNA no evento selecionado (linha = acerto perfeito)</div></figcaption><div class="audit-legend" id="audit-leg-rise"></div><div class="audit-chart" id="audit-rise"></div></figure>',
       '  <figure class="audit-card"><figcaption><div class="audit-title">Maiores subidas observadas</div><div class="audit-sub">Eventos com maior aumento de nível em toda a base auditável</div></figcaption><div class="audit-chart" id="audit-top-rises"></div></figure>',
       '</div>',
       '<div class="audit-grid audit-grid-wide">',
@@ -372,8 +372,9 @@
         : key;
       return option(key, label);
     });
+    opts.unshift(option('__all__', 'Geral - serie completa (todos os eventos)'));
     eventSelect.replaceChildren(...opts);
-    if (!keys.includes(state.eventKey)) state.eventKey = keys[0] || '';
+    if (state.eventKey !== '__all__' && !keys.includes(state.eventKey)) state.eventKey = keys[0] || '';
     eventSelect.value = state.eventKey;
   }
 
@@ -405,7 +406,7 @@
       ? [['Treino', COLORS.treino], ['Validação', COLORS.validacao], ['Teste', COLORS.teste]]
       : [[SCOPE_LABELS[state.scope], setColor(Number(state.scope))]]);
     renderLegend('audit-leg-series', [['Observado', COLORS.obs], ['RNA', COLORS.rna]]);
-    renderLegend('audit-leg-rise', [['Subida observada', COLORS.riseObs], ['Subida RNA', COLORS.riseRna]]);
+    renderLegend('audit-leg-rise', [['ponto = 1 hora (obs, RNA)', COLORS.rna]]);
     renderScatter(model);
     renderSeries(model);
     renderRise(model);
@@ -500,10 +501,21 @@
     box.append(svg);
   }
 
+  function getEventRows(model) {
+    if (!model || !model.series) return null;
+    if (state.eventKey === '__all__') {
+      const all = [];
+      Object.values(model.series).forEach(a => { if (Array.isArray(a)) all.push(...a); });
+      all.sort((p, q) => (p[0] < q[0] ? -1 : 1));
+      return all;
+    }
+    return model.series[state.eventKey];
+  }
+
   function renderSeries(model) {
     const box = document.getElementById('audit-series');
     box.replaceChildren();
-    const rows = model && model.series && model.series[state.eventKey];
+    const rows = getEventRows(model);
     if (!rows || !rows.length) return empty(box);
     renderLineChart(box, rows, {
       columns: [{ i: 1, color: COLORS.obs }, { i: 2, color: COLORS.rna }],
@@ -515,14 +527,31 @@
   function renderRise(model) {
     const box = document.getElementById('audit-rise');
     box.replaceChildren();
-    const rows = model && model.series && model.series[state.eventKey];
+    const rows = getEventRows(model);
     if (!rows || !rows.length) return empty(box);
-    renderLineChart(box, rows, {
-      columns: [{ i: 4, color: COLORS.riseObs }, { i: 5, color: COLORS.riseRna }],
-      yLabel: 'Subida (cm)',
-      zeroLine: true,
-      aria: 'Subida acumulada do evento'
+    const pts = rows.filter(r => typeof r[1] === 'number' && typeof r[2] === 'number');
+    if (!pts.length) return empty(box);
+    const W = 620, H = 330, pad = { l: 58, r: 18, t: 18, b: 48 };
+    let lo = Math.min(...pts.map(r => Math.min(r[1], r[2])));
+    let hi = Math.max(...pts.map(r => Math.max(r[1], r[2])));
+    const span = Math.max(1, hi - lo);
+    lo = Math.floor((lo - span * 0.06) / 50) * 50;
+    hi = Math.ceil((hi + span * 0.06) / 50) * 50;
+    const x = scale(lo, hi, pad.l, W - pad.r);
+    const y = scale(lo, hi, H - pad.b, pad.t);
+    const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Dispersão observado x RNA do evento' });
+    ticks(lo, hi, 5).forEach(t => {
+      svg.append(svgEl('line', { x1: pad.l, x2: W - pad.r, y1: y(t), y2: y(t), class: 'audit-gridline' }));
+      svg.append(svgEl('line', { x1: x(t), x2: x(t), y1: pad.t, y2: H - pad.b, class: 'audit-gridline' }));
+      svgText(svg, pad.l - 8, y(t) + 4, fmtShort(t), 'audit-axis', 'end');
+      svgText(svg, x(t), H - pad.b + 17, fmtShort(t), 'audit-axis', 'middle');
     });
+    svg.append(svgEl('line', { x1: x(lo), y1: y(lo), x2: x(hi), y2: y(hi), class: 'audit-baseline' }));
+    pts.forEach(r => svg.append(svgEl('circle', { cx: x(r[1]), cy: y(r[2]), r: 3, fill: COLORS.rna, 'fill-opacity': 0.5 })));
+    svgText(svg, 14, (pad.t + H - pad.b) / 2, 'RNA (cm)', 'audit-axis', 'middle')
+      .setAttribute('transform', `rotate(-90 14 ${(pad.t + H - pad.b) / 2})`);
+    svgText(svg, (pad.l + W - pad.r) / 2, H - 8, 'observado (cm)', 'audit-axis', 'middle');
+    box.append(svg);
   }
 
   function renderLineChart(box, rows, cfg) {
