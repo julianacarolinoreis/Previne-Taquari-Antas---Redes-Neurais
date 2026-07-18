@@ -23,7 +23,7 @@
   let inventory = null;
   let inventoryLoading = null;
   let mainModels = [];
-  let state = { family: 'TODAS', modelId: '', eventKey: '', scope: 'all', mainModelName: '' };
+  let state = { family: 'TODAS', modelId: '', scope: 'all', mainModelName: '' };
 
   function downloadUrl(url) {
     if (!url) return url;
@@ -49,17 +49,23 @@
       '<div class="audit-toolbar">',
       '  <div class="audit-field"><label for="audit-model">Modelo auditável</label><select id="audit-model"></select></div>',
       '  <div class="audit-field"><label for="audit-family">Família</label><select id="audit-family"></select></div>',
-      '  <div class="audit-field"><label for="audit-event">Evento/onda</label><select id="audit-event"></select></div>',
       '  <div class="audit-field"><label for="audit-scope">Dispersão</label><select id="audit-scope"><option value="all">Geral</option><option value="0">Treino</option><option value="1">Validação</option><option value="2">Teste</option></select></div>',
       '</div>',
       '<div class="audit-selected" id="audit-selected"></div>',
       '<div class="audit-kpis" id="audit-kpis"></div>',
       '<div class="audit-grid">',
       '  <figure class="audit-card"><figcaption><div class="audit-title">Observado x RNA</div><div class="audit-sub">Dispersão do recorte escolhido: geral, treino, validação ou teste</div></figcaption><div class="audit-legend" id="audit-leg-scatter"></div><div class="audit-chart" id="audit-scatter"></div></figure>',
-      '  <figure class="audit-card"><figcaption><div class="audit-title">Série do evento</div><div class="audit-sub">Onda observada e prevista no evento selecionado</div></figcaption><div class="audit-legend" id="audit-leg-series"></div><div class="audit-chart" id="audit-series"></div></figure>',
-      '  <figure class="audit-card"><figcaption><div class="audit-title">Subida do evento</div><div class="audit-sub">Variação acumulada em relação ao início da onda</div></figcaption><div class="audit-legend" id="audit-leg-rise"></div><div class="audit-chart" id="audit-rise"></div></figure>',
       '  <figure class="audit-card"><figcaption><div class="audit-title">Maiores subidas observadas</div><div class="audit-sub">Eventos com maior aumento de nível em toda a base auditável</div></figcaption><div class="audit-chart" id="audit-top-rises"></div></figure>',
       '</div>',
+      '<section class="audit-card audit-wide audit-events-card">',
+      '  <h3>Hidrograma e dispersão de todos os eventos</h3>',
+      '  <p class="sec-sub audit-sub" id="audit-events-sub">Todos os eventos do modelo selecionado, agrupados por conjunto (treino, validação, teste). Cada evento traz o hidrograma (observado x RNA ao longo do tempo) e a dispersão (observado x RNA, um ponto por passo de tempo).</p>',
+      '  <div class="audit-legend audit-legend-events">',
+      '    <span><i class="audit-swatch" style="background:' + COLORS.obs + '"></i>Observado</span>',
+      '    <span><i class="audit-swatch" style="background:' + COLORS.rna + '"></i>RNA</span>',
+      '  </div>',
+      '  <div id="audit-events"></div>',
+      '</section>',
       '<div class="audit-grid audit-grid-wide">',
       '  <section class="audit-card audit-wide"><h3>Métricas calculadas da planilha auditável</h3><div id="audit-metrics-table"></div></section>',
       '  <section class="audit-card audit-wide"><h3>Métricas do planilhão/modelo clicado</h3><div id="audit-main-metrics"></div></section>',
@@ -319,13 +325,8 @@
     document.getElementById('audit-model').addEventListener('change', ev => {
       state.modelId = ev.target.value;
       state.mainModelName = '';
-      fillEvents();
       renderAll();
       updateHash();
-    });
-    document.getElementById('audit-event').addEventListener('change', ev => {
-      state.eventKey = ev.target.value;
-      renderAll();
     });
     document.getElementById('audit-scope').addEventListener('change', ev => {
       state.scope = ev.target.value;
@@ -353,28 +354,6 @@
     modelSelect.replaceChildren(...rows.map(m => option(m.id, labelModel(m))));
     state.modelId = state.modelId || (rows[0] && rows[0].id) || '';
     modelSelect.value = state.modelId;
-    fillEvents();
-  }
-
-  function fillEvents() {
-    const eventSelect = document.getElementById('audit-event');
-    const model = currentModel();
-    if (!model) {
-      eventSelect.replaceChildren();
-      state.eventKey = '';
-      return;
-    }
-    const keys = Object.keys(model.series || {});
-    const opts = keys.map(key => {
-      const ev = model.events.find(x => x.key === key);
-      const label = ev
-        ? eventLabel(ev, true) + ' - ' + ev.conjunto + ' | subida ' + fmtCm(ev.riseObs) + ' | MAE ' + fmtCm(ev.mae)
-        : key;
-      return option(key, label);
-    });
-    eventSelect.replaceChildren(...opts);
-    if (!keys.includes(state.eventKey)) state.eventKey = keys[0] || '';
-    eventSelect.value = state.eventKey;
   }
 
   function filteredModels() {
@@ -404,12 +383,9 @@
     renderLegend('audit-leg-scatter', state.scope === 'all'
       ? [['Treino', COLORS.treino], ['Validação', COLORS.validacao], ['Teste', COLORS.teste]]
       : [[SCOPE_LABELS[state.scope], setColor(Number(state.scope))]]);
-    renderLegend('audit-leg-series', [['Observado', COLORS.obs], ['RNA', COLORS.rna]]);
-    renderLegend('audit-leg-rise', [['Subida observada', COLORS.riseObs], ['Subida RNA', COLORS.riseRna]]);
     renderScatter(model);
-    renderSeries(model);
-    renderRise(model);
     renderTopRises();
+    renderEventsAll(model);
     renderAuditMetrics(model);
     renderMainMetrics(currentMainModel(), model);
     renderEvidence();
@@ -471,27 +447,39 @@
 
   function renderScatter(model) {
     const box = document.getElementById('audit-scatter');
-    box.replaceChildren();
     const rows = model && model.scatterBySet ? (model.scatterBySet[state.scope] || []) : (model && model.scatter);
-    if (!model || !rows || !rows.length) return empty(box);
-    const W = 620, H = 330, pad = { l: 54, r: 18, t: 18, b: 42 };
-    const vals = rows.flatMap(p => [p[0], p[1]]).filter(v => typeof v === 'number');
+    renderScatterChart(box, rows, {
+      colorFn: c => setColor(c),
+      opacityFn: c => c === 2 ? 0.78 : 0.5,
+      pointRadius: state.scope === 'all' ? 3.2 : 3.7,
+      aria: 'Dispersão observado contra RNA'
+    });
+  }
+
+  function renderScatterChart(box, points, opts) {
+    opts = opts || {};
+    box.replaceChildren();
+    if (!points || !points.length) return empty(box);
+    const W = opts.w || 620, H = opts.h || 330, pad = opts.pad || { l: 54, r: 18, t: 18, b: 42 };
+    const vals = points.flatMap(p => [p[0], p[1]]).filter(v => typeof v === 'number');
+    if (!vals.length) return empty(box);
     const minV = Math.floor(Math.min(...vals) / 100) * 100;
     const maxV = Math.ceil(Math.max(...vals) / 100) * 100;
     const x = scale(minV, maxV, pad.l, W - pad.r);
     const y = scale(minV, maxV, H - pad.b, pad.t);
-    const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Dispersão observado contra RNA' });
-    ticks(minV, maxV, 5).forEach(t => {
+    const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': opts.aria || 'Dispersão observado contra RNA' });
+    ticks(minV, maxV, opts.tickCount || 5).forEach(t => {
       svg.append(svgEl('line', { x1: x(t), x2: x(t), y1: pad.t, y2: H - pad.b, class: 'audit-gridline' }));
       svg.append(svgEl('line', { x1: pad.l, x2: W - pad.r, y1: y(t), y2: y(t), class: 'audit-gridline' }));
       svgText(svg, x(t), H - pad.b + 18, fmtShort(t), 'audit-axis', 'middle');
       svgText(svg, pad.l - 8, y(t) + 4, fmtShort(t), 'audit-axis', 'end');
     });
     svg.append(svgEl('line', { x1: x(minV), y1: y(minV), x2: x(maxV), y2: y(maxV), class: 'audit-diagonal' }));
-    rows.forEach(p => {
+    points.forEach(p => {
       svg.append(svgEl('circle', {
-        cx: x(p[0]), cy: y(p[1]), r: state.scope === 'all' ? 3.2 : 3.7,
-        fill: setColor(p[2]), opacity: p[2] === 2 ? 0.78 : 0.5
+        cx: x(p[0]), cy: y(p[1]), r: opts.pointRadius || 3.2,
+        fill: opts.colorFn ? opts.colorFn(p[2]) : (opts.color || COLORS.rna),
+        opacity: opts.opacityFn ? opts.opacityFn(p[2]) : (opts.pointOpacity != null ? opts.pointOpacity : 0.6)
       }));
     });
     svgText(svg, (pad.l + W - pad.r) / 2, H - 8, 'Observado (cm)', 'audit-axis', 'middle');
@@ -500,33 +488,81 @@
     box.append(svg);
   }
 
-  function renderSeries(model) {
-    const box = document.getElementById('audit-series');
+  function renderEventsAll(model) {
+    const box = document.getElementById('audit-events');
+    if (!box) return;
     box.replaceChildren();
-    const rows = model && model.series && model.series[state.eventKey];
-    if (!rows || !rows.length) return empty(box);
-    renderLineChart(box, rows, {
-      columns: [{ i: 1, color: COLORS.obs }, { i: 2, color: COLORS.rna }],
-      yLabel: 'Nível (cm)',
-      aria: 'Série temporal do evento'
+    if (!model || !Array.isArray(model.events) || !model.events.length) return empty(box);
+    const groups = [
+      ['Treino', 'Treino'],
+      ['Validacao', 'Validação'],
+      ['Teste', 'Teste']
+    ];
+    let renderedAny = false;
+    groups.forEach(([key, label]) => {
+      const evs = model.events.filter(ev => ev.conjunto === key && model.series && model.series[ev.key] && model.series[ev.key].length);
+      if (!evs.length) return;
+      renderedAny = true;
+      const section = document.createElement('div');
+      section.className = 'audit-event-group';
+      const head = document.createElement('div');
+      head.className = 'audit-event-group-head';
+      head.innerHTML = '<h4>' + escapeHtml(label) + '</h4><span class="audit-event-group-count">' +
+        nf.format(evs.length) + (evs.length > 1 ? ' eventos' : ' evento') + '</span>';
+      const grid = document.createElement('div');
+      grid.className = 'audit-event-grid';
+      evs.forEach(ev => grid.append(renderEventCard(model, ev)));
+      section.append(head, grid);
+      box.append(section);
     });
+    if (!renderedAny) empty(box);
   }
 
-  function renderRise(model) {
-    const box = document.getElementById('audit-rise');
-    box.replaceChildren();
-    const rows = model && model.series && model.series[state.eventKey];
-    if (!rows || !rows.length) return empty(box);
-    renderLineChart(box, rows, {
-      columns: [{ i: 4, color: COLORS.riseObs }, { i: 5, color: COLORS.riseRna }],
-      yLabel: 'Subida (cm)',
-      zeroLine: true,
-      aria: 'Subida acumulada do evento'
+  function renderEventCard(model, ev) {
+    const rows = model.series[ev.key];
+    const card = document.createElement('div');
+    card.className = 'audit-event-card';
+    const head = document.createElement('div');
+    head.className = 'audit-event-card-head';
+    head.innerHTML = '<div class="audit-event-card-title">' + escapeHtml(eventLabel(ev, true)) + '</div>' +
+      '<div class="audit-event-card-stats">' +
+      '<span>Subida obs ' + fmtCm(ev.riseObs) + '</span>' +
+      '<span>MAE ' + fmtCm(ev.mae) + '</span>' +
+      '<span>Erro máx. ' + fmtCm(ev.maxErr) + '</span>' +
+      '</div>';
+    const charts = document.createElement('div');
+    charts.className = 'audit-event-charts';
+    const hydroWrap = document.createElement('div');
+    hydroWrap.className = 'audit-event-chart';
+    hydroWrap.innerHTML = '<div class="audit-event-chart-label">Hidrograma</div>';
+    const hydroBox = document.createElement('div');
+    hydroWrap.append(hydroBox);
+    renderLineChart(hydroBox, rows, {
+      columns: [{ i: 1, color: COLORS.obs }, { i: 2, color: COLORS.rna }],
+      yLabel: 'Nível (cm)',
+      aria: 'Hidrograma observado e RNA do evento ' + (ev.evento != null ? ev.evento : ''),
+      w: 320, h: 230, pad: { l: 46, r: 12, t: 12, b: 34 }, tickCount: 4
     });
+    const scatWrap = document.createElement('div');
+    scatWrap.className = 'audit-event-chart';
+    scatWrap.innerHTML = '<div class="audit-event-chart-label">Dispersão</div>';
+    const scatBox = document.createElement('div');
+    scatWrap.append(scatBox);
+    renderScatterChart(scatBox, rows.map(r => [r[1], r[2]]), {
+      color: setColor(ev.set),
+      pointRadius: 2.4,
+      pointOpacity: 0.6,
+      w: 320, h: 230, pad: { l: 44, r: 12, t: 12, b: 32 }, tickCount: 4,
+      aria: 'Dispersão observado contra RNA do evento ' + (ev.evento != null ? ev.evento : '')
+    });
+    charts.append(hydroWrap, scatWrap);
+    card.append(head, charts);
+    return card;
   }
 
   function renderLineChart(box, rows, cfg) {
-    const W = 620, H = 330, pad = { l: 58, r: 18, t: 18, b: 48 };
+    box.replaceChildren();
+    const W = cfg.w || 620, H = cfg.h || 330, pad = cfg.pad || { l: 58, r: 18, t: 18, b: 48 };
     const vals = rows.flatMap(r => cfg.columns.map(c => r[c.i])).filter(v => typeof v === 'number');
     if (!vals.length) return empty(box);
     let minV = Math.min(...vals), maxV = Math.max(...vals);
@@ -540,7 +576,7 @@
     const x = scale(0, Math.max(1, rows.length - 1), pad.l, W - pad.r);
     const y = scale(minV, maxV, H - pad.b, pad.t);
     const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': cfg.aria });
-    ticks(minV, maxV, 5).forEach(t => {
+    ticks(minV, maxV, cfg.tickCount || 5).forEach(t => {
       svg.append(svgEl('line', { x1: pad.l, x2: W - pad.r, y1: y(t), y2: y(t), class: t === 0 ? 'audit-baseline' : 'audit-gridline' }));
       svgText(svg, pad.l - 8, y(t) + 4, fmtShort(t), 'audit-axis', 'end');
     });
@@ -957,7 +993,6 @@
       fillModels();
       state.modelId = match.id;
       document.getElementById('audit-model').value = state.modelId;
-      fillEvents();
     } else if (main.familia) {
       state.family = main.familia;
       document.getElementById('audit-family').value = state.family;
