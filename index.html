@@ -1192,6 +1192,18 @@
     yl.setAttribute('transform',`translate(11 ${(padT+H-padB)/2}) rotate(-90)`);
     wrap.append(head,svg); return wrap;
   }
+  function scatterFromEvents(au, setCode){
+    const out=[];
+    if(!au || !au.series || !Array.isArray(au.events)) return out;
+    au.events.forEach(ev=>{
+      if(setCode!=null && Number(ev.set)!==Number(setCode)) return;
+      const rows=au.series[ev.key]||[];
+      rows.forEach(r=>{
+        if(typeof r[1]==='number' && typeof r[2]==='number') out.push([r[1],r[2]]);
+      });
+    });
+    return out;
+  }
   function eventLine(rows, cols, colors, labels, yLabel, zero){
     const wrap=document.createElement('div'); wrap.className='facet';
     const W=460,H=270,padL=52,padR=12,padT=10,padB=40;
@@ -1474,8 +1486,10 @@
     const bsc=document.createElement('div'); bsc.className='m-block'; bsc.style.marginTop='18px';
     const hsc=document.createElement('h4'); hsc.textContent='Dispersão observado × RNA'; bsc.appendChild(hsc);
     const row=document.createElement('div'); row.className='chart-row';
-    const sv=(au.scatterBySet&&au.scatterBySet['1'])||[];
-    const st=(au.scatterBySet&&au.scatterBySet['2'])||[];
+    let sv=(au.scatterBySet&&au.scatterBySet['1'])||[];
+    let st=(au.scatterBySet&&au.scatterBySet['2'])||[];
+    if(!sv.length) sv=scatterFromEvents(au,1);
+    if(!st.length) st=scatterFromEvents(au,2);
     if(sv.length) row.appendChild(obsRnaScatter(sv, hue, 'Validação'));
     if(st.length) row.appendChild(obsRnaScatter(st, SOFT[m.horizonte]||hue, 'Teste'));
     if(!sv.length&&!st.length){ const d=document.createElement('div'); d.className='m-load'; d.textContent='Sem pontos de validação/teste na planilha auditável.'; row.appendChild(d); }
@@ -1484,7 +1498,7 @@
     const evs=(au.events||[]).filter(e=>au.series&&au.series[e.key]);
     if(evs.length){
       const bev=document.createElement('div'); bev.className='m-block'; bev.style.marginTop='18px';
-      const hev=document.createElement('h4'); hev.textContent='Eventos deste modelo — onda e subida'; bev.appendChild(hev);
+      const hev=document.createElement('h4'); hev.textContent='Eventos deste modelo — hidrograma e dispersão'; bev.appendChild(hev);
       const chips=document.createElement('div'); chips.className='ev-chips';
       const chartsRow=document.createElement('div'); chartsRow.className='chart-row';
       const meta=document.createElement('div'); meta.className='m-note';
@@ -1493,7 +1507,7 @@
         chartsRow.replaceChildren();
         const rows=au.series[ev.key];
         chartsRow.appendChild(eventLine(rows,[1,2],['var(--ink-2)',hue],['Observado','RNA'],'nível (cm)',false));
-        chartsRow.appendChild(eventLine(rows,[4,5],['var(--ink-2)',hue],['Subida observada','Subida RNA'],'subida (cm)',true));
+        chartsRow.appendChild(obsRnaScatter(rows.map(r=>[r[1],r[2]]).filter(p=>typeof p[0]==='number'&&typeof p[1]==='number'), hue, 'Dispersão do evento'));
         meta.textContent=evLabel(ev)+' · conjunto: '+ev.conjunto+' · '+ev.n+' horas · pico observado '+nf.format(Math.round(ev.obsPeak))+' cm (RNA '+nf.format(Math.round(ev.rnaPeak))+' cm) · subida observada '+nf.format(Math.round(ev.riseObs))+' cm (RNA '+nf.format(Math.round(ev.riseRna))+' cm)';
       }
       evs.forEach((ev,i)=>{
