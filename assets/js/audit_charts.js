@@ -445,9 +445,27 @@
     }));
   }
 
+  function getScatterRows(model) {
+    if (!model) return null;
+    const direct = model.scatterBySet ? (model.scatterBySet[state.scope] || []) : (model.scatter || []);
+    if (direct && direct.length) return direct;
+    if (!model.series) return direct;
+    // fallback: monta a dispersão a partir das séries por evento (obs=col1, rna=col2, set=col3)
+    const out = [];
+    Object.values(model.series).forEach(a => {
+      if (!Array.isArray(a)) return;
+      a.forEach(r => {
+        if (typeof r[1] === 'number' && typeof r[2] === 'number') {
+          if (state.scope === 'all' || String(r[3]) === String(state.scope)) out.push([r[1], r[2], r[3]]);
+        }
+      });
+    });
+    return out;
+  }
+
   function renderScatter(model) {
     const box = document.getElementById('audit-scatter');
-    const rows = model && model.scatterBySet ? (model.scatterBySet[state.scope] || []) : (model && model.scatter);
+    const rows = getScatterRows(model);
     renderScatterChart(box, rows, {
       colorFn: c => setColor(c),
       opacityFn: c => c === 2 ? 0.78 : 0.5,
