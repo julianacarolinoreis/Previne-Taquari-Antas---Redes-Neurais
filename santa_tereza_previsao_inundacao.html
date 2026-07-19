@@ -120,7 +120,7 @@
 <main>
   <div id="map"></div>
   <aside>
-    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (Santa Tereza · 2h)</button>
+    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (Santa Tereza · 2h e 4h)</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
@@ -140,10 +140,10 @@
 
     <!-- ===== MODO SIMPLES ===== -->
     <div class="simple-only">
-      <div class="q">Nível do rio agora</div>
+      <div class="q">Leitura da régua agora</div>
       <div class="big agora"><span id="s-now">—</span></div>
 
-      <div class="q">Nível previsto do rio (<span id="s-hz">+N h</span>)</div>
+      <div class="q">Leitura prevista na régua (<span id="s-hz">+N h</span>)</div>
       <div class="big prev"><span id="s-fore">—</span></div>
 
       <div class="muda">
@@ -190,9 +190,9 @@
     <div class="tech-only">
       <div id="evinfo" class="disc" style="margin-top:0"></div>
       <h4>Leitura <span class="info" title="Nível do rio informado pela estação 86472600, na escala local da estação. A referência técnica é a régua local, mas para leitura pública o valor representa o nível do rio em Santa Tereza. PERS: ganho contra persistência. Área: superfície alagada estimada pelo HAND.">ⓘ</span></h4>
-      <div class="read"><span class="now">Nível do rio agora</span><b class="now" id="r-now">—</b></div>
-      <div class="read" id="r-modelbase-row" style="display:none"><span>Base do cálculo da RNA</span><b id="r-modelbase">—</b></div>
-      <div class="read"><span class="fore">Nível previsto do rio (+<span id="hz">?</span>)</span><b class="fore" id="r-fore">—</b></div>
+      <div class="read"><span class="now">Leitura da régua agora</span><b class="now" id="r-now">—</b></div>
+      <div class="read" id="r-modelbase-row" style="display:none"><span>Base usada pela RNA</span><b id="r-modelbase">—</b></div>
+      <div class="read"><span class="fore">Leitura prevista na régua (+<span id="hz">?</span>)</span><b class="fore" id="r-fore">—</b></div>
       <div class="read"><span>Mudança prevista desde agora</span><b id="r-dnivel">—</b></div>
       <div class="read"><span>Observado (+<span id="hz2">?</span>)</span><b id="r-obs">—</b></div>
       <div class="read"><span>Erro de nível (prev − obs)</span><b id="r-errniv">—</b></div>
@@ -219,7 +219,7 @@
       <div class="hydro"><svg id="hydro" viewBox="0 0 320 90" width="100%" style="cursor:pointer"></svg></div>
 
       <h4>Calibração · nível normal ↔ terreno</h4>
-      <p class="disc" style="margin-top:2px"><b>Nível normal / zero operacional da régua</b>: leitura adotada como início da mancha no leito do rio (HAND 0). Padrão provisório calibrado em <b>4,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
+      <p class="disc" style="margin-top:2px"><b>Leitura da régua</b>: o valor em metros é a altura lida na estação Santa Tereza/SGB-ANA, não a profundidade total do rio. <b>Nível normal / zero operacional</b>: leitura adotada como início da mancha no leito do rio (HAND 0). Padrão provisório calibrado em <b>4,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
       <input type="range" id="bankfull" min="100" max="700" step="10" value="400" style="width:100%">
       <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> O nível normal usado na mancha foi estimado pelo MDT ANADEM 30 m em ~405 cm e arredondado para 400 cm. A cota de inundação oficial permanece 15 m (SGB/SACE). O refinamento depende de validação com mancha observada.</div>
     </div>
@@ -330,13 +330,14 @@ function renderFrame(){
   const cf=CONF[ev.horizonte]||CONF['—']; set('s-conf',cf[0]); const cd=document.getElementById('s-confdot'); if(cd)cd.style.background=cf[1];
   // ---- modo tecnico ----
   set('r-now', fmtNivel(nowCm));
-  const modelBaseCm=liveMode&&liveData?liveModelBaseCm(liveData):null;
+  const activeD=liveMode?activeLiveData():null;
+  const modelBaseCm=activeD?liveModelBaseCm(activeD):null;
   const modelBaseRow=document.getElementById('r-modelbase-row');
   if(modelBaseRow){
     const showBase=modelBaseCm!=null && nowCm!=null && Math.abs(modelBaseCm-nowCm)>=1;
     modelBaseRow.style.display=showBase?'':'none';
   }
-  set('r-modelbase', modelBaseCm!=null?`${fmtNivel(modelBaseCm)} (${fmtWhen(liveData&&liveData.hora_modelo)})`:'—');
+  set('r-modelbase', modelBaseCm!=null?`${fmtNivel(modelBaseCm)} (${fmtWhen(activeD&&activeD.hora_modelo)})`:'—');
   set('r-fore', hasFore?fmtNivel(foreCm):'—');
   set('r-dnivel', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
   const aoVivoSemObs = liveMode && liveData && liveData.modo!=='replay' && !hasObs;
