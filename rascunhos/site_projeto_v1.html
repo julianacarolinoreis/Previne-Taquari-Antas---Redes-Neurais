@@ -42,6 +42,11 @@
   .lead{margin-top:26px;max-width:58ch;font-size:17px;color:var(--muted)}
   .dark .lead{color:var(--green-muted)}
 
+  /* diagrama em traço fino */
+  .diagrama{margin:64px 0 8px}
+  .diagrama svg{width:100%;height:auto;display:block}
+  @media(max-width:760px){.diagrama{margin:44px 0 0}}
+
   /* eixos 01/02/03 */
   .eixos{margin-top:70px;display:grid;gap:0}
   .eixo{display:grid;grid-template-columns:110px 1fr 1.2fr;gap:26px;align-items:baseline;
@@ -113,6 +118,36 @@
     <div class="label">Contexto e objetivos</div>
     <h2 class="statement">Entre 2023 e 2024, a bacia registrou os eventos extremos mais severos de sua história.</h2>
     <p class="lead">O projeto investiga e desenvolve métodos, modelos e produtos voltados ao mapeamento de riscos, à previsão de curto prazo e à comunicação de risco, com vistas à redução de danos. As atividades organizam-se em três eixos de pesquisa.</p>
+
+    <!-- diagrama em traço fino: perfil do vale, níveis de cheia e estação -->
+    <figure class="diagrama rv" aria-label="Perfil esquemático do vale do rio com níveis de cheia e estação de medição">
+      <svg viewBox="0 0 900 240" role="img">
+        <g fill="none" stroke="#9db8a9" stroke-width="1.2">
+          <!-- encostas do vale -->
+          <path d="M0,96 C120,92 230,118 330,158 C375,176 402,186 424,188 L476,188 C498,186 525,176 570,158 C670,118 780,92 900,88"/>
+          <!-- rio -->
+          <path d="M428,188 q9,7 18,0 q9,7 18,0" stroke-width="1.6"/>
+          <!-- níveis de cheia (tracejados) -->
+          <path d="M362,168 L538,168" stroke-dasharray="5 5" opacity=".8"/>
+          <path d="M328,146 L572,146" stroke-dasharray="5 5" opacity=".8"/>
+          <!-- estação de medição na encosta -->
+          <path d="M596,148 L596,104 M589,148 L603,148"/>
+          <rect x="591" y="104" width="10" height="8"/>
+          <path d="M590,98 a8,8 0 0 1 12,0" opacity=".9"/>
+          <path d="M585,91 a15,15 0 0 1 22,0" opacity=".6"/>
+        </g>
+        <!-- cota de alerta: o único acento -->
+        <path d="M300,122 L600,122" fill="none" stroke="#f5c76b" stroke-width="1.6" stroke-dasharray="7 5"/>
+        <g font-size="12" fill="#9db8a9">
+          <text x="546" y="172">3 m</text>
+          <text x="580" y="150">9 m</text>
+          <text x="608" y="126" fill="#f5c76b">15 m — cota de inundação</text>
+          <text x="612" y="112">estação ANA</text>
+        </g>
+      </svg>
+      <figcaption class="label" style="margin-top:14px;color:var(--green-muted)">O nível do rio, medido de hora em hora, alimenta os modelos que antecipam a subida</figcaption>
+    </figure>
+
     <div class="eixos">
       <div class="eixo rv"><span class="n">01</span><h3>Monitorar, modelar e prever</h3><p>Redes de sensores e modelagem hidrológica para prever eventos extremos e mapear perigos, vulnerabilidades e riscos.</p></div>
       <div class="eixo rv"><span class="n">02</span><h3>Ciência cidadã</h3><p>A comunidade dos municípios participa do monitoramento por réguas e marcos, alimentando os dados e a decisão de evacuação.</p></div>
