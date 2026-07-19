@@ -21,7 +21,10 @@ população total · mulheres · crianças **0–4** · crianças **5–9** ·
 idosos **60–69** · idosos **70+** · indígenas · domicílios · densidade (hab/km²)
 
 ## Se falhar
-- O log imprime o **cabeçalho real** das tabelas quando um código de coluna do
-  IBGE muda → ajustar `COLMAP` em `preparar_vulnerabilidade.py`.
+- O passo de download imprime o **dicionário oficial** das variáveis (V010xx/V013xx);
+  se um código de coluna do IBGE mudar, o log mostra o cabeçalho real → ajustar
+  `COLMAP` em `preparar_vulnerabilidade.py`.
+- O robô **recusa publicar dados implausíveis**: área da bacia fora de 20–33 mil km²
+  ou proporções de mulheres/crianças/idosos/indígenas fora do esperado param o robô.
 - Se o limite da bacia não vier do IEDE-RS, rode de novo informando
   `bacia_url` (campo do botão Run workflow) com um geojson/shapefile da bacia.

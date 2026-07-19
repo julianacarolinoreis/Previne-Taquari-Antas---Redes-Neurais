@@ -98,17 +98,87 @@ for base in BASES:
 if faltando:
     raise RuntimeError(f"agregados não encontrados: {list(faltando)} — revisar BASES/TEMAS")
 
+# ---------- 3b) dicionário de dados (auditoria dos códigos de coluna) ----------
+def _imprime_dicionario(fonte):
+    """Imprime no log as variáveis V010xx/V013xx (demografia, cor ou raça)."""
+    import openpyxl
+    linhas = 0
+    wb = openpyxl.load_workbook(fonte, read_only=True, data_only=True)
+    for ws in wb.worksheets:
+        for row in ws.iter_rows(values_only=True):
+            cells = [str(c).strip() for c in row if c is not None and str(c).strip()]
+            if not cells: continue
+            if re.match(r"^[vV]0?1[03]\d{2}$", cells[0]):
+                print("  [dic]", " | ".join(cells[:3])[:170]); linhas += 1
+            if linhas >= 300: return
+    if not linhas:
+        print("[aviso] dicionário lido, mas nenhum código V010xx/V013xx encontrado")
+
+try:
+    for base in BASES:
+        dic = [h for h in listar_dir(base) if re.search(r"dicion", h, re.I)]
+        if not dic: continue
+        p = save(base + dic[0], "dicionario_agregados." + dic[0].rsplit(".", 1)[-1].lower())
+        if p.endswith(".zip"):
+            z = zipfile.ZipFile(p)
+            alvo = [n for n in z.namelist() if n.lower().endswith(".xlsx")]
+            if alvo: _imprime_dicionario(io.BytesIO(z.read(alvo[0])))
+        elif p.endswith(".xlsx"):
+            _imprime_dicionario(p)
+        break
+except Exception as e:
+    print(f"[aviso] não imprimi o dicionário: {e}")
+
 # ---------- 4) bacia Taquari-Antas ----------
 import json as _json
+
+def _slug_linha(r):
+    import unicodedata
+    t = " ".join(str(v) for k, v in r.items() if k != "geometry")
+    return unicodedata.normalize("NFD", t).encode("ascii", "ignore").decode().lower()
+
+def _valida_bacia(path):
+    """A Taquari-Antas tem ~26,4 mil km². Recusa camadas que não fecham a conta
+    (foi o que salvou de aceitar as minibacias do Atlas Hidroenergético)."""
+    import geopandas as g
+    df = g.read_file(path)
+    if df.crs is None: df = df.set_crs(4326)
+    alvo = df[df.apply(lambda r: "taquari" in _slug_linha(r), axis=1)]
+    com_antas = alvo[alvo.apply(lambda r: "antas" in _slug_linha(r), axis=1)] if len(alvo) else alvo
+    if len(com_antas): alvo = com_antas
+    if alvo.empty and len(df) <= 5: alvo = df   # geojson já recortado (ex.: BACIA_URL manual)
+    if alvo.empty:
+        raise RuntimeError("nenhuma feição com 'Taquari' na camada")
+    a = alvo.to_crs(5880).union_all().area / 1e6
+    print(f"[bacia] validação: {len(alvo)} feição(ões) Taquari, área {a:,.0f} km²")
+    if not (20_000 <= a <= 33_000):
+        raise RuntimeError(f"área {a:,.0f} km² fora do esperado (20–33 mil) — camada errada")
 
 def _tenta_bacia(url, nome="bacias_rs.geojson"):
     data = get(url)
     txt = data[:200].decode("utf-8", "replace")
     if "FeatureCollection" not in txt and '"features"' not in txt:
         raise RuntimeError(f"resposta não parece GeoJSON: {txt[:80]}")
-    open(os.path.join(RAW, nome), "wb").write(data)
+    dest = os.path.join(RAW, nome)
+    open(dest, "wb").write(data)
+    try:
+        _valida_bacia(dest)
+    except Exception:
+        os.remove(dest)
+        raise
+    open(os.path.join(RAW, "bacia_fonte.txt"), "w").write(url)
     print(f"[ok] bacia <- {url[:110]} ({len(data)//1024} KB)")
     return True
+
+def _score_bacia(n):
+    """0 = 'bacias hidrográficas' (preferida), 2 = 'minibacia' (última opção)."""
+    s = str(n).lower()
+    if "minibacia" in s: return 2
+    if re.search(r"bacias?[_ ]?hidrogr", s): return 0
+    return 1
+
+def _ordena_bacia(nomes):
+    return sorted(nomes, key=_score_bacia)
 
 def bacia_geoserver(root):
     for caminho in ("/ows", "/wfs"):
@@ -117,8 +187,8 @@ def bacia_geoserver(root):
         except Exception as e:
             print(f"[bacia] caps {root}{caminho}: {e}"); continue
         nomes = re.findall(r"<Name>([^<]+)</Name>", caps)
-        cand = [n for n in nomes if re.search(r"baci|hidrograf", n, re.I)]
-        print(f"[bacia] {root}{caminho}: {len(nomes)} camadas, candidatas: {cand[:6]}")
+        cand = _ordena_bacia([n for n in nomes if re.search(r"baci|hidrograf", n, re.I)])
+        print(f"[bacia] {root}{caminho}: {len(nomes)} camadas, candidatas: {cand[:20]}")
         for layer in cand:
             for of in ("application/json", "json"):
                 try:
@@ -140,15 +210,16 @@ def bacia_arcgis(root):
             servs += [s_["name"] for s_ in j(f"{root}/{pasta}?f=json").get("services", [])]
         except Exception:
             pass
-    cand = [s_ for s_ in servs if re.search(r"baci|hidrograf", s_, re.I)]
-    print(f"[bacia] {root}: {len(servs)} serviços, candidatos: {cand[:6]}")
+    cand = _ordena_bacia([s_ for s_ in servs if re.search(r"baci|hidrograf", s_, re.I)])
+    print(f"[bacia] {root}: {len(servs)} serviços, candidatos: {cand[:20]}")
     for sv in cand:
         for tipo in ("MapServer", "FeatureServer"):
             try:
                 meta = j(f"{root}/{sv}/{tipo}?f=json")
             except Exception:
                 continue
-            for ly in meta.get("layers", []):
+            camadas = sorted(meta.get("layers", []), key=lambda ly: _score_bacia(ly.get("name", "")))
+            for ly in camadas:
                 if not re.search(r"baci", str(ly.get("name", "")), re.I):  continue
                 try:
                     return _tenta_bacia(f"{root}/{sv}/{tipo}/{ly['id']}/query?where=1%3D1&outFields=*&returnGeometry=true&f=geojson")
