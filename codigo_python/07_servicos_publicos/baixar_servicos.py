@@ -12,7 +12,7 @@ Cada camada candidata é validada pela contagem de pontos (faixa plausível
 para o RS) antes de ser aceita. Um tipo ausente vira AVISO (buscamos fonte
 federal na iteração seguinte); com menos de 2 tipos encontrados o robô falha.
 """
-import os, re, json, unicodedata, urllib.request
+import os, re, json, time, unicodedata, urllib.request
 
 RAW = "_servicos_raw"
 os.makedirs(RAW, exist_ok=True)
@@ -61,43 +61,47 @@ def catalogo(root):
     return servs
 
 achados = {}
-for root in ROOTS:
-    if len(achados) == len(TIPOS): break
-    try:
-        servs = catalogo(root)
-    except Exception as e:
-        print(f"[aviso] catálogo {root}: {e}"); continue
-    print(f"[catálogo] {root}: {len(servs)} serviços")
-    for tipo, (rx, faixa) in TIPOS.items():
-        if tipo in achados: continue
-        cand = [s for s in servs if re.search(rx, slug(s))]
-        print(f"[{tipo}] serviços candidatos: {cand[:10]}")
-        for sv in cand:
-            if tipo in achados: break
-            for kind in ("MapServer", "FeatureServer"):
+for rodada in (1, 2, 3):        # o catálogo do IEDE oscila — insiste com pausa
+    if achados: break
+    if rodada > 1:
+        print(f"[retry] catálogo indisponível — tentativa {rodada}/3 em 90 s"); time.sleep(90)
+    for root in ROOTS:
+        if len(achados) == len(TIPOS): break
+        try:
+            servs = catalogo(root)
+        except Exception as e:
+            print(f"[aviso] catálogo {root}: {e}"); continue
+        print(f"[catálogo] {root}: {len(servs)} serviços")
+        for tipo, (rx, faixa) in TIPOS.items():
+            if tipo in achados: continue
+            cand = [s for s in servs if re.search(rx, slug(s))]
+            print(f"[{tipo}] serviços candidatos: {cand[:10]}")
+            for sv in cand:
                 if tipo in achados: break
-                try:
-                    meta = j(f"{root}/{sv}/{kind}?f=json")
-                except Exception:
-                    continue
-                camadas = meta.get("layers", [])
-                alvo = [ly for ly in camadas if re.search(rx, slug(ly.get("name", "")))] or camadas
-                for ly in alvo:
+                for kind in ("MapServer", "FeatureServer"):
+                    if tipo in achados: break
                     try:
-                        feats = query_todos(f"{root}/{sv}/{kind}/{ly['id']}")
-                    except Exception as e:
-                        print(f"[{tipo}] {sv}/{ly.get('name')}: {e}"); continue
-                    pontos = [f_ for f_ in feats if f_.get("geometry", {}).get("type") == "Point"]
-                    n = len(pontos)
-                    if not (faixa[0] <= n <= faixa[1]):
-                        print(f"[{tipo}] {sv}/{ly.get('name')}: {n} pontos fora da faixa {faixa} — pulo")
+                        meta = j(f"{root}/{sv}/{kind}?f=json")
+                    except Exception:
                         continue
-                    json.dump({"type": "FeatureCollection", "features": pontos},
-                              open(f"{RAW}/{tipo}.geojson", "w"), ensure_ascii=False)
-                    open(f"{RAW}/{tipo}_fonte.txt", "w").write(f"{root}/{sv}/{kind}/{ly['id']}")
-                    print(f"[ok] {tipo}: {n} pontos <- {sv}/{ly.get('name')}")
-                    achados[tipo] = n
-                    break
+                    camadas = meta.get("layers", [])
+                    alvo = [ly for ly in camadas if re.search(rx, slug(ly.get("name", "")))] or camadas
+                    for ly in alvo:
+                        try:
+                            feats = query_todos(f"{root}/{sv}/{kind}/{ly['id']}")
+                        except Exception as e:
+                            print(f"[{tipo}] {sv}/{ly.get('name')}: {e}"); continue
+                        pontos = [f_ for f_ in feats if f_.get("geometry", {}).get("type") == "Point"]
+                        n = len(pontos)
+                        if not (faixa[0] <= n <= faixa[1]):
+                            print(f"[{tipo}] {sv}/{ly.get('name')}: {n} pontos fora da faixa {faixa} — pulo")
+                            continue
+                        json.dump({"type": "FeatureCollection", "features": pontos},
+                                  open(f"{RAW}/{tipo}.geojson", "w"), ensure_ascii=False)
+                        open(f"{RAW}/{tipo}_fonte.txt", "w").write(f"{root}/{sv}/{kind}/{ly['id']}")
+                        print(f"[ok] {tipo}: {n} pontos <- {sv}/{ly.get('name')}")
+                        achados[tipo] = n
+                        break
 
 faltam = [t for t in TIPOS if t not in achados]
 if faltam:
