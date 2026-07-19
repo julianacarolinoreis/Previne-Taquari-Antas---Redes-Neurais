@@ -164,6 +164,11 @@ m["pop_bacia"] = m["cod_mun"].map(popb).fillna(0).astype(int)   # pop do municí
 m["geometry"] = m.to_crs(5880).geometry.simplify(120).to_crs(4326)   # leve p/ visão geral
 m.to_file(f"{OUT}/municipios.geojson", driver="GeoJSON")
 
+# contorno da bacia (para o mapa)
+gpd.GeoDataFrame({"nome": ["Bacia Taquari-Antas"]},
+                 geometry=[gpd.GeoSeries([bacia], crs=4326).to_crs(5880).simplify(100).to_crs(4326).iloc[0]],
+                 crs=4326).to_file(f"{OUT}/bacia.geojson", driver="GeoJSON")
+
 # setores por município (simplificados)
 g["geometry"] = g.to_crs(5880).geometry.simplify(15).to_crs(4326)
 for cod, gg in g.groupby("cod_mun"):
