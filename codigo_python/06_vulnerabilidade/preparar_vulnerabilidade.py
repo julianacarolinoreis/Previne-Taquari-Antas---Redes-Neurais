@@ -80,6 +80,13 @@ cod_col = next(c for c in mun.columns if c.upper().startswith("CD_MUN"))
 nom_col = next(c for c in mun.columns if c.upper().startswith("NM_MUN"))
 mun = mun.rename(columns={cod_col: "cod", nom_col: "nome"})[["cod", "nome", "geometry"]]
 
+# contorno do RS para o mini-mapa de localização (dissolve da malha municipal)
+_rs = mun.to_crs(5880).union_all().simplify(1000)
+gpd.GeoDataFrame({"nome": ["Rio Grande do Sul"]},
+                 geometry=gpd.GeoSeries([_rs], crs=5880).to_crs(4326),
+                 ).to_file(f"{OUT}/rs_contorno.geojson", driver="GeoJSON")
+print("[rs] contorno do estado gerado para o mini-mapa")
+
 bac = gpd.read_file(os.path.join(RAW, "bacias_rs.geojson"))
 if bac.crs is None: bac = bac.set_crs(4326)
 bac = bac.to_crs(4326)
