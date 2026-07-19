@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PREVINE · Vulnerabilidade social — bacia Taquari-Antas</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --bg:#eef3f1;--panel:#fff;--ink:#132019;--muted:#5c6b63;--line:#e0e6e1;
+    --brand:#0f6b4a;--agora:#1e5fbf;
+    --shadow:0 1px 3px rgba(20,40,30,.07),0 8px 26px rgba(20,40,30,.06);
+  }
+  *{box-sizing:border-box}
+  *,svg text{font-family:Tahoma,Verdana,Geneva,sans-serif !important}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink)}
+  header{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:600}
+  header .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--agora));flex:0 0 auto}
+  header h1{font-size:16.5px;margin:0;font-weight:750;letter-spacing:-.01em;line-height:1.15}
+  header .loc{font-size:11.5px;color:var(--muted)}
+  header a.back{margin-left:auto;font-size:12px;color:var(--brand);font-weight:650;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--bg)}
+  main{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:calc(100vh - 55px)}
+  #map{position:relative;background:var(--bg)}
+  aside{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:15px 15px 40px}
+  .q{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:12px 0 5px}
+  .q:first-child{margin-top:0}
+  .ind{display:flex;flex-wrap:wrap;gap:5px}
+  .ind button{font-size:11.5px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:5px 9px;cursor:pointer}
+  .ind button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .modes{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px;margin-top:8px}
+  .modes button{border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:650;padding:5px 12px;border-radius:999px;cursor:pointer}
+  .modes button.on{background:var(--brand);color:#fff}
+  .modes button:disabled{opacity:.4;cursor:default}
+  select{width:100%;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  .big{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1;color:var(--brand)}
+  .big small{font-size:13px;font-weight:600;color:var(--muted)}
+  .volta{display:none;width:100%;margin-top:8px;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:12.5px;font-weight:650;cursor:pointer}
+  .volta.show{display:block}
+  .legend{margin-top:8px;font-size:11.5px;color:var(--muted)}
+  .legend .row2{display:flex;align-items:center;gap:8px;padding:2px 0}
+  .legend .sw{width:22px;height:12px;border-radius:3px;flex:0 0 auto;border:1px solid rgba(0,0,0,.12)}
+  .rank{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+  .rank td{padding:4px 2px;border-bottom:1px solid var(--line)}
+  .rank td:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:650}
+  .rank tr{cursor:pointer}
+  .rank tr:hover td{background:var(--bg)}
+  .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:14px}
+  .disc a{color:var(--brand)}
+  .leaflet-container{font-size:12px}
+  .pop b{font-size:14px}
+  .pop table{font-size:12px;border-collapse:collapse;margin-top:4px}
+  .pop td{padding:1.5px 6px 1.5px 0;font-variant-numeric:tabular-nums}
+  .pop td:last-child{text-align:right;font-weight:650}
+  @media (max-width:900px){
+    main{grid-template-columns:1fr;height:auto}
+    #map{height:58vh}
+    aside{border-left:none;border-top:1px solid var(--line)}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="mark"></div>
+  <div>
+    <h1>Vulnerabilidade social — bacia Taquari-Antas</h1>
+    <div class="loc">Censo IBGE 2022 · 118 municípios · 1,33 milhão de pessoas na bacia</div>
+  </div>
+  <a class="back" href="index.html">← painel do projeto</a>
+</header>
+<main>
+  <div id="map"></div>
+  <aside>
+    <div class="q">Indicador</div>
+    <div class="ind" id="ind"></div>
+    <div class="modes" id="modes">
+      <button data-m="abs" class="on">valores</button>
+      <button data-m="pct">% da população</button>
+    </div>
+
+    <div class="q">Total na área vista</div>
+    <div class="big" id="tot">—</div>
+
+    <button class="volta" id="volta">← voltar aos municípios da bacia</button>
+
+    <div class="q">Legenda <span id="legctx" style="text-transform:none;font-weight:600"></span></div>
+    <div class="legend" id="leg"></div>
+
+    <div class="q">Buscar município</div>
+    <select id="busca"><option value="">— escolher —</option></select>
+
+    <div class="q" id="rktit">Maiores valores</div>
+    <table class="rank" id="rank"></table>
+
+    <div class="disc">
+      <b>Leitura honesta:</b> retrato da vulnerabilidade <b>social</b> pelo Censo 2022
+      (Agregados por Setores Censitários, IBGE). Municípios de borda entram com a
+      população inteira; o dado "na bacia" usa os setores dentro do limite da SEMA/DRH.
+      A sobreposição com o perigo hidrológico (manchas de inundação) vem na próxima fase
+      do PREVINE. Dados brutos e fontes:
+      <a href="assets/data/vulnerabilidade/brutos/FONTES.md">FONTES.md</a>.
+    </div>
+  </aside>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+"use strict";
+const DATA = "assets/data/vulnerabilidade";
+// fallback: a cópia desta página no PMRR não carrega os 12 MB de dados junto —
+// quando o caminho relativo não existir, busca direto do repositório Previne
+const DATA_FALLBACK = "https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/vulnerabilidade";
+function carrega(arq){
+  return fetch(`${DATA}/${arq}`).then(r=>{ if(!r.ok) throw 0; return r.json(); })
+    .catch(()=>fetch(`${DATA_FALLBACK}/${arq}`).then(r=>{ if(!r.ok) throw new Error(arq); return r.json(); }));
+}
+const INDS = [
+  {k:"mulheres", nome:"Mulheres",       pct:true},
+  {k:"c0_4",     nome:"Crianças 0–4",   pct:true},
+  {k:"c5_9",     nome:"Crianças 5–9",   pct:true},
+  {k:"i60_69",   nome:"Idosos 60–69",   pct:true},
+  {k:"i70m",     nome:"Idosos 70+",     pct:true},
+  {k:"indigenas",nome:"Indígenas",      pct:true},
+  {k:"dens",     nome:"Densidade",      pct:false, un:" hab/km²"},
+  {k:"dom",      nome:"Domicílios",     pct:false},
+  {k:"pop",      nome:"População",      pct:false},
+];
+const CORES = ["#eaf2ec","#c2dcc9","#8fc09e","#54996f","#155c47"];
+const fmt = n => Number(n).toLocaleString("pt-BR", {maximumFractionDigits: n < 100 ? 1 : 0});
+
+let ind = "mulheres", modo = "abs";
+let map, munLayer, setLayer = null, munData, munAtual = null;
+
+function valor(p){                     // valor do indicador nas propriedades p
+  const v = +p[ind] || 0;
+  if (modo === "pct" && INDS.find(i=>i.k===ind).pct) return p.pop > 0 ? v/p.pop*100 : 0;
+  return v;
+}
+function rotulo(v){
+  const d = INDS.find(i=>i.k===ind);
+  return modo === "pct" && d.pct ? fmt(v)+"%" : fmt(v)+(d.un||"");
+}
+function quantis(vals){                // 5 classes por quantis
+  const s = vals.filter(v=>isFinite(v)).sort((a,b)=>a-b);
+  if (!s.length) return [0,0,0,0];
+  const q = p => s[Math.min(s.length-1, Math.floor(p*s.length))];
+  return [q(.2), q(.4), q(.6), q(.8)];
+}
+function cor(v, brk){
+  let i = 0; while (i < brk.length && v > brk[i]) i++;
+  return CORES[i];
+}
+function popup(p, extra){
+  const linhas = INDS.map(d=>{
+    const abs = fmt(+p[d.k]||0)+(d.un||"");
+    const pc  = d.pct && p.pop>0 ? ` <span style="color:#5c6b63">(${fmt((+p[d.k]||0)/p.pop*100)}%)</span>` : "";
+    return `<tr><td>${d.nome}</td><td>${abs}${pc}</td></tr>`;
+  }).join("");
+  return `<div class="pop"><b>${p.nome||("Setor "+p.setor)}</b>${extra||""}<table>${linhas}</table></div>`;
+}
+
+function pintaMunicipios(){
+  const brk = quantis(munData.features.map(f=>valor(f.properties)));
+  munLayer.eachLayer(l=>{
+    l.setStyle({fillColor: cor(valor(l.feature.properties), brk),
+                fillOpacity:.72, color:"#fff", weight:1});
+  });
+  legenda(brk, "· municípios");
+  ranking(munData.features.map(f=>f.properties), true);
+  totaliza(munData.features.map(f=>f.properties));
+}
+function pintaSetores(){
+  if (!setLayer) return;
+  const feats = setLayer.getLayers().map(l=>l.feature);
+  const brk = quantis(feats.map(f=>valor(f.properties)));
+  setLayer.eachLayer(l=>{
+    const p = l.feature.properties;
+    l.setStyle({fillColor: cor(valor(p), brk),
+                fillOpacity: p.na_bacia ? .78 : .35, color:"#fff", weight:.7});
+  });
+  legenda(brk, "· setores de " + munAtual.nome);
+  ranking(feats.map(f=>f.properties), false);
+  totaliza(feats.map(f=>f.properties));
+}
+function legenda(brk, ctx){
+  document.getElementById("legctx").textContent = ctx;
+  const faixas = [];
+  for (let i=0;i<CORES.length;i++){
+    const de = i===0 ? null : brk[i-1], ate = i<brk.length ? brk[i] : null;
+    const txt = de===null ? "até "+rotulo(ate) : ate===null ? "acima de "+rotulo(de) : rotulo(de)+" – "+rotulo(ate);
+    faixas.push(`<div class="row2"><span class="sw" style="background:${CORES[i]}"></span>${txt}</div>`);
+  }
+  if (munAtual) faixas.push(`<div class="row2"><span class="sw" style="background:#8fc09e;opacity:.35"></span>setor fora do limite da bacia</div>`);
+  document.getElementById("leg").innerHTML = faixas.join("");
+}
+function ranking(props, isMun){
+  const top = props.map(p=>({n: p.nome||("Setor …"+String(p.setor).slice(-4)), v: valor(p), cod: p.cod_mun}))
+                   .sort((a,b)=>b.v-a.v).slice(0,10);
+  document.getElementById("rktit").textContent = "Maiores valores " + (isMun?"(municípios)":"(setores)");
+  document.getElementById("rank").innerHTML =
+    top.map(t=>`<tr data-cod="${t.cod||""}"><td>${t.n}</td><td>${rotulo(t.v)}</td></tr>`).join("");
+  if (isMun) document.querySelectorAll("#rank tr").forEach(tr=>{
+    tr.onclick = ()=>{ const c = tr.dataset.cod; if (c) abreMunicipio(c); };
+  });
+}
+function totaliza(props){
+  const d = INDS.find(i=>i.k===ind);
+  if (ind === "dens"){ document.getElementById("tot").innerHTML = "—"; return; }
+  const soma = props.reduce((s,p)=>s+(+p[ind]||0),0);
+  const pop  = props.reduce((s,p)=>s+(+p.pop||0),0);
+  const pc = d.pct && pop>0 ? ` <small>(${fmt(soma/pop*100)}% da população)</small>` : "";
+  document.getElementById("tot").innerHTML = fmt(soma)+(d.un||"")+pc;
+}
+
+let reqSeq = 0;                        // invalida respostas atrasadas (troca rápida de município)
+function abreMunicipio(cod){
+  const f = munData.features.find(f=>String(f.properties.cod_mun)===String(cod));
+  if (!f) return;
+  const meu = ++reqSeq;
+  carrega(`setores/${cod}.geojson`).then(gj=>{
+    if (meu !== reqSeq) return;        // outra seleção (ou voltar) aconteceu depois
+    if (setLayer) map.removeLayer(setLayer);
+    munAtual = f.properties;
+    setLayer = L.geoJSON(gj, {
+      onEachFeature: (ft,l)=>l.bindPopup(()=>popup(ft.properties,
+        ft.properties.na_bacia ? "" : ` <span style="color:#8a5a12;font-size:11px">(fora do limite da bacia)</span>`))
+    }).addTo(map);
+    munLayer.setStyle({fillOpacity:.06, color:"#9ab0a2", weight:1});
+    map.fitBounds(setLayer.getBounds(), {padding:[18,18]});
+    document.getElementById("volta").classList.add("show");
+    pintaSetores();
+  });
+}
+function voltaBacia(){
+  reqSeq++;                            // descarta qualquer carga de setores em andamento
+  if (setLayer){ map.removeLayer(setLayer); setLayer = null; }
+  munAtual = null;
+  document.getElementById("volta").classList.remove("show");
+  pintaMunicipios();
+  map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
+}
+
+// ---- montagem ----
+const indDiv = document.getElementById("ind");
+INDS.forEach(d=>{
+  const b = document.createElement("button");
+  b.textContent = d.nome; b.dataset.k = d.k;
+  if (d.k===ind) b.classList.add("on");
+  b.onclick = ()=>{
+    ind = d.k;
+    indDiv.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x.dataset.k===ind));
+    const pb = document.querySelector('#modes [data-m="pct"]');
+    pb.disabled = !d.pct;
+    if (!d.pct && modo==="pct"){ modo="abs"; sincronizaModos(); }
+    munAtual ? pintaSetores() : pintaMunicipios();
+  };
+  indDiv.appendChild(b);
+});
+function sincronizaModos(){
+  document.querySelectorAll("#modes button").forEach(x=>x.classList.toggle("on", x.dataset.m===modo));
+}
+document.querySelectorAll("#modes button").forEach(b=>{
+  b.onclick = ()=>{ if (b.disabled) return; modo = b.dataset.m; sincronizaModos();
+                    munAtual ? pintaSetores() : pintaMunicipios(); };
+});
+document.getElementById("volta").onclick = voltaBacia;
+
+map = L.map("map", {scrollWheelZoom:true}).setView([-29.0,-51.6], 8);
+const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
+const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                        {maxZoom:19, maxNativeZoom:19, attribution:"© Esri, Maxar"});
+L.control.layers({"Mapa": osm, "Satélite": sat}, null, {position:"topleft"}).addTo(map);
+
+carrega("municipios.geojson").then(gj=>{
+  munData = gj;
+  munLayer = L.geoJSON(gj, {
+    onEachFeature: (f,l)=>{
+      const p = f.properties;
+      l.bindPopup(()=>popup(p,
+        ` <span style="color:#5c6b63;font-size:11px">· ${fmt(p.pct_na_bacia)}% na bacia · ${fmt(p.pop_bacia)} hab. dentro dela</span>`));
+      l.on("dblclick", ()=>abreMunicipio(p.cod_mun));
+      l.on("popupopen", ()=>{
+        const el = l.getPopup().getElement();
+        if (!el || el.querySelector(".abre")) return;
+        const btn = document.createElement("button");
+        btn.className = "abre"; btn.textContent = "ver setores censitários →";
+        btn.style.cssText = "margin-top:6px;border:1px solid #e0e6e1;background:#eef3f1;border-radius:8px;padding:5px 8px;font-size:11.5px;font-weight:650;cursor:pointer";
+        btn.onclick = ()=>{ map.closePopup(); abreMunicipio(p.cod_mun); };
+        el.querySelector(".pop").appendChild(btn);
+      });
+    }
+  }).addTo(map);
+  map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
+  pintaMunicipios();
+
+  const sel = document.getElementById("busca");
+  gj.features.map(f=>f.properties).sort((a,b)=>a.nome.localeCompare(b.nome,"pt")).forEach(p=>{
+    const o = document.createElement("option");
+    o.value = p.cod_mun; o.textContent = p.nome;
+    sel.appendChild(o);
+  });
+  sel.onchange = ()=>{ if (sel.value) abreMunicipio(sel.value); };
+});
+
+// contorno oficial da bacia (gerado pelo robô; se ainda não existir, segue sem)
+carrega("bacia.geojson").then(gj=>{
+  L.geoJSON(gj, {style:{fill:false, color:"#0c2a22", weight:2.2, dashArray:"6 4"}}).addTo(map);
+}).catch(()=>{});
+</script>
+</body>
+</html>
