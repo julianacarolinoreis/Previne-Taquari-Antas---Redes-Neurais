@@ -106,6 +106,13 @@
 <script>
 "use strict";
 const DATA = "assets/data/vulnerabilidade";
+// fallback: a cópia desta página no PMRR não carrega os 12 MB de dados junto —
+// quando o caminho relativo não existir, busca direto do repositório Previne
+const DATA_FALLBACK = "https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/vulnerabilidade";
+function carrega(arq){
+  return fetch(`${DATA}/${arq}`).then(r=>{ if(!r.ok) throw 0; return r.json(); })
+    .catch(()=>fetch(`${DATA_FALLBACK}/${arq}`).then(r=>{ if(!r.ok) throw new Error(arq); return r.json(); }));
+}
 const INDS = [
   {k:"mulheres", nome:"Mulheres",       pct:true},
   {k:"c0_4",     nome:"Crianças 0–4",   pct:true},
@@ -204,10 +211,13 @@ function totaliza(props){
   document.getElementById("tot").innerHTML = fmt(soma)+(d.un||"")+pc;
 }
 
+let reqSeq = 0;                        // invalida respostas atrasadas (troca rápida de município)
 function abreMunicipio(cod){
   const f = munData.features.find(f=>String(f.properties.cod_mun)===String(cod));
   if (!f) return;
-  fetch(`${DATA}/setores/${cod}.geojson`).then(r=>r.json()).then(gj=>{
+  const meu = ++reqSeq;
+  carrega(`setores/${cod}.geojson`).then(gj=>{
+    if (meu !== reqSeq) return;        // outra seleção (ou voltar) aconteceu depois
     if (setLayer) map.removeLayer(setLayer);
     munAtual = f.properties;
     setLayer = L.geoJSON(gj, {
@@ -221,6 +231,7 @@ function abreMunicipio(cod){
   });
 }
 function voltaBacia(){
+  reqSeq++;                            // descarta qualquer carga de setores em andamento
   if (setLayer){ map.removeLayer(setLayer); setLayer = null; }
   munAtual = null;
   document.getElementById("volta").classList.remove("show");
@@ -260,7 +271,7 @@ const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Wo
                         {maxZoom:19, maxNativeZoom:19, attribution:"© Esri, Maxar"});
 L.control.layers({"Mapa": osm, "Satélite": sat}, null, {position:"topleft"}).addTo(map);
 
-fetch(`${DATA}/municipios.geojson`).then(r=>r.json()).then(gj=>{
+carrega("municipios.geojson").then(gj=>{
   munData = gj;
   munLayer = L.geoJSON(gj, {
     onEachFeature: (f,l)=>{
@@ -292,8 +303,7 @@ fetch(`${DATA}/municipios.geojson`).then(r=>r.json()).then(gj=>{
 });
 
 // contorno oficial da bacia (gerado pelo robô; se ainda não existir, segue sem)
-fetch(`${DATA}/bacia.geojson`).then(r=>r.ok?r.json():null).then(gj=>{
-  if (!gj) return;
+carrega("bacia.geojson").then(gj=>{
   L.geoJSON(gj, {style:{fill:false, color:"#0c2a22", weight:2.2, dashArray:"6 4"}}).addTo(map);
 }).catch(()=>{});
 </script>
