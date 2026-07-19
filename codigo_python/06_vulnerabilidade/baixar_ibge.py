@@ -233,6 +233,17 @@ if os.environ.get("BACIA_URL"):
         ok = _tenta_bacia(os.environ["BACIA_URL"])
     except Exception as e:
         print(f"[bacia] BACIA_URL falhou: {e}")
+# Camada oficial SEMA/DRH FIXADA (aceita na rodada 4): determinística — sem ela,
+# rodadas alternavam entre delineações (DRH 1,33 mi hab vs DNAEE 1,50 mi).
+# 3 tentativas porque o IEDE oscila com timeout; só depois cai na descoberta.
+URL_DRH = ("https://iede.rs.gov.br/server/rest/services/DRH/Bacias_Hidrograficas/"
+           "MapServer/0/query?where=1%3D1&outFields=*&returnGeometry=true&f=geojson")
+for tent in (1, 2, 3):
+    if ok: break
+    try:
+        ok = _tenta_bacia(URL_DRH)
+    except Exception as e:
+        print(f"[bacia] DRH fixa (tentativa {tent}): {e}")
 # IEDE-RS (delineação SEMA, a melhor) primeiro, com 2 tentativas — o serviço
 # oscila entre normal e timeout; SNIRH/ANA ficam de reserva.
 for tentativa in (1, 2):

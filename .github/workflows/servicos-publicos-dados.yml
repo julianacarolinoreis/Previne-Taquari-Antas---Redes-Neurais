@@ -1,0 +1,49 @@
+# ROBÔ Serviços Públicos — baixa hospitais/escolas/bombeiros/UBS do IEDE-RS,
+# recorta para a bacia Taquari-Antas e commita os geojson prontos do mapa.
+# Autossuficiente: botão (Run workflow) + 1x/mês — sem depender de ninguém.
+
+name: Serviços públicos — dados IEDE (bacia Taquari-Antas)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "43 6 4 * *"   # dia 4 de cada mês, 06:43 UTC
+
+permissions:
+  contents: write
+
+concurrency:
+  group: servicos-publicos-dados
+  cancel-in-progress: false
+
+jobs:
+  dados:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependências geoespaciais
+        run: pip install pandas geopandas pyogrio shapely
+
+      - name: Baixar camadas do IEDE-RS
+        run: python codigo_python/07_servicos_publicos/baixar_servicos.py
+
+      - name: Recortar para a bacia + contagens
+        run: python codigo_python/07_servicos_publicos/preparar_servicos.py
+
+      - name: Commitar assets/data/servicos
+        run: |
+          git config user.name  "previne-robo"
+          git config user.email "previne-robo@users.noreply.github.com"
+          git add assets/data/servicos
+          git diff --staged --quiet && { echo "sem mudança"; exit 0; }
+          git commit -m "bot: serviços públicos (IEDE-RS) da bacia [skip ci]"
+          for i in 1 2 3 4 5; do
+            git pull --rebase --autostash origin main && git push && exit 0
+            echo "push rejeitado ($i), rebase..."; sleep 3
+          done
+          echo "falha ao empurrar"; exit 1
