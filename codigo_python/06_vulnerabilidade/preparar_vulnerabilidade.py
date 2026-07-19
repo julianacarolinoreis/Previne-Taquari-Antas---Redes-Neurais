@@ -140,17 +140,27 @@ g = setg.merge(tab, on="setor", how="left").fillna(0)
 akm = g.to_crs(5880).geometry.area / 1e6
 g["dens"] = (g["pop"] / akm.replace(0, pd.NA)).fillna(0).round(1)
 
+# setores DENTRO do polígono da bacia (ponto representativo) — valida a
+# delineação de verdade e diz quanto de cada município está na bacia
+dentro = g.geometry.representative_point().within(bacia)
+g["na_bacia"] = dentro.astype(int)
+pop_dentro = float(g.loc[dentro, "pop"].sum())
+
 CAMPOS = ["pop", "dom", "mulheres", "c0_4", "c5_9", "i60_69", "i70m", "indigenas"]
 
 # ---------- saídas ----------
-# brutos recortados (auditável)
-tab[tab["setor"].str[:7].isin(inter["cod"].astype(str))].to_csv(f"{OUT}/brutos/setores_bacia_indicadores.csv", index=False)
+# brutos recortados (auditável), com flag de setor dentro do polígono
+rec = tab[tab["setor"].str[:7].isin(inter["cod"].astype(str))].copy()
+rec["na_bacia"] = rec["setor"].map(dict(zip(g["setor"], g["na_bacia"]))).fillna(0).astype(int)
+rec.to_csv(f"{OUT}/brutos/setores_bacia_indicadores.csv", index=False)
 
 # município: agrega setores
 agg = g.groupby("cod_mun")[CAMPOS].sum().reset_index()
 m = inter.rename(columns={"cod": "cod_mun"}).merge(agg, on="cod_mun", how="left").fillna(0)
 akm_m = m.to_crs(5880).geometry.area / 1e6
 m["dens"] = (m["pop"] / akm_m).round(1).values
+popb = g.loc[dentro].groupby("cod_mun")["pop"].sum()
+m["pop_bacia"] = m["cod_mun"].map(popb).fillna(0).astype(int)   # pop do município DENTRO da bacia
 m["geometry"] = m.to_crs(5880).geometry.simplify(120).to_crs(4326)   # leve p/ visão geral
 m.to_file(f"{OUT}/municipios.geojson", driver="GeoJSON")
 
@@ -197,7 +207,10 @@ checks = [
     faixa("idosos 70+",    tot["i70m"],      0.045,  0.100),
     faixa("indígenas",     tot["indigenas"], 0.0002, 0.020),
 ]
-assert 800_000 < tot["pop"] < 1_800_000, f"população da bacia suspeita ({int(tot['pop'])}; esperado ~1,2–1,3 milhão)"
+print(f"População dos municípios que TOCAM a bacia (inteiros): {int(tot['pop']):,}")
+print(f"População DENTRO do polígono da bacia (setores): {int(pop_dentro):,}")
+assert 900_000 < pop_dentro < 1_700_000, (f"população dentro da bacia suspeita ({int(pop_dentro):,}; "
+                                          f"esperado ~1,2–1,3 milhão) — delineação errada?")
 assert (m["mulheres"] <= m["pop"]).all(), "mulheres > pop em algum município"
 assert all(checks), ("proporções fora do esperado — conferir COLMAP contra o dicionário "
                      "impresso no log do passo de download")

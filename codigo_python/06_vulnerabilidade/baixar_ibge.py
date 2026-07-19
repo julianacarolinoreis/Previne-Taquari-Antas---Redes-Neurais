@@ -108,8 +108,8 @@ def _imprime_dicionario(fonte):
         for row in ws.iter_rows(values_only=True):
             cells = [str(c).strip() for c in row if c is not None and str(c).strip()]
             if not cells: continue
-            if re.match(r"^[vV]0?1[03]\d{2}$", cells[0]):
-                print("  [dic]", " | ".join(cells[:3])[:170]); linhas += 1
+            if any(re.match(r"^[vV]0?1[03]\d{2}$", c) for c in cells[:4]):
+                print("  [dic]", " | ".join(cells[:4])[:170]); linhas += 1
             if linhas >= 300: return
     if not linhas:
         print("[aviso] dicionário lido, mas nenhum código V010xx/V013xx encontrado")
@@ -183,7 +183,7 @@ def _ordena_bacia(nomes):
 def bacia_geoserver(root):
     for caminho in ("/ows", "/wfs"):
         try:
-            caps = get(root + caminho + "?service=WFS&request=GetCapabilities", timeout=60).decode("utf-8", "replace")
+            caps = get(root + caminho + "?service=WFS&request=GetCapabilities", timeout=90).decode("utf-8", "replace")
         except Exception as e:
             print(f"[bacia] caps {root}{caminho}: {e}"); continue
         nomes = re.findall(r"<Name>([^<]+)</Name>", caps)
@@ -199,7 +199,7 @@ def bacia_geoserver(root):
 
 def bacia_arcgis(root):
     def j(u):
-        return _json.loads(get(u, timeout=60))
+        return _json.loads(get(u, timeout=90))
     try:
         idx = j(root + "?f=json")
     except Exception as e:
@@ -233,17 +233,21 @@ if os.environ.get("BACIA_URL"):
         ok = _tenta_bacia(os.environ["BACIA_URL"])
     except Exception as e:
         print(f"[bacia] BACIA_URL falhou: {e}")
-if not ok:
-    for root in ("https://iede.rs.gov.br/geoserver", "https://ide.sema.rs.gov.br/geoserver",
-                 "https://geo.fepam.rs.gov.br/geoserver"):
-        if bacia_geoserver(root): ok = True; break
-if not ok:
-    for root in ("https://iede.rs.gov.br/server/rest/services",
-                 "https://iede.rs.gov.br/arcgis/rest/services",
-                 "https://portal1.snirh.gov.br/server/rest/services",
-                 "https://www.snirh.gov.br/arcgis/rest/services",
-                 "https://geoservicos.ana.gov.br/arcgis/rest/services"):
-        if bacia_arcgis(root): ok = True; break
+# IEDE-RS (delineação SEMA, a melhor) primeiro, com 2 tentativas — o serviço
+# oscila entre normal e timeout; SNIRH/ANA ficam de reserva.
+for tentativa in (1, 2):
+    if ok: break
+    if not ok:
+        for root in ("https://iede.rs.gov.br/geoserver", "https://ide.sema.rs.gov.br/geoserver",
+                     "https://geo.fepam.rs.gov.br/geoserver"):
+            if bacia_geoserver(root): ok = True; break
+    if not ok:
+        for root in ("https://iede.rs.gov.br/server/rest/services",
+                     "https://iede.rs.gov.br/arcgis/rest/services",
+                     "https://portal1.snirh.gov.br/server/rest/services",
+                     "https://www.snirh.gov.br/arcgis/rest/services",
+                     "https://geoservicos.ana.gov.br/arcgis/rest/services"):
+            if bacia_arcgis(root): ok = True; break
 if not ok:
     raise RuntimeError("não obtive o limite da bacia — informe bacia_url no Run workflow (geojson)")
 
