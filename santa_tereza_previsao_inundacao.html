@@ -125,6 +125,7 @@
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
       <button data-live-hz="2h" class="on">2h</button>
+      <button data-live-hz="4h">4h</button>
       <button data-live-hz="8h">8h</button>
       <button data-live-hz="12h">12h</button>
     </div>
@@ -195,6 +196,13 @@
       <div class="read"><span>Mudança prevista desde agora</span><b id="r-dnivel">—</b></div>
       <div class="read"><span>Observado (+<span id="hz2">?</span>)</span><b id="r-obs">—</b></div>
       <div class="read"><span>Erro de nível (prev − obs)</span><b id="r-errniv">—</b></div>
+      <div id="audit-live-block" style="display:none">
+        <h4>Auditoria ao vivo <span class="info" title="Confere previsões antigas quando o horário alvo já tem leitura real da ANA.">ⓘ</span></h4>
+        <div class="read"><span>Última previsão conferida</span><b id="a-last">—</b></div>
+        <div class="read"><span>Previsto × observado</span><b id="a-prevobs">—</b></div>
+        <div class="read"><span>Erro da última conferida</span><b id="a-err">—</b></div>
+        <div class="read"><span>MAE recente</span><b id="a-mae">—</b></div>
+      </div>
       <div class="read"><span class="now">Área alagada agora</span><b class="now" id="r-anow">—</b></div>
       <div class="read"><span class="fore">Área prevista</span><b class="fore" id="r-afore">—</b></div>
       <div class="read"><span class="add">Nova área (avanço)</span><b class="add" id="r-anew">—</b></div>
@@ -481,6 +489,29 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   if(faltantes) partes.push(faltantes);
   return partes.join(' · ')+'.';
 }
+function renderLiveAudit(D){
+  const block=document.getElementById('audit-live-block');
+  if(!block) return;
+  const A=D&&D.auditoria;
+  const U=A&&A.ultima_conferida;
+  if(!U){
+    block.style.display='';
+    set('a-last','ainda sem previsão conferida');
+    set('a-prevobs','—');
+    set('a-err','aguardando observado');
+    set('a-mae', A&&A.n_aguardando?`${A.n_aguardando} aguardando`:'—');
+    return;
+  }
+  block.style.display='';
+  const erro=Number(U.erro_cm);
+  const sinal=Number.isFinite(erro)&&erro>0?'+':'';
+  const mae6=A.mae_ultimas_6_cm!=null?`MAE últimas 6: ${nf1.format(A.mae_ultimas_6_cm)} cm`:'MAE últimas 6: —';
+  const mae24=A.mae_24h_cm!=null?`24h: ${nf1.format(A.mae_24h_cm)} cm`:'24h: —';
+  set('a-last', `${fmtWhen(U.hora_modelo)} → ${fmtWhen(U.hora_alvo)}`);
+  set('a-prevobs', `${fmtNivel(U.nivel_previsto_cm)} × ${fmtNivel(U.observado_cm)}`);
+  set('a-err', Number.isFinite(erro)?`${sinal}${nf1.format(erro)} cm`:'—');
+  set('a-mae', `${mae6} · ${mae24}`);
+}
 function liveWhenText(D,P){
   const base=fmtWhen(D.telemetria_ultima_em||D.hora_modelo||D.consultado_em||P[0]);
   const avisos=[];
@@ -513,6 +544,7 @@ function renderLiveStep(){
     const modoTxt=(L.modo||liveData.modo)==='replay'?'replay':'ao vivo';
     const ei=document.getElementById('evinfo');
     if(ei) ei.innerHTML=liveInfoHtml(L,P,hz,tipoTxt,modoTxt);
+    renderLiveAudit(L);
     set('live-kind', liveWhenKind(L));
     set('live-when', liveWhenText(L,P));
     renderFrame();
@@ -529,6 +561,7 @@ function renderLiveStep(){
   const modoTxt=liveData.modo==='replay'?'replay':'ao vivo';
   const ei=document.getElementById('evinfo');
   if(ei) ei.innerHTML=liveInfoHtml(liveData,P,hz,tipoTxt,modoTxt);
+  renderLiveAudit(liveData);
   set('live-kind', liveWhenKind(liveData));
   set('live-when', liveWhenText(liveData,P));
   renderFrame();
@@ -545,9 +578,10 @@ async function enterLive(){
     renderLiveStep(); clearInterval(liveTimer);
     liveTimer=setInterval(()=>{ const L=activeLiveData(); const n=L&&L.passos?L.passos.length:liveData.passos.length; liveIdx=(liveIdx+1)%n; renderLiveStep(); }, d.intervalo_ms||2500);
   } else { // ao_vivo real: um ponto + repesca a cada 60 s
-    liveData.passos=[[d.gerado_em, liveNowCm(d), d.nivel_previsto_cm]]; renderLiveStep();
+    if(!d.horizontes) liveData.passos=[[d.gerado_em, liveNowCm(d), d.nivel_previsto_cm]];
+    renderLiveStep();
     clearInterval(liveTimer);
-    liveTimer=setInterval(async()=>{ try{const r=await fetch(LIVE_URL,{cache:'no-store'}); const j=await r.json(); liveData=j; liveData.passos=[[j.gerado_em,liveNowCm(j),j.nivel_previsto_cm]]; prepareLiveData(liveData); liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
+    liveTimer=setInterval(async()=>{ try{const r=await fetch(LIVE_URL,{cache:'no-store'}); const j=await r.json(); liveData=j; if(!j.horizontes) liveData.passos=[[j.gerado_em,liveNowCm(j),j.nivel_previsto_cm]]; prepareLiveData(liveData); liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
   }
 }
 function exitLive(){ liveMode=false; clearInterval(liveTimer); document.body.classList.remove('live');

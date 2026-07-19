@@ -10,7 +10,7 @@ Roda no GitHub Actions (a cada 30 min):
 
 EXPERIMENTAL — não é alerta oficial.
 """
-import sys, json, datetime as dt, urllib.request, xml.etree.ElementTree as ET
+import os, sys, json, datetime as dt, urllib.request, xml.etree.ElementTree as ET
 import numpy as np
 from scipy.io import loadmat
 
@@ -28,8 +28,9 @@ BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
                             # codigo_python/04_zero_regua/. Definitivo aguarda a
                             # cota oficial do zero da régua (SGB/ANA).
 SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
+HISTORICO_SAIDA = "historico_previsoes_ao_vivo.json"
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
-ESTACOES = ["86472600", "86472000"]   # ST, Linha Jose Julio / R.Antas montante
+ESTACOES = ["86472600", "86472000", "86125130"]   # ST, Linha Jose Julio / R.Antas montante, Ituim
 ULTIMA_RAW = {}
 NOMES_ESTACOES = {
     "86472600": "Santa Tereza",
@@ -37,6 +38,28 @@ NOMES_ESTACOES = {
     "86125130": "Ituim",
     "86507000": "Carreiro",
 }
+MODELOS = [
+    {
+        "horizonte": "2h",
+        "horizonte_h": 2,
+        "tipo": "ALT",
+        "modelo": COMBO,
+        "mat": MODELO_MAT,
+        "inputs_total": 15,
+        "montador": "2h_alt_vfinal",
+        "principal": True,
+    },
+    {
+        "horizonte": "4h",
+        "horizonte_h": 4,
+        "tipo": "ALT",
+        "modelo": "4H_ALT_PRIO_12478",
+        "mat": "previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__prio_12478.mat",
+        "inputs_total": 5,
+        "montador": "4h_alt_prio_12478",
+        "principal": False,
+    },
+]
 
 def _local(tag):                          # remove {namespace} do nome da tag
     return tag.rsplit("}", 1)[-1]
@@ -157,6 +180,33 @@ def montar_inputs(series, t):
     ]
     return inputs, st0
 
+def montar_inputs_4h(series, t):
+    """Monta os 5 inputs do 4h ALT prio_12478 conforme planilha auditavel."""
+    def n(cod, h=0):
+        return nivel(series.get(cod, {}), t - dt.timedelta(hours=h))
+    def D(cod, h):
+        a, b = n(cod, 0), n(cod, h)
+        return None if None in (a, b) else a - b
+    def A(cod, h):
+        a, b, c, d = n(cod, 0), n(cod, 1), n(cod, h), n(cod, h + 1)
+        return None if None in (a, b, c, d) else (a - b) - (c - d)
+    st0 = n("86472600", 0)
+    inputs = [
+        n("86472600", 0),      # inp01 ST nivel atual
+        D("86472600", 1),      # inp02 ST D-1h
+        A("86472600", 12),     # inp03 ST A-12h
+        D("86125130", 12),     # inp04 Ituim D-12h
+        D("86472000", 4),      # inp05 Linha Jose Julio / Antas D-4h
+    ]
+    return inputs, st0
+
+def montar_inputs_modelo(cfg, series, t):
+    if cfg["montador"] == "2h_alt_vfinal":
+        return montar_inputs(series, t)
+    if cfg["montador"] == "4h_alt_prio_12478":
+        return montar_inputs_4h(series, t)
+    raise ValueError("montador desconhecido: " + str(cfg["montador"]))
+
 def diagnosticar_inputs_faltantes(series, t, inputs):
     """Explica quais leituras horarias faltaram para montar cada input."""
     especificacoes = [
@@ -198,6 +248,42 @@ def diagnosticar_inputs_faltantes(series, t, inputs):
             "horarios_faltantes": [h["hora"] for h in horarios if not h["disponivel"]],
         })
     return faltantes
+
+def diagnosticar_inputs_faltantes_4h(series, t, inputs):
+    especificacoes = [
+        ("inp01", "Santa Tereza - nivel atual", "86472600", [0]),
+        ("inp02", "Santa Tereza - nivel D-1h", "86472600", [0, 1]),
+        ("inp03", "Santa Tereza - aceleracao A-12h", "86472600", [0, 1, 12, 13]),
+        ("inp04", "Ituim - nivel D-12h", "86125130", [0, 12]),
+        ("inp05", "Linha Jose Julio / Rio das Antas - nivel D-4h", "86472000", [0, 4]),
+    ]
+    faltantes = []
+    for valor, (codigo_input, descricao, cod_estacao, atrasos) in zip(inputs, especificacoes):
+        if valor is not None:
+            continue
+        horarios = []
+        for h in dict.fromkeys(atrasos):
+            hora = t - dt.timedelta(hours=h)
+            disponivel = hora in series.get(cod_estacao, {})
+            horarios.append({
+                "atraso_h": h,
+                "hora": hora.isoformat(timespec="minutes"),
+                "disponivel": disponivel,
+            })
+        faltantes.append({
+            "input": codigo_input,
+            "descricao": descricao,
+            "estacao": cod_estacao,
+            "estacao_nome": NOMES_ESTACOES.get(cod_estacao, cod_estacao),
+            "horarios_necessarios": [h["hora"] for h in horarios],
+            "horarios_faltantes": [h["hora"] for h in horarios if not h["disponivel"]],
+        })
+    return faltantes
+
+def diagnosticar_inputs_modelo(cfg, series, t, inputs):
+    if cfg["montador"] == "4h_alt_prio_12478":
+        return diagnosticar_inputs_faltantes_4h(series, t, inputs)
+    return diagnosticar_inputs_faltantes(series, t, inputs)
 
 def resumo_estacoes(series):
     resumo = []
@@ -286,7 +372,219 @@ def escrever(nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes=None, e
         json.dump(out, f, ensure_ascii=False, indent=1)
     print("escrito", SAIDA, "->", out["nivel_atual_cm"], "->", out["nivel_previsto_cm"], status)
 
+def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes=None, estacoes_status=None):
+    consultado_em = agora_brt()
+    raw_st = ULTIMA_RAW.get("86472600")
+    idade_min = None
+    status_dados = None
+    if raw_st:
+        idade_min = round((consultado_em - raw_st[0]).total_seconds() / 60)
+        status_dados = "telemetria recente" if idade_min <= 120 else f"telemetria atrasada ({idade_min} min)"
+    return {
+        "modo": "ao_vivo",
+        "gerado_em": (t.isoformat() if t else consultado_em.isoformat()),
+        "hora_modelo": (t.isoformat() if t else None),
+        "hora_alvo": ((t + dt.timedelta(hours=cfg["horizonte_h"])).isoformat() if t else None),
+        "consultado_em": consultado_em.isoformat(timespec="seconds"),
+        "telemetria_ultima_em": (raw_st[0].isoformat() if raw_st else None),
+        "telemetria_ultima_nivel_cm": (round(raw_st[1]) if raw_st else None),
+        "idade_telemetria_min": idade_min,
+        "status_dados": status_dados,
+        "estacao": "86472600",
+        "local": "Santa Tereza",
+        "horizonte": cfg["horizonte"],
+        "horizonte_h": cfg["horizonte_h"],
+        "tipo": cfg["tipo"],
+        "modelo": cfg["modelo"],
+        "bankfull_cm": BANKFULL_CM,
+        "nivel_modelo_cm": (round(nivel_atual) if nivel_atual is not None else None),
+        "nivel_rio_agora_cm": (round(raw_st[1]) if raw_st else (round(nivel_atual) if nivel_atual is not None else None)),
+        "nivel_rio_agora_em": (raw_st[0].isoformat() if raw_st else (t.isoformat() if t else None)),
+        "nivel_atual_cm": (round(nivel_atual) if nivel_atual is not None else None),
+        "nivel_previsto_cm": (round(nivel_prev) if nivel_prev is not None else None),
+        "inputs_total": cfg["inputs_total"],
+        "inputs_faltantes_n": len(inputs_faltantes or []),
+        "inputs_faltantes": inputs_faltantes or [],
+        "estacoes_status": estacoes_status or [],
+        "status": status,
+        "aviso": aviso,
+    }
+
+def carregar_historico():
+    if not os.path.exists(HISTORICO_SAIDA):
+        return []
+    try:
+        with open(HISTORICO_SAIDA, "r", encoding="utf-8") as f:
+            dados = json.load(f)
+        if isinstance(dados, dict):
+            return dados.get("registros", [])
+        return dados if isinstance(dados, list) else []
+    except Exception as e:
+        print("historico invalido, reiniciando:", e)
+        return []
+
+def salvar_historico(registros):
+    pacote = {
+        "atualizado_em": agora_brt().isoformat(timespec="seconds"),
+        "registros": registros[-1200:],
+    }
+    with open(HISTORICO_SAIDA, "w", encoding="utf-8") as f:
+        json.dump(pacote, f, ensure_ascii=False, indent=1)
+
+def upsert_previsao_historico(registros, saida):
+    if saida.get("status") != "ok" or saida.get("nivel_previsto_cm") is None or not saida.get("hora_modelo"):
+        return registros
+    chave = f"{saida['local']}|{saida['horizonte']}|{saida['modelo']}|{saida['hora_modelo']}"
+    novo = {
+        "id": chave,
+        "local": saida["local"],
+        "estacao": saida["estacao"],
+        "horizonte": saida["horizonte"],
+        "horizonte_h": saida["horizonte_h"],
+        "tipo": saida.get("tipo"),
+        "modelo": saida["modelo"],
+        "hora_modelo": saida["hora_modelo"],
+        "hora_alvo": saida["hora_alvo"],
+        "nivel_modelo_cm": saida.get("nivel_modelo_cm"),
+        "nivel_rio_agora_cm": saida.get("nivel_rio_agora_cm"),
+        "nivel_previsto_cm": saida.get("nivel_previsto_cm"),
+        "status_auditoria": "aguardando",
+        "criado_em": saida.get("consultado_em"),
+    }
+    for i, reg in enumerate(registros):
+        if reg.get("id") == chave:
+            preservados = {k: reg.get(k) for k in ("observado_cm", "observado_em", "erro_cm", "erro_abs_cm", "status_auditoria", "auditado_em") if k in reg}
+            novo.update(preservados)
+            registros[i] = novo
+            return registros
+    registros.append(novo)
+    return registros
+
+def conferir_historico(registros, series):
+    serie_st = series.get("86472600", {})
+    ultima_hora = max(serie_st) if serie_st else None
+    for reg in registros:
+        if reg.get("status_auditoria") == "conferido":
+            continue
+        alvo = _parse_hora(reg.get("hora_alvo", ""))
+        if alvo is None:
+            continue
+        obs = serie_st.get(alvo)
+        if obs is not None:
+            previsto = reg.get("nivel_previsto_cm")
+            erro = None if previsto is None else float(previsto) - float(obs)
+            reg.update({
+                "observado_cm": round(obs),
+                "observado_em": alvo.isoformat(),
+                "erro_cm": (round(erro, 1) if erro is not None else None),
+                "erro_abs_cm": (round(abs(erro), 1) if erro is not None else None),
+                "status_auditoria": "conferido",
+                "auditado_em": agora_brt().isoformat(timespec="seconds"),
+            })
+        elif ultima_hora and alvo <= ultima_hora:
+            reg["status_auditoria"] = "sem_dado_ana"
+            reg["auditado_em"] = agora_brt().isoformat(timespec="seconds")
+    return registros
+
+def media(vals):
+    vals = [float(v) for v in vals if v is not None]
+    return round(sum(vals) / len(vals), 1) if vals else None
+
+def resumo_auditoria(registros, horizonte):
+    regs = [r for r in registros if r.get("horizonte") == horizonte]
+    conferidos = sorted(
+        [r for r in regs if r.get("status_auditoria") == "conferido"],
+        key=lambda r: r.get("hora_alvo") or ""
+    )
+    aguardando = len([r for r in regs if r.get("status_auditoria") == "aguardando"])
+    ultimas = conferidos[-12:]
+    agora = agora_brt()
+    ult24 = []
+    for r in conferidos:
+        alvo = _parse_hora(r.get("hora_alvo", ""))
+        if alvo and (agora - alvo).total_seconds() <= 24 * 3600:
+            ult24.append(r)
+    return {
+        "n_total": len(regs),
+        "n_conferidas": len(conferidos),
+        "n_aguardando": aguardando,
+        "ultima_conferida": (conferidos[-1] if conferidos else None),
+        "mae_ultimas_6_cm": media([r.get("erro_abs_cm") for r in conferidos[-6:]]),
+        "mae_24h_cm": media([r.get("erro_abs_cm") for r in ult24]),
+        "maior_erro_abs_24h_cm": (max([r.get("erro_abs_cm") for r in ult24 if r.get("erro_abs_cm") is not None]) if ult24 else None),
+        "ultimas_conferidas": ultimas,
+    }
+
+def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
+    try:
+        x, st0 = montar_inputs_modelo(cfg, series, t)
+    except Exception as e:
+        return _base_saida(cfg, None, None, t, f"falha ao montar inputs: {e}", aviso, [], estacoes_status)
+    if st0 is None or any(v is None for v in x):
+        faltando = sum(v is None for v in x)
+        inputs_faltantes = diagnosticar_inputs_modelo(cfg, series, t, x)
+        return _base_saida(cfg, st0, None, t, f"inputs incompletos ({faltando}/{cfg['inputs_total']} faltando) - sem previsao nesta hora", aviso, inputs_faltantes, estacoes_status)
+    try:
+        delta = prever(cfg["mat"], x)
+        out = _base_saida(cfg, st0, st0 + delta, t, "ok", aviso, [], estacoes_status)
+        out["delta_previsto_cm"] = round(delta, 1)
+        out["passos"] = [[out["hora_modelo"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
+        return out
+    except Exception as e:
+        return _base_saida(cfg, st0, None, t, f"falha no modelo: {e}", aviso, [], estacoes_status)
+
+def escolher_hora_modelo(cfg, series, horas_st):
+    """Usa a hora mais recente em que todos os inputs do modelo existem."""
+    for cand in reversed(horas_st):
+        try:
+            x, st0 = montar_inputs_modelo(cfg, series, cand)
+        except Exception:
+            continue
+        if st0 is not None and all(v is not None for v in x):
+            return cand
+    return horas_st[-1] if horas_st else None
+
+def escrever_pacote(horizontes, historico, aviso):
+    principal = horizontes.get("2h") or next(iter(horizontes.values()))
+    pacote = dict(principal)
+    pacote["horizontes"] = horizontes
+    pacote["auditoria_historico"] = {
+        hz: resumo_auditoria(historico, hz) for hz in horizontes.keys()
+    }
+    pacote["aviso"] = aviso
+    with open(SAIDA, "w", encoding="utf-8") as f:
+        json.dump(pacote, f, ensure_ascii=False, indent=1)
+    print("escrito", SAIDA, "horizontes=", ",".join(horizontes.keys()))
+
 def main():
+    aviso = "EXPERIMENTAL - nao e alerta oficial. Camada espacial da previsao de RNA (2h e 4h), em paralelo ao SGB/SACE."
+    try:
+        series = {c: buscar_ana(c) for c in ESTACOES}
+    except Exception as e:
+        escrever(None, None, None, f"falha na telemetria: {e}", aviso); return
+
+    horas = sorted(series["86472600"].keys())
+    if not horas:
+        escrever(None, None, None, "sem dado recente em Santa Tereza", aviso); return
+    t = horas[-1]
+    estacoes_status = resumo_estacoes(series)
+
+    horizontes = {}
+    for cfg in MODELOS:
+        t_modelo = escolher_hora_modelo(cfg, series, horas)
+        horizontes[cfg["horizonte"]] = gerar_saida_modelo(cfg, series, t_modelo, aviso, estacoes_status)
+
+    historico = carregar_historico()
+    for out in horizontes.values():
+        historico = upsert_previsao_historico(historico, out)
+    historico = conferir_historico(historico, series)
+    salvar_historico(historico)
+
+    for hz, out in horizontes.items():
+        out["auditoria"] = resumo_auditoria(historico, hz)
+    escrever_pacote(horizontes, historico, aviso)
+    return
+
     aviso = "EXPERIMENTAL — não é alerta oficial. Camada espacial da previsão de RNA (2h), em paralelo ao SGB/SACE."
     try:
         series = {c: buscar_ana(c) for c in ESTACOES}
