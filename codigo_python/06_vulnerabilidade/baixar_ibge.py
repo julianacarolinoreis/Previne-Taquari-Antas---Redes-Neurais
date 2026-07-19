@@ -99,37 +99,81 @@ if faltando:
     raise RuntimeError(f"agregados não encontrados: {list(faltando)} — revisar BASES/TEMAS")
 
 # ---------- 4) bacia Taquari-Antas ----------
-bacia_cands = []
-if os.environ.get("BACIA_URL"):
-    bacia_cands.append(os.environ["BACIA_URL"])
-# IEDE-RS (GeoServer WFS -> GeoJSON) — nomes de camada prováveis
-for layer in ("sema:bacias_hidrograficas", "fepam:bacias_hidrograficas",
-              "iede:bacias_hidrograficas_rs", "sema:bacia_hidrografica"):
-    bacia_cands.append(
-        "https://iede.rs.gov.br/geoserver/ows?service=WFS&version=2.0.0&request=GetFeature"
-        f"&typeNames={layer}&outputFormat=application/json")
-ok = False
-for u in bacia_cands:
+import json as _json
+
+def _tenta_bacia(url, nome="bacias_rs.geojson"):
+    data = get(url)
+    txt = data[:200].decode("utf-8", "replace")
+    if "FeatureCollection" not in txt and '"features"' not in txt:
+        raise RuntimeError(f"resposta não parece GeoJSON: {txt[:80]}")
+    open(os.path.join(RAW, nome), "wb").write(data)
+    print(f"[ok] bacia <- {url[:110]} ({len(data)//1024} KB)")
+    return True
+
+def bacia_geoserver(root):
+    for caminho in ("/ows", "/wfs"):
+        try:
+            caps = get(root + caminho + "?service=WFS&request=GetCapabilities", timeout=60).decode("utf-8", "replace")
+        except Exception as e:
+            print(f"[bacia] caps {root}{caminho}: {e}"); continue
+        nomes = re.findall(r"<Name>([^<]+)</Name>", caps)
+        cand = [n for n in nomes if re.search(r"baci|hidrograf", n, re.I)]
+        print(f"[bacia] {root}{caminho}: {len(nomes)} camadas, candidatas: {cand[:6]}")
+        for layer in cand:
+            for of in ("application/json", "json"):
+                try:
+                    return _tenta_bacia(f"{root}{caminho}?service=WFS&version=2.0.0&request=GetFeature&typeNames={layer}&outputFormat={of}")
+                except Exception as e:
+                    print(f"[bacia] {layer}/{of}: {e}")
+    return False
+
+def bacia_arcgis(root):
+    def j(u):
+        return _json.loads(get(u, timeout=60))
     try:
-        save(u, "bacias_rs.geojson"); ok = True; break
+        idx = j(root + "?f=json")
     except Exception as e:
-        print(f"[bacia] falhou {u[:90]}...: {e}")
-if not ok:
-    # última cartada: descobrir a camada pelo GetCapabilities
-    try:
-        caps = get("https://iede.rs.gov.br/geoserver/ows?service=WFS&request=GetCapabilities").decode("utf-8","replace")
-        nomes = re.findall(r"<Name>([^<]*baci[^<]*)</Name>", caps, re.I)
-        print("[bacia] camadas candidatas no IEDE:", nomes[:10])
-        for layer in nomes:
+        print(f"[bacia] arcgis {root}: {e}"); return False
+    servs = [s_["name"] for s_ in idx.get("services", [])]
+    for pasta in idx.get("folders", []):
+        try:
+            servs += [s_["name"] for s_ in j(f"{root}/{pasta}?f=json").get("services", [])]
+        except Exception:
+            pass
+    cand = [s_ for s_ in servs if re.search(r"baci|hidrograf", s_, re.I)]
+    print(f"[bacia] {root}: {len(servs)} serviços, candidatos: {cand[:6]}")
+    for sv in cand:
+        for tipo in ("MapServer", "FeatureServer"):
             try:
-                save("https://iede.rs.gov.br/geoserver/ows?service=WFS&version=2.0.0&request=GetFeature"
-                     f"&typeNames={layer}&outputFormat=application/json", "bacias_rs.geojson")
-                ok = True; break
-            except Exception as e:
-                print(f"[bacia] {layer}: {e}")
+                meta = j(f"{root}/{sv}/{tipo}?f=json")
+            except Exception:
+                continue
+            for ly in meta.get("layers", []):
+                if not re.search(r"baci", str(ly.get("name", "")), re.I):  continue
+                try:
+                    return _tenta_bacia(f"{root}/{sv}/{tipo}/{ly['id']}/query?where=1%3D1&outFields=*&returnGeometry=true&f=geojson")
+                except Exception as e:
+                    print(f"[bacia] {sv}/{ly.get('name')}: {e}")
+    return False
+
+ok = False
+if os.environ.get("BACIA_URL"):
+    try:
+        ok = _tenta_bacia(os.environ["BACIA_URL"])
     except Exception as e:
-        print(f"[bacia] GetCapabilities falhou: {e}")
+        print(f"[bacia] BACIA_URL falhou: {e}")
 if not ok:
-    raise RuntimeError("não obtive o limite da bacia — defina BACIA_URL (geojson/zip de shapefile) e rode de novo")
+    for root in ("https://iede.rs.gov.br/geoserver", "https://ide.sema.rs.gov.br/geoserver",
+                 "https://geo.fepam.rs.gov.br/geoserver"):
+        if bacia_geoserver(root): ok = True; break
+if not ok:
+    for root in ("https://iede.rs.gov.br/server/rest/services",
+                 "https://iede.rs.gov.br/arcgis/rest/services",
+                 "https://portal1.snirh.gov.br/server/rest/services",
+                 "https://www.snirh.gov.br/arcgis/rest/services",
+                 "https://geoservicos.ana.gov.br/arcgis/rest/services"):
+        if bacia_arcgis(root): ok = True; break
+if not ok:
+    raise RuntimeError("não obtive o limite da bacia — informe bacia_url no Run workflow (geojson)")
 
 print("DOWNLOAD COMPLETO em", RAW)
