@@ -42,11 +42,6 @@
   .lead{margin-top:26px;max-width:58ch;font-size:17px;color:var(--muted)}
   .dark .lead{color:var(--green-muted)}
 
-  /* diagrama em traço fino */
-  .diagrama{margin:64px 0 8px}
-  .diagrama svg{width:100%;height:auto;display:block}
-  @media(max-width:760px){.diagrama{margin:44px 0 0}}
-
   /* eixos 01/02/03 */
   .eixos{margin-top:70px;display:grid;gap:0}
   .eixo{display:grid;grid-template-columns:110px 1fr 1.2fr;gap:26px;align-items:baseline;
@@ -55,6 +50,26 @@
   .eixo h3{font-family:var(--display);font-weight:800;font-size:clamp(20px,2.6vw,28px);letter-spacing:-.015em;color:#fff}
   .eixo p{font-size:15px;color:var(--green-muted);line-height:1.6}
   @media(max-width:760px){.eixo{grid-template-columns:1fr;gap:8px}}
+
+  /* passo a passo (como funciona) */
+  .passos{margin-top:70px;display:grid;gap:0}
+  .passo{display:grid;grid-template-columns:1.25fr 1fr;gap:48px;align-items:center;
+    padding:44px 0;border-top:1px solid var(--line)}
+  .passo .pn{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--green-2)}
+  .passo h3{font-family:var(--display);font-weight:800;letter-spacing:-.02em;
+    font-size:clamp(22px,3.2vw,34px);margin-top:10px}
+  .passo p{margin-top:12px;font-size:15.5px;color:var(--muted);max-width:46ch;line-height:1.6}
+  .pcard{justify-self:end;width:min(100%,300px);background:#fff;border:1px solid var(--line);
+    border-radius:16px;padding:22px 24px;display:flex;flex-direction:column;gap:6px;
+    box-shadow:0 2px 6px rgba(16,59,48,.06),0 16px 34px rgba(16,59,48,.07)}
+  .pcard .pc-tag{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .pcard .pc-big{font-family:var(--display);font-weight:800;letter-spacing:-.02em;font-size:34px;color:var(--green-2);font-variant-numeric:tabular-nums}
+  .pcard .pc-big small{font-size:14px;font-weight:700;color:#b06a12}
+  .pcard .pc-sub{font-size:12px;color:var(--muted)}
+  a.pcard.link{text-decoration:none;transition:transform .15s ease,box-shadow .15s ease}
+  a.pcard.link:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(16,59,48,.08),0 22px 44px rgba(16,59,48,.1)}
+  .pnota{margin-top:18px;font-size:11.5px;color:var(--muted);opacity:.75}
+  @media(max-width:760px){.passo{grid-template-columns:1fr;gap:20px}.pcard{justify-self:start}}
 
   /* números gigantes */
   .stats{margin-top:66px;display:grid;grid-template-columns:repeat(4,1fr);gap:40px}
@@ -119,34 +134,6 @@
     <h2 class="statement">Entre 2023 e 2024, a bacia registrou os eventos extremos mais severos de sua história.</h2>
     <p class="lead">O projeto investiga e desenvolve métodos, modelos e produtos voltados ao mapeamento de riscos, à previsão de curto prazo e à comunicação de risco, com vistas à redução de danos. As atividades organizam-se em três eixos de pesquisa.</p>
 
-    <!-- diagrama em traço fino: perfil do vale, níveis de cheia e estação -->
-    <figure class="diagrama rv" aria-label="Perfil esquemático do vale do rio com níveis de cheia e estação de medição">
-      <svg viewBox="0 0 900 240" role="img">
-        <g fill="none" stroke="#9db8a9" stroke-width="1.2">
-          <!-- encostas do vale -->
-          <path d="M0,96 C120,92 230,118 330,158 C375,176 402,186 424,188 L476,188 C498,186 525,176 570,158 C670,118 780,92 900,88"/>
-          <!-- rio -->
-          <path d="M428,188 q9,7 18,0 q9,7 18,0" stroke-width="1.6"/>
-          <!-- níveis de cheia (tracejados) -->
-          <path d="M362,168 L538,168" stroke-dasharray="5 5" opacity=".8"/>
-          <path d="M328,146 L572,146" stroke-dasharray="5 5" opacity=".8"/>
-          <!-- estação de medição na encosta -->
-          <path d="M596,148 L596,104 M589,148 L603,148"/>
-          <rect x="591" y="104" width="10" height="8"/>
-          <path d="M590,98 a8,8 0 0 1 12,0" opacity=".9"/>
-          <path d="M585,91 a15,15 0 0 1 22,0" opacity=".6"/>
-        </g>
-        <!-- cota de alerta: o único acento -->
-        <path d="M300,122 L600,122" fill="none" stroke="#f5c76b" stroke-width="1.6" stroke-dasharray="7 5"/>
-        <g font-size="12" fill="#9db8a9">
-          <text x="546" y="172">3 m</text>
-          <text x="580" y="150">9 m</text>
-          <text x="608" y="126" fill="#f5c76b">15 m — cota de inundação</text>
-          <text x="612" y="112">estação ANA</text>
-        </g>
-      </svg>
-      <figcaption class="label" style="margin-top:14px;color:var(--green-muted)">O nível do rio, medido de hora em hora, alimenta os modelos que antecipam a subida</figcaption>
-    </figure>
 
     <div class="eixos">
       <div class="eixo rv"><span class="n">01</span><h3>Monitorar, modelar e prever</h3><p>Redes de sensores e modelagem hidrológica para prever eventos extremos e mapear perigos, vulnerabilidades e riscos.</p></div>
@@ -156,8 +143,57 @@
   </div>
 </section>
 
-<!-- ================= NÚMEROS (paper) ================= -->
+<!-- ================= COMO FUNCIONA (paper, passo a passo) ================= -->
 <section class="light">
+  <div class="wrap">
+    <div class="rv">
+      <div class="label">Como funciona</div>
+      <h2 class="statement">Da estação ao alerta, de hora em hora, sem apertar botão.</h2>
+    </div>
+    <div class="passos">
+      <div class="passo rv">
+        <div class="ptxt">
+          <span class="pn">Passo 1</span>
+          <h3>Medimos o rio</h3>
+          <p>As estações hidrometeorológicas da rede ANA registram o nível do rio de hora em hora, ao longo de toda a bacia.</p>
+        </div>
+        <div class="pcard">
+          <span class="pc-tag">estação 86472600 · Santa Tereza</span>
+          <span class="pc-big">2,41 m</span>
+          <span class="pc-sub">nível agora · leitura de hora em hora</span>
+        </div>
+      </div>
+      <div class="passo rv">
+        <div class="ptxt">
+          <span class="pn">Passo 2</span>
+          <h3>Prevemos a subida</h3>
+          <p>Modelos hidrológicos treinados com 15 anos de eventos da bacia projetam o nível das próximas horas — e rodam sozinhos, a cada 15 minutos.</p>
+        </div>
+        <div class="pcard">
+          <span class="pc-tag">previsão · horizonte de 2 h</span>
+          <span class="pc-big">2,87 m <small>+46 cm</small></span>
+          <span class="pc-sub">recalculada a cada 15 minutos</span>
+        </div>
+      </div>
+      <div class="passo rv">
+        <div class="ptxt">
+          <span class="pn">Passo 3</span>
+          <h3>Mostramos até onde a água chega</h3>
+          <p>A previsão vira mancha no mapa da cidade: qualquer pessoa vê as ruas que a água pode alcançar — base para o alerta e a resposta.</p>
+        </div>
+        <a class="pcard link" href="https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/santa_tereza_previsao_inundacao.html">
+          <span class="pc-tag">previsao.previne</span>
+          <span class="pc-big" style="font-size:22px">ver a previsão ao vivo →</span>
+          <span class="pc-sub">Santa Tereza · simulador público</span>
+        </a>
+      </div>
+    </div>
+    <p class="pnota rv">Valores ilustrativos — os números reais atualizam no site da previsão a cada 15 minutos.</p>
+  </div>
+</section>
+
+<!-- ================= NÚMEROS (paper) ================= -->
+<section class="light" style="padding-top:0">
   <div class="wrap rv">
     <div class="label">Em números</div>
     <div class="stats">
