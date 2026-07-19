@@ -40,11 +40,17 @@
   .legend{margin-top:8px;font-size:11.5px;color:var(--muted)}
   .legend .row2{display:flex;align-items:center;gap:8px;padding:2px 0}
   .legend .sw{width:22px;height:12px;border-radius:3px;flex:0 0 auto;border:1px solid rgba(0,0,0,.12)}
-  .rank{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
-  .rank td{padding:4px 2px;border-bottom:1px solid var(--line)}
-  .rank td:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:650}
-  .rank tr{cursor:pointer}
-  .rank tr:hover td{background:var(--bg)}
+  #inset{position:absolute;left:10px;bottom:24px;width:172px;height:132px;z-index:650;
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);background:#fff}
+  .leg-btn{margin-top:8px;font-size:11.5px;font-weight:650;border:1px solid var(--line);
+    background:#fff;color:var(--muted);border-radius:8px;padding:4px 9px;cursor:pointer}
+  .leg-btn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  #fxbox{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  #fxbox input{width:100%;font-size:12px;padding:5px 6px;border:1px solid var(--line);border-radius:7px}
+  #fxbox .acts{grid-column:1/-1;display:flex;gap:6px}
+  .baixar{width:100%;margin-top:14px;padding:9px;border:1px solid var(--line);border-radius:10px;
+    background:var(--bg);color:var(--ink);font-size:12.5px;font-weight:650;cursor:pointer}
+  .baixar:hover{border-color:var(--brand);color:var(--brand)}
   .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:14px}
   .disc a{color:var(--brand)}
   .leaflet-container{font-size:12px}
@@ -56,6 +62,7 @@
     main{grid-template-columns:1fr;height:auto}
     #map{height:58vh}
     aside{border-left:none;border-top:1px solid var(--line)}
+    #inset{width:120px;height:92px;bottom:18px}
   }
 </style>
 </head>
@@ -64,12 +71,12 @@
   <div class="mark"></div>
   <div>
     <h1>Vulnerabilidade social — bacia Taquari-Antas</h1>
-    <div class="loc">Censo IBGE 2022 · 118 municípios · 1,33 milhão de pessoas na bacia</div>
+    <div class="loc" id="subtit">Censo IBGE 2022 · municípios da bacia Taquari-Antas</div>
   </div>
   <a class="back" href="index.html">← painel do projeto</a>
 </header>
 <main>
-  <div id="map"></div>
+  <div id="map"><div id="inset" title="Onde a bacia fica no Rio Grande do Sul"></div></div>
   <aside>
     <div class="q">Indicador</div>
     <div class="ind" id="ind"></div>
@@ -85,12 +92,20 @@
 
     <div class="q">Legenda <span id="legctx" style="text-transform:none;font-weight:600"></span></div>
     <div class="legend" id="leg"></div>
+    <button class="leg-btn" id="editfx">editar faixas</button>
+    <div id="fxbox" hidden>
+      <input type="number" step="any" id="fx0"><input type="number" step="any" id="fx1">
+      <input type="number" step="any" id="fx2"><input type="number" step="any" id="fx3">
+      <div class="acts">
+        <button class="leg-btn" id="fxok">aplicar</button>
+        <button class="leg-btn" id="fxauto">voltar ao automático</button>
+      </div>
+    </div>
 
     <div class="q">Buscar município</div>
     <select id="busca"><option value="">— escolher —</option></select>
 
-    <div class="q" id="rktit">Maiores valores</div>
-    <table class="rank" id="rank"></table>
+    <button class="baixar" id="baixar">⬇ Baixar dados da tela (CSV)</button>
 
     <div class="disc">
       <b>Leitura honesta:</b> retrato da vulnerabilidade <b>social</b> pelo Censo 2022
@@ -98,6 +113,7 @@
       população inteira; o dado "na bacia" usa os setores dentro do limite da SEMA/DRH.
       A sobreposição com o perigo hidrológico (manchas de inundação) vem na próxima fase
       do PREVINE. Dados brutos e fontes:
+      <a href="assets/data/vulnerabilidade/brutos/setores_bacia_indicadores.csv">CSV completo por setor</a> ·
       <a href="assets/data/vulnerabilidade/brutos/FONTES.md">FONTES.md</a>.
     </div>
   </aside>
@@ -124,7 +140,8 @@ const INDS = [
   {k:"dom",      nome:"Domicílios",     pct:false},
   {k:"pop",      nome:"População",      pct:false},
 ];
-const CORES = ["#eaf2ec","#c2dcc9","#8fc09e","#54996f","#155c47"];
+// rampa roxa: não briga com o verde do terreno/satélite (pedido da Juliana)
+const CORES = ["#f3eef6","#d9c7e3","#b394c9","#8759a8","#4d2a6e"];
 const fmt = n => Number(n).toLocaleString("pt-BR", {maximumFractionDigits: n < 100 ? 1 : 0});
 
 let ind = "mulheres", modo = "abs";
@@ -145,6 +162,9 @@ function quantis(vals){                // 5 classes por quantis
   const q = p => s[Math.min(s.length-1, Math.floor(p*s.length))];
   return [q(.2), q(.4), q(.6), q(.8)];
 }
+const manualBrks = {};                 // faixas digitadas pela usuária, por indicador/modo/escopo
+function chaveBrk(){ return `${ind}|${modo}|${munAtual ? "set" : "mun"}`; }
+function getBrk(vals){ return manualBrks[chaveBrk()] || quantis(vals); }
 function cor(v, brk){
   let i = 0; while (i < brk.length && v > brk[i]) i++;
   return CORES[i];
@@ -159,26 +179,24 @@ function popup(p, extra){
 }
 
 function pintaMunicipios(){
-  const brk = quantis(munData.features.map(f=>valor(f.properties)));
+  const brk = getBrk(munData.features.map(f=>valor(f.properties)));
   munLayer.eachLayer(l=>{
     l.setStyle({fillColor: cor(valor(l.feature.properties), brk),
                 fillOpacity:.72, color:"#fff", weight:1});
   });
   legenda(brk, "· municípios");
-  ranking(munData.features.map(f=>f.properties), true);
   totaliza(munData.features.map(f=>f.properties));
 }
 function pintaSetores(){
   if (!setLayer) return;
   const feats = setLayer.getLayers().map(l=>l.feature);
-  const brk = quantis(feats.map(f=>valor(f.properties)));
+  const brk = getBrk(feats.map(f=>valor(f.properties)));
   setLayer.eachLayer(l=>{
     const p = l.feature.properties;
     l.setStyle({fillColor: cor(valor(p), brk),
                 fillOpacity: p.na_bacia ? .78 : .35, color:"#fff", weight:.7});
   });
   legenda(brk, "· setores de " + munAtual.nome);
-  ranking(feats.map(f=>f.properties), false);
   totaliza(feats.map(f=>f.properties));
 }
 function legenda(brk, ctx){
@@ -189,18 +207,10 @@ function legenda(brk, ctx){
     const txt = de===null ? "até "+rotulo(ate) : ate===null ? "acima de "+rotulo(de) : rotulo(de)+" – "+rotulo(ate);
     faixas.push(`<div class="row2"><span class="sw" style="background:${CORES[i]}"></span>${txt}</div>`);
   }
-  if (munAtual) faixas.push(`<div class="row2"><span class="sw" style="background:#8fc09e;opacity:.35"></span>setor fora do limite da bacia</div>`);
+  if (manualBrks[chaveBrk()]) faixas.push(`<div class="row2" style="color:#8a5a12">faixas manuais em uso</div>`);
+  if (munAtual) faixas.push(`<div class="row2"><span class="sw" style="background:${CORES[2]};opacity:.35"></span>setor fora do limite da bacia</div>`);
   document.getElementById("leg").innerHTML = faixas.join("");
-}
-function ranking(props, isMun){
-  const top = props.map(p=>({n: p.nome||("Setor …"+String(p.setor).slice(-4)), v: valor(p), cod: p.cod_mun}))
-                   .sort((a,b)=>b.v-a.v).slice(0,10);
-  document.getElementById("rktit").textContent = "Maiores valores " + (isMun?"(municípios)":"(setores)");
-  document.getElementById("rank").innerHTML =
-    top.map(t=>`<tr data-cod="${t.cod||""}"><td>${t.n}</td><td>${rotulo(t.v)}</td></tr>`).join("");
-  if (isMun) document.querySelectorAll("#rank tr").forEach(tr=>{
-    tr.onclick = ()=>{ const c = tr.dataset.cod; if (c) abreMunicipio(c); };
-  });
+  brk.forEach((v,i)=>{ document.getElementById("fx"+i).value = Math.round(v*100)/100; });
 }
 function totaliza(props){
   const d = INDS.find(i=>i.k===ind);
@@ -264,12 +274,56 @@ document.querySelectorAll("#modes button").forEach(b=>{
 });
 document.getElementById("volta").onclick = voltaBacia;
 
-map = L.map("map", {scrollWheelZoom:true}).setView([-29.0,-51.6], 8);
+// editor de faixas da legenda
+const fxbox = document.getElementById("fxbox"), editfx = document.getElementById("editfx");
+editfx.onclick = ()=>{ fxbox.hidden = !fxbox.hidden; editfx.classList.toggle("on", !fxbox.hidden); };
+function repinta(){ munAtual ? pintaSetores() : pintaMunicipios(); }
+document.getElementById("fxok").onclick = ()=>{
+  const v = [0,1,2,3].map(i=>parseFloat(document.getElementById("fx"+i).value));
+  if (v.some(x=>!isFinite(x))) return;
+  manualBrks[chaveBrk()] = v.sort((a,b)=>a-b);
+  repinta();
+};
+document.getElementById("fxauto").onclick = ()=>{ delete manualBrks[chaveBrk()]; repinta(); };
+
+// baixar o que está na tela em CSV (gerado no navegador)
+document.getElementById("baixar").onclick = ()=>{
+  let rows, nomeArq;
+  if (munAtual && setLayer){
+    rows = setLayer.getLayers().map(l=>l.feature.properties);
+    nomeArq = `setores_${munAtual.cod_mun}_${munAtual.nome.normalize("NFD").replace(/[^\w]/g,"_")}.csv`;
+  } else {
+    rows = munData.features.map(f=>f.properties);
+    nomeArq = "municipios_bacia_taquari_antas.csv";
+  }
+  const cols = Object.keys(rows[0]);
+  const csv = [cols.join(";")]
+    .concat(rows.map(r=>cols.map(c=>String(r[c] ?? "").replace(/;/g, ",")).join(";")))
+    .join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8"}));
+  a.download = nomeArq; a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+// mapa principal preso à região (nada de Brasil inteiro — só RS/bacia)
+const RS_BOUNDS = L.latLngBounds([-34.2,-58.3],[-26.6,-48.4]);
+map = L.map("map", {scrollWheelZoom:true, maxBounds:RS_BOUNDS.pad(0.05), maxBoundsViscosity:1.0, minZoom:7})
+       .setView([-29.0,-51.6], 8);
 const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                         {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
                         {maxZoom:19, maxNativeZoom:19, attribution:"© Esri, Maxar"});
 L.control.layers({"Mapa": osm, "Satélite": sat}, null, {position:"topleft"}).addTo(map);
+
+// mini-mapa de localização: o RS com o retângulo da bacia
+const inset = L.map("inset", {zoomControl:false, attributionControl:false, dragging:false,
+  scrollWheelZoom:false, doubleClickZoom:false, boxZoom:false, keyboard:false, touchZoom:false});
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:8}).addTo(inset);
+inset.fitBounds([[-33.9,-57.7],[-27.0,-49.5]]);
+carrega("rs_contorno.geojson").then(gj=>{     // gerado pelo robô; sem ele, fica só o retângulo
+  L.geoJSON(gj, {style:{color:"#5c6b63", weight:1, fill:false}}).addTo(inset);
+}).catch(()=>{});
 
 carrega("municipios.geojson").then(gj=>{
   munData = gj;
@@ -292,6 +346,10 @@ carrega("municipios.geojson").then(gj=>{
   }).addTo(map);
   map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
   pintaMunicipios();
+  L.rectangle(munLayer.getBounds(), {color:"#0f6b4a", weight:1.5, fill:false}).addTo(inset);
+  const popB = gj.features.reduce((s,f)=>s+(+f.properties.pop_bacia||0),0);
+  document.getElementById("subtit").textContent =
+    `Censo IBGE 2022 · ${gj.features.length} municípios · ${(popB/1e6).toLocaleString("pt-BR",{maximumFractionDigits:2})} milhão de pessoas na bacia`;
 
   const sel = document.getElementById("busca");
   gj.features.map(f=>f.properties).sort((a,b)=>a.nome.localeCompare(b.nome,"pt")).forEach(p=>{
