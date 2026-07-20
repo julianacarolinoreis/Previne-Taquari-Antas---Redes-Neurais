@@ -37,18 +37,30 @@ def j(url):
 def slug(t):
     return unicodedata.normalize("NFD", str(t)).encode("ascii", "ignore").decode().lower()
 
-def query_todos(base):
-    """Todas as feições de uma camada ArcGIS, paginando com resultOffset."""
-    feats, offset = [], 0
-    while True:
-        gj = j(f"{base}/query?where=1%3D1&outFields=*&returnGeometry=true"
-               f"&outSR=4326&f=geojson&resultOffset={offset}")
+def query_todos(base, page=1000, max_paginas=80):
+    """Todas as feições de uma camada ArcGIS, paginando com resultOffset.
+    Blindado contra servidor que ignora o offset (repetiria a 1ª página para
+    sempre): pede resultRecordCount fixo, para se a página se repetir e tem
+    teto de páginas."""
+    feats, offset, visto = [], 0, set()
+    for _ in range(max_paginas):
+        gj = j(f"{base}/query?where=1%3D1&outFields=*&returnGeometry=true&outSR=4326"
+               f"&f=geojson&resultOffset={offset}&resultRecordCount={page}")
         lote = gj.get("features", [])
+        if not lote:
+            break
+        # assinatura da página: se repetir, o servidor ignora o offset -> paramos
+        chave = (len(lote), json.dumps(lote[0].get("geometry"), sort_keys=True)[:120])
+        if chave in visto:
+            print(f"  [pag] servidor ignora resultOffset — encerrando com {len(feats)} feições")
+            break
+        visto.add(chave)
         feats += lote
         excedeu = gj.get("exceededTransferLimit") or gj.get("properties", {}).get("exceededTransferLimit")
-        if not lote or not excedeu or offset > 100_000:
-            return feats
+        if not excedeu or len(lote) < page:
+            break
         offset += len(lote)
+    return feats
 
 def catalogo(root):
     idx = j(root + "?f=json")
