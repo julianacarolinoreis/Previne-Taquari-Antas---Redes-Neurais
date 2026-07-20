@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PREVINE · Movimentos de massa — Bacia Taquari-Antas</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --bg:#eef3f1;--panel:#fff;--ink:#132019;--muted:#5c6b63;--line:#e0e6e1;
+    --brand:#0f6b4a;--scar:#a5432a;--pt-red:#e63929;
+    --shadow:0 1px 3px rgba(20,40,30,.07),0 8px 26px rgba(20,40,30,.06);
+  }
+  *{box-sizing:border-box}
+  *,svg text{font-family:Tahoma,Verdana,Geneva,sans-serif !important}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  header{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:600}
+  header .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--scar),var(--pt));flex:0 0 auto}
+  header h1{font-size:16.5px;margin:0;font-weight:750;letter-spacing:-.01em;line-height:1.15}
+  header .loc{font-size:11.5px;color:var(--muted)}
+  .back-link{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:none;font-weight:650;border:1px solid var(--line);border-radius:999px;padding:7px 13px;white-space:nowrap}
+  .back-link:hover{border-color:var(--brand);color:var(--brand)}
+  main{display:grid;grid-template-columns:minmax(0,1fr) 360px;height:calc(100vh - 55px)}
+  #map{position:relative;background:var(--bg)}
+  aside{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:15px 15px 40px}
+  .intro{font-size:12.5px;color:var(--muted);line-height:1.45;margin-bottom:14px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .stat-box{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+  .stat-box .n{font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--ink);display:block}
+  .stat-box .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  h4{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 7px;font-weight:700}
+  .layer-toggle{display:flex;align-items:center;gap:9px;padding:7px 0;font-size:13px;cursor:pointer;user-select:none}
+  .layer-toggle input{width:16px;height:16px;accent-color:var(--brand);cursor:pointer}
+  .layer-toggle .sw{width:16px;height:16px;border-radius:4px;flex:0 0 auto}
+  .layer-toggle .sw.poly{background:rgba(165,67,42,.55);border:1px solid var(--scar)}
+  .layer-toggle .sw.pt{background:var(--pt-red);border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--pt-red)}
+  .legend{display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);margin-top:4px}
+  .legend .row2{display:flex;align-items:center;gap:8px}
+  .legend .sw{width:16px;height:16px;flex:0 0 auto;border-radius:4px}
+  .legend .sw.poly{background:rgba(165,67,42,.55);border:1px solid var(--scar)}
+  .legend .sw.pt{width:10px;height:10px;border-radius:50%;background:var(--pt-red);border:2px solid #fff;box-shadow:0 0 0 1px var(--pt-red)}
+  .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.5;margin-top:12px}
+  .disc b{color:var(--ink)}
+  .src{font-size:10.5px;color:var(--muted);margin-top:10px;line-height:1.5}
+  .leaflet-popup-content{font-size:12.5px;margin:9px 12px;line-height:1.5}
+  .pop b{color:var(--ink)}
+  .pop .area{color:var(--scar);font-weight:700}
+  @media(max-width:900px){
+    main{grid-template-columns:1fr;height:auto}
+    #map{height:56vh}
+    aside{border-left:0;border-top:1px solid var(--line)}
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="mark"></span>
+  <div><h1>Movimentos de massa</h1><div class="loc">Bacia Taquari-Antas · deslizamentos mapeados em 2024</div></div>
+  <a class="back-link" href="projeto.html">← Projeto</a>
+</header>
+<main>
+  <div id="map"></div>
+  <aside>
+    <div class="intro">Pontos de iniciação (cicatrizes de ruptura) e polígonos de deslizamentos identificados por
+      interpretação de imagens de satélite ao longo de 2024, recortados para a área aproximada da Bacia
+      Hidrográfica do Taquari-Antas.</div>
+
+    <div class="stats">
+      <div class="stat-box"><span class="n" id="st-poly">—</span><span class="l">polígonos</span></div>
+      <div class="stat-box"><span class="n" id="st-pts">—</span><span class="l">pontos de iniciação</span></div>
+      <div class="stat-box"><span class="n" id="st-area">—</span><span class="l">área mapeada</span></div>
+    </div>
+
+    <h4>Camadas</h4>
+    <label class="layer-toggle"><input type="checkbox" id="chk-poly" checked><span class="sw poly"></span>Polígonos de deslizamento</label>
+    <label class="layer-toggle"><input type="checkbox" id="chk-pt" checked><span class="sw pt"></span>Pontos de iniciação</label>
+
+    <h4>Legenda</h4>
+    <div class="legend">
+      <div class="row2"><span class="sw poly"></span>Área do deslizamento (cicatriz mapeada)</div>
+      <div class="row2"><span class="sw pt"></span>Ponto de iniciação / ruptura</div>
+    </div>
+
+    <div class="disc">
+      <b>Sobre os dados:</b> o recorte usa uma caixa delimitadora (bounding box) aproximada da bacia, não o
+      contorno oficial do divisor de águas — feições próximas ao limite da bacia podem estar levemente
+      deslocadas para dentro ou fora da área real.
+    </div>
+    <div class="src">Fonte: Landslides Initiation/Polygons RS Brazil 2024 (mapeamento por sensoriamento remoto) ·
+      recorte e visualização: PREVINE Taquari-Antas.</div>
+  </aside>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+  const POLY_URL='assets/data/landslides_poly.geojson';
+  const PT_URL='assets/data/landslides_initiation.json';
+
+  const map=L.map('map',{scrollWheelZoom:true,preferCanvas:true}).setView([-29.0,-51.5],9);
+  const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'© Esri, Maxar'}).addTo(map);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19}).addTo(map);
+
+  let polyLayer=null, ptLayer=null;
+  const bounds=L.latLngBounds([]);
+
+  fetch(POLY_URL).then(r=>r.json()).then(data=>{
+    let totalArea=0;
+    data.features.forEach(f=>{ totalArea+=f.properties.Area_m2||0; });
+    polyLayer=L.geoJSON(data,{
+      style:{color:'#a5432a',weight:1,fillColor:'#a5432a',fillOpacity:.5},
+      onEachFeature:(f,layer)=>{
+        const p=f.properties;
+        const areaHa=(p.Area_m2/10000).toFixed(2);
+        const label='Área: '+p.Area_m2.toLocaleString('pt-BR')+' m² ('+areaHa+' ha)';
+        layer.bindTooltip(label,{sticky:true});
+        layer.bindPopup('<div class="pop"><b>Cicatriz de deslizamento</b><br><span class="area">'+label+'</span></div>');
+      }
+    }).addTo(map);
+    bounds.extend(polyLayer.getBounds());
+    if(ptLayer) map.fitBounds(bounds,{padding:[20,20]});
+    document.getElementById('st-poly').textContent=data.features.length.toLocaleString('pt-BR');
+    document.getElementById('st-area').textContent=(totalArea/1e6).toFixed(1).replace('.',',')+' km²';
+    document.getElementById('chk-poly').addEventListener('change',e=>{
+      if(e.target.checked) polyLayer.addTo(map); else map.removeLayer(polyLayer);
+    });
+  }).catch(()=>{ document.getElementById('st-poly').textContent='erro'; });
+
+  fetch(PT_URL).then(r=>r.json()).then(coords=>{
+    const markers=coords.map(c=>L.circleMarker([c[1],c[0]],{radius:3,weight:1,color:'#fff',fillColor:'#e63929',fillOpacity:.9})
+      .bindPopup('<div class="pop"><b>Ponto de iniciação</b></div>'));
+    ptLayer=L.layerGroup(markers).addTo(map);
+    if(markers.length) bounds.extend(L.featureGroup(markers).getBounds());
+    if(polyLayer) map.fitBounds(bounds,{padding:[20,20]});
+    document.getElementById('st-pts').textContent=coords.length.toLocaleString('pt-BR');
+    document.getElementById('chk-pt').addEventListener('change',e=>{
+      if(e.target.checked) ptLayer.addTo(map); else map.removeLayer(ptLayer);
+    });
+  }).catch(()=>{ document.getElementById('st-pts').textContent='erro'; });
+})();
+</script>
+</body>
+</html>
