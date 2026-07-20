@@ -312,10 +312,13 @@ document.getElementById("baixar").onclick = ()=>{
   URL.revokeObjectURL(a.href);
 };
 
-// mapa principal preso à região (nada de Brasil inteiro — só RS/bacia)
-const RS_BOUNDS = L.latLngBounds([-34.2,-58.3],[-26.6,-48.4]);
-map = L.map("map", {scrollWheelZoom:true, maxBounds:RS_BOUNDS.pad(0.05), maxBoundsViscosity:1.0, minZoom:7})
-       .setView([-29.0,-51.6], 8);
+// mapa principal preso ao Rio Grande do Sul (nada de Brasil/Argentina/Uruguai)
+const RS_BOUNDS = L.latLngBounds([-33.9,-57.9],[-27.0,-49.6]);
+map = L.map("map", {scrollWheelZoom:true, maxBounds:RS_BOUNDS, maxBoundsViscosity:1.0})
+       .fitBounds(RS_BOUNDS);
+// zoom mínimo = o que faz o RS caber na tela; abaixo disso apareceria o resto do país
+map.setMinZoom(map.getBoundsZoom(RS_BOUNDS, true));
+addEventListener("resize", ()=>map.setMinZoom(map.getBoundsZoom(RS_BOUNDS, true)));
 map.createPane("servicos").style.zIndex = 450;   // pontos de serviços sempre acima dos polígonos
 const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                         {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
@@ -323,13 +326,16 @@ const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Wo
                         {maxZoom:19, maxNativeZoom:19, attribution:"© Esri, Maxar"});
 L.control.layers({"Mapa": osm, "Satélite": sat}, null, {position:"topleft"}).addTo(map);
 
-// mini-mapa de localização: o RS com o retângulo da bacia
+// mini-mapa de localização: o RS com a SILHUETA da bacia destacada
 const inset = L.map("inset", {zoomControl:false, attributionControl:false, dragging:false,
   scrollWheelZoom:false, doubleClickZoom:false, boxZoom:false, keyboard:false, touchZoom:false});
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:8}).addTo(inset);
 inset.fitBounds([[-33.9,-57.7],[-27.0,-49.5]]);
-carrega("rs_contorno.geojson").then(gj=>{     // gerado pelo robô; sem ele, fica só o retângulo
-  L.geoJSON(gj, {style:{color:"#5c6b63", weight:1, fill:false}}).addTo(inset);
+carrega("rs_contorno.geojson").then(gj=>{     // contorno do estado (gerado pelo robô)
+  L.geoJSON(gj, {style:{color:"#8a9a91", weight:1, fillColor:"#c9d4cd", fillOpacity:.5}}).addTo(inset);
+}).catch(()=>{});
+carrega("bacia.geojson").then(gj=>{           // a bacia em si, preenchida em verde
+  L.geoJSON(gj, {style:{color:"#0c2a22", weight:1.4, fillColor:"#155c47", fillOpacity:.9}}).addTo(inset);
 }).catch(()=>{});
 
 carrega("municipios.geojson").then(gj=>{
@@ -353,7 +359,6 @@ carrega("municipios.geojson").then(gj=>{
   }).addTo(map);
   map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
   pintaMunicipios();
-  L.rectangle(munLayer.getBounds(), {color:"#0f6b4a", weight:1.5, fill:false}).addTo(inset);
   const popB = gj.features.reduce((s,f)=>s+(+f.properties.pop_bacia||0),0);
   document.getElementById("subtit").textContent =
     `Censo IBGE 2022 · ${gj.features.length} municípios · ${(popB/1e6).toLocaleString("pt-BR",{maximumFractionDigits:2})} milhão de pessoas na bacia`;
