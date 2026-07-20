@@ -24,7 +24,7 @@ TIPOS = {   # tipo: (regex no nome do serviço/camada, faixa plausível no RS in
     "hospitais": (r"hospit",                                          (80,   2500)),
     "escolas":   (r"escola",                                          (2000, 20000)),
     "bombeiros": (r"bombeiro",                                        (30,   800)),
-    "ubs":       (r"\bubs\b|unidade.*basica|atencao.*basica|posto.*saude", (600, 8000)),
+    "ubs":       (r"\bubs\b|unidade.*basica|atencao.*basica|posto.*saude", (30, 20000)),
 }
 
 def get(url, timeout=120):
@@ -61,8 +61,42 @@ def catalogo(root):
     return servs
 
 achados = {}
+
+# Camadas FIXAS (validadas em rodadas anteriores + indicação da equipe):
+# tentadas direto, sem depender do catálogo — que oscila muito. A descoberta
+# abaixo continua como reserva para quando alguma URL fixa quebrar.
+FIXAS = {
+    "ubs":       ["https://iede.rs.gov.br/server/rest/services/SES/ubs_poa/FeatureServer/0"],
+    "hospitais": ["https://iede.rs.gov.br/server/rest/services/Hosted/Hospitais_Movimento_Massa/MapServer/3"],
+    "escolas":   ["https://iede.rs.gov.br/server/rest/services/Hosted/Escolas_Movimento_Massa/MapServer/2"],
+    "bombeiros": ["https://iede.rs.gov.br/server/rest/services/CBM_Bombeiros/CBM_Centroide_RS_SC/MapServer/0"],
+}
+def _aceita(tipo, feats, fonte):
+    pontos = [f_ for f_ in feats if (f_.get("geometry") or {}).get("type") == "Point"]
+    n, (lo, hi) = len(pontos), TIPOS[tipo][1]
+    if not (lo <= n <= hi):
+        print(f"[{tipo}] {fonte}: {n} pontos fora da faixa {(lo, hi)} — pulo")
+        return False
+    json.dump({"type": "FeatureCollection", "features": pontos},
+              open(f"{RAW}/{tipo}.geojson", "w"), ensure_ascii=False)
+    open(f"{RAW}/{tipo}_fonte.txt", "w").write(fonte)
+    print(f"[ok] {tipo}: {n} pontos <- {fonte}")
+    achados[tipo] = n
+    return True
+
+for tipo, urls in FIXAS.items():
+    for u in urls:
+        if tipo in achados: break
+        for tent in (1, 2, 3):
+            try:
+                if _aceita(tipo, query_todos(u), u): pass
+                break
+            except Exception as e:
+                print(f"[{tipo}] fixa (tentativa {tent}): {e}")
+                if tent < 3: time.sleep(30)
+
 for rodada in (1, 2, 3):        # o catálogo do IEDE oscila — insiste com pausa
-    if achados: break
+    if len(achados) == len(TIPOS): break
     if rodada > 1:
         print(f"[retry] catálogo indisponível — tentativa {rodada}/3 em 90 s"); time.sleep(90)
     for root in ROOTS:

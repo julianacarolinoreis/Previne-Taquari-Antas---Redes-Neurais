@@ -63,12 +63,20 @@ for arq in sorted(glob.glob(f"{RAW}/*.geojson")):
     n = len(out)
     lo, hi = FAIXA_BACIA.get(tipo, (1, 10**6))
     print(f"[{tipo}] RS: {len(g)} pontos -> bacia: {n}")
-    assert lo <= n <= hi, f"{tipo}: {n} pontos na bacia (esperado {lo}–{hi}) — camada ou junção errada"
+    # não fatal: um tipo fora da faixa (ex.: camada de Porto Alegre, que não toca
+    # a bacia) é PULADO com aviso — os demais tipos continuam sendo publicados.
+    if not (lo <= n <= hi):
+        print(f"[AVISO] {tipo}: {n} pontos na bacia (esperado {lo}–{hi}) — "
+              f"camada provavelmente não cobre a bacia; NÃO publicado")
+        continue
     out.to_file(f"{OUT}/{tipo}.geojson", driver="GeoJSON")
     for cod, k in out.groupby("cod_mun").size().items():
         contagem.setdefault(str(cod), {})[tipo] = int(k)
     ftxt = f"{RAW}/{tipo}_fonte.txt"
     fontes[tipo] = open(ftxt).read().strip() if os.path.exists(ftxt) else "IEDE-RS"
+
+if not fontes:
+    raise SystemExit("nenhum tipo de serviço caiu na bacia — verifique as fontes")
 
 nomes = dict(zip(mun["cod_mun"].astype(str), mun["mun_nome"]))
 json.dump({
