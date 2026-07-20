@@ -145,6 +145,10 @@ const INDS = [
   {k:"dens",     nome:"Densidade",      pct:false, un:" hab/km²"},
   {k:"dom",      nome:"Domicílios",     pct:false},
   {k:"pop",      nome:"População",      pct:false},
+  // densidade de serviços por 10 mil habitantes (contagem por município ÷ população)
+  {k:"svc_ubs",      nome:"Saúde /10 mil",     svc:true, un:" /10 mil hab"},
+  {k:"svc_escolas",  nome:"Escolas /10 mil",   svc:true, un:" /10 mil hab"},
+  {k:"svc_hospitais",nome:"Hospitais /10 mil", svc:true, un:" /10 mil hab"},
 ];
 // rampa roxa: não briga com o verde do terreno/satélite (pedido da Juliana)
 const CORES = ["#f3eef6","#d9c7e3","#b394c9","#8759a8","#4d2a6e"];
@@ -154,8 +158,14 @@ let ind = "mulheres", modo = "abs";
 let map, munLayer, setLayer = null, munData, munAtual = null;
 
 function valor(p){                     // valor do indicador nas propriedades p
+  const d = INDS.find(i=>i.k===ind);
+  if (d.svc){                          // serviços por 10 mil hab (dado é por município)
+    const src = munAtual || p;         // no drill-down, setores herdam a densidade do município
+    const pop = +src.pop || 0;
+    return pop > 0 ? (+src[ind] || 0) / pop * 10000 : 0;
+  }
   const v = +p[ind] || 0;
-  if (modo === "pct" && INDS.find(i=>i.k===ind).pct) return p.pop > 0 ? v/p.pop*100 : 0;
+  if (modo === "pct" && d.pct) return p.pop > 0 ? v/p.pop*100 : 0;
   return v;
 }
 function rotulo(v){
@@ -221,6 +231,16 @@ function legenda(brk, ctx){
 function totaliza(props){
   const d = INDS.find(i=>i.k===ind);
   if (ind === "dens"){ document.getElementById("tot").innerHTML = "—"; return; }
+  if (d.svc){                          // densidade: do município aberto ou da bacia toda
+    const feats = munAtual ? munData.features.filter(f=>f.properties.cod_mun===munAtual.cod_mun)
+                           : munData.features;
+    const tot = feats.reduce((s,f)=>s+(+f.properties[ind]||0),0);
+    const pop = feats.reduce((s,f)=>s+(+f.properties.pop||0),0);
+    const onde = munAtual ? munAtual.nome : "na bacia";
+    document.getElementById("tot").innerHTML =
+      `${fmt(pop>0?tot/pop*10000:0)} <small>/10 mil hab · ${fmt(tot)} ${onde}</small>`;
+    return;
+  }
   const soma = props.reduce((s,p)=>s+(+p[ind]||0),0);
   const pop  = props.reduce((s,p)=>s+(+p.pop||0),0);
   const pc = d.pct && pop>0 ? ` <small>(${fmt(soma/pop*100)}% da população)</small>` : "";
@@ -380,6 +400,20 @@ carrega("municipios.geojson").then(gj=>{
     sel.appendChild(o);
   });
   sel.onchange = ()=>{ if (sel.value) abreMunicipio(sel.value); };
+
+  // funde a contagem de serviços por município (robô) para o mapa de densidade
+  carrega("contagem_municipios.json", SERV).then(cj=>{
+    const porCod = {};
+    (cj.municipios||[]).forEach(m=>{ porCod[String(m.cod_mun)] = m; });
+    munData.features.forEach(f=>{
+      const c = porCod[String(f.properties.cod_mun)] || {};
+      f.properties.svc_ubs       = +c.ubs || 0;
+      f.properties.svc_hospitais = +c.hospitais || 0;
+      f.properties.svc_escolas   = +c.escolas || 0;
+      f.properties.svc_bombeiros = +c.bombeiros || 0;
+    });
+    if (!munAtual) pintaMunicipios();   // se um indicador de serviço já estiver ativo
+  }).catch(()=>{});
 });
 
 // contorno oficial da bacia (gerado pelo robô; se ainda não existir, segue sem)
