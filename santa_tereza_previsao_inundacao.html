@@ -531,10 +531,15 @@ function liveWhenKind(D){
   return (D.telemetria_ultima_em||D.hora_modelo)?'leitura':'consulta';
 }
 function semHorizontes(x){ return !x || !x.horizontes || !Object.keys(x.horizontes).length; }
-// falha momentânea de telemetria: JSON sem previsão válida (status != ok e não é replay)
+function temPrevisao(x){ return !!(x && x.nivel_previsto_cm!=null); }
+// falha momentânea de telemetria: NENHUM horizonte tem previsão de verdade.
+// Ancorado na previsão (e não em 'horizontes'), que o prepareLiveData pode
+// sintetizar vazio a partir de 'passos' — vale igual na 1ª carga e no refresh de 60 s.
 function liveSemDado(){
-  return liveData && (liveData.modo!=='replay') && semHorizontes(liveData)
-      && liveData.status && liveData.status!=='ok';
+  if(!liveData || liveData.modo==='replay') return false;
+  const hs=liveData.horizontes||{};
+  const algum = Object.keys(hs).length ? Object.values(hs).some(temPrevisao) : temPrevisao(liveData);
+  return !algum;
 }
 function renderLiveStep(){
   if(liveSemDado()){                 // estado honesto: não inventa cenário de 12h
