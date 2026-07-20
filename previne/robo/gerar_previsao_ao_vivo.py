@@ -556,16 +556,54 @@ def escrever_pacote(horizontes, historico, aviso):
         json.dump(pacote, f, ensure_ascii=False, indent=1)
     print("escrito", SAIDA, "horizontes=", ",".join(horizontes.keys()))
 
+def carregar_saida_atual():
+    if not os.path.exists(SAIDA):
+        return None
+    try:
+        with open(SAIDA, "r", encoding="utf-8") as f:
+            atual = json.load(f)
+        if isinstance(atual, dict):
+            return atual
+    except Exception as e:
+        print("saida atual invalida:", e)
+    return None
+
+def preservar_saida_valida_em_falha(motivo, aviso):
+    """Nao deixa uma falha transitoria da ANA/GitHub apagar o ultimo JSON valido.
+
+    O site deve mostrar que a consulta falhou, mas manter a ultima previsao
+    operacional auditavel ate a proxima rodada conseguir novos dados.
+    """
+    atual = carregar_saida_atual()
+    if atual and atual.get("nivel_previsto_cm") is not None and atual.get("hora_modelo"):
+        agora = agora_brt().isoformat(timespec="seconds")
+        atual["consultado_em"] = agora
+        atual["status"] = "mantida ultima previsao valida"
+        atual["status_dados"] = "falha temporaria na consulta; mantendo ultimo resultado valido"
+        atual["erro_robo_ultima_consulta"] = motivo
+        atual["aviso"] = aviso
+        for hz, item in (atual.get("horizontes") or {}).items():
+            if isinstance(item, dict) and item.get("nivel_previsto_cm") is not None:
+                item["consultado_em"] = agora
+                item["status"] = "mantida ultima previsao valida"
+                item["status_dados"] = "falha temporaria na consulta; mantendo ultimo resultado valido"
+                item["erro_robo_ultima_consulta"] = motivo
+        with open(SAIDA, "w", encoding="utf-8") as f:
+            json.dump(atual, f, ensure_ascii=False, indent=1)
+        print("mantida ultima previsao valida:", motivo)
+        return
+    escrever(None, None, None, motivo, aviso)
+
 def main():
     aviso = "EXPERIMENTAL - nao e alerta oficial. Camada espacial da previsao de RNA (2h e 4h), em paralelo ao SGB/SACE."
     try:
         series = {c: buscar_ana(c) for c in ESTACOES}
     except Exception as e:
-        escrever(None, None, None, f"falha na telemetria: {e}", aviso); return
+        preservar_saida_valida_em_falha(f"falha na telemetria: {e}", aviso); return
 
     horas = sorted(series["86472600"].keys())
     if not horas:
-        escrever(None, None, None, "sem dado recente em Santa Tereza", aviso); return
+        preservar_saida_valida_em_falha("sem dado recente em Santa Tereza", aviso); return
     t = horas[-1]
     estacoes_status = resumo_estacoes(series)
 

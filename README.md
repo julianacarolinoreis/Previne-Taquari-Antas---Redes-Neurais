@@ -9,11 +9,11 @@ Site publico e interativo com os resultados das redes neurais de previsao de niv
 - Graficos de persistencia, erro em centimetros, equilibrio validacao/teste e inputs mais usados.
 - Tabela filtravel com metricas rastreaveis por modelo.
 
-## Origem da migracao
+## Organizacao
 
-Este site foi inicialmente gerado dentro do repositorio `PMRR-Porto-Alegre`, na pasta `previne/`, por engano. Este repositorio e o destino correto do painel PREVINE.
-
-Um workflow em `.github/workflows/sync-previne-site.yml` sincroniza o HTML completo a partir da localizacao temporaria no PMRR e grava o site como `index.html` na raiz deste repositorio.
+Este repositorio e a fonte oficial do painel PREVINE. Os dados e scripts usados
+pela publicacao devem permanecer aqui, sem sincronizacao com repositorios de
+outros projetos.
 
 ## Publicacao
 
