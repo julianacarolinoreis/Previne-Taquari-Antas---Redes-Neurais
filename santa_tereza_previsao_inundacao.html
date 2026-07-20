@@ -530,7 +530,34 @@ function liveWhenText(D,P){
 function liveWhenKind(D){
   return (D.telemetria_ultima_em||D.hora_modelo)?'leitura':'consulta';
 }
+function semHorizontes(x){ return !x || !x.horizontes || !Object.keys(x.horizontes).length; }
+function temPrevisao(x){ return !!(x && x.nivel_previsto_cm!=null); }
+// falha momentânea de telemetria: NENHUM horizonte tem previsão de verdade.
+// Ancorado na previsão (e não em 'horizontes'), que o prepareLiveData pode
+// sintetizar vazio a partir de 'passos' — vale igual na 1ª carga e no refresh de 60 s.
+function liveSemDado(){
+  if(!liveData || liveData.modo==='replay') return false;
+  const hs=liveData.horizontes||{};
+  const algum = Object.keys(hs).length ? Object.values(hs).some(temPrevisao) : temPrevisao(liveData);
+  return !algum;
+}
 function renderLiveStep(){
+  if(liveSemDado()){                 // estado honesto: não inventa cenário de 12h
+    document.body.classList.add('live');
+    const bar=document.getElementById('live-bar'); if(bar){ bar.style.display=''; bar.classList.add('stale'); }
+    const hzsel=document.getElementById('live-hz'); if(hzsel) hzsel.style.display='none';
+    set('live-kind','estação ANA'); set('live-when','sem dado recente agora');
+    const q=liveData.telemetria_ultima_em;
+    const note=document.getElementById('live-note');
+    if(note){ note.style.display='';
+      note.textContent='Estação de Santa Tereza sem dado recente da ANA neste momento'
+        + (q?(' (última leitura '+fmtWhen(q)+')'):'')
+        + ' — a previsão de 2h/4h volta assim que a telemetria retornar; o robô tenta a cada ~15 min.'; }
+    // limpa a mancha e os números do cenário que ficaram na tela
+    ['s-now','s-fore','s-drio','s-newarea','s-atot','s-conf','s-hz2','s-hz'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='—'; });
+    if(waterOverlay && waterOverlay.setUrl) waterOverlay.setUrl('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
+    return;
+  }
   const L=activeLiveData();
   if(L && Array.isArray(L.passos) && L.passos.length){
     const P=L.passos[liveIdx%L.passos.length]; // [datahora, atual, previsto] ou [datahora, atual, observado, previsto]
@@ -579,10 +606,10 @@ async function enterLive(){
     renderLiveStep(); clearInterval(liveTimer);
     liveTimer=setInterval(()=>{ const L=activeLiveData(); const n=L&&L.passos?L.passos.length:liveData.passos.length; liveIdx=(liveIdx+1)%n; renderLiveStep(); }, d.intervalo_ms||2500);
   } else { // ao_vivo real: um ponto + repesca a cada 60 s
-    if(!d.horizontes) liveData.passos=[[d.gerado_em, liveNowCm(d), d.nivel_previsto_cm]];
+    if(semHorizontes(d)) liveData.passos=[[d.gerado_em, liveNowCm(d), d.nivel_previsto_cm]];
     renderLiveStep();
     clearInterval(liveTimer);
-    liveTimer=setInterval(async()=>{ try{const r=await fetch(LIVE_URL,{cache:'no-store'}); const j=await r.json(); liveData=j; if(!j.horizontes) liveData.passos=[[j.gerado_em,liveNowCm(j),j.nivel_previsto_cm]]; prepareLiveData(liveData); liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
+    liveTimer=setInterval(async()=>{ try{const r=await fetch(LIVE_URL,{cache:'no-store'}); const j=await r.json(); liveData=j; if(semHorizontes(j)) liveData.passos=[[j.gerado_em,liveNowCm(j),j.nivel_previsto_cm]]; prepareLiveData(liveData); liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
   }
 }
 function exitLive(){ liveMode=false; clearInterval(liveTimer); document.body.classList.remove('live');
