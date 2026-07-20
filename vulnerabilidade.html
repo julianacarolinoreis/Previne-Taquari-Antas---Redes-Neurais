@@ -58,6 +58,36 @@
   .pop table{font-size:12px;border-collapse:collapse;margin-top:4px}
   .pop td{padding:1.5px 6px 1.5px 0;font-variant-numeric:tabular-nums}
   .pop td:last-child{text-align:right;font-weight:650}
+  /* rótulos de nome de município */
+  .leaflet-tooltip.mun-lbl{background:none;border:none;box-shadow:none;padding:0;margin:0;
+    color:#1c2b23;font-size:10.5px;font-weight:700;white-space:nowrap;
+    text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff,0 0 2px #fff}
+  .leaflet-tooltip.mun-lbl::before{display:none}
+  #map.no-lbl .leaflet-tooltip.mun-lbl{display:none}
+  /* modal de exportação */
+  .modal{position:fixed;inset:0;z-index:1200;background:rgba(16,32,25,.42);
+    display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal[hidden]{display:none}
+  .modal-card{background:var(--panel);border-radius:14px;box-shadow:0 20px 60px rgba(16,40,30,.35);
+    width:min(560px,100%);max-height:88vh;overflow:auto}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;
+    padding:15px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+  .modal-head b{font-size:15px}
+  .modal-head button{border:none;background:var(--bg);border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:15px;color:var(--muted)}
+  .modal-body{padding:8px 18px 20px}
+  .exp-sec{padding:15px 0;border-bottom:1px solid var(--line)}
+  .exp-sec:last-child{border-bottom:none}
+  .exp-t{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:9px}
+  .exp-sub{font-size:11.5px;color:var(--muted);margin:-4px 0 9px}
+  .exp-btn{display:inline-block;font-size:12.5px;font-weight:650;border:1px solid var(--line);
+    background:#fff;color:var(--ink);border-radius:9px;padding:7px 13px;cursor:pointer;text-decoration:none;margin:2px 4px 2px 0}
+  .exp-btn:hover{border-color:var(--brand);color:var(--brand)}
+  .exp-btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .exp-inds{display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;margin:8px 0 12px}
+  .exp-inds label{font-size:12px;color:var(--ink);display:flex;align-items:center;gap:6px;cursor:pointer}
+  .exp-inds .allrow{grid-column:1/-1;margin-bottom:2px}
+  .exp-inds .allrow a{font-size:11px;color:var(--brand);cursor:pointer;font-weight:650}
+  select#exp-mun{margin-bottom:4px}
   @media (max-width:900px){
     main{grid-template-columns:1fr;height:auto}
     #map{height:58vh}
@@ -108,7 +138,10 @@
     <div class="q">Serviços públicos no mapa</div>
     <div class="ind" id="svc"></div>
 
-    <button class="baixar" id="baixar">⬇ Baixar dados da tela (CSV)</button>
+    <div class="q">Mapa</div>
+    <div class="ind"><button id="lbl-toggle" class="on">🏷️ Nomes dos municípios</button></div>
+
+    <button class="baixar" id="baixar">⬇ Baixar dados (municípios, setores, combinar…)</button>
 
     <div class="disc">
       <b>Leitura honesta:</b> retrato da vulnerabilidade <b>social</b> pelo Censo 2022
@@ -121,6 +154,47 @@
     </div>
   </aside>
 </main>
+
+<!-- ===== modal Baixar dados ===== -->
+<div class="modal" id="exp-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><b>Baixar dados</b><button id="exp-close" aria-label="Fechar">✕</button></div>
+    <div class="modal-body">
+      <div class="exp-sec">
+        <div class="exp-t">Municípios da bacia — todos, com todos os indicadores</div>
+        <div class="exp-sub">118 municípios · Censo 2022 + densidade de serviços</div>
+        <button class="exp-btn primary" data-exp="mun-csv">CSV</button>
+        <button class="exp-btn" data-exp="mun-geojson">GeoJSON (com limites)</button>
+      </div>
+
+      <div class="exp-sec">
+        <div class="exp-t">Todos os setores censitários da bacia</div>
+        <div class="exp-sub">tabela completa que o robô publica (todos os municípios)</div>
+        <a class="exp-btn primary" id="exp-setores-todos"
+           href="assets/data/vulnerabilidade/brutos/setores_bacia_indicadores.csv" download>CSV completo por setor</a>
+      </div>
+
+      <div class="exp-sec">
+        <div class="exp-t">Setores de um município — escolha o que baixar</div>
+        <div class="exp-sub">selecione o município e marque os indicadores desejados</div>
+        <select id="exp-mun"><option value="">— escolher município —</option></select>
+        <div class="exp-inds" id="exp-inds"></div>
+        <button class="exp-btn primary" data-exp="set-csv">CSV</button>
+        <button class="exp-btn" data-exp="set-geojson">GeoJSON</button>
+      </div>
+
+      <div class="exp-sec">
+        <div class="exp-t">O que está na tela agora</div>
+        <button class="exp-btn" data-exp="tela">Baixar a vista atual (CSV)</button>
+      </div>
+
+      <div class="exp-sub" style="margin:2px 0 0">
+        Fonte: IBGE — Censo 2022 · serviços: IEDE-RS ·
+        <a class="disc" href="assets/data/vulnerabilidade/brutos/FONTES.md">FONTES.md</a>
+      </div>
+    </div>
+  </div>
+</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 "use strict";
@@ -263,6 +337,7 @@ function abreMunicipio(cod){
     munLayer.setStyle({fillOpacity:.06, color:"#9ab0a2", weight:1});
     map.fitBounds(setLayer.getBounds(), {padding:[18,18]});
     document.getElementById("volta").classList.add("show");
+    aplicaLabels();                    // esconde nomes de município no drill-down
     pintaSetores();
   });
 }
@@ -271,9 +346,19 @@ function voltaBacia(){
   if (setLayer){ map.removeLayer(setLayer); setLayer = null; }
   munAtual = null;
   document.getElementById("volta").classList.remove("show");
+  aplicaLabels();
   pintaMunicipios();
   map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
 }
+// rótulos de nome de município (ligáveis; escondidos no drill-down de setores)
+let labelsOn = true;
+function aplicaLabels(){
+  const el = document.getElementById("map");
+  if (el) el.classList.toggle("no-lbl", !labelsOn || !!munAtual);
+}
+document.getElementById("lbl-toggle").onclick = function(){
+  labelsOn = !labelsOn; this.classList.toggle("on", labelsOn); aplicaLabels();
+};
 
 // ---- montagem ----
 const indDiv = document.getElementById("ind");
@@ -312,25 +397,103 @@ document.getElementById("fxok").onclick = ()=>{
 };
 document.getElementById("fxauto").onclick = ()=>{ delete manualBrks[chaveBrk()]; repinta(); };
 
-// baixar o que está na tela em CSV (gerado no navegador)
-document.getElementById("baixar").onclick = ()=>{
-  let rows, nomeArq;
+// ---------- exportação de dados ----------
+function baixaBlob(nome, texto, tipo){
+  const bom = /csv/.test(tipo) ? "﻿" : "";   // BOM só no CSV (Excel); GeoJSON fica limpo
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([bom+texto], {type:tipo+";charset=utf-8"}));
+  a.download = nome; a.click();
+  URL.revokeObjectURL(a.href);
+}
+function csvDe(rows, cols){
+  cols = cols || Object.keys(rows[0]||{});
+  return [cols.join(";")]
+    .concat(rows.map(r=>cols.map(c=>String(r[c] ?? "").replace(/;/g, ",").replace(/[\r\n]+/g," ")).join(";")))
+    .join("\r\n");
+}
+function slugNome(s){ return String(s||"").normalize("NFD").replace(/[^\w]/g,"_"); }
+function fcDe(feats, cols){    // FeatureCollection só com as colunas escolhidas
+  return JSON.stringify({type:"FeatureCollection", features: feats.map(f=>({
+    type:"Feature",
+    properties: cols ? Object.fromEntries(cols.filter(c=>c in f.properties).map(c=>[c, f.properties[c]])) : f.properties,
+    geometry: f.geometry
+  }))});
+}
+function baixarTela(){
+  let rows, nome;
   if (munAtual && setLayer){
     rows = setLayer.getLayers().map(l=>l.feature.properties);
-    nomeArq = `setores_${munAtual.cod_mun}_${munAtual.nome.normalize("NFD").replace(/[^\w]/g,"_")}.csv`;
+    nome = `setores_${munAtual.cod_mun}_${slugNome(munAtual.nome)}.csv`;
   } else {
     rows = munData.features.map(f=>f.properties);
-    nomeArq = "municipios_bacia_taquari_antas.csv";
+    nome = "municipios_bacia_taquari_antas.csv";
   }
-  const cols = Object.keys(rows[0]);
-  const csv = [cols.join(";")]
-    .concat(rows.map(r=>cols.map(c=>String(r[c] ?? "").replace(/;/g, ",")).join(";")))
-    .join("\r\n");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8"}));
-  a.download = nomeArq; a.click();
-  URL.revokeObjectURL(a.href);
-};
+  baixaBlob(nome, csvDe(rows), "text/csv");
+}
+
+// colunas de indicador disponíveis nos setores (o setor tem estas)
+const EXP_COLS = [
+  {k:"pop",       nome:"População"},
+  {k:"dom",       nome:"Domicílios"},
+  {k:"mulheres",  nome:"Mulheres"},
+  {k:"c0_4",      nome:"Crianças 0–4"},
+  {k:"c5_9",      nome:"Crianças 5–9"},
+  {k:"i60_69",    nome:"Idosos 60–69"},
+  {k:"i70m",      nome:"Idosos 70+"},
+  {k:"indigenas", nome:"Indígenas"},
+  {k:"dens",      nome:"Densidade (hab/km²)"},
+  {k:"na_bacia",  nome:"Dentro da bacia (1/0)"},
+];
+const modal = document.getElementById("exp-modal");
+function abreModal(){ modal.hidden = false; }
+function fechaModal(){ modal.hidden = true; }
+document.getElementById("baixar").onclick = abreModal;
+document.getElementById("exp-close").onclick = fechaModal;
+modal.addEventListener("click", e=>{ if (e.target === modal) fechaModal(); });
+addEventListener("keydown", e=>{ if (e.key === "Escape" && !modal.hidden) fechaModal(); });
+
+// checkboxes de indicadores (setores)
+(function montaExpInds(){
+  const box = document.getElementById("exp-inds");
+  box.innerHTML = `<div class="allrow"><a id="exp-all">marcar todos</a> · <a id="exp-none">limpar</a></div>` +
+    EXP_COLS.map(c=>`<label><input type="checkbox" value="${c.k}" checked> ${c.nome}</label>`).join("");
+  box.querySelector("#exp-all").onclick = ()=>box.querySelectorAll('input').forEach(i=>i.checked=true);
+  box.querySelector("#exp-none").onclick = ()=>box.querySelectorAll('input').forEach(i=>i.checked=false);
+})();
+function colsSelecionadas(){
+  const sel = [...document.querySelectorAll('#exp-inds input:checked')].map(i=>i.value);
+  return ["setor", ...sel];   // 'setor' já traz o código do município (7 primeiros dígitos)
+}
+
+document.querySelector('.modal-body').addEventListener("click", async e=>{
+  const b = e.target.closest("[data-exp]"); if (!b) return;
+  const acao = b.dataset.exp;
+  if (acao === "tela"){ baixarTela(); return; }
+  if (acao === "mun-csv"){
+    baixaBlob("municipios_bacia_taquari_antas.csv",
+      csvDe(munData.features.map(f=>f.properties)), "text/csv"); return;
+  }
+  if (acao === "mun-geojson"){
+    baixaBlob("municipios_bacia_taquari_antas.geojson", fcDe(munData.features), "application/geo+json"); return;
+  }
+  if (acao === "set-csv" || acao === "set-geojson"){
+    const cod = document.getElementById("exp-mun").value;
+    if (!cod){ alert("Escolha um município primeiro."); return; }
+    const nomeMun = (munData.features.find(f=>String(f.properties.cod_mun)===cod)||{}).properties?.nome || cod;
+    const txtOrig = b.textContent; b.textContent = "baixando…"; b.style.pointerEvents="none";
+    try{
+      const gj = await carrega(`setores/${cod}.geojson`);
+      const cols = colsSelecionadas();
+      if (acao === "set-csv"){
+        baixaBlob(`setores_${cod}_${slugNome(nomeMun)}.csv`,
+          csvDe(gj.features.map(f=>f.properties), cols), "text/csv");
+      } else {
+        baixaBlob(`setores_${cod}_${slugNome(nomeMun)}.geojson`, fcDe(gj.features, cols), "application/geo+json");
+      }
+    } catch(err){ alert("Não consegui baixar os setores deste município."); }
+    finally { b.textContent = txtOrig; b.style.pointerEvents=""; }
+  }
+});
 
 // mapa principal: mostra o Brasil, mas com "holofote" no RS — tudo fora do
 // estado ganha um véu para destacar a região (o resto fica ~30% visível)
@@ -373,6 +536,7 @@ carrega("municipios.geojson").then(gj=>{
   munLayer = L.geoJSON(gj, {
     onEachFeature: (f,l)=>{
       const p = f.properties;
+      l.bindTooltip(p.nome, {permanent:true, direction:"center", className:"mun-lbl"});
       l.bindPopup(()=>popup(p,
         ` <span style="color:#5c6b63;font-size:11px">· ${fmt(p.pct_na_bacia)}% na bacia · ${fmt(p.pop_bacia)} hab. dentro dela</span>`));
       l.on("dblclick", ()=>abreMunicipio(p.cod_mun));
@@ -393,13 +557,13 @@ carrega("municipios.geojson").then(gj=>{
   document.getElementById("subtit").textContent =
     `Censo IBGE 2022 · ${gj.features.length} municípios · ${(popB/1e6).toLocaleString("pt-BR",{maximumFractionDigits:2})} milhão de pessoas na bacia`;
 
-  const sel = document.getElementById("busca");
+  const sel = document.getElementById("busca"), selExp = document.getElementById("exp-mun");
   gj.features.map(f=>f.properties).sort((a,b)=>a.nome.localeCompare(b.nome,"pt")).forEach(p=>{
-    const o = document.createElement("option");
-    o.value = p.cod_mun; o.textContent = p.nome;
-    sel.appendChild(o);
+    const o = document.createElement("option"); o.value = p.cod_mun; o.textContent = p.nome; sel.appendChild(o);
+    const o2 = document.createElement("option"); o2.value = p.cod_mun; o2.textContent = p.nome; selExp.appendChild(o2);
   });
   sel.onchange = ()=>{ if (sel.value) abreMunicipio(sel.value); };
+  aplicaLabels();
 
   // funde a contagem de serviços por município (robô) para o mapa de densidade
   carrega("contagem_municipios.json", SERV).then(cj=>{
