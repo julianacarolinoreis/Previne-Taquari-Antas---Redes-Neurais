@@ -91,7 +91,7 @@ for rodada in (1, 2, 3):        # o catálogo do IEDE oscila — insiste com pau
                             feats = query_todos(f"{root}/{sv}/{kind}/{ly['id']}")
                         except Exception as e:
                             print(f"[{tipo}] {sv}/{ly.get('name')}: {e}"); continue
-                        pontos = [f_ for f_ in feats if f_.get("geometry", {}).get("type") == "Point"]
+                        pontos = [f_ for f_ in feats if (f_.get("geometry") or {}).get("type") == "Point"]
                         n = len(pontos)
                         if not (faixa[0] <= n <= faixa[1]):
                             print(f"[{tipo}] {sv}/{ly.get('name')}: {n} pontos fora da faixa {faixa} — pulo")
