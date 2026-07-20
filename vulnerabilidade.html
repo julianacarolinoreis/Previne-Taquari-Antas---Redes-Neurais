@@ -316,6 +316,7 @@ document.getElementById("baixar").onclick = ()=>{
 const RS_BOUNDS = L.latLngBounds([-34.2,-58.3],[-26.6,-48.4]);
 map = L.map("map", {scrollWheelZoom:true, maxBounds:RS_BOUNDS.pad(0.05), maxBoundsViscosity:1.0, minZoom:7})
        .setView([-29.0,-51.6], 8);
+map.createPane("servicos").style.zIndex = 450;   // pontos de serviços sempre acima dos polígonos
 const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                         {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -392,7 +393,8 @@ SVC.forEach(s=>{
     svcLayers[s.k] = "carregando";
     carrega(`${s.k}.geojson`, SERV).then(gj=>{
       svcLayers[s.k] = L.geoJSON(gj, {
-        pointToLayer: (f,ll)=>L.circleMarker(ll, {radius:4.5, color:"#fff", weight:1, fillColor:s.cor, fillOpacity:.92}),
+        pane: "servicos",
+        pointToLayer: (f,ll)=>L.circleMarker(ll, {pane:"servicos", radius:4.5, color:"#fff", weight:1, fillColor:s.cor, fillOpacity:.92}),
         onEachFeature: (f,l)=>l.bindPopup(
           `<div class="pop"><b>${f.properties.nome || s.nome}</b><br>` +
           `<span style="font-size:11px;color:#5c6b63">${s.nome} · ${f.properties.municipio}</span></div>`)
