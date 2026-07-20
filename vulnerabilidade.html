@@ -312,19 +312,29 @@ document.getElementById("baixar").onclick = ()=>{
   URL.revokeObjectURL(a.href);
 };
 
-// mapa principal preso ao Rio Grande do Sul (nada de Brasil/Argentina/Uruguai)
-const RS_BOUNDS = L.latLngBounds([-33.9,-57.9],[-27.0,-49.6]);
-map = L.map("map", {scrollWheelZoom:true, maxBounds:RS_BOUNDS, maxBoundsViscosity:1.0})
-       .fitBounds(RS_BOUNDS);
-// zoom mínimo = o que faz o RS caber na tela; abaixo disso apareceria o resto do país
-map.setMinZoom(map.getBoundsZoom(RS_BOUNDS, true));
-addEventListener("resize", ()=>map.setMinZoom(map.getBoundsZoom(RS_BOUNDS, true)));
+// mapa principal: mostra o Brasil, mas com "holofote" no RS — tudo fora do
+// estado ganha um véu para destacar a região (o resto fica ~30% visível)
+map = L.map("map", {scrollWheelZoom:true, minZoom:4}).setView([-29.5,-53.5], 7);
 map.createPane("servicos").style.zIndex = 450;   // pontos de serviços sempre acima dos polígonos
+map.createPane("mascara").style.zIndex = 250;    // véu abaixo dos polígonos/pontos, acima dos tiles
+map.getPane("mascara").style.pointerEvents = "none";
 const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                         {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
                         {maxZoom:19, maxNativeZoom:19, attribution:"© Esri, Maxar"});
 L.control.layers({"Mapa": osm, "Satélite": sat}, null, {position:"topleft"}).addTo(map);
+
+// véu sobre tudo, menos o RS (buraco recortado no contorno do estado)
+carrega("rs_contorno.geojson").then(gj=>{
+  const geom = gj.features[0].geometry;
+  const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+  const buracos = polys.map(p => p[0].map(c => [c[1], c[0]]));   // anel externo de cada polígono, em lat,lng
+  const mundo = [[-85,-200],[-85,200],[85,200],[85,-200]];
+  L.polygon([mundo, ...buracos], {pane:"mascara", stroke:false,
+             fillColor:"#eef3f1", fillOpacity:0.7, interactive:false}).addTo(map);
+  L.geoJSON(gj, {pane:"mascara", interactive:false,
+             style:{color:"#8a9a91", weight:1, fill:false}}).addTo(map);
+}).catch(()=>{});
 
 // mini-mapa de localização: o RS com a SILHUETA da bacia destacada
 const inset = L.map("inset", {zoomControl:false, attributionControl:false, dragging:false,
