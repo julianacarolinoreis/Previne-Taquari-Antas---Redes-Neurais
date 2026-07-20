@@ -10,6 +10,7 @@
     --bg:#eef3f1;--panel:#fff;--ink:#132019;--muted:#5c6b63;--line:#e0e6e1;
     --brand:#0f6b4a;--agora:#1e5fbf;
     --shadow:0 1px 3px rgba(20,40,30,.07),0 8px 26px rgba(20,40,30,.06);
+    --icmA:#2e7d32;--icmB:#c3d92c;--icmC:#e8730c;--icmD:#c0392b;
   }
   *{box-sizing:border-box}
   *,svg text{font-family:Tahoma,Verdana,Geneva,sans-serif !important}
@@ -64,6 +65,33 @@
     aside{border-left:none;border-top:1px solid var(--line)}
     #inset{width:120px;height:92px;bottom:18px}
   }
+  .icm-wrap{background:var(--bg);padding:32px 18px 48px;border-top:1px solid var(--line)}
+  .icm-inner{max-width:980px;margin:0 auto;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;box-shadow:var(--shadow);padding:24px 26px}
+  .icm-inner h2{margin:0 0 4px;font-size:19px;letter-spacing:-.01em;font-weight:800}
+  .icm-sub{font-size:11.5px;color:var(--muted);margin:0 0 14px}
+  .icm-intro{font-size:13.5px;line-height:1.6;color:var(--ink);margin:0 0 16px}
+  .icm-intro a{color:var(--brand)}
+  .icm-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .icm-chip{font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:999px;color:#fff;white-space:nowrap}
+  .icm-chip[data-f="A"]{background:var(--icmA)}
+  .icm-chip[data-f="B"]{background:var(--icmB);color:#2b2900}
+  .icm-chip[data-f="C"]{background:var(--icmC)}
+  .icm-chip[data-f="D"]{background:var(--icmD)}
+  .icm-tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;max-height:520px;overflow-y:auto}
+  #icmTable{width:100%;border-collapse:collapse;font-size:12.5px}
+  #icmTable th{text-align:left;background:var(--bg);padding:9px 11px;font-size:11px;text-transform:uppercase;
+    letter-spacing:.03em;color:var(--muted);position:sticky;top:0}
+  #icmTable td{padding:7px 11px;border-top:1px solid var(--line);white-space:nowrap}
+  #icmTable td.nome{white-space:normal}
+  .icm-badge{display:inline-block;min-width:20px;text-align:center;font-weight:800;color:#fff;
+    border-radius:6px;padding:2px 8px;font-size:11.5px}
+  .icm-badge.A{background:var(--icmA)}
+  .icm-badge.B{background:var(--icmB);color:#2b2900}
+  .icm-badge.C{background:var(--icmC)}
+  .icm-badge.D{background:var(--icmD)}
+  .icm-prior{color:var(--brand);font-weight:700}
+  .icm-foot{margin-top:14px}
 </style>
 </head>
 <body>
@@ -121,6 +149,39 @@
     </div>
   </aside>
 </main>
+
+<section class="icm-wrap">
+  <div class="icm-inner">
+    <h2>Capacidade Municipal — ICM</h2>
+    <div class="icm-sub" id="icmSub">MIDR · Proteção e Defesa Civil</div>
+    <p class="icm-intro">
+      O <b>Indicador de Capacidade Municipal (ICM)</b> classifica os municípios brasileiros em quatro
+      faixas — A (Alta), B (Intermediária Avançada), C (Intermediária Inicial) e D (Inicial) — conforme
+      sua capacidade de gestão de riscos e desastres, medida por 20 variáveis em três dimensões:
+      I. Planejamento, II. Coordenação e III. Políticas Públicas.
+    </p>
+    <div class="icm-legend">
+      <span class="icm-chip" data-f="A">A · Alta</span>
+      <span class="icm-chip" data-f="B">B · Intermediária Avançada</span>
+      <span class="icm-chip" data-f="C">C · Intermediária Inicial</span>
+      <span class="icm-chip" data-f="D">D · Inicial</span>
+    </div>
+    <div class="icm-tablewrap">
+      <table id="icmTable">
+        <thead>
+          <tr><th>Município</th><th>Faixa</th><th>Pontuação (0–20)</th><th>Perfil</th></tr>
+        </thead>
+        <tbody id="icmBody"><tr><td colspan="4" style="color:var(--muted)">carregando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="disc icm-foot">
+      Fonte: <a href="https://www.gov.br/mdr/pt-br/assuntos/protecao-e-defesa-civil/icm" target="_blank" rel="noopener">
+      MDR — Ministério das Cidades, Proteção e Defesa Civil (ICM)</a>. Dados atualizados em 28/04/2026.
+      Município "prioritário" é aquele com maior risco/vulnerabilidade a desastres apontado pela Sedec.
+    </div>
+  </div>
+</section>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 "use strict";
@@ -455,6 +516,28 @@ SVC.forEach(s=>{
     });
   };
   document.getElementById("svc").appendChild(b);
+});
+
+// ---- ICM: Indicador de Capacidade Municipal (MIDR/Sedec) ----
+carrega("icm_municipios.json", "assets/data").then(d=>{
+  const ordem = {A:0, B:1, C:2, D:3};
+  const municipios = (d.municipios || []).slice()
+    .sort((a,b)=> ordem[a.faixa]-ordem[b.faixa] || a.nome.localeCompare(b.nome, "pt"));
+  const linhas = municipios.map(m=>{
+    const perfil = m.prioritario ? '<span class="icm-prior">Prioritário</span>' : "Não prioritário";
+    const pont = m.pontuacao_total!=null ? m.pontuacao_total : "—";
+    return `<tr><td class="nome">${m.nome}</td>` +
+           `<td><span class="icm-badge ${m.faixa}">${m.faixa}</span></td>` +
+           `<td>${pont}</td><td>${perfil}</td></tr>`;
+  }).join("");
+  document.getElementById("icmBody").innerHTML = linhas ||
+    '<tr><td colspan="4" style="color:var(--muted)">sem municípios encontrados</td></tr>';
+  const dt = d.atualizado_em ? new Date(d.atualizado_em+"T00:00:00").toLocaleDateString("pt-BR") : "";
+  document.getElementById("icmSub").textContent =
+    `MIDR · Proteção e Defesa Civil · ${municipios.length} municípios da bacia` + (dt ? ` · atualizado em ${dt}` : "");
+}).catch(()=>{
+  document.getElementById("icmBody").innerHTML =
+    '<tr><td colspan="4" style="color:var(--muted)">não foi possível carregar os dados do ICM agora</td></tr>';
 });
 </script>
 </body>
