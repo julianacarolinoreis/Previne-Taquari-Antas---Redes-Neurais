@@ -13,7 +13,7 @@ Usa os polígonos municipais já publicados pelo robô da vulnerabilidade
 (assets/data/vulnerabilidade/municipios.geojson, simplificados ~120 m —
 suficiente para atribuir pontos; pontos exatamente na borda podem cair fora).
 """
-import os, glob, json
+import os, re, glob, json
 import geopandas as gpd
 
 RAW, OUT = "_servicos_raw", "assets/data/servicos"
@@ -28,12 +28,23 @@ mun = mun.rename(columns={"nome": "mun_nome"})[["cod_mun", "mun_nome", "geometry
 if mun.crs is None: mun = mun.set_crs(4326)
 
 def nome_col(df):
-    prefs = ["nome", "name", "denomina", "fantasia", "estabele", "escola", "descri", "nm_"]
-    cols = [c for c in df.columns if c != "geometry"]
-    for p in prefs:
-        for c in cols:
-            if p in c.lower(): return c
-    return cols[0] if cols else None
+    """Escolhe a coluna de nome pelo CONTEÚDO (texto longo, variado), não só
+    pelo cabeçalho — na rodada 3, hospitais vieram com 'REGIÃO 28' (coluna errada)."""
+    ruins = re.compile(r"regi|macro|micro|^cd_|^cod|^id$|objectid|^fid|tipo|classe|situa|^uf$|fonte|data|shape", re.I)
+    cands = []
+    for c in df.columns:
+        if c == "geometry" or ruins.search(str(c)): continue
+        s = df[c].astype(str).str.strip()
+        ok = s[(s != "") & (~s.str.lower().isin(["none", "nan", "null"]))]
+        if ok.empty: continue
+        medlen = float(ok.str.len().median())
+        alpha = float(ok.str.contains(r"[A-Za-zÀ-ÿ]{3,}").mean())   # tem palavras de verdade
+        uniq = ok.nunique() / len(ok)
+        prefer = 1.5 if re.search(r"nome|name|denomina|fantasia|estabele|escola|unidade|quartel", str(c), re.I) else 1.0
+        cands.append((prefer * alpha * (0.5 + uniq) * min(medlen, 40.0), c))
+    cands.sort(reverse=True)
+    print("  [nome] melhores colunas:", [(round(s, 1), c) for s, c in cands[:5]])
+    return cands[0][1] if cands else None
 
 contagem, fontes = {}, {}
 for arq in sorted(glob.glob(f"{RAW}/*.geojson")):
@@ -41,6 +52,7 @@ for arq in sorted(glob.glob(f"{RAW}/*.geojson")):
     g = gpd.read_file(arq)
     if g.crs is None: g = g.set_crs(4326)
     g = g.to_crs(4326)
+    print(f"[{tipo}] colunas da fonte: {[c for c in g.columns if c != 'geometry']}")
     dentro = gpd.sjoin(g, mun, how="inner", predicate="within")
     nc = nome_col(g)
     out = gpd.GeoDataFrame({
