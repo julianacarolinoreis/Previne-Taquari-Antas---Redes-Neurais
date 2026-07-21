@@ -127,15 +127,16 @@ def patch_static_copy(html):
     const periodo=ini && fim ? ini+' a '+fim : ini;
     return 'Evento '+ev.evento+(periodo?' · '+periodo:'');
   }"""
-    html, count = re.subn(
-        r"function evLabel\(ev\)\{.*?return 'Evento '\+ev\.evento.*?\n  \}",
-        lambda _match: ev_label,
-        html,
-        count=1,
-        flags=re.S,
-    )
-    if count == 0:
-        print("Warning: static patch not applied (datas eventos modal)")
+    if "function fmtEventoData(" not in html:   # idempotência: não redobra o patch
+        html, count = re.subn(
+            r"function evLabel\(ev\)\{.*?return 'Evento '\+ev\.evento.*?\n  \}",
+            lambda _match: ev_label,
+            html,
+            count=1,
+            flags=re.S,
+        )
+        if count == 0:
+            print("Warning: static patch not applied (datas eventos modal)")
     return html
 
 
@@ -162,10 +163,28 @@ def filter_index():
     html = re.sub(r'audit_charts\.css(?:\?v=[^\s"\'<>]*)?', "audit_charts.css?v=20260705-pers-positive-v1", html)
     html = re.sub(r'audit_charts\.js(?:\?v=[^\s"\'<>]*)?', "audit_charts.js?v=20260705-pers-positive-v1", html)
     positive_count_text = f"{len(positive)} modelos com PERS positivos"
-    html = re.sub(r"\d+ modelos em 10 rodadas", positive_count_text, html)
+    # Relabela SOMENTE a contagem-título da varredura — o cabeçalho
+    # "(N modelos em R rodadas)" — para a contagem de modelos com PERS positivos.
+    # É idempotente: o "(?: com PERS positivos)*" reabsorve a própria saída de
+    # rodadas anteriores do filtro, então rodar de novo não empilha o sufixo.
+    # NÃO toca nas contagens por horizonte ("· 49 modelos", "· 139 modelos") nem em
+    # fatos como "só 4 modelos passam de 0,500" — que descrevem a varredura completa
+    # (o texto ao lado diz explicitamente "Os números citam a varredura toda").
+    html = re.sub(
+        r"\(\d+ modelos(?: com PERS positivos)* em (\d+) rodadas\)",
+        f"({positive_count_text} em \\1 rodadas)",
+        html,
+    )
     html = html.replace("Exploração dos 239 modelos", "Exploração dos modelos com PERS positivos")
-    html = re.sub(r"todos os \d+ modelos", f"os {len(positive)} modelos com todos os PERS positivos", html)
-    html = re.sub(r"\d+ modelos", positive_count_text, html)
+    html = re.sub(
+        r"todos os \d+ modelos(?: com PERS positivos)*",
+        f"os {len(positive)} modelos com todos os PERS positivos",
+        html,
+    )
+    # Saneamento defensivo: colapsa repetições de "com PERS positivos" que tenham
+    # sido acumuladas por rodadas do filtro antigo (bug do replace global
+    # r"\d+ modelos", que recasava a própria saída a cada push em main).
+    html = re.sub(r"(com PERS positivos)(?:\s+com PERS positivos)+", r"\1", html)
     html = patch_static_copy(html)
     path.write_text(html, encoding="utf-8")
     return original, positive
