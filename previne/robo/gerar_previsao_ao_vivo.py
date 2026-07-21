@@ -10,7 +10,7 @@ Roda no GitHub Actions (a cada 30 min):
 
 EXPERIMENTAL — não é alerta oficial.
 """
-import os, sys, json, datetime as dt, urllib.request, xml.etree.ElementTree as ET
+import os, sys, json, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
 import numpy as np
 from scipy.io import loadmat
 
@@ -124,21 +124,24 @@ def buscar_ana(cod, dias=5):
         f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
         f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
     ]
-    for url in tentativas:
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
-            xml = urllib.request.urlopen(req, timeout=60).read()
-            serie, nbytes, ultima_raw = _serie_de_xml(xml)
-            print(f"[ANA {cod}] {url.split('?')[1][:40]}... bytes={nbytes} linhas={len(serie)}")
-            if ultima_raw:
-                ULTIMA_RAW[cod] = ultima_raw
-            if serie:
-                return serie
-            if nbytes:                          # veio resposta mas 0 linhas -> mostra amostra
-                amostra = xml[:600].decode("utf-8", "replace").replace("\n", " ")
-                print(f"[ANA {cod}] amostra: {amostra}")
-        except Exception as e:
-            print(f"[ANA {cod}] erro: {e}")
+    for rodada in range(1, 4):
+        for url in tentativas:
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
+                xml = urllib.request.urlopen(req, timeout=60).read()
+                serie, nbytes, ultima_raw = _serie_de_xml(xml)
+                print(f"[ANA {cod}] tentativa={rodada} {url.split('?')[1][:40]}... bytes={nbytes} linhas={len(serie)}")
+                if ultima_raw:
+                    ULTIMA_RAW[cod] = ultima_raw
+                if serie:
+                    return serie
+                if nbytes:                          # veio resposta mas 0 linhas -> mostra amostra
+                    amostra = xml[:600].decode("utf-8", "replace").replace("\n", " ")
+                    print(f"[ANA {cod}] amostra: {amostra}")
+            except Exception as e:
+                print(f"[ANA {cod}] tentativa={rodada} erro: {e}")
+        if rodada < 3:
+            time.sleep(8 * rodada)
     return {}
 
 def nivel(serie, t):
