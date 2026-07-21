@@ -305,6 +305,31 @@ const UNCERT={'2h':0.3,'4h':0.5,'4h_cascata':0.5,'8h':0.7,'12h':1.0,'—':0};
 const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'4h_cascata':['Moderada','#c98a1a'],'8h':['Moderada','#c98a1a'],'12h':['Baixa','#c0392b'],'—':['—','#999']};
 function hzLabel(hz){ return hz==='4h_cascata'?'4h cascata':(hz||'—'); }
 function hzHours(hz,D){ return D&&D.horizonte_h?String(D.horizonte_h):(String(hz||'').match(/\d+/)||['—'])[0]; }
+function parseLocalWhen(s){
+  if(!s) return null;
+  const m=String(s).replace('T',' ').match(/(\d{4})-(\d{2})-(\d{2})[ ]+(\d{2}):(\d{2})/);
+  return m?new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],0):null;
+}
+function fmtWhenDate(d){
+  const p=n=>String(n).padStart(2,'0');
+  return d&&Number.isFinite(d.getTime())?`${p(d.getDate())}/${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}`:'—';
+}
+function forecastTargetLabels(ev,s,D){
+  const hz=hzLabel((D&&D.horizonte)||ev.horizonte);
+  if(hz==='—') return {simple:'—', tech:'—'};
+  let alvo=D&&D.hora_alvo?fmtWhen(D.hora_alvo):null;
+  if(!alvo || alvo==='—'){
+    const h=Number(hzHours((D&&D.horizonte)||ev.horizonte,D||ev));
+    const base=parseLocalWhen((D&&D.hora_modelo)||(s&&s[0]));
+    if(Number.isFinite(h) && base){
+      base.setHours(base.getHours()+h);
+      alvo=fmtWhenDate(base);
+    }
+  }
+  return alvo&&alvo!=='—'
+    ? {simple:`+${hz} · para ${alvo}`, tech:`${hz} · para ${alvo}`}
+    : {simple:`+${hz}`, tech:hz};
+}
 let handArr=null, curEv=Object.keys(EVENTS)[0];
 let bankfull=400, tIdx=0, playing=false, timer=null, map=null, waterOverlay=null, curS=null;
 const calibByEvent={};
@@ -383,6 +408,11 @@ function renderFrame(){
   const cellHa=0.0835/(SS*SS);
   const areaNow=aNow*cellHa, areaFore=aFore*cellHa, areaNew=(aFore-aNow)*cellHa;
   const growth=aNow>0?(aFore-aNow)/aNow*100:0;
+  const activeD=liveMode?activeLiveData():null;
+  const targetLabels=forecastTargetLabels(ev,s,activeD);
+  set('s-hz', targetLabels.simple);
+  set('hz', targetLabels.tech);
+  set('hz2', targetLabels.tech);
   // ---- modo simples ----
   set('s-now', fmtNivel(nowCm));
   set('s-fore', hasFore?fmtNivel(foreCm):'—');
@@ -400,7 +430,6 @@ function renderFrame(){
   const cf=CONF[ev.horizonte]||CONF['—']; set('s-conf',cf[0]); const cd=document.getElementById('s-confdot'); if(cd)cd.style.background=cf[1];
   // ---- modo tecnico ----
   set('r-now', fmtNivel(nowCm));
-  const activeD=liveMode?activeLiveData():null;
   const modelBaseCm=activeD?liveModelBaseCm(activeD):null;
   const modelBaseRow=document.getElementById('r-modelbase-row');
   if(modelBaseRow){
@@ -411,7 +440,7 @@ function renderFrame(){
   set('r-fore', hasFore?fmtNivel(foreCm):'—');
   set('r-dnivel', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
   const aoVivoSemObs = liveMode && liveData && liveData.modo!=='replay' && !hasObs;
-  set('r-obs', hasObs?fmtNivel(obsCm):(aoVivoSemObs?'a confirmar após +'+ev.horizonte:'—'));
+  set('r-obs', hasObs?fmtNivel(obsCm):(aoVivoSemObs?'a confirmar após '+targetLabels.tech:'—'));
   set('r-errniv', (hasFore&&hasObs)?sgn1((foreCm-obsCm)/100)+' m':(aoVivoSemObs?'aguardando observado':'—'));
   set('r-anow', hasNow?nf.format(areaNow)+' ha':'—');
   set('r-afore', hasFore?nf.format(areaFore)+' ha':'—');
@@ -550,6 +579,7 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   const nivelModelo=liveModelBaseCm(D);
   const nivelModeloTxt=nivelModelo!=null?` (${Math.round(nivelModelo)} cm)`:'';
   const partes=[`Modo ${modoTxt} · Modelo <b>${modelo}</b> (${hzTxt}${tipoTxt}) · base do cálculo <b>${fmtWhen(horaModelo)}</b>${nivelModeloTxt}`];
+  if(D.hora_alvo) partes.push(`previsão para <b>${fmtWhen(D.hora_alvo)}</b>`);
   if(D.modo_cascata && D.input_cascata_2h_cm!=null){
     partes.push(`cascata: ${escLive(D.input_cascata_nome||'saída 2h')} <b>${nf1.format(D.input_cascata_2h_cm)} cm</b>`);
   }
