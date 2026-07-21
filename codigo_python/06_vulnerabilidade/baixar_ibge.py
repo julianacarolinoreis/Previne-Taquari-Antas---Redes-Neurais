@@ -65,54 +65,76 @@ BASES = [
     "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/Agregados_por_Setor_csv/",
     "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/",
 ]
-TEMAS = {  # nome_destino: regex no nome do arquivo
+TEMAS = {  # nome_destino: regex no nome do arquivo — OBRIGATÓRIOS
     "agregados_basico.zip":     r"basico.*\.zip$",
     "agregados_demografia.zip": r"demografia.*\.zip$",
     "agregados_cor_raca.zip":   r"cor.*ra.a.*\.zip$",
+    # características dos domicílios (energia, abastecimento de água, esgoto) — universo 2022
+    "agregados_domicilio.zip":  r"domicilio(?!.*renda).*\.zip$",
 }
+# OPCIONAIS — baixados se existirem, mas NÃO fazem o robô falhar. A renda do
+# Censo 2022 é da amostra (não do universo) e pode não estar publicada por setor;
+# se o IBGE divulgar uma tabela de rendimento por setor, ela é capturada aqui.
+OPCIONAIS = {
+    "agregados_renda.zip":      r"(domicilio.?renda|pessoa.?renda|rendiment).*\.zip$",
+}
+
+def _baixa_temas(temas, base, hrefs):
+    achou = []
+    for nome, rx in list(temas.items()):
+        alvo = [h for h in hrefs if re.search(rx, h, re.I)]
+        if alvo:
+            save(base + alvo[0], nome)
+            achou.append(nome)
+    return achou
+
 faltando = dict(TEMAS)
+opcionais = dict(OPCIONAIS)
 for base in BASES:
-    if not faltando: break
+    if not faltando and not opcionais: break
     try:
         hrefs = listar_dir(base)
     except Exception as e:
         print(f"[aviso] não listei {base}: {e}"); continue
     print(f"[dir] {base} -> {len(hrefs)} itens")
-    for nome, rx in list(faltando.items()):
-        alvo = [h for h in hrefs if re.search(rx, h, re.I)]
-        if alvo:
-            save(base + alvo[0], nome)
-            faltando.pop(nome)
+    for nome in _baixa_temas(faltando, base, hrefs):  faltando.pop(nome, None)
+    for nome in _baixa_temas(opcionais, base, hrefs):  opcionais.pop(nome, None)
     # desce um nível em subpastas prováveis
     for sub in [h for h in hrefs if h.endswith("/") and re.search(r"csv|setor", h, re.I)]:
-        if not faltando: break
+        if not faltando and not opcionais: break
         try:
             hrefs2 = listar_dir(base + sub)
         except Exception:
             continue
-        for nome, rx in list(faltando.items()):
-            alvo = [h for h in hrefs2 if re.search(rx, h, re.I)]
-            if alvo:
-                save(base + sub + alvo[0], nome)
-                faltando.pop(nome)
+        for nome in _baixa_temas(faltando, base + sub, hrefs2):  faltando.pop(nome, None)
+        for nome in _baixa_temas(opcionais, base + sub, hrefs2):  opcionais.pop(nome, None)
 if faltando:
-    raise RuntimeError(f"agregados não encontrados: {list(faltando)} — revisar BASES/TEMAS")
+    raise RuntimeError(f"agregados obrigatórios não encontrados: {list(faltando)} — revisar BASES/TEMAS")
+if opcionais:
+    print(f"[aviso] agregados opcionais não encontrados (segue sem eles): {list(opcionais)}")
 
 # ---------- 3b) dicionário de dados (auditoria dos códigos de coluna) ----------
 def _imprime_dicionario(fonte):
-    """Imprime no log as variáveis V010xx/V013xx (demografia, cor ou raça)."""
+    """Imprime no log os códigos de variável (V0xxxx) que interessam ao mapa:
+    demografia (faixas etárias), cor ou raça, e características do domicílio
+    (energia elétrica, abastecimento de água, esgotamento sanitário, rendimento).
+    Ao adicionar um indicador novo, é aqui no log que se confere o código certo."""
     import openpyxl
+    chave = re.compile(r"energ|el.tric|\bágua\b|\bagua\b|abastec|esgot|sanit|"
+                       r"rendiment|renda|\bcor\b|ra.a|preta|parda|idade|anos", re.I)
     linhas = 0
     wb = openpyxl.load_workbook(fonte, read_only=True, data_only=True)
     for ws in wb.worksheets:
         for row in ws.iter_rows(values_only=True):
             cells = [str(c).strip() for c in row if c is not None and str(c).strip()]
             if not cells: continue
-            if any(re.match(r"^[vV]0?1[03]\d{2}$", c) for c in cells[:4]):
-                print("  [dic]", " | ".join(cells[:4])[:170]); linhas += 1
-            if linhas >= 300: return
+            tem_codigo = any(re.match(r"^[vV]0?\d{3,4}$", c) for c in cells[:4])
+            texto = " | ".join(cells[:5])
+            if tem_codigo and (re.search(r"^[vV]0?1[03]\d{2}$", cells[0]) or chave.search(texto)):
+                print("  [dic]", texto[:190]); linhas += 1
+            if linhas >= 600: return
     if not linhas:
-        print("[aviso] dicionário lido, mas nenhum código V010xx/V013xx encontrado")
+        print("[aviso] dicionário lido, mas nenhum código de interesse encontrado")
 
 try:
     for base in BASES:

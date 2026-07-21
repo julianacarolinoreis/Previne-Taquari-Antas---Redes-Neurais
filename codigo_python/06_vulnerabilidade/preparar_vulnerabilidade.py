@@ -11,7 +11,11 @@ Saída:    assets/data/vulnerabilidade/
   - brutos/*.csv + FONTES.md      (recorte da bacia das tabelas do IBGE)
 
 Indicadores: pop_total, mulheres, criancas_0_4, criancas_5_9,
-             idosos_60_69, idosos_70m, indigenas, domicilios, densidade (hab/km²).
+             idosos_60_69, idosos_70m, indigenas, domicilios, densidade (hab/km²),
+             pretos_pardos, e — se o tema Domicílio existir — dom_energia,
+             dom_agua, dom_esgoto (nº de domicílios com o serviço; % contra 'dom').
+             Os quatro últimos são OPCIONAIS: se o código IBGE não bater, o robô
+             avisa no log e segue sem eles (não regride os que já funcionam).
 
 Se um código de coluna do IBGE não bater (layout muda entre releases), o script
 IMPRIME o cabeçalho real e falha com mensagem clara — ajustar COLMAP e rodar de novo.
@@ -37,13 +41,28 @@ COLMAP = {
                    "c5_9":      ["V01010", "V01021"],   # 5–9: homens + mulheres
                    "i60_69":    ["V01018", "V01029"],   # 60–69: homens + mulheres
                    "i70m":      ["V01019", "V01030"]},  # 70+: homens + mulheres
-    "cor_raca":   {"setor": ["CD_SETOR", "CD_setor"], "indigenas": ["V01321"]},
+    # cor ou raça: V01317 Branca, V01318 Preta, V01319 Amarela, V01320 Parda, V01321 Indígena
+    "cor_raca":   {"setor": ["CD_SETOR", "CD_setor"],
+                   "indigenas":     ["V01321"],
+                   "pretos_pardos": ["V01318", "V01320"]},   # preta + parda
+    # características do domicílio (universo 2022). CÓDIGOS A CONFIRMAR pelo dicionário
+    # impresso no log do passo de download (energia, água por rede, esgoto por rede).
+    # Se um código não bater, o indicador é PULADO (não derruba o robô).
+    "domicilio":  {"setor": ["CD_SETOR", "CD_setor"],
+                   "dom_energia":  ["V00644", "V0301"],   # domicílios com energia elétrica
+                   "dom_agua":     ["V00637", "V0207"],   # abastecimento por rede geral
+                   "dom_esgoto":   ["V00640", "V0210"]},  # esgoto por rede geral/pluvial
 }
+# indicadores OPCIONAIS: se as colunas não existirem, o robô avisa e segue.
+OPCIONAIS = {"pretos_pardos", "dom_energia", "dom_agua", "dom_esgoto"}
 
-def acha_col(df, cands, tabela, papel):
+def acha_col(df, cands, tabela, papel, opcional=False):
     for c in cands:
         for v in (c, c.lower(), c.upper()):
             if v in df.columns: return v
+    if opcional:
+        print(f"[aviso] coluna de '{papel}' ({cands}) não achada em {tabela} — indicador PULADO")
+        return None
     print(f"\n[ERRO] coluna de '{papel}' não encontrada na tabela {tabela}.")
     print("Cabeçalho real:", list(df.columns)[:60])
     raise SystemExit(f"ajuste COLMAP['{tabela}']['{papel}'] — o dicionário impresso no "
@@ -122,24 +141,35 @@ print(f"[setores] {len(setg)} setores nos municípios da bacia")
 bas = ler_zip_csv("agregados_basico.zip")
 dem = ler_zip_csv("agregados_demografia.zip")
 cor = ler_zip_csv("agregados_cor_raca.zip")
+dom_disp = os.path.exists(os.path.join(RAW, "agregados_domicilio.zip"))
+dfdom = ler_zip_csv("agregados_domicilio.zip") if dom_disp else None
 
 def prepara(df, tabela, campos):
     cs = COLMAP[tabela]
     sc = acha_col(df, cs["setor"], tabela, "setor")
     d = pd.DataFrame({"setor": df[sc].astype(str).str.strip()})
     for papel in campos:                              # soma as colunas do papel
+        opc = papel in OPCIONAIS
         total = None
         for code in cs[papel]:
-            v = num(df[acha_col(df, [code], tabela, papel)])
+            col = acha_col(df, [code], tabela, papel, opcional=opc)
+            if col is None:                           # 1º código já não existe → pula o campo
+                total = None; break
+            v = num(df[col])
             total = v if total is None else total + v
-        d[papel] = total.values
+        if total is not None:
+            d[papel] = total.values
     return d[d["setor"].str.startswith("43")]         # RS
 
 bas = prepara(bas, "basico", ["pop", "dom"])
 dem = prepara(dem, "demografia", ["mulheres", "c0_4", "c5_9", "i60_69", "i70m"])
-cor = prepara(cor, "cor_raca", ["indigenas"])
+cor = prepara(cor, "cor_raca", ["indigenas", "pretos_pardos"])
 
-tab = bas.merge(dem, on="setor", how="left").merge(cor, on="setor", how="left").fillna(0)
+tab = bas.merge(dem, on="setor", how="left").merge(cor, on="setor", how="left")
+if dfdom is not None:
+    dom = prepara(dfdom, "domicilio", ["dom_energia", "dom_agua", "dom_esgoto"])
+    tab = tab.merge(dom, on="setor", how="left")
+tab = tab.fillna(0)
 setg["setor"] = setg["setor"].astype(str)
 g = setg.merge(tab, on="setor", how="left").fillna(0)
 
@@ -153,7 +183,10 @@ dentro = g.geometry.representative_point().within(bacia)
 g["na_bacia"] = dentro.astype(int)
 pop_dentro = float(g.loc[dentro, "pop"].sum())
 
+# campos base (sempre) + os opcionais que realmente entraram (pretos/pardos, saneamento)
 CAMPOS = ["pop", "dom", "mulheres", "c0_4", "c5_9", "i60_69", "i70m", "indigenas"]
+CAMPOS += [c for c in ("pretos_pardos", "dom_energia", "dom_agua", "dom_esgoto") if c in g.columns]
+print("[campos] indicadores publicados:", CAMPOS)
 
 # ---------- saídas ----------
 # brutos recortados (auditável), com flag de setor dentro do polígono
@@ -193,10 +226,14 @@ if os.path.exists(_fp):
 open(f"{OUT}/brutos/FONTES.md", "w").write(
 f"""# Fontes (dados completos oficiais)
 - Agregados por Setores Censitários — Censo 2022: https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/
+  Temas usados: Básico (população, domicílios), Demografia (faixas etárias por sexo),
+  Cor ou raça (indígenas; pretos + pardos), Domicílio (energia, água por rede, esgoto por rede).
 - Malha de setores censitários 2022: https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_de_setores_censitarios__divisoes_intramunicipais/censo_2022/
 - Malha municipal 2022: https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2022/
 - Limite da bacia Taquari-Antas: {_fonte_bacia}
 Os CSVs aqui são o RECORTE dos municípios que intersectam a bacia; o estadual completo está nas URLs acima.
+Renda: o Censo 2022 coletou rendimento apenas na amostra (não no universo); por isso não há
+renda por setor censitário — a renda, quando entrar, virá em escala municipal de outra fonte.
 """)
 
 # sanidade — o robô RECUSA publicar dados fora do plausível
@@ -219,6 +256,18 @@ checks = [
     faixa("idosos 70+",    tot["i70m"],      0.045,  0.100),
     faixa("indígenas",     tot["indigenas"], 0.0002, 0.020),
 ]
+# indicadores novos: só INFORMATIVO (não derruba o robô) — serve para conferir os
+# códigos IBGE no log antes de confiar no dado. Faixas plausíveis no RS:
+#   pretos+pardos ~15–35% da pop; energia ~98–100%, água por rede ~80–99%,
+#   esgoto por rede ~40–90% dos domicílios.
+if "pretos_pardos" in CAMPOS:
+    print(f"  pretos+pardos: {tot['pretos_pardos']/tot['pop']*100:.1f}% da pop "
+          f"(esperado ~15–35%) {'OK' if 0.08 <= tot['pretos_pardos']/tot['pop'] <= 0.45 else '** CONFERIR CÓDIGO **'}")
+for k, lab, lo, hi in [("dom_energia","energia",0.90,1.01), ("dom_agua","água rede",0.55,1.01), ("dom_esgoto","esgoto rede",0.20,1.01)]:
+    if k in CAMPOS:
+        frac = tot[k]/tot["dom"] if tot["dom"] else 0
+        print(f"  {lab}: {frac*100:.1f}% dos domicílios (esperado {lo*100:.0f}–100%) "
+              f"{'OK' if lo <= frac <= hi else '** CONFERIR CÓDIGO **'}")
 print(f"População dos municípios que TOCAM a bacia (inteiros): {int(tot['pop']):,}")
 print(f"População DENTRO do polígono da bacia (setores): {int(pop_dentro):,}")
 assert 900_000 < pop_dentro < 1_700_000, (f"população dentro da bacia suspeita ({int(pop_dentro):,}; "
