@@ -2,8 +2,8 @@ name: Previsao ao vivo - Santa Tereza
 
 on:
   schedule:
-    # Tentativas a cada 15 min, em minutos desencontrados para reduzir atraso/drop do GitHub Actions.
-    - cron: '3,18,33,48 * * * *'
+    # Consulta frequente: se a ANA publicar leitura nova, a RNA recalcula na próxima janela.
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
