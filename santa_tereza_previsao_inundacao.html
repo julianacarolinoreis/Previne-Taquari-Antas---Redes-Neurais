@@ -92,8 +92,8 @@
   .live-bar a{margin-left:auto;color:inherit;cursor:pointer;text-decoration:underline;font-weight:600}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
   .live-note{font-size:11px;color:#a5281c;background:#fff6f5;border:1px solid #f3d3cd;border-radius:9px;padding:7px 10px;margin-bottom:10px;line-height:1.4}
-  .live-hz{display:none;gap:6px;margin:-2px 0 10px}
-  .live-hz button{flex:1;border:1px solid #f3c0b8;background:#fff;color:#a5281c;border-radius:9px;padding:7px 8px;font-size:12px;font-weight:750;cursor:pointer}
+  .live-hz{display:none;gap:6px;margin:-2px 0 10px;flex-wrap:wrap}
+  .live-hz button{flex:1 1 72px;border:1px solid #f3c0b8;background:#fff;color:#a5281c;border-radius:9px;padding:7px 8px;font-size:12px;font-weight:750;cursor:pointer}
   .live-hz button.on{background:#a5281c;color:#fff;border-color:#a5281c}
   body.live #scn, body.live .tl, body.live #live-btn{display:none}
   body.live .live-hz{display:flex}
@@ -120,12 +120,13 @@
 <main>
   <div id="map"></div>
   <aside>
-    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (Santa Tereza · 2h e 4h)</button>
+    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (Santa Tereza · 2h, 4h e cascata)</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
       <button data-live-hz="2h" class="on">2h</button>
       <button data-live-hz="4h">4h</button>
+      <button data-live-hz="4h_cascata">4h cascata</button>
       <button data-live-hz="8h">8h</button>
       <button data-live-hz="12h">12h</button>
     </div>
@@ -241,8 +242,10 @@ const sgn1=v=>Math.abs(v)<0.05?'0,0':(v>0?'+':'−')+nf1.format(Math.abs(v));
 const fmtNivel=cm=>cm==null||!Number.isFinite(Number(cm))?'—':nf2.format(Number(cm)/100)+' m';
 const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 // margem de incerteza (m) por horizonte — cresce com o lead
-const UNCERT={'2h':0.3,'4h':0.5,'8h':0.7,'12h':1.0,'—':0};
-const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'8h':['Moderada','#c98a1a'],'12h':['Baixa','#c0392b'],'—':['—','#999']};
+const UNCERT={'2h':0.3,'4h':0.5,'4h_cascata':0.5,'8h':0.7,'12h':1.0,'—':0};
+const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'4h_cascata':['Moderada','#c98a1a'],'8h':['Moderada','#c98a1a'],'12h':['Baixa','#c0392b'],'—':['—','#999']};
+function hzLabel(hz){ return hz==='4h_cascata'?'4h cascata':(hz||'—'); }
+function hzHours(hz,D){ return D&&D.horizonte_h?String(D.horizonte_h):(String(hz||'').match(/\d+/)||['—'])[0]; }
 let handArr=null, curEv=Object.keys(EVENTS)[0];
 let bankfull=400, tIdx=0, playing=false, timer=null, map=null, waterOverlay=null, curS=null;
 const calibByEvent={};
@@ -379,8 +382,8 @@ function setEvent(ev){
   if(playing){playing=false; clearTimeout(timer); document.getElementById('play').textContent='▶';}
   document.getElementById('time').max=Math.max(0,E.series.length-1);
   document.getElementById('time').value=0;
-  const hzt=E.horizonte==='—'?'':'+'+E.horizonte;
-  set('hz',E.horizonte); set('hz2',E.horizonte); set('s-hz',hzt||'—'); set('s-hz2',(E.horizonte||'').replace('h',''));
+  const hzt=E.horizonte==='—'?'':'+'+hzLabel(E.horizonte);
+  set('hz',hzLabel(E.horizonte)); set('hz2',hzLabel(E.horizonte)); set('s-hz',hzt||'—'); set('s-hz2',hzHours(E.horizonte,E));
   if(calibByEvent[ev]!=null) bankfull=calibByEvent[ev];
   document.getElementById('bankfull').value=bankfull;
   set('bfval',(bankfull/100).toFixed(1)+' m');
@@ -476,9 +479,13 @@ function liveFreshnessHtml(D){
 function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   const modelo=D.modelo||'—';
   const horaModelo=D.hora_modelo||P[0];
+  const hzTxt=D.rotulo||hzLabel(hz);
   const nivelModelo=liveModelBaseCm(D);
   const nivelModeloTxt=nivelModelo!=null?` (${Math.round(nivelModelo)} cm)`:'';
-  const partes=[`Modo ${modoTxt} · Modelo <b>${modelo}</b> (${hz}${tipoTxt}) · base do cálculo <b>${fmtWhen(horaModelo)}</b>${nivelModeloTxt}`];
+  const partes=[`Modo ${modoTxt} · Modelo <b>${modelo}</b> (${hzTxt}${tipoTxt}) · base do cálculo <b>${fmtWhen(horaModelo)}</b>${nivelModeloTxt}`];
+  if(D.modo_cascata && D.input_cascata_2h_cm!=null){
+    partes.push(`cascata: ${escLive(D.input_cascata_nome||'saída 2h')} <b>${nf1.format(D.input_cascata_2h_cm)} cm</b>`);
+  }
   if(D.telemetria_ultima_em){
     const nivel=D.telemetria_ultima_nivel_cm!=null?` (${D.telemetria_ultima_nivel_cm} cm)`:'';
     partes.push(`nível agora ANA até <b>${fmtWhen(D.telemetria_ultima_em)}</b>${nivel}`);
@@ -552,7 +559,7 @@ function renderLiveStep(){
     if(note){ note.style.display='';
       note.textContent='Estação de Santa Tereza sem dado recente da ANA neste momento'
         + (q?(' (última leitura '+fmtWhen(q)+')'):'')
-        + ' — a previsão de 2h/4h volta assim que a telemetria retornar; o robô tenta a cada ~15 min.'; }
+        + ' — a previsão de 2h/4h/cascata volta assim que a telemetria retornar; o robô tenta a cada ~15 min.'; }
     // limpa a mancha e os números do cenário que ficaram na tela
     ['s-now','s-fore','s-drio','s-newarea','s-atot','s-conf','s-hz2','s-hz'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='—'; });
     if(waterOverlay && waterOverlay.setUrl) waterOverlay.setUrl('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
@@ -566,7 +573,8 @@ function renderLiveStep(){
     bankfull=L.bankfull_cm||(liveData&&liveData.bankfull_cm)||400;
     curEv='__live__'; tIdx=0;
     const hz=L.horizonte||liveHz||'2h';
-    set('hz',hz); set('hz2',hz); set('s-hz','+'+hz); set('s-hz2',hz.replace('h',''));
+    const hzTxt=L.rotulo||hzLabel(hz);
+    set('hz',hzTxt); set('hz2',hzTxt); set('s-hz','+'+hzTxt); set('s-hz2',hzHours(hz,L));
     const tipo=(L.tipo||L.modelo_tipo||'').toString().toUpperCase();
     const tipoTxt=tipo?' '+tipo:'';
     const modoTxt=(L.modo||liveData.modo)==='replay'?'replay':'ao vivo';
@@ -583,7 +591,8 @@ function renderLiveStep(){
   bankfull=liveData.bankfull_cm||400;
   curEv='__live__'; tIdx=0;
   const hz=liveData.horizonte||'2h';
-  set('hz',hz); set('hz2',hz); set('s-hz','+'+hz); set('s-hz2',hz.replace('h',''));
+  const hzTxt=liveData.rotulo||hzLabel(hz);
+  set('hz',hzTxt); set('hz2',hzTxt); set('s-hz','+'+hzTxt); set('s-hz2',hzHours(hz,liveData));
   const tipo=(liveData.tipo||liveData.modelo_tipo||'').toString().toUpperCase();
   const tipoTxt=tipo?' '+tipo:'';
   const modoTxt=liveData.modo==='replay'?'replay':'ao vivo';

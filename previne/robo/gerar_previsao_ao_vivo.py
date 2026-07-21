@@ -59,6 +59,22 @@ MODELOS = [
         "montador": "4h_alt_prio_12478",
         "principal": False,
     },
+    {
+        "horizonte": "4h_cascata",
+        "rotulo": "4h cascata",
+        "horizonte_h": 4,
+        "tipo": "ALT_CASCATA",
+        "modelo": "4H_ALT_CASCATA2H_C002_ALT2H",
+        "mat": "previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__CASCATA2H_C002_ALT2H.mat",
+        "inputs_total": 6,
+        "montador": "4h_alt_cascata_2h_alt",
+        "principal": False,
+        "cascata": {
+            "modelo_base": COMBO,
+            "modelo_base_horizonte": "2h",
+            "input_nome": "delta previsto pela RNA 2h",
+        },
+    },
 ]
 
 def _local(tag):                          # remove {namespace} do nome da tag
@@ -203,11 +219,25 @@ def montar_inputs_4h(series, t):
     ]
     return inputs, st0
 
+def montar_inputs_4h_cascata_2h_alt(series, t):
+    """Modelo 4h em cascata: inputs do 4h ALT + delta previsto pela RNA 2h."""
+    inputs4, st0 = montar_inputs_4h(series, t)
+    delta_2h = None
+    try:
+        x2h, st2h = montar_inputs(series, t)
+        if st2h is not None and all(v is not None for v in x2h):
+            delta_2h = prever(MODELO_MAT, x2h)
+    except Exception:
+        delta_2h = None
+    return inputs4 + [delta_2h], st0
+
 def montar_inputs_modelo(cfg, series, t):
     if cfg["montador"] == "2h_alt_vfinal":
         return montar_inputs(series, t)
     if cfg["montador"] == "4h_alt_prio_12478":
         return montar_inputs_4h(series, t)
+    if cfg["montador"] == "4h_alt_cascata_2h_alt":
+        return montar_inputs_4h_cascata_2h_alt(series, t)
     raise ValueError("montador desconhecido: " + str(cfg["montador"]))
 
 def diagnosticar_inputs_faltantes(series, t, inputs):
@@ -283,9 +313,31 @@ def diagnosticar_inputs_faltantes_4h(series, t, inputs):
         })
     return faltantes
 
+def diagnosticar_inputs_faltantes_4h_cascata_2h_alt(series, t, inputs):
+    faltantes = diagnosticar_inputs_faltantes_4h(series, t, inputs[:5])
+    if len(inputs) > 5 and inputs[5] is None:
+        dependencias = []
+        try:
+            x2h, _ = montar_inputs(series, t)
+            dependencias = diagnosticar_inputs_faltantes(series, t, x2h)
+        except Exception as e:
+            dependencias = [{"input": "RNA_2H", "descricao": f"falha ao montar RNA 2h: {e}"}]
+        faltantes.append({
+            "input": "inp06",
+            "descricao": "delta previsto pela RNA 2h usado como input da cascata 4h",
+            "estacao": "RNA_2H",
+            "estacao_nome": "RNA Santa Tereza 2h ALT",
+            "horarios_necessarios": [t.isoformat(timespec="minutes")],
+            "horarios_faltantes": [t.isoformat(timespec="minutes")],
+            "dependencias_faltantes": dependencias,
+        })
+    return faltantes
+
 def diagnosticar_inputs_modelo(cfg, series, t, inputs):
     if cfg["montador"] == "4h_alt_prio_12478":
         return diagnosticar_inputs_faltantes_4h(series, t, inputs)
+    if cfg["montador"] == "4h_alt_cascata_2h_alt":
+        return diagnosticar_inputs_faltantes_4h_cascata_2h_alt(series, t, inputs)
     return diagnosticar_inputs_faltantes(series, t, inputs)
 
 def resumo_estacoes(series):
@@ -396,6 +448,7 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
         "estacao": "86472600",
         "local": "Santa Tereza",
         "horizonte": cfg["horizonte"],
+        "rotulo": cfg.get("rotulo", cfg["horizonte"]),
         "horizonte_h": cfg["horizonte_h"],
         "tipo": cfg["tipo"],
         "modelo": cfg["modelo"],
@@ -531,6 +584,12 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         delta = prever(cfg["mat"], x)
         out = _base_saida(cfg, st0, st0 + delta, t, "ok", aviso, [], estacoes_status)
         out["delta_previsto_cm"] = round(delta, 1)
+        if cfg.get("cascata"):
+            out["modo_cascata"] = True
+            out["modelo_base_2h"] = cfg["cascata"]["modelo_base"]
+            out["input_cascata_nome"] = cfg["cascata"]["input_nome"]
+            out["input_cascata_2h_cm"] = round(float(x[-1]), 1)
+            out["observacao_cascata"] = "Modelo 4h ALT alimentado com a previsao do modelo 2h ALT na mesma hora-base."
         out["passos"] = [[out["hora_modelo"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
         return out
     except Exception as e:
@@ -598,7 +657,7 @@ def preservar_saida_valida_em_falha(motivo, aviso):
     escrever(None, None, None, motivo, aviso)
 
 def main():
-    aviso = "EXPERIMENTAL - nao e alerta oficial. Camada espacial da previsao de RNA (2h e 4h), em paralelo ao SGB/SACE."
+    aviso = "EXPERIMENTAL - nao e alerta oficial. Camada espacial da previsao de RNA (2h, 4h e 4h cascata), em paralelo ao SGB/SACE."
     try:
         series = {c: buscar_ana(c) for c in ESTACOES}
     except Exception as e:
