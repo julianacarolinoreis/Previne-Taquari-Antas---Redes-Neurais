@@ -1,10 +1,10 @@
-name: Previsão ao vivo — Santa Tereza
+name: Previsao ao vivo - Santa Tereza
 
 on:
   schedule:
-    # Tentativas a cada 15 min, fora do :00/:30 para reduzir atraso/drop do GitHub Actions.
-    - cron: '7,22,37,52 * * * *'
-  workflow_dispatch:           # permite rodar manualmente
+    # Tentativas a cada 15 min, em minutos desencontrados para reduzir atraso/drop do GitHub Actions.
+    - cron: '3,18,33,48 * * * *'
+  workflow_dispatch:
 
 jobs:
   prever:
@@ -13,7 +13,7 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout do repositório
+      - name: Checkout do repositorio
         uses: actions/checkout@v4
 
       - name: Configurar Python 3.11
@@ -21,10 +21,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Instalar dependências
+      - name: Instalar dependencias
         run: pip install numpy scipy h5py
 
-      - name: Gerar previsão ao vivo
+      - name: Gerar previsao ao vivo
         run: python previne/robo/gerar_previsao_ao_vivo.py
 
       - name: Commitar previsao_ao_vivo.json
@@ -32,11 +32,11 @@ jobs:
           git config user.name  "previne-robo"
           git config user.email "previne-robo@users.noreply.github.com"
           git add previsao_ao_vivo.json historico_previsoes_ao_vivo.json
-          git diff --staged --quiet && { echo "sem mudança"; exit 0; }
+          git diff --staged --quiet && { echo "sem mudanca"; exit 0; }
           git commit -m "bot: atualiza previsao_ao_vivo.json [skip ci]"
-          # blindagem contra corrida: outros workflows commitam na main ao mesmo tempo
+          # Blindagem contra corrida: outros workflows commitam na main ao mesmo tempo.
           for i in 1 2 3 4 5; do
             git pull --rebase --autostash origin main && git push && exit 0
             echo "push rejeitado (tentativa $i), refazendo rebase..."; sleep 3
           done
-          echo "falha ao empurrar após retries"; exit 1
+          echo "falha ao empurrar apos retries"; exit 1
