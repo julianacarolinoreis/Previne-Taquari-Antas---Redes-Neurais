@@ -93,6 +93,28 @@
   .icm-badge.D{background:var(--icmD)}
   .icm-prior{color:var(--brand);font-weight:700}
   .icm-foot{margin-top:14px}
+  /* ---- explicador "como ler o mapa" ---- */
+  .expl{background:var(--panel);padding:34px 18px;border-top:1px solid var(--line)}
+  .expl-in{max-width:980px;margin:0 auto}
+  .expl h2{margin:0 0 6px;font-size:19px;letter-spacing:-.01em;font-weight:800}
+  .expl .lead{font-size:14px;line-height:1.62;color:var(--ink);margin:0 0 22px;max-width:74ch}
+  .expl .lead b{color:var(--brand)}
+  .expl-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .expl-card{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:#f7faf8}
+  .expl-card h3{margin:0 0 9px;font-size:13.5px;font-weight:800;letter-spacing:.005em}
+  .expl-card p{margin:0 0 10px;font-size:12.5px;line-height:1.56;color:var(--muted)}
+  .expl-card p:last-child{margin-bottom:0}
+  .expl-card p b{color:var(--ink)}
+  .expl-ramp{display:flex;height:12px;border-radius:4px;overflow:hidden;margin:8px 0 4px}
+  .expl-ramp span{flex:1}
+  .expl-scale{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted)}
+  .expl-list{list-style:none;margin:0;padding:0}
+  .expl-list li{font-size:12.5px;line-height:1.5;padding:8px 0;border-top:1px solid var(--line)}
+  .expl-list li:first-child{border-top:none;padding-top:0}
+  .expl-list b{font-weight:800;color:var(--ink)}
+  .expl-list span{color:var(--muted)}
+  .expl .disc{margin-top:2px}
+  @media (max-width:760px){.expl-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -150,6 +172,60 @@
     </div>
   </aside>
 </main>
+
+<section class="expl">
+  <div class="expl-in">
+    <h2>Como ler este mapa</h2>
+    <p class="lead">O mapa cruza duas perguntas: <b>quem está mais exposto</b> — a vulnerabilidade
+      social, pelo Censo IBGE 2022 — e <b>quanto o município está preparado</b> para gerir riscos e
+      desastres — a capacidade (ICM). São leituras complementares: um lugar pode concentrar grupos
+      sensíveis <i>e</i> ter baixa capacidade de resposta. Não existe uma nota única — cada indicador
+      é mapeado separadamente; escolha qual ver no seletor de <b>Indicador</b>.</p>
+
+    <div class="expl-grid">
+      <div class="expl-card">
+        <h3>A cor é relativa (quantis)</h3>
+        <p>Para os indicadores do Censo, cada cor mostra a <b>posição da área dentro da bacia</b>, e não
+          um limiar fixo: os municípios (ou setores) são ordenados e divididos em 5 grupos de tamanho
+          parecido. Quanto mais escuro, maior a concentração daquele indicador <i>em relação ao restante
+          da bacia</i>.</p>
+        <div class="expl-ramp">
+          <span style="background:#f3eef6"></span><span style="background:#d9c7e3"></span>
+          <span style="background:#b394c9"></span><span style="background:#8759a8"></span>
+          <span style="background:#4d2a6e"></span>
+        </div>
+        <div class="expl-scale"><span>menor</span><span>maior concentração</span></div>
+        <p style="margin-top:12px">Em <b>“valores”</b> a cor segue a contagem; em <b>“% da população”</b>,
+          a proporção dentro de cada área — melhor pra comparar lugares de tamanhos diferentes. Você pode
+          fixar seus próprios limites em <b>“editar faixas”</b>. Já a <b>Capacidade (ICM)</b> usa faixas
+          fixas A–D (não quantis).</p>
+      </div>
+
+      <div class="expl-card">
+        <h3>O que é levado em conta</h3>
+        <ul class="expl-list">
+          <li><b>Grupos sensíveis</b> <span>— mulheres, crianças 0–4 e 5–9, idosos 60–69 e 70+, e
+            população indígena: quem tende a sofrer mais numa enchente (mobilidade, dependência de
+            cuidado, exposição).</span></li>
+          <li><b>Exposição</b> <span>— população, domicílios e densidade demográfica: quantas pessoas e
+            casas há para serem atingidas.</span></li>
+          <li><b>Serviços /10 mil hab.</b> <span>— saúde, escolas e hospitais por habitante: a estrutura
+            local para atender e abrigar (dados dos robôs do IEDE-RS).</span></li>
+          <li><b>Capacidade (ICM)</b> <span>— faixas A–D do MIDR, detalhadas na tabela abaixo: o preparo
+            do município para a gestão de risco e desastres.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="disc" style="max-width:none">
+      <b>Importante:</b> este é um retrato da vulnerabilidade <b>social</b> — ainda não sobrepõe o perigo
+      hidrológico (a mancha de inundação), que entra na próxima fase do PREVINE. Municípios de borda
+      aparecem com a população inteira; o recorte “na bacia” usa apenas os setores dentro do limite da
+      SEMA/DRH. Um lugar bem colorido não é, sozinho, “o mais em risco”: é onde há mais gente ou mais
+      sensibilidade — o risco final cruza isso com a ameaça de cheia.
+    </div>
+  </div>
+</section>
 
 <section class="icm-wrap">
   <div class="icm-inner">
