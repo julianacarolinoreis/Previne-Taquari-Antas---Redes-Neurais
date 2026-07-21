@@ -350,11 +350,14 @@ function voltaBacia(){
   pintaMunicipios();
   map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
 }
-// rótulos de nome de município (ligáveis; escondidos no drill-down de setores)
+// rótulos de nome de município: ligáveis, escondidos no drill-down e só a
+// partir de um zoom (na visão geral da bacia ficariam poluídos)
+const LBL_ZOOM = 10;
 let labelsOn = true;
 function aplicaLabels(){
   const el = document.getElementById("map");
-  if (el) el.classList.toggle("no-lbl", !labelsOn || !!munAtual);
+  const mostra = labelsOn && !munAtual && typeof map!=="undefined" && map && map.getZoom() >= LBL_ZOOM;
+  if (el) el.classList.toggle("no-lbl", !mostra);
 }
 document.getElementById("lbl-toggle").onclick = function(){
   labelsOn = !labelsOn; this.classList.toggle("on", labelsOn); aplicaLabels();
@@ -425,7 +428,7 @@ function baixarTela(){
     rows = setLayer.getLayers().map(l=>l.feature.properties);
     nome = `setores_${munAtual.cod_mun}_${slugNome(munAtual.nome)}.csv`;
   } else {
-    rows = munData.features.map(f=>f.properties);
+    rows = munFeatsExport().map(f=>f.properties);
     nome = "municipios_bacia_taquari_antas.csv";
   }
   baixaBlob(nome, csvDe(rows), "text/csv");
@@ -444,6 +447,22 @@ const EXP_COLS = [
   {k:"dens",      nome:"Densidade (hab/km²)"},
   {k:"na_bacia",  nome:"Dentro da bacia (1/0)"},
 ];
+// municípios para exportação: serviços viram CONTAGEM (_n) + DENSIDADE por 10 mil
+// hab (_por10mil), igual ao que o mapa mostra; sem os svc_* crus (evita confusão)
+function munFeatsExport(){
+  const SV = {svc_ubs:"saude", svc_hospitais:"hospitais", svc_escolas:"escolas", svc_bombeiros:"bombeiros"};
+  return munData.features.map(f=>{
+    const p = f.properties, o = {};
+    Object.keys(p).forEach(k=>{ if(!(k in SV)) o[k] = p[k]; });
+    const pop = +p.pop || 0;
+    Object.entries(SV).forEach(([k,nome])=>{
+      const n = +p[k] || 0;
+      o[nome+"_n"] = n;
+      if (nome!=="bombeiros") o[nome+"_por10mil"] = pop>0 ? Math.round(n/pop*10000*10)/10 : 0;
+    });
+    return {type:"Feature", properties:o, geometry:f.geometry};
+  });
+}
 const modal = document.getElementById("exp-modal");
 function abreModal(){ modal.hidden = false; }
 function fechaModal(){ modal.hidden = true; }
@@ -471,10 +490,10 @@ document.querySelector('.modal-body').addEventListener("click", async e=>{
   if (acao === "tela"){ baixarTela(); return; }
   if (acao === "mun-csv"){
     baixaBlob("municipios_bacia_taquari_antas.csv",
-      csvDe(munData.features.map(f=>f.properties)), "text/csv"); return;
+      csvDe(munFeatsExport().map(f=>f.properties)), "text/csv"); return;
   }
   if (acao === "mun-geojson"){
-    baixaBlob("municipios_bacia_taquari_antas.geojson", fcDe(munData.features), "application/geo+json"); return;
+    baixaBlob("municipios_bacia_taquari_antas.geojson", fcDe(munFeatsExport()), "application/geo+json"); return;
   }
   if (acao === "set-csv" || acao === "set-geojson"){
     const cod = document.getElementById("exp-mun").value;
@@ -506,6 +525,7 @@ const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
                         {maxZoom:19, maxNativeZoom:19, attribution:"© Esri, Maxar"});
 L.control.layers({"Mapa": osm, "Satélite": sat}, null, {position:"topleft"}).addTo(map);
+map.on("zoomend", aplicaLabels);   // nomes de município aparecem só ao aproximar
 
 // véu sobre tudo, menos o RS (buraco recortado no contorno do estado)
 carrega("rs_contorno.geojson").then(gj=>{
