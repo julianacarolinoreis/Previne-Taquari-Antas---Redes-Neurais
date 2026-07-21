@@ -333,7 +333,8 @@ function forecastTargetLabels(ev,s,D){
 let handArr=null, curEv=Object.keys(EVENTS)[0];
 let bankfull=400, tIdx=0, playing=false, timer=null, map=null, waterOverlay=null, curS=null;
 const calibByEvent={};
-const LIVE_URL='previsao_ao_vivo.json';
+const LIVE_URL='https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/previsao_ao_vivo.json';
+function liveUrl(){ return LIVE_URL+'?cb='+Date.now(); }
 function fmtWhen(s){ if(!s) return '—'; const m=String(s).replace('T',' ').match(/(\d{4})-(\d{2})-(\d{2})[ ]+(\d{2}):(\d{2})/); return m?`${m[3]}/${m[2]} ${m[4]}:${m[5]}`:String(s); }
 function firstNumber(){
   for(const v of arguments){
@@ -702,7 +703,7 @@ function renderLiveStep(){
   renderFrame();
 }
 async function enterLive(){
-  let d; try{ const r=await fetch(LIVE_URL,{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); d=await r.json(); }
+  let d; try{ const r=await fetch(liveUrl(),{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); d=await r.json(); }
   catch(e){ document.getElementById('live-note').style.display=''; document.getElementById('live-note').textContent='Não consegui carregar a previsão ao vivo ('+e.message+'). No site publicado, o robô agendado preenche esse arquivo.'; return; }
   liveData=d; prepareLiveData(liveData); liveMode=true; document.body.classList.add('live'); liveIdx=0;
   document.getElementById('live-bar').style.display='';
@@ -716,7 +717,7 @@ async function enterLive(){
     if(semHorizontes(d)) liveData.passos=[[d.gerado_em, liveNowCm(d), d.nivel_previsto_cm]];
     renderLiveStep();
     clearInterval(liveTimer);
-    liveTimer=setInterval(async()=>{ try{const r=await fetch(LIVE_URL,{cache:'no-store'}); const j=await r.json(); liveData=j; if(semHorizontes(j)) liveData.passos=[[j.gerado_em,liveNowCm(j),j.nivel_previsto_cm]]; prepareLiveData(liveData); liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
+    liveTimer=setInterval(async()=>{ try{const r=await fetch(liveUrl(),{cache:'no-store'}); const j=await r.json(); liveData=j; if(semHorizontes(j)) liveData.passos=[[j.gerado_em,liveNowCm(j),j.nivel_previsto_cm]]; prepareLiveData(liveData); liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
   }
 }
 function exitLive(){ liveMode=false; clearInterval(liveTimer); document.body.classList.remove('live');
