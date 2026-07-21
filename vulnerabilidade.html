@@ -53,6 +53,11 @@
   .baixar{width:100%;margin-top:14px;padding:9px;border:1px solid var(--line);border-radius:10px;
     background:var(--bg);color:var(--ink);font-size:12.5px;font-weight:650;cursor:pointer}
   .baixar:hover{border-color:var(--brand);color:var(--brand)}
+  /* rótulos com o nome do município no mapa (aparecem a partir de certo zoom) */
+  .leaflet-tooltip.mun-lbl{background:none;border:none;box-shadow:none;padding:0;
+    color:#15241c;font-weight:700;font-size:11px;white-space:nowrap;pointer-events:none;
+    text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 4px #fff,0 0 4px #fff}
+  #map.no-lbl .leaflet-tooltip.mun-lbl{display:none}
   .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:14px}
   .disc a{color:var(--brand)}
   .leaflet-container{font-size:12px}
@@ -454,6 +459,7 @@ function abreMunicipio(cod){
     munLayer.setStyle({fillOpacity:.06, color:"#9ab0a2", weight:1});
     map.fitBounds(setLayer.getBounds(), {padding:[18,18]});
     document.getElementById("volta").classList.add("show");
+    aplicaLabels();
     pintaSetores();
   });
 }
@@ -463,7 +469,17 @@ function voltaBacia(){
   munAtual = null;
   document.getElementById("volta").classList.remove("show");
   pintaMunicipios();
+  aplicaLabels();
   map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
+}
+
+// nomes dos municípios só a partir de certo zoom (e não durante o drill-down),
+// senão a bacia inteira fica ilegível — pedido da Juliana ("assim tá feio")
+const LBL_ZOOM = 9;
+function aplicaLabels(){
+  const mostra = map.getZoom() >= LBL_ZOOM && !munAtual;
+  const el = document.getElementById("map");
+  if (el) el.classList.toggle("no-lbl", !mostra);
 }
 
 // ---- montagem ----
@@ -510,7 +526,16 @@ document.getElementById("fxauto").onclick = ()=>{ delete manualBrks[chaveBrk()];
 document.getElementById("baixar").onclick = ()=>{
   let rows, nomeArq;
   if (munAtual && setLayer){
-    rows = setLayer.getLayers().map(l=>l.feature.properties);
+    // serviços e capacidade (ICM) são por MUNICÍPIO — anexa a cada setor para
+    // o CSV combinado (pedido da Juliana: baixar setores COM os serviços)
+    const ctx = {
+      municipio: munAtual.nome, cod_mun: munAtual.cod_mun,
+      mun_ubs: munAtual.svc_ubs ?? "", mun_hospitais: munAtual.svc_hospitais ?? "",
+      mun_escolas: munAtual.svc_escolas ?? "", mun_bombeiros: munAtual.svc_bombeiros ?? "",
+      mun_capacidade_icm: munAtual.icm_faixa ?? "", mun_icm_pontos: munAtual.icm_pont ?? "",
+      mun_icm_prioritario: munAtual.icm_prior==null ? "" : (munAtual.icm_prior ? "sim" : "não"),
+    };
+    rows = setLayer.getLayers().map(l=>({...l.feature.properties, ...ctx}));
     nomeArq = `setores_${munAtual.cod_mun}_${munAtual.nome.normalize("NFD").replace(/[^\w]/g,"_")}.csv`;
   } else {
     rows = munData.features.map(f=>f.properties);
@@ -569,6 +594,7 @@ carrega("municipios.geojson").then(gj=>{
       const p = f.properties;
       l.bindPopup(()=>popup(p,
         ` <span style="color:#5c6b63;font-size:11px">· ${fmt(p.pct_na_bacia)}% na bacia · ${fmt(p.pop_bacia)} hab. dentro dela</span>`));
+      l.bindTooltip(p.nome, {permanent:true, direction:"center", className:"mun-lbl"});
       l.on("dblclick", ()=>abreMunicipio(p.cod_mun));
       l.on("popupopen", ()=>{
         const el = l.getPopup().getElement();
@@ -583,6 +609,8 @@ carrega("municipios.geojson").then(gj=>{
   }).addTo(map);
   map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
   pintaMunicipios();
+  map.on("zoomend", aplicaLabels);
+  aplicaLabels();
   const popB = gj.features.reduce((s,f)=>s+(+f.properties.pop_bacia||0),0);
   document.getElementById("subtit").textContent =
     `Censo IBGE 2022 · ${gj.features.length} municípios · ${(popB/1e6).toLocaleString("pt-BR",{maximumFractionDigits:2})} milhão de pessoas na bacia`;
