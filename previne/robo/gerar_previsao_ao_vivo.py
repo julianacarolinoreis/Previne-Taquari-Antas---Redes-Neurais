@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Robô AO VIVO — PREVINE / Santa Tereza (86472600)
-Roda no GitHub Actions (a cada 30 min):
+Roda no GitHub Actions (a cada ~15 min):
   1) busca a telemetria da ANA (níveis das estações)
   2) monta os 15 inputs do melhor modelo de 2h (ALT)
   3) roda a RNA (.mat) -> variação prevista -> nível daqui a 2h
@@ -123,11 +123,11 @@ def _parse_hora(dh):
     return None
 
 def _extrair_serie(root):
-    """Percorre o XML e monta {hora_cheia: nivel_cm}. Aceita variações de tag.
+    """Percorre o XML e monta {timestamp_da_leitura: nivel_cm}.
 
-    A RNA foi treinada com dados horários. Por isso, a série do modelo usa
-    apenas leituras exatamente na hora cheia. A última leitura bruta fica
-    guardada separadamente para auditoria/frescor no site.
+    A previsão ao vivo deve ser recalculada assim que houver dado novo. Por
+    isso preservamos leituras intermediárias (15/30/45 min) e deixamos cada
+    modelo escolher o timestamp mais recente com todos os seus lags disponíveis.
     """
     serie = {}
     ultima_raw = None
@@ -146,8 +146,7 @@ def _extrair_serie(root):
             continue
         if ultima_raw is None or t > ultima_raw[0]:
             ultima_raw = (t, valor)
-        if t.minute == 0 and t.second == 0:
-            serie[t.replace(minute=0, second=0, microsecond=0)] = valor
+        serie[t.replace(second=0, microsecond=0)] = valor
     return serie, ultima_raw
 
 def _extrair_serie_chuva(root):
@@ -200,7 +199,7 @@ def _serie_chuva_de_xml(xml):
     return serie, len(xml), ultima_raw
 
 def buscar_ana(cod, dias=5):
-    """Retorna dict {hora_cheia: nivel_cm}. Usa uma janela de datas explícita
+    """Retorna dict {timestamp_da_leitura: nivel_cm}. Usa uma janela de datas explícita
     (a ANA responde ErrorTable quando as datas vêm em branco); mantém o modo
     'datas em branco' apenas como reserva."""
     fim = agora_brt()
@@ -254,7 +253,7 @@ def buscar_ana_chuva(cod, dias=5):
     return {}
 
 def nivel(serie, t):
-    return serie.get(t)                                     # nível na hora t (ou None)
+    return serie.get(t)                                     # nível no timestamp t (ou None)
 
 def chuva_media_acum_36h(series, t):
     """Soma 36 valores horarios da media dos postos com chuva disponivel."""
