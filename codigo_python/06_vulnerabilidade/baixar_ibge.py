@@ -337,6 +337,22 @@ for tentativa in (1, 2):
                      "https://geoservicos.ana.gov.br/arcgis/rest/services"):
             if bacia_arcgis(root): ok = True; break
 if not ok:
+    # RESILIÊNCIA: os geoservers do RS (IEDE/SEMA/FEPAM) caem com frequência.
+    # Se todos falharem, reusa o contorno da bacia JÁ PUBLICADO numa rodada anterior
+    # (assets/data/vulnerabilidade/bacia.geojson) — a delineação praticamente não muda.
+    publicado = "assets/data/vulnerabilidade/bacia.geojson"
+    if os.path.exists(publicado):
+        try:
+            _valida_bacia(publicado)
+            dest = os.path.join(RAW, "bacias_rs.geojson")
+            open(dest, "wb").write(open(publicado, "rb").read())
+            open(os.path.join(RAW, "bacia_fonte.txt"), "w").write(
+                "reuso do contorno já publicado (geoservers do RS indisponíveis na rodada)")
+            print(f"[bacia] geoservers do RS fora do ar — reusando {publicado}")
+            ok = True
+        except Exception as e:
+            print(f"[bacia] falha ao reusar {publicado}: {e}")
+if not ok:
     raise RuntimeError("não obtive o limite da bacia — informe bacia_url no Run workflow (geojson)")
 
 print("DOWNLOAD COMPLETO em", RAW)
