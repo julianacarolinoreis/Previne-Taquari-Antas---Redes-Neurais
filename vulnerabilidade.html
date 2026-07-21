@@ -47,6 +47,7 @@
     background:#fff;color:var(--muted);border-radius:8px;padding:4px 9px;cursor:pointer}
   .leg-btn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
   #fxbox{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  #fxbox[hidden]{display:none}
   #fxbox input{width:100%;font-size:12px;padding:5px 6px;border:1px solid var(--line);border-radius:7px}
   #fxbox .acts{grid-column:1/-1;display:flex;gap:6px}
   .baixar{width:100%;margin-top:14px;padding:9px;border:1px solid var(--line);border-radius:10px;
@@ -92,6 +93,28 @@
   .icm-badge.D{background:var(--icmD)}
   .icm-prior{color:var(--brand);font-weight:700}
   .icm-foot{margin-top:14px}
+  /* ---- explicador "como ler o mapa" ---- */
+  .expl{background:var(--panel);padding:34px 18px;border-top:1px solid var(--line)}
+  .expl-in{max-width:980px;margin:0 auto}
+  .expl h2{margin:0 0 6px;font-size:19px;letter-spacing:-.01em;font-weight:800}
+  .expl .lead{font-size:14px;line-height:1.62;color:var(--ink);margin:0 0 22px;max-width:74ch}
+  .expl .lead b{color:var(--brand)}
+  .expl-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .expl-card{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:#f7faf8}
+  .expl-card h3{margin:0 0 9px;font-size:13.5px;font-weight:800;letter-spacing:.005em}
+  .expl-card p{margin:0 0 10px;font-size:12.5px;line-height:1.56;color:var(--muted)}
+  .expl-card p:last-child{margin-bottom:0}
+  .expl-card p b{color:var(--ink)}
+  .expl-ramp{display:flex;height:12px;border-radius:4px;overflow:hidden;margin:8px 0 4px}
+  .expl-ramp span{flex:1}
+  .expl-scale{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted)}
+  .expl-list{list-style:none;margin:0;padding:0}
+  .expl-list li{font-size:12.5px;line-height:1.5;padding:8px 0;border-top:1px solid var(--line)}
+  .expl-list li:first-child{border-top:none;padding-top:0}
+  .expl-list b{font-weight:800;color:var(--ink)}
+  .expl-list span{color:var(--muted)}
+  .expl .disc{margin-top:2px}
+  @media (max-width:760px){.expl-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -149,6 +172,60 @@
     </div>
   </aside>
 </main>
+
+<section class="expl">
+  <div class="expl-in">
+    <h2>Como ler este mapa</h2>
+    <p class="lead">O mapa cruza duas perguntas: <b>quem está mais exposto</b> — a vulnerabilidade
+      social, pelo Censo IBGE 2022 — e <b>quanto o município está preparado</b> para gerir riscos e
+      desastres — a capacidade (ICM). São leituras complementares: um lugar pode concentrar grupos
+      sensíveis <i>e</i> ter baixa capacidade de resposta. Não existe uma nota única — cada indicador
+      é mapeado separadamente; escolha qual ver no seletor de <b>Indicador</b>.</p>
+
+    <div class="expl-grid">
+      <div class="expl-card">
+        <h3>A cor é relativa (quantis)</h3>
+        <p>Para os indicadores do Censo, cada cor mostra a <b>posição da área dentro da bacia</b>, e não
+          um limiar fixo: os municípios (ou setores) são ordenados e divididos em 5 grupos de tamanho
+          parecido. Quanto mais escuro, maior a concentração daquele indicador <i>em relação ao restante
+          da bacia</i>.</p>
+        <div class="expl-ramp">
+          <span style="background:#f3eef6"></span><span style="background:#d9c7e3"></span>
+          <span style="background:#b394c9"></span><span style="background:#8759a8"></span>
+          <span style="background:#4d2a6e"></span>
+        </div>
+        <div class="expl-scale"><span>menor</span><span>maior concentração</span></div>
+        <p style="margin-top:12px">Em <b>“valores”</b> a cor segue a contagem; em <b>“% da população”</b>,
+          a proporção dentro de cada área — melhor pra comparar lugares de tamanhos diferentes. Você pode
+          fixar seus próprios limites em <b>“editar faixas”</b>. Já a <b>Capacidade (ICM)</b> usa faixas
+          fixas A–D (não quantis).</p>
+      </div>
+
+      <div class="expl-card">
+        <h3>O que é levado em conta</h3>
+        <ul class="expl-list">
+          <li><b>Grupos sensíveis</b> <span>— mulheres, crianças 0–4 e 5–9, idosos 60–69 e 70+, e
+            população indígena: quem tende a sofrer mais numa enchente (mobilidade, dependência de
+            cuidado, exposição).</span></li>
+          <li><b>Exposição</b> <span>— população, domicílios e densidade demográfica: quantas pessoas e
+            casas há para serem atingidas.</span></li>
+          <li><b>Serviços /10 mil hab.</b> <span>— saúde, escolas e hospitais por habitante: a estrutura
+            local para atender e abrigar (dados dos robôs do IEDE-RS).</span></li>
+          <li><b>Capacidade (ICM)</b> <span>— faixas A–D do MIDR, detalhadas na tabela abaixo: o preparo
+            do município para a gestão de risco e desastres.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="disc" style="max-width:none">
+      <b>Importante:</b> este é um retrato da vulnerabilidade <b>social</b> — ainda não sobrepõe o perigo
+      hidrológico (a mancha de inundação), que entra na próxima fase do PREVINE. Municípios de borda
+      aparecem com a população inteira; o recorte “na bacia” usa apenas os setores dentro do limite da
+      SEMA/DRH. Um lugar bem colorido não é, sozinho, “o mais em risco”: é onde há mais gente ou mais
+      sensibilidade — o risco final cruza isso com a ameaça de cheia.
+    </div>
+  </div>
+</section>
 
 <section class="icm-wrap">
   <div class="icm-inner">
@@ -210,13 +287,35 @@ const INDS = [
   {k:"svc_ubs",      nome:"Saúde /10 mil",     svc:true, un:" /10 mil hab"},
   {k:"svc_escolas",  nome:"Escolas /10 mil",   svc:true, un:" /10 mil hab"},
   {k:"svc_hospitais",nome:"Hospitais /10 mil", svc:true, un:" /10 mil hab"},
+  // capacidade municipal (ICM/MIDR) — categórico por faixa A–D
+  {k:"icm",          nome:"Capacidade (ICM)",  cat:true},
 ];
 // rampa roxa: não briga com o verde do terreno/satélite (pedido da Juliana)
 const CORES = ["#f3eef6","#d9c7e3","#b394c9","#8759a8","#4d2a6e"];
+// ICM: faixa A (mais capacidade de gestão de risco) → D (menos)
+const ICM_CORES = {A:"#2e7d32", B:"#c3d92c", C:"#e8730c", D:"#c0392b"};
+const ICM_LABEL = {A:"A · alta capacidade", B:"B · média-alta", C:"C · média-baixa", D:"D · baixa capacidade"};
 const fmt = n => Number(n).toLocaleString("pt-BR", {maximumFractionDigits: n < 100 ? 1 : 0});
 
 let ind = "mulheres", modo = "abs";
-let map, munLayer, setLayer = null, munData, munAtual = null;
+let map, munLayer, setLayer = null, munData, munAtual = null, icmData = null;
+
+// funde a Capacidade Municipal (ICM) nas propriedades dos municípios, casando
+// cod_ibge (ICM) com cod_mun (mapa) — chamado quando qualquer um dos dois carrega
+function fundeICM(){
+  if (!icmData || !munData) return;
+  const by = {};
+  icmData.forEach(m => by[String(m.cod_ibge)] = m);
+  munData.features.forEach(f => {
+    const m = by[String(f.properties.cod_mun)];
+    if (m){
+      f.properties.icm_faixa = m.faixa;
+      f.properties.icm_pont  = m.pontuacao_total;
+      f.properties.icm_prior = !!m.prioritario;
+    }
+  });
+  if (ind === "icm" && !munAtual && munLayer) pintaMunicipios();
+}
 
 function valor(p){                     // valor do indicador nas propriedades p
   const d = INDS.find(i=>i.k===ind);
@@ -247,15 +346,23 @@ function cor(v, brk){
   return CORES[i];
 }
 function popup(p, extra){
-  const linhas = INDS.map(d=>{
+  const linhas = INDS.filter(d=>!d.cat).map(d=>{
     const abs = fmt(+p[d.k]||0)+(d.un||"");
     const pc  = d.pct && p.pop>0 ? ` <span style="color:#5c6b63">(${fmt((+p[d.k]||0)/p.pop*100)}%)</span>` : "";
     return `<tr><td>${d.nome}</td><td>${abs}${pc}</td></tr>`;
-  }).join("");
-  return `<div class="pop"><b>${p.nome||("Setor "+p.setor)}</b>${extra||""}<table>${linhas}</table></div>`;
+  });
+  if (p.icm_faixa) linhas.push(`<tr><td>Capacidade (ICM)</td><td><b style="color:${ICM_CORES[p.icm_faixa]}">${p.icm_faixa}</b>`+
+    `${p.icm_pont!=null?" · "+p.icm_pont+" pts":""}${p.icm_prior?" · prioritário":""}</td></tr>`);
+  return `<div class="pop"><b>${p.nome||("Setor "+p.setor)}</b>${extra||""}<table>${linhas.join("")}</table></div>`;
 }
 
+const ehCat = ()=> !!(INDS.find(i=>i.k===ind)||{}).cat;
 function pintaMunicipios(){
+  if (ehCat()){                        // ICM: cor fixa por faixa A–D
+    munLayer.eachLayer(l=>{ const fx = l.feature.properties.icm_faixa;
+      l.setStyle({fillColor: ICM_CORES[fx]||"#d8ddd9", fillOpacity: fx?.8:.25, color:"#fff", weight:1}); });
+    legendaICM("· municípios"); totalizaICM(null); return;
+  }
   const brk = getBrk(munData.features.map(f=>valor(f.properties)));
   munLayer.eachLayer(l=>{
     l.setStyle({fillColor: cor(valor(l.feature.properties), brk),
@@ -267,6 +374,12 @@ function pintaMunicipios(){
 function pintaSetores(){
   if (!setLayer) return;
   const feats = setLayer.getLayers().map(l=>l.feature);
+  if (ehCat()){                        // ICM é municipal: setores herdam a faixa do município
+    const fx = munAtual.icm_faixa;
+    setLayer.eachLayer(l=>{ const p = l.feature.properties;
+      l.setStyle({fillColor: ICM_CORES[fx]||"#d8ddd9", fillOpacity: p.na_bacia?.72:.3, color:"#fff", weight:.7}); });
+    legendaICM("· " + munAtual.nome); totalizaICM(munAtual); return;
+  }
   const brk = getBrk(feats.map(f=>valor(f.properties)));
   setLayer.eachLayer(l=>{
     const p = l.feature.properties;
@@ -275,6 +388,23 @@ function pintaSetores(){
   });
   legenda(brk, "· setores de " + munAtual.nome);
   totaliza(feats.map(f=>f.properties));
+}
+function legendaICM(ctx){
+  document.getElementById("legctx").textContent = ctx;
+  document.getElementById("leg").innerHTML =
+    ["A","B","C","D"].map(fx=>`<div class="row2"><span class="sw" style="background:${ICM_CORES[fx]}"></span>${ICM_LABEL[fx]}</div>`).join("")
+    + `<div class="row2" style="color:#5c6b63;font-size:11px;margin-top:2px">Índice de Capacidade dos Municípios (MIDR) · A = mais preparo para gestão de risco</div>`;
+}
+function totalizaICM(mun){
+  const tot = document.getElementById("tot");
+  if (mun){
+    tot.innerHTML = `Faixa <b style="color:${ICM_CORES[mun.icm_faixa]||'#5c6b63'}">${mun.icm_faixa||"—"}</b>` +
+      ` <small>· ${mun.icm_pont!=null?mun.icm_pont+" pts":"—"}${mun.icm_prior?" · prioritário":""}</small>`;
+    return;
+  }
+  const c = {A:0,B:0,C:0,D:0}; let prior = 0;
+  munData.features.forEach(f=>{ const fx=f.properties.icm_faixa; if(fx&&c[fx]!=null)c[fx]++; if(f.properties.icm_prior)prior++; });
+  tot.innerHTML = `<small>A ${c.A} · B ${c.B} · C ${c.C} · D ${c.D} · ${prior} prioritários</small>`;
 }
 function legenda(brk, ctx){
   document.getElementById("legctx").textContent = ctx;
@@ -348,6 +478,9 @@ INDS.forEach(d=>{
     const pb = document.querySelector('#modes [data-m="pct"]');
     pb.disabled = !d.pct;
     if (!d.pct && modo==="pct"){ modo="abs"; sincronizaModos(); }
+    // ICM é categórico: 'editar faixas' não se aplica
+    document.getElementById("editfx").style.display = d.cat ? "none" : "";
+    if (d.cat){ document.getElementById("fxbox").hidden = true; document.getElementById("editfx").classList.remove("on"); }
     munAtual ? pintaSetores() : pintaMunicipios();
   };
   indDiv.appendChild(b);
@@ -475,6 +608,8 @@ carrega("municipios.geojson").then(gj=>{
     });
     if (!munAtual) pintaMunicipios();   // se um indicador de serviço já estiver ativo
   }).catch(()=>{});
+
+  fundeICM();   // se o ICM já tiver carregado, funde as faixas agora
 });
 
 // contorno oficial da bacia (gerado pelo robô; se ainda não existir, segue sem)
@@ -520,8 +655,10 @@ SVC.forEach(s=>{
 
 // ---- ICM: Indicador de Capacidade Municipal (MIDR/Sedec) ----
 carrega("icm_municipios.json", "assets/data").then(d=>{
+  icmData = d.municipios || [];
+  fundeICM();   // funde as faixas no mapa (se os municípios já carregaram)
   const ordem = {A:0, B:1, C:2, D:3};
-  const municipios = (d.municipios || []).slice()
+  const municipios = icmData.slice()
     .sort((a,b)=> ordem[a.faixa]-ordem[b.faixa] || a.nome.localeCompare(b.nome, "pt"));
   const linhas = municipios.map(m=>{
     const perfil = m.prioritario ? '<span class="icm-prior">Prioritário</span>' : "Não prioritário";
