@@ -215,6 +215,24 @@
   .mancha-link .ml-txt{display:flex;flex-direction:column;gap:1px;flex:1;font-size:13.5px}
   .mancha-link .ml-sub{font-size:11.5px;color:var(--muted);font-weight:400}
   .mancha-link .ml-arw{color:var(--chrome);font-weight:700;font-size:16px}
+  /* ===== seletor de cidade-alvo (painel multi-cidade) ===== */
+  .city-switch-sec{padding-top:6px;padding-bottom:6px}
+  .city-switch{display:inline-flex;gap:6px;background:var(--surface);border:1px solid var(--border);
+    border-radius:999px;padding:5px;margin-top:4px;box-shadow:var(--shadow)}
+  .city-btn{border:none;background:transparent;color:var(--muted);font-weight:700;font-size:14px;
+    padding:8px 18px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .city-btn:hover{color:var(--ink)}
+  .city-btn.on{background:var(--hero);color:#fff}
+  .city-tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;
+    background:var(--amber);color:#3a2a00;border-radius:999px;padding:1px 7px}
+  .city-btn.on .city-tag{background:rgba(255,255,255,.28);color:#fff}
+  .city-links{display:flex;flex-direction:column;align-items:center}
+  .mucum-roadmap{max-width:640px;margin:8px auto 0;display:grid;gap:10px}
+  .mrow{display:flex;align-items:flex-start;gap:10px;text-align:left;font-size:13.5px;
+    border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--surface)}
+  .mstate{flex:0 0 auto;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;
+    border-radius:999px;padding:3px 9px;color:#fff;white-space:nowrap}
+  .mstate.doing{background:var(--chrome)} .mstate.wait{background:#8a8f98}
 
   /* ---------- achados ---------- */
   .finds-h{font-size:13.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:30px 0 12px;font-weight:700;text-align:center;display:flex;align-items:center;gap:10px;justify-content:center}
@@ -492,6 +510,27 @@
     <p class="map-note">Marcadores cheios: posição aproximada (sede municipal ou trecho documentado). Marcadores
       tracejados e translúcidos: <strong>posição estimada</strong>, aguardando a coordenada oficial do Hidroweb/SACE.
       Dados de nível: estações fluviométricas da rede ANA/SGB — séries históricas no Hidroweb (snirh.gov.br/hidroweb).</p>
+    <a class="mancha-link" href="vulnerabilidade.html">
+      <span class="ml-ico" aria-hidden="true">👥</span>
+      <span class="ml-txt"><strong>Vulnerabilidade social da bacia <span style="font-size:11px;font-weight:600;color:#8a5a12">(beta)</span></strong>
+        <span class="ml-sub">Censo IBGE 2022 por município e setor censitário — da bacia inteira (não é de uma cidade só)</span></span>
+      <span class="ml-arw" aria-hidden="true">→</span>
+    </a>
+  </section>
+
+  <!-- ===== Seletor de cidade-alvo (painel multi-cidade) ===== -->
+  <section class="sec city-switch-sec">
+    <span class="kicker">resultados por cidade</span>
+    <h2>Resultados por cidade</h2>
+    <p class="sec-sub">A previsão por redes neurais é feita por <strong>cidade-alvo</strong>. Escolha a cidade para ver o simulador, o desempenho dos modelos, os achados e a tabela. <em>A vulnerabilidade social acima é da bacia inteira.</em></p>
+    <div class="city-switch" id="city-switch" role="tablist" aria-label="Cidade-alvo">
+      <button class="city-btn on" data-city="santa-tereza" role="tab" aria-selected="true">Santa Tereza</button>
+      <button class="city-btn" data-city="mucum" role="tab" aria-selected="false">Muçum <span class="city-tag">novo</span></button>
+    </div>
+  </section>
+
+  <div class="city-panel" data-city="santa-tereza">
+    <div class="city-links">
     <a class="mancha-link" href="santa_tereza_previsao_inundacao.html">
       <span class="ml-ico" aria-hidden="true">🌊</span>
       <span class="ml-txt"><strong>Simulador · até onde a água chega</strong>
@@ -504,13 +543,7 @@
         <span class="ml-sub">camadas de referência (raster local e cenário DEM) · abre em página própria</span></span>
       <span class="ml-arw" aria-hidden="true">→</span>
     </a>
-    <a class="mancha-link" href="vulnerabilidade.html">
-      <span class="ml-ico" aria-hidden="true">👥</span>
-      <span class="ml-txt"><strong>Vulnerabilidade social da bacia <span style="font-size:11px;font-weight:600;color:#8a5a12">(beta)</span></strong>
-        <span class="ml-sub">Censo IBGE 2022 por município e setor censitário — mulheres, crianças, idosos, indígenas, densidade e domicílios</span></span>
-      <span class="ml-arw" aria-hidden="true">→</span>
-    </a>
-  </section>
+    </div>
 
   <section class="sec">
     <span class="kicker">os melhores</span>
@@ -634,6 +667,20 @@
     }).catch(e=>{ document.getElementById('sec-eventos').insertAdjacentHTML('beforeend','<p class="sec-sub">Não foi possível carregar eventos_analise.json ('+e.message+').</p>'); });
   })();
   </script>
+  </div><!-- /city-panel santa-tereza -->
+
+  <!-- ===== Painel do Muçum (novos resultados; entra por partes) ===== -->
+  <div class="city-panel" data-city="mucum" hidden>
+    <section class="sec">
+      <span class="kicker">nova cidade-alvo</span>
+      <h2>Muçum — primeiros resultados</h2>
+      <p class="sec-sub">Estamos começando a publicar as redes neurais para <strong>Muçum</strong>. Os blocos abaixo entram conforme os dados são processados e auditados — a metodologia, o mapa das estações e a vulnerabilidade da bacia acima valem para todas as cidades.</p>
+      <div class="mucum-roadmap">
+        <div class="mrow"><span class="mstate doing">em preparo</span> <span><strong>Simulador de inundação</strong> — a previsão da RNA espacializada no modelo de terreno (MDT) de Muçum, como o de Santa Tereza.</span></div>
+        <div class="mrow"><span class="mstate wait">aguardando dados</span> <span><strong>Desempenho, achados e tabela dos modelos</strong> — a partir do planilhão das rodadas de Muçum.</span></div>
+      </div>
+    </section>
+  </div><!-- /city-panel mucum -->
 
   <section class="sec">
     <span class="kicker">bibliografia</span>
@@ -1848,5 +1895,29 @@
   window.addEventListener('resize',()=>{ clearTimeout(resizeT); resizeT=setTimeout(renderCharts,150); });
 
   renderCharts();
+})();
+</script>
+
+<script>
+/* Seletor de cidade-alvo (painel multi-cidade). A vulnerabilidade da bacia,
+   a metodologia e o mapa das estações ficam fora dos painéis (valem p/ todas). */
+(function(){
+  const sw = document.getElementById('city-switch');
+  if(!sw) return;
+  const panels = Array.prototype.slice.call(document.querySelectorAll('.city-panel'));
+  sw.addEventListener('click', function(e){
+    const b = e.target.closest('.city-btn'); if(!b) return;
+    const city = b.getAttribute('data-city');
+    sw.querySelectorAll('.city-btn').forEach(function(x){
+      const on = x===b; x.classList.toggle('on', on); x.setAttribute('aria-selected', on?'true':'false');
+    });
+    panels.forEach(function(p){ p.hidden = p.getAttribute('data-city') !== city; });
+    // mapas/gráficos que renderizaram escondidos recalculam ao reaparecer
+    window.dispatchEvent(new Event('resize'));
+    if (location.hash !== '#'+city) history.replaceState(null,'','#'+city);
+  });
+  // abre na cidade do #hash, se houver
+  const h = (location.hash||'').replace('#','');
+  if (h){ const b = sw.querySelector('.city-btn[data-city="'+h+'"]'); if(b) b.click(); }
 })();
 </script>
