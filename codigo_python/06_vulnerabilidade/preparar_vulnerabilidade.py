@@ -12,15 +12,17 @@ Saída:    assets/data/vulnerabilidade/
 
 Indicadores: pop_total, mulheres, criancas_0_4, criancas_5_9,
              idosos_60_69, idosos_70m, indigenas, domicilios, densidade (hab/km²),
-             pretos_pardos, e — se o tema Domicílio existir — dom_energia,
-             dom_agua, dom_esgoto (nº de domicílios com o serviço; % contra 'dom').
-             Os quatro últimos são OPCIONAIS: se o código IBGE não bater, o robô
-             avisa no log e segue sem eles (não regride os que já funcionam).
+             pretos_pardos, dom_agua e dom_esgoto (nº de domicílios com rede geral;
+             % contra 'dom'), e renda_resp (rendimento médio mensal do responsável;
+             média ponderada pelo nº de responsáveis no município).
+             Os opcionais são pulados com aviso se o código IBGE não bater (não
+             regridem os que já funcionam). Energia elétrica não consta no
+             agregado de domicílios por setor do Censo 2022.
 
 Se um código de coluna do IBGE não bater (layout muda entre releases), o script
 IMPRIME o cabeçalho real e falha com mensagem clara — ajustar COLMAP e rodar de novo.
 """
-import os, io, json, zipfile, unicodedata
+import os, io, json, glob, zipfile, unicodedata
 import pandas as pd
 import geopandas as gpd
 
@@ -45,16 +47,20 @@ COLMAP = {
     "cor_raca":   {"setor": ["CD_SETOR", "CD_setor"],
                    "indigenas":     ["V01321"],
                    "pretos_pardos": ["V01318", "V01320"]},   # preta + parda
-    # características do domicílio (universo 2022). CÓDIGOS A CONFIRMAR pelo dicionário
-    # impresso no log do passo de download (energia, água por rede, esgoto por rede).
-    # Se um código não bater, o indicador é PULADO (não derruba o robô).
-    "domicilio":  {"setor": ["CD_SETOR", "CD_setor"],
-                   "dom_energia":  ["V00644", "V0301"],   # domicílios com energia elétrica
-                   "dom_agua":     ["V00637", "V0207"],   # abastecimento por rede geral
-                   "dom_esgoto":   ["V00640", "V0210"]},  # esgoto por rede geral/pluvial
+    # características do domicílio (universo 2022) — códigos confirmados no dicionário:
+    # V00111 = utiliza rede geral de distribuição de água; V00309 = destinação do
+    # esgoto é rede geral. (Energia elétrica NÃO consta neste agregado por setor.)
+    "domicilio":  {"setor": ["setor", "CD_SETOR", "CD_setor"],
+                   "dom_agua":   ["V00111"],   # domicílios que usam rede geral de água
+                   "dom_esgoto": ["V00309"]},  # domicílios com esgoto em rede geral
+    # Rendimento do Responsável por setor (pasta à parte, 2026): V06004 = rendimento
+    # médio mensal do responsável; V06001 = nº de responsáveis (peso p/ média municipal).
+    "renda":      {"setor": ["CD_SETOR", "CD_setor"],
+                   "renda_resp": ["V06004"],
+                   "n_resp":     ["V06001"]},
 }
 # indicadores OPCIONAIS: se as colunas não existirem, o robô avisa e segue.
-OPCIONAIS = {"pretos_pardos", "dom_energia", "dom_agua", "dom_esgoto"}
+OPCIONAIS = {"pretos_pardos", "dom_agua", "dom_esgoto", "renda_resp", "n_resp"}
 
 def acha_col(df, cands, tabela, papel, opcional=False):
     for c in cands:
@@ -141,8 +147,32 @@ print(f"[setores] {len(setg)} setores nos municípios da bacia")
 bas = ler_zip_csv("agregados_basico.zip")
 dem = ler_zip_csv("agregados_demografia.zip")
 cor = ler_zip_csv("agregados_cor_raca.zip")
-dom_disp = os.path.exists(os.path.join(RAW, "agregados_domicilio.zip"))
-dfdom = ler_zip_csv("agregados_domicilio.zip") if dom_disp else None
+def ler_domicilio():
+    """O tema Domicílio vem em PARTES (agregados_domicilio_1.zip, _2.zip...) e cada
+    parte tem colunas diferentes. Água (V00111) e esgoto (V00309) estão na Parte 2.
+    Lê todas as partes e mantém setor + as colunas de que precisamos, juntando."""
+    zips = sorted(glob.glob(os.path.join(RAW, "agregados_domicilio_*.zip")))
+    if not zips: return None
+    precisa = {c.upper() for papel in ("dom_agua", "dom_esgoto") for c in COLMAP["domicilio"].get(papel, [])}
+    out = None
+    for zp in zips:
+        z = zipfile.ZipFile(zp)
+        for n in [x for x in z.namelist() if x.lower().endswith(".csv")]:
+            df = pd.read_csv(z.open(n), sep=";", dtype=str, encoding="latin-1")
+            if df.shape[1] == 1:
+                df = pd.read_csv(z.open(n), sep=",", dtype=str, encoding="latin-1")
+            up = {c.upper(): c for c in df.columns}
+            sc = next((up[k] for k in up if k.startswith("CD_SETOR")), None)
+            achadas = [up[c] for c in precisa if c in up]
+            if not sc or not achadas: continue
+            sub = df[[sc] + achadas].rename(columns={sc: "setor"})
+            sub["setor"] = sub["setor"].astype(str).str.strip()
+            out = sub if out is None else out.merge(sub, on="setor", how="outer")
+            print(f"[domicilio] {os.path.basename(zp)}/{n}: {achadas}")
+    return out
+
+dfdom = ler_domicilio()
+dfrenda = ler_zip_csv("agregados_renda.zip") if os.path.exists(os.path.join(RAW, "agregados_renda.zip")) else None
 
 def prepara(df, tabela, campos):
     cs = COLMAP[tabela]
@@ -167,8 +197,11 @@ cor = prepara(cor, "cor_raca", ["indigenas", "pretos_pardos"])
 
 tab = bas.merge(dem, on="setor", how="left").merge(cor, on="setor", how="left")
 if dfdom is not None:
-    dom = prepara(dfdom, "domicilio", ["dom_energia", "dom_agua", "dom_esgoto"])
+    dom = prepara(dfdom, "domicilio", ["dom_agua", "dom_esgoto"])
     tab = tab.merge(dom, on="setor", how="left")
+if dfrenda is not None:
+    rnd = prepara(dfrenda, "renda", ["renda_resp", "n_resp"])
+    tab = tab.merge(rnd, on="setor", how="left")
 tab = tab.fillna(0)
 setg["setor"] = setg["setor"].astype(str)
 g = setg.merge(tab, on="setor", how="left").fillna(0)
@@ -183,10 +216,11 @@ dentro = g.geometry.representative_point().within(bacia)
 g["na_bacia"] = dentro.astype(int)
 pop_dentro = float(g.loc[dentro, "pop"].sum())
 
-# campos base (sempre) + os opcionais que realmente entraram (pretos/pardos, saneamento)
+# campos SOMÁVEIS (base + opcionais que entraram). Renda é MÉDIA (não soma) — tratada à parte.
 CAMPOS = ["pop", "dom", "mulheres", "c0_4", "c5_9", "i60_69", "i70m", "indigenas"]
-CAMPOS += [c for c in ("pretos_pardos", "dom_energia", "dom_agua", "dom_esgoto") if c in g.columns]
-print("[campos] indicadores publicados:", CAMPOS)
+CAMPOS += [c for c in ("pretos_pardos", "dom_agua", "dom_esgoto", "n_resp") if c in g.columns]
+tem_renda = "renda_resp" in g.columns
+print("[campos] indicadores publicados:", CAMPOS + (["renda_resp (média)"] if tem_renda else []))
 
 # ---------- saídas ----------
 # brutos recortados (auditável), com flag de setor dentro do polígono
@@ -201,6 +235,14 @@ akm_m = m.to_crs(5880).geometry.area / 1e6
 m["dens"] = (m["pop"] / akm_m).round(1).values
 popb = g.loc[dentro].groupby("cod_mun")["pop"].sum()
 m["pop_bacia"] = m["cod_mun"].map(popb).fillna(0).astype(int)   # pop do município DENTRO da bacia
+
+# renda do responsável no município = MÉDIA PONDERADA pelo nº de responsáveis
+# (renda_resp é média por setor; somar não faz sentido)
+if tem_renda:
+    gr = g[g["n_resp"] > 0]
+    num = (gr["renda_resp"] * gr["n_resp"]).groupby(gr["cod_mun"]).sum()
+    den = gr["n_resp"].groupby(gr["cod_mun"]).sum()
+    m["renda_resp"] = (m["cod_mun"].map(num) / m["cod_mun"].map(den)).round(0).fillna(0)
 m["geometry"] = m.to_crs(5880).geometry.simplify(120).to_crs(4326)   # leve p/ visão geral
 m.to_file(f"{OUT}/municipios.geojson", driver="GeoJSON")
 
@@ -227,13 +269,15 @@ open(f"{OUT}/brutos/FONTES.md", "w").write(
 f"""# Fontes (dados completos oficiais)
 - Agregados por Setores Censitários — Censo 2022: https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/
   Temas usados: Básico (população, domicílios), Demografia (faixas etárias por sexo),
-  Cor ou raça (indígenas; pretos + pardos), Domicílio (energia, água por rede, esgoto por rede).
+  Cor ou raça (indígenas; pretos + pardos), Domicílio (água por rede geral, esgoto por rede geral).
+- Rendimento do Responsável por setor — Censo 2022 (pasta à parte, publicada em 2026):
+  https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios_Rendimento_do_Responsavel/
+  Variável V06004 = rendimento nominal médio mensal das pessoas responsáveis.
 - Malha de setores censitários 2022: https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_de_setores_censitarios__divisoes_intramunicipais/censo_2022/
 - Malha municipal 2022: https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2022/
 - Limite da bacia Taquari-Antas: {_fonte_bacia}
 Os CSVs aqui são o RECORTE dos municípios que intersectam a bacia; o estadual completo está nas URLs acima.
-Renda: o Censo 2022 coletou rendimento apenas na amostra (não no universo); por isso não há
-renda por setor censitário — a renda, quando entrar, virá em escala municipal de outra fonte.
+Energia elétrica não consta no agregado de características do domicílio por setor (Censo 2022).
 """)
 
 # sanidade — o robô RECUSA publicar dados fora do plausível
@@ -263,11 +307,16 @@ checks = [
 if "pretos_pardos" in CAMPOS:
     print(f"  pretos+pardos: {tot['pretos_pardos']/tot['pop']*100:.1f}% da pop "
           f"(esperado ~15–35%) {'OK' if 0.08 <= tot['pretos_pardos']/tot['pop'] <= 0.45 else '** CONFERIR CÓDIGO **'}")
-for k, lab, lo, hi in [("dom_energia","energia",0.90,1.01), ("dom_agua","água rede",0.55,1.01), ("dom_esgoto","esgoto rede",0.20,1.01)]:
+for k, lab, lo, hi in [("dom_agua","água rede",0.55,1.01), ("dom_esgoto","esgoto rede",0.20,1.01)]:
     if k in CAMPOS:
         frac = tot[k]/tot["dom"] if tot["dom"] else 0
         print(f"  {lab}: {frac*100:.1f}% dos domicílios (esperado {lo*100:.0f}–100%) "
               f"{'OK' if lo <= frac <= hi else '** CONFERIR CÓDIGO **'}")
+if tem_renda:
+    rr = m.loc[m["renda_resp"] > 0, "renda_resp"]
+    md = float(rr.median()) if len(rr) else 0
+    print(f"  renda do responsável: mediana municipal R$ {md:,.0f} "
+          f"(esperado ~R$ 1.500–4.500) {'OK' if 800 <= md <= 8000 else '** CONFERIR CÓDIGO **'}")
 print(f"População dos municípios que TOCAM a bacia (inteiros): {int(tot['pop']):,}")
 print(f"População DENTRO do polígono da bacia (setores): {int(pop_dentro):,}")
 assert 900_000 < pop_dentro < 1_700_000, (f"população dentro da bacia suspeita ({int(pop_dentro):,}; "

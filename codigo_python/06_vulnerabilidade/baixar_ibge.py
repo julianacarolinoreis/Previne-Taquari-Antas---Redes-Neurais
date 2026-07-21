@@ -69,15 +69,11 @@ TEMAS = {  # nome_destino: regex no nome do arquivo — OBRIGATÓRIOS
     "agregados_basico.zip":     r"basico.*\.zip$",
     "agregados_demografia.zip": r"demografia.*\.zip$",
     "agregados_cor_raca.zip":   r"cor.*ra.a.*\.zip$",
-    # características dos domicílios (energia, abastecimento de água, esgoto) — universo 2022
-    "agregados_domicilio.zip":  r"domicilio(?!.*renda).*\.zip$",
+    # (o tema Domicílio vem em PARTES e é baixado à parte — ver bloco 3d)
 }
-# OPCIONAIS — baixados se existirem, mas NÃO fazem o robô falhar. A renda do
-# Censo 2022 é da amostra (não do universo) e pode não estar publicada por setor;
-# se o IBGE divulgar uma tabela de rendimento por setor, ela é capturada aqui.
-OPCIONAIS = {
-    "agregados_renda.zip":      r"(domicilio.?renda|pessoa.?renda|rendiment).*\.zip$",
-}
+# OPCIONAIS — baixados se existirem, mas NÃO fazem o robô falhar.
+# (A renda do responsável por setor mora numa PASTA à parte — ver bloco 3c abaixo.)
+OPCIONAIS = {}
 
 def _baixa_temas(temas, base, hrefs):
     achou = []
@@ -120,19 +116,27 @@ def _imprime_dicionario(fonte):
     (energia elétrica, abastecimento de água, esgotamento sanitário, rendimento).
     Ao adicionar um indicador novo, é aqui no log que se confere o código certo."""
     import openpyxl
-    chave = re.compile(r"energ|el.tric|\bágua\b|\bagua\b|abastec|esgot|sanit|"
-                       r"rendiment|renda|\bcor\b|ra.a|preta|parda|idade|anos", re.I)
+    # temas que interessam ao mapa
+    chave = re.compile(r"energia el|el.trica|abastec|rede geral de distribui|"
+                       r"esgot|destina..o do esgoto|sanit|rendiment|\brenda\b", re.I)
+    # descarta os DESDOBRAMENTOS (cor/sexo/tipo/idade) — só quero os TOTAIS base
+    cross = re.compile(r"cor ou ra|sexo|tipo de esp|quantidade de morador|"
+                       r"quantidade de crian|pessoas de|\bidade\b|\banos\b|alfabetiz|"
+                       r"classe de|respons.vel pelo domic.lio, ", re.I)
     linhas = 0
     wb = openpyxl.load_workbook(fonte, read_only=True, data_only=True)
     for ws in wb.worksheets:
         for row in ws.iter_rows(values_only=True):
             cells = [str(c).strip() for c in row if c is not None and str(c).strip()]
             if not cells: continue
-            tem_codigo = any(re.match(r"^[vV]0?\d{3,4}$", c) for c in cells[:4])
+            if not any(re.match(r"^[vV]\d{3,6}$", c) for c in cells[:4]): continue
             texto = " | ".join(cells[:5])
-            if tem_codigo and (re.search(r"^[vV]0?1[03]\d{2}$", cells[0]) or chave.search(texto)):
-                print("  [dic]", texto[:190]); linhas += 1
-            if linhas >= 600: return
+            eh_demo_cor = re.search(r"^[vV]0?1[03]\d{2}$", cells[0])   # demografia/cor p/ auditoria
+            eh_renda = re.search(r"rendiment|\brenda\b", texto, re.I)  # renda: sempre mostra
+            if eh_demo_cor or eh_renda or (chave.search(texto) and not cross.search(texto)):
+                print("  [dic]", texto[:240]); linhas += 1
+            if linhas >= 4000:
+                print("[aviso] dump do dicionário atingiu 4000 linhas — truncado"); return
     if not linhas:
         print("[aviso] dicionário lido, mas nenhum código de interesse encontrado")
 
@@ -150,6 +154,87 @@ try:
         break
 except Exception as e:
     print(f"[aviso] não imprimi o dicionário: {e}")
+
+# ---------- 3c) Rendimento do Responsável por SETOR (pasta separada, Censo 2022) ----------
+# Publicado em 2026 numa pasta à parte da principal (por isso não caía na descoberta
+# acima). Ex.: Agregados_por_setores_renda_responsavel_BR_20260508_csv.zip
+RENDA_DIRS = [
+    "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios_Rendimento_do_Responsavel/",
+    "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios_Rendimento_do_Responsavel/Agregados_por_Setor_csv/",
+]
+def _baixa_renda_responsavel():
+    dirs = list(RENDA_DIRS)
+    try:  # fallback: acha a pasta listando o diretório-pai do Censo 2022
+        pai = "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/"
+        for h in listar_dir(pai):
+            if h.endswith("/") and re.search(r"rendimento_do_responsavel", h, re.I):
+                dirs.append(pai + h); dirs.append(pai + h + "Agregados_por_Setor_csv/")
+    except Exception as e:
+        print(f"[renda] não listei o pai do Censo 2022: {e}")
+    for d in dirs:
+        try:
+            hrefs = listar_dir(d)
+        except Exception as e:
+            print(f"[renda] não listei {d}: {e}"); continue
+        # o arquivo de SETOR do Brasil (não municípios/distritos/bairros/UF)
+        csv = [h for h in hrefs if re.search(r"setor.*renda_responsavel.*BR.*csv\.zip$", h, re.I)]
+        if not csv:
+            csv = [h for h in hrefs if re.search(r"renda_responsavel.*BR.*csv\.zip$", h, re.I)
+                   and not re.search(r"munic|distrit|bairro|_uf", h, re.I)]
+        if not csv:
+            print(f"[renda] {d}: sem CSV de setor (itens: {hrefs[:8]})"); continue
+        save(d + csv[0], "agregados_renda.zip")
+        dic = [h for h in hrefs if re.search(r"renda_responsavel.*\.xlsx$", h, re.I)] \
+              or [h for h in hrefs if re.search(r"dicion.*\.(xlsx|zip)$", h, re.I)]
+        if dic:
+            try:
+                p = save(d + dic[0], "dicionario_renda." + dic[0].rsplit(".", 1)[-1].lower())
+                if p.endswith(".xlsx"):
+                    _imprime_dicionario(p)
+                elif p.endswith(".zip"):
+                    z = zipfile.ZipFile(p); alvo = [n for n in z.namelist() if n.lower().endswith(".xlsx")]
+                    if alvo: _imprime_dicionario(io.BytesIO(z.read(alvo[0])))
+            except Exception as e:
+                print(f"[renda] dicionário: {e}")
+        print("[renda] baixei o Rendimento do Responsável por setor <-", d + csv[0])
+        return True
+    print("[aviso] renda do responsável por setor não encontrada (segue sem ela)")
+    return False
+try:
+    _baixa_renda_responsavel()
+except Exception as e:
+    print(f"[aviso] renda do responsável falhou: {e}")
+
+# ---------- 3d) tema Domicílio: baixa TODAS as partes ----------
+# O tema vem quebrado em partes (domicilio1, domicilio2...); água (V00111) e
+# esgoto (V00309) estão na Parte 2, não na 1 — por isso baixamos todas.
+def _baixa_domicilio_partes():
+    rx = re.compile(r"domicilio(?!.*renda).*\.zip$", re.I)
+    n = 0
+    def _pega(dirurl, hrefs):
+        nonlocal n
+        for h in sorted(x for x in hrefs if rx.search(x)):
+            n += 1; save(dirurl + h, f"agregados_domicilio_{n}.zip")
+    for base in BASES:
+        if n: break
+        try:
+            hrefs = listar_dir(base)
+        except Exception as e:
+            print(f"[domicilio] não listei {base}: {e}"); continue
+        _pega(base, hrefs)
+        if n: break
+        for sub in [h for h in hrefs if h.endswith("/") and re.search(r"csv|setor", h, re.I)]:
+            try:
+                _pega(base + sub, listar_dir(base + sub))
+            except Exception:
+                continue
+            if n: break
+    print(f"[domicilio] {n} parte(s) baixada(s)" if n else
+          "[aviso] tema Domicílio não encontrado (segue sem água/esgoto)")
+try:
+    _baixa_domicilio_partes()
+except Exception as e:
+    print(f"[aviso] domicílio falhou: {e}")
 
 # ---------- 4) bacia Taquari-Antas ----------
 import json as _json
@@ -281,6 +366,22 @@ for tentativa in (1, 2):
                      "https://www.snirh.gov.br/arcgis/rest/services",
                      "https://geoservicos.ana.gov.br/arcgis/rest/services"):
             if bacia_arcgis(root): ok = True; break
+if not ok:
+    # RESILIÊNCIA: os geoservers do RS (IEDE/SEMA/FEPAM) caem com frequência.
+    # Se todos falharem, reusa o contorno da bacia JÁ PUBLICADO numa rodada anterior
+    # (assets/data/vulnerabilidade/bacia.geojson) — a delineação praticamente não muda.
+    publicado = "assets/data/vulnerabilidade/bacia.geojson"
+    if os.path.exists(publicado):
+        try:
+            _valida_bacia(publicado)
+            dest = os.path.join(RAW, "bacias_rs.geojson")
+            open(dest, "wb").write(open(publicado, "rb").read())
+            open(os.path.join(RAW, "bacia_fonte.txt"), "w").write(
+                "reuso do contorno já publicado (geoservers do RS indisponíveis na rodada)")
+            print(f"[bacia] geoservers do RS fora do ar — reusando {publicado}")
+            ok = True
+        except Exception as e:
+            print(f"[bacia] falha ao reusar {publicado}: {e}")
 if not ok:
     raise RuntimeError("não obtive o limite da bacia — informe bacia_url no Run workflow (geojson)")
 
