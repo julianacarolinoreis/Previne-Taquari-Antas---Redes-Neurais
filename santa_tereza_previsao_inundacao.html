@@ -38,14 +38,13 @@
   .big{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
   .big.agora{color:var(--agora)} .big.prev{color:var(--prev)}
   .big small{font-size:14px;font-weight:600;color:var(--muted)}
-  .cota-card{border:1px solid #f0d2cd;background:#fff8f7;border-radius:12px;padding:10px 12px;margin:12px 0 8px}
-  .cota-card .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:12px;color:#7f2f26;font-weight:750;text-transform:uppercase;letter-spacing:.04em}
-  .cota-card .top b{font-size:14px;color:var(--crit);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .cota-meter{position:relative;height:9px;background:#f4dfdc;border-radius:999px;margin:9px 0 8px;overflow:hidden}
-  .cota-meter .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--agora),var(--prev));border-radius:999px}
-  .cota-meter .limit{position:absolute;right:0;top:-3px;bottom:-3px;width:2px;background:var(--crit)}
-  .cota-lines{display:grid;gap:3px;font-size:12px;color:var(--muted);line-height:1.25}
-  .cota-lines b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .cota-card{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 12px;margin:12px 0 8px;box-shadow:0 1px 2px rgba(20,40,30,.04)}
+  .cota-card .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:11.5px;color:var(--muted);font-weight:750;text-transform:uppercase;letter-spacing:.04em}
+  .cota-card .top b{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .cota-chart{width:100%;height:96px;display:block;margin:8px 0 7px}
+  .cota-lines{display:grid;gap:4px;font-size:12px;color:var(--muted);line-height:1.25}
+  .cota-lines span{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #edf1ee;padding-top:4px}
+  .cota-lines b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
   .cota-lines b.alert{color:var(--crit)}
   .muda{background:linear-gradient(180deg,#fff,#fbf7f1);border:1px solid #f0e2cf;border-radius:14px;padding:13px 15px;margin-top:8px;box-shadow:var(--shadow)}
   .muda h3{margin:0 0 8px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#a8650f}
@@ -157,11 +156,11 @@
       <div class="big prev"><span id="s-fore">—</span></div>
 
       <div class="cota-card">
-        <div class="top"><span>Cota de inundação</span><b id="s-cota">15,00 m</b></div>
-        <div class="cota-meter" aria-hidden="true"><span class="fill" id="s-cota-fill"></span><span class="limit"></span></div>
+        <div class="top"><span>Régua e cota de inundação</span><b id="s-cota">15,00 m</b></div>
+        <svg id="s-cota-chart" class="cota-chart" viewBox="0 0 320 96" role="img" aria-label="Comparação entre nível atual, previsão e cota de inundação"></svg>
         <div class="cota-lines">
-          <span>Agora: <b id="s-falta-now">—</b></span>
-          <span>Na previsão: <b id="s-falta-fore">—</b></span>
+          <span>Agora <b id="s-falta-now">—</b></span>
+          <span>Previsão <b id="s-falta-fore">—</b></span>
         </div>
       </div>
 
@@ -261,12 +260,44 @@ const fmtNivel=cm=>cm==null||!Number.isFinite(Number(cm))?'—':nf2.format(Numbe
 function textoDistanciaCota(cm){
   if(cm==null || !Number.isFinite(Number(cm))) return '—';
   const dif=(COTA_INUND-Number(cm))/100;
-  if(dif>0.005) return `faltam ${nf2.format(dif)} m para a cota`;
-  if(dif<-0.005) return `${nf2.format(Math.abs(dif))} m acima da cota`;
-  return 'na cota de inundação';
+  const nivel=fmtNivel(cm);
+  if(dif>0.005) return `${nivel} · faltam ${nf2.format(dif)} m`;
+  if(dif<-0.005) return `${nivel} · ${nf2.format(Math.abs(dif))} m acima`;
+  return `${nivel} · na cota`;
 }
 function classeDistanciaCota(cm){
   return cm!=null && Number.isFinite(Number(cm)) && Number(cm)>=COTA_INUND ? 'alert' : '';
+}
+function drawCotaChart(nowCm, foreCm, labelPrev){
+  const svg=document.getElementById('s-cota-chart');
+  if(!svg) return;
+  if(nowCm==null || !Number.isFinite(Number(nowCm))){
+    svg.innerHTML='';
+    return;
+  }
+  const hasFore=foreCm!=null && Number.isFinite(Number(foreCm));
+  const vals=[Number(nowCm),COTA_INUND];
+  if(hasFore) vals.push(Number(foreCm));
+  const lo=Math.max(0,Math.min(...vals)-80);
+  const hi=Math.max(COTA_INUND+80,Math.max(...vals)+80);
+  const W=320,H=96,padL=32,padR=12,padT=12,padB=22;
+  const xNow=padL+20, xFore=W-padR-42;
+  const y=v=>padT+(H-padT-padB)*(1-(Number(v)-lo)/((hi-lo)||1));
+  const yC=y(COTA_INUND), yN=y(nowCm), yF=hasFore?y(foreCm):null;
+  const gridVals=[lo,(lo+hi)/2,hi];
+  const grid=gridVals.map(v=>`<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W-padR}" y2="${y(v).toFixed(1)}" stroke="#e8ede9" stroke-width="1"/>`).join('');
+  const labels=gridVals.map(v=>`<text x="0" y="${(y(v)+4).toFixed(1)}" font-size="9" fill="#8b9690">${nf1.format(v/100)}</text>`).join('');
+  const forecastLine=hasFore?`<line x1="${xNow}" y1="${yN.toFixed(1)}" x2="${xFore}" y2="${yF.toFixed(1)}" stroke="#111" stroke-width="2" fill="none"/>`:'';
+  const forecastPoint=hasFore?`<circle cx="${xFore}" cy="${yF.toFixed(1)}" r="4" fill="#d97706"/><text x="${xFore}" y="${H-5}" text-anchor="middle" font-size="10" fill="#6f7672">${labelPrev||'previsão'}</text>`:'';
+  svg.innerHTML=`
+    ${grid}${labels}
+    <line x1="${padL}" y1="${yC.toFixed(1)}" x2="${W-padR}" y2="${yC.toFixed(1)}" stroke="#b33a32" stroke-width="1.4" stroke-dasharray="4 3"/>
+    <text x="${W-padR}" y="${Math.max(10,yC-4).toFixed(1)}" text-anchor="end" font-size="10" fill="#8a2d26">cota ${fmtNivel(COTA_INUND)}</text>
+    ${forecastLine}
+    <circle cx="${xNow}" cy="${yN.toFixed(1)}" r="4" fill="#111"/>
+    <text x="${xNow}" y="${H-5}" text-anchor="middle" font-size="10" fill="#6f7672">agora</text>
+    ${forecastPoint}
+  `;
 }
 const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 // margem de incerteza (m) por horizonte — cresce com o lead
@@ -362,8 +393,7 @@ function renderFrame(){
   const cfore=document.getElementById('s-falta-fore');
   if(cnow)cnow.className=classeDistanciaCota(nowCm);
   if(cfore)cfore.className=hasFore?classeDistanciaCota(foreCm):'';
-  const cfill=document.getElementById('s-cota-fill');
-  if(cfill)cfill.style.width=hasNow?Math.max(0,Math.min(100,Number(nowCm)/COTA_INUND*100)).toFixed(1)+'%':'0%';
+  drawCotaChart(nowCm,hasFore?foreCm:null,hzLabel(ev.horizonte));
   set('s-drio', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
   set('s-newarea', hasFore?sgn1(areaNew)+' ha':'—');
   set('s-atot', hasFore?nf.format(areaFore)+' ha':(hasNow?nf.format(areaNow)+' ha':'—'));
@@ -599,7 +629,7 @@ function renderLiveStep(){
         + ' — a previsão de 2h/4h/cascata volta assim que a telemetria retornar; o robô tenta a cada ~15 min.'; }
     // limpa a mancha e os números do cenário que ficaram na tela
     ['s-now','s-fore','s-drio','s-newarea','s-atot','s-conf','s-hz2','s-hz','s-falta-now','s-falta-fore'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='—'; });
-    const cfill=document.getElementById('s-cota-fill'); if(cfill)cfill.style.width='0%';
+    const csvg=document.getElementById('s-cota-chart'); if(csvg)csvg.innerHTML='';
     if(waterOverlay && waterOverlay.setUrl) waterOverlay.setUrl('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
     return;
   }
