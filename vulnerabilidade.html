@@ -285,6 +285,10 @@ const INDS = [
   {k:"i60_69",   nome:"Idosos 60–69",   pct:true},
   {k:"i70m",     nome:"Idosos 70+",     pct:true},
   {k:"indigenas",nome:"Indígenas",      pct:true},
+  {k:"pretos_pardos", nome:"Pretos e pardos", pct:true, opt:true},
+  {k:"renda_resp",    nome:"Renda do responsável", money:true, opt:true},
+  {k:"dom_agua",   nome:"Água — rede geral",   pct:true, base:"dom", opt:true},
+  {k:"dom_esgoto", nome:"Esgoto — rede geral", pct:true, base:"dom", opt:true},
   {k:"dens",     nome:"Densidade",      pct:false, un:" hab/km²"},
   {k:"dom",      nome:"Domicílios",     pct:false},
   {k:"pop",      nome:"População",      pct:false},
@@ -330,11 +334,16 @@ function valor(p){                     // valor do indicador nas propriedades p
     return pop > 0 ? (+src[ind] || 0) / pop * 10000 : 0;
   }
   const v = +p[ind] || 0;
-  if (modo === "pct" && d.pct) return p.pop > 0 ? v/p.pop*100 : 0;
+  if (d.money) return v;                 // renda: já é média (R$), não vira %
+  if (modo === "pct" && d.pct){          // % sobre população OU sobre domicílios (água/esgoto)
+    const base = d.base === "dom" ? (+p.dom || 0) : (+p.pop || 0);
+    return base > 0 ? v/base*100 : 0;
+  }
   return v;
 }
 function rotulo(v){
   const d = INDS.find(i=>i.k===ind);
+  if (d.money) return "R$ " + fmt(v);
   return modo === "pct" && d.pct ? fmt(v)+"%" : fmt(v)+(d.un||"");
 }
 function quantis(vals){                // 5 classes por quantis
@@ -351,9 +360,12 @@ function cor(v, brk){
   return CORES[i];
 }
 function popup(p, extra){
-  const linhas = INDS.filter(d=>!d.cat).map(d=>{
-    const abs = fmt(+p[d.k]||0)+(d.un||"");
-    const pc  = d.pct && p.pop>0 ? ` <span style="color:#5c6b63">(${fmt((+p[d.k]||0)/p.pop*100)}%)</span>` : "";
+  const linhas = INDS.filter(d=>!d.cat && !(d.opt && !((+p[d.k]||0) > 0))).map(d=>{
+    const val = +p[d.k] || 0;
+    const abs = d.money ? "R$ "+fmt(val) : fmt(val)+(d.un||"");
+    let pc = "";
+    if (d.pct){ const base = d.base === "dom" ? (+p.dom||0) : (+p.pop||0);
+      if (base > 0) pc = ` <span style="color:#5c6b63">(${fmt(val/base*100)}%)</span>`; }
     return `<tr><td>${d.nome}</td><td>${abs}${pc}</td></tr>`;
   });
   if (p.icm_faixa) linhas.push(`<tr><td>Capacidade (ICM)</td><td><b style="color:${ICM_CORES[p.icm_faixa]}">${p.icm_faixa}</b>`+
@@ -427,6 +439,20 @@ function legenda(brk, ctx){
 function totaliza(props){
   const d = INDS.find(i=>i.k===ind);
   if (ind === "dens"){ document.getElementById("tot").innerHTML = "—"; return; }
+  if (d.money){                        // renda: média ponderada pelo nº de responsáveis
+    let num = 0, den = 0;
+    props.forEach(p=>{ const w = +p.n_resp||0, r = +p[ind]||0; if (w>0 && r>0){ num += r*w; den += w; } });
+    document.getElementById("tot").innerHTML =
+      den>0 ? `R$ ${fmt(num/den)} <small>· média do responsável</small>` : "—";
+    return;
+  }
+  if (d.base === "dom"){               // água/esgoto: % dos domicílios com o serviço
+    const serv = props.reduce((s,p)=>s+(+p[ind]||0),0);
+    const dom  = props.reduce((s,p)=>s+(+p.dom||0),0);
+    document.getElementById("tot").innerHTML =
+      `${fmt(dom>0?serv/dom*100:0)}% <small>dos domicílios · ${fmt(serv)} de ${fmt(dom)}</small>`;
+    return;
+  }
   if (d.svc){                          // densidade: do município aberto ou da bacia toda
     const feats = munAtual ? munData.features.filter(f=>f.properties.cod_mun===munAtual.cod_mun)
                            : munData.features;
@@ -487,13 +513,17 @@ const indDiv = document.getElementById("ind");
 INDS.forEach(d=>{
   const b = document.createElement("button");
   b.textContent = d.nome; b.dataset.k = d.k;
+  if (d.opt) b.hidden = true;          // só aparece quando o robô publicar o campo
   if (d.k===ind) b.classList.add("on");
   b.onclick = ()=>{
     ind = d.k;
     indDiv.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x.dataset.k===ind));
     const pb = document.querySelector('#modes [data-m="pct"]');
     pb.disabled = !d.pct;
+    pb.textContent = d.base === "dom" ? "% dos domicílios" : "% da população";
     if (!d.pct && modo==="pct"){ modo="abs"; sincronizaModos(); }
+    // cobertura (água/esgoto): abre já em % dos domicílios (contagem crua não diz nada)
+    if (d.base==="dom" && modo!=="pct"){ modo="pct"; sincronizaModos(); }
     // ICM é categórico: 'editar faixas' não se aplica
     document.getElementById("editfx").style.display = d.cat ? "none" : "";
     if (d.cat){ document.getElementById("fxbox").hidden = true; document.getElementById("editfx").classList.remove("on"); }
@@ -501,6 +531,16 @@ INDS.forEach(d=>{
   };
   indDiv.appendChild(b);
 });
+// revela os indicadores opcionais que o robô já publicou (campo presente nos dados)
+function revelaOpcionais(){
+  if (!munData || !munData.features.length) return;
+  INDS.forEach(d=>{
+    if (!d.opt) return;
+    const tem = munData.features.some(f=>(+f.properties[d.k] || 0) > 0);
+    const b = indDiv.querySelector(`button[data-k="${d.k}"]`);
+    if (b) b.hidden = !tem;
+  });
+}
 function sincronizaModos(){
   document.querySelectorAll("#modes button").forEach(x=>x.classList.toggle("on", x.dataset.m===modo));
 }
@@ -609,6 +649,7 @@ carrega("municipios.geojson").then(gj=>{
   }).addTo(map);
   map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
   pintaMunicipios();
+  revelaOpcionais();
   map.on("zoomend", aplicaLabels);
   aplicaLabels();
   const popB = gj.features.reduce((s,f)=>s+(+f.properties.pop_bacia||0),0);
