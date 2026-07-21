@@ -120,19 +120,27 @@ def _imprime_dicionario(fonte):
     (energia elétrica, abastecimento de água, esgotamento sanitário, rendimento).
     Ao adicionar um indicador novo, é aqui no log que se confere o código certo."""
     import openpyxl
-    chave = re.compile(r"energ|el.tric|\bágua\b|\bagua\b|abastec|esgot|sanit|"
-                       r"rendiment|renda|\bcor\b|ra.a|preta|parda|idade|anos", re.I)
+    # temas que interessam ao mapa
+    chave = re.compile(r"energia el|el.trica|abastec|rede geral de distribui|"
+                       r"esgot|destina..o do esgoto|sanit|rendiment|\brenda\b", re.I)
+    # descarta os DESDOBRAMENTOS (cor/sexo/tipo/idade) — só quero os TOTAIS base
+    cross = re.compile(r"cor ou ra|sexo|tipo de esp|quantidade de morador|"
+                       r"quantidade de crian|pessoas de|\bidade\b|\banos\b|alfabetiz|"
+                       r"classe de|respons.vel pelo domic.lio, ", re.I)
     linhas = 0
     wb = openpyxl.load_workbook(fonte, read_only=True, data_only=True)
     for ws in wb.worksheets:
         for row in ws.iter_rows(values_only=True):
             cells = [str(c).strip() for c in row if c is not None and str(c).strip()]
             if not cells: continue
-            tem_codigo = any(re.match(r"^[vV]0?\d{3,4}$", c) for c in cells[:4])
+            if not any(re.match(r"^[vV]\d{3,6}$", c) for c in cells[:4]): continue
             texto = " | ".join(cells[:5])
-            if tem_codigo and (re.search(r"^[vV]0?1[03]\d{2}$", cells[0]) or chave.search(texto)):
-                print("  [dic]", texto[:190]); linhas += 1
-            if linhas >= 600: return
+            eh_demo_cor = re.search(r"^[vV]0?1[03]\d{2}$", cells[0])   # demografia/cor p/ auditoria
+            eh_renda = re.search(r"rendiment|\brenda\b", texto, re.I)  # renda: sempre mostra
+            if eh_demo_cor or eh_renda or (chave.search(texto) and not cross.search(texto)):
+                print("  [dic]", texto[:240]); linhas += 1
+            if linhas >= 4000:
+                print("[aviso] dump do dicionário atingiu 4000 linhas — truncado"); return
     if not linhas:
         print("[aviso] dicionário lido, mas nenhum código de interesse encontrado")
 
