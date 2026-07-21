@@ -164,11 +164,13 @@ def ler_domicilio():
             # blinda contra BOM/espaço no cabeçalho (a Parte 2 tem formatação diferente)
             df.columns = [str(c).replace("﻿", "").strip() for c in df.columns]
             up = {c.upper(): c for c in df.columns}
-            sc = next((up[k] for k in up if k.replace(" ", "").startswith("CD_SETOR")), None)
+            # detecção robusta do setor: qualquer coluna com "SETOR" no nome
+            # (CD_SETOR, CD_setor, Cód_setor...); fallback = 1ª coluna (no agregado
+            # IBGE o código de setor é sempre a primeira).
+            sc = next((up[k] for k in up if "SETOR" in k.replace(" ", "")), None)
+            if sc is None and len(df.columns):
+                sc = df.columns[0]
             achadas = [up[c] for c in precisa if c in up]
-            perto = [c for c in df.columns if c.upper().startswith(("V001", "V003"))][:10]
-            print(f"[domicilio-diag] {os.path.basename(zp)}/{n}: {df.shape[1]} cols, setor={sc!r}, "
-                  f"V00111={'V00111' in up}, V00309={'V00309' in up}, V001x/V003x={perto}")
             if not sc or not achadas: continue
             sub = df[[sc] + achadas].rename(columns={sc: "setor"})
             sub["setor"] = sub["setor"].astype(str).str.strip()
