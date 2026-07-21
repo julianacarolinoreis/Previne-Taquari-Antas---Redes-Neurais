@@ -69,8 +69,7 @@ TEMAS = {  # nome_destino: regex no nome do arquivo — OBRIGATÓRIOS
     "agregados_basico.zip":     r"basico.*\.zip$",
     "agregados_demografia.zip": r"demografia.*\.zip$",
     "agregados_cor_raca.zip":   r"cor.*ra.a.*\.zip$",
-    # características dos domicílios (energia, abastecimento de água, esgoto) — universo 2022
-    "agregados_domicilio.zip":  r"domicilio(?!.*renda).*\.zip$",
+    # (o tema Domicílio vem em PARTES e é baixado à parte — ver bloco 3d)
 }
 # OPCIONAIS — baixados se existirem, mas NÃO fazem o robô falhar.
 # (A renda do responsável por setor mora numa PASTA à parte — ver bloco 3c abaixo.)
@@ -205,6 +204,37 @@ try:
     _baixa_renda_responsavel()
 except Exception as e:
     print(f"[aviso] renda do responsável falhou: {e}")
+
+# ---------- 3d) tema Domicílio: baixa TODAS as partes ----------
+# O tema vem quebrado em partes (domicilio1, domicilio2...); água (V00111) e
+# esgoto (V00309) estão na Parte 2, não na 1 — por isso baixamos todas.
+def _baixa_domicilio_partes():
+    rx = re.compile(r"domicilio(?!.*renda).*\.zip$", re.I)
+    n = 0
+    def _pega(dirurl, hrefs):
+        nonlocal n
+        for h in sorted(x for x in hrefs if rx.search(x)):
+            n += 1; save(dirurl + h, f"agregados_domicilio_{n}.zip")
+    for base in BASES:
+        if n: break
+        try:
+            hrefs = listar_dir(base)
+        except Exception as e:
+            print(f"[domicilio] não listei {base}: {e}"); continue
+        _pega(base, hrefs)
+        if n: break
+        for sub in [h for h in hrefs if h.endswith("/") and re.search(r"csv|setor", h, re.I)]:
+            try:
+                _pega(base + sub, listar_dir(base + sub))
+            except Exception:
+                continue
+            if n: break
+    print(f"[domicilio] {n} parte(s) baixada(s)" if n else
+          "[aviso] tema Domicílio não encontrado (segue sem água/esgoto)")
+try:
+    _baixa_domicilio_partes()
+except Exception as e:
+    print(f"[aviso] domicílio falhou: {e}")
 
 # ---------- 4) bacia Taquari-Antas ----------
 import json as _json

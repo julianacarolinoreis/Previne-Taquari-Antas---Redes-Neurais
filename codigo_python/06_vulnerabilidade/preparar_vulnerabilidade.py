@@ -22,7 +22,7 @@ Indicadores: pop_total, mulheres, criancas_0_4, criancas_5_9,
 Se um código de coluna do IBGE não bater (layout muda entre releases), o script
 IMPRIME o cabeçalho real e falha com mensagem clara — ajustar COLMAP e rodar de novo.
 """
-import os, io, json, zipfile, unicodedata
+import os, io, json, glob, zipfile, unicodedata
 import pandas as pd
 import geopandas as gpd
 
@@ -50,7 +50,7 @@ COLMAP = {
     # características do domicílio (universo 2022) — códigos confirmados no dicionário:
     # V00111 = utiliza rede geral de distribuição de água; V00309 = destinação do
     # esgoto é rede geral. (Energia elétrica NÃO consta neste agregado por setor.)
-    "domicilio":  {"setor": ["CD_SETOR", "CD_setor"],
+    "domicilio":  {"setor": ["setor", "CD_SETOR", "CD_setor"],
                    "dom_agua":   ["V00111"],   # domicílios que usam rede geral de água
                    "dom_esgoto": ["V00309"]},  # domicílios com esgoto em rede geral
     # Rendimento do Responsável por setor (pasta à parte, 2026): V06004 = rendimento
@@ -147,7 +147,31 @@ print(f"[setores] {len(setg)} setores nos municípios da bacia")
 bas = ler_zip_csv("agregados_basico.zip")
 dem = ler_zip_csv("agregados_demografia.zip")
 cor = ler_zip_csv("agregados_cor_raca.zip")
-dfdom = ler_zip_csv("agregados_domicilio.zip") if os.path.exists(os.path.join(RAW, "agregados_domicilio.zip")) else None
+def ler_domicilio():
+    """O tema Domicílio vem em PARTES (agregados_domicilio_1.zip, _2.zip...) e cada
+    parte tem colunas diferentes. Água (V00111) e esgoto (V00309) estão na Parte 2.
+    Lê todas as partes e mantém setor + as colunas de que precisamos, juntando."""
+    zips = sorted(glob.glob(os.path.join(RAW, "agregados_domicilio_*.zip")))
+    if not zips: return None
+    precisa = {c.upper() for papel in ("dom_agua", "dom_esgoto") for c in COLMAP["domicilio"].get(papel, [])}
+    out = None
+    for zp in zips:
+        z = zipfile.ZipFile(zp)
+        for n in [x for x in z.namelist() if x.lower().endswith(".csv")]:
+            df = pd.read_csv(z.open(n), sep=";", dtype=str, encoding="latin-1")
+            if df.shape[1] == 1:
+                df = pd.read_csv(z.open(n), sep=",", dtype=str, encoding="latin-1")
+            up = {c.upper(): c for c in df.columns}
+            sc = next((up[k] for k in up if k.startswith("CD_SETOR")), None)
+            achadas = [up[c] for c in precisa if c in up]
+            if not sc or not achadas: continue
+            sub = df[[sc] + achadas].rename(columns={sc: "setor"})
+            sub["setor"] = sub["setor"].astype(str).str.strip()
+            out = sub if out is None else out.merge(sub, on="setor", how="outer")
+            print(f"[domicilio] {os.path.basename(zp)}/{n}: {achadas}")
+    return out
+
+dfdom = ler_domicilio()
 dfrenda = ler_zip_csv("agregados_renda.zip") if os.path.exists(os.path.join(RAW, "agregados_renda.zip")) else None
 
 def prepara(df, tabela, campos):
