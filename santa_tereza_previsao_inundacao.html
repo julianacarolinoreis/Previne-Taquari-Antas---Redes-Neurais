@@ -38,6 +38,15 @@
   .big{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
   .big.agora{color:var(--agora)} .big.prev{color:var(--prev)}
   .big small{font-size:14px;font-weight:600;color:var(--muted)}
+  .cota-card{border:1px solid #f0d2cd;background:#fff8f7;border-radius:12px;padding:10px 12px;margin:12px 0 8px}
+  .cota-card .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:12px;color:#7f2f26;font-weight:750;text-transform:uppercase;letter-spacing:.04em}
+  .cota-card .top b{font-size:14px;color:var(--crit);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .cota-meter{position:relative;height:9px;background:#f4dfdc;border-radius:999px;margin:9px 0 8px;overflow:hidden}
+  .cota-meter .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--agora),var(--prev));border-radius:999px}
+  .cota-meter .limit{position:absolute;right:0;top:-3px;bottom:-3px;width:2px;background:var(--crit)}
+  .cota-lines{display:grid;gap:3px;font-size:12px;color:var(--muted);line-height:1.25}
+  .cota-lines b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .cota-lines b.alert{color:var(--crit)}
   .muda{background:linear-gradient(180deg,#fff,#fbf7f1);border:1px solid #f0e2cf;border-radius:14px;padding:13px 15px;margin-top:8px;box-shadow:var(--shadow)}
   .muda h3{margin:0 0 8px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#a8650f}
   .muda .row{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;padding:5px 0;border-bottom:1px dashed #efe0cb}
@@ -147,6 +156,15 @@
       <div class="q">Leitura prevista na régua (<span id="s-hz">+N h</span>)</div>
       <div class="big prev"><span id="s-fore">—</span></div>
 
+      <div class="cota-card">
+        <div class="top"><span>Cota de inundação</span><b id="s-cota">15,00 m</b></div>
+        <div class="cota-meter" aria-hidden="true"><span class="fill" id="s-cota-fill"></span><span class="limit"></span></div>
+        <div class="cota-lines">
+          <span>Agora: <b id="s-falta-now">—</b></span>
+          <span>Na previsão: <b id="s-falta-fore">—</b></span>
+        </div>
+      </div>
+
       <div class="muda">
         <h3>O que muda nas próximas <span id="s-hz2">N</span> horas</h3>
         <div class="row"><span>Rio</span><b id="s-drio" class="prev">—</b></div>
@@ -240,6 +258,16 @@ const nf1=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
 const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const sgn1=v=>Math.abs(v)<0.05?'0,0':(v>0?'+':'−')+nf1.format(Math.abs(v));
 const fmtNivel=cm=>cm==null||!Number.isFinite(Number(cm))?'—':nf2.format(Number(cm)/100)+' m';
+function textoDistanciaCota(cm){
+  if(cm==null || !Number.isFinite(Number(cm))) return '—';
+  const dif=(COTA_INUND-Number(cm))/100;
+  if(dif>0.005) return `faltam ${nf2.format(dif)} m para a cota`;
+  if(dif<-0.005) return `${nf2.format(Math.abs(dif))} m acima da cota`;
+  return 'na cota de inundação';
+}
+function classeDistanciaCota(cm){
+  return cm!=null && Number.isFinite(Number(cm)) && Number(cm)>=COTA_INUND ? 'alert' : '';
+}
 const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 // margem de incerteza (m) por horizonte — cresce com o lead
 const UNCERT={'2h':0.3,'4h':0.5,'4h_cascata':0.5,'8h':0.7,'12h':1.0,'—':0};
@@ -327,6 +355,15 @@ function renderFrame(){
   // ---- modo simples ----
   set('s-now', fmtNivel(nowCm));
   set('s-fore', hasFore?fmtNivel(foreCm):'—');
+  set('s-cota', fmtNivel(COTA_INUND));
+  set('s-falta-now', textoDistanciaCota(nowCm));
+  set('s-falta-fore', hasFore?textoDistanciaCota(foreCm):'—');
+  const cnow=document.getElementById('s-falta-now');
+  const cfore=document.getElementById('s-falta-fore');
+  if(cnow)cnow.className=classeDistanciaCota(nowCm);
+  if(cfore)cfore.className=hasFore?classeDistanciaCota(foreCm):'';
+  const cfill=document.getElementById('s-cota-fill');
+  if(cfill)cfill.style.width=hasNow?Math.max(0,Math.min(100,Number(nowCm)/COTA_INUND*100)).toFixed(1)+'%':'0%';
   set('s-drio', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
   set('s-newarea', hasFore?sgn1(areaNew)+' ha':'—');
   set('s-atot', hasFore?nf.format(areaFore)+' ha':(hasNow?nf.format(areaNow)+' ha':'—'));
@@ -561,7 +598,8 @@ function renderLiveStep(){
         + (q?(' (última leitura '+fmtWhen(q)+')'):'')
         + ' — a previsão de 2h/4h/cascata volta assim que a telemetria retornar; o robô tenta a cada ~15 min.'; }
     // limpa a mancha e os números do cenário que ficaram na tela
-    ['s-now','s-fore','s-drio','s-newarea','s-atot','s-conf','s-hz2','s-hz'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='—'; });
+    ['s-now','s-fore','s-drio','s-newarea','s-atot','s-conf','s-hz2','s-hz','s-falta-now','s-falta-fore'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='—'; });
+    const cfill=document.getElementById('s-cota-fill'); if(cfill)cfill.style.width='0%';
     if(waterOverlay && waterOverlay.setUrl) waterOverlay.setUrl('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
     return;
   }
