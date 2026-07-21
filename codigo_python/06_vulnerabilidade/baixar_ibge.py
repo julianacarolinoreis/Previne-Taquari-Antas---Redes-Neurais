@@ -72,12 +72,9 @@ TEMAS = {  # nome_destino: regex no nome do arquivo — OBRIGATÓRIOS
     # características dos domicílios (energia, abastecimento de água, esgoto) — universo 2022
     "agregados_domicilio.zip":  r"domicilio(?!.*renda).*\.zip$",
 }
-# OPCIONAIS — baixados se existirem, mas NÃO fazem o robô falhar. A renda do
-# Censo 2022 é da amostra (não do universo) e pode não estar publicada por setor;
-# se o IBGE divulgar uma tabela de rendimento por setor, ela é capturada aqui.
-OPCIONAIS = {
-    "agregados_renda.zip":      r"(domicilio.?renda|pessoa.?renda|rendiment).*\.zip$",
-}
+# OPCIONAIS — baixados se existirem, mas NÃO fazem o robô falhar.
+# (A renda do responsável por setor mora numa PASTA à parte — ver bloco 3c abaixo.)
+OPCIONAIS = {}
 
 def _baixa_temas(temas, base, hrefs):
     achou = []
@@ -158,6 +155,56 @@ try:
         break
 except Exception as e:
     print(f"[aviso] não imprimi o dicionário: {e}")
+
+# ---------- 3c) Rendimento do Responsável por SETOR (pasta separada, Censo 2022) ----------
+# Publicado em 2026 numa pasta à parte da principal (por isso não caía na descoberta
+# acima). Ex.: Agregados_por_setores_renda_responsavel_BR_20260508_csv.zip
+RENDA_DIRS = [
+    "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios_Rendimento_do_Responsavel/",
+    "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios_Rendimento_do_Responsavel/Agregados_por_Setor_csv/",
+]
+def _baixa_renda_responsavel():
+    dirs = list(RENDA_DIRS)
+    try:  # fallback: acha a pasta listando o diretório-pai do Censo 2022
+        pai = "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/"
+        for h in listar_dir(pai):
+            if h.endswith("/") and re.search(r"rendimento_do_responsavel", h, re.I):
+                dirs.append(pai + h); dirs.append(pai + h + "Agregados_por_Setor_csv/")
+    except Exception as e:
+        print(f"[renda] não listei o pai do Censo 2022: {e}")
+    for d in dirs:
+        try:
+            hrefs = listar_dir(d)
+        except Exception as e:
+            print(f"[renda] não listei {d}: {e}"); continue
+        # o arquivo de SETOR do Brasil (não municípios/distritos/bairros/UF)
+        csv = [h for h in hrefs if re.search(r"setor.*renda_responsavel.*BR.*csv\.zip$", h, re.I)]
+        if not csv:
+            csv = [h for h in hrefs if re.search(r"renda_responsavel.*BR.*csv\.zip$", h, re.I)
+                   and not re.search(r"munic|distrit|bairro|_uf", h, re.I)]
+        if not csv:
+            print(f"[renda] {d}: sem CSV de setor (itens: {hrefs[:8]})"); continue
+        save(d + csv[0], "agregados_renda.zip")
+        dic = [h for h in hrefs if re.search(r"renda_responsavel.*\.xlsx$", h, re.I)] \
+              or [h for h in hrefs if re.search(r"dicion.*\.(xlsx|zip)$", h, re.I)]
+        if dic:
+            try:
+                p = save(d + dic[0], "dicionario_renda." + dic[0].rsplit(".", 1)[-1].lower())
+                if p.endswith(".xlsx"):
+                    _imprime_dicionario(p)
+                elif p.endswith(".zip"):
+                    z = zipfile.ZipFile(p); alvo = [n for n in z.namelist() if n.lower().endswith(".xlsx")]
+                    if alvo: _imprime_dicionario(io.BytesIO(z.read(alvo[0])))
+            except Exception as e:
+                print(f"[renda] dicionário: {e}")
+        print("[renda] baixei o Rendimento do Responsável por setor <-", d + csv[0])
+        return True
+    print("[aviso] renda do responsável por setor não encontrada (segue sem ela)")
+    return False
+try:
+    _baixa_renda_responsavel()
+except Exception as e:
+    print(f"[aviso] renda do responsável falhou: {e}")
 
 # ---------- 4) bacia Taquari-Antas ----------
 import json as _json
