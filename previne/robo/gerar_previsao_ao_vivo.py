@@ -30,13 +30,23 @@ BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
 SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
 HISTORICO_SAIDA = "historico_previsoes_ao_vivo.json"
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
-ESTACOES = ["86472600", "86472000", "86125130"]   # ST, Linha Jose Julio / R.Antas montante, Ituim
+ESTACOES_NIVEL = ["86472600", "86472000", "86125130", "86306000", "86448000"]
+ESTACOES = ESTACOES_NIVEL
+POSTOS_CHUVA_36H = ["2851044", "2851072", "86488000", "86490500", "86497000", "86505500", "86507000"]
 ULTIMA_RAW = {}
 NOMES_ESTACOES = {
     "86472600": "Santa Tereza",
     "86472000": "Linha Jose Julio / Rio das Antas montante",
     "86125130": "Ituim",
+    "86306000": "Nova Roma do Sul / Rio das Antas",
+    "86448000": "Veranopolis / Rio das Antas",
     "86507000": "Carreiro",
+    "2851044": "Posto chuva Carreiro 2851044",
+    "2851072": "Posto chuva Carreiro-Prata 2851072",
+    "86488000": "Posto chuva Carreiro 86488000",
+    "86490500": "Posto chuva Carreiro 86490500",
+    "86497000": "Posto chuva Carreiro 86497000",
+    "86505500": "Posto chuva Carreiro 86505500",
 }
 MODELOS = [
     {
@@ -74,6 +84,28 @@ MODELOS = [
             "modelo_base_horizonte": "2h",
             "input_nome": "delta previsto pela RNA 2h",
         },
+    },
+    {
+        "horizonte": "8h",
+        "horizonte_h": 8,
+        "tipo": "ALT",
+        "modelo": "8H_ALT_C0217",
+        "mat": "previne/assets/mat/RNAPREV__SANTA_TEREZA__08h__ALT__C0217.mat",
+        "inputs_total": 10,
+        "montador": "8h_alt_c0217",
+        "principal": False,
+        "teste_interno": True,
+    },
+    {
+        "horizonte": "12h",
+        "horizonte_h": 12,
+        "tipo": "ALT",
+        "modelo": "12H_ALT_C0065",
+        "mat": "previne/assets/mat/RNAPREV__SANTA_TEREZA__12h__ALT__C0065.mat",
+        "inputs_total": 12,
+        "montador": "12h_alt_c0065",
+        "principal": False,
+        "teste_interno": True,
     },
 ]
 
@@ -118,6 +150,33 @@ def _extrair_serie(root):
             serie[t.replace(minute=0, second=0, microsecond=0)] = valor
     return serie, ultima_raw
 
+def _extrair_serie_chuva(root):
+    """Retorna chuva horaria por posto.
+
+    Alguns postos chegam em passos de 15 min. Para reconstruir a chuva
+    horaria usada nos modelos, somamos as leituras dentro da mesma hora.
+    """
+    acumulado_hora = {}
+    ultima_raw = None
+    for row in root.iter():
+        campos = {_local(ch.tag): (ch.text or "") for ch in row}
+        dh = campos.get("DataHora") or campos.get("Data_Hora") or campos.get("DataHoraMedicao")
+        chuva = campos.get("Chuva") or campos.get("chuva") or campos.get("Precipitacao") or campos.get("Precipitação")
+        if not dh or chuva in (None, ""):
+            continue
+        t = _parse_hora(dh)
+        if t is None:
+            continue
+        try:
+            valor = float(str(chuva).replace(",", "."))
+        except Exception:
+            continue
+        if ultima_raw is None or t > ultima_raw[0]:
+            ultima_raw = (t, valor)
+        hora = t.replace(minute=0, second=0, microsecond=0)
+        acumulado_hora[hora] = acumulado_hora.get(hora, 0.0) + valor
+    return acumulado_hora, ultima_raw
+
 def _serie_de_xml(xml):
     """Extrai a série; trata o caso .asmx em que o DataTable vem como
     string XML escapada dentro de um <string>...</string>."""
@@ -126,6 +185,16 @@ def _serie_de_xml(xml):
     if not serie and (root.text or "").strip().startswith("<"):
         try:
             serie, ultima_raw = _extrair_serie(ET.fromstring(root.text))   # XML aninhado (desescapado)
+        except Exception:
+            pass
+    return serie, len(xml), ultima_raw
+
+def _serie_chuva_de_xml(xml):
+    root = ET.fromstring(xml)
+    serie, ultima_raw = _extrair_serie_chuva(root)
+    if not serie and (root.text or "").strip().startswith("<"):
+        try:
+            serie, ultima_raw = _extrair_serie_chuva(ET.fromstring(root.text))
         except Exception:
             pass
     return serie, len(xml), ultima_raw
@@ -160,8 +229,61 @@ def buscar_ana(cod, dias=5):
             time.sleep(8 * rodada)
     return {}
 
+def buscar_ana_chuva(cod, dias=5):
+    fim = agora_brt()
+    ini = fim - dt.timedelta(days=dias)
+    tentativas = [
+        f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
+        f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
+    ]
+    for rodada in range(1, 4):
+        for url in tentativas:
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
+                xml = urllib.request.urlopen(req, timeout=60).read()
+                serie, nbytes, ultima_raw = _serie_chuva_de_xml(xml)
+                print(f"[ANA chuva {cod}] tentativa={rodada} {url.split('?')[1][:40]}... bytes={nbytes} horas={len(serie)}")
+                if ultima_raw:
+                    ULTIMA_RAW[f"chuva_{cod}"] = ultima_raw
+                if serie:
+                    return serie
+            except Exception as e:
+                print(f"[ANA chuva {cod}] tentativa={rodada} erro: {e}")
+        if rodada < 3:
+            time.sleep(8 * rodada)
+    return {}
+
 def nivel(serie, t):
     return serie.get(t)                                     # nível na hora t (ou None)
+
+def chuva_media_acum_36h(series, t):
+    """Soma 36 valores horarios da media dos postos com chuva disponivel."""
+    postos = series.get("__chuva36h_postos__", {})
+    if not postos:
+        return None
+    total = 0.0
+    for h in range(36):
+        hora = t - dt.timedelta(hours=h)
+        vals = [posto.get(hora) for posto in postos.values() if posto.get(hora) is not None]
+        if not vals:
+            return None
+        total += sum(vals) / len(vals)
+    return total
+
+def _n(series, cod, t, h=0):
+    return nivel(series.get(cod, {}), t - dt.timedelta(hours=h))
+
+def _D(series, cod, t, h):
+    a, b = _n(series, cod, t, 0), _n(series, cod, t, h)
+    return None if None in (a, b) else a - b
+
+def _A_curv(series, cod, t, h):
+    if h < 1:
+        return None
+    a = _n(series, cod, t, h - 1)
+    b = _n(series, cod, t, h)
+    c = _n(series, cod, t, h + 1)
+    return None if None in (a, b, c) else a - 2 * b + c
 
 def montar_inputs(series, t):
     """Monta os 15 inputs na hora t, na ORDEM EXATA das colunas K..Y do modelo
@@ -231,6 +353,42 @@ def montar_inputs_4h_cascata_2h_alt(series, t):
         delta_2h = None
     return inputs4 + [delta_2h], st0
 
+def montar_inputs_8h_alt_c0217(series, t):
+    """10 inputs do modelo 8h ALT C0217, conforme planilha auditavel."""
+    st0 = _n(series, "86472600", t, 0)
+    inputs = [
+        st0,                                   # inp01 ST nivel atual
+        _D(series, "86472600", t, 1),          # inp02 ST D-1h
+        chuva_media_acum_36h(series, t),       # inp03 chuva media acum 36h
+        _n(series, "86306000", t, 0),          # inp04 Nova Roma / Antas nivel
+        _D(series, "86306000", t, 12),         # inp05 Nova Roma / Antas D-12h
+        _n(series, "86472000", t, 0),          # inp06 Linha Jose Julio nivel
+        _D(series, "86472000", t, 2),          # inp07 Linha Jose Julio D-2h
+        _A_curv(series, "86472000", t, 14),    # inp08 Linha Jose Julio A-14h
+        _n(series, "86125130", t, 0),          # inp09 Ituim nivel
+        _D(series, "86125130", t, 11),         # inp10 Ituim D-11h
+    ]
+    return inputs, st0
+
+def montar_inputs_12h_alt_c0065(series, t):
+    """12 inputs do modelo 12h ALT C0065, conforme planilha auditavel."""
+    st0 = _n(series, "86472600", t, 0)
+    inputs = [
+        st0,                                   # inp01 ST nivel atual
+        _D(series, "86472600", t, 1),          # inp02 ST D-1h
+        chuva_media_acum_36h(series, t),       # inp03 chuva media acum 36h
+        _n(series, "86448000", t, 0),          # inp04 Veranopolis nivel
+        _D(series, "86448000", t, 12),         # inp05 Veranopolis D-12h
+        _D(series, "86448000", t, 14),         # inp06 Veranopolis D-14h
+        _n(series, "86125130", t, 0),          # inp07 Ituim nivel
+        _D(series, "86125130", t, 10),         # inp08 Ituim D-10h
+        _D(series, "86125130", t, 11),         # inp09 Ituim D-11h
+        _D(series, "86125130", t, 12),         # inp10 Ituim D-12h
+        _D(series, "86472600", t, 2),          # inp11 ST D-2h
+        _D(series, "86472600", t, 4),          # inp12 ST D-4h
+    ]
+    return inputs, st0
+
 def montar_inputs_modelo(cfg, series, t):
     if cfg["montador"] == "2h_alt_vfinal":
         return montar_inputs(series, t)
@@ -238,6 +396,10 @@ def montar_inputs_modelo(cfg, series, t):
         return montar_inputs_4h(series, t)
     if cfg["montador"] == "4h_alt_cascata_2h_alt":
         return montar_inputs_4h_cascata_2h_alt(series, t)
+    if cfg["montador"] == "8h_alt_c0217":
+        return montar_inputs_8h_alt_c0217(series, t)
+    if cfg["montador"] == "12h_alt_c0065":
+        return montar_inputs_12h_alt_c0065(series, t)
     raise ValueError("montador desconhecido: " + str(cfg["montador"]))
 
 def diagnosticar_inputs_faltantes(series, t, inputs):
@@ -333,11 +495,89 @@ def diagnosticar_inputs_faltantes_4h_cascata_2h_alt(series, t, inputs):
         })
     return faltantes
 
+def diagnosticar_inputs_por_especificacoes(series, t, inputs, especificacoes):
+    faltantes = []
+    for valor, spec in zip(inputs, especificacoes):
+        codigo_input, descricao, cod_estacao, atrasos = spec
+        if valor is not None:
+            continue
+        if cod_estacao == "__chuva36h__":
+            horas_faltantes = []
+            postos = series.get("__chuva36h_postos__", {})
+            for h in range(36):
+                hora = t - dt.timedelta(hours=h)
+                if not any(posto.get(hora) is not None for posto in postos.values()):
+                    horas_faltantes.append(hora.isoformat(timespec="minutes"))
+            faltantes.append({
+                "input": codigo_input,
+                "descricao": descricao,
+                "estacao": "chuva_media_36h",
+                "estacao_nome": "Chuva media acumulada 36h",
+                "horarios_necessarios": [(t - dt.timedelta(hours=h)).isoformat(timespec="minutes") for h in range(36)],
+                "horarios_faltantes": horas_faltantes,
+                "postos_chuva": POSTOS_CHUVA_36H,
+            })
+            continue
+        horarios = []
+        for h in dict.fromkeys(atrasos):
+            hora = t - dt.timedelta(hours=h)
+            disponivel = hora in series.get(cod_estacao, {})
+            horarios.append({
+                "atraso_h": h,
+                "hora": hora.isoformat(timespec="minutes"),
+                "disponivel": disponivel,
+            })
+        faltantes.append({
+            "input": codigo_input,
+            "descricao": descricao,
+            "estacao": cod_estacao,
+            "estacao_nome": NOMES_ESTACOES.get(cod_estacao, cod_estacao),
+            "horarios_necessarios": [h["hora"] for h in horarios],
+            "horarios_faltantes": [h["hora"] for h in horarios if not h["disponivel"]],
+        })
+    return faltantes
+
+def diagnosticar_inputs_faltantes_8h(series, t, inputs):
+    especificacoes = [
+        ("inp01", "Santa Tereza - nivel atual", "86472600", [0]),
+        ("inp02", "Santa Tereza - nivel D-1h", "86472600", [0, 1]),
+        ("inp03", "Chuva media acumulada 36h", "__chuva36h__", list(range(36))),
+        ("inp04", "Nova Roma do Sul / Rio das Antas - nivel atual", "86306000", [0]),
+        ("inp05", "Nova Roma do Sul / Rio das Antas - nivel D-12h", "86306000", [0, 12]),
+        ("inp06", "Linha Jose Julio - nivel atual", "86472000", [0]),
+        ("inp07", "Linha Jose Julio - nivel D-2h", "86472000", [0, 2]),
+        ("inp08", "Linha Jose Julio - aceleracao A-14h", "86472000", [13, 14, 15]),
+        ("inp09", "Ituim - nivel atual", "86125130", [0]),
+        ("inp10", "Ituim - nivel D-11h", "86125130", [0, 11]),
+    ]
+    return diagnosticar_inputs_por_especificacoes(series, t, inputs, especificacoes)
+
+def diagnosticar_inputs_faltantes_12h(series, t, inputs):
+    especificacoes = [
+        ("inp01", "Santa Tereza - nivel atual", "86472600", [0]),
+        ("inp02", "Santa Tereza - nivel D-1h", "86472600", [0, 1]),
+        ("inp03", "Chuva media acumulada 36h", "__chuva36h__", list(range(36))),
+        ("inp04", "Veranopolis / Rio das Antas - nivel atual", "86448000", [0]),
+        ("inp05", "Veranopolis / Rio das Antas - nivel D-12h", "86448000", [0, 12]),
+        ("inp06", "Veranopolis / Rio das Antas - nivel D-14h", "86448000", [0, 14]),
+        ("inp07", "Ituim - nivel atual", "86125130", [0]),
+        ("inp08", "Ituim - nivel D-10h", "86125130", [0, 10]),
+        ("inp09", "Ituim - nivel D-11h", "86125130", [0, 11]),
+        ("inp10", "Ituim - nivel D-12h", "86125130", [0, 12]),
+        ("inp11", "Santa Tereza - nivel D-2h", "86472600", [0, 2]),
+        ("inp12", "Santa Tereza - nivel D-4h", "86472600", [0, 4]),
+    ]
+    return diagnosticar_inputs_por_especificacoes(series, t, inputs, especificacoes)
+
 def diagnosticar_inputs_modelo(cfg, series, t, inputs):
     if cfg["montador"] == "4h_alt_prio_12478":
         return diagnosticar_inputs_faltantes_4h(series, t, inputs)
     if cfg["montador"] == "4h_alt_cascata_2h_alt":
         return diagnosticar_inputs_faltantes_4h_cascata_2h_alt(series, t, inputs)
+    if cfg["montador"] == "8h_alt_c0217":
+        return diagnosticar_inputs_faltantes_8h(series, t, inputs)
+    if cfg["montador"] == "12h_alt_c0065":
+        return diagnosticar_inputs_faltantes_12h(series, t, inputs)
     return diagnosticar_inputs_faltantes(series, t, inputs)
 
 def resumo_estacoes(series):
@@ -657,9 +897,10 @@ def preservar_saida_valida_em_falha(motivo, aviso):
     escrever(None, None, None, motivo, aviso)
 
 def main():
-    aviso = "EXPERIMENTAL - nao e alerta oficial. Camada espacial da previsao de RNA (2h, 4h e 4h cascata), em paralelo ao SGB/SACE."
+    aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h, 4h, 4h cascata, 8h e 12h), em paralelo ao SGB/SACE."
     try:
         series = {c: buscar_ana(c) for c in ESTACOES}
+        series["__chuva36h_postos__"] = {c: buscar_ana_chuva(c) for c in POSTOS_CHUVA_36H}
     except Exception as e:
         preservar_saida_valida_em_falha(f"falha na telemetria: {e}", aviso); return
 
