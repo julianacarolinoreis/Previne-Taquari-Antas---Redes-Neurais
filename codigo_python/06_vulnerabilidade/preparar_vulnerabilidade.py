@@ -161,9 +161,14 @@ def ler_domicilio():
             df = pd.read_csv(z.open(n), sep=";", dtype=str, encoding="latin-1")
             if df.shape[1] == 1:
                 df = pd.read_csv(z.open(n), sep=",", dtype=str, encoding="latin-1")
+            # blinda contra BOM/espaço no cabeçalho (a Parte 2 tem formatação diferente)
+            df.columns = [str(c).replace("﻿", "").strip() for c in df.columns]
             up = {c.upper(): c for c in df.columns}
-            sc = next((up[k] for k in up if k.startswith("CD_SETOR")), None)
+            sc = next((up[k] for k in up if k.replace(" ", "").startswith("CD_SETOR")), None)
             achadas = [up[c] for c in precisa if c in up]
+            perto = [c for c in df.columns if c.upper().startswith(("V001", "V003"))][:10]
+            print(f"[domicilio-diag] {os.path.basename(zp)}/{n}: {df.shape[1]} cols, setor={sc!r}, "
+                  f"V00111={'V00111' in up}, V00309={'V00309' in up}, V001x/V003x={perto}")
             if not sc or not achadas: continue
             sub = df[[sc] + achadas].rename(columns={sc: "setor"})
             sub["setor"] = sub["setor"].astype(str).str.strip()
