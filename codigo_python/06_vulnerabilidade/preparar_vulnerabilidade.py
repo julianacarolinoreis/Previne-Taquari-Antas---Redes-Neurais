@@ -161,8 +161,15 @@ def ler_domicilio():
             df = pd.read_csv(z.open(n), sep=";", dtype=str, encoding="latin-1")
             if df.shape[1] == 1:
                 df = pd.read_csv(z.open(n), sep=",", dtype=str, encoding="latin-1")
+            # blinda contra BOM/espaço no cabeçalho (a Parte 2 tem formatação diferente)
+            df.columns = [str(c).replace("﻿", "").strip() for c in df.columns]
             up = {c.upper(): c for c in df.columns}
-            sc = next((up[k] for k in up if k.startswith("CD_SETOR")), None)
+            # detecção robusta do setor: qualquer coluna com "SETOR" no nome
+            # (CD_SETOR, CD_setor, Cód_setor...); fallback = 1ª coluna (no agregado
+            # IBGE o código de setor é sempre a primeira).
+            sc = next((up[k] for k in up if "SETOR" in k.replace(" ", "")), None)
+            if sc is None and len(df.columns):
+                sc = df.columns[0]
             achadas = [up[c] for c in precisa if c in up]
             if not sc or not achadas: continue
             sub = df[[sc] + achadas].rename(columns={sc: "setor"})
