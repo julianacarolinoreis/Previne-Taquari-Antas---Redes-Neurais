@@ -100,17 +100,6 @@ MODELOS = [
         "principal": False,
         "teste_interno": True,
     },
-    {
-        "horizonte": "12h",
-        "horizonte_h": 12,
-        "tipo": "ALT",
-        "modelo": "12H_ALT_C0065",
-        "mat": "previne/assets/mat/RNAPREV__SANTA_TEREZA__12h__ALT__C0065.mat",
-        "inputs_total": 12,
-        "montador": "12h_alt_c0065",
-        "principal": False,
-        "teste_interno": True,
-    },
 ]
 
 def _local(tag):                          # remove {namespace} do nome da tag
@@ -900,7 +889,7 @@ def preservar_saida_valida_em_falha(motivo, aviso):
     escrever(None, None, None, motivo, aviso)
 
 def main():
-    aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h, 4h, 4h cascata, 8h e 12h), em paralelo ao SGB/SACE."
+    aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h, 4h, 4h cascata e 8h), em paralelo ao SGB/SACE."
     try:
         series = {c: buscar_ana(c) for c in ESTACOES}
         series["__chuva36h_postos__"] = {c: buscar_ana_chuva(c) for c in POSTOS_CHUVA_36H}

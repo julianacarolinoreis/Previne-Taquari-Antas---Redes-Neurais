@@ -128,7 +128,7 @@
 <main>
   <div id="map"></div>
   <aside>
-    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h, 4h, cascata, 8h e 12h)</button>
+    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h, 4h, cascata e 8h)</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
@@ -136,7 +136,6 @@
       <button data-live-hz="4h">4h</button>
       <button data-live-hz="4h_cascata">4h cascata</button>
       <button data-live-hz="8h">8h</button>
-      <button data-live-hz="12h">12h</button>
     </div>
 
     <!-- ===== LINHA DO TEMPO (compartilhada) ===== -->
@@ -301,8 +300,8 @@ function drawCotaChart(nowCm, foreCm, labelPrev){
 }
 const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 // margem de incerteza (m) por horizonte — cresce com o lead
-const UNCERT={'2h':0.3,'4h':0.5,'4h_cascata':0.5,'8h':0.7,'12h':1.0,'—':0};
-const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'4h_cascata':['Moderada','#c98a1a'],'8h':['Moderada','#c98a1a'],'12h':['Baixa','#c0392b'],'—':['—','#999']};
+const UNCERT={'2h':0.3,'4h':0.5,'4h_cascata':0.5,'8h':0.7,'—':0};
+const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'4h_cascata':['Moderada','#c98a1a'],'8h':['Moderada','#c98a1a'],'—':['—','#999']};
 function hzLabel(hz){ return hz==='4h_cascata'?'4h cascata':(hz||'—'); }
 function hzHours(hz,D){ return D&&D.horizonte_h?String(D.horizonte_h):(String(hz||'').match(/\d+/)||['—'])[0]; }
 function parseLocalWhen(s){
@@ -538,10 +537,9 @@ function prepareLiveData(d){
   const hs=Object.assign({},d.horizontes||{});
   if(Array.isArray(d.passos)) hs[d.horizonte||'2h']=d;
   if((d.modo||'replay')==='replay'){
-    const h2=liveFromEvent('mai24_2h','ALT'), h8=liveFromEvent('mai24_8h','ALT'), h12=liveFromEvent('mai24_12h','ALT');
+    const h2=liveFromEvent('mai24_2h','ALT'), h8=liveFromEvent('mai24_8h','ALT');
     if(h2) hs['2h']=h2;
     if(h8) hs['8h']=h8;
-    if(h12) hs['12h']=h12;
   }
   d.horizontes=hs;
   liveHz=hs[liveHz]?liveHz:(hs[d.horizonte]?d.horizonte:(Object.keys(hs)[0]||'2h'));
