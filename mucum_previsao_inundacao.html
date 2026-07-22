@@ -156,7 +156,7 @@
       <div class="big prev"><span id="s-fore">—</span></div>
 
       <div class="cota-card">
-        <div class="top"><span>Régua e cota (provisória)</span><b id="s-cota">15,00 m</b></div>
+        <div class="top"><span>Régua e cota de inundação</span><b id="s-cota">18,00 m</b></div>
         <svg id="s-cota-chart" class="cota-chart" viewBox="0 0 320 96" role="img" aria-label="Comparação entre nível atual, previsão e cota de inundação"></svg>
         <div class="cota-lines">
           <span>Agora <b id="s-falta-now">—</b></span>
@@ -239,7 +239,7 @@
       <h4>Calibração · nível normal ↔ terreno</h4>
       <p class="disc" style="margin-top:2px"><b>Leitura da régua</b>: o valor em metros é a altura lida na estação Santa Tereza/SGB-ANA, não a profundidade total do rio. <b>Nível normal / zero operacional</b>: leitura adotada como início da mancha no leito do rio (HAND 0). Padrão provisório calibrado em <b>4,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
       <input type="range" id="bankfull" min="100" max="900" step="10" value="500" style="width:100%">
-      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> O nível normal usado na mancha foi estimado pelo MDT ANADEM 30 m em ~405 cm e arredondado para 400 cm. A cota de inundação oficial permanece 15 m (SGB/SACE). O refinamento depende de validação com mancha observada.</div>
+      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> Nível normal (zero da mancha) adotado em 500 cm na régua 86510000. Cota de inundação oficial de Muçum: 18,00 m (1800 cm) — SGB/CPRM, boletim SAH Rio Taquari; cota de atenção 500 cm, de alerta 900 cm. O refinamento depende de validação com mancha observada.</div>
     </div>
   </aside>
 </main>
@@ -249,7 +249,7 @@
 <script>
 const HAND=JSON.parse(document.getElementById('hand-data').textContent);
 const EVENTS=JSON.parse(document.getElementById('event-data').textContent);
-const COTA_INUND=1500;
+const COTA_INUND=1800;
 const COLS=HAND.cols, ROWS=HAND.rows, SS=3, FCOLS=COLS*SS, FROWS=ROWS*SS;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
 const nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
@@ -474,14 +474,14 @@ function drawHydro(){
   const ev=EVENTS[curEv], S=ev.series, W=320,H=90,pad=6, svgEl=document.getElementById('hydro');
   if(S.length<2){const rec=S[0][1], top=Math.max(rec,COTA_INUND)+60, bot=200, Yr=v=>H-pad-(H-2*pad)*(v-bot)/((top-bot)||1);
     svgEl.innerHTML=`<line x1="${pad}" y1="${Yr(COTA_INUND).toFixed(1)}" x2="${W-pad}" y2="${Yr(COTA_INUND).toFixed(1)}" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="4 2"/>
-      <text x="${W-pad}" y="${(Yr(COTA_INUND)-3).toFixed(1)}" text-anchor="end" font-size="8" fill="#c0392b">cota provisória · 15 m</text>
+      <text x="${W-pad}" y="${(Yr(COTA_INUND)-3).toFixed(1)}" text-anchor="end" font-size="8" fill="#c0392b">cota de inundação · 18 m</text>
       <line x1="${pad}" y1="${Yr(rec).toFixed(1)}" x2="${W-pad}" y2="${Yr(rec).toFixed(1)}" stroke="#1e5fbf" stroke-width="2"/>
       <text x="${pad}" y="${(Yr(rec)-3).toFixed(1)}" font-size="8" fill="#1e5fbf">nível recorde · ${(rec/100).toFixed(2)} m</text>`; return;}
   const vals=S.map(s=>s[1]).filter(v=>v!=null), lo=Math.min(...vals), hi=Math.max(Math.max(...vals),COTA_INUND+40);
   const X=i=>pad+(W-2*pad)*i/(S.length-1), Y=v=>H-pad-(H-2*pad)*(v-lo)/((hi-lo)||1);
   const path='M'+S.map((s,i)=>X(i).toFixed(1)+','+Y(s[1]).toFixed(1)).join('L'), yi=Y(COTA_INUND), cx=X(tIdx);
   svgEl.innerHTML=`<line x1="${pad}" y1="${yi.toFixed(1)}" x2="${W-pad}" y2="${yi.toFixed(1)}" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="4 2"/>
-    <text x="${W-pad}" y="${(yi-3).toFixed(1)}" text-anchor="end" font-size="8" fill="#c0392b">cota provisória · 15 m</text>
+    <text x="${W-pad}" y="${(yi-3).toFixed(1)}" text-anchor="end" font-size="8" fill="#c0392b">cota de inundação · 18 m</text>
     <path d="${path}" fill="none" stroke="#1e5fbf" stroke-width="1.6"/>
     <line x1="${cx.toFixed(1)}" y1="${pad}" x2="${cx.toFixed(1)}" y2="${H-pad}" stroke="#0f6b4a" stroke-width="1.5"/>
     <circle cx="${cx.toFixed(1)}" cy="${Y(S[tIdx][1]).toFixed(1)}" r="3" fill="#0f6b4a"/>`;

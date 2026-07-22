@@ -23,7 +23,7 @@ SAIDA = os.path.join(RAIZ, "mucum_previsao_inundacao.html")
 # eventos em destaque (maiores picos; ev27 = maio/2024, a catástrofe)
 EVENTOS_DESTAQUE = ["27", "24", "22", "28", "31"]
 ESTACAO = {"lat": -29.1672, "lon": -51.8686, "code": "86510000"}
-COTA_PROV_CM = 1500   # cota provisória (a confirmar com SGB/Defesa Civil)
+COTA_INUND_CM = 1800   # cota de inundação oficial de Muçum (86510000) — SGB/CPRM, boletim SAH Rio Taquari
 
 
 def hand_payload():
@@ -98,14 +98,16 @@ def main():
          "A estação 86510000 informa o nível atual do rio em Muçum; a montante 86472600 (Santa Tereza) entra na RNA com ~16h de trânsito."),
         ("'<b>Estação '+st.code+'</b><br>Santa Tereza'",
          "'<b>Estação '+st.code+'</b><br>Muçum'"),
-        ("const COTA_INUND=1500;", f"const COTA_INUND={COTA_PROV_CM};"),
+        ("const COTA_INUND=1500;", f"const COTA_INUND={COTA_INUND_CM};"),
         ("let handArr=null, curEv=Object.keys(EVENTS)[0];\nlet bankfull=400",
          "let handArr=null, curEv=Object.keys(EVENTS)[0];\nlet bankfull=500"),
         ('<input type="range" id="bankfull" min="100" max="700" step="10" value="400"',
          '<input type="range" id="bankfull" min="100" max="900" step="10" value="500"'),
         ("previsao_ao_vivo.json", "previsao_ao_vivo_mucum.json"),
-        ("cota de inundação · 15 m", "cota provisória · 15 m"),
-        ("Régua e cota de inundação", "Régua e cota (provisória)"),
+        ("cota de inundação · 15 m", "cota de inundação · 18 m"),
+        ('<b id="s-cota">15,00 m</b>', '<b id="s-cota">18,00 m</b>'),
+        ("O nível normal usado na mancha foi estimado pelo MDT ANADEM 30 m em ~405 cm e arredondado para 400 cm. A cota de inundação oficial permanece 15 m (SGB/SACE). O refinamento depende de validação com mancha observada.",
+         "Nível normal (zero da mancha) adotado em 500 cm na régua 86510000. Cota de inundação oficial de Muçum: 18,00 m (1800 cm) — SGB/CPRM, boletim SAH Rio Taquari; cota de atenção 500 cm, de alerta 900 cm. O refinamento depende de validação com mancha observada."),
     ]
     for a, b in subs:
         if a not in html:
