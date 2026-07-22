@@ -33,6 +33,10 @@ ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos
 ESTACOES_NIVEL = ["86472600", "86472000", "86125130", "86306000", "86448000"]
 ESTACOES = ESTACOES_NIVEL
 POSTOS_CHUVA_36H = ["2851044", "2851072", "86488000", "86490500", "86497000", "86505500", "86507000"]
+ANA_TIMEOUT_NIVEL_S = 25
+ANA_TIMEOUT_CHUVA_S = 15
+ANA_RETRIES_NIVEL = 2
+ANA_RETRIES_CHUVA = 1
 ULTIMA_RAW = {}
 NOMES_ESTACOES = {
     "86472600": "Santa Tereza",
@@ -208,11 +212,11 @@ def buscar_ana(cod, dias=5):
         f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
         f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
     ]
-    for rodada in range(1, 4):
+    for rodada in range(1, ANA_RETRIES_NIVEL + 1):
         for url in tentativas:
             try:
                 req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
-                xml = urllib.request.urlopen(req, timeout=60).read()
+                xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_NIVEL_S).read()
                 serie, nbytes, ultima_raw = _serie_de_xml(xml)
                 print(f"[ANA {cod}] tentativa={rodada} {url.split('?')[1][:40]}... bytes={nbytes} linhas={len(serie)}")
                 if ultima_raw:
@@ -224,8 +228,8 @@ def buscar_ana(cod, dias=5):
                     print(f"[ANA {cod}] amostra: {amostra}")
             except Exception as e:
                 print(f"[ANA {cod}] tentativa={rodada} erro: {e}")
-        if rodada < 3:
-            time.sleep(8 * rodada)
+        if rodada < ANA_RETRIES_NIVEL:
+            time.sleep(4 * rodada)
     return {}
 
 def buscar_ana_chuva(cod, dias=5):
@@ -235,11 +239,11 @@ def buscar_ana_chuva(cod, dias=5):
         f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
         f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
     ]
-    for rodada in range(1, 4):
+    for rodada in range(1, ANA_RETRIES_CHUVA + 1):
         for url in tentativas:
             try:
                 req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
-                xml = urllib.request.urlopen(req, timeout=60).read()
+                xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_CHUVA_S).read()
                 serie, nbytes, ultima_raw = _serie_chuva_de_xml(xml)
                 print(f"[ANA chuva {cod}] tentativa={rodada} {url.split('?')[1][:40]}... bytes={nbytes} horas={len(serie)}")
                 if ultima_raw:
@@ -248,8 +252,8 @@ def buscar_ana_chuva(cod, dias=5):
                     return serie
             except Exception as e:
                 print(f"[ANA chuva {cod}] tentativa={rodada} erro: {e}")
-        if rodada < 3:
-            time.sleep(8 * rodada)
+        if rodada < ANA_RETRIES_CHUVA:
+            time.sleep(4 * rodada)
     return {}
 
 def nivel(serie, t):
@@ -879,15 +883,15 @@ def preservar_saida_valida_em_falha(motivo, aviso):
     if atual and atual.get("nivel_previsto_cm") is not None and atual.get("hora_modelo"):
         agora = agora_brt().isoformat(timespec="seconds")
         atual["consultado_em"] = agora
-        atual["status"] = "mantida ultima previsao valida"
-        atual["status_dados"] = "falha temporaria na consulta; mantendo ultimo resultado valido"
+        atual["status"] = "aguardando nova telemetria"
+        atual["status_dados"] = "consulta ANA instavel; exibindo ultima previsao valida"
         atual["erro_robo_ultima_consulta"] = motivo
         atual["aviso"] = aviso
         for hz, item in (atual.get("horizontes") or {}).items():
             if isinstance(item, dict) and item.get("nivel_previsto_cm") is not None:
                 item["consultado_em"] = agora
-                item["status"] = "mantida ultima previsao valida"
-                item["status_dados"] = "falha temporaria na consulta; mantendo ultimo resultado valido"
+                item["status"] = "aguardando nova telemetria"
+                item["status_dados"] = "consulta ANA instavel; exibindo ultima previsao valida"
                 item["erro_robo_ultima_consulta"] = motivo
         with open(SAIDA, "w", encoding="utf-8") as f:
             json.dump(atual, f, ensure_ascii=False, indent=1)
