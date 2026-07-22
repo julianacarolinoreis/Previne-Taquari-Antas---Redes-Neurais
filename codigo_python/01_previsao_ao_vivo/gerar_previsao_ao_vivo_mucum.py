@@ -177,12 +177,20 @@ def escrever(nivel_atual, nivel_prev, t, status, aviso):
         "idade_telemetria_min": idade,
         "status_dados": (None if idade is None else ("telemetria recente" if idade <= 120 else f"telemetria atrasada ({idade} min)")),
         "estacao": ALVO, "local": "Muçum",
-        "horizonte": HORIZONTE, "horizonte_h": 2, "modelo": COMBO, "bankfull_cm": BANKFULL_CM,
+        "horizonte": HORIZONTE, "rotulo": "2h", "horizonte_h": 2, "tipo": "ALT",
+        "modelo": COMBO, "bankfull_cm": BANKFULL_CM,
+        "nivel_modelo_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_atual_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_rio_agora_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_previsto_cm": (round(nivel_prev) if nivel_prev is not None else None),
-        "status": status, "aviso": aviso,
+        "inputs_total": len(RECEITA), "inputs_faltantes_n": 0, "inputs_faltantes": [],
+        "estacoes_status": [], "status": status, "aviso": aviso,
     }
+    if nivel_prev is not None:
+        out["delta_previsto_cm"] = round(nivel_prev - nivel_atual, 1)
+        # série de passos (a página lê p/ montar o horizonte 2h e animar)
+        out["passos"] = [[out["hora_modelo"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
+        out["horizontes"] = {"2h": dict(out)}
     with open(SAIDA, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
     print("escrito", SAIDA, "->", out["nivel_atual_cm"], "->", out["nivel_previsto_cm"], status)
