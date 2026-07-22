@@ -236,7 +236,12 @@ function render(mLvl){
 (async function(){
   await loadHand();
   map=L.map('map',{scrollWheelZoom:true}).fitBounds(BOUNDS);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© OpenStreetMap © CARTO'}).addTo(map);
+  const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'Esri, Maxar'});
+  const labels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
+  const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+  sat.on('tileerror',()=>{if(!map.hasLayer(osm)&&!map.hasLayer(sat)) osm.addTo(map);});
+  sat.addTo(map); labels.addTo(map);
+  L.control.layers({'Satélite':sat,'Ruas':osm},{'Rótulos':labels},{position:'topright'}).addTo(map);
   waterOverlay=L.imageOverlay(outCanvas.toDataURL(),BOUNDS,{opacity:.62,className:'flood-ov'}).addTo(map);
   const lvl=document.getElementById('lvl');
   lvl.addEventListener('input',()=>{ render(parseFloat(lvl.value));
