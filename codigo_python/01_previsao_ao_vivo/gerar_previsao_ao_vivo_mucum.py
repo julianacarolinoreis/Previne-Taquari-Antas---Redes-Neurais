@@ -100,22 +100,28 @@ def _serie_de_xml(xml):
         except Exception: pass
     return serie, len(xml), ultima_raw
 
-def buscar_ana(cod, dias=6):
+def buscar_ana(cod, dias=6, tentativas_rede=3):
+    """Telemetria da ANA. O endpoint às vezes devolve vazio/erro de forma
+    transitória, então tenta algumas vezes com backoff curto antes de desistir."""
+    import time
     fim = agora_brt(); ini = fim - dt.timedelta(days=dias)
-    tentativas = [
+    urls = [
         f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
         f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
     ]
-    for url in tentativas:
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
-            xml = urllib.request.urlopen(req, timeout=60).read()
-            serie, nbytes, ultima_raw = _serie_de_xml(xml)
-            print(f"[ANA {cod}] bytes={nbytes} linhas={len(serie)}")
-            if ultima_raw: ULTIMA_RAW[cod] = ultima_raw
-            if serie: return serie
-        except Exception as e:
-            print(f"[ANA {cod}] erro: {e}")
+    for attempt in range(tentativas_rede):
+        for url in urls:
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
+                xml = urllib.request.urlopen(req, timeout=60).read()
+                serie, nbytes, ultima_raw = _serie_de_xml(xml)
+                print(f"[ANA {cod}] tent={attempt+1} bytes={nbytes} linhas={len(serie)}")
+                if ultima_raw: ULTIMA_RAW[cod] = ultima_raw
+                if serie: return serie
+            except Exception as e:
+                print(f"[ANA {cod}] tent={attempt+1} erro: {e}")
+        if attempt < tentativas_rede - 1:
+            time.sleep(4 * (attempt + 1))
     return {}
 
 def nivel(serie, t): return serie.get(t)
@@ -195,10 +201,27 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None):
     return out
 
 
-def escrever(top, horizontes):
+def _tem_previsao(d):
+    return bool(d) and d.get("nivel_previsto_cm") is not None
+
+def escrever(top, horizontes, max_stale_h=6):
     top = dict(top)
     if horizontes:
         top["horizontes"] = horizontes
+    # Resiliência: se este ciclo NÃO tem previsão (telemetria da ANA falhou),
+    # preserva a última previsão boa (se ainda recente) em vez de apagá-la —
+    # assim a página não "cai" para o replay num hiccup transitório da ANA.
+    if not _tem_previsao(top) and os.path.exists(SAIDA):
+        try:
+            ant = json.load(open(SAIDA, encoding="utf-8"))
+            hm = ant.get("hora_modelo")
+            if _tem_previsao(ant) and hm:
+                idade_h = (agora_brt() - dt.datetime.fromisoformat(hm)).total_seconds() / 3600
+                if idade_h <= max_stale_h:
+                    print(f"telemetria falhou neste ciclo; mantendo última previsão boa ({idade_h:.1f} h) — não sobrescreve")
+                    return
+        except Exception as e:
+            print("não consegui ler JSON anterior:", e)
     with open(SAIDA, "w", encoding="utf-8") as f:
         json.dump(top, f, ensure_ascii=False, indent=1)
     hs = ",".join(horizontes.keys()) if horizontes else "-"
