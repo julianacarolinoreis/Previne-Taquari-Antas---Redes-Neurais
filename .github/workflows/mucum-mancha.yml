@@ -1,0 +1,46 @@
+# ROBÔ — mancha de inundação de Muçum.
+# Lê o MDT já versionado (assets/data/mucum_inundacao/mdt/mdt_mucum_anadem_30m.tif),
+# calcula o HAND e injeta o payload em mucum_inundacao.html. Não baixa nada.
+# Roda no botão (Run workflow); commita na própria branch em que foi disparado.
+
+name: Muçum — mancha de inundação (HAND)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mucum-mancha-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  mancha:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependências geoespaciais
+        run: pip install numpy scipy rasterio pillow
+
+      - name: Gerar a mancha (HAND a partir do MDT commitado)
+        run: python codigo_python/02_mdt_hand_mancha/gerar_mancha_mucum.py
+
+      - name: Commitar mucum_inundacao.html
+        run: |
+          git config user.name  "previne-robo"
+          git config user.email "previne-robo@users.noreply.github.com"
+          git add mucum_inundacao.html
+          git diff --staged --quiet && { echo "sem mudança"; exit 0; }
+          git commit -m "bot: mancha de inundação de Muçum (HAND do MDT) [skip ci]"
+          BR="${{ github.ref_name }}"
+          for i in 1 2 3 4 5; do
+            git pull --rebase --autostash origin "$BR" && git push origin HEAD:"$BR" && exit 0
+            echo "push rejeitado ($i), rebase..."; sleep 3
+          done
+          echo "falha ao empurrar"; exit 1
