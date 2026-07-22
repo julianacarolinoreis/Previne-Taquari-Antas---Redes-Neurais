@@ -79,7 +79,7 @@ def main():
         "N": round(N, 6), "E": round(E, 6),
         "estacao_alvo": ESTACAO_ALVO, "estacao_montante": ESTACAO_MONTANTE,
         "bankfull_cm": BANKFULL_CM,
-        "fonte": "MDT 30 m (base Copernicus GLO-30) — recorte do vale do Taquari em Muçum",
+        "fonte": "ANADEM v1 bare-earth 30 m — recorte do vale do Taquari em Muçum",
         "hand_png_b64": b64,
     }
     payload_json = json.dumps(payload, ensure_ascii=False)
