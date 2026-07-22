@@ -165,18 +165,21 @@ def validar(mat_path):
 def escrever(nivel_atual, nivel_prev, t, status, aviso):
     consultado_em = agora_brt(); raw = ULTIMA_RAW.get(ALVO)
     idade = round((consultado_em - raw[0]).total_seconds()/60) if raw else None
+    hora_alvo = (t + dt.timedelta(hours=2)).isoformat() if t else None
     out = {
         "modo": "ao_vivo",
         "gerado_em": (t.isoformat() if t else consultado_em.isoformat()),
         "hora_modelo": (t.isoformat() if t else None),
+        "hora_alvo": hora_alvo,
         "consultado_em": consultado_em.isoformat(timespec="seconds"),
         "telemetria_ultima_em": (raw[0].isoformat() if raw else None),
         "telemetria_ultima_nivel_cm": (round(raw[1]) if raw else None),
         "idade_telemetria_min": idade,
         "status_dados": (None if idade is None else ("telemetria recente" if idade <= 120 else f"telemetria atrasada ({idade} min)")),
         "estacao": ALVO, "local": "Muçum",
-        "horizonte": HORIZONTE, "modelo": COMBO, "bankfull_cm": BANKFULL_CM,
+        "horizonte": HORIZONTE, "horizonte_h": 2, "modelo": COMBO, "bankfull_cm": BANKFULL_CM,
         "nivel_atual_cm": (round(nivel_atual) if nivel_atual is not None else None),
+        "nivel_rio_agora_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_previsto_cm": (round(nivel_prev) if nivel_prev is not None else None),
         "status": status, "aviso": aviso,
     }
@@ -192,16 +195,27 @@ def main():
     horas = sorted(series[ALVO].keys())
     if not horas:
         escrever(None, None, None, "sem dado recente em Muçum", aviso); return
-    t = horas[-1]
-    x, muc0 = montar_inputs(series, t)
-    if muc0 is None or any(v is None for v in x):
+    # A montante (86472600) pode não ter leitura na última hora da Muçum; procura
+    # a hora mais recente (até 12 h atrás) em que TODOS os inputs estão disponíveis.
+    t_ultimo = horas[-1]
+    muc_ultimo = nivel(series[ALVO], t_ultimo)
+    melhor = None
+    for t in [h for h in reversed(horas) if (t_ultimo - h) <= dt.timedelta(hours=12)]:
+        x, muc0 = montar_inputs(series, t)
+        if muc0 is not None and all(v is not None for v in x):
+            melhor = (t, x, muc0); break
+    if melhor is None:
+        x, muc0 = montar_inputs(series, t_ultimo)
         faltando = sum(v is None for v in x)
-        escrever(muc0, None, t, f"inputs incompletos ({faltando}/{len(x)} faltando) — sem previsão nesta hora", aviso); return
+        escrever(muc_ultimo, None, t_ultimo,
+                 f"inputs incompletos ({faltando}/{len(x)} faltando) — sem previsão nesta hora", aviso); return
+    t, x, muc0 = melhor
     try:
         delta = prever(MODELO_MAT, x)
-        escrever(muc0, muc0 + delta, t, "ok", aviso)
+        # nível atual = leitura mais recente da régua; previsto = nível na hora t + variação
+        escrever(muc_ultimo, muc0 + delta, t, "ok", aviso)
     except Exception as e:
-        escrever(muc0, None, t, f"falha no modelo: {e}", aviso)
+        escrever(muc_ultimo, None, t, f"falha no modelo: {e}", aviso)
 
 if __name__ == "__main__":
     if "--validar" in sys.argv:
