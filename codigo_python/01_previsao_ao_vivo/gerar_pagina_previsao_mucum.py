@@ -117,6 +117,24 @@ def main():
     # 4) qualquer "Santa Tereza" remanescente em texto vira Muçum
     html = html.replace("em Santa Tereza", "em Muçum")
 
+    html = html.replace(
+        "🔴 Ver previsão AO VIVO (teste interno · 2h, 4h, cascata, 8h e 12h)",
+        "🔴 Ver previsão AO VIVO (teste interno · 2h e 4h)",
+    )
+    html = html.replace(
+        "🔴 Ver previsão AO VIVO (teste interno · 2h, 4h, cascata e 8h)",
+        "🔴 Ver previsão AO VIVO (teste interno · 2h e 4h)",
+    )
+    html = html.replace('      <button data-live-hz="4h_cascata">4h cascata</button>\n', "")
+    html = html.replace('      <button data-live-hz="8h">8h</button>\n', "")
+    html = html.replace('      <button data-live-hz="12h">12h</button>\n', "")
+    html = html.replace(
+        '      <button data-live-hz="4h_cascata">4h cascata</button>\n'
+        '      <button data-live-hz="8h">8h</button>\n'
+        '      <button data-live-hz="12h">12h</button>\n',
+        "",
+    )
+
     open(SAIDA, "w", encoding="utf-8").write(html)
     ev = json.loads(re.search(r'<script id="event-data" type="application/json">(.*?)</script>', html, re.DOTALL).group(1))
     print(f"escrito {SAIDA} | eventos: {len(ev)} ({', '.join(list(ev)[:8])})")

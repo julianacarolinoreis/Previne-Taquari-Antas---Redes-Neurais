@@ -4,14 +4,13 @@
 Robô AO VIVO — PREVINE / Muçum (estação-alvo 86510000)
 Espelha o robô do Santa Tereza. Roda no GitHub Actions (a cada 15 min):
   1) busca a telemetria da ANA (Muçum + montante Santa Tereza + auxiliares)
-  2) para CADA horizonte cujo .mat já está no repo, monta os inputs na ordem
+  2) para os horizontes 2h e 4h, monta os inputs na ordem
      exata (dirigida por mucum_modelo_inputs.json) e roda a RNA
   3) escreve previsao_ao_vivo_mucum.json no schema do ST (horizontes{...},
      passos) — a página monta os botões de horizonte a partir daí.
 
-MULTI-HORIZONTE E AUTOSSUFICIENTE: lê os modelos recomendados do JSON. Os
-horizontes 4h/8h/12h aparecem sozinhos assim que o Dispatch commitar os .mat
-correspondentes em assets/mat/ — sem tocar neste código.
+MULTI-HORIZONTE E AUTOSSUFICIENTE: lê os modelos recomendados do JSON, mas o
+ao vivo de Muçum publica apenas 2h e 4h.
 
 vel_nivel D-Xh = n(t) - n(t-Xh). Cada .mat é validável com `--validar <mat>`
 (reproduz pred_target_tot com RMSE ~0) antes de confiar no ao vivo.
@@ -52,12 +51,14 @@ def _cfg(m, hh):
     }
 
 def carregar_modelos():
-    """2h campeão + um modelo por horizonte (4h/8h/12h) do JSON."""
+    """2h campeão + 4h recomendado. O ao vivo de Muçum não publica 8h/12h."""
     d = json.load(open(INPUTS_JSON, encoding="utf-8"))
     modelos = [_cfg(d["modelo_campeao_2h"], 2)]
     vistos = {2}
     for m in d.get("modelos_recomendados_outros_horizontes", []):
         hh = int(m["horizonte_h"])
+        if hh not in (4,):
+            continue
         if hh in vistos:          # um por horizonte (prefere o 1º da lista)
             continue
         vistos.add(hh)
