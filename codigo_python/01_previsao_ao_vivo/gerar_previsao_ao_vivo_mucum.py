@@ -174,6 +174,7 @@ def melhor_hora(cfg, series, horas):
 def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None):
     consultado = agora_brt(); raw = ULTIMA_RAW.get(ALVO)
     idade = round((consultado - raw[0]).total_seconds() / 60) if raw else None
+    nivel_raw_cm = (round(raw[1]) if raw else (round(nivel_agora) if nivel_agora is not None else None))
     hora_alvo = (t + dt.timedelta(hours=cfg["horizonte_h"])).isoformat() if t else None
     out = {
         "modo": "ao_vivo",
@@ -189,15 +190,16 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None):
         "horizonte": cfg["horizonte"], "rotulo": cfg["rotulo"], "horizonte_h": cfg["horizonte_h"],
         "tipo": cfg["tipo"], "modelo": cfg["modelo"], "combo": cfg["combo"], "bankfull_cm": BANKFULL_CM,
         "nivel_modelo_cm": (round(nivel_agora) if nivel_agora is not None else None),
-        "nivel_rio_agora_cm": (round(nivel_agora) if nivel_agora is not None else None),
+        "nivel_rio_agora_cm": nivel_raw_cm,
+        "nivel_rio_agora_em": (raw[0].isoformat() if raw else (t.isoformat() if t else None)),
         "nivel_atual_cm": (round(nivel_agora) if nivel_agora is not None else None),
         "nivel_previsto_cm": (round(nivel_prev) if nivel_prev is not None else None),
         "inputs_total": cfg["n_inputs"], "inputs_faltantes_n": len(faltantes or []),
         "inputs_faltantes": faltantes or [], "estacoes_status": [],
         "status": status, "aviso": AVISO,
     }
-    if nivel_prev is not None and nivel_agora is not None:
-        out["delta_previsto_cm"] = round(nivel_prev - nivel_agora, 1)
+    if nivel_prev is not None and nivel_raw_cm is not None:
+        out["delta_previsto_cm"] = round(nivel_prev - nivel_raw_cm, 1)
         out["passos"] = [[out["hora_modelo"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
     return out
 
