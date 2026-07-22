@@ -888,6 +888,12 @@ def preservar_saida_valida_em_falha(motivo, aviso):
         return
     escrever(None, None, None, motivo, aviso)
 
+def algum_horizonte_com_previsao(horizontes):
+    return any(
+        isinstance(item, dict) and item.get("nivel_previsto_cm") is not None
+        for item in (horizontes or {}).values()
+    )
+
 def main():
     aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h, 4h, 4h cascata e 8h), em paralelo ao SGB/SACE."
     try:
@@ -906,6 +912,10 @@ def main():
     for cfg in MODELOS:
         t_modelo = escolher_hora_modelo(cfg, series, horas)
         horizontes[cfg["horizonte"]] = gerar_saida_modelo(cfg, series, t_modelo, aviso, estacoes_status)
+
+    if not algum_horizonte_com_previsao(horizontes):
+        preservar_saida_valida_em_falha("inputs incompletos por consulta instavel das estacoes a montante", aviso)
+        return
 
     historico = carregar_historico()
     for out in horizontes.values():
