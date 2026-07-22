@@ -1,0 +1,736 @@
+{
+  "gerado_em": "2026-07-22",
+  "fonte": "RNA Mucum - Rio Taquari, RS",
+  "estacao_alvo": {
+    "codigo": 86510000,
+    "nome": "Mucum",
+    "rio": "Rio Taquari",
+    "municipio": "Mucum",
+    "uf": "RS",
+    "papel": "estacao alvo (previsao de nivel)",
+    "telemetrica": true,
+    "lat": -29.1672,
+    "lon": -51.8686
+  },
+  "estacao_montante_confirmada": {
+    "codigo": 86472600,
+    "nome": "Santa Tereza",
+    "rio": "Rio Taquari",
+    "municipio": "Santa Tereza",
+    "uf": "RS",
+    "papel": "estacao montante confirmada, lag ~16h",
+    "telemetrica": true
+  },
+  "estacoes_input": {
+    "86510000": {
+      "nome": "Mucum",
+      "rio": "Rio Taquari",
+      "municipio": "Mucum",
+      "uf": "RS",
+      "papel": "estacao alvo (previsao de nivel)",
+      "telemetrica": true,
+      "lat": -29.1672,
+      "lon": -51.8686
+    },
+    "86472600": {
+      "nome": "Santa Tereza",
+      "rio": "Rio Taquari",
+      "municipio": "Santa Tereza",
+      "uf": "RS",
+      "papel": "estacao montante confirmada, lag ~16h",
+      "telemetrica": true
+    },
+    "86472000": {
+      "nome": "Linha Jose Julio",
+      "rio": "Rio das Antas",
+      "municipio": "Santa Tereza",
+      "uf": "RS",
+      "papel": "estacao auxiliar montante (usada em modelos 4h/8h/12h)",
+      "telemetrica": true
+    },
+    "86507000": {
+      "nome": "PCH Cotipora Jusante",
+      "rio": "Rio Carreiro",
+      "municipio": "Cotipora",
+      "uf": "RS",
+      "papel": "estacao auxiliar montante (usada em modelos 4h/8h/12h)",
+      "telemetrica": true
+    },
+    "86125130": {
+      "nome": "PCH Morro Grande Jusante 2",
+      "rio": "Rio Ituim",
+      "municipio": "Muitos Capoes",
+      "uf": "RS",
+      "papel": "estacao auxiliar montante (usada em modelos 4h/8h/12h)",
+      "telemetrica": true
+    },
+    "86298000": {
+      "nome": "UHE Castro Alves RS-122",
+      "rio": "Rio das Antas",
+      "municipio": "Antonio Prado",
+      "uf": "RS",
+      "papel": "estacao auxiliar montante (usada em modelos 4h/8h)",
+      "telemetrica": true
+    },
+    "86125500": {
+      "nome": "PCH Jararaca Barramento",
+      "rio": "Rio Prata",
+      "municipio": "Caxias do Sul",
+      "uf": "RS",
+      "papel": "estacao auxiliar montante (usada no modelo 12h ALT)",
+      "telemetrica": true
+    },
+    "86448000": {
+      "nome": "UHE Monte Claro Barramento",
+      "rio": "Rio das Antas",
+      "municipio": "Veranopolis",
+      "uf": "RS",
+      "papel": "estacao auxiliar montante (usada no modelo 12h ALT)",
+      "telemetrica": true
+    }
+  },
+  "modelo_campeao_2h": {
+    "modelo_id": "MUC_H2_ALT_STC002_R2M001",
+    "combo_id": "MUC_H2_ALT_STC002",
+    "arquivo_mat": "assets/mat/MUC_H2_ALT_STC002_R2M001.mat",
+    "arquivo_mat_origem": "D:/PREVINE/redes_neurais/mucum/RNA_MUC_MELHORIA_RODADA2_2026_07_20/mat/MUC_H2_ALT_STC002_R2M001.mat",
+    "horizonte_h": 2,
+    "tipo_modelo": "ALT",
+    "rotacao": "R2_A",
+    "fonte_rodada": "RNA_MUC_MELHORIA_RODADA2_2026_07_20",
+    "n_inputs": 10,
+    "neuronios": 20,
+    "nit": 10,
+    "ciclos": 100000,
+    "PERS_geral": 0.8681985075,
+    "PERS_treino": 0.8820545136,
+    "PERS_validacao": 0.7711734618,
+    "PERS_teste": 0.8302314152,
+    "MAE_geral_cm": 6.3465685405,
+    "MAE_validacao_cm": 5.8004682381,
+    "MAE_teste_cm": 8.265752634,
+    "E95_teste_cm": 31.1457454559,
+    "recomendacao_site": "PRINCIPAL 2h ao vivo: melhor equilibrio em 2h ALT; saida ALT deve virar nivel previsto somando ao nivel atual.",
+    "observacao_qualidade": "MUCUM: auditavel + MAT + CSV MATLAB; falhas excluidas linha a linha; eventos 12/22/24/27 sempre treino.",
+    "inputs": [
+      {
+        "nome": "nivel_86510000_t",
+        "estacao": 86510000,
+        "tipo": "nivel",
+        "tipo_desc": "nivel de agua (cota)",
+        "defasagem_h": 0,
+        "ordem": 1
+      },
+      {
+        "nome": "vel_nivel_86510000_D2h",
+        "estacao": 86510000,
+        "tipo": "vel_nivel",
+        "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+        "defasagem_h": 2,
+        "ordem": 2
+      },
+      {
+        "nome": "vel_nivel_86510000_D3h",
+        "estacao": 86510000,
+        "tipo": "vel_nivel",
+        "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+        "defasagem_h": 3,
+        "ordem": 3
+      },
+      {
+        "nome": "vel_nivel_86510000_D1h",
+        "estacao": 86510000,
+        "tipo": "vel_nivel",
+        "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+        "defasagem_h": 1,
+        "ordem": 4
+      },
+      {
+        "nome": "vel_nivel_86510000_D4h",
+        "estacao": 86510000,
+        "tipo": "vel_nivel",
+        "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+        "defasagem_h": 4,
+        "ordem": 5
+      },
+      {
+        "nome": "vel_nivel_86472600_D16h",
+        "estacao": 86472600,
+        "tipo": "vel_nivel",
+        "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+        "defasagem_h": 16,
+        "ordem": 6
+      },
+      {
+        "nome": "vel_nivel_86472600_D15h",
+        "estacao": 86472600,
+        "tipo": "vel_nivel",
+        "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+        "defasagem_h": 15,
+        "ordem": 7
+      },
+      {
+        "nome": "vel_nivel_86472600_D17h",
+        "estacao": 86472600,
+        "tipo": "vel_nivel",
+        "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+        "defasagem_h": 17,
+        "ordem": 8
+      },
+      {
+        "nome": "vel_nivel_86472600_D14h",
+        "estacao": 86472600,
+        "tipo": "vel_nivel",
+        "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+        "defasagem_h": 14,
+        "ordem": 9
+      },
+      {
+        "nome": "vel_nivel_86472600_D18h",
+        "estacao": 86472600,
+        "tipo": "vel_nivel",
+        "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+        "defasagem_h": 18,
+        "ordem": 10
+      }
+    ]
+  },
+  "modelos_recomendados_outros_horizontes": [
+    {
+      "modelo_id": "MUC_H4_ALT_STC009_R2M014",
+      "combo_id": "MUC_H4_ALT_STC009",
+      "horizonte_h": 4,
+      "tipo_modelo": "ALT",
+      "rotacao": "R2_A",
+      "fonte_rodada": "RNA_MUC_MELHORIA_RODADA2_2026_07_20",
+      "n_inputs": 13,
+      "neuronios": 26,
+      "nit": 10,
+      "ciclos": 100000,
+      "PERS_geral": 0.9004635716,
+      "PERS_treino": 0.9135730654,
+      "PERS_validacao": 0.8750530115,
+      "PERS_teste": 0.8762416231,
+      "MAE_geral_cm": 9.162617507,
+      "MAE_validacao_cm": 7.3934737584,
+      "MAE_teste_cm": 11.4184655973,
+      "E95_teste_cm": 47.0741063399,
+      "recomendacao_site": "PRINCIPAL 4h ao vivo: melhor modelo da rodada; ALT robusto em geral-validacao-teste.",
+      "arquivo_mat_origem": "D:/PREVINE/redes_neurais/mucum/RNA_MUC_MELHORIA_RODADA2_2026_07_20/mat/MUC_H4_ALT_STC009_R2M014.mat",
+      "mat_copiado_no_repo": false,
+      "inputs": [
+        {
+          "nome": "nivel_86510000_t",
+          "estacao": 86510000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 0,
+          "ordem": 1
+        },
+        {
+          "nome": "vel_nivel_86472600_D14h",
+          "estacao": 86472600,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 14,
+          "ordem": 2
+        },
+        {
+          "nome": "vel_nivel_86472000_D6h",
+          "estacao": 86472000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 6,
+          "ordem": 3
+        },
+        {
+          "nome": "vel_nivel_86507000_D11h",
+          "estacao": 86507000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 11,
+          "ordem": 4
+        },
+        {
+          "nome": "vel_nivel_86125130_D14h",
+          "estacao": 86125130,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 14,
+          "ordem": 5
+        },
+        {
+          "nome": "vel_nivel_86298000_D15h",
+          "estacao": 86298000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 15,
+          "ordem": 6
+        },
+        {
+          "nome": "vel_nivel_86510000_D2h",
+          "estacao": 86510000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 2,
+          "ordem": 7
+        },
+        {
+          "nome": "vel_nivel_86510000_D1h",
+          "estacao": 86510000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 1,
+          "ordem": 8
+        },
+        {
+          "nome": "vel_nivel_86510000_D3h",
+          "estacao": 86510000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 3,
+          "ordem": 9
+        },
+        {
+          "nome": "vel_nivel_86510000_D4h",
+          "estacao": 86510000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 4,
+          "ordem": 10
+        },
+        {
+          "nome": "vel_nivel_86472600_D15h",
+          "estacao": 86472600,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 15,
+          "ordem": 11
+        },
+        {
+          "nome": "vel_nivel_86472000_D5h",
+          "estacao": 86472000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 5,
+          "ordem": 12
+        },
+        {
+          "nome": "vel_nivel_86507000_D12h",
+          "estacao": 86507000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 12,
+          "ordem": 13
+        }
+      ]
+    },
+    {
+      "modelo_id": "MUC_H8_ALT_STC017_R2M033",
+      "combo_id": "MUC_H8_ALT_STC017",
+      "horizonte_h": 8,
+      "tipo_modelo": "ALT",
+      "rotacao": "R2_E",
+      "fonte_rodada": "RNA_MUC_MELHORIA_RODADA2_2026_07_20",
+      "n_inputs": 13,
+      "neuronios": 26,
+      "nit": 10,
+      "ciclos": 100000,
+      "PERS_geral": 0.8947927042,
+      "PERS_treino": 0.9215442415,
+      "PERS_validacao": 0.8178867559,
+      "PERS_teste": 0.8406263507,
+      "MAE_geral_cm": 18.7969741967,
+      "MAE_validacao_cm": 20.3344099487,
+      "MAE_teste_cm": 5.4107740719,
+      "E95_teste_cm": 12.1601495342,
+      "recomendacao_site": "PRINCIPAL 8h ao vivo: melhor equilibrio no 8h ALT; teste tem N pequeno, acompanhar auditoria.",
+      "arquivo_mat_origem": "D:/PREVINE/redes_neurais/mucum/RNA_MUC_MELHORIA_RODADA2_2026_07_20/mat/MUC_H8_ALT_STC017_R2M033.mat",
+      "mat_copiado_no_repo": false,
+      "inputs": [
+        {
+          "nome": "nivel_86510000_t",
+          "estacao": 86510000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 0,
+          "ordem": 1
+        },
+        {
+          "nome": "vel_nivel_86472600_D14h",
+          "estacao": 86472600,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 14,
+          "ordem": 2
+        },
+        {
+          "nome": "vel_nivel_86472000_D4h",
+          "estacao": 86472000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 4,
+          "ordem": 3
+        },
+        {
+          "nome": "vel_nivel_86507000_D9h",
+          "estacao": 86507000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 9,
+          "ordem": 4
+        },
+        {
+          "nome": "vel_nivel_86125130_D12h",
+          "estacao": 86125130,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 12,
+          "ordem": 5
+        },
+        {
+          "nome": "vel_nivel_86298000_D12h",
+          "estacao": 86298000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 12,
+          "ordem": 6
+        },
+        {
+          "nome": "vel_nivel_86510000_D2h",
+          "estacao": 86510000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 2,
+          "ordem": 7
+        },
+        {
+          "nome": "vel_nivel_86510000_D1h",
+          "estacao": 86510000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 1,
+          "ordem": 8
+        },
+        {
+          "nome": "vel_nivel_86510000_D3h",
+          "estacao": 86510000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 3,
+          "ordem": 9
+        },
+        {
+          "nome": "vel_nivel_86510000_D4h",
+          "estacao": 86510000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 4,
+          "ordem": 10
+        },
+        {
+          "nome": "vel_nivel_86472600_D13h",
+          "estacao": 86472600,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 13,
+          "ordem": 11
+        },
+        {
+          "nome": "vel_nivel_86472000_D5h",
+          "estacao": 86472000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 5,
+          "ordem": 12
+        },
+        {
+          "nome": "vel_nivel_86507000_D10h",
+          "estacao": 86507000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 10,
+          "ordem": 13
+        }
+      ]
+    },
+    {
+      "modelo_id": "MUC_H12_ALT_STC027_R2M052",
+      "combo_id": "MUC_H12_ALT_STC027",
+      "horizonte_h": 12,
+      "tipo_modelo": "ALT",
+      "rotacao": "R2_D",
+      "fonte_rodada": "RNA_MUC_MELHORIA_RODADA2_2026_07_20",
+      "n_inputs": 15,
+      "neuronios": 30,
+      "nit": 10,
+      "ciclos": 100000,
+      "PERS_geral": 0.8311246235,
+      "PERS_treino": 0.8464106129,
+      "PERS_validacao": 0.5057767149,
+      "PERS_teste": 0.6995152431,
+      "MAE_geral_cm": 34.6886825027,
+      "MAE_validacao_cm": 26.9207456386,
+      "MAE_teste_cm": 26.2101217718,
+      "E95_teste_cm": 69.2309943254,
+      "recomendacao_site": "EXPERIMENTAL 12h ALT: manter para comparar delta, mas nao como principal ainda.",
+      "arquivo_mat_origem": "D:/PREVINE/redes_neurais/mucum/RNA_MUC_MELHORIA_RODADA2_2026_07_20/mat/MUC_H12_ALT_STC027_R2M052.mat",
+      "mat_copiado_no_repo": false,
+      "inputs": [
+        {
+          "nome": "nivel_86510000_t",
+          "estacao": 86510000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 0,
+          "ordem": 1
+        },
+        {
+          "nome": "vel_nivel_86472600_D13h",
+          "estacao": 86472600,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 13,
+          "ordem": 2
+        },
+        {
+          "nome": "vel_nivel_86472000_D4h",
+          "estacao": 86472000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 4,
+          "ordem": 3
+        },
+        {
+          "nome": "vel_nivel_86507000_D8h",
+          "estacao": 86507000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 8,
+          "ordem": 4
+        },
+        {
+          "nome": "vel_nivel_86125130_D10h",
+          "estacao": 86125130,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 10,
+          "ordem": 5
+        },
+        {
+          "nome": "vel_nivel_86448000_D14h",
+          "estacao": 86448000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 14,
+          "ordem": 6
+        },
+        {
+          "nome": "vel_nivel_86510000_D2h",
+          "estacao": 86510000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 2,
+          "ordem": 7
+        },
+        {
+          "nome": "vel_nivel_86510000_D1h",
+          "estacao": 86510000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 1,
+          "ordem": 8
+        },
+        {
+          "nome": "vel_nivel_86510000_D3h",
+          "estacao": 86510000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 3,
+          "ordem": 9
+        },
+        {
+          "nome": "vel_nivel_86510000_D4h",
+          "estacao": 86510000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 4,
+          "ordem": 10
+        },
+        {
+          "nome": "vel_nivel_86472600_D12h",
+          "estacao": 86472600,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 12,
+          "ordem": 11
+        },
+        {
+          "nome": "vel_nivel_86472000_D3h",
+          "estacao": 86472000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 3,
+          "ordem": 12
+        },
+        {
+          "nome": "vel_nivel_86507000_D9h",
+          "estacao": 86507000,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 9,
+          "ordem": 13
+        },
+        {
+          "nome": "vel_nivel_86125130_D11h",
+          "estacao": 86125130,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 11,
+          "ordem": 14
+        },
+        {
+          "nome": "vel_nivel_86125500_D1h",
+          "estacao": 86125500,
+          "tipo": "vel_nivel",
+          "tipo_desc": "velocidade de variacao do nivel (delta cota / delta t)",
+          "defasagem_h": 1,
+          "ordem": 15
+        }
+      ]
+    },
+    {
+      "modelo_id": "MUC_H12_CONV_STC029_R2M059",
+      "combo_id": "MUC_H12_CONV_STC029",
+      "horizonte_h": 12,
+      "tipo_modelo": "CONV",
+      "rotacao": "R2_A",
+      "fonte_rodada": "RNA_MUC_MELHORIA_RODADA2_2026_07_20",
+      "n_inputs": 13,
+      "neuronios": 26,
+      "nit": 10,
+      "ciclos": 100000,
+      "PERS_geral": 0.8186270329,
+      "PERS_treino": 0.8496752006,
+      "PERS_validacao": 0.6843441749,
+      "PERS_teste": 0.7395200282,
+      "MAE_geral_cm": 35.813216027,
+      "MAE_validacao_cm": 28.3311206086,
+      "MAE_teste_cm": 42.9823130841,
+      "E95_teste_cm": 109.3935055602,
+      "recomendacao_site": "PRINCIPAL 12h ao vivo por enquanto: CONV mais estavel que ALT; saida ja e nivel previsto.",
+      "arquivo_mat_origem": "D:/PREVINE/redes_neurais/mucum/RNA_MUC_MELHORIA_RODADA2_2026_07_20/mat/MUC_H12_CONV_STC029_R2M059.mat",
+      "mat_copiado_no_repo": false,
+      "inputs": [
+        {
+          "nome": "nivel_86510000_t",
+          "estacao": 86510000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 0,
+          "ordem": 1
+        },
+        {
+          "nome": "nivel_86472600_D0h",
+          "estacao": 86472600,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 0,
+          "ordem": 2
+        },
+        {
+          "nome": "nivel_86472000_D0h",
+          "estacao": 86472000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 0,
+          "ordem": 3
+        },
+        {
+          "nome": "nivel_86507000_D0h",
+          "estacao": 86507000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 0,
+          "ordem": 4
+        },
+        {
+          "nome": "nivel_86125130_D0h",
+          "estacao": 86125130,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 0,
+          "ordem": 5
+        },
+        {
+          "nome": "nivel_86298000_D0h",
+          "estacao": 86298000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 0,
+          "ordem": 6
+        },
+        {
+          "nome": "nivel_86510000_D1h",
+          "estacao": 86510000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 1,
+          "ordem": 7
+        },
+        {
+          "nome": "nivel_86510000_D2h",
+          "estacao": 86510000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 2,
+          "ordem": 8
+        },
+        {
+          "nome": "nivel_86510000_D3h",
+          "estacao": 86510000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 3,
+          "ordem": 9
+        },
+        {
+          "nome": "nivel_86510000_D4h",
+          "estacao": 86510000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 4,
+          "ordem": 10
+        },
+        {
+          "nome": "nivel_86472600_D1h",
+          "estacao": 86472600,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 1,
+          "ordem": 11
+        },
+        {
+          "nome": "nivel_86472000_D1h",
+          "estacao": 86472000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 1,
+          "ordem": 12
+        },
+        {
+          "nome": "nivel_86507000_D1h",
+          "estacao": 86507000,
+          "tipo": "nivel",
+          "tipo_desc": "nivel de agua (cota)",
+          "defasagem_h": 1,
+          "ordem": 13
+        }
+      ]
+    }
+  ],
+  "fonte_planilhas": {
+    "planilhao_consolidado": "D:/PREVINE/redes_neurais/mucum/PLANILHAO_CONSOLIDADO_MUCUM_2026_07_21.xlsx",
+    "modelos_recomendados_site": "D:/PREVINE/redes_neurais/mucum/RNA_MUC_MELHORIA_RODADA3_2026_07_22/relatorios/MODELOS_RECOMENDADOS_SITE_MUCUM_2026_07_22.xlsx"
+  }
+}
