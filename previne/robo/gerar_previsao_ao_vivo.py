@@ -89,17 +89,6 @@ MODELOS = [
             "input_nome": "delta previsto pela RNA 2h",
         },
     },
-    {
-        "horizonte": "8h",
-        "horizonte_h": 8,
-        "tipo": "ALT",
-        "modelo": "8H_ALT_C0217",
-        "mat": "previne/assets/mat/RNAPREV__SANTA_TEREZA__08h__ALT__C0217.mat",
-        "inputs_total": 10,
-        "montador": "8h_alt_c0217",
-        "principal": False,
-        "teste_interno": True,
-    },
 ]
 
 def _local(tag):                          # remove {namespace} do nome da tag
@@ -895,7 +884,7 @@ def algum_horizonte_com_previsao(horizontes):
     )
 
 def main():
-    aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h, 4h, 4h cascata e 8h), em paralelo ao SGB/SACE."
+    aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h, 4h e 4h cascata), em paralelo ao SGB/SACE."
     try:
         series = {c: buscar_ana(c) for c in ESTACOES}
         series["__chuva36h_postos__"] = {c: buscar_ana_chuva(c) for c in POSTOS_CHUVA_36H}
