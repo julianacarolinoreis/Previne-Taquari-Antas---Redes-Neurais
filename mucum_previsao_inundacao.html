@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PREVINE · Previsão de inundação ao vivo — Muçum</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --bg:#eef3f1;--panel:#fff;--ink:#132019;--muted:#5c6b63;--line:#e0e6e1;
+    --brand:#0f6b4a;--agora:#1e5fbf;--prev:#e8730c;--crit:#c0392b;
+    --shadow:0 1px 3px rgba(20,40,30,.07),0 8px 26px rgba(20,40,30,.06);
+  }
+  *{box-sizing:border-box}
+  /* fonte única: Tahoma em tudo */
+  *,svg text{font-family:Tahoma,Verdana,Geneva,sans-serif !important}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  /* header */
+  header{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:600}
+  header .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--agora));flex:0 0 auto}
+  header h1{font-size:16.5px;margin:0;font-weight:750;letter-spacing:-.01em;line-height:1.15}
+  header .loc{font-size:11.5px;color:var(--muted)}
+  .modes{margin-left:auto;display:flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px}
+  .modes button{border:none;background:transparent;color:var(--muted);font-size:12.5px;font-weight:650;padding:6px 13px;border-radius:999px;cursor:pointer}
+  .modes button.on{background:var(--brand);color:#fff}
+  /* layout */
+  main{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:calc(100vh - 55px)}
+  #map{position:relative;background:var(--bg)}
+  aside{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:15px 15px 40px}
+  /* cenario compacto */
+  .scn{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+  .scn button{font-size:11.5px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:5px 9px;cursor:pointer}
+  .scn button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .scn .grp{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);width:100%;margin:6px 0 0;font-weight:700}
+  /* perguntas / resumo (modo simples) */
+  .q{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:14px 0 3px}
+  .big{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
+  .big.agora{color:var(--agora)} .big.prev{color:var(--prev)}
+  .big small{font-size:14px;font-weight:600;color:var(--muted)}
+  .cota-card{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 12px;margin:12px 0 8px;box-shadow:0 1px 2px rgba(20,40,30,.04)}
+  .cota-card .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:11.5px;color:var(--muted);font-weight:750;text-transform:uppercase;letter-spacing:.04em}
+  .cota-card .top b{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .cota-chart{width:100%;height:96px;display:block;margin:8px 0 7px}
+  .cota-lines{display:grid;gap:4px;font-size:12px;color:var(--muted);line-height:1.25}
+  .cota-lines span{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #edf1ee;padding-top:4px}
+  .cota-lines b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+  .cota-lines b.alert{color:var(--crit)}
+  .muda{background:linear-gradient(180deg,#fff,#fbf7f1);border:1px solid #f0e2cf;border-radius:14px;padding:13px 15px;margin-top:8px;box-shadow:var(--shadow)}
+  .muda h3{margin:0 0 8px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#a8650f}
+  .muda .row{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;padding:5px 0;border-bottom:1px dashed #efe0cb}
+  .muda .row:last-child{border-bottom:0}
+  .muda .row b{font-size:17px;font-variant-numeric:tabular-nums}
+  .muda .row b.prev{color:var(--prev)}
+  .conf{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:8px}
+  .conf .dot{width:9px;height:9px;border-radius:50%}
+  /* timeline */
+  .tl{margin:16px 0 6px}
+  .tl .head{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  .tl .play{width:40px;height:40px;border-radius:50%;border:none;background:var(--agora);color:#fff;font-size:15px;cursor:pointer;flex:0 0 auto}
+  .tl .tlab{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .tl input[type=range]{width:100%}
+  .tl .hint{font-size:11px;color:var(--muted);margin-top:3px}
+  /* card recolhivel */
+  .card{border:1px solid var(--line);border-radius:12px;margin-top:10px;overflow:hidden;background:#fff}
+  .card>summary{list-style:none;cursor:pointer;padding:11px 14px;font-size:13px;font-weight:650;display:flex;align-items:center;gap:8px}
+  .card>summary::-webkit-details-marker{display:none}
+  .card>summary::after{content:"▸";margin-left:auto;color:var(--muted);transition:transform .15s}
+  .card[open]>summary::after{transform:rotate(90deg)}
+  .card .body{padding:0 14px 13px}
+  /* leituras tecnicas */
+  .read{display:grid;grid-template-columns:1fr auto;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .read:last-child{border-bottom:0}
+  .read b{font-variant-numeric:tabular-nums}
+  .read .now{color:var(--agora)} .read .fore{color:var(--prev)} .read .add{color:#b06a12}
+  h4{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 5px;font-weight:700}
+  .info{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--line);color:var(--muted);font-size:10px;font-weight:700;cursor:help;margin-left:5px}
+  /* metodologia */
+  .method{display:flex;flex-direction:column;gap:4px;font-size:12.5px}
+  .method .step{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer}
+  .method .step:hover{border-color:var(--agora)}
+  .method .step b{font-weight:650}
+  .method .arw{text-align:center;color:var(--muted);font-size:11px;line-height:.6}
+  .method .exp{font-size:11.5px;color:var(--muted);padding:4px 2px 0}
+  /* legenda */
+  .legend{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);margin-top:6px}
+  .legend .row2{display:flex;align-items:center;gap:8px}
+  .legend .sw{width:22px;height:12px;border-radius:3px;flex:0 0 auto}
+  .legend .sw.a{background:linear-gradient(90deg,#8fc0ff,#123f9e)}
+  .legend .sw.b{background:rgba(232,115,12,.55);border:1px solid #b06a12}
+  .legend .sw.u{background:repeating-linear-gradient(45deg,rgba(232,115,12,.25),rgba(232,115,12,.25) 3px,transparent 3px,transparent 6px);border:1px dashed #d98a3a}
+  .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:10px}
+  .banner{position:absolute;z-index:500;left:10px;top:10px;background:#fff4e5;color:#8a5a12;border:1px solid #f0d9b5;border-radius:8px;padding:7px 11px;font-size:12px;max-width:66%}
+  .flood-ov{image-rendering:auto}
+  .live-btn{width:100%;margin-bottom:12px;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#c0392b,#e8730c);color:#fff;font-size:13.5px;font-weight:750;cursor:pointer;box-shadow:var(--shadow)}
+  .live-bar{display:flex;align-items:center;gap:8px;background:#fdecea;border:1px solid #f3c0b8;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:700;color:#a5281c}
+  .live-bar .ldot{width:10px;height:10px;border-radius:50%;background:#c0392b;animation:pulse 1.2s infinite;flex:0 0 auto}
+  .live-bar.stale{background:#fff4e0;border-color:#f0c98a;color:#8a5a12}
+  .live-bar.stale .ldot{background:#e08a1e;animation:none}
+  .live-bar a{margin-left:auto;color:inherit;cursor:pointer;text-decoration:underline;font-weight:600}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .live-note{font-size:11px;color:#a5281c;background:#fff6f5;border:1px solid #f3d3cd;border-radius:9px;padding:7px 10px;margin-bottom:10px;line-height:1.4}
+  .live-hz{display:none;gap:6px;margin:-2px 0 10px;flex-wrap:wrap}
+  .live-hz button{flex:1 1 72px;border:1px solid #f3c0b8;background:#fff;color:#a5281c;border-radius:9px;padding:7px 8px;font-size:12px;font-weight:750;cursor:pointer}
+  .live-hz button.on{background:#a5281c;color:#fff;border-color:#a5281c}
+  body.live #scn, body.live .tl, body.live #live-btn{display:none}
+  body.live .live-hz{display:flex}
+  body.live .simple-only{display:block}
+  .hydro{margin-top:4px}
+  .leaflet-popup-content{font-size:13px;margin:9px 12px}
+  .pt-pop b{color:var(--agora)} .pt-pop .pf{color:var(--prev)}
+  /* modo: esconde tecnico/simples */
+  body.tech .simple-only{display:none}
+  body:not(.tech) .tech-only{display:none}
+  @media(max-width:900px){
+    main{grid-template-columns:1fr;height:auto}
+    #map{height:56vh}
+    aside{border-left:0;border-top:1px solid var(--line)}
+  }
+</style>
+
+</head>
+<body>
+<header>
+  <span class="mark"></span>
+  <div><h1>Muçum — até onde a água pode chegar</h1><div class="loc">Muçum · bacia Taquari-Antas · previsão de RNA (2h) ao vivo</div></div>
+  <div class="modes"><button id="mode-s" class="on">Visualização simples</button><button id="mode-t">Dados técnicos</button></div>
+</header>
+<main>
+  <div id="map"></div>
+  <aside>
+    <div class="live-bar" id="live-bar"><span class="ldot"></span> AO VIVO · <span id="live-kind">leitura</span>: <span id="live-when">—</span></div>
+    <div class="live-note" id="live-note" style="display:none"></div>
+
+    <!-- ===== MODO SIMPLES ===== -->
+    <div class="simple-only">
+      <div class="q">Leitura da régua agora</div>
+      <div class="big agora"><span id="s-now">—</span></div>
+
+      <div class="q">Leitura prevista na régua (<span id="s-hz">+2 h</span>)</div>
+      <div class="big prev"><span id="s-fore">—</span></div>
+
+      <div class="cota-card">
+        <div class="top"><span>Régua e cota de inundação</span><b id="s-cota">a definir</b></div>
+        <svg id="s-cota-chart" class="cota-chart" viewBox="0 0 320 96" role="img" aria-label="Nível atual e previsão na régua"></svg>
+        <div class="cota-lines">
+          <span>Agora <b id="s-falta-now">—</b></span>
+          <span>Previsão <b id="s-falta-fore">—</b></span>
+        </div>
+      </div>
+
+      <div class="muda">
+        <h3>O que muda nas próximas 2 horas</h3>
+        <div class="row"><span>Rio</span><b id="s-drio" class="prev">—</b></div>
+        <div class="row"><span>Nova área potencial</span><b id="s-newarea" class="prev">—</b></div>
+        <div class="row"><span>Área total prevista</span><b id="s-atot">—</b></div>
+        <div class="conf">Confiança da previsão (2h): <span class="dot" id="s-confdot" style="background:#1b7a5a"></span><b id="s-conf">Alta</b></div>
+      </div>
+
+      <div class="q" style="margin-top:14px">Explorar outros níveis</div>
+      <input type="range" id="explore" min="0" max="15" step="0.5" value="0" style="width:100%">
+      <div class="hint">Arraste para ver a mancha em qualquer nível acima do leito (não é previsão). Clique num ponto do mapa para a profundidade ali.</div>
+
+      <details class="card"><summary>Como esta previsão é feita?</summary><div class="body">
+        <div class="method">
+          <div class="step" data-exp="A estação 86510000 informa o nível atual do rio em Muçum; a montante 86472600 (Santa Tereza) entra na previsão com ~16h de trânsito."><b>Nível atual</b> do rio</div>
+          <div class="arw">↓</div>
+          <div class="step" data-exp="A rede neural (campeão 2h) usa o nível atual e as velocidades de variação em Muçum e Santa Tereza para prever o nível daqui a 2 horas."><b>Rede neural (RNA)</b></div>
+          <div class="arw">↓</div>
+          <div class="step" data-exp="Some-se a variação prevista ao nível atual → o nível que o rio pode atingir em 2h."><b>Nível futuro</b> previsto</div>
+          <div class="arw">↓</div>
+          <div class="step" data-exp="O relevo (MDT ANADEM 30m + HAND, altura acima do rio) define onde uma dada cota de água chega."><b>Terreno (MDT · HAND)</b></div>
+          <div class="arw">↓</div>
+          <div class="step" data-exp="O resultado é a mancha: até onde a água pode chegar naquele nível."><b>Mapa de inundação</b></div>
+          <div class="exp" id="method-exp">Toque em cada etapa para entender.</div>
+        </div>
+      </div></details>
+
+      <details class="card"><summary>Legenda e confiança</summary><div class="body">
+        <div class="legend">
+          <div class="row2"><span class="sw a"></span>área já alagada (nível atual)</div>
+          <div class="row2"><span class="sw b"></span>área que <b>ainda está seca</b> mas pode ser atingida (previsão 2h)</div>
+        </div>
+        <div class="disc"><b>EXPERIMENTAL — não é alerta oficial.</b> Camada espacial da previsão de RNA (2h) para Muçum, em paralelo ao SGB/SACE. Terreno ANADEM 30m (bare-earth); a borda da mancha tem incerteza de dezenas de metros. Nível normal (calha) 500 cm na régua 86510000. A <b>cota de inundação oficial</b> de Muçum ainda será incorporada.</div>
+      </div></details>
+    </div>
+
+    <!-- ===== MODO TÉCNICO ===== -->
+    <div class="tech-only">
+      <div id="evinfo" class="disc" style="margin-top:0">Modelo <b>MUC_H2_ALT_STC002_R2M001</b> (2h, ALT) · PERS teste <b>0,83</b> · estação-alvo 86510000, montante 86472600.</div>
+      <div class="read"><span class="now">Leitura da régua agora</span><b class="now" id="r-now">—</b></div>
+      <div class="read"><span class="fore">Leitura prevista na régua (+2h)</span><b class="fore" id="r-fore">—</b></div>
+      <div class="read"><span>Mudança prevista desde agora</span><b id="r-dnivel">—</b></div>
+      <div class="read"><span>Hora do modelo</span><b id="r-hmodelo">—</b></div>
+      <div class="read"><span>Telemetria (idade)</span><b id="r-idade">—</b></div>
+      <div class="read"><span class="now">Área alagada agora</span><b class="now" id="r-anow">—</b></div>
+      <div class="read"><span class="fore">Área prevista</span><b class="fore" id="r-afore">—</b></div>
+      <div class="read"><span class="add">Nova área (avanço)</span><b class="add" id="r-anew">—</b></div>
+      <h4>Calibração · nível normal ↔ terreno</h4>
+      <p class="disc" style="margin-top:2px"><b>Nível normal / zero da mancha</b>: 500 cm (régua 86510000), início da mancha no leito (HAND 0).</p>
+      <div class="disc"><b>Prova de conceito.</b> Terreno ANADEM 30m; refino com MDT de detalhe. A cota de inundação oficial de Muçum entra quando disponível.</div>
+    </div>
+  </aside>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script id="hand-data" type="application/json">{"cols": 397, "rows": 361, "S": -29.210139, "W": -51.930139, "N": -29.109861, "E": -51.819861, "estacao_alvo": "86510000", "estacao_montante": "86472600", "bankfull_cm": 500, "fonte": "ANADEM v1 bare-earth 30 m — recorte do vale do Taquari em Muçum", "hand_png_b64": "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"}</script>
+<script>
+const HAND=JSON.parse(document.getElementById('hand-data').textContent);
+const COLS=HAND.cols, ROWS=HAND.rows, SS=3, FCOLS=COLS*SS, FROWS=ROWS*SS;
+const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
+const latC=(HAND.S+HAND.N)/2;
+const cellHa=(Math.abs(HAND.E-HAND.W)/COLS*111320*Math.cos(latC*Math.PI/180))*(Math.abs(HAND.N-HAND.S)/ROWS*111320)/1e4/(SS*SS);
+let COTA_INUND=null;             // cota oficial de Muçum — a definir
+let bankfull=500;                // nível normal (régua) = HAND 0
+let handArr=null, map=null, waterOverlay=null, liveData=null;
+const outCanvas=document.createElement('canvas'); outCanvas.width=FCOLS; outCanvas.height=FROWS;
+const octx=outCanvas.getContext('2d');
+const nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
+const nf1=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
+const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
+const sgn1=v=>Math.abs(v)<0.05?'0,0':(v>0?'+':'−')+nf1.format(Math.abs(v));
+const fmtNivel=cm=>cm==null||!Number.isFinite(Number(cm))?'—':nf2.format(Number(cm)/100)+' m';
+function fmtWhen(s){ if(!s) return '—'; const m=String(s).replace('T',' ').match(/(\d{4})-(\d{2})-(\d{2})[ ]+(\d{2}):(\d{2})/); return m?`${m[3]}/${m[2]} ${m[4]}:${m[5]}`:String(s); }
+
+const LIVE_RAW='https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/previsao_ao_vivo_mucum.json';
+const LIVE_API='https://api.github.com/repos/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/contents/previsao_ao_vivo_mucum.json?ref=main';
+async function fetchLive(){
+  try{
+    const r=await fetch(LIVE_API+'&cb='+Date.now(),{cache:'no-store'}); if(!r.ok) throw 0;
+    const meta=await r.json(); const b64=String(meta.content||'').replace(/\s/g,'');
+    if(b64) return JSON.parse(decodeURIComponent(escape(atob(b64))));
+  }catch(e){}
+  const r=await fetch(LIVE_RAW+'?cb='+Date.now(),{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json();
+}
+
+function loadHand(){return new Promise(res=>{
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas'); c.width=COLS;c.height=ROWS; const x=c.getContext('2d'); x.drawImage(img,0,0);
+    const d=x.getImageData(0,0,COLS,ROWS).data;
+    const sc=document.createElement('canvas'); sc.width=COLS;sc.height=ROWS; const sx=sc.getContext('2d'); const sd=sx.createImageData(COLS,ROWS);
+    for(let i=0;i<COLS*ROWS;i++){const v=d[i*4]; sd.data[i*4]=sd.data[i*4+1]=sd.data[i*4+2]=v; sd.data[i*4+3]=255;}
+    sx.putImageData(sd,0,0);
+    const bc=document.createElement('canvas'); bc.width=FCOLS;bc.height=FROWS; const bx=bc.getContext('2d'); bx.imageSmoothingEnabled=true; bx.imageSmoothingQuality='high';
+    bx.drawImage(sc,0,0,FCOLS,FROWS);
+    const bd=bx.getImageData(0,0,FCOLS,FROWS).data; handArr=new Uint8Array(FCOLS*FROWS);
+    for(let i=0;i<FCOLS*FROWS;i++) handArr[i]=bd[i*4];
+    res();
+  };
+  img.onerror=()=>{handArr=null;res();};
+  img.src='data:image/png;base64,'+HAND.hand_png_b64;
+});}
+
+function depthColor(dep){const t=Math.max(0,Math.min(1,dep/120));
+  return [Math.round(143+(18-143)*t),Math.round(192+(63-192)*t),Math.round(255+(158-255)*t)];}
+function stageToHand(cm){return (cm-bankfull)/100;}   // metros acima do leito
+function handAt(lat,lon){ const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*FCOLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*FROWS);
+  if(fx<0||fx>=FCOLS||fy<0||fy>=FROWS) return null; return handArr[fy*FCOLS+fx];}
+
+// pinta azul (agora) + laranja (previsto). nowCm/foreCm em cm de régua; ou nowM em metros acima do leito p/ explorar
+function render(nowCm, foreCm){
+  if(!handArr) return {aNow:0,aFore:0};
+  const nowDm=nowCm==null?-1:stageToHand(nowCm)*10;
+  const foreDm=foreCm==null?-1:stageToHand(foreCm)*10;
+  const N=FCOLS*FROWS, img=octx.createImageData(FCOLS,FROWS); const foreMask=new Uint8Array(N); let aNow=0,aFore=0;
+  for(let i=0;i<N;i++){
+    const hd=handArr[i];
+    const inNow=nowDm>=0&&hd<=nowDm, inFore=foreDm>=0&&hd<=foreDm;
+    if(inNow)aNow++; if(inFore){foreMask[i]=1;aFore++;}
+    if(inNow){const[r,g,b]=depthColor(nowDm-hd); img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=205;}
+    else if(inFore){img.data[i*4]=236;img.data[i*4+1]=140;img.data[i*4+2]=44;img.data[i*4+3]=150;}
+  }
+  for(let y=0;y<FROWS;y++)for(let x=0;x<FCOLS;x++){const i=y*FCOLS+x; if(!foreMask[i])continue;
+    const edge=x===0||x===FCOLS-1||y===0||y===FROWS-1||!foreMask[i-1]||!foreMask[i+1]||!foreMask[i-FCOLS]||!foreMask[i+FCOLS];
+    if(edge){img.data[i*4]=232;img.data[i*4+1]=115;img.data[i*4+2]=12;img.data[i*4+3]=255;}}
+  octx.putImageData(img,0,0);
+  if(waterOverlay) waterOverlay.setUrl(outCanvas.toDataURL());
+  return {aNow:aNow*cellHa, aFore:aFore*cellHa};
+}
+
+function drawCotaChart(nowCm, foreCm){
+  const svg=document.getElementById('s-cota-chart'); if(!svg) return;
+  if(nowCm==null){svg.innerHTML='';return;}
+  const hasFore=foreCm!=null; const vals=[nowCm]; if(hasFore)vals.push(foreCm); if(COTA_INUND)vals.push(COTA_INUND);
+  const lo=Math.max(0,Math.min(...vals)-80), hi=Math.max(...vals)+80;
+  const W=320,H=96,padL=32,padR=12,padT=12,padB=22, xN=padL+20, xF=W-padR-42;
+  const y=v=>padT+(H-padT-padB)*(1-(v-lo)/((hi-lo)||1));
+  const yN=y(nowCm), yF=hasFore?y(foreCm):null;
+  const gv=[lo,(lo+hi)/2,hi];
+  const grid=gv.map(v=>`<line x1="${padL}" y1="${y(v).toFixed(1)}" x2="${W-padR}" y2="${y(v).toFixed(1)}" stroke="#e8ede9"/>`).join('');
+  const labs=gv.map(v=>`<text x="0" y="${(y(v)+4).toFixed(1)}" font-size="9" fill="#8b9690">${nf1.format(v/100)}</text>`).join('');
+  const cota=COTA_INUND?`<line x1="${padL}" y1="${y(COTA_INUND).toFixed(1)}" x2="${W-padR}" y2="${y(COTA_INUND).toFixed(1)}" stroke="#b33a32" stroke-width="1.4" stroke-dasharray="4 3"/>`:'';
+  const fl=hasFore?`<line x1="${xN}" y1="${yN.toFixed(1)}" x2="${xF}" y2="${yF.toFixed(1)}" stroke="#111" stroke-width="2"/><circle cx="${xF}" cy="${yF.toFixed(1)}" r="4" fill="#d97706"/><text x="${xF}" y="${H-5}" text-anchor="middle" font-size="10" fill="#6f7672">+2h</text>`:'';
+  svg.innerHTML=`${grid}${labs}${cota}${fl}<circle cx="${xN}" cy="${yN.toFixed(1)}" r="4" fill="#111"/><text x="${xN}" y="${H-5}" text-anchor="middle" font-size="10" fill="#6f7672">agora</text>`;
+}
+
+function applyLive(D){
+  liveData=D;
+  const nowCm=D.nivel_rio_agora_cm!=null?D.nivel_rio_agora_cm:D.nivel_atual_cm;
+  const foreCm=D.nivel_previsto_cm;
+  const ar=render(nowCm, foreCm);
+  set('live-when', fmtWhen(D.telemetria_ultima_em||D.consultado_em));
+  const ln=document.getElementById('live-note');
+  if(foreCm==null){ ln.style.display=''; ln.textContent=(D.status||'previsão indisponível nesta hora')+' — mostrando só o nível atual.'; }
+  else ln.style.display='none';
+  // simples
+  set('s-now', fmtNivel(nowCm));
+  set('s-fore', foreCm!=null?fmtNivel(foreCm):'—');
+  set('s-falta-now', fmtNivel(nowCm));
+  set('s-falta-fore', foreCm!=null?fmtNivel(foreCm):'—');
+  set('s-drio', (foreCm!=null&&nowCm!=null)?sgn1((foreCm-nowCm)/100)+' m':'—');
+  set('s-newarea', foreCm!=null?sgn1(ar.aFore-ar.aNow)+' ha':'—');
+  set('s-atot', foreCm!=null?nf.format(ar.aFore)+' ha':(nowCm!=null?nf.format(ar.aNow)+' ha':'—'));
+  drawCotaChart(nowCm, foreCm);
+  // tecnico
+  set('r-now', fmtNivel(nowCm)); set('r-fore', foreCm!=null?fmtNivel(foreCm):'—');
+  set('r-dnivel', (foreCm!=null&&nowCm!=null)?sgn1((foreCm-nowCm)/100)+' m':'—');
+  set('r-hmodelo', fmtWhen(D.hora_modelo));
+  set('r-idade', D.idade_telemetria_min!=null?D.idade_telemetria_min+' min':'—');
+  set('r-anow', nowCm!=null?nf.format(ar.aNow)+' ha':'—');
+  set('r-afore', foreCm!=null?nf.format(ar.aFore)+' ha':'—');
+  set('r-anew', foreCm!=null?sgn1(ar.aFore-ar.aNow)+' ha':'—');
+}
+
+async function tickLive(){
+  try{ const D=await fetchLive(); applyLive(D); }
+  catch(e){ const ln=document.getElementById('live-note'); ln.style.display=''; ln.textContent='Sem conexão com a previsão ao vivo agora.'; }
+}
+
+(async function(){
+  await loadHand();
+  map=L.map('map',{scrollWheelZoom:true}).fitBounds(BOUNDS);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri, Maxar'}).addTo(map);
+  waterOverlay=L.imageOverlay(outCanvas.toDataURL(),BOUNDS,{opacity:.6,className:'flood-ov'}).addTo(map);
+  document.querySelectorAll('.method .step').forEach(s=>s.addEventListener('click',()=>set('method-exp',s.dataset.exp)));
+  const ex=document.getElementById('explore');
+  ex.addEventListener('input',()=>{ const m=parseFloat(ex.value); const cm=bankfull+m*100; const ar=render(cm,null);
+    set('s-now',fmtNivel(cm)); set('s-atot',nf.format(ar.aNow)+' ha'); drawCotaChart(cm,null);
+    document.getElementById('live-note').style.display=''; document.getElementById('live-note').textContent='Modo exploração: nível manual '+nf1.format(m)+' m acima do leito (não é previsão).'; });
+  map.on('click',e=>{ const hd=handAt(e.latlng.lat,e.latlng.lng); if(hd==null)return;
+    const ref=liveData&&liveData.nivel_previsto_cm!=null?stageToHand(liveData.nivel_previsto_cm)*10:(liveData?stageToHand(liveData.nivel_atual_cm)*10:-1);
+    const dep=ref-hd;
+    L.popup().setLatLng(e.latlng).setContent('<div class="pt-pop">Altura acima do leito: <b>'+nf1.format(hd/10)+' m</b>'+(ref>=0?'<br>'+(dep>0?'Profundidade prevista: <b class="pf">'+nf1.format(dep/10)+' m</b>':'<b>seco</b> na previsão'):'')+'</div>').openOn(map);
+  });
+  // modos
+  document.getElementById('mode-s').addEventListener('click',()=>{document.body.classList.remove('tech');document.getElementById('mode-s').classList.add('on');document.getElementById('mode-t').classList.remove('on');});
+  document.getElementById('mode-t').addEventListener('click',()=>{document.body.classList.add('tech');document.getElementById('mode-t').classList.add('on');document.getElementById('mode-s').classList.remove('on');});
+  await tickLive();
+  setInterval(tickLive, 5*60*1000);
+})();
+</script>
+</body>
+</html>
