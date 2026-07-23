@@ -159,11 +159,13 @@ def prever(mat_path, x):
     yn = logsig(ws.dot(h) + bs)
     return float(yn * au + bu)   # variação prevista (cm)
 
-def melhor_hora(cfg, series, horas):
+def melhor_hora(cfg, series, horas, limite_alvo=None):
     """Hora mais recente (até 12 h atrás) em que TODOS os inputs do modelo existem."""
     if not horas: return None
     t_ult = horas[-1]
     for t in [h for h in reversed(horas) if (t_ult - h) <= dt.timedelta(hours=12)]:
+        if limite_alvo is not None and (t + dt.timedelta(hours=cfg["horizonte_h"])) <= limite_alvo:
+            continue
         x = montar_inputs(cfg, series, t)
         if all(v is not None for v in x):
             return t, x
@@ -248,8 +250,10 @@ def main():
         escrever(base_saida(disponiveis[0], nivel_agora, None, None, "sem dado recente em Muçum"), {}); return
 
     horizontes = {}
+    raw_mucum = ULTIMA_RAW.get(ALVO)
+    limite_alvo = raw_mucum[0] if raw_mucum else None
     for cfg in disponiveis:
-        mh = melhor_hora(cfg, series, horas_muc)
+        mh = melhor_hora(cfg, series, horas_muc, limite_alvo)
         if mh is None:
             x = montar_inputs(cfg, series, horas_muc[-1])
             falt = sum(v is None for v in x)
