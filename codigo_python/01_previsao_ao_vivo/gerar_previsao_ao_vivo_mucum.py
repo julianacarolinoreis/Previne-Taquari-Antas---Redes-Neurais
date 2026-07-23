@@ -263,9 +263,13 @@ def main():
             continue
         t, x = mh
         try:
-            delta = prever(cfg["mat"], x)
+            saida = prever(cfg["mat"], x)
             nivel_base = nivel(series[ALVO], t)     # nível na hora-base do modelo
-            horizontes[cfg["horizonte"]] = base_saida(cfg, nivel_agora, nivel_base + delta, t, "ok")
+            if cfg["tipo"].upper() == "ALT":
+                nivel_prev = nivel_base + saida
+            else:
+                nivel_prev = saida
+            horizontes[cfg["horizonte"]] = base_saida(cfg, nivel_agora, nivel_prev, t, "ok")
         except Exception as e:
             horizontes[cfg["horizonte"]] = base_saida(cfg, nivel_agora, None, t, f"falha no modelo: {e}")
 
