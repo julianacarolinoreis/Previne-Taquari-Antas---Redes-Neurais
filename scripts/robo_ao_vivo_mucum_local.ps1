@@ -55,7 +55,7 @@ try {
     Invoke-LoggedCommand "git pull inicial" "git pull --rebase --autostash origin main" | Out-Null
     Invoke-LoggedCommand "gerar Mucum" "python codigo_python\01_previsao_ao_vivo\gerar_previsao_ao_vivo_mucum.py" | Out-Null
 
-    Invoke-LoggedCommand "git add Mucum" "git add previsao_ao_vivo_mucum.json" | Out-Null
+    Invoke-LoggedCommand "git add Mucum" "git add previsao_ao_vivo_mucum.json historico_previsoes_ao_vivo_mucum.json" | Out-Null
     $diffCode = Invoke-LoggedCommand "git diff staged quiet" "git diff --staged --quiet" $false
     if ($diffCode -eq 0) {
         Write-Log "Sem mudanca de Mucum para publicar."

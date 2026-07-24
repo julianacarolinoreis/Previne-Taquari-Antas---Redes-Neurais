@@ -27,6 +27,7 @@ RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 INPUTS_JSON = os.path.join(RAIZ, "assets", "data", "mucum_modelo_inputs.json")
 MAT_DIR = os.path.join(RAIZ, "assets", "mat")
 SAIDA = os.path.join(RAIZ, "previsao_ao_vivo_mucum.json")
+HISTORICO_SAIDA = os.path.join(RAIZ, "historico_previsoes_ao_vivo_mucum.json")
 BANKFULL_CM = 500            # nível normal / zero da mancha (régua 86510000)
 ALVO = "86510000"
 LOCAL = "Muçum"
@@ -147,6 +148,21 @@ def montar_inputs(cfg, series, t):
             raise ValueError(f"tipo de input não suportado: {tipo}")
     return x
 
+
+def diagnosticar_inputs(cfg, x):
+    faltantes = []
+    for inp, valor in zip(cfg["inputs"], x):
+        if valor is not None:
+            continue
+        faltantes.append({
+            "ordem": inp.get("ordem"),
+            "input": inp.get("nome") or inp.get("variavel") or f"inp{inp.get('ordem')}",
+            "estacao": str(inp.get("estacao")),
+            "tipo": inp.get("tipo"),
+            "defasagem_h": inp.get("defasagem_h"),
+        })
+    return faltantes
+
 def prever(mat_path, x):
     m = loadmat(mat_path, squeeze_me=True)
     wh = np.atleast_2d(np.asarray(m["wh"], float)); bh = np.asarray(m["bh"], float).ravel()
@@ -192,6 +208,7 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None):
         "horizonte": cfg["horizonte"], "rotulo": cfg["rotulo"], "horizonte_h": cfg["horizonte_h"],
         "tipo": cfg["tipo"], "modelo": cfg["modelo"], "combo": cfg["combo"], "bankfull_cm": BANKFULL_CM,
         "nivel_modelo_cm": (round(nivel_agora) if nivel_agora is not None else None),
+        "nivel_base_cm": (round(nivel_agora) if nivel_agora is not None else None),
         "nivel_rio_agora_cm": nivel_raw_cm,
         "nivel_rio_agora_em": (raw[0].isoformat() if raw else (t.isoformat() if t else None)),
         "nivel_atual_cm": (round(nivel_agora) if nivel_agora is not None else None),
@@ -205,6 +222,120 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None):
         out["passos"] = [[out["hora_modelo"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
     return out
 
+def carregar_historico():
+    if not os.path.exists(HISTORICO_SAIDA):
+        return []
+    try:
+        with open(HISTORICO_SAIDA, "r", encoding="utf-8") as f:
+            dados = json.load(f)
+        if isinstance(dados, dict):
+            return dados.get("registros", [])
+        return dados if isinstance(dados, list) else []
+    except Exception as e:
+        print("historico Mucum invalido, reiniciando:", e)
+        return []
+
+
+def salvar_historico(registros):
+    pacote = {
+        "atualizado_em": agora_brt().isoformat(timespec="seconds"),
+        "local": LOCAL,
+        "estacao": ALVO,
+        "registros": registros[-1200:],
+    }
+    with open(HISTORICO_SAIDA, "w", encoding="utf-8") as f:
+        json.dump(pacote, f, ensure_ascii=False, indent=1)
+
+
+def upsert_previsao_historico(registros, saida):
+    if saida.get("status") != "ok" or saida.get("nivel_previsto_cm") is None or not saida.get("hora_modelo"):
+        return registros
+    chave = f"{saida['local']}|{saida['horizonte']}|{saida['modelo']}|{saida['hora_modelo']}"
+    novo = {
+        "id": chave,
+        "local": saida["local"],
+        "estacao": saida["estacao"],
+        "horizonte": saida["horizonte"],
+        "horizonte_h": saida["horizonte_h"],
+        "tipo": saida.get("tipo"),
+        "modelo": saida["modelo"],
+        "hora_modelo": saida["hora_modelo"],
+        "hora_alvo": saida["hora_alvo"],
+        "nivel_modelo_cm": saida.get("nivel_modelo_cm"),
+        "nivel_rio_agora_cm": saida.get("nivel_rio_agora_cm"),
+        "nivel_previsto_cm": saida.get("nivel_previsto_cm"),
+        "status_auditoria": "aguardando",
+        "criado_em": saida.get("consultado_em"),
+    }
+    for i, reg in enumerate(registros):
+        if reg.get("id") == chave:
+            preservados = {
+                k: reg.get(k)
+                for k in ("observado_cm", "observado_em", "erro_cm", "erro_abs_cm", "status_auditoria", "auditado_em")
+                if k in reg
+            }
+            novo.update(preservados)
+            registros[i] = novo
+            return registros
+    registros.append(novo)
+    return registros
+
+
+def conferir_historico(registros, series):
+    serie_alvo = series.get(ALVO, {})
+    ultima_hora = max(serie_alvo) if serie_alvo else None
+    for reg in registros:
+        if reg.get("status_auditoria") == "conferido":
+            continue
+        alvo = _parse_hora(reg.get("hora_alvo", ""))
+        if alvo is None:
+            continue
+        obs = serie_alvo.get(alvo)
+        if obs is not None:
+            previsto = reg.get("nivel_previsto_cm")
+            erro = None if previsto is None else float(previsto) - float(obs)
+            reg.update({
+                "observado_cm": round(obs),
+                "observado_em": alvo.isoformat(),
+                "erro_cm": (round(erro, 1) if erro is not None else None),
+                "erro_abs_cm": (round(abs(erro), 1) if erro is not None else None),
+                "status_auditoria": "conferido",
+                "auditado_em": agora_brt().isoformat(timespec="seconds"),
+            })
+        elif ultima_hora and alvo <= ultima_hora:
+            reg["status_auditoria"] = "sem_dado_ana"
+            reg["auditado_em"] = agora_brt().isoformat(timespec="seconds")
+    return registros
+
+
+def media(vals):
+    vals = [float(v) for v in vals if v is not None]
+    return round(sum(vals) / len(vals), 1) if vals else None
+
+
+def resumo_auditoria(registros, horizonte):
+    regs = [r for r in registros if r.get("horizonte") == horizonte]
+    conferidos = sorted(
+        [r for r in regs if r.get("status_auditoria") == "conferido"],
+        key=lambda r: r.get("hora_alvo") or ""
+    )
+    aguardando = len([r for r in regs if r.get("status_auditoria") == "aguardando"])
+    agora = agora_brt()
+    ult24 = []
+    for r in conferidos:
+        alvo = _parse_hora(r.get("hora_alvo", ""))
+        if alvo and (agora - alvo).total_seconds() <= 24 * 3600:
+            ult24.append(r)
+    return {
+        "n_total": len(regs),
+        "n_conferidas": len(conferidos),
+        "n_aguardando": aguardando,
+        "ultima_conferida": (conferidos[-1] if conferidos else None),
+        "mae_ultimas_6_cm": media([r.get("erro_abs_cm") for r in conferidos[-6:]]),
+        "mae_24h_cm": media([r.get("erro_abs_cm") for r in ult24]),
+        "maior_erro_abs_24h_cm": (max([r.get("erro_abs_cm") for r in ult24 if r.get("erro_abs_cm") is not None]) if ult24 else None),
+        "ultimas_conferidas": conferidos[-12:],
+    }
 
 def _tem_previsao(d):
     return bool(d) and d.get("nivel_previsto_cm") is not None
@@ -234,6 +365,18 @@ def escrever(top, horizontes, max_stale_h=6):
           "| horizontes:", hs, "|", top.get("status"))
 
 
+def escrever_pacote(horizontes, historico):
+    for hz, out in horizontes.items():
+        out["auditoria"] = resumo_auditoria(historico, hz)
+    principal = horizontes.get("2h") or next(iter(horizontes.values()))
+    pacote = dict(principal)
+    pacote["horizontes"] = horizontes
+    pacote["auditoria_historico"] = {
+        hz: resumo_auditoria(historico, hz) for hz in horizontes.keys()
+    }
+    escrever(pacote, horizontes)
+
+
 def main():
     modelos = carregar_modelos()
     disponiveis = [c for c in modelos if os.path.exists(c["mat"])]
@@ -257,9 +400,11 @@ def main():
         if mh is None:
             x = montar_inputs(cfg, series, horas_muc[-1])
             falt = sum(v is None for v in x)
+            faltantes = diagnosticar_inputs(cfg, x)
             horizontes[cfg["horizonte"]] = base_saida(
                 cfg, nivel_agora, None, horas_muc[-1],
-                f"inputs incompletos ({falt}/{cfg['n_inputs']} faltando) — sem previsão nesta hora")
+                f"inputs incompletos ({falt}/{cfg['n_inputs']} faltando) — sem previsão nesta hora",
+                faltantes)
             continue
         t, x = mh
         try:
@@ -269,13 +414,17 @@ def main():
                 nivel_prev = nivel_base + saida
             else:
                 nivel_prev = saida
-            horizontes[cfg["horizonte"]] = base_saida(cfg, nivel_agora, nivel_prev, t, "ok")
+            horizontes[cfg["horizonte"]] = base_saida(cfg, nivel_base, nivel_prev, t, "ok")
         except Exception as e:
             horizontes[cfg["horizonte"]] = base_saida(cfg, nivel_agora, None, t, f"falha no modelo: {e}")
 
-    # topo = 2h (ou o primeiro horizonte disponível)
-    principal = horizontes.get("2h") or next(iter(horizontes.values()))
-    escrever(principal, horizontes)
+    historico = carregar_historico()
+    for out in horizontes.values():
+        historico = upsert_previsao_historico(historico, out)
+    historico = conferir_historico(historico, series)
+    salvar_historico(historico)
+
+    escrever_pacote(horizontes, historico)
 
 
 def validar(mat_path):

@@ -696,6 +696,25 @@ function renderLiveStep(){
     renderFrame();
     return;
   }
+  if(L && liveData && liveData.horizontes && liveData.horizontes[liveHz]){
+    const hz=L.horizonte||liveHz||'2h';
+    const hzTxt=L.rotulo||hzLabel(hz);
+    const nowCm=liveNowCm(L);
+    const when=L.hora_modelo||L.telemetria_ultima_em||L.consultado_em||liveData.consultado_em;
+    EVENTS['__live__']={label:'AO VIVO',horizonte:hz,combo:L.modelo||'—',pers:null,ilustra:false,estatico:false,n:1,pico_obs_cm:nowCm,series:[[when,nowCm,null,null]]};
+    bankfull=L.bankfull_cm||(liveData&&liveData.bankfull_cm)||400;
+    curEv='__live__'; tIdx=0;
+    set('hz',hzTxt); set('hz2',hzTxt); set('s-hz','+'+hzTxt); set('s-hz2',hzHours(hz,L));
+    const tipo=(L.tipo||L.modelo_tipo||'').toString().toUpperCase();
+    const tipoTxt=tipo?' '+tipo:'';
+    const ei=document.getElementById('evinfo');
+    if(ei) ei.innerHTML=liveInfoHtml(L,[when,nowCm,null,null],hz,tipoTxt,'ao vivo');
+    renderLiveAudit(L);
+    set('live-kind', liveWhenKind(L));
+    set('live-when', liveWhenText(L,[when,nowCm,null,null]));
+    renderFrame();
+    return;
+  }
   const P=liveData.passos[liveIdx]; // [datahora, nivel_atual_cm, nivel_previsto_cm]
   EVENTS['__live__']={label:'AO VIVO',horizonte:liveData.horizonte||'2h',combo:liveData.modelo||'—',pers:null,ilustra:false,estatico:false,n:1,pico_obs_cm:P[1],series:[[P[0],P[1],null,P[2]]]};
   bankfull=liveData.bankfull_cm||400;
