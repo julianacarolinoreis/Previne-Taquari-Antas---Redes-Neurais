@@ -45,6 +45,7 @@ def _cfg(m, hh):
         "horizonte_h": hh, "horizonte": f"{hh}h", "rotulo": f"{hh}h",
         "tipo": m.get("tipo_modelo", "ALT"), "modelo": mid,
         "combo": m.get("combo_id", mid),
+        "papel": m.get("papel", "principal"),
         "mat": os.path.join(RAIZ, mat) if mat.startswith("assets") else os.path.join(MAT_DIR, os.path.basename(mat)),
         "inputs": ins,
         "estacoes": sorted({str(i["estacao"]) for i in ins}),
@@ -64,6 +65,17 @@ def carregar_modelos():
             continue
         vistos.add(hh)
         modelos.append(_cfg(m, hh))
+    for hh_txt, lista in d.get("modelos_fallback_por_horizonte", {}).items():
+        try:
+            hh = int(hh_txt)
+        except Exception:
+            continue
+        if hh not in (2, 4):
+            continue
+        for m in lista:
+            m = dict(m)
+            m.setdefault("papel", "fallback")
+            modelos.append(_cfg(m, hh))
     return modelos
 
 
@@ -207,6 +219,7 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None):
         "estacao": ALVO, "local": LOCAL,
         "horizonte": cfg["horizonte"], "rotulo": cfg["rotulo"], "horizonte_h": cfg["horizonte_h"],
         "tipo": cfg["tipo"], "modelo": cfg["modelo"], "combo": cfg["combo"], "bankfull_cm": BANKFULL_CM,
+        "modelo_papel": cfg.get("papel", "principal"),
         "nivel_modelo_cm": (round(nivel_agora) if nivel_agora is not None else None),
         "nivel_base_cm": (round(nivel_agora) if nivel_agora is not None else None),
         "nivel_rio_agora_cm": nivel_raw_cm,
@@ -395,28 +408,43 @@ def main():
     horizontes = {}
     raw_mucum = ULTIMA_RAW.get(ALVO)
     limite_alvo = raw_mucum[0] if raw_mucum else None
+    por_horizonte = {}
     for cfg in disponiveis:
-        mh = melhor_hora(cfg, series, horas_muc, limite_alvo)
-        if mh is None:
-            x = montar_inputs(cfg, series, horas_muc[-1])
-            falt = sum(v is None for v in x)
-            faltantes = diagnosticar_inputs(cfg, x)
-            horizontes[cfg["horizonte"]] = base_saida(
-                cfg, nivel_agora, None, horas_muc[-1],
-                f"inputs incompletos ({falt}/{cfg['n_inputs']} faltando) — sem previsão nesta hora",
-                faltantes)
-            continue
-        t, x = mh
-        try:
-            saida = prever(cfg["mat"], x)
-            nivel_base = nivel(series[ALVO], t)     # nível na hora-base do modelo
-            if cfg["tipo"].upper() == "ALT":
-                nivel_prev = nivel_base + saida
-            else:
-                nivel_prev = saida
-            horizontes[cfg["horizonte"]] = base_saida(cfg, nivel_base, nivel_prev, t, "ok")
-        except Exception as e:
-            horizontes[cfg["horizonte"]] = base_saida(cfg, nivel_agora, None, t, f"falha no modelo: {e}")
+        por_horizonte.setdefault(cfg["horizonte"], []).append(cfg)
+
+    for horizonte, cfgs in por_horizonte.items():
+        ultimo_status = None
+        for idx, cfg in enumerate(cfgs):
+            mh = melhor_hora(cfg, series, horas_muc, limite_alvo)
+            if mh is None:
+                x = montar_inputs(cfg, series, horas_muc[-1])
+                falt = sum(v is None for v in x)
+                faltantes = diagnosticar_inputs(cfg, x)
+                ultimo_status = base_saida(
+                    cfg, nivel_agora, None, horas_muc[-1],
+                    f"inputs incompletos ({falt}/{cfg['n_inputs']} faltando) - sem previsao nesta hora",
+                    faltantes)
+                print(f"[{horizonte}] {cfg['modelo']} incompleto; tentando fallback se existir")
+                continue
+            t, x = mh
+            try:
+                saida = prever(cfg["mat"], x)
+                nivel_base = nivel(series[ALVO], t)     # nível na hora-base do modelo
+                if cfg["tipo"].upper() == "ALT":
+                    nivel_prev = nivel_base + saida
+                else:
+                    nivel_prev = saida
+                out = base_saida(cfg, nivel_base, nivel_prev, t, "ok")
+                if idx > 0 or cfg.get("papel") == "fallback":
+                    out["fallback_usado"] = True
+                    out["motivo_fallback"] = "modelo principal sem todos os inputs na janela operacional"
+                horizontes[horizonte] = out
+                break
+            except Exception as e:
+                ultimo_status = base_saida(cfg, nivel_agora, None, t, f"falha no modelo: {e}")
+                print(f"[{horizonte}] {cfg['modelo']} falhou: {e}; tentando fallback se existir")
+        if horizonte not in horizontes and ultimo_status is not None:
+            horizontes[horizonte] = ultimo_status
 
     historico = carregar_historico()
     for out in horizontes.values():
