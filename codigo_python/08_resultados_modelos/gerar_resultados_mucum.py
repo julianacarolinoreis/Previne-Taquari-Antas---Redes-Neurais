@@ -25,6 +25,13 @@ Saida:
 Idempotente: pode rodar de novo a qualquer momento (ex.: apos cada rodada de
 treino terminar) sem duplicar trabalho — arquivos ja copiados com o mesmo
 tamanho sao pulados.
+
+Modo --check-only: so LEITURA, nenhum arquivo e escrito/copiado e nada e
+commitado. Compara os modelos qualificados de hoje contra o que ja esta
+publicado em assets/data/mucum_auditaveis_series.json e imprime se ha
+novidade. Feito para ser chamado 1x/dia por uma rotina de checagem (ex.:
+morning-codex-continuity) sem publicar nada sozinho — publicar continua
+sendo uma decisao humana, tomada rodando este mesmo script sem a flag.
 """
 from __future__ import annotations
 
@@ -399,6 +406,31 @@ def patch_index_html(payload_updates: dict):
     print(f"index.html: {atualizados} modelo(s) existentes atualizados + {criados} entrada(s) nova(s) criadas no payload data-mucum.")
 
 
+def checar_novidades():
+    """So leitura: nao escreve nem copia nada. Retorna (novos, ja_publicados)."""
+    qualificados = selecionar_qualificados()
+    publicados = set()
+    if SERIES_JSON.exists():
+        publicados = {m["id"] for m in json.loads(SERIES_JSON.read_text(encoding="utf-8"))["models"]}
+
+    novos = [r for r in qualificados if r["modelo"] not in publicados]
+    ja_publicados = [r for r in qualificados if r["modelo"] in publicados]
+    return novos, ja_publicados, qualificados
+
+
+def imprimir_check(novos, ja_publicados, qualificados):
+    print(f"MUCUM — checagem de resultados (score_equilibrio > {EQUILIBRIO_MIN}, {datetime.now().strftime('%Y-%m-%d %H:%M')})")
+    print(f"Qualificados hoje: {len(qualificados)} | ja publicados no site: {len(ja_publicados)} | novos: {len(novos)}")
+    if novos:
+        print("\nMODELOS NOVOS QUALIFICADOS AINDA NAO PUBLICADOS:")
+        for r in novos:
+            print(f"  - {r['modelo']} (horizonte {r['horizonte']}, {r['tipo']}, equilibrio {r['score_equilibrio']:.4f}, rodada {r['fonte_rodada']})")
+        print("\nPara publicar: python codigo_python/08_resultados_modelos/gerar_resultados_mucum.py")
+        print("(depois: git add/commit/push manual ou com confirmacao — este script nunca publica sozinho)")
+    else:
+        print("\nNada novo — o site ja reflete todos os modelos qualificados de hoje.")
+
+
 def pin_urls_para_commit(sha: str):
     """Troca URLs relativas (assets/mat/..., assets/audit_workbooks/...) por
     raw.githubusercontent.com fixado no commit informado — necessario porque
@@ -435,6 +467,9 @@ def pin_urls_para_commit(sha: str):
 if __name__ == "__main__":
     if len(sys.argv) > 2 and sys.argv[1] == "--pin-commit":
         pin_urls_para_commit(sys.argv[2])
+        sys.exit(0)
+    if len(sys.argv) > 1 and sys.argv[1] == "--check-only":
+        imprimir_check(*checar_novidades())
         sys.exit(0)
     n_ok, n_avisos = gerar()
     if n_avisos:
