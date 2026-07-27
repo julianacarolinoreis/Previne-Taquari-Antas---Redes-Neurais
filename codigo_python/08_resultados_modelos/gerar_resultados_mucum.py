@@ -19,8 +19,10 @@ Saida:
   - assets/mat/<modelo>.mat                      (copiado)
   - assets/audit_workbooks/<FAMILIA>__<modelo>.xlsx  (copiado)
   - assets/data/mucum_auditaveis_series.json     (series por evento, para os graficos)
-  - index.html: <script id="data-mucum"> ganha mat_url/wb_url/mat{} nos
-    modelos selecionados (patch pontual, resto do payload preservado).
+  - index.html: <script id="data-mucum"> passa a conter SO os modelos
+    qualificados (mat_url/wb_url/mat{} inclusos) — o painel interativo
+    (leaderboard + tabela) mostra so os melhores, nunca o historico bruto
+    de todas as rodadas.
 
 Idempotente: pode rodar de novo a qualquer momento (ex.: apos cada rodada de
 treino terminar) sem duplicar trabalho — arquivos ja copiados com o mesmo
@@ -400,10 +402,14 @@ def patch_index_html(payload_updates: dict):
         data["models"].append(novo)
         criados += 1
 
+    antes = len(data["models"])
+    data["models"] = [m for m in data["models"] if m.get("modelo") in payload_updates]
+    removidos = antes - len(data["models"])
+
     novo_json = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
     novo_html = html[:m.start(2)] + novo_json + html[m.end(2):]
     INDEX_HTML.write_text(novo_html, encoding="utf-8")
-    print(f"index.html: {atualizados} modelo(s) existentes atualizados + {criados} entrada(s) nova(s) criadas no payload data-mucum.")
+    print(f"index.html: {atualizados} modelo(s) existentes atualizados + {criados} entrada(s) nova(s) + {removidos} fora do corte removidos. Payload data-mucum agora so tem os {len(data['models'])} modelos qualificados (equilibrio>{EQUILIBRIO_MIN}).")
 
 
 def checar_novidades():
