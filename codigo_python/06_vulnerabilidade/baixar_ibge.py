@@ -60,6 +60,15 @@ primeiro_que_funciona([
     "https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_de_setores_censitarios__divisoes_intramunicipais/censo_2022/setores/gpkg/UF/RS/RS_setores_CD2022.gpkg",
 ], "setores_rs.bin")   # extensão resolvida na preparação (gpkg ou zip de shp)
 
+# ---------- 2b) grade estatística (Censo 2022) — células de 200m, população e domicílios ----------
+# A bacia Taquari-Antas cai nos ladrilhos ID_14 e ID_15 (confirmado baixando os
+# dois e conferindo o total_bounds real — ID_14 sozinho não cobre a borda leste
+# da bacia). Cada ladrilho é um shapefile zipado (~15-30 MB), NÃO gpkg.
+for tile in ("14", "15"):
+    primeiro_que_funciona([
+        f"https://geoftp.ibge.gov.br/recortes_para_fins_estatisticos/grade_estatistica/censo_2022/grade_estatistica/grade_id{tile}.zip",
+    ], f"grade_id{tile}.zip")
+
 # ---------- 3) agregados por setores (descoberta por listagem) ----------
 BASES = [
     "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/Agregados_por_Setor_csv/",

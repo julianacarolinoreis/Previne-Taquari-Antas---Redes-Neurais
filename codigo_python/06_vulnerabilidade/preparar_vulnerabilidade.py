@@ -7,6 +7,9 @@ Entrada:  ./_ibge_raw/  (gerado por baixar_ibge.py)
 Saída:    assets/data/vulnerabilidade/
   - municipios.geojson            (municípios da bacia + indicadores agregados)
   - setores/<cod_mun>.geojson     (setores simplificados, indicadores por setor)
+  - grade/<cod_mun>.geojson       (grade estatística 200m — pop e dom por célula,
+                                    só células com gente; camada NOVA, adicional
+                                    ao setor, não substitui nada)
   - indicadores_municipios.json   (tabela para ranking/busca no site)
   - brutos/*.csv + FONTES.md      (recorte da bacia das tabelas do IBGE)
 
@@ -263,6 +266,36 @@ g["geometry"] = g.to_crs(5880).geometry.simplify(15).to_crs(4326)
 for cod, gg in g.groupby("cod_mun"):
     gg.drop(columns=["cod_mun"]).to_file(f"{OUT}/setores/{cod}.geojson", driver="GeoJSON")
 
+# ---------- grade estatística (Censo 2022, células de 200m) ----------
+# Camada NOVA — não mexe em nada do que já existe acima. Mesmos dois indicadores
+# do setor (pop, dom), só que numa grade regular em vez de polígono de setor.
+# A bacia cai nos ladrilhos ID_14 e ID_15 (confirmado baixando os dois shapefiles
+# e checando o total_bounds real contra o bacia.geojson já publicado).
+os.makedirs(f"{OUT}/grade", exist_ok=True)
+grd = pd.concat(
+    [ler_vetor(f"grade_id{t}.zip")[["ID_UNICO", "TOTAL", "TOTAL_DOM", "geometry"]] for t in ("14", "15")],
+    ignore_index=True,
+)
+grd = gpd.GeoDataFrame(grd, crs=ler_vetor("grade_id14.zip").crs).to_crs(4326)
+grd = grd.rename(columns={"TOTAL": "pop", "TOTAL_DOM": "dom"})
+grd = grd[(grd["pop"] > 0) | (grd["dom"] > 0)].reset_index(drop=True)  # descarta célula vazia (maioria é rural sem gente)
+
+grd["rep"] = grd.geometry.representative_point()
+grd_pts = gpd.GeoDataFrame(grd.drop(columns="geometry"), geometry=grd["rep"], crs=4326)
+grd_join = gpd.sjoin(grd_pts, mun[["cod", "geometry"]], how="left", predicate="within")
+grd_join = grd_join[~grd_join.index.duplicated(keep="first")]   # ponto raro em cima de fronteira -> fica com 1 match
+grd["cod_mun"] = grd_join["cod"].reindex(grd.index).values
+grd = grd[grd["cod_mun"].isin(inter["cod"].astype(str))].drop(columns="rep")   # só municípios que tocam a bacia
+grd["na_bacia"] = grd.geometry.representative_point().within(bacia).astype(int)
+
+pop_grade_bacia = float(grd.loc[grd["na_bacia"] == 1, "pop"].sum())
+print(f"[grade] {len(grd)} células (200m) com pop ou dom > 0 nos municípios da bacia; "
+      f"pop somada dentro do polígono da bacia: {pop_grade_bacia:,.0f} "
+      f"(setor deu {pop_dentro:,.0f} — divergência esperada é pequena, são fontes/geometrias diferentes)")
+
+for cod, gg in grd.groupby("cod_mun"):
+    gg.drop(columns=["cod_mun", "ID_UNICO"]).to_file(f"{OUT}/grade/{cod}.geojson", driver="GeoJSON")
+
 json.dump({
     "fonte": "IBGE — Censo Demográfico 2022, Agregados por Setores Censitários",
     "municipios": m.drop(columns="geometry").to_dict("records"),
@@ -282,6 +315,8 @@ f"""# Fontes (dados completos oficiais)
   Variável V06004 = rendimento nominal médio mensal das pessoas responsáveis.
 - Malha de setores censitários 2022: https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_de_setores_censitarios__divisoes_intramunicipais/censo_2022/
 - Malha municipal 2022: https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2022/
+- Grade estatística 2022 (células de 200m, população e domicílios): https://geoftp.ibge.gov.br/recortes_para_fins_estatisticos/grade_estatistica/censo_2022/grade_estatistica/
+  Ladrilhos ID_14 e ID_15 (os que cobrem a bacia Taquari-Antas — confirmado pelo total_bounds real dos dois shapefiles).
 - Limite da bacia Taquari-Antas: {_fonte_bacia}
 Os CSVs aqui são o RECORTE dos municípios que intersectam a bacia; o estadual completo está nas URLs acima.
 Energia elétrica não consta no agregado de características do domicílio por setor (Censo 2022).

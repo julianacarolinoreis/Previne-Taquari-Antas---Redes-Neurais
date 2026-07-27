@@ -141,6 +141,12 @@
       <button data-m="pct">% da população</button>
     </div>
 
+    <div class="q">Camada <span style="text-transform:none;font-weight:400">(ao abrir um município)</span></div>
+    <div class="modes" id="camadas">
+      <button data-c="setor" class="on">setor censitário</button>
+      <button data-c="grade">grade 200 m</button>
+    </div>
+
     <div class="q">Total na área vista</div>
     <div class="big" id="tot">—</div>
 
@@ -306,7 +312,8 @@ const ICM_CORES = {A:"#2e7d32", B:"#c3d92c", C:"#e8730c", D:"#c0392b"};
 const ICM_LABEL = {A:"A · alta capacidade", B:"B · média-alta", C:"C · média-baixa", D:"D · baixa capacidade"};
 const fmt = n => Number(n).toLocaleString("pt-BR", {maximumFractionDigits: n < 100 ? 1 : 0});
 
-let ind = "mulheres", modo = "abs";
+let ind = "mulheres", modo = "abs", camada = "setor";
+const GRADE_INDS = new Set(["pop", "dom"]);   // únicos indicadores que a grade estatística tem
 let map, munLayer, setLayer = null, munData, munAtual = null, icmData = null;
 
 // funde a Capacidade Municipal (ICM) nas propriedades dos municípios, casando
@@ -353,14 +360,15 @@ function quantis(vals){                // 5 classes por quantis
   return [q(.2), q(.4), q(.6), q(.8)];
 }
 const manualBrks = {};                 // faixas digitadas pela usuária, por indicador/modo/escopo
-function chaveBrk(){ return `${ind}|${modo}|${munAtual ? "set" : "mun"}`; }
+function chaveBrk(){ return `${ind}|${modo}|${munAtual ? camada : "mun"}`; }
 function getBrk(vals){ return manualBrks[chaveBrk()] || quantis(vals); }
 function cor(v, brk){
   let i = 0; while (i < brk.length && v > brk[i]) i++;
   return CORES[i];
 }
 function popup(p, extra){
-  const linhas = INDS.filter(d=>!d.cat && !(d.opt && !((+p[d.k]||0) > 0))).map(d=>{
+  const naGrade = munAtual && camada === "grade" && !p.nome;
+  const linhas = INDS.filter(d=>!d.cat && !(d.opt && !((+p[d.k]||0) > 0)) && (!naGrade || GRADE_INDS.has(d.k))).map(d=>{
     const val = +p[d.k] || 0;
     const abs = d.money ? "R$ "+fmt(val) : fmt(val)+(d.un||"");
     let pc = "";
@@ -370,7 +378,8 @@ function popup(p, extra){
   });
   if (p.icm_faixa) linhas.push(`<tr><td>Capacidade (ICM)</td><td><b style="color:${ICM_CORES[p.icm_faixa]}">${p.icm_faixa}</b>`+
     `${p.icm_pont!=null?" · "+p.icm_pont+" pts":""}${p.icm_prior?" · prioritário":""}</td></tr>`);
-  return `<div class="pop"><b>${p.nome||("Setor "+p.setor)}</b>${extra||""}<table>${linhas.join("")}</table></div>`;
+  const titulo = p.nome || (naGrade ? "Célula da grade (200×200 m)" : "Setor "+p.setor);
+  return `<div class="pop"><b>${titulo}</b>${extra||""}<table>${linhas.join("")}</table></div>`;
 }
 
 const ehCat = ()=> !!(INDS.find(i=>i.k===ind)||{}).cat;
@@ -403,7 +412,7 @@ function pintaSetores(){
     l.setStyle({fillColor: cor(valor(p), brk),
                 fillOpacity: p.na_bacia ? .78 : .35, color:"#fff", weight:.7});
   });
-  legenda(brk, "· setores de " + munAtual.nome);
+  legenda(brk, (camada==="grade" ? "· grade 200m de " : "· setores de ") + munAtual.nome);
   totaliza(feats.map(f=>f.properties));
 }
 function legendaICM(ctx){
@@ -474,8 +483,9 @@ function abreMunicipio(cod){
   const f = munData.features.find(f=>String(f.properties.cod_mun)===String(cod));
   if (!f) return;
   const meu = ++reqSeq;
-  carrega(`setores/${cod}.geojson`).then(gj=>{
-    if (meu !== reqSeq) return;        // outra seleção (ou voltar) aconteceu depois
+  const pasta = camada === "grade" ? "grade" : "setores";
+  carrega(`${pasta}/${cod}.geojson`).then(gj=>{
+    if (meu !== reqSeq) return;        // outra seleção (ou voltar, ou troca de camada) aconteceu depois
     if (setLayer) map.removeLayer(setLayer);
     munAtual = f.properties;
     setLayer = L.geoJSON(gj, {
@@ -541,6 +551,25 @@ function revelaOpcionais(){
     if (b) b.hidden = !tem;
   });
 }
+// grade estatística só tem população e domicílios — some com o resto dos botões
+// enquanto essa camada estiver ativa (o setor censitário continua com tudo)
+function aplicaRestricaoCamada(){
+  const restringe = camada === "grade";
+  INDS.forEach(d=>{
+    const b = indDiv.querySelector(`button[data-k="${d.k}"]`);
+    if (!b) return;
+    if (restringe) b.hidden = !GRADE_INDS.has(d.k);
+    else if (!d.opt) b.hidden = false;      // devolve pro estado normal; opcionais recalculam abaixo
+  });
+  if (!restringe) revelaOpcionais();
+  if (restringe && !GRADE_INDS.has(ind)){
+    ind = "pop";
+    indDiv.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x.dataset.k===ind));
+    const pb = document.querySelector('#modes [data-m="pct"]');
+    pb.disabled = true;
+    if (modo==="pct"){ modo="abs"; sincronizaModos(); }
+  }
+}
 function sincronizaModos(){
   document.querySelectorAll("#modes button").forEach(x=>x.classList.toggle("on", x.dataset.m===modo));
 }
@@ -549,6 +578,17 @@ document.querySelectorAll("#modes button").forEach(b=>{
                     munAtual ? pintaSetores() : pintaMunicipios(); };
 });
 document.getElementById("volta").onclick = voltaBacia;
+
+// alterna setor censitário <-> grade estatística (só importa depois de abrir um município)
+document.querySelectorAll("#camadas button").forEach(b=>{
+  b.onclick = ()=>{
+    if (camada === b.dataset.c) return;
+    camada = b.dataset.c;
+    document.querySelectorAll("#camadas button").forEach(x=>x.classList.toggle("on", x.dataset.c===camada));
+    aplicaRestricaoCamada();
+    if (munAtual) abreMunicipio(munAtual.cod_mun);   // recarrega o município já aberto na camada nova
+  };
+});
 
 // editor de faixas da legenda
 const fxbox = document.getElementById("fxbox"), editfx = document.getElementById("editfx");
