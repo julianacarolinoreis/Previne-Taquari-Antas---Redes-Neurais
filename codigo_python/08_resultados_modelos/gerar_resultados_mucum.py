@@ -186,16 +186,20 @@ def validar_mat(mat_path):
 
 
 def extrair_mat_meta(m, mat_path):
+    # chaves em maiusculo/minusculo tem que bater com o que o modal do site le
+    # (renderAuditBlock em index.html): mt.J, mt.Prc, mt.Mom — nao mt.j/mt.prc/mt.mom.
     return {
         "nh": int(m["nh"]),
         "nit": int(m["nit"]),
         "cic": int(m["Cic"]),
-        "j": float(m["J"]),
+        "J": float(m["J"]),
         "NASH": float(m["nash_te"]),
         "NASH_VAL": float(m["nash_v"]),
         "PERS": float(m["pers_te"]),
         "e95": float(m["e95_te"]),
         "emed": float(m["mae_te"]),
+        "Prc": float(m["Prc"]),
+        "Mom": float(m["Mom"]),
         "wh": list(m["wh"].shape),
         "bh": list(m["bh"].shape),
         "size": mat_path.stat().st_size,
