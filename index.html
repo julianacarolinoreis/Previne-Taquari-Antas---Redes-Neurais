@@ -920,27 +920,27 @@
     atualizaHorizontesTotal();
   }
 
-  // "rodadas realizadas": como Santa Tereza (dado mais antigo) não rotula rodada
-  // em boa parte dos modelos, usamos DIA DISTINTO com modelo concluído como proxy
-  // de rodada — funciona pras duas cidades e cresce sozinho a cada rodada nova.
-  // Extrai a data (YYYY_MM_DD) do fim da string de rodada; se não tiver, cai pro
-  // timestamp "fim" do próprio modelo (formato "YYYY-MM-DD HH:MM").
-  function extraiDataDeString(s){
-    if(!s) return null;
-    const todas = String(s).match(/20\d{2}_\d{2}_\d{2}/g);
-    if(todas && todas.length) return todas[todas.length-1].replace(/_/g,'-');
-    const m2 = String(s).match(/^(20\d{2}-\d{2}-\d{2})/);
-    return m2 ? m2[1] : null;
-  }
-  let diasTodasCidades = new Set();
-  function atualizaDiasTotal(){
-    const el = document.getElementById('kpi-dias-total');
-    if (el) el.textContent = nf.format(diasTodasCidades.size);
-  }
-  function registrarDiasCidade(datas){
-    (datas||[]).forEach(d=>{ if(d) diasTodasCidades.add(d); });
-    atualizaDiasTotal();
-  }
+  // "rodadas realizadas" é métrica de ESFORÇO/PROCESSO (todo o histórico de
+  // treino), diferente de "redes apresentadas" (só os modelos qualificados) —
+  // por isso não vem do payload de modelos: lê assets/data/rodadas_realizadas.json,
+  // gerado por uma varredura real das pastas de rodada no disco (ver
+  // codigo_python/08_resultados_modelos/gerar_rodadas_realizadas.py). Carrega uma
+  // vez e atualiza o card quando chegar — cresce sozinho a cada rodada nova.
+  (function carregaRodadasRealizadas(){
+    fetch('assets/data/rodadas_realizadas.json', {cache:'no-store'})
+      .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(d=>{
+        const dias = new Set();
+        Object.values(d.cidades||{}).forEach(c=>(c.dias||[]).forEach(dt=>dias.add(dt)));
+        const el = document.getElementById('kpi-dias-total');
+        if (el) el.textContent = nf.format(dias.size);
+      })
+      .catch(e=>{
+        const el = document.getElementById('kpi-dias-total');
+        if (el) el.textContent = '—';
+        console.warn('rodadas_realizadas.json indisponível:', e.message);
+      });
+  })();
 
   (function renderKpis(){
     registrarModelosCidade(MODELS.length);   // conta de Santa Tereza entra na soma total
@@ -950,12 +950,11 @@
     const horizontes = Array.from(new Set(MODELS.map(m=>m.horizonte).filter(Boolean)))
       .sort((a,b)=> (parseInt(a)||0)-(parseInt(b)||0));
     registrarHorizontesCidade(horizontes);
-    registrarDiasCidade(MODELS.map(m=>extraiDataDeString(m.rodada) || extraiDataDeString(m.fim)));
     const data=[
       {label:'Redes apresentadas', value:nf.format(totalRedesTodasCidades), note:'todas com persistência positiva em todos os recortes · soma de todos os municípios', id:'kpi-total-redes'},
       {label:'Horizontes de previsão', value:nf.format(horizontesTodasCidades.size), note:horizontes.join(' · '), id:'kpi-horizontes-total', noteId:'kpi-horizontes-note'},
       {label:'Por abordagem', value:nf.format(nConv)+' CONV · '+nf.format(nAlt)+' ALT', note:'previsão direta do nível · previsão da variação'},
-      {label:'Rodadas realizadas', value:nf.format(diasTodasCidades.size), note:'dias distintos com modelo concluído · Santa Tereza e Muçum', id:'kpi-dias-total'}
+      {label:'Rodadas realizadas', value:'…', note:'dias distintos de treino, todo o histórico · Santa Tereza e Muçum', id:'kpi-dias-total'}
     ];
     const root=document.getElementById('kpis');
     data.forEach(d=>{
@@ -2035,7 +2034,7 @@
     el, txt, fmt, fmt1, fmt2, nf, HCOLOR, SOFT, FAMLABEL, FAMFULL, niceStep, median, empty,
     hoverable, showTipRows, showTipModel, hideTip,
     statTile, persProfileSvg, errSvg, obsRnaScatter, eventLine, fileRow, MATDESC, wbHref,
-    openModal, registrarModelosCidade, registrarHorizontesCidade, registrarDiasCidade, extraiDataDeString
+    openModal, registrarModelosCidade, registrarHorizontesCidade
   };
 })();
 </script>
@@ -2055,7 +2054,6 @@
   if(!MODELS.length) return;
   if(S.registrarModelosCidade) S.registrarModelosCidade(MODELS.length);   // soma no card "Redes apresentadas" do topo
   if(S.registrarHorizontesCidade) S.registrarHorizontesCidade(Array.from(new Set(MODELS.map(m=>m.horizonte).filter(Boolean))));
-  if(S.registrarDiasCidade) S.registrarDiasCidade(MODELS.map(m=>S.extraiDataDeString(m.fonte_rodada)));
 
   const FAMS = ['2H_ALT','2H_CONV','4H_ALT','4H_CONV','8H_ALT','8H_CONV','12H_ALT','12H_CONV'];
 
