@@ -422,7 +422,7 @@ def pin_urls_para_commit(sha: str):
     payload = json.loads(m.group(2))
     n = 0
     for model in payload["models"]:
-        if model.get("mat_url", "").startswith("assets/") or model.get("wb_url", "").startswith("assets/"):
+        if (model.get("mat_url") or "").startswith("assets/") or (model.get("wb_url") or "").startswith("assets/"):
             model["mat_url"] = pin(model.get("mat_url"))
             model["wb_url"] = pin(model.get("wb_url"))
             n += 1
