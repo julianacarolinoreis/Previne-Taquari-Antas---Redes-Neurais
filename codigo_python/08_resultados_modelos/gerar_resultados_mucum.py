@@ -11,8 +11,10 @@ Fontes de dados (nunca assumidas — sempre lidas do disco a cada execucao):
     RNA_MUC_MELHORIA_RODADA*, para o robo nao ficar "cego" a rodadas novas.
 
 Criterio de selecao: score_equilibrio = min(PERS_treino, PERS_validacao, PERS_teste) > 0.75,
-com 1 modelo por (horizonte, tipo, combo_id) — o de maior equilibrio.
-Se um horizonte nao tiver nenhum modelo acima do corte, ele fica de fora
+exceto 12h que usa > 0.5 (decisao explicita: nenhum modelo de 12h passa de 0.75 —
+teto real ~0.73 — e a Juliana preferiu abrir a aba com os 4 melhores, 2 ALT + 2 CONV,
+a deixar vazia). 1 modelo por (horizonte, tipo, combo_id) — o de maior equilibrio.
+Se um horizonte nao tiver nenhum modelo acima do corte dele, ele fica de fora
 (nao ha fallback silencioso para um modelo pior).
 
 Saida:
@@ -59,6 +61,11 @@ SERIES_JSON = REPO / "assets" / "data" / "mucum_auditaveis_series.json"
 
 RAW_BASE = "https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais"
 EQUILIBRIO_MIN = 0.75
+# 12h nunca passa de 0.75 (teto real ~0.73) — decisao explicita da Juliana apos ver
+# a contagem: corte mais baixo so pra esse horizonte, pra abrir a aba de 12h com os
+# 4 modelos (2 ALT + 2 CONV, deduplicados por combo) que passam de 0.5. Os outros
+# horizontes continuam em 0.75, sem mudanca.
+EQUILIBRIO_MIN_POR_HORIZONTE = {"12h": 0.5}
 SET_CODE = {"Treino": 0, "Validacao": 1, "Teste": 2, "Outro": 3}
 
 
@@ -145,7 +152,7 @@ def selecionar_qualificados():
     qualified = [
         r for r in rows
         if r.get("score_equilibrio") is not None
-        and r["score_equilibrio"] > EQUILIBRIO_MIN
+        and r["score_equilibrio"] > EQUILIBRIO_MIN_POR_HORIZONTE.get(r.get("horizonte"), EQUILIBRIO_MIN)
         and r.get("status_modelo") in ("OK", "CONCLUIDO")
     ]
 
@@ -264,7 +271,7 @@ def montar_metrics(r):
 
 def gerar():
     qualificados = selecionar_qualificados()
-    print(f"Modelos qualificados (score_equilibrio > {EQUILIBRIO_MIN}, deduplicados por combo/horizonte): {len(qualificados)}")
+    print(f"Modelos qualificados (score_equilibrio > {EQUILIBRIO_MIN}, exceto 12h > {EQUILIBRIO_MIN_POR_HORIZONTE['12h']}, deduplicados por combo/horizonte): {len(qualificados)}")
 
     series_json_models = []
     payload_updates = {}
@@ -339,7 +346,7 @@ def gerar():
         "meta": {
             "generatedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "modelCount": len(series_json_models),
-            "criterio_selecao": f"score_equilibrio (min PERS treino/validacao/teste) > {EQUILIBRIO_MIN}, 1 por combo/horizonte",
+            "criterio_selecao": f"score_equilibrio (min PERS treino/validacao/teste) > {EQUILIBRIO_MIN} (12h > {EQUILIBRIO_MIN_POR_HORIZONTE['12h']}), 1 por combo/horizonte",
             "setLabels": ["Treino", "Validacao", "Teste", "Outro"],
         },
         "models": series_json_models,
