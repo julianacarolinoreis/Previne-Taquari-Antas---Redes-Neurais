@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Robô AO VIVO — PREVINE / Muçum (estação-alvo 86510000)
-Espelha o robô do Santa Tereza. Roda no GitHub Actions (a cada 15 min):
+Espelha o robô do Santa Tereza. Roda no GitHub Actions (a cada 5 min):
   1) busca a telemetria da ANA (Muçum + montante Santa Tereza + auxiliares)
   2) para os horizontes 2h e 4h, monta os inputs na ordem
      exata (dirigida por mucum_modelo_inputs.json) e roda a RNA
@@ -103,8 +103,10 @@ def _extrair_serie(root):
         try: valor = float(str(niv).replace(",", "."))
         except Exception: continue
         if ultima_raw is None or t > ultima_raw[0]: ultima_raw = (t, valor)
-        if t.minute == 0 and t.second == 0:
-            serie[t.replace(minute=0, second=0, microsecond=0)] = valor
+        # Mantem leituras intermediarias (15/30/45 min). Os lags continuam
+        # inteiros em horas, mas podem ser calculados a partir de qualquer
+        # timestamp comum entre as estacoes.
+        serie[t.replace(second=0, microsecond=0)] = valor
     return serie, ultima_raw
 
 def _serie_de_xml(xml):
@@ -144,7 +146,8 @@ def nivel(serie, t): return serie.get(t)
 # ---------- inputs / inferência ----------
 def montar_inputs(cfg, series, t):
     """Monta os inputs de um modelo na hora t, na ordem exata (campo `ordem`).
-       nivel -> n(t) ; vel_nivel -> n(t) - n(t - defasagem_h)."""
+       nivel -> n(t - defasagem_h);
+       vel_nivel -> n(t) - n(t - defasagem_h)."""
     def n(cod, h=0):
         s = series.get(str(cod))
         return None if s is None else nivel(s, t - dt.timedelta(hours=h))
@@ -152,7 +155,7 @@ def montar_inputs(cfg, series, t):
     for inp in cfg["inputs"]:
         cod, tipo, h = inp["estacao"], inp["tipo"], inp["defasagem_h"]
         if tipo == "nivel":
-            x.append(n(cod, 0))
+            x.append(n(cod, h))
         elif tipo == "vel_nivel":
             a, b = n(cod, 0), n(cod, h)
             x.append(None if None in (a, b) else a - b)
