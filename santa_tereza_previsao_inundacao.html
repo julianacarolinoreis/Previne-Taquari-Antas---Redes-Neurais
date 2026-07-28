@@ -362,6 +362,42 @@ function liveModelBaseCm(D){
   return firstNumber(D&&D.nivel_modelo_cm, D&&D.nivel_atual_cm);
 }
 let liveMode=false, liveTimer=null, liveIdx=0, liveData=null, liveHz='2h';
+let telemetryLayer=null;
+const telemetryMarkers=new Map();
+const TELEMETRY_STATIONS=[
+  {code:'86472600',name:'Santa Tereza',lat:-29.1781,lon:-51.7322,role:'Estação alvo'},
+  {code:'86472000',name:'Linha José Júlio / Rio das Antas montante',lat:-29.0978,lon:-51.6997,role:'Montante'},
+  {code:'86125130',name:'Ituim',lat:-28.5919,lon:-51.3247,role:'Montante'},
+  {code:'86306000',name:'Nova Roma do Sul / Rio das Antas',lat:-29.0133,lon:-51.3675,role:'Montante'},
+  {code:'86448000',name:'Veranópolis / Rio das Antas',lat:-29.0292,lon:-51.5219,role:'Montante'}
+];
+function telemetryReadingHtml(meta,status,consultedAt){
+  const cm=firstNumber(status&&status.ultima_leitura_bruta_nivel_cm);
+  const when=status&&status.ultima_leitura_bruta;
+  const age=firstNumber(status&&status.idade_leitura_min);
+  const value=cm===null
+    ? '<strong>Leitura observada indisponível</strong>'
+    : `<strong>Leitura observada na régua: ${Math.round(cm).toLocaleString('pt-BR')} cm (${(cm/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} m)</strong>`;
+  const freshness=age===null?'':`<br>Idade da leitura: ${Math.max(0,Math.round(age))} min`;
+  return `<div style="min-width:230px;line-height:1.45">
+    <b>${meta.name}</b><br>
+    Código da estação: ${meta.code}<br>
+    ${value}<br>
+    Medição: ${fmtWhen(when)}
+    ${freshness}<br>
+    Consulta do robô: ${fmtWhen(consultedAt)}<br>
+    Fonte: SGB/ANA - Hidrotelemetria<br>
+    <small>Valor observado na régua; não é profundidade total do rio nem previsão da RNA.</small>
+  </div>`;
+}
+function updateTelemetryMarkers(D){
+  if(!telemetryLayer) return;
+  const rows=new Map(((D&&D.estacoes_status)||[]).map(s=>[String(s.estacao),s]));
+  TELEMETRY_STATIONS.forEach(meta=>{
+    const marker=telemetryMarkers.get(meta.code);
+    if(marker) marker.bindPopup(telemetryReadingHtml(meta,rows.get(meta.code)||null,D&&D.consultado_em));
+  });
+}
 const outCanvas=document.createElement('canvas'); outCanvas.width=FCOLS; outCanvas.height=FROWS;
 const octx=outCanvas.getContext('2d');
 
@@ -716,7 +752,7 @@ function renderLiveStep(){
 async function enterLive(){
   let d; try{ d=await fetchLiveJson(); }
   catch(e){ document.getElementById('live-note').style.display=''; document.getElementById('live-note').textContent='Não consegui carregar a previsão ao vivo ('+e.message+'). No site publicado, o robô agendado preenche esse arquivo.'; return; }
-  liveData=d; prepareLiveData(liveData); liveMode=true; document.body.classList.add('live'); liveIdx=0;
+  liveData=d; prepareLiveData(liveData); updateTelemetryMarkers(liveData); liveMode=true; document.body.classList.add('live'); liveIdx=0;
   document.getElementById('live-bar').style.display='';
   document.getElementById('live-hz').style.display='flex';
   const note=document.getElementById('live-note'); note.style.display=''; note.textContent=d.aviso||'EXPERIMENTAL — não é alerta oficial.';
@@ -728,7 +764,7 @@ async function enterLive(){
     if(semHorizontes(d)) liveData.passos=[[d.gerado_em, liveNowCm(d), d.nivel_previsto_cm]];
     renderLiveStep();
     clearInterval(liveTimer);
-    liveTimer=setInterval(async()=>{ try{const j=await fetchLiveJson(); liveData=j; if(semHorizontes(j)) liveData.passos=[[j.gerado_em,liveNowCm(j),j.nivel_previsto_cm]]; prepareLiveData(liveData); liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
+    liveTimer=setInterval(async()=>{ try{const j=await fetchLiveJson(); liveData=j; if(semHorizontes(j)) liveData.passos=[[j.gerado_em,liveNowCm(j),j.nivel_previsto_cm]]; prepareLiveData(liveData); updateTelemetryMarkers(liveData); liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
   }
 }
 function exitLive(){ liveMode=false; clearInterval(liveTimer); document.body.classList.remove('live');
@@ -770,10 +806,47 @@ async function init(){
     const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
     sat.on('tileerror',()=>{if(!map.hasLayer(osm)&&!map.hasLayer(sat)) osm.addTo(map);});
     sat.addTo(map); labels.addTo(map);
-    L.control.layers({'Satélite':sat,'Ruas':osm},{'Rótulos':labels},{position:'topright'}).addTo(map);
+    telemetryLayer=L.layerGroup().addTo(map);
+    L.control.layers(
+      {'Satélite':sat,'Ruas':osm},
+      {'Rótulos':labels,'Estações hidrotelemétricas':telemetryLayer},
+      {position:'topright'}
+    ).addTo(map);
     waterOverlay=L.imageOverlay(outCanvas.toDataURL(),BOUNDS,{opacity:.6,className:'flood-ov'}).addTo(map);
     const st=HAND.station, pt=HAND.ponte;
-    L.circleMarker([st.lat,st.lon],{radius:7,color:'#fff',weight:2,fillColor:'#1e5fbf',fillOpacity:.95}).addTo(map).bindPopup('<b>Estação '+st.code+'</b><br>Santa Tereza');
+    TELEMETRY_STATIONS.forEach(meta=>{
+      const target=meta.code==='86472600';
+      const marker=L.circleMarker([meta.lat,meta.lon],{
+        radius:target?8:7,
+        color:'#fff',
+        weight:2,
+        fillColor:target?'#1e5fbf':'#087f5b',
+        fillOpacity:.95
+      }).addTo(telemetryLayer);
+      marker.bindTooltip(meta.name,{direction:'top'});
+      marker.bindPopup(telemetryReadingHtml(meta,null,null));
+      telemetryMarkers.set(meta.code,marker);
+    });
+    const stationControl=L.control({position:'topleft'});
+    stationControl.onAdd=()=>{
+      const div=L.DomUtil.create('div','leaflet-bar');
+      const button=L.DomUtil.create('a','',div);
+      button.href='#';
+      button.title='Ver todas as estações hidrotelemétricas';
+      button.setAttribute('aria-label',button.title);
+      button.innerHTML='&#9673;';
+      button.style.fontSize='20px';
+      button.onclick=e=>{
+        e.preventDefault();
+        L.DomEvent.stopPropagation(e);
+        map.fitBounds(
+          L.latLngBounds(TELEMETRY_STATIONS.map(s=>[s.lat,s.lon])),
+          {padding:[24,24]}
+        );
+      };
+      return div;
+    };
+    stationControl.addTo(map);
     if(pt) L.circleMarker([pt.lat,pt.lon],{radius:6,color:'#fff',weight:2,fillColor:'#b04538',fillOpacity:.95}).addTo(map).bindPopup('<b>'+pt.label+'</b>');
     // clique no mapa -> profundidade humana no ponto
     map.on('click', e=>{

@@ -32,6 +32,13 @@ HISTORICO_SAIDA = "historico_previsoes_ao_vivo.json"
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
 ESTACOES_NIVEL = ["86472600", "86472000", "86125130", "86306000", "86448000"]
 ESTACOES = ESTACOES_NIVEL
+METADADOS_ESTACOES = {
+    "86472600": {"lat": -29.1781, "lon": -51.7322, "papel": "Estacao alvo"},
+    "86472000": {"lat": -29.0978, "lon": -51.6997, "papel": "Montante"},
+    "86125130": {"lat": -28.5919, "lon": -51.3247, "papel": "Montante"},
+    "86306000": {"lat": -29.0133, "lon": -51.3675, "papel": "Montante"},
+    "86448000": {"lat": -29.0292, "lon": -51.5219, "papel": "Montante"},
+}
 POSTOS_CHUVA_36H = ["2851044", "2851072", "86488000", "86490500", "86497000", "86505500", "86507000"]
 ANA_TIMEOUT_NIVEL_S = 25
 ANA_TIMEOUT_CHUVA_S = 15
@@ -563,18 +570,29 @@ def diagnosticar_inputs_modelo(cfg, series, t, inputs):
 
 def resumo_estacoes(series):
     resumo = []
+    consultado_em = agora_brt()
     for cod in ESTACOES:
         serie = series.get(cod, {})
         raw = ULTIMA_RAW.get(cod)
         ultima_hora = max(serie) if serie else None
+        meta = METADADOS_ESTACOES.get(cod, {})
         resumo.append({
             "estacao": cod,
             "nome": NOMES_ESTACOES.get(cod, cod),
+            "latitude": meta.get("lat"),
+            "longitude": meta.get("lon"),
+            "papel": meta.get("papel"),
+            "fonte": "SGB/ANA - Hidrotelemetria",
+            "tipo_dado": "leitura_observada_da_regua",
+            "unidade": "cm",
             "horas_modelo_disponiveis": len(serie),
             "ultima_hora_modelo": (ultima_hora.isoformat(timespec="minutes") if ultima_hora else None),
             "ultima_hora_modelo_nivel_cm": (round(serie[ultima_hora]) if ultima_hora else None),
             "ultima_leitura_bruta": (raw[0].isoformat(timespec="minutes") if raw else None),
             "ultima_leitura_bruta_nivel_cm": (round(raw[1]) if raw else None),
+            "idade_leitura_min": (
+                round((consultado_em - raw[0]).total_seconds() / 60) if raw else None
+            ),
         })
     return resumo
 
