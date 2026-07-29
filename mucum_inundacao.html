@@ -168,6 +168,8 @@
         <div class="row2"><span class="sw" style="background:#fff;border:1px solid #bbb"></span>leito / talvegue do rio</div>
       </div>
       <div class="disc"><b>Prova de conceito — não validada em nível de rua.</b> MDT ANADEM v1 30&nbsp;m (bare-earth), o mesmo padrão de terreno do Santa Tereza; a borda da mancha tem incerteza de dezenas de metros. O <b>nível normal</b> (calha, HAND 0) adotado é <b>500&nbsp;cm</b> na régua da estação <b>86510000</b> (Muçum), com montante em 86472600. Falta ligar a <b>previsão da rede neural</b> de Muçum a esta mancha e a <b>cota de inundação oficial</b> — quando entrarem, a página fica igual à de Santa Tereza, com previsão e validação.</div>
+      <label class="row2" style="cursor:pointer;margin-top:6px"><input type="checkbox" id="zoomToggle"> <span>Visão fina (drone, ~0,5&nbsp;m) — só no centro urbano</span></label>
+      <div class="disc" id="zoomDisc" style="display:none">Camada extra a partir de MDT de drone (aerofotogrametria), cobrindo só uma área pequena e central (fora do retângulo pontilhado no mapa, some). Serve pra ver detalhe fino (quadras, construções) — <b>datum vertical ainda não confirmado</b>: offset mediano observado de ~6,9&nbsp;m contra o ANADEM. Não é mais precisa em profundidade absoluta que a mancha principal, só em traçado lateral.</div>
     </div></details>
   </aside>
 </main>
@@ -182,6 +184,12 @@ const cellHa=(Math.abs(HAND.E-HAND.W)/COLS*111320*Math.cos(latC*Math.PI/180))*(M
 let handArr=null, map, waterOverlay;
 const outCanvas=document.createElement('canvas'); outCanvas.width=FCOLS; outCanvas.height=FROWS;
 const octx=outCanvas.getContext('2d');
+// camada zoom (drone) — carregada sob demanda (fetch), só quando o usuário liga o toggle;
+// o PNG fino em base64 pesa >1 MB e não deve inflar o carregamento inicial da página.
+const HAND_ZOOM_URL='assets/data/mucum_inundacao/hand_zoom_mucum.json';
+let HAND_ZOOM=null, COLS_Z=0, ROWS_Z=0, BOUNDS_Z=null;
+let handArrZ=null, waterOverlayZ=null, zoomRect=null, zoomOn=false, zoomLoading=false;
+let outCanvasZ=null, octxZ=null;
 const nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
 const nf1=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
 function set(id,v){const e=document.getElementById(id); if(e)e.textContent=v;}
@@ -204,12 +212,69 @@ function loadHand(){return new Promise(res=>{
   img.src='data:image/png;base64,'+HAND.hand_png_b64;
 });}
 
+async function ensureZoomLoaded(){
+  if(HAND_ZOOM) return true;
+  if(zoomLoading) return false;
+  zoomLoading=true;
+  try{
+    const resp=await fetch(HAND_ZOOM_URL);
+    if(!resp.ok) throw new Error('http '+resp.status);
+    HAND_ZOOM=await resp.json();
+    COLS_Z=HAND_ZOOM.cols; ROWS_Z=HAND_ZOOM.rows;
+    BOUNDS_Z=[[HAND_ZOOM.S,HAND_ZOOM.W],[HAND_ZOOM.N,HAND_ZOOM.E]];
+    outCanvasZ=document.createElement('canvas'); outCanvasZ.width=COLS_Z; outCanvasZ.height=ROWS_Z;
+    octxZ=outCanvasZ.getContext('2d');
+    await new Promise(res=>{
+      const img=new Image();
+      img.onload=()=>{
+        const c=document.createElement('canvas'); c.width=COLS_Z;c.height=ROWS_Z; const x=c.getContext('2d'); x.drawImage(img,0,0);
+        const d=x.getImageData(0,0,COLS_Z,ROWS_Z).data;
+        handArrZ=new Uint8Array(COLS_Z*ROWS_Z);
+        for(let i=0;i<COLS_Z*ROWS_Z;i++) handArrZ[i]=d[i*4];
+        res();
+      };
+      img.onerror=()=>{handArrZ=null;res();};
+      img.src='data:image/png;base64,'+HAND_ZOOM.hand_png_b64;
+    });
+    return !!handArrZ;
+  }catch(e){
+    console.error('falha ao carregar camada zoom', e);
+    HAND_ZOOM=null;
+    return false;
+  }finally{
+    zoomLoading=false;
+  }
+}
+
 function depthColor(depDm){const t=Math.max(0,Math.min(1,depDm/120));
   return [Math.round(143+(18-143)*t),Math.round(192+(63-192)*t),Math.round(255+(158-255)*t)];}
 function handAt(lat,lon){
+  if(zoomOn&&handArrZ&&HAND_ZOOM&&lat<=HAND_ZOOM.N&&lat>=HAND_ZOOM.S&&lon>=HAND_ZOOM.W&&lon<=HAND_ZOOM.E){
+    const zx=Math.floor((lon-HAND_ZOOM.W)/(HAND_ZOOM.E-HAND_ZOOM.W)*COLS_Z), zy=Math.floor((HAND_ZOOM.N-lat)/(HAND_ZOOM.N-HAND_ZOOM.S)*ROWS_Z);
+    if(zx>=0&&zx<COLS_Z&&zy>=0&&zy<ROWS_Z) return handArrZ[zy*COLS_Z+zx];
+  }
   const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*FCOLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*FROWS);
   if(fx<0||fx>=FCOLS||fy<0||fy>=FROWS) return null;
   return handArr[fy*FCOLS+fx];
+}
+function renderZoom(mLvl){
+  if(!handArrZ||!waterOverlayZ) return;
+  const lvlDm=mLvl*10;
+  const N=COLS_Z*ROWS_Z;
+  const img=octxZ.createImageData(COLS_Z,ROWS_Z);
+  const mask=new Uint8Array(N);
+  for(let i=0;i<N;i++){
+    const hd=handArrZ[i];
+    if(hd<=lvlDm){ mask[i]=1; const dep=lvlDm-hd;
+      const[r,g,b]=depthColor(dep); img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=205;
+      if(hd<=2){img.data[i*4]=255;img.data[i*4+1]=255;img.data[i*4+2]=255;img.data[i*4+3]=235;}
+    }
+  }
+  for(let y=0;y<ROWS_Z;y++)for(let x=0;x<COLS_Z;x++){const i=y*COLS_Z+x; if(!mask[i])continue;
+    const edge=x===0||x===COLS_Z-1||y===0||y===ROWS_Z-1||!mask[i-1]||!mask[i+1]||!mask[i-COLS_Z]||!mask[i+COLS_Z];
+    if(edge){img.data[i*4]=18;img.data[i*4+1]=63;img.data[i*4+2]=158;img.data[i*4+3]=255;}}
+  octxZ.putImageData(img,0,0);
+  waterOverlayZ.setUrl(outCanvasZ.toDataURL());
 }
 function render(mLvl){
   if(!handArr) return;
@@ -232,6 +297,7 @@ function render(mLvl){
   set('r-lvl', nf1.format(mLvl)+' m');
   set('r-area', nf.format(a*cellHa)+' ha');
   set('r-dep', nf1.format(maxDep/10)+' m');
+  if(zoomOn) renderZoom(mLvl);
 }
 (async function(){
   await loadHand();
@@ -250,6 +316,32 @@ function render(mLvl){
     lvl.value=b.dataset.m; render(parseFloat(b.dataset.m));
     document.querySelectorAll('#scn button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); }));
   document.querySelectorAll('.method .step').forEach(s=>s.addEventListener('click',()=>set('method-exp',s.dataset.exp)));
+  const zoomToggle=document.getElementById('zoomToggle'), zoomDisc=document.getElementById('zoomDisc');
+  if(zoomToggle){
+    const zoomDiscBase=zoomDisc?zoomDisc.textContent:'';
+    zoomToggle.addEventListener('change',async()=>{
+      zoomOn=zoomToggle.checked;
+      if(zoomDisc){ zoomDisc.style.display=zoomOn?'block':'none'; zoomDisc.textContent=zoomDiscBase; }
+      if(zoomOn){
+        if(!handArrZ){
+          zoomToggle.disabled=true;
+          if(zoomDisc) zoomDisc.textContent='Carregando camada fina (~1 MB)…';
+          const ok=await ensureZoomLoaded();
+          zoomToggle.disabled=false;
+          if(zoomDisc) zoomDisc.textContent=zoomDiscBase;
+          if(!ok){ zoomToggle.checked=false; zoomOn=false; if(zoomDisc){ zoomDisc.style.display='block'; zoomDisc.textContent='Não consegui carregar a camada fina agora — tente de novo.'; } return; }
+        }
+        if(!waterOverlayZ) waterOverlayZ=L.imageOverlay(outCanvasZ.toDataURL(),BOUNDS_Z,{opacity:.8,className:'flood-ov'}).addTo(map);
+        else waterOverlayZ.addTo(map);
+        if(!zoomRect) zoomRect=L.rectangle(BOUNDS_Z,{color:'#333',weight:1,dashArray:'4,4',fill:false}).addTo(map);
+        else zoomRect.addTo(map);
+        renderZoom(parseFloat(lvl.value));
+      } else {
+        if(waterOverlayZ) map.removeLayer(waterOverlayZ);
+        if(zoomRect) map.removeLayer(zoomRect);
+      }
+    });
+  }
   map.on('click',e=>{ const hd=handAt(e.latlng.lat,e.latlng.lng); if(hd==null)return;
     const cur=parseFloat(lvl.value)*10; const dep=cur-hd;
     L.popup().setLatLng(e.latlng).setContent('<div class="pt-pop">Altura acima do leito: <b>'+nf1.format(hd/10)+' m</b><br>'+
