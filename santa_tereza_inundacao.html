@@ -85,20 +85,6 @@
   .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:10px}
   .banner{position:absolute;z-index:500;left:10px;top:10px;background:#fff4e5;color:#8a5a12;border:1px solid #f0d9b5;border-radius:8px;padding:7px 11px;font-size:12px;max-width:66%}
   .flood-ov{image-rendering:auto}
-  .live-btn{width:100%;margin-bottom:12px;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#c0392b,#e8730c);color:#fff;font-size:13.5px;font-weight:750;cursor:pointer;box-shadow:var(--shadow)}
-  .live-bar{display:flex;align-items:center;gap:8px;background:#fdecea;border:1px solid #f3c0b8;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:700;color:#a5281c}
-  .live-bar .ldot{width:10px;height:10px;border-radius:50%;background:#c0392b;animation:pulse 1.2s infinite;flex:0 0 auto}
-  .live-bar.stale{background:#fff4e0;border-color:#f0c98a;color:#8a5a12}
-  .live-bar.stale .ldot{background:#e08a1e;animation:none}
-  .live-bar a{margin-left:auto;color:inherit;cursor:pointer;text-decoration:underline;font-weight:600}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
-  .live-note{font-size:11px;color:#a5281c;background:#fff6f5;border:1px solid #f3d3cd;border-radius:9px;padding:7px 10px;margin-bottom:10px;line-height:1.4}
-  .live-hz{display:none;gap:6px;margin:-2px 0 10px}
-  .live-hz button{flex:1;border:1px solid #f3c0b8;background:#fff;color:#a5281c;border-radius:9px;padding:7px 8px;font-size:12px;font-weight:750;cursor:pointer}
-  .live-hz button.on{background:#a5281c;color:#fff;border-color:#a5281c}
-  body.live #scn, body.live .tl, body.live #live-btn{display:none}
-  body.live .live-hz{display:flex}
-  body.live .simple-only{display:block}
   .hydro{margin-top:4px}
   .leaflet-popup-content{font-size:13px;margin:9px 12px}
   .pt-pop b{color:var(--agora)} .pt-pop .pf{color:var(--prev)}
@@ -239,9 +225,6 @@ const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'8h':['Moderada'
 let handArr=null, curEv=Object.keys(EVENTS)[0];
 let bankfull=400, tIdx=0, playing=false, timer=null, map=null, curS=null;
 const calibByEvent={};
-const LIVE_URL='previsao_ao_vivo.json';
-function fmtWhen(s){ if(!s) return '—'; const m=String(s).replace('T',' ').match(/(\d{4})-(\d{2})-(\d{2})[ ]+(\d{2}):(\d{2})/); return m?`${m[3]}/${m[2]} ${m[4]}:${m[5]}`:String(s); }
-let liveMode=false, liveTimer=null, liveIdx=0, liveData=null, liveHz='2h';
 
 // handArr fica só pra consulta pontual (clique no mapa) — a mancha em si
 // agora é o contorno vetorial (contornos_mancha.json), não mais um raster
@@ -325,9 +308,8 @@ function renderFrame(){
   set('r-now', fmtNivel(nowCm));
   set('r-fore', hasFore?fmtNivel(foreCm):'—');
   set('r-dnivel', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
-  const aoVivoSemObs = liveMode && liveData && liveData.modo!=='replay' && !hasObs;
-  set('r-obs', hasObs?fmtNivel(obsCm):(aoVivoSemObs?'a confirmar após +'+ev.horizonte:'—'));
-  set('r-errniv', (hasFore&&hasObs)?sgn1((foreCm-obsCm)/100)+' m':(aoVivoSemObs?'aguardando observado':'—'));
+  set('r-obs', hasObs?fmtNivel(obsCm):'—');
+  set('r-errniv', (hasFore&&hasObs)?sgn1((foreCm-obsCm)/100)+' m':'—');
   set('r-anow', hasNow?nf.format(areaNow)+' ha':'—');
   set('r-afore', hasFore?nf.format(areaFore)+' ha':'—');
   set('r-anew', hasFore?sgn1(areaNew)+' ha':'—');
@@ -381,171 +363,6 @@ function setEvent(ev){
   renderFrame();
 }
 function tick(){const E=EVENTS[curEv]; tIdx=(tIdx+1)%E.series.length; document.getElementById('time').value=tIdx; renderFrame(); if(playing) timer=setTimeout(tick,300);}
-
-// ===== MODO AO VIVO =====
-function liveFromEvent(key, tipo){
-  const E=EVENTS[key];
-  if(!E || !Array.isArray(E.series)) return null;
-  return {
-    modo:'replay',
-    horizonte:E.horizonte,
-    modelo:E.combo,
-    tipo:tipo||'ALT',
-    bankfull_cm:liveData&&liveData.bankfull_cm?liveData.bankfull_cm:400,
-    aviso:liveData&&liveData.aviso?liveData.aviso:'',
-    passos:E.series.map(s=>[s[0],s[1],s[2],s[3]])
-  };
-}
-function updateLiveHzButtons(){
-  const hs=liveData&&liveData.horizontes?liveData.horizontes:{};
-  document.querySelectorAll('[data-live-hz]').forEach(b=>{
-    const ok=!!hs[b.dataset.liveHz];
-    b.style.display=ok?'':'none';
-    b.classList.toggle('on',b.dataset.liveHz===liveHz);
-  });
-}
-function prepareLiveData(d){
-  const hs=Object.assign({},d.horizontes||{});
-  if(Array.isArray(d.passos)) hs[d.horizonte||'2h']=d;
-  if((d.modo||'replay')==='replay'){
-    const h2=liveFromEvent('mai24_2h','ALT'), h8=liveFromEvent('mai24_8h','ALT'), h12=liveFromEvent('mai24_12h','ALT');
-    if(h2) hs['2h']=h2;
-    if(h8) hs['8h']=h8;
-    if(h12) hs['12h']=h12;
-  }
-  d.horizontes=hs;
-  liveHz=hs[liveHz]?liveHz:(hs[d.horizonte]?d.horizonte:(Object.keys(hs)[0]||'2h'));
-  updateLiveHzButtons();
-}
-function activeLiveData(){
-  return liveData&&liveData.horizontes&&liveData.horizontes[liveHz]?liveData.horizontes[liveHz]:liveData;
-}
-function setLiveHorizon(hz){
-  if(!liveData || !liveData.horizontes || !liveData.horizontes[hz]) return;
-  liveHz=hz; liveIdx=0; updateLiveHzButtons(); renderLiveStep();
-}
-function escLive(v){
-  return String(v==null?'':v).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
-}
-function liveMissingInputsHtml(D){
-  const faltantes=Array.isArray(D.inputs_faltantes)?D.inputs_faltantes:[];
-  if(!faltantes.length) return '';
-  const itens=faltantes.map(i=>{
-    const horas=(i.horarios_faltantes||[]).map(fmtWhen).join(', ');
-    return `${escLive(i.input)} ${escLive(i.estacao_nome||i.estacao)}${horas?` (${escLive(horas)})`:''}`;
-  }).join('; ');
-  return `<b>sem RNA: faltam ${D.inputs_faltantes_n||faltantes.length}/${D.inputs_total||15} inputs</b>${itens?` — ${itens}`:''}`;
-}
-function parseBrtMs(v){
-  if(!v) return NaN;
-  const s=String(v);
-  return Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(s)?s:s+'-03:00');
-}
-function ageMin(v){
-  const ms=parseBrtMs(v);
-  return Number.isFinite(ms)?Math.max(0,Math.round((Date.now()-ms)/60000)):null;
-}
-function durMin(min){
-  const h=Math.floor(min/60), m=min%60;
-  return h>0?(m?`${h}h${m}`:`${h}h`):`${m}min`;
-}
-function liveFreshnessHtml(D){
-  const partes=[];
-  const idadeRobo=ageMin(D.consultado_em);
-  const idadeAna=ageMin(D.telemetria_ultima_em);
-  if(idadeRobo!=null && idadeRobo>60) partes.push(`<b>robô sem publicar há ${durMin(idadeRobo)}</b>`);
-  if(idadeAna!=null && idadeAna>120) partes.push(`<b>ANA sem hora nova há ${durMin(idadeAna)}</b>`);
-  if(!partes.length && D.status_dados) partes.push(`<b>${escLive(D.status_dados)}</b>`);
-  return partes;
-}
-function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
-  const modelo=D.modelo||'—';
-  const horaModelo=D.hora_modelo||P[0];
-  const partes=[`Modo ${modoTxt} · Modelo <b>${modelo}</b> (${hz}${tipoTxt}) · hora do modelo <b>${fmtWhen(horaModelo)}</b>`];
-  if(D.telemetria_ultima_em){
-    const nivel=D.telemetria_ultima_nivel_cm!=null?` (${D.telemetria_ultima_nivel_cm} cm)`:'';
-    partes.push(`telemetria ANA até <b>${fmtWhen(D.telemetria_ultima_em)}</b>${nivel}`);
-  }
-  if(D.consultado_em) partes.push(`robô consultou <b>${fmtWhen(D.consultado_em)}</b>`);
-  partes.push(...liveFreshnessHtml(D));
-  if(D.status && D.status!=='ok') partes.push(`<b>${escLive(D.status)}</b>`);
-  const faltantes=liveMissingInputsHtml(D);
-  if(faltantes) partes.push(faltantes);
-  return partes.join(' · ')+'.';
-}
-function liveWhenText(D,P){
-  const base=fmtWhen(D.telemetria_ultima_em||D.hora_modelo||D.consultado_em||P[0]);
-  const avisos=[];
-  const idadeRobo=ageMin(D.consultado_em);
-  const idadeAna=ageMin(D.telemetria_ultima_em);
-  if(idadeRobo!=null && idadeRobo>60) avisos.push(`robô sem publicar há ${durMin(idadeRobo)}`);
-  if(idadeAna!=null && idadeAna>120) avisos.push(`ANA sem hora nova há ${durMin(idadeAna)}`);
-  if(avisos.length){
-    document.getElementById('live-bar').classList.add('stale');
-    return `${base} · ⚠ ${avisos.join(' · ')}`;
-  }
-  document.getElementById('live-bar').classList.remove('stale');
-  return base;
-}
-function liveWhenKind(D){
-  return (D.telemetria_ultima_em||D.hora_modelo)?'leitura':'consulta';
-}
-function renderLiveStep(){
-  const L=activeLiveData();
-  if(L && Array.isArray(L.passos) && L.passos.length){
-    const P=L.passos[liveIdx%L.passos.length]; // [datahora, atual, previsto] ou [datahora, atual, observado, previsto]
-    const obs=P.length>3?P[2]:null, prev=P.length>3?P[3]:P[2];
-    EVENTS['__live__']={label:'AO VIVO',horizonte:L.horizonte||liveHz||'2h',combo:L.modelo||'—',pers:null,ilustra:false,estatico:false,n:1,pico_obs_cm:P[1],series:[[P[0],P[1],obs,prev]]};
-    bankfull=L.bankfull_cm||(liveData&&liveData.bankfull_cm)||400;
-    curEv='__live__'; tIdx=0;
-    const hz=L.horizonte||liveHz||'2h';
-    set('hz',hz); set('hz2',hz); set('s-hz','+'+hz); set('s-hz2',hz.replace('h',''));
-    const tipo=(L.tipo||L.modelo_tipo||'').toString().toUpperCase();
-    const tipoTxt=tipo?' '+tipo:'';
-    const modoTxt=(L.modo||liveData.modo)==='replay'?'replay':'ao vivo';
-    const ei=document.getElementById('evinfo');
-    if(ei) ei.innerHTML=liveInfoHtml(L,P,hz,tipoTxt,modoTxt);
-    set('live-kind', liveWhenKind(L));
-    set('live-when', liveWhenText(L,P));
-    renderFrame();
-    return;
-  }
-  const P=liveData.passos[liveIdx]; // [datahora, nivel_atual_cm, nivel_previsto_cm]
-  EVENTS['__live__']={label:'AO VIVO',horizonte:liveData.horizonte||'2h',combo:liveData.modelo||'—',pers:null,ilustra:false,estatico:false,n:1,pico_obs_cm:P[1],series:[[P[0],P[1],null,P[2]]]};
-  bankfull=liveData.bankfull_cm||400;
-  curEv='__live__'; tIdx=0;
-  const hz=liveData.horizonte||'2h';
-  set('hz',hz); set('hz2',hz); set('s-hz','+'+hz); set('s-hz2',hz.replace('h',''));
-  const tipo=(liveData.tipo||liveData.modelo_tipo||'').toString().toUpperCase();
-  const tipoTxt=tipo?' '+tipo:'';
-  const modoTxt=liveData.modo==='replay'?'replay':'ao vivo';
-  const ei=document.getElementById('evinfo');
-  if(ei) ei.innerHTML=liveInfoHtml(liveData,P,hz,tipoTxt,modoTxt);
-  set('live-kind', liveWhenKind(liveData));
-  set('live-when', liveWhenText(liveData,P));
-  renderFrame();
-}
-async function enterLive(){
-  let d; try{ const r=await fetch(LIVE_URL,{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); d=await r.json(); }
-  catch(e){ document.getElementById('live-note').style.display=''; document.getElementById('live-note').textContent='Não consegui carregar a previsão ao vivo ('+e.message+'). No site publicado, o robô agendado preenche esse arquivo.'; return; }
-  liveData=d; prepareLiveData(liveData); liveMode=true; document.body.classList.add('live'); liveIdx=0;
-  document.getElementById('live-bar').style.display='';
-  document.getElementById('live-hz').style.display='flex';
-  const note=document.getElementById('live-note'); note.style.display=''; note.textContent=d.aviso||'EXPERIMENTAL — não é alerta oficial.';
-  if(playing){playing=false; clearTimeout(timer); document.getElementById('play').textContent='▶';}
-  if(d.modo==='replay' && Array.isArray(d.passos)){
-    renderLiveStep(); clearInterval(liveTimer);
-    liveTimer=setInterval(()=>{ const L=activeLiveData(); const n=L&&L.passos?L.passos.length:liveData.passos.length; liveIdx=(liveIdx+1)%n; renderLiveStep(); }, d.intervalo_ms||2500);
-  } else { // ao_vivo real: um ponto + repesca a cada 60 s
-    liveData.passos=[[d.gerado_em, d.nivel_atual_cm, d.nivel_previsto_cm]]; renderLiveStep();
-    clearInterval(liveTimer);
-    liveTimer=setInterval(async()=>{ try{const r=await fetch(LIVE_URL,{cache:'no-store'}); const j=await r.json(); liveData=j; liveData.passos=[[j.gerado_em,j.nivel_atual_cm,j.nivel_previsto_cm]]; prepareLiveData(liveData); liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
-  }
-}
-function exitLive(){ liveMode=false; clearInterval(liveTimer); document.body.classList.remove('live');
-  document.getElementById('live-bar').style.display='none'; document.getElementById('live-note').style.display='none';
-  document.getElementById('live-hz').style.display='none';
-  delete EVENTS['__live__']; setEvent(Object.keys(EVENTS)[0]); }
 
 function buildScenarios(){
   const scn=document.getElementById('scn'); const groups={'Cheias que transbordaram':[],'Testes de previsão':[],'Referência':[]};
