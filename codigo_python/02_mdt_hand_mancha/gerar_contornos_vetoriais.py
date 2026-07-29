@@ -32,9 +32,17 @@ MÉTODO
    não detalhe real: nada mais fino que 1 pixel existe no dado de qualquer
    jeito). Sozinho já derruba pra ~100 KB/nível preservando a área a menos
    de 0,15%.
-4. Suavização de Chaikin (corner-cutting, 1 iteração) — arredonda os
-   cantos que sobraram sem simplificar mais (não é Douglas-Peucker de
-   novo, é subdivisão: mantém a área quase idêntica, só arredonda).
+4. Suavização GAUSSIANA das coordenadas (scipy.ndimage.gaussian_filter1d,
+   modo 'wrap' por ser um anel fechado) — trocou o Chaikin (corner-cutting)
+   depois de comparar visualmente (renderizado e conferido por imagem, não
+   só por número): Chaikin arredonda cada canto individualmente, mas num
+   contorno com serrilhado de alta frequência (o "dente de serra" que sobra
+   da rasterização) ele só REESCALA o serrilhado pra um tamanho menor —
+   continua parecendo grosseiro de perto, não importa quantas iterações.
+   Um filtro gaussiano de verdade (passa-baixa nas coordenadas x/y como se
+   fossem sinais 1D) remove o ruído de alta frequência mantendo a forma
+   grande do polígono — visivelmente mais suave no mesmo teste, e ainda por
+   cima gera MENOS vértices (não duplica a cada iteração feito o Chaikin).
 
 Uso: python codigo_python/02_mdt_hand_mancha/gerar_contornos_vetoriais.py [mucum|santa_tereza]
 """
@@ -43,6 +51,7 @@ import sys
 import json
 import numpy as np
 from scipy import ndimage
+from scipy.ndimage import gaussian_filter1d
 from rasterio.features import shapes
 from shapely.geometry import shape, mapping, Polygon, MultiPolygon
 from shapely.ops import unary_union
@@ -54,7 +63,7 @@ from gerar_mancha_mosaico import CIDADES, le, talvegue_anadem, talvegue_mosaico 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 NIVEIS_M = [round(x, 1) for x in np.arange(0, 15.5, 0.5)]
 TOL_PX = 2.0
-CHAIKIN_IT = 1
+SIGMA = 2.0
 PRECISAO_DECIMAIS = 6
 
 OUT = {
@@ -63,37 +72,38 @@ OUT = {
 }
 
 
-def chaikin_ring(coords, iterations=1):
+def smooth_ring(coords, sigma):
     coords = list(coords)
     if coords[0] == coords[-1]:
         coords = coords[:-1]
-    for _ in range(iterations):
-        novo = []
-        n = len(coords)
-        for i in range(n):
-            p0, p1 = coords[i], coords[(i + 1) % n]
-            novo.append((0.75 * p0[0] + 0.25 * p1[0], 0.75 * p0[1] + 0.25 * p1[1]))
-            novo.append((0.25 * p0[0] + 0.75 * p1[0], 0.25 * p0[1] + 0.75 * p1[1]))
-        coords = novo
-    coords.append(coords[0])
-    return coords
+    if len(coords) < 5:
+        coords.append(coords[0])
+        return coords
+    arr = np.array(coords)
+    xs = gaussian_filter1d(arr[:, 0], sigma=sigma, mode="wrap")
+    ys = gaussian_filter1d(arr[:, 1], sigma=sigma, mode="wrap")
+    out = list(zip(xs.tolist(), ys.tolist()))
+    out.append(out[0])
+    return out
 
 
-def suaviza(poly, tol, chaikin_it):
+def suaviza(poly, tol, sigma):
     simp = poly.simplify(tol, preserve_topology=True)
     if simp.is_empty:
         return None
 
     def proc(p):
-        ext = chaikin_ring(list(p.exterior.coords), chaikin_it)
-        ints = [chaikin_ring(list(r.coords), chaikin_it) for r in p.interiors]
-        return Polygon(ext, ints)
+        ext = smooth_ring(list(p.exterior.coords), sigma)
+        ints = [smooth_ring(list(r.coords), sigma) for r in p.interiors if len(r.coords) > 4]
+        pol = Polygon(ext, ints)
+        return pol if pol.is_valid else make_valid(pol)
 
     if simp.geom_type == "Polygon":
         out = proc(simp)
     else:
-        out = MultiPolygon([proc(g) for g in simp.geoms if not g.is_empty])
-    return out if out.is_valid else make_valid(out)
+        outs = [proc(g) for g in simp.geoms if not g.is_empty]
+        out = unary_union(outs)
+    return out
 
 
 def arredonda_geom(geom_mapping, casas):
@@ -140,7 +150,7 @@ def gera(cidade):
         if not polys:
             continue
         u = unary_union(polys)
-        out = suaviza(u, tol, CHAIKIN_IT)
+        out = suaviza(u, tol, SIGMA)
         if out is None or out.is_empty:
             continue
         geom = arredonda_geom(mapping(out), PRECISAO_DECIMAIS)
@@ -154,7 +164,7 @@ def gera(cidade):
 
     fc = {"type": "FeatureCollection", "features": features,
           "metadata": {"fonte": "HAND do mosaico 2m (drone corrigido + ANADEM), contorno vetorial "
-                                 "(rasterio.features.shapes + simplify ~2px + Chaikin 1 iteração)"}}
+                                 f"(rasterio.features.shapes + simplify ~{TOL_PX}px + suavização gaussiana sigma={SIGMA})"}}
     out_path = OUT[cidade]
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
