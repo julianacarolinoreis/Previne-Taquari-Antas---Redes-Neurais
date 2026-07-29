@@ -219,16 +219,14 @@ const HAND=JSON.parse(document.getElementById('hand-data').textContent);
 const EVENTS=JSON.parse(document.getElementById('event-data').textContent);
 const COTA_INUND=1500;
 const COLS=HAND.cols, ROWS=HAND.rows;
-// supersampling só faz sentido pra suavizar raster grosseiro (ANADEM 30m antigo);
-// num raster já fino, além de inútil, estoura limite de área de canvas do navegador
-// (raster grande com SS=3 falha silenciosamente e handArr sai zerado)
-const SS=(COLS*ROWS>2000000)?1:3, FCOLS=COLS*SS, FROWS=ROWS*SS;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
+const CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_mancha.json';
+let contornos=null, nowLayer=null, foreLayer=null, uncLayer=null;
 const latC=(HAND.S+HAND.N)/2;
-// cellHa calculado do próprio raster (bounds/COLS/ROWS) — antes era um literal fixo
-// (0,0835 ha, do tamanho de célula do ANADEM 30m antigo) que ficou errado ao trocar
-// pro mosaico de 2 m
-const cellHa=(Math.abs(HAND.E-HAND.W)/COLS*111320*Math.cos(latC*Math.PI/180))*(Math.abs(HAND.N-HAND.S)/ROWS*111320)/1e4/(SS*SS);
+// cellHa só é usada hoje pra converter FP/FN (validação vs observado, ainda
+// em raster) de pixels pra hectares — a área da mancha em si vem do
+// contorno vetorial (properties.area_ha)
+const cellHa=(Math.abs(HAND.E-HAND.W)/COLS*111320*Math.cos(latC*Math.PI/180))*(Math.abs(HAND.N-HAND.S)/ROWS*111320)/1e4;
 const nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
 const nf1=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
 const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -239,39 +237,47 @@ const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 const UNCERT={'2h':0.3,'4h':0.5,'8h':0.7,'12h':1.0,'—':0};
 const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'8h':['Moderada','#c98a1a'],'12h':['Baixa','#c0392b'],'—':['—','#999']};
 let handArr=null, curEv=Object.keys(EVENTS)[0];
-let bankfull=400, tIdx=0, playing=false, timer=null, map=null, waterOverlay=null, curS=null;
+let bankfull=400, tIdx=0, playing=false, timer=null, map=null, curS=null;
 const calibByEvent={};
 const LIVE_URL='previsao_ao_vivo.json';
 function fmtWhen(s){ if(!s) return '—'; const m=String(s).replace('T',' ').match(/(\d{4})-(\d{2})-(\d{2})[ ]+(\d{2}):(\d{2})/); return m?`${m[3]}/${m[2]} ${m[4]}:${m[5]}`:String(s); }
 let liveMode=false, liveTimer=null, liveIdx=0, liveData=null, liveHz='2h';
-const outCanvas=document.createElement('canvas'); outCanvas.width=FCOLS; outCanvas.height=FROWS;
-const octx=outCanvas.getContext('2d');
 
+// handArr fica só pra consulta pontual (clique no mapa) — a mancha em si
+// agora é o contorno vetorial (contornos_mancha.json), não mais um raster
+// pintado pixel a pixel (o pixelado no zoom vinha dessa etapa de desenho,
+// não do cálculo — o HAND em si já é fino; ver commit).
 function loadHand(){return new Promise(res=>{
   const img=new Image();
   img.onload=()=>{
     const c=document.createElement('canvas'); c.width=COLS;c.height=ROWS; const x=c.getContext('2d'); x.drawImage(img,0,0);
     const d=x.getImageData(0,0,COLS,ROWS).data;
-    const sc=document.createElement('canvas'); sc.width=COLS;sc.height=ROWS; const sx=sc.getContext('2d'); const sd=sx.createImageData(COLS,ROWS);
-    for(let i=0;i<COLS*ROWS;i++){const v=d[i*4]===255?250:d[i*4]; sd.data[i*4]=sd.data[i*4+1]=sd.data[i*4+2]=v; sd.data[i*4+3]=255;}
-    sx.putImageData(sd,0,0);
-    const bc=document.createElement('canvas'); bc.width=FCOLS;bc.height=FROWS; const bx=bc.getContext('2d'); bx.imageSmoothingEnabled=true; bx.imageSmoothingQuality='high';
-    bx.drawImage(sc,0,0,FCOLS,FROWS);
-    const bd=bx.getImageData(0,0,FCOLS,FROWS).data; handArr=new Uint8Array(FCOLS*FROWS);
-    for(let i=0;i<FCOLS*FROWS;i++) handArr[i]=bd[i*4];
+    handArr=new Uint8Array(COLS*ROWS);
+    for(let i=0;i<COLS*ROWS;i++) handArr[i]=d[i*4]===255?250:d[i*4];
     res();
   };
   img.onerror=()=>{handArr=null;res();};
   img.src='data:image/png;base64,'+HAND.hand_png_b64;
 });}
 
-function depthColor(dep){const t=Math.max(0,Math.min(1,dep/120));
-  return [Math.round(143+(18-143)*t),Math.round(192+(63-192)*t),Math.round(255+(158-255)*t)];}
+function loadContornos(){return fetch(CONTORNOS_URL).then(r=>r.json()).then(fc=>{contornos=fc;}).catch(e=>{console.error('falha ao carregar contornos', e); contornos=null;});}
+
 function stageToHand(cm){return (cm-bankfull)/100;}
 function handAt(lat,lon){ // decimetros no ponto, ou null
-  const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*FCOLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*FROWS);
-  if(fx<0||fx>=FCOLS||fy<0||fy>=FROWS) return null;
-  return handArr[fy*FCOLS+fx];
+  const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*COLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*ROWS);
+  if(fx<0||fx>=COLS||fy<0||fy>=ROWS) return null;
+  return handArr[fy*COLS+fx];
+}
+function achaFeature(mLvl){
+  if(!contornos||mLvl==null||!Number.isFinite(mLvl)||mLvl<0) return null;
+  const alvo=Math.round(Math.max(0,Math.min(15,mLvl))*2)/2;
+  return contornos.features.find(f=>Math.abs(f.properties.nivel_m-alvo)<0.01) || null;
+}
+function setLayer(layer, mLvl){
+  const feat=achaFeature(mLvl);
+  layer.clearLayers();
+  if(feat) layer.addData(feat);
+  return feat?feat.properties.area_ha:0;
 }
 
 function renderFrame(){
@@ -283,26 +289,31 @@ function renderFrame(){
   const hasFore=foreCm!=null, foreDm=hasFore?stageToHand(foreCm)*10:-1;
   const hasObs=obsCm!=null, obsDm=hasObs?stageToHand(obsCm)*10:-1;
   const uDm=(UNCERT[ev.horizonte]||0)*10, uMaxDm=foreDm+uDm; // borda de incerteza
-  const N=FCOLS*FROWS; const img=octx.createImageData(FCOLS,FROWS);
-  const foreMask=new Uint8Array(N); let aNow=0,aFore=0,TP=0,FP=0,FN=0;
-  for(let i=0;i<N;i++){
-    const hd=handArr[i];
-    const inNow=hasNow&&hd<=nowDm, inFore=hasFore&&hd<=foreDm, inUnc=hasFore&&hd<=uMaxDm;
-    const inObs=hasObs&&hd<=obsDm;
-    if(inNow) aNow++; if(inFore){foreMask[i]=1; aFore++;}
-    if(inNow){const [r,g,b]=depthColor(nowDm-hd); img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=205;}
-    else if(inFore){ img.data[i*4]=236;img.data[i*4+1]=140;img.data[i*4+2]=44;img.data[i*4+3]=150;} // area que pode ser atingida
-    else if(inUnc){ img.data[i*4]=236;img.data[i*4+1]=140;img.data[i*4+2]=44;img.data[i*4+3]=52;}   // faixa de incerteza (suave)
-    if(hasObs){ if(inFore&&inObs)TP++; else if(inFore&&!inObs)FP++; else if(!inFore&&inObs)FN++; }
-  }
-  if(hasFore) for(let y=0;y<FROWS;y++)for(let x=0;x<FCOLS;x++){const i=y*FCOLS+x; if(!foreMask[i])continue;
-    const edge=x===0||x===FCOLS-1||y===0||y===FROWS-1||!foreMask[i-1]||!foreMask[i+1]||!foreMask[i-FCOLS]||!foreMask[i+FCOLS];
-    if(edge){img.data[i*4]=232;img.data[i*4+1]=115;img.data[i*4+2]=12;img.data[i*4+3]=255;}}
-  octx.putImageData(img,0,0);
-  if(waterOverlay) waterOverlay.setUrl(outCanvas.toDataURL());
 
-  const areaNow=aNow*cellHa, areaFore=aFore*cellHa, areaNew=(aFore-aNow)*cellHa;
-  const growth=aNow>0?(aFore-aNow)/aNow*100:0;
+  // mancha: 3 poligonos vetoriais empilhados (incerteza embaixo, previsto no
+  // meio, agora em cima) em vez de raster pintado pixel a pixel — cada
+  // camada maior só aparece na "auréola" além da menor, por ordem de
+  // desenho (não precisa calcular diferença de polígono). ORDEM IMPORTA:
+  // clearLayers()+addData() reinsere o <path> no fim do SVG a cada chamada,
+  // então tem que redesenhar sempre incerteza->previsto->agora pra manter
+  // a pilha visual certa (senão a camada mais fraca acaba por cima).
+  if(uncLayer) setLayer(uncLayer, hasFore?uMaxDm/10:-1);
+  const areaFore=foreLayer?setLayer(foreLayer, hasFore?foreDm/10:-1):0;
+  const areaNow=nowLayer?setLayer(nowLayer, hasNow?nowDm/10:-1):0;
+
+  // TP/FP/FN vs observado ainda precisa do raster (comparação ponto a ponto
+  // com o nível observado) — só roda quando tem observado, é o modo raro
+  let TP=0,FP=0,FN=0;
+  if(hasObs){
+    for(let i=0;i<COLS*ROWS;i++){
+      const hd=handArr[i];
+      const inFore=hasFore&&hd<=foreDm, inObs=hd<=obsDm;
+      if(inFore&&inObs)TP++; else if(inFore&&!inObs)FP++; else if(!inFore&&inObs)FN++;
+    }
+  }
+
+  const areaNew=areaFore-areaNow;
+  const growth=areaNow>0?(areaFore-areaNow)/areaNow*100:0;
   // ---- modo simples ----
   set('s-now', fmtNivel(nowCm));
   set('s-fore', hasFore?fmtNivel(foreCm):'—');
@@ -561,7 +572,7 @@ async function init(){
     let i=Math.round((sx-6)/(320-12)*(E.series.length-1)); i=Math.max(0,Math.min(E.series.length-1,i)); tIdx=i; document.getElementById('time').value=i; renderFrame();});
   document.querySelectorAll('.method .step').forEach(s=>s.onclick=()=>set('method-exp',s.dataset.exp));
 
-  await loadHand();
+  await Promise.all([loadHand(), loadContornos()]);
   if(typeof L!=='undefined'){
     map=L.map('map',{scrollWheelZoom:true}).fitBounds(BOUNDS);
     const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'© Esri, Maxar'});
@@ -570,7 +581,10 @@ async function init(){
     sat.on('tileerror',()=>{if(!map.hasLayer(osm)&&!map.hasLayer(sat)) osm.addTo(map);});
     sat.addTo(map); labels.addTo(map);
     L.control.layers({'Satélite':sat,'Ruas':osm},{'Rótulos':labels},{position:'topright'}).addTo(map);
-    waterOverlay=L.imageOverlay(outCanvas.toDataURL(),BOUNDS,{opacity:.6,className:'flood-ov'}).addTo(map);
+    // 3 camadas empilhadas: incerteza (embaixo, mais fraca) -> previsto (meio) -> agora (em cima, sólida)
+    uncLayer=L.geoJSON(null,{style:{color:'transparent',weight:0,fillColor:'#ec8c2c',fillOpacity:.18}}).addTo(map);
+    foreLayer=L.geoJSON(null,{style:{color:'#e8730c',weight:1.5,fillColor:'#ec8c2c',fillOpacity:.45}}).addTo(map);
+    nowLayer=L.geoJSON(null,{style:{color:'#123f9e',weight:1.5,fillColor:'#4a7bdb',fillOpacity:.6}}).addTo(map);
     const st=HAND.station, pt=HAND.ponte;
     L.circleMarker([st.lat,st.lon],{radius:7,color:'#fff',weight:2,fillColor:'#1e5fbf',fillOpacity:.95}).addTo(map).bindPopup('<b>Estação '+st.code+'</b><br>Santa Tereza');
     if(pt) L.circleMarker([pt.lat,pt.lon],{radius:6,color:'#fff',weight:2,fillColor:'#b04538',fillOpacity:.95}).addTo(map).bindPopup('<b>'+pt.label+'</b>');
@@ -589,8 +603,6 @@ async function init(){
   } else {
     const box=document.getElementById('map');
     const b=document.createElement('div'); b.className='banner'; b.textContent='Mapa base (Leaflet) não carregou aqui — abra pelo GitHub Pages.'; box.appendChild(b);
-    outCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain'; box.appendChild(outCanvas);
-    waterOverlay={setUrl:()=>{}};
   }
   setEvent(curEv);            // página de cheias anteriores: só cenários (sem ao vivo)
 }

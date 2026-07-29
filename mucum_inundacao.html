@@ -164,7 +164,7 @@
 
     <details class="card"><summary>Legenda</summary><div class="body">
       <div class="legend">
-        <div class="row2"><span class="sw a"></span>área alagada no nível escolhido (tom mais escuro = mais fundo)</div>
+        <div class="row2"><span class="sw a"></span>área alagada no nível escolhido</div>
         <div class="row2"><span class="sw" style="background:#fff;border:1px solid #bbb"></span>leito / talvegue do rio</div>
       </div>
       <div class="disc"><b>Prova de conceito — não validada em nível de rua.</b> MDT ANADEM v1 30&nbsp;m (bare-earth), o mesmo padrão de terreno do Santa Tereza; a borda da mancha tem incerteza de dezenas de metros. O <b>nível normal</b> (calha, HAND 0) adotado é <b>500&nbsp;cm</b> na régua da estação <b>86510000</b> (Muçum), com montante em 86472600. Falta ligar a <b>previsão da rede neural</b> de Muçum a esta mancha e a <b>cota de inundação oficial</b> — quando entrarem, a página fica igual à de Santa Tereza, com previsão e validação.</div>
@@ -176,69 +176,56 @@
 <script>
 const HAND=JSON.parse(document.getElementById('hand-data').textContent);
 const COLS=HAND.cols, ROWS=HAND.rows;
-// supersampling só faz sentido pra suavizar raster grosseiro (ANADEM 30m antigo);
-// num raster já fino, além de inútil, estoura limite de área de canvas do navegador
-// (raster grande com SS=3 falha silenciosamente e handArr sai zerado)
-const SS=(COLS*ROWS>2000000)?1:3, FCOLS=COLS*SS, FROWS=ROWS*SS;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
-const latC=(HAND.S+HAND.N)/2;
-const cellHa=(Math.abs(HAND.E-HAND.W)/COLS*111320*Math.cos(latC*Math.PI/180))*(Math.abs(HAND.N-HAND.S)/ROWS*111320)/1e4/(SS*SS);
-let handArr=null, map, waterOverlay;
-const outCanvas=document.createElement('canvas'); outCanvas.width=FCOLS; outCanvas.height=FROWS;
-const octx=outCanvas.getContext('2d');
+let handArr=null, map, waterLayer, contornos=null;
+const CONTORNOS_URL='assets/data/mucum_inundacao/contornos_mancha.json';
 const nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
 const nf1=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
 function set(id,v){const e=document.getElementById(id); if(e)e.textContent=v;}
 
+// handArr fica só pra consulta pontual (clique no mapa) e profundidade máxima —
+// a mancha em si agora é o contorno vetorial (contornos_mancha.json), não mais
+// um raster pintado pixel a pixel (o pixelado no zoom vinha dessa etapa de
+// desenho, não do cálculo — o HAND em si já é fino; ver commit).
 function loadHand(){return new Promise(res=>{
   const img=new Image();
   img.onload=()=>{
     const c=document.createElement('canvas'); c.width=COLS;c.height=ROWS; const x=c.getContext('2d'); x.drawImage(img,0,0);
     const d=x.getImageData(0,0,COLS,ROWS).data;
-    const sc=document.createElement('canvas'); sc.width=COLS;sc.height=ROWS; const sx=sc.getContext('2d'); const sd=sx.createImageData(COLS,ROWS);
-    for(let i=0;i<COLS*ROWS;i++){const v=d[i*4]; sd.data[i*4]=sd.data[i*4+1]=sd.data[i*4+2]=v; sd.data[i*4+3]=255;}
-    sx.putImageData(sd,0,0);
-    const bc=document.createElement('canvas'); bc.width=FCOLS;bc.height=FROWS; const bx=bc.getContext('2d'); bx.imageSmoothingEnabled=true; bx.imageSmoothingQuality='high';
-    bx.drawImage(sc,0,0,FCOLS,FROWS);
-    const bd=bx.getImageData(0,0,FCOLS,FROWS).data; handArr=new Uint8Array(FCOLS*FROWS);
-    for(let i=0;i<FCOLS*FROWS;i++) handArr[i]=bd[i*4];
+    handArr=new Uint8Array(COLS*ROWS);
+    for(let i=0;i<COLS*ROWS;i++) handArr[i]=d[i*4];
     res();
   };
   img.onerror=()=>{handArr=null;res();};
   img.src='data:image/png;base64,'+HAND.hand_png_b64;
 });}
 
-function depthColor(depDm){const t=Math.max(0,Math.min(1,depDm/120));
-  return [Math.round(143+(18-143)*t),Math.round(192+(63-192)*t),Math.round(255+(158-255)*t)];}
+function loadContornos(){return fetch(CONTORNOS_URL).then(r=>r.json()).then(fc=>{contornos=fc;}).catch(e=>{console.error('falha ao carregar contornos', e); contornos=null;});}
+
 function handAt(lat,lon){
-  const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*FCOLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*FROWS);
-  if(fx<0||fx>=FCOLS||fy<0||fy>=FROWS) return null;
-  return handArr[fy*FCOLS+fx];
+  const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*COLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*ROWS);
+  if(fx<0||fx>=COLS||fy<0||fy>=ROWS) return null;
+  return handArr[fy*COLS+fx];
+}
+function achaFeature(mLvl){
+  if(!contornos) return null;
+  const alvo=Math.round(mLvl*2)/2;
+  return contornos.features.find(f=>Math.abs(f.properties.nivel_m-alvo)<0.01) || null;
 }
 function render(mLvl){
   if(!handArr) return;
   const lvlDm=mLvl*10;
-  const img=octx.createImageData(FCOLS,FROWS); let a=0,maxDep=0;
-  const mask=new Uint8Array(FCOLS*FROWS);
-  for(let i=0;i<FCOLS*FROWS;i++){
-    const hd=handArr[i];
-    if(hd<=lvlDm){ mask[i]=1; a++; const dep=lvlDm-hd; if(dep>maxDep)maxDep=dep;
-      const[r,g,b]=depthColor(dep); img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=205;
-      if(hd<=2){img.data[i*4]=255;img.data[i*4+1]=255;img.data[i*4+2]=255;img.data[i*4+3]=235;}
-    }
-  }
-  for(let y=0;y<FROWS;y++)for(let x=0;x<FCOLS;x++){const i=y*FCOLS+x; if(!mask[i])continue;
-    const edge=x===0||x===FCOLS-1||y===0||y===FROWS-1||!mask[i-1]||!mask[i+1]||!mask[i-FCOLS]||!mask[i+FCOLS];
-    if(edge){img.data[i*4]=18;img.data[i*4+1]=63;img.data[i*4+2]=158;img.data[i*4+3]=255;}}
-  octx.putImageData(img,0,0);
-  if(waterOverlay) waterOverlay.setUrl(outCanvas.toDataURL());
+  let maxDep=0;
+  for(let i=0;i<COLS*ROWS;i++){ const hd=handArr[i]; if(hd<=lvlDm){ const dep=lvlDm-hd; if(dep>maxDep)maxDep=dep; } }
+  const feat=achaFeature(mLvl);
+  if(waterLayer){ waterLayer.clearLayers(); if(feat) waterLayer.addData(feat); }
   set('s-lvl', nf1.format(mLvl));
   set('r-lvl', nf1.format(mLvl)+' m');
-  set('r-area', nf.format(a*cellHa)+' ha');
+  set('r-area', feat?nf.format(feat.properties.area_ha)+' ha':'—');
   set('r-dep', nf1.format(maxDep/10)+' m');
 }
 (async function(){
-  await loadHand();
+  await Promise.all([loadHand(), loadContornos()]);
   map=L.map('map',{scrollWheelZoom:true}).fitBounds(BOUNDS);
   const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'Esri, Maxar'});
   const labels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
@@ -246,7 +233,7 @@ function render(mLvl){
   sat.on('tileerror',()=>{if(!map.hasLayer(osm)&&!map.hasLayer(sat)) osm.addTo(map);});
   sat.addTo(map); labels.addTo(map);
   L.control.layers({'Satélite':sat,'Ruas':osm},{'Rótulos':labels},{position:'topright'}).addTo(map);
-  waterOverlay=L.imageOverlay(outCanvas.toDataURL(),BOUNDS,{opacity:.62,className:'flood-ov'}).addTo(map);
+  waterLayer=L.geoJSON(null,{style:{color:'#123f9e',weight:1.5,fillColor:'#4a7bdb',fillOpacity:.55},className:'flood-ov'}).addTo(map);
   const lvl=document.getElementById('lvl');
   lvl.addEventListener('input',()=>{ render(parseFloat(lvl.value));
     document.querySelectorAll('#scn button').forEach(b=>b.classList.toggle('on',parseFloat(b.dataset.m)===parseFloat(lvl.value))); });
