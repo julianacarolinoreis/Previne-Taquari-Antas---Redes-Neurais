@@ -277,7 +277,7 @@ function elevationAt(lat,lon){
 }
 function achaFeature(mLvl){
   if(!contornos||mLvl==null||!Number.isFinite(mLvl)||mLvl<0) return null;
-  const alvo=Math.round(Math.max(0,Math.min(15,mLvl))*2)/2;
+  const alvo=Math.round(Math.max(0,Math.min(15,mLvl))*10)/10;
   return contornos.features.find(f=>Math.abs(f.properties.nivel_m-alvo)<0.01) || null;
 }
 function setLayer(layer, mLvl){

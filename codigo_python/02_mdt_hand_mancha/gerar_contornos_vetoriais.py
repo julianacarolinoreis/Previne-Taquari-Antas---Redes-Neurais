@@ -3,7 +3,8 @@
 r"""
 Gera o CONTORNO VETORIAL da mancha de inundação (polígono real, não raster
 pintado pixel a pixel) a partir do HAND do mosaico de 2 m — um por nível de
-rio, mesma faixa/passo do slider do site (0 a 15 m, passo 0,5 m).
+rio, faixa 0 a 15 m, passo 0,1 m (151 níveis — mesma precisão decimétrica
+nativa do raster HAND; ver "PASSO 0,1 M" abaixo pro motivo de não ser 0,5 m).
 
 POR QUE (decisão da pessoa, 2026-07-29): o raster/canvas pintado pixel a
 pixel (L.imageOverlay) mostrava borda "em escada" ao dar zoom próximo — não
@@ -44,6 +45,22 @@ MÉTODO
    grande do polígono — visivelmente mais suave no mesmo teste, e ainda por
    cima gera MENOS vértices (não duplica a cada iteração feito o Chaikin).
 
+PASSO 0,1 M (não 0,5 m) — achado depois de publicar com 0,5 m
+---------------------------------------------------------------
+Nas páginas AO VIVO (previsao), o site mostra 3 níveis ao mesmo tempo
+(agora/previsto/incerteza) e colore em laranja só a área NOVA (previsto
+além do que já tá alagado agora). Com passo 0,5 m, "agora" e "previsto"
+quase sempre caíam no MESMO nível arredondado — ex.: agora=13,21 m e
+previsto=13,03 m (diferença real de 18 cm) os dois arredondavam pra
+13,0 m, a área laranja sumia por completo (virava tudo azul, mesmo
+quando a diferença real existia). Pior: a faixa de incerteza (que soma só
+0,3-1,0 m ao previsto) também ficava distorcida pelo arredondamento —
+podia aparecer bem mais larga ou mais estreita que a incerteza real.
+Corrigido gerando na precisão decimétrica nativa do HAND (0,1 m, igual o
+raster já era) — 151 níveis em vez de 31. Custo: arquivo maior (Muçum
+~1MB->~4,9MB, Santa Tereza ~1,6MB->~7,7MB), ainda buscado via fetch()
+assíncrono (não bloqueia o mapa nem os números aparecendo).
+
 Uso: python codigo_python/02_mdt_hand_mancha/gerar_contornos_vetoriais.py [mucum|santa_tereza]
 """
 import os
@@ -53,6 +70,7 @@ import numpy as np
 from scipy import ndimage
 from scipy.ndimage import gaussian_filter1d
 from rasterio.features import shapes
+from shapely import set_precision
 from shapely.geometry import shape, mapping, Polygon, MultiPolygon
 from shapely.ops import unary_union
 from shapely.validation import make_valid
@@ -61,7 +79,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gerar_mancha_mosaico import CIDADES, le, talvegue_anadem, talvegue_mosaico  # noqa: E402
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-NIVEIS_M = [round(x, 1) for x in np.arange(0, 15.5, 0.5)]
+NIVEIS_M = [round(x, 1) for x in np.arange(0, 15.1, 0.1)]
 TOL_PX = 2.0
 SIGMA = 2.0
 PRECISAO_DECIMAIS = 6
@@ -107,18 +125,16 @@ def suaviza(poly, tol, sigma):
 
 
 def arredonda_geom(geom_mapping, casas):
-    def rr(coords):
-        return [tuple(round(c, casas) for c in pt) for pt in coords]
-
-    def rr_poly(coords):
-        return [rr(anel) for anel in coords]
-
-    t = geom_mapping["type"]
-    if t == "Polygon":
-        return {"type": t, "coordinates": rr_poly(geom_mapping["coordinates"])}
-    if t == "MultiPolygon":
-        return {"type": t, "coordinates": [rr_poly(p) for p in geom_mapping["coordinates"]]}
-    return geom_mapping
+    # A precisão manual por coordenada podia recriar auto-interseções depois
+    # da validação. set_precision faz o encaixe na grade preservando a topologia.
+    geom = set_precision(
+        shape(geom_mapping),
+        grid_size=10 ** (-casas),
+        mode="valid_output",
+    )
+    if not geom.is_valid:
+        geom = make_valid(geom)
+    return mapping(geom)
 
 
 def gera(cidade):
