@@ -22,8 +22,10 @@ Uso:
 import os, sys, json, re, base64, io
 import numpy as np
 from PIL import Image
+import rasterio
 import rasterio.features
 from rasterio.transform import from_bounds
+from scipy import ndimage
 from shapely.geometry import shape, mapping
 from shapely.ops import unary_union
 
@@ -34,16 +36,21 @@ CIDADES = {
     "santa_tereza": {
         "pagina": "santa_tereza_previsao_inundacao.html",
         "saida": "assets/data/santa_tereza_inundacao/contornos_mancha.json",
+        "mdt_drone": "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_drone_1m.tif",
     },
     "mucum": {
         "pagina": "mucum_previsao_inundacao.html",
         "saida": "assets/data/mucum_inundacao/contornos_mancha.json",
+        "mdt_drone": "assets/data/mucum_inundacao/mdt/mdt_mucum_drone_1m.tif",
     },
 }
 
 NIVEIS = [round(x * 0.5, 1) for x in range(0, 31)]   # 0,0 .. 15,0 m
 SIMPLIFY_PX = 1.0        # tolerância Douglas-Peucker, em pixels (desvio máximo)
 AREA_MIN_HA = 0.05       # descarta lascas menores que isso
+SO_CONECTADO = True            # desenha apenas o que tem ligação hidráulica com a drenagem
+PREENCH_MAX_DRENAGEM = 0.40    # drenagem é alongada; cratera é compacta (medido: rios 8-33%, crateras 45-64%)
+AREA_MIN_DRENAGEM_HA = 0.10    # ignora ruído de poucos pixels
 
 
 def ler_hand(pagina):
@@ -55,9 +62,71 @@ def ler_hand(pagina):
     return d, A
 
 
+def leito_drenagem(A, px_ha, d, janela_drone):
+    """Máscara da drenagem real (HAND == 0), descartando crateras do drone.
+
+    O MDT de drone tem crateras de interpolação (buracos da nuvem de pontos,
+    tipicamente sobre água/sombra) que descem dezenas de metros abaixo do
+    terreno real e recebem HAND 0, virando "poças" desconectadas do rio.
+
+    Dois cuidados aprendidos medindo os dados:
+
+    1. Não basta tomar o MAIOR componente: em Muçum isso descartaria o rio
+       Guaporé (30,2 ha, componente separado do Taquari no raster) — e é o
+       Guaporé que faz a cidade encher. O critério é a FORMA: drenagem é
+       alongada, cratera é compacta (medido: rios 8-33% de preenchimento do
+       retângulo envolvente, crateras 45-64%).
+
+    2. O filtro só se aplica DENTRO da área voada. Fora dela o mosaico usa
+       ANADEM 30 m, onde não há cratera de fotogrametria e onde trechos largos
+       do rio aparecem compactos — descartá-los cortaria planície legítima
+       (em Muçum, 83 ha ao sul, fora do voo).
+    """
+    lbl, n = ndimage.label(A == 0)
+    if n == 0:
+        return None
+    rows, cols = A.shape
+    saida = np.zeros_like(lbl, dtype=bool)
+    descartadas = 0.0
+    for k, fatia in enumerate(ndimage.find_objects(lbl), start=1):
+        if fatia is None:
+            continue
+        mk = (lbl[fatia] == k)
+        area_ha = int(mk.sum()) * px_ha
+        preench = mk.sum() / mk.size
+        # centro do componente em lat/lon
+        cy = (fatia[0].start + fatia[0].stop) / 2
+        cx = (fatia[1].start + fatia[1].stop) / 2
+        lat = d["N"] + (d["S"] - d["N"]) * cy / rows
+        lon = d["W"] + (d["E"] - d["W"]) * cx / cols
+        no_drone = (janela_drone is not None and
+                    janela_drone[0] <= lon <= janela_drone[2] and
+                    janela_drone[1] <= lat <= janela_drone[3])
+        suspeita = no_drone and area_ha >= AREA_MIN_DRENAGEM_HA and preench > PREENCH_MAX_DRENAGEM
+        if suspeita:
+            descartadas += area_ha
+            continue
+        saida[fatia] |= mk
+    if descartadas:
+        print(f"   crateras descartadas (dentro do voo): {descartadas:.1f} ha")
+    return saida if saida.any() else None
+
+
 def gerar(cidade, cfg):
     d, A = ler_hand(cfg["pagina"])
     rows, cols = A.shape
+    px_ha_pre = (abs(d["E"] - d["W"]) * 111320 * np.cos(np.radians((d["S"] + d["N"]) / 2)) / cols) * \
+                (abs(d["N"] - d["S"]) * 111320 / rows) / 1e4
+    janela = None
+    caminho_drone = os.path.join(RAIZ, cfg.get("mdt_drone", ""))
+    if cfg.get("mdt_drone") and os.path.exists(caminho_drone):
+        with rasterio.open(caminho_drone) as dz:
+            b = dz.bounds
+            janela = (b.left, b.bottom, b.right, b.top)
+        print(f"   voo de drone: {janela[0]:.4f},{janela[1]:.4f} a {janela[2]:.4f},{janela[3]:.4f}")
+    rio = leito_drenagem(A, px_ha_pre, d, janela) if SO_CONECTADO else None
+    if rio is not None:
+        print(f"   drenagem aceita: {int(rio.sum())*px_ha_pre:.1f} ha")
     tr = from_bounds(d["W"], d["S"], d["E"], d["N"], cols, rows)
     grau_px_lon = abs(d["E"] - d["W"]) / cols
     grau_px_lat = abs(d["N"] - d["S"]) / rows
@@ -79,6 +148,14 @@ def gerar(cidade, cfg):
         mask = (A <= dm)
         if not mask.any():
             continue
+        area_bruta = int(mask.sum()) * px_ha
+        if rio is not None:
+            # mantém só o que encosta na drenagem real (elimina poças de cratera)
+            lb, _ = ndimage.label(mask)
+            ids = set(np.unique(lb[rio])) - {0}
+            mask = np.isin(lb, list(ids))
+            if not mask.any():
+                continue
         geoms = [shape(g) for g, v in rasterio.features.shapes(
             mask.astype(np.uint8), mask=mask, transform=tr, connectivity=8)]
         if not geoms:
@@ -101,8 +178,10 @@ def gerar(cidade, cfg):
             })
         area_raster = int(mask.sum()) * px_ha
         dif = 100 * (area_total / area_raster - 1) if area_raster else 0
-        print(f"   nível {nivel:4.1f} m | raster {area_raster:8.1f} ha | "
-              f"contorno {area_total:8.1f} ha | dif {dif:+.1f}%")
+        fant = area_bruta - area_raster
+        print(f"   nível {nivel:4.1f} m | conectado {area_raster:8.1f} ha | "
+              f"contorno {area_total:8.1f} ha | dif {dif:+.1f}% | "
+              f"fantasma removida {fant:6.1f} ha")
 
     out = {
         "type": "FeatureCollection",
@@ -112,10 +191,13 @@ def gerar(cidade, cfg):
                       "(rasterio.features.shapes, connectivity=8), simplificação "
                       f"Douglas-Peucker de {SIMPLIFY_PX} px SEM suavização gaussiana — "
                       "garante que a mancha desenhada e o valor consultado no clique "
-                      "concordem. Ver codigo_python/02_mdt_hand_mancha/gerar_contornos_do_hand.py"),
+                      "concordem. Desenha apenas o que tem ligação hidráulica com o leito "
+                      "do rio, descartando as poças criadas por crateras de interpolação do "
+                      "MDT de drone. Ver codigo_python/02_mdt_hand_mancha/gerar_contornos_do_hand.py"),
             "niveis_m": NIVEIS,
             "simplify_px": SIMPLIFY_PX,
             "area_minima_ha": AREA_MIN_HA,
+            "somente_conectado_ao_rio": SO_CONECTADO,
         },
     }
     destino = os.path.join(RAIZ, cfg["saida"])
