@@ -10,7 +10,7 @@ Roda no GitHub Actions (a cada ~15 min):
 
 EXPERIMENTAL — não é alerta oficial.
 """
-import os, sys, json, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
+import os, sys, json, hashlib, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
 import numpy as np
 from scipy.io import loadmat
 
@@ -21,8 +21,8 @@ def agora_brt():
 
 # ---- config ----
 MODELO_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__02h__ALT__15inputs_VFINAL.mat"   # modelo 2h exibido no site
-MODELO_2H_CASCATA_INTERNO_MAT = "previne/assets/mat/rot_003_06_2h_alt_2H_ALT_C0472.mat"
-MODELO_2H_CASCATA_INTERNO_ID = "ROT003_C0472"
+MODELO_4H_CASCATA_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__CASCATA_VFINAL_R03_DYN9_INC.mat"
+MODELO_4H_CASCATA_ID = "STZ_H4_ALT_CASC_VFINAL_R03_DYN9_INC"
 HORIZONTE = "2h"
 COMBO = "VFINAL_15IN"
 BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
@@ -87,16 +87,30 @@ MODELOS = [
         "rotulo": "4h cascata",
         "horizonte_h": 4,
         "tipo": "ALT_CASCATA",
-        "modelo": "4H_ALT_CASCATA2H_C002_ALT2H",
-        "mat": "previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__CASCATA2H_C002_ALT2H.mat",
-        "inputs_total": 6,
-        "montador": "4h_alt_cascata_2h_alt",
+        "modelo": MODELO_4H_CASCATA_ID,
+        "mat": MODELO_4H_CASCATA_MAT,
+        "inputs_total": 9,
+        "montador": "4h_cascata_vfinal_dyn9",
         "principal": False,
         "cascata": {
-            "modelo_base": MODELO_2H_CASCATA_INTERNO_ID,
+            "modelo_base": COMBO,
             "modelo_base_horizonte": "2h",
-            "input_nome": "delta previsto pela RNA 2h",
-            "modelo_base_oculto": True,
+            "input_nome": "delta previsto pela RNA 2h VFINAL (o mesmo modelo exibido na aba 2h)",
+            "modelo_base_oculto": False,
+            "target_mode": "INCREMENTO_2A4",
+            # trava de compatibilidade (auditoria 2026-07-28): a cascata antiga
+            # (C002_ALT2H) foi treinada com a saida do modelo 2h antigo C0472 mas
+            # recebia em runtime a saida do VFINAL -- MAE ao vivo de 45,21cm,
+            # REPROVADO. Retreinada em 28/07 sobre o VFINAL ativo (12 candidatos,
+            # 4 arquiteturas x 3 rotacoes de evento; ver
+            # D:\PREVINE\redes_neurais\santa tereza\RNA_STZ_CASCATA_VFINAL_2H_PARA_4H_2026_07_28).
+            # Escolhido R03_DYN9_INC: melhor PERS/MAE de teste entre os 12
+            # (PERS 0,576, MAE 30,2cm) -- validado batendo exatamente com o
+            # forward-pass em Python antes de publicar. upstream_model_sha256
+            # gravado dentro do .mat e checado em runtime (cascata_compativel);
+            # se o modelo 2h ativo mudar sem retreinar a cascata, o robo marca
+            # "disponivel": False e o site esconde o botao em vez de publicar
+            # um numero de novo incompativel.
         },
     },
 ]
@@ -332,48 +346,31 @@ def montar_inputs_4h(series, t):
     ]
     return inputs, st0
 
-def montar_inputs_2h_cascata_interno_c0472(series, t):
-    """Inputs exatos do modelo 2h ALT rot_003/C0472 usado para treinar a cascata."""
-    def n(cod, h=0):
-        return nivel(series.get(cod, {}), t - dt.timedelta(hours=h))
-    def D(cod, h):
-        a, b = n(cod, 0), n(cod, h)
-        return None if None in (a, b) else a - b
-    def A(cod, h):
-        a, b, c, d = n(cod, 0), n(cod, 1), n(cod, h), n(cod, h + 1)
-        return None if None in (a, b, c, d) else (a - b) - (c - d)
+# indices (na ordem de montar_inputs(), o mesmo 2h VFINAL exibido no site) que
+# alimentam a cascata DYN9_INC -- nucleo Santa Tereza + Linha Jose Julio nivel/D5h.
+# Ver UPSTREAM_INPUTS/FEATURE_SETS em
+# .../RNA_STZ_CASCATA_VFINAL_2H_PARA_4H_2026_07_28/codigos/preparar_cascata_vfinal_2h_para_4h_stz.py
+CASCATA_DYN9_INDICES_VFINAL = [0, 1, 2, 4, 5, 6, 9, 12]
 
-    st0 = n("86472600", 0)
-    inputs = [
-        st0,                    # inp01 Santa Tereza nivel
-        D("86472600", 1),       # inp02 Santa Tereza D-1h
-        n("86472000", 0),       # inp03 Linha Jose Julio nivel
-        D("86472000", 5),       # inp04 Linha Jose Julio D-5h
-        A("86472000", 20),      # inp05 Linha Jose Julio A-20h
-        n("86125130", 0),       # inp06 Ituim nivel
-        D("86125130", 12),      # inp07 Ituim D-12h
-        n("86507000", 0),       # inp08 Carreiro nivel
-        D("86507000", 16),      # inp09 Carreiro D-16h
-        D("86472600", 2),       # inp10 Santa Tereza D-2h
-        D("86472600", 4),       # inp11 Santa Tereza D-4h
-        A("86472600", 1),       # inp12 Santa Tereza A-1h
-        A("86472600", 2),       # inp13 Santa Tereza A-2h
-        A("86472600", 4),       # inp14 Santa Tereza A-4h
-        A("86472600", 12),      # inp15 Santa Tereza A-12h
-    ]
-    return inputs, st0
-
-def montar_inputs_4h_cascata_2h_alt(series, t):
-    """Modelo 4h em cascata: inputs 4h + delta da RNA 2h oculta de treinamento."""
-    inputs4, st0 = montar_inputs_4h(series, t)
+def montar_inputs_4h_cascata_vfinal_dyn9(series, t):
+    """Cascata 4h retreinada em 28/07/2026 sobre o proprio modelo 2h VFINAL ativo
+    (nao mais um modelo 2h interno oculto -- ver auditoria RNAS_AO_VIVO_STZ_MUCUM
+    2026-07-28: a cascata antiga foi treinada com a saida do C0472 mas recebia
+    em runtime a saida do VFINAL, incompativel). 9 inputs: um nucleo de 8 do
+    proprio VFINAL (indices em CASCATA_DYN9_INDICES_VFINAL) mais o delta 2h que
+    o VFINAL prevê para agora -- o mesmo numero que a aba "2h" do site mostra.
+    Alvo do modelo e o INCREMENTO entre +2h e +4h, nao o delta4 direto: o
+    pos-processamento (delta4 = delta2_previsto + incremento_previsto) fica em
+    gerar_saida_modelo(), guiado por cfg["cascata"]["target_mode"]."""
+    x15, st0 = montar_inputs(series, t)
     delta_2h = None
     try:
-        x2h, st2h = montar_inputs_2h_cascata_interno_c0472(series, t)
-        if st2h is not None and all(v is not None for v in x2h):
-            delta_2h = prever(MODELO_2H_CASCATA_INTERNO_MAT, x2h)
+        if st0 is not None and all(v is not None for v in x15):
+            delta_2h = prever(MODELO_MAT, x15)
     except Exception:
         delta_2h = None
-    return inputs4 + [delta_2h], st0
+    inputs9 = [x15[i] for i in CASCATA_DYN9_INDICES_VFINAL] + [delta_2h]
+    return inputs9, st0
 
 def montar_inputs_8h_alt_c0217(series, t):
     """10 inputs do modelo 8h ALT C0217, conforme planilha auditavel."""
@@ -416,8 +413,8 @@ def montar_inputs_modelo(cfg, series, t):
         return montar_inputs(series, t)
     if cfg["montador"] == "4h_alt_prio_12478":
         return montar_inputs_4h(series, t)
-    if cfg["montador"] == "4h_alt_cascata_2h_alt":
-        return montar_inputs_4h_cascata_2h_alt(series, t)
+    if cfg["montador"] == "4h_cascata_vfinal_dyn9":
+        return montar_inputs_4h_cascata_vfinal_dyn9(series, t)
     if cfg["montador"] == "8h_alt_c0217":
         return montar_inputs_8h_alt_c0217(series, t)
     if cfg["montador"] == "12h_alt_c0065":
@@ -497,40 +494,42 @@ def diagnosticar_inputs_faltantes_4h(series, t, inputs):
         })
     return faltantes
 
-def diagnosticar_inputs_faltantes_2h_cascata_interno(series, t, inputs):
-    especificacoes = [
+def diagnosticar_inputs_faltantes_4h_cascata_vfinal_dyn9(series, t, inputs):
+    """A cascata DYN9_INC usa um subconjunto dos 15 inputs do proprio VFINAL
+    (ver CASCATA_DYN9_INDICES_VFINAL) mais o delta 2h que o VFINAL preve --
+    reaproveita o diagnostico padrao de 15 inputs, restrito aos indices usados,
+    e reporta o delta 2h como dependendo dos 15 inputs completos (o VFINAL
+    precisa de todos pra rodar, mesmo que a cascata em si so use 8 deles)."""
+    especificacoes_15 = [
         ("inp01", "Santa Tereza - nivel atual", "86472600", [0]),
         ("inp02", "Santa Tereza - nivel D-1h", "86472600", [0, 1]),
-        ("inp03", "Linha Jose Julio - nivel atual", "86472000", [0]),
-        ("inp04", "Linha Jose Julio - nivel D-5h", "86472000", [0, 5]),
-        ("inp05", "Linha Jose Julio - aceleracao A-20h", "86472000", [0, 1, 20, 21]),
-        ("inp06", "Ituim - nivel atual", "86125130", [0]),
-        ("inp07", "Ituim - nivel D-12h", "86125130", [0, 12]),
-        ("inp08", "Carreiro - nivel atual", "86507000", [0]),
-        ("inp09", "Carreiro - nivel D-16h", "86507000", [0, 16]),
-        ("inp10", "Santa Tereza - nivel D-2h", "86472600", [0, 2]),
-        ("inp11", "Santa Tereza - nivel D-4h", "86472600", [0, 4]),
-        ("inp12", "Santa Tereza - aceleracao A-1h", "86472600", [0, 1, 2]),
-        ("inp13", "Santa Tereza - aceleracao A-2h", "86472600", [0, 1, 2, 3]),
-        ("inp14", "Santa Tereza - aceleracao A-4h", "86472600", [0, 1, 4, 5]),
-        ("inp15", "Santa Tereza - aceleracao A-12h", "86472600", [0, 1, 12, 13]),
+        ("inp03", "Santa Tereza - nivel D-2h", "86472600", [0, 2]),
+        ("inp04", "Santa Tereza - nivel D-4h", "86472600", [0, 4]),
+        ("inp05", "Santa Tereza - aceleracao A-1h", "86472600", [0, 1, 2]),
+        ("inp06", "Santa Tereza - aceleracao A-2h", "86472600", [0, 1, 2, 3]),
+        ("inp07", "Santa Tereza - aceleracao A-4h", "86472600", [0, 1, 4, 5]),
+        ("inp08", "Santa Tereza - aceleracao A-8h", "86472600", [0, 1, 8, 9]),
+        ("inp09", "Santa Tereza - aceleracao A-12h", "86472600", [0, 1, 12, 13]),
+        ("inp10", "Linha Jose Julio / Rio das Antas - nivel atual", "86472000", [0]),
+        ("inp11", "Linha Jose Julio / Rio das Antas - nivel D-1h", "86472000", [0, 1]),
+        ("inp12", "Linha Jose Julio / Rio das Antas - nivel D-2h", "86472000", [0, 2]),
+        ("inp13", "Linha Jose Julio / Rio das Antas - nivel D-5h", "86472000", [0, 5]),
+        ("inp14", "Linha Jose Julio / Rio das Antas - aceleracao A-12h", "86472000", [0, 1, 12, 13]),
+        ("inp15", "Linha Jose Julio / Rio das Antas - aceleracao A-20h", "86472000", [0, 1, 20, 21]),
     ]
-    return diagnosticar_inputs_por_especificacoes(series, t, inputs, especificacoes)
-
-def diagnosticar_inputs_faltantes_4h_cascata_2h_alt(series, t, inputs):
-    faltantes = diagnosticar_inputs_faltantes_4h(series, t, inputs[:5])
-    if len(inputs) > 5 and inputs[5] is None:
-        dependencias = []
+    especificacoes = [especificacoes_15[i] for i in CASCATA_DYN9_INDICES_VFINAL]
+    faltantes = diagnosticar_inputs_por_especificacoes(series, t, inputs[:-1], especificacoes)
+    if len(inputs) > len(CASCATA_DYN9_INDICES_VFINAL) and inputs[-1] is None:
         try:
-            x2h, _ = montar_inputs_2h_cascata_interno_c0472(series, t)
-            dependencias = diagnosticar_inputs_faltantes_2h_cascata_interno(series, t, x2h)
+            x15, _ = montar_inputs(series, t)
+            dependencias = diagnosticar_inputs_faltantes(series, t, x15)
         except Exception as e:
-            dependencias = [{"input": "RNA_2H", "descricao": f"falha ao montar RNA 2h: {e}"}]
+            dependencias = [{"input": "RNA_2H_VFINAL", "descricao": f"falha ao montar 2h VFINAL: {e}"}]
         faltantes.append({
-            "input": "inp06",
-            "descricao": "delta previsto pela RNA 2h usado como input da cascata 4h",
-            "estacao": "RNA_2H",
-            "estacao_nome": "RNA Santa Tereza 2h ALT",
+            "input": "inp09",
+            "descricao": "delta previsto pela RNA 2h VFINAL (mesmo modelo da aba 2h)",
+            "estacao": "RNA_2H_VFINAL",
+            "estacao_nome": "RNA Santa Tereza 2h VFINAL",
             "horarios_necessarios": [t.isoformat(timespec="minutes")],
             "horarios_faltantes": [t.isoformat(timespec="minutes")],
             "dependencias_faltantes": dependencias,
@@ -614,8 +613,8 @@ def diagnosticar_inputs_faltantes_12h(series, t, inputs):
 def diagnosticar_inputs_modelo(cfg, series, t, inputs):
     if cfg["montador"] == "4h_alt_prio_12478":
         return diagnosticar_inputs_faltantes_4h(series, t, inputs)
-    if cfg["montador"] == "4h_alt_cascata_2h_alt":
-        return diagnosticar_inputs_faltantes_4h_cascata_2h_alt(series, t, inputs)
+    if cfg["montador"] == "4h_cascata_vfinal_dyn9":
+        return diagnosticar_inputs_faltantes_4h_cascata_vfinal_dyn9(series, t, inputs)
     if cfg["montador"] == "8h_alt_c0217":
         return diagnosticar_inputs_faltantes_8h(series, t, inputs)
     if cfg["montador"] == "12h_alt_c0065":
@@ -684,6 +683,38 @@ def prever(mat_path, x):
         h = logsig(wh.dot(pn) + bh)
         yn = logsig(np.asarray(ws).ravel().dot(h) + bs)
     return float(np.asarray(yn).ravel()[0] * au + bu)  # variação prevista (cm)
+
+def sha256_arquivo(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for bloco in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(bloco)
+    return h.hexdigest().upper()
+
+def cascata_compativel(cfg):
+    """Trava de compatibilidade (auditoria 2026-07-28): a cascata so pode
+    publicar numero se o hash do modelo 2h que ela foi treinada pra consumir
+    (gravado dentro do proprio .mat como upstream_model_sha256) bater com o
+    modelo 2h REALMENTE ativo agora (MODELO_MAT). Se um modelo 2h novo for
+    trocado no site sem retreinar/trocar a cascata junto, essa checagem pega
+    a divergencia e a cascata fica indisponivel em vez de publicar um numero
+    de novo incompativel (o mesmo erro que gerou a cascata REPROVADA de
+    28/07: treinada com C0472, alimentada com VFINAL em runtime)."""
+    try:
+        m = loadmat(cfg["mat"], squeeze_me=True)
+        hash_esperado = str(m["upstream_model_sha256"]).strip().upper()
+    except Exception as e:
+        return False, f"nao foi possivel ler o hash esperado do .mat da cascata: {e}"
+    try:
+        hash_ativo = sha256_arquivo(MODELO_MAT)
+    except Exception as e:
+        return False, f"nao foi possivel calcular o hash do modelo 2h ativo: {e}"
+    if hash_esperado != hash_ativo:
+        return False, (
+            "cascata indisponivel: o modelo 2h ativo mudou desde que a cascata foi "
+            f"treinada (SHA-256 esperado {hash_esperado[:12]}..., ativo {hash_ativo[:12]}...)"
+        )
+    return True, None
 
 def escrever(nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes=None, estacoes_status=None):
     consultado_em = agora_brt()
@@ -865,17 +896,36 @@ def resumo_auditoria(registros, horizonte):
     }
 
 def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
+    if cfg.get("cascata", {}).get("target_mode"):
+        compativel, motivo = cascata_compativel(cfg)
+        if not compativel:
+            out = _base_saida(cfg, None, None, t, motivo, aviso, [], estacoes_status)
+            out["disponivel"] = False
+            return out
     try:
         x, st0 = montar_inputs_modelo(cfg, series, t)
     except Exception as e:
-        return _base_saida(cfg, None, None, t, f"falha ao montar inputs: {e}", aviso, [], estacoes_status)
+        out = _base_saida(cfg, None, None, t, f"falha ao montar inputs: {e}", aviso, [], estacoes_status)
+        out["disponivel"] = True
+        return out
     if st0 is None or any(v is None for v in x):
         faltando = sum(v is None for v in x)
         inputs_faltantes = diagnosticar_inputs_modelo(cfg, series, t, x)
-        return _base_saida(cfg, st0, None, t, f"inputs incompletos ({faltando}/{cfg['inputs_total']} faltando) - sem previsao nesta hora", aviso, inputs_faltantes, estacoes_status)
+        out = _base_saida(cfg, st0, None, t, f"inputs incompletos ({faltando}/{cfg['inputs_total']} faltando) - sem previsao nesta hora", aviso, inputs_faltantes, estacoes_status)
+        out["disponivel"] = True
+        return out
     try:
-        delta = prever(cfg["mat"], x)
+        delta_bruto = prever(cfg["mat"], x)
+        target_mode = cfg.get("cascata", {}).get("target_mode")
+        if target_mode == "INCREMENTO_2A4":
+            # x[-1] e o proprio delta 2h previsto pelo VFINAL (ultimo input da
+            # cascata, ver montar_inputs_4h_cascata_vfinal_dyn9); o modelo so
+            # aprendeu o INCREMENTO adicional entre +2h e +4h.
+            delta = float(x[-1]) + delta_bruto
+        else:
+            delta = delta_bruto
         out = _base_saida(cfg, st0, st0 + delta, t, "ok", aviso, [], estacoes_status)
+        out["disponivel"] = True
         out["delta_previsto_cm"] = round(delta, 1)
         if cfg.get("cascata"):
             out["modo_cascata"] = True
@@ -883,11 +933,13 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
             out["modelo_base_2h_oculto"] = bool(cfg["cascata"].get("modelo_base_oculto"))
             out["input_cascata_nome"] = cfg["cascata"]["input_nome"]
             out["input_cascata_2h_cm"] = round(float(x[-1]), 1)
-            out["observacao_cascata"] = "Modelo 4h ALT alimentado por uma RNA 2h ALT interna, compatível com o treinamento da cascata e não exibida no site."
+            out["observacao_cascata"] = "Modelo 4h ALT retreinado em 28/07/2026 sobre o proprio 2h VFINAL ativo no site (nao mais um modelo interno oculto). Compatibilidade checada por SHA-256 a cada rodada."
         out["passos"] = [[out["hora_modelo"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
         return out
     except Exception as e:
-        return _base_saida(cfg, st0, None, t, f"falha no modelo: {e}", aviso, [], estacoes_status)
+        out = _base_saida(cfg, st0, None, t, f"falha no modelo: {e}", aviso, [], estacoes_status)
+        out["disponivel"] = True
+        return out
 
 def escolher_hora_modelo(cfg, series, horas_st):
     """Usa a hora mais recente em que todos os inputs do modelo existem."""

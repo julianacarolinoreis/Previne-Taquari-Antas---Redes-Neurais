@@ -603,7 +603,11 @@ function liveFromEvent(key, tipo){
 function updateLiveHzButtons(){
   const hs=liveData&&liveData.horizontes?liveData.horizontes:{};
   document.querySelectorAll('[data-live-hz]').forEach(b=>{
-    const ok=!!hs[b.dataset.liveHz];
+    const D=hs[b.dataset.liveHz];
+    // disponivel===false = trava de incompatibilidade (ex.: SHA-256 da cascata
+    // nao bate mais com o modelo 2h ativo) -- esconde o botao por completo, e
+    // nao so "sem previsao nesta hora" (que ainda mostra o botao com aviso).
+    const ok=!!D && D.disponivel!==false;
     b.style.display=ok?'':'none';
     b.classList.toggle('on',b.dataset.liveHz===liveHz);
   });
