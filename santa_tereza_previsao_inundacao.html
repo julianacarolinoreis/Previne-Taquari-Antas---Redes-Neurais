@@ -87,7 +87,7 @@
   .legend .row2{display:flex;align-items:center;gap:8px}
   .legend .sw{width:22px;height:12px;border-radius:3px;flex:0 0 auto}
   .legend .sw.a{background:linear-gradient(90deg,#8fc0ff,#123f9e)}
-  .legend .sw.b{background:rgba(232,115,12,.55);border:1px solid #b06a12}
+  .legend .sw.b{background:rgba(255,138,0,.62);border:2px solid #ff8a00}
   .legend .sw.u{background:repeating-linear-gradient(45deg,rgba(232,115,12,.25),rgba(232,115,12,.25) 3px,transparent 3px,transparent 6px);border:1px dashed #d98a3a}
   .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:10px}
   .banner{position:absolute;z-index:500;left:10px;top:10px;background:#fff4e5;color:#8a5a12;border:1px solid #f0d9b5;border-radius:8px;padding:7px 11px;font-size:12px;max-width:66%}
@@ -195,7 +195,7 @@
       <details class="card"><summary>Legenda e confiança</summary><div class="body">
         <div class="legend">
           <div class="row2"><span class="sw a"></span>área já alagada (nível atual)</div>
-          <div class="row2"><span class="sw b"></span>área que <b>ainda está seca</b> mas pode ser atingida</div>
+          <div class="row2"><span class="sw b"></span><b>alcance previsto pela RNA</b> (laranja)</div>
           <div class="row2"><span class="sw u"></span>faixa de incerteza (a borda pode variar)</div>
         </div>
         <div class="disc">A <b>confiança</b> cai quanto maior o horizonte (2 h é mais confiável que 12 h). A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata. Base: MDT ANADEM 30 m (prova de conceito); precisão fina depende de LiDAR e calibração com cheias observadas.</div>
@@ -251,7 +251,9 @@ const COTA_INUND=1500;
 const COLS=HAND.cols, ROWS=HAND.rows;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
 const CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_mancha.json';
-let contornos=null, nowLayer=null, foreLayer=null, uncLayer=null;
+const ELEVATION_URL='assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m.json';
+let contornos=null, nowLayer=null, foreLayer=null, foreOutlineLayer=null, uncLayer=null;
+let elevationMeta=null, elevationArr=null;
 const latC=(HAND.S+HAND.N)/2;
 // cellHa calculado do proprio raster (bounds/COLS/ROWS) -- antes era um
 // literal fixo (0,0835 ha, do tamanho de celula do ANADEM 30m antigo)
@@ -422,11 +424,35 @@ function loadHand(){return new Promise(res=>{
 
 function loadContornos(){return fetch(CONTORNOS_URL).then(r=>r.json()).then(fc=>{contornos=fc;}).catch(e=>{console.error('falha ao carregar contornos', e); contornos=null;});}
 
+function loadElevation(){return fetch(ELEVATION_URL).then(r=>{
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}).then(meta=>new Promise(resolve=>{
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas'); c.width=meta.cols; c.height=meta.rows;
+    const ctx=c.getContext('2d',{willReadFrequently:true}); ctx.drawImage(img,0,0);
+    elevationMeta=meta; elevationArr=ctx.getImageData(0,0,meta.cols,meta.rows).data;
+    resolve();
+  };
+  img.onerror=()=>{elevationMeta=null;elevationArr=null;resolve();};
+  img.src=new URL(meta.png,new URL(ELEVATION_URL,document.baseURI)).href;
+})).catch(e=>{console.error('falha ao carregar altitude',e);elevationMeta=null;elevationArr=null;});}
+
 function stageToHand(cm){return (cm-bankfull)/100;}
 function handAt(lat,lon){ // decimetros no ponto, ou null
   const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*COLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*ROWS);
   if(fx<0||fx>=COLS||fy<0||fy>=ROWS) return null;
   return handArr[fy*COLS+fx];
+}
+function elevationAt(lat,lon){
+  if(!elevationMeta||!elevationArr) return null;
+  const m=elevationMeta;
+  const fx=Math.floor((lon-m.W)/(m.E-m.W)*m.cols), fy=Math.floor((m.N-lat)/(m.N-m.S)*m.rows);
+  if(fx<0||fx>=m.cols||fy<0||fy>=m.rows) return null;
+  const i=(fy*m.cols+fx)*4;
+  if(elevationArr[i+3]===0) return null;
+  return ((elevationArr[i]<<8)|elevationArr[i+1])*(m.escala||0.1);
 }
 function achaFeature(mLvl){
   if(!contornos||mLvl==null||!Number.isFinite(mLvl)||mLvl<0) return null;
@@ -457,6 +483,7 @@ function renderFrame(){
   if(uncLayer) setLayer(uncLayer, hasFore?uMaxDm/10:-1);
   const areaFore=foreLayer?setLayer(foreLayer, hasFore?foreDm/10:-1):0;
   const areaNow=nowLayer?setLayer(nowLayer, hasNow?nowDm/10:-1):0;
+  if(foreOutlineLayer) setLayer(foreOutlineLayer, hasFore?foreDm/10:-1);
 
   // TP/FP/FN vs observado ainda precisa do raster (comparacao ponto a ponto
   // com o nivel observado) -- so roda quando tem observado
@@ -811,7 +838,7 @@ async function init(){
   document.getElementById('live-btn').onclick=enterLive;
   document.querySelectorAll('[data-live-hz]').forEach(b=>b.onclick=()=>setLiveHorizon(b.dataset.liveHz));
 
-  await Promise.all([loadHand(), loadContornos()]);
+  await Promise.all([loadHand(), loadContornos(), loadElevation()]);
   if(typeof L!=='undefined'){
     map=L.map('map',{scrollWheelZoom:true}).fitBounds(BOUNDS);
     const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'© Esri, Maxar'});
@@ -825,10 +852,16 @@ async function init(){
       {'Rótulos':labels,'Estações hidrotelemétricas':telemetryLayer},
       {position:'topright'}
     ).addTo(map);
-    // 3 camadas empilhadas: incerteza (embaixo, mais fraca) -> previsto (meio) -> agora (em cima, solida)
-    uncLayer=L.geoJSON(null,{style:{color:'transparent',weight:0,fillColor:'#ec8c2c',fillOpacity:.18}}).addTo(map);
-    foreLayer=L.geoJSON(null,{style:{color:'#e8730c',weight:1.5,fillColor:'#ec8c2c',fillOpacity:.45}}).addTo(map);
-    nowLayer=L.geoJSON(null,{style:{color:'#123f9e',weight:1.5,fillColor:'#4a7bdb',fillOpacity:.6}}).addTo(map);
+    // A borda prevista fica sempre acima do azul para a RNA continuar visível,
+    // mesmo quando a mancha futura coincide com a atual ou fica contida nela.
+    map.createPane('predictionUncertaintyPane').style.zIndex=410;
+    map.createPane('predictionFillPane').style.zIndex=420;
+    map.createPane('currentFloodPane').style.zIndex=430;
+    map.createPane('predictionOutlinePane').style.zIndex=440;
+    uncLayer=L.geoJSON(null,{pane:'predictionUncertaintyPane',style:{color:'transparent',weight:0,fillColor:'#ff8a00',fillOpacity:.2}}).addTo(map);
+    foreLayer=L.geoJSON(null,{pane:'predictionFillPane',style:{color:'#ff8a00',weight:1.5,fillColor:'#ff8a00',fillOpacity:.58}}).addTo(map);
+    nowLayer=L.geoJSON(null,{pane:'currentFloodPane',style:{color:'#123f9e',weight:1.5,fillColor:'#4a7bdb',fillOpacity:.62}}).addTo(map);
+    foreOutlineLayer=L.geoJSON(null,{pane:'predictionOutlinePane',style:{color:'#ff8a00',weight:3.5,opacity:1,fill:false,fillOpacity:0,dashArray:'9 6',lineCap:'round'}}).addTo(map);
     const st=HAND.station, pt=HAND.ponte;
     TELEMETRY_STATIONS.forEach(meta=>{
       const target=meta.code==='86472600';
@@ -864,15 +897,21 @@ async function init(){
     };
     stationControl.addTo(map);
     if(pt) L.circleMarker([pt.lat,pt.lon],{radius:6,color:'#fff',weight:2,fillColor:'#b04538',fillOpacity:.95}).addTo(map).bindPopup('<b>'+pt.label+'</b>');
-    // clique no mapa -> profundidade humana no ponto
+    // clique no mapa -> altitude do MDT e profundidade de água no ponto
     map.on('click', e=>{
-      if(!curS) return; const hd=handAt(e.latlng.lat,e.latlng.lng); if(hd==null) return;
-      const pointHand=hd/10, ev=EVENTS[curEv];
-      const dNow=stageToHand(curS[1])-pointHand, dFore=curS[3]!=null?stageToHand(curS[3])-pointHand:null;
-      const fmt=d=>d>0.03?('<b class="pf">'+nf1.format(d*100)+' cm</b>'):'seco';
-      const hz=ev.horizonte==='—'?'':' (+'+ev.horizonte+')';
-      let html='<div class="pt-pop"><b>Neste ponto</b><br>Agora: '+(dNow>0.03?nf1.format(dNow*100)+' cm de água':'sem inundação estimada');
-      if(dFore!=null) html+='<br>Previsto'+hz+': '+fmt(dFore);
+      const hd=handAt(e.latlng.lat,e.latlng.lng), elev=elevationAt(e.latlng.lat,e.latlng.lng);
+      if(hd==null&&elev==null) return;
+      let html='<div class="pt-pop"><b>Neste ponto</b>';
+      html+='<br><b>Altitude do terreno (MDT): '+(elev!=null?nf1.format(elev)+' m':'indisponível')+'</b>';
+      if(curS&&hd!=null){
+        const pointHand=hd/10, ev=EVENTS[curEv];
+        const dNow=stageToHand(curS[1])-pointHand, dFore=curS[3]!=null?stageToHand(curS[3])-pointHand:null;
+        const fmt=d=>d>0.03?('<b class="pf">'+nf1.format(d*100)+' cm</b>'):'sem inundação prevista';
+        const hz=ev.horizonte==='—'?'':' (+'+ev.horizonte+')';
+        html+='<br>Agora: '+(dNow>0.03?nf1.format(dNow*100)+' cm de água':'sem inundação estimada');
+        if(dFore!=null) html+='<br>RNA'+hz+': '+fmt(dFore);
+      }
+      html+='<br><small>Coordenadas: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small>';
       html+='</div>';
       L.popup({closeButton:true}).setLatLng(e.latlng).setContent(html).openOn(map);
     });

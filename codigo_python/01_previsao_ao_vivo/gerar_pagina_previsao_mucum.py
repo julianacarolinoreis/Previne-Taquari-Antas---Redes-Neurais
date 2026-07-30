@@ -106,6 +106,8 @@ def main():
         ("previsao_ao_vivo.json", "previsao_ao_vivo_mucum.json"),
         ("assets/data/santa_tereza_inundacao/contornos_mancha.json",
          "assets/data/mucum_inundacao/contornos_mancha.json"),
+        ("assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m.json",
+         "assets/data/mucum_inundacao/mdt/altitude_terreno_10m.json"),
         ("cota de inundação · 15 m", "cota de inundação · 18 m"),
         ('<b id="s-cota">15,00 m</b>', '<b id="s-cota">18,00 m</b>'),
         ("O nível normal usado na mancha foi estimado pelo MDT ANADEM 30 m em ~405 cm e arredondado para 400 cm. A cota de inundação oficial permanece 15 m (SGB/SACE). O refinamento depende de validação com mancha observada.",

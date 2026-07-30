@@ -177,8 +177,9 @@
 const HAND=JSON.parse(document.getElementById('hand-data').textContent);
 const COLS=HAND.cols, ROWS=HAND.rows;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
-let handArr=null, map, waterLayer, contornos=null;
+let handArr=null, map, waterLayer, contornos=null, elevationMeta=null, elevationArr=null;
 const CONTORNOS_URL='assets/data/mucum_inundacao/contornos_mancha.json';
+const ELEVATION_URL='assets/data/mucum_inundacao/mdt/altitude_terreno_10m.json';
 const nf=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
 const nf1=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
 function set(id,v){const e=document.getElementById(id); if(e)e.textContent=v;}
@@ -202,10 +203,32 @@ function loadHand(){return new Promise(res=>{
 
 function loadContornos(){return fetch(CONTORNOS_URL).then(r=>r.json()).then(fc=>{contornos=fc;}).catch(e=>{console.error('falha ao carregar contornos', e); contornos=null;});}
 
+function loadElevation(){return fetch(ELEVATION_URL).then(r=>r.json()).then(meta=>new Promise(res=>{
+  elevationMeta=meta;
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas'); c.width=meta.cols; c.height=meta.rows;
+    const x=c.getContext('2d'); x.drawImage(img,0,0);
+    elevationArr=x.getImageData(0,0,meta.cols,meta.rows).data;
+    res();
+  };
+  img.onerror=()=>{elevationArr=null;res();};
+  img.src=new URL(meta.png,new URL(ELEVATION_URL,document.baseURI)).href;
+})).catch(e=>{console.error('falha ao carregar altitude',e);elevationMeta=null;elevationArr=null;});}
+
 function handAt(lat,lon){
   const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*COLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*ROWS);
   if(fx<0||fx>=COLS||fy<0||fy>=ROWS) return null;
   return handArr[fy*COLS+fx];
+}
+function elevationAt(lat,lon){
+  if(!elevationMeta||!elevationArr) return null;
+  const fx=Math.floor((lon-elevationMeta.bounds.west)/(elevationMeta.bounds.east-elevationMeta.bounds.west)*elevationMeta.cols);
+  const fy=Math.floor((elevationMeta.bounds.north-lat)/(elevationMeta.bounds.north-elevationMeta.bounds.south)*elevationMeta.rows);
+  if(fx<0||fx>=elevationMeta.cols||fy<0||fy>=elevationMeta.rows) return null;
+  const i=(fy*elevationMeta.cols+fx)*4;
+  if(elevationArr[i+3]===0) return null;
+  return (elevationArr[i]*256+elevationArr[i+1])*elevationMeta.scale_m;
 }
 function achaFeature(mLvl){
   if(!contornos) return null;
@@ -225,7 +248,7 @@ function render(mLvl){
   set('r-dep', nf1.format(maxDep/10)+' m');
 }
 (async function(){
-  await Promise.all([loadHand(), loadContornos()]);
+  await Promise.all([loadHand(), loadContornos(), loadElevation()]);
   map=L.map('map',{scrollWheelZoom:true}).fitBounds(BOUNDS);
   const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'Esri, Maxar'});
   const labels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
@@ -241,10 +264,15 @@ function render(mLvl){
     lvl.value=b.dataset.m; render(parseFloat(b.dataset.m));
     document.querySelectorAll('#scn button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); }));
   document.querySelectorAll('.method .step').forEach(s=>s.addEventListener('click',()=>set('method-exp',s.dataset.exp)));
-  map.on('click',e=>{ const hd=handAt(e.latlng.lat,e.latlng.lng); if(hd==null)return;
-    const cur=parseFloat(lvl.value)*10; const dep=cur-hd;
-    L.popup().setLatLng(e.latlng).setContent('<div class="pt-pop">Altura acima do leito: <b>'+nf1.format(hd/10)+' m</b><br>'+
-      (dep>0?'Profundidade neste nível: <b class="pf">'+nf1.format(dep/10)+' m</b>':'<b>seco</b> neste nível')+'</div>').openOn(map);
+  map.on('click',e=>{ const hd=handAt(e.latlng.lat,e.latlng.lng), altitude=elevationAt(e.latlng.lat,e.latlng.lng);
+    if(hd==null&&altitude==null)return;
+    const cur=parseFloat(lvl.value)*10, dep=hd==null?null:cur-hd;
+    let html='<div class="pt-pop"><b>Neste ponto</b>';
+    if(altitude!=null) html+='<br><b>Altitude do terreno (MDT): '+nf1.format(altitude)+' m</b>';
+    if(hd!=null) html+='<br>Altura acima do leito: <b>'+nf1.format(hd/10)+' m</b><br>'+
+      (dep>0?'Profundidade neste nível: <b class="pf">'+nf1.format(dep/10)+' m</b>':'<b>seco</b> neste nível');
+    html+='<br><small>'+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small></div>';
+    L.popup().setLatLng(e.latlng).setContent(html).openOn(map);
   });
   render(6);
 })();
