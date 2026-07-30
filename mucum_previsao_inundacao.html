@@ -905,9 +905,11 @@ async function init(){
       if(curS&&hd!=null){
         const pointHand=hd/10, ev=EVENTS[curEv];
         const dNow=stageToHand(curS[1])-pointHand, dFore=curS[3]!=null?stageToHand(curS[3])-pointHand:null;
-        const fmt=d=>d>0.03?('<b class="pf">'+nf1.format(d*100)+' cm</b>'):'sem inundação prevista';
+        const NA_BORDA=0.30;   // ±30 cm de lâmina ~ limite do raster de 2 m
+        const fmt=d=>d>0.03?('<b class="pf">'+nf1.format(d*100)+' cm</b>')
+          :(d>-NA_BORDA?'<b>no limite da mancha</b>':'sem inundação prevista');
         const hz=ev.horizonte==='—'?'':' (+'+ev.horizonte+')';
-        html+='<br>Agora: '+(dNow>0.03?nf1.format(dNow*100)+' cm de água':'sem inundação estimada');
+        html+='<br>Agora: '+(dNow>0.03?nf1.format(dNow*100)+' cm de água':(dNow>-NA_BORDA?'<b>no limite da mancha</b>':'sem inundação estimada'));
         if(dFore!=null) html+='<br>RNA'+hz+': '+fmt(dFore);
       }
       html+='<br><small>Coordenadas: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small>';
