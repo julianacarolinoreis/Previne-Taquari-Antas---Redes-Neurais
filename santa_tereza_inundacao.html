@@ -80,7 +80,7 @@
   .legend .row2{display:flex;align-items:center;gap:8px}
   .legend .sw{width:22px;height:12px;border-radius:3px;flex:0 0 auto}
   .legend .sw.a{background:linear-gradient(90deg,#8fc0ff,#123f9e)}
-  .legend .sw.b{background:rgba(242,122,0,.7);border:2px solid #d65f00}
+  .legend .sw.b{background:rgba(255,138,0,.45);border:1px solid #f07b00}
   .legend .sw.u{background:repeating-linear-gradient(45deg,rgba(232,115,12,.25),rgba(232,115,12,.25) 3px,transparent 3px,transparent 6px);border:1px dashed #d98a3a}
   .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:10px}
   .banner{position:absolute;z-index:500;left:10px;top:10px;background:#fff4e5;color:#8a5a12;border:1px solid #f0d9b5;border-radius:8px;padding:7px 11px;font-size:12px;max-width:66%}
@@ -428,9 +428,9 @@ async function init(){
     map.createPane('currentFloodPane'); map.getPane('currentFloodPane').style.zIndex=430;
     map.createPane('predictionOutlinePane'); map.getPane('predictionOutlinePane').style.zIndex=440;
     uncLayer=L.geoJSON(null,{pane:'uncertaintyPane',style:{color:'transparent',weight:0,fillColor:'#f59e0b',fillOpacity:.2}}).addTo(map);
-    foreLayer=L.geoJSON(null,{pane:'predictionFillPane',style:{color:'#e86600',weight:2,fillColor:'#f47a00',fillOpacity:.58}}).addTo(map);
+    foreLayer=L.geoJSON(null,{pane:'predictionFillPane',style:{color:'#f07b00',weight:.8,fillColor:'#ff8a00',fillOpacity:.42}}).addTo(map);
     nowLayer=L.geoJSON(null,{pane:'currentFloodPane',style:{color:'#123f9e',weight:1.5,fillColor:'#4a7bdb',fillOpacity:.62}}).addTo(map);
-    foreOutlineLayer=L.geoJSON(null,{pane:'predictionOutlinePane',style:{color:'#d95700',weight:3.5,dashArray:'9 6',fill:false,opacity:1}}).addTo(map);
+    foreOutlineLayer=L.geoJSON(null,{pane:'predictionOutlinePane',style:{color:'#f07b00',weight:2,dashArray:'6 5',fill:false,opacity:.92,lineCap:'round'}}).addTo(map);
     const st=HAND.station, pt=HAND.ponte;
     L.circleMarker([st.lat,st.lon],{radius:7,color:'#fff',weight:2,fillColor:'#1e5fbf',fillOpacity:.95}).addTo(map).bindPopup('<b>Estação '+st.code+'</b><br>Santa Tereza');
     if(pt) L.circleMarker([pt.lat,pt.lon],{radius:6,color:'#fff',weight:2,fillColor:'#b04538',fillOpacity:.95}).addTo(map).bindPopup('<b>'+pt.label+'</b>');
