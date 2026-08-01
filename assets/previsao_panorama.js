@@ -116,11 +116,12 @@
       const cm=number(obj.nivel_previsto_cm),hours=horizonHours(key,obj);
       if(cm===null||hours===null||![2,4,8,12].includes(hours)) return;
       let target=parseWhen(obj.hora_alvo);
-      const base=parseWhen(obj.hora_modelo)||(anchor&&anchor.time)||null;
-      if(!target&&base) target=new Date(base.getTime()+hours*60*60*1000);
+      const baseTime=parseWhen(obj.hora_modelo)||(anchor&&anchor.time)||null;
+      const baseCm=number(obj.nivel_modelo_cm);
+      if(!target&&baseTime) target=new Date(baseTime.getTime()+hours*60*60*1000);
       if(!target) return;
       const exact=String(key).toLowerCase()===hours+'h';
-      const candidate={hours,cm,time:target,key,model:obj.modelo||'',exact,alternate:/cascata/i.test(key)};
+      const candidate={hours,cm,time:target,baseTime,baseCm,key,model:obj.modelo||'',exact,alternate:/cascata/i.test(key)};
       const old=picked.get(hours);
       if(!old||candidate.exact||(!old.exact&&!candidate.alternate)) picked.set(hours,candidate);
     });
@@ -265,7 +266,10 @@
     const compact=W<560,m={l:compact?56:68,r:compact?68:82,t:30,b:50};
     const tickCount=compact?4:opts.tickCount;
     svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-    const all=[...points,...items];
+    const bases=items
+      .filter(p=>p.baseTime&&Number.isFinite(p.baseCm))
+      .map(p=>({time:p.baseTime,cm:p.baseCm}));
+    const all=[...points,...items,...bases];
     const times=all.map(p=>p.time.getTime()).filter(Number.isFinite);
     let xMin=opts.windowHours&&anchor?anchor.time.getTime()-opts.windowHours*36e5:Math.min(...times);
     let xMax=Math.max(...times);
@@ -283,7 +287,7 @@
 
     const spanHours=(xMax-xMin)/36e5;
     const descText=items.length
-      ?`Nível do rio observado nas ${opts.periodLabel}. A linha azul mostra observações e cada horizonte de previsão tem cor, traçado, marcador e rótulo próprios.`
+      ?`Nível do rio observado nas ${opts.periodLabel}. A linha azul mostra observações; cada horizonte de previsão parte de sua própria hora-base e tem cor, traçado, marcador e rótulo próprios.`
       :`Nível do rio observado nas ${opts.periodLabel}, em linha azul. Lacunas de telemetria não são ligadas por linhas.`;
     const desc=svgNode('desc',{},descText);
     svg.append(desc);
@@ -321,15 +325,19 @@
       labels.push({x,y,color:observedColor,text:`agora · ${fmtLevel(anchor.cm)}`});
     }
 
-    if(anchor&&items.length){
-      let previous=anchor;
+    if(items.length){
       items.forEach(p=>{
         const x=X(p.time.getTime()),y=Y(p.cm);
-        const px=X(previous.time.getTime()),py=Y(previous.cm),style=forecastStyle(p.hours);
-        svg.appendChild(svgNode('line',{x1:px,y1:py,x2:x,y2:y,fill:'none',stroke:style.color,'stroke-width':3,'stroke-dasharray':style.dash,'stroke-linecap':'round'}));
+        const style=forecastStyle(p.hours);
+        if(p.baseTime&&Number.isFinite(p.baseCm)){
+          const px=X(p.baseTime.getTime()),py=Y(p.baseCm);
+          const baseMark=svgNode('circle',{cx:px,cy:py,r:3.2,fill:style.color,stroke:'var(--panel, #fff)','stroke-width':1.5});
+          baseMark.appendChild(svgNode('title',{},`Base da previsão +${p.hours} h: ${fmtLevel(p.baseCm)} em ${fmtWhen(p.baseTime)}`));
+          svg.appendChild(svgNode('line',{x1:px,y1:py,x2:x,y2:y,fill:'none',stroke:style.color,'stroke-width':3,'stroke-dasharray':style.dash,'stroke-linecap':'round'}));
+          svg.appendChild(baseMark);
+        }
         svg.appendChild(forecastMark(p,x,y,style.color));
         labels.push({x,y,color:style.color,text:`+${p.hours} h · ${fmtLevel(p.cm)}`});
-        previous=p;
       });
     }
     const occupied=[];
