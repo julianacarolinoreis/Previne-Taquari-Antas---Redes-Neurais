@@ -96,22 +96,40 @@ def main():
         ("Santa Tereza · bacia Taquari-Antas", "Muçum · bacia Taquari-Antas"),
         ("A estação 86472600 informa o nível atual do rio em Santa Tereza.",
          "A estação 86510000 informa o nível atual do rio em Muçum; a montante 86472600 (Santa Tereza) entra na RNA com ~16h de trânsito."),
-        ("'<b>Estação '+st.code+'</b><br>Santa Tereza'",
-         "'<b>Estação '+st.code+'</b><br>Muçum'"),
+        ("  {code:'86472600',name:'Santa Tereza',lat:-29.1781,lon:-51.7322,role:'Estação alvo'},\n",
+         "  {code:'86510000',name:'Muçum',lat:-29.1672,lon:-51.8686,role:'Estação alvo'},\n"
+         "  {code:'86472600',name:'Santa Tereza',lat:-29.1781,lon:-51.7322,role:'Montante'},\n"),
+        ("const target=meta.code==='86472600';",
+         "const target=meta.code==='86510000';"),
         ("const COTA_INUND=1500;", f"const COTA_INUND={COTA_INUND_CM};"),
         ("let handArr=null, curEv=Object.keys(EVENTS)[0];\nlet bankfull=400",
          "let handArr=null, curEv=Object.keys(EVENTS)[0];\nlet bankfull=500"),
         ('<input type="range" id="bankfull" min="100" max="700" step="10" value="400"',
          '<input type="range" id="bankfull" min="100" max="900" step="10" value="500"'),
         ("previsao_ao_vivo.json", "previsao_ao_vivo_mucum.json"),
-        ("assets/data/santa_tereza_inundacao/contornos_mancha.json",
-         "assets/data/mucum_inundacao/contornos_mancha.json"),
+        ("historico_previsoes_ao_vivo.json", "historico_previsoes_ao_vivo_mucum.json"),
+        ("assets/data/santa_tereza_inundacao/contornos_extravasamento.json",
+         "assets/data/mucum_inundacao/contornos_extravasamento.json"),
         ("assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m.json",
          "assets/data/mucum_inundacao/mdt/altitude_terreno_10m.json"),
         ("cota de inundação · 15 m", "cota de inundação · 18 m"),
         ('<b id="s-cota">15,00 m</b>', '<b id="s-cota">18,00 m</b>'),
-        ("O nível normal usado na mancha foi estimado pelo MDT ANADEM 30 m em ~405 cm e arredondado para 400 cm. A cota de inundação oficial permanece 15 m (SGB/SACE). O refinamento depende de validação com mancha observada.",
-         "Nível normal (zero da mancha) adotado em 500 cm na régua 86510000. Cota de inundação oficial de Muçum: 18,00 m (1800 cm) — SGB/CPRM, boletim SAH Rio Taquari; cota de atenção 500 cm, de alerta 900 cm. O refinamento depende de validação com mancha observada."),
+        ("O nível normal usado na mancha foi estimado pelo MDT ANADEM 30 m em ~405 cm e arredondado para 400 cm. O contorno HAND 0 é removido da camada colorida para não representar o leito normal como inundação. A cota de inundação oficial permanece 15 m (SGB/SACE). O refinamento depende de máscara observada do leito e validação com manchas de cheias.",
+         "Nível normal (zero operacional da mancha) adotado provisoriamente em 500 cm na régua 86510000. O contorno HAND 0 é removido da camada colorida para não representar o leito normal como inundação. A cota de inundação oficial de Muçum é 18,00 m (1800 cm) — SGB/CPRM, boletim SAH Rio Taquari; 500 cm é cota de atenção, não confirmação de inundação. O refinamento depende de máscara observada do leito e validação com manchas de cheias."),
+        ("estação Santa Tereza/SGB-ANA", "estação Muçum/SGB-ANA"),
+        ("Nível do rio informado pela estação 86472600",
+         "Nível do rio informado pela estação 86510000"),
+        ("Padrão provisório calibrado em <b>4,0 m</b>",
+         "Padrão provisório adotado em <b>5,0 m</b>"),
+        ("Estação de Santa Tereza sem dado recente da ANA neste momento",
+         "Estação de Muçum sem dado recente da ANA neste momento"),
+        ("a previsão de 2h/4h/cascata volta assim que a telemetria retornar; o robô tenta a cada ~15 min.",
+         "a previsão de 2h/4h volta assim que a telemetria retornar; o robô tenta a cada ~5 min."),
+        ("bankfull_cm?liveData.bankfull_cm:400",
+         "bankfull_cm?liveData.bankfull_cm:500"),
+        ("bankfull_cm||(liveData&&liveData.bankfull_cm)||400",
+         "bankfull_cm||(liveData&&liveData.bankfull_cm)||500"),
+        ("bankfull_cm||400", "bankfull_cm||500"),
     ]
     for a, b in subs:
         if a not in html:
@@ -121,6 +139,10 @@ def main():
     # 4) qualquer "Santa Tereza" remanescente em texto vira Muçum
     html = html.replace("em Santa Tereza", "em Muçum")
 
+    html = html.replace(
+        "🔴 Ver previsão AO VIVO (teste interno · 2h, 4h e cascata)",
+        "🔴 Ver previsão AO VIVO (teste interno · 2h e 4h)",
+    )
     html = html.replace(
         "🔴 Ver previsão AO VIVO (teste interno · 2h, 4h, cascata, 8h e 12h)",
         "🔴 Ver previsão AO VIVO (teste interno · 2h e 4h)",
