@@ -66,7 +66,17 @@ def validar_html(nome: str, esperado: dict[str, str]) -> None:
     parser.feed(texto)
     duplicados = [item for item, count in Counter(parser.ids).items() if count > 1]
     assert not duplicados, f"{nome}: IDs duplicados: {duplicados}"
-    for required in ("mode-s", "mode-t", "mode-p", "river-overview", "river-level-chart", "overview-metrics"):
+    for required in (
+        "mode-s",
+        "mode-t",
+        "mode-p",
+        "river-overview",
+        "river-level-chart",
+        "river-week-chart",
+        "overview-week-status",
+        "overview-legend",
+        "overview-metrics",
+    ):
         assert required in parser.ids, f"{nome}: falta #{required}"
     assert "assets/previsao_panorama.css" in parser.stylesheets, f"{nome}: CSS do panorama ausente"
     assert "assets/previsao_panorama.js" in parser.scripts, f"{nome}: JS do panorama ausente"
@@ -77,11 +87,35 @@ def validar_html(nome: str, esperado: dict[str, str]) -> None:
     for proibido in esperado.get("forbidden", ()):
         assert proibido not in texto, f"{nome}: fallback herdado incorreto: {proibido}"
     assert "Panorama Geral" in texto
+    assert "Nível do rio nos últimos 7 dias" in texto
     assert "proxy de extravasamento" in texto
     assert "contornos_mancha.json';" not in texto, f"{nome}: ainda usa a mancha que inclui o leito"
     assert len(re.findall(r'id="play"', texto)) == 1, f"{nome}: controle play duplicado"
     assert len(re.findall(r'id="time"', texto)) == 1, f"{nome}: linha do tempo duplicada"
     print(f"OK HTML {nome}: {len(parser.ids)} IDs únicos")
+
+
+def validar_componente_panorama() -> None:
+    js = (RAIZ / "assets/previsao_panorama.js").read_text(encoding="utf-8")
+    css = (RAIZ / "assets/previsao_panorama.css").read_text(encoding="utf-8")
+    for token in (
+        "--panorama-forecast-2",
+        "--panorama-forecast-4",
+        "--panorama-forecast-8",
+        "--panorama-forecast-12",
+    ):
+        assert token in css, f"CSS: falta cor de horizonte {token}"
+    for token in (
+        "river-week-chart",
+        "windowHours:168",
+        "maxGapMs=90*60*1000",
+        "placePointLabel",
+        "renderWeekCoverage",
+        "ResizeObserver",
+    ):
+        assert token in js, f"JS: falta proteção/componente {token}"
+    assert "Nível do rio observado nas últimas 24 horas e previsões ativas da rede neural." not in js, "JS: tooltip global antigo ainda cobre o gráfico"
+    print("OK componente: cores por horizonte, rótulos sem colisão e janela semanal")
 
 
 def validar_geojson(relativo: str) -> None:
@@ -115,6 +149,7 @@ def validar_arquivos_protegidos() -> None:
 def main() -> None:
     for nome, esperado in CASOS.items():
         validar_html(nome, esperado)
+    validar_componente_panorama()
     validar_geojson("assets/data/santa_tereza_inundacao/contornos_extravasamento.json")
     validar_geojson("assets/data/mucum_inundacao/contornos_extravasamento.json")
     validar_arquivos_protegidos()

@@ -2,10 +2,16 @@
   'use strict';
 
   const SVG_NS='http://www.w3.org/2000/svg';
-  const state={config:null,history:null,live:null,historyError:null,historyTimer:null};
+  const state={config:null,history:null,live:null,historyError:null,historyTimer:null,resizeObserver:null,resizeTimer:null};
   const nf0=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
   const nf1=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const FORECAST_STYLES={
+    2:{variable:'--panorama-forecast-2',fallback:'#b85c00',dash:'9 6',shape:'circle'},
+    4:{variable:'--panorama-forecast-4',fallback:'#6c3aa1',dash:'4 5',shape:'diamond'},
+    8:{variable:'--panorama-forecast-8',fallback:'#087665',dash:'12 5',shape:'square'},
+    12:{variable:'--panorama-forecast-12',fallback:'#a52f67',dash:'2 5',shape:'triangle'}
+  };
 
   function number(v){
     return v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v))?Number(v):null;
@@ -75,12 +81,23 @@
       putPoint(points,live.nivel_rio_agora_em,live.nivel_rio_agora_cm,4,'observado');
       putPoint(points,live.telemetria_ultima_em,live.telemetria_ultima_nivel_cm,5,'telemetria ANA');
     }
-    let out=Array.from(points.values()).sort((a,b)=>a.time-b.time);
-    if(!out.length) return out;
-    const lastMs=out[out.length-1].time.getTime();
-    const cutoff=lastMs-24*60*60*1000;
-    const recent=out.filter(p=>p.time.getTime()>=cutoff);
-    return recent.length>=4?recent:out.slice(-24);
+    return Array.from(points.values()).sort((a,b)=>a.time-b.time);
+  }
+
+  function pointsInWindow(points,hours){
+    if(!points.length) return [];
+    const cutoff=points[points.length-1].time.getTime()-hours*60*60*1000;
+    return points.filter(p=>p.time.getTime()>=cutoff);
+  }
+
+  function cssValue(variable,fallback){
+    const value=getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+    return value||fallback;
+  }
+
+  function forecastStyle(hours){
+    const style=FORECAST_STYLES[hours]||FORECAST_STYLES[12];
+    return {...style,color:cssValue(style.variable,style.fallback)};
   }
 
   function horizonHours(key,obj){
@@ -166,22 +183,92 @@
     return el;
   }
 
-  function drawChart(points,items,cota){
-    const svg=document.getElementById('river-level-chart');
-    const empty=document.getElementById('overview-empty');
+  function clamp(value,min,max){
+    return Math.max(min,Math.min(max,value));
+  }
+
+  function boxesOverlap(a,b){
+    const gap=5;
+    return !(a.right+gap<b.left||a.left-gap>b.right||a.bottom+gap<b.top||a.top-gap>b.bottom);
+  }
+
+  function placePointLabel(entry,index,occupied,bounds){
+    const width=clamp(entry.text.length*6.25+16,82,138),height=22;
+    const lanes=[-30,32,-56,58,-82,84];
+    const ordered=[...lanes.slice(index%lanes.length),...lanes.slice(0,index%lanes.length)];
+    const shifts=[0,-width*.42,width*.42];
+    let fallback=null;
+    for(const offset of ordered){
+      for(const shift of shifts){
+        const cx=clamp(entry.x+shift,bounds.left+width/2,bounds.right-width/2);
+        const cy=clamp(entry.y+offset,bounds.top+height/2,bounds.bottom-height/2);
+        const box={left:cx-width/2,right:cx+width/2,top:cy-height/2,bottom:cy+height/2,cx,cy,width,height};
+        fallback=box;
+        if(!occupied.some(other=>boxesOverlap(box,other))){
+          occupied.push(box);
+          return box;
+        }
+      }
+    }
+    occupied.push(fallback);
+    return fallback;
+  }
+
+  function drawPointLabel(svg,entry,index,occupied,bounds){
+    const box=placePointLabel(entry,index,occupied,bounds);
+    const edgeY=box.cy>entry.y?box.top:box.bottom;
+    svg.appendChild(svgNode('line',{x1:entry.x,y1:entry.y,x2:box.cx,y2:edgeY,stroke:entry.color,'stroke-width':1.2,opacity:.72}));
+    svg.appendChild(svgNode('rect',{x:box.left,y:box.top,width:box.width,height:box.height,rx:5,fill:'var(--panel, #fff)',stroke:entry.color,'stroke-width':1.4}));
+    svg.appendChild(svgNode('text',{x:box.cx,y:box.cy+4,'text-anchor':'middle','font-size':11,'font-weight':700,fill:'var(--ink, #1b2c24)'},entry.text));
+  }
+
+  function forecastMark(point,x,y,color){
+    let mark;
+    const shape=forecastStyle(point.hours).shape;
+    if(shape==='diamond') mark=svgNode('rect',{x:x-4.3,y:y-4.3,width:8.6,height:8.6,transform:`rotate(45 ${x} ${y})`,fill:'var(--panel, #fff)',stroke:color,'stroke-width':2.7});
+    else if(shape==='square') mark=svgNode('rect',{x:x-5,y:y-5,width:10,height:10,rx:1,fill:'var(--panel, #fff)',stroke:color,'stroke-width':2.7});
+    else if(shape==='triangle') mark=svgNode('polygon',{points:`${x},${y-5.8} ${x+5.5},${y+4.5} ${x-5.5},${y+4.5}`,fill:'var(--panel, #fff)',stroke:color,'stroke-width':2.7,'stroke-linejoin':'round'});
+    else mark=svgNode('circle',{cx:x,cy:y,r:5,fill:'var(--panel, #fff)',stroke:color,'stroke-width':2.7});
+    mark.appendChild(svgNode('title',{},`Previsão +${point.hours} h: ${fmtLevel(point.cm)} para ${fmtWhen(point.time)}`));
+    return mark;
+  }
+
+  function axisTimeLabel(d,spanHours,crossDay){
+    if(spanHours>72) return d.toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit'});
+    if(crossDay) return d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',',' ');
+    return d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'});
+  }
+
+  function observedPath(points,X,Y){
+    const maxGapMs=90*60*1000;
+    return points.map((p,index)=>{
+      const startsNew=index===0||p.time-points[index-1].time>maxGapMs;
+      return (startsNew?'M':'L')+X(p.time.getTime()).toFixed(1)+','+Y(p.cm).toFixed(1);
+    }).join(' ');
+  }
+
+  function drawChart(points,items,cota,options){
+    const opts=Object.assign({svgId:'river-level-chart',emptyId:'overview-empty',periodLabel:'últimas 24 horas',tickCount:6,emptyText:'Carregando histórico e previsão ao vivo…'},options||{});
+    const svg=document.getElementById(opts.svgId);
+    const empty=document.getElementById(opts.emptyId);
     if(!svg) return;
     svg.replaceChildren();
     const anchor=points.length?points[points.length-1]:null;
     if(!points.length&&!items.length){
-      if(empty){ empty.classList.add('show'); empty.textContent=state.historyError?'Histórico indisponível neste momento. A previsão ao vivo continua sendo consultada.':'Carregando histórico e previsão ao vivo…'; }
+      if(empty){ empty.classList.add('show'); empty.textContent=state.historyError?'Histórico indisponível neste momento. A previsão ao vivo continua sendo consultada.':opts.emptyText; }
       return;
     }
     if(empty) empty.classList.remove('show');
 
-    const W=960,H=320,m={l:68,r:28,t:28,b:48};
+    const measuredWidth=svg.getBoundingClientRect().width;
+    const W=clamp(Math.round(measuredWidth||960),360,960),H=320;
+    const compact=W<560,m={l:compact?56:68,r:compact?68:82,t:30,b:50};
+    const tickCount=compact?4:opts.tickCount;
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
     const all=[...points,...items];
     const times=all.map(p=>p.time.getTime()).filter(Number.isFinite);
-    let xMin=Math.min(...times),xMax=Math.max(...times);
+    let xMin=opts.windowHours&&anchor?anchor.time.getTime()-opts.windowHours*36e5:Math.min(...times);
+    let xMax=Math.max(...times);
     if(xMax<=xMin) xMax=xMin+4*36e5;
     let vals=all.map(p=>p.cm).filter(Number.isFinite);
     let rawMin=Math.min(...vals),rawMax=Math.max(...vals),rawSpan=Math.max(80,rawMax-rawMin);
@@ -194,56 +281,99 @@
     const Y=v=>m.t+(H-m.t-m.b)*(1-(v-yMin)/(yMax-yMin));
     const crossDay=new Date(xMin).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})!==new Date(xMax).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'});
 
-    const title=svgNode('title',{},'Nível do rio observado nas últimas 24 horas e previsões ativas da rede neural.');
-    const desc=svgNode('desc',{},'Linha azul contínua para observações e linha laranja tracejada para previsões de duas, quatro e, quando publicadas, oito e doze horas.');
-    svg.append(title,desc);
+    const spanHours=(xMax-xMin)/36e5;
+    const descText=items.length
+      ?`Nível do rio observado nas ${opts.periodLabel}. A linha azul mostra observações e cada horizonte de previsão tem cor, traçado, marcador e rótulo próprios.`
+      :`Nível do rio observado nas ${opts.periodLabel}, em linha azul. Lacunas de telemetria não são ligadas por linhas.`;
+    const desc=svgNode('desc',{},descText);
+    svg.append(desc);
 
     for(let i=0;i<5;i++){
       const v=yMin+(yMax-yMin)*i/4,y=Y(v);
-      svg.appendChild(svgNode('line',{x1:m.l,y1:y,x2:W-m.r,y2:y,stroke:'#dfe7e2','stroke-width':1}));
-      svg.appendChild(svgNode('text',{x:m.l-10,y:y+4,'text-anchor':'end','font-size':11,fill:'#6c7a72'},nf1.format(v/100)+' m'));
+      svg.appendChild(svgNode('line',{x1:m.l,y1:y,x2:W-m.r,y2:y,stroke:'var(--panorama-grid, #dfe7e2)','stroke-width':1}));
+      svg.appendChild(svgNode('text',{x:m.l-10,y:y+4,'text-anchor':'end','font-size':11,fill:'var(--muted, #6c7a72)'},nf1.format(v/100)+' m'));
     }
-    for(let i=0;i<6;i++){
-      const t=xMin+(xMax-xMin)*i/5,x=X(t),d=new Date(t);
-      const label=d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'});
-      const safeLabel=crossDay?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',',' '):label;
-      svg.appendChild(svgNode('line',{x1:x,y1:m.t,x2:x,y2:H-m.b,stroke:'#edf2ef','stroke-width':1}));
-      svg.appendChild(svgNode('text',{x,y:H-m.b+22,'text-anchor':'middle','font-size':11,fill:'#6c7a72'},safeLabel));
+    for(let i=0;i<tickCount;i++){
+      const t=xMin+(xMax-xMin)*i/(tickCount-1),x=X(t),d=new Date(t);
+      svg.appendChild(svgNode('line',{x1:x,y1:m.t,x2:x,y2:H-m.b,stroke:'var(--panorama-grid-soft, #edf2ef)','stroke-width':1}));
+      svg.appendChild(svgNode('text',{x,y:H-m.b+22,'text-anchor':'middle','font-size':11,fill:'var(--muted, #6c7a72)'},axisTimeLabel(d,spanHours,crossDay)));
     }
-    svg.appendChild(svgNode('text',{x:16,y:(m.t+H-m.b)/2,transform:`rotate(-90 16 ${(m.t+H-m.b)/2})`,'text-anchor':'middle','font-size':11,fill:'#6c7a72'},'Nível do rio (m)'));
+    svg.appendChild(svgNode('text',{x:16,y:(m.t+H-m.b)/2,transform:`rotate(-90 16 ${(m.t+H-m.b)/2})`,'text-anchor':'middle','font-size':11,fill:'var(--muted, #6c7a72)'},'Nível do rio (m)'));
 
     if(showThreshold){
       const y=Y(cota);
-      svg.appendChild(svgNode('line',{x1:m.l,y1:y,x2:W-m.r,y2:y,stroke:'#c0392b','stroke-width':1.5,'stroke-dasharray':'3 5'}));
-      svg.appendChild(svgNode('text',{x:W-m.r,y:y-7,'text-anchor':'end','font-size':11,'font-weight':700,fill:'#a12d25'},'cota oficial '+fmtLevel(cota)));
+      svg.appendChild(svgNode('line',{x1:m.l,y1:y,x2:W-m.r,y2:y,stroke:'var(--panorama-threshold, #c0392b)','stroke-width':1.5,'stroke-dasharray':'3 5'}));
+      svg.appendChild(svgNode('text',{x:W-m.r,y:y-7,'text-anchor':'end','font-size':11,'font-weight':700,fill:'var(--panorama-threshold, #a12d25)'},'cota oficial '+fmtLevel(cota)));
     }
 
     if(points.length>1){
-      const d=points.map((p,i)=>(i?'L':'M')+X(p.time.getTime()).toFixed(1)+','+Y(p.cm).toFixed(1)).join(' ');
-      svg.appendChild(svgNode('path',{d,fill:'none',stroke:'#1e5fbf','stroke-width':3,'stroke-linejoin':'round','stroke-linecap':'round'}));
+      const d=observedPath(points,X,Y);
+      svg.appendChild(svgNode('path',{d,fill:'none',stroke:'var(--panorama-observed, #1e5fbf)','stroke-width':3,'stroke-linejoin':'round','stroke-linecap':'round'}));
     }
+    const labels=[];
     if(anchor){
       const x=X(anchor.time.getTime()),y=Y(anchor.cm);
-      svg.appendChild(svgNode('line',{x1:x,y1:m.t,x2:x,y2:H-m.b,stroke:'#1e5fbf','stroke-width':1,'stroke-dasharray':'2 4',opacity:.55}));
-      const dot=svgNode('circle',{cx:x,cy:y,r:5.5,fill:'#1e5fbf',stroke:'#fff','stroke-width':2});
+      const observedColor=cssValue('--panorama-observed','#1e5fbf');
+      svg.appendChild(svgNode('line',{x1:x,y1:m.t,x2:x,y2:H-m.b,stroke:observedColor,'stroke-width':1,'stroke-dasharray':'2 4',opacity:.55}));
+      const dot=svgNode('circle',{cx:x,cy:y,r:5.5,fill:observedColor,stroke:'var(--panel, #fff)','stroke-width':2});
       dot.appendChild(svgNode('title',{},`Agora: ${fmtLevel(anchor.cm)} em ${fmtWhen(anchor.time)}`));
       svg.appendChild(dot);
-      svg.appendChild(svgNode('text',{x:x+7,y:y-9,'font-size':11,'font-weight':700,fill:'#174f9b'},'agora'));
+      labels.push({x,y,color:observedColor,text:`agora · ${fmtLevel(anchor.cm)}`});
     }
 
     if(anchor&&items.length){
-      const future=[anchor,...items];
-      const d=future.map((p,i)=>(i?'L':'M')+X(p.time.getTime()).toFixed(1)+','+Y(p.cm).toFixed(1)).join(' ');
-      svg.appendChild(svgNode('path',{d,fill:'none',stroke:'#e8730c','stroke-width':3,'stroke-dasharray':'8 6','stroke-linejoin':'round','stroke-linecap':'round'}));
-      items.forEach((p,i)=>{
+      let previous=anchor;
+      items.forEach(p=>{
         const x=X(p.time.getTime()),y=Y(p.cm);
-        const dot=svgNode('circle',{cx:x,cy:y,r:5,fill:'#fff',stroke:'#e8730c','stroke-width':3});
-        dot.appendChild(svgNode('title',{},`Previsão +${p.hours}h: ${fmtLevel(p.cm)} para ${fmtWhen(p.time)}`));
-        svg.appendChild(dot);
-        const labelY=i%2?y+22:y-12;
-        svg.appendChild(svgNode('text',{x,y:labelY,'text-anchor':'middle','font-size':11,'font-weight':750,fill:'#a55209'},`+${p.hours}h · ${fmtLevel(p.cm)}`));
+        const px=X(previous.time.getTime()),py=Y(previous.cm),style=forecastStyle(p.hours);
+        svg.appendChild(svgNode('line',{x1:px,y1:py,x2:x,y2:y,fill:'none',stroke:style.color,'stroke-width':3,'stroke-dasharray':style.dash,'stroke-linecap':'round'}));
+        svg.appendChild(forecastMark(p,x,y,style.color));
+        labels.push({x,y,color:style.color,text:`+${p.hours} h · ${fmtLevel(p.cm)}`});
+        previous=p;
       });
     }
+    const occupied=[];
+    labels.forEach((entry,index)=>drawPointLabel(svg,entry,index,occupied,{left:m.l,right:W-m.r,top:m.t,bottom:H-m.b}));
+  }
+
+  function legendEntry(label,className){
+    const span=document.createElement('span');
+    const swatch=document.createElement('i');
+    swatch.className='legend-line '+className;
+    span.append(swatch,document.createTextNode(label));
+    return span;
+  }
+
+  function renderLegend(items){
+    const box=document.getElementById('overview-legend');
+    if(!box) return;
+    box.replaceChildren(legendEntry('Nível observado','observed'));
+    items.forEach(point=>box.appendChild(legendEntry(`Previsão +${point.hours} h`,`forecast horizon-${point.hours}`)));
+    box.appendChild(legendEntry('Cota oficial, quando próxima da escala','threshold'));
+  }
+
+  function renderWeekCoverage(points){
+    const status=document.getElementById('overview-week-status');
+    const accessible=document.getElementById('overview-week-accessible');
+    if(!status&&!accessible) return;
+    if(!points.length){
+      if(status) status.textContent='Ainda não há observações disponíveis para esta janela.';
+      if(accessible) accessible.textContent='Gráfico semanal sem observações disponíveis.';
+      return;
+    }
+    const first=points[0],last=points[points.length-1];
+    const desiredStart=last.time.getTime()-168*36e5;
+    const missingStart=first.time.getTime()-desiredStart>90*60*1000;
+    const gaps=[];
+    for(let i=1;i<points.length;i++){
+      if(points[i].time-points[i-1].time>90*60*1000) gaps.push([points[i-1],points[i]]);
+    }
+    const parts=[];
+    if(missingStart) parts.push(`Histórico disponível desde ${fmtWhen(first.time)}; o trecho anterior da janela permanece vazio`);
+    else parts.push('Janela de sete dias disponível');
+    if(gaps.length) parts.push(`${gaps.length} ${gaps.length===1?'lacuna aparece':'lacunas aparecem'} sem linha para não simular dados ausentes`);
+    if(status) status.textContent=parts.join('. ')+'.';
+    if(accessible) accessible.textContent=`Histórico do nível do rio de ${fmtWhen(first.time)} até ${fmtWhen(last.time)}, com ${points.length} observações. ${parts.join('. ')}.`;
   }
 
   function renderMetrics(current,items,trend,flood,cota){
@@ -251,7 +381,7 @@
     if(!box) return;
     const cards=[];
     cards.push(`<article class="overview-metric"><span>Nível do rio agora</span><strong>${fmtLevel(current&&current.cm!==undefined?current.cm:null)}</strong><small>${current?fmtWhen(current.time):'aguardando telemetria'}</small></article>`);
-    items.forEach(p=>cards.push(`<article class="overview-metric forecast"><span>Previsão +${p.hours}h</span><strong>${fmtLevel(p.cm)}</strong><small>para ${fmtWhen(p.time)}${p.alternate?' · modelo cascata':''}</small></article>`));
+    items.forEach(p=>cards.push(`<article class="overview-metric forecast horizon-${p.hours}"><span>Previsão +${p.hours} h</span><strong>${fmtLevel(p.cm)}</strong><small>para ${fmtWhen(p.time)}${p.alternate?' · modelo cascata':''}</small></article>`));
     if(!items.length) cards.push('<article class="overview-metric forecast"><span>Previsão da RNA</span><strong>Indisponível</strong><small>Nenhum horizonte ativo foi publicado agora.</small></article>');
     cards.push(`<article class="overview-metric ${flood.alert?'alert':''}"><span>Cota oficial</span><strong>${fmtLevel(cota)}</strong><small>${flood.label}</small></article>`);
     box.innerHTML=cards.join('');
@@ -267,12 +397,24 @@
 
   function render(){
     if(!state.config) return;
-    const points=observedPoints(state.history,state.live);
-    const current=points.length?points[points.length-1]:null;
+    const allPoints=observedPoints(state.history,state.live);
+    const points=pointsInWindow(allPoints,24);
+    const weekPoints=pointsInWindow(allPoints,168);
+    const current=allPoints.length?allPoints[allPoints.length-1]:null;
     const items=forecasts(state.live,current);
     const trend=trendInfo(points);
     const flood=floodInfo(current,items,state.config.cotaInundCm);
-    drawChart(points,items,state.config.cotaInundCm);
+    drawChart(points,items,state.config.cotaInundCm,{windowHours:24});
+    drawChart(weekPoints,[],state.config.cotaInundCm,{
+      svgId:'river-week-chart',
+      emptyId:'overview-week-empty',
+      periodLabel:'últimos 7 dias',
+      tickCount:8,
+      windowHours:168,
+      emptyText:'Ainda não há histórico observável para os últimos sete dias.'
+    });
+    renderLegend(items);
+    renderWeekCoverage(weekPoints);
     renderMetrics(current,items,trend,flood,state.config.cotaInundCm);
 
     const status=document.getElementById('overview-source-status');
@@ -285,7 +427,7 @@
         modelWhen?`base da RNA: ${fmtWhen(modelWhen)}`:'',
         historyWhen?`histórico atualizado: ${fmtWhen(historyWhen)}`:''
       ].filter(Boolean).join(' · ');
-      const prefix=state.historyError?'O histórico não carregou; os horizontes ao vivo continuam visíveis.':'Linha azul: níveis observados nas últimas 24 horas. Linha laranja: previsão pontual da RNA.';
+      const prefix=state.historyError?'O histórico não carregou; os horizontes ao vivo continuam visíveis.':'Linha azul: níveis observados. Cada horizonte da previsão pontual da RNA tem cor e marcador próprios.';
       status.textContent=prefix+(freshness?' '+freshness+'.':'');
     }
     const accessible=document.getElementById('overview-accessible');
@@ -304,7 +446,13 @@
       if(b){ b.classList.toggle('on',mode===value); b.setAttribute('aria-pressed',mode===value?'true':'false'); }
     });
     if(state.config&&typeof state.config.onLayout==='function') state.config.onLayout(mode);
+    requestAnimationFrame(render);
     if(mode==='panorama') window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function scheduleResizeRender(){
+    clearTimeout(state.resizeTimer);
+    state.resizeTimer=setTimeout(render,80);
   }
 
   function init(config){
@@ -319,6 +467,14 @@
     loadHistory();
     clearInterval(state.historyTimer);
     state.historyTimer=setInterval(loadHistory,5*60*1000);
+    if(state.resizeObserver) state.resizeObserver.disconnect();
+    if('ResizeObserver' in window){
+      state.resizeObserver=new ResizeObserver(scheduleResizeRender);
+      ['river-level-chart','river-week-chart'].forEach(id=>{
+        const svg=document.getElementById(id);
+        if(svg&&svg.parentElement) state.resizeObserver.observe(svg.parentElement);
+      });
+    }
     render();
   }
 

@@ -1,8 +1,12 @@
 :root{
   --panorama-observed:#1e5fbf;
-  --panorama-forecast:#e8730c;
+  --panorama-forecast-2:#b85c00;
+  --panorama-forecast-4:#6c3aa1;
+  --panorama-forecast-8:#087665;
+  --panorama-forecast-12:#a52f67;
   --panorama-threshold:#c0392b;
   --panorama-grid:#dfe7e2;
+  --panorama-grid-soft:#edf2ef;
 }
 
 html,body{height:auto;min-height:100%}
@@ -45,13 +49,17 @@ aside{
 .trend-badge.alert{background:#fdeceb;color:#9a2d24}
 
 .overview-chart-shell{position:relative;border:1px solid var(--line);border-radius:16px;background:#fbfdfc;min-height:318px;overflow:hidden}
-#river-level-chart{display:block;width:100%;height:auto;min-height:300px}
+#river-level-chart,#river-week-chart{display:block;width:100%;height:auto;min-height:300px}
 .overview-empty{position:absolute;inset:0;display:none;place-items:center;text-align:center;padding:28px;color:var(--muted);font-size:13px;background:rgba(251,253,252,.92)}
 .overview-empty.show{display:grid}
 .overview-legend{display:flex;flex-wrap:wrap;gap:14px 22px;margin:11px 2px 0;color:var(--muted);font-size:12px}
 .overview-legend span{display:inline-flex;align-items:center;gap:7px}
 .legend-line{display:inline-block;width:28px;height:0;border-top:3px solid var(--panorama-observed);border-radius:99px}
-.legend-line.forecast{border-color:var(--panorama-forecast);border-top-style:dashed}
+.legend-line.forecast{border-top-style:dashed}
+.legend-line.horizon-2{border-color:var(--panorama-forecast-2)}
+.legend-line.horizon-4{border-color:var(--panorama-forecast-4);border-top-style:dotted}
+.legend-line.horizon-8{border-color:var(--panorama-forecast-8);border-top-style:double}
+.legend-line.horizon-12{border-color:var(--panorama-forecast-12);border-top-style:dotted}
 .legend-line.threshold{border-color:var(--panorama-threshold);border-top-width:2px;border-top-style:dotted}
 
 .overview-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-top:18px}
@@ -59,9 +67,17 @@ aside{
 .overview-metric span{display:block;color:var(--muted);font-size:11px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;margin-bottom:7px}
 .overview-metric strong{display:block;color:var(--ink);font-size:20px;line-height:1.15;font-variant-numeric:tabular-nums}
 .overview-metric small{display:block;color:var(--muted);font-size:11.5px;line-height:1.35;margin-top:5px}
-.overview-metric.forecast strong{color:var(--panorama-forecast)}
+.overview-metric.forecast.horizon-2 strong{color:var(--panorama-forecast-2)}
+.overview-metric.forecast.horizon-4 strong{color:var(--panorama-forecast-4)}
+.overview-metric.forecast.horizon-8 strong{color:var(--panorama-forecast-8)}
+.overview-metric.forecast.horizon-12 strong{color:var(--panorama-forecast-12)}
 .overview-metric.alert{border-color:#efb9b4;background:#fff8f7}
 .overview-metric.alert strong{color:var(--panorama-threshold)}
+
+.overview-week{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}
+.overview-week-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:12px}
+.overview-week-head h3{font-size:17px;line-height:1.25;margin:0}
+.overview-week-head p{color:var(--muted);font-size:12px;line-height:1.45;margin:0;max-width:620px;text-align:right}
 
 .panorama-only{display:none}
 .overview-insights{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
@@ -77,7 +93,7 @@ body.panorama #map,body.panorama aside{display:none}
 body.panorama #river-overview{min-height:calc(100vh - 55px);border-top:0;padding-top:30px}
 body.panorama .panorama-only{display:grid}
 body.panorama .overview-chart-shell{min-height:390px}
-body.panorama #river-level-chart{min-height:370px}
+body.panorama #river-level-chart,body.panorama #river-week-chart{min-height:370px}
 
 @media(max-width:900px){
   main{
@@ -99,8 +115,10 @@ body.panorama #river-level-chart{min-height:370px}
   #river-overview{padding:20px 12px 24px}
   .overview-head{display:block}
   .trend-badge{margin-top:10px;white-space:normal}
+  .overview-week-head{display:block}
+  .overview-week-head p{margin-top:6px;text-align:left}
   .overview-chart-shell{min-height:285px}
-  #river-level-chart{min-height:270px}
+  #river-level-chart,#river-week-chart{min-height:270px}
   .overview-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
