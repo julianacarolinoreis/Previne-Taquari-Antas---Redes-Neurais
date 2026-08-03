@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 r"""
+SUBSTITUÍDO (2026-08-01) por corrigir_ruido_leito_drone.py, que faz a mesma
+coisa mais achados de "platô" (pontos altos demais, oposto da cratera —
+mesmo fenômeno de fotogrametria sobre água difícil) numa passada só
+unificada. Mantido aqui só como histórico/auditoria do primeiro método
+(inclusive os dois problemas de histerese já resolvidos, documentados no
+script novo) — não usar pra corrigir os MDTs de novo, usar o script novo.
+
 Preenche "crateras de interpolação" nos MDTs brutos de drone (Muçum e Santa
 Tereza) — pontos baixos circulares, de gradiente radial, típicos de buraco
 na nuvem de pontos (água/sombra/oclusão) preenchido por IDW no processamento
