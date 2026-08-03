@@ -7,6 +7,8 @@
   Variável V06004 = rendimento nominal médio mensal das pessoas responsáveis.
 - Malha de setores censitários 2022: https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_de_setores_censitarios__divisoes_intramunicipais/censo_2022/
 - Malha municipal 2022: https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2022/
-- Limite da bacia Taquari-Antas: https://portal1.snirh.gov.br/server/rest/services/dados_abertos/DNAEE_Sub_Bacias/MapServer/0/query?where=1%3D1&outFields=*&returnGeometry=true&f=geojson
+- Grade estatística 2022 (células de 200m, população e domicílios): https://geoftp.ibge.gov.br/recortes_para_fins_estatisticos/grade_estatistica/censo_2022/grade_estatistica/
+  Ladrilhos ID_14 e ID_15 (os que cobrem a bacia Taquari-Antas — confirmado pelo total_bounds real dos dois shapefiles).
+- Limite da bacia Taquari-Antas: https://iede.rs.gov.br/server/rest/services/DRH/Bacias_Hidrograficas/MapServer/0/query?where=1%3D1&outFields=*&returnGeometry=true&f=geojson
 Os CSVs aqui são o RECORTE dos municípios que intersectam a bacia; o estadual completo está nas URLs acima.
 Energia elétrica não consta no agregado de características do domicílio por setor (Censo 2022).
