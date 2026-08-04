@@ -1,0 +1,65 @@
+name: Rota de fuga - Santa Tereza
+
+# Robo da Etapa 1 (prova de conceito): cruza o HAND do terreno com a previsao
+# ao vivo da RNA e o tempo de caminhada ate o ponto seguro, gerando o mapa
+# santa_tereza_rota_fuga.html. Roda no GitHub Actions (sem custo em token).
+#
+# - versao AO VIVO: acompanha a previsao_ao_vivo.json (atualiza a cada 30 min)
+# - versao CENARIO (subida de cheia ref. 22/07): gerada uma vez para demonstrar
+#   a margem; nao muda com o nivel do dia, entao roda so no disparo manual.
+
+on:
+  schedule:
+    - cron: '7,37 * * * *'      # a cada 30 min, alinhado depois do robo de previsao
+  workflow_dispatch:
+    inputs:
+      gerar_cenario:
+        description: 'Tambem (re)gerar a versao de cenario de cheia (22/07)'
+        type: boolean
+        default: false
+
+jobs:
+  rota-fuga:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: rota-fuga-santa-tereza
+      cancel-in-progress: true
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout do repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install numpy pillow
+
+      - name: Gerar mapa de rota de fuga (ao vivo)
+        run: |
+          git config user.name  "previne-robo"
+          git config user.email "previne-robo@users.noreply.github.com"
+          git pull --rebase --autostash origin main
+
+          python codigo_python/09_rota_fuga/gerar_rota_fuga_santa_tereza.py --cenario ao_vivo
+          if [ "${{ github.event.inputs.gerar_cenario }}" = "true" ]; then
+            python codigo_python/09_rota_fuga/gerar_rota_fuga_santa_tereza.py --cenario 22jul
+          fi
+
+          git add santa_tereza_rota_fuga.html assets/data/rota_fuga_santa_tereza.json \
+                  santa_tereza_rota_fuga_cenario.html assets/data/rota_fuga_santa_tereza_cenario.json 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "sem mudanca neste ciclo"
+          else
+            git commit -m "bot: atualiza rota de fuga Santa Tereza [skip ci]"
+            for tentativa in 1 2 3 4 5; do
+              if git pull --rebase --autostash origin main && git push; then
+                echo "publicado"; break
+              fi
+              echo "retry $tentativa"; sleep $((tentativa*3))
+            done
+          fi
