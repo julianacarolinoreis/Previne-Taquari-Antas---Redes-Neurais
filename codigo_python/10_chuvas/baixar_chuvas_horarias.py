@@ -32,6 +32,7 @@ import sys
 import csv
 import time
 import json
+import gzip
 import argparse
 import datetime as dt
 import urllib.request
@@ -81,12 +82,16 @@ def _parse_hora(s):
         return None
 
 
-def http_get(url, timeout=90, tentativas=3):
+def http_get(url, timeout=90, tentativas=3, headers=None):
     ult = None
     for k in range(1, tentativas + 1):
         try:
-            req = urllib.request.Request(url, headers=UA)
-            return urllib.request.urlopen(req, timeout=timeout).read()
+            req = urllib.request.Request(url, headers={**UA, **(headers or {})})
+            resp = urllib.request.urlopen(req, timeout=timeout)
+            dados = resp.read()
+            if resp.headers.get("Content-Encoding", "").lower() == "gzip" or dados[:2] == b"\x1f\x8b":
+                dados = gzip.decompress(dados)      # INMET costuma responder gzip
+            return dados
         except Exception as e:
             ult = e
             time.sleep(3 * k)
@@ -139,15 +144,24 @@ def ana_chuva_horaria(cod, inicio, fim):
 
 # ------------------------------------------------------------------ INMET ---
 def inmet_chuva_horaria(cod, inicio, fim):
-    """Chuva horaria (mm) do INMET (apitempo), por ano. Converte UTC -> BRT."""
+    """Chuva horaria (mm) do INMET (apitempo), em janelas mensais (mais robusto
+    que anuais). Converte UTC -> BRT."""
     serie = {}
-    ano = inicio.year
-    while ano <= fim.year:
-        a_ini = max(inicio, dt.datetime(ano, 1, 1)).date()
-        a_fim = min(fim, dt.datetime(ano, 12, 31)).date()
+    ini_m = inicio.replace(day=1)
+    while ini_m <= fim:
+        prox = (ini_m.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
+        a_ini = max(inicio, ini_m).date()
+        a_fim = min(fim, prox - dt.timedelta(days=1)).date()
         url = INMET_URL.format(ini=a_ini.isoformat(), fim=a_fim.isoformat(), cod=cod)
         try:
-            dados = json.loads(http_get(url, timeout=120))
+            bruto = http_get(url, timeout=120, headers={"Accept": "application/json"})
+            try:
+                dados = json.loads(bruto)
+            except Exception:
+                amostra = bruto[:160].decode("utf-8", "replace").replace("\n", " ")
+                print(f"[INMET {cod}] {ini_m:%Y-%m} resposta nao-JSON ({len(bruto)}b): {amostra}")
+                ini_m = prox
+                continue
             n0 = len(serie)
             for r in dados:
                 data = r.get("DT_MEDICAO"); hr = r.get("HR_MEDICAO")
@@ -161,10 +175,10 @@ def inmet_chuva_horaria(cod, inicio, fim):
                     serie[t_brt] = float(str(ch).replace(",", "."))
                 except Exception:
                     continue
-            print(f"[INMET {cod}] {ano} +{len(serie)-n0} horas")
+            print(f"[INMET {cod}] {ini_m:%Y-%m} +{len(serie)-n0} horas")
         except Exception as e:
-            print(f"[INMET {cod}] {ano} erro: {e}")
-        ano += 1
+            print(f"[INMET {cod}] {ini_m:%Y-%m} erro: {e}")
+        ini_m = prox
     return serie
 
 
