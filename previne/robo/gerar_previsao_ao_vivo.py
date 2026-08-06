@@ -2,11 +2,16 @@
 # -*- coding: utf-8 -*-
 """
 Robô AO VIVO — PREVINE / Santa Tereza (86472600)
-Roda no GitHub Actions (a cada ~15 min):
+Roda no GitHub Actions (a cada ~5 min):
   1) busca a telemetria da ANA (níveis das estações)
-  2) monta os 15 inputs do melhor modelo de 2h (ALT)
+  2) monta os 15 inputs do modelo 2h ALT ativo
   3) roda a RNA (.mat) -> variação prevista -> nível daqui a 2h
   4) escreve previsao_ao_vivo.json (que o site lê e mostra)
+
+Modelo 2h ativo (desde 2026-08-06):
+  009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21
+  (mesmos 15 inputs ST + Linha Jose Julio do antigo VFINAL;
+   PERS teste ~0,97 · NASH ~0,996 · MAE teste ~3,5 cm)
 
 EXPERIMENTAL — não é alerta oficial.
 """
@@ -20,11 +25,11 @@ def agora_brt():
     return dt.datetime.now(BRT).replace(tzinfo=None)
 
 # ---- config ----
-MODELO_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__02h__ALT__15inputs_VFINAL.mat"   # modelo 2h exibido no site
+MODELO_MAT = "previne/assets/mat/009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.mat"
 MODELO_4H_CASCATA_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__CASCATA_VFINAL_R03_DYN9_INC.mat"
 MODELO_4H_CASCATA_ID = "STZ_H4_ALT_CASC_VFINAL_R03_DYN9_INC"
 HORIZONTE = "2h"
-COMBO = "VFINAL_15IN"
+COMBO = "009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21"
 BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
                             # inundação oficial (15 m) via ANADEM — ver
                             # codigo_python/04_zero_regua/. Definitivo aguarda a
@@ -69,7 +74,7 @@ MODELOS = [
         "modelo": COMBO,
         "mat": MODELO_MAT,
         "inputs_total": 15,
-        "montador": "2h_alt_vfinal",
+        "montador": "2h_alt_15in",
         "principal": True,
     },
     {
@@ -83,6 +88,9 @@ MODELOS = [
         "principal": False,
     },
     {
+        # Cascata ainda treinada sobre o antigo VFINAL. Com a troca do 2h para
+        # R09, cascata_compativel() marca disponivel=False (SHA-256) e o site
+        # esconde o botao ate retreinar a cascata sobre este modelo 2h.
         "horizonte": "4h_cascata",
         "rotulo": "4h cascata",
         "horizonte_h": 4,
@@ -95,22 +103,9 @@ MODELOS = [
         "cascata": {
             "modelo_base": COMBO,
             "modelo_base_horizonte": "2h",
-            "input_nome": "delta previsto pela RNA 2h VFINAL (o mesmo modelo exibido na aba 2h)",
+            "input_nome": "delta previsto pela RNA 2h ativa (mesmo modelo da aba 2h)",
             "modelo_base_oculto": False,
             "target_mode": "INCREMENTO_2A4",
-            # trava de compatibilidade (auditoria 2026-07-28): a cascata antiga
-            # (C002_ALT2H) foi treinada com a saida do modelo 2h antigo C0472 mas
-            # recebia em runtime a saida do VFINAL -- MAE ao vivo de 45,21cm,
-            # REPROVADO. Retreinada em 28/07 sobre o VFINAL ativo (12 candidatos,
-            # 4 arquiteturas x 3 rotacoes de evento; ver
-            # D:\PREVINE\redes_neurais\santa tereza\RNA_STZ_CASCATA_VFINAL_2H_PARA_4H_2026_07_28).
-            # Escolhido R03_DYN9_INC: melhor PERS/MAE de teste entre os 12
-            # (PERS 0,576, MAE 30,2cm) -- validado batendo exatamente com o
-            # forward-pass em Python antes de publicar. upstream_model_sha256
-            # gravado dentro do .mat e checado em runtime (cascata_compativel);
-            # se o modelo 2h ativo mudar sem retreinar a cascata, o robo marca
-            # "disponivel": False e o site esconde o botao em vez de publicar
-            # um numero de novo incompativel.
         },
     },
 ]
@@ -409,7 +404,7 @@ def montar_inputs_12h_alt_c0065(series, t):
     return inputs, st0
 
 def montar_inputs_modelo(cfg, series, t):
-    if cfg["montador"] == "2h_alt_vfinal":
+    if cfg["montador"] in ("2h_alt_15in", "2h_alt_vfinal"):
         return montar_inputs(series, t)
     if cfg["montador"] == "4h_alt_prio_12478":
         return montar_inputs_4h(series, t)
@@ -527,9 +522,9 @@ def diagnosticar_inputs_faltantes_4h_cascata_vfinal_dyn9(series, t, inputs):
             dependencias = [{"input": "RNA_2H_VFINAL", "descricao": f"falha ao montar 2h VFINAL: {e}"}]
         faltantes.append({
             "input": "inp09",
-            "descricao": "delta previsto pela RNA 2h VFINAL (mesmo modelo da aba 2h)",
-            "estacao": "RNA_2H_VFINAL",
-            "estacao_nome": "RNA Santa Tereza 2h VFINAL",
+            "descricao": "delta previsto pela RNA 2h ativa (mesmo modelo da aba 2h)",
+            "estacao": "RNA_2H",
+            "estacao_nome": "RNA Santa Tereza 2h",
             "horarios_necessarios": [t.isoformat(timespec="minutes")],
             "horarios_faltantes": [t.isoformat(timespec="minutes")],
             "dependencias_faltantes": dependencias,
@@ -933,7 +928,10 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
             out["modelo_base_2h_oculto"] = bool(cfg["cascata"].get("modelo_base_oculto"))
             out["input_cascata_nome"] = cfg["cascata"]["input_nome"]
             out["input_cascata_2h_cm"] = round(float(x[-1]), 1)
-            out["observacao_cascata"] = "Modelo 4h ALT retreinado em 28/07/2026 sobre o proprio 2h VFINAL ativo no site (nao mais um modelo interno oculto). Compatibilidade checada por SHA-256 a cada rodada."
+            out["observacao_cascata"] = (
+                "Cascata 4h ainda ancorada no SHA do antigo VFINAL; com o 2h R09 "
+                "ativo ela so publica se cascata_compativel() liberar (senao o site esconde)."
+            )
         out["passos"] = [[out["hora_modelo"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
         return out
     except Exception as e:
