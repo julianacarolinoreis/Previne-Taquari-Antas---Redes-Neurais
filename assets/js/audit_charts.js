@@ -2,7 +2,7 @@
   const DATA_URL = 'assets/data/auditaveis_series.json';
   const INVENTORY_URL = 'assets/data/auditoria_inventario.json';
   const RAW_BUNDLE_URL = 'assets/data/logs_metricas_brutos.zip';
-  const DOWNLOAD_BASE = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/download-assets/';
+  const DOWNLOAD_BASE = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/';
   const COLORS = {
     treino: '#898781',
     validacao: '#2a78d6',
