@@ -120,7 +120,7 @@ def build_models():
                 "arquivo_auditavel": str(SRC / "auditaveis" / f"{name}_AUDITAVEL.xlsx"),
                 "arquivo_mat": str(mat_path),
                 "inputs": list(INPUTS_VFINAL_15),
-                "novo": True,
+                "novo": False,
                 "rodada": RODADA,
                 "PERS_geral": float(met["PERS_GERAL"]),
                 "PERS_treino": float(met["PERS_TREINO"]),
@@ -355,6 +355,41 @@ def sync_binaries(new_models):
     print(f"mats removidos={removed_m} workbooks removidos={removed_w} novos={len(new_models)}")
 
 
+def rebuild_event_rise_top(data, limit=14):
+    """Top subidas observadas, 1 entrada por evento canônico (start/end/nº/conjunto)."""
+    rows = []
+    for m in data.get("models") or []:
+        for ev in m.get("events") or []:
+            rise = ev.get("riseObs")
+            if rise is None:
+                continue
+            rows.append(
+                {
+                    "evento": ev.get("evento"),
+                    "conjunto": ev.get("conjunto"),
+                    "riseObs": rise,
+                    "obsPeak": ev.get("obsPeak"),
+                    "start": ev.get("start"),
+                    "end": ev.get("end"),
+                    "model": m.get("name") or m.get("id"),
+                    "sourceRef": m.get("sourceRef") or m.get("file") or "",
+                }
+            )
+    rows.sort(key=lambda r: (-(r["riseObs"] or 0), -(r.get("obsPeak") or 0), str(r["model"])))
+    seen = set()
+    top = []
+    for r in rows:
+        key = (r["start"], r["end"], r["evento"], r["conjunto"])
+        if key in seen:
+            continue
+        seen.add(key)
+        top.append(r)
+        if len(top) >= limit:
+            break
+    data["eventRiseTop"] = top
+    return top
+
+
 def sync_series(new_models):
     path = RAIZ / "assets" / "data" / "auditaveis_series.json"
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -364,11 +399,13 @@ def sync_series(new_models):
     for model in new_models:
         entry = build_series_entry(model["modelo"], model["mat"]["size"] or 0)
         data["models"].append(entry)
+    top = rebuild_event_rise_top(data)
     meta = data.setdefault("meta", {})
     meta["updatedAt"] = "2026-08-06"
     meta["note_2h_stz"] = f"Renovado com {len(new_models)} modelos {RODADA}; removidos {removed} series 2H antigas"
+    meta["eventRiseTopUpdatedAt"] = "2026-08-06"
     path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    print(f"auditaveis_series: -{removed} +{len(new_models)} (total {len(data['models'])})")
+    print(f"auditaveis_series: -{removed} +{len(new_models)} (total {len(data['models'])}); eventRiseTop={len(top)}")
 
 
 def sync_light_json(new_models):
@@ -404,6 +441,11 @@ def main():
     sync_binaries(new_models)
     sync_series(new_models)
     sync_light_json(new_models)
+    # regenera Eventos sob a lupa + campeões (requer planilhas já sincronizadas)
+    from subprocess import check_call
+    import sys
+
+    check_call([sys.executable, str(RAIZ / "codigo_python" / "05_eventos" / "analise_eventos.py")], cwd=RAIZ)
     # copia CSVs de resultados para referencia no repo
     dest = RAIZ / "assets" / "data" / "stz_2h_rotacao"
     dest.mkdir(parents=True, exist_ok=True)
