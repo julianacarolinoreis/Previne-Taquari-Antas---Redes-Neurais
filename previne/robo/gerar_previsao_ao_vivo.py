@@ -16,6 +16,7 @@ Modelo 2h ativo (desde 2026-08-06):
 EXPERIMENTAL — não é alerta oficial.
 """
 import os, sys, json, hashlib, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
+import bisect
 import numpy as np
 from scipy.io import loadmat
 
@@ -253,8 +254,70 @@ def buscar_ana_chuva(cod, dias=5):
             time.sleep(4 * rodada)
     return {}
 
-def nivel(serie, t):
-    return serie.get(t)                                     # nível no timestamp t (ou None)
+# Buracos da ANA (ex.: 10:45→13:00 e 15:45→18:00 em 2026-08-06) quebravam o
+# 2h (lags/acelerações pedem horário exato) e a auditoria (alvo sem linha).
+# Interpolamos/aproximamos só dentro destes tetos — além disso, fica None.
+NIVEL_MAX_GAP = dt.timedelta(minutes=150)
+AUDITORIA_MAX_GAP = dt.timedelta(minutes=30)
+
+def _vizinhos_serie(serie, t):
+    """Retorna (antes, depois) mais próximos de t em serie (dict timestamp→valor)."""
+    if not serie:
+        return None, None
+    keys = sorted(serie)
+    i = bisect.bisect_left(keys, t)
+    antes = keys[i - 1] if i > 0 else None
+    depois = keys[i] if i < len(keys) else None
+    return antes, depois
+
+def nivel(serie, t, max_gap=NIVEL_MAX_GAP):
+    """Nível no timestamp t.
+
+    1) match exato; 2) interpolação linear se os dois vizinhos cabem em max_gap;
+    3) vizinho mais perto dentro de max_gap. Sem isso o robô congela a previsão
+    2h numa hora antiga e o gráfico fica incoerente com a telemetria atual.
+    """
+    if not serie:
+        return None
+    if t in serie:
+        return serie[t]
+    antes, depois = _vizinhos_serie(serie, t)
+    if antes is not None and depois is not None and antes != depois:
+        if (t - antes) <= max_gap and (depois - t) <= max_gap:
+            span = (depois - antes).total_seconds()
+            if span > 0:
+                w = (t - antes).total_seconds() / span
+                return serie[antes] * (1.0 - w) + serie[depois] * w
+    candidatos = []
+    if antes is not None and (t - antes) <= max_gap:
+        candidatos.append(antes)
+    if depois is not None and (depois - t) <= max_gap:
+        candidatos.append(depois)
+    if not candidatos:
+        return None
+    melhor = min(candidatos, key=lambda k: abs((k - t).total_seconds()))
+    return serie[melhor]
+
+def observar_nivel(serie, alvo, max_gap=AUDITORIA_MAX_GAP):
+    """Observado para auditoria: exato ou vizinho real dentro de max_gap.
+
+    Devolve (valor_cm, timestamp_usado) ou (None, None). Não interpola — o erro
+    gravado precisa apontar para uma leitura ANA real.
+    """
+    if not serie or alvo is None:
+        return None, None
+    if alvo in serie:
+        return float(serie[alvo]), alvo
+    antes, depois = _vizinhos_serie(serie, alvo)
+    candidatos = []
+    if antes is not None and (alvo - antes) <= max_gap:
+        candidatos.append(antes)
+    if depois is not None and (depois - alvo) <= max_gap:
+        candidatos.append(depois)
+    if not candidatos:
+        return None, None
+    usado = min(candidatos, key=lambda k: abs((k - alvo).total_seconds()))
+    return float(serie[usado]), usado
 
 def chuva_media_acum_36h(series, t):
     """Soma 36 valores horarios da media dos postos com chuva disponivel."""
@@ -844,19 +907,21 @@ def conferir_historico(registros, series):
         alvo = _parse_hora(reg.get("hora_alvo", ""))
         if alvo is None:
             continue
-        obs = serie_st.get(alvo)
+        obs, obs_em = observar_nivel(serie_st, alvo)
         if obs is not None:
             previsto = reg.get("nivel_previsto_cm")
             erro = None if previsto is None else float(previsto) - float(obs)
             reg.update({
                 "observado_cm": round(obs),
-                "observado_em": alvo.isoformat(),
+                "observado_em": obs_em.isoformat(),
                 "erro_cm": (round(erro, 1) if erro is not None else None),
                 "erro_abs_cm": (round(abs(erro), 1) if erro is not None else None),
                 "status_auditoria": "conferido",
                 "auditado_em": agora_brt().isoformat(timespec="seconds"),
             })
-        elif ultima_hora and alvo <= ultima_hora:
+        elif ultima_hora and (alvo + AUDITORIA_MAX_GAP) <= ultima_hora:
+            # Só marca buraco definitivo depois da janela de tolerância —
+            # leituras ANA atrasadas ainda podem chegar e liberar o erro.
             reg["status_auditoria"] = "sem_dado_ana"
             reg["auditado_em"] = agora_brt().isoformat(timespec="seconds")
     return registros
@@ -1035,8 +1100,19 @@ def main():
     historico = conferir_historico(historico, series)
     salvar_historico(historico)
 
+    # Se a hora do modelo ficou muito atrás da telemetria (buraco ANA),
+    # o painel precisa dizer isso — senão parece "ok" com previsão velha.
+    tel = ULTIMA_RAW.get("86472600")
     for hz, out in horizontes.items():
         out["auditoria"] = resumo_auditoria(historico, hz)
+        hm = _parse_hora(out.get("hora_modelo") or "")
+        if tel and hm and out.get("nivel_previsto_cm") is not None:
+            atraso_h = (tel[0] - hm).total_seconds() / 3600.0
+            if atraso_h >= 2.0 and out.get("status") == "ok":
+                out["status"] = (
+                    f"ok (base {atraso_h:.1f}h atrasada vs telemetria — "
+                    "inputs preenchidos com interpolacao em buracos ANA)"
+                )
     escrever_pacote(horizontes, historico, aviso)
     return
 
