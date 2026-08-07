@@ -23,7 +23,7 @@ esse nível em **até onde a água chega na cidade**.
    [01] RNA 2h (.mat treinado)  ──►  nível previsto para +2h
               │
               ▼
-   [02] MDT ANADEM + HAND  ──►  mancha: até onde a água chega
+   [02] MDT mosaico 2 m (drone + ANADEM) + HAND  ──►  mancha: até onde a água chega
               │
               ▼
    Site (GitHub Pages) se atualiza sozinho a cada 30 min

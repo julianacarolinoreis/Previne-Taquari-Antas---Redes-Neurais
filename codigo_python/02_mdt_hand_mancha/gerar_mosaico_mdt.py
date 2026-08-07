@@ -84,6 +84,22 @@ def monta(cidade):
               resampling=Resampling.average)
 
     mask_drone = ~np.isnan(drone_fino)
+    # Mitigação ST: células do drone absurdamente abaixo do ANADEM local
+    # (artefato residual DSM→MDT no leito) não entram no mosaico.
+    # Limiar: 15 m abaixo do ANADEM reamostrado, ou cota absoluta < 40 m
+    # quando o ANADEM local está na faixa típica do talvegue (~49–72 m).
+    if cidade == "santa_tereza":
+        delta = drone_fino - anadem_fino
+        anomalo = mask_drone & (
+            (delta < -15.0) | ((drone_fino < 40.0) & (anadem_fino >= 45.0))
+        )
+        n_anom = int(anomalo.sum())
+        if n_anom:
+            print(f"mitigação talvegue ST: mascarando {n_anom} px anômalos do drone")
+            drone_fino = drone_fino.copy()
+            drone_fino[anomalo] = np.nan
+            mask_drone = ~np.isnan(drone_fino)
+
     cobertura_pct = 100 * mask_drone.sum() / mask_drone.size
     print(f"cobertura do drone na grade do mosaico: {cobertura_pct:.1f}%")
 

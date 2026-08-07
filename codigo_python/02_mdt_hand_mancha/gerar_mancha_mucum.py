@@ -1,10 +1,24 @@
 #!/usr/bin/env python3
-# ROBÔ — mancha de inundação de Muçum a partir do MDT commitado.
-# Lê o TIF (mesmo padrão do Santa Tereza), calcula o talvegue e o HAND
-# (Height Above Nearest Drainage), codifica o HAND como PNG em decímetros e
-# injeta o payload dentro de mucum_inundacao.html (<script id="hand-data">).
-# Não baixa nada: a única fonte é o TIF já versionado no repositório.
-import os, re, json, base64, io
+# LEGADO (ANADEM 30 m puro) — NÃO usar em produção.
+# A mancha publicada de Muçum vem do mosaico 2 m:
+#   python codigo_python/02_mdt_hand_mancha/gerar_mancha_mosaico.py mucum
+#   python codigo_python/01_previsao_ao_vivo/atualizar_hand_previsao_mucum.py
+# Este script permanece só para auditoria histórica. Para forçar o legado:
+#   ALLOW_ANADEM_ONLY_MANCHA=1 python .../gerar_mancha_mucum.py
+import os
+import sys
+
+if os.environ.get("ALLOW_ANADEM_ONLY_MANCHA") != "1":
+    print(
+        "ERRO: gerar_mancha_mucum.py é legado (ANADEM-only) e sobrescreveria o mosaico 2 m.\n"
+        "Use: python codigo_python/02_mdt_hand_mancha/gerar_mancha_mosaico.py mucum\n"
+        "     python codigo_python/01_previsao_ao_vivo/atualizar_hand_previsao_mucum.py\n"
+        "Para forçar o legado: ALLOW_ANADEM_ONLY_MANCHA=1",
+        file=sys.stderr,
+    )
+    raise SystemExit(2)
+
+import re, json, base64, io
 import numpy as np
 import rasterio
 from scipy import ndimage
@@ -40,61 +54,44 @@ def main():
         dem = np.where(dem == nd, np.nan, dem)
     if np.isnan(dem).any():
         dem = np.where(np.isnan(dem), np.nanmax(dem), dem)
-    print(f"elev {dem.min():.1f}-{dem.max():.1f} m")
 
-    # semente = mínimo global (rio Taquari no fundo do vale)
+    # talvegue: mínimo local + corte de percentil, maior componente da semente
     sr, sc = np.unravel_index(int(np.argmin(dem)), dem.shape)
-    print(f"semente r{sr} c{sc} cota {dem[sr,sc]:.1f} @ lon {W+sc*a:.4f} lat {N+sr*e:.4f}")
-
-    # talvegue: células perto do mínimo local, no fundo do vale, conectadas à semente
     mn = ndimage.minimum_filter(dem, size=9)
-    corte_vale = np.percentile(dem, 15)
-    thal = (dem <= mn + 1.0) & (dem <= corte_vale)
+    corte = np.percentile(dem, 15)
+    thal = (dem <= mn + 1.0) & (dem <= corte)
     lbl, _ = ndimage.label(thal)
     thal = lbl == lbl[sr, sc]
-    print(f"talvegue {int(thal.sum())} cel | cota {dem[thal].min():.1f}->{dem[thal].max():.1f} | corte vale {corte_vale:.1f}")
+    print(f"talvegue {int(thal.sum())} px | cota {dem[thal].min():.1f}-{dem[thal].max():.1f} m")
 
-    # HAND = cota - cota do talvegue mais próximo
-    _, (ri, rj) = ndimage.distance_transform_edt(~thal, return_indices=True)
-    hand = dem - dem[ri, rj]
-    hand[hand < 0] = 0
+    # HAND: distância vertical ao talvegue mais próximo
+    _, inds = ndimage.distance_transform_edt(~thal, return_distances=True, return_indices=True)
+    hand = dem - dem[inds[0], inds[1]]
+    hand = np.clip(hand, 0, NIVEL_MAX_M)
 
-    # sanidade: área alagada conectada ao rio por nível
-    def flood(h):
-        l, _ = ndimage.label(hand <= h)
-        keep = set(np.unique(l[thal])) - {0}
-        return np.isin(l, list(keep))
-    print("nível(m) | área_ha")
-    for h in (2, 4, 6, 8, 10, 13):
-        print(f"   {h:2d}    | {int(flood(h).sum())*cell_ha:8.1f}")
-
-    # codifica HAND -> PNG decímetros (0..250; acima disso satura, não alaga)
-    dm = np.clip(np.round(hand * 10), 0, int(NIVEL_MAX_M * 10)).astype(np.uint8)
+    # PNG em decímetros (0..250)
+    dm = np.clip(np.round(hand * 10), 0, 250).astype(np.uint8)
     buf = io.BytesIO()
     Image.fromarray(dm, mode="L").save(buf, format="PNG", optimize=True)
-    b64 = base64.b64encode(buf.getvalue()).decode()
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
 
     payload = {
-        "cols": nx, "rows": ny, "S": round(S, 6), "W": round(W, 6),
-        "N": round(N, 6), "E": round(E, 6),
+        "cols": nx, "rows": ny, "S": S, "W": W, "N": N, "E": E,
         "estacao_alvo": ESTACAO_ALVO, "estacao_montante": ESTACAO_MONTANTE,
         "bankfull_cm": BANKFULL_CM,
-        "fonte": "ANADEM v1 bare-earth 30 m — recorte do vale do Taquari em Muçum",
+        "fonte": "LEGADO ANADEM 30 m puro — não usar; preferir gerar_mancha_mosaico.py",
         "hand_png_b64": b64,
     }
-    payload_json = json.dumps(payload, ensure_ascii=False)
-
-    # injeta no <script id="hand-data"> da página
     html = open(PAGINA, encoding="utf-8").read()
-    novo = f'<script id="hand-data" type="application/json">{payload_json}</script>'
     html2, n = re.subn(
         r'<script id="hand-data" type="application/json">.*?</script>',
-        lambda m: novo, html, count=1, flags=re.DOTALL,
+        '<script id="hand-data" type="application/json">' + json.dumps(payload, ensure_ascii=False) + "</script>",
+        html, count=1, flags=re.DOTALL,
     )
     if n != 1:
-        raise SystemExit("ERRO: <script id=hand-data> não encontrado em mucum_inundacao.html")
+        raise SystemExit("hand-data não encontrado em " + PAGINA)
     open(PAGINA, "w", encoding="utf-8").write(html2)
-    print(f"payload injetado ({len(payload_json)} chars, png {len(buf.getvalue())} bytes) em mucum_inundacao.html")
+    print(f"injetado em {PAGINA} ({len(b64)} chars b64)")
 
 
 if __name__ == "__main__":
