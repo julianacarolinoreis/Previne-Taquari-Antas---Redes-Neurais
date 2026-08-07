@@ -109,6 +109,10 @@
   .hydro{margin-top:4px}
   .leaflet-popup-content{font-size:13px;margin:9px 12px}
   .pt-pop b{color:var(--agora)} .pt-pop .pf{color:var(--prev)}
+  .audit-recent{margin:0;padding-left:18px;font-size:12px;line-height:1.45;color:var(--ink)}
+  .audit-recent li{margin:3px 0}
+  .audit-recent .e-pos{color:var(--crit);font-weight:700}
+  .audit-recent .e-neg{color:var(--brand);font-weight:700}
   /* modo: esconde tecnico/simples */
   body.tech .simple-only{display:none}
   body:not(.tech) .tech-only{display:none}
@@ -211,6 +215,7 @@
         <div class="read"><span>Previsto × observado</span><b id="a-prevobs">—</b></div>
         <div class="read"><span>Erro da última conferida</span><b id="a-err">—</b></div>
         <div class="read"><span>MAE recente</span><b id="a-mae">—</b></div>
+        <div id="a-recent" class="disc" style="margin-top:8px;display:none"></div>
       </div>
       <div class="read"><span class="now">Área estimada fora do leito agora</span><b class="now" id="r-anow">—</b></div>
       <div class="read"><span class="fore">Área estimada fora do leito</span><b class="fore" id="r-afore">—</b></div>
@@ -733,17 +738,26 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   if(faltantes) partes.push(faltantes);
   return partes.join(' · ')+'.';
 }
+function liveMatchedAudit(L){
+  const A=L&&L.auditoria; if(!A) return null;
+  const rows=[];
+  if(A.ultima_conferida) rows.push(A.ultima_conferida);
+  (A.ultimas_conferidas||[]).forEach(u=>{ if(u) rows.push(u); });
+  return rows.find(u=>u && u.hora_modelo===L.hora_modelo && u.observado_cm!=null) || null;
+}
 function renderLiveAudit(D){
   const block=document.getElementById('audit-live-block');
   if(!block) return;
   const A=D&&D.auditoria;
   const U=A&&A.ultima_conferida;
+  const recentBox=document.getElementById('a-recent');
   if(!U){
     block.style.display='';
     set('a-last','ainda sem previsão conferida');
     set('a-prevobs','—');
     set('a-err','aguardando observado');
     set('a-mae', A&&A.n_aguardando?`${A.n_aguardando} aguardando`:'—');
+    if(recentBox){ recentBox.style.display='none'; recentBox.innerHTML=''; }
     return;
   }
   block.style.display='';
@@ -755,6 +769,21 @@ function renderLiveAudit(D){
   set('a-prevobs', `${fmtNivel(U.nivel_previsto_cm)} × ${fmtNivel(U.observado_cm)}`);
   set('a-err', Number.isFinite(erro)?`${sinal}${nf1.format(erro)} cm`:'—');
   set('a-mae', `${mae6} · ${mae24}`);
+  // Lista as últimas conferidas para a visualização detalhada não ficar só com 1 linha.
+  if(recentBox){
+    const rows=(A.ultimas_conferidas||[]).filter(u=>u&&u.observado_cm!=null&&u.erro_cm!=null).slice(-8).reverse();
+    if(!rows.length){ recentBox.style.display='none'; recentBox.innerHTML=''; }
+    else{
+      const items=rows.map(u=>{
+        const e=Number(u.erro_cm);
+        const cls=e>0?'e-pos':(e<0?'e-neg':'');
+        const s=e>0?'+':'';
+        return `<li><b>${fmtWhen(u.hora_modelo)} → ${fmtWhen(u.hora_alvo)}</b>: ${fmtNivel(u.nivel_previsto_cm)} × ${fmtNivel(u.observado_cm)} · erro <span class="${cls}">${s}${nf1.format(e)} cm</span></li>`;
+      }).join('');
+      recentBox.style.display='';
+      recentBox.innerHTML=`<b>Erros recentes (previsto × observado)</b><ul class="audit-recent">${items}</ul>`;
+    }
+  }
 }
 function liveWhenText(D,P){
   const base=fmtWhen(D.telemetria_ultima_em||D.hora_modelo||D.consultado_em||P[0]);
@@ -805,7 +834,9 @@ function renderLiveStep(){
   const L=activeLiveData();
   if(L && Array.isArray(L.passos) && L.passos.length){
     const P=L.passos[liveIdx%L.passos.length]; // [datahora, atual, previsto] ou [datahora, atual, observado, previsto]
-    const obs=P.length>3?P[2]:null, prev=P.length>3?P[3]:P[2];
+    const matched=liveMatchedAudit(L);
+    const obs=P.length>3?P[2]:(matched?matched.observado_cm:null);
+    const prev=P.length>3?P[3]:P[2];
     EVENTS['__live__']={label:'AO VIVO',horizonte:L.horizonte||liveHz||'2h',combo:L.modelo||'—',pers:null,ilustra:false,estatico:false,n:1,pico_obs_cm:P[1],series:[[P[0],P[1],obs,prev]]};
     bankfull=L.bankfull_cm||(liveData&&liveData.bankfull_cm)||400;
     curEv='__live__'; tIdx=0;
