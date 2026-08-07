@@ -90,6 +90,44 @@
     return points.filter(p=>p.time.getTime()>=cutoff);
   }
 
+  function preferredHistoryHorizon(live){
+    if(live&&live.horizonte) return String(live.horizonte);
+    if(live&&live.horizontes){
+      if(live.horizontes['2h']) return '2h';
+      const keys=Object.keys(live.horizontes);
+      if(keys.length) return keys[0];
+    }
+    return '2h';
+  }
+
+  /** Série do que a RNA previu antes: nível previsto em cada hora-alvo do histórico. */
+  function previousForecastPoints(history,live,anchor,windowHours){
+    const rows=history&&Array.isArray(history.registros)?history.registros:[];
+    const preferred=preferredHistoryHorizon(live);
+    const byAlvo=new Map();
+    rows.forEach(r=>{
+      if(!r||String(r.horizonte)!==preferred) return;
+      const cm=number(r.nivel_previsto_cm);
+      const t=parseWhen(r.hora_alvo);
+      if(cm===null||!t) return;
+      const key=t.getTime();
+      const old=byAlvo.get(key);
+      const criado=String(r.criado_em||r.hora_modelo||'');
+      const score=(r.status_auditoria==='conferido'?2:0)+(r.status_auditoria==='aguardando'?1:0);
+      if(!old||score>old.score||(score===old.score&&criado>=old.criado)){
+        byAlvo.set(key,{time:t,cm,criado,score,horizonte:preferred});
+      }
+    });
+    let pts=Array.from(byAlvo.values()).sort((a,b)=>a.time-b.time);
+    if(anchor&&windowHours){
+      const cutoff=anchor.time.getTime()-windowHours*36e5;
+      // inclui alvos futuros próximos (previsões já emitidas ainda não vencidas)
+      const ahead=anchor.time.getTime()+36*36e5;
+      pts=pts.filter(p=>p.time.getTime()>=cutoff&&p.time.getTime()<=ahead);
+    }
+    return pts;
+  }
+
   function cssValue(variable,fallback){
     const value=getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
     return value||fallback;
@@ -249,13 +287,14 @@
   }
 
   function drawChart(points,items,cota,options){
-    const opts=Object.assign({svgId:'river-level-chart',emptyId:'overview-empty',periodLabel:'últimas 24 horas',tickCount:6,emptyText:'Carregando histórico e previsão ao vivo…'},options||{});
+    const opts=Object.assign({svgId:'river-level-chart',emptyId:'overview-empty',periodLabel:'últimas 24 horas',tickCount:6,emptyText:'Carregando histórico e previsão ao vivo…',previous:[]},options||{});
     const svg=document.getElementById(opts.svgId);
     const empty=document.getElementById(opts.emptyId);
     if(!svg) return;
     svg.replaceChildren();
+    const previous=Array.isArray(opts.previous)?opts.previous:[];
     const anchor=points.length?points[points.length-1]:null;
-    if(!points.length&&!items.length){
+    if(!points.length&&!items.length&&!previous.length){
       if(empty){ empty.classList.add('show'); empty.textContent=state.historyError?'Histórico indisponível neste momento. A previsão ao vivo continua sendo consultada.':opts.emptyText; }
       return;
     }
@@ -269,7 +308,7 @@
     const bases=items
       .filter(p=>p.baseTime&&Number.isFinite(p.baseCm))
       .map(p=>({time:p.baseTime,cm:p.baseCm}));
-    const all=[...points,...items,...bases];
+    const all=[...points,...items,...bases,...previous];
     const times=all.map(p=>p.time.getTime()).filter(Number.isFinite);
     let xMin=opts.windowHours&&anchor?anchor.time.getTime()-opts.windowHours*36e5:Math.min(...times);
     let xMax=Math.max(...times);
@@ -287,8 +326,8 @@
 
     const spanHours=(xMax-xMin)/36e5;
     const descText=items.length
-      ?`Nível do rio observado nas ${opts.periodLabel}. A linha azul mostra observações; cada horizonte de previsão parte de sua própria hora-base e tem cor, traçado, marcador e rótulo próprios.`
-      :`Nível do rio observado nas ${opts.periodLabel}, em linha azul. Lacunas de telemetria não são ligadas por linhas.`;
+      ?`Nível do rio observado nas ${opts.periodLabel}. A linha azul mostra observações; a cinza tracejada mostra o que a RNA previu antes para cada hora-alvo; cada horizonte ativo tem cor e marcador próprios.`
+      :`Nível do rio observado nas ${opts.periodLabel}, em linha azul. A cinza tracejada mostra previsões anteriores da RNA. Lacunas de telemetria não são ligadas por linhas.`;
     const desc=svgNode('desc',{},descText);
     svg.append(desc);
 
@@ -308,6 +347,27 @@
       const y=Y(cota);
       svg.appendChild(svgNode('line',{x1:m.l,y1:y,x2:W-m.r,y2:y,stroke:'var(--panorama-threshold, #c0392b)','stroke-width':1.5,'stroke-dasharray':'3 5'}));
       svg.appendChild(svgNode('text',{x:W-m.r,y:y-7,'text-anchor':'end','font-size':11,'font-weight':700,fill:'var(--panorama-threshold, #a12d25)'},'cota oficial '+fmtLevel(cota)));
+    }
+
+    // Previsões anteriores da RNA (atrás do observado e dos horizontes ativos).
+    if(previous.length>1){
+      const dPrev=observedPath(previous,X,Y);
+      const prevPath=svgNode('path',{
+        d:dPrev,fill:'none',
+        stroke:'var(--panorama-previous, #9aa3a0)',
+        'stroke-width':1.7,
+        'stroke-dasharray':'5 5',
+        'stroke-linejoin':'round',
+        'stroke-linecap':'round',
+        opacity:.85
+      });
+      prevPath.appendChild(svgNode('title',{},'Previsões anteriores da RNA (nível previsto em cada hora-alvo)'));
+      svg.appendChild(prevPath);
+    }else if(previous.length===1){
+      const p=previous[0],x=X(p.time.getTime()),y=Y(p.cm);
+      const dot=svgNode('circle',{cx:x,cy:y,r:2.8,fill:'var(--panorama-previous, #9aa3a0)',opacity:.85});
+      dot.appendChild(svgNode('title',{},`Previsão anterior da RNA: ${fmtLevel(p.cm)} para ${fmtWhen(p.time)}`));
+      svg.appendChild(dot);
     }
 
     if(points.length>1){
@@ -352,10 +412,11 @@
     return span;
   }
 
-  function renderLegend(items){
+  function renderLegend(items,hasPrevious){
     const box=document.getElementById('overview-legend');
     if(!box) return;
     box.replaceChildren(legendEntry('Nível observado','observed'));
+    if(hasPrevious) box.appendChild(legendEntry('O que a RNA previu antes','previous'));
     items.forEach(point=>box.appendChild(legendEntry(`Previsão +${point.hours} h`,`forecast horizon-${point.hours}`)));
     box.appendChild(legendEntry('Cota oficial, quando próxima da escala','threshold'));
   }
@@ -410,18 +471,21 @@
     const weekPoints=pointsInWindow(allPoints,168);
     const current=allPoints.length?allPoints[allPoints.length-1]:null;
     const items=forecasts(state.live,current);
+    const previous24=previousForecastPoints(state.history,state.live,current,24);
+    const previousWeek=previousForecastPoints(state.history,state.live,current,168);
     const trend=trendInfo(points);
     const flood=floodInfo(current,items,state.config.cotaInundCm);
-    drawChart(points,items,state.config.cotaInundCm,{windowHours:24});
+    drawChart(points,items,state.config.cotaInundCm,{windowHours:24,previous:previous24});
     drawChart(weekPoints,[],state.config.cotaInundCm,{
       svgId:'river-week-chart',
       emptyId:'overview-week-empty',
       periodLabel:'últimos 7 dias',
       tickCount:8,
       windowHours:168,
-      emptyText:'Ainda não há histórico observável para os últimos sete dias.'
+      emptyText:'Ainda não há histórico observável para os últimos sete dias.',
+      previous:previousWeek
     });
-    renderLegend(items);
+    renderLegend(items,previous24.length>0||previousWeek.length>0);
     renderWeekCoverage(weekPoints);
     renderMetrics(current,items,trend,flood,state.config.cotaInundCm);
 
@@ -435,7 +499,9 @@
         modelWhen?`base da RNA: ${fmtWhen(modelWhen)}`:'',
         historyWhen?`histórico atualizado: ${fmtWhen(historyWhen)}`:''
       ].filter(Boolean).join(' · ');
-      const prefix=state.historyError?'O histórico não carregou; os horizontes ao vivo continuam visíveis.':'Linha azul: níveis observados. Cada horizonte da previsão pontual da RNA tem cor e marcador próprios.';
+      const prefix=state.historyError
+        ?'O histórico não carregou; os horizontes ao vivo continuam visíveis.'
+        :'Linha azul: níveis observados. Cinza tracejada: o que a RNA previu antes. Cada horizonte ativo tem cor e marcador próprios.';
       status.textContent=prefix+(freshness?' '+freshness+'.':'');
     }
     const accessible=document.getElementById('overview-accessible');
