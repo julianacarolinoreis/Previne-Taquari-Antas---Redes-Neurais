@@ -1,8 +1,22 @@
-# Santa Tereza - camadas preliminares de inundacao
+# Santa Tereza - camadas de inundacao
 
-Gerado em: 2026-07-11.
+Atualizado em: 2026-08-07.
 
-Esta pasta contem duas camadas para o prototipo espacial do PREVINE:
+## Produção atual (site)
+
+A mancha publicada em `santa_tereza_inundacao.html` e
+`santa_tereza_previsao_inundacao.html` usa **HAND do mosaico 2 m**:
+drone (0,5 m, ortométrico via geoide IBGE) no centro urbano + ANADEM 30 m
+nas bordas. Ver `codigo_python/02_mdt_hand_mancha/gerar_mosaico_mdt.py` e
+`gerar_mancha_mosaico.py`. Contornos vetoriais:
+`contornos_mancha.json` / `contornos_extravasamento.json`.
+
+Diagnóstico do talvegue do drone (pendência ~6 m vs ANADEM 49–72 m):
+`diagnostico_talvegue_drone.json`.
+
+## Camadas preliminares legadas
+
+Esta pasta tambem contem duas camadas antigas do prototipo espacial:
 
 1. `mancha_preliminar_santa_tereza.png` e `.geojson`
    - Recorte de `D:/PREVINE/inundacoes/profundidade_inund_v02.tif`.
