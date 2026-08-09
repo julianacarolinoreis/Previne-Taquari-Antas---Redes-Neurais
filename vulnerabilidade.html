@@ -115,9 +115,11 @@
     body.print-map-only main{display:block}
     body.print-legend-only aside > *:not(#leg):not(#legctx):not(#tot):not(.q:has(+ #leg)){display:none!important}
     body.print-legend-only #legctx,body.print-legend-only #leg,body.print-legend-only #tot{display:block!important}
-    main{height:auto;grid-template-columns:minmax(0,1fr) 300px}
-    #map{height:68vh}
-    aside{overflow:visible}
+    /* composição de uma prancha única: mapa ocupa a altura útil e a legenda
+       fica alinhada na coluna direita, sem sobrar um bloco vazio abaixo */
+    main{height:calc(100vh - 58px);min-height:0;grid-template-columns:minmax(0,1fr) 300px;align-items:stretch}
+    #map{height:100%;min-height:0}
+    aside{height:100%;min-height:0;overflow:hidden;padding:8px 12px}
     .expl,.icm-wrap{break-inside:avoid}
   }
   .icm-wrap{background:var(--bg);padding:32px 18px 48px;border-top:1px solid var(--line)}
