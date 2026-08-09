@@ -2,6 +2,8 @@
 - Agregados por Setores Censitários — Censo 2022: https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/
   Temas usados: Básico (população, domicílios), Demografia (faixas etárias por sexo),
   Cor ou raça (indígenas; pretos + pardos), Domicílio (água por rede geral, esgoto por rede geral).
+  Água (V00111) e esgoto (V00309) usam como universo os domicílios particulares
+  permanentes ocupados; o denominador correto é V00001, do tema Domicílio — Parte 1.
 - Rendimento do Responsável por setor — Censo 2022 (pasta à parte, publicada em 2026):
   https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios_Rendimento_do_Responsavel/
   Variável V06004 = rendimento nominal médio mensal das pessoas responsáveis.
@@ -12,3 +14,5 @@
 - Limite da bacia Taquari-Antas: https://iede.rs.gov.br/server/rest/services/DRH/Bacias_Hidrograficas/MapServer/0/query?where=1%3D1&outFields=*&returnGeometry=true&f=geojson
 Os CSVs aqui são o RECORTE dos municípios que intersectam a bacia; o estadual completo está nas URLs acima.
 Energia elétrica não consta no agregado de características do domicílio por setor (Censo 2022).
+Valores `X` omitidos pelo IBGE por sigilo estatístico não significam zero. Os
+arquivos regenerados os mantêm nulos e publicam flags `sigilo_<campo>`.

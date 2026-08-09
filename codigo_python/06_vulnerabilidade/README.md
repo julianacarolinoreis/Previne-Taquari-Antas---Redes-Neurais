@@ -13,12 +13,26 @@ botão **Run workflow**. Ele também roda sozinho todo dia 3 do mês.
 |---|---|
 | `municipios.geojson` | municípios da bacia com indicadores agregados |
 | `setores/<cod>.geojson` | setores censitários do município (simplificados) |
+| `grade/<cod>.geojson` | grade estatística de 200 m, com `id_grade` oficial |
 | `indicadores_municipios.json` | tabela para ranking/busca |
 | `brutos/*.csv` + `FONTES.md` | recorte auditável das tabelas do IBGE + URLs oficiais |
+| `downloads/dados_combinados_taquari_antas.zip` | CSV + GeoJSON combinados, catálogo, serviços e fontes |
+| `perigo/setores_risco_sgb_santa_tereza.geojson` | 37 setores oficiais de risco do SGB em Santa Tereza (2025) |
 
 ## Indicadores por setor e por município
 população total · mulheres · crianças **0–4** · crianças **5–9** ·
-idosos **60–69** · idosos **70+** · indígenas · domicílios · densidade (hab/km²)
+idosos **60–69** · idosos **70+** · indígenas · pretos e pardos ·
+domicílios totais · domicílios particulares permanentes ocupados · água por
+rede geral · esgoto por rede geral · renda do responsável · densidade (hab/km²)
+
+Água e esgoto têm como universo os domicílios particulares permanentes
+ocupados e usam a variável oficial **V00001** como denominador. Valores `X`
+omitidos por sigilo estatístico são publicados como nulos, acompanhados de
+`sigilo_<campo>=1`; nunca devem ser interpretados como zero.
+
+O perigo é mantido separado da vulnerabilidade social. Para atualizar e validar
+o snapshot do SGB de Santa Tereza, rode
+`python codigo_python/06_vulnerabilidade/baixar_setores_risco_sgb_santa_tereza.py`.
 
 ## Se falhar
 - O passo de download imprime o **dicionário oficial** das variáveis (V010xx/V013xx);
