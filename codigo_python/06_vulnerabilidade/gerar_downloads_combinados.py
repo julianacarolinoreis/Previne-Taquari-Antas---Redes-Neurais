@@ -18,9 +18,14 @@ import hashlib
 import io
 import json
 import os
+import re
+import shutil
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
+
+import geopandas as gpd
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -168,6 +173,84 @@ def zip_deterministico(path: Path, files: list[tuple[str, bytes]]) -> None:
             info.compress_type = ZIP_DEFLATED
             info.external_attr = 0o644 << 16
             zf.writestr(info, payload)
+
+
+def campo_shapefile(nome: str, usados: set[str]) -> str:
+    """Converte atributo para o limite de 10 caracteres do DBF, sem colisão."""
+    base = re.sub(r"[^A-Za-z0-9_]", "_", nome).upper()[:10] or "CAMPO"
+    candidato = base
+    i = 1
+    while candidato in usados:
+        sufixo = str(i)
+        candidato = (base[: 10 - len(sufixo)] + sufixo)[:10]
+        i += 1
+    usados.add(candidato)
+    return candidato
+
+
+def gerar_shapefiles(features_por_nome: dict[str, list[dict]], destino: Path) -> tuple[bytes, dict[str, dict[str, str]]]:
+    """Gera um ZIP de shapefiles UTF-8 para ArcGIS/QGIS e um dicionário de campos.
+
+    O pacote usa EPSG:4326, inclui .cpg UTF-8 e mantém cada camada em sua pasta.
+    O arquivo DBF recebe uma data fixa para que o ZIP continue reproduzível.
+    """
+    temp = Path(tempfile.mkdtemp(prefix="previne_shp_"))
+    arquivos: list[tuple[str, bytes]] = []
+    mapa_campos: dict[str, dict[str, str]] = {}
+    try:
+        for nome, features in sorted(features_por_nome.items()):
+            if not features:
+                continue
+            usados: set[str] = set()
+            campos: dict[str, str] = {}
+            registros = []
+            for feature in features:
+                props = feature.get("properties") or {}
+                out_props = {}
+                for campo, valor in props.items():
+                    if campo not in campos:
+                        campos[campo] = campo_shapefile(campo, usados)
+                    curto = campos[campo]
+                    # DBF não tem booleano nem listas; valores complexos viram texto.
+                    if isinstance(valor, (dict, list)):
+                        valor = json.dumps(valor, ensure_ascii=False, separators=(",", ":"))
+                    out_props[curto] = valor
+                registros.append({"type": "Feature", "properties": out_props, "geometry": feature.get("geometry")})
+            pasta = temp / nome
+            pasta.parent.mkdir(parents=True, exist_ok=True)
+            shp_path = pasta.with_suffix(".shp")
+            gdf = gpd.GeoDataFrame.from_features(registros, crs="EPSG:4326")
+            gdf.to_file(shp_path, driver="ESRI Shapefile", encoding="UTF-8", index=False)
+            mapa_campos[nome] = campos
+            for sidecar in sorted(shp_path.parent.glob(shp_path.stem + ".*")):
+                rel = sidecar.relative_to(temp).as_posix()
+                payload = sidecar.read_bytes()
+                if sidecar.suffix.lower() == ".dbf" and len(payload) >= 4:
+                    payload = payload[:1] + bytes((122, 1, 1)) + payload[4:]
+                arquivos.append((rel, payload))
+            if not any(rel == f"{nome}.cpg" for rel, _ in arquivos):
+                arquivos.append((f"{nome}.cpg", b"UTF-8\n"))
+        readme = (
+            "PACOTE SHAPEFILE — PREVINE / VULNERABILIDADE\n\n"
+            "CRS de todas as camadas: EPSG:4326 (WGS 84).\n"
+            "Cada camada contém .shp, .shx, .dbf, .prj e .cpg em UTF-8.\n"
+            "O formato Shapefile limita nomes de campos a 10 caracteres; consulte\n"
+            "campos.csv para a correspondência entre o nome original e o abreviado.\n"
+            "Ausência de ponto nas camadas de serviços não significa inexistência.\n"
+        ).encode("utf-8")
+        arquivos.append(("README_SHAPEFILE.txt", readme))
+        linhas = ["camada;campo_original;campo_shapefile\n"]
+        for camada, campos in sorted(mapa_campos.items()):
+            for original, curto in campos.items():
+                linhas.append(f"{camada};{original};{curto}\n")
+        arquivos.append(("campos.csv", "".join(linhas).encode("utf-8")))
+        stream = io.BytesIO()
+        # ZipFile precisa de um caminho; usamos arquivo temporário e retornamos bytes.
+        zip_path = temp / "shapefiles_arcgis_qgis.zip"
+        zip_deterministico(zip_path, arquivos)
+        return zip_path.read_bytes(), mapa_campos
+    finally:
+        shutil.rmtree(temp, ignore_errors=True)
 
 
 def contexto_municipal(mun: dict, serv: dict, icm: dict) -> dict:
@@ -369,6 +452,28 @@ def main() -> None:
     if gj_grade_bacia.exists():
         gj_grade_bacia.unlink()
 
+    # Pacote interoperável para ArcGIS/QGIS. O GeoJSON continua sendo a fonte
+    # aberta; aqui entregamos as mesmas camadas no formato Shapefile clássico.
+    camadas_shp = {
+        "municipios_combinados": mun_features,
+        "setores_na_bacia_combinados": setores_na_bacia,
+        "grade_200m_na_bacia": grade_features_bacia,
+    }
+    bacia_path = VULN / "bacia.geojson"
+    if bacia_path.exists():
+        camadas_shp["bacia_taquari_antas"] = ler_json(bacia_path).get("features", [])
+    for tipo in (*SERVICOS, "abrigos"):
+        path = SERV / f"{tipo}.geojson"
+        if path.exists():
+            camadas_shp[f"servicos/{tipo}"] = ler_json(path).get("features", [])
+    for path in sorted((VULN / "perigo").glob("*.geojson")):
+        camadas_shp[f"perigo/{path.stem}"] = ler_json(path).get("features", [])
+    shapefile_zip_bytes, shapefile_campos = gerar_shapefiles(
+        camadas_shp, OUT / "shapefiles_arcgis_qgis.zip"
+    )
+    shapefile_zip = OUT / "shapefiles_arcgis_qgis.zip"
+    shapefile_zip.write_bytes(shapefile_zip_bytes)
+
     inputs = [
         Path(__file__).resolve(),
         VULN / "municipios.geojson",
@@ -454,6 +559,12 @@ def main() -> None:
         "gerado_em_utc": gerado_em,
         "hash_entradas_sha256": entradas_sha,
         "crs_geojson": "EPSG:4326",
+        "crs_shapefile": "EPSG:4326",
+        "formatos_gis": {
+            "shapefile_zip": "shapefiles_arcgis_qgis.zip",
+            "camadas": sorted(shapefile_campos),
+            "observacao": "Shapefile limita nomes de campos a 10 caracteres; correspondência em campos.csv.",
+        },
         "referencia_censo": 2022,
         "contagens": {
             "municipios": len(municipios),
@@ -517,6 +628,7 @@ def main() -> None:
             "grade_200m_na_bacia_combinada.csv",
             "grade_200m_na_bacia_combinada.geojson (dentro do ZIP)",
             "perigo/setores_risco_sgb_santa_tereza.geojson (dentro do ZIP)",
+            "shapefiles_arcgis_qgis.zip",
             "dados_combinados_taquari_antas.zip",
         ],
     }
@@ -534,6 +646,7 @@ O pacote contém:
 - grade_200m_na_bacia_combinada: células da grade estatística dentro da bacia;
 - servicos/*.geojson: pontos publicados pelo IEDE-RS, separados por tipo;
 - perigo/: setores oficiais de risco do SGB em Santa Tereza (levantamento 2025);
+- shapefiles_arcgis_qgis.zip: camadas para ArcGIS/QGIS (EPSG:4326, UTF-8);
 - fontes/: documentação de origem.
 
 Grão e junções:
@@ -567,6 +680,7 @@ Leia catalogo.json para os testes de qualidade e advertências.
         csv_grade_bacia, catalogo_path, OUT / "LEIA-ME.txt"
     ):
         zip_files.append((path.name, path.read_bytes()))
+    zip_files.append(("shapefiles_arcgis_qgis.zip", shapefile_zip_bytes))
     zip_files.append(("grade_200m_na_bacia_combinada.geojson", grade_geojson_bytes))
     for tipo in (*SERVICOS, "abrigos"):
         path = SERV / f"{tipo}.geojson"
