@@ -85,6 +85,7 @@
   .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:14px}
   .disc a{color:var(--brand)}
   .leaflet-container{font-size:12px}
+  #camadas button:disabled{opacity:.45;cursor:not-allowed}
   .pop b{font-size:14px}
   .pop table{font-size:12px;border-collapse:collapse;margin-top:4px}
   .pop td{padding:1.5px 6px 1.5px 0;font-variant-numeric:tabular-nums}
@@ -96,7 +97,9 @@
     #inset{width:120px;height:92px;bottom:18px}
   }
   @media print{
+    @page{size:landscape;margin:8mm}
     header .back,aside .tool-grid,.download-center,.volta{display:none!important}
+    .expl,.icm-wrap{display:none!important}
     main{height:auto;grid-template-columns:minmax(0,1fr) 300px}
     #map{height:68vh}
     aside{overflow:visible}
@@ -397,10 +400,13 @@ const escHTML = v => String(v ?? "").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&
 const PARAMS = new URLSearchParams(location.search);
 let ind = INDS.some(d=>d.k===PARAMS.get("indicador")) ? PARAMS.get("indicador") : "mulheres";
 let modo = PARAMS.get("modo") === "pct" ? "pct" : "abs";
-let camada = PARAMS.get("camada") === "grade" ? "grade" : "setor";
+const municipioInicial = PARAMS.get("municipio");
+// A grade só existe depois que um município é aberto. Links antigos que
+// pediam grade na bacia inteira voltam para setores, evitando uma legenda
+// de grade sobre o mapa municipal.
+let camada = PARAMS.get("camada") === "grade" && municipioInicial ? "grade" : "setor";
 let escala = PARAMS.get("escala") === "local" ? "local" : "bacia";
 let opacidade = Math.min(1, Math.max(.25, (+PARAMS.get("opacidade") || 75) / 100));
-const municipioInicial = PARAMS.get("municipio");
 const GRADE_INDS = new Set(["pop", "dom"]);   // únicos indicadores que a grade estatística tem
 let map, munLayer, setLayer = null, munData, munAtual = null, icmData = null, catalogoData = null;
 let servicosResolvidos = false, icmResolvido = false;
@@ -657,6 +663,7 @@ function abreMunicipio(cod){
     munLayer.setStyle({fillOpacity:.06, color:"#9ab0a2", weight:1});
     map.fitBounds(setLayer.getBounds(), {padding:[18,18]});
     document.getElementById("volta").classList.add("show");
+    sincronizaCamadaUI();
     aplicaLabels();
     pintaSetores();
     document.getElementById("busca").value = String(cod);
@@ -670,12 +677,28 @@ function voltaBacia(){
   reqSeq++;                            // descarta qualquer carga de setores em andamento
   if (setLayer){ map.removeLayer(setLayer); setLayer = null; }
   munAtual = null;
+  camada = "setor";
+  sincronizaCamadaUI();
   document.getElementById("volta").classList.remove("show");
   pintaMunicipios();
   aplicaLabels();
   map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
   document.getElementById("busca").value = "";
   sincronizaURL();
+}
+
+function sincronizaCamadaUI(){
+  const gradeBtn = document.querySelector('#camadas [data-c="grade"]');
+  const podeGrade = !!munAtual;
+  if (gradeBtn){
+    gradeBtn.disabled = !podeGrade;
+    gradeBtn.title = podeGrade ? "Exibe a grade estatística 200 m do município aberto"
+                               : "Abra um município para habilitar a grade estatística 200 m";
+  }
+  document.querySelectorAll("#camadas button").forEach(x=>{
+    const ativo=x.dataset.c===camada;
+    x.classList.toggle("on",ativo); x.setAttribute("aria-pressed",ativo?"true":"false");
+  });
 }
 
 // nomes dos municípios só a partir de certo zoom (e não durante o drill-down),
@@ -960,6 +983,7 @@ carrega("municipios.geojson").then(gj=>{
     }
   }).addTo(map);
   map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
+  sincronizaCamadaUI();
   pintaMunicipios();
   revelaOpcionais();
   map.on("zoomend", aplicaLabels);
