@@ -86,6 +86,17 @@
   .disc a{color:var(--brand)}
   .leaflet-container{font-size:12px}
   #camadas button:disabled{opacity:.45;cursor:not-allowed}
+  #printDialog{border:1px solid var(--line);border-radius:14px;padding:22px;max-width:420px;color:var(--ink);box-shadow:0 12px 40px #0003}
+  #printDialog::backdrop{background:#12231dcc}
+  #printDialog h2{margin:0 0 6px;font-size:18px}
+  #printDialog p{margin:0 0 16px;color:var(--muted);font-size:12.5px;line-height:1.45}
+  .print-options{display:grid;gap:9px;margin:0 0 18px}
+  .print-options label{display:flex;gap:9px;align-items:flex-start;border:1px solid var(--line);border-radius:9px;padding:10px;cursor:pointer;font-size:13px}
+  .print-options label:has(input:checked){border-color:var(--brand);background:#eef7f2}
+  .print-actions{display:flex;justify-content:flex-end;gap:8px}
+  .print-actions button{border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:#fff;cursor:pointer;font-weight:650}
+  .print-actions .primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  @media print{.print-hide{display:none!important}}
   .pop b{font-size:14px}
   .pop table{font-size:12px;border-collapse:collapse;margin-top:4px}
   .pop td{padding:1.5px 6px 1.5px 0;font-variant-numeric:tabular-nums}
@@ -100,6 +111,10 @@
     @page{size:landscape;margin:8mm}
     header .back,aside .tool-grid,.download-center,.volta{display:none!important}
     .expl,.icm-wrap{display:none!important}
+    body.print-map-only aside{display:none!important}
+    body.print-map-only main{display:block}
+    body.print-legend-only aside > *:not(#leg):not(#legctx):not(#tot):not(.q:has(+ #leg)){display:none!important}
+    body.print-legend-only #legctx,body.print-legend-only #leg,body.print-legend-only #tot{display:block!important}
     main{height:auto;grid-template-columns:minmax(0,1fr) 300px}
     #map{height:68vh}
     aside{overflow:visible}
@@ -260,6 +275,17 @@
     </div>
   </aside>
 </main>
+
+<dialog id="printDialog">
+  <h2>Imprimir mapa</h2>
+  <p>Escolha o conteúdo da folha. O mapa usa a seleção atual de indicador, escala, município e camada.</p>
+  <div class="print-options">
+    <label><input type="radio" name="printMode" value="map-legend" checked> <span><b>Mapa + legenda</b><br><small>Recomendado para relatório e reunião.</small></span></label>
+    <label><input type="radio" name="printMode" value="map-summary"> <span><b>Mapa + legenda + resumo</b><br><small>Inclui o total calculado para a área vista.</small></span></label>
+    <label><input type="radio" name="printMode" value="map-only"> <span><b>Somente o mapa</b><br><small>Sem painel, controles ou legenda.</small></span></label>
+  </div>
+  <div class="print-actions"><button type="button" id="printCancel">Cancelar</button><button type="button" class="primary" id="printConfirm">Abrir impressão</button></div>
+</dialog>
 
 <section class="expl">
   <div class="expl-in">
@@ -910,7 +936,32 @@ document.getElementById("copiarLink").onclick = async()=>{
   try { await navigator.clipboard.writeText(location.href); informa("Link do mapa copiado."); }
   catch { window.prompt("Copie o link deste mapa:", location.href); }
 };
-document.getElementById("imprimir").onclick = ()=>window.print();
+const printDialog = document.getElementById("printDialog");
+function limpaModoImpressao(){
+  document.body.classList.remove("print-map-only","print-map-legend","print-map-summary");
+  document.querySelectorAll(".print-hide").forEach(el=>el.classList.remove("print-hide"));
+}
+document.getElementById("imprimir").onclick = ()=>{
+  if (printDialog?.showModal) printDialog.showModal();
+  else window.print();
+};
+document.getElementById("printCancel").onclick = ()=>printDialog.close();
+document.getElementById("printConfirm").onclick = ()=>{
+  const mode = document.querySelector('input[name="printMode"]:checked')?.value || "map-legend";
+  limpaModoImpressao();
+  document.body.classList.add(`print-${mode}`);
+  const aside = document.querySelector("aside");
+  if (mode !== "map-only" && aside){
+    [...aside.children].forEach(el=>el.classList.add("print-hide"));
+    const leg = document.getElementById("leg");
+    leg?.classList.remove("print-hide");
+    leg?.previousElementSibling?.classList.remove("print-hide");
+    if (mode === "map-summary") document.getElementById("tot")?.parentElement?.classList.remove("print-hide");
+  }
+  printDialog.close();
+  window.setTimeout(()=>window.print(),120);
+};
+window.addEventListener("afterprint", limpaModoImpressao);
 
 // aplica o estado inicial recebido pelo link compartilhado
 if (!INDS.find(d=>d.k===ind)?.pct && modo==="pct") modo="abs";
