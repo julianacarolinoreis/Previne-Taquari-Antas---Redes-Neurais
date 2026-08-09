@@ -85,11 +85,13 @@ json.dump({
 }, open(f"{OUT}/contagem_municipios.json", "w"), ensure_ascii=False)
 
 open(f"{OUT}/FONTES.md", "w").write(
-    "# Fontes — serviços públicos (camadas estaduais completas)\n"
+    "# Fontes — pontos de serviços publicados no IEDE-RS\n"
     + "".join(f"- {t}: {u}\n" for t, u in sorted(fontes.items()))
     + "Recorte: pontos dentro dos municípios que intersectam a bacia Taquari-Antas\n"
       "(polígonos municipais simplificados ~120 m — pontos exatamente na divisa podem\n"
-      "cair fora). Estaduais completos nas URLs acima.\n")
+      "cair fora). As camadas têm coberturas diferentes e não devem ser tratadas como\n"
+      "inventário completo: ausência de ponto não prova ausência do serviço.\n"
+      "Os cadastros estaduais consultados estão nas URLs acima.\n")
 
 print("\n== SANIDADE ==")
 tot = {t: sum(v.get(t, 0) for v in contagem.values()) for t in fontes}

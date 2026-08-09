@@ -1,0 +1,36 @@
+DADOS COMBINADOS — BACIA TAQUARI-ANTAS
+
+Referência social: Censo Demográfico IBGE 2022.
+CRS dos GeoJSON: EPSG:4326.
+
+O pacote contém:
+- municipios_combinados: 1 linha/feição por município que intersecta a bacia;
+- setores_na_bacia_combinados: somente setores cujo ponto representativo está na bacia;
+- setores_municipios_intersectantes_combinados: todos os setores dos municípios de borda;
+- grade_200m_na_bacia_combinada: células da grade estatística dentro da bacia;
+- servicos/*.geojson: pontos publicados pelo IEDE-RS, separados por tipo;
+- perigo/: setores oficiais de risco do SGB em Santa Tereza (levantamento 2025);
+- fontes/: documentação de origem.
+
+Grão e junções:
+- indicadores sem prefixo são do setor ou do município indicado pelo nome do arquivo;
+- campos mun_* repetidos no setor são atributos municipais, não dados setoriais;
+- na_bacia=1 identifica o recorte setorial adotado pelo projeto;
+- id_grade é o identificador oficial quando disponível; id_grade_previne é um
+  identificador técnico derivado da geometria para os ativos legados;
+- contagens *_iede são cadastros parciais das camadas disponíveis no IEDE-RS.
+  Ausência de ponto não deve ser interpretada como inexistência do serviço.
+- flags sigilo_<campo>=1 indicam valor X omitido pelo IBGE; o valor correspondente
+  fica vazio/nulo e não deve ser convertido em zero.
+- água e esgoto têm universo de domicílios particulares permanentes ocupados;
+  o percentual só é publicado quando V00001 (dom_ocupados) está disponível.
+
+Contagens verificadas nesta geração:
+- 118 municípios;
+- 5053 setores nos municípios que tocam a bacia;
+- 3283 setores dentro da bacia;
+- 36723 células de 200 m dentro da bacia;
+- 101 setores com ao menos um indicador suprimido;
+- 1,328,737 habitantes no recorte setorial.
+
+Leia catalogo.json para os testes de qualidade e advertências.

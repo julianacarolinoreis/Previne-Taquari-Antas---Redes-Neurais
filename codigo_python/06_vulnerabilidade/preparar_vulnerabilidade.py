@@ -15,8 +15,9 @@ Saída:    assets/data/vulnerabilidade/
 
 Indicadores: pop_total, mulheres, criancas_0_4, criancas_5_9,
              idosos_60_69, idosos_70m, indigenas, domicilios, densidade (hab/km²),
-             pretos_pardos, dom_agua e dom_esgoto (nº de domicílios com rede geral;
-             % contra 'dom'), e renda_resp (rendimento médio mensal do responsável;
+             pretos_pardos, dom_ocupados (V00001, denominador oficial), dom_agua e
+             dom_esgoto (nº de domicílios com rede geral; % contra 'dom_ocupados'),
+             e renda_resp (rendimento médio mensal do responsável;
              média ponderada pelo nº de responsáveis no município).
              Os opcionais são pulados com aviso se o código IBGE não bater (não
              regridem os que já funcionam). Energia elétrica não consta no
@@ -33,6 +34,14 @@ RAW = "_ibge_raw"
 OUT = "assets/data/vulnerabilidade"
 os.makedirs(f"{OUT}/setores", exist_ok=True)
 os.makedirs(f"{OUT}/brutos", exist_ok=True)
+
+# O limite da bacia pode mudar entre rodadas. Remova apenas os derivados por
+# município antes de regravá-los; caso contrário, códigos que deixaram de
+# intersectar a bacia permanecem publicados como arquivos órfãos.
+for pasta in (f"{OUT}/setores", f"{OUT}/grade"):
+    os.makedirs(pasta, exist_ok=True)
+    for antigo in glob.glob(f"{pasta}/*.geojson"):
+        os.unlink(antigo)
 
 # ---- mapeamento de colunas (dicionário dos Agregados por Setores, Censo 2022) ----
 # Cada indicador é a SOMA das colunas listadas. Na demografia, as faixas etárias
@@ -51,9 +60,10 @@ COLMAP = {
                    "indigenas":     ["V01321"],
                    "pretos_pardos": ["V01318", "V01320"]},   # preta + parda
     # características do domicílio (universo 2022) — códigos confirmados no dicionário:
-    # V00111 = utiliza rede geral de distribuição de água; V00309 = destinação do
-    # esgoto é rede geral. (Energia elétrica NÃO consta neste agregado por setor.)
+    # V00001 = Domicílios Particulares Permanentes Ocupados (DPPO), denominador
+    # canônico de V00111 e V00309. Energia elétrica NÃO consta neste agregado.
     "domicilio":  {"setor": ["setor", "CD_SETOR", "CD_setor"],
+                   "dom_ocupados": ["V00001"],
                    "dom_agua":   ["V00111"],   # domicílios que usam rede geral de água
                    "dom_esgoto": ["V00309"]},  # domicílios com esgoto em rede geral
     # Rendimento do Responsável por setor (pasta à parte, 2026): V06004 = rendimento
@@ -88,8 +98,29 @@ def ler_zip_csv(nome):
         df = pd.read_csv(z.open(alvo), sep=",", dtype=str, encoding="latin-1")
     return df
 
-def num(s):
-    return pd.to_numeric(s.astype(str).str.replace(",", ".", regex=False), errors="coerce").fillna(0)
+def valor_e_sigilo(s):
+    """Converte número sem confundir o ``X`` de sigilo do IBGE com zero.
+
+    O valor omitido permanece nulo. A flag separada permite que consumidores
+    distingam sigilo estatístico de um zero observado de verdade.
+    """
+    texto = s.astype("string").str.strip()
+    sigilo = texto.str.upper().eq("X").fillna(False).astype(bool)
+    valor = pd.to_numeric(texto.str.replace(",", ".", regex=False), errors="coerce")
+    return valor.mask(sigilo), sigilo
+
+
+def preenche_ausentes_preservando_sigilo(df):
+    """Mantém compatibilidade (ausência comum=0), mas nunca converte X em zero."""
+    out = df.copy()
+    flags = [c for c in out.columns if c.startswith("sigilo_")]
+    for flag in flags:
+        out[flag] = out[flag].fillna(False).astype(bool)
+        campo = flag.removeprefix("sigilo_")
+        if campo in out.columns:
+            sem_sigilo = ~out[flag]
+            out.loc[sem_sigilo, campo] = out.loc[sem_sigilo, campo].fillna(0)
+    return out
 
 def slug(t):
     t = unicodedata.normalize("NFD", str(t)).encode("ascii", "ignore").decode()
@@ -152,11 +183,15 @@ dem = ler_zip_csv("agregados_demografia.zip")
 cor = ler_zip_csv("agregados_cor_raca.zip")
 def ler_domicilio():
     """O tema Domicílio vem em PARTES (agregados_domicilio_1.zip, _2.zip...) e cada
-    parte tem colunas diferentes. Água (V00111) e esgoto (V00309) estão na Parte 2.
+    parte tem colunas diferentes. V00001 está na Parte 1; V00111 e V00309, na Parte 2.
     Lê todas as partes e mantém setor + as colunas de que precisamos, juntando."""
     zips = sorted(glob.glob(os.path.join(RAW, "agregados_domicilio_*.zip")))
     if not zips: return None
-    precisa = {c.upper() for papel in ("dom_agua", "dom_esgoto") for c in COLMAP["domicilio"].get(papel, [])}
+    precisa = {
+        c.upper()
+        for papel in ("dom_ocupados", "dom_agua", "dom_esgoto")
+        for c in COLMAP["domicilio"].get(papel, [])
+    }
     out = None
     for zp in zips:
         z = zipfile.ZipFile(zp)
@@ -191,14 +226,19 @@ def prepara(df, tabela, campos):
     for papel in campos:                              # soma as colunas do papel
         opc = papel in OPCIONAIS
         total = None
+        sigilo = pd.Series(False, index=df.index, dtype=bool)
         for code in cs[papel]:
             col = acha_col(df, [code], tabela, papel, opcional=opc)
             if col is None:                           # 1º código já não existe → pula o campo
                 total = None; break
-            v = num(df[col])
+            v, x = valor_e_sigilo(df[col])
             total = v if total is None else total + v
+            sigilo = sigilo | x
         if total is not None:
-            d[papel] = total.values
+            # Em indicadores compostos, um único componente X torna a soma
+            # incompleta; publique null e sinalize, nunca uma soma parcial.
+            d[papel] = total.mask(sigilo).values
+            d[f"sigilo_{papel}"] = sigilo.astype(bool).values
     return d[d["setor"].str.startswith("43")]         # RS
 
 bas = prepara(bas, "basico", ["pop", "dom"])
@@ -207,18 +247,20 @@ cor = prepara(cor, "cor_raca", ["indigenas", "pretos_pardos"])
 
 tab = bas.merge(dem, on="setor", how="left").merge(cor, on="setor", how="left")
 if dfdom is not None:
-    dom = prepara(dfdom, "domicilio", ["dom_agua", "dom_esgoto"])
+    dom = prepara(dfdom, "domicilio", ["dom_ocupados", "dom_agua", "dom_esgoto"])
     tab = tab.merge(dom, on="setor", how="left")
 if dfrenda is not None:
     rnd = prepara(dfrenda, "renda", ["renda_resp", "n_resp"])
     tab = tab.merge(rnd, on="setor", how="left")
-tab = tab.fillna(0)
+tab = preenche_ausentes_preservando_sigilo(tab)
 setg["setor"] = setg["setor"].astype(str)
-g = setg.merge(tab, on="setor", how="left").fillna(0)
+g = preenche_ausentes_preservando_sigilo(setg.merge(tab, on="setor", how="left"))
 
 # densidade por setor (hab/km²)
 akm = g.to_crs(5880).geometry.area / 1e6
-g["dens"] = (g["pop"] / akm.replace(0, pd.NA)).fillna(0).round(1)
+g["dens"] = (g["pop"] / akm.replace(0, pd.NA)).round(1)
+g["sigilo_dens"] = g["sigilo_pop"].astype(bool)
+g.loc[~g["sigilo_dens"], "dens"] = g.loc[~g["sigilo_dens"], "dens"].fillna(0)
 
 # setores DENTRO do polígono da bacia (ponto representativo) — valida a
 # delineação de verdade e diz quanto de cada município está na bacia
@@ -228,9 +270,44 @@ pop_dentro = float(g.loc[dentro, "pop"].sum())
 
 # campos SOMÁVEIS (base + opcionais que entraram). Renda é MÉDIA (não soma) — tratada à parte.
 CAMPOS = ["pop", "dom", "mulheres", "c0_4", "c5_9", "i60_69", "i70m", "indigenas"]
-CAMPOS += [c for c in ("pretos_pardos", "dom_agua", "dom_esgoto", "n_resp") if c in g.columns]
+CAMPOS += [c for c in ("pretos_pardos", "dom_ocupados", "dom_agua", "dom_esgoto", "n_resp") if c in g.columns]
 tem_renda = "renda_resp" in g.columns
+FLAG_CAMPOS = [
+    f"sigilo_{campo}"
+    for campo in CAMPOS + (["renda_resp"] if tem_renda else [])
+    if f"sigilo_{campo}" in g.columns
+]
 print("[campos] indicadores publicados:", CAMPOS + (["renda_resp (média)"] if tem_renda else []))
+print("[campos] flags booleanas publicadas:", FLAG_CAMPOS + ["sigilo_dens"])
+
+# O denominador dos indicadores de saneamento é DPPO (V00001), não o total
+# legado ``dom`` nem ``n_resp``. Estes testes rodam antes de qualquer publicação.
+assert "dom_ocupados" in g.columns, "V00001/dom_ocupados não foi carregado do agregado de domicílios"
+assert g["dom_ocupados"].notna().any(), "V00001/dom_ocupados não tem nenhum valor conhecido"
+
+for campo in CAMPOS + (["renda_resp"] if tem_renda else []):
+    flag = f"sigilo_{campo}"
+    if flag not in g.columns:
+        continue
+    assert g.loc[g[flag], campo].isna().all(), f"{campo}: valor com X foi convertido em número"
+    n_sigilo = int(g[flag].sum())
+    if n_sigilo:
+        mun_sigilo = int(g.loc[g[flag], "cod_mun"].nunique())
+        print(f"[sigilo] {campo}: {n_sigilo} setor(es) em {mun_sigilo} município(s); valor publicado como null")
+
+def valida_subconjunto(numerador, denominador):
+    conhecidos = g[numerador].notna() & g[denominador].notna()
+    excedentes = g.loc[conhecidos & (g[numerador] > g[denominador]),
+                       ["setor", numerador, denominador]]
+    assert excedentes.empty, (
+        f"{numerador} excede {denominador} em {len(excedentes)} setor(es); "
+        f"amostra={excedentes.head(5).to_dict('records')}"
+    )
+
+valida_subconjunto("dom_ocupados", "dom")
+for campo in ("dom_agua", "dom_esgoto"):
+    if campo in g.columns:
+        valida_subconjunto(campo, "dom_ocupados")
 
 # ---------- saídas ----------
 # brutos recortados (auditável), com flag de setor dentro do polígono
@@ -238,21 +315,39 @@ rec = tab[tab["setor"].str[:7].isin(inter["cod"].astype(str))].copy()
 rec["na_bacia"] = rec["setor"].map(dict(zip(g["setor"], g["na_bacia"]))).fillna(0).astype(int)
 rec.to_csv(f"{OUT}/brutos/setores_bacia_indicadores.csv", index=False)
 
-# município: agrega setores
-agg = g.groupby("cod_mun")[CAMPOS].sum().reset_index()
-m = inter.rename(columns={"cod": "cod_mun"}).merge(agg, on="cod_mun", how="left").fillna(0)
+# município: soma os valores conhecidos e marca, por indicador, se ao menos um
+# setor teve X. Se todos forem sigilosos, o total fica null (nunca zero fictício).
+agg = g.groupby("cod_mun")[CAMPOS].sum(min_count=1).reset_index()
+if FLAG_CAMPOS:
+    agg_flags = g.groupby("cod_mun")[FLAG_CAMPOS].any().reset_index()
+    agg = agg.merge(agg_flags, on="cod_mun", how="left")
+m = inter.rename(columns={"cod": "cod_mun"}).merge(agg, on="cod_mun", how="left")
+m = preenche_ausentes_preservando_sigilo(m)
 akm_m = m.to_crs(5880).geometry.area / 1e6
 m["dens"] = (m["pop"] / akm_m).round(1).values
-popb = g.loc[dentro].groupby("cod_mun")["pop"].sum()
-m["pop_bacia"] = m["cod_mun"].map(popb).fillna(0).astype(int)   # pop do município DENTRO da bacia
+m["sigilo_dens"] = m["sigilo_pop"].astype(bool)
+m.loc[~m["sigilo_dens"], "dens"] = m.loc[~m["sigilo_dens"], "dens"].fillna(0)
+popb = g.loc[dentro].groupby("cod_mun")["pop"].sum(min_count=1)
+popb_sigilo = g.loc[dentro].groupby("cod_mun")["sigilo_pop"].any()
+m["pop_bacia"] = m["cod_mun"].map(popb)
+m["sigilo_pop_bacia"] = m["cod_mun"].map(popb_sigilo).fillna(False).astype(bool)
+m.loc[~m["sigilo_pop_bacia"], "pop_bacia"] = (
+    m.loc[~m["sigilo_pop_bacia"], "pop_bacia"].fillna(0)
+)   # soma conhecida dentro da bacia; null só se tudo estiver sob sigilo
 
 # renda do responsável no município = MÉDIA PONDERADA pelo nº de responsáveis
 # (renda_resp é média por setor; somar não faz sentido)
 if tem_renda:
-    gr = g[g["n_resp"] > 0]
-    num = (gr["renda_resp"] * gr["n_resp"]).groupby(gr["cod_mun"]).sum()
-    den = gr["n_resp"].groupby(gr["cod_mun"]).sum()
-    m["renda_resp"] = (m["cod_mun"].map(num) / m["cod_mun"].map(den)).round(0).fillna(0)
+    gr = g[(g["n_resp"] > 0) & g["renda_resp"].notna()]
+    num_renda = (gr["renda_resp"] * gr["n_resp"]).groupby(gr["cod_mun"]).sum(min_count=1)
+    den_renda = gr["n_resp"].groupby(gr["cod_mun"]).sum(min_count=1)
+    m["renda_resp"] = (m["cod_mun"].map(num_renda) / m["cod_mun"].map(den_renda)).round(0)
+    # A média municipal também é incompleta se o valor ou o peso foi sigiloso.
+    if "sigilo_n_resp" in m.columns:
+        m["sigilo_renda_resp"] = m["sigilo_renda_resp"] | m["sigilo_n_resp"]
+    m.loc[~m["sigilo_renda_resp"], "renda_resp"] = (
+        m.loc[~m["sigilo_renda_resp"], "renda_resp"].fillna(0)
+    )
 m["geometry"] = m.to_crs(5880).geometry.simplify(120).to_crs(4326)   # leve p/ visão geral
 m.to_file(f"{OUT}/municipios.geojson", driver="GeoJSON")
 
@@ -277,7 +372,8 @@ grd = pd.concat(
     ignore_index=True,
 )
 grd = gpd.GeoDataFrame(grd, crs=ler_vetor("grade_id14.zip").crs).to_crs(4326)
-grd = grd.rename(columns={"TOTAL": "pop", "TOTAL_DOM": "dom"})
+grd = grd.rename(columns={"ID_UNICO": "id_grade", "TOTAL": "pop", "TOTAL_DOM": "dom"})
+grd["universo_dom"] = "domicilios_ocupados_grade_ibge_2022"
 grd = grd[(grd["pop"] > 0) | (grd["dom"] > 0)].reset_index(drop=True)  # descarta célula vazia (maioria é rural sem gente)
 
 grd["rep"] = grd.geometry.representative_point()
@@ -294,12 +390,28 @@ print(f"[grade] {len(grd)} células (200m) com pop ou dom > 0 nos municípios da
       f"(setor deu {pop_dentro:,.0f} — divergência esperada é pequena, são fontes/geometrias diferentes)")
 
 for cod, gg in grd.groupby("cod_mun"):
-    gg.drop(columns=["cod_mun", "ID_UNICO"]).to_file(f"{OUT}/grade/{cod}.geojson", driver="GeoJSON")
+    gg.drop(columns=["cod_mun"]).to_file(f"{OUT}/grade/{cod}.geojson", driver="GeoJSON")
 
+# Integridade das saídas particionadas: cada município atual deve ter
+# exatamente um arquivo de setores e um da grade, sem sobras de rodadas antigas.
+codigos_esperados = set(m["cod_mun"].astype(str))
+for pasta in ("setores", "grade"):
+    codigos_publicados = {
+        os.path.splitext(os.path.basename(p))[0]
+        for p in glob.glob(f"{OUT}/{pasta}/*.geojson")
+    }
+    assert codigos_publicados == codigos_esperados, (
+        f"partições de {pasta} divergentes: "
+        f"órfãos={sorted(codigos_publicados-codigos_esperados)}, "
+        f"faltantes={sorted(codigos_esperados-codigos_publicados)}"
+    )
+
+municipios_json = m.drop(columns="geometry").astype(object)
+municipios_json = municipios_json.where(pd.notna(municipios_json), None)
 json.dump({
     "fonte": "IBGE — Censo Demográfico 2022, Agregados por Setores Censitários",
-    "municipios": m.drop(columns="geometry").to_dict("records"),
-}, open(f"{OUT}/indicadores_municipios.json", "w"), ensure_ascii=False)
+    "municipios": municipios_json.to_dict("records"),
+}, open(f"{OUT}/indicadores_municipios.json", "w"), ensure_ascii=False, allow_nan=False)
 
 _fonte_bacia = "IEDE-RS (https://iede.rs.gov.br)"
 _fp = os.path.join(RAW, "bacia_fonte.txt")
@@ -310,6 +422,8 @@ f"""# Fontes (dados completos oficiais)
 - Agregados por Setores Censitários — Censo 2022: https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/
   Temas usados: Básico (população, domicílios), Demografia (faixas etárias por sexo),
   Cor ou raça (indígenas; pretos + pardos), Domicílio (água por rede geral, esgoto por rede geral).
+  Denominador de água/esgoto: V00001 = Domicílios Particulares Permanentes Ocupados (dom_ocupados).
+  Valores X omitidos por sigilo estatístico permanecem nulos e têm flag booleana sigilo_<campo>.
 - Rendimento do Responsável por setor — Censo 2022 (pasta à parte, publicada em 2026):
   https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios_Rendimento_do_Responsavel/
   Variável V06004 = rendimento nominal médio mensal das pessoas responsáveis.
@@ -351,9 +465,12 @@ if "pretos_pardos" in CAMPOS:
           f"(esperado ~15–35%) {'OK' if 0.08 <= tot['pretos_pardos']/tot['pop'] <= 0.45 else '** CONFERIR CÓDIGO **'}")
 for k, lab, lo, hi in [("dom_agua","água rede",0.55,1.01), ("dom_esgoto","esgoto rede",0.20,1.01)]:
     if k in CAMPOS:
-        frac = tot[k]/tot["dom"] if tot["dom"] else 0
-        print(f"  {lab}: {frac*100:.1f}% dos domicílios (esperado {lo*100:.0f}–100%) "
-              f"{'OK' if lo <= frac <= hi else '** CONFERIR CÓDIGO **'}")
+        frac = tot[k]/tot["dom_ocupados"] if tot["dom_ocupados"] else 0
+        parcial = bool(g[f"sigilo_{k}"].any() or g["sigilo_dom_ocupados"].any())
+        print(f"  {lab}: {frac*100:.1f}% dos domicílios ocupados/V00001 "
+              f"(esperado {lo*100:.0f}–100%) "
+              f"{'OK' if lo <= frac <= hi else '** CONFERIR CÓDIGO **'}"
+              f"{' — soma dos conhecidos; há X sinalizado' if parcial else ''}")
 if tem_renda:
     rr = m.loc[m["renda_resp"] > 0, "renda_resp"]
     md = float(rr.median()) if len(rr) else 0

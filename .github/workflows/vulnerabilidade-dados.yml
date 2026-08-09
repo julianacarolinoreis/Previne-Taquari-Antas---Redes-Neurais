@@ -41,6 +41,9 @@ jobs:
       - name: Processar (recorte da bacia + indicadores + geojson)
         run: python codigo_python/06_vulnerabilidade/preparar_vulnerabilidade.py
 
+      - name: Gerar downloads combinados e validar as junções
+        run: python codigo_python/06_vulnerabilidade/gerar_downloads_combinados.py
+
       - name: Commitar assets/data/vulnerabilidade
         run: |
           git config user.name  "previne-robo"

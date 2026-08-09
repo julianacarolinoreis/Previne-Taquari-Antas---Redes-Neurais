@@ -27,8 +27,13 @@
   .q{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:12px 0 5px}
   .q:first-child{margin-top:0}
   .ind{display:flex;flex-wrap:wrap;gap:5px}
+  .ind.grouped{display:block}
+  .ind-group{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+  .ind-group:last-child{margin-bottom:0}
+  .ind-group-title{width:100%;font-size:10.5px;color:var(--muted);font-weight:750;margin:2px 0 0}
   .ind button{font-size:11.5px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:5px 9px;cursor:pointer}
   .ind button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .ind button[data-parcial="1"]::after{content:"*";margin-left:2px}
   .modes{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px;margin-top:8px}
   .modes button{border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:650;padding:5px 12px;border-radius:999px;cursor:pointer}
   .modes button.on{background:var(--brand);color:#fff}
@@ -53,6 +58,25 @@
   .baixar{width:100%;margin-top:14px;padding:9px;border:1px solid var(--line);border-radius:10px;
     background:var(--bg);color:var(--ink);font-size:12.5px;font-weight:650;cursor:pointer}
   .baixar:hover{border-color:var(--brand);color:var(--brand)}
+  .baixar:disabled{opacity:.5;cursor:wait}
+  .tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .tool-grid .baixar{margin-top:0}
+  .tool-grid .wide{grid-column:1/-1}
+  .download-center{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:#f7faf8}
+  .download-center summary{cursor:pointer;padding:9px 10px;font-size:12px;font-weight:750;color:var(--brand)}
+  .download-links{display:grid;gap:5px;padding:0 10px 10px}
+  .download-links a{display:block;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);padding:7px 8px;text-decoration:none;font-size:11.5px;font-weight:650}
+  .download-links a:hover{border-color:var(--brand);color:var(--brand)}
+  .download-meta{font-size:10.5px;color:var(--muted);line-height:1.4}
+  .range-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
+  .range-row input{width:100%;accent-color:var(--brand)}
+  .range-row output{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .status{min-height:16px;margin-top:6px;font-size:10.5px;color:var(--muted)}
+  .svc-note{font-size:10.5px;line-height:1.35;color:#78520e;margin-top:6px}
+  .haz-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:10px;color:var(--muted)}
+  .haz-legend span{display:inline-flex;align-items:center;gap:4px}
+  .haz-legend i{width:11px;height:11px;border:1px solid rgba(0,0,0,.18);border-radius:2px}
+  button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid rgba(30,95,191,.35);outline-offset:2px}
   /* rótulos com o nome do município no mapa (aparecem a partir de certo zoom) */
   .leaflet-tooltip.mun-lbl{background:none;border:none;box-shadow:none;padding:0;
     color:#15241c;font-weight:700;font-size:11px;white-space:nowrap;pointer-events:none;
@@ -70,6 +94,13 @@
     #map{height:58vh}
     aside{border-left:none;border-top:1px solid var(--line)}
     #inset{width:120px;height:92px;bottom:18px}
+  }
+  @media print{
+    header .back,aside .tool-grid,.download-center,.volta{display:none!important}
+    main{height:auto;grid-template-columns:minmax(0,1fr) 300px}
+    #map{height:68vh}
+    aside{overflow:visible}
+    .expl,.icm-wrap{break-inside:avoid}
   }
   .icm-wrap{background:var(--bg);padding:32px 18px 48px;border-top:1px solid var(--line)}
   .icm-inner{max-width:980px;margin:0 auto;background:var(--panel);border:1px solid var(--line);
@@ -132,19 +163,31 @@
   <a class="back" href="index.html">← painel do projeto</a>
 </header>
 <main>
-  <div id="map"><div id="inset" title="Onde a bacia fica no Rio Grande do Sul"></div></div>
+  <div id="map" role="region" aria-label="Mapa temático de vulnerabilidade da bacia Taquari-Antas"><div id="inset" title="Onde a bacia fica no Rio Grande do Sul"></div></div>
   <aside>
     <div class="q">Indicador</div>
-    <div class="ind" id="ind"></div>
+    <div class="ind grouped" id="ind" aria-label="Indicadores temáticos"></div>
     <div class="modes" id="modes">
-      <button data-m="abs" class="on">valores</button>
-      <button data-m="pct">% da população</button>
+      <button data-m="abs" class="on" aria-pressed="true">valores</button>
+      <button data-m="pct" aria-pressed="false">% da população</button>
     </div>
 
     <div class="q">Camada <span style="text-transform:none;font-weight:400">(ao abrir um município)</span></div>
     <div class="modes" id="camadas">
-      <button data-c="setor" class="on">setor censitário</button>
-      <button data-c="grade">grade 200 m</button>
+      <button data-c="setor" class="on" aria-pressed="true">setor censitário</button>
+      <button data-c="grade" aria-pressed="false">grade 200 m</button>
+    </div>
+
+    <div class="q">Escala das cores</div>
+    <div class="modes" id="escalas">
+      <button data-e="bacia" class="on" aria-pressed="true">comparável na bacia</button>
+      <button data-e="local" aria-pressed="false">relativa à área</button>
+    </div>
+
+    <div class="q"><label for="opacidade">Opacidade do tema</label></div>
+    <div class="range-row">
+      <input id="opacidade" type="range" min="25" max="100" step="5" value="75">
+      <output id="opacidadeValor" for="opacidade">75%</output>
     </div>
 
     <div class="q">Total na área vista</div>
@@ -164,21 +207,52 @@
       </div>
     </div>
 
-    <div class="q">Buscar município</div>
+    <label class="q" for="busca">Buscar município</label>
     <select id="busca"><option value="">— escolher —</option></select>
 
     <div class="q">Serviços públicos no mapa</div>
     <div class="ind" id="svc"></div>
+    <div class="svc-note">* Pontos presentes nas camadas consultadas do IEDE-RS. A cobertura varia; ausência no mapa não prova ausência do serviço.</div>
 
-    <button class="baixar" id="baixar">⬇ Baixar dados da tela (CSV)</button>
+    <div class="q">Perigo mapeado</div>
+    <div class="ind" id="perigo"></div>
+    <div class="haz-legend" id="perigoLeg" hidden>
+      <span><i style="background:#b91c1c"></i>risco muito alto</span>
+      <span><i style="background:#f59e0b"></i>risco alto</span>
+    </div>
+    <div class="svc-note">SGB, levantamento de 2025: 37 setores somente em Santa Tereza. Fora deles, ausência de polígono não significa ausência de perigo.</div>
+
+    <div class="q">Baixar e compartilhar</div>
+    <div class="tool-grid">
+      <button class="baixar" id="baixar" disabled>⬇ CSV da vista</button>
+      <button class="baixar" id="baixarGeo" disabled>⬇ GeoJSON da vista</button>
+      <button class="baixar wide" id="copiarLink">🔗 Copiar link deste mapa</button>
+      <button class="baixar wide" id="imprimir">▣ Imprimir mapa com legenda</button>
+    </div>
+    <details class="download-center">
+      <summary>Dados combinados da bacia</summary>
+      <div class="download-links">
+        <a href="assets/data/vulnerabilidade/downloads/dados_combinados_taquari_antas.zip" download>Pacote completo · ZIP</a>
+        <a href="assets/data/vulnerabilidade/downloads/setores_na_bacia_combinados.csv" download>Setores dentro da bacia · CSV</a>
+        <a href="assets/data/vulnerabilidade/downloads/setores_na_bacia_combinados.geojson" download>Setores dentro da bacia · GeoJSON</a>
+        <a href="assets/data/vulnerabilidade/downloads/grade_200m_na_bacia_combinada.csv" download>Grade 200 m dentro da bacia · CSV</a>
+        <a href="assets/data/vulnerabilidade/downloads/dados_combinados_taquari_antas.zip" download>Grade 200 m · GeoJSON dentro do ZIP</a>
+        <a href="assets/data/vulnerabilidade/downloads/municipios_combinados.csv" download>Municípios combinados · CSV</a>
+        <a href="assets/data/vulnerabilidade/downloads/catalogo.json" target="_blank" rel="noopener">Catálogo e testes de qualidade · JSON</a>
+        <div class="download-meta" id="downloadMeta">Carregando o catálogo dos arquivos…</div>
+      </div>
+    </details>
+    <div class="status" id="status" aria-live="polite"></div>
 
     <div class="disc">
       <b>Leitura honesta:</b> retrato da vulnerabilidade <b>social</b> pelo Censo 2022
       (Agregados por Setores Censitários, IBGE). Municípios de borda entram com a
       população inteira; o dado "na bacia" usa os setores dentro do limite da SEMA/DRH.
-      A sobreposição com o perigo hidrológico (manchas de inundação) vem na próxima fase
-      do PREVINE. Dados brutos e fontes:
-      <a href="assets/data/vulnerabilidade/brutos/setores_bacia_indicadores.csv">CSV completo por setor</a> ·
+      A família de perigo começa com os setores oficiais do SGB em Santa Tereza; a
+      cobertura hidrológica regional e as manchas por cota ainda vêm na próxima fase.
+      Dados brutos e fontes:
+      <a href="assets/data/vulnerabilidade/downloads/dados_combinados_taquari_antas.zip">pacote combinado</a> ·
+      <a href="assets/data/vulnerabilidade/brutos/setores_bacia_indicadores.csv">CSV censitário bruto</a> ·
       <a href="assets/data/vulnerabilidade/brutos/FONTES.md">FONTES.md</a>.
     </div>
   </aside>
@@ -220,8 +294,9 @@
             cuidado, exposição).</span></li>
           <li><b>Exposição</b> <span>— população, domicílios e densidade demográfica: quantas pessoas e
             casas há para serem atingidas.</span></li>
-          <li><b>Serviços /10 mil hab.</b> <span>— saúde, escolas e hospitais por habitante: a estrutura
-            local para atender e abrigar (dados dos robôs do IEDE-RS).</span></li>
+          <li><b>Pontos de serviços /10 mil hab.</b> <span>— equipamentos presentes nas camadas
+            consultadas do IEDE-RS. A cobertura é parcial e desigual; serve para localizar cadastros,
+            não para concluir que um município sem ponto não possui o serviço.</span></li>
           <li><b>Capacidade (ICM)</b> <span>— faixas A–D do MIDR, detalhadas na tabela abaixo: o preparo
             do município para a gestão de risco e desastres.</span></li>
         </ul>
@@ -277,33 +352,39 @@ const DATA = "assets/data/vulnerabilidade";
 // fallback: a cópia desta página no PMRR não carrega os 12 MB de dados junto —
 // quando o caminho relativo não existir, busca direto do repositório Previne
 const DATA_FALLBACK = "https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/vulnerabilidade";
+const cacheJSON = new Map();
 function carrega(arq, base){
   const b1 = base || DATA;
   const b2 = b1.replace(/^assets/, DATA_FALLBACK.slice(0, DATA_FALLBACK.indexOf("/assets")) + "/assets");
-  return fetch(`${b1}/${arq}`).then(r=>{ if(!r.ok) throw 0; return r.json(); })
-    .catch(()=>fetch(`${b2}/${arq}`).then(r=>{ if(!r.ok) throw new Error(arq); return r.json(); }));
+  const chave = `${b1}/${arq}`;
+  if (!cacheJSON.has(chave)){
+    cacheJSON.set(chave, fetch(chave).then(r=>{ if(!r.ok) throw 0; return r.json(); })
+      .catch(()=>fetch(`${b2}/${arq}`).then(r=>{ if(!r.ok) throw new Error(arq); return r.json(); })));
+  }
+  return cacheJSON.get(chave);
 }
 const SERV = "assets/data/servicos";
 const INDS = [
-  {k:"mulheres", nome:"Mulheres",       pct:true},
-  {k:"c0_4",     nome:"Crianças 0–4",   pct:true},
-  {k:"c5_9",     nome:"Crianças 5–9",   pct:true},
-  {k:"i60_69",   nome:"Idosos 60–69",   pct:true},
-  {k:"i70m",     nome:"Idosos 70+",     pct:true},
-  {k:"indigenas",nome:"Indígenas",      pct:true},
-  {k:"pretos_pardos", nome:"Pretos e pardos", pct:true, opt:true},
-  {k:"renda_resp",    nome:"Renda do responsável", money:true, opt:true},
-  {k:"dom_agua",   nome:"Água — rede geral",   pct:true, base:"dom", opt:true},
-  {k:"dom_esgoto", nome:"Esgoto — rede geral", pct:true, base:"dom", opt:true},
-  {k:"dens",     nome:"Densidade",      pct:false, un:" hab/km²"},
-  {k:"dom",      nome:"Domicílios",     pct:false},
-  {k:"pop",      nome:"População",      pct:false},
+  {k:"mulheres", nome:"Mulheres",       pct:true, grupo:"Pessoas"},
+  {k:"c0_4",     nome:"Crianças 0–4",   pct:true, grupo:"Pessoas"},
+  {k:"c5_9",     nome:"Crianças 5–9",   pct:true, grupo:"Pessoas"},
+  {k:"i60_69",   nome:"Idosos 60–69",   pct:true, grupo:"Pessoas"},
+  {k:"i70m",     nome:"Idosos 70+",     pct:true, grupo:"Pessoas"},
+  {k:"indigenas",nome:"Indígenas",      pct:true, grupo:"Pessoas"},
+  {k:"pretos_pardos", nome:"Pretos e pardos", pct:true, opt:true, grupo:"Pessoas"},
+  {k:"renda_resp",    nome:"Renda do responsável", money:true, opt:true, grupo:"Condições domiciliares"},
+  {k:"dom_agua",   nome:"Água — rede geral",   pct:true, base:"dom_ocupados", opt:true, grupo:"Condições domiciliares"},
+  {k:"dom_esgoto", nome:"Esgoto — rede geral", pct:true, base:"dom_ocupados", opt:true, grupo:"Condições domiciliares"},
+  {k:"dom_ocupados", nome:"Domicílios permanentes ocupados", pct:false, opt:true, grupo:"Condições domiciliares"},
+  {k:"dens",     nome:"Densidade",      pct:false, un:" hab/km²", grupo:"Exposição"},
+  {k:"dom",      nome:"Domicílios totais (setor)", pct:false, grupo:"Exposição"},
+  {k:"pop",      nome:"População",      pct:false, grupo:"Exposição"},
   // densidade de serviços por 10 mil habitantes (contagem por município ÷ população)
-  {k:"svc_ubs",      nome:"Saúde /10 mil",     svc:true, un:" /10 mil hab"},
-  {k:"svc_escolas",  nome:"Escolas /10 mil",   svc:true, un:" /10 mil hab"},
-  {k:"svc_hospitais",nome:"Hospitais /10 mil", svc:true, un:" /10 mil hab"},
+  {k:"svc_ubs",      nome:"Saúde IEDE /10 mil",     svc:true, parcial:true, un:" /10 mil hab", grupo:"Cadastros de serviços*"},
+  {k:"svc_escolas",  nome:"Escolas IEDE /10 mil",   svc:true, parcial:true, un:" /10 mil hab", grupo:"Cadastros de serviços*"},
+  {k:"svc_hospitais",nome:"Hospitais IEDE /10 mil", svc:true, parcial:true, un:" /10 mil hab", grupo:"Cadastros de serviços*"},
   // capacidade municipal (ICM/MIDR) — categórico por faixa A–D
-  {k:"icm",          nome:"Capacidade (ICM)",  cat:true},
+  {k:"icm",          nome:"Capacidade (ICM)",  cat:true, grupo:"Capacidade municipal"},
 ];
 // rampa roxa: não briga com o verde do terreno/satélite (pedido da Juliana)
 const CORES = ["#f3eef6","#d9c7e3","#b394c9","#8759a8","#4d2a6e"];
@@ -311,10 +392,55 @@ const CORES = ["#f3eef6","#d9c7e3","#b394c9","#8759a8","#4d2a6e"];
 const ICM_CORES = {A:"#2e7d32", B:"#c3d92c", C:"#e8730c", D:"#c0392b"};
 const ICM_LABEL = {A:"A · alta capacidade", B:"B · média-alta", C:"C · média-baixa", D:"D · baixa capacidade"};
 const fmt = n => Number(n).toLocaleString("pt-BR", {maximumFractionDigits: n < 100 ? 1 : 0});
+const escHTML = v => String(v ?? "").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-let ind = "mulheres", modo = "abs", camada = "setor";
+const PARAMS = new URLSearchParams(location.search);
+let ind = INDS.some(d=>d.k===PARAMS.get("indicador")) ? PARAMS.get("indicador") : "mulheres";
+let modo = PARAMS.get("modo") === "pct" ? "pct" : "abs";
+let camada = PARAMS.get("camada") === "grade" ? "grade" : "setor";
+let escala = PARAMS.get("escala") === "local" ? "local" : "bacia";
+let opacidade = Math.min(1, Math.max(.25, (+PARAMS.get("opacidade") || 75) / 100));
+const municipioInicial = PARAMS.get("municipio");
 const GRADE_INDS = new Set(["pop", "dom"]);   // únicos indicadores que a grade estatística tem
-let map, munLayer, setLayer = null, munData, munAtual = null, icmData = null;
+let map, munLayer, setLayer = null, munData, munAtual = null, icmData = null, catalogoData = null;
+let servicosResolvidos = false, icmResolvido = false;
+
+function informa(msg){ document.getElementById("status").textContent = msg || ""; }
+function atualizaDownloads(){
+  const pronto = !!munData && servicosResolvidos && icmResolvido;
+  document.getElementById("baixar").disabled = !pronto;
+  document.getElementById("baixarGeo").disabled = !pronto;
+  if (pronto && !document.getElementById("status").textContent) informa("Vista atual pronta para exportar.");
+}
+
+function baseDisponivel(d){
+  if (!munData) return true;
+  return !d.base || !!munData?.features?.some(f=>{
+    const p = f.properties || {};
+    return Object.prototype.hasOwnProperty.call(p, d.base) && p[d.base] !== null;
+  });
+}
+function temSigilo(p, d){
+  if (!p || !d) return false;
+  if (p[`sigilo_${d.k}`] === true || +p[`sigilo_${d.k}`] === 1) return true;
+  // Compatibilidade com os arquivos anteriores às flags: o padrão abaixo foi
+  // conferido contra os X do IBGE e só vale no setor, nunca no município/grade.
+  const campos = ["mulheres","c0_4","c5_9","i60_69","i70m","indigenas",
+                  "pretos_pardos","dom_agua","dom_esgoto","n_resp"];
+  const legado = p.setor && +p.pop>0 && campos.every(k=>(+p[k]||0)===0);
+  return legado && !["pop","dens","dom","dom_ocupados"].includes(d.k);
+}
+function estaSuprimido(p, d){ return !!p?.setor && temSigilo(p,d); }
+function configuraPercentual(d, abrirAutomaticamente=false){
+  const pb = document.querySelector('#modes [data-m="pct"]');
+  const pode = !!d.pct && baseDisponivel(d);
+  pb.disabled = !pode;
+  pb.textContent = d.base ? "% dos domicílios ocupados" : "% da população";
+  if (!pode && modo === "pct"){ modo = "abs"; sincronizaModos(); }
+  if (abrirAutomaticamente && d.base && pode && modo !== "pct"){
+    modo = "pct"; sincronizaModos();
+  }
+}
 
 // funde a Capacidade Municipal (ICM) nas propriedades dos municípios, casando
 // cod_ibge (ICM) com cod_mun (mapa) — chamado quando qualquer um dos dois carrega
@@ -343,7 +469,7 @@ function valor(p){                     // valor do indicador nas propriedades p
   const v = +p[ind] || 0;
   if (d.money) return v;                 // renda: já é média (R$), não vira %
   if (modo === "pct" && d.pct){          // % sobre população OU sobre domicílios (água/esgoto)
-    const base = d.base === "dom" ? (+p.dom || 0) : (+p.pop || 0);
+    const base = d.base ? (+p[d.base] || 0) : (+p.pop || 0);
     return base > 0 ? v/base*100 : 0;
   }
   return v;
@@ -357,27 +483,49 @@ function quantis(vals){                // 5 classes por quantis
   const s = vals.filter(v=>isFinite(v)).sort((a,b)=>a-b);
   if (!s.length) return [0,0,0,0];
   const q = p => s[Math.min(s.length-1, Math.floor(p*s.length))];
+  const positivos = s.filter(v=>v>0);
+  if (positivos.length && positivos.length < s.length){
+    const qp = p => positivos[Math.min(positivos.length-1, Math.floor(p*positivos.length))];
+    return [0, qp(.25), qp(.5), qp(.75)];
+  }
   return [q(.2), q(.4), q(.6), q(.8)];
 }
 const manualBrks = {};                 // faixas digitadas pela usuária, por indicador/modo/escopo
-function chaveBrk(){ return `${ind}|${modo}|${munAtual ? camada : "mun"}`; }
-function getBrk(vals){ return manualBrks[chaveBrk()] || quantis(vals); }
+function chaveBrk(){ return `${ind}|${modo}|${munAtual ? camada : "mun"}|${escala}`; }
+function cortesBacia(){
+  if (!catalogoData?.classificacoes_quantis) return null;
+  const d = INDS.find(i=>i.k===ind);
+  const escopo = !munAtual || d.svc ? "municipio" : camada;
+  const m = modo === "pct" && d.pct ? "pct" : "abs";
+  return catalogoData.classificacoes_quantis[escopo]?.[ind]?.[m] || null;
+}
+function getBrk(vals){
+  return manualBrks[chaveBrk()] || (escala === "bacia" ? cortesBacia() : null) || quantis(vals);
+}
 function cor(v, brk){
   let i = 0; while (i < brk.length && v > brk[i]) i++;
   return CORES[i];
 }
 function popup(p, extra){
   const naGrade = munAtual && camada === "grade" && !p.nome;
-  const linhas = INDS.filter(d=>!d.cat && !(d.opt && !((+p[d.k]||0) > 0)) && (!naGrade || GRADE_INDS.has(d.k))).map(d=>{
-    const val = +p[d.k] || 0;
-    const abs = d.money ? "R$ "+fmt(val) : fmt(val)+(d.un||"");
+  const linhas = INDS.filter(d=>!d.cat && !(d.opt && !Object.prototype.hasOwnProperty.call(p,d.k) && !estaSuprimido(p,d)) && (!naGrade || GRADE_INDS.has(d.k))).map(d=>{
+    const src = d.svc && munAtual ? munAtual : p;
+    const val = +src[d.k] || 0;
+    const popSrc = +src.pop || 0;
+    const sigilo = estaSuprimido(src,d);
+    const parcial = !src.setor && temSigilo(src,d);
+    const abs = sigilo ? "não publicado (sigilo estatístico)" : d.money ? "R$ "+fmt(val) : d.svc ? `${fmt(val)} ponto(s) · ${fmt(popSrc>0?val/popSrc*10000:0)} /10 mil` : fmt(val)+(d.un||"");
     let pc = "";
-    if (d.pct){ const base = d.base === "dom" ? (+p.dom||0) : (+p.pop||0);
-      if (base > 0) pc = ` <span style="color:#5c6b63">(${fmt(val/base*100)}%)</span>`; }
-    return `<tr><td>${d.nome}</td><td>${abs}${pc}</td></tr>`;
+    if (d.pct && !sigilo){ const base = d.base ? (+src[d.base]||0) : (+src.pop||0);
+      if (base > 0) pc = ` <span style="color:#5c6b63">(${fmt(val/base*100)}%)</span>`;
+      else if (d.base) pc = ` <span style="color:#8a5a12">(base não publicada)</span>`; }
+    const nome = naGrade && d.k === "dom" ? "Domicílios ocupados (grade)" : d.nome;
+    const nota = parcial ? ` <span style="color:#8a5a12">(soma parcial; há setores sob sigilo)</span>` : "";
+    return `<tr><td>${nome}</td><td>${abs}${pc}${nota}</td></tr>`;
   });
-  if (p.icm_faixa) linhas.push(`<tr><td>Capacidade (ICM)</td><td><b style="color:${ICM_CORES[p.icm_faixa]}">${p.icm_faixa}</b>`+
-    `${p.icm_pont!=null?" · "+p.icm_pont+" pts":""}${p.icm_prior?" · prioritário":""}</td></tr>`);
+  const cap = p.icm_faixa ? p : (munAtual || {});
+  if (cap.icm_faixa) linhas.push(`<tr><td>Capacidade (ICM)</td><td><b style="color:${ICM_CORES[cap.icm_faixa]}">${cap.icm_faixa}</b>`+
+    `${cap.icm_pont!=null?" · "+cap.icm_pont+" pts":""}${cap.icm_prior?" · prioritário":""}</td></tr>`);
   const titulo = p.nome || (naGrade ? "Célula da grade (200×200 m)" : "Setor "+p.setor);
   return `<div class="pop"><b>${titulo}</b>${extra||""}<table>${linhas.join("")}</table></div>`;
 }
@@ -386,13 +534,13 @@ const ehCat = ()=> !!(INDS.find(i=>i.k===ind)||{}).cat;
 function pintaMunicipios(){
   if (ehCat()){                        // ICM: cor fixa por faixa A–D
     munLayer.eachLayer(l=>{ const fx = l.feature.properties.icm_faixa;
-      l.setStyle({fillColor: ICM_CORES[fx]||"#d8ddd9", fillOpacity: fx?.8:.25, color:"#fff", weight:1}); });
+      l.setStyle({fillColor: ICM_CORES[fx]||"#d8ddd9", fillOpacity: fx?opacidade:.25, color:"#fff", weight:1}); });
     legendaICM("· municípios"); totalizaICM(null); return;
   }
   const brk = getBrk(munData.features.map(f=>valor(f.properties)));
   munLayer.eachLayer(l=>{
     l.setStyle({fillColor: cor(valor(l.feature.properties), brk),
-                fillOpacity:.72, color:"#fff", weight:1});
+                fillOpacity:opacidade, color:"#fff", weight:1});
   });
   legenda(brk, "· municípios");
   totaliza(munData.features.map(f=>f.properties));
@@ -403,14 +551,15 @@ function pintaSetores(){
   if (ehCat()){                        // ICM é municipal: setores herdam a faixa do município
     const fx = munAtual.icm_faixa;
     setLayer.eachLayer(l=>{ const p = l.feature.properties;
-      l.setStyle({fillColor: ICM_CORES[fx]||"#d8ddd9", fillOpacity: p.na_bacia?.72:.3, color:"#fff", weight:.7}); });
+      l.setStyle({fillColor: ICM_CORES[fx]||"#d8ddd9", fillOpacity: p.na_bacia?opacidade:opacidade*.45, color:"#fff", weight:.7}); });
     legendaICM("· " + munAtual.nome); totalizaICM(munAtual); return;
   }
   const brk = getBrk(feats.map(f=>valor(f.properties)));
-  setLayer.eachLayer(l=>{
-    const p = l.feature.properties;
-    l.setStyle({fillColor: cor(valor(p), brk),
-                fillOpacity: p.na_bacia ? .78 : .35, color:"#fff", weight:.7});
+    setLayer.eachLayer(l=>{
+      const p = l.feature.properties;
+      const d = INDS.find(i=>i.k===ind);
+      l.setStyle({fillColor: estaSuprimido(p,d) ? "#9aa3a0" : cor(valor(p), brk),
+                fillOpacity: p.na_bacia ? opacidade : opacidade*.45, color:"#fff", weight:.7});
   });
   legenda(brk, (camada==="grade" ? "· grade 200m de " : "· setores de ") + munAtual.nome);
   totaliza(feats.map(f=>f.properties));
@@ -433,33 +582,45 @@ function totalizaICM(mun){
   tot.innerHTML = `<small>A ${c.A} · B ${c.B} · C ${c.C} · D ${c.D} · ${prior} prioritários</small>`;
 }
 function legenda(brk, ctx){
-  document.getElementById("legctx").textContent = ctx;
+  document.getElementById("legctx").textContent = `${ctx} · escala ${escala === "bacia" ? "da bacia" : "local"}`;
   const faixas = [];
-  for (let i=0;i<CORES.length;i++){
-    const de = i===0 ? null : brk[i-1], ate = i<brk.length ? brk[i] : null;
-    const txt = de===null ? "até "+rotulo(ate) : ate===null ? "acima de "+rotulo(de) : rotulo(de)+" – "+rotulo(ate);
-    faixas.push(`<div class="row2"><span class="sw" style="background:${CORES[i]}"></span>${txt}</div>`);
+  const unicos = [];
+  brk.forEach((v,i)=>{ if (!unicos.length || v !== unicos[unicos.length-1].v) unicos.push({v,i}); });
+  let anterior = null;
+  unicos.forEach(({v,i})=>{
+    const txt = anterior===null ? (v===0 ? "zero" : "até "+rotulo(v)) : rotulo(anterior)+" – "+rotulo(v);
+    faixas.push(`<div class="row2"><span class="sw" style="background:${CORES[Math.min(i,CORES.length-1)]}"></span>${txt}</div>`);
+    anterior = v;
+  });
+  if (anterior !== null){
+    const ultimaCor = Math.min(brk.lastIndexOf(anterior)+1, CORES.length-1);
+    faixas.push(`<div class="row2"><span class="sw" style="background:${CORES[ultimaCor]}"></span>acima de ${rotulo(anterior)}</div>`);
   }
   if (manualBrks[chaveBrk()]) faixas.push(`<div class="row2" style="color:#8a5a12">faixas manuais em uso</div>`);
   if (munAtual) faixas.push(`<div class="row2"><span class="sw" style="background:${CORES[2]};opacity:.35"></span>setor fora do limite da bacia</div>`);
+  if (munAtual && setLayer && setLayer.getLayers().some(l=>estaSuprimido(l.feature.properties, INDS.find(i=>i.k===ind))))
+    faixas.push(`<div class="row2"><span class="sw" style="background:#9aa3a0"></span>dado suprimido pelo IBGE</div>`);
   document.getElementById("leg").innerHTML = faixas.join("");
   brk.forEach((v,i)=>{ document.getElementById("fx"+i).value = Math.round(v*100)/100; });
 }
 function totaliza(props){
   const d = INDS.find(i=>i.k===ind);
+  const qtdSigilo = props.filter(p=>temSigilo(p,d) || (d.base && temSigilo(p,{k:d.base}))).length;
+  const notaSigilo = qtdSigilo ? ` <small style="color:#8a5a12">· parcial; ${fmt(qtdSigilo)} registro(s) com sigilo</small>` : "";
   if (ind === "dens"){ document.getElementById("tot").innerHTML = "—"; return; }
   if (d.money){                        // renda: média ponderada pelo nº de responsáveis
     let num = 0, den = 0;
     props.forEach(p=>{ const w = +p.n_resp||0, r = +p[ind]||0; if (w>0 && r>0){ num += r*w; den += w; } });
     document.getElementById("tot").innerHTML =
-      den>0 ? `R$ ${fmt(num/den)} <small>· média do responsável</small>` : "—";
+      den>0 ? `R$ ${fmt(num/den)} <small>· média do responsável</small>${notaSigilo}` : "—";
     return;
   }
-  if (d.base === "dom"){               // água/esgoto: % dos domicílios com o serviço
+  if (d.base){                           // água/esgoto: % dos domicílios permanentes ocupados
     const serv = props.reduce((s,p)=>s+(+p[ind]||0),0);
-    const dom  = props.reduce((s,p)=>s+(+p.dom||0),0);
+    const dom  = props.reduce((s,p)=>s+(+p[d.base]||0),0);
     document.getElementById("tot").innerHTML =
-      `${fmt(dom>0?serv/dom*100:0)}% <small>dos domicílios · ${fmt(serv)} de ${fmt(dom)}</small>`;
+      dom>0 ? `${fmt(serv/dom*100)}% <small>dos domicílios permanentes ocupados · ${fmt(serv)} de ${fmt(dom)}</small>${notaSigilo}`
+            : `${fmt(serv)} <small>domicílios · percentual indisponível até publicar a base ocupada do IBGE</small>`;
     return;
   }
   if (d.svc){                          // densidade: do município aberto ou da bacia toda
@@ -469,13 +630,13 @@ function totaliza(props){
     const pop = feats.reduce((s,f)=>s+(+f.properties.pop||0),0);
     const onde = munAtual ? munAtual.nome : "na bacia";
     document.getElementById("tot").innerHTML =
-      `${fmt(pop>0?tot/pop*10000:0)} <small>/10 mil hab · ${fmt(tot)} ${onde}</small>`;
+      `${fmt(pop>0?tot/pop*10000:0)} <small>/10 mil hab · ${fmt(tot)} ponto(s) no cadastro IEDE · ${onde}</small>`;
     return;
   }
   const soma = props.reduce((s,p)=>s+(+p[ind]||0),0);
   const pop  = props.reduce((s,p)=>s+(+p.pop||0),0);
   const pc = d.pct && pop>0 ? ` <small>(${fmt(soma/pop*100)}% da população)</small>` : "";
-  document.getElementById("tot").innerHTML = fmt(soma)+(d.un||"")+pc;
+  document.getElementById("tot").innerHTML = fmt(soma)+(d.un||"")+pc+notaSigilo;
 }
 
 let reqSeq = 0;                        // invalida respostas atrasadas (troca rápida de município)
@@ -484,6 +645,7 @@ function abreMunicipio(cod){
   if (!f) return;
   const meu = ++reqSeq;
   const pasta = camada === "grade" ? "grade" : "setores";
+  informa(`Carregando ${camada === "grade" ? "grade de 200 m" : "setores censitários"} de ${f.properties.nome}…`);
   carrega(`${pasta}/${cod}.geojson`).then(gj=>{
     if (meu !== reqSeq) return;        // outra seleção (ou voltar, ou troca de camada) aconteceu depois
     if (setLayer) map.removeLayer(setLayer);
@@ -497,7 +659,12 @@ function abreMunicipio(cod){
     document.getElementById("volta").classList.add("show");
     aplicaLabels();
     pintaSetores();
-  });
+    document.getElementById("busca").value = String(cod);
+    sincronizaURL();
+    informa(camada === "grade"
+      ? "Grade pronta. População e domicílios vêm da Grade Estatística 2022; os totais podem diferir dos agregados por setor."
+      : "Setores prontos. Áreas fora do limite da bacia aparecem com menor opacidade.");
+  }).catch(()=>{ if (meu===reqSeq) informa("Não foi possível carregar esta camada agora."); });
 }
 function voltaBacia(){
   reqSeq++;                            // descarta qualquer carga de setores em andamento
@@ -507,6 +674,8 @@ function voltaBacia(){
   pintaMunicipios();
   aplicaLabels();
   map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
+  document.getElementById("busca").value = "";
+  sincronizaURL();
 }
 
 // nomes dos municípios só a partir de certo zoom (e não durante o drill-down),
@@ -520,35 +689,52 @@ function aplicaLabels(){
 
 // ---- montagem ----
 const indDiv = document.getElementById("ind");
+const gruposInd = new Map();
 INDS.forEach(d=>{
+  if (!gruposInd.has(d.grupo)){
+    const grupo = document.createElement("div");
+    grupo.className = "ind-group";
+    grupo.dataset.grupo = d.grupo;
+    const titulo = document.createElement("div");
+    titulo.className = "ind-group-title";
+    titulo.textContent = d.grupo;
+    grupo.appendChild(titulo);
+    indDiv.appendChild(grupo);
+    gruposInd.set(d.grupo, grupo);
+  }
   const b = document.createElement("button");
   b.textContent = d.nome; b.dataset.k = d.k;
+  b.type = "button";
+  b.setAttribute("aria-pressed", d.k===ind ? "true" : "false");
+  if (d.parcial){ b.dataset.parcial = "1"; b.title = "Cadastro IEDE com cobertura parcial; ausência não prova inexistência"; }
   if (d.opt) b.hidden = true;          // só aparece quando o robô publicar o campo
   if (d.k===ind) b.classList.add("on");
   b.onclick = ()=>{
     ind = d.k;
-    indDiv.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x.dataset.k===ind));
-    const pb = document.querySelector('#modes [data-m="pct"]');
-    pb.disabled = !d.pct;
-    pb.textContent = d.base === "dom" ? "% dos domicílios" : "% da população";
-    if (!d.pct && modo==="pct"){ modo="abs"; sincronizaModos(); }
-    // cobertura (água/esgoto): abre já em % dos domicílios (contagem crua não diz nada)
-    if (d.base==="dom" && modo!=="pct"){ modo="pct"; sincronizaModos(); }
+    indDiv.querySelectorAll("button").forEach(x=>{
+      const ativo = x.dataset.k===ind;
+      x.classList.toggle("on", ativo); x.setAttribute("aria-pressed", ativo ? "true" : "false");
+    });
+    configuraPercentual(d, true);
     // ICM é categórico: 'editar faixas' não se aplica
     document.getElementById("editfx").style.display = d.cat ? "none" : "";
     if (d.cat){ document.getElementById("fxbox").hidden = true; document.getElementById("editfx").classList.remove("on"); }
     munAtual ? pintaSetores() : pintaMunicipios();
+    sincronizaURL();
   };
-  indDiv.appendChild(b);
+  gruposInd.get(d.grupo).appendChild(b);
 });
 // revela os indicadores opcionais que o robô já publicou (campo presente nos dados)
 function revelaOpcionais(){
   if (!munData || !munData.features.length) return;
   INDS.forEach(d=>{
     if (!d.opt) return;
-    const tem = munData.features.some(f=>(+f.properties[d.k] || 0) > 0);
+    const tem = munData.features.some(f=>Object.prototype.hasOwnProperty.call(f.properties,d.k));
     const b = indDiv.querySelector(`button[data-k="${d.k}"]`);
     if (b) b.hidden = !tem;
+  });
+  indDiv.querySelectorAll(".ind-group").forEach(g=>{
+    g.hidden = ![...g.querySelectorAll("button")].some(b=>!b.hidden);
   });
 }
 // grade estatística só tem população e domicílios — some com o resto dos botões
@@ -558,24 +744,34 @@ function aplicaRestricaoCamada(){
   INDS.forEach(d=>{
     const b = indDiv.querySelector(`button[data-k="${d.k}"]`);
     if (!b) return;
+    b.textContent = restringe && d.k === "dom" ? "Domicílios ocupados (grade)" : d.nome;
     if (restringe) b.hidden = !GRADE_INDS.has(d.k);
     else if (!d.opt) b.hidden = false;      // devolve pro estado normal; opcionais recalculam abaixo
   });
   if (!restringe) revelaOpcionais();
   if (restringe && !GRADE_INDS.has(ind)){
     ind = "pop";
-    indDiv.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x.dataset.k===ind));
+    indDiv.querySelectorAll("button").forEach(x=>{
+      const ativo = x.dataset.k===ind;
+      x.classList.toggle("on", ativo); x.setAttribute("aria-pressed", ativo ? "true" : "false");
+    });
     const pb = document.querySelector('#modes [data-m="pct"]');
     pb.disabled = true;
     if (modo==="pct"){ modo="abs"; sincronizaModos(); }
   }
+  indDiv.querySelectorAll(".ind-group").forEach(g=>{
+    g.hidden = ![...g.querySelectorAll("button")].some(b=>!b.hidden);
+  });
 }
 function sincronizaModos(){
-  document.querySelectorAll("#modes button").forEach(x=>x.classList.toggle("on", x.dataset.m===modo));
+  document.querySelectorAll("#modes button").forEach(x=>{
+    const ativo = x.dataset.m===modo;
+    x.classList.toggle("on", ativo); x.setAttribute("aria-pressed", ativo ? "true" : "false");
+  });
 }
 document.querySelectorAll("#modes button").forEach(b=>{
   b.onclick = ()=>{ if (b.disabled) return; modo = b.dataset.m; sincronizaModos();
-                    munAtual ? pintaSetores() : pintaMunicipios(); };
+                    munAtual ? pintaSetores() : pintaMunicipios(); sincronizaURL(); };
 });
 document.getElementById("volta").onclick = voltaBacia;
 
@@ -584,11 +780,35 @@ document.querySelectorAll("#camadas button").forEach(b=>{
   b.onclick = ()=>{
     if (camada === b.dataset.c) return;
     camada = b.dataset.c;
-    document.querySelectorAll("#camadas button").forEach(x=>x.classList.toggle("on", x.dataset.c===camada));
+    document.querySelectorAll("#camadas button").forEach(x=>{
+      const ativo = x.dataset.c===camada;
+      x.classList.toggle("on", ativo); x.setAttribute("aria-pressed", ativo ? "true" : "false");
+    });
     aplicaRestricaoCamada();
     if (munAtual) abreMunicipio(munAtual.cod_mun);   // recarrega o município já aberto na camada nova
+    else sincronizaURL();
   };
 });
+
+document.querySelectorAll("#escalas button").forEach(b=>{
+  b.onclick = ()=>{
+    escala = b.dataset.e;
+    document.querySelectorAll("#escalas button").forEach(x=>{
+      const ativo = x.dataset.e===escala;
+      x.classList.toggle("on", ativo); x.setAttribute("aria-pressed", ativo ? "true" : "false");
+    });
+    repinta(); sincronizaURL();
+  };
+});
+
+const opacidadeInput = document.getElementById("opacidade");
+opacidadeInput.value = Math.round(opacidade*100);
+document.getElementById("opacidadeValor").value = `${Math.round(opacidade*100)}%`;
+opacidadeInput.oninput = ()=>{
+  opacidade = +opacidadeInput.value/100;
+  document.getElementById("opacidadeValor").value = `${opacidadeInput.value}%`;
+  repinta(); sincronizaURL();
+};
 
 // editor de faixas da legenda
 const fxbox = document.getElementById("fxbox"), editfx = document.getElementById("editfx");
@@ -602,38 +822,89 @@ document.getElementById("fxok").onclick = ()=>{
 };
 document.getElementById("fxauto").onclick = ()=>{ delete manualBrks[chaveBrk()]; repinta(); };
 
-// baixar o que está na tela em CSV (gerado no navegador)
-document.getElementById("baixar").onclick = ()=>{
-  let rows, nomeArq;
+function sincronizaURL(){
+  const u = new URL(location.href);
+  u.searchParams.set("indicador", ind);
+  u.searchParams.set("modo", modo);
+  u.searchParams.set("camada", camada);
+  u.searchParams.set("escala", escala);
+  u.searchParams.set("opacidade", Math.round(opacidade*100));
+  if (munAtual) u.searchParams.set("municipio", munAtual.cod_mun); else u.searchParams.delete("municipio");
+  history.replaceState(null, "", u);
+}
+
+function contextoMunicipioAtual(){
+  if (!munAtual) return {};
+  return {
+    municipio: munAtual.nome, cod_mun: munAtual.cod_mun,
+    mun_pct_na_bacia: munAtual.pct_na_bacia ?? "",
+    mun_pop_total: munAtual.pop ?? "", mun_pop_na_bacia: munAtual.pop_bacia ?? "",
+    mun_ubs_iede: munAtual.svc_ubs ?? "", mun_hospitais_iede: munAtual.svc_hospitais ?? "",
+    mun_escolas_iede: munAtual.svc_escolas ?? "", mun_bombeiros_iede: munAtual.svc_bombeiros ?? "",
+    mun_servicos_cobertura: "cadastro_IEDE_parcial_nao_inventario",
+    mun_icm_faixa: munAtual.icm_faixa ?? "", mun_icm_pontos: munAtual.icm_pont ?? "",
+    mun_icm_prioritario: munAtual.icm_prior==null ? "" : (munAtual.icm_prior ? "sim" : "não"),
+  };
+}
+
+function dadosDaVista(){
   if (munAtual && setLayer){
-    // serviços e capacidade (ICM) são por MUNICÍPIO — anexa a cada setor para
-    // o CSV combinado (pedido da Juliana: baixar setores COM os serviços)
-    const ctx = {
-      municipio: munAtual.nome, cod_mun: munAtual.cod_mun,
-      mun_ubs: munAtual.svc_ubs ?? "", mun_hospitais: munAtual.svc_hospitais ?? "",
-      mun_escolas: munAtual.svc_escolas ?? "", mun_bombeiros: munAtual.svc_bombeiros ?? "",
-      mun_capacidade_icm: munAtual.icm_faixa ?? "", mun_icm_pontos: munAtual.icm_pont ?? "",
-      mun_icm_prioritario: munAtual.icm_prior==null ? "" : (munAtual.icm_prior ? "sim" : "não"),
-    };
-    rows = setLayer.getLayers().map(l=>({...l.feature.properties, ...ctx}));
-    nomeArq = `setores_${munAtual.cod_mun}_${munAtual.nome.normalize("NFD").replace(/[^\w]/g,"_")}.csv`;
-  } else {
-    rows = munData.features.map(f=>f.properties);
-    nomeArq = "municipios_bacia_taquari_antas.csv";
+    const ctx = contextoMunicipioAtual();
+    const features = setLayer.getLayers().map(l=>({
+      type:"Feature", geometry:l.feature.geometry, properties:{...l.feature.properties, ...ctx}
+    }));
+    return {features, prefixo:`${camada}_${munAtual.cod_mun}_${munAtual.nome.normalize("NFD").replace(/[^\w]/g,"_")}`};
   }
-  const cols = Object.keys(rows[0]);
-  const csv = [cols.join(";")]
-    .concat(rows.map(r=>cols.map(c=>String(r[c] ?? "").replace(/;/g, ",")).join(";")))
-    .join("\r\n");
+  return {features:munData.features.map(f=>({type:"Feature",geometry:f.geometry,properties:{...f.properties}})),
+          prefixo:"municipios_bacia_taquari_antas"};
+}
+
+function baixarBlob(blob, nome){
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8"}));
-  a.download = nomeArq; a.click();
-  URL.revokeObjectURL(a.href);
+  a.href = URL.createObjectURL(blob); a.download = nome; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function csvCampo(v){
+  const s = String(v ?? "");
+  return /[;"\r\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+}
+document.getElementById("baixar").onclick = ()=>{
+  const vista = dadosDaVista(), rows = vista.features.map(f=>f.properties);
+  const cols = [...new Set(rows.flatMap(r=>Object.keys(r)))];
+  const csv = [cols.map(csvCampo).join(";")]
+    .concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
+  baixarBlob(new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8"}), `${vista.prefixo}.csv`);
+  informa(`${rows.length.toLocaleString("pt-BR")} registros exportados em CSV.`);
 };
+document.getElementById("baixarGeo").onclick = ()=>{
+  const vista = dadosDaVista();
+  const geo = JSON.stringify({type:"FeatureCollection",features:vista.features});
+  baixarBlob(new Blob([geo], {type:"application/geo+json;charset=utf-8"}), `${vista.prefixo}.geojson`);
+  informa(`${vista.features.length.toLocaleString("pt-BR")} feições exportadas em GeoJSON (EPSG:4326).`);
+};
+document.getElementById("copiarLink").onclick = async()=>{
+  sincronizaURL();
+  try { await navigator.clipboard.writeText(location.href); informa("Link do mapa copiado."); }
+  catch { window.prompt("Copie o link deste mapa:", location.href); }
+};
+document.getElementById("imprimir").onclick = ()=>window.print();
+
+// aplica o estado inicial recebido pelo link compartilhado
+if (!INDS.find(d=>d.k===ind)?.pct && modo==="pct") modo="abs";
+sincronizaModos();
+document.querySelectorAll("#camadas button").forEach(x=>{
+  const ativo=x.dataset.c===camada; x.classList.toggle("on",ativo); x.setAttribute("aria-pressed",ativo?"true":"false");
+});
+document.querySelectorAll("#escalas button").forEach(x=>{
+  const ativo=x.dataset.e===escala; x.classList.toggle("on",ativo); x.setAttribute("aria-pressed",ativo?"true":"false");
+});
+const indInicial = INDS.find(d=>d.k===ind);
+configuraPercentual(indInicial);
+aplicaRestricaoCamada();
 
 // mapa principal: mostra o Brasil, mas com "holofote" no RS — tudo fora do
 // estado ganha um véu para destacar a região (o resto fica ~30% visível)
-map = L.map("map", {scrollWheelZoom:true, minZoom:4}).setView([-29.5,-53.5], 7);
+map = L.map("map", {scrollWheelZoom:true, minZoom:4, preferCanvas:true}).setView([-29.5,-53.5], 7);
 map.createPane("servicos").style.zIndex = 450;   // pontos de serviços sempre acima dos polígonos
 map.createPane("mascara").style.zIndex = 250;    // véu abaixo dos polígonos/pontos, acima dos tiles
 map.getPane("mascara").style.pointerEvents = "none";
@@ -669,6 +940,7 @@ carrega("bacia.geojson").then(gj=>{           // a bacia em si, preenchida em ve
 
 carrega("municipios.geojson").then(gj=>{
   munData = gj;
+  configuraPercentual(INDS.find(d=>d.k===ind));
   munLayer = L.geoJSON(gj, {
     onEachFeature: (f,l)=>{
       const p = f.properties;
@@ -703,6 +975,7 @@ carrega("municipios.geojson").then(gj=>{
     sel.appendChild(o);
   });
   sel.onchange = ()=>{ if (sel.value) abreMunicipio(sel.value); };
+  atualizaDownloads();
 
   // funde a contagem de serviços por município (robô) para o mapa de densidade
   carrega("contagem_municipios.json", SERV).then(cj=>{
@@ -716,9 +989,31 @@ carrega("municipios.geojson").then(gj=>{
       f.properties.svc_bombeiros = +c.bombeiros || 0;
     });
     if (!munAtual) pintaMunicipios();   // se um indicador de serviço já estiver ativo
-  }).catch(()=>{});
+  }).catch(()=>{
+    informa("Os cadastros IEDE não carregaram; a exportação seguirá sem essas contagens.");
+  }).finally(()=>{
+    servicosResolvidos = true;
+    atualizaDownloads();
+  });
 
   fundeICM();   // se o ICM já tiver carregado, funde as faixas agora
+  if (municipioInicial && munData.features.some(f=>String(f.properties.cod_mun)===String(municipioInicial))){
+    abreMunicipio(String(municipioInicial));
+  } else {
+    sincronizaURL();
+  }
+});
+
+carrega("downloads/catalogo.json").then(d=>{
+  catalogoData = d;
+  const c = d.contagens || {};
+  const dt = d.gerado_em_utc ? new Date(d.gerado_em_utc).toLocaleDateString("pt-BR") : "";
+  document.getElementById("downloadMeta").textContent =
+    `${fmt(c.municipios||0)} municípios · ${fmt(c.setores_na_bacia||0)} setores na bacia` +
+    (dt ? ` · pacote gerado em ${dt}` : "");
+  if (munLayer) repinta();
+}).catch(()=>{
+  document.getElementById("downloadMeta").textContent = "Catálogo indisponível nesta atualização.";
 });
 
 // contorno oficial da bacia (gerado pelo robô; se ainda não existir, segue sem)
@@ -762,6 +1057,54 @@ SVC.forEach(s=>{
   document.getElementById("svc").appendChild(b);
 });
 
+// Perigo fica em uma família separada dos indicadores sociais. Esta camada é
+// oficial, mas cobre apenas Santa Tereza; não é extrapolada para a bacia.
+const perigoBtn = document.createElement("button");
+perigoBtn.type = "button";
+perigoBtn.textContent = "SGB · setores de risco (Santa Tereza)";
+perigoBtn.setAttribute("aria-pressed", "false");
+perigoBtn.title = "37 setores de risco mapeados pelo SGB em campo em 2025";
+document.getElementById("perigo").appendChild(perigoBtn);
+let perigoLayer = null, perigoCarregando = false;
+perigoBtn.onclick = ()=>{
+  if (perigoCarregando) return;
+  if (perigoLayer){
+    const liga = !map.hasLayer(perigoLayer);
+    liga ? perigoLayer.addTo(map) : map.removeLayer(perigoLayer);
+    perigoBtn.classList.toggle("on", liga);
+    perigoBtn.setAttribute("aria-pressed", liga ? "true" : "false");
+    document.getElementById("perigoLeg").hidden = !liga;
+    return;
+  }
+  perigoCarregando = true;
+  carrega("perigo/setores_risco_sgb_santa_tereza.geojson").then(gj=>{
+    const cores = {"Muito alto":"#b91c1c", "Alto":"#f59e0b"};
+    perigoLayer = L.geoJSON(gj, {
+      style:f=>({color:cores[f.properties.grau_risco]||"#6b7280", weight:1.4,
+                 fillColor:cores[f.properties.grau_risco]||"#6b7280", fillOpacity:.42}),
+      onEachFeature:(f,l)=>{
+        const p=f.properties;
+        l.bindTooltip(`${p.num_setor} · ${p.grau_risco}`);
+        l.bindPopup(`<div class="pop"><b>${escHTML(p.num_setor)}</b><br>`+
+          `<span style="font-size:11px;color:#5c6b63">SGB · Santa Tereza · 2025</span>`+
+          `<table><tr><td>Tipologia</td><td>${escHTML(p.tipolo_g1||"—")}</td></tr>`+
+          `<tr><td>Risco</td><td>${escHTML(p.grau_risco||"—")}</td></tr>`+
+          `<tr><td>Vulnerabilidade SGB</td><td>${escHTML(p.grau_vulne||"—")}</td></tr>`+
+          `<tr><td>Local</td><td>${escHTML(p.local||"—")}</td></tr>`+
+          `<tr><td>Estimativa</td><td>${p.num_pess==null?"—":fmt(+p.num_pess)} pessoa(s) · ${p.num_edif==null?"—":fmt(+p.num_edif)} edificação(ões)</td></tr></table>`+
+          `<small>Setorização de risco; não é mancha contínua nem cadastro de imóveis. `+
+          `<a href="https://rigeo.sgb.gov.br/items/646ab86b-280b-44f3-b279-87c6f995c0a8" target="_blank" rel="noopener">fonte SGB</a>.</small></div>`);
+      }
+    }).addTo(map);
+    perigoBtn.classList.add("on");
+    perigoBtn.setAttribute("aria-pressed", "true");
+    document.getElementById("perigoLeg").hidden = false;
+  }).catch(()=>{
+    perigoBtn.disabled = true;
+    perigoBtn.title = "camada SGB indisponível nesta atualização";
+  }).finally(()=>{ perigoCarregando = false; });
+};
+
 // ---- ICM: Indicador de Capacidade Municipal (MIDR/Sedec) ----
 carrega("icm_municipios.json", "assets/data").then(d=>{
   icmData = d.municipios || [];
@@ -784,6 +1127,9 @@ carrega("icm_municipios.json", "assets/data").then(d=>{
 }).catch(()=>{
   document.getElementById("icmBody").innerHTML =
     '<tr><td colspan="4" style="color:var(--muted)">não foi possível carregar os dados do ICM agora</td></tr>';
+}).finally(()=>{
+  icmResolvido = true;
+  atualizaDownloads();
 });
 </script>
 </body>
