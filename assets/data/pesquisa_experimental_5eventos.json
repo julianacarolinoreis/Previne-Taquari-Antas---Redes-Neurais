@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "status": "experimental_shadow_mode",
+  "station_code": "86472600",
+  "location": "Santa Tereza",
+  "generated_at_utc": "2026-08-10T20:17:40Z",
+  "current_answer": "UNKNOWN_STALE",
+  "current_answer_label": "Sem resposta binária atual",
+  "current_answer_reason": "A última combinação causal ANA+GEFS disponível para a pesquisa termina em 2026-08-08T06:00:00Z. Sem uma decisão recente e uma emissão válida, ausência de dado não pode virar 0.",
+  "official_alert": false,
+  "model_status": "RNA experimental executada em modo sombra",
+  "model": "MLP pequeno (16, 8)",
+  "events": 5,
+  "rows_fit": 17810,
+  "horizons_hours": [24, 48, 72, 120, 168],
+  "decision_grid_hours": 6,
+  "features": {
+    "river_level": true,
+    "antecedent_rain_hours": [24, 72, 168, 336],
+    "issued_forecast_rain": true,
+    "soil_moisture": false,
+    "overflow_threshold_cm": 1500,
+    "auxiliary_thresholds_cm": {
+      "attention": 600,
+      "alert": 900
+    }
+  },
+  "research_metrics": {
+    "out_of_sample_test_events": 1,
+    "threshold_policy": "0.5 somente para diagnóstico; nenhum limiar operacional",
+    "warning": "Resultados com cinco eventos e um único evento de teste não sustentam alerta público."
+  },
+  "artifacts": {
+    "fullfit_manifest": "research-only: outputs/exploratory_models_5events_20260810_mlp_fullfit/fullfit_manifest.json",
+    "historical_probabilities": "research-only: outputs/exploratory_models_5events_20260810_mlp_fullfit/historical_event_probabilities_fullfit.csv.gz",
+    "source_feature_sha256": "013295fef062adcb17a70f0508b1eae94a65ed9adcf9827d1300f3307137d8c9"
+  },
+  "gates": {
+    "model_training_allowed": false,
+    "operational_neural_network_allowed": false,
+    "promotion_allowed": false
+  },
+  "public_message": "O painel mostra o que a RNA aprendeu nos cinco eventos e acompanha novas rodadas. Ele não emite alerta: SGB/ANA/SACE e a Defesa Civil continuam sendo as fontes oficiais."
+}
