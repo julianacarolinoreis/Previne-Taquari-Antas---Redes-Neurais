@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PREVINE · Estado da pesquisa — Santa Tereza</title>
+<style>
+  :root{--bg:#eef3f1;--panel:#fff;--ink:#132019;--muted:#5c6b63;--line:#dfe8e1;--brand:#0f6b4a;--blue:#1e5fbf;--warn:#8a5a12;--warn-bg:#fff5df;--bad:#9b2c22;--bad-bg:#fff0ee;--good:#176b46;--good-bg:#eaf7ef;--shadow:0 8px 28px rgba(20,40,30,.07)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Tahoma,Verdana,Geneva,sans-serif;line-height:1.45}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 18px 48px}
+  header{display:flex;align-items:flex-start;gap:13px;margin-bottom:18px}
+  .mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--blue));flex:0 0 auto}
+  .kicker{text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-size:10px;font-weight:750}
+  h1{font-size:27px;letter-spacing:-.03em;margin:3px 0 2px;line-height:1.1}
+  .subtitle{color:var(--muted);font-size:13px;margin:0}
+  .badge{margin-left:auto;background:var(--warn-bg);border:1px solid #edcf91;color:var(--warn);font-size:10px;font-weight:800;border-radius:999px;padding:7px 10px;white-space:nowrap}
+  .hero{background:linear-gradient(135deg,#fff,#f2faf5);border:1px solid #bcdcc8;border-radius:18px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:16px}
+  .hero h2{margin:0 0 5px;font-size:18px;color:var(--brand)}
+  .hero p{margin:0;color:#3e5146;font-size:13px;max-width:850px}
+  .hero strong{color:var(--ink)}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 3px 14px rgba(20,40,30,.04)}
+  .card h2{font-size:15px;margin:0 0 10px}
+  .metric{min-height:108px}
+  .metric .label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:750}
+  .metric .value{font-size:22px;font-weight:850;margin:7px 0 3px;line-height:1.1}
+  .metric .detail{font-size:11px;color:var(--muted)}
+  .state-unknown{color:var(--warn)} .state-running{color:var(--blue)} .state-blocked{color:var(--bad)}
+  .section{margin-top:16px}
+  .section>h2{font-size:18px;margin:0 0 8px}
+  .section>p{margin:0 0 10px;color:var(--muted);font-size:12px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  table{border-collapse:collapse;width:100%;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:#f7faf8}
+  tr:last-child td{border-bottom:0}
+  .pill{display:inline-block;border-radius:999px;padding:3px 7px;font-size:10px;font-weight:750}
+  .pill.ok{color:var(--good);background:var(--good-bg)} .pill.wait{color:var(--warn);background:var(--warn-bg)} .pill.no{color:var(--bad);background:var(--bad-bg)}
+  .events{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+  .event{border:1px solid var(--line);border-radius:10px;padding:9px;background:#fff;font-size:11px}
+  .event b{display:block;font-size:14px;margin-bottom:2px}
+  .event span{color:var(--muted)}
+  .flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;counter-reset:step}
+  .flow article{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 10px 10px;min-height:105px}
+  .flow article:before{counter-increment:step;content:counter(step);display:grid;place-items:center;width:23px;height:23px;border-radius:50%;background:var(--brand);color:#fff;font-weight:800;font-size:12px;margin-bottom:7px}
+  .flow h3{font-size:12px;margin:0 0 4px}
+  .flow p{font-size:10.5px;color:var(--muted);margin:0}
+  .architecture{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .architecture article{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;min-height:130px}
+  .architecture h3{font-size:12px;margin:0 0 5px;color:var(--brand)}
+  .architecture p{font-size:10.5px;color:var(--muted);margin:0}
+  .architecture a{display:inline-block;margin-top:8px;color:var(--brand);font-size:10px;font-weight:750}
+  .source-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+  .source-list a{border:1px solid #b9d9ca;background:#f5fbf7;border-radius:999px;padding:6px 9px;color:var(--brand);font-size:10.5px;font-weight:750;text-decoration:none}
+  .note{background:#f7faf8;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:11px;color:var(--muted);margin-top:14px}
+  .note strong{color:var(--ink)}
+  .shadow{border:1px solid #c9b6e8;background:linear-gradient(135deg,#fff,#faf7ff);border-radius:16px;padding:15px 17px;box-shadow:var(--shadow);margin-top:16px}
+  .shadow h2{font-size:16px;color:#5b3d8f;margin:0 0 5px}
+  .shadow p{font-size:12px;color:#4c425b;margin:0 0 10px}
+  .shadow-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .shadow-stat{background:#fff;border:1px solid #e2d9f0;border-radius:10px;padding:9px;font-size:11px}
+  .shadow-stat b{display:block;font-size:17px;color:#5b3d8f;line-height:1.15;margin-bottom:2px}
+  .shadow-stat span{color:var(--muted)}
+  .shadow a{color:#5b3d8f;font-weight:750;font-size:11px}
+  @media(max-width:650px){.shadow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+  nav a{color:var(--brand);font-size:12px;font-weight:750;text-decoration:none;border:1px solid #b9d9ca;background:#f5fbf7;border-radius:999px;padding:8px 12px}
+  footer{color:var(--muted);font-size:10px;margin-top:24px}
+  @media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.events,.flow,.architecture{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}}
+  @media(max-width:520px){.wrap{padding:18px 12px 38px}header{flex-wrap:wrap}.badge{margin-left:0}.grid{grid-template-columns:1fr 1fr}.events,.flow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="mark" aria-hidden="true"></span>
+    <div><div class="kicker">PREVINE · pesquisa de transbordamento</div><h1>Estado da pesquisa</h1><p class="subtitle">Santa Tereza · estação ANA/SGB 86472600 · bacia Taquari-Antas</p></div>
+    <span class="badge">SEM ALERTA AUTOMÁTICO</span>
+  </header>
+
+  <section class="hero" aria-labelledby="hero-title">
+    <h2 id="hero-title">O que esta página responde</h2>
+    <p>Mostramos o que já foi validado e o resultado da primeira rodada de RNA experimental. A pergunta “vai ou não vai transbordar?” só recebe <strong>0/1 quando há uma decisão recente, nível observado e chuva prevista causalmente alinhada</strong>. <strong>UNKNOWN/STALE não significa que não haverá inundação</strong>; significa que faltam dados atuais confiáveis para afirmar qualquer classe.</p>
+  </section>
+
+  <section class="shadow" aria-labelledby="shadow-title">
+    <h2 id="shadow-title">RNA experimental · modo sombra</h2>
+    <p>A RNA foi ajustada com os cinco eventos disponíveis, usando nível do rio, chuva antecedente (24/72/168/336 h) e chuva prevista emitida. Ela está estudando o que antecedeu cada cheia, mas ainda não é uma probabilidade operacional.</p>
+    <div class="shadow-grid">
+      <div class="shadow-stat"><b>5</b><span>eventos usados</span></div>
+      <div class="shadow-stat"><b>17.810</b><span>linhas no ajuste completo</span></div>
+      <div class="shadow-stat"><b>24–168 h</b><span>cinco horizontes</span></div>
+      <div class="shadow-stat"><b>UNKNOWN</b><span>última decisão causal: 08/08 06Z</span></div>
+    </div>
+    <p style="margin:10px 0 0"><strong>Resposta atual:</strong> não é possível afirmar 0 ou 1 para o momento presente com a última combinação de dados disponível. <a href="assets/data/pesquisa_experimental_5eventos.json">Ver contrato do piloto (JSON) ↗</a></p>
+  </section>
+
+  <section class="grid" aria-label="Estado atual dos dados">
+    <article class="card metric"><div class="label">Estação ANA/SGB</div><div class="value">UNKNOWN</div><div class="detail">98,96% de cobertura no snapshot; revisão de frescor ativa</div></article>
+    <article class="card metric"><div class="label">Chuva GEFS</div><div class="value state-running">CONCLUÍDA</div><div class="detail">2.634 de 2.634 rodadas com hash e emissão rastreáveis</div></article>
+    <article class="card metric"><div class="label">Alerta público</div><div class="value state-blocked">DESATIVADO</div><div class="detail">SGB/ANA/SACE continuam sendo as fontes oficiais</div></article>
+    <article class="card metric"><div class="label">RNA</div><div class="value state-blocked">MODO SOMBRA</div><div class="detail">piloto executado; promoção e alerta continuam bloqueados</div></article>
+  </section>
+
+  <section class="section" aria-labelledby="validated-title">
+    <h2 id="validated-title">O que já foi validado</h2>
+    <p>Contrato atual da pesquisa, separado de qualquer resultado legado que ainda apareça no acervo do site.</p>
+    <table><thead><tr><th>Item</th><th>Contrato</th><th>Estado</th></tr></thead><tbody>
+      <tr><td>Transbordamento</td><td>primeira superação de <strong>1.500 cm</strong></td><td><span class="pill ok">definido</span></td></tr>
+      <tr><td>Estados auxiliares</td><td>600 cm atenção · 900 cm alerta/recuperação</td><td><span class="pill ok">separados</span></td></tr>
+      <tr><td>Proxy cartográfico</td><td>400 cm/HAND somente como referência do leito</td><td><span class="pill ok">não é rótulo</span></td></tr>
+      <tr><td>Eventos independentes</td><td>5 eventos; unidade de avaliação é o evento/tempestade</td><td><span class="pill wait">revisão contínua</span></td></tr>
+      <tr><td>Horizontes</td><td>24 · 48 · 72 · 120 · 168 horas; decisão a cada 6 h</td><td><span class="pill ok">contrato pronto</span></td></tr>
+      <tr><td>Observação</td><td>ANA rebaixada, sem interpolação; início/pico em base de 15 min</td><td><span class="pill ok">auditado</span></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="section" aria-labelledby="events-title">
+    <h2 id="events-title">Eventos que formam a base</h2>
+    <p>As datas abaixo são usadas para separar treino, validação e teste sem misturar leituras do mesmo evento.</p>
+    <div class="events">
+      <div class="event"><b>18 nov 2023</b><span>treino · âncora SGB</span></div>
+      <div class="event"><b>1 mai 2024</b><span>treino</span></div>
+      <div class="event"><b>12 mai 2024</b><span>treino</span></div>
+      <div class="event"><b>17 jun 2024</b><span>validação</span></div>
+      <div class="event"><b>22 jul 2026</b><span>teste</span></div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="architecture-title">
+    <h2 id="architecture-title">Arquitetura que estamos incorporando</h2>
+    <p>As referências foram traduzidas em quatro camadas. Cada camada pode evoluir sem transformar uma previsão experimental em alerta oficial.</p>
+    <div class="architecture">
+      <article><h3>1 · Dados e qualidade</h3><p>Confere timestamp, fuso, cobertura, atraso, QC e proveniência antes de liberar uma observação.</p><a href="https://www.sgb.gov.br/sace/" target="_blank" rel="noopener">referência SACE ↗</a></article>
+      <article><h3>2 · Nível previsto</h3><p>Combina nível atual, montante, chuva antecedente e chuva emitida para cada decisão de 6 horas.</p><a href="https://arxiv.org/abs/2111.02780" target="_blank" rel="noopener">pesquisa operacional ↗</a></article>
+      <article><h3>3 · Extravasamento</h3><p>Converte a cota prevista em cenário potencial fora do leito, separado da água normal do rio.</p><a href="https://global-flood.emergency.copernicus.eu/" target="_blank" rel="noopener">referência GloFAS ↗</a></article>
+      <article><h3>4 · Comunicação</h3><p>Mostra estado, tendência, horizonte, incerteza e fonte; o alerta público continua sob autoridade oficial.</p><a href="https://cities.google/flood-hub" target="_blank" rel="noopener">referência Flood Hub ↗</a></article>
+    </div>
+    <div class="source-list" aria-label="Fontes de chuva e risco"><a href="https://www.gov.br/cemaden/pt-br/18-03-2026-previsao-de-riscos-geo-hidrologicos-1" target="_blank" rel="noopener">CEMADEN · chuva acumulada + previsão ↗</a><a href="https://onlinelibrary.wiley.com/doi/10.1111/jfr3.70147" target="_blank" rel="noopener">LSTM + chuva prevista ↗</a><a href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2026EF008397" target="_blank" rel="noopener">interpretação por eventos ↗</a></div>
+  </section>
+
+  <section class="section two" aria-labelledby="gates-title">
+    <div class="card"><h2 id="gates-title">Gates científicos</h2><table><tbody>
+      <tr><td>Definição do evento</td><td><span class="pill wait">em revisão</span></td></tr>
+      <tr><td>Histórico de chuva emitida</td><td><span class="pill ok">GEFS concluído</span></td></tr>
+      <tr><td>Rodada experimental</td><td><span class="pill wait">5 eventos · modo sombra</span></td></tr>
+      <tr><td>RNA operacional</td><td><span class="pill no">bloqueada</span></td></tr>
+      <tr><td>Alerta público automático</td><td><span class="pill no">desativado</span></td></tr>
+    </tbody></table></div>
+    <div class="card"><h2>Como será liberado</h2><p style="font-size:12px;color:var(--muted);margin:0">Antes de qualquer promoção, os modelos serão comparados com persistência, climatologia, regressão logística, gradiente e hazard discreto. A avaliação usará recall por evento, eventos perdidos, falsos alertas, antecedência e calibração — não apenas acurácia.</p><div class="note"><strong>Regra de segurança:</strong> nenhum dado ausente será convertido em zero e nenhuma probabilidade será publicada sem calibração e revisão humana.</div></div>
+  </section>
+
+  <section class="section" aria-labelledby="flow-title">
+    <h2 id="flow-title">Próximos passos</h2>
+    <div class="flow">
+      <article><h3>Backfill concluído</h3><p>GEFS histórico arquivado com emissão, disponibilidade e hashes.</p></article>
+      <article><h3>Variáveis integradas</h3><p>Nível, chuva antecedente e chuva prevista já entram no piloto.</p></article>
+      <article><h3>Baselines comparados</h3><p>Logística, gradiente e MLP foram comparados por horizonte.</p></article>
+      <article><h3>Modo sombra ativo</h3><p>A RNA estuda os cinco eventos sem produzir alerta público.</p></article>
+      <article><h3>Revisão humana</h3><p>Promover somente com evidência por evento e aprovação operacional.</p></article>
+    </div>
+  </section>
+
+  <div class="note"><strong>Snapshot:</strong> estado de pesquisa consultado em 10/08/2026, 20:17 UTC. Este painel é informativo; a atualização ao vivo continua nos robôs próprios da página de previsão. Os quatro JSONs dinâmicos do site não fazem parte deste piloto.</div>
+  <nav aria-label="Navegação da pesquisa"><a href="index.html">Página inicial</a><a href="santa_tereza_previsao_inundacao.html">Monitoramento de Santa Tereza</a></nav>
+  <footer>PREVINE · pesquisa auditável · dados atrasados ou incompletos são exibidos como estado de qualidade, não como ausência de risco.</footer>
+</div>
+</body>
+</html>
