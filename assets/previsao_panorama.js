@@ -501,7 +501,8 @@
     const telemetryWhen=state.live.telemetria_ultima_em||state.live.nivel_rio_agora_em;
     const when=telemetryWhen?` Última leitura: ${fmtWhen(telemetryWhen)}.`:'';
     label.textContent='Robô ao vivo ativo';
-    detail.textContent=`Atualização automática a cada 5 minutos.${when} O robô atual publica nível observado e previsão experimental de +2 h/+4 h. A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação específica para Santa Tereza e serão conectados separadamente, sem sobrescrever este robô.`;
+    const longForecast=state.researchRisk&&state.researchRisk.feed_type==='meteorological_forecast';
+    detail.textContent=`Atualização automática a cada 5 minutos.${when} O robô atual publica nível observado e previsão experimental de +2 h/+4 h. ${longForecast?'A previsão meteorológica de 24–168 h aparece no cartão abaixo; ela ainda não produz probabilidade de inundação.':'A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação de pesquisa; não são alerta oficial.'}`;
   }
 
   function renderResearchRisk(){
@@ -512,6 +513,21 @@
     if(!r){
       label.textContent='Análise de 24 h indisponível';
       detail.textContent='O feed experimental ainda não carregou. Ausência de análise não significa “não vai inundar”.';
+      return;
+    }
+    if(r.feed_type==='meteorological_forecast'){
+      const horizons=(Array.isArray(r.horizons)?r.horizons:[]).slice().sort((a,b)=>Number(a.hours)-Number(b.hours));
+      const rainText=horizons.length?horizons.map(h=>`+${h.hours} h: ${h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm'}`).join(' · '):'sem acumulados disponíveis';
+      label.textContent='Chuva prevista no ponto · 24–168 h';
+      detail.textContent=`${rainText}. IFS prospectivo; não é probabilidade de transbordamento.`;
+      const grid=document.getElementById('rp-risk-grid');
+      const stateText=document.getElementById('rp-risk-state');
+      if(stateText) stateText.textContent='Risco de inundação: indisponível para Muçum. O modelo longo ainda não foi calibrado; +2 h/+4 h continuam separados.';
+      if(grid) grid.innerHTML=horizons.map(h=>{
+        const rain=h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm';
+        const soil=h.soil_moisture_model_mean_m3m3===null?'solo n/d':'solo '+nf2.format(Number(h.soil_moisture_model_mean_m3m3));
+        return `<div class="rp-risk-cell"><b>+${h.hours} h</b><span>${rain}</span><span>${soil}</span><span>inundação: n/d</span></div>`;
+      }).join('');
       return;
     }
     if(r.rna&&r.rna.scores){
