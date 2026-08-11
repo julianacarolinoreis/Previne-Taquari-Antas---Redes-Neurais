@@ -184,7 +184,7 @@
         <div class="rp-quality-item"><b>Observação do rio</b><span>ANA/SGB · série auditada</span><em>monitorada</em></div>
         <div class="rp-quality-item"><b>Chuva antecedente</b><span>24 · 72 · 168 · 336 h</span><em>integrada no piloto</em></div>
         <div class="rp-quality-item"><b>Chuva prevista</b><span>GEFS histórico · IFS prospectivo</span><em>GEFS concluído</em></div>
-        <div class="rp-quality-item"><b>Solo</b><span>umidade/saturação</span><em>a baixar</em></div>
+        <div class="rp-quality-item"><b>Solo</b><span id="rp-soil-status">carregando umidade modelada...</span><em id="rp-soil-badge">IFS/ECMWF</em></div>
       </div>
       <div class="rp-next rp-weather-live" aria-live="polite">
         <div class="rp-weather-title"><strong>Robô meteorológico · rodada atual</strong><span class="rp-badge">EXPERIMENTAL</span></div>
@@ -1092,7 +1092,9 @@ async function loadResearchWeatherPanel(){
   const answer=document.getElementById('rp-weather-answer');
   const horizons=document.getElementById('rp-weather-horizons');
   const note=document.getElementById('rp-weather-note');
-  if(!meta||!now||!answer||!horizons||!note)return;
+  const soilStatus=document.getElementById('rp-soil-status');
+  const soilBadge=document.getElementById('rp-soil-badge');
+  if(!meta||!now||!answer||!horizons||!note||!soilStatus||!soilBadge)return;
   const feed='assets/data/research_weather_santa_tereza_latest.json?cb='+Date.now();
   const fmtUtc=(value)=>{
     if(!value)return '—';
@@ -1115,11 +1117,20 @@ async function loadResearchWeatherPanel(){
     const forecast=data.forecast||{};
     const observation=data.observation||{};
     const scores=(data.rna&&data.rna.scores)||{};
+    const soil=data.soil||{};
     const h24=(forecast.horizons||[]).find((item)=>Number(item.horizon_hours)===24)||{};
     meta.textContent='IFS emitido '+fmtUtc(forecast.run_time_utc)+' · disponível '+fmtUtc(forecast.available_at_utc)+' (horário local)';
     const rodada='base da rodada: '+fmtNumber(observation.level_cm,0)+' cm ('+fmtUtc(observation.timestamp_utc)+')';
     const aoVivo=live&&Number.isFinite(Number(live.nivel_rio_agora_cm)) ? 'ao vivo: '+fmtNumber(live.nivel_rio_agora_cm,0)+' cm ('+fmtLocal(live.nivel_rio_agora_em||live.gerado_em)+')' : 'ao vivo: indisponível';
     now.textContent=aoVivo+' · '+rodada;
+    const layers=soil.layers||{};
+    if(Number.isFinite(Number(layers['0_7cm']))&&Number.isFinite(Number(layers['7_28cm']))){
+      soilStatus.textContent='0–7 cm '+fmtNumber(layers['0_7cm'],2)+' · 7–28 cm '+fmtNumber(layers['7_28cm'],2)+' m³/m³';
+      soilBadge.textContent='umidade modelada';
+    }else{
+      soilStatus.textContent='sem dado de solo nesta rodada';
+      soilBadge.textContent='indisponível';
+    }
     const label=(data.answer_24h&&data.answer_24h.label)||'Resultado de 24 h indisponível';
     answer.textContent='24 h: '+label+' · chuva média prevista '+fmtNumber(h24.basin_mean_mm,1)+' mm';
     horizons.replaceChildren();
@@ -1136,10 +1147,12 @@ async function loadResearchWeatherPanel(){
       item.append(title,score,rain);
       horizons.appendChild(item);
     });
-    note.textContent='Scores experimentais da RNA (fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'); não são probabilidades calibradas nem alerta oficial.';
+    note.textContent='Scores experimentais da RNA (fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'). Solo: umidade volumétrica modelada; saturação física ainda não calibrada.';
   }catch(error){
     meta.textContent='Feed meteorológico indisponível no momento.';
     now.textContent='Não foi possível comparar a leitura ao vivo com a base da rodada.';
+    soilStatus.textContent='sem dado de solo';
+    soilBadge.textContent='indisponível';
     answer.textContent='UNKNOWN: não foi possível avaliar a previsão de 24 h.';
     note.textContent='O painel não converte ausência de dados em “não vai inundar”.';
     console.warn('falha ao carregar o painel meteorológico de pesquisa',error);
