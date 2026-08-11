@@ -128,6 +128,7 @@
   .research-panel .rp-weather-horizons{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin-top:6px}
   .research-panel .rp-weather-horizons span{display:block;text-align:center;padding:5px 2px;background:#f7fbff;border:1px solid #d5e5f7;border-radius:6px;font-size:9px;color:#31516e;line-height:1.25}
   .research-panel .rp-weather-horizons b{display:block;font-size:8.5px;color:#1e5fbf}
+  .research-panel .rp-weather-horizons small{display:block;font-size:8px;color:#6b7c8d;margin-top:2px;white-space:nowrap}
   .research-panel .rp-weather-note{display:block;margin-top:6px;color:#6d6251;font-size:9px;line-height:1.3}
   @media(max-width:520px){.research-panel .rp-weather-horizons{grid-template-columns:repeat(3,minmax(0,1fr))}}
   @media(max-width:900px){.research-panel .rp-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.research-panel .rp-stat{min-height:55px}}
@@ -189,7 +190,7 @@
         <span class="rp-weather-meta" id="rp-weather-meta">Carregando emissão e disponibilidade do IFS...</span>
         <div class="rp-weather-answer" id="rp-weather-answer">Carregando avaliação de 24 h...</div>
         <div class="rp-weather-horizons" id="rp-weather-horizons" aria-label="Scores experimentais por horizonte">
-          <span><b>+24 h</b>—</span><span><b>+48 h</b>—</span><span><b>+72 h</b>—</span><span><b>+120 h</b>—</span><span><b>+168 h</b>—</span>
+          <span><b>+24 h</b>—<small>chuva —</small></span><span><b>+48 h</b>—<small>chuva —</small></span><span><b>+72 h</b>—<small>chuva —</small></span><span><b>+120 h</b>—<small>chuva —</small></span><span><b>+168 h</b>—<small>chuva —</small></span>
         </div>
         <small class="rp-weather-note" id="rp-weather-note">A avaliação é de pesquisa: o score não é probabilidade calibrada nem alerta oficial.</small>
         <a class="rp-status-link" href="pesquisa_status.html">Ver avaliação meteorológica completa&nbsp;→</a>
@@ -1113,10 +1114,13 @@ async function loadResearchWeatherPanel(){
       const item=document.createElement('span');
       const title=document.createElement('b');
       const score=document.createTextNode('—');
+      const rain=document.createElement('small');
+      const forecastItem=(forecast.horizons||[]).find((entry)=>Number(entry.horizon_hours)===hours)||{};
       title.textContent='+'+hours+' h';
       const raw=Number(scores[String(hours)]);
       if(Number.isFinite(raw))score.textContent=fmtNumber(raw*100,1)+'%';
-      item.append(title,score);
+      rain.textContent='chuva '+fmtNumber(forecastItem.basin_mean_mm,1)+' mm';
+      item.append(title,score,rain);
       horizons.appendChild(item);
     });
     note.textContent='Scores experimentais da RNA (fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'); não são probabilidades calibradas nem alerta oficial.';
