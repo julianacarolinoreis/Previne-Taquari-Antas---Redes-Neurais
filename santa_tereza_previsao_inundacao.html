@@ -126,6 +126,10 @@
   .research-panel .rp-weather-meta{display:block;color:#5c6b63;font-size:9.5px;margin-top:3px}
   .research-panel .rp-weather-now{display:block;color:#31516e;font-size:9.5px;margin-top:5px;line-height:1.35}
   .research-panel .rp-weather-answer{margin-top:6px;padding:6px 7px;border-radius:7px;background:#fff;border:1px solid #d5e5f7;color:#173f70;font-weight:750}
+  .research-panel .rp-weather-probability{margin-top:6px;padding:7px 8px;border-radius:7px;background:#fff8e8;border:1px solid #efd59b;color:#6d4d08;line-height:1.3}
+  .research-panel .rp-weather-probability strong{display:block;color:#6d4d08}
+  .research-panel .rp-weather-probability span{display:block;margin-top:2px;font-size:12px;font-weight:800;color:#7a4b00}
+  .research-panel .rp-weather-probability small{display:block;margin-top:3px;font-size:9px;color:#7c6a48}
   .research-panel .rp-weather-scale{display:block;margin-top:5px;color:#6d6251;font-size:9px;line-height:1.3}
   .research-panel .rp-weather-horizons{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin-top:6px}
   .research-panel .rp-weather-horizons span{display:block;text-align:center;padding:5px 2px;background:#f7fbff;border:1px solid #d5e5f7;border-radius:6px;font-size:9px;color:#31516e;line-height:1.25}
@@ -192,8 +196,13 @@
         <span class="rp-weather-meta" id="rp-weather-meta">Carregando emissão e disponibilidade do IFS...</span>
         <span class="rp-weather-now" id="rp-weather-now">Comparando leitura ao vivo com a base da rodada...</span>
         <div class="rp-weather-answer" id="rp-weather-answer">Carregando avaliação de 24 h...</div>
-        <small class="rp-weather-scale">Escala exibida: <strong>0–100</strong>. É score experimental, não porcentagem de chance.</small>
-        <div class="rp-weather-horizons" id="rp-weather-horizons" aria-label="Scores experimentais por horizonte">
+        <div class="rp-weather-probability" id="rp-weather-probability" role="status">
+          <strong>Chance de transbordamento</strong>
+          <span id="rp-weather-probability-main">Verificando se há calibrador compatível...</span>
+          <small id="rp-weather-probability-note">A chance numérica só aparece quando a previsão e o calibrador usam a mesma fonte e as mesmas variáveis.</small>
+        </div>
+        <small class="rp-weather-scale">O número abaixo do horizonte é score de triagem, de 0 a 100; não é porcentagem de chance.</small>
+        <div class="rp-weather-horizons" id="rp-weather-horizons" aria-label="Chance experimental e score por horizonte">
           <span><b>+24 h</b>—<small>chuva —</small></span><span><b>+48 h</b>—<small>chuva —</small></span><span><b>+72 h</b>—<small>chuva —</small></span><span><b>+120 h</b>—<small>chuva —</small></span><span><b>+168 h</b>—<small>chuva —</small></span>
         </div>
         <small class="rp-weather-note" id="rp-weather-note">A avaliação é de pesquisa: o score não é probabilidade calibrada nem alerta oficial.</small>
@@ -1094,10 +1103,14 @@ async function loadResearchWeatherPanel(){
   const answer=document.getElementById('rp-weather-answer');
   const horizons=document.getElementById('rp-weather-horizons');
   const note=document.getElementById('rp-weather-note');
+  const probabilityBox=document.getElementById('rp-weather-probability');
+  const probabilityMain=document.getElementById('rp-weather-probability-main');
+  const probabilityNote=document.getElementById('rp-weather-probability-note');
   const soilStatus=document.getElementById('rp-soil-status');
   const soilBadge=document.getElementById('rp-soil-badge');
-  if(!meta||!now||!answer||!horizons||!note||!soilStatus||!soilBadge)return;
+  if(!meta||!now||!answer||!horizons||!note||!soilStatus||!soilBadge||!probabilityBox||!probabilityMain||!probabilityNote)return;
   const feed='assets/data/research_weather_santa_tereza_latest.json?cb='+Date.now();
+  const probabilityFeed='assets/data/research_probability_santa_tereza_latest.json?cb='+Date.now();
   const fmtUtc=(value)=>{
     if(!value)return '—';
     const date=new Date(value);
@@ -1130,6 +1143,7 @@ async function loadResearchWeatherPanel(){
     const response=await fetch(feed,{cache:'no-store'});
     if(!response.ok)throw new Error('HTTP '+response.status);
     const data=await response.json();
+    const probability=await fetch(probabilityFeed,{cache:'no-store'}).then((item)=>item.ok?item.json():null).catch(()=>null);
     const live=typeof fetchLiveJson==='function' ? await fetchLiveJson().catch(()=>null) : null;
     const forecast=data.forecast||{};
     const observation=data.observation||{};
@@ -1150,27 +1164,39 @@ async function loadResearchWeatherPanel(){
     }
     const label=(data.answer_24h&&data.answer_24h.label)||'Resultado de 24 h indisponível';
     answer.textContent='DECISÃO 24 H: '+label+' · chuva média prevista '+fmtNumber(h24.basin_mean_mm,1)+' mm';
+    const probabilityReady=Boolean(probability&&probability.calibrated_for_current_source===true&&probability.status==='CURRENT_CALIBRATED');
+    if(probabilityReady){
+      const p24=probability.horizons&&probability.horizons['24'];
+      probabilityMain.textContent='Até 24 h: '+(p24&&Number.isFinite(Number(p24.probability))?fmtNumber(Number(p24.probability)*100,1)+'%':'indisponível');
+      probabilityNote.textContent='Probabilidade experimental calibrada para a rodada atual; não é alerta oficial.';
+    }else{
+      probabilityMain.textContent='Até 24 h: não calculada para esta rodada';
+      probabilityNote.textContent=(probability&&probability.message)||'A rodada IFS atual ainda não tem calibrador compatível. Isso é diferente de dizer “0%” ou “não vai inundar”.';
+    }
     horizons.replaceChildren();
     [24,48,72,120,168].forEach((hours)=>{
       const item=document.createElement('span');
       const title=document.createElement('b');
-      const score=document.createTextNode('—');
+      const score=document.createTextNode('chance —');
       const rain=document.createElement('small');
       const forecastItem=(forecast.horizons||[]).find((entry)=>Number(entry.horizon_hours)===hours)||{};
       title.textContent='+'+hours+' h';
       const raw=Number(scores[String(hours)]);
-      if(Number.isFinite(raw))score.textContent=fmtNumber(raw*100,1)+' / 100';
-      rain.textContent='chuva '+fmtNumber(forecastItem.basin_mean_mm,1)+' mm';
+      const probabilityItem=probability&&probability.horizons&&probability.horizons[String(hours)];
+      if(probabilityReady&&probabilityItem&&Number.isFinite(Number(probabilityItem.probability)))score.textContent='chance '+fmtNumber(Number(probabilityItem.probability)*100,1)+'%';
+      rain.textContent='score '+(Number.isFinite(raw)?fmtNumber(raw*100,1)+' / 100':'—')+' · chuva '+fmtNumber(forecastItem.basin_mean_mm,1)+' mm';
       item.append(title,score,rain);
       horizons.appendChild(item);
     });
-    note.textContent='Scores experimentais da RNA (fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'). Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
+    note.textContent='Fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'. A chance fica “não calculada” quando o calibrador não é compatível; o score permanece apenas diagnóstico. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
   }catch(error){
     meta.textContent='Feed meteorológico indisponível no momento.';
     now.textContent='Não foi possível comparar a leitura ao vivo com a base da rodada.';
     soilStatus.textContent='sem dado de solo';
     soilBadge.textContent='indisponível';
     answer.textContent='UNKNOWN: não foi possível avaliar a previsão de 24 h.';
+    probabilityMain.textContent='Até 24 h: não calculada';
+    probabilityNote.textContent='Sem dados causais confiáveis, não há porcentagem responsável para publicar.';
     note.textContent='O painel não converte ausência de dados em “não vai inundar”.';
     console.warn('falha ao carregar o painel meteorológico de pesquisa',error);
   }
