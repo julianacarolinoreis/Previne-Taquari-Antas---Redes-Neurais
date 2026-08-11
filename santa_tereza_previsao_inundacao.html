@@ -121,6 +121,15 @@
   .research-panel .rp-quality-item b{display:block;font-size:10.5px;color:#132019}
   .research-panel .rp-quality-item span{display:block;font-size:9.5px;color:#5c6b63;margin-top:2px}
   .research-panel .rp-quality-item em{display:inline-block;font-size:9px;font-style:normal;font-weight:750;color:#8a5a12;background:#fff4dc;border-radius:999px;padding:2px 5px;margin-top:4px}
+  .research-panel .rp-weather-live{display:block}
+  .research-panel .rp-weather-title{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#1e5fbf}
+  .research-panel .rp-weather-meta{display:block;color:#5c6b63;font-size:9.5px;margin-top:3px}
+  .research-panel .rp-weather-answer{margin-top:6px;padding:6px 7px;border-radius:7px;background:#fff;border:1px solid #d5e5f7;color:#173f70;font-weight:750}
+  .research-panel .rp-weather-horizons{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin-top:6px}
+  .research-panel .rp-weather-horizons span{display:block;text-align:center;padding:5px 2px;background:#f7fbff;border:1px solid #d5e5f7;border-radius:6px;font-size:9px;color:#31516e;line-height:1.25}
+  .research-panel .rp-weather-horizons b{display:block;font-size:8.5px;color:#1e5fbf}
+  .research-panel .rp-weather-note{display:block;margin-top:6px;color:#6d6251;font-size:9px;line-height:1.3}
+  @media(max-width:520px){.research-panel .rp-weather-horizons{grid-template-columns:repeat(3,minmax(0,1fr))}}
   @media(max-width:900px){.research-panel .rp-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.research-panel .rp-stat{min-height:55px}}
   @media(max-width:520px){.research-panel .rp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .live-hz{display:none;gap:6px;margin:-2px 0 10px;flex-wrap:wrap}
@@ -175,7 +184,16 @@
         <div class="rp-quality-item"><b>Chuva prevista</b><span>GEFS histórico · IFS prospectivo</span><em>GEFS concluído</em></div>
         <div class="rp-quality-item"><b>Solo</b><span>umidade/saturação</span><em>a baixar</em></div>
       </div>
-      <div class="rp-next"><strong>Próximo passo:</strong> continuar o modo sombra, incorporar umidade do solo e novas cheias, e calibrar a resposta 0/1 por evento. Até existir decisão recente e previsão causal válida, o estado correto é <strong>desconhecido/atrasado</strong>, não “não vai inundar”.<br><a class="rp-status-link" href="pesquisa_status.html">Abrir painel técnico completo&nbsp;→</a></div>
+      <div class="rp-next rp-weather-live" aria-live="polite">
+        <div class="rp-weather-title"><strong>Robô meteorológico · rodada atual</strong><span class="rp-badge">EXPERIMENTAL</span></div>
+        <span class="rp-weather-meta" id="rp-weather-meta">Carregando emissão e disponibilidade do IFS...</span>
+        <div class="rp-weather-answer" id="rp-weather-answer">Carregando avaliação de 24 h...</div>
+        <div class="rp-weather-horizons" id="rp-weather-horizons" aria-label="Scores experimentais por horizonte">
+          <span><b>+24 h</b>—</span><span><b>+48 h</b>—</span><span><b>+72 h</b>—</span><span><b>+120 h</b>—</span><span><b>+168 h</b>—</span>
+        </div>
+        <small class="rp-weather-note" id="rp-weather-note">A avaliação é de pesquisa: o score não é probabilidade calibrada nem alerta oficial.</small>
+        <a class="rp-status-link" href="pesquisa_status.html">Ver avaliação meteorológica completa&nbsp;→</a>
+      </div>
     </section>
     <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h, 4h e cascata)</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
@@ -1061,7 +1079,56 @@ async function init(){
   setEvent(curEv);            // frame inicial (sobrescrito pelo ao vivo)
   enterLive();                // simulador = só AO VIVO (previsão real)
 }
+
+/* O painel de pesquisa lê somente o feed versionado do robô meteorológico.
+   Ele fica separado do JSON ao vivo do site e nunca transforma score
+   experimental em alerta oficial. */
+async function loadResearchWeatherPanel(){
+  const meta=document.getElementById('rp-weather-meta');
+  const answer=document.getElementById('rp-weather-answer');
+  const horizons=document.getElementById('rp-weather-horizons');
+  const note=document.getElementById('rp-weather-note');
+  if(!meta||!answer||!horizons||!note)return;
+  const feed='assets/data/research_weather_santa_tereza_latest.json?cb='+Date.now();
+  const fmtUtc=(value)=>{
+    if(!value)return '—';
+    const date=new Date(value);
+    if(Number.isNaN(date.getTime()))return '—';
+    return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'}).format(date);
+  };
+  const fmtNumber=(value, digits=1)=>Number.isFinite(Number(value)) ? Number(value).toFixed(digits).replace('.',',') : '—';
+  try{
+    const response=await fetch(feed,{cache:'no-store'});
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const data=await response.json();
+    const forecast=data.forecast||{};
+    const observation=data.observation||{};
+    const scores=(data.rna&&data.rna.scores)||{};
+    const h24=(forecast.horizons||[]).find((item)=>Number(item.horizon_hours)===24)||{};
+    meta.textContent='IFS emitido '+fmtUtc(forecast.run_time_utc)+' · disponível '+fmtUtc(forecast.available_at_utc)+' (horário local)';
+    const label=(data.answer_24h&&data.answer_24h.label)||'Resultado de 24 h indisponível';
+    answer.textContent='24 h: '+label+' · nível observado '+fmtNumber(observation.level_cm,0)+' cm · chuva média prevista '+fmtNumber(h24.basin_mean_mm,1)+' mm';
+    horizons.replaceChildren();
+    [24,48,72,120,168].forEach((hours)=>{
+      const item=document.createElement('span');
+      const title=document.createElement('b');
+      const score=document.createTextNode('—');
+      title.textContent='+'+hours+' h';
+      const raw=Number(scores[String(hours)]);
+      if(Number.isFinite(raw))score.textContent=fmtNumber(raw*100,1)+'%';
+      item.append(title,score);
+      horizons.appendChild(item);
+    });
+    note.textContent='Scores experimentais da RNA (fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'); não são probabilidades calibradas nem alerta oficial.';
+  }catch(error){
+    meta.textContent='Feed meteorológico indisponível no momento.';
+    answer.textContent='UNKNOWN: não foi possível avaliar a previsão de 24 h.';
+    note.textContent='O painel não converte ausência de dados em “não vai inundar”.';
+    console.warn('falha ao carregar o painel meteorológico de pesquisa',error);
+  }
+}
 init();
+loadResearchWeatherPanel();
 </script>
 </body>
 </html>
