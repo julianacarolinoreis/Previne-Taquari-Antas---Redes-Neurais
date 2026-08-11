@@ -172,43 +172,6 @@
 <main>
   <div id="map"></div>
   <aside>
-    <section class="research-panel" aria-labelledby="research-panel-title">
-      <div class="rp-head">
-        <div><div class="rp-kicker">Pesquisa PREVINE · base validada</div><h2 id="research-panel-title">Monitoramento científico</h2></div>
-        <span class="rp-badge">SEM ALERTA AUTOMÁTICO</span>
-      </div>
-      <p class="rp-copy">Esta área reúne o que já foi conferido para Santa Tereza. Ela informa observações e progresso da pesquisa; não substitui SGB, ANA, SACE ou a Defesa Civil. Dados atrasados ou incompletos devem aparecer como <strong>desconhecido</strong>, nunca como “não vai inundar”.</p>
-      <div class="rp-grid" aria-label="Resumo da pesquisa">
-        <div class="rp-stat"><b>86472600</b><span>estação Santa Tereza</span></div>
-        <div class="rp-stat"><b>1.500 cm</b><span>cota oficial de inundação</span></div>
-        <div class="rp-stat"><b>5</b><span>eventos validados</span></div>
-        <div class="rp-stat"><b>5</b><span>horizontes: 24/48/72/120/168 h</span></div>
-      </div>
-      <div class="rp-meta"><strong>Dados:</strong> série ANA rebaixada e auditada, com âncoras SGB. <strong>Chuva:</strong> backfill GEFS/NODD concluído (2.634 rodadas) e IFS prospectivo, sempre com emissão e disponibilidade registradas. <strong>Estado:</strong> a RNA experimental foi ajustada com os cinco eventos em modo sombra; promoção, alerta e resposta binária atual permanecem bloqueados quando a combinação estiver atrasada.</div>
-      <div class="rp-quality" aria-label="Qualidade e disponibilidade das fontes">
-        <div class="rp-quality-item"><b>Observação do rio</b><span>ANA/SGB · série auditada</span><em>monitorada</em></div>
-        <div class="rp-quality-item"><b>Chuva antecedente</b><span>24 · 72 · 168 · 336 h</span><em>integrada no piloto</em></div>
-        <div class="rp-quality-item"><b>Chuva prevista</b><span>GEFS histórico · IFS prospectivo</span><em>GEFS concluído</em></div>
-        <div class="rp-quality-item"><b>Solo</b><span id="rp-soil-status">carregando umidade modelada...</span><em id="rp-soil-badge">IFS/ECMWF</em></div>
-      </div>
-      <div class="rp-next rp-weather-live" aria-live="polite">
-        <div class="rp-weather-title"><strong>Robô meteorológico · rodada atual</strong><span class="rp-badge">EXPERIMENTAL</span></div>
-        <span class="rp-weather-meta" id="rp-weather-meta">Carregando emissão e disponibilidade do IFS...</span>
-        <span class="rp-weather-now" id="rp-weather-now">Comparando leitura ao vivo com a base da rodada...</span>
-        <div class="rp-weather-answer" id="rp-weather-answer">Carregando avaliação de 24 h...</div>
-        <div class="rp-weather-probability" id="rp-weather-probability" role="status">
-          <strong>Chance de transbordamento</strong>
-          <span id="rp-weather-probability-main">Verificando se há calibrador compatível...</span>
-          <small id="rp-weather-probability-note">A chance numérica só aparece quando a previsão e o calibrador usam a mesma fonte e as mesmas variáveis.</small>
-        </div>
-        <small class="rp-weather-scale">O número abaixo do horizonte é score de triagem, de 0 a 100; não é porcentagem de chance.</small>
-        <div class="rp-weather-horizons" id="rp-weather-horizons" aria-label="Chance experimental e score por horizonte">
-          <span><b>+24 h</b>—<small>chuva —</small></span><span><b>+48 h</b>—<small>chuva —</small></span><span><b>+72 h</b>—<small>chuva —</small></span><span><b>+120 h</b>—<small>chuva —</small></span><span><b>+168 h</b>—<small>chuva —</small></span>
-        </div>
-        <small class="rp-weather-note" id="rp-weather-note">A avaliação é de pesquisa: o score não é probabilidade calibrada nem alerta oficial.</small>
-        <a class="rp-status-link" href="pesquisa_status.html">Ver avaliação meteorológica completa&nbsp;→</a>
-      </div>
-    </section>
     <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h, 4h e cascata)</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
@@ -345,6 +308,43 @@
         <div class="overview-empty" id="overview-week-empty">Carregando histórico semanal…</div>
       </div>
       <p class="sr-only" id="overview-week-accessible">Carregando histórico do nível do rio nos últimos sete dias.</p>
+    </section>
+    <section class="research-panel overview-research-panel" aria-labelledby="research-panel-title">
+      <div class="rp-head">
+        <div><div class="rp-kicker">Pesquisa PREVINE · base validada</div><h2 id="research-panel-title">Monitoramento científico</h2></div>
+        <span class="rp-badge">SEM ALERTA AUTOMÁTICO</span>
+      </div>
+      <p class="rp-copy">Esta área reúne o que já foi conferido para Santa Tereza. Ela informa observações e progresso da pesquisa; não substitui SGB, ANA, SACE ou a Defesa Civil. Dados atrasados ou incompletos devem aparecer como <strong>desconhecido</strong>, nunca como “não vai inundar”.</p>
+      <div class="rp-grid" aria-label="Resumo da pesquisa">
+        <div class="rp-stat"><b>86472600</b><span>estação Santa Tereza</span></div>
+        <div class="rp-stat"><b>1.500 cm</b><span>cota oficial de inundação</span></div>
+        <div class="rp-stat"><b>5</b><span>eventos validados</span></div>
+        <div class="rp-stat"><b>5</b><span>horizontes: 24/48/72/120/168 h</span></div>
+      </div>
+      <div class="rp-meta"><strong>Dados:</strong> série ANA rebaixada e auditada, com âncoras SGB. <strong>Chuva:</strong> backfill GEFS/NODD concluído (2.634 rodadas) e IFS prospectivo, sempre com emissão e disponibilidade registradas. <strong>Estado:</strong> a RNA experimental foi ajustada com os cinco eventos em modo sombra; promoção, alerta e resposta binária atual permanecem bloqueados quando a combinação estiver atrasada.</div>
+      <div class="rp-quality" aria-label="Qualidade e disponibilidade das fontes">
+        <div class="rp-quality-item"><b>Observação do rio</b><span>ANA/SGB · série auditada</span><em>monitorada</em></div>
+        <div class="rp-quality-item"><b>Chuva antecedente</b><span>24 · 72 · 168 · 336 h</span><em>integrada no piloto</em></div>
+        <div class="rp-quality-item"><b>Chuva prevista</b><span>GEFS histórico · IFS prospectivo</span><em>GEFS concluído</em></div>
+        <div class="rp-quality-item"><b>Solo</b><span id="rp-soil-status">carregando umidade modelada...</span><em id="rp-soil-badge">IFS/ECMWF</em></div>
+      </div>
+      <div class="rp-next rp-weather-live" aria-live="polite">
+        <div class="rp-weather-title"><strong>Robô meteorológico · rodada atual</strong><span class="rp-badge">EXPERIMENTAL</span></div>
+        <span class="rp-weather-meta" id="rp-weather-meta">Carregando emissão e disponibilidade do IFS...</span>
+        <span class="rp-weather-now" id="rp-weather-now">Comparando leitura ao vivo com a base da rodada...</span>
+        <div class="rp-weather-answer" id="rp-weather-answer">Carregando avaliação de 24 h...</div>
+        <div class="rp-weather-probability" id="rp-weather-probability" role="status">
+          <strong>Chance de transbordamento</strong>
+          <span id="rp-weather-probability-main">Verificando se há calibrador compatível...</span>
+          <small id="rp-weather-probability-note">A chance numérica só aparece quando a previsão e o calibrador usam a mesma fonte e as mesmas variáveis.</small>
+        </div>
+        <small class="rp-weather-scale">O número abaixo do horizonte é score de triagem, de 0 a 100; não é porcentagem de chance.</small>
+        <div class="rp-weather-horizons" id="rp-weather-horizons" aria-label="Chance experimental e score por horizonte">
+          <span><b>+24 h</b>—<small>chuva —</small></span><span><b>+48 h</b>—<small>chuva —</small></span><span><b>+72 h</b>—<small>chuva —</small></span><span><b>+120 h</b>—<small>chuva —</small></span><span><b>+168 h</b>—<small>chuva —</small></span>
+        </div>
+        <small class="rp-weather-note" id="rp-weather-note">A avaliação é de pesquisa: o score não é probabilidade calibrada nem alerta oficial.</small>
+        <a class="rp-status-link" href="pesquisa_status.html">Ver avaliação meteorológica completa&nbsp;→</a>
+      </div>
     </section>
     <div class="overview-insights panorama-only">
       <article class="overview-insight">
