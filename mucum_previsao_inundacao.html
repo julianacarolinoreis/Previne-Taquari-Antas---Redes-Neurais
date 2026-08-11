@@ -156,27 +156,6 @@
 <main>
   <div id="map"></div>
   <aside>
-    <section class="research-panel" aria-labelledby="research-panel-title">
-      <div class="rp-head">
-        <div><div class="rp-kicker">Pesquisa PREVINE · base validada</div><h2 id="research-panel-title">Monitoramento científico</h2></div>
-        <span class="rp-badge">SEM ALERTA AUTOMÁTICO</span>
-      </div>
-      <p class="rp-copy">Esta área reúne o que já foi conferido para Santa Tereza. Ela informa observações e progresso da pesquisa; não substitui SGB, ANA, SACE ou a Defesa Civil. Dados atrasados ou incompletos devem aparecer como <strong>desconhecido</strong>, nunca como “não vai inundar”.</p>
-      <div class="rp-grid" aria-label="Resumo da pesquisa">
-        <div class="rp-stat"><b>86472600</b><span>estação Santa Tereza</span></div>
-        <div class="rp-stat"><b>1.500 cm</b><span>cota oficial de inundação</span></div>
-        <div class="rp-stat"><b>5</b><span>eventos validados</span></div>
-        <div class="rp-stat"><b>5</b><span>horizontes: 24/48/72/120/168 h</span></div>
-      </div>
-      <div class="rp-meta"><strong>Dados:</strong> série ANA rebaixada e auditada, com âncoras SGB. <strong>Chuva:</strong> backfill GEFS/NODD concluído (2.634 rodadas) e IFS prospectivo, sempre com emissão e disponibilidade registradas. <strong>Estado:</strong> a RNA experimental foi ajustada com os cinco eventos em modo sombra; promoção, alerta e resposta binária atual permanecem bloqueados quando a combinação estiver atrasada.</div>
-      <div class="rp-quality" aria-label="Qualidade e disponibilidade das fontes">
-        <div class="rp-quality-item"><b>Observação do rio</b><span>ANA/SGB · série auditada</span><em>monitorada</em></div>
-        <div class="rp-quality-item"><b>Chuva antecedente</b><span>24 · 72 · 168 · 336 h</span><em>integrada no piloto</em></div>
-        <div class="rp-quality-item"><b>Chuva prevista</b><span>GEFS histórico · IFS prospectivo</span><em>GEFS concluído</em></div>
-        <div class="rp-quality-item"><b>Solo</b><span>umidade/saturação</span><em>a baixar</em></div>
-      </div>
-      <div class="rp-next"><strong>Próximo passo:</strong> continuar o modo sombra, incorporar umidade do solo e novas cheias, e calibrar a resposta 0/1 por evento. Até existir decisão recente e previsão causal válida, o estado correto é <strong>desconhecido/atrasado</strong>, não “não vai inundar”.<br><a class="rp-status-link" href="pesquisa_status.html">Abrir painel técnico completo&nbsp;→</a></div>
-    </section>
     <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h e 4h)</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
@@ -313,6 +292,32 @@
       </div>
       <p class="sr-only" id="overview-week-accessible">Carregando histórico do nível do rio nos últimos sete dias.</p>
     </section>
+    <section class="research-panel overview-research-panel panorama-only" aria-labelledby="research-panel-title">
+      <div class="rp-head">
+        <div><div class="rp-kicker">Pesquisa PREVINE · Muçum</div><h2 id="research-panel-title">Previsão meteorológica e avaliação</h2></div>
+        <span class="rp-badge">SEM ALERTA AUTOMÁTICO</span>
+      </div>
+      <p class="rp-copy">Este painel fica abaixo do histórico de sete dias para separar o monitoramento do rio da previsão meteorológica. O robô ao vivo de +2 h/+4 h continua sendo exibido separadamente; a chuva de 24–168 h ainda não gera uma probabilidade calibrada de inundação.</p>
+      <div class="rp-grid" aria-label="Resumo da previsão de Muçum">
+        <div class="rp-stat"><b>86510000</b><span>estação Muçum</span></div>
+        <div class="rp-stat"><b>1.800 cm</b><span>cota oficial de inundação</span></div>
+        <div class="rp-stat"><b>24–168 h</b><span>horizontes de chuva IFS</span></div>
+        <div class="rp-stat"><b>n/d</b><span>risco de inundação longo</span></div>
+      </div>
+      <div class="rp-meta"><strong>Observação:</strong> robô ao vivo de nível e +2 h/+4 h. <strong>Chuva:</strong> previsão prospectiva ECMWF IFS no ponto da estação. <strong>Solo:</strong> umidade modelada, não medição local de saturação. <strong>Resposta:</strong> sem modelo Muçum 24–168 h validado, o estado é <strong>indisponível</strong>, nunca “não vai inundar”.</div>
+      <div class="rp-quality" aria-label="Qualidade e disponibilidade das fontes">
+        <div class="rp-quality-item"><b>Observação do rio</b><span>robô ANA 86510000</span><em>monitorada</em></div>
+        <div class="rp-quality-item"><b>Chuva prevista</b><span>ECMWF IFS prospectivo</span><em>atualização horária</em></div>
+        <div class="rp-quality-item"><b>Umidade do solo</b><span>proxy modelado 0–7 cm</span><em>sem medição local</em></div>
+        <div class="rp-quality-item"><b>Risco 24–168 h</b><span id="rp-risk-state">modelo específico ainda não calibrado</span><em>indisponível</em></div>
+      </div>
+      <div class="rp-next">
+        <strong id="overview-research-risk-label">Carregando previsão meteorológica…</strong>
+        <p id="overview-research-risk-detail" class="rp-copy" style="margin:6px 0 0">O feed meteorológico será carregado aqui.</p>
+        <div id="rp-risk-grid" class="rp-risk-grid" aria-live="polite"></div>
+        <a class="rp-status-link" href="pesquisa_status.html">Abrir painel técnico completo&nbsp;→</a>
+      </div>
+    </section>
     <div class="overview-insights panorama-only">
       <article class="overview-insight">
         <h3>Velocidade do rio</h3>
@@ -328,13 +333,6 @@
         <h3>Robô especializado · Muçum</h3>
         <strong id="overview-robot-label">Robô ao vivo ativo</strong>
         <p id="overview-robot-detail">A estação Muçum é atualizada automaticamente a cada 5 minutos e publica nível observado e previsão experimental de +2 h/+4 h. A chuva prevista de 24 a 168 h aparece no cartão ao lado; ainda não é probabilidade de inundação.</p>
-      </article>
-      <article class="overview-insight">
-        <h3>Chuva prevista · 24 a 168 h</h3>
-        <strong id="overview-research-risk-label">Carregando previsão meteorológica…</strong>
-        <p id="overview-research-risk-detail">O cartão separa chuva prevista, umidade modelada e risco de inundação. Sem modelo Muçum calibrado, o risco aparece como indisponível.</p>
-        <div id="rp-risk-grid" class="rp-risk-grid" aria-live="polite"></div>
-        <p id="rp-risk-state" class="rp-risk-state">Aguardando o feed meteorológico.</p>
       </article>
     </div>
     <p class="overview-note">Os cartões de +8 h e +12 h aparecem automaticamente quando esses horizontes forem publicados no arquivo ao vivo. “Confiança” não é exibida como probabilidade sem um modelo probabilístico calibrado. A camada do mapa é um proxy de extravasamento relativo ao HAND 0 e não substitui alerta oficial.</p>
