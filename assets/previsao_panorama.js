@@ -2,7 +2,7 @@
   'use strict';
 
   const SVG_NS='http://www.w3.org/2000/svg';
-  const state={config:null,history:null,live:null,historyError:null,historyTimer:null,resizeObserver:null,resizeTimer:null};
+  const state={config:null,history:null,live:null,researchRisk:null,historyError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null};
   const nf0=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
   const nf1=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -464,6 +464,16 @@
     if(floodDetail) floodDetail.textContent=flood.detail;
   }
 
+  async function loadResearchRisk(){
+    if(!state.config||!state.config.researchRiskUrl) return;
+    try{
+      state.researchRisk=await fetchJson(state.config.researchRiskUrl);
+    }catch(e){
+      state.researchRisk=null;
+    }
+    render();
+  }
+
   function renderRobotStatus(){
     const label=document.getElementById('overview-robot-label');
     const detail=document.getElementById('overview-robot-detail');
@@ -477,6 +487,24 @@
     const when=telemetryWhen?` Última leitura: ${fmtWhen(telemetryWhen)}.`:'';
     label.textContent='Robô ao vivo ativo';
     detail.textContent=`Atualização automática a cada 5 minutos.${when} O robô atual publica nível observado e previsão experimental de +2 h/+4 h. A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação específica para Muçum e serão conectados separadamente, sem sobrescrever este robô.`;
+  }
+
+  function renderResearchRisk(){
+    const label=document.getElementById('overview-research-risk-label');
+    const detail=document.getElementById('overview-research-risk-detail');
+    if(!label||!detail) return;
+    const r=state.researchRisk;
+    if(!r){
+      label.textContent='Análise de 24 h indisponível';
+      detail.textContent='O feed experimental ainda não carregou. Ausência de análise não significa “não vai inundar”.';
+      return;
+    }
+    const score=number(r.score_balanced_research_only);
+    const scoreText=score===null?'indisponível':nf1.format(score*100)+'%';
+    const rain=number(r.rain_basin_mean_24h_mm);
+    const generated=r.generated_at_utc?` Atualizado em ${fmtWhen(r.generated_at_utc)}.`:'';
+    label.textContent=r.decision_label||'Resultado experimental disponível';
+    detail.textContent=`Score experimental: ${scoreText}. Chuva média prevista na bacia: ${rain===null?'indisponível':nf1.format(rain)+' mm'} em 24 h.${generated} Não é probabilidade calibrada nem alerta oficial.`;
   }
 
   function render(){
@@ -504,6 +532,7 @@
     renderWeekCoverage(weekPoints);
     renderMetrics(current,items,trend,flood,state.config.cotaInundCm);
     renderRobotStatus();
+    renderResearchRisk();
 
     const status=document.getElementById('overview-source-status');
     if(status){
@@ -557,6 +586,9 @@
     loadHistory();
     clearInterval(state.historyTimer);
     state.historyTimer=setInterval(loadHistory,5*60*1000);
+    loadResearchRisk();
+    clearInterval(state.researchTimer);
+    if(state.config.researchRiskUrl) state.researchTimer=setInterval(loadResearchRisk,5*60*1000);
     if(state.resizeObserver) state.resizeObserver.disconnect();
     if('ResizeObserver' in window){
       state.resizeObserver=new ResizeObserver(scheduleResizeRender);
