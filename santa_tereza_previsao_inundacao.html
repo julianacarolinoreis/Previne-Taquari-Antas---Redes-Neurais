@@ -1164,11 +1164,11 @@ async function loadResearchWeatherPanel(){
     }
     const label=(data.answer_24h&&data.answer_24h.label)||'Resultado de 24 h indisponível';
     answer.textContent='DECISÃO 24 H: '+label+' · chuva média prevista '+fmtNumber(h24.basin_mean_mm,1)+' mm';
-    const probabilityReady=Boolean(probability&&probability.calibrated_for_current_source===true&&probability.status==='CURRENT_CALIBRATED');
+    const probabilityReady=Boolean(probability&&probability.calibrated_for_current_source===true&&['CURRENT_CALIBRATED','CURRENT_GEFS_EXPERIMENTAL'].includes(probability.status));
     if(probabilityReady){
       const p24=probability.horizons&&probability.horizons['24'];
       probabilityMain.textContent='Até 24 h: '+(p24&&Number.isFinite(Number(p24.probability))?fmtNumber(Number(p24.probability)*100,1)+'%':'indisponível');
-      probabilityNote.textContent='Probabilidade experimental calibrada para a rodada atual; não é alerta oficial.';
+      probabilityNote.textContent='Chance experimental GEFS/NOAA · rodada '+fmtUtc(probability.forecast_run_time_utc)+' · disponível '+fmtUtc(probability.forecast_available_at_utc)+'. Não é alerta oficial; a chuva IFS do cartão é outra fonte.';
     }else{
       probabilityMain.textContent='Até 24 h: não calculada para esta rodada';
       probabilityNote.textContent=(probability&&probability.message)||'A rodada IFS atual ainda não tem calibrador compatível. Isso é diferente de dizer “0%” ou “não vai inundar”.';
@@ -1188,7 +1188,7 @@ async function loadResearchWeatherPanel(){
       item.append(title,score,rain);
       horizons.appendChild(item);
     });
-    note.textContent='Fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'. A chance fica “não calculada” quando o calibrador não é compatível; o score permanece apenas diagnóstico. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
+    note.textContent=probabilityReady?'Score da chuva IFS permanece diagnóstico; chance experimental vem da rodada GEFS/NOAA compatível. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.':'Fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'. A chance fica “não calculada” quando o calibrador não é compatível; o score permanece apenas diagnóstico. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
   }catch(error){
     meta.textContent='Feed meteorológico indisponível no momento.';
     now.textContent='Não foi possível comparar a leitura ao vivo com a base da rodada.';
