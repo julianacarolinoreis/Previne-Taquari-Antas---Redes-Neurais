@@ -327,7 +327,14 @@
       <article class="overview-insight">
         <h3>Robô especializado · Muçum</h3>
         <strong id="overview-robot-label">Robô ao vivo ativo</strong>
-        <p id="overview-robot-detail">A estação Muçum é atualizada automaticamente a cada 5 minutos e já publica nível observado e previsão experimental de +2 h/+4 h. A chuva acumulada, o modelo europeu/GEFS e a nova RNA ainda estão em validação específica para Muçum; quando liberados, entrarão aqui sem substituir o robô ao vivo.</p>
+        <p id="overview-robot-detail">A estação Muçum é atualizada automaticamente a cada 5 minutos e publica nível observado e previsão experimental de +2 h/+4 h. A chuva prevista de 24 a 168 h aparece no cartão ao lado; ainda não é probabilidade de inundação.</p>
+      </article>
+      <article class="overview-insight">
+        <h3>Chuva prevista · 24 a 168 h</h3>
+        <strong id="overview-research-risk-label">Carregando previsão meteorológica…</strong>
+        <p id="overview-research-risk-detail">O cartão separa chuva prevista, umidade modelada e risco de inundação. Sem modelo Muçum calibrado, o risco aparece como indisponível.</p>
+        <div id="rp-risk-grid" class="rp-risk-grid" aria-live="polite"></div>
+        <p id="rp-risk-state" class="rp-risk-state">Aguardando o feed meteorológico.</p>
       </article>
     </div>
     <p class="overview-note">Os cartões de +8 h e +12 h aparecem automaticamente quando esses horizontes forem publicados no arquivo ao vivo. “Confiança” não é exibida como probabilidade sem um modelo probabilístico calibrado. A camada do mapa é um proxy de extravasamento relativo ao HAND 0 e não substitui alerta oficial.</p>
@@ -957,6 +964,8 @@ async function init(){
     historyRawUrl:LIVE_RAW_URL.replace('previsao_ao_vivo','historico_previsoes_ao_vivo'),
     historyFile:'historico_previsoes_ao_vivo_mucum.json',
     cotaInundCm:COTA_INUND,
+    researchRiskUrl:'assets/data/research_weather_mucum_latest.json',
+    stationLabel:'Muçum',
     onLayout:()=>{if(map)setTimeout(()=>map.invalidateSize(),50);}
   });
   document.getElementById('time').oninput=e=>{tIdx=+e.target.value; renderFrame();};
