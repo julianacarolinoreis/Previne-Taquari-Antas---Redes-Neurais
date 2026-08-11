@@ -464,6 +464,21 @@
     if(floodDetail) floodDetail.textContent=flood.detail;
   }
 
+  function renderRobotStatus(){
+    const label=document.getElementById('overview-robot-label');
+    const detail=document.getElementById('overview-robot-detail');
+    if(!label||!detail) return;
+    if(!state.live){
+      label.textContent='Robô ao vivo: aguardando dados';
+      detail.textContent='O arquivo do robô de Muçum ainda não foi carregado. A página não substitui a leitura oficial nem transforma ausência de dados em nível normal.';
+      return;
+    }
+    const telemetryWhen=state.live.telemetria_ultima_em||state.live.nivel_rio_agora_em;
+    const when=telemetryWhen?` Última leitura: ${fmtWhen(telemetryWhen)}.`:'';
+    label.textContent='Robô ao vivo ativo';
+    detail.textContent=`Atualização automática a cada 5 minutos.${when} O robô atual publica nível observado e previsão experimental de +2 h/+4 h. A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação específica para Muçum e serão conectados separadamente, sem sobrescrever este robô.`;
+  }
+
   function render(){
     if(!state.config) return;
     const allPoints=observedPoints(state.history,state.live);
@@ -488,6 +503,7 @@
     renderLegend(items,previous24.length>0||previousWeek.length>0);
     renderWeekCoverage(weekPoints);
     renderMetrics(current,items,trend,flood,state.config.cotaInundCm);
+    renderRobotStatus();
 
     const status=document.getElementById('overview-source-status');
     if(status){
