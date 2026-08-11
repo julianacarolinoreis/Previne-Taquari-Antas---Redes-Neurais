@@ -3,8 +3,11 @@
 r"""
 Gera o CONTORNO VETORIAL da mancha de inundação (polígono real, não raster
 pintado pixel a pixel) a partir do HAND do mosaico de 2 m — um por nível de
-rio, faixa 0 a 15 m, passo 0,1 m (151 níveis — mesma precisão decimétrica
-nativa do raster HAND; ver "PASSO 0,1 M" abaixo pro motivo de não ser 0,5 m).
+rio, faixa 0 a 25 m, passo 0,1 m (251 níveis — mesma precisão decimétrica
+nativa do raster HAND e teto do PNG HAND; ver "PASSO 0,1 M" abaixo pro
+motivo de não ser 0,5 m). Os picos de Muçum (HAND ~17–21 m acima do nível
+normal) ficavam todos pinados em 15 m — mancha idêntica; por isso o teto
+subiu de 15 para 25 m.
 
 POR QUE (decisão da pessoa, 2026-07-29): o raster/canvas pintado pixel a
 pixel (L.imageOverlay) mostrava borda "em escada" ao dar zoom próximo — não
@@ -57,9 +60,8 @@ quando a diferença real existia). Pior: a faixa de incerteza (que soma só
 0,3-1,0 m ao previsto) também ficava distorcida pelo arredondamento —
 podia aparecer bem mais larga ou mais estreita que a incerteza real.
 Corrigido gerando na precisão decimétrica nativa do HAND (0,1 m, igual o
-raster já era) — 151 níveis em vez de 31. Custo: arquivo maior (Muçum
-~1MB->~4,9MB, Santa Tereza ~1,6MB->~7,7MB), ainda buscado via fetch()
-assíncrono (não bloqueia o mapa nem os números aparecendo).
+raster já era). Faixa atual: 0–25 m (251 níveis). Custo: arquivo maior
+(Muçum ~8,5 MB), ainda buscado via fetch() assíncrono.
 
 Uso: python codigo_python/02_mdt_hand_mancha/gerar_contornos_vetoriais.py [mucum|santa_tereza]
 """
@@ -79,7 +81,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gerar_mancha_mosaico import CIDADES, le, talvegue_anadem, talvegue_mosaico  # noqa: E402
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-NIVEIS_M = [round(x, 1) for x in np.arange(0, 15.1, 0.1)]
+# Alinhado a NIVEL_MAX_M=25 do PNG HAND (gerar_mancha_mosaico.py).
+# Teto antigo de 15 m fazia cheias grandes (maio/2024, jul/2020) parecerem iguais.
+NIVEIS_M = [round(x, 1) for x in np.arange(0, 25.1, 0.1)]
 TOL_PX = 2.0
 SIGMA = 2.0
 PRECISAO_DECIMAIS = 6

@@ -275,9 +275,17 @@ function elevationAt(lat,lon){
   if(elevationArr[i+3]===0) return null;
   return (elevationArr[i]*256+elevationArr[i+1])*elevationMeta.scale_m;
 }
+function maxNivelContorno(){
+  if(!contornos) return 0;
+  if(contornos._maxNivel==null){
+    contornos._maxNivel=Math.max(0,...contornos.features.map(f=>f.properties.nivel_m));
+  }
+  return contornos._maxNivel;
+}
 function achaFeature(mLvl){
   if(!contornos||mLvl==null||!Number.isFinite(mLvl)||mLvl<0) return null;
-  const alvo=Math.round(Math.max(0,Math.min(15,mLvl))*10)/10;
+  const teto=maxNivelContorno();
+  const alvo=Math.round(Math.max(0,Math.min(teto,mLvl))*10)/10;
   return contornos.features.find(f=>Math.abs(f.properties.nivel_m-alvo)<0.01) || null;
 }
 function setLayer(layer, mLvl){
