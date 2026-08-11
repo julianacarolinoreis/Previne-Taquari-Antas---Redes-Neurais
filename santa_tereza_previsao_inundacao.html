@@ -1157,7 +1157,7 @@ async function loadResearchWeatherPanel(){
       const forecastItem=(forecast.horizons||[]).find((entry)=>Number(entry.horizon_hours)===hours)||{};
       title.textContent='+'+hours+' h';
       const raw=Number(scores[String(hours)]);
-      if(Number.isFinite(raw))score.textContent=fmtNumber(raw*100,1)+'%';
+      if(Number.isFinite(raw))score.textContent=fmtNumber(raw*100,1)+' pts';
       rain.textContent='chuva '+fmtNumber(forecastItem.basin_mean_mm,1)+' mm';
       item.append(title,score,rain);
       horizons.appendChild(item);
