@@ -63,7 +63,21 @@
   .shadow-stat b{display:block;font-size:17px;color:#5b3d8f;line-height:1.15;margin-bottom:2px}
   .shadow-stat span{color:var(--muted)}
   .shadow a{color:#5b3d8f;font-weight:750;font-size:11px}
+  .weather-panel{background:linear-gradient(135deg,#f4fbff,#fff);border:1px solid #b7d5ef;border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);margin-top:16px}
+  .weather-panel h2{font-size:17px;color:#1e5fbf;margin:0 0 4px}
+  .weather-panel p{font-size:12px;color:var(--muted);margin:0 0 10px}
+  .weather-answer{background:#eaf7ef;border:1px solid #b7dec4;border-radius:12px;padding:12px;margin:10px 0;font-size:14px;font-weight:800;color:#176b46}
+  .weather-answer small{display:block;font-weight:500;color:var(--muted);font-size:10.5px;margin-top:3px}
+  .weather-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:10px 0}
+  .weather-stat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px;min-height:72px}
+  .weather-stat b{display:block;font-size:17px;line-height:1.15;margin-bottom:2px}
+  .weather-stat span{font-size:10px;color:var(--muted)}
+  .weather-table{margin-top:10px}
+  .weather-table td,.weather-table th{font-size:10.5px;padding:7px 8px}
+  .weather-foot{font-size:10px!important;margin-top:8px!important}
   @media(max-width:650px){.shadow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:850px){.weather-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media(max-width:520px){.weather-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
   nav a{color:var(--brand);font-size:12px;font-weight:750;text-decoration:none;border:1px solid #b9d9ca;background:#f5fbf7;border-radius:999px;padding:8px 12px}
   footer{color:var(--muted);font-size:10px;margin-top:24px}
@@ -102,6 +116,15 @@
       <tr><td>168 h</td><td>4,5%</td><td><span class="pill wait">0 · pesquisa</span></td></tr>
     </tbody></table>
     <p style="margin:8px 0 0;font-size:10.5px;color:var(--muted)"><strong>Importante:</strong> estes valores são ajuste completo sobre os próprios eventos e não são uma previsão atual calibrada.</p>
+  </section>
+
+  <section class="weather-panel" aria-labelledby="weather-title">
+    <h2 id="weather-title">Robô meteorológico · rodada atual</h2>
+    <p id="weather-meta">Carregando IFS, ANA, chuva antecedente e score experimental…</p>
+    <div class="weather-answer" id="weather-answer">Carregando resposta de 24 horas…<small>Não transformar ausência de dados em “não vai inundar”.</small></div>
+    <div class="weather-grid" id="weather-grid"></div>
+    <table class="weather-table"><thead><tr><th>Horizonte</th><th>Chuva no ponto</th><th>Média da bacia</th><th>Máxima</th><th>Score RNA</th><th>Triagem</th></tr></thead><tbody id="weather-horizons"><tr><td colspan="6">Carregando rodada…</td></tr></tbody></table>
+    <p class="weather-foot" id="weather-foot">Fonte, emissão, disponibilidade e hashes serão exibidos quando o feed carregar.</p>
   </section>
 
   <section class="section" aria-labelledby="scenario-title">
@@ -187,5 +210,25 @@
   <nav aria-label="Navegação da pesquisa"><a href="index.html">Página inicial</a><a href="santa_tereza_previsao_inundacao.html">Monitoramento de Santa Tereza</a></nav>
   <footer>PREVINE · pesquisa auditável · dados atrasados ou incompletos são exibidos como estado de qualidade, não como ausência de risco.</footer>
 </div>
+<script>
+(function(){
+  const feed='assets/data/research_weather_santa_tereza_latest.json';
+  const br=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const el=id=>document.getElementById(id);
+  const fmtTime=v=>{if(!v)return '—';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';};
+  const mm=v=>v==null?'—':br.format(Number(v))+' mm';
+  const score=v=>v==null?'—':br.format(Number(v)*100)+'%';
+  function render(d){
+    const o=d.observation||{}, f=d.forecast||{}, r=d.rna||{}, a=d.answer_24h||{};
+    el('weather-meta').textContent=`Status: ${d.status||'indisponível'} · Rodada IFS: ${fmtTime(f.run_time_utc)} · disponível: ${fmtTime(f.available_at_utc)} · decisão: ${fmtTime(d.generated_at_utc)}.`;
+    el('weather-answer').innerHTML=`24 h: ${a.label||'resultado indisponível'}<small>Nível atual ${o.level_cm==null?'—':br.format(o.level_cm)+' cm'} · variação 24 h ${o.change_24h_cm==null?'—':(o.change_24h_cm>0?'+':'')+br.format(o.change_24h_cm)+' cm'} · score experimental ${score(a.score)} · não é alerta oficial.</small>`;
+    el('weather-grid').innerHTML=[['Nível atual',o.level_cm==null?'—':br.format(o.level_cm)+' cm'],['Chuva observada 24 h',mm(o.rain_observed_24h_mm)],['Chuva observada 72 h',mm(o.rain_observed_72h_mm)],['Chuva IFS 24 h',mm((f.horizons||[]).find(x=>x.horizon_hours===24)?.basin_mean_mm)],['RNA 24 h',score(a.score)]].map(x=>`<div class="weather-stat"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
+    const scores=r.scores||{};
+    el('weather-horizons').innerHTML=(f.horizons||[]).map(h=>{const s=scores[String(h.horizon_hours)];const tri=h.screening_threshold_mm==null?'sem limiar de triagem':(h.basin_max_mm<h.screening_threshold_mm?'abaixo do limiar':'acima do limiar');return `<tr><td><strong>+${h.horizon_hours} h</strong></td><td>${mm(h.target_santa_tereza_mm)}</td><td>${mm(h.basin_mean_mm)}</td><td>${mm(h.basin_max_mm)}</td><td>${score(s)} <span class="pill wait">experimental</span></td><td>${tri}</td></tr>`;}).join('')||'<tr><td colspan="6">Rodada meteorológica indisponível.</td></tr>';
+    el('weather-foot').textContent=`Observação: ${o.quality||'qualidade não informada'} · fonte meteorológica: ${f.source||'—'} · ${f.grid_points||'—'} pontos únicos · ${f.complete_rows||'—'} linhas completas. RNA treinada em GEFS e aplicada ao IFS; calibração IFS ainda não concluída.`;
+  }
+  fetch(feed+'?cb='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(render).catch(()=>{el('weather-meta').textContent='Robô meteorológico indisponível no momento.';el('weather-answer').innerHTML='UNKNOWN: sem dados meteorológicos atuais.<small>Isso não significa “não vai inundar”.</small>';});
+})();
+</script>
 </body>
 </html>
