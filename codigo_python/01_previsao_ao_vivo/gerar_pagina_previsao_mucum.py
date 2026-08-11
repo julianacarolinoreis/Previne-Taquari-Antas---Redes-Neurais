@@ -11,72 +11,42 @@ santa_tereza_previsao_inundacao.html, trocando apenas os dados:
   - rótulos/estação/nível normal -> Muçum (86510000, montante 86472600, 500 cm)
 A página e o JS ficam idênticos ao Santa Tereza — mesma aparência e interação.
 """
-import os, re, json
+import os, re, json, sys
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ST = os.path.join(RAIZ, "santa_tereza_previsao_inundacao.html")
 MANUAL = os.path.join(RAIZ, "mucum_inundacao.html")
-EVENTOS = os.path.join(RAIZ, "assets", "data", "mucum_eventos_analise.json")
-DADOS = os.path.join(RAIZ, "assets", "data", "mucum_data.json")
 SAIDA = os.path.join(RAIZ, "mucum_previsao_inundacao.html")
+sys.path.insert(0, os.path.dirname(__file__))
+from mucum_eventos_payload import COTA_INUND_CM, eventos_payload_json  # noqa: E402
 
-# eventos em destaque (maiores picos; ev27 = maio/2024, a catástrofe)
-EVENTOS_DESTAQUE = ["27", "24", "22", "28", "31"]
 ESTACAO = {"lat": -29.1672, "lon": -51.8686, "code": "86510000"}
-COTA_INUND_CM = 1800   # cota de inundação oficial de Muçum (86510000) — SGB/CPRM, boletim SAH Rio Taquari
 
 
 def hand_payload():
-    """Payload ANADEM de Muçum + marcador da estação 86510000."""
+    """HAND/mosaico de Muçum + schema da previsão (station/ponte/fonte)."""
     mh = open(MANUAL, encoding="utf-8").read()
     m = re.search(r'<script id="hand-data" type="application/json">(.*?)</script>', mh, re.DOTALL)
     p = json.loads(m.group(1))
-    out = {"W": p["W"], "S": p["S"], "E": p["E"], "N": p["N"],
-           "rows": p["rows"], "cols": p["cols"],
-           "station": ESTACAO, "ponte": None,
-           "hand_png_b64": p["hand_png_b64"]}
-    return json.dumps(out, ensure_ascii=False)
+    out = {
+        "cols": p["cols"],
+        "rows": p["rows"],
+        "S": p["S"],
+        "W": p["W"],
+        "N": p["N"],
+        "E": p["E"],
+        "station": ESTACAO,
+        "ponte": None,
+        "bankfull_cm": p.get("bankfull_cm", 500),
+        "fonte": p.get("fonte")
+        or "Mosaico 2 m: drone + ANADEM — ver codigo_python/02_mdt_hand_mancha/gerar_mancha_mosaico.py",
+        "hand_png_b64": p["hand_png_b64"],
+    }
+    return json.dumps(out, ensure_ascii=False, separators=(",", ":"))
 
 
 def eventos_payload():
-    ev = json.load(open(EVENTOS, encoding="utf-8"))
-    dd = json.load(open(DADOS, encoding="utf-8"))
-    pers_por_modelo = {m["modelo"]: m.get("PERS_teste") for m in dd["models"]}
-    combo_por_modelo = {m["modelo"]: m.get("combo_id", m["modelo"]) for m in dd["models"]}
-    picos = {str(e["evento"]): e["pico_cm"] for e in ev["eventos"]}
-    out = {}
-    # ordena horizontes 2h,4h,8h,12h
-    def hnum(hk): return int(re.match(r"(\d+)h", hk).group(1))
-    for evid in EVENTOS_DESTAQUE:
-        for hk in sorted(ev["campeoes"].keys(), key=hnum):
-            H = hnum(hk)
-            modelo = hk.split("_", 1)[1]
-            evs = ev["campeoes"][hk]
-            if evid not in evs:
-                continue
-            serie = evs[evid]["serie"]      # [[time, obs, rna], ...] horário
-            # reescreve no schema do ST com deslocamento do horizonte
-            st_series = []
-            for i in range(len(serie) - H):
-                t = serie[i][0]
-                agora = serie[i][1]              # nível atual em t
-                obs = serie[i + H][1]            # observado em t+H
-                prev = serie[i + H][2]           # RNA prevê t+H
-                st_series.append([t, agora, obs, prev])
-            if len(st_series) < 2:
-                continue
-            key = f"ev{evid}_{H}h"
-            out[key] = {
-                "label": f"Cheia {evs[evid].get('pico_data','')} · {H}h",
-                "evento": int(evid),
-                "combo": combo_por_modelo.get(modelo, modelo),
-                "horizonte": f"{H}h",
-                "pers": round(pers_por_modelo.get(modelo) or 0, 2),
-                "n": len(st_series),
-                "pico_obs_cm": int(picos.get(evid, max(s[2] for s in st_series))),
-                "series": st_series,
-            }
-    return json.dumps(out, ensure_ascii=False)
+    return eventos_payload_json()
 
 
 def main():
@@ -138,6 +108,11 @@ def main():
 
     # 4) qualquer "Santa Tereza" remanescente em texto vira Muçum
     html = html.replace("em Santa Tereza", "em Muçum")
+
+    # fallback de evento ao vivo: ST usa mai24_2h; Muçum usa a cheia recorde tipada
+    html = html.replace("liveFromEvent('mai24_2h','ALT')", "liveFromEvent('ev27_2h','ALT')")
+    html = html.replace('liveFromEvent("mai24_2h","ALT")', 'liveFromEvent("ev27_2h","ALT")')
+    html = html.replace("mai24_2h", "ev27_2h")
 
     html = html.replace(
         "🔴 Ver previsão AO VIVO (teste interno · 2h, 4h e cascata)",
