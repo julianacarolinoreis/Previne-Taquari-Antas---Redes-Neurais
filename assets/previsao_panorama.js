@@ -3,6 +3,20 @@
 
   const SVG_NS='http://www.w3.org/2000/svg';
   const state={config:null,history:null,live:null,researchRisk:null,historyError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null};
+  // Fallback auditável quando o JSON do cartão ainda não foi publicado no Pages.
+  // É replay histórico, não previsão atual nem alerta oficial.
+  const RESEARCH_CARD_FALLBACK={
+    status:'research_only',
+    current_forecast_state:'unknown_or_stale',
+    horizons:[
+      {hours:24,recall_at_25_pct:75.0},
+      {hours:48,recall_at_25_pct:50.0},
+      {hours:72,recall_at_25_pct:75.0},
+      {hours:120,recall_at_25_pct:75.0},
+      {hours:168,recall_at_25_pct:80.0}
+    ],
+    official_alert:false
+  };
   const nf0=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
   const nf1=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -64,9 +78,10 @@
   async function loadResearchRisk(){
     if(!state.config||!state.config.researchRiskUrl) return;
     try{
-      state.researchRisk=await fetchJson(state.config.researchRiskUrl);
+      const fetched=await fetchJson(state.config.researchRiskUrl);
+      state.researchRisk=Array.isArray(fetched&&fetched.horizons)?fetched:RESEARCH_CARD_FALLBACK;
     }catch(e){
-      state.researchRisk=null;
+      state.researchRisk=RESEARCH_CARD_FALLBACK;
     }
     render();
   }
@@ -486,7 +501,7 @@
     const telemetryWhen=state.live.telemetria_ultima_em||state.live.nivel_rio_agora_em;
     const when=telemetryWhen?` Última leitura: ${fmtWhen(telemetryWhen)}.`:'';
     label.textContent='Robô ao vivo ativo';
-    detail.textContent=`Atualização automática a cada 5 minutos.${when} O robô atual publica nível observado e previsão experimental de +2 h/+4 h. A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação específica para Muçum e serão conectados separadamente, sem sobrescrever este robô.`;
+    detail.textContent=`Atualização automática a cada 5 minutos.${when} O robô atual publica nível observado e previsão experimental de +2 h/+4 h. A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação específica para Santa Tereza e serão conectados separadamente, sem sobrescrever este robô.`;
   }
 
   function renderResearchRisk(){
@@ -497,6 +512,13 @@
     if(!r){
       label.textContent='Análise de 24 h indisponível';
       detail.textContent='O feed experimental ainda não carregou. Ausência de análise não significa “não vai inundar”.';
+      return;
+    }
+    if(Array.isArray(r.horizons)){
+      const horizons=r.horizons.slice().sort((a,b)=>Number(a.hours)-Number(b.hours));
+      const status=r.current_forecast_state==='unknown_or_stale'?'Atual: desconhecido/atrasado.':'Atual: '+(r.current_forecast_state||'indisponível')+'.';
+      label.textContent='Replay histórico · 24 a 168 h';
+      detail.textContent=`${status} Detecção histórica: ${horizons.map(h=>'+'+h.hours+' h '+nf1.format(Number(h.recall_at_25_pct)||0)+'%').join(' · ')}. Não é probabilidade calibrada nem alerta oficial.`;
       return;
     }
     const score=number(r.score_balanced_research_only);

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "status": "research_only",
+  "portal_label": "Risco experimental — não é alerta oficial",
+  "generated_at_utc": "2026-08-11T17:02:02.413483+00:00",
+  "station_code": "86472600",
+  "station_name": "Santa Tereza",
+  "threshold_cm": 1500,
+  "current_forecast_state": "unknown_or_stale",
+  "current_forecast_message": "Este cartão é replay histórico. Sem emissão causal atual validada, o estado correto é desconhecido/atrasado.",
+  "official_alert": false,
+  "model": "logistic_benchmark",
+  "models_compared": ["logistic", "mlp"],
+  "validation": "leave-one-event-out com blocos-controle negativos e purge de 336 h",
+  "event_count": 5,
+  "cadence_hours": 6,
+  "probability_interpretation": "escala experimental entre 0 e 100%; não calibrada para alerta operacional",
+  "horizons": [
+    {"hours": 24, "recall_at_25_pct": 75.0, "false_control_rate_at_25_pct": 0.0},
+    {"hours": 48, "recall_at_25_pct": 50.0, "false_control_rate_at_25_pct": 0.0},
+    {"hours": 72, "recall_at_25_pct": 75.0, "false_control_rate_at_25_pct": 0.0},
+    {"hours": 120, "recall_at_25_pct": 75.0, "false_control_rate_at_25_pct": 0.0},
+    {"hours": 168, "recall_at_25_pct": 80.0, "false_control_rate_at_25_pct": 0.0}
+  ],
+  "sources": {
+    "observations": "ANA 86472600 redownload_20260808, validado com âncoras SGB",
+    "forecast_rain": "NOAA GEFS/NODD; média do ensemble no experimento",
+    "soil_moisture_observation_available": false,
+    "operational_probability_allowed": false,
+    "promotion_allowed": false,
+    "safe_for_public_alert": false,
+    "samples_sha256": "94b6ec314d833f27d2fb3ff64391378a75926dcd2d3f2c8d96e1d3baed21efdf",
+    "event_catalog_sha256": "8da831e2906a97b07d37aaf02e77472f140605a14055082561a98e59e47278ab"
+  }
+}
