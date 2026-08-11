@@ -514,6 +514,25 @@
       detail.textContent='O feed experimental ainda não carregou. Ausência de análise não significa “não vai inundar”.';
       return;
     }
+    if(r.rna&&r.rna.scores){
+      const scores=r.rna.scores;
+      const forecast=(r.forecast&&Array.isArray(r.forecast.horizons))?r.forecast.horizons:[];
+      const scoreText=h=>{
+        const value=number(scores[String(h)]);
+        return value===null?'—':nf1.format(value*100)+'/100';
+      };
+      const rainText=h=>{
+        const item=forecast.find(x=>Number(x.horizon_hours)===h);
+        const value=number(item&&item.basin_mean_mm);
+        return value===null?'—':nf1.format(value)+' mm';
+      };
+      const age=number(r.observation&&r.observation.age_minutes);
+      const freshness=age!==null&&age<=90?'dados recentes':'dados atrasados';
+      const answer=(r.answer_24h&&r.answer_24h.label)||'Triagem experimental disponível';
+      label.textContent=answer;
+      detail.textContent=`Score experimental atual (0–100): +24 h ${scoreText(24)} · +48 h ${scoreText(48)} · +72 h ${scoreText(72)} · +120 h ${scoreText(120)} · +168 h ${scoreText(168)}. Chuva média prevista: 24 h ${rainText(24)} · 72 h ${rainText(72)} · 168 h ${rainText(168)}. ${freshness}. Não é porcentagem calibrada nem alerta oficial.`;
+      return;
+    }
     if(Array.isArray(r.horizons)){
       const horizons=r.horizons.slice().sort((a,b)=>Number(a.hours)-Number(b.hours));
       const status=r.current_forecast_state==='unknown_or_stale'?'Atual: desconhecido/atrasado.':'Atual: '+(r.current_forecast_state||'indisponível')+'.';
