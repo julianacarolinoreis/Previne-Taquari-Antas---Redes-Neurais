@@ -502,7 +502,7 @@
     const when=telemetryWhen?` Última leitura: ${fmtWhen(telemetryWhen)}.`:'';
     label.textContent='Robô ao vivo ativo';
     const longForecast=state.researchRisk&&state.researchRisk.feed_type==='meteorological_forecast';
-    detail.textContent=`Atualização automática a cada 5 minutos.${when} O robô atual publica nível observado e previsão experimental de +2 h/+4 h. ${longForecast?'A previsão meteorológica de 24–168 h aparece no cartão abaixo; ela ainda não produz probabilidade de inundação.':'A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação de pesquisa; não são alerta oficial.'}`;
+    detail.textContent=`Atualização automática a cada 5 minutos.${when} O robô atual publica nível observado e previsão experimental de +2 h/+4 h. ${longForecast?'A previsão meteorológica e o risco experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação de pesquisa; não são alerta oficial.'}`;
   }
 
   function renderResearchRisk(){
@@ -518,17 +518,23 @@
     if(r.feed_type==='meteorological_forecast'){
       const horizons=(Array.isArray(r.horizons)?r.horizons:[]).slice().sort((a,b)=>Number(a.hours)-Number(b.hours));
       const rainText=horizons.length?horizons.map(h=>`+${h.hours} h: ${h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm'}`).join(' · '):'sem acumulados disponíveis';
-      label.textContent='Chuva prevista · 24–168 h';
-      detail.textContent=`${rainText}. GEFS e IFS são proxies espaciais; não são probabilidade de transbordamento.`;
+      const experimentalRisk=horizons.some(h=>h.flood_probability!==null&&h.flood_probability!==undefined);
+      label.textContent=experimentalRisk?'Chuva prevista e risco experimental · 24–168 h':'Chuva prevista · 24–168 h';
+      detail.textContent=experimentalRisk
+        ?`${rainText}. Estimativa experimental de transbordamento: escala de 0 a 100; não é probabilidade calibrada nem alerta oficial.`
+        :`${rainText}. GEFS e IFS são proxies espaciais; não são probabilidade de transbordamento.`;
       const grid=document.getElementById('rp-risk-grid');
       const stateText=document.getElementById('rp-risk-state');
-      if(stateText) stateText.textContent='Risco de inundação: indisponível para Muçum. O modelo longo ainda não foi calibrado; +2 h/+4 h continuam separados.';
+      if(stateText) stateText.textContent=experimentalRisk
+        ?'Risco experimental de inundação disponível para pesquisa. O alerta oficial continua bloqueado; +2 h/+4 h continuam separados.'
+        :'Risco de inundação: indisponível para Muçum. O modelo longo ainda não foi calibrado; +2 h/+4 h continuam separados.';
       if(grid) grid.innerHTML=horizons.map(h=>{
         const rain=h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm';
         const gefs=h.rain_gefs_proxy_mm===undefined?'GEFS n/d':'GEFS '+nf1.format(Number(h.rain_gefs_proxy_mm))+' mm';
         const ifs=h.rain_ifs_proxy_mm===undefined?'IFS '+rain:'IFS '+nf1.format(Number(h.rain_ifs_proxy_mm))+' mm';
         const soil=h.soil_moisture_model_mean_m3m3===null?'solo observado n/d':'solo proxy '+nf2.format(Number(h.soil_moisture_model_mean_m3m3));
-        return `<div class="rp-risk-cell"><b>+${h.hours} h</b><span>${gefs}</span><span>${ifs}</span><span>${soil}</span><span>inundação: n/d</span></div>`;
+        const p=h.flood_probability===null||h.flood_probability===undefined?'n/d':nf2.format(Number(h.flood_probability)*100)+'/100';
+        return `<div class="rp-risk-cell"><b>+${h.hours} h</b><span>${gefs}</span><span>${ifs}</span><span>${soil}</span><span>risco experimental: ${p}</span></div>`;
       }).join('');
       return;
     }

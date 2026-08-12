@@ -9,14 +9,14 @@
     "longitude": -51.8686
   },
   "official_flood_threshold_cm": 1800,
-  "generated_at_utc": "2026-08-12T14:02:38Z",
+  "generated_at_utc": "2026-08-12T14:24:00Z",
   "forecast_kind": "research_proxy_summary",
   "forecast_provider": "NOAA GEFS/NODD + ECMWF Open Data/IFS",
   "forecast_model": "GEFS ensemble_mean e IFS em células espaciais",
   "forecast_source_url": "https://registry.opendata.aws/noaa-gefs/",
   "availability_is_exact_historical_timestamp": true,
   "current_forecast_state": "available",
-  "current_forecast_message": "Chuva prevista disponível como proxy espacial. Isso ainda não é uma probabilidade de inundação.",
+  "current_forecast_message": "Chuva prevista e estimativa experimental disponíveis. A estimativa não é alerta oficial.",
   "observation": {
     "state": "unknown_or_stale",
     "level_cm": 314,
@@ -31,11 +31,15 @@
     "message": "Umidade do solo observada não está disponível; não representar como saturação local."
   },
   "risk_model": {
-    "status": "not_available_for_mucum_long_horizon",
-    "probabilities_available": false,
+    "status": "experimental_probability_research_only",
+    "probabilities_available": true,
+    "experimental_probability": true,
+    "calibrated": false,
     "official_alert": false,
     "promotion_allowed": false,
-    "message": "O robô de nível +2 h/+4 h permanece separado. Ainda não há modelo causal Muçum de 24–168 h validado."
+    "model_version": "mucum-logistic-research-20260812",
+    "source_artifact": "outputs/mucum_research_20260811/mucum_experimental_probability_latest.json",
+    "message": "Estimativa experimental baseada em nível, chuva antecedente e proxy GEFS. Não é probabilidade calibrada nem alerta oficial; o robô +2 h/+4 h permanece separado."
   },
   "horizons": [
     {
@@ -46,8 +50,9 @@
       "rain_hours_available": 24,
       "soil_moisture_model_mean_m3m3": null,
       "temperature_model_mean_c": 14.6,
-      "flood_probability": null,
-      "flood_answer": "indisponível — modelo Muçum 24–168 h ainda não calibrado"
+      "flood_probability": 0.000219,
+      "flood_probability_percent": 0.02,
+      "flood_answer": "estimativa experimental: 0,02/100; não é alerta oficial"
     },
     {
       "hours": 48,
@@ -57,8 +62,9 @@
       "rain_hours_available": 48,
       "soil_moisture_model_mean_m3m3": null,
       "temperature_model_mean_c": 15.4,
-      "flood_probability": null,
-      "flood_answer": "indisponível — modelo Muçum 24–168 h ainda não calibrado"
+      "flood_probability": 0.00075,
+      "flood_probability_percent": 0.07,
+      "flood_answer": "estimativa experimental: 0,07/100; não é alerta oficial"
     },
     {
       "hours": 72,
@@ -68,8 +74,9 @@
       "rain_hours_available": 72,
       "soil_moisture_model_mean_m3m3": null,
       "temperature_model_mean_c": 15.6,
-      "flood_probability": null,
-      "flood_answer": "indisponível — modelo Muçum 24–168 h ainda não calibrado"
+      "flood_probability": 0.002685,
+      "flood_probability_percent": 0.27,
+      "flood_answer": "estimativa experimental: 0,27/100; não é alerta oficial"
     },
     {
       "hours": 120,
@@ -79,8 +86,9 @@
       "rain_hours_available": 120,
       "soil_moisture_model_mean_m3m3": null,
       "temperature_model_mean_c": 17.5,
-      "flood_probability": null,
-      "flood_answer": "indisponível — modelo Muçum 24–168 h ainda não calibrado"
+      "flood_probability": 0.005716,
+      "flood_probability_percent": 0.57,
+      "flood_answer": "estimativa experimental: 0,57/100; não é alerta oficial"
     },
     {
       "hours": 168,
@@ -90,15 +98,16 @@
       "rain_hours_available": 168,
       "soil_moisture_model_mean_m3m3": null,
       "temperature_model_mean_c": 18.8,
-      "flood_probability": null,
-      "flood_answer": "indisponível — modelo Muçum 24–168 h ainda não calibrado"
+      "flood_probability": 0.012232,
+      "flood_probability_percent": 1.22,
+      "flood_answer": "estimativa experimental: 1,22/100; não é alerta oficial"
     }
   ],
   "limitations": [
     "GEFS e IFS são proxies espaciais; não representam uma previsão hidrológica direta no ponto",
     "a reconciliação histórica ANA–SACE ainda tem horários/blocos pendentes",
     "o catálogo de eventos e a calibração causal de Muçum ainda estão em revisão",
-    "não há probabilidade de transbordamento neste feed",
+    "as porcentagens são estimativas experimentais não calibradas e não autorizam alerta",
     "não substitui ANA, SGB, SACE ou Defesa Civil"
   ]
 }
