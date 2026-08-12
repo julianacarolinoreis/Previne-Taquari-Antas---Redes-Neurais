@@ -518,15 +518,17 @@
     if(r.feed_type==='meteorological_forecast'){
       const horizons=(Array.isArray(r.horizons)?r.horizons:[]).slice().sort((a,b)=>Number(a.hours)-Number(b.hours));
       const rainText=horizons.length?horizons.map(h=>`+${h.hours} h: ${h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm'}`).join(' · '):'sem acumulados disponíveis';
-      label.textContent='Chuva prevista no ponto · 24–168 h';
-      detail.textContent=`${rainText}. IFS prospectivo; não é probabilidade de transbordamento.`;
+      label.textContent='Chuva prevista · 24–168 h';
+      detail.textContent=`${rainText}. GEFS e IFS são proxies espaciais; não são probabilidade de transbordamento.`;
       const grid=document.getElementById('rp-risk-grid');
       const stateText=document.getElementById('rp-risk-state');
       if(stateText) stateText.textContent='Risco de inundação: indisponível para Muçum. O modelo longo ainda não foi calibrado; +2 h/+4 h continuam separados.';
       if(grid) grid.innerHTML=horizons.map(h=>{
         const rain=h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm';
-        const soil=h.soil_moisture_model_mean_m3m3===null?'solo n/d':'solo '+nf2.format(Number(h.soil_moisture_model_mean_m3m3));
-        return `<div class="rp-risk-cell"><b>+${h.hours} h</b><span>${rain}</span><span>${soil}</span><span>inundação: n/d</span></div>`;
+        const gefs=h.rain_gefs_proxy_mm===undefined?'GEFS n/d':'GEFS '+nf1.format(Number(h.rain_gefs_proxy_mm))+' mm';
+        const ifs=h.rain_ifs_proxy_mm===undefined?'IFS '+rain:'IFS '+nf1.format(Number(h.rain_ifs_proxy_mm))+' mm';
+        const soil=h.soil_moisture_model_mean_m3m3===null?'solo observado n/d':'solo proxy '+nf2.format(Number(h.soil_moisture_model_mean_m3m3));
+        return `<div class="rp-risk-cell"><b>+${h.hours} h</b><span>${gefs}</span><span>${ifs}</span><span>${soil}</span><span>inundação: n/d</span></div>`;
       }).join('');
       return;
     }
