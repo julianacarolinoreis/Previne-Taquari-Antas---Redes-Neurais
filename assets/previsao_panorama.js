@@ -79,7 +79,12 @@
     if(!state.config||!state.config.researchRiskUrl) return;
     try{
       const fetched=await fetchJson(state.config.researchRiskUrl);
-      state.researchRisk=Array.isArray(fetched&&fetched.horizons)?fetched:RESEARCH_CARD_FALLBACK;
+      if(state.config.researchProbabilityUrl){
+        try{
+          fetched.probabilities=await fetchJson(state.config.researchProbabilityUrl);
+        }catch(e){ fetched.probabilities=null; }
+      }
+      state.researchRisk=(fetched&&(Array.isArray(fetched.horizons)||fetched.rna||fetched.forecast||fetched.probabilities))?fetched:RESEARCH_CARD_FALLBACK;
     }catch(e){
       state.researchRisk=RESEARCH_CARD_FALLBACK;
     }
@@ -538,6 +543,17 @@
       }).join('');
       return;
     }
+    if(r.probabilities&&r.probabilities.calibrated_for_current_source===true&&r.probabilities.horizons&&!Array.isArray(r.probabilities.horizons)){
+      const probabilities=r.probabilities.horizons||{};
+      const pText=h=>{
+        const item=probabilities[String(h)];
+        const value=number(item&&item.probability);
+        return value===null?'indisponível':nf2.format(value*100)+'%';
+      };
+      label.textContent='Probabilidade experimental de transbordamento disponível';
+      detail.textContent=`GEFS/NOAA: +24 h ${pText(24)} · +48 h ${pText(48)} · +72 h ${pText(72)} · +120 h ${pText(120)} · +168 h ${pText(168)}. Escala de 0% a 100%; não é alerta oficial.`;
+      return;
+    }
     if(r.rna&&r.rna.scores){
       const scores=r.rna.scores;
       const forecast=(r.forecast&&Array.isArray(r.forecast.horizons))?r.forecast.horizons:[];
@@ -554,7 +570,7 @@
       const freshness=age!==null&&age<=90?'dados recentes':'dados atrasados';
       const answer=(r.answer_24h&&r.answer_24h.label)||'Triagem experimental disponível';
       label.textContent=answer;
-      detail.textContent=`Score experimental atual (0–100): +24 h ${scoreText(24)} · +48 h ${scoreText(48)} · +72 h ${scoreText(72)} · +120 h ${scoreText(120)} · +168 h ${scoreText(168)}. Chuva média prevista: 24 h ${rainText(24)} · 72 h ${rainText(72)} · 168 h ${rainText(168)}. ${freshness}. Não é porcentagem calibrada nem alerta oficial.`;
+      detail.textContent=`Probabilidade experimental indisponível para a fonte IFS atual. Chuva média prevista: 24 h ${rainText(24)} · 72 h ${rainText(72)} · 168 h ${rainText(168)}. ${freshness}. O score IFS fica apenas como diagnóstico interno, não como porcentagem.`;
       return;
     }
     if(Array.isArray(r.horizons)){

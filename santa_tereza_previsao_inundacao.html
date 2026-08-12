@@ -334,15 +334,15 @@
         <span class="rp-weather-now" id="rp-weather-now">Comparando leitura ao vivo com a base da rodada...</span>
         <div class="rp-weather-answer" id="rp-weather-answer">Carregando avaliação de 24 h...</div>
         <div class="rp-weather-probability" id="rp-weather-probability" role="status">
-          <strong>Chance de transbordamento</strong>
+          <strong>Probabilidade experimental de transbordamento</strong>
           <span id="rp-weather-probability-main">Verificando se há calibrador compatível...</span>
-          <small id="rp-weather-probability-note">A chance numérica só aparece quando a previsão e o calibrador usam a mesma fonte e as mesmas variáveis.</small>
+          <small id="rp-weather-probability-note">A probabilidade numérica só aparece quando a previsão e o calibrador usam a mesma fonte e as mesmas variáveis.</small>
         </div>
-        <small class="rp-weather-scale">O número abaixo do horizonte é score de triagem, de 0 a 100; não é porcentagem de chance.</small>
-        <div class="rp-weather-horizons" id="rp-weather-horizons" aria-label="Chance experimental e score por horizonte">
+        <small class="rp-weather-scale">A porcentagem é a probabilidade experimental estimada entre 0% e 100%. Ela ainda não é um alerta oficial.</small>
+        <div class="rp-weather-horizons" id="rp-weather-horizons" aria-label="Probabilidade experimental por horizonte">
           <span><b>+24 h</b>—<small>chuva —</small></span><span><b>+48 h</b>—<small>chuva —</small></span><span><b>+72 h</b>—<small>chuva —</small></span><span><b>+120 h</b>—<small>chuva —</small></span><span><b>+168 h</b>—<small>chuva —</small></span>
         </div>
-        <small class="rp-weather-note" id="rp-weather-note">A avaliação é de pesquisa: o score não é probabilidade calibrada nem alerta oficial.</small>
+        <small class="rp-weather-note" id="rp-weather-note">A probabilidade é experimental, baseada no GEFS/NOAA e calibrada em modo de pesquisa. Não é alerta oficial.</small>
         <a class="rp-status-link" href="pesquisa_status.html">Ver avaliação meteorológica completa&nbsp;→</a>
       </div>
     </section>
@@ -994,6 +994,7 @@ async function init(){
     historyRawUrl:LIVE_RAW_URL.replace('previsao_ao_vivo','historico_previsoes_ao_vivo'),
     historyFile:'historico_previsoes_ao_vivo.json',
     researchRiskUrl:'assets/data/research_weather_santa_tereza_latest.json',
+    researchProbabilityUrl:'assets/data/research_probability_santa_tereza_latest.json',
     cotaInundCm:COTA_INUND,
     onLayout:()=>{if(map)setTimeout(()=>map.invalidateSize(),50);}
   });
@@ -1149,7 +1150,6 @@ async function loadResearchWeatherPanel(){
     const live=typeof fetchLiveJson==='function' ? await fetchLiveJson().catch(()=>null) : null;
     const forecast=data.forecast||{};
     const observation=data.observation||{};
-    const scores=(data.rna&&data.rna.scores)||{};
     const soil=await fetchSoilNow().catch(()=>data.soil||{});
     const h24=(forecast.horizons||[]).find((item)=>Number(item.horizon_hours)===24)||{};
     meta.textContent='IFS emitido '+fmtUtc(forecast.run_time_utc)+' · disponível '+fmtUtc(forecast.available_at_utc)+' (horário local)';
@@ -1164,13 +1164,15 @@ async function loadResearchWeatherPanel(){
       soilStatus.textContent='sem dado de solo nesta rodada';
       soilBadge.textContent='indisponível';
     }
-    const label=(data.answer_24h&&data.answer_24h.label)||'Resultado de 24 h indisponível';
-    answer.textContent='DECISÃO 24 H: '+label+' · chuva média prevista '+fmtNumber(h24.basin_mean_mm,1)+' mm';
     const probabilityReady=Boolean(probability&&probability.calibrated_for_current_source===true&&['CURRENT_CALIBRATED','CURRENT_GEFS_EXPERIMENTAL'].includes(probability.status));
+    const label=(data.answer_24h&&data.answer_24h.label)||'Resultado de 24 h indisponível';
+    const p24=probability&&probability.horizons&&probability.horizons['24'];
+    answer.textContent=probabilityReady&&p24&&Number.isFinite(Number(p24.probability))
+      ?'PROBABILIDADE EXPERIMENTAL ATÉ 24 H: '+fmtNumber(Number(p24.probability)*100,2)+'% · chuva média prevista '+fmtNumber(h24.basin_mean_mm,1)+' mm'
+      :'AVALIAÇÃO DE 24 H: probabilidade não calculada para esta rodada · chuva média prevista '+fmtNumber(h24.basin_mean_mm,1)+' mm';
     if(probabilityReady){
-      const p24=probability.horizons&&probability.horizons['24'];
-      probabilityMain.textContent='Até 24 h: '+(p24&&Number.isFinite(Number(p24.probability))?fmtNumber(Number(p24.probability)*100,1)+'%':'indisponível');
-      probabilityNote.textContent='Chance experimental GEFS/NOAA · rodada '+fmtUtc(probability.forecast_run_time_utc)+' · disponível '+fmtUtc(probability.forecast_available_at_utc)+'. Não é alerta oficial; a chuva IFS do cartão é outra fonte.';
+      probabilityMain.textContent='Até 24 h: '+(p24&&Number.isFinite(Number(p24.probability))?fmtNumber(Number(p24.probability)*100,2)+'%':'indisponível');
+      probabilityNote.textContent='Probabilidade experimental GEFS/NOAA · rodada '+fmtUtc(probability.forecast_run_time_utc)+' · disponível '+fmtUtc(probability.forecast_available_at_utc)+'. Não é alerta oficial; a chuva IFS do cartão é outra fonte.';
     }else{
       probabilityMain.textContent='Até 24 h: não calculada para esta rodada';
       probabilityNote.textContent=(probability&&probability.message)||'A rodada IFS atual ainda não tem calibrador compatível. Isso é diferente de dizer “0%” ou “não vai inundar”.';
@@ -1179,18 +1181,17 @@ async function loadResearchWeatherPanel(){
     [24,48,72,120,168].forEach((hours)=>{
       const item=document.createElement('span');
       const title=document.createElement('b');
-      const score=document.createTextNode('chance —');
+      const chance=document.createTextNode('probabilidade —');
       const rain=document.createElement('small');
       const forecastItem=(forecast.horizons||[]).find((entry)=>Number(entry.horizon_hours)===hours)||{};
       title.textContent='+'+hours+' h';
-      const raw=Number(scores[String(hours)]);
       const probabilityItem=probability&&probability.horizons&&probability.horizons[String(hours)];
-      if(probabilityReady&&probabilityItem&&Number.isFinite(Number(probabilityItem.probability)))score.textContent='chance '+fmtNumber(Number(probabilityItem.probability)*100,1)+'%';
-      rain.textContent='score '+(Number.isFinite(raw)?fmtNumber(raw*100,1)+' / 100':'—')+' · chuva '+fmtNumber(forecastItem.basin_mean_mm,1)+' mm';
-      item.append(title,score,rain);
+      if(probabilityReady&&probabilityItem&&Number.isFinite(Number(probabilityItem.probability)))chance.textContent='probabilidade '+fmtNumber(Number(probabilityItem.probability)*100,2)+'%';
+      rain.textContent='chuva prevista '+fmtNumber(forecastItem.basin_mean_mm,1)+' mm';
+      item.append(title,chance,rain);
       horizons.appendChild(item);
     });
-    note.textContent=probabilityReady?'Score da chuva IFS permanece diagnóstico; chance experimental vem da rodada GEFS/NOAA compatível. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.':'Fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'. A chance fica “não calculada” quando o calibrador não é compatível; o score permanece apenas diagnóstico. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
+    note.textContent=probabilityReady?'A probabilidade publicada vem da rodada GEFS/NOAA compatível. A chuva IFS fica apenas como informação meteorológica separada. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.':'Fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'. A probabilidade fica “não calculada” quando o calibrador não é compatível. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
   }catch(error){
     meta.textContent='Feed meteorológico indisponível no momento.';
     now.textContent='Não foi possível comparar a leitura ao vivo com a base da rodada.';
