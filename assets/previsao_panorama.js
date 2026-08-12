@@ -2,7 +2,7 @@
   'use strict';
 
   const SVG_NS='http://www.w3.org/2000/svg';
-  const state={config:null,history:null,live:null,researchRisk:null,historyError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null};
+  const state={config:null,history:null,live:null,researchRisk:null,researchReview:null,historyError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null};
   // Fallback auditável quando o JSON do cartão ainda não foi publicado no Pages.
   // É replay histórico, não previsão atual nem alerta oficial.
   const RESEARCH_CARD_FALLBACK={
@@ -88,6 +88,15 @@
     }catch(e){
       state.researchRisk=RESEARCH_CARD_FALLBACK;
     }
+    render();
+  }
+
+  async function loadResearchReview(){
+    if(!state.config||!state.config.researchReviewUrl) return;
+    try{
+      const fetched=await fetchJson(state.config.researchReviewUrl);
+      state.researchReview=fetched&&fetched.stations?fetched:null;
+    }catch(e){ state.researchReview=null; }
     render();
   }
 
@@ -588,6 +597,30 @@
     detail.textContent=`Score experimental: ${scoreText}. Chuva média prevista na bacia: ${rain===null?'indisponível':nf1.format(rain)+' mm'} em 24 h.${generated} Não é probabilidade calibrada nem alerta oficial.`;
   }
 
+  function renderSpecialistReview(){
+    const detail=document.getElementById('rp-review-detail');
+    const grid=document.getElementById('rp-review-grid');
+    if(!detail||!grid) return;
+    const payload=state.researchReview;
+    const code=state.config&&String(state.config.stationCode||'');
+    const station=payload&&payload.stations&&(payload.stations[code]||payload.stations[code==='86510000'?'86510000':'86472600']);
+    if(!station){
+      detail.textContent='Resumo dos revisores técnicos indisponível; a interpretação pública continua bloqueada.';
+      grid.innerHTML='';
+      return;
+    }
+    const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const verdictLabel={block_public_interpretation:'bloqueia interpretação',revise:'revisar antes de interpretar',approve_research:'aprovado somente para pesquisa',pending:'pendente'};
+    const reviews=Array.isArray(station.specialists)?station.specialists:[];
+    detail.textContent=`${station.specialists_attached||0} de 5 papéis técnicos anexados. Revisão humana/oficial ainda pendente; alerta automático bloqueado.`;
+    grid.innerHTML=reviews.map(item=>{
+      const verdict=String(item.verdict||'pending');
+      const confidence=number(item.confidence);
+      const confidenceText=confidence===null?'confiança n/d':`confiança ${nf0.format(confidence*100)}%`;
+      return `<div class="rp-risk-cell"><b>${esc(item.title||item.specialist_id||'Revisor técnico')}</b><span>${esc(verdictLabel[verdict]||verdict)} · ${confidenceText}</span><small>${esc(item.diagnosis||'Parecer ainda não anexado.')}</small></div>`;
+    }).join('');
+  }
+
   function render(){
     if(!state.config) return;
     const allPoints=observedPoints(state.history,state.live);
@@ -614,6 +647,7 @@
     renderMetrics(current,items,trend,flood,state.config.cotaInundCm);
     renderRobotStatus();
     renderResearchRisk();
+    renderSpecialistReview();
 
     const status=document.getElementById('overview-source-status');
     if(status){
@@ -668,8 +702,9 @@
     clearInterval(state.historyTimer);
     state.historyTimer=setInterval(loadHistory,5*60*1000);
     loadResearchRisk();
+    loadResearchReview();
     clearInterval(state.researchTimer);
-    if(state.config.researchRiskUrl) state.researchTimer=setInterval(loadResearchRisk,5*60*1000);
+    if(state.config.researchRiskUrl||state.config.researchReviewUrl) state.researchTimer=setInterval(()=>{loadResearchRisk();loadResearchReview();},5*60*1000);
     if(state.resizeObserver) state.resizeObserver.disconnect();
     if('ResizeObserver' in window){
       state.resizeObserver=new ResizeObserver(scheduleResizeRender);

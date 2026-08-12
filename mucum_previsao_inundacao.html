@@ -316,9 +316,14 @@
         <p id="overview-research-risk-detail" class="rp-copy" style="margin:6px 0 0">O feed meteorológico será carregado aqui.</p>
         <div id="rp-risk-grid" class="rp-risk-grid" aria-live="polite"></div>
         <a class="rp-status-link" href="pesquisa_status.html">Abrir painel técnico completo&nbsp;→</a>
-      </div>
-    </section>
-    <div class="overview-insights panorama-only">
+       </div>
+       <div class="rp-next" aria-live="polite">
+         <strong>Revisão técnica: cinco papéis internos</strong>
+         <p id="rp-review-detail" class="rp-copy" style="margin:6px 0 0">Carregando revisão técnica...</p>
+         <div id="rp-review-grid" class="rp-risk-grid" aria-label="Resumo dos cinco revisores"></div>
+       </div>
+     </section>
+     <div class="overview-insights panorama-only">
       <article class="overview-insight">
         <h3>Velocidade do rio</h3>
         <strong id="overview-trend-detail">Aguardando observações suficientes.</strong>
@@ -963,6 +968,8 @@ async function init(){
     historyFile:'historico_previsoes_ao_vivo_mucum.json',
     cotaInundCm:COTA_INUND,
     researchRiskUrl:'assets/data/research_weather_mucum_latest.json',
+    researchReviewUrl:'assets/data/research_specialist_review_summary_latest.json',
+    stationCode:'86510000',
     stationLabel:'Muçum',
     onLayout:()=>{if(map)setTimeout(()=>map.invalidateSize(),50);}
   });

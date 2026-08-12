@@ -344,9 +344,14 @@
         </div>
         <small class="rp-weather-note" id="rp-weather-note">A probabilidade é experimental, baseada no GEFS/NOAA e calibrada em modo de pesquisa. Não é alerta oficial.</small>
         <a class="rp-status-link" href="pesquisa_status.html">Ver avaliação meteorológica completa&nbsp;→</a>
-      </div>
-    </section>
-    <div class="overview-insights panorama-only">
+       </div>
+       <div class="rp-next" aria-live="polite">
+         <strong>Revisão técnica: cinco papéis internos</strong>
+         <p id="rp-review-detail" class="rp-copy" style="margin:6px 0 0">Carregando revisão técnica...</p>
+         <div id="rp-review-grid" class="rp-risk-grid" aria-label="Resumo dos cinco revisores"></div>
+       </div>
+     </section>
+     <div class="overview-insights panorama-only">
       <article class="overview-insight">
         <h3>Velocidade do rio</h3>
         <strong id="overview-trend-detail">Aguardando observações suficientes.</strong>
@@ -995,6 +1000,8 @@ async function init(){
     historyFile:'historico_previsoes_ao_vivo.json',
     researchRiskUrl:'assets/data/research_weather_santa_tereza_latest.json',
     researchProbabilityUrl:'assets/data/research_probability_santa_tereza_latest.json',
+    researchReviewUrl:'assets/data/research_specialist_review_summary_latest.json',
+    stationCode:'86472600',
     cotaInundCm:COTA_INUND,
     onLayout:()=>{if(map)setTimeout(()=>map.invalidateSize(),50);}
   });
