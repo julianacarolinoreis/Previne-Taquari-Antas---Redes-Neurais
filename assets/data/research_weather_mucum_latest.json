@@ -9,19 +9,19 @@
     "longitude": -51.8686
   },
   "official_flood_threshold_cm": 1800,
-  "generated_at_utc": "2026-08-12T15:15:18Z",
+  "generated_at_utc": "2026-08-12T15:17:35Z",
   "forecast_kind": "prospective_point_forecast",
   "forecast_provider": "Open-Meteo",
   "forecast_model": "ECMWF IFS 0.25° (ecmwf_ifs025)",
   "forecast_source_url": "https://api.open-meteo.com/v1/forecast?latitude=-29.1672&longitude=-51.8686&models=ecmwf_ifs025&hourly=precipitation%2Csoil_moisture_0_to_7cm%2Ctemperature_2m&forecast_days=7&timezone=UTC",
   "availability_is_exact_historical_timestamp": false,
   "current_forecast_state": "available",
-  "current_forecast_message": "Chuva prevista no ponto da estação. Isso ainda não é uma probabilidade de inundação.",
+  "current_forecast_message": "Chuva prevista no ponto da estação. A estimativa experimental, quando presente, não é alerta oficial.",
   "observation": {
     "state": "unknown_or_stale",
     "level_cm": 338,
     "observed_at_utc": "2026-08-12T11:15:00",
-    "age_minutes": 240.3,
+    "age_minutes": 242.6,
     "source": "robô ao vivo Muçum / estação ANA 86510000",
     "message": "Leitura atrasada; não usar como normalidade."
   },
@@ -31,11 +31,15 @@
     "message": "Umidade do solo é uma variável modelada; não representa medição local de saturação."
   },
   "risk_model": {
-    "status": "not_available_for_mucum_long_horizon",
-    "probabilities_available": false,
+    "status": "experimental_probability_research_only",
+    "probabilities_available": true,
+    "experimental_probability": true,
+    "calibrated": false,
     "official_alert": false,
     "promotion_allowed": false,
-    "message": "O robô de nível +2 h/+4 h permanece separado. Ainda não há modelo causal Muçum de 24–168 h validado."
+    "model_version": "mucum-logistic-research-20260812",
+    "source_artifact": "outputs/mucum_research_20260811/mucum_experimental_probability_latest.json",
+    "message": "Estimativa experimental baseada em nível, chuva antecedente e proxy GEFS. Não é probabilidade calibrada nem alerta oficial; o robô +2 h/+4 h permanece separado."
   },
   "horizons": [
     {
@@ -44,8 +48,11 @@
       "rain_hours_available": 24,
       "soil_moisture_model_mean_m3m3": 0.51,
       "temperature_model_mean_c": 16.4,
-      "flood_probability": null,
-      "flood_answer": "indisponível — modelo Muçum 24–168 h ainda não calibrado"
+      "rain_gefs_proxy_mm": 19.3,
+      "rain_ifs_proxy_mm": 41.24,
+      "flood_probability": 0.000219,
+      "flood_probability_percent": 0.02,
+      "flood_answer": "estimativa experimental: 0,02/100; não é alerta oficial"
     },
     {
       "hours": 48,
@@ -53,8 +60,11 @@
       "rain_hours_available": 48,
       "soil_moisture_model_mean_m3m3": 0.501,
       "temperature_model_mean_c": 16.0,
-      "flood_probability": null,
-      "flood_answer": "indisponível — modelo Muçum 24–168 h ainda não calibrado"
+      "rain_gefs_proxy_mm": 26.5,
+      "rain_ifs_proxy_mm": 60.02,
+      "flood_probability": 0.00075,
+      "flood_probability_percent": 0.07,
+      "flood_answer": "estimativa experimental: 0,07/100; não é alerta oficial"
     },
     {
       "hours": 72,
@@ -62,8 +72,11 @@
       "rain_hours_available": 72,
       "soil_moisture_model_mean_m3m3": 0.494,
       "temperature_model_mean_c": 16.5,
-      "flood_probability": null,
-      "flood_answer": "indisponível — modelo Muçum 24–168 h ainda não calibrado"
+      "rain_gefs_proxy_mm": 34.5,
+      "rain_ifs_proxy_mm": 60.46,
+      "flood_probability": 0.002685,
+      "flood_probability_percent": 0.27,
+      "flood_answer": "estimativa experimental: 0,27/100; não é alerta oficial"
     },
     {
       "hours": 120,
@@ -71,8 +84,11 @@
       "rain_hours_available": 120,
       "soil_moisture_model_mean_m3m3": 0.487,
       "temperature_model_mean_c": 19.1,
-      "flood_probability": null,
-      "flood_answer": "indisponível — modelo Muçum 24–168 h ainda não calibrado"
+      "rain_gefs_proxy_mm": 45.6,
+      "rain_ifs_proxy_mm": 66.93,
+      "flood_probability": 0.005716,
+      "flood_probability_percent": 0.57,
+      "flood_answer": "estimativa experimental: 0,57/100; não é alerta oficial"
     },
     {
       "hours": 168,
@@ -80,14 +96,17 @@
       "rain_hours_available": 152,
       "soil_moisture_model_mean_m3m3": 0.48,
       "temperature_model_mean_c": 20.8,
-      "flood_probability": null,
-      "flood_answer": "indisponível — modelo Muçum 24–168 h ainda não calibrado"
+      "rain_gefs_proxy_mm": 55.5,
+      "rain_ifs_proxy_mm": 80.37,
+      "flood_probability": 0.012232,
+      "flood_probability_percent": 1.22,
+      "flood_answer": "estimativa experimental: 1,22/100; não é alerta oficial"
     }
   ],
   "limitations": [
     "chuva é previsão pontual, não média de toda a bacia",
     "o horário histórico de disponibilização do IFS não é preservado pelo endpoint prospectivo",
-    "não há probabilidade de transbordamento neste feed",
+    "estimativa experimental, quando presente, não é probabilidade calibrada nem alerta",
     "não substitui ANA, SGB, SACE ou Defesa Civil"
   ]
 }

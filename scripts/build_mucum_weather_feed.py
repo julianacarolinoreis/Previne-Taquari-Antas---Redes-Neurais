@@ -84,6 +84,22 @@ def finite(value):
 
 def build_feed(api: dict, source_url: str, live_path: Path) -> dict:
     now = utc_now()
+    previous = {}
+    previous_horizons = {}
+    previous_risk = {}
+    output_path = Path("assets/data/research_weather_mucum_latest.json")
+    if output_path.exists():
+        try:
+            previous = json.loads(output_path.read_text(encoding="utf-8"))
+            previous_horizons = {
+                int(item.get("hours")): item
+                for item in previous.get("horizons", [])
+                if item.get("hours") is not None
+            }
+            previous_risk = previous.get("risk_model", {})
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            previous_horizons = {}
+            previous_risk = {}
     times = [parse_hour(value) for value in api.get("hourly", {}).get("time", [])]
     rain = api.get("hourly", {}).get("precipitation", [])
     soil = api.get("hourly", {}).get("soil_moisture_0_to_7cm", [])
@@ -94,6 +110,7 @@ def build_feed(api: dict, source_url: str, live_path: Path) -> dict:
 
     horizons = []
     for hours in HORIZONS:
+        old = previous_horizons.get(hours, {})
         end = now + timedelta(hours=hours)
         selected = [v for t, v in pairs if now < t <= end and v is not None]
         soil_selected = [v for t, v in soil_pairs if now < t <= end and v is not None]
@@ -109,8 +126,17 @@ def build_feed(api: dict, source_url: str, live_path: Path) -> dict:
                 "temperature_model_mean_c": round(sum(temp_selected) / len(temp_selected), 1)
                 if temp_selected
                 else None,
-                "flood_probability": None,
-                "flood_answer": "indisponível — modelo Muçum 24–168 h ainda não calibrado",
+                "rain_gefs_proxy_mm": old.get("rain_gefs_proxy_mm"),
+                "rain_ifs_proxy_mm": old.get("rain_ifs_proxy_mm"),
+                # Preserve the separately generated research score across
+                # the hourly meteorological refresh.  This robot must not
+                # erase it merely because Open-Meteo ran.
+                "flood_probability": old.get("flood_probability"),
+                "flood_probability_percent": old.get("flood_probability_percent"),
+                "flood_answer": old.get(
+                    "flood_answer",
+                    "indisponível — modelo Muçum 24–168 h ainda não calibrado",
+                ),
             }
         )
 
@@ -130,14 +156,14 @@ def build_feed(api: dict, source_url: str, live_path: Path) -> dict:
         "forecast_source_url": source_url,
         "availability_is_exact_historical_timestamp": False,
         "current_forecast_state": "available" if horizons and horizons[0]["rain_point_mm"] is not None else "unknown_or_stale",
-        "current_forecast_message": "Chuva prevista no ponto da estação. Isso ainda não é uma probabilidade de inundação.",
+        "current_forecast_message": "Chuva prevista no ponto da estação. A estimativa experimental, quando presente, não é alerta oficial.",
         "observation": live,
         "soil_moisture": {
             "status": "modeled_proxy",
             "observation_available": False,
             "message": "Umidade do solo é uma variável modelada; não representa medição local de saturação.",
         },
-        "risk_model": {
+        "risk_model": previous_risk if previous_risk.get("experimental_probability") else {
             "status": "not_available_for_mucum_long_horizon",
             "probabilities_available": False,
             "official_alert": False,
@@ -148,7 +174,7 @@ def build_feed(api: dict, source_url: str, live_path: Path) -> dict:
         "limitations": [
             "chuva é previsão pontual, não média de toda a bacia",
             "o horário histórico de disponibilização do IFS não é preservado pelo endpoint prospectivo",
-            "não há probabilidade de transbordamento neste feed",
+            "estimativa experimental, quando presente, não é probabilidade calibrada nem alerta",
             "não substitui ANA, SGB, SACE ou Defesa Civil",
         ],
     }
