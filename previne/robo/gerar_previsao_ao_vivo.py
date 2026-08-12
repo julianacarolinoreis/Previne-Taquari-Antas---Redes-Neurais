@@ -27,6 +27,8 @@ def agora_brt():
 
 # ---- config ----
 MODELO_MAT = "previne/assets/mat/009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.mat"
+MODELO_4H_PRO_MAT = "assets/mat/4H_ALT__V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.mat"
+MODELO_4H_PRO_ID = "V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000"
 MODELO_4H_CASCATA_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__CASCATA_VFINAL_R03_DYN9_INC.mat"
 MODELO_4H_CASCATA_ID = "STZ_H4_ALT_CASC_VFINAL_R03_DYN9_INC"
 HORIZONTE = "2h"
@@ -38,7 +40,10 @@ BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
 SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
 HISTORICO_SAIDA = "historico_previsoes_ao_vivo.json"
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
-ESTACOES_NIVEL = ["86472600", "86472000", "86125130", "86306000", "86448000", "86507000"]
+ESTACOES_NIVEL = [
+    "86472600", "86472000", "86125130", "86306000", "86448000", "86507000",
+    "86125500", "86298000",
+]
 ESTACOES = ESTACOES_NIVEL
 METADADOS_ESTACOES = {
     "86472600": {"lat": -29.1781, "lon": -51.7322, "papel": "Estacao alvo"},
@@ -46,6 +51,8 @@ METADADOS_ESTACOES = {
     "86125130": {"lat": -28.5919, "lon": -51.3247, "papel": "Montante"},
     "86306000": {"lat": -29.0133, "lon": -51.3675, "papel": "Montante"},
     "86448000": {"lat": -29.0292, "lon": -51.5219, "papel": "Montante"},
+    "86125500": {"lat": None, "lon": None, "papel": "Montante - input 4h PRO"},
+    "86298000": {"lat": None, "lon": None, "papel": "Montante - input 4h PRO"},
 }
 POSTOS_CHUVA_36H = ["2851044", "2851072", "86488000", "86490500", "86497000", "86505500", "86507000"]
 ANA_TIMEOUT_NIVEL_S = 25
@@ -60,6 +67,8 @@ NOMES_ESTACOES = {
     "86306000": "Nova Roma do Sul / Rio das Antas",
     "86448000": "Veranopolis / Rio das Antas",
     "86507000": "Carreiro",
+    "86125500": "Estacao 86125500 - montante (input 4h PRO)",
+    "86298000": "Estacao 86298000 - montante (input 4h PRO)",
     "2851044": "Posto chuva Carreiro 2851044",
     "2851072": "Posto chuva Carreiro-Prata 2851072",
     "86488000": "Posto chuva Carreiro 86488000",
@@ -82,11 +91,14 @@ MODELOS = [
         "horizonte": "4h",
         "horizonte_h": 4,
         "tipo": "ALT",
-        "modelo": "4H_ALT_PRIO_12478",
-        "mat": "previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__prio_12478.mat",
-        "inputs_total": 5,
-        "montador": "4h_alt_prio_12478",
-        "principal": False,
+        "modelo": MODELO_4H_PRO_ID,
+        "mat": MODELO_4H_PRO_MAT,
+        "inputs_total": 24,
+        "montador": "4h_alt_v01_r10",
+        "principal": True,
+        "versao": "PRO",
+        "ativo_ao_vivo": True,
+        "referencia_auditavel": "assets/audit_workbooks/4H_ALT__V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.xlsx",
     },
     {
         # Cascata ainda treinada sobre o antigo VFINAL. Com a troca do 2h para
@@ -404,6 +416,53 @@ def montar_inputs_4h(series, t):
     ]
     return inputs, st0
 
+def montar_inputs_4h_v01_r10(series, t):
+    """Monta os 24 inputs do 4h PRO V01_R10 na ordem do MAT auditavel.
+
+    A ordem e a convencao sao as da aba DADOS do Excel do modelo: nivel atual,
+    diferencas para tras e aceleracoes (diferenca de velocidades) em Santa
+    Tereza e Linha Jose Julio, seguidas das diferencas/aceleracoes das estacoes
+    86125500 e 86298000. O NIVEL_ATUAL_CM e a ancora de reconstruÃ§ao, nao uma
+    segunda coluna escondida: o MAT recebe exatamente os 24 valores abaixo.
+    """
+    def n(cod, h=0):
+        return nivel(series.get(cod, {}), t - dt.timedelta(hours=h))
+    def D(cod, h):
+        a, b = n(cod, 0), n(cod, h)
+        return None if None in (a, b) else a - b
+    def A(cod, h):
+        a, b, c, d = n(cod, 0), n(cod, 1), n(cod, h), n(cod, h + 1)
+        return None if None in (a, b, c, d) else (a - b) - (c - d)
+
+    st0 = n("86472600", 0)
+    inputs = [
+        n("86472600", 0),      # input_01_Nivel_86472600
+        D("86472600", 1),      # input_02_DifN-1h_86472600
+        D("86472600", 2),      # input_03_DifN-2h_86472600
+        D("86472600", 4),      # input_04_DifN-4h_86472600
+        A("86472600", 1),      # input_05_Acel-1h_86472600
+        A("86472600", 4),      # input_07_Acel-4h_86472600
+        A("86472600", 12),     # input_09_Acel-12h_86472600
+        n("86472000", 0),      # input_10_Nivel_86472000
+        D("86472000", 1),      # input_11_DifN-1h_86472000
+        D("86472000", 2),      # input_12_DifN-2h_86472000
+        D("86472000", 4),      # input_13_DifN-4h_86472000
+        A("86472000", 2),      # input_15_Acel-2h_86472000
+        A("86472000", 8),      # input_15_Acel-8h_86472000
+        A("86472000", 16),     # input_16_Acel-16h_86472000
+        D("86125500", 2),      # input_12_DifN-2h_86125500
+        D("86125500", 6),      # input_14_DifN-6h_86125500
+        D("86125500", 10),     # input_14_DifN-10h_86125500
+        D("86125500", 14),     # input_14_DifN-14h_86125500
+        D("86298000", 2),      # input_12_DifN-2h_86298000
+        D("86298000", 6),      # input_14_DifN-6h_86298000
+        D("86298000", 10),     # input_14_DifN-10h_86298000
+        A("86298000", 2),      # input_15_Acel-2h_86298000
+        A("86298000", 8),      # input_15_Acel-8h_86298000
+        A("86298000", 16),     # input_16_Acel-16h_86298000
+    ]
+    return inputs, st0
+
 # indices (na ordem de montar_inputs(), o mesmo 2h VFINAL exibido no site) que
 # alimentam a cascata DYN9_INC -- nucleo Santa Tereza + Linha Jose Julio nivel/D5h.
 # Ver UPSTREAM_INPUTS/FEATURE_SETS em
@@ -469,6 +528,8 @@ def montar_inputs_12h_alt_c0065(series, t):
 def montar_inputs_modelo(cfg, series, t):
     if cfg["montador"] in ("2h_alt_15in", "2h_alt_vfinal"):
         return montar_inputs(series, t)
+    if cfg["montador"] == "4h_alt_v01_r10":
+        return montar_inputs_4h_v01_r10(series, t)
     if cfg["montador"] == "4h_alt_prio_12478":
         return montar_inputs_4h(series, t)
     if cfg["montador"] == "4h_cascata_vfinal_dyn9":
@@ -551,6 +612,36 @@ def diagnosticar_inputs_faltantes_4h(series, t, inputs):
             "horarios_faltantes": [h["hora"] for h in horarios if not h["disponivel"]],
         })
     return faltantes
+
+def diagnosticar_inputs_faltantes_4h_v01_r10(series, t, inputs):
+    """Explica a falta de qualquer um dos 24 lags do 4h PRO."""
+    especificacoes = [
+        ("inp01", "Santa Tereza - nivel atual", "86472600", [0]),
+        ("inp02", "Santa Tereza - nivel D-1h", "86472600", [0, 1]),
+        ("inp03", "Santa Tereza - nivel D-2h", "86472600", [0, 2]),
+        ("inp04", "Santa Tereza - nivel D-4h", "86472600", [0, 4]),
+        ("inp05", "Santa Tereza - aceleracao A-1h", "86472600", [0, 1, 2]),
+        ("inp06", "Santa Tereza - aceleracao A-4h", "86472600", [0, 1, 4, 5]),
+        ("inp07", "Santa Tereza - aceleracao A-12h", "86472600", [0, 1, 12, 13]),
+        ("inp08", "Linha Jose Julio - nivel atual", "86472000", [0]),
+        ("inp09", "Linha Jose Julio - nivel D-1h", "86472000", [0, 1]),
+        ("inp10", "Linha Jose Julio - nivel D-2h", "86472000", [0, 2]),
+        ("inp11", "Linha Jose Julio - nivel D-4h", "86472000", [0, 4]),
+        ("inp12", "Linha Jose Julio - aceleracao A-2h", "86472000", [0, 1, 2, 3]),
+        ("inp13", "Linha Jose Julio - aceleracao A-8h", "86472000", [0, 1, 8, 9]),
+        ("inp14", "Linha Jose Julio - aceleracao A-16h", "86472000", [0, 1, 16, 17]),
+        ("inp15", "Estacao 86125500 - nivel D-2h", "86125500", [0, 2]),
+        ("inp16", "Estacao 86125500 - nivel D-6h", "86125500", [0, 6]),
+        ("inp17", "Estacao 86125500 - nivel D-10h", "86125500", [0, 10]),
+        ("inp18", "Estacao 86125500 - nivel D-14h", "86125500", [0, 14]),
+        ("inp19", "Estacao 86298000 - nivel D-2h", "86298000", [0, 2]),
+        ("inp20", "Estacao 86298000 - nivel D-6h", "86298000", [0, 6]),
+        ("inp21", "Estacao 86298000 - nivel D-10h", "86298000", [0, 10]),
+        ("inp22", "Estacao 86298000 - aceleracao A-2h", "86298000", [0, 1, 2, 3]),
+        ("inp23", "Estacao 86298000 - aceleracao A-8h", "86298000", [0, 1, 8, 9]),
+        ("inp24", "Estacao 86298000 - aceleracao A-16h", "86298000", [0, 1, 16, 17]),
+    ]
+    return diagnosticar_inputs_por_especificacoes(series, t, inputs, especificacoes)
 
 def diagnosticar_inputs_faltantes_4h_cascata_vfinal_dyn9(series, t, inputs):
     """A cascata DYN9_INC usa um subconjunto dos 15 inputs do proprio VFINAL
@@ -669,6 +760,8 @@ def diagnosticar_inputs_faltantes_12h(series, t, inputs):
     return diagnosticar_inputs_por_especificacoes(series, t, inputs, especificacoes)
 
 def diagnosticar_inputs_modelo(cfg, series, t, inputs):
+    if cfg["montador"] == "4h_alt_v01_r10":
+        return diagnosticar_inputs_faltantes_4h_v01_r10(series, t, inputs)
     if cfg["montador"] == "4h_alt_prio_12478":
         return diagnosticar_inputs_faltantes_4h(series, t, inputs)
     if cfg["montador"] == "4h_cascata_vfinal_dyn9":
@@ -834,6 +927,9 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
         "horizonte_h": cfg["horizonte_h"],
         "tipo": cfg["tipo"],
         "modelo": cfg["modelo"],
+        "versao": cfg.get("versao"),
+        "ativo_ao_vivo": bool(cfg.get("ativo_ao_vivo", False)),
+        "referencia_auditavel": cfg.get("referencia_auditavel"),
         "bankfull_cm": BANKFULL_CM,
         "nivel_modelo_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_rio_agora_cm": (round(raw_st[1]) if raw_st else (round(nivel_atual) if nivel_atual is not None else None)),
