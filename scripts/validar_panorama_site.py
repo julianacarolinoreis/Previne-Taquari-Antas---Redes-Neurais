@@ -126,12 +126,14 @@ def validar_geojson(relativo: str) -> None:
     dados = json.loads(caminho.read_text(encoding="utf-8"))
     features = dados.get("features") or []
     niveis = [round(float(f["properties"]["nivel_m"]), 1) for f in features]
-    assert len(features) == 150, f"{relativo}: esperados 150 níveis, vieram {len(features)}"
-    assert niveis[0] == 0.1 and niveis[-1] == 15.0 and 0.0 not in niveis
+    esperado = 250 if "/mucum_inundacao/" in relativo.replace("\\", "/") else 150
+    nivel_final = esperado / 10
+    assert len(features) == esperado, f"{relativo}: esperados {esperado} níveis, vieram {len(features)}"
+    assert niveis[0] == 0.1 and niveis[-1] == nivel_final and 0.0 not in niveis
     assert all(float(f["properties"]["area_ha"]) >= 0 for f in features)
     assert all(f["properties"].get("interpretacao") for f in features)
     assert "proxy de extravasamento" in dados.get("metadata", {}).get("interpretacao", "")
-    print(f"OK GEOJSON {relativo}: 150 níveis, HAND 0 excluído")
+    print(f"OK GEOJSON {relativo}: {esperado} níveis, HAND 0 excluído")
 
 
 def validar_arquivos_protegidos() -> None:
