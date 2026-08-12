@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-12T19:42:44.513607+00:00",
+  "status": "research_only_specialist_reviews",
+  "official_opinion": false,
+  "public_alert_allowed": false,
+  "operational_probability_allowed": false,
+  "stations": {
+    "86472600": {
+      "station_code": "86472600",
+      "station_name": "Santa Tereza",
+      "thresholds_cm": {
+        "attention": 600,
+        "alert": 900,
+        "overflow": 1500
+      },
+      "review_status": "attached_pending_human_or_domain_review",
+      "specialists_attached": 5,
+      "specialists": [
+        {
+          "specialist_id": "meteorologia_previsao_numerica",
+          "title": "Meteorologia e previsão numérica",
+          "verdict": "revise",
+          "diagnosis": "GEFS historical mean and IFS prospective data exist, but source calibration and ensemble spread are incomplete.",
+          "confidence": 0.88,
+          "official_opinion": false,
+          "status": "research_only_not_official"
+        },
+        {
+          "specialist_id": "hidrologia_estacao",
+          "title": "Hidrologia local e comportamento da estação",
+          "verdict": "revise",
+          "diagnosis": "Five Santa Tereza events exist; the 2023-11 and 2024-05-12 episodes retain QC-review flags.",
+          "confidence": 0.92,
+          "official_opinion": false,
+          "status": "research_only_not_official"
+        },
+        {
+          "specialist_id": "solo_umidade",
+          "title": "Solo, umidade e chuva antecedente",
+          "verdict": "revise",
+          "diagnosis": "Antecedent rain/API features exist, but local soil moisture is not observed or calibrated.",
+          "confidence": 0.94,
+          "official_opinion": false,
+          "status": "research_only_not_official"
+        },
+        {
+          "specialist_id": "vale_taquari_bacia",
+          "title": "Vale do Taquari e dinâmica de bacia",
+          "verdict": "revise",
+          "diagnosis": "Shared storm IDs are available; travel-time relationships still require event-level validation.",
+          "confidence": 0.82,
+          "official_opinion": false,
+          "status": "research_only_not_official"
+        },
+        {
+          "specialist_id": "ml_operacao_defesa_civil",
+          "title": "ML, calibração e operação/Defesa Civil",
+          "verdict": "block",
+          "diagnosis": "Current scores are research-only and IFS calibration is not demonstrated; no operational alert.",
+          "confidence": 0.98,
+          "official_opinion": false,
+          "status": "research_only_not_official"
+        }
+      ],
+      "decision": {
+        "result": "block_public_interpretation",
+        "public_alert_allowed": false,
+        "operational_probability_allowed": false,
+        "promotion_allowed": false,
+        "reason": "Revisões internas orientam a pesquisa; alerta oficial exige validação da fonte e revisão humana competente."
+      }
+    },
+    "86510000": {
+      "station_code": "86510000",
+      "station_name": "Muçum",
+      "thresholds_cm": {
+        "attention": 500,
+        "alert": 900,
+        "overflow": 1800
+      },
+      "review_status": "attached_pending_human_or_domain_review",
+      "specialists_attached": 5,
+      "specialists": [
+        {
+          "specialist_id": "meteorologia_previsao_numerica",
+          "title": "Meteorologia e previsão numérica",
+          "verdict": "block",
+          "diagnosis": "No causal direct Muçum GEFS point with resolved ANA/SGB clock; same-cell Santa proxy is not a forecast point.",
+          "confidence": 0.96,
+          "official_opinion": false,
+          "status": "research_only_not_official"
+        },
+        {
+          "specialist_id": "hidrologia_estacao",
+          "title": "Hidrologia local e comportamento da estação",
+          "verdict": "block",
+          "diagnosis": "Four mechanical candidates exist, but ANA/SACE clock and localized divergences remain unresolved.",
+          "confidence": 0.97,
+          "official_opinion": false,
+          "status": "research_only_not_official"
+        },
+        {
+          "specialist_id": "solo_umidade",
+          "title": "Solo, umidade e chuva antecedente",
+          "verdict": "block",
+          "diagnosis": "API and antecedent rain are research features only; no local soil measurement and candidate events need confirmation.",
+          "confidence": 0.94,
+          "official_opinion": false,
+          "status": "research_only_not_official"
+        },
+        {
+          "specialist_id": "vale_taquari_bacia",
+          "title": "Vale do Taquari e dinâmica de bacia",
+          "verdict": "revise",
+          "diagnosis": "Shared storm IDs and upstream comparisons are available, but lags must be validated per event.",
+          "confidence": 0.87,
+          "official_opinion": false,
+          "status": "research_only_not_official"
+        },
+        {
+          "specialist_id": "ml_operacao_defesa_civil",
+          "title": "ML, calibração e operação/Defesa Civil",
+          "verdict": "block",
+          "diagnosis": "No causal Muçum forecast join or calibrated event-level model is available.",
+          "confidence": 0.99,
+          "official_opinion": false,
+          "status": "research_only_not_official"
+        }
+      ],
+      "decision": {
+        "result": "block_public_interpretation",
+        "public_alert_allowed": false,
+        "operational_probability_allowed": false,
+        "promotion_allowed": false,
+        "reason": "Revisões internas orientam a pesquisa; alerta oficial exige validação da fonte e revisão humana competente."
+      }
+    }
+  },
+  "public_export": {
+    "omits_local_paths": true,
+    "omits_evidence_hash_inventory": true,
+    "note": "Resumo público dos cinco papéis técnicos internos; não substitui SGB, ANA, SACE ou Defesa Civil."
+  }
+}
