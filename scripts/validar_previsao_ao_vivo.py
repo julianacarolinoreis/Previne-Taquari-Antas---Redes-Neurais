@@ -59,6 +59,11 @@ def main() -> int:
         vals = four.get("input_values_cm") or []
         if len(vals) != 24 or four.get("inputs_total") != 24:
             raise SystemExit("4h precisa publicar exatamente 24 inputs")
+        if four.get("input_contract_version") != "hourly_exact_v1":
+            raise SystemExit("4h sem contrato temporal hourly_exact_v1")
+    audit = four.get("auditoria") or {}
+    if audit.get("n_conferidas", 0) and audit.get("auditoria_versao") not in (None, "target_exact_v2"):
+        raise SystemExit("auditoria 4h com versao de comparacao desconhecida")
     print(f"OK feed ao vivo: {', '.join(sorted(keys))}; MAT B SHA={B_SHA}")
     return 0
 

@@ -131,6 +131,7 @@ MODELOS = [
         "principal": True,
         "versao": "PRO",
         "ativo_ao_vivo": True,
+        "input_contract_version": "hourly_exact_v1",
         "referencia_auditavel": "assets/audit_workbooks/4H_ALT__V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.xlsx",
         "input_labels": [
             "Santa Tereza - nivel atual (D0h)", "Santa Tereza - D-1h", "Santa Tereza - D-2h",
@@ -311,6 +312,11 @@ def buscar_series_paralelo(codigos, funcao, max_workers=6):
 # Interpolamos/aproximamos só dentro destes tetos — além disso, fica None.
 NIVEL_MAX_GAP = dt.timedelta(minutes=150)
 AUDITORIA_MAX_GAP = dt.timedelta(minutes=30)
+# A auditoria de desempenho não pode comparar uma previsão horária com uma
+# leitura de 15/30 min antes ou depois: em uma subida rápida isso fabrica erro.
+# O limite acima continua servindo apenas para decidir quando um alvo ausente
+# pode ser marcado como sem dado; a observação usada no erro é sempre EXATA.
+AUDITORIA_VERSAO = "target_exact_v2"
 # Um valor ainda dentro de NIVEL_MAX_GAP pode estar deslocado no tempo.  A
 # RNA foi treinada em passos horarios; por isso a previsao continua disponivel
 # com uma leitura proxima, mas o pacote deve denunciar quando algum input ficou
@@ -1050,6 +1056,7 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
         "referencia_auditavel": cfg.get("referencia_auditavel"),
         "input_labels": cfg.get("input_labels"),
         "input_anchor_note": cfg.get("input_anchor_note"),
+        "input_contract_version": cfg.get("input_contract_version"),
         "bankfull_cm": BANKFULL_CM,
         "nivel_modelo_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_rio_agora_cm": (round(raw_st[1]) if raw_st else (round(nivel_atual) if nivel_atual is not None else None)),
@@ -1103,11 +1110,18 @@ def upsert_previsao_historico(registros, saida):
         "nivel_rio_agora_cm": saida.get("nivel_rio_agora_cm"),
         "nivel_previsto_cm": saida.get("nivel_previsto_cm"),
         "status_auditoria": "aguardando",
+        "auditoria_versao": AUDITORIA_VERSAO,
+        "input_contract_version": saida.get("input_contract_version"),
         "criado_em": saida.get("consultado_em"),
     }
     for i, reg in enumerate(registros):
         if reg.get("id") == chave:
-            preservados = {k: reg.get(k) for k in ("observado_cm", "observado_em", "erro_cm", "erro_abs_cm", "status_auditoria", "auditado_em") if k in reg}
+            # Registros criados antes do contrato target_exact_v2 precisam
+            # voltar para aguardando; os erros antigos podem ter usado uma
+            # leitura vizinha e não são comparáveis aos novos.
+            preservados = {}
+            if reg.get("auditoria_versao") == AUDITORIA_VERSAO:
+                preservados = {k: reg.get(k) for k in ("observado_cm", "observado_em", "erro_cm", "erro_abs_cm", "status_auditoria", "auditado_em") if k in reg}
             novo.update(preservados)
             registros[i] = novo
             return registros
@@ -1118,12 +1132,20 @@ def conferir_historico(registros, series):
     serie_st = series.get("86472600", {})
     ultima_hora = max(serie_st) if serie_st else None
     for reg in registros:
-        if reg.get("status_auditoria") == "conferido":
+        if reg.get("status_auditoria") == "conferido" and reg.get("auditoria_versao") == AUDITORIA_VERSAO:
             continue
+        if reg.get("auditoria_versao") != AUDITORIA_VERSAO:
+            for campo in ("observado_cm", "observado_em", "erro_cm", "erro_abs_cm", "auditado_em"):
+                reg.pop(campo, None)
+            reg["status_auditoria"] = "aguardando"
+            reg["auditoria_versao"] = AUDITORIA_VERSAO
         alvo = _parse_hora(reg.get("hora_alvo", ""))
         if alvo is None:
             continue
-        obs, obs_em = observar_nivel(serie_st, alvo)
+        # Comparação estrita: previsão para t+H só é conferida com a leitura
+        # ANA exatamente em t+H. Não usar 00:45 para validar uma previsão de
+        # 01:00, nem interpolar o observado.
+        obs, obs_em = observar_nivel(serie_st, alvo, max_gap=dt.timedelta(0))
         if obs is not None:
             previsto = reg.get("nivel_previsto_cm")
             erro = None if previsto is None else float(previsto) - float(obs)
@@ -1133,12 +1155,14 @@ def conferir_historico(registros, series):
                 "erro_cm": (round(erro, 1) if erro is not None else None),
                 "erro_abs_cm": (round(abs(erro), 1) if erro is not None else None),
                 "status_auditoria": "conferido",
+                "auditoria_versao": AUDITORIA_VERSAO,
                 "auditado_em": agora_brt().isoformat(timespec="seconds"),
             })
         elif ultima_hora and (alvo + AUDITORIA_MAX_GAP) <= ultima_hora:
             # Só marca buraco definitivo depois da janela de tolerância —
             # leituras ANA atrasadas ainda podem chegar e liberar o erro.
             reg["status_auditoria"] = "sem_dado_ana"
+            reg["auditoria_versao"] = AUDITORIA_VERSAO
             reg["auditado_em"] = agora_brt().isoformat(timespec="seconds")
     return registros
 
@@ -1148,10 +1172,22 @@ def media(vals):
 
 def resumo_auditoria(registros, horizonte, modelo=None):
     regs = [r for r in registros if r.get("horizonte") == horizonte]
+    excluidas_grade = 0
     if modelo:
         # Ao trocar a RNA ativa, o histÃ³rico antigo continua Ãºtil para
         # auditoria, mas nÃ£o pode contaminar o erro recente do modelo novo.
         regs = [r for r in regs if r.get("modelo") == modelo]
+    if horizonte == "4h":
+        # O V01 foi treinado em linhas horárias. Previsões históricas feitas
+        # às :15/:30/:45 pertencem ao legado e não entram no indicador atual.
+        apenas_horarias = []
+        for reg in regs:
+            hora = _parse_hora(reg.get("hora_modelo", ""))
+            if hora is not None and hora.minute == 0 and hora.second == 0:
+                apenas_horarias.append(reg)
+            else:
+                excluidas_grade += 1
+        regs = apenas_horarias
     conferidos = sorted(
         [r for r in regs if r.get("status_auditoria") == "conferido"],
         key=lambda r: r.get("hora_alvo") or ""
@@ -1167,6 +1203,9 @@ def resumo_auditoria(registros, horizonte, modelo=None):
     return {
         "n_total": len(regs),
         "modelo": modelo,
+        "auditoria_versao": AUDITORIA_VERSAO,
+        "grade_modelo": ("horaria_exata" if horizonte == "4h" else "original_do_modelo"),
+        "n_excluidas_fora_grade": excluidas_grade,
         "n_conferidas": len(conferidos),
         "n_aguardando": aguardando,
         "ultima_conferida": (conferidos[-1] if conferidos else None),
