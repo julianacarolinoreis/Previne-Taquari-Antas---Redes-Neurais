@@ -37,6 +37,7 @@ jobs:
           git pull --rebase --autostash origin main
           # O script local também tem timeout; este limite protege o runner remoto.
           timeout --signal=TERM --kill-after=20s 240s python previne/robo/gerar_previsao_ao_vivo.py
+          python -B scripts/validar_previsao_ao_vivo.py
 
           git add previsao_ao_vivo.json historico_previsoes_ao_vivo.json
           if git diff --staged --quiet; then
