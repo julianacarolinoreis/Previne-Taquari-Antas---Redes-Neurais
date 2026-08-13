@@ -142,6 +142,8 @@
   .live-hz{display:none;gap:6px;margin:-2px 0 10px;flex-wrap:wrap}
   .live-hz button{flex:1 1 72px;border:1px solid #f3c0b8;background:#fff;color:#a5281c;border-radius:9px;padding:7px 8px;font-size:12px;font-weight:750;cursor:pointer}
   .live-hz button.on{background:#a5281c;color:#fff;border-color:#a5281c}
+  .live-hz button.shadow{border-color:#7b61a8;color:#5d3f91;background:#fbf8ff}
+  .live-hz button.shadow.on{background:#6f4aa1;color:#fff;border-color:#6f4aa1}
   body.live #scn, body.live .tl, body.live #live-btn{display:none}
   body.live .live-hz{display:flex}
   body.live .simple-only{display:block}
@@ -172,11 +174,12 @@
 <main>
   <div id="map"></div>
   <aside>
-    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h, 4h e cascata)</button>
+    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h A, 2h B, 4h e cascata)</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
       <button data-live-hz="2h" class="on">2h</button>
+      <button data-live-hz="2h_versao_b" class="shadow">2h B (VFINAL)</button>
       <button data-live-hz="4h">4h</button>
       <button data-live-hz="4h_cascata">4h cascata</button>
     </div>
@@ -446,9 +449,9 @@ function drawCotaChart(nowCm, foreCm, labelPrev){
 }
 const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 // margem de incerteza (m) por horizonte — cresce com o lead
-const UNCERT={'2h':0.3,'4h':0.5,'4h_cascata':0.5,'—':0};
-const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'4h_cascata':['Moderada','#c98a1a'],'—':['—','#999']};
-function hzLabel(hz){ return hz==='4h_cascata'?'4h cascata':(hz||'—'); }
+const UNCERT={'2h':0.3,'2h_versao_b':0.3,'4h':0.5,'4h_cascata':0.5,'—':0};
+const CONF={'2h':['Alta','#1b7a5a'],'2h_versao_b':['Experimental · B','#6f4aa1'],'4h':['Moderada','#c98a1a'],'4h_cascata':['Moderada','#c98a1a'],'—':['—','#999']};
+function hzLabel(hz){ return hz==='4h_cascata'?'4h cascata':hz==='2h_versao_b'?'2h versao B (VFINAL)':(hz||'—'); }
 function hzHours(hz,D){ return D&&D.horizonte_h?String(D.horizonte_h):(String(hz||'').match(/\d+/)||['—'])[0]; }
 function parseLocalWhen(s){
   if(!s) return null;
@@ -460,7 +463,7 @@ function fmtWhenDate(d){
   return d&&Number.isFinite(d.getTime())?`${p(d.getDate())}/${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}`:'—';
 }
 function forecastTargetLabels(ev,s,D){
-  const hz=hzLabel((D&&D.horizonte)||ev.horizonte);
+  const hz=hzLabel((D&&D.rotulo)||((D&&D.horizonte)||ev.horizonte));
   if(hz==='—') return {simple:'—', tech:'—'};
   let alvo=D&&D.hora_alvo?fmtWhen(D.hora_alvo):null;
   if(!alvo || alvo==='—'){
@@ -616,7 +619,8 @@ function renderFrame(){
   const nowDm=hasNow?stageToHand(nowCm)*10:-1;
   const hasFore=foreCm!=null, foreDm=hasFore?stageToHand(foreCm)*10:-1;
   const hasObs=obsCm!=null, obsDm=hasObs?stageToHand(obsCm)*10:-1;
-  const uDm=(UNCERT[ev.horizonte]||0)*10, uMaxDm=foreDm+uDm; // borda de incerteza
+  const activeKey=(activeD&&activeD.horizonte)||ev.horizonte;
+  const uDm=(UNCERT[activeKey]||0)*10, uMaxDm=foreDm+uDm; // borda de incerteza
 
   // mancha: 3 poligonos vetoriais empilhados (incerteza embaixo, previsto no
   // meio, agora em cima). ORDEM IMPORTA: clearLayers()+addData() reinsere o
@@ -655,11 +659,11 @@ function renderFrame(){
   const cfore=document.getElementById('s-falta-fore');
   if(cnow)cnow.className=classeDistanciaCota(nowCm);
   if(cfore)cfore.className=hasFore?classeDistanciaCota(foreCm):'';
-  drawCotaChart(nowCm,hasFore?foreCm:null,hzLabel(ev.horizonte));
+  drawCotaChart(nowCm,hasFore?foreCm:null,hzLabel(activeKey));
   set('s-drio', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
   set('s-newarea', hasFore?sgn1(areaNew)+' ha':'—');
   set('s-atot', hasFore?nf.format(areaFore)+' ha':(hasNow?nf.format(areaNow)+' ha':'—'));
-  const cf=CONF[ev.horizonte]||CONF['—']; set('s-conf',cf[0]); const cd=document.getElementById('s-confdot'); if(cd)cd.style.background=cf[1];
+  const cf=CONF[activeKey]||CONF['—']; set('s-conf',cf[0]); const cd=document.getElementById('s-confdot'); if(cd)cd.style.background=cf[1];
   // ---- modo tecnico ----
   set('r-now', fmtNivel(nowCm));
   const modelBaseCm=activeD?liveModelBaseCm(activeD):null;
@@ -807,6 +811,9 @@ function liveFreshnessHtml(D){
   return partes;
 }
 function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
+  const shadowNotice=D.shadow_only?'<b>VERSAO B EM SOMBRA: comparacao experimental; nao substitui a 2h principal</b>':'';
+  const provenanceNotice=D.modelo_sha256?`SHA MAT <b>${escLive(String(D.modelo_sha256).slice(0,12))}…</b>`:'';
+  const workbookNotice=D.referencia_auditavel?`auditoria: <b>${escLive(D.referencia_auditavel)}</b>`:'';
   const modelo=D.modelo||'—';
   const horaModelo=D.hora_modelo||P[0];
   const hzTxt=D.rotulo||hzLabel(hz);
@@ -814,6 +821,9 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   const nivelModeloTxt=nivelModelo!=null?` (${Math.round(nivelModelo)} cm)`:'';
   const partes=[`Modo ${modoTxt} · Modelo <b>${modelo}</b> (${hzTxt}${tipoTxt}) · base do cálculo <b>${fmtWhen(horaModelo)}</b>${nivelModeloTxt}`];
   if(D.hora_alvo) partes.push(`previsão para <b>${fmtWhen(D.hora_alvo)}</b>`);
+  if(shadowNotice) partes.push(shadowNotice);
+  if(provenanceNotice) partes.push(provenanceNotice);
+  if(workbookNotice) partes.push(workbookNotice);
   if(D.modo_cascata && D.input_cascata_2h_cm!=null){
     partes.push(`cascata: ${escLive(D.input_cascata_nome||'saída 2h')} <b>${nf1.format(D.input_cascata_2h_cm)} cm</b>`);
   }

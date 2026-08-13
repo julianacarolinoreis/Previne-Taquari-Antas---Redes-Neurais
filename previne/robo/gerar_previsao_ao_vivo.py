@@ -28,6 +28,11 @@ def agora_brt():
 
 # ---- config ----
 MODELO_MAT = "previne/assets/mat/009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.mat"
+MODELO_2H_B_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__02h__ALT__15inputs_VFINAL_20260731.mat"
+MODELO_2H_B_ID = "STZ_2H_ALT_VFINAL_B_20260731"
+MODELO_2H_B_SHA256 = "6AE75018344625E8D3035F43A50F6556694C4B96510AC47241348EA5235D72A2"
+MODELO_2H_B_WORKBOOK = "assets/audit_workbooks/modelo_2h_versao_b_20260812.xlsx"
+MODELO_2H_B_WORKBOOK_SHA256 = "90F366F15360FAB5821B929D33B09E751A155F2BA86D28F218B16B247A792190"
 MODELO_4H_PRO_MAT = "assets/mat/4H_ALT__V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.mat"
 MODELO_4H_PRO_ID = "V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000"
 MODELO_4H_CASCATA_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__CASCATA_VFINAL_R03_DYN9_INC.mat"
@@ -94,6 +99,28 @@ MODELOS = [
         "inputs_total": 15,
         "montador": "2h_alt_15in",
         "principal": True,
+        "ativo_ao_vivo": True,
+        "versao": "A / OPERA2",
+        "status_publicacao": "principal",
+    },
+    {
+        "horizonte": "2h_versao_b",
+        "rotulo": "2h versao B (VFINAL)",
+        "horizonte_h": 2,
+        "tipo": "ALT_VERSAO_B",
+        "modelo": MODELO_2H_B_ID,
+        "mat": MODELO_2H_B_MAT,
+        "inputs_total": 15,
+        "montador": "2h_alt_15in",
+        "principal": False,
+        "ativo_ao_vivo": True,
+        "shadow_only": True,
+        "versao": "B / OPERA3 / VFINAL 2026-07-31",
+        "status_publicacao": "sombra_experimental",
+        "modelo_sha256": MODELO_2H_B_SHA256,
+        "referencia_auditavel": MODELO_2H_B_WORKBOOK,
+        "referencia_auditavel_sha256": MODELO_2H_B_WORKBOOK_SHA256,
+        "proveniencia_nota": "MAT v7.3 recebido como RNAPREV__SANTA_TEREZA__02h__ALT__15inputs_VFINAL_20260731.mat; workbook fornecido como modelo_2h.xlsx e arquivado com alias auditavel.",
     },
     {
         "horizonte": "4h",
@@ -1123,6 +1150,12 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
         "montador": cfg.get("montador"),
         "versao": cfg.get("versao"),
         "ativo_ao_vivo": bool(cfg.get("ativo_ao_vivo", False)),
+        "principal": bool(cfg.get("principal", False)),
+        "shadow_only": bool(cfg.get("shadow_only", False)),
+        "status_publicacao": cfg.get("status_publicacao"),
+        "modelo_sha256": (sha256_arquivo(cfg["mat"]) if os.path.exists(cfg.get("mat", "")) else cfg.get("modelo_sha256")),
+        "referencia_auditavel_sha256": cfg.get("referencia_auditavel_sha256"),
+        "proveniencia_nota": cfg.get("proveniencia_nota"),
         "referencia_auditavel": cfg.get("referencia_auditavel"),
         "input_labels": cfg.get("input_labels"),
         "input_anchor_note": cfg.get("input_anchor_note"),
@@ -1400,7 +1433,7 @@ def algum_horizonte_com_previsao(horizontes):
     )
 
 def main():
-    aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h, 4h e 4h cascata), em paralelo ao SGB/SACE."
+    aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h principal, 2h versao B em sombra, 4h e 4h cascata), em paralelo ao SGB/SACE. A versao B e comparativa e nao substitui a 2h principal."
     try:
         # As consultas são independentes. Paralelizar evita que um timeout de
         # uma estação deixe o painel sem atualização por vários minutos.
