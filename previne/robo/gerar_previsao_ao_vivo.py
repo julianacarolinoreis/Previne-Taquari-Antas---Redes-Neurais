@@ -322,6 +322,20 @@ AUDITORIA_VERSAO = "target_exact_v2"
 # com uma leitura proxima, mas o pacote deve denunciar quando algum input ficou
 # mais de meia hora sem leitura na hora solicitada.
 INPUT_WARN_MAX_AGE = dt.timedelta(minutes=30)
+# Guarda de plausibilidade para a telemetria de nível. A unidade publicada
+# pela ANA/SGB é cm; valores acima de 50 m não são aceitos como entrada de
+# nenhuma RNA sem revisão manual. O valor bruto continua preservado no status
+# da estação para auditoria, mas não chega ao montador nem ao MAT.
+NIVEL_PLAUSIVEL_MIN_CM = -500.0
+NIVEL_PLAUSIVEL_MAX_CM = 5000.0
+# Algumas estações montantes usam uma cota absoluta diferente da régua de
+# Santa Tereza. A V01 de 26 entradas foi treinada com 86125500 nessa escala
+# (aprox. 24.000--25.300 cm); aplicar o teto de Santa Tereza a ela bloquearia
+# uma entrada válida. O limite continua conservador e específico por estação.
+NIVEL_PLAUSIVEL_MAX_POR_ESTACAO_CM = {
+    "86125500": 30000.0,
+    "86448000": 30000.0,
+}
 # O V01_R10 foi treinado com uma linha horária completa.  Não é seguro
 # alimentar a rede com uma mistura de leituras de 15 min, interpolação e
 # vizinhos: isso muda a semântica dos 24 sinais, mesmo quando todos têm valor.
@@ -337,7 +351,30 @@ def _vizinhos_serie(serie, t):
     depois = keys[i] if i < len(keys) else None
     return antes, depois
 
-def nivel_com_proveniencia(serie, t, max_gap=NIVEL_MAX_GAP):
+def _limites_plausiveis(estacao=None):
+    return (
+        NIVEL_PLAUSIVEL_MIN_CM,
+        NIVEL_PLAUSIVEL_MAX_POR_ESTACAO_CM.get(estacao, NIVEL_PLAUSIVEL_MAX_CM),
+    )
+
+def _nivel_plausivel(valor, estacao=None):
+    try:
+        valor = float(valor)
+    except (TypeError, ValueError):
+        return False
+    minimo, maximo = _limites_plausiveis(estacao)
+    return minimo <= valor <= maximo
+
+def _marcar_fora_faixa(base, valores, estacao=None):
+    minimo, maximo = _limites_plausiveis(estacao)
+    base.update({
+        "metodo": "FORA_FAIXA",
+        "valor_bruto_cm": [round(float(v), 3) for v in valores if v is not None],
+        "limites_plausiveis_cm": [minimo, maximo],
+    })
+    return None, base
+
+def nivel_com_proveniencia(serie, t, max_gap=NIVEL_MAX_GAP, estacao=None):
     """Resolve um nivel e registra como ele foi obtido.
 
     O valor numerico segue a regra historica de ``nivel`` (exato, interpolacao
@@ -354,6 +391,8 @@ def nivel_com_proveniencia(serie, t, max_gap=NIVEL_MAX_GAP):
     if not serie:
         return None, base
     if t in serie:
+        if not _nivel_plausivel(serie[t], estacao):
+            return _marcar_fora_faixa(base, [serie[t]], estacao)
         base.update({
             "metodo": "EXATO",
             "horarios_usados": [t.isoformat(timespec="minutes")],
@@ -363,6 +402,8 @@ def nivel_com_proveniencia(serie, t, max_gap=NIVEL_MAX_GAP):
     antes, depois = _vizinhos_serie(serie, t)
     if antes is not None and depois is not None and antes != depois:
         if (t - antes) <= max_gap and (depois - t) <= max_gap:
+            if not _nivel_plausivel(serie[antes], estacao) or not _nivel_plausivel(serie[depois], estacao):
+                return _marcar_fora_faixa(base, [serie[antes], serie[depois]], estacao)
             span = (depois - antes).total_seconds()
             if span > 0:
                 w = (t - antes).total_seconds() / span
@@ -386,6 +427,8 @@ def nivel_com_proveniencia(serie, t, max_gap=NIVEL_MAX_GAP):
     if not candidatos:
         return None, base
     melhor = min(candidatos, key=lambda k: abs((k - t).total_seconds()))
+    if not _nivel_plausivel(serie[melhor], estacao):
+        return _marcar_fora_faixa(base, [serie[melhor]], estacao)
     base.update({
         "metodo": "VIZINHO_MAIS_PROXIMO",
         "horarios_usados": [melhor.isoformat(timespec="minutes")],
@@ -394,14 +437,14 @@ def nivel_com_proveniencia(serie, t, max_gap=NIVEL_MAX_GAP):
     return float(serie[melhor]), base
 
 
-def nivel(serie, t, max_gap=NIVEL_MAX_GAP):
+def nivel(serie, t, max_gap=NIVEL_MAX_GAP, estacao=None):
     """Nível no timestamp t.
 
     1) match exato; 2) interpolação linear se os dois vizinhos cabem em max_gap;
     3) vizinho mais perto dentro de max_gap. Sem isso o robô congela a previsão
     2h numa hora antiga e o gráfico fica incoerente com a telemetria atual.
     """
-    valor, _ = nivel_com_proveniencia(serie, t, max_gap=max_gap)
+    valor, _ = nivel_com_proveniencia(serie, t, max_gap=max_gap, estacao=estacao)
     return valor
 
 def observar_nivel(serie, alvo, max_gap=AUDITORIA_MAX_GAP):
@@ -413,13 +456,17 @@ def observar_nivel(serie, alvo, max_gap=AUDITORIA_MAX_GAP):
     if not serie or alvo is None:
         return None, None
     if alvo in serie:
+        if not _nivel_plausivel(serie[alvo]):
+            return None, None
         return float(serie[alvo]), alvo
     antes, depois = _vizinhos_serie(serie, alvo)
     candidatos = []
     if antes is not None and (alvo - antes) <= max_gap:
-        candidatos.append(antes)
+        if _nivel_plausivel(serie[antes]):
+            candidatos.append(antes)
     if depois is not None and (depois - alvo) <= max_gap:
-        candidatos.append(depois)
+        if _nivel_plausivel(serie[depois]):
+            candidatos.append(depois)
     if not candidatos:
         return None, None
     usado = min(candidatos, key=lambda k: abs((k - alvo).total_seconds()))
@@ -440,7 +487,7 @@ def chuva_media_acum_36h(series, t):
     return total
 
 def _n(series, cod, t, h=0):
-    return nivel(series.get(cod, {}), t - dt.timedelta(hours=h))
+    return nivel(series.get(cod, {}), t - dt.timedelta(hours=h), estacao=cod)
 
 def _D(series, cod, t, h):
     a, b = _n(series, cod, t, 0), _n(series, cod, t, h)
@@ -463,7 +510,7 @@ def montar_inputs(series, t):
       A-Xh(s) = [n(t)-n(t-1h)] - [n(t-Xh)-n(t-Xh-1h)]           (aceleração)
     """
     def n(cod, h=0):
-        return nivel(series[cod], t - dt.timedelta(hours=h))
+        return nivel(series[cod], t - dt.timedelta(hours=h), estacao=cod)
     def D(cod, h):
         a, b = n(cod, 0), n(cod, h)
         return None if None in (a, b) else a - b
@@ -493,7 +540,7 @@ def montar_inputs(series, t):
 def montar_inputs_4h(series, t):
     """Monta os 5 inputs do 4h ALT prio_12478 conforme planilha auditavel."""
     def n(cod, h=0):
-        return nivel(series.get(cod, {}), t - dt.timedelta(hours=h))
+        return nivel(series.get(cod, {}), t - dt.timedelta(hours=h), estacao=cod)
     def D(cod, h):
         a, b = n(cod, 0), n(cod, h)
         return None if None in (a, b) else a - b
@@ -520,7 +567,7 @@ def montar_inputs_4h_v01_r10(series, t):
     segunda coluna escondida: o MAT recebe exatamente os 24 valores abaixo.
     """
     def n(cod, h=0):
-        return nivel(series.get(cod, {}), t - dt.timedelta(hours=h))
+        return nivel(series.get(cod, {}), t - dt.timedelta(hours=h), estacao=cod)
     def D(cod, h):
         a, b = n(cod, 0), n(cod, h)
         return None if None in (a, b) else a - b
@@ -565,7 +612,7 @@ def montar_inputs_4h_v01_26(series, t):
     horas: A_h(t) = [N(t)-N(t-1h)] - [N(t-h)-N(t-(h+1)h)].
     """
     def n(cod, h=0):
-        return nivel(series.get(cod, {}), t - dt.timedelta(hours=h))
+        return nivel(series.get(cod, {}), t - dt.timedelta(hours=h), estacao=cod)
     def D(cod, h):
         a, b = n(cod, 0), n(cod, h)
         return None if None in (a, b) else a - b
@@ -618,6 +665,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None, specs_override=None, la
     n_ausentes = 0
     n_interpolados = 0
     n_vizinhos = 0
+    n_fora_faixa = 0
     n_nao_exatos = 0
     n_exatos = 0
     formula_ok = True
@@ -628,7 +676,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None, specs_override=None, la
         for atraso in offsets:
             solicitado = t - dt.timedelta(hours=atraso)
             valor, prov = nivel_com_proveniencia(
-                series.get(cod, {}), solicitado, max_gap=NIVEL_MAX_GAP
+                series.get(cod, {}), solicitado, max_gap=NIVEL_MAX_GAP, estacao=cod
             )
             numeros.append(valor)
             dependencias.append({
@@ -652,6 +700,8 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None, specs_override=None, la
             idades.append(idade)
         if "AUSENTE" in metodos:
             n_ausentes += 1
+        if "FORA_FAIXA" in metodos:
+            n_fora_faixa += 1
         if "VIZINHO_MAIS_PROXIMO" in metodos and (idade or 0) >= INPUT_WARN_MAX_AGE.total_seconds() / 60:
             n_atrasados += 1
         if "INTERPOLADO" in metodos:
@@ -677,7 +727,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None, specs_override=None, la
             "dependencias": dependencias,
             "idade_max_min": idade,
         })
-    if n_ausentes:
+    if n_ausentes or n_fora_faixa:
         status = "INVALIDO"
     elif n_nao_exatos:
         status = "ATENCAO"
@@ -693,8 +743,10 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None, specs_override=None, la
         "n_inputs_nao_exatos": n_nao_exatos,
         "n_inputs_atrasados": n_atrasados,
         "n_inputs_ausentes": n_ausentes,
+        "n_inputs_fora_faixa": n_fora_faixa,
         "idade_max_input_min": (max(idades) if idades else None),
-        "regra_atraso": "ATENCAO quando qualquer dependencia nao e EXATO na mesma hora-base; INVALIDO quando falta qualquer dependencia",
+        "regra_atraso": "ATENCAO quando qualquer dependencia nao e EXATO na mesma hora-base; INVALIDO quando falta ou sai da faixa plausivel qualquer dependencia",
+        "faixa_plausivel_cm": [NIVEL_PLAUSIVEL_MIN_CM, NIVEL_PLAUSIVEL_MAX_CM],
         "contrato_temporal": "24 inputs do V01 em grade horaria exata, todos na mesma hora-base; interpolacao/vizinho nao entra na selecao do modelo",
         "definicao_aceleracao": {
             "formula": "A_h(t) = [N(t)-N(t-1h)] - [N(t-h)-N(t-(h+1)h)]",
@@ -807,11 +859,15 @@ def diagnosticar_inputs_faltantes(series, t, inputs):
         horarios = []
         for h in dict.fromkeys(atrasos):
             hora = t - dt.timedelta(hours=h)
-            disponivel = hora in series.get(cod_estacao, {})
+            bruto = series.get(cod_estacao, {}).get(hora)
+            fora_faixa = bruto is not None and not _nivel_plausivel(bruto, cod_estacao)
+            disponivel = bruto is not None and not fora_faixa
             horarios.append({
                 "atraso_h": h,
                 "hora": hora.isoformat(timespec="minutes"),
                 "disponivel": disponivel,
+                "valor_bruto_cm": (round(float(bruto), 3) if bruto is not None else None),
+                "fora_faixa": fora_faixa,
             })
         faltantes.append({
             "input": codigo_input,
@@ -820,6 +876,8 @@ def diagnosticar_inputs_faltantes(series, t, inputs):
             "estacao_nome": NOMES_ESTACOES.get(cod_estacao, cod_estacao),
             "horarios_necessarios": [h["hora"] for h in horarios],
             "horarios_faltantes": [h["hora"] for h in horarios if not h["disponivel"]],
+            "horarios_fora_faixa": [h["hora"] for h in horarios if h["fora_faixa"]],
+            "limites_plausiveis_cm": [NIVEL_PLAUSIVEL_MIN_CM, NIVEL_PLAUSIVEL_MAX_CM],
         })
     return faltantes
 
@@ -1009,6 +1067,11 @@ def resumo_estacoes(series):
     for cod in ESTACOES:
         serie = series.get(cod, {})
         raw = ULTIMA_RAW.get(cod)
+        fora_faixa = [
+            (hora, valor) for hora, valor in serie.items()
+            if not _nivel_plausivel(valor, cod)
+        ]
+        ultima_fora_faixa = max(fora_faixa, key=lambda par: par[0]) if fora_faixa else None
         ultima_hora = max(serie) if serie else None
         meta = METADADOS_ESTACOES.get(cod, {})
         resumo.append({
@@ -1028,6 +1091,16 @@ def resumo_estacoes(series):
             "idade_leitura_min": (
                 round((consultado_em - raw[0]).total_seconds() / 60) if raw else None
             ),
+            "qc_status": "ATENCAO_FORA_FAIXA" if fora_faixa else "NORMAL",
+            "qc_fora_faixa_n": len(fora_faixa),
+            "qc_ultima_fora_faixa": (
+                {
+                    "hora": ultima_fora_faixa[0].isoformat(timespec="minutes"),
+                    "nivel_cm": round(float(ultima_fora_faixa[1]), 3),
+                }
+                if ultima_fora_faixa else None
+            ),
+            "limites_plausiveis_cm": [NIVEL_PLAUSIVEL_MIN_CM, NIVEL_PLAUSIVEL_MAX_CM],
         })
     return resumo
 
@@ -1327,6 +1400,13 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
             aviso, [], estacoes_status,
         )
         out["disponivel"] = True
+        if cfg.get("montador") == "4h_alt_v01_r10":
+            out["auditoria_inputs"] = {
+                "status": "INVALIDO",
+                "motivo": "nenhuma hora-base passou a auditoria de cobertura, atraso e faixa plausivel",
+                "n_inputs": cfg.get("inputs_total"),
+                "faixa_plausivel_cm": [NIVEL_PLAUSIVEL_MIN_CM, NIVEL_PLAUSIVEL_MAX_CM],
+            }
         return out
     try:
         x, st0 = montar_inputs_modelo(cfg, series, t)
@@ -1339,6 +1419,8 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         inputs_faltantes = diagnosticar_inputs_modelo(cfg, series, t, x)
         out = _base_saida(cfg, st0, None, t, f"inputs incompletos ({faltando}/{cfg['inputs_total']} faltando) - sem previsao nesta hora", aviso, inputs_faltantes, estacoes_status)
         out["disponivel"] = True
+        if cfg.get("montador") == "4h_alt_v01_r10":
+            out["auditoria_inputs"] = auditoria_inputs_4h_v01_r10(series, t, valores=x)
         return out
     try:
         delta_bruto = prever(cfg["mat"], x)
