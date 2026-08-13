@@ -286,6 +286,11 @@ def buscar_ana_chuva(cod, dias=5):
 # Interpolamos/aproximamos só dentro destes tetos — além disso, fica None.
 NIVEL_MAX_GAP = dt.timedelta(minutes=150)
 AUDITORIA_MAX_GAP = dt.timedelta(minutes=30)
+# Um valor ainda dentro de NIVEL_MAX_GAP pode estar deslocado no tempo.  A
+# RNA foi treinada em passos horarios; por isso a previsao continua disponivel
+# com uma leitura proxima, mas o pacote deve denunciar quando algum input ficou
+# mais de meia hora sem leitura na hora solicitada.
+INPUT_WARN_MAX_AGE = dt.timedelta(minutes=30)
 
 def _vizinhos_serie(serie, t):
     """Retorna (antes, depois) mais próximos de t em serie (dict timestamp→valor)."""
@@ -297,6 +302,63 @@ def _vizinhos_serie(serie, t):
     depois = keys[i] if i < len(keys) else None
     return antes, depois
 
+def nivel_com_proveniencia(serie, t, max_gap=NIVEL_MAX_GAP):
+    """Resolve um nivel e registra como ele foi obtido.
+
+    O valor numerico segue a regra historica de ``nivel`` (exato, interpolacao
+    linear ou vizinho mais proximo dentro de ``max_gap``).  A proveniencia e
+    essencial para diferenciar uma aceleracao calculada com quatro leituras
+    horarias reais de outra calculada com uma leitura atrasada.
+    """
+    base = {
+        "horario_solicitado": t.isoformat(timespec="minutes") if t else None,
+        "metodo": "AUSENTE",
+        "horarios_usados": [],
+        "idade_max_min": None,
+    }
+    if not serie:
+        return None, base
+    if t in serie:
+        base.update({
+            "metodo": "EXATO",
+            "horarios_usados": [t.isoformat(timespec="minutes")],
+            "idade_max_min": 0.0,
+        })
+        return float(serie[t]), base
+    antes, depois = _vizinhos_serie(serie, t)
+    if antes is not None and depois is not None and antes != depois:
+        if (t - antes) <= max_gap and (depois - t) <= max_gap:
+            span = (depois - antes).total_seconds()
+            if span > 0:
+                w = (t - antes).total_seconds() / span
+                base.update({
+                    "metodo": "INTERPOLADO",
+                    "horarios_usados": [
+                        antes.isoformat(timespec="minutes"),
+                        depois.isoformat(timespec="minutes"),
+                    ],
+                    "idade_max_min": round(max(
+                        (t - antes).total_seconds(),
+                        (depois - t).total_seconds(),
+                    ) / 60.0, 1),
+                })
+                return float(serie[antes] * (1.0 - w) + serie[depois] * w), base
+    candidatos = []
+    if antes is not None and (t - antes) <= max_gap:
+        candidatos.append(antes)
+    if depois is not None and (depois - t) <= max_gap:
+        candidatos.append(depois)
+    if not candidatos:
+        return None, base
+    melhor = min(candidatos, key=lambda k: abs((k - t).total_seconds()))
+    base.update({
+        "metodo": "VIZINHO_MAIS_PROXIMO",
+        "horarios_usados": [melhor.isoformat(timespec="minutes")],
+        "idade_max_min": round(abs((melhor - t).total_seconds()) / 60.0, 1),
+    })
+    return float(serie[melhor]), base
+
+
 def nivel(serie, t, max_gap=NIVEL_MAX_GAP):
     """Nível no timestamp t.
 
@@ -304,26 +366,8 @@ def nivel(serie, t, max_gap=NIVEL_MAX_GAP):
     3) vizinho mais perto dentro de max_gap. Sem isso o robô congela a previsão
     2h numa hora antiga e o gráfico fica incoerente com a telemetria atual.
     """
-    if not serie:
-        return None
-    if t in serie:
-        return serie[t]
-    antes, depois = _vizinhos_serie(serie, t)
-    if antes is not None and depois is not None and antes != depois:
-        if (t - antes) <= max_gap and (depois - t) <= max_gap:
-            span = (depois - antes).total_seconds()
-            if span > 0:
-                w = (t - antes).total_seconds() / span
-                return serie[antes] * (1.0 - w) + serie[depois] * w
-    candidatos = []
-    if antes is not None and (t - antes) <= max_gap:
-        candidatos.append(antes)
-    if depois is not None and (depois - t) <= max_gap:
-        candidatos.append(depois)
-    if not candidatos:
-        return None
-    melhor = min(candidatos, key=lambda k: abs((k - t).total_seconds()))
-    return serie[melhor]
+    valor, _ = nivel_com_proveniencia(serie, t, max_gap=max_gap)
+    return valor
 
 def observar_nivel(serie, alvo, max_gap=AUDITORIA_MAX_GAP):
     """Observado para auditoria: exato ou vizinho real dentro de max_gap.
@@ -477,6 +521,119 @@ def montar_inputs_4h_v01_r10(series, t):
         A("86298000", 16),     # input_16_Acel-16h_86298000
     ]
     return inputs, st0
+
+
+def auditoria_inputs_4h_v01_r10(series, t, valores=None):
+    """Audita a origem temporal e a formula dos 24 inputs do V01.
+
+    ``A_h`` nao e uma aceleracao fisica em cm/s2: e a convencao discreta
+    usada na base de treinamento, isto e, a diferenca entre duas variacoes
+    de nivel de uma hora separadas por ``h`` horas.  Manter essa convencao e
+    necessario para que o input ao vivo seja identico ao input do MAT.
+    """
+    specs = [
+        ("nivel", "86472600", 0),
+        ("dif", "86472600", 1), ("dif", "86472600", 2), ("dif", "86472600", 4),
+        ("acel", "86472600", 1), ("acel", "86472600", 4), ("acel", "86472600", 12),
+        ("nivel", "86472000", 0),
+        ("dif", "86472000", 1), ("dif", "86472000", 2), ("dif", "86472000", 4),
+        ("acel", "86472000", 2), ("acel", "86472000", 8), ("acel", "86472000", 16),
+        ("dif", "86125500", 2), ("dif", "86125500", 6),
+        ("dif", "86125500", 10), ("dif", "86125500", 14),
+        ("dif", "86298000", 2), ("dif", "86298000", 6),
+        ("dif", "86298000", 10),
+        ("acel", "86298000", 2), ("acel", "86298000", 8), ("acel", "86298000", 16),
+    ]
+    labels = next(
+        (cfg.get("input_labels") for cfg in MODELOS
+         if cfg.get("modelo") == MODELO_4H_PRO_ID),
+        None,
+    ) or []
+    entradas = []
+    idades = []
+    n_atrasados = 0
+    n_ausentes = 0
+    n_interpolados = 0
+    n_vizinhos = 0
+    n_exatos = 0
+    formula_ok = True
+    for i, (tipo, cod, h) in enumerate(specs):
+        offsets = [0] if tipo == "nivel" else ([0, h] if tipo == "dif" else [0, 1, h, h + 1])
+        dependencias = []
+        numeros = []
+        for atraso in offsets:
+            solicitado = t - dt.timedelta(hours=atraso)
+            valor, prov = nivel_com_proveniencia(
+                series.get(cod, {}), solicitado, max_gap=NIVEL_MAX_GAP
+            )
+            numeros.append(valor)
+            dependencias.append({
+                "atraso_h": atraso,
+                **prov,
+            })
+        if any(v is None for v in numeros):
+            calculado = None
+        elif tipo == "nivel":
+            calculado = numeros[0]
+        elif tipo == "dif":
+            calculado = numeros[0] - numeros[1]
+        else:
+            calculado = (numeros[0] - numeros[1]) - (numeros[2] - numeros[3])
+        metodos = {d["metodo"] for d in dependencias}
+        idade = max(
+            (d["idade_max_min"] for d in dependencias if d["idade_max_min"] is not None),
+            default=None,
+        )
+        if idade is not None:
+            idades.append(idade)
+        if "AUSENTE" in metodos:
+            n_ausentes += 1
+        if "VIZINHO_MAIS_PROXIMO" in metodos and (idade or 0) > INPUT_WARN_MAX_AGE.total_seconds() / 60:
+            n_atrasados += 1
+        if "INTERPOLADO" in metodos:
+            n_interpolados += 1
+        if "VIZINHO_MAIS_PROXIMO" in metodos:
+            n_vizinhos += 1
+        if metodos == {"EXATO"}:
+            n_exatos += 1
+        if valores is not None and calculado is not None and valores[i] is not None:
+            if abs(float(calculado) - float(valores[i])) > 1e-9:
+                formula_ok = False
+        entradas.append({
+            "indice": i + 1,
+            "rotulo": labels[i] if i < len(labels) else f"input_{i + 1:02d}",
+            "tipo": tipo,
+            "estacao": cod,
+            "janela_h": h if tipo != "nivel" else 0,
+            "valor_cm": (round(float(calculado), 3) if calculado is not None else None),
+            "dependencias": dependencias,
+            "idade_max_min": idade,
+        })
+    if n_ausentes:
+        status = "INVALIDO"
+    elif n_atrasados:
+        status = "ATENCAO"
+    else:
+        status = "NORMAL"
+    return {
+        "status": status,
+        "formula_conferida_com_montador": bool(formula_ok),
+        "n_inputs": len(specs),
+        "n_exatos": n_exatos,
+        "n_interpolados": n_interpolados,
+        "n_vizinhos_mais_proximos": n_vizinhos,
+        "n_inputs_atrasados": n_atrasados,
+        "n_inputs_ausentes": n_ausentes,
+        "idade_max_input_min": (max(idades) if idades else None),
+        "regra_atraso": "ATENCAO quando uma dependencia usa vizinho mais proximo a mais de 30 min; INVALIDO quando falta qualquer dependencia",
+        "definicao_aceleracao": {
+            "formula": "A_h(t) = [N(t)-N(t-1h)] - [N(t-h)-N(t-(h+1)h)]",
+            "interpretacao": "segunda diferenca discreta / mudanca da variacao horaria",
+            "unidade_na_RNA": "cm na convencao da base; nao e cm/s2",
+            "divisao_por_horas": "nao aplicada, exatamente como na base V01",
+        },
+        "inputs": entradas,
+    }
 
 # indices (na ordem de montar_inputs(), o mesmo 2h VFINAL exibido no site) que
 # alimentam a cascata DYN9_INC -- nucleo Santa Tereza + Linha Jose Julio nivel/D5h.
@@ -1107,6 +1264,15 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         out["delta_previsto_cm"] = round(delta, 1)
         if cfg.get("input_labels"):
             out["input_values_cm"] = [round(float(v), 3) for v in x]
+        if cfg.get("montador") == "4h_alt_v01_r10":
+            auditoria_inputs = auditoria_inputs_4h_v01_r10(series, t, valores=x)
+            out["auditoria_inputs"] = auditoria_inputs
+            if auditoria_inputs["status"] == "ATENCAO":
+                out["status"] = (
+                    "ok - atencao: dependencia de input atrasada "
+                    f"({auditoria_inputs['n_inputs_atrasados']} input(s), "
+                    f"idade maxima {auditoria_inputs['idade_max_input_min']:.0f} min)"
+                )
         if cfg.get("cascata"):
             out["modo_cascata"] = True
             out["modelo_base_2h"] = cfg["cascata"]["modelo_base"]

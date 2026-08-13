@@ -255,6 +255,7 @@
         <div class="read"><span>Erro da última conferida</span><b id="a-err">—</b></div>
         <div class="read"><span>MAE recente</span><b id="a-mae">—</b></div>
         <div class="read"><span>Qualidade recente da RNA</span><b id="a-quality">—</b></div>
+        <div class="read"><span>Integridade dos 24 inputs</span><b id="a-input-quality">—</b></div>
         <div id="a-recent" class="disc" style="margin-top:8px;display:none"></div>
       </div>
       <div class="read"><span class="now">Área estimada fora do leito agora</span><b class="now" id="r-anow">—</b></div>
@@ -847,6 +848,8 @@ function renderLiveAudit(D){
     set('a-err','aguardando observado');
     set('a-mae', A&&A.n_aguardando?`${A.n_aguardando} aguardando`:'—');
     set('a-quality', (D&&D.qualidade_ao_vivo&&D.qualidade_ao_vivo.status)||'sem classificacao');
+    const iq=D&&D.auditoria_inputs;
+    set('a-input-quality', iq ? `${iq.status} · ${iq.n_exatos||0} exatos · ${iq.n_interpolados||0} interpolados · ${iq.n_vizinhos_mais_proximos||0} vizinhos · atraso max ${iq.idade_max_input_min!=null?nf1.format(iq.idade_max_input_min)+' min':'—'}` : 'sem auditoria');
     if(recentBox){ recentBox.style.display='none'; recentBox.innerHTML=''; }
     return;
   }
@@ -856,6 +859,7 @@ function renderLiveAudit(D){
   const mae6=A.mae_ultimas_6_cm!=null?`MAE últimas 6: ${nf1.format(A.mae_ultimas_6_cm)} cm`:'MAE últimas 6: —';
   const mae24=A.mae_24h_cm!=null?`24h: ${nf1.format(A.mae_24h_cm)} cm`:'24h: —';
   const q=D.qualidade_ao_vivo||{};
+  const iq=D.auditoria_inputs||{};
   set('a-last', `${fmtWhen(U.hora_modelo)} → ${fmtWhen(U.hora_alvo)}`);
   set('a-prevobs', `${fmtNivel(U.nivel_previsto_cm)} × ${fmtNivel(U.observado_cm)}`);
   set('a-err', Number.isFinite(erro)?`${sinal}${nf1.format(erro)} cm`:'—');
@@ -867,6 +871,13 @@ function renderLiveAudit(D){
       ? `ATENCAO · ${mae24} · maior erro 24h: ${q.maior_erro_abs_24h_cm!=null?nf1.format(q.maior_erro_abs_24h_cm)+' cm':'—'}`
       : (q.status||'sem classificacao');
     quality.style.color=warn?'#b42318':'';
+  }
+  const inputQuality=document.getElementById('a-input-quality');
+  if(inputQuality){
+    inputQuality.textContent=iq.status
+      ? `${iq.status} · ${iq.n_exatos||0} exatos · ${iq.n_interpolados||0} interpolados · ${iq.n_vizinhos_mais_proximos||0} vizinhos · atraso max ${iq.idade_max_input_min!=null?nf1.format(iq.idade_max_input_min)+' min':'—'}`
+      : 'sem auditoria';
+    inputQuality.style.color=iq.status==='ATENCAO'||iq.status==='INVALIDO'?'#b42318':'';
   }
   // Lista as últimas conferidas para a visualização detalhada não ficar só com 1 linha.
   if(recentBox){
