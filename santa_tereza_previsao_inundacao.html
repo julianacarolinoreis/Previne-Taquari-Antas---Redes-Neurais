@@ -100,6 +100,9 @@
   .live-bar a{margin-left:auto;color:inherit;cursor:pointer;text-decoration:underline;font-weight:600}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
   .live-note{font-size:11px;color:#a5281c;background:#fff6f5;border:1px solid #f3d3cd;border-radius:9px;padding:7px 10px;margin-bottom:10px;line-height:1.4}
+  .live-status-note{font-size:11px;color:#6f4a12;background:#fff8e8;border:1px solid #efd49a;border-radius:9px;padding:7px 10px;margin:8px 0;line-height:1.4}
+  .live-status-note.ok{color:#176247;background:#f0faf5;border-color:#b8ddca}
+  .live-status-note.warn{color:#8a2d26;background:#fff5f3;border-color:#f0c1b8}
   /* pesquisa validada: painel separado do produto experimental ao vivo */
   .research-panel{border:1px solid #b9d9ca;background:linear-gradient(180deg,#f5fbf7,#fff);border-radius:14px;padding:13px 14px;margin:0 0 14px;box-shadow:var(--shadow)}
   .research-panel .rp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
@@ -215,6 +218,12 @@
         <div class="conf">Confiabilidade indicativa do horizonte (não é probabilidade): <span class="dot" id="s-confdot"></span><b id="s-conf">—</b></div>
       </div>
 
+      <div id="live-status-note" class="live-status-note" style="display:none"></div>
+
+      <details class="card"><summary>Conferência das últimas previsões</summary><div class="body">
+        <div id="live-audit-summary" class="disc" style="margin-top:0">Aguardando dados da auditoria.</div>
+      </div></details>
+
       <details class="card"><summary>Como esta previsão é feita?</summary><div class="body">
         <div class="method">
           <div class="step" data-exp="A estação 86472600 informa o nível atual do rio em Santa Tereza."><b>Nível atual</b> do rio</div>
@@ -257,7 +266,7 @@
         <div class="read"><span>Erro da última conferida</span><b id="a-err">—</b></div>
         <div class="read"><span>MAE recente</span><b id="a-mae">—</b></div>
         <div class="read"><span>Qualidade recente da RNA</span><b id="a-quality">—</b></div>
-        <div class="read"><span>Integridade dos 24 inputs</span><b id="a-input-quality">—</b></div>
+        <div class="read"><span>Integridade dos inputs da RNA</span><b id="a-input-quality">—</b></div>
         <div id="a-recent" class="disc" style="margin-top:8px;display:none"></div>
       </div>
       <div class="read"><span class="now">Área estimada fora do leito agora</span><b class="now" id="r-anow">—</b></div>
@@ -903,6 +912,44 @@ function renderLiveAudit(D){
     }
   }
 }
+function renderLiveStatus(D,hz){
+  const box=document.getElementById('live-status-note');
+  if(!box) return;
+  const q=D&&D.qualidade_ao_vivo||{};
+  const A=D&&D.auditoria||{};
+  const iq=D&&D.auditoria_inputs||{};
+  const base=D&&D.hora_modelo?fmtWhen(D.hora_modelo):'—';
+  const tele=D&&D.telemetria_ultima_em?fmtWhen(D.telemetria_ultima_em):'—';
+  const consulted=D&&D.consultado_em?fmtWhen(D.consultado_em):'—';
+  const status=String(D&&D.status||'').toLowerCase();
+  const stale=status.includes('aguardando')||status.includes('atras')||status.includes('sem dado');
+  const parts=[];
+  if(stale){
+    parts.push(`<b>Previsão mantida da base ${escLive(base)}</b>: a consulta mais recente não trouxe uma leitura ANA nova (última leitura ${escLive(tele)}; robô consultado ${escLive(consulted)}).`);
+  }else{
+    parts.push(`<b>Base da previsão:</b> ${escLive(base)} · leitura ANA ${escLive(tele)} · consulta ${escLive(consulted)}.`);
+  }
+  if(q.status==='ATENCAO'){
+    parts.push(`<b>${escLive(hzLabel(hz))} em atenção:</b> MAE recente ${q.mae_24h_cm!=null?nf1.format(q.mae_24h_cm)+' cm':'—'}; maior erro ${q.maior_erro_abs_24h_cm!=null?nf1.format(q.maior_erro_abs_24h_cm)+' cm':'—'}.`);
+  }else if(q.status){
+    parts.push(`<b>Qualidade recente:</b> ${escLive(q.status)} · MAE 24h ${q.mae_24h_cm!=null?nf1.format(q.mae_24h_cm)+' cm':'—'}.`);
+  }
+  if(iq.n_inputs!=null||iq.n_exatos!=null){
+    parts.push(`Inputs: ${iq.n_exatos||0}/${iq.n_inputs||D.inputs_total||'?'} exatos, ${iq.n_inputs_atrasados||0} atrasados.`);
+  }else if(D.inputs_total!=null){
+    parts.push(`Inputs declarados: ${D.inputs_total}; auditoria detalhada não publicada neste horizonte.`);
+  }
+  box.className='live-status-note '+(q.status==='ATENCAO'?'warn':(stale?'':'ok'));
+  box.innerHTML=parts.join(' ');
+  box.style.display='';
+  const summary=document.getElementById('live-audit-summary');
+  if(summary){
+    const n=A.n_conferidas!=null?A.n_conferidas:'—';
+    const last=A.ultima_conferida;
+    const err=last&&last.erro_cm!=null?`${Number(last.erro_cm)>0?'+':''}${nf1.format(last.erro_cm)} cm`:'—';
+    summary.innerHTML=`<b>${escLive(hzLabel(hz))}:</b> ${n} previsões conferidas · última ${last?`${fmtWhen(last.hora_modelo)} → ${fmtWhen(last.hora_alvo)}`:'ainda não conferida'} · erro da última ${err} · MAE 24h ${q.mae_24h_cm!=null?nf1.format(q.mae_24h_cm)+' cm':'—'}.`;
+  }
+}
 function liveWhenText(D,P){
   const base=fmtWhen(D.telemetria_ultima_em||D.hora_modelo||D.consultado_em||P[0]);
   const avisos=[];
@@ -967,6 +1014,7 @@ function renderLiveStep(){
     const ei=document.getElementById('evinfo');
     if(ei) ei.innerHTML=liveInfoHtml(L,P,hz,tipoTxt,modoTxt);
     renderLiveAudit(L);
+    renderLiveStatus(L,hz);
     set('live-kind', liveWhenKind(L));
     set('live-when', liveWhenText(L,P));
     renderFrame();
