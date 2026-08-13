@@ -63,8 +63,11 @@ def main() -> int:
         if audit.get("n_inputs_nao_exatos", 0) != 0:
             raise SystemExit("4h publicou inputs interpolados/vizinhos")
         vals = four.get("input_values_cm") or []
-        if len(vals) != 24 or four.get("inputs_total") != 24:
-            raise SystemExit("4h precisa publicar exatamente 24 inputs")
+        # O V01/R00 em produção recebe 26 sinais: os diferenciais e
+        # acelerações, mais os dois níveis-âncora montantes. O validador
+        # antigo exigia 24 e fazia uma rodada correta falhar após gerar o feed.
+        if len(vals) != 26 or four.get("inputs_total") != 26:
+            raise SystemExit("4h precisa publicar exatamente 26 inputs")
         if four.get("input_contract_version") != "hourly_exact_v1":
             raise SystemExit("4h sem contrato temporal hourly_exact_v1")
     audit = four.get("auditoria") or {}

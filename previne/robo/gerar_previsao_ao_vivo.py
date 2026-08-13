@@ -143,7 +143,7 @@ MODELOS = [
             "86298000 - nivel atual", "86298000 - D-2h", "86298000 - D-6h", "86298000 - D-10h", "86298000 - aceleracao A-2h",
             "86298000 - aceleracao A-8h", "86298000 - aceleracao A-16h",
         ],
-        "input_anchor_note": "NIVEL_ATUAL_CM e a ancora de reconstrução e persistência; os 24 sinais acima são os únicos enviados ao MAT.",
+        "input_anchor_note": "NIVEL_ATUAL_CM e a ancora de reconstrução e persistência; os 26 sinais acima (incluindo os dois níveis-âncora montantes) são enviados ao MAT.",
     },
 ]
 
