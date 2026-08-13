@@ -47,11 +47,17 @@ def main() -> int:
         if item.get("nivel_previsto_cm") is not None and item.get("status") is None:
             raise SystemExit(f"status ausente em {key}")
     four = horizons["4h"]
+    four_input_audit = four.get("auditoria_inputs") or {}
+    if four.get("nivel_previsto_cm") is None:
+        if four.get("status") is None:
+            raise SystemExit("4h indisponivel sem status explicito")
+        if four_input_audit and four_input_audit.get("status") not in {"INVALIDO", "ATENCAO"}:
+            raise SystemExit("4h indisponivel com auditoria de inputs inconsistente")
     if four.get("nivel_previsto_cm") is not None:
         hora = str(four.get("hora_modelo") or "")
         if len(hora) < 16 or hora[14:16] != "00":
             raise SystemExit(f"4h fora da grade horaria exata: {hora}")
-        audit = four.get("auditoria_inputs") or {}
+        audit = four_input_audit
         if audit.get("formula_conferida_com_montador") is not True:
             raise SystemExit("4h com formula de inputs nao conferida")
         if audit.get("n_inputs_nao_exatos", 0) != 0:

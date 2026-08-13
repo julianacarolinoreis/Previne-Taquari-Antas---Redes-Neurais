@@ -322,6 +322,12 @@ AUDITORIA_VERSAO = "target_exact_v2"
 # com uma leitura proxima, mas o pacote deve denunciar quando algum input ficou
 # mais de meia hora sem leitura na hora solicitada.
 INPUT_WARN_MAX_AGE = dt.timedelta(minutes=30)
+# Guarda de plausibilidade para a telemetria de nível. A unidade publicada
+# pela ANA/SGB é cm; valores acima de 50 m não são aceitos como entrada de
+# nenhuma RNA sem revisão manual. O valor bruto continua preservado no status
+# da estação para auditoria, mas não chega ao montador nem ao MAT.
+NIVEL_PLAUSIVEL_MIN_CM = -500.0
+NIVEL_PLAUSIVEL_MAX_CM = 5000.0
 # O V01_R10 foi treinado com uma linha horária completa.  Não é seguro
 # alimentar a rede com uma mistura de leituras de 15 min, interpolação e
 # vizinhos: isso muda a semântica dos 24 sinais, mesmo quando todos têm valor.
@@ -336,6 +342,21 @@ def _vizinhos_serie(serie, t):
     antes = keys[i - 1] if i > 0 else None
     depois = keys[i] if i < len(keys) else None
     return antes, depois
+
+def _nivel_plausivel(valor):
+    try:
+        valor = float(valor)
+    except (TypeError, ValueError):
+        return False
+    return NIVEL_PLAUSIVEL_MIN_CM <= valor <= NIVEL_PLAUSIVEL_MAX_CM
+
+def _marcar_fora_faixa(base, valores):
+    base.update({
+        "metodo": "FORA_FAIXA",
+        "valor_bruto_cm": [round(float(v), 3) for v in valores if v is not None],
+        "limites_plausiveis_cm": [NIVEL_PLAUSIVEL_MIN_CM, NIVEL_PLAUSIVEL_MAX_CM],
+    })
+    return None, base
 
 def nivel_com_proveniencia(serie, t, max_gap=NIVEL_MAX_GAP):
     """Resolve um nivel e registra como ele foi obtido.
@@ -354,6 +375,8 @@ def nivel_com_proveniencia(serie, t, max_gap=NIVEL_MAX_GAP):
     if not serie:
         return None, base
     if t in serie:
+        if not _nivel_plausivel(serie[t]):
+            return _marcar_fora_faixa(base, [serie[t]])
         base.update({
             "metodo": "EXATO",
             "horarios_usados": [t.isoformat(timespec="minutes")],
@@ -363,6 +386,8 @@ def nivel_com_proveniencia(serie, t, max_gap=NIVEL_MAX_GAP):
     antes, depois = _vizinhos_serie(serie, t)
     if antes is not None and depois is not None and antes != depois:
         if (t - antes) <= max_gap and (depois - t) <= max_gap:
+            if not _nivel_plausivel(serie[antes]) or not _nivel_plausivel(serie[depois]):
+                return _marcar_fora_faixa(base, [serie[antes], serie[depois]])
             span = (depois - antes).total_seconds()
             if span > 0:
                 w = (t - antes).total_seconds() / span
@@ -386,6 +411,8 @@ def nivel_com_proveniencia(serie, t, max_gap=NIVEL_MAX_GAP):
     if not candidatos:
         return None, base
     melhor = min(candidatos, key=lambda k: abs((k - t).total_seconds()))
+    if not _nivel_plausivel(serie[melhor]):
+        return _marcar_fora_faixa(base, [serie[melhor]])
     base.update({
         "metodo": "VIZINHO_MAIS_PROXIMO",
         "horarios_usados": [melhor.isoformat(timespec="minutes")],
@@ -413,13 +440,17 @@ def observar_nivel(serie, alvo, max_gap=AUDITORIA_MAX_GAP):
     if not serie or alvo is None:
         return None, None
     if alvo in serie:
+        if not _nivel_plausivel(serie[alvo]):
+            return None, None
         return float(serie[alvo]), alvo
     antes, depois = _vizinhos_serie(serie, alvo)
     candidatos = []
     if antes is not None and (alvo - antes) <= max_gap:
-        candidatos.append(antes)
+        if _nivel_plausivel(serie[antes]):
+            candidatos.append(antes)
     if depois is not None and (depois - alvo) <= max_gap:
-        candidatos.append(depois)
+        if _nivel_plausivel(serie[depois]):
+            candidatos.append(depois)
     if not candidatos:
         return None, None
     usado = min(candidatos, key=lambda k: abs((k - alvo).total_seconds()))
@@ -590,6 +621,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
     n_ausentes = 0
     n_interpolados = 0
     n_vizinhos = 0
+    n_fora_faixa = 0
     n_nao_exatos = 0
     n_exatos = 0
     formula_ok = True
@@ -624,6 +656,8 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
             idades.append(idade)
         if "AUSENTE" in metodos:
             n_ausentes += 1
+        if "FORA_FAIXA" in metodos:
+            n_fora_faixa += 1
         if "VIZINHO_MAIS_PROXIMO" in metodos and (idade or 0) >= INPUT_WARN_MAX_AGE.total_seconds() / 60:
             n_atrasados += 1
         if "INTERPOLADO" in metodos:
@@ -649,7 +683,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
             "dependencias": dependencias,
             "idade_max_min": idade,
         })
-    if n_ausentes:
+    if n_ausentes or n_fora_faixa:
         status = "INVALIDO"
     elif n_nao_exatos:
         status = "ATENCAO"
@@ -665,8 +699,10 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
         "n_inputs_nao_exatos": n_nao_exatos,
         "n_inputs_atrasados": n_atrasados,
         "n_inputs_ausentes": n_ausentes,
+        "n_inputs_fora_faixa": n_fora_faixa,
         "idade_max_input_min": (max(idades) if idades else None),
-        "regra_atraso": "ATENCAO quando qualquer dependencia nao e EXATO na mesma hora-base; INVALIDO quando falta qualquer dependencia",
+        "regra_atraso": "ATENCAO quando qualquer dependencia nao e EXATO na mesma hora-base; INVALIDO quando falta ou sai da faixa plausivel qualquer dependencia",
+        "faixa_plausivel_cm": [NIVEL_PLAUSIVEL_MIN_CM, NIVEL_PLAUSIVEL_MAX_CM],
         "contrato_temporal": "24 inputs do V01 em grade horaria exata, todos na mesma hora-base; interpolacao/vizinho nao entra na selecao do modelo",
         "definicao_aceleracao": {
             "formula": "A_h(t) = [N(t)-N(t-1h)] - [N(t-h)-N(t-(h+1)h)]",
@@ -752,11 +788,15 @@ def diagnosticar_inputs_faltantes(series, t, inputs):
         horarios = []
         for h in dict.fromkeys(atrasos):
             hora = t - dt.timedelta(hours=h)
-            disponivel = hora in series.get(cod_estacao, {})
+            bruto = series.get(cod_estacao, {}).get(hora)
+            fora_faixa = bruto is not None and not _nivel_plausivel(bruto)
+            disponivel = bruto is not None and not fora_faixa
             horarios.append({
                 "atraso_h": h,
                 "hora": hora.isoformat(timespec="minutes"),
                 "disponivel": disponivel,
+                "valor_bruto_cm": (round(float(bruto), 3) if bruto is not None else None),
+                "fora_faixa": fora_faixa,
             })
         faltantes.append({
             "input": codigo_input,
@@ -765,6 +805,8 @@ def diagnosticar_inputs_faltantes(series, t, inputs):
             "estacao_nome": NOMES_ESTACOES.get(cod_estacao, cod_estacao),
             "horarios_necessarios": [h["hora"] for h in horarios],
             "horarios_faltantes": [h["hora"] for h in horarios if not h["disponivel"]],
+            "horarios_fora_faixa": [h["hora"] for h in horarios if h["fora_faixa"]],
+            "limites_plausiveis_cm": [NIVEL_PLAUSIVEL_MIN_CM, NIVEL_PLAUSIVEL_MAX_CM],
         })
     return faltantes
 
@@ -920,6 +962,11 @@ def resumo_estacoes(series):
     for cod in ESTACOES:
         serie = series.get(cod, {})
         raw = ULTIMA_RAW.get(cod)
+        fora_faixa = [
+            (hora, valor) for hora, valor in serie.items()
+            if not _nivel_plausivel(valor)
+        ]
+        ultima_fora_faixa = max(fora_faixa, key=lambda par: par[0]) if fora_faixa else None
         ultima_hora = max(serie) if serie else None
         meta = METADADOS_ESTACOES.get(cod, {})
         resumo.append({
@@ -939,6 +986,16 @@ def resumo_estacoes(series):
             "idade_leitura_min": (
                 round((consultado_em - raw[0]).total_seconds() / 60) if raw else None
             ),
+            "qc_status": "ATENCAO_FORA_FAIXA" if fora_faixa else "NORMAL",
+            "qc_fora_faixa_n": len(fora_faixa),
+            "qc_ultima_fora_faixa": (
+                {
+                    "hora": ultima_fora_faixa[0].isoformat(timespec="minutes"),
+                    "nivel_cm": round(float(ultima_fora_faixa[1]), 3),
+                }
+                if ultima_fora_faixa else None
+            ),
+            "limites_plausiveis_cm": [NIVEL_PLAUSIVEL_MIN_CM, NIVEL_PLAUSIVEL_MAX_CM],
         })
     return resumo
 
@@ -1238,6 +1295,13 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
             aviso, [], estacoes_status,
         )
         out["disponivel"] = True
+        if cfg.get("montador") == "4h_alt_v01_r10":
+            out["auditoria_inputs"] = {
+                "status": "INVALIDO",
+                "motivo": "nenhuma hora-base passou a auditoria de cobertura, atraso e faixa plausivel",
+                "n_inputs": cfg.get("inputs_total"),
+                "faixa_plausivel_cm": [NIVEL_PLAUSIVEL_MIN_CM, NIVEL_PLAUSIVEL_MAX_CM],
+            }
         return out
     try:
         x, st0 = montar_inputs_modelo(cfg, series, t)
@@ -1250,6 +1314,8 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         inputs_faltantes = diagnosticar_inputs_modelo(cfg, series, t, x)
         out = _base_saida(cfg, st0, None, t, f"inputs incompletos ({faltando}/{cfg['inputs_total']} faltando) - sem previsao nesta hora", aviso, inputs_faltantes, estacoes_status)
         out["disponivel"] = True
+        if cfg.get("montador") == "4h_alt_v01_r10":
+            out["auditoria_inputs"] = auditoria_inputs_4h_v01_r10(series, t, valores=x)
         return out
     try:
         delta_bruto = prever(cfg["mat"], x)
