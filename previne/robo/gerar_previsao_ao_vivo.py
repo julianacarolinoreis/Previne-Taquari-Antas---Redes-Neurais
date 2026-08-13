@@ -27,8 +27,8 @@ def agora_brt():
 
 # ---- config ----
 MODELO_MAT = "previne/assets/mat/009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.mat"
-MODELO_4H_PRO_MAT = "assets/mat/4H_ALT__V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.mat"
-MODELO_4H_PRO_ID = "V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000"
+MODELO_4H_PRO_MAT = "assets/mat/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.mat"
+MODELO_4H_PRO_ID = "V01_R00_BASELINE_nh52_nit10_cic100000"
 MODELO_4H_CASCATA_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__CASCATA_VFINAL_R03_DYN9_INC.mat"
 MODELO_4H_CASCATA_ID = "STZ_H4_ALT_CASC_VFINAL_R03_DYN9_INC"
 HORIZONTE = "2h"
@@ -97,23 +97,23 @@ MODELOS = [
         "tipo": "ALT",
         "modelo": MODELO_4H_PRO_ID,
         "mat": MODELO_4H_PRO_MAT,
-        "inputs_total": 24,
-        "montador": "4h_alt_v01_r10",
+        "inputs_total": 26,
+        "montador": "4h_alt_v01_26",
         "principal": True,
         "versao": "PRO",
         "ativo_ao_vivo": True,
-        "referencia_auditavel": "assets/audit_workbooks/4H_ALT__V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.xlsx",
+        "referencia_auditavel": "assets/audit_workbooks/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.xlsx",
         "input_labels": [
             "Santa Tereza - nivel atual (D0h)", "Santa Tereza - D-1h", "Santa Tereza - D-2h",
             "Santa Tereza - D-4h", "Santa Tereza - aceleracao A-1h", "Santa Tereza - aceleracao A-4h",
             "Santa Tereza - aceleracao A-12h", "Linha Jose Julio - nivel atual", "Linha Jose Julio - D-1h",
             "Linha Jose Julio - D-2h", "Linha Jose Julio - D-4h", "Linha Jose Julio - aceleracao A-2h",
             "Linha Jose Julio - aceleracao A-8h", "Linha Jose Julio - aceleracao A-16h",
-            "86125500 - D-2h", "86125500 - D-6h", "86125500 - D-10h", "86125500 - D-14h",
-            "86298000 - D-2h", "86298000 - D-6h", "86298000 - D-10h", "86298000 - aceleracao A-2h",
+            "86125500 - nivel atual", "86125500 - D-2h", "86125500 - D-6h", "86125500 - D-10h", "86125500 - D-14h",
+            "86298000 - nivel atual", "86298000 - D-2h", "86298000 - D-6h", "86298000 - D-10h", "86298000 - aceleracao A-2h",
             "86298000 - aceleracao A-8h", "86298000 - aceleracao A-16h",
         ],
-        "input_anchor_note": "NIVEL_ATUAL_CM e a ancora de reconstrução e persistência; os 24 sinais acima são os únicos enviados ao MAT.",
+        "input_anchor_note": "NIVEL_ATUAL_CM e a ancora de reconstrução e persistência; os 26 sinais acima são enviados ao MAT. A aceleração segue a segunda diferença discreta da base, sem divisão por horas.",
     },
     {
         # Cascata ainda treinada sobre o antigo VFINAL. Com a troca do 2h para
@@ -523,7 +523,36 @@ def montar_inputs_4h_v01_r10(series, t):
     return inputs, st0
 
 
-def auditoria_inputs_4h_v01_r10(series, t, valores=None):
+def montar_inputs_4h_v01_26(series, t):
+    """Monta a V01 com os 26 sinais H:AG do workbook novo V3.
+
+    A aceleracao segue a convencao discreta do treinamento:
+    A_h(t) = [N(t)-N(t-1h)] - [N(t-h)-N(t-(h+1)h)].
+    """
+    def n(cod, h=0):
+        return nivel(series.get(cod, {}), t - dt.timedelta(hours=h))
+    def D(cod, h):
+        a, b = n(cod, 0), n(cod, h)
+        return None if None in (a, b) else a - b
+    def A(cod, h):
+        a, b, c, d = n(cod, 0), n(cod, 1), n(cod, h), n(cod, h + 1)
+        return None if None in (a, b, c, d) else (a - b) - (c - d)
+
+    st0 = n("86472600", 0)
+    inputs = [
+        n("86472600", 0), D("86472600", 1), D("86472600", 2), D("86472600", 4),
+        A("86472600", 1), A("86472600", 4), A("86472600", 12),
+        n("86472000", 0), D("86472000", 1), D("86472000", 2), D("86472000", 4),
+        A("86472000", 2), A("86472000", 8), A("86472000", 16),
+        n("86125500", 0), D("86125500", 2), D("86125500", 6),
+        D("86125500", 10), D("86125500", 14),
+        n("86298000", 0), D("86298000", 2), D("86298000", 6),
+        D("86298000", 10), A("86298000", 2), A("86298000", 8), A("86298000", 16),
+    ]
+    return inputs, st0
+
+
+def auditoria_inputs_4h_v01_r10(series, t, valores=None, specs_override=None, labels_override=None):
     """Audita a origem temporal e a formula dos 24 inputs do V01.
 
     ``A_h`` nao e uma aceleracao fisica em cm/s2: e a convencao discreta
@@ -531,7 +560,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
     de nivel de uma hora separadas por ``h`` horas.  Manter essa convencao e
     necessario para que o input ao vivo seja identico ao input do MAT.
     """
-    specs = [
+    specs = specs_override or [
         ("nivel", "86472600", 0),
         ("dif", "86472600", 1), ("dif", "86472600", 2), ("dif", "86472600", 4),
         ("acel", "86472600", 1), ("acel", "86472600", 4), ("acel", "86472600", 12),
@@ -544,7 +573,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
         ("dif", "86298000", 10),
         ("acel", "86298000", 2), ("acel", "86298000", 8), ("acel", "86298000", 16),
     ]
-    labels = next(
+    labels = labels_override if labels_override is not None else next(
         (cfg.get("input_labels") for cfg in MODELOS
          if cfg.get("modelo") == MODELO_4H_PRO_ID),
         None,
@@ -635,6 +664,29 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
         "inputs": entradas,
     }
 
+def auditoria_inputs_4h_v01_26(series, t, valores=None):
+    specs = [
+        ("nivel", "86472600", 0),
+        ("dif", "86472600", 1), ("dif", "86472600", 2), ("dif", "86472600", 4),
+        ("acel", "86472600", 1), ("acel", "86472600", 4), ("acel", "86472600", 12),
+        ("nivel", "86472000", 0),
+        ("dif", "86472000", 1), ("dif", "86472000", 2), ("dif", "86472000", 4),
+        ("acel", "86472000", 2), ("acel", "86472000", 8), ("acel", "86472000", 16),
+        ("nivel", "86125500", 0),
+        ("dif", "86125500", 2), ("dif", "86125500", 6),
+        ("dif", "86125500", 10), ("dif", "86125500", 14),
+        ("nivel", "86298000", 0),
+        ("dif", "86298000", 2), ("dif", "86298000", 6),
+        ("dif", "86298000", 10),
+        ("acel", "86298000", 2), ("acel", "86298000", 8), ("acel", "86298000", 16),
+    ]
+    labels = next((cfg.get("input_labels") for cfg in MODELOS
+                   if cfg.get("modelo") == MODELO_4H_PRO_ID), None) or []
+    return auditoria_inputs_4h_v01_r10(
+        series, t, valores=valores, specs_override=specs, labels_override=labels
+    )
+
+
 # indices (na ordem de montar_inputs(), o mesmo 2h VFINAL exibido no site) que
 # alimentam a cascata DYN9_INC -- nucleo Santa Tereza + Linha Jose Julio nivel/D5h.
 # Ver UPSTREAM_INPUTS/FEATURE_SETS em
@@ -700,6 +752,8 @@ def montar_inputs_12h_alt_c0065(series, t):
 def montar_inputs_modelo(cfg, series, t):
     if cfg["montador"] in ("2h_alt_15in", "2h_alt_vfinal"):
         return montar_inputs(series, t)
+    if cfg["montador"] == "4h_alt_v01_26":
+        return montar_inputs_4h_v01_26(series, t)
     if cfg["montador"] == "4h_alt_v01_r10":
         return montar_inputs_4h_v01_r10(series, t)
     if cfg["montador"] == "4h_alt_prio_12478":
@@ -931,7 +985,41 @@ def diagnosticar_inputs_faltantes_12h(series, t, inputs):
     ]
     return diagnosticar_inputs_por_especificacoes(series, t, inputs, especificacoes)
 
+def diagnosticar_inputs_faltantes_4h_v01_26(series, t, inputs):
+    especificacoes = [
+        ("inp01", "Santa Tereza - nivel atual", "86472600", [0]),
+        ("inp02", "Santa Tereza - nivel D-1h", "86472600", [0, 1]),
+        ("inp03", "Santa Tereza - nivel D-2h", "86472600", [0, 2]),
+        ("inp04", "Santa Tereza - nivel D-4h", "86472600", [0, 4]),
+        ("inp05", "Santa Tereza - aceleracao A-1h", "86472600", [0, 1, 2]),
+        ("inp06", "Santa Tereza - aceleracao A-4h", "86472600", [0, 1, 4, 5]),
+        ("inp07", "Santa Tereza - aceleracao A-12h", "86472600", [0, 1, 12, 13]),
+        ("inp08", "Linha Jose Julio - nivel atual", "86472000", [0]),
+        ("inp09", "Linha Jose Julio - nivel D-1h", "86472000", [0, 1]),
+        ("inp10", "Linha Jose Julio - nivel D-2h", "86472000", [0, 2]),
+        ("inp11", "Linha Jose Julio - nivel D-4h", "86472000", [0, 4]),
+        ("inp12", "Linha Jose Julio - aceleracao A-2h", "86472000", [0, 1, 2, 3]),
+        ("inp13", "Linha Jose Julio - aceleracao A-8h", "86472000", [0, 1, 8, 9]),
+        ("inp14", "Linha Jose Julio - aceleracao A-16h", "86472000", [0, 1, 16, 17]),
+        ("inp15", "86125500 - nivel atual", "86125500", [0]),
+        ("inp16", "86125500 - nivel D-2h", "86125500", [0, 2]),
+        ("inp17", "86125500 - nivel D-6h", "86125500", [0, 6]),
+        ("inp18", "86125500 - nivel D-10h", "86125500", [0, 10]),
+        ("inp19", "86125500 - nivel D-14h", "86125500", [0, 14]),
+        ("inp20", "86298000 - nivel atual", "86298000", [0]),
+        ("inp21", "86298000 - nivel D-2h", "86298000", [0, 2]),
+        ("inp22", "86298000 - nivel D-6h", "86298000", [0, 6]),
+        ("inp23", "86298000 - nivel D-10h", "86298000", [0, 10]),
+        ("inp24", "86298000 - aceleracao A-2h", "86298000", [0, 1, 2, 3]),
+        ("inp25", "86298000 - aceleracao A-8h", "86298000", [0, 1, 8, 9]),
+        ("inp26", "86298000 - aceleracao A-16h", "86298000", [0, 1, 16, 17]),
+    ]
+    return diagnosticar_inputs_por_especificacoes(series, t, inputs, especificacoes)
+
+
 def diagnosticar_inputs_modelo(cfg, series, t, inputs):
+    if cfg["montador"] == "4h_alt_v01_26":
+        return diagnosticar_inputs_faltantes_4h_v01_26(series, t, inputs)
     if cfg["montador"] == "4h_alt_v01_r10":
         return diagnosticar_inputs_faltantes_4h_v01_r10(series, t, inputs)
     if cfg["montador"] == "4h_alt_prio_12478":
@@ -1273,7 +1361,21 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         out["delta_previsto_cm"] = round(delta, 1)
         if cfg.get("input_labels"):
             out["input_values_cm"] = [round(float(v), 3) for v in x]
-        if cfg.get("montador") == "4h_alt_v01_r10":
+        if cfg.get("montador") == "4h_alt_v01_26":
+            auditoria_inputs = auditoria_inputs_4h_v01_26(series, t, valores=x)
+            out["auditoria_inputs"] = auditoria_inputs
+            out["input_anchor_note"] = (
+                "NIVEL_ATUAL_CM e a ancora de reconstrução e persistência; "
+                "os 26 sinais são enviados ao MAT. A aceleração segue a "
+                "segunda diferença discreta da base, sem divisão por horas."
+            )
+            if auditoria_inputs["status"] == "ATENCAO":
+                out["status"] = (
+                    "ok - atencao: dependencia de input atrasada "
+                    f"({auditoria_inputs['n_inputs_atrasados']} input(s), "
+                    f"idade maxima {auditoria_inputs['idade_max_input_min']:.0f} min)"
+                )
+        elif cfg.get("montador") == "4h_alt_v01_r10":
             auditoria_inputs = auditoria_inputs_4h_v01_r10(series, t, valores=x)
             out["auditoria_inputs"] = auditoria_inputs
             if auditoria_inputs["status"] == "ATENCAO":
@@ -1312,12 +1414,16 @@ def escolher_hora_modelo(cfg, series, horas_st):
             # das aceleracoes e evita misturar t=21:45 com uma regua parada em
             # t=21:00. Se nenhuma hora passar, a chamada abaixo ainda produz o
             # diagnostico ATENCAO/INVALIDO em vez de esconder o problema.
-            if cfg.get("montador") == "4h_alt_v01_r10":
+            if cfg.get("montador") == "4h_alt_v01_26":
+                audit = auditoria_inputs_4h_v01_26(series, cand, valores=x)
+                if audit["status"] != "NORMAL":
+                    continue
+            elif cfg.get("montador") == "4h_alt_v01_r10":
                 audit = auditoria_inputs_4h_v01_r10(series, cand, valores=x)
                 if audit["status"] != "NORMAL":
                     continue
             return cand
-    if cfg.get("montador") == "4h_alt_v01_r10":
+    if cfg.get("montador") in ("4h_alt_v01_26", "4h_alt_v01_r10"):
         return None
     return horas_st[-1] if horas_st else None
 
@@ -1441,7 +1547,7 @@ def main():
         if tel and hm and out.get("nivel_previsto_cm") is not None:
             atraso_h = (tel[0] - hm).total_seconds() / 3600.0
             if (
-                out.get("montador") == "4h_alt_v01_r10"
+                out.get("montador") in ("4h_alt_v01_26", "4h_alt_v01_r10")
                 and atraso_h >= INPUT_WARN_MAX_AGE.total_seconds() / 3600.0
                 and str(out.get("status") or "").startswith("ok")
             ):
