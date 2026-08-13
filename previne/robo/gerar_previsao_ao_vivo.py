@@ -60,9 +60,12 @@ METADADOS_ESTACOES = {
     "86298000": {"lat": None, "lon": None, "papel": "Montante - input 4h PRO"},
 }
 POSTOS_CHUVA_36H = ["2851044", "2851072", "86488000", "86490500", "86497000", "86505500", "86507000"]
-ANA_TIMEOUT_NIVEL_S = 25
-ANA_TIMEOUT_CHUVA_S = 15
-ANA_RETRIES_NIVEL = 2
+# O painel é atualizado frequentemente e preserva a última previsão válida
+# quando a ANA está indisponível. Limites curtos evitam que uma API presa
+# consuma todo o intervalo entre ciclos.
+ANA_TIMEOUT_NIVEL_S = 12
+ANA_TIMEOUT_CHUVA_S = 8
+ANA_RETRIES_NIVEL = 1
 ANA_RETRIES_CHUVA = 1
 ULTIMA_RAW = {}
 NOMES_ESTACOES = {
