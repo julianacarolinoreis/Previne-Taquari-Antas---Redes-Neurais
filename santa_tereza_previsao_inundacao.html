@@ -934,6 +934,11 @@ function renderLiveStatus(D,hz){
   }else if(q.status){
     parts.push(`<b>Qualidade recente:</b> ${escLive(q.status)} · MAE 24h ${q.mae_24h_cm!=null?nf1.format(q.mae_24h_cm)+' cm':'—'}.`);
   }
+  if(q.mae_persistencia_24h_cm!=null){
+    const melhoria=q.melhoria_vs_persistencia_24h_pct;
+    const melhoriaTxt=melhoria==null?'':` · ${melhoria>=0?'melhoria':'piora'} de ${nf1.format(Math.abs(melhoria))}% vs persistência`;
+    parts.push(`Comparação causal: persistência MAE ${nf1.format(q.mae_persistencia_24h_cm)} cm${melhoriaTxt}.`);
+  }
   if(iq.n_inputs!=null||iq.n_exatos!=null){
     parts.push(`Inputs: ${iq.n_exatos||0}/${iq.n_inputs||D.inputs_total||'?'} exatos, ${iq.n_inputs_atrasados||0} atrasados.`);
   }else if(D.inputs_total!=null){
@@ -947,7 +952,8 @@ function renderLiveStatus(D,hz){
     const n=A.n_conferidas!=null?A.n_conferidas:'—';
     const last=A.ultima_conferida;
     const err=last&&last.erro_cm!=null?`${Number(last.erro_cm)>0?'+':''}${nf1.format(last.erro_cm)} cm`:'—';
-    summary.innerHTML=`<b>${escLive(hzLabel(hz))}:</b> ${n} previsões conferidas · última ${last?`${fmtWhen(last.hora_modelo)} → ${fmtWhen(last.hora_alvo)}`:'ainda não conferida'} · erro da última ${err} · MAE 24h ${q.mae_24h_cm!=null?nf1.format(q.mae_24h_cm)+' cm':'—'}.`;
+    const persist=q.mae_persistencia_24h_cm!=null?` · persistência ${nf1.format(q.mae_persistencia_24h_cm)} cm` : '';
+    summary.innerHTML=`<b>${escLive(hzLabel(hz))}:</b> ${n} previsões conferidas · última ${last?`${fmtWhen(last.hora_modelo)} → ${fmtWhen(last.hora_alvo)}`:'ainda não conferida'} · erro da última ${err} · MAE 24h ${q.mae_24h_cm!=null?nf1.format(q.mae_24h_cm)+' cm':'—'}${persist}.`;
   }
 }
 function liveWhenText(D,P){

@@ -1200,6 +1200,18 @@ def resumo_auditoria(registros, horizonte, modelo=None):
         alvo = _parse_hora(r.get("hora_alvo", ""))
         if alvo and (agora - alvo).total_seconds() <= 24 * 3600:
             ult24.append(r)
+    mae_modelo_24h = media([r.get("erro_abs_cm") for r in ult24])
+    # Baseline causal: persistência mantém o nível da base da previsão.
+    # Só compara linhas que possuem nível de referência e observado no alvo.
+    persistencia_24h = [
+        abs(float(r["observado_cm"]) - float(r["nivel_modelo_cm"]))
+        for r in ult24
+        if r.get("observado_cm") is not None and r.get("nivel_modelo_cm") is not None
+    ]
+    mae_persistencia_24h = media(persistencia_24h)
+    melhoria_persistencia = None
+    if mae_modelo_24h is not None and mae_persistencia_24h not in (None, 0):
+        melhoria_persistencia = round((1 - mae_modelo_24h / mae_persistencia_24h) * 100, 1)
     return {
         "n_total": len(regs),
         "modelo": modelo,
@@ -1210,7 +1222,10 @@ def resumo_auditoria(registros, horizonte, modelo=None):
         "n_aguardando": aguardando,
         "ultima_conferida": (conferidos[-1] if conferidos else None),
         "mae_ultimas_6_cm": media([r.get("erro_abs_cm") for r in conferidos[-6:]]),
-        "mae_24h_cm": media([r.get("erro_abs_cm") for r in ult24]),
+        "mae_24h_cm": mae_modelo_24h,
+        "baseline": "persistencia_nivel_modelo_cm",
+        "mae_persistencia_24h_cm": mae_persistencia_24h,
+        "melhoria_vs_persistencia_24h_pct": melhoria_persistencia,
         "maior_erro_abs_24h_cm": (max([r.get("erro_abs_cm") for r in ult24 if r.get("erro_abs_cm") is not None]) if ult24 else None),
         "ultimas_conferidas": ultimas,
     }
