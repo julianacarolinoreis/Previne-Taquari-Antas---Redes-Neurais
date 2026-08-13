@@ -316,6 +316,10 @@ AUDITORIA_MAX_GAP = dt.timedelta(minutes=30)
 # com uma leitura proxima, mas o pacote deve denunciar quando algum input ficou
 # mais de meia hora sem leitura na hora solicitada.
 INPUT_WARN_MAX_AGE = dt.timedelta(minutes=30)
+# O V01_R10 foi treinado com uma linha horária completa.  Não é seguro
+# alimentar a rede com uma mistura de leituras de 15 min, interpolação e
+# vizinhos: isso muda a semântica dos 24 sinais, mesmo quando todos têm valor.
+MODELO_4H_EXIGE_HORA_EXATA = True
 
 def _vizinhos_serie(serie, t):
     """Retorna (antes, depois) mais próximos de t em serie (dict timestamp→valor)."""
@@ -580,6 +584,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
     n_ausentes = 0
     n_interpolados = 0
     n_vizinhos = 0
+    n_nao_exatos = 0
     n_exatos = 0
     formula_ok = True
     for i, (tipo, cod, h) in enumerate(specs):
@@ -621,6 +626,10 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
             n_vizinhos += 1
         if metodos == {"EXATO"}:
             n_exatos += 1
+        else:
+            # Interpolação e vizinho continuam registrados para diagnóstico,
+            # mas não podem ser tratados como uma entrada horária normal.
+            n_nao_exatos += 1
         if valores is not None and calculado is not None and valores[i] is not None:
             if abs(float(calculado) - float(valores[i])) > 1e-9:
                 formula_ok = False
@@ -636,7 +645,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
         })
     if n_ausentes:
         status = "INVALIDO"
-    elif n_atrasados:
+    elif n_nao_exatos:
         status = "ATENCAO"
     else:
         status = "NORMAL"
@@ -647,10 +656,12 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
         "n_exatos": n_exatos,
         "n_interpolados": n_interpolados,
         "n_vizinhos_mais_proximos": n_vizinhos,
+        "n_inputs_nao_exatos": n_nao_exatos,
         "n_inputs_atrasados": n_atrasados,
         "n_inputs_ausentes": n_ausentes,
         "idade_max_input_min": (max(idades) if idades else None),
-        "regra_atraso": "ATENCAO quando uma dependencia usa vizinho mais proximo a 30 min ou mais; INVALIDO quando falta qualquer dependencia",
+        "regra_atraso": "ATENCAO quando qualquer dependencia nao e EXATO na mesma hora-base; INVALIDO quando falta qualquer dependencia",
+        "contrato_temporal": "24 inputs do V01 em grade horaria exata, todos na mesma hora-base; interpolacao/vizinho nao entra na selecao do modelo",
         "definicao_aceleracao": {
             "formula": "A_h(t) = [N(t)-N(t-1h)] - [N(t-h)-N(t-(h+1)h)]",
             "interpretacao": "segunda diferenca discreta / mudanca da variacao horaria",
@@ -1213,6 +1224,15 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
 def escolher_hora_modelo(cfg, series, horas_st):
     """Usa a hora mais recente em que todos os inputs do modelo existem."""
     for cand in reversed(horas_st):
+        # O modelo 4h foi treinado em timestamps de hora cheia.  Mesmo que a
+        # API traga uma leitura de 15/30/45 min, não deslocar silenciosamente
+        # a janela: esperar a próxima hora-base completa é mais auditável.
+        if (
+            cfg.get("montador") == "4h_alt_v01_r10"
+            and MODELO_4H_EXIGE_HORA_EXATA
+            and (cand.minute != 0 or cand.second != 0 or cand.microsecond != 0)
+        ):
+            continue
         try:
             x, st0 = montar_inputs_modelo(cfg, series, cand)
         except Exception:

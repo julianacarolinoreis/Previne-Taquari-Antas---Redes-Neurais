@@ -46,6 +46,19 @@ def main() -> int:
             raise SystemExit(f"horizonte inconsistente em {key}")
         if item.get("nivel_previsto_cm") is not None and item.get("status") is None:
             raise SystemExit(f"status ausente em {key}")
+    four = horizons["4h"]
+    if four.get("nivel_previsto_cm") is not None:
+        hora = str(four.get("hora_modelo") or "")
+        if len(hora) < 16 or hora[14:16] != "00":
+            raise SystemExit(f"4h fora da grade horaria exata: {hora}")
+        audit = four.get("auditoria_inputs") or {}
+        if audit.get("formula_conferida_com_montador") is not True:
+            raise SystemExit("4h com formula de inputs nao conferida")
+        if audit.get("n_inputs_nao_exatos", 0) != 0:
+            raise SystemExit("4h publicou inputs interpolados/vizinhos")
+        vals = four.get("input_values_cm") or []
+        if len(vals) != 24 or four.get("inputs_total") != 24:
+            raise SystemExit("4h precisa publicar exatamente 24 inputs")
     print(f"OK feed ao vivo: {', '.join(sorted(keys))}; MAT B SHA={B_SHA}")
     return 0
 
