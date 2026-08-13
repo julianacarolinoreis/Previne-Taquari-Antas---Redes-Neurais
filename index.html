@@ -1185,24 +1185,24 @@
   };
   /* ---------------- mapa das estações ---------------- */
   const STATIONS=[
-    {name:'Santa Tereza', code:'86472600', papel:'Estação-alvo — onde o nível é previsto', grp:'alvo', lat:-29.166, lon:-51.735,
+    {name:'Santa Tereza', code:'86472600', papel:'Estação-alvo — onde o nível é previsto', grp:'alvo', lat:-29.1781, lon:-51.7322,
      extra:'Rio Taquari, junto à antiga estação ferroviária · inputs de nível em todos os modelos'},
-    {name:'Linha José Júlio (montante)', code:'86472000', papel:'Estação de montante — telemetria de alta frequência (ALT)', grp:'alt', lat:-29.0900, lon:-51.7133,
+    {name:'Linha José Júlio (montante)', code:'86472000', papel:'Estação de montante — telemetria de alta frequência (ALT)', grp:'alt', lat:-29.0978, lon:-51.6997,
      extra:'Rio das Antas, na divisa Cotiporã / São Valentim do Sul / Santa Tereza · alimenta as defasagens da montagem alternativa'},
-    {name:'Veranópolis', code:'86448000', papel:'Estação vizinha — bacia das Antas', grp:'conv', lat:-28.936, lon:-51.549,
+    {name:'Veranópolis', code:'86448000', papel:'Estação vizinha — bacia das Antas', grp:'conv', lat:-29.0292, lon:-51.5219,
      extra:'Níveis com defasagens D-12h/D-14h'},
     {name:'Carreiro', code:'86507000', papel:'Estação no rio Carreiro', grp:'conv', lat:-29.005, lon:-51.760, est:true,
      extra:'Níveis com defasagens D-14h/D-16h · posição estimada no baixo rio Carreiro'},
-    {name:'Ituim', code:'86125130', papel:'Estação no rio Ituim', grp:'conv', lat:-28.640, lon:-51.150, est:true,
+    {name:'Ituim', code:'86125130', papel:'Estação no rio Ituim', grp:'conv', lat:-28.5919, lon:-51.3247,
      extra:'Níveis com defasagem D-11h/D-12h · posição estimada no rio Ituim (alto Antas)'},
-    {name:'Prata Caxias', code:'86125500', papel:'Estação no rio da Prata', grp:'conv', lat:-28.900, lon:-51.100, est:true,
-     extra:'Posição estimada no rio da Prata, região de Caxias do Sul'},
+    {name:'Prata Caxias', code:'86125500', papel:'Estação usada como entrada do modelo 4h PRO', grp:'conv', lat:null, lon:null,
+     extra:'Coordenada oficial ainda não confirmada; o ponto não é desenhado no mapa para não sugerir uma posição inventada.'},
     {name:'Estação 86298000', code:'86298000', papel:'Identificação e coordenada a confirmar', grp:'conv', lat:null, lon:null,
      extra:'Estação usada nas rodadas; confirmar ficha oficial no HidroWeb/ANA'},
     {name:'Antônio Prado', code:'—', papel:'Identificação e coordenada a confirmar no HidroWeb/ANA', grp:'conv', lat:-28.858, lon:-51.283, hidro:true,
      extra:'Município de apoio usado nas rodadas; conferir código e coordenada oficial'},
-    {name:'Nova Roma do Sul', code:'—', papel:'Identificação e coordenada a confirmar no HidroWeb/ANA', grp:'conv', lat:-28.988, lon:-51.410, hidro:true,
-     extra:'Município de apoio usado nas rodadas; conferir código e coordenada oficial'},
+    {name:'Nova Roma do Sul', code:'86306000', papel:'Estação de montante usada nas entradas ao vivo', grp:'conv', lat:-29.0133, lon:-51.3675,
+     extra:'Coordenada alinhada ao cadastro usado pelo robô ao vivo; confirmar também na ficha oficial ANA.'},
     {name:'Caxias do Sul', code:'—', papel:'Identificação e coordenada a confirmar no HidroWeb/ANA', grp:'conv', lat:-29.168, lon:-51.179, hidro:true,
      extra:'Município de apoio usado nas rodadas; conferir código e coordenada oficial'},
     {name:'Muitos Capões', code:'—', papel:'Identificação e coordenada a confirmar no HidroWeb/ANA', grp:'conv', lat:-28.317, lon:-51.184, hidro:true,
@@ -1329,7 +1329,25 @@
     for(const c of cands){ const hit=AUDIT_IDX.get(String(c).toUpperCase()); if(hit) return hit; }
     return null;
   }
-  /* ctx faz o modal/tabela funcionar para qualquer cidade — Santa Tereza é o padrão */
+  /* The active 4h PRO model has its own audited input schema. */
+  const LIVE_PRO_4H_MODEL='V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000';
+  const LIVE_PRO_4H_INPUT_LABELS=[
+    'Santa Tereza - nivel atual (D0h)',
+    'Santa Tereza - D-1h', 'Santa Tereza - D-2h', 'Santa Tereza - D-4h',
+    'Santa Tereza - aceleracao A-1h', 'Santa Tereza - aceleracao A-4h',
+    'Santa Tereza - aceleracao A-12h',
+    'Linha Jose Julio - nivel atual', 'Linha Jose Julio - D-1h',
+    'Linha Jose Julio - D-2h', 'Linha Jose Julio - D-4h',
+    'Linha Jose Julio - aceleracao A-2h', 'Linha Jose Julio - aceleracao A-8h',
+    'Linha Jose Julio - aceleracao A-16h',
+    '86125500 - D-2h', '86125500 - D-6h', '86125500 - D-10h', '86125500 - D-14h',
+    '86298000 - D-2h', '86298000 - D-6h', '86298000 - D-10h',
+    '86298000 - aceleracao A-2h', '86298000 - aceleracao A-8h',
+    '86298000 - aceleracao A-16h'
+  ];
+  const MODEL_INPUT_LABELS={ [LIVE_PRO_4H_MODEL]:LIVE_PRO_4H_INPUT_LABELS };
+  const labelsForModel=m=>MODEL_INPUT_LABELS[m.modelo]||m.input_labels||null;
+  /* ctx faz o modal/tabela funcionar para qualquer cidade - Santa Tereza e o padrao */
   const DEFAULT_CTX = {
     pool: MODELS,
     inputsList: PAYLOAD.inputs,
@@ -1560,9 +1578,15 @@
     body.appendChild(rl);
 
     const b6=document.createElement('div'); b6.className='m-block'; b6.style.marginTop='18px';
+    const modelLabels=labelsForModel(m);
     const h6=document.createElement('h4'); h6.textContent='Inputs deste modelo ('+m.inputs.length+')'; b6.appendChild(h6);
+    if(modelLabels){
+      const sourceNote=document.createElement('div'); sourceNote.className='st-hint';
+      sourceNote.textContent='Esquema conferido na fonte ativa V01.csv e no montador ao vivo; os rotulos abaixo sao os sinais realmente usados pela RNA.';
+      b6.appendChild(sourceNote);
+    }
     const il=document.createElement('div'); il.className='m-inputs';
-    m.inputs.forEach(i=>{ const sp=document.createElement('span'); sp.className='m-input'; sp.textContent=ctx.inputsList[i]; il.appendChild(sp); });
+    m.inputs.forEach((i,k)=>{ const sp=document.createElement('span'); sp.className='m-input'; sp.textContent=(modelLabels&&modelLabels[k])||ctx.inputsList[i]||('input '+(k+1)); il.appendChild(sp); });
     b6.appendChild(il); body.appendChild(b6);
 
     const auditBox=document.createElement('div'); auditBox.id='m-audit'; body.appendChild(auditBox);

@@ -99,6 +99,17 @@ MODELOS = [
         "versao": "PRO",
         "ativo_ao_vivo": True,
         "referencia_auditavel": "assets/audit_workbooks/4H_ALT__V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.xlsx",
+        "input_labels": [
+            "Santa Tereza - nivel atual (D0h)", "Santa Tereza - D-1h", "Santa Tereza - D-2h",
+            "Santa Tereza - D-4h", "Santa Tereza - aceleracao A-1h", "Santa Tereza - aceleracao A-4h",
+            "Santa Tereza - aceleracao A-12h", "Linha Jose Julio - nivel atual", "Linha Jose Julio - D-1h",
+            "Linha Jose Julio - D-2h", "Linha Jose Julio - D-4h", "Linha Jose Julio - aceleracao A-2h",
+            "Linha Jose Julio - aceleracao A-8h", "Linha Jose Julio - aceleracao A-16h",
+            "86125500 - D-2h", "86125500 - D-6h", "86125500 - D-10h", "86125500 - D-14h",
+            "86298000 - D-2h", "86298000 - D-6h", "86298000 - D-10h", "86298000 - aceleracao A-2h",
+            "86298000 - aceleracao A-8h", "86298000 - aceleracao A-16h",
+        ],
+        "input_anchor_note": "NIVEL_ATUAL_CM e a ancora de reconstrução e persistência; os 24 sinais acima são os únicos enviados ao MAT.",
     },
     {
         # Cascata ainda treinada sobre o antigo VFINAL. Com a troca do 2h para
@@ -930,6 +941,8 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
         "versao": cfg.get("versao"),
         "ativo_ao_vivo": bool(cfg.get("ativo_ao_vivo", False)),
         "referencia_auditavel": cfg.get("referencia_auditavel"),
+        "input_labels": cfg.get("input_labels"),
+        "input_anchor_note": cfg.get("input_anchor_note"),
         "bankfull_cm": BANKFULL_CM,
         "nivel_modelo_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_rio_agora_cm": (round(raw_st[1]) if raw_st else (round(nivel_atual) if nivel_atual is not None else None)),
@@ -1083,6 +1096,8 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         out = _base_saida(cfg, st0, st0 + delta, t, "ok", aviso, [], estacoes_status)
         out["disponivel"] = True
         out["delta_previsto_cm"] = round(delta, 1)
+        if cfg.get("input_labels"):
+            out["input_values_cm"] = [round(float(v), 3) for v in x]
         if cfg.get("cascata"):
             out["modo_cascata"] = True
             out["modelo_base_2h"] = cfg["cascata"]["modelo_base"]
