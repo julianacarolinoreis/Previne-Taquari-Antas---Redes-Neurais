@@ -533,10 +533,13 @@
       const horizons=(Array.isArray(r.horizons)?r.horizons:[]).slice().sort((a,b)=>Number(a.hours)-Number(b.hours));
       const rainText=horizons.length?horizons.map(h=>`+${h.hours} h: ${h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm'}`).join(' · '):'sem acumulados disponíveis';
       const experimentalRisk=horizons.some(h=>h.flood_probability!==null&&h.flood_probability!==undefined);
+      const age=number(r.observation&&r.observation.age_minutes);
+      const freshness=age===null?'idade da leitura n/d':(age>120?`leitura atrasada (${nf1.format(age,0)} min)`:`leitura com ${nf1.format(age,0)} min`);
+      const generated=r.generated_at_utc?`feed gerado ${fmtWhen(r.generated_at_utc)}`:'feed sem horário de geração';
       label.textContent=experimentalRisk?'Chuva prevista e risco experimental · 24–168 h':'Chuva prevista · 24–168 h';
       detail.textContent=experimentalRisk
-        ?`${rainText}. Estimativa experimental de transbordamento: escala de 0 a 100; não é probabilidade calibrada nem alerta oficial.`
-        :`${rainText}. GEFS e IFS são proxies espaciais; não são probabilidade de transbordamento.`;
+        ?`${rainText}. Estimativa experimental de transbordamento: escala de 0 a 100; não é probabilidade calibrada nem alerta oficial. ${generated}; ${freshness}.`
+        :`${rainText}. GEFS e IFS são proxies espaciais; não são probabilidade de transbordamento. ${generated}; ${freshness}.`;
       const grid=document.getElementById('rp-risk-grid');
       const stateText=document.getElementById('rp-risk-state');
       if(stateText) stateText.textContent=experimentalRisk

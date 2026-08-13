@@ -1212,6 +1212,11 @@ async function loadResearchWeatherPanel(){
     return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(date);
   };
   const fmtNumber=(value, digits=1)=>Number.isFinite(Number(value)) ? Number(value).toFixed(digits).replace('.',',') : '—';
+  const ageMinutes=(value)=>{
+    if(!value)return null;
+    const ms=Date.parse(value);
+    return Number.isFinite(ms)?Math.max(0,(Date.now()-ms)/60000):null;
+  };
   async function fetchSoilNow(){
     const url='https://api.open-meteo.com/v1/forecast?latitude=-29.1781&longitude=-51.7322&models=ecmwf_ifs025&hourly=soil_moisture_0_to_7cm,soil_moisture_7_to_28cm,soil_moisture_28_to_100cm,soil_moisture_100_to_255cm&forecast_days=2&timezone=America%2FSao_Paulo';
     const response=await fetch(url,{cache:'no-store'});
@@ -1237,7 +1242,11 @@ async function loadResearchWeatherPanel(){
     const observation=data.observation||{};
     const soil=await fetchSoilNow().catch(()=>data.soil||{});
     const h24=(forecast.horizons||[]).find((item)=>Number(item.horizon_hours)===24)||{};
-    meta.textContent='IFS emitido '+fmtUtc(forecast.run_time_utc)+' · disponível '+fmtUtc(forecast.available_at_utc)+' (horário local)';
+    const weatherAge=ageMinutes(data.generated_at_utc);
+    const probabilityAge=ageMinutes(probability&&probability.generated_at_utc);
+    const weatherAgeText=weatherAge==null?'idade do feed n/d':('feed IFS '+fmtNumber(weatherAge,0)+' min atrás');
+    const probabilityAgeText=probabilityAge==null?'probabilidade GEFS n/d':('probabilidade GEFS '+fmtNumber(probabilityAge,0)+' min atrás');
+    meta.textContent='IFS emitido '+fmtUtc(forecast.run_time_utc)+' · disponível '+fmtUtc(forecast.available_at_utc)+' · '+weatherAgeText;
     const rodada='base da rodada: '+fmtNumber(observation.level_cm,0)+' cm ('+fmtUtc(observation.timestamp_utc)+')';
     const aoVivo=live&&Number.isFinite(Number(live.nivel_rio_agora_cm)) ? 'ao vivo: '+fmtNumber(live.nivel_rio_agora_cm,0)+' cm ('+fmtLocal(live.nivel_rio_agora_em||live.gerado_em)+')' : 'ao vivo: indisponível';
     now.textContent=aoVivo+' · '+rodada;
@@ -1257,7 +1266,7 @@ async function loadResearchWeatherPanel(){
       :'AVALIAÇÃO DE 24 H: probabilidade não calculada para esta rodada · chuva média prevista '+fmtNumber(h24.basin_mean_mm,1)+' mm';
     if(probabilityReady){
       probabilityMain.textContent='Até 24 h: '+(p24&&Number.isFinite(Number(p24.probability))?fmtNumber(Number(p24.probability)*100,2)+'%':'indisponível');
-      probabilityNote.textContent='Probabilidade experimental GEFS/NOAA · rodada '+fmtUtc(probability.forecast_run_time_utc)+' · disponível '+fmtUtc(probability.forecast_available_at_utc)+'. Não é alerta oficial; a chuva IFS do cartão é outra fonte.';
+      probabilityNote.textContent='Probabilidade experimental GEFS/NOAA · rodada '+fmtUtc(probability.forecast_run_time_utc)+' · disponível '+fmtUtc(probability.forecast_available_at_utc)+' · '+probabilityAgeText+'. Não é alerta oficial; a chuva IFS do cartão é outra fonte e pode ter outra idade.';
     }else{
       probabilityMain.textContent='Até 24 h: não calculada para esta rodada';
       probabilityNote.textContent=(probability&&probability.message)||'A rodada IFS atual ainda não tem calibrador compatível. Isso é diferente de dizer “0%” ou “não vai inundar”.';
@@ -1276,7 +1285,7 @@ async function loadResearchWeatherPanel(){
       item.append(title,chance,rain);
       horizons.appendChild(item);
     });
-    note.textContent=probabilityReady?'A probabilidade publicada vem da rodada GEFS/NOAA compatível. A chuva IFS fica apenas como informação meteorológica separada. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.':'Fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'. A probabilidade fica “não calculada” quando o calibrador não é compatível. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
+    note.textContent=probabilityReady?'A probabilidade publicada vem da rodada GEFS/NOAA compatível; a chuva IFS fica separada e os dois feeds podem ter idades diferentes ('+weatherAgeText+'; '+probabilityAgeText+'). Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.':'Fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'. A probabilidade fica “não calculada” quando o calibrador não é compatível. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
   }catch(error){
     meta.textContent='Feed meteorológico indisponível no momento.';
     now.textContent='Não foi possível comparar a leitura ao vivo com a base da rodada.';
