@@ -1296,11 +1296,22 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         )
         out["disponivel"] = True
         if cfg.get("montador") == "4h_alt_v01_r10":
+            qc_estacoes = [
+                {
+                    "estacao": item.get("estacao"),
+                    "nome": item.get("nome"),
+                    "qc_status": item.get("qc_status"),
+                    "qc_ultima_fora_faixa": item.get("qc_ultima_fora_faixa"),
+                }
+                for item in (estacoes_status or [])
+                if item.get("qc_status") == "ATENCAO_FORA_FAIXA"
+            ]
             out["auditoria_inputs"] = {
                 "status": "INVALIDO",
                 "motivo": "nenhuma hora-base passou a auditoria de cobertura, atraso e faixa plausivel",
                 "n_inputs": cfg.get("inputs_total"),
                 "faixa_plausivel_cm": [NIVEL_PLAUSIVEL_MIN_CM, NIVEL_PLAUSIVEL_MAX_CM],
+                "estacoes_fora_faixa": qc_estacoes,
             }
         return out
     try:
@@ -1485,11 +1496,14 @@ def main():
                 f"{out['status']} - atencao: erro recente do modelo ativo acima do guardrail"
             )
         else:
-            qualidade_status = (
-                "SEM_VALIDACAO_HISTORICA"
-                if out.get("shadow_only") and not audit.get("n_conferidas")
-                else "NORMAL"
-            )
+            if out.get("nivel_previsto_cm") is None and (out.get("auditoria_inputs") or {}).get("status") == "INVALIDO":
+                qualidade_status = "DADO_INVALIDO_REVISAR"
+            else:
+                qualidade_status = (
+                    "SEM_VALIDACAO_HISTORICA"
+                    if out.get("shadow_only") and not audit.get("n_conferidas")
+                    else "NORMAL"
+                )
             out["qualidade_ao_vivo"] = {
                 "status": qualidade_status,
                 "regra": "MAE_24H_CM > 30 ou MAIOR_ERRO_ABS_24H_CM > 100",

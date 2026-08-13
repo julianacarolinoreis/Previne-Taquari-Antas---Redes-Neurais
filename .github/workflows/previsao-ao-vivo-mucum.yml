@@ -9,6 +9,7 @@ on:
 jobs:
   prever:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     concurrency:
       group: previsao-ao-vivo-mucum
       cancel-in-progress: true
@@ -27,7 +28,8 @@ jobs:
           git config user.email "previne-robo@users.noreply.github.com"
 
           git pull --rebase --autostash origin main
-          python codigo_python/01_previsao_ao_vivo/gerar_previsao_ao_vivo_mucum.py
+          python -B -m py_compile codigo_python/01_previsao_ao_vivo/gerar_previsao_ao_vivo_mucum.py
+          timeout --signal=TERM --kill-after=20s 240s python -B codigo_python/01_previsao_ao_vivo/gerar_previsao_ao_vivo_mucum.py
           git add previsao_ao_vivo_mucum.json historico_previsoes_ao_vivo_mucum.json
           if git diff --staged --quiet; then
             echo "sem mudanca neste ciclo"
