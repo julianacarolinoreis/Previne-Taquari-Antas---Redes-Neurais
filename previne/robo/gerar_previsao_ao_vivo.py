@@ -15,8 +15,9 @@ Modelo 2h ativo (desde 2026-08-06):
 
 EXPERIMENTAL — não é alerta oficial.
 """
-import os, sys, json, hashlib, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
+import os, json, hashlib, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
 import bisect
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from scipy.io import loadmat
 
@@ -27,10 +28,13 @@ def agora_brt():
 
 # ---- config ----
 MODELO_MAT = "previne/assets/mat/009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.mat"
+MODELO_2H_B_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__02h__ALT__15inputs_VFINAL_20260731.mat"
+MODELO_2H_B_ID = "STZ_2H_ALT_VFINAL_B_20260731"
+MODELO_2H_B_SHA256 = "6AE75018344625E8D3035F43A50F6556694C4B96510AC47241348EA5235D72A2"
+MODELO_2H_B_WORKBOOK = "assets/audit_workbooks/modelo_2h_versao_b_20260812.xlsx"
+MODELO_2H_B_WORKBOOK_SHA256 = "90F366F15360FAB5821B929D33B09E751A155F2BA86D28F218B16B247A792190"
 MODELO_4H_PRO_MAT = "assets/mat/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.mat"
 MODELO_4H_PRO_ID = "V01_R00_BASELINE_nh52_nit10_cic100000"
-MODELO_4H_CASCATA_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__04h__ALT__CASCATA_VFINAL_R03_DYN9_INC.mat"
-MODELO_4H_CASCATA_ID = "STZ_H4_ALT_CASC_VFINAL_R03_DYN9_INC"
 HORIZONTE = "2h"
 COMBO = "009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21"
 BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
@@ -59,9 +63,12 @@ METADADOS_ESTACOES = {
     "86298000": {"lat": None, "lon": None, "papel": "Montante - input 4h PRO"},
 }
 POSTOS_CHUVA_36H = ["2851044", "2851072", "86488000", "86490500", "86497000", "86505500", "86507000"]
-ANA_TIMEOUT_NIVEL_S = 25
-ANA_TIMEOUT_CHUVA_S = 15
-ANA_RETRIES_NIVEL = 2
+# O painel é atualizado frequentemente e preserva a última previsão válida
+# quando a ANA está indisponível. Limites curtos evitam que uma API presa
+# consuma todo o intervalo entre ciclos.
+ANA_TIMEOUT_NIVEL_S = 12
+ANA_TIMEOUT_CHUVA_S = 8
+ANA_RETRIES_NIVEL = 1
 ANA_RETRIES_CHUVA = 1
 ULTIMA_RAW = {}
 NOMES_ESTACOES = {
@@ -90,6 +97,28 @@ MODELOS = [
         "inputs_total": 15,
         "montador": "2h_alt_15in",
         "principal": True,
+        "ativo_ao_vivo": True,
+        "versao": "A / OPERA2",
+        "status_publicacao": "principal",
+    },
+    {
+        "horizonte": "2h_versao_b",
+        "rotulo": "2h versao B (VFINAL)",
+        "horizonte_h": 2,
+        "tipo": "ALT_VERSAO_B",
+        "modelo": MODELO_2H_B_ID,
+        "mat": MODELO_2H_B_MAT,
+        "inputs_total": 15,
+        "montador": "2h_alt_15in",
+        "principal": False,
+        "ativo_ao_vivo": True,
+        "shadow_only": True,
+        "versao": "B / OPERA3 / VFINAL 2026-07-31",
+        "status_publicacao": "sombra_experimental",
+        "modelo_sha256": MODELO_2H_B_SHA256,
+        "referencia_auditavel": MODELO_2H_B_WORKBOOK,
+        "referencia_auditavel_sha256": MODELO_2H_B_WORKBOOK_SHA256,
+        "proveniencia_nota": "MAT v7.3 recebido como RNAPREV__SANTA_TEREZA__02h__ALT__15inputs_VFINAL_20260731.mat; workbook fornecido como modelo_2h.xlsx e arquivado com alias auditavel.",
     },
     {
         "horizonte": "4h",
@@ -102,6 +131,7 @@ MODELOS = [
         "principal": True,
         "versao": "PRO",
         "ativo_ao_vivo": True,
+        "input_contract_version": "hourly_exact_v1",
         "referencia_auditavel": "assets/audit_workbooks/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.xlsx",
         "input_labels": [
             "Santa Tereza - nivel atual (D0h)", "Santa Tereza - D-1h", "Santa Tereza - D-2h",
@@ -113,28 +143,7 @@ MODELOS = [
             "86298000 - nivel atual", "86298000 - D-2h", "86298000 - D-6h", "86298000 - D-10h", "86298000 - aceleracao A-2h",
             "86298000 - aceleracao A-8h", "86298000 - aceleracao A-16h",
         ],
-        "input_anchor_note": "NIVEL_ATUAL_CM e a ancora de reconstrução e persistência; os 26 sinais acima são enviados ao MAT. A aceleração segue a segunda diferença discreta da base, sem divisão por horas.",
-    },
-    {
-        # Cascata ainda treinada sobre o antigo VFINAL. Com a troca do 2h para
-        # R09, cascata_compativel() marca disponivel=False (SHA-256) e o site
-        # esconde o botao ate retreinar a cascata sobre este modelo 2h.
-        "horizonte": "4h_cascata",
-        "rotulo": "4h cascata",
-        "horizonte_h": 4,
-        "tipo": "ALT_CASCATA",
-        "modelo": MODELO_4H_CASCATA_ID,
-        "mat": MODELO_4H_CASCATA_MAT,
-        "inputs_total": 9,
-        "montador": "4h_cascata_vfinal_dyn9",
-        "principal": False,
-        "cascata": {
-            "modelo_base": COMBO,
-            "modelo_base_horizonte": "2h",
-            "input_nome": "delta previsto pela RNA 2h ativa (mesmo modelo da aba 2h)",
-            "modelo_base_oculto": False,
-            "target_mode": "INCREMENTO_2A4",
-        },
+        "input_anchor_note": "NIVEL_ATUAL_CM e a ancora de reconstrução e persistência; os 24 sinais acima são os únicos enviados ao MAT.",
     },
 ]
 
@@ -281,16 +290,42 @@ def buscar_ana_chuva(cod, dias=5):
             time.sleep(4 * rodada)
     return {}
 
+def buscar_series_paralelo(codigos, funcao, max_workers=6):
+    """Consulta as estações independentes em paralelo.
+
+    A ANA costuma deixar uma estação presa por dezenas de segundos. A versão
+    anterior consultava todas em série, fazendo um único timeout atrasar o
+    ciclo inteiro. O limite de seis conexões reduz a latência sem abrir uma
+    enxurrada de requisições ao serviço; a ordem do dicionário permanece a
+    ordem declarada dos códigos.
+    """
+    codigos = list(codigos)
+    if not codigos:
+        return {}
+    workers = max(1, min(int(max_workers), len(codigos)))
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="ana-live") as executor:
+        resultados = list(executor.map(funcao, codigos))
+    return dict(zip(codigos, resultados))
+
 # Buracos da ANA (ex.: 10:45→13:00 e 15:45→18:00 em 2026-08-06) quebravam o
 # 2h (lags/acelerações pedem horário exato) e a auditoria (alvo sem linha).
 # Interpolamos/aproximamos só dentro destes tetos — além disso, fica None.
 NIVEL_MAX_GAP = dt.timedelta(minutes=150)
 AUDITORIA_MAX_GAP = dt.timedelta(minutes=30)
+# A auditoria de desempenho não pode comparar uma previsão horária com uma
+# leitura de 15/30 min antes ou depois: em uma subida rápida isso fabrica erro.
+# O limite acima continua servindo apenas para decidir quando um alvo ausente
+# pode ser marcado como sem dado; a observação usada no erro é sempre EXATA.
+AUDITORIA_VERSAO = "target_exact_v2"
 # Um valor ainda dentro de NIVEL_MAX_GAP pode estar deslocado no tempo.  A
 # RNA foi treinada em passos horarios; por isso a previsao continua disponivel
 # com uma leitura proxima, mas o pacote deve denunciar quando algum input ficou
 # mais de meia hora sem leitura na hora solicitada.
 INPUT_WARN_MAX_AGE = dt.timedelta(minutes=30)
+# O V01_R10 foi treinado com uma linha horária completa.  Não é seguro
+# alimentar a rede com uma mistura de leituras de 15 min, interpolação e
+# vizinhos: isso muda a semântica dos 24 sinais, mesmo quando todos têm valor.
+MODELO_4H_EXIGE_HORA_EXATA = True
 
 def _vizinhos_serie(serie, t):
     """Retorna (antes, depois) mais próximos de t em serie (dict timestamp→valor)."""
@@ -524,10 +559,10 @@ def montar_inputs_4h_v01_r10(series, t):
 
 
 def montar_inputs_4h_v01_26(series, t):
-    """Monta a V01 com os 26 sinais H:AG do workbook novo V3.
+    """Monta os 26 sinais H:AG da V01 R00 baseline.
 
-    A aceleracao segue a convencao discreta do treinamento:
-    A_h(t) = [N(t)-N(t-1h)] - [N(t-h)-N(t-(h+1)h)].
+    A aceleração segue a segunda diferença discreta da base, sem divisão por
+    horas: A_h(t) = [N(t)-N(t-1h)] - [N(t-h)-N(t-(h+1)h)].
     """
     def n(cod, h=0):
         return nivel(series.get(cod, {}), t - dt.timedelta(hours=h))
@@ -537,7 +572,6 @@ def montar_inputs_4h_v01_26(series, t):
     def A(cod, h):
         a, b, c, d = n(cod, 0), n(cod, 1), n(cod, h), n(cod, h + 1)
         return None if None in (a, b, c, d) else (a - b) - (c - d)
-
     st0 = n("86472600", 0)
     inputs = [
         n("86472600", 0), D("86472600", 1), D("86472600", 2), D("86472600", 4),
@@ -584,6 +618,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None, specs_override=None, la
     n_ausentes = 0
     n_interpolados = 0
     n_vizinhos = 0
+    n_nao_exatos = 0
     n_exatos = 0
     formula_ok = True
     for i, (tipo, cod, h) in enumerate(specs):
@@ -625,6 +660,10 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None, specs_override=None, la
             n_vizinhos += 1
         if metodos == {"EXATO"}:
             n_exatos += 1
+        else:
+            # Interpolação e vizinho continuam registrados para diagnóstico,
+            # mas não podem ser tratados como uma entrada horária normal.
+            n_nao_exatos += 1
         if valores is not None and calculado is not None and valores[i] is not None:
             if abs(float(calculado) - float(valores[i])) > 1e-9:
                 formula_ok = False
@@ -640,7 +679,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None, specs_override=None, la
         })
     if n_ausentes:
         status = "INVALIDO"
-    elif n_atrasados:
+    elif n_nao_exatos:
         status = "ATENCAO"
     else:
         status = "NORMAL"
@@ -651,10 +690,12 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None, specs_override=None, la
         "n_exatos": n_exatos,
         "n_interpolados": n_interpolados,
         "n_vizinhos_mais_proximos": n_vizinhos,
+        "n_inputs_nao_exatos": n_nao_exatos,
         "n_inputs_atrasados": n_atrasados,
         "n_inputs_ausentes": n_ausentes,
         "idade_max_input_min": (max(idades) if idades else None),
-        "regra_atraso": "ATENCAO quando uma dependencia usa vizinho mais proximo a 30 min ou mais; INVALIDO quando falta qualquer dependencia",
+        "regra_atraso": "ATENCAO quando qualquer dependencia nao e EXATO na mesma hora-base; INVALIDO quando falta qualquer dependencia",
+        "contrato_temporal": "24 inputs do V01 em grade horaria exata, todos na mesma hora-base; interpolacao/vizinho nao entra na selecao do modelo",
         "definicao_aceleracao": {
             "formula": "A_h(t) = [N(t)-N(t-1h)] - [N(t-h)-N(t-(h+1)h)]",
             "interpretacao": "segunda diferenca discreta / mudanca da variacao horaria",
@@ -663,6 +704,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None, specs_override=None, la
         },
         "inputs": entradas,
     }
+
 
 def auditoria_inputs_4h_v01_26(series, t, valores=None):
     specs = [
@@ -682,36 +724,11 @@ def auditoria_inputs_4h_v01_26(series, t, valores=None):
     ]
     labels = next((cfg.get("input_labels") for cfg in MODELOS
                    if cfg.get("modelo") == MODELO_4H_PRO_ID), None) or []
-    return auditoria_inputs_4h_v01_r10(
+    out = auditoria_inputs_4h_v01_r10(
         series, t, valores=valores, specs_override=specs, labels_override=labels
     )
-
-
-# indices (na ordem de montar_inputs(), o mesmo 2h VFINAL exibido no site) que
-# alimentam a cascata DYN9_INC -- nucleo Santa Tereza + Linha Jose Julio nivel/D5h.
-# Ver UPSTREAM_INPUTS/FEATURE_SETS em
-# .../RNA_STZ_CASCATA_VFINAL_2H_PARA_4H_2026_07_28/codigos/preparar_cascata_vfinal_2h_para_4h_stz.py
-CASCATA_DYN9_INDICES_VFINAL = [0, 1, 2, 4, 5, 6, 9, 12]
-
-def montar_inputs_4h_cascata_vfinal_dyn9(series, t):
-    """Cascata 4h retreinada em 28/07/2026 sobre o proprio modelo 2h VFINAL ativo
-    (nao mais um modelo 2h interno oculto -- ver auditoria RNAS_AO_VIVO_STZ_MUCUM
-    2026-07-28: a cascata antiga foi treinada com a saida do C0472 mas recebia
-    em runtime a saida do VFINAL, incompativel). 9 inputs: um nucleo de 8 do
-    proprio VFINAL (indices em CASCATA_DYN9_INDICES_VFINAL) mais o delta 2h que
-    o VFINAL prevê para agora -- o mesmo numero que a aba "2h" do site mostra.
-    Alvo do modelo e o INCREMENTO entre +2h e +4h, nao o delta4 direto: o
-    pos-processamento (delta4 = delta2_previsto + incremento_previsto) fica em
-    gerar_saida_modelo(), guiado por cfg["cascata"]["target_mode"]."""
-    x15, st0 = montar_inputs(series, t)
-    delta_2h = None
-    try:
-        if st0 is not None and all(v is not None for v in x15):
-            delta_2h = prever(MODELO_MAT, x15)
-    except Exception:
-        delta_2h = None
-    inputs9 = [x15[i] for i in CASCATA_DYN9_INDICES_VFINAL] + [delta_2h]
-    return inputs9, st0
+    out["contrato_temporal"] = "26 inputs em grade horaria exata, todos na mesma hora-base; interpolacao/vizinho nao entra na selecao do modelo"
+    return out
 
 def montar_inputs_8h_alt_c0217(series, t):
     """10 inputs do modelo 8h ALT C0217, conforme planilha auditavel."""
@@ -758,8 +775,6 @@ def montar_inputs_modelo(cfg, series, t):
         return montar_inputs_4h_v01_r10(series, t)
     if cfg["montador"] == "4h_alt_prio_12478":
         return montar_inputs_4h(series, t)
-    if cfg["montador"] == "4h_cascata_vfinal_dyn9":
-        return montar_inputs_4h_cascata_vfinal_dyn9(series, t)
     if cfg["montador"] == "8h_alt_c0217":
         return montar_inputs_8h_alt_c0217(series, t)
     if cfg["montador"] == "12h_alt_c0065":
@@ -868,48 +883,6 @@ def diagnosticar_inputs_faltantes_4h_v01_r10(series, t, inputs):
         ("inp24", "Estacao 86298000 - aceleracao A-16h", "86298000", [0, 1, 16, 17]),
     ]
     return diagnosticar_inputs_por_especificacoes(series, t, inputs, especificacoes)
-
-def diagnosticar_inputs_faltantes_4h_cascata_vfinal_dyn9(series, t, inputs):
-    """A cascata DYN9_INC usa um subconjunto dos 15 inputs do proprio VFINAL
-    (ver CASCATA_DYN9_INDICES_VFINAL) mais o delta 2h que o VFINAL preve --
-    reaproveita o diagnostico padrao de 15 inputs, restrito aos indices usados,
-    e reporta o delta 2h como dependendo dos 15 inputs completos (o VFINAL
-    precisa de todos pra rodar, mesmo que a cascata em si so use 8 deles)."""
-    especificacoes_15 = [
-        ("inp01", "Santa Tereza - nivel atual", "86472600", [0]),
-        ("inp02", "Santa Tereza - nivel D-1h", "86472600", [0, 1]),
-        ("inp03", "Santa Tereza - nivel D-2h", "86472600", [0, 2]),
-        ("inp04", "Santa Tereza - nivel D-4h", "86472600", [0, 4]),
-        ("inp05", "Santa Tereza - aceleracao A-1h", "86472600", [0, 1, 2]),
-        ("inp06", "Santa Tereza - aceleracao A-2h", "86472600", [0, 1, 2, 3]),
-        ("inp07", "Santa Tereza - aceleracao A-4h", "86472600", [0, 1, 4, 5]),
-        ("inp08", "Santa Tereza - aceleracao A-8h", "86472600", [0, 1, 8, 9]),
-        ("inp09", "Santa Tereza - aceleracao A-12h", "86472600", [0, 1, 12, 13]),
-        ("inp10", "Linha Jose Julio / Rio das Antas - nivel atual", "86472000", [0]),
-        ("inp11", "Linha Jose Julio / Rio das Antas - nivel D-1h", "86472000", [0, 1]),
-        ("inp12", "Linha Jose Julio / Rio das Antas - nivel D-2h", "86472000", [0, 2]),
-        ("inp13", "Linha Jose Julio / Rio das Antas - nivel D-5h", "86472000", [0, 5]),
-        ("inp14", "Linha Jose Julio / Rio das Antas - aceleracao A-12h", "86472000", [0, 1, 12, 13]),
-        ("inp15", "Linha Jose Julio / Rio das Antas - aceleracao A-20h", "86472000", [0, 1, 20, 21]),
-    ]
-    especificacoes = [especificacoes_15[i] for i in CASCATA_DYN9_INDICES_VFINAL]
-    faltantes = diagnosticar_inputs_por_especificacoes(series, t, inputs[:-1], especificacoes)
-    if len(inputs) > len(CASCATA_DYN9_INDICES_VFINAL) and inputs[-1] is None:
-        try:
-            x15, _ = montar_inputs(series, t)
-            dependencias = diagnosticar_inputs_faltantes(series, t, x15)
-        except Exception as e:
-            dependencias = [{"input": "RNA_2H_VFINAL", "descricao": f"falha ao montar 2h VFINAL: {e}"}]
-        faltantes.append({
-            "input": "inp09",
-            "descricao": "delta previsto pela RNA 2h ativa (mesmo modelo da aba 2h)",
-            "estacao": "RNA_2H",
-            "estacao_nome": "RNA Santa Tereza 2h",
-            "horarios_necessarios": [t.isoformat(timespec="minutes")],
-            "horarios_faltantes": [t.isoformat(timespec="minutes")],
-            "dependencias_faltantes": dependencias,
-        })
-    return faltantes
 
 def diagnosticar_inputs_por_especificacoes(series, t, inputs, especificacoes):
     faltantes = []
@@ -1024,8 +997,6 @@ def diagnosticar_inputs_modelo(cfg, series, t, inputs):
         return diagnosticar_inputs_faltantes_4h_v01_r10(series, t, inputs)
     if cfg["montador"] == "4h_alt_prio_12478":
         return diagnosticar_inputs_faltantes_4h(series, t, inputs)
-    if cfg["montador"] == "4h_cascata_vfinal_dyn9":
-        return diagnosticar_inputs_faltantes_4h_cascata_vfinal_dyn9(series, t, inputs)
     if cfg["montador"] == "8h_alt_c0217":
         return diagnosticar_inputs_faltantes_8h(series, t, inputs)
     if cfg["montador"] == "12h_alt_c0065":
@@ -1102,31 +1073,6 @@ def sha256_arquivo(path):
             h.update(bloco)
     return h.hexdigest().upper()
 
-def cascata_compativel(cfg):
-    """Trava de compatibilidade (auditoria 2026-07-28): a cascata so pode
-    publicar numero se o hash do modelo 2h que ela foi treinada pra consumir
-    (gravado dentro do proprio .mat como upstream_model_sha256) bater com o
-    modelo 2h REALMENTE ativo agora (MODELO_MAT). Se um modelo 2h novo for
-    trocado no site sem retreinar/trocar a cascata junto, essa checagem pega
-    a divergencia e a cascata fica indisponivel em vez de publicar um numero
-    de novo incompativel (o mesmo erro que gerou a cascata REPROVADA de
-    28/07: treinada com C0472, alimentada com VFINAL em runtime)."""
-    try:
-        m = loadmat(cfg["mat"], squeeze_me=True)
-        hash_esperado = str(m["upstream_model_sha256"]).strip().upper()
-    except Exception as e:
-        return False, f"nao foi possivel ler o hash esperado do .mat da cascata: {e}"
-    try:
-        hash_ativo = sha256_arquivo(MODELO_MAT)
-    except Exception as e:
-        return False, f"nao foi possivel calcular o hash do modelo 2h ativo: {e}"
-    if hash_esperado != hash_ativo:
-        return False, (
-            "cascata indisponivel: o modelo 2h ativo mudou desde que a cascata foi "
-            f"treinada (SHA-256 esperado {hash_esperado[:12]}..., ativo {hash_ativo[:12]}...)"
-        )
-    return True, None
-
 def escrever(nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes=None, estacoes_status=None):
     consultado_em = agora_brt()
     raw_st = ULTIMA_RAW.get("86472600")
@@ -1190,9 +1136,16 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
         "montador": cfg.get("montador"),
         "versao": cfg.get("versao"),
         "ativo_ao_vivo": bool(cfg.get("ativo_ao_vivo", False)),
+        "principal": bool(cfg.get("principal", False)),
+        "shadow_only": bool(cfg.get("shadow_only", False)),
+        "status_publicacao": cfg.get("status_publicacao"),
+        "modelo_sha256": (sha256_arquivo(cfg["mat"]) if os.path.exists(cfg.get("mat", "")) else cfg.get("modelo_sha256")),
+        "referencia_auditavel_sha256": cfg.get("referencia_auditavel_sha256"),
+        "proveniencia_nota": cfg.get("proveniencia_nota"),
         "referencia_auditavel": cfg.get("referencia_auditavel"),
         "input_labels": cfg.get("input_labels"),
         "input_anchor_note": cfg.get("input_anchor_note"),
+        "input_contract_version": cfg.get("input_contract_version"),
         "bankfull_cm": BANKFULL_CM,
         "nivel_modelo_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_rio_agora_cm": (round(raw_st[1]) if raw_st else (round(nivel_atual) if nivel_atual is not None else None)),
@@ -1246,11 +1199,18 @@ def upsert_previsao_historico(registros, saida):
         "nivel_rio_agora_cm": saida.get("nivel_rio_agora_cm"),
         "nivel_previsto_cm": saida.get("nivel_previsto_cm"),
         "status_auditoria": "aguardando",
+        "auditoria_versao": AUDITORIA_VERSAO,
+        "input_contract_version": saida.get("input_contract_version"),
         "criado_em": saida.get("consultado_em"),
     }
     for i, reg in enumerate(registros):
         if reg.get("id") == chave:
-            preservados = {k: reg.get(k) for k in ("observado_cm", "observado_em", "erro_cm", "erro_abs_cm", "status_auditoria", "auditado_em") if k in reg}
+            # Registros criados antes do contrato target_exact_v2 precisam
+            # voltar para aguardando; os erros antigos podem ter usado uma
+            # leitura vizinha e não são comparáveis aos novos.
+            preservados = {}
+            if reg.get("auditoria_versao") == AUDITORIA_VERSAO:
+                preservados = {k: reg.get(k) for k in ("observado_cm", "observado_em", "erro_cm", "erro_abs_cm", "status_auditoria", "auditado_em") if k in reg}
             novo.update(preservados)
             registros[i] = novo
             return registros
@@ -1261,12 +1221,20 @@ def conferir_historico(registros, series):
     serie_st = series.get("86472600", {})
     ultima_hora = max(serie_st) if serie_st else None
     for reg in registros:
-        if reg.get("status_auditoria") == "conferido":
+        if reg.get("status_auditoria") == "conferido" and reg.get("auditoria_versao") == AUDITORIA_VERSAO:
             continue
+        if reg.get("auditoria_versao") != AUDITORIA_VERSAO:
+            for campo in ("observado_cm", "observado_em", "erro_cm", "erro_abs_cm", "auditado_em"):
+                reg.pop(campo, None)
+            reg["status_auditoria"] = "aguardando"
+            reg["auditoria_versao"] = AUDITORIA_VERSAO
         alvo = _parse_hora(reg.get("hora_alvo", ""))
         if alvo is None:
             continue
-        obs, obs_em = observar_nivel(serie_st, alvo)
+        # Comparação estrita: previsão para t+H só é conferida com a leitura
+        # ANA exatamente em t+H. Não usar 00:45 para validar uma previsão de
+        # 01:00, nem interpolar o observado.
+        obs, obs_em = observar_nivel(serie_st, alvo, max_gap=dt.timedelta(0))
         if obs is not None:
             previsto = reg.get("nivel_previsto_cm")
             erro = None if previsto is None else float(previsto) - float(obs)
@@ -1276,12 +1244,14 @@ def conferir_historico(registros, series):
                 "erro_cm": (round(erro, 1) if erro is not None else None),
                 "erro_abs_cm": (round(abs(erro), 1) if erro is not None else None),
                 "status_auditoria": "conferido",
+                "auditoria_versao": AUDITORIA_VERSAO,
                 "auditado_em": agora_brt().isoformat(timespec="seconds"),
             })
         elif ultima_hora and (alvo + AUDITORIA_MAX_GAP) <= ultima_hora:
             # Só marca buraco definitivo depois da janela de tolerância —
             # leituras ANA atrasadas ainda podem chegar e liberar o erro.
             reg["status_auditoria"] = "sem_dado_ana"
+            reg["auditoria_versao"] = AUDITORIA_VERSAO
             reg["auditado_em"] = agora_brt().isoformat(timespec="seconds")
     return registros
 
@@ -1291,10 +1261,22 @@ def media(vals):
 
 def resumo_auditoria(registros, horizonte, modelo=None):
     regs = [r for r in registros if r.get("horizonte") == horizonte]
+    excluidas_grade = 0
     if modelo:
         # Ao trocar a RNA ativa, o histÃ³rico antigo continua Ãºtil para
         # auditoria, mas nÃ£o pode contaminar o erro recente do modelo novo.
         regs = [r for r in regs if r.get("modelo") == modelo]
+    if horizonte == "4h":
+        # O V01 foi treinado em linhas horárias. Previsões históricas feitas
+        # às :15/:30/:45 pertencem ao legado e não entram no indicador atual.
+        apenas_horarias = []
+        for reg in regs:
+            hora = _parse_hora(reg.get("hora_modelo", ""))
+            if hora is not None and hora.minute == 0 and hora.second == 0:
+                apenas_horarias.append(reg)
+            else:
+                excluidas_grade += 1
+        regs = apenas_horarias
     conferidos = sorted(
         [r for r in regs if r.get("status_auditoria") == "conferido"],
         key=lambda r: r.get("hora_alvo") or ""
@@ -1307,14 +1289,32 @@ def resumo_auditoria(registros, horizonte, modelo=None):
         alvo = _parse_hora(r.get("hora_alvo", ""))
         if alvo and (agora - alvo).total_seconds() <= 24 * 3600:
             ult24.append(r)
+    mae_modelo_24h = media([r.get("erro_abs_cm") for r in ult24])
+    # Baseline causal: persistência mantém o nível da base da previsão.
+    # Só compara linhas que possuem nível de referência e observado no alvo.
+    persistencia_24h = [
+        abs(float(r["observado_cm"]) - float(r["nivel_modelo_cm"]))
+        for r in ult24
+        if r.get("observado_cm") is not None and r.get("nivel_modelo_cm") is not None
+    ]
+    mae_persistencia_24h = media(persistencia_24h)
+    melhoria_persistencia = None
+    if mae_modelo_24h is not None and mae_persistencia_24h not in (None, 0):
+        melhoria_persistencia = round((1 - mae_modelo_24h / mae_persistencia_24h) * 100, 1)
     return {
         "n_total": len(regs),
         "modelo": modelo,
+        "auditoria_versao": AUDITORIA_VERSAO,
+        "grade_modelo": ("horaria_exata" if horizonte == "4h" else "original_do_modelo"),
+        "n_excluidas_fora_grade": excluidas_grade,
         "n_conferidas": len(conferidos),
         "n_aguardando": aguardando,
         "ultima_conferida": (conferidos[-1] if conferidos else None),
         "mae_ultimas_6_cm": media([r.get("erro_abs_cm") for r in conferidos[-6:]]),
-        "mae_24h_cm": media([r.get("erro_abs_cm") for r in ult24]),
+        "mae_24h_cm": mae_modelo_24h,
+        "baseline": "persistencia_nivel_modelo_cm",
+        "mae_persistencia_24h_cm": mae_persistencia_24h,
+        "melhoria_vs_persistencia_24h_pct": melhoria_persistencia,
         "maior_erro_abs_24h_cm": (max([r.get("erro_abs_cm") for r in ult24 if r.get("erro_abs_cm") is not None]) if ult24 else None),
         "ultimas_conferidas": ultimas,
     }
@@ -1328,12 +1328,6 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         )
         out["disponivel"] = True
         return out
-    if cfg.get("cascata", {}).get("target_mode"):
-        compativel, motivo = cascata_compativel(cfg)
-        if not compativel:
-            out = _base_saida(cfg, None, None, t, motivo, aviso, [], estacoes_status)
-            out["disponivel"] = False
-            return out
     try:
         x, st0 = montar_inputs_modelo(cfg, series, t)
     except Exception as e:
@@ -1348,14 +1342,7 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         return out
     try:
         delta_bruto = prever(cfg["mat"], x)
-        target_mode = cfg.get("cascata", {}).get("target_mode")
-        if target_mode == "INCREMENTO_2A4":
-            # x[-1] e o proprio delta 2h previsto pelo VFINAL (ultimo input da
-            # cascata, ver montar_inputs_4h_cascata_vfinal_dyn9); o modelo so
-            # aprendeu o INCREMENTO adicional entre +2h e +4h.
-            delta = float(x[-1]) + delta_bruto
-        else:
-            delta = delta_bruto
+        delta = delta_bruto
         out = _base_saida(cfg, st0, st0 + delta, t, "ok", aviso, [], estacoes_status)
         out["disponivel"] = True
         out["delta_previsto_cm"] = round(delta, 1)
@@ -1384,16 +1371,6 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
                     f"({auditoria_inputs['n_inputs_atrasados']} input(s), "
                     f"idade maxima {auditoria_inputs['idade_max_input_min']:.0f} min)"
                 )
-        if cfg.get("cascata"):
-            out["modo_cascata"] = True
-            out["modelo_base_2h"] = cfg["cascata"]["modelo_base"]
-            out["modelo_base_2h_oculto"] = bool(cfg["cascata"].get("modelo_base_oculto"))
-            out["input_cascata_nome"] = cfg["cascata"]["input_nome"]
-            out["input_cascata_2h_cm"] = round(float(x[-1]), 1)
-            out["observacao_cascata"] = (
-                "Cascata 4h ainda ancorada no SHA do antigo VFINAL; com o 2h R09 "
-                "ativo ela so publica se cascata_compativel() liberar (senao o site esconde)."
-            )
         out["passos"] = [[out["hora_modelo"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
         return out
     except Exception as e:
@@ -1404,6 +1381,15 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
 def escolher_hora_modelo(cfg, series, horas_st):
     """Usa a hora mais recente em que todos os inputs do modelo existem."""
     for cand in reversed(horas_st):
+        # O modelo 4h foi treinado em timestamps de hora cheia.  Mesmo que a
+        # API traga uma leitura de 15/30/45 min, não deslocar silenciosamente
+        # a janela: esperar a próxima hora-base completa é mais auditável.
+        if (
+            cfg.get("montador") in ("4h_alt_v01_26", "4h_alt_v01_r10")
+            and MODELO_4H_EXIGE_HORA_EXATA
+            and (cand.minute != 0 or cand.second != 0 or cand.microsecond != 0)
+        ):
+            continue
         try:
             x, st0 = montar_inputs_modelo(cfg, series, cand)
         except Exception:
@@ -1485,10 +1471,14 @@ def algum_horizonte_com_previsao(horizontes):
     )
 
 def main():
-    aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h, 4h e 4h cascata), em paralelo ao SGB/SACE."
+    aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h principal, 2h versao B em sombra e 4h), em paralelo ao SGB/SACE. A versao B e comparativa e nao substitui a 2h principal."
     try:
-        series = {c: buscar_ana(c) for c in ESTACOES}
-        series["__chuva36h_postos__"] = {c: buscar_ana_chuva(c) for c in POSTOS_CHUVA_36H}
+        # As consultas são independentes. Paralelizar evita que um timeout de
+        # uma estação deixe o painel sem atualização por vários minutos.
+        series = buscar_series_paralelo(ESTACOES, buscar_ana, max_workers=6)
+        series["__chuva36h_postos__"] = buscar_series_paralelo(
+            POSTOS_CHUVA_36H, buscar_ana_chuva, max_workers=6
+        )
     except Exception as e:
         preservar_saida_valida_em_falha(f"falha na telemetria: {e}", aviso); return
 
@@ -1536,8 +1526,13 @@ def main():
                 f"{out['status']} - atencao: erro recente do modelo ativo acima do guardrail"
             )
         else:
+            qualidade_status = (
+                "SEM_VALIDACAO_HISTORICA"
+                if out.get("shadow_only") and not audit.get("n_conferidas")
+                else "NORMAL"
+            )
             out["qualidade_ao_vivo"] = {
-                "status": "NORMAL",
+                "status": qualidade_status,
                 "regra": "MAE_24H_CM > 30 ou MAIOR_ERRO_ABS_24H_CM > 100",
                 "mae_24h_cm": mae24,
                 "maior_erro_abs_24h_cm": max24,
@@ -1562,28 +1557,6 @@ def main():
                 )
     escrever_pacote(horizontes, historico, aviso)
     return
-
-    aviso = "EXPERIMENTAL — não é alerta oficial. Camada espacial da previsão de RNA (2h), em paralelo ao SGB/SACE."
-    try:
-        series = {c: buscar_ana(c) for c in ESTACOES}
-    except Exception as e:
-        escrever(None, None, None, f"falha na telemetria: {e}", aviso); return
-    # última hora com nível em ST
-    horas = sorted(series["86472600"].keys())
-    if not horas:
-        escrever(None, None, None, "sem dado recente em Santa Tereza", aviso); return
-    t = horas[-1]
-    x, st0 = montar_inputs(series, t)
-    estacoes_status = resumo_estacoes(series)
-    if st0 is None or any(v is None for v in x):
-        faltando = sum(v is None for v in x)
-        inputs_faltantes = diagnosticar_inputs_faltantes(series, t, x)
-        escrever(st0, None, t, f"inputs incompletos ({faltando}/15 faltando) — sem previsão nesta hora", aviso, inputs_faltantes, estacoes_status); return
-    try:
-        delta = prever(MODELO_MAT, x)
-        escrever(st0, st0 + delta, t, "ok", aviso, [], estacoes_status)
-    except Exception as e:
-        escrever(st0, None, t, f"falha no modelo: {e}", aviso, [], estacoes_status)
 
 if __name__ == "__main__":
     main()

@@ -198,7 +198,7 @@
       if(!target&&baseTime) target=new Date(baseTime.getTime()+hours*60*60*1000);
       if(!target) return;
       const exact=String(key).toLowerCase()===hours+'h';
-      const candidate={hours,cm,time:target,baseTime,baseCm,key,model:obj.modelo||'',exact,alternate:/cascata/i.test(key)};
+      const candidate={hours,cm,time:target,baseTime,baseCm,key,model:obj.modelo||'',exact,alternate:!!obj.alternate};
       const old=picked.get(hours);
       if(!old||candidate.exact||(!old.exact&&!candidate.alternate)) picked.set(hours,candidate);
     });
@@ -489,7 +489,7 @@
     if(!box) return;
     const cards=[];
     cards.push(`<article class="overview-metric"><span>Nível do rio agora</span><strong>${fmtLevel(current&&current.cm!==undefined?current.cm:null)}</strong><small>${current?fmtWhen(current.time):'aguardando telemetria'}</small></article>`);
-    items.forEach(p=>cards.push(`<article class="overview-metric forecast horizon-${p.hours}"><span>Previsão +${p.hours} h</span><strong>${fmtLevel(p.cm)}</strong><small>para ${fmtWhen(p.time)}${p.alternate?' · modelo cascata':''}</small></article>`));
+    items.forEach(p=>cards.push(`<article class="overview-metric forecast horizon-${p.hours}"><span>Previsão +${p.hours} h</span><strong>${fmtLevel(p.cm)}</strong><small>para ${fmtWhen(p.time)}${p.alternate?' · modelo alternativo':''}</small></article>`));
     if(!items.length) cards.push('<article class="overview-metric forecast"><span>Previsão da RNA</span><strong>Indisponível</strong><small>Nenhum horizonte ativo foi publicado agora.</small></article>');
     cards.push(`<article class="overview-metric ${flood.alert?'alert':''}"><span>Cota oficial</span><strong>${fmtLevel(cota)}</strong><small>${flood.label}</small></article>`);
     box.innerHTML=cards.join('');
@@ -533,10 +533,13 @@
       const horizons=(Array.isArray(r.horizons)?r.horizons:[]).slice().sort((a,b)=>Number(a.hours)-Number(b.hours));
       const rainText=horizons.length?horizons.map(h=>`+${h.hours} h: ${h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm'}`).join(' · '):'sem acumulados disponíveis';
       const experimentalRisk=horizons.some(h=>h.flood_probability!==null&&h.flood_probability!==undefined);
+      const age=number(r.observation&&r.observation.age_minutes);
+      const freshness=age===null?'idade da leitura n/d':(age>120?`leitura atrasada (${nf1.format(age,0)} min)`:`leitura com ${nf1.format(age,0)} min`);
+      const generated=r.generated_at_utc?`feed gerado ${fmtWhen(r.generated_at_utc)}`:'feed sem horário de geração';
       label.textContent=experimentalRisk?'Chuva prevista e risco experimental · 24–168 h':'Chuva prevista · 24–168 h';
       detail.textContent=experimentalRisk
-        ?`${rainText}. Estimativa experimental de transbordamento: escala de 0 a 100; não é probabilidade calibrada nem alerta oficial.`
-        :`${rainText}. GEFS e IFS são proxies espaciais; não são probabilidade de transbordamento.`;
+        ?`${rainText}. Estimativa experimental de transbordamento: escala de 0 a 100; não é probabilidade calibrada nem alerta oficial. ${generated}; ${freshness}.`
+        :`${rainText}. GEFS e IFS são proxies espaciais; não são probabilidade de transbordamento. ${generated}; ${freshness}.`;
       const grid=document.getElementById('rp-risk-grid');
       const stateText=document.getElementById('rp-risk-state');
       if(stateText) stateText.textContent=experimentalRisk

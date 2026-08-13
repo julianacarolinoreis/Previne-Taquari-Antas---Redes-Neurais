@@ -411,9 +411,9 @@ function drawCotaChart(nowCm, foreCm, labelPrev){
 }
 const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 // margem de incerteza (m) por horizonte — cresce com o lead
-const UNCERT={'2h':0.3,'4h':0.5,'4h_cascata':0.5,'—':0};
-const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'4h_cascata':['Moderada','#c98a1a'],'—':['—','#999']};
-function hzLabel(hz){ return hz==='4h_cascata'?'4h cascata':(hz||'—'); }
+const UNCERT={'2h':0.3,'4h':0.5,'—':0};
+const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'—':['—','#999']};
+function hzLabel(hz){ return hz||'—'; }
 function hzHours(hz,D){ return D&&D.horizonte_h?String(D.horizonte_h):(String(hz||'').match(/\d+/)||['—'])[0]; }
 function parseLocalWhen(s){
   if(!s) return null;
@@ -712,9 +712,8 @@ function updateLiveHzButtons(){
   const hs=liveData&&liveData.horizontes?liveData.horizontes:{};
   document.querySelectorAll('[data-live-hz]').forEach(b=>{
     const D=hs[b.dataset.liveHz];
-    // disponivel===false = trava de incompatibilidade (ex.: SHA-256 da cascata
-    // nao bate mais com o modelo 2h ativo) -- esconde o botao por completo, e
-    // nao so "sem previsao nesta hora" (que ainda mostra o botao com aviso).
+    // Horizontes indisponíveis ficam ocultos; ausência de previsão não vira
+    // automaticamente uma conclusão de normalidade.
     const ok=!!D && D.disponivel!==false;
     b.style.display=ok?'':'none';
     b.classList.toggle('on',b.dataset.liveHz===liveHz);
@@ -780,9 +779,6 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   const nivelModeloTxt=nivelModelo!=null?` (${Math.round(nivelModelo)} cm)`:'';
   const partes=[`Modo ${modoTxt} · Modelo <b>${modelo}</b> (${hzTxt}${tipoTxt}) · base do cálculo <b>${fmtWhen(horaModelo)}</b>${nivelModeloTxt}`];
   if(D.hora_alvo) partes.push(`previsão para <b>${fmtWhen(D.hora_alvo)}</b>`);
-  if(D.modo_cascata && D.input_cascata_2h_cm!=null){
-    partes.push(`cascata: ${escLive(D.input_cascata_nome||'saída 2h')} <b>${nf1.format(D.input_cascata_2h_cm)} cm</b>`);
-  }
   if(D.telemetria_ultima_em){
     const nivel=D.telemetria_ultima_nivel_cm!=null?` (${D.telemetria_ultima_nivel_cm} cm)`:'';
     partes.push(`nível agora ANA até <b>${fmtWhen(D.telemetria_ultima_em)}</b>${nivel}`);

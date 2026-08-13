@@ -42,4 +42,26 @@ jobs:
             exit 0
           fi
           git commit -m 'bot: atualiza previsão meteorológica de Muçum'
-          git push origin HEAD:main
+          # Outros robôs também publicam no main. Rebaseia e tenta novamente
+          # para que uma atualização meteorológica não seja perdida por corrida.
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push ocupado; sincronizando (tentativa ${attempt}/5)."
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort || true
+              git reset --hard origin/main
+              python -B scripts/build_mucum_weather_feed.py
+              git add -- assets/data/research_weather_mucum_latest.json
+              if git diff --cached --quiet; then
+                echo 'Feed já foi publicado por outra execução.'
+                exit 0
+              fi
+              git commit -m 'bot: atualiza previsão meteorológica de Muçum'
+            fi
+            sleep $((attempt * 2))
+          done
+          echo 'Não foi possível publicar após 5 tentativas.'
+          exit 1

@@ -34,7 +34,7 @@ CASOS = {
         "forbidden": (
             "Nível do rio informado pela estação 86472600",
             "Estação de Santa Tereza sem dado recente",
-            "previsão de 2h/4h/cascata volta",
+            "a previsão de 2h/4h volta assim que a telemetria retornar; o robô é agendado a cada ~5 min.",
             "bankfull_cm?liveData.bankfull_cm:400",
             "bankfull_cm||(liveData&&liveData.bankfull_cm)||400",
             "bankfull_cm||400",

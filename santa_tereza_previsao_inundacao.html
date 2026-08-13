@@ -100,6 +100,9 @@
   .live-bar a{margin-left:auto;color:inherit;cursor:pointer;text-decoration:underline;font-weight:600}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
   .live-note{font-size:11px;color:#a5281c;background:#fff6f5;border:1px solid #f3d3cd;border-radius:9px;padding:7px 10px;margin-bottom:10px;line-height:1.4}
+  .live-status-note{font-size:11px;color:#6f4a12;background:#fff8e8;border:1px solid #efd49a;border-radius:9px;padding:7px 10px;margin:8px 0;line-height:1.4}
+  .live-status-note.ok{color:#176247;background:#f0faf5;border-color:#b8ddca}
+  .live-status-note.warn{color:#8a2d26;background:#fff5f3;border-color:#f0c1b8}
   /* pesquisa validada: painel separado do produto experimental ao vivo */
   .research-panel{border:1px solid #b9d9ca;background:linear-gradient(180deg,#f5fbf7,#fff);border-radius:14px;padding:13px 14px;margin:0 0 14px;box-shadow:var(--shadow)}
   .research-panel .rp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
@@ -142,6 +145,8 @@
   .live-hz{display:none;gap:6px;margin:-2px 0 10px;flex-wrap:wrap}
   .live-hz button{flex:1 1 72px;border:1px solid #f3c0b8;background:#fff;color:#a5281c;border-radius:9px;padding:7px 8px;font-size:12px;font-weight:750;cursor:pointer}
   .live-hz button.on{background:#a5281c;color:#fff;border-color:#a5281c}
+  .live-hz button.shadow{border-color:#7b61a8;color:#5d3f91;background:#fbf8ff}
+  .live-hz button.shadow.on{background:#6f4aa1;color:#fff;border-color:#6f4aa1}
   body.live #scn, body.live .tl, body.live #live-btn{display:none}
   body.live .live-hz{display:flex}
   body.live .simple-only{display:block}
@@ -172,13 +177,13 @@
 <main>
   <div id="map"></div>
   <aside>
-    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h, 4h e cascata)</button>
+    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h A, 2h B e 4h)</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
       <button data-live-hz="2h" class="on">2h</button>
+      <button data-live-hz="2h_versao_b" class="shadow">2h B (VFINAL)</button>
       <button data-live-hz="4h">4h</button>
-      <button data-live-hz="4h_cascata">4h cascata</button>
     </div>
 
     <!-- ===== LINHA DO TEMPO (compartilhada) ===== -->
@@ -212,6 +217,12 @@
         <div class="row"><span>Área total prevista</span><b id="s-atot">—</b></div>
         <div class="conf">Confiabilidade indicativa do horizonte (não é probabilidade): <span class="dot" id="s-confdot"></span><b id="s-conf">—</b></div>
       </div>
+
+      <div id="live-status-note" class="live-status-note" style="display:none"></div>
+
+      <details class="card"><summary>Conferência das últimas previsões</summary><div class="body">
+        <div id="live-audit-summary" class="disc" style="margin-top:0">Aguardando dados da auditoria.</div>
+      </div></details>
 
       <details class="card"><summary>Como esta previsão é feita?</summary><div class="body">
         <div class="method">
@@ -255,7 +266,7 @@
         <div class="read"><span>Erro da última conferida</span><b id="a-err">—</b></div>
         <div class="read"><span>MAE recente</span><b id="a-mae">—</b></div>
         <div class="read"><span>Qualidade recente da RNA</span><b id="a-quality">—</b></div>
-        <div class="read"><span>Integridade dos 24 inputs</span><b id="a-input-quality">—</b></div>
+        <div class="read"><span>Integridade dos inputs da RNA</span><b id="a-input-quality">—</b></div>
         <div id="a-recent" class="disc" style="margin-top:8px;display:none"></div>
       </div>
       <div class="read"><span class="now">Área estimada fora do leito agora</span><b class="now" id="r-anow">—</b></div>
@@ -446,9 +457,9 @@ function drawCotaChart(nowCm, foreCm, labelPrev){
 }
 const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 // margem de incerteza (m) por horizonte — cresce com o lead
-const UNCERT={'2h':0.3,'4h':0.5,'4h_cascata':0.5,'—':0};
-const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'4h_cascata':['Moderada','#c98a1a'],'—':['—','#999']};
-function hzLabel(hz){ return hz==='4h_cascata'?'4h cascata':(hz||'—'); }
+const UNCERT={'2h':0.3,'2h_versao_b':0.3,'4h':0.5,'—':0};
+const CONF={'2h':['Alta','#1b7a5a'],'2h_versao_b':['Experimental · B','#6f4aa1'],'4h':['Moderada','#c98a1a'],'—':['—','#999']};
+function hzLabel(hz){ return hz==='2h_versao_b'?'2h versao B (VFINAL)':(hz||'—'); }
 function hzHours(hz,D){ return D&&D.horizonte_h?String(D.horizonte_h):(String(hz||'').match(/\d+/)||['—'])[0]; }
 function parseLocalWhen(s){
   if(!s) return null;
@@ -460,7 +471,7 @@ function fmtWhenDate(d){
   return d&&Number.isFinite(d.getTime())?`${p(d.getDate())}/${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}`:'—';
 }
 function forecastTargetLabels(ev,s,D){
-  const hz=hzLabel((D&&D.horizonte)||ev.horizonte);
+  const hz=hzLabel((D&&D.rotulo)||((D&&D.horizonte)||ev.horizonte));
   if(hz==='—') return {simple:'—', tech:'—'};
   let alvo=D&&D.hora_alvo?fmtWhen(D.hora_alvo):null;
   if(!alvo || alvo==='—'){
@@ -612,11 +623,16 @@ function renderFrame(){
   if(!handArr) return;
   const ev=EVENTS[curEv], s=ev.series[tIdx]; curS=s;
   const nowCm=s[1], obsCm=s[2], foreCm=s[3];
+  // O modo ao vivo precisa ser resolvido antes de escolher o horizonte.
+  // Antes, activeD era declarado depois de activeKey; isso acionava o
+  // temporal-dead-zone do const e interrompia todo o desenho do painel.
+  const activeD=liveMode?activeLiveData():null;
   const hasNow=nowCm!=null&&Number.isFinite(Number(nowCm));
   const nowDm=hasNow?stageToHand(nowCm)*10:-1;
   const hasFore=foreCm!=null, foreDm=hasFore?stageToHand(foreCm)*10:-1;
   const hasObs=obsCm!=null, obsDm=hasObs?stageToHand(obsCm)*10:-1;
-  const uDm=(UNCERT[ev.horizonte]||0)*10, uMaxDm=foreDm+uDm; // borda de incerteza
+  const activeKey=(activeD&&activeD.horizonte)||ev.horizonte;
+  const uDm=(UNCERT[activeKey]||0)*10, uMaxDm=foreDm+uDm; // borda de incerteza
 
   // mancha: 3 poligonos vetoriais empilhados (incerteza embaixo, previsto no
   // meio, agora em cima). ORDEM IMPORTA: clearLayers()+addData() reinsere o
@@ -640,7 +656,6 @@ function renderFrame(){
 
   const areaNew=areaFore-areaNow;
   const growth=areaNow>0?(areaFore-areaNow)/areaNow*100:null;
-  const activeD=liveMode?activeLiveData():null;
   const targetLabels=forecastTargetLabels(ev,s,activeD);
   set('s-hz', targetLabels.simple);
   set('hz', targetLabels.tech);
@@ -655,11 +670,11 @@ function renderFrame(){
   const cfore=document.getElementById('s-falta-fore');
   if(cnow)cnow.className=classeDistanciaCota(nowCm);
   if(cfore)cfore.className=hasFore?classeDistanciaCota(foreCm):'';
-  drawCotaChart(nowCm,hasFore?foreCm:null,hzLabel(ev.horizonte));
+  drawCotaChart(nowCm,hasFore?foreCm:null,hzLabel(activeKey));
   set('s-drio', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
   set('s-newarea', hasFore?sgn1(areaNew)+' ha':'—');
   set('s-atot', hasFore?nf.format(areaFore)+' ha':(hasNow?nf.format(areaNow)+' ha':'—'));
-  const cf=CONF[ev.horizonte]||CONF['—']; set('s-conf',cf[0]); const cd=document.getElementById('s-confdot'); if(cd)cd.style.background=cf[1];
+  const cf=CONF[activeKey]||CONF['—']; set('s-conf',cf[0]); const cd=document.getElementById('s-confdot'); if(cd)cd.style.background=cf[1];
   // ---- modo tecnico ----
   set('r-now', fmtNivel(nowCm));
   const modelBaseCm=activeD?liveModelBaseCm(activeD):null;
@@ -746,9 +761,8 @@ function updateLiveHzButtons(){
   const hs=liveData&&liveData.horizontes?liveData.horizontes:{};
   document.querySelectorAll('[data-live-hz]').forEach(b=>{
     const D=hs[b.dataset.liveHz];
-    // disponivel===false = trava de incompatibilidade (ex.: SHA-256 da cascata
-    // nao bate mais com o modelo 2h ativo) -- esconde o botao por completo, e
-    // nao so "sem previsao nesta hora" (que ainda mostra o botao com aviso).
+    // Horizontes indisponiveis ficam ocultos; ausencia de previsao nao vira
+    // automaticamente uma conclusao de normalidade.
     const ok=!!D && D.disponivel!==false;
     b.style.display=ok?'':'none';
     b.classList.toggle('on',b.dataset.liveHz===liveHz);
@@ -807,6 +821,9 @@ function liveFreshnessHtml(D){
   return partes;
 }
 function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
+  const shadowNotice=D.shadow_only?'<b>VERSAO B EM SOMBRA: comparacao experimental; nao substitui a 2h principal</b>':'';
+  const provenanceNotice=D.modelo_sha256?`SHA MAT <b>${escLive(String(D.modelo_sha256).slice(0,12))}…</b>`:'';
+  const workbookNotice=D.referencia_auditavel?`auditoria: <b>${escLive(D.referencia_auditavel)}</b>`:'';
   const modelo=D.modelo||'—';
   const horaModelo=D.hora_modelo||P[0];
   const hzTxt=D.rotulo||hzLabel(hz);
@@ -814,9 +831,9 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
   const nivelModeloTxt=nivelModelo!=null?` (${Math.round(nivelModelo)} cm)`:'';
   const partes=[`Modo ${modoTxt} · Modelo <b>${modelo}</b> (${hzTxt}${tipoTxt}) · base do cálculo <b>${fmtWhen(horaModelo)}</b>${nivelModeloTxt}`];
   if(D.hora_alvo) partes.push(`previsão para <b>${fmtWhen(D.hora_alvo)}</b>`);
-  if(D.modo_cascata && D.input_cascata_2h_cm!=null){
-    partes.push(`cascata: ${escLive(D.input_cascata_nome||'saída 2h')} <b>${nf1.format(D.input_cascata_2h_cm)} cm</b>`);
-  }
+  if(shadowNotice) partes.push(shadowNotice);
+  if(provenanceNotice) partes.push(provenanceNotice);
+  if(workbookNotice) partes.push(workbookNotice);
   if(D.telemetria_ultima_em){
     const nivel=D.telemetria_ultima_nivel_cm!=null?` (${D.telemetria_ultima_nivel_cm} cm)`:'';
     partes.push(`nível agora ANA até <b>${fmtWhen(D.telemetria_ultima_em)}</b>${nivel}`);
@@ -895,6 +912,51 @@ function renderLiveAudit(D){
     }
   }
 }
+function renderLiveStatus(D,hz){
+  const box=document.getElementById('live-status-note');
+  if(!box) return;
+  const q=D&&D.qualidade_ao_vivo||{};
+  const A=D&&D.auditoria||{};
+  const mae24=A.mae_24h_cm!=null?A.mae_24h_cm:q.mae_24h_cm;
+  const iq=D&&D.auditoria_inputs||{};
+  const base=D&&D.hora_modelo?fmtWhen(D.hora_modelo):'—';
+  const tele=D&&D.telemetria_ultima_em?fmtWhen(D.telemetria_ultima_em):'—';
+  const consulted=D&&D.consultado_em?fmtWhen(D.consultado_em):'—';
+  const status=String(D&&D.status||'').toLowerCase();
+  const stale=status.includes('aguardando')||status.includes('atras')||status.includes('sem dado');
+  const parts=[];
+  if(stale){
+    parts.push(`<b>Previsão mantida da base ${escLive(base)}</b>: a consulta mais recente não trouxe uma leitura ANA nova (última leitura ${escLive(tele)}; robô consultado ${escLive(consulted)}).`);
+  }else{
+    parts.push(`<b>Base da previsão:</b> ${escLive(base)} · leitura ANA ${escLive(tele)} · consulta ${escLive(consulted)}.`);
+  }
+  if(q.status==='ATENCAO'){
+    parts.push(`<b>${escLive(hzLabel(hz))} em atenção:</b> MAE recente ${mae24!=null?nf1.format(mae24)+' cm':'—'}; maior erro ${q.maior_erro_abs_24h_cm!=null?nf1.format(q.maior_erro_abs_24h_cm)+' cm':'—'}.`);
+  }else if(q.status){
+    parts.push(`<b>Qualidade recente:</b> ${escLive(q.status)} · MAE 24h ${mae24!=null?nf1.format(mae24)+' cm':'—'}.`);
+  }
+  if(A.mae_persistencia_24h_cm!=null){
+    const melhoria=A.melhoria_vs_persistencia_24h_pct;
+    const melhoriaTxt=melhoria==null?'':` · ${melhoria>=0?'melhoria':'piora'} de ${nf1.format(Math.abs(melhoria))}% vs persistência`;
+    parts.push(`Comparação causal: persistência MAE ${nf1.format(q.mae_persistencia_24h_cm)} cm${melhoriaTxt}.`);
+  }
+  if(iq.n_inputs!=null||iq.n_exatos!=null){
+    parts.push(`Inputs: ${iq.n_exatos||0}/${iq.n_inputs||D.inputs_total||'?'} exatos, ${iq.n_inputs_atrasados||0} atrasados.`);
+  }else if(D.inputs_total!=null){
+    parts.push(`Inputs declarados: ${D.inputs_total}; auditoria detalhada não publicada neste horizonte.`);
+  }
+  box.className='live-status-note '+(q.status==='ATENCAO'?'warn':(stale?'':'ok'));
+  box.innerHTML=parts.join(' ');
+  box.style.display='';
+  const summary=document.getElementById('live-audit-summary');
+  if(summary){
+    const n=A.n_conferidas!=null?A.n_conferidas:'—';
+    const last=A.ultima_conferida;
+    const err=last&&last.erro_cm!=null?`${Number(last.erro_cm)>0?'+':''}${nf1.format(last.erro_cm)} cm`:'—';
+    const persist=A.mae_persistencia_24h_cm!=null?` · persistência ${nf1.format(A.mae_persistencia_24h_cm)} cm` : '';
+    summary.innerHTML=`<b>${escLive(hzLabel(hz))}:</b> ${n} previsões conferidas · última ${last?`${fmtWhen(last.hora_modelo)} → ${fmtWhen(last.hora_alvo)}`:'ainda não conferida'} · erro da última ${err} · MAE 24h ${mae24!=null?nf1.format(mae24)+' cm':'—'}${persist}.`;
+  }
+}
 function liveWhenText(D,P){
   const base=fmtWhen(D.telemetria_ultima_em||D.hora_modelo||D.consultado_em||P[0]);
   const avisos=[];
@@ -934,7 +996,7 @@ function renderLiveStep(){
     if(note){ note.style.display='';
       note.textContent='Estação de Santa Tereza sem dado recente da ANA neste momento'
         + (q?(' (última leitura '+fmtWhen(q)+')'):'')
-        + ' — a previsão de 2h/4h/cascata volta assim que a telemetria retornar; o robô tenta a cada ~15 min.'; }
+        + ' — a previsão de 2h/4h volta assim que a telemetria retornar; o robô é agendado a cada ~5 min.'; }
     // limpa a mancha e os números do cenário que ficaram na tela
     ['s-now','s-fore','s-drio','s-newarea','s-atot','s-conf','s-hz2','s-hz','s-falta-now','s-falta-fore'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='—'; });
     const csvg=document.getElementById('s-cota-chart'); if(csvg)csvg.innerHTML='';
@@ -959,6 +1021,7 @@ function renderLiveStep(){
     const ei=document.getElementById('evinfo');
     if(ei) ei.innerHTML=liveInfoHtml(L,P,hz,tipoTxt,modoTxt);
     renderLiveAudit(L);
+    renderLiveStatus(L,hz);
     set('live-kind', liveWhenKind(L));
     set('live-when', liveWhenText(L,P));
     renderFrame();
@@ -1156,6 +1219,11 @@ async function loadResearchWeatherPanel(){
     return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(date);
   };
   const fmtNumber=(value, digits=1)=>Number.isFinite(Number(value)) ? Number(value).toFixed(digits).replace('.',',') : '—';
+  const ageMinutes=(value)=>{
+    if(!value)return null;
+    const ms=Date.parse(value);
+    return Number.isFinite(ms)?Math.max(0,(Date.now()-ms)/60000):null;
+  };
   async function fetchSoilNow(){
     const url='https://api.open-meteo.com/v1/forecast?latitude=-29.1781&longitude=-51.7322&models=ecmwf_ifs025&hourly=soil_moisture_0_to_7cm,soil_moisture_7_to_28cm,soil_moisture_28_to_100cm,soil_moisture_100_to_255cm&forecast_days=2&timezone=America%2FSao_Paulo';
     const response=await fetch(url,{cache:'no-store'});
@@ -1181,7 +1249,11 @@ async function loadResearchWeatherPanel(){
     const observation=data.observation||{};
     const soil=await fetchSoilNow().catch(()=>data.soil||{});
     const h24=(forecast.horizons||[]).find((item)=>Number(item.horizon_hours)===24)||{};
-    meta.textContent='IFS emitido '+fmtUtc(forecast.run_time_utc)+' · disponível '+fmtUtc(forecast.available_at_utc)+' (horário local)';
+    const weatherAge=ageMinutes(data.generated_at_utc);
+    const probabilityAge=ageMinutes(probability&&probability.generated_at_utc);
+    const weatherAgeText=weatherAge==null?'idade do feed n/d':('feed IFS '+fmtNumber(weatherAge,0)+' min atrás');
+    const probabilityAgeText=probabilityAge==null?'probabilidade GEFS n/d':('probabilidade GEFS '+fmtNumber(probabilityAge,0)+' min atrás');
+    meta.textContent='IFS emitido '+fmtUtc(forecast.run_time_utc)+' · disponível '+fmtUtc(forecast.available_at_utc)+' · '+weatherAgeText;
     const rodada='base da rodada: '+fmtNumber(observation.level_cm,0)+' cm ('+fmtUtc(observation.timestamp_utc)+')';
     const aoVivo=live&&Number.isFinite(Number(live.nivel_rio_agora_cm)) ? 'ao vivo: '+fmtNumber(live.nivel_rio_agora_cm,0)+' cm ('+fmtLocal(live.nivel_rio_agora_em||live.gerado_em)+')' : 'ao vivo: indisponível';
     now.textContent=aoVivo+' · '+rodada;
@@ -1201,7 +1273,7 @@ async function loadResearchWeatherPanel(){
       :'AVALIAÇÃO DE 24 H: probabilidade não calculada para esta rodada · chuva média prevista '+fmtNumber(h24.basin_mean_mm,1)+' mm';
     if(probabilityReady){
       probabilityMain.textContent='Até 24 h: '+(p24&&Number.isFinite(Number(p24.probability))?fmtNumber(Number(p24.probability)*100,2)+'%':'indisponível');
-      probabilityNote.textContent='Probabilidade experimental GEFS/NOAA · rodada '+fmtUtc(probability.forecast_run_time_utc)+' · disponível '+fmtUtc(probability.forecast_available_at_utc)+'. Não é alerta oficial; a chuva IFS do cartão é outra fonte.';
+      probabilityNote.textContent='Probabilidade experimental GEFS/NOAA · rodada '+fmtUtc(probability.forecast_run_time_utc)+' · disponível '+fmtUtc(probability.forecast_available_at_utc)+' · '+probabilityAgeText+'. Não é alerta oficial; a chuva IFS do cartão é outra fonte e pode ter outra idade.';
     }else{
       probabilityMain.textContent='Até 24 h: não calculada para esta rodada';
       probabilityNote.textContent=(probability&&probability.message)||'A rodada IFS atual ainda não tem calibrador compatível. Isso é diferente de dizer “0%” ou “não vai inundar”.';
@@ -1220,7 +1292,7 @@ async function loadResearchWeatherPanel(){
       item.append(title,chance,rain);
       horizons.appendChild(item);
     });
-    note.textContent=probabilityReady?'A probabilidade publicada vem da rodada GEFS/NOAA compatível. A chuva IFS fica apenas como informação meteorológica separada. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.':'Fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'. A probabilidade fica “não calculada” quando o calibrador não é compatível. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
+    note.textContent=probabilityReady?'A probabilidade publicada vem da rodada GEFS/NOAA compatível; a chuva IFS fica separada e os dois feeds podem ter idades diferentes ('+weatherAgeText+'; '+probabilityAgeText+'). Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.':'Fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'. A probabilidade fica “não calculada” quando o calibrador não é compatível. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
   }catch(error){
     meta.textContent='Feed meteorológico indisponível no momento.';
     now.textContent='Não foi possível comparar a leitura ao vivo com a base da rodada.';
