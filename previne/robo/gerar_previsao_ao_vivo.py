@@ -588,7 +588,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
             idades.append(idade)
         if "AUSENTE" in metodos:
             n_ausentes += 1
-        if "VIZINHO_MAIS_PROXIMO" in metodos and (idade or 0) > INPUT_WARN_MAX_AGE.total_seconds() / 60:
+        if "VIZINHO_MAIS_PROXIMO" in metodos and (idade or 0) >= INPUT_WARN_MAX_AGE.total_seconds() / 60:
             n_atrasados += 1
         if "INTERPOLADO" in metodos:
             n_interpolados += 1
@@ -625,7 +625,7 @@ def auditoria_inputs_4h_v01_r10(series, t, valores=None):
         "n_inputs_atrasados": n_atrasados,
         "n_inputs_ausentes": n_ausentes,
         "idade_max_input_min": (max(idades) if idades else None),
-        "regra_atraso": "ATENCAO quando uma dependencia usa vizinho mais proximo a mais de 30 min; INVALIDO quando falta qualquer dependencia",
+        "regra_atraso": "ATENCAO quando uma dependencia usa vizinho mais proximo a 30 min ou mais; INVALIDO quando falta qualquer dependencia",
         "definicao_aceleracao": {
             "formula": "A_h(t) = [N(t)-N(t-1h)] - [N(t-h)-N(t-(h+1)h)]",
             "interpretacao": "segunda diferenca discreta / mudanca da variacao horaria",
@@ -1099,6 +1099,7 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
         "horizonte_h": cfg["horizonte_h"],
         "tipo": cfg["tipo"],
         "modelo": cfg["modelo"],
+        "montador": cfg.get("montador"),
         "versao": cfg.get("versao"),
         "ativo_ao_vivo": bool(cfg.get("ativo_ao_vivo", False)),
         "referencia_auditavel": cfg.get("referencia_auditavel"),
@@ -1231,6 +1232,14 @@ def resumo_auditoria(registros, horizonte, modelo=None):
     }
 
 def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
+    if t is None:
+        out = _base_saida(
+            cfg, None, None, None,
+            "sem hora valida: dependencias temporais atrasadas ou ausentes",
+            aviso, [], estacoes_status,
+        )
+        out["disponivel"] = True
+        return out
     if cfg.get("cascata", {}).get("target_mode"):
         compativel, motivo = cascata_compativel(cfg)
         if not compativel:
@@ -1298,7 +1307,18 @@ def escolher_hora_modelo(cfg, series, horas_st):
         except Exception:
             continue
         if st0 is not None and all(v is not None for v in x):
+            # Para a V01 PRO, nao escolher uma hora que force uma estacao a
+            # fornecer vizinho atrasado. O recuo temporal preserva a coerencia
+            # das aceleracoes e evita misturar t=21:45 com uma regua parada em
+            # t=21:00. Se nenhuma hora passar, a chamada abaixo ainda produz o
+            # diagnostico ATENCAO/INVALIDO em vez de esconder o problema.
+            if cfg.get("montador") == "4h_alt_v01_r10":
+                audit = auditoria_inputs_4h_v01_r10(series, cand, valores=x)
+                if audit["status"] != "NORMAL":
+                    continue
             return cand
+    if cfg.get("montador") == "4h_alt_v01_r10":
+        return None
     return horas_st[-1] if horas_st else None
 
 def escrever_pacote(horizontes, historico, aviso):
@@ -1420,7 +1440,16 @@ def main():
         hm = _parse_hora(out.get("hora_modelo") or "")
         if tel and hm and out.get("nivel_previsto_cm") is not None:
             atraso_h = (tel[0] - hm).total_seconds() / 3600.0
-            if atraso_h >= 2.0 and out.get("status") == "ok":
+            if (
+                out.get("montador") == "4h_alt_v01_r10"
+                and atraso_h >= INPUT_WARN_MAX_AGE.total_seconds() / 3600.0
+                and str(out.get("status") or "").startswith("ok")
+            ):
+                out["status"] = (
+                    f"{out['status']} - atencao: hora-base {atraso_h:.1f}h atrasada "
+                    "para manter as entradas no mesmo recorte temporal"
+                )
+            elif atraso_h >= 2.0 and out.get("status") == "ok":
                 out["status"] = (
                     f"ok (base {atraso_h:.1f}h atrasada vs telemetria — "
                     "inputs preenchidos com interpolacao em buracos ANA)"
