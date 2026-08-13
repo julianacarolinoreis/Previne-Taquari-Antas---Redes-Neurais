@@ -614,6 +614,10 @@ function renderFrame(){
   if(!handArr) return;
   const ev=EVENTS[curEv], s=ev.series[tIdx]; curS=s;
   const nowCm=s[1], obsCm=s[2], foreCm=s[3];
+  // O modo ao vivo precisa ser resolvido antes de escolher o horizonte.
+  // Antes, activeD era declarado depois de activeKey; isso acionava o
+  // temporal-dead-zone do const e interrompia todo o desenho do painel.
+  const activeD=liveMode?activeLiveData():null;
   const hasNow=nowCm!=null&&Number.isFinite(Number(nowCm));
   const nowDm=hasNow?stageToHand(nowCm)*10:-1;
   const hasFore=foreCm!=null, foreDm=hasFore?stageToHand(foreCm)*10:-1;
@@ -643,7 +647,6 @@ function renderFrame(){
 
   const areaNew=areaFore-areaNow;
   const growth=areaNow>0?(areaFore-areaNow)/areaNow*100:null;
-  const activeD=liveMode?activeLiveData():null;
   const targetLabels=forecastTargetLabels(ev,s,activeD);
   set('s-hz', targetLabels.simple);
   set('hz', targetLabels.tech);
