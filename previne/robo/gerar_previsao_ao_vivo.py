@@ -17,6 +17,7 @@ EXPERIMENTAL — não é alerta oficial.
 """
 import os, sys, json, hashlib, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
 import bisect
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from scipy.io import loadmat
 
@@ -280,6 +281,23 @@ def buscar_ana_chuva(cod, dias=5):
         if rodada < ANA_RETRIES_CHUVA:
             time.sleep(4 * rodada)
     return {}
+
+def buscar_series_paralelo(codigos, funcao, max_workers=6):
+    """Consulta as estações independentes em paralelo.
+
+    A ANA costuma deixar uma estação presa por dezenas de segundos. A versão
+    anterior consultava todas em série, fazendo um único timeout atrasar o
+    ciclo inteiro. O limite de seis conexões reduz a latência sem abrir uma
+    enxurrada de requisições ao serviço; a ordem do dicionário permanece a
+    ordem declarada dos códigos.
+    """
+    codigos = list(codigos)
+    if not codigos:
+        return {}
+    workers = max(1, min(int(max_workers), len(codigos)))
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="ana-live") as executor:
+        resultados = list(executor.map(funcao, codigos))
+    return dict(zip(codigos, resultados))
 
 # Buracos da ANA (ex.: 10:45→13:00 e 15:45→18:00 em 2026-08-06) quebravam o
 # 2h (lags/acelerações pedem horário exato) e a auditoria (alvo sem linha).
@@ -1381,8 +1399,12 @@ def algum_horizonte_com_previsao(horizontes):
 def main():
     aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h, 4h e 4h cascata), em paralelo ao SGB/SACE."
     try:
-        series = {c: buscar_ana(c) for c in ESTACOES}
-        series["__chuva36h_postos__"] = {c: buscar_ana_chuva(c) for c in POSTOS_CHUVA_36H}
+        # As consultas são independentes. Paralelizar evita que um timeout de
+        # uma estação deixe o painel sem atualização por vários minutos.
+        series = buscar_series_paralelo(ESTACOES, buscar_ana, max_workers=6)
+        series["__chuva36h_postos__"] = buscar_series_paralelo(
+            POSTOS_CHUVA_36H, buscar_ana_chuva, max_workers=6
+        )
     except Exception as e:
         preservar_saida_valida_em_falha(f"falha na telemetria: {e}", aviso); return
 
