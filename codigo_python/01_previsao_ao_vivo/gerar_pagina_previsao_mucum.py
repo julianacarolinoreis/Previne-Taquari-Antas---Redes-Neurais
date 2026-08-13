@@ -93,8 +93,6 @@ def main():
          "Padrão provisório adotado em <b>5,0 m</b>"),
         ("Estação de Santa Tereza sem dado recente da ANA neste momento",
          "Estação de Muçum sem dado recente da ANA neste momento"),
-        ("a previsão de 2h/4h/cascata volta assim que a telemetria retornar; o robô tenta a cada ~15 min.",
-         "a previsão de 2h/4h volta assim que a telemetria retornar; o robô tenta a cada ~5 min."),
         ("bankfull_cm?liveData.bankfull_cm:400",
          "bankfull_cm?liveData.bankfull_cm:500"),
         ("bankfull_cm||(liveData&&liveData.bankfull_cm)||400",
@@ -114,27 +112,8 @@ def main():
     html = html.replace('liveFromEvent("mai24_2h","ALT")', 'liveFromEvent("ev27_2h","ALT")')
     html = html.replace("mai24_2h", "ev27_2h")
 
-    html = html.replace(
-        "🔴 Ver previsão AO VIVO (teste interno · 2h, 4h e cascata)",
-        "🔴 Ver previsão AO VIVO (teste interno · 2h e 4h)",
-    )
-    html = html.replace(
-        "🔴 Ver previsão AO VIVO (teste interno · 2h, 4h, cascata, 8h e 12h)",
-        "🔴 Ver previsão AO VIVO (teste interno · 2h e 4h)",
-    )
-    html = html.replace(
-        "🔴 Ver previsão AO VIVO (teste interno · 2h, 4h, cascata e 8h)",
-        "🔴 Ver previsão AO VIVO (teste interno · 2h e 4h)",
-    )
-    html = html.replace('      <button data-live-hz="4h_cascata">4h cascata</button>\n', "")
     html = html.replace('      <button data-live-hz="8h">8h</button>\n', "")
     html = html.replace('      <button data-live-hz="12h">12h</button>\n', "")
-    html = html.replace(
-        '      <button data-live-hz="4h_cascata">4h cascata</button>\n'
-        '      <button data-live-hz="8h">8h</button>\n'
-        '      <button data-live-hz="12h">12h</button>\n',
-        "",
-    )
 
     open(SAIDA, "w", encoding="utf-8").write(html)
     ev = json.loads(re.search(r'<script id="event-data" type="application/json">(.*?)</script>', html, re.DOTALL).group(1))
