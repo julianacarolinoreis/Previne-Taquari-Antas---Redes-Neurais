@@ -39,6 +39,10 @@ BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
                             # cota oficial do zero da régua (SGB/ANA).
 SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
 HISTORICO_SAIDA = "historico_previsoes_ao_vivo.json"
+# Guardrails operacionais: servem para sinalizar degradaÃ§Ã£o recente no painel;
+# nÃ£o substituem a validaÃ§Ã£o offline nem alteram a previsÃ£o do MAT.
+LIVE_WARN_MAE_24H_CM = 30.0
+LIVE_WARN_MAX_24H_CM = 100.0
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
 ESTACOES_NIVEL = [
     "86472600", "86472000", "86125130", "86306000", "86448000", "86507000",
@@ -1039,8 +1043,12 @@ def media(vals):
     vals = [float(v) for v in vals if v is not None]
     return round(sum(vals) / len(vals), 1) if vals else None
 
-def resumo_auditoria(registros, horizonte):
+def resumo_auditoria(registros, horizonte, modelo=None):
     regs = [r for r in registros if r.get("horizonte") == horizonte]
+    if modelo:
+        # Ao trocar a RNA ativa, o histÃ³rico antigo continua Ãºtil para
+        # auditoria, mas nÃ£o pode contaminar o erro recente do modelo novo.
+        regs = [r for r in regs if r.get("modelo") == modelo]
     conferidos = sorted(
         [r for r in regs if r.get("status_auditoria") == "conferido"],
         key=lambda r: r.get("hora_alvo") or ""
@@ -1055,6 +1063,7 @@ def resumo_auditoria(registros, horizonte):
             ult24.append(r)
     return {
         "n_total": len(regs),
+        "modelo": modelo,
         "n_conferidas": len(conferidos),
         "n_aguardando": aguardando,
         "ultima_conferida": (conferidos[-1] if conferidos else None),
@@ -1131,7 +1140,8 @@ def escrever_pacote(horizontes, historico, aviso):
     pacote = dict(principal)
     pacote["horizontes"] = horizontes
     pacote["auditoria_historico"] = {
-        hz: resumo_auditoria(historico, hz) for hz in horizontes.keys()
+        hz: resumo_auditoria(historico, hz, item.get("modelo"))
+        for hz, item in horizontes.items()
     }
     pacote["aviso"] = aviso
     with open(SAIDA, "w", encoding="utf-8") as f:
@@ -1215,7 +1225,32 @@ def main():
     # o painel precisa dizer isso — senão parece "ok" com previsão velha.
     tel = ULTIMA_RAW.get("86472600")
     for hz, out in horizontes.items():
-        out["auditoria"] = resumo_auditoria(historico, hz)
+        out["auditoria"] = resumo_auditoria(historico, hz, out.get("modelo"))
+        audit = out["auditoria"]
+        mae24 = audit.get("mae_24h_cm")
+        max24 = audit.get("maior_erro_abs_24h_cm")
+        if out.get("status", "").startswith("ok") and (
+            (mae24 is not None and mae24 > LIVE_WARN_MAE_24H_CM)
+            or (max24 is not None and max24 > LIVE_WARN_MAX_24H_CM)
+        ):
+            out["qualidade_ao_vivo"] = {
+                "status": "ATENCAO",
+                "regra": "MAE_24H_CM > 30 ou MAIOR_ERRO_ABS_24H_CM > 100",
+                "mae_24h_cm": mae24,
+                "maior_erro_abs_24h_cm": max24,
+                "modelo": out.get("modelo"),
+            }
+            out["status"] = (
+                f"{out['status']} - atencao: erro recente do modelo ativo acima do guardrail"
+            )
+        else:
+            out["qualidade_ao_vivo"] = {
+                "status": "NORMAL",
+                "regra": "MAE_24H_CM > 30 ou MAIOR_ERRO_ABS_24H_CM > 100",
+                "mae_24h_cm": mae24,
+                "maior_erro_abs_24h_cm": max24,
+                "modelo": out.get("modelo"),
+            }
         hm = _parse_hora(out.get("hora_modelo") or "")
         if tel and hm and out.get("nivel_previsto_cm") is not None:
             atraso_h = (tel[0] - hm).total_seconds() / 3600.0
