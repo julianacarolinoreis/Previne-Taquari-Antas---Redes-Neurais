@@ -64,7 +64,6 @@
   .shadow-stat span{color:var(--muted)}
   .shadow a{color:#5b3d8f;font-weight:750;font-size:11px}
   .shadow table{display:none}
-  section[aria-labelledby="probability-title"]{display:none}
   .weather-panel{background:linear-gradient(135deg,#f4fbff,#fff);border:1px solid #b7d5ef;border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);margin-top:16px}
   .weather-panel h2{font-size:17px;color:#1e5fbf;margin:0 0 4px}
   .weather-panel p{font-size:12px;color:var(--muted);margin:0 0 10px}
@@ -77,6 +76,26 @@
   .weather-table{margin-top:10px}
   .weather-table td,.weather-table th{font-size:10.5px;padding:7px 8px}
   .weather-foot{font-size:10px!important;margin-top:8px!important}
+  .short-panel{background:linear-gradient(135deg,#f8fbff,#fff);border:1px solid #b9d4ee;border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);margin-top:16px}
+  .short-panel h2{font-size:17px;color:#1e5fbf;margin:0 0 4px}
+  .short-panel p{font-size:12px;color:var(--muted);margin:0 0 10px}
+  .short-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .short-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;min-height:92px}
+  .short-card b{display:block;font-size:18px;line-height:1.15;margin-bottom:2px}
+  .short-card span{display:block;font-size:10px;color:var(--muted)}
+  .short-card small{display:block;font-size:10px;color:var(--muted);margin-top:6px;line-height:1.35}
+  .short-card.shadow-card{border-color:#c9b6e8;background:#fcfaff}
+  .short-chart-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .short-chart-card{border:1px solid var(--line);border-radius:11px;background:#fff;padding:8px}
+  .short-chart-card h3{margin:0 0 3px;font-size:12px;color:var(--brand)}
+  .short-chart-card svg{display:block;width:100%;height:150px}
+  .short-chart-card .axis{font-size:9px;fill:var(--muted)}
+  .short-chart-card .obs{fill:none;stroke:#1e5fbf;stroke-width:2.4}
+  .short-chart-card .pred{fill:none;stroke:#c46a05;stroke-width:2;stroke-dasharray:5 4}
+  .short-chart-card .shadow-pred{fill:none;stroke:#7b4aa8;stroke-width:1.8;stroke-dasharray:3 3}
+  .short-chart-legend{font-size:10px;color:var(--muted);margin-top:6px}
+  .short-chart-legend .blue{color:#1e5fbf;font-weight:800}.short-chart-legend .orange{color:#c46a05;font-weight:800}.short-chart-legend .purple{color:#7b4aa8;font-weight:800}
+  @media(max-width:700px){.short-grid{grid-template-columns:1fr}.short-chart-pair{grid-template-columns:1fr}}
   @media(max-width:650px){.shadow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media(max-width:850px){.weather-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
   @media(max-width:520px){.weather-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -117,7 +136,7 @@
       <div class="shadow-stat"><b>5</b><span>eventos usados</span></div>
       <div class="shadow-stat"><b>17.810</b><span>linhas no ajuste completo</span></div>
       <div class="shadow-stat"><b>24–168 h</b><span>cinco horizontes</span></div>
-      <div class="shadow-stat"><b>UNKNOWN</b><span>última decisão causal: 08/08 06Z</span></div>
+      <div class="shadow-stat"><b>FEED</b><span>decisão causal carregada do JSON vigente</span></div>
     </div>
     <p style="margin:10px 0 0"><strong>Resposta atual:</strong> não é possível afirmar 0 ou 1 para o momento presente com a última combinação de dados disponível. <a href="assets/data/pesquisa_experimental_5eventos.json">Ver contrato do piloto (JSON) ↗</a></p>
     <table style="margin-top:10px"><thead><tr><th>Horizonte</th><th>Diagnóstico MLP no último snapshot</th><th>Classe em 0,5</th></tr></thead><tbody>
@@ -132,17 +151,10 @@
 
   <section class="section" aria-labelledby="probability-current-title" style="border:1px solid #efd59b;background:#fff8e8">
     <h2 id="probability-current-title">Chance atual de transbordamento</h2>
-    <p><strong>Rodada GEFS/NOAA compatível:</strong> o modelo experimental calcula <strong>0,5% até 24 h</strong>, <strong>11,3% até 48 h</strong>, <strong>28,5% até 72 h</strong>, <strong>43,3% até 120 h</strong> e <strong>57,4% até 168 h</strong>.</p>
-    <p style="margin:8px 0 0"><strong>Como ler:</strong> “57,4% até 168 h” significa que, neste cenário experimental, o modelo estima 57,4 chances em 100 de superar 1.500 cm em algum momento dos próximos sete dias. Isso não é certeza nem alerta oficial.</p>
-    <p style="margin:8px 0 0;font-size:10.5px;color:var(--muted)">A chuva IFS exibida abaixo é outra fonte meteorológica; a porcentagem acima vem da rodada GEFS causal e da calibração LOEO. O resultado continua em modo de pesquisa, com cinco eventos, e não dispara alerta.</p>
+    <p id="current-probability-values"><strong>Carregando a rodada GEFS/NOAA…</strong></p>
+    <p id="current-probability-reading" style="margin:8px 0 0"><strong>Como ler:</strong> a porcentagem é uma estimativa experimental de 0 a 100 para superar 1.500 cm dentro do horizonte indicado; não é certeza nem alerta oficial.</p>
+    <p id="current-probability-meta" style="margin:8px 0 0;font-size:10.5px;color:var(--muted)">A idade, a emissão e a fonte da rodada serão mostradas aqui. Se a rodada estiver velha ou incompatível, o estado será UNKNOWN/STALE.</p>
     <a href="assets/data/research_probability_santa_tereza_latest.json">Ver cálculo, rodada e hashes (JSON) →</a>
-  </section>
-
-  <section class="section" aria-labelledby="probability-title" style="border:1px solid #efd59b;background:#fff8e8">
-    <h2 id="probability-title">Chance de transbordamento: o que estÃ¡ disponÃ­vel</h2>
-    <p><strong>Na rodada atual:</strong> a chance numÃ©rica estÃ¡ <strong>nÃ£o calculada</strong>. O robÃ´ estÃ¡ usando IFS, enquanto o calibrador experimental foi treinado com GEFS histÃ³rico; transformar o score IFS em porcentagem seria inventar uma probabilidade.</p>
-    <p style="margin:8px 0 0"><strong>No hindcast LOEO:</strong> os maiores valores calibrados observados por horizonte foram 21,0% (24 h), 42,9% (48 h), 46,3% (72 h), 58,2% (120 h) e 64,4% (168 h). Esses valores sÃ£o histÃ³ricos, fora-da-amostra por evento, e nÃ£o representam a chance de hoje.</p>
-    <p style="margin:8px 0 0;font-size:10.5px;color:var(--muted)">Quando houver uma rodada atual com features GEFS compatÃ­veis, o painel publicarÃ¡ explicitamente “Chance atÃ© H: X%”. AtÃ© lÃ¡, a resposta correta Ã© “nÃ£o calculada”, nunca “0%” nem “nÃ£o vai inundar”. <a href="assets/data/research_probability_santa_tereza_latest.json">Ver contrato do calibrador (JSON) â†—</a></p>
   </section>
 
   <section class="weather-panel" aria-labelledby="weather-title">
@@ -152,6 +164,17 @@
     <div class="weather-grid" id="weather-grid"></div>
     <table class="weather-table"><thead><tr><th>Horizonte</th><th>Chuva no ponto</th><th>Média da bacia</th><th>Máxima</th><th>Score RNA</th><th>Triagem</th></tr></thead><tbody id="weather-horizons"><tr><td colspan="6">Carregando rodada…</td></tr></tbody></table>
     <p class="weather-foot" id="weather-foot">Fonte, emissão, disponibilidade e hashes serão exibidos quando o feed carregar.</p>
+  </section>
+
+  <section class="short-panel" aria-labelledby="short-title">
+    <h2 id="short-title">Robô ao vivo: nível previsto nas próximas horas</h2>
+    <p>Estas são previsões de nível, não probabilidades de inundação. A versão A continua principal; a versão B é uma comparação em sombra e não substitui a A.</p>
+    <div id="short-grid" class="short-grid"><div class="short-card"><b>Carregando…</b><span>previsões curtas</span></div></div>
+    <p id="short-meta" class="weather-foot">Carregando o pacote ao vivo…</p>
+    <h3 style="font-size:14px;margin:12px 0 2px">Últimas 24 h: observado × previsto</h3>
+    <p>As linhas usam somente previsões marcadas como <strong>conferidas</strong> pelo robô, no horário-alvo exato. Linha azul = observado; laranja = 2 h/4 h; roxa tracejada = versão B.</p>
+    <div id="short-charts" class="short-chart-pair"><div class="short-chart-card"><h3>Carregando gráfico…</h3></div></div>
+    <p id="short-chart-meta" class="short-chart-legend"><span class="blue">observado</span> · <span class="orange">RNA principal</span> · <span class="purple">versão B sombra</span>.</p>
   </section>
 
   <section class="section" aria-labelledby="scenario-title">
@@ -169,7 +192,7 @@
 
   <section class="grid" aria-label="Estado atual dos dados">
     <article class="card metric"><div class="label">Estação ANA/SGB</div><div class="value">UNKNOWN</div><div class="detail">98,96% de cobertura no snapshot; revisão de frescor ativa</div></article>
-    <article class="card metric"><div class="label">Chuva GEFS</div><div class="value state-running">CONCLUÍDA</div><div class="detail">2.634 de 2.634 rodadas com hash e emissão rastreáveis</div></article>
+    <article class="card metric"><div class="label">Chuva GEFS</div><div class="value state-running">CONCLUÍDA</div><div class="detail">backfill com hash e emissão rastreáveis; contagem vem do feed</div></article>
     <article class="card metric"><div class="label">Alerta público</div><div class="value state-blocked">DESATIVADO</div><div class="detail">SGB/ANA/SACE continuam sendo as fontes oficiais</div></article>
     <article class="card metric"><div class="label">RNA</div><div class="value state-blocked">MODO SOMBRA</div><div class="detail">piloto executado; promoção e alerta continuam bloqueados</div></article>
   </section>
@@ -233,7 +256,7 @@
     </div>
   </section>
 
-  <div class="note"><strong>Snapshot:</strong> estado de pesquisa consultado em 10/08/2026, 20:17 UTC. Este painel é informativo; a atualização ao vivo continua nos robôs próprios da página de previsão. Os quatro JSONs dinâmicos do site não fazem parte deste piloto.</div>
+  <div class="note"><strong>Pesquisa + atualização:</strong> este painel combina o contrato científico com os feeds ao vivo somente para inspeção. A atualização operacional continua nos robôs próprios; dados atrasados aparecem como UNKNOWN/STALE e não como “não vai inundar”.</div>
   <nav aria-label="Navegação da pesquisa"><a href="index.html">Página inicial</a><a href="santa_tereza_previsao_inundacao.html">Monitoramento de Santa Tereza</a><a href="pesquisa_status_mucum.html">Pesquisa de Muçum</a><a href="mucum_previsao_inundacao.html">Monitoramento de Muçum</a><a href="mucum_inundacao.html">Histórico de Muçum</a></nav>
   <footer>PREVINE · pesquisa auditável · dados atrasados ou incompletos são exibidos como estado de qualidade, não como ausência de risco.</footer>
 </div>
@@ -255,6 +278,62 @@
     el('weather-foot').textContent=`Observação: ${o.quality||'qualidade não informada'} · fonte meteorológica: ${f.source||'—'} · ${f.grid_points||'—'} pontos únicos · ${f.complete_rows||'—'} linhas completas. RNA treinada em GEFS e aplicada ao IFS; calibração IFS ainda não concluída.`;
   }
   fetch(feed+'?cb='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(render).catch(()=>{el('weather-meta').textContent='Robô meteorológico indisponível no momento.';el('weather-answer').innerHTML='UNKNOWN: sem dados meteorológicos atuais.<small>Isso não significa “não vai inundar”.</small>';});
+})();
+</script>
+<script>
+(function(){
+  const root='';
+  const fmt=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:1});
+  const pct=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const el=id=>document.getElementById(id);
+  const num=v=>v==null||!Number.isFinite(Number(v))?'—':fmt.format(Number(v));
+  const cm=v=>v==null||!Number.isFinite(Number(v))?'—':fmt.format(Number(v))+' cm';
+  const time=v=>{if(!v)return '—';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'};
+  const iso=v=>{const d=new Date(v||'');return Number.isFinite(d.getTime())?d.getTime():NaN};
+  function renderProbability(p){
+    const horizons=p&&p.horizons||{};
+    const keys=['24','48','72','120','168'].filter(k=>horizons[k]);
+    if(!keys.length){el('current-probability-values').innerHTML='<strong>UNKNOWN: rodada GEFS sem horizontes disponíveis.</strong>';return;}
+    const values=keys.map(k=>`<strong>${pct.format(Number(horizons[k].probability)*100)}% até ${k} h</strong>`).join(' · ');
+    el('current-probability-values').innerHTML=`<strong>Rodada GEFS/NOAA compatível:</strong> ${values}.`;
+    const generated=iso(p&&p.generated_at_utc), age=Number.isFinite(generated)?Math.max(0,(Date.now()-generated)/3600000):NaN;
+    const stale=!Number.isFinite(age)||age>36;
+    el('current-probability-reading').innerHTML=stale?'<strong>Como ler:</strong> os percentuais abaixo são uma estimativa experimental da rodada arquivada, mas a rodada está <strong>STALE</strong> para representar o momento atual. Não usar como alerta.':'<strong>Como ler:</strong> a porcentagem é uma estimativa experimental de 0 a 100 para superar 1.500 cm dentro do horizonte indicado; não é certeza nem alerta oficial.';
+    el('current-probability-meta').textContent=`Fonte: ${p.forecast_source||'GEFS/NOAA'} · emissão: ${time(p.forecast_run_time_utc)} · disponível: ${time(p.forecast_available_at_utc)} · decisão: ${time(p.decision_time_utc)} · arquivo gerado: ${time(p.generated_at_utc)} · idade aproximada: ${Number.isFinite(age)?pct.format(age)+' h':'—'} · estado: ${stale?'UNKNOWN/STALE':'pesquisa-only'}.`;
+  }
+  function renderShort(live){
+    const hs=live&&live.horizontes||{};
+    const keys=['2h','2h_versao_b','4h'].filter(k=>hs[k]);
+    el('short-grid').innerHTML=keys.length?keys.map(k=>{const x=hs[k],a=x.auditoria||{},q=x.qualidade_ao_vivo||{},shadow=k==='2h_versao_b';const status=shadow&&(!q.n_conferidas||q.n_conferidas<1)?'SHADOW · sem validação':(x.status||'sem status');return `<div class="short-card${shadow?' shadow-card':''}"><b>${cm(x.nivel_previsto_cm)}</b><span>${shadow?'2 h versão B · sombra':(k==='2h'?'2 h principal':'4 h')}</span><small>agora ${cm(x.nivel_rio_agora_cm)} · Δ ${x.delta_previsto_cm==null?'—':(Number(x.delta_previsto_cm)>0?'+':'')+cm(x.delta_previsto_cm)}<br>MAE 24 h: ${cm(a.mae_24h_cm)} · maior erro: ${cm(a.maior_erro_abs_24h_cm)}<br>${x.modelo||'modelo ao vivo'} · ${status}</small></div>`}).join(''):'<div class="short-card"><b>UNKNOWN</b><span>sem previsão curta</span></div>';
+    el('short-meta').textContent=live?`Feed ao vivo: gerado ${time(live.gerado_em)} · telemetria ${time(live.telemetria_ultima_em)} · atualização ${time(live.consultado_em)} · idade da telemetria ${live.idade_telemetria_min==null?'—':num(live.idade_telemetria_min)+' min'}.`:'Feed ao vivo indisponível.';
+  }
+  function chartFor(records,baseKey){
+    const keys=baseKey==='2h'?['2h','2h_versao_b']:['4h'];
+    const rows=records.filter(x=>keys.includes(x.horizonte)&&x.status_auditoria==='conferido'&&x.observado_cm!=null&&x.observado_em).sort((a,b)=>iso(a.observado_em)-iso(b.observado_em));
+    if(!rows.length)return `<div class="short-chart-card"><h3>${baseKey==='2h'?'2 h':'4 h'}</h3><p class="weather-foot">sem previsões conferidas</p></div>`;
+    const end=Math.max(...rows.map(x=>iso(x.observado_em))),start=end-24*3600000;
+    const inWindow=rows.filter(x=>iso(x.observado_em)>=start);
+    const byTime=new Map();
+    inWindow.forEach(x=>{const t=x.observado_em;const o=byTime.get(t)||{observed:Number(x.observado_cm)};o[x.horizonte]=Number(x.nivel_previsto_cm);byTime.set(t,o)});
+    const points=Array.from(byTime.entries()).sort((a,b)=>iso(a[0])-iso(b[0])).map(([t,v])=>({t,...v}));
+    if(points.length<2)return `<div class="short-chart-card"><h3>${baseKey==='2h'?'2 h':'4 h'}</h3><p class="weather-foot">menos de duas previsões na janela</p></div>`;
+    const vals=points.flatMap(x=>[x.observed,...keys.map(k=>x[k]).filter(v=>Number.isFinite(v))]);const lo=Math.min(...vals)-10,hi=Math.max(...vals)+10,w=360,h=130,pad=24;
+    const sx=i=>pad+i*(w-2*pad)/(Math.max(1,points.length-1));const sy=v=>h-pad-(v-lo)*(h-2*pad)/(hi-lo||1);
+    const path=k=>points.map((x,i)=>Number.isFinite(x[k])?(i?'L':'M')+sx(i)+' '+sy(x[k]):'').filter(Boolean).join('');
+    const pred=baseKey==='2h'?`<path class="pred" d="${path('2h')}"/><path class="shadow-pred" d="${path('2h_versao_b')}"/>`:`<path class="pred" d="${path('4h')}"/>`;
+    const legend=baseKey==='2h'?' · 2 h principal · 2 h B sombra':' · 4 h principal';
+    return `<div class="short-chart-card"><h3>${baseKey==='2h'?'2 h':'4 h'} · ${points.length} previsões conferidas</h3><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${baseKey}: nível observado e previsões nas últimas 24 horas"><path class="obs" d="${path('observed')}"/>${pred}<text class="axis" x="3" y="${sy(hi)+3}">${num(hi)}</text><text class="axis" x="3" y="${sy(lo)+3}">${num(lo)}</text><text class="axis" x="${w-45}" y="${h-4}">24 h</text></svg><div class="short-chart-legend"><span class="blue">observado</span>${legend}</div></div>`;
+  }
+  Promise.all([
+    fetch('previsao_ao_vivo.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch('historico_previsoes_ao_vivo.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch('assets/data/research_probability_santa_tereza_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)
+  ]).then(([live,history,prob])=>{
+    renderShort(live);renderProbability(prob);
+    const records=Array.isArray(history&&history.registros)?history.registros:[];
+    el('short-charts').innerHTML=chartFor(records,'2h')+chartFor(records,'4h');
+    el('short-chart-meta').innerHTML=records.length?`<span class="blue">observado</span> · <span class="orange">RNA principal</span> · <span class="purple">versão B sombra</span> · histórico carregado: ${records.length} registros; somente alvos conferidos na janela móvel de 24 h.`:'Histórico de previsões indisponível.';
+  }).catch(()=>{el('short-grid').innerHTML='<div class="short-card"><b>UNKNOWN</b><span>dados indisponíveis</span></div>';el('short-charts').innerHTML='<div class="short-chart-card"><h3>Histórico indisponível</h3></div>';el('current-probability-values').innerHTML='<strong>UNKNOWN: feed experimental indisponível.</strong>';});
 })();
 </script>
 </body>
