@@ -562,7 +562,7 @@ function popup(p, extra){
     const popSrc = +src.pop || 0;
     const sigilo = estaSuprimido(src,d);
     const parcial = !src.setor && temSigilo(src,d);
-    const abs = sigilo ? "não publicado" : d.money ? "R$ "+fmt(val) : d.svc ? `${fmt(val)} ponto(s) · ${fmt(popSrc>0?val/popSrc*10000:0)} /10 mil` : fmt(val)+(d.un||"");
+    const abs = sigilo ? "—" : d.money ? "R$ "+fmt(val) : d.svc ? `${fmt(val)} ponto(s) · ${fmt(popSrc>0?val/popSrc*10000:0)} /10 mil` : fmt(val)+(d.un||"");
     let pc = "";
     if (d.pct && !sigilo){ const base = d.base ? (+src[d.base]||0) : (+src.pop||0);
       if (base > 0) pc = ` <span style="color:#5c6b63">(${fmt(val/base*100)}%)</span>`;
