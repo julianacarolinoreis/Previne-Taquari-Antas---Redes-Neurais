@@ -82,6 +82,9 @@
   @media(max-width:520px){.weather-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
   nav a{color:var(--brand);font-size:12px;font-weight:750;text-decoration:none;border:1px solid #b9d9ca;background:#f5fbf7;border-radius:999px;padding:8px 12px}
+  .station-nav{margin:0 0 16px;padding:8px 0 0;align-items:center}
+  .station-nav::before{content:'Estação em análise:';color:var(--muted);font-size:11px;font-weight:750;margin-right:2px}
+  .station-nav a[aria-current="page"]{background:var(--brand);border-color:var(--brand);color:#fff}
   footer{color:var(--muted);font-size:10px;margin-top:24px}
   @media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.events,.flow,.architecture{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}}
   @media(max-width:520px){.wrap{padding:18px 12px 38px}header{flex-wrap:wrap}.badge{margin-left:0}.grid{grid-template-columns:1fr 1fr}.events,.flow{grid-template-columns:1fr}}
@@ -94,6 +97,12 @@
     <div><div class="kicker">PREVINE · pesquisa de transbordamento</div><h1>Estado da pesquisa</h1><p class="subtitle">Santa Tereza · estação ANA/SGB 86472600 · bacia Taquari-Antas</p></div>
     <span class="badge">SEM ALERTA AUTOMÁTICO</span>
   </header>
+
+  <nav class="station-nav" aria-label="Selecionar estação">
+    <a href="pesquisa_status.html" aria-current="page">Santa Tereza · pesquisa</a>
+    <a href="mucum_previsao_inundacao.html">Muçum · previsão ao vivo</a>
+    <a href="mucum_inundacao.html">Muçum · histórico de cheias</a>
+  </nav>
 
   <section class="hero" aria-labelledby="hero-title">
     <h2 id="hero-title">O que esta página responde</h2>
@@ -224,7 +233,7 @@
   </section>
 
   <div class="note"><strong>Snapshot:</strong> estado de pesquisa consultado em 10/08/2026, 20:17 UTC. Este painel é informativo; a atualização ao vivo continua nos robôs próprios da página de previsão. Os quatro JSONs dinâmicos do site não fazem parte deste piloto.</div>
-  <nav aria-label="Navegação da pesquisa"><a href="index.html">Página inicial</a><a href="santa_tereza_previsao_inundacao.html">Monitoramento de Santa Tereza</a></nav>
+  <nav aria-label="Navegação da pesquisa"><a href="index.html">Página inicial</a><a href="santa_tereza_previsao_inundacao.html">Monitoramento de Santa Tereza</a><a href="mucum_previsao_inundacao.html">Monitoramento de Muçum</a><a href="mucum_inundacao.html">Histórico de Muçum</a></nav>
   <footer>PREVINE · pesquisa auditável · dados atrasados ou incompletos são exibidos como estado de qualidade, não como ausência de risco.</footer>
 </div>
 <script>
