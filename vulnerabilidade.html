@@ -379,6 +379,19 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+// O cabeçalho fica acima do mapa; esta margem impede que popups longos sejam
+// automaticamente posicionados por trás dele.
+const POPUP_OPTS = {
+  autoPan: true,
+  autoPanPaddingTopLeft: [12, 84],
+  autoPanPaddingBottomRight: [12, 18],
+  maxWidth: 360,
+};
+// Padroniza também popups de serviços e perigo, que são criados sob demanda.
+const _bindPopupPrevine = L.Layer.prototype.bindPopup;
+L.Layer.prototype.bindPopup = function(content, options){
+  return _bindPopupPrevine.call(this, content, {...POPUP_OPTS, ...(options || {})});
+};
 "use strict";
 const DATA = "assets/data/vulnerabilidade";
 // fallback: a cópia desta página no PMRR não carrega os 12 MB de dados junto —
@@ -687,7 +700,7 @@ function abreMunicipio(cod){
     munAtual = f.properties;
     setLayer = L.geoJSON(gj, {
       onEachFeature: (ft,l)=>l.bindPopup(()=>popup(ft.properties,
-        ft.properties.na_bacia ? "" : ` <span style="color:#8a5a12;font-size:11px">(fora do limite da bacia)</span>`))
+        ft.properties.na_bacia ? "" : ` <span style="color:#8a5a12;font-size:11px">(fora do limite da bacia)</span>`), POPUP_OPTS)
     }).addTo(map);
     munLayer.setStyle({fillOpacity:.06, color:"#9ab0a2", weight:1});
     map.fitBounds(setLayer.getBounds(), {padding:[18,18]});
