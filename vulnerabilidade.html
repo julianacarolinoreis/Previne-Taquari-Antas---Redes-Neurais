@@ -562,13 +562,13 @@ function popup(p, extra){
     const popSrc = +src.pop || 0;
     const sigilo = estaSuprimido(src,d);
     const parcial = !src.setor && temSigilo(src,d);
-    const abs = sigilo ? "não publicado (sigilo estatístico)" : d.money ? "R$ "+fmt(val) : d.svc ? `${fmt(val)} ponto(s) · ${fmt(popSrc>0?val/popSrc*10000:0)} /10 mil` : fmt(val)+(d.un||"");
+    const abs = sigilo ? "não publicado" : d.money ? "R$ "+fmt(val) : d.svc ? `${fmt(val)} ponto(s) · ${fmt(popSrc>0?val/popSrc*10000:0)} /10 mil` : fmt(val)+(d.un||"");
     let pc = "";
     if (d.pct && !sigilo){ const base = d.base ? (+src[d.base]||0) : (+src.pop||0);
       if (base > 0) pc = ` <span style="color:#5c6b63">(${fmt(val/base*100)}%)</span>`;
       else if (d.base) pc = ` <span style="color:#8a5a12">(base não publicada)</span>`; }
     const nome = naGrade && d.k === "dom" ? "Domicílios ocupados (grade)" : d.nome;
-    const nota = parcial ? ` <span style="color:#8a5a12">(soma parcial; há setores sob sigilo)</span>` : "";
+    const nota = "";
     return `<tr><td>${nome}</td><td>${abs}${pc}${nota}</td></tr>`;
   });
   const cap = p.icm_faixa ? p : (munAtual || {});
@@ -654,7 +654,7 @@ function legenda(brk, ctx){
 function totaliza(props){
   const d = INDS.find(i=>i.k===ind);
   const qtdSigilo = props.filter(p=>temSigilo(p,d) || (d.base && temSigilo(p,{k:d.base}))).length;
-  const notaSigilo = qtdSigilo ? ` <small style="color:#8a5a12">· parcial; ${fmt(qtdSigilo)} registro(s) com sigilo</small>` : "";
+  const notaSigilo = "";
   if (ind === "dens"){ document.getElementById("tot").innerHTML = "—"; return; }
   if (d.money){                        // renda: média ponderada pelo nº de responsáveis
     let num = 0, den = 0;
