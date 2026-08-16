@@ -175,7 +175,7 @@
   <div class="modes" aria-label="Modo de visualização"><button id="mode-s" class="on" aria-pressed="true">Visualização simples</button><button id="mode-t" aria-pressed="false">Visualização detalhada</button><button id="mode-p" aria-pressed="false">Panorama Geral</button></div>
 </header>
 <main>
-  <div id="map"></div>
+  <div id="map" role="application" aria-label="Mapa interativo de previsão de inundação em Santa Tereza" aria-describedby="map-accessible-description"><span class="sr-only" id="map-accessible-description">Use os controles de camadas para alternar imagem de satélite, ruas, rótulos e estações. A mancha colorida representa somente água estimada fora do leito; ela é um proxy de pesquisa.</span></div>
   <aside>
     <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h A, 2h B e 4h)</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
@@ -304,7 +304,7 @@
       <svg id="river-level-chart" viewBox="0 0 960 320" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="overview-title overview-accessible"></svg>
       <div class="overview-empty" id="overview-empty">Carregando histórico e previsão ao vivo…</div>
     </div>
-    <div class="overview-legend" id="overview-legend" aria-hidden="true">
+    <div class="overview-legend" id="overview-legend" aria-label="Legenda do gráfico">
       <span><i class="legend-line observed"></i>Nível observado</span>
       <span><i class="legend-line forecast horizon-2"></i>Previsão +2 h</span>
       <span><i class="legend-line forecast horizon-4"></i>Previsão +4 h</span>
@@ -1109,7 +1109,7 @@ async function init(){
     sat.on('tileerror',()=>{if(!map.hasLayer(osm)&&!map.hasLayer(sat)) osm.addTo(map);});
     sat.addTo(map); labels.addTo(map);
     telemetryLayer=L.layerGroup().addTo(map);
-    L.control.layers(
+    const layerControl=L.control.layers(
       {'Satélite':sat,'Ruas':osm},
       {'Rótulos':labels,'Estações hidrotelemétricas':telemetryLayer},
       {position:'topright'}
@@ -1124,6 +1124,10 @@ async function init(){
     foreLayer=L.geoJSON(null,{pane:'predictionFillPane',style:{color:'#f07b00',weight:.8,fillColor:'#ff8a00',fillOpacity:.42}}).addTo(map);
     nowLayer=L.geoJSON(null,{pane:'currentFloodPane',style:{color:'#123f9e',weight:1.5,fillColor:'#4a7bdb',fillOpacity:.62}}).addTo(map);
     foreOutlineLayer=L.geoJSON(null,{pane:'predictionOutlinePane',style:{color:'#f07b00',weight:2,opacity:.92,fill:false,fillOpacity:0,dashArray:'6 5',lineCap:'round'}}).addTo(map);
+    layerControl.addOverlay(nowLayer,'Água estimada agora');
+    layerControl.addOverlay(foreLayer,'Avanço previsto');
+    layerControl.addOverlay(foreOutlineLayer,'Borda prevista');
+    layerControl.addOverlay(uncLayer,'Faixa de incerteza');
     const st=HAND.station, pt=HAND.ponte;
     TELEMETRY_STATIONS.forEach(meta=>{
       const target=meta.code==='86472600';

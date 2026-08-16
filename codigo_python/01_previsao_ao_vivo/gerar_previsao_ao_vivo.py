@@ -10,7 +10,7 @@ Roda no GitHub Actions (a cada 30 min):
 
 EXPERIMENTAL — não é alerta oficial.
 """
-import sys, json, datetime as dt, urllib.request, xml.etree.ElementTree as ET
+import json, datetime as dt, urllib.request, xml.etree.ElementTree as ET
 import numpy as np
 from scipy.io import loadmat
 

@@ -1,4 +1,4 @@
-import openpyxl, json
+import openpyxl
 from collections import OrderedDict
 
 def load_events(path):

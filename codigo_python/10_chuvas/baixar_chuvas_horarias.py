@@ -28,7 +28,6 @@ Uso:
   python codigo_python/10_chuvas/baixar_chuvas_horarias.py [--inicio 2022-12-01] [--fim 2026-08-04]
 """
 import os
-import sys
 import csv
 import time
 import json

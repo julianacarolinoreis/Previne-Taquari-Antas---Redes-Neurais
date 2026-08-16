@@ -154,7 +154,7 @@
   <div class="modes" aria-label="Modo de visualização"><button id="mode-s" class="on" aria-pressed="true">Visualização simples</button><button id="mode-t" aria-pressed="false">Visualização detalhada</button><button id="mode-p" aria-pressed="false">Panorama Geral</button></div>
 </header>
 <main>
-  <div id="map"></div>
+  <div id="map" role="application" aria-label="Mapa interativo de previsão de inundação em Muçum" aria-describedby="map-accessible-description"><span class="sr-only" id="map-accessible-description">Use os controles de camadas para alternar imagem de satélite, ruas, rótulos e estações. A mancha colorida representa somente água estimada fora do leito; ela é um proxy de pesquisa.</span></div>
   <aside>
     <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h e 4h)</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
@@ -257,7 +257,7 @@
       <h4>Calibração · nível normal ↔ terreno</h4>
       <p class="disc" style="margin-top:2px"><b>Leitura da régua</b>: o valor em metros é a altura lida na estação Muçum/SGB-ANA, não a profundidade total do rio. <b>Nível normal / zero operacional</b>: leitura adotada como início da mancha no leito do rio (HAND 0). Padrão provisório adotado em <b>5,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
       <input type="range" id="bankfull" min="100" max="900" step="10" value="500" style="width:100%">
-      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> Terreno: mosaico 2&nbsp;m (drone + ANADEM). O nível normal (HAND 0) foi estimado em ~405 cm e arredondado para <b>400 cm</b>. O contorno HAND 0 é removido da camada colorida para não representar o leito normal como inundação. A cota de inundação oficial permanece <b>15 m</b> (SGB/SACE). Fora do footprint do drone a borda segue a resolução do ANADEM.</div>
+      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> Terreno: mosaico 2&nbsp;m (drone + ANADEM). O nível normal (HAND 0) foi estimado em ~405 cm e arredondado para <b>400 cm</b>. O contorno HAND 0 é removido da camada colorida para não representar o leito normal como inundação. A cota de inundação oficial é <b>18,00 m (1.800 cm)</b> (SGB/SACE). Fora do footprint do drone a borda segue a resolução do ANADEM.</div>
     </div>
   </aside>
 
@@ -274,7 +274,7 @@
       <svg id="river-level-chart" viewBox="0 0 960 320" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="overview-title overview-accessible"></svg>
       <div class="overview-empty" id="overview-empty">Carregando histórico e previsão ao vivo…</div>
     </div>
-    <div class="overview-legend" id="overview-legend" aria-hidden="true">
+    <div class="overview-legend" id="overview-legend" aria-label="Legenda do gráfico">
       <span><i class="legend-line observed"></i>Nível observado</span>
       <span><i class="legend-line forecast horizon-2"></i>Previsão +2 h</span>
       <span><i class="legend-line forecast horizon-4"></i>Previsão +4 h</span>
@@ -988,7 +988,7 @@ async function init(){
     sat.on('tileerror',()=>{if(!map.hasLayer(osm)&&!map.hasLayer(sat)) osm.addTo(map);});
     sat.addTo(map); labels.addTo(map);
     telemetryLayer=L.layerGroup().addTo(map);
-    L.control.layers(
+    const layerControl=L.control.layers(
       {'Satélite':sat,'Ruas':osm},
       {'Rótulos':labels,'Estações hidrotelemétricas':telemetryLayer},
       {position:'topright'}
@@ -1003,6 +1003,10 @@ async function init(){
     foreLayer=L.geoJSON(null,{pane:'predictionFillPane',style:{color:'#f07b00',weight:.8,fillColor:'#ff8a00',fillOpacity:.42}}).addTo(map);
     nowLayer=L.geoJSON(null,{pane:'currentFloodPane',style:{color:'#123f9e',weight:1.5,fillColor:'#4a7bdb',fillOpacity:.62}}).addTo(map);
     foreOutlineLayer=L.geoJSON(null,{pane:'predictionOutlinePane',style:{color:'#f07b00',weight:2,opacity:.92,fill:false,fillOpacity:0,dashArray:'6 5',lineCap:'round'}}).addTo(map);
+    layerControl.addOverlay(nowLayer,'Água estimada agora');
+    layerControl.addOverlay(foreLayer,'Avanço previsto');
+    layerControl.addOverlay(foreOutlineLayer,'Borda prevista');
+    layerControl.addOverlay(uncLayer,'Faixa de incerteza');
     const st=HAND.station, pt=HAND.ponte;
     TELEMETRY_STATIONS.forEach(meta=>{
       const target=meta.code==='86510000';

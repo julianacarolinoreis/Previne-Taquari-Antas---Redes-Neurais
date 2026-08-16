@@ -26,7 +26,7 @@ Indicadores: pop_total, mulheres, criancas_0_4, criancas_5_9,
 Se um código de coluna do IBGE não bater (layout muda entre releases), o script
 IMPRIME o cabeçalho real e falha com mensagem clara — ajustar COLMAP e rodar de novo.
 """
-import os, io, json, glob, zipfile, unicodedata
+import os, json, glob, zipfile, unicodedata
 import pandas as pd
 import geopandas as gpd
 

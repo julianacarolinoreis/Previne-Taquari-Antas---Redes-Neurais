@@ -15,7 +15,6 @@ Uso: python codigo_python/02_mdt_hand_mancha/diagnosticar_talvegue_drone.py
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import numpy as np

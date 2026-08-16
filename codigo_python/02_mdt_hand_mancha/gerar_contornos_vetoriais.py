@@ -73,7 +73,7 @@ from scipy import ndimage
 from scipy.ndimage import gaussian_filter1d
 from rasterio.features import shapes
 from shapely import set_precision
-from shapely.geometry import shape, mapping, Polygon, MultiPolygon
+from shapely.geometry import shape, mapping, Polygon
 from shapely.ops import unary_union
 from shapely.validation import make_valid
 

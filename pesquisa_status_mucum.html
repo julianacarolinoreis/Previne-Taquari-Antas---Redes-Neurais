@@ -49,6 +49,9 @@
   const fmt=v=>v==null?'—':br.format(Number(v));
   const fmtTime=v=>{if(!v)return '—';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—'};
   const el=id=>document.getElementById(id);
+  // O histórico mantém o antigo 4h_cascata para auditoria, mas ele não deve
+  // aparecer na saída pública nem contaminar as comparações atuais.
+  const isLegacyCascade=x=>x&&['id','horizonte','tipo','modelo','rotulo'].some(k=>/cascata/i.test(String(x[k]||'')));
   Promise.all([
     fetch('assets/data/research_probability_mucum_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('probability');return r.json()}),
     fetch('assets/data/research_weather_mucum_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('weather');return r.json()}),
@@ -56,6 +59,14 @@
     fetch('previsao_ao_vivo_mucum.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch('historico_previsoes_ao_vivo_mucum.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)
   ]).then(([p,w,e,live,history])=>{
+    if(history&&Array.isArray(history.registros)) history.registros=history.registros.filter(x=>!isLegacyCascade(x));
+    // Nunca deixe percentuais antigos parecerem previsão atual: o render
+    // abaixo preserva o histórico, e este guard substitui apenas a camada
+    // visível quando o feed ultrapassou o TTL de 36 horas.
+    const _probAgeH=Number.isFinite(Date.parse(p.generated_at_utc||''))?Math.max(0,(Date.now()-Date.parse(p.generated_at_utc))/3600000):NaN;
+    if(!Number.isFinite(_probAgeH)||_probAgeH>36){
+      setTimeout(()=>{if(el('horizons')) el('horizons').innerHTML='<div class="hz"><b>UNKNOWN/STALE</b><span>probabilidade indisponível</span><small>o feed tem mais de 36 h ou não informa horário válido</small></div>';},0);
+    }
     el('horizons').innerHTML=(p.horizons||[]).map(h=>`<div class="hz"><b>${fmt(h.flood_probability_percent)}%</b><span>até ${h.hours} h</span><small>estimativa experimental</small></div>`).join('')||'<div class="hz"><b>UNKNOWN</b><span>sem horizontes</span></div>';
     const probAgeH=Number.isFinite(Date.parse(p.generated_at_utc||''))?Math.max(0,(Date.now()-Date.parse(p.generated_at_utc))/3600000):NaN;const probState=!Number.isFinite(probAgeH)||probAgeH>36?'UNKNOWN/STALE':'pesquisa-only';
     el('prob-meta').textContent=`Gerado em ${fmtTime(p.generated_at_utc)} · decisão: ${fmtTime(p.decision_time_utc)} · fonte: ${p.forecast_source} · ponto direto Muçum: ${p.direct_mucum_point?'sim':'não, proxy de célula'} · calibração: ${p.calibration_status} · idade: ${Number.isFinite(probAgeH)?fmt(probAgeH)+' h':'—'} · estado: ${probState}.`;

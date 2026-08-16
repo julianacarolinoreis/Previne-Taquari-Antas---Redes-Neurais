@@ -12,7 +12,7 @@ Baixa para ./_ibge_raw/ :
 
 Sandbox do Claude NÃO alcança o IBGE (proxy 403) — este script foi feito para o runner.
 """
-import os, re, sys, io, zipfile, urllib.request
+import os, re, io, zipfile, urllib.request
 
 RAW = "_ibge_raw"
 os.makedirs(RAW, exist_ok=True)

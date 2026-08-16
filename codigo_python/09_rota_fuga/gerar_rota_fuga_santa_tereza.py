@@ -31,7 +31,6 @@ Uso:
 import os
 import re
 import io
-import sys
 import json
 import base64
 import argparse

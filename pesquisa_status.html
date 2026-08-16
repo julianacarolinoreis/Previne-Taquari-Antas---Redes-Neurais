@@ -298,6 +298,12 @@
     el('current-probability-values').innerHTML=`<strong>Rodada GEFS/NOAA compatível:</strong> ${values}.`;
     const generated=iso(p&&p.generated_at_utc), age=Number.isFinite(generated)?Math.max(0,(Date.now()-generated)/3600000):NaN;
     const stale=!Number.isFinite(age)||age>36;
+    if(stale){
+      el('current-probability-values').innerHTML='<strong>UNKNOWN/STALE: percentuais ocultados porque a rodada tem mais de 36 h.</strong>';
+      el('current-probability-reading').innerHTML='<strong>Como ler:</strong> não há uma estimativa atual utilizável. Os valores antigos permanecem no JSON para auditoria, mas não representam o momento presente.';
+      el('current-probability-meta').textContent=`Fonte: ${p.forecast_source||'GEFS/NOAA'} · emissão: ${time(p.forecast_run_time_utc)} · disponível: ${time(p.forecast_available_at_utc)} · decisão: ${time(p.decision_time_utc)} · arquivo gerado: ${time(p.generated_at_utc)} · idade aproximada: ${Number.isFinite(age)?pct.format(age)+' h':'—'} · estado: UNKNOWN/STALE.`;
+      return;
+    }
     el('current-probability-reading').innerHTML=stale?'<strong>Como ler:</strong> os percentuais abaixo são uma estimativa experimental da rodada arquivada, mas a rodada está <strong>STALE</strong> para representar o momento atual. Não usar como alerta.':'<strong>Como ler:</strong> a porcentagem é uma estimativa experimental de 0 a 100 para superar 1.500 cm dentro do horizonte indicado; não é certeza nem alerta oficial.';
     el('current-probability-meta').textContent=`Fonte: ${p.forecast_source||'GEFS/NOAA'} · emissão: ${time(p.forecast_run_time_utc)} · disponível: ${time(p.forecast_available_at_utc)} · decisão: ${time(p.decision_time_utc)} · arquivo gerado: ${time(p.generated_at_utc)} · idade aproximada: ${Number.isFinite(age)?pct.format(age)+' h':'—'} · estado: ${stale?'UNKNOWN/STALE':'pesquisa-only'}.`;
   }
@@ -324,15 +330,19 @@
     const legend=baseKey==='2h'?' · 2 h principal · 2 h B sombra':' · 4 h principal';
     return `<div class="short-chart-card"><h3>${baseKey==='2h'?'2 h':'4 h'} · ${points.length} previsões conferidas</h3><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${baseKey}: nível observado e previsões nas últimas 24 horas"><path class="obs" d="${path('observed')}"/>${pred}<text class="axis" x="3" y="${sy(hi)+3}">${num(hi)}</text><text class="axis" x="3" y="${sy(lo)+3}">${num(lo)}</text><text class="axis" x="${w-45}" y="${h-4}">24 h</text></svg><div class="short-chart-legend"><span class="blue">observado</span>${legend}</div></div>`;
   }
+  // O histórico mantém o antigo 4h_cascata para auditoria, mas ele não deve
+  // aparecer na saída pública nem contaminar as comparações atuais.
+  const isLegacyCascade=x=>x&&['id','horizonte','tipo','modelo','rotulo'].some(k=>/cascata/i.test(String(x[k]||'')));
   Promise.all([
     fetch('previsao_ao_vivo.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch('historico_previsoes_ao_vivo.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch('assets/data/research_probability_santa_tereza_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)
   ]).then(([live,history,prob])=>{
     renderShort(live);renderProbability(prob);
-    const records=Array.isArray(history&&history.registros)?history.registros:[];
+    const rawRecords=Array.isArray(history&&history.registros)?history.registros:[];
+    const records=rawRecords.filter(x=>!isLegacyCascade(x));
     el('short-charts').innerHTML=chartFor(records,'2h')+chartFor(records,'4h');
-    el('short-chart-meta').innerHTML=records.length?`<span class="blue">observado</span> · <span class="orange">RNA principal</span> · <span class="purple">versão B sombra</span> · histórico carregado: ${records.length} registros; somente alvos conferidos na janela móvel de 24 h.`:'Histórico de previsões indisponível.';
+    el('short-chart-meta').innerHTML=records.length?`<span class="blue">observado</span> · <span class="orange">RNA principal</span> · <span class="purple">versão B sombra</span> · histórico carregado: ${records.length} registros${rawRecords.length-records.length?' (legado 4h_cascata excluído)':''}; somente alvos conferidos na janela móvel de 24 h.`:'Histórico de previsões indisponível.';
   }).catch(()=>{el('short-grid').innerHTML='<div class="short-card"><b>UNKNOWN</b><span>dados indisponíveis</span></div>';el('short-charts').innerHTML='<div class="short-chart-card"><h3>Histórico indisponível</h3></div>';el('current-probability-values').innerHTML='<strong>UNKNOWN: feed experimental indisponível.</strong>';});
 })();
 </script>

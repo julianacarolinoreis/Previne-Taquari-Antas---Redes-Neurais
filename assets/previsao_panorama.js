@@ -2,7 +2,10 @@
   'use strict';
 
   const SVG_NS='http://www.w3.org/2000/svg';
-  const state={config:null,history:null,live:null,researchRisk:null,researchReview:null,historyError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null};
+  const state={config:null,history:null,live:null,researchRisk:null,researchReview:null,historyError:null,liveError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null};
+  // Os feeds da pesquisa são deliberadamente tratados como dados com idade.
+  // Um valor velho continua auditável, mas não deve parecer uma previsão atual.
+  const FRESHNESS={liveMinutes:30,historyHours:24,researchWeatherHours:18,researchProbabilityHours:36,researchReviewHours:72};
   // Fallback auditável quando o JSON do cartão ainda não foi publicado no Pages.
   // É replay histórico, não previsão atual nem alerta oficial.
   const RESEARCH_CARD_FALLBACK={
@@ -40,6 +43,34 @@
     return Number.isFinite(d.getTime())?d:null;
   }
 
+  function ageMinutes(value){
+    const d=parseWhen(value);
+    if(!d) return null;
+    const age=(Date.now()-d.getTime())/60000;
+    return Number.isFinite(age)?Math.max(0,age):null;
+  }
+
+  function freshness(value,maxMinutes){
+    const age=ageMinutes(value);
+    return {ageMinutes:age,maxMinutes,stale:age===null||age>maxMinutes};
+  }
+
+  function stationMatches(payload,config){
+    if(!payload||!config||!config.stationCode) return true;
+    const found=payload.station_code||payload.estacao||payload.station||payload.codigo_estacao;
+    return !found||String(found)===String(config.stationCode);
+  }
+
+  function feedTimestamp(payload){
+    if(!payload) return null;
+    return payload.consultado_em||payload.gerado_em||payload.generated_at_utc||payload.atualizado_em||payload.generatedAt;
+  }
+
+  function liveFeedTimestamp(payload){
+    if(!payload) return null;
+    return payload.telemetria_ultima_em||payload.nivel_rio_agora_em||feedTimestamp(payload);
+  }
+
   function fmtLevel(cm){
     return cm===null?'—':nf2.format(cm/100)+' m';
   }
@@ -47,6 +78,11 @@
   function fmtWhen(v){
     const d=parseWhen(v);
     return d?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',',' ·'):'—';
+  }
+
+  function fmtWhenWithZone(v){
+    const d=parseWhen(v);
+    return d?fmtWhen(v)+' BRT':'â€”';
   }
 
   function addCacheBust(url){
@@ -65,7 +101,10 @@
     let lastError=null;
     for(const url of urls){
       try{
-        state.history=await fetchJson(url);
+        const fetched=await fetchJson(url);
+        if(!stationMatches(fetched,state.config)) throw new Error('histórico de outra estação');
+        fetched._freshness=freshness(feedTimestamp(fetched),FRESHNESS.historyHours*60);
+        state.history=fetched;
         state.historyError=null;
         render();
         return;
@@ -79,9 +118,14 @@
     if(!state.config||!state.config.researchRiskUrl) return;
     try{
       const fetched=await fetchJson(state.config.researchRiskUrl);
+      if(!stationMatches(fetched,state.config)) throw new Error('feed de pesquisa de outra estação');
+      fetched._freshness=freshness(feedTimestamp(fetched),FRESHNESS.researchWeatherHours*60);
       if(state.config.researchProbabilityUrl){
         try{
-          fetched.probabilities=await fetchJson(state.config.researchProbabilityUrl);
+          const probabilities=await fetchJson(state.config.researchProbabilityUrl);
+          if(!stationMatches(probabilities,state.config)) throw new Error('probabilidade de outra estação');
+          probabilities._freshness=freshness(feedTimestamp(probabilities),FRESHNESS.researchProbabilityHours*60);
+          fetched.probabilities=probabilities;
         }catch(e){ fetched.probabilities=null; }
       }
       state.researchRisk=(fetched&&(Array.isArray(fetched.horizons)||fetched.rna||fetched.forecast||fetched.probabilities))?fetched:RESEARCH_CARD_FALLBACK;
@@ -95,6 +139,7 @@
     if(!state.config||!state.config.researchReviewUrl) return;
     try{
       const fetched=await fetchJson(state.config.researchReviewUrl);
+      fetched._freshness=freshness(feedTimestamp(fetched),FRESHNESS.researchReviewHours*60);
       state.researchReview=fetched&&fetched.stations?fetched:null;
     }catch(e){ state.researchReview=null; }
     render();
@@ -108,15 +153,24 @@
     if(!old||priority>=old.priority) points.set(key,{time:d,cm,priority,kind});
   }
 
+  // Registros 4h_cascata pertencem ao replay legado e continuam preservados
+  // no histórico para auditoria. Eles não são, porém, uma saída pública do
+  // robô atual: misturá-los ao gráfico faria parecer que o horizonte 4h foi
+  // emitido por dois modelos diferentes no mesmo ciclo.
+  function isLegacyCascade(row){
+    if(!row||typeof row!=='object') return false;
+    return ['id','horizonte','tipo','modelo','rotulo'].some(key=>/cascata/i.test(String(row[key]||'')));
+  }
+
   function observedPoints(history,live){
     const points=new Map();
     const rows=history&&Array.isArray(history.registros)?history.registros:[];
-    rows.forEach(r=>{
-      putPoint(points,r.hora_modelo,r.nivel_modelo_cm,1,'base do modelo');
+    rows.filter(r=>!isLegacyCascade(r)&&r.status_auditoria==='conferido').forEach(r=>{
+      // A série azul é exclusivamente observacional. O nível usado como
+      // entrada da RNA não pode preencher uma lacuna de telemetria.
       putPoint(points,r.observado_em,r.observado_cm,3,'observado');
     });
     if(live){
-      putPoint(points,live.hora_modelo,live.nivel_modelo_cm,2,'base do modelo');
       putPoint(points,live.nivel_rio_agora_em,live.nivel_rio_agora_cm,4,'observado');
       putPoint(points,live.telemetria_ultima_em,live.telemetria_ultima_nivel_cm,5,'telemetria ANA');
     }
@@ -144,7 +198,7 @@
     const rows=history&&Array.isArray(history.registros)?history.registros:[];
     const preferred=preferredHistoryHorizon(live);
     const byAlvo=new Map();
-    rows.forEach(r=>{
+    rows.filter(r=>!isLegacyCascade(r)).forEach(r=>{
       if(!r||String(r.horizonte)!==preferred) return;
       const cm=number(r.nivel_previsto_cm);
       const t=parseWhen(r.hora_alvo);
@@ -509,14 +563,16 @@
     if(!label||!detail) return;
     if(!state.live){
       label.textContent='Robô ao vivo: aguardando dados';
-      detail.textContent='O arquivo do robô de Muçum ainda não foi carregado. A página não substitui a leitura oficial nem transforma ausência de dados em nível normal.';
+      detail.textContent=state.liveError?`Feed rejeitado: ${state.liveError.message}.`:'O arquivo do robô de Muçum ainda não foi carregado. A página não substitui a leitura oficial nem transforma ausência de dados em nível normal.';
       return;
     }
     const telemetryWhen=state.live.telemetria_ultima_em||state.live.nivel_rio_agora_em;
     const when=telemetryWhen?` Última leitura: ${fmtWhen(telemetryWhen)}.`:'';
-    label.textContent='Robô ao vivo ativo';
+    const liveFresh=state.live._freshness||freshness(feedTimestamp(state.live),FRESHNESS.liveMinutes);
+    label.textContent=liveFresh.stale?'Robô ao vivo: leitura atrasada':'Robô ao vivo ativo';
     const longForecast=state.researchRisk&&state.researchRisk.feed_type==='meteorological_forecast';
-    detail.textContent=`Atualização automática a cada 5 minutos.${when} O robô atual publica nível observado e previsão experimental de +2 h/+4 h. ${longForecast?'A previsão meteorológica e o risco experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação de pesquisa; não são alerta oficial.'}`;
+    const ageText=liveFresh.ageMinutes===null?'idade n/d':`${nf0.format(liveFresh.ageMinutes)} min de idade`;
+    detail.textContent=`Atualização automática a cada 5 minutos.${when} (${ageText}${liveFresh.stale?' · marcado como atrasado':''}) O robô atual publica nível observado e previsão experimental de +2 h/+4 h. ${longForecast?'A previsão meteorológica e o risco experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação de pesquisa; não são alerta oficial.'}`;
   }
 
   function renderResearchRisk(){
@@ -532,38 +588,51 @@
     if(r.feed_type==='meteorological_forecast'){
       const horizons=(Array.isArray(r.horizons)?r.horizons:[]).slice().sort((a,b)=>Number(a.hours)-Number(b.hours));
       const rainText=horizons.length?horizons.map(h=>`+${h.hours} h: ${h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm'}`).join(' · '):'sem acumulados disponíveis';
-      const experimentalRisk=horizons.some(h=>h.flood_probability!==null&&h.flood_probability!==undefined);
+      const weatherFresh=r._freshness||freshness(feedTimestamp(r),FRESHNESS.researchWeatherHours*60);
+      const weatherStale=weatherFresh.stale;
+      const experimentalRisk=!weatherStale&&horizons.some(h=>h.flood_probability!==null&&h.flood_probability!==undefined);
       const age=number(r.observation&&r.observation.age_minutes);
       const freshness=age===null?'idade da leitura n/d':(age>120?`leitura atrasada (${nf1.format(age,0)} min)`:`leitura com ${nf1.format(age,0)} min`);
-      const generated=r.generated_at_utc?`feed gerado ${fmtWhen(r.generated_at_utc)}`:'feed sem horário de geração';
-      label.textContent=experimentalRisk?'Chuva prevista e risco experimental · 24–168 h':'Chuva prevista · 24–168 h';
+      const generated=r.generated_at_utc?`feed gerado ${fmtWhenWithZone(r.generated_at_utc)}`:'feed sem horário de geração';
+      const staleText=weatherStale?' Feed meteorológico atrasado; a probabilidade foi ocultada até nova rodada.':'';
+      label.textContent=weatherStale?'Chuva prevista · feed atrasado':(experimentalRisk?'Chuva prevista e risco experimental · 24–168 h':'Chuva prevista · 24–168 h');
       detail.textContent=experimentalRisk
-        ?`${rainText}. Estimativa experimental de transbordamento: escala de 0 a 100; não é probabilidade calibrada nem alerta oficial. ${generated}; ${freshness}.`
-        :`${rainText}. GEFS e IFS são proxies espaciais; não são probabilidade de transbordamento. ${generated}; ${freshness}.`;
+        ?`${rainText}. Estimativa experimental de transbordamento: escala de 0 a 100; não é probabilidade calibrada nem alerta oficial. ${generated}; ${freshness}.${staleText}`
+        :`${rainText}. GEFS e IFS são proxies espaciais; não são probabilidade de transbordamento. ${generated}; ${freshness}.${staleText}`;
       const grid=document.getElementById('rp-risk-grid');
       const stateText=document.getElementById('rp-risk-state');
-      if(stateText) stateText.textContent=experimentalRisk
-        ?'Risco experimental de inundação disponível para pesquisa. O alerta oficial continua bloqueado; +2 h/+4 h continuam separados.'
-        :'Risco de inundação: indisponível para Muçum. O modelo longo ainda não foi calibrado; +2 h/+4 h continuam separados.';
+      if(stateText) stateText.textContent=weatherStale
+        ?'Feed meteorológico atrasado: risco ocultado até nova rodada. +2 h/+4 h continuam separados.'
+        :(experimentalRisk
+          ?'Risco experimental de inundação disponível para pesquisa. O alerta oficial continua bloqueado; +2 h/+4 h continuam separados.'
+          :'Risco de inundação: indisponível para Muçum. O modelo longo ainda não foi calibrado; +2 h/+4 h continuam separados.');
       if(grid) grid.innerHTML=horizons.map(h=>{
         const rain=h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm';
         const gefs=h.rain_gefs_proxy_mm===undefined?'GEFS n/d':'GEFS '+nf1.format(Number(h.rain_gefs_proxy_mm))+' mm';
         const ifs=h.rain_ifs_proxy_mm===undefined?'IFS '+rain:'IFS '+nf1.format(Number(h.rain_ifs_proxy_mm))+' mm';
         const soil=h.soil_moisture_model_mean_m3m3===null?'solo observado n/d':'solo proxy '+nf2.format(Number(h.soil_moisture_model_mean_m3m3));
-        const p=h.flood_probability===null||h.flood_probability===undefined?'n/d':nf2.format(Number(h.flood_probability)*100)+'/100';
+        const p=weatherStale?'ocultado (feed atrasado)':(h.flood_probability===null||h.flood_probability===undefined?'n/d':nf2.format(Number(h.flood_probability)*100)+'/100');
         return `<div class="rp-risk-cell"><b>+${h.hours} h</b><span>${gefs}</span><span>${ifs}</span><span>${soil}</span><span>risco experimental: ${p}</span></div>`;
       }).join('');
       return;
     }
     if(r.probabilities&&r.probabilities.calibrated_for_current_source===true&&r.probabilities.horizons&&!Array.isArray(r.probabilities.horizons)){
       const probabilities=r.probabilities.horizons||{};
+      const probabilityFresh=r.probabilities._freshness||freshness(feedTimestamp(r.probabilities),FRESHNESS.researchProbabilityHours*60);
+      if(probabilityFresh.stale){
+        label.textContent='Probabilidade experimental atrasada';
+        detail.textContent=`A rodada GEFS/NOAA está ${probabilityFresh.ageMinutes===null?'sem data válida':`com ${nf0.format(probabilityFresh.ageMinutes)} min de idade`}; os percentuais foram ocultados até a próxima rodada. Isto não significa “não vai inundar”.`;
+        const grid=document.getElementById('rp-risk-grid');
+        if(grid) grid.innerHTML='<div class="rp-risk-cell"><b>Probabilidade indisponível</b><span>Feed atrasado; aguarde uma rodada atual.</span></div>';
+        return;
+      }
       const pText=h=>{
         const item=probabilities[String(h)];
         const value=number(item&&item.probability);
         return value===null?'indisponível':nf2.format(value*100)+'%';
       };
       label.textContent='Probabilidade experimental de transbordamento disponível';
-      detail.textContent=`GEFS/NOAA: +24 h ${pText(24)} · +48 h ${pText(48)} · +72 h ${pText(72)} · +120 h ${pText(120)} · +168 h ${pText(168)}. Escala de 0% a 100%; não é alerta oficial.`;
+      detail.textContent=`GEFS/NOAA: +24 h ${pText(24)} · +48 h ${pText(48)} · +72 h ${pText(72)} · +120 h ${pText(120)} · +168 h ${pText(168)}. Escala de 0% a 100%; não é alerta oficial. Rodada ${fmtWhenWithZone(feedTimestamp(r.probabilities))}.`;
       return;
     }
     if(r.rna&&r.rna.scores){
@@ -613,7 +682,7 @@
       return;
     }
     const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-    const verdictLabel={block_public_interpretation:'bloqueia interpretação',revise:'revisar antes de interpretar',approve_research:'aprovado somente para pesquisa',pending:'pendente'};
+    const verdictLabel={block:'bloqueia interpretação pública',block_public_interpretation:'bloqueia interpretação pública',revise:'revisar antes de interpretar',approve_research:'aprovado somente para pesquisa',pending:'pendente'};
     const reviews=Array.isArray(station.specialists)?station.specialists:[];
     detail.textContent=`${station.specialists_attached||0} de 5 papéis técnicos anexados. Revisão humana/oficial ainda pendente; alerta automático bloqueado.`;
     grid.innerHTML=reviews.map(item=>{
@@ -657,14 +726,20 @@
       const telemetryWhen=state.live&&(state.live.telemetria_ultima_em||state.live.nivel_rio_agora_em);
       const modelWhen=state.live&&state.live.hora_modelo;
       const historyWhen=state.history&&state.history.atualizado_em;
+      const liveFresh=state.live&&(state.live._freshness||freshness(feedTimestamp(state.live),FRESHNESS.liveMinutes));
+      const historyFresh=state.history&&(state.history._freshness||freshness(feedTimestamp(state.history),FRESHNESS.historyHours*60));
       const freshness=[
-        telemetryWhen?`Leitura mais recente do rio: ${fmtWhen(telemetryWhen)}`:'',
-        modelWhen?`base da RNA: ${fmtWhen(modelWhen)}`:'',
-        historyWhen?`histórico atualizado: ${fmtWhen(historyWhen)}`:''
+        telemetryWhen?`Leitura mais recente do rio: ${fmtWhenWithZone(telemetryWhen)}`:'',
+        modelWhen?`base da RNA: ${fmtWhenWithZone(modelWhen)}`:'',
+        historyWhen?`histórico atualizado: ${fmtWhenWithZone(historyWhen)}`:'',
+        liveFresh&&liveFresh.stale?'robô ao vivo atrasado':'',
+        historyFresh&&historyFresh.stale?'histórico atrasado':''
       ].filter(Boolean).join(' · ');
-      const prefix=state.historyError
+      const prefix=state.liveError
+        ?`Feed ao vivo rejeitado: ${state.liveError.message}.`
+        :state.historyError
         ?'O histórico não carregou; os horizontes ao vivo continuam visíveis.'
-        :'Linha azul: níveis observados. Cinza tracejada: o que a RNA previu antes. Cada horizonte ativo tem cor e marcador próprios.';
+        :'Linha azul: somente níveis observados. Cinza tracejada: o que a RNA previu antes. Cada horizonte ativo tem cor e marcador próprios.';
       status.textContent=prefix+(freshness?' '+freshness+'.':'');
     }
     const accessible=document.getElementById('overview-accessible');
@@ -720,7 +795,14 @@
   }
 
   function update(live){
-    state.live=live||null;
+    state.liveError=null;
+    if(live&&!stationMatches(live,state.config)){
+      state.live=null;
+      state.liveError=new Error('feed ao vivo de outra estação');
+    }else if(live){
+      live._freshness=freshness(liveFeedTimestamp(live),FRESHNESS.liveMinutes);
+      state.live=live;
+    }else state.live=null;
     render();
   }
 
