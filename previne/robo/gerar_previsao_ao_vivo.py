@@ -34,7 +34,10 @@ MODELO_2H_B_SHA256 = "6AE75018344625E8D3035F43A50F6556694C4B96510AC47241348EA523
 MODELO_2H_B_WORKBOOK = "assets/audit_workbooks/modelo_2h_versao_b_20260812.xlsx"
 MODELO_2H_B_WORKBOOK_SHA256 = "90F366F15360FAB5821B929D33B09E751A155F2BA86D28F218B16B247A792190"
 MODELO_4H_PRO_MAT = "assets/mat/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.mat"
-MODELO_4H_PRO_ID = "V01_R00_BASELINE_nh52_nit10_cic100000"
+MODELO_4H_PRO_ID = "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000"
+MODELO_4H_PRO_MAT_SHA256 = "7B0EB943E7E7BF20253128BC1D29F41E309A684F557C5CF25F61E21AB3C5A7F3"
+MODELO_4H_PRO_WORKBOOK = "assets/audit_workbooks/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.xlsx"
+MODELO_4H_PRO_WORKBOOK_SHA256 = "0FDD53984E60723C8C4B718F849DBE8F22EF3B7198E4FF2F0E9FA441318050A9"
 HORIZONTE = "2h"
 COMBO = "009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21"
 BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
@@ -132,7 +135,9 @@ MODELOS = [
         "versao": "PRO",
         "ativo_ao_vivo": True,
         "input_contract_version": "hourly_exact_v1",
-        "referencia_auditavel": "assets/audit_workbooks/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.xlsx",
+        "modelo_sha256": MODELO_4H_PRO_MAT_SHA256,
+        "referencia_auditavel": MODELO_4H_PRO_WORKBOOK,
+        "referencia_auditavel_sha256": MODELO_4H_PRO_WORKBOOK_SHA256,
         "input_labels": [
             "Santa Tereza - nivel atual (D0h)", "Santa Tereza - D-1h", "Santa Tereza - D-2h",
             "Santa Tereza - D-4h", "Santa Tereza - aceleracao A-1h", "Santa Tereza - aceleracao A-4h",
