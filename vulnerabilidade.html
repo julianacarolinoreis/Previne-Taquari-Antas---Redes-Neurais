@@ -299,7 +299,7 @@
     header{padding:8px 10px;gap:7px;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center}
     header .mark{width:26px;height:26px;border-radius:8px}
     header h1{font-size:14px}
-    header .loc{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+    header .loc{font-size:10px;white-space:normal;overflow:visible;text-overflow:clip;max-width:none;line-height:1.3}
     header a.back{grid-column:1/-1;justify-self:start;font-size:10px;padding:5px 7px;max-width:none;margin-left:0;overflow:visible;text-overflow:clip;white-space:nowrap}
     #map{height:52vh;min-height:330px}
     aside{padding:12px 10px 32px}
@@ -681,7 +681,7 @@ const DATA = "assets/data/vulnerabilidade";
 // fallback: a cópia desta página no PMRR não carrega os 12 MB de dados junto —
 // quando o caminho relativo não existir, busca direto do repositório Previne
 // SHA fixo para evitar misturar a pagina publicada com o branch mutavel `main`.
-const DATA_FALLBACK_COMMIT = "0c32ad2bf32141ee6bd0d5a0d36e14e36d0bb979";
+const DATA_FALLBACK_COMMIT = "30392838bceb88d05957e72c7068cb65a7803e14";
 const DATA_FALLBACK = `https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/${DATA_FALLBACK_COMMIT}/assets/data/vulnerabilidade`;
 const cacheJSON = new Map();
 let fallbackUsado = false;
@@ -803,6 +803,11 @@ function campoEscopo(d){
 function coberturaBaciaAusente(p,d){
   const definicao = typeof d === "string" ? INDS.find(x=>x.k===d) : d;
   return !munAtual && escopo === "bacia" && !definicao?.svc && !definicao?.cat && Number(p?.n_setores_bacia) === 0;
+}
+function rotuloPopBacia(p){
+  if (Number(p?.n_setores_bacia) === 0) return "população dentro dela não estimada";
+  const v = valorBruto(p,{k:"pop"});
+  return v === null ? "população dentro dela não publicada" : `${fmt(v)} hab. dentro dela`;
 }
 function bordaSemCobertura(p){
   if (!p) return false;
@@ -1210,7 +1215,7 @@ function popDaSelecao(p){
   if (!munAtual){
     if (atual?.svc || atual?.cat) return valorMunicipalBruto(p,"pop") ?? 0;
     const b = valorBruto(p,{k:"pop"});
-    return b === null ? 0 : b;
+    return b === null ? null : b;
   }
   // Setores/grade já são a unidade local; fora do limite da bacia não entra
   // no resumo quando na_bacia=0, evitando rotular o total como “na bacia”.
@@ -1300,8 +1305,14 @@ function propsDaSelecao(){
 function resumoSelecao(){
   const props = propsDaSelecao();
   const d = INDS.find(i=>i.k===ind) || INDS[0];
-  const pop = props.reduce((s,p)=>s+popDaSelecao(p),0);
-  const soma = props.reduce((s,p)=>{const v=valorBruto(p,d);return s+(v===null?0:v)},0);
+  const popValores = props.map(popDaSelecao);
+  const popParcial = popValores.some(v=>v===null);
+  const pop = popValores.reduce((s,v)=>s+(Number.isFinite(v)?v:0),0);
+  const popLabel = popParcial ? (pop>0 ? `${fmt(pop)} (parcial)` : "não estimada") : fmt(pop);
+  const valoresIndicador = props.map(p=>valorBruto(p,d));
+  const indicadorParcial = valoresIndicador.some(v=>v===null);
+  const indicadorConhecido = valoresIndicador.some(v=>v!==null);
+  const soma = valoresIndicador.reduce((s,v)=>s+(v===null?0:v),0);
   let detalhe = "";
   let detalheTexto = "";
   if (d.money){
@@ -1312,14 +1323,22 @@ function resumoSelecao(){
     const base=props.reduce((s,p)=>{const v=valorBruto(p,{k:d.base});return s+(v===null?0:v)},0);
     if(base>0){ detalhe = `${fmt(soma/base*100)}% <small>${escHTML(d.nome.toLowerCase())} · ${fmt(soma)} de ${fmt(base)}</small>`; detalheTexto=`${fmt(soma/base*100)}% · ${fmt(soma)} de ${fmt(base)}`; }
   } else if (d.svc){
-    const pontos = props.reduce((s,p)=>s+(+(munAtual ? (munAtual[d.k]||0) : p[d.k])||0),0);
-    detalhe = `${fmt(pontos)} <small>ponto(s) no cadastro IEDE</small>`; detalheTexto=`${fmt(pontos)} ponto(s) no cadastro IEDE`;
+    const publicados = props.map(p=>munAtual ? munAtual[d.k] : p[d.k]).filter(v=>v!==null && v!=="" && Number.isFinite(Number(v)));
+    const pontos = publicados.reduce((s,v)=>s+Number(v),0);
+    const desconhecidos = props.length - publicados.length;
+    detalhe = desconhecidos ? `${fmt(pontos)} <small>ponto(s) no cadastro IEDE · cobertura ${fmt(publicados.length)} de ${fmt(props.length)}</small>` : `${fmt(pontos)} <small>ponto(s) no cadastro IEDE</small>`;
+    detalheTexto=desconhecidos ? `${fmt(pontos)} ponto(s) no cadastro IEDE · cobertura ${fmt(publicados.length)} de ${fmt(props.length)}` : `${fmt(pontos)} ponto(s) no cadastro IEDE`;
   } else if (d.k !== "dens"){
-    detalhe = `${fmt(soma)}${d.un||""}`;
-    detalheTexto = `${fmt(soma)}${d.un||""}`;
-    if (d.pct && pop>0){ detalhe += ` <small>(${fmt(soma/pop*100)}% da população)</small>`; detalheTexto += ` (${fmt(soma/pop*100)}% da população)`; }
+    if (!indicadorConhecido){
+      detalhe = "<small>não estimado</small>"; detalheTexto = "não estimado";
+    } else {
+      detalhe = `${fmt(soma)}${d.un||""}`;
+      detalheTexto = `${fmt(soma)}${d.un||""}`;
+      if (indicadorParcial){ detalhe += ` <small>(cobertura parcial)</small>`; detalheTexto += " (cobertura parcial)"; }
+      if (d.pct && pop>0){ detalhe += ` <small>(${fmt(soma/pop*100)}% da população)</small>`; detalheTexto += ` (${fmt(soma/pop*100)}% da população)`; }
+    }
   }
-  return {count:props.length, pop, detalhe, detalheTexto, nome:nomeCamadaSelecao(), indicador:d.nome};
+  return {count:props.length, pop, popLabel, popParcial, detalhe, detalheTexto, nome:nomeCamadaSelecao(), indicador:d.nome};
 }
 function dadosDaSelecao(){
   if (!selectionLayers.length) return null;
@@ -1365,13 +1384,16 @@ function linhaComparacao(layer, pos){
 let comparacaoPagina=1;
 let impressaoTabela=false;
 const COMPARACAO_TAMANHO=50;
+function normalizaBusca(v){
+  return String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+}
 function linhasComparacaoFiltradas(){
-  const busca=(document.getElementById("comparacaoBusca")?.value || "").trim().toLocaleLowerCase("pt-BR");
+  const busca=normalizaBusca((document.getElementById("comparacaoBusca")?.value || "").trim());
   const somente=!!document.getElementById("comparacaoSomenteSelecao")?.checked;
   const ordem=document.getElementById("comparacaoOrdem")?.value || "desc";
   let rows=camadasVisiveis().map((l,i)=>linhaComparacao(l,i));
   if(somente) rows=rows.filter(r=>r.selecionado);
-  if(busca) rows=rows.filter(r=>`${r.nome} ${r.codigo}`.toLocaleLowerCase("pt-BR").includes(busca));
+   if(busca) rows=rows.filter(r=>normalizaBusca(`${r.nome} ${r.codigo}`).includes(busca));
   rows.sort((a,b)=>{
     if(ordem==="nome") return a.nome.localeCompare(b.nome,"pt");
     if(a.numeric==null && b.numeric!=null)return 1;
@@ -1427,7 +1449,7 @@ function atualizaTabelaComparacao(){
     const cov=coberturaCampo(r.p,d);
     const mark=(r.parcial || cov?.parcial) ? ` <span class="partial-mark" title="Cobertura ${cov ? `${fmt(cov.n)} de ${fmt(cov.total)}` : "parcial"}; soma conhecida pode ser incompleta">†</span>` : "";
     const check=`<input class="comparacao-check" type="checkbox" data-row="${idx}" ${r.selecionado?"checked":""} aria-label="Selecionar ${escHTML(r.nome)}">`;
-     return `<tr><td class="rank">${idx+1}</td><th scope="row" class="nome"><button class="comparacao-link" type="button" data-open-row="${idx}" aria-label="Abrir ficha de ${escHTML(r.nome)}">${escHTML(r.nome)}</button>${mark}</th><td>${escHTML(r.codigo)}</td><td>${escHTML(r.display)}</td><td>${fmt(r.pop)}</td><td class="${r.selecionado?"sel":""}">${check}</td><td class="acoes"><button class="comparacao-link" type="button" data-open-row="${idx}" aria-label="Abrir ficha de ${escHTML(r.nome)}">abrir</button></td></tr>`;
+     return `<tr><td class="rank">${idx+1}</td><th scope="row" class="nome"><button class="comparacao-link" type="button" data-open-row="${idx}" aria-label="Abrir ficha de ${escHTML(r.nome)}">${escHTML(r.nome)}</button>${mark}</th><td>${escHTML(r.codigo)}</td><td>${escHTML(r.display)}</td><td>${r.pop==null?"—":fmt(r.pop)}</td><td class="${r.selecionado?"sel":""}">${check}</td><td class="acoes"><button class="comparacao-link" type="button" data-open-row="${idx}" aria-label="Abrir ficha de ${escHTML(r.nome)}">abrir</button></td></tr>`;
   }).join("");
   body.querySelectorAll("button[data-open-row]").forEach(btn=>{
     btn.onclick=()=>{
@@ -1466,7 +1488,7 @@ function atualizaPainelSelecao(){
   document.getElementById("limparSelecao").disabled=!has && !selectionRect;
   if(!has){summary.textContent="";atualizaTabelaComparacao();return;}
   const r=resumoSelecao();
-  summary.innerHTML=`<b>${fmt(r.count)}</b> ${r.nome} selecionado(s) · <b>${fmt(r.pop)}</b> habitantes`+
+   summary.innerHTML=`<b>${fmt(r.count)}</b> ${r.nome} selecionado(s) · <b>${escHTML(r.popLabel)}</b> habitantes`+
     (r.detalhe ? `<br><small>${escHTML(r.indicador)}:</small> ${r.detalhe}` : "");
   atualizaTabelaComparacao();
 }
@@ -1535,7 +1557,7 @@ function fichaSelecao(){
   const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escHTML(titulo)}</title><style>
     body{font:14px Arial,sans-serif;color:#132019;margin:32px;max-width:1100px}h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:24px 0 6px}p{line-height:1.5;color:#4f6157}.meta{font-size:12px;color:#5c6b63;margin-bottom:18px}.resumo{border:1px solid #dfe7e1;background:#f4f8f5;border-radius:9px;padding:12px;margin:12px 0}.resumo b{color:#0f6b4a}table{border-collapse:collapse;width:100%;font-size:12px}th,td{text-align:left;padding:7px 8px;border:1px solid #dfe7e1}th{background:#eef3f1;font-size:11px;text-transform:uppercase}td{font-variant-numeric:tabular-nums}@media print{body{margin:12mm}}
   </style></head><body><h1>${escHTML(titulo)}</h1><div class="meta">PREVINE · Vulnerabilidade social — bacia Taquari-Antas · gerada em ${new Date().toLocaleString("pt-BR")}</div>
-  <div class="resumo"><b>${fmt(r.count)}</b> ${escHTML(r.nome)} · <b>${fmt(r.pop)}</b> habitantes<br>${escHTML(r.indicador)}: ${escHTML(r.detalheTexto||"—")}</div>
+  <div class="resumo"><b>${fmt(r.count)}</b> ${escHTML(r.nome)} · <b>${escHTML(r.popLabel)}</b> habitantes<br>${escHTML(r.indicador)}: ${escHTML(r.detalheTexto||"—")}</div>
   <p>Esta ficha resume exatamente os elementos escolhidos no mapa atual. O arquivo espacial correspondente pode ser aberto no QGIS ou ArcGIS como GeoJSON.</p><h2>Registros selecionados</h2><table><thead><tr>${cab}</tr></thead><tbody>${trs}</tbody></table>
   <p>Fonte: Censo IBGE 2022 e camadas públicas carregadas no dashboard. A seleção é espacial por interseção do retângulo com as geometrias exibidas.</p></body></html>`;
   baixarBlob(new Blob([html],{type:"text/html;charset=utf-8"}),`${vista.prefixo}_ficha.html`);
@@ -1935,7 +1957,7 @@ carrega("municipios.geojson").then(gj=>{
     onEachFeature: (f,l)=>{
       const p = f.properties;
       l.bindPopup(()=>popup(p,
-        ` <span style="color:#5c6b63;font-size:11px">· ${fmt(p.pct_na_bacia)}% na bacia · ${fmt(p.pop_bacia)} hab. dentro dela</span>`));
+        ` <span style="color:#5c6b63;font-size:11px">· ${fmt(p.pct_na_bacia)}% na bacia · ${escHTML(rotuloPopBacia(p))}</span>`));
       l.bindTooltip(p.nome, {permanent:true, direction:"center", className:"mun-lbl"});
       l.on("dblclick", e=>{ if(selectionMode){ L.DomEvent.stop(e); return; } abreMunicipio(p.cod_mun); });
       l.on("popupopen", ()=>{
