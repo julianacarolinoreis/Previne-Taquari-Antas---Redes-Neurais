@@ -155,6 +155,8 @@
     color:#15241c;font-weight:700;font-size:11px;white-space:nowrap;pointer-events:none;
     text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 4px #fff,0 0 4px #fff}
   #map.no-lbl .leaflet-tooltip.mun-lbl{display:none}
+  /* Em zoom municipal, mostramos apenas rótulos prioritários sem sobrepor os demais. */
+  .leaflet-tooltip.mun-lbl.label-hidden{display:none!important}
   .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:14px}
   .disc a{color:var(--brand)}
   .leaflet-container{font-size:12px}
@@ -1230,10 +1232,39 @@ function sincronizaCamadaUI(){
 // nomes dos municípios só a partir de certo zoom (e não durante o drill-down),
 // senão a bacia inteira fica ilegível — pedido da Juliana ("assim tá feio")
 const LBL_ZOOM = 9;
+const LBL_MAX = 35;
 function aplicaLabels(){
   const mostra = map.getZoom() >= LBL_ZOOM && !munAtual;
   const el = document.getElementById("map");
   if (el) el.classList.toggle("no-lbl", !mostra);
+  if (!munLayer) return;
+
+  const atualiza = ()=>{
+    const candidatos = munLayer.getLayers().map(layer=>{
+      const p = layer.feature?.properties || {};
+      const tooltip = layer.getTooltip?.();
+      return {layer, tooltip, p, node:tooltip?.getElement?.(),
+        pop: Number.isFinite(+p.pop_bacia) && +p.pop_bacia > 0 ? +p.pop_bacia : (+p.pop || 0)};
+    }).filter(x=>x.node).sort((a,b)=>b.pop-a.pop || String(a.p.nome||"").localeCompare(String(b.p.nome||""),"pt"));
+    const ocupados=[];
+    let aceitos=0;
+    for (const item of candidatos){
+      let visivel = mostra && aceitos < LBL_MAX;
+      if (mostra) item.node.classList.remove("label-hidden");
+      const r = item.node.getBoundingClientRect();
+      if (visivel && r.width && r.height){
+        const colide = ocupados.some(o=>!(r.right+4<o.left || r.left-4>o.right || r.bottom+3<o.top || r.top-3>o.bottom));
+        if (colide) visivel=false;
+        else { ocupados.push(r); aceitos++; }
+      }
+      item.node.classList.toggle("label-hidden", !visivel);
+    }
+  };
+  /* Depois de mover/zoomar o mapa, os tooltips precisam de um frame para receber
+     a posição final; o segundo frame torna a detecção de colisões determinística. */
+  if (mostra && typeof requestAnimationFrame === "function"){
+    requestAnimationFrame(()=>requestAnimationFrame(atualiza));
+  } else atualiza();
 }
 
 // ---- seleção espacial e ficha exportável ----
@@ -2087,6 +2118,7 @@ carrega("municipios.geojson").then(gj=>{
   revelaOpcionais();
   if(!municipioInicial) restauraSelecaoURL();
   map.on("zoomend", aplicaLabels);
+  map.on("moveend", aplicaLabels);
   aplicaLabels();
   const popB = gj.features.reduce((s,f)=>s+(+f.properties.pop_bacia||0),0);
   document.getElementById("subtit").textContent =
