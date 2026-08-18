@@ -72,6 +72,8 @@ CAMPOS_SIGILO_LEGADO = tuple(
     campo for campo in CAMPOS_SUJEITOS_A_SIGILO if campo not in ("dom", "dom_ocupados")
 )
 
+CAMPOS_COMPLETUDE = tuple(dict.fromkeys((*SOMAVEIS, "renda_resp", "dens")))
+
 
 def ler_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
@@ -100,6 +102,36 @@ def conhecido(props: dict, campo: str) -> bool:
     return props.get(campo) not in (None, "") and not bool(props.get(f"sigilo_{campo}"))
 
 
+def anota_completude_unidade(props: dict, campos=CAMPOS_COMPLETUDE) -> dict:
+    """Publica n_validos/n_total/completude no grão da própria feição."""
+    for campo in campos:
+        if campo not in props and f"sigilo_{campo}" not in props:
+            continue
+        flag = f"sigilo_{campo}"
+        valido = conhecido(props, campo)
+        props[f"{campo}_n_validos"] = 1 if valido else 0
+        props[f"{campo}_n_total"] = 1
+        props[f"{campo}_completude"] = 1.0 if valido else 0.0
+    return props
+
+
+def anota_recorte(props: dict, *, unidade: str) -> dict:
+    """Mantém área, status de borda e métodos de recorte explícitos."""
+    pct = props.get("area_pct_bacia", props.get("pct_na_bacia"))
+    try:
+        pct_num = float(pct)
+    except (TypeError, ValueError):
+        pct_num = 0.0
+    props.setdefault("area_pct_bacia", pct)
+    props.setdefault("status_borda_bacia", "parcial" if 0 < pct_num < 100 else "total")
+    props.setdefault("metodo_area_bacia", "interseção geométrica em EPSG:5880")
+    props.setdefault(
+        "metodo_na_bacia",
+        f"ponto_representativo_{unidade}_2022_within_bacia",
+    )
+    return props
+
+
 def enriquece_recorte_municipal(props: dict, setores: list[dict]) -> dict:
     """Adiciona aliases e somas do recorte dentro da bacia ao municÃ­pio.
 
@@ -115,6 +147,7 @@ def enriquece_recorte_municipal(props: dict, setores: list[dict]) -> dict:
     props.setdefault("dom_mun", props.get("dom"))
     props.setdefault("area_pct_bacia", props.get("pct_na_bacia"))
     props.setdefault("metodo_recorte_bacia", "ponto_representativo_setor_2022")
+    anota_recorte(props, unidade="municipio")
     props["n_setores_municipio"] = len(todos)
     props["n_setores_bacia"] = len(dentro)
 
@@ -141,12 +174,22 @@ def enriquece_recorte_municipal(props: dict, setores: list[dict]) -> dict:
     props["dens_bacia_n_total"] = 1
     props["dens_bacia_completude"] = 1.0 if props.get("dens_bacia") is not None else 0.0
 
+    # Completude do agregado municipal inteiro: o denominador é o número de
+    # setores do município, não um valor preenchido artificialmente.
+    for campo in CAMPOS_COMPLETUDE:
+        validos = sum(1 for p in todos if conhecido(p, campo))
+        props[f"{campo}_n_validos"] = validos
+        props[f"{campo}_n_total"] = len(todos)
+        props[f"{campo}_completude"] = round(validos / len(todos), 6) if todos else 0.0
+
     for campo in SOMAVEIS:
         valores = [p.get(campo) for p in dentro if conhecido(p, campo)]
         if campo == "pop":
-            # MantÃ©m a convenÃ§Ã£o histÃ³rica: sem setor dentro, pop_bacia=0;
-            # se todos os setores existentes estÃ£o sob X, a flag preserva isso.
-            props["pop_bacia"] = sum(numero(v) for v in valores) if valores else 0
+            # Sem setor dentro, pop_bacia=0; com setores mas todos sob X,
+            # publica UNKNOWN (null) em vez de um zero fictício.
+            props["pop_bacia"] = (
+                sum(numero(v) for v in valores) if valores else (0 if not dentro else None)
+            )
         else:
             props[f"{campo}_bacia"] = sum(numero(v) for v in valores) if valores else None
         validos = len(valores)
@@ -419,16 +462,16 @@ def gerar_geopackage(features_por_nome: dict[str, list[dict]]) -> tuple[bytes, d
 
 
 def contexto_municipal(mun: dict, serv: dict, icm: dict) -> dict:
-    return {
+    contexto = {
         "municipio": mun["nome"],
         "cod_mun": str(mun["cod_mun"]),
         "mun_pct_na_bacia": mun.get("pct_na_bacia", ""),
         "mun_pop_total": mun.get("pop", ""),
         "mun_pop_na_bacia": mun.get("pop_bacia", ""),
-        "mun_ubs_iede": serv.get("ubs", 0),
-        "mun_hospitais_iede": serv.get("hospitais", 0),
-        "mun_escolas_iede": serv.get("escolas", 0),
-        "mun_bombeiros_iede": serv.get("bombeiros", 0),
+        "mun_ubs_iede": serv.get("ubs"),
+        "mun_hospitais_iede": serv.get("hospitais"),
+        "mun_escolas_iede": serv.get("escolas"),
+        "mun_bombeiros_iede": serv.get("bombeiros"),
         "mun_servicos_cobertura": "cadastro_IEDE_parcial_nao_inventario",
         "mun_icm_faixa": icm.get("faixa", ""),
         "mun_icm_pontos": icm.get("pontuacao_total", ""),
@@ -436,6 +479,12 @@ def contexto_municipal(mun: dict, serv: dict, icm: dict) -> dict:
             "" if "prioritario" not in icm else ("sim" if icm["prioritario"] else "não")
         ),
     }
+    for tipo in SERVICOS:
+        valor = serv.get(tipo)
+        contexto[f"mun_{tipo}_iede_status"] = serv.get(
+            f"{tipo}_status", "published" if valor is not None else "unknown"
+        )
+    return contexto
 
 
 def main() -> None:
@@ -465,6 +514,18 @@ def main() -> None:
 
     serv_json = ler_json(SERV / "contagem_municipios.json")
     serv_por_cod = {str(m["cod_mun"]): m for m in serv_json.get("municipios", [])}
+    cobertura_serv_json = serv_json.get("cobertura_por_tipo") or {}
+    faltam_cobertura = set(SERVICOS) - set(cobertura_serv_json)
+    if faltam_cobertura:
+        raise RuntimeError(
+            "contagem_municipios.json sem cobertura_por_tipo: "
+            f"{sorted(faltam_cobertura)}"
+        )
+    for cod, registro in serv_por_cod.items():
+        for tipo in SERVICOS:
+            estado = registro.get(f"{tipo}_status")
+            if estado not in {"published", "unknown"}:
+                raise RuntimeError(f"status de serviço inválido: {cod} {tipo}={estado!r}")
     serv_extras = set(serv_por_cod) - codigos
     if serv_extras:
         raise RuntimeError(f"serviços com municípios órfãos: {sorted(serv_extras)}")
@@ -520,6 +581,8 @@ def main() -> None:
             if inteiro(props.get("na_bacia")) == 1:
                 pop_bacia_por_mun[cod] += numero(props.get("pop"))
 
+            anota_completude_unidade(props)
+            anota_recorte(props, unidade="setor")
             combinado = {**props, **ctx}
             setor_features.append(
                 {"type": "Feature", "properties": combinado, "geometry": feature.get("geometry")}
@@ -593,6 +656,8 @@ def main() -> None:
             ).items() if k not in ("municipio", "cod_mun", "mun_pct_na_bacia", "mun_pop_total", "mun_pop_na_bacia")},
         }
         combinado = enriquece_recorte_municipal(combinado, setores_por_mun.get(cod, []))
+        anota_completude_unidade(combinado)
+        anota_recorte(combinado, unidade="municipio")
         linhas_mun.append(combinado)
         mun_features.append(
             {"type": "Feature", "properties": combinado, "geometry": feature.get("geometry")}
@@ -616,6 +681,8 @@ def main() -> None:
                     feature.get("geometry"), sort_keys=True, separators=(",", ":")
                 ).encode("utf-8")
                 props["id_grade_previne"] = "previne_" + hashlib.sha256(geo_bytes).hexdigest()[:16]
+            anota_completude_unidade(props, campos=("pop", "dom"))
+            anota_recorte(props, unidade="grade")
             combinado = {**props, **ctx}
             linhas_grade_bacia.append(combinado)
             grade_features_bacia.append({
@@ -706,11 +773,16 @@ def main() -> None:
 
     cobertura_servicos = {}
     for tipo in SERVICOS:
-        valores = [inteiro(serv_por_cod.get(cod, {}).get(tipo)) for cod in codigos]
+        valores = [serv_por_cod.get(cod, {}).get(tipo) for cod in codigos]
+        conhecidos_tipo = [inteiro(v) for v in valores if v not in (None, "")]
         cobertura_servicos[tipo] = {
-            "pontos_publicados": sum(valores),
-            "municipios_com_ponto": sum(v > 0 for v in valores),
-            "municipios_sem_ponto_na_camada": sum(v == 0 for v in valores),
+            "municipios_total": len(valores),
+            "pontos_publicados": sum(conhecidos_tipo),
+            "municipios_com_ponto": sum(v > 0 for v in conhecidos_tipo),
+            "municipios_sem_ponto_publicado": sum(v in (None, "") for v in valores),
+            # compatibilidade nominal; agora significa desconhecido no cadastro,
+            # não zero observado.
+            "municipios_sem_ponto_na_camada": sum(v in (None, "") for v in valores),
             "status": "cadastro_IEDE_parcial_nao_inventario",
         }
 
@@ -726,6 +798,29 @@ def main() -> None:
                     if numero(row.get(base_pct)) > 0 else 0
                     for row in validas
                 ])
+            saida[campo] = item
+        return saida
+
+    def classificacoes_bacia(rows: list[dict], campos: list[tuple[str, str | None]]) -> dict:
+        """Cortes fixos para os valores *_bacia publicados no mapa padrão."""
+        saida = {}
+        for campo, base_pct in campos:
+            campo_bacia = "pop_bacia" if campo == "pop" else f"{campo}_bacia"
+            base_bacia = None if base_pct is None else ("pop_bacia" if base_pct == "pop" else f"{base_pct}_bacia")
+            flag = f"sigilo_{campo_bacia}"
+            # Municípios de borda sem setor representativo não são zeros
+            # observados: ficam fora dos cortes publicados da escala bacia.
+            validas = [row for row in rows
+                       if numero(row.get("n_setores_bacia")) > 0
+                       and conhecido(row, campo_bacia)]
+            item = {"abs": quantis_mapa([numero(row.get(campo_bacia)) for row in validas])}
+            if base_bacia:
+                pct = [
+                    numero(row.get(campo_bacia)) / numero(row.get(base_bacia)) * 100
+                    for row in validas
+                    if numero(row.get(base_bacia)) > 0
+                ]
+                item["pct"] = quantis_mapa(pct)
             saida[campo] = item
         return saida
 
@@ -762,12 +857,14 @@ def main() -> None:
         if any(item[0] in row for row in linhas_mun)
     ]
     classes_municipios = classificacoes(linhas_mun, campos_sociais)
+    classes_municipios_bacia = classificacoes_bacia(linhas_mun, campos_sociais)
     for tipo in SERVICOS:
         campo_mun = f"mun_{tipo}_iede"
         valores = [
             numero(row.get(campo_mun)) / numero(row.get("pop")) * 10000
             if numero(row.get("pop")) > 0 else 0
             for row in linhas_mun
+            if row.get(campo_mun) not in (None, "")
         ]
         classes_municipios[f"svc_{tipo}"] = {"abs": quantis_mapa(valores)}
     classes_setores = classificacoes(linhas_setores_bacia, campos_sociais)
@@ -844,6 +941,7 @@ def main() -> None:
         },
         "classificacoes_quantis": {
             "municipio": classes_municipios,
+            "municipio_bacia": classes_municipios_bacia,
             "setor": classes_setores,
             "grade": classes_grade,
             "nota": "cortes calculados no recorte completo da bacia; zeros formam classe própria quando presentes",
@@ -867,12 +965,19 @@ def main() -> None:
                 "n_setores_municipio", "n_setores_bacia", "metodo_recorte_bacia",
             ],
             "recorte_area_unidade": "area_pct_bacia publicado em setores e grade; EPSG:5880; na_bacia segue ponto representativo",
+            "campos_completude_por_indicador": [
+                "<campo>_n_validos", "<campo>_n_total", "<campo>_completude"
+            ],
+            "campos_metodo_recorte": [
+                "area_pct_bacia", "status_borda_bacia", "metodo_area_bacia", "metodo_na_bacia"
+            ],
         },
         "advertencias": [
             "Censo 2022 é um retrato, não dado em tempo real.",
             "Municípios de borda aparecem por inteiro; use na_bacia=1 para o recorte setorial da bacia.",
             "Campos mun_* repetidos nos setores são contexto municipal e não medição setorial.",
             "Contagens mun_*_iede refletem pontos presentes nas camadas consultadas; ausência não prova zero serviços.",
+            "Ausência de ponto IEDE é publicada como null/unknown; não é zero observado.",
             "Valores X suprimidos pelo IBGE são nulos e têm flag sigilo_<campo>; não são zeros.",
             (
                 "Água e esgoto usam V00001 (domicílios particulares permanentes ocupados) como denominador."
