@@ -62,7 +62,7 @@
   .legend .sw-border{background:#fff!important;border:2px dashed #a56a14!important}
   .legend .sw-icm{height:14px;border-radius:3px;font-size:10px;line-height:12px;text-align:center;font-weight:800;color:#fff;text-shadow:0 1px 1px #0008}
   .legend .sw-icm.icm-B,.legend .sw-icm.icm-C{color:#132019;text-shadow:none}
-  .svc-marker-wrap{background:transparent;border:0}
+  .svc-marker-wrap{background:transparent;border:0;width:28px!important;height:28px!important;display:flex;align-items:center;justify-content:center}
   .svc-marker{display:flex;width:22px;height:22px;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px #0008;font:800 11px/1 Tahoma,Verdana,sans-serif;color:#fff;text-shadow:0 1px 1px #0008}
   .svc-marker.svc-hospitais{background:#d73027;border-radius:50%}
   .svc-marker.svc-ubs{background:#2166ac;border-radius:4px}
@@ -2250,7 +2250,7 @@ SVC.forEach(s=>{
           const municipio = f.properties?.municipio || "município não informado";
           const rotulo = `${s.nome} — ${nome}, ${municipio}`;
           const marker = L.marker(ll, {pane:"servicos", title:rotulo, alt:rotulo,
-            icon:L.divIcon({className:"svc-marker-wrap",html:`<span class="svc-marker svc-${s.k}" aria-hidden="true">${s.letra}</span>`,iconSize:[22,22],iconAnchor:[11,11]})});
+            icon:L.divIcon({className:"svc-marker-wrap",html:`<span class="svc-marker svc-${s.k}" aria-hidden="true">${s.letra}</span>`,iconSize:[28,28],iconAnchor:[14,14]})});
           marker.on("add", ()=>{
             const el = marker.getElement?.();
             if (el){ el.setAttribute("aria-label", rotulo); el.setAttribute("title", rotulo); }
