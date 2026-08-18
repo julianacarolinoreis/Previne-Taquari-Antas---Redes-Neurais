@@ -1089,6 +1089,17 @@ function legenda(brk, ctx){
   const pm=document.getElementById("printMeta"); if(pm) pm.textContent=`PREVINE · Vulnerabilidade social · ${d?.nome||"indicador"}; ${escala === "bacia" ? "escala comparável na bacia" : "escala relativa à área"}. Fonte: ${refPrint}; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.${extrasPrint.length?` ${extrasPrint.join("; ")}.`:""}`;
   brk.forEach((v,i)=>{ document.getElementById("fx"+i).value = Math.round(v*100)/100; });
 }
+function atualizaPrintMeta(){
+  const d=INDS.find(i=>i.k===ind);
+  const refPrint=d?.svc
+    ? `IEDE-RS${servicosCaptura ? ` · captura ${new Date(servicosCaptura).toLocaleDateString("pt-BR")}` : " · captura registrada no catálogo"}`
+    : d?.cat ? "MIDR/ICM · 28/04/2026" : "IBGE Censo 2022";
+  const extras=[];
+  if(typeof perigoLayer!=="undefined" && perigoLayer && map.hasLayer(perigoLayer)) extras.push("SGB: risco setorizado em Santa Tereza (2025), não é mancha contínua");
+  if(typeof svcLayers!=="undefined" && Object.values(svcLayers).some(x=>x && x!=="carregando" && map.hasLayer(x))) extras.push("IEDE: pontos cadastrados; ausência não prova ausência");
+  const pm=document.getElementById("printMeta");
+  if(pm) pm.textContent=`PREVINE · Vulnerabilidade social · ${d?.nome||"indicador"}; ${escala === "bacia" ? "escala comparável na bacia" : "escala relativa à área"}. Fonte: ${refPrint}; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.${extras.length?` ${extras.join("; ")}.`:""}`;
+}
 function totaliza(props){
   const d = INDS.find(i=>i.k===ind);
   const notaEscopoMunicipal = !munAtual && (escopo !== "bacia" || d?.svc || d?.cat)
@@ -2203,6 +2214,7 @@ perigoBtn.onclick = ()=>{
     perigoBtn.classList.toggle("on", liga);
     perigoBtn.setAttribute("aria-pressed", liga ? "true" : "false");
     document.getElementById("perigoLeg").hidden = !liga;
+    atualizaPrintMeta();
     return;
   }
   perigoCarregando = true;
@@ -2228,6 +2240,7 @@ perigoBtn.onclick = ()=>{
     perigoBtn.classList.add("on");
     perigoBtn.setAttribute("aria-pressed", "true");
     document.getElementById("perigoLeg").hidden = false;
+    atualizaPrintMeta();
   }).catch(()=>{
     perigoBtn.disabled = false;
     perigoBtn.title = "camada SGB indisponível; clique para tentar novamente";
