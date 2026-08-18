@@ -753,7 +753,7 @@ const escHTML = v => String(v ?? "").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&
 function acessibilizaPopup(layer, rotulo){
   const el = layer?.getPopup?.()?.getElement?.();
   if (!el) return;
-  const acionador = layer?.getElement?.();
+  const acionador = layer.__previnePopupA11yTrigger || layer?.getElement?.();
   const veioDoTeclado = !!acionador && document.activeElement === acionador;
   el.setAttribute("role", "dialog");
   el.setAttribute("aria-label", rotulo || "Informações do mapa");
@@ -763,8 +763,11 @@ function acessibilizaPopup(layer, rotulo){
   if (fechar) fechar.setAttribute("aria-label", "Fechar informações");
   if (!layer.__previnePopupA11y) {
     layer.on("popupclose", ()=>{
-      if (layer.__previnePopupA11yRestore) layer.getElement?.()?.focus?.({preventScroll:true});
+      if (layer.__previnePopupA11yRestore) {
+        (layer.__previnePopupA11yTrigger || layer.getElement?.())?.focus?.({preventScroll:true});
+      }
       layer.__previnePopupA11yRestore = false;
+      layer.__previnePopupA11yTrigger = null;
     });
     layer.__previnePopupA11y = true;
   }
@@ -1568,12 +1571,15 @@ function atualizaTabelaComparacao(){
     const check=`<input class="comparacao-check" type="checkbox" data-row="${idx}" ${r.selecionado?"checked":""} aria-label="Selecionar ${escHTML(r.nome)}">`;
      return `<tr><td class="rank">${idx+1}</td><th scope="row" class="nome"><button class="comparacao-link" type="button" data-open-row="${idx}" aria-label="Abrir ficha de ${escHTML(r.nome)}">${escHTML(r.nome)}</button>${mark}</th><td>${escHTML(r.codigo)}</td><td>${escHTML(r.display)}</td><td>${r.pop==null?"—":fmt(r.pop)}</td><td class="${r.selecionado?"sel":""}">${check}</td><td class="acoes"><button class="comparacao-link" type="button" data-open-row="${idx}" aria-label="Abrir ficha de ${escHTML(r.nome)}">abrir</button></td></tr>`;
   }).join("");
-  body.querySelectorAll("button[data-open-row]").forEach(btn=>{
-    btn.onclick=()=>{
-      const row=rows[+btn.dataset.openRow];
-      if(row?.layer?.openPopup)row.layer.openPopup();
-    };
-  });
+   body.querySelectorAll("button[data-open-row]").forEach(btn=>{
+     btn.onclick=()=>{
+       const row=rows[+btn.dataset.openRow];
+       if(row?.layer?.openPopup){
+         row.layer.__previnePopupA11yTrigger = btn;
+         row.layer.openPopup();
+       }
+     };
+   });
   body.querySelectorAll("input.comparacao-check[data-row]").forEach(input=>{
     input.onchange=()=>alternaSelecaoTabela(rows[+input.dataset.row]?.layer);
   });
