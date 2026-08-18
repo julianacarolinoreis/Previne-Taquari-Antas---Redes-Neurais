@@ -119,7 +119,7 @@
   @media print{
     @page{size:landscape;margin:8mm}
     header .back,aside .tool-grid,.download-center,.volta{display:none!important}
-    .expl,.icm-wrap{display:none!important}
+    .expl,.icm-wrap,.comparacao-wrap{display:none!important}
     body.print-map-only aside{display:none!important}
     body.print-map-only main{display:block}
     body.print-legend-only aside > *:not(#leg):not(#legctx):not(#tot):not(.q:has(+ #leg)){display:none!important}
@@ -129,7 +129,7 @@
     main{height:calc(100vh - 58px);min-height:0;grid-template-columns:minmax(0,1fr) 300px;align-items:stretch}
     #map{height:100%;min-height:0}
     aside{height:100%;min-height:0;overflow:hidden;padding:8px 12px}
-    .expl,.icm-wrap{break-inside:avoid}
+    .expl,.icm-wrap,.comparacao-wrap{break-inside:avoid}
   }
   .icm-wrap{background:var(--bg);padding:32px 18px 48px;border-top:1px solid var(--line)}
   .icm-inner{max-width:980px;margin:0 auto;background:var(--panel);border:1px solid var(--line);
@@ -158,6 +158,31 @@
   .icm-badge.D{background:var(--icmD)}
   .icm-prior{color:var(--brand);font-weight:700}
   .icm-foot{margin-top:14px}
+  .comparacao-wrap{background:var(--bg);padding:32px 18px 16px;border-top:1px solid var(--line)}
+  .comparacao-inner{max-width:1120px;margin:0 auto;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;box-shadow:var(--shadow);padding:24px 26px}
+  .comparacao-inner h2{margin:0 0 4px;font-size:19px;letter-spacing:-.01em;font-weight:800}
+  .comparacao-sub{font-size:11.5px;color:var(--muted);margin:0 0 14px}
+  .comparacao-controls{display:grid;grid-template-columns:minmax(180px,1fr) 180px auto auto;gap:8px;align-items:center;margin-bottom:10px}
+  .comparacao-controls input,.comparacao-controls select{width:100%;font-size:12px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  .comparacao-controls label{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);white-space:nowrap}
+  .comparacao-controls input[type="checkbox"]{width:auto;accent-color:var(--brand)}
+  .comparacao-controls button{font-size:11.5px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:var(--bg);color:var(--ink);cursor:pointer;white-space:nowrap}
+  .comparacao-controls button:hover{border-color:var(--brand);color:var(--brand)}
+  .comparacao-controls button:disabled{opacity:.45;cursor:not-allowed}
+  .comparacao-meta{font-size:11px;color:var(--muted);margin:0 0 7px;font-variant-numeric:tabular-nums}
+  .comparacao-tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;max-height:520px;overflow-y:auto}
+  #comparacaoTable{width:100%;border-collapse:collapse;font-size:12.5px}
+  #comparacaoTable th{text-align:left;background:var(--bg);padding:9px 11px;font-size:11px;text-transform:uppercase;
+    letter-spacing:.03em;color:var(--muted);position:sticky;top:0;z-index:1}
+  #comparacaoTable td{padding:7px 11px;border-top:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums}
+  #comparacaoTable td.nome{white-space:normal;min-width:220px}
+  #comparacaoTable td.rank{color:var(--muted);width:44px;text-align:right}
+  #comparacaoTable td.sel{color:var(--brand);font-weight:750}
+  .comparacao-link{border:none;background:none;padding:0;color:var(--brand);font:inherit;font-weight:700;text-align:left;cursor:pointer}
+  .comparacao-link:hover{text-decoration:underline}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  @media (max-width:760px){.comparacao-controls{grid-template-columns:1fr 1fr}.comparacao-controls label,.comparacao-controls button{grid-column:auto}}
   /* ---- explicador "como ler o mapa" ---- */
   .expl{background:var(--panel);padding:34px 18px;border-top:1px solid var(--line)}
   .expl-in{max-width:980px;margin:0 auto}
@@ -371,6 +396,30 @@
       aparecem com a população inteira; o recorte “na bacia” usa apenas os setores dentro do limite da
       SEMA/DRH. Um lugar bem colorido não é, sozinho, “o mais em risco”: é onde há mais gente ou mais
       sensibilidade — o risco final cruza isso com a ameaça de cheia.
+    </div>
+  </div>
+</section>
+
+<section class="comparacao-wrap" aria-labelledby="comparacaoTitulo">
+  <div class="comparacao-inner">
+    <h2 id="comparacaoTitulo">Tabela comparativa</h2>
+    <p class="comparacao-sub" id="comparacaoSub">A tabela acompanha o indicador, a escala e a camada que estão ativos no mapa.</p>
+    <div class="comparacao-controls">
+      <label><span class="sr-only">Filtrar tabela</span><input id="comparacaoBusca" type="search" placeholder="filtrar por nome ou código…" autocomplete="off"></label>
+      <label><span class="sr-only">Ordenar tabela</span><select id="comparacaoOrdem">
+        <option value="desc">maior valor primeiro</option>
+        <option value="asc">menor valor primeiro</option>
+        <option value="nome">ordem alfabética</option>
+      </select></label>
+      <label><input id="comparacaoSomenteSelecao" type="checkbox" disabled> somente seleção</label>
+      <button id="comparacaoBaixar" type="button">↓ baixar tabela</button>
+    </div>
+    <div class="comparacao-meta" id="comparacaoMeta" aria-live="polite">carregando dados…</div>
+    <div class="comparacao-tablewrap">
+      <table id="comparacaoTable">
+        <thead><tr><th>#</th><th>Local</th><th>Código</th><th id="comparacaoColValor">Valor</th><th id="comparacaoColPop">População</th><th>Seleção</th></tr></thead>
+        <tbody id="comparacaoBody"><tr><td colspan="6" style="color:var(--muted)">carregando dados…</td></tr></tbody>
+      </table>
     </div>
   </div>
 </section>
@@ -614,7 +663,7 @@ function pintaMunicipios(){
   if (ehCat()){                        // ICM: cor fixa por faixa A–D
     munLayer.eachLayer(l=>{ const fx = l.feature.properties.icm_faixa;
       l.setStyle({fillColor: ICM_CORES[fx]||"#d8ddd9", fillOpacity: fx?opacidade:.25, color:"#fff", weight:1}); });
-    legendaICM("· municípios"); totalizaICM(null); aplicaDestaqueSelecao(); return;
+    legendaICM("· municípios"); totalizaICM(null); aplicaDestaqueSelecao(); atualizaTabelaComparacao(); return;
   }
   const brk = getBrk(munData.features.map(f=>valor(f.properties)));
   munLayer.eachLayer(l=>{
@@ -624,6 +673,7 @@ function pintaMunicipios(){
   legenda(brk, "· municípios");
   totaliza(munData.features.map(f=>f.properties));
   aplicaDestaqueSelecao();
+  atualizaTabelaComparacao();
 }
 function pintaSetores(){
   if (!setLayer) return;
@@ -632,7 +682,7 @@ function pintaSetores(){
     const fx = munAtual.icm_faixa;
     setLayer.eachLayer(l=>{ const p = l.feature.properties;
       l.setStyle({fillColor: ICM_CORES[fx]||"#d8ddd9", fillOpacity: p.na_bacia?opacidade:opacidade*.45, color:"#fff", weight:.7}); });
-    legendaICM("· " + munAtual.nome); totalizaICM(munAtual); aplicaDestaqueSelecao(); return;
+    legendaICM("· " + munAtual.nome); totalizaICM(munAtual); aplicaDestaqueSelecao(); atualizaTabelaComparacao(); return;
   }
   const brk = getBrk(feats.map(f=>valor(f.properties)));
     setLayer.eachLayer(l=>{
@@ -644,6 +694,7 @@ function pintaSetores(){
   legenda(brk, (camada==="grade" ? "· grade 200m de " : "· setores de ") + munAtual.nome);
   totaliza(feats.map(f=>f.properties));
   aplicaDestaqueSelecao();
+  atualizaTabelaComparacao();
 }
 function legendaICM(ctx){
   document.getElementById("legctx").textContent = ctx;
@@ -851,6 +902,86 @@ function aplicaDestaqueSelecao(){
     if (escolhidos.has(l)) l.setStyle({color:"#0c2a22", weight:3, dashArray:"6 4"});
   });
 }
+function escopoComparacao(){
+  if (munAtual) return camada === "grade" ? `grade 200 m de ${munAtual.nome}` : `setores de ${munAtual.nome}`;
+  return "municípios da bacia";
+}
+function linhaComparacao(layer, pos){
+  const p=layer.feature?.properties || {};
+  const d=INDS.find(i=>i.k===ind) || INDS[0];
+  const src=d.cat && munAtual ? munAtual : p;
+  const suprimido=!d.cat && estaSuprimido(p,d);
+  let numeric=null, display="—";
+  if(d.cat){
+    numeric=src.icm_pont==null ? null : +src.icm_pont;
+    display=src.icm_faixa ? `${src.icm_faixa}${src.icm_pont!=null ? " · "+fmt(src.icm_pont)+" pts" : ""}` : "—";
+  }else if(!suprimido){
+    numeric=valor(p);
+    display=isFinite(numeric) ? rotulo(numeric) : "—";
+  }
+  const nome=p.nome || (camada === "grade" ? `Célula ${p.id_grade || p.id_grade_previne || pos+1}` : `Setor ${p.setor || "—"}`);
+  const codigo=p.nome ? (p.cod_mun || "—") : (p.setor || p.id_grade || p.id_grade_previne || "—");
+  return {layer, p, nome, codigo, numeric, display, pop:popDaSelecao(p), selecionado:selectionLayers.includes(layer)};
+}
+function linhasComparacaoFiltradas(){
+  const busca=(document.getElementById("comparacaoBusca")?.value || "").trim().toLocaleLowerCase("pt-BR");
+  const somente=!!document.getElementById("comparacaoSomenteSelecao")?.checked;
+  const ordem=document.getElementById("comparacaoOrdem")?.value || "desc";
+  let rows=camadasVisiveis().map((l,i)=>linhaComparacao(l,i));
+  if(somente) rows=rows.filter(r=>r.selecionado);
+  if(busca) rows=rows.filter(r=>`${r.nome} ${r.codigo}`.toLocaleLowerCase("pt-BR").includes(busca));
+  rows.sort((a,b)=>{
+    if(ordem==="nome") return a.nome.localeCompare(b.nome,"pt");
+    if(a.numeric==null && b.numeric!=null)return 1;
+    if(a.numeric!=null && b.numeric==null)return -1;
+    if(a.numeric==null && b.numeric==null)return a.nome.localeCompare(b.nome,"pt");
+    const delta=ordem==="asc" ? a.numeric-b.numeric : b.numeric-a.numeric;
+    return delta || a.nome.localeCompare(b.nome,"pt");
+  });
+  return rows;
+}
+function atualizaTabelaComparacao(){
+  const body=document.getElementById("comparacaoBody");
+  if(!body)return;
+  const d=INDS.find(i=>i.k===ind) || INDS[0];
+  const total=camadasVisiveis().length;
+  const checkbox=document.getElementById("comparacaoSomenteSelecao");
+  if(checkbox){
+    checkbox.disabled=!selectionLayers.length;
+    if(checkbox.disabled)checkbox.checked=false;
+  }
+  const rows=linhasComparacaoFiltradas();
+  const col=document.getElementById("comparacaoColValor");
+  if(col)col.textContent=d.cat ? "Faixa / pontos" : d.money ? "Renda média" : (modo==="pct" && d.pct ? "%" : "Valor");
+  const popCol=document.getElementById("comparacaoColPop");
+  if(popCol)popCol.textContent=munAtual ? "População" : "Pop. na bacia";
+  const sub=document.getElementById("comparacaoSub");
+  if(sub)sub.textContent=`${d.nome} · ${escopoComparacao()} · ${modo==="pct" && d.pct ? (d.base ? "% dos domicílios ocupados" : "% da população") : "valores absolutos"}.`;
+  const meta=document.getElementById("comparacaoMeta");
+  if(meta)meta.textContent=`${fmt(rows.length)} de ${fmt(total)} registros exibidos`+(selectionLayers.length ? ` · ${fmt(selectionLayers.length)} na seleção` : "");
+  if(!rows.length){body.innerHTML=`<tr><td colspan="6" style="color:var(--muted)">Nenhum registro corresponde ao filtro.</td></tr>`;return;}
+  body.innerHTML=rows.map((r,i)=>`<tr><td class="rank">${i+1}</td><td class="nome"><button class="comparacao-link" type="button" data-row="${i}">${escHTML(r.nome)}</button></td><td>${escHTML(r.codigo)}</td><td>${escHTML(r.display)}</td><td>${fmt(r.pop)}</td><td class="${r.selecionado?"sel":""}">${r.selecionado ? "selecionado" : "—"}</td></tr>`).join("");
+  body.querySelectorAll("button[data-row]").forEach(btn=>{
+    btn.onclick=()=>{
+      const row=rows[+btn.dataset.row];
+      if(row?.layer?.openPopup)row.layer.openPopup();
+    };
+  });
+}
+function baixarTabelaComparacao(){
+  const rows=linhasComparacaoFiltradas();
+  if(!rows.length){informa("Nenhum registro para baixar na tabela.");return;}
+  const d=INDS.find(i=>i.k===ind) || INDS[0];
+  const saida=rows.map((r,i)=>({ordem:i+1,nome:r.nome,codigo:r.codigo,indicador:d.nome,valor:r.display,populacao:r.pop,selecionado:r.selecionado?"sim":"não"}));
+  const cols=["ordem","nome","codigo","indicador","valor","populacao","selecionado"];
+  const csv=[cols.map(csvCampo).join(";")].concat(saida.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
+  baixarBlob(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}),`tabela_${slugLocal(escopoComparacao())}_${slugLocal(ind)}.csv`);
+  informa(`${fmt(saida.length)} registros da tabela exportados em CSV.`);
+}
+document.getElementById("comparacaoBusca").oninput=atualizaTabelaComparacao;
+document.getElementById("comparacaoOrdem").onchange=atualizaTabelaComparacao;
+document.getElementById("comparacaoSomenteSelecao").onchange=atualizaTabelaComparacao;
+document.getElementById("comparacaoBaixar").onclick=baixarTabelaComparacao;
 function atualizaPainelSelecao(){
   const panel=document.getElementById("selectionPanel"), summary=document.getElementById("selectionSummary");
   const has=selectionLayers.length>0;
@@ -859,10 +990,11 @@ function atualizaPainelSelecao(){
   const printSel=document.querySelector('input[name="printMode"][value="map-selection"]');
   if(printSel)printSel.disabled=!has;
   document.getElementById("limparSelecao").disabled=!has && !selectionRect;
-  if(!has){summary.textContent="";return;}
+  if(!has){summary.textContent="";atualizaTabelaComparacao();return;}
   const r=resumoSelecao();
   summary.innerHTML=`<b>${fmt(r.count)}</b> ${r.nome} selecionado(s) · <b>${fmt(r.pop)}</b> habitantes`+
     (r.detalhe ? `<br><small>${escHTML(r.indicador)}:</small> ${r.detalhe}` : "");
+  atualizaTabelaComparacao();
 }
 function limpaSelecao(){
   selectionStart=null;
