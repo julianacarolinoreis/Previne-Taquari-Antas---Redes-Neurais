@@ -461,7 +461,8 @@ def gerar_geopackage(features_por_nome: dict[str, list[dict]]) -> tuple[bytes, d
         shutil.rmtree(temp, ignore_errors=True)
 
 
-def contexto_municipal(mun: dict, serv: dict, icm: dict) -> dict:
+def contexto_municipal(mun: dict, serv: dict, icm: dict, icm_meta: dict | None = None) -> dict:
+    icm_meta = icm_meta or {}
     contexto = {
         "municipio": mun["nome"],
         "cod_mun": str(mun["cod_mun"]),
@@ -484,6 +485,8 @@ def contexto_municipal(mun: dict, serv: dict, icm: dict) -> dict:
         contexto[f"mun_{tipo}_iede_status"] = serv.get(
             f"{tipo}_status", "published" if valor is not None else "unknown"
         )
+    contexto["mun_icm_atualizado_em"] = icm_meta.get("atualizado_em", "")
+    contexto["mun_icm_versao"] = icm_meta.get("versao", "")
     return contexto
 
 
@@ -545,7 +548,9 @@ def main() -> None:
     pop_bacia_por_mun: dict[str, float] = {}
     for cod in sorted(codigos):
         fc = ler_json(VULN / "setores" / f"{cod}.geojson")
-        ctx = contexto_municipal(mun_por_cod[cod], serv_por_cod.get(cod, {}), icm_por_cod[cod])
+        ctx = contexto_municipal(
+            mun_por_cod[cod], serv_por_cod.get(cod, {}), icm_por_cod[cod], icm_json
+        )
         somas_por_mun[cod] = {campo: 0.0 for campo in SOMAVEIS}
         pop_bacia_por_mun[cod] = 0.0
         for feature in fc.get("features", []):
@@ -652,7 +657,7 @@ def main() -> None:
         combinado = {
             **feature["properties"],
             **{k: v for k, v in contexto_municipal(
-                mun_por_cod[cod], serv_por_cod.get(cod, {}), icm_por_cod[cod]
+                mun_por_cod[cod], serv_por_cod.get(cod, {}), icm_por_cod[cod], icm_json
             ).items() if k not in ("municipio", "cod_mun", "mun_pct_na_bacia", "mun_pop_total", "mun_pop_na_bacia")},
         }
         combinado = enriquece_recorte_municipal(combinado, setores_por_mun.get(cod, []))
@@ -669,7 +674,9 @@ def main() -> None:
     grade_features_bacia: list[dict] = []
     linhas_grade_bacia: list[dict] = []
     for cod in sorted(codigos):
-        ctx = contexto_municipal(mun_por_cod[cod], serv_por_cod.get(cod, {}), icm_por_cod[cod])
+        ctx = contexto_municipal(
+            mun_por_cod[cod], serv_por_cod.get(cod, {}), icm_por_cod[cod], icm_json
+        )
         for feature in ler_json(VULN / "grade" / f"{cod}.geojson").get("features", []):
             props = dict(feature.get("properties") or {})
             if inteiro(props.get("na_bacia")) != 1:
@@ -929,6 +936,12 @@ def main() -> None:
             ),
         },
         "referencia_censo": 2022,
+        "icm": {
+            "fonte": icm_json.get("fonte", ""),
+            "atualizado_em": icm_json.get("atualizado_em", ""),
+            "versao": icm_json.get("versao", ""),
+            "referencia_arquivo": icm_json.get("referencia_arquivo", ""),
+        },
         "recorte_bacia": recorte_borda,
         "contagens": {
             "municipios": len(municipios),
