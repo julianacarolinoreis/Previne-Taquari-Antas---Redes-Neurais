@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "status": "research_only_observed_sources_completion",
+  "station_code": "86510000",
+  "generated_at_utc": "2026-08-18T00:31:40.835391+00:00",
+  "official_alert_allowed": false,
+  "model_training_allowed": false,
+  "promotion_allowed": false,
+  "completed": {
+    "ana_historical_rain": {
+      "rows": 125490,
+      "valid_rain_rows": 125095,
+      "first": "2023-01-01T00:00:00",
+      "last": "2026-08-11T11:00:00"
+    },
+    "ana_incremental": {
+      "rows": 288,
+      "first_timestamp_utc": "2026-08-14T23:45:00+00:00",
+      "last_timestamp_utc": "2026-08-17T23:30:00+00:00",
+      "rain_nonnull_rows": 287,
+      "status": "incremental_append_only_batch_not_merged_into_canonical"
+    },
+    "cemaden_rain_support": {
+      "station_count": 3,
+      "stations": [
+        "431260903A",
+        "431260902A",
+        "431260901A"
+      ],
+      "historical_status": "rolling_window_only_public_endpoint"
+    },
+    "cemaden_soil_support": {
+      "station_count": 5,
+      "target_station_measurement_available": false,
+      "interpretation": "regional measured support, not Muçum point soil"
+    },
+    "quality": {
+      "pass": true,
+      "files_checked": 33,
+      "duplicate_timestamp_failures": 0,
+      "flatline_warning_count": 10
+    },
+    "ana_cemaden_rain_crosscheck": {
+      "status": "research_only_rain_crosscheck",
+      "stations": [
+        {
+          "file": "C:\\Users\\Usuario\\Documents\\Codex\\2026-07-30\\nova-pesquisa-vai-ou-n-o\\data\\processed\\mucum_observed_sources_20260818\\cemaden_rain_17717.csv.gz",
+          "station_code": "431260903A",
+          "rows": 99,
+          "overlap_hours": 73,
+          "correlation": 0.3047619047619049,
+          "mae_mm_per_hour": 0.010958904109589041,
+          "sum_ana_mm": 0.6000000000000001,
+          "sum_cemaden_mm": 0.6000000000000001,
+          "selection": "crosscheck_only_no_automatic_join"
+        },
+        {
+          "file": "C:\\Users\\Usuario\\Documents\\Codex\\2026-07-30\\nova-pesquisa-vai-ou-n-o\\data\\processed\\mucum_observed_sources_20260818\\cemaden_rain_17718.csv.gz",
+          "station_code": "431260902A",
+          "rows": 97,
+          "overlap_hours": 71,
+          "correlation": 0.30392156862744996,
+          "mae_mm_per_hour": 0.011267605633802818,
+          "sum_ana_mm": 0.6000000000000001,
+          "sum_cemaden_mm": 0.6000000000000001,
+          "selection": "crosscheck_only_no_automatic_join"
+        },
+        {
+          "file": "C:\\Users\\Usuario\\Documents\\Codex\\2026-07-30\\nova-pesquisa-vai-ou-n-o\\data\\processed\\mucum_observed_sources_20260818\\cemaden_rain_17719.csv.gz",
+          "station_code": "431260901A",
+          "rows": 98,
+          "overlap_hours": 72,
+          "correlation": 0.5678956012857346,
+          "mae_mm_per_hour": 0.06944444444444445,
+          "sum_ana_mm": 0.6000000000000001,
+          "sum_cemaden_mm": 4.8,
+          "selection": "crosscheck_only_no_automatic_join"
+        }
+      ],
+      "source_selection": "crosscheck_only_no_automatic_replacement"
+    }
+  },
+  "not_completed": {
+    "cemaden_long_history": {
+      "status": "manual_download_ready",
+      "reason": "portal historical download requires browser confirmation",
+      "importer": "scripts/import_cemaden_historical_mucum.py"
+    },
+    "mucum_point_soil_sensor": {
+      "status": "not_available",
+      "reason": "nearest measured support stations are 26-37 km away"
+    },
+    "radar_qpe_rs": {
+      "status": "manual_or_credentials_required",
+      "reason": "public radar download portal did not expose an RS/Muçum radar file in this run"
+    },
+    "satellite_soil_and_qpe": {
+      "status": "credential_required",
+      "sources": [
+        "NASA SMAP",
+        "NASA GPM IMERG"
+      ]
+    },
+    "out_of_bank_marks": {
+      "status": "awaiting_user_source",
+      "reason": "requires georeferenced flood marks or validated inundation polygons"
+    }
+  },
+  "artifacts": {
+    "public_summary": {
+      "path": "outputs\\public_mucum_sources_summary_20260818.json",
+      "sha256": "bf4a52c7e951c19f588d3a6d59ce5d3c55bebabb82a8907e2183b1cb8348b7d3"
+    },
+    "quality": {
+      "path": "outputs\\mucum_observed_quality_20260818.json",
+      "sha256": "3d05a9acb63b4e461f40fe35e6adb797b5bc0709ee4dae593df9f9b797c8fd9b"
+    },
+    "crosscheck": {
+      "path": "outputs\\mucum_rain_crosscheck_20260818.json",
+      "sha256": "d16352e875ec2c1774d1102660a70b83c886d1d10154d2553e794f82f102de38"
+    }
+  }
+}
