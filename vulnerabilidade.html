@@ -135,6 +135,7 @@
   .north-control span{display:block;transform:translateY(-1px)}
   .provenance-list{margin:5px 0 0;padding-left:15px;color:var(--muted);font-size:10.5px;line-height:1.4}
   .provenance-list a{color:var(--brand)}
+  .comparacao-print-meta,.print-meta-header{display:none}
   .triage-box{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:#f7faf8;padding:9px}
   .triage-box summary{cursor:pointer;color:var(--brand);font-size:12px;font-weight:800}
   .triage-intro{font-size:10.5px;line-height:1.4;color:var(--muted);margin:6px 0}
@@ -225,6 +226,8 @@
     body.print-map-table .comparacao-pagination{display:none!important}
     body.print-map-table .comparacao-meta{margin-bottom:8px}
     body.print-map-table .comparacao-tablewrap{max-height:none;overflow:visible}
+    body.print-map-table .comparacao-print-meta{display:block;font-size:10.5px;line-height:1.4;color:var(--muted);margin:0 0 8px}
+    body.print-map-only .print-meta-header{display:block;font-size:10.5px;line-height:1.35;color:var(--muted);margin-top:2px}
     body.print-map-table #comparacaoTable thead th{position:static}
     body.print-map-legend .concept-note,body.print-map-summary .concept-note,body.print-map-selection .concept-note{display:block!important;position:static;box-shadow:none;margin:0 0 6px}
     /* composição de uma prancha única: mapa ocupa a altura útil e a legenda
@@ -353,6 +356,7 @@
   <div>
     <h1>Vulnerabilidade social — bacia Taquari-Antas</h1>
     <div class="loc" id="subtit">Censo IBGE 2022 · municípios da bacia Taquari-Antas</div>
+    <div class="print-meta-header" id="printMetaHeader"></div>
   </div>
   <a class="back" href="index.html">← painel do projeto</a>
 </header>
@@ -613,6 +617,7 @@
       <button id="comparacaoBaixar" type="button">↓ baixar tabela</button>
     </div>
     <div class="comparacao-meta" id="comparacaoMeta" aria-live="polite">carregando dados…</div>
+    <p class="comparacao-print-meta" id="comparacaoPrintMeta"></p>
     <p class="comparacao-table-note" id="comparacaoTableNote">Ações por teclado: use Tab até a caixa “seleção” para incluir ou remover um local.</p>
     <div class="comparacao-tablewrap">
       <table id="comparacaoTable">
@@ -1035,7 +1040,7 @@ function legendaICM(ctx){
     + `<div class="row2" role="listitem"><span class="sw sw-border"></span>geometria fora/na borda da bacia</div>`
     + `<div class="row2" role="listitem"><span class="sw sw-nodata"></span>faixa ICM sem dado publicado</div>`;
   document.getElementById("quantileNote").textContent="ICM é categórico (faixas fixas A–D do MIDR), não usa quantis. Letras, cores e traços da legenda devem ser lidos em conjunto.";
-  const pm=document.getElementById("printMeta"); if(pm) pm.textContent=`PREVINE · Vulnerabilidade social · Capacidade municipal (ICM), ${ctx.replace(/^·\s*/,"")}. Fonte: MIDR/ICM; geometrias EPSG:4326.`;
+  defineMetadadosImpressao(`PREVINE · Vulnerabilidade social · Capacidade municipal (ICM), ${ctx.replace(/^·\s*/,"")}. Fonte: MIDR/ICM; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.`);
 }
 function totalizaICM(mun){
   const tot = document.getElementById("tot");
@@ -1086,8 +1091,13 @@ function legenda(brk, ctx){
   const extrasPrint=[];
   if(typeof perigoLayer!=="undefined" && perigoLayer && map.hasLayer(perigoLayer)) extrasPrint.push("SGB: risco setorizado em Santa Tereza (2025), não é mancha contínua");
   if(typeof svcLayers!=="undefined" && Object.values(svcLayers).some(x=>x && x!=="carregando" && map.hasLayer(x))) extrasPrint.push("IEDE: pontos cadastrados; ausência não prova ausência");
-  const pm=document.getElementById("printMeta"); if(pm) pm.textContent=`PREVINE · Vulnerabilidade social · ${d?.nome||"indicador"}; ${escala === "bacia" ? "escala comparável na bacia" : "escala relativa à área"}. Fonte: ${refPrint}; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.${extrasPrint.length?` ${extrasPrint.join("; ")}.`:""}`;
+  defineMetadadosImpressao(`PREVINE · Vulnerabilidade social · ${d?.nome||"indicador"}; ${escala === "bacia" ? "escala comparável na bacia" : "escala relativa à área"}. Fonte: ${refPrint}; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.${extrasPrint.length?` ${extrasPrint.join("; ")}.`:""}`);
   brk.forEach((v,i)=>{ document.getElementById("fx"+i).value = Math.round(v*100)/100; });
+}
+function defineMetadadosImpressao(texto){
+  ["printMeta","printMetaHeader","comparacaoPrintMeta"].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent=texto;
+  });
 }
 function atualizaPrintMeta(){
   const d=INDS.find(i=>i.k===ind);
@@ -1097,8 +1107,7 @@ function atualizaPrintMeta(){
   const extras=[];
   if(typeof perigoLayer!=="undefined" && perigoLayer && map.hasLayer(perigoLayer)) extras.push("SGB: risco setorizado em Santa Tereza (2025), não é mancha contínua");
   if(typeof svcLayers!=="undefined" && Object.values(svcLayers).some(x=>x && x!=="carregando" && map.hasLayer(x))) extras.push("IEDE: pontos cadastrados; ausência não prova ausência");
-  const pm=document.getElementById("printMeta");
-  if(pm) pm.textContent=`PREVINE · Vulnerabilidade social · ${d?.nome||"indicador"}; ${escala === "bacia" ? "escala comparável na bacia" : "escala relativa à área"}. Fonte: ${refPrint}; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.${extras.length?` ${extras.join("; ")}.`:""}`;
+  defineMetadadosImpressao(`PREVINE · Vulnerabilidade social · ${d?.nome||"indicador"}; ${escala === "bacia" ? "escala comparável na bacia" : "escala relativa à área"}. Fonte: ${refPrint}; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.${extras.length?` ${extras.join("; ")}.`:""}`);
 }
 function totaliza(props){
   const d = INDS.find(i=>i.k===ind);
@@ -1894,7 +1903,7 @@ function geraTriagem(){
     const icm=["C","D"].includes(p.icm_faixa), alto=(valorTriagem(p)??-Infinity)>=corte;
     return criterio==="icm_cd" ? icm : criterio==="indicador_alto" ? alto : icm&&alto;
   }).sort((a,b)=>(Number(b.pop_bacia)||0)-(Number(a.pop_bacia)||0));
-  if(meta)meta.textContent=`${fmt(triagemResultado.length)} município(s) · critério: ${criterio.replaceAll("_"," ")} · indicador: ${INDS.find(i=>i.k===ind)?.nome||ind}${vals.length?` · corte do quartil superior: ${rotulo(corte)}`:""}`;
+  if(meta)meta.textContent=`${fmt(triagemResultado.length)} município(s) · critério: ${criterio.replaceAll("_"," ")} · indicador: ${INDS.find(i=>i.k===ind)?.nome||ind}${vals.length?` · corte do quartil superior: ${rotulo(corte)}`:""}${INDS.find(i=>i.k===ind)?.svc ? " · municípios sem ponto publicado ficaram fora do quartil" : ""}`;
   if(!body)return;
   body.innerHTML=triagemResultado.length ? triagemResultado.slice(0,100).map(p=>{
     const v=valorTriagem(p);
