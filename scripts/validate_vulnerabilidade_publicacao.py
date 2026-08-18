@@ -121,6 +121,19 @@ def main() -> int:
         props = feature.get("properties", {})
         assert "dens_bacia" in props, "dens_bacia municipal ausente"
         validate_recorte_e_completude(props, "municipio")
+        # No grão municipal, completude é calculada sobre todos os setores
+        # do município. Impede que uma anotação de feição (1/1) mascare o
+        # denominador real, sobretudo nos municípios de borda sem setor na
+        # bacia.
+        n_setores = int(props.get("n_setores_municipio") or 0)
+        if n_setores:
+            for campo in INDICADORES_COMPLETUDE:
+                chave = f"{campo}_n_total"
+                if chave in props:
+                    assert int(props[chave] or 0) == n_setores, (
+                        f"municipio/{props.get('cod_mun')}/{campo}: "
+                        f"n_total deve ser n_setores_municipio ({n_setores})"
+                    )
 
     for kind in ("setores", "grade"):
         files = {p.stem for p in (VULN / kind).glob("*.geojson")}

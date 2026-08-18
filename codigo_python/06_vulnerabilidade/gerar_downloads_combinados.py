@@ -656,7 +656,6 @@ def main() -> None:
             ).items() if k not in ("municipio", "cod_mun", "mun_pct_na_bacia", "mun_pop_total", "mun_pop_na_bacia")},
         }
         combinado = enriquece_recorte_municipal(combinado, setores_por_mun.get(cod, []))
-        anota_completude_unidade(combinado)
         anota_recorte(combinado, unidade="municipio")
         linhas_mun.append(combinado)
         mun_features.append(
