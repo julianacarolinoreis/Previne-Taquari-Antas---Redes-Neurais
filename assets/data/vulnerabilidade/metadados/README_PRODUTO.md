@@ -24,7 +24,7 @@ perigo hidrológico regional validada e um método de cruzamento documentado.
 |---|---|---|
 | `municipios_combinados` | 118 municípios que intersectam a bacia | Os indicadores são do município inteiro, inclusive quando somente uma parte está na bacia. Use `pct_na_bacia` e `pop_bacia` para conhecer a parcela espacial do recorte. |
 | `setores_na_bacia_combinados` | 3.283 setores cujo ponto representativo está dentro do limite adotado | É o recorte recomendado para somas “dentro da bacia”. `na_bacia=1` identifica a seleção; `area_pct_bacia` mostra a fração geométrica que cruza o limite. |
-| `setores_municipios_intersectantes_combinados` | 5.053 setores dos municípios que tocam a bacia | Inclui setores dentro e fora; filtre `na_bacia=1` para reproduzir o recorte da bacia. `area_pct_bacia` permite auditar unidades de borda. |
+| `setores_municipios_intersectantes_combinados` | 5.053 setores dos municípios que tocam a bacia, com geometria no GeoJSON/GPKG | Inclui setores dentro e fora; filtre `na_bacia=1` para reproduzir o recorte da bacia. `area_pct_bacia` permite auditar unidades de borda. |
 | `grade_200m_na_bacia` | 36.723 células de aproximadamente 200 m dentro da bacia | A grade estatística oferece visualização regular; ela não substitui o setor censitário e possui apenas população e domicílios do produto IBGE. `area_pct_bacia` registra a fração geométrica. |
 | `servicos/*` | Pontos publicados nas camadas consultadas do IEDE-RS | Cadastro parcial. Ausência de ponto significa “não localizado nesta camada”, não inexistência do equipamento. |
 | `perigo_setores_risco_sgb_santa_tereza` | 37 polígonos oficiais em Santa Tereza | Setorização de risco do SGB; não é mancha contínua de inundação nem pode ser extrapolada para os demais municípios. |
@@ -84,6 +84,12 @@ cálculo.
 10. Contagens de serviços ausentes no cadastro são `null`, com campo
     `<tipo>_status=unknown`; não são zeros observados. A cobertura por tipo está
     em `contagem_municipios.json` e no `catalogo.json`.
+11. As geometrias distribuídas para web/GIS são generalizadas para desempenho
+    (bacia ~100 m, municípios ~120 m, setores ~15 m). `na_bacia`,
+    `area_pct_bacia` e os pontos representativos publicados são os campos de
+    autoridade do recorte calculado antes da generalização; não os recalcule
+    usando apenas os polígonos simplificados. Para medições de área/topologia,
+    use o pacote de análise e registre a tolerância, CRS e versão.
 
 ## Reprodutibilidade e controle de versão
 

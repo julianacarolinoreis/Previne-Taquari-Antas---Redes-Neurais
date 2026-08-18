@@ -466,6 +466,8 @@
         <a href="assets/data/vulnerabilidade/downloads/geopackage_arcgis_qgis.zip" download>Camadas para QGIS/ArcGIS Pro · GeoPackage ZIP (campos completos)</a>
         <a href="assets/data/vulnerabilidade/downloads/setores_na_bacia_combinados.csv" download>Setores dentro da bacia · CSV</a>
         <a href="assets/data/vulnerabilidade/downloads/setores_na_bacia_combinados.geojson" download>Setores dentro da bacia · GeoJSON</a>
+        <a href="assets/data/vulnerabilidade/downloads/setores_municipios_intersectantes_combinados.csv" download>Todos os setores dos municípios intersectantes · CSV</a>
+        <a href="assets/data/vulnerabilidade/downloads/setores_municipios_intersectantes_combinados.geojson" download>Todos os setores dos municípios intersectantes · GeoJSON (auditoria de borda)</a>
         <a href="assets/data/vulnerabilidade/downloads/grade_200m_na_bacia_combinada.csv" download>Grade 200 m dentro da bacia · CSV</a>
         <span class="download-meta">A grade 200 m em GeoJSON está dentro do pacote completo ZIP.</span>
         <a href="assets/data/vulnerabilidade/downloads/municipios_combinados.csv" download>Municípios combinados · CSV</a>
@@ -495,7 +497,8 @@
       <summary>Fontes, datas e qualidade</summary>
       <ul class="provenance-list" id="provenienciaLista">
         <li>IBGE: Censo Demográfico 2022; indicadores domiciliares usam domicílios permanentes ocupados (V00001).</li>
-         <li>IEDE-RS: pontos cadastrados consultados; ausência não significa inexistência do serviço. A data de captura e a cobertura por tipo estão no catálogo.</li>
+        <li>IEDE-RS: pontos cadastrados consultados; ausência não significa inexistência do serviço. A data de captura e a cobertura por tipo estão no catálogo.</li>
+        <li><a href="assets/data/servicos/FONTES.md" target="_blank" rel="noopener">fontes e endpoints originais do IEDE-RS</a> (camadas consultadas, recorte e limitações).</li>
         <li>ICM/MIDR: indicador municipal, atualizado em 28/04/2026.</li>
         <li>SGB: setorização de risco em Santa Tereza, levantamento de 2025; não é mancha contínua.</li>
         <li>GeoJSON/GeoPackage/Shapefile: EPSG:4326; para área/distância, reprojete no QGIS/ArcGIS (por exemplo EPSG:31982).</li>
@@ -806,8 +809,12 @@ function coberturaBaciaAusente(p,d){
 }
 function rotuloPopBacia(p){
   if (Number(p?.n_setores_bacia) === 0) return "população dentro dela não estimada";
-  const v = valorBruto(p,{k:"pop"});
-  return v === null ? "população dentro dela não publicada" : `${fmt(v)} hab. dentro dela`;
+  // O rótulo é sempre da bacia, mesmo quando a visualização está em
+  // “município inteiro”; não use campoEscopo(pop), que mudaria o denominador.
+  const bruto = p?.pop_bacia;
+  const v = bruto === null || bruto === "" || bruto === undefined ? null : Number(bruto);
+  if (!Number.isFinite(v)) return "população dentro dela não publicada";
+  return `${fmt(v)} hab. dentro dela`;
 }
 function bordaSemCobertura(p){
   if (!p) return false;
@@ -896,7 +903,7 @@ function valor(p){                     // valor do indicador nas propriedades p
   if (d.svc){                          // serviços por 10 mil hab (dado é por município)
     const src = munAtual || p;         // no drill-down, setores herdam a densidade do município
     const pop = valorMunicipalBruto(src,"pop");
-    const pontos = valorBruto(src,{k:ind});
+    const pontos = valorBruto(src,d);
     return pop > 0 && pontos !== null ? pontos / pop * 10000 : NaN;
   }
   const v = valorBruto(p,d);
@@ -1073,11 +1080,19 @@ function legenda(brk, ctx){
   if(qn) qn.textContent = escala === "bacia"
     ? "Faixas congeladas no catálogo: 5 classes por quantis do recorte completo da bacia; zeros ficam em classe própria quando presentes."
     : "Faixas locais: 5 classes por quantis dos valores visíveis; zeros ficam em classe própria quando presentes. Não compare cores locais com outro mapa.";
-  const pm=document.getElementById("printMeta"); if(pm) pm.textContent=`PREVINE · Vulnerabilidade social · ${d?.nome||"indicador"}; ${escala === "bacia" ? "escala comparável na bacia" : "escala relativa à área"}. Fonte: IBGE Censo 2022; geometrias EPSG:4326.`;
+  const refPrint=d?.svc
+    ? `IEDE-RS${servicosCaptura ? ` · captura ${new Date(servicosCaptura).toLocaleDateString("pt-BR")}` : " · captura registrada no catálogo"}`
+    : d?.cat ? "MIDR/ICM · 28/04/2026" : "IBGE Censo 2022";
+  const extrasPrint=[];
+  if(typeof perigoLayer!=="undefined" && perigoLayer && map.hasLayer(perigoLayer)) extrasPrint.push("SGB: risco setorizado em Santa Tereza (2025), não é mancha contínua");
+  if(typeof svcLayers!=="undefined" && Object.values(svcLayers).some(x=>x && x!=="carregando" && map.hasLayer(x))) extrasPrint.push("IEDE: pontos cadastrados; ausência não prova ausência");
+  const pm=document.getElementById("printMeta"); if(pm) pm.textContent=`PREVINE · Vulnerabilidade social · ${d?.nome||"indicador"}; ${escala === "bacia" ? "escala comparável na bacia" : "escala relativa à área"}. Fonte: ${refPrint}; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.${extrasPrint.length?` ${extrasPrint.join("; ")}.`:""}`;
   brk.forEach((v,i)=>{ document.getElementById("fx"+i).value = Math.round(v*100)/100; });
 }
 function totaliza(props){
   const d = INDS.find(i=>i.k===ind);
+  const notaEscopoMunicipal = !munAtual && (escopo !== "bacia" || d?.svc || d?.cat)
+    ? " <small>· municípios inteiros intersectantes</small>" : "";
   const coberturas = props.map(p=>coberturaCampo(p,d)).filter(Boolean);
   const coberturaConhecida = coberturas.reduce((s,c)=>s+c.n,0);
   const coberturaTotal = coberturas.reduce((s,c)=>s+c.total,0);
@@ -1088,21 +1103,21 @@ function totaliza(props){
   if (ind === "dens"){
     const pesos = props.map(p=>({v:valorBruto(p,d),w:valorBruto(p,{k:"pop"})})).filter(x=>x.v!==null&&x.w>0);
     const den=pesos.reduce((s,x)=>s+x.w,0), num=pesos.reduce((s,x)=>s+x.v*x.w,0);
-    document.getElementById("tot").innerHTML = den>0 ? `${fmt(num/den)} <small>hab/km² · média ponderada</small>${notaSigilo}` : "—";
+    document.getElementById("tot").innerHTML = den>0 ? `${fmt(num/den)} <small>hab/km² · média ponderada</small>${notaEscopoMunicipal}${notaSigilo}` : "—";
     return;
   }
   if (d.money){                        // renda: média ponderada pelo nº de responsáveis
     let num = 0, den = 0;
     props.forEach(p=>{ const w = valorBruto(p,{k:"n_resp"}), r = valorBruto(p,d); if (w>0 && r!==null){ num += r*w; den += w; } });
     document.getElementById("tot").innerHTML =
-      den>0 ? `R$ ${fmt(num/den)} <small>· média mensal nominal do responsável</small>${notaSigilo}` : "—";
+      den>0 ? `R$ ${fmt(num/den)} <small>· média mensal nominal do responsável</small>${notaEscopoMunicipal}${notaSigilo}` : "—";
     return;
   }
   if (d.base){                           // água/esgoto: % dos domicílios permanentes ocupados
     const serv = props.reduce((s,p)=>{const v=valorBruto(p,d);return s+(v===null?0:v)},0);
     const dom  = props.reduce((s,p)=>{const v=valorBruto(p,{k:d.base});return s+(v===null?0:v)},0);
     document.getElementById("tot").innerHTML =
-      dom>0 ? `${fmt(serv/dom*100)}% <small>dos domicílios permanentes ocupados · ${fmt(serv)} de ${fmt(dom)}</small>${notaSigilo}`
+      dom>0 ? `${fmt(serv/dom*100)}% <small>dos domicílios permanentes ocupados · ${fmt(serv)} de ${fmt(dom)}</small>${notaEscopoMunicipal}${notaSigilo}`
             : "— <small><span class=\"partial-mark\" title=\"Denominador de domicílios ocupados não publicado pelo IBGE\">†</span> percentual não calculado</small>";
     return;
   }
@@ -1110,18 +1125,22 @@ function totaliza(props){
     const feats = munAtual ? [munAtual] : props;
     const conhecidos = feats.filter(p=>valorBruto(p,d)!==null);
     const pontos = conhecidos.reduce((s,p)=>s+valorBruto(p,d),0);
-    const pop = feats.reduce((s,p)=>{const v=valorMunicipalBruto(p,"pop");return s+(v===null?0:v)},0);
+    // Municípios sem ponto publicado não entram como zero nem no denominador;
+    // a taxa é explicitamente a dos municípios com cadastro conhecido.
+    const pop = conhecidos.reduce((s,p)=>{const v=valorMunicipalBruto(p,"pop");return s+(v===null?0:v)},0);
     const cobertura = conhecidos.length < feats.length ? `${fmt(conhecidos.length)} de ${fmt(feats.length)} municípios com ponto publicado` : "";
     const onde = munAtual ? `${munAtual.nome} · indicador municipal` : "municípios intersectantes";
-    document.getElementById("tot").innerHTML =
-      `${fmt(pop>0?pontos/pop*10000:0)} <small>/10 mil hab · ${fmt(pontos)} ponto(s) cadastrado(s) · ${onde}</small>`;
+    document.getElementById("tot").innerHTML = conhecidos.length
+      ? `${fmt(pop>0?pontos/pop*10000:0)} <small>/10 mil hab · ${fmt(pontos)} ponto(s) cadastrado(s) · ${onde}${cobertura ? " · base: municípios com ponto publicado" : ""}</small>${notaEscopoMunicipal}`
+      : `<span class="unknown-total">não estimado</span> <small>cadastro IEDE sem ponto publicado${munAtual ? ` · ${escHTML(munAtual.nome)}` : ""}</small>`;
     if (cobertura) document.getElementById("tot").insertAdjacentHTML("beforeend", ` <small>· cobertura: ${cobertura}</small>`);
     return;
   }
   const soma = props.reduce((s,p)=>{const v=valorBruto(p,d);return s+(v===null?0:v)},0);
   const pop  = props.reduce((s,p)=>{const v=valorBruto(p,{k:"pop"});return s+(v===null?0:v)},0);
   const pc = d.pct && pop>0 ? ` <small>(${fmt(soma/pop*100)}% da população)</small>` : "";
-  document.getElementById("tot").innerHTML = fmt(soma)+(d.un||"")+pc+notaSigilo;
+  const escopoNota = !munAtual && escopo !== "bacia" ? " <small>· municípios inteiros intersectantes</small>" : "";
+  document.getElementById("tot").innerHTML = fmt(soma)+(d.un||"")+pc+escopoNota+notaSigilo;
 }
 
 let reqSeq = 0;                        // invalida respostas atrasadas (troca rápida de município)
@@ -1137,8 +1156,11 @@ function abreMunicipio(cod){
     if (setLayer) map.removeLayer(setLayer);
     munAtual = f.properties;
     setLayer = L.geoJSON(gj, {
-      onEachFeature: (ft,l)=>l.bindPopup(()=>popup(ft.properties,
-        ft.properties.na_bacia ? "" : ` <span style="color:#8a5a12;font-size:11px">(fora do limite da bacia)</span>`), POPUP_OPTS)
+      onEachFeature: (ft,l)=>{
+        l.bindPopup(()=>popup(ft.properties,
+          ft.properties.na_bacia ? "" : ` <span style="color:#8a5a12;font-size:11px">(fora do limite da bacia)</span>`), POPUP_OPTS);
+        l.on("click", encaminhaCliqueSelecao);
+      }
     }).addTo(map);
     munLayer.setStyle({fillOpacity:.06, color:"#9ab0a2", weight:1});
     map.fitBounds(setLayer.getBounds(), {padding:[18,18]});
@@ -1277,6 +1299,8 @@ function textoEscopoDados(){
     if (INDS.find(i=>i.k===ind)?.cat) return "Escopo: ICM é municipal; a faixa não é uma medição setorial.";
     return "Escopo: valores municipais representam o município inteiro; a população dentro da bacia aparece na ficha do município.";
   }
+  if (Number(munAtual?.n_setores_bacia) === 0)
+    return "Este município intersecta a bacia, mas não tem setor com ponto representativo dentro dela; os setores exibidos são municipais e não representam população na bacia.";
   if (camada === "grade") return "Escopo: células de 200 m do município aberto; população e domicílios vêm da Grade Estatística 2022.";
   if (INDS.find(i=>i.k===ind)?.svc) return "Escopo: indicador municipal repetido apenas como contexto; não é uma medida do setor.";
   if (INDS.find(i=>i.k===ind)?.cat) return "Escopo: ICM é municipal; os setores apenas herdam a faixa do município.";
@@ -1285,7 +1309,9 @@ function textoEscopoDados(){
 function atualizaEscopoDados(){
   const el=document.getElementById("escopoDados"); if(el)el.textContent=textoEscopoDados();
   const heading=document.getElementById("totalHeading");
-  if(heading) heading.textContent=munAtual ? (camada === "grade" ? "Resumo da grade do município aberto" : "Resumo do município aberto") : "Total no escopo escolhido";
+  if(heading) heading.textContent=munAtual
+    ? (Number(munAtual.n_setores_bacia) === 0 ? "Resumo municipal · sem setor representativo na bacia" : (camada === "grade" ? "Resumo da grade do município aberto" : "Resumo do município aberto"))
+    : "Total no escopo escolhido";
   const ajuda=document.getElementById("escopoAjuda");
   const d=INDS.find(i=>i.k===ind);
   if(ajuda) ajuda.textContent = munAtual ? "Abra a bacia novamente para alternar o escopo; o drill-down mostra setores/grade do município." :
@@ -1315,7 +1341,17 @@ function resumoSelecao(){
   const soma = valoresIndicador.reduce((s,v)=>s+(v===null?0:v),0);
   let detalhe = "";
   let detalheTexto = "";
-  if (d.money){
+  if (d.cat){
+    const faixas=[...new Set(props.map(p=>p.icm_faixa).filter(Boolean))];
+    const pontos=props.map(p=>p.icm_pont).filter(v=>v!==null&&v!==undefined&&Number.isFinite(Number(v)));
+    if (faixas.length){
+      detalhe = `${faixas.join(", ")} <small>faixa(s) ICM${pontos.length ? ` · ${fmt(pontos.reduce((s,v)=>s+Number(v),0)/pontos.length)} pts média` : ""}</small>`;
+      detalheTexto = `${faixas.join(", ")} faixa(s) ICM${pontos.length ? ` · ${fmt(pontos.reduce((s,v)=>s+Number(v),0)/pontos.length)} pts média` : ""}`;
+    } else {
+      detalhe = "<small>nÃ£o estimado</small>";
+      detalheTexto = "nÃ£o estimado";
+    }
+  } else if (d.money){
     let num=0, den=0;
     props.forEach(p=>{const w=valorBruto(p,{k:"n_resp"}), r=valorBruto(p,d); if(w>0&&r!==null){num+=r*w;den+=w;}});
     if (den>0){ detalhe = `R$ ${fmt(num/den)} <small>média do responsável</small>`; detalheTexto=`R$ ${fmt(num/den)} média do responsável`; }
@@ -1375,7 +1411,7 @@ function linhaComparacao(layer, pos){
   }else if(!suprimido){
     const calculado=valor(p);
     numeric=Number.isFinite(calculado) ? calculado : null;
-    display=numeric===null ? "—" : rotulo(numeric);
+    display=numeric===null ? (d.svc && valorBruto(p,d)===null ? "sem ponto publicado" : "—") : rotulo(numeric);
   }
   const nome=p.nome || (camada === "grade" ? `Célula ${p.id_grade || p.id_grade_previne || pos+1}` : `Setor ${p.setor || "—"}`);
   const codigo=p.nome ? (p.cod_mun || "—") : (p.setor || p.id_grade || p.id_grade_previne || "—");
@@ -1439,7 +1475,7 @@ function atualizaTabelaComparacao(){
   if(meta)meta.textContent=`mostrando ${fmt(visiveis.length)} de ${fmt(rows.length)} registros encontrados`+(selectionLayers.length ? ` · ${fmt(selectionLayers.length)} na seleção` : "")+(rows.length>COMPARACAO_TAMANHO ? ` · página ${comparacaoPagina}/${paginas}` : "");
   if(impressaoTabela && meta) meta.textContent=`mostrando ${fmt(visiveis.length)} de ${fmt(rows.length)} registros filtrados para impressão`;
   const note=document.getElementById("comparacaoTableNote");
-  if(note)note.textContent=camada==="grade" ? "Grade: exibindo os 50 primeiros por página; use os controles para percorrer. Use Tab até a caixa de seleção para incluir/remover um local." : "Use Tab até a caixa de seleção para incluir/remover um local; o nome abre a ficha no mapa.";
+  if(note)note.textContent=camada==="grade" ? "Grade: exibindo os 50 primeiros por página; use os controles para percorrer. Use Tab até a caixa de seleção para incluir/remover um local. † = cobertura parcial; — = não publicado/unknown." : "Use Tab até a caixa de seleção para incluir/remover um local; o nome abre a ficha no mapa. † = cobertura parcial; — = não publicado/unknown.";
   const pager=document.getElementById("comparacaoPaginacao"), prev=document.getElementById("comparacaoAnterior"), next=document.getElementById("comparacaoProxima"), pageText=document.getElementById("comparacaoPaginaTexto");
   if(pager){pager.hidden=rows.length<=COMPARACAO_TAMANHO; if(prev)prev.disabled=comparacaoPagina<=1; if(next)next.disabled=comparacaoPagina>=paginas; if(pageText)pageText.textContent=`página ${comparacaoPagina} de ${paginas}`;}
   if(impressaoTabela && pager) pager.hidden=true;
@@ -1550,16 +1586,51 @@ function restauraSelecaoURL(){
 function fichaSelecao(){
   const vista=dadosDaSelecao(); if(!vista)return;
   const r=resumoSelecao();
+  const d=INDS.find(i=>i.k===ind) || INDS[0];
+  const props=vista.features.map(f=>f.properties||{});
   const campos=["nome","setor","cod_mun","pop","pop_bacia",ind].filter((k,i,a)=>a.indexOf(k)===i);
   const titulo=`Ficha da seleção · ${r.nome}`;
-  const cab=campos.map(c=>`<th>${escHTML(c)}</th>`).join("");
-  const trs=vista.features.map(f=>`<tr>${campos.map(c=>`<td>${escHTML(f.properties?.[c] ?? "—")}</td>`).join("")}</tr>`).join("");
+  const campoRotulo={nome:"Local",setor:"Setor censitário",cod_mun:"Código IBGE",pop:"População",pop_bacia:"População na bacia"};
+  campoRotulo[ind]=d.nome;
+  const cab=campos.map(c=>`<th>${escHTML(campoRotulo[c]||c)}</th>`).join("");
+  const fichaValor=(p,c)=>{
+    if(c===ind && d.cat) return p.icm_faixa ? `${p.icm_faixa}${p.icm_pont!=null ? ` · ${fmt(p.icm_pont)} pts` : ""}` : "—";
+    if(c===ind && d.svc){
+      const tipo=ind.replace(/^svc_/i,"");
+      const v=p[ind] ?? p[`mun_${tipo}_iede`];
+      return v===null || v===undefined || v==="" ? "sem ponto publicado" : v;
+    }
+    if(c==="pop_bacia" && Number(p.n_setores_bacia)===0) return "não estimada";
+    return p?.[c] ?? "—";
+  };
+  const trs=vista.features.map(f=>`<tr>${campos.map(c=>`<td>${escHTML(fichaValor(f.properties||{},c))}</td>`).join("")}</tr>`).join("");
+  const icm=[...new Set(props.map(p=>p.icm_faixa).filter(Boolean))].map(f=>{
+    const pts=props.find(p=>p.icm_faixa===f)?.icm_pont;
+    return `${f}${pts!=null?` · ${fmt(pts)} pts`:""}`;
+  }).join(", ") || "não disponível nesta seleção";
+  const tiposServico=[["ubs","UBS"],["hospitais","hospitais"],["escolas","escolas"],["bombeiros","bombeiros"]];
+  const svcFonte=munAtual ? [munAtual] : props;
+  const servicos=tiposServico.map(([k,nome])=>{
+    const conhecidos=svcFonte.map(p=>p[`svc_${k}`]).filter(v=>v!==null&&v!==""&&Number.isFinite(Number(v)));
+    return `${nome}: ${conhecidos.length?fmt(conhecidos.reduce((s,v)=>s+Number(v),0)):"sem ponto publicado"} (${fmt(conhecidos.length)}/${fmt(svcFonte.length)} com ponto)`;
+  }).join(" · ");
+  const referencia=d.cat?"ICM · 28/04/2026":d.svc?`IEDE-RS · captura ${servicosCaptura ? new Date(servicosCaptura).toLocaleDateString("pt-BR") : "registrada no catálogo"}`:"IBGE Censo 2022";
+  const limitacoes=[
+    `Escopo: ${textoEscopoDados()}`,
+    `Indicador: ${d.nome}; ${referencia}.`,
+    "CRS das geometrias: EPSG:4326 (WGS84); use CRS métrico para área/distância.",
+    `ICM municipal: ${icm}. IEDE: ${servicos}. Ausência de ponto não prova ausência do serviço.`,
+    "SGB é risco setorizado, somente Santa Tereza; não é uma mancha contínua nem alerta.",
+    "Nulos e ‘sem ponto publicado’ são desconhecidos; não devem ser tratados como zero."
+  ];
+  const metaLista=limitacoes.map(x=>`<li>${escHTML(x)}</li>`).join("");
   const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escHTML(titulo)}</title><style>
     body{font:14px Arial,sans-serif;color:#132019;margin:32px;max-width:1100px}h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:24px 0 6px}p{line-height:1.5;color:#4f6157}.meta{font-size:12px;color:#5c6b63;margin-bottom:18px}.resumo{border:1px solid #dfe7e1;background:#f4f8f5;border-radius:9px;padding:12px;margin:12px 0}.resumo b{color:#0f6b4a}table{border-collapse:collapse;width:100%;font-size:12px}th,td{text-align:left;padding:7px 8px;border:1px solid #dfe7e1}th{background:#eef3f1;font-size:11px;text-transform:uppercase}td{font-variant-numeric:tabular-nums}@media print{body{margin:12mm}}
   </style></head><body><h1>${escHTML(titulo)}</h1><div class="meta">PREVINE · Vulnerabilidade social — bacia Taquari-Antas · gerada em ${new Date().toLocaleString("pt-BR")}</div>
   <div class="resumo"><b>${fmt(r.count)}</b> ${escHTML(r.nome)} · <b>${escHTML(r.popLabel)}</b> habitantes<br>${escHTML(r.indicador)}: ${escHTML(r.detalheTexto||"—")}</div>
+  <h2>Proveniência, cobertura e limitações</h2><ul>${metaLista}</ul>
   <p>Esta ficha resume exatamente os elementos escolhidos no mapa atual. O arquivo espacial correspondente pode ser aberto no QGIS ou ArcGIS como GeoJSON.</p><h2>Registros selecionados</h2><table><thead><tr>${cab}</tr></thead><tbody>${trs}</tbody></table>
-  <p>Fonte: Censo IBGE 2022 e camadas públicas carregadas no dashboard. A seleção é espacial por interseção do retângulo com as geometrias exibidas.</p></body></html>`;
+  <p>A seleção é espacial por interseção do retângulo com as geometrias exibidas. Valores parciais mantêm os registros conhecidos e suas flags de cobertura; não são estimativas completas.</p></body></html>`;
   baixarBlob(new Blob([html],{type:"text/html;charset=utf-8"}),`${vista.prefixo}_ficha.html`);
   informa("Ficha HTML da seleção baixada. Abra o arquivo e use Imprimir para gerar PDF.");
 }
@@ -1612,7 +1683,7 @@ INDS.forEach(d=>{
     // ICM é categórico: 'editar faixas' não se aplica
     document.getElementById("editfx").style.display = d.cat ? "none" : "";
     if (d.cat){ document.getElementById("fxbox").hidden = true; document.getElementById("editfx").classList.remove("on"); }
-    munAtual ? pintaSetores() : pintaMunicipios();
+    repinta();
     sincronizaURL();
     informa(`Indicador ${d.nome} · ${escopoComparacao()}.`);
     if(document.getElementById("triagem")?.open) geraTriagem();
@@ -1666,7 +1737,7 @@ function sincronizaModos(){
 }
 document.querySelectorAll("#modes button").forEach(b=>{
   b.onclick = ()=>{ if (b.disabled) return; modo = b.dataset.m; sincronizaModos();
-                    munAtual ? pintaSetores() : pintaMunicipios(); sincronizaURL(); };
+                    repinta(); sincronizaURL(); };
 });
 document.querySelectorAll("#escopos button").forEach(b=>{
   b.onclick = ()=>{
@@ -1674,7 +1745,7 @@ document.querySelectorAll("#escopos button").forEach(b=>{
     escopo = b.dataset.s === "bacia" ? "bacia" : "municipio";
     atualizaEscopoDados();
     if (!INDS.find(i=>i.k===ind)?.pct && modo === "pct"){ modo="abs"; sincronizaModos(); }
-    munAtual ? pintaSetores() : pintaMunicipios();
+    repinta();
     sincronizaURL();
     informa(escopo === "bacia" ? "Escopo alterado para somente na bacia." : "Escopo alterado para município inteiro.");
     if(document.getElementById("triagem")?.open) geraTriagem();
@@ -1720,7 +1791,11 @@ opacidadeInput.oninput = ()=>{
 // editor de faixas da legenda
 const fxbox = document.getElementById("fxbox"), editfx = document.getElementById("editfx");
 editfx.onclick = ()=>{ fxbox.hidden = !fxbox.hidden; editfx.classList.toggle("on", !fxbox.hidden); };
-function repinta(){ munAtual ? pintaSetores() : pintaMunicipios(); }
+function repinta(){
+  munAtual ? pintaSetores() : pintaMunicipios();
+  // O resumo da seleção depende do indicador e do escopo atuais.
+  atualizaPainelSelecao();
+}
 document.getElementById("fxok").onclick = ()=>{
   const v = [0,1,2,3].map(i=>parseFloat(document.getElementById("fx"+i).value));
   if (v.some(x=>!isFinite(x))) return;
@@ -1911,7 +1986,13 @@ map.on("click", e=>{
 map.on("mousemove", e=>{
   if(selectionMode && selectionStart && selectionRect) selectionRect.setBounds(L.latLngBounds(selectionStart,e.latlng));
 });
+function encaminhaCliqueSelecao(e){
+  if(!selectionMode) return;
+  L.DomEvent.stop(e);
+  map.fire("click", {latlng:e.latlng, originalEvent:e.originalEvent});
+}
 map.createPane("servicos").style.zIndex = 450;   // pontos de serviços sempre acima dos polígonos
+map.createPane("bacia").style.zIndex = 460;      // limite analítico visível sobre os municípios
 map.createPane("mascara").style.zIndex = 250;    // véu abaixo dos polígonos/pontos, acima dos tiles
 map.getPane("mascara").style.pointerEvents = "none";
 const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -1947,6 +2028,8 @@ carrega("rs_contorno.geojson").then(gj=>{     // contorno do estado (gerado pelo
   L.geoJSON(gj, {style:{color:"#8a9a91", weight:1, fillColor:"#c9d4cd", fillOpacity:.5}}).addTo(inset);
 }).catch(()=>{});
 carrega("bacia.geojson").then(gj=>{           // a bacia em si, preenchida em verde
+  L.geoJSON(gj, {pane:"bacia", interactive:false,
+    style:{color:"#0c2a22", weight:2.2, dashArray:"8 5", fill:false}}).addTo(map);
   L.geoJSON(gj, {style:{color:"#0c2a22", weight:1.4, fillColor:"#155c47", fillOpacity:.9}}).addTo(inset);
 }).catch(()=>{});
 
@@ -1959,6 +2042,7 @@ carrega("municipios.geojson").then(gj=>{
       l.bindPopup(()=>popup(p,
         ` <span style="color:#5c6b63;font-size:11px">· ${fmt(p.pct_na_bacia)}% na bacia · ${escHTML(rotuloPopBacia(p))}</span>`));
       l.bindTooltip(p.nome, {permanent:true, direction:"center", className:"mun-lbl"});
+      l.on("click", encaminhaCliqueSelecao);
       l.on("dblclick", e=>{ if(selectionMode){ L.DomEvent.stop(e); return; } abreMunicipio(p.cod_mun); });
       l.on("popupopen", ()=>{
         const el = l.getPopup().getElement();
@@ -2008,7 +2092,7 @@ carrega("municipios.geojson").then(gj=>{
     servicosOk = true;
     atualizaNotaServico();
     revelaOpcionais();
-    if (!munAtual) pintaMunicipios();   // se um indicador de serviço já estiver ativo
+    if (munLayer || setLayer) repinta();
   }).catch(()=>{
     servicosOk = false;
     informa("Os cadastros IEDE não carregaram; a exportação seguirá sem essas contagens.");
