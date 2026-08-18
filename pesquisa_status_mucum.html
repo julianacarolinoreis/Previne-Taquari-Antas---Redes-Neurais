@@ -48,7 +48,7 @@
     <div class="data-grid" id="observed-sources-stats"><div class="data-stat"><b>carregando</b><span>fontes observadas</span></div></div>
     <div id="observed-sources-detail" class="small-note">Carregando versão, data e qualidade do pacote...</div>
     <p class="small-note"><strong>Limite importante:</strong> as estações de solo ficam em Bento Gonçalves, a 26–37 km de Muçum; não são um medidor no ponto da estação 86510000. O pacote não autoriza alerta nem treinamento.</p>
-    <div class="links"><a href="assets/data/research_mucum_observed_sources_latest.json">Abrir pacote observacional (JSON) &rarr;</a><a href="assets/data/research_mucum_observed_completion_latest.json">Ver o que já foi concluído e o que depende de fonte externa &rarr;</a></div>
+    <div class="links"><a href="assets/data/research_mucum_observed_sources_latest.json">Abrir pacote observacional (JSON) &rarr;</a><a href="assets/data/research_mucum_observed_completion_latest.json">Ver o que já foi concluído e o que depende de fonte externa &rarr;</a><a href="assets/data/research_mucum_historical_reconciliation_latest.json">Ver reconciliação histórica ANA × CEMADEN &rarr;</a></div>
   </section>
 </main>
 <script>
@@ -86,16 +86,19 @@
   }).catch(()=>{el('horizons').innerHTML='<div class="hz"><b>UNKNOWN</b><span>dados indisponíveis</span></div>';el('quality-answer').innerHTML='UNKNOWN: sem dados atuais confiáveis.<small>Ausência de dados não significa “não vai inundar”.</small>';el('live-short-cards').innerHTML='<div class="hz"><b>UNKNOWN</b><span>sem previsão curta</span></div>';el('live-short-meta').textContent='Feed ao vivo indisponível no momento.';});
   fetch('assets/data/research_mucum_observed_sources_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('observed sources');return r.json()}).then(s=>{
     const ana=s.ana_historical_rain||{};const rain=s.cemaden_rain_gauges||[];const soil=s.cemaden_measured_soil||{};const quality=s.quality||{};const radar=s.radar_qpe||{};
+    const historical=s.cemaden_historical_monthly_import||{};
     const stats=[
       `<div class="data-stat"><b>${fmt(ana.rows)}</b><span>registros ANA de chuva</span></div>`,
       `<div class="data-stat"><b>${rain.length}</b><span>pluviometros CEMADEN em Mucum</span></div>`,
       `<div class="data-stat"><b>${new Set((soil.stations||[]).map(x=>x.station_id)).size}</b><span>estacoes de solo regionais</span></div>`,
+      `<div class="data-stat"><b>${historical.available?fmt(historical.rows):'UNKNOWN'}</b><span>linhas CEMADEN historico mensal</span></div>`,
       `<div class="data-stat"><b>${radar.downloaded?'disponivel':'UNKNOWN'}</b><span>radar/QPE baixado</span></div>`
     ];
     el('observed-sources-stats').innerHTML=stats.join('');
     const latest=rain.map(x=>x.last_timestamp).filter(Boolean).sort().pop()||'—';
     const soilRows=(soil.stations||[]).filter(x=>x.rows>0);const depths=[...new Set(soilRows.map(x=>Number(x.depth_m)))].sort((a,b)=>a-b).map(x=>fmt(x)+' m').join(', ');
-    el('observed-sources-detail').innerHTML=`Pacote ${fmtTime(s.generated_at_utc)} · ANA ${fmtTime(ana.first_timestamp_source)}–${fmtTime(ana.last_timestamp_source)} · CEMADEN chuva ate ${latest} · solo medido em ${new Set(soilRows.map(x=>x.station_id)).size} estacoes, profundidades ${depths||'n/d'} · qualidade: ${quality.pass?'PASS':'REVISAR'} (${quality.flatline_warning_files||0} series flatline suspeitas) · radar: ${radar.downloaded?'baixado':'UNKNOWN/nao baixado'}.`;
+    const histRecon=historical.reconciliation||{};const firstDiag=(histRecon.stations||[]).map(x=>x.best_diagnostic).find(Boolean);const histText=historical.available?`historico mensal: ${fmt(historical.rows)} linhas (${fmtTime(historical.first_timestamp_utc)}–${fmtTime(historical.last_timestamp_utc)}), reconciliacao diagnostica ${firstDiag?`melhor deslocamento ${firstDiag.shift_cemaden_hours_diagnostic} h; sem aplicar offset`: 'disponivel'} · pesquisa-only`:'historico mensal: UNKNOWN';
+    el('observed-sources-detail').innerHTML=`Pacote ${fmtTime(s.generated_at_utc)} · ANA ${fmtTime(ana.first_timestamp_source)}–${fmtTime(ana.last_timestamp_source)} · CEMADEN chuva ate ${latest} · ${histText} · solo medido em ${new Set(soilRows.map(x=>x.station_id)).size} estacoes, profundidades ${depths||'n/d'} · qualidade: ${quality.pass?'PASS':'REVISAR'} (${quality.flatline_warning_files||0} series flatline suspeitas) · radar: ${radar.downloaded?'baixado':'UNKNOWN/nao baixado'}.`;
   }).catch(()=>{el('observed-sources-stats').innerHTML='<div class="data-stat"><b>UNKNOWN</b><span>pacote observacional</span></div>';el('observed-sources-detail').textContent='O pacote observacional nao esta disponivel no momento.';});
 })();
 </script>
