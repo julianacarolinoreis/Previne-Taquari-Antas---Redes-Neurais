@@ -150,6 +150,7 @@
   #triagemTable td{padding:5px;border-top:1px solid var(--line);white-space:nowrap}
   #triagemMeta{font-size:10px;color:var(--muted);margin-top:5px}
   button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #1e5fbf;outline-offset:2px;box-shadow:0 0 0 1px #fff}
+  .leaflet-marker-icon[tabindex]:focus-visible{outline:3px solid #1e5fbf;outline-offset:2px;box-shadow:0 0 0 1px #fff,0 1px 3px #0008}
   /* rótulos com o nome do município no mapa (aparecem a partir de certo zoom) */
   .leaflet-tooltip.mun-lbl{background:none;border:none;box-shadow:none;padding:0;
     color:#15241c;font-weight:700;font-size:11px;white-space:nowrap;pointer-events:none;
@@ -507,7 +508,7 @@
         <li>IBGE: Censo Demográfico 2022; indicadores domiciliares usam domicílios permanentes ocupados (V00001).</li>
         <li>IEDE-RS: pontos cadastrados consultados; ausência não significa inexistência do serviço. A data de captura e a cobertura por tipo estão no catálogo.</li>
         <li><a href="assets/data/servicos/FONTES.md" target="_blank" rel="noopener">fontes e endpoints originais do IEDE-RS</a> (camadas consultadas, recorte e limitações).</li>
-        <li>ICM/MIDR: indicador municipal, atualizado em 28/04/2026.</li>
+        <li>ICM/MIDR: indicador municipal, snapshot oficial atualizado em 13/08/2026 (base completa do ICM).</li>
         <li>SGB: setorização de risco em Santa Tereza, levantamento de 2025; não é mancha contínua.</li>
         <li>GeoJSON/GeoPackage/Shapefile: EPSG:4326; para área/distância, reprojete no QGIS/ArcGIS (por exemplo EPSG:31982).</li>
          <li><a href="assets/data/vulnerabilidade/metadados/README_PRODUTO.md" target="_blank" rel="noopener">README do produto</a> · <a href="assets/data/vulnerabilidade/metadados/DICIONARIO_CAMPOS.csv" download>dicionário de campos</a> · <a href="assets/data/vulnerabilidade/metadados/INVENTARIO_CAMADAS.csv" download>inventário de camadas</a> · <a href="assets/data/vulnerabilidade/metadados/ESTILOS_QGIS_ARCGIS.md" target="_blank" rel="noopener">estilos</a> · <a href="assets/data/vulnerabilidade/metadados/README_ESTILOS_QGIS.md" target="_blank" rel="noopener">guia QGIS/ArcGIS</a> · <a href="assets/data/vulnerabilidade/metadados/estilo_icm_municipios.qml" download>QGIS ICM</a> · <a href="assets/data/vulnerabilidade/metadados/estilo_risco_sgb.qml" download>QGIS SGB</a></li>
@@ -665,7 +666,7 @@
     </div>
     <div class="disc icm-foot">
       Fonte: <a href="https://www.gov.br/mdr/pt-br/assuntos/protecao-e-defesa-civil/icm" target="_blank" rel="noopener">
-       MIDR — Ministério da Integração e do Desenvolvimento Regional, Proteção e Defesa Civil (ICM)</a>. Dados atualizados em 28/04/2026.
+       MIDR — Ministério da Integração e do Desenvolvimento Regional, Proteção e Defesa Civil (ICM)</a>. Base completa disponibilizada em 13/08/2026.
       Município "prioritário" é aquele com maior risco/vulnerabilidade a desastres apontado pela Sedec.
     </div>
   </div>
@@ -693,7 +694,7 @@ const DATA = "assets/data/vulnerabilidade";
 // fallback: a cópia desta página no PMRR não carrega os 12 MB de dados junto —
 // quando o caminho relativo não existir, busca direto do repositório Previne
 // SHA fixo para evitar misturar a pagina publicada com o branch mutavel `main`.
-const DATA_FALLBACK_COMMIT = "362733ab61e32bcf6ebeadf1f1c205b648087bd8";
+const DATA_FALLBACK_COMMIT = "6f7a9712200cea4d4bad226bdc7dfab0efe9a041";
 const DATA_FALLBACK = `https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/${DATA_FALLBACK_COMMIT}/assets/data/vulnerabilidade`;
 const cacheJSON = new Map();
 let fallbackUsado = false;
@@ -752,10 +753,23 @@ const escHTML = v => String(v ?? "").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&
 function acessibilizaPopup(layer, rotulo){
   const el = layer?.getPopup?.()?.getElement?.();
   if (!el) return;
+  const acionador = layer?.getElement?.();
+  const veioDoTeclado = !!acionador && document.activeElement === acionador;
   el.setAttribute("role", "dialog");
   el.setAttribute("aria-label", rotulo || "Informações do mapa");
+  el.setAttribute("aria-modal", "false");
+  el.setAttribute("tabindex", "-1");
   const fechar = el.querySelector(".leaflet-popup-close-button");
   if (fechar) fechar.setAttribute("aria-label", "Fechar informações");
+  if (!layer.__previnePopupA11y) {
+    layer.on("popupclose", ()=>{
+      if (layer.__previnePopupA11yRestore) layer.getElement?.()?.focus?.({preventScroll:true});
+      layer.__previnePopupA11yRestore = false;
+    });
+    layer.__previnePopupA11y = true;
+  }
+  layer.__previnePopupA11yRestore = veioDoTeclado;
+  if (veioDoTeclado) requestAnimationFrame(()=>el.focus({preventScroll:true}));
 }
 
 const PARAMS = new URLSearchParams(location.search);
@@ -775,9 +789,14 @@ const GRADE_INDS = new Set(["pop", "dom"]);   // únicos indicadores que a grade
 let map, munLayer, setLayer = null, munData, munAtual = null, icmData = null, catalogoData = null;
 let servicosResolvidos = false, servicosOk = false, icmResolvido = false, icmOk = false;
 let servicosCaptura = "";
+let icmDataReferencia = "2026-08-13";
 let selectionMode = false, selectionStart = null, selectionRect = null, selectionLayers = [];
 
 function informa(msg){ document.getElementById("status").textContent = msg || ""; }
+function rotuloIcm(){
+  const dt = icmDataReferencia ? new Date(`${icmDataReferencia}T00:00:00`) : null;
+  return `MIDR/ICM · ${dt && !isNaN(dt) ? dt.toLocaleDateString("pt-BR") : "data não informada"}`;
+}
 function mostraErroDependencia(msg){
   const box=document.getElementById("dependenciaAviso"), txt=document.getElementById("dependenciaTexto");
   if(box && txt){txt.textContent=msg;box.hidden=false;}
@@ -1052,7 +1071,7 @@ function legendaICM(ctx){
     + `<div class="row2" role="listitem"><span class="sw sw-border"></span>geometria fora/na borda da bacia</div>`
     + `<div class="row2" role="listitem"><span class="sw sw-nodata"></span>faixa ICM sem dado publicado</div>`;
   document.getElementById("quantileNote").textContent="ICM é categórico (faixas fixas A–D do MIDR), não usa quantis. Letras, cores e traços da legenda devem ser lidos em conjunto.";
-  defineMetadadosImpressao(`PREVINE · Vulnerabilidade social · Capacidade municipal (ICM), ${ctx.replace(/^·\s*/,"")}. Fonte: MIDR/ICM; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.`);
+  defineMetadadosImpressao(`PREVINE · Vulnerabilidade social · Capacidade municipal (ICM), ${ctx.replace(/^·\s*/,"")}. Fonte: ${rotuloIcm()}; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.`);
 }
 function totalizaICM(mun){
   const tot = document.getElementById("tot");
@@ -1099,7 +1118,7 @@ function legenda(brk, ctx){
     : "Faixas locais: 5 classes por quantis dos valores visíveis; zeros ficam em classe própria quando presentes. Não compare cores locais com outro mapa.";
   const refPrint=d?.svc
     ? `IEDE-RS${servicosCaptura ? ` · captura ${new Date(servicosCaptura).toLocaleDateString("pt-BR")}` : " · captura registrada no catálogo"}`
-    : d?.cat ? "MIDR/ICM · 28/04/2026" : "IBGE Censo 2022";
+    : d?.cat ? rotuloIcm() : "IBGE Censo 2022";
   const extrasPrint=[];
   if(typeof perigoLayer!=="undefined" && perigoLayer && map.hasLayer(perigoLayer)) extrasPrint.push("SGB: risco setorizado em Santa Tereza (2025), não é mancha contínua");
   if(typeof svcLayers!=="undefined" && Object.values(svcLayers).some(x=>x && x!=="carregando" && map.hasLayer(x))) extrasPrint.push("IEDE: pontos cadastrados; ausência não prova ausência");
@@ -1115,7 +1134,7 @@ function atualizaPrintMeta(){
   const d=INDS.find(i=>i.k===ind);
   const refPrint=d?.svc
     ? `IEDE-RS${servicosCaptura ? ` · captura ${new Date(servicosCaptura).toLocaleDateString("pt-BR")}` : " · captura registrada no catálogo"}`
-    : d?.cat ? "MIDR/ICM · 28/04/2026" : "IBGE Censo 2022";
+    : d?.cat ? rotuloIcm() : "IBGE Censo 2022";
   const extras=[];
   if(typeof perigoLayer!=="undefined" && perigoLayer && map.hasLayer(perigoLayer)) extras.push("SGB: risco setorizado em Santa Tereza (2025), não é mancha contínua");
   if(typeof svcLayers!=="undefined" && Object.values(svcLayers).some(x=>x && x!=="carregando" && map.hasLayer(x))) extras.push("IEDE: pontos cadastrados; ausência não prova ausência");
@@ -1563,7 +1582,7 @@ function baixarTabelaComparacao(){
   const rows=linhasComparacaoFiltradas();
   if(!rows.length){informa("Nenhum registro para baixar na tabela.");return;}
   const d=INDS.find(i=>i.k===ind) || INDS[0];
-  const statusEscopo=escopoEfetivo(d), referencia=d.cat?"ICM 28/04/2026":d.svc?"IEDE-RS · captura no catálogo":"Censo IBGE 2022";
+  const statusEscopo=escopoEfetivo(d), referencia=d.cat?rotuloIcm():d.svc?"IEDE-RS · captura no catálogo":"Censo IBGE 2022";
   const saida=rows.map((r,i)=>({ordem:i+1,nome:r.nome,codigo:r.codigo,indicador:d.nome,valor:r.display,populacao:r.pop,status_dado:(!munAtual && statusDadoTriagem(r.p)) || (r.suprimido?"sem_dado_publicado":r.parcial?"cobertura_parcial":"publicado"),completude:r.suprimido?"não publicado":r.parcial?"parcial":"publicado",n_validos:r.p?.[`${campoEscopo(d)}_n_validos`] ?? "",n_total:r.p?.[`${campoEscopo(d)}_n_total`] ?? "",escopo:statusEscopo,unidade:d.money?"R$ por mês":d.svc?"pontos cadastrados":d.pct?(d.base?"% dos domicílios permanentes ocupados":"% da população"):(d.un||"valor"),data_referencia:referencia,selecionado:r.selecionado?"sim":"não"}));
   const cols=["ordem","nome","codigo","indicador","valor","populacao","status_dado","completude","n_validos","n_total","escopo","unidade","data_referencia","selecionado"];
   const csv=[cols.map(csvCampo).join(";")].concat(saida.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
@@ -1677,7 +1696,7 @@ function fichaSelecao(){
     const conhecidos=svcFonte.map(p=>p[`svc_${k}`]).filter(v=>v!==null&&v!==""&&Number.isFinite(Number(v)));
     return `${nome}: ${conhecidos.length?fmt(conhecidos.reduce((s,v)=>s+Number(v),0)):"sem ponto publicado"} (${fmt(conhecidos.length)}/${fmt(svcFonte.length)} com ponto)`;
   }).join(" · ");
-  const referencia=d.cat?"ICM · 28/04/2026":d.svc?`IEDE-RS · captura ${servicosCaptura ? new Date(servicosCaptura).toLocaleDateString("pt-BR") : "registrada no catálogo"}`:"IBGE Censo 2022";
+  const referencia=d.cat?rotuloIcm():d.svc?`IEDE-RS · captura ${servicosCaptura ? new Date(servicosCaptura).toLocaleDateString("pt-BR") : "registrada no catálogo"}`:"IBGE Censo 2022";
   const limitacoes=[
     `Escopo: ${textoEscopoDados()}`,
     `Indicador: ${d.nome}; ${referencia}.`,
@@ -1961,7 +1980,7 @@ document.getElementById("triagemBaixar")?.addEventListener("click",()=>{
   const d=INDS.find(i=>i.k===ind) || INDS[0];
   const criterio=document.getElementById("triagemCriterio")?.value || "icm_cd";
   const regra=criterio.replaceAll("_"," ");
-  const rows=triagemResultado.map(p=>({nome:p.nome,cod_mun:p.cod_mun,pop_bacia:p.pop_bacia,area_pct_bacia:p.area_pct_bacia,indicador:d.nome,valor:valorTriagem(p),icm:p.icm_faixa||"",status_dado:rotuloStatusDado(statusDadoTriagem(p)),completude:completudeCampo(p,d) ?? "",escopo:escopoEfetivo(d),criterio:regra,rule_version:"triagem-v1",data_referencia:d.cat?"ICM 28/04/2026":"Censo IBGE 2022",service_coverage_status:"cadastro_IEDE_parcial_nao_inventario"}));
+  const rows=triagemResultado.map(p=>({nome:p.nome,cod_mun:p.cod_mun,pop_bacia:p.pop_bacia,area_pct_bacia:p.area_pct_bacia,indicador:d.nome,valor:valorTriagem(p),icm:p.icm_faixa||"",status_dado:rotuloStatusDado(statusDadoTriagem(p)),completude:completudeCampo(p,d) ?? "",escopo:escopoEfetivo(d),criterio:regra,rule_version:"triagem-v1",data_referencia:d.cat?rotuloIcm():"Censo IBGE 2022",service_coverage_status:"cadastro_IEDE_parcial_nao_inventario"}));
   const cols=["nome","cod_mun","pop_bacia","area_pct_bacia","indicador","valor","icm","status_dado","completude","escopo","criterio","rule_version","data_referencia","service_coverage_status"];
   const csv=[cols.map(csvCampo).join(";")].concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
   baixarBlob(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}),`triagem_${slugLocal(ind)}.csv`); informa(`${fmt(rows.length)} municípios da triagem exportados.`);
@@ -2331,6 +2350,7 @@ perigoBtn.onclick = ()=>{
 // ---- ICM: Indicador de Capacidade Municipal (MIDR/Sedec) ----
 carrega("icm_municipios.json", "assets/data").then(d=>{
   icmData = d.municipios || [];
+  if (d.atualizado_em) icmDataReferencia = d.atualizado_em;
   icmOk = true;
   fundeICM();   // funde as faixas no mapa (se os municípios já carregaram)
   const ordem = {A:0, B:1, C:2, D:3};

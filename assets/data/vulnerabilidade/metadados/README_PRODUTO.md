@@ -43,8 +43,10 @@ municípios inteiros, que inclui população fora do limite da bacia.
   públicos consultados. O arquivo original e a consulta estão em
   `brutos/FONTES.md` e `assets/data/servicos/FONTES.md`.
 - **MIDR/Secretaria Nacional de Proteção e Defesa Civil — ICM**: classe e
-  pontuação municipal. A data de atualização da carga deve ser lida em
-  `assets/data/icm_municipios.json` e no `catalogo.json`.
+  pontuação municipal. Esta publicação usa a **Base Completa do ICM, atualizada
+  em 13/08/2026** (`base_completa_icm_082026.xlsx`); a data, a versão e o link
+  oficial também ficam registrados em `assets/data/icm_municipios.json` e no
+  `catalogo.json`.
 - **SGB/CPRM**: setores de risco de Santa Tereza, levantamento de campo de 2025;
   proveniência e limitações estão em `perigo/README.md`.
 
