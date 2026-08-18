@@ -694,6 +694,10 @@ def main() -> None:
     csv_set_todos = OUT / "setores_municipios_intersectantes_combinados.csv"
     gj_mun = OUT / "municipios_combinados.geojson"
     gj_set_bacia = OUT / "setores_na_bacia_combinados.geojson"
+    # Camada completa dos setores dos municípios que tocam a bacia. Ela inclui
+    # tanto na_bacia=1 quanto os setores fora do recorte e torna a auditoria de
+    # borda reproduzível no QGIS/ArcGIS (o CSV sozinho não carregava geometria).
+    gj_set_todos = OUT / "setores_municipios_intersectantes_combinados.geojson"
     csv_grade_bacia = OUT / "grade_200m_na_bacia_combinada.csv"
     gj_grade_bacia = OUT / "grade_200m_na_bacia_combinada.geojson"
     escrever_csv(csv_mun, linhas_mun, col_mun)
@@ -704,6 +708,11 @@ def main() -> None:
     gravar_json(
         gj_set_bacia,
         {"type": "FeatureCollection", "features": setores_na_bacia},
+        compacto=True,
+    )
+    gravar_json(
+        gj_set_todos,
+        {"type": "FeatureCollection", "features": setor_features},
         compacto=True,
     )
     grade_geojson_bytes = json.dumps(
@@ -721,6 +730,7 @@ def main() -> None:
     camadas_shp = {
         "municipios_combinados": mun_features,
         "setores_na_bacia_combinados": setores_na_bacia,
+        "setores_municipios_intersectantes_combinados": setor_features,
         "grade_200m_na_bacia": grade_features_bacia,
     }
     bacia_path = VULN / "bacia.geojson"
@@ -792,10 +802,11 @@ def main() -> None:
             valores = [numero(row.get(campo)) for row in validas]
             item = {"abs": quantis_mapa(valores)}
             if base_pct:
+                # Base zero não é uma proporção observada; a interface a
+                # trata como NaN e o catálogo precisa seguir a mesma regra.
                 item["pct"] = quantis_mapa([
                     numero(row.get(campo)) / numero(row.get(base_pct)) * 100
-                    if numero(row.get(base_pct)) > 0 else 0
-                    for row in validas
+                    for row in validas if numero(row.get(base_pct)) > 0
                 ])
             saida[campo] = item
         return saida
@@ -884,6 +895,11 @@ def main() -> None:
         "metodo_setor": "ponto_representativo_setor_2022_within_bacia",
         "metodo_area_unidade": "interseção geométrica da unidade/bacia em CRS EPSG:5880; publicado como area_pct_bacia",
         "metodo_area_pct": "interseção geométrica município/bacia em CRS projetado",
+        "geometrias_publicadas": (
+            "generalizadas para web/GIS: bacia ~100 m, municípios ~120 m, "
+            "setores ~15 m; na_bacia e area_pct_bacia foram calculados antes "
+            "da generalização e são os campos de autoridade"
+        ),
         "campo_area_pct": "pct_na_bacia (alias area_pct_bacia)",
         "municipios_intersectantes": len(linhas_mun),
         "municipios_parciais_area": sum(0 < numero(row.get("pct_na_bacia")) < 100 for row in linhas_mun),
@@ -985,6 +1001,11 @@ def main() -> None:
             ),
             "Risco de inundação exige cruzamento posterior com uma camada de perigo validada.",
             "A camada SGB de risco cobre somente Santa Tereza e não deve ser extrapolada para a bacia.",
+            (
+                "As geometrias distribuídas são generalizadas para desempenho "
+                "(bacia ~100 m, municípios ~120 m, setores ~15 m); não recalcule "
+                "na_bacia/area_pct_bacia apenas a partir dos polígonos publicados."
+            ),
         ],
         "arquivos": [
             "municipios_combinados.csv",
@@ -992,6 +1013,7 @@ def main() -> None:
             "setores_na_bacia_combinados.csv",
             "setores_na_bacia_combinados.geojson",
             "setores_municipios_intersectantes_combinados.csv",
+            "setores_municipios_intersectantes_combinados.geojson",
             "grade_200m_na_bacia_combinada.csv",
             "grade_200m_na_bacia_combinada.geojson (dentro do ZIP)",
             "perigo/setores_risco_sgb_santa_tereza.geojson (dentro do ZIP)",
@@ -1016,6 +1038,8 @@ O pacote contém:
 - municipios_combinados: 1 linha/feição por município que intersecta a bacia;
 - setores_na_bacia_combinados: somente setores cujo ponto representativo está na bacia;
 - setores_municipios_intersectantes_combinados: todos os setores dos municípios de borda;
+- setores_municipios_intersectantes_combinados.geojson: a mesma camada completa com geometria,
+  incluindo na_bacia=0/1 para auditar a borda no QGIS/ArcGIS;
 - grade_200m_na_bacia_combinada: células da grade estatística dentro da bacia;
 - servicos/*.geojson: pontos publicados pelo IEDE-RS, separados por tipo;
 - perigo/: setores oficiais de risco do SGB em Santa Tereza (levantamento 2025);
@@ -1065,7 +1089,7 @@ Leia catalogo.json para os testes de qualidade e advertências.
 
     zip_files: list[tuple[str, bytes]] = []
     for path in (
-        csv_mun, csv_set_bacia, csv_set_todos, gj_mun, gj_set_bacia,
+        csv_mun, csv_set_bacia, csv_set_todos, gj_mun, gj_set_bacia, gj_set_todos,
         csv_grade_bacia, catalogo_path, OUT / "LEIA-ME.txt"
     ):
         zip_files.append((path.name, path.read_bytes()))

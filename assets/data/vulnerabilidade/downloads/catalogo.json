@@ -8,7 +8,8 @@
     "Valores X suprimidos pelo IBGE são nulos e têm flag sigilo_<campo>; não são zeros.",
     "Água e esgoto usam V00001 (domicílios particulares permanentes ocupados) como denominador.",
     "Risco de inundação exige cruzamento posterior com uma camada de perigo validada.",
-    "A camada SGB de risco cobre somente Santa Tereza e não deve ser extrapolada para a bacia."
+    "A camada SGB de risco cobre somente Santa Tereza e não deve ser extrapolada para a bacia.",
+    "As geometrias distribuídas são generalizadas para desempenho (bacia ~100 m, municípios ~120 m, setores ~15 m); não recalcule na_bacia/area_pct_bacia apenas a partir dos polígonos publicados."
   ],
   "arquivos": [
     "municipios_combinados.csv",
@@ -16,6 +17,7 @@
     "setores_na_bacia_combinados.csv",
     "setores_na_bacia_combinados.geojson",
     "setores_municipios_intersectantes_combinados.csv",
+    "setores_municipios_intersectantes_combinados.geojson",
     "grade_200m_na_bacia_combinada.csv",
     "grade_200m_na_bacia_combinada.geojson (dentro do ZIP)",
     "perigo/setores_risco_sgb_santa_tereza.geojson (dentro do ZIP)",
@@ -559,10 +561,10 @@
           306.0
         ],
         "pct": [
-          0.0,
-          48.3739837398374,
-          50.62240663900415,
-          52.57352941176471
+          47.82608695652174,
+          49.848024316109424,
+          51.41388174807198,
+          53.06122448979592
         ]
       },
       "pop": {
@@ -856,6 +858,7 @@
       "servicos/escolas",
       "servicos/hospitais",
       "servicos/ubs",
+      "setores_municipios_intersectantes_combinados",
       "setores_na_bacia_combinados"
     ],
     "camadas_geopackage": {
@@ -868,14 +871,15 @@
       "servicos/escolas": "servicos_escolas",
       "servicos/hospitais": "servicos_hospitais",
       "servicos/ubs": "servicos_ubs",
+      "setores_municipios_intersectantes_combinados": "setores_municipios_intersectantes_combinados",
       "setores_na_bacia_combinados": "setores_na_bacia_combinados"
     },
     "geopackage_zip": "geopackage_arcgis_qgis.zip",
     "observacao": "Shapefile limita nomes de campos a 10 caracteres; correspondência em campos.csv. GeoPackage preserva os nomes completos dos campos.",
     "shapefile_zip": "shapefiles_arcgis_qgis.zip"
   },
-  "gerado_em_utc": "2026-08-18T11:49:00+00:00",
-  "hash_entradas_sha256": "d6c22cc694168b2519591102bb7d26d0ffcf3c6fc3e52dd9465b4f267c5ce381",
+  "gerado_em_utc": "2026-08-18T12:11:48+00:00",
+  "hash_entradas_sha256": "347de9a6f7079719a67cac2b84f9aaec8887e3f7592a13d01799b1e83b667da8",
   "qualidade": {
     "agregados_municipais_conferidos": true,
     "arquivos_grade_iguais_aos_municipios": true,
@@ -927,6 +931,7 @@
   },
   "recorte_bacia": {
     "campo_area_pct": "pct_na_bacia (alias area_pct_bacia)",
+    "geometrias_publicadas": "generalizadas para web/GIS: bacia ~100 m, municípios ~120 m, setores ~15 m; na_bacia e area_pct_bacia foram calculados antes da generalização e são os campos de autoridade",
     "metodo_area_pct": "interseção geométrica município/bacia em CRS projetado",
     "metodo_area_unidade": "interseção geométrica da unidade/bacia em CRS EPSG:5880; publicado como area_pct_bacia",
     "metodo_setor": "ponto_representativo_setor_2022_within_bacia",

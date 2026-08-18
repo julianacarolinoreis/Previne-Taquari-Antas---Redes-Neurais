@@ -147,14 +147,24 @@ def main() -> int:
                 validate_recorte_e_completude(props, f"{kind}/{code}")
                 assert 0 <= float(props["area_pct_bacia"] or 0) <= 100, f"{kind}/{code}: area_pct_bacia inválida"
 
+    catalog = read_json(DOWNLOADS / "catalogo.json")
     combined = feature_collection(DOWNLOADS / "setores_na_bacia_combinados.geojson")
     assert combined, "setores combinados vazio"
     assert all(f.get("properties", {}).get("na_bacia") == 1 for f in combined), "recorte setorial fora da bacia"
     for i, feature in enumerate(combined):
         validate_recorte_e_completude(feature.get("properties", {}), f"setores_na_bacia_combinados/{i}")
     assert all("area_pct_bacia" in f.get("properties", {}) for f in combined), "area_pct_bacia ausente no combinado"
+    # A camada completa é publicada para auditoria de borda no QGIS/ArcGIS;
+    # ela deve conter exatamente os setores dos 118 municípios intersectantes,
+    # inclusive os que ficam fora do recorte por ponto representativo.
+    combined_all = feature_collection(DOWNLOADS / "setores_municipios_intersectantes_combinados.geojson")
+    assert len(combined_all) == int(catalog.get("contagens", {}).get("setores_municipios_intersectantes", 0)), (
+        "camada completa de setores divergente do catálogo"
+    )
+    assert {f.get("properties", {}).get("na_bacia") for f in combined_all} <= {0, 1}, (
+        "setores completos sem na_bacia binário"
+    )
 
-    catalog = read_json(DOWNLOADS / "catalogo.json")
     assert catalog.get("crs_geojson") == "EPSG:4326", "CRS GeoJSON inesperado"
     assert catalog.get("contagens", {}).get("municipios") == len(codes), "catálogo municipal divergente"
     assert catalog.get("qualidade", {}).get("arquivos_setor_iguais_aos_municipios") is True
@@ -209,6 +219,10 @@ def main() -> int:
             assert math.isclose(float(stats.get("completude", -1)), validos / total, rel_tol=0, abs_tol=2e-6)
 
     gpkg_zip = DOWNLOADS / "geopackage_arcgis_qgis.zip"
+    with ZipFile(DOWNLOADS / "dados_combinados_taquari_antas.zip") as archive:
+        assert "setores_municipios_intersectantes_combinados.geojson" in archive.namelist(), (
+            "pacote combinado sem camada completa de setores"
+        )
     with ZipFile(gpkg_zip) as archive:
         gpkg_names = [name for name in archive.namelist() if name.endswith(".gpkg")]
         assert len(gpkg_names) == 1, "GeoPackage ausente ou duplicado no ZIP"
@@ -223,6 +237,9 @@ def main() -> int:
         finally:
             conn.close()
         assert layers, "GeoPackage sem camadas"
+        assert "setores_municipios_intersectantes_combinados" in layers, (
+            "GeoPackage sem camada completa de setores para auditoria de borda"
+        )
     finally:
         temp.unlink(missing_ok=True)
 
