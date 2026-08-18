@@ -149,7 +149,7 @@
   #triagemTable tbody th{padding:5px;border-top:1px solid var(--line);white-space:nowrap;text-align:left}
   #triagemTable td{padding:5px;border-top:1px solid var(--line);white-space:nowrap}
   #triagemMeta{font-size:10px;color:var(--muted);margin-top:5px}
-  button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid rgba(30,95,191,.35);outline-offset:2px}
+  button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #1e5fbf;outline-offset:2px;box-shadow:0 0 0 1px #fff}
   /* rótulos com o nome do município no mapa (aparecem a partir de certo zoom) */
   .leaflet-tooltip.mun-lbl{background:none;border:none;box-shadow:none;padding:0;
     color:#15241c;font-weight:700;font-size:11px;white-space:nowrap;pointer-events:none;
@@ -250,7 +250,7 @@
   .icm-chip{font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:999px;color:#fff;white-space:nowrap}
   .icm-chip[data-f="A"]{background:var(--icmA)}
   .icm-chip[data-f="B"]{background:var(--icmB);color:#2b2900}
-  .icm-chip[data-f="C"]{background:var(--icmC)}
+  .icm-chip[data-f="C"]{background:var(--icmC);color:#30220e}
   .icm-chip[data-f="D"]{background:var(--icmD)}
   .icm-tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;max-height:520px;overflow-y:auto}
   #icmTable{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -262,7 +262,7 @@
     border-radius:6px;padding:2px 8px;font-size:11.5px}
   .icm-badge.A{background:var(--icmA)}
   .icm-badge.B{background:var(--icmB);color:#2b2900}
-  .icm-badge.C{background:var(--icmC)}
+  .icm-badge.C{background:var(--icmC);color:#30220e}
   .icm-badge.D{background:var(--icmD)}
   .icm-prior{color:var(--brand);font-weight:700}
   .icm-foot{margin-top:14px}
@@ -287,9 +287,9 @@
   #comparacaoTable td.nome,#comparacaoTable th.nome{white-space:normal;min-width:220px}
   #comparacaoTable td.rank{color:var(--muted);width:44px;text-align:right}
   #comparacaoTable td.sel{color:var(--brand);font-weight:750}
-  .comparacao-link{border:none;background:none;padding:0;color:var(--brand);font:inherit;font-weight:700;text-align:left;cursor:pointer}
+  .comparacao-link{display:inline-flex;align-items:center;min-height:32px;border:none;background:none;padding:4px 6px;margin:-4px -6px;color:var(--brand);font:inherit;font-weight:700;text-align:left;cursor:pointer}
   .comparacao-link:hover{text-decoration:underline}
-  .comparacao-check{accent-color:var(--brand);width:15px;height:15px;vertical-align:middle}
+  .comparacao-check{accent-color:var(--brand);width:24px;height:24px;vertical-align:middle}
   #comparacaoTable td.acoes{white-space:nowrap;text-align:center}
   .comparacao-table-note{font-size:10.5px;color:var(--muted);margin:0 0 8px}
   .comparacao-pagination{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:9px;font-size:11px;color:var(--muted)}
@@ -416,10 +416,12 @@
     <div class="legend" id="leg" role="list" aria-live="polite" aria-label="Classes de cores do mapa"></div>
     <div class="quantile-note" id="quantileNote" role="note">Faixas automáticas: 5 classes por quantis; zeros ficam em classe própria quando presentes. Os cortes da escala bacia são congelados no catálogo de dados.</div>
     <div class="print-meta" id="printMeta">Fonte: IBGE Censo 2022; IEDE-RS; MIDR/ICM; SGB. Geometrias em EPSG:4326 (reprojete para medir área/distância).</div>
-    <button class="leg-btn" id="editfx">editar faixas</button>
+    <button class="leg-btn" id="editfx" aria-expanded="false" aria-controls="fxbox">editar faixas</button>
     <div id="fxbox" hidden>
-      <input type="number" step="any" id="fx0"><input type="number" step="any" id="fx1">
-      <input type="number" step="any" id="fx2"><input type="number" step="any" id="fx3">
+      <label class="sr-only" for="fx0">Primeiro limite da faixa</label><input type="number" step="any" id="fx0" aria-label="Primeiro limite da faixa">
+      <label class="sr-only" for="fx1">Segundo limite da faixa</label><input type="number" step="any" id="fx1" aria-label="Segundo limite da faixa">
+      <label class="sr-only" for="fx2">Terceiro limite da faixa</label><input type="number" step="any" id="fx2" aria-label="Terceiro limite da faixa">
+      <label class="sr-only" for="fx3">Quarto limite da faixa</label><input type="number" step="any" id="fx3" aria-label="Quarto limite da faixa">
       <div class="acts">
         <button class="leg-btn" id="fxok">aplicar</button>
         <button class="leg-btn" id="fxauto">voltar ao automático</button>
@@ -431,7 +433,7 @@
 
     <div class="q">Seleção espacial</div>
     <div class="tool-grid">
-      <button class="baixar" id="selecionarArea" type="button">▣ selecionar área</button>
+      <button class="baixar" id="selecionarArea" type="button" aria-pressed="false">▣ selecionar área</button>
       <button class="baixar" id="limparSelecao" type="button" disabled>limpar seleção</button>
     </div>
     <div class="scope-help">Alternativa por teclado: use as caixas “seleção” na tabela comparativa abaixo; o botão “somente seleção” filtra os registros marcados.</div>
@@ -747,6 +749,14 @@ const ICM_LABEL = {A:"A · alta capacidade", B:"B · média-alta", C:"C · médi
 const ICM_DASH = {A:null, B:"6 3", C:"2 3", D:"10 3"};
 const fmt = n => Number(n).toLocaleString("pt-BR", {maximumFractionDigits: n < 100 ? 1 : 0});
 const escHTML = v => String(v ?? "").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function acessibilizaPopup(layer, rotulo){
+  const el = layer?.getPopup?.()?.getElement?.();
+  if (!el) return;
+  el.setAttribute("role", "dialog");
+  el.setAttribute("aria-label", rotulo || "Informações do mapa");
+  const fechar = el.querySelector(".leaflet-popup-close-button");
+  if (fechar) fechar.setAttribute("aria-label", "Fechar informações");
+}
 
 const PARAMS = new URLSearchParams(location.search);
 let ind = INDS.some(d=>d.k===PARAMS.get("indicador")) ? PARAMS.get("indicador") : "mulheres";
@@ -1181,6 +1191,7 @@ function abreMunicipio(cod){
       onEachFeature: (ft,l)=>{
         l.bindPopup(()=>popup(ft.properties,
           ft.properties.na_bacia ? "" : ` <span style="color:#8a5a12;font-size:11px">(fora do limite da bacia)</span>`), POPUP_OPTS);
+        l.on("popupopen", ()=>acessibilizaPopup(l, `Informações do setor ${ft.properties.num_setor || ft.properties.id || "selecionado"}`));
         l.on("click", encaminhaCliqueSelecao);
       }
     }).addTo(map);
@@ -1586,7 +1597,7 @@ function limpaSelecao(){
   selectionMode=false;
   document.getElementById("map")?.classList.remove("selection-mode");
   const b=document.getElementById("selecionarArea");
-  if(b){b.classList.remove("on");b.textContent="▣ selecionar área";}
+  if(b){b.classList.remove("on");b.setAttribute("aria-pressed","false");b.textContent="▣ selecionar área";}
   if (munLayer || setLayer) repinta();
   atualizaPainelSelecao();
   sincronizaURL();
@@ -1595,6 +1606,7 @@ function atualizaBotaoSelecao(){
   const b=document.getElementById("selecionarArea");
   if(!b)return;
   b.classList.toggle("on",selectionMode);
+  b.setAttribute("aria-pressed", selectionMode ? "true" : "false");
   b.textContent=selectionMode ? "clique nos dois cantos (Esc)" : "▣ selecionar área";
 }
 function alternaSelecao(){
@@ -1733,7 +1745,7 @@ INDS.forEach(d=>{
     configuraPercentual(d, true);
     // ICM é categórico: 'editar faixas' não se aplica
     document.getElementById("editfx").style.display = d.cat ? "none" : "";
-    if (d.cat){ document.getElementById("fxbox").hidden = true; document.getElementById("editfx").classList.remove("on"); }
+    if (d.cat){ document.getElementById("fxbox").hidden = true; document.getElementById("editfx").classList.remove("on"); document.getElementById("editfx").setAttribute("aria-expanded","false"); }
     repinta();
     sincronizaURL();
     informa(`Indicador ${d.nome} · ${escopoComparacao()}.`);
@@ -1841,7 +1853,7 @@ opacidadeInput.oninput = ()=>{
 
 // editor de faixas da legenda
 const fxbox = document.getElementById("fxbox"), editfx = document.getElementById("editfx");
-editfx.onclick = ()=>{ fxbox.hidden = !fxbox.hidden; editfx.classList.toggle("on", !fxbox.hidden); };
+editfx.onclick = ()=>{ fxbox.hidden = !fxbox.hidden; editfx.classList.toggle("on", !fxbox.hidden); editfx.setAttribute("aria-expanded", fxbox.hidden ? "false" : "true"); };
 function repinta(){
   munAtual ? pintaSetores() : pintaMunicipios();
   // O resumo da seleção depende do indicador e do escopo atuais.
@@ -2057,6 +2069,11 @@ const controleCamadasToggle = controleCamadasEl?.querySelector(".leaflet-control
 if (controleCamadasToggle){
   controleCamadasToggle.setAttribute("aria-label","Camadas do mapa");
   controleCamadasToggle.setAttribute("title","Camadas");
+  controleCamadasToggle.setAttribute("aria-expanded","false");
+  controleCamadasToggle.addEventListener("click", ()=>{
+    requestAnimationFrame(()=>controleCamadasToggle.setAttribute(
+      "aria-expanded", controleCamadasEl.classList.contains("leaflet-control-layers-expanded") ? "true" : "false"));
+  });
 }
 L.control.scale({imperial:false, position:"bottomleft"}).addTo(map);
 const Norte = L.Control.extend({options:{position:"topleft"}, onAdd(){
@@ -2103,6 +2120,7 @@ carrega("municipios.geojson").then(gj=>{
       l.on("dblclick", e=>{ if(selectionMode){ L.DomEvent.stop(e); return; } abreMunicipio(p.cod_mun); });
       l.on("popupopen", ()=>{
         const el = l.getPopup().getElement();
+        acessibilizaPopup(l, `Informações de ${p.nome}`);
         if (!el || el.querySelector(".abre")) return;
         const btn = document.createElement("button");
         btn.className = "abre"; btn.textContent = "ver setores censitários →";
@@ -2228,10 +2246,13 @@ SVC.forEach(s=>{
       svcLayers[s.k] = L.geoJSON(gj, {
         pane: "servicos",
         pointToLayer: (f,ll)=>L.marker(ll, {pane:"servicos", icon:L.divIcon({className:"svc-marker-wrap",html:`<span class="svc-marker svc-${s.k}" aria-hidden="true">${s.letra}</span>`,iconSize:[22,22],iconAnchor:[11,11]})}),
-        onEachFeature: (f,l)=>l.bindPopup(
+        onEachFeature: (f,l)=>{
+          l.bindPopup(
           `<div class="pop"><b>${escHTML(f.properties.nome || s.nome)}</b><br>` +
           `<span style="font-size:11px;color:#5c6b63">${escHTML(s.nome)} · ${escHTML(f.properties.municipio || "município não informado")}</span><br>`+
-          `<small class="partial-note">ponto cadastrado no IEDE-RS; não é inventário completo</small></div>`)
+          `<small class="partial-note">ponto cadastrado no IEDE-RS; não é inventário completo</small></div>`);
+          l.on("popupopen", ()=>acessibilizaPopup(l, `Ponto cadastrado: ${f.properties.nome || s.nome}`));
+        }
       }).addTo(map);
       b.classList.add("on");
       b.dataset.erro = ""; b.setAttribute("aria-pressed", "true");
@@ -2282,6 +2303,7 @@ perigoBtn.onclick = ()=>{
           `<tr><td>Estimativa</td><td>${p.num_pess==null?"—":fmt(+p.num_pess)} pessoa(s) · ${p.num_edif==null?"—":fmt(+p.num_edif)} edificação(ões)</td></tr></table>`+
           `<small>Risco setorizado com tipologia e grau; não é mancha contínua nem cadastro de imóveis. `+
           `<a href="https://rigeo.sgb.gov.br/items/646ab86b-280b-44f3-b279-87c6f995c0a8" target="_blank" rel="noopener">fonte SGB</a>.</small></div>`);
+        l.on("popupopen", ()=>acessibilizaPopup(l, `Risco setorizado SGB: ${p.num_setor || "setor selecionado"}`));
       }
     }).addTo(map);
     perigoBtn.classList.add("on");
