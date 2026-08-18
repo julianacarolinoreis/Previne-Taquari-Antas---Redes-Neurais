@@ -31,7 +31,10 @@ jobs:
           python-version: "3.11"
 
       - name: Instalar dependências geoespaciais
-        run: pip install pandas geopandas pyogrio shapely openpyxl
+        run: >-
+          pip install --disable-pip-version-check
+          pandas==2.2.3 geopandas==1.0.1 pyogrio==0.10.0
+          shapely==2.0.6 openpyxl==3.1.5
 
       - name: Baixar dados do IBGE e limite da bacia
         env:
@@ -43,6 +46,9 @@ jobs:
 
       - name: Gerar downloads combinados e validar as junções
         run: python codigo_python/06_vulnerabilidade/gerar_downloads_combinados.py
+
+      - name: Validar contrato de publicação (dados, GIS e HTML)
+        run: python scripts/validate_vulnerabilidade_publicacao.py
 
       - name: Commitar assets/data/vulnerabilidade
         run: |

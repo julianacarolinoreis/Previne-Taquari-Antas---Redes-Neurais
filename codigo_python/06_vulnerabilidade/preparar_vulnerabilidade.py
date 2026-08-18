@@ -256,6 +256,16 @@ tab = preenche_ausentes_preservando_sigilo(tab)
 setg["setor"] = setg["setor"].astype(str)
 g = preenche_ausentes_preservando_sigilo(setg.merge(tab, on="setor", how="left"))
 
+# Fração geométrica de cada unidade que cruza a bacia. O recorte publicado
+# continua sendo definido pelo ponto representativo (na_bacia), mas esta
+# coluna permite auditar células/setores de borda no QGIS/ArcGIS.
+g_area = g.to_crs(5880)
+g_area_total = g_area.geometry.area.replace(0, pd.NA)
+g["area_pct_bacia"] = (
+    g_area.geometry.intersection(bac_m).area / g_area_total * 100
+).fillna(0).round(4).values
+g["metodo_recorte_bacia"] = "ponto_representativo_setor_2022; area_pct_geometrica"
+
 # densidade por setor (hab/km²)
 akm = g.to_crs(5880).geometry.area / 1e6
 g["dens"] = (g["pop"] / akm.replace(0, pd.NA)).round(1)
@@ -335,6 +345,44 @@ m.loc[~m["sigilo_pop_bacia"], "pop_bacia"] = (
     m.loc[~m["sigilo_pop_bacia"], "pop_bacia"].fillna(0)
 )   # soma conhecida dentro da bacia; null só se tudo estiver sob sigilo
 
+# Separe o agregado municipal inteiro do recorte dentro da bacia. A vista
+# inicial usa o polígono municipal completo, enquanto ``na_bacia`` seleciona
+# somente setores cujo ponto representativo está no limite da bacia.
+m["pop_mun"] = m["pop"]
+m["dom_mun"] = m["dom"]
+m["area_pct_bacia"] = m["pct_na_bacia"]
+m["metodo_recorte_bacia"] = "ponto_representativo_setor_2022"
+setores_bacia = g.loc[dentro].copy()
+totais_setores = g.groupby("cod_mun").size()
+totais_bacia = setores_bacia.groupby("cod_mun").size()
+m["n_setores_municipio"] = m["cod_mun"].map(totais_setores).fillna(0).astype(int)
+m["n_setores_bacia"] = m["cod_mun"].map(totais_bacia).fillna(0).astype(int)
+m_area_bacia = m.to_crs(5880).geometry.intersection(bac_m).area / 1e6
+m["dens_bacia"] = (m["pop_bacia"] / m_area_bacia.replace(0, pd.NA)).round(1)
+m["sigilo_dens_bacia"] = m["sigilo_pop_bacia"].astype(bool) | (m["n_setores_bacia"] == 0)
+m.loc[m["sigilo_dens_bacia"], "dens_bacia"] = pd.NA
+m["dens_bacia_n_validos"] = m["dens_bacia"].notna().astype(int)
+m["dens_bacia_n_total"] = 1
+m["dens_bacia_completude"] = m["dens_bacia_n_validos"].astype(float)
+
+for campo in [c for c in CAMPOS if c in g.columns]:
+    # pop_bacia já foi calculado acima com a mesma regra; os demais campos
+    # recebem um nome explícito para não serem confundidos com o total municipal.
+    if campo != "pop":
+        serie = setores_bacia.groupby("cod_mun")[campo].sum(min_count=1)
+        m[f"{campo}_bacia"] = m["cod_mun"].map(serie)
+    validos = setores_bacia.groupby("cod_mun")[campo].count()
+    m[f"{campo}_bacia_n_validos"] = m["cod_mun"].map(validos).fillna(0).astype(int)
+    m[f"{campo}_bacia_n_total"] = m["n_setores_bacia"]
+    m[f"{campo}_bacia_completude"] = (
+        m[f"{campo}_bacia_n_validos"] /
+        m[f"{campo}_bacia_n_total"].replace(0, pd.NA)
+    ).fillna(0).round(6).astype(float)
+    flag = f"sigilo_{campo}"
+    if flag in setores_bacia.columns:
+        sinais = setores_bacia.groupby("cod_mun")[flag].any()
+        m[f"sigilo_{campo}_bacia"] = m["cod_mun"].map(sinais).fillna(False).astype(bool)
+
 # renda do responsável no município = MÉDIA PONDERADA pelo nº de responsáveis
 # (renda_resp é média por setor; somar não faz sentido)
 if tem_renda:
@@ -348,6 +396,38 @@ if tem_renda:
     m.loc[~m["sigilo_renda_resp"], "renda_resp"] = (
         m.loc[~m["sigilo_renda_resp"], "renda_resp"].fillna(0)
     )
+    grb = setores_bacia[(setores_bacia["n_resp"] > 0) & setores_bacia["renda_resp"].notna()]
+    num_renda_bacia = (grb["renda_resp"] * grb["n_resp"]).groupby(grb["cod_mun"]).sum(min_count=1)
+    den_renda_bacia = grb["n_resp"].groupby(grb["cod_mun"]).sum(min_count=1)
+    m["renda_resp_bacia"] = (
+        m["cod_mun"].map(num_renda_bacia) / m["cod_mun"].map(den_renda_bacia)
+    ).round(0)
+    m["renda_resp_bacia_n_validos"] = m["cod_mun"].map(grb.groupby("cod_mun").size()).fillna(0).astype(int)
+    m["renda_resp_bacia_n_total"] = m["n_setores_bacia"]
+    m["renda_resp_bacia_completude"] = (
+        m["renda_resp_bacia_n_validos"] /
+        m["renda_resp_bacia_n_total"].replace(0, pd.NA)
+    ).fillna(0).round(6).astype(float)
+    sinais_renda = setores_bacia.groupby("cod_mun")["sigilo_renda_resp"].any()
+    if "sigilo_n_resp" in setores_bacia.columns:
+        sinais_renda = sinais_renda | setores_bacia.groupby("cod_mun")["sigilo_n_resp"].any()
+    m["sigilo_renda_resp_bacia"] = m["cod_mun"].map(sinais_renda).fillna(False).astype(bool)
+
+# As mesmas regras de subconjunto devem valer nos agregados publicados.
+def valida_agregado_subconjunto(numerador, denominador):
+    conhecidos = m[numerador].notna() & m[denominador].notna()
+    excedentes = m.loc[conhecidos & (m[numerador] > m[denominador]),
+                       ["cod_mun", numerador, denominador]]
+    assert excedentes.empty, (
+        f"{numerador} excede {denominador} em {len(excedentes)} município(s); "
+        f"amostra={excedentes.head(5).to_dict('records')}"
+    )
+
+valida_agregado_subconjunto("dom_ocupados", "dom")
+for campo in ("dom_agua", "dom_esgoto"):
+    if campo in m.columns:
+        valida_agregado_subconjunto(campo, "dom_ocupados")
+
 m["geometry"] = m.to_crs(5880).geometry.simplify(120).to_crs(4326)   # leve p/ visão geral
 m.to_file(f"{OUT}/municipios.geojson", driver="GeoJSON")
 
@@ -383,6 +463,12 @@ grd_join = grd_join[~grd_join.index.duplicated(keep="first")]   # ponto raro em 
 grd["cod_mun"] = grd_join["cod"].reindex(grd.index).values
 grd = grd[grd["cod_mun"].isin(inter["cod"].astype(str))].drop(columns="rep")   # só municípios que tocam a bacia
 grd["na_bacia"] = grd.geometry.representative_point().within(bacia).astype(int)
+grd_area = grd.to_crs(5880)
+grd_area_total = grd_area.geometry.area.replace(0, pd.NA)
+grd["area_pct_bacia"] = (
+    grd_area.geometry.intersection(bac_m).area / grd_area_total * 100
+).fillna(0).round(4).values
+grd["metodo_recorte_bacia"] = "ponto_representativo_grade_2022; area_pct_geometrica"
 
 pop_grade_bacia = float(grd.loc[grd["na_bacia"] == 1, "pop"].sum())
 print(f"[grade] {len(grd)} células (200m) com pop ou dom > 0 nos municípios da bacia; "
@@ -408,16 +494,24 @@ for pasta in ("setores", "grade"):
 
 municipios_json = m.drop(columns="geometry").astype(object)
 municipios_json = municipios_json.where(pd.notna(municipios_json), None)
-json.dump({
-    "fonte": "IBGE — Censo Demográfico 2022, Agregados por Setores Censitários",
-    "municipios": municipios_json.to_dict("records"),
-}, open(f"{OUT}/indicadores_municipios.json", "w"), ensure_ascii=False, allow_nan=False)
+with open(f"{OUT}/indicadores_municipios.json", "w", encoding="utf-8", newline="\n") as stream:
+    json.dump({
+        "fonte": "IBGE — Censo Demográfico 2022, Agregados por Setores Censitários",
+        "recorte_bacia": {
+            "metodo": "ponto_representativo_setor_2022",
+            "area_pct": "interseção geométrica do município com a bacia",
+            "campos_bacia": "somas conhecidas por setor; flags e completude acompanham cada indicador",
+        },
+        "municipios": municipios_json.to_dict("records"),
+    }, stream, ensure_ascii=False, allow_nan=False, sort_keys=True)
+    stream.write("\n")
 
 _fonte_bacia = "IEDE-RS (https://iede.rs.gov.br)"
 _fp = os.path.join(RAW, "bacia_fonte.txt")
 if os.path.exists(_fp):
     _fonte_bacia = open(_fp).read().strip()
-open(f"{OUT}/brutos/FONTES.md", "w").write(
+with open(f"{OUT}/brutos/FONTES.md", "w", encoding="utf-8", newline="\n") as fontes_stream:
+    fontes_stream.write(
 f"""# Fontes (dados completos oficiais)
 - Agregados por Setores Censitários — Censo 2022: https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/
   Temas usados: Básico (população, domicílios), Demografia (faixas etárias por sexo),

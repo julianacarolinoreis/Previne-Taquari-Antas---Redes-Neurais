@@ -13,11 +13,22 @@ O pacote contém:
 - shapefiles_arcgis_qgis.zip: camadas para ArcGIS/QGIS (EPSG:4326, UTF-8);
 - geopackage_arcgis_qgis.zip: um GeoPackage com campos completos para QGIS/ArcGIS Pro;
 - fontes/: documentação de origem.
+- metadados/: escopo, dicionário de campos, inventário de camadas, estilos e citação.
 
 Grão e junções:
 - indicadores sem prefixo são do setor ou do município indicado pelo nome do arquivo;
 - campos mun_* repetidos no setor são atributos municipais, não dados setoriais;
 - na_bacia=1 identifica o recorte setorial adotado pelo projeto;
+- nos municípios, campos sem prefixo (e aliases *_mun) são o agregado municipal inteiro;
+- pop_bacia e os campos *_bacia são o recorte dos setores cujo ponto representativo
+  está dentro do limite; *_bacia_n_validos, *_bacia_n_total e *_bacia_completude
+  mostram quanto foi publicado e n_setores_bacia mostra o denominador espacial;
+- area_pct_bacia (alias de pct_na_bacia) é a porcentagem geométrica do município
+  intersectada pela bacia; não é uma porcentagem de população. Água/esgoto
+  continuam com V00001 como denominador e devem ser lidos com a completude/flag;
+- area_pct_bacia nas camadas de setor/grade é a fração geométrica da unidade
+  que cruza o limite, calculada em EPSG:5880; na_bacia continua sendo o filtro
+  por ponto representativo usado para a soma publicada;
 - id_grade é o identificador oficial quando disponível; id_grade_previne é um
   identificador técnico derivado da geometria para os ativos legados;
 - contagens *_iede são cadastros parciais das camadas disponíveis no IEDE-RS.
@@ -34,5 +45,9 @@ Contagens verificadas nesta geração:
 - 36723 células de 200 m dentro da bacia;
 - 2420 setores com ao menos um indicador suprimido;
 - 1,328,737 habitantes no recorte setorial.
+
+O catálogo também publica a contagem de registros válidos, nulos, sob sigilo e
+o método de recorte de borda. Municípios com área na bacia e pop_bacia=0 ficam
+explicitamente listados para revisão, pois isso não prova ausência de população.
 
 Leia catalogo.json para os testes de qualidade e advertências.
