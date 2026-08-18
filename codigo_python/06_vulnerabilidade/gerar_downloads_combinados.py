@@ -20,6 +20,7 @@ import json
 import os
 import re
 import shutil
+import sqlite3
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -253,6 +254,86 @@ def gerar_shapefiles(features_por_nome: dict[str, list[dict]], destino: Path) ->
         shutil.rmtree(temp, ignore_errors=True)
 
 
+def nome_camada_gpkg(nome: str, usados: set[str]) -> str:
+    """Converte o caminho lógico da camada em um nome de layer GeoPackage."""
+    base = re.sub(r"[^A-Za-z0-9_]+", "_", nome).strip("_").lower() or "camada"
+    candidato = base
+    i = 1
+    while candidato in usados:
+        candidato = f"{base}_{i}"
+        i += 1
+    usados.add(candidato)
+    return candidato
+
+
+def gerar_geopackage(features_por_nome: dict[str, list[dict]]) -> tuple[bytes, dict[str, str]]:
+    """Gera um GeoPackage único com campos completos para QGIS e ArcGIS Pro.
+
+    O Shapefile continua sendo publicado para compatibilidade ampla, mas o
+    GeoPackage evita o limite de dez caracteres dos campos DBF. A camada
+    lógica (por exemplo, ``servicos/ubs``) é preservada em um CSV de
+    correspondência porque o GPKG usa nomes de layer sem barras.
+    """
+    temp = Path(tempfile.mkdtemp(prefix="previne_gpkg_"))
+    try:
+        gpkg = temp / "previne_vulnerabilidade.gpkg"
+        usados: set[str] = set()
+        mapa_camadas: dict[str, str] = {}
+        for nome, features in sorted(features_por_nome.items()):
+            if not features:
+                continue
+            layer = nome_camada_gpkg(nome, usados)
+            registros = []
+            for feature in features:
+                props = dict(feature.get("properties") or {})
+                # GeoPackage aceita texto, números e nulos, mas não objetos
+                # aninhados; manter listas/dicionários como JSON legível.
+                for campo, valor in list(props.items()):
+                    if isinstance(valor, (dict, list)):
+                        props[campo] = json.dumps(valor, ensure_ascii=False, separators=(",", ":"))
+                registros.append({
+                    "type": "Feature",
+                    "properties": props,
+                    "geometry": feature.get("geometry"),
+                })
+            gdf = gpd.GeoDataFrame.from_features(registros, crs="EPSG:4326")
+            gdf.to_file(gpkg, layer=layer, driver="GPKG", engine="pyogrio", index=False)
+            mapa_camadas[nome] = layer
+
+        # O driver grava o horário atual em gpkg_contents. Fixamos esse campo
+        # para que a publicação continue reproduzível quando as entradas não
+        # mudarem, como já ocorre com os demais ZIPs do pacote.
+        with sqlite3.connect(gpkg) as conn:
+            conn.execute(
+                "UPDATE gpkg_contents SET last_change = ?",
+                ("2022-01-01T00:00:00.000Z",),
+            )
+            conn.commit()
+
+        readme = (
+            "PACOTE GEOPACKAGE — PREVINE / VULNERABILIDADE\n\n"
+            "Arquivo: previne_vulnerabilidade.gpkg\n"
+            "CRS de todas as camadas: EPSG:4326 (WGS 84).\n"
+            "Os nomes originais e os nomes dos layers estão em camadas.csv.\n"
+            "O GeoPackage preserva os nomes completos dos campos, ao contrário\n"
+            "do Shapefile, que limita nomes a dez caracteres.\n"
+            "Ausência de ponto nas camadas de serviços não significa inexistência.\n"
+        ).encode("utf-8")
+        linhas = ["camada_original;layer_geopackage\n"]
+        for original, layer in sorted(mapa_camadas.items()):
+            linhas.append(f"{original};{layer}\n")
+        arquivos = [
+            ("previne_vulnerabilidade.gpkg", gpkg.read_bytes()),
+            ("README_GEOPACKAGE.txt", readme),
+            ("camadas.csv", "".join(linhas).encode("utf-8")),
+        ]
+        zip_path = temp / "geopackage_arcgis_qgis.zip"
+        zip_deterministico(zip_path, arquivos)
+        return zip_path.read_bytes(), mapa_camadas
+    finally:
+        shutil.rmtree(temp, ignore_errors=True)
+
+
 def contexto_municipal(mun: dict, serv: dict, icm: dict) -> dict:
     return {
         "municipio": mun["nome"],
@@ -473,6 +554,9 @@ def main() -> None:
     )
     shapefile_zip = OUT / "shapefiles_arcgis_qgis.zip"
     shapefile_zip.write_bytes(shapefile_zip_bytes)
+    geopackage_zip_bytes, geopackage_camadas = gerar_geopackage(camadas_shp)
+    geopackage_zip = OUT / "geopackage_arcgis_qgis.zip"
+    geopackage_zip.write_bytes(geopackage_zip_bytes)
 
     inputs = [
         Path(__file__).resolve(),
@@ -560,10 +644,16 @@ def main() -> None:
         "hash_entradas_sha256": entradas_sha,
         "crs_geojson": "EPSG:4326",
         "crs_shapefile": "EPSG:4326",
+        "crs_geopackage": "EPSG:4326",
         "formatos_gis": {
             "shapefile_zip": "shapefiles_arcgis_qgis.zip",
+            "geopackage_zip": "geopackage_arcgis_qgis.zip",
             "camadas": sorted(shapefile_campos),
-            "observacao": "Shapefile limita nomes de campos a 10 caracteres; correspondência em campos.csv.",
+            "camadas_geopackage": geopackage_camadas,
+            "observacao": (
+                "Shapefile limita nomes de campos a 10 caracteres; correspondência em campos.csv. "
+                "GeoPackage preserva os nomes completos dos campos."
+            ),
         },
         "referencia_censo": 2022,
         "contagens": {
@@ -629,6 +719,7 @@ def main() -> None:
             "grade_200m_na_bacia_combinada.geojson (dentro do ZIP)",
             "perigo/setores_risco_sgb_santa_tereza.geojson (dentro do ZIP)",
             "shapefiles_arcgis_qgis.zip",
+            "geopackage_arcgis_qgis.zip",
             "dados_combinados_taquari_antas.zip",
         ],
     }
@@ -647,6 +738,7 @@ O pacote contém:
 - servicos/*.geojson: pontos publicados pelo IEDE-RS, separados por tipo;
 - perigo/: setores oficiais de risco do SGB em Santa Tereza (levantamento 2025);
 - shapefiles_arcgis_qgis.zip: camadas para ArcGIS/QGIS (EPSG:4326, UTF-8);
+- geopackage_arcgis_qgis.zip: um GeoPackage com campos completos para QGIS/ArcGIS Pro;
 - fontes/: documentação de origem.
 
 Grão e junções:
@@ -681,6 +773,7 @@ Leia catalogo.json para os testes de qualidade e advertências.
     ):
         zip_files.append((path.name, path.read_bytes()))
     zip_files.append(("shapefiles_arcgis_qgis.zip", shapefile_zip_bytes))
+    zip_files.append(("geopackage_arcgis_qgis.zip", geopackage_zip_bytes))
     zip_files.append(("grade_200m_na_bacia_combinada.geojson", grade_geojson_bytes))
     for tipo in (*SERVICOS, "abrigos"):
         path = SERV / f"{tipo}.geojson"

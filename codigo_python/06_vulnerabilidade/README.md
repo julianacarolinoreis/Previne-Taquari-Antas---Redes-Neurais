@@ -17,6 +17,8 @@ botão **Run workflow**. Ele também roda sozinho todo dia 3 do mês.
 | `indicadores_municipios.json` | tabela para ranking/busca |
 | `brutos/*.csv` + `FONTES.md` | recorte auditável das tabelas do IBGE + URLs oficiais |
 | `downloads/dados_combinados_taquari_antas.zip` | CSV + GeoJSON combinados, catálogo, serviços e fontes |
+| `downloads/shapefiles_arcgis_qgis.zip` | camadas Shapefile compatíveis com ArcGIS/QGIS |
+| `downloads/geopackage_arcgis_qgis.zip` | um GeoPackage com campos completos para QGIS/ArcGIS Pro |
 | `perigo/setores_risco_sgb_santa_tereza.geojson` | 37 setores oficiais de risco do SGB em Santa Tereza (2025) |
 
 ## Indicadores por setor e por município
