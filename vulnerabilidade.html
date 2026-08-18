@@ -1593,7 +1593,17 @@ function fichaSelecao(){
   const campoRotulo={nome:"Local",setor:"Setor censitário",cod_mun:"Código IBGE",pop:"População",pop_bacia:"População na bacia"};
   campoRotulo[ind]=d.nome;
   const cab=campos.map(c=>`<th>${escHTML(campoRotulo[c]||c)}</th>`).join("");
-  const trs=vista.features.map(f=>`<tr>${campos.map(c=>`<td>${escHTML(f.properties?.[c] ?? "—")}</td>`).join("")}</tr>`).join("");
+  const fichaValor=(p,c)=>{
+    if(c===ind && d.cat) return p.icm_faixa ? `${p.icm_faixa}${p.icm_pont!=null ? ` · ${fmt(p.icm_pont)} pts` : ""}` : "—";
+    if(c===ind && d.svc){
+      const tipo=ind.replace(/^svc_/i,"");
+      const v=p[ind] ?? p[`mun_${tipo}_iede`];
+      return v===null || v===undefined || v==="" ? "sem ponto publicado" : v;
+    }
+    if(c==="pop_bacia" && Number(p.n_setores_bacia)===0) return "não estimada";
+    return p?.[c] ?? "—";
+  };
+  const trs=vista.features.map(f=>`<tr>${campos.map(c=>`<td>${escHTML(fichaValor(f.properties||{},c))}</td>`).join("")}</tr>`).join("");
   const icm=[...new Set(props.map(p=>p.icm_faixa).filter(Boolean))].map(f=>{
     const pts=props.find(p=>p.icm_faixa===f)?.icm_pont;
     return `${f}${pts!=null?` · ${fmt(pts)} pts`:""}`;
