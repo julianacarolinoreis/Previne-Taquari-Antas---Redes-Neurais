@@ -4,6 +4,7 @@
     "Municípios de borda aparecem por inteiro; use na_bacia=1 para o recorte setorial da bacia.",
     "Campos mun_* repetidos nos setores são contexto municipal e não medição setorial.",
     "Contagens mun_*_iede refletem pontos presentes nas camadas consultadas; ausência não prova zero serviços.",
+    "Ausência de ponto IEDE é publicada como null/unknown; não é zero observado.",
     "Valores X suprimidos pelo IBGE são nulos e têm flag sigilo_<campo>; não são zeros.",
     "Água e esgoto usam V00001 (domicílios particulares permanentes ocupados) como denominador.",
     "Risco de inundação exige cruzamento posterior com uma camada de perigo validada.",
@@ -227,26 +228,26 @@
       },
       "svc_bombeiros": {
         "abs": [
-          0.0,
-          0.1554678026180778,
-          0.4554148829583751,
-          1.4536996656490768
+          0.14227584440713656,
+          0.32873109796186717,
+          0.4742933029785619,
+          1.6597510373443982
         ]
       },
       "svc_escolas": {
         "abs": [
-          0.0,
-          9.485866059571238,
-          11.625653943034294,
-          15.64333202972233
+          8.71206621170321,
+          10.867202782003911,
+          13.344008540165467,
+          16.294810729506143
         ]
       },
       "svc_hospitais": {
         "abs": [
-          0.0,
-          0.32873109796186717,
-          0.8620689655172413,
-          1.6786973308712438
+          0.31072305254326815,
+          0.5895878780732268,
+          0.968804495252858,
+          2.1734405564007826
         ]
       },
       "svc_ubs": {
@@ -255,6 +256,174 @@
           4.782400765184122,
           5.750431282346176,
           6.946856547412295
+        ]
+      }
+    },
+    "municipio_bacia": {
+      "c0_4": {
+        "abs": [
+          59.0,
+          94.0,
+          145.0,
+          210.0
+        ],
+        "pct": [
+          4.148148148148148,
+          4.4534412955465585,
+          5.2614590058102,
+          5.59593023255814
+        ]
+      },
+      "c5_9": {
+        "abs": [
+          63.0,
+          87.0,
+          129.0,
+          214.0
+        ],
+        "pct": [
+          4.481683554169915,
+          4.720087815587267,
+          5.353682170542635,
+          5.903083700440528
+        ]
+      },
+      "dens": {
+        "abs": [
+          13.3,
+          21.2,
+          33.6,
+          65.4
+        ]
+      },
+      "dom": {
+        "abs": [
+          894.0,
+          1313.0,
+          2213.0,
+          5861.0
+        ]
+      },
+      "dom_agua": {
+        "abs": [
+          411.0,
+          608.0,
+          883.0,
+          1649.0
+        ],
+        "pct": [
+          65.02264720684448,
+          79.40503432494279,
+          85.96256684491979,
+          91.38513513513513
+        ]
+      },
+      "dom_esgoto": {
+        "abs": [
+          0.0,
+          5.0,
+          13.0,
+          324.0
+        ],
+        "pct": [
+          0.0,
+          0.544069640914037,
+          10.92436974789916,
+          16.208104052026012
+        ]
+      },
+      "dom_ocupados": {
+        "abs": [
+          573.0,
+          842.0,
+          1246.0,
+          2412.0
+        ]
+      },
+      "i60_69": {
+        "abs": [
+          210.0,
+          280.0,
+          402.0,
+          598.0
+        ],
+        "pct": [
+          12.58398924937608,
+          13.475331449684852,
+          14.777327935222672,
+          16.1231884057971
+        ]
+      },
+      "i70m": {
+        "abs": [
+          208.0,
+          287.0,
+          362.0,
+          510.0
+        ],
+        "pct": [
+          10.742040611682127,
+          12.867859203693019,
+          14.612584503380136,
+          16.417910447761194
+        ]
+      },
+      "indigenas": {
+        "abs": [
+          0.0,
+          7.0,
+          9.0,
+          21.0
+        ],
+        "pct": [
+          0.0,
+          0.20828511918537373,
+          0.2672413793103448,
+          0.6724949562878278
+        ]
+      },
+      "mulheres": {
+        "abs": [
+          763.0,
+          1083.0,
+          1575.0,
+          2975.0
+        ],
+        "pct": [
+          48.413192283758555,
+          49.25309432351686,
+          49.94124559341951,
+          50.57208237986271
+        ]
+      },
+      "pop": {
+        "abs": [
+          1796.0,
+          2912.0,
+          4413.0,
+          12294.0
+        ]
+      },
+      "pretos_pardos": {
+        "abs": [
+          43.0,
+          273.0,
+          327.0,
+          1517.0
+        ],
+        "pct": [
+          9.346114344402602,
+          16.317365269461078,
+          21.73665750308086,
+          28.57142857142857
+        ]
+      },
+      "renda_resp": {
+        "abs": [
+          2265.0,
+          2664.0,
+          3075.0,
+          3449.0
         ]
       }
     },
@@ -432,24 +601,32 @@
     "bombeiros": {
       "municipios_com_ponto": 28,
       "municipios_sem_ponto_na_camada": 90,
+      "municipios_sem_ponto_publicado": 90,
+      "municipios_total": 118,
       "pontos_publicados": 28,
       "status": "cadastro_IEDE_parcial_nao_inventario"
     },
     "escolas": {
       "municipios_com_ponto": 89,
       "municipios_sem_ponto_na_camada": 29,
+      "municipios_sem_ponto_publicado": 29,
+      "municipios_total": 118,
       "pontos_publicados": 1560,
       "status": "cadastro_IEDE_parcial_nao_inventario"
     },
     "hospitais": {
       "municipios_com_ponto": 40,
       "municipios_sem_ponto_na_camada": 78,
+      "municipios_sem_ponto_publicado": 78,
+      "municipios_total": 118,
       "pontos_publicados": 55,
       "status": "cadastro_IEDE_parcial_nao_inventario"
     },
     "ubs": {
       "municipios_com_ponto": 118,
       "municipios_sem_ponto_na_camada": 0,
+      "municipios_sem_ponto_publicado": 0,
+      "municipios_total": 118,
       "pontos_publicados": 860,
       "status": "cadastro_IEDE_parcial_nao_inventario"
     }
@@ -697,16 +874,28 @@
     "observacao": "Shapefile limita nomes de campos a 10 caracteres; correspondência em campos.csv. GeoPackage preserva os nomes completos dos campos.",
     "shapefile_zip": "shapefiles_arcgis_qgis.zip"
   },
-  "gerado_em_utc": "2026-08-18T02:48:40+00:00",
-  "hash_entradas_sha256": "a30ac890f5f5e852cadeb9e8f2ede7cd77918e2dd1108d2749b7d959242c2581",
+  "gerado_em_utc": "2026-08-18T11:03:28+00:00",
+  "hash_entradas_sha256": "28fd0d80b4ee17c927ebd14805317ea7917f9fd77499205f866548037eeb04af",
   "qualidade": {
     "agregados_municipais_conferidos": true,
     "arquivos_grade_iguais_aos_municipios": true,
     "arquivos_setor_iguais_aos_municipios": true,
+    "campos_completude_por_indicador": [
+      "<campo>_n_validos",
+      "<campo>_n_total",
+      "<campo>_completude"
+    ],
+    "campos_metodo_recorte": [
+      "area_pct_bacia",
+      "status_borda_bacia",
+      "metodo_area_bacia",
+      "metodo_na_bacia"
+    ],
     "campos_recorte_municipal": [
       "pop_mun",
       "dom_mun",
       "pop_bacia",
+      "dens_bacia",
       "area_pct_bacia",
       "n_setores_municipio",
       "n_setores_bacia",

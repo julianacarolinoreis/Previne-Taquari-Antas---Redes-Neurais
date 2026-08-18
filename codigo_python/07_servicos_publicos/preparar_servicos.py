@@ -23,6 +23,7 @@ os.makedirs(OUT, exist_ok=True)
 FAIXA_BACIA = {  # contagem plausível DENTRO da bacia — o robô recusa fora disso
     "hospitais": (20, 400), "escolas": (500, 6000), "bombeiros": (8, 200), "ubs": (150, 2500),
 }
+TIPOS = tuple(sorted(FAIXA_BACIA))
 
 mun = gpd.read_file("assets/data/vulnerabilidade/municipios.geojson")
 mun = mun.rename(columns={"nome": "mun_nome"})[["cod_mun", "mun_nome", "geometry"]]
@@ -80,11 +81,41 @@ if not fontes:
     raise SystemExit("nenhum tipo de serviço caiu na bacia — verifique as fontes")
 
 nomes = dict(zip(mun["cod_mun"].astype(str), mun["mun_nome"]))
+# A ausência de uma feição no cadastro não é uma contagem observada igual a
+# zero.  Mantemos ``None`` e um estado explícito por tipo para que consumidores
+# possam distinguir "sem ponto publicado" de "zero pontos confirmados".
+tipos_publicados = set(fontes)
+municipios_saida = []
+for cod in sorted(nomes):
+    pontos = contagem.get(cod, {})
+    registro = {"cod_mun": cod, "nome": nomes[cod]}
+    for tipo in sorted(TIPOS):
+        if tipo in pontos:
+            registro[tipo] = int(pontos[tipo])
+            registro[f"{tipo}_status"] = "published"
+        else:
+            registro[tipo] = None
+            registro[f"{tipo}_status"] = "unknown"
+    municipios_saida.append(registro)
+
+cobertura = {}
+for tipo in sorted(TIPOS):
+    valores = [r[tipo] for r in municipios_saida]
+    conhecidos = [v for v in valores if v is not None]
+    cobertura[tipo] = {
+        "municipios_total": len(municipios_saida),
+        "municipios_com_ponto": sum(v > 0 for v in conhecidos),
+        "municipios_sem_ponto_publicado": len(municipios_saida) - len(conhecidos),
+        "pontos_publicados": sum(conhecidos),
+        "status": "cadastro_IEDE_parcial_nao_inventario" if tipo in tipos_publicados else "camada_nao_publicada",
+    }
 with open(f"{OUT}/contagem_municipios.json", "w", encoding="utf-8", newline="\n") as stream:
     json.dump({
         "gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "fonte": "IEDE-RS (https://iede.rs.gov.br) — recorte: municípios da bacia Taquari-Antas",
-        "municipios": [{"cod_mun": c, "nome": nomes.get(c, "?"), **v} for c, v in sorted(contagem.items())],
+        "tipos": sorted(TIPOS),
+        "cobertura_por_tipo": cobertura,
+        "municipios": municipios_saida,
     }, stream, ensure_ascii=False)
     stream.write("\n")
 

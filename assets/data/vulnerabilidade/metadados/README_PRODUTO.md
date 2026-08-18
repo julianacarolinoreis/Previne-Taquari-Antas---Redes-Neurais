@@ -72,6 +72,18 @@ cálculo.
    cadastro devem aparecer na legenda ou no relatório.
 7. O ICM é municipal. Quando copiado para uma camada de setores ou grade, é uma
    referência do município, nunca uma classificação da unidade menor.
+8. Cada indicador publicado traz `<campo>_n_validos`, `<campo>_n_total` e
+   `<campo>_completude`. No município, o denominador do agregado inteiro é o
+   número de setores do município; no recorte `_bacia`, é `n_setores_bacia`.
+   Em setor/grade, o denominador da feição é 1. Use esses campos antes de
+   ordenar, somar ou comparar valores parcialmente conhecidos.
+9. `status_borda_bacia`, `area_pct_bacia`, `metodo_area_bacia` e
+   `metodo_na_bacia` acompanham cada unidade. `status_borda_bacia=parcial`
+   indica interseção geométrica incompleta; `na_bacia=1` continua sendo definido
+   pelo ponto representativo e não pela fração de área.
+10. Contagens de serviços ausentes no cadastro são `null`, com campo
+    `<tipo>_status=unknown`; não são zeros observados. A cobertura por tipo está
+    em `contagem_municipios.json` e no `catalogo.json`.
 
 ## Reprodutibilidade e controle de versão
 

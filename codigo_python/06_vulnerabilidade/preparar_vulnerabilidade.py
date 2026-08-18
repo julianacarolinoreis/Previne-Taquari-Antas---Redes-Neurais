@@ -75,6 +75,12 @@ COLMAP = {
 # indicadores OPCIONAIS: se as colunas não existirem, o robô avisa e segue.
 OPCIONAIS = {"pretos_pardos", "dom_agua", "dom_esgoto", "renda_resp", "n_resp"}
 
+CAMPOS_COMPLETUDE = (
+    "pop", "dom", "dom_ocupados", "mulheres", "c0_4", "c5_9", "i60_69",
+    "i70m", "indigenas", "pretos_pardos", "dom_agua", "dom_esgoto",
+    "n_resp", "renda_resp", "dens",
+)
+
 def acha_col(df, cands, tabela, papel, opcional=False):
     for c in cands:
         for v in (c, c.lower(), c.upper()):
@@ -120,6 +126,31 @@ def preenche_ausentes_preservando_sigilo(df):
         if campo in out.columns:
             sem_sigilo = ~out[flag]
             out.loc[sem_sigilo, campo] = out.loc[sem_sigilo, campo].fillna(0)
+    return out
+
+
+def anota_completude(df, campos=CAMPOS_COMPLETUDE, total=1):
+    """Anexa n_validos/n_total/completude no grão da unidade publicada."""
+    out = df.copy()
+    total_num = int(total) if total is not None else 1
+    for campo in campos:
+        if campo not in out.columns:
+            continue
+        flag = out.get(f"sigilo_{campo}", pd.Series(False, index=out.index)).fillna(False).astype(bool)
+        validos = out[campo].notna() & ~flag
+        out[f"{campo}_n_validos"] = validos.astype(int)
+        out[f"{campo}_n_total"] = total_num
+        out[f"{campo}_completude"] = validos.astype(float) if total_num == 1 else (validos.astype(int) / total_num).round(6)
+    return out
+
+
+def anota_metadados_recorte(df, unidade, pct_col="area_pct_bacia"):
+    """Torna área, borda e método do recorte explícitos em cada camada."""
+    out = df.copy()
+    pct = pd.to_numeric(out.get(pct_col), errors="coerce").fillna(0)
+    out["status_borda_bacia"] = pct.map(lambda v: "parcial" if 0 < v < 100 else "total")
+    out["metodo_area_bacia"] = "interseção geométrica em EPSG:5880"
+    out["metodo_na_bacia"] = f"ponto_representativo_{unidade}_2022_within_bacia"
     return out
 
 def slug(t):
@@ -271,11 +302,13 @@ akm = g.to_crs(5880).geometry.area / 1e6
 g["dens"] = (g["pop"] / akm.replace(0, pd.NA)).round(1)
 g["sigilo_dens"] = g["sigilo_pop"].astype(bool)
 g.loc[~g["sigilo_dens"], "dens"] = g.loc[~g["sigilo_dens"], "dens"].fillna(0)
+g = anota_completude(g)
 
 # setores DENTRO do polígono da bacia (ponto representativo) — valida a
 # delineação de verdade e diz quanto de cada município está na bacia
 dentro = g.geometry.representative_point().within(bacia)
 g["na_bacia"] = dentro.astype(int)
+g = anota_metadados_recorte(g, "setor")
 pop_dentro = float(g.loc[dentro, "pop"].sum())
 
 # campos SOMÁVEIS (base + opcionais que entraram). Renda é MÉDIA (não soma) — tratada à parte.
@@ -352,6 +385,7 @@ m["pop_mun"] = m["pop"]
 m["dom_mun"] = m["dom"]
 m["area_pct_bacia"] = m["pct_na_bacia"]
 m["metodo_recorte_bacia"] = "ponto_representativo_setor_2022"
+m = anota_metadados_recorte(m, "municipio", pct_col="area_pct_bacia")
 setores_bacia = g.loc[dentro].copy()
 totais_setores = g.groupby("cod_mun").size()
 totais_bacia = setores_bacia.groupby("cod_mun").size()
@@ -364,6 +398,22 @@ m.loc[m["sigilo_dens_bacia"], "dens_bacia"] = pd.NA
 m["dens_bacia_n_validos"] = m["dens_bacia"].notna().astype(int)
 m["dens_bacia_n_total"] = 1
 m["dens_bacia_completude"] = m["dens_bacia_n_validos"].astype(float)
+
+# Completude do agregado municipal inteiro por indicador. O denominador é o
+# número de setores do município; isso deixa explícito quando a soma é apenas
+# parcial por supressão do IBGE.
+totais_mun = g.groupby("cod_mun").size()
+for campo in CAMPOS_COMPLETUDE:
+    if campo not in g.columns:
+        continue
+    flag = g.get(f"sigilo_{campo}", pd.Series(False, index=g.index)).fillna(False).astype(bool)
+    validos = (g[campo].notna() & ~flag).groupby(g["cod_mun"]).sum()
+    m[f"{campo}_n_validos"] = m["cod_mun"].map(validos).fillna(0).astype(int)
+    m[f"{campo}_n_total"] = m["cod_mun"].map(totais_mun).fillna(0).astype(int)
+    m[f"{campo}_completude"] = (
+        m[f"{campo}_n_validos"] /
+        m[f"{campo}_n_total"].replace(0, pd.NA)
+    ).fillna(0).round(6).astype(float)
 
 for campo in [c for c in CAMPOS if c in g.columns]:
     # pop_bacia já foi calculado acima com a mesma regra; os demais campos
@@ -469,6 +519,8 @@ grd["area_pct_bacia"] = (
     grd_area.geometry.intersection(bac_m).area / grd_area_total * 100
 ).fillna(0).round(4).values
 grd["metodo_recorte_bacia"] = "ponto_representativo_grade_2022; area_pct_geometrica"
+grd = anota_completude(grd, campos=("pop", "dom"))
+grd = anota_metadados_recorte(grd, "grade")
 
 pop_grade_bacia = float(grd.loc[grd["na_bacia"] == 1, "pop"].sum())
 print(f"[grade] {len(grd)} células (200m) com pop ou dom > 0 nos municípios da bacia; "
