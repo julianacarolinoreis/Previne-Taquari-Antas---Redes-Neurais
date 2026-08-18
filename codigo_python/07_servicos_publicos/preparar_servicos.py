@@ -14,6 +14,7 @@ Usa os polígonos municipais já publicados pelo robô da vulnerabilidade
 suficiente para atribuir pontos; pontos exatamente na borda podem cair fora).
 """
 import os, re, glob, json
+from datetime import datetime, timezone
 import geopandas as gpd
 
 RAW, OUT = "_servicos_raw", "assets/data/servicos"
@@ -79,12 +80,16 @@ if not fontes:
     raise SystemExit("nenhum tipo de serviço caiu na bacia — verifique as fontes")
 
 nomes = dict(zip(mun["cod_mun"].astype(str), mun["mun_nome"]))
-json.dump({
-    "fonte": "IEDE-RS (https://iede.rs.gov.br) — recorte: municípios da bacia Taquari-Antas",
-    "municipios": [{"cod_mun": c, "nome": nomes.get(c, "?"), **v} for c, v in sorted(contagem.items())],
-}, open(f"{OUT}/contagem_municipios.json", "w"), ensure_ascii=False)
+with open(f"{OUT}/contagem_municipios.json", "w", encoding="utf-8", newline="\n") as stream:
+    json.dump({
+        "gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "fonte": "IEDE-RS (https://iede.rs.gov.br) — recorte: municípios da bacia Taquari-Antas",
+        "municipios": [{"cod_mun": c, "nome": nomes.get(c, "?"), **v} for c, v in sorted(contagem.items())],
+    }, stream, ensure_ascii=False)
+    stream.write("\n")
 
-open(f"{OUT}/FONTES.md", "w").write(
+with open(f"{OUT}/FONTES.md", "w", encoding="utf-8", newline="\n") as fontes_stream:
+    fontes_stream.write(
     "# Fontes — pontos de serviços publicados no IEDE-RS\n"
     + "".join(f"- {t}: {u}\n" for t, u in sorted(fontes.items()))
     + "Recorte: pontos dentro dos municípios que intersectam a bacia Taquari-Antas\n"

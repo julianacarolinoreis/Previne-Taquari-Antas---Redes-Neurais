@@ -22,6 +22,7 @@ import re
 import shutil
 import sqlite3
 import tempfile
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
@@ -92,6 +93,89 @@ def numero(value):
 
 def inteiro(value) -> int:
     return int(round(numero(value)))
+
+
+def conhecido(props: dict, campo: str) -> bool:
+    """True quando o campo tem valor publicado e nÃ£o estÃ¡ sob sigilo."""
+    return props.get(campo) not in (None, "") and not bool(props.get(f"sigilo_{campo}"))
+
+
+def enriquece_recorte_municipal(props: dict, setores: list[dict]) -> dict:
+    """Adiciona aliases e somas do recorte dentro da bacia ao municÃ­pio.
+
+    Os campos sem prefixo continuam sendo o agregado municipal inteiro. Os
+    campos ``*_bacia`` sÃ£o somas/mÃ©dias apenas dos setores com ponto
+    representativo dentro da bacia; cada um traz contagem de registros vÃ¡lidos,
+    total de setores e completude. A rotina Ã© idempotente e tambÃ©m permite
+    regenerar os downloads a partir de um pacote legado.
+    """
+    todos = list(setores)
+    dentro = [p for p in todos if inteiro(p.get("na_bacia")) == 1]
+    props.setdefault("pop_mun", props.get("pop"))
+    props.setdefault("dom_mun", props.get("dom"))
+    props.setdefault("area_pct_bacia", props.get("pct_na_bacia"))
+    props.setdefault("metodo_recorte_bacia", "ponto_representativo_setor_2022")
+    props["n_setores_municipio"] = len(todos)
+    props["n_setores_bacia"] = len(dentro)
+
+    # Densidade no recorte: a geração principal calcula a área exata em
+    # EPSG:5880; este fallback conserva compatibilidade com ativos legados,
+    # estimando a Ã¡rea intersectada a partir da densidade municipal e de
+    # area_pct_bacia. Sem setor representativo, nÃ£o publica zero fictÃ­cio.
+    if props.get("dens_bacia") in (None, ""):
+        pop_bacia = numero(props.get("pop_bacia"))
+        dens_mun = numero(props.get("dens"))
+        pop_mun = numero(props.get("pop"))
+        area_pct = numero(props.get("area_pct_bacia"))
+        if len(dentro) and not bool(props.get("sigilo_pop_bacia")) and pop_bacia is not None and dens_mun > 0 and pop_mun > 0 and area_pct > 0:
+            area_intersectada = (pop_mun / dens_mun) * area_pct / 100.0
+            props["dens_bacia"] = round(pop_bacia / area_intersectada, 1) if area_intersectada > 0 else None
+        else:
+            props["dens_bacia"] = None
+    props["sigilo_dens_bacia"] = (
+        bool(props.get("sigilo_dens_bacia"))
+        or bool(props.get("sigilo_pop_bacia"))
+        or not len(dentro)
+    )
+    props["dens_bacia_n_validos"] = 1 if props.get("dens_bacia") is not None else 0
+    props["dens_bacia_n_total"] = 1
+    props["dens_bacia_completude"] = 1.0 if props.get("dens_bacia") is not None else 0.0
+
+    for campo in SOMAVEIS:
+        valores = [p.get(campo) for p in dentro if conhecido(p, campo)]
+        if campo == "pop":
+            # MantÃ©m a convenÃ§Ã£o histÃ³rica: sem setor dentro, pop_bacia=0;
+            # se todos os setores existentes estÃ£o sob X, a flag preserva isso.
+            props["pop_bacia"] = sum(numero(v) for v in valores) if valores else 0
+        else:
+            props[f"{campo}_bacia"] = sum(numero(v) for v in valores) if valores else None
+        validos = len(valores)
+        props[f"{campo}_bacia_n_validos"] = validos
+        props[f"{campo}_bacia_n_total"] = len(dentro)
+        props[f"{campo}_bacia_completude"] = round(validos / len(dentro), 6) if dentro else 0.0
+        flag = f"sigilo_{campo}"
+        if any(bool(p.get(flag)) for p in dentro):
+            props[f"sigilo_{campo}_bacia"] = True
+        else:
+            props[f"sigilo_{campo}_bacia"] = False
+
+    if "renda_resp" in {k for p in todos for k in p}:
+        ponderados = [
+            p for p in dentro
+            if conhecido(p, "renda_resp") and conhecido(p, "n_resp") and numero(p.get("n_resp")) > 0
+        ]
+        den = sum(numero(p.get("n_resp")) for p in ponderados)
+        props["renda_resp_bacia"] = (
+            round(sum(numero(p.get("renda_resp")) * numero(p.get("n_resp")) for p in ponderados) / den, 0)
+            if den else None
+        )
+        props["renda_resp_bacia_n_validos"] = len(ponderados)
+        props["renda_resp_bacia_n_total"] = len(dentro)
+        props["renda_resp_bacia_completude"] = round(len(ponderados) / len(dentro), 6) if dentro else 0.0
+        props["sigilo_renda_resp_bacia"] = any(
+            bool(p.get("sigilo_renda_resp")) or bool(p.get("sigilo_n_resp")) for p in dentro
+        )
+    return props
 
 
 def padrao_sigilo_legado(props: dict) -> bool:
@@ -465,9 +549,38 @@ def main() -> None:
     setores_na_bacia = [
         feature for feature in setor_features if inteiro(feature["properties"].get("na_bacia")) == 1
     ]
+
+    def valida_subconjunto_linhas(rows: list[dict], numerador: str, denominador: str, escopo: str) -> int:
+        excedentes = [
+            {"setor": row.get("setor"), numerador: row.get(numerador), denominador: row.get(denominador)}
+            for row in rows
+            if row.get(numerador) is not None and row.get(denominador) is not None
+            and numero(row.get(numerador)) > numero(row.get(denominador))
+        ]
+        if excedentes:
+            raise RuntimeError(
+                f"{numerador} excede {denominador} em {len(excedentes)} registro(s) ({escopo}); "
+                f"amostra={excedentes[:5]}"
+            )
+        return 0
+
+    for escopo, rows in (("setores_municipios_intersectantes", setor_features), ("setores_na_bacia", setores_na_bacia)):
+        valida_subconjunto_linhas([f["properties"] for f in rows], "dom_ocupados", "dom", escopo)
+        for campo in ("dom_agua", "dom_esgoto"):
+            valida_subconjunto_linhas([f["properties"] for f in rows], campo, "dom_ocupados", escopo)
+    for feature in setor_features:
+        props = feature["properties"]
+        for campo in CAMPOS_SUJEITOS_A_SIGILO:
+            if bool(props.get(f"sigilo_{campo}")) and props.get(campo) is not None:
+                raise RuntimeError(f"{campo}: valor publicado junto com sigilo no setor {props.get('setor')}")
+
     linhas_setores = [feature["properties"] for feature in setor_features]
     linhas_setores_bacia = [feature["properties"] for feature in setores_na_bacia]
     col_setores = list(linhas_setores[0])
+
+    setores_por_mun: dict[str, list[dict]] = defaultdict(list)
+    for feature in setor_features:
+        setores_por_mun[str(feature["properties"].get("cod_mun"))].append(feature["properties"])
 
     mun_features: list[dict] = []
     linhas_mun: list[dict] = []
@@ -479,11 +592,15 @@ def main() -> None:
                 mun_por_cod[cod], serv_por_cod.get(cod, {}), icm_por_cod[cod]
             ).items() if k not in ("municipio", "cod_mun", "mun_pct_na_bacia", "mun_pop_total", "mun_pop_na_bacia")},
         }
+        combinado = enriquece_recorte_municipal(combinado, setores_por_mun.get(cod, []))
         linhas_mun.append(combinado)
         mun_features.append(
             {"type": "Feature", "properties": combinado, "geometry": feature.get("geometry")}
         )
     col_mun = list(linhas_mun[0])
+    valida_subconjunto_linhas(linhas_mun, "dom_ocupados", "dom", "municipios")
+    for campo in ("dom_agua", "dom_esgoto"):
+        valida_subconjunto_linhas(linhas_mun, campo, "dom_ocupados", "municipios")
 
     grade_features_bacia: list[dict] = []
     linhas_grade_bacia: list[dict] = []
@@ -572,6 +689,7 @@ def main() -> None:
         *([SERV / "abrigos.geojson"] if (SERV / "abrigos.geojson").exists() else []),
         *sorted((VULN / "perigo").glob("*.geojson")),
         *([VULN / "perigo" / "README.md"] if (VULN / "perigo" / "README.md").exists() else []),
+        *[p for p in sorted((VULN / "metadados").glob("*")) if p.is_file()],
     ]
     entradas_sha = hash_entradas(inputs)
     antigo = {}
@@ -611,6 +729,24 @@ def main() -> None:
             saida[campo] = item
         return saida
 
+    def perfil_completude(rows: list[dict], campos: list[str]) -> dict:
+        """Perfil estÃ¡vel de validade/sigilo para o catÃ¡logo e auditorias."""
+        total = len(rows)
+        saida = {}
+        for campo in campos:
+            flag = f"sigilo_{campo}"
+            validos = sum(1 for row in rows if conhecido(row, campo))
+            sigilos = sum(1 for row in rows if bool(row.get(flag)))
+            nulos = sum(1 for row in rows if row.get(campo) in (None, ""))
+            saida[campo] = {
+                "registros_total": total,
+                "registros_validos": validos,
+                "registros_sigilo": sigilos,
+                "registros_nulos": nulos,
+                "completude": round(validos / total, 6) if total else 0.0,
+            }
+        return saida
+
     tem_dom_ocupados = any("dom_ocupados" in row for row in linhas_mun)
     campos_sociais = [
         ("mulheres", "pop"), ("c0_4", "pop"), ("c5_9", "pop"),
@@ -637,8 +773,33 @@ def main() -> None:
     classes_setores = classificacoes(linhas_setores_bacia, campos_sociais)
     classes_grade = classificacoes(linhas_grade_bacia, [("pop", None), ("dom", None)])
 
+    campos_completude = [
+        campo for campo in (*SOMAVEIS, "renda_resp")
+        if any(campo in row for row in linhas_setores_bacia)
+    ]
+    completude_setores_bacia = perfil_completude(linhas_setores_bacia, campos_completude)
+    completude_municipios = perfil_completude(linhas_mun, campos_completude)
+    validacoes_denominadores = {
+        "dom_ocupados_le_dom": {"setores": 0, "setores_na_bacia": 0, "municipios": 0},
+        "dom_agua_le_dom_ocupados": {"setores": 0, "setores_na_bacia": 0, "municipios": 0},
+        "dom_esgoto_le_dom_ocupados": {"setores": 0, "setores_na_bacia": 0, "municipios": 0},
+    }
+    recorte_borda = {
+        "metodo_setor": "ponto_representativo_setor_2022_within_bacia",
+        "metodo_area_unidade": "interseção geométrica da unidade/bacia em CRS EPSG:5880; publicado como area_pct_bacia",
+        "metodo_area_pct": "interseção geométrica município/bacia em CRS projetado",
+        "campo_area_pct": "pct_na_bacia (alias area_pct_bacia)",
+        "municipios_intersectantes": len(linhas_mun),
+        "municipios_parciais_area": sum(0 < numero(row.get("pct_na_bacia")) < 100 for row in linhas_mun),
+        "municipios_area_pct_com_pop_bacia_zero": [
+            {"cod_mun": row.get("cod_mun"), "nome": row.get("nome"), "area_pct_bacia": row.get("pct_na_bacia")}
+            for row in linhas_mun
+            if numero(row.get("pct_na_bacia")) > 0 and numero(row.get("pop_bacia")) == 0
+        ],
+    }
+
     catalogo = {
-        "schema_versao": 2,
+        "schema_versao": 3,
         "titulo": "Dados combinados de vulnerabilidade — bacia Taquari-Antas",
         "gerado_em_utc": gerado_em,
         "hash_entradas_sha256": entradas_sha,
@@ -656,6 +817,7 @@ def main() -> None:
             ),
         },
         "referencia_censo": 2022,
+        "recorte_bacia": recorte_borda,
         "contagens": {
             "municipios": len(municipios),
             "setores_municipios_intersectantes": len(setor_features),
@@ -667,6 +829,11 @@ def main() -> None:
             ),
         },
         "cobertura_servicos": cobertura_servicos,
+        "completude": {
+            "setores_na_bacia": completude_setores_bacia,
+            "municipios_agregados": completude_municipios,
+            "nota": "validos excluem valores nulos e registros com sigilo_<campo>=1; somas *_bacia sÃ£o conhecidas quando hÃ¡ ao menos um setor vÃ¡lido",
+        },
         "camadas_perigo": {
             "sgb_santa_tereza_2025": {
                 "feicoes": 37,
@@ -694,6 +861,12 @@ def main() -> None:
                 if tem_dom_ocupados else
                 "bloqueados_ate_publicar_denominador_oficial_V00001"
             ),
+            "validacoes_denominadores": validacoes_denominadores,
+            "campos_recorte_municipal": [
+                "pop_mun", "dom_mun", "pop_bacia", "dens_bacia", "area_pct_bacia",
+                "n_setores_municipio", "n_setores_bacia", "metodo_recorte_bacia",
+            ],
+            "recorte_area_unidade": "area_pct_bacia publicado em setores e grade; EPSG:5880; na_bacia segue ponto representativo",
         },
         "advertencias": [
             "Censo 2022 é um retrato, não dado em tempo real.",
@@ -721,6 +894,11 @@ def main() -> None:
             "shapefiles_arcgis_qgis.zip",
             "geopackage_arcgis_qgis.zip",
             "dados_combinados_taquari_antas.zip",
+            *[
+                f"metadados/{p.name}"
+                for p in sorted((VULN / "metadados").glob("*"))
+                if p.is_file()
+            ],
         ],
     }
     gravar_json(catalogo_path, catalogo)
@@ -740,11 +918,22 @@ O pacote contém:
 - shapefiles_arcgis_qgis.zip: camadas para ArcGIS/QGIS (EPSG:4326, UTF-8);
 - geopackage_arcgis_qgis.zip: um GeoPackage com campos completos para QGIS/ArcGIS Pro;
 - fontes/: documentação de origem.
+- metadados/: escopo, dicionário de campos, inventário de camadas, estilos e citação.
 
 Grão e junções:
 - indicadores sem prefixo são do setor ou do município indicado pelo nome do arquivo;
 - campos mun_* repetidos no setor são atributos municipais, não dados setoriais;
 - na_bacia=1 identifica o recorte setorial adotado pelo projeto;
+- nos municípios, campos sem prefixo (e aliases *_mun) são o agregado municipal inteiro;
+- pop_bacia e os campos *_bacia são o recorte dos setores cujo ponto representativo
+  está dentro do limite; *_bacia_n_validos, *_bacia_n_total e *_bacia_completude
+  mostram quanto foi publicado e n_setores_bacia mostra o denominador espacial;
+- area_pct_bacia (alias de pct_na_bacia) é a porcentagem geométrica do município
+  intersectada pela bacia; não é uma porcentagem de população. Água/esgoto
+  continuam com V00001 como denominador e devem ser lidos com a completude/flag;
+- area_pct_bacia nas camadas de setor/grade é a fração geométrica da unidade
+  que cruza o limite, calculada em EPSG:5880; na_bacia continua sendo o filtro
+  por ponto representativo usado para a soma publicada;
 - id_grade é o identificador oficial quando disponível; id_grade_previne é um
   identificador técnico derivado da geometria para os ativos legados;
 - contagens *_iede são cadastros parciais das camadas disponíveis no IEDE-RS.
@@ -761,6 +950,10 @@ Contagens verificadas nesta geração:
 - {len(linhas_grade_bacia)} células de 200 m dentro da bacia;
 - {len(setores_com_sigilo)} setores com ao menos um indicador suprimido;
 - {sum(inteiro(f['properties'].get('pop')) for f in setores_na_bacia):,} habitantes no recorte setorial.
+
+O catálogo também publica a contagem de registros válidos, nulos, sob sigilo e
+o método de recorte de borda. Municípios com área na bacia e pop_bacia=0 ficam
+explicitamente listados para revisão, pois isso não prova ausência de população.
 
 Leia catalogo.json para os testes de qualidade e advertências.
 """
@@ -788,6 +981,9 @@ Leia catalogo.json para os testes de qualidade e advertências.
     ):
         if path.exists():
             zip_files.append((name, bytes_portaveis(path)))
+    for path in sorted((VULN / "metadados").glob("*")):
+        if path.is_file():
+            zip_files.append((f"metadados/{path.name}", bytes_portaveis(path)))
     zip_deterministico(OUT / "dados_combinados_taquari_antas.zip", zip_files)
 
     print(json.dumps(catalogo["contagens"], ensure_ascii=False, indent=2))

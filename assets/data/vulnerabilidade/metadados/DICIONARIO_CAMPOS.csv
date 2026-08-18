@@ -1,0 +1,68 @@
+camada;campo;tipo;unidade;denominador_ou_universo;data_referencia;fonte;missing_e_caveat;uso_recomendado
+municipios_combinados;cod_mun;texto;codigo IBGE;nao se aplica;malha 2022;IBGE;chave unica do municipio;join e rotulo
+municipios_combinados;nome;texto;nome do municipio;nao se aplica;malha 2022;IBGE;nome oficial da malha;rotulo
+municipios_combinados;pct_na_bacia;numero;percentual da area municipal;area do municipio;recorte vigente;SEMA/DRH e malha IBGE;nao e percentual de populacao;comunicar fracao espacial
+municipios_combinados;pop;inteiro;pessoas;populacao municipal inteira;Censo 2022;IBGE;inclui pessoas fora da bacia em municipios de borda;mapa municipal somente com rotulo explicito
+municipios_combinados;pop_bacia;inteiro;pessoas;setores com na_bacia=1;Censo 2022;IBGE e SEMA/DRH;zero pode significar nenhum setor no recorte e nao deve ser substituido sem nota;totais dentro da bacia
+municipios_combinados;dom;inteiro;domicilios;universo publicado pelo IBGE;Censo 2022;IBGE;municipal inteiro;comparacao municipal
+municipios_combinados;dom_ocupados;inteiro;domicilios;V00001 domicilios particulares permanentes ocupados;Censo 2022;IBGE;valor X pode ser nulo quando suprimido;denominador agua e esgoto
+municipios_combinados;mulheres;inteiro;pessoas;populacao municipal;Censo 2022;IBGE;campo sujeito a supressao estatistica;contagem e percentual da populacao
+municipios_combinados;c0_4;inteiro;pessoas;populacao municipal;Censo 2022;IBGE;campo sujeito a supressao estatistica;contagem e percentual da populacao
+municipios_combinados;c5_9;inteiro;pessoas;populacao municipal;Censo 2022;IBGE;campo sujeito a supressao estatistica;contagem e percentual da populacao
+municipios_combinados;i60_69;inteiro;pessoas;populacao municipal;Censo 2022;IBGE;campo sujeito a supressao estatistica;contagem e percentual da populacao
+municipios_combinados;i70m;inteiro;pessoas;populacao municipal;Censo 2022;IBGE;campo sujeito a supressao estatistica;contagem e percentual da populacao
+municipios_combinados;indigenas;inteiro;pessoas;populacao municipal;Censo 2022;IBGE;campo sujeito a supressao estatistica;contagem e percentual da populacao
+municipios_combinados;pretos_pardos;inteiro;pessoas;populacao municipal;Censo 2022;IBGE;agrega categorias de cor ou raca declaradas e pode ser suprimido;contagem e percentual da populacao
+municipios_combinados;dom_agua;inteiro;domicilios;dom_ocupados V00001;Censo 2022;IBGE;X omitido vira nulo e nao zero;percentual de agua por rede geral
+municipios_combinados;dom_esgoto;inteiro;domicilios;dom_ocupados V00001;Censo 2022;IBGE;X omitido vira nulo e nao zero;percentual de esgoto por rede geral
+municipios_combinados;n_resp;inteiro;pessoas responsaveis;dom_ocupados quando disponivel;Censo 2022;IBGE;campo sujeito a supressao;ponderacao da renda
+municipios_combinados;renda_resp;numero;R$ nominais por mes;responsaveis com rendimento publicado;Censo 2022;IBGE V06004;media nominal mensal e nao mediana nem valor atual;indicador economico descritivo
+municipios_combinados;dens;numero;habitantes por km2;area e populacao da unidade;Censo 2022;IBGE;densidade publicada/agregada no ativo;exposicao demografica
+municipios_combinados;dens_bacia;numero;habitantes por km2;pop_bacia e area municipal intersectada;Censo 2022;IBGE e SEMA/DRH;nao calculada quando nenhum setor representativo entra no recorte;densidade somente na bacia
+municipios_combinados;mun_ubs_iede;inteiro;pontos cadastrados;camada publica consultada no IEDE;captura sem data no ativo;IEDE-RS;nao e inventario completo;localizacao de cadastros
+municipios_combinados;mun_hospitais_iede;inteiro;pontos cadastrados;camada publica consultada no IEDE;captura sem data no ativo;IEDE-RS;nao e inventario completo;localizacao de cadastros
+municipios_combinados;mun_escolas_iede;inteiro;pontos cadastrados;camada publica consultada no IEDE;captura sem data no ativo;IEDE-RS;nao e inventario completo;localizacao de cadastros
+municipios_combinados;mun_bombeiros_iede;inteiro;pontos cadastrados;camada publica consultada no IEDE;captura sem data no ativo;IEDE-RS;nao e inventario completo;localizacao de cadastros
+municipios_combinados;mun_servicos_cobertura;texto;status de cobertura;nao se aplica;captura sem data no ativo;IEDE-RS;valor fixo cadastro_IEDE_parcial_nao_inventario;rotular ausencias como sem ponto publicado
+municipios_combinados;mun_icm_faixa;categoria;A a D;20 variaveis do ICM municipal;data no icm_municipios.json;MIDR/Sedec;A indica maior capacidade e D menor capacidade;mapa de capacidade municipal
+municipios_combinados;mun_icm_pontos;inteiro;pontos ICM;escala publicada pelo ICM;data no icm_municipios.json;MIDR/Sedec;nao e indice de vulnerabilidade social;comparacao de capacidade
+municipios_combinados;mun_icm_prioritario;texto;sim ou nao;criterio Sedec;data no icm_municipios.json;MIDR/Sedec;nao substituir por risco calculado pelo PREVINE;triagem institucional
+municipios_combinados;sigilo_<campo>;inteiro;0 ou 1;campo correspondente;Censo 2022;IBGE;1 significa X omitido e valor nulo nao zero;controle de qualidade
+setores_na_bacia_combinados;setor;texto;codigo do setor censitario;nao se aplica;Censo 2022;IBGE;chave unica verificada pelo gerador;join setorial
+setores_na_bacia_combinados;na_bacia;inteiro;0 ou 1;representative point in basin;recorte vigente;SEMA/DRH;esta camada deve ser 1;filtro de recorte
+setores_na_bacia_combinados;area_pct_bacia;numero;percentual da area do setor;area geometrica do setor;recorte vigente;SEMA/DRH e malha IBGE;nao e percentual de populacao;auditoria de borda
+setores_na_bacia_combinados;metodo_recorte_bacia;texto;metodo;nao se aplica;recorte vigente;PREVINE;ponto representativo e fracao geometrica;proveniencia
+setores_na_bacia_combinados;pop;inteiro;pessoas;populacao do setor;Censo 2022;IBGE;X pode ser nulo quando flag de sigilo;agregacao dentro da bacia
+setores_na_bacia_combinados;dom;inteiro;domicilios;universo publicado no setor;Censo 2022;IBGE;nao confundir com dom_ocupados;exposicao
+setores_na_bacia_combinados;dom_ocupados;inteiro;domicilios;V00001;Censo 2022;IBGE;denominador agua e esgoto;percentuais oficiais
+setores_na_bacia_combinados;renda_resp;numero;R$ nominais por mes;responsaveis publicados;Censo 2022;IBGE V06004;media nominal e possivel supressao;indicador economico
+setores_na_bacia_combinados;dens;numero;habitantes por km2;area do setor;Censo 2022;IBGE;valor espacial do setor;exposicao
+setores_na_bacia_combinados;municipio;texto;nome do contexto municipal;nao e medida setorial;malha 2022;IBGE;campo de contexto herdado;rotulo
+setores_na_bacia_combinados;mun_*;varios;unidades da coluna original;municipio inteiro;referencia de cada fonte;IBGE IEDE MIDR;prefixo indica contexto municipal e nao dado do setor;usar somente em joins ou ficha
+setores_na_bacia_combinados;sigilo_<campo>;inteiro;0 ou 1;campo correspondente;Censo 2022;IBGE;1 significa X omitido e valor nulo nao zero;controle de qualidade
+grade_200m_na_bacia;id_grade;texto;identificador IBGE da celula;nao se aplica;Grade Estatistica 2022;IBGE;se ausente use id_grade_previne com nota;chave espacial
+grade_200m_na_bacia;id_grade_previne;texto;identificador tecnico;geometria da celula;Grade Estatistica 2022;PREVINE;derivado apenas para ativos legados sem id oficial;join tecnico
+grade_200m_na_bacia;pop;inteiro;pessoas;universo da grade;Censo 2022;IBGE;nao comparar sem declarar grade;mapa regular
+grade_200m_na_bacia;dom;inteiro;domicilios;universo_dom;Censo 2022;IBGE;denominador depende de universo_dom;mapa regular
+grade_200m_na_bacia;universo_dom;texto;descricao do universo;nao se aplica;Censo 2022;IBGE;atual valor esperado domicilios_ocupados_grade_ibge_2022;denominador
+grade_200m_na_bacia;na_bacia;inteiro;0 ou 1;representative point in basin;recorte vigente;SEMA/DRH;no recorte distribuido deve ser 1;filtro
+grade_200m_na_bacia;area_pct_bacia;numero;percentual da area da celula;area geometrica da celula;recorte vigente;SEMA/DRH e Grade IBGE;nao e percentual de populacao;auditoria de borda
+grade_200m_na_bacia;metodo_recorte_bacia;texto;metodo;nao se aplica;recorte vigente;PREVINE;ponto representativo e fracao geometrica;proveniencia
+servicos/*;nome;texto;nome do ponto;nao se aplica;captura sem data no ativo;IEDE-RS;cadastro pode estar desatualizado;rotulo e busca
+servicos/*;municipio;texto;municipio do ponto;nao se aplica;captura sem data no ativo;IEDE-RS;recorte por municipios que intersectam bacia;contexto
+servicos/*;cod_mun;texto;codigo IBGE;nao se aplica;captura sem data no ativo;IEDE-RS e IBGE;chave de junçao;join
+servicos/abrigos;id;texto;identificador local;nao se aplica;2026-07-30 quando geocodificado;Defesa Civil Santa Tereza;nao generalizar para toda a bacia;chave
+servicos/abrigos;tipo;texto;tipo de ponto;nao se aplica;2026-07-30 quando geocodificado;Defesa Civil Santa Tereza;classificacao operacional local;ficha municipal
+servicos/abrigos;hand_m;numero;metros;modelo HAND;referencia do modelo do projeto;PREVINE;proxy modelado, nao cota observada;cenarios somente com ressalva
+servicos/abrigos;cota_inundacao_oficial_regua_cm;numero;centimetros;regua oficial;referencia operacional local;Defesa Civil/ANA conforme documentacao;nao converter sem informar zero e referencia;cenarios
+servicos/abrigos;risco_em_cheia_recorde;objeto JSON;texto estruturado;evento recorde informado;maio 2024;PREVINE e fontes listadas;modelo e avaliacao com incerteza;ficha operacional
+perigo_setores_risco_sgb_santa_tereza;objectid;inteiro;identificador da fonte;nao se aplica;produto SGB;SGB;chave da resposta consultada;auditoria
+perigo_setores_risco_sgb_santa_tereza;cd_geocmu;texto;codigo IBGE;municipio Santa Tereza;produto SGB 2025;SGB;deve ser 4317251 em todas as feicoes;filtro de cobertura
+perigo_setores_risco_sgb_santa_tereza;num_setor;texto;codigo do setor de risco;nao se aplica;produto SGB 2025;SGB;37 valores unicos;rotulo
+perigo_setores_risco_sgb_santa_tereza;tipolo_g1;texto;tipologia geologica ou hidrologica;nao se aplica;produto SGB 2025;SGB;preservado sem reclassificacao;classe de perigo
+perigo_setores_risco_sgb_santa_tereza;grau_vulne;categoria;baixo medio alto;classificacao do SGB;levantamento de campo 2025;SGB;vulnerabilidade do setor SGB nao e indicador IBGE;leitura do perigo
+perigo_setores_risco_sgb_santa_tereza;grau_risco;categoria;baixo medio alto muito alto;classificacao do SGB;levantamento de campo 2025;SGB;nao e risco regional continuo;comunicar cobertura
+perigo_setores_risco_sgb_santa_tereza;num_edif;inteiro;edificacoes estimadas;setor SGB;levantamento de campo 2025;SGB;estimativa do produto e nao cadastro de imoveis;contexto
+perigo_setores_risco_sgb_santa_tereza;num_pess;inteiro;pessoas estimadas;setor SGB;levantamento de campo 2025;SGB;estimativa do produto e nao atualizacao do Censo;contexto
+perigo_setores_risco_sgb_santa_tereza;sug_interv;texto;recomendacoes;setor SGB;levantamento de campo 2025;SGB;preservado como texto fonte;gestao territorial
+perigo_setores_risco_sgb_santa_tereza;dt_atualizacao;inteiro;timestamp;nao se aplica;produto SGB;SGB;converter com cuidado e manter valor original;proveniencia

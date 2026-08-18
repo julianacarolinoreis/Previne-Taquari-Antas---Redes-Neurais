@@ -1,0 +1,136 @@
+{
+  "schema_version": "1.0.0",
+  "title": "Especificação PREVINE para ficha, triagem e cenários",
+  "status": "reutilizável",
+  "source_catalog": "assets/data/vulnerabilidade/downloads/catalogo.json",
+  "required_provenance": {
+    "source_name": "string",
+    "source_url": "string",
+    "source_query": "string|null",
+    "captured_at": "datetime ISO 8601",
+    "reference_period": "string",
+    "input_sha256": "sha256",
+    "output_sha256": "sha256|null",
+    "crs": "EPSG code",
+    "transformations": "array[string]",
+    "license_or_attribution": "string",
+    "coverage": "string",
+    "limitations": "array[string]",
+    "review_status": ["revisado", "pendente", "bloqueado"]
+  },
+  "ficha": {
+    "purpose": "ficha municipal ou de área selecionada para Defesa Civil",
+    "required_blocks": [
+      "identidade",
+      "geografia",
+      "populacao",
+      "indicadores",
+      "capacidade_municipal",
+      "servicos_cadastrados",
+      "perigo_separado",
+      "proveniencia",
+      "limitacoes"
+    ],
+    "outputs": [
+      "ficha_<escopo>_<codigo>.html",
+      "ficha_<escopo>_<codigo>.pdf",
+      "ficha_<escopo>_<codigo>.json",
+      "ficha_<escopo>_<codigo>_geojson.zip"
+    ],
+    "minimum_fields": {
+      "identity": ["nome", "cod_mun", "uf", "generated_at", "package_version", "package_hash"],
+      "geography": ["layer", "grain", "input_crs", "selection_count", "na_bacia", "pct_na_bacia"],
+      "population": ["pop_recorte", "pop_municipal", "pop_bacia", "aggregation_rule"],
+      "indicator": ["indicator", "raw_value", "unit", "denominator", "percent", "null_count", "suppression_flags"],
+      "capacity": ["icm_faixa", "icm_pontuacao", "icm_prioritario", "municipal_scope"],
+      "services": ["service_type", "published_points", "capture_date", "coverage_status"],
+      "hazard": ["layer", "source", "reference_date", "intersected_features", "coverage_statement"],
+      "limitations": ["visible_summary", "details"]
+    },
+    "must_not_claim": [
+      "alerta em tempo real",
+      "inventario completo de servicos",
+      "risco regional quando a camada de perigo nao cobre a unidade",
+      "ICM como indicador setorial"
+    ]
+  },
+  "triagem": {
+    "purpose": "priorizar revisao ou vistoria sem produzir uma nota de risco",
+    "inputs": ["layer", "grain", "indicators", "units", "filters", "rule_version", "weights", "missing_policy"],
+    "required_output_columns": [
+      "source_fields",
+      "indicator_percentile_or_class",
+      "icm_faixa_municipal",
+      "hazard_intersection_status",
+      "service_coverage_status",
+      "status_dado",
+      "rule_version",
+      "rank",
+      "inclusion_reason",
+      "ficha_url"
+    ],
+    "status_dado_values": [
+      "publicado",
+      "suprimido",
+      "sem_ponto_publicado",
+      "fora_cobertura",
+      "nao_aplicavel"
+    ],
+    "guardrails": [
+      "fora_cobertura nunca recebe pontuacao zero",
+      "nulo ou sigilo nunca vira zero",
+      "pesos e direcoes devem ser exibidos",
+      "nome publico deve ser triagem para revisao ou prioridade de vistoria"
+    ]
+  },
+  "temporal": {
+    "baseline": "Censo 2022",
+    "rules": [
+      "nao interpolar populacao entre censos",
+      "registrar captura e atualizacao por camada",
+      "comparar contagens, bounds, CRS, chaves, nulos, cobertura e agregados",
+      "marcar comparabilidade como comparavel, comparavel_com_ressalva ou nao_comparavel",
+      "exigir nota de quebra metodologica quando conceito, universo, malha ou supressao mudar"
+    ],
+    "required_metadata": ["reference_period", "captured_at", "method_version", "comparability"]
+  },
+  "cenarios": {
+    "publication_gate": "camada de perigo regional validada e revisada",
+    "current_sgb_layer_is_sufficient": false,
+    "required_inputs": [
+      "hazard_source_and_version",
+      "hazard_type_and_level",
+      "hazard_crs_and_intersection_method",
+      "exposure_grain_and_aggregation_rule",
+      "population_households_services_dates",
+      "observed_modeled_proxy_label"
+    ],
+    "required_outputs": [
+      "people_intersected",
+      "households_intersected",
+      "services_intersected",
+      "area_fraction",
+      "uncertainty_or_interval",
+      "outside_coverage_count",
+      "map_table_and_provenance"
+    ],
+    "qa": [
+      "CRS e bounds",
+      "geometrias vazias",
+      "chaves duplicadas",
+      "reconciliacao dos totais",
+      "inspecao visual por classe de perigo",
+      "separacao entre municipal inteiro e setores na bacia"
+    ]
+  },
+  "acceptance": [
+    "fonte, data, CRS, grao e denominador visiveis",
+    "nulos e supressoes preservados",
+    "ausencia de servico separada de fora de cobertura",
+    "ICM rotulado como municipal",
+    "perigo separado de vulnerabilidade e risco",
+    "regra de triagem reproduzivel",
+    "versao e hash na ficha e no JSON",
+    "artefatos reconciliam com catalogo.json"
+  ]
+}
