@@ -2020,7 +2020,13 @@ const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
                         {maxZoom:19, maxNativeZoom:19, attribution:"© Esri, Maxar"});
 const semMapa = L.layerGroup();
-L.control.layers({"Mapa": osm, "Satélite": sat, "Sem mapa base": semMapa}, null, {position:"topleft"}).addTo(map);
+const controleCamadas = L.control.layers({"Mapa": osm, "Satélite": sat, "Sem mapa base": semMapa}, null, {position:"topleft"}).addTo(map);
+const controleCamadasEl = controleCamadas.getContainer?.();
+const controleCamadasToggle = controleCamadasEl?.querySelector(".leaflet-control-layers-toggle");
+if (controleCamadasToggle){
+  controleCamadasToggle.setAttribute("aria-label","Camadas do mapa");
+  controleCamadasToggle.setAttribute("title","Camadas");
+}
 L.control.scale({imperial:false, position:"bottomleft"}).addTo(map);
 const Norte = L.Control.extend({options:{position:"topleft"}, onAdd(){
   const el=L.DomUtil.create("div","north-control"); el.setAttribute("aria-label","Norte"); el.title="Norte"; el.innerHTML="<span>↑</span>"; return el;
