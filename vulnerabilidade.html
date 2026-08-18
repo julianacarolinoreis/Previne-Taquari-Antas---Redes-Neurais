@@ -2245,7 +2245,18 @@ SVC.forEach(s=>{
     carrega(`${s.k}.geojson`, SERV).then(gj=>{
       svcLayers[s.k] = L.geoJSON(gj, {
         pane: "servicos",
-        pointToLayer: (f,ll)=>L.marker(ll, {pane:"servicos", icon:L.divIcon({className:"svc-marker-wrap",html:`<span class="svc-marker svc-${s.k}" aria-hidden="true">${s.letra}</span>`,iconSize:[22,22],iconAnchor:[11,11]})}),
+        pointToLayer: (f,ll)=>{
+          const nome = f.properties?.nome || s.nome;
+          const municipio = f.properties?.municipio || "município não informado";
+          const rotulo = `${s.nome} — ${nome}, ${municipio}`;
+          const marker = L.marker(ll, {pane:"servicos", title:rotulo, alt:rotulo,
+            icon:L.divIcon({className:"svc-marker-wrap",html:`<span class="svc-marker svc-${s.k}" aria-hidden="true">${s.letra}</span>`,iconSize:[22,22],iconAnchor:[11,11]})});
+          marker.on("add", ()=>{
+            const el = marker.getElement?.();
+            if (el){ el.setAttribute("aria-label", rotulo); el.setAttribute("title", rotulo); }
+          });
+          return marker;
+        },
         onEachFeature: (f,l)=>{
           l.bindPopup(
           `<div class="pop"><b>${escHTML(f.properties.nome || s.nome)}</b><br>` +
