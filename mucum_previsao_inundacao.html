@@ -549,7 +549,8 @@ function handAt(lat,lon){ // decimetros no ponto, ou null
   if(!handArr) return null;
   const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*COLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*ROWS);
   if(fx<0||fx>=COLS||fy<0||fy>=ROWS) return null;
-  return handArr[fy*COLS+fx];
+  const value=handArr[fy*COLS+fx];
+  return value===250?null:value;
 }
 function elevationAt(lat,lon){
   if(!elevationMeta||!elevationArr) return null;
@@ -1050,6 +1051,7 @@ async function init(){
       html+='<br><b>Altitude do terreno (MDT): '+(elev!=null?nf1.format(elev)+' m':'indisponível')+'</b>';
       if(curS&&hd!=null){
         const pointHand=hd/10, ev=EVENTS[curEv];
+        html+='<br>Altura acima do leito (HAND): '+nf1.format(pointHand)+' m';
         if(pointHand<=0){
           html+='<br>Mancha: dentro do contorno-base do leito; não classificado como inundação.';
         }else{
@@ -1061,6 +1063,7 @@ async function init(){
         }
       }
       html+='<br><small>Coordenadas: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small>';
+      html+='<br><small>Mancha relativa ao HAND 0 e ao zero operacional da régua; não é uma cota absoluta de água validada.</small>';
       html+='</div>';
       L.popup({closeButton:true}).setLatLng(e.latlng).setContent(html).openOn(map);
     });

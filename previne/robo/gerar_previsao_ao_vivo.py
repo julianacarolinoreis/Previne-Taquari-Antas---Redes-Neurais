@@ -1158,7 +1158,7 @@ def escrever(nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes=None, e
     status_dados = None
     if raw_st:
         idade_min = round((consultado_em - raw_st[0]).total_seconds() / 60)
-        status_dados = "telemetria recente" if idade_min <= 120 else f"telemetria atrasada ({idade_min} min)"
+        status_dados = "telemetria recente" if idade_min <= 30 else f"telemetria atrasada ({idade_min} min)"
     out = {
         "modo": "ao_vivo",
         "gerado_em": (t.isoformat() if t else consultado_em.isoformat()),
@@ -1193,7 +1193,7 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
     status_dados = None
     if raw_st:
         idade_min = round((consultado_em - raw_st[0]).total_seconds() / 60)
-        status_dados = "telemetria recente" if idade_min <= 120 else f"telemetria atrasada ({idade_min} min)"
+        status_dados = "telemetria recente" if idade_min <= 30 else f"telemetria atrasada ({idade_min} min)"
     return {
         "modo": "ao_vivo",
         "gerado_em": (t.isoformat() if t else consultado_em.isoformat()),
