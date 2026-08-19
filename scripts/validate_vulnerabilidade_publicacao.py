@@ -25,6 +25,7 @@ VULN = ROOT / "assets" / "data" / "vulnerabilidade"
 DOWNLOADS = VULN / "downloads"
 FALLBACK_MANIFEST = VULN / "fallback-manifest.json"
 TRIAGE_SPEC = VULN / "metadados" / "ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.json"
+REFERENCIAS = VULN / "referencias"
 
 
 def read_json(path: Path):
@@ -257,6 +258,18 @@ def main() -> int:
     missing_links = [h for h in local_links if not (ROOT / h).exists()]
     assert not missing_links, f"links locais quebrados: {missing_links}"
 
+    # As novas camadas de referência são leves e precisam permanecer
+    # publicáveis mesmo quando as fontes online estiverem indisponíveis.
+    resiliencia = read_json(REFERENCIAS / "resiliencia_municipios.json")
+    assert resiliencia.get("municipios_fonte") == 264, "snapshot do Observatório sem cobertura declarada"
+    irm_rows = resiliencia.get("features", [])
+    assert len(irm_rows) == len(codes), "IRM sem um registro por município candidato"
+    assert {"cod_mun", "irm_faixa", "irm_status", "irm_score_0a100"} <= set(irm_rows[0]), "campos IRM ausentes"
+    tiles = feature_collection(REFERENCIAS / "open_buildings_tiles.geojson")
+    assert tiles and all((f.get("properties") or {}).get("tile_url") for f in tiles), "índice Open Buildings sem URLs"
+    assert (REFERENCIAS / "README.md").read_text(encoding="utf-8").strip(), "README das referências vazio"
+    assert "Estradas DAER/RS" in html and "Open Buildings" in html and "Resiliência" in html, "novas referências não declaradas na página"
+
     # Export contracts carry enough provenance to be usable outside the map;
     # keep the triage metadata/specification alongside the CSVs.
     csv_contracts = {
@@ -287,6 +300,8 @@ def main() -> int:
             "grade_200m_na_bacia_combinada.csv",
             "catalogo.json",
             "metadados/ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.json",
+            "referencias/resiliencia_municipios.json",
+            "referencias/open_buildings_tiles.geojson",
         ):
             assert required in names, f"ZIP sem export/metadado: {required}"
 

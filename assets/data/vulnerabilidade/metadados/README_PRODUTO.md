@@ -33,6 +33,12 @@ O recorte setorial contém 1.328.737 habitantes segundo os agregados usados na
 geração atual. O valor não deve ser comparado diretamente com a soma dos
 municípios inteiros, que inclui população fora do limite da bacia.
 
+## Camadas de referência adicionadas
+
+- `referencias/resiliencia_municipios.json`: IRM V1 municipal do Observatório da Resiliência RS. A fonte contém sete indicadores e cobertura parcial; `unknown` significa sem correspondência, não baixo desempenho.
+- `referencias/open_buildings_tiles.geojson`: índice leve das células Open Buildings v3 relevantes para a área. Cada célula aponta para o CSV.gz externo de footprints; esses arquivos são muito grandes e não são carregados automaticamente.
+- Estradas DAER/RS: camada online consultada por janela visível no serviço oficial do DAER/IEDE. Ela mostra trechos registrados, não tempo de viagem, acessibilidade ou condição operacional.
+
 ## Fontes e datas de referência
 
 - **IBGE — Censo Demográfico 2022**, Agregados por Setores Censitários: população,
