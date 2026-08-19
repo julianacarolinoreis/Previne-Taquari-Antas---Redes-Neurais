@@ -773,6 +773,7 @@ def main() -> None:
         *sorted((VULN / "perigo").glob("*.geojson")),
         *([VULN / "perigo" / "README.md"] if (VULN / "perigo" / "README.md").exists() else []),
         *[p for p in sorted((VULN / "metadados").glob("*")) if p.is_file()],
+        *[p for p in sorted((VULN / "referencias").glob("*")) if p.is_file()],
     ]
     entradas_sha = hash_entradas(inputs)
     antigo = {}
@@ -1038,6 +1039,11 @@ def main() -> None:
                 for p in sorted((VULN / "metadados").glob("*"))
                 if p.is_file()
             ],
+            *[
+                f"referencias/{p.name}"
+                for p in sorted((VULN / "referencias").glob("*"))
+                if p.is_file()
+            ],
         ],
     }
     gravar_json(catalogo_path, catalogo)
@@ -1056,6 +1062,8 @@ O pacote contém:
 - grade_200m_na_bacia_combinada: células da grade estatística dentro da bacia;
 - servicos/*.geojson: pontos publicados pelo IEDE-RS, separados por tipo;
 - perigo/: setores oficiais de risco do SGB em Santa Tereza (levantamento 2025);
+- referencias/resiliencia_municipios.json: IRM V1 municipal, com cobertura e unknown declarados;
+- referencias/open_buildings_tiles.geojson: cobertura leve dos tiles Open Buildings v3;
 - shapefiles_arcgis_qgis.zip: camadas para ArcGIS/QGIS (EPSG:4326, UTF-8);
 - geopackage_arcgis_qgis.zip: um GeoPackage com campos completos para QGIS/ArcGIS Pro;
 - fontes/: documentação de origem.
@@ -1125,6 +1133,9 @@ Leia catalogo.json para os testes de qualidade e advertências.
     for path in sorted((VULN / "metadados").glob("*")):
         if path.is_file():
             zip_files.append((f"metadados/{path.name}", bytes_portaveis(path)))
+    for path in sorted((VULN / "referencias").glob("*")):
+        if path.is_file():
+            zip_files.append((f"referencias/{path.name}", bytes_portaveis(path)))
     zip_deterministico(OUT / "dados_combinados_taquari_antas.zip", zip_files)
 
     print(json.dumps(catalogo["contagens"], ensure_ascii=False, indent=2))
