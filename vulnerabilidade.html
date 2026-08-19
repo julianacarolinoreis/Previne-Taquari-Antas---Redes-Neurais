@@ -121,7 +121,7 @@
   .quality-note{font-size:10.5px;line-height:1.42;color:#5f541f;background:#fffaf0;border:1px solid #ead9a2;
     border-radius:8px;padding:7px 8px;margin-top:7px}
   .quality-note[hidden]{display:none}
-  .quality-note summary{cursor:pointer;font-weight:750;color:#78520e}
+  .quality-note summary{cursor:pointer;font-weight:750;color:#78520e;min-height:26px;padding:4px 0;display:flex;align-items:center}
   .quality-note p{margin:5px 0 0}
   .quality-note button{margin-top:6px;border:1px solid #d8c58a;border-radius:7px;padding:5px 8px;background:#fff;color:#5f541f;
     font:inherit;font-weight:700;cursor:pointer}
@@ -140,7 +140,7 @@
   .provenance-list a{color:var(--brand)}
   .comparacao-print-meta,.print-meta-header{display:none}
   .triage-box{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:#f7faf8;padding:9px}
-  .triage-box summary{cursor:pointer;color:var(--brand);font-size:12px;font-weight:800}
+  .triage-box summary{cursor:pointer;color:var(--brand);font-size:12px;font-weight:800;min-height:26px;padding:4px 0;display:flex;align-items:center}
   .triage-intro{font-size:10.5px;line-height:1.4;color:var(--muted);margin:6px 0}
   .triage-controls{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:end;margin-top:6px}
   .triage-controls label{font-size:10.5px;color:var(--muted)}
@@ -258,6 +258,7 @@
     body.print-map-table .comparacao-print-meta{display:block;font-size:10.5px;line-height:1.4;color:var(--muted);margin:0 0 8px}
     body.print-map-only .print-meta-header{display:block;font-size:10.5px;line-height:1.35;color:var(--muted);margin-top:2px}
     body.print-map-table #comparacaoTable thead th{position:static}
+    body.print-map-table #comparacaoTable th:nth-last-child(-n+2),body.print-map-table #comparacaoTable td:nth-last-child(-n+2){display:none!important}
     body.print-map-legend .concept-note,body.print-map-summary .concept-note,body.print-map-selection .concept-note{display:block!important;position:static;box-shadow:none;margin:0 0 6px}
     /* composição de uma prancha única: mapa ocupa a altura útil e a legenda
        fica alinhada na coluna direita, sem sobrar um bloco vazio abaixo */
@@ -1872,7 +1873,7 @@ function fichaSelecao(){
   const titulo=`Ficha da seleção · ${r.nome}`;
   const campoRotulo={nome:"Local",setor:"Setor censitário",cod_mun:"Código IBGE",pop:"População",pop_bacia:"População na bacia"};
   campoRotulo[ind]=d.nome;
-  const cab=campos.map(c=>`<th>${escHTML(campoRotulo[c]||c)}</th>`).join("");
+  const cab=campos.map(c=>`<th scope="col">${escHTML(campoRotulo[c]||c)}</th>`).join("");
   const fichaValor=(p,c)=>{
      if(c===ind && d.k === "resiliencia") return p.irm_faixa ? `${IRM_LABEL[p.irm_faixa]||p.irm_faixa}${irmValor(p)==null ? "" : ` · ${fmt(irmValor(p))}/100`}` : "sem dado publicado";
      if(c===ind && d.cat) return p.icm_faixa ? `${p.icm_faixa}${p.icm_pont!=null ? ` · ${fmt(p.icm_pont)} pts` : ""}` : "—";
@@ -1910,7 +1911,7 @@ function fichaSelecao(){
   </style></head><body><h1>${escHTML(titulo)}</h1><div class="meta">PREVINE · Vulnerabilidade social — bacia Taquari-Antas · gerada em ${new Date().toLocaleString("pt-BR")}</div>
   <div class="resumo"><b>${fmt(r.count)}</b> ${escHTML(r.nome)} · <b>${escHTML(r.popLabel)}</b> habitantes<br>${escHTML(r.indicador)}: ${escHTML(r.detalheTexto||"—")}</div>
   <h2>Proveniência, cobertura e limitações</h2><ul>${metaLista}</ul>
-  <p>Esta ficha resume exatamente os elementos escolhidos no mapa atual. O arquivo espacial correspondente pode ser aberto no QGIS ou ArcGIS como GeoJSON.</p><h2>Registros selecionados</h2><table><thead><tr>${cab}</tr></thead><tbody>${trs}</tbody></table>
+  <p>Esta ficha resume exatamente os elementos escolhidos no mapa atual. O arquivo espacial correspondente pode ser aberto no QGIS ou ArcGIS como GeoJSON.</p><h2>Registros selecionados</h2><table aria-label="Registros selecionados na vista atual"><caption>Registros selecionados na vista atual</caption><thead><tr>${cab}</tr></thead><tbody>${trs}</tbody></table>
   <p>A seleção é espacial por interseção do retângulo com as geometrias exibidas. Valores parciais mantêm os registros conhecidos e suas flags de cobertura; não são estimativas completas.</p></body></html>`;
   baixarBlob(new Blob([html],{type:"text/html;charset=utf-8"}),`${vista.prefixo}_ficha.html`);
   informa("Ficha HTML da seleção baixada. Abra o arquivo e use Imprimir para gerar PDF.");
@@ -2093,12 +2094,15 @@ function repinta(){
   atualizaPainelSelecao();
 }
 document.getElementById("fxok").onclick = ()=>{
-  const v = [0,1,2,3].map(i=>parseFloat(document.getElementById("fx"+i).value));
-  if (v.some(x=>!isFinite(x))) return;
+  const fields = [0,1,2,3].map(i=>document.getElementById("fx"+i));
+  const v = fields.map(el=>parseFloat(el.value));
+  const invalido = v.some(x=>!isFinite(x));
+  fields.forEach(el=>el.setAttribute("aria-invalid", invalido && !isFinite(parseFloat(el.value)) ? "true" : "false"));
+  if (invalido){ informa("Digite um número válido em cada limite da faixa antes de aplicar."); return; }
   manualBrks[chaveBrk()] = v.sort((a,b)=>a-b);
   repinta();
 };
-document.getElementById("fxauto").onclick = ()=>{ delete manualBrks[chaveBrk()]; repinta(); };
+document.getElementById("fxauto").onclick = ()=>{ [0,1,2,3].forEach(i=>document.getElementById("fx"+i)?.setAttribute("aria-invalid","false")); delete manualBrks[chaveBrk()]; repinta(); };
 
 function sincronizaURL(){
   const u = new URL(location.href);
