@@ -391,7 +391,7 @@
   <a class="back" href="index.html">← painel do projeto</a>
 </header>
 <main>
-  <div id="map" role="region" aria-label="Mapa temático de vulnerabilidade da bacia Taquari-Antas"><div id="inset" role="img" aria-label="Localização da bacia Taquari-Antas no Rio Grande do Sul" title="Onde a bacia fica no Rio Grande do Sul"></div></div>
+  <div id="map" role="region" aria-label="Mapa temático de vulnerabilidade da bacia Taquari-Antas" tabindex="-1"><div id="inset" role="img" aria-label="Localização da bacia Taquari-Antas no Rio Grande do Sul" title="Onde a bacia fica no Rio Grande do Sul"></div></div>
   <aside>
     <div class="concept-note" role="note" aria-label="Diferença entre vulnerabilidade, perigo e risco">
       <b>Vulnerabilidade social &ne; perigo &ne; risco.</b> Este mapa mostra pessoas, exposição e capacidade. O risco exige cruzar esses dados com uma ameaça de cheia validada.
@@ -663,7 +663,6 @@
       <span id="comparacaoPaginaTexto" aria-live="polite"></span>
       <button id="comparacaoProxima" type="button">próxima →</button>
     </div>
-  </fieldset>
 </section>
 
 <section class="icm-wrap">
@@ -872,6 +871,7 @@ let resilienciaData = null, resilienciaOk = false;
 let estradasLayer = null, estradasAtiva = false, estradasCarregando = false, estradasUltimoBBox = "";
 let openBuildingsLayer = null, openBuildingsAtiva = false;
 let gradeIndicadorAjustado = false;
+let indAntesDaGrade = null;
 let zoomChoiceDismissed = false;
 let zoomChoiceTrigger = null;
 let selectionMode = false, selectionStart = null, selectionRect = null, selectionLayers = [];
@@ -1707,7 +1707,7 @@ function linhasComparacaoFiltradas(){
   });
   return rows;
 }
-function alternaSelecaoTabela(layer){
+function alternaSelecaoTabela(layer, trigger){
   if(!layer)return;
   const i=selectionLayers.indexOf(layer);
   if(i>=0)selectionLayers.splice(i,1); else selectionLayers.push(layer);
@@ -1716,6 +1716,12 @@ function alternaSelecaoTabela(layer){
   atualizaPainelSelecao();
   sincronizaURL();
   informa(selectionLayers.length ? `${fmt(selectionLayers.length)} ${nomeCamadaSelecao()} selecionado(s).` : "Seleção vazia.");
+  requestAnimationFrame(()=>{
+    const rows=linhasComparacaoFiltradas();
+    const idx=rows.findIndex(r=>r.layer===layer);
+    const next=idx>=0 ? document.querySelector(`input.comparacao-check[data-row="${idx}"]`) : null;
+    (next || document.getElementById("comparacaoSomenteSelecao") || document.getElementById("comparacaoBusca") || trigger)?.focus?.({preventScroll:true});
+  });
 }
 function atualizaTabelaComparacao(){
   const body=document.getElementById("comparacaoBody");
@@ -1764,7 +1770,7 @@ function atualizaTabelaComparacao(){
      };
    });
   body.querySelectorAll("input.comparacao-check[data-row]").forEach(input=>{
-    input.onchange=()=>alternaSelecaoTabela(rows[+input.dataset.row]?.layer);
+    input.onchange=()=>alternaSelecaoTabela(rows[+input.dataset.row]?.layer, input);
   });
 }
 function baixarTabelaComparacao(){
@@ -1983,6 +1989,17 @@ function revelaOpcionais(){
 function aplicaRestricaoCamada(){
   const restringe = camada === "grade" && !!munAtual;
   gradeIndicadorAjustado = false;
+  if (!restringe && indAntesDaGrade){
+    const restaurar = indAntesDaGrade;
+    indAntesDaGrade = null;
+    if (INDS.some(d=>d.k===restaurar)){
+      ind = restaurar;
+      indDiv.querySelectorAll("button").forEach(x=>{
+        const ativo = x.dataset.k===ind;
+        x.classList.toggle("on", ativo); x.setAttribute("aria-pressed", ativo ? "true" : "false");
+      });
+    }
+  }
   INDS.forEach(d=>{
     const b = indDiv.querySelector(`button[data-k="${d.k}"]`);
     if (!b) return;
@@ -1993,6 +2010,7 @@ function aplicaRestricaoCamada(){
   if (!restringe) revelaOpcionais();
   if (restringe && !GRADE_INDS.has(ind)){
     const anterior = ind;
+    if (!indAntesDaGrade) indAntesDaGrade = anterior;
     ind = anterior === "dom_ocupados" ? "dom" : "pop";
     gradeIndicadorAjustado = true;
     indDiv.querySelectorAll("button").forEach(x=>{
@@ -2438,6 +2456,10 @@ function carregaEstradas(){
     }}).addTo(map);
     const truncado=!!gj.exceededTransferLimit || (gj.features?.length||0)>=2000;
     atualizaReferenciaNota(`${fmt(gj.features?.length||0)} trecho(s) DAER na janela visível${truncado?" (limite da consulta atingido; aproxime o mapa)":""}; não é recorte da bacia. Fonte oficial; mova o mapa para atualizar.`);
+    if (estradasAtiva && bboxDaVista() !== bbox){
+      estradasUltimoBBox = "";
+      setTimeout(()=>{ if (estradasAtiva) carregaEstradas(); }, 0);
+    }
   }).catch(()=>{
     estradasUltimoBBox="";
     estradasAtiva=false;
@@ -2630,7 +2652,7 @@ const SVC = [
 const svcLayers = {};
 SVC.forEach(s=>{
   const b = document.createElement("button");
-  b.type = "button"; b.setAttribute("aria-pressed", "false");
+  b.type = "button"; b.setAttribute("aria-pressed", "false"); b.setAttribute("aria-busy", "false");
   b.innerHTML = `<span class="svc-key svc-${s.k}" aria-hidden="true">${s.letra}</span> ${s.nome}`;
   b.onclick = ()=>{
     if (svcLayers[s.k] === "carregando") return;
@@ -2640,6 +2662,7 @@ SVC.forEach(s=>{
       return;
     }
     svcLayers[s.k] = "carregando";
+    b.disabled = true; b.setAttribute("aria-busy", "true");
     carrega(`${s.k}.geojson`, SERV).then(gj=>{
       svcLayers[s.k] = L.geoJSON(gj, {
         pane: "servicos",
@@ -2663,11 +2686,11 @@ SVC.forEach(s=>{
           l.on("popupopen", ()=>acessibilizaPopup(l, `Ponto cadastrado: ${f.properties.nome || s.nome}`));
         }
       }).addTo(map);
-      b.classList.add("on");
+      b.disabled = false; b.setAttribute("aria-busy", "false"); b.classList.add("on");
       b.dataset.erro = ""; b.setAttribute("aria-pressed", "true");
     }).catch(()=>{                       // camada ainda não publicada (ex.: UBS)
       svcLayers[s.k] = null;
-      b.disabled = false; b.style.opacity = .7; b.dataset.erro = "1"; b.title = "camada indisponível; clique para tentar novamente";
+      b.disabled = false; b.setAttribute("aria-busy", "false"); b.style.opacity = .7; b.dataset.erro = "1"; b.title = "camada indisponível; clique para tentar novamente";
       mostraErroDependencia(`Camada de ${s.nome} indisponível. O botão pode ser tentado novamente.`);
     });
   };
@@ -2680,6 +2703,7 @@ const perigoBtn = document.createElement("button");
 perigoBtn.type = "button";
 perigoBtn.textContent = "SGB · risco setorizado (Santa Tereza)";
 perigoBtn.setAttribute("aria-pressed", "false");
+perigoBtn.setAttribute("aria-busy", "false");
 perigoBtn.title = "37 setores de risco setorizado, com tipologia e grau, mapeados pelo SGB em campo em 2025";
 document.getElementById("perigo").appendChild(perigoBtn);
 let perigoLayer = null, perigoCarregando = false;
@@ -2695,6 +2719,8 @@ perigoBtn.onclick = ()=>{
     return;
   }
   perigoCarregando = true;
+  perigoBtn.disabled = true;
+  perigoBtn.setAttribute("aria-busy", "true");
   carrega("perigo/setores_risco_sgb_santa_tereza.geojson").then(gj=>{
     const cores = {"Muito alto":"#b91c1c", "Alto":"#f59e0b"};
     perigoLayer = L.geoJSON(gj, {renderer:L.svg(),
@@ -2718,13 +2744,16 @@ perigoBtn.onclick = ()=>{
     }).addTo(map);
     perigoBtn.classList.add("on");
     perigoBtn.setAttribute("aria-pressed", "true");
+    perigoBtn.disabled = false;
+    perigoBtn.setAttribute("aria-busy", "false");
     document.getElementById("perigoLeg").hidden = false;
     atualizaPrintMeta();
   }).catch(()=>{
     perigoBtn.disabled = false;
+    perigoBtn.setAttribute("aria-busy", "false");
     perigoBtn.title = "camada SGB indisponível; clique para tentar novamente";
     mostraErroDependencia("Camada de perigo SGB indisponível nesta atualização.");
-  }).finally(()=>{ perigoCarregando = false; });
+  }).finally(()=>{ perigoCarregando = false; perigoBtn.setAttribute("aria-busy", "false"); });
 };
 
 // ---- ICM: Indicador de Capacidade Municipal (MIDR/Sedec) ----
