@@ -26,7 +26,7 @@
   body{background:var(--bg);color:var(--ink)}
   .skip-link{position:fixed;left:8px;top:8px;z-index:1200;transform:translateY(-180%);background:#fff;color:#0f6b4a;border:2px solid #1e5fbf;border-radius:8px;padding:8px 10px;font-weight:750;text-decoration:none}
   .skip-link:focus{transform:translateY(0)}
-  .skip-controls{top:52px}
+  .skip-controls{top:52px;transform:translateY(-260%)}
   header{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:600}
   header .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--agora));flex:0 0 auto}
   header h1{font-size:16.5px;margin:0;font-weight:750;letter-spacing:-.01em;line-height:1.15}
@@ -34,7 +34,7 @@
   header a.back{margin-left:auto;font-size:12px;color:var(--brand);font-weight:650;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--bg)}
   main{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:calc(100vh - 55px)}
   #map{position:relative;background:var(--bg)}
-  .map-hint{position:absolute;left:12px;bottom:12px;z-index:500;max-width:calc(100% - 24px);padding:8px 10px;border:1px solid rgba(15,107,74,.35);border-radius:8px;background:rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(20,45,35,.12);color:var(--ink);font-size:11.5px;line-height:1.35;font-weight:700;pointer-events:none}
+  .map-hint{position:absolute;left:12px;bottom:176px;z-index:700;max-width:calc(100% - 24px);padding:8px 10px;border:1px solid rgba(15,107,74,.35);border-radius:8px;background:rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(20,45,35,.12);color:var(--ink);font-size:11.5px;line-height:1.35;font-weight:700;pointer-events:none}
   .map-hint[hidden]{display:none}
   .dataset-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:8px 0 10px;padding:6px;border:1px solid var(--line);border-radius:9px;background:#f7faf8}
   .dataset-stat{min-width:0;padding:5px 4px;text-align:center;border-right:1px solid var(--line)}
@@ -54,6 +54,9 @@
   .location-picker .q{margin:0 0 5px;color:var(--brand)}
   .location-picker select{min-height:40px;border:2px solid #9fcab0;background:#fff;font-weight:650}
   .location-picker .scope-help{margin-top:5px}
+  .quick-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 10px}
+  .quick-actions a,.quick-actions button{display:flex;align-items:center;justify-content:center;min-height:36px;padding:6px 7px;border:1px solid #b9d8c6;border-radius:8px;background:#f2faf5;color:var(--brand);font-size:10.5px;font-weight:750;text-align:center;text-decoration:none;cursor:pointer}
+  .quick-actions a:hover,.quick-actions button:hover{border-color:var(--brand);background:#e8f5ed}
   aside{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:15px 15px 40px}
   .q{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:12px 0 5px}
   .q:first-child{margin-top:0}
@@ -79,6 +82,15 @@
   .more-indicators{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
   .more-indicators summary{min-height:28px;padding:5px 7px;border:1px solid var(--line);border-radius:8px;background:#f7faf8;color:var(--ink);font-size:11px;font-weight:750;cursor:pointer}
   .more-indicators[hidden]{display:none}
+  .municipio-popup{max-height:70vh;overflow:auto;padding-right:2px}
+  .municipio-popup .popup-action-slot{position:sticky;top:-1px;z-index:3;padding:2px 0 5px;background:#fff}
+  .municipio-popup .popup-summary{display:grid;grid-template-columns:1fr auto;gap:2px 8px;margin:7px 0;padding:7px 8px;border:1px solid #cfe1d6;border-radius:8px;background:#f2faf5;color:var(--muted);font-size:10.5px;line-height:1.3}
+  .municipio-popup .popup-summary strong{color:var(--brand);font-size:10px;text-transform:uppercase;letter-spacing:.03em}
+  .municipio-popup .popup-summary span{grid-column:1/-1;color:var(--ink);font-weight:650}
+  .municipio-popup .popup-summary b{grid-column:1/-1;color:var(--brand);font-size:15px}
+  .municipio-popup .popup-more{margin-top:7px;border-top:1px solid var(--line);padding-top:3px}
+  .municipio-popup .popup-more[open]{max-height:calc(70vh - 180px);overflow:auto}
+  .municipio-popup .popup-more summary{padding:7px 0;color:var(--brand);font-size:11px;font-weight:750;cursor:pointer}
   .pop .abre.primary{display:block;width:100%;min-height:38px;margin-top:9px;border:1px solid var(--brand);border-radius:8px;background:var(--brand);color:#fff;font-size:12px;font-weight:750;cursor:pointer}
   .pop .abre.primary:hover{background:#0f6b4a}
   .scope-switch{display:inline-flex;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px;margin-top:1px}
@@ -114,6 +126,7 @@
   .print-meta{display:none;font-size:10.5px;line-height:1.35;color:#132019;margin-top:8px;border-top:1px solid #e0e6e1;padding-top:6px}
   #inset{position:absolute;left:10px;bottom:24px;width:172px;height:132px;z-index:650;
     border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);background:#fff}
+  #map.popup-open #inset{visibility:hidden;pointer-events:none}
   .leg-btn{margin-top:8px;font-size:11.5px;font-weight:650;border:1px solid var(--line);
     background:#fff;color:var(--muted);border-radius:8px;padding:4px 9px;cursor:pointer;min-height:26px}
   a.leg-btn{text-decoration:none;display:inline-block}
@@ -370,6 +383,8 @@
     aside{padding:12px 10px 32px}
     .concept-note{position:relative;top:auto;margin:0 0 8px}
     .tool-grid{grid-template-columns:1fr}
+    .quick-actions{grid-template-columns:1fr 1fr}
+    .quick-actions a,.quick-actions button{min-height:40px;font-size:11px}
     .ind-group{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;width:100%}
     .ind-group-title{grid-column:1/-1}
     .ind button{width:100%;min-width:0;max-width:none;padding:5px 6px;font-size:10.5px;overflow-wrap:anywhere}
@@ -378,7 +393,9 @@
     .leaflet-popup{max-width:calc(100vw - 12px)!important}
     .leaflet-popup-content-wrapper{max-width:calc(100vw - 20px)!important}
     .leaflet-popup-content{width:auto!important;max-width:calc(100vw - 48px)!important;margin:12px 10px}
-    .map-hint{left:8px;bottom:8px;max-width:calc(100% - 16px);font-size:11px}
+    .municipio-popup{max-height:calc(52vh - 20px)}
+    .municipio-popup .popup-more[open]{max-height:calc(52vh - 180px)}
+    .map-hint{left:8px;bottom:100px;max-width:calc(100% - 16px);font-size:11px}
     .comparacao-wrap{padding:20px 8px 12px}
     .comparacao-inner{padding:14px 10px;border-radius:10px}
     .comparacao-inner h2{font-size:17px}
@@ -456,6 +473,11 @@
       <select id="busca"><option value="">— escolher um município —</option></select>
       <div class="scope-help" id="municipioAjuda">Escolha um município aqui ou clique diretamente no mapa para abrir setores censitários ou a grade 200 m.</div>
     </div>
+    <div class="quick-actions" role="group" aria-label="Ações rápidas">
+      <a href="#downloadAnchor" id="atalhoDownloads">↓ baixar dados</a>
+      <button type="button" id="imprimirAtalho">▣ imprimir</button>
+      <a href="#referenciasBox" id="atalhoReferencias">◇ Open Buildings e estradas</a>
+    </div>
     <div class="q">Indicador</div>
     <div class="indicator-search"><label for="indicadorBusca">Buscar indicador</label><input id="indicadorBusca" type="search" placeholder="Ex.: TEA, água, renda, hospitais" autocomplete="off"></div>
     <div class="ind grouped" id="ind" role="group" aria-label="Indicadores temáticos" tabindex="-1"></div>
@@ -479,7 +501,7 @@
         <button data-c="setor" class="on" aria-pressed="true">setor censitário</button>
         <button data-c="grade" aria-pressed="false">grade 200 m</button>
       </div>
-      <div class="scope-help">Depois de abrir o município, alterne entre setores censitários e grade 200 m sem perder o indicador escolhido.</div>
+      <div class="scope-help" id="gradeAjuda">Abra um município para ativar a grade 200 m; depois escolha setor censitário ou células de 200 m.</div>
     </div>
 
     <div class="q">Escala das cores</div>
@@ -549,7 +571,7 @@
     </div>
     <div class="svc-note">SGB, levantamento de 2025: 37 setores de risco setorizado somente em Santa Tereza. A camada mostra tipologia e grau do setor; não é mancha contínua nem inventário regional. Fora deles, ausência de polígono não significa ausência de perigo.</div>
 
-    <div class="q">Baixar e compartilhar</div>
+    <div class="q" id="downloadAnchor">Baixar e compartilhar</div>
     <div class="tool-grid">
       <button class="baixar" id="baixar" disabled>⬇ CSV da vista</button>
       <button class="baixar" id="baixarGeo" disabled>⬇ GeoJSON da vista</button>
@@ -1260,9 +1282,17 @@ function popup(p, extra){
   if (indicadorAtual?.agregado){
     linhas.push(`<tr><td>Fonte do agregado</td><td><small>IBGE Censo 2022 / SIDRA; município inteiro, não recorte setorial</small></td></tr>`);
   }
+  const municipioPopup = !!p.nome && !munAtual;
+  const valorAtual = municipioPopup ? valor(p) : NaN;
+  const textoAtual = Number.isFinite(valorAtual) ? rotulo(valorAtual) : "não publicado";
+  const actionSlot = municipioPopup ? `<div class="popup-action-slot" aria-label="Ações do município"></div>` : "";
+  const popupSummary = municipioPopup ? `<div class="popup-summary"><strong>Indicador na vista</strong><span>${escHTML(indicadorAtual?.nome || "Indicador atual")}</span><b>${escHTML(textoAtual)}</b></div>` : "";
+  const tabela = municipioPopup
+    ? `<details class="popup-more"><summary>Ver mulheres, crianças e todos os dados publicados</summary><table>${linhas.join("")}</table></details>`
+    : `<table>${linhas.join("")}</table>`;
   const titulo = p.nome || (naGrade ? "Célula da grade (200×200 m)" : "Setor "+p.setor);
   const scope = !munAtual && escopoEfetivo(INDS.find(i=>i.k===ind)) === "bacia" ? ` <span style="font-size:11px;color:#5c6b63">· somente na bacia</span>` : "";
-  return `<div class="pop"><b>${escHTML(titulo)}</b>${scope}${extra||""}<table>${linhas.join("")}</table></div>`;
+  return `<div class="pop${municipioPopup ? " municipio-popup" : ""}"><b>${escHTML(titulo)}</b>${actionSlot}${popupSummary}${scope}${extra||""}${tabela}</div>`;
 }
 
 const ehCat = ()=> !!(INDS.find(i=>i.k===ind)||{}).cat;
@@ -1595,6 +1625,19 @@ function rotuloAcaoDetalhe(){
 function descricaoAcaoDetalhe(){
   return camada === "grade" ? "ver população e domicílios da Grade Estatística 2022" : "ver mulheres, crianças, idosos e demais campos do Censo";
 }
+function mantemPopupVisivel(layer){
+  const mapEl=map?.getContainer?.(), popEl=layer?.getPopup?.()?.getElement?.();
+  if(!mapEl || !popEl) return;
+  const mr=mapEl.getBoundingClientRect(), r=popEl.getBoundingClientRect(), pad=10;
+  let dx=0, dy=0;
+  if(r.left < mr.left+pad) dx = mr.left+pad-r.left;
+  else if(r.right > mr.right-pad) dx = mr.right-pad-r.right;
+  if(r.top < mr.top+pad) dy = mr.top+pad-r.top;
+  else if(r.bottom > mr.bottom-pad) dy = mr.bottom-pad-r.bottom;
+  // Leaflet's panBy offset moves the map contents in the opposite direction
+  // of the desired popup correction.
+  if(dx || dy) map.panBy([-dx,-dy],{animate:false});
+}
 function sincronizaCamadaUI(){
   const gradeBtn = document.querySelector('#camadas [data-c="grade"]');
   const podeGrade = !!munAtual || (!!map && map.getZoom() >= 9);
@@ -1602,6 +1645,11 @@ function sincronizaCamadaUI(){
     gradeBtn.disabled = !podeGrade;
     gradeBtn.title = munAtual ? "Exibe a grade estatística 200 m do município aberto" : "Ao aproximar, escolha um município para abrir a grade estatística 200 m";
   }
+  const gradeAjuda=document.getElementById("gradeAjuda");
+  if (gradeAjuda) gradeAjuda.textContent = munAtual
+    ? "Escolha setor censitário para os indicadores do Censo ou grade 200 m para população e domicílios."
+    : (podeGrade ? "Você está aproximado: clique em um município e escolha setor censitário ou grade 200 m."
+                 : "Abra um município para ativar a grade 200 m; ao aproximar, você poderá escolher a unidade.");
   document.querySelectorAll("#camadas button").forEach(x=>{
     const ativo=x.dataset.c===camada;
     x.classList.toggle("on",ativo); x.setAttribute("aria-pressed",ativo?"true":"false");
@@ -2556,6 +2604,7 @@ document.getElementById("imprimir").onclick = ()=>{
   if (printDialog?.showModal){ printDialog.showModal(); window.setTimeout(()=>document.getElementById("printConfirm")?.focus(),0); }
   else window.print();
 };
+document.getElementById("imprimirAtalho")?.addEventListener("click",()=>document.getElementById("imprimir")?.click());
 document.getElementById("printCancel").onclick = ()=>{ printing=false; printDialog.close(); };
 printDialog?.addEventListener("close",()=>{ if(!printing)limpaModoImpressao(); if(!printing && printTrigger?.focus)printTrigger.focus(); });
 document.getElementById("printConfirm").onclick = ()=>{
@@ -2697,9 +2746,9 @@ function montaReferenciasUI(){
   if(!svc || !nota) return;
   const group=document.createElement("div"); group.className="ind"; group.id="referencias"; group.setAttribute("role","group"); group.setAttribute("aria-label","Camadas de referência territorial");
   const roads=document.createElement("button"); roads.type="button"; roads.id="estradasBtn"; roads.textContent="Estradas DAER/RS"; roads.setAttribute("aria-pressed","false"); roads.title="Rodovias registradas pelo DAER, consultadas na janela visível";
-  const buildings=document.createElement("button"); buildings.type="button"; buildings.id="openBuildingsBtn"; buildings.textContent="Open Buildings v3"; buildings.setAttribute("aria-pressed","false"); buildings.title="Cobertura dos tiles públicos de footprints do Google Open Buildings v3";
+  const buildings=document.createElement("button"); buildings.type="button"; buildings.id="openBuildingsBtn"; buildings.textContent="Edificações estimadas · Open Buildings v3"; buildings.setAttribute("aria-pressed","false"); buildings.title="Cobertura das células S2 públicas de footprints do Google Open Buildings v3; não são endereços nem uso dos imóveis";
   group.append(roads,buildings);
-  const rn=document.createElement("div"); rn.className="reference-note"; rn.id="referenciaNota"; rn.textContent="Estradas são carregadas na janela visível a partir do DAER. Open Buildings mostra a cobertura das células e o link dos footprints; os arquivos completos são muito grandes para carregar automaticamente.";
+  const rn=document.createElement("div"); rn.className="reference-note"; rn.id="referenciaNota"; rn.textContent="Estradas são carregadas na janela visível a partir do DAER. Open Buildings mostra 3 células S2 e a contagem estimada de edifícios; os footprints completos são externos (aprox. 198 MB a 1,1 GB) e não indicam endereço, uso ou ocupação.";
   const box=document.createElement("details"); box.className="reference-box"; box.id="referenciasBox";
   const summary=document.createElement("summary"); summary.textContent="Camadas de referência";
   box.append(summary,group,rn);
@@ -2725,6 +2774,10 @@ function montaReferenciasUI(){
   }
 }
 montaReferenciasUI();
+document.getElementById("atalhoReferencias")?.addEventListener("click",()=>{
+  const box=document.getElementById("referenciasBox");
+  if (box) box.open=true;
+});
 function preparaNotaReferencia(){
   const rn=document.getElementById("referenciaNota");
   if(!rn || rn.dataset.statusReady) return;
@@ -2870,17 +2923,27 @@ carrega("municipios.geojson").then(gj=>{
       l.on("click", encaminhaCliqueSelecao);
       l.on("dblclick", e=>{ if(selectionMode){ L.DomEvent.stop(e); return; } abreMunicipio(p.cod_mun); });
       l.on("popupopen", ()=>{
+        document.getElementById("map")?.classList.add("popup-open");
         const el = l.getPopup().getElement();
         acessibilizaPopup(l, `Informações de ${p.nome}`);
         const localStatus=document.getElementById("localFlowStatus");
         if(localStatus) localStatus.innerHTML=`<strong>${escHTML(p.nome)}</strong> selecionado · clique em “${rotuloAcaoDetalhe()}” para abrir o detalhe local e ${descricaoAcaoDetalhe()}.`;
-        if (!el || el.querySelector(".abre")) return;
+        if (!el) return;
+        const more=el.querySelector(".popup-more");
+        if (more && !more.dataset.viewportGuard){
+          more.addEventListener("toggle",()=>requestAnimationFrame(()=>mantemPopupVisivel(l)));
+          more.dataset.viewportGuard="1";
+        }
+        if (el.querySelector(".abre")){ requestAnimationFrame(()=>mantemPopupVisivel(l)); return; }
         const btn = document.createElement("button");
          btn.className = "abre primary"; btn.type = "button"; btn.dataset.codMun = String(p.cod_mun); btn.dataset.nomeMun = p.nome; btn.textContent = `${rotuloAcaoDetalhe()} →`;
         btn.setAttribute("aria-label", `${rotuloAcaoDetalhe()} de ${p.nome}`);
         btn.onclick = ()=>{ detalheFocoPendente = document.activeElement === btn; map.closePopup(); abreMunicipio(p.cod_mun); };
-        el.querySelector(".pop").appendChild(btn);
+         const slot = el.querySelector(".popup-action-slot") || el.querySelector(".pop");
+         slot?.appendChild(btn);
+         requestAnimationFrame(()=>mantemPopupVisivel(l));
       });
+      l.on("popupclose",()=>document.getElementById("map")?.classList.remove("popup-open"));
     }
   }).addTo(map);
   map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
