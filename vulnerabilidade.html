@@ -110,7 +110,7 @@
   .legend .sw-icm{height:14px;border-radius:3px;font-size:10px;line-height:12px;text-align:center;font-weight:800;color:#fff;text-shadow:0 1px 1px #0008}
   .legend .sw-icm.icm-B,.legend .sw-icm.icm-C{color:#132019;text-shadow:none}
   .svc-marker-wrap{background:transparent;border:0;width:28px!important;height:28px!important;display:flex;align-items:center;justify-content:center}
-  .svc-marker{display:flex;width:22px;height:22px;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px #0008;font:800 11px/1 Tahoma,Verdana,sans-serif;color:#fff;text-shadow:0 1px 1px #0008}
+  .svc-marker{display:flex;width:22px;height:22px;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px #0008;font:800 11px/1 Tahoma,Verdana,sans-serif;color:#fff;text-shadow:0 1px 1px #0008;pointer-events:none}
   .svc-marker.svc-hospitais{background:#d73027;border-radius:50%}
   .svc-marker.svc-ubs{background:#2166ac;border-radius:4px}
   .svc-marker.svc-escolas{background:#fdae61;color:#132019;text-shadow:none;clip-path:polygon(50% 0,100% 100%,0 100%);border-radius:0}
@@ -2230,6 +2230,23 @@ document.getElementById("baixarSelecaoGeo").onclick=()=>{
 document.getElementById("baixarFicha").onclick=fichaSelecao;
 document.addEventListener("keydown",e=>{if(e.key==="Escape" && selectionMode){selectionMode=false;selectionStart=null;document.getElementById("map")?.classList.remove("selection-mode");atualizaBotaoSelecao();informa("Desenho cancelado; a seleção anterior foi mantida.");}});
 
+// Mantém o indicador IEDE e a camada de pontos sincronizados. Antes, clicar
+// em um indicador de serviço apenas recoloria os municípios; os marcadores
+// ficavam desligados.
+function ativaServicoDoIndicador(d){
+  const chave = d?.svc ? String(d.k).replace(/^svc_/, "") : "";
+  if(!chave) return;
+  let camadas;
+  try { camadas = svcLayers; } catch (_e) { return; }
+  const botao = [...document.querySelectorAll("#svc button")]
+    .find(x=>x.dataset.service===chave);
+  if(!botao) return;
+  const camadaServico = camadas[chave];
+  if(camadaServico === "carregando") return;
+  if(camadaServico && map.hasLayer(camadaServico)) return;
+  botao.click();
+}
+
 // ---- montagem ----
 const indDiv = document.getElementById("ind");
 const gruposInd = new Map();
@@ -2273,6 +2290,11 @@ INDS.forEach(d=>{
     document.getElementById("editfx").style.display = d.cat ? "none" : "";
     if (d.cat){ document.getElementById("fxbox").hidden = true; document.getElementById("editfx").classList.remove("on"); document.getElementById("editfx").setAttribute("aria-expanded","false"); }
     repinta();
+    // Os indicadores IEDE representam os mesmos pontos cadastrados que a
+    // camada de serviços. Ao escolher Hospitais/UBS/Escolas/Bombeiros no
+    // painel, ligamos também os marcadores correspondentes para que o clique
+    // produza o detalhe espacial esperado, e não apenas a cor municipal.
+    ativaServicoDoIndicador(d);
     sincronizaURL();
     informa(`Indicador ${d.nome} · ${escopoComparacao()}.`);
     if(document.getElementById("triagem")?.open) geraTriagem();
@@ -2714,6 +2736,8 @@ map.createPane("servicos").style.zIndex = 450;   // pontos de serviços sempre a
 map.createPane("bacia").style.zIndex = 460;      // limite analítico visível sobre os municípios
 map.createPane("mascara").style.zIndex = 250;    // véu abaixo dos polígonos/pontos, acima dos tiles
 map.getPane("mascara").style.pointerEvents = "none";
+// O contorno da bacia e informativo e nao deve capturar cliques das camadas abaixo.
+map.getPane("bacia").style.pointerEvents = "none";
 const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                         {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -3036,7 +3060,7 @@ carrega("downloads/catalogo.json").then(d=>{
 
 // contorno oficial da bacia (gerado pelo robô; se ainda não existir, segue sem)
 carrega("bacia.geojson").then(gj=>{
-  L.geoJSON(gj, {style:{fill:false, color:"#0c2a22", weight:2.2, dashArray:"6 4"}}).addTo(map);
+  L.geoJSON(gj, {pane:"bacia", interactive:false, style:{fill:false, color:"#0c2a22", weight:2.2, dashArray:"6 4"}}).addTo(map);
 }).catch(()=>{});
 
 // camadas de serviços públicos (robô do IEDE) — carregadas sob demanda
@@ -3050,6 +3074,7 @@ const SVC = [
 const svcLayers = {};
 SVC.forEach(s=>{
   const b = document.createElement("button");
+  b.dataset.service = s.k;
   b.type = "button"; b.setAttribute("aria-pressed", "false"); b.setAttribute("aria-busy", "false");
   b.innerHTML = `<span class="svc-key svc-${s.k}" aria-hidden="true">${s.letra}</span> ${s.nome}`;
   b.onclick = ()=>{
@@ -3087,6 +3112,19 @@ SVC.forEach(s=>{
       }).addTo(map);
       b.disabled = false; b.setAttribute("aria-busy", "false"); b.classList.add("on");
       b.dataset.erro = ""; b.setAttribute("aria-pressed", "true");
+      const total = Array.isArray(gj.features) ? gj.features.length : 0;
+      const visiveis = svcLayers[s.k].getLayers().filter(x=>x.getLatLng && map.getBounds().contains(x.getLatLng())).length;
+      b.title = `${s.nome}: ${total} pontos cadastrados; ${visiveis} na janela atual`;
+      informa(`${s.nome}: ${total} pontos cadastrados no mapa; ${visiveis} na janela atual. Ausência não prova ausência do serviço.`);
+      // No celular o botão fica abaixo do mapa. Voltar ao mapa depois do
+      // carregamento torna visível o resultado do clique imediatamente.
+      if (window.matchMedia("(max-width: 760px)").matches){
+        // O mapa fica no topo; voltar ao topo evita cabecalho sobreposto e
+        // preserva a area de clique dos marcadores no celular.
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        window.scrollTo(0, 0);
+      }
       atualizaPrintMeta();
     }).catch(()=>{                       // camada ainda não publicada (ex.: UBS)
       svcLayers[s.k] = null;
@@ -3100,6 +3138,11 @@ SVC.forEach(s=>{
 
 // Perigo fica em uma família separada dos indicadores sociais. Esta camada é
 // oficial, mas cobre apenas Santa Tereza; não é extrapolada para a bacia.
+// Se a URL ja abrir em um indicador de servico, liga os pontos desde o
+// primeiro carregamento, sem exigir um segundo clique escondido.
+const indicadorInicialServico = INDS.find(d=>d.k===ind);
+if (indicadorInicialServico?.svc) ativaServicoDoIndicador(indicadorInicialServico);
+
 const perigoBtn = document.createElement("button");
 perigoBtn.type = "button";
 perigoBtn.textContent = "SGB · risco setorizado (Santa Tereza)";
