@@ -183,6 +183,51 @@ def main() -> int:
 
     # Contrato de codificação dos ativos consumidos por terceiros.
     read_json(VULN / "indicadores_municipios.json")
+    # Agregados municipais oficiais recuperados a partir do Censo/SIDRA. Eles
+    # são publicados como arquivos separados e nunca substituem os campos
+    # setoriais *_bacia da camada principal.
+    agregados_json = read_json(REFERENCIAS / "agregados_taquari_indicadores.json")
+    agregados_rows = agregados_json.get("municipios", [])
+    assert len(agregados_rows) == len(codes), "agregados normalizados sem os 118 municípios"
+    assert {str(row.get("cod_mun")) for row in agregados_rows} == codes, "agregados com códigos municipais divergentes"
+    assert (REFERENCIAS / "README_AGREGADOS_TAQUARI.md").read_text(encoding="utf-8").strip()
+    dict_path = REFERENCIAS / "DICIONARIO_AGREGADOS_TAQUARI.csv"
+    dict_fields, dict_rows = csv_rows(dict_path)
+    assert {"campo", "unidade", "universo", "fonte", "observacao"} <= set(dict_fields)
+    assert len(dict_rows) >= 30, "dicionário dos agregados incompleto"
+    aggregate_csvs = {
+        DOWNLOADS / "Agregados_taquari_pessoa.csv",
+        DOWNLOADS / "Agregados_taquari_domicilio.csv",
+        DOWNLOADS / "Agregados_taquari_entorno.csv",
+        DOWNLOADS / "Agregados_taquari_PCD_TEA_municipio.csv",
+    }
+    for path in aggregate_csvs:
+        fields, rows = csv_rows(path)
+        assert len(rows) == len(codes), f"{path}: esperado um registro por município"
+        assert len(fields) == len(set(fields)), f"{path}: cabeçalhos duplicados"
+        assert {str(row.get("CD_MUN")) for row in rows} == codes, f"{path}: códigos divergentes"
+    pcd_rows = {str(row["CD_MUN"]): row for row in csv_rows(DOWNLOADS / "Agregados_taquari_PCD_TEA_municipio.csv")[1]}
+    for row in agregados_rows:
+        for key in ("pcd_pct_2mais", "tea_pct"):
+            value = row.get(key)
+            assert value is None or 0 <= float(value) <= 100, f"agregado/{row.get('cod_mun')}/{key}: percentual inválido"
+        for key in ("pcd_pessoas_2mais", "tea_pessoas", "dom_improvisados", "dom_coletivos_com_morador"):
+            value = row.get(key)
+            assert value is None or float(value) >= 0, f"agregado/{row.get('cod_mun')}/{key}: contagem negativa"
+    assert pcd_rows["4312351"]["tea_pessoas"] == "", "TEA ausente deve permanecer vazio, não zero"
+    municipal_fields, municipal_rows = csv_rows(DOWNLOADS / "municipios_combinados.csv")
+    municipal_by_code = {str(row["cod_mun"]): row for row in municipal_rows}
+    assert set(municipal_by_code) == codes, "municípios combinados sem a chave municipal completa"
+    for key in ("mulheres", "indigenas", "pretos_pardos", "entorno_faces_total", "entorno_moradores_total"):
+        alias = f"mun_{key}"
+        assert alias in municipal_fields, f"alias oficial ausente no GIS: {alias}"
+        for row in agregados_rows:
+            expected = row.get(key)
+            actual = municipal_by_code[str(row["cod_mun"])].get(alias, "")
+            if expected is None:
+                assert actual in {"", "None", "null"}, f"alias {alias} deveria permanecer vazio"
+            else:
+                assert abs(float(actual) - float(expected)) < 1e-9, f"alias {alias} divergente em {row['cod_mun']}"
     servicos = read_json(ROOT / "assets" / "data" / "servicos" / "contagem_municipios.json")
     assert servicos.get("gerado_em_utc"), "contagem de serviços sem data de captura do pacote"
 
@@ -269,6 +314,7 @@ def main() -> int:
     assert tiles and all((f.get("properties") or {}).get("tile_url") for f in tiles), "índice Open Buildings sem URLs"
     assert (REFERENCIAS / "README.md").read_text(encoding="utf-8").strip(), "README das referências vazio"
     assert "Estradas DAER/RS" in html and "Open Buildings" in html and "Resiliência" in html, "novas referências não declaradas na página"
+    assert "Agregados_taquari_PCD_TEA_municipio.csv" in html and "agregados_taquari_indicadores.json" in html, "agregados oficiais não declarados na página"
 
     # Export contracts carry enough provenance to be usable outside the map;
     # keep the triage metadata/specification alongside the CSVs.
@@ -302,6 +348,11 @@ def main() -> int:
             "metadados/ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.json",
             "referencias/resiliencia_municipios.json",
             "referencias/open_buildings_tiles.geojson",
+            "referencias/agregados_taquari_indicadores.json",
+            "agregados/Agregados_taquari_pessoa.csv",
+            "agregados/Agregados_taquari_domicilio.csv",
+            "agregados/Agregados_taquari_entorno.csv",
+            "agregados/Agregados_taquari_PCD_TEA_municipio.csv",
         ):
             assert required in names, f"ZIP sem export/metadado: {required}"
 

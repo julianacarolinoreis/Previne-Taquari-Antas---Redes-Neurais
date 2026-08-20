@@ -495,6 +495,27 @@ def main() -> None:
 
     municipios_fc = ler_json(VULN / "municipios.geojson")
     municipios = [feature["properties"] for feature in municipios_fc["features"]]
+    # Agregados oficiais municipais (Censo/SIDRA) entram nos downloads GIS
+    # por chave cod_mun. Eles são mantidos como campos próprios e não
+    # substituem os campos setoriais ou *_bacia do produto principal.
+    agregados_path = VULN / "referencias" / "agregados_taquari_indicadores.json"
+    if agregados_path.exists():
+        agregados = ler_json(agregados_path).get("municipios", [])
+        agregados_por_cod = {str(m.get("cod_mun")): m for m in agregados}
+        if set(agregados_por_cod) != {str(m.get("cod_mun")) for m in municipios}:
+            raise RuntimeError("agregados municipais com cobertura diferente da malha")
+        for props in municipios:
+            extra = agregados_por_cod[str(props["cod_mun"])]
+            for key, value in extra.items():
+                if key in {"cod_mun", "nome"}:
+                    continue
+                # Campos já usados pelo produto (por exemplo mulheres,
+                # indígenas e pretos_pardos) continuam sendo a série setorial
+                # agregada do mapa. O valor municipal oficial recebe sempre
+                # um alias mun_* para não haver colisão semântica nos GIS.
+                props.setdefault(key, value)
+                props[f"mun_{key}"] = value
+            props.setdefault("agregados_ibge_referencia", "Censo 2022")
     mun_por_cod = {str(m["cod_mun"]): m for m in municipios}
     codigos = set(mun_por_cod)
     if len(codigos) != len(municipios):
@@ -1044,6 +1065,10 @@ def main() -> None:
                 for p in sorted((VULN / "referencias").glob("*"))
                 if p.is_file()
             ],
+            "agregados/Agregados_taquari_pessoa.csv",
+            "agregados/Agregados_taquari_domicilio.csv",
+            "agregados/Agregados_taquari_entorno.csv",
+            "agregados/Agregados_taquari_PCD_TEA_municipio.csv",
         ],
     }
     gravar_json(catalogo_path, catalogo)
@@ -1064,6 +1089,7 @@ O pacote contém:
 - perigo/: setores oficiais de risco do SGB em Santa Tereza (levantamento 2025);
 - referencias/resiliencia_municipios.json: IRM V1 municipal, com cobertura e unknown declarados;
 - referencias/open_buildings_tiles.geojson: cobertura leve dos tiles Open Buildings v3;
+- agregados/: CSVs oficiais filtrados do IBGE/SIDRA (pessoas, domicílios, entorno e PcD/TEA), todos municipais;
 - shapefiles_arcgis_qgis.zip: camadas para ArcGIS/QGIS (EPSG:4326, UTF-8);
 - geopackage_arcgis_qgis.zip: um GeoPackage com campos completos para QGIS/ArcGIS Pro;
 - fontes/: documentação de origem.
@@ -1073,7 +1099,7 @@ Grão e junções:
 - indicadores sem prefixo são do setor ou do município indicado pelo nome do arquivo;
 - campos mun_* repetidos no setor são atributos municipais, não dados setoriais;
 - na_bacia=1 identifica o recorte setorial adotado pelo projeto;
-- nos municípios, campos sem prefixo (e aliases *_mun) são o agregado municipal inteiro;
+- nos municípios, campos sem prefixo preservados pelo mapa e aliases mun_* são o agregado municipal inteiro;
 - pop_bacia e os campos *_bacia são o recorte dos setores cujo ponto representativo
   está dentro do limite; *_bacia_n_validos, *_bacia_n_total e *_bacia_completude
   mostram quanto foi publicado e n_setores_bacia mostra o denominador espacial;
@@ -1136,6 +1162,15 @@ Leia catalogo.json para os testes de qualidade e advertências.
     for path in sorted((VULN / "referencias").glob("*")):
         if path.is_file():
             zip_files.append((f"referencias/{path.name}", bytes_portaveis(path)))
+    for name in (
+        "Agregados_taquari_pessoa.csv",
+        "Agregados_taquari_domicilio.csv",
+        "Agregados_taquari_entorno.csv",
+        "Agregados_taquari_PCD_TEA_municipio.csv",
+    ):
+        path = OUT / name
+        if path.exists():
+            zip_files.append((f"agregados/{name}", bytes_portaveis(path)))
     zip_deterministico(OUT / "dados_combinados_taquari_antas.zip", zip_files)
 
     print(json.dumps(catalogo["contagens"], ensure_ascii=False, indent=2))
