@@ -421,7 +421,7 @@
     .leaflet-popup-content{width:auto!important;max-width:calc(100vw - 48px)!important;margin:12px 10px}
     .municipio-popup{max-height:calc(52vh - 20px)}
     .municipio-popup .popup-more[open]{max-height:calc(52vh - 180px)}
-    .map-hint{left:auto;right:8px;top:74px!important;bottom:auto!important;max-width:calc(100% - 16px);font-size:11px}
+    .map-hint{left:8px;right:8px;top:110px!important;bottom:auto!important;max-width:none;max-height:46px;overflow:auto;font-size:11px}
     .leaflet-popup-content{max-height:calc(52vh - 34px);overflow:auto}
     .comparacao-wrap{padding:20px 8px 12px}
     .comparacao-inner{padding:14px 10px;border-radius:10px}
@@ -2968,11 +2968,12 @@ function carregaEstradas(){
   fetch(`${DAER_RODOVIAS_URL}?${qs.toString()}`,{credentials:"omit"}).then(r=>{if(!r.ok)throw new Error("DAER "+r.status);return r.json();}).then(gj=>{
     if(!estradasAtiva) return;
     if(estradasLayer)map.removeLayer(estradasLayer);
-    estradasLayer=L.geoJSON(gj,{pane:"referencias",renderer:L.svg(),style:f=>({color:"#e36c18",weight:map.getZoom()>=11?2.6:1.7,opacity:.9}),onEachFeature:(f,l)=>{
+    estradasLayer=L.geoJSON(gj,{pane:"referencias",renderer:L.svg(),bubblingMouseEvents:false,style:f=>({color:"#e36c18",weight:map.getZoom()>=11?2.6:1.7,opacity:.9}),onEachFeature:(f,l)=>{
       const p=f.properties||{}, nome=p.nome||p.nome_rodovia||p.codigo_sre||"trecho DAER";
       l.bindPopup(`<div class="pop"><b>${escHTML(nome)}</b><table><tr><td>Situação</td><td>${escHTML(p.situacao_fisica||"—")}</td></tr><tr><td>Administração</td><td>${escHTML(p.administracao||"—")}</td></tr><tr><td>Extensão SRE</td><td>${p.extensao_sre_km==null?"—":escHTML(p.extensao_sre_km)+" km"}</td></tr></table><small>DAER/RS · trecho registrado, não é tempo de viagem.</small>${p.cod_mun?`<button type="button" class="popup-municipio-action" data-cod-mun="${escHTML(p.cod_mun)}">abrir ficha municipal</button>`:""}</div>`);
       acessibilizaFeicaoMapa(l, `Estrada DAER: ${nome}`);
-      l.on("click", e=>L.DomEvent.stop(e));
+      l.on("preclick", e=>{if(e.originalEvent?.stopImmediatePropagation)e.originalEvent.stopImmediatePropagation();});
+      l.on("click", e=>{L.DomEvent.stop(e);l.openPopup();});
       l.on("popupopen",()=>{acessibilizaPopup(l,`Estrada DAER: ${nome}`);adicionaAcaoMunicipioPopup(l,p.cod_mun);});
     }}).addTo(map);
     const truncado=!!gj.exceededTransferLimit || (gj.features?.length||0)>=2000;
