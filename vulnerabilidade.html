@@ -99,7 +99,7 @@
   .popup-context-banner{margin:7px 0;padding:7px 8px;border:1px solid #b9d8c6;border-radius:7px;background:#f2faf5;color:#315547;font-size:10.5px;line-height:1.35}
   .popup-context-banner b{color:var(--brand)}
   .leaflet-popup-content{max-height:calc(70vh - 34px);overflow:auto}
-  .svc-overlap-list{margin:7px 0 0;padding:0;list-style:none;display:grid;gap:5px}
+  .svc-overlap-list{margin:7px 0 0;padding:0;list-style:none;display:grid;gap:5px;max-height:240px;overflow:auto}
   .svc-overlap-list button{display:block;width:100%;min-height:32px;padding:6px 8px;border:1px solid #b9d8c6;border-radius:7px;background:#f2faf5;color:#14563d;text-align:left;font:700 11px/1.25 inherit;cursor:pointer}
   .svc-overlap-list button:hover,.svc-overlap-list button:focus-visible{border-color:var(--brand);background:#e5f3ea}
   .reference-sources{margin-top:7px;padding-top:6px;border-top:1px solid #dfe9e2;font-size:10.5px;line-height:1.35}
@@ -3266,7 +3266,9 @@ function pontosServicosProximos(marker){
     layer.eachLayer(outro=>{
       if(!outro?.getLatLng) return;
       const p=map.latLngToContainerPoint(outro.getLatLng());
-      if(origem.distanceTo(p)<=22) encontrados.push(outro);
+      // Agrupa apenas símbolos realmente coincidentes (ou quase coincidentes),
+      // não pontos distintos que apenas estão próximos em zoom afastado.
+      if(origem.distanceTo(p)<=8) encontrados.push(outro);
     });
   });
   return encontrados.length ? encontrados : [marker];
@@ -3274,8 +3276,8 @@ function pontosServicosProximos(marker){
 function htmlEscolhaPontosServicos(pontos){
   return `<div class="pop"><b>Mais de um ponto neste local</b><br><small>Escolha qual cadastro deseja consultar:</small><ul class="svc-overlap-list">${pontos.map((p,i)=>`<li><button type="button" data-svc-choice="${i}">${escHTML(p._svcRotulo||"Ponto cadastrado")}</button></li>`).join("")}</ul><small>Os pontos podem compartilhar coordenadas; a escolha não altera os dados publicados.</small></div>`;
 }
-function abrePopupServico(marker){
-  const pontos=pontosServicosProximos(marker);
+function abrePopupServico(marker, direto=false){
+  const pontos=direto ? [marker] : pontosServicosProximos(marker);
   marker._svcEscolhas=pontos.length>1 ? pontos : null;
   const html=marker._svcEscolhas ? htmlEscolhaPontosServicos(pontos) : marker._svcHtml;
   marker.unbindPopup?.();
@@ -3335,7 +3337,7 @@ SVC.forEach(s=>{
               popupEl?.querySelectorAll("[data-svc-choice]").forEach(btn=>btn.addEventListener("click", ev=>{
                 ev.preventDefault(); ev.stopPropagation();
                 const escolhido=escolhas[Number(btn.dataset.svcChoice)];
-                if(escolhido) { map.closePopup(); requestAnimationFrame(()=>abrePopupServico(escolhido)); }
+                if(escolhido) { map.closePopup(); requestAnimationFrame(()=>abrePopupServico(escolhido,true)); }
               }));
               return;
             }
