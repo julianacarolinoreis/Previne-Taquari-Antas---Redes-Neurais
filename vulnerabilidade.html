@@ -3001,6 +3001,18 @@ document.getElementById("estradasBtn")?.addEventListener("click",()=>{
   carregaEstradas();
 });
 map.on("moveend",()=>{if(estradasAtiva)carregaEstradas();});
+// Em telas pequenas um clique na linha pode atingir primeiro o polígono
+// municipal subjacente. A captura no mapa reconstrói o alvo geométrico DAER
+// antes do bubbling e abre o trecho correto sem alterar a seleção municipal.
+map.getContainer().addEventListener("click",ev=>{
+  if(!estradasAtiva || !estradasLayer || !map.hasLayer(estradasLayer)) return;
+  const rect=map.getContainer().getBoundingClientRect();
+  const cp=L.point(ev.clientX-rect.left,ev.clientY-rect.top);
+  const lp=map.containerPointToLayerPoint(cp);
+  let hit=null;
+  estradasLayer.eachLayer(l=>{if(!hit && typeof l._containsPoint === "function" && l._containsPoint(lp)) hit=l;});
+  if(hit){ev.preventDefault();ev.stopImmediatePropagation();hit.openPopup();}
+},true);
 
 function carregaOpenBuildings(){
   const b=document.getElementById("openBuildingsBtn");
