@@ -34,7 +34,7 @@
   header a.back{margin-left:auto;font-size:12px;color:var(--brand);font-weight:650;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--bg)}
   main{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:calc(100vh - 55px)}
   #map{position:relative;background:var(--bg)}
-  .map-hint{position:absolute;right:12px;top:74px;z-index:700;max-width:min(310px,calc(100% - 24px));padding:8px 10px;border:1px solid rgba(15,107,74,.35);border-radius:8px;background:rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(20,45,35,.12);color:var(--ink);font-size:11.5px;line-height:1.35;font-weight:700;pointer-events:none}
+  .map-hint{position:absolute;right:12px;top:74px;bottom:auto;z-index:700;max-width:min(310px,calc(100% - 24px));padding:8px 10px;border:1px solid rgba(15,107,74,.35);border-radius:8px;background:rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(20,45,35,.12);color:var(--ink);font-size:11.5px;line-height:1.35;font-weight:700;pointer-events:none}
   .map-hint[hidden]{display:none}
   .dataset-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:8px 0 10px;padding:6px;border:1px solid var(--line);border-radius:9px;background:#f7faf8}
   .dataset-stat{min-width:0;padding:5px 4px;text-align:center;border-right:1px solid var(--line)}
@@ -98,6 +98,10 @@
   .municipio-popup .popup-more summary{padding:7px 0;color:var(--brand);font-size:11px;font-weight:750;cursor:pointer}
   .popup-context-banner{margin:7px 0;padding:7px 8px;border:1px solid #b9d8c6;border-radius:7px;background:#f2faf5;color:#315547;font-size:10.5px;line-height:1.35}
   .popup-context-banner b{color:var(--brand)}
+  .leaflet-popup-content{max-height:calc(70vh - 34px);overflow:auto}
+  .svc-overlap-list{margin:7px 0 0;padding:0;list-style:none;display:grid;gap:5px}
+  .svc-overlap-list button{display:block;width:100%;min-height:32px;padding:6px 8px;border:1px solid #b9d8c6;border-radius:7px;background:#f2faf5;color:#14563d;text-align:left;font:700 11px/1.25 inherit;cursor:pointer}
+  .svc-overlap-list button:hover,.svc-overlap-list button:focus-visible{border-color:var(--brand);background:#e5f3ea}
   .pop .abre.primary{display:block;width:100%;min-height:38px;margin-top:9px;border:1px solid var(--brand);border-radius:8px;background:var(--brand);color:#fff;font-size:12px;font-weight:750;cursor:pointer}
   .pop .abre.primary:hover{background:#0f6b4a}
   .popup-municipio-action{display:block;width:100%;min-height:32px;margin-top:8px;border:1px solid #b9d8c6;border-radius:7px;background:#f2faf5;color:var(--brand);font-size:11px;font-weight:750;cursor:pointer}
@@ -414,7 +418,8 @@
     .leaflet-popup-content{width:auto!important;max-width:calc(100vw - 48px)!important;margin:12px 10px}
     .municipio-popup{max-height:calc(52vh - 20px)}
     .municipio-popup .popup-more[open]{max-height:calc(52vh - 180px)}
-    .map-hint{left:8px;bottom:100px;max-width:calc(100% - 16px);font-size:11px}
+    .map-hint{left:auto;right:8px;top:74px!important;bottom:auto!important;max-width:calc(100% - 16px);font-size:11px}
+    .leaflet-popup-content{max-height:calc(52vh - 34px);overflow:auto}
     .comparacao-wrap{padding:20px 8px 12px}
     .comparacao-inner{padding:14px 10px;border-radius:10px}
     .comparacao-inner h2{font-size:17px}
@@ -494,7 +499,7 @@
     </details>
     <div class="quick-actions" role="group" aria-label="Ações rápidas">
       <a href="#downloadAnchor" id="atalhoDownloads">↓ baixar dados</a>
-      <button type="button" id="imprimirAtalho">▣ imprimir</button>
+      <button type="button" id="imprimirAtalho">▣ imprimir / PDF</button>
       <a href="#referenciasBox" id="atalhoReferencias">◇ referências: estradas, cobertura e óbitos</a>
       <a href="#legendHeading" id="atalhoLegenda">▤ legenda</a>
       <a href="#localFlow" id="atalhoDetalhe">↳ setor / grade</a>
@@ -689,7 +694,7 @@
     <label><input type="radio" name="printMode" value="map-table"> <span><b>Mapa + tabela filtrada</b><br><small>Mostra todos os registros da tabela atual em uma folha de relatório.</small></span></label>
     <label><input type="radio" name="printMode" value="map-only"> <span><b>Somente o mapa</b><br><small>Sem painel, controles ou legenda.</small></span></label>
   </fieldset>
-  <div class="print-actions"><button type="button" id="printCancel">Cancelar</button><button type="button" class="primary" id="printConfirm">Abrir impressão</button></div>
+  <div class="print-actions"><button type="button" id="printCancel">Cancelar</button><button type="button" class="primary" id="printConfirm">Imprimir / salvar PDF</button></div>
 </dialog>
 
 <section class="expl">
@@ -984,7 +989,7 @@ function acessibilizaFeicaoMapa(layer, rotulo){
     el.addEventListener("keydown", event=>{
       if (event.key === "Enter" || event.key === " "){
         event.preventDefault();
-        layer.openPopup?.();
+        (layer.__previneOpenPopup || (()=>layer.openPopup?.()))();
       }
     });
   });
@@ -2993,7 +2998,7 @@ function carregaOpenBuildings(){
   if(openBuildingsLayer){const liga=!map.hasLayer(openBuildingsLayer);liga?openBuildingsLayer.addTo(map):map.removeLayer(openBuildingsLayer);openBuildingsAtiva=liga;b?.setAttribute("aria-pressed",liga?"true":"false");b?.classList.toggle("on",liga);atualizaReferenciaNota(liga?"Cobertura Open Buildings ligada: as linhas tracejadas são células S2, não prédios; abra uma célula para ver o download dos footprints.":"Cobertura Open Buildings desligada.");return;}
   if(b){b.disabled=true;b.setAttribute("aria-busy","true");} atualizaReferenciaNota("Carregando células públicas do Open Buildings v3…");
   carrega("referencias/open_buildings_tiles.geojson").then(gj=>{
-    openBuildingsLayer=L.geoJSON(gj,{pane:"referencias",renderer:L.svg(),style:{color:"#1769aa",weight:2,dashArray:"8 5",fillColor:"#d7ebf8",fillOpacity:.06},onEachFeature:(f,l)=>{const p=f.properties||{};l.bindPopup(`<div class="pop"><b>Open Buildings v3 · célula de cobertura S2 ${escHTML(p.tile_id||"—")}</b><table><tr><th scope="row">Tipo</th><td>célula de cobertura, não edificação individual</td></tr><tr><th scope="row">Edifícios estimados</th><td>${p.building_count==null?"—":fmt(+p.building_count)} na célula inteira</td></tr><tr><th scope="row">Download</th><td><a href="${escHTML(p.tile_url||"#")}" target="_blank" rel="noopener">abrir footprints CSV.gz</a></td></tr></table><small>O contorno tracejado mostra a célula S2 disponível; os footprints são derivados de imagens e não indicam uso, ocupação ou endereço.</small></div>`);acessibilizaFeicaoMapa(l,`Célula de cobertura Open Buildings ${p.tile_id||""}`);l.on("click", e=>L.DomEvent.stop(e));l.on("popupopen",()=>acessibilizaPopup(l,`Célula de cobertura Open Buildings ${p.tile_id||""}`));}}).addTo(map);
+    openBuildingsLayer=L.geoJSON(gj,{pane:"referencias",renderer:L.svg(),style:{color:"#1769aa",weight:2,dashArray:"8 5",fillColor:"#d7ebf8",fillOpacity:.06},onEachFeature:(f,l)=>{const p=f.properties||{};const tamanho=p.size_mb==null?"tamanho não informado":`${fmt(+p.size_mb)} MB externo`;l.bindPopup(`<div class="pop"><b>Open Buildings v3 · célula de cobertura S2 ${escHTML(p.tile_id||"—")}</b><table><tr><th scope="row">Tipo</th><td>célula de cobertura, não edificação individual</td></tr><tr><th scope="row">Edifícios estimados</th><td>${p.building_count==null?"—":fmt(+p.building_count)} na célula inteira</td></tr><tr><th scope="row">Download</th><td><a href="${escHTML(p.tile_url||"#")}" target="_blank" rel="noopener">abrir download externo · ${escHTML(tamanho)}</a></td></tr></table><small>O contorno tracejado mostra a célula S2 disponível; os footprints são derivados de imagens e não indicam uso, ocupação ou endereço.</small></div>`);acessibilizaFeicaoMapa(l,`Célula de cobertura Open Buildings ${p.tile_id||""}`);l.on("click", e=>L.DomEvent.stop(e));l.on("popupopen",()=>acessibilizaPopup(l,`Célula de cobertura Open Buildings ${p.tile_id||""}`));}}).addTo(map);
     openBuildingsAtiva=true;b?.removeAttribute("disabled");b?.setAttribute("aria-busy","false");b?.setAttribute("aria-pressed","true");b?.classList.add("on");
     atualizaReferenciaNota(`${gj.features?.length||0} célula(s) de cobertura Open Buildings na área de interesse. O contorno tracejado não representa edificações; footprints completos permanecem em tiles externos.`);
     b?.focus({preventScroll:true});
@@ -3248,6 +3253,30 @@ const SVC = [
   {k:"abrigos",   nome:"Abrigos cadastrados", cor:"#008c95", letra:"A"},
 ];
 const svcLayers = {};
+function pontosServicosProximos(marker){
+  if(!marker?.getLatLng || !map) return [marker];
+  const origem=map.latLngToContainerPoint(marker.getLatLng());
+  const encontrados=[];
+  Object.values(svcLayers).forEach(layer=>{
+    if(!layer || layer === "carregando" || !map.hasLayer(layer) || !layer.eachLayer) return;
+    layer.eachLayer(outro=>{
+      if(!outro?.getLatLng) return;
+      const p=map.latLngToContainerPoint(outro.getLatLng());
+      if(origem.distanceTo(p)<=22) encontrados.push(outro);
+    });
+  });
+  return encontrados.length ? encontrados : [marker];
+}
+function htmlEscolhaPontosServicos(pontos){
+  return `<div class="pop"><b>Mais de um ponto neste local</b><br><small>Escolha qual cadastro deseja consultar:</small><ul class="svc-overlap-list">${pontos.map((p,i)=>`<li><button type="button" data-svc-choice="${i}">${escHTML(p._svcRotulo||"Ponto cadastrado")}</button></li>`).join("")}</ul><small>Os pontos podem compartilhar coordenadas; a escolha não altera os dados publicados.</small></div>`;
+}
+function abrePopupServico(marker){
+  const pontos=pontosServicosProximos(marker);
+  marker._svcEscolhas=pontos.length>1 ? pontos : null;
+  const html=marker._svcEscolhas ? htmlEscolhaPontosServicos(pontos) : marker._svcHtml;
+  marker.unbindPopup?.();
+  marker.bindPopup(html, POPUP_OPTS).openPopup();
+}
 SVC.forEach(s=>{
   const b = document.createElement("button");
   b.dataset.service = s.k;
@@ -3273,6 +3302,7 @@ SVC.forEach(s=>{
           const rotulo = `${s.nome} — ${nome}, ${municipio}`;
           const marker = L.marker(ll, {pane:"servicos", title:rotulo, alt:rotulo,
             icon:L.divIcon({className:"svc-marker-wrap",html:`<span class="svc-marker svc-${s.k}" aria-hidden="true">${s.letra}</span>`,iconSize:[28,28],iconAnchor:[14,14]})});
+          marker.__previneOpenPopup=()=>abrePopupServico(marker);
           acessibilizaFeicaoMapa(marker, rotulo);
           marker.on("add", ()=>{
             const el = marker.getElement?.();
@@ -3283,16 +3313,29 @@ SVC.forEach(s=>{
         onEachFeature: (f,l)=>{
           const codMun=f.properties?.cod_mun ? String(f.properties.cod_mun) : "";
           const nomeMun=f.properties?.municipio || "município não informado";
-          l.bindPopup(
-          `<div class="pop"><b>${escHTML(f.properties.nome || s.nome)}</b><br>` +
+          const nomePonto=f.properties.nome || s.nome;
+          const rotuloPonto=`${s.nome} — ${nomePonto}, ${nomeMun}`;
+          l._svcRotulo=rotuloPonto;
+          l._svcHtml=
+          `<div class="pop"><b>${escHTML(nomePonto)}</b><br>` +
           `<span style="font-size:11px;color:#5c6b63">${escHTML(s.nome)} · ${escHTML(nomeMun)}</span><br>`+
           `<small class="partial-note">ponto cadastrado no IEDE-RS; não é inventário completo</small>`+
           (codMun ? `<button type="button" class="popup-municipio-action" data-cod-mun="${escHTML(codMun)}">abrir ficha municipal</button>` : "")+
-          `</div>`);
-          l.on("click", e=>L.DomEvent.stop(e));
+          `</div>`;
+          l.on("click", e=>{L.DomEvent.stop(e);abrePopupServico(l);});
           l.on("popupopen", ()=>{
-            acessibilizaPopup(l, `Ponto cadastrado: ${f.properties.nome || s.nome}`);
-            const btn=l.getPopup()?.getElement?.()?.querySelector(".popup-municipio-action");
+            const popupEl=l.getPopup()?.getElement?.();
+            const escolhas=l._svcEscolhas;
+            acessibilizaPopup(l, escolhas ? "Escolha de pontos de serviço sobrepostos" : `Ponto cadastrado: ${nomePonto}`);
+            if(escolhas){
+              popupEl?.querySelectorAll("[data-svc-choice]").forEach(btn=>btn.addEventListener("click", ev=>{
+                ev.preventDefault(); ev.stopPropagation();
+                const escolhido=escolhas[Number(btn.dataset.svcChoice)];
+                if(escolhido) { map.closePopup(); requestAnimationFrame(()=>abrePopupServico(escolhido)); }
+              }));
+              return;
+            }
+            const btn=popupEl?.querySelector(".popup-municipio-action");
             if(btn && !btn.dataset.bound){btn.dataset.bound="1";btn.onclick=()=>{map.closePopup();document.getElementById("busca").value=codMun;abreMunicipio(codMun);};}
           });
         }
