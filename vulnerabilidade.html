@@ -2972,7 +2972,7 @@ function carregaEstradas(){
       const p=f.properties||{}, nome=p.nome||p.nome_rodovia||p.codigo_sre||"trecho DAER";
       l.bindPopup(`<div class="pop"><b>${escHTML(nome)}</b><table><tr><td>Situação</td><td>${escHTML(p.situacao_fisica||"—")}</td></tr><tr><td>Administração</td><td>${escHTML(p.administracao||"—")}</td></tr><tr><td>Extensão SRE</td><td>${p.extensao_sre_km==null?"—":escHTML(p.extensao_sre_km)+" km"}</td></tr></table><small>DAER/RS · trecho registrado, não é tempo de viagem.</small>${p.cod_mun?`<button type="button" class="popup-municipio-action" data-cod-mun="${escHTML(p.cod_mun)}">abrir ficha municipal</button>`:""}</div>`);
       acessibilizaFeicaoMapa(l, `Estrada DAER: ${nome}`);
-      l.on("add",()=>{const el=l.getElement?.();if(el){el.__previneRoadLayer=l;el.style.pointerEvents="stroke";}});
+      l.on("add",()=>{const el=l.getElement?.();if(el){el.__previneRoadLayer=l;}});
       l.on("click", e=>{L.DomEvent.stop(e);l.openPopup();});
       l.on("popupopen",()=>{acessibilizaPopup(l,`Estrada DAER: ${nome}`);adicionaAcaoMunicipioPopup(l,p.cod_mun);});
     }}).addTo(map);
