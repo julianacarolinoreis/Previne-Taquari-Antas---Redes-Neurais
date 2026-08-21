@@ -3257,18 +3257,29 @@ const SVC = [
   {k:"abrigos",   nome:"Abrigos cadastrados", cor:"#008c95", letra:"A"},
 ];
 const svcLayers = {};
-function pontosServicosProximos(marker){
+function pontosServicosProximos(marker, clickPoint){
   if(!marker?.getLatLng || !map) return [marker];
-  const origem=map.latLngToContainerPoint(marker.getLatLng());
+  const origem=clickPoint || map.latLngToContainerPoint(marker.getLatLng());
   const encontrados=[];
+  // Em um clique de mouse, consulta a pilha DOM no ponto exato. Isso alcança
+  // ícones que ficaram atrás do marcador superior, mesmo quando seus centros
+  // não coincidem perfeitamente.
+  if(clickPoint && document.elementsFromPoint){
+    const rect=map.getContainer().getBoundingClientRect();
+    const pilha=document.elementsFromPoint(rect.left+clickPoint.x, rect.top+clickPoint.y)
+      .map(el=>el.closest?.(".leaflet-marker-icon")?.__previneServiceMarker)
+      .filter(Boolean);
+    pilha.forEach(x=>{if(!encontrados.includes(x))encontrados.push(x);});
+    if(encontrados.length>1) return encontrados;
+  }
   Object.values(svcLayers).forEach(layer=>{
     if(!layer || layer === "carregando" || !map.hasLayer(layer) || !layer.eachLayer) return;
     layer.eachLayer(outro=>{
       if(!outro?.getLatLng) return;
       const p=map.latLngToContainerPoint(outro.getLatLng());
-      // Agrupa apenas símbolos realmente coincidentes (ou quase coincidentes),
-      // não pontos distintos que apenas estão próximos em zoom afastado.
-      if(origem.distanceTo(p)<=8) encontrados.push(outro);
+      // Fallback para teclado/engines sem pilha DOM: cobre o diâmetro visual
+      // do ícone, sem o raio excessivo que agrupava bairros inteiros.
+      if(origem.distanceTo(p)<=16 && !encontrados.includes(outro)) encontrados.push(outro);
     });
   });
   return encontrados.length ? encontrados : [marker];
@@ -3276,8 +3287,8 @@ function pontosServicosProximos(marker){
 function htmlEscolhaPontosServicos(pontos){
   return `<div class="pop"><b>Mais de um ponto neste local</b><br><small>Escolha qual cadastro deseja consultar:</small><ul class="svc-overlap-list">${pontos.map((p,i)=>`<li><button type="button" data-svc-choice="${i}">${escHTML(p._svcRotulo||"Ponto cadastrado")}</button></li>`).join("")}</ul><small>Os pontos podem compartilhar coordenadas; a escolha não altera os dados publicados.</small></div>`;
 }
-function abrePopupServico(marker, direto=false){
-  const pontos=direto ? [marker] : pontosServicosProximos(marker);
+function abrePopupServico(marker, direto=false, clickPoint){
+  const pontos=direto ? [marker] : pontosServicosProximos(marker, clickPoint);
   marker._svcEscolhas=pontos.length>1 ? pontos : null;
   const html=marker._svcEscolhas ? htmlEscolhaPontosServicos(pontos) : marker._svcHtml;
   marker.unbindPopup?.();
@@ -3312,7 +3323,7 @@ SVC.forEach(s=>{
           acessibilizaFeicaoMapa(marker, rotulo);
           marker.on("add", ()=>{
             const el = marker.getElement?.();
-            if (el){ el.setAttribute("aria-label", rotulo); el.setAttribute("title", rotulo); }
+            if (el){ el.setAttribute("aria-label", rotulo); el.setAttribute("title", rotulo); el.__previneServiceMarker=marker; }
           });
           return marker;
         },
@@ -3328,7 +3339,7 @@ SVC.forEach(s=>{
           `<small class="partial-note">ponto cadastrado no IEDE-RS; não é inventário completo</small>`+
           (codMun ? `<button type="button" class="popup-municipio-action" data-cod-mun="${escHTML(codMun)}">abrir ficha municipal</button>` : "")+
           `</div>`;
-          l.on("click", e=>{L.DomEvent.stop(e);abrePopupServico(l);});
+          l.on("click", e=>{L.DomEvent.stop(e);abrePopupServico(l,false,e.containerPoint);});
           l.on("popupopen", ()=>{
             const popupEl=l.getPopup()?.getElement?.();
             const escolhas=l._svcEscolhas;
