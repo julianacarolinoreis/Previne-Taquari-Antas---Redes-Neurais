@@ -54,9 +54,10 @@
   .location-picker .q{margin:0 0 5px;color:var(--brand)}
   .location-picker select{min-height:40px;border:2px solid #9fcab0;background:#fff;font-weight:650}
   .location-picker .scope-help{margin-top:5px}
-  .quick-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 10px}
+  .quick-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 10px}
   .quick-actions a,.quick-actions button{display:flex;align-items:center;justify-content:center;min-height:36px;padding:6px 7px;border:1px solid #b9d8c6;border-radius:8px;background:#f2faf5;color:var(--brand);font-size:10.5px;font-weight:750;text-align:center;text-decoration:none;cursor:pointer}
   .quick-actions a:hover,.quick-actions button:hover{border-color:var(--brand);background:#e8f5ed}
+  #legendHeading{scroll-margin-top:12px}
   aside{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:15px 15px 40px}
   .q{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:12px 0 5px}
   .q:first-child{margin-top:0}
@@ -116,7 +117,7 @@
   .svc-marker.svc-escolas{background:#fdae61;color:#132019;text-shadow:none;clip-path:polygon(50% 0,100% 100%,0 100%);border-radius:0}
   .svc-marker.svc-bombeiros{background:#7b3294;transform:rotate(45deg);border-radius:3px}
   .svc-marker.svc-bombeiros::first-letter{transform:rotate(-45deg)}
-  .svc-marker.svc-abrigos{background:#008c95;border-radius:3px;clip-path:polygon(50% 0,100% 35%,82% 100%,18% 100%,0 35%)}
+  .svc-marker.svc-abrigos{background:#006f73;border-radius:3px;clip-path:polygon(50% 0,100% 35%,82% 100%,18% 100%,0 35%)}
   .svc-key{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;margin-right:5px;border:1px solid #fff;box-shadow:0 0 0 1px #8a9a91;font:800 9px/1 Tahoma,Verdana,sans-serif;color:#fff}
   .svc-key.svc-hospitais{background:#d73027;border-radius:50%}.svc-key.svc-ubs{background:#2166ac;border-radius:3px}
   .svc-key.svc-escolas{background:#fdae61;color:#132019;clip-path:polygon(50% 0,100% 100%,0 100%)}.svc-key.svc-bombeiros{background:#7b3294;transform:rotate(45deg);border-radius:2px}
@@ -311,6 +312,12 @@
     #map{height:100%;min-height:0}
     aside{height:100%;min-height:0;overflow:hidden;padding:8px 12px}
     .expl,.icm-wrap,.comparacao-wrap{break-inside:avoid}
+    /* Somente o mapa precisa caber em uma unica prancha, sem uma segunda
+       pagina vazia causada pela altura do cabecalho + 100vh. */
+    body.print-map-only{overflow:hidden;height:100vh;break-after:avoid;page-break-after:avoid}
+    body.print-map-only header{height:18mm;box-sizing:border-box;padding:0 0 3mm;break-after:avoid;page-break-after:avoid}
+    body.print-map-only main{display:block;height:calc(100vh - 18mm);min-height:0;break-before:avoid;break-after:avoid;page-break-before:avoid;page-break-after:avoid}
+    body.print-map-only #map{width:100%;height:100%;min-height:0;break-inside:avoid;page-break-inside:avoid}
   }
   .icm-wrap{background:var(--bg);padding:32px 18px 48px;border-top:1px solid var(--line)}
   .icm-inner{max-width:980px;margin:0 auto;background:var(--panel);border:1px solid var(--line);
@@ -477,6 +484,7 @@
       <a href="#downloadAnchor" id="atalhoDownloads">↓ baixar dados</a>
       <button type="button" id="imprimirAtalho">▣ imprimir</button>
       <a href="#referenciasBox" id="atalhoReferencias">◇ Open Buildings e estradas</a>
+      <a href="#legendHeading" id="atalhoLegenda">▤ legenda</a>
     </div>
     <div class="q">Indicador</div>
     <div class="indicator-search"><label for="indicadorBusca">Buscar indicador</label><input id="indicadorBusca" type="search" placeholder="Ex.: TEA, água, renda, hospitais" autocomplete="off"></div>
@@ -560,6 +568,7 @@
     </div>
 
      <div class="q">Serviços públicos no mapa · pontos cadastrados</div>
+     <div class="scope-help service-layer-help">Camada de pontos: estes botões mostram os marcadores no mapa. Os indicadores “... /10 mil” são taxas municipais, não a camada de pontos.</div>
      <div class="ind" id="svc" role="group" aria-label="Camadas de serviços públicos cadastrados"></div>
      <div class="svc-note" id="servicoNota">* Pontos cadastrados nas camadas consultadas do IEDE-RS (captura registrada no catálogo). A cobertura varia; ausência no mapa não prova ausência do serviço.</div>
 
@@ -3076,7 +3085,7 @@ SVC.forEach(s=>{
   const b = document.createElement("button");
   b.dataset.service = s.k;
   b.type = "button"; b.setAttribute("aria-pressed", "false"); b.setAttribute("aria-busy", "false");
-  b.innerHTML = `<span class="svc-key svc-${s.k}" aria-hidden="true">${s.letra}</span> ${s.nome}`;
+  b.innerHTML = `<span class="svc-key svc-${s.k}" aria-hidden="true">${s.letra}</span> ${s.nome} · pontos`;
   b.onclick = ()=>{
     if (svcLayers[s.k] === "carregando") return;
     if (svcLayers[s.k]){                 // já carregada: só liga/desliga
@@ -3096,6 +3105,7 @@ SVC.forEach(s=>{
           const rotulo = `${s.nome} — ${nome}, ${municipio}`;
           const marker = L.marker(ll, {pane:"servicos", title:rotulo, alt:rotulo,
             icon:L.divIcon({className:"svc-marker-wrap",html:`<span class="svc-marker svc-${s.k}" aria-hidden="true">${s.letra}</span>`,iconSize:[28,28],iconAnchor:[14,14]})});
+          acessibilizaFeicaoMapa(marker, rotulo);
           marker.on("add", ()=>{
             const el = marker.getElement?.();
             if (el){ el.setAttribute("aria-label", rotulo); el.setAttribute("title", rotulo); }
