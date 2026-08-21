@@ -3009,6 +3009,8 @@ map.getContainer().addEventListener("click",ev=>{
   const rect=map.getContainer().getBoundingClientRect();
   const cp=L.point(ev.clientX-rect.left,ev.clientY-rect.top);
   const lp=map.containerPointToLayerPoint(cp);
+  const alvoObito=ev.target?.closest?.(".obitos-marker")?.__previneObitoLayer;
+  if(alvoObito){ev.preventDefault();ev.stopImmediatePropagation();alvoObito.openPopup();return;}
   let hit=null;
   estradasLayer.eachLayer(l=>{if(!hit && typeof l._containsPoint === "function" && l._containsPoint(lp)) hit=l;});
   if(hit){ev.preventDefault();ev.stopImmediatePropagation();hit.openPopup();}
@@ -3069,6 +3071,7 @@ function carregaObitos(){
       const rotulo=`Óbito · registro ${id}`;
       l.bindPopup(`<div class="pop"><b>${escHTML(rotulo)}</b><table><tr><th scope="row">Latitude</th><td>${escHTML(lat)}</td></tr><tr><th scope="row">Longitude</th><td>${escHTML(lon)}</td></tr><tr><th scope="row">Recorte</th><td>${escHTML(rec)}</td></tr></table><small>Arquivo fornecido em EPSG:4674, publicado em EPSG:4326. O ativo não traz data, causa, município ou identificação nominal.</small></div>`);
       acessibilizaFeicaoMapa(l,rotulo);
+      l.on("add",()=>{const el=l.getElement?.();if(el)el.__previneObitoLayer=l;});
       l.on("click", e=>L.DomEvent.stop(e));
       l.on("popupopen",()=>acessibilizaPopup(l,rotulo));
     }}).addTo(map);
