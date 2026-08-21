@@ -102,6 +102,9 @@
   .svc-overlap-list{margin:7px 0 0;padding:0;list-style:none;display:grid;gap:5px}
   .svc-overlap-list button{display:block;width:100%;min-height:32px;padding:6px 8px;border:1px solid #b9d8c6;border-radius:7px;background:#f2faf5;color:#14563d;text-align:left;font:700 11px/1.25 inherit;cursor:pointer}
   .svc-overlap-list button:hover,.svc-overlap-list button:focus-visible{border-color:var(--brand);background:#e5f3ea}
+  .reference-sources{margin-top:7px;padding-top:6px;border-top:1px solid #dfe9e2;font-size:10.5px;line-height:1.35}
+  .reference-sources b{display:block;color:var(--brand);margin-bottom:3px}
+  .reference-sources a{display:inline-block;margin:2px 8px 2px 0;color:#14563d;text-decoration:underline}
   .pop .abre.primary{display:block;width:100%;min-height:38px;margin-top:9px;border:1px solid var(--brand);border-radius:8px;background:var(--brand);color:#fff;font-size:12px;font-weight:750;cursor:pointer}
   .pop .abre.primary:hover{background:#0f6b4a}
   .popup-municipio-action{display:block;width:100%;min-height:32px;margin-top:8px;border:1px solid #b9d8c6;border-radius:7px;background:#f2faf5;color:var(--brand);font-size:11px;font-weight:750;cursor:pointer}
@@ -2872,7 +2875,8 @@ function montaReferenciasUI(){
   const rn=document.createElement("div"); rn.className="reference-note"; rn.id="referenciaNota"; rn.textContent="Estradas são carregadas na janela visível a partir do DAER. Open Buildings mostra 3 células S2 de cobertura (não cada prédio); as contagens são da célula inteira e os footprints completos são externos (aprox. 198 MB a 1,1 GB), sem endereço, uso ou ocupação. Óbitos mostra os pontos válidos do arquivo fornecido; o ativo não traz data, causa ou identificação nominal.";
   const box=document.createElement("details"); box.className="reference-box"; box.id="referenciasBox";
   const summary=document.createElement("summary"); summary.textContent="Camadas de referência";
-  box.append(summary,group,rn);
+  const sources=document.createElement("div"); sources.className="reference-sources"; sources.innerHTML=`<b>Fontes e metadados destas camadas</b><a href="assets/data/vulnerabilidade/referencias/open_buildings_tiles.geojson" target="_blank" rel="noopener">Open Buildings · catálogo de células</a><a href="https://sites.research.google/gr/open-buildings/" target="_blank" rel="noopener">Google Open Buildings v3 · fonte externa</a><a href="assets/data/vulnerabilidade/referencias/obitos_metadata.json" target="_blank" rel="noopener">Óbitos · metadados</a><a href="assets/data/vulnerabilidade/referencias/README_OBITOS.md" target="_blank" rel="noopener">Óbitos · README e limitações</a>`;
+  box.append(summary,group,rn,sources);
   nota.after(box);
   const daerLink=document.createElement("a"); daerLink.href="https://iede.rs.gov.br/server/rest/services/DAER/Rodovias_RS/MapServer/0"; daerLink.target="_blank"; daerLink.rel="noopener"; daerLink.textContent=" serviço REST DAER"; rn.append(daerLink);
   const links=document.querySelector(".download-links");
