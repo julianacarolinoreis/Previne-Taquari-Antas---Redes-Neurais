@@ -2863,6 +2863,7 @@ new Norte().addTo(map);
 // Referências territoriais: são independentes do indicador temático e podem
 // ficar ligadas enquanto a pessoa troca escala, modo ou camada estatística.
 map.createPane("referencias").style.zIndex = 470;
+const referenciasSvgRenderer = L.svg({pane:"referencias"});
 function montaReferenciasUI(){
   if(document.getElementById("referencias")) return;
   const svc=document.getElementById("svc"), nota=document.getElementById("servicoNota");
@@ -2968,7 +2969,7 @@ function carregaEstradas(){
   fetch(`${DAER_RODOVIAS_URL}?${qs.toString()}`,{credentials:"omit"}).then(r=>{if(!r.ok)throw new Error("DAER "+r.status);return r.json();}).then(gj=>{
     if(!estradasAtiva) return;
     if(estradasLayer)map.removeLayer(estradasLayer);
-    estradasLayer=L.geoJSON(gj,{pane:"referencias",renderer:L.svg(),bubblingMouseEvents:false,style:f=>({color:"#e36c18",weight:map.getZoom()>=11?4.5:3.8,opacity:.9,lineCap:"round",lineJoin:"round"}),onEachFeature:(f,l)=>{
+    estradasLayer=L.geoJSON(gj,{pane:"referencias",renderer:referenciasSvgRenderer,bubblingMouseEvents:false,style:f=>({color:"#e36c18",weight:map.getZoom()>=11?4.5:3.8,opacity:.9,lineCap:"round",lineJoin:"round"}),onEachFeature:(f,l)=>{
       const p=f.properties||{}, nome=p.nome||p.nome_rodovia||p.codigo_sre||"trecho DAER";
       l.bindPopup(`<div class="pop"><b>${escHTML(nome)}</b><table><tr><td>Situação</td><td>${escHTML(p.situacao_fisica||"—")}</td></tr><tr><td>Administração</td><td>${escHTML(p.administracao||"—")}</td></tr><tr><td>Extensão SRE</td><td>${p.extensao_sre_km==null?"—":escHTML(p.extensao_sre_km)+" km"}</td></tr></table><small>DAER/RS · trecho registrado, não é tempo de viagem.</small>${p.cod_mun?`<button type="button" class="popup-municipio-action" data-cod-mun="${escHTML(p.cod_mun)}">abrir ficha municipal</button>`:""}</div>`);
       acessibilizaFeicaoMapa(l, `Estrada DAER: ${nome}`);
@@ -3003,7 +3004,7 @@ function carregaOpenBuildings(){
   if(openBuildingsLayer){const liga=!map.hasLayer(openBuildingsLayer);liga?openBuildingsLayer.addTo(map):map.removeLayer(openBuildingsLayer);openBuildingsAtiva=liga;b?.setAttribute("aria-pressed",liga?"true":"false");b?.classList.toggle("on",liga);atualizaReferenciaNota(liga?"Cobertura Open Buildings ligada: as linhas tracejadas são células S2, não prédios; abra uma célula para ver o download dos footprints.":"Cobertura Open Buildings desligada.");return;}
   if(b){b.disabled=true;b.setAttribute("aria-busy","true");} atualizaReferenciaNota("Carregando células públicas do Open Buildings v3…");
   carrega("referencias/open_buildings_tiles.geojson").then(gj=>{
-    openBuildingsLayer=L.geoJSON(gj,{pane:"referencias",renderer:L.svg(),style:{color:"#1769aa",weight:2,dashArray:"8 5",fillColor:"#d7ebf8",fillOpacity:.06},onEachFeature:(f,l)=>{const p=f.properties||{};const tamanho=p.size_mb==null?"tamanho não informado":`${fmt(+p.size_mb)} MB externo`;l.bindPopup(`<div class="pop"><b>Open Buildings v3 · célula de cobertura S2 ${escHTML(p.tile_id||"—")}</b><table><tr><th scope="row">Tipo</th><td>célula de cobertura, não edificação individual</td></tr><tr><th scope="row">Edifícios estimados</th><td>${p.building_count==null?"—":fmt(+p.building_count)} na célula inteira</td></tr><tr><th scope="row">Download</th><td><a href="${escHTML(p.tile_url||"#")}" target="_blank" rel="noopener">abrir download externo · ${escHTML(tamanho)}</a></td></tr></table><small>O contorno tracejado mostra a célula S2 disponível; os footprints são derivados de imagens e não indicam uso, ocupação ou endereço.</small></div>`);acessibilizaFeicaoMapa(l,`Célula de cobertura Open Buildings ${p.tile_id||""}`);l.on("click", e=>L.DomEvent.stop(e));l.on("popupopen",()=>acessibilizaPopup(l,`Célula de cobertura Open Buildings ${p.tile_id||""}`));}}).addTo(map);
+    openBuildingsLayer=L.geoJSON(gj,{pane:"referencias",renderer:referenciasSvgRenderer,style:{color:"#1769aa",weight:2,dashArray:"8 5",fillColor:"#d7ebf8",fillOpacity:.06},onEachFeature:(f,l)=>{const p=f.properties||{};const tamanho=p.size_mb==null?"tamanho não informado":`${fmt(+p.size_mb)} MB externo`;l.bindPopup(`<div class="pop"><b>Open Buildings v3 · célula de cobertura S2 ${escHTML(p.tile_id||"—")}</b><table><tr><th scope="row">Tipo</th><td>célula de cobertura, não edificação individual</td></tr><tr><th scope="row">Edifícios estimados</th><td>${p.building_count==null?"—":fmt(+p.building_count)} na célula inteira</td></tr><tr><th scope="row">Download</th><td><a href="${escHTML(p.tile_url||"#")}" target="_blank" rel="noopener">abrir download externo · ${escHTML(tamanho)}</a></td></tr></table><small>O contorno tracejado mostra a célula S2 disponível; os footprints são derivados de imagens e não indicam uso, ocupação ou endereço.</small></div>`);acessibilizaFeicaoMapa(l,`Célula de cobertura Open Buildings ${p.tile_id||""}`);l.on("click", e=>L.DomEvent.stop(e));l.on("popupopen",()=>acessibilizaPopup(l,`Célula de cobertura Open Buildings ${p.tile_id||""}`));}}).addTo(map);
     openBuildingsAtiva=true;b?.removeAttribute("disabled");b?.setAttribute("aria-busy","false");b?.setAttribute("aria-pressed","true");b?.classList.add("on");
     atualizaReferenciaNota(`${gj.features?.length||0} célula(s) de cobertura Open Buildings na área de interesse. O contorno tracejado não representa edificações; footprints completos permanecem em tiles externos.`);
     b?.focus({preventScroll:true});
@@ -3044,7 +3045,7 @@ function carregaObitos(){
     carrega("referencias/obitos_metadata.json").catch(()=>({}))
   ]).then(([gj,meta])=>{
     obitosMeta=meta||{};
-    obitosLayer=L.geoJSON(gj,{pane:"referencias",pointToLayer:(f,ll)=>L.circleMarker(ll,{pane:"referencias",renderer:L.svg(),radius:5.5,className:"obitos-marker",color:"#7d1e33",weight:1.6,fillColor:"#d9485f",fillOpacity:.9}),onEachFeature:(f,l)=>{
+    obitosLayer=L.geoJSON(gj,{pane:"referencias",renderer:referenciasSvgRenderer,pointToLayer:(f,ll)=>L.circleMarker(ll,{pane:"referencias",renderer:referenciasSvgRenderer,radius:5.5,className:"obitos-marker",color:"#7d1e33",weight:1.6,fillColor:"#d9485f",fillOpacity:.9}),onEachFeature:(f,l)=>{
       const p=f.properties||{};
       const id=p.registro_id==null?"—":String(p.registro_id);
       const lat=p.latitude==null?"—":Number(p.latitude).toFixed(6);
