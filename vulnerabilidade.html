@@ -484,7 +484,7 @@
     <div class="quick-actions" role="group" aria-label="Ações rápidas">
       <a href="#downloadAnchor" id="atalhoDownloads">↓ baixar dados</a>
       <button type="button" id="imprimirAtalho">▣ imprimir</button>
-      <a href="#referenciasBox" id="atalhoReferencias">◇ referências: estradas, edifícios e óbitos</a>
+      <a href="#referenciasBox" id="atalhoReferencias">◇ referências: estradas, cobertura e óbitos</a>
       <a href="#legendHeading" id="atalhoLegenda">▤ legenda</a>
     </div>
     <div class="q">Indicador</div>
@@ -2783,10 +2783,10 @@ function montaReferenciasUI(){
   if(!svc || !nota) return;
   const group=document.createElement("div"); group.className="ind"; group.id="referencias"; group.setAttribute("role","group"); group.setAttribute("aria-label","Camadas de referência territorial");
   const roads=document.createElement("button"); roads.type="button"; roads.id="estradasBtn"; roads.textContent="Estradas DAER/RS"; roads.setAttribute("aria-pressed","false"); roads.title="Rodovias registradas pelo DAER, consultadas na janela visível";
-  const buildings=document.createElement("button"); buildings.type="button"; buildings.id="openBuildingsBtn"; buildings.textContent="Edificações estimadas · Open Buildings v3"; buildings.setAttribute("aria-pressed","false"); buildings.title="Cobertura das células S2 públicas de footprints do Google Open Buildings v3; não são endereços nem uso dos imóveis";
+  const buildings=document.createElement("button"); buildings.type="button"; buildings.id="openBuildingsBtn"; buildings.textContent="Cobertura Open Buildings · células S2"; buildings.setAttribute("aria-pressed","false"); buildings.title="Células S2 de cobertura do Google Open Buildings v3; não são polígonos de prédios, endereços nem uso dos imóveis";
   const obitos=document.createElement("button"); obitos.type="button"; obitos.id="obitosBtn"; obitos.textContent="Óbitos · pontos"; obitos.setAttribute("aria-pressed","false"); obitos.setAttribute("aria-busy","false"); obitos.title="Registros pontuais do arquivo fornecido; seis registros de origem não têm coordenadas";
   group.append(roads,buildings,obitos);
-  const rn=document.createElement("div"); rn.className="reference-note"; rn.id="referenciaNota"; rn.textContent="Estradas são carregadas na janela visível a partir do DAER. Open Buildings mostra 3 células S2 e a contagem estimada de edifícios; os footprints completos são externos (aprox. 198 MB a 1,1 GB) e não indicam endereço, uso ou ocupação. Óbitos mostra os pontos válidos do arquivo fornecido; o ativo não traz data, causa ou identificação nominal.";
+  const rn=document.createElement("div"); rn.className="reference-note"; rn.id="referenciaNota"; rn.textContent="Estradas são carregadas na janela visível a partir do DAER. Open Buildings mostra 3 células S2 de cobertura (não cada prédio); as contagens são da célula inteira e os footprints completos são externos (aprox. 198 MB a 1,1 GB), sem endereço, uso ou ocupação. Óbitos mostra os pontos válidos do arquivo fornecido; o ativo não traz data, causa ou identificação nominal.";
   const box=document.createElement("details"); box.className="reference-box"; box.id="referenciasBox";
   const summary=document.createElement("summary"); summary.textContent="Camadas de referência";
   box.append(summary,group,rn);
@@ -2893,12 +2893,12 @@ map.on("moveend",()=>{if(estradasAtiva)carregaEstradas();});
 
 function carregaOpenBuildings(){
   const b=document.getElementById("openBuildingsBtn");
-  if(openBuildingsLayer){const liga=!map.hasLayer(openBuildingsLayer);liga?openBuildingsLayer.addTo(map):map.removeLayer(openBuildingsLayer);openBuildingsAtiva=liga;b?.setAttribute("aria-pressed",liga?"true":"false");b?.classList.toggle("on",liga);atualizaReferenciaNota(liga?"Cobertura Open Buildings ligada; abra uma célula para ver o download do footprint.":"Open Buildings desligado.");return;}
+  if(openBuildingsLayer){const liga=!map.hasLayer(openBuildingsLayer);liga?openBuildingsLayer.addTo(map):map.removeLayer(openBuildingsLayer);openBuildingsAtiva=liga;b?.setAttribute("aria-pressed",liga?"true":"false");b?.classList.toggle("on",liga);atualizaReferenciaNota(liga?"Cobertura Open Buildings ligada: as linhas tracejadas são células S2, não prédios; abra uma célula para ver o download dos footprints.":"Cobertura Open Buildings desligada.");return;}
   if(b){b.disabled=true;b.setAttribute("aria-busy","true");} atualizaReferenciaNota("Carregando células públicas do Open Buildings v3…");
   carrega("referencias/open_buildings_tiles.geojson").then(gj=>{
-    openBuildingsLayer=L.geoJSON(gj,{pane:"referencias",renderer:L.svg(),style:{color:"#1769aa",weight:1.4,fillColor:"#8fc7ed",fillOpacity:.2},onEachFeature:(f,l)=>{const p=f.properties||{};l.bindPopup(`<div class="pop"><b>Open Buildings v3 · célula ${escHTML(p.tile_id||"—")}</b><table><tr><td>Edifícios estimados</td><td>${p.building_count==null?"—":fmt(+p.building_count)}</td></tr><tr><td>Download</td><td><a href="${escHTML(p.tile_url||"#")}" target="_blank" rel="noopener">abrir CSV.gz</a></td></tr></table><small>Footprints derivados de imagens; não indicam uso, ocupação ou endereço.</small></div>`);acessibilizaFeicaoMapa(l,`Célula Open Buildings ${p.tile_id||""}`);l.on("popupopen",()=>acessibilizaPopup(l,`Célula Open Buildings ${p.tile_id||""}`));}}).addTo(map);
+    openBuildingsLayer=L.geoJSON(gj,{pane:"referencias",renderer:L.svg(),style:{color:"#1769aa",weight:2,dashArray:"8 5",fillColor:"#d7ebf8",fillOpacity:.06},onEachFeature:(f,l)=>{const p=f.properties||{};l.bindPopup(`<div class="pop"><b>Open Buildings v3 · célula de cobertura S2 ${escHTML(p.tile_id||"—")}</b><table><tr><th scope="row">Tipo</th><td>célula de cobertura, não edificação individual</td></tr><tr><th scope="row">Edifícios estimados</th><td>${p.building_count==null?"—":fmt(+p.building_count)} na célula inteira</td></tr><tr><th scope="row">Download</th><td><a href="${escHTML(p.tile_url||"#")}" target="_blank" rel="noopener">abrir footprints CSV.gz</a></td></tr></table><small>O contorno tracejado mostra a célula S2 disponível; os footprints são derivados de imagens e não indicam uso, ocupação ou endereço.</small></div>`);acessibilizaFeicaoMapa(l,`Célula de cobertura Open Buildings ${p.tile_id||""}`);l.on("popupopen",()=>acessibilizaPopup(l,`Célula de cobertura Open Buildings ${p.tile_id||""}`));}}).addTo(map);
     openBuildingsAtiva=true;b?.removeAttribute("disabled");b?.setAttribute("aria-busy","false");b?.setAttribute("aria-pressed","true");b?.classList.add("on");
-    atualizaReferenciaNota(`${gj.features?.length||0} célula(s) Open Buildings na área de interesse. Footprints completos permanecem em tiles externos.`);
+    atualizaReferenciaNota(`${gj.features?.length||0} célula(s) de cobertura Open Buildings na área de interesse. O contorno tracejado não representa edificações; footprints completos permanecem em tiles externos.`);
   }).catch(()=>{if(b){b.disabled=false;b.setAttribute("aria-busy","false");}atualizaReferenciaNota("Não foi possível carregar o catálogo Open Buildings.");});
 }
 document.getElementById("openBuildingsBtn")?.addEventListener("click",carregaOpenBuildings);
