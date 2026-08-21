@@ -118,6 +118,7 @@
   .svc-marker.svc-bombeiros{background:#7b3294;transform:rotate(45deg);border-radius:3px}
   .svc-marker.svc-bombeiros::first-letter{transform:rotate(-45deg)}
   .svc-marker.svc-abrigos{background:#006f73;border-radius:3px;clip-path:polygon(50% 0,100% 35%,82% 100%,18% 100%,0 35%)}
+  .obitos-marker{color:#7d1e33;fill:#d9485f;fill-opacity:.9;stroke:#fff;stroke-width:1.6}
   .svc-key{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;margin-right:5px;border:1px solid #fff;box-shadow:0 0 0 1px #8a9a91;font:800 9px/1 Tahoma,Verdana,sans-serif;color:#fff}
   .svc-key.svc-hospitais{background:#d73027;border-radius:50%}.svc-key.svc-ubs{background:#2166ac;border-radius:3px}
   .svc-key.svc-escolas{background:#fdae61;color:#132019;clip-path:polygon(50% 0,100% 100%,0 100%)}.svc-key.svc-bombeiros{background:#7b3294;transform:rotate(45deg);border-radius:2px}
@@ -483,7 +484,7 @@
     <div class="quick-actions" role="group" aria-label="Ações rápidas">
       <a href="#downloadAnchor" id="atalhoDownloads">↓ baixar dados</a>
       <button type="button" id="imprimirAtalho">▣ imprimir</button>
-      <a href="#referenciasBox" id="atalhoReferencias">◇ Open Buildings e estradas</a>
+      <a href="#referenciasBox" id="atalhoReferencias">◇ referências: estradas, edifícios e óbitos</a>
       <a href="#legendHeading" id="atalhoLegenda">▤ legenda</a>
     </div>
     <div class="q">Indicador</div>
@@ -1001,6 +1002,7 @@ let icmDataReferencia = "2026-08-13";
 let resilienciaData = null, resilienciaOk = false;
 let estradasLayer = null, estradasAtiva = false, estradasCarregando = false, estradasUltimoBBox = "";
 let openBuildingsLayer = null, openBuildingsAtiva = false;
+let obitosLayer = null, obitosAtiva = false, obitosCarregando = false, obitosMeta = null;
 let gradeIndicadorAjustado = false;
 let indAntesDaGrade = null;
 let modoAntesDaGrade = null;
@@ -1466,6 +1468,7 @@ function legenda(brk, ctx){
   const extrasPrint=[];
   if(typeof perigoLayer!=="undefined" && perigoLayer && map.hasLayer(perigoLayer)) extrasPrint.push("SGB: risco setorizado em Santa Tereza (2025), não é mancha contínua");
   if(typeof svcLayers!=="undefined" && Object.values(svcLayers).some(x=>x && x!=="carregando" && map.hasLayer(x))) extrasPrint.push("IEDE: pontos cadastrados; ausência não prova ausência");
+  if(obitosAtiva) extrasPrint.push("Óbitos: registros pontuais do arquivo fornecido; sem data, causa ou identificação nominal no ativo");
   defineMetadadosImpressao(`PREVINE · Vulnerabilidade social · ${d?.nome||"indicador"}; ${escala === "bacia" ? "escala comparável na bacia" : "escala relativa à área"}. Fonte: ${refPrint}; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.${extrasPrint.length?` ${extrasPrint.join("; ")}.`:""}`);
   brk.forEach((v,i)=>{ document.getElementById("fx"+i).value = Math.round(v*100)/100; });
 }
@@ -1486,6 +1489,7 @@ function atualizaPrintMeta(){
   const extras=[];
   if(typeof perigoLayer!=="undefined" && perigoLayer && map.hasLayer(perigoLayer)) extras.push("SGB: risco setorizado em Santa Tereza (2025), não é mancha contínua");
   if(typeof svcLayers!=="undefined" && Object.values(svcLayers).some(x=>x && x!=="carregando" && map.hasLayer(x))) extras.push("IEDE: pontos cadastrados; ausência não prova ausência");
+  if(obitosAtiva) extras.push("Óbitos: registros pontuais do arquivo fornecido; sem data, causa ou identificação nominal no ativo");
   defineMetadadosImpressao(`PREVINE · Vulnerabilidade social · ${d?.nome||"indicador"}; ${escala === "bacia" ? "escala comparável na bacia" : "escala relativa à área"}. Fonte: ${refPrint}; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.${extras.length?` ${extras.join("; ")}.`:""}`);
 }
 function totaliza(props){
@@ -2780,8 +2784,9 @@ function montaReferenciasUI(){
   const group=document.createElement("div"); group.className="ind"; group.id="referencias"; group.setAttribute("role","group"); group.setAttribute("aria-label","Camadas de referência territorial");
   const roads=document.createElement("button"); roads.type="button"; roads.id="estradasBtn"; roads.textContent="Estradas DAER/RS"; roads.setAttribute("aria-pressed","false"); roads.title="Rodovias registradas pelo DAER, consultadas na janela visível";
   const buildings=document.createElement("button"); buildings.type="button"; buildings.id="openBuildingsBtn"; buildings.textContent="Edificações estimadas · Open Buildings v3"; buildings.setAttribute("aria-pressed","false"); buildings.title="Cobertura das células S2 públicas de footprints do Google Open Buildings v3; não são endereços nem uso dos imóveis";
-  group.append(roads,buildings);
-  const rn=document.createElement("div"); rn.className="reference-note"; rn.id="referenciaNota"; rn.textContent="Estradas são carregadas na janela visível a partir do DAER. Open Buildings mostra 3 células S2 e a contagem estimada de edifícios; os footprints completos são externos (aprox. 198 MB a 1,1 GB) e não indicam endereço, uso ou ocupação.";
+  const obitos=document.createElement("button"); obitos.type="button"; obitos.id="obitosBtn"; obitos.textContent="Óbitos · pontos"; obitos.setAttribute("aria-pressed","false"); obitos.setAttribute("aria-busy","false"); obitos.title="Registros pontuais do arquivo fornecido; seis registros de origem não têm coordenadas";
+  group.append(roads,buildings,obitos);
+  const rn=document.createElement("div"); rn.className="reference-note"; rn.id="referenciaNota"; rn.textContent="Estradas são carregadas na janela visível a partir do DAER. Open Buildings mostra 3 células S2 e a contagem estimada de edifícios; os footprints completos são externos (aprox. 198 MB a 1,1 GB) e não indicam endereço, uso ou ocupação. Óbitos mostra os pontos válidos do arquivo fornecido; o ativo não traz data, causa ou identificação nominal.";
   const box=document.createElement("details"); box.className="reference-box"; box.id="referenciasBox";
   const summary=document.createElement("summary"); summary.textContent="Camadas de referência";
   box.append(summary,group,rn);
@@ -2792,7 +2797,11 @@ function montaReferenciasUI(){
     const adds=[
       ["assets/data/vulnerabilidade/referencias/resiliencia_municipios.json","Resiliência municipal (IRM V1) · JSON para juntar ao mapa"],
       ["assets/data/vulnerabilidade/referencias/open_buildings_tiles.geojson","Open Buildings v3 · cobertura de células (GeoJSON)"],
-      ["assets/data/vulnerabilidade/referencias/README.md","Referências: resiliência, estradas e Open Buildings"]
+      ["assets/data/vulnerabilidade/referencias/obitos.geojson","Óbitos · pontos válidos (GeoJSON)"],
+      ["assets/data/vulnerabilidade/referencias/obitos_metadata.json","Óbitos · metadados e cobertura (JSON)"],
+      ["assets/data/vulnerabilidade/referencias/obitos_source.zip","Óbitos · arquivo fonte Shapefile (ZIP)"],
+      ["assets/data/vulnerabilidade/referencias/README_OBITOS.md","Óbitos · fonte, CRS e limitações"],
+      ["assets/data/vulnerabilidade/referencias/README.md","Referências: resiliência, estradas, Open Buildings e óbitos"]
     ];
     adds.forEach(([href,text])=>{const a=document.createElement("a");a.href=href;a.textContent=text;a.target="_blank";a.rel="noopener";a.setAttribute("data-reference-link","");links.insertBefore(a,links.querySelector("a[href='#proveniencia']")||null);});
   }
@@ -2801,7 +2810,8 @@ function montaReferenciasUI(){
     const items=[
       ["Observatório da Resiliência RS: IRM V1 consolidado a partir de sete indicadores municipais; os municípios sem correspondência na fonte ficam como sem dado.","https://observatoriodaresiliencia.org/indicadores/"],
       ["DAER/RS: estradas consultadas sob demanda na janela visível; a camada não é uma estimativa de acessibilidade ou tempo de viagem.","https://daer.rs.gov.br/mapas"],
-      ["Google Open Buildings v3: footprints e confiança derivados de imagens; esta interface mostra cobertura e links, não uso ou ocupação dos edifícios.","https://sites.research.google/gr/open-buildings/"]
+      ["Google Open Buildings v3: footprints e confiança derivados de imagens; esta interface mostra cobertura e links, não uso ou ocupação dos edifícios.","https://sites.research.google/gr/open-buildings/"],
+      ["Óbitos: arquivo fornecido em EPSG:4674, publicado como pontos EPSG:4326; seis registros sem coordenada ficam fora do mapa e o ativo não informa data, causa ou identificação nominal.","assets/data/vulnerabilidade/referencias/README_OBITOS.md"]
     ];
     items.forEach(([text,href])=>{const li=document.createElement("li");li.dataset.referenceProvenance="1";const a=document.createElement("a");a.href=href;a.target="_blank";a.rel="noopener";a.textContent="fonte";li.append(document.createTextNode(text+" "),a);pl.appendChild(li);});
   }
@@ -2892,6 +2902,63 @@ function carregaOpenBuildings(){
   }).catch(()=>{if(b){b.disabled=false;b.setAttribute("aria-busy","false");}atualizaReferenciaNota("Não foi possível carregar o catálogo Open Buildings.");});
 }
 document.getElementById("openBuildingsBtn")?.addEventListener("click",carregaOpenBuildings);
+
+// Registros de óbitos fornecidos pelo usuário. O arquivo original tem 185
+// linhas, mas seis não possuem coordenadas; os 179 pontos válidos são
+// publicados como referência espacial, sem inventar data, causa ou identidade.
+function notaObitos(meta, gj, layer){
+  const total = Number(meta?.registros_fonte) || (gj?.features?.length || 0);
+  const validos = Number(meta?.coordenadas_validas_publicadas) || (gj?.features?.length || 0);
+  const semCoord = Number(meta?.registros_sem_coordenada) || Math.max(0,total-validos);
+  const dentro = Number(meta?.registros_dentro_bacia_publicada);
+  const dentroTxt = Number.isFinite(dentro) ? `; ${fmt(dentro)} dentro da bacia publicada` : "";
+  const visiveis = layer ? layer.getLayers().filter(x=>x.getLatLng && map.getBounds().contains(x.getLatLng())).length : validos;
+  return `Óbitos: ${fmt(validos)} ponto(s) válido(s) no arquivo${dentroTxt}; ${fmt(semCoord)} registro(s) de origem sem coordenada; ${fmt(visiveis)} na janela atual. O ativo não informa data, causa ou identificação nominal.`;
+}
+function carregaObitos(){
+  const b=document.getElementById("obitosBtn");
+  if(obitosCarregando) return;
+  if(obitosLayer){
+    const liga=!map.hasLayer(obitosLayer);
+    liga ? obitosLayer.addTo(map) : map.removeLayer(obitosLayer);
+    obitosAtiva=liga;
+    b?.setAttribute("aria-pressed",liga?"true":"false");
+    b?.classList.toggle("on",liga);
+    atualizaReferenciaNota(liga ? notaObitos(obitosMeta, null, obitosLayer) : "Óbitos desligado.");
+    atualizaPrintMeta();
+    return;
+  }
+  obitosCarregando=true;
+  if(b){b.disabled=true;b.setAttribute("aria-busy","true");}
+  atualizaReferenciaNota("Carregando registros de óbitos…");
+  Promise.all([
+    carrega("referencias/obitos.geojson"),
+    carrega("referencias/obitos_metadata.json").catch(()=>({}))
+  ]).then(([gj,meta])=>{
+    obitosMeta=meta||{};
+    obitosLayer=L.geoJSON(gj,{pane:"referencias",pointToLayer:(f,ll)=>L.circleMarker(ll,{pane:"referencias",renderer:L.svg(),radius:5.5,className:"obitos-marker",color:"#7d1e33",weight:1.6,fillColor:"#d9485f",fillOpacity:.9}),onEachFeature:(f,l)=>{
+      const p=f.properties||{};
+      const id=p.registro_id==null?"—":String(p.registro_id);
+      const lat=p.latitude==null?"—":Number(p.latitude).toFixed(6);
+      const lon=p.longitude==null?"—":Number(p.longitude).toFixed(6);
+      const rec=Number(p.na_bacia_publicada)===1 ? "dentro da bacia publicada" : "fora da bacia publicada";
+      const rotulo=`Óbito · registro ${id}`;
+      l.bindPopup(`<div class="pop"><b>${escHTML(rotulo)}</b><table><tr><th scope="row">Latitude</th><td>${escHTML(lat)}</td></tr><tr><th scope="row">Longitude</th><td>${escHTML(lon)}</td></tr><tr><th scope="row">Recorte</th><td>${escHTML(rec)}</td></tr></table><small>Arquivo fornecido em EPSG:4674, publicado em EPSG:4326. O ativo não traz data, causa, município ou identificação nominal.</small></div>`);
+      acessibilizaFeicaoMapa(l,rotulo);
+      l.on("popupopen",()=>acessibilizaPopup(l,rotulo));
+    }}).addTo(map);
+    obitosAtiva=true;
+    b?.removeAttribute("disabled"); b?.setAttribute("aria-busy","false"); b?.setAttribute("aria-pressed","true"); b?.classList.add("on");
+    b?.setAttribute("title",notaObitos(meta,gj,obitosLayer));
+    atualizaReferenciaNota(notaObitos(meta,gj,obitosLayer));
+    atualizaPrintMeta();
+  }).catch(()=>{
+    obitosLayer=null; obitosAtiva=false;
+    if(b){b.disabled=false;b.setAttribute("aria-busy","false");b.setAttribute("aria-pressed","false");b.title="camada de óbitos indisponível; clique para tentar novamente";}
+    mostraErroDependencia("Camada de óbitos indisponível nesta atualização.");
+  }).finally(()=>{obitosCarregando=false;b?.setAttribute("aria-busy","false");});
+}
+document.getElementById("obitosBtn")?.addEventListener("click",carregaObitos);
 
 // véu sobre tudo, menos o RS (buraco recortado no contorno do estado)
 carrega("rs_contorno.geojson").then(gj=>{

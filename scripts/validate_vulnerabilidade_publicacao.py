@@ -312,8 +312,19 @@ def main() -> int:
     assert {"cod_mun", "irm_faixa", "irm_status", "irm_score_0a100"} <= set(irm_rows[0]), "campos IRM ausentes"
     tiles = feature_collection(REFERENCIAS / "open_buildings_tiles.geojson")
     assert tiles and all((f.get("properties") or {}).get("tile_url") for f in tiles), "índice Open Buildings sem URLs"
+    obitos = feature_collection(REFERENCIAS / "obitos.geojson")
+    assert len(obitos) == 179, "Óbitos: quantidade de pontos válidos divergente"
+    for feature in obitos:
+        validate_geometry(feature, REFERENCIAS / "obitos.geojson")
+        props = feature.get("properties") or {}
+        assert {"registro_id", "latitude", "longitude", "na_bacia_publicada"} <= set(props), "Óbitos: campos mínimos ausentes"
+        assert props["na_bacia_publicada"] in {0, 1}, "Óbitos: recorte inválido"
+    obitos_meta = read_json(REFERENCIAS / "obitos_metadata.json")
+    assert obitos_meta.get("registros_fonte") == 185, "Óbitos: total de origem divergente"
+    assert obitos_meta.get("coordenadas_validas_publicadas") == len(obitos), "Óbitos: metadados de coordenadas divergentes"
+    assert obitos_meta.get("registros_sem_coordenada") == 6, "Óbitos: registros sem coordenada divergentes"
     assert (REFERENCIAS / "README.md").read_text(encoding="utf-8").strip(), "README das referências vazio"
-    assert "Estradas DAER/RS" in html and "Open Buildings" in html and "Resiliência" in html, "novas referências não declaradas na página"
+    assert "Estradas DAER/RS" in html and "Open Buildings" in html and "Óbitos" in html and "Resiliência" in html, "novas referências não declaradas na página"
     assert "Agregados_taquari_PCD_TEA_municipio.csv" in html and "agregados_taquari_indicadores.json" in html, "agregados oficiais não declarados na página"
 
     # Export contracts carry enough provenance to be usable outside the map;
@@ -348,6 +359,10 @@ def main() -> int:
             "metadados/ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.json",
             "referencias/resiliencia_municipios.json",
             "referencias/open_buildings_tiles.geojson",
+            "referencias/obitos.geojson",
+            "referencias/obitos_metadata.json",
+            "referencias/obitos_source.zip",
+            "referencias/README_OBITOS.md",
             "referencias/agregados_taquari_indicadores.json",
             "agregados/Agregados_taquari_pessoa.csv",
             "agregados/Agregados_taquari_domicilio.csv",

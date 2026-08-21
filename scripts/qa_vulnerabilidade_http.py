@@ -24,6 +24,10 @@ INITIAL_ASSETS = (
     "assets/data/icm_municipios.json",
     "assets/data/vulnerabilidade/referencias/resiliencia_municipios.json",
     "assets/data/vulnerabilidade/referencias/open_buildings_tiles.geojson",
+    "assets/data/vulnerabilidade/referencias/obitos.geojson",
+    "assets/data/vulnerabilidade/referencias/obitos_metadata.json",
+    "assets/data/vulnerabilidade/referencias/obitos_source.zip",
+    "assets/data/vulnerabilidade/referencias/README_OBITOS.md",
 )
 
 
@@ -49,7 +53,7 @@ def main() -> int:
     assert 'name="referrer"' in text, "referrer policy ausente"
     assert "Permissions-Policy" in text, "Permissions-Policy meta ausente"
     assert "integrity=" in text and "unpkg.com" in text, "Leaflet sem SRI/fallback"
-    assert "Estradas DAER/RS" in text and "Open Buildings" in text and "resiliencia" in text, "referencias novas ausentes"
+    assert "Estradas DAER/RS" in text and "Open Buildings" in text and "Óbitos" in text and "resiliencia" in text, "referencias novas ausentes"
     if args.expect_commit:
         assert f'DATA_FALLBACK_COMMIT = "{args.expect_commit}"' in text, "fallback commit divergente"
     assert headers.get("Strict-Transport-Security"), "HSTS ausente"
