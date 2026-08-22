@@ -2044,7 +2044,9 @@ function atualizaEmptyState(){
   const cobertura=conhecidos/props.length;
   if (positivos===0 && conhecidos>0){
     el.hidden=false;
-    el.innerHTML=`<b>Mapa quase vazio neste indicador</b>Todas as áreas com dado publicado estão em zero. Isso pode ser real (ex.: poucos registros) ou cobertura esparsa — não trate cinza/zero como “sem vulnerabilidade”. Tente outro indicador ou abra um município.`;
+    el.innerHTML=munAtual
+      ? `<b>Mapa quase vazio neste indicador</b>Neste município, as áreas com dado publicado estão em zero. Isso pode ser real ou cobertura esparsa — não trate cinza/zero como “sem vulnerabilidade”. Troque o indicador ou volte à bacia.`
+      : `<b>Mapa quase vazio neste indicador</b>Todas as áreas com dado publicado estão em zero. Isso pode ser real (ex.: poucos registros) ou cobertura esparsa — não trate cinza/zero como “sem vulnerabilidade”. Tente outro indicador ou abra um município.`;
     return;
   }
   if (positivos>0 && positivos/Math.max(conhecidos,1) <= 0.08){
