@@ -1031,6 +1031,7 @@ let servicosCaptura = "";
 let icmDataReferencia = "2026-08-13";
 let resilienciaData = null, resilienciaOk = false;
 let estradasLayer = null, estradasAtiva = false, estradasCarregando = false, estradasUltimoBBox = "";
+let estradasEscolhaAberta = false, estradaPopupPendente = null, estradaPopupTravado = false;
 let openBuildingsLayer = null, openBuildingsAtiva = false;
 let obitosLayer = null, obitosAtiva = false, obitosCarregando = false, obitosMeta = null;
 let gradeIndicadorAjustado = false;
@@ -2957,8 +2958,69 @@ function atualizaReferenciaNota(texto){
 }
 const DAER_RODOVIAS_URL="https://iede.rs.gov.br/server/rest/services/DAER/Rodovias_RS/MapServer/0/query";
 function bboxDaVista(){ const b=map.getBounds(); return [b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(v=>Number(v.toFixed(5))).join(","); }
+function chaveTrechoDAER(layer){
+  const p=layer?.feature?.properties||{};
+  for(const k of ["OBJECTID","objectid","id","ID","codigo_sre","cod_sre","codigo"]){
+    if(p[k] != null && String(p[k]).trim() !== "") return `${k}:${p[k]}`;
+  }
+  return `nome:${layer?.__previneRoadLabel||""}`;
+}
+function mesmoTrechoDAER(layer,pendente){
+  return !!layer && !!pendente && (chaveTrechoDAER(layer)===pendente.key ||
+    (!!pendente.label && layer.__previneRoadLabel===pendente.label));
+}
+function tentaAbrirTrechoDAERPendente(){
+  const pendente=estradaPopupPendente;
+  if(!pendente || !estradasAtiva) return false;
+  let atual=null;
+  // Quando a escolha provocou autopan, a camada antiga pode continuar no mapa
+  // por alguns frames, mas será removida no próximo recarregamento. Aguarde a
+  // camada nova nesses casos para não abrir um popup que desapareceria logo em
+  // seguida.
+  if(!pendente.forceRefresh && pendente.layer && map.hasLayer(pendente.layer)) atual=pendente.layer;
+  if(!atual && estradasLayer?.eachLayer){
+    estradasLayer.eachLayer(l=>{if(!atual && (!pendente.forceRefresh || pendente.reloaded) && mesmoTrechoDAER(l,pendente)) atual=l;});
+  }
+  if(!atual || !map.hasLayer(atual)) return false;
+  estradaPopupPendente=null;
+  estradaPopupTravado=true;
+  atual.openPopup();
+  return true;
+}
+function abrePopupDAERFallback(pendente){
+  if(!pendente?.html || !pendente?.latlng) return false;
+  estradaPopupPendente=null;
+  estradaPopupTravado=true;
+  const popup=L.popup(POPUP_OPTS).setLatLng(pendente.latlng).setContent(pendente.html).openOn(map);
+  popup.on("remove",()=>{estradaPopupTravado=false;});
+  requestAnimationFrame(()=>{
+    const el=popup.getElement?.();
+    if(!el) return;
+    el.setAttribute("role","dialog");
+    el.setAttribute("aria-label",`Estrada DAER: ${pendente.label||"trecho registrado"}`);
+    el.querySelector(".leaflet-popup-close-button")?.setAttribute("aria-label","Fechar informações");
+  });
+  return true;
+}
+function agendaAberturaTrechoDAER(layer,latlng){
+  const html=layer?.getPopup?.()?.getContent?.() || "";
+  estradaPopupPendente={layer,key:chaveTrechoDAER(layer),label:layer?.__previneRoadLabel||"",latlng:latlng||layer?.getLatLng?.(),html,forceRefresh:true,reloaded:false};
+  const tentar=(permitirFallback=false)=>{
+    if(tentaAbrirTrechoDAERPendente()) return;
+    if(permitirFallback && abrePopupDAERFallback(estradaPopupPendente)) return;
+    if(!estradasCarregando && estradasAtiva){
+      estradasUltimoBBox="";
+      carregaEstradas();
+    }
+  };
+  // Reconsulta a janela atual antes de abrir: o popup do chooser pode ter
+  // provocado autopan e o layer anterior pode estar prestes a ser trocado.
+  requestAnimationFrame(()=>{if(!estradasCarregando && estradasAtiva){estradasUltimoBBox="";carregaEstradas();}});
+  setTimeout(()=>tentar(false),120);
+  setTimeout(()=>tentar(true),700);
+}
 function carregaEstradas(){
-  if(!estradasAtiva || estradasCarregando) return;
+  if(!estradasAtiva || estradasCarregando || estradasEscolhaAberta) return;
   if(map.getZoom()<8){ atualizaReferenciaNota("Aproxime um pouco mais (zoom 8 ou maior) para consultar as estradas DAER na janela visível."); return; }
   const bbox=bboxDaVista();
   if(bbox===estradasUltimoBBox && estradasLayer){ if(!map.hasLayer(estradasLayer)) estradasLayer.addTo(map); return; }
@@ -2979,12 +3041,15 @@ function carregaEstradas(){
         el.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();l.openPopup();},true);
       }});
       l.on("click", e=>{L.DomEvent.stop(e);l.openPopup();});
-      l.on("popupopen",()=>{acessibilizaPopup(l,`Estrada DAER: ${nome}`);adicionaAcaoMunicipioPopup(l,p.cod_mun);});
+      l.on("popupopen",()=>{estradaPopupTravado=true;acessibilizaPopup(l,`Estrada DAER: ${nome}`);adicionaAcaoMunicipioPopup(l,p.cod_mun);});
+      l.on("popupclose",()=>{estradaPopupTravado=false;});
     }}).addTo(map);
+    if(estradaPopupPendente) estradaPopupPendente.reloaded=true;
+    setTimeout(tentaAbrirTrechoDAERPendente,0);
     const truncado=!!gj.exceededTransferLimit || (gj.features?.length||0)>=2000;
     atualizaReferenciaNota(`${fmt(gj.features?.length||0)} trecho(s) DAER na janela visível${truncado?" (limite da consulta atingido; aproxime o mapa)":""}; não é recorte da bacia. Fonte oficial; mova o mapa para atualizar.`);
     document.getElementById("estradasBtn")?.focus({preventScroll:true});
-    if (estradasAtiva && bboxDaVista() !== bbox){
+    if (estradasAtiva && bboxDaVista() !== bbox && !estradaPopupPendente && !estradaPopupTravado){
       estradasUltimoBBox = "";
       setTimeout(()=>{ if (estradasAtiva) carregaEstradas(); }, 0);
     }
@@ -2998,18 +3063,37 @@ function carregaEstradas(){
 }
 document.getElementById("estradasBtn")?.addEventListener("click",()=>{
   const b=document.getElementById("estradasBtn"); estradasAtiva=!estradasAtiva; b.setAttribute("aria-pressed",estradasAtiva?"true":"false"); b.classList.toggle("on",estradasAtiva);
-  if(!estradasAtiva){b.setAttribute("aria-busy","false");if(estradasLayer)map.removeLayer(estradasLayer);atualizaReferenciaNota("Estradas DAER desligadas.");return;}
+  if(!estradasAtiva){b.setAttribute("aria-busy","false");estradaPopupPendente=null;estradaPopupTravado=false;if(estradasLayer)map.removeLayer(estradasLayer);atualizaReferenciaNota("Estradas DAER desligadas.");return;}
   carregaEstradas();
 });
-map.on("moveend",()=>{if(estradasAtiva)carregaEstradas();});
+map.on("moveend",()=>{if(estradasAtiva && !estradaPopupTravado)carregaEstradas();});
 function abreEscolhaReferenciaSobreposta(road,obito,latlng){
+  estradasEscolhaAberta=true;
   const chooser=L.popup(POPUP_OPTS).setLatLng(latlng).setContent(`<div class="pop"><b>Mais de uma referência neste ponto</b><br><small>Escolha o registro que deseja consultar:</small><ul class="svc-overlap-list"><li><button type="button" data-ref-choice="road">Estrada DAER · ${escHTML(road.__previneRoadLabel||"trecho registrado")}</button></li><li><button type="button" data-ref-choice="obito">${escHTML(obito.__previneObitoLabel||"Óbito · registro")}</button></li></ul></div>`).openOn(map);
+  chooser.on("remove",()=>{estradasEscolhaAberta=false;});
   requestAnimationFrame(()=>{
     const el=chooser.getElement?.();
     if(!el)return;
     el.setAttribute("role","dialog");el.setAttribute("aria-label","Escolha de referência sobreposta");
     el.querySelectorAll("[data-ref-choice]").forEach(btn=>btn.addEventListener("click",ev=>{
-      ev.preventDefault();ev.stopPropagation();const escolhido=btn.dataset.refChoice==="obito"?obito:road;map.closePopup();requestAnimationFrame(()=>escolhido.openPopup());
+      ev.preventDefault();ev.stopPropagation();const escolhido=btn.dataset.refChoice==="obito"?obito:road;
+      estradasEscolhaAberta=false;
+      map.closePopup();
+      if(btn.dataset.refChoice==="obito") requestAnimationFrame(()=>escolhido.openPopup());
+      else {
+        // A consulta DAER pode substituir a camada durante o autopan do
+        // popup. Abra a ficha do trecho como popup independente, usando o
+        // conteúdo já capturado, para que a escolha não desapareça quando a
+        // janela visível for atualizada.
+        const pendente={
+          key:chaveTrechoDAER(escolhido),
+          label:escolhido.__previneRoadLabel||"",
+          latlng,
+          html:escolhido.getPopup?.()?.getContent?.()||""
+        };
+        estradaPopupPendente=null;
+        requestAnimationFrame(()=>abrePopupDAERFallback(pendente));
+      }
     }));
     el.querySelector("button")?.focus({preventScroll:true});
   });
@@ -3325,6 +3409,32 @@ function pontosServicosProximos(marker, clickPoint){
 function htmlEscolhaPontosServicos(pontos){
   return `<div class="pop"><b>Mais de um ponto neste local</b><br><small>Escolha qual cadastro deseja consultar:</small><ul class="svc-overlap-list">${pontos.map((p,i)=>`<li><button type="button" data-svc-choice="${i}">${escHTML(p._svcRotulo||"Ponto cadastrado")}</button></li>`).join("")}</ul><small>Os pontos podem compartilhar coordenadas; a escolha não altera os dados publicados.</small></div>`;
 }
+function encontraServicoAtual(marker){
+  if(marker && map.hasLayer(marker)) return marker;
+  const rotulo=marker?._svcRotulo;
+  if(!rotulo) return null;
+  let atual=null;
+  Object.values(svcLayers).forEach(layer=>{
+    if(atual || !layer || layer === "carregando" || !map.hasLayer(layer) || !layer.eachLayer) return;
+    layer.eachLayer(l=>{if(!atual && l?._svcRotulo===rotulo) atual=l;});
+  });
+  return atual;
+}
+function agendaPopupServico(marker){
+  let abriu=false;
+  const tentar=()=>{
+    const atual=encontraServicoAtual(marker);
+    if(abriu || !atual) return abriu;
+    abriu=true;
+    abrePopupServico(atual,true);
+    return true;
+  };
+  const depoisDoFechamento=()=>requestAnimationFrame(()=>{if(!tentar())setTimeout(tentar,80);});
+  map.once("popupclose", depoisDoFechamento);
+  map.closePopup();
+  depoisDoFechamento();
+  setTimeout(tentar,300);
+}
 function abrePopupServico(marker, direto=false, clickPoint){
   const pontos=direto ? [marker] : pontosServicosProximos(marker, clickPoint);
   marker._svcEscolhas=pontos.length>1 ? pontos : null;
@@ -3386,7 +3496,7 @@ SVC.forEach(s=>{
               popupEl?.querySelectorAll("[data-svc-choice]").forEach(btn=>btn.addEventListener("click", ev=>{
                 ev.preventDefault(); ev.stopPropagation();
                 const escolhido=escolhas[Number(btn.dataset.svcChoice)];
-                if(escolhido) { map.closePopup(); requestAnimationFrame(()=>abrePopupServico(escolhido,true)); }
+                if(escolhido) agendaPopupServico(escolhido);
               }));
               return;
             }
