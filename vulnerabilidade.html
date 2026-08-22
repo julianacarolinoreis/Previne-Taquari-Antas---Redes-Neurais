@@ -3003,7 +3003,7 @@ document.getElementById("estradasBtn")?.addEventListener("click",()=>{
 });
 map.on("moveend",()=>{if(estradasAtiva)carregaEstradas();});
 function abreEscolhaReferenciaSobreposta(road,obito,latlng){
-  const chooser=L.popup(POPUP_OPTS).setLatLng(latlng).setContent(`<div class="pop"><b>Mais de uma referência neste ponto</b><br><small>Escolha o registro que deseja consultar:</small><ul class="svc-overlap-list"><li><button type="button" data-ref-choice="road">Estrada DAER · ${escHTML(road.__previneRoadLabel||"trecho registrado")}</button></li><li><button type="button" data-ref-choice="obito">Óbito · ${escHTML(obito.__previneObitoLabel||"registro")}</button></li></ul></div>`).openOn(map);
+  const chooser=L.popup(POPUP_OPTS).setLatLng(latlng).setContent(`<div class="pop"><b>Mais de uma referência neste ponto</b><br><small>Escolha o registro que deseja consultar:</small><ul class="svc-overlap-list"><li><button type="button" data-ref-choice="road">Estrada DAER · ${escHTML(road.__previneRoadLabel||"trecho registrado")}</button></li><li><button type="button" data-ref-choice="obito">${escHTML(obito.__previneObitoLabel||"Óbito · registro")}</button></li></ul></div>`).openOn(map);
   requestAnimationFrame(()=>{
     const el=chooser.getElement?.();
     if(!el)return;
