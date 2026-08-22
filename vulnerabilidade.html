@@ -2971,6 +2971,7 @@ function carregaEstradas(){
     if(estradasLayer)map.removeLayer(estradasLayer);
     estradasLayer=L.geoJSON(gj,{pane:"referencias",renderer:referenciasSvgRenderer,bubblingMouseEvents:false,style:f=>({color:"#e36c18",weight:map.getZoom()>=11?4.5:3.8,opacity:.9,lineCap:"round",lineJoin:"round"}),onEachFeature:(f,l)=>{
       const p=f.properties||{}, nome=p.nome||p.nome_rodovia||p.codigo_sre||"trecho DAER";
+      l.__previneRoadLabel=nome;
       l.bindPopup(`<div class="pop"><b>${escHTML(nome)}</b><table><tr><td>Situação</td><td>${escHTML(p.situacao_fisica||"—")}</td></tr><tr><td>Administração</td><td>${escHTML(p.administracao||"—")}</td></tr><tr><td>Extensão SRE</td><td>${p.extensao_sre_km==null?"—":escHTML(p.extensao_sre_km)+" km"}</td></tr></table><small>DAER/RS · trecho registrado, não é tempo de viagem.</small>${p.cod_mun?`<button type="button" class="popup-municipio-action" data-cod-mun="${escHTML(p.cod_mun)}">abrir ficha municipal</button>`:""}</div>`);
       acessibilizaFeicaoMapa(l, `Estrada DAER: ${nome}`);
       l.on("add",()=>{const el=l.getElement?.();if(el && !el.dataset.previneRoadClick){
@@ -3001,18 +3002,34 @@ document.getElementById("estradasBtn")?.addEventListener("click",()=>{
   carregaEstradas();
 });
 map.on("moveend",()=>{if(estradasAtiva)carregaEstradas();});
+function abreEscolhaReferenciaSobreposta(road,obito,latlng){
+  const chooser=L.popup(POPUP_OPTS).setLatLng(latlng).setContent(`<div class="pop"><b>Mais de uma referência neste ponto</b><br><small>Escolha o registro que deseja consultar:</small><ul class="svc-overlap-list"><li><button type="button" data-ref-choice="road">Estrada DAER · ${escHTML(road.__previneRoadLabel||"trecho registrado")}</button></li><li><button type="button" data-ref-choice="obito">Óbito · ${escHTML(obito.__previneObitoLabel||"registro")}</button></li></ul></div>`).openOn(map);
+  requestAnimationFrame(()=>{
+    const el=chooser.getElement?.();
+    if(!el)return;
+    el.setAttribute("role","dialog");el.setAttribute("aria-label","Escolha de referência sobreposta");
+    el.querySelectorAll("[data-ref-choice]").forEach(btn=>btn.addEventListener("click",ev=>{
+      ev.preventDefault();ev.stopPropagation();const escolhido=btn.dataset.refChoice==="obito"?obito:road;map.closePopup();requestAnimationFrame(()=>escolhido.openPopup());
+    }));
+    el.querySelector("button")?.focus({preventScroll:true});
+  });
+}
 // Em telas pequenas um clique na linha pode atingir primeiro o polígono
 // municipal subjacente. A captura no mapa reconstrói o alvo geométrico DAER
 // antes do bubbling e abre o trecho correto sem alterar a seleção municipal.
 map.getContainer().addEventListener("click",ev=>{
   if(!estradasAtiva || !estradasLayer || !map.hasLayer(estradasLayer)) return;
+  if(ev.target?.closest?.(".leaflet-popup")) return;
   const rect=map.getContainer().getBoundingClientRect();
   const cp=L.point(ev.clientX-rect.left,ev.clientY-rect.top);
   const lp=map.containerPointToLayerPoint(cp);
-  const alvoObito=ev.target?.closest?.(".obitos-marker")?.__previneObitoLayer;
-  if(alvoObito){ev.preventDefault();ev.stopImmediatePropagation();alvoObito.openPopup();return;}
   let hit=null;
   estradasLayer.eachLayer(l=>{if(!hit && typeof l._containsPoint === "function" && l._containsPoint(lp)) hit=l;});
+  let hitObito=null;
+  if(obitosAtiva && obitosLayer && map.hasLayer(obitosLayer)) obitosLayer.eachLayer(l=>{if(!hitObito && typeof l._containsPoint === "function" && l._containsPoint(lp)) hitObito=l;});
+  if(hit && hitObito){ev.preventDefault();ev.stopImmediatePropagation();abreEscolhaReferenciaSobreposta(hit,hitObito,map.containerPointToLatLng(cp));return;}
+  const alvoObito=ev.target?.closest?.(".obitos-marker")?.__previneObitoLayer;
+  if(alvoObito){ev.preventDefault();ev.stopImmediatePropagation();alvoObito.openPopup();return;}
   if(hit){ev.preventDefault();ev.stopImmediatePropagation();hit.openPopup();}
 },true);
 
@@ -3069,6 +3086,7 @@ function carregaObitos(){
       const lon=p.longitude==null?"—":Number(p.longitude).toFixed(6);
       const rec=Number(p.na_bacia_publicada)===1 ? "dentro da bacia publicada" : "fora da bacia publicada";
       const rotulo=`Óbito · registro ${id}`;
+      l.__previneObitoLabel=rotulo;
       l.bindPopup(`<div class="pop"><b>${escHTML(rotulo)}</b><table><tr><th scope="row">Latitude</th><td>${escHTML(lat)}</td></tr><tr><th scope="row">Longitude</th><td>${escHTML(lon)}</td></tr><tr><th scope="row">Recorte</th><td>${escHTML(rec)}</td></tr></table><small>Arquivo fornecido em EPSG:4674, publicado em EPSG:4326. O ativo não traz data, causa, município ou identificação nominal.</small></div>`);
       acessibilizaFeicaoMapa(l,rotulo);
       l.on("add",()=>{const el=l.getElement?.();if(el)el.__previneObitoLayer=l;});
