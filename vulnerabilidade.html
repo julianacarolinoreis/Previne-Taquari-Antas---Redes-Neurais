@@ -57,10 +57,50 @@
   .quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0 0 10px}
   .quick-actions a,.quick-actions button{display:flex;align-items:center;justify-content:center;min-height:36px;padding:6px 7px;border:1px solid #b9d8c6;border-radius:8px;background:#f2faf5;color:var(--brand);font-size:10.5px;font-weight:750;text-align:center;text-decoration:none;cursor:pointer}
   .quick-actions a:hover,.quick-actions button:hover{border-color:var(--brand);background:#e8f5ed}
-  .map-legend-mini{position:absolute;right:12px;top:12px;z-index:700;width:min(270px,calc(100% - 24px));padding:8px 10px;border:1px solid rgba(15,107,74,.35);border-radius:9px;background:rgba(255,255,255,.96);box-shadow:0 2px 8px rgba(20,45,35,.12);color:var(--ink);font-size:11px;line-height:1.3;pointer-events:none}
+  .map-legend-mini{position:absolute;right:12px;top:12px;z-index:700;width:min(280px,calc(100% - 24px));padding:8px 10px;border:1px solid rgba(15,107,74,.35);border-radius:9px;background:rgba(255,255,255,.96);box-shadow:0 2px 8px rgba(20,45,35,.12);color:var(--ink);font-size:11px;line-height:1.3;pointer-events:none}
   .map-legend-mini strong{display:block;color:var(--brand);font-size:11.5px}
   .map-legend-mini span,.map-legend-mini small{display:block;color:var(--muted);margin-top:2px}
-  #map.popup-open #mapLegendMini{visibility:hidden}
+  .map-legend-mini .mini-ramp{display:flex;height:10px;border-radius:3px;overflow:hidden;margin:6px 0 3px;border:1px solid rgba(0,0,0,.08)}
+  .map-legend-mini .mini-ramp i{flex:1;display:block}
+  .map-legend-mini .mini-scale{display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted);margin:0}
+  /* Com popup aberto, a legenda desce para não cobrir o diálogo — permanece legível. */
+  #map.popup-open #mapLegendMini{top:auto;bottom:12px;right:12px}
+  .map-empty-state{position:absolute;left:12px;bottom:12px;z-index:701;max-width:min(320px,calc(100% - 24px));padding:9px 11px;border:1px solid #d4b36a;border-radius:9px;background:rgba(255,248,230,.97);box-shadow:0 2px 8px rgba(20,45,35,.12);color:#5a4718;font-size:11.5px;line-height:1.4}
+  .map-empty-state[hidden]{display:none!important}
+  .map-empty-state b{display:block;color:#8a5a12;margin-bottom:2px}
+  #map.popup-open .map-empty-state{bottom:88px}
+  .reading-card{margin:8px 0 10px;padding:10px 11px;border:1px solid #b9d8c6;border-radius:10px;background:#f2faf5}
+  .reading-card[hidden]{display:none!important}
+  .reading-card .reading-kicker{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--brand);font-weight:800;margin:0 0 4px}
+  .reading-card p{margin:0 0 6px;font-size:12.5px;line-height:1.45;color:var(--ink)}
+  .reading-card .reading-next{margin:0;font-size:11.5px;line-height:1.4;color:var(--muted)}
+  .reading-card .reading-next b{color:var(--brand)}
+  .glossario{margin:0 0 10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#f7faf8}
+  .glossario summary{cursor:pointer;font-size:12px;font-weight:750;color:var(--brand);min-height:28px}
+  .glossario ul{margin:8px 0 0;padding:0 0 0 16px;color:var(--muted);font-size:11.5px;line-height:1.45}
+  .glossario li{margin:0 0 5px}
+  .glossario b{color:var(--ink)}
+  .location-picker .mun-search{display:grid;gap:6px;margin-bottom:6px}
+  .location-picker .mun-search input{width:100%;min-height:36px;padding:7px 9px;border:1px solid #9fcab0;border-radius:8px;background:#fff;font-size:12.5px}
+  .action-groups{display:grid;gap:8px;margin:0 0 10px}
+  .action-group{border:1px solid #cfe1d6;border-radius:10px;background:#f7faf8;padding:7px 8px}
+  .action-group-title{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:0 0 5px}
+  .action-group .quick-actions{margin:0}
+  .welcome-dialog{border:0;border-radius:14px;padding:0;max-width:min(440px,calc(100vw - 24px));box-shadow:0 12px 40px rgba(20,40,30,.22)}
+  .welcome-dialog::backdrop{background:rgba(19,32,25,.45)}
+  .welcome-inner{padding:18px 18px 14px}
+  .welcome-inner h2{margin:0 0 8px;font-size:18px;color:var(--brand)}
+  .welcome-inner p{margin:0 0 10px;font-size:13.5px;line-height:1.5;color:var(--ink)}
+  .welcome-inner ol{margin:0 0 12px;padding-left:18px;color:var(--muted);font-size:12.5px;line-height:1.45}
+  .welcome-inner li{margin:0 0 4px}
+  .welcome-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+  .welcome-actions button{min-height:36px;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:700;cursor:pointer}
+  .welcome-actions button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  body.colorblind-mode{--brand:#0b4f8a}
+  body.colorblind-mode .map-legend-mini{border-color:rgba(11,79,138,.4)}
+  .a11y-tools{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+  .a11y-tools button{min-height:32px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:11px;font-weight:700;cursor:pointer}
+  .a11y-tools button[aria-pressed="true"]{background:#e8f1f8;border-color:#0b4f8a;color:#0b4f8a}
   #legendHeading{scroll-margin-top:12px}
   aside{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:15px 15px 40px}
   .q{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:12px 0 5px}
@@ -327,7 +367,7 @@
        fica alinhada na coluna direita, sem sobrar um bloco vazio abaixo */
     main{height:calc(100vh - 58px);min-height:0;grid-template-columns:minmax(0,1fr) 300px;align-items:stretch}
     #map{height:100%;min-height:0}
-    #mapLegendMini{display:none!important}
+    #mapLegendMini,.map-empty-state,.welcome-dialog,.a11y-tools,.mun-search,.glossario,.reading-card,.action-groups{display:none!important}
     aside{height:100%;min-height:0;overflow:hidden;padding:8px 12px}
     .expl,.icm-wrap,.comparacao-wrap{break-inside:avoid}
     /* Somente o mapa precisa caber em uma unica prancha, sem uma segunda
@@ -476,10 +516,11 @@
   <a class="back" href="index.html">← painel do projeto</a>
 </header>
 <main>
-  <div id="map" role="region" aria-label="Mapa temático de vulnerabilidade da bacia Taquari-Antas" tabindex="-1"><div id="inset" role="img" aria-label="Localização da bacia Taquari-Antas no Rio Grande do Sul" title="Onde a bacia fica no Rio Grande do Sul"></div><div id="mapLegendMini" class="map-legend-mini" role="note" aria-live="polite"><strong>Carregando indicador…</strong><span>Escolha um município ou indicador.</span></div><div id="mapHint" class="map-hint" aria-hidden="true">Clique em um município para abrir setores censitários ou a grade 200 m.</div></div>
+  <div id="map" role="region" aria-label="Mapa temático de vulnerabilidade da bacia Taquari-Antas" tabindex="-1"><div id="inset" role="img" aria-label="Localização da bacia Taquari-Antas no Rio Grande do Sul" title="Onde a bacia fica no Rio Grande do Sul"></div><div id="mapLegendMini" class="map-legend-mini" role="note" aria-live="polite"><strong>Carregando indicador…</strong><span>Escolha um município ou indicador.</span></div><div id="mapEmptyState" class="map-empty-state" hidden role="status" aria-live="polite"></div><div id="mapHint" class="map-hint" aria-hidden="true">Clique em um município para abrir setores censitários ou a grade 200 m.</div></div>
   <aside>
     <div class="concept-note" role="note" aria-label="Diferença entre vulnerabilidade, perigo e risco">
-      <b>Vulnerabilidade social &ne; perigo &ne; risco.</b> Este mapa mostra pessoas, exposição e capacidade. O risco exige cruzar esses dados com uma ameaça de cheia validada.
+      <b>Vulnerabilidade social &ne; perigo &ne; risco.</b>
+      Aqui você vê <b>quem</b> pode sofrer mais (pessoas e domicílios), a <b>exposição</b> (quanto há no lugar) e a <b>capacidade</b> municipal de gestão. Perigo é a ameaça física de cheia; risco só existe ao cruzar vulnerabilidade com uma mancha ou cota validada — ainda em fase seguinte do PREVINE.
     </div>
     <div class="dataset-strip" id="datasetStrip" role="group" aria-label="Resumo do conjunto de dados">
       <div class="dataset-stat"><b id="summaryMunicipios">118</b><span>municípios</span></div>
@@ -487,11 +528,24 @@
       <div class="dataset-stat"><b id="summaryGrade">36.723</b><span>células 200 m</span></div>
       <div class="dataset-stat"><b id="summaryAno">2022</b><span>ano do Censo</span></div>
     </div>
+    <div class="a11y-tools" role="group" aria-label="Acessibilidade do mapa">
+      <button type="button" id="colorblindToggle" aria-pressed="false" title="Troca a rampa roxa por uma rampa azul–verde com melhor contraste para daltonismo">Paleta daltonismo</button>
+      <button type="button" id="reabrirAjuda">Como começar</button>
+    </div>
     <div class="location-picker" id="locationPicker">
       <div class="q">Localizar município</div>
+      <div class="mun-search">
+        <label class="sr-only" for="buscaTexto">Filtrar municípios por nome</label>
+        <input id="buscaTexto" type="search" placeholder="Digite para filtrar (ex.: Muçum, Encantado)" autocomplete="off" enterkeyhint="search">
+      </div>
       <label class="sr-only" for="busca">Escolha um município para abrir o detalhe local</label>
       <select id="busca"><option value="">— escolher um município —</option></select>
-      <div class="scope-help" id="municipioAjuda">Escolha um município aqui ou clique diretamente no mapa para abrir setores censitários ou a grade 200 m.</div>
+      <div class="scope-help" id="municipioAjuda">Digite para filtrar a lista, escolha o município ou clique no mapa. Depois abra setores censitários ou a grade 200 m.</div>
+    </div>
+    <div class="reading-card" id="readingCard" hidden role="status" aria-live="polite">
+      <div class="reading-kicker" id="readingKicker">Leitura do município</div>
+      <p id="readingBody"></p>
+      <p class="reading-next" id="readingNext"></p>
     </div>
     <details class="data-guide" id="dataGuide">
       <summary>Como consultar estes dados</summary>
@@ -501,13 +555,40 @@
         <li>Use a legenda compacta no mapa e a tabela/downloads para comparar ou levar os dados ao QGIS/ArcGIS.</li>
       </ol>
     </details>
-    <div class="quick-actions" role="group" aria-label="Ações rápidas">
-      <a href="#downloadAnchor" id="atalhoDownloads">↓ baixar dados</a>
-      <button type="button" id="imprimirAtalho">▣ imprimir / PDF</button>
-      <a href="#referenciasBox" id="atalhoReferencias">◇ referências: estradas, cobertura e óbitos</a>
-      <a href="#legendHeading" id="atalhoLegenda">▤ legenda</a>
-      <a href="#localFlow" id="atalhoDetalhe">↳ setor / grade</a>
-      <a href="#servicosHeading" id="atalhoServicos">⊙ serviços no mapa</a>
+    <details class="glossario" id="glossarioSiglas">
+      <summary>O que significam as siglas</summary>
+      <ul>
+        <li><b>PcD</b> — pessoas com deficiência (Censo/SIDRA; 2 anos ou mais).</li>
+        <li><b>TEA</b> — transtorno do espectro autista (diagnóstico declarado no Censo).</li>
+        <li><b>SIDRA</b> — sistema de tabelas do IBGE com agregados oficiais por município.</li>
+        <li><b>ICM</b> — Índice de Capacidade Municipal (MIDR/Defesa Civil), faixas A–D.</li>
+        <li><b>IRM</b> — Índice de Resiliência Municipal (versão V1 deste painel).</li>
+        <li><b>IEDE</b> — cadastro estadual de pontos de serviço (UBS, escolas, hospitais, bombeiros).</li>
+        <li><b>SGB</b> — Serviço Geológico do Brasil; setorização de risco (não é mancha contínua).</li>
+      </ul>
+    </details>
+    <div class="action-groups" aria-label="Ações rápidas">
+      <div class="action-group">
+        <div class="action-group-title">Levar e imprimir</div>
+        <div class="quick-actions" role="group" aria-label="Downloads e impressão">
+          <a href="#downloadAnchor" id="atalhoDownloads">↓ baixar dados</a>
+          <button type="button" id="imprimirAtalho">▣ imprimir / PDF</button>
+        </div>
+      </div>
+      <div class="action-group">
+        <div class="action-group-title">Orientar a leitura</div>
+        <div class="quick-actions" role="group" aria-label="Legenda e detalhe">
+          <a href="#legendHeading" id="atalhoLegenda">▤ legenda</a>
+          <a href="#localFlow" id="atalhoDetalhe">↳ setor / grade</a>
+        </div>
+      </div>
+      <div class="action-group">
+        <div class="action-group-title">Camadas de referência</div>
+        <div class="quick-actions" role="group" aria-label="Referências e serviços">
+          <a href="#referenciasBox" id="atalhoReferencias">◇ estradas, cobertura e óbitos</a>
+          <a href="#servicosHeading" id="atalhoServicos">⊙ serviços no mapa</a>
+        </div>
+      </div>
     </div>
     <div class="q">Indicador</div>
     <div class="indicator-search"><label for="indicadorBusca">Buscar indicador</label><input id="indicadorBusca" type="search" placeholder="Ex.: TEA, água, renda, hospitais" autocomplete="off"></div>
@@ -687,6 +768,23 @@
     </div>
   </aside>
 </main>
+
+<dialog id="welcomeDialog" class="welcome-dialog" aria-labelledby="welcomeTitle" aria-describedby="welcomeDesc">
+  <div class="welcome-inner">
+    <h2 id="welcomeTitle">Como começar neste mapa</h2>
+    <p id="welcomeDesc">Este painel mostra vulnerabilidade <b>social</b> na bacia Taquari-Antas (Censo 2022). Não é alerta de cheia nem mancha de inundação.</p>
+    <ol>
+      <li>Escolha um <b>indicador</b> (ex.: idosos, indígenas, capacidade ICM).</li>
+      <li>Localize um <b>município</b> pela busca ou pelo clique no mapa.</li>
+      <li>Abra <b>setores</b> ou a <b>grade 200 m</b> para o detalhe local.</li>
+      <li>Consulte a <b>legenda no mapa</b> e o cartão “leitura do município”.</li>
+    </ol>
+    <div class="welcome-actions">
+      <button type="button" id="welcomeSkip">Agora não</button>
+      <button type="button" class="primary" id="welcomeOk">Entendi, começar</button>
+    </div>
+  </div>
+</dialog>
 
 <dialog id="printDialog" aria-labelledby="printTitle" aria-describedby="printDescription">
   <h2 id="printTitle">Imprimir mapa</h2>
@@ -881,10 +979,10 @@ const INDS = [
   {k:"pretos_pardos", nome:"Pretos e pardos", pct:true, opt:true, grupo:"Pessoas"},
   // Grupo curto e sempre visível: esses campos estavam escondidos entre os
   // agregados municipais, o que fazia TEA/PcD parecerem ausentes.
-  {k:"pcd_pessoas_2mais", nome:"PcD — contagem de pessoas (2+ anos)", pct:false, un:" pessoas", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
-  {k:"pcd_pct_2mais", nome:"PcD — percentual (%) de pessoas (2+ anos)", pct:false, un:"%", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
-  {k:"tea_pessoas", nome:"TEA — contagem de pessoas diagnosticadas", pct:false, un:" pessoas", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
-  {k:"tea_pct", nome:"TEA — percentual (%) de pessoas diagnosticadas", pct:false, un:"%", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
+  {k:"pcd_pessoas_2mais", nome:"Pessoas com deficiência (PcD) — contagem (2+ anos)", pct:false, un:" pessoas", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
+  {k:"pcd_pct_2mais", nome:"Pessoas com deficiência (PcD) — percentual (2+ anos)", pct:false, un:"%", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
+  {k:"tea_pessoas", nome:"Transtorno do espectro autista (TEA) — contagem", pct:false, un:" pessoas", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
+  {k:"tea_pct", nome:"Transtorno do espectro autista (TEA) — percentual", pct:false, un:"%", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
   {k:"renda_resp",    nome:"Renda do responsável", money:true, opt:true, grupo:"Condições domiciliares"},
   {k:"dom_agua",   nome:"Água — rede geral",   pct:true, base:"dom_ocupados", opt:true, grupo:"Condições domiciliares"},
   {k:"dom_esgoto", nome:"Esgoto — rede geral", pct:true, base:"dom_ocupados", opt:true, grupo:"Condições domiciliares"},
@@ -908,10 +1006,15 @@ const INDS = [
   {k:"svc_hospitais",nome:"Hospitais IEDE /10 mil", svc:true, parcial:true, un:" /10 mil hab", grupo:"Cadastros de serviços*"},
   {k:"svc_bombeiros", nome:"Bombeiros IEDE /10 mil", svc:true, parcial:true, un:" /10 mil hab", grupo:"Cadastros de serviços*"},
   // capacidade municipal (ICM/MIDR) — categórico por faixa A–D
-  {k:"icm",          nome:"Capacidade (ICM)",  cat:true, grupo:"Capacidade municipal"},
+  {k:"icm",          nome:"Capacidade municipal (ICM)",  cat:true, grupo:"Capacidade municipal"},
 ];
 // rampa roxa: não briga com o verde do terreno/satélite (pedido da Juliana)
-const CORES = ["#f3eef6","#d9c7e3","#b394c9","#8759a8","#4d2a6e"];
+const CORES_PADRAO = ["#f3eef6","#d9c7e3","#b394c9","#8759a8","#4d2a6e"];
+// rampa azul–verde (melhor contraste para daltonismo de vermelho–verde)
+const CORES_DALTONISMO = ["#f7fbff","#c6dbef","#6baed6","#2171b5","#08306b"];
+let CORES = CORES_PADRAO.slice();
+const WELCOME_KEY = "previne_vuln_welcome_v1";
+const COLORBLIND_KEY = "previne_vuln_colorblind_v1";
 // ICM: faixa A (mais capacidade de gestão de risco) → D (menos)
 const ICM_CORES = {A:"#2166ac", B:"#67a9cf", C:"#fdae61", D:"#d73027"};
 // Cores usadas em texto sobre fundo claro. As cores da rampa continuam nas
@@ -1387,13 +1490,13 @@ function pintaMunicipios(){
     munLayer.eachLayer(l=>{ const p=l.feature.properties, fx=p.irm_faixa, borda=estiloBorda(p);
       l.setStyle({fillColor:IRM_CORES[fx]||"#aeb8b3", fillOpacity:fx?opacidade:.25, color:borda.color, weight:borda.weight, dashArray:fx?borda.dashArray:"3 3"});
     });
-    legendaResiliencia("\u00b7 munic\u00edpios"); totalizaResiliencia(null); aplicaDestaqueSelecao(); atualizaTabelaComparacao(); return;
+    legendaResiliencia("\u00b7 munic\u00edpios"); totalizaResiliencia(null); aplicaDestaqueSelecao(); atualizaTabelaComparacao(); sincronizaApoiosMapa(); return;
   }
   if (ehCat()){                        // ICM: cor fixa por faixa A–D
     munLayer.eachLayer(l=>{ const fx = l.feature.properties.icm_faixa;
       const p=l.feature.properties, borda=estiloBorda(p);
       l.setStyle({fillColor: ICM_CORES[fx]||"#aeb8b3", fillOpacity: fx?opacidade:.25, color:borda.color, weight:borda.weight, dashArray:ICM_DASH[fx]||borda.dashArray}); });
-    legendaICM("· municípios"); totalizaICM(null); aplicaDestaqueSelecao(); atualizaTabelaComparacao(); return;
+    legendaICM("· municípios"); totalizaICM(null); aplicaDestaqueSelecao(); atualizaTabelaComparacao(); sincronizaApoiosMapa(); return;
   }
   const d = INDS.find(i=>i.k===ind);
   const brk = getBrk(munData.features.map(f=>valor(f.properties)));
@@ -1409,6 +1512,7 @@ function pintaMunicipios(){
   totaliza(munData.features.map(f=>f.properties));
   aplicaDestaqueSelecao();
   atualizaTabelaComparacao();
+  sincronizaApoiosMapa();
 }
 function pintaSetores(){
   if (!setLayer) return;
@@ -1418,14 +1522,14 @@ function pintaSetores(){
     setLayer.eachLayer(l=>{ const p=l.feature.properties, borda=estiloBorda(p,true);
       l.setStyle({fillColor:IRM_CORES[fx]||"#aeb8b3", fillOpacity:p.na_bacia?opacidade:opacidade*.45, color:borda.color, weight:borda.weight, dashArray:fx?borda.dashArray:"3 3"});
     });
-    legendaResiliencia("\u00b7 " + munAtual.nome); totalizaResiliencia(munAtual); aplicaDestaqueSelecao(); atualizaTabelaComparacao(); return;
+    legendaResiliencia("\u00b7 " + munAtual.nome); totalizaResiliencia(munAtual); aplicaDestaqueSelecao(); atualizaTabelaComparacao(); sincronizaApoiosMapa(); return;
   }
   if (ehCat()){                        // ICM é municipal: setores herdam a faixa do município
     const fx = munAtual.icm_faixa;
     setLayer.eachLayer(l=>{ const p = l.feature.properties;
       const borda=estiloBorda(p,true);
       l.setStyle({fillColor: ICM_CORES[fx]||"#aeb8b3", fillOpacity: p.na_bacia?opacidade:opacidade*.45, color:borda.color, weight:borda.weight, dashArray:ICM_DASH[fx]||borda.dashArray}); });
-    legendaICM("· " + munAtual.nome); totalizaICM(munAtual); aplicaDestaqueSelecao(); atualizaTabelaComparacao(); return;
+    legendaICM("· " + munAtual.nome); totalizaICM(munAtual); aplicaDestaqueSelecao(); atualizaTabelaComparacao(); sincronizaApoiosMapa(); return;
   }
   const dAtual = INDS.find(i=>i.k===ind);
   if (dAtual?.municipalOnly){
@@ -1439,7 +1543,7 @@ function pintaSetores(){
     });
     legendaMunicipalOnly("· " + munAtual.nome);
     totalizaMunicipalOnly(munAtual);
-    aplicaDestaqueSelecao(); atualizaTabelaComparacao(); return;
+    aplicaDestaqueSelecao(); atualizaTabelaComparacao(); sincronizaApoiosMapa(); return;
   }
   const brk = getBrk(feats.map(f=>valor(f.properties)));
     setLayer.eachLayer(l=>{
@@ -1456,6 +1560,7 @@ function pintaSetores(){
   totaliza(feats.map(f=>f.properties));
   aplicaDestaqueSelecao();
   atualizaTabelaComparacao();
+  sincronizaApoiosMapa();
 }
 function legendaMunicipalOnly(ctx){
   const d=INDS.find(i=>i.k===ind) || INDS[0];
@@ -1904,8 +2009,171 @@ function atualizaLegendaMini(){
   const d=INDS.find(i=>i.k===ind) || INDS[0];
   const modoTxt=(modo === "pct" && d.pct) ? (d.base ? "% dos domicílios ocupados" : "% da população") : (d.un || (d.money ? "R$" : "valor absoluto"));
   const camadaTxt=munAtual ? (camada === "grade" ? `grade 200 m · ${munAtual.nome}` : `setores censitários · ${munAtual.nome}`) : "municípios da bacia";
-  const aviso=d.municipalOnly ? "Dado municipal; não é valor do setor ou da grade." : d.svc ? "Taxa municipal; pontos cadastrados aparecem na camada de serviços." : d.cat ? "Índice municipal; não é risco nem alerta." : "Cores relativas ao escopo escolhido; não representam risco.";
-  el.innerHTML=`<strong>${escHTML(d.nome)}</strong><span>${escHTML(modoTxt)} · ${escHTML(camadaTxt)}</span><small>${escHTML(aviso)}</small>`;
+  const aviso=d.municipalOnly ? "Dado municipal; não é valor do setor ou da grade." : d.svc ? "Taxa municipal; pontos cadastrados aparecem na camada de serviços." : d.cat ? "Índice municipal de capacidade; não é risco nem alerta." : ehResiliencia() ? "Faixas municipais de resiliência; não é alerta." : "Cores relativas ao escopo escolhido; não representam risco.";
+  let ramp="";
+  if (ehResiliencia()){
+    ramp=`<div class="mini-ramp" aria-hidden="true"><i style="background:${IRM_CORES.verde}"></i><i style="background:${IRM_CORES.amarelo}"></i><i style="background:${IRM_CORES.vermelho}"></i></div><div class="mini-scale"><span>maior resiliência</span><span>menor</span></div>`;
+  } else if (d.cat){
+    ramp=`<div class="mini-ramp" aria-hidden="true"><i style="background:${ICM_CORES.A}"></i><i style="background:${ICM_CORES.B}"></i><i style="background:${ICM_CORES.C}"></i><i style="background:${ICM_CORES.D}"></i></div><div class="mini-scale"><span>A · mais capacidade</span><span>D · menos</span></div>`;
+  } else if (!d.municipalOnly){
+    ramp=`<div class="mini-ramp" aria-hidden="true">${CORES.map(c=>`<i style="background:${c}"></i>`).join("")}</div><div class="mini-scale"><span>menor</span><span>maior</span></div>`;
+  }
+  el.innerHTML=`<strong>${escHTML(d.nome)}</strong><span>${escHTML(modoTxt)} · ${escHTML(camadaTxt)}</span>${ramp}<small>${escHTML(aviso)}</small>`;
+}
+function propsVisiveisParaLeitura(){
+  if (munAtual && setLayer) return setLayer.getLayers().map(l=>l.feature.properties);
+  if (munData?.features) return munData.features.map(f=>f.properties);
+  return [];
+}
+function atualizaEmptyState(){
+  const el=document.getElementById("mapEmptyState");
+  if(!el) return;
+  const d=INDS.find(i=>i.k===ind);
+  if (!d || !munData || d.cat || d.svc || ehResiliencia() || d.municipalOnly){
+    el.hidden=true; el.textContent=""; return;
+  }
+  const props=propsVisiveisParaLeitura();
+  if (!props.length){ el.hidden=true; el.textContent=""; return; }
+  let positivos=0, conhecidos=0, zeros=0;
+  props.forEach(p=>{
+    const v=valor(p);
+    if (!Number.isFinite(v)) return;
+    conhecidos++;
+    if (v>0) positivos++; else zeros++;
+  });
+  const cobertura=conhecidos/props.length;
+  if (positivos===0 && conhecidos>0){
+    el.hidden=false;
+    el.innerHTML=munAtual
+      ? `<b>Mapa quase vazio neste indicador</b>Neste município, as áreas com dado publicado estão em zero. Isso pode ser real ou cobertura esparsa — não trate cinza/zero como “sem vulnerabilidade”. Troque o indicador ou volte à bacia.`
+      : `<b>Mapa quase vazio neste indicador</b>Todas as áreas com dado publicado estão em zero. Isso pode ser real (ex.: poucos registros) ou cobertura esparsa — não trate cinza/zero como “sem vulnerabilidade”. Tente outro indicador ou abra um município.`;
+    return;
+  }
+  if (positivos>0 && positivos/Math.max(conhecidos,1) <= 0.08){
+    el.hidden=false;
+    el.innerHTML=`<b>Indicador esparso</b>Só ${fmt(positivos)} de ${fmt(conhecidos)} área(s) com dado têm valor positivo. A cor destaca essas poucas áreas; o restante em zero ou sem publicação não significa ausência de risco social.`;
+    return;
+  }
+  if (cobertura < 0.35){
+    el.hidden=false;
+    el.innerHTML=`<b>Cobertura limitada</b>Menos de ${fmt(Math.round(cobertura*100))}% das áreas têm valor publicado. Cinza = sem dado conhecido, não zero confirmado.`;
+    return;
+  }
+  el.hidden=true; el.textContent="";
+}
+function atualizaLeituraMunicipio(){
+  const card=document.getElementById("readingCard");
+  const body=document.getElementById("readingBody");
+  const next=document.getElementById("readingNext");
+  const kicker=document.getElementById("readingKicker");
+  if(!card||!body||!next) return;
+  if(!munAtual){
+    card.hidden=true; body.textContent=""; next.textContent=""; return;
+  }
+  const d=INDS.find(i=>i.k===ind) || INDS[0];
+  card.hidden=false;
+  if(kicker) kicker.textContent=`Leitura · ${munAtual.nome}`;
+  let leitura="";
+  if (ehResiliencia()){
+    const score=irmValor(munAtual);
+    leitura=munAtual.irm_faixa
+      ? `${munAtual.nome} está na faixa ${IRM_LABEL[munAtual.irm_faixa]||munAtual.irm_faixa}${score===null?"":` (${fmt(score)}/100)`} no IRM V1.`
+      : `${munAtual.nome} não tem faixa IRM publicada nesta base.`;
+  } else if (d.cat){
+    leitura=munAtual.icm_faixa
+      ? `${munAtual.nome} está na faixa ICM ${munAtual.icm_faixa}${munAtual.icm_pont!=null?` (${munAtual.icm_pont} pts)`:""}: ${ICM_LABEL[munAtual.icm_faixa]||"capacidade municipal"}.`
+      : `${munAtual.nome} sem faixa ICM nesta base.`;
+  } else if (d.svc){
+    const pontos=valorBruto(munAtual,d);
+    const pop=valorMunicipalBruto(munAtual,"pop");
+    const taxa=pop>0 && pontos!==null ? pontos/pop*10000 : null;
+    leitura=pontos===null
+      ? `${munAtual.nome} sem ponto publicado neste cadastro IEDE (ausência ≠ inexistência do serviço).`
+      : `${munAtual.nome}: ${fmt(pontos)} ponto(s) no cadastro${taxa===null?"":` · ${fmt(taxa)} /10 mil hab`}.`;
+  } else if (d.municipalOnly){
+    const v=valorBruto(munAtual,d);
+    leitura=v===null
+      ? `${d.nome} não foi publicado para ${munAtual.nome} (agregado municipal SIDRA/IBGE).`
+      : `${munAtual.nome}: ${d.money?"R$ ":""}${fmt(v)}${d.un||""} no município inteiro — não é valor de setor nem só da bacia.`;
+  } else {
+    const v=valor(munAtual);
+    const bruto=valorBruto(munAtual,d);
+    if (bruto===null || !Number.isFinite(v)){
+      leitura=`${d.nome} sem valor publicado para ${munAtual.nome} neste escopo.`;
+    } else {
+      const modoTxt=(modo==="pct" && d.pct) ? (d.base?"% dos domicílios ocupados":"% da população") : "valor absoluto";
+      leitura=`Em ${munAtual.nome}, ${d.nome.toLowerCase()} = ${rotulo(v)} (${modoTxt}).`;
+    }
+  }
+  body.textContent=leitura;
+  const passos=[];
+  if (camada!=="grade" && !GRADE_INDS.has(d.k) && !d.municipalOnly && !d.svc && !d.cat && !ehResiliencia())
+    passos.push("explore os setores no mapa ou na tabela");
+  if (GRADE_INDS.has(d.k) || d.k==="pop" || d.k==="dom")
+    passos.push("compare com a grade 200 m");
+  if (!d.svc) passos.push("ative serviços IEDE se precisar de equipamentos próximos");
+  passos.push("use imprimir/PDF ou downloads para levar o recorte");
+  next.innerHTML=`<b>Próximo passo:</b> ${escHTML(passos.slice(0,2).join(" · "))}.`;
+}
+function sincronizaApoiosMapa(){
+  atualizaLegendaMini();
+  atualizaEmptyState();
+  atualizaLeituraMunicipio();
+}
+function aplicaPaletaDaltonismo(liga){
+  CORES = liga ? CORES_DALTONISMO.slice() : CORES_PADRAO.slice();
+  document.body.classList.toggle("colorblind-mode", !!liga);
+  const btn=document.getElementById("colorblindToggle");
+  if(btn){ btn.setAttribute("aria-pressed", liga?"true":"false"); }
+  try{ localStorage.setItem(COLORBLIND_KEY, liga?"1":"0"); }catch(_){}
+  document.querySelectorAll(".expl-ramp span").forEach((el,i)=>{ if(CORES[i]) el.style.background=CORES[i]; });
+  if (munLayer || setLayer) repinta();
+  else sincronizaApoiosMapa();
+}
+function normalizaBusca(s){
+  return String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+}
+function filtraOpcoesMunicipio(){
+  const sel=document.getElementById("busca");
+  const inp=document.getElementById("buscaTexto");
+  if(!sel||!inp) return;
+  const q=normalizaBusca(inp.value);
+  let visiveis=0;
+  [...sel.options].forEach(o=>{
+    if(!o.value){ o.hidden=false; return; }
+    const ok=!q || normalizaBusca(o.textContent).includes(q);
+    o.hidden=!ok;
+    if(ok) visiveis++;
+  });
+  const ajuda=document.getElementById("municipioAjuda");
+  if(ajuda && q) ajuda.textContent=visiveis ? `${visiveis} município(s) na lista filtrada. Escolha um ou limpe a busca.` : "Nenhum município com esse nome. Tente outro trecho.";
+  else if(ajuda && !q) ajuda.textContent="Digite para filtrar a lista, escolha o município ou clique no mapa. Depois abra setores censitários ou a grade 200 m.";
+}
+function fechaWelcome(gravar){
+  const dlg=document.getElementById("welcomeDialog");
+  if(dlg?.open) dlg.close();
+  if(gravar){ try{ localStorage.setItem(WELCOME_KEY,"1"); }catch(_){} }
+}
+function abreWelcome(forcar){
+  const dlg=document.getElementById("welcomeDialog");
+  if(!dlg || typeof dlg.showModal!=="function") return;
+  if(!forcar){
+    try{ if(localStorage.getItem(WELCOME_KEY)==="1") return; }catch(_){}
+  }
+  if(!dlg.open) dlg.showModal();
+}
+function initUxApoios(){
+  try{ if(localStorage.getItem(COLORBLIND_KEY)==="1") aplicaPaletaDaltonismo(true); }catch(_){}
+  document.getElementById("colorblindToggle")?.addEventListener("click",()=>{
+    const liga=document.getElementById("colorblindToggle")?.getAttribute("aria-pressed")!=="true";
+    aplicaPaletaDaltonismo(liga);
+  });
+  document.getElementById("reabrirAjuda")?.addEventListener("click",()=>abreWelcome(true));
+  document.getElementById("welcomeOk")?.addEventListener("click",()=>fechaWelcome(true));
+  document.getElementById("welcomeSkip")?.addEventListener("click",()=>fechaWelcome(true));
+  document.getElementById("buscaTexto")?.addEventListener("input",filtraOpcoesMunicipio);
+  // Atraso curto: deixa o mapa montar antes do diálogo.
+  setTimeout(()=>abreWelcome(false), 600);
 }
 function atualizaEscopoDados(){
   const el=document.getElementById("escopoDados"); if(el)el.textContent=textoEscopoDados();
@@ -1925,7 +2193,7 @@ function atualizaEscopoDados(){
     b.disabled=indisponivel && b.dataset.s==="bacia";
     b.title=b.disabled ? (munAtual ? "O drill-down usa a camada local do município" : "Indicador municipal sem recorte na bacia") : "";
   });
-  atualizaLegendaMini();
+  sincronizaApoiosMapa();
 }
 function propsDaSelecao(){
   return selectionLayers.map(l=>l.feature.properties || {});
@@ -2354,7 +2622,7 @@ INDS.forEach(d=>{
     titulo.className = "ind-group-title";
     titulo.id = `indGroupTitle_${slugLocal(d.grupo)}`;
     grupo.setAttribute("aria-labelledby", titulo.id);
-    titulo.textContent = d.grupo === "Deficiência e TEA" ? "Deficiência e TEA · município inteiro · amostra SIDRA" : d.grupo;
+    titulo.textContent = d.grupo === "Deficiência e TEA" ? "Deficiência (PcD) e autismo (TEA) · município inteiro · SIDRA/IBGE" : d.grupo;
     grupo.appendChild(titulo);
     if (d.grupo === "Deficiência e TEA"){
       const ajuda=document.createElement("p");
@@ -3636,6 +3904,8 @@ carrega("icm_municipios.json", "assets/data").then(d=>{
   icmResolvido = true;
   atualizaDownloads();
 });
+
+initUxApoios();
 </script>
 </body>
 </html>
