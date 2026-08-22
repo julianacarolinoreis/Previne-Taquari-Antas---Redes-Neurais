@@ -84,6 +84,7 @@
   .local-flow .scope-help{margin-top:6px}
   .ind-group[data-grupo="Deficiência e TEA"]{border:1px solid #cfe1d6;border-radius:10px;background:#f5faf7;padding:7px 8px;margin-top:5px}
   .ind-group[data-grupo="Deficiência e TEA"] .ind-group-title{color:var(--brand);font-size:11px}
+  .ind-group-help{margin:4px 0 6px;color:#40534a;font-size:11px;line-height:1.35}
   .more-indicators{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
   .more-indicators summary{min-height:28px;padding:5px 7px;border:1px solid var(--line);border-radius:8px;background:#f7faf8;color:var(--ink);font-size:11px;font-weight:750;cursor:pointer}
   .more-indicators[hidden]{display:none}
@@ -880,10 +881,10 @@ const INDS = [
   {k:"pretos_pardos", nome:"Pretos e pardos", pct:true, opt:true, grupo:"Pessoas"},
   // Grupo curto e sempre visível: esses campos estavam escondidos entre os
   // agregados municipais, o que fazia TEA/PcD parecerem ausentes.
-  {k:"pcd_pessoas_2mais", nome:"PcD · pessoas 2+ (amostra)", pct:false, municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
-  {k:"pcd_pct_2mais", nome:"PcD · percentual (amostra)", pct:false, un:"%", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
-  {k:"tea_pessoas", nome:"TEA · pessoas (amostra)", pct:false, municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
-  {k:"tea_pct", nome:"TEA · percentual (amostra)", pct:false, un:"%", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
+  {k:"pcd_pessoas_2mais", nome:"PcD — contagem de pessoas (2+ anos)", pct:false, un:" pessoas", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
+  {k:"pcd_pct_2mais", nome:"PcD — percentual (%) de pessoas (2+ anos)", pct:false, un:"%", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
+  {k:"tea_pessoas", nome:"TEA — contagem de pessoas diagnosticadas", pct:false, un:" pessoas", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
+  {k:"tea_pct", nome:"TEA — percentual (%) de pessoas diagnosticadas", pct:false, un:"%", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
   {k:"renda_resp",    nome:"Renda do responsável", money:true, opt:true, grupo:"Condições domiciliares"},
   {k:"dom_agua",   nome:"Água — rede geral",   pct:true, base:"dom_ocupados", opt:true, grupo:"Condições domiciliares"},
   {k:"dom_esgoto", nome:"Esgoto — rede geral", pct:true, base:"dom_ocupados", opt:true, grupo:"Condições domiciliares"},
@@ -2355,6 +2356,13 @@ INDS.forEach(d=>{
     grupo.setAttribute("aria-labelledby", titulo.id);
     titulo.textContent = d.grupo === "Deficiência e TEA" ? "Deficiência e TEA · município inteiro · amostra SIDRA" : d.grupo;
     grupo.appendChild(titulo);
+    if (d.grupo === "Deficiência e TEA"){
+      const ajuda=document.createElement("p");
+      ajuda.className="ind-group-help";
+      ajuda.setAttribute("role","note");
+      ajuda.textContent="Como ler: contagem = número de pessoas; percentual = %. PcD considera pessoas de 2 anos ou mais; TEA é população diagnosticada com autismo. Dados preliminares do Censo 2022/SIDRA, no município inteiro — não são valores de setor ou da bacia. Sem dado publicado não significa zero.";
+      grupo.appendChild(ajuda);
+    }
     indDiv.appendChild(grupo);
     gruposInd.set(d.grupo, grupo);
   }
@@ -2364,8 +2372,8 @@ INDS.forEach(d=>{
   b.setAttribute("aria-pressed", d.k===ind ? "true" : "false");
   if (d.parcial){ b.dataset.parcial = "1"; b.title = "Cadastro IEDE com cobertura parcial; ausência não prova inexistência"; }
   if (d.agregado) b.title = d.k.startsWith("tea")
-    ? "Agregado municipal; fonte SIDRA/IBGE, não é valor de setor nem da bacia"
-    : "Agregado municipal IBGE; não é valor de setor nem da bacia";
+    ? `${d.nome}. Fonte SIDRA/IBGE; município inteiro, não é valor de setor nem da bacia.`
+    : `${d.nome}. Fonte SIDRA/IBGE; município inteiro, não é valor de setor nem da bacia.`;
   if (d.opt) b.hidden = true;          // só aparece quando o robô publicar o campo
   if (d.k===ind) b.classList.add("on");
   b.onclick = ()=>{
