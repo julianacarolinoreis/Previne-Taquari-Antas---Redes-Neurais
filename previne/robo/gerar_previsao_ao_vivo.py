@@ -180,6 +180,7 @@ MODELOS = [
         "ativo_ao_vivo": True,
         "versao": "V001",
         "status_publicacao": "experimental",
+        "input_contract_version": "hourly_exact_v1",
     },
     {
         # 8h ALT V002 — 28 inputs da planilha modelo_8h_V002.xlsx.
@@ -197,6 +198,7 @@ MODELOS = [
         "shadow_only": True,
         "versao": "V002",
         "status_publicacao": "sombra_experimental",
+        "input_contract_version": "hourly_exact_v1",
     },
 ]
 
@@ -403,6 +405,14 @@ NIVEL_PLAUSIVEL_MAX_POR_ESTACAO_CM = {
 # alimentar a rede com uma mistura de leituras de 15 min, interpolação e
 # vizinhos: isso muda a semântica dos 24 sinais, mesmo quando todos têm valor.
 MODELO_4H_EXIGE_HORA_EXATA = True
+# 8h V001/V002 usam hidrelétricas que só publicam :00. Nunca interpolar
+# :15/:30/:45 nem vizinho — a hora-base é sempre cheia e a leitura é exata.
+MONTADORES_HORA_CHEIA_EXATA = (
+    "4h_alt_v01_26",
+    "4h_alt_v01_r10",
+    "8h_alt_v001",
+    "8h_alt_v002",
+)
 
 def _vizinhos_serie(serie, t):
     """Retorna (antes, depois) mais próximos de t em serie (dict timestamp→valor)."""
@@ -552,8 +562,24 @@ def chuva_media_acum_36h(series, t):
 def _n(series, cod, t, h=0):
     return nivel(series.get(cod, {}), t - dt.timedelta(hours=h), estacao=cod)
 
+def _eh_hora_cheia(t):
+    return t is not None and t.minute == 0 and t.second == 0 and t.microsecond == 0
+
+def _n_exato(series, cod, t, h=0):
+    """Leitura ANA exatamente em t-h. Sem interpolar e sem vizinho."""
+    hora = t - dt.timedelta(hours=h)
+    if not _eh_hora_cheia(hora):
+        return None
+    serie = series.get(cod) or {}
+    if hora not in serie:
+        return None
+    valor = serie[hora]
+    if not _nivel_plausivel(valor, cod):
+        return None
+    return float(valor)
+
 def _D(series, cod, t, h):
-    a, b = _n(series, cod, t, 0), _n(series, cod, t, h)
+    a, b = _n_exato(series, cod, t, 0), _n_exato(series, cod, t, h)
     return None if None in (a, b) else a - b
 
 def _A_curv(series, cod, t, h):
@@ -852,14 +878,16 @@ def _A_janela(series, cod, t, lag_h, win_h):
       (n(t) - n(t-W)) - (n(t-X) - n(t-X-W))
     A-Xh padrão do 2h/4h é o caso W=1. Não usar _A_curv (curvatura de 3 pontos).
     """
-    a = _n(series, cod, t, 0)
-    b = _n(series, cod, t, win_h)
-    c = _n(series, cod, t, lag_h)
-    d = _n(series, cod, t, lag_h + win_h)
+    a = _n_exato(series, cod, t, 0)
+    b = _n_exato(series, cod, t, win_h)
+    c = _n_exato(series, cod, t, lag_h)
+    d = _n_exato(series, cod, t, lag_h + win_h)
     return None if None in (a, b, c, d) else (a - b) - (c - d)
 
 def _chuva_hora(series, chave, t, h=0):
-    hora = (t - dt.timedelta(hours=h)).replace(minute=0, second=0, microsecond=0)
+    hora = t - dt.timedelta(hours=h)
+    if not _eh_hora_cheia(hora):
+        return None
     return (series.get("__chuva8h_postos__", {}).get(chave) or {}).get(hora)
 
 def _chuva_acum(series, chave, t, n_horas):
@@ -898,27 +926,28 @@ def montar_inputs_8h_alt_v001(series, t):
     Acel-Xh = (n(t)-n(t-1h)) - (n(t-Xh)-n(t-Xh-1h))     [= _A_janela(X, 1)]
     Acel-Xh_Janela-Wh = (n(t)-n(t-W)) - (n(t-X)-n(t-X-W))
     Chuva: AVERAGE dos postos com dado (Excel ignora vazio).
+    Niveis: so leitura exata em hora cheia; hidreletrica nao tem :15/:30/:45.
     """
-    st0 = _n(series, "86472600", t, 0)
+    st0 = _n_exato(series, "86472600", t, 0)
     inputs = [
         st0,                                              # 01 Nivel 86472600
         _D(series, "86472600", t, 1),                     # 02 DN-1h
         _D(series, "86472600", t, 4),                     # 03 DifN-4h
         _A_janela(series, "86472600", t, 1, 1),           # 04 Acel-1h
         _A_janela(series, "86472600", t, 12, 1),          # 05 Acel-12h
-        _n(series, "86472000", t, 0),                     # 06 Nivel 86472000
+        _n_exato(series, "86472000", t, 0),               # 06 Nivel 86472000
         _D(series, "86472000", t, 2),                     # 07 DifN-2h
         _D(series, "86472000", t, 6),                     # 08 DifN-6h
         _A_janela(series, "86472000", t, 4, 1),           # 09 Acel-4h
         _A_janela(series, "86472000", t, 13, 2),          # 10 Acel-13h Janela-2h
         _D(series, "86125500", t, 2),                     # 11 DifN-2h 86125500
         _D(series, "86125500", t, 12),                    # 12 DifN-12h
-        _n(series, "86298000", t, 0),                     # 13 Nivel 86298000
+        _n_exato(series, "86298000", t, 0),               # 13 Nivel 86298000
         _D(series, "86298000", t, 2),                     # 14 DifN-2h
         _D(series, "86298000", t, 8),                     # 15 DifN-8h
         _A_janela(series, "86298000", t, 12, 1),          # 16 Acel-12h
         _A_janela(series, "86298000", t, 25, 7),          # 17 Acel-25h Janela-7h
-        _n(series, "86306000", t, 0),                     # 18 Nivel 86306000
+        _n_exato(series, "86306000", t, 0),               # 18 Nivel 86306000
         _D(series, "86306000", t, 2),                     # 19 DifN-2h
         _D(series, "86306000", t, 10),                    # 20 DifN-10h
         _A_janela(series, "86306000", t, 19, 8),          # 21 Acel-19h Janela-8h
@@ -957,15 +986,16 @@ def montar_inputs_8h_alt_v002(series, t):
 
     Mesmas fórmulas de DifN / Acel / Acel-janela / chuva do V001.
     Sem A894/CEMADEN: Passo Carreiro 86500000 no lugar do CEMADEN.
+    Niveis: so leitura exata em hora cheia; hidreletrica nao tem :15/:30/:45.
     """
-    st0 = _n(series, "86472600", t, 0)
+    st0 = _n_exato(series, "86472600", t, 0)
     inputs = [
         st0,                                              # 01 Nivel 86472600
         _D(series, "86472600", t, 1),                     # 02 DN-1h
         _D(series, "86472600", t, 4),                     # 03 DifN-4h
         _A_janela(series, "86472600", t, 1, 1),           # 04 Acel-1h
         _A_janela(series, "86472600", t, 12, 1),          # 05 Acel-12h
-        _n(series, "86472000", t, 0),                     # 06 Nivel 86472000
+        _n_exato(series, "86472000", t, 0),               # 06 Nivel 86472000
         _D(series, "86472000", t, 2),                     # 07 DifN-2h
         _D(series, "86472000", t, 6),                     # 08 DifN-6h
         _A_janela(series, "86472000", t, 4, 1),           # 09 Acel-4h
@@ -1832,15 +1862,12 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
 
 def escolher_hora_modelo(cfg, series, horas_st):
     """Usa a hora mais recente em que todos os inputs do modelo existem."""
+    montador = cfg.get("montador")
+    exige_hora_cheia = montador in MONTADORES_HORA_CHEIA_EXATA
     for cand in reversed(horas_st):
-        # O modelo 4h foi treinado em timestamps de hora cheia.  Mesmo que a
-        # API traga uma leitura de 15/30/45 min, não deslocar silenciosamente
-        # a janela: esperar a próxima hora-base completa é mais auditável.
-        if (
-            cfg.get("montador") in ("4h_alt_v01_26", "4h_alt_v01_r10")
-            and MODELO_4H_EXIGE_HORA_EXATA
-            and (cand.minute != 0 or cand.second != 0 or cand.microsecond != 0)
-        ):
+        # 4h e 8h foram treinados em hora cheia. Hidrelétrica só publica :00;
+        # usar 15:45 inventaria o nível da usina. Sem interpolar, sem vizinho.
+        if exige_hora_cheia and not _eh_hora_cheia(cand):
             continue
         try:
             x, st0 = montar_inputs_modelo(cfg, series, cand)
@@ -1852,17 +1879,20 @@ def escolher_hora_modelo(cfg, series, horas_st):
             # das aceleracoes e evita misturar t=21:45 com uma regua parada em
             # t=21:00. Se nenhuma hora passar, a chamada abaixo ainda produz o
             # diagnostico ATENCAO/INVALIDO em vez de esconder o problema.
-            if cfg.get("montador") == "4h_alt_v01_26":
+            if montador == "4h_alt_v01_26":
                 audit = auditoria_inputs_4h_v01_26(series, cand, valores=x)
                 if audit["status"] != "NORMAL":
                     continue
-            elif cfg.get("montador") == "4h_alt_v01_r10":
+            elif montador == "4h_alt_v01_r10":
                 audit = auditoria_inputs_4h_v01_r10(series, cand, valores=x)
                 if audit["status"] != "NORMAL":
                     continue
             return cand
-    if cfg.get("montador") in ("4h_alt_v01_26", "4h_alt_v01_r10"):
+    if montador in ("4h_alt_v01_26", "4h_alt_v01_r10"):
         return None
+    if montador in ("8h_alt_v001", "8h_alt_v002"):
+        cheias = [h for h in horas_st if _eh_hora_cheia(h)]
+        return cheias[-1] if cheias else None
     return horas_st[-1] if horas_st else None
 
 def escrever_pacote(horizontes, historico, aviso):
@@ -1998,13 +2028,13 @@ def main():
         if tel and hm and out.get("nivel_previsto_cm") is not None:
             atraso_h = (tel[0] - hm).total_seconds() / 3600.0
             if (
-                out.get("montador") in ("4h_alt_v01_26", "4h_alt_v01_r10")
+                out.get("montador") in MONTADORES_HORA_CHEIA_EXATA
                 and atraso_h >= INPUT_WARN_MAX_AGE.total_seconds() / 3600.0
                 and str(out.get("status") or "").startswith("ok")
             ):
                 out["status"] = (
                     f"{out['status']} - atencao: hora-base {atraso_h:.1f}h atrasada "
-                    "para manter as entradas no mesmo recorte temporal"
+                    "para manter hora cheia sem interpolar hidreletrica"
                 )
             elif atraso_h >= 2.0 and out.get("status") == "ok":
                 out["status"] = (

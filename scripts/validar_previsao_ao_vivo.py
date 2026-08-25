@@ -71,6 +71,12 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
             raise SystemExit(f"modelo/tipo ausente em {key}")
         if item.get("nivel_previsto_cm") is not None and item.get("status") is None:
             raise SystemExit(f"status ausente em {key}")
+        if key.startswith("8h") and item.get("nivel_previsto_cm") is not None:
+            hora8 = str(item.get("hora_modelo") or "")
+            if len(hora8) < 16 or hora8[14:16] != "00":
+                raise SystemExit(f"{key} fora da grade horaria exata: {hora8}")
+            if "interpol" in str(item.get("status") or "").lower():
+                raise SystemExit(f"{key} publicou status com interpolacao")
     four = horizons["4h"]
     four_input_audit = four.get("auditoria_inputs") or {}
     if four.get("nivel_previsto_cm") is None:
