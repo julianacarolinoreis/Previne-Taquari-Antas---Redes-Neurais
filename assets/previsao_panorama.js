@@ -243,9 +243,11 @@
     const hs=live.horizontes&&Object.keys(live.horizontes).length?live.horizontes:{[live.horizonte||'2h']:live};
     const picked=new Map();
     Object.entries(hs).forEach(([key,obj])=>{
-      if(!obj||obj.disponivel===false) return;
+      if(!obj||obj.disponivel===false||obj.shadow_only) return;
       const cm=number(obj.nivel_previsto_cm),hours=horizonHours(key,obj);
       if(cm===null||hours===null||![2,4,8,12].includes(hours)) return;
+      const hora=String(obj.hora_modelo||'');
+      if(String(key).startsWith('8h') && (hora.length<16 || hora.slice(14,16)!=='00')) return;
       let target=parseWhen(obj.hora_alvo);
       const baseTime=parseWhen(obj.hora_modelo)||(anchor&&anchor.time)||null;
       const baseCm=number(obj.nivel_modelo_cm);

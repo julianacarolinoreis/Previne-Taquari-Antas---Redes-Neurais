@@ -674,13 +674,14 @@ function renderFrame(){
   if(cnow)cnow.className=classeDistanciaCota(nowCm);
   if(cfore)cfore.className=hasFore?classeDistanciaCota(foreCm):'';
   drawCotaChart(nowCm,hasFore?foreCm:null,hzLabel(activeKey));
-  set('s-drio', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
+  const modelBaseCm=activeD?liveModelBaseCm(activeD):null;
+  const drioFrom=(liveMode && modelBaseCm!=null && hasNow && Math.abs(modelBaseCm-nowCm)>=1)?modelBaseCm:nowCm;
+  set('s-drio', hasFore&&drioFrom!=null?sgn1((foreCm-drioFrom)/100)+' m':'—');
   set('s-newarea', hasFore?sgn1(areaNew)+' ha':'—');
   set('s-atot', hasFore?nf.format(areaFore)+' ha':(hasNow?nf.format(areaNow)+' ha':'—'));
   const cf=CONF[activeKey]||CONF['—']; set('s-conf',cf[0]); const cd=document.getElementById('s-confdot'); if(cd)cd.style.background=cf[1];
   // ---- modo tecnico ----
   set('r-now', fmtNivel(nowCm));
-  const modelBaseCm=activeD?liveModelBaseCm(activeD):null;
   const modelBaseRow=document.getElementById('r-modelbase-row');
   if(modelBaseRow){
     const showBase=modelBaseCm!=null && nowCm!=null && Math.abs(modelBaseCm-nowCm)>=1;
@@ -688,7 +689,7 @@ function renderFrame(){
   }
   set('r-modelbase', modelBaseCm!=null?`${fmtNivel(modelBaseCm)} (${fmtWhen(activeD&&activeD.hora_modelo)})`:'—');
   set('r-fore', hasFore?fmtNivel(foreCm):'—');
-  set('r-dnivel', hasFore&&hasNow?sgn1((foreCm-nowCm)/100)+' m':'—');
+  set('r-dnivel', hasFore&&drioFrom!=null?sgn1((foreCm-drioFrom)/100)+' m':'—');
   const aoVivoSemObs = liveMode && liveData && liveData.modo!=='replay' && !hasObs;
   set('r-obs', hasObs?fmtNivel(obsCm):(aoVivoSemObs?'a confirmar após '+targetLabels.tech:'—'));
   set('r-errniv', (hasFore&&hasObs)?sgn1((foreCm-obsCm)/100)+' m':(aoVivoSemObs?'aguardando observado':'—'));
@@ -760,13 +761,19 @@ function liveFromEvent(key, tipo){
     passos:E.series.map(s=>[s[0],s[1],s[2],s[3]])
   };
 }
+function liveHorizonReady(key,D){
+  if(!D || D.disponivel===false) return false;
+  if(!String(key).startsWith('8h')) return true;
+  // 8h so aparece com previsao em hora cheia. :15/:30/:45 interpolam hidreletrica.
+  if(D.nivel_previsto_cm==null) return false;
+  const h=String(D.hora_modelo||'');
+  return h.length>=16 && h.slice(14,16)==='00';
+}
 function updateLiveHzButtons(){
   const hs=liveData&&liveData.horizontes?liveData.horizontes:{};
   document.querySelectorAll('[data-live-hz]').forEach(b=>{
     const D=hs[b.dataset.liveHz];
-    // Horizontes indisponiveis ficam ocultos; ausencia de previsao nao vira
-    // automaticamente uma conclusao de normalidade.
-    const ok=!!D && D.disponivel!==false;
+    const ok=liveHorizonReady(b.dataset.liveHz,D);
     b.style.display=ok?'':'none';
     b.classList.toggle('on',b.dataset.liveHz===liveHz);
   });
