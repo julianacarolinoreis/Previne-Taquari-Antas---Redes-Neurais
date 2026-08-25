@@ -108,7 +108,8 @@
   @media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.events,.flow,.architecture{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}}
   @media(max-width:520px){.wrap{padding:18px 12px 38px}header{flex-wrap:wrap}.badge{margin-left:0}.grid{grid-template-columns:1fr 1fr}.events,.flow{grid-template-columns:1fr}}
   .quick-nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:7px;overflow-x:auto;margin:0 0 14px;padding:8px 10px;background:rgba(247,251,248,.96);border:1px solid #cfe1d5;border-radius:12px;box-shadow:0 4px 14px rgba(20,40,30,.08);scrollbar-width:thin}.quick-nav-label{flex:0 0 auto;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.quick-nav a{flex:0 0 auto;color:var(--brand);font-size:11px;font-weight:800;text-decoration:none;border:1px solid #b9d9ca;background:#fff;border-radius:999px;padding:6px 9px}.quick-nav a:hover,.quick-nav a:focus{background:var(--brand);color:#fff}.anchor-target{scroll-margin-top:82px}
-  @media(max-width:520px){.quick-nav{margin-left:-12px;margin-right:-12px;border-radius:0;border-left:0;border-right:0}.quick-nav-label{font-size:9px}.quick-nav a{font-size:10px}.anchor-target{scroll-margin-top:58px}}
+  .research-status{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 14px}.research-status>div{background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 11px}.research-status strong{display:block;font-size:11px;line-height:1.2}.research-status span{display:block;color:var(--muted);font-size:10px;margin-top:4px}.research-status .open{border-color:#b7dec4;background:var(--good-bg)}.research-status .open strong{color:var(--good)}.research-status .off{border-color:#edcf91;background:var(--warn-bg)}.research-status .off strong{color:var(--warn)}.research-status .review{border-color:#b7d5ef;background:#f4fbff}.research-status .review strong{color:var(--blue)}
+  @media(max-width:520px){.quick-nav{margin-left:-12px;margin-right:-12px;border-radius:0;border-left:0;border-right:0}.quick-nav-label{font-size:9px}.quick-nav a{font-size:10px}.research-status{grid-template-columns:1fr}.anchor-target{scroll-margin-top:58px}}
 </style>
 </head>
 <body>
@@ -126,6 +127,7 @@
     <a href="mucum_inundacao.html">Muçum · histórico de cheias</a>
   </nav>
   <nav class="quick-nav" aria-label="Índice desta página"><span class="quick-nav-label">Você está aqui:</span><a href="#agora">Agora</a><a href="#probabilidade">Probabilidade</a><a href="#previsoes">2 h / 4 h</a><a href="#cenarios">Cenários</a><a href="#base">Base e auditoria</a></nav>
+  <section class="research-status" aria-label="Estado de liberação da pesquisa"><div class="open"><strong>PESQUISA LIBERADA</strong><span>Dados, gráficos e cenários experimentais disponíveis para consulta.</span></div><div class="off"><strong>ALERTA AUTOMÁTICO DESATIVADO</strong><span>Isso não bloqueia a pesquisa; apenas impede envio oficial.</span></div><div class="review"><strong>REVISÃO TÉCNICA PENDENTE</strong><span>Calibração operacional, mais eventos e validação por tempestade.</span></div></section>
 
   <section class="hero" aria-labelledby="hero-title">
     <h2 id="hero-title">O que esta página responde</h2>
@@ -269,6 +271,7 @@
   const sections=[...document.querySelectorAll('.section')];
   const byTitle=t=>sections.find(n=>(n.querySelector('h2')?.textContent||'').includes(t));
   [['Chance atual de transbordamento','probabilidade'],['Cenas hipotéticas','cenarios'],['O que já foi validado','base']].forEach(([t,id])=>{const n=byTitle(t);if(n&&!n.id)n.id=id});
+  document.querySelectorAll('.pill.no').forEach(n=>{const t=n.textContent.trim();if(t==='bloqueada')n.textContent='promoção bloqueada';if(t==='desativado')n.textContent='desativado (operação)'});
   const feed='assets/data/research_weather_santa_tereza_latest.json';
   const br=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   const el=id=>document.getElementById(id);
