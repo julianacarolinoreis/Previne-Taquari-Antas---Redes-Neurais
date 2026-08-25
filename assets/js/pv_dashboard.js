@@ -93,7 +93,8 @@
       const directReady=w?.ecmwfDirect?.status==='available'&&hs.some(h=>h.ecmwf_direct!=null);
       setText('#pv-chart-title',directReady?'Chuva prevista no ponto de Muçum · ECMWF direto':'Chuva prevista no ponto de Muçum');setText('#pv-chart-unit','mm no ponto');setText('#pv-chart-subtitle',directReady?'ECMWF Open Data direto é a barra principal; IFS via Open-Meteo e proxies ficam no detalhe.':'Acumulado previsto na estação; os proxies GEFS/IFS da célula aparecem apenas no detalhe.');setText('#pv-chart-note',directReady?'Cada barra usa o ponto mais próximo da grade ECMWF IFS Open Data. A saída via Open-Meteo e os proxies de célula aparecem no detalhe para comparação.':'Cada barra mostra a previsão pontual para Muçum. O proxy de célula/bacia é uma referência espacial e não deve ser lido como chuva prevista na estação.');
     }else{
-      setText('#pv-chart-title','Chuva média prevista na bacia');setText('#pv-chart-unit','mm médios');setText('#pv-chart-subtitle','Média espacial estimada no recorte da bacia, acumulada até cada horizonte (IFS).');setText('#pv-chart-note','Cada barra é a média espacial prevista em milímetros — não é o volume total de água da bacia nem probabilidade de inundação. A chuva no ponto da estação aparece no detalhe.');
+      const directLabel=(w?.source||'').toLowerCase().includes('ecmwf')?' · ECMWF IFS direto':'';
+      setText('#pv-chart-title','Chuva média prevista na bacia'+directLabel);setText('#pv-chart-unit','mm médios');setText('#pv-chart-subtitle',(directLabel?'ECMWF Open Data / IFS · ':'')+'Média espacial estimada no recorte da bacia, acumulada até cada horizonte.');setText('#pv-chart-note','Cada barra é a média espacial prevista em milímetros — não é o volume total de água da bacia nem probabilidade de inundação. A chuva no ponto da estação aparece no detalhe; a fonte está indicada no título.');
     }
   }
   function renderSide(){
@@ -130,7 +131,7 @@
     else if(rain!=null)headline='A chuva prevista está baixa no recorte atual; o robô continua acompanhando.';
     if(!fresh)headline+=' A probabilidade experimental está antiga e não deve ser lida como previsão atual.';
     setText('#pv-summary',headline);
-    setText('#pv-updated',`Feed meteorológico: ${formatTime(w?.generated)} · robô ao vivo: ${formatTime(state.live?.generated)}`);
+    setText('#pv-updated',`Fonte meteorológica: ${w?.source||'feed meteorológico'} · feed: ${formatTime(w?.generated)} · robô ao vivo: ${formatTime(state.live?.generated)}`);
   }
   function render(){setFeedState();renderKpis();renderBars();renderSide();renderSummary();}
   async function load(){
