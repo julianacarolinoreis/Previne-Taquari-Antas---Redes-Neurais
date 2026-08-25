@@ -21,10 +21,16 @@
   function normalizeWeather(d){
     if(!d)return null;
     const obs=d.observation||{};
-    const horizons=Array.isArray(d.horizons)?d.horizons.map(h=>({hours:Number(h.hours??h.horizon_hours),rain:safeNum(h.rain_point_mm??h.target_santa_tereza_mm),basin:safeNum(h.rain_ifs_proxy_mm??h.basin_mean_mm),max:safeNum(h.basin_max_mm),soil:safeNum(h.soil_moisture_model_mean_m3m3),prob:safeNum(h.flood_probability_percent??(h.flood_probability==null?null:Number(h.flood_probability)*100)),raw:h})).filter(h=>Number.isFinite(h.hours)).sort((a,b)=>a.hours-b.hours):[];
+    const mapHorizon=h=>{
+      const point=safeNum(h.rain_point_mm??h.target_santa_tereza_mm);
+      const proxyIfs=safeNum(h.rain_ifs_proxy_mm??h.basin_mean_mm);
+      const proxyGefs=safeNum(h.rain_gefs_proxy_mm);
+      return {hours:Number(h.hours??h.horizon_hours),rain:point,basin:station==='mucum'?point:proxyIfs,proxy_ifs:proxyIfs,proxy_gefs:proxyGefs,max:safeNum(h.basin_max_mm),soil:safeNum(h.soil_moisture_model_mean_m3m3),prob:safeNum(h.flood_probability_percent??(h.flood_probability==null?null:Number(h.flood_probability)*100)),raw:h};
+    };
+    const horizons=Array.isArray(d.horizons)?d.horizons.map(mapHorizon).filter(h=>Number.isFinite(h.hours)).sort((a,b)=>a.hours-b.hours):[];
     if(d.forecast&&Array.isArray(d.forecast.horizons)){
       const f=d.forecast.horizons;
-      horizons.splice(0,horizons.length,...f.map(h=>({hours:Number(h.horizon_hours),rain:safeNum(h.target_santa_tereza_mm),basin:safeNum(h.basin_mean_mm),max:safeNum(h.basin_max_mm),soil:null,prob:null,raw:h})).filter(h=>Number.isFinite(h.hours)).sort((a,b)=>a.hours-b.hours));
+      horizons.splice(0,horizons.length,...f.map(mapHorizon).filter(h=>Number.isFinite(h.hours)).sort((a,b)=>a.hours-b.hours));
     }
     return {raw:d,generated:d.generated_at_utc,obs,level:safeNum(obs.level_cm),horizons,source:d.forecast_provider||d.forecast?.source||d.forecast_source||'feed meteorológico',soil:d.soil_moisture||d.soil||null,answer:d.answer_24h||null,risk:d.risk_model||d.rna||null};
   }
@@ -62,8 +68,8 @@
     const probNote=state.probability?.calibrated?'calibrada em pesquisa · não é alerta':'não calibrada · não é alerta';
     setHtml('#pv-kpis',[
       ['Rio agora',cm(w?.level??now?.now),w?.obs?.state==='unknown_or_stale'?'leitura atrasada':'observado'],
-      ['Chuva em 72 h',mm(h72?.basin??h72?.rain),'previsão acumulada no feed'],
-      ['Chuva em 168 h',mm(h168?.basin??h168?.rain),'janela longa · não é média oficial da bacia'],
+      ['Chuva em 72 h',mm(h72?.basin??h72?.rain),station==='mucum'?'previsão no ponto de Muçum':'previsão acumulada no feed'],
+      ['Chuva em 168 h',mm(h168?.basin??h168?.rain),station==='mucum'?'previsão no ponto de Muçum':'janela longa · não é média oficial da bacia'],
       ['Risco experimental',probLabel,probFresh?`estimativa GEFS · ${probNote}`:'rodada antiga · não usar como previsão']
     ].map((x,i)=>`<article class="pv-kpi"><span class="pv-kpi-label">${x[0]}</span><strong class="pv-kpi-value ${i===3?(probFresh?'warn':'unknown'):i===0?'good':''}">${x[1]}</strong><span class="pv-kpi-note">${x[2]}</span></article>`).join(''));
   }
@@ -80,13 +86,23 @@
     }
     if(!hs.length){node.innerHTML='<div class="pv-empty">Feed meteorológico sem horizontes disponíveis.</div>';return;}
     const vals=hs.map(h=>rainFor(h)).filter(v=>v!=null), max=Math.max(1,...vals);
-    node.innerHTML=hs.map(h=>{const v=rainFor(h),ratio=v==null?0:Math.max(3,Math.min(100,(v/max)*100));const cls=v!=null&&v>=80?'high':v!=null&&v>=40?'warn':'';const detail=`${labelHours(h.hours)} · bacia: ${mm(v)}${h.rain!=null&&h.basin!=null&&h.rain!==h.basin?` · ponto da estação: ${mm(h.rain)}`:''}`;return `<div class="pv-bar-col" data-tip="${detail}${h.prob!=null?` · estimativa experimental ${pct.format(h.prob)}%`:''}"><span class="pv-bar-value">${mm(v)}</span><span class="pv-bar-track"><span class="pv-bar-fill ${cls}" style="height:${ratio}%"></span></span><span class="pv-bar-label">${labelHours(h.hours)}</span><span class="pv-bar-caption">${v==null?'sem chuva':'média acumulada'}</span></div>`}).join('');
-    setText('#pv-chart-title','Chuva média prevista na bacia');setText('#pv-chart-unit','mm médios');setText('#pv-chart-subtitle','Média espacial estimada no recorte da bacia, acumulada até cada horizonte (IFS).');setText('#pv-chart-note','Cada barra é a média espacial prevista em milímetros — não é o volume total de água da bacia nem probabilidade de inundação. A chuva no ponto da estação aparece no detalhe.');
+    node.innerHTML=hs.map(h=>{const v=rainFor(h),ratio=v==null?0:Math.max(3,Math.min(100,(v/max)*100));const cls=v!=null&&v>=80?'high':v!=null&&v>=40?'warn':'';const detail=station==='mucum'?`${labelHours(h.hours)} · ponto de Muçum: ${mm(h.rain)}${h.proxy_ifs!=null?` · proxy IFS/célula: ${mm(h.proxy_ifs)}`:''}${h.proxy_gefs!=null?` · proxy GEFS/célula: ${mm(h.proxy_gefs)}`:''}`:`${labelHours(h.hours)} · bacia: ${mm(v)}${h.rain!=null&&h.basin!=null&&h.rain!==h.basin?` · ponto da estação: ${mm(h.rain)}`:''}`;return `<div class="pv-bar-col" data-tip="${detail}${h.prob!=null?` · estimativa experimental ${pct.format(h.prob)}%`:''}"><span class="pv-bar-value">${mm(v)}</span><span class="pv-bar-track"><span class="pv-bar-fill ${cls}" style="height:${ratio}%"></span></span><span class="pv-bar-label">${labelHours(h.hours)}</span><span class="pv-bar-caption">${v==null?'sem chuva':station==='mucum'?'ponto acumulado':'média acumulada'}</span></div>`}).join('');
+    if(station==='mucum'){
+      setText('#pv-chart-title','Chuva prevista no ponto de Muçum');setText('#pv-chart-unit','mm no ponto');setText('#pv-chart-subtitle','Acumulado previsto na estação; os proxies GEFS/IFS da célula aparecem apenas no detalhe.');setText('#pv-chart-note','Cada barra mostra a previsão pontual para Muçum. O proxy de célula/bacia é uma referência espacial e não deve ser lido como chuva prevista na estação.');
+    }else{
+      setText('#pv-chart-title','Chuva média prevista na bacia');setText('#pv-chart-unit','mm médios');setText('#pv-chart-subtitle','Média espacial estimada no recorte da bacia, acumulada até cada horizonte (IFS).');setText('#pv-chart-note','Cada barra é a média espacial prevista em milímetros — não é o volume total de água da bacia nem probabilidade de inundação. A chuva no ponto da estação aparece no detalhe.');
+    }
   }
   function renderSide(){
-    const w=state.weather, hs=w?.horizons||[], h168=hs.find(h=>h.hours===168)||hs[hs.length-1], now=state.live?.rows?.[0], prob=(state.probability?.rows||[]).find(x=>x.hours===168)||(hs.find(h=>h.hours===168)||{}), fresh=state.probability&&ageHours(state.probability.generated)<=36;
+    const w=state.weather, hs=w?.horizons||[], h24=hs.find(h=>h.hours===24)||hs[0], h168=hs.find(h=>h.hours===168)||hs[hs.length-1], now=state.live?.rows?.[0], prob=(state.probability?.rows||[]).find(x=>x.hours===168)||(hs.find(h=>h.hours===168)||{}), fresh=state.probability&&ageHours(state.probability.generated)<=36;
     const rain=h168?.basin??h168?.rain, soil=h168?.soil, signals=[];
-    if(rain==null)signals.push(['Chuva prevista','sem horizonte disponível','bad']);
+    if(station==='mucum'){
+      const near=h24?.basin??h24?.rain;
+      const nearLabel=near==null?'—':mm(near);
+      const longLabel=rain==null?'—':mm(rain);
+      const severity=(near!=null&&near>=40)||(rain!=null&&rain>=100)?'warn':'good';
+      signals.push(['Chuva no ponto de Muçum',`+24 h: ${nearLabel} · +168 h: ${longLabel}`,severity]);
+    }else if(rain==null)signals.push(['Chuva prevista','sem horizonte disponível','bad']);
     else if(rain>=100)signals.push(['Chuva prevista','volume elevado na janela longa','warn']);
     else if(rain>=40)signals.push(['Chuva prevista','volume moderado a alto','warn']);
     else signals.push(['Chuva prevista','volume baixo no feed atual','good']);
@@ -99,9 +115,14 @@
     setHtml('#pv-signals',signals.map(s=>`<div class="pv-signal"><span class="pv-signal-dot ${s[2]}" aria-hidden="true"></span><div><strong>${s[0]}</strong><span>${s[1]}</span></div></div>`).join(''));
   }
   function renderSummary(){
-    const w=state.weather, hs=w?.horizons||[], h72=hs.find(h=>h.hours===72)||hs[hs.length-1], h168=hs.find(h=>h.hours===168)||hs[hs.length-1], rain=h168?.basin??h168?.rain, fresh=state.probability&&ageHours(state.probability.generated)<=36;
+    const w=state.weather, hs=w?.horizons||[], h24=hs.find(h=>h.hours===24)||hs[0], h72=hs.find(h=>h.hours===72)||hs[hs.length-1], h168=hs.find(h=>h.hours===168)||hs[hs.length-1], rain=h168?.basin??h168?.rain, fresh=state.probability&&ageHours(state.probability.generated)<=36;
     let headline='Sem dados atuais suficientes para sintetizar a janela.';
-    if(rain!=null&&rain>=100)headline='A janela longa mostra chuva volumosa; a atenção aumenta entre 72 e 168 horas.';
+    if(station==='mucum'&&h24?.rain!=null){
+      if(h24.rain<1&&rain!=null&&rain>=40)headline=`No ponto de Muçum, a previsão é de ${mm(h24.rain)} em 24 h; a chuva aparece apenas na janela longa (+168 h: ${mm(rain)}).`;
+      else if(h24.rain<1)headline=`No ponto de Muçum, a previsão é de ${mm(h24.rain)} em 24 h; o robô continua acompanhando as próximas rodadas.`;
+      else if(rain!=null&&rain>=100)headline=`Há chuva prevista no ponto de Muçum já em 24 h; a janela longa chega a ${mm(rain)}.`;
+      else headline=`Há ${mm(h24.rain)} previstos no ponto de Muçum em 24 h; acompanhe a evolução do rio e a próxima rodada.`;
+    }else if(rain!=null&&rain>=100)headline='A janela longa mostra chuva volumosa; a atenção aumenta entre 72 e 168 horas.';
     else if(rain!=null&&rain>=40)headline='Há chuva prevista na janela; acompanhe a evolução do rio e a próxima rodada.';
     else if(rain!=null)headline='A chuva prevista está baixa no recorte atual; o robô continua acompanhando.';
     if(!fresh)headline+=' A probabilidade experimental está antiga e não deve ser lida como previsão atual.';
