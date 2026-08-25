@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "status": "research_only_experimental_probability",
-  "generated_at_utc": "2026-08-13T23:52:47.414516+00:00",
+  "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
   "station_code": "86510000",
   "station_name": "Muçum",
   "threshold_cm": 1800,
@@ -15,18 +15,32 @@
   "calibration_status": "experimental_uncalibrated",
   "forecast_source": "NOAA GEFS/NODD same-cell spatial proxy",
   "direct_mucum_point": false,
+  "timestamp_assumption": "labels decision_time_source localized to America/Sao_Paulo for research join; canonical ANA timestamps unchanged",
+  "inputs": {
+    "labels_sha256": "fa45e4a0442275f88fb3e2bfc28b40ff9f93e4d5964d2bbe1c1ef83b3eda030d",
+    "features_sha256": "d65b61b126593970b661bfd16265ff5c1c2692e0d0e3ae44f6096e10e34a6437",
+    "forecast_proxy_sha256": "f47444ef11a44776754e4b50cd45cfe78ca486de79ab9f9781c333a68b144d96"
+  },
   "validation": {
     "split": "leave_one_candidate_event_out_with_168h_purge",
     "candidate_events_24_120h": 3,
     "candidate_events_168h": 4,
-    "positive_rows_24_48_72_120_168h": [12, 24, 36, 60, 81]
+    "positive_rows_24_48_72_120_168h": [12, 24, 36, 60, 81],
+    "model": "logistic_baseline_natural_prevalence",
+    "event_detection_summary": {
+      "24h": {"held_out_events": 3, "detected_at_score_0_5": 1},
+      "48h": {"held_out_events": 3, "detected_at_score_0_5": 1},
+      "72h": {"held_out_events": 3, "detected_at_score_0_5": 0},
+      "120h": {"held_out_events": 3, "detected_at_score_0_5": 0},
+      "168h": {"held_out_events": 4, "detected_at_score_0_5": 0}
+    }
   },
   "horizons": [
-    {"hours": 24, "flood_probability": 0.000219, "flood_probability_percent": 0.02},
-    {"hours": 48, "flood_probability": 0.000750, "flood_probability_percent": 0.07},
-    {"hours": 72, "flood_probability": 0.002685, "flood_probability_percent": 0.27},
-    {"hours": 120, "flood_probability": 0.005716, "flood_probability_percent": 0.57},
-    {"hours": 168, "flood_probability": 0.012232, "flood_probability_percent": 1.22}
+    {"hours": 24, "flood_probability": 0.000219, "flood_probability_percent": 0.02, "flood_answer": "estimativa experimental; não é alerta oficial", "score_interpretation": "modelo logístico de pesquisa, não calibrado para operação"},
+    {"hours": 48, "flood_probability": 0.000750, "flood_probability_percent": 0.07, "flood_answer": "estimativa experimental; não é alerta oficial", "score_interpretation": "modelo logístico de pesquisa, não calibrado para operação"},
+    {"hours": 72, "flood_probability": 0.002685, "flood_probability_percent": 0.27, "flood_answer": "estimativa experimental; não é alerta oficial", "score_interpretation": "modelo logístico de pesquisa, não calibrado para operação"},
+    {"hours": 120, "flood_probability": 0.005716, "flood_probability_percent": 0.57, "flood_answer": "estimativa experimental; não é alerta oficial", "score_interpretation": "modelo logístico de pesquisa, não calibrado para operação"},
+    {"hours": 168, "flood_probability": 0.012232, "flood_probability_percent": 1.22, "flood_answer": "estimativa experimental; não é alerta oficial", "score_interpretation": "modelo logístico de pesquisa, não calibrado para operação"}
   ],
   "warning": "Estimativas experimentais para pesquisa. Não são probabilidades calibradas, não autorizam alerta e não substituem SGB, ANA, SACE ou Defesa Civil."
 }
