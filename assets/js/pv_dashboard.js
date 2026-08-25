@@ -22,17 +22,19 @@
     if(!d)return null;
     const obs=d.observation||{};
     const mapHorizon=h=>{
-      const point=safeNum(h.rain_point_mm??h.target_santa_tereza_mm);
+      const pointOpenMeteo=safeNum(h.rain_point_mm??(station==='mucum'?h.target_mucum_mm:h.target_santa_tereza_mm));
+      const direct=safeNum(h.rain_ecmwf_direct_mm);
       const proxyIfs=safeNum(h.rain_ifs_proxy_mm??h.basin_mean_mm);
       const proxyGefs=safeNum(h.rain_gefs_proxy_mm);
-      return {hours:Number(h.hours??h.horizon_hours),rain:point,basin:station==='mucum'?point:proxyIfs,proxy_ifs:proxyIfs,proxy_gefs:proxyGefs,max:safeNum(h.basin_max_mm),soil:safeNum(h.soil_moisture_model_mean_m3m3),prob:safeNum(h.flood_probability_percent??(h.flood_probability==null?null:Number(h.flood_probability)*100)),raw:h};
+      const point=station==='mucum'?(direct??pointOpenMeteo):pointOpenMeteo;
+      return {hours:Number(h.hours??h.horizon_hours),rain:point,point_openmeteo:pointOpenMeteo,ecmwf_direct:direct,ecmwf_delta:safeNum(h.rain_ecmwf_direct_minus_openmeteo_mm),basin:station==='mucum'?point:proxyIfs,proxy_ifs:proxyIfs,proxy_gefs:proxyGefs,max:safeNum(h.basin_max_mm),soil:safeNum(h.soil_moisture_model_mean_m3m3),prob:safeNum(h.flood_probability_percent??(h.flood_probability==null?null:Number(h.flood_probability)*100)),raw:h};
     };
     const horizons=Array.isArray(d.horizons)?d.horizons.map(mapHorizon).filter(h=>Number.isFinite(h.hours)).sort((a,b)=>a.hours-b.hours):[];
     if(d.forecast&&Array.isArray(d.forecast.horizons)){
       const f=d.forecast.horizons;
       horizons.splice(0,horizons.length,...f.map(mapHorizon).filter(h=>Number.isFinite(h.hours)).sort((a,b)=>a.hours-b.hours));
     }
-    return {raw:d,generated:d.generated_at_utc,obs,level:safeNum(obs.level_cm),horizons,source:d.forecast_provider||d.forecast?.source||d.forecast_source||'feed meteorológico',soil:d.soil_moisture||d.soil||null,answer:d.answer_24h||null,risk:d.risk_model||d.rna||null};
+    return {raw:d,generated:d.generated_at_utc,obs,level:safeNum(obs.level_cm),horizons,source:d.forecast_provider||d.forecast?.source||d.forecast_source||'feed meteorológico',soil:d.soil_moisture||d.soil||null,answer:d.answer_24h||null,risk:d.risk_model||d.rna||null,ecmwfDirect:d.ecmwf_direct||null};
   }
   function normalizeProbability(d){
     if(!d)return null;
@@ -86,9 +88,10 @@
     }
     if(!hs.length){node.innerHTML='<div class="pv-empty">Feed meteorológico sem horizontes disponíveis.</div>';return;}
     const vals=hs.map(h=>rainFor(h)).filter(v=>v!=null), max=Math.max(1,...vals);
-    node.innerHTML=hs.map(h=>{const v=rainFor(h),ratio=v==null?0:Math.max(3,Math.min(100,(v/max)*100));const cls=v!=null&&v>=80?'high':v!=null&&v>=40?'warn':'';const detail=station==='mucum'?`${labelHours(h.hours)} · ponto de Muçum: ${mm(h.rain)}${h.proxy_ifs!=null?` · proxy IFS/célula: ${mm(h.proxy_ifs)}`:''}${h.proxy_gefs!=null?` · proxy GEFS/célula: ${mm(h.proxy_gefs)}`:''}`:`${labelHours(h.hours)} · bacia: ${mm(v)}${h.rain!=null&&h.basin!=null&&h.rain!==h.basin?` · ponto da estação: ${mm(h.rain)}`:''}`;return `<div class="pv-bar-col" data-tip="${detail}${h.prob!=null?` · estimativa experimental ${pct.format(h.prob)}%`:''}"><span class="pv-bar-value">${mm(v)}</span><span class="pv-bar-track"><span class="pv-bar-fill ${cls}" style="height:${ratio}%"></span></span><span class="pv-bar-label">${labelHours(h.hours)}</span><span class="pv-bar-caption">${v==null?'sem chuva':station==='mucum'?'ponto acumulado':'média acumulada'}</span></div>`}).join('');
+    node.innerHTML=hs.map(h=>{const v=rainFor(h),ratio=v==null?0:Math.max(3,Math.min(100,(v/max)*100));const cls=v!=null&&v>=80?'high':v!=null&&v>=40?'warn':'';const detail=station==='mucum'?`${labelHours(h.hours)} · ponto de Muçum: ${mm(h.rain)}${h.ecmwf_direct!=null?` · ECMWF direto: ${mm(h.ecmwf_direct)}`:''}${h.point_openmeteo!=null?` · IFS via Open-Meteo: ${mm(h.point_openmeteo)}`:''}${h.ecmwf_delta!=null?` · diferença direto−Open-Meteo: ${h.ecmwf_delta>0?'+':''}${mm(h.ecmwf_delta)}`:''}${h.proxy_ifs!=null?` · proxy IFS/célula: ${mm(h.proxy_ifs)}`:''}${h.proxy_gefs!=null?` · proxy GEFS/célula: ${mm(h.proxy_gefs)}`:''}`:`${labelHours(h.hours)} · bacia: ${mm(v)}${h.rain!=null&&h.basin!=null&&h.rain!==h.basin?` · ponto da estação: ${mm(h.rain)}`:''}`;return `<div class="pv-bar-col" data-tip="${detail}${h.prob!=null?` · estimativa experimental ${pct.format(h.prob)}%`:''}"><span class="pv-bar-value">${mm(v)}</span><span class="pv-bar-track"><span class="pv-bar-fill ${cls}" style="height:${ratio}%"></span></span><span class="pv-bar-label">${labelHours(h.hours)}</span><span class="pv-bar-caption">${v==null?'sem chuva':station==='mucum'?'ponto acumulado':'média acumulada'}</span></div>`}).join('');
     if(station==='mucum'){
-      setText('#pv-chart-title','Chuva prevista no ponto de Muçum');setText('#pv-chart-unit','mm no ponto');setText('#pv-chart-subtitle','Acumulado previsto na estação; os proxies GEFS/IFS da célula aparecem apenas no detalhe.');setText('#pv-chart-note','Cada barra mostra a previsão pontual para Muçum. O proxy de célula/bacia é uma referência espacial e não deve ser lido como chuva prevista na estação.');
+      const directReady=w?.ecmwfDirect?.status==='available'&&hs.some(h=>h.ecmwf_direct!=null);
+      setText('#pv-chart-title',directReady?'Chuva prevista no ponto de Muçum · ECMWF direto':'Chuva prevista no ponto de Muçum');setText('#pv-chart-unit','mm no ponto');setText('#pv-chart-subtitle',directReady?'ECMWF Open Data direto é a barra principal; IFS via Open-Meteo e proxies ficam no detalhe.':'Acumulado previsto na estação; os proxies GEFS/IFS da célula aparecem apenas no detalhe.');setText('#pv-chart-note',directReady?'Cada barra usa o ponto mais próximo da grade ECMWF IFS Open Data. A saída via Open-Meteo e os proxies de célula aparecem no detalhe para comparação.':'Cada barra mostra a previsão pontual para Muçum. O proxy de célula/bacia é uma referência espacial e não deve ser lido como chuva prevista na estação.');
     }else{
       setText('#pv-chart-title','Chuva média prevista na bacia');setText('#pv-chart-unit','mm médios');setText('#pv-chart-subtitle','Média espacial estimada no recorte da bacia, acumulada até cada horizonte (IFS).');setText('#pv-chart-note','Cada barra é a média espacial prevista em milímetros — não é o volume total de água da bacia nem probabilidade de inundação. A chuva no ponto da estação aparece no detalhe.');
     }

@@ -16,6 +16,11 @@ from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+try:
+    from .ecmwf_direct import fetch_ecmwf_direct
+except ImportError:  # direct execution: ``python scripts/build_mucum_weather_feed.py``
+    from ecmwf_direct import fetch_ecmwf_direct
+
 
 STATION_CODE = "86510000"
 STATION_NAME = "Muçum"
@@ -84,6 +89,12 @@ def finite(value):
 
 def build_feed(api: dict, source_url: str, live_path: Path) -> dict:
     now = utc_now()
+    ecmwf_direct = fetch_ecmwf_direct(now)
+    ecmwf_by_hour = {
+        int(item.get("hours")): item
+        for item in ecmwf_direct.get("horizons", [])
+        if item.get("hours") is not None
+    }
     previous = {}
     previous_horizons = {}
     previous_risk = {}
@@ -111,14 +122,21 @@ def build_feed(api: dict, source_url: str, live_path: Path) -> dict:
     horizons = []
     for hours in HORIZONS:
         old = previous_horizons.get(hours, {})
+        direct = ecmwf_by_hour.get(hours, {})
         end = now + timedelta(hours=hours)
         selected = [v for t, v in pairs if now < t <= end and v is not None]
         soil_selected = [v for t, v in soil_pairs if now < t <= end and v is not None]
         temp_selected = [v for t, v in temp_pairs if now < t <= end and v is not None]
+        point_mm = round(sum(selected), 1) if selected else None
+        direct_mm = direct.get("rain_point_mm")
         horizons.append(
             {
                 "hours": hours,
-                "rain_point_mm": round(sum(selected), 1) if selected else None,
+                "rain_point_mm": point_mm,
+                "rain_ecmwf_direct_mm": direct_mm,
+                "rain_ecmwf_direct_minus_openmeteo_mm": round(direct_mm - point_mm, 2)
+                if direct_mm is not None and point_mm is not None
+                else None,
                 "rain_hours_available": len(selected),
                 "soil_moisture_model_mean_m3m3": round(sum(soil_selected) / len(soil_selected), 3)
                 if soil_selected
@@ -151,12 +169,13 @@ def build_feed(api: dict, source_url: str, live_path: Path) -> dict:
         "official_flood_threshold_cm": FLOOD_THRESHOLD_CM,
         "generated_at_utc": now.isoformat().replace("+00:00", "Z"),
         "forecast_kind": "prospective_point_forecast",
-        "forecast_provider": "Open-Meteo",
+        "forecast_provider": "ECMWF IFS via Open-Meteo",
         "forecast_model": "ECMWF IFS 0.25° (ecmwf_ifs025)",
         "forecast_source_url": source_url,
+        "ecmwf_direct": ecmwf_direct,
         "availability_is_exact_historical_timestamp": False,
         "current_forecast_state": "available" if horizons and horizons[0]["rain_point_mm"] is not None else "unknown_or_stale",
-        "current_forecast_message": "Chuva prevista no ponto da estação. A estimativa experimental, quando presente, não é alerta oficial.",
+        "current_forecast_message": "Chuva prevista no ponto da estação. O ECMWF Open Data direto é mantido como auditoria; a estimativa experimental, quando presente, não é alerta oficial.",
         "observation": live,
         "soil_moisture": {
             "status": "modeled_proxy",
@@ -175,6 +194,7 @@ def build_feed(api: dict, source_url: str, live_path: Path) -> dict:
             "chuva é previsão pontual, não média de toda a bacia",
             "o horário histórico de disponibilização do IFS não é preservado pelo endpoint prospectivo",
             "estimativa experimental, quando presente, não é probabilidade calibrada nem alerta",
+            "o ECMWF Open Data direto é conferência independente; a saída via Open-Meteo permanece registrada para comparação",
             "não substitui ANA, SGB, SACE ou Defesa Civil",
         ],
     }

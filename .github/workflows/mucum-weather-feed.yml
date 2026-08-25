@@ -28,6 +28,12 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Configura ecCodes para ler GRIB2 do ECMWF
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libeccodes-dev
+          python -m pip install --disable-pip-version-check eccodes
+
       - name: Gera somente o feed meteorológico
         run: python -B scripts/build_mucum_weather_feed.py
 
