@@ -107,6 +107,8 @@
   footer{color:var(--muted);font-size:10px;margin-top:24px}
   @media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.events,.flow,.architecture{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}}
   @media(max-width:520px){.wrap{padding:18px 12px 38px}header{flex-wrap:wrap}.badge{margin-left:0}.grid{grid-template-columns:1fr 1fr}.events,.flow{grid-template-columns:1fr}}
+  .quick-nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:7px;overflow-x:auto;margin:0 0 14px;padding:8px 10px;background:rgba(247,251,248,.96);border:1px solid #cfe1d5;border-radius:12px;box-shadow:0 4px 14px rgba(20,40,30,.08);scrollbar-width:thin}.quick-nav-label{flex:0 0 auto;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.quick-nav a{flex:0 0 auto;color:var(--brand);font-size:11px;font-weight:800;text-decoration:none;border:1px solid #b9d9ca;background:#fff;border-radius:999px;padding:6px 9px}.quick-nav a:hover,.quick-nav a:focus{background:var(--brand);color:#fff}.anchor-target{scroll-margin-top:82px}
+  @media(max-width:520px){.quick-nav{margin-left:-12px;margin-right:-12px;border-radius:0;border-left:0;border-right:0}.quick-nav-label{font-size:9px}.quick-nav a{font-size:10px}.anchor-target{scroll-margin-top:58px}}
 </style>
 </head>
 <body>
@@ -123,6 +125,7 @@
     <a href="mucum_previsao_inundacao.html">Muçum · previsão ao vivo</a>
     <a href="mucum_inundacao.html">Muçum · histórico de cheias</a>
   </nav>
+  <nav class="quick-nav" aria-label="Índice desta página"><span class="quick-nav-label">Você está aqui:</span><a href="#agora">Agora</a><a href="#probabilidade">Probabilidade</a><a href="#previsoes">2 h / 4 h</a><a href="#cenarios">Cenários</a><a href="#base">Base e auditoria</a></nav>
 
   <section class="hero" aria-labelledby="hero-title">
     <h2 id="hero-title">O que esta página responde</h2>
@@ -262,6 +265,10 @@
 </div>
 <script>
 (function(){
+  [['.weather-panel','agora'],['.short-panel','previsoes']].forEach(([sel,id])=>{const n=document.querySelector(sel);if(n&&!n.id)n.id=id});
+  const sections=[...document.querySelectorAll('.section')];
+  const byTitle=t=>sections.find(n=>(n.querySelector('h2')?.textContent||'').includes(t));
+  [['Chance atual de transbordamento','probabilidade'],['Cenas hipotéticas','cenarios'],['O que já foi validado','base']].forEach(([t,id])=>{const n=byTitle(t);if(n&&!n.id)n.id=id});
   const feed='assets/data/research_weather_santa_tereza_latest.json';
   const br=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   const el=id=>document.getElementById(id);
