@@ -417,6 +417,8 @@ AUDITORIA_VERSAO = "target_exact_v2"
 # com uma leitura proxima, mas o pacote deve denunciar quando algum input ficou
 # mais de meia hora sem leitura na hora solicitada.
 INPUT_WARN_MAX_AGE = dt.timedelta(minutes=30)
+HOURLY_BASE_WARN_LAG = dt.timedelta(hours=1)
+TELEMETRY_WARN_MAX_AGE = dt.timedelta(minutes=60)
 # Guarda de plausibilidade para a telemetria de nível. A unidade publicada
 # pela ANA/SGB é cm; valores acima de 50 m não são aceitos como entrada de
 # nenhuma RNA sem revisão manual. O valor bruto continua preservado no status
@@ -1577,7 +1579,11 @@ def escrever(nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes=None, e
     status_dados = None
     if raw_st:
         idade_min = round((consultado_em - raw_st[0]).total_seconds() / 60)
-        status_dados = "telemetria recente" if idade_min <= 30 else f"telemetria atrasada ({idade_min} min)"
+        status_dados = (
+            "telemetria recente"
+            if idade_min <= TELEMETRY_WARN_MAX_AGE.total_seconds() / 60
+            else f"telemetria atrasada ({idade_min} min)"
+        )
     out = {
         "modo": "ao_vivo",
         "gerado_em": (t.isoformat() if t else consultado_em.isoformat()),
@@ -1612,7 +1618,11 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
     status_dados = None
     if raw_st:
         idade_min = round((consultado_em - raw_st[0]).total_seconds() / 60)
-        status_dados = "telemetria recente" if idade_min <= 30 else f"telemetria atrasada ({idade_min} min)"
+        status_dados = (
+            "telemetria recente"
+            if idade_min <= TELEMETRY_WARN_MAX_AGE.total_seconds() / 60
+            else f"telemetria atrasada ({idade_min} min)"
+        )
     return {
         "modo": "ao_vivo",
         "gerado_em": (t.isoformat() if t else consultado_em.isoformat()),
@@ -2135,7 +2145,7 @@ def main():
             atraso_h = (tel[0] - hm).total_seconds() / 3600.0
             if (
                 out.get("input_grade") == "hourly_exact"
-                and atraso_h >= INPUT_WARN_MAX_AGE.total_seconds() / 3600.0
+                and atraso_h >= HOURLY_BASE_WARN_LAG.total_seconds() / 3600.0
                 and str(out.get("status") or "").startswith("ok")
             ):
                 out["status"] = (

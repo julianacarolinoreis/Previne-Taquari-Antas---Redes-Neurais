@@ -938,7 +938,7 @@ function renderLiveStatus(D,hz){
   if(stale){
     parts.push(`<b>Previsão mantida da base ${escLive(base)}</b>: a consulta mais recente não trouxe uma leitura ANA nova (última leitura ${escLive(tele)}; robô consultado ${escLive(consulted)}).`);
   }else{
-    parts.push(`<b>Base da previsão:</b> ${escLive(base)} · leitura ANA ${escLive(tele)} · consulta ${escLive(consulted)}.`);
+    parts.push(`<b>Base dos inputs da RNA (hora cheia):</b> ${escLive(base)} · leitura observada ANA mais recente: ${escLive(tele)} · consulta do robô: ${escLive(consulted)}. Leituras em :15/:30/:45 servem apenas para mostrar o nível atual; não entram como base da RNA.`);
   }
   if(q.status==='ATENCAO'){
     parts.push(`<b>${escLive(hzLabel(hz))} em atenção:</b> MAE recente ${mae24!=null?nf1.format(mae24)+' cm':'—'}; maior erro ${q.maior_erro_abs_24h_cm!=null?nf1.format(q.maior_erro_abs_24h_cm)+' cm':'—'}.`);

@@ -571,10 +571,14 @@
     const telemetryWhen=state.live.telemetria_ultima_em||state.live.nivel_rio_agora_em;
     const when=telemetryWhen?` Última leitura: ${fmtWhen(telemetryWhen)}.`:'';
     const liveFresh=state.live._freshness||freshness(feedTimestamp(state.live),FRESHNESS.liveMinutes);
-    label.textContent=liveFresh.stale?'Robô ao vivo: leitura atrasada':'Robô ao vivo ativo';
+    const telemetryFresh=telemetryWhen?freshness(telemetryWhen,120):null;
+    label.textContent=liveFresh.stale?'Robô ao vivo: publicação atrasada':'Robô ao vivo ativo';
     const longForecast=state.researchRisk&&state.researchRisk.feed_type==='meteorological_forecast';
-    const ageText=liveFresh.ageMinutes===null?'idade n/d':`${nf0.format(liveFresh.ageMinutes)} min de idade`;
-    detail.textContent=`Atualização automática a cada 5 minutos.${when} (${ageText}${liveFresh.stale?' · marcado como atrasado':''}) O robô atual publica nível observado e previsão experimental de +2 h/+4 h. ${longForecast?'A previsão meteorológica e o risco experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação de pesquisa; não são alerta oficial.'}`;
+    const ageText=liveFresh.ageMinutes===null?'consulta do robô com idade n/d':`robô consultado há ${nf0.format(liveFresh.ageMinutes)} min`;
+    const telemetryText=telemetryFresh&&telemetryFresh.ageMinutes!==null
+      ?` leitura ANA há ${nf0.format(telemetryFresh.ageMinutes)} min${telemetryFresh.stale?' · telemetria atrasada':''}`
+      :'';
+    detail.textContent=`Atualização automática a cada 5 minutos.${when} (${ageText}${liveFresh.stale?' · publicação marcada como atrasada':''};${telemetryText||' idade da leitura ANA n/d'}) A leitura ANA pode ocorrer em :15/:30/:45; os inputs das RNAs usam somente base :00. O robô atual publica previsões experimentais de +2 h, +4 h e +8 h. ${longForecast?'A previsão meteorológica e o risco experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação de pesquisa; não são alerta oficial.'}`;
   }
 
   function renderResearchRisk(){
@@ -802,7 +806,9 @@
       state.live=null;
       state.liveError=new Error('feed ao vivo de outra estação');
     }else if(live){
-      live._freshness=freshness(liveFeedTimestamp(live),FRESHNESS.liveMinutes);
+      // A atividade do robô é medida pela hora da consulta/publicação. A hora da
+      // última leitura ANA é exibida separadamente e não define a idade do robô.
+      live._freshness=freshness(feedTimestamp(live),FRESHNESS.liveMinutes);
       state.live=live;
     }else state.live=null;
     render();
