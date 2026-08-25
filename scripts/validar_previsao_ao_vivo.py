@@ -12,6 +12,7 @@ FEED = ROOT / "previsao_ao_vivo.json"
 B_MAT = ROOT / "previne/assets/mat/RNAPREV__SANTA_TEREZA__02h__ALT__15inputs_VFINAL_20260731.mat"
 B_SHA = "6AE75018344625E8D3035F43A50F6556694C4B96510AC47241348EA5235D72A2"
 REQUIRED = {"2h", "2h_versao_b", "4h"}
+ALLOWED_EXTRA = {"8h", "8h_v002"}
 REQUIRED_FIELDS = {"horizonte", "horizonte_h", "modelo", "tipo", "status"}
 
 
@@ -31,11 +32,14 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
     if not isinstance(horizons, dict):
         raise SystemExit("feed sem objeto horizontes")
     keys = set(horizons)
-    if keys != REQUIRED:
-        raise SystemExit(f"horizontes inesperados: {sorted(keys)}; esperado {sorted(REQUIRED)}")
+    if not REQUIRED.issubset(keys):
+        raise SystemExit(f"horizontes faltando: {sorted(REQUIRED - keys)}; veio {sorted(keys)}")
+    extra = keys - REQUIRED - ALLOWED_EXTRA
+    if extra:
+        raise SystemExit(f"horizontes inesperados: {sorted(extra)}; esperado {sorted(REQUIRED | ALLOWED_EXTRA)}")
     if "cascata" in json.dumps(data, ensure_ascii=False).lower():
         raise SystemExit("feed ainda contem referencia legada a cascata")
-    for key in REQUIRED:
+    for key in sorted(keys):
         if not isinstance(horizons[key], dict):
             raise SystemExit(f"{key} precisa ser objeto")
     primary = horizons["2h"]
@@ -46,15 +50,22 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
         raise SystemExit("2h versao B precisa permanecer em sombra")
     if shadow.get("modelo_sha256") != B_SHA or sha256(b_mat) != B_SHA:
         raise SystemExit("hash da versao B nao confere")
-    for key in REQUIRED:
+    for key in sorted(keys):
         item = horizons[key]
         if not isinstance(item, dict) or not REQUIRED_FIELDS.issubset(item):
             missing = sorted(REQUIRED_FIELDS - set(item)) if isinstance(item, dict) else sorted(REQUIRED_FIELDS)
             raise SystemExit(f"{key} sem campos obrigatorios: {missing}")
         if item.get("horizonte") != key:
             raise SystemExit(f"horizonte inconsistente em {key}")
-        expected_hours = 2 if key.startswith("2h") else 4
-        if item.get("horizonte_h") != expected_hours:
+        if key.startswith("2h"):
+            expected_hours = 2
+        elif key.startswith("4h"):
+            expected_hours = 4
+        elif key.startswith("8h"):
+            expected_hours = 8
+        else:
+            expected_hours = None
+        if expected_hours is not None and item.get("horizonte_h") != expected_hours:
             raise SystemExit(f"horizonte_h inconsistente em {key}")
         if not str(item.get("modelo") or "").strip() or not str(item.get("tipo") or "").strip():
             raise SystemExit(f"modelo/tipo ausente em {key}")

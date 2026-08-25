@@ -40,6 +40,8 @@ MODELO_4H_PRO_WORKBOOK = "assets/audit_workbooks/4H_ALT__V01_R00_BASELINE_nh52_n
 MODELO_4H_PRO_WORKBOOK_SHA256 = "0FDD53984E60723C8C4B718F849DBE8F22EF3B7198E4FF2F0E9FA441318050A9"
 MODELO_8H_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__08h__ALT__V001__31inputs_63hiddens_20260821.mat"
 MODELO_8H_ID = "STZ_H8_ALT_V001_31IN_63NH"
+MODELO_8H_V002_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__08h__ALT__V002__28inputs_57hiddens_20260821.mat"
+MODELO_8H_V002_ID = "STZ_H8_ALT_V002_28IN_57NH"
 # Planilha de fórmulas (não misturar com 2h/4h):
 #   D:\PREVINE\redes_neurais\santa tereza\8h\modelo_8h_V001.xlsx
 # Ao vivo: sem A894 e sem CEMADEN. No lugar da chuva CEMADEN entra a
@@ -60,7 +62,7 @@ LIVE_WARN_MAX_24H_CM = 100.0
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
 ESTACOES_NIVEL = [
     "86472600", "86472000", "86125130", "86306000", "86448000", "86507000",
-    "86125500", "86298000", "86430900",
+    "86125500", "86298000", "86430900", "86447000", "86505500",
 ]
 ESTACOES = ESTACOES_NIVEL
 METADADOS_ESTACOES = {
@@ -72,6 +74,8 @@ METADADOS_ESTACOES = {
     "86125500": {"lat": None, "lon": None, "papel": "Montante - input 4h PRO / 8h V001"},
     "86298000": {"lat": None, "lon": None, "papel": "Montante - input 4h PRO / 8h V001"},
     "86430900": {"lat": None, "lon": None, "papel": "Montante - input 8h V001"},
+    "86447000": {"lat": None, "lon": None, "papel": "Montante - input 8h V002"},
+    "86505500": {"lat": None, "lon": None, "papel": "Montante - input 8h V002"},
 }
 POSTOS_CHUVA_36H = ["2851044", "2851072", "86488000", "86490500", "86497000", "86505500", "86507000"]
 # O painel é atualizado frequentemente e preserva a última previsão válida
@@ -92,6 +96,7 @@ NOMES_ESTACOES = {
     "86125500": "Estacao 86125500 - montante (input 4h PRO)",
     "86298000": "Estacao 86298000 - montante (input 4h PRO)",
     "86430900": "Estacao 86430900",
+    "86447000": "Estacao 86447000",
     "86500000": "Passo Carreiro (chuva)",
     "2851044": "Posto chuva Carreiro 2851044",
     "2851072": "Posto chuva Carreiro-Prata 2851072",
@@ -164,6 +169,7 @@ MODELOS = [
         # 8h ALT V001 — 31 inputs da planilha modelo_8h_V001.xlsx.
         # Fórmulas só deste horizonte (DifN / Acel / Acel-janela / chuva).
         "horizonte": "8h",
+        "rotulo": "8h V001",
         "horizonte_h": 8,
         "tipo": "ALT",
         "modelo": MODELO_8H_ID,
@@ -174,6 +180,23 @@ MODELOS = [
         "ativo_ao_vivo": True,
         "versao": "V001",
         "status_publicacao": "experimental",
+    },
+    {
+        # 8h ALT V002 — 28 inputs da planilha modelo_8h_V002.xlsx.
+        # Comparativo do V001: sem 86430900/86448000; entra 86447000 e 86505500.
+        "horizonte": "8h_v002",
+        "rotulo": "8h V002",
+        "horizonte_h": 8,
+        "tipo": "ALT",
+        "modelo": MODELO_8H_V002_ID,
+        "mat": MODELO_8H_V002_MAT,
+        "inputs_total": 28,
+        "montador": "8h_alt_v002",
+        "principal": False,
+        "ativo_ao_vivo": True,
+        "shadow_only": True,
+        "versao": "V002",
+        "status_publicacao": "sombra_experimental",
     },
 ]
 
@@ -929,6 +952,62 @@ def montar_inputs_8h_alt_v001(series, t):
     ]
     return inputs, st0
 
+def montar_inputs_8h_alt_v002(series, t):
+    """28 inputs do 8h ALT V002 — ordem da aba V002 / DADOS_FORMULAS.
+
+    Mesmas fórmulas de DifN / Acel / Acel-janela / chuva do V001.
+    Sem A894/CEMADEN: Passo Carreiro 86500000 no lugar do CEMADEN.
+    """
+    st0 = _n(series, "86472600", t, 0)
+    inputs = [
+        st0,                                              # 01 Nivel 86472600
+        _D(series, "86472600", t, 1),                     # 02 DN-1h
+        _D(series, "86472600", t, 4),                     # 03 DifN-4h
+        _A_janela(series, "86472600", t, 1, 1),           # 04 Acel-1h
+        _A_janela(series, "86472600", t, 12, 1),          # 05 Acel-12h
+        _n(series, "86472000", t, 0),                     # 06 Nivel 86472000
+        _D(series, "86472000", t, 2),                     # 07 DifN-2h
+        _D(series, "86472000", t, 6),                     # 08 DifN-6h
+        _A_janela(series, "86472000", t, 4, 1),           # 09 Acel-4h
+        _A_janela(series, "86472000", t, 13, 2),          # 10 Acel-13h Janela-2h
+        _D(series, "86125500", t, 2),                     # 11 DifN-2h 86125500
+        _D(series, "86125500", t, 12),                    # 12 DifN-12h
+        _D(series, "86298000", t, 2),                     # 13 DifN-2h 86298000
+        _D(series, "86298000", t, 8),                     # 14 DifN-8h
+        _A_janela(series, "86298000", t, 12, 1),          # 15 Acel-12h
+        _A_janela(series, "86298000", t, 25, 7),          # 16 Acel-25h Janela-7h
+        _D(series, "86306000", t, 2),                     # 17 DifN-2h 86306000
+        _D(series, "86306000", t, 10),                    # 18 DifN-10h
+        _A_janela(series, "86306000", t, 19, 8),          # 19 Acel-19h Janela-8h
+        _D(series, "86447000", t, 6),                     # 20 DifN-6h 86447000
+        _D(series, "86505500", t, 6),                     # 21 DifN-6h 86505500
+        _D(series, "86505500", t, 24),                    # 22 DifN-24h
+        _media_disponiveis(                               # 23 chuva med ST+LJJ acum 18h
+            _chuva_acum(series, "86472600", t, 18),
+            _chuva_acum(series, "86472000", t, 18),
+        ),
+        _media_disponiveis(                               # 24 chuva med ST+LJJ 24h_dif
+            _chuva_acum_24_dif(series, "86472600", t),
+            _chuva_acum_24_dif(series, "86472000", t),
+        ),
+        _media_disponiveis(                               # 25 chuva med 2851072+Passo Carreiro acum 18h
+            _chuva_acum(series, "2851072", t, 18),
+            _chuva_acum(series, POSTO_CHUVA_PASSO_CARREIRO, t, 18),
+        ),
+        _media_disponiveis(                               # 26 idem 24h_dif
+            _chuva_acum_24_dif(series, "2851072", t),
+            _chuva_acum_24_dif(series, POSTO_CHUVA_PASSO_CARREIRO, t),
+        ),
+        _media_disponiveis(                               # 27 chuva med ST+LJJ acum 3h
+            _chuva_acum(series, "86472600", t, 3),
+            _chuva_acum(series, "86472000", t, 3),
+        ),
+        _media_disponiveis_ou_zero(                        # 28 chuva Passo Carreiro acum 6h
+            _chuva_acum(series, POSTO_CHUVA_PASSO_CARREIRO, t, 6),
+        ),
+    ]
+    return inputs, st0
+
 def montar_inputs_8h_alt_c0217(series, t):
     """10 inputs do modelo 8h ALT C0217, conforme planilha auditavel."""
     st0 = _n(series, "86472600", t, 0)
@@ -976,6 +1055,8 @@ def montar_inputs_modelo(cfg, series, t):
         return montar_inputs_4h(series, t)
     if cfg["montador"] == "8h_alt_v001":
         return montar_inputs_8h_alt_v001(series, t)
+    if cfg["montador"] == "8h_alt_v002":
+        return montar_inputs_8h_alt_v002(series, t)
     if cfg["montador"] == "8h_alt_c0217":
         return montar_inputs_8h_alt_c0217(series, t)
     if cfg["montador"] == "12h_alt_c0065":
@@ -1190,6 +1271,62 @@ def diagnosticar_inputs_faltantes_8h_v001(series, t, inputs):
         if idx >= len(inputs) or inputs[idx] is not None:
             continue
         horas_faltantes = []
+        for h in range(n_h):    
+            hora = (t - dt.timedelta(hours=h)).replace(minute=0, second=0, microsecond=0)
+            if not any((postos.get(c) or {}).get(hora) is not None for c in chaves):
+                horas_faltantes.append(hora.isoformat(timespec="minutes"))
+        faltantes.append({
+            "input": codigo,
+            "descricao": descricao,
+            "estacao": ",".join(chaves),
+            "estacao_nome": " / ".join(NOMES_ESTACOES.get(c, c) for c in chaves),
+            "horarios_necessarios": [
+                (t - dt.timedelta(hours=h)).replace(minute=0, second=0, microsecond=0).isoformat(timespec="minutes")
+                for h in range(n_h)
+            ],
+            "horarios_faltantes": horas_faltantes[:12],
+        })
+    return faltantes
+
+def diagnosticar_inputs_faltantes_8h_v002(series, t, inputs):
+    especificacoes = [
+        ("inp01", "Santa Tereza - nivel atual", "86472600", [0]),
+        ("inp02", "Santa Tereza - nivel D-1h", "86472600", [0, 1]),
+        ("inp03", "Santa Tereza - nivel D-4h", "86472600", [0, 4]),
+        ("inp04", "Santa Tereza - aceleracao A-1h", "86472600", [0, 1, 2]),
+        ("inp05", "Santa Tereza - aceleracao A-12h", "86472600", [0, 1, 12, 13]),
+        ("inp06", "Linha Jose Julio - nivel atual", "86472000", [0]),
+        ("inp07", "Linha Jose Julio - nivel D-2h", "86472000", [0, 2]),
+        ("inp08", "Linha Jose Julio - nivel D-6h", "86472000", [0, 6]),
+        ("inp09", "Linha Jose Julio - aceleracao A-4h", "86472000", [0, 1, 4, 5]),
+        ("inp10", "Linha Jose Julio - Acel-13h Janela-2h", "86472000", [0, 2, 13, 15]),
+        ("inp11", "PCH Jararaca - nivel D-2h", "86125500", [0, 2]),
+        ("inp12", "PCH Jararaca - nivel D-12h", "86125500", [0, 12]),
+        ("inp13", "UHE Castro Alves - nivel D-2h", "86298000", [0, 2]),
+        ("inp14", "UHE Castro Alves - nivel D-8h", "86298000", [0, 8]),
+        ("inp15", "UHE Castro Alves - aceleracao A-12h", "86298000", [0, 1, 12, 13]),
+        ("inp16", "UHE Castro Alves - Acel-25h Janela-7h", "86298000", [0, 7, 25, 32]),
+        ("inp17", "Nova Roma do Sul - nivel D-2h", "86306000", [0, 2]),
+        ("inp18", "Nova Roma do Sul - nivel D-10h", "86306000", [0, 10]),
+        ("inp19", "Nova Roma do Sul - Acel-19h Janela-8h", "86306000", [0, 8, 19, 27]),
+        ("inp20", "Estacao 86447000 - nivel D-6h", "86447000", [0, 6]),
+        ("inp21", "Estacao 86505500 - nivel D-6h", "86505500", [0, 6]),
+        ("inp22", "Estacao 86505500 - nivel D-24h", "86505500", [0, 24]),
+    ]
+    faltantes = diagnosticar_inputs_por_especificacoes(series, t, inputs[:22], especificacoes)
+    chuva = [
+        (22, "inp23", "chuva med 86472600+86472000 acum 18h", ["86472600", "86472000"], 18, False),
+        (23, "inp24", "chuva med 86472600+86472000 24h_dif", ["86472600", "86472000"], 48, True),
+        (24, "inp25", "chuva med 2851072+Passo Carreiro acum 18h", ["2851072", POSTO_CHUVA_PASSO_CARREIRO], 18, False),
+        (25, "inp26", "chuva med 2851072+Passo Carreiro 24h_dif", ["2851072", POSTO_CHUVA_PASSO_CARREIRO], 48, True),
+        (26, "inp27", "chuva med 86472600+86472000 acum 3h", ["86472600", "86472000"], 3, False),
+        (27, "inp28", "chuva Passo Carreiro acum 6h", [POSTO_CHUVA_PASSO_CARREIRO], 6, False),
+    ]
+    postos = series.get("__chuva8h_postos__", {})
+    for idx, codigo, descricao, chaves, n_h, _dif in chuva:
+        if idx >= len(inputs) or inputs[idx] is not None:
+            continue
+        horas_faltantes = []
         for h in range(n_h):
             hora = (t - dt.timedelta(hours=h)).replace(minute=0, second=0, microsecond=0)
             if not any((postos.get(c) or {}).get(hora) is not None for c in chaves):
@@ -1265,6 +1402,8 @@ def diagnosticar_inputs_modelo(cfg, series, t, inputs):
         return diagnosticar_inputs_faltantes_4h(series, t, inputs)
     if cfg["montador"] == "8h_alt_v001":
         return diagnosticar_inputs_faltantes_8h_v001(series, t, inputs)
+    if cfg["montador"] == "8h_alt_v002":
+        return diagnosticar_inputs_faltantes_8h_v002(series, t, inputs)
     if cfg["montador"] == "8h_alt_c0217":
         return diagnosticar_inputs_faltantes_8h(series, t, inputs)
     if cfg["montador"] == "12h_alt_c0065":
@@ -1675,16 +1814,16 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
                     f"idade maxima {auditoria_inputs['idade_max_input_min']:.0f} min)"
                 )
         out["passos"] = [[out["hora_modelo"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
-        if cfg["montador"] == "8h_alt_v001":
+        if cfg["montador"] in ("8h_alt_v001", "8h_alt_v002"):
             fontes = series.get("__chuva8h_fontes__", {}) or {}
             if fontes:
                 out["fontes_chuva_8h"] = fontes
-                print("[8h V001] fontes chuva", fontes)
+                print("[8h]", cfg["horizonte"], "fontes chuva", fontes)
             postos = series.get("__chuva8h_postos__", {})
             if not (postos.get(POSTO_CHUVA_PASSO_CARREIRO) or {}):
                 nota = "chuva ANA 86500000 Passo Carreiro ainda vazia"
                 out["nota_chuva_8h"] = nota
-                print("[8h V001]", nota)
+                print("[8h]", cfg["horizonte"], nota)
         return out
     except Exception as e:
         out = _base_saida(cfg, st0, None, t, f"falha no modelo: {e}", aviso, [], estacoes_status)
@@ -1784,7 +1923,7 @@ def algum_horizonte_com_previsao(horizontes):
     )
 
 def main():
-    aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h principal, 2h versao B em sombra, 4h e 8h V001), em paralelo ao SGB/SACE. A versao B e comparativa e nao substitui a 2h principal."
+    aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h principal, 2h versao B em sombra, 4h, 8h V001 e 8h V002), em paralelo ao SGB/SACE. A versao B e o 8h V002 sao comparativos."
     try:
         # As consultas são independentes. Paralelizar evita que um timeout de
         # uma estação deixe o painel sem atualização por vários minutos.
