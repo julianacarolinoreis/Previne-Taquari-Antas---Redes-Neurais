@@ -9,19 +9,86 @@
     "longitude": -51.8686
   },
   "official_flood_threshold_cm": 1800,
-  "generated_at_utc": "2026-08-25T18:57:43Z",
+  "generated_at_utc": "2026-08-25T19:31:33Z",
   "forecast_kind": "prospective_point_forecast",
-  "forecast_provider": "Open-Meteo",
+  "forecast_provider": "ECMWF IFS via Open-Meteo",
   "forecast_model": "ECMWF IFS 0.25° (ecmwf_ifs025)",
   "forecast_source_url": "https://api.open-meteo.com/v1/forecast?latitude=-29.1672&longitude=-51.8686&models=ecmwf_ifs025&hourly=precipitation%2Csoil_moisture_0_to_7cm%2Ctemperature_2m&forecast_days=7&timezone=UTC",
+  "ecmwf_direct": {
+    "status": "available",
+    "provider": "ECMWF Open Data",
+    "model": "IFS",
+    "resolution": "0.25°",
+    "cycle_time_utc": "2026-08-25T00:00:00Z",
+    "source_root": "https://data.ecmwf.int/forecasts",
+    "parameter": "tp",
+    "unit": "mm",
+    "target": {
+      "latitude": -29.1672,
+      "longitude": -51.8686
+    },
+    "horizons": [
+      {
+        "hours": 24,
+        "rain_point_mm": 0.0,
+        "grid_latitude": -29.25,
+        "grid_longitude": -51.75,
+        "source_file": "20260825000000-24h-oper-fc.grib2",
+        "source_index": "https://data.ecmwf.int/forecasts/20260825/00z/ifs/0p25/oper/20260825000000-24h-oper-fc.index",
+        "source_offset": 0,
+        "source_length": 706839
+      },
+      {
+        "hours": 48,
+        "rain_point_mm": 0.18,
+        "grid_latitude": -29.25,
+        "grid_longitude": -51.75,
+        "source_file": "20260825000000-48h-oper-fc.grib2",
+        "source_index": "https://data.ecmwf.int/forecasts/20260825/00z/ifs/0p25/oper/20260825000000-48h-oper-fc.index",
+        "source_offset": 847523,
+        "source_length": 829559
+      },
+      {
+        "hours": 72,
+        "rain_point_mm": 4.93,
+        "grid_latitude": -29.25,
+        "grid_longitude": -51.75,
+        "source_file": "20260825000000-72h-oper-fc.grib2",
+        "source_index": "https://data.ecmwf.int/forecasts/20260825/00z/ifs/0p25/oper/20260825000000-72h-oper-fc.index",
+        "source_offset": 0,
+        "source_length": 905980
+      },
+      {
+        "hours": 120,
+        "rain_point_mm": 94.56,
+        "grid_latitude": -29.25,
+        "grid_longitude": -51.75,
+        "source_file": "20260825000000-120h-oper-fc.grib2",
+        "source_index": "https://data.ecmwf.int/forecasts/20260825/00z/ifs/0p25/oper/20260825000000-120h-oper-fc.index",
+        "source_offset": 0,
+        "source_length": 996904
+      },
+      {
+        "hours": 168,
+        "rain_point_mm": 152.53,
+        "grid_latitude": -29.25,
+        "grid_longitude": -51.75,
+        "source_file": "20260825000000-168h-oper-fc.grib2",
+        "source_index": "https://data.ecmwf.int/forecasts/20260825/00z/ifs/0p25/oper/20260825000000-168h-oper-fc.index",
+        "source_offset": 2969615,
+        "source_length": 1047570
+      }
+    ],
+    "message": "Saída direta do IFS; usada como fonte de auditoria do ponto."
+  },
   "availability_is_exact_historical_timestamp": false,
   "current_forecast_state": "available",
-  "current_forecast_message": "Chuva prevista no ponto da estação. A estimativa experimental, quando presente, não é alerta oficial.",
+  "current_forecast_message": "Chuva prevista no ponto da estação. O ECMWF Open Data direto é mantido como auditoria; a estimativa experimental, quando presente, não é alerta oficial.",
   "observation": {
     "state": "unknown_or_stale",
-    "level_cm": 279,
-    "observed_at_utc": "2026-08-25T15:30:00",
-    "age_minutes": 207.7,
+    "level_cm": 273,
+    "observed_at_utc": "2026-08-25T15:45:00",
+    "age_minutes": 226.6,
     "source": "robô ao vivo Muçum / estação ANA 86510000",
     "message": "Leitura atrasada; não usar como normalidade."
   },
@@ -45,9 +112,11 @@
     {
       "hours": 24,
       "rain_point_mm": 0.0,
+      "rain_ecmwf_direct_mm": 0.0,
+      "rain_ecmwf_direct_minus_openmeteo_mm": 0.0,
       "rain_hours_available": 24,
       "soil_moisture_model_mean_m3m3": 0.453,
-      "temperature_model_mean_c": 15.6,
+      "temperature_model_mean_c": 15.9,
       "rain_gefs_proxy_mm": 19.3,
       "rain_ifs_proxy_mm": 41.24,
       "flood_probability": 0.000219,
@@ -56,7 +125,9 @@
     },
     {
       "hours": 48,
-      "rain_point_mm": 2.4,
+      "rain_point_mm": 3.3,
+      "rain_ecmwf_direct_mm": 0.18,
+      "rain_ecmwf_direct_minus_openmeteo_mm": -3.12,
       "rain_hours_available": 48,
       "soil_moisture_model_mean_m3m3": 0.451,
       "temperature_model_mean_c": 18.5,
@@ -68,10 +139,12 @@
     },
     {
       "hours": 72,
-      "rain_point_mm": 21.6,
+      "rain_point_mm": 23.1,
+      "rain_ecmwf_direct_mm": 4.93,
+      "rain_ecmwf_direct_minus_openmeteo_mm": -18.17,
       "rain_hours_available": 72,
-      "soil_moisture_model_mean_m3m3": 0.466,
-      "temperature_model_mean_c": 19.4,
+      "soil_moisture_model_mean_m3m3": 0.467,
+      "temperature_model_mean_c": 19.5,
       "rain_gefs_proxy_mm": 34.5,
       "rain_ifs_proxy_mm": 60.46,
       "flood_probability": 0.002685,
@@ -80,9 +153,11 @@
     },
     {
       "hours": 120,
-      "rain_point_mm": 71.1,
+      "rain_point_mm": 71.3,
+      "rain_ecmwf_direct_mm": 94.56,
+      "rain_ecmwf_direct_minus_openmeteo_mm": 23.26,
       "rain_hours_available": 120,
-      "soil_moisture_model_mean_m3m3": 0.481,
+      "soil_moisture_model_mean_m3m3": 0.482,
       "temperature_model_mean_c": 19.1,
       "rain_gefs_proxy_mm": 45.6,
       "rain_ifs_proxy_mm": 66.93,
@@ -93,7 +168,9 @@
     {
       "hours": 168,
       "rain_point_mm": 120.1,
-      "rain_hours_available": 149,
+      "rain_ecmwf_direct_mm": 152.53,
+      "rain_ecmwf_direct_minus_openmeteo_mm": 32.43,
+      "rain_hours_available": 148,
       "soil_moisture_model_mean_m3m3": 0.486,
       "temperature_model_mean_c": 18.9,
       "rain_gefs_proxy_mm": 55.5,
@@ -107,6 +184,7 @@
     "chuva é previsão pontual, não média de toda a bacia",
     "o horário histórico de disponibilização do IFS não é preservado pelo endpoint prospectivo",
     "estimativa experimental, quando presente, não é probabilidade calibrada nem alerta",
+    "o ECMWF Open Data direto é conferência independente; a saída via Open-Meteo permanece registrada para comparação",
     "não substitui ANA, SGB, SACE ou Defesa Civil"
   ]
 }
