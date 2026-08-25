@@ -177,13 +177,14 @@
 <main>
   <div id="map" role="application" aria-label="Mapa interativo de previsão de inundação em Santa Tereza" aria-describedby="map-accessible-description"><span class="sr-only" id="map-accessible-description">Use os controles de camadas para alternar imagem de satélite, ruas, rótulos e estações. A mancha colorida representa somente água estimada fora do leito; ela é um proxy de pesquisa.</span></div>
   <aside>
-    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h A, 2h B e 4h)</button>
+    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h A, 2h B, 4h e 8h)</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
       <button data-live-hz="2h" class="on">2h</button>
       <button data-live-hz="2h_versao_b" class="shadow">2h B (VFINAL)</button>
       <button data-live-hz="4h">4h</button>
+      <button data-live-hz="8h">8h</button>
     </div>
 
     <!-- ===== LINHA DO TEMPO (compartilhada) ===== -->
@@ -457,8 +458,8 @@ function drawCotaChart(nowCm, foreCm, labelPrev){
 }
 const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 // margem de incerteza (m) por horizonte — cresce com o lead
-const UNCERT={'2h':0.3,'2h_versao_b':0.3,'4h':0.5,'—':0};
-const CONF={'2h':['Alta','#1b7a5a'],'2h_versao_b':['Experimental · B','#6f4aa1'],'4h':['Moderada','#c98a1a'],'—':['—','#999']};
+const UNCERT={'2h':0.3,'2h_versao_b':0.3,'4h':0.5,'8h':0.8,'—':0};
+const CONF={'2h':['Alta','#1b7a5a'],'2h_versao_b':['Experimental · B','#6f4aa1'],'4h':['Moderada','#c98a1a'],'8h':['Moderada','#c78d00'],'—':['—','#999']};
 function hzLabel(hz){ return hz==='2h_versao_b'?'2h versao B (VFINAL)':(hz||'—'); }
 function hzHours(hz,D){ return D&&D.horizonte_h?String(D.horizonte_h):(String(hz||'').match(/\d+/)||['—'])[0]; }
 function parseLocalWhen(s){
@@ -997,7 +998,7 @@ function renderLiveStep(){
     if(note){ note.style.display='';
       note.textContent='Estação de Santa Tereza sem dado recente da ANA neste momento'
         + (q?(' (última leitura '+fmtWhen(q)+')'):'')
-        + ' — a previsão de 2h/4h volta assim que a telemetria retornar; o robô é agendado a cada ~5 min.'; }
+        + ' — a previsão de 2h/4h/8h volta assim que a telemetria retornar; o robô é agendado a cada ~5 min.'; }
     // limpa a mancha e os números do cenário que ficaram na tela
     ['s-now','s-fore','s-drio','s-newarea','s-atot','s-conf','s-hz2','s-hz','s-falta-now','s-falta-fore'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='—'; });
     const csvg=document.getElementById('s-cota-chart'); if(csvg)csvg.innerHTML='';
