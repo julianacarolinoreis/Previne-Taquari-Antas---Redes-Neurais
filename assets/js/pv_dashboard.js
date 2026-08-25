@@ -59,11 +59,12 @@
     const latestProb=(state.probability?.rows||[]).find(x=>x.hours===168)||(w?.horizons||[]).find(x=>x.hours===168);
     const probFresh=state.probability&&ageHours(state.probability.generated)<=36;
     const probLabel=latestProb&&probFresh?`${pct.format(latestProb.prob)}%`:'STALE / sem valor atual';
+    const probNote=state.probability?.calibrated?'calibrada em pesquisa · não é alerta':'não calibrada · não é alerta';
     setHtml('#pv-kpis',[
       ['Rio agora',cm(w?.level??now?.now),w?.obs?.state==='unknown_or_stale'?'leitura atrasada':'observado'],
       ['Chuva em 72 h',mm(h72?.basin??h72?.rain),'previsão acumulada no feed'],
       ['Chuva em 168 h',mm(h168?.basin??h168?.rain),'janela longa · não é média oficial da bacia'],
-      ['Risco experimental',probLabel,probFresh?'estimativa de pesquisa · não calibrada':'rodada antiga · não usar como previsão']
+      ['Risco experimental',probLabel,probFresh?`estimativa GEFS · ${probNote}`:'rodada antiga · não usar como previsão']
     ].map((x,i)=>`<article class="pv-kpi"><span class="pv-kpi-label">${x[0]}</span><strong class="pv-kpi-value ${i===3?(probFresh?'warn':'unknown'):i===0?'good':''}">${x[1]}</strong><span class="pv-kpi-note">${x[2]}</span></article>`).join(''));
   }
   function renderBars(){
@@ -92,7 +93,7 @@
     if(w?.level!=null&&threshold){const gap=threshold-w.level;signals.push(['Margem até a cota de pesquisa',`${cm(gap)} abaixo de ${cm(threshold)}`,'good']);}
     if(soil!=null)signals.push(['Solo / umidade','proxy modelado: '+br.format(soil)+' m³/m³','warn']);
     else if(w?.soil?.message)signals.push(['Solo / umidade','sem sensor local; proxy indisponível','warn']);
-    if(fresh&&prob?.prob!=null)signals.push(['Probabilidade experimental',`${pct.format(prob.prob)}% até 168 h · não calibrada`,'warn']);
+    if(fresh&&prob?.prob!=null)signals.push(['Probabilidade experimental',`${pct.format(prob.prob)}% até 168 h · ${state.probability?.calibrated?'calibrada em pesquisa; não é alerta':'não calibrada; não é alerta'}`,'warn']);
     else signals.push(['Probabilidade atual','sem valor utilizável: rodada antiga ou não calibrada','bad']);
     if(now?.level!=null)signals.push(['Robô ao vivo',`+${now.label.replace(/\D/g,'')} previsto: ${cm(now.level)}`,'good']);
     setHtml('#pv-signals',signals.map(s=>`<div class="pv-signal"><span class="pv-signal-dot ${s[2]}" aria-hidden="true"></span><div><strong>${s[0]}</strong><span>${s[1]}</span></div></div>`).join(''));
