@@ -1,45 +1,84 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-08-11T12:45:53.241756+00:00",
-  "station_code": "86472600",
-  "station_name": "Santa Tereza",
-  "status": "NORMAL_RESEARCH_SCREENING",
+  "feed_type": "meteorological_forecast",
+  "status": "RAIN_REVIEW_SCREENING",
   "research_only": true,
   "official_alert": false,
-  "observation": {"timestamp_utc": "2026-08-11T11:45:00+00:00", "age_minutes": 60.9, "level_cm": 349.0, "change_6h_cm": -26.0, "change_24h_cm": -32.0, "rain_observed_24h_mm": 0.0, "rain_observed_72h_mm": 0.4, "quality": "Dado aprovado"},
-  "forecast": {
-    "source": "ECMWF Open Data / IFS",
-    "run_time_utc": "2026-08-11T00:00:00+00:00",
-    "available_at_utc": "2026-08-11T08:35:47.917681+00:00",
-    "grid_points": 5,
-    "complete_rows": 160,
-    "horizons": [
-      {"horizon_hours": 24, "target_santa_tereza_mm": 0.14, "basin_mean_mm": 4.25, "basin_max_mm": 7.67, "screening_threshold_mm": 40.0},
-      {"horizon_hours": 48, "target_santa_tereza_mm": 29.35, "basin_mean_mm": 31.76, "basin_max_mm": 35.46, "screening_threshold_mm": null},
-      {"horizon_hours": 72, "target_santa_tereza_mm": 53.79, "basin_mean_mm": 69.72, "basin_max_mm": 74.69, "screening_threshold_mm": 80.0},
-      {"horizon_hours": 96, "target_santa_tereza_mm": 54.82, "basin_mean_mm": 70.67, "basin_max_mm": 75.01, "screening_threshold_mm": null},
-      {"horizon_hours": 120, "target_santa_tereza_mm": 57.45, "basin_mean_mm": 73.31, "basin_max_mm": 78.19, "screening_threshold_mm": null},
-      {"horizon_hours": 168, "target_santa_tereza_mm": 71.43, "basin_mean_mm": 76.42, "basin_max_mm": 82.64, "screening_threshold_mm": 120.0}
-    ]
+  "station_code": "86472600",
+  "station_name": "Santa Tereza",
+  "official_flood_threshold_cm": 1500,
+  "generated_at_utc": "2026-08-25T14:25:43.177420Z",
+  "forecast_kind": "prospective_spatial_point_and_basin_screening",
+  "forecast_provider": "ECMWF Open Data / IFS",
+  "forecast_model": "ECMWF IFS 0.25° · rodada 2026-08-25 00Z",
+  "forecast_source_url": "ECMWF Open Data / IFS · pontos espaciais na bacia Taquari-Antas",
+  "availability_is_exact_historical_timestamp": true,
+  "current_forecast_state": "available",
+  "current_forecast_message": "Nova rodada IFS disponível. Chuva e score são pesquisa; a probabilidade GEFS é publicada separadamente.",
+  "observation": {
+    "state": "recent",
+    "level_cm": 329.0,
+    "observed_at_utc": "2026-08-25T13:45:00Z",
+    "age_minutes": 40.7,
+    "source": "ANA/SGB · estação 86472600",
+    "quality": "Dado aprovado",
+    "change_6h_cm": -19.0,
+    "change_24h_cm": 24.0,
+    "rain_observed_24h_mm": 0.0,
+    "rain_observed_72h_mm": 0.0,
+    "message": "Leitura recente; monitoramento de pesquisa."
   },
-  "soil": {
-    "status": "UMIDADE_MODELADA_PROXY",
-    "source": "Open-Meteo / ECMWF IFS 0.25°",
-    "retrieved_at_utc": "2026-08-11T13:12:23.856351Z",
-    "valid_time_local": "2026-08-11T10:00",
-    "grid": {"latitude": -29.25, "longitude": -51.75},
-    "unit": "m³/m³",
-    "layers": {
-      "0_7cm": 0.473,
-      "7_28cm": 0.475,
-      "28_100cm": 0.445,
-      "100_255cm": 0.505
-    },
-    "next_24h_max": {"0_7cm": 0.519, "7_28cm": 0.515, "28_100cm": 0.445, "100_255cm": 0.505},
-    "saturation_assessment": "NAO_CALIBRADA",
-    "note": "Umidade volumétrica modelada; não é medição local nem percentual de saturação. Requer capacidade de campo/ponto de murcha para converter em saturação física."
+  "soil_moisture": {
+    "status": "unavailable_local_measurement",
+    "observation_available": false,
+    "message": "Não há medição local de saturação nesta rodada; não converter umidade modelada em percentual de saturação."
   },
-  "rna": {"status": "EXPERIMENTAL_IFS_RNA_SCORED", "trained_source": "NOAA GEFS ensemble_mean", "current_source": "ECMWF Open Data / IFS", "calibrated_for_current_source": false, "scores": {"24": 0.0, "48": 0.003374, "72": 0.129099, "120": 0.347598, "168": 0.876463}},
-  "answer_24h": {"label": "Não indica transbordamento em 24 h", "score": 0.0, "official": false},
-  "provenance": {"observation_sha256": "69896617012af45000f5767f9a27b5e040a6b40dd1454debb2de6c129d289b38", "forecast_sha256": "f386b4b4a556c7e7948325d1cf804524776a5c3f632791ea86773ea4e774e2ee"}
+  "risk_model": {
+    "status": "experimental_probability_research_only",
+    "probabilities_available": true,
+    "experimental_probability": true,
+    "calibrated": true,
+    "calibrated_source": "NOAA NODD / GEFS",
+    "current_weather_source": "ECMWF Open Data / IFS",
+    "official_alert": false,
+    "promotion_allowed": false,
+    "model_version": "santa-tereza-gefs-loeo-20260825",
+    "source_artifact": "assets/data/research_probability_santa_tereza_latest.json",
+    "message": "A probabilidade publicada usa GEFS; a chuva exibida usa IFS. Não misturar as fontes. Nenhum campo é alerta oficial."
+  },
+  "horizons": [
+    {"hours": 24, "rain_point_mm": 0.0, "basin_mean_mm": 0.0, "basin_max_mm": 0.0, "screening_threshold_mm": 40.0},
+    {"hours": 48, "rain_point_mm": 0.18, "basin_mean_mm": 0.18, "basin_max_mm": 0.2, "screening_threshold_mm": null},
+    {"hours": 72, "rain_point_mm": 4.93, "basin_mean_mm": 2.78, "basin_max_mm": 4.78, "screening_threshold_mm": 80.0},
+    {"hours": 96, "rain_point_mm": 22.4, "basin_mean_mm": 24.5, "basin_max_mm": 41.66, "screening_threshold_mm": null},
+    {"hours": 120, "rain_point_mm": 94.56, "basin_mean_mm": 99.43, "basin_max_mm": 137.21, "screening_threshold_mm": null},
+    {"hours": 168, "rain_point_mm": 152.53, "basin_mean_mm": 191.24, "basin_max_mm": 240.4, "screening_threshold_mm": 120.0}
+  ],
+  "rna": {
+    "status": "EXPERIMENTAL_IFS_RNA_SCORED",
+    "trained_source": "NOAA GEFS ensemble_mean",
+    "current_source": "ECMWF Open Data / IFS",
+    "calibrated_for_current_source": false,
+    "domain_shift_status": "DOMAIN_SHIFT_FLAGGED",
+    "scores": {"24": 0.000073, "48": 0.030231, "72": 0.224331, "120": 0.999983, "168": 0.999998},
+    "message": "Scores IFS são diagnóstico experimental, não probabilidades calibradas. A rodada tem mudança de domínio em chuva longa; não promover para operação."
+  },
+  "answer_24h": {
+    "label": "Triagem 24 h: chuva baixa; sem indicação pelo modelo experimental",
+    "score": 0.000073,
+    "official": false
+  },
+  "provenance": {
+    "observation_sha256": "30ee40b1fe1e5a84ab17c716ed9628b67f6f3c9e90c81f4f702d6a5839e13539",
+    "forecast_sha256": "c91c332a30a5c0d9a37efa12262a5d510580609feec2e9de5b055dfe63f9e547",
+    "source_analysis": "outputs/forecast_analysis_robot/analysis_latest.json",
+    "source_adapter": "outputs/forecast_analysis_robot/ifs_rna_adapter_latest.json"
+  },
+  "limitations": [
+    "chuva é previsão espacial de triagem, não média oficial de toda a bacia",
+    "a probabilidade GEFS é uma fonte separada da chuva IFS",
+    "score IFS não é probabilidade calibrada para a fonte atual",
+    "umidade do solo observada não está disponível",
+    "não substitui ANA, SGB, SACE ou Defesa Civil"
+  ]
 }
