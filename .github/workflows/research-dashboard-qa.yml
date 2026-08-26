@@ -8,9 +8,12 @@ on:
       - 'pesquisa_status.html'
       - 'pesquisa_status_mucum.html'
       - 'assets/js/pv_dashboard.js'
+      - 'assets/js/research_patterns_dashboard.js'
       - 'assets/css/pv_dashboard.css'
       - 'assets/data/research_*_latest.json'
       - 'scripts/build_binary_research_decision.py'
+      - 'scripts/build_visual_research_patterns.py'
+      - 'scripts/test_visual_research_patterns.py'
       - 'scripts/validate_research_dashboard.py'
       - '.github/workflows/research-dashboard-qa.yml'
   schedule:
@@ -45,6 +48,12 @@ jobs:
       - name: Gera respostas binárias da pesquisa
         run: python -B scripts/build_binary_research_decision.py
 
+      - name: Gera feeds compactos do painel visual
+        run: python -B scripts/build_visual_research_patterns.py
+
+      - name: Testa feeds compactos do painel visual
+        run: python -m unittest scripts/test_visual_research_patterns.py -v
+
       - name: Valida contratos da dashboard
         id: qa
         run: |
@@ -57,7 +66,7 @@ jobs:
         run: |
           git config user.name 'previne-qa-bot'
           git config user.email 'previne-qa-bot@users.noreply.github.com'
-          git add -- assets/data/research_dashboard_validation_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json
+          git add -- assets/data/research_dashboard_validation_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json assets/data/research_visual_patterns_mucum_latest.json assets/data/research_visual_patterns_santa_tereza_latest.json
           if git diff --cached --quiet; then
             echo 'Nenhuma mudança no relatório de QA.'
             exit 0

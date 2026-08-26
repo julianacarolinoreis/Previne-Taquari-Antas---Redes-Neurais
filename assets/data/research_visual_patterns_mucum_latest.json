@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-26T03:14:17Z",
+  "location": "mucum",
+  "station_name": "Muçum",
+  "threshold_cm": 1800,
+  "summary": {
+    "event_count": 4,
+    "peak_max_cm": 2557.0,
+    "peak_min_cm": 1986.0,
+    "rain_24h_median_mm": 109.30000000000001,
+    "rain_72h_median_mm": 157.9,
+    "api_72h_median_mm": 162.85000000000002,
+    "pattern_text": "Os quatro eventos têm chuva antecedente mensurável; o volume e a memória da bacia variam bastante entre episódios."
+  },
+  "events": [
+    {
+      "id": "MUCUM-CAND-001",
+      "date": "2023-09-04 19:30",
+      "peak_cm": 2179,
+      "status": "requires ANA/SACE review",
+      "rain_24h_mm": 100.4,
+      "rain_72h_mm": 176.4,
+      "rain_168h_mm": 176.4,
+      "rain_336h_mm": 191.6,
+      "api_72h_mm": 144.3,
+      "soil_status": "proxy; saturation not demonstrated"
+    },
+    {
+      "id": "MUCUM-CAND-002",
+      "date": "2024-05-02 07:30",
+      "peak_cm": 2557,
+      "status": "requires ANA/SACE review",
+      "rain_24h_mm": 226.2,
+      "rain_72h_mm": 476.4,
+      "rain_168h_mm": 542.6,
+      "rain_336h_mm": 563.8,
+      "api_72h_mm": 411.6,
+      "soil_status": "proxy likely very wet"
+    },
+    {
+      "id": "MUCUM-CAND-003",
+      "date": "2024-05-12 21:15",
+      "peak_cm": 2027,
+      "status": "requires ANA/SACE review",
+      "rain_24h_mm": 118.2,
+      "rain_72h_mm": 139.4,
+      "rain_168h_mm": 143.2,
+      "rain_336h_mm": 925.4,
+      "api_72h_mm": 181.4,
+      "soil_status": "proxy with strong antecedent memory"
+    },
+    {
+      "id": "MUCUM-CAND-004",
+      "date": "2026-07-22 15:00",
+      "peak_cm": 1986,
+      "status": "SACE crossing confirmed for research only",
+      "rain_24h_mm": 60.2,
+      "rain_72h_mm": 108.2,
+      "rain_168h_mm": 108.6,
+      "rain_336h_mm": 114.6,
+      "api_72h_mm": 84.0,
+      "soil_status": "recent rain signal; saturation unknown"
+    }
+  ],
+  "horizons": [
+    {
+      "hours": 24,
+      "ifs_direct_mm": 0.0,
+      "ifs_proxy_mm": 41.24,
+      "gefs_proxy_mm": 19.3,
+      "soil_moisture_m3m3": 0.455,
+      "probability_percent": 0.02,
+      "decision": "NAO_VAI",
+      "coverage_hours": 24
+    },
+    {
+      "hours": 48,
+      "ifs_direct_mm": 0.02,
+      "ifs_proxy_mm": 60.02,
+      "gefs_proxy_mm": 26.5,
+      "soil_moisture_m3m3": 0.456,
+      "probability_percent": 0.07,
+      "decision": "NAO_VAI",
+      "coverage_hours": 48
+    },
+    {
+      "hours": 72,
+      "ifs_direct_mm": 13.6,
+      "ifs_proxy_mm": 60.46,
+      "gefs_proxy_mm": 34.5,
+      "soil_moisture_m3m3": 0.469,
+      "probability_percent": 0.27,
+      "decision": "NAO_VAI",
+      "coverage_hours": 72
+    },
+    {
+      "hours": 120,
+      "ifs_direct_mm": 83.02,
+      "ifs_proxy_mm": 66.93,
+      "gefs_proxy_mm": 45.6,
+      "soil_moisture_m3m3": 0.483,
+      "probability_percent": 0.57,
+      "decision": "NAO_VAI",
+      "coverage_hours": 120
+    },
+    {
+      "hours": 168,
+      "ifs_direct_mm": 161.25,
+      "ifs_proxy_mm": 80.37,
+      "gefs_proxy_mm": 55.5,
+      "soil_moisture_m3m3": 0.489,
+      "probability_percent": 1.22,
+      "decision": "NAO_VAI",
+      "coverage_hours": 166
+    }
+  ],
+  "models": [
+    {
+      "name": "ECMWF IFS direto",
+      "kind": "rain",
+      "unit": "mm",
+      "description": "chuva acumulada direta no ponto/rodada IFS"
+    },
+    {
+      "name": "ECMWF IFS proxy",
+      "kind": "rain",
+      "unit": "mm",
+      "description": "proxy espacial de chuva IFS usado na conferência"
+    },
+    {
+      "name": "NOAA GEFS proxy",
+      "kind": "rain",
+      "unit": "mm",
+      "description": "proxy da célula GEFS; alimenta o ajuste de pesquisa"
+    },
+    {
+      "name": "Modelo logístico de pesquisa",
+      "kind": "risk",
+      "unit": "%",
+      "description": "score binarizado pela regra de 50%; não calibrado operacionalmente"
+    },
+    {
+      "name": "Solo modelado",
+      "kind": "soil",
+      "unit": "m³/m³",
+      "description": "umidade modelada; não é sensor local"
+    }
+  ],
+  "evaluation": {
+    "metric": "sensibilidade de detecção de eventos positivos",
+    "threshold_used": "score >= 0.5",
+    "by_horizon": [
+      {
+        "hours": 24,
+        "held_out_events": 3,
+        "detected_at_score_0_5": 1,
+        "sensitivity": 0.3333333333333333,
+        "sensitivity_percent": 33.33333333333333,
+        "result": "FRACA"
+      },
+      {
+        "hours": 48,
+        "held_out_events": 3,
+        "detected_at_score_0_5": 1,
+        "sensitivity": 0.3333333333333333,
+        "sensitivity_percent": 33.33333333333333,
+        "result": "FRACA"
+      },
+      {
+        "hours": 72,
+        "held_out_events": 3,
+        "detected_at_score_0_5": 0,
+        "sensitivity": 0.0,
+        "sensitivity_percent": 0.0,
+        "result": "FRACA"
+      },
+      {
+        "hours": 120,
+        "held_out_events": 3,
+        "detected_at_score_0_5": 0,
+        "sensitivity": 0.0,
+        "sensitivity_percent": 0.0,
+        "result": "FRACA"
+      },
+      {
+        "hours": 168,
+        "held_out_events": 4,
+        "detected_at_score_0_5": 0,
+        "sensitivity": 0.0,
+        "sensitivity_percent": 0.0,
+        "result": "FRACA"
+      }
+    ],
+    "false_positive_metrics": "indisponíveis: a base publicada não traz negativos independentes por evento",
+    "model_verdict": "NAO_FUNCIONA_DE_FORMA_CONFIAVEL",
+    "validation_source": "feed.validation.event_detection_summary"
+  },
+  "sources": {
+    "events": "assets/data/research_mucum_evidence_latest.json",
+    "probability": "assets/data/research_probability_mucum_latest.json",
+    "weather": "assets/data/research_weather_mucum_latest.json",
+    "binary": "assets/data/research_binary_decision_mucum_latest.json"
+  }
+}

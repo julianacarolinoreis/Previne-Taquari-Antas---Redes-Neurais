@@ -27,7 +27,7 @@
 <main class="wrap">
   <header><span class="mark" aria-hidden="true"></span><div><div class="kicker">PREVINE · pesquisa de transbordamento</div><h1>Estado da pesquisa</h1><p class="subtitle">Muçum · estação ANA/SGB 86510000 · bacia Taquari-Antas</p></div><span class="badge">SEM ALERTA AUTOMÁTICO</span></header>
   <nav aria-label="Selecionar estação"><a href="pesquisa_status.html">Santa Tereza · pesquisa</a><a class="active" href="pesquisa_status_mucum.html" aria-current="page">Muçum · pesquisa</a><a href="mucum_previsao_inundacao.html">Muçum · previsão ao vivo</a><a href="mucum_inundacao.html">Muçum · histórico</a></nav>
-  <nav class="quick-nav" aria-label="Índice desta página"><span class="quick-nav-label">Você está aqui:</span><a href="#painel-visual">Painel visual</a><a href="#resultado">Resultado</a><a href="#estado">Estado atual</a><a href="#previsao-curta">2 h / 4 h</a><a href="#grafico">Últimas 24 h</a><a href="#dados">Dados</a><a href="#marcas">Marcas</a><a href="#verificacao">Auditoria</a></nav>
+  <nav class="quick-nav" aria-label="Índice desta página"><span class="quick-nav-label">Você está aqui:</span><a href="#painel-visual">Painel visual</a><a href="#padroes">Padrões</a><a href="#resultado">Resultado</a><a href="#estado">Estado atual</a><a href="#previsao-curta">2 h / 4 h</a><a href="#grafico">Últimas 24 h</a><a href="#dados">Dados</a><a href="#marcas">Marcas</a><a href="#verificacao">Auditoria</a></nav>
   <section class="research-status" aria-label="Estado de liberação da pesquisa"><div class="open"><strong>PESQUISA LIBERADA</strong><span>Dados, gráficos e estimativas experimentais disponíveis para consulta.</span></div><div class="off"><strong>ALERTA AUTOMÁTICO DESATIVADO</strong><span>Isso não bloqueia a pesquisa; apenas impede envio oficial.</span></div><div class="review"><strong>REVISÃO TÉCNICA PENDENTE</strong><span>Relógio ANA–SACE, sensores locais e mancha fora do leito.</span></div></section>
   <section class="hero"><h2>Pesquisa de transbordamento em Muçum</h2><p>Esta página acompanha o ajuste experimental específico da estação de Muçum. A cota operacional de inundação usada na pesquisa é <strong>1.800 cm</strong>; atenção (500 cm) e alerta (900 cm) são estados auxiliares. Os resultados abaixo não substituem SGB, ANA, SACE ou Defesa Civil.</p></section>
 
@@ -38,6 +38,17 @@
     <div class="pv-kpis" id="pv-kpis" aria-live="polite"><article class="pv-kpi"><span class="pv-kpi-label">Carregando</span><strong class="pv-kpi-value unknown">—</strong><span class="pv-kpi-note">buscando dados</span></article></div>
     <div class="pv-main" id="pv-panel-mucum" role="tabpanel" aria-live="polite"><div class="pv-chart-card"><div class="pv-chart-head"><div><h3 id="pv-chart-title">Chuva acumulada por horizonte</h3><p class="pv-chart-subtitle" id="pv-chart-subtitle">Barras e detalhes serão preenchidos pelo feed.</p></div><span id="pv-chart-unit">mm</span></div><div class="pv-chart-scale" id="pv-chart-scale" aria-live="polite">Escala aguardando dados.</div><div class="pv-bars" id="pv-bars" aria-live="polite"><div class="pv-empty">Carregando série de horizontes…</div></div><p class="pv-chart-note" id="pv-chart-note">A leitura visual é uma síntese; abra os dados técnicos para auditoria.</p><details class="pv-detail"><summary>Ver valores, fonte e cobertura</summary><div class="pv-table-wrap"><table id="pv-detail-table" class="pv-detail-table"></table></div></details></div><aside class="pv-side-card"><h3>Sinais para acompanhar</h3><div id="pv-signals" aria-live="polite"><div class="pv-empty">Carregando sinais…</div></div><p class="pv-side-foot">O painel distingue chuva prevista, nível observado e score experimental. Nenhum item aqui é alerta oficial.</p></aside></div>
     <div class="pv-footer"><span id="pv-updated">Feed meteorológico: — · robô ao vivo: —</span><strong>Pesquisa · sem alerta automático</strong></div>
+  </section>
+
+  <section class="pattern-dashboard anchor-target" id="padroes" data-pattern-dashboard data-pattern-feed="assets/data/research_visual_patterns_mucum_latest.json" aria-labelledby="pattern-title-mucum">
+    <div class="pattern-head"><div><div class="pattern-kicker">Pesquisa visual · padrões antes das cheias</div><h2 id="pattern-title-mucum">O que aconteceu antes de Muçum subir?</h2><p>Compare chuva antecedente, memória da bacia e o que cada modelo estima agora. Os números aparecem no próprio gráfico para facilitar a leitura.</p></div><span class="pattern-updated">Carregando feed visual…</span></div>
+    <div class="pattern-kpis" id="pattern-kpis"><div class="pattern-empty">Carregando eventos e modelos…</div></div>
+    <div class="pattern-layout">
+      <div class="pattern-block"><h3>Padrões antes das cheias</h3><p>As barras mostram acumulados anteriores ao pico; API é memória de chuva, não um sensor de saturação.</p><div id="pattern-events" class="pattern-events"><div class="pattern-empty">Carregando eventos…</div></div></div>
+      <div class="pattern-block"><h3>O que cada modelo mostra agora?</h3><p>Veja a mesma janela por fonte. Chuva está em mm; risco é estimativa experimental em 0–100%.</p><div id="pattern-models" class="pattern-models"><div class="pattern-empty">Carregando modelos…</div></div><div id="pattern-model-legend" class="pattern-model-legend"></div></div>
+      <div id="pattern-insight" class="pattern-insight"><strong>Leitura:</strong> carregando a síntese dos padrões…</div>
+    </div>
+    <div class="pattern-foot"><span id="pattern-source">Fonte visual: carregando…</span> · <a href="assets/data/research_visual_patterns_mucum_latest.json">Abrir dados visuais e proveniência →</a></div>
   </section>
 
   <section class="panel research"><h2>Score logístico experimental de cruzar 1.800 cm</h2><p>O valor abaixo é um score de pesquisa, calculado com regressão logística e validação por eventos candidatos. Como a calibração ainda não é operacional, ele <strong>não representa uma chance real nem um alerta</strong>. A chuva GEFS é proxy de célula; a chuva ECMWF mostrada no painel é outra fonte.</p><div class="horizons" id="horizons"><div class="hz"><b>—</b><span>carregando</span></div></div><div class="warning"><strong>Como ler:</strong> “1,22%” significa apenas 1,22 pontos percentuais produzidos pelo ajuste experimental nesta rodada — não significa que exista 1,22% de frequência real de inundação. O estado pode ser UNKNOWN/STALE quando o feed estiver antigo.</div><p id="prob-meta" style="margin-top:9px;font-size:10.5px;color:var(--muted)">Carregando versão, fonte e data da rodada…</p></section>
@@ -163,6 +174,7 @@
   }).catch(()=>{el('marks-summary').innerHTML='<div class="data-stat"><b>UNKNOWN</b><span>marcas observadas</span></div>';el('marks-detail').textContent='Fonte de marcas observadas indisponível no momento.';});
 })();
 </script>
+<script src="assets/js/research_patterns_dashboard.js"></script>
 <script src="assets/js/pv_dashboard.js"></script>
 </body>
 </html>

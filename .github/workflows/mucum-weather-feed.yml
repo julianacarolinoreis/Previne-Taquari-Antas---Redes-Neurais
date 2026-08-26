@@ -40,6 +40,9 @@ jobs:
       - name: Gera resposta binária da pesquisa
         run: python -B scripts/build_binary_research_decision.py
 
+      - name: Gera painel visual de padrões
+        run: python -B scripts/build_visual_research_patterns.py
+
       - name: Valida a dashboard sem rede
         run: python -B scripts/validate_research_dashboard.py --report assets/data/research_dashboard_validation_latest.json
 
@@ -48,7 +51,7 @@ jobs:
         run: |
           git config user.name 'previne-weather-bot'
           git config user.email 'previne-weather-bot@users.noreply.github.com'
-          git add -- assets/data/research_weather_mucum_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json assets/data/research_dashboard_validation_latest.json
+          git add -- assets/data/research_weather_mucum_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json assets/data/research_visual_patterns_mucum_latest.json assets/data/research_visual_patterns_santa_tereza_latest.json assets/data/research_dashboard_validation_latest.json
           if git diff --cached --quiet; then
             echo 'Nenhuma mudança no feed.'
             exit 0
@@ -67,7 +70,8 @@ jobs:
               git reset --hard origin/main
               python -B scripts/build_mucum_weather_feed.py
               python -B scripts/build_binary_research_decision.py
-              git add -- assets/data/research_weather_mucum_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json
+              python -B scripts/build_visual_research_patterns.py
+              git add -- assets/data/research_weather_mucum_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json assets/data/research_visual_patterns_mucum_latest.json assets/data/research_visual_patterns_santa_tereza_latest.json
               if git diff --cached --quiet; then
                 echo 'Feed já foi publicado por outra execução.'
                 exit 0

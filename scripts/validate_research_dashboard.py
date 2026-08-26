@@ -25,6 +25,10 @@ BINARIES = {
     "mucum": ROOT / "assets" / "data" / "research_binary_decision_mucum_latest.json",
     "santa_tereza": ROOT / "assets" / "data" / "research_binary_decision_santa_tereza_latest.json",
 }
+VISUALS = {
+    "mucum": ROOT / "assets" / "data" / "research_visual_patterns_mucum_latest.json",
+    "santa_tereza": ROOT / "assets" / "data" / "research_visual_patterns_santa_tereza_latest.json",
+}
 PAGES = (ROOT / "pesquisa_status.html", ROOT / "pesquisa_status_mucum.html")
 REQUIRED_HORIZONS = (24, 48, 72, 120, 168)
 
@@ -152,9 +156,45 @@ def check_binary_decisions(errors: list[dict]) -> dict:
     return result
 
 
+def check_visual_patterns(errors: list[dict]) -> dict:
+    """Check the compact, reader-facing feed used by the visual dashboard."""
+    result: dict[str, dict] = {}
+    for location, path in VISUALS.items():
+        feed = load_json(path, errors) or {}
+        rows = horizon_rows(feed.get("horizons"))
+        hours = [h for h, _ in rows]
+        if hours != list(REQUIRED_HORIZONS):
+            errors.append({"severity": "FAIL", "code": "visual_horizons", "location": location, "detail": hours})
+        events = feed.get("events")
+        if not isinstance(events, list) or not events:
+            errors.append({"severity": "FAIL", "code": "visual_events_missing", "location": location})
+        if not isinstance(feed.get("models"), list) or not feed.get("models"):
+            errors.append({"severity": "FAIL", "code": "visual_models_missing", "location": location})
+        if not isinstance(feed.get("sources"), dict) or not feed.get("sources"):
+            errors.append({"severity": "FAIL", "code": "visual_sources_missing", "location": location})
+        if parse_time(feed.get("generated_at_utc")) is None:
+            errors.append({"severity": "FAIL", "code": "visual_timestamp_invalid", "location": location})
+        for hours_value, item in rows:
+            for key, value in item.items():
+                if value is not None and (key.endswith("_mm") or key.endswith("_percent") or key.endswith("_m3m3")) and not isinstance(value, (int, float)):
+                    errors.append({"severity": "FAIL", "code": "visual_non_numeric_value", "location": location, "horizon": hours_value, "field": key})
+        summary = feed.get("summary") or {}
+        if not isinstance(summary.get("pattern_text"), str) or not summary.get("pattern_text").strip():
+            errors.append({"severity": "FAIL", "code": "visual_pattern_text_missing", "location": location})
+        result[location] = {
+            "generated_at_utc": feed.get("generated_at_utc"),
+            "sha256": sha256(path) if path.exists() else None,
+            "horizons": hours,
+            "events": len(events) if isinstance(events, list) else 0,
+            "models": len(feed.get("models")) if isinstance(feed.get("models"), list) else 0,
+            "sources": sorted(feed.get("sources", {}).keys()) if isinstance(feed.get("sources"), dict) else [],
+        }
+    return result
+
+
 def check_pages(errors: list[dict]) -> dict:
     result = {}
-    required_tokens = ("data-pv-dashboard", "pv-feed-chips", "pv-chart-scale", "pv-detail-table", 'role="tab"', "aria-selected", "resultado-binario", "research_binary_decision_")
+    required_tokens = ("data-pv-dashboard", "pv-feed-chips", "pv-chart-scale", "pv-detail-table", 'role="tab"', "aria-selected", "resultado-binario", "research_binary_decision_", "data-pattern-dashboard", "research_visual_patterns_")
     for page in PAGES:
         if not page.exists():
             errors.append({"severity": "FAIL", "code": "missing_page", "file": page.name})
@@ -177,6 +217,14 @@ def check_pages(errors: list[dict]) -> dict:
     if "||(w?.horizons||[]).find(x=>x.hours===168)" in js_text:
         errors.append({"severity": "FAIL", "code": "probability_fallback_to_weather"})
     result["pv_dashboard.js"] = {"sha256": sha256(js) if js.exists() else None}
+    visual_js = ROOT / "assets" / "js" / "research_patterns_dashboard.js"
+    visual_text = visual_js.read_text(encoding="utf-8") if visual_js.exists() else ""
+    for token, code in (("data-pattern-dashboard", "visual_dashboard_mount"), ("research_visual_patterns_", "visual_feed_contract"), ("pattern-models", "visual_model_comparison")):
+        if token not in visual_text and code == "visual_dashboard_mount":
+            errors.append({"severity": "FAIL", "code": code})
+    if not visual_js.exists():
+        errors.append({"severity": "FAIL", "code": "visual_dashboard_script_missing"})
+    result["research_patterns_dashboard.js"] = {"sha256": sha256(visual_js) if visual_js.exists() else None}
     return result
 
 
@@ -187,10 +235,11 @@ def main() -> int:
     errors: list[dict] = []
     feeds = check_feeds(errors)
     binaries = check_binary_decisions(errors)
+    visuals = check_visual_patterns(errors)
     pages = check_pages(errors)
     status = "FAIL" if any(e["severity"] == "FAIL" for e in errors) else "DEGRADED" if errors else "PASS"
     reference = max((x.get("generated_at_utc") or "" for x in feeds.values()), default=None)
-    report = {"schema_version": 1, "status": status, "research_only": True, "checked_reference_utc": reference, "feeds": feeds, "binary_decisions": binaries, "pages": pages, "issues": errors, "publication_decision": status}
+    report = {"schema_version": 1, "status": status, "research_only": True, "checked_reference_utc": reference, "feeds": feeds, "binary_decisions": binaries, "visual_patterns": visuals, "pages": pages, "issues": errors, "publication_decision": status}
     target = Path(args.report)
     if not target.is_absolute():
         target = ROOT / target
