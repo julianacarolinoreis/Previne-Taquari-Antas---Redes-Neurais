@@ -82,7 +82,7 @@
 
   function fmtWhenWithZone(v){
     const d=parseWhen(v);
-    return d?fmtWhen(v)+' BRT':'â€”';
+    return d?fmtWhen(v)+' BRT':'—';
   }
 
   function addCacheBust(url){
@@ -578,7 +578,8 @@
     const telemetryText=telemetryFresh&&telemetryFresh.ageMinutes!==null
       ?` leitura ANA há ${nf0.format(telemetryFresh.ageMinutes)} min${telemetryFresh.stale?' · telemetria atrasada':''}`
       :'';
-    detail.textContent=`Atualização automática a cada 5 minutos.${when} (${ageText}${liveFresh.stale?' · publicação marcada como atrasada':''};${telemetryText||' idade da leitura ANA n/d'}) A leitura ANA pode ocorrer em :15/:30/:45; os inputs das RNAs usam somente base :00. O robô atual publica previsões experimentais de +2 h, +4 h e +8 h. ${longForecast?'A previsão meteorológica e o risco experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a nova RNA continuam em validação de pesquisa; não são alerta oficial.'}`;
+    const liveHorizons=state.live&&state.live.horizontes?Object.keys(state.live.horizontes).filter(k=>/^(2h|4h|8h)/.test(k)).map(k=>k.replace('_versao_b',' B').replace('_v002',' V2').replace('h',' h')).join(', '):'';
+    detail.textContent=`Atualização automática a cada 5 minutos.${when} (${ageText}${liveFresh.stale?' · publicação marcada como atrasada':''};${telemetryText||' idade da leitura ANA n/d'}) A leitura ANA pode ocorrer em :15/:30/:45; os inputs das RNAs usam somente base :00. O robô atual publica previsões experimentais de ${liveHorizons||'nenhum horizonte'}. ${longForecast?'A previsão meteorológica e o score experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a RNA continuam em validação de pesquisa; não são alerta oficial.'}`;
   }
 
   function renderResearchRisk(){
@@ -593,7 +594,7 @@
     }
     if(r.feed_type==='meteorological_forecast'){
       const horizons=(Array.isArray(r.horizons)?r.horizons:[]).slice().sort((a,b)=>Number(a.hours)-Number(b.hours));
-      const rainText=horizons.length?horizons.map(h=>`+${h.hours} h: ${h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm'}`).join(' · '):'sem acumulados disponíveis';
+      const rainText=horizons.length?horizons.map(h=>{const point=h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm';const direct=h.rain_ecmwf_direct_mm==null?'':` · ECMWF direto ${nf1.format(Number(h.rain_ecmwf_direct_mm))} mm`;return `+${h.hours} h: ponto ${point}${direct}`;}).join(' · '):'sem acumulados disponíveis';
       const weatherFresh=r._freshness||freshness(feedTimestamp(r),FRESHNESS.researchWeatherHours*60);
       const weatherStale=weatherFresh.stale;
       const experimentalRisk=!weatherStale&&horizons.some(h=>h.flood_probability!==null&&h.flood_probability!==undefined);
@@ -616,9 +617,9 @@
         const rain=h.rain_point_mm===null?'indisponível':nf1.format(Number(h.rain_point_mm))+' mm';
         const gefs=h.rain_gefs_proxy_mm===undefined?'GEFS n/d':'GEFS '+nf1.format(Number(h.rain_gefs_proxy_mm))+' mm';
         const ifs=h.rain_ifs_proxy_mm===undefined?'IFS '+rain:'IFS '+nf1.format(Number(h.rain_ifs_proxy_mm))+' mm';
-        const soil=h.soil_moisture_model_mean_m3m3===null?'solo observado n/d':'solo proxy '+nf2.format(Number(h.soil_moisture_model_mean_m3m3));
-        const p=weatherStale?'ocultado (feed atrasado)':(h.flood_probability===null||h.flood_probability===undefined?'n/d':nf2.format(Number(h.flood_probability)*100)+'/100');
-        return `<div class="rp-risk-cell"><b>+${h.hours} h</b><span>${gefs}</span><span>${ifs}</span><span>${soil}</span><span>risco experimental: ${p}</span></div>`;
+        const soil=h.soil_moisture_model_mean_m3m3===null?'solo medido n/d':'solo proxy '+nf2.format(Number(h.soil_moisture_model_mean_m3m3))+' m³/m³';
+        const p=weatherStale?'ocultado (feed atrasado)':(h.flood_probability===null||h.flood_probability===undefined?'n/d':nf2.format(Number(h.flood_probability)*100)+'%*');
+        return `<div class="rp-risk-cell"><b>+${h.hours} h</b><span>chuva GEFS proxy: ${gefs.replace('GEFS ','')}</span><span>chuva IFS proxy: ${ifs.replace('IFS ','')}</span><span>${soil}</span><span>score experimental (não calibrado): ${p}</span></div>`;
       }).join('');
       return;
     }

@@ -109,6 +109,7 @@
   @media(max-width:520px){.wrap{padding:18px 12px 38px}header{flex-wrap:wrap}.badge{margin-left:0}.grid{grid-template-columns:1fr 1fr}.events,.flow{grid-template-columns:1fr}}
   .quick-nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:7px;overflow-x:auto;margin:0 0 14px;padding:8px 10px;background:rgba(247,251,248,.96);border:1px solid #cfe1d5;border-radius:12px;box-shadow:0 4px 14px rgba(20,40,30,.08);scrollbar-width:thin}.quick-nav-label{flex:0 0 auto;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.quick-nav a{flex:0 0 auto;color:var(--brand);font-size:11px;font-weight:800;text-decoration:none;border:1px solid #b9d9ca;background:#fff;border-radius:999px;padding:6px 9px}.quick-nav a:hover,.quick-nav a:focus{background:var(--brand);color:#fff}.anchor-target{scroll-margin-top:82px}
   .research-status{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 14px}.research-status>div{background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 11px}.research-status strong{display:block;font-size:11px;line-height:1.2}.research-status span{display:block;color:var(--muted);font-size:10px;margin-top:4px}.research-status .open{border-color:#b7dec4;background:var(--good-bg)}.research-status .open strong{color:var(--good)}.research-status .off{border-color:#edcf91;background:var(--warn-bg)}.research-status .off strong{color:var(--warn)}.research-status .review{border-color:#b7d5ef;background:#f4fbff}.research-status .review strong{color:var(--blue)}
+  .table-scroll{overflow-x:auto;max-width:100%}.table-scroll table{min-width:680px}
   @media(max-width:520px){.quick-nav{margin-left:-12px;margin-right:-12px;border-radius:0;border-left:0;border-right:0}.quick-nav-label{font-size:9px}.quick-nav a{font-size:10px}.research-status{grid-template-columns:1fr}.anchor-target{scroll-margin-top:58px}}
 </style>
 <link rel="stylesheet" href="assets/css/pv_dashboard.css">
@@ -136,10 +137,11 @@
   </section>
 
   <section class="pv-dashboard anchor-target" id="painel-visual" data-pv-dashboard data-station="santa_tereza" data-threshold="1500" data-weather-feed="assets/data/research_weather_santa_tereza_latest.json" data-prob-feed="assets/data/research_probability_santa_tereza_latest.json" data-live-feed="previsao_ao_vivo.json" aria-labelledby="pv-title-santa">
-    <div class="pv-head"><div><div class="pv-kicker">Painel visual · atualização automática</div><h2 id="pv-title-santa">Como está a janela de Santa Tereza?</h2><p id="pv-summary">Carregando chuva, nível do rio e estado dos feeds…</p></div><div class="pv-head-actions"><span class="pv-feed-state" id="pv-feed-state">Carregando feeds</span><button class="pv-refresh" id="pv-refresh" type="button">Atualizar dados</button></div></div>
-    <div class="pv-switch" role="tablist" aria-label="Alternar leitura do painel"><button type="button" data-pv-mode="rain" class="active" aria-pressed="true">Chuva &amp; risco</button><button type="button" data-pv-mode="river" aria-pressed="false">Rio ao vivo</button></div>
-    <div class="pv-kpis" id="pv-kpis"><article class="pv-kpi"><span class="pv-kpi-label">Carregando</span><strong class="pv-kpi-value unknown">—</strong><span class="pv-kpi-note">buscando dados</span></article></div>
-    <div class="pv-main"><div class="pv-chart-card"><div class="pv-chart-head"><div><h3 id="pv-chart-title">Chuva acumulada por horizonte</h3><p class="pv-chart-subtitle" id="pv-chart-subtitle">Barras e detalhes serão preenchidos pelo feed.</p></div><span id="pv-chart-unit">mm</span></div><div class="pv-bars" id="pv-bars"><div class="pv-empty">Carregando série de horizontes…</div></div><p class="pv-chart-note" id="pv-chart-note">A leitura visual é uma síntese; abra os dados técnicos para auditoria.</p></div><aside class="pv-side-card"><h3>Sinais para acompanhar</h3><div id="pv-signals"><div class="pv-empty">Carregando sinais…</div></div><p class="pv-side-foot">O painel distingue volume de chuva, nível observado e estimativa experimental. Nenhum item aqui é alerta oficial.</p></aside></div>
+    <div class="pv-head"><div><div class="pv-kicker">Painel visual · atualização automática</div><h2 id="pv-title-santa">Como está a janela de Santa Tereza?</h2><p id="pv-summary" aria-live="polite">Carregando chuva, nível do rio e estado dos feeds…</p></div><div class="pv-head-actions"><span class="pv-feed-state" id="pv-feed-state">Carregando feeds</span><button class="pv-refresh" id="pv-refresh" type="button">Atualizar dados</button></div></div>
+    <div class="pv-feed-chips" id="pv-feed-chips" aria-label="Estado separado de cada fonte"></div>
+    <div class="pv-switch" role="tablist" aria-label="Alternar leitura do painel"><button type="button" role="tab" aria-controls="pv-panel-santa" aria-selected="true" data-pv-mode="rain" class="active" aria-pressed="true">Chuva &amp; risco</button><button type="button" role="tab" aria-controls="pv-panel-santa" aria-selected="false" data-pv-mode="river" aria-pressed="false">Rio ao vivo</button></div>
+    <div class="pv-kpis" id="pv-kpis" aria-live="polite"><article class="pv-kpi"><span class="pv-kpi-label">Carregando</span><strong class="pv-kpi-value unknown">—</strong><span class="pv-kpi-note">buscando dados</span></article></div>
+    <div class="pv-main" id="pv-panel-santa" role="tabpanel" aria-live="polite"><div class="pv-chart-card"><div class="pv-chart-head"><div><h3 id="pv-chart-title">Chuva acumulada por horizonte</h3><p class="pv-chart-subtitle" id="pv-chart-subtitle">Barras e detalhes serão preenchidos pelo feed.</p></div><span id="pv-chart-unit">mm</span></div><div class="pv-chart-scale" id="pv-chart-scale" aria-live="polite">Escala aguardando dados.</div><div class="pv-bars" id="pv-bars" aria-live="polite"><div class="pv-empty">Carregando série de horizontes…</div></div><p class="pv-chart-note" id="pv-chart-note">A leitura visual é uma síntese; abra os dados técnicos para auditoria.</p><details class="pv-detail"><summary>Ver valores, fonte e cobertura</summary><div class="pv-table-wrap"><table id="pv-detail-table" class="pv-detail-table"></table></div></details></div><aside class="pv-side-card"><h3>Sinais para acompanhar</h3><div id="pv-signals" aria-live="polite"><div class="pv-empty">Carregando sinais…</div></div><p class="pv-side-foot">O painel distingue chuva prevista, nível observado e score experimental. Nenhum item aqui é alerta oficial.</p></aside></div>
     <div class="pv-footer"><span id="pv-updated">Feed meteorológico: — · robô ao vivo: —</span><strong>Pesquisa · sem alerta automático</strong></div>
   </section>
 
@@ -164,9 +166,9 @@
   </section>
 
   <section class="section" aria-labelledby="probability-current-title" style="border:1px solid #efd59b;background:#fff8e8">
-    <h2 id="probability-current-title">Chance atual de transbordamento</h2>
+    <h2 id="probability-current-title">Score experimental de cruzar 1.500 cm</h2>
     <p id="current-probability-values"><strong>Carregando a rodada GEFS/NOAA…</strong></p>
-    <p id="current-probability-reading" style="margin:8px 0 0"><strong>Como ler:</strong> a porcentagem é uma estimativa experimental de 0 a 100 para superar 1.500 cm dentro do horizonte indicado; não é certeza nem alerta oficial.</p>
+    <p id="current-probability-reading" style="margin:8px 0 0"><strong>Como ler:</strong> os percentuais são estimativas de pesquisa em escala 0–100; não representam frequência real, não são previsão pontual de chuva e não são alerta oficial.</p>
     <p id="current-probability-meta" style="margin:8px 0 0;font-size:10.5px;color:var(--muted)">A idade, a emissão e a fonte da rodada serão mostradas aqui. Se a rodada estiver velha ou incompatível, o estado será UNKNOWN/STALE.</p>
     <a href="assets/data/research_probability_santa_tereza_latest.json">Ver cálculo, rodada e hashes (JSON) →</a>
   </section>
@@ -313,10 +315,12 @@
   const iso=v=>{const d=parseFeedDate(v);return Number.isFinite(d.getTime())?d.getTime():NaN};
   function renderProbability(p){
     const horizons=p&&p.horizons||{};
-    const keys=['24','48','72','120','168'].filter(k=>horizons[k]);
+    const entries=Array.isArray(horizons)?horizons.map((h,i)=>[String(h.hours??h.horizon_hours??i),h]):Object.entries(horizons);
+    const byKey=Object.fromEntries(entries);
+    const keys=['24','48','72','120','168'].filter(k=>byKey[k]);
     if(!keys.length){el('current-probability-values').innerHTML='<strong>UNKNOWN: rodada GEFS sem horizontes disponíveis.</strong>';return;}
-    const values=keys.map(k=>`<strong>${pct.format(Number(horizons[k].probability)*100)}% até ${k} h</strong>`).join(' · ');
-    el('current-probability-values').innerHTML=`<strong>Rodada GEFS/NOAA compatível:</strong> ${values}.`;
+    const values=keys.map(k=>{const h=byKey[k]||{};const v=h.flood_probability_percent??(Number(h.probability)*100);return `<strong>${pct.format(Number(v))}% até ${k} h</strong>`;}).join(' · ');
+    el('current-probability-values').innerHTML=`<strong>Score experimental da rodada GEFS/NOAA:</strong> ${values}.`;
     const generated=iso(p&&p.generated_at_utc), age=Number.isFinite(generated)?Math.max(0,(Date.now()-generated)/3600000):NaN;
     const stale=!Number.isFinite(age)||age>36;
     if(stale){
@@ -325,7 +329,7 @@
       el('current-probability-meta').textContent=`Fonte: ${p.forecast_source||'GEFS/NOAA'} · emissão: ${time(p.forecast_run_time_utc)} · disponível: ${time(p.forecast_available_at_utc)} · decisão: ${time(p.decision_time_utc)} · arquivo gerado: ${time(p.generated_at_utc)} · idade aproximada: ${Number.isFinite(age)?pct.format(age)+' h':'—'} · estado: UNKNOWN/STALE.`;
       return;
     }
-    el('current-probability-reading').innerHTML=stale?'<strong>Como ler:</strong> os percentuais abaixo são uma estimativa experimental da rodada arquivada, mas a rodada está <strong>STALE</strong> para representar o momento atual. Não usar como alerta.':'<strong>Como ler:</strong> a porcentagem é uma estimativa experimental de 0 a 100 para superar 1.500 cm dentro do horizonte indicado; não é certeza nem alerta oficial.';
+    el('current-probability-reading').innerHTML=stale?'<strong>Como ler:</strong> os valores abaixo são um score experimental arquivado, mas a rodada está <strong>STALE</strong> para representar o momento atual. Não usar como chance real ou alerta.':'<strong>Como ler:</strong> os valores são um score experimental em escala 0–100 para o horizonte indicado. Não são frequência real, previsão pontual de chuva nem alerta oficial.';
     el('current-probability-meta').textContent=`Fonte: ${p.forecast_source||'GEFS/NOAA'} · emissão: ${time(p.forecast_run_time_utc)} · disponível: ${time(p.forecast_available_at_utc)} · decisão: ${time(p.decision_time_utc)} · arquivo gerado: ${time(p.generated_at_utc)} · idade aproximada: ${Number.isFinite(age)?pct.format(age)+' h':'—'} · estado: ${stale?'UNKNOWN/STALE':'pesquisa-only'}.`;
   }
   function renderShort(live){

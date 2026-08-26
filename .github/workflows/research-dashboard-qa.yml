@@ -1,0 +1,75 @@
+name: QA automatizada da pesquisa
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'pesquisa_status.html'
+      - 'pesquisa_status_mucum.html'
+      - 'assets/js/pv_dashboard.js'
+      - 'assets/css/pv_dashboard.css'
+      - 'assets/data/research_*_latest.json'
+      - 'scripts/validate_research_dashboard.py'
+  schedule:
+    - cron: '43 */6 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: previne-main-publisher
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Configura Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Valida contratos da dashboard
+        id: qa
+        run: |
+          python -B scripts/validate_research_dashboard.py --report assets/data/research_dashboard_validation_latest.json | tee qa.txt
+          cat qa.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publica o resultado da QA
+        if: success()
+        shell: bash
+        run: |
+          git config user.name 'previne-qa-bot'
+          git config user.email 'previne-qa-bot@users.noreply.github.com'
+          git add -- assets/data/research_dashboard_validation_latest.json
+          if git diff --cached --quiet; then
+            echo 'Nenhuma mudança no relatório de QA.'
+            exit 0
+          fi
+          git commit -m 'bot: atualiza QA da pesquisa [skip ci]'
+          for attempt in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "push ocupado; tentando novamente (${attempt}/5)"
+            sleep $((attempt * 2))
+          done
+          exit 1
+
+      - name: Guarda o relatório mesmo em falha
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-dashboard-qa
+          path: |
+            assets/data/research_dashboard_validation_latest.json
+            qa.txt
+          retention-days: 14

@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: mucum-weather-feed
+  group: previne-main-publisher
   cancel-in-progress: false
 
 jobs:
@@ -37,12 +37,15 @@ jobs:
       - name: Gera somente o feed meteorológico
         run: python -B scripts/build_mucum_weather_feed.py
 
+      - name: Valida a dashboard sem rede
+        run: python -B scripts/validate_research_dashboard.py --report assets/data/research_dashboard_validation_latest.json
+
       - name: Publica somente o feed meteorológico
         shell: bash
         run: |
           git config user.name 'previne-weather-bot'
           git config user.email 'previne-weather-bot@users.noreply.github.com'
-          git add -- assets/data/research_weather_mucum_latest.json
+          git add -- assets/data/research_weather_mucum_latest.json assets/data/research_dashboard_validation_latest.json
           if git diff --cached --quiet; then
             echo 'Nenhuma mudança no feed.'
             exit 0

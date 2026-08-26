@@ -126,7 +126,7 @@
   .live-hz{display:none;gap:6px;margin:-2px 0 10px;flex-wrap:wrap}
   .live-hz button{flex:1 1 72px;border:1px solid #f3c0b8;background:#fff;color:#a5281c;border-radius:9px;padding:7px 8px;font-size:12px;font-weight:750;cursor:pointer}
   .live-hz button.on{background:#a5281c;color:#fff;border-color:#a5281c}
-  body.live #scn, body.live .tl, body.live #live-btn{display:none}
+  body.live #scn, body.live .tl{display:none}
   body.live .live-hz{display:flex}
   body.live .simple-only{display:block}
   .hydro{margin-top:4px}
@@ -156,12 +156,12 @@
 <main>
   <div id="map" role="application" aria-label="Mapa interativo de previsão de inundação em Muçum" aria-describedby="map-accessible-description"><span class="sr-only" id="map-accessible-description">Use os controles de camadas para alternar imagem de satélite, ruas, rótulos e estações. A mancha colorida representa somente água estimada fora do leito; ela é um proxy de pesquisa.</span></div>
   <aside>
-    <button class="live-btn" id="live-btn">🔴 Ver previsão AO VIVO (teste interno · 2h e 4h)</button>
+    <button class="live-btn" id="live-btn" type="button" aria-pressed="false">🔴 Ativar previsão ao vivo · Muçum · 2 h e 4 h</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
-      <button data-live-hz="2h" class="on">2h</button>
-      <button data-live-hz="4h">4h</button>
+      <button type="button" data-live-hz="2h" class="on" aria-pressed="true">2 h</button>
+      <button type="button" data-live-hz="4h" aria-pressed="false">4 h</button>
     </div>
 
     <!-- ===== LINHA DO TEMPO (compartilhada) ===== -->
@@ -301,10 +301,10 @@
       <div class="rp-grid" aria-label="Resumo da previsão de Muçum">
         <div class="rp-stat"><b>86510000</b><span>estação Muçum</span></div>
         <div class="rp-stat"><b>1.800 cm</b><span>cota oficial de inundação</span></div>
-        <div class="rp-stat"><b>24–168 h</b><span>horizontes de chuva IFS</span></div>
-        <div class="rp-stat"><b>n/d</b><span>risco de inundação longo</span></div>
+        <div class="rp-stat"><b>24–168 h</b><span>chuva prevista no ponto (IFS)</span></div>
+        <div class="rp-stat"><b>experimental</b><span>score de pesquisa, não calibrado</span></div>
       </div>
-      <div class="rp-meta"><strong>Observação:</strong> robô ao vivo de nível e +2 h/+4 h. <strong>Chuva:</strong> previsão prospectiva ECMWF IFS no ponto da estação. <strong>Solo:</strong> umidade modelada, não medição local de saturação. <strong>Resposta:</strong> sem modelo Muçum 24–168 h validado, o estado é <strong>indisponível</strong>, nunca “não vai inundar”.</div>
+      <div class="rp-meta"><strong>Observação:</strong> robô ANA 86510000 e previsão pontual de nível +2 h/+4 h. <strong>Chuva:</strong> ECMWF IFS no ponto de Muçum; proxies GEFS/IFS da célula aparecem apenas como comparação. <strong>Solo:</strong> proxy modelado em m³/m³, não medição local de saturação. <strong>Score:</strong> estimativa experimental em escala 0–100, não chance real nem alerta.</div>
       <div class="rp-quality" aria-label="Qualidade e disponibilidade das fontes">
         <div class="rp-quality-item"><b>Observação do rio</b><span>robô ANA 86510000</span><em>monitorada</em></div>
         <div class="rp-quality-item"><b>Chuva prevista</b><span>ECMWF IFS prospectivo</span><em>atualização horária</em></div>
@@ -717,7 +717,7 @@ function updateLiveHzButtons(){
     // automaticamente uma conclusão de normalidade.
     const ok=!!D && D.disponivel!==false;
     b.style.display=ok?'':'none';
-    b.classList.toggle('on',b.dataset.liveHz===liveHz);
+    const active=b.dataset.liveHz===liveHz;b.classList.toggle('on',active);b.setAttribute('aria-pressed',active?'true':'false');
   });
 }
 function prepareLiveData(d){
@@ -937,7 +937,7 @@ function renderLiveStep(){
 async function enterLive(){
   let d; try{ d=await fetchLiveJson(); }
   catch(e){ document.getElementById('live-note').style.display=''; document.getElementById('live-note').textContent='Não consegui carregar a previsão ao vivo ('+e.message+'). No site publicado, o robô agendado preenche esse arquivo.'; return; }
-  liveData=d; prepareLiveData(liveData); updateTelemetryMarkers(liveData); if(window.PREVINE_PANORAMA)PREVINE_PANORAMA.update(liveData); liveMode=true; document.body.classList.add('live'); liveIdx=0;
+  liveData=d; prepareLiveData(liveData); updateTelemetryMarkers(liveData); if(window.PREVINE_PANORAMA)PREVINE_PANORAMA.update(liveData); liveMode=true; document.body.classList.add('live'); liveIdx=0; const toggle=document.getElementById('live-btn'); if(toggle){toggle.textContent='⏹ Desativar previsão ao vivo · voltar ao histórico';toggle.setAttribute('aria-pressed','true');}
   document.getElementById('live-bar').style.display='';
   document.getElementById('live-hz').style.display='flex';
   const note=document.getElementById('live-note'); note.style.display=''; note.textContent=d.aviso||'EXPERIMENTAL — não é alerta oficial.';
@@ -952,9 +952,11 @@ async function enterLive(){
     liveTimer=setInterval(async()=>{ try{const j=await fetchLiveJson(); liveData=j; if(semHorizontes(j)) liveData.passos=[[j.gerado_em,liveNowCm(j),j.nivel_previsto_cm]]; prepareLiveData(liveData); updateTelemetryMarkers(liveData); if(window.PREVINE_PANORAMA)PREVINE_PANORAMA.update(liveData); liveIdx=0; renderLiveStep();}catch(e){} }, 60000);
   }
 }
-function exitLive(){ liveMode=false; clearInterval(liveTimer); document.body.classList.remove('live');
+function exitLive(){ liveMode=false; clearInterval(liveTimer); liveTimer=null; document.body.classList.remove('live');
   document.getElementById('live-bar').style.display='none'; document.getElementById('live-note').style.display='none';
   document.getElementById('live-hz').style.display='none';
+  if(window.PREVINE_PANORAMA)PREVINE_PANORAMA.update(null);
+  const toggle=document.getElementById('live-btn'); if(toggle){toggle.textContent='🔴 Ativar previsão ao vivo · Muçum · 2 h e 4 h';toggle.setAttribute('aria-pressed','false');}
   delete EVENTS['__live__']; setEvent(Object.keys(EVENTS)[0]); }
 
 function buildScenarios(){
@@ -986,8 +988,8 @@ async function init(){
   document.getElementById('hydro').addEventListener('click',e=>{const E=EVENTS[curEv]; if(E.series.length<2)return;
     const r=e.currentTarget.getBoundingClientRect(), sx=(e.clientX-r.left)/r.width*320;
     let i=Math.round((sx-6)/(320-12)*(E.series.length-1)); i=Math.max(0,Math.min(E.series.length-1,i)); tIdx=i; document.getElementById('time').value=i; renderFrame();});
-  document.querySelectorAll('.method .step').forEach(s=>s.onclick=()=>set('method-exp',s.dataset.exp));
-  document.getElementById('live-btn').onclick=enterLive;
+  document.querySelectorAll('.method .step').forEach(s=>{s.setAttribute('tabindex','0');s.setAttribute('role','button');const open=()=>set('method-exp',s.dataset.exp);s.onclick=open;s.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}}});
+  document.getElementById('live-btn').onclick=()=>liveMode?exitLive():enterLive();
   document.querySelectorAll('[data-live-hz]').forEach(b=>b.onclick=()=>setLiveHorizon(b.dataset.liveHz));
 
   await Promise.all([loadHand(), loadContornos(), loadElevation()]);

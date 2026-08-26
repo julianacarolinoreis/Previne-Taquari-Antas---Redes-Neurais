@@ -23,6 +23,13 @@ from scipy.io import loadmat
 
 BRT = dt.timezone(dt.timedelta(hours=-3))
 def agora_brt(): return dt.datetime.now(BRT).replace(tzinfo=None)
+def iso_utc(value):
+    """Serializa um horário interno BRT-naive como RFC3339 UTC com Z."""
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=BRT)
+    return value.astimezone(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 INPUTS_JSON = os.path.join(RAIZ, "assets", "data", "mucum_modelo_inputs.json")
@@ -267,10 +274,15 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_ba
     out = {
         "modo": "ao_vivo",
         "gerado_em": (t.isoformat() if t else consultado.isoformat()),
+        "gerado_em_utc": iso_utc(t or consultado),
         "hora_modelo": (t.isoformat() if t else None),
+        "hora_modelo_utc": iso_utc(t),
         "hora_alvo": hora_alvo,
+        "hora_alvo_utc": iso_utc(t + dt.timedelta(hours=cfg["horizonte_h"]) if t else None),
         "consultado_em": consultado.isoformat(timespec="seconds"),
+        "consultado_em_utc": iso_utc(consultado),
         "telemetria_ultima_em": (raw[0].isoformat() if raw else None),
+        "telemetria_ultima_em_utc": iso_utc(raw[0] if raw else None),
         "telemetria_ultima_nivel_cm": (round(raw[1]) if raw else None),
         "idade_telemetria_min": idade,
         "status_dados": (None if idade is None else ("telemetria recente" if idade <= 30 else f"telemetria atrasada ({idade} min)")),
@@ -282,6 +294,7 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_ba
         "nivel_base_cm": (round(nivel_base) if nivel_base is not None else None),
         "nivel_rio_agora_cm": nivel_raw_cm,
         "nivel_rio_agora_em": (raw[0].isoformat() if raw else (t.isoformat() if t else None)),
+        "nivel_rio_agora_em_utc": iso_utc(raw[0] if raw else (t if t else None)),
         "nivel_atual_cm": (round(nivel_raw_cm) if nivel_raw_cm is not None else (round(nivel_agora) if nivel_agora is not None else None)),
         "nivel_previsto_cm": (round(nivel_prev) if nivel_prev is not None else None),
         "inputs_total": cfg["n_inputs"], "inputs_faltantes_n": len(faltantes or []),
@@ -348,12 +361,15 @@ def upsert_previsao_historico(registros, saida):
         "tipo": saida.get("tipo"),
         "modelo": saida["modelo"],
         "hora_modelo": saida["hora_modelo"],
+        "hora_modelo_utc": saida.get("hora_modelo_utc"),
         "hora_alvo": saida["hora_alvo"],
+        "hora_alvo_utc": saida.get("hora_alvo_utc"),
         "nivel_modelo_cm": saida.get("nivel_modelo_cm"),
         "nivel_rio_agora_cm": saida.get("nivel_rio_agora_cm"),
         "nivel_previsto_cm": saida.get("nivel_previsto_cm"),
         "status_auditoria": "aguardando",
         "criado_em": saida.get("consultado_em"),
+        "criado_em_utc": saida.get("consultado_em_utc"),
     }
     for i, reg in enumerate(registros):
         if reg.get("id") == chave:

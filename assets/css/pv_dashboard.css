@@ -5,3 +5,17 @@
 @media(prefers-reduced-motion:reduce){.pv-bar-fill,.pv-tooltip{transition:none}}
 /* The forecast feed has six horizons (including +96 h); keep all bars in one row. */
 .pv-bars{grid-template-columns:repeat(6,minmax(0,1fr))}
+
+/* Estado por fonte, escala explícita e tabela acessível do painel. */
+.pv-feed-state.fresh{color:#176b46;border-color:#c9ded1;background:#fff}
+.pv-feed-state.stale{color:#8a5a12;border-color:#edcf91;background:#fffaf0}
+.pv-feed-state.unknown{color:#6a6072;border-color:#d8cde5;background:#fbf9ff}
+.pv-feed-state.unknown:before{background:#8b769b;box-shadow:0 0 0 3px #eee8f4}
+.pv-feed-chips{display:flex;gap:6px;flex-wrap:wrap;padding:7px 20px 0}
+.pv-feed-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #dce8df;background:#fff;border-radius:999px;padding:4px 7px;font-size:9px;color:#5c6c63}
+.pv-feed-chip b{font-weight:800;color:#294a3b}.pv-feed-chip.stale{border-color:#edcf91;background:#fffaf0;color:#8a5a12}.pv-feed-chip.unknown{border-color:#d8cde5;background:#fbf9ff;color:#6a6072}
+.pv-chart-scale{margin-top:8px;padding:5px 7px;border-radius:7px;background:#f6faf7;color:#5a6d62;font-size:9px}
+.pv-bar-col:focus-visible{outline:3px solid #b7d5ef;outline-offset:2px}
+.pv-detail{margin-top:9px;border-top:1px solid #e3ece5;padding-top:7px}.pv-detail summary{color:#176b46;font-size:10px;font-weight:800;cursor:pointer}
+.pv-table-wrap{overflow-x:auto;margin-top:6px}.pv-detail-table{width:100%;border-collapse:collapse;min-width:520px;font-size:9px}.pv-detail-table th,.pv-detail-table td{text-align:left;padding:5px 6px;border-bottom:1px solid #e5eee7;vertical-align:top}.pv-detail-table th{color:#64766b;text-transform:uppercase;font-size:8px;letter-spacing:.04em}
+@media(max-width:520px){.pv-feed-chips{padding-left:13px;padding-right:13px}.pv-kpis{grid-template-columns:1fr 1fr}.pv-detail-table{min-width:500px}}
