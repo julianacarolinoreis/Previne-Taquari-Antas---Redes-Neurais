@@ -484,13 +484,6 @@
       items.forEach(p=>{
         const x=X(p.time.getTime()),y=Y(p.cm);
         const style=forecastStyle(p.hours);
-        if(p.baseTime&&Number.isFinite(p.baseCm)){
-          const px=X(p.baseTime.getTime()),py=Y(p.baseCm);
-          const baseMark=svgNode('circle',{cx:px,cy:py,r:3.2,fill:style.color,stroke:'var(--panel, #fff)','stroke-width':1.5});
-          baseMark.appendChild(svgNode('title',{},`Base da previsão +${p.hours} h: ${fmtLevel(p.baseCm)} em ${fmtWhen(p.baseTime)}`));
-          svg.appendChild(svgNode('line',{x1:px,y1:py,x2:x,y2:y,fill:'none',stroke:style.color,'stroke-width':3,'stroke-dasharray':style.dash,'stroke-linecap':'round'}));
-          svg.appendChild(baseMark);
-        }
         svg.appendChild(forecastMark(p,x,y,style.color));
         labels.push({x,y,color:style.color,text:`+${p.hours} h · ${fmtLevel(p.cm)}`});
       });
@@ -499,10 +492,10 @@
     labels.forEach((entry,index)=>drawPointLabel(svg,entry,index,occupied,{left:m.l,right:W-m.r,top:m.t,bottom:H-m.b}));
   }
 
-  function legendEntry(label,className){
+  function legendEntry(label,className,kind='line'){
     const span=document.createElement('span');
     const swatch=document.createElement('i');
-    swatch.className='legend-line '+className;
+    swatch.className=(kind==='point'?'legend-point ':'legend-line ')+className;
     span.append(swatch,document.createTextNode(label));
     return span;
   }
@@ -512,7 +505,7 @@
     if(!box) return;
     box.replaceChildren(legendEntry('Nível observado','observed'));
     if(hasPrevious) box.appendChild(legendEntry('O que a RNA previu antes','previous'));
-    items.forEach(point=>box.appendChild(legendEntry(`Previsão +${point.hours} h`,`forecast horizon-${point.hours}`)));
+    items.forEach(point=>box.appendChild(legendEntry(`Previsão +${point.hours} h`,`forecast horizon-${point.hours}`,'point')));
     box.appendChild(legendEntry('Cota oficial, quando próxima da escala','threshold'));
   }
 

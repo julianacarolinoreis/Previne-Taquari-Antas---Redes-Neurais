@@ -114,12 +114,14 @@ def validar_componente_panorama() -> None:
         "maxGapMs=90*60*1000",
         "placePointLabel",
         "baseTime",
-        "Base da previsão",
+        "forecastMark(p,x,y,style.color)",
+        "legend-point",
         "renderWeekCoverage",
         "ResizeObserver",
     ):
         assert token in js, f"JS: falta proteção/componente {token}"
     assert "let previous=anchor" not in js, "JS: horizontes ainda estão encadeados apesar de terem bases distintas"
+    assert "x1:px,y1:py,x2:x,y2:y" not in js, "JS: previsão ainda tem linha colorida entre base e ponto final"
     assert "Nível do rio observado nas últimas 24 horas e previsões ativas da rede neural." not in js, "JS: tooltip global antigo ainda cobre o gráfico"
     print("OK componente: cores por horizonte, rótulos sem colisão e janela semanal")
 
