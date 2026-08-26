@@ -613,10 +613,8 @@ def _D(series, cod, t, h):
 
 def _acel_offsets_excel(cod, h):
     """Retorna os quatro offsets usados pela planilha-base para uma aceleração."""
-    # Exceção deliberada do Excel do 2h: Acel-20h compara a variação atual
-    # com a variação entre t-19h e t-20h (lag de uma hora), não t-20h/t-21h.
-    if cod == "86472000" and h == 20:
-        return (0, 1, 19, 20)
+    # A-20h da planilha-base usa a janela t-20h/t-21h, assim como a regra
+    # geral: [N(t)-N(t-1h)] - [N(t-h)-N(t-(h+1)h)].
     return (0, 1, h, h + 1)
 
 def _A_curv(series, cod, t, h):
@@ -660,7 +658,7 @@ def montar_inputs(series, t):
         D("86472000", 2),      # inp12 Linha Jose Julio / Antas D-2h
         D("86472000", 5),      # inp13 Linha Jose Julio / Antas D-5h
         A("86472000", 12),     # inp14 Linha Jose Julio / Antas A-12h
-        A("86472000", 20),     # inp15 LJ A-20h; Excel: janela t-19h/t-20h
+        A("86472000", 20),     # inp15 LJ A-20h; Excel: janela t-20h/t-21h
     ]
     return inputs, st0
 
@@ -948,7 +946,7 @@ def auditoria_inputs_2h(series, t, valores=None, grade=None):
     out["definicao_diferenca"] = "D_h(t) = N(t) - N(t-h)"
     out["definicao_aceleracao"] = {
         "padrao": "A_h(t) = [N(t)-N(t-1h)] - [N(t-h)-N(t-(h+1)h)]",
-        "excecao_excel_input_15": "A-20h LJ = [N(t)-N(t-1h)] - [N(t-19h)-N(t-20h)]",
+        "input_15_excel": "A-20h LJ = [N(t)-N(t-1h)] - [N(t-20h)-N(t-21h)]",
         "fonte": "modelo_2h_novo.xlsx / DADOS_FORM",
     }
     out["input_grade"] = grade or "hourly_exact"
@@ -1172,7 +1170,7 @@ def diagnosticar_inputs_faltantes(series, t, inputs):
         ("inp12", "Linha Jose Julio / Rio das Antas - nivel D-2h", "86472000", [0, 2]),
         ("inp13", "Linha Jose Julio / Rio das Antas - nivel D-5h", "86472000", [0, 5]),
         ("inp14", "Linha Jose Julio / Rio das Antas - aceleracao A-12h", "86472000", [0, 1, 12, 13]),
-        ("inp15", "Linha Jose Julio / Rio das Antas - aceleracao A-20h (regra Excel: t-19h/t-20h)", "86472000", list(_acel_offsets_excel("86472000", 20))),
+        ("inp15", "Linha Jose Julio / Rio das Antas - aceleracao A-20h (regra Excel: t-20h/t-21h)", "86472000", list(_acel_offsets_excel("86472000", 20))),
     ]
     faltantes = []
     for valor, (codigo_input, descricao, cod_estacao, atrasos) in zip(inputs, especificacoes):
