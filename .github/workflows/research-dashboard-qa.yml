@@ -10,6 +10,7 @@ on:
       - 'assets/js/pv_dashboard.js'
       - 'assets/css/pv_dashboard.css'
       - 'assets/data/research_*_latest.json'
+      - 'scripts/build_binary_research_decision.py'
       - 'scripts/validate_research_dashboard.py'
       - '.github/workflows/research-dashboard-qa.yml'
   schedule:
@@ -41,6 +42,9 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Gera respostas binárias da pesquisa
+        run: python -B scripts/build_binary_research_decision.py
+
       - name: Valida contratos da dashboard
         id: qa
         run: |
@@ -53,7 +57,7 @@ jobs:
         run: |
           git config user.name 'previne-qa-bot'
           git config user.email 'previne-qa-bot@users.noreply.github.com'
-          git add -- assets/data/research_dashboard_validation_latest.json
+          git add -- assets/data/research_dashboard_validation_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json
           if git diff --cached --quiet; then
             echo 'Nenhuma mudança no relatório de QA.'
             exit 0

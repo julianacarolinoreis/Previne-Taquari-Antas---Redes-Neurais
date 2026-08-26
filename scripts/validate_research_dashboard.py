@@ -21,6 +21,10 @@ ROOT = Path(__file__).resolve().parents[1]
 REPORT = ROOT / "assets" / "data" / "research_dashboard_validation_latest.json"
 WEATHER = ROOT / "assets" / "data" / "research_weather_mucum_latest.json"
 PROBABILITY = ROOT / "assets" / "data" / "research_probability_mucum_latest.json"
+BINARIES = {
+    "mucum": ROOT / "assets" / "data" / "research_binary_decision_mucum_latest.json",
+    "santa_tereza": ROOT / "assets" / "data" / "research_binary_decision_santa_tereza_latest.json",
+}
 PAGES = (ROOT / "pesquisa_status.html", ROOT / "pesquisa_status_mucum.html")
 REQUIRED_HORIZONS = (24, 48, 72, 120, 168)
 
@@ -118,9 +122,39 @@ def check_feeds(errors: list[dict]) -> dict:
     }
 
 
+def check_binary_decisions(errors: list[dict]) -> dict:
+    result: dict[str, dict] = {}
+    for name, path in BINARIES.items():
+        feed = load_json(path, errors) or {}
+        rule = feed.get("decision_rule") or {}
+        decisions = feed.get("decisions")
+        evaluation = feed.get("evaluation") or {}
+        hours = [int(item.get("hours")) for item in decisions if isinstance(item, dict) and item.get("hours") is not None] if isinstance(decisions, list) else []
+        if hours != list(REQUIRED_HORIZONS):
+            errors.append({"severity": "FAIL", "code": "binary_horizons", "location": name, "detail": hours})
+        if rule.get("probability_threshold_percent") != 50.0:
+            errors.append({"severity": "FAIL", "code": "binary_threshold", "location": name, "detail": rule})
+        if feed.get("research_only") is not True or feed.get("official_alert") is not False:
+            errors.append({"severity": "FAIL", "code": "binary_scope", "location": name})
+        if not isinstance(evaluation.get("model_verdict"), str):
+            errors.append({"severity": "FAIL", "code": "binary_evaluation_missing", "location": name})
+        for item in decisions if isinstance(decisions, list) else []:
+            if item.get("decision") not in ("VAI", "NAO_VAI", None):
+                errors.append({"severity": "FAIL", "code": "binary_decision_value", "location": name, "detail": item})
+        result[name] = {
+            "generated_at_utc": feed.get("generated_at_utc"),
+            "sha256": sha256(path) if path.exists() else None,
+            "horizons": hours,
+            "threshold_percent": rule.get("probability_threshold_percent"),
+            "model_verdict": evaluation.get("model_verdict"),
+            "source_state": (feed.get("source") or {}).get("source_state"),
+        }
+    return result
+
+
 def check_pages(errors: list[dict]) -> dict:
     result = {}
-    required_tokens = ("data-pv-dashboard", "pv-feed-chips", "pv-chart-scale", "pv-detail-table", 'role="tab"', "aria-selected")
+    required_tokens = ("data-pv-dashboard", "pv-feed-chips", "pv-chart-scale", "pv-detail-table", 'role="tab"', "aria-selected", "resultado-binario", "research_binary_decision_")
     for page in PAGES:
         if not page.exists():
             errors.append({"severity": "FAIL", "code": "missing_page", "file": page.name})
@@ -152,10 +186,11 @@ def main() -> int:
     args = parser.parse_args()
     errors: list[dict] = []
     feeds = check_feeds(errors)
+    binaries = check_binary_decisions(errors)
     pages = check_pages(errors)
     status = "FAIL" if any(e["severity"] == "FAIL" for e in errors) else "DEGRADED" if errors else "PASS"
     reference = max((x.get("generated_at_utc") or "" for x in feeds.values()), default=None)
-    report = {"schema_version": 1, "status": status, "research_only": True, "checked_reference_utc": reference, "feeds": feeds, "pages": pages, "issues": errors, "publication_decision": status}
+    report = {"schema_version": 1, "status": status, "research_only": True, "checked_reference_utc": reference, "feeds": feeds, "binary_decisions": binaries, "pages": pages, "issues": errors, "publication_decision": status}
     target = Path(args.report)
     if not target.is_absolute():
         target = ROOT / target

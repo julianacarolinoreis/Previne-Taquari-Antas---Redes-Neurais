@@ -173,6 +173,15 @@
     <a href="assets/data/research_probability_santa_tereza_latest.json">Ver cálculo, rodada e hashes (JSON) →</a>
   </section>
 
+  <section class="section binary-research" id="resultado-binario" aria-labelledby="binary-title-santa">
+    <h2 id="binary-title-santa">Resposta da pesquisa: vai ou não vai?</h2>
+    <p class="binary-rule">Regra explícita do estudo: <strong>VAI</strong> quando a estimativa atinge 50% ou mais; abaixo disso, <strong>NÃO VAI</strong>. É uma resposta binária de pesquisa por horizonte, não um alerta oficial.</p>
+    <div id="binary-current" class="binary-grid" aria-live="polite"><div class="binary-card unknown"><b>Carregando</b><span>resultado binário</span></div></div>
+    <p id="binary-source" class="binary-source">Carregando fonte e idade da rodada…</p>
+    <div id="binary-evaluation" class="binary-evaluation" aria-live="polite"><h3>O modelo funciona?</h3><p>Carregando avaliação retrospectiva…</p></div>
+    <div class="source-list"><a href="assets/data/research_binary_decision_santa_tereza_latest.json">Abrir decisão binária e avaliação (JSON) →</a></div>
+  </section>
+
   <section class="weather-panel" aria-labelledby="weather-title">
     <h2 id="weather-title">Robô meteorológico · rodada atual</h2>
     <p id="weather-meta">Carregando IFS, ANA, chuva antecedente e score experimental…</p>
@@ -332,6 +341,24 @@
     el('current-probability-reading').innerHTML=stale?'<strong>Como ler:</strong> os valores abaixo são um score experimental arquivado, mas a rodada está <strong>STALE</strong> para representar o momento atual. Não usar como chance real ou alerta.':'<strong>Como ler:</strong> os valores são um score experimental em escala 0–100 para o horizonte indicado. Não são frequência real, previsão pontual de chuva nem alerta oficial.';
     el('current-probability-meta').textContent=`Fonte: ${p.forecast_source||'GEFS/NOAA'} · emissão: ${time(p.forecast_run_time_utc)} · disponível: ${time(p.forecast_available_at_utc)} · decisão: ${time(p.decision_time_utc)} · arquivo gerado: ${time(p.generated_at_utc)} · idade aproximada: ${Number.isFinite(age)?pct.format(age)+' h':'—'} · estado: ${stale?'UNKNOWN/STALE':'pesquisa-only'}.`;
   }
+  function renderBinary(binary){
+    const decisions=Array.isArray(binary&&binary.decisions)?binary.decisions:[];
+    if(!decisions.length){el('binary-current').innerHTML='<div class="binary-card unknown"><b>UNKNOWN</b><span>sem decisão binária</span><small>feed sem horizontes</small></div>';el('binary-source').textContent='Não foi possível carregar a rodada binária.';return;}
+    el('binary-current').innerHTML=decisions.map(d=>{
+      const decision=d.decision==='VAI'?'VAI':d.decision==='NAO_VAI'?'NAO_VAI':'UNKNOWN';
+      const cls=decision==='VAI'?'vai':decision==='NAO_VAI'?'nao':'unknown';
+      const label=decision==='VAI'?'VAI: indica transbordamento':decision==='NAO_VAI'?'NÃO VAI: não indica transbordamento':'UNKNOWN: sem decisão';
+      const prob=d.probability_percent==null?'—':pct.format(d.probability_percent)+'%';
+      return `<div class="binary-card ${cls}"><b>${label}</b><span>até ${d.hours} h</span><small>estimativa usada: ${prob} · corte: 50%</small></div>`;
+    }).join('');
+    const source=binary.source||{};const age=Number(source.source_age_hours_at_generation);const state=source.source_state||'—';
+    el('binary-source').textContent=`Rodada de probabilidade gerada em ${time(source.source_generated_at_utc)} · fonte: ${source.forecast_source||'—'} · idade no cálculo binário: ${Number.isFinite(age)?pct.format(age)+' h':'—'} · estado da fonte: ${state} · calibração: ${source.calibration_status||'—'}.`;
+    const ev=binary.evaluation||{};const verdict=ev.model_verdict||'SEM_AVALIACAO';const bad=verdict==='NAO_FUNCIONA_DE_FORMA_CONFIAVEL';const partial=verdict!=='SEM_AVALIACAO'&&!bad;const box=el('binary-evaluation');box.className=`binary-evaluation ${bad?'bad':partial?'partial':''}`;
+    const title=bad?'O modelo funciona? Não de forma confiável ainda.':verdict==='SEM_AVALIACAO'?'O modelo funciona? Ainda sem avaliação suficiente.':'O modelo funciona? Sinal parcial; precisa de validação.';
+    const rows=Array.isArray(ev.by_horizon)?ev.by_horizon:[];
+    const table=rows.length?`<table><thead><tr><th>Horizonte</th><th>Detecção / recall</th><th>Sensibilidade</th><th>Leitura</th></tr></thead><tbody>${rows.map(r=>{const detected=r.detected_at_score_0_5==null?(r.sensitivity_percent==null?'—':pct.format(r.sensitivity_percent)+'% recall'):`${r.detected_at_score_0_5}/${r.held_out_events}`;return `<tr><td>${r.hours} h</td><td>${detected}</td><td>${r.sensitivity_percent==null?'—':pct.format(r.sensitivity_percent)+'%'}</td><td>${r.result||'—'}</td></tr>`}).join('')}</tbody></table>`:'';
+    box.innerHTML=`<h3>${title}</h3><p>O teste retrospectivo usa eventos positivos separados por episódio. A sensibilidade/recall mostra quantos eventos conhecidos o modelo encontrou. ${ev.false_positive_metrics||'Não há métricas de controle falso publicadas para esta rodada.'}</p>${table}`;
+  }
   function renderShort(live){
     const hs=live&&live.horizontes||{};
     const keys=['2h','2h_versao_b','4h'].filter(k=>hs[k]);
@@ -361,14 +388,15 @@
   Promise.all([
     fetch('previsao_ao_vivo.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch('historico_previsoes_ao_vivo.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
-    fetch('assets/data/research_probability_santa_tereza_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)
-  ]).then(([live,history,prob])=>{
-    renderShort(live);renderProbability(prob);
+    fetch('assets/data/research_probability_santa_tereza_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch('assets/data/research_binary_decision_santa_tereza_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)
+  ]).then(([live,history,prob,binary])=>{
+    renderShort(live);renderProbability(prob);renderBinary(binary);
     const rawRecords=Array.isArray(history&&history.registros)?history.registros:[];
     const records=rawRecords.filter(x=>!isLegacyCascade(x));
     el('short-charts').innerHTML=chartFor(records,'2h')+chartFor(records,'4h');
     el('short-chart-meta').innerHTML=records.length?`<span class="blue">observado</span> · <span class="orange">RNA principal</span> · <span class="purple">versão B sombra</span> · histórico carregado: ${records.length} registros${rawRecords.length-records.length?' (legado 4h_cascata excluído)':''}; somente alvos conferidos na janela móvel de 24 h.`:'Histórico de previsões indisponível.';
-  }).catch(()=>{el('short-grid').innerHTML='<div class="short-card"><b>UNKNOWN</b><span>dados indisponíveis</span></div>';el('short-charts').innerHTML='<div class="short-chart-card"><h3>Histórico indisponível</h3></div>';el('current-probability-values').innerHTML='<strong>UNKNOWN: feed experimental indisponível.</strong>';});
+  }).catch(()=>{el('short-grid').innerHTML='<div class="short-card"><b>UNKNOWN</b><span>dados indisponíveis</span></div>';el('short-charts').innerHTML='<div class="short-chart-card"><h3>Histórico indisponível</h3></div>';el('binary-current').innerHTML='<div class="binary-card unknown"><b>UNKNOWN</b><span>dados indisponíveis</span><small>sem decisão atual</small></div>';el('binary-evaluation').innerHTML='<h3>O modelo funciona?</h3><p>Avaliação indisponível no momento.</p>';el('current-probability-values').innerHTML='<strong>UNKNOWN: feed experimental indisponível.</strong>';});
 })();
 </script>
 <script src="assets/js/pv_dashboard.js"></script>

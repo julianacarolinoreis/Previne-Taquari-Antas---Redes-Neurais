@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-26T02:51:14Z",
+  "location": "mucum",
+  "research_only": true,
+  "official_alert": false,
+  "decision_rule": {
+    "name": "binary_research_threshold",
+    "probability_threshold_fraction": 0.5,
+    "probability_threshold_percent": 50.0,
+    "vai_when": "probabilidade experimental >= 50%",
+    "otherwise": "NAO_VAI"
+  },
+  "source": {
+    "probability_file": "assets/data/research_probability_mucum_latest.json",
+    "source_generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
+    "source_age_hours_at_generation": 12.324498313888888,
+    "source_state": "CURRENT_WINDOW",
+    "calibration_status": "experimental_uncalibrated",
+    "forecast_source": "NOAA GEFS/NODD same-cell spatial proxy"
+  },
+  "decisions": [
+    {
+      "hours": 24,
+      "probability": 0.000219,
+      "probability_percent": 0.021900000000000003,
+      "decision": "NAO_VAI",
+      "decision_label": "NAO_INDICA transbordamento",
+      "input_interpretation": "modelo logístico de pesquisa, não calibrado para operação"
+    },
+    {
+      "hours": 48,
+      "probability": 0.00075,
+      "probability_percent": 0.075,
+      "decision": "NAO_VAI",
+      "decision_label": "NAO_INDICA transbordamento",
+      "input_interpretation": "modelo logístico de pesquisa, não calibrado para operação"
+    },
+    {
+      "hours": 72,
+      "probability": 0.002685,
+      "probability_percent": 0.26849999999999996,
+      "decision": "NAO_VAI",
+      "decision_label": "NAO_INDICA transbordamento",
+      "input_interpretation": "modelo logístico de pesquisa, não calibrado para operação"
+    },
+    {
+      "hours": 120,
+      "probability": 0.005716,
+      "probability_percent": 0.5716,
+      "decision": "NAO_VAI",
+      "decision_label": "NAO_INDICA transbordamento",
+      "input_interpretation": "modelo logístico de pesquisa, não calibrado para operação"
+    },
+    {
+      "hours": 168,
+      "probability": 0.012232,
+      "probability_percent": 1.2232,
+      "decision": "NAO_VAI",
+      "decision_label": "NAO_INDICA transbordamento",
+      "input_interpretation": "modelo logístico de pesquisa, não calibrado para operação"
+    }
+  ],
+  "evaluation": {
+    "metric": "sensibilidade de detecção de eventos positivos",
+    "threshold_used": "score >= 0.5",
+    "by_horizon": [
+      {
+        "hours": 24,
+        "held_out_events": 3,
+        "detected_at_score_0_5": 1,
+        "sensitivity": 0.3333333333333333,
+        "sensitivity_percent": 33.33333333333333,
+        "result": "FRACA"
+      },
+      {
+        "hours": 48,
+        "held_out_events": 3,
+        "detected_at_score_0_5": 1,
+        "sensitivity": 0.3333333333333333,
+        "sensitivity_percent": 33.33333333333333,
+        "result": "FRACA"
+      },
+      {
+        "hours": 72,
+        "held_out_events": 3,
+        "detected_at_score_0_5": 0,
+        "sensitivity": 0.0,
+        "sensitivity_percent": 0.0,
+        "result": "FRACA"
+      },
+      {
+        "hours": 120,
+        "held_out_events": 3,
+        "detected_at_score_0_5": 0,
+        "sensitivity": 0.0,
+        "sensitivity_percent": 0.0,
+        "result": "FRACA"
+      },
+      {
+        "hours": 168,
+        "held_out_events": 4,
+        "detected_at_score_0_5": 0,
+        "sensitivity": 0.0,
+        "sensitivity_percent": 0.0,
+        "result": "FRACA"
+      }
+    ],
+    "false_positive_metrics": "indisponíveis: a base publicada não traz negativos independentes por evento",
+    "model_verdict": "NAO_FUNCIONA_DE_FORMA_CONFIAVEL",
+    "validation_source": "feed.validation.event_detection_summary"
+  },
+  "interpretation": "Este bloco responde a pergunta binária dentro da pesquisa. Ele não transforma o score em certeza e não substitui alerta oficial."
+}

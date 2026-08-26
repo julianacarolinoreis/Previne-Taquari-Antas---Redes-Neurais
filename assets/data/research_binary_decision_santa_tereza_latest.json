@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-26T02:51:14Z",
+  "location": "santa_tereza",
+  "research_only": true,
+  "official_alert": false,
+  "decision_rule": {
+    "name": "binary_research_threshold",
+    "probability_threshold_fraction": 0.5,
+    "probability_threshold_percent": 50.0,
+    "vai_when": "probabilidade experimental >= 50%",
+    "otherwise": "NAO_VAI"
+  },
+  "source": {
+    "probability_file": "assets/data/research_probability_santa_tereza_latest.json",
+    "source_generated_at_utc": "2026-08-25T14:30:26.580396+00:00",
+    "source_age_hours_at_generation": 12.346732176388889,
+    "source_state": "CURRENT_WINDOW",
+    "calibration_status": "calibrated_for_current_source=true",
+    "forecast_source": "NOAA NODD / GEFS"
+  },
+  "decisions": [
+    {
+      "hours": 24,
+      "probability": 0.069072,
+      "probability_percent": 6.9072,
+      "decision": "NAO_VAI",
+      "decision_label": "NAO_INDICA transbordamento",
+      "input_interpretation": "probabilidade experimental GEFS; não é alerta oficial"
+    },
+    {
+      "hours": 48,
+      "probability": 0.243801,
+      "probability_percent": 24.3801,
+      "decision": "NAO_VAI",
+      "decision_label": "NAO_INDICA transbordamento",
+      "input_interpretation": "probabilidade experimental GEFS; não é alerta oficial"
+    },
+    {
+      "hours": 72,
+      "probability": 0.331065,
+      "probability_percent": 33.1065,
+      "decision": "NAO_VAI",
+      "decision_label": "NAO_INDICA transbordamento",
+      "input_interpretation": "probabilidade experimental GEFS; não é alerta oficial"
+    },
+    {
+      "hours": 120,
+      "probability": 0.462219,
+      "probability_percent": 46.2219,
+      "decision": "NAO_VAI",
+      "decision_label": "NAO_INDICA transbordamento",
+      "input_interpretation": "probabilidade experimental GEFS; não é alerta oficial"
+    },
+    {
+      "hours": 168,
+      "probability": 0.621227,
+      "probability_percent": 62.122699999999995,
+      "decision": "VAI",
+      "decision_label": "INDICA transbordamento",
+      "input_interpretation": "probabilidade experimental GEFS; não é alerta oficial"
+    }
+  ],
+  "evaluation": {
+    "metric": "sensibilidade de detecção de eventos positivos",
+    "threshold_used": "score >= 25% (modelo card LOEO)",
+    "by_horizon": [
+      {
+        "hours": 24,
+        "held_out_events": 5,
+        "detected_at_score_0_5": null,
+        "sensitivity": 0.75,
+        "sensitivity_percent": 75.0,
+        "result": "PARCIAL",
+        "evaluation_threshold": "score >= 25%",
+        "false_control_rate_percent": 0.0
+      },
+      {
+        "hours": 48,
+        "held_out_events": 5,
+        "detected_at_score_0_5": null,
+        "sensitivity": 0.5,
+        "sensitivity_percent": 50.0,
+        "result": "PARCIAL",
+        "evaluation_threshold": "score >= 25%",
+        "false_control_rate_percent": 0.0
+      },
+      {
+        "hours": 72,
+        "held_out_events": 5,
+        "detected_at_score_0_5": null,
+        "sensitivity": 0.75,
+        "sensitivity_percent": 75.0,
+        "result": "PARCIAL",
+        "evaluation_threshold": "score >= 25%",
+        "false_control_rate_percent": 0.0
+      },
+      {
+        "hours": 120,
+        "held_out_events": 5,
+        "detected_at_score_0_5": null,
+        "sensitivity": 0.75,
+        "sensitivity_percent": 75.0,
+        "result": "PARCIAL",
+        "evaluation_threshold": "score >= 25%",
+        "false_control_rate_percent": 0.0
+      },
+      {
+        "hours": 168,
+        "held_out_events": 5,
+        "detected_at_score_0_5": null,
+        "sensitivity": 0.8,
+        "sensitivity_percent": 80.0,
+        "result": "FORTE",
+        "evaluation_threshold": "score >= 25%",
+        "false_control_rate_percent": 0.0
+      }
+    ],
+    "false_positive_metrics": "taxa de falso controle no model card (limiar de 25%): 0.0%, 0.0%, 0.0%, 0.0%, 0.0%",
+    "model_verdict": "SINAL_PARCIAL_REQUER_VALIDACAO",
+    "validation_source": "assets/data/research_card_santa_tereza_20260811.json"
+  },
+  "interpretation": "Este bloco responde a pergunta binária dentro da pesquisa. Ele não transforma o score em certeza e não substitui alerta oficial."
+}

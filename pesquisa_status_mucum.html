@@ -42,6 +42,15 @@
 
   <section class="panel research"><h2>Score logístico experimental de cruzar 1.800 cm</h2><p>O valor abaixo é um score de pesquisa, calculado com regressão logística e validação por eventos candidatos. Como a calibração ainda não é operacional, ele <strong>não representa uma chance real nem um alerta</strong>. A chuva GEFS é proxy de célula; a chuva ECMWF mostrada no painel é outra fonte.</p><div class="horizons" id="horizons"><div class="hz"><b>—</b><span>carregando</span></div></div><div class="warning"><strong>Como ler:</strong> “1,22%” significa apenas 1,22 pontos percentuais produzidos pelo ajuste experimental nesta rodada — não significa que exista 1,22% de frequência real de inundação. O estado pode ser UNKNOWN/STALE quando o feed estiver antigo.</div><p id="prob-meta" style="margin-top:9px;font-size:10.5px;color:var(--muted)">Carregando versão, fonte e data da rodada…</p></section>
 
+  <section class="panel binary-research anchor-target" id="resultado-binario" aria-labelledby="binary-title-mucum">
+    <h2 id="binary-title-mucum">Resposta da pesquisa: vai ou não vai?</h2>
+    <p class="binary-rule">Regra explícita do estudo: <strong>VAI</strong> quando a estimativa atinge 50% ou mais; abaixo disso, <strong>NÃO VAI</strong>. Isso responde à pergunta da pesquisa para cada horizonte e não é um alerta oficial.</p>
+    <div id="binary-current" class="binary-grid" aria-live="polite"><div class="binary-card unknown"><b>Carregando</b><span>resultado binário</span></div></div>
+    <p id="binary-source" class="binary-source">Carregando fonte e idade da rodada…</p>
+    <div id="binary-evaluation" class="binary-evaluation" aria-live="polite"><h3>O modelo funciona?</h3><p>Carregando avaliação retrospectiva…</p></div>
+    <div class="links"><a href="assets/data/research_binary_decision_mucum_latest.json">Abrir decisão binária e avaliação (JSON) →</a></div>
+  </section>
+
   <section class="panel quality"><h2>Estado atual da estação</h2><div id="quality-answer" class="answer">Carregando observação…</div><div class="grid"><div class="stat"><b id="level">—</b><span>nível observado</span></div><div class="stat"><b id="age">—</b><span>idade da leitura</span></div><div class="stat"><b>1.800 cm</b><span>cota de inundação</span></div><div class="stat"><b id="quality">—</b><span>qualidade da leitura</span></div></div><p id="obs-meta" style="margin-top:10px;font-size:10.5px;color:var(--muted)">A observação atrasada ou ausente aparece como UNKNOWN/STALE; nunca como “não vai inundar”.</p></section>
   <section class="panel"><h2>Robô ao vivo: previsão curta</h2><p>Estas são as RNAs de nível para as próximas horas. Elas não são a probabilidade experimental de cruzar 1.800 cm; servem para acompanhar a variação imediata do rio.</p><div id="live-short-cards" class="horizons"><div class="hz"><b>—</b><span>carregando</span></div></div><p id="live-short-meta" class="small-note">Carregando rodada ao vivo…</p></section>
   <section class="panel"><h2>Últimas 24 h: observado × previsto</h2><p>Comparação das previsões curtas já conferidas pelo robô. Linha azul = nível observado; linha laranja tracejada = nível previsto pela RNA no horário em que a previsão foi emitida.</p><div id="short-chart" class="chart-pair"><div class="chart-card"><h3>Carregando gráfico…</h3></div></div><p id="short-chart-meta" class="chart-legend"><span class="blue">observado</span> · <span class="orange">previsto</span> · janela móvel de 24 h.</p></section>
@@ -82,6 +91,24 @@
   const parseFeedDate=v=>{if(v==null||v==='')return new Date('');const s=String(v).trim().replace(' ','T');if(/^\d{4}-\d{2}-\d{2}$/.test(s))return new Date(`${s}T00:00:00-03:00`);return new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)?s:`${s}-03:00`);};
   const fmtTime=v=>{const d=parseFeedDate(v);return Number.isFinite(d.getTime())?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—'};
   const el=id=>document.getElementById(id);
+  function renderBinary(binary){
+    const decisions=Array.isArray(binary&&binary.decisions)?binary.decisions:[];
+    if(!decisions.length){el('binary-current').innerHTML='<div class="binary-card unknown"><b>UNKNOWN</b><span>sem decisão binária</span><small>feed sem horizontes</small></div>';el('binary-source').textContent='Não foi possível carregar a rodada binária.';return;}
+    el('binary-current').innerHTML=decisions.map(d=>{
+      const decision=d.decision==='VAI'?'VAI':d.decision==='NAO_VAI'?'NAO_VAI':'UNKNOWN';
+      const cls=decision==='VAI'?'vai':decision==='NAO_VAI'?'nao':'unknown';
+      const label=decision==='VAI'?'VAI: indica transbordamento':decision==='NAO_VAI'?'NÃO VAI: não indica transbordamento':'UNKNOWN: sem decisão';
+      const prob=d.probability_percent==null?'—':fmt(d.probability_percent)+'%';
+      return `<div class="binary-card ${cls}"><b>${label}</b><span>até ${d.hours} h</span><small>estimativa usada: ${prob} · corte: 50%</small></div>`;
+    }).join('');
+    const source=binary.source||{};const age=Number(source.source_age_hours_at_generation);const state=source.source_state||'—';
+    el('binary-source').textContent=`Rodada de probabilidade gerada em ${fmtTime(source.source_generated_at_utc)} · fonte: ${source.forecast_source||'—'} · idade no cálculo binário: ${Number.isFinite(age)?fmt(age)+' h':'—'} · estado da fonte: ${state} · calibração: ${source.calibration_status||'—'}.`;
+    const ev=binary.evaluation||{};const verdict=ev.model_verdict||'SEM_AVALIACAO';const bad=verdict==='NAO_FUNCIONA_DE_FORMA_CONFIAVEL';const partial=verdict!=='SEM_AVALIACAO'&&!bad;const box=el('binary-evaluation');box.className=`binary-evaluation ${bad?'bad':partial?'partial':''}`;
+    const title=bad?'O modelo funciona? Não de forma confiável ainda.':verdict==='SEM_AVALIACAO'?'O modelo funciona? Ainda sem avaliação suficiente.':'O modelo funciona? Sinal parcial; precisa de validação.';
+    const rows=Array.isArray(ev.by_horizon)?ev.by_horizon:[];
+    const table=rows.length?`<table><thead><tr><th>Horizonte</th><th>Detecção / recall</th><th>Sensibilidade</th><th>Leitura</th></tr></thead><tbody>${rows.map(r=>{const detected=r.detected_at_score_0_5==null?(r.sensitivity_percent==null?'—':fmt(r.sensitivity_percent)+'% recall'):`${r.detected_at_score_0_5}/${r.held_out_events}`;return `<tr><td>${r.hours} h</td><td>${detected}</td><td>${r.sensitivity_percent==null?'—':fmt(r.sensitivity_percent)+'%'}</td><td>${r.result||'—'}</td></tr>`}).join('')}</tbody></table>`:'';
+    box.innerHTML=`<h3>${title}</h3><p>O teste retrospectivo usa eventos positivos separados por episódio. A sensibilidade/recall mostra quantos eventos conhecidos o modelo encontrou. ${ev.false_positive_metrics||'Não há métricas de controle falso publicadas para esta rodada.'}</p>${table}`;
+  }
   // O histórico mantém o antigo 4h_cascata para auditoria, mas ele não deve
   // aparecer na saída pública nem contaminar as comparações atuais.
   const isLegacyCascade=x=>x&&['id','horizonte','tipo','modelo','rotulo'].some(k=>/cascata/i.test(String(x[k]||'')));
@@ -90,8 +117,10 @@
     fetch('assets/data/research_weather_mucum_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('weather');return r.json()}),
     fetch('assets/data/research_mucum_evidence_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('evidence');return r.json()}),
     fetch('previsao_ao_vivo_mucum.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
-    fetch('historico_previsoes_ao_vivo_mucum.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)
-  ]).then(([p,w,e,live,history])=>{
+    fetch('historico_previsoes_ao_vivo_mucum.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch('assets/data/research_binary_decision_mucum_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)
+  ]).then(([p,w,e,live,history,binary])=>{
+    renderBinary(binary);
     if(history&&Array.isArray(history.registros)) history.registros=history.registros.filter(x=>!isLegacyCascade(x));
     // Nunca deixe percentuais antigos parecerem previsão atual: o render
     // abaixo preserva o histórico, e este guard substitui apenas a camada
@@ -106,7 +135,7 @@
     const records=Array.isArray(history?.registros)?history.registros:[];const chartFor=hz=>{const rows=records.filter(x=>x.horizonte===hz&&x.status_auditoria==='conferido'&&x.observado_cm!=null&&x.nivel_previsto_cm!=null&&x.observado_em).sort((a,b)=>parseFeedDate(a.observado_em)-parseFeedDate(b.observado_em));if(!rows.length)return `<div class="chart-card"><h3>${hz}</h3><p class="small-note">sem previsões conferidas</p></div>`;const end=parseFeedDate(rows[rows.length-1].observado_em).getTime(),start=end-24*3600*1000,rs=rows.filter(x=>parseFeedDate(x.observado_em).getTime()>=start);if(rs.length<2)return `<div class="chart-card"><h3>${hz}</h3><p class="small-note">menos de duas leituras na janela</p></div>`;const vals=rs.flatMap(x=>[Number(x.observado_cm),Number(x.nivel_previsto_cm)]),lo=Math.min(...vals)-10,hi=Math.max(...vals)+10,w=360,h=130,pad=24,scaleX=i=>pad+i*(w-2*pad)/(rs.length-1),scaleY=v=>h-pad-(v-lo)*(h-2*pad)/(hi-lo),path=key=>rs.map((row,i)=>(i?'L':'M')+scaleX(i)+' '+scaleY(Number(row[key]))).join('');return `<div class="chart-card"><h3>${hz} · ${rs.length} previsões</h3><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${hz}: observado e previsto nas últimas 24 horas"><path class="obs" d="${path('observado_cm')}"/><path class="pred" d="${path('nivel_previsto_cm')}"/><text class="axis" x="3" y="${scaleY(hi)+3}">${fmt(hi)}</text><text class="axis" x="3" y="${scaleY(lo)+3}">${fmt(lo)}</text><text class="axis" x="${w-45}" y="${h-4}">24 h</text></svg></div>`};el('short-chart').innerHTML=chartFor('2h')+chartFor('4h');el('short-chart-meta').textContent=records.length?`Histórico auditável carregado: ${records.length} registros; o gráfico usa somente previsões conferidas na janela final de 24 h.`:'Histórico de previsões não disponível.';
     const ev=e.candidate_catalog?.events||[], rain=e.antecedent_conditions||{};const rainById=Object.fromEntries((Array.isArray(rain)?rain:[]).map(x=>[x.event_id,x]));el('candidate-rows').innerHTML=ev.map(x=>{const a=rainById[x.id]||{};return `<tr><td><strong>${x.id.replace('MUCUM-CAND-','CAND-')}</strong><br><small>${x.onset} · ${x.status}</small></td><td>${fmt(x.peak_cm)} cm</td><td>${fmt(a.rain_24h_mm)} mm</td><td>${fmt(a.rain_72h_mm)} mm</td><td>${fmt(a.rain_168h_mm)} mm</td><td>${fmt(a.api_72h_mm)} mm</td><td>${a.soil_status||'proxy/unknown'}</td></tr>`}).join('');
     if(e.model_catalog){el('model-count').textContent=e.model_catalog.models_catalogued;el('model-ready').textContent=e.model_catalog.models_ok_or_concluded}
-  }).catch(()=>{el('horizons').innerHTML='<div class="hz"><b>UNKNOWN</b><span>dados indisponíveis</span></div>';el('quality-answer').innerHTML='UNKNOWN: sem dados atuais confiáveis.<small>Ausência de dados não significa “não vai inundar”.</small>';el('live-short-cards').innerHTML='<div class="hz"><b>UNKNOWN</b><span>sem previsão curta</span></div>';el('live-short-meta').textContent='Feed ao vivo indisponível no momento.';});
+  }).catch(()=>{el('horizons').innerHTML='<div class="hz"><b>UNKNOWN</b><span>dados indisponíveis</span></div>';el('binary-current').innerHTML='<div class="binary-card unknown"><b>UNKNOWN</b><span>dados indisponíveis</span><small>sem decisão atual</small></div>';el('binary-evaluation').innerHTML='<h3>O modelo funciona?</h3><p>Avaliação indisponível no momento.</p>';el('quality-answer').innerHTML='UNKNOWN: sem dados atuais confiáveis.<small>Ausência de dados não significa “não vai inundar”.</small>';el('live-short-cards').innerHTML='<div class="hz"><b>UNKNOWN</b><span>sem previsão curta</span></div>';el('live-short-meta').textContent='Feed ao vivo indisponível no momento.';});
   fetch('assets/data/research_mucum_observed_sources_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('observed sources');return r.json()}).then(s=>{
     const ana=s.ana_historical_rain||{};const rain=s.cemaden_rain_gauges||[];const soil=s.cemaden_measured_soil||{};const quality=s.quality||{};const radar=s.radar_qpe||{};
     const historical=s.cemaden_historical_monthly_import||{};
