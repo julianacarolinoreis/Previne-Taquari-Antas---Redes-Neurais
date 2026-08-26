@@ -660,20 +660,6 @@
     const maxGapMs=Math.max(6,windowHours/4)*36e5;
     if(observed.length>1) svg.appendChild(svgNode('path',{d:errorPath(observed,'observed',X,Y,maxGapMs),fill:'none',stroke:'var(--panorama-observed, #1e5fbf)','stroke-width':2.6,'stroke-linejoin':'round','stroke-linecap':'round'}));
     if(predicted.length>1) svg.appendChild(svgNode('path',{d:errorPath(predicted,'predicted',X,Y,maxGapMs),fill:'none',stroke:'var(--panorama-forecast-2, #b85c00)','stroke-width':2.1,'stroke-dasharray':'7 5','stroke-linejoin':'round','stroke-linecap':'round'}));
-    observed.forEach(point=>{
-      const mark=svgNode('circle',{cx:X(point.target.getTime()),cy:Y(point.observed),r:3.3,fill:'var(--panorama-observed, #1e5fbf)'});
-      mark.appendChild(svgNode('title',{},`Observado em ${fmtWhen(point.target)}: ${nf1.format(point.observed)} cm`));
-      svg.appendChild(mark);
-    });
-    predicted.forEach(point=>{
-      const hit=point.error!==null&&Math.abs(point.error)<=ERROR_HIT_LIMIT_CM,x=X(point.target.getTime()),y=Y(point.predicted);
-      const mark=hit
-        ?svgNode('circle',{cx:x,cy:y,r:4.1,fill:'#17754f',stroke:'var(--panel, #fff)','stroke-width':1.4})
-        :svgNode('rect',{x:x-3.8,y:y-3.8,width:7.6,height:7.6,rx:1,fill:'#b45b00',stroke:'var(--panel, #fff)','stroke-width':1.4});
-      const errorText=point.error===null?'erro indisponível':`${point.error>0?'+':''}${nf1.format(point.error)} cm`;
-      mark.appendChild(svgNode('title',{},`RNA em ${fmtWhen(point.target)}: ${nf1.format(point.predicted)} cm · observado ${nf1.format(point.observed)} cm · erro ${errorText} · ${hit?'dentro':'fora'} de ±${ERROR_HIT_LIMIT_CM} cm`));
-      svg.appendChild(mark);
-    });
   }
 
   function renderErrorReport(){
