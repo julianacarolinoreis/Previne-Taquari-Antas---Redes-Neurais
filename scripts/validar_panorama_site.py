@@ -79,7 +79,10 @@ def validar_html(nome: str, esperado: dict[str, str]) -> None:
     ):
         assert required in parser.ids, f"{nome}: falta #{required}"
     assert "assets/previsao_panorama.css" in parser.stylesheets, f"{nome}: CSS do panorama ausente"
-    assert "assets/previsao_panorama.js" in parser.scripts, f"{nome}: JS do panorama ausente"
+    assert any(
+        script.split("?", 1)[0] == "assets/previsao_panorama.js"
+        for script in parser.scripts
+    ), f"{nome}: JS do panorama ausente"
     assert esperado["history"] in texto, f"{nome}: histórico incorreto"
     assert f"const CONTORNOS_URL='{esperado['contour']}';" in texto, f"{nome}: contorno incorreto"
     assert esperado["target"] in texto, f"{nome}: estação-alvo incorreta"
