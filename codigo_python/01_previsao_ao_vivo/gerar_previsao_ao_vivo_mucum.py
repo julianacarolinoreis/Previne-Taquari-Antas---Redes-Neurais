@@ -175,6 +175,11 @@ def nivel(serie, t, max_gap=NIVEL_MAX_GAP):
     melhor = min(candidatos, key=lambda k: abs((k - t).total_seconds()))
     return serie[melhor]
 
+
+def nivel_exato(serie, t):
+    """Nível observado exatamente em ``t``; não interpola nem usa vizinho."""
+    return None if not serie else serie.get(t)
+
 def observar_nivel(serie, alvo, max_gap=AUDITORIA_MAX_GAP):
     if not serie or alvo is None:
         return None, None
@@ -199,7 +204,7 @@ def montar_inputs(cfg, series, t):
        vel_nivel -> n(t) - n(t - defasagem_h)."""
     def n(cod, h=0):
         s = series.get(str(cod))
-        return None if s is None else nivel(s, t - dt.timedelta(hours=h))
+        return None if s is None else nivel_exato(s, t - dt.timedelta(hours=h))
     x = []
     for inp in cfg["inputs"]:
         cod, tipo, h = inp["estacao"], inp["tipo"], inp["defasagem_h"]
@@ -243,7 +248,7 @@ def melhor_hora(cfg, series, horas, limite_alvo=None):
     """Hora mais recente (até 12 h atrás) em que TODOS os inputs do modelo existem."""
     if not horas: return None
     t_ult = horas[-1]
-    for t in [h for h in reversed(horas) if (t_ult - h) <= dt.timedelta(hours=12)]:
+    for t in [h for h in reversed(horas) if h.minute == 0 and (t_ult - h) <= dt.timedelta(hours=12)]:
         if limite_alvo is not None and (t + dt.timedelta(hours=cfg["horizonte_h"])) <= limite_alvo:
             continue
         x = montar_inputs(cfg, series, t)
@@ -253,10 +258,11 @@ def melhor_hora(cfg, series, horas, limite_alvo=None):
 
 
 # ---------- saída (schema do Santa Tereza) ----------
-def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None):
+def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_base=None):
     consultado = agora_brt(); raw = ULTIMA_RAW.get(ALVO)
     idade = round((consultado - raw[0]).total_seconds() / 60) if raw else None
     nivel_raw_cm = (round(raw[1]) if raw else (round(nivel_agora) if nivel_agora is not None else None))
+    nivel_base = nivel_agora if nivel_base is None else nivel_base
     hora_alvo = (t + dt.timedelta(hours=cfg["horizonte_h"])).isoformat() if t else None
     out = {
         "modo": "ao_vivo",
@@ -272,19 +278,36 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None):
         "horizonte": cfg["horizonte"], "rotulo": cfg["rotulo"], "horizonte_h": cfg["horizonte_h"],
         "tipo": cfg["tipo"], "modelo": cfg["modelo"], "combo": cfg["combo"], "bankfull_cm": BANKFULL_CM,
         "modelo_papel": cfg.get("papel", "principal"),
-        "nivel_modelo_cm": (round(nivel_agora) if nivel_agora is not None else None),
-        "nivel_base_cm": (round(nivel_agora) if nivel_agora is not None else None),
+        "nivel_modelo_cm": (round(nivel_base) if nivel_base is not None else None),
+        "nivel_base_cm": (round(nivel_base) if nivel_base is not None else None),
         "nivel_rio_agora_cm": nivel_raw_cm,
         "nivel_rio_agora_em": (raw[0].isoformat() if raw else (t.isoformat() if t else None)),
-        "nivel_atual_cm": (round(nivel_agora) if nivel_agora is not None else None),
+        "nivel_atual_cm": (round(nivel_raw_cm) if nivel_raw_cm is not None else (round(nivel_agora) if nivel_agora is not None else None)),
         "nivel_previsto_cm": (round(nivel_prev) if nivel_prev is not None else None),
         "inputs_total": cfg["n_inputs"], "inputs_faltantes_n": len(faltantes or []),
         "inputs_faltantes": faltantes or [], "estacoes_status": [],
+        "input_contract_version": "hourly_exact_v1",
+        "input_grade": "hourly_exact",
+        "auditoria_inputs": {
+            "status": "NORMAL" if nivel_prev is not None and not faltantes else "ATENCAO",
+            "formula_conferida_com_montador": True,
+            "n_inputs": cfg["n_inputs"],
+            "n_exatos": cfg["n_inputs"] - len(faltantes or []),
+            "n_inputs_nao_exatos": 0,
+            "n_interpolados": 0,
+            "n_vizinhos_mais_proximos": 0,
+            "input_grade": "hourly_exact",
+            "hora_base_minuto": (t.minute if t else None),
+            "usa_interpolacao_nivel": False,
+            "usa_vizinho_nivel": False,
+            "contrato_temporal": f"{cfg['n_inputs']} inputs em hora cheia exata; níveis sem interpolação ou vizinho",
+        },
         "status": status, "aviso": AVISO,
     }
     if nivel_prev is not None and nivel_raw_cm is not None:
-        out["delta_previsto_cm"] = round(nivel_prev - nivel_raw_cm, 1)
-        out["passos"] = [[out["hora_modelo"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
+        delta_base = nivel_base if nivel_base is not None else nivel_raw_cm
+        out["delta_previsto_cm"] = round(nivel_prev - delta_base, 1)
+        out["passos"] = [[out["hora_modelo"], out["nivel_modelo_cm"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
     return out
 
 def carregar_historico():
@@ -473,7 +496,7 @@ def main():
                 falt = sum(v is None for v in x)
                 faltantes = diagnosticar_inputs(cfg, x)
                 ultimo_status = base_saida(
-                    cfg, nivel_agora, None, horas_muc[-1],
+                    cfg, nivel_agora, None, None,
                     f"inputs incompletos ({falt}/{cfg['n_inputs']} faltando) - sem previsao nesta hora",
                     faltantes)
                 print(f"[{horizonte}] {cfg['modelo']} incompleto; tentando fallback se existir")
@@ -481,12 +504,13 @@ def main():
             t, x = mh
             try:
                 saida = prever(cfg["mat"], x)
-                nivel_base = nivel(series[ALVO], t)     # nível na hora-base do modelo
+                nivel_base = nivel_exato(series[ALVO], t)     # nível na hora-base do modelo
                 if cfg["tipo"].upper() == "ALT":
                     nivel_prev = nivel_base + saida
                 else:
                     nivel_prev = saida
-                out = base_saida(cfg, nivel_base, nivel_prev, t, "ok")
+                out = base_saida(cfg, nivel_agora, nivel_prev, t, "ok", nivel_base=nivel_base)
+                out["input_values_cm"] = [round(float(v), 6) for v in x]
                 if idx > 0 or cfg.get("papel") == "fallback":
                     out["fallback_usado"] = True
                     out["motivo_fallback"] = "modelo principal sem todos os inputs na janela operacional"

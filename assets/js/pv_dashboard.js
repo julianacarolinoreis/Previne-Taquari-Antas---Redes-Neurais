@@ -11,10 +11,16 @@
   const state={weather:null,probability:null,live:null,mode:'rain',loadedAt:null,loading:false};
   const el=(sel)=>qs(sel);
   const safeNum=v=>v==null||!Number.isFinite(Number(v))?null:Number(v);
+  const parseFeedDate=v=>{
+    if(v==null||v==='')return new Date('');
+    const s=String(v).trim().replace(' ','T');
+    if(/^\d{4}-\d{2}-\d{2}$/.test(s))return new Date(`${s}T00:00:00-03:00`);
+    return new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)?s:`${s}-03:00`);
+  };
   const mm=v=>safeNum(v)==null?'—':br.format(v)+' mm';
   const cm=v=>safeNum(v)==null?'—':br.format(v)+' cm';
-  const formatTime=v=>{const d=new Date(v||'');return Number.isFinite(d.getTime())?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'};
-  const ageHours=v=>{const d=new Date(v||'');return Number.isFinite(d.getTime())?Math.max(0,(Date.now()-d.getTime())/3600000):Infinity};
+  const formatTime=v=>{const d=parseFeedDate(v);return Number.isFinite(d.getTime())?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'};
+  const ageHours=v=>{const d=parseFeedDate(v);return Number.isFinite(d.getTime())?Math.max(0,(Date.now()-d.getTime())/3600000):Infinity};
   const labelHours=h=>`+${h} h`;
   function setText(sel,text){const node=el(sel);if(node)node.textContent=text;}
   function setHtml(sel,html){const node=el(sel);if(node)node.innerHTML=html;}
@@ -51,7 +57,7 @@
   function setFeedState(){
     const node=el('#pv-feed-state');if(!node)return;
     const stamps=[state.weather?.generated,state.probability?.generated,state.live?.generated].filter(Boolean);
-    const newest=stamps.length?Math.max(...stamps.map(v=>new Date(v).getTime()).filter(Number.isFinite)):NaN;
+    const newest=stamps.length?Math.max(...stamps.map(v=>parseFeedDate(v).getTime()).filter(Number.isFinite)):NaN;
     const age=Number.isFinite(newest)?Math.max(0,(Date.now()-newest)/3600000):Infinity;
     const stale=!Number.isFinite(newest)||age>36;
     node.classList.toggle('stale',stale);

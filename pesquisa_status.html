@@ -284,7 +284,8 @@
   const feed='assets/data/research_weather_santa_tereza_latest.json';
   const br=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   const el=id=>document.getElementById(id);
-  const fmtTime=v=>{if(!v)return '—';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';};
+  const parseFeedDate=v=>{if(v==null||v==='')return new Date('');const s=String(v).trim().replace(' ','T');if(/^\d{4}-\d{2}-\d{2}$/.test(s))return new Date(`${s}T00:00:00-03:00`);return new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)?s:`${s}-03:00`);};
+  const fmtTime=v=>{const d=parseFeedDate(v);return Number.isFinite(d.getTime())?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';};
   const mm=v=>v==null?'—':br.format(Number(v))+' mm';
   const score=v=>v==null?'—':br.format(Number(v)*100)+'%';
   function render(d){
@@ -307,8 +308,9 @@
   const el=id=>document.getElementById(id);
   const num=v=>v==null||!Number.isFinite(Number(v))?'—':fmt.format(Number(v));
   const cm=v=>v==null||!Number.isFinite(Number(v))?'—':fmt.format(Number(v))+' cm';
-  const time=v=>{if(!v)return '—';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'};
-  const iso=v=>{const d=new Date(v||'');return Number.isFinite(d.getTime())?d.getTime():NaN};
+  const parseFeedDate=v=>{if(v==null||v==='')return new Date('');const s=String(v).trim().replace(' ','T');if(/^\d{4}-\d{2}-\d{2}$/.test(s))return new Date(`${s}T00:00:00-03:00`);return new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)?s:`${s}-03:00`);};
+  const time=v=>{const d=parseFeedDate(v);return Number.isFinite(d.getTime())?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'};
+  const iso=v=>{const d=parseFeedDate(v);return Number.isFinite(d.getTime())?d.getTime():NaN};
   function renderProbability(p){
     const horizons=p&&p.horizons||{};
     const keys=['24','48','72','120','168'].filter(k=>horizons[k]);

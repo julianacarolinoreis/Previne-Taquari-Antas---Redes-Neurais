@@ -1446,13 +1446,13 @@ function popup(p, extra){
 
 const ehCat = ()=> !!(INDS.find(i=>i.k===ind)||{}).cat;
 function legendaResiliencia(ctx){
-  document.getElementById("legctx").textContent = `${ctx} Â· escala municipal IRM V1`;
+  document.getElementById("legctx").textContent = `${ctx} · escala municipal IRM V1`;
   document.getElementById("leg").innerHTML = ["verde","amarelo","vermelho"].map(fx=>
     `<div class="row2" role="listitem"><span class="sw" style="background:${IRM_CORES[fx]}"></span>${IRM_LABEL[fx]}</div>`).join("")+
     `<div class="row2" role="listitem"><span class="sw sw-nodata"></span>sem dado publicado na fonte</div>`+
-    `<div class="row2" role="listitem" style="color:#5c6b63;font-size:11px;margin-top:2px">Ãndice municipal auxiliar (0â€“100); nÃ£o Ã© risco, alerta ou previsÃ£o.</div>`;
-  document.getElementById("quantileNote").textContent = "IRM V1: consolida sete indicadores do ObservatÃ³rio da ResiliÃªncia RS. A fonte cobre parte dos municÃ­pios; sem dado permanece neutro.";
-  defineMetadadosImpressao(`PREVINE Â· ResiliÃªncia municipal (IRM V1), ${ctx.replace(/^Â·\s*/,"")}. Fonte: ${rotuloResiliencia()}; geometrias EPSG:4326. NÃ£o Ã© risco nem alerta.`);
+    `<div class="row2" role="listitem" style="color:#5c6b63;font-size:11px;margin-top:2px">Índice municipal auxiliar (0–100); não é risco, alerta ou previsão.</div>`;
+  document.getElementById("quantileNote").textContent = "IRM V1: consolida sete indicadores do Observatório da Resiliência RS. A fonte cobre parte dos municípios; sem dado permanece neutro.";
+  defineMetadadosImpressao(`PREVINE · Resiliência municipal (IRM V1), ${ctx.replace(/^·\s*/,"")}. Fonte: ${rotuloResiliencia()}; geometrias EPSG:4326. Não é risco nem alerta.`);
 }
 function totalizaResiliencia(mun){
   const tot = document.getElementById("tot");
@@ -1460,13 +1460,13 @@ function totalizaResiliencia(mun){
   if (mun){
     const score=irmValor(mun);
     tot.innerHTML = mun.irm_faixa
-      ? `<b style="color:${IRM_TEXT_CORES[mun.irm_faixa]||'#5c6b63'}">${escHTML(IRM_LABEL[mun.irm_faixa]||mun.irm_faixa)}</b> <small>Â· ${score===null?"â€”":fmt(score)} /100 Â· ${Number(mun.irm_n_indicadores)||0}/7 indicadores</small>`
-      : `<span class="unknown-total">sem dado publicado</span> <small>fonte nÃ£o cobriu este municÃ­pio</small>`;
+      ? `<b style="color:${IRM_TEXT_CORES[mun.irm_faixa]||'#5c6b63'}">${escHTML(IRM_LABEL[mun.irm_faixa]||mun.irm_faixa)}</b> <small>· ${score===null?"—":fmt(score)} /100 · ${Number(mun.irm_n_indicadores)||0}/7 indicadores</small>`
+      : `<span class="unknown-total">sem dado publicado</span> <small>fonte não cobriu este município</small>`;
     return;
   }
   const c={verde:0,amarelo:0,vermelho:0,unknown:0};
   (munData?.features||[]).forEach(f=>{ const s=irmStatus(f.properties); c[s] = (c[s]||0)+1; });
-  tot.innerHTML = `<small>verde ${c.verde||0} Â· amarelo ${c.amarelo||0} Â· vermelho ${c.vermelho||0} Â· sem dado ${c.unknown||0}</small>`;
+  tot.innerHTML = `<small>verde ${c.verde||0} · amarelo ${c.amarelo||0} · vermelho ${c.vermelho||0} · sem dado ${c.unknown||0}</small>`;
 }
 // Versão limpa das legendas IRM (mantém a saída em UTF-8 mesmo quando a
 // página for servida por um servidor com locale legado).
@@ -2242,8 +2242,8 @@ function resumoSelecao(){
       detalhe = `${faixas.join(", ")} <small>faixa(s) ICM${pontos.length ? ` · ${fmt(pontos.reduce((s,v)=>s+Number(v),0)/pontos.length)} pts média` : ""}</small>`;
       detalheTexto = `${faixas.join(", ")} faixa(s) ICM${pontos.length ? ` · ${fmt(pontos.reduce((s,v)=>s+Number(v),0)/pontos.length)} pts média` : ""}`;
     } else {
-      detalhe = "<small>nÃ£o estimado</small>";
-      detalheTexto = "nÃ£o estimado";
+      detalhe = "<small>não estimado</small>";
+      detalheTexto = "não estimado";
     }
   } else if (d.money){
     let num=0, den=0;
