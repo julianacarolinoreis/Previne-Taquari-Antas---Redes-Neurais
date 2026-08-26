@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Dashboard de pesquisa da bacia Taquari–Antas: nível do rio, chuva, modelos e evidências históricas de Santa Tereza e Muçum.">
+  <title>PREVINE · Dashboard da bacia Taquari–Antas</title>
+  <link rel="stylesheet" href="assets/css/bacia_dashboard.css">
+</head>
+<body>
+  <main class="bacia-shell" data-bacia-dashboard>
+    <header class="bacia-header">
+      <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="brand-copy">
+        <p class="eyebrow">PREVINE · pesquisa de transbordamento</p>
+        <h1>Dashboard da bacia <span>Taquari–Antas</span></h1>
+        <p class="lede">Nível observado, chuva prevista, modelos e evidências históricas em uma só leitura.</p>
+      </div>
+      <div class="research-badge"><strong>PESQUISA</strong><span>sem alerta automático</span></div>
+    </header>
+
+    <nav class="bacia-nav" aria-label="Navegação da pesquisa">
+      <a class="active" aria-current="page" href="dashboard_bacia.html">Visão da bacia</a>
+      <a href="pesquisa_status.html">Santa Tereza</a>
+      <a href="pesquisa_status_mucum.html">Muçum</a>
+      <a href="index.html">Catálogo de modelos</a>
+    </nav>
+
+    <section class="intro-card" aria-labelledby="intro-title">
+      <div>
+        <p class="section-kicker">Resposta rápida</p>
+        <h2 id="intro-title">O que está previsto e o que ainda precisa ser conferido?</h2>
+        <p>Escolha uma estação e um horizonte para ver a chuva de cada fonte, o nível do rio e a estimativa experimental de cruzar a cota. <strong>Chuva prevista não é a mesma coisa que probabilidade de inundação.</strong></p>
+      </div>
+      <div class="legend-inline" aria-label="Legenda dos tipos de dado">
+        <span><i class="dot observed"></i>observação</span>
+        <span><i class="dot forecast"></i>previsão</span>
+        <span><i class="dot proxy"></i>proxy</span>
+        <span><i class="dot experimental"></i>experimental</span>
+      </div>
+    </section>
+
+    <section class="controls-card" aria-label="Filtros do dashboard">
+      <div class="control-group">
+        <span class="control-label">Local de leitura</span>
+        <div class="chip-row" role="group" aria-label="Selecionar local">
+          <button type="button" class="chip is-active" data-station="basin" aria-pressed="true">Toda a bacia</button>
+          <button type="button" class="chip" data-station="santa" aria-pressed="false">Santa Tereza</button>
+          <button type="button" class="chip" data-station="mucum" aria-pressed="false">Muçum</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <span class="control-label">Horizonte da chuva</span>
+        <div class="chip-row" role="group" aria-label="Selecionar horizonte">
+          <button type="button" class="chip" data-horizon="24" aria-pressed="false">+24 h</button>
+          <button type="button" class="chip is-active" data-horizon="72" aria-pressed="true">+72 h</button>
+          <button type="button" class="chip" data-horizon="168" aria-pressed="false">+168 h</button>
+        </div>
+      </div>
+      <p class="control-status" id="control-status" aria-live="polite">Carregando feeds publicados…</p>
+    </section>
+
+    <section class="answer-card" aria-labelledby="answer-title" aria-live="polite">
+      <div class="answer-icon" aria-hidden="true">⌁</div>
+      <div class="answer-copy">
+        <p class="section-kicker">Leitura do cenário</p>
+        <h2 id="answer-title">Carregando a janela selecionada…</h2>
+        <p id="answer-text">Os feeds públicos estão sendo consultados. A ausência de um valor não significa “não vai inundar”.</p>
+      </div>
+      <div class="answer-state" id="answer-state">CARREGANDO</div>
+    </section>
+
+    <section class="kpi-grid" aria-label="Indicadores principais">
+      <article class="kpi-card kpi-level">
+        <div class="kpi-top"><span class="kpi-label">Nível do rio agora</span><span class="tag observed">OBSERVAÇÃO</span></div>
+        <strong id="kpi-level" class="kpi-value">—</strong>
+        <p id="kpi-level-note">ANA/SGB · aguardando leitura</p>
+      </article>
+      <article class="kpi-card kpi-rain">
+        <div class="kpi-top"><span class="kpi-label">Chuva acumulada</span><span class="tag forecast">PREVISÃO</span></div>
+        <strong id="kpi-rain" class="kpi-value">—</strong>
+        <p id="kpi-rain-note">no horizonte selecionado</p>
+      </article>
+      <article class="kpi-card kpi-risk">
+        <div class="kpi-top"><span class="kpi-label">Cruzamento da cota</span><span class="tag experimental">EXPERIMENTAL</span></div>
+        <strong id="kpi-risk" class="kpi-value">—</strong>
+        <p id="kpi-risk-note">estimativa não calibrada</p>
+      </article>
+      <article class="kpi-card kpi-freshness">
+        <div class="kpi-top"><span class="kpi-label">Qualidade dos dados</span><span class="tag status">FEEDS</span></div>
+        <strong id="kpi-freshness" class="kpi-value">—</strong>
+        <p id="kpi-freshness-note">observação · previsão · risco</p>
+      </article>
+    </section>
+
+    <section class="panel comparison-panel" aria-labelledby="comparison-title">
+      <div class="panel-heading">
+        <div><p class="section-kicker">Estação por estação</p><h2 id="comparison-title">O mesmo horizonte, duas leituras</h2></div>
+        <span class="panel-note">A visão “Toda a bacia” não é uma probabilidade conjunta.</span>
+      </div>
+      <div id="station-comparison" class="station-comparison" aria-live="polite"><div class="loading-block">Carregando Santa Tereza e Muçum…</div></div>
+    </section>
+
+    <section class="panel zones-panel" aria-labelledby="zones-title">
+      <div class="panel-heading">
+        <div><p class="section-kicker">Onde a chuva está?</p><h2 id="zones-title">Cabeceira, meio da bacia e estação</h2></div>
+        <span class="panel-note">Camadas espaciais oficiais serão conectadas quando a geometria e o tempo de propagação forem validados.</span>
+      </div>
+      <div id="zone-cards" class="zone-grid" aria-live="polite"></div>
+    </section>
+
+    <section class="panel model-panel" aria-labelledby="models-title">
+      <div class="panel-heading">
+        <div><p class="section-kicker">Comparação das fontes</p><h2 id="models-title">O que cada modelo mostra?</h2></div>
+        <span class="panel-note" id="model-panel-note">Valores do horizonte selecionado</span>
+      </div>
+      <div id="model-cards" class="model-grid" aria-live="polite"><div class="loading-block">Carregando modelos…</div></div>
+      <div class="scale-note"><span class="bar-key rain-key"></span> chuva em milímetros <span class="bar-key risk-key"></span> score/probabilidade em escala 0–100 <span class="bar-key soil-key"></span> solo em m³/m³</div>
+    </section>
+
+    <section class="panel timeline-panel" aria-labelledby="timeline-title">
+      <div class="panel-heading">
+        <div><p class="section-kicker">Memória das cheias</p><h2 id="timeline-title">O que aconteceu antes dos eventos?</h2></div>
+        <span class="panel-note" id="timeline-note">Eventos catalogados nos feeds</span>
+      </div>
+      <div id="event-timeline" class="event-timeline" aria-live="polite"><div class="loading-block">Carregando eventos…</div></div>
+      <p class="method-note">Os eventos são evidências de pesquisa. “Candidato” não significa evento confirmado por todos os órgãos; a situação de cada registro aparece no cartão.</p>
+    </section>
+
+    <section class="lower-grid">
+      <section class="panel evaluation-panel" aria-labelledby="evaluation-title">
+        <div class="panel-heading"><div><p class="section-kicker">Desempenho retrospectivo</p><h2 id="evaluation-title">O modelo encontrou as cheias?</h2></div></div>
+        <div id="evaluation-content" aria-live="polite"><div class="loading-block">Carregando avaliação…</div></div>
+      </section>
+      <section class="panel provenance-panel" aria-labelledby="provenance-title">
+        <div class="panel-heading"><div><p class="section-kicker">Rastreabilidade</p><h2 id="provenance-title">De onde vêm os dados?</h2></div></div>
+        <div id="provenance-content" aria-live="polite"><div class="loading-block">Carregando proveniência…</div></div>
+      </section>
+    </section>
+
+    <section class="sources-card" aria-labelledby="sources-title">
+      <div><p class="section-kicker">Abrir os detalhes</p><h2 id="sources-title">Páginas e arquivos auditáveis</h2><p>Use as páginas individuais para o gráfico de nível e a previsão curta. Os JSONs abaixo são os artefatos utilizados por este dashboard.</p></div>
+      <div class="source-links">
+        <a href="pesquisa_status.html">Santa Tereza · painel técnico →</a>
+        <a href="pesquisa_status_mucum.html">Muçum · painel técnico →</a>
+        <a href="assets/data/research_visual_patterns_santa_tereza_latest.json">Santa Tereza · dados visuais (JSON) →</a>
+        <a href="assets/data/research_visual_patterns_mucum_latest.json">Muçum · dados visuais (JSON) →</a>
+      </div>
+    </section>
+
+    <footer class="bacia-footer">
+      <span>PREVINE · dashboard de pesquisa · horário apresentado em BRT quando o fuso é conhecido</span>
+      <strong>Não é alerta oficial. Não substitui ANA, SGB, SACE ou Defesa Civil.</strong>
+    </footer>
+  </main>
+  <script src="assets/js/bacia_dashboard.js" defer></script>
+</body>
+</html>

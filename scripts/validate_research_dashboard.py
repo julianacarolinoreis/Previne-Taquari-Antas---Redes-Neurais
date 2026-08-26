@@ -30,6 +30,11 @@ VISUALS = {
     "santa_tereza": ROOT / "assets" / "data" / "research_visual_patterns_santa_tereza_latest.json",
 }
 PAGES = (ROOT / "pesquisa_status.html", ROOT / "pesquisa_status_mucum.html")
+BASIN_PAGE = ROOT / "dashboard_bacia.html"
+BASIN_ASSETS = (
+    ROOT / "assets" / "css" / "bacia_dashboard.css",
+    ROOT / "assets" / "js" / "bacia_dashboard.js",
+)
 REQUIRED_HORIZONS = (24, 48, 72, 120, 168)
 
 
@@ -228,6 +233,52 @@ def check_pages(errors: list[dict]) -> dict:
     return result
 
 
+def check_basin_page(errors: list[dict]) -> dict:
+    """Check the single, reader-facing view that joins both stations.
+
+    This is deliberately a static contract check.  The browser still loads
+    the feeds at runtime, while this check prevents publishing a page whose
+    controls or data labels silently disappeared.
+    """
+    result: dict[str, object] = {"file": BASIN_PAGE.name}
+    if not BASIN_PAGE.exists():
+        errors.append({"severity": "FAIL", "code": "missing_basin_page", "file": BASIN_PAGE.name})
+        return result
+    text = BASIN_PAGE.read_text(encoding="utf-8")
+    parser = IdParser()
+    parser.feed(text)
+    duplicates = sorted({ident for ident in parser.ids if parser.ids.count(ident) > 1})
+    if duplicates:
+        errors.append({"severity": "FAIL", "code": "basin_duplicate_ids", "file": BASIN_PAGE.name, "detail": duplicates})
+    required = (
+        "data-bacia-dashboard",
+        "assets/css/bacia_dashboard.css",
+        "assets/js/bacia_dashboard.js",
+        'data-station="basin"',
+        'data-station="santa"',
+        'data-station="mucum"',
+        'data-horizon="24"',
+        'data-horizon="72"',
+        'data-horizon="168"',
+        "probabilidade",
+        "não é a mesma coisa que probabilidade de inundação",
+    )
+    missing = [token for token in required if token not in text]
+    if missing:
+        errors.append({"severity": "FAIL", "code": "basin_dashboard_contract_missing", "file": BASIN_PAGE.name, "detail": missing})
+    result.update({"sha256": sha256(BASIN_PAGE), "ids": len(parser.ids), "duplicate_ids": duplicates, "required_tokens": len(required) - len(missing)})
+    for asset in BASIN_ASSETS:
+        if not asset.exists():
+            errors.append({"severity": "FAIL", "code": "missing_basin_asset", "file": asset.relative_to(ROOT).as_posix()})
+    js = ROOT / "assets" / "js" / "bacia_dashboard.js"
+    js_text = js.read_text(encoding="utf-8") if js.exists() else ""
+    for token, code in (("loadFeeds", "basin_feed_loader"), ("stationSnapshot", "basin_station_normalization"), ("renderProvenance", "basin_provenance"), ("Não há probabilidade conjunta publicada", "basin_no_joint_probability")):
+        if token not in js_text:
+            errors.append({"severity": "FAIL", "code": code})
+    result["bacia_dashboard.js"] = {"sha256": sha256(js) if js.exists() else None}
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", default=str(REPORT))
@@ -237,9 +288,10 @@ def main() -> int:
     binaries = check_binary_decisions(errors)
     visuals = check_visual_patterns(errors)
     pages = check_pages(errors)
+    basin = check_basin_page(errors)
     status = "FAIL" if any(e["severity"] == "FAIL" for e in errors) else "DEGRADED" if errors else "PASS"
     reference = max((x.get("generated_at_utc") or "" for x in feeds.values()), default=None)
-    report = {"schema_version": 1, "status": status, "research_only": True, "checked_reference_utc": reference, "feeds": feeds, "binary_decisions": binaries, "visual_patterns": visuals, "pages": pages, "issues": errors, "publication_decision": status}
+    report = {"schema_version": 1, "status": status, "research_only": True, "checked_reference_utc": reference, "feeds": feeds, "binary_decisions": binaries, "visual_patterns": visuals, "pages": pages, "basin_dashboard": basin, "issues": errors, "publication_decision": status}
     target = Path(args.report)
     if not target.is_absolute():
         target = ROOT / target

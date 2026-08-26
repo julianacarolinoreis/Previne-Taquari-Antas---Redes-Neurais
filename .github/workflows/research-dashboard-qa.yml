@@ -5,8 +5,11 @@ on:
   push:
     branches: [main]
     paths:
+      - 'dashboard_bacia.html'
       - 'pesquisa_status.html'
       - 'pesquisa_status_mucum.html'
+      - 'assets/css/bacia_dashboard.css'
+      - 'assets/js/bacia_dashboard.js'
       - 'assets/js/pv_dashboard.js'
       - 'assets/js/research_patterns_dashboard.js'
       - 'assets/css/pv_dashboard.css'
@@ -14,6 +17,7 @@ on:
       - 'scripts/build_binary_research_decision.py'
       - 'scripts/build_visual_research_patterns.py'
       - 'scripts/test_visual_research_patterns.py'
+      - 'scripts/test_bacia_dashboard.py'
       - 'scripts/validate_research_dashboard.py'
       - '.github/workflows/research-dashboard-qa.yml'
   schedule:
@@ -53,6 +57,9 @@ jobs:
 
       - name: Testa feeds compactos do painel visual
         run: python -m unittest scripts/test_visual_research_patterns.py -v
+
+      - name: Testa contrato do dashboard integrado
+        run: python -m unittest scripts/test_bacia_dashboard.py -v
 
       - name: Valida contratos da dashboard
         id: qa
