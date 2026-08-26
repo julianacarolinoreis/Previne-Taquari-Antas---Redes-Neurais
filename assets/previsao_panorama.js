@@ -2,7 +2,7 @@
   'use strict';
 
   const SVG_NS='http://www.w3.org/2000/svg';
-  const state={config:null,history:null,live:null,researchRisk:null,researchReview:null,historyError:null,liveError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null};
+  const state={config:null,history:null,live:null,researchRisk:null,researchReview:null,historyError:null,liveError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null,errorWindowHours:168};
   // Os feeds da pesquisa são deliberadamente tratados como dados com idade.
   // Um valor velho continua auditável, mas não deve parecer uma previsão atual.
   const FRESHNESS={liveMinutes:30,historyHours:24,researchWeatherHours:18,researchProbabilityHours:36,researchReviewHours:72};
@@ -540,6 +540,185 @@
     if(accessible) accessible.textContent=`Histórico do nível do rio de ${fmtWhen(first.time)} até ${fmtWhen(last.time)}, com ${points.length} observações. ${parts.join('. ')}.`;
   }
 
+  const ERROR_HIT_LIMIT_CM=10;
+  const ERROR_WINDOW_LABELS={168:'últimos 7 dias',72:'últimos 3 dias',24:'últimas 24 horas',12:'últimas 12 horas'};
+
+  function escapeHtml(value){
+    return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  }
+
+  function errorHorizonLabel(key,hours){
+    const normalized=String(key||'').toLowerCase();
+    if(normalized==='2h_versao_b') return '2 h B';
+    if(normalized==='8h_v002') return '8 h V002';
+    if(/cascata/.test(normalized)) return `${hours} h · cascata (legado)`;
+    if(normalized==='8h') return '8 h V001';
+    return hours===null?'horizonte não identificado':`${hours} h`;
+  }
+
+  // A linha do relatório é um caso de previsão em um horário-alvo. O erro só
+  // nasce quando existe leitura ANA exatamente no mesmo horário-alvo.
+  function errorReportRows(history){
+    const rows=history&&Array.isArray(history.registros)?history.registros:[];
+    const unique=new Map();
+    rows.forEach(row=>{
+      if(!row||typeof row!=='object') return;
+      const target=parseWhen(row.hora_alvo), predicted=number(row.nivel_previsto_cm);
+      const hours=horizonHours(row.horizonte,row), model=String(row.modelo||'').trim();
+      if(!target||predicted===null||hours===null||!model) return;
+      const observed=number(row.observado_cm);
+      const status=String(row.status_auditoria||'sem status');
+      const item={
+        row,target,predicted,observed,hours,model,status,
+        error:status==='conferido'&&observed!==null?predicted-observed:null,
+        groupKey:`${String(row.horizonte||hours)}|${model}`,
+        horizonKey:String(row.horizonte||`${hours}h`)
+      };
+      const key=String(row.id||`${item.groupKey}|${target.toISOString()}`);
+      const old=unique.get(key);
+      const auditNew=String(row.auditado_em||row.criado_em||'');
+      const auditOld=old?String(old.row.auditado_em||old.row.criado_em||''):'';
+      if(!old||auditNew>=auditOld) unique.set(key,item);
+    });
+    return Array.from(unique.values());
+  }
+
+  function errorReportGroups(rows,referenceTime,windowHours){
+    const groups=new Map();
+    rows.forEach(item=>{
+      let group=groups.get(item.groupKey);
+      if(!group){
+        group={key:item.groupKey,horizonKey:item.horizonKey,hours:item.hours,model:item.model,label:errorHorizonLabel(item.horizonKey,item.hours),rows:[]};
+        groups.set(item.groupKey,group);
+      }
+      group.rows.push(item);
+    });
+    const cutoff=referenceTime.getTime()-windowHours*36e5;
+    return Array.from(groups.values()).map(group=>{
+      const windowRows=group.rows.filter(item=>item.target.getTime()>=cutoff&&item.target.getTime()<=referenceTime.getTime()).sort((a,b)=>a.target-b.target);
+      const points=windowRows.filter(item=>item.error!==null);
+      return {...group,windowRows,points,pending:windowRows.filter(item=>item.error===null)};
+    }).sort((a,b)=>a.hours-b.hours||a.label.localeCompare(b.label,'pt-BR')||a.model.localeCompare(b.model,'pt-BR'));
+  }
+
+  function errorSummary(points){
+    const n=points.length;
+    if(!n) return {n:0,mae:null,rmse:null,bias:null,maxAbs:null,hits:0,hitPct:null};
+    const absolute=points.map(item=>Math.abs(item.error));
+    const squared=points.map(item=>item.error*item.error);
+    const hits=absolute.filter(value=>value<=ERROR_HIT_LIMIT_CM).length;
+    return {
+      n,
+      mae:absolute.reduce((sum,value)=>sum+value,0)/n,
+      rmse:Math.sqrt(squared.reduce((sum,value)=>sum+value,0)/n),
+      bias:points.reduce((sum,item)=>sum+item.error,0)/n,
+      maxAbs:Math.max(...absolute),
+      hits,
+      hitPct:hits/n*100
+    };
+  }
+
+  function errorPath(points,field,X,Y,maxGapMs){
+    return points.map((point,index)=>{
+      const previous=points[index-1];
+      const startsNew=!previous||point.target-previous.target>maxGapMs;
+      return (startsNew?'M':'L')+X(point.target.getTime()).toFixed(1)+','+Y(point[field]).toFixed(1);
+    }).join(' ');
+  }
+
+  function drawErrorChart(svg,points,referenceTime,windowHours,title){
+    if(!svg) return;
+    svg.replaceChildren();
+    const W=680,H=250,m={l:54,r:16,t:18,b:42};
+    const xMin=referenceTime.getTime()-windowHours*36e5,xMax=referenceTime.getTime();
+    const values=points.flatMap(point=>[point.observed,point.predicted]).filter(value=>Number.isFinite(value));
+    const rawMin=values.length?Math.min(...values):0,rawMax=values.length?Math.max(...values):100;
+    const rawSpan=Math.max(20,rawMax-rawMin),pad=Math.max(8,rawSpan*.16);
+    const yMin=Math.max(0,rawMin-pad),yMax=Math.max(yMin+30,rawMax+pad);
+    const X=time=>m.l+(W-m.l-m.r)*(time-xMin)/(xMax-xMin||1);
+    const Y=value=>m.t+(H-m.t-m.b)*(1-(value-yMin)/(yMax-yMin));
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    svg.setAttribute('aria-label',`${title}. Comparação entre nível observado e nível previsto pela RNA.`);
+    const gridColor='var(--panorama-grid-soft, #edf2ef)',muted='var(--muted, #61716a)';
+    for(let i=0;i<=4;i++){
+      const y=m.t+(H-m.t-m.b)*i/4,value=yMax-(yMax-yMin)*i/4;
+      svg.appendChild(svgNode('line',{x1:m.l,y1:y,x2:W-m.r,y2:y,stroke:gridColor,'stroke-width':1}));
+      svg.appendChild(svgNode('text',{x:m.l-8,y:y+4,'text-anchor':'end','font-size':10,fill:muted},nf0.format(value)+' cm'));
+    }
+    const spanHours=windowHours,crossDay=new Date(xMin).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})!==new Date(xMax).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'});
+    for(let i=0;i<=4;i++){
+      const time=xMin+(xMax-xMin)*i/4,x=X(time);
+      svg.appendChild(svgNode('line',{x1:x,y1:m.t,x2:x,y2:H-m.b,stroke:gridColor,'stroke-width':1}));
+      svg.appendChild(svgNode('text',{x,y:H-m.b+22,'text-anchor':'middle','font-size':10,fill:muted},axisTimeLabel(new Date(time),spanHours,crossDay)));
+    }
+    svg.appendChild(svgNode('line',{x1:m.l,y1:H-m.b,x2:W-m.r,y2:H-m.b,stroke:'var(--panorama-grid, #dfe7e2)','stroke-width':1.2}));
+    if(!points.length){
+      svg.appendChild(svgNode('text',{x:W/2,y:H/2,'text-anchor':'middle','font-size':12,fill:muted},'Nenhum resultado conferido nesta janela'));
+      return;
+    }
+    const observed=points.filter(point=>point.observed!==null),predicted=points.filter(point=>point.predicted!==null);
+    const maxGapMs=Math.max(6,windowHours/4)*36e5;
+    if(observed.length>1) svg.appendChild(svgNode('path',{d:errorPath(observed,'observed',X,Y,maxGapMs),fill:'none',stroke:'var(--panorama-observed, #1e5fbf)','stroke-width':2.6,'stroke-linejoin':'round','stroke-linecap':'round'}));
+    if(predicted.length>1) svg.appendChild(svgNode('path',{d:errorPath(predicted,'predicted',X,Y,maxGapMs),fill:'none',stroke:'var(--panorama-forecast-2, #b85c00)','stroke-width':2.1,'stroke-dasharray':'7 5','stroke-linejoin':'round','stroke-linecap':'round'}));
+    observed.forEach(point=>{
+      const mark=svgNode('circle',{cx:X(point.target.getTime()),cy:Y(point.observed),r:3.3,fill:'var(--panorama-observed, #1e5fbf)'});
+      mark.appendChild(svgNode('title',{},`Observado em ${fmtWhen(point.target)}: ${nf1.format(point.observed)} cm`));
+      svg.appendChild(mark);
+    });
+    predicted.forEach(point=>{
+      const hit=point.error!==null&&Math.abs(point.error)<=ERROR_HIT_LIMIT_CM,x=X(point.target.getTime()),y=Y(point.predicted);
+      const mark=hit
+        ?svgNode('circle',{cx:x,cy:y,r:4.1,fill:'#17754f',stroke:'var(--panel, #fff)','stroke-width':1.4})
+        :svgNode('rect',{x:x-3.8,y:y-3.8,width:7.6,height:7.6,rx:1,fill:'#b45b00',stroke:'var(--panel, #fff)','stroke-width':1.4});
+      const errorText=point.error===null?'erro indisponível':`${point.error>0?'+':''}${nf1.format(point.error)} cm`;
+      mark.appendChild(svgNode('title',{},`RNA em ${fmtWhen(point.target)}: ${nf1.format(point.predicted)} cm · observado ${nf1.format(point.observed)} cm · erro ${errorText} · ${hit?'dentro':'fora'} de ±${ERROR_HIT_LIMIT_CM} cm`));
+      svg.appendChild(mark);
+    });
+  }
+
+  function renderErrorReport(){
+    const grid=document.getElementById('rna-error-grid'),summaryBox=document.getElementById('rna-error-summary'),source=document.getElementById('rna-error-source');
+    if(!grid||!summaryBox) return;
+    const hours=ERROR_WINDOW_LABELS[state.errorWindowHours]?state.errorWindowHours:168;
+    document.querySelectorAll('[data-error-window]').forEach(button=>{
+      const on=Number(button.dataset.errorWindow)===hours;
+      button.classList.toggle('on',on);button.setAttribute('aria-pressed',on?'true':'false');
+    });
+    const rows=errorReportRows(state.history);
+    const confirmed=rows.filter(item=>item.error!==null);
+    if(!confirmed.length){
+      summaryBox.innerHTML='<div class="error-report-empty error-report-error">Ainda não há previsões conferidas o suficiente para calcular este relatório.</div>';
+      grid.innerHTML='<div class="error-report-empty">O histórico de previsões conferidas está indisponível ou sem leitura ANA exatamente no horário-alvo.</div>';
+      if(source) source.textContent='O relatório só calcula erro quando a previsão e o observado pertencem ao mesmo horário-alvo.';
+      return;
+    }
+    const referenceTime=confirmed.reduce((latest,item)=>item.target>latest?item.target:latest,confirmed[0].target);
+    const groups=errorReportGroups(rows,referenceTime,hours);
+    const windowPoints=groups.flatMap(group=>group.points),windowMissing=groups.flatMap(group=>group.pending);
+    const overall=errorSummary(windowPoints),windowLabel=ERROR_WINDOW_LABELS[hours];
+    summaryBox.innerHTML=[
+      `<div class="error-summary-item"><span>Previsões conferidas</span><strong>${nf0.format(overall.n)}</strong><small>${windowLabel}</small></div>`,
+      `<div class="error-summary-item"><span>Acertos · até ±${ERROR_HIT_LIMIT_CM} cm</span><strong>${overall.n?nf1.format(overall.hitPct)+'%':'—'}</strong><small>${nf0.format(overall.hits)} de ${nf0.format(overall.n)}</small></div>`,
+      `<div class="error-summary-item"><span>MAE geral</span><strong>${overall.mae===null?'—':nf1.format(overall.mae)+' cm'}</strong><small>todas as RNAs com resultado</small></div>`,
+      `<div class="error-summary-item"><span>Sem resultado</span><strong>${nf0.format(windowMissing.length)}</strong><small>aguardando ou sem dado ANA</small></div>`
+    ].join('');
+    if(source) source.textContent=`Janela de ${windowLabel}, encerrada em ${fmtWhen(referenceTime)}. ${groups.length} combinações de horizonte e RNA; somente previsões conferidas entram nos erros.`;
+    grid.innerHTML=groups.map((group,index)=>{
+      const metric=errorSummary(group.points),missing=group.pending.length;
+      const badgeClass=!metric.n?'empty':missing?'partial':'';
+      const badge=!metric.n?'sem resultado':missing?'parcial':'completo';
+      const model=escapeHtml(group.model);
+      const note=!metric.n
+        ?(group.windowRows.length?`${group.windowRows.length} previsão(ões) registrada(s) na janela, mas sem leitura ANA conferida no horário-alvo.`:'Nenhuma previsão deste modelo caiu na janela selecionada.')
+        :`${missing?`${missing} sem resultado nesta janela. `:''}Acertos: ${nf0.format(metric.hits)} de ${nf0.format(metric.n)} com erro absoluto até ${ERROR_HIT_LIMIT_CM} cm.`;
+      return `<article class="error-card"><div class="error-card-head"><div><h4>${escapeHtml(group.label)}</h4><p>${model}</p></div><span class="error-card-badge ${badgeClass}">${badge}</span></div><div class="error-chart-shell"><svg class="error-chart" data-error-chart="${index}" viewBox="0 0 680 250" role="img" aria-label="${escapeHtml(group.label)} · observado e RNA"></svg></div><div class="error-kpis"><div class="error-kpi"><span>conferidas</span><strong>${nf0.format(metric.n)}</strong></div><div class="error-kpi"><span>MAE</span><strong>${metric.mae===null?'—':nf1.format(metric.mae)+' cm'}</strong></div><div class="error-kpi"><span>RMSE</span><strong>${metric.rmse===null?'—':nf1.format(metric.rmse)+' cm'}</strong></div><div class="error-kpi"><span>viés</span><strong>${metric.bias===null?'—':`${metric.bias>0?'+':''}${nf1.format(metric.bias)} cm`}</strong></div><div class="error-kpi"><span>maior erro</span><strong class="${metric.maxAbs!==null&&metric.maxAbs>ERROR_HIT_LIMIT_CM?'bad':'good'}">${metric.maxAbs===null?'—':nf1.format(metric.maxAbs)+' cm'}</strong></div></div><p class="error-card-note">${note}</p></article>`;
+    }).join('');
+    grid.querySelectorAll('[data-error-chart]').forEach(svg=>{
+      const group=groups[Number(svg.dataset.errorChart)];
+      drawErrorChart(svg,group.points,referenceTime,hours,`${group.label} · ${group.model}`);
+    });
+  }
+
   function renderMetrics(current,items,trend,flood,cota){
     const box=document.getElementById('overview-metrics');
     if(!box) return;
@@ -723,6 +902,7 @@
     });
     renderLegend(items,previous24.length>0||previousWeek.length>0);
     renderWeekCoverage(weekPoints);
+    renderErrorReport();
     renderMetrics(current,items,trend,flood,state.config.cotaInundCm);
     renderRobotStatus();
     renderResearchRisk();
@@ -781,6 +961,15 @@
       if(!b) return;
       const mode=id==='mode-s'?'simple':id==='mode-t'?'tech':'panorama';
       b.onclick=()=>setMode(mode);
+    });
+    document.querySelectorAll('[data-error-window]').forEach(button=>{
+      button.onclick=()=>{
+        const selected=Number(button.dataset.errorWindow);
+        if(ERROR_WINDOW_LABELS[selected]){
+          state.errorWindowHours=selected;
+          renderErrorReport();
+        }
+      };
     });
     setMode('simple');
     loadHistory();
