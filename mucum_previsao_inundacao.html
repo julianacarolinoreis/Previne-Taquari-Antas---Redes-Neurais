@@ -785,6 +785,16 @@ function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
     partes.push(`nível agora ANA até <b>${fmtWhen(D.telemetria_ultima_em)}</b>${nivel}`);
   }
   if(D.consultado_em) partes.push(`robô consultou <b>${fmtWhen(D.consultado_em)}</b>`);
+  const auditInputs=D.auditoria_inputs||{};
+  const nInputs=Number(D.inputs_total||auditInputs.n_inputs);
+  const nExatos=Number(auditInputs.n_exatos);
+  if(Number.isFinite(nInputs)){
+    const exatosTxt=Number.isFinite(nExatos)?`${nExatos}/${nInputs} exatos`:`${nInputs} declarados`;
+    const contrato=auditInputs.usa_interpolacao_nivel===false&&auditInputs.usa_vizinho_nivel===false
+      ?'sem interpolação/vizinho'
+      :'contrato de nível a conferir';
+    partes.push(`inputs da RNA: <b>${exatosTxt}</b> · ${contrato}`);
+  }
   partes.push(...liveFreshnessHtml(D));
   if(D.status && D.status!=='ok') partes.push(`<b>${escLive(D.status)}</b>`);
   const faltantes=liveMissingInputsHtml(D);
