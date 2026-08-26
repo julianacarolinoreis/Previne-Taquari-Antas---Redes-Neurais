@@ -684,6 +684,12 @@
       const on=Number(button.dataset.errorWindow)===hours;
       button.classList.toggle('on',on);button.setAttribute('aria-pressed',on?'true':'false');
     });
+    if(!state.history&&!state.historyError){
+      summaryBox.innerHTML='<div class="error-report-empty">Carregando o histórico auditado para calcular os erros.</div>';
+      grid.innerHTML='<div class="error-report-empty">Carregando previsões conferidas…</div>';
+      if(source) source.textContent='Cada gráfico compara, no mesmo horário-alvo, o nível observado com o nível previsto pela RNA.';
+      return;
+    }
     const rows=errorReportRows(state.history);
     const confirmed=rows.filter(item=>item.error!==null);
     if(!confirmed.length){
@@ -702,7 +708,8 @@
       `<div class="error-summary-item"><span>MAE geral</span><strong>${overall.mae===null?'—':nf1.format(overall.mae)+' cm'}</strong><small>todas as RNAs com resultado</small></div>`,
       `<div class="error-summary-item"><span>Sem resultado</span><strong>${nf0.format(windowMissing.length)}</strong><small>aguardando ou sem dado ANA</small></div>`
     ].join('');
-    if(source) source.textContent=`Janela de ${windowLabel}, encerrada em ${fmtWhen(referenceTime)}. ${groups.length} combinações de horizonte e RNA; somente previsões conferidas entram nos erros.`;
+    const historyWhen=state.history&&state.history.atualizado_em;
+    if(source) source.textContent=`Janela de ${windowLabel}, encerrada em ${fmtWhen(referenceTime)}. ${groups.length} combinações de horizonte e RNA; somente previsões conferidas entram nos erros.${historyWhen?` Snapshot público atualizado em ${fmtWhen(historyWhen)}.`:''}`;
     grid.innerHTML=groups.map((group,index)=>{
       const metric=errorSummary(group.points),missing=group.pending.length;
       const badgeClass=!metric.n?'empty':missing?'partial':'';
