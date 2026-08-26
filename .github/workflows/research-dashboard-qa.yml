@@ -18,7 +18,10 @@ permissions:
   contents: write
 
 concurrency:
-  group: previne-main-publisher
+  # A QA precisa terminar mesmo enquanto um robô publica um feed. Os
+  # publicadores de dados continuam serializados em previne-main-publisher;
+  # esta validação usa um cadeado separado para não ser cancelada por eles.
+  group: previne-research-qa
   cancel-in-progress: false
 
 jobs:
