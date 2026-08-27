@@ -17,7 +17,6 @@ vel_nivel D-Xh = n(t) - n(t-Xh). Cada .mat é validável com `--validar <mat>`
 EXPERIMENTAL — não é alerta oficial.
 """
 import sys, os, json, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
-import bisect
 import numpy as np
 from scipy.io import loadmat
 
@@ -36,7 +35,6 @@ INPUTS_JSON = os.path.join(RAIZ, "assets", "data", "mucum_modelo_inputs.json")
 MAT_DIR = os.path.join(RAIZ, "assets", "mat")
 SAIDA = os.path.join(RAIZ, "previsao_ao_vivo_mucum.json")
 HISTORICO_SAIDA = os.path.join(RAIZ, "historico_previsoes_ao_vivo_mucum.json")
-NIVEL_MAX_GAP = dt.timedelta(minutes=150)
 AUDITORIA_MAX_GAP = dt.timedelta(minutes=30)
 BANKFULL_CM = 500            # nível normal / zero da mancha (régua 86510000)
 ALVO = "86510000"
@@ -119,9 +117,9 @@ def _extrair_serie(root):
         try: valor = float(str(niv).replace(",", "."))
         except Exception: continue
         if ultima_raw is None or t > ultima_raw[0]: ultima_raw = (t, valor)
-        # Mantem leituras intermediarias (15/30/45 min). Os lags continuam
-        # inteiros em horas, mas podem ser calculados a partir de qualquer
-        # timestamp comum entre as estacoes.
+        # Mantem leituras intermediarias (15/30/45 min) para a auditoria e
+        # para identificar a leitura mais recente. Os inputs da RNA, porém,
+        # só usam timestamps exatos na hora cheia.
         serie[t.replace(second=0, microsecond=0)] = valor
     return serie, ultima_raw
 
@@ -156,58 +154,14 @@ def buscar_ana(cod, dias=6, tentativas_rede=3):
             time.sleep(4 * (attempt + 1))
     return {}
 
-def _vizinhos_serie(serie, t):
-    if not serie:
-        return None, None
-    keys = sorted(serie)
-    i = bisect.bisect_left(keys, t)
-    antes = keys[i - 1] if i > 0 else None
-    depois = keys[i] if i < len(keys) else None
-    return antes, depois
-
-def nivel(serie, t, max_gap=NIVEL_MAX_GAP):
-    """Nível em t com interpolação/vizinho em buracos curtos da ANA."""
-    if not serie:
-        return None
-    if t in serie:
-        return serie[t]
-    antes, depois = _vizinhos_serie(serie, t)
-    if antes is not None and depois is not None and antes != depois:
-        if (t - antes) <= max_gap and (depois - t) <= max_gap:
-            span = (depois - antes).total_seconds()
-            if span > 0:
-                w = (t - antes).total_seconds() / span
-                return serie[antes] * (1.0 - w) + serie[depois] * w
-    candidatos = []
-    if antes is not None and (t - antes) <= max_gap:
-        candidatos.append(antes)
-    if depois is not None and (depois - t) <= max_gap:
-        candidatos.append(depois)
-    if not candidatos:
-        return None
-    melhor = min(candidatos, key=lambda k: abs((k - t).total_seconds()))
-    return serie[melhor]
-
-
 def nivel_exato(serie, t):
     """Nível observado exatamente em ``t``; não interpola nem usa vizinho."""
     return None if not serie else serie.get(t)
 
-def observar_nivel(serie, alvo, max_gap=AUDITORIA_MAX_GAP):
-    if not serie or alvo is None:
-        return None, None
-    if alvo in serie:
-        return float(serie[alvo]), alvo
-    antes, depois = _vizinhos_serie(serie, alvo)
-    candidatos = []
-    if antes is not None and (alvo - antes) <= max_gap:
-        candidatos.append(antes)
-    if depois is not None and (depois - alvo) <= max_gap:
-        candidatos.append(depois)
-    if not candidatos:
-        return None, None
-    usado = min(candidatos, key=lambda k: abs((k - alvo).total_seconds()))
-    return float(serie[usado]), usado
+def observar_nivel(serie, alvo):
+    """Observa apenas a leitura ANA exatamente na hora-alvo."""
+    valor = nivel_exato(serie, alvo)
+    return (float(valor), alvo) if valor is not None else (None, None)
 
 
 # ---------- inputs / inferência ----------
@@ -531,7 +485,7 @@ def main():
     estacoes = sorted({e for c in disponiveis for e in c["estacoes"]})
     series = {e: buscar_ana(e) for e in estacoes}
     horas_muc = sorted(series.get(ALVO, {}).keys())
-    nivel_agora = nivel(series.get(ALVO, {}), horas_muc[-1]) if horas_muc else None
+    nivel_agora = nivel_exato(series.get(ALVO, {}), horas_muc[-1]) if horas_muc else None
     if not horas_muc:
         # tenta o 2h só para registrar o estado
         escrever(base_saida(disponiveis[0], nivel_agora, None, None, "sem dado recente em Muçum"), {}); return
