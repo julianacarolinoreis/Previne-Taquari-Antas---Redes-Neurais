@@ -49,6 +49,17 @@ class BasinDashboardTests(unittest.TestCase):
         self.assertIn("PROBABILIDADE · experimental", script)
         self.assertIn("PROXY · célula espacial", script)
 
+    def test_headwater_context_is_wired_on_station_pages(self) -> None:
+        for name in ("pesquisa_status.html", "pesquisa_status_mucum.html"):
+            text = (ROOT / name).read_text(encoding="utf-8")
+            self.assertIn('data-basin-feed="assets/data/research_weather_santa_tereza_latest.json"', text)
+            self.assertIn('id="pv-basin-context"', text)
+            self.assertIn("Chuva na bacia e nas cabeceiras", text)
+        script = (ROOT / "assets/js/pv_dashboard.js").read_text(encoding="utf-8")
+        for token in ("normalizeBasin", "renderBasinContext", "Cabeceiras / montante", "Maior célula do recorte"):
+            self.assertIn(token, script)
+        self.assertIn("Cabeceiras / montante", (ROOT / "assets/js/bacia_dashboard.js").read_text(encoding="utf-8"))
+
     def test_compact_feeds_have_expected_horizons(self) -> None:
         for name in ("research_visual_patterns_santa_tereza_latest.json", "research_visual_patterns_mucum_latest.json"):
             feed = json.loads((ROOT / "assets/data" / name).read_text(encoding="utf-8"))

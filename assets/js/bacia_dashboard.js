@@ -29,9 +29,9 @@
     }
   };
   const zoneDefinitions = [
-    ['Cabeceira', 'montante da bacia', 'A chuva nesta zona precisa de uma máscara espacial e de tempo de propagação validados.', 'var(--blue)', '20%'],
-    ['Meio da bacia', 'células dos modelos', 'A média e o máximo publicados não permitem dizer, sozinhos, em qual município a chuva caiu.', 'var(--green)', '48%'],
-    ['Perto da estação', 'ponto de leitura', 'A chuva no ponto e o nível ANA/SGB são mostrados quando a fonte os publica.', 'var(--amber)', '72%'],
+    ['Cabeceiras / montante', 'água que desce para a bacia', 'A média espacial do recorte IFS funciona como proxy de chuva nas cabeceiras; não é uma máscara hidrológica oficial.', 'var(--blue)', '42%'],
+    ['Recorte da bacia', 'média e máximo das células', 'A média mostra o cenário típico e o máximo mostra onde a chuva pode se concentrar dentro do recorte.', 'var(--green)', '66%'],
+    ['Perto da estação', 'ponto de leitura', 'A chuva no ponto e o nível ANA/SGB são mostrados quando a fonte os publica.', 'var(--amber)', '82%'],
     ['Jusante / foz', 'propagação', 'Ainda não há série zonal independente e tempo de propagação validados neste painel.', 'var(--purple)', '33%']
   ];
 
@@ -102,8 +102,10 @@
     const level = first(liveLevel, obs.level_cm);
     const levelAt = live.telemetria_ultima_em_utc || live.telemetria_ultima_em || live.nivel_rio_agora_em || obs.observed_at_utc;
     const pointRain = first(w.rain_point_mm, p.point_mm, p.ifs_direct_mm);
-    const meanRain = first(w.basin_mean_mm, p.ifs_mean_mm, w.rain_ecmwf_direct_mm, p.ifs_direct_mm);
-    const maxRain = first(w.basin_max_mm, p.ifs_max_mm, w.rain_ifs_proxy_mm, p.ifs_proxy_mm);
+    const basinMean = first(w.basin_mean_mm, p.ifs_mean_mm);
+    const basinMax = first(w.basin_max_mm, p.ifs_max_mm);
+    const meanRain = first(basinMean, w.rain_ecmwf_direct_mm, p.ifs_direct_mm);
+    const maxRain = first(basinMax, w.rain_ifs_proxy_mm, p.ifs_proxy_mm);
     const directRain = first(w.rain_ecmwf_direct_mm, p.ifs_direct_mm);
     const ifsProxyRain = first(w.rain_ifs_proxy_mm, p.ifs_proxy_mm);
     const gefsProxyRain = first(w.rain_gefs_proxy_mm, p.gefs_proxy_mm);
@@ -115,7 +117,7 @@
     const forecastAge = ageHours(generated);
     const observedAge = ageHours(levelAt);
     const coverage = num(w.rain_hours_available);
-    return { key, horizon: hours, station: s, pattern: f.pattern, weather: f.weather, live, p, w, obs, level, levelAt, pointRain, meanRain, maxRain, directRain, ifsProxyRain, gefsProxyRain, soil, risk, score, decision, generated, forecastAge, observedAge, coverage };
+    return { key, horizon: hours, station: s, pattern: f.pattern, weather: f.weather, live, p, w, obs, level, levelAt, pointRain, basinMean, basinMax, meanRain, maxRain, directRain, ifsProxyRain, gefsProxyRain, soil, risk, score, decision, generated, forecastAge, observedAge, coverage };
   }
   function qualityFor(snapshot) {
     const obsGood = snapshot.level != null && (snapshot.observedAge == null || snapshot.observedAge <= 3);
@@ -205,15 +207,28 @@
   }
 
   function zoneValue(snap, zoneIndex) {
+    if (!snap && state.station === 'basin' && zoneIndex === 0) {
+      const a = stationSnapshot('santa', state.horizon);
+      return { value: a.basinMean == null ? '—' : `${fmt(a.basinMean, 1)} mm`, note: `média do recorte montante · ${stations.santa.label} · +${state.horizon} h` };
+    }
     if (!snap && state.station === 'basin' && zoneIndex === 1) {
-      const a = stationSnapshot('santa', state.horizon); const b = stationSnapshot('mucum', state.horizon);
-      return { value: `S ${fmt(a.meanRain, 1)} · M ${fmt(b.meanRain, 1)} mm`, note: 'médias do recorte · Santa / Muçum' };
+      const a = stationSnapshot('santa', state.horizon);
+      return { value: a.basinMean == null && a.basinMax == null ? '—' : `média ${fmt(a.basinMean, 1)} · máx. ${fmt(a.basinMax, 1)} mm`, note: 'recorte espacial IFS montante · referência comum da bacia' };
     }
     if (!snap && state.station === 'basin' && zoneIndex === 2) {
       const a = stationSnapshot('santa', state.horizon); const b = stationSnapshot('mucum', state.horizon);
       return { value: `S ${fmt(a.pointRain, 1)} · M ${fmt(b.pointRain, 1)} mm`, note: 'ponto/célula próxima · Santa / Muçum' };
     }
     if (!snap) return { value: '—', note: 'sem estação selecionada' };
+    if (zoneIndex === 0) {
+      const reference = snap.basinMean == null ? stationSnapshot('santa', state.horizon).basinMean : snap.basinMean;
+      return { value: reference == null ? '—' : `${fmt(reference, 1)} mm`, note: `média do recorte montante IFS · +${state.horizon} h${snap.basinMean == null ? ' · referência Santa Tereza' : ''}` };
+    }
+    if (zoneIndex === 1) {
+      const reference = snap.basinMean == null && snap.basinMax == null ? stationSnapshot('santa', state.horizon) : snap;
+      const mean = reference.basinMean, max = reference.basinMax;
+      return { value: mean == null && max == null ? '—' : `média ${fmt(mean, 1)} · máx. ${fmt(max, 1)} mm`, note: `recorte espacial IFS · +${state.horizon} h${reference.key === 'santa' && snap.key !== 'santa' ? ' · referência Santa Tereza' : ''}` };
+    }
     if (zoneIndex === 2) {
       const r = displayRain(snap);
       return { value: r.value == null ? '—' : `${fmt(r.value, 2)} mm`, note: `${r.label} · +${state.horizon} h` };
@@ -224,7 +239,7 @@
     const snap = state.station === 'basin' ? null : stationSnapshot(state.station, state.horizon);
     $('zone-cards').innerHTML = zoneDefinitions.map((z, i) => {
       const v = zoneValue(snap, i);
-      return `<article class="zone-card" style="--zone-color:${z[3]};--zone-width:${z[4]}"><h3>${esc(z[0])}</h3><span class="zone-role">${esc(z[1])}</span><p><strong>${esc(v.value)}</strong><br>${esc(v.note)}</p><span class="zone-state">${i === 2 && v.value !== '—' ? 'valor publicado' : 'integração pendente'}</span></article>`;
+      return `<article class="zone-card" style="--zone-color:${z[3]};--zone-width:${z[4]}"><h3>${esc(z[0])}</h3><span class="zone-role">${esc(z[1])}</span><p><strong>${esc(v.value)}</strong><br>${esc(v.note)}</p><span class="zone-state">${v.value !== '—' ? 'proxy publicado' : 'integração pendente'}</span></article>`;
     }).join('');
   }
 

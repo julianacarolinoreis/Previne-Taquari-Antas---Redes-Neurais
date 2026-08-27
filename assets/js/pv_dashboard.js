@@ -4,11 +4,11 @@
   if(!root)return;
   const qs=s=>root.querySelector(s), id=s=>document.getElementById(s);
   const station=root.dataset.station||'estação';
-  const weatherUrl=root.dataset.weatherFeed, probabilityUrl=root.dataset.probFeed, liveUrl=root.dataset.liveFeed;
+  const weatherUrl=root.dataset.weatherFeed, basinUrl=root.dataset.basinFeed, probabilityUrl=root.dataset.probFeed, liveUrl=root.dataset.liveFeed;
   const threshold=Number(root.dataset.threshold||0);
   const br=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   const pct=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
-  const state={weather:null,probability:null,live:null,mode:'rain',loadedAt:null,loading:false};
+  const state={weather:null,basin:null,probability:null,live:null,mode:'rain',loadedAt:null,loading:false};
   const el=(sel)=>qs(sel);
   const safeNum=v=>v==null||!Number.isFinite(Number(v))?null:Number(v);
   const parseFeedDate=v=>{
@@ -41,6 +41,18 @@
       horizons.splice(0,horizons.length,...f.map(mapHorizon).filter(h=>Number.isFinite(h.hours)).sort((a,b)=>a.hours-b.hours));
     }
     return {raw:d,generated:d.generated_at_utc,obs,level:safeNum(obs.level_cm),horizons,source:d.forecast_provider||d.forecast?.source||d.forecast_source||'feed meteorológico',soil:d.soil_moisture||d.soil||null,answer:d.answer_24h||null,risk:d.risk_model||d.rna||null,ecmwfDirect:d.ecmwf_direct||null};
+  }
+  function normalizeBasin(d){
+    if(!d)return null;
+    const rows=Array.isArray(d.horizons)?d.horizons.map(h=>({
+      hours:Number(h.hours??h.horizon_hours),
+      mean:safeNum(h.basin_mean_mm??h.rain_ifs_proxy_mm),
+      max:safeNum(h.basin_max_mm),
+      point:safeNum(h.rain_ecmwf_direct_mm??h.rain_point_mm),
+      coverage:safeNum(h.rain_hours_available),
+      raw:h
+    })).filter(h=>Number.isFinite(h.hours)).sort((a,b)=>a.hours-b.hours):[];
+    return {raw:d,generated:d.generated_at_utc,horizons:rows,source:d.forecast_provider||d.forecast_model||d.forecast_source||'feed espacial',kind:d.forecast_kind||'recorte espacial',aggregation:d.basin_aggregation||null};
   }
   function normalizeProbability(d){
     if(!d)return null;
@@ -117,6 +129,46 @@
       setText('#pv-chart-title','Chuva média prevista na bacia'+directLabel);setText('#pv-chart-unit','mm médios');setText('#pv-chart-subtitle',(directLabel?'ECMWF Open Data / IFS · ':'')+'Média espacial estimada no recorte da bacia, acumulada até cada horizonte.');setText('#pv-chart-note','Cada barra é a média espacial prevista em milímetros — não é o volume total de água da bacia nem probabilidade de inundação. A chuva no ponto da estação aparece no detalhe; a fonte está indicada no título.');
     }
   }
+  function basinRow(rows,hours){
+    if(!rows.length)return null;
+    return rows.find(h=>h.hours===hours)||rows.find(h=>h.hours>=hours)||rows[rows.length-1];
+  }
+  function renderBasinContext(){
+    const node=el('#pv-basin-context');
+    if(!node)return;
+    const basin=state.basin, rows=basin?.horizons||[], pointRows=state.weather?.horizons||[];
+    if(!rows.length){
+      setText('#pv-basin-state','Sem recorte espacial');
+      setHtml('#pv-basin-kpis','<article class="pv-basin-empty">O feed espacial da bacia ainda não está disponível nesta rodada.</article>');
+      setHtml('#pv-basin-horizons','<div class="pv-empty">Sem chuva espacial publicada.</div>');
+      setText('#pv-basin-source','Aguardando uma rodada com média e máximo do recorte IFS.');
+      return;
+    }
+    const reference=basinRow(rows,72)||rows[0];
+    const point=basinRow(pointRows,reference.hours)||pointRows[0]||{};
+    const mean=reference.mean, max=reference.max, pointValue=station==='mucum'?(point.ecmwf_direct??point.rain):point.rain;
+    setText('#pv-basin-state',`Recorte publicado · ${formatTime(basin.generated)}`);
+    const aggregation=basin.aggregation||{};
+    const sharedMuçum=station==='mucum'&&String(basin.raw?.station_code||'')!=='86510000';
+    setText('#pv-basin-subtitle',sharedMuçum?'Muçum compartilha a célula IFS do recorte montante publicado. A leitura separa a chuva espacial da chuva prevista diretamente no ponto.':'O ponto da estação é apenas uma célula. Aqui aparece o recorte montante usado para acompanhar a água que pode chegar à estação.');
+    setHtml('#pv-basin-kpis',[
+      `<article><span>Cabeceiras / montante</span><strong>${mm(mean)}</strong><small>média espacial IFS · +${reference.hours} h</small></article>`,
+      `<article><span>Maior célula do recorte</span><strong>${mm(max)}</strong><small>máximo espacial IFS · +${reference.hours} h</small></article>`,
+      `<article><span>${station==='mucum'?'Ponto de Muçum':'Ponto da estação'}</span><strong>${mm(pointValue)}</strong><small>IFS direto · +${reference.hours} h</small></article>`
+    ].join(''));
+    const maxScale=Math.max(1,...rows.flatMap(h=>[h.mean,h.max].filter(v=>v!=null)));
+    setHtml('#pv-basin-horizons',rows.map(h=>{
+      const meanWidth=h.mean==null?0:Math.max(3,Math.min(100,h.mean/maxScale*100));
+      const maxWidth=h.max==null?0:Math.max(3,Math.min(100,h.max/maxScale*100));
+      const p=basinRow(pointRows,h.hours)||{};
+      const pv=station==='mucum'?(p.ecmwf_direct??p.rain):p.rain;
+      return `<article class="pv-basin-horizon"><div class="pv-basin-horizon-head"><span>+${h.hours} h</span><b>${mm(h.mean)}</b></div><div class="pv-basin-meter"><span>média cabeceira</span><i><em style="width:${meanWidth.toFixed(1)}%"></em></i><strong>${mm(h.mean)}</strong></div><div class="pv-basin-meter max"><span>máximo recorte</span><i><em style="width:${maxWidth.toFixed(1)}%"></em></i><strong>${mm(h.max)}</strong></div><div class="pv-basin-point">ponto ${mm(pv)}</div></article>`;
+    }).join(''));
+    const coverage=reference.coverage==null?'cobertura não informada':`${reference.coverage}/${reference.hours} h disponíveis`;
+    setText('#pv-basin-note',`A média e o máximo são proxies espaciais em milímetros para o recorte montante. No horizonte +${reference.hours} h: média ${mm(mean)}, máximo ${mm(max)} e ponto ${mm(pointValue)}. Isso ajuda a ver onde a chuva se concentra, mas não é volume total da bacia nem probabilidade de inundação.`);
+    const cellNote=aggregation.basin_grid_cells_used==null?'':` ${aggregation.basin_grid_cells_used} células IFS representativas foram usadas${aggregation.target_station_excluded?' sem contar a estação-alvo na média.':''}`;
+    setText('#pv-basin-source',`Fonte: ${basin.source} · tipo: ${basin.kind} · emitido: ${formatTime(basin.generated)} · ${coverage}.${cellNote} A geometria hidrológica e o tempo de propagação ainda não estão validados como máscara oficial de cabeceiras; por isso este é um proxy espacial de pesquisa.`);
+  }
   function renderSide(){
     const w=state.weather, hs=w?.horizons||[], h24=hs.find(h=>h.hours===24)||hs[0], h168=hs.find(h=>h.hours===168)||hs[hs.length-1], now=state.live?.rows?.[0], prob=(state.probability?.rows||[]).find(x=>x.hours===168), fresh=state.probability&&ageHours(state.probability.generated)<=36;
     const rain=h168?.basin??h168?.rain, soil=h168?.soil, signals=[];
@@ -163,12 +215,12 @@
     setText('#pv-summary',headline);
     setText('#pv-updated',`Fonte meteorológica: ${w?.source||'feed meteorológico'} · feed: ${formatTime(w?.generated)} · robô ao vivo: ${formatTime(state.live?.generated)}`);
   }
-  function render(){setFeedState();renderKpis();renderBars();renderSide();renderDetailTable();renderSummary();}
+  function render(){setFeedState();renderKpis();renderBars();renderBasinContext();renderSide();renderDetailTable();renderSummary();}
   async function load(){
     if(state.loading)return;state.loading=true;const button=el('#pv-refresh');if(button){button.setAttribute('aria-busy','true');button.textContent='Atualizando…'}
     const get=url=>url?fetch(url+(url.includes('?')?'&':'?')+'cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null):Promise.resolve(null);
-    const [weather,probability,live]=await Promise.all([get(weatherUrl),get(probabilityUrl),get(liveUrl)]);
-    state.weather=normalizeWeather(weather);state.probability=normalizeProbability(probability);state.live=normalizeLive(live);state.loadedAt=new Date();render();state.loading=false;if(button){button.removeAttribute('aria-busy');button.textContent='Atualizar dados'}
+    const [weather,basin,probability,live]=await Promise.all([get(weatherUrl),get(basinUrl||weatherUrl),get(probabilityUrl),get(liveUrl)]);
+    state.weather=normalizeWeather(weather);state.basin=normalizeBasin(basin||((station==='santa_tereza')?weather:null));state.probability=normalizeProbability(probability);state.live=normalizeLive(live);state.loadedAt=new Date();render();state.loading=false;if(button){button.removeAttribute('aria-busy');button.textContent='Atualizar dados'}
   }
   document.addEventListener('click',e=>{const mode=e.target.closest('[data-pv-mode]');if(mode&&root.contains(mode)){state.mode=mode.dataset.pvMode;root.classList.toggle('pv-mode-river',state.mode==='river');root.querySelectorAll('[data-pv-mode]').forEach(b=>{const active=b===mode;b.classList.toggle('active',active);b.setAttribute('aria-selected',active?'true':'false');b.setAttribute('aria-pressed',active?'true':'false');});render();}});
   const refresh=el('#pv-refresh');if(refresh)refresh.addEventListener('click',load);
