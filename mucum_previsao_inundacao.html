@@ -769,7 +769,14 @@ function liveFreshnessHtml(D){
   const idadeAna=ageMin(D.telemetria_ultima_em);
   if(idadeRobo!=null && idadeRobo>60) partes.push(`<b>robô sem publicar há ${durMin(idadeRobo)}</b>`);
   if(idadeAna!=null && idadeAna>120) partes.push(`<b>ANA sem hora nova há ${durMin(idadeAna)}</b>`);
-  if(!partes.length && D.status_dados) partes.push(`<b>${escLive(D.status_dados)}</b>`);
+  if(!partes.length && D.status_dados){
+    const status=String(D.status_dados);
+    const statusTelemetryStale=/telemetria\s+atrasada/i.test(status);
+    const statusForPanel=statusTelemetryStale && idadeAna!=null && idadeAna<=120
+      ?`telemetria há ${durMin(idadeAna)} (dentro do limite de 2 h)`
+      :status;
+    partes.push(`<b>${escLive(statusForPanel)}</b>`);
+  }
   return partes;
 }
 function liveInfoHtml(D,P,hz,tipoTxt,modoTxt){
