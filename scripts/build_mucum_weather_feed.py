@@ -28,6 +28,7 @@ LATITUDE = -29.1672
 LONGITUDE = -51.8686
 FLOOD_THRESHOLD_CM = 1800
 HORIZONS = (24, 48, 72, 120, 168)
+BRT = timezone(timedelta(hours=-3))
 
 
 def utc_now() -> datetime:
@@ -35,10 +36,17 @@ def utc_now() -> datetime:
 
 
 def parse_hour(value: str) -> datetime:
-    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    parsed = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
+        # Os robôs antigos publicam alguns horários sem fuso em BRT. Sem
+        # esta marcação, a leitura seria tratada como UTC e pareceria três
+        # horas mais antiga no feed meteorológico.
+        return parsed.replace(tzinfo=BRT).astimezone(timezone.utc)
     return parsed.astimezone(timezone.utc)
+
+
+def iso_utc(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def fetch_open_meteo() -> tuple[dict, str]:
@@ -61,16 +69,26 @@ def read_live(path: Path, now: datetime) -> dict:
         return {"state": "unknown_or_stale", "message": "Robô de nível não disponível."}
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
-        observed = raw.get("telemetria_ultima_em") or raw.get("nivel_rio_agora_em")
+        # Preferir o campo explícito em UTC quando o robô o publica. O campo
+        # sem fuso é mantido como fallback e é interpretado como BRT por
+        # ``parse_hour``.
+        observed = (
+            raw.get("telemetria_ultima_em_utc")
+            or raw.get("nivel_rio_agora_em_utc")
+            or raw.get("telemetria_ultima_em")
+            or raw.get("nivel_rio_agora_em")
+        )
         age = None
+        observed_at_utc = None
         if observed:
-            age = max(0.0, (now - parse_hour(observed)).total_seconds() / 60.0)
+            observed_at_utc = parse_hour(observed)
+            age = max(0.0, (now - observed_at_utc).total_seconds() / 60.0)
         level = raw.get("telemetria_ultima_nivel_cm", raw.get("nivel_rio_agora_cm"))
         fresh = age is not None and age <= 90
         return {
             "state": "fresh" if fresh else "unknown_or_stale",
             "level_cm": level,
-            "observed_at_utc": observed,
+            "observed_at_utc": iso_utc(observed_at_utc) if observed_at_utc else None,
             "age_minutes": round(age, 1) if age is not None else None,
             "source": "robô ao vivo Muçum / estação ANA 86510000",
             "message": "Leitura recente do robô ao vivo." if fresh else "Leitura atrasada; não usar como normalidade.",
