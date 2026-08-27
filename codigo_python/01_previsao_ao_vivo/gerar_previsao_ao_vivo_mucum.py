@@ -383,11 +383,20 @@ def conferir_historico(registros, series):
     serie_alvo = series.get(ALVO, {})
     ultima_hora = max(serie_alvo) if serie_alvo else None
     for reg in registros:
-        if reg.get("status_auditoria") == "conferido":
-            continue
         alvo = _parse_hora(reg.get("hora_alvo", ""))
         if alvo is None:
             continue
+        observado_em = _parse_hora(reg.get("observado_em", ""))
+        if reg.get("status_auditoria") == "conferido" and observado_em == alvo:
+            continue
+        # Registros antigos podem ter sido conferidos por vizinhança. Eles
+        # precisam ser reabertos para não conservar uma comparação inventada.
+        reg.update({
+            "observado_cm": None,
+            "observado_em": None,
+            "erro_cm": None,
+            "erro_abs_cm": None,
+        })
         obs, obs_em = observar_nivel(serie_alvo, alvo)
         if obs is not None:
             previsto = reg.get("nivel_previsto_cm")
@@ -401,8 +410,15 @@ def conferir_historico(registros, series):
                 "auditado_em": agora_brt().isoformat(timespec="seconds"),
             })
         elif ultima_hora and (alvo + AUDITORIA_MAX_GAP) <= ultima_hora:
-            reg["status_auditoria"] = "sem_dado_ana"
-            reg["auditado_em"] = agora_brt().isoformat(timespec="seconds")
+            reg.update({
+                "status_auditoria": "sem_dado_ana",
+                "auditado_em": agora_brt().isoformat(timespec="seconds"),
+            })
+        else:
+            reg.update({
+                "status_auditoria": "aguardando",
+                "auditado_em": agora_brt().isoformat(timespec="seconds"),
+            })
     return registros
 
 
