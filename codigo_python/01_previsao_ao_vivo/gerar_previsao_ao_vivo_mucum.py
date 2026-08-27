@@ -96,6 +96,8 @@ def carregar_modelos():
 # ---------- telemetria ANA (idêntica ao robô do Santa Tereza) ----------
 def _local(tag): return tag.rsplit("}", 1)[-1]
 def _parse_hora(dh):
+    if dh in (None, ""):
+        return None
     dh = dh.strip()
     try: return dt.datetime.fromisoformat(dh.replace("T", " ")[:19])
     except Exception:
