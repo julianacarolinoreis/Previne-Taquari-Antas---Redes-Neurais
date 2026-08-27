@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FEED = ROOT / "previsao_ao_vivo_mucum.json"
 REQUIRED = {"2h", "4h"}
 REQUIRED_FIELDS = {"horizonte", "horizonte_h", "modelo", "tipo", "status"}
-EXPECTED_INPUTS = {"2h": 10, "4h": 13}
+EXPECTED_INPUTS = {"2h": 14, "4h": 13}
 
 
 def validate_data(data: dict) -> None:

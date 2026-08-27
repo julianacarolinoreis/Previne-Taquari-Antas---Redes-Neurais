@@ -56,6 +56,12 @@ def _cfg(m, hh):
         "tipo": m.get("tipo_modelo", "ALT"), "modelo": mid,
         "combo": m.get("combo_id", mid),
         "papel": m.get("papel", "principal"),
+        "versao": m.get("versao"),
+        "modelo_sha256": m.get("modelo_sha256"),
+        "referencia_auditavel": m.get("referencia_auditavel"),
+        "referencia_auditavel_sha256": m.get("referencia_auditavel_sha256"),
+        "input_contract_version": m.get("input_contract_version", "hourly_exact_v1"),
+        "input_grade": m.get("input_grade", "hourly_exact"),
         "mat": os.path.join(RAIZ, mat) if mat.startswith("assets") else os.path.join(MAT_DIR, os.path.basename(mat)),
         "inputs": ins,
         "estacoes": sorted({str(i["estacao"]) for i in ins}),
@@ -208,7 +214,8 @@ def observar_nivel(serie, alvo, max_gap=AUDITORIA_MAX_GAP):
 def montar_inputs(cfg, series, t):
     """Monta os inputs de um modelo na hora t, na ordem exata (campo `ordem`).
        nivel -> n(t - defasagem_h);
-       vel_nivel -> n(t) - n(t - defasagem_h)."""
+       vel_nivel -> n(t) - n(t - defasagem_h);
+       acel_nivel -> [n(t)-n(t-1h)] - [n(t-h)-n(t-(h+1)h)]."""
     def n(cod, h=0):
         s = series.get(str(cod))
         return None if s is None else nivel_exato(s, t - dt.timedelta(hours=h))
@@ -220,6 +227,10 @@ def montar_inputs(cfg, series, t):
         elif tipo == "vel_nivel":
             a, b = n(cod, 0), n(cod, h)
             x.append(None if None in (a, b) else a - b)
+        elif tipo in ("acel_nivel", "aceleracao"):
+            a, b = n(cod, 0), n(cod, 1)
+            c, d = n(cod, h), n(cod, h + 1)
+            x.append(None if None in (a, b, c, d) else (a - b) - (c - d))
         else:
             raise ValueError(f"tipo de input não suportado: {tipo}")
     return x
@@ -239,14 +250,38 @@ def diagnosticar_inputs(cfg, x):
         })
     return faltantes
 
+
+def carregar_mat(mat_path):
+    """Carrega MAT clássico e MATLAB v7.3 com o mesmo contrato de arrays."""
+    try:
+        return loadmat(mat_path, squeeze_me=True)
+    except NotImplementedError:
+        # O modelo V001 foi salvo como MATLAB v7.3 (HDF5). h5py é instalado
+        # pelo workflow do robô somente para suportar esse formato.
+        import h5py
+        with h5py.File(mat_path, "r") as f:
+            return {
+                k: np.asarray(f[k])
+                for k in f.keys()
+                if isinstance(f[k], h5py.Dataset) and not k.startswith("#")
+            }
+
+
 def prever(mat_path, x):
-    m = loadmat(mat_path, squeeze_me=True)
-    wh = np.atleast_2d(np.asarray(m["wh"], float)); bh = np.asarray(m["bh"], float).ravel()
-    ws = np.asarray(m["ws"], float).ravel(); bs = float(np.atleast_1d(m["bs"])[0])
+    m = carregar_mat(mat_path)
     ae = np.asarray(m["ae"], float).ravel(); be = np.asarray(m["be"], float).ravel()
-    au = float(np.atleast_1d(m["au"])[0]); bu = float(np.atleast_1d(m["bu"])[0])
+    wh = np.atleast_2d(np.asarray(m["wh"], float))
+    # MATLAB v7.3/HDF5 expõe a matriz transposta em relação ao loadmat
+    # clássico: (n_inputs, n_hidden), enquanto o forward usa (hidden, inputs).
+    if wh.shape[1] != len(ae) and wh.shape[0] == len(ae):
+        wh = wh.T
+    if wh.shape[1] != len(ae):
+        raise ValueError(f"arquitetura incompatível: wh={wh.shape}, n_inputs={len(ae)}")
+    bh = np.asarray(m["bh"], float).ravel()
+    ws = np.asarray(m["ws"], float).ravel(); bs = float(np.asarray(m["bs"], float).ravel()[0])
+    au = float(np.asarray(m["au"], float).ravel()[0]); bu = float(np.asarray(m["bu"], float).ravel()[0])
     logsig = lambda z: 1.0 / (1.0 + np.exp(-z))
-    pn = (np.asarray(x, float) - be) / ae
+    pn = (np.asarray(x, float).ravel() - be) / ae
     h = logsig(wh.dot(pn) + bh)
     yn = logsig(ws.dot(h) + bs)
     return float(yn * au + bu)   # variação prevista (cm)
@@ -290,6 +325,11 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_ba
         "horizonte": cfg["horizonte"], "rotulo": cfg["rotulo"], "horizonte_h": cfg["horizonte_h"],
         "tipo": cfg["tipo"], "modelo": cfg["modelo"], "combo": cfg["combo"], "bankfull_cm": BANKFULL_CM,
         "modelo_papel": cfg.get("papel", "principal"),
+        "versao": cfg.get("versao"),
+        "modelo_sha256": cfg.get("modelo_sha256"),
+        "referencia_auditavel": cfg.get("referencia_auditavel"),
+        "referencia_auditavel_sha256": cfg.get("referencia_auditavel_sha256"),
+        "input_labels": [i.get("nome") for i in cfg.get("inputs", [])],
         "nivel_modelo_cm": (round(nivel_base) if nivel_base is not None else None),
         "nivel_base_cm": (round(nivel_base) if nivel_base is not None else None),
         "nivel_rio_agora_cm": nivel_raw_cm,
@@ -299,8 +339,8 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_ba
         "nivel_previsto_cm": (round(nivel_prev) if nivel_prev is not None else None),
         "inputs_total": cfg["n_inputs"], "inputs_faltantes_n": len(faltantes or []),
         "inputs_faltantes": faltantes or [], "estacoes_status": [],
-        "input_contract_version": "hourly_exact_v1",
-        "input_grade": "hourly_exact",
+        "input_contract_version": cfg.get("input_contract_version", "hourly_exact_v1"),
+        "input_grade": cfg.get("input_grade", "hourly_exact"),
         "auditoria_inputs": {
             "status": "NORMAL" if nivel_prev is not None and not faltantes else "ATENCAO",
             "formula_conferida_com_montador": True,
@@ -548,19 +588,29 @@ def main():
 
 
 def validar(mat_path):
-    m = loadmat(mat_path, squeeze_me=True)
-    n_in = np.asarray(m["wh"], float).shape[1]
-    print("n_inputs:", n_in, "| n_neuronios:", np.asarray(m["wh"], float).shape[0])
-    X = np.asarray(m["DADOS"], float)[:, :n_in]
+    m = carregar_mat(mat_path)
+    n_in = np.asarray(m["ae"], float).size
+    wh = np.atleast_2d(np.asarray(m["wh"], float))
+    n_hidden = wh.shape[0] if wh.shape[1] == n_in else wh.shape[1]
+    print("n_inputs:", n_in, "| n_neuronios:", n_hidden)
+    dados = np.asarray(m["DADOS"], float)
+    if dados.ndim == 2 and dados.shape[0] == n_in + 1 and dados.shape[1] != n_in + 1:
+        dados = dados.T
+    X = dados[:, :n_in]
     be = np.asarray(m["be"], float).ravel(); ae = np.asarray(m["ae"], float).ravel()
     if "ptot" in m:
-        err = float(np.max(np.abs(((X - be) / ae).T - np.asarray(m["ptot"], float))))
+        pn = (X - be) / ae
+        ptot = np.asarray(m["ptot"], float)
+        if ptot.shape != pn.shape and ptot.T.shape == pn.shape:
+            ptot = ptot.T
+        err = float(np.max(np.abs(pn - ptot)))
         print(f"(X-be)/ae == ptot: max|erro| = {err:.6f}  (esperado ~0)")
     pred = np.array([prever(mat_path, X[i]) for i in range(len(X))])
-    if "pred_target_tot" in m:
-        ref = np.asarray(m["pred_target_tot"], float).ravel()
+    ref_key = "pred_target_tot" if "pred_target_tot" in m else ("Tctot" if "Tctot" in m else None)
+    if ref_key:
+        ref = np.asarray(m[ref_key], float).ravel()
         k = min(len(pred), len(ref)); rmse = float(np.sqrt(np.mean((pred[:k] - ref[:k]) ** 2)))
-        print(f"RMSE(forward vs pred_target_tot) = {rmse:.6f} cm (esperado ~0) n={k}")
+        print(f"RMSE(forward vs {ref_key}) = {rmse:.6f} cm (esperado ~0) n={k}")
 
 
 if __name__ == "__main__":
