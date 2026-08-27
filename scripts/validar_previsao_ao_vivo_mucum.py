@@ -8,11 +8,13 @@ the feed through its status instead of being silently published as a value.
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 FEED = ROOT / "previsao_ao_vivo_mucum.json"
+HISTORY = ROOT / "historico_previsoes_ao_vivo_mucum.json"
 REQUIRED = {"2h", "4h"}
 REQUIRED_FIELDS = {"horizonte", "horizonte_h", "modelo", "tipo", "status"}
 EXPECTED_INPUTS = {"2h": 14, "4h": 13}
@@ -58,9 +60,33 @@ def validate_data(data: dict) -> None:
             raise SystemExit(f"{key} precisa publicar exatamente {EXPECTED_INPUTS[key]} inputs")
 
 
+def parse_timestamp(value):
+    if value in (None, ""):
+        return None
+    return datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+
+
+def validate_history(data: dict) -> None:
+    if not isinstance(data, dict) or not isinstance(data.get("registros"), list):
+        raise SystemExit("histórico Muçum precisa conter registros")
+    for index, item in enumerate(data["registros"]):
+        if not isinstance(item, dict) or item.get("status_auditoria") != "conferido":
+            continue
+        base = parse_timestamp(item.get("hora_modelo"))
+        target = parse_timestamp(item.get("hora_alvo"))
+        observed = parse_timestamp(item.get("observado_em"))
+        if base is None or target is None or observed is None:
+            raise SystemExit(f"histórico {index} conferido sem horários completos")
+        if base.minute != 0 or base.second != 0 or target.minute != 0 or target.second != 0:
+            raise SystemExit(f"histórico {index} conferido fora da hora cheia")
+        if observed != target:
+            raise SystemExit(f"histórico {index} conferido com observado diferente da hora-alvo")
+
+
 def main() -> int:
     validate_data(json.loads(FEED.read_text(encoding="utf-8")))
-    print("OK feed ao vivo Muçum: 2h/4h; sem legado cascata")
+    validate_history(json.loads(HISTORY.read_text(encoding="utf-8")))
+    print("OK feed ao vivo Muçum: 2h/4h; inputs exatos; histórico horário")
     return 0
 
 

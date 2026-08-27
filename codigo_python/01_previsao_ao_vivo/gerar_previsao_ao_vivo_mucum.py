@@ -342,6 +342,28 @@ def salvar_historico(registros):
         json.dump(pacote, f, ensure_ascii=False, indent=1)
 
 
+def hora_cheia(value):
+    parsed = _parse_hora(value or "")
+    return parsed if parsed is not None and parsed.minute == 0 and parsed.second == 0 else None
+
+
+def normalizar_historico_grade(registros):
+    """Retira da série de erros os registros legados fora da hora cheia."""
+    agora = agora_brt().isoformat(timespec="seconds")
+    for reg in registros:
+        if hora_cheia(reg.get("hora_modelo")) is not None and hora_cheia(reg.get("hora_alvo")) is not None:
+            continue
+        reg.update({
+            "observado_cm": None,
+            "observado_em": None,
+            "erro_cm": None,
+            "erro_abs_cm": None,
+            "status_auditoria": "fora_grade_horaria",
+            "auditado_em": agora,
+        })
+    return registros
+
+
 def upsert_previsao_historico(registros, saida):
     if saida.get("status") != "ok" or saida.get("nivel_previsto_cm") is None or not saida.get("hora_modelo"):
         return registros
@@ -384,7 +406,7 @@ def conferir_historico(registros, series):
     ultima_hora = max(serie_alvo) if serie_alvo else None
     for reg in registros:
         alvo = _parse_hora(reg.get("hora_alvo", ""))
-        if alvo is None:
+        if alvo is None or hora_cheia(reg.get("hora_modelo")) is None or hora_cheia(reg.get("hora_alvo")) is None:
             continue
         observado_em = _parse_hora(reg.get("observado_em", ""))
         if reg.get("status_auditoria") == "conferido" and observado_em == alvo:
@@ -548,7 +570,7 @@ def main():
         if horizonte not in horizontes and ultimo_status is not None:
             horizontes[horizonte] = ultimo_status
 
-    historico = carregar_historico()
+    historico = normalizar_historico_grade(carregar_historico())
     for out in horizontes.values():
         historico = upsert_previsao_historico(historico, out)
     historico = conferir_historico(historico, series)
