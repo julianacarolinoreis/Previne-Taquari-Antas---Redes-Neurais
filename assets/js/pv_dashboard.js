@@ -146,7 +146,7 @@
     }
     const reference=basinRow(rows,72)||rows[0];
     const point=basinRow(pointRows,reference.hours)||pointRows[0]||{};
-    const mean=reference.mean, max=reference.max, pointValue=station==='mucum'?(point.ecmwf_direct??point.rain):point.rain;
+    const mean=reference.mean, max=reference.max, pointValue=point.ecmwf_direct??point.rain, pointSource=point.ecmwf_direct==null?'ponto publicado':'IFS direto';
     setText('#pv-basin-state',`Recorte publicado · ${formatTime(basin.generated)}`);
     const aggregation=basin.aggregation||{};
     const sharedMuçum=station==='mucum'&&String(basin.raw?.station_code||'')!=='86510000';
@@ -154,7 +154,7 @@
     setHtml('#pv-basin-kpis',[
       `<article><span>Cabeceiras / montante</span><strong>${mm(mean)}</strong><small>média espacial IFS · +${reference.hours} h</small></article>`,
       `<article><span>Maior célula do recorte</span><strong>${mm(max)}</strong><small>máximo espacial IFS · +${reference.hours} h</small></article>`,
-      `<article><span>${station==='mucum'?'Ponto de Muçum':'Ponto da estação'}</span><strong>${mm(pointValue)}</strong><small>IFS direto · +${reference.hours} h</small></article>`
+      `<article><span>${station==='mucum'?'Ponto de Muçum':'Ponto da estação'}</span><strong>${mm(pointValue)}</strong><small>${pointSource} · +${reference.hours} h</small></article>`
     ].join(''));
     const maxScale=Math.max(1,...rows.flatMap(h=>[h.mean,h.max].filter(v=>v!=null)));
     setHtml('#pv-basin-horizons',rows.map(h=>{
