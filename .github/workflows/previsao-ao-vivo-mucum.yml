@@ -2,22 +2,19 @@ name: Previsao ao vivo - Mucum
 
 on:
   schedule:
-    # Plantao frequente de Mucum, deslocado 1 min de Santa Tereza para reduzir corrida de push.
+    # Plantao frequente de Mucum, deslocado 1 min de Santa Tereza.
+    # A agenda e a unica fonte automatica deste workflow; isso evita duas
+    # execucoes para o mesmo ciclo e cancelamentos desnecessarios no Pages.
     - cron: '3-59/5 * * * *'
   workflow_dispatch:
-  workflow_run:
-    workflows:
-      - Previsao ao vivo - Santa Tereza
-    types: [completed]
 
 jobs:
   prever:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     concurrency:
       group: previsao-ao-vivo-mucum
-      cancel-in-progress: false
+      cancel-in-progress: true
     permissions:
       contents: write
     steps:
