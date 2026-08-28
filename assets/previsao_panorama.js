@@ -2,7 +2,7 @@
   'use strict';
 
   const SVG_NS='http://www.w3.org/2000/svg';
-  const state={config:null,history:null,live:null,researchRisk:null,researchReview:null,historyError:null,liveError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null,errorWindowHours:168};
+  const state={config:null,history:null,live:null,auditCatalog:null,researchRisk:null,researchReview:null,historyError:null,auditCatalogError:null,liveError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null,errorWindowHours:168};
   // Os feeds da pesquisa são deliberadamente tratados como dados com idade.
   // Um valor velho continua auditável, mas não deve parecer uma previsão atual.
   const FRESHNESS={liveMinutes:30,historyHours:24,researchWeatherHours:18,researchProbabilityHours:36,researchReviewHours:72};
@@ -111,6 +111,16 @@
       }catch(e){ lastError=e; }
     }
     state.historyError=lastError||new Error('histórico indisponível');
+    render();
+  }
+
+  async function loadAuditCatalog(){
+    if(!state.config||!state.config.auditCatalogUrl) return;
+    try{
+      const fetched=await fetchJson(state.config.auditCatalogUrl);
+      if(!fetched||!Array.isArray(fetched.models)) throw new Error('catálogo de modelos inválido');
+      state.auditCatalog=fetched; state.auditCatalogError=null;
+    }catch(e){ state.auditCatalog=null; state.auditCatalogError=e; }
     render();
   }
 
@@ -543,7 +553,9 @@
   function errorHorizonLabel(key,hours){
     const normalized=String(key||'').toLowerCase();
     if(normalized==='2h_versao_b') return '2 h B';
+    if(normalized==='4h_versao_b') return '4 h comparativo';
     if(normalized==='8h_v002') return '8 h V002';
+    if(normalized==='8h_versao_b') return '8 h comparativo';
     if(/cascata/.test(normalized)) return `${hours} h · cascata (legado)`;
     if(normalized==='8h') return '8 h V001';
     return hours===null?'horizonte não identificado':`${hours} h`;
@@ -551,8 +563,8 @@
 
   // A linha do relatório é um caso de previsão em um horário-alvo. O erro só
   // nasce quando existe leitura ANA exatamente no mesmo horário-alvo.
-  function errorReportRows(history){
-    const rows=history&&Array.isArray(history.registros)?history.registros:[];
+  function errorReportRows(historyOrRows){
+    const rows=Array.isArray(historyOrRows)?historyOrRows:(historyOrRows&&Array.isArray(historyOrRows.registros)?historyOrRows.registros:[]);
     const unique=new Map();
     rows.forEach(row=>{
       if(!row||typeof row!=='object') return;
@@ -574,6 +586,35 @@
       if(!old||auditNew>=auditOld) unique.set(key,item);
     });
     return Array.from(unique.values());
+  }
+
+  function catalogErrorRows(catalog){
+    const selected=new Set((state.config&&state.config.auditCatalogModelIds)||[]);
+    const rows=[];
+    (catalog&&catalog.models||[]).forEach(model=>{
+      const modelId=String(model.id||'').trim();
+      if(!modelId||selected.size&&!selected.has(modelId)) return;
+      const hours=Number(String(model.horizon||'').match(/\d+/)?.[0]);
+      if(!Number.isFinite(hours)) return;
+      Object.values(model.series||{}).forEach(points=>{
+        (Array.isArray(points)?points:[]).forEach((point,index)=>{
+          if(!Array.isArray(point)||point.length<3) return;
+          const target=parseWhen(point[0]),observed=number(point[1]),predicted=number(point[2]);
+          if(!target||observed===null||predicted===null) return;
+          const targetLocal=new Date(target.getTime());
+          const base=new Date(targetLocal.getTime()-hours*36e5);
+          rows.push({
+            id:`catalog|${modelId}|${target.toISOString()}|${index}`,
+            horizonte:`${hours}h`,horizonte_h:hours,modelo:modelId,
+            hora_modelo:base.toISOString(),hora_alvo:target.toISOString(),
+            observado_cm:observed,nivel_previsto_cm:predicted,
+            status_auditoria:'conferido',auditado_em:catalog.meta&&catalog.meta.generatedAt||'',
+            _source:'catalog'
+          });
+        });
+      });
+    });
+    return rows;
   }
 
   function errorReportGroups(rows,referenceTime,windowHours){
@@ -655,25 +696,26 @@
     if(predicted.length>1) svg.appendChild(svgNode('path',{d:errorPath(predicted,'predicted',X,Y,maxGapMs),fill:'none',stroke:'var(--panorama-forecast-2, #b85c00)','stroke-width':2.1,'stroke-dasharray':'7 5','stroke-linejoin':'round','stroke-linecap':'round'}));
   }
 
-  function renderErrorReport(){
-    const grid=document.getElementById('rna-error-grid'),summaryBox=document.getElementById('rna-error-summary'),source=document.getElementById('rna-error-source');
+  function renderErrorPanel(rows,loading,error,ids,sourceKind){
+    const grid=document.getElementById(ids.grid),summaryBox=document.getElementById(ids.summary),source=document.getElementById(ids.source);
     if(!grid||!summaryBox) return;
     const hours=ERROR_WINDOW_LABELS[state.errorWindowHours]?state.errorWindowHours:168;
-    document.querySelectorAll('[data-error-window]').forEach(button=>{
-      const on=Number(button.dataset.errorWindow)===hours;
-      button.classList.toggle('on',on);button.setAttribute('aria-pressed',on?'true':'false');
-    });
-    if(!state.history&&!state.historyError){
+    if(loading&&!error){
       summaryBox.innerHTML='<div class="error-report-empty">Carregando o histórico auditado para calcular os erros.</div>';
       grid.innerHTML='<div class="error-report-empty">Carregando previsões conferidas…</div>';
       if(source) source.textContent='Cada gráfico compara, no mesmo horário-alvo, o nível observado com o nível previsto pela RNA.';
       return;
     }
-    const rows=errorReportRows(state.history);
+    if(error){
+      summaryBox.innerHTML='<div class="error-report-empty error-report-error">A fonte deste relatório não carregou.</div>';
+      grid.innerHTML='<div class="error-report-empty">O relatório permanece sem números até a fonte auditável voltar.</div>';
+      if(source) source.textContent='Falha ao carregar a fonte auditável; nenhum valor foi substituído.';
+      return;
+    }
     const confirmed=rows.filter(item=>item.error!==null);
     if(!confirmed.length){
       summaryBox.innerHTML='<div class="error-report-empty error-report-error">Ainda não há previsões conferidas o suficiente para calcular este relatório.</div>';
-      grid.innerHTML='<div class="error-report-empty">O histórico de previsões conferidas está indisponível ou sem leitura ANA exatamente no horário-alvo.</div>';
+      grid.innerHTML='<div class="error-report-empty">Sem leitura ANA exatamente no horário-alvo.</div>';
       if(source) source.textContent='O relatório só calcula erro quando a previsão e o observado pertencem ao mesmo horário-alvo.';
       return;
     }
@@ -687,22 +729,36 @@
       `<div class="error-summary-item"><span>MAE geral</span><strong>${overall.mae===null?'—':nf1.format(overall.mae)+' cm'}</strong><small>todas as RNAs com resultado</small></div>`,
       `<div class="error-summary-item"><span>Sem resultado</span><strong>${nf0.format(windowMissing.length)}</strong><small>aguardando ou sem dado ANA</small></div>`
     ].join('');
-    const historyWhen=state.history&&state.history.atualizado_em;
-    if(source) source.textContent=`Janela de ${windowLabel}, encerrada em ${fmtWhen(referenceTime)}. ${groups.length} combinações de horizonte e RNA; somente previsões conferidas entram nos erros.${historyWhen?` Snapshot público atualizado em ${fmtWhen(historyWhen)}.`:''}`;
+    const historyWhen=sourceKind==='live'&&state.history&&state.history.atualizado_em;
+    const catalogWhen=sourceKind==='catalog'&&state.auditCatalog&&state.auditCatalog.meta&&state.auditCatalog.meta.generatedAt;
+    if(source) source.textContent=`Janela de ${windowLabel}, encerrada em ${fmtWhen(referenceTime)}. ${groups.length} combinações de horizonte e RNA; somente previsões conferidas entram nos erros.${historyWhen?` Snapshot público atualizado em ${fmtWhen(historyWhen)}.`:''}${catalogWhen?` Catálogo auditável gerado em ${catalogWhen}.`:''}`;
     grid.innerHTML=groups.map((group,index)=>{
       const metric=errorSummary(group.points),missing=group.pending.length;
       const badgeClass=!metric.n?'empty':missing?'partial':'';
       const badge=!metric.n?'sem resultado':missing?'parcial':'completo';
       const model=escapeHtml(group.model);
+      const modelLine=sourceKind==='catalog'?`auditoria histórica · ${model}`:model;
       const note=!metric.n
         ?(group.windowRows.length?`${group.windowRows.length} previsão(ões) registrada(s) na janela, mas sem leitura ANA conferida no horário-alvo.`:'Nenhuma previsão deste modelo caiu na janela selecionada.')
         :`${missing?`${missing} sem resultado nesta janela. `:''}Acertos: ${nf0.format(metric.hits)} de ${nf0.format(metric.n)} com erro absoluto até ${ERROR_HIT_LIMIT_CM} cm.`;
-      return `<article class="error-card"><div class="error-card-head"><div><h4>${escapeHtml(group.label)}</h4><p>${model}</p></div><span class="error-card-badge ${badgeClass}">${badge}</span></div><div class="error-chart-shell"><svg class="error-chart" data-error-chart="${index}" viewBox="0 0 680 250" role="img" aria-label="${escapeHtml(group.label)} · observado e RNA"></svg></div><div class="error-kpis"><div class="error-kpi"><span>conferidas</span><strong>${nf0.format(metric.n)}</strong></div><div class="error-kpi"><span>MAE</span><strong>${metric.mae===null?'—':nf1.format(metric.mae)+' cm'}</strong></div><div class="error-kpi"><span>RMSE</span><strong>${metric.rmse===null?'—':nf1.format(metric.rmse)+' cm'}</strong></div><div class="error-kpi"><span>viés</span><strong>${metric.bias===null?'—':`${metric.bias>0?'+':''}${nf1.format(metric.bias)} cm`}</strong></div><div class="error-kpi"><span>maior erro</span><strong class="${metric.maxAbs!==null&&metric.maxAbs>ERROR_HIT_LIMIT_CM?'bad':'good'}">${metric.maxAbs===null?'—':nf1.format(metric.maxAbs)+' cm'}</strong></div></div><p class="error-card-note">${note}</p></article>`;
+      return `<article class="error-card"><div class="error-card-head"><div><h4>${escapeHtml(group.label)}</h4><p>${modelLine}</p></div><span class="error-card-badge ${badgeClass}">${badge}</span></div><div class="error-chart-shell"><svg class="error-chart" data-error-chart="${index}" viewBox="0 0 680 250" role="img" aria-label="${escapeHtml(group.label)} · observado e RNA"></svg></div><div class="error-kpis"><div class="error-kpi"><span>conferidas</span><strong>${nf0.format(metric.n)}</strong></div><div class="error-kpi"><span>MAE</span><strong>${metric.mae===null?'—':nf1.format(metric.mae)+' cm'}</strong></div><div class="error-kpi"><span>RMSE</span><strong>${metric.rmse===null?'—':nf1.format(metric.rmse)+' cm'}</strong></div><div class="error-kpi"><span>viés</span><strong>${metric.bias===null?'—':`${metric.bias>0?'+':''}${nf1.format(metric.bias)} cm`}</strong></div><div class="error-kpi"><span>maior erro</span><strong class="${metric.maxAbs!==null&&metric.maxAbs>ERROR_HIT_LIMIT_CM?'bad':'good'}">${metric.maxAbs===null?'—':nf1.format(metric.maxAbs)+' cm'}</strong></div></div><p class="error-card-note">${note}</p></article>`;
     }).join('');
     grid.querySelectorAll('[data-error-chart]').forEach(svg=>{
       const group=groups[Number(svg.dataset.errorChart)];
       drawErrorChart(svg,group.points,referenceTime,hours,`${group.label} · ${group.model}`);
     });
+  }
+
+  function renderErrorReport(){
+    const hours=ERROR_WINDOW_LABELS[state.errorWindowHours]?state.errorWindowHours:168;
+    document.querySelectorAll('[data-error-window]').forEach(button=>{
+      const on=Number(button.dataset.errorWindow)===hours;
+      button.classList.toggle('on',on);button.setAttribute('aria-pressed',on?'true':'false');
+    });
+    const liveRows=state.history?errorReportRows(state.history):[];
+    renderErrorPanel(liveRows,!state.history, state.historyError, {grid:'rna-error-grid',summary:'rna-error-summary',source:'rna-error-source'}, 'live');
+    const catalogRows=state.auditCatalog?errorReportRows(catalogErrorRows(state.auditCatalog)):[];
+    renderErrorPanel(catalogRows,!state.auditCatalog, state.auditCatalogError, {grid:'rna-catalog-error-grid',summary:'rna-catalog-error-summary',source:'rna-catalog-error-source'}, 'catalog');
   }
 
   function renderMetrics(current,items,trend,flood,cota){
@@ -959,6 +1015,7 @@
     });
     setMode('simple');
     loadHistory();
+    loadAuditCatalog();
     clearInterval(state.historyTimer);
     state.historyTimer=setInterval(loadHistory,5*60*1000);
     loadResearchRisk();

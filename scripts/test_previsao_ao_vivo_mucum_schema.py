@@ -18,15 +18,55 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class MucumFeedContractTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.data = json.loads((ROOT / "previsao_ao_vivo_mucum.json").read_text(encoding="utf-8"))
+        self.data = {
+            "horizontes": {
+                key: self._item(key, hours, inputs, role, rank)
+                for key, hours, inputs, role, rank in (
+                    ("2h", 2, 14, "principal", None),
+                    ("4h", 4, 30, "principal", 1),
+                    ("4h_versao_b", 4, 15, "comparativo", 2),
+                    ("8h", 8, 26, "principal", 1),
+                    ("8h_versao_b", 8, 28, "comparativo", 2),
+                )
+            }
+        }
+
+    @staticmethod
+    def _item(key, hours, inputs, role, rank):
+        item = {
+            "horizonte": key,
+            "horizonte_h": hours,
+            "modelo": "fixture_" + key,
+            "tipo": "ALT",
+            "status": "ok",
+            "modelo_papel": role,
+            "selection_rank": rank,
+            "disponivel": True,
+            "hora_modelo": "2026-08-28T18:00:00",
+            "input_grade": "hourly_exact",
+            "input_contract_version": "hourly_exact_v1",
+            "input_labels": [f"x{i}" for i in range(inputs)],
+            "input_values_cm": [0.0] * inputs,
+            "nivel_previsto_cm": 100.0,
+            "auditoria_inputs": {
+                "status": "NORMAL",
+                "n_inputs_nao_exatos": 0,
+                "usa_interpolacao_nivel": False,
+                "usa_vizinho_nivel": False,
+                "usa_interpolacao_chuva": False,
+                "usa_preenchimento_chuva": False,
+            },
+        }
+        return item
 
     def test_current_feed_schema(self) -> None:
         validate_data(self.data)
 
     def test_explicit_missing_prediction_is_valid(self) -> None:
         data = copy.deepcopy(self.data)
-        data["horizontes"]["4h"]["nivel_previsto_cm"] = None
-        data["horizontes"]["4h"]["status"] = "inputs incompletos — sem previsão nesta hora"
+        data["horizontes"]["8h_versao_b"]["nivel_previsto_cm"] = None
+        data["horizontes"]["8h_versao_b"]["disponivel"] = False
+        data["horizontes"]["8h_versao_b"]["status"] = "inputs incompletos — sem previsão nesta hora"
         validate_data(data)
 
     def test_legacy_cascata_is_rejected(self) -> None:

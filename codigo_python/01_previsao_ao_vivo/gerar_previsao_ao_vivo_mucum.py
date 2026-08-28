@@ -4,19 +4,20 @@
 Robô AO VIVO — PREVINE / Muçum (estação-alvo 86510000)
 Espelha o robô do Santa Tereza. Roda no GitHub Actions (a cada 5 min):
   1) busca a telemetria da ANA (Muçum + montante Santa Tereza + auxiliares)
-  2) para os horizontes 2h e 4h, monta os inputs na ordem
+  2) para os horizontes 2h, 4h e 8h, monta os inputs na ordem
      exata (dirigida por mucum_modelo_inputs.json) e roda a RNA
   3) escreve previsao_ao_vivo_mucum.json no schema do ST (horizontes{...},
      passos) — a página monta os botões de horizonte a partir daí.
 
-MULTI-HORIZONTE E AUTOSSUFICIENTE: lê os modelos recomendados do JSON, mas o
-ao vivo de Muçum publica apenas 2h e 4h.
+MULTI-HORIZONTE E AUTOSSUFICIENTE: lê os modelos operacionais do JSON e publica
+2h mais dois candidatos 4h e dois candidatos 8h, sem fallback silencioso.
 
 vel_nivel D-Xh = n(t) - n(t-Xh). Cada .mat é validável com `--validar <mat>`
 (reproduz pred_target_tot com RMSE ~0) antes de confiar no ao vivo.
 EXPERIMENTAL — não é alerta oficial.
 """
-import sys, os, json, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
+import sys, os, json, hashlib, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from scipy.io import loadmat
 
@@ -32,6 +33,7 @@ def iso_utc(value):
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 INPUTS_JSON = os.path.join(RAIZ, "assets", "data", "mucum_modelo_inputs.json")
+MODELOS_AO_VIVO_JSON = os.path.join(RAIZ, "assets", "data", "mucum_modelos_ao_vivo.json")
 MAT_DIR = os.path.join(RAIZ, "assets", "mat")
 SAIDA = os.path.join(RAIZ, "previsao_ao_vivo_mucum.json")
 HISTORICO_SAIDA = os.path.join(RAIZ, "historico_previsoes_ao_vivo_mucum.json")
@@ -42,54 +44,89 @@ LOCAL = "Muçum"
 AVISO = "EXPERIMENTAL — não é alerta oficial. Camada espacial da previsão de RNA para Muçum."
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
 ULTIMA_RAW = {}
+ANA_TIMEOUT_NIVEL_S = 15
+ANA_TIMEOUT_CHUVA_S = 12
+ANA_RETRIES_NIVEL = 2
+ANA_RETRIES_CHUVA = 2
 
 
 # ---------- configuração dos modelos (a partir do JSON) ----------
+def _sha256(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for bloco in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(bloco)
+    return h.hexdigest().upper()
+
+
 def _cfg(m, hh):
     ins = sorted(m["inputs"], key=lambda x: x["ordem"])
     mid = m["modelo_id"]
     mat = m.get("arquivo_mat") or f"assets/mat/{mid}.mat"
-    return {
-        "horizonte_h": hh, "horizonte": f"{hh}h", "rotulo": f"{hh}h",
+    excel = m.get("arquivo_excel") or m.get("referencia_auditavel")
+    excel_sha = m.get("arquivo_excel_sha256") or m.get("referencia_auditavel_sha256")
+    cfg = {
+        "horizonte_h": hh, "horizonte": m.get("chave_feed") or f"{hh}h",
+        "rotulo": m.get("rotulo") or f"{hh}h",
         "tipo": m.get("tipo_modelo", "ALT"), "modelo": mid,
         "combo": m.get("combo_id", mid),
         "papel": m.get("papel", "principal"),
         "versao": m.get("versao"),
         "modelo_sha256": m.get("modelo_sha256"),
+        "arquivo_excel": excel,
+        "arquivo_excel_sha256": excel_sha,
         "referencia_auditavel": m.get("referencia_auditavel"),
         "referencia_auditavel_sha256": m.get("referencia_auditavel_sha256"),
+        "pontos_detalhados": m.get("pontos_detalhados"),
+        "fonte_rodada": m.get("fonte_rodada"),
+        "criterio_selecao": m.get("criterio_selecao"),
+        "selection_rank": m.get("selection_rank"),
+        "metricas_auditoria": m.get("metricas_auditoria") or {},
+        "contrato_chuva": m.get("contrato_chuva"),
         "input_contract_version": m.get("input_contract_version", "hourly_exact_v1"),
         "input_grade": m.get("input_grade", "hourly_exact"),
         "mat": os.path.join(RAIZ, mat) if mat.startswith("assets") else os.path.join(MAT_DIR, os.path.basename(mat)),
         "inputs": ins,
-        "estacoes": sorted({str(i["estacao"]) for i in ins}),
+        "estacoes": sorted({str(i["estacao"]) for i in ins if not str(i.get("tipo", "")).startswith("chuva")}),
+        "estacoes_chuva": sorted({str(e) for i in ins if str(i.get("tipo", "")).startswith("chuva") for e in (i.get("estacoes") or [i.get("estacao")])}),
         "n_inputs": len(ins),
     }
+    esperado = m.get("modelo_sha256")
+    if esperado and os.path.exists(cfg["mat"]):
+        atual = _sha256(cfg["mat"])
+        if atual != str(esperado).upper():
+            raise ValueError(f"SHA-256 do MAT diverge para {mid}: esperado {esperado}, obtido {atual}")
+        cfg["modelo_sha256"] = atual
+    if excel_sha and excel and excel.startswith("assets"):
+        excel_path = os.path.join(RAIZ, excel)
+        if os.path.exists(excel_path):
+            atual = _sha256(excel_path)
+            if atual != str(excel_sha).upper():
+                raise ValueError(f"SHA-256 do Excel diverge para {mid}: esperado {excel_sha}, obtido {atual}")
+            cfg["arquivo_excel_sha256"] = atual
+    return cfg
 
 def carregar_modelos():
-    """2h campeão + 4h recomendado. O ao vivo de Muçum não publica 8h/12h."""
+    """Carrega 2h e os dois melhores 4h/8h com chave própria no feed.
+
+    O arquivo separado é deliberadamente uma lista operacional auditável: os
+    candidatos possuem MAT, Excel e séries ponto a ponto reconciliados. Os
+    fallbacks antigos não entram silenciosamente no novo feed.
+    """
     d = json.load(open(INPUTS_JSON, encoding="utf-8"))
     modelos = [_cfg(d["modelo_campeao_2h"], 2)]
-    vistos = {2}
+    if os.path.exists(MODELOS_AO_VIVO_JSON):
+        op = json.load(open(MODELOS_AO_VIVO_JSON, encoding="utf-8"))
+        for raw in op.get("modelos", []):
+            m = dict(raw)
+            m.setdefault("criterio_selecao", op.get("criterio_selecao"))
+            modelos.append(_cfg(m, int(m["horizonte_h"])))
+        return modelos
+    # Compatibilidade explícita para cópias antigas do repositório.
     for m in d.get("modelos_recomendados_outros_horizontes", []):
-        hh = int(m["horizonte_h"])
-        if hh not in (4,):
-            continue
-        if hh in vistos:          # um por horizonte (prefere o 1º da lista)
-            continue
-        vistos.add(hh)
-        modelos.append(_cfg(m, hh))
-    for hh_txt, lista in d.get("modelos_fallback_por_horizonte", {}).items():
-        try:
-            hh = int(hh_txt)
-        except Exception:
-            continue
-        if hh not in (2, 4):
-            continue
-        for m in lista:
-            m = dict(m)
-            m.setdefault("papel", "fallback")
-            modelos.append(_cfg(m, hh))
+        if int(m["horizonte_h"]) == 4:
+            modelos.append(_cfg(m, 4))
+            break
     return modelos
 
 
@@ -125,6 +162,34 @@ def _extrair_serie(root):
         serie[t.replace(second=0, microsecond=0)] = valor
     return serie, ultima_raw
 
+
+def _extrair_serie_chuva(root):
+    """Extrai chuva por hora sem preencher lacunas.
+
+    A ANA pode responder em 15/30/45 minutos. As planilhas históricas
+    acumulam essas leituras dentro da hora; a grade do modelo continua sendo
+    somente a hora cheia. Uma hora sem leitura permanece ausente.
+    """
+    acumulado_hora = {}; ultima_raw = None
+    for row in root.iter():
+        campos = {_local(ch.tag): (ch.text or "") for ch in row}
+        dh = campos.get("DataHora") or campos.get("Data_Hora") or campos.get("DataHoraMedicao")
+        chuva = campos.get("Chuva") or campos.get("chuva") or campos.get("Precipitacao") or campos.get("Precipitação")
+        if not dh or chuva in (None, ""):
+            continue
+        t = _parse_hora(dh)
+        if t is None:
+            continue
+        try:
+            valor = float(str(chuva).replace(",", "."))
+        except Exception:
+            continue
+        if ultima_raw is None or t > ultima_raw[0]:
+            ultima_raw = (t, valor)
+        hora = t.replace(minute=0, second=0, microsecond=0)
+        acumulado_hora[hora] = acumulado_hora.get(hora, 0.0) + valor
+    return acumulado_hora, ultima_raw
+
 def _serie_de_xml(xml):
     root = ET.fromstring(xml); serie, ultima_raw = _extrair_serie(root)
     if not serie and (root.text or "").strip().startswith("<"):
@@ -132,7 +197,15 @@ def _serie_de_xml(xml):
         except Exception: pass
     return serie, len(xml), ultima_raw
 
-def buscar_ana(cod, dias=6, tentativas_rede=3):
+
+def _serie_chuva_de_xml(xml):
+    root = ET.fromstring(xml); serie, ultima_raw = _extrair_serie_chuva(root)
+    if not serie and (root.text or "").strip().startswith("<"):
+        try: serie, ultima_raw = _extrair_serie_chuva(ET.fromstring(root.text))
+        except Exception: pass
+    return serie, len(xml), ultima_raw
+
+def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
     """Telemetria da ANA. O endpoint às vezes devolve vazio/erro de forma
     transitória, então tenta algumas vezes com backoff curto antes de desistir."""
     import time
@@ -145,7 +218,7 @@ def buscar_ana(cod, dias=6, tentativas_rede=3):
         for url in urls:
             try:
                 req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
-                xml = urllib.request.urlopen(req, timeout=60).read()
+                xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_NIVEL_S).read()
                 serie, nbytes, ultima_raw = _serie_de_xml(xml)
                 print(f"[ANA {cod}] tent={attempt+1} bytes={nbytes} linhas={len(serie)}")
                 if ultima_raw: ULTIMA_RAW[cod] = ultima_raw
@@ -155,6 +228,39 @@ def buscar_ana(cod, dias=6, tentativas_rede=3):
         if attempt < tentativas_rede - 1:
             time.sleep(4 * (attempt + 1))
     return {}
+
+
+def buscar_ana_chuva(cod, dias=6, tentativas_rede=ANA_RETRIES_CHUVA):
+    """Busca chuva observada e devolve somente acumulados horários reais."""
+    fim = agora_brt(); ini = fim - dt.timedelta(days=dias)
+    urls = [
+        f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
+        f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
+    ]
+    for attempt in range(tentativas_rede):
+        for url in urls:
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
+                xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_CHUVA_S).read()
+                serie, nbytes, ultima_raw = _serie_chuva_de_xml(xml)
+                print(f"[ANA chuva {cod}] tent={attempt + 1} bytes={nbytes} horas={len(serie)}")
+                if ultima_raw: ULTIMA_RAW[f"chuva_{cod}"] = ultima_raw
+                if serie: return serie
+            except Exception as e:
+                print(f"[ANA chuva {cod}] tent={attempt + 1} erro: {e}")
+        if attempt < tentativas_rede - 1:
+            time.sleep(2 * (attempt + 1))
+    return {}
+
+
+def buscar_series_paralelo(codigos, funcao, max_workers=8):
+    """Consulta estações independentes em paralelo para não estourar o ciclo."""
+    codigos = list(codigos)
+    if not codigos: return {}
+    workers = max(1, min(int(max_workers), len(codigos)))
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="ana-live") as executor:
+        resultados = list(executor.map(funcao, codigos))
+    return dict(zip(codigos, resultados))
 
 def nivel_exato(serie, t):
     """Nível observado exatamente em ``t``; não interpola nem usa vizinho."""
@@ -167,6 +273,41 @@ def observar_nivel(serie, alvo):
 
 
 # ---------- inputs / inferência ----------
+def _chuva_horaria(inp, series, hora):
+    postos = [str(p) for p in (inp.get("estacoes") or [inp.get("estacao")]) if p]
+    fontes = series.get("__chuva_postos__", {})
+    valores = [(fontes.get(p) or {}).get(hora) for p in postos]
+    presentes = [float(v) for v in valores if v is not None]
+    if inp.get("agregacao") == "soma":
+        return sum(presentes) if len(presentes) == len(postos) else None
+    minimo = int(inp.get("min_estacoes_hora") or 2)
+    return sum(presentes) / len(presentes) if len(presentes) >= minimo else None
+
+
+def _chuva_acumulada(inp, series, t, deslocamento_h=0):
+    janela = int(inp.get("janela_h") or 0)
+    if janela <= 0 or t.minute != 0:
+        return None
+    vals = [_chuva_horaria(inp, series, t - dt.timedelta(hours=deslocamento_h + h)) for h in range(janela)]
+    if any(v is None for v in vals):
+        return None
+    return float(sum(vals))
+
+
+def _horarios_faltantes_chuva(inp, series, t):
+    janela = int(inp.get("janela_h") or 0)
+    deslocamentos = [0]
+    if inp.get("tipo") == "chuva_diferenca":
+        deslocamentos.append(int(inp.get("janela_anterior_h") or janela))
+    faltantes = []
+    for deslocamento in deslocamentos:
+        for h in range(janela):
+            hora = t - dt.timedelta(hours=deslocamento + h)
+            if _chuva_horaria(inp, series, hora) is None:
+                faltantes.append(hora.isoformat(timespec="minutes"))
+    return sorted(set(faltantes))
+
+
 def montar_inputs(cfg, series, t):
     """Monta os inputs de um modelo na hora t, na ordem exata (campo `ordem`).
        nivel -> n(t - defasagem_h);
@@ -187,12 +328,18 @@ def montar_inputs(cfg, series, t):
             a, b = n(cod, 0), n(cod, 1)
             c, d = n(cod, h), n(cod, h + 1)
             x.append(None if None in (a, b, c, d) else (a - b) - (c - d))
+        elif tipo == "chuva_acum":
+            x.append(_chuva_acumulada(inp, series, t))
+        elif tipo == "chuva_diferenca":
+            atual = _chuva_acumulada(inp, series, t)
+            anterior = _chuva_acumulada(inp, series, t, int(inp.get("janela_anterior_h") or inp.get("janela_h") or 0))
+            x.append(None if None in (atual, anterior) else atual - anterior)
         else:
             raise ValueError(f"tipo de input não suportado: {tipo}")
     return x
 
 
-def diagnosticar_inputs(cfg, x):
+def diagnosticar_inputs(cfg, x, series=None, t=None):
     faltantes = []
     for inp, valor in zip(cfg["inputs"], x):
         if valor is not None:
@@ -204,6 +351,10 @@ def diagnosticar_inputs(cfg, x):
             "tipo": inp.get("tipo"),
             "defasagem_h": inp.get("defasagem_h"),
         })
+        if str(inp.get("tipo", "")).startswith("chuva") and series is not None and t is not None:
+            item = faltantes[-1]
+            item["estacoes"] = [str(p) for p in (inp.get("estacoes") or [inp.get("estacao")]) if p]
+            item["horarios_faltantes"] = _horarios_faltantes_chuva(inp, series, t)
     return faltantes
 
 
@@ -256,7 +407,7 @@ def melhor_hora(cfg, series, horas, limite_alvo=None):
 
 
 # ---------- saída (schema do Santa Tereza) ----------
-def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_base=None):
+def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_base=None, input_values=None):
     consultado = agora_brt(); raw = ULTIMA_RAW.get(ALVO)
     idade = round((consultado - raw[0]).total_seconds() / 60) if raw else None
     nivel_raw_cm = (round(raw[1]) if raw else (round(nivel_agora) if nivel_agora is not None else None))
@@ -281,10 +432,17 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_ba
         "horizonte": cfg["horizonte"], "rotulo": cfg["rotulo"], "horizonte_h": cfg["horizonte_h"],
         "tipo": cfg["tipo"], "modelo": cfg["modelo"], "combo": cfg["combo"], "bankfull_cm": BANKFULL_CM,
         "modelo_papel": cfg.get("papel", "principal"),
+        "selection_rank": cfg.get("selection_rank"),
         "versao": cfg.get("versao"),
         "modelo_sha256": cfg.get("modelo_sha256"),
+        "arquivo_excel": cfg.get("arquivo_excel"),
+        "arquivo_excel_sha256": cfg.get("arquivo_excel_sha256"),
         "referencia_auditavel": cfg.get("referencia_auditavel"),
         "referencia_auditavel_sha256": cfg.get("referencia_auditavel_sha256"),
+        "pontos_detalhados": cfg.get("pontos_detalhados"),
+        "fonte_rodada": cfg.get("fonte_rodada"),
+        "criterio_selecao": cfg.get("criterio_selecao"),
+        "metricas_auditoria": cfg.get("metricas_auditoria") or {},
         "input_labels": [i.get("nome") for i in cfg.get("inputs", [])],
         "nivel_modelo_cm": (round(nivel_base) if nivel_base is not None else None),
         "nivel_base_cm": (round(nivel_base) if nivel_base is not None else None),
@@ -297,6 +455,7 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_ba
         "inputs_faltantes": faltantes or [], "estacoes_status": [],
         "input_contract_version": cfg.get("input_contract_version", "hourly_exact_v1"),
         "input_grade": cfg.get("input_grade", "hourly_exact"),
+        "disponivel": nivel_prev is not None,
         "auditoria_inputs": {
             "status": "NORMAL" if nivel_prev is not None and not faltantes else "ATENCAO",
             "formula_conferida_com_montador": True,
@@ -305,14 +464,23 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_ba
             "n_inputs_nao_exatos": 0,
             "n_interpolados": 0,
             "n_vizinhos_mais_proximos": 0,
+            "n_inputs_chuva": sum(1 for i in cfg.get("inputs", []) if str(i.get("tipo", "")).startswith("chuva")),
+            "chuva_fontes": cfg.get("estacoes_chuva", []),
+            "contrato_chuva": cfg.get("contrato_chuva"),
+            "usa_interpolacao_chuva": False,
+            "usa_preenchimento_chuva": False,
             "input_grade": "hourly_exact",
             "hora_base_minuto": (t.minute if t else None),
             "usa_interpolacao_nivel": False,
             "usa_vizinho_nivel": False,
-            "contrato_temporal": f"{cfg['n_inputs']} inputs em hora cheia exata; níveis sem interpolação ou vizinho",
+            "contrato_temporal": f"{cfg['n_inputs']} inputs em hora cheia exata; níveis e chuva sem interpolação, vizinho ou preenchimento",
         },
         "status": status, "aviso": AVISO,
     }
+    if input_values is not None:
+        out["input_values_cm"] = [round(float(v), 6) for v in input_values]
+    if cfg.get("modelo_sha256"):
+        out["modelo_integridade"] = "sha256_conferido_no_robo"
     if nivel_prev is not None and nivel_raw_cm is not None:
         delta_base = nivel_base if nivel_base is not None else nivel_raw_cm
         out["delta_previsto_cm"] = round(nivel_prev - delta_base, 1)
@@ -476,7 +644,12 @@ def resumo_auditoria(registros, horizonte):
     }
 
 def _tem_previsao(d):
-    return bool(d) and d.get("nivel_previsto_cm") is not None
+    if not d:
+        return False
+    if d.get("nivel_previsto_cm") is not None:
+        return True
+    hs = d.get("horizontes")
+    return isinstance(hs, dict) and any(v.get("nivel_previsto_cm") is not None for v in hs.values() if isinstance(v, dict))
 
 def escrever(top, horizontes, max_stale_h=6):
     top = dict(top)
@@ -515,64 +688,73 @@ def escrever_pacote(horizontes, historico):
     escrever(pacote, horizontes)
 
 
+def filtrar_historico_modelos(registros, modelos):
+    """Mantém no histórico ao vivo somente os modelos ativos por chave.
+
+    A troca de uma receita 4h/8h não deve misturar o erro do modelo antigo ao
+    erro do candidato que acabou de ser publicado.
+    """
+    ativos = {}
+    for cfg in modelos:
+        ativos.setdefault(cfg["horizonte"], set()).add(cfg["modelo"])
+    return [
+        r for r in registros
+        if r.get("horizonte") not in ativos or r.get("modelo") in ativos[r.get("horizonte")]
+    ]
+
+
 def main():
     modelos = carregar_modelos()
     disponiveis = [c for c in modelos if os.path.exists(c["mat"])]
     print("modelos:", [(c["horizonte"], os.path.basename(c["mat"]), "OK" if os.path.exists(c["mat"]) else "sem .mat") for c in modelos])
     if not disponiveis:
-        escrever(base_saida(modelos[0], None, None, None, "nenhum .mat disponível no repo"), {}); return
+        horizontes = {c["horizonte"]: base_saida(c, None, None, None, "nenhum .mat disponível no repo") for c in modelos}
+        escrever_pacote(horizontes, []); return
 
-    estacoes = sorted({e for c in disponiveis for e in c["estacoes"]})
-    series = {e: buscar_ana(e) for e in estacoes}
+    estacoes = sorted({e for c in modelos for e in c["estacoes"]})
+    estacoes_chuva = sorted({e for c in modelos for e in c.get("estacoes_chuva", [])})
+    series = buscar_series_paralelo(estacoes, buscar_ana, max_workers=8)
+    series["__chuva_postos__"] = buscar_series_paralelo(estacoes_chuva, buscar_ana_chuva, max_workers=6)
     horas_muc = sorted(series.get(ALVO, {}).keys())
     nivel_agora = nivel_exato(series.get(ALVO, {}), horas_muc[-1]) if horas_muc else None
-    if not horas_muc:
-        # tenta o 2h só para registrar o estado
-        escrever(base_saida(disponiveis[0], nivel_agora, None, None, "sem dado recente em Muçum"), {}); return
 
     horizontes = {}
     raw_mucum = ULTIMA_RAW.get(ALVO)
     limite_alvo = raw_mucum[0] if raw_mucum else None
-    por_horizonte = {}
-    for cfg in disponiveis:
-        por_horizonte.setdefault(cfg["horizonte"], []).append(cfg)
-
-    for horizonte, cfgs in por_horizonte.items():
-        ultimo_status = None
-        for idx, cfg in enumerate(cfgs):
-            mh = melhor_hora(cfg, series, horas_muc, limite_alvo)
-            if mh is None:
-                x = montar_inputs(cfg, series, horas_muc[-1])
-                falt = sum(v is None for v in x)
-                faltantes = diagnosticar_inputs(cfg, x)
-                ultimo_status = base_saida(
-                    cfg, nivel_agora, None, None,
-                    f"inputs incompletos ({falt}/{cfg['n_inputs']} faltando) - sem previsao nesta hora",
-                    faltantes)
-                print(f"[{horizonte}] {cfg['modelo']} incompleto; tentando fallback se existir")
-                continue
-            t, x = mh
-            try:
-                saida = prever(cfg["mat"], x)
-                nivel_base = nivel_exato(series[ALVO], t)     # nível na hora-base do modelo
-                if cfg["tipo"].upper() == "ALT":
-                    nivel_prev = nivel_base + saida
-                else:
-                    nivel_prev = saida
-                out = base_saida(cfg, nivel_agora, nivel_prev, t, "ok", nivel_base=nivel_base)
-                out["input_values_cm"] = [round(float(v), 6) for v in x]
-                if idx > 0 or cfg.get("papel") == "fallback":
-                    out["fallback_usado"] = True
-                    out["motivo_fallback"] = "modelo principal sem todos os inputs na janela operacional"
-                horizontes[horizonte] = out
-                break
-            except Exception as e:
-                ultimo_status = base_saida(cfg, nivel_agora, None, t, f"falha no modelo: {e}")
-                print(f"[{horizonte}] {cfg['modelo']} falhou: {e}; tentando fallback se existir")
-        if horizonte not in horizontes and ultimo_status is not None:
-            horizontes[horizonte] = ultimo_status
+    for cfg in modelos:
+        horizonte = cfg["horizonte"]
+        if not os.path.exists(cfg["mat"]):
+            horizontes[horizonte] = base_saida(cfg, nivel_agora, None, None, "MAT ausente no repositório")
+            continue
+        if not horas_muc:
+            horizontes[horizonte] = base_saida(cfg, nivel_agora, None, None, "sem dado recente em Muçum")
+            continue
+        mh = melhor_hora(cfg, series, horas_muc, limite_alvo)
+        if mh is None:
+            t_diag = horas_muc[-1]
+            x = montar_inputs(cfg, series, t_diag)
+            faltantes = diagnosticar_inputs(cfg, x, series, t_diag)
+            falt = len([v for v in x if v is None])
+            horizontes[horizonte] = base_saida(
+                cfg, nivel_agora, None, None,
+                f"inputs incompletos ({falt}/{cfg['n_inputs']} faltando) - sem previsao nesta hora",
+                faltantes)
+            print(f"[{horizonte}] {cfg['modelo']} incompleto; saída explícita sem previsão")
+            continue
+        t, x = mh
+        try:
+            variacao = prever(cfg["mat"], x)
+            nivel_base = nivel_exato(series[ALVO], t)
+            nivel_prev = nivel_base + variacao if cfg["tipo"].upper() == "ALT" else variacao
+            out = base_saida(cfg, nivel_agora, nivel_prev, t, "ok", nivel_base=nivel_base, input_values=x)
+            horizontes[horizonte] = out
+            print(f"[{horizonte}] {cfg['modelo']} OK base={t.isoformat()} previsão={round(nivel_prev, 1)} cm")
+        except Exception as e:
+            horizontes[horizonte] = base_saida(cfg, nivel_agora, None, t, f"falha no modelo: {e}")
+            print(f"[{horizonte}] {cfg['modelo']} falhou: {e}")
 
     historico = normalizar_historico_grade(carregar_historico())
+    historico = filtrar_historico_modelos(historico, modelos)
     for out in horizontes.values():
         historico = upsert_previsao_historico(historico, out)
     historico = conferir_historico(historico, series)
