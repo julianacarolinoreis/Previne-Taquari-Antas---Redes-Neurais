@@ -48,6 +48,7 @@ ANA_TIMEOUT_NIVEL_S = 15
 ANA_TIMEOUT_CHUVA_S = 12
 ANA_RETRIES_NIVEL = 2
 ANA_RETRIES_CHUVA = 2
+HORIZONTES_AO_VIVO = {"2h", "4h", "4h_versao_b", "8h", "8h_versao_b"}
 
 
 # ---------- configuração dos modelos (a partir do JSON) ----------
@@ -662,7 +663,15 @@ def escrever(top, horizontes, max_stale_h=6):
         try:
             ant = json.load(open(SAIDA, encoding="utf-8"))
             hm = ant.get("hora_modelo")
-            if _tem_previsao(ant) and hm:
+            ant_horizontes = ant.get("horizontes")
+            # A resiliência preserva um pacote somente depois que ele já tem
+            # o contrato atual. Durante a migração 2h/4h -> 2h/4h/8h, deixar o
+            # JSON legado passar faria o validador publicar um feed incompleto.
+            # Nesse primeiro ciclo sem ANA, escrevemos os cinco estados
+            # explícitos; o próximo ciclo reativa as previsões quando houver
+            # leitura exata.
+            contrato_atual = isinstance(ant_horizontes, dict) and set(ant_horizontes) == HORIZONTES_AO_VIVO
+            if contrato_atual and _tem_previsao(ant) and hm:
                 idade_h = (agora_brt() - dt.datetime.fromisoformat(hm)).total_seconds() / 3600
                 if idade_h <= max_stale_h:
                     print(f"telemetria falhou neste ciclo; mantendo última previsão boa ({idade_h:.1f} h) — não sobrescreve")
