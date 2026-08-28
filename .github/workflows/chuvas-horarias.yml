@@ -60,10 +60,17 @@ jobs:
             echo "sem mudanca neste ciclo"
           else
             git commit -m "bot: atualiza chuvas_horarias.csv [skip ci]"
+            publicado=0
             for tentativa in 1 2 3 4 5; do
               if git pull --rebase --autostash origin main && git push; then
-                echo "publicado"; break
+                publicado=1
+                echo "publicado"
+                break
               fi
               echo "retry $tentativa"; sleep $((tentativa*3))
             done
+            if [ "$publicado" != "1" ]; then
+              echo "falha ao publicar chuvas_horarias.csv após retries"
+              exit 1
+            fi
           fi
