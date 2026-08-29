@@ -1,0 +1,189 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@page { size: A4 landscape; margin: 10mm; }
+body { font-family: Arial, Helvetica, sans-serif; color:#17212b; font-size:10px; line-height:1.28; }
+h1 { font-size:22px; margin:0 0 4px; color:#123a5a; }
+h2 { font-size:14px; margin:14px 0 6px; color:#123a5a; border-bottom:1px solid #b7c7d6; padding-bottom:3px; }
+h3 { font-size:11px; margin:9px 0 5px; color:#123a5a; }
+p { margin:4px 0 7px; }
+.meta { color:#5c6975; margin-bottom:8px; }
+.callout { background:#eef6fb; border-left:4px solid #2274a5; padding:7px 9px; margin:8px 0; }
+.decision { background:#eaf7ef; border-left:4px solid #1f7a47; padding:7px 9px; margin:8px 0; }
+.attention { background:#fff6e6; border-left:4px solid #d18700; padding:7px 9px; margin:8px 0; }
+.grid { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin:7px 0 9px; }
+.card { border:1px solid #d7e0e8; background:#fbfdff; padding:7px; min-height:74px; }
+.card b { color:#123a5a; display:block; margin-bottom:3px; font-size:10px; }
+.model { display:block; font-size:9px; color:#394a59; margin-bottom:4px; }
+.kpis { display:flex; gap:7px; margin:4px 0; }
+.kpis span { background:#eef3f7; border:1px solid #d7e0e8; padding:2px 4px; }
+.delta { color:#5c6975; margin-top:3px; }
+table { border-collapse:collapse; width:100%; margin:5px 0 10px; page-break-inside:auto; }
+th { background:#194d73; color:white; text-align:left; padding:4px 5px; font-size:8.5px; }
+td { border:1px solid #d7e0e8; padding:3px 4px; vertical-align:top; font-size:8.5px; }
+tr:nth-child(even) td { background:#f7fafc; }
+.num { text-align:right; white-space:nowrap; }
+.good { color:#0b5d35; font-weight:bold; }
+.bad { color:#9b1c1c; font-weight:bold; }
+.warn { color:#8a5a00; font-weight:bold; }
+.small { font-size:8px; color:#5c6975; }
+ul { margin:4px 0 8px 18px; padding:0; }
+li { margin:2px 0; }
+.pagebreak { page-break-before: always; }
+</style>
+</head>
+<body>
+<h1>Relatorio tecnico - 8h sentinela</h1>
+<div class="meta">Rodada: RNA_8H_ROTACAO_SENTINELA_2026_06_28<br>
+Gerado em: 29/06/2026<br>
+Fonte: abas METRICAS dos 30 Excel auditaveis, comparadas com a rodada original RNA_8H_ALT_CONV_MODELO_AUTO_2026_06_27.</div>
+
+<div class="callout"><b>Escopo.</b> Foram executados 30 treinamentos: 10 modelos selecionados x 3 rotacoes. O teste ficou fixo no evento 1. As validacoes foram 2+3, 2+7 e 2+12. Nao houve recorte novo aqui; foi uma sentinela para medir se a divisao de eventos estava derrubando a validacao do 8h.</div>
+
+<h2>1. Quadro executivo</h2>
+<div class="grid">
+
+    <div class="card">
+      <b>Melhor decisao tecnica</b>
+      <span class="model">rot8h_001_24_8h_conv_8H_CONV_C0289</span>
+      <div class="kpis">
+        <span>PG <strong>0,743</strong></span>
+        <span>PV <strong>0,735</strong></span>
+        <span>PT <strong>0,621</strong></span>
+      </div>
+      <div>MAE teste 20,40 | E95 teste 47,01 | inputs 10</div>
+      <div class='delta'>Delta vs original: validacao 1,256, teste -0,096</div>
+    </div>
+
+
+    <div class="card">
+      <b>Maior PERS de validacao</b>
+      <span class="model">rot8h_001_24_8h_conv_8H_CONV_C0289</span>
+      <div class="kpis">
+        <span>PG <strong>0,743</strong></span>
+        <span>PV <strong>0,735</strong></span>
+        <span>PT <strong>0,621</strong></span>
+      </div>
+      <div>MAE teste 20,40 | E95 teste 47,01 | inputs 10</div>
+      <div class='delta'>Delta vs original: validacao 1,256, teste -0,096</div>
+    </div>
+
+
+    <div class="card">
+      <b>Maior PERS de teste</b>
+      <span class="model">rot8h_002_24_8h_conv_8H_CONV_C0289</span>
+      <div class="kpis">
+        <span>PG <strong>0,757</strong></span>
+        <span>PV <strong>0,707</strong></span>
+        <span>PT <strong>0,651</strong></span>
+      </div>
+      <div>MAE teste 19,35 | E95 teste 46,03 | inputs 10</div>
+      <div class='delta'>Delta vs original: validacao 1,228, teste -0,067</div>
+    </div>
+
+</div>
+
+<div class="decision"><b>Conclusao curta.</b> A sentinela mostrou que o problema do 8h original era fortemente dependente da divisao de eventos. O modelo <b>24_8h_conv_8H_CONV_C0289</b> saiu de validacao original -0,521 para validacoes altas em duas rotacoes, mantendo PERS teste ainda bom. Esse e o principal candidato para continuar a investigacao.</div>
+
+<h2>2. Principais achados</h2>
+<ul>
+  <li><b>O melhor candidato e convencional:</b> rot8h_001_24_8h_conv_8H_CONV_C0289 teve PERS geral 0,743, validacao 0,735 e teste 0,621.</li>
+  <li><b>A rotacao ajudou muito a validacao:</b> no modelo base 24_8h_conv_8H_CONV_C0289, a validacao original era -0,521; na sentinela chegou a 0,735.</li>
+  <li><b>As redes ALT nao sustentaram desempenho nesta sentinela:</b> media ALT PG=0,047, PV=0,016, PT=0,056.</li>
+  <li><b>As redes CONV concentraram os resultados uteis:</b> media CONV PG=0,711, PV=0,427, PT=0,303.</li>
+  <li><b>O melhor caminho agora nao e rodar tudo:</b> vale priorizar os modelos CONV que melhoraram validacao sem destruir o teste, principalmente C0289 e C0078.</li>
+</ul>
+
+<h2>3. Comparacao das rotacoes</h2>
+<table>
+  <thead><tr><th>Rotacao</th><th>Eventos de validacao</th><th>PERS geral medio</th><th>PERS valid. medio</th><th>PERS teste medio</th><th>Melhor valid.</th><th>Melhor teste</th></tr></thead>
+  <tbody><tr><td>rot8h_001</td><td>2 + 3</td><td class='num'>0,522</td><td class='num'>0,353</td><td class='num'>0,234</td><td class='num'>0,735</td><td class='num'>0,621</td></tr><tr><td>rot8h_002</td><td>2 + 7</td><td class='num'>0,509</td><td class='num'>0,380</td><td class='num'>0,205</td><td class='num'>0,730</td><td class='num'>0,651</td></tr><tr><td>rot8h_003</td><td>2 + 12</td><td class='num'>0,505</td><td class='num'>0,177</td><td class='num'>0,247</td><td class='num'>0,403</td><td class='num'>0,638</td></tr></tbody>
+</table>
+
+<h2>4. Modelo mais importante: 24_8h_conv_8H_CONV_C0289</h2>
+<p>Este e o resultado que mais muda a leitura da rodada de 8h. Ele ja era forte em teste na rodada original, mas tinha validacao negativa. Com a rotacao, a validacao ficou alta sem perder completamente o teste.</p>
+
+    <table>
+      <thead><tr>
+        <th>#</th><th>Rotacao</th><th>Modelo base</th><th>Tipo</th><th>Inputs</th>
+        <th>PERS geral</th><th>PERS valid.</th><th>PERS teste</th>
+        <th>MAE teste</th><th>E95 teste</th>
+        <th>Valid. original</th><th>Delta valid.</th><th>Delta teste</th><th>Leitura</th>
+      </tr></thead>
+      <tbody>
+    <tr><td class='num'>1</td><td>rot8h_001</td><td>24_8h_conv_8H_CONV_C0289</td><td>CONV</td><td class='num'>10</td><td class='num'>0,743</td><td class='num'>0,735</td><td class='num'>0,621</td><td class='num'>20,40</td><td class='num'>47,01</td><td class='num'>-0,521</td><td class='num'>1,256</td><td class='num'>-0,096</td><td class='good'>Prioridade alta</td></tr>
+<tr><td class='num'>2</td><td>rot8h_002</td><td>24_8h_conv_8H_CONV_C0289</td><td>CONV</td><td class='num'>10</td><td class='num'>0,757</td><td class='num'>0,707</td><td class='num'>0,651</td><td class='num'>19,35</td><td class='num'>46,03</td><td class='num'>-0,521</td><td class='num'>1,228</td><td class='num'>-0,067</td><td class='good'>Prioridade alta</td></tr>
+<tr><td class='num'>3</td><td>rot8h_003</td><td>24_8h_conv_8H_CONV_C0289</td><td>CONV</td><td class='num'>10</td><td class='num'>0,764</td><td class='num'>0,286</td><td class='num'>0,638</td><td class='num'>19,76</td><td class='num'>52,24</td><td class='num'>-0,521</td><td class='num'>0,806</td><td class='num'>-0,079</td><td class='warn'>Teste bom, validacao fraca</td></tr></tbody></table>
+
+<h2>5. Top modelos por validacao</h2>
+
+    <table>
+      <thead><tr>
+        <th>#</th><th>Rotacao</th><th>Modelo base</th><th>Tipo</th><th>Inputs</th>
+        <th>PERS geral</th><th>PERS valid.</th><th>PERS teste</th>
+        <th>MAE teste</th><th>E95 teste</th>
+        <th>Valid. original</th><th>Delta valid.</th><th>Delta teste</th><th>Leitura</th>
+      </tr></thead>
+      <tbody>
+    <tr><td class='num'>1</td><td>rot8h_001</td><td>24_8h_conv_8H_CONV_C0289</td><td>CONV</td><td class='num'>10</td><td class='num'>0,743</td><td class='num'>0,735</td><td class='num'>0,621</td><td class='num'>20,40</td><td class='num'>47,01</td><td class='num'>-0,521</td><td class='num'>1,256</td><td class='num'>-0,096</td><td class='good'>Prioridade alta</td></tr>
+<tr><td class='num'>2</td><td>rot8h_002</td><td>28_8h_conv_8H_CONV_C0078</td><td>CONV</td><td class='num'>11</td><td class='num'>0,746</td><td class='num'>0,730</td><td class='num'>0,457</td><td class='num'>23,31</td><td class='num'>76,06</td><td class='num'>-0,098</td><td class='num'>0,828</td><td class='num'>-0,112</td><td class='good'>Promissor</td></tr>
+<tr><td class='num'>3</td><td>rot8h_002</td><td>24_8h_conv_8H_CONV_C0289</td><td>CONV</td><td class='num'>10</td><td class='num'>0,757</td><td class='num'>0,707</td><td class='num'>0,651</td><td class='num'>19,35</td><td class='num'>46,03</td><td class='num'>-0,521</td><td class='num'>1,228</td><td class='num'>-0,067</td><td class='good'>Prioridade alta</td></tr>
+<tr><td class='num'>4</td><td>rot8h_001</td><td>27_8h_conv_8H_CONV_C0174</td><td>CONV</td><td class='num'>12</td><td class='num'>0,771</td><td class='num'>0,612</td><td class='num'>0,410</td><td class='num'>24,40</td><td class='num'>70,49</td><td class='num'>-0,678</td><td class='num'>1,289</td><td class='num'>-0,149</td><td class='good'>Promissor</td></tr>
+<tr><td class='num'>5</td><td>rot8h_001</td><td>29_8h_conv_8H_CONV_C0195</td><td>CONV</td><td class='num'>12</td><td class='num'>0,786</td><td class='num'>0,577</td><td class='num'>0,378</td><td class='num'>22,17</td><td class='num'>66,72</td><td class='num'>-0,857</td><td class='num'>1,433</td><td class='num'>-0,148</td><td class='good'>Promissor</td></tr>
+<tr><td class='num'>6</td><td>rot8h_001</td><td>21_8h_conv_8H_CONV_C0193</td><td>CONV</td><td class='num'>10</td><td class='num'>0,700</td><td class='num'>0,558</td><td class='num'>0,086</td><td class='num'>28,76</td><td class='num'>96,27</td><td class='num'>-0,506</td><td class='num'>1,064</td><td class='num'>-0,460</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>7</td><td>rot8h_002</td><td>19_8h_conv_8H_CONV_C0265</td><td>CONV</td><td class='num'>8</td><td class='num'>0,667</td><td class='num'>0,501</td><td class='num'>0,208</td><td class='num'>25,29</td><td class='num'>72,25</td><td class='num'>0,062</td><td class='num'>0,439</td><td class='num'>-0,159</td><td class='bad'>Melhorou validacao</td></tr>
+<tr><td class='num'>8</td><td>rot8h_002</td><td>21_8h_conv_8H_CONV_C0193</td><td>CONV</td><td class='num'>10</td><td class='num'>0,705</td><td class='num'>0,499</td><td class='num'>0,157</td><td class='num'>27,24</td><td class='num'>92,93</td><td class='num'>-0,506</td><td class='num'>1,005</td><td class='num'>-0,389</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>9</td><td>rot8h_002</td><td>27_8h_conv_8H_CONV_C0174</td><td>CONV</td><td class='num'>12</td><td class='num'>0,716</td><td class='num'>0,498</td><td class='num'>0,202</td><td class='num'>28,33</td><td class='num'>84,05</td><td class='num'>-0,678</td><td class='num'>1,176</td><td class='num'>-0,357</td><td class='bad'>Melhorou validacao</td></tr>
+<tr><td class='num'>10</td><td>rot8h_002</td><td>31_8h_conv_8H_CONV_C0268</td><td>CONV</td><td class='num'>11</td><td class='num'>0,691</td><td class='num'>0,428</td><td class='num'>0,327</td><td class='num'>25,45</td><td class='num'>80,06</td><td class='num'>0,132</td><td class='num'>0,297</td><td class='num'>-0,035</td><td class='warn'>Instavel</td></tr>
+<tr><td class='num'>11</td><td>rot8h_001</td><td>31_8h_conv_8H_CONV_C0268</td><td>CONV</td><td class='num'>11</td><td class='num'>0,699</td><td class='num'>0,417</td><td class='num'>0,306</td><td class='num'>25,67</td><td class='num'>85,79</td><td class='num'>0,132</td><td class='num'>0,285</td><td class='num'>-0,056</td><td class='warn'>Instavel</td></tr>
+<tr><td class='num'>12</td><td>rot8h_003</td><td>28_8h_conv_8H_CONV_C0078</td><td>CONV</td><td class='num'>11</td><td class='num'>0,717</td><td class='num'>0,403</td><td class='num'>0,463</td><td class='num'>23,02</td><td class='num'>70,95</td><td class='num'>-0,098</td><td class='num'>0,501</td><td class='num'>-0,105</td><td class='warn'>Instavel</td></tr></tbody></table>
+
+<div class="pagebreak"></div>
+<h2>6. Tabela completa - 30 redes sentinela</h2>
+
+    <table>
+      <thead><tr>
+        <th>#</th><th>Rotacao</th><th>Modelo base</th><th>Tipo</th><th>Inputs</th>
+        <th>PERS geral</th><th>PERS valid.</th><th>PERS teste</th>
+        <th>MAE teste</th><th>E95 teste</th>
+        <th>Valid. original</th><th>Delta valid.</th><th>Delta teste</th><th>Leitura</th>
+      </tr></thead>
+      <tbody>
+    <tr><td class='num'>1</td><td>rot8h_001</td><td>24_8h_conv_8H_CONV_C0289</td><td>CONV</td><td class='num'>10</td><td class='num'>0,743</td><td class='num'>0,735</td><td class='num'>0,621</td><td class='num'>20,40</td><td class='num'>47,01</td><td class='num'>-0,521</td><td class='num'>1,256</td><td class='num'>-0,096</td><td class='good'>Prioridade alta</td></tr>
+<tr><td class='num'>2</td><td>rot8h_002</td><td>28_8h_conv_8H_CONV_C0078</td><td>CONV</td><td class='num'>11</td><td class='num'>0,746</td><td class='num'>0,730</td><td class='num'>0,457</td><td class='num'>23,31</td><td class='num'>76,06</td><td class='num'>-0,098</td><td class='num'>0,828</td><td class='num'>-0,112</td><td class='good'>Promissor</td></tr>
+<tr><td class='num'>3</td><td>rot8h_002</td><td>24_8h_conv_8H_CONV_C0289</td><td>CONV</td><td class='num'>10</td><td class='num'>0,757</td><td class='num'>0,707</td><td class='num'>0,651</td><td class='num'>19,35</td><td class='num'>46,03</td><td class='num'>-0,521</td><td class='num'>1,228</td><td class='num'>-0,067</td><td class='good'>Prioridade alta</td></tr>
+<tr><td class='num'>4</td><td>rot8h_001</td><td>27_8h_conv_8H_CONV_C0174</td><td>CONV</td><td class='num'>12</td><td class='num'>0,771</td><td class='num'>0,612</td><td class='num'>0,410</td><td class='num'>24,40</td><td class='num'>70,49</td><td class='num'>-0,678</td><td class='num'>1,289</td><td class='num'>-0,149</td><td class='good'>Promissor</td></tr>
+<tr><td class='num'>5</td><td>rot8h_001</td><td>29_8h_conv_8H_CONV_C0195</td><td>CONV</td><td class='num'>12</td><td class='num'>0,786</td><td class='num'>0,577</td><td class='num'>0,378</td><td class='num'>22,17</td><td class='num'>66,72</td><td class='num'>-0,857</td><td class='num'>1,433</td><td class='num'>-0,148</td><td class='good'>Promissor</td></tr>
+<tr><td class='num'>6</td><td>rot8h_001</td><td>21_8h_conv_8H_CONV_C0193</td><td>CONV</td><td class='num'>10</td><td class='num'>0,700</td><td class='num'>0,558</td><td class='num'>0,086</td><td class='num'>28,76</td><td class='num'>96,27</td><td class='num'>-0,506</td><td class='num'>1,064</td><td class='num'>-0,460</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>7</td><td>rot8h_002</td><td>19_8h_conv_8H_CONV_C0265</td><td>CONV</td><td class='num'>8</td><td class='num'>0,667</td><td class='num'>0,501</td><td class='num'>0,208</td><td class='num'>25,29</td><td class='num'>72,25</td><td class='num'>0,062</td><td class='num'>0,439</td><td class='num'>-0,159</td><td class='bad'>Melhorou validacao</td></tr>
+<tr><td class='num'>8</td><td>rot8h_002</td><td>21_8h_conv_8H_CONV_C0193</td><td>CONV</td><td class='num'>10</td><td class='num'>0,705</td><td class='num'>0,499</td><td class='num'>0,157</td><td class='num'>27,24</td><td class='num'>92,93</td><td class='num'>-0,506</td><td class='num'>1,005</td><td class='num'>-0,389</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>9</td><td>rot8h_002</td><td>27_8h_conv_8H_CONV_C0174</td><td>CONV</td><td class='num'>12</td><td class='num'>0,716</td><td class='num'>0,498</td><td class='num'>0,202</td><td class='num'>28,33</td><td class='num'>84,05</td><td class='num'>-0,678</td><td class='num'>1,176</td><td class='num'>-0,357</td><td class='bad'>Melhorou validacao</td></tr>
+<tr><td class='num'>10</td><td>rot8h_002</td><td>31_8h_conv_8H_CONV_C0268</td><td>CONV</td><td class='num'>11</td><td class='num'>0,691</td><td class='num'>0,428</td><td class='num'>0,327</td><td class='num'>25,45</td><td class='num'>80,06</td><td class='num'>0,132</td><td class='num'>0,297</td><td class='num'>-0,035</td><td class='warn'>Instavel</td></tr>
+<tr><td class='num'>11</td><td>rot8h_001</td><td>31_8h_conv_8H_CONV_C0268</td><td>CONV</td><td class='num'>11</td><td class='num'>0,699</td><td class='num'>0,417</td><td class='num'>0,306</td><td class='num'>25,67</td><td class='num'>85,79</td><td class='num'>0,132</td><td class='num'>0,285</td><td class='num'>-0,056</td><td class='warn'>Instavel</td></tr>
+<tr><td class='num'>12</td><td>rot8h_003</td><td>28_8h_conv_8H_CONV_C0078</td><td>CONV</td><td class='num'>11</td><td class='num'>0,717</td><td class='num'>0,403</td><td class='num'>0,463</td><td class='num'>23,02</td><td class='num'>70,95</td><td class='num'>-0,098</td><td class='num'>0,501</td><td class='num'>-0,105</td><td class='warn'>Instavel</td></tr>
+<tr><td class='num'>13</td><td>rot8h_001</td><td>19_8h_conv_8H_CONV_C0265</td><td>CONV</td><td class='num'>8</td><td class='num'>0,665</td><td class='num'>0,384</td><td class='num'>0,238</td><td class='num'>24,70</td><td class='num'>72,61</td><td class='num'>0,062</td><td class='num'>0,322</td><td class='num'>-0,129</td><td class='bad'>Melhorou validacao</td></tr>
+<tr><td class='num'>14</td><td>rot8h_003</td><td>19_8h_conv_8H_CONV_C0265</td><td>CONV</td><td class='num'>8</td><td class='num'>0,648</td><td class='num'>0,358</td><td class='num'>0,312</td><td class='num'>22,98</td><td class='num'>89,65</td><td class='num'>0,062</td><td class='num'>0,296</td><td class='num'>-0,055</td><td class='warn'>Instavel</td></tr>
+<tr><td class='num'>15</td><td>rot8h_002</td><td>29_8h_conv_8H_CONV_C0195</td><td>CONV</td><td class='num'>12</td><td class='num'>0,645</td><td class='num'>0,351</td><td class='num'>-0,151</td><td class='num'>31,28</td><td class='num'>91,70</td><td class='num'>-0,857</td><td class='num'>1,208</td><td class='num'>-0,678</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>16</td><td>rot8h_003</td><td>31_8h_conv_8H_CONV_C0268</td><td>CONV</td><td class='num'>11</td><td class='num'>0,605</td><td class='num'>0,312</td><td class='num'>0,511</td><td class='num'>22,82</td><td class='num'>62,91</td><td class='num'>0,132</td><td class='num'>0,180</td><td class='num'>0,149</td><td class='warn'>Instavel</td></tr>
+<tr><td class='num'>17</td><td>rot8h_003</td><td>24_8h_conv_8H_CONV_C0289</td><td>CONV</td><td class='num'>10</td><td class='num'>0,764</td><td class='num'>0,286</td><td class='num'>0,638</td><td class='num'>19,76</td><td class='num'>52,24</td><td class='num'>-0,521</td><td class='num'>0,806</td><td class='num'>-0,079</td><td class='warn'>Teste bom, validacao fraca</td></tr>
+<tr><td class='num'>18</td><td>rot8h_001</td><td>28_8h_conv_8H_CONV_C0078</td><td>CONV</td><td class='num'>11</td><td class='num'>0,710</td><td class='num'>0,280</td><td class='num'>0,139</td><td class='num'>32,66</td><td class='num'>80,32</td><td class='num'>-0,098</td><td class='num'>0,378</td><td class='num'>-0,429</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>19</td><td>rot8h_003</td><td>29_8h_conv_8H_CONV_C0195</td><td>CONV</td><td class='num'>12</td><td class='num'>0,802</td><td class='num'>0,256</td><td class='num'>0,271</td><td class='num'>23,69</td><td class='num'>71,00</td><td class='num'>-0,857</td><td class='num'>1,112</td><td class='num'>-0,256</td><td class='bad'>Melhorou validacao</td></tr>
+<tr><td class='num'>20</td><td>rot8h_003</td><td>21_8h_conv_8H_CONV_C0193</td><td>CONV</td><td class='num'>10</td><td class='num'>0,694</td><td class='num'>0,189</td><td class='num'>0,004</td><td class='num'>30,12</td><td class='num'>98,86</td><td class='num'>-0,506</td><td class='num'>0,694</td><td class='num'>-0,543</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>21</td><td>rot8h_003</td><td>04_8h_alt_8H_ALT_C0273</td><td>ALT</td><td class='num'>10</td><td class='num'>0,075</td><td class='num'>0,090</td><td class='num'>0,104</td><td class='num'>372,28</td><td class='num'>563,90</td><td class='num'>-0,175</td><td class='num'>0,264</td><td class='num'>-0,416</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>22</td><td>rot8h_001</td><td>10_8h_alt_8H_ALT_C0569</td><td>ALT</td><td class='num'>9</td><td class='num'>0,097</td><td class='num'>0,084</td><td class='num'>0,119</td><td class='num'>369,94</td><td class='num'>558,45</td><td class='num'>0,088</td><td class='num'>-0,004</td><td class='num'>-0,542</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>23</td><td>rot8h_002</td><td>10_8h_alt_8H_ALT_C0569</td><td>ALT</td><td class='num'>9</td><td class='num'>0,072</td><td class='num'>0,074</td><td class='num'>0,089</td><td class='num'>376,73</td><td class='num'>565,16</td><td class='num'>0,088</td><td class='num'>-0,014</td><td class='num'>-0,573</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>24</td><td>rot8h_002</td><td>04_8h_alt_8H_ALT_C0273</td><td>ALT</td><td class='num'>10</td><td class='num'>0,054</td><td class='num'>0,064</td><td class='num'>0,076</td><td class='num'>378,54</td><td class='num'>570,19</td><td class='num'>-0,175</td><td class='num'>0,238</td><td class='num'>-0,444</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>25</td><td>rot8h_003</td><td>15_8h_alt_8H_ALT_C0268</td><td>ALT</td><td class='num'>11</td><td class='num'>0,050</td><td class='num'>0,006</td><td class='num'>0,047</td><td class='num'>386,41</td><td class='num'>530,69</td><td class='num'>0,003</td><td class='num'>0,002</td><td class='num'>-0,482</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>26</td><td>rot8h_003</td><td>10_8h_alt_8H_ALT_C0569</td><td>ALT</td><td class='num'>9</td><td class='num'>-0,009</td><td class='num'>-0,010</td><td class='num'>-0,008</td><td class='num'>397,54</td><td class='num'>585,22</td><td class='num'>0,088</td><td class='num'>-0,098</td><td class='num'>-0,669</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>27</td><td>rot8h_001</td><td>04_8h_alt_8H_ALT_C0273</td><td>ALT</td><td class='num'>10</td><td class='num'>0,017</td><td class='num'>-0,025</td><td class='num'>0,022</td><td class='num'>394,42</td><td class='num'>547,94</td><td class='num'>-0,175</td><td class='num'>0,150</td><td class='num'>-0,497</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>28</td><td>rot8h_002</td><td>15_8h_alt_8H_ALT_C0268</td><td>ALT</td><td class='num'>11</td><td class='num'>0,034</td><td class='num'>-0,049</td><td class='num'>0,031</td><td class='num'>390,05</td><td class='num'>533,70</td><td class='num'>0,003</td><td class='num'>-0,053</td><td class='num'>-0,498</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>29</td><td>rot8h_001</td><td>15_8h_alt_8H_ALT_C0268</td><td>ALT</td><td class='num'>11</td><td class='num'>0,035</td><td class='num'>-0,089</td><td class='num'>0,024</td><td class='num'>391,57</td><td class='num'>535,59</td><td class='num'>0,003</td><td class='num'>-0,092</td><td class='num'>-0,505</td><td class='bad'>Baixa prioridade</td></tr>
+<tr><td class='num'>30</td><td>rot8h_003</td><td>27_8h_conv_8H_CONV_C0174</td><td>CONV</td><td class='num'>12</td><td class='num'>0,705</td><td class='num'>-0,116</td><td class='num'>0,130</td><td class='num'>30,69</td><td class='num'>84,75</td><td class='num'>-0,678</td><td class='num'>0,561</td><td class='num'>-0,429</td><td class='bad'>Baixa prioridade</td></tr></tbody></table>
+
+<h2>7. Leitura para proxima rodada</h2>
+<div class="attention"><b>Recomendacao.</b> Para 8h, a proxima rodada deve ser menor e mais inteligente: rotacionar mais eventos apenas nos modelos CONV com ganho real de validacao, mantendo evento 1 como teste em uma parte das rodadas e testando outros eventos depois. Os ALT desta sentinela devem ficar em baixa prioridade ate revisarmos os inputs ou o alvo.</div>
+<p class="small">Arquivos auditaveis: D:\PREVINE\redes_neurais\RNA_8H_ROTACAO_SENTINELA_2026_06_28\auditaveis. Comparativo original: D:\PREVINE\redes_neurais\RNA_8H_ALT_CONV_MODELO_AUTO_2026_06_27\resultados_excel_auditaveis.</p>
+</body>
+</html>

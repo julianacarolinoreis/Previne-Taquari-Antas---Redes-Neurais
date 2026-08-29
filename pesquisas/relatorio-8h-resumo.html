@@ -1,0 +1,41 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 14mm; }
+body { font-family: Arial, Helvetica, sans-serif; color: #15202b; font-size: 11px; line-height: 1.32; }
+h1 { font-size: 22px; margin: 0 0 5px; color: #123a5a; }
+h2 { font-size: 15px; margin: 18px 0 7px; color: #123a5a; border-bottom: 1px solid #b7c7d6; padding-bottom: 3px; }
+h3 { font-size: 12px; margin: 12px 0 5px; color: #123a5a; }
+.meta { color: #5b6770; margin-bottom: 10px; }
+.callout { background:#eef6fb; border-left: 4px solid #2274a5; padding: 8px 10px; margin: 9px 0; }
+.warn { background:#fff6e6; border-left: 4px solid #d18700; padding: 8px 10px; margin: 9px 0; }
+table { border-collapse: collapse; width: 100%; margin: 6px 0 11px; page-break-inside: auto; }
+th { background: #194d73; color: white; text-align: left; padding: 5px 6px; font-size: 10px; }
+td { border: 1px solid #d7e0e8; padding: 4px 5px; vertical-align: top; }
+tr:nth-child(even) td { background: #f7fafc; }
+.num { text-align: right; white-space: nowrap; }
+.small { font-size: 10px; color: #46535f; }
+.bad { color:#9b1c1c; font-weight:bold; }
+.good { color:#0b5d35; font-weight:bold; }
+.grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.card { border:1px solid #d7e0e8; padding:8px; background:#fbfdff; }
+.card b { display:block; color:#123a5a; margin-bottom:3px; }
+.footer { margin-top: 20px; color:#687784; font-size: 9px; }
+
+body{font-size:18px; margin:24px;} h1{font-size:32px} h2{font-size:24px} th,td{font-size:15px; padding:7px} .small{font-size:14px}</style></head><body>
+<h1>Relatorio tecnico - RNA 8h ALT e 8h CONV</h1>
+<div class="meta">Rodada analisada: RNA_8H_ALT_CONV_MODELO_AUTO_2026_06_27<br>Gerado em: 28/06/2026 14:30</div>
+<div class="callout"><b>Resposta objetiva sobre a rota??o 2h atual:</b> ela esta usando planilhas <b>SEM_EVT13</b>. Portanto, houve retirada do evento 13 e rotacao dos eventos, mas <b>nao</b> e a versao com recorte fino do trecho de queda/efeito de barragem.</div>
+<h2>1. Escopo e consistencia dos arquivos</h2>
+<p>A rodada 8h executou 32 redes no total: 16 ALT e 16 CONV. O CSV final contem metricas para as 32. Entretanto, conforme o criterio combinado de nao manter resultados negativos, ficaram salvos como .mat e Excel auditavel apenas 25 modelos. Os 7 excluidos possuem PERS negativo no CSV e nao possuem arquivo .mat/auditavel na pasta final.</p>
+<div class="grid"><div class="card"><b>25 auditaveis - geral</b>
+    N: 25<br>Pers max: 0,7176<br>Pers medio: 0,3447<br>Pers mediana: 0,3626<br>MAE medio: 49,80<br>E95 medio: 181,39</div><div class="card"><b>8h ALT auditaveis</b>
+    N: 12<br>Pers max: 0,6616<br>Pers medio: 0,2668<br>Pers mediana: 0,2356<br>MAE medio: 52,37<br>E95 medio: 154,45</div><div class="card"><b>8h CONV auditaveis</b>
+    N: 13<br>Pers max: 0,7176<br>Pers medio: 0,4166<br>Pers mediana: 0,3675<br>MAE medio: 47,43<br>E95 medio: 206,25</div></div>
+<h2>2. Principais achados</h2>
+<ul>
+<li>Melhor resultado geral: <b>24_8h_conv_8H_CONV_C0289</b>, tipo CONV, PERS 0,7176, MAE 34,82, E95 144,50.</li>
+<li>Melhor ALT: <b>10_8h_alt_8H_ALT_C0569</b>, PERS 0,6616, NASH teste 0,9331, MAE 41,80.</li>
+<li>Melhor CONV: <b>24_8h_conv_8H_CONV_C0289</b>, PERS 0,7176, NASH teste 0,9442, MAE 34,82.</li>
+<li>Os modelos CONV ficaram mais fortes no topo do ranking: 5 dos 8 melhores sao CONV.</li>
+<li>Os modelos ALT tiveram desempenho util, mas mais irregular: ha poucos acima de 0,50 e varios muito proximos de zero.</li>
+</ul>
+</body></html>

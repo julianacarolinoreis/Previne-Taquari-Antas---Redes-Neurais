@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Comparativo RNA 4h Alt — Melhores Resultados</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; background: #1a1a2e; color: #eee; margin: 0; padding: 20px; }
+  h1   { color: #4fc3f7; text-align: center; margin-bottom: 4px; }
+  p.sub { text-align: center; color: #aaa; margin-bottom: 20px; font-size: 14px; }
+  .chart { background: #16213e; border-radius: 10px; padding: 10px; margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media(max-width:800px){ .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<h1>📊 RNA 4h Alternativa — Comparativo de Combinações</h1>
+<p class="sub">Top 40 combinações ordenadas por NASH Validação (maior = melhor)</p>
+
+<div class="chart" id="chart_nash_val"></div>
+<div class="grid">
+  <div class="chart" id="chart_nash_teste"></div>
+  <div class="chart" id="chart_pers"></div>
+</div>
+<div class="grid">
+  <div class="chart" id="chart_erro"></div>
+  <div class="chart" id="chart_scatter"></div>
+</div>
+
+<script>
+const D = {"nomes": ["ORIGINAL_14inp", "sem_inp04", "f2_n3_126", "sem_inp03", "sem_inp06", "sem_inp14", "sem_inp13", "sem_inp10", "sem_86160000", "sem_inp07", "sem_inp09", "f2_n3_127", "sem_inp11", "sem_inp05", "sem_duplicatas", "f2_n3_129", "sem_inp12", "sem_86125130", "sem_inp02", "sem_inp08", "sttereza_mais_8_9_14", "modelo_essencial", "f2_n3_124", "f2_n3_123", "so_sttereza"], "nash_val": [0.9938614941, 0.9676628065, 0.9588432396, 0.9573797342, 0.9562499815, 0.9553270438, 0.9548899471, 0.9548589223, 0.9543811967, 0.9539541044, 0.9538687467, 0.953124231, 0.953117669, 0.9527364895, 0.9526116595, 0.9524884524, 0.9523772626, 0.9519401714, 0.9501304687, 0.9488280561, 0.9484623004, 0.9477051883, 0.9455336061, 0.9349839158, 0.9232846055], "nash_teste": [0.9137785661, 0.9429399631, 0.9699148337, 0.9733361937, 0.9595791779, 0.9811946929, 0.9754430048, 0.9698670721, 0.9726765753, 0.9609855105, 0.9801391205, 0.959024448, 0.9750671955, 0.9800774511, 0.9799718882, 0.9219926359, 0.9802772267, 0.9788186331, 0.9794388177, 0.9776471255, 0.9758048811, 0.9730967097, 0.9686453957, 0.969638005, 0.9362604843], "erro_abs": [30.6001708983, 28.2007218743, 24.0071239545, 25.983826568, 25.3982323437, 20.2969482072, 21.0866642732, 20.2566240509, 20.7731512982, 23.4120281057, 22.3661008159, 22.9192619247, 19.2334189796, 22.2287880543, 22.4359222592, 31.6857065884, 22.2848040055, 23.162296772, 22.693711284, 23.6500407586, 19.9310719581, 24.5179854681, 22.8354599639, 21.6812153398, 32.6851099104], "pers": [-0.146380834, 0.2413425554, 0.5999943805, 0.6454840155, 0.4625738209, 0.7499688573, 0.6734957033, 0.599359353, 0.6367138778, 0.4812721037, 0.7359342031, 0.4551982573, 0.6684990267, 0.7351142608, 0.7337107199, -0.0371684065, 0.7377704326, 0.7183772992, 0.7266231343, 0.7028011976, 0.678307129, 0.6422998896, 0.5831162186, 0.5963137292, 0.1525337042], "n_inputs": ["14", "13", "3", "13", "13", "13", "13", "13", "12", "13", "13", "3", "13", "13", "12", "3", "13", "12", "13", "13", "8", "8", "3", "3", "5"], "nh": ["21", "21", "21", "21", "21", "21", "21", "21", "21", "21", "21", "10", "21", "21", "21", "10", "21", "21", "21", "21", "21", "21", "10", "10", "21"], "cic": ["100000", "120000", "120000", "120000", "120000", "120000", "120000", "120000", "120000", "120000", "120000", "80000", "120000", "120000", "120000", "80000", "120000", "120000", "120000", "120000", "120000", "120000", "120000", "80000", "120000"]};
+
+const cores = D.nomes.map((n,i) => {
+  if (n.startsWith('ORIGINAL')) return '#FFD700';
+  if (n.startsWith('sem_inp'))  return '#4fc3f7';
+  if (n.startsWith('f2_'))      return `hsl(${(i*17)%360},70%,55%)`;
+  return '#81c784';
+});
+
+const tooltip = D.nomes.map((n,i) =>
+  `<b>${n}</b><br>Inputs: ${D.n_inputs[i]}<br>Neurônios: ${D.nh[i]}<br>` +
+  `Ciclos: ${D.cic[i]}<br>NASH Val: ${D.nash_val[i].toFixed(4)}<br>` +
+  `NASH Teste: ${D.nash_teste[i].toFixed(4)}<br>` +
+  `Persistência: ${D.pers[i].toFixed(4)}<br>` +
+  `Erro Abs: ${D.erro_abs[i].toFixed(1)} mm`
+);
+
+const layout_base = {
+  paper_bgcolor: '#16213e', plot_bgcolor: '#0f3460',
+  font: {color: '#eee'},
+  margin: {t:50, b:120, l:60, r:20},
+  xaxis: {tickangle: -45, tickfont: {size: 10}},
+};
+
+// Gráfico 1: NASH Validação
+Plotly.newPlot('chart_nash_val', [{
+  type: 'bar', x: D.nomes, y: D.nash_val,
+  marker: {color: cores},
+  text: D.nash_val.map(v => v.toFixed(4)),
+  textposition: 'outside', textfont: {size: 9},
+  hovertext: tooltip, hoverinfo: 'text',
+}], {
+  ...layout_base,
+  title: 'NASH Validação (maior = melhor)',
+  yaxis: {title: 'NASH', range: [Math.min(...D.nash_val)*0.995, 1]},
+  height: 420,
+});
+
+// Gráfico 2: NASH Teste
+Plotly.newPlot('chart_nash_teste', [{
+  type: 'bar', x: D.nomes, y: D.nash_teste,
+  marker: {color: cores},
+  hovertext: tooltip, hoverinfo: 'text',
+}], {
+  ...layout_base,
+  title: 'NASH Teste',
+  yaxis: {title: 'NASH'},
+  height: 380,
+});
+
+// Gráfico 3: Persistência
+Plotly.newPlot('chart_pers', [{
+  type: 'bar', x: D.nomes, y: D.pers,
+  marker: {color: cores},
+  text: D.pers.map(v => v.toFixed(4)),
+  textposition: 'outside', textfont: {size: 9},
+  hovertext: tooltip, hoverinfo: 'text',
+}], {
+  ...layout_base,
+  title: 'Erro de Persistência — PERS (maior = melhor)',
+  yaxis: {title: 'PERS'},
+  height: 380,
+  shapes: [{
+    type: 'line', x0: 0, x1: 1, xref: 'paper',
+    y0: 0, y1: 0, line: {color: '#ff6b6b', width: 1.5, dash: 'dash'},
+  }],
+  annotations: [{
+    x: 1, xref: 'paper', y: 0, yref: 'y',
+    text: 'PERS = 0 (igual à persistência)', showarrow: false,
+    font: {color: '#ff6b6b', size: 10}, xanchor: 'right',
+  }],
+});
+
+// Gráfico 4: Erro Absoluto Médio
+Plotly.newPlot('chart_erro', [{
+  type: 'bar', x: D.nomes, y: D.erro_abs,
+  marker: {color: cores},
+  hovertext: tooltip, hoverinfo: 'text',
+}], {
+  ...layout_base,
+  title: 'Erro Absoluto Médio (menor = melhor)',
+  yaxis: {title: 'Erro (mm / cm)'},
+  height: 380,
+});
+
+// Gráfico 5: Scatter NASH Val x PERS, colorido por n° inputs
+Plotly.newPlot('chart_scatter', [{
+  type: 'scatter', mode: 'markers+text',
+  x: D.nash_val, y: D.pers,
+  text: D.nomes, textposition: 'top center', textfont: {size: 9},
+  marker: {
+    size: D.n_inputs.map(n => Math.max(8, parseInt(n)*1.5) || 10),
+    color: D.n_inputs.map(n => parseInt(n) || 0),
+    colorscale: 'Viridis', showscale: true,
+    colorbar: {title: 'Nº Inputs'},
+  },
+  hovertext: tooltip, hoverinfo: 'text',
+}], {
+  ...layout_base,
+  title: 'NASH Validação vs Persistência (tamanho do ponto = nº inputs)',
+  xaxis: {title: 'NASH Validação', tickangle: 0},
+  yaxis: {title: 'Persistência (PERS)'},
+  height: 460,
+  margin: {t:60, b:60, l:80, r:80},
+});
+</script>
+</body>
+</html>

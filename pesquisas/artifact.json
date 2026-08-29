@@ -1,0 +1,5037 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Relatório de auditoria — RNA ao vivo de Santa Tereza",
+    "description": "Auditoria read-only do site publicado: modelo 4h ativo, pares observado × RNA, erros, acertos e ausência de horizonte 12h.",
+    "generatedAt": "2026-08-23T18:58:26",
+    "filters": [
+      {
+        "field": "local",
+        "value": "Santa Tereza"
+      },
+      {
+        "field": "fonte",
+        "value": "site ao vivo"
+      }
+    ],
+    "sources": [
+      {
+        "id": "live_history",
+        "label": "Histórico publicado ao vivo — observado × RNA",
+        "path": "historico_previsoes_ao_vivo.json",
+        "href": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/historico_previsoes_ao_vivo.json",
+        "query": {
+          "engine": "json",
+          "id": "live_history",
+          "url": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/historico_previsoes_ao_vivo.json",
+          "sql": null,
+          "description": "Arquivo JSON publicado no site ao vivo do PREVINE; leitura somente leitura e cálculo local reproduzível.",
+          "language": "python",
+          "executed_at": "2026-08-23T18:58:26",
+          "tables_used": [
+            "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/historico_previsoes_ao_vivo.json"
+          ],
+          "filters": [
+            "local = Santa Tereza",
+            "status_auditoria = conferido",
+            "modelo/horizonte filtrados conforme o JSON vivo",
+            "sem imputação de observações"
+          ],
+          "metric_definitions": [
+            "erro_cm = previsto_cm - observado_cm",
+            "MAE = média de |erro_cm|",
+            "RMSE = raiz da média de erro_cm²",
+            "correlação de Pearson entre previsto e observado",
+            "percentuais usam como denominador os pares conferidos do grupo"
+          ]
+        }
+      },
+      {
+        "id": "live_feed",
+        "label": "Snapshot do feed publicado ao vivo",
+        "path": "previsao_ao_vivo.json",
+        "href": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/previsao_ao_vivo.json",
+        "query": {
+          "engine": "json",
+          "id": "live_feed",
+          "url": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/previsao_ao_vivo.json",
+          "sql": null,
+          "description": "Arquivo JSON publicado no site ao vivo do PREVINE; leitura somente leitura e cálculo local reproduzível.",
+          "language": "python",
+          "executed_at": "2026-08-23T18:58:26",
+          "tables_used": [
+            "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/previsao_ao_vivo.json"
+          ],
+          "filters": [
+            "snapshot integral da publicação no momento da auditoria"
+          ],
+          "metric_definitions": [
+            "telemetria e disponibilidade são lidas do JSON vivo; não equivalem à aprovação do modelo"
+          ]
+        }
+      }
+    ],
+    "cards": [
+      {
+        "id": "card_n4",
+        "description": "Pares observado × RNA do modelo 4h ativo, depois dos filtros de conferência.",
+        "dataset": "metrics",
+        "sourceId": "live_history",
+        "filter": {
+          "grupo": "4h ativo"
+        },
+        "metrics": [
+          {
+            "label": "Pares conferidos — 4h",
+            "field": "n",
+            "format": "number"
+          }
+        ]
+      },
+      {
+        "id": "card_mae4",
+        "description": "Média do erro absoluto dos pares conferidos do 4h ativo.",
+        "dataset": "metrics",
+        "sourceId": "live_history",
+        "filter": {
+          "grupo": "4h ativo"
+        },
+        "metrics": [
+          {
+            "label": "MAE — 4h",
+            "field": "mae_cm",
+            "format": "number"
+          }
+        ]
+      },
+      {
+        "id": "card_corr4",
+        "description": "Correlação de Pearson entre níveis previstos e observados nos pares conferidos.",
+        "dataset": "metrics",
+        "sourceId": "live_history",
+        "filter": {
+          "grupo": "4h ativo"
+        },
+        "metrics": [
+          {
+            "label": "Correlação — 4h",
+            "field": "correlacao",
+            "format": "number"
+          }
+        ]
+      },
+      {
+        "id": "card_pct25",
+        "description": "Percentual dos pares 4h com erro absoluto de até 25 cm.",
+        "dataset": "metrics",
+        "sourceId": "live_history",
+        "filter": {
+          "grupo": "4h ativo"
+        },
+        "metrics": [
+          {
+            "label": "|erro| ≤ 25 cm",
+            "field": "pct_abs_le_25",
+            "format": "number"
+          }
+        ]
+      },
+      {
+        "id": "card_max4",
+        "description": "Maior erro absoluto encontrado nos pares conferidos do 4h ativo.",
+        "dataset": "metrics",
+        "sourceId": "live_history",
+        "filter": {
+          "grupo": "4h ativo"
+        },
+        "metrics": [
+          {
+            "label": "Maior |erro| — 4h",
+            "field": "maior_erro_abs_cm",
+            "format": "number"
+          }
+        ]
+      }
+    ],
+    "charts": [
+      {
+        "id": "tracking_4h",
+        "title": "Acompanhamento: observado e RNA — 4h",
+        "subtitle": "142 pares conferidos; níveis em cm; alvo de 2026-08-17T18:00:00 a 2026-08-23T18:00:00.",
+        "type": "line",
+        "dataset": "tracking_4h",
+        "sourceId": "live_history",
+        "encodings": {
+          "x": {
+            "field": "hora_alvo",
+            "type": "temporal",
+            "label": "Hora-alvo"
+          },
+          "y": {
+            "field": "nivel_cm",
+            "type": "quantitative",
+            "label": "Nível",
+            "unit": "cm"
+          },
+          "color": {
+            "field": "serie",
+            "type": "nominal",
+            "label": "Série"
+          }
+        },
+        "xAxisTitle": "Hora-alvo",
+        "yAxisTitle": "Nível (cm)",
+        "unit": "cm",
+        "layout": "full"
+      },
+      {
+        "id": "scatter_4h",
+        "title": "Dispersão observado × RNA — 4h",
+        "subtitle": "Correlação = 0.887; R² = 0.764; cada ponto é um alvo conferido.",
+        "type": "scatter",
+        "dataset": "points_4h",
+        "sourceId": "live_history",
+        "encodings": {
+          "x": {
+            "field": "observado_cm",
+            "type": "quantitative",
+            "label": "Observado",
+            "unit": "cm"
+          },
+          "y": {
+            "field": "previsto_cm",
+            "type": "quantitative",
+            "label": "RNA",
+            "unit": "cm"
+          },
+          "size": {
+            "field": "erro_abs_cm",
+            "type": "quantitative",
+            "label": "|erro|",
+            "unit": "cm"
+          },
+          "tooltip": [
+            {
+              "field": "hora_alvo",
+              "type": "temporal",
+              "label": "Hora-alvo"
+            },
+            {
+              "field": "erro_cm",
+              "type": "quantitative",
+              "label": "Erro",
+              "unit": "cm"
+            }
+          ]
+        },
+        "xAxisTitle": "Observado ANA (cm)",
+        "yAxisTitle": "RNA (cm)",
+        "unit": "cm",
+        "layout": "full"
+      },
+      {
+        "id": "error_tracking_4h",
+        "title": "Erro assinado ao longo do tempo — 4h",
+        "subtitle": "Erro definido como RNA − observado; viés médio = +4.7 cm.",
+        "type": "line",
+        "dataset": "points_4h",
+        "sourceId": "live_history",
+        "encodings": {
+          "x": {
+            "field": "hora_alvo",
+            "type": "temporal",
+            "label": "Hora-alvo"
+          },
+          "y": {
+            "field": "erro_cm",
+            "type": "quantitative",
+            "label": "Erro assinado",
+            "unit": "cm"
+          },
+          "tooltip": [
+            {
+              "field": "observado_cm",
+              "type": "quantitative",
+              "label": "Observado",
+              "unit": "cm"
+            },
+            {
+              "field": "previsto_cm",
+              "type": "quantitative",
+              "label": "RNA",
+              "unit": "cm"
+            }
+          ]
+        },
+        "xAxisTitle": "Hora-alvo",
+        "yAxisTitle": "Erro RNA − observado (cm)",
+        "unit": "cm",
+        "referenceLines": [
+          {
+            "value": 0,
+            "label": "zero"
+          }
+        ],
+        "layout": "full"
+      },
+      {
+        "id": "error_distribution_4h",
+        "title": "Distribuição do erro assinado — 4h",
+        "subtitle": "MAE = 19.3 cm; P95 do erro absoluto = 71 cm.",
+        "type": "histogram",
+        "dataset": "points_4h",
+        "sourceId": "live_history",
+        "encodings": {
+          "x": {
+            "field": "erro_cm",
+            "type": "quantitative",
+            "label": "Erro RNA − observado",
+            "unit": "cm"
+          },
+          "y": {
+            "field": "erro_cm",
+            "type": "quantitative",
+            "label": "Contagem"
+          }
+        },
+        "xAxisTitle": "Erro assinado (cm)",
+        "yAxisTitle": "Número de pares",
+        "unit": "cm",
+        "layout": "half"
+      },
+      {
+        "id": "thresholds_4h",
+        "title": "Pares dentro do limite de erro — 4h",
+        "subtitle": "Percentual de alvos conferidos com erro absoluto até cada limite.",
+        "type": "bar",
+        "dataset": "thresholds_4h",
+        "sourceId": "live_history",
+        "encodings": {
+          "x": {
+            "field": "limite_cm",
+            "type": "ordinal",
+            "label": "Limite",
+            "unit": "cm"
+          },
+          "y": {
+            "field": "pct_dentro",
+            "type": "quantitative",
+            "label": "% dentro",
+            "unit": "%"
+          }
+        },
+        "xAxisTitle": "Limite de |erro| (cm)",
+        "yAxisTitle": "Pares dentro do limite (%)",
+        "unit": "%",
+        "layout": "half"
+      },
+      {
+        "id": "model_comparison",
+        "title": "MAE por modelo publicado",
+        "subtitle": "Comparação contextual entre 4h ativo, 2h ativo e 2h B (sombra); horizontes não são diretamente equivalentes.",
+        "type": "bar",
+        "dataset": "metrics",
+        "sourceId": "live_history",
+        "encodings": {
+          "x": {
+            "field": "grupo",
+            "type": "nominal",
+            "label": "Grupo"
+          },
+          "y": {
+            "field": "mae_cm",
+            "type": "quantitative",
+            "label": "MAE",
+            "unit": "cm"
+          }
+        },
+        "xAxisTitle": "Grupo publicado",
+        "yAxisTitle": "MAE (cm)",
+        "unit": "cm",
+        "layout": "full"
+      }
+    ],
+    "tables": [
+      {
+        "id": "metrics_table",
+        "title": "Métricas por grupo publicado",
+        "subtitle": "Pares conferidos e métricas calculadas do histórico ao vivo; a variante 2h B é marcada como sombra.",
+        "dataset": "metrics",
+        "sourceId": "live_history",
+        "defaultSort": {
+          "field": "mae_cm",
+          "direction": "asc"
+        },
+        "columns": [
+          {
+            "field": "grupo",
+            "label": "Grupo",
+            "type": "text"
+          },
+          {
+            "field": "n",
+            "label": "N conferidos",
+            "type": "number"
+          },
+          {
+            "field": "mae_cm",
+            "label": "MAE",
+            "type": "number",
+            "unit": "cm"
+          },
+          {
+            "field": "rmse_cm",
+            "label": "RMSE",
+            "type": "number",
+            "unit": "cm"
+          },
+          {
+            "field": "bias_cm",
+            "label": "Viés",
+            "type": "number",
+            "unit": "cm"
+          },
+          {
+            "field": "correlacao",
+            "label": "Correlação",
+            "type": "number"
+          },
+          {
+            "field": "r2",
+            "label": "R²",
+            "type": "number"
+          },
+          {
+            "field": "pct_abs_le_10",
+            "label": "|erro| ≤ 10 cm",
+            "type": "number",
+            "unit": "%"
+          },
+          {
+            "field": "pct_abs_le_25",
+            "label": "|erro| ≤ 25 cm",
+            "type": "number",
+            "unit": "%"
+          },
+          {
+            "field": "maior_erro_abs_cm",
+            "label": "Maior |erro|",
+            "type": "number",
+            "unit": "cm"
+          }
+        ]
+      },
+      {
+        "id": "worst_4h_table",
+        "title": "Maiores erros do modelo 4h ativo",
+        "subtitle": "Ordenado por erro absoluto; sinal positivo = superestimativa da RNA.",
+        "dataset": "worst_4h",
+        "sourceId": "live_history",
+        "defaultSort": {
+          "field": "erro_abs_cm",
+          "direction": "desc"
+        },
+        "columns": [
+          {
+            "field": "hora_alvo",
+            "label": "Hora-alvo",
+            "type": "date"
+          },
+          {
+            "field": "observado_cm",
+            "label": "Observado",
+            "type": "number",
+            "unit": "cm"
+          },
+          {
+            "field": "previsto_cm",
+            "label": "RNA",
+            "type": "number",
+            "unit": "cm"
+          },
+          {
+            "field": "erro_cm",
+            "label": "Erro",
+            "type": "number",
+            "unit": "cm"
+          },
+          {
+            "field": "erro_abs_cm",
+            "label": "|Erro|",
+            "type": "number",
+            "unit": "cm"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# Relatório de auditoria — RNA ao vivo de Santa Tereza"
+      },
+      {
+        "id": "headline_metrics",
+        "type": "metric-strip",
+        "cardIds": [
+          "card_n4",
+          "card_mae4",
+          "card_corr4",
+          "card_pct25",
+          "card_max4"
+        ]
+      },
+      {
+        "id": "executive",
+        "type": "markdown",
+        "body": "## Leitura executiva\n\nO horizonte 4h atualmente publicado está disponível e usa o modelo `V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000`. A auditoria ao vivo encontrou **142 pares conferidos**, com MAE de **19.3 cm**, RMSE de **28.3 cm**, correlação **0.887** e R² **0.764**. O viés é **+4.7 cm**: a RNA superestimou em 98 alvos e subestimou em 43.\n\nAcertos por faixa: **47.9%** até 10 cm, **73.9%** até 25 cm e **88.0%** até 50 cm. O maior erro absoluto foi **83 cm**; portanto, o resultado é útil, mas não sustenta a afirmação de que todos os pares estão excelentes ou acima de 0,800.\n\nO feed está com status **telemetria recente**. O último alvo 4h conferido no snapshot foi **2026-08-23T18:00:00**, com observado **257 cm**, RNA **262 cm** e erro **5.0 cm**.",
+        "sourceId": "live_history"
+      },
+      {
+        "id": "scope",
+        "type": "markdown",
+        "body": "## Escopo e estado da publicação\n\nSnapshot capturado em **2026-08-23T18:58:26**. O JSON vivo lista os horizontes: **2h, 2h_versao_b, 4h**. O horizonte 4h está `disponivel = True` e aparece com o aviso: `ok - atencao: hora-base 0.8h atrasada para manter as entradas no mesmo recorte temporal`.\n\n**Não há horizonte 12h publicado no site ao vivo neste snapshot.** O histórico também não possui registros 12h. Por isso o relatório é parcial para o pedido 12h+4h: a seção 4h é auditada com dados completos do histórico publicado, enquanto 12h é uma ausência de publicação, não um resultado zero.",
+        "sourceId": "live_feed"
+      },
+      {
+        "id": "tracking_chart",
+        "type": "chart",
+        "chartId": "tracking_4h"
+      },
+      {
+        "id": "scatter_chart",
+        "type": "chart",
+        "chartId": "scatter_4h"
+      },
+      {
+        "id": "error_time_chart",
+        "type": "chart",
+        "chartId": "error_tracking_4h"
+      },
+      {
+        "id": "error_distribution_chart",
+        "type": "chart",
+        "chartId": "error_distribution_4h"
+      },
+      {
+        "id": "threshold_chart",
+        "type": "chart",
+        "chartId": "thresholds_4h"
+      },
+      {
+        "id": "comparison_chart",
+        "type": "chart",
+        "chartId": "model_comparison"
+      },
+      {
+        "id": "findings",
+        "type": "markdown",
+        "body": "## Acertos e pontos de atenção\n\n**Acertos observados:** o modelo 4h acompanha a direção geral do nível (correlação 0.887), tem 73.9% dos pares dentro de 25 cm e melhora visualmente quando os níveis seguem trajetórias mais regulares.\n\n**Pontos de atenção:** o erro é assimétrico, com viés positivo de +4.7 cm; 69.0% dos pares são superestimativas. Há caudas relevantes: P95 do erro absoluto = 71 cm e máximo = 83 cm. Os maiores erros devem ser tratados como casos de investigação, não descartados.\n\nA comparação com 2h no relatório é contextual: horizontes diferentes têm dificuldade e janelas diferentes. A variante 2h B aparece como sombra e não deve ser tratada como modelo aprovado.",
+        "sourceId": "live_history"
+      },
+      {
+        "id": "metrics_table_block",
+        "type": "table",
+        "tableId": "metrics_table"
+      },
+      {
+        "id": "worst_table_block",
+        "type": "table",
+        "tableId": "worst_4h_table"
+      },
+      {
+        "id": "method",
+        "type": "markdown",
+        "body": "## Método e critérios\n\nForam usados somente os dois JSONs publicados no site ao vivo: o snapshot de previsão e o histórico de previsões. Para o 4h, foram mantidos apenas Santa Tereza, o modelo atualmente publicado, `status_auditoria = conferido`, e pares com observado e previsto presentes. Não houve interpolação, preenchimento de lacunas ou mistura com o arquivo histórico local do repositório.\n\nO erro é definido como **RNA − observado**. Assim, erro positivo indica superestimativa; erro negativo indica subestimativa. MAE, RMSE, viés, correlação, R² e percentuais de faixas usam como denominador os pares conferidos do grupo. A correlação/R² são medidas de associação/ajuste neste recorte; não substituem validação independente nem aprovação operacional.",
+        "sourceId": "live_history"
+      },
+      {
+        "id": "next",
+        "type": "markdown",
+        "body": "## Próximas verificações recomendadas\n\n1. Confirmar a atualização da telemetria antes de usar o 4h para decisão operacional, pois o próprio feed sinaliza atraso.\n2. Investigar os maiores erros do quadro, principalmente os alvos em que o observado mudou rapidamente.\n3. Manter 12h como pendência de publicação: não reconstruir a partir de 4h nem usar dados antigos como se fossem ao vivo.\n4. Recalcular este relatório em uma nova captura para separar desempenho histórico conferido de desempenho atual em produção.",
+        "sourceId": "live_history"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-23T18:58:26",
+    "status": "partial",
+    "datasets": {
+      "metrics": [
+        {
+          "grupo": "4h ativo",
+          "horizonte": "4h",
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "n": 142,
+          "inicio_alvo": "2026-08-17T18:00:00",
+          "fim_alvo": "2026-08-23T18:00:00",
+          "mae_cm": 19.268,
+          "rmse_cm": 28.309,
+          "bias_cm": 4.718,
+          "correlacao": 0.88677,
+          "r2": 0.76402,
+          "p95_abs_cm": 71.0,
+          "maior_erro_abs_cm": 83.0,
+          "pct_abs_le_5": 31.69,
+          "pct_abs_le_10": 47.89,
+          "pct_abs_le_15": 60.56,
+          "pct_abs_le_25": 73.94,
+          "pct_abs_le_50": 88.03,
+          "sobreestimou_n": 98,
+          "subestimou_n": 43,
+          "exato_n": 1,
+          "sobreestimou_pct": 69.01,
+          "subestimou_pct": 30.28
+        },
+        {
+          "grupo": "2h ativo",
+          "horizonte": "2h",
+          "modelo": "009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21",
+          "n": 359,
+          "inicio_alvo": "2026-08-08T00:45:00",
+          "fim_alvo": "2026-08-23T18:45:00",
+          "mae_cm": 7.646,
+          "rmse_cm": 12.534,
+          "bias_cm": 1.847,
+          "correlacao": 0.99719,
+          "r2": 0.99419,
+          "p95_abs_cm": 27.0,
+          "maior_erro_abs_cm": 70.0,
+          "pct_abs_le_5": 59.33,
+          "pct_abs_le_10": 76.32,
+          "pct_abs_le_15": 84.96,
+          "pct_abs_le_25": 94.15,
+          "pct_abs_le_50": 99.16,
+          "sobreestimou_n": 203,
+          "subestimou_n": 129,
+          "exato_n": 27,
+          "sobreestimou_pct": 56.55,
+          "subestimou_pct": 35.93
+        },
+        {
+          "grupo": "2h B (sombra)",
+          "horizonte": "2h_versao_b",
+          "modelo": "STZ_2H_ALT_VFINAL_B_20260731",
+          "n": 253,
+          "inicio_alvo": "2026-08-13T01:45:00",
+          "fim_alvo": "2026-08-23T18:45:00",
+          "mae_cm": 7.502,
+          "rmse_cm": 11.015,
+          "bias_cm": 2.34,
+          "correlacao": 0.99816,
+          "r2": 0.99614,
+          "p95_abs_cm": 25.0,
+          "maior_erro_abs_cm": 60.0,
+          "pct_abs_le_5": 54.94,
+          "pct_abs_le_10": 74.7,
+          "pct_abs_le_15": 86.56,
+          "pct_abs_le_25": 95.65,
+          "pct_abs_le_50": 99.6,
+          "sobreestimou_n": 166,
+          "subestimou_n": 70,
+          "exato_n": 17,
+          "sobreestimou_pct": 65.61,
+          "subestimou_pct": 27.67
+        }
+      ],
+      "points_4h": [
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-17T14:00:00",
+          "hora_modelo": "2026-08-17T14:00:00",
+          "hora_alvo": "2026-08-17T18:00:00",
+          "observado_em": "2026-08-17T18:00:00",
+          "observado_cm": 400,
+          "previsto_cm": 389,
+          "erro_cm": -11.0,
+          "erro_abs_cm": 11.0,
+          "nivel_modelo_cm": 372,
+          "nivel_rio_agora_cm": 370,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-17T15:00:00",
+          "hora_modelo": "2026-08-17T15:00:00",
+          "hora_alvo": "2026-08-17T19:00:00",
+          "observado_em": "2026-08-17T19:00:00",
+          "observado_cm": 434,
+          "previsto_cm": 393,
+          "erro_cm": -41.0,
+          "erro_abs_cm": 41.0,
+          "nivel_modelo_cm": 370,
+          "nivel_rio_agora_cm": 373,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-17T16:00:00",
+          "hora_modelo": "2026-08-17T16:00:00",
+          "hora_alvo": "2026-08-17T20:00:00",
+          "observado_em": "2026-08-17T20:00:00",
+          "observado_cm": 468,
+          "previsto_cm": 414,
+          "erro_cm": -54.0,
+          "erro_abs_cm": 54.0,
+          "nivel_modelo_cm": 375,
+          "nivel_rio_agora_cm": 383,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-17T17:00:00",
+          "hora_modelo": "2026-08-17T17:00:00",
+          "hora_alvo": "2026-08-17T21:00:00",
+          "observado_em": "2026-08-17T21:00:00",
+          "observado_cm": 480,
+          "previsto_cm": 424,
+          "erro_cm": -56.0,
+          "erro_abs_cm": 56.0,
+          "nivel_modelo_cm": 386,
+          "nivel_rio_agora_cm": 396,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-17T18:00:00",
+          "hora_modelo": "2026-08-17T18:00:00",
+          "hora_alvo": "2026-08-17T22:00:00",
+          "observado_em": "2026-08-17T22:00:00",
+          "observado_cm": 483,
+          "previsto_cm": 515,
+          "erro_cm": 32.0,
+          "erro_abs_cm": 32.0,
+          "nivel_modelo_cm": 400,
+          "nivel_rio_agora_cm": 423,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-17T19:00:00",
+          "hora_modelo": "2026-08-17T19:00:00",
+          "hora_alvo": "2026-08-17T23:00:00",
+          "observado_em": "2026-08-17T23:00:00",
+          "observado_cm": 478,
+          "previsto_cm": 508,
+          "erro_cm": 30.0,
+          "erro_abs_cm": 30.0,
+          "nivel_modelo_cm": 434,
+          "nivel_rio_agora_cm": 462,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-17T20:00:00",
+          "hora_modelo": "2026-08-17T20:00:00",
+          "hora_alvo": "2026-08-18T00:00:00",
+          "observado_em": "2026-08-18T00:00:00",
+          "observado_cm": 469,
+          "previsto_cm": 483,
+          "erro_cm": 14.0,
+          "erro_abs_cm": 14.0,
+          "nivel_modelo_cm": 468,
+          "nivel_rio_agora_cm": 479,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-17T21:00:00",
+          "hora_modelo": "2026-08-17T21:00:00",
+          "hora_alvo": "2026-08-18T01:00:00",
+          "observado_em": "2026-08-18T01:00:00",
+          "observado_cm": 460,
+          "previsto_cm": 475,
+          "erro_cm": 15.0,
+          "erro_abs_cm": 15.0,
+          "nivel_modelo_cm": 480,
+          "nivel_rio_agora_cm": 482,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-17T22:00:00",
+          "hora_modelo": "2026-08-17T22:00:00",
+          "hora_alvo": "2026-08-18T02:00:00",
+          "observado_em": "2026-08-18T02:00:00",
+          "observado_cm": 446,
+          "previsto_cm": 458,
+          "erro_cm": 12.0,
+          "erro_abs_cm": 12.0,
+          "nivel_modelo_cm": 483,
+          "nivel_rio_agora_cm": 480,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-17T23:00:00",
+          "hora_modelo": "2026-08-17T23:00:00",
+          "hora_alvo": "2026-08-18T03:00:00",
+          "observado_em": "2026-08-18T03:00:00",
+          "observado_cm": 436,
+          "previsto_cm": 440,
+          "erro_cm": 4.0,
+          "erro_abs_cm": 4.0,
+          "nivel_modelo_cm": 478,
+          "nivel_rio_agora_cm": 471,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T00:00:00",
+          "hora_modelo": "2026-08-18T00:00:00",
+          "hora_alvo": "2026-08-18T04:00:00",
+          "observado_em": "2026-08-18T04:00:00",
+          "observado_cm": 428,
+          "previsto_cm": 433,
+          "erro_cm": 5.0,
+          "erro_abs_cm": 5.0,
+          "nivel_modelo_cm": 469,
+          "nivel_rio_agora_cm": 460,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T01:00:00",
+          "hora_modelo": "2026-08-18T01:00:00",
+          "hora_alvo": "2026-08-18T05:00:00",
+          "observado_em": "2026-08-18T05:00:00",
+          "observado_cm": 411,
+          "previsto_cm": 431,
+          "erro_cm": 20.0,
+          "erro_abs_cm": 20.0,
+          "nivel_modelo_cm": 460,
+          "nivel_rio_agora_cm": 439,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T02:00:00",
+          "hora_modelo": "2026-08-18T02:00:00",
+          "hora_alvo": "2026-08-18T06:00:00",
+          "observado_em": "2026-08-18T06:00:00",
+          "observado_cm": 388,
+          "previsto_cm": 414,
+          "erro_cm": 26.0,
+          "erro_abs_cm": 26.0,
+          "nivel_modelo_cm": 446,
+          "nivel_rio_agora_cm": 439,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T03:00:00",
+          "hora_modelo": "2026-08-18T03:00:00",
+          "hora_alvo": "2026-08-18T07:00:00",
+          "observado_em": "2026-08-18T07:00:00",
+          "observado_cm": 374,
+          "previsto_cm": 415,
+          "erro_cm": 41.0,
+          "erro_abs_cm": 41.0,
+          "nivel_modelo_cm": 436,
+          "nivel_rio_agora_cm": 431,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T04:00:00",
+          "hora_modelo": "2026-08-18T04:00:00",
+          "hora_alvo": "2026-08-18T08:00:00",
+          "observado_em": "2026-08-18T08:00:00",
+          "observado_cm": 383,
+          "previsto_cm": 361,
+          "erro_cm": -22.0,
+          "erro_abs_cm": 22.0,
+          "nivel_modelo_cm": 428,
+          "nivel_rio_agora_cm": 416,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T06:00:00",
+          "hora_modelo": "2026-08-18T06:00:00",
+          "hora_alvo": "2026-08-18T10:00:00",
+          "observado_em": "2026-08-18T10:00:00",
+          "observado_cm": 387,
+          "previsto_cm": 378,
+          "erro_cm": -9.0,
+          "erro_abs_cm": 9.0,
+          "nivel_modelo_cm": 388,
+          "nivel_rio_agora_cm": 375,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T07:00:00",
+          "hora_modelo": "2026-08-18T07:00:00",
+          "hora_alvo": "2026-08-18T11:00:00",
+          "observado_em": "2026-08-18T11:00:00",
+          "observado_cm": 361,
+          "previsto_cm": 432,
+          "erro_cm": 71.0,
+          "erro_abs_cm": 71.0,
+          "nivel_modelo_cm": 374,
+          "nivel_rio_agora_cm": 378,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T08:00:00",
+          "hora_modelo": "2026-08-18T08:00:00",
+          "hora_alvo": "2026-08-18T12:00:00",
+          "observado_em": "2026-08-18T12:00:00",
+          "observado_cm": 342,
+          "previsto_cm": 415,
+          "erro_cm": 73.0,
+          "erro_abs_cm": 73.0,
+          "nivel_modelo_cm": 383,
+          "nivel_rio_agora_cm": 396,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T09:00:00",
+          "hora_modelo": "2026-08-18T09:00:00",
+          "hora_alvo": "2026-08-18T13:00:00",
+          "observado_em": "2026-08-18T13:00:00",
+          "observado_cm": 333,
+          "previsto_cm": 328,
+          "erro_cm": -5.0,
+          "erro_abs_cm": 5.0,
+          "nivel_modelo_cm": 398,
+          "nivel_rio_agora_cm": 392,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T10:00:00",
+          "hora_modelo": "2026-08-18T10:00:00",
+          "hora_alvo": "2026-08-18T14:00:00",
+          "observado_em": "2026-08-18T14:00:00",
+          "observado_cm": 329,
+          "previsto_cm": 316,
+          "erro_cm": -13.0,
+          "erro_abs_cm": 13.0,
+          "nivel_modelo_cm": 387,
+          "nivel_rio_agora_cm": 368,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T11:00:00",
+          "hora_modelo": "2026-08-18T11:00:00",
+          "hora_alvo": "2026-08-18T15:00:00",
+          "observado_em": "2026-08-18T15:00:00",
+          "observado_cm": 331,
+          "previsto_cm": 331,
+          "erro_cm": 0.0,
+          "erro_abs_cm": 0.0,
+          "nivel_modelo_cm": 361,
+          "nivel_rio_agora_cm": 346,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T12:00:00",
+          "hora_modelo": "2026-08-18T12:00:00",
+          "hora_alvo": "2026-08-18T16:00:00",
+          "observado_em": "2026-08-18T16:00:00",
+          "observado_cm": 338,
+          "previsto_cm": 337,
+          "erro_cm": -1.0,
+          "erro_abs_cm": 1.0,
+          "nivel_modelo_cm": 342,
+          "nivel_rio_agora_cm": 335,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T13:00:00",
+          "hora_modelo": "2026-08-18T13:00:00",
+          "hora_alvo": "2026-08-18T17:00:00",
+          "observado_em": "2026-08-18T17:00:00",
+          "observado_cm": 348,
+          "previsto_cm": 343,
+          "erro_cm": -5.0,
+          "erro_abs_cm": 5.0,
+          "nivel_modelo_cm": 333,
+          "nivel_rio_agora_cm": 330,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T14:00:00",
+          "hora_modelo": "2026-08-18T14:00:00",
+          "hora_alvo": "2026-08-18T18:00:00",
+          "observado_em": "2026-08-18T18:00:00",
+          "observado_cm": 358,
+          "previsto_cm": 351,
+          "erro_cm": -7.0,
+          "erro_abs_cm": 7.0,
+          "nivel_modelo_cm": 329,
+          "nivel_rio_agora_cm": 330,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T15:00:00",
+          "hora_modelo": "2026-08-18T15:00:00",
+          "hora_alvo": "2026-08-18T19:00:00",
+          "observado_em": "2026-08-18T19:00:00",
+          "observado_cm": 384,
+          "previsto_cm": 362,
+          "erro_cm": -22.0,
+          "erro_abs_cm": 22.0,
+          "nivel_modelo_cm": 331,
+          "nivel_rio_agora_cm": 336,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T16:00:00",
+          "hora_modelo": "2026-08-18T16:00:00",
+          "hora_alvo": "2026-08-18T20:00:00",
+          "observado_em": "2026-08-18T20:00:00",
+          "observado_cm": 424,
+          "previsto_cm": 371,
+          "erro_cm": -53.0,
+          "erro_abs_cm": 53.0,
+          "nivel_modelo_cm": 338,
+          "nivel_rio_agora_cm": 346,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T17:00:00",
+          "hora_modelo": "2026-08-18T17:00:00",
+          "hora_alvo": "2026-08-18T21:00:00",
+          "observado_em": "2026-08-18T21:00:00",
+          "observado_cm": 442,
+          "previsto_cm": 379,
+          "erro_cm": -63.0,
+          "erro_abs_cm": 63.0,
+          "nivel_modelo_cm": 348,
+          "nivel_rio_agora_cm": 355,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T18:00:00",
+          "hora_modelo": "2026-08-18T18:00:00",
+          "hora_alvo": "2026-08-18T22:00:00",
+          "observado_em": "2026-08-18T22:00:00",
+          "observado_cm": 447,
+          "previsto_cm": 475,
+          "erro_cm": 28.0,
+          "erro_abs_cm": 28.0,
+          "nivel_modelo_cm": 358,
+          "nivel_rio_agora_cm": 375,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T19:00:00",
+          "hora_modelo": "2026-08-18T19:00:00",
+          "hora_alvo": "2026-08-18T23:00:00",
+          "observado_em": "2026-08-18T23:00:00",
+          "observado_cm": 445,
+          "previsto_cm": 467,
+          "erro_cm": 22.0,
+          "erro_abs_cm": 22.0,
+          "nivel_modelo_cm": 384,
+          "nivel_rio_agora_cm": 416,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T20:00:00",
+          "hora_modelo": "2026-08-18T20:00:00",
+          "hora_alvo": "2026-08-19T00:00:00",
+          "observado_em": "2026-08-19T00:00:00",
+          "observado_cm": 437,
+          "previsto_cm": 453,
+          "erro_cm": 16.0,
+          "erro_abs_cm": 16.0,
+          "nivel_modelo_cm": 424,
+          "nivel_rio_agora_cm": 440,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T21:00:00",
+          "hora_modelo": "2026-08-18T21:00:00",
+          "hora_alvo": "2026-08-19T01:00:00",
+          "observado_em": "2026-08-19T01:00:00",
+          "observado_cm": 427,
+          "previsto_cm": 443,
+          "erro_cm": 16.0,
+          "erro_abs_cm": 16.0,
+          "nivel_modelo_cm": 442,
+          "nivel_rio_agora_cm": 447,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T22:00:00",
+          "hora_modelo": "2026-08-18T22:00:00",
+          "hora_alvo": "2026-08-19T02:00:00",
+          "observado_em": "2026-08-19T02:00:00",
+          "observado_cm": 417,
+          "previsto_cm": 426,
+          "erro_cm": 9.0,
+          "erro_abs_cm": 9.0,
+          "nivel_modelo_cm": 447,
+          "nivel_rio_agora_cm": 446,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T23:00:00",
+          "hora_modelo": "2026-08-18T23:00:00",
+          "hora_alvo": "2026-08-19T03:00:00",
+          "observado_em": "2026-08-19T03:00:00",
+          "observado_cm": 407,
+          "previsto_cm": 413,
+          "erro_cm": 6.0,
+          "erro_abs_cm": 6.0,
+          "nivel_modelo_cm": 445,
+          "nivel_rio_agora_cm": 440,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T00:00:00",
+          "hora_modelo": "2026-08-19T00:00:00",
+          "hora_alvo": "2026-08-19T04:00:00",
+          "observado_em": "2026-08-19T04:00:00",
+          "observado_cm": 399,
+          "previsto_cm": 403,
+          "erro_cm": 4.0,
+          "erro_abs_cm": 4.0,
+          "nivel_modelo_cm": 437,
+          "nivel_rio_agora_cm": 430,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T01:00:00",
+          "hora_modelo": "2026-08-19T01:00:00",
+          "hora_alvo": "2026-08-19T05:00:00",
+          "observado_em": "2026-08-19T05:00:00",
+          "observado_cm": 392,
+          "previsto_cm": 400,
+          "erro_cm": 8.0,
+          "erro_abs_cm": 8.0,
+          "nivel_modelo_cm": 427,
+          "nivel_rio_agora_cm": 419,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T02:00:00",
+          "hora_modelo": "2026-08-19T02:00:00",
+          "hora_alvo": "2026-08-19T06:00:00",
+          "observado_em": "2026-08-19T06:00:00",
+          "observado_cm": 387,
+          "previsto_cm": 385,
+          "erro_cm": -2.0,
+          "erro_abs_cm": 2.0,
+          "nivel_modelo_cm": 417,
+          "nivel_rio_agora_cm": 409,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T03:00:00",
+          "hora_modelo": "2026-08-19T03:00:00",
+          "hora_alvo": "2026-08-19T07:00:00",
+          "observado_em": "2026-08-19T07:00:00",
+          "observado_cm": 384,
+          "previsto_cm": 386,
+          "erro_cm": 2.0,
+          "erro_abs_cm": 2.0,
+          "nivel_modelo_cm": 407,
+          "nivel_rio_agora_cm": 400,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T04:00:00",
+          "hora_modelo": "2026-08-19T04:00:00",
+          "hora_alvo": "2026-08-19T08:00:00",
+          "observado_em": "2026-08-19T08:00:00",
+          "observado_cm": 383,
+          "previsto_cm": 385,
+          "erro_cm": 2.0,
+          "erro_abs_cm": 2.0,
+          "nivel_modelo_cm": 399,
+          "nivel_rio_agora_cm": 393,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T05:00:00",
+          "hora_modelo": "2026-08-19T05:00:00",
+          "hora_alvo": "2026-08-19T09:00:00",
+          "observado_em": "2026-08-19T09:00:00",
+          "observado_cm": 381,
+          "previsto_cm": 382,
+          "erro_cm": 1.0,
+          "erro_abs_cm": 1.0,
+          "nivel_modelo_cm": 392,
+          "nivel_rio_agora_cm": 388,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T06:00:00",
+          "hora_modelo": "2026-08-19T06:00:00",
+          "hora_alvo": "2026-08-19T10:00:00",
+          "observado_em": "2026-08-19T10:00:00",
+          "observado_cm": 371,
+          "previsto_cm": 384,
+          "erro_cm": 13.0,
+          "erro_abs_cm": 13.0,
+          "nivel_modelo_cm": 387,
+          "nivel_rio_agora_cm": 385,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T07:00:00",
+          "hora_modelo": "2026-08-19T07:00:00",
+          "hora_alvo": "2026-08-19T11:00:00",
+          "observado_em": "2026-08-19T11:00:00",
+          "observado_cm": 343,
+          "previsto_cm": 381,
+          "erro_cm": 38.0,
+          "erro_abs_cm": 38.0,
+          "nivel_modelo_cm": 384,
+          "nivel_rio_agora_cm": 383,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T08:00:00",
+          "hora_modelo": "2026-08-19T08:00:00",
+          "hora_alvo": "2026-08-19T12:00:00",
+          "observado_em": "2026-08-19T12:00:00",
+          "observado_cm": 312,
+          "previsto_cm": 381,
+          "erro_cm": 69.0,
+          "erro_abs_cm": 69.0,
+          "nivel_modelo_cm": 383,
+          "nivel_rio_agora_cm": 381,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T09:00:00",
+          "hora_modelo": "2026-08-19T09:00:00",
+          "hora_alvo": "2026-08-19T13:00:00",
+          "observado_em": "2026-08-19T13:00:00",
+          "observado_cm": 288,
+          "previsto_cm": 324,
+          "erro_cm": 36.0,
+          "erro_abs_cm": 36.0,
+          "nivel_modelo_cm": 381,
+          "nivel_rio_agora_cm": 376,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T10:00:00",
+          "hora_modelo": "2026-08-19T10:00:00",
+          "hora_alvo": "2026-08-19T14:00:00",
+          "observado_em": "2026-08-19T14:00:00",
+          "observado_cm": 274,
+          "previsto_cm": 265,
+          "erro_cm": -9.0,
+          "erro_abs_cm": 9.0,
+          "nivel_modelo_cm": 371,
+          "nivel_rio_agora_cm": 351,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T11:00:00",
+          "hora_modelo": "2026-08-19T11:00:00",
+          "hora_alvo": "2026-08-19T15:00:00",
+          "observado_em": "2026-08-19T15:00:00",
+          "observado_cm": 266,
+          "previsto_cm": 269,
+          "erro_cm": 3.0,
+          "erro_abs_cm": 3.0,
+          "nivel_modelo_cm": 343,
+          "nivel_rio_agora_cm": 319,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T12:00:00",
+          "hora_modelo": "2026-08-19T12:00:00",
+          "hora_alvo": "2026-08-19T16:00:00",
+          "observado_em": "2026-08-19T16:00:00",
+          "observado_cm": 265,
+          "previsto_cm": 280,
+          "erro_cm": 15.0,
+          "erro_abs_cm": 15.0,
+          "nivel_modelo_cm": 312,
+          "nivel_rio_agora_cm": 293,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T13:00:00",
+          "hora_modelo": "2026-08-19T13:00:00",
+          "hora_alvo": "2026-08-19T17:00:00",
+          "observado_em": "2026-08-19T17:00:00",
+          "observado_cm": 272,
+          "previsto_cm": 280,
+          "erro_cm": 8.0,
+          "erro_abs_cm": 8.0,
+          "nivel_modelo_cm": 288,
+          "nivel_rio_agora_cm": 276,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T14:00:00",
+          "hora_modelo": "2026-08-19T14:00:00",
+          "hora_alvo": "2026-08-19T18:00:00",
+          "observado_em": "2026-08-19T18:00:00",
+          "observado_cm": 310,
+          "previsto_cm": 286,
+          "erro_cm": -24.0,
+          "erro_abs_cm": 24.0,
+          "nivel_modelo_cm": 274,
+          "nivel_rio_agora_cm": 268,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T15:00:00",
+          "hora_modelo": "2026-08-19T15:00:00",
+          "hora_alvo": "2026-08-19T19:00:00",
+          "observado_em": "2026-08-19T19:00:00",
+          "observado_cm": 373,
+          "previsto_cm": 299,
+          "erro_cm": -74.0,
+          "erro_abs_cm": 74.0,
+          "nivel_modelo_cm": 266,
+          "nivel_rio_agora_cm": 265,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T16:00:00",
+          "hora_modelo": "2026-08-19T16:00:00",
+          "hora_alvo": "2026-08-19T20:00:00",
+          "observado_em": "2026-08-19T20:00:00",
+          "observado_cm": 405,
+          "previsto_cm": 333,
+          "erro_cm": -72.0,
+          "erro_abs_cm": 72.0,
+          "nivel_modelo_cm": 265,
+          "nivel_rio_agora_cm": 269,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T17:00:00",
+          "hora_modelo": "2026-08-19T17:00:00",
+          "hora_alvo": "2026-08-19T21:00:00",
+          "observado_em": "2026-08-19T21:00:00",
+          "observado_cm": 416,
+          "previsto_cm": 446,
+          "erro_cm": 30.0,
+          "erro_abs_cm": 30.0,
+          "nivel_modelo_cm": 272,
+          "nivel_rio_agora_cm": 295,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T18:00:00",
+          "hora_modelo": "2026-08-19T18:00:00",
+          "hora_alvo": "2026-08-19T22:00:00",
+          "observado_em": "2026-08-19T22:00:00",
+          "observado_cm": 419,
+          "previsto_cm": 434,
+          "erro_cm": 15.0,
+          "erro_abs_cm": 15.0,
+          "nivel_modelo_cm": 310,
+          "nivel_rio_agora_cm": 399,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T19:00:00",
+          "hora_modelo": "2026-08-19T19:00:00",
+          "hora_alvo": "2026-08-19T23:00:00",
+          "observado_em": "2026-08-19T23:00:00",
+          "observado_cm": 420,
+          "previsto_cm": 428,
+          "erro_cm": 8.0,
+          "erro_abs_cm": 8.0,
+          "nivel_modelo_cm": 373,
+          "nivel_rio_agora_cm": 399,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T20:00:00",
+          "hora_modelo": "2026-08-19T20:00:00",
+          "hora_alvo": "2026-08-20T00:00:00",
+          "observado_em": "2026-08-20T00:00:00",
+          "observado_cm": 416,
+          "previsto_cm": 417,
+          "erro_cm": 1.0,
+          "erro_abs_cm": 1.0,
+          "nivel_modelo_cm": 405,
+          "nivel_rio_agora_cm": 414,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T21:00:00",
+          "hora_modelo": "2026-08-19T21:00:00",
+          "hora_alvo": "2026-08-20T01:00:00",
+          "observado_em": "2026-08-20T01:00:00",
+          "observado_cm": 406,
+          "previsto_cm": 410,
+          "erro_cm": 4.0,
+          "erro_abs_cm": 4.0,
+          "nivel_modelo_cm": 416,
+          "nivel_rio_agora_cm": 419,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T22:00:00",
+          "hora_modelo": "2026-08-19T22:00:00",
+          "hora_alvo": "2026-08-20T02:00:00",
+          "observado_em": "2026-08-20T02:00:00",
+          "observado_cm": 393,
+          "previsto_cm": 410,
+          "erro_cm": 17.0,
+          "erro_abs_cm": 17.0,
+          "nivel_modelo_cm": 419,
+          "nivel_rio_agora_cm": 421,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T23:00:00",
+          "hora_modelo": "2026-08-19T23:00:00",
+          "hora_alvo": "2026-08-20T03:00:00",
+          "observado_em": "2026-08-20T03:00:00",
+          "observado_cm": 381,
+          "previsto_cm": 398,
+          "erro_cm": 17.0,
+          "erro_abs_cm": 17.0,
+          "nivel_modelo_cm": 420,
+          "nivel_rio_agora_cm": 408,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T00:00:00",
+          "hora_modelo": "2026-08-20T00:00:00",
+          "hora_alvo": "2026-08-20T04:00:00",
+          "observado_em": "2026-08-20T04:00:00",
+          "observado_cm": 369,
+          "previsto_cm": 384,
+          "erro_cm": 15.0,
+          "erro_abs_cm": 15.0,
+          "nivel_modelo_cm": 416,
+          "nivel_rio_agora_cm": 408,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T01:00:00",
+          "hora_modelo": "2026-08-20T01:00:00",
+          "hora_alvo": "2026-08-20T05:00:00",
+          "observado_em": "2026-08-20T05:00:00",
+          "observado_cm": 358,
+          "previsto_cm": 367,
+          "erro_cm": 9.0,
+          "erro_abs_cm": 9.0,
+          "nivel_modelo_cm": 406,
+          "nivel_rio_agora_cm": 384,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T02:00:00",
+          "hora_modelo": "2026-08-20T02:00:00",
+          "hora_alvo": "2026-08-20T06:00:00",
+          "observado_em": "2026-08-20T06:00:00",
+          "observado_cm": 341,
+          "previsto_cm": 364,
+          "erro_cm": 23.0,
+          "erro_abs_cm": 23.0,
+          "nivel_modelo_cm": 393,
+          "nivel_rio_agora_cm": 372,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T03:00:00",
+          "hora_modelo": "2026-08-20T03:00:00",
+          "hora_alvo": "2026-08-20T07:00:00",
+          "observado_em": "2026-08-20T07:00:00",
+          "observado_cm": 324,
+          "previsto_cm": 360,
+          "erro_cm": 36.0,
+          "erro_abs_cm": 36.0,
+          "nivel_modelo_cm": 381,
+          "nivel_rio_agora_cm": 362,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T04:00:00",
+          "hora_modelo": "2026-08-20T04:00:00",
+          "hora_alvo": "2026-08-20T08:00:00",
+          "observado_em": "2026-08-20T08:00:00",
+          "observado_cm": 315,
+          "previsto_cm": 327,
+          "erro_cm": 12.0,
+          "erro_abs_cm": 12.0,
+          "nivel_modelo_cm": 369,
+          "nivel_rio_agora_cm": 362,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T05:00:00",
+          "hora_modelo": "2026-08-20T05:00:00",
+          "hora_alvo": "2026-08-20T09:00:00",
+          "observado_em": "2026-08-20T09:00:00",
+          "observado_cm": 326,
+          "previsto_cm": 305,
+          "erro_cm": -21.0,
+          "erro_abs_cm": 21.0,
+          "nivel_modelo_cm": 358,
+          "nivel_rio_agora_cm": 328,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T06:00:00",
+          "hora_modelo": "2026-08-20T06:00:00",
+          "hora_alvo": "2026-08-20T10:00:00",
+          "observado_em": "2026-08-20T10:00:00",
+          "observado_cm": 331,
+          "previsto_cm": 306,
+          "erro_cm": -25.0,
+          "erro_abs_cm": 25.0,
+          "nivel_modelo_cm": 341,
+          "nivel_rio_agora_cm": 316,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T07:00:00",
+          "hora_modelo": "2026-08-20T07:00:00",
+          "hora_alvo": "2026-08-20T11:00:00",
+          "observado_em": "2026-08-20T11:00:00",
+          "observado_cm": 315,
+          "previsto_cm": 350,
+          "erro_cm": 35.0,
+          "erro_abs_cm": 35.0,
+          "nivel_modelo_cm": 324,
+          "nivel_rio_agora_cm": 316,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T08:00:00",
+          "hora_modelo": "2026-08-20T08:00:00",
+          "hora_alvo": "2026-08-20T12:00:00",
+          "observado_em": "2026-08-20T12:00:00",
+          "observado_cm": 294,
+          "previsto_cm": 373,
+          "erro_cm": 79.0,
+          "erro_abs_cm": 79.0,
+          "nivel_modelo_cm": 315,
+          "nivel_rio_agora_cm": 322,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T09:00:00",
+          "hora_modelo": "2026-08-20T09:00:00",
+          "hora_alvo": "2026-08-20T13:00:00",
+          "observado_em": "2026-08-20T13:00:00",
+          "observado_cm": 279,
+          "previsto_cm": 287,
+          "erro_cm": 8.0,
+          "erro_abs_cm": 8.0,
+          "nivel_modelo_cm": 326,
+          "nivel_rio_agora_cm": 332,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T10:00:00",
+          "hora_modelo": "2026-08-20T10:00:00",
+          "hora_alvo": "2026-08-20T14:00:00",
+          "observado_em": "2026-08-20T14:00:00",
+          "observado_cm": 271,
+          "previsto_cm": 270,
+          "erro_cm": -1.0,
+          "erro_abs_cm": 1.0,
+          "nivel_modelo_cm": 331,
+          "nivel_rio_agora_cm": 319,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T11:00:00",
+          "hora_modelo": "2026-08-20T11:00:00",
+          "hora_alvo": "2026-08-20T15:00:00",
+          "observado_em": "2026-08-20T15:00:00",
+          "observado_cm": 270,
+          "previsto_cm": 274,
+          "erro_cm": 4.0,
+          "erro_abs_cm": 4.0,
+          "nivel_modelo_cm": 315,
+          "nivel_rio_agora_cm": 299,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T12:00:00",
+          "hora_modelo": "2026-08-20T12:00:00",
+          "hora_alvo": "2026-08-20T16:00:00",
+          "observado_em": "2026-08-20T16:00:00",
+          "observado_cm": 275,
+          "previsto_cm": 280,
+          "erro_cm": 5.0,
+          "erro_abs_cm": 5.0,
+          "nivel_modelo_cm": 294,
+          "nivel_rio_agora_cm": 272,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T13:00:00",
+          "hora_modelo": "2026-08-20T13:00:00",
+          "hora_alvo": "2026-08-20T17:00:00",
+          "observado_em": "2026-08-20T17:00:00",
+          "observado_cm": 288,
+          "previsto_cm": 291,
+          "erro_cm": 3.0,
+          "erro_abs_cm": 3.0,
+          "nivel_modelo_cm": 279,
+          "nivel_rio_agora_cm": 272,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T14:00:00",
+          "hora_modelo": "2026-08-20T14:00:00",
+          "hora_alvo": "2026-08-20T18:00:00",
+          "observado_em": "2026-08-20T18:00:00",
+          "observado_cm": 323,
+          "previsto_cm": 297,
+          "erro_cm": -26.0,
+          "erro_abs_cm": 26.0,
+          "nivel_modelo_cm": 271,
+          "nivel_rio_agora_cm": 269,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T15:00:00",
+          "hora_modelo": "2026-08-20T15:00:00",
+          "hora_alvo": "2026-08-20T19:00:00",
+          "observado_em": "2026-08-20T19:00:00",
+          "observado_cm": 385,
+          "previsto_cm": 306,
+          "erro_cm": -79.0,
+          "erro_abs_cm": 79.0,
+          "nivel_modelo_cm": 270,
+          "nivel_rio_agora_cm": 273,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T16:00:00",
+          "hora_modelo": "2026-08-20T16:00:00",
+          "hora_alvo": "2026-08-20T20:00:00",
+          "observado_em": "2026-08-20T20:00:00",
+          "observado_cm": 411,
+          "previsto_cm": 328,
+          "erro_cm": -83.0,
+          "erro_abs_cm": 83.0,
+          "nivel_modelo_cm": 275,
+          "nivel_rio_agora_cm": 310,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T17:00:00",
+          "hora_modelo": "2026-08-20T17:00:00",
+          "hora_alvo": "2026-08-20T21:00:00",
+          "observado_em": "2026-08-20T21:00:00",
+          "observado_cm": 416,
+          "previsto_cm": 451,
+          "erro_cm": 35.0,
+          "erro_abs_cm": 35.0,
+          "nivel_modelo_cm": 288,
+          "nivel_rio_agora_cm": 310,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T18:00:00",
+          "hora_modelo": "2026-08-20T18:00:00",
+          "hora_alvo": "2026-08-20T22:00:00",
+          "observado_em": "2026-08-20T22:00:00",
+          "observado_cm": 418,
+          "previsto_cm": 445,
+          "erro_cm": 27.0,
+          "erro_abs_cm": 27.0,
+          "nivel_modelo_cm": 323,
+          "nivel_rio_agora_cm": 408,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T19:00:00",
+          "hora_modelo": "2026-08-20T19:00:00",
+          "hora_alvo": "2026-08-20T23:00:00",
+          "observado_em": "2026-08-20T23:00:00",
+          "observado_cm": 419,
+          "previsto_cm": 422,
+          "erro_cm": 3.0,
+          "erro_abs_cm": 3.0,
+          "nivel_modelo_cm": 385,
+          "nivel_rio_agora_cm": 415,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T20:00:00",
+          "hora_modelo": "2026-08-20T20:00:00",
+          "hora_alvo": "2026-08-21T00:00:00",
+          "observado_em": "2026-08-21T00:00:00",
+          "observado_cm": 416,
+          "previsto_cm": 411,
+          "erro_cm": -5.0,
+          "erro_abs_cm": 5.0,
+          "nivel_modelo_cm": 411,
+          "nivel_rio_agora_cm": 418,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T21:00:00",
+          "hora_modelo": "2026-08-20T21:00:00",
+          "hora_alvo": "2026-08-21T01:00:00",
+          "observado_em": "2026-08-21T01:00:00",
+          "observado_cm": 410,
+          "previsto_cm": 415,
+          "erro_cm": 5.0,
+          "erro_abs_cm": 5.0,
+          "nivel_modelo_cm": 416,
+          "nivel_rio_agora_cm": 418,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T22:00:00",
+          "hora_modelo": "2026-08-20T22:00:00",
+          "hora_alvo": "2026-08-21T02:00:00",
+          "observado_em": "2026-08-21T02:00:00",
+          "observado_cm": 402,
+          "previsto_cm": 414,
+          "erro_cm": 12.0,
+          "erro_abs_cm": 12.0,
+          "nivel_modelo_cm": 418,
+          "nivel_rio_agora_cm": 418,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T23:00:00",
+          "hora_modelo": "2026-08-20T23:00:00",
+          "hora_alvo": "2026-08-21T03:00:00",
+          "observado_em": "2026-08-21T03:00:00",
+          "observado_cm": 394,
+          "previsto_cm": 407,
+          "erro_cm": 13.0,
+          "erro_abs_cm": 13.0,
+          "nivel_modelo_cm": 419,
+          "nivel_rio_agora_cm": 417,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T00:00:00",
+          "hora_modelo": "2026-08-21T00:00:00",
+          "hora_alvo": "2026-08-21T04:00:00",
+          "observado_em": "2026-08-21T04:00:00",
+          "observado_cm": 389,
+          "previsto_cm": 399,
+          "erro_cm": 10.0,
+          "erro_abs_cm": 10.0,
+          "nivel_modelo_cm": 416,
+          "nivel_rio_agora_cm": 411,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T01:00:00",
+          "hora_modelo": "2026-08-21T01:00:00",
+          "hora_alvo": "2026-08-21T05:00:00",
+          "observado_em": "2026-08-21T05:00:00",
+          "observado_cm": 385,
+          "previsto_cm": 382,
+          "erro_cm": -3.0,
+          "erro_abs_cm": 3.0,
+          "nivel_modelo_cm": 410,
+          "nivel_rio_agora_cm": 396,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T02:00:00",
+          "hora_modelo": "2026-08-21T02:00:00",
+          "hora_alvo": "2026-08-21T06:00:00",
+          "observado_em": "2026-08-21T06:00:00",
+          "observado_cm": 382,
+          "previsto_cm": 383,
+          "erro_cm": 1.0,
+          "erro_abs_cm": 1.0,
+          "nivel_modelo_cm": 402,
+          "nivel_rio_agora_cm": 396,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T03:00:00",
+          "hora_modelo": "2026-08-21T03:00:00",
+          "hora_alvo": "2026-08-21T07:00:00",
+          "observado_em": "2026-08-21T07:00:00",
+          "observado_cm": 379,
+          "previsto_cm": 387,
+          "erro_cm": 8.0,
+          "erro_abs_cm": 8.0,
+          "nivel_modelo_cm": 394,
+          "nivel_rio_agora_cm": 390,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T04:00:00",
+          "hora_modelo": "2026-08-21T04:00:00",
+          "hora_alvo": "2026-08-21T08:00:00",
+          "observado_em": "2026-08-21T08:00:00",
+          "observado_cm": 375,
+          "previsto_cm": 385,
+          "erro_cm": 10.0,
+          "erro_abs_cm": 10.0,
+          "nivel_modelo_cm": 389,
+          "nivel_rio_agora_cm": 386,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T05:00:00",
+          "hora_modelo": "2026-08-21T05:00:00",
+          "hora_alvo": "2026-08-21T09:00:00",
+          "observado_em": "2026-08-21T09:00:00",
+          "observado_cm": 369,
+          "previsto_cm": 382,
+          "erro_cm": 13.0,
+          "erro_abs_cm": 13.0,
+          "nivel_modelo_cm": 385,
+          "nivel_rio_agora_cm": 383,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T06:00:00",
+          "hora_modelo": "2026-08-21T06:00:00",
+          "hora_alvo": "2026-08-21T10:00:00",
+          "observado_em": "2026-08-21T10:00:00",
+          "observado_cm": 358,
+          "previsto_cm": 377,
+          "erro_cm": 19.0,
+          "erro_abs_cm": 19.0,
+          "nivel_modelo_cm": 382,
+          "nivel_rio_agora_cm": 376,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T07:00:00",
+          "hora_modelo": "2026-08-21T07:00:00",
+          "hora_alvo": "2026-08-21T11:00:00",
+          "observado_em": "2026-08-21T11:00:00",
+          "observado_cm": 339,
+          "previsto_cm": 372,
+          "erro_cm": 33.0,
+          "erro_abs_cm": 33.0,
+          "nivel_modelo_cm": 379,
+          "nivel_rio_agora_cm": 371,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T08:00:00",
+          "hora_modelo": "2026-08-21T08:00:00",
+          "hora_alvo": "2026-08-21T12:00:00",
+          "observado_em": "2026-08-21T12:00:00",
+          "observado_cm": 324,
+          "previsto_cm": 366,
+          "erro_cm": 42.0,
+          "erro_abs_cm": 42.0,
+          "nivel_modelo_cm": 375,
+          "nivel_rio_agora_cm": 371,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T09:00:00",
+          "hora_modelo": "2026-08-21T09:00:00",
+          "hora_alvo": "2026-08-21T13:00:00",
+          "observado_em": "2026-08-21T13:00:00",
+          "observado_cm": 317,
+          "previsto_cm": 318,
+          "erro_cm": 1.0,
+          "erro_abs_cm": 1.0,
+          "nivel_modelo_cm": 369,
+          "nivel_rio_agora_cm": 343,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T10:00:00",
+          "hora_modelo": "2026-08-21T10:00:00",
+          "hora_alvo": "2026-08-21T14:00:00",
+          "observado_em": "2026-08-21T14:00:00",
+          "observado_cm": 315,
+          "previsto_cm": 312,
+          "erro_cm": -3.0,
+          "erro_abs_cm": 3.0,
+          "nivel_modelo_cm": 358,
+          "nivel_rio_agora_cm": 343,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T11:00:00",
+          "hora_modelo": "2026-08-21T11:00:00",
+          "hora_alvo": "2026-08-21T15:00:00",
+          "observado_em": "2026-08-21T15:00:00",
+          "observado_cm": 317,
+          "previsto_cm": 323,
+          "erro_cm": 6.0,
+          "erro_abs_cm": 6.0,
+          "nivel_modelo_cm": 339,
+          "nivel_rio_agora_cm": 318,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T12:00:00",
+          "hora_modelo": "2026-08-21T12:00:00",
+          "hora_alvo": "2026-08-21T16:00:00",
+          "observado_em": "2026-08-21T16:00:00",
+          "observado_cm": 320,
+          "previsto_cm": 329,
+          "erro_cm": 9.0,
+          "erro_abs_cm": 9.0,
+          "nivel_modelo_cm": 324,
+          "nivel_rio_agora_cm": 318,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T13:00:00",
+          "hora_modelo": "2026-08-21T13:00:00",
+          "hora_alvo": "2026-08-21T17:00:00",
+          "observado_em": "2026-08-21T17:00:00",
+          "observado_cm": 325,
+          "previsto_cm": 331,
+          "erro_cm": 6.0,
+          "erro_abs_cm": 6.0,
+          "nivel_modelo_cm": 317,
+          "nivel_rio_agora_cm": 316,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T14:00:00",
+          "hora_modelo": "2026-08-21T14:00:00",
+          "hora_alvo": "2026-08-21T18:00:00",
+          "observado_em": "2026-08-21T18:00:00",
+          "observado_cm": 332,
+          "previsto_cm": 334,
+          "erro_cm": 2.0,
+          "erro_abs_cm": 2.0,
+          "nivel_modelo_cm": 315,
+          "nivel_rio_agora_cm": 316,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T15:00:00",
+          "hora_modelo": "2026-08-21T15:00:00",
+          "hora_alvo": "2026-08-21T19:00:00",
+          "observado_em": "2026-08-21T19:00:00",
+          "observado_cm": 352,
+          "previsto_cm": 342,
+          "erro_cm": -10.0,
+          "erro_abs_cm": 10.0,
+          "nivel_modelo_cm": 317,
+          "nivel_rio_agora_cm": 324,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T16:00:00",
+          "hora_modelo": "2026-08-21T16:00:00",
+          "hora_alvo": "2026-08-21T20:00:00",
+          "observado_em": "2026-08-21T20:00:00",
+          "observado_cm": 376,
+          "previsto_cm": 344,
+          "erro_cm": -32.0,
+          "erro_abs_cm": 32.0,
+          "nivel_modelo_cm": 320,
+          "nivel_rio_agora_cm": 330,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T17:00:00",
+          "hora_modelo": "2026-08-21T17:00:00",
+          "hora_alvo": "2026-08-21T21:00:00",
+          "observado_em": "2026-08-21T21:00:00",
+          "observado_cm": 389,
+          "previsto_cm": 361,
+          "erro_cm": -28.0,
+          "erro_abs_cm": 28.0,
+          "nivel_modelo_cm": 325,
+          "nivel_rio_agora_cm": 330,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T18:00:00",
+          "hora_modelo": "2026-08-21T18:00:00",
+          "hora_alvo": "2026-08-21T22:00:00",
+          "observado_em": "2026-08-21T22:00:00",
+          "observado_cm": 391,
+          "previsto_cm": 411,
+          "erro_cm": 20.0,
+          "erro_abs_cm": 20.0,
+          "nivel_modelo_cm": 332,
+          "nivel_rio_agora_cm": 345,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T19:00:00",
+          "hora_modelo": "2026-08-21T19:00:00",
+          "hora_alvo": "2026-08-21T23:00:00",
+          "observado_em": "2026-08-21T23:00:00",
+          "observado_cm": 392,
+          "previsto_cm": 404,
+          "erro_cm": 12.0,
+          "erro_abs_cm": 12.0,
+          "nivel_modelo_cm": 352,
+          "nivel_rio_agora_cm": 371,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T20:00:00",
+          "hora_modelo": "2026-08-21T20:00:00",
+          "hora_alvo": "2026-08-22T00:00:00",
+          "observado_em": "2026-08-22T00:00:00",
+          "observado_cm": 390,
+          "previsto_cm": 393,
+          "erro_cm": 3.0,
+          "erro_abs_cm": 3.0,
+          "nivel_modelo_cm": 376,
+          "nivel_rio_agora_cm": 386,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T21:00:00",
+          "hora_modelo": "2026-08-21T21:00:00",
+          "hora_alvo": "2026-08-22T01:00:00",
+          "observado_em": "2026-08-22T01:00:00",
+          "observado_cm": 387,
+          "previsto_cm": 390,
+          "erro_cm": 3.0,
+          "erro_abs_cm": 3.0,
+          "nivel_modelo_cm": 389,
+          "nivel_rio_agora_cm": 392,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T22:00:00",
+          "hora_modelo": "2026-08-21T22:00:00",
+          "hora_alvo": "2026-08-22T02:00:00",
+          "observado_em": "2026-08-22T02:00:00",
+          "observado_cm": 383,
+          "previsto_cm": 384,
+          "erro_cm": 1.0,
+          "erro_abs_cm": 1.0,
+          "nivel_modelo_cm": 391,
+          "nivel_rio_agora_cm": 392,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-21T23:00:00",
+          "hora_modelo": "2026-08-21T23:00:00",
+          "hora_alvo": "2026-08-22T03:00:00",
+          "observado_em": "2026-08-22T03:00:00",
+          "observado_cm": 380,
+          "previsto_cm": 384,
+          "erro_cm": 4.0,
+          "erro_abs_cm": 4.0,
+          "nivel_modelo_cm": 392,
+          "nivel_rio_agora_cm": 391,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T00:00:00",
+          "hora_modelo": "2026-08-22T00:00:00",
+          "hora_alvo": "2026-08-22T04:00:00",
+          "observado_em": "2026-08-22T04:00:00",
+          "observado_cm": 379,
+          "previsto_cm": 378,
+          "erro_cm": -1.0,
+          "erro_abs_cm": 1.0,
+          "nivel_modelo_cm": 390,
+          "nivel_rio_agora_cm": 384,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T01:00:00",
+          "hora_modelo": "2026-08-22T01:00:00",
+          "hora_alvo": "2026-08-22T05:00:00",
+          "observado_em": "2026-08-22T05:00:00",
+          "observado_cm": 378,
+          "previsto_cm": 377,
+          "erro_cm": -1.0,
+          "erro_abs_cm": 1.0,
+          "nivel_modelo_cm": 387,
+          "nivel_rio_agora_cm": 381,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T02:00:00",
+          "hora_modelo": "2026-08-22T02:00:00",
+          "hora_alvo": "2026-08-22T06:00:00",
+          "observado_em": "2026-08-22T06:00:00",
+          "observado_cm": 377,
+          "previsto_cm": 375,
+          "erro_cm": -2.0,
+          "erro_abs_cm": 2.0,
+          "nivel_modelo_cm": 383,
+          "nivel_rio_agora_cm": 381,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T03:00:00",
+          "hora_modelo": "2026-08-22T03:00:00",
+          "hora_alvo": "2026-08-22T07:00:00",
+          "observado_em": "2026-08-22T07:00:00",
+          "observado_cm": 376,
+          "previsto_cm": 378,
+          "erro_cm": 2.0,
+          "erro_abs_cm": 2.0,
+          "nivel_modelo_cm": 380,
+          "nivel_rio_agora_cm": 378,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T04:00:00",
+          "hora_modelo": "2026-08-22T04:00:00",
+          "hora_alvo": "2026-08-22T08:00:00",
+          "observado_em": "2026-08-22T08:00:00",
+          "observado_cm": 374,
+          "previsto_cm": 378,
+          "erro_cm": 4.0,
+          "erro_abs_cm": 4.0,
+          "nivel_modelo_cm": 379,
+          "nivel_rio_agora_cm": 378,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T05:00:00",
+          "hora_modelo": "2026-08-22T05:00:00",
+          "hora_alvo": "2026-08-22T09:00:00",
+          "observado_em": "2026-08-22T09:00:00",
+          "observado_cm": 370,
+          "previsto_cm": 376,
+          "erro_cm": 6.0,
+          "erro_abs_cm": 6.0,
+          "nivel_modelo_cm": 378,
+          "nivel_rio_agora_cm": 377,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T06:00:00",
+          "hora_modelo": "2026-08-22T06:00:00",
+          "hora_alvo": "2026-08-22T10:00:00",
+          "observado_em": "2026-08-22T10:00:00",
+          "observado_cm": 350,
+          "previsto_cm": 376,
+          "erro_cm": 26.0,
+          "erro_abs_cm": 26.0,
+          "nivel_modelo_cm": 377,
+          "nivel_rio_agora_cm": 375,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T07:00:00",
+          "hora_modelo": "2026-08-22T07:00:00",
+          "hora_alvo": "2026-08-22T11:00:00",
+          "observado_em": "2026-08-22T11:00:00",
+          "observado_cm": 317,
+          "previsto_cm": 374,
+          "erro_cm": 57.0,
+          "erro_abs_cm": 57.0,
+          "nivel_modelo_cm": 376,
+          "nivel_rio_agora_cm": 375,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T08:00:00",
+          "hora_modelo": "2026-08-22T08:00:00",
+          "hora_alvo": "2026-08-22T12:00:00",
+          "observado_em": "2026-08-22T12:00:00",
+          "observado_cm": 289,
+          "previsto_cm": 355,
+          "erro_cm": 66.0,
+          "erro_abs_cm": 66.0,
+          "nivel_modelo_cm": 374,
+          "nivel_rio_agora_cm": 357,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T09:00:00",
+          "hora_modelo": "2026-08-22T09:00:00",
+          "hora_alvo": "2026-08-22T13:00:00",
+          "observado_em": "2026-08-22T13:00:00",
+          "observado_cm": 271,
+          "previsto_cm": 269,
+          "erro_cm": -2.0,
+          "erro_abs_cm": 2.0,
+          "nivel_modelo_cm": 370,
+          "nivel_rio_agora_cm": 357,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T10:00:00",
+          "hora_modelo": "2026-08-22T10:00:00",
+          "hora_alvo": "2026-08-22T14:00:00",
+          "observado_em": "2026-08-22T14:00:00",
+          "observado_cm": 262,
+          "previsto_cm": 254,
+          "erro_cm": -8.0,
+          "erro_abs_cm": 8.0,
+          "nivel_modelo_cm": 350,
+          "nivel_rio_agora_cm": 296,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T11:00:00",
+          "hora_modelo": "2026-08-22T11:00:00",
+          "hora_alvo": "2026-08-22T15:00:00",
+          "observado_em": "2026-08-22T15:00:00",
+          "observado_cm": 259,
+          "previsto_cm": 270,
+          "erro_cm": 11.0,
+          "erro_abs_cm": 11.0,
+          "nivel_modelo_cm": 317,
+          "nivel_rio_agora_cm": 296,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T12:00:00",
+          "hora_modelo": "2026-08-22T12:00:00",
+          "hora_alvo": "2026-08-22T16:00:00",
+          "observado_em": "2026-08-22T16:00:00",
+          "observado_cm": 263,
+          "previsto_cm": 274,
+          "erro_cm": 11.0,
+          "erro_abs_cm": 11.0,
+          "nivel_modelo_cm": 289,
+          "nivel_rio_agora_cm": 264,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T13:00:00",
+          "hora_modelo": "2026-08-22T13:00:00",
+          "hora_alvo": "2026-08-22T17:00:00",
+          "observado_em": "2026-08-22T17:00:00",
+          "observado_cm": 275,
+          "previsto_cm": 277,
+          "erro_cm": 2.0,
+          "erro_abs_cm": 2.0,
+          "nivel_modelo_cm": 271,
+          "nivel_rio_agora_cm": 264,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T14:00:00",
+          "hora_modelo": "2026-08-22T14:00:00",
+          "hora_alvo": "2026-08-22T18:00:00",
+          "observado_em": "2026-08-22T18:00:00",
+          "observado_cm": 293,
+          "previsto_cm": 288,
+          "erro_cm": -5.0,
+          "erro_abs_cm": 5.0,
+          "nivel_modelo_cm": 262,
+          "nivel_rio_agora_cm": 259,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T15:00:00",
+          "hora_modelo": "2026-08-22T15:00:00",
+          "hora_alvo": "2026-08-22T19:00:00",
+          "observado_em": "2026-08-22T19:00:00",
+          "observado_cm": 319,
+          "previsto_cm": 303,
+          "erro_cm": -16.0,
+          "erro_abs_cm": 16.0,
+          "nivel_modelo_cm": 259,
+          "nivel_rio_agora_cm": 261,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T16:00:00",
+          "hora_modelo": "2026-08-22T16:00:00",
+          "hora_alvo": "2026-08-22T20:00:00",
+          "observado_em": "2026-08-22T20:00:00",
+          "observado_cm": 372,
+          "previsto_cm": 318,
+          "erro_cm": -54.0,
+          "erro_abs_cm": 54.0,
+          "nivel_modelo_cm": 263,
+          "nivel_rio_agora_cm": 288,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T17:00:00",
+          "hora_modelo": "2026-08-22T17:00:00",
+          "hora_alvo": "2026-08-22T21:00:00",
+          "observado_em": "2026-08-22T21:00:00",
+          "observado_cm": 404,
+          "previsto_cm": 333,
+          "erro_cm": -71.0,
+          "erro_abs_cm": 71.0,
+          "nivel_modelo_cm": 275,
+          "nivel_rio_agora_cm": 288,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T18:00:00",
+          "hora_modelo": "2026-08-22T18:00:00",
+          "hora_alvo": "2026-08-22T22:00:00",
+          "observado_em": "2026-08-22T22:00:00",
+          "observado_cm": 412,
+          "previsto_cm": 420,
+          "erro_cm": 8.0,
+          "erro_abs_cm": 8.0,
+          "nivel_modelo_cm": 293,
+          "nivel_rio_agora_cm": 359,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T19:00:00",
+          "hora_modelo": "2026-08-22T19:00:00",
+          "hora_alvo": "2026-08-22T23:00:00",
+          "observado_em": "2026-08-22T23:00:00",
+          "observado_cm": 413,
+          "previsto_cm": 434,
+          "erro_cm": 21.0,
+          "erro_abs_cm": 21.0,
+          "nivel_modelo_cm": 319,
+          "nivel_rio_agora_cm": 359,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T20:00:00",
+          "hora_modelo": "2026-08-22T20:00:00",
+          "hora_alvo": "2026-08-23T00:00:00",
+          "observado_em": "2026-08-23T00:00:00",
+          "observado_cm": 412,
+          "previsto_cm": 416,
+          "erro_cm": 4.0,
+          "erro_abs_cm": 4.0,
+          "nivel_modelo_cm": 372,
+          "nivel_rio_agora_cm": 399,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T21:00:00",
+          "hora_modelo": "2026-08-22T21:00:00",
+          "hora_alvo": "2026-08-23T01:00:00",
+          "observado_em": "2026-08-23T01:00:00",
+          "observado_cm": 408,
+          "previsto_cm": 403,
+          "erro_cm": -5.0,
+          "erro_abs_cm": 5.0,
+          "nivel_modelo_cm": 404,
+          "nivel_rio_agora_cm": 411,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T22:00:00",
+          "hora_modelo": "2026-08-22T22:00:00",
+          "hora_alvo": "2026-08-23T02:00:00",
+          "observado_em": "2026-08-23T02:00:00",
+          "observado_cm": 402,
+          "previsto_cm": 401,
+          "erro_cm": -1.0,
+          "erro_abs_cm": 1.0,
+          "nivel_modelo_cm": 412,
+          "nivel_rio_agora_cm": 413,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T00:00:00",
+          "hora_modelo": "2026-08-23T00:00:00",
+          "hora_alvo": "2026-08-23T04:00:00",
+          "observado_em": "2026-08-23T04:00:00",
+          "observado_cm": 387,
+          "previsto_cm": 395,
+          "erro_cm": 8.0,
+          "erro_abs_cm": 8.0,
+          "nivel_modelo_cm": 412,
+          "nivel_rio_agora_cm": 396,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T02:00:00",
+          "hora_modelo": "2026-08-23T02:00:00",
+          "hora_alvo": "2026-08-23T06:00:00",
+          "observado_em": "2026-08-23T06:00:00",
+          "observado_cm": 373,
+          "previsto_cm": 374,
+          "erro_cm": 1.0,
+          "erro_abs_cm": 1.0,
+          "nivel_modelo_cm": 402,
+          "nivel_rio_agora_cm": 396,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T03:00:00",
+          "hora_modelo": "2026-08-23T03:00:00",
+          "hora_alvo": "2026-08-23T07:00:00",
+          "observado_em": "2026-08-23T07:00:00",
+          "observado_cm": 367,
+          "previsto_cm": 370,
+          "erro_cm": 3.0,
+          "erro_abs_cm": 3.0,
+          "nivel_modelo_cm": 395,
+          "nivel_rio_agora_cm": 381,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T04:00:00",
+          "hora_modelo": "2026-08-23T04:00:00",
+          "hora_alvo": "2026-08-23T08:00:00",
+          "observado_em": "2026-08-23T08:00:00",
+          "observado_cm": 363,
+          "previsto_cm": 368,
+          "erro_cm": 5.0,
+          "erro_abs_cm": 5.0,
+          "nivel_modelo_cm": 387,
+          "nivel_rio_agora_cm": 381,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T05:00:00",
+          "hora_modelo": "2026-08-23T05:00:00",
+          "hora_alvo": "2026-08-23T09:00:00",
+          "observado_em": "2026-08-23T09:00:00",
+          "observado_cm": 349,
+          "previsto_cm": 364,
+          "erro_cm": 15.0,
+          "erro_abs_cm": 15.0,
+          "nivel_modelo_cm": 379,
+          "nivel_rio_agora_cm": 375,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T06:00:00",
+          "hora_modelo": "2026-08-23T06:00:00",
+          "hora_alvo": "2026-08-23T10:00:00",
+          "observado_em": "2026-08-23T10:00:00",
+          "observado_cm": 320,
+          "previsto_cm": 361,
+          "erro_cm": 41.0,
+          "erro_abs_cm": 41.0,
+          "nivel_modelo_cm": 373,
+          "nivel_rio_agora_cm": 369,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T07:00:00",
+          "hora_modelo": "2026-08-23T07:00:00",
+          "hora_alvo": "2026-08-23T11:00:00",
+          "observado_em": "2026-08-23T11:00:00",
+          "observado_cm": 288,
+          "previsto_cm": 358,
+          "erro_cm": 70.0,
+          "erro_abs_cm": 70.0,
+          "nivel_modelo_cm": 367,
+          "nivel_rio_agora_cm": 355,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T08:00:00",
+          "hora_modelo": "2026-08-23T08:00:00",
+          "hora_alvo": "2026-08-23T12:00:00",
+          "observado_em": "2026-08-23T12:00:00",
+          "observado_cm": 263,
+          "previsto_cm": 281,
+          "erro_cm": 18.0,
+          "erro_abs_cm": 18.0,
+          "nivel_modelo_cm": 363,
+          "nivel_rio_agora_cm": 355,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T09:00:00",
+          "hora_modelo": "2026-08-23T09:00:00",
+          "hora_alvo": "2026-08-23T13:00:00",
+          "observado_em": "2026-08-23T13:00:00",
+          "observado_cm": 248,
+          "previsto_cm": 240,
+          "erro_cm": -8.0,
+          "erro_abs_cm": 8.0,
+          "nivel_modelo_cm": 349,
+          "nivel_rio_agora_cm": 295,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T10:00:00",
+          "hora_modelo": "2026-08-23T10:00:00",
+          "hora_alvo": "2026-08-23T14:00:00",
+          "observado_em": "2026-08-23T14:00:00",
+          "observado_cm": 239,
+          "previsto_cm": 248,
+          "erro_cm": 9.0,
+          "erro_abs_cm": 9.0,
+          "nivel_modelo_cm": 320,
+          "nivel_rio_agora_cm": 295,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T11:00:00",
+          "hora_modelo": "2026-08-23T11:00:00",
+          "hora_alvo": "2026-08-23T15:00:00",
+          "observado_em": "2026-08-23T15:00:00",
+          "observado_cm": 235,
+          "previsto_cm": 254,
+          "erro_cm": 19.0,
+          "erro_abs_cm": 19.0,
+          "nivel_modelo_cm": 288,
+          "nivel_rio_agora_cm": 268,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T12:00:00",
+          "hora_modelo": "2026-08-23T12:00:00",
+          "hora_alvo": "2026-08-23T16:00:00",
+          "observado_em": "2026-08-23T16:00:00",
+          "observado_cm": 236,
+          "previsto_cm": 256,
+          "erro_cm": 20.0,
+          "erro_abs_cm": 20.0,
+          "nivel_modelo_cm": 263,
+          "nivel_rio_agora_cm": 241,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T13:00:00",
+          "hora_modelo": "2026-08-23T13:00:00",
+          "hora_alvo": "2026-08-23T17:00:00",
+          "observado_em": "2026-08-23T17:00:00",
+          "observado_cm": 243,
+          "previsto_cm": 256,
+          "erro_cm": 13.0,
+          "erro_abs_cm": 13.0,
+          "nivel_modelo_cm": 248,
+          "nivel_rio_agora_cm": 235,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T14:00:00",
+          "hora_modelo": "2026-08-23T14:00:00",
+          "hora_alvo": "2026-08-23T18:00:00",
+          "observado_em": "2026-08-23T18:00:00",
+          "observado_cm": 257,
+          "previsto_cm": 262,
+          "erro_cm": 5.0,
+          "erro_abs_cm": 5.0,
+          "nivel_modelo_cm": 239,
+          "nivel_rio_agora_cm": 235,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        }
+      ],
+      "tracking_4h": [
+        {
+          "hora_alvo": "2026-08-17T18:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 400,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-17T18:00:00",
+          "serie": "RNA",
+          "nivel_cm": 389,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-17T19:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 434,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-17T19:00:00",
+          "serie": "RNA",
+          "nivel_cm": 393,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-17T20:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 468,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-17T20:00:00",
+          "serie": "RNA",
+          "nivel_cm": 414,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-17T21:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 480,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-17T21:00:00",
+          "serie": "RNA",
+          "nivel_cm": 424,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-17T22:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 483,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-17T22:00:00",
+          "serie": "RNA",
+          "nivel_cm": 515,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-17T23:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 478,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-17T23:00:00",
+          "serie": "RNA",
+          "nivel_cm": 508,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T00:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 469,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T00:00:00",
+          "serie": "RNA",
+          "nivel_cm": 483,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T01:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 460,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T01:00:00",
+          "serie": "RNA",
+          "nivel_cm": 475,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T02:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 446,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T02:00:00",
+          "serie": "RNA",
+          "nivel_cm": 458,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T03:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 436,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T03:00:00",
+          "serie": "RNA",
+          "nivel_cm": 440,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T04:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 428,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T04:00:00",
+          "serie": "RNA",
+          "nivel_cm": 433,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T05:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 411,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T05:00:00",
+          "serie": "RNA",
+          "nivel_cm": 431,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T06:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 388,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T06:00:00",
+          "serie": "RNA",
+          "nivel_cm": 414,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T07:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 374,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T07:00:00",
+          "serie": "RNA",
+          "nivel_cm": 415,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T08:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 383,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T08:00:00",
+          "serie": "RNA",
+          "nivel_cm": 361,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T10:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 387,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T10:00:00",
+          "serie": "RNA",
+          "nivel_cm": 378,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T11:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 361,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T11:00:00",
+          "serie": "RNA",
+          "nivel_cm": 432,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T12:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 342,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T12:00:00",
+          "serie": "RNA",
+          "nivel_cm": 415,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T13:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 333,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T13:00:00",
+          "serie": "RNA",
+          "nivel_cm": 328,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T14:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 329,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T14:00:00",
+          "serie": "RNA",
+          "nivel_cm": 316,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T15:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 331,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T15:00:00",
+          "serie": "RNA",
+          "nivel_cm": 331,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T16:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 338,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T16:00:00",
+          "serie": "RNA",
+          "nivel_cm": 337,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T17:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 348,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T17:00:00",
+          "serie": "RNA",
+          "nivel_cm": 343,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T18:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 358,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T18:00:00",
+          "serie": "RNA",
+          "nivel_cm": 351,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T19:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 384,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T19:00:00",
+          "serie": "RNA",
+          "nivel_cm": 362,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T20:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 424,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T20:00:00",
+          "serie": "RNA",
+          "nivel_cm": 371,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T21:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 442,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T21:00:00",
+          "serie": "RNA",
+          "nivel_cm": 379,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T22:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 447,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T22:00:00",
+          "serie": "RNA",
+          "nivel_cm": 475,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T23:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 445,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-18T23:00:00",
+          "serie": "RNA",
+          "nivel_cm": 467,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T00:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 437,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T00:00:00",
+          "serie": "RNA",
+          "nivel_cm": 453,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T01:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 427,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T01:00:00",
+          "serie": "RNA",
+          "nivel_cm": 443,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T02:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 417,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T02:00:00",
+          "serie": "RNA",
+          "nivel_cm": 426,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T03:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 407,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T03:00:00",
+          "serie": "RNA",
+          "nivel_cm": 413,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T04:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 399,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T04:00:00",
+          "serie": "RNA",
+          "nivel_cm": 403,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T05:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 392,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T05:00:00",
+          "serie": "RNA",
+          "nivel_cm": 400,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T06:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 387,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T06:00:00",
+          "serie": "RNA",
+          "nivel_cm": 385,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T07:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 384,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T07:00:00",
+          "serie": "RNA",
+          "nivel_cm": 386,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T08:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 383,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T08:00:00",
+          "serie": "RNA",
+          "nivel_cm": 385,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T09:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 381,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T09:00:00",
+          "serie": "RNA",
+          "nivel_cm": 382,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T10:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 371,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T10:00:00",
+          "serie": "RNA",
+          "nivel_cm": 384,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T11:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 343,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T11:00:00",
+          "serie": "RNA",
+          "nivel_cm": 381,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T12:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 312,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T12:00:00",
+          "serie": "RNA",
+          "nivel_cm": 381,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T13:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 288,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T13:00:00",
+          "serie": "RNA",
+          "nivel_cm": 324,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T14:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 274,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T14:00:00",
+          "serie": "RNA",
+          "nivel_cm": 265,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T15:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 266,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T15:00:00",
+          "serie": "RNA",
+          "nivel_cm": 269,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T16:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 265,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T16:00:00",
+          "serie": "RNA",
+          "nivel_cm": 280,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T17:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 272,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T17:00:00",
+          "serie": "RNA",
+          "nivel_cm": 280,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T18:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 310,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T18:00:00",
+          "serie": "RNA",
+          "nivel_cm": 286,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T19:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 373,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T19:00:00",
+          "serie": "RNA",
+          "nivel_cm": 299,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T20:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 405,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T20:00:00",
+          "serie": "RNA",
+          "nivel_cm": 333,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T21:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 416,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T21:00:00",
+          "serie": "RNA",
+          "nivel_cm": 446,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T22:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 419,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T22:00:00",
+          "serie": "RNA",
+          "nivel_cm": 434,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T23:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 420,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-19T23:00:00",
+          "serie": "RNA",
+          "nivel_cm": 428,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T00:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 416,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T00:00:00",
+          "serie": "RNA",
+          "nivel_cm": 417,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T01:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 406,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T01:00:00",
+          "serie": "RNA",
+          "nivel_cm": 410,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T02:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 393,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T02:00:00",
+          "serie": "RNA",
+          "nivel_cm": 410,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T03:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 381,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T03:00:00",
+          "serie": "RNA",
+          "nivel_cm": 398,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T04:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 369,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T04:00:00",
+          "serie": "RNA",
+          "nivel_cm": 384,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T05:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 358,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T05:00:00",
+          "serie": "RNA",
+          "nivel_cm": 367,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T06:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 341,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T06:00:00",
+          "serie": "RNA",
+          "nivel_cm": 364,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T07:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 324,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T07:00:00",
+          "serie": "RNA",
+          "nivel_cm": 360,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T08:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 315,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T08:00:00",
+          "serie": "RNA",
+          "nivel_cm": 327,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T09:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 326,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T09:00:00",
+          "serie": "RNA",
+          "nivel_cm": 305,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T10:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 331,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T10:00:00",
+          "serie": "RNA",
+          "nivel_cm": 306,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T11:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 315,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T11:00:00",
+          "serie": "RNA",
+          "nivel_cm": 350,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T12:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 294,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T12:00:00",
+          "serie": "RNA",
+          "nivel_cm": 373,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T13:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 279,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T13:00:00",
+          "serie": "RNA",
+          "nivel_cm": 287,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T14:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 271,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T14:00:00",
+          "serie": "RNA",
+          "nivel_cm": 270,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T15:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 270,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T15:00:00",
+          "serie": "RNA",
+          "nivel_cm": 274,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T16:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 275,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T16:00:00",
+          "serie": "RNA",
+          "nivel_cm": 280,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T17:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 288,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T17:00:00",
+          "serie": "RNA",
+          "nivel_cm": 291,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T18:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 323,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T18:00:00",
+          "serie": "RNA",
+          "nivel_cm": 297,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T19:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 385,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T19:00:00",
+          "serie": "RNA",
+          "nivel_cm": 306,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T20:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 411,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T20:00:00",
+          "serie": "RNA",
+          "nivel_cm": 328,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T21:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 416,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T21:00:00",
+          "serie": "RNA",
+          "nivel_cm": 451,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T22:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 418,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T22:00:00",
+          "serie": "RNA",
+          "nivel_cm": 445,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T23:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 419,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-20T23:00:00",
+          "serie": "RNA",
+          "nivel_cm": 422,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T00:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 416,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T00:00:00",
+          "serie": "RNA",
+          "nivel_cm": 411,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T01:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 410,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T01:00:00",
+          "serie": "RNA",
+          "nivel_cm": 415,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T02:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 402,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T02:00:00",
+          "serie": "RNA",
+          "nivel_cm": 414,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T03:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 394,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T03:00:00",
+          "serie": "RNA",
+          "nivel_cm": 407,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T04:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 389,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T04:00:00",
+          "serie": "RNA",
+          "nivel_cm": 399,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T05:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 385,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T05:00:00",
+          "serie": "RNA",
+          "nivel_cm": 382,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T06:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 382,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T06:00:00",
+          "serie": "RNA",
+          "nivel_cm": 383,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T07:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 379,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T07:00:00",
+          "serie": "RNA",
+          "nivel_cm": 387,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T08:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 375,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T08:00:00",
+          "serie": "RNA",
+          "nivel_cm": 385,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T09:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 369,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T09:00:00",
+          "serie": "RNA",
+          "nivel_cm": 382,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T10:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 358,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T10:00:00",
+          "serie": "RNA",
+          "nivel_cm": 377,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T11:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 339,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T11:00:00",
+          "serie": "RNA",
+          "nivel_cm": 372,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T12:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 324,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T12:00:00",
+          "serie": "RNA",
+          "nivel_cm": 366,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T13:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 317,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T13:00:00",
+          "serie": "RNA",
+          "nivel_cm": 318,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T14:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 315,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T14:00:00",
+          "serie": "RNA",
+          "nivel_cm": 312,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T15:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 317,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T15:00:00",
+          "serie": "RNA",
+          "nivel_cm": 323,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T16:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 320,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T16:00:00",
+          "serie": "RNA",
+          "nivel_cm": 329,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T17:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 325,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T17:00:00",
+          "serie": "RNA",
+          "nivel_cm": 331,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T18:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 332,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T18:00:00",
+          "serie": "RNA",
+          "nivel_cm": 334,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T19:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 352,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T19:00:00",
+          "serie": "RNA",
+          "nivel_cm": 342,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T20:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 376,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T20:00:00",
+          "serie": "RNA",
+          "nivel_cm": 344,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T21:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 389,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T21:00:00",
+          "serie": "RNA",
+          "nivel_cm": 361,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T22:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 391,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T22:00:00",
+          "serie": "RNA",
+          "nivel_cm": 411,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T23:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 392,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-21T23:00:00",
+          "serie": "RNA",
+          "nivel_cm": 404,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T00:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 390,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T00:00:00",
+          "serie": "RNA",
+          "nivel_cm": 393,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T01:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 387,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T01:00:00",
+          "serie": "RNA",
+          "nivel_cm": 390,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T02:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 383,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T02:00:00",
+          "serie": "RNA",
+          "nivel_cm": 384,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T03:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 380,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T03:00:00",
+          "serie": "RNA",
+          "nivel_cm": 384,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T04:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 379,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T04:00:00",
+          "serie": "RNA",
+          "nivel_cm": 378,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T05:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 378,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T05:00:00",
+          "serie": "RNA",
+          "nivel_cm": 377,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T06:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 377,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T06:00:00",
+          "serie": "RNA",
+          "nivel_cm": 375,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T07:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 376,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T07:00:00",
+          "serie": "RNA",
+          "nivel_cm": 378,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T08:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 374,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T08:00:00",
+          "serie": "RNA",
+          "nivel_cm": 378,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T09:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 370,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T09:00:00",
+          "serie": "RNA",
+          "nivel_cm": 376,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T10:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 350,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T10:00:00",
+          "serie": "RNA",
+          "nivel_cm": 376,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T11:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 317,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T11:00:00",
+          "serie": "RNA",
+          "nivel_cm": 374,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T12:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 289,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T12:00:00",
+          "serie": "RNA",
+          "nivel_cm": 355,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T13:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 271,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T13:00:00",
+          "serie": "RNA",
+          "nivel_cm": 269,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T14:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 262,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T14:00:00",
+          "serie": "RNA",
+          "nivel_cm": 254,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T15:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 259,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T15:00:00",
+          "serie": "RNA",
+          "nivel_cm": 270,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T16:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 263,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T16:00:00",
+          "serie": "RNA",
+          "nivel_cm": 274,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T17:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 275,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T17:00:00",
+          "serie": "RNA",
+          "nivel_cm": 277,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T18:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 293,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T18:00:00",
+          "serie": "RNA",
+          "nivel_cm": 288,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T19:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 319,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T19:00:00",
+          "serie": "RNA",
+          "nivel_cm": 303,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T20:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 372,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T20:00:00",
+          "serie": "RNA",
+          "nivel_cm": 318,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T21:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 404,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T21:00:00",
+          "serie": "RNA",
+          "nivel_cm": 333,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T22:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 412,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T22:00:00",
+          "serie": "RNA",
+          "nivel_cm": 420,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T23:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 413,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-22T23:00:00",
+          "serie": "RNA",
+          "nivel_cm": 434,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T00:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 412,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T00:00:00",
+          "serie": "RNA",
+          "nivel_cm": 416,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T01:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 408,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T01:00:00",
+          "serie": "RNA",
+          "nivel_cm": 403,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T02:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 402,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T02:00:00",
+          "serie": "RNA",
+          "nivel_cm": 401,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T04:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 387,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T04:00:00",
+          "serie": "RNA",
+          "nivel_cm": 395,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T06:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 373,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T06:00:00",
+          "serie": "RNA",
+          "nivel_cm": 374,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T07:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 367,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T07:00:00",
+          "serie": "RNA",
+          "nivel_cm": 370,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T08:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 363,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T08:00:00",
+          "serie": "RNA",
+          "nivel_cm": 368,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T09:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 349,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T09:00:00",
+          "serie": "RNA",
+          "nivel_cm": 364,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T10:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 320,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T10:00:00",
+          "serie": "RNA",
+          "nivel_cm": 361,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T11:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 288,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T11:00:00",
+          "serie": "RNA",
+          "nivel_cm": 358,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T12:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 263,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T12:00:00",
+          "serie": "RNA",
+          "nivel_cm": 281,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T13:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 248,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T13:00:00",
+          "serie": "RNA",
+          "nivel_cm": 240,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T14:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 239,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T14:00:00",
+          "serie": "RNA",
+          "nivel_cm": 248,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T15:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 235,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T15:00:00",
+          "serie": "RNA",
+          "nivel_cm": 254,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T16:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 236,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T16:00:00",
+          "serie": "RNA",
+          "nivel_cm": 256,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T17:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 243,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T17:00:00",
+          "serie": "RNA",
+          "nivel_cm": 256,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T18:00:00",
+          "serie": "Observado ANA",
+          "nivel_cm": 257,
+          "modelo": "4h ativo"
+        },
+        {
+          "hora_alvo": "2026-08-23T18:00:00",
+          "serie": "RNA",
+          "nivel_cm": 262,
+          "modelo": "4h ativo"
+        }
+      ],
+      "thresholds_4h": [
+        {
+          "limite_cm": 5,
+          "pct_dentro": 31.69
+        },
+        {
+          "limite_cm": 10,
+          "pct_dentro": 47.89
+        },
+        {
+          "limite_cm": 15,
+          "pct_dentro": 60.56
+        },
+        {
+          "limite_cm": 25,
+          "pct_dentro": 73.94
+        },
+        {
+          "limite_cm": 50,
+          "pct_dentro": 88.03
+        }
+      ],
+      "worst_4h": [
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T16:00:00",
+          "hora_modelo": "2026-08-20T16:00:00",
+          "hora_alvo": "2026-08-20T20:00:00",
+          "observado_em": "2026-08-20T20:00:00",
+          "observado_cm": 411,
+          "previsto_cm": 328,
+          "erro_cm": -83.0,
+          "erro_abs_cm": 83.0,
+          "nivel_modelo_cm": 275,
+          "nivel_rio_agora_cm": 310,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T08:00:00",
+          "hora_modelo": "2026-08-20T08:00:00",
+          "hora_alvo": "2026-08-20T12:00:00",
+          "observado_em": "2026-08-20T12:00:00",
+          "observado_cm": 294,
+          "previsto_cm": 373,
+          "erro_cm": 79.0,
+          "erro_abs_cm": 79.0,
+          "nivel_modelo_cm": 315,
+          "nivel_rio_agora_cm": 322,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-20T15:00:00",
+          "hora_modelo": "2026-08-20T15:00:00",
+          "hora_alvo": "2026-08-20T19:00:00",
+          "observado_em": "2026-08-20T19:00:00",
+          "observado_cm": 385,
+          "previsto_cm": 306,
+          "erro_cm": -79.0,
+          "erro_abs_cm": 79.0,
+          "nivel_modelo_cm": 270,
+          "nivel_rio_agora_cm": 273,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T15:00:00",
+          "hora_modelo": "2026-08-19T15:00:00",
+          "hora_alvo": "2026-08-19T19:00:00",
+          "observado_em": "2026-08-19T19:00:00",
+          "observado_cm": 373,
+          "previsto_cm": 299,
+          "erro_cm": -74.0,
+          "erro_abs_cm": 74.0,
+          "nivel_modelo_cm": 266,
+          "nivel_rio_agora_cm": 265,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T08:00:00",
+          "hora_modelo": "2026-08-18T08:00:00",
+          "hora_alvo": "2026-08-18T12:00:00",
+          "observado_em": "2026-08-18T12:00:00",
+          "observado_cm": 342,
+          "previsto_cm": 415,
+          "erro_cm": 73.0,
+          "erro_abs_cm": 73.0,
+          "nivel_modelo_cm": 383,
+          "nivel_rio_agora_cm": 396,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T16:00:00",
+          "hora_modelo": "2026-08-19T16:00:00",
+          "hora_alvo": "2026-08-19T20:00:00",
+          "observado_em": "2026-08-19T20:00:00",
+          "observado_cm": 405,
+          "previsto_cm": 333,
+          "erro_cm": -72.0,
+          "erro_abs_cm": 72.0,
+          "nivel_modelo_cm": 265,
+          "nivel_rio_agora_cm": 269,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-18T07:00:00",
+          "hora_modelo": "2026-08-18T07:00:00",
+          "hora_alvo": "2026-08-18T11:00:00",
+          "observado_em": "2026-08-18T11:00:00",
+          "observado_cm": 361,
+          "previsto_cm": 432,
+          "erro_cm": 71.0,
+          "erro_abs_cm": 71.0,
+          "nivel_modelo_cm": 374,
+          "nivel_rio_agora_cm": 378,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-22T17:00:00",
+          "hora_modelo": "2026-08-22T17:00:00",
+          "hora_alvo": "2026-08-22T21:00:00",
+          "observado_em": "2026-08-22T21:00:00",
+          "observado_cm": 404,
+          "previsto_cm": 333,
+          "erro_cm": -71.0,
+          "erro_abs_cm": 71.0,
+          "nivel_modelo_cm": 275,
+          "nivel_rio_agora_cm": 288,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-23T07:00:00",
+          "hora_modelo": "2026-08-23T07:00:00",
+          "hora_alvo": "2026-08-23T11:00:00",
+          "observado_em": "2026-08-23T11:00:00",
+          "observado_cm": 288,
+          "previsto_cm": 358,
+          "erro_cm": 70.0,
+          "erro_abs_cm": 70.0,
+          "nivel_modelo_cm": 367,
+          "nivel_rio_agora_cm": 355,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        },
+        {
+          "id": "Santa Tereza|4h|V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000|2026-08-19T08:00:00",
+          "hora_modelo": "2026-08-19T08:00:00",
+          "hora_alvo": "2026-08-19T12:00:00",
+          "observado_em": "2026-08-19T12:00:00",
+          "observado_cm": 312,
+          "previsto_cm": 381,
+          "erro_cm": 69.0,
+          "erro_abs_cm": 69.0,
+          "nivel_modelo_cm": 383,
+          "nivel_rio_agora_cm": 381,
+          "modelo": "V01_R_VAL_TROCA_E16_POR_E15_nh52_nit10_cic100000",
+          "horizonte": "4h",
+          "status_auditoria": "conferido",
+          "auditoria_versao": "target_exact_v2",
+          "input_contract_version": "hourly_exact_v1"
+        }
+      ],
+      "feed_status": [
+        {
+          "id": "feed",
+          "status_dados": "telemetria recente",
+          "gerado_em": "2026-08-23T18:45:00",
+          "consultado_em": "2026-08-23T18:58:26"
+        }
+      ]
+    },
+    "accessIssues": [
+      {
+        "type": "missing_published_horizon",
+        "message": "O site ao vivo não publicou horizonte 12h no snapshot auditado; o relatório cobre integralmente o 4h publicado e marca 12h como ausente."
+      }
+    ]
+  },
+  "sources": [
+    {
+      "id": "live_history",
+      "label": "Histórico publicado ao vivo — observado × RNA",
+      "path": "historico_previsoes_ao_vivo.json",
+      "href": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/historico_previsoes_ao_vivo.json",
+      "query": {
+        "engine": "json",
+        "id": "live_history",
+        "url": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/historico_previsoes_ao_vivo.json",
+        "sql": null,
+        "description": "Arquivo JSON publicado no site ao vivo do PREVINE; leitura somente leitura e cálculo local reproduzível.",
+        "language": "python",
+        "executed_at": "2026-08-23T18:58:26",
+        "tables_used": [
+          "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/historico_previsoes_ao_vivo.json"
+        ],
+        "filters": [
+          "local = Santa Tereza",
+          "status_auditoria = conferido",
+          "modelo/horizonte filtrados conforme o JSON vivo",
+          "sem imputação de observações"
+        ],
+        "metric_definitions": [
+          "erro_cm = previsto_cm - observado_cm",
+          "MAE = média de |erro_cm|",
+          "RMSE = raiz da média de erro_cm²",
+          "correlação de Pearson entre previsto e observado",
+          "percentuais usam como denominador os pares conferidos do grupo"
+        ]
+      }
+    },
+    {
+      "id": "live_feed",
+      "label": "Snapshot do feed publicado ao vivo",
+      "path": "previsao_ao_vivo.json",
+      "href": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/previsao_ao_vivo.json",
+      "query": {
+        "engine": "json",
+        "id": "live_feed",
+        "url": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/previsao_ao_vivo.json",
+        "sql": null,
+        "description": "Arquivo JSON publicado no site ao vivo do PREVINE; leitura somente leitura e cálculo local reproduzível.",
+        "language": "python",
+        "executed_at": "2026-08-23T18:58:26",
+        "tables_used": [
+          "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/previsao_ao_vivo.json"
+        ],
+        "filters": [
+          "snapshot integral da publicação no momento da auditoria"
+        ],
+        "metric_definitions": [
+          "telemetria e disponibilidade são lidas do JSON vivo; não equivalem à aprovação do modelo"
+        ]
+      }
+    }
+  ],
+  "package_info": {
+    "snapshot_kind": "read_only_live_capture",
+    "live_urls": [
+      "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/previsao_ao_vivo.json",
+      "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/historico_previsoes_ao_vivo.json"
+    ],
+    "hashes": "07ff59f273a9caf9b36d2bae6373ceaf4449d0f1191678014c9ecbbb4c6d0b24;5c30a17281eb18f265d6babcee154fb6332f55a6ff6bb31184d36f94ce458212"
+  }
+}

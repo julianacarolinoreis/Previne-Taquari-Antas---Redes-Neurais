@@ -1,0 +1,41 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 14mm; }
+body { font-family: Arial, Helvetica, sans-serif; color: #15202b; font-size: 11px; line-height: 1.32; }
+h1 { font-size: 22px; margin: 0 0 5px; color: #123a5a; }
+h2 { font-size: 15px; margin: 18px 0 7px; color: #123a5a; border-bottom: 1px solid #b7c7d6; padding-bottom: 3px; }
+h3 { font-size: 12px; margin: 12px 0 5px; color: #123a5a; }
+.meta { color: #5b6770; margin-bottom: 10px; }
+.callout { background:#eef6fb; border-left: 4px solid #2274a5; padding: 8px 10px; margin: 9px 0; }
+.warn { background:#fff6e6; border-left: 4px solid #d18700; padding: 8px 10px; margin: 9px 0; }
+table { border-collapse: collapse; width: 100%; margin: 6px 0 11px; page-break-inside: auto; }
+th { background: #194d73; color: white; text-align: left; padding: 5px 6px; font-size: 10px; }
+td { border: 1px solid #d7e0e8; padding: 4px 5px; vertical-align: top; }
+tr:nth-child(even) td { background: #f7fafc; }
+.num { text-align: right; white-space: nowrap; }
+.small { font-size: 10px; color: #46535f; }
+.bad { color:#9b1c1c; font-weight:bold; }
+.good { color:#0b5d35; font-weight:bold; }
+.grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.card { border:1px solid #d7e0e8; padding:8px; background:#fbfdff; }
+.card b { display:block; color:#123a5a; margin-bottom:3px; }
+.footer { margin-top: 20px; color:#687784; font-size: 9px; }
+
+body{font-size:18px; margin:24px;} h1{font-size:32px} h2{font-size:24px} th,td{font-size:15px; padding:7px} .small{font-size:14px}</style></head><body>
+<h1>Relatorio tecnico - RNA 8h ALT e 8h CONV</h1>
+<div class="meta">Rodada analisada: RNA_8H_ALT_CONV_MODELO_AUTO_2026_06_27<br>Gerado em: 28/06/2026 14:30</div>
+<div class="callout"><b>Resposta objetiva sobre a rota??o 2h atual:</b> ela esta usando planilhas <b>SEM_EVT13</b>. Portanto, houve retirada do evento 13 e rotacao dos eventos, mas <b>nao</b> e a versao com recorte fino do trecho de queda/efeito de barragem.</div>
+<h2>6. Modelos excluidos por PERS negativo</h2>
+<div class="warn">Estes 7 modelos aparecem no CSV de resultados, entao rodaram. Como tiveram PERS negativo, nao ha .mat nem Excel auditavel salvo para eles na pasta final.</div>
+<table><thead><tr><th>Modelo</th><th>Tipo</th><th>PERS</th><th>NASH val</th><th>NASH teste</th><th>MAE</th><th>E95</th></tr></thead><tbody>
+<tr><td class="">32_8h_conv_8H_CONV_C0659</td><td class="">CONV</td><td class="num bad">-3,7785</td><td class="num">0,1155</td><td class="num">0,0395</td><td class="num">157,21</td><td class="num">687,72</td></tr>
+<tr><td class="">25_8h_conv_8H_CONV_C0657</td><td class="">CONV</td><td class="num bad">-2,9500</td><td class="num">0,1641</td><td class="num">0,2195</td><td class="num">138,59</td><td class="num">628,76</td></tr>
+<tr><td class="">06_8h_alt_8H_ALT_C0217</td><td class="">ALT</td><td class="num bad">-0,1079</td><td class="num">0,7291</td><td class="num">0,7834</td><td class="num">61,56</td><td class="num">177,38</td></tr>
+<tr><td class="">12_8h_alt_8H_ALT_C0078</td><td class="">ALT</td><td class="num bad">-0,0995</td><td class="num">0,7602</td><td class="num">0,7807</td><td class="num">61,18</td><td class="num">176,30</td></tr>
+<tr><td class="">05_8h_alt_8H_ALT_C0193</td><td class="">ALT</td><td class="num bad">-0,0647</td><td class="num">0,7551</td><td class="num">0,7919</td><td class="num">58,05</td><td class="num">170,11</td></tr>
+<tr><td class="">26_8h_conv_8H_CONV_C0569</td><td class="">CONV</td><td class="num bad">-0,0396</td><td class="num">0,1095</td><td class="num">0,7946</td><td class="num">54,43</td><td class="num">239,26</td></tr>
+<tr><td class="">02_8h_alt_8H_ALT_C0073</td><td class="">ALT</td><td class="num bad">-0,0386</td><td class="num">0,7799</td><td class="num">0,7948</td><td class="num">58,50</td><td class="num">166,37</td></tr>
+</tbody></table>
+<h2>7. Leitura tecnica</h2>
+<p>O resultado mais defensavel para continuidade e o conjunto dos modelos com PERS acima de 0,50. Eles mantem ganho sobre persistencia e erros absolutos ainda aceitaveis para o horizonte de 8h. A rodada sugere que o alvo CONV, neste conjunto, respondeu melhor que ALT em varios arranjos. Para ALT, o modelo 10 ficou claramente destacado; abaixo dele ha uma queda para a faixa 0,52 e depois para 0,37.</p>
+<p>Para uma proxima rodada de 8h, a recomendacao tecnica e nao rotacionar todos os modelos. Faz mais sentido iniciar por modelos com PERS positivo consistente e auditavel, especialmente: 24 CONV, 10 ALT, 28 CONV, 27 CONV, 21 CONV, 15 ALT, 29 CONV e 04 ALT. A rotacao de eventos deve ser usada para detectar se algum evento especifico esta derrubando validacao/teste, como estamos fazendo agora no 2h.</p>
+</body></html>

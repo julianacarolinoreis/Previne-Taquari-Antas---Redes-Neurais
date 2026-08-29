@@ -1,0 +1,2270 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Permissions-Policy" content="camera=(), geolocation=(), microphone=()">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://unpkg.com https://cdn.jsdelivr.net https://*.tile.openstreetmap.org https://server.arcgisonline.com; connect-src 'self' https://raw.githubusercontent.com; font-src 'self' data:; worker-src 'self' blob:; frame-src 'none'">
+<title>PREVINE · Vulnerabilidade social — bacia Taquari-Antas</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous"
+      onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';this.integrity='sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';this.crossOrigin='anonymous'">
+<style>
+  :root{
+    --bg:#eef3f1;--panel:#fff;--ink:#132019;--muted:#5c6b63;--line:#e0e6e1;
+    --brand:#0f6b4a;--agora:#1e5fbf;
+    --shadow:0 1px 3px rgba(20,40,30,.07),0 8px 26px rgba(20,40,30,.06);
+    /* ICM: azul -> laranja -> vermelho, com luminâncias distintas para
+       leitura em daltonismo e em escala de cinza. */
+    --icmA:#2166ac;--icmB:#67a9cf;--icmC:#fdae61;--icmD:#d73027;
+  }
+  *{box-sizing:border-box}
+  *,svg text{font-family:Tahoma,Verdana,Geneva,sans-serif !important}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink)}
+  header{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:600}
+  header .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--agora));flex:0 0 auto}
+  header h1{font-size:16.5px;margin:0;font-weight:750;letter-spacing:-.01em;line-height:1.15}
+  header .loc{font-size:11.5px;color:var(--muted)}
+  header a.back{margin-left:auto;font-size:12px;color:var(--brand);font-weight:650;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--bg)}
+  main{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:calc(100vh - 55px)}
+  #map{position:relative;background:var(--bg)}
+  aside{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:15px 15px 40px}
+  .q{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:12px 0 5px}
+  .q:first-child{margin-top:0}
+  .ind{display:flex;flex-wrap:wrap;gap:5px}
+  .ind.grouped{display:block}
+  .ind-group{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+  .ind-group:last-child{margin-bottom:0}
+  .ind-group-title{width:100%;font-size:10.5px;color:var(--muted);font-weight:750;margin:2px 0 0}
+  .ind button{font-size:11.5px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:5px 9px;cursor:pointer;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+  .ind button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .ind button[data-parcial="1"]::after{content:"*";margin-left:2px}
+  .modes{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px;margin-top:8px}
+  .modes button{border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:650;padding:5px 12px;border-radius:999px;cursor:pointer}
+  .modes button.on{background:var(--brand);color:#fff}
+  .modes button:disabled{opacity:.4;cursor:default}
+  .scope-help{font-size:10.5px;line-height:1.4;color:var(--muted);margin-top:5px}
+  .scope-switch{display:inline-flex;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px;margin-top:1px}
+  .scope-switch button{border:none;background:transparent;color:var(--muted);font-size:11.5px;font-weight:650;padding:5px 10px;border-radius:999px;cursor:pointer}
+  .scope-switch button.on{background:var(--brand);color:#fff}
+  .scope-switch button:disabled{opacity:.45;cursor:not-allowed}
+  select{width:100%;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  .big{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1;color:var(--brand)}
+  .big small{font-size:13px;font-weight:600;color:var(--muted)}
+  .volta{display:none;width:100%;margin-top:8px;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:12.5px;font-weight:650;cursor:pointer}
+  .volta.show{display:block}
+  .legend{margin-top:8px;font-size:11.5px;color:var(--muted)}
+  .legend .row2{display:flex;align-items:center;gap:8px;padding:2px 0}
+  .legend .sw{width:22px;height:12px;border-radius:3px;flex:0 0 auto;border:1px solid rgba(0,0,0,.12)}
+  .legend .sw-nodata{background:#aeb8b3!important;background-image:repeating-linear-gradient(135deg,rgba(19,32,25,.55) 0 2px,transparent 2px 5px)!important}
+  .legend .sw-border{background:#fff!important;border:2px dashed #a56a14!important}
+  .legend .sw-icm{height:14px;border-radius:3px;font-size:10px;line-height:12px;text-align:center;font-weight:800;color:#fff;text-shadow:0 1px 1px #0008}
+  .legend .sw-icm.icm-B,.legend .sw-icm.icm-C{color:#132019;text-shadow:none}
+  .svc-marker-wrap{background:transparent;border:0}
+  .svc-marker{display:flex;width:22px;height:22px;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px #0008;font:800 11px/1 Tahoma,Verdana,sans-serif;color:#fff;text-shadow:0 1px 1px #0008}
+  .svc-marker.svc-hospitais{background:#d73027;border-radius:50%}
+  .svc-marker.svc-ubs{background:#2166ac;border-radius:4px}
+  .svc-marker.svc-escolas{background:#fdae61;color:#132019;text-shadow:none;clip-path:polygon(50% 0,100% 100%,0 100%);border-radius:0}
+  .svc-marker.svc-bombeiros{background:#7b3294;transform:rotate(45deg);border-radius:3px}
+  .svc-marker.svc-bombeiros::first-letter{transform:rotate(-45deg)}
+  .svc-marker.svc-abrigos{background:#008c95;border-radius:3px;clip-path:polygon(50% 0,100% 35%,82% 100%,18% 100%,0 35%)}
+  .svc-key{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;margin-right:5px;border:1px solid #fff;box-shadow:0 0 0 1px #8a9a91;font:800 9px/1 Tahoma,Verdana,sans-serif;color:#fff}
+  .svc-key.svc-hospitais{background:#d73027;border-radius:50%}.svc-key.svc-ubs{background:#2166ac;border-radius:3px}
+  .svc-key.svc-escolas{background:#fdae61;color:#132019;clip-path:polygon(50% 0,100% 100%,0 100%)}.svc-key.svc-bombeiros{background:#7b3294;transform:rotate(45deg);border-radius:2px}
+  .svc-key.svc-abrigos{background:#008c95;border-radius:3px;clip-path:polygon(50% 0,100% 35%,82% 100%,18% 100%,0 35%)}
+  .coverage-badge{display:inline-block;margin-top:5px;padding:4px 6px;border:1px dashed #a56a14;border-radius:6px;color:#78520e;background:#fffaf0;font-size:10px;line-height:1.3}
+  .quantile-note{font-size:10px;line-height:1.35;color:#5c6b63;margin-top:6px}
+  .print-meta{display:none;font-size:10.5px;line-height:1.35;color:#132019;margin-top:8px;border-top:1px solid #e0e6e1;padding-top:6px}
+  #inset{position:absolute;left:10px;bottom:24px;width:172px;height:132px;z-index:650;
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);background:#fff}
+  .leg-btn{margin-top:8px;font-size:11.5px;font-weight:650;border:1px solid var(--line);
+    background:#fff;color:var(--muted);border-radius:8px;padding:4px 9px;cursor:pointer}
+  a.leg-btn{text-decoration:none;display:inline-block}
+  .leg-btn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  #fxbox{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  #fxbox[hidden]{display:none}
+  #fxbox input{width:100%;font-size:12px;padding:5px 6px;border:1px solid var(--line);border-radius:7px}
+  #fxbox .acts{grid-column:1/-1;display:flex;gap:6px}
+  .baixar{width:100%;margin-top:14px;padding:9px;border:1px solid var(--line);border-radius:10px;
+    background:var(--bg);color:var(--ink);font-size:12.5px;font-weight:650;cursor:pointer}
+  .baixar:hover{border-color:var(--brand);color:var(--brand)}
+  .baixar.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .baixar:disabled{opacity:.5;cursor:wait}
+  .tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .tool-grid .baixar{margin-top:0}
+  .tool-grid .wide{grid-column:1/-1}
+  .selection-box{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:#f7faf8;padding:10px}
+  .selection-box[hidden]{display:none}
+  .selection-title{font-size:12px;font-weight:800;color:var(--brand);margin-bottom:4px}
+  .selection-summary{font-size:11.5px;line-height:1.45;color:var(--ink);font-variant-numeric:tabular-nums}
+  .selection-summary small{color:var(--muted)}
+  .selection-actions{margin-top:8px}
+  #map.selection-mode{cursor:crosshair}
+  .selection-rect{stroke:#0c2a22;stroke-width:2.5;stroke-dasharray:7 4;fill:#0f6b4a;fill-opacity:.08}
+  .download-center{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:#f7faf8}
+  .download-center summary{cursor:pointer;padding:9px 10px;font-size:12px;font-weight:750;color:var(--brand)}
+  .download-links{display:grid;gap:5px;padding:0 10px 10px}
+  .download-links a{display:block;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);padding:7px 8px;text-decoration:none;font-size:11.5px;font-weight:650}
+  .download-links a:hover{border-color:var(--brand);color:var(--brand)}
+  .download-meta{font-size:10.5px;color:var(--muted);line-height:1.4}
+  .range-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
+  .range-row input{width:100%;accent-color:var(--brand)}
+  .range-row output{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .status{min-height:16px;margin-top:6px;font-size:10.5px;color:var(--muted)}
+  .scope-note{font-size:10.5px;line-height:1.4;color:var(--muted);background:#f7faf8;border:1px solid var(--line);
+    border-radius:8px;padding:7px 8px;margin:8px 0 2px}
+  .quality-note{font-size:10.5px;line-height:1.42;color:#5f541f;background:#fffaf0;border:1px solid #ead9a2;
+    border-radius:8px;padding:7px 8px;margin-top:7px}
+  .quality-note[hidden]{display:none}
+  .quality-note summary{cursor:pointer;font-weight:750;color:#78520e}
+  .quality-note p{margin:5px 0 0}
+  .quality-note button{margin-top:6px;border:1px solid #d8c58a;border-radius:7px;padding:5px 8px;background:#fff;color:#5f541f;
+    font:inherit;font-weight:700;cursor:pointer}
+  .concept-note{position:sticky;top:-15px;z-index:20;font-size:10.5px;line-height:1.35;color:#173d32;
+    background:#eef7f2;border:1px solid #b8d8c8;border-radius:9px;padding:8px 9px;margin:-2px 0 10px;box-shadow:0 2px 8px #173d3214}
+  .concept-note b{font-weight:850;color:var(--brand)}
+  .partial-note{color:#78520e;font-size:10.5px;font-weight:650}
+  .partial-mark{color:#78520e;font-weight:800}
+  .svc-note{font-size:10.5px;line-height:1.35;color:#78520e;margin-top:6px}
+  .haz-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:10px;color:var(--muted)}
+  .haz-legend span{display:inline-flex;align-items:center;gap:4px}
+  .haz-legend i{width:11px;height:11px;border:1px solid rgba(0,0,0,.18);border-radius:2px}
+  .north-control{width:30px;height:30px;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 1px 4px #0002;display:flex;align-items:center;justify-content:center;color:#1c352b;font:800 18px/1 Tahoma,Verdana,sans-serif}
+  .north-control span{display:block;transform:translateY(-1px)}
+  .provenance-list{margin:5px 0 0;padding-left:15px;color:var(--muted);font-size:10.5px;line-height:1.4}
+  .provenance-list a{color:var(--brand)}
+  .triage-box{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:#f7faf8;padding:9px}
+  .triage-box summary{cursor:pointer;color:var(--brand);font-size:12px;font-weight:800}
+  .triage-intro{font-size:10.5px;line-height:1.4;color:var(--muted);margin:6px 0}
+  .triage-controls{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:end;margin-top:6px}
+  .triage-controls label{font-size:10.5px;color:var(--muted)}
+  .triage-controls select{font-size:11.5px;padding:6px;margin-top:3px}
+  .triage-controls button{border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);padding:6px 8px;font:700 11px inherit;cursor:pointer}
+  .triage-tablewrap{overflow:auto;max-height:260px;margin-top:7px;border:1px solid var(--line);border-radius:7px;background:#fff}
+  #triagemTable{width:100%;border-collapse:collapse;font-size:10.5px}
+  #triagemTable thead th{position:sticky;top:0;background:var(--bg);padding:5px;text-align:left;color:var(--muted);font-size:9.5px;text-transform:uppercase}
+  #triagemTable tbody th{padding:5px;border-top:1px solid var(--line);white-space:nowrap;text-align:left}
+  #triagemTable td{padding:5px;border-top:1px solid var(--line);white-space:nowrap}
+  #triagemMeta{font-size:10px;color:var(--muted);margin-top:5px}
+  button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid rgba(30,95,191,.35);outline-offset:2px}
+  /* rótulos com o nome do município no mapa (aparecem a partir de certo zoom) */
+  .leaflet-tooltip.mun-lbl{background:none;border:none;box-shadow:none;padding:0;
+    color:#15241c;font-weight:700;font-size:11px;white-space:nowrap;pointer-events:none;
+    text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 4px #fff,0 0 4px #fff}
+  #map.no-lbl .leaflet-tooltip.mun-lbl{display:none}
+  .disc{font-size:11px;color:var(--muted);background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px;line-height:1.45;margin-top:14px}
+  .disc a{color:var(--brand)}
+  .leaflet-container{font-size:12px}
+  #camadas button:disabled{opacity:.45;cursor:not-allowed}
+  #printDialog{border:1px solid var(--line);border-radius:14px;padding:22px;max-width:420px;color:var(--ink);box-shadow:0 12px 40px #0003}
+  #printDialog::backdrop{background:#12231dcc}
+  #printDialog h2{margin:0 0 6px;font-size:18px}
+  #printDialog p{margin:0 0 16px;color:var(--muted);font-size:12.5px;line-height:1.45}
+  .print-options{display:grid;gap:9px;margin:0 0 18px;border:0;padding:0}
+  .print-options legend{padding:0}
+  .print-options label{display:flex;gap:9px;align-items:flex-start;border:1px solid var(--line);border-radius:9px;padding:10px;cursor:pointer;font-size:13px}
+  .print-options label:has(input:checked){border-color:var(--brand);background:#eef7f2}
+  .print-actions{display:flex;justify-content:flex-end;gap:8px}
+  .print-actions button{border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:#fff;cursor:pointer;font-weight:650}
+  .print-actions .primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  @media print{.print-hide{display:none!important}.selection-actions{display:none!important}}
+  .pop b{font-size:14px}
+  .pop table{font-size:12px;border-collapse:collapse;margin-top:4px}
+  .pop td{padding:1.5px 6px 1.5px 0;font-variant-numeric:tabular-nums}
+  .pop td:last-child{text-align:right;font-weight:650}
+  @media (max-width:900px){
+    main{grid-template-columns:minmax(0,1fr);width:100%;max-width:100%;height:auto}
+    #map{height:58vh;min-height:340px}
+    aside{width:100%;max-width:100%;min-width:0;overflow-x:hidden;border-left:none;border-top:1px solid var(--line)}
+    #inset{width:120px;height:92px;bottom:18px}
+  }
+  @media (max-width:480px){
+    header{padding:10px 11px;gap:8px;align-items:flex-start}
+    header .mark{width:26px;height:26px;border-radius:7px}
+    header h1{font-size:14px;line-height:1.2}
+    header .loc{font-size:10px;line-height:1.25;margin-top:2px}
+    header a.back{font-size:10px;padding:5px 7px;white-space:nowrap}
+    main{height:auto}
+    #map{height:52vh;min-height:300px}
+    aside{padding:12px 10px 28px}
+    .modes,.scope-switch{display:grid;width:100%;grid-template-columns:repeat(2,minmax(0,1fr));padding:3px}
+    .modes button,.scope-switch button{min-height:40px;padding:7px 6px;font-size:11.5px}
+    .ind button{flex:1 1 calc(50% - 5px);min-height:40px;padding:7px 7px}
+    .tool-grid{grid-template-columns:1fr}
+    .tool-grid .wide{grid-column:auto}
+    .baixar,.leg-btn,.triage-controls button{min-height:40px}
+    select,.comparacao-controls input{min-height:40px}
+    .comparacao-controls{grid-template-columns:1fr!important}
+    .comparacao-controls label{white-space:normal}
+    #inset{left:7px;bottom:14px;width:106px;height:82px}
+    .leaflet-control-scale{margin-bottom:10px!important}
+  }
+  @media print{
+    @page{size:landscape;margin:8mm}
+    header .back,aside .tool-grid,.download-center,.volta{display:none!important}
+    .expl,.icm-wrap,.comparacao-wrap{display:none!important}
+    body.print-map-only aside{display:none!important}
+    body.print-map-only main{display:block}
+    body.print-map-legend aside > *,body.print-map-summary aside > *,body.print-map-selection aside > *{display:none!important}
+    body.print-map-legend #legendHeading,body.print-map-legend #legctx,body.print-map-legend #leg{display:block!important}
+    body.print-map-legend #printMeta,body.print-map-summary #printMeta,body.print-map-selection #printMeta{display:block!important}
+    body.print-map-summary #legendHeading,body.print-map-summary #legctx,body.print-map-summary #leg,
+    body.print-map-summary #totalHeading,body.print-map-summary #tot{display:block!important}
+    body.print-map-selection #legendHeading,body.print-map-selection #legctx,body.print-map-selection #leg,
+    body.print-map-selection #selectionPanel{display:block!important}
+    body.print-map-selection #selectionPanel{margin-top:8px}
+    body.print-map-table aside{display:none!important}
+    body.print-map-table main{grid-template-columns:1fr}
+    body.print-map-table #map{height:72vh}
+    body.print-map-table .comparacao-wrap{display:block!important;padding:10mm 0 0;border-top:0}
+    body.print-map-table .comparacao-wrap{break-before:page;page-break-before:always}
+    body.print-map-table .comparacao-inner{box-shadow:none;border:0;padding:0;max-width:none}
+    body.print-map-table .comparacao-controls,body.print-map-table .comparacao-table-note,
+    body.print-map-table .comparacao-pagination{display:none!important}
+    body.print-map-table .comparacao-meta{margin-bottom:8px}
+    body.print-map-table .comparacao-tablewrap{max-height:none;overflow:visible}
+    body.print-map-table #comparacaoTable thead th{position:static}
+    body.print-map-legend .concept-note,body.print-map-summary .concept-note,body.print-map-selection .concept-note,body.print-map-table .concept-note{display:none!important}
+    /* composição de uma prancha única: mapa ocupa a altura útil e a legenda
+       fica alinhada na coluna direita, sem sobrar um bloco vazio abaixo */
+    main{height:calc(100vh - 58px);min-height:0;grid-template-columns:minmax(0,1fr) 300px;align-items:stretch}
+    #map{height:100%;min-height:0}
+    aside{height:100%;min-height:0;overflow:hidden;padding:8px 12px}
+    .expl,.icm-wrap,.comparacao-wrap{break-inside:avoid}
+  }
+  .icm-wrap{background:var(--bg);padding:32px 18px 48px;border-top:1px solid var(--line)}
+  .icm-inner{max-width:980px;margin:0 auto;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;box-shadow:var(--shadow);padding:24px 26px}
+  .icm-inner h2{margin:0 0 4px;font-size:19px;letter-spacing:-.01em;font-weight:800}
+  .icm-sub{font-size:11.5px;color:var(--muted);margin:0 0 14px}
+  .icm-intro{font-size:13.5px;line-height:1.6;color:var(--ink);margin:0 0 16px}
+  .icm-intro a{color:var(--brand)}
+  .icm-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .icm-chip{font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:999px;color:#fff;white-space:nowrap}
+  .icm-chip[data-f="A"]{background:var(--icmA)}
+  .icm-chip[data-f="B"]{background:var(--icmB);color:#2b2900}
+  .icm-chip[data-f="C"]{background:var(--icmC)}
+  .icm-chip[data-f="D"]{background:var(--icmD)}
+  .icm-tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;max-height:520px;overflow-y:auto}
+  #icmTable{width:100%;border-collapse:collapse;font-size:12.5px}
+  #icmTable thead th{text-align:left;background:var(--bg);padding:9px 11px;font-size:11px;text-transform:uppercase;
+    letter-spacing:.03em;color:var(--muted);position:sticky;top:0}
+  #icmTable td,#icmTable tbody th{padding:7px 11px;border-top:1px solid var(--line);white-space:nowrap;text-align:left}
+  #icmTable td.nome,#icmTable th.nome{white-space:normal}
+  .icm-badge{display:inline-block;min-width:20px;text-align:center;font-weight:800;color:#fff;
+    border-radius:6px;padding:2px 8px;font-size:11.5px}
+  .icm-badge.A{background:var(--icmA)}
+  .icm-badge.B{background:var(--icmB);color:#2b2900}
+  .icm-badge.C{background:var(--icmC)}
+  .icm-badge.D{background:var(--icmD)}
+  .icm-prior{color:var(--brand);font-weight:700}
+  .icm-foot{margin-top:14px}
+  .comparacao-wrap{background:var(--bg);padding:32px 18px 16px;border-top:1px solid var(--line)}
+  .comparacao-inner{max-width:1120px;margin:0 auto;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;box-shadow:var(--shadow);padding:24px 26px}
+  .comparacao-inner h2{margin:0 0 4px;font-size:19px;letter-spacing:-.01em;font-weight:800}
+  .comparacao-sub{font-size:11.5px;color:var(--muted);margin:0 0 14px}
+  .comparacao-controls{display:grid;grid-template-columns:minmax(180px,1fr) 180px auto auto;gap:8px;align-items:center;margin-bottom:10px}
+  .comparacao-controls input,.comparacao-controls select{width:100%;font-size:12px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  .comparacao-controls label{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);white-space:nowrap}
+  .comparacao-controls input[type="checkbox"]{width:auto;accent-color:var(--brand)}
+  .comparacao-controls button{font-size:11.5px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:var(--bg);color:var(--ink);cursor:pointer;white-space:nowrap}
+  .comparacao-controls button:hover{border-color:var(--brand);color:var(--brand)}
+  .comparacao-controls button:disabled{opacity:.45;cursor:not-allowed}
+  .comparacao-meta{font-size:11px;color:var(--muted);margin:0 0 7px;font-variant-numeric:tabular-nums}
+  .comparacao-tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;max-height:520px;overflow-y:auto}
+  #comparacaoTable{width:100%;border-collapse:collapse;font-size:12.5px}
+  #comparacaoTable thead th{text-align:left;background:var(--bg);padding:9px 11px;font-size:11px;text-transform:uppercase;
+    letter-spacing:.03em;color:var(--muted);position:sticky;top:0;z-index:1}
+  #comparacaoTable td,#comparacaoTable tbody th{padding:7px 11px;border-top:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums;text-align:left}
+  #comparacaoTable td.nome,#comparacaoTable th.nome{white-space:normal;min-width:220px}
+  #comparacaoTable td.rank{color:var(--muted);width:44px;text-align:right}
+  #comparacaoTable td.sel{color:var(--brand);font-weight:750}
+  .comparacao-link{border:none;background:none;padding:0;color:var(--brand);font:inherit;font-weight:700;text-align:left;cursor:pointer}
+  .comparacao-link:hover{text-decoration:underline}
+  .comparacao-check{accent-color:var(--brand);width:15px;height:15px;vertical-align:middle}
+  #comparacaoTable td.acoes{white-space:nowrap;text-align:center}
+  .comparacao-table-note{font-size:10.5px;color:var(--muted);margin:0 0 8px}
+  .comparacao-pagination{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:9px;font-size:11px;color:var(--muted)}
+  .comparacao-pagination button{border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);padding:5px 8px;font:inherit;font-weight:700;cursor:pointer}
+  .comparacao-pagination button:disabled{opacity:.45;cursor:not-allowed}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  @media (max-width:760px){.comparacao-controls{grid-template-columns:1fr 1fr}.comparacao-controls label,.comparacao-controls button{grid-column:auto}}
+  @media (max-width:600px){
+    html,body{width:100vw;max-width:100vw;overflow-x:hidden}
+    main,aside,#map,.ind,.ind-group{min-width:0}
+    #ind{width:100%;max-width:100%}
+    header{padding:8px 10px;gap:7px;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center}
+    header .mark{width:26px;height:26px;border-radius:8px}
+    header h1{font-size:14px}
+    header .loc{font-size:10px;white-space:normal;overflow:visible;text-overflow:clip;max-width:none;line-height:1.3}
+    header a.back{grid-column:1/-1;justify-self:start;font-size:10px;padding:5px 7px;max-width:none;margin-left:0;overflow:visible;text-overflow:clip;white-space:nowrap}
+    #map{height:52vh;min-height:330px}
+    aside{padding:12px 10px 32px}
+    .concept-note{position:relative;top:auto;margin:0 0 8px}
+    .tool-grid{grid-template-columns:1fr}
+    .ind-group{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;width:100%}
+    .ind-group-title{grid-column:1/-1}
+    .ind button{width:100%;min-width:0;max-width:none;padding:5px 6px;font-size:10.5px;overflow-wrap:anywhere}
+    .comparacao-wrap{padding:20px 8px 12px}
+    .comparacao-inner{padding:14px 10px;border-radius:10px}
+    .comparacao-inner h2{font-size:17px}
+    .comparacao-controls{grid-template-columns:1fr;gap:6px}
+    .comparacao-controls label,.comparacao-controls button{grid-column:1/-1}
+    .comparacao-controls button{width:100%}
+    .comparacao-tablewrap{max-height:430px}
+    #comparacaoTable{min-width:620px;font-size:11px}
+    #comparacaoTable td.nome,#comparacaoTable th.nome{min-width:150px}
+    #printDialog{max-width:calc(100vw - 20px);width:calc(100vw - 20px);padding:16px}
+    .print-options label{font-size:12px;padding:8px}
+    .scope-switch{width:100%;border-radius:9px}
+    .scope-switch button{flex:1;white-space:normal}
+    .triage-controls{grid-template-columns:1fr}
+  }
+  /* ---- explicador "como ler o mapa" ---- */
+  .expl{background:var(--panel);padding:34px 18px;border-top:1px solid var(--line)}
+  .expl-in{max-width:980px;margin:0 auto}
+  .expl h2{margin:0 0 6px;font-size:19px;letter-spacing:-.01em;font-weight:800}
+  .expl .lead{font-size:14px;line-height:1.62;color:var(--ink);margin:0 0 22px;max-width:74ch}
+  .expl .lead b{color:var(--brand)}
+  .expl-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .expl-card{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:#f7faf8}
+  .expl-card h3{margin:0 0 9px;font-size:13.5px;font-weight:800;letter-spacing:.005em}
+  .expl-card p{margin:0 0 10px;font-size:12.5px;line-height:1.56;color:var(--muted)}
+  .expl-card p:last-child{margin-bottom:0}
+  .expl-card p b{color:var(--ink)}
+  .expl-ramp{display:flex;height:12px;border-radius:4px;overflow:hidden;margin:8px 0 4px}
+  .expl-ramp span{flex:1}
+  .expl-scale{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted)}
+  .expl-list{list-style:none;margin:0;padding:0}
+  .expl-list li{font-size:12.5px;line-height:1.5;padding:8px 0;border-top:1px solid var(--line)}
+  .expl-list li:first-child{border-top:none;padding-top:0}
+  .expl-list b{font-weight:800;color:var(--ink)}
+  .expl-list span{color:var(--muted)}
+  .expl .disc{margin-top:2px}
+  @media (max-width:760px){.expl-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="mark"></div>
+  <div>
+    <h1>Vulnerabilidade social — bacia Taquari-Antas</h1>
+    <div class="loc" id="subtit">Censo IBGE 2022 · municípios da bacia Taquari-Antas</div>
+  </div>
+  <a class="back" href="../index.html">← painel do projeto</a>
+</header>
+<main>
+  <div id="map" role="region" aria-label="Mapa temático de vulnerabilidade da bacia Taquari-Antas"><div id="inset" role="img" aria-label="Localização da bacia Taquari-Antas no Rio Grande do Sul" title="Onde a bacia fica no Rio Grande do Sul"></div></div>
+  <aside>
+    <div class="concept-note" role="note" aria-label="Diferença entre vulnerabilidade, perigo e risco">
+      <b>Vulnerabilidade social &ne; perigo &ne; risco.</b> Este mapa mostra pessoas, exposição e capacidade. O risco exige cruzar esses dados com uma ameaça de cheia validada.
+    </div>
+    <div class="q">Indicador</div>
+    <div class="ind grouped" id="ind" aria-label="Indicadores temáticos"></div>
+    <div class="modes" id="modes" role="group" aria-label="Modo de apresentação do indicador">
+      <button data-m="abs" class="on" aria-pressed="true">valores</button>
+      <button data-m="pct" aria-pressed="false">% da população</button>
+    </div>
+
+    <div class="q">Escopo dos valores municipais</div>
+    <div class="scope-switch" id="escopos" role="group" aria-label="Escopo dos valores municipais">
+      <button data-s="municipio" class="on" aria-pressed="true">município inteiro</button>
+      <button data-s="bacia" aria-pressed="false">somente na bacia</button>
+    </div>
+    <div class="scope-help" id="escopoAjuda">No modo bacia, os indicadores são somados apenas aos setores com ponto representativo dentro do limite; a completude fica indicada.</div>
+    <a class="leg-btn" id="atalhoTabela" href="#tabela">ver tabela comparativa ↓</a>
+
+    <div class="q">Camada <span style="text-transform:none;font-weight:400">(ao abrir um município)</span></div>
+    <div class="modes" id="camadas" role="group" aria-label="Unidade espacial do detalhamento">
+      <button data-c="setor" class="on" aria-pressed="true">setor censitário</button>
+      <button data-c="grade" aria-pressed="false">grade 200 m</button>
+    </div>
+
+    <div class="q">Escala das cores</div>
+    <div class="modes" id="escalas" role="group" aria-label="Escala de classificação das cores">
+      <button data-e="bacia" class="on" aria-pressed="true">comparável na bacia</button>
+      <button data-e="local" aria-pressed="false">relativa à área</button>
+    </div>
+
+    <div class="q"><label for="opacidade">Opacidade do tema</label></div>
+    <div class="range-row">
+      <input id="opacidade" type="range" min="25" max="100" step="5" value="75">
+      <output id="opacidadeValor" for="opacidade">75%</output>
+    </div>
+
+    <div class="q" id="totalHeading">Resumo da camada</div>
+    <div class="big" id="tot">—</div>
+    <div class="scope-note" id="escopoDados" role="status">Escopo: valores municipais representam o município inteiro; a população dentro da bacia é informada separadamente.</div>
+    <details class="quality-note" id="completudeAviso">
+      <summary>Qualidade e cobertura dos dados</summary>
+      <p>Campos do Censo que não foram publicados pelo IBGE não são tratados como zero. Pontos de serviços são cadastros consultados, não inventário completo.</p>
+      <p id="completudeMeta">Aguardando o catálogo de qualidade.</p>
+    </details>
+
+    <button class="volta" id="volta">← voltar aos municípios da bacia</button>
+
+    <div class="q" id="legendHeading">Legenda <span id="legctx" style="text-transform:none;font-weight:600"></span></div>
+    <div class="legend" id="leg" role="list" aria-live="polite" aria-label="Classes de cores do mapa"></div>
+    <div class="quantile-note" id="quantileNote" role="note">Faixas automáticas: 5 classes por quantis; zeros ficam em classe própria quando presentes. Os cortes da escala bacia são congelados no catálogo de dados.</div>
+    <div class="print-meta" id="printMeta">Fonte: IBGE Censo 2022; IEDE-RS; MIDR/ICM; SGB. Geometrias em EPSG:4326 (reprojete para medir área/distância).</div>
+    <button class="leg-btn" id="editfx">editar faixas</button>
+    <div id="fxbox" hidden>
+      <input type="number" step="any" id="fx0"><input type="number" step="any" id="fx1">
+      <input type="number" step="any" id="fx2"><input type="number" step="any" id="fx3">
+      <div class="acts">
+        <button class="leg-btn" id="fxok">aplicar</button>
+        <button class="leg-btn" id="fxauto">voltar ao automático</button>
+      </div>
+    </div>
+
+    <label class="q" for="busca">Buscar município</label>
+    <select id="busca"><option value="">— escolher —</option></select>
+
+    <div class="q">Seleção espacial</div>
+    <div class="tool-grid">
+      <button class="baixar" id="selecionarArea" type="button">▣ selecionar área</button>
+      <button class="baixar" id="limparSelecao" type="button" disabled>limpar seleção</button>
+    </div>
+    <div class="scope-help">Alternativa por teclado: use as caixas “seleção” na tabela comparativa abaixo; o botão “somente seleção” filtra os registros marcados.</div>
+    <div class="selection-box" id="selectionPanel" hidden>
+      <div class="selection-title">Seleção atual</div>
+      <div class="selection-summary" id="selectionSummary"></div>
+      <div class="tool-grid selection-actions">
+        <button class="baixar" id="baixarSelecao" type="button" disabled>↓ CSV selecionado</button>
+        <button class="baixar" id="baixarSelecaoGeo" type="button" disabled>↓ GeoJSON selecionado</button>
+        <button class="baixar wide" id="baixarFicha" type="button" disabled>▣ baixar ficha HTML</button>
+      </div>
+    </div>
+
+     <div class="q">Serviços públicos no mapa · pontos cadastrados</div>
+     <div class="ind" id="svc" role="group" aria-label="Camadas de serviços públicos cadastrados"></div>
+     <div class="svc-note" id="servicoNota">* Pontos cadastrados nas camadas consultadas do IEDE-RS (captura registrada no catálogo). A cobertura varia; ausência no mapa não prova ausência do serviço.</div>
+
+     <div class="q">Risco setorizado SGB <span style="text-transform:none;font-weight:400">(não é perigo regional)</span></div>
+    <div class="ind" id="perigo" role="group" aria-label="Camada de risco setorizado do SGB"></div>
+    <div class="haz-legend" id="perigoLeg" hidden>
+      <span><i style="background:#b91c1c"></i>risco muito alto</span>
+      <span><i style="background:#f59e0b"></i>risco alto</span>
+    </div>
+    <div class="svc-note">SGB, levantamento de 2025: 37 setores de risco setorizado somente em Santa Tereza. A camada mostra tipologia e grau do setor; não é mancha contínua nem inventário regional. Fora deles, ausência de polígono não significa ausência de perigo.</div>
+
+    <div class="q">Baixar e compartilhar</div>
+    <div class="tool-grid">
+      <button class="baixar" id="baixar" disabled>⬇ CSV da vista</button>
+      <button class="baixar" id="baixarGeo" disabled>⬇ GeoJSON da vista</button>
+      <button class="baixar wide" id="copiarLink">🔗 Copiar link deste mapa</button>
+      <button class="baixar wide" id="imprimir">▣ Imprimir mapa com legenda</button>
+    </div>
+    <details class="download-center">
+      <summary>Dados combinados da bacia</summary>
+      <div class="download-links">
+        <a href="../assets/data/vulnerabilidade/downloads/dados_combinados_taquari_antas.zip" download>Pacote completo · ZIP</a>
+        <a href="../assets/data/vulnerabilidade/downloads/shapefiles_arcgis_qgis.zip" download>Camadas para ArcGIS/QGIS · Shapefile ZIP</a>
+        <a href="../assets/data/vulnerabilidade/downloads/geopackage_arcgis_qgis.zip" download>Camadas para QGIS/ArcGIS Pro · GeoPackage ZIP (campos completos)</a>
+        <a href="../assets/data/vulnerabilidade/downloads/setores_na_bacia_combinados.csv" download>Setores dentro da bacia · CSV</a>
+        <a href="../assets/data/vulnerabilidade/downloads/setores_na_bacia_combinados.geojson" download>Setores dentro da bacia · GeoJSON</a>
+        <a href="../assets/data/vulnerabilidade/downloads/setores_municipios_intersectantes_combinados.csv" download>Todos os setores dos municípios intersectantes · CSV</a>
+        <a href="../assets/data/vulnerabilidade/downloads/setores_municipios_intersectantes_combinados.geojson" download>Todos os setores dos municípios intersectantes · GeoJSON (auditoria de borda)</a>
+        <a href="../assets/data/vulnerabilidade/downloads/grade_200m_na_bacia_combinada.csv" download>Grade 200 m dentro da bacia · CSV</a>
+        <span class="download-meta">A grade 200 m em GeoJSON está dentro do pacote completo ZIP.</span>
+        <a href="../assets/data/vulnerabilidade/downloads/municipios_combinados.csv" download>Municípios combinados · CSV</a>
+        <a href="../assets/data/vulnerabilidade/downloads/catalogo.json" target="_blank" rel="noopener">Catálogo e testes de qualidade · JSON</a>
+        <a href="#proveniencia">Metadados, dicionário e estilos QGIS/ArcGIS</a>
+        <div class="download-meta" id="downloadMeta">Carregando o catálogo dos arquivos…</div>
+      </div>
+    </details>
+    <details class="triage-box" id="triagem">
+      <summary>Triagem de revisão (não é nota de risco)</summary>
+      <p class="triage-intro">Gera uma lista transparente de municípios para revisão, combinando somente critérios explícitos. ICM é municipal; a camada SGB cobre 37 setores de Santa Tereza e não é usada como risco regional.</p>
+      <div class="triage-controls">
+        <label for="triagemCriterio">Critério<select id="triagemCriterio">
+          <option value="icm_cd">ICM nas faixas C ou D</option>
+          <option value="indicador_alto">indicador atual no quartil superior</option>
+          <option value="icm_cd_indicador">ICM C/D e indicador no quartil superior</option>
+        </select></label>
+        <button type="button" id="triagemGerar">gerar lista</button>
+      </div>
+      <div id="triagemMeta" aria-live="polite">Escolha um critério e gere a lista.</div>
+      <div class="triage-tablewrap">
+        <table id="triagemTable"><caption class="sr-only">Municípios selecionados para revisão</caption><thead><tr><th scope="col">Município</th><th scope="col">Pop. bacia</th><th scope="col">Indicador</th><th scope="col">ICM</th><th scope="col">Cobertura</th><th scope="col">Área %</th></tr></thead><tbody id="triagemBody"><tr><td colspan="6" style="color:var(--muted)">Nenhuma lista gerada.</td></tr></tbody></table>
+      </div>
+      <button class="leg-btn" type="button" id="triagemBaixar">↓ baixar lista CSV</button>
+    </details>
+    <details class="quality-note" id="proveniencia">
+      <summary>Fontes, datas e qualidade</summary>
+      <ul class="provenance-list" id="provenienciaLista">
+        <li>IBGE: Censo Demográfico 2022; indicadores domiciliares usam domicílios permanentes ocupados (V00001).</li>
+        <li>IEDE-RS: pontos cadastrados consultados; ausência não significa inexistência do serviço. A data de captura e a cobertura por tipo estão no catálogo.</li>
+        <li><a href="../assets/data/servicos/FONTES.md" target="_blank" rel="noopener">fontes e endpoints originais do IEDE-RS</a> (camadas consultadas, recorte e limitações).</li>
+        <li>ICM/MIDR: indicador municipal, atualizado em 28/04/2026.</li>
+        <li>SGB: setorização de risco em Santa Tereza, levantamento de 2025; não é mancha contínua.</li>
+        <li>GeoJSON/GeoPackage/Shapefile: EPSG:4326; para área/distância, reprojete no QGIS/ArcGIS (por exemplo EPSG:31982).</li>
+         <li><a href="../assets/data/vulnerabilidade/metadados/README_PRODUTO.md" target="_blank" rel="noopener">README do produto</a> · <a href="../assets/data/vulnerabilidade/metadados/DICIONARIO_CAMPOS.csv" download>dicionário de campos</a> · <a href="../assets/data/vulnerabilidade/metadados/INVENTARIO_CAMADAS.csv" download>inventário de camadas</a> · <a href="../assets/data/vulnerabilidade/metadados/ESTILOS_QGIS_ARCGIS.md" target="_blank" rel="noopener">estilos</a> · <a href="../assets/data/vulnerabilidade/metadados/README_ESTILOS_QGIS.md" target="_blank" rel="noopener">guia QGIS/ArcGIS</a> · <a href="../assets/data/vulnerabilidade/metadados/estilo_icm_municipios.qml" download>QGIS ICM</a> · <a href="../assets/data/vulnerabilidade/metadados/estilo_risco_sgb.qml" download>QGIS SGB</a></li>
+         <li><a href="../assets/data/vulnerabilidade/metadados/ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.md" target="_blank" rel="noopener">especificação de ficha, triagem e cenários</a> · <a href="../assets/data/vulnerabilidade/metadados/ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.json" target="_blank" rel="noopener">contrato JSON</a> · <a href="../assets/data/vulnerabilidade/metadados/README_PRODUTO.md#citacao" target="_blank" rel="noopener">citação pronta</a></li>
+      </ul>
+    </details>
+    <div class="status" id="status" aria-live="polite"></div>
+    <div class="quality-note" id="dependenciaAviso" role="alert" hidden>
+      <span id="dependenciaTexto"></span>
+      <button id="tentarDependencias" type="button">tentar carregar novamente</button>
+    </div>
+
+    <div class="disc">
+      <b>Leitura honesta:</b> retrato da vulnerabilidade <b>social</b> pelo Censo 2022
+      (Agregados por Setores Censitários, IBGE). Municípios de borda entram com a
+      população inteira; o dado "na bacia" usa os setores dentro do limite da SEMA/DRH.
+      A família de perigo começa com os setores oficiais do SGB em Santa Tereza; a
+      cobertura hidrológica regional e as manchas por cota ainda vêm na próxima fase.
+      Dados brutos e fontes:
+<a href="../assets/data/vulnerabilidade/downloads/dados_combinados_taquari_antas.zip">pacote combinado</a> ·
+<a href="../assets/data/vulnerabilidade/brutos/setores_bacia_indicadores.csv">CSV censitário bruto</a> ·
+<a href="../assets/data/vulnerabilidade/brutos/FONTES.md">FONTES.md</a>.
+    </div>
+  </aside>
+</main>
+
+<dialog id="printDialog" aria-labelledby="printTitle" aria-describedby="printDescription">
+  <h2 id="printTitle">Imprimir mapa</h2>
+  <p id="printDescription">Escolha o conteúdo da folha. O mapa usa a seleção atual de indicador, escala, município e camada.</p>
+  <fieldset class="print-options"><legend class="sr-only">Conteúdo da impressão</legend>
+    <label><input type="radio" name="printMode" value="map-legend" checked> <span><b>Mapa + legenda</b><br><small>Recomendado para relatório e reunião.</small></span></label>
+    <label><input type="radio" name="printMode" value="map-summary"> <span><b>Mapa + legenda + resumo</b><br><small>Inclui o total calculado para a área vista.</small></span></label>
+    <label><input type="radio" name="printMode" value="map-selection" disabled> <span><b>Mapa + legenda + seleção</b><br><small>Inclui o resumo da área selecionada no mapa.</small></span></label>
+    <label><input type="radio" name="printMode" value="map-table"> <span><b>Mapa + tabela filtrada</b><br><small>Mostra todos os registros da tabela atual em uma folha de relatório.</small></span></label>
+    <label><input type="radio" name="printMode" value="map-only"> <span><b>Somente o mapa</b><br><small>Sem painel, controles ou legenda.</small></span></label>
+  </fieldset>
+  <div class="print-actions"><button type="button" id="printCancel">Cancelar</button><button type="button" class="primary" id="printConfirm">Abrir impressão</button></div>
+</dialog>
+
+<section class="expl">
+  <div class="expl-in">
+    <h2>Como ler este mapa</h2>
+    <p class="lead">O mapa cruza duas perguntas: <b>quem está mais exposto</b> — a vulnerabilidade
+      social, pelo Censo IBGE 2022 — e <b>quanto o município está preparado</b> para gerir riscos e
+      desastres — a capacidade (ICM). São leituras complementares: um lugar pode concentrar grupos
+      sensíveis <i>e</i> ter baixa capacidade de resposta. Não existe uma nota única — cada indicador
+      é mapeado separadamente; escolha qual ver no seletor de <b>Indicador</b>.</p>
+    <p class="lead" style="font-size:12.5px;margin-top:-10px"><b>Seleção espacial:</b> use “selecionar área”
+      no painel para desenhar um retângulo; entram as geometrias que realmente intersectam a área, não apenas o seu retângulo envolvente. Municípios, setores ou células visíveis podem ser escolhidos. O dashboard
+      calcula o resumo e permite baixar a seleção em CSV, GeoJSON ou ficha HTML; o link compartilhado
+      preserva o retângulo.</p>
+
+    <div class="expl-grid">
+      <div class="expl-card">
+        <h3>A cor é relativa (quantis)</h3>
+        <p>Para os indicadores do Censo, cada cor mostra a <b>posição da área dentro da bacia</b>, e não
+          um limiar fixo: os municípios (ou setores) são ordenados e divididos em 5 grupos de tamanho
+          parecido. Quanto mais escuro, maior a concentração daquele indicador <i>em relação ao restante
+          da bacia</i>.</p>
+        <div class="expl-ramp">
+          <span style="background:#f3eef6"></span><span style="background:#d9c7e3"></span>
+          <span style="background:#b394c9"></span><span style="background:#8759a8"></span>
+          <span style="background:#4d2a6e"></span>
+        </div>
+        <div class="expl-scale"><span>menor</span><span>maior concentração</span></div>
+        <p style="margin-top:12px">Em <b>“valores”</b> a cor segue a contagem; em <b>“% da população”</b>,
+          a proporção dentro de cada área — melhor pra comparar lugares de tamanhos diferentes. Você pode
+          fixar seus próprios limites em <b>“editar faixas”</b>. Já a <b>Capacidade (ICM)</b> usa faixas
+          fixas A–D (não quantis).</p>
+      </div>
+
+      <div class="expl-card">
+        <h3>O que é levado em conta</h3>
+        <ul class="expl-list">
+          <li><b>Grupos sensíveis</b> <span>— mulheres, crianças 0–4 e 5–9, idosos 60–69 e 70+, e
+            população indígena: quem tende a sofrer mais numa enchente (mobilidade, dependência de
+            cuidado, exposição).</span></li>
+          <li><b>Exposição</b> <span>— população, domicílios e densidade demográfica: quantas pessoas e
+            casas há para serem atingidas.</span></li>
+          <li><b>Pontos de serviços /10 mil hab.</b> <span>— equipamentos presentes nas camadas
+            consultadas do IEDE-RS. A cobertura é parcial e desigual; serve para localizar cadastros,
+            não para concluir que um município sem ponto não possui o serviço.</span></li>
+          <li><b>Capacidade (ICM)</b> <span>— faixas A–D do MIDR, detalhadas na tabela abaixo: o preparo
+            do município para a gestão de risco e desastres.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="disc" style="max-width:none">
+      <b>Importante:</b> este é um retrato da vulnerabilidade <b>social</b> — ainda não sobrepõe o perigo
+      hidrológico (a mancha de inundação), que entra na próxima fase do PREVINE. Municípios de borda
+      aparecem com a população inteira; o recorte “na bacia” usa apenas os setores dentro do limite da
+      SEMA/DRH. Um lugar bem colorido não é, sozinho, “o mais em risco”: é onde há mais gente ou mais
+      sensibilidade — o risco final cruza isso com a ameaça de cheia.
+    </div>
+  </div>
+</section>
+
+<section class="comparacao-wrap" id="tabela" aria-labelledby="comparacaoTitulo">
+  <div class="comparacao-inner">
+    <h2 id="comparacaoTitulo">Tabela comparativa</h2>
+    <p class="comparacao-sub" id="comparacaoSub">A tabela acompanha o indicador, a escala e a camada que estão ativos no mapa. <a href="#tabela">ver tabela completa</a></p>
+    <div class="comparacao-controls">
+      <label><span class="sr-only">Filtrar tabela</span><input id="comparacaoBusca" type="search" placeholder="filtrar por nome ou código…" autocomplete="off"></label>
+      <label><span class="sr-only">Ordenar tabela</span><select id="comparacaoOrdem">
+        <option value="desc">maior valor primeiro</option>
+        <option value="asc">menor valor primeiro</option>
+        <option value="nome">ordem alfabética</option>
+      </select></label>
+      <label><input id="comparacaoSomenteSelecao" type="checkbox" disabled> somente seleção</label>
+      <button id="comparacaoBaixar" type="button">↓ baixar tabela</button>
+    </div>
+    <div class="comparacao-meta" id="comparacaoMeta" aria-live="polite">carregando dados…</div>
+    <p class="comparacao-table-note" id="comparacaoTableNote">Ações por teclado: use Tab até a caixa “seleção” para incluir ou remover um local.</p>
+    <div class="comparacao-tablewrap">
+      <table id="comparacaoTable">
+        <caption class="sr-only">Comparação dos locais na camada ativa, ordenável e filtrável.</caption>
+        <thead><tr><th scope="col">#</th><th scope="col">Local</th><th scope="col">Código</th><th scope="col" id="comparacaoColValor">Valor</th><th scope="col" id="comparacaoColPop">População</th><th scope="col">Seleção</th><th scope="col">Ação</th></tr></thead>
+        <tbody id="comparacaoBody"><tr><td colspan="7" style="color:var(--muted)">carregando dados…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="comparacao-pagination" id="comparacaoPaginacao" hidden aria-label="Paginação da tabela">
+      <button id="comparacaoAnterior" type="button">← anterior</button>
+      <span id="comparacaoPaginaTexto" aria-live="polite"></span>
+      <button id="comparacaoProxima" type="button">próxima →</button>
+    </div>
+  </fieldset>
+</section>
+
+<section class="icm-wrap">
+  <div class="icm-inner">
+    <h2>Capacidade Municipal — ICM</h2>
+    <div class="icm-sub" id="icmSub">MIDR · Proteção e Defesa Civil</div>
+    <p class="icm-intro">
+      O <b>Indicador de Capacidade Municipal (ICM)</b> classifica os municípios brasileiros em quatro
+      faixas — A (Alta), B (Intermediária Avançada), C (Intermediária Inicial) e D (Inicial) — conforme
+      sua capacidade de gestão de riscos e desastres, medida por 20 variáveis em três dimensões:
+      I. Planejamento, II. Coordenação e III. Políticas Públicas.
+    </p>
+    <div class="icm-legend">
+      <span class="icm-chip" data-f="A">A · Alta</span>
+      <span class="icm-chip" data-f="B">B · Intermediária Avançada</span>
+      <span class="icm-chip" data-f="C">C · Intermediária Inicial</span>
+      <span class="icm-chip" data-f="D">D · Inicial</span>
+    </div>
+    <div class="icm-tablewrap">
+      <table id="icmTable">
+        <caption class="sr-only">Indicador de Capacidade Municipal por município.</caption>
+        <thead>
+          <tr><th scope="col">Município</th><th scope="col">Faixa</th><th scope="col">Pontuação (0–20)</th><th scope="col">Perfil</th></tr>
+        </thead>
+        <tbody id="icmBody"><tr><td colspan="4" style="color:var(--muted)">carregando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="disc icm-foot">
+      Fonte: <a href="https://www.gov.br/mdr/pt-br/assuntos/protecao-e-defesa-civil/icm" target="_blank" rel="noopener">
+       MIDR — Ministério da Integração e do Desenvolvimento Regional, Proteção e Defesa Civil (ICM)</a>. Dados atualizados em 28/04/2026.
+      Município "prioritário" é aquele com maior risco/vulnerabilidade a desastres apontado pela Sedec.
+    </div>
+  </div>
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"
+        onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';this.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';this.crossOrigin='anonymous'"></script>
+<script>
+// O cabeçalho fica acima do mapa; esta margem impede que popups longos sejam
+// automaticamente posicionados por trás dele.
+const POPUP_OPTS = {
+  autoPan: true,
+  autoPanPaddingTopLeft: [12, 84],
+  autoPanPaddingBottomRight: [12, 18],
+  maxWidth: 360,
+};
+// Padroniza também popups de serviços e perigo, que são criados sob demanda.
+const _bindPopupPrevine = L.Layer.prototype.bindPopup;
+L.Layer.prototype.bindPopup = function(content, options){
+  return _bindPopupPrevine.call(this, content, {...POPUP_OPTS, ...(options || {})});
+};
+"use strict";
+const DATA = "../assets/data/vulnerabilidade";
+// fallback: a cópia desta página no PMRR não carrega os 12 MB de dados junto —
+// quando o caminho relativo não existir, busca direto do repositório Previne
+// SHA fixo para evitar misturar a pagina publicada com o branch mutavel `main`.
+const DATA_FALLBACK_COMMIT = "362733ab61e32bcf6ebeadf1f1c205b648087bd8";
+const DATA_FALLBACK = `https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/${DATA_FALLBACK_COMMIT}/assets/data/vulnerabilidade`;
+const cacheJSON = new Map();
+let fallbackUsado = false;
+async function fetchJSON(url){
+  const r = await fetch(url, {credentials:"same-origin"});
+  if (!r.ok) throw new Error(`${r.status} ${url}`);
+  return r.json();
+}
+function carrega(arq, base){
+  const b1 = base || DATA;
+  const b2 = b1.replace(/^(?:\.\.\/)?assets/, DATA_FALLBACK.slice(0, DATA_FALLBACK.indexOf("/assets")) + "/assets");
+  const chave = `${b1}/${arq}`;
+  if (!cacheJSON.has(chave)){
+    const pedido = fetchJSON(chave)
+      .catch(async primeiroErro=>{
+        try { const dado = await fetchJSON(`${b2}/${arq}`); fallbackUsado = true; return dado; }
+        catch (segundoErro){ const erro = new Error(`não foi possível carregar ${arq}`); erro.cause = segundoErro || primeiroErro; throw erro; }
+      })
+      .catch(erro=>{ cacheJSON.delete(chave); throw erro; });
+    cacheJSON.set(chave, pedido);
+  }
+  return cacheJSON.get(chave);
+}
+const SERV = "../assets/data/servicos";
+const INDS = [
+  {k:"mulheres", nome:"Mulheres",       pct:true, grupo:"Pessoas"},
+  {k:"c0_4",     nome:"Crianças 0–4",   pct:true, grupo:"Pessoas"},
+  {k:"c5_9",     nome:"Crianças 5–9",   pct:true, grupo:"Pessoas"},
+  {k:"i60_69",   nome:"Idosos 60–69",   pct:true, grupo:"Pessoas"},
+  {k:"i70m",     nome:"Idosos 70+",     pct:true, grupo:"Pessoas"},
+  {k:"indigenas",nome:"Indígenas",      pct:true, grupo:"Pessoas"},
+  {k:"pretos_pardos", nome:"Pretos e pardos", pct:true, opt:true, grupo:"Pessoas"},
+  {k:"renda_resp",    nome:"Renda do responsável", money:true, opt:true, grupo:"Condições domiciliares"},
+  {k:"dom_agua",   nome:"Água — rede geral",   pct:true, base:"dom_ocupados", opt:true, grupo:"Condições domiciliares"},
+  {k:"dom_esgoto", nome:"Esgoto — rede geral", pct:true, base:"dom_ocupados", opt:true, grupo:"Condições domiciliares"},
+  {k:"dom_ocupados", nome:"Domicílios permanentes ocupados", pct:false, opt:true, grupo:"Condições domiciliares"},
+  {k:"dens",     nome:"Densidade",      pct:false, un:" hab/km²", grupo:"Exposição"},
+  {k:"dom",      nome:"Domicílios totais (setor)", pct:false, grupo:"Exposição"},
+  {k:"pop",      nome:"População",      pct:false, grupo:"Exposição"},
+  // densidade de serviços por 10 mil habitantes (contagem por município ÷ população)
+  {k:"svc_ubs",      nome:"Saúde IEDE /10 mil",     svc:true, parcial:true, un:" /10 mil hab", grupo:"Cadastros de serviços*"},
+  {k:"svc_escolas",  nome:"Escolas IEDE /10 mil",   svc:true, parcial:true, un:" /10 mil hab", grupo:"Cadastros de serviços*"},
+  {k:"svc_hospitais",nome:"Hospitais IEDE /10 mil", svc:true, parcial:true, un:" /10 mil hab", grupo:"Cadastros de serviços*"},
+  {k:"svc_bombeiros", nome:"Bombeiros IEDE /10 mil", svc:true, parcial:true, un:" /10 mil hab", grupo:"Cadastros de serviços*"},
+  // capacidade municipal (ICM/MIDR) — categórico por faixa A–D
+  {k:"icm",          nome:"Capacidade (ICM)",  cat:true, grupo:"Capacidade municipal"},
+];
+// rampa roxa: não briga com o verde do terreno/satélite (pedido da Juliana)
+const CORES = ["#f3eef6","#d9c7e3","#b394c9","#8759a8","#4d2a6e"];
+// ICM: faixa A (mais capacidade de gestão de risco) → D (menos)
+const ICM_CORES = {A:"#2166ac", B:"#67a9cf", C:"#fdae61", D:"#d73027"};
+const ICM_LABEL = {A:"A · alta capacidade", B:"B · média-alta", C:"C · média-baixa", D:"D · baixa capacidade"};
+const ICM_DASH = {A:null, B:"6 3", C:"2 3", D:"10 3"};
+const fmt = n => Number(n).toLocaleString("pt-BR", {maximumFractionDigits: n < 100 ? 1 : 0});
+const escHTML = v => String(v ?? "").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const PARAMS = new URLSearchParams(location.search);
+let ind = INDS.some(d=>d.k===PARAMS.get("indicador")) ? PARAMS.get("indicador") : "mulheres";
+let modo = PARAMS.get("modo") === "pct" ? "pct" : "abs";
+// A manchete da página é a população dentro da bacia; por isso o recorte
+// setorial é o padrão. O botão permite voltar ao município inteiro.
+let escopo = PARAMS.get("escopo") === "municipio" ? "municipio" : "bacia";
+const municipioInicial = PARAMS.get("municipio");
+// A grade só existe depois que um município é aberto. Links antigos que
+// pediam grade na bacia inteira voltam para setores, evitando uma legenda
+// de grade sobre o mapa municipal.
+let camada = PARAMS.get("camada") === "grade" && municipioInicial ? "grade" : "setor";
+let escala = PARAMS.get("escala") === "local" ? "local" : "bacia";
+let opacidade = Math.min(1, Math.max(.25, (+PARAMS.get("opacidade") || 75) / 100));
+const GRADE_INDS = new Set(["pop", "dom"]);   // únicos indicadores que a grade estatística tem
+let map, munLayer, setLayer = null, munData, munAtual = null, icmData = null, catalogoData = null;
+let servicosResolvidos = false, servicosOk = false, icmResolvido = false, icmOk = false;
+let servicosCaptura = "";
+let selectionMode = false, selectionStart = null, selectionRect = null, selectionLayers = [];
+
+function informa(msg){ document.getElementById("status").textContent = msg || ""; }
+function mostraErroDependencia(msg){
+  const box=document.getElementById("dependenciaAviso"), txt=document.getElementById("dependenciaTexto");
+  if(box && txt){txt.textContent=msg;box.hidden=false;}
+}
+function atualizaNotaServico(){
+  const sn=document.getElementById("servicoNota");
+  if(!sn) return;
+  const resumo=sn.dataset.resumo || "";
+  const data=servicosCaptura ? new Date(servicosCaptura).toLocaleDateString("pt-BR") : "";
+  sn.textContent=`* Cadastro IEDE-RS parcial; ausência não prova ausência do serviço.`+
+    (data ? ` Captura do pacote: ${data}.` : "")+(resumo ? ` ${resumo}` : "");
+}
+function limpaErroDependencia(){ const box=document.getElementById("dependenciaAviso"); if(box)box.hidden=true; }
+function atualizaDownloads(){
+  const pronto = !!munData && servicosResolvidos && icmResolvido;
+  const completo = pronto && servicosOk && icmOk;
+  document.getElementById("baixar").disabled = !completo;
+  document.getElementById("baixarGeo").disabled = !completo;
+  if (pronto && !completo){
+    mostraErroDependencia("Um cadastro auxiliar não carregou; downloads completos ficam bloqueados para evitar uma vista misturada. Tente novamente.");
+  } else if (pronto && !document.getElementById("status").textContent) informa("Vista atual pronta para exportar.");
+}
+document.getElementById("tentarDependencias")?.addEventListener("click",()=>{ cacheJSON.clear(); location.reload(); });
+
+function baseDisponivel(d){
+  if (!munData) return true;
+  return !d.base || !!munData?.features?.some(f=>{
+    const p = f.properties || {};
+    const key = campoEscopo({k:d.base});
+    return Object.prototype.hasOwnProperty.call(p, key) && p[key] !== null && p[key] !== "";
+  });
+}
+function escopoEfetivo(d){
+  if (munAtual) return "local";
+  if (d?.svc || d?.cat) return "municipio";
+  return escopo;
+}
+function campoEscopo(d){
+  const k = typeof d === "string" ? d : d?.k;
+  const definicao = typeof d === "string" ? INDS.find(x=>x.k===d) : d;
+  return !munAtual && escopo === "bacia" && !definicao?.svc && !definicao?.cat ? `${k}_bacia` : k;
+}
+function coberturaBaciaAusente(p,d){
+  const definicao = typeof d === "string" ? INDS.find(x=>x.k===d) : d;
+  return !munAtual && escopo === "bacia" && !definicao?.svc && !definicao?.cat && Number(p?.n_setores_bacia) === 0;
+}
+function rotuloPopBacia(p){
+  if (Number(p?.n_setores_bacia) === 0) return "população dentro dela não estimada";
+  // O rótulo é sempre da bacia, mesmo quando a visualização está em
+  // “município inteiro”; não use campoEscopo(pop), que mudaria o denominador.
+  const bruto = p?.pop_bacia;
+  const v = bruto === null || bruto === "" || bruto === undefined ? null : Number(bruto);
+  if (!Number.isFinite(v)) return "população dentro dela não publicada";
+  return `${fmt(v)} hab. dentro dela`;
+}
+function bordaSemCobertura(p){
+  if (!p) return false;
+  if (Number(p.na_bacia) === 0) return true;
+  const pct = Number(p.pct_na_bacia);
+  return Number.isFinite(pct) && pct < 99.999;
+}
+function estiloBorda(p, setor=false){
+  return bordaSemCobertura(p)
+    ? {color:"#a56a14", weight:setor?1.15:1.6, dashArray:"5 3"}
+    : {color:"#fff", weight:setor?.7:1, dashArray:null};
+}
+function valorBruto(p,d){
+  if (!p || !d) return null;
+  if (coberturaBaciaAusente(p,d)) return null;
+  const key = campoEscopo(d);
+  if (!Object.prototype.hasOwnProperty.call(p,key) || p[key] === null || p[key] === "") return null;
+  const n = Number(p[key]);
+  return Number.isFinite(n) ? n : null;
+}
+// Serviços e ICM são municipais: mesmo no modo "somente na bacia",
+// o denominador continua sendo a população total do município.
+function valorMunicipalBruto(p,k){
+  if (!p || !Object.prototype.hasOwnProperty.call(p,k) || p[k] === null || p[k] === "") return null;
+  const n=Number(p[k]); return Number.isFinite(n) ? n : null;
+}
+function flagCampo(p,d){
+  const key = campoEscopo(d);
+  return !!(p && (p[`sigilo_${key}`] === true || +p[`sigilo_${key}`] === 1));
+}
+function completudeCampo(p,d){
+  const key = campoEscopo(d);
+  const n = Number(p?.[`${key}_completude`]);
+  return Number.isFinite(n) ? n : null;
+}
+function coberturaCampo(p,d){
+  const key = campoEscopo(d);
+  const n = Number(p?.[`${key}_n_validos`]), total = Number(p?.[`${key}_n_total`]);
+  return Number.isFinite(n) && Number.isFinite(total) && total >= 0
+    ? {n:Math.max(0,n), total:Math.max(0,total), parcial:total > 0 && n < total}
+    : null;
+}
+function dadosConhecidos(p,d){ return valorBruto(p,d) !== null; }
+function dadoIndisponivel(p,d){ return valorBruto(d?.svc && munAtual ? munAtual : p,d) === null; }
+function temSigilo(p, d){
+  if (!p || !d) return false;
+  if (flagCampo(p,d)) return true;
+  // Compatibilidade com os arquivos anteriores às flags: o padrão abaixo foi
+  // conferido contra os X do IBGE e só vale no setor, nunca no município/grade.
+  const campos = ["mulheres","c0_4","c5_9","i60_69","i70m","indigenas",
+                  "pretos_pardos","dom_agua","dom_esgoto","n_resp"];
+  const legado = p.setor && +p.pop>0 && campos.every(k=>(+p[k]||0)===0);
+  return legado && !["pop","dens","dom","dom_ocupados"].includes(d.k);
+}
+function estaSuprimido(p, d){ return !!p?.setor && temSigilo(p,d); }
+function configuraPercentual(d, abrirAutomaticamente=false){
+  const pb = document.querySelector('#modes [data-m="pct"]');
+  const pode = !!d.pct && baseDisponivel(d);
+  pb.disabled = !pode;
+  pb.textContent = d.base ? "% dos domicílios ocupados" : "% da população";
+  if (!pode && modo === "pct"){ modo = "abs"; sincronizaModos(); }
+  if (abrirAutomaticamente && d.base && pode && modo !== "pct"){
+    modo = "pct"; sincronizaModos();
+  }
+}
+
+// funde a Capacidade Municipal (ICM) nas propriedades dos municípios, casando
+// cod_ibge (ICM) com cod_mun (mapa) — chamado quando qualquer um dos dois carrega
+function fundeICM(){
+  if (!icmData || !munData) return;
+  const by = {};
+  icmData.forEach(m => by[String(m.cod_ibge)] = m);
+  munData.features.forEach(f => {
+    const m = by[String(f.properties.cod_mun)];
+    if (m){
+      f.properties.icm_faixa = m.faixa;
+      f.properties.icm_pont  = m.pontuacao_total;
+      f.properties.icm_prior = !!m.prioritario;
+    }
+  });
+  if (ind === "icm" && !munAtual && munLayer) pintaMunicipios();
+}
+
+function valor(p){                     // valor do indicador nas propriedades p
+  const d = INDS.find(i=>i.k===ind);
+  if (d.svc){                          // serviços por 10 mil hab (dado é por município)
+    const src = munAtual || p;         // no drill-down, setores herdam a densidade do município
+    const pop = valorMunicipalBruto(src,"pop");
+    const pontos = valorBruto(src,d);
+    return pop > 0 && pontos !== null ? pontos / pop * 10000 : NaN;
+  }
+  const v = valorBruto(p,d);
+  if (v === null) return NaN;
+  if (d.money) return v;                 // renda: já é média (R$), não vira %
+  if (modo === "pct" && d.pct){          // % sobre população OU sobre domicílios (água/esgoto)
+    const base = valorBruto(p,d.base ? {k:d.base} : {k:"pop"});
+    return base > 0 ? v/base*100 : NaN;
+  }
+  return v;
+}
+function rotulo(v){
+  const d = INDS.find(i=>i.k===ind);
+  if (d.money) return "R$ " + fmt(v);
+  return modo === "pct" && d.pct ? fmt(v)+"%" : fmt(v)+(d.un||"");
+}
+function quantis(vals){                // 5 classes por quantis
+  const s = vals.filter(v=>isFinite(v)).sort((a,b)=>a-b);
+  if (!s.length) return [0,0,0,0];
+  const q = p => s[Math.min(s.length-1, Math.floor(p*s.length))];
+  const positivos = s.filter(v=>v>0);
+  if (positivos.length && positivos.length < s.length){
+    const qp = p => positivos[Math.min(positivos.length-1, Math.floor(p*positivos.length))];
+    return [0, qp(.25), qp(.5), qp(.75)];
+  }
+  return [q(.2), q(.4), q(.6), q(.8)];
+}
+const manualBrks = {};                 // faixas digitadas pela usuária, por indicador/modo/escopo
+function chaveBrk(){ return `${ind}|${modo}|${munAtual ? camada : "mun"}|${escala}|${escopo}`; }
+function cortesBacia(){
+  if (!catalogoData?.classificacoes_quantis) return null;
+  const d = INDS.find(i=>i.k===ind);
+  const escopo = !munAtual && escopoEfetivo(d) === "bacia"
+    ? "municipio_bacia"
+    : (!munAtual || d.svc ? "municipio" : camada);
+  const m = modo === "pct" && d.pct ? "pct" : "abs";
+  return catalogoData.classificacoes_quantis[escopo]?.[ind]?.[m] || null;
+}
+function getBrk(vals){
+  return manualBrks[chaveBrk()] || (escala === "bacia" ? cortesBacia() : null) || quantis(vals);
+}
+function cor(v, brk){
+  let i = 0; while (i < brk.length && v > brk[i]) i++;
+  return CORES[i];
+}
+function popup(p, extra){
+  const naGrade = munAtual && camada === "grade" && !p.nome;
+  const linhas = INDS.filter(d=>!d.cat && !(d.opt && !Object.prototype.hasOwnProperty.call(p,campoEscopo(d)) && !estaSuprimido(p,d)) && (!naGrade || GRADE_INDS.has(d.k))).map(d=>{
+    const src = d.svc && munAtual ? munAtual : p;
+    const val = valorBruto(src,d);
+    const popSrc = d.svc ? valorMunicipalBruto(src,"pop") : valorBruto(src,{k:"pop"});
+    const sigilo = estaSuprimido(src,d);
+    const parcial = !src.setor && (temSigilo(src,d) || (d.base && temSigilo(src,{k:d.base})));
+    const cobertura = coberturaCampo(src,d);
+    const indisponivel = sigilo || val === null;
+    const abs = indisponivel ? "—" : d.money ? "R$ "+fmt(val) : d.svc ? `${fmt(val)} ponto(s) cadastrado(s) · ${fmt(popSrc>0?val/popSrc*10000:0)} /10 mil` : fmt(val)+(d.un||"");
+    let pc = "";
+    if (d.pct && !indisponivel){ const base = valorBruto(src,d.base ? {k:d.base} : {k:"pop"});
+      if (base > 0) pc = ` <span style="color:#5c6b63">(${fmt(val/base*100)}%)</span>`;
+      else if (d.base) pc = ` <span class="partial-mark" title="Denominador de domicílios ocupados não publicado pelo IBGE">†</span>`; }
+    const nome = naGrade && d.k === "dom" ? "Domicílios ocupados (grade)" : d.nome;
+    const serviceUnknown = d.svc && indisponivel;
+    const borderUnknown = !munAtual && escopoEfetivo(d) === "bacia" && coberturaBaciaAusente(src,d);
+    const nota = borderUnknown ? ` <span class="partial-note" title="Este município intersecta a bacia, mas nenhum setor tem ponto representativo dentro do recorte">· sem setor representativo na bacia</span>` : serviceUnknown ? ` <span class="partial-note" title="O cadastro IEDE não publicou ponto para este município">· sem ponto publicado</span>` : ((parcial || cobertura?.parcial) ? ` <span class="partial-note" title="A soma usa somente registros publicados; confira a cobertura no dicionário">· cobertura ${cobertura ? `${fmt(cobertura.n)} de ${fmt(cobertura.total)}` : "parcial"}</span>` : "");
+    return `<tr><td>${escHTML(nome)}</td><td>${abs}${pc}${nota}</td></tr>`;
+  });
+  const cap = p.icm_faixa ? p : (munAtual || {});
+  if (cap.icm_faixa) linhas.push(`<tr><td>Capacidade (ICM)</td><td><b style="color:${ICM_CORES[cap.icm_faixa]}">${cap.icm_faixa}</b>`+
+    `${cap.icm_pont!=null?" · "+cap.icm_pont+" pts":""}${cap.icm_prior?" · prioritário":""}</td></tr>`);
+  const titulo = p.nome || (naGrade ? "Célula da grade (200×200 m)" : "Setor "+p.setor);
+  const scope = !munAtual && escopoEfetivo(INDS.find(i=>i.k===ind)) === "bacia" ? ` <span style="font-size:11px;color:#5c6b63">· somente na bacia</span>` : "";
+  return `<div class="pop"><b>${escHTML(titulo)}</b>${scope}${extra||""}<table>${linhas.join("")}</table></div>`;
+}
+
+const ehCat = ()=> !!(INDS.find(i=>i.k===ind)||{}).cat;
+function pintaMunicipios(){
+  if (ehCat()){                        // ICM: cor fixa por faixa A–D
+    munLayer.eachLayer(l=>{ const fx = l.feature.properties.icm_faixa;
+      const p=l.feature.properties, borda=estiloBorda(p);
+      l.setStyle({fillColor: ICM_CORES[fx]||"#aeb8b3", fillOpacity: fx?opacidade:.25, color:borda.color, weight:borda.weight, dashArray:ICM_DASH[fx]||borda.dashArray}); });
+    legendaICM("· municípios"); totalizaICM(null); aplicaDestaqueSelecao(); atualizaTabelaComparacao(); return;
+  }
+  const d = INDS.find(i=>i.k===ind);
+  const brk = getBrk(munData.features.map(f=>valor(f.properties)));
+  munLayer.eachLayer(l=>{
+    const indisponivel = dadoIndisponivel(l.feature.properties,d);
+    const p=l.feature.properties, borda=estiloBorda(p), cobertura=coberturaCampo(p,d);
+    const parcial=!!cobertura?.parcial;
+    l.setStyle({fillColor: indisponivel ? "#aeb8b3" : cor(valor(p), brk),
+                fillOpacity:opacidade, color:indisponivel?"#59635f":(parcial?"#a56a14":borda.color), weight:borda.weight,
+                dashArray:indisponivel?"3 3":(parcial?"2 2":borda.dashArray)});
+  });
+  legenda(brk, "· municípios");
+  totaliza(munData.features.map(f=>f.properties));
+  aplicaDestaqueSelecao();
+  atualizaTabelaComparacao();
+}
+function pintaSetores(){
+  if (!setLayer) return;
+  const feats = setLayer.getLayers().map(l=>l.feature);
+  if (ehCat()){                        // ICM é municipal: setores herdam a faixa do município
+    const fx = munAtual.icm_faixa;
+    setLayer.eachLayer(l=>{ const p = l.feature.properties;
+      const borda=estiloBorda(p,true);
+      l.setStyle({fillColor: ICM_CORES[fx]||"#aeb8b3", fillOpacity: p.na_bacia?opacidade:opacidade*.45, color:borda.color, weight:borda.weight, dashArray:ICM_DASH[fx]||borda.dashArray}); });
+    legendaICM("· " + munAtual.nome); totalizaICM(munAtual); aplicaDestaqueSelecao(); atualizaTabelaComparacao(); return;
+  }
+  const brk = getBrk(feats.map(f=>valor(f.properties)));
+    setLayer.eachLayer(l=>{
+      const p = l.feature.properties;
+      const d = INDS.find(i=>i.k===ind);
+      const indisponivel=estaSuprimido(p,d) || dadoIndisponivel(p,d), borda=estiloBorda(p,true), cobertura=coberturaCampo(p,d);
+      const parcial=!!cobertura?.parcial;
+      l.setStyle({fillColor: indisponivel ? "#9aa3a0" : cor(valor(p), brk),
+                fillOpacity: p.na_bacia ? opacidade : opacidade*.45,
+                color:indisponivel?"#59635f":(parcial?"#a56a14":borda.color), weight:borda.weight,
+                dashArray:indisponivel?"3 3":(parcial?"2 2":borda.dashArray)});
+  });
+  legenda(brk, (camada==="grade" ? "· grade 200m de " : "· setores de ") + munAtual.nome);
+  totaliza(feats.map(f=>f.properties));
+  aplicaDestaqueSelecao();
+  atualizaTabelaComparacao();
+}
+function legendaICM(ctx){
+  document.getElementById("legctx").textContent = ctx;
+  document.getElementById("leg").innerHTML =
+    ["A","B","C","D"].map(fx=>`<div class="row2" role="listitem"><span class="sw sw-icm icm-${fx}" style="background:${ICM_CORES[fx]}">${fx}</span>${ICM_LABEL[fx]}</div>`).join("")
+    + `<div class="row2" role="listitem" style="color:#5c6b63;font-size:11px;margin-top:2px">Índice de Capacidade dos Municípios (MIDR) · A = mais preparo para gestão de risco</div>`
+    + `<div class="row2" role="listitem"><span class="sw sw-border"></span>geometria fora/na borda da bacia</div>`
+    + `<div class="row2" role="listitem"><span class="sw sw-nodata"></span>faixa ICM sem dado publicado</div>`;
+  document.getElementById("quantileNote").textContent="ICM é categórico (faixas fixas A–D do MIDR), não usa quantis. Letras, cores e traços da legenda devem ser lidos em conjunto.";
+  const pm=document.getElementById("printMeta"); if(pm) pm.textContent=`PREVINE · Vulnerabilidade social · Capacidade municipal (ICM), ${ctx.replace(/^·\s*/,"")}. Fonte: MIDR/ICM; geometrias EPSG:4326.`;
+}
+function totalizaICM(mun){
+  const tot = document.getElementById("tot");
+  if (mun){
+    tot.innerHTML = `Faixa <b style="color:${ICM_CORES[mun.icm_faixa]||'#5c6b63'}">${mun.icm_faixa||"—"}</b>` +
+      ` <small>· ${mun.icm_pont!=null?mun.icm_pont+" pts":"—"}${mun.icm_prior?" · prioritário":""}</small>`;
+    return;
+  }
+  const c = {A:0,B:0,C:0,D:0}; let prior = 0;
+  munData.features.forEach(f=>{ const fx=f.properties.icm_faixa; if(fx&&c[fx]!=null)c[fx]++; if(f.properties.icm_prior)prior++; });
+  tot.innerHTML = `<small>A ${c.A} · B ${c.B} · C ${c.C} · D ${c.D} · ${prior} prioritários</small>`;
+}
+function legenda(brk, ctx){
+  const escopoTexto = !munAtual && escopoEfetivo(INDS.find(i=>i.k===ind)) === "bacia" ? " · somente na bacia" : "";
+  document.getElementById("legctx").textContent = `${ctx} · escala ${escala === "bacia" ? "da bacia" : "local"}${escopoTexto}`;
+  const faixas = [];
+  const unicos = [];
+  brk.forEach((v,i)=>{ if (!unicos.length || v !== unicos[unicos.length-1].v) unicos.push({v,i}); });
+  let anterior = null;
+  unicos.forEach(({v,i})=>{
+    const txt = anterior===null ? (v===0 ? "zero" : "até "+rotulo(v)) : rotulo(anterior)+" – "+rotulo(v);
+    faixas.push(`<div class="row2" role="listitem"><span class="sw" style="background:${CORES[Math.min(i,CORES.length-1)]}"></span>${txt}</div>`);
+    anterior = v;
+  });
+  if (anterior !== null){
+    const ultimaCor = Math.min(brk.lastIndexOf(anterior)+1, CORES.length-1);
+    faixas.push(`<div class="row2" role="listitem"><span class="sw" style="background:${CORES[ultimaCor]}"></span>acima de ${rotulo(anterior)}</div>`);
+  }
+  const d=INDS.find(i=>i.k===ind);
+  if (manualBrks[chaveBrk()]) faixas.push(`<div class="row2" role="listitem" style="color:#8a5a12">faixas manuais em uso</div>`);
+  if (munAtual) faixas.push(`<div class="row2" role="listitem"><span class="sw sw-border"></span>geometria/ setor fora do limite da bacia (valor não entra no recorte)</div>`);
+  if (!munAtual && escopo === "bacia" && !d?.svc && !d?.cat)
+    faixas.push(`<div class="row2" role="listitem"><span class="sw sw-border"></span>geometria municipal pode exceder a bacia; valor usa somente setores na bacia</div>`);
+  if (munAtual && setLayer && setLayer.getLayers().some(l=>estaSuprimido(l.feature.properties, INDS.find(i=>i.k===ind))))
+    faixas.push(`<div class="row2" role="listitem"><span class="sw sw-nodata"></span>valor não publicado / cobertura desconhecida</div>`);
+  if (camadasVisiveis().some(l=>coberturaCampo(l.feature.properties,d)?.parcial))
+    faixas.push(`<div class="row2" role="listitem"><span class="sw sw-border"></span>soma parcial: somente ${escopo === "bacia" ? "setores" : "registros"} publicados</div>`);
+  if ((!munAtual || !d?.cat) && camadasVisiveis().some(l=>dadoIndisponivel(l.feature.properties,d)))
+    faixas.push(`<div class="row2" role="listitem"><span class="sw sw-nodata"></span>sem valor publicado / sem cobertura conhecida</div>`);
+  document.getElementById("leg").innerHTML = faixas.join("");
+  const qn=document.getElementById("quantileNote");
+  if(qn) qn.textContent = escala === "bacia"
+    ? "Faixas congeladas no catálogo: 5 classes por quantis do recorte completo da bacia; zeros ficam em classe própria quando presentes."
+    : "Faixas locais: 5 classes por quantis dos valores visíveis; zeros ficam em classe própria quando presentes. Não compare cores locais com outro mapa.";
+  const refPrint=d?.svc
+    ? `IEDE-RS${servicosCaptura ? ` · captura ${new Date(servicosCaptura).toLocaleDateString("pt-BR")}` : " · captura registrada no catálogo"}`
+    : d?.cat ? "MIDR/ICM · 28/04/2026" : "IBGE Censo 2022";
+  const extrasPrint=[];
+  if(typeof perigoLayer!=="undefined" && perigoLayer && map.hasLayer(perigoLayer)) extrasPrint.push("SGB: risco setorizado em Santa Tereza (2025), não é mancha contínua");
+  if(typeof svcLayers!=="undefined" && Object.values(svcLayers).some(x=>x && x!=="carregando" && map.hasLayer(x))) extrasPrint.push("IEDE: pontos cadastrados; ausência não prova ausência");
+  const pm=document.getElementById("printMeta"); if(pm) pm.textContent=`PREVINE · Vulnerabilidade social · ${d?.nome||"indicador"}; ${escala === "bacia" ? "escala comparável na bacia" : "escala relativa à área"}. Fonte: ${refPrint}; geometrias EPSG:4326. Vulnerabilidade social ≠ perigo ≠ risco; não é alerta.${extrasPrint.length?` ${extrasPrint.join("; ")}.`:""}`;
+  brk.forEach((v,i)=>{ document.getElementById("fx"+i).value = Math.round(v*100)/100; });
+}
+function totaliza(props){
+  const d = INDS.find(i=>i.k===ind);
+  const notaEscopoMunicipal = !munAtual && (escopo !== "bacia" || d?.svc || d?.cat)
+    ? " <small>· municípios inteiros intersectantes</small>" : "";
+  const coberturas = props.map(p=>coberturaCampo(p,d)).filter(Boolean);
+  const coberturaConhecida = coberturas.reduce((s,c)=>s+c.n,0);
+  const coberturaTotal = coberturas.reduce((s,c)=>s+c.total,0);
+  const qtdSigilo = props.filter(p=>temSigilo(p,d) || (d.base && temSigilo(p,{k:d.base}))).length;
+  const qtdConhecidos = coberturaTotal ? coberturaConhecida : props.filter(p=>valorBruto(p,d)!==null).length;
+  const qtdTotal = coberturaTotal || props.length;
+  const notaSigilo = (qtdSigilo || qtdConhecidos < qtdTotal) ? ` <small class="partial-note" title="A soma usa somente registros publicados; confira a cobertura no dicionário">· cobertura ${fmt(qtdConhecidos)} de ${fmt(qtdTotal)}</small>` : "";
+  if (ind === "dens"){
+    const pesos = props.map(p=>({v:valorBruto(p,d),w:valorBruto(p,{k:"pop"})})).filter(x=>x.v!==null&&x.w>0);
+    const den=pesos.reduce((s,x)=>s+x.w,0), num=pesos.reduce((s,x)=>s+x.v*x.w,0);
+    document.getElementById("tot").innerHTML = den>0 ? `${fmt(num/den)} <small>hab/km² · média ponderada</small>${notaEscopoMunicipal}${notaSigilo}` : "—";
+    return;
+  }
+  if (d.money){                        // renda: média ponderada pelo nº de responsáveis
+    let num = 0, den = 0;
+    props.forEach(p=>{ const w = valorBruto(p,{k:"n_resp"}), r = valorBruto(p,d); if (w>0 && r!==null){ num += r*w; den += w; } });
+    document.getElementById("tot").innerHTML =
+      den>0 ? `R$ ${fmt(num/den)} <small>· média mensal nominal do responsável</small>${notaEscopoMunicipal}${notaSigilo}` : "—";
+    return;
+  }
+  if (d.base){                           // água/esgoto: % dos domicílios permanentes ocupados
+    const serv = props.reduce((s,p)=>{const v=valorBruto(p,d);return s+(v===null?0:v)},0);
+    const dom  = props.reduce((s,p)=>{const v=valorBruto(p,{k:d.base});return s+(v===null?0:v)},0);
+    document.getElementById("tot").innerHTML =
+      dom>0 ? `${fmt(serv/dom*100)}% <small>dos domicílios permanentes ocupados · ${fmt(serv)} de ${fmt(dom)}</small>${notaEscopoMunicipal}${notaSigilo}`
+            : "— <small><span class=\"partial-mark\" title=\"Denominador de domicílios ocupados não publicado pelo IBGE\">†</span> percentual não calculado</small>";
+    return;
+  }
+  if (d.svc){                          // densidade: do município aberto ou da bacia toda
+    const feats = munAtual ? [munAtual] : props;
+    const conhecidos = feats.filter(p=>valorBruto(p,d)!==null);
+    const pontos = conhecidos.reduce((s,p)=>s+valorBruto(p,d),0);
+    // Municípios sem ponto publicado não entram como zero nem no denominador;
+    // a taxa é explicitamente a dos municípios com cadastro conhecido.
+    const pop = conhecidos.reduce((s,p)=>{const v=valorMunicipalBruto(p,"pop");return s+(v===null?0:v)},0);
+    const cobertura = conhecidos.length < feats.length ? `${fmt(conhecidos.length)} de ${fmt(feats.length)} municípios com ponto publicado` : "";
+    const onde = munAtual ? `${munAtual.nome} · indicador municipal` : "municípios intersectantes";
+    document.getElementById("tot").innerHTML = conhecidos.length
+      ? `${fmt(pop>0?pontos/pop*10000:0)} <small>/10 mil hab · ${fmt(pontos)} ponto(s) cadastrado(s) · ${onde}${cobertura ? " · base: municípios com ponto publicado" : ""}</small>${notaEscopoMunicipal}`
+      : `<span class="unknown-total">não estimado</span> <small>cadastro IEDE sem ponto publicado${munAtual ? ` · ${escHTML(munAtual.nome)}` : ""}</small>`;
+    if (cobertura) document.getElementById("tot").insertAdjacentHTML("beforeend", ` <small>· cobertura: ${cobertura}</small>`);
+    return;
+  }
+  const soma = props.reduce((s,p)=>{const v=valorBruto(p,d);return s+(v===null?0:v)},0);
+  const pop  = props.reduce((s,p)=>{const v=valorBruto(p,{k:"pop"});return s+(v===null?0:v)},0);
+  const pc = d.pct && pop>0 ? ` <small>(${fmt(soma/pop*100)}% da população)</small>` : "";
+  const escopoNota = !munAtual && escopo !== "bacia" ? " <small>· municípios inteiros intersectantes</small>" : "";
+  document.getElementById("tot").innerHTML = fmt(soma)+(d.un||"")+pc+escopoNota+notaSigilo;
+}
+
+let reqSeq = 0;                        // invalida respostas atrasadas (troca rápida de município)
+function abreMunicipio(cod){
+  const f = munData.features.find(f=>String(f.properties.cod_mun)===String(cod));
+  if (!f) return;
+  limpaSelecao();
+  const meu = ++reqSeq;
+  const pasta = camada === "grade" ? "grade" : "setores";
+  informa(`Carregando ${camada === "grade" ? "grade de 200 m" : "setores censitários"} de ${f.properties.nome}…`);
+  carrega(`${pasta}/${cod}.geojson`).then(gj=>{
+    if (meu !== reqSeq) return;        // outra seleção (ou voltar, ou troca de camada) aconteceu depois
+    if (setLayer) map.removeLayer(setLayer);
+    munAtual = f.properties;
+    setLayer = L.geoJSON(gj, {
+      onEachFeature: (ft,l)=>{
+        l.bindPopup(()=>popup(ft.properties,
+          ft.properties.na_bacia ? "" : ` <span style="color:#8a5a12;font-size:11px">(fora do limite da bacia)</span>`), POPUP_OPTS);
+        l.on("click", encaminhaCliqueSelecao);
+      }
+    }).addTo(map);
+    munLayer.setStyle({fillOpacity:.06, color:"#9ab0a2", weight:1});
+    map.fitBounds(setLayer.getBounds(), {padding:[18,18]});
+    document.getElementById("volta").classList.add("show");
+    atualizaEscopoDados();
+    sincronizaCamadaUI();
+    aplicaLabels();
+    pintaSetores();
+    restauraSelecaoURL();
+    document.getElementById("busca").value = String(cod);
+    sincronizaURL();
+    informa(camada === "grade"
+      ? "Grade pronta. População e domicílios vêm da Grade Estatística 2022; os totais podem diferir dos agregados por setor."
+      : "Setores prontos. Áreas fora do limite da bacia aparecem com menor opacidade.");
+  }).catch(()=>{ if (meu===reqSeq) informa("Não foi possível carregar esta camada agora."); });
+}
+function voltaBacia(){
+  limpaSelecao();
+  reqSeq++;                            // descarta qualquer carga de setores em andamento
+  if (setLayer){ map.removeLayer(setLayer); setLayer = null; }
+  munAtual = null;
+  camada = "setor";
+  sincronizaCamadaUI();
+  atualizaEscopoDados();
+  document.getElementById("volta").classList.remove("show");
+  pintaMunicipios();
+  aplicaLabels();
+  map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
+  document.getElementById("busca").value = "";
+  sincronizaURL();
+}
+
+function sincronizaCamadaUI(){
+  const gradeBtn = document.querySelector('#camadas [data-c="grade"]');
+  const podeGrade = !!munAtual;
+  if (gradeBtn){
+    gradeBtn.disabled = !podeGrade;
+    gradeBtn.title = podeGrade ? "Exibe a grade estatística 200 m do município aberto"
+                               : "Abra um município para habilitar a grade estatística 200 m";
+  }
+  document.querySelectorAll("#camadas button").forEach(x=>{
+    const ativo=x.dataset.c===camada;
+    x.classList.toggle("on",ativo); x.setAttribute("aria-pressed",ativo?"true":"false");
+  });
+}
+
+// nomes dos municípios só a partir de certo zoom (e não durante o drill-down),
+// senão a bacia inteira fica ilegível — pedido da Juliana ("assim tá feio")
+const LBL_ZOOM = 9;
+function aplicaLabels(){
+  const mostra = map.getZoom() >= LBL_ZOOM && !munAtual;
+  const el = document.getElementById("map");
+  if (el) el.classList.toggle("no-lbl", !mostra);
+}
+
+// ---- seleção espacial e ficha exportável ----
+// A seleção usa apenas as geometrias já visíveis: municípios na bacia ou,
+// depois de abrir um município, setores/quadras da camada escolhida. Assim o
+// resultado é reproduzível a partir do mesmo recorte que a pessoa está vendo.
+function camadasVisiveis(){
+  if (munAtual && setLayer) return setLayer.getLayers().filter(l=>l.feature?.geometry);
+  return munLayer ? munLayer.getLayers().filter(l=>l.feature?.geometry) : [];
+}
+function nomeCamadaSelecao(){
+  if (munAtual) return camada === "grade" ? "células da grade 200 m" : "setores censitários";
+  return "municípios";
+}
+function slugLocal(v){
+  return String(v || "area").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-zA-Z0-9]+/g,"_").replace(/^_+|_+$/g,"").toLowerCase() || "area";
+}
+function popDaSelecao(p){
+  const atual=INDS.find(i=>i.k===ind);
+  if (!munAtual){
+    if (atual?.svc || atual?.cat) return valorMunicipalBruto(p,"pop") ?? 0;
+    const b = valorBruto(p,{k:"pop"});
+    return b === null ? null : b;
+  }
+  // Setores/grade já são a unidade local; fora do limite da bacia não entra
+  // no resumo quando na_bacia=0, evitando rotular o total como “na bacia”.
+  if (p && Object.prototype.hasOwnProperty.call(p,"na_bacia") && +p.na_bacia !== 1) return 0;
+  const b = +p.pop_bacia;
+  return Object.prototype.hasOwnProperty.call(p,"pop_bacia") && isFinite(b) ? b : (+p.pop || 0);
+}
+function pontoNoRetangulo(pt,b){ return pt[0]>=b.getWest() && pt[0]<=b.getEast() && pt[1]>=b.getSouth() && pt[1]<=b.getNorth(); }
+function pontoNoAnel(pt,ring){
+  let dentro=false;
+  for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+    const xi=ring[i][0], yi=ring[i][1], xj=ring[j][0], yj=ring[j][1];
+    const cruza=((yi>pt[1])!==(yj>pt[1])) && pt[0] < (xj-xi)*(pt[1]-yi)/(yj-yi||1e-12)+xi;
+    if(cruza)dentro=!dentro;
+  }
+  return dentro;
+}
+function pontoNaGeometria(pt,g){
+  if(!g)return false;
+  if(g.type==="Polygon") return pontoNoAnel(pt,g.coordinates[0]||[]) && !(g.coordinates.slice(1).some(r=>pontoNoAnel(pt,r)));
+  if(g.type==="MultiPolygon") return g.coordinates.some(p=>pontoNaGeometria(pt,{type:"Polygon",coordinates:p}));
+  return false;
+}
+function orient(a,b,c){return (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);}
+function caminhosGeometria(g){
+  if(!g)return [];
+  if(g.type==="Point")return [[g.coordinates]];
+  if(g.type==="MultiPoint")return g.coordinates.map(c=>[c]);
+  if(g.type==="LineString"||g.type==="MultiLineString")return g.type==="LineString"?[g.coordinates]:g.coordinates;
+  if(g.type==="Polygon")return g.coordinates;
+  if(g.type==="MultiPolygon")return g.coordinates.flatMap(p=>p);
+  if(g.type==="GeometryCollection")return g.geometries.flatMap(caminhosGeometria);
+  return [];
+}
+function geometriaCruzaRetangulo(feature,b){
+  const g=feature?.geometry; if(!g)return false;
+  const w=b.getWest(),e=b.getEast(),s=b.getSouth(),n=b.getNorth();
+  const corners=[[w,s],[e,s],[e,n],[w,n]];
+  if(g.type==="Point"||g.type==="MultiPoint") return caminhosGeometria(g).some(path=>pontoNoRetangulo(path[0],b));
+  if(corners.some(pt=>pontoNaGeometria(pt,g)))return true;
+  const rectEdges=corners.map((a,i)=>[a,corners[(i+1)%4]]);
+  for(const path of caminhosGeometria(g)){
+    for(const pt of path)if(pontoNoRetangulo(pt,b))return true;
+    for(let i=1;i<path.length;i++){
+      const a=path[i-1],bb=path[i];
+      if(rectEdges.some(([c,d])=>{
+        const o1=orient(a,bb,c),o2=orient(a,bb,d),o3=orient(c,d,a),o4=orient(c,d,bb), eps=1e-12;
+        return ((o1>eps&&o2<-eps)||(o1<-eps&&o2>eps))&&((o3>eps&&o4<-eps)||(o3<-eps&&o4>eps));
+      }))return true;
+    }
+  }
+  return false;
+}
+function textoEscopoDados(){
+  if (!munAtual){
+    if (escopo === "bacia" && !INDS.find(i=>i.k===ind)?.svc && !INDS.find(i=>i.k===ind)?.cat)
+      return "Escopo: somente setores com ponto representativo dentro da bacia; valores parciais aparecem com cobertura conhecida/total.";
+    if (INDS.find(i=>i.k===ind)?.svc) return "Escopo: cadastro municipal de pontos IEDE; a ausência de ponto não prova ausência do serviço.";
+    if (INDS.find(i=>i.k===ind)?.cat) return "Escopo: ICM é municipal; a faixa não é uma medição setorial.";
+    return "Escopo: valores municipais representam o município inteiro; a população dentro da bacia aparece na ficha do município.";
+  }
+  if (Number(munAtual?.n_setores_bacia) === 0)
+    return "Este município intersecta a bacia, mas não tem setor com ponto representativo dentro dela; os setores exibidos são municipais e não representam população na bacia.";
+  if (camada === "grade") return "Escopo: células de 200 m do município aberto; população e domicílios vêm da Grade Estatística 2022.";
+  if (INDS.find(i=>i.k===ind)?.svc) return "Escopo: indicador municipal repetido apenas como contexto; não é uma medida do setor.";
+  if (INDS.find(i=>i.k===ind)?.cat) return "Escopo: ICM é municipal; os setores apenas herdam a faixa do município.";
+  return "Escopo: setores censitários do município aberto; o recorte na bacia é marcado por na_bacia=1 e áreas fora dela ficam mais claras.";
+}
+function atualizaEscopoDados(){
+  const el=document.getElementById("escopoDados"); if(el)el.textContent=textoEscopoDados();
+  const heading=document.getElementById("totalHeading");
+  if(heading) heading.textContent=munAtual
+    ? (Number(munAtual.n_setores_bacia) === 0 ? "Resumo municipal · sem setor representativo na bacia" : (camada === "grade" ? "Resumo da grade do município aberto" : "Resumo do município aberto"))
+    : "Total no escopo escolhido";
+  const ajuda=document.getElementById("escopoAjuda");
+  const d=INDS.find(i=>i.k===ind);
+  if(ajuda) ajuda.textContent = munAtual ? "Abra a bacia novamente para alternar o escopo; o drill-down mostra setores/grade do município." :
+    (d?.svc||d?.cat ? "Este indicador é municipal; o escopo ‘somente na bacia’ não altera cadastros IEDE nem o ICM." : escopo === "bacia" ? "Indicadores sociais são somados aos setores dentro da bacia; valores sem publicação ficam neutros e a cobertura aparece no resumo." : "Municípios de borda aparecem por inteiro; use ‘somente na bacia’ para o recorte setorial auditável.");
+  document.querySelectorAll("#escopos button").forEach(b=>{
+    const indisponivel=!!munAtual || !!d?.svc || !!d?.cat;
+    const visual=indisponivel ? "municipio" : escopo;
+    const ativo=b.dataset.s===visual;
+    b.classList.toggle("on",ativo); b.setAttribute("aria-pressed",ativo?"true":"false");
+    b.disabled=indisponivel && b.dataset.s==="bacia";
+    b.title=b.disabled ? (munAtual ? "O drill-down usa a camada local do município" : "Indicador municipal sem recorte na bacia") : "";
+  });
+}
+function propsDaSelecao(){
+  return selectionLayers.map(l=>l.feature.properties || {});
+}
+function resumoSelecao(){
+  const props = propsDaSelecao();
+  const d = INDS.find(i=>i.k===ind) || INDS[0];
+  const popValores = props.map(popDaSelecao);
+  const popParcial = popValores.some(v=>v===null);
+  const pop = popValores.reduce((s,v)=>s+(Number.isFinite(v)?v:0),0);
+  const popLabel = popParcial ? (pop>0 ? `${fmt(pop)} (parcial)` : "não estimada") : fmt(pop);
+  const valoresIndicador = props.map(p=>valorBruto(p,d));
+  const indicadorParcial = valoresIndicador.some(v=>v===null);
+  const indicadorConhecido = valoresIndicador.some(v=>v!==null);
+  const soma = valoresIndicador.reduce((s,v)=>s+(v===null?0:v),0);
+  let detalhe = "";
+  let detalheTexto = "";
+  if (d.cat){
+    const faixas=[...new Set(props.map(p=>p.icm_faixa).filter(Boolean))];
+    const pontos=props.map(p=>p.icm_pont).filter(v=>v!==null&&v!==undefined&&Number.isFinite(Number(v)));
+    if (faixas.length){
+      detalhe = `${faixas.join(", ")} <small>faixa(s) ICM${pontos.length ? ` · ${fmt(pontos.reduce((s,v)=>s+Number(v),0)/pontos.length)} pts média` : ""}</small>`;
+      detalheTexto = `${faixas.join(", ")} faixa(s) ICM${pontos.length ? ` · ${fmt(pontos.reduce((s,v)=>s+Number(v),0)/pontos.length)} pts média` : ""}`;
+    } else {
+      detalhe = "<small>nÃ£o estimado</small>";
+      detalheTexto = "nÃ£o estimado";
+    }
+  } else if (d.money){
+    let num=0, den=0;
+    props.forEach(p=>{const w=valorBruto(p,{k:"n_resp"}), r=valorBruto(p,d); if(w>0&&r!==null){num+=r*w;den+=w;}});
+    if (den>0){ detalhe = `R$ ${fmt(num/den)} <small>média do responsável</small>`; detalheTexto=`R$ ${fmt(num/den)} média do responsável`; }
+  } else if (d.base){
+    const base=props.reduce((s,p)=>{const v=valorBruto(p,{k:d.base});return s+(v===null?0:v)},0);
+    if(base>0){ detalhe = `${fmt(soma/base*100)}% <small>${escHTML(d.nome.toLowerCase())} · ${fmt(soma)} de ${fmt(base)}</small>`; detalheTexto=`${fmt(soma/base*100)}% · ${fmt(soma)} de ${fmt(base)}`; }
+  } else if (d.svc){
+    const publicados = props.map(p=>munAtual ? munAtual[d.k] : p[d.k]).filter(v=>v!==null && v!=="" && Number.isFinite(Number(v)));
+    const pontos = publicados.reduce((s,v)=>s+Number(v),0);
+    const desconhecidos = props.length - publicados.length;
+    detalhe = desconhecidos ? `${fmt(pontos)} <small>ponto(s) no cadastro IEDE · cobertura ${fmt(publicados.length)} de ${fmt(props.length)}</small>` : `${fmt(pontos)} <small>ponto(s) no cadastro IEDE</small>`;
+    detalheTexto=desconhecidos ? `${fmt(pontos)} ponto(s) no cadastro IEDE · cobertura ${fmt(publicados.length)} de ${fmt(props.length)}` : `${fmt(pontos)} ponto(s) no cadastro IEDE`;
+  } else if (d.k !== "dens"){
+    if (!indicadorConhecido){
+      detalhe = "<small>não estimado</small>"; detalheTexto = "não estimado";
+    } else {
+      detalhe = `${fmt(soma)}${d.un||""}`;
+      detalheTexto = `${fmt(soma)}${d.un||""}`;
+      if (indicadorParcial){ detalhe += ` <small>(cobertura parcial)</small>`; detalheTexto += " (cobertura parcial)"; }
+      if (d.pct && pop>0){ detalhe += ` <small>(${fmt(soma/pop*100)}% da população)</small>`; detalheTexto += ` (${fmt(soma/pop*100)}% da população)`; }
+    }
+  }
+  return {count:props.length, pop, popLabel, popParcial, detalhe, detalheTexto, nome:nomeCamadaSelecao(), indicador:d.nome};
+}
+function dadosDaSelecao(){
+  if (!selectionLayers.length) return null;
+  const ctx = munAtual ? contextoMunicipioAtual() : {};
+  const features = selectionLayers.map(l=>({
+    type:"Feature", geometry:l.feature.geometry,
+    properties:{...(l.feature.properties||{}), ...ctx}
+  }));
+  return {features, prefixo:`selecao_${slugLocal(munAtual ? munAtual.nome : "municipios")}_${slugLocal(ind)}`};
+}
+function aplicaDestaqueSelecao(){
+  if (!selectionLayers.length) return;
+  const escolhidos = new Set(selectionLayers);
+  camadasVisiveis().forEach(l=>{
+    if (escolhidos.has(l)) l.setStyle({color:"#0c2a22", weight:3, dashArray:"6 4"});
+  });
+  atualizaEscopoDados();
+}
+function escopoComparacao(){
+  if (munAtual) return camada === "grade" ? `grade 200 m de ${munAtual.nome}` : `setores de ${munAtual.nome}`;
+  const d=INDS.find(i=>i.k===ind);
+  return escopoEfetivo(d) === "bacia" ? "municípios intersectantes · estimativa somente na bacia" : "municípios intersectantes · valor municipal inteiro";
+}
+function linhaComparacao(layer, pos){
+  const p=layer.feature?.properties || {};
+  const d=INDS.find(i=>i.k===ind) || INDS[0];
+  const src=d.cat && munAtual ? munAtual : p;
+  const suprimido=!d.cat && estaSuprimido(p,d);
+  const parcial=!d.cat && temSigilo(p,d);
+  let numeric=null, display="—";
+  if(d.cat){
+    numeric=src.icm_pont==null ? null : +src.icm_pont;
+    display=src.icm_faixa ? `${src.icm_faixa}${src.icm_pont!=null ? " · "+fmt(src.icm_pont)+" pts" : ""}` : "—";
+  }else if(!suprimido){
+    const calculado=valor(p);
+    numeric=Number.isFinite(calculado) ? calculado : null;
+    display=numeric===null ? (d.svc && valorBruto(p,d)===null ? "sem ponto publicado" : "—") : rotulo(numeric);
+  }
+  const nome=p.nome || (camada === "grade" ? `Célula ${p.id_grade || p.id_grade_previne || pos+1}` : `Setor ${p.setor || "—"}`);
+  const codigo=p.nome ? (p.cod_mun || "—") : (p.setor || p.id_grade || p.id_grade_previne || "—");
+  return {layer, p, nome, codigo, numeric, display, pop:popDaSelecao(p), parcial, suprimido, selecionado:selectionLayers.includes(layer)};
+}
+let comparacaoPagina=1;
+let impressaoTabela=false;
+const COMPARACAO_TAMANHO=50;
+function normalizaBusca(v){
+  return String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+}
+function linhasComparacaoFiltradas(){
+  const busca=normalizaBusca((document.getElementById("comparacaoBusca")?.value || "").trim());
+  const somente=!!document.getElementById("comparacaoSomenteSelecao")?.checked;
+  const ordem=document.getElementById("comparacaoOrdem")?.value || "desc";
+  let rows=camadasVisiveis().map((l,i)=>linhaComparacao(l,i));
+  if(somente) rows=rows.filter(r=>r.selecionado);
+   if(busca) rows=rows.filter(r=>normalizaBusca(`${r.nome} ${r.codigo}`).includes(busca));
+  rows.sort((a,b)=>{
+    if(ordem==="nome") return a.nome.localeCompare(b.nome,"pt");
+    if(a.numeric==null && b.numeric!=null)return 1;
+    if(a.numeric!=null && b.numeric==null)return -1;
+    if(a.numeric==null && b.numeric==null)return a.nome.localeCompare(b.nome,"pt");
+    const delta=ordem==="asc" ? a.numeric-b.numeric : b.numeric-a.numeric;
+    return delta || a.nome.localeCompare(b.nome,"pt");
+  });
+  return rows;
+}
+function alternaSelecaoTabela(layer){
+  if(!layer)return;
+  const i=selectionLayers.indexOf(layer);
+  if(i>=0)selectionLayers.splice(i,1); else selectionLayers.push(layer);
+  repinta();
+  aplicaDestaqueSelecao();
+  atualizaPainelSelecao();
+  sincronizaURL();
+  informa(selectionLayers.length ? `${fmt(selectionLayers.length)} ${nomeCamadaSelecao()} selecionado(s).` : "Seleção vazia.");
+}
+function atualizaTabelaComparacao(){
+  const body=document.getElementById("comparacaoBody");
+  if(!body)return;
+  const d=INDS.find(i=>i.k===ind) || INDS[0];
+  const total=camadasVisiveis().length;
+  const checkbox=document.getElementById("comparacaoSomenteSelecao");
+  if(checkbox){
+    checkbox.disabled=!selectionLayers.length;
+    if(checkbox.disabled)checkbox.checked=false;
+  }
+  const rows=linhasComparacaoFiltradas();
+  const paginas=Math.max(1,Math.ceil(rows.length/COMPARACAO_TAMANHO));
+  comparacaoPagina=Math.min(Math.max(1,comparacaoPagina),paginas);
+  const inicio=impressaoTabela ? 0 : (comparacaoPagina-1)*COMPARACAO_TAMANHO;
+  const visiveis=impressaoTabela ? rows : rows.slice(inicio,inicio+COMPARACAO_TAMANHO);
+  const col=document.getElementById("comparacaoColValor");
+  if(col)col.textContent=d.cat ? "Faixa / pontos" : d.money ? "Renda média" : (modo==="pct" && d.pct ? "%" : "Valor");
+  const popCol=document.getElementById("comparacaoColPop");
+  if(popCol)popCol.textContent=munAtual ? (camada==="grade" ? "Pop. da célula" : "Pop. do setor") : (escopoEfetivo(d)==="bacia" ? "Pop. na bacia" : "Pop. municipal");
+  const sub=document.getElementById("comparacaoSub");
+  if(sub)sub.textContent=`${d.nome} · ${escopoComparacao()} · ${modo==="pct" && d.pct ? (d.base ? "% dos domicílios ocupados" : "% da população") : "valores absolutos"}.`;
+  const meta=document.getElementById("comparacaoMeta");
+  if(meta)meta.textContent=`mostrando ${fmt(visiveis.length)} de ${fmt(rows.length)} registros encontrados`+(selectionLayers.length ? ` · ${fmt(selectionLayers.length)} na seleção` : "")+(rows.length>COMPARACAO_TAMANHO ? ` · página ${comparacaoPagina}/${paginas}` : "");
+  if(impressaoTabela && meta) meta.textContent=`mostrando ${fmt(visiveis.length)} de ${fmt(rows.length)} registros filtrados para impressão`;
+  const note=document.getElementById("comparacaoTableNote");
+  if(note)note.textContent=camada==="grade" ? "Grade: exibindo os 50 primeiros por página; use os controles para percorrer. Use Tab até a caixa de seleção para incluir/remover um local. † = cobertura parcial; — = não publicado/unknown." : "Use Tab até a caixa de seleção para incluir/remover um local; o nome abre a ficha no mapa. † = cobertura parcial; — = não publicado/unknown.";
+  const pager=document.getElementById("comparacaoPaginacao"), prev=document.getElementById("comparacaoAnterior"), next=document.getElementById("comparacaoProxima"), pageText=document.getElementById("comparacaoPaginaTexto");
+  if(pager){pager.hidden=rows.length<=COMPARACAO_TAMANHO; if(prev)prev.disabled=comparacaoPagina<=1; if(next)next.disabled=comparacaoPagina>=paginas; if(pageText)pageText.textContent=`página ${comparacaoPagina} de ${paginas}`;}
+  if(impressaoTabela && pager) pager.hidden=true;
+  if(!rows.length){body.innerHTML=`<tr><td colspan="7" style="color:var(--muted)">Nenhum registro corresponde ao filtro.</td></tr>`;return;}
+  body.innerHTML=visiveis.map((r,i)=>{
+    const idx=inicio+i;
+    const cov=coberturaCampo(r.p,d);
+    const mark=(r.parcial || cov?.parcial) ? ` <span class="partial-mark" title="Cobertura ${cov ? `${fmt(cov.n)} de ${fmt(cov.total)}` : "parcial"}; soma conhecida pode ser incompleta">†</span>` : "";
+    const check=`<input class="comparacao-check" type="checkbox" data-row="${idx}" ${r.selecionado?"checked":""} aria-label="Selecionar ${escHTML(r.nome)}">`;
+     return `<tr><td class="rank">${idx+1}</td><th scope="row" class="nome"><button class="comparacao-link" type="button" data-open-row="${idx}" aria-label="Abrir ficha de ${escHTML(r.nome)}">${escHTML(r.nome)}</button>${mark}</th><td>${escHTML(r.codigo)}</td><td>${escHTML(r.display)}</td><td>${r.pop==null?"—":fmt(r.pop)}</td><td class="${r.selecionado?"sel":""}">${check}</td><td class="acoes"><button class="comparacao-link" type="button" data-open-row="${idx}" aria-label="Abrir ficha de ${escHTML(r.nome)}">abrir</button></td></tr>`;
+  }).join("");
+  body.querySelectorAll("button[data-open-row]").forEach(btn=>{
+    btn.onclick=()=>{
+      const row=rows[+btn.dataset.openRow];
+      if(row?.layer?.openPopup)row.layer.openPopup();
+    };
+  });
+  body.querySelectorAll("input.comparacao-check[data-row]").forEach(input=>{
+    input.onchange=()=>alternaSelecaoTabela(rows[+input.dataset.row]?.layer);
+  });
+}
+function baixarTabelaComparacao(){
+  const rows=linhasComparacaoFiltradas();
+  if(!rows.length){informa("Nenhum registro para baixar na tabela.");return;}
+  const d=INDS.find(i=>i.k===ind) || INDS[0];
+  const statusEscopo=escopoEfetivo(d), referencia=d.cat?"ICM 28/04/2026":d.svc?"IEDE-RS · captura no catálogo":"Censo IBGE 2022";
+  const saida=rows.map((r,i)=>({ordem:i+1,nome:r.nome,codigo:r.codigo,indicador:d.nome,valor:r.display,populacao:r.pop,status_dado:(!munAtual && statusDadoTriagem(r.p)) || (r.suprimido?"sem_dado_publicado":r.parcial?"cobertura_parcial":"publicado"),completude:r.suprimido?"não publicado":r.parcial?"parcial":"publicado",n_validos:r.p?.[`${campoEscopo(d)}_n_validos`] ?? "",n_total:r.p?.[`${campoEscopo(d)}_n_total`] ?? "",escopo:statusEscopo,unidade:d.money?"R$ por mês":d.svc?"pontos cadastrados":d.pct?(d.base?"% dos domicílios permanentes ocupados":"% da população"):(d.un||"valor"),data_referencia:referencia,selecionado:r.selecionado?"sim":"não"}));
+  const cols=["ordem","nome","codigo","indicador","valor","populacao","status_dado","completude","n_validos","n_total","escopo","unidade","data_referencia","selecionado"];
+  const csv=[cols.map(csvCampo).join(";")].concat(saida.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
+  baixarBlob(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}),`tabela_${slugLocal(escopoComparacao())}_${slugLocal(ind)}.csv`);
+  informa(`${fmt(saida.length)} registros da tabela exportados em CSV.`);
+}
+document.getElementById("comparacaoBusca").oninput=()=>{comparacaoPagina=1;atualizaTabelaComparacao();};
+document.getElementById("comparacaoOrdem").onchange=()=>{comparacaoPagina=1;atualizaTabelaComparacao();};
+document.getElementById("comparacaoSomenteSelecao").onchange=()=>{comparacaoPagina=1;atualizaTabelaComparacao();};
+document.getElementById("comparacaoAnterior").onclick=()=>{comparacaoPagina--;atualizaTabelaComparacao();};
+document.getElementById("comparacaoProxima").onclick=()=>{comparacaoPagina++;atualizaTabelaComparacao();};
+document.getElementById("comparacaoBaixar").onclick=baixarTabelaComparacao;
+function atualizaPainelSelecao(){
+  const panel=document.getElementById("selectionPanel"), summary=document.getElementById("selectionSummary");
+  const has=selectionLayers.length>0;
+  panel.hidden=!has;
+  ["baixarSelecao","baixarSelecaoGeo","baixarFicha"].forEach(id=>{const b=document.getElementById(id); if(b)b.disabled=!has;});
+  const printSel=document.querySelector('input[name="printMode"][value="map-selection"]');
+  if(printSel)printSel.disabled=!has;
+  document.getElementById("limparSelecao").disabled=!has && !selectionRect;
+  if(!has){summary.textContent="";atualizaTabelaComparacao();return;}
+  const r=resumoSelecao();
+   summary.innerHTML=`<b>${fmt(r.count)}</b> ${r.nome} selecionado(s) · <b>${escHTML(r.popLabel)}</b> habitantes`+
+    (r.detalhe ? `<br><small>${escHTML(r.indicador)}:</small> ${r.detalhe}` : "");
+  atualizaTabelaComparacao();
+}
+function limpaSelecao(){
+  selectionStart=null;
+  selectionLayers=[];
+  if(selectionRect && map){map.removeLayer(selectionRect);selectionRect=null;}
+  selectionMode=false;
+  document.getElementById("map")?.classList.remove("selection-mode");
+  const b=document.getElementById("selecionarArea");
+  if(b){b.classList.remove("on");b.textContent="▣ selecionar área";}
+  if (munLayer || setLayer) repinta();
+  atualizaPainelSelecao();
+  sincronizaURL();
+}
+function atualizaBotaoSelecao(){
+  const b=document.getElementById("selecionarArea");
+  if(!b)return;
+  b.classList.toggle("on",selectionMode);
+  b.textContent=selectionMode ? "clique nos dois cantos (Esc)" : "▣ selecionar área";
+}
+function alternaSelecao(){
+  if(!camadasVisiveis().length){informa("Aguarde o carregamento do mapa para selecionar uma área.");return;}
+  selectionMode=!selectionMode;
+  selectionStart=null;
+  if(selectionMode && selectionRect && map){map.removeLayer(selectionRect);selectionRect=null;}
+  document.getElementById("map")?.classList.toggle("selection-mode",selectionMode);
+  atualizaBotaoSelecao();
+  if(selectionMode) informa("Clique em um canto da área e depois no canto oposto. Esc cancela o desenho.");
+  else informa(selectionLayers.length ? "Seleção mantida." : "Seleção desativada.");
+}
+function concluiSelecao(){
+  if(!selectionRect)return;
+  const bounds=selectionRect.getBounds();
+  const novos=camadasVisiveis().filter(l=>geometriaCruzaRetangulo(l.feature,bounds));
+  // repinta sem o destaque antigo antes de aplicar o novo conjunto.
+  selectionLayers=[];
+  repinta();
+  selectionLayers=novos;
+  selectionMode=false; selectionStart=null;
+  document.getElementById("map")?.classList.remove("selection-mode");
+  atualizaBotaoSelecao();
+  aplicaDestaqueSelecao();
+  atualizaPainelSelecao();
+  sincronizaURL();
+  informa(novos.length ? `${fmt(novos.length)} ${nomeCamadaSelecao()} selecionado(s).` : "Nenhum elemento foi alcançado pelo retângulo.");
+}
+function restauraSelecaoURL(){
+  const raw=PARAMS.get("selecao");
+  if(!raw || !munLayer)return;
+  const n=raw.split(",").map(Number);
+  if(n.length!==4 || n.some(v=>!isFinite(v)))return;
+  const bounds=L.latLngBounds([Math.min(n[0],n[2]),Math.min(n[1],n[3])],[Math.max(n[0],n[2]),Math.max(n[1],n[3])]);
+  selectionRect=L.rectangle(bounds,{className:"selection-rect",interactive:false}).addTo(map);
+  selectionLayers=camadasVisiveis().filter(l=>geometriaCruzaRetangulo(l.feature,bounds));
+  aplicaDestaqueSelecao();
+  atualizaPainelSelecao();
+}
+function fichaSelecao(){
+  const vista=dadosDaSelecao(); if(!vista)return;
+  const r=resumoSelecao();
+  const d=INDS.find(i=>i.k===ind) || INDS[0];
+  const props=vista.features.map(f=>f.properties||{});
+  const campos=["nome","setor","cod_mun","pop","pop_bacia",ind].filter((k,i,a)=>a.indexOf(k)===i);
+  const titulo=`Ficha da seleção · ${r.nome}`;
+  const campoRotulo={nome:"Local",setor:"Setor censitário",cod_mun:"Código IBGE",pop:"População",pop_bacia:"População na bacia"};
+  campoRotulo[ind]=d.nome;
+  const cab=campos.map(c=>`<th>${escHTML(campoRotulo[c]||c)}</th>`).join("");
+  const fichaValor=(p,c)=>{
+    if(c===ind && d.cat) return p.icm_faixa ? `${p.icm_faixa}${p.icm_pont!=null ? ` · ${fmt(p.icm_pont)} pts` : ""}` : "—";
+    if(c===ind && d.svc){
+      const tipo=ind.replace(/^svc_/i,"");
+      const v=p[ind] ?? p[`mun_${tipo}_iede`];
+      return v===null || v===undefined || v==="" ? "sem ponto publicado" : v;
+    }
+    if(c==="pop_bacia" && Number(p.n_setores_bacia)===0) return "não estimada";
+    return p?.[c] ?? "—";
+  };
+  const trs=vista.features.map(f=>`<tr>${campos.map(c=>`<td>${escHTML(fichaValor(f.properties||{},c))}</td>`).join("")}</tr>`).join("");
+  const icm=[...new Set(props.map(p=>p.icm_faixa).filter(Boolean))].map(f=>{
+    const pts=props.find(p=>p.icm_faixa===f)?.icm_pont;
+    return `${f}${pts!=null?` · ${fmt(pts)} pts`:""}`;
+  }).join(", ") || "não disponível nesta seleção";
+  const tiposServico=[["ubs","UBS"],["hospitais","hospitais"],["escolas","escolas"],["bombeiros","bombeiros"]];
+  const svcFonte=munAtual ? [munAtual] : props;
+  const servicos=tiposServico.map(([k,nome])=>{
+    const conhecidos=svcFonte.map(p=>p[`svc_${k}`]).filter(v=>v!==null&&v!==""&&Number.isFinite(Number(v)));
+    return `${nome}: ${conhecidos.length?fmt(conhecidos.reduce((s,v)=>s+Number(v),0)):"sem ponto publicado"} (${fmt(conhecidos.length)}/${fmt(svcFonte.length)} com ponto)`;
+  }).join(" · ");
+  const referencia=d.cat?"ICM · 28/04/2026":d.svc?`IEDE-RS · captura ${servicosCaptura ? new Date(servicosCaptura).toLocaleDateString("pt-BR") : "registrada no catálogo"}`:"IBGE Censo 2022";
+  const limitacoes=[
+    `Escopo: ${textoEscopoDados()}`,
+    `Indicador: ${d.nome}; ${referencia}.`,
+    "CRS das geometrias: EPSG:4326 (WGS84); use CRS métrico para área/distância.",
+    `ICM municipal: ${icm}. IEDE: ${servicos}. Ausência de ponto não prova ausência do serviço.`,
+    "SGB é risco setorizado, somente Santa Tereza; não é uma mancha contínua nem alerta.",
+    "Nulos e ‘sem ponto publicado’ são desconhecidos; não devem ser tratados como zero."
+  ];
+  const metaLista=limitacoes.map(x=>`<li>${escHTML(x)}</li>`).join("");
+  const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escHTML(titulo)}</title><style>
+    body{font:14px Arial,sans-serif;color:#132019;margin:32px;max-width:1100px}h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:24px 0 6px}p{line-height:1.5;color:#4f6157}.meta{font-size:12px;color:#5c6b63;margin-bottom:18px}.resumo{border:1px solid #dfe7e1;background:#f4f8f5;border-radius:9px;padding:12px;margin:12px 0}.resumo b{color:#0f6b4a}table{border-collapse:collapse;width:100%;font-size:12px}th,td{text-align:left;padding:7px 8px;border:1px solid #dfe7e1}th{background:#eef3f1;font-size:11px;text-transform:uppercase}td{font-variant-numeric:tabular-nums}@media print{body{margin:12mm}}
+  </style></head><body><h1>${escHTML(titulo)}</h1><div class="meta">PREVINE · Vulnerabilidade social — bacia Taquari-Antas · gerada em ${new Date().toLocaleString("pt-BR")}</div>
+  <div class="resumo"><b>${fmt(r.count)}</b> ${escHTML(r.nome)} · <b>${escHTML(r.popLabel)}</b> habitantes<br>${escHTML(r.indicador)}: ${escHTML(r.detalheTexto||"—")}</div>
+  <h2>Proveniência, cobertura e limitações</h2><ul>${metaLista}</ul>
+  <p>Esta ficha resume exatamente os elementos escolhidos no mapa atual. O arquivo espacial correspondente pode ser aberto no QGIS ou ArcGIS como GeoJSON.</p><h2>Registros selecionados</h2><table><thead><tr>${cab}</tr></thead><tbody>${trs}</tbody></table>
+  <p>A seleção é espacial por interseção do retângulo com as geometrias exibidas. Valores parciais mantêm os registros conhecidos e suas flags de cobertura; não são estimativas completas.</p></body></html>`;
+  baixarBlob(new Blob([html],{type:"text/html;charset=utf-8"}),`${vista.prefixo}_ficha.html`);
+  informa("Ficha HTML da seleção baixada. Abra o arquivo e use Imprimir para gerar PDF.");
+}
+document.getElementById("selecionarArea").onclick=alternaSelecao;
+document.getElementById("limparSelecao").onclick=limpaSelecao;
+document.getElementById("baixarSelecao").onclick=()=>{
+  const vista=dadosDaSelecao(); if(!vista)return;
+  const rows=vista.features.map(f=>f.properties), cols=[...new Set(rows.flatMap(r=>Object.keys(r)))];
+  const csv=[cols.map(csvCampo).join(";")].concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
+  baixarBlob(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}),`${vista.prefixo}.csv`);
+  informa(`${fmt(rows.length)} registros selecionados exportados em CSV.`);
+};
+document.getElementById("baixarSelecaoGeo").onclick=()=>{
+  const vista=dadosDaSelecao(); if(!vista)return;
+  baixarBlob(new Blob([JSON.stringify({type:"FeatureCollection",features:vista.features})],{type:"application/geo+json;charset=utf-8"}),`${vista.prefixo}.geojson`);
+  informa(`${fmt(vista.features.length)} feições selecionadas exportadas em GeoJSON (EPSG:4326).`);
+};
+document.getElementById("baixarFicha").onclick=fichaSelecao;
+document.addEventListener("keydown",e=>{if(e.key==="Escape" && selectionMode){selectionMode=false;selectionStart=null;document.getElementById("map")?.classList.remove("selection-mode");atualizaBotaoSelecao();informa("Desenho cancelado; a seleção anterior foi mantida.");}});
+
+// ---- montagem ----
+const indDiv = document.getElementById("ind");
+const gruposInd = new Map();
+INDS.forEach(d=>{
+  if (!gruposInd.has(d.grupo)){
+    const grupo = document.createElement("div");
+    grupo.className = "ind-group";
+    grupo.dataset.grupo = d.grupo;
+    const titulo = document.createElement("div");
+    titulo.className = "ind-group-title";
+    titulo.textContent = d.grupo;
+    grupo.appendChild(titulo);
+    indDiv.appendChild(grupo);
+    gruposInd.set(d.grupo, grupo);
+  }
+  const b = document.createElement("button");
+  b.textContent = d.nome; b.dataset.k = d.k;
+  b.type = "button";
+  b.setAttribute("aria-pressed", d.k===ind ? "true" : "false");
+  if (d.parcial){ b.dataset.parcial = "1"; b.title = "Cadastro IEDE com cobertura parcial; ausência não prova inexistência"; }
+  if (d.opt) b.hidden = true;          // só aparece quando o robô publicar o campo
+  if (d.k===ind) b.classList.add("on");
+  b.onclick = ()=>{
+    ind = d.k;
+    indDiv.querySelectorAll("button").forEach(x=>{
+      const ativo = x.dataset.k===ind;
+      x.classList.toggle("on", ativo); x.setAttribute("aria-pressed", ativo ? "true" : "false");
+    });
+    configuraPercentual(d, true);
+    // ICM é categórico: 'editar faixas' não se aplica
+    document.getElementById("editfx").style.display = d.cat ? "none" : "";
+    if (d.cat){ document.getElementById("fxbox").hidden = true; document.getElementById("editfx").classList.remove("on"); }
+    repinta();
+    sincronizaURL();
+    informa(`Indicador ${d.nome} · ${escopoComparacao()}.`);
+    if(document.getElementById("triagem")?.open) geraTriagem();
+  };
+  gruposInd.get(d.grupo).appendChild(b);
+});
+// revela os indicadores opcionais que o robô já publicou (campo presente nos dados)
+function revelaOpcionais(){
+  if (!munData || !munData.features.length) return;
+  INDS.forEach(d=>{
+    if (!d.opt) return;
+    const tem = munData.features.some(f=>Object.prototype.hasOwnProperty.call(f.properties,d.k));
+    const b = indDiv.querySelector(`button[data-k="${d.k}"]`);
+    if (b) b.hidden = !tem;
+  });
+  indDiv.querySelectorAll(".ind-group").forEach(g=>{
+    g.hidden = ![...g.querySelectorAll("button")].some(b=>!b.hidden);
+  });
+}
+// grade estatística só tem população e domicílios — some com o resto dos botões
+// enquanto essa camada estiver ativa (o setor censitário continua com tudo)
+function aplicaRestricaoCamada(){
+  const restringe = camada === "grade";
+  INDS.forEach(d=>{
+    const b = indDiv.querySelector(`button[data-k="${d.k}"]`);
+    if (!b) return;
+    b.textContent = restringe && d.k === "dom" ? "Domicílios ocupados (grade)" : d.nome;
+    if (restringe) b.hidden = !GRADE_INDS.has(d.k);
+    else if (!d.opt) b.hidden = false;      // devolve pro estado normal; opcionais recalculam abaixo
+  });
+  if (!restringe) revelaOpcionais();
+  if (restringe && !GRADE_INDS.has(ind)){
+    ind = "pop";
+    indDiv.querySelectorAll("button").forEach(x=>{
+      const ativo = x.dataset.k===ind;
+      x.classList.toggle("on", ativo); x.setAttribute("aria-pressed", ativo ? "true" : "false");
+    });
+    const pb = document.querySelector('#modes [data-m="pct"]');
+    pb.disabled = true;
+    if (modo==="pct"){ modo="abs"; sincronizaModos(); }
+  }
+  indDiv.querySelectorAll(".ind-group").forEach(g=>{
+    g.hidden = ![...g.querySelectorAll("button")].some(b=>!b.hidden);
+  });
+}
+function sincronizaModos(){
+  document.querySelectorAll("#modes button").forEach(x=>{
+    const ativo = x.dataset.m===modo;
+    x.classList.toggle("on", ativo); x.setAttribute("aria-pressed", ativo ? "true" : "false");
+  });
+}
+document.querySelectorAll("#modes button").forEach(b=>{
+  b.onclick = ()=>{ if (b.disabled) return; modo = b.dataset.m; sincronizaModos();
+                    repinta(); sincronizaURL(); };
+});
+document.querySelectorAll("#escopos button").forEach(b=>{
+  b.onclick = ()=>{
+    if (b.disabled) return;
+    escopo = b.dataset.s === "bacia" ? "bacia" : "municipio";
+    atualizaEscopoDados();
+    if (!INDS.find(i=>i.k===ind)?.pct && modo === "pct"){ modo="abs"; sincronizaModos(); }
+    repinta();
+    sincronizaURL();
+    informa(escopo === "bacia" ? "Escopo alterado para somente na bacia." : "Escopo alterado para município inteiro.");
+    if(document.getElementById("triagem")?.open) geraTriagem();
+  };
+});
+document.getElementById("volta").onclick = voltaBacia;
+
+// alterna setor censitário <-> grade estatística (só importa depois de abrir um município)
+document.querySelectorAll("#camadas button").forEach(b=>{
+  b.onclick = ()=>{
+    if (camada === b.dataset.c) return;
+    camada = b.dataset.c;
+    document.querySelectorAll("#camadas button").forEach(x=>{
+      const ativo = x.dataset.c===camada;
+      x.classList.toggle("on", ativo); x.setAttribute("aria-pressed", ativo ? "true" : "false");
+    });
+    aplicaRestricaoCamada();
+    if (munAtual) abreMunicipio(munAtual.cod_mun);   // recarrega o município já aberto na camada nova
+    else sincronizaURL();
+  };
+});
+
+document.querySelectorAll("#escalas button").forEach(b=>{
+  b.onclick = ()=>{
+    escala = b.dataset.e;
+    document.querySelectorAll("#escalas button").forEach(x=>{
+      const ativo = x.dataset.e===escala;
+      x.classList.toggle("on", ativo); x.setAttribute("aria-pressed", ativo ? "true" : "false");
+    });
+    repinta(); sincronizaURL();
+  };
+});
+
+const opacidadeInput = document.getElementById("opacidade");
+opacidadeInput.value = Math.round(opacidade*100);
+document.getElementById("opacidadeValor").value = `${Math.round(opacidade*100)}%`;
+opacidadeInput.oninput = ()=>{
+  opacidade = +opacidadeInput.value/100;
+  document.getElementById("opacidadeValor").value = `${opacidadeInput.value}%`;
+  repinta(); sincronizaURL();
+};
+
+// editor de faixas da legenda
+const fxbox = document.getElementById("fxbox"), editfx = document.getElementById("editfx");
+editfx.onclick = ()=>{ fxbox.hidden = !fxbox.hidden; editfx.classList.toggle("on", !fxbox.hidden); };
+function repinta(){
+  munAtual ? pintaSetores() : pintaMunicipios();
+  // O resumo da seleção depende do indicador e do escopo atuais.
+  atualizaPainelSelecao();
+}
+document.getElementById("fxok").onclick = ()=>{
+  const v = [0,1,2,3].map(i=>parseFloat(document.getElementById("fx"+i).value));
+  if (v.some(x=>!isFinite(x))) return;
+  manualBrks[chaveBrk()] = v.sort((a,b)=>a-b);
+  repinta();
+};
+document.getElementById("fxauto").onclick = ()=>{ delete manualBrks[chaveBrk()]; repinta(); };
+
+function sincronizaURL(){
+  const u = new URL(location.href);
+  u.searchParams.set("indicador", ind);
+  u.searchParams.set("modo", modo);
+  u.searchParams.set("camada", camada);
+  u.searchParams.set("escala", escala);
+  u.searchParams.set("escopo", escopo);
+  u.searchParams.set("opacidade", Math.round(opacidade*100));
+  if (munAtual) u.searchParams.set("municipio", munAtual.cod_mun); else u.searchParams.delete("municipio");
+  if (selectionRect){
+    const b=selectionRect.getBounds();
+    u.searchParams.set("selecao", [b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].map(v=>v.toFixed(5)).join(","));
+  } else u.searchParams.delete("selecao");
+  history.replaceState(null, "", u);
+}
+
+function contextoMunicipioAtual(){
+  if (!munAtual) return {};
+  return {
+    municipio: munAtual.nome, cod_mun: munAtual.cod_mun,
+    mun_pct_na_bacia: munAtual.pct_na_bacia ?? "",
+    mun_pop_total: munAtual.pop ?? "", mun_pop_na_bacia: munAtual.pop_bacia ?? "",
+    mun_ubs_iede: munAtual.svc_ubs ?? "", mun_hospitais_iede: munAtual.svc_hospitais ?? "",
+    mun_escolas_iede: munAtual.svc_escolas ?? "", mun_bombeiros_iede: munAtual.svc_bombeiros ?? "",
+    mun_servicos_cobertura: "cadastro_IEDE_parcial_nao_inventario",
+    mun_icm_faixa: munAtual.icm_faixa ?? "", mun_icm_pontos: munAtual.icm_pont ?? "",
+    mun_icm_prioritario: munAtual.icm_prior==null ? "" : (munAtual.icm_prior ? "sim" : "não"),
+  };
+}
+
+function dadosDaVista(){
+  if (munAtual && setLayer){
+    const ctx = contextoMunicipioAtual();
+    const features = setLayer.getLayers().map(l=>({
+      type:"Feature", geometry:l.feature.geometry, properties:{...l.feature.properties, ...ctx}
+    }));
+    return {features, prefixo:`${camada}_${munAtual.cod_mun}_${munAtual.nome.normalize("NFD").replace(/[^\w]/g,"_")}`};
+  }
+  return {features:munData.features.map(f=>({type:"Feature",geometry:f.geometry,properties:{...f.properties}})),
+          prefixo:"municipios_bacia_taquari_antas"};
+}
+
+function baixarBlob(blob, nome){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = nome; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function csvCampo(v){
+  const s = String(v ?? "");
+  return /[;"\r\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+}
+let triagemResultado=[];
+function statusDadoTriagem(p){
+  const d=INDS.find(i=>i.k===ind) || INDS[0];
+  if(!p || Number(p.pop_bacia||0)<=0) return "sem_setor_representativo";
+  if(d.cat) return p.icm_faixa ? "publicado" : "sem_dado_publicado";
+  const c=coberturaCampo(p,d), v=valorBruto(p,d);
+  if(v===null && (!c || c.n===0)) return "sem_dado_publicado";
+  if(c?.parcial || temSigilo(p,d)) return "cobertura_parcial";
+  return "publicado";
+}
+function rotuloStatusDado(s){
+  return ({publicado:"publicado",cobertura_parcial:"cobertura parcial",sem_dado_publicado:"sem dado publicado",sem_setor_representativo:"sem setor representativo"}[s] || s);
+}
+function valorTriagem(p){
+  const d=INDS.find(i=>i.k===ind) || INDS[0];
+  if(d.cat) return p.icm_pont==null ? null : Number(p.icm_pont);
+  const v=valor(p); return Number.isFinite(v) ? v : null;
+}
+function geraTriagem(){
+  const meta=document.getElementById("triagemMeta"), body=document.getElementById("triagemBody");
+  if(!munData){if(meta)meta.textContent="Aguardando os municípios.";return;}
+  const criterio=document.getElementById("triagemCriterio")?.value || "icm_cd";
+  const candidatos=munData.features.map(f=>f.properties).filter(p=>Number(p.pop_bacia)>0);
+  const vals=candidatos.map(valorTriagem).filter(Number.isFinite), corte=vals.length?quantis(vals)[3]:Infinity;
+  triagemResultado=candidatos.filter(p=>{
+    const icm=["C","D"].includes(p.icm_faixa), alto=(valorTriagem(p)??-Infinity)>=corte;
+    return criterio==="icm_cd" ? icm : criterio==="indicador_alto" ? alto : icm&&alto;
+  }).sort((a,b)=>(Number(b.pop_bacia)||0)-(Number(a.pop_bacia)||0));
+  if(meta)meta.textContent=`${fmt(triagemResultado.length)} município(s) · critério: ${criterio.replaceAll("_"," ")} · indicador: ${INDS.find(i=>i.k===ind)?.nome||ind}${vals.length?` · corte do quartil superior: ${rotulo(corte)}`:""}`;
+  if(!body)return;
+  body.innerHTML=triagemResultado.length ? triagemResultado.slice(0,100).map(p=>{
+    const v=valorTriagem(p);
+    const st=statusDadoTriagem(p);
+    return `<tr><th scope="row"><button class="comparacao-link" type="button" data-triagem-mun="${escHTML(p.cod_mun)}" aria-label="Abrir ficha de ${escHTML(p.nome)}">${escHTML(p.nome)}</button></th><td>${fmt(Number(p.pop_bacia)||0)}</td><td>${v==null?"—":escHTML(rotulo(v))}</td><td>${escHTML(p.icm_faixa||"—")}</td><td><span title="${st === "cobertura_parcial" ? "Soma com registros publicados; confira o dicionário" : "Escopo espacial e disponibilidade do indicador"}">${escHTML(rotuloStatusDado(st))}</span></td><td>${fmt(Number(p.area_pct_bacia)||0)}%</td></tr>`;
+  }).join("") : '<tr><td colspan="6" style="color:var(--muted)">Nenhum município atende ao critério com população conhecida na bacia.</td></tr>';
+  body.querySelectorAll("button[data-triagem-mun]").forEach(b=>b.onclick=()=>{document.getElementById("busca").value=b.dataset.triagemMun; abreMunicipio(b.dataset.triagemMun);});
+}
+document.getElementById("triagemGerar")?.addEventListener("click",geraTriagem);
+document.getElementById("triagemBaixar")?.addEventListener("click",()=>{
+  if(!triagemResultado.length){informa("Gere a lista de triagem antes de baixar.");return;}
+  const d=INDS.find(i=>i.k===ind) || INDS[0];
+  const criterio=document.getElementById("triagemCriterio")?.value || "icm_cd";
+  const regra=criterio.replaceAll("_"," ");
+  const rows=triagemResultado.map(p=>({nome:p.nome,cod_mun:p.cod_mun,pop_bacia:p.pop_bacia,area_pct_bacia:p.area_pct_bacia,indicador:d.nome,valor:valorTriagem(p),icm:p.icm_faixa||"",status_dado:rotuloStatusDado(statusDadoTriagem(p)),completude:completudeCampo(p,d) ?? "",escopo:escopoEfetivo(d),criterio:regra,rule_version:"triagem-v1",data_referencia:d.cat?"ICM 28/04/2026":"Censo IBGE 2022",service_coverage_status:"cadastro_IEDE_parcial_nao_inventario"}));
+  const cols=["nome","cod_mun","pop_bacia","area_pct_bacia","indicador","valor","icm","status_dado","completude","escopo","criterio","rule_version","data_referencia","service_coverage_status"];
+  const csv=[cols.map(csvCampo).join(";")].concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
+  baixarBlob(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}),`triagem_${slugLocal(ind)}.csv`); informa(`${fmt(rows.length)} municípios da triagem exportados.`);
+});
+document.getElementById("baixar").onclick = ()=>{
+  const vista = dadosDaVista(), rows = vista.features.map(f=>f.properties);
+  const cols = [...new Set(rows.flatMap(r=>Object.keys(r)))];
+  const csv = [cols.map(csvCampo).join(";")]
+    .concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
+  baixarBlob(new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8"}), `${vista.prefixo}.csv`);
+  informa(`${rows.length.toLocaleString("pt-BR")} registros exportados em CSV.`);
+};
+document.getElementById("baixarGeo").onclick = ()=>{
+  const vista = dadosDaVista();
+  const geo = JSON.stringify({type:"FeatureCollection",features:vista.features});
+  baixarBlob(new Blob([geo], {type:"application/geo+json;charset=utf-8"}), `${vista.prefixo}.geojson`);
+  informa(`${vista.features.length.toLocaleString("pt-BR")} feições exportadas em GeoJSON (EPSG:4326).`);
+};
+document.getElementById("copiarLink").onclick = async()=>{
+  sincronizaURL();
+  try { await navigator.clipboard.writeText(location.href); informa("Link do mapa copiado."); }
+  catch { window.prompt("Copie o link deste mapa:", location.href); }
+};
+const printDialog = document.getElementById("printDialog");
+let printTrigger = null, printing = false;
+function limpaModoImpressao(){
+  const tabelaEmImpressao=impressaoTabela;
+  impressaoTabela=false;
+  document.body.classList.remove("print-map-only","print-map-legend","print-map-summary","print-map-selection","print-map-table");
+  if(tabelaEmImpressao && typeof atualizaTabelaComparacao === "function") atualizaTabelaComparacao();
+  document.querySelectorAll(".print-hide").forEach(el=>el.classList.remove("print-hide"));
+}
+document.getElementById("imprimir").onclick = ()=>{
+  printTrigger=document.getElementById("imprimir");
+  if (printDialog?.showModal){ printDialog.showModal(); window.setTimeout(()=>document.getElementById("printConfirm")?.focus(),0); }
+  else window.print();
+};
+document.getElementById("printCancel").onclick = ()=>{ printing=false; printDialog.close(); };
+printDialog?.addEventListener("close",()=>{ if(!printing)limpaModoImpressao(); if(!printing && printTrigger?.focus)printTrigger.focus(); });
+document.getElementById("printConfirm").onclick = ()=>{
+  const mode = document.querySelector('input[name="printMode"]:checked')?.value || "map-legend";
+  limpaModoImpressao();
+  document.body.classList.add(`print-${mode}`);
+  if (mode === "map-table"){
+    impressaoTabela=true;
+    atualizaTabelaComparacao();
+  }
+  if (mode === "map-selection" && selectionLayers.length) document.getElementById("selectionPanel").hidden=false;
+  printing=true;
+  printDialog.close();
+  map?.invalidateSize(true);
+  window.setTimeout(()=>{ map?.invalidateSize(true); window.print(); },450);
+};
+window.addEventListener("afterprint",()=>{ printing=false; map?.invalidateSize(true); limpaModoImpressao(); window.setTimeout(()=>map?.invalidateSize(true),120); if(printTrigger?.focus)printTrigger.focus(); });
+
+// aplica o estado inicial recebido pelo link compartilhado
+if (!INDS.find(d=>d.k===ind)?.pct && modo==="pct") modo="abs";
+sincronizaModos();
+document.querySelectorAll("#camadas button").forEach(x=>{
+  const ativo=x.dataset.c===camada; x.classList.toggle("on",ativo); x.setAttribute("aria-pressed",ativo?"true":"false");
+});
+document.querySelectorAll("#escalas button").forEach(x=>{
+  const ativo=x.dataset.e===escala; x.classList.toggle("on",ativo); x.setAttribute("aria-pressed",ativo?"true":"false");
+});
+const indInicial = INDS.find(d=>d.k===ind);
+configuraPercentual(indInicial);
+aplicaRestricaoCamada();
+atualizaEscopoDados();
+
+// mapa principal: mostra o Brasil, mas com "holofote" no RS — tudo fora do
+// estado ganha um véu para destacar a região (o resto fica ~30% visível)
+map = L.map("map", {scrollWheelZoom:window.innerWidth > 900, minZoom:4, preferCanvas:true, zoomControl:false}).setView([-29.5,-53.5], 7);
+L.control.zoom({position:"topleft", zoomInTitle:"Aumentar zoom", zoomOutTitle:"Reduzir zoom"}).addTo(map);
+map.on("click", e=>{
+  if(!selectionMode)return;
+  if(!selectionStart){
+    selectionStart=e.latlng;
+    selectionRect=L.rectangle([e.latlng,e.latlng],{className:"selection-rect",interactive:false}).addTo(map);
+    informa("Agora clique no canto oposto para concluir a seleção.");
+  }else{
+    selectionRect?.setBounds(L.latLngBounds(selectionStart,e.latlng));
+    concluiSelecao();
+  }
+});
+map.on("mousemove", e=>{
+  if(selectionMode && selectionStart && selectionRect) selectionRect.setBounds(L.latLngBounds(selectionStart,e.latlng));
+});
+function encaminhaCliqueSelecao(e){
+  if(!selectionMode) return;
+  L.DomEvent.stop(e);
+  map.fire("click", {latlng:e.latlng, originalEvent:e.originalEvent});
+}
+map.createPane("servicos").style.zIndex = 450;   // pontos de serviços sempre acima dos polígonos
+map.createPane("bacia").style.zIndex = 460;      // limite analítico visível sobre os municípios
+map.createPane("mascara").style.zIndex = 250;    // véu abaixo dos polígonos/pontos, acima dos tiles
+map.getPane("mascara").style.pointerEvents = "none";
+const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
+const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                        {maxZoom:19, maxNativeZoom:19, attribution:"© Esri, Maxar"});
+const semMapa = L.layerGroup();
+L.control.layers({"Mapa": osm, "Satélite": sat, "Sem mapa base": semMapa}, null, {position:"topleft"}).addTo(map);
+L.control.scale({imperial:false, position:"bottomleft"}).addTo(map);
+const Norte = L.Control.extend({options:{position:"topleft"}, onAdd(){
+  const el=L.DomUtil.create("div","north-control"); el.setAttribute("aria-label","Norte"); el.title="Norte"; el.innerHTML="<span>↑</span>"; return el;
+}});
+new Norte().addTo(map);
+
+// véu sobre tudo, menos o RS (buraco recortado no contorno do estado)
+carrega("rs_contorno.geojson").then(gj=>{
+  const geom = gj.features[0].geometry;
+  const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+  const buracos = polys.map(p => p[0].map(c => [c[1], c[0]]));   // anel externo de cada polígono, em lat,lng
+  const mundo = [[-85,-200],[-85,200],[85,200],[85,-200]];
+  L.polygon([mundo, ...buracos], {pane:"mascara", stroke:false,
+             fillColor:"#eef3f1", fillOpacity:0.7, interactive:false}).addTo(map);
+  L.geoJSON(gj, {pane:"mascara", interactive:false,
+             style:{color:"#8a9a91", weight:1, fill:false}}).addTo(map);
+}).catch(()=>{});
+
+// mini-mapa de localização: o RS com a SILHUETA da bacia destacada
+const inset = L.map("inset", {zoomControl:false, attributionControl:true, dragging:false,
+  scrollWheelZoom:false, doubleClickZoom:false, boxZoom:false, keyboard:false, touchZoom:false});
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:8, attribution:"© OpenStreetMap"}).addTo(inset);
+inset.fitBounds([[-33.9,-57.7],[-27.0,-49.5]]);
+carrega("rs_contorno.geojson").then(gj=>{     // contorno do estado (gerado pelo robô)
+  L.geoJSON(gj, {style:{color:"#8a9a91", weight:1, fillColor:"#c9d4cd", fillOpacity:.5}}).addTo(inset);
+}).catch(()=>{});
+carrega("bacia.geojson").then(gj=>{           // a bacia em si, preenchida em verde
+  L.geoJSON(gj, {pane:"bacia", interactive:false,
+    style:{color:"#0c2a22", weight:2.2, dashArray:"8 5", fill:false}}).addTo(map);
+  L.geoJSON(gj, {style:{color:"#0c2a22", weight:1.4, fillColor:"#155c47", fillOpacity:.9}}).addTo(inset);
+}).catch(()=>{});
+
+carrega("municipios.geojson").then(gj=>{
+  munData = gj;
+  configuraPercentual(INDS.find(d=>d.k===ind));
+  munLayer = L.geoJSON(gj, {
+    onEachFeature: (f,l)=>{
+      const p = f.properties;
+      l.bindPopup(()=>popup(p,
+        ` <span style="color:#5c6b63;font-size:11px">· ${fmt(p.pct_na_bacia)}% na bacia · ${escHTML(rotuloPopBacia(p))}</span>`));
+      l.bindTooltip(p.nome, {permanent:true, direction:"center", className:"mun-lbl"});
+      l.on("click", encaminhaCliqueSelecao);
+      l.on("dblclick", e=>{ if(selectionMode){ L.DomEvent.stop(e); return; } abreMunicipio(p.cod_mun); });
+      l.on("popupopen", ()=>{
+        const el = l.getPopup().getElement();
+        if (!el || el.querySelector(".abre")) return;
+        const btn = document.createElement("button");
+        btn.className = "abre"; btn.textContent = "ver setores censitários →";
+        btn.style.cssText = "margin-top:6px;border:1px solid #e0e6e1;background:#eef3f1;border-radius:8px;padding:5px 8px;font-size:11.5px;font-weight:650;cursor:pointer";
+        btn.onclick = ()=>{ map.closePopup(); abreMunicipio(p.cod_mun); };
+        el.querySelector(".pop").appendChild(btn);
+      });
+    }
+  }).addTo(map);
+  map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
+  sincronizaCamadaUI();
+  pintaMunicipios();
+  revelaOpcionais();
+  if(!municipioInicial) restauraSelecaoURL();
+  map.on("zoomend", aplicaLabels);
+  aplicaLabels();
+  const popB = gj.features.reduce((s,f)=>s+(+f.properties.pop_bacia||0),0);
+  document.getElementById("subtit").textContent =
+    `Censo IBGE 2022 · ${gj.features.length} municípios · ${(popB/1e6).toLocaleString("pt-BR",{maximumFractionDigits:2})} milhão de pessoas na bacia`;
+
+  const sel = document.getElementById("busca");
+  gj.features.map(f=>f.properties).sort((a,b)=>a.nome.localeCompare(b.nome,"pt")).forEach(p=>{
+    const o = document.createElement("option");
+    o.value = p.cod_mun; o.textContent = p.nome;
+    sel.appendChild(o);
+  });
+  sel.onchange = ()=>{ if (sel.value) abreMunicipio(sel.value); };
+  atualizaDownloads();
+
+  // funde a contagem de serviços por município (robô) para o mapa de densidade
+  carrega("contagem_municipios.json", SERV).then(cj=>{
+    servicosCaptura = cj.gerado_em_utc || "";
+    const porCod = {};
+    (cj.municipios||[]).forEach(m=>{ porCod[String(m.cod_mun)] = m; });
+    munData.features.forEach(f=>{
+      const c = porCod[String(f.properties.cod_mun)] || {};
+      for (const tipo of ["ubs","hospitais","escolas","bombeiros"]){
+        const raw = c[tipo];
+        const conhecido = raw !== null && raw !== undefined && raw !== "" && Number.isFinite(Number(raw));
+        f.properties[`svc_${tipo}`] = conhecido ? Number(raw) : null;
+        f.properties[`svc_${tipo}_status`] = c[`${tipo}_status`] || (conhecido ? "published" : "unknown");
+      }
+    });
+    servicosOk = true;
+    atualizaNotaServico();
+    revelaOpcionais();
+    if (munLayer || setLayer) repinta();
+  }).catch(()=>{
+    servicosOk = false;
+    informa("Os cadastros IEDE não carregaram; a exportação seguirá sem essas contagens.");
+    mostraErroDependencia("Cadastro IEDE indisponível. Os indicadores de serviços podem ficar incompletos.");
+  }).finally(()=>{
+    servicosResolvidos = true;
+    atualizaDownloads();
+  });
+
+  fundeICM();   // se o ICM já tiver carregado, funde as faixas agora
+  if (municipioInicial && munData.features.some(f=>String(f.properties.cod_mun)===String(municipioInicial))){
+    abreMunicipio(String(municipioInicial));
+  } else {
+    sincronizaURL();
+  }
+}).catch(()=>{
+  informa("Os dados municipais não carregaram. Verifique a conexão e tente novamente.");
+  mostraErroDependencia("Dados principais indisponíveis; o mapa não pode ser montado nesta atualização.");
+});
+
+carrega("downloads/catalogo.json").then(d=>{
+  catalogoData = d;
+  const c = d.contagens || {};
+  const dt = d.gerado_em_utc ? new Date(d.gerado_em_utc).toLocaleDateString("pt-BR") : "";
+  document.getElementById("downloadMeta").textContent =
+    `${fmt(c.municipios||0)} municípios · ${fmt(c.setores_na_bacia||0)} setores na bacia` +
+    (dt ? ` · pacote gerado em ${dt}` : "");
+  const q=d.qualidade||{};
+  const cm=document.getElementById("completudeMeta");
+  if(cm)cm.textContent=`${fmt(q.setores_com_dado_suprimido||0)} setor(es) com algum campo não publicado; consulte o catálogo para a definição dos campos.`;
+  const sv=d.cobertura_servicos||{}, sn=document.getElementById("servicoNota");
+  if(sn){
+    const resumo=Object.entries(sv).map(([k,v])=>`${k}: ${fmt(v.pontos_publicados||0)} ponto(s), ${fmt(v.municipios_sem_ponto_na_camada||0)} município(s) sem ponto publicado`).join(" · ");
+    sn.dataset.resumo=resumo;
+    atualizaNotaServico();
+  }
+  const borda=d.recorte_bacia?.municipios_area_pct_com_pop_bacia_zero||[];
+  const lista=document.getElementById("provenienciaLista");
+  if(lista && borda.length){
+    const li=document.createElement("li"); li.textContent=`Revisão de borda: ${borda.map(x=>x.nome).join(" e ")} têm área intersectada, mas nenhum ponto representativo setorial no recorte atual; isso não prova população zero na bacia.`; lista.insertBefore(li,lista.firstElementChild);
+  }
+  if (munLayer) repinta();
+}).catch(()=>{
+  document.getElementById("downloadMeta").textContent = "Catálogo indisponível nesta atualização.";
+  const cm=document.getElementById("completudeMeta"); if(cm)cm.textContent="Catálogo de qualidade indisponível; os valores continuam separados por escala, mas a completude não foi confirmada.";
+});
+
+// contorno oficial da bacia (gerado pelo robô; se ainda não existir, segue sem)
+carrega("bacia.geojson").then(gj=>{
+  L.geoJSON(gj, {style:{fill:false, color:"#0c2a22", weight:2.2, dashArray:"6 4"}}).addTo(map);
+}).catch(()=>{});
+
+// camadas de serviços públicos (robô do IEDE) — carregadas sob demanda
+const SVC = [
+  {k:"hospitais", nome:"Hospitais", cor:"#d73027", letra:"H"},
+  {k:"ubs",       nome:"Unidades de saúde", cor:"#2166ac", letra:"U"},
+  {k:"escolas",   nome:"Escolas",   cor:"#fdae61", letra:"E"},
+  {k:"bombeiros", nome:"Bombeiros", cor:"#7b3294", letra:"B"},
+  {k:"abrigos",   nome:"Abrigos cadastrados", cor:"#008c95", letra:"A"},
+];
+const svcLayers = {};
+SVC.forEach(s=>{
+  const b = document.createElement("button");
+  b.type = "button"; b.setAttribute("aria-pressed", "false");
+  b.innerHTML = `<span class="svc-key svc-${s.k}" aria-hidden="true">${s.letra}</span> ${s.nome}`;
+  b.onclick = ()=>{
+    if (svcLayers[s.k] === "carregando") return;
+    if (svcLayers[s.k]){                 // já carregada: só liga/desliga
+      if (map.hasLayer(svcLayers[s.k])){ map.removeLayer(svcLayers[s.k]); b.classList.remove("on"); b.setAttribute("aria-pressed","false"); }
+      else { svcLayers[s.k].addTo(map); b.classList.add("on"); b.setAttribute("aria-pressed","true"); }
+      return;
+    }
+    svcLayers[s.k] = "carregando";
+    carrega(`${s.k}.geojson`, SERV).then(gj=>{
+      svcLayers[s.k] = L.geoJSON(gj, {
+        pane: "servicos",
+        pointToLayer: (f,ll)=>L.marker(ll, {pane:"servicos", icon:L.divIcon({className:"svc-marker-wrap",html:`<span class="svc-marker svc-${s.k}" aria-hidden="true">${s.letra}</span>`,iconSize:[22,22],iconAnchor:[11,11]})}),
+        onEachFeature: (f,l)=>l.bindPopup(
+          `<div class="pop"><b>${escHTML(f.properties.nome || s.nome)}</b><br>` +
+          `<span style="font-size:11px;color:#5c6b63">${escHTML(s.nome)} · ${escHTML(f.properties.municipio || "município não informado")}</span><br>`+
+          `<small class="partial-note">ponto cadastrado no IEDE-RS; não é inventário completo</small></div>`)
+      }).addTo(map);
+      b.classList.add("on");
+      b.dataset.erro = ""; b.setAttribute("aria-pressed", "true");
+    }).catch(()=>{                       // camada ainda não publicada (ex.: UBS)
+      svcLayers[s.k] = null;
+      b.disabled = false; b.style.opacity = .7; b.dataset.erro = "1"; b.title = "camada indisponível; clique para tentar novamente";
+      mostraErroDependencia(`Camada de ${s.nome} indisponível. O botão pode ser tentado novamente.`);
+    });
+  };
+  document.getElementById("svc").appendChild(b);
+});
+
+// Perigo fica em uma família separada dos indicadores sociais. Esta camada é
+// oficial, mas cobre apenas Santa Tereza; não é extrapolada para a bacia.
+const perigoBtn = document.createElement("button");
+perigoBtn.type = "button";
+perigoBtn.textContent = "SGB · risco setorizado (Santa Tereza)";
+perigoBtn.setAttribute("aria-pressed", "false");
+perigoBtn.title = "37 setores de risco setorizado, com tipologia e grau, mapeados pelo SGB em campo em 2025";
+document.getElementById("perigo").appendChild(perigoBtn);
+let perigoLayer = null, perigoCarregando = false;
+perigoBtn.onclick = ()=>{
+  if (perigoCarregando) return;
+  if (perigoLayer){
+    const liga = !map.hasLayer(perigoLayer);
+    liga ? perigoLayer.addTo(map) : map.removeLayer(perigoLayer);
+    perigoBtn.classList.toggle("on", liga);
+    perigoBtn.setAttribute("aria-pressed", liga ? "true" : "false");
+    document.getElementById("perigoLeg").hidden = !liga;
+    return;
+  }
+  perigoCarregando = true;
+  carrega("perigo/setores_risco_sgb_santa_tereza.geojson").then(gj=>{
+    const cores = {"Muito alto":"#b91c1c", "Alto":"#f59e0b"};
+    perigoLayer = L.geoJSON(gj, {
+      style:f=>({color:cores[f.properties.grau_risco]||"#6b7280", weight:1.4,
+                 fillColor:cores[f.properties.grau_risco]||"#6b7280", fillOpacity:.42}),
+      onEachFeature:(f,l)=>{
+        const p=f.properties;
+        l.bindTooltip(`${escHTML(p.num_setor)} · ${escHTML(p.grau_risco)} · ${escHTML(p.tipolo_g1||"tipologia não informada")}`, {sticky:true});
+        l.bindPopup(`<div class="pop"><b>${escHTML(p.num_setor)}</b><br>`+
+          `<span style="font-size:11px;color:#5c6b63">SGB · Santa Tereza · 2025 · risco setorizado</span>`+
+          `<table><tr><td>Tipologia</td><td>${escHTML(p.tipolo_g1||"—")}</td></tr>`+
+          `<tr><td>Risco</td><td>${escHTML(p.grau_risco||"—")}</td></tr>`+
+          `<tr><td>Vulnerabilidade SGB</td><td>${escHTML(p.grau_vulne||"—")}</td></tr>`+
+          `<tr><td>Local</td><td>${escHTML(p.local||"—")}</td></tr>`+
+          `<tr><td>Estimativa</td><td>${p.num_pess==null?"—":fmt(+p.num_pess)} pessoa(s) · ${p.num_edif==null?"—":fmt(+p.num_edif)} edificação(ões)</td></tr></table>`+
+          `<small>Risco setorizado com tipologia e grau; não é mancha contínua nem cadastro de imóveis. `+
+          `<a href="https://rigeo.sgb.gov.br/items/646ab86b-280b-44f3-b279-87c6f995c0a8" target="_blank" rel="noopener">fonte SGB</a>.</small></div>`);
+      }
+    }).addTo(map);
+    perigoBtn.classList.add("on");
+    perigoBtn.setAttribute("aria-pressed", "true");
+    document.getElementById("perigoLeg").hidden = false;
+  }).catch(()=>{
+    perigoBtn.disabled = false;
+    perigoBtn.title = "camada SGB indisponível; clique para tentar novamente";
+    mostraErroDependencia("Camada de perigo SGB indisponível nesta atualização.");
+  }).finally(()=>{ perigoCarregando = false; });
+};
+
+// ---- ICM: Indicador de Capacidade Municipal (MIDR/Sedec) ----
+carrega("icm_municipios.json", "../assets/data").then(d=>{
+  icmData = d.municipios || [];
+  icmOk = true;
+  fundeICM();   // funde as faixas no mapa (se os municípios já carregaram)
+  const ordem = {A:0, B:1, C:2, D:3};
+  const municipios = icmData.slice()
+    .sort((a,b)=> ordem[a.faixa]-ordem[b.faixa] || a.nome.localeCompare(b.nome, "pt"));
+  const linhas = municipios.map(m=>{
+    const perfil = m.prioritario ? '<span class="icm-prior">Prioritário</span>' : "Não prioritário";
+    const pont = m.pontuacao_total!=null ? m.pontuacao_total : "—";
+    const faixa = ICM_CORES[m.faixa] ? m.faixa : "—";
+    return `<tr><th scope="row" class="nome">${escHTML(m.nome)}</th>` +
+           `<td><span class="icm-badge ${escHTML(faixa)}">${escHTML(faixa)}</span></td>` +
+           `<td>${pont}</td><td>${perfil}</td></tr>`;
+  }).join("");
+  document.getElementById("icmBody").innerHTML = linhas ||
+    '<tr><td colspan="4" style="color:var(--muted)">sem municípios encontrados</td></tr>';
+  const dt = d.atualizado_em ? new Date(d.atualizado_em+"T00:00:00").toLocaleDateString("pt-BR") : "";
+  document.getElementById("icmSub").textContent =
+    `MIDR · Proteção e Defesa Civil · ${municipios.length} municípios da bacia` + (dt ? ` · atualizado em ${dt}` : "");
+}).catch(()=>{
+  icmOk = false;
+  document.getElementById("icmBody").innerHTML =
+    '<tr><td colspan="4" style="color:var(--muted)">não foi possível carregar os dados do ICM agora</td></tr>';
+  mostraErroDependencia("ICM indisponível nesta atualização. A capacidade municipal não foi carregada.");
+}).finally(()=>{
+  icmResolvido = true;
+  atualizaDownloads();
+});
+</script>
+</body>
+</html>

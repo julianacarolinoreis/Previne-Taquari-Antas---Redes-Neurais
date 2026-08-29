@@ -1,0 +1,1907 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>PREVINE · Estudo de caso de resposta · Santa Tereza</title>
+  <style>
+    :root{
+      --bg:#edf2f7;
+      --panel:#ffffff;
+      --panel-soft:#f7f9fc;
+      --ink:#152334;
+      --muted:#586b7d;
+      --line:#dbe3ec;
+      --navy:#102334;
+      --navy-2:#19364c;
+      --cyan:#36b9d8;
+      --blue:#2e72dd;
+      --red:#d94d5c;
+      --orange:#e98f36;
+      --yellow:#cfa42e;
+      --green:#278d6f;
+      --purple:#7764d6;
+      --shadow:0 16px 36px rgba(21,44,68,.09);
+      --radius:14px;
+      --radius-sm:9px;
+      --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+    }
+    *{box-sizing:border-box}
+    html{background:var(--bg)}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.45}
+    .skip-link{position:fixed;z-index:20;left:12px;top:8px;transform:translateY(-160%);padding:9px 11px;border-radius:8px;background:#fff;color:var(--navy);box-shadow:var(--shadow);font-size:12px;font-weight:850;text-decoration:none}
+    .skip-link:focus{transform:translateY(0);outline:3px solid var(--cyan);outline-offset:2px}
+    button,input{font:inherit}
+    button{cursor:pointer}
+    button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid rgba(46,114,221,.35);outline-offset:2px}
+    #decisionPanel:focus{outline:3px solid var(--cyan);outline-offset:5px}
+    .app{max-width:1480px;margin:0 auto;padding:0 20px 36px}
+    .topbar{min-height:68px;display:flex;align-items:center;gap:12px;color:#eaf5fb;background:var(--navy);margin:0 -20px;padding:0 24px;box-shadow:0 4px 18px rgba(12,29,45,.18)}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.03em}
+    .brand-mark{width:30px;height:30px;display:grid;place-items:center;color:var(--navy);background:var(--cyan);border-radius:8px;font-size:17px}
+    .brand-sub{font-size:11px;letter-spacing:.12em;font-weight:600;color:#9db5c8;margin-left:3px}
+    .top-spacer{flex:1}
+    .top-status{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.11em;color:#b7cad8}
+    .top-status-dot{width:8px;height:8px;border-radius:50%;background:#e9a43c;box-shadow:0 0 0 4px rgba(233,164,60,.14)}
+    .crumb{color:#9db5c8;font-size:12px;padding-left:17px;border-left:1px solid rgba(255,255,255,.18)}
+    .safety-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:14px;padding:11px 13px;background:#fff3d8;border:1px solid #efd39a;border-left:4px solid var(--orange);border-radius:10px;color:#744f1d}
+    .safety-copy{min-width:0;display:grid;grid-template-columns:auto auto;align-items:center;gap:2px 9px}
+    .safety-label{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#9c5c1a}
+    .safety-copy strong{font-size:11px;letter-spacing:.04em}
+    .safety-copy>span:last-child{grid-column:1/-1;color:#8a6b3d;font-size:10px}
+    .mode-switch{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px;flex:0 0 auto}
+    .mode-button{border:1px solid #e5c77e;border-radius:7px;padding:7px 9px;background:rgba(255,255,255,.55);color:#8b6a35;font-size:10px;font-weight:800}
+    .mode-button[aria-pressed="true"]{background:#8f5f1e;border-color:#8f5f1e;color:#fff}
+    .mode-button.locked{border-style:dashed;color:#967f5c}
+    .intro{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:31px 0 22px}
+    .eyebrow,.kicker{color:var(--blue);font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+    h1,h2,h3,p{margin-top:0}
+    h1{font-size:30px;line-height:1.1;letter-spacing:-.035em;margin:6px 0 9px;color:var(--navy)}
+    h2{font-size:18px;line-height:1.2;letter-spacing:-.02em;margin:4px 0 0;color:var(--navy)}
+    h3{font-size:14px;line-height:1.25;margin:0;color:var(--navy)}
+    .intro p{max-width:750px;margin:0;color:var(--muted);font-size:15px}
+    .mode-badge{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid #d4e0e9;background:rgba(255,255,255,.62);border-radius:999px;color:#516577;font-size:11px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
+    .mode-badge i{width:7px;height:7px;border-radius:50%;background:var(--orange)}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .model-strip{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;margin-bottom:16px}
+    .model-panel,.decision-teaser{min-width:0}
+    .model-panel{padding:17px 18px 14px}
+    .panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
+    .panel-head p{margin:5px 0 0;color:var(--muted);font-size:12px}
+    .snapshot{color:var(--muted);font-size:11px;white-space:normal;min-width:0;overflow-wrap:anywhere}
+    .model-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+    .model-card{border:1px solid var(--line);background:var(--panel-soft);border-radius:11px;padding:13px}
+    .model-card.reference{border-color:#b8d8e6;background:#f2fbfd}
+    .model-card.shadow{border-color:#d8d1f2;background:#f8f7fe}
+    .model-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+    .model-name{font-weight:800;color:var(--navy)}
+    .model-pill,.status-pill,.tag{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:10px;line-height:1;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+    .model-pill{background:#d8eef4;color:#1c7185}
+    .model-card.shadow .model-pill{background:#e5e1f7;color:#6655b4}
+    .status-pill.attention{color:#955b12;background:#fff1d8}
+    .status-pill.normal{color:#24745d;background:#e1f4ec}
+    .model-level{display:flex;align-items:baseline;gap:6px;margin:0 0 7px}
+    .model-level strong{font-family:var(--mono);font-size:24px;letter-spacing:-.07em;color:var(--navy)}
+    .model-level span{font-size:11px;color:var(--muted)}
+    .model-meta{display:flex;flex-wrap:wrap;gap:10px;color:var(--muted);font-size:11px}
+    .model-meta b{color:var(--ink);font-family:var(--mono);font-weight:700}
+    .model-foot{margin:13px 0 0;padding-top:11px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px}
+    .model-foot strong{color:var(--ink)}
+    .model-foot span{overflow-wrap:anywhere}
+    .coverage-note{display:flex;align-items:flex-start;gap:9px;margin-top:11px;padding:9px 10px;background:#f3fbfd;border-left:3px solid var(--cyan);border-radius:0 8px 8px 0;color:var(--muted);font-size:11px}
+    .coverage-label{color:#1c7185;font-size:10px;font-weight:850;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+    .decision-teaser{padding:18px;color:#eaf4f8;background:linear-gradient(145deg,#17354a,#0f2638);border:0;position:relative;overflow:hidden}
+    .decision-teaser:after{content:"";position:absolute;width:155px;height:155px;border:1px solid rgba(54,185,216,.18);border-radius:50%;right:-53px;bottom:-74px}
+    .teaser-kicker{color:#8ac9d7;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+    .decision-teaser strong{display:block;font-size:18px;line-height:1.22;margin:11px 0 9px;max-width:270px}
+    .decision-teaser p{color:#b4c8d3;font-size:12px;margin:0;max-width:275px}
+    .teaser-command{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:10px 12px;margin-top:15px}
+    .teaser-command div{min-width:0}
+    .teaser-command span{display:block;color:#8da9b8;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+    .teaser-command b{display:block;margin-top:3px;color:#f0fbfe;font-size:11px;line-height:1.22;overflow-wrap:anywhere}
+    .teaser-metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.14)}
+    .teaser-metric span{display:block;color:#8da9b8;font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+    .teaser-metric b{display:block;margin-top:3px;font-family:var(--mono);font-size:15px;color:#f0fbfe}
+    .teaser-action{width:100%;margin-top:15px;padding:9px 10px;border:0;border-radius:8px;background:var(--cyan);color:var(--navy);font-size:11px;font-weight:850;text-align:left}
+    .workspace{display:grid;grid-template-columns:344px minmax(0,1fr);gap:16px;align-items:start}
+    .rail{display:flex;flex-direction:column;gap:13px}
+    .rail>#decisionPanel{order:1}
+    .rail>.event-panel{order:2}
+    .rail>.people-panel{order:3}
+    .rail>.priority-panel{order:4}
+    .rail>.shelter-panel{order:5}
+    .rail .panel{padding:15px}
+    .rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+    .rail-head small{color:var(--muted);font-size:11px}
+    .phase{color:#9c5c1a;background:#fff0d7;padding:5px 7px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+    .event-clock{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:10px 0 13px}
+    .clock-label{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.1em}
+    .clock-value{display:block;color:var(--navy);font-family:var(--mono);font-size:25px;letter-spacing:-.07em;margin-top:2px}
+    .level-value{display:block;color:var(--blue);font-family:var(--mono);font-size:19px;letter-spacing:-.06em;margin-top:4px}
+    .command-strip{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;padding:8px 9px;background:#f7f9fc;border-left:3px solid var(--blue);border-radius:0 8px 8px 0}
+    .command-strip div{min-width:0}
+    .command-strip span{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+    .command-strip strong{display:block;margin-top:2px;color:var(--navy);font-family:var(--mono);font-size:12px}
+    .command-strip>span:last-child{color:var(--muted);font-size:10px;text-align:right}
+    .step-track{display:grid;grid-template-columns:repeat(auto-fit,minmax(62px,1fr));gap:3px;margin:4px 0 14px}
+    .step-button{appearance:none;border:0;background:transparent;color:var(--muted);padding:0 2px;min-width:0;text-align:center}
+    .step-button .step-dot{display:block;width:10px;height:10px;margin:0 auto 5px;border-radius:50%;background:#cbd6e0;box-shadow:0 0 0 3px transparent}
+    .step-button .step-name{display:block;font-size:10px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .step-button.done .step-dot{background:#84bdad}
+    .step-button.current{color:var(--navy);font-weight:800}
+    .step-button.current .step-dot{background:var(--orange);box-shadow:0 0 0 3px #ffead0}
+    .time-scrubber{padding:0 2px 9px}
+    .scrubber-label{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:10px;margin-bottom:3px}
+    .time-scrubber input{display:block;width:100%;height:18px;accent-color:var(--orange);cursor:pointer}
+    .transport{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;gap:7px}
+    .icon-button,.primary-button,.secondary-button{border:1px solid var(--line);border-radius:9px;min-height:38px;padding:7px 10px;font-weight:750}
+    .icon-button{background:var(--panel-soft);color:var(--navy);font-size:17px}
+    .primary-button{background:var(--navy);border-color:var(--navy);color:#fff}
+    .secondary-button{background:#f8fafc;color:var(--navy)}
+    button:disabled{cursor:not-allowed;opacity:.56;filter:saturate(.55)}
+    .transport .primary-button{font-size:12px}
+    .panel-note{color:var(--muted);font-size:11px;line-height:1.45;margin:11px 0 0}
+    .decision-panel{position:relative;overflow:hidden}
+    .decision-panel.tone-danger{border-color:#efc3c8}
+    .decision-panel.tone-warning{border-color:#edd7aa}
+    .decision-panel.tone-ready{border-color:#b9ded2}
+    .decision-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+    .decision-top .kicker{color:var(--muted)}
+    .decision-tag{font-size:10px;font-weight:850;letter-spacing:.05em;text-transform:uppercase}
+    .decision-tag.danger{color:#ad3548}
+    .decision-tag.warning{color:#9b661a}
+    .decision-tag.ready{color:#24745d}
+    .decision-title{font-size:18px;line-height:1.18;letter-spacing:-.025em;color:var(--navy);margin-bottom:8px}
+    .decision-body{font-size:12px;color:var(--muted);margin:0 0 12px}
+    .decision-facts{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 11px}
+    .fact{padding:8px;background:var(--panel-soft);border-radius:8px}
+    .fact span{display:block;color:var(--muted);font-size:10px}
+    .fact b{display:block;color:var(--ink);font-family:var(--mono);font-size:13px;margin-top:2px}
+    .route-compare{margin:0 0 11px;padding:9px 10px 0;background:var(--panel-soft);border:1px solid var(--line);border-radius:9px}
+    .route-compare-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--navy);font-size:10px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}
+    .route-compare-head span:last-child{color:var(--muted);font-size:9px;font-weight:700;letter-spacing:.02em;text-transform:none}
+    .route-option{padding:8px 0 9px;border-top:1px solid var(--line)}
+    .route-option:first-of-type{margin-top:8px}
+    .route-option.closed{opacity:.65}
+    .route-option-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .route-name{display:inline-flex;align-items:center;gap:6px;color:var(--navy);font-size:11px}
+    .route-name strong{font-weight:800}
+    .route-swatch{width:9px;height:3px;border-radius:99px;background:#b27b2b}
+    .route-swatch.short{background:var(--orange)}
+    .route-state{color:#96621b;font-family:var(--mono);font-size:9px;font-weight:850;text-transform:uppercase}
+    .route-state.unvalidated{color:#96621b}
+    .route-state.closed{color:var(--red)}
+    .route-option-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:6px}
+    .route-option-meta b{display:block;color:var(--navy);font-family:var(--mono);font-size:12px}
+    .route-option-meta small{display:block;color:var(--muted);font-size:9px;line-height:1.2;margin-top:2px}
+    .route-compare-note{padding:8px 0 10px;border-top:1px solid var(--line);color:var(--muted);font-size:10px;line-height:1.35}
+    .safety-gate{margin:0 0 11px;padding:9px 10px;background:#fff8e9;border:1px solid #f0d6a0;border-radius:9px}
+    .safety-gate-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#8a5b1b;font-size:10px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}
+    .safety-gate-head strong{font-family:var(--mono);font-size:9px}
+    .safety-gate.ready{background:#eff9f5;border-color:#b9ded2}
+    .safety-gate.ready .safety-gate-head{color:#24745d}
+    .gate-checks{display:grid;gap:5px;margin-top:8px}
+    .check-line{display:flex;align-items:flex-start;gap:7px;color:#6f5b37;font-size:10px;line-height:1.3;cursor:pointer}
+    .check-line input{width:14px;height:14px;flex:0 0 auto;margin:0;accent-color:var(--blue)}
+    .confirmation-context{margin-top:8px;padding:7px 8px;background:#fff3d8;border-radius:7px;color:#7c5a24;font-family:var(--mono);font-size:9px;line-height:1.35}
+    .confirmation-details{margin-top:9px;border-top:1px solid rgba(180,133,54,.24);padding-top:8px}
+    .confirmation-details summary{list-style:none;color:#775921;font-size:10px;font-weight:800;cursor:pointer}
+    .confirmation-details summary::-webkit-details-marker{display:none}
+    .confirmation-details summary:after{content:"−";float:right;color:#a97824;font-size:15px;font-weight:400}
+    .confirmation-details:not([open]) summary:after{content:"+"}
+    .confirmation-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+    .confirmation-grid .field label{color:#806b46}
+    .confirmation-grid .field input{font-size:11px;background:#fffdf8;border-color:#ead8b2}
+    .safety-gate p{margin:7px 0 0;color:#806b46;font-size:10px;line-height:1.35}
+    .safety-gate.ready p{color:#397661}
+    .decision-callout{padding:9px 10px;background:#f4f7fb;border-left:3px solid var(--blue);border-radius:0 8px 8px 0;color:#41546a;font-size:11px;margin-bottom:11px}
+    .decision-panel.tone-danger .decision-callout{border-left-color:var(--red);background:#fff6f6;color:#8b3d4a}
+    .decision-panel.tone-warning .decision-callout{border-left-color:var(--orange);background:#fffaf0;color:#7a5b26}
+    .action-stack{display:grid;gap:7px}
+    .action-stack button{width:100%;text-align:left;font-size:11px}
+    .message-draft{margin-top:12px;border-top:1px solid var(--line);padding-top:9px}
+    .message-draft summary,.contingency-panel summary,.mission-details summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--navy);font-size:10px;font-weight:850;cursor:pointer}
+    .message-draft summary::-webkit-details-marker,.contingency-panel summary::-webkit-details-marker,.mission-details summary::-webkit-details-marker{display:none}
+    .message-draft summary:after,.contingency-panel summary:after,.mission-details summary:after{content:"+";color:var(--blue);font-size:16px;font-weight:400}
+    .message-draft[open] summary:after,.contingency-panel[open] summary:after,.mission-details[open] summary:after{content:"−"}
+    .message-draft p{margin:8px 0;color:var(--muted);font-size:10px;line-height:1.4}
+    .message-draft .secondary-button{width:100%;text-align:left;font-size:10px}
+    .message-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+    .message-meta-grid .field input{font-size:11px}
+    .people-note{margin-top:-3px}
+    .people-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+    .people-count{display:flex;flex-direction:column;justify-content:center;min-height:42px;padding:7px 8px;background:#edf7fa;border-radius:8px}
+    .people-count span{color:#4b7481;font-size:9px;line-height:1.15}
+    .people-count b{margin-top:3px;color:var(--navy);font-family:var(--mono);font-size:15px}
+    .people-count small{display:block;margin-top:3px;color:#5d7481;font-size:8px;line-height:1.2}
+    .people-status{margin-top:9px;padding-top:8px;border-top:1px solid var(--line);color:var(--muted);font-size:10px;line-height:1.35}
+    .people-status.alert{color:#a33b4c}
+    .people-status.warn{color:#96621b}
+    .needs-details{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+    .needs-details summary{list-style:none;color:var(--navy);font-size:10px;font-weight:850;cursor:pointer}
+    .needs-details summary::-webkit-details-marker{display:none}
+    .needs-details summary:after{content:"+";float:right;color:var(--blue);font-size:16px;font-weight:400}
+    .needs-details[open] summary:after{content:"−"}
+    .needs-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+    .contingency-panel{margin:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:9px 0}
+    .contingency-panel .field{margin-top:9px}
+    .contingency-panel p{margin:8px 0 0;color:var(--muted);font-size:10px;line-height:1.4}
+    .contingency-panel .secondary-button{width:100%;margin-top:8px;text-align:left;font-size:10px}
+    .contingency-status{display:block;margin-top:7px;color:#96621b;font-family:var(--mono);font-size:9px;line-height:1.35}
+    .mission-details{margin:0 0 13px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:9px 0}
+    .mission-details .panel-note{margin:8px 0 0;font-size:10px}
+    .mission-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+    .mission-grid .field input{font-size:11px}
+    .mission-state{margin:8px 0 0;color:var(--muted);font-size:10px;line-height:1.35}
+    .export-button{border:0;background:transparent;color:var(--blue);font-size:10px;font-weight:800;padding:3px 0;cursor:pointer}
+    .zone-list{display:grid;gap:7px}
+    .zone-button{width:100%;text-align:left;border:1px solid var(--line);background:var(--panel-soft);border-radius:9px;padding:9px 10px;color:var(--ink)}
+    .zone-button[aria-pressed="true"]{border-color:#6ebbd0;background:#effafd;box-shadow:inset 3px 0 0 var(--cyan)}
+    .zone-row-top,.zone-row-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .zone-title-line{display:flex;align-items:center;gap:7px;min-width:0}
+    .zone-title-line>span:last-child{min-width:0}
+    .zone-rank{display:inline-grid;place-items:center;flex:0 0 24px;width:24px;height:24px;border-radius:7px;background:#eaf0f5;color:var(--navy);font-family:var(--mono);font-size:10px;font-weight:850}
+    .zone-rank.first{background:#fff0d7;color:#9c5c1a}
+    .zone-row-top strong{font-size:12px;color:var(--navy)}
+    .zone-code{font-family:var(--mono);font-size:10px;color:var(--blue);font-weight:800}
+    .zone-state{font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.05em}
+    .zone-state.danger{color:#ad3548}
+    .zone-state.warning{color:#9b661a}
+    .zone-state.ready{color:#24745d}
+    .zone-row-bottom{margin-top:4px;color:var(--muted);font-size:10px}
+    .input-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .field label{display:block;color:var(--muted);font-size:10px;line-height:1.2;margin-bottom:5px}
+    .field input,.field select{width:100%;border:1px solid var(--line);background:#fbfcfe;border-radius:8px;padding:8px 8px;color:var(--navy);font-family:var(--mono);font-size:14px}
+    .field select{font-family:inherit;font-size:11px}
+    .capacity-line{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0 3px}
+    .capacity-line span{color:var(--muted);font-size:11px}
+    .capacity-line b{color:var(--navy);font-family:var(--mono);font-size:16px}
+    .capacity-track{height:7px;overflow:hidden;border-radius:999px;background:#e7edf3;margin:8px 0}
+    .capacity-fill{height:100%;width:0;background:var(--cyan);border-radius:inherit;transition:width .25s ease}
+    .capacity-note{font-size:11px;color:var(--muted);margin:7px 0 0}
+    .capacity-note.alert{color:#a33b4c}
+    .municipal-context{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
+    .municipal-context div{padding:8px 6px;background:var(--panel-soft);border-radius:8px;text-align:center}
+    .municipal-context b{display:block;color:var(--navy);font-family:var(--mono);font-size:14px}
+    .municipal-context span{display:block;color:var(--muted);font-size:9px;line-height:1.15;margin-top:3px}
+    .shelter-validation{display:grid;gap:7px;margin-top:10px;padding:9px 10px;background:#f7f9fc;border-radius:8px}
+    .shelter-validation .field{margin-top:1px}
+    .map-column{min-width:0}
+    .map-panel{overflow:hidden}
+    .map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:17px 18px 12px}
+    .map-head p{color:var(--muted);font-size:12px;margin:5px 0 0}
+    .map-legend{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px 11px;max-width:430px;color:var(--muted);font-size:10px;padding-top:3px}
+    .legend-item{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+    .legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+    .legend-dot.flood{background:var(--blue)}
+    .legend-dot.urgent{background:var(--red)}
+    .legend-dot.soon{background:var(--orange)}
+    .legend-dot.open{background:#a6d6c6}
+    .legend-dot.shelter{background:var(--cyan);border-radius:3px}
+    .legend-dot.nodata{background:#b8c3cc;border:1px dashed #8d9aa5}
+    .map-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 18px 11px;padding:8px 9px;background:var(--panel-soft);border:1px solid var(--line);border-radius:9px}
+    .map-modes{display:flex;gap:4px;flex-wrap:wrap}
+    .map-mode-button{border:1px solid transparent;background:transparent;border-radius:7px;padding:7px 9px;color:var(--muted);font-size:11px;font-weight:800}
+    .map-mode-button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+    .map-alt-button{border:1px dashed #c9d6e1;background:var(--panel);border-radius:7px;padding:7px 9px;color:var(--muted);font-size:10px;font-weight:800;white-space:nowrap}
+    .map-alt-button[aria-pressed="true"]{border-color:#d59a4d;background:#fff7e9;color:#8d6020}
+    .map-mode-hint{color:var(--muted);font-size:10px;text-align:right}
+    .map-wrap{position:relative;margin:0 12px;border:1px solid #dfe7ee;border-radius:11px;overflow:hidden;background:#f5f8fb}
+    #eventMap{display:block;width:100%;height:auto;min-height:430px}
+    .map-stamp{position:absolute;top:11px;left:12px;padding:6px 8px;background:rgba(255,255,255,.86);border:1px solid rgba(216,226,235,.95);border-radius:7px;color:#5d7082;font-size:10px;font-weight:700;letter-spacing:.04em}
+    .map-stamp b{color:var(--navy)}
+    .map-focus-card{position:absolute;top:58px;right:12px;display:grid;gap:1px;min-width:120px;padding:7px 9px;background:rgba(16,35,52,.93);border-radius:8px;color:#eaf4f8;box-shadow:0 8px 18px rgba(16,35,52,.15)}
+    .map-focus-card span{color:#a5c6d3;font-size:9px;letter-spacing:.1em;text-transform:uppercase}
+    .map-focus-card strong{font-family:var(--mono);font-size:14px;line-height:1.15}
+    .map-focus-card em{color:#f2c27b;font-size:9px;font-style:normal}
+    .map-caption{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:11px 18px 14px;color:var(--muted);font-size:11px}
+    .map-caption strong{color:var(--navy)}
+    .map-caption .caption-limit{max-width:610px;text-align:right}
+    .lower-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:14px;margin-top:14px}
+    .chart-panel,.ops-panel{padding:16px}
+    .chart-panel .panel-head,.ops-panel .panel-head{margin-bottom:8px}
+    #levelChart{display:block;width:100%;height:auto;margin-top:2px}
+    .chart-foot{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:10px;margin-top:5px}
+    .chart-foot strong{color:var(--ink)}
+    .ops-list{display:grid;gap:7px;margin:5px 0 14px}
+    .ops-item{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid #edf1f5}
+    .ops-icon{width:25px;height:25px;display:grid;place-items:center;border-radius:7px;background:#eaf7fa;color:#227e92;font-size:12px;font-weight:850}
+    .ops-icon.fire{background:#f9e8eb;color:#a63c4c}
+    .ops-icon.route{background:#fff2dc;color:#96621b}
+    .ops-item strong{display:block;color:var(--navy);font-size:11px}
+    .ops-item span{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+    .ops-status{font-family:var(--mono);font-size:9px;font-weight:850;text-align:right;color:#738396}
+    .ops-status.active{color:#24745d}
+    .ops-status.priority{color:#ad3548}
+    .log-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 7px}
+    .log-title span{color:var(--muted);font-size:10px}
+    .log-list{display:grid;gap:5px;max-height:147px;overflow:auto}
+    .log-row{display:grid;grid-template-columns:53px minmax(0,1fr);gap:7px;padding:6px 0;border-bottom:1px solid #edf1f5;font-size:10px}
+    .log-row time{color:var(--blue);font-family:var(--mono);font-weight:700}
+    .log-row span{color:var(--muted)}
+    .provenance{margin-top:14px;overflow:hidden}
+    .provenance summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 18px;color:var(--navy);font-weight:800;cursor:pointer}
+    .provenance summary::-webkit-details-marker{display:none}
+    .provenance summary:after{content:"+";color:var(--blue);font-size:18px;font-weight:400}
+    .provenance[open] summary:after{content:"−"}
+    .provenance-body{border-top:1px solid var(--line);padding:15px 18px 18px}
+    .provenance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .source-box{padding:11px 12px;background:var(--panel-soft);border-radius:9px}
+    .source-box h3{font-size:12px;margin-bottom:5px}
+    .source-box p{color:var(--muted);font-size:11px;margin:0}
+    .source-box code{font-family:var(--mono);font-size:10px;overflow-wrap:anywhere;color:#4a5f75}
+    .limitation{margin-top:13px;padding:11px 12px;background:#fff9ed;border-left:3px solid var(--orange);border-radius:0 8px 8px 0;color:#715b2c;font-size:11px}
+    .footer{padding:18px 2px 0;color:#7b8a99;font-size:10px;display:flex;justify-content:space-between;gap:12px}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @keyframes mapFocusPulse{0%,100%{opacity:.95}50%{opacity:.42}}
+    #eventMap .zone-marker.selected .zone-ring{animation:mapFocusPulse 2.4s ease-in-out infinite}
+    @media (pointer:coarse){
+      .teaser-action,.mode-button,.map-mode-button,.map-alt-button,.icon-button,.primary-button,.secondary-button{min-height:44px}
+      .zone-button{min-height:44px}
+      .step-button{min-height:44px}
+      .check-line{min-height:44px;align-items:center}
+      .field input,.field select{min-height:44px}
+    }
+    @media (prefers-reduced-motion:reduce){#eventMap .zone-marker.selected .zone-ring{animation:none}}
+    @media (max-width:1080px){
+      .workspace{grid-template-columns:310px minmax(0,1fr)}
+      .map-head{display:block}
+      .map-legend{justify-content:flex-start;margin-top:11px;max-width:none}
+      .lower-grid{grid-template-columns:1fr}
+    }
+    @media (max-width:780px){
+      .app{padding:0 12px 28px}
+      .topbar{margin:0 -12px;padding:0 15px;min-height:60px}
+      .crumb{display:none}
+      .safety-bar{display:block}
+      .mode-switch{justify-content:flex-start;margin-top:9px}
+      .intro{display:block;padding-top:24px}
+      h1{font-size:27px}
+      .mode-badge{margin-top:15px}
+      .model-strip,.workspace{grid-template-columns:1fr}
+      .model-strip{display:flex;flex-direction:column}
+      .decision-teaser{order:1}
+      .model-panel{order:2}
+      .decision-teaser{min-height:0}
+      .workspace{gap:13px;display:flex;flex-direction:column}
+      .step-button{min-height:44px}
+      .time-scrubber input{height:44px}
+      .rail{display:contents}
+      .rail>.event-panel{order:1}
+      .rail>#decisionPanel{order:2}
+      .map-column{order:3;width:100%}
+      .rail>.people-panel{order:4}
+      .rail>.priority-panel{order:5}
+      .rail>.shelter-panel{order:6}
+      .map-wrap{margin:0 8px}
+      #eventMap{min-height:330px}
+      .map-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
+      .map-mode-hint{grid-column:1/-1;text-align:left}
+      .map-caption{display:block}
+      .map-caption .caption-limit{text-align:left;margin-top:5px}
+      .provenance-grid{grid-template-columns:1fr}
+    }
+    @media (max-width:780px) and (pointer:coarse){.time-scrubber input{height:44px}.step-button{min-height:44px}}
+    @media (max-width:500px){
+      .brand-sub{display:none}
+      .safety-copy{grid-template-columns:1fr;gap:3px}
+      .safety-copy strong{grid-column:auto}
+      .mode-switch{display:grid;grid-template-columns:1fr;gap:5px}
+      .mode-button{text-align:left}
+      .model-cards{grid-template-columns:1fr}
+      .model-panel .panel-head{display:block}
+      .model-panel .snapshot{display:block;margin-top:7px;text-align:left}
+      .model-foot{display:block}
+      .model-foot span{display:block;margin-top:5px}
+      .coverage-note{display:block}
+      .coverage-label{display:block;margin-bottom:3px}
+      .lower-grid{margin-top:12px}
+      .chart-panel,.ops-panel{padding:13px}
+      .map-toolbar{display:block}
+      .map-modes{margin-bottom:6px}
+      .map-alt-button{width:100%;text-align:left}
+      .map-mode-hint{display:block;margin-top:6px;text-align:left}
+      .map-head{padding:14px 14px 9px}
+      .map-caption{padding:9px 14px 13px}
+      .step-track{gap:1px}
+      .step-button .step-name{font-size:10px}
+      .event-clock{padding-top:7px}
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#decisionPanel">Pular para a decisão atual</a>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">P</span>
+        <span>PREVINE</span>
+        <span class="brand-sub">SALA DE DECISÃO</span>
+      </div>
+      <div class="top-spacer"></div>
+      <div class="crumb">Santa Tereza · Taquari–Antas</div>
+      <div class="top-status"><i class="top-status-dot"></i><span>SIMULAÇÃO LOCAL</span></div>
+    </header>
+
+    <section class="safety-bar" aria-label="Estado de uso da plataforma">
+      <div class="safety-copy">
+        <span class="safety-label">EXERCÍCIO DE MESA</span>
+        <strong>NÃO USAR PARA ORIENTAR EVACUAÇÃO REAL</strong>
+        <span id="modeStatus" role="status" aria-live="polite">Dados incorporados; as ações ficam somente neste navegador.</span>
+      </div>
+      <div class="mode-switch" role="group" aria-label="Modo de uso">
+        <button type="button" class="mode-button active" data-operating-mode="exercise" aria-pressed="true">Exercício</button>
+        <button type="button" class="mode-button locked" data-operating-mode="live" aria-pressed="false">Ao vivo · bloqueado</button>
+        <button type="button" class="mode-button locked" data-operating-mode="public" aria-pressed="false">Mensagem pública · bloqueado</button>
+      </div>
+    </section>
+
+    <section class="intro">
+      <div>
+        <div class="eyebrow">Estudo de caso · resposta à inundação</div>
+        <h1>Quando a previsão vira resposta</h1>
+        <p>Uma Defesa Civil recebe uma janela de antecedência e precisa escolher: quem sai primeiro, qual corredor ainda fecha, quantas pessoas cabem no abrigo e onde posicionar o primeiro reconhecimento.</p>
+      </div>
+      <div class="mode-badge"><i></i>ações registradas apenas no exercício</div>
+    </section>
+
+    <section class="model-strip" aria-label="Sinal da rede neural e pergunta do plantão">
+      <div class="panel model-panel">
+        <div class="panel-head">
+          <div>
+            <div class="kicker">Sinal da RNA · estação 86472600</div>
+            <h2>Janela de 8 horas</h2>
+            <p>O modelo prevê a cota na estação. A conversão para cada rua ainda precisa de validação espacial.</p>
+          </div>
+          <div class="snapshot">snapshot incorporado · 27/08/2026 16:00 · fuso da fonte não informado · não é feed ao vivo · conferir atualização antes do exercício</div>
+        </div>
+        <div class="model-cards">
+          <article class="model-card reference">
+            <div class="model-card-top"><span class="model-name" id="v001Label">8h V001</span><span class="model-pill">feed experimental</span></div>
+            <div class="model-level"><strong id="v001Level">—</strong><span>previsão em 8h</span></div>
+            <div class="model-meta"><span>agora <b id="v001Now">—</b></span><span>MAE 24h <b id="v001Mae">—</b></span><span id="v001Status" class="status-pill attention">—</span></div>
+          </article>
+          <article class="model-card shadow">
+            <div class="model-card-top"><span class="model-name" id="v002Label">8h V002</span><span class="model-pill">comparativo · não operacional</span></div>
+            <div class="model-level"><strong id="v002Level">—</strong><span>previsão em 8h</span></div>
+            <div class="model-meta"><span>agora <b id="v002Now">—</b></span><span>MAE 24h <b id="v002Mae">—</b></span><span id="v002Status" class="status-pill normal">—</span></div>
+          </article>
+        </div>
+        <div class="model-foot">
+          <span>contrato de entrada: <strong id="inputContract">hourly_exact_v1</strong> · sem interpolação · grade 22/07 independente</span>
+          <span>cota de referência do feed: <strong id="bankfull">—</strong></span>
+        </div>
+        <div class="coverage-note"><span class="coverage-label">limite de interpretação</span><span>V001 e V002 informam a estação em 8h. A grade espacial começa em 4,24 m e sobe 40 cm/h como hipótese didática independente; não é uma conversão da RNA nem uma previsão adicional para T+12h.</span></div>
+      </div>
+      <aside class="panel decision-teaser">
+        <div class="teaser-kicker">ação agora · plano pré-preparado</div>
+        <strong id="teaserTitle">Qual área precisa de decisão agora?</strong>
+        <p id="teaserText">Avance o evento e observe quando a rota deixa de ser evacuação e passa a ser resgate.</p>
+        <div class="teaser-command" aria-label="Resumo da resposta">
+          <div><span>quem se move</span><b id="teaserOwner">—</b></div>
+          <div><span>prazo</span><b id="teaserDeadline">—</b></div>
+          <div><span>destino</span><b id="teaserDestination">—</b></div>
+          <div><span>próximo movimento</span><b id="teaserNext">—</b></div>
+        </div>
+        <div class="teaser-metrics">
+          <div class="teaser-metric"><span>moradores do recorte</span><b id="teaserPeople">—</b></div>
+          <div class="teaser-metric"><span>vagas livres</span><b id="teaserShelter">—</b></div>
+        </div>
+        <button id="teaserAction" class="teaser-action" type="button">Ação agora</button>
+      </aside>
+    </section>
+
+    <main class="workspace">
+      <aside class="rail" aria-label="Controles do estudo de caso">
+        <section class="panel event-panel">
+          <div class="rail-head">
+            <div>
+              <div class="kicker">Plano preparado</div>
+              <h3>Quando o evento começa</h3>
+            </div>
+            <span id="phaseBadge" class="phase">recebimento</span>
+          </div>
+          <div class="event-clock">
+            <div><span class="clock-label">tempo do evento</span><strong id="eventClock" class="clock-value">T+00:00</strong></div>
+            <div style="text-align:right"><span class="clock-label">cota do cenário</span><strong id="eventLevel" class="level-value">4,24 m</strong></div>
+          </div>
+          <div class="command-strip"><div><span>nível do exercício</span><strong id="commandStatus">observação</strong></div><span id="commandRule">sem despacho real</span></div>
+          <div id="stepTrack" class="step-track" aria-label="Etapas do evento"></div>
+          <div class="time-scrubber"><div class="scrubber-label"><span>arraste para avançar</span><span>0 → 12 h · inclui o limite T+05:54</span></div><input id="timeScrubber" type="range" min="0" max="7" step="1" value="0" aria-label="Avançar o tempo do evento"></div>
+          <div class="transport">
+            <button id="prevStep" class="icon-button" type="button" aria-label="Voltar uma etapa">‹</button>
+            <button id="playStep" class="primary-button" type="button">Iniciar avanço automático</button>
+            <button id="nextStep" class="icon-button" type="button" aria-label="Avançar uma etapa">›</button>
+          </div>
+          <p class="panel-note">A sequência já foi organizada antes da crise: identificar, acionar, retirar e reavaliar. Avance devagar ou clique direto na etapa.</p>
+        </section>
+
+        <section id="decisionPanel" class="panel decision-panel" tabindex="-1" aria-labelledby="decisionTitle">
+          <div class="decision-top"><span class="kicker">Decisão atual</span><span id="decisionTag" class="decision-tag warning">—</span></div>
+          <div id="decisionTitle" class="decision-title">—</div>
+          <p id="decisionBody" class="decision-body">—</p>
+          <div class="decision-facts">
+            <div class="fact"><span>janela até a água</span><b id="decisionDeadline">—</b></div>
+            <div class="fact"><span>tempo de segurança · hipótese</span><b id="decisionMargin">—</b></div>
+          </div>
+          <div class="route-compare" aria-label="Comparação dos corredores preliminares">
+            <div class="route-compare-head"><span>comparação de corredores</span><span>estimativas do exercício</span></div>
+            <div id="safeRouteOption" class="route-option">
+              <div class="route-option-top"><span class="route-name"><i class="route-swatch"></i><strong>corredor A · maior cota (hipótese)</strong></span><span id="safeRouteState" class="route-state">—</span></div>
+              <div class="route-option-meta"><span><b id="safeRouteDistance">—</b><small>distância geométrica</small></span><span><b id="safeRouteWalk">—</b><small>tempo didático</small></span><span><b id="safeRouteMargin">—</b><small>tempo de segurança · hipótese</small></span></div>
+            </div>
+            <div id="shortRouteOption" class="route-option">
+              <div class="route-option-top"><span class="route-name"><i class="route-swatch short"></i><strong>corredor B · trajeto curto (hipótese)</strong></span><span id="shortRouteState" class="route-state">—</span></div>
+              <div class="route-option-meta"><span><b id="shortRouteDistance">—</b><small>distância geométrica</small></span><span><b id="shortRouteWalk">—</b><small>tempo didático</small></span><span><b id="shortRouteMargin">—</b><small>tempo de segurança · hipótese</small></span></div>
+            </div>
+            <div class="route-compare-note">Leitura do exercício: “maior cota” representa menor exposição relativa. A margem usa 54 m/min para um perfil didático único; não separa caminhada, transporte assistido e resgate, e não é distância viária validada.</div>
+          </div>
+          <div id="safetyGate" class="safety-gate" aria-label="Confirmações antes da ação">
+            <div class="safety-gate-head"><span>confirmações antes da ação</span><strong id="gateStatus">bloqueado</strong></div>
+            <div id="routeCheckContext" class="confirmation-context">Z-01 · corredor preliminar · confirmação por fazer</div>
+            <div class="gate-checks">
+              <label class="check-line"><input id="routeFieldCheck" type="checkbox"> rua/ponte confirmadas em campo</label>
+              <label class="check-line"><input id="communicationReady" type="checkbox"> canal e mensagem preparados</label>
+              <label class="check-line"><input id="alternativeRouteFieldCheck" type="checkbox"> corredor alternativo confirmado se o principal fechar</label>
+            </div>
+            <details class="confirmation-details" open>
+              <summary>Responsável, canal e evidência</summary>
+              <div class="confirmation-grid">
+                <div class="field"><label for="routeVerifier">quem confirmou a rota?</label><input id="routeVerifier" type="text" placeholder="função / equipe"></div>
+                <div class="field"><label for="routeEvidence">referência da rota</label><input id="routeEvidence" type="text" placeholder="vistoria / chamado"></div>
+                <div class="field"><label for="alternativeRouteVerifier">quem confirmou a alternativa?</label><input id="alternativeRouteVerifier" type="text" placeholder="função / equipe"></div>
+                <div class="field"><label for="alternativeRouteEvidence">referência da alternativa</label><input id="alternativeRouteEvidence" type="text" placeholder="vistoria / chamado"></div>
+                <div class="field"><label for="communicationResponsible">quem prepara a mensagem?</label><input id="communicationResponsible" type="text" placeholder="função / equipe"></div>
+                <div class="field"><label for="communicationChannel">canal de comunicação</label><input id="communicationChannel" type="text" placeholder="rádio / telefone / outro"></div>
+                <div class="field"><label for="communicationAlternate">canal alternativo (se necessário)</label><input id="communicationAlternate" type="text" placeholder="ponto de encontro / rádio reserva"></div>
+                <div class="field"><label for="confirmationWhen">quando foi conferido?</label><input id="confirmationWhen" type="text" placeholder="28/08 · 14:20 BRT"></div>
+                <div class="field"><label for="confirmationSource">fonte / observação</label><input id="confirmationSource" type="text" placeholder="sem dados pessoais"></div>
+              </div>
+            </details>
+            <p id="gateNote">O plano continua bloqueado até confirmar rota, abrigo e comunicação. As marcações são apenas do exercício.</p>
+          </div>
+          <div id="decisionCallout" class="decision-callout">—</div>
+          <div class="action-stack">
+            <button id="evacAction" class="primary-button" type="button">Registrar decisão</button>
+            <button id="dispatchAction" class="secondary-button" type="button">Registrar reconhecimento · exercício</button>
+            <button id="shelterAction" class="secondary-button" type="button">Registrar validação do abrigo · exercício</button>
+          </div>
+          <details class="message-draft">
+            <summary>Mensagem preparada · rascunho para aprovação</summary>
+            <p id="messageDraft">—</p>
+            <div class="message-meta-grid">
+              <div class="field"><label for="messageAudience">público / destinatário</label><input id="messageAudience" type="text" placeholder="liderança / comunidade"></div>
+              <div class="field"><label for="messageApprover">aprovador no exercício</label><input id="messageApprover" type="text" placeholder="função responsável"></div>
+              <div class="field"><label for="messageValidity">validade do rascunho</label><input id="messageValidity" type="text" placeholder="até reavaliar"></div>
+              <div class="field"><label for="messageVersion">versão da mensagem</label><input id="messageVersion" type="text" placeholder="v1 · exercício"></div>
+            </div>
+            <p>Preencha os metadados antes de copiar. O texto continua sendo rascunho até aprovação formal e confirmação de entrega.</p>
+            <button id="copyMessage" class="secondary-button" type="button">Copiar texto do exercício</button>
+          </details>
+          <div id="liveRegion" class="sr-only" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="panel people-panel">
+          <div class="rail-head">
+            <div>
+              <div class="kicker">Pessoas</div>
+              <h3>Quem precisa de apoio?</h3>
+            </div>
+            <span class="status-pill attention">sem nomes/endereço</span>
+          </div>
+          <p class="panel-note people-note">A estimativa territorial não é uma lista de famílias. Atualize apenas contagens confirmadas no exercício; dados individuais devem ficar em cadastro protegido. Campo vazio = ainda não informado.</p>
+          <div class="people-grid">
+          <div class="people-count"><span>estimadas no recorte</span><b id="peopleEstimated">—</b><small id="peopleEstimatedMeta">estimativa de apoio · IBGE 2022 · raio de 900 m</small></div>
+            <div class="field"><label for="peopleContacted">contatadas</label><input id="peopleContacted" aria-describedby="peopleStatus peopleEstimatedMeta" type="number" min="0" step="1" value="" placeholder="—" inputmode="numeric"></div>
+            <div class="field"><label for="peopleDeparted">saíram</label><input id="peopleDeparted" aria-describedby="peopleStatus peopleEstimatedMeta" type="number" min="0" step="1" value="" placeholder="—" inputmode="numeric"></div>
+            <div class="field"><label for="peopleArrived">chegaram</label><input id="peopleArrived" aria-describedby="peopleStatus peopleEstimatedMeta" type="number" min="0" step="1" value="" placeholder="—" inputmode="numeric"></div>
+            <div class="field"><label for="peopleUnlocated">não localizadas</label><input id="peopleUnlocated" aria-describedby="peopleStatus peopleEstimatedMeta" type="number" min="0" step="1" value="" placeholder="—" inputmode="numeric"></div>
+          </div>
+          <div id="peopleStatus" class="people-status" role="status" aria-live="polite">sem contagem operacional confirmada · contatadas: — · saíram: — · chegaram: — · não localizadas: —</div>
+          <details class="needs-details">
+            <summary>Necessidades a confirmar</summary>
+            <div class="needs-grid">
+              <label class="check-line"><input type="checkbox" data-need="transport"> transporte assistido</label>
+              <label class="check-line"><input type="checkbox" data-need="health"> saúde / medicação</label>
+              <label class="check-line"><input type="checkbox" data-need="care"> crianças / idosos</label>
+              <label class="check-line"><input type="checkbox" data-need="animals"> animais</label>
+            </div>
+          </details>
+        </section>
+
+        <section class="panel priority-panel">
+          <div class="rail-head">
+            <div>
+              <div class="kicker">Prioridade</div>
+                <h3>Fila de resposta</h3>
+              </div>
+            <small>ordem indicativa · clique para abrir</small>
+          </div>
+          <div id="zoneList" class="zone-list"></div>
+          <p class="panel-note">A ordem é uma sugestão do exercício, baseada na janela e na rota. As populações são recortes de apoio em raio de 900 m sobre a Grade Estatística IBGE 2022; podem se sobrepor e não devem ser somadas.</p>
+        </section>
+
+        <section class="panel shelter-panel">
+          <div class="rail-head">
+            <div>
+              <div class="kicker">Abrigo</div>
+              <h3 id="shelterName">Ginásio de Esportes</h3>
+            </div>
+            <span id="shelterState" class="status-pill attention">capacidade não confirmada</span>
+          </div>
+          <div class="input-grid">
+            <div class="field"><label for="shelterCapacity">capacidade informada · confirmar</label><input id="shelterCapacity" type="number" min="0" step="1" value="" placeholder="ex.: 180"></div>
+            <div class="field"><label for="shelterOccupied">ocupação informada · confirmar</label><input id="shelterOccupied" type="number" min="0" step="1" value="" placeholder="ex.: 40"></div>
+          </div>
+          <div class="shelter-validation">
+            <label class="check-line"><input id="shelterVerified" type="checkbox"> capacidade e abertura confirmadas no exercício</label>
+            <label class="check-line"><input id="shelterAccessible" type="checkbox"> acessibilidade e recursos confirmados</label>
+            <div class="input-grid">
+              <div class="field"><label for="shelterVerifier">quem conferiu?</label><input id="shelterVerifier" type="text" placeholder="função / equipe"></div>
+              <div class="field"><label for="shelterEvidence">referência da vistoria</label><input id="shelterEvidence" type="text" placeholder="registro / chamada"></div>
+            </div>
+            <div class="field"><label for="shelterOverflow">ponto de transbordo · se necessário</label><input id="shelterOverflow" type="text" placeholder="não cadastrado"></div>
+            <div class="input-grid">
+              <div class="field"><label for="shelterOverflowCapacity">capacidade do transbordo</label><input id="shelterOverflowCapacity" type="number" min="0" step="1" placeholder="—"></div>
+              <div class="field"><label for="shelterOverflowLocation">local / referência</label><input id="shelterOverflowLocation" type="text" placeholder="não cadastrado"></div>
+              <div class="field"><label for="shelterOverflowResponsible">responsável local</label><input id="shelterOverflowResponsible" type="text" placeholder="a confirmar"></div>
+              <label class="check-line"><input id="shelterOverflowAccessible" type="checkbox"> acesso do transbordo confirmado</label>
+              <label class="check-line"><input id="shelterOverflowPlanConfirmed" type="checkbox"> destino alternativo e transporte confirmados no exercício</label>
+            </div>
+          </div>
+          <div class="capacity-line"><span>vagas livres · só após confirmação</span><b id="shelterAvailable">—</b></div>
+          <div id="capacityMeter" class="capacity-track" role="progressbar" aria-label="Ocupação inicial do abrigo" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-valuetext="disponibilidade não confirmada"><div id="capacityFill" class="capacity-fill" style="width:0%"></div></div>
+          <p id="capacityNote" class="capacity-note">Os números iniciais são didáticos. Sem confirmação, a disponibilidade não entra na decisão.</p>
+          <p class="panel-note">Fonte do ponto: Defesa Civil de Santa Tereza · capacidade publicada: não identificada no protótipo · coordenada e acesso precisam de conferência.</p>
+          <div class="municipal-context">
+            <div><b id="munPopulation">1.505</b><span>população municipal</span></div>
+            <div><b id="munOlder">553</b><span>pessoas 60+</span></div>
+            <div><b id="munPcd">128</b><span>PcD · 2 anos+</span></div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="map-column" aria-label="Mapa e acompanhamento do evento">
+        <section class="panel map-panel">
+          <div class="map-head">
+            <div>
+              <div class="kicker">Mapa de decisão</div>
+              <h2>Onde as pessoas precisam sair primeiro?</h2>
+              <p id="mapSubhead">As cores mostram quanto tempo falta para a água no cenário; A/B são corredores sintéticos, não ruas navegáveis nem rotas confirmadas.</p>
+            </div>
+            <div class="map-legend" aria-label="Legenda do mapa">
+              <span class="legend-item"><i class="legend-dot flood"></i>já na água</span>
+              <span class="legend-item"><i class="legend-dot urgent"></i>até 30 min</span>
+              <span class="legend-item"><i class="legend-dot soon"></i>31–60 min</span>
+              <span class="legend-item"><i class="legend-dot open"></i>mais de 60 min</span>
+              <span class="legend-item"><i class="legend-dot shelter"></i>abrigo</span>
+              <span class="legend-item"><i class="route-swatch"></i>corredor não confirmado</span>
+              <span class="legend-item"><i class="legend-dot nodata"></i>sem cobertura</span>
+            </div>
+          </div>
+          <div class="map-toolbar">
+            <div class="map-modes" role="group" aria-label="Modo de leitura do mapa">
+              <button type="button" class="map-mode-button active" data-map-mode="focus" aria-pressed="true">Foco da decisão</button>
+              <button type="button" class="map-mode-button" data-map-mode="context" aria-pressed="false">Ver toda a grade</button>
+            </div>
+            <button id="altRouteToggle" class="map-alt-button" type="button" aria-pressed="false">Comparar trajeto B</button>
+            <span id="mapModeHint" class="map-mode-hint">A área selecionada e o abrigo ficam em primeiro plano.</span>
+          </div>
+          <div class="map-wrap">
+            <svg id="eventMap" viewBox="0 0 860 560" role="group" aria-label="Mapa esquemático e interativo da grade preliminar de resposta em Santa Tereza">
+              <title>Mapa esquemático do evento</title>
+              <desc>Grade de pontos com tempo estimado até a água, áreas prioritárias, abrigo cadastrado e corredores preliminares.</desc>
+              <g id="mapBase"></g>
+              <g id="mapGrid"></g>
+              <g id="mapRoutes"></g>
+              <g id="mapZones"></g>
+              <g id="mapServices"></g>
+            </svg>
+            <div class="map-stamp"><b>GRADE 30 m</b> · cenário 22/07 · coordenadas lat/lon · CRS/EPSG não informado · abrigo e rota não reconciliados</div>
+            <div class="map-focus-card"><span>área em foco</span><strong id="mapFocusZone">—</strong><em id="mapFocusState">—</em></div>
+          </div>
+          <div class="map-caption">
+            <span id="mapSummary"><strong>—</strong></span>
+            <span id="mapLimit" class="caption-limit">O mapa combina a grade da prova de conceito com pontos cadastrados. O ponto do abrigo foi recebido como referência e ainda precisa ser reconciliado com o destino seguro. As linhas são corredores sintéticos: confirme rua, ponte, acessibilidade e nível observado antes de orientar deslocamentos.</span>
+          </div>
+        </section>
+
+        <div class="lower-grid">
+          <section class="panel chart-panel">
+            <div class="panel-head">
+              <div>
+                <div class="kicker">Perfil do evento</div>
+                <h2>Cota assumida ao longo do exercício</h2>
+                <p>Hipótese didática de aproximadamente 40 cm/h; não é continuação da previsão da RNA.</p>
+              </div>
+              <span id="chartCurrentLabel" class="snapshot">T+00:00</span>
+            </div>
+            <svg id="levelChart" viewBox="0 0 800 270" role="img" aria-label="Perfil da cota do cenário"></svg>
+            <div class="chart-foot"><span><strong>linha tracejada:</strong> cota de referência do feed RNA</span><span><strong id="chartForecastNote">—</strong></span></div>
+          </section>
+
+          <section class="panel ops-panel">
+            <div class="panel-head">
+              <div>
+                <div class="kicker">Quadro operacional</div>
+                <h2>Quem se move primeiro?</h2>
+                <p>Estado dos recursos no exercício para a área selecionada.</p>
+              </div>
+          </div>
+          <div id="opsList" class="ops-list"></div>
+            <details class="mission-details">
+              <summary>Detalhar tarefa local do exercício</summary>
+              <div class="mission-grid">
+                <div class="field"><label for="missionTeam">equipe / função a considerar</label><input id="missionTeam" type="text" placeholder="ex.: reconhecimento local"></div>
+                <div class="field"><label for="missionVehicle">recurso / viatura</label><input id="missionVehicle" type="text" placeholder="a confirmar"></div>
+                <div class="field"><label for="missionChannel">canal de contato</label><input id="missionChannel" type="text" placeholder="rádio / telefone"></div>
+                <div class="field"><label for="missionEta">ETA informada no exercício</label><input id="missionEta" type="text" placeholder="ex.: 20 min"></div>
+              </div>
+              <label class="check-line"><input id="missionReceived" type="checkbox"> recebimento simulado confirmado pela equipe</label>
+              <p id="missionStatus" class="mission-state">Nenhuma tarefa foi criada.</p>
+            </details>
+            <details class="contingency-panel">
+              <summary>Se o plano falhar</summary>
+              <div class="field"><label for="contingencySelect">situação para ensaiar</label><select id="contingencySelect"><option value="route">rota principal fechada</option><option value="shelter">abrigo lotado</option><option value="comms">sem comunicação</option><option value="night">noite / baixa visibilidade</option></select></div>
+              <p id="contingencyText">Acionar reconhecimento, bloquear a orientação a pé e mudar para o plano alternativo validado.</p>
+              <button id="contingencyApply" class="secondary-button" type="button">Aplicar cenário ao exercício</button>
+              <span id="contingencyStatus" class="contingency-status">Nenhuma contingência aplicada.</span>
+            </details>
+            <div class="log-title"><h3>Registro do exercício</h3><button id="exportLog" class="export-button" type="button">Exportar registro local</button></div>
+            <div id="logList" class="log-list" aria-live="polite"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <details class="panel provenance">
+      <summary>Proveniência, hipóteses e limites desta primeira versão</summary>
+      <div class="provenance-body">
+        <div class="provenance-grid">
+          <div class="source-box">
+            <h3>Sinal da rede neural</h3>
+            <p>Snapshot local de <code>previsao_ao_vivo.json</code>: 8h V001 publicado como experimental e 8h V002 em sombra/comparativo. O V002 tem menor MAE recente no snapshot, mas não é alerta oficial nem está promovido.</p>
+          </div>
+          <div class="source-box">
+            <h3>Evento espacial</h3>
+            <p>Grade de 30 m do protótipo <code>rota_fuga_santa_tereza_cenario.json</code>. A chegada da água e a margem vêm do cenário de cheia com subida aproximada de 40 cm/h, referência 22/07.</p>
+          </div>
+          <div class="source-box">
+            <h3>Moradores e vulnerabilidade</h3>
+            <p>População municipal e pessoas 60+/PcD vêm do Censo 2022. Os valores das zonas são agregações de apoio da Grade Estatística de 200 m em raio de 900 m; não são contagem de domicílios ameaçados nem substituem cadastro local.</p>
+          </div>
+          <div class="source-box">
+            <h3>Resposta e recursos</h3>
+            <p>O Ginásio de Esportes é um ponto cadastrado/adotado como encontro em Santa Tereza, mas sua capacidade não foi publicada. Não há ponto de bombeiros publicado no município; o quadro mostra a unidade catalogada mais próxima, em Muçum.</p>
+          </div>
+        </div>
+        <div class="limitation"><strong>Regra de segurança:</strong> esta página é um estudo de caso. A “rota mais segura” ainda é um corredor preliminar baseado em grade e heurística de tempo — não uma rota viária validada. Antes de usar em campo, incorporar ruas/declividades, pontes e bloqueios observados, acessibilidade, capacidade vistoriada do abrigo e confirmação da Defesa Civil.</div>
+      </div>
+    </details>
+
+    <footer class="footer">
+      <span>PREVINE · estudo de caso de resposta · versão 0.1</span>
+      <span>arquivo autônomo · dados incorporados · sem conexão externa</span>
+    </footer>
+  </div>
+
+  <script>
+    const ROUTE = {"scenario":"22jul","label":"cenário de cheia (subida ~40 cm/h, referência 22/07)","level_cm":424,"zero_gauge_m":4.0,"cell_m":30.0,"grid":[{"lat":-29.162543,"lon":-51.740608,"hand":2.5,"cota":6.5,"arrival":339.0},{"lat":-29.162543,"lon":-51.740299,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.162543,"lon":-51.73999,"hand":2.2,"cota":6.2,"arrival":294.0},{"lat":-29.162543,"lon":-51.739682,"hand":2.4,"cota":6.4,"arrival":324.0},{"lat":-29.162543,"lon":-51.739373,"hand":2.5,"cota":6.5,"arrival":339.0},{"lat":-29.162543,"lon":-51.739065,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.162812,"lon":-51.740916,"hand":2.0,"cota":6.0,"arrival":264.0},{"lat":-29.162812,"lon":-51.740608,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.162812,"lon":-51.740299,"hand":1.2,"cota":5.2,"arrival":144.0},{"lat":-29.162812,"lon":-51.73999,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.162812,"lon":-51.739682,"hand":1.6,"cota":5.6,"arrival":204.0},{"lat":-29.162812,"lon":-51.739373,"hand":1.9,"cota":5.9,"arrival":249.0},{"lat":-29.162812,"lon":-51.739065,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.163082,"lon":-51.740916,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.163082,"lon":-51.740608,"hand":0.9,"cota":4.9,"arrival":99.0},{"lat":-29.163082,"lon":-51.740299,"hand":1.1,"cota":5.1,"arrival":129.0},{"lat":-29.163082,"lon":-51.73999,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.163082,"lon":-51.739682,"hand":1.8,"cota":5.8,"arrival":234.0},{"lat":-29.163082,"lon":-51.739373,"hand":2.0,"cota":6.0,"arrival":264.0},{"lat":-29.163351,"lon":-51.741225,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.163351,"lon":-51.740916,"hand":1.5,"cota":5.5,"arrival":189.0},{"lat":-29.163351,"lon":-51.740608,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.163351,"lon":-51.740299,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.163351,"lon":-51.73999,"hand":0.8,"cota":4.8,"arrival":84.0},{"lat":-29.163351,"lon":-51.739682,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.163621,"lon":-51.740916,"hand":1.9,"cota":5.9,"arrival":249.0},{"lat":-29.163621,"lon":-51.740608,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.163621,"lon":-51.739682,"hand":1.0,"cota":5.0,"arrival":114.0},{"lat":-29.163621,"lon":-51.739373,"hand":1.1,"cota":5.1,"arrival":129.0},{"lat":-29.16389,"lon":-51.740608,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.16389,"lon":-51.73999,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.16416,"lon":-51.740608,"hand":1.7,"cota":5.7,"arrival":219.0},{"lat":-29.16416,"lon":-51.740299,"hand":2.4,"cota":6.4,"arrival":324.0},{"lat":-29.16416,"lon":-51.73999,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.164429,"lon":-51.737214,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.165507,"lon":-51.735671,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.165777,"lon":-51.73598,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.165777,"lon":-51.735671,"hand":1.7,"cota":5.7,"arrival":219.0},{"lat":-29.166046,"lon":-51.744927,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.166316,"lon":-51.744618,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.166316,"lon":-51.736288,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.166316,"lon":-51.734437,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.166585,"lon":-51.74431,"hand":1.2,"cota":5.2,"arrival":144.0},{"lat":-29.166585,"lon":-51.736905,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.166855,"lon":-51.74431,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.166855,"lon":-51.737831,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.166855,"lon":-51.734745,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.167124,"lon":-51.736288,"hand":1.9,"cota":5.9,"arrival":249.0},{"lat":-29.167124,"lon":-51.734745,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.167394,"lon":-51.744001,"hand":2.4,"cota":6.4,"arrival":324.0},{"lat":-29.167394,"lon":-51.739682,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.167394,"lon":-51.739373,"hand":1.8,"cota":5.8,"arrival":234.0},{"lat":-29.167394,"lon":-51.739065,"hand":2.5,"cota":6.5,"arrival":339.0},{"lat":-29.167394,"lon":-51.738756,"hand":0.9,"cota":4.9,"arrival":99.0},{"lat":-29.167394,"lon":-51.738448,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.167394,"lon":-51.737522,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.167394,"lon":-51.737214,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.167394,"lon":-51.736905,"hand":1.1,"cota":5.1,"arrival":129.0},{"lat":-29.167394,"lon":-51.736597,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.167663,"lon":-51.744001,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.167663,"lon":-51.743693,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.167663,"lon":-51.73999,"hand":2.0,"cota":6.0,"arrival":264.0},{"lat":-29.167663,"lon":-51.737831,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.167663,"lon":-51.737522,"hand":1.2,"cota":5.2,"arrival":144.0},{"lat":-29.167663,"lon":-51.737214,"hand":2.0,"cota":6.0,"arrival":264.0},{"lat":-29.167933,"lon":-51.74215,"hand":2.0,"cota":6.0,"arrival":264.0},{"lat":-29.167933,"lon":-51.738756,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.168202,"lon":-51.741842,"hand":0.9,"cota":4.9,"arrival":99.0},{"lat":-29.168202,"lon":-51.739373,"hand":2.0,"cota":6.0,"arrival":264.0},{"lat":-29.168202,"lon":-51.735362,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.168472,"lon":-51.744927,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.168472,"lon":-51.73999,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.168472,"lon":-51.735362,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.168741,"lon":-51.744927,"hand":2.2,"cota":6.2,"arrival":294.0},{"lat":-29.168741,"lon":-51.744618,"hand":1.7,"cota":5.7,"arrival":219.0},{"lat":-29.168741,"lon":-51.735671,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.168741,"lon":-51.735362,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.169011,"lon":-51.744618,"hand":1.9,"cota":5.9,"arrival":249.0},{"lat":-29.169011,"lon":-51.74431,"hand":1.5,"cota":5.5,"arrival":189.0},{"lat":-29.169011,"lon":-51.740299,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.169011,"lon":-51.735671,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.16928,"lon":-51.744618,"hand":2.4,"cota":6.4,"arrival":324.0},{"lat":-29.16928,"lon":-51.74431,"hand":1.6,"cota":5.6,"arrival":204.0},{"lat":-29.16928,"lon":-51.744001,"hand":1.8,"cota":5.8,"arrival":234.0},{"lat":-29.16955,"lon":-51.74431,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.16955,"lon":-51.744001,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.16955,"lon":-51.743693,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.16955,"lon":-51.743384,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.16955,"lon":-51.735671,"hand":2.2,"cota":6.2,"arrival":294.0},{"lat":-29.169819,"lon":-51.744001,"hand":1.5,"cota":5.5,"arrival":189.0},{"lat":-29.169819,"lon":-51.743693,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.170358,"lon":-51.742767,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.170358,"lon":-51.742459,"hand":1.6,"cota":5.6,"arrival":204.0},{"lat":-29.170358,"lon":-51.739065,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.170628,"lon":-51.74215,"hand":1.7,"cota":5.7,"arrival":219.0},{"lat":-29.170897,"lon":-51.741842,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.170897,"lon":-51.738448,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.170897,"lon":-51.735054,"hand":1.0,"cota":5.0,"arrival":114.0},{"lat":-29.170897,"lon":-51.731043,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.170897,"lon":-51.730426,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.171167,"lon":-51.741533,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.171167,"lon":-51.738139,"hand":1.2,"cota":5.2,"arrival":144.0},{"lat":-29.171167,"lon":-51.731969,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.171167,"lon":-51.73166,"hand":2.2,"cota":6.2,"arrival":294.0},{"lat":-29.171167,"lon":-51.730426,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.171436,"lon":-51.741225,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.171436,"lon":-51.732277,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.171436,"lon":-51.731969,"hand":1.6,"cota":5.6,"arrival":204.0},{"lat":-29.171436,"lon":-51.73166,"hand":1.8,"cota":5.8,"arrival":234.0},{"lat":-29.171436,"lon":-51.730734,"hand":0.8,"cota":4.8,"arrival":84.0},{"lat":-29.171706,"lon":-51.740916,"hand":1.7,"cota":5.7,"arrival":219.0},{"lat":-29.171706,"lon":-51.733203,"hand":1.2,"cota":5.2,"arrival":144.0},{"lat":-29.171706,"lon":-51.732586,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.171706,"lon":-51.732277,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.171706,"lon":-51.731969,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.171975,"lon":-51.737214,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.172245,"lon":-51.736905,"hand":1.5,"cota":5.5,"arrival":189.0},{"lat":-29.172514,"lon":-51.739682,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.172514,"lon":-51.735362,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.172784,"lon":-51.739373,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.173323,"lon":-51.739065,"hand":2.5,"cota":6.5,"arrival":339.0},{"lat":-29.173592,"lon":-51.738756,"hand":2.4,"cota":6.4,"arrival":324.0},{"lat":-29.173862,"lon":-51.738448,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.174131,"lon":-51.738448,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.174131,"lon":-51.735054,"hand":0.9,"cota":4.9,"arrival":99.0},{"lat":-29.17467,"lon":-51.737831,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.175209,"lon":-51.734128,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.175748,"lon":-51.73382,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.176018,"lon":-51.736288,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.176018,"lon":-51.73382,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.176018,"lon":-51.733511,"hand":1.1,"cota":5.1,"arrival":129.0},{"lat":-29.176287,"lon":-51.736288,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.176287,"lon":-51.733511,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.176287,"lon":-51.733203,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.176557,"lon":-51.736288,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.176557,"lon":-51.733203,"hand":2.2,"cota":6.2,"arrival":294.0},{"lat":-29.176826,"lon":-51.73598,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.176826,"lon":-51.733203,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.177096,"lon":-51.735671,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.177365,"lon":-51.735362,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.177365,"lon":-51.732894,"hand":1.7,"cota":5.7,"arrival":219.0},{"lat":-29.177635,"lon":-51.735054,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.177635,"lon":-51.732894,"hand":1.2,"cota":5.2,"arrival":144.0},{"lat":-29.177904,"lon":-51.732894,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.178174,"lon":-51.734745,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.178982,"lon":-51.734745,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.179791,"lon":-51.734745,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.18006,"lon":-51.734745,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.18006,"lon":-51.732894,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.180868,"lon":-51.735054,"hand":1.1,"cota":5.1,"arrival":129.0},{"lat":-29.180868,"lon":-51.733203,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.181138,"lon":-51.735362,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.181138,"lon":-51.735054,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.181407,"lon":-51.735671,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.181677,"lon":-51.73598,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.181677,"lon":-51.733511,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.181946,"lon":-51.73382,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.182216,"lon":-51.736288,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.182216,"lon":-51.73382,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.182485,"lon":-51.736288,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.182755,"lon":-51.736597,"hand":0.8,"cota":4.8,"arrival":84.0},{"lat":-29.182755,"lon":-51.736288,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.182755,"lon":-51.734128,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.183024,"lon":-51.736905,"hand":1.6,"cota":5.6,"arrival":204.0},{"lat":-29.183024,"lon":-51.736597,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.183294,"lon":-51.737214,"hand":2.2,"cota":6.2,"arrival":294.0},{"lat":-29.183294,"lon":-51.736905,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.183294,"lon":-51.734437,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.183563,"lon":-51.737214,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.183563,"lon":-51.734745,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.183833,"lon":-51.738139,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.183833,"lon":-51.737831,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.183833,"lon":-51.737522,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.183833,"lon":-51.735054,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.184102,"lon":-51.738139,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.184102,"lon":-51.735362,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.184372,"lon":-51.740916,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.184372,"lon":-51.740608,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.184372,"lon":-51.740299,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.184372,"lon":-51.73999,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.184372,"lon":-51.739682,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.184372,"lon":-51.739373,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.184372,"lon":-51.739065,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.184372,"lon":-51.738756,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.184372,"lon":-51.738448,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.184372,"lon":-51.735671,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.184641,"lon":-51.743693,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.184641,"lon":-51.743384,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.184641,"lon":-51.743076,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.184641,"lon":-51.742767,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.184641,"lon":-51.742459,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.184641,"lon":-51.74215,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.184641,"lon":-51.741842,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.184641,"lon":-51.741533,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.184641,"lon":-51.741225,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.184641,"lon":-51.740916,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.184641,"lon":-51.73598,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.184911,"lon":-51.744001,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.184911,"lon":-51.743693,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.184911,"lon":-51.73999,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.184911,"lon":-51.739682,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.184911,"lon":-51.739373,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.184911,"lon":-51.736288,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.18518,"lon":-51.744927,"hand":0.8,"cota":4.8,"arrival":84.0},{"lat":-29.18518,"lon":-51.744618,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.18518,"lon":-51.74431,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.18518,"lon":-51.742767,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18518,"lon":-51.742459,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18518,"lon":-51.741533,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18518,"lon":-51.741225,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18518,"lon":-51.740916,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18518,"lon":-51.73999,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.18518,"lon":-51.739682,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.18518,"lon":-51.739373,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.18545,"lon":-51.743693,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18545,"lon":-51.743384,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18545,"lon":-51.741533,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.18545,"lon":-51.741225,"hand":0.9,"cota":4.9,"arrival":99.0},{"lat":-29.18545,"lon":-51.740916,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.18545,"lon":-51.73999,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18545,"lon":-51.739682,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.185719,"lon":-51.743384,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.185719,"lon":-51.743076,"hand":0.8,"cota":4.8,"arrival":84.0},{"lat":-29.185719,"lon":-51.742767,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.185719,"lon":-51.742459,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.185719,"lon":-51.741533,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.185719,"lon":-51.741225,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.185719,"lon":-51.740916,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.185989,"lon":-51.743384,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.185989,"lon":-51.743076,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.185989,"lon":-51.742767,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.186258,"lon":-51.737831,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.186528,"lon":-51.738139,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.186797,"lon":-51.73999,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.186797,"lon":-51.738448,"hand":0.9,"cota":4.9,"arrival":99.0},{"lat":-29.187067,"lon":-51.744927,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.187067,"lon":-51.744618,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.187067,"lon":-51.74431,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.187067,"lon":-51.74215,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.187067,"lon":-51.741842,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187067,"lon":-51.741533,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187067,"lon":-51.741225,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187067,"lon":-51.740916,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187067,"lon":-51.740608,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.187067,"lon":-51.740299,"hand":1.0,"cota":5.0,"arrival":114.0},{"lat":-29.187067,"lon":-51.739373,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.187067,"lon":-51.739065,"hand":0.8,"cota":4.8,"arrival":84.0},{"lat":-29.187067,"lon":-51.738756,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.187336,"lon":-51.744927,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.187336,"lon":-51.744618,"hand":1.5,"cota":5.5,"arrival":189.0},{"lat":-29.187336,"lon":-51.74431,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187336,"lon":-51.744001,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187336,"lon":-51.743693,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187336,"lon":-51.743384,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.187336,"lon":-51.743076,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.187336,"lon":-51.742767,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.187336,"lon":-51.742459,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.187336,"lon":-51.74215,"hand":0.8,"cota":4.8,"arrival":84.0}]};
+    const LIVE = {"snapshot":"2026-08-27T16:00:00","station":"86472600","city":"Santa Tereza","bankfull_cm":400.0,"contract":"hourly_exact_v1","v001":{"label":"8h V001","model":"STZ_H8_ALT_V001_31IN_63NH","forecast_cm":265.0,"current_cm":217.0,"inputs":31,"status":"ATENCAO","mae24":32.5,"maxabs":94.0,"publication":"experimental","shadow":false,"active":true},"v002":{"label":"8h V002","model":"STZ_H8_ALT_V002_28IN_57NH","forecast_cm":354.0,"current_cm":217.0,"inputs":28,"status":"NORMAL","mae24":26.0,"maxabs":67.0,"publication":"sombra_experimental","shadow":true,"active":true}};
+    const SERVICE = {
+      shelter: {"name":"Ginásio de Esportes","city":"Santa Tereza","lat":-29.168793,"lon":-51.7327164,"source":"Defesa Civil de Santa Tereza (repassado pela usuária via link do Google Maps)","status":"capacity_unpublished"},
+      schools: [{"name":"EMEI DESCOBRINDO CAMINHOS","city":"Santa Tereza","lat":-29.171315199610543,"lon":-51.73592460022483},{"name":"ESC EST ENS MED PADRE VICENTE RODRIGUES","city":"Santa Tereza","lat":-29.16820079917803,"lon":-51.7361658009244}],
+      nearestFire: {"name":"Gr Encantado / 6º BBM","city":"Muçum","lat":-29.140423159196953,"lon":-51.81556613999999,"distance_m":8642.0}
+    };
+    const MUNICIPAL = {"city":"Santa Tereza","code":"4317251","population":1505,"older":553,"pcd":128,"icm":"B","icm_points":13,"grade_source":"Grade Estatística IBGE 2022 · células de 200 m"};
+
+    const ZONES = [
+      {
+        id:"Z-01", title:"Eixo oeste · evacuação imediata", lat:-29.163351, lon:-51.740608,
+        hand:0.6, cota:4.6, arrival:54, population:159, homes:71, sourceClass:"apertada",
+        routeOffset:{lat:.00055,lon:.00155}, shortOffset:{lat:-.00045,lon:-.00125}
+      },
+      {
+        id:"Z-02", title:"Baixa central · resgate prioritário", lat:-29.167394, lon:-51.738448,
+        hand:0.1, cota:4.1, arrival:0, population:387, homes:167, sourceClass:"alagada",
+        routeOffset:{lat:.0002,lon:.00115}, shortOffset:{lat:-.0005,lon:-.0011}
+      },
+      {
+        id:"Z-03", title:"Corredor sul · janela curta", lat:-29.182216, lon:-51.73382,
+        hand:0.7, cota:4.7, arrival:69, population:67, homes:30, sourceClass:"atencao",
+        routeOffset:{lat:.0009,lon:.0014}, shortOffset:{lat:-.00055,lon:-.0012}
+      },
+      {
+        id:"Z-04", title:"Eixo alto · preparar transporte", lat:-29.167124, lon:-51.736288,
+        hand:1.9, cota:5.9, arrival:249, population:413, homes:180, sourceClass:"confortavel",
+        routeOffset:{lat:.0008,lon:.00125}, shortOffset:{lat:-.00045,lon:-.00105}
+      }
+    ];
+
+    const SPATIAL_COVERAGE_MINUTES = Math.max.apply(null,ROUTE.grid.map(function(point){return point.arrival;}));
+    const SPATIAL_COVERAGE_CELLS = ROUTE.grid.filter(function(point){return Number.isFinite(point.arrival) && point.arrival<=SPATIAL_COVERAGE_MINUTES;}).length;
+    const SPATIAL_COVERAGE_LABEL = "T+"+String(Math.floor(SPATIAL_COVERAGE_MINUTES/60))+"h"+String(Math.round(SPATIAL_COVERAGE_MINUTES%60)).padStart(2,"0");
+    const STEPS = [
+      {hours:0, label:"Receber", phase:"recebimento"},
+      {hours:.5, label:"30 min", phase:"acionar"},
+      {hours:1, label:"1 h", phase:"evacuação"},
+      {hours:2, label:"2 h", phase:"abrigo"},
+      {hours:4, label:"4 h", phase:"reavaliar"},
+      {hours:SPATIAL_COVERAGE_MINUTES/60, label:SPATIAL_COVERAGE_LABEL, phase:"limite da grade"},
+      {hours:8, label:"8 h", phase:"escalada"},
+      {hours:12, label:"12 h", phase:"regional"}
+    ];
+
+    const state = {
+      stepIndex:0,
+      zoneId:"Z-01",
+      mapMode:"focus",
+      showAlternative:false,
+      operatingMode:"exercise",
+      auto:false,
+      timer:null,
+      actions:{},
+      people:{},
+      confirmations:{},
+      missions:{},
+      messages:{},
+      contingencyActive:null,
+      log:[{time:"T+00:00", text:"Exercício aberto · leitura da previsão e da grade preliminar."}]
+    };
+
+    const fmtInt = new Intl.NumberFormat("pt-BR",{maximumFractionDigits:0});
+    const fmt1 = new Intl.NumberFormat("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
+    const fmt2 = new Intl.NumberFormat("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    function el(id){ return document.getElementById(id); }
+    function setText(id,value){ const node=el(id); if(node) node.textContent=value; }
+    function escapeHtml(value){ return String(value===undefined || value===null ? "" : value).replace(/[&<>"']/g,function(char){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char];}); }
+    function getZone(){ return ZONES.find(function(z){return z.id===state.zoneId;}) || ZONES[0]; }
+    function currentStep(){ return STEPS[state.stepIndex]; }
+    function elapsedMinutes(){ return currentStep().hours*60; }
+    function scenarioLevelM(){ return ROUTE.level_cm/100 + currentStep().hours*.4; }
+    function fmtM(value){ return fmt2.format(value)+" m"; }
+    function fmtMinutes(value){
+      if(value<=0) return "agora";
+      if(value<60) return fmtInt.format(Math.round(value))+" min";
+      const h=Math.floor(value/60), m=Math.round(value%60);
+      return h+"h"+(m ? String(m).padStart(2,"0") : "00");
+    }
+    function fmtClock(hours){
+      const total=Math.round(hours*60), h=Math.floor(total/60), m=total%60;
+      return "T+"+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+    }
+    function fmtKm(m){ return (m/1000).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+" km"; }
+    function announce(message){ setText("liveRegion",message); }
+
+    function setAction(type){
+      if(!state.actions[state.zoneId]) state.actions[state.zoneId]={};
+      state.actions[state.zoneId][type]={status:"intenção",recorded_at:new Date().toISOString(),scope:"exercício local"};
+    }
+    function hasAction(type){
+      return !!(state.actions[state.zoneId] && state.actions[state.zoneId][type]);
+    }
+    function hasDecisionAction(){
+      return hasAction("evac") || hasAction("rescue") || hasAction("replan");
+    }
+    function addLog(text){
+      state.log.unshift({time:fmtClock(currentStep().hours),text:text});
+    }
+    function announceState(){
+      const zone=getZone();
+      announce(fmtClock(currentStep().hours)+" · "+zone.id+" · "+el("decisionTitle").textContent);
+    }
+
+    function shelterSnapshot(){
+      const capacityRaw=String(el("shelterCapacity").value||"").trim();
+      const occupiedRaw=String(el("shelterOccupied").value||"").trim();
+      const capacity=capacityRaw==="" ? null : Number(capacityRaw);
+      const occupied=occupiedRaw==="" ? null : Number(occupiedRaw);
+      const errors=[];
+      if(capacity===null || !Number.isInteger(capacity) || capacity<=0) errors.push("capacidade maior que zero");
+      if(occupied===null || !Number.isInteger(occupied) || occupied<0) errors.push("ocupação válida");
+      if(Number.isInteger(capacity) && Number.isInteger(occupied) && occupied>capacity) errors.push("ocupação não pode superar capacidade");
+      const valid=errors.length===0;
+      const overflowCapacityRaw=String(el("shelterOverflowCapacity").value||"").trim();
+      const overflowCapacity=overflowCapacityRaw==="" ? null : Number(overflowCapacityRaw);
+      return {
+        capacity:capacity,occupied:occupied,available:valid ? capacity-occupied : null,valid:valid,errors:errors,
+        overflow:(el("shelterOverflow").value||"").trim(),
+        overflowCapacity:overflowCapacity,
+        overflowLocation:(el("shelterOverflowLocation").value||"").trim(),
+        overflowResponsible:(el("shelterOverflowResponsible").value||"").trim(),
+        overflowAccessible:!!el("shelterOverflowAccessible").checked,
+        overflowPlanConfirmed:!!el("shelterOverflowPlanConfirmed").checked
+      };
+    }
+
+    function shelterReady(){
+      const snapshot=shelterSnapshot(), zone=getZone();
+      const overflowComplete=overflowReady(snapshot);
+      const destinationReady=snapshot.valid && (snapshot.available>=zone.population || (overflowComplete && snapshot.available+snapshot.overflowCapacity>=zone.population));
+      const shelterContingency=state.contingencyActive && state.contingencyActive.zoneId===zone.id && state.contingencyActive.value==="shelter";
+      return !!(destinationReady && !shelterContingency && el("shelterVerified").checked && el("shelterAccessible").checked && (el("shelterVerifier").value||"").trim() && (el("shelterEvidence").value||"").trim());
+    }
+
+    function confirmationRecord(zone){
+      if(!state.confirmations[zone.id]) state.confirmations[zone.id]={routeField:false,alternativeRouteField:false,communication:false,routeVerifier:"",routeEvidence:"",alternativeRouteVerifier:"",alternativeRouteEvidence:"",communicationResponsible:"",communicationChannel:"",communicationAlternate:"",when:"",source:""};
+      return state.confirmations[zone.id];
+    }
+
+    function missionRecord(zone){
+      if(!state.missions[zone.id]) state.missions[zone.id]={team:"",vehicle:"",channel:"",eta:"",received:false};
+      return state.missions[zone.id];
+    }
+
+    function messageRecord(zone){
+      if(!state.messages[zone.id]) state.messages[zone.id]={audience:"",approver:"",validity:"",version:""};
+      return state.messages[zone.id];
+    }
+
+    function missionFieldsComplete(record){
+      return !!(record.team&&record.vehicle&&record.channel&&record.eta);
+    }
+
+    function messageFieldsComplete(record){
+      return !!(record.audience&&record.approver&&record.validity&&record.version);
+    }
+
+    function overflowDetailsReady(snapshot){
+      return !!(snapshot.overflow && Number.isInteger(snapshot.overflowCapacity) && snapshot.overflowCapacity>0 && snapshot.overflowLocation && snapshot.overflowResponsible && snapshot.overflowAccessible);
+    }
+
+    function overflowReady(snapshot){
+      return !!(overflowDetailsReady(snapshot) && snapshot.overflowPlanConfirmed);
+    }
+
+    function safetyGate(){
+      const record=confirmationRecord(getZone()), message=messageRecord(getZone()), snapshot=shelterSnapshot(), zone=getZone();
+      const contingency=state.contingencyActive && state.contingencyActive.zoneId===zone.id ? state.contingencyActive.value : null;
+      const missing=[];
+      if(!record.routeField) missing.push("rota em campo");
+      if(!record.routeVerifier || !record.routeEvidence) missing.push("responsável/evidência da rota");
+      if(contingency==="route"){
+        if(!record.alternativeRouteField || !record.alternativeRouteVerifier || !record.alternativeRouteEvidence) missing.push("corredor alternativo confirmado");
+      }
+      if(!shelterReady()){
+        if(!snapshot.valid) missing.push("capacidade/ocupação válidas");
+        const enoughCapacity=snapshot.valid && (snapshot.available>=zone.population || (overflowReady(snapshot) && snapshot.available+snapshot.overflowCapacity>=zone.population));
+        if(snapshot.valid && !enoughCapacity) missing.push(overflowReady(snapshot) ? "capacidade total insuficiente" : "transbordo completo");
+        if(!el("shelterVerified").checked || !el("shelterAccessible").checked) missing.push("abrigo/acessibilidade");
+        if(!(el("shelterVerifier").value||"").trim() || !(el("shelterEvidence").value||"").trim()) missing.push("responsável/evidência do abrigo");
+      }
+      if(contingency==="shelter"){
+        if(!overflowDetailsReady(snapshot)) missing.push("destino alternativo ao abrigo");
+        if(!snapshot.overflowPlanConfirmed) missing.push("plano alternativo e transporte confirmados");
+        if(overflowDetailsReady(snapshot) && (!snapshot.valid || snapshot.available+snapshot.overflowCapacity<zone.population)) missing.push("capacidade do destino alternativo");
+      }
+      if(!record.communication) missing.push("comunicação");
+      if(!record.communicationResponsible || !record.communicationChannel) missing.push("responsável/canal da comunicação");
+      if(!record.when || !record.source) missing.push("horário/fonte da confirmação");
+      if(!message.audience || !message.approver || !message.validity || !message.version) missing.push("público/aprovador/validade/versão da mensagem");
+      if(contingency==="comms" && !record.communicationAlternate) missing.push("canal alternativo da contingência");
+      return {ready:missing.length===0,missing:missing};
+    }
+
+    function peopleRecord(zone){
+      if(!state.people[zone.id]) state.people[zone.id]={contacted:null,departed:null,arrived:null,unlocated:null,needs:{},errors:[]};
+      if(!state.people[zone.id].needs) state.people[zone.id].needs={};
+      if(!state.people[zone.id].errors) state.people[zone.id].errors=[];
+      return state.people[zone.id];
+    }
+
+    function parseCount(value){
+      const raw=String(value||"").trim();
+      if(raw==="") return null;
+      const number=Number(raw);
+      return Number.isInteger(number) && number>=0 ? number : NaN;
+    }
+
+    function peopleValidation(record,zone){
+      const errors=[];
+      ["contacted","departed","arrived","unlocated"].forEach(function(key){
+        const value=record[key];
+        if(value!==null && (!Number.isInteger(value) || value<0 || value>zone.population)) errors.push(key+" fora do universo estimado");
+      });
+      if(record.contacted!==null && record.departed!==null && record.departed>record.contacted) errors.push("saídas acima das contatadas");
+      if(record.departed!==null && record.arrived!==null && record.arrived>record.departed) errors.push("chegadas acima das saídas");
+      if(record.arrived!==null && record.unlocated!==null && record.arrived+record.unlocated>zone.population) errors.push("chegadas + não localizadas acima do universo");
+      return errors;
+    }
+
+    function displayCount(value){
+      return value===null || value===undefined ? "—" : fmtInt.format(value);
+    }
+
+    function haversine(a,b){
+      const rad=Math.PI/180, R=6371000;
+      const dLat=(b.lat-a.lat)*rad, dLon=(b.lon-a.lon)*rad;
+      const s=Math.sin(dLat/2)**2 + Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLon/2)**2;
+      return 2*R*Math.asin(Math.sqrt(s));
+    }
+
+    function routePlan(zone){
+      const contingency=state.contingencyActive && state.contingencyActive.zoneId===zone.id ? state.contingencyActive.value : null;
+      const direct=haversine(zone,SERVICE.shelter);
+      const safeDistance=direct*1.36;
+      const shortDistance=direct*1.08;
+      const nightPenalty=contingency==="night" ? 20 : 0;
+      const safeWalk=safeDistance/54+nightPenalty;
+      const shortWalk=shortDistance/54+nightPenalty;
+      const remaining=Math.max(0,zone.arrival-elapsedMinutes());
+      const safeMargin=zone.arrival-elapsedMinutes()-safeWalk;
+      const shortMargin=zone.arrival-elapsedMinutes()-shortWalk;
+      return {
+        direct:direct,safeDistance:safeDistance,shortDistance:shortDistance,
+        safeWalk:safeWalk,shortWalk:shortWalk,safeMargin:safeMargin,shortMargin:shortMargin,
+        remaining:remaining,blocked:zone.arrival<=elapsedMinutes() || contingency==="route",contingency:contingency,method:"distância geométrica + fatores didáticos; sem vias/declividade/bloqueios"
+      };
+    }
+
+    function marginLabel(value,blocked){
+      if(blocked || value<=0) return "rota fechada";
+      return fmtInt.format(Math.max(0,Math.round(value)))+" min";
+    }
+    function routeState(value,blocked){
+      if(blocked) return {label:"rota fechada",className:"closed"};
+      if(value<=0) return {label:"janela cruzada",className:"closed"};
+      return {label:"não confirmado",className:"unvalidated"};
+    }
+
+    function zoneState(zone){
+      const plan=routePlan(zone);
+      const waterCrossed=zone.arrival<=elapsedMinutes();
+      if(waterCrossed) return {label:"resgate",tone:"danger"};
+      if(plan.contingency==="route") return {label:"replanejar",tone:"warning"};
+      if(plan.safeMargin<=0) return {label:"resgate",tone:"danger"};
+      if(zone.arrival-elapsedMinutes()<=120 || plan.safeMargin<30) return {label:"evacuar agora",tone:"warning"};
+      return {label:"preparar / monitorar",tone:"ready"};
+    }
+
+    function cellState(point){
+      const t=elapsedMinutes();
+      if(!Number.isFinite(point.arrival)) return "nodata";
+      if(t>SPATIAL_COVERAGE_MINUTES) return "nodata";
+      if(point.arrival<=t) return "flood";
+      const remaining=point.arrival-t;
+      if(remaining<=30) return "urgent";
+      if(remaining<=60) return "soon";
+      return "open";
+    }
+
+    function renderModels(){
+      const modelData=[["v001",LIVE.v001],["v002",LIVE.v002]];
+      modelData.forEach(function(pair){
+        const key=pair[0], m=pair[1];
+        setText(key+"Label",m.label);
+        setText(key+"Level",fmtM(m.forecast_cm/100));
+        setText(key+"Now",fmtM(m.current_cm/100));
+        setText(key+"Mae",fmt1.format(m.mae24)+" cm");
+        const status=el(key+"Status");
+        if(status){status.textContent=key==="v002" ? "NÃO OPERACIONAL" : m.status;status.className="status-pill "+(key==="v002" ? "attention" : (m.status==="NORMAL" ? "normal":"attention"));}
+      });
+      setText("inputContract",LIVE.contract);
+      setText("bankfull",fmtM(LIVE.bankfull_cm/100));
+      setText("munPopulation",fmtInt.format(MUNICIPAL.population));
+      setText("munOlder",fmtInt.format(MUNICIPAL.older));
+      setText("munPcd",fmtInt.format(MUNICIPAL.pcd));
+      setText("shelterName",SERVICE.shelter.name);
+    }
+
+    function renderStepTrack(){
+      const current=state.stepIndex;
+      el("timeScrubber").max=String(STEPS.length-1);
+      el("timeScrubber").value=String(current);
+      el("timeScrubber").setAttribute("aria-valuetext",STEPS[current].label+" · fase "+STEPS[current].phase+" · "+(getZone().arrival<=elapsedMinutes() ? "a água já chegou ao ponto de referência" : "a água ainda não chegou ao ponto de referência"));
+      el("stepTrack").innerHTML=STEPS.map(function(step,index){
+        const cls=index===current ? "current" : (index<current ? "done":"");
+        return '<button type="button" class="step-button '+cls+'" data-step="'+index+'" aria-current="'+(index===current ? "step":"false")+'" aria-label="'+step.label+' · '+step.phase+'"><span class="step-dot"></span><span class="step-name">'+step.label+'</span></button>';
+      }).join("");
+      el("stepTrack").querySelectorAll("[data-step]").forEach(function(button){
+        button.addEventListener("click",function(){
+          stopAuto();
+          state.stepIndex=Number(button.dataset.step);
+          render();
+          announceState();
+        });
+      });
+    }
+
+    function renderConfirmations(){
+      const zone=getZone(), record=confirmationRecord(zone);
+      setText("routeCheckContext",zone.id+" · corredor A/B sintético · "+(record.routeField ? "marcado no exercício; validação viária ainda pendente" : "confirmação de campo pendente"));
+      [["routeFieldCheck","routeField"],["alternativeRouteFieldCheck","alternativeRouteField"],["communicationReady","communication"]].forEach(function(pair){el(pair[0]).checked=!!record[pair[1]];});
+      const fields=[
+        ["routeVerifier","routeVerifier"],["routeEvidence","routeEvidence"],
+        ["alternativeRouteVerifier","alternativeRouteVerifier"],["alternativeRouteEvidence","alternativeRouteEvidence"],
+        ["communicationResponsible","communicationResponsible"],["communicationChannel","communicationChannel"],["communicationAlternate","communicationAlternate"],
+        ["confirmationWhen","when"],["confirmationSource","source"]
+      ];
+      fields.forEach(function(pair){
+        const input=el(pair[0]);
+        const sameZone=input.dataset.zone===zone.id;
+        if(!sameZone || (document.activeElement!==input && !input.dataset.dirty)) input.value=record[pair[1]]||"";
+        input.dataset.zone=zone.id;
+      });
+    }
+
+    function renderMission(){
+      const zone=getZone(), record=missionRecord(zone), fields=[["missionTeam","team"],["missionVehicle","vehicle"],["missionChannel","channel"],["missionEta","eta"]];
+      fields.forEach(function(pair){
+        const input=el(pair[0]);
+        const sameZone=input.dataset.zone===zone.id;
+        if(!sameZone || (document.activeElement!==input && !input.dataset.dirty)) input.value=record[pair[1]]||"";
+        input.dataset.zone=zone.id;
+      });
+      el("missionReceived").checked=!!record.received;
+      if(hasAction("dispatch")){
+        const missing=[record.team?null:"equipe",record.vehicle?null:"recurso",record.channel?null:"canal",record.eta?null:"ETA"].filter(Boolean);
+        setText("missionStatus","Tarefa criada somente no exercício · "+(missing.length ? "a confirmar: "+missing.join(", ") : "metadados preenchidos")+(record.received ? " · recebimento simulado marcado" : " · aguardando recebimento simulado"));
+      }else{
+        setText("missionStatus",missionFieldsComplete(record) ? "Pronto para registrar a tarefa somente no exercício. Nenhuma equipe será acionada." : "Preencha equipe, recurso, canal e ETA para registrar a tarefa somente no exercício. Nenhuma equipe será acionada.");
+      }
+      el("dispatchAction").disabled=!hasAction("dispatch")&&!missionFieldsComplete(record);
+    }
+
+    function renderMessageMeta(){
+      const zone=getZone(), record=messageRecord(zone), fields=[["messageAudience","audience"],["messageApprover","approver"],["messageValidity","validity"],["messageVersion","version"]];
+      fields.forEach(function(pair){
+        const input=el(pair[0]);
+        const sameZone=input.dataset.zone===zone.id;
+        if(!sameZone || (document.activeElement!==input && !input.dataset.dirty)) input.value=record[pair[1]]||"";
+        input.dataset.zone=zone.id;
+      });
+      el("copyMessage").disabled=!messageFieldsComplete(record);
+    }
+
+    function renderDecision(){
+      const zone=getZone(), step=currentStep(), plan=routePlan(zone), zs=zoneState(zone);
+      const gate=safetyGate(), shelter=shelterSnapshot();
+      const spatialCoverage=elapsedMinutes()<=SPATIAL_COVERAGE_MINUTES;
+      const waterCrossed=zone.arrival<=elapsedMinutes(), routeClosed=plan.contingency==="route";
+      const panel=el("decisionPanel");
+      panel.className="panel decision-panel tone-"+zs.tone;
+      const remaining=zone.arrival-elapsedMinutes();
+      let tag,title,body,callout,actionText,owner,destination,nextMove,messageDraft;
+      if(waterCrossed){
+        tag="resgate prioritário";
+        title="A água já chegou a esta área.";
+        body="O cenário indica que a água já chegou ao ponto de referência. Não conduza moradores por conta própria: peça reconhecimento/resgate, bloqueie o acesso baixo e localize quem precisa de apoio.";
+        callout="Primeiro movimento: acionar a equipe responsável e comunicar a liderança local. O abrigo só vira destino depois de confirmar o caminho.";
+        actionText="Registrar resgate prioritário";
+        owner="Bombeiros / resgate";
+        destination="Abrigo após validar acesso";
+        nextMove="Registrar tarefa de reconhecimento";
+      }else if(routeClosed){
+        tag="rota bloqueada";
+        title="Replanejar antes de orientar a saída.";
+        body="O exercício marcou o corredor principal como fechado. Não orientar a população por essa linha: registrar a interdição, acionar reconhecimento e confirmar um corredor alternativo antes de retirar pessoas.";
+        callout="Contingência ativa: a rota principal está fechada somente neste exercício. Um caminho alternativo precisa ser confirmado em campo.";
+        actionText="Registrar replanejamento";
+        owner="Defesa Civil + reconhecimento";
+        destination="Destino a confirmar";
+        nextMove="Confirmar corredor alternativo";
+      }else if(plan.safeMargin<=0){
+        tag="rota assistida fechada";
+        title="A evacuação ainda pode existir, mas não a pé.";
+        body="Com o tempo e as condições assumidas no exercício, caminhar não é suficiente. Mude para transporte assistido ou resgate e confirme imediatamente os bloqueios.";
+        callout="Não use a linha do mapa como instrução de rua. Acione a equipe, organize o transporte e confirme o acesso.";
+        actionText="Registrar evacuação assistida";
+        owner="Transporte assistido";
+        destination=SERVICE.shelter.name;
+        nextMove="Checar acesso + transporte";
+      }else if(remaining<=120 || plan.safeMargin<30){
+        tag="evacuar agora";
+        title="Retirar esta área antes da próxima janela.";
+        body="A água pode chegar em "+fmtMinutes(remaining)+" ao ponto de referência da área. O corredor A é apenas uma hipótese: comece por quem precisa de apoio e confirme o caminho antes de orientar a saída.";
+        callout="Hipótese do exercício: corredor A até o Ginásio. Não oriente a saída por esta linha antes da confirmação em campo.";
+        actionText="Registrar evacuação";
+        owner="Defesa Civil + apoio";
+        destination=SERVICE.shelter.name;
+        nextMove="Retirar pessoas prioritárias";
+      }else{
+        tag="preparar / monitorar";
+        title="Ainda há janela para organizar a saída.";
+        body="Ainda há tempo no cenário para organizar a saída. Prepare transporte, comunicação e vagas; não desloque a população sem confirmação de campo.";
+        callout="A melhor decisão agora é ganhar capacidade: confirmar o abrigo, ordenar prioridades e deixar o reconhecimento pronto.";
+        actionText="Registrar preparação";
+        owner="Defesa Civil";
+        destination="Preparar "+SERVICE.shelter.name;
+        nextMove="Comunicar + confirmar rota";
+      }
+      if(!spatialCoverage){
+        body+=" A área coberta pelo mapa termina em "+fmtClock(SPATIAL_COVERAGE_MINUTES/60)+"; depois disso o protótipo não faz cálculo espacial validado.";
+        callout="Atenção: o relógio passou da área coberta pelo mapa. Trate o ponto de referência apenas como hipótese e não extrapole as cores.";
+      }
+      if(destination===SERVICE.shelter.name) destination+=shelterReady() ? " · confirmado no exercício" : " · validar antes";
+      else if(destination.indexOf(SERVICE.shelter.name)!==-1 && !shelterReady()) destination+=" · validar antes";
+      if(waterCrossed){
+        messageDraft=zone.id+": o cenário indica água no ponto de referência. Não caminhar; aguardar orientação oficial e apoio de resgate. Abrigo somente após confirmar acesso.";
+      }else if(routeClosed){
+        messageDraft=zone.id+": corredor principal fechado no exercício. Não orientar a saída por esta linha; confirmar rota alternativa, equipe e comunicação antes de deslocar.";
+      }else if(plan.safeMargin<=0){
+        messageDraft=zone.id+": a margem a pé ficou insuficiente no exercício. Priorizar transporte assistido, confirmar acesso e aguardar a equipe responsável.";
+      }else if(remaining<=120 || plan.safeMargin<30){
+        messageDraft=zone.id+": preparar saída prioritária. Água estimada em "+fmtMinutes(remaining)+"; não entrar em área baixa. Corredor e abrigo precisam de confirmação antes da orientação.";
+      }else{
+        messageDraft=zone.id+": preparar comunicação, transporte e abrigo. A água está estimada em "+fmtMinutes(remaining)+"; aguardar confirmação do corredor antes de deslocar.";
+      }
+      messageDraft="RASCUNHO — NÃO É ALERTA · "+messageDraft;
+      setText("phaseBadge",step.phase);
+      setText("eventClock",fmtClock(step.hours));
+      setText("eventLevel",fmtM(scenarioLevelM()));
+      setText("commandStatus",waterCrossed ? "resgate" : (routeClosed ? "replanejamento" : (plan.safeMargin<=0 ? "evacuação assistida" : (remaining<=120 || plan.safeMargin<30 ? "retirada prioritária" : "preparação"))));
+      setText("commandRule",gate.ready ? "confirmações simuladas" : "aguarda validação");
+      setText("decisionTag",tag);
+      setText("decisionTitle",title);
+      setText("decisionBody",body);
+      setText("decisionDeadline",zone.arrival<=elapsedMinutes() ? "já cruzada" : fmtMinutes(remaining));
+      setText("decisionMargin",marginLabel(plan.safeMargin,plan.blocked));
+      setText("safeRouteDistance",fmtKm(plan.safeDistance));
+      setText("safeRouteWalk",fmtMinutes(plan.safeWalk));
+      setText("safeRouteMargin",marginLabel(plan.safeMargin,plan.blocked));
+      setText("shortRouteDistance",fmtKm(plan.shortDistance));
+      setText("shortRouteWalk",fmtMinutes(plan.shortWalk));
+      setText("shortRouteMargin",marginLabel(plan.shortMargin,plan.blocked));
+      const safeState=routeState(plan.safeMargin,plan.blocked), shortState=routeState(plan.shortMargin,plan.blocked);
+      const safeStateNode=el("safeRouteState"), shortStateNode=el("shortRouteState");
+      safeStateNode.textContent=safeState.label;
+      safeStateNode.className="route-state "+safeState.className;
+      shortStateNode.textContent=shortState.label;
+      shortStateNode.className="route-state "+shortState.className;
+      el("safeRouteOption").className="route-option "+(safeState.className==="closed" ? "closed":"");
+      el("shortRouteOption").className="route-option "+(shortState.className==="closed" ? "closed":"");
+      setText("decisionCallout",callout);
+      const gateNode=el("safetyGate");
+      gateNode.className="safety-gate "+(gate.ready ? "ready":"");
+      setText("gateStatus",gate.ready ? "liberado para ensaio" : "bloqueado");
+      setText("gateNote",gate.ready ? "Confirmações completas apenas para o exercício; nenhum despacho real será enviado e o corredor continua sem validação viária." : "Falta confirmar: "+gate.missing.join(" · ")+". As marcações são apenas do exercício e não liberam despacho real.");
+      const tagNode=el("decisionTag");
+      tagNode.className="decision-tag "+zs.tone;
+      const actionLabel=hasDecisionAction() ? "Intenção registrada · atualizar" : "Registrar intenção · exercício";
+      el("evacAction").textContent=actionLabel;
+      el("teaserAction").textContent=actionLabel;
+      el("dispatchAction").textContent=hasAction("dispatch") ? "Reconhecimento registrado · atualizar" : "Registrar reconhecimento · exercício";
+      el("shelterAction").textContent=hasAction("shelter") ? "Abrigo confirmado no exercício · atualizar" : "Registrar validação do abrigo · exercício";
+      const teaserTitle=plan.blocked ? "Resgate antes da evacuação." : (remaining<=120 ? "Evacuar antes que a margem suma." : "Preparar capacidade antes da água.");
+      const teaserText=plan.blocked ? "A área selecionada já passou da janela do cenário; a prioridade é tarefa local, comunicação e acesso." : "A área selecionada tem "+fmtMinutes(remaining)+" até a água no cenário. Compare o tempo de segurança estimado com a capacidade confirmada do abrigo.";
+      setText("teaserTitle",teaserTitle);
+      setText("teaserText",teaserText);
+      setText("teaserOwner",owner);
+      setText("teaserDeadline",zone.arrival<=elapsedMinutes() ? "já cruzada" : fmtMinutes(Math.max(0,remaining)));
+      setText("teaserDestination",destination);
+      setText("teaserNext",gate.ready ? nextMove : "Confirmar "+gate.missing[0]);
+      setText("messageDraft",messageDraft);
+      setText("teaserShelter",shelterReady() && shelter.available!==null ? fmtInt.format(shelter.available) : "—");
+      setText("decisionDeadline",zone.arrival<=elapsedMinutes() ? "já cruzada" : fmtMinutes(Math.max(0,remaining)));
+    }
+
+    function zonePriorityRank(zone){
+      const plan=routePlan(zone), remaining=zone.arrival-elapsedMinutes(), record=peopleRecord(zone);
+      let rank=plan.blocked ? 0 : (plan.safeMargin<=0 ? 1 : (remaining<=120 || plan.safeMargin<30 ? 2 : 3));
+      const hasNeeds=Object.keys(record.needs||{}).some(function(key){return !!record.needs[key];});
+      if(record.unlocated!==null && record.unlocated>0) return 0;
+      if(hasNeeds) rank=Math.min(rank,1);
+      return rank;
+    }
+
+    function renderZones(){
+      const selected=state.zoneId;
+      const ordered=ZONES.slice().sort(function(a,b){
+        const rankDiff=zonePriorityRank(a)-zonePriorityRank(b);
+        if(rankDiff!==0) return rankDiff;
+        return (a.arrival-elapsedMinutes())-(b.arrival-elapsedMinutes());
+      });
+      el("zoneList").innerHTML=ordered.map(function(zone,index){
+        const zs=zoneState(zone), record=peopleRecord(zone), needs=Object.keys(record.needs||{}).filter(function(key){return !!record.needs[key];});
+        const status=zone.arrival<=0 ? "já na água" : (zone.arrival-elapsedMinutes()>0 ? "água em "+fmtMinutes(zone.arrival-elapsedMinutes()) : "já cruzada");
+        const support=record.unlocated!==null && record.unlocated>0 ? " · "+fmtInt.format(record.unlocated)+" não localizadas" : (needs.length ? " · apoio a confirmar" : "");
+        return '<button type="button" class="zone-button" data-zone="'+zone.id+'" aria-pressed="'+(zone.id===selected)+'" aria-label="Prioridade '+(index+1)+' · '+zone.id+' · '+zone.title+'">'+
+          '<span class="zone-row-top"><span class="zone-title-line"><span class="zone-rank '+(index===0 ? "first":"")+'">'+(index+1)+'º</span><span><span class="zone-code">'+zone.id+'</span> · <strong>'+zone.title+'</strong></span></span><span class="zone-state '+zs.tone+'">'+zs.label+'</span></span>'+
+          '<span class="zone-row-bottom"><span>'+fmtInt.format(zone.population)+' moradores · '+fmtInt.format(zone.homes)+' domicílios · estimativa IBGE 2022</span><span>'+status+support+'</span></span>'+
+          '</button>';
+      }).join("");
+      el("zoneList").querySelectorAll("[data-zone]").forEach(function(button){
+        button.addEventListener("click",function(){
+          stopAuto();
+          state.zoneId=button.dataset.zone;
+          render();
+          announce("Área "+state.zoneId+" selecionada.");
+        });
+      });
+      const zone=getZone();
+      setText("teaserPeople",fmtInt.format(zone.population));
+    }
+
+    function renderPeople(){
+      const zone=getZone(), record=peopleRecord(zone);
+      setText("peopleEstimated",fmtInt.format(zone.population));
+      setText("peopleEstimatedMeta","estimativa de apoio · IBGE 2022 · raio de 900 m · não é lista de famílias");
+      ["peopleContacted","peopleDeparted","peopleArrived","peopleUnlocated"].forEach(function(id){
+        const input=el(id), key=id.replace("people","").toLowerCase(), sameZone=input.dataset.zone===zone.id;
+        input.max=String(zone.population);
+        if(!sameZone || (document.activeElement!==input && !input.dataset.dirty)) input.value=record[key]===null ? "" : String(record[key]);
+        input.dataset.zone=zone.id;
+      });
+      const errors=peopleValidation(record,zone);
+      if(record.inputError) errors.push(record.inputError);
+      const status="contatadas: "+displayCount(record.contacted)+" · saíram: "+displayCount(record.departed)+" · chegaram: "+displayCount(record.arrived)+" · não localizadas: "+displayCount(record.unlocated);
+      const statusNode=el("peopleStatus");
+      const needLabels={transport:"transporte assistido",health:"saúde / medicação",care:"crianças / idosos",animals:"animais"};
+      const needs=["transport","health","care","animals"].filter(function(key){return !!record.needs[key];}).map(function(key){return needLabels[key];});
+      statusNode.textContent=(errors.length ? "Corrigir: "+errors.join(" · ")+". " : "")+([record.contacted,record.departed,record.arrived,record.unlocated].some(function(value){return value===null;}) && !errors.length ? "sem contagem operacional confirmada · " : "")+status+(needs.length ? " · confirmar: "+needs.join(", ") : "");
+      statusNode.className="people-status"+(errors.length || (record.unlocated||0)>0 ? " alert" : ([record.contacted,record.departed,record.arrived,record.unlocated].some(function(value){return value===null;}) ? " warn":""));
+      ["peopleContacted","peopleDeparted","peopleArrived","peopleUnlocated"].forEach(function(id){el(id).setAttribute("aria-invalid",errors.length ? "true":"false");});
+      document.querySelectorAll("[data-need]").forEach(function(input){input.checked=!!record.needs[input.dataset.need];});
+    }
+
+    function renderShelter(){
+      const snapshot=shelterSnapshot(), capacity=snapshot.capacity, occupied=snapshot.occupied, available=snapshot.available;
+      const zone=getZone(), shelterContingency=state.contingencyActive && state.contingencyActive.zoneId===zone.id && state.contingencyActive.value==="shelter";
+      const ready=shelterReady(), visible=ready && available!==null ? available : null;
+      const deficit=snapshot.valid && available!==null ? zone.population-available : null;
+      setText("shelterAvailable",visible===null ? "—" : fmtInt.format(visible));
+      setText("teaserShelter",visible===null ? "—" : fmtInt.format(visible));
+      const fill=ready && capacity ? Math.min(100,(occupied/capacity)*100) : 0;
+      el("capacityFill").style.width=fill+"%";
+      const meter=el("capacityMeter");
+      meter.setAttribute("aria-valuemax",String(Number.isInteger(capacity) && capacity>0 ? capacity : 0));
+      meter.setAttribute("aria-valuenow",String(ready && Number.isInteger(occupied) ? occupied : 0));
+      meter.setAttribute("aria-valuetext",visible===null ? "disponibilidade não confirmada" : fmtInt.format(occupied)+" de "+fmtInt.format(capacity)+" ocupadas; "+fmtInt.format(visible)+" vagas livres");
+      const note=el("capacityNote");
+      const stateNode=el("shelterState");
+      stateNode.textContent=shelterContingency ? "abrigo lotado · exercício" : (ready ? "confirmado no exercício" : (!snapshot.valid ? "dados inválidos" : "capacidade não confirmada"));
+      stateNode.className="status-pill "+(ready ? "normal":"attention");
+      if(shelterContingency){
+        note.textContent="Contingência ativa: não indicar o abrigo principal. Preencha o destino alternativo, confirme sua capacidade e marque transporte/plano antes de prosseguir.";
+        note.className="capacity-note alert";
+      }else if(!snapshot.valid){
+        note.textContent="Dados inválidos: "+snapshot.errors.join(" · ")+". A capacidade não entra na decisão.";
+        note.className="capacity-note alert";
+      }else if(!ready){
+        note.textContent="Destino bloqueado: confirme os números, abertura, acessibilidade, responsável, referência e eventual transbordo antes de indicar este abrigo.";
+        note.className="capacity-note alert";
+      }else if(deficit>0){
+        note.textContent="O recorte selecionado supera as vagas livres em "+fmtInt.format(deficit)+" pessoas. Transbordo preenchido no exercício: "+snapshot.overflow+".";
+        note.className="capacity-note alert";
+      }else{
+        note.textContent="Capacidade confirmada somente no exercício; nenhum acionamento é enviado.";
+        note.className="capacity-note";
+      }
+    }
+
+    function project(point,box){
+      return {x:box.pad+(point.lon-box.minLon)/(box.maxLon-box.minLon)*(box.w-2*box.pad),y:box.pad+(box.maxLat-point.lat)/(box.maxLat-box.minLat)*(box.h-2*box.pad)};
+    }
+
+    function mapBox(zone){
+      const focusPoints=[zone].concat(routePoints(zone,"safe"),routePoints(zone,"short"),[SERVICE.shelter]);
+      const points=state.mapMode==="focus" ? focusPoints : ROUTE.grid.concat(ZONES).concat([SERVICE.shelter]).concat(SERVICE.schools);
+      const lons=points.map(function(p){return p.lon}), lats=points.map(function(p){return p.lat});
+      const minLon=Math.min.apply(null,lons), maxLon=Math.max.apply(null,lons), minLat=Math.min.apply(null,lats), maxLat=Math.max.apply(null,lats);
+      const lonSpan=maxLon-minLon, latSpan=maxLat-minLat;
+      const lonPad=state.mapMode==="focus" ? Math.max(lonSpan*.24,.0011) : lonSpan*.08;
+      const latPad=state.mapMode==="focus" ? Math.max(latSpan*.24,.0011) : latSpan*.08;
+      return {w:860,h:560,pad:43,minLon:minLon-lonPad,maxLon:maxLon+lonPad,minLat:minLat-latPad,maxLat:maxLat+latPad};
+    }
+
+    function pointInBox(point,box){
+      return point.lon>=box.minLon && point.lon<=box.maxLon && point.lat>=box.minLat && point.lat<=box.maxLat;
+    }
+
+    function routePoints(zone,kind){
+      const end=SERVICE.shelter;
+      const offset=kind==="safe" ? zone.routeOffset : zone.shortOffset;
+      const mid={
+        lat:zone.lat+(end.lat-zone.lat)*.47+offset.lat,
+        lon:zone.lon+(end.lon-zone.lon)*.47+offset.lon
+      };
+      return [zone,mid,end];
+    }
+
+    function polylinePoints(points,box){
+      return points.map(function(point){const p=project(point,box);return p.x.toFixed(1)+","+p.y.toFixed(1);}).join(" ");
+    }
+
+    function renderMap(){
+      const zone=getZone(), box=mapBox(zone), plan=routePlan(zone), step=currentStep();
+      const base=[], grid=[], routes=[], zones=[], services=[];
+      base.push('<rect x="'+box.pad+'" y="'+box.pad+'" width="'+(box.w-2*box.pad)+'" height="'+(box.h-2*box.pad)+'" rx="12" class="map-frame"></rect>');
+      if(state.mapMode==="context"){
+        const xTicks=5, yTicks=5;
+        for(let i=0;i<xTicks;i++){
+          const lon=box.minLon+(box.maxLon-box.minLon)*i/(xTicks-1);
+          const x=box.pad+(box.w-2*box.pad)*i/(xTicks-1);
+          base.push('<line x1="'+x.toFixed(1)+'" y1="'+box.pad+'" x2="'+x.toFixed(1)+'" y2="'+(box.h-box.pad)+'" class="map-grid-line"></line>');
+          base.push('<text x="'+x.toFixed(1)+'" y="'+(box.h-18)+'" text-anchor="middle" class="map-axis-label">'+lon.toFixed(3)+'°</text>');
+        }
+        for(let i=0;i<yTicks;i++){
+          const lat=box.maxLat-(box.maxLat-box.minLat)*i/(yTicks-1);
+          const y=box.pad+(box.h-2*box.pad)*i/(yTicks-1);
+          base.push('<line x1="'+box.pad+'" y1="'+y.toFixed(1)+'" x2="'+(box.w-box.pad)+'" y2="'+y.toFixed(1)+'" class="map-grid-line"></line>');
+          base.push('<text x="13" y="'+(y+3).toFixed(1)+'" class="map-axis-label">'+lat.toFixed(3)+'°</text>');
+        }
+      }
+      base.push('<text x="'+(box.w-52)+'" y="33" class="north-arrow">N</text><path d="M '+(box.w-47)+' 41 L '+(box.w-47)+' 62" class="north-line"></path><path d="M '+(box.w-47)+' 41 l -4 8 h 8 z" class="north-head"></path>');
+      ROUTE.grid.forEach(function(point){
+        if(state.mapMode==="focus" && !pointInBox(point,box)) return;
+        const kind=cellState(point);
+        if(state.mapMode==="focus" && kind==="open" && point.arrival>elapsedMinutes()+180) return;
+        const p=project(point,box), r=kind==="flood" ? 5.2 : 4.25;
+        const title=point.arrival<=0 ? "Área já na água no início do cenário" : "Água em "+fmtMinutes(point.arrival)+" · diferença estimada de terreno/água "+fmt1.format(point.hand)+" m";
+        grid.push('<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+r+'" class="cell-'+kind+'"><title>'+title+'</title></circle>');
+      });
+      const safeClass=plan.blocked ? "route-closed" : "route-preliminary";
+      const shortClass=plan.blocked ? "route-short route-closed" : "route-short route-preliminary";
+      routes.push('<polyline points="'+polylinePoints(routePoints(zone,"safe"),box)+'" class="'+safeClass+'"></polyline>');
+      const safeMid=project(routePoints(zone,"safe")[1],box);
+      const safeRouteLabel=plan.contingency==="route" ? "rota fechada" : (zone.arrival<=elapsedMinutes() ? "janela cruzada" : "não confirmado");
+      routes.push('<text x="'+(safeMid.x+8).toFixed(1)+'" y="'+(safeMid.y-8).toFixed(1)+'" class="route-label">A · '+safeRouteLabel+'</text>');
+      if(state.showAlternative){
+        routes.push('<polyline points="'+polylinePoints(routePoints(zone,"short"),box)+'" class="'+shortClass+'"></polyline>');
+        const shortMid=project(routePoints(zone,"short")[1],box);
+        routes.push('<text x="'+(shortMid.x+7).toFixed(1)+'" y="'+(shortMid.y+13).toFixed(1)+'" class="route-label route-label-muted">B · trajeto curto</text>');
+      }
+      ZONES.forEach(function(item){
+        if(state.mapMode==="focus" && item.id!==zone.id) return;
+        const p=project(item,box), selected=item.id===zone.id, zs=zoneState(item);
+        zones.push('<a id="area-'+item.id+'" href="#area-'+item.id+'" class="zone-marker '+(selected ? "selected":"")+'" data-zone="'+item.id+'" aria-label="'+item.id+' · '+item.title+' · '+zs.label+'">'+
+          '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+(selected?17:12)+'" class="zone-ring '+zs.tone+'"></circle>'+
+          '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+(selected?7:5.5)+'" class="zone-core '+zs.tone+'"></circle>'+
+          '<text x="'+(p.x+12).toFixed(1)+'" y="'+(p.y-9).toFixed(1)+'" class="zone-map-code">'+item.id+'</text>'+
+          '<text x="'+(p.x+12).toFixed(1)+'" y="'+(p.y+6).toFixed(1)+'" class="zone-map-text">'+(selected ? "selecionada":"área")+'</text></a>');
+      });
+      const shelterPoint=project(SERVICE.shelter,box);
+      services.push('<g class="shelter-marker"><rect x="'+(shelterPoint.x-8).toFixed(1)+'" y="'+(shelterPoint.y-8).toFixed(1)+'" width="16" height="16" rx="4" class="shelter-square"></rect><path d="M '+(shelterPoint.x-5)+' '+(shelterPoint.y)+' l 5 -5 l 5 5 M '+(shelterPoint.x-3)+' '+(shelterPoint.y)+' v 5 h 6 v -5" class="shelter-glyph"></path><text x="'+(shelterPoint.x+13).toFixed(1)+'" y="'+(shelterPoint.y+4).toFixed(1)+'" class="service-label">Ginásio de Esportes</text></g>');
+      if(state.mapMode==="context") SERVICE.schools.forEach(function(school){
+        const p=project(school,box);
+        services.push('<g class="school-marker"><rect x="'+(p.x-4).toFixed(1)+'" y="'+(p.y-4).toFixed(1)+'" width="8" height="8" rx="2" class="school-square"></rect><title>'+school.name+'</title></g>');
+      });
+      services.push('<text x="'+(box.pad+4)+'" y="'+(box.pad+20)+'" class="map-note">tempo até a água · '+step.label+'</text>');
+      el("mapBase").innerHTML=base.join("");
+      el("mapGrid").innerHTML=grid.join("");
+      el("mapRoutes").innerHTML=routes.join("");
+      el("mapZones").innerHTML=zones.join("");
+      el("mapServices").innerHTML=services.join("");
+      el("mapZones").querySelectorAll("[data-zone]").forEach(function(node){
+        node.addEventListener("click",function(event){
+          event.preventDefault();
+          stopAuto();
+          state.zoneId=node.dataset.zone;
+          render();
+          announce("Área "+state.zoneId+" selecionada no mapa.");
+        });
+        node.addEventListener("keydown",function(event){
+          if(event.key===" "){event.preventDefault();node.click();}
+        });
+      });
+      const visiblePoints=ROUTE.grid.filter(function(point){
+        if(state.mapMode==="focus" && !pointInBox(point,box)) return false;
+        const kind=cellState(point);
+        if(state.mapMode==="focus" && kind==="open" && point.arrival>elapsedMinutes()+180) return false;
+        return true;
+      });
+      const flooded=visiblePoints.filter(function(point){return cellState(point)==="flood";}).length;
+      const urgent=visiblePoints.filter(function(point){return cellState(point)==="urgent";}).length;
+      const fullFlooded=ROUTE.grid.filter(function(point){return cellState(point)==="flood";}).length;
+      const coverageText=elapsedMinutes()>SPATIAL_COVERAGE_MINUTES ? "cobertura espacial encerrada em "+SPATIAL_COVERAGE_LABEL+" · dados posteriores sem cálculo" : (elapsedMinutes()===SPATIAL_COVERAGE_MINUTES ? "limite espacial "+SPATIAL_COVERAGE_LABEL+" · "+fmtInt.format(SPATIAL_COVERAGE_CELLS)+"/"+fmtInt.format(ROUTE.grid.length)+" células cobertas · sem extrapolação" : (state.mapMode==="focus" ? fmtInt.format(fullFlooded)+" no cenário completo · "+fmtInt.format(flooded)+" visíveis no foco" : fmtInt.format(flooded)+" células na água"));
+      setText("mapSummary",coverageText+" · "+fmtInt.format(urgent)+" na próxima hora · área "+zone.id+" selecionada");
+      setText("mapSubhead",zone.id+" · "+zone.title+" · água "+(zone.arrival<=elapsedMinutes() ? "já chegou ao ponto de referência" : "em "+fmtMinutes(Math.max(0,zone.arrival-elapsedMinutes())))+(elapsedMinutes()>SPATIAL_COVERAGE_MINUTES ? " · área fora da cobertura do mapa" : ""));
+      setText("mapFocusZone",zone.id);
+      setText("mapFocusState",zone.arrival<=elapsedMinutes() ? "resgate · água já chegou à área" : zoneState(zone).label+" · água em "+fmtMinutes(zone.arrival-elapsedMinutes()));
+      const altRouteButton=el("altRouteToggle");
+      altRouteButton.textContent=state.showAlternative ? "Ocultar trajeto B" : "Comparar trajeto B";
+      altRouteButton.setAttribute("aria-pressed",String(state.showAlternative));
+      document.querySelectorAll("[data-map-mode]").forEach(function(button){
+        const active=button.dataset.mapMode===state.mapMode;
+        button.classList.toggle("active",active);
+        button.setAttribute("aria-pressed",String(active));
+      });
+      setText("mapModeHint",state.mapMode==="focus" ? "A área selecionada e o abrigo ficam em primeiro plano." : "A grade completa mostra o contexto espacial do cenário.");
+    }
+
+    function renderChart(){
+      const w=800,h=270,left=56,right=24,top=24,bottom=43;
+      const values=STEPS.map(function(step){return ROUTE.level_cm/100+step.hours*.4;});
+      const reference=LIVE.bankfull_cm/100;
+      const minValue=Math.min.apply(null,values.concat([reference]));
+      const maxValue=Math.max.apply(null,values.concat([reference]));
+      const yMin=Math.floor((minValue-.35)*10)/10, yMax=Math.ceil((maxValue+.35)*10)/10;
+      const x=function(hours){return left+(w-left-right)*(hours/12);};
+      const y=function(value){return top+(h-top-bottom)*(1-(value-yMin)/(yMax-yMin));};
+      const parts=[];
+      parts.push('<rect x="'+left+'" y="'+top+'" width="'+(w-left-right)+'" height="'+(h-top-bottom)+'" rx="8" class="chart-frame"></rect>');
+      for(let i=0;i<5;i++){
+        const value=yMin+(yMax-yMin)*i/4, yy=y(value);
+        parts.push('<line x1="'+left+'" y1="'+yy.toFixed(1)+'" x2="'+(w-right)+'" y2="'+yy.toFixed(1)+'" class="chart-grid"></line>');
+        parts.push('<text x="'+(left-10)+'" y="'+(yy+4).toFixed(1)+'" text-anchor="end" class="chart-label">'+fmt1.format(value)+'</text>');
+      }
+      const refY=y(reference);
+      parts.push('<line x1="'+left+'" y1="'+refY.toFixed(1)+'" x2="'+(w-right)+'" y2="'+refY.toFixed(1)+'" class="chart-reference"></line>');
+      parts.push('<text x="'+(w-right-5)+'" y="'+(refY-7).toFixed(1)+'" text-anchor="end" class="chart-reference-label">referência '+fmt1.format(reference)+' m</text>');
+      const path=values.map(function(value,index){return (index?"L ":"M ")+x(STEPS[index].hours).toFixed(1)+" "+y(value).toFixed(1);}).join(" ");
+      const area=path+" L "+x(12).toFixed(1)+" "+(h-bottom)+" L "+x(0).toFixed(1)+" "+(h-bottom)+" Z";
+      parts.push('<path d="'+area+'" class="chart-area"></path>');
+      parts.push('<path d="'+path+'" class="chart-line"></path>');
+      STEPS.forEach(function(step,index){
+        const xx=x(step.hours), yy=y(values[index]), current=index===state.stepIndex;
+        parts.push('<line x1="'+xx.toFixed(1)+'" y1="'+top+'" x2="'+xx.toFixed(1)+'" y2="'+(h-bottom)+'" class="'+(current?"chart-current-line":"chart-step-line")+'"></line>');
+        parts.push('<circle cx="'+xx.toFixed(1)+'" cy="'+yy.toFixed(1)+'" r="'+(current?6:4)+'" class="'+(current?"chart-point-current":"chart-point")+'"><title>'+step.label+" · "+fmtM(values[index])+'</title></circle>');
+        parts.push('<text x="'+xx.toFixed(1)+'" y="'+(h-19)+'" text-anchor="middle" class="chart-label">'+step.label+'</text>');
+      });
+      parts.push('<text x="'+(w/2)+'" y="'+(h-2)+'" text-anchor="middle" class="chart-axis-title">tempo do exercício</text>');
+      parts.push('<text x="15" y="'+(h/2)+'" text-anchor="middle" transform="rotate(-90 15 '+(h/2)+')" class="chart-axis-title">cota na régua (m)</text>');
+      el("levelChart").innerHTML='<title>Perfil da cota assumida ao longo do exercício</title><desc>Curva da cota de '+fmtM(values[0])+' até '+fmtM(values[values.length-1])+' com linha de referência em '+fmtM(reference)+'.</desc>'+parts.join("");
+      setText("chartCurrentLabel",fmtClock(currentStep().hours));
+      const forecastStep=STEPS.find(function(step){return step.hours===8;});
+      setText("chartForecastNote","T+8h didático: "+fmtM(ROUTE.level_cm/100+forecastStep.hours*.4));
+    }
+
+    function renderOps(){
+      const zone=getZone(), plan=routePlan(zone), zs=zoneState(zone), gate=safetyGate();
+      const mission=missionRecord(zone), confirmation=confirmationRecord(zone);
+      const waterCrossed=zone.arrival<=elapsedMinutes(), routeClosed=plan.contingency==="route";
+      const fireText=hasAction("dispatch") ? "TAREFA LOCAL" : (waterCrossed ? "PRIORIDADE NO EXERCÍCIO" : (routeClosed ? "REPLANEJAR ROTA" : "aguardando"));
+      const fireClass=hasAction("dispatch") ? "active" : (waterCrossed || routeClosed ? "priority":"");
+      const shelterText=hasAction("shelter") ? "CONFIRMADO NO EXERCÍCIO" : (shelterReady() ? "CONFIRMADO NO EXERCÍCIO" : "BLOQUEADO");
+      const shelterClass=hasAction("shelter") || shelterReady() ? "active": "priority";
+      const evacText=hasDecisionAction() ? "INTENÇÃO REGISTRADA" : (gate.ready ? "PRONTO PARA ENSAIO" : (zs.tone==="danger" ? "NÃO ORIENTADA":"AGUARDANDO"));
+      const evacClass=hasDecisionAction() ? "active" : (zs.tone==="danger" ? "priority":"");
+      const missionMeta=hasAction("dispatch") ? "equipe: "+escapeHtml(mission.team||"a confirmar")+" · recurso: "+escapeHtml(mission.vehicle||"a confirmar")+" · canal: "+escapeHtml(mission.channel||"a confirmar")+" · ETA: "+escapeHtml(mission.eta||"a confirmar") : "nenhuma equipe acionada · dados de missão a confirmar";
+      el("opsList").innerHTML=
+        '<div class="ops-item"><span class="ops-icon fire">B</span><div><strong>Reconhecimento / resgate</strong><span>'+
+          SERVICE.nearestFire.name+' · '+SERVICE.nearestFire.city+' · '+fmtKm(SERVICE.nearestFire.distance_m)+' em linha reta · '+missionMeta+'</span></div><span class="ops-status '+fireClass+'">'+fireText+'</span></div>'+
+        '<div class="ops-item"><span class="ops-icon">A</span><div><strong>'+SERVICE.shelter.name+'</strong><span>ponto de encontro cadastrado · capacidade definida no exercício</span></div><span class="ops-status '+shelterClass+'">'+shelterText+'</span></div>'+
+        '<div class="ops-item"><span class="ops-icon route">R</span><div><strong>Corredor sintético para '+zone.id+'</strong><span>'+fmtKm(plan.safeDistance)+' · tempo de segurança estimado '+marginLabel(plan.safeMargin,plan.blocked)+' · campo '+(confirmation.routeField ? "marcado no exercício":"a confirmar")+' · não é rota viária</span></div><span class="ops-status '+evacClass+'">'+evacText+'</span></div>';
+      el("logList").innerHTML=state.log.map(function(item){return '<div class="log-row"><time>'+item.time+'</time><span>'+item.text+'</span></div>';}).join("");
+    }
+
+    function renderContingency(){
+      const value=el("contingencySelect").value, zone=getZone(), shelter=shelterSnapshot();
+      const overflow=shelter.overflow || "segundo abrigo ainda não cadastrado";
+      const text={
+        route:"Bloquear a orientação pelo corredor A, registrar uma tarefa de verificação e só retomar após um corredor alternativo ser confirmado.",
+        shelter:"Parar de indicar o abrigo principal, registrar a necessidade de transbordo ("+overflow+") e escalonar transporte.",
+        comms:"Usar rádio, telefone, ponto de encontro e liderança local; registrar a mensagem para sincronizar depois.",
+        night:"Reduzir a circulação, confirmar iluminação e equipe, priorizar transporte assistido e revisar cada travessia."
+      }[value];
+      setText("contingencyText",zone.id+" · "+text);
+      const active=state.contingencyActive && state.contingencyActive.zoneId===zone.id ? state.contingencyActive : null;
+      setText("contingencyStatus",active ? "Aplicada no exercício · "+active.label+" · sem efeito fora desta página." : "Nenhuma contingência aplicada.");
+    }
+
+    function applyContingency(){
+      const value=el("contingencySelect").value, labels={route:"rota principal fechada",shelter:"abrigo lotado",comms:"sem comunicação",night:"noite / baixa visibilidade"};
+      state.contingencyActive={value:value,label:labels[value],zoneId:getZone().id,applied_at:new Date().toISOString()};
+      addLog("Contingência aplicada somente no exercício para "+getZone().id+": "+labels[value]+".");
+      render();
+      announce("Contingência aplicada no exercício para "+getZone().id+".");
+    }
+
+    function setOperatingMode(mode){
+      if(mode!=="exercise"){
+        setText("modeStatus",mode==="live" ? "Operação ao vivo bloqueada: falta feed oficial, rota validada, abrigo confirmado e despacho integrado." : "Mensagem pública bloqueada: falta validação do comando e aprovação do texto.");
+        announce(mode==="live" ? "Operação ao vivo bloqueada." : "Mensagem pública bloqueada.");
+        return;
+      }
+      state.operatingMode="exercise";
+      document.querySelectorAll("[data-operating-mode]").forEach(function(button){button.setAttribute("aria-pressed",String(button.dataset.operatingMode==="exercise"));});
+      setText("modeStatus","Dados incorporados; as ações ficam somente neste navegador.");
+      announce("Modo exercício de mesa ativo.");
+    }
+
+    function copyMessage(){
+      const text=el("messageDraft").textContent;
+      const done=function(){announce("Texto copiado; ainda é um rascunho do exercício.");};
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done).catch(function(){copyMessageFallback(text);});
+        return;
+      }
+      copyMessageFallback(text);
+    }
+
+    function copyMessageFallback(text){
+      const area=document.createElement("textarea");
+      area.value=text;
+      area.setAttribute("readonly","");
+      area.style.position="absolute";
+      area.style.left="-9999px";
+      document.body.appendChild(area);
+      area.select();
+      try{document.execCommand("copy");}catch(error){}
+      area.remove();
+      announce("Texto preparado; copie o rascunho do exercício pelo canal aprovado.");
+    }
+
+    function exportExercise(){
+      const payload={
+        exported_at:new Date().toISOString(),
+        mode:state.operatingMode,
+        artifact:{name:"estudo-caso-resposta-santa-tereza.html",version:"0.2",validation:"exercício local; não operacional"},
+        event:{step:currentStep(),clock:fmtClock(currentStep().hours),zone:getZone().id,scenario:"22/07 · didático separado do feed da estação",spatial_coverage_until:fmtClock(SPATIAL_COVERAGE_MINUTES/60)},
+        model_snapshot:{snapshot:LIVE.snapshot,station:LIVE.station,contract:LIVE.contract,v001:LIVE.v001,v002:LIVE.v002},
+        confirmations:{zone:confirmationRecord(getZone()),shelter:{verified:el("shelterVerified").checked,accessible:el("shelterAccessible").checked,verifier:(el("shelterVerifier").value||"").trim(),evidence:(el("shelterEvidence").value||"").trim()},ready:shelterReady() && safetyGate().ready},
+        route:{plan:routePlan(getZone()),source:"heurística local incorporada",validated_for_field:false},
+        shelter:shelterSnapshot(),
+        people:state.people,
+        actions:state.actions,
+        missions:state.missions,
+        messages:state.messages,
+        contingency:state.contingencyActive,
+        log:state.log
+      };
+      const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+      const url=URL.createObjectURL(blob), link=document.createElement("a");
+      link.href=url;
+      link.download="previne-exercicio-"+getZone().id.toLowerCase()+"-"+fmtClock(currentStep().hours).replace(/[:+]/g,"")+".json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function(){URL.revokeObjectURL(url);},0);
+      announce("Registro local exportado; nenhum despacho foi enviado.");
+    }
+
+    function render(){
+      const zone=getZone(), step=currentStep();
+      renderModels();
+      renderStepTrack();
+      renderConfirmations();
+      renderMission();
+      renderMessageMeta();
+      renderDecision();
+      renderZones();
+      renderPeople();
+      renderShelter();
+      renderMap();
+      renderChart();
+      renderOps();
+      renderContingency();
+      setText("phaseBadge",step.phase);
+      const play=el("playStep");
+      play.textContent=state.auto ? "Pausar avanço automático" : "Iniciar avanço automático";
+      setText("eventLevel",fmtM(scenarioLevelM()));
+    }
+
+    function stopAuto(){
+      if(state.timer){clearInterval(state.timer);state.timer=null;}
+      state.auto=false;
+    }
+
+    function toggleAuto(){
+      if(state.auto){stopAuto();render();announceState();return;}
+      if(state.stepIndex>=STEPS.length-1){state.stepIndex=0;}
+      state.auto=true;
+      state.timer=setInterval(function(){
+        if(state.stepIndex<STEPS.length-1){
+          state.stepIndex+=1;
+          render();
+          announceState();
+        }else{
+          stopAuto();
+          render();
+          announceState();
+        }
+      },2200);
+      render();
+      announceState();
+    }
+
+    el("prevStep").addEventListener("click",function(){
+      stopAuto();
+      state.stepIndex=Math.max(0,state.stepIndex-1);
+      render();
+      announceState();
+    });
+    el("nextStep").addEventListener("click",function(){
+      stopAuto();
+      state.stepIndex=Math.min(STEPS.length-1,state.stepIndex+1);
+      render();
+      announceState();
+    });
+    el("playStep").addEventListener("click",toggleAuto);
+    el("timeScrubber").addEventListener("input",function(){
+      stopAuto();
+      state.stepIndex=Number(this.value);
+      render();
+      announceState();
+    });
+
+    function registerDecisionAction(){
+      const zone=getZone(), plan=routePlan(zone);
+      const gate=safetyGate();
+      const waterCrossed=zone.arrival<=elapsedMinutes(), routeClosed=plan.contingency==="route";
+      const actionType=waterCrossed ? "rescue" : (routeClosed ? "replan" : "evac");
+      const label=waterCrossed ? "resgate prioritário" : (routeClosed ? "replanejamento" : (plan.safeMargin<=0 ? "evacuação assistida" : (zone.arrival-elapsedMinutes()<=120 ? "evacuação" : "preparação")));
+      setAction(actionType);
+      addLog("Intenção de "+label+" registrada localmente para "+zone.id+"; "+(gate.ready ? "confirmações preenchidas no exercício" : "confirmações ainda pendentes")+"; sem autorização ou despacho externo.");
+      render();
+      announce("Intenção de "+label+" registrada somente no exercício para "+zone.id+".");
+    }
+    el("evacAction").addEventListener("click",registerDecisionAction);
+    el("teaserAction").addEventListener("click",registerDecisionAction);
+    el("dispatchAction").addEventListener("click",function(){
+      const zone=getZone(), mission=missionRecord(zone);
+      if(!missionFieldsComplete(mission)){
+        addLog("Tarefa local não registrada para "+zone.id+"; preencha equipe, recurso, canal e ETA antes de salvar.");
+        render();
+        announce("Preencha os dados da tarefa antes de registrar o reconhecimento.");
+        return;
+      }
+      setAction("dispatch");
+      addLog("Tarefa local de reconhecimento criada para "+zone.id+"; nenhum bombeiro foi despachado e equipe, recurso, canal e ETA precisam ser confirmados.");
+      render();
+      announce("Tarefa local de reconhecimento criada no exercício para "+zone.id+".");
+    });
+    el("shelterAction").addEventListener("click",function(){
+      const zone=getZone();
+      if(!shelterReady()){
+        addLog("Validação do abrigo bloqueada para "+zone.id+"; faltam dados válidos e confirmações.");
+        render();
+        announce("Abrigo ainda não pode ser confirmado no exercício.");
+        return;
+      }
+      setAction("shelter");
+      addLog("Abrigo e vagas confirmados somente no exercício para "+zone.id+"; sem validação ou acionamento externo.");
+      render();
+      announce("Abrigo confirmado somente no exercício.");
+    });
+    ["shelterCapacity","shelterOccupied","shelterOverflow","shelterOverflowCapacity","shelterOverflowLocation","shelterOverflowResponsible","shelterVerifier","shelterEvidence"].forEach(function(id){
+      el(id).addEventListener("input",function(){render();});
+    });
+    ["shelterVerified","shelterAccessible","shelterOverflowAccessible","shelterOverflowPlanConfirmed"].forEach(function(id){
+      el(id).addEventListener("change",function(){render();});
+    });
+    [["routeFieldCheck","routeField"],["alternativeRouteFieldCheck","alternativeRouteField"],["communicationReady","communication"]].forEach(function(pair){
+      el(pair[0]).addEventListener("change",function(){
+        confirmationRecord(getZone())[pair[1]]=this.checked;
+        render();
+      });
+    });
+    [["routeVerifier","routeVerifier"],["routeEvidence","routeEvidence"],["alternativeRouteVerifier","alternativeRouteVerifier"],["alternativeRouteEvidence","alternativeRouteEvidence"],["communicationResponsible","communicationResponsible"],["communicationChannel","communicationChannel"],["communicationAlternate","communicationAlternate"],["confirmationWhen","when"],["confirmationSource","source"]].forEach(function(pair){
+      el(pair[0]).addEventListener("input",function(){
+        confirmationRecord(getZone())[pair[1]]=this.value;
+        this.dataset.dirty="1";
+      });
+      el(pair[0]).addEventListener("change",function(){
+        delete this.dataset.dirty;
+        render();
+      });
+    });
+    [["missionTeam","team"],["missionVehicle","vehicle"],["missionChannel","channel"],["missionEta","eta"]].forEach(function(pair){
+      el(pair[0]).addEventListener("input",function(){
+        missionRecord(getZone())[pair[1]]=this.value;
+        this.dataset.dirty="1";
+        const mission=missionRecord(getZone());
+        el("dispatchAction").disabled=!hasAction("dispatch")&&!missionFieldsComplete(mission);
+      });
+      el(pair[0]).addEventListener("change",function(){delete this.dataset.dirty;render();});
+    });
+    el("missionReceived").addEventListener("change",function(){missionRecord(getZone()).received=this.checked;render();});
+    [["messageAudience","audience"],["messageApprover","approver"],["messageValidity","validity"],["messageVersion","version"]].forEach(function(pair){
+      el(pair[0]).addEventListener("input",function(){
+        messageRecord(getZone())[pair[1]]=this.value;
+        this.dataset.dirty="1";
+        el("copyMessage").disabled=!messageFieldsComplete(messageRecord(getZone()));
+        renderDecision();
+      });
+      el(pair[0]).addEventListener("change",function(){delete this.dataset.dirty;render();});
+    });
+    ["shelterCapacity","shelterOccupied","shelterOverflowCapacity"].forEach(function(id){
+      el(id).addEventListener("change",function(){render();});
+    });
+    function updatePeopleCount(input){
+      const zone=getZone(), record=peopleRecord(zone), key=input.id.replace("people","").toLowerCase();
+      const candidate=parseCount(input.value), next=Object.assign({},record,{[key]:candidate});
+      const errors=Number.isNaN(candidate) ? [key+" precisa ser um inteiro não negativo"] : peopleValidation(next,zone);
+      if(errors.length){
+        record.inputError=errors.join(" · ");
+        input.setCustomValidity(errors.join(" · "));
+        renderPeople();
+        announce("Contagem não aceita: "+errors.join("; "));
+        return;
+      }
+      record[key]=candidate;
+      record.inputError="";
+      input.setCustomValidity("");
+      delete input.dataset.dirty;
+      renderPeople();
+      announce("Contagem de pessoas atualizada para "+zone.id+".");
+    }
+    ["peopleContacted","peopleDeparted","peopleArrived","peopleUnlocated"].forEach(function(id){
+      el(id).addEventListener("input",function(){updatePeopleCount(this);});
+      el(id).addEventListener("change",function(){updatePeopleCount(this);});
+    });
+    document.querySelectorAll("[data-need]").forEach(function(input){
+      input.addEventListener("change",function(){
+        const record=peopleRecord(getZone());
+        record.needs[input.dataset.need]=input.checked;
+        renderPeople();
+        announce("Necessidade marcada para confirmação no exercício.");
+      });
+    });
+    el("contingencySelect").addEventListener("change",function(){renderContingency();announce("Cenário de contingência selecionado; clique em aplicar para alterar o exercício.");});
+    el("contingencyApply").addEventListener("click",applyContingency);
+    el("copyMessage").addEventListener("click",copyMessage);
+    el("exportLog").addEventListener("click",exportExercise);
+    document.querySelector(".skip-link").addEventListener("click",function(event){
+      event.preventDefault();
+      const target=el("decisionPanel");
+      target.focus();
+      target.scrollIntoView({block:"start"});
+    });
+    document.querySelectorAll("[data-operating-mode]").forEach(function(button){
+      button.addEventListener("click",function(){setOperatingMode(button.dataset.operatingMode);});
+    });
+    document.querySelectorAll("[data-map-mode]").forEach(function(button){
+      button.addEventListener("click",function(){
+        state.mapMode=button.dataset.mapMode;
+        renderMap();
+        announce(state.mapMode==="focus" ? "Mapa em foco na área selecionada." : "Mapa mostrando toda a grade do cenário.");
+      });
+    });
+    el("altRouteToggle").addEventListener("click",function(){
+      state.showAlternative=!state.showAlternative;
+      renderMap();
+      announce(state.showAlternative ? "Trajeto B exibido para comparação." : "Trajeto B ocultado; corredor A em foco.");
+    });
+
+    const svgStyle=document.createElement("style");
+    svgStyle.textContent=
+      '#eventMap .map-frame{fill:#f8fbfd;stroke:#d5e1e8;stroke-width:1.2}'+
+      '#eventMap .map-grid-line{stroke:#e4ebf1;stroke-width:1}'+
+      '#eventMap .map-axis-label{fill:#506678;font-size:10px;font-family:var(--mono)}'+
+      '#eventMap .north-arrow{fill:#17354a;font-size:12px;font-weight:800}'+
+      '#eventMap .north-line{stroke:#17354a;stroke-width:1.5}'+
+      '#eventMap .north-head{fill:#17354a}'+
+      '#eventMap .cell-open{fill:#b9dfd1;fill-opacity:.7;stroke:#8fc6b4;stroke-width:.7}'+
+      '#eventMap .cell-soon{fill:#e9b254;fill-opacity:.78;stroke:#c98a2c;stroke-width:.8}'+
+      '#eventMap .cell-urgent{fill:#dc6571;fill-opacity:.86;stroke:#b53f52;stroke-width:.8}'+
+      '#eventMap .cell-flood{fill:#3a7bdc;fill-opacity:.8;stroke:#2b63b7;stroke-width:.8}'+
+      '#eventMap .cell-nodata{fill:#b8c3cc;fill-opacity:.48;stroke:#8d9aa5;stroke-width:.7;stroke-dasharray:2 2}'+
+      '#eventMap .route-safe{fill:none;stroke:#b27b2b;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 5;filter:drop-shadow(0 2px 2px rgba(155,103,25,.16))}'+
+      '#eventMap .route-preliminary{fill:none;stroke:#b27b2b;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 5;filter:drop-shadow(0 2px 2px rgba(155,103,25,.16))}'+
+      '#eventMap .route-short{fill:none;stroke:#d59a4d;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:6 5;opacity:.75}'+
+      '#eventMap .route-closed{fill:none;stroke:#c65362;opacity:.65;stroke-dasharray:6 5}'+
+      '#eventMap .route-label{fill:#8a5b1b;font-size:10px;font-weight:800;paint-order:stroke;stroke:#f8fbfd;stroke-width:4px;stroke-linejoin:round}'+
+      '#eventMap .route-label-muted{fill:#9a6f30;font-weight:700}'+
+      '#eventMap .zone-ring{fill:none;stroke-width:1.5;stroke-dasharray:3 3}'+
+      '#eventMap .zone-ring.danger{stroke:#d94d5c}'+
+      '#eventMap .zone-ring.warning{stroke:#e98f36}'+
+      '#eventMap .zone-ring.ready{stroke:#278d6f}'+
+      '#eventMap .zone-core{stroke:#fff;stroke-width:2}'+
+      '#eventMap .zone-core.danger{fill:#d94d5c}'+
+      '#eventMap .zone-core.warning{fill:#e98f36}'+
+      '#eventMap .zone-core.ready{fill:#278d6f}'+
+      '#eventMap .zone-marker.selected .zone-ring{stroke-width:2.5;stroke-dasharray:0;opacity:.9}'+
+      '#eventMap .zone-map-code{fill:#17354a;font-size:11px;font-family:var(--mono);font-weight:900;paint-order:stroke;stroke:#f8fbfd;stroke-width:4px}'+
+      '#eventMap .zone-map-text{fill:#4e6578;font-size:10px;font-weight:700;paint-order:stroke;stroke:#f8fbfd;stroke-width:3px}'+
+      '#eventMap .shelter-square{fill:#36b9d8;stroke:#fff;stroke-width:2}'+
+      '#eventMap .shelter-glyph{fill:none;stroke:#fff;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}'+
+      '#eventMap .service-label{fill:#176a7d;font-size:10px;font-weight:850;paint-order:stroke;stroke:#f8fbfd;stroke-width:4px}'+
+      '#eventMap .school-square{fill:#7764d6;stroke:#fff;stroke-width:1.5}'+
+      '#eventMap .map-note{fill:#4e6578;font-size:10px;font-weight:750}'+
+      '#eventMap a:focus .zone-ring{stroke:#17354a;stroke-width:3.5;stroke-dasharray:2 2}';
+
+    el("eventMap").appendChild(svgStyle);
+
+    const chartStyle=document.createElement("style");
+    chartStyle.textContent=
+      '#levelChart .chart-frame{fill:#fbfcfe;stroke:#dbe5ec;stroke-width:1}'+
+      '#levelChart .chart-grid{stroke:#e7edf2;stroke-width:1}'+
+      '#levelChart .chart-label{fill:#5b6d7d;font-size:10px;font-family:var(--mono)}'+
+      '#levelChart .chart-axis-title{fill:#4e6172;font-size:10px;font-weight:700}'+
+      '#levelChart .chart-reference{stroke:#e8a044;stroke-width:1.5;stroke-dasharray:5 5}'+
+      '#levelChart .chart-reference-label{fill:#a46b20;font-size:10px;font-weight:800}'+
+      '#levelChart .chart-step-line{stroke:#edf1f5;stroke-width:1}'+
+      '#levelChart .chart-current-line{stroke:#2e72dd;stroke-width:1.5;stroke-dasharray:3 3;opacity:.75}'+
+      '#levelChart .chart-area{fill:#8cd4dd;fill-opacity:.18}'+
+      '#levelChart .chart-line{fill:none;stroke:#238eab;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}'+
+      '#levelChart .chart-point{fill:#fff;stroke:#238eab;stroke-width:2}'+
+      '#levelChart .chart-point-current{fill:#2e72dd;stroke:#fff;stroke-width:2.5}';
+    document.head.appendChild(chartStyle);
+
+    render();
+  </script>
+</body>
+</html>

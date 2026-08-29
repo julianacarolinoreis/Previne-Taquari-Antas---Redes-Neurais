@@ -1,0 +1,62 @@
+<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rota de fuga — Santa Tereza (prova de conceito)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+ body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#12211b}
+ #map{position:absolute;top:0;bottom:0;left:0;right:0}
+ .hud{position:absolute;z-index:500;top:10px;left:10px;background:#fff;border-radius:10px;
+      box-shadow:0 2px 12px rgba(0,0,0,.15);padding:12px 14px;max-width:300px}
+ .hud h1{font:600 16px Georgia,serif;margin:0 0 4px}
+ .hud .lv{font-variant-numeric:tabular-nums;color:#0f6b4a;font-weight:700}
+ .hud .sub{color:#5b6b62;font-size:12.5px;margin:2px 0}
+ .aviso{background:#fdecea;border:1px solid #f2b8b2;color:#b3382c;border-radius:8px;
+        padding:8px 10px;font-size:12px;margin-top:8px}
+ .leg{position:absolute;z-index:500;bottom:14px;left:10px;background:#fff;border-radius:10px;
+      box-shadow:0 2px 12px rgba(0,0,0,.15);padding:10px 12px;font-size:12.5px}
+ .leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px}
+ .leaflet-popup-content{font-size:13px}
+</style></head><body>
+<div id="map"></div>
+<div class="hud">
+  <h1>Rota de fuga · Santa Tereza</h1>
+  <div class="sub">Prova de conceito (Etapa 1) — <b>previsão ao vivo (RNA 2h/4h)</b></div>
+  <div class="sub">Nível: <span class="lv">2.60 m</span></div>
+  <div class="sub">Gerado: 2026-08-10 19:58</div>
+  <div class="aviso">⚠ Ponto seguro é PLACEHOLDER — confirmar com a Defesa Civil. Mapa é prova de conceito (Etapa 1, grade de 30 m, linha reta). Não usar para orientar evacuação real.</div>
+</div>
+<div class="leg" id="leg"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const D={"quadras": [], "dlat": 0.0002694949494949506, "dlon": 0.0003085323529411762, "seguro": {"lat": -29.1745, "lon": -51.7305, "nome": "Ginásio (PLACEHOLDER — confirmar com a Defesa Civil)", "confirmado": false}, "estacao": {"lat": -29.1781, "lon": -51.7322, "code": "86472600"}, "ponte": {"lat": -29.0908727, "lon": -51.713269, "label": "Ponte Santa Barbara"}, "cores": {"alagada": "#1e5fbf", "critica": "#b3382c", "apertada": "#e8730c", "atencao": "#e3b100", "confortavel": "#1b7a5a"}}, RES={"alagada": 0, "critica": 0, "apertada": 0, "atencao": 0, "confortavel": 0};
+const map=L.map('map');
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+ {maxZoom:19,attribution:'Esri World Imagery'}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+ {maxZoom:19,opacity:.9}).addTo(map);
+const ROT={alagada:'já na água',critica:'crítica — precisa de resgate',apertada:'apertada — sair agora',
+ atencao:'atenção',confortavel:'confortável'};
+const b=L.latLngBounds();
+D.quadras.forEach(q=>{
+  const dy=D.dlat/2, dx=D.dlon/2;
+  const rect=L.rectangle([[q.lat-dy,q.lon-dx],[q.lat+dy,q.lon+dx]],
+    {stroke:false,fillColor:D.cores[q.classe],fillOpacity:q.classe==='alagada'?.55:.72});
+  rect.bindPopup(`<b>Quadra</b><br>Água chega em <b>${q.min_ate_agua<=0?'já alagada':q.min_ate_agua+' min'}</b><br>`+
+    `Caminhada ao ponto seguro (idoso): <b>${q.min_caminhada_idoso} min</b> · ${q.dist_m} m<br>`+
+    `Margem: <b>${q.margem_min} min</b> — ${ROT[q.classe]}<br>`+
+    `<span style="color:#5b6b62">cota que alaga: ${q.cota_alaga_m} m · HAND ${q.hand_m} m</span>`);
+  rect.addTo(map); b.extend([q.lat,q.lon]);
+});
+// ponto seguro
+const seg=L.marker([D.seguro.lat,D.seguro.lon]).addTo(map);
+seg.bindPopup('<b>'+D.seguro.nome+'</b>'); b.extend([D.seguro.lat,D.seguro.lon]);
+L.circleMarker([D.estacao.lat,D.estacao.lon],{radius:6,color:'#1e5fbf',fillColor:'#1e5fbf',fillOpacity:1})
+  .bindPopup('Estação '+D.estacao.code).addTo(map);
+if(D.ponte) L.circleMarker([D.ponte.lat,D.ponte.lon],{radius:5,color:'#555',fillColor:'#999',fillOpacity:1})
+  .bindPopup(D.ponte.label||'Ponte').addTo(map);
+map.fitBounds(b.pad(0.15));
+// legenda
+const ordem=['confortavel','atencao','apertada','critica','alagada'];
+document.getElementById('leg').innerHTML='<b>Margem de tempo</b><br>'+ordem.map(c=>
+ `<i style="background:${D.cores[c]}"></i>${ROT[c]} <span style="color:#5b6b62">(${RES[c]||0})</span>`).join('<br>');
+</script></body></html>

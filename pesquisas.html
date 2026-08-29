@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b3b36">
+  <meta name="description" content="Arquivo vivo e navegável das pesquisas do PREVINE Taquari-Antas.">
+  <title>PREVINE · Arquivo vivo de pesquisas</title>
+  <style>
+    :root{
+      --ink:#142b2a;--muted:#607372;--line:#dce9e5;--paper:#f6faf8;--card:#fff;
+      --deep:#0b3b36;--deep-2:#13574d;--mint:#dff6e9;--lime:#c9ed73;--amber:#f5b942;
+      --coral:#ef786c;--blue:#5e8ee8;--purple:#8b74dd;--shadow:0 18px 50px rgba(14,61,54,.09)
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+    a{color:inherit}
+    button,input,select{font:inherit}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .skip{position:absolute;left:10px;top:-80px;padding:10px 14px;background:#fff;color:var(--deep);border-radius:10px;z-index:20}
+    .skip:focus{top:10px}
+    .shell{max-width:1220px;margin:0 auto;padding:22px 22px 48px}
+    .hero{position:relative;overflow:hidden;border-radius:30px;padding:30px 34px 28px;background:linear-gradient(135deg,var(--deep),#0e5147 62%,#1f765b);color:#f4fff9;box-shadow:var(--shadow)}
+    .hero:after{content:"";position:absolute;width:360px;height:360px;border:1px solid rgba(201,237,115,.25);border-radius:50%;right:-110px;top:-170px;box-shadow:0 0 0 26px rgba(201,237,115,.05),0 0 0 54px rgba(201,237,115,.035)}
+    .hero>*{position:relative;z-index:1}
+    .topline{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:32px}
+    .eyebrow{margin:0;color:var(--lime);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    .hero-links{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .hero-links a{display:inline-flex;align-items:center;min-height:44px;padding:8px 13px;border:1px solid rgba(255,255,255,.24);border-radius:999px;text-decoration:none;font-size:13px;font-weight:750;background:rgba(255,255,255,.08)}
+    .hero-links a:hover,.hero-links a:focus-visible{background:#fff;color:var(--deep);outline:none}
+    h1{max-width:780px;margin:0 0 12px;font-size:clamp(30px,5vw,58px);line-height:1.02;letter-spacing:-.045em}
+    .hero-copy{max-width:780px;margin:0;color:#d6eee5;font-size:17px}
+    .hero-note{display:inline-flex;align-items:center;gap:9px;margin-top:22px;padding:10px 13px;border:1px solid rgba(255,255,255,.18);border-radius:14px;background:rgba(0,0,0,.13);font-size:12px;color:#e8f8f0}
+    .hero-note strong{color:var(--lime)}
+    .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+    .metric{padding:17px 18px;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 9px 25px rgba(14,61,54,.05)}
+    .metric b{display:block;font-size:27px;line-height:1;color:var(--deep);letter-spacing:-.04em}
+    .metric span{display:block;margin-top:7px;color:var(--muted);font-size:12px}
+    .context{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin:16px 0}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:21px;padding:22px;box-shadow:0 9px 25px rgba(14,61,54,.04)}
+    .panel h2,.library h2,.how h2{margin:0;color:var(--deep);font-size:20px;letter-spacing:-.02em}
+    .panel p{margin:8px 0 0;color:var(--muted);font-size:14px}
+    .reading-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+    .reading{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:14px;background:#f7fbf9;border:1px solid #e9f1ee;font-size:13px}
+    .reading i{width:10px;height:10px;flex:none;margin-top:5px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 4px rgba(201,237,115,.22)}
+    .reading strong{display:block;color:var(--ink)}
+    .reading small{display:block;color:var(--muted);margin-top:2px}
+    .focus{background:linear-gradient(145deg,#fff7e5,#fff);border-color:#f0dfb4}
+    .focus .mini-title{color:#815916}
+    .mini-title{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:850;color:var(--deep-2)}
+    .focus ol{margin:13px 0 0;padding-left:20px;color:var(--muted);font-size:13px}
+    .focus li+li{margin-top:8px}
+    .library{margin-top:16px;padding:22px;background:rgba(255,255,255,.58);border:1px solid var(--line);border-radius:24px}
+    .section-head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:16px}
+    .section-head p{margin:5px 0 0;color:var(--muted);font-size:13px}
+    .live-dot{display:inline-flex;align-items:center;gap:7px;color:var(--deep-2);font-size:12px;font-weight:800;white-space:nowrap}
+    .live-dot:before{content:"";width:9px;height:9px;border-radius:50%;background:#48b77f;box-shadow:0 0 0 5px rgba(72,183,127,.15)}
+    .toolbar{position:sticky;top:10px;z-index:5;padding:13px;background:rgba(246,250,248,.94);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 28px rgba(14,61,54,.07)}
+    .search-row{display:grid;grid-template-columns:minmax(0,1fr) 190px auto;gap:10px}
+    .control{width:100%;min-height:44px;border:1px solid #cfe0da;border-radius:12px;background:#fff;color:var(--ink);padding:9px 12px;outline:none}
+    .control:focus{border-color:var(--deep-2);box-shadow:0 0 0 4px rgba(19,87,77,.12)}
+    .clear{min-height:44px;padding:9px 14px;border:1px solid #cfe0da;border-radius:12px;background:#fff;color:var(--deep-2);font-weight:800;cursor:pointer}
+    .clear:hover,.clear:focus-visible{background:var(--mint);outline:none}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .filter{min-height:44px;padding:7px 12px;border:1px solid #cfe0da;border-radius:999px;background:#fff;color:var(--muted);font-size:12px;font-weight:800;cursor:pointer}
+    .filter:hover,.filter:focus-visible{border-color:var(--deep-2);color:var(--deep-2);outline:none}
+    .filter[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+    .result-line{display:flex;justify-content:space-between;gap:10px;margin:16px 2px 11px;color:var(--muted);font-size:12px}
+    .result-line strong{color:var(--deep)}
+    .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+    .card{display:flex;min-width:0;flex-direction:column;padding:17px;background:#fff;border:1px solid var(--line);border-radius:17px;box-shadow:0 8px 22px rgba(14,61,54,.045);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+    .card:hover{transform:translateY(-3px);border-color:#a6cfc0;box-shadow:0 16px 30px rgba(14,61,54,.1)}
+    .card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+    .tag{display:inline-flex;align-items:center;max-width:72%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 8px;border-radius:8px;font-size:10px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}
+    .tag-resposta{background:#ffebe4;color:#9e3d32}.tag-rna{background:#e6edff;color:#385ba6}.tag-geoespacial{background:#e7f6ee;color:#26704b}.tag-vulnerabilidade{background:#f0eaff;color:#654eb0}.tag-sace{background:#fff2c9;color:#805e0d}.tag-publicados{background:#dff6e9;color:#126146}
+    .state{font-size:10px;font-weight:850;color:var(--muted);white-space:nowrap}
+    .card h3{margin:0;color:var(--deep);font-size:16px;line-height:1.18;letter-spacing:-.02em}
+    .card p{margin:9px 0 0;color:var(--muted);font-size:12.5px;line-height:1.46}
+    .caveat{margin-top:13px;padding:9px 10px;border-left:3px solid var(--amber);background:#fffaf0;color:#73551b;border-radius:0 9px 9px 0;font-size:11px;line-height:1.4}
+    .card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:16px}
+    .source{color:#829390;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .open{display:inline-flex;align-items:center;gap:5px;min-height:44px;padding:7px 10px;border-radius:10px;background:var(--deep);color:#fff;text-decoration:none;font-size:12px;font-weight:850;white-space:nowrap}
+    .open:hover,.open:focus-visible{background:var(--deep-2);outline:3px solid rgba(19,87,77,.18);outline-offset:2px}
+    .empty{padding:28px;text-align:center;background:#fff;border:1px dashed #b7d1c8;border-radius:16px;color:var(--muted)}
+    .empty strong{display:block;color:var(--deep);font-size:16px;margin-bottom:4px}
+    .pagination{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:16px}
+    .pagination button{min-width:112px;min-height:44px;padding:8px 13px;border:1px solid #cfe0da;border-radius:12px;background:#fff;color:var(--deep-2);font-weight:850;cursor:pointer;white-space:nowrap}
+    .pagination button:hover,.pagination button:focus-visible{background:var(--mint);outline:3px solid rgba(19,87,77,.16);outline-offset:2px}
+    .pagination button:disabled{cursor:not-allowed;opacity:.45;background:#f5f8f7}
+    .page-status{min-width:116px;text-align:center;color:var(--muted);font-size:12px;font-weight:800}
+    .how{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+    .steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+    .step{padding:13px;background:#f7fbf9;border:1px solid #e8f1ed;border-radius:14px}
+    .step b{display:flex;align-items:center;gap:8px;color:var(--deep);font-size:13px}
+    .step b span{display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:var(--lime);color:var(--deep);font-size:11px}
+    .step p{margin:6px 0 0;color:var(--muted);font-size:12px}
+    .footer{margin-top:16px;padding:18px 21px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+    .footer a{color:var(--deep-2);font-weight:800}
+    @media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.context,.how{grid-template-columns:1fr}}
+    @media(max-width:650px){.shell{padding:12px 12px 30px}.hero{padding:22px 20px;border-radius:22px}.topline{align-items:flex-start;flex-direction:column;margin-bottom:24px}.hero-links{justify-content:flex-start}.hero-copy{font-size:15px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:14px}.metric b{font-size:23px}.reading-grid,.steps{grid-template-columns:1fr}.library,.panel{padding:16px}.section-head{display:block}.live-dot{margin-top:10px}.search-row{grid-template-columns:1fr}.toolbar{position:static}.cards{grid-template-columns:1fr}.card{padding:15px}.result-line{align-items:flex-start;flex-direction:column}.pagination{gap:6px;justify-content:space-between}.pagination button{min-width:0;flex:1;padding-left:5px;padding-right:5px;font-size:11px}.page-status{min-width:84px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.card{transition:none}.card:hover{transform:none}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#acervo">Pular para o acervo</a>
+  <div class="shell">
+    <header class="hero">
+      <div class="topline">
+        <p class="eyebrow">PREVINE · memória de pesquisa</p>
+        <nav class="hero-links" aria-label="Atalhos principais">
+          <a href="index.html">← feed das RNAs</a>
+          <a href="pesquisas/estudo-caso-resposta-santa-tereza.html">abrir sala de decisão</a>
+        </nav>
+      </div>
+      <h1>O que já estudamos — em um lugar só.</h1>
+      <p class="hero-copy">Um arquivo vivo para voltar às hipóteses, mapas, modelos e ensaios do PREVINE. Pesquise por tema, abra cada página e encontre o próximo ponto a melhorar.</p>
+      <div class="hero-note"><strong>Leitura rápida:</strong> este acervo organiza pesquisa e protótipos; não substitui alerta oficial, rota liberada ou despacho real.</div>
+    </header>
+
+    <section class="metrics" aria-label="Resumo do acervo">
+      <div class="metric"><b id="metricTotal">—</b><span>páginas indexadas no arquivo</span></div>
+      <div class="metric"><b id="metricTopics">—</b><span>frentes de pesquisa</span></div>
+      <div class="metric"><b id="metricSite">—</b><span>páginas principais no site</span></div>
+      <div class="metric"><b>28/08</b><span>última revisão deste catálogo · 2026</span></div>
+    </section>
+
+    <section class="context" aria-label="Como usar o arquivo">
+      <article class="panel">
+        <h2>Como ler sem confundir as camadas</h2>
+        <p>Uma decisão segura nasce do encontro entre evidências diferentes. O arquivo deixa cada camada visível para que uma hipótese não pareça uma confirmação.</p>
+        <div class="reading-grid">
+          <div class="reading"><i></i><div><strong>Previsão</strong><small>o que a RNA estima para um horizonte.</small></div></div>
+          <div class="reading"><i style="background:var(--coral);box-shadow:0 0 0 4px rgba(239,120,108,.18)"></i><div><strong>Perigo</strong><small>onde a água ou outro processo pode chegar.</small></div></div>
+          <div class="reading"><i style="background:var(--blue);box-shadow:0 0 0 4px rgba(94,142,232,.18)"></i><div><strong>Exposição</strong><small>pessoas, imóveis e serviços no local.</small></div></div>
+          <div class="reading"><i style="background:var(--purple);box-shadow:0 0 0 4px rgba(139,116,221,.18)"></i><div><strong>Resposta</strong><small>rota, abrigo, equipe e próxima ação.</small></div></div>
+        </div>
+      </article>
+      <article class="panel focus">
+        <div class="mini-title">Antes de um evento</div>
+        <h2 style="margin-top:5px">Transforme o arquivo em preparo</h2>
+        <ol>
+          <li>Escolha um caso e registre qual pergunta ele responde.</li>
+          <li>Marque o que é observado, previsto, preliminar ou desconhecido.</li>
+          <li>Converta a hipótese em checklist: pessoas, rota, destino, equipe e comunicação.</li>
+          <li>Leve só o que foi verificado para um exercício de mesa.</li>
+        </ol>
+      </article>
+    </section>
+
+    <main id="acervo" class="library" tabindex="-1">
+      <div class="section-head">
+        <div>
+          <h2>Explorar pesquisas</h2>
+          <p>Use a busca como memória: cidade, RNA, rota, abrigo, vulnerabilidade, mapa ou auditoria.</p>
+        </div>
+        <div class="live-dot">catálogo local · sem dependência externa</div>
+      </div>
+      <div class="toolbar" aria-label="Filtros do acervo">
+        <div class="search-row">
+          <label class="sr-only" for="search">Buscar no acervo</label>
+          <input class="control" id="search" type="search" placeholder="Buscar por palavra-chave…" autocomplete="off">
+          <label class="sr-only" for="statusFilter">Filtrar por estado</label>
+          <select class="control" id="statusFilter">
+            <option value="all">Todos os estados</option>
+            <option value="publicado">Página principal</option>
+            <option value="estudo">Estudo / protótipo</option>
+            <option value="preliminar">Preliminar</option>
+            <option value="auditoria">Auditoria</option>
+            <option value="comparativo">Comparativo / snapshot</option>
+          </select>
+          <button class="clear" id="clear" type="button">limpar</button>
+        </div>
+        <div class="filters" id="filters" role="group" aria-label="Filtrar por frente de pesquisa">
+          <button class="filter" type="button" data-category="all" aria-pressed="true">Todos</button>
+          <button class="filter" type="button" data-category="Resposta" aria-pressed="false">Resposta</button>
+          <button class="filter" type="button" data-category="RNA" aria-pressed="false">RNA</button>
+          <button class="filter" type="button" data-category="Geoespacial" aria-pressed="false">Geoespacial</button>
+          <button class="filter" type="button" data-category="Vulnerabilidade" aria-pressed="false">Vulnerabilidade</button>
+          <button class="filter" type="button" data-category="SACE" aria-pressed="false">SACE</button>
+          <button class="filter" type="button" data-category="Publicados" aria-pressed="false">No site</button>
+        </div>
+      </div>
+      <div class="result-line" aria-live="polite"><span id="resultsMeta">Carregando…</span><span>duplicatas, backups e clones ficam fora da contagem</span></div>
+      <div class="cards" id="cards" tabindex="-1"></div>
+      <div class="empty" id="empty" hidden><strong>Nenhum caminho encontrado.</strong>Tente outra palavra ou limpe os filtros.</div>
+      <nav id="pagination" class="pagination" aria-label="Paginação do acervo" hidden>
+        <button id="previousPage" type="button">← anterior</button>
+        <span id="pageStatus" class="page-status" role="status" aria-live="polite">página 1 de 1</span>
+        <button id="nextPage" type="button">próxima →</button>
+      </nav>
+    </main>
+
+    <section class="how" aria-label="Próximos passos">
+      <article class="panel">
+        <h2>Uma sequência simples para o dia do evento</h2>
+        <div class="steps">
+          <div class="step"><b><span>1</span> confirmar</b><p>fonte, horário, horizonte e cobertura antes de agir.</p></div>
+          <div class="step"><b><span>2</span> priorizar</b><p>zona, pessoas não localizadas e prazo para sair.</p></div>
+          <div class="step"><b><span>3</span> verificar</b><p>rota, abrigo, equipe, veículo e canal de comunicação.</p></div>
+          <div class="step"><b><span>4</span> registrar</b><p>o que foi decidido, por quem, quando e com qual evidência.</p></div>
+        </div>
+      </article>
+      <article class="panel focus">
+        <div class="mini-title">Ponto de atenção</div>
+        <h2 style="margin-top:5px">O arquivo também guarda o que falta</h2>
+        <p>Uma página com dado ausente, rota sintética ou abrigo sem capacidade confirmada continua útil: ela mostra exatamente qual informação precisa ser levantada antes que uma decisão seja tratada como segura.</p>
+      </article>
+    </section>
+
+    <footer class="footer">
+      Revisado em 28/08/2026. O catálogo reúne páginas distintas encontradas no acervo local e mantém as páginas principais navegáveis; duplicatas, backups e clones ficam fora da contagem. <a href="index.html">Voltar ao feed das redes neurais →</a>
+    </footer>
+  </div>
+
+  <script>
+    const entries = [
+      {title:"Sala de decisão · resposta Santa Tereza",category:"Resposta",status:"estudo",description:"Ensaio de mesa para transformar previsão em decisão: zona, pessoas, rota, abrigo, equipe, comunicação e registro.",caveat:"Protótipo de exercício; corredores e abrigo precisam de validação de campo antes de qualquer uso operacional.",href:"pesquisas/estudo-caso-resposta-santa-tereza.html",source:"artefato revisado em 28/08/2026"},
+      {title:"Estudo de caso · Muçum · slides",category:"Resposta",status:"estudo",description:"Narrativa visual para discutir a resposta a uma cheia e os pontos que precisam ser verificados antes da saída.",caveat:"Material de estudo; não é ordem de evacuação.",href:"pesquisas/mucum-estudo-caso-slides.html",source:"arquivo de pesquisa"},
+      {title:"Estudo de caso · Muçum",category:"Resposta",status:"estudo",description:"Página de apoio para organizar cenário, exposição e possíveis ações em Muçum.",caveat:"Hipóteses do estudo devem ser separadas de dados observados.",href:"pesquisas/mucum-estudo-caso.html",source:"arquivo de pesquisa"},
+      {title:"Mapa de impacto · Muçum",category:"Resposta",status:"preliminar",description:"Exploração visual de impactos e prioridades para apoiar a conversa sobre resposta.",caveat:"Camadas e prioridades não substituem reconhecimento local.",href:"pesquisas/mucum-mapa-impacto.html",source:"arquivo de pesquisa"},
+      {title:"Mapa de margem · Muçum",category:"Geoespacial",status:"preliminar",description:"Mapa exploratório da margem e do contexto espacial usado nas pesquisas de Muçum.",caveat:"A leitura espacial depende da fonte, escala e data da camada.",href:"pesquisas/mucum-mapa-margem.html",source:"arquivo de pesquisa"},
+      {title:"Painel de evacuação · Muçum",category:"Resposta",status:"estudo",description:"Protótipo para pensar prioridade de saída, destinos e recursos durante um evento.",caveat:"Rotas, capacidade e equipes precisam ser confirmadas localmente.",href:"pesquisas/mucum-painel-evacuacao.html",source:"arquivo de pesquisa"},
+      {title:"Rota de fuga por ruas · Muçum · cenário",category:"Resposta",status:"preliminar",description:"Cenário de rotas e pontos de saída para discussão antes do exercício.",caveat:"Uma rota desenhada não significa via aberta ou segura.",href:"pesquisas/mucum-rota-fuga-ruas-cenario.html",source:"arquivo de pesquisa"},
+      {title:"Rota de fuga por ruas · Muçum · fixo",category:"Resposta",status:"preliminar",description:"Versão fixa do estudo de rotas urbanas e destinos possíveis.",caveat:"Sem confirmação de trânsito, interdições e acessibilidade em tempo real.",href:"pesquisas/mucum-rota-fuga-ruas-fixo.html",source:"arquivo de pesquisa"},
+      {title:"Rota de fuga por ruas · Muçum",category:"Resposta",status:"estudo",description:"Exploração inicial da relação entre áreas, ruas e destinos de evacuação.",caveat:"Use para preparar perguntas de campo, não para navegar em uma emergência.",href:"pesquisas/mucum-rota-fuga-ruas.html",source:"arquivo de pesquisa"},
+      {title:"Estudo de caso · Santa Tereza",category:"Resposta",status:"estudo",description:"Estudo de caso territorial para conectar previsão, perigo, pessoas expostas e capacidade de resposta.",caveat:"O estudo organiza decisão; não valida sozinho uma evacuação.",href:"pesquisas/santa-tereza-estudo-caso.html",source:"arquivo de pesquisa"},
+      {title:"Mapa de impacto · Santa Tereza",category:"Resposta",status:"preliminar",description:"Visualização exploratória dos impactos considerados no caso de Santa Tereza.",caveat:"Impacto observado, cenário e previsão devem permanecer identificados separadamente.",href:"pesquisas/santa-tereza-mapa-impacto.html",source:"arquivo de pesquisa"},
+      {title:"Mapa de margem · Santa Tereza",category:"Geoespacial",status:"preliminar",description:"Mapa de contexto espacial para apoiar a leitura da margem e das áreas estudadas.",caveat:"Não é mancha oficial nem levantamento de rota.",href:"pesquisas/santa-tereza-mapa-margem.html",source:"arquivo de pesquisa"},
+      {title:"Painel de evacuação · Santa Tereza",category:"Resposta",status:"estudo",description:"Protótipo de priorização para decidir quem precisa de apoio, para onde ir e qual ação vem primeiro.",caveat:"Valores de pessoas e abrigos precisam de atualização e confirmação.",href:"pesquisas/santa-tereza-painel-evacuacao.html",source:"arquivo de pesquisa"},
+      {title:"Rota de fuga por ruas · Santa Tereza · cenário",category:"Resposta",status:"preliminar",description:"Cenário visual de corredores de saída para exercício de mesa.",caveat:"Corredor sintético não é rota liberada.",href:"pesquisas/santa-tereza-rota-fuga-ruas-cenario.html",source:"arquivo de pesquisa"},
+      {title:"Rota de fuga por ruas · Santa Tereza",category:"Resposta",status:"estudo",description:"Exploração de alternativas de saída e destinos para o território de Santa Tereza.",caveat:"Necessita reconhecimento local, acessibilidade e comunicação com a comunidade.",href:"pesquisas/santa-tereza-rota-fuga-ruas.html",source:"arquivo de pesquisa"},
+      {title:"Rota de fuga · Santa Tereza",category:"Resposta",status:"estudo",description:"Primeiro protótipo de organização da rota de fuga e dos pontos de apoio.",caveat:"Não usar como navegação ou despacho sem validação.",href:"pesquisas/santa-tereza-rota-fuga.html",source:"arquivo de pesquisa"},
+      {title:"RNA 8h · piloto Mix10",category:"RNA",status:"comparativo",description:"Registro visual de uma rodada experimental de previsão com horizonte de 8 horas.",caveat:"Desempenho precisa ser lido com partição, eventos, baseline e validação compatíveis.",href:"pesquisas/rna-8h-piloto-mix10.html",source:"snapshot de pesquisa"},
+      {title:"RNA 8h · split 4h",category:"RNA",status:"comparativo",description:"Comparação exploratória de configuração e horizonte para previsão de nível.",caveat:"Não promove modelo nem prova desempenho operacional por si só.",href:"pesquisas/rna-8h-split4h.html",source:"snapshot de pesquisa"},
+      {title:"Relatório visual de RNAs",category:"RNA",status:"comparativo",description:"Leitura gráfica de modelos e métricas usadas nas pesquisas de redes neurais.",caveat:"Confira universo, partição e origem antes de comparar números.",href:"pesquisas/rna-relatorio-visual.html",source:"relatório de pesquisa"},
+      {title:"Relatório geral de RNAs",category:"RNA",status:"comparativo",description:"Resumo geral das rodadas e resultados que orientaram os próximos experimentos.",caveat:"Resumo não substitui os artefatos auditáveis de origem.",href:"pesquisas/rna-relatorio-geral.html",source:"relatório de pesquisa"},
+      {title:"Relatório de RNAs · leitura móvel",category:"RNA",status:"comparativo",description:"Versão compacta para consultar resultados de RNA em telas menores.",caveat:"A versão móvel é uma apresentação, não uma nova avaliação do modelo.",href:"pesquisas/rna-relatorio-mobile.html",source:"relatório de pesquisa"},
+      {title:"Plano de exploração · horizonte 8h",category:"RNA",status:"estudo",description:"Plano de perguntas e próximos experimentos para avaliar a previsão com antecedência.",caveat:"Plano de experimento não equivale a resultado concluído.",href:"pesquisas/plano-exploracao-8h.html",source:"plano de pesquisa"},
+      {title:"Relatório sentinela · 8h",category:"RNA",status:"comparativo",description:"Leitura de uma rodada sentinela para acompanhar sinais e limitações do horizonte de 8 horas.",caveat:"Use como evidência de pesquisa, com data e cobertura explícitas.",href:"pesquisas/relatorio-8h-sentinela.html",source:"relatório de pesquisa"},
+      {title:"Relatório técnico · 8h",category:"RNA",status:"comparativo",description:"Relato técnico de hipóteses, dados e comparações associadas ao horizonte de 8 horas.",caveat:"Verifique se a comparação é entre conjuntos compatíveis antes de ranquear.",href:"pesquisas/relatorio-tecnico-8h.html",source:"relatório de pesquisa"},
+      {title:"8h · alternativa convencional corrigida",category:"RNA",status:"auditoria",description:"Análise de alternativa convencional e dos ajustes feitos durante a investigação.",caveat:"Correção estrutural não é promoção de modelo.",href:"pesquisas/relatorio-8h-alt-conv-corrigido.html",source:"relatório de auditoria"},
+      {title:"Resumo da pesquisa · 8h",category:"RNA",status:"comparativo",description:"Resumo curto das frentes de investigação do horizonte de 8 horas.",caveat:"Consulte os detalhes de origem antes de tomar decisão.",href:"pesquisas/relatorio-8h-resumo.html",source:"resumo de pesquisa"},
+      {title:"Ranking de modelos · 8h",category:"RNA",status:"comparativo",description:"Visualização de ranking produzido em uma etapa de comparação de modelos.",caveat:"Ranking isolado não basta: valide leakage, partição, eventos e baseline.",href:"pesquisas/relatorio-8h-ranking.html",source:"ranking de pesquisa"},
+      {title:"Modelos excluídos · 8h",category:"RNA",status:"auditoria",description:"Registro dos modelos ou configurações que não seguiram para a comparação final.",caveat:"Exclusão documentada é parte da rastreabilidade do experimento.",href:"pesquisas/relatorio-8h-excluidos.html",source:"relatório de auditoria"},
+      {title:"Gráfico dos melhores modelos RNA",category:"RNA",status:"comparativo",description:"Gráfico de apoio para explorar modelos destacados em uma rodada.",caveat:"Não interpretar destaque visual como garantia operacional.",href:"pesquisas/grafico-melhores-rna.html",source:"figura de pesquisa"},
+      {title:"Pontos críticos · Santa Tereza",category:"Geoespacial",status:"preliminar",description:"Mapa exploratório de pontos considerados críticos no estudo territorial.",caveat:"Ponto crítico precisa de fonte, data e validação de campo.",href:"pesquisas/mapa-pontos-criticos-santa-tereza.html",source:"mapa de pesquisa"},
+      {title:"Mancha preliminar · Santa Tereza",category:"Geoespacial",status:"preliminar",description:"Visualização de uma mancha preliminar a partir de dados geoespaciais do estudo.",caveat:"Não substitui produto oficial nem modelagem hidrodinâmica validada.",href:"pesquisas/mancha-inundacao-santa-tereza.html",source:"camada local catalogada"},
+      {title:"Corredor DEM colorido",category:"Geoespacial",status:"preliminar",description:"Exploração visual de corredor e relevo para discutir alternativas espaciais.",caveat:"Relevo e corredor visual não garantem trafegabilidade.",href:"pesquisas/corredor-dem-colorido.html",source:"figura geoespacial"},
+      {title:"Perfis MDT · Copernicus",category:"Geoespacial",status:"estudo",description:"Perfis de modelo digital de terreno usados para investigar o contexto físico.",caveat:"Resolucão, datum e método de obtenção devem acompanhar qualquer uso analítico.",href:"pesquisas/perfis-mdt-copernicus.html",source:"estudo geoespacial"},
+      {title:"SACE Muçum · âncora ao vivo",category:"SACE",status:"comparativo",description:"Snapshot gráfico da cota e da chuva associados à estação observada de Muçum.",caveat:"É uma captura histórica; o horário exibido não significa feed ao vivo nesta página.",href:"pesquisas/sace-mucum-anchor-live.html",source:"snapshot SACE"},
+      {title:"SACE Muçum · âncora 12/08",category:"SACE",status:"comparativo",description:"Snapshot histórico da estação usado para consulta e comparação visual.",caveat:"Dados e recursos originais foram preservados como snapshot, não como monitoramento atual.",href:"pesquisas/sace-mucum-anchor-20260812.html",source:"snapshot SACE"},
+      {title:"SACE Muçum · 11/08",category:"SACE",status:"comparativo",description:"Registro histórico de cota e chuva da estação de Muçum.",caveat:"Não é feed ao vivo e não deve ser usado para determinar a situação atual.",href:"pesquisas/sace-mucum-live-20260811.html",source:"snapshot SACE"},
+      {title:"Auditoria de vulnerabilidade",category:"Vulnerabilidade",status:"auditoria",description:"Auditoria visual e metodológica das camadas de vulnerabilidade e seus limites de leitura.",caveat:"Vulnerabilidade social, perigo e risco são camadas diferentes.",href:"pesquisas/auditoria-vulnerabilidade.html",source:"relatório de auditoria"},
+      {title:"Vulnerabilidade · pós-revisão",category:"Vulnerabilidade",status:"auditoria",description:"Versão pós-revisão do mapa e dos materiais de vulnerabilidade da bacia.",caveat:"Valores e escopos precisam ser lidos conforme a definição de município ou bacia.",href:"pesquisas/vulnerabilidade-postreview.html",source:"produto revisado"},
+      {title:"Santa Tereza ao vivo · relatório de auditoria",category:"RNA",status:"auditoria",description:"Relatório estático com artefatos e pontos de auditoria ligados ao monitoramento experimental.",caveat:"Relatório histórico; data de captura e disponibilidade da fonte importam.",href:"pesquisas/relatorio-santa-tereza-ao-vivo-20260823.html",source:"relatório auditável"},
+      {title:"Dashboard da bacia · Taquari-Antas",category:"Publicados",status:"publicado",description:"Painel integrado para navegar pelas frentes de dados e pesquisas da bacia.",caveat:"O painel reúne pesquisa e produto; cada camada mantém sua própria fonte e limitação.",href:"pesquisas/dashboard-bacia-taquari-antas.html",source:"página catalogada"},
+      {title:"Gráfico observado × RNA · 4h",category:"RNA",status:"comparativo",description:"Figura de comparação entre série observada e resultado de RNA no horizonte de 4 horas.",caveat:"A comparação deve manter período, eventos e partição explícitos.",href:"pesquisas/grafico-4h-observado-rna.html",source:"figura de pesquisa"},
+      {title:"Gráfico observado A/B · 2h",category:"RNA",status:"comparativo",description:"Figura exploratória de comparação entre séries e alternativas no horizonte de 2 horas.",caveat:"Figura não substitui a tabela de métricas e a auditoria de origem.",href:"pesquisas/grafico-2h-observado-a-b.html",source:"figura de pesquisa"},
+      {title:"Santa Tereza · previsão de inundação",category:"Publicados",status:"publicado",description:"Página principal de monitoramento e previsão científica de Santa Tereza.",caveat:"A leitura operacional depende de fonte atual, cobertura e validação; previsão não é alerta oficial.",href:"santa_tereza_previsao_inundacao.html",source:"página principal"},
+      {title:"Muçum · previsão de inundação",category:"Publicados",status:"publicado",description:"Página principal de previsão e contexto de inundação para Muçum.",caveat:"Consulte o estado de atualização e as limitações do feed antes de interpretar.",href:"mucum_previsao_inundacao.html",source:"página principal"},
+      {title:"Dashboard integrado da bacia",category:"Publicados",status:"publicado",description:"Entrada principal para os painéis e camadas do PREVINE na bacia.",caveat:"A página é um ponto de navegação; cada estudo tem sua própria evidência.",href:"dashboard_bacia.html",source:"página principal"},
+      {title:"Vulnerabilidade social · produto principal",category:"Publicados",status:"publicado",description:"Produto principal para explorar vulnerabilidade social com escopos e fontes definidos.",caveat:"Vulnerabilidade não é risco; a ameaça hidrológica precisa ser cruzada separadamente.",href:"vulnerabilidade.html",source:"página principal"},
+      {title:"Rota de fuga · Santa Tereza",category:"Publicados",status:"publicado",description:"Página principal do protótipo de rotas e destinos para Santa Tereza.",caveat:"Rota publicada não significa rota liberada; valide vias, abrigo e acessibilidade.",href:"santa_tereza_rota_fuga.html",source:"página principal"},
+      {title:"Rota de fuga · Santa Tereza · cenário",category:"Publicados",status:"publicado",description:"Cenário publicado para discutir uma resposta territorial antes do evento.",caveat:"Cenário é instrumento de preparo, não autorização de evacuação.",href:"santa_tereza_rota_fuga_cenario.html",source:"página principal"},
+      {title:"Painel técnico · pesquisa status",category:"Publicados",status:"publicado",description:"Painel de acompanhamento dos estados e artefatos técnicos da pesquisa.",caveat:"Status de pesquisa não equivale a disponibilidade operacional.",href:"pesquisa_status.html",source:"página principal"},
+      {title:"Pesquisa de transbordamento · Muçum",category:"Publicados",status:"publicado",description:"Entrada publicada para acompanhar a pesquisa de transbordamento em Muçum.",caveat:"O produto deve manter separados observação, cenário e incerteza.",href:"pesquisa_status_mucum.html",source:"página principal"},
+      {title:"Encostas e movimentos de massa",category:"Geoespacial",status:"preliminar",description:"Página territorial para investigar encostas, movimentos de massa e pontos de atenção.",caveat:"A página é exploratória; qualquer alerta exige fonte oficial, vistoria e validação de campo.",href:"encostas_movimentos_massa.html",source:"página principal"},
+      {title:"Muçum · mapa de inundação",category:"Geoespacial",status:"publicado",description:"Mapa principal de contexto e inundação para Muçum dentro do acervo PREVINE.",caveat:"Produto publicado não substitui informação oficial atual, observação local ou validação hidrodinâmica.",href:"mucum_inundacao.html",source:"página principal"},
+      {title:"Projeto PREVINE",category:"Publicados",status:"publicado",description:"Página de apresentação do projeto, das perguntas e das frentes de pesquisa da bacia.",caveat:"Apresentação institucional não é evidência operacional de previsão ou de rota.",href:"projeto.html",source:"página principal"},
+      {title:"Santa Tereza · mapa de inundação",category:"Geoespacial",status:"publicado",description:"Mapa principal de contexto e inundação para Santa Tereza no acervo PREVINE.",caveat:"A camada precisa ser lida com data, fonte, escala e limitações; não é autorização de evacuação.",href:"santa_tereza_inundacao.html",source:"página principal"}
+    ];
+
+    const statusLabels = {publicado:"página principal",estudo:"estudo / protótipo",preliminar:"preliminar",auditoria:"auditoria",comparativo:"comparativo / snapshot"};
+    const pageSize = 12;
+    const state = {query:"",category:"all",status:"all",page:1};
+    const cards = document.getElementById("cards");
+    const empty = document.getElementById("empty");
+    const search = document.getElementById("search");
+    const statusFilter = document.getElementById("statusFilter");
+    const resultsMeta = document.getElementById("resultsMeta");
+    const pagination = document.getElementById("pagination");
+    const previousPage = document.getElementById("previousPage");
+    const nextPage = document.getElementById("nextPage");
+    const pageStatus = document.getElementById("pageStatus");
+    const normalize = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
+    const categoryClass = category => "tag-" + normalize(category).replace(/[^a-z0-9]+/g,"-");
+    function filteredEntries(){
+      const q = normalize(state.query);
+      return entries.filter(item => {
+        const hay = normalize([item.title,item.category,item.status,item.description,item.caveat,item.source].join(" "));
+        return (!q || hay.includes(q)) && (state.category === "all" || item.category === state.category) && (state.status === "all" || item.status === state.status);
+      });
+    }
+    function render(){
+      const allVisible = filteredEntries();
+      const pageCount = Math.max(1,Math.ceil(allVisible.length/pageSize));
+      state.page = Math.min(Math.max(1,state.page),pageCount);
+      const start = (state.page-1)*pageSize;
+      const visible = allVisible.slice(start,start+pageSize);
+      cards.innerHTML = visible.map(item => `
+        <article class="card">
+          <div class="card-top"><span class="tag ${categoryClass(item.category)}">${escapeHtml(item.category)}</span><span class="state">${escapeHtml(statusLabels[item.status])}</span></div>
+          <h3>${escapeHtml(item.title)}</h3>
+          <p>${escapeHtml(item.description)}</p>
+          <div class="caveat"><strong>atenção:</strong> ${escapeHtml(item.caveat)}</div>
+          <div class="card-footer"><span class="source" title="${escapeHtml(item.source)}">${escapeHtml(item.source)}</span><a class="open" aria-label="Abrir ${escapeHtml(item.title)}" href="${escapeHtml(item.href)}">abrir <span aria-hidden="true">↗</span></a></div>
+        </article>`).join("");
+      empty.hidden = allVisible.length !== 0;
+      resultsMeta.innerHTML = `<strong>${allVisible.length}</strong> de ${entries.length} páginas no acervo${allVisible.length ? ` · página ${state.page} de ${pageCount}` : ""}`;
+      pagination.hidden = allVisible.length <= pageSize;
+      previousPage.disabled = state.page<=1;
+      nextPage.disabled = state.page>=pageCount;
+      pageStatus.textContent = `página ${state.page} de ${pageCount}`;
+    }
+    function setCategory(category){
+      state.category = category;
+      state.page = 1;
+      document.querySelectorAll("[data-category]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.category === category)));
+      render();
+    }
+    search.addEventListener("input", event => {state.query = event.target.value;state.page=1;render();});
+    statusFilter.addEventListener("change", event => {state.status = event.target.value;state.page=1;render();});
+    document.getElementById("filters").addEventListener("click", event => {const button = event.target.closest("[data-category]");if(button)setCategory(button.dataset.category);});
+    previousPage.addEventListener("click", () => {if(state.page>1){state.page-=1;render();cards.focus({preventScroll:true});}});
+    nextPage.addEventListener("click", () => {const pageCount=Math.max(1,Math.ceil(filteredEntries().length/pageSize));if(state.page<pageCount){state.page+=1;render();cards.focus({preventScroll:true});}});
+    document.getElementById("clear").addEventListener("click", () => {state.query="";state.category="all";state.status="all";state.page=1;search.value="";statusFilter.value="all";setCategory("all");search.focus();});
+    document.getElementById("metricTotal").textContent = entries.length;
+    document.getElementById("metricTopics").textContent = new Set(entries.map(item => item.category)).size;
+    document.getElementById("metricSite").textContent = entries.filter(item => item.status === "publicado").length;
+    render();
+  </script>
+</body>
+</html>

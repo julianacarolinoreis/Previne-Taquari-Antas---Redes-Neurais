@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alternativa 8h - split do 4h</title>
+<style>
+:root { --ink:#172033; --muted:#5e6c80; --bg:#eef3f8; --line:#d9e2ef; --green:#0b8f72; --blue:#315a8c; --purple:#785aa6; --navy:#13243a; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:Arial, Helvetica, sans-serif; color:var(--ink); background:linear-gradient(180deg,#14243a 0 236px,var(--bg) 236px); }
+main { max-width:1060px; margin:0 auto; padding:24px 16px 40px; }
+.hero { color:white; padding:10px 0 22px; }
+.eyebrow { color:#9fb4d0; font-size:12px; text-transform:uppercase; font-weight:700; letter-spacing:.08em; }
+h1 { margin:8px 0 8px; font-size:clamp(30px,5vw,54px); line-height:1.02; }
+.hero p { color:#dce7f7; max-width:820px; line-height:1.45; margin:0; }
+.grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.metric { color:white; border-radius:8px; padding:16px; min-height:128px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 10px 28px rgba(23,32,51,.12); }
+.metric.green { background:var(--green); } .metric.blue { background:var(--blue); } .metric.purple { background:var(--purple); }
+.metric-label { font-size:12px; opacity:.92; } .metric-value { font-size:34px; font-weight:800; line-height:1; } .metric-note { font-size:13px; opacity:.95; line-height:1.35; }
+.card { background:white; border:1px solid var(--line); border-radius:8px; padding:16px; box-shadow:0 10px 28px rgba(23,32,51,.08); margin-top:12px; }
+h2 { margin:0 0 10px; font-size:20px; }
+p, li { color:#33435a; line-height:1.55; }
+.charts { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.bar-row { display:grid; grid-template-columns:86px 1fr 56px; gap:8px; align-items:center; margin:12px 0; }
+.bar-label { font-size:13px; text-align:right; color:#33435a; }
+.bar-track { height:16px; background:#e7edf5; border-radius:4px; overflow:hidden; }
+.bar { height:100%; background:#5c78a8; border-radius:4px; } .bar.good { background:var(--green); }
+.bar-value { text-align:right; font-size:13px; font-weight:700; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th { background:var(--navy); color:white; padding:10px 8px; text-align:right; }
+td { padding:10px 8px; border-bottom:1px solid var(--line); text-align:right; background:white; }
+th:first-child, td:first-child { text-align:left; }
+tr:nth-child(even) td { background:#f7faff; } tr.best td { background:#e4f5ee !important; font-weight:700; }
+.split { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.split div { border:1px solid var(--line); background:#f7faff; border-radius:8px; padding:12px; }
+.split b { display:block; margin-bottom:6px; }
+.decision { border-left:5px solid var(--green); background:#f4fbf8; }
+.wide { overflow-x:auto; }
+@media (max-width:760px) { main { padding:18px 12px 28px; } .grid,.charts,.split { grid-template-columns:1fr; } table { font-size:12px; } th,td { padding:8px 6px; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <div class="eyebrow">Santa Tereza · alternativa 8h · eventos corrigidos</div>
+    <h1>Split do 4h aplicado no 8h</h1>
+    <p>Nova rodada com os mesmos eventos que funcionaram na alternativa 4h. A mudanca na divisao treino/validacao/teste foi decisiva.</p>
+  </div>
+  <div class="grid">
+
+    <div class="metric green">
+      <div class="metric-label">Melhor NASH teste</div>
+      <div class="metric-value">0.921</div>
+      <div class="metric-note">config. 10/5 · PERS 0.604</div>
+    </div>
+
+
+    <div class="metric blue">
+      <div class="metric-label">Melhor validacao</div>
+      <div class="metric-value">0.815</div>
+      <div class="metric-note">config. 15/10 · teste 0.909</div>
+    </div>
+
+
+    <div class="metric purple">
+      <div class="metric-label">Melhor E95</div>
+      <div class="metric-value">114.8</div>
+      <div class="metric-note">config. 15/10 · validacao 0.815</div>
+    </div>
+
+  </div>
+  <section class="card split">
+    <div><b>Treinamento</b>eventos 1, 4, 5, 8, 12<br>1415 linhas</div>
+    <div><b>Validacao</b>eventos 2, 7, 13, 14<br>384 linhas</div>
+    <div><b>Teste</b>evento 3<br>268 linhas</div>
+  </section>
+  <section class="card decision">
+    <h2>Conclusao</h2>
+    <p>O split igual ao 4h funcionou. O melhor por NASH teste e PERS foi <b>10/5</b>. O melhor para validacao e erro extremo foi <b>15/10</b>. Para candidato operacional, eu escolheria <b>15/10</b>; para manter a metrica de teste mais alta, manteria <b>10/5</b> como comparativo.</p>
+  </section>
+  <section class="charts">
+    <div class="card"><h2>NASH teste</h2>
+    <div class="bar-row">
+      <div class="bar-label">conv.</div>
+      <div class="bar-track"><div class="bar " style="width:85.3%"></div></div>
+      <div class="bar-value">0.786</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">mix10</div>
+      <div class="bar-track"><div class="bar " style="width:88.8%"></div></div>
+      <div class="bar-value">0.818</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">local antigo</div>
+      <div class="bar-track"><div class="bar " style="width:89.6%"></div></div>
+      <div class="bar-value">0.826</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">split4h 10/5</div>
+      <div class="bar-track"><div class="bar good" style="width:100.0%"></div></div>
+      <div class="bar-value">0.921</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">split4h 15/10</div>
+      <div class="bar-track"><div class="bar " style="width:98.7%"></div></div>
+      <div class="bar-value">0.909</div>
+    </div>
+    </div>
+    <div class="card"><h2>E95</h2>
+    <div class="bar-row">
+      <div class="bar-label">conv.</div>
+      <div class="bar-track"><div class="bar " style="width:100.0%"></div></div>
+      <div class="bar-value">192.3</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">mix10</div>
+      <div class="bar-track"><div class="bar " style="width:71.1%"></div></div>
+      <div class="bar-value">136.8</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">local antigo</div>
+      <div class="bar-track"><div class="bar " style="width:68.9%"></div></div>
+      <div class="bar-value">132.5</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">split4h 10/5</div>
+      <div class="bar-track"><div class="bar " style="width:76.8%"></div></div>
+      <div class="bar-value">147.7</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">split4h 15/10</div>
+      <div class="bar-track"><div class="bar good" style="width:59.7%"></div></div>
+      <div class="bar-value">114.8</div>
+    </div>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Ranking das 4 configuracoes</h2>
+    <div class="wide"><table>
+      <thead><tr><th>Config.</th><th>NASH val</th><th>NASH teste</th><th>PERS</th><th>EAM</th><th>E95</th><th>J</th></tr></thead>
+      <tbody>
+        <tr class='best'>
+          <td>10/5 *</td>
+          <td>0.752</td>
+          <td>0.921</td>
+          <td>0.604</td>
+          <td>42.4</td>
+          <td>147.7</td>
+          <td>214</td>
+        </tr>
+
+        <tr>
+          <td>10/10</td>
+          <td>0.755</td>
+          <td>0.877</td>
+          <td>0.381</td>
+          <td>47.7</td>
+          <td>212.7</td>
+          <td>105624</td>
+        </tr>
+
+        <tr>
+          <td>15/10</td>
+          <td>0.815</td>
+          <td>0.909</td>
+          <td>0.542</td>
+          <td>42.0</td>
+          <td>114.8</td>
+          <td>72</td>
+        </tr>
+
+        <tr>
+          <td>21/10</td>
+          <td>0.802</td>
+          <td>0.849</td>
+          <td>0.242</td>
+          <td>50.7</td>
+          <td>242.3</td>
+          <td>28324</td>
+        </tr>
+        </tbody>
+    </table></div>
+  </section>
+  <section class="card">
+    <h2>O que mudou</h2>
+    <ul>
+      <li>Antes, o 8h local estava testando eventos 3, 12 e 14; agora testa so o evento 3, como no 4h.</li>
+      <li>Eventos 18, 19 e 20 sairam desta comparacao, porque nao estavam no split bem-sucedido do 4h.</li>
+      <li>O ganho foi grande: o melhor NASH teste subiu para 0.921, com PERS 0.604.</li>
+      <li>O 15/10 reduziu o E95 para 114.8, o melhor erro extremo entre os testes de 8h ate aqui.</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

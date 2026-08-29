@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PREVINE - Pontos criticos Santa Tereza</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg: #f7f7f4;
+      --panel: #ffffff;
+      --ink: #20231f;
+      --muted: #6b7068;
+      --line: #d7d9d1;
+      --red: #bf3f3f;
+      --blue: #2f65b0;
+      --green: #3b7b4f;
+      --gold: #a46b14;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      align-items: baseline;
+    }
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      min-height: calc(100vh - 58px);
+    }
+    #map {
+      width: 100%;
+      min-height: calc(100vh - 58px);
+    }
+    aside {
+      border-left: 1px solid var(--line);
+      background: var(--panel);
+      overflow: auto;
+      max-height: calc(100vh - 58px);
+      padding: 16px;
+    }
+    h2 {
+      font-size: 15px;
+      margin: 0 0 8px;
+    }
+    h3 {
+      font-size: 13px;
+      margin: 18px 0 8px;
+    }
+    p {
+      margin: 0 0 10px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 6px 4px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .tag {
+      display: inline-block;
+      padding: 2px 6px;
+      border: 1px solid var(--line);
+      font-size: 11px;
+      color: var(--muted);
+      margin: 2px 4px 2px 0;
+    }
+    .warning {
+      border-left: 4px solid var(--gold);
+      background: #fff8ea;
+      padding: 10px;
+      margin: 12px 0;
+      color: #5b4218;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    a { color: var(--blue); }
+    .leaflet-popup-content {
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+      #map { min-height: 58vh; }
+      aside {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PREVINE - Santa Tereza</h1>
+    <div class="subtitle">Pontos criticos, eixo hidraulico preliminar e MDT Copernicus GLO-30</div>
+  </header>
+  <main>
+    <div id="map"></div>
+    <aside>
+      <h2>Controle prioritario</h2>
+      <p>
+        A zona Santa Barbara / ERS-431 foi marcada como primeiro controle hidraulico:
+        confluencia Rio das Antas + Rio Carreiro, inicio do Rio Taquari.
+      </p>
+      <div class="warning">
+        Esta visualizacao e preliminar. O DEM baixado e DSM/DEM, nao MDT condicionado.
+        O zero da regua 86472600 ainda precisa ser obtido antes de gerar mancha operacional.
+      </div>
+      <div>
+        <span class="tag">Confluencia</span>
+        <span class="tag">Ponte Santa Barbara</span>
+        <span class="tag">ERS-431</span>
+        <span class="tag">Estacao 86472600</span>
+      </div>
+
+      <h3>Coordenadas principais</h3>
+      <table>
+        <thead><tr><th>Ponto</th><th>Lat</th><th>Lon</th><th>DEM m</th></tr></thead>
+        <tbody>
+          <tr><td>Confluencia</td><td>-29.0908727</td><td>-51.7132690</td><td>66.000</td></tr>
+          <tr><td>Ponte Santa Barbara zona</td><td>-29.0870061</td><td>-51.7144244</td><td>n/d</td></tr>
+          <tr><td>Estacao 86472600</td><td>-29.1781000</td><td>-51.7322000</td><td>75.075</td></tr>
+          <tr><td>Ponte urbana OSM</td><td>-29.1665585</td><td>-51.7360073</td><td>62.920</td></tr>
+          <tr><td>Centro Santa Tereza</td><td>-29.1697808</td><td>-51.7363155</td><td>84.085</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Perfis Copernicus</h3>
+      <table>
+        <thead><tr><th>Perfil</th><th>Min</th><th>Max</th><th>Media</th></tr></thead>
+        <tbody>
+          <tr><td>Confluencia -> estacao</td><td>61.000</td><td>473.596</td><td>188.077</td></tr>
+          <tr><td>Confluencia -> fim Taquari OSM</td><td>59.500</td><td>386.169</td><td>185.444</td></tr>
+          <tr><td>Transversal confluencia</td><td>66.000</td><td>338.673</td><td>183.710</td></tr>
+          <tr><td>Transversal Santa Barbara</td><td>65.000</td><td>363.782</td><td>146.564</td></tr>
+          <tr><td>Transversal ponte urbana</td><td>56.000</td><td>204.984</td><td>91.748</td></tr>
+          <tr><td>Transversal estacao</td><td>54.000</td><td>374.458</td><td>178.046</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Fontes</h3>
+      <p>
+        <a href="https://planoriogrande.rs.gov.br/construcao-da-nova-ponte-de-santa-barbara">Plano Rio Grande</a><br>
+        <a href="https://transportes.rs.gov.br/obras-da-ponte-santa-barbara-avancam-na-ers-431">SELT/DAER</a><br>
+        <a href="https://grupoahora.net.br/conteudos/2026/04/29/balsa-com-perfuratriz-inicia-os-trabalhos-de-construcao-da-ponte-entre-santa-tereza-e-sao-valentim-do-sul/">Grupo A Hora</a><br>
+        <a href="https://registry.opendata.aws/copernicus-dem/">Copernicus DEM</a>
+      </p>
+    </aside>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const points = [
+      {
+        id: "confluencia",
+        label: "Confluencia Antas + Carreiro / inicio Taquari",
+        lat: -29.0908727,
+        lon: -51.7132690,
+        color: "#bf3f3f",
+        role: "controle hidraulico prioritario",
+        elev: "66.000 m"
+      },
+      {
+        id: "ponte_santa_barbara_zona",
+        label: "Zona Ponte Santa Barbara / ERS-431",
+        lat: -29.0870061,
+        lon: -51.7144244,
+        color: "#a46b14",
+        role: "travessia critica aproximada",
+        elev: "a amostrar com eixo exato"
+      },
+      {
+        id: "estacao_86472600",
+        label: "Estacao 86472600 - Santa Tereza",
+        lat: -29.1781,
+        lon: -51.7322,
+        color: "#2f65b0",
+        role: "estacao alvo RNA",
+        elev: "75.075 m"
+      },
+      {
+        id: "ponte_urbana_osm",
+        label: "Ponte urbana OSM 88968338",
+        lat: -29.1665585,
+        lon: -51.7360073,
+        color: "#3b7b4f",
+        role: "controle secundario a verificar",
+        elev: "62.920 m"
+      },
+      {
+        id: "centro",
+        label: "Centro Santa Tereza OSM",
+        lat: -29.1697808,
+        lon: -51.7363155,
+        color: "#333333",
+        role: "referencia urbana",
+        elev: "84.085 m"
+      }
+    ];
+
+    const map = L.map("map", { preferCanvas: true }).setView([-29.132, -51.724], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    function circleMarker(point) {
+      return L.circleMarker([point.lat, point.lon], {
+        radius: point.id === "confluencia" ? 9 : 7,
+        weight: 2,
+        color: "#ffffff",
+        fillColor: point.color,
+        fillOpacity: 0.95
+      }).bindPopup(
+        `<strong>${point.label}</strong><br>` +
+        `Funcao: ${point.role}<br>` +
+        `Lat/Lon: ${point.lat.toFixed(7)}, ${point.lon.toFixed(7)}<br>` +
+        `Elev. Copernicus: ${point.elev}`
+      );
+    }
+
+    points.forEach(point => circleMarker(point).addTo(map));
+
+    const byId = Object.fromEntries(points.map(point => [point.id, point]));
+    const axis = [
+      [byId.confluencia.lat, byId.confluencia.lon],
+      [byId.estacao_86472600.lat, byId.estacao_86472600.lon]
+    ];
+    L.polyline(axis, {
+      color: "#bf3f3f",
+      weight: 4,
+      opacity: 0.85,
+      dashArray: "8 8"
+    }).addTo(map).bindPopup("Eixo preliminar: confluencia Santa Barbara -> estacao 86472600");
+
+    L.polyline([
+      [byId.confluencia.lat, byId.confluencia.lon],
+      [-29.1369617, -51.7379661],
+      [byId.ponte_urbana_osm.lat, byId.ponte_urbana_osm.lon],
+      [byId.estacao_86472600.lat, byId.estacao_86472600.lon]
+    ], {
+      color: "#2f65b0",
+      weight: 3,
+      opacity: 0.65
+    }).addTo(map).bindPopup("Corredor preliminar pelo Rio Taquari mapeado no OSM");
+
+    const bounds = L.latLngBounds(points.map(point => [point.lat, point.lon]));
+    map.fitBounds(bounds.pad(0.18));
+  </script>
+</body>
+</html>

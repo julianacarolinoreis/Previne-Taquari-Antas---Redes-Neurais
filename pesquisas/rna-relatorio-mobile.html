@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resumo da Rede Neural - Santa Tereza 4h</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5f6b7a;
+      --line: #d9e1ea;
+      --panel: #f7f9fc;
+      --good: #0f766e;
+      --warn: #9a6700;
+      --bad: #b42318;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: #fff;
+      line-height: 1.45;
+    }
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 20px 14px 36px;
+    }
+    h1 {
+      font-size: 24px;
+      line-height: 1.15;
+      margin: 0 0 8px;
+    }
+    h2 {
+      font-size: 18px;
+      margin: 24px 0 10px;
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+    }
+    h3 {
+      font-size: 15px;
+      margin: 16px 0 8px;
+    }
+    p {
+      margin: 8px 0;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 18px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      margin: 10px 0;
+    }
+    .verdict {
+      border-left: 4px solid var(--good);
+      padding-left: 10px;
+      font-weight: 650;
+    }
+    .warning {
+      border-left: 4px solid var(--warn);
+      padding-left: 10px;
+    }
+    .bad {
+      color: var(--bad);
+      font-weight: 650;
+    }
+    .good {
+      color: var(--good);
+      font-weight: 650;
+    }
+    ul, ol {
+      padding-left: 22px;
+    }
+    li {
+      margin: 7px 0;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13px;
+      margin: 8px 0 16px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 7px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #eef3f8;
+      font-weight: 650;
+    }
+    .scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.95em;
+      background: #eef3f8;
+      border-radius: 4px;
+      padding: 1px 4px;
+    }
+    @media (max-width: 560px) {
+      main {
+        padding: 16px 10px 28px;
+      }
+      h1 {
+        font-size: 21px;
+      }
+      table {
+        font-size: 12px;
+      }
+      th, td {
+        padding: 6px 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Resumo da Rede Neural - Santa Tereza 4h</h1>
+  <div class="meta">Gerado para leitura no celular. Base: resultados produzidos antes da falha de licença do MATLAB em 2026-06-04.</div>
+
+  <section class="card verdict">
+    Melhor aposta de novo input: <code>input 7</code>, <code>nivel_D12h_86125130_a</code>, estação <code>86125130</code>.
+    No teste parcial da Fase 2, o combo <code>[1, 2, 7]</code> alcançou <code>NASH_TESTE = 0.9816</code>, <code>PERS = 0.7553</code> e <code>E95 = 62.53</code>.
+  </section>
+
+  <h2>Conclusões Práticas</h2>
+  <ul>
+    <li><strong>Input 7</strong> é o melhor candidato externo observado para melhorar o teste e a cauda de erro.</li>
+    <li><strong>Input 4</strong> (<code>nivel_A12h_86472600</code>) é essencial: quando removido, o teste caiu para <code>0.9429</code>, pior leave-one-out.</li>
+    <li><strong>Inputs 6 e 10</strong> da estação <code>86160000</code> são os mais estáveis em validação, mas não deram o maior teste.</li>
+    <li><strong>Input 8</strong> (<code>nivel_D4h_86472000</code>) precisa ser testado: tem correlação muito alta com o alvo no conjunto de teste, mas a Fase 2 travou antes de testar <code>[1, 2, 8]</code>.</li>
+    <li><strong>Input 9</strong> foi ruim isoladamente em <code>[1,2,9]</code>; não deve ser prioridade.</li>
+    <li><strong>Input 14</strong> parece dispensável no modelo completo: removê-lo deu o melhor leave-one-out.</li>
+  </ul>
+
+  <h2>Treino, Validação e Teste</h2>
+  <div class="card warning">
+    A troca de eventos importa muito. As colunas <code>H</code> e <code>AD</code> são a mesma divisão. A coluna <code>AC</code> mantém os mesmos 210 casos de teste, mas troca 426 casos entre treino e validação.
+  </div>
+  <p>O modelo base com <code>AC</code> teve validação quase perfeita, mas teste ruim. Isso indica escolha enviesada pela validação, não melhora real:</p>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Divisão</th><th>NASH_VAL</th><th>NASH_TESTE</th><th>PERS</th><th>E95</th><th>Leitura</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>AC</td><td>0.9939</td><td>0.9138</td><td>-0.1464</td><td>193.54</td><td class="bad">Validação enganosa</td></tr>
+        <tr><td>H/AD</td><td>0.9559</td><td>0.9741</td><td>0.6557</td><td>86.48</td><td class="good">Mais consistente</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Recomendação: usar <code>H/AD</code> como divisão principal para comparar modelos, e testar qualquer candidato final em mais de uma divisão antes de escolher.</p>
+
+  <h2>Ranking dos Inputs na Fase 2 Parcial</h2>
+  <p>Esses resultados comparam modelos de 3 inputs do tipo <code>[1, 2, X]</code>.</p>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>X</th><th>Input</th><th>Estação</th><th>Max NASH_TESTE</th><th>Média Teste</th><th>Max NASH_VAL</th><th>Menor E95</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>7</td><td>nivel_D12h_86125130_a</td><td>86125130</td><td>0.9816</td><td>0.9639</td><td>0.9531</td><td>62.53</td></tr>
+        <tr><td>4</td><td>nivel_A12h_86472600</td><td>86472600</td><td>0.9769</td><td>0.9691</td><td>0.9455</td><td>77.29</td></tr>
+        <tr><td>3</td><td>nivel_D4h_86472600</td><td>86472600</td><td>0.9748</td><td>0.9610</td><td>0.9350</td><td>75.35</td></tr>
+        <tr><td>6</td><td>nivel_D12h_86160000_a</td><td>86160000</td><td>0.9725</td><td>0.9700</td><td>0.9588</td><td>84.92</td></tr>
+        <tr><td>10</td><td>nivel_D12h_86160000_b</td><td>86160000</td><td>0.9724</td><td>0.9724</td><td>0.9575</td><td>84.92</td></tr>
+        <tr><td>9</td><td>nivel_D17h_86102000</td><td>86102000</td><td>0.9350</td><td>0.9227</td><td>0.9525</td><td>179.87</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Leave-One-Out: O Que Acontece ao Remover Cada Input</h2>
+  <p>Quanto melhor o resultado ao remover um input, mais dispensável ele parece no modelo completo. Quanto pior o resultado ao remover, mais essencial ele parece.</p>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Removido</th><th>Input</th><th>NASH_TESTE</th><th>NASH_VAL</th><th>PERS</th><th>E95</th><th>Interpretação</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>14</td><td>nivel_D17h_86497400</td><td>0.9812</td><td>0.9553</td><td>0.7500</td><td>78.18</td><td>Dispensável / pode atrapalhar</td></tr>
+        <tr><td>12</td><td>nivel_D12h_86125130_b</td><td>0.9803</td><td>0.9524</td><td>0.7378</td><td>75.28</td><td>Duplicata B pode ser dispensada</td></tr>
+        <tr><td>9</td><td>nivel_D17h_86102000</td><td>0.9801</td><td>0.9539</td><td>0.7359</td><td>75.53</td><td>Dispensável no completo</td></tr>
+        <tr><td>5</td><td>nivel_A4h_86472600</td><td>0.9801</td><td>0.9527</td><td>0.7351</td><td>83.01</td><td>Menos importante que A12h</td></tr>
+        <tr><td>6</td><td>nivel_D12h_86160000_a</td><td>0.9596</td><td>0.9562</td><td>0.4626</td><td>124.60</td><td>Importante</td></tr>
+        <tr><td>7</td><td>nivel_D12h_86125130_a</td><td>0.9610</td><td>0.9540</td><td>0.4813</td><td>136.91</td><td>Importante</td></tr>
+        <tr><td>4</td><td>nivel_A12h_86472600</td><td>0.9429</td><td>0.9677</td><td>0.2413</td><td>154.99</td><td>Essencial</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Correlação Simples com o Alvo</h2>
+  <p>Correlação não substitui o teste da rede, mas ajuda a escolher próximos candidatos.</p>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Input</th><th>Nome</th><th>Estação</th><th>Corr. geral</th><th>Corr. no teste</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>2</td><td>nivel_D1h_86472600</td><td>86472600</td><td>0.7152</td><td>0.8030</td></tr>
+        <tr><td>8</td><td>nivel_D4h_86472000</td><td>86472000</td><td>0.6839</td><td>0.8673</td></tr>
+        <tr><td>13</td><td>nivel_D12h_86195100</td><td>86195100</td><td>0.6648</td><td>0.7834</td></tr>
+        <tr><td>11</td><td>nivel_D12h_86099000</td><td>86099000</td><td>0.6546</td><td>0.6457</td></tr>
+        <tr><td>6/10</td><td>nivel_D12h_86160000</td><td>86160000</td><td>0.6445</td><td>0.5791</td></tr>
+        <tr><td>7/12</td><td>nivel_D12h_86125130</td><td>86125130</td><td>0.6207</td><td>0.8162</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Próximos Testes Recomendados</h2>
+  <ol>
+    <li><code>[1, 2, 7]</code> repetido com mais reinicializações.</li>
+    <li><code>[1, 2, 4, 7]</code>.</li>
+    <li><code>[1, 2, 8]</code>, porque o input 8 tem forte correlação e ainda não foi testado na Fase 2.</li>
+    <li><code>[1, 2, 4, 7, 8]</code>.</li>
+    <li><code>[1, 2, 6]</code> e <code>[1, 2, 10]</code> completos, para confirmar estabilidade da estação 86160000.</li>
+    <li>Modelo enxuto: <code>[1, 2, 3, 4, 6, 7, 8, 11, 13]</code>, evitando inicialmente <code>9</code>, <code>12</code> e <code>14</code>.</li>
+  </ol>
+
+  <h2>Resumo Final</h2>
+  <p>Se for escolher um caminho agora: mantenha a divisão <code>H/AD</code>, preserve o input <code>4</code>, teste imediatamente o input <code>7</code> e depois o input <code>8</code>. Não use a validação da coluna <code>AC</code> como critério principal, porque ela deu validação alta com teste ruim.</p>
+</main>
+</body>
+</html>
