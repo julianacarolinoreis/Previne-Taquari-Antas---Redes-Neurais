@@ -8,6 +8,8 @@ Site publico e interativo com os resultados das redes neurais de previsao de niv
 - Ranking por familia, horizonte, montagem alternativa/convencional e metricas de desempenho.
 - Graficos de persistencia, erro em centimetros, equilibrio validacao/teste e inputs mais usados.
 - Tabela filtravel com metricas rastreaveis por modelo.
+- Catálogo vivo de pesquisas em `pesquisas.html` e agenda estruturada de avanço em `pesquisas/agenda-avanco.html` (55 registros, incluindo 43 páginas de pesquisa/agenda).
+- Sala de decisão V002 em `pesquisas/estudo-caso-resposta-santa-tereza.html`, com briefing, checklist, contingências, métricas de exercício e exportação local.
 
 ## Organizacao
 
@@ -27,3 +29,15 @@ Para publicar pelo GitHub Pages:
 ## Dados auditaveis
 
 As planilhas auditaveis completas ficam fora do HTML para nao deixar o site pesado demais. O painel ja contem as metricas consolidadas; os dados ponto a ponto das planilhas podem ser adicionados depois em arquivos `data/` para graficos de observado versus previsto e subidas de eventos.
+
+## Agenda de avanço
+
+`assets/data/agenda_pesquisas.json` é o registro estruturado das cinco linhas prioritárias de pesquisa. Cada linha registra pergunta, impacto humano, evidência atual, dados necessários, método, métricas, fontes e gate de avanço. A agenda separa duas frentes: ciência da previsão e pessoas/resposta.
+
+Os estados `pesquisa`, `validar`, `completar` e `exercitar` descrevem maturidade do trabalho; nenhum deles equivale a alerta oficial, rota liberada, abrigo confirmado ou despacho. A promoção operacional permanece bloqueada até validação independente, exercícios seguros, revisão institucional e autorização da autoridade competente.
+
+## Exercício de resposta V002
+
+O contrato `assets/data/estudo_caso_resposta_v002.json` mantém a separação entre cenário didático, snapshot da RNA, grade espacial preliminar e dados de resposta ainda desconhecidos. A sala registra decisões, confirmação de rota, contagens agregadas, capacidade do abrigo, contingências e falhas críticas sem substituir sistemas oficiais.
+
+Estados `UNKNOWN` e `STALE` devem bloquear a ação. A grade de 30 m e os corredores são sintéticos e não validados para ruas, pontes, declividades ou acessibilidade. O horizonte de 8h é experimental/sombra; não é alerta oficial, ordem de evacuação, navegação, despacho ou alocação de recursos.

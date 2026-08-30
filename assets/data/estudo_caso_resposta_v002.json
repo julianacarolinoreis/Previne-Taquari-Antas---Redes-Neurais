@@ -1,0 +1,163 @@
+{
+  "schema_version": 2,
+  "artifact_id": "stz-response-exercise-v002",
+  "title": "Exercício controlado de resposta à inundação · Santa Tereza",
+  "mode": "exercise",
+  "maturity": "prototype",
+  "operational_gate": {
+    "status": "blocked",
+    "reason": "The artifact combines an experimental forecast snapshot, a preliminary spatial grid and unconfirmed response resources.",
+    "disallowed": ["official_alert", "evacuation_order", "public_dispatch", "route_navigation", "resource_allocation"]
+  },
+  "event": {
+    "event_id": "stz-22jul-scenario",
+    "scenario_id": "22jul",
+    "label": "cenário de cheia com subida aproximada de 40 cm/h",
+    "timezone": "America/Sao_Paulo",
+    "source_as_of": "2026-08-04T04:29:00-03:00",
+    "source_as_of_raw": "2026-08-04 04:29",
+    "issued_at": null,
+    "valid_from": null,
+    "valid_until": null,
+    "status": "scenario_fixture",
+    "note": "Não representa um evento em curso. A data de um exercício formal deve ser definida pelo responsável e registrada no início."
+  },
+  "timeline": [
+    {"offset_min": 0, "label": "T+00:00", "phase": "recebimento", "decision": "ler sinal, fonte, horário, cobertura e limites"},
+    {"offset_min": 30, "label": "T+00:30", "phase": "triagem", "decision": "ordenar áreas e pessoas que precisam de apoio"},
+    {"offset_min": 54, "label": "T+00:54", "phase": "limite Z-01", "decision": "se a confirmação não ocorreu, a janela de Z-01 cruzou; parar a orientação"},
+    {"offset_min": 60, "label": "T+01:00", "phase": "reconhecimento", "decision": "preparar confirmação de acesso, rota e comunicação"},
+    {"offset_min": 120, "label": "T+02:00", "phase": "retirada", "decision": "ensaiar retirada prioritária somente depois das confirmações"},
+    {"offset_min": 240, "label": "T+04:00", "phase": "escalada", "decision": "reavaliar abrigo, transporte e áreas que perderam margem"},
+    {"offset_min": 354, "label": "T+05:54", "phase": "limite da grade", "decision": "parar cálculo espacial e marcar o que ficou sem cobertura"},
+    {"offset_min": 480, "label": "T+08:00", "phase": "escalada", "decision": "comparar o horizonte da RNA sem transformá-lo em rota"},
+    {"offset_min": 720, "label": "T+12:00", "phase": "regional", "decision": "registrar ausência de extrapolação espacial e planejar nova rodada"}
+  ],
+  "forecast": {
+    "source": "previsao_ao_vivo.json",
+    "input_contract_version": "hourly_exact_v1",
+    "station": "86472600",
+    "source_snapshot": "2026-08-28T20:00:00-03:00",
+    "source_snapshot_raw": "2026-08-28T20:00:00",
+    "timestamp_note": "O JSON de origem não declara offset; -03:00 é a normalização de exibição do contrato America/Sao_Paulo e precisa ser reconfirmada antes de qualquer uso operacional.",
+    "round_base_level_cm": 222,
+    "observed_level_cm": 276,
+    "observed_at": "2026-08-28T20:45:00-03:00",
+    "consulted_at": "2026-08-28T21:33:15-03:00",
+    "observed_age_at_consult_min": 48,
+    "bankfull_cm": 400,
+    "selection_rule": "Comparar a rodada atual; não promover automaticamente o menor MAE para uso operacional.",
+    "freshness_policy": {"missing": "unknown", "outside_validity": "stale", "max_observation_age_min": 60, "interpolation": false, "nearest_neighbor": false, "timezone": "America/Sao_Paulo"},
+    "horizons": [
+      {"id": "8h_v001", "model": "STZ_H8_ALT_V001_31IN_63NH", "forecast_cm": 284, "publication": "experimental", "shadow": false, "status": "attention"},
+      {"id": "8h_v002", "model": "STZ_H8_ALT_V002_28IN_57NH", "forecast_cm": 320, "publication": "sombra_experimental", "shadow": true, "status": "attention"}
+    ],
+    "status": "snapshot_only",
+    "note": "A página é autônoma e não atualiza este valor sozinha. O horizonte de 8h é experimental/sombra e não é alerta oficial."
+  },
+  "spatial": {
+    "source": "assets/data/rota_fuga_santa_tereza_cenario.json",
+    "generated_at": "2026-08-04 04:29",
+    "generated_at_iso": "2026-08-04T04:29:00-03:00",
+    "timezone": "America/Sao_Paulo",
+    "level_cm": 424,
+    "zero_gauge_m": 4.0,
+    "grid_m": 30,
+    "cell_count": 258,
+    "crs": "unknown",
+    "coverage_status": "preliminary",
+    "route_status": "synthetic_unvalidated",
+    "safe_point_confirmed": false,
+    "summary": {"alagada": 64, "critica": 42, "apertada": 14, "atencao": 30, "confortavel": 108},
+    "note": "A grade usa linha reta e hipótese de subida; não contém rede viária, declividade, pontes, bloqueios ou acessibilidade."
+  },
+  "zones": [
+    {"id": "Z-01", "label": "Eixo oeste", "latitude": -29.163351, "longitude": -51.740608, "arrival_min": 54, "hand_m": 0.6, "flood_cota_m": 4.6, "population": 159, "homes": 71, "people_status": "aggregate_estimate", "route_status": "synthetic_unvalidated"},
+    {"id": "Z-02", "label": "Baixa central", "latitude": -29.167394, "longitude": -51.738448, "arrival_min": 0, "hand_m": 0.1, "flood_cota_m": 4.1, "population": 387, "homes": 167, "people_status": "aggregate_estimate", "route_status": "synthetic_unvalidated"},
+    {"id": "Z-03", "label": "Corredor sul", "latitude": -29.182216, "longitude": -51.73382, "arrival_min": 69, "hand_m": 0.7, "flood_cota_m": 4.7, "population": 67, "homes": 30, "people_status": "aggregate_estimate", "route_status": "synthetic_unvalidated"},
+    {"id": "Z-04", "label": "Eixo alto", "latitude": -29.167124, "longitude": -51.736288, "arrival_min": 249, "hand_m": 1.9, "flood_cota_m": 5.9, "population": 413, "homes": 180, "people_status": "aggregate_estimate", "route_status": "synthetic_unvalidated"}
+  ],
+  "people": {
+    "source": "Grade Estatística IBGE 2022 · células de 200 m",
+    "method": "agregação territorial em raio de 900 m",
+    "status": "estimate_not_operational",
+    "privacy": "Sem nomes, endereços ou cadastro individual; zonas podem se sobrepor e não devem ser somadas.",
+    "municipal_context": {"municipality": "Santa Tereza", "code": "4317251", "population": 1505, "older": 553, "pcd": 128}
+  },
+  "shelter": {
+    "source": "assets/data/servicos/abrigos.geojson",
+    "id": "santa_tereza_ginasio_esportes",
+    "name": "Ginásio de Esportes",
+    "latitude": -29.168793,
+    "longitude": -51.7327164,
+    "capacity": null,
+    "occupancy": null,
+    "accessible": null,
+    "status": "unknown",
+    "safe_point_confirmed": false,
+    "note": "Ponto cadastrado/adotado como referência; capacidade, abertura, acessibilidade e destino alternativo precisam ser confirmados no exercício."
+  },
+  "participants": [
+    {"role": "Defesa Civil", "responsibility": "comando, priorização, registro e comunicação"},
+    {"role": "Bombeiros / resgate", "responsibility": "reconhecimento, acesso e apoio técnico"},
+    {"role": "Saúde / assistência", "responsibility": "necessidades específicas, medicação e acolhimento"},
+    {"role": "Município / logística", "responsibility": "transporte, abrigo, iluminação e recursos"},
+    {"role": "Comunidade / liderança local", "responsibility": "confirmação de acesso, compreensão e pessoas não localizadas"}
+  ],
+  "validation_checklist": [
+    {"id": "forecast", "label": "Fonte, horário, fuso, validade e qualidade do sinal", "status": "unknown"},
+    {"id": "spatial", "label": "Cota, datum/CRS, mancha e limite de cobertura", "status": "unknown"},
+    {"id": "routes", "label": "Rua, ponte, bloqueio, declividade e acessibilidade", "status": "unknown"},
+    {"id": "shelter", "label": "Abertura, capacidade, ocupação, acessibilidade e alternativa", "status": "unknown"},
+    {"id": "people", "label": "Cobertura comunitária e necessidades sem expor dados pessoais", "status": "unknown"},
+    {"id": "comms", "label": "Mensagem, canal, confirmação de recebimento e alternativa", "status": "unknown"},
+    {"id": "resources", "label": "Equipe, veículo, ETA, iluminação e combustível", "status": "unknown"}
+  ],
+  "exercise_metrics": [
+    {"id": "time_to_first_decision_min", "label": "Tempo até primeira decisão", "unit": "min", "value": null, "status": "not_collected", "definition": "minutos entre T+00:00 e o primeiro registro de decisão"},
+    {"id": "time_to_route_confirmation_min", "label": "Tempo até confirmar rota", "unit": "min", "value": null, "status": "not_collected", "definition": "minutos até responsável e evidência da rota estarem registrados"},
+    {"id": "unlocated_count", "label": "Pessoas não localizadas", "unit": "people", "value": null, "status": "not_collected", "definition": "contagem confirmada na zona selecionada; vazio não significa zero"},
+    {"id": "shelter_capacity_gap", "label": "Lacuna de capacidade", "unit": "people", "value": null, "status": "unknown", "definition": "população estimada menos vagas confirmadas; indisponível sem capacidade e ocupação válidas"},
+    {"id": "message_comprehension", "label": "Compreensão da mensagem", "unit": "category", "value": null, "status": "not_collected", "definition": "observação do exercício; não inferir compreensão a partir de envio"},
+    {"id": "critical_failures", "label": "Falhas críticas", "unit": "count", "value": null, "status": "not_collected", "definition": "falhas que impediriam a ação segura ou exigiriam parar o exercício"},
+    {"id": "communication_ready", "label": "Comunicação pronta", "unit": "category", "value": null, "status": "not_collected", "definition": "canal, responsável e confirmação marcados para a zona selecionada"},
+    {"id": "resource_task_ready", "label": "Tarefa de recurso pronta", "unit": "category", "value": null, "status": "not_collected", "definition": "equipe, veículo, canal, ETA e recebimento simulado"},
+    {"id": "contingency_result", "label": "Resultado da contingência", "unit": "category", "value": null, "status": "not_collected", "definition": "registrar aplicação e resultado observado; aplicar não significa resolver"}
+  ],
+  "contingencies": [
+    {"id": "route", "label": "rota principal fechada", "stop": "não orientar pela linha; confirmar alternativa"},
+    {"id": "shelter", "label": "abrigo lotado", "stop": "não indicar o destino; confirmar transbordo e transporte"},
+    {"id": "comms", "label": "sem comunicação", "stop": "mudar para canal alternativo e registrar sincronização"},
+    {"id": "night", "label": "noite / baixa visibilidade", "stop": "confirmar iluminação, equipe e travessias"}
+  ],
+  "state_vocabulary": {
+    "confirmed": "confirmado por responsável e evidência registrada",
+    "pending": "a confirmar antes da decisão",
+    "unknown": "não há dado suficiente; não tratar como zero ou seguro",
+    "stale": "dado fora da validade acordada; bloquear até atualizar",
+    "blocked": "não pode orientar, despachar ou publicar",
+    "synthetic": "gerado para ensaio; não representa rede viária ou capacidade real",
+    "exercise_only": "ação local da página; sem efeito externo"
+  },
+  "stop_criteria": [
+    "Parar se a fonte, horário ou validade do sinal não puderem ser confirmados.",
+    "Parar se rota, ponte, abrigo ou capacidade permanecerem unknown/stale.",
+    "Parar se alguém interpretar a linha sintética como instrução de rua.",
+    "Parar se a contagem comunitária exigir exposição de dados pessoais.",
+    "Parar o exercício e registrar a falha; não compensar lacunas com interpolação ou vizinho.",
+    "Não promover este protótipo para alerta, despacho, navegação ou alocação real."
+  ],
+  "known_gaps": [
+    "CRS/datum e alinhamento territorial não reconciliados.",
+    "Rede viária, pontes, declividade, bloqueios e tempos por perfil não validados.",
+    "Capacidade, ocupação, acessibilidade e segundo abrigo não publicados.",
+    "Cobertura comunitária e necessidades ainda não observadas no exercício.",
+    "Disponibilidade real de equipes, veículos, combustível e comunicação não integrada."
+  ],
+  "sources": [
+    {"path": "previsao_ao_vivo.json", "role": "snapshot do sinal da RNA e contrato temporal", "status": "available_snapshot"},
+    {"path": "assets/data/rota_fuga_santa_tereza_cenario.json", "role": "grade espacial e hipótese de cenário", "status": "available_preliminary"},
+    {"path": "assets/data/servicos/abrigos.geojson", "role": "ponto cadastrado de referência", "status": "available_partial"},
+    {"path": "pesquisas/estudo-caso-resposta-santa-tereza.html", "role": "interface do exercício e registro local", "status": "this_artifact"}
+  ]
+}
