@@ -1,0 +1,931 @@
+{
+  "schema_version": 1,
+  "feed_type": "basin_overflow_research_context",
+  "generated_at_utc": "2026-08-30T11:33:04Z",
+  "research_only": true,
+  "official_alert": false,
+  "status": "research_screening_with_explicit_data_gates",
+  "basin": {
+    "name": "Taquari–Antas",
+    "station_scope": [
+      "Santa Tereza",
+      "Muçum"
+    ],
+    "boundary": {
+      "source": "assets/data/vulnerabilidade/bacia.geojson",
+      "sha256": "5f643583f824309612c605a3af46d03e8644e16616028042dd66e23ad5e796a7",
+      "geometry_type": "Polygon",
+      "feature_count": 1,
+      "bbox": {
+        "west": -52.637388438,
+        "south": -29.947659247183296,
+        "east": -49.920255844,
+        "north": -28.177658488214043
+      },
+      "status": "boundary_reference_only"
+    },
+    "mdt": {
+      "assets": [
+        {
+          "path": "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m.json",
+          "sha256": "6c9ae8327b7933545957309421bf6e2358b8657ddc7d1ce91a6fe0fb956538e0"
+        },
+        {
+          "path": "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m.png",
+          "sha256": "2e504007f5f06892cc49f0c416833173ad1abaa2a712ad16b49b615922789778"
+        },
+        {
+          "path": "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_anadem_30m.tif",
+          "sha256": "d6cea21d5e51ea5624f5a2695291de6528c5613677d08a01be7bfb425dcabdfc"
+        },
+        {
+          "path": "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_drone_1m.tif",
+          "sha256": "72769fbe29b69e6b752f51cd13f83b5ee15149fe205629fd916218bdc309cb44"
+        },
+        {
+          "path": "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_drone_1m_ortho.tif",
+          "sha256": "5d8864819d2ed2f020c1af88262e4b9e8de8161859c1194211c507a6a32c3a56"
+        },
+        {
+          "path": "assets/data/mucum_inundacao/mdt/altitude_terreno_10m.json",
+          "sha256": "505f5b360c5a1c94bfe9414e5037f966f38b048b73167a69a53bbc97ffdc3682"
+        }
+      ],
+      "status": "terrain_reference_available",
+      "flow_accumulation_available": false,
+      "complete_regional_dem_published": false,
+      "note": "Os MDTs publicados são referências locais; ainda não há rede hidrográfica, outlet e acumulação de fluxo validados para a bacia inteira."
+    },
+    "hydrologic_delineation": {
+      "status": "not_validated",
+      "headwater_polygons": null,
+      "outlet": null,
+      "flow_accumulation": null,
+      "reason": "A geometria disponível é o limite de referência da bacia, não uma delimitação derivada de fluxo com ponto de saída validado."
+    },
+    "upstream_gauges": {
+      "status": "inventory_from_level_model_contract",
+      "stations": [
+        {
+          "station_code": "86510000",
+          "name": "Mucum",
+          "river": "Rio Taquari",
+          "role": "estacao alvo (previsao de nivel)",
+          "lag_hours_declared": null,
+          "coordinates": {
+            "latitude": -29.1672,
+            "longitude": -51.8686
+          },
+          "telemetry": true,
+          "current_level_cm": null,
+          "last_observation": null,
+          "quality": null
+        },
+        {
+          "station_code": "86472600",
+          "name": "Santa Tereza",
+          "river": "Rio Taquari",
+          "role": "estacao montante confirmada, lag ~16h",
+          "lag_hours_declared": 16.0,
+          "coordinates": null,
+          "telemetry": true,
+          "current_level_cm": 431.0,
+          "last_observation": "2026-08-30T07:45",
+          "quality": "NORMAL"
+        },
+        {
+          "station_code": "86472000",
+          "name": "Linha Jose Julio",
+          "river": "Rio das Antas",
+          "role": "estacao auxiliar montante (usada em modelos 4h/8h/12h)",
+          "lag_hours_declared": null,
+          "coordinates": null,
+          "telemetry": true,
+          "current_level_cm": 560.0,
+          "last_observation": "2026-08-30T07:30",
+          "quality": "NORMAL"
+        },
+        {
+          "station_code": "86507000",
+          "name": "PCH Cotipora Jusante",
+          "river": "Rio Carreiro",
+          "role": "estacao auxiliar montante (usada em modelos 4h/8h/12h)",
+          "lag_hours_declared": null,
+          "coordinates": null,
+          "telemetry": true,
+          "current_level_cm": 1080.0,
+          "last_observation": "2026-08-30T07:00",
+          "quality": "NORMAL"
+        },
+        {
+          "station_code": "86125130",
+          "name": "PCH Morro Grande Jusante 2",
+          "river": "Rio Ituim",
+          "role": "estacao auxiliar montante (usada em modelos 4h/8h/12h)",
+          "lag_hours_declared": null,
+          "coordinates": null,
+          "telemetry": true,
+          "current_level_cm": 105.0,
+          "last_observation": "2026-08-30T07:00",
+          "quality": "NORMAL"
+        },
+        {
+          "station_code": "86298000",
+          "name": "UHE Castro Alves RS-122",
+          "river": "Rio das Antas",
+          "role": "estacao auxiliar montante (usada em modelos 4h/8h)",
+          "lag_hours_declared": null,
+          "coordinates": null,
+          "telemetry": true,
+          "current_level_cm": 210.0,
+          "last_observation": "2026-08-30T07:00",
+          "quality": "NORMAL"
+        },
+        {
+          "station_code": "86125500",
+          "name": "PCH Jararaca Barramento",
+          "river": "Rio Prata",
+          "role": "estacao auxiliar montante (usada no modelo 12h ALT)",
+          "lag_hours_declared": null,
+          "coordinates": null,
+          "telemetry": true,
+          "current_level_cm": 24850.0,
+          "last_observation": "2026-08-30T07:00",
+          "quality": "NORMAL"
+        },
+        {
+          "station_code": "86448000",
+          "name": "UHE Monte Claro Barramento",
+          "river": "Rio das Antas",
+          "role": "estacao auxiliar montante (usada no modelo 12h ALT)",
+          "lag_hours_declared": null,
+          "coordinates": null,
+          "telemetry": true,
+          "current_level_cm": 14909.0,
+          "last_observation": "2026-08-30T07:00",
+          "quality": "NORMAL"
+        }
+      ],
+      "source": "assets/data/mucum_modelo_inputs.json",
+      "note": "Inventário de estações de nível/âncoras; não é uma máscara de cabeceiras nem uma chuva média da bacia."
+    }
+  },
+  "stations": {
+    "santa_tereza": {
+      "station_code": "86472600",
+      "station_name": "Santa Tereza",
+      "coordinates": {
+        "latitude": -29.1781,
+        "longitude": -51.7322
+      },
+      "threshold_cm": 1500,
+      "current": {
+        "level_cm": 431.0,
+        "observed_at_utc": "2026-08-30T10:45:00Z",
+        "age_hours": 0.8,
+        "state": "fresh",
+        "source": "ANA/SGB · estação 86472600",
+        "change_24h_cm": 4.0,
+        "rain_observed_24h_mm": 0.0,
+        "rain_observed_72h_mm": 0.0
+      },
+      "short_forecasts": [
+        {
+          "hours": 2,
+          "model": "009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21",
+          "version": "A / OPERA2",
+          "issued_at_utc": "2026-08-30T10:00:00Z",
+          "target_at_utc": "2026-08-30T12:00:00Z",
+          "level_now_cm": 431.0,
+          "level_forecast_cm": 435.0,
+          "inputs_total": 15,
+          "inputs_missing": 0,
+          "input_contract": "hourly_exact_v1",
+          "audit": {
+            "n_total": 104,
+            "n_conferidas": 102,
+            "mae_24h_cm": 5.6,
+            "mae_ultimas_6_cm": 3.7
+          }
+        },
+        {
+          "hours": 4,
+          "model": "4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000",
+          "version": "PRO",
+          "issued_at_utc": "2026-08-30T10:00:00Z",
+          "target_at_utc": "2026-08-30T14:00:00Z",
+          "level_now_cm": 431.0,
+          "level_forecast_cm": 437.0,
+          "inputs_total": 26,
+          "inputs_missing": 0,
+          "input_contract": "hourly_exact_v1",
+          "audit": {
+            "n_total": 97,
+            "n_conferidas": 93,
+            "mae_24h_cm": 17.8,
+            "mae_ultimas_6_cm": 10.5
+          }
+        }
+      ],
+      "forecast": {
+        "generated_at_utc": "2026-08-27T12:31:36Z",
+        "age_hours": 71.02,
+        "state": "stale",
+        "provider": "ECMWF Open Data / IFS",
+        "model": "ECMWF IFS 0.25° · rodada 2026-08-27 00Z",
+        "run_time_utc": "2026-08-27T00:00:00Z",
+        "source_url": "https://data.ecmwf.int/forecasts/"
+      },
+      "horizons": [
+        {
+          "hours": 24,
+          "rain": {
+            "point_mm": 2.37,
+            "basin_mean_mm": 4.14,
+            "basin_max_mm": 4.58,
+            "headwater": {
+              "mean_mm": 4.14,
+              "max_mm": 4.58,
+              "status": "proxy_spatial_recut",
+              "source": "ECMWF IFS representative cells",
+              "independent_for_station": true
+            },
+            "method": "média e máximo de uma célula IFS representativa por célula única"
+          },
+          "soil": {
+            "model_m3m3": null,
+            "status": "unavailable_local_measurement",
+            "local_observation": false
+          },
+          "risk": {
+            "probability_percent": 3.2881,
+            "decision": "NAO_VAI",
+            "source": "NOAA NODD / GEFS",
+            "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
+            "age_hours": 71.05,
+            "state": "stale",
+            "calibration_status": "calibrated_for_declared_source",
+            "usable_as_current_probability": false,
+            "research_only": true,
+            "official_alert": false,
+            "binary_threshold_percent": 50.0,
+            "binary_source_decision": "NAO_VAI"
+          },
+          "coverage_hours": 24,
+          "coverage_expected_hours": 24,
+          "forecast_complete": true
+        },
+        {
+          "hours": 48,
+          "rain": {
+            "point_mm": 37.1,
+            "basin_mean_mm": 32.83,
+            "basin_max_mm": 43.92,
+            "headwater": {
+              "mean_mm": 32.83,
+              "max_mm": 43.92,
+              "status": "proxy_spatial_recut",
+              "source": "ECMWF IFS representative cells",
+              "independent_for_station": true
+            },
+            "method": "média e máximo de uma célula IFS representativa por célula única"
+          },
+          "soil": {
+            "model_m3m3": null,
+            "status": "unavailable_local_measurement",
+            "local_observation": false
+          },
+          "risk": {
+            "probability_percent": 18.0375,
+            "decision": "NAO_VAI",
+            "source": "NOAA NODD / GEFS",
+            "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
+            "age_hours": 71.05,
+            "state": "stale",
+            "calibration_status": "calibrated_for_declared_source",
+            "usable_as_current_probability": false,
+            "research_only": true,
+            "official_alert": false,
+            "binary_threshold_percent": 50.0,
+            "binary_source_decision": "NAO_VAI"
+          },
+          "coverage_hours": 48,
+          "coverage_expected_hours": 48,
+          "forecast_complete": true
+        },
+        {
+          "hours": 72,
+          "rain": {
+            "point_mm": 53.59,
+            "basin_mean_mm": 78.56,
+            "basin_max_mm": 91.11,
+            "headwater": {
+              "mean_mm": 78.56,
+              "max_mm": 91.11,
+              "status": "proxy_spatial_recut",
+              "source": "ECMWF IFS representative cells",
+              "independent_for_station": true
+            },
+            "method": "média e máximo de uma célula IFS representativa por célula única"
+          },
+          "soil": {
+            "model_m3m3": null,
+            "status": "unavailable_local_measurement",
+            "local_observation": false
+          },
+          "risk": {
+            "probability_percent": 32.9834,
+            "decision": "NAO_VAI",
+            "source": "NOAA NODD / GEFS",
+            "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
+            "age_hours": 71.05,
+            "state": "stale",
+            "calibration_status": "calibrated_for_declared_source",
+            "usable_as_current_probability": false,
+            "research_only": true,
+            "official_alert": false,
+            "binary_threshold_percent": 50.0,
+            "binary_source_decision": "NAO_VAI"
+          },
+          "coverage_hours": 72,
+          "coverage_expected_hours": 72,
+          "forecast_complete": true
+        },
+        {
+          "hours": 120,
+          "rain": {
+            "point_mm": 100.39,
+            "basin_mean_mm": 188.54,
+            "basin_max_mm": 206.51,
+            "headwater": {
+              "mean_mm": 188.54,
+              "max_mm": 206.51,
+              "status": "proxy_spatial_recut",
+              "source": "ECMWF IFS representative cells",
+              "independent_for_station": true
+            },
+            "method": "média e máximo de uma célula IFS representativa por célula única"
+          },
+          "soil": {
+            "model_m3m3": null,
+            "status": "unavailable_local_measurement",
+            "local_observation": false
+          },
+          "risk": {
+            "probability_percent": 47.7028,
+            "decision": "NAO_VAI",
+            "source": "NOAA NODD / GEFS",
+            "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
+            "age_hours": 71.05,
+            "state": "stale",
+            "calibration_status": "calibrated_for_declared_source",
+            "usable_as_current_probability": false,
+            "research_only": true,
+            "official_alert": false,
+            "binary_threshold_percent": 50.0,
+            "binary_source_decision": "NAO_VAI"
+          },
+          "coverage_hours": 120,
+          "coverage_expected_hours": 120,
+          "forecast_complete": true
+        },
+        {
+          "hours": 168,
+          "rain": {
+            "point_mm": 104.39,
+            "basin_mean_mm": 191.86,
+            "basin_max_mm": 210.37,
+            "headwater": {
+              "mean_mm": 191.86,
+              "max_mm": 210.37,
+              "status": "proxy_spatial_recut",
+              "source": "ECMWF IFS representative cells",
+              "independent_for_station": true
+            },
+            "method": "média e máximo de uma célula IFS representativa por célula única"
+          },
+          "soil": {
+            "model_m3m3": null,
+            "status": "unavailable_local_measurement",
+            "local_observation": false
+          },
+          "risk": {
+            "probability_percent": 61.31490000000001,
+            "decision": "VAI",
+            "source": "NOAA NODD / GEFS",
+            "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
+            "age_hours": 71.05,
+            "state": "stale",
+            "calibration_status": "calibrated_for_declared_source",
+            "usable_as_current_probability": false,
+            "research_only": true,
+            "official_alert": false,
+            "binary_threshold_percent": 50.0,
+            "binary_source_decision": "VAI"
+          },
+          "coverage_hours": 168,
+          "coverage_expected_hours": 168,
+          "forecast_complete": true
+        }
+      ],
+      "events": {
+        "candidate_events": 4,
+        "model_card_events": 5,
+        "confirmed_or_above_threshold_records": 4,
+        "negative_control_events": null,
+        "threshold_cm": 1500,
+        "label_definition": "pico observado acima da cota de pesquisa; Muçum ainda contém candidatos pendentes de revisão ANA/SACE",
+        "training_mode": "shadow_only",
+        "evaluation": {
+          "model_verdict": "SINAL_PARCIAL_REQUER_VALIDACAO",
+          "metric": "sensibilidade de detecção de eventos positivos",
+          "by_horizon": [
+            {
+              "hours": 24,
+              "held_out_events": 5,
+              "detected_at_score_0_5": null,
+              "sensitivity": 0.75,
+              "sensitivity_percent": 75.0,
+              "result": "PARCIAL",
+              "evaluation_threshold": "score >= 25%",
+              "false_control_rate_percent": 0.0
+            },
+            {
+              "hours": 48,
+              "held_out_events": 5,
+              "detected_at_score_0_5": null,
+              "sensitivity": 0.5,
+              "sensitivity_percent": 50.0,
+              "result": "PARCIAL",
+              "evaluation_threshold": "score >= 25%",
+              "false_control_rate_percent": 0.0
+            },
+            {
+              "hours": 72,
+              "held_out_events": 5,
+              "detected_at_score_0_5": null,
+              "sensitivity": 0.75,
+              "sensitivity_percent": 75.0,
+              "result": "PARCIAL",
+              "evaluation_threshold": "score >= 25%",
+              "false_control_rate_percent": 0.0
+            },
+            {
+              "hours": 120,
+              "held_out_events": 5,
+              "detected_at_score_0_5": null,
+              "sensitivity": 0.75,
+              "sensitivity_percent": 75.0,
+              "result": "PARCIAL",
+              "evaluation_threshold": "score >= 25%",
+              "false_control_rate_percent": 0.0
+            },
+            {
+              "hours": 168,
+              "held_out_events": 5,
+              "detected_at_score_0_5": null,
+              "sensitivity": 0.8,
+              "sensitivity_percent": 80.0,
+              "result": "FORTE",
+              "evaluation_threshold": "score >= 25%",
+              "false_control_rate_percent": 0.0
+            }
+          ],
+          "false_positive_metrics": "taxa de falso controle no model card (limiar de 25%): 0.0%, 0.0%, 0.0%, 0.0%, 0.0%"
+        },
+        "note": "N pequeno e ausência de negativos independentes impedem calibração operacional; o resultado serve para comparação retrospectiva."
+      },
+      "quality": {
+        "status": "DEGRADED",
+        "flags": [
+          "forecast_stale_or_unknown",
+          "representative_cells_not_hydrologic_mask",
+          "no_local_soil_sensor"
+        ],
+        "source_hashes": {
+          "weather": "2d5254b032cb1de544df0fe19b3659f04c75507c5bbf400be34fc14d74fa5de2",
+          "pattern": "de00bc4fad6d2332f34f7a38115d2e9d65d405088cb14a8d93281854deb7c836",
+          "probability": "a1aeaeaa39c3ed5802ee925595dfc982efb50ff1c74f4b2a1bc91f37f192bb18",
+          "binary": "022f4effd6cfbe0b1980d081e20f4db191d71cc6ef7b8d26cd534e106485e50c",
+          "live": "2cef9b612a976dca07dd6f4f191407e8ab22bb3ae7509ef1b8509b6b584b0dce"
+        }
+      },
+      "sources": {
+        "weather": "assets/data/research_weather_santa_tereza_latest.json",
+        "pattern": "assets/data/research_visual_patterns_santa_tereza_latest.json",
+        "probability": "assets/data/research_probability_santa_tereza_latest.json",
+        "binary": "assets/data/research_binary_decision_santa_tereza_latest.json",
+        "live": "previsao_ao_vivo.json"
+      }
+    },
+    "mucum": {
+      "station_code": "86510000",
+      "station_name": "Muçum",
+      "coordinates": {
+        "latitude": -29.1672,
+        "longitude": -51.8686
+      },
+      "threshold_cm": 1800,
+      "current": {
+        "level_cm": 459.0,
+        "observed_at_utc": "2026-08-30T11:15:00Z",
+        "age_hours": 0.3,
+        "state": "fresh",
+        "source": "ANA/SGB · estação 86510000",
+        "change_24h_cm": null,
+        "rain_observed_24h_mm": null,
+        "rain_observed_72h_mm": null
+      },
+      "short_forecasts": [
+        {
+          "hours": 2,
+          "model": "MUC_H2_ALT_V001_14IN_29NH_20260827",
+          "version": "V001",
+          "issued_at_utc": "2026-08-30T10:00:00Z",
+          "target_at_utc": "2026-08-30T12:00:00Z",
+          "level_now_cm": 459.0,
+          "level_forecast_cm": 455.0,
+          "inputs_total": 14,
+          "inputs_missing": 0,
+          "input_contract": "hourly_exact_v1",
+          "audit": {
+            "n_total": 64,
+            "n_conferidas": 63,
+            "mae_24h_cm": 9.5,
+            "mae_ultimas_6_cm": 13.7
+          }
+        },
+        {
+          "hours": 4,
+          "model": "020_alt_MUC_H04_V30_LJJ_CA_CHUVA_AUDITADO_SEM32_R05_T33_V18-20-21",
+          "version": "q59_rank1",
+          "issued_at_utc": "2026-08-30T10:00:00Z",
+          "target_at_utc": "2026-08-30T14:00:00Z",
+          "level_now_cm": 459.0,
+          "level_forecast_cm": 460.0,
+          "inputs_total": 30,
+          "inputs_missing": 0,
+          "input_contract": "hourly_exact_v1",
+          "audit": {
+            "n_total": 30,
+            "n_conferidas": 27,
+            "mae_24h_cm": 39.1,
+            "mae_ultimas_6_cm": 37.2
+          }
+        }
+      ],
+      "forecast": {
+        "generated_at_utc": "2026-08-30T06:41:39Z",
+        "age_hours": 4.86,
+        "state": "current_window",
+        "provider": "ECMWF IFS via Open-Meteo",
+        "model": "ECMWF IFS 0.25° (ecmwf_ifs025)",
+        "run_time_utc": null,
+        "source_url": "https://api.open-meteo.com/v1/forecast?latitude=-29.1672&longitude=-51.8686&models=ecmwf_ifs025&hourly=precipitation%2Csoil_moisture_0_to_7cm%2Ctemperature_2m&forecast_days=7&timezone=UTC"
+      },
+      "horizons": [
+        {
+          "hours": 24,
+          "rain": {
+            "point_mm": 9.03,
+            "ifs_direct_mm": 9.03,
+            "ifs_openmeteo_mm": 6.3,
+            "ifs_proxy_mm": 41.24,
+            "gefs_proxy_mm": 19.3,
+            "headwater": {
+              "mean_mm": 4.14,
+              "max_mm": 4.58,
+              "status": "shared_santa_reference",
+              "source": "Santa Tereza IFS spatial recut; not an independent Muçum catchment",
+              "independent_for_station": false
+            },
+            "method": "ponto Muçum + referência espacial Santa Tereza; sem máscara independente"
+          },
+          "soil": {
+            "model_m3m3": 0.498,
+            "status": "modeled_proxy",
+            "local_observation": false
+          },
+          "risk": {
+            "probability_percent": 0.02,
+            "decision": "NAO_VAI",
+            "source": "NOAA GEFS/NODD same-cell spatial proxy",
+            "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
+            "age_hours": 117.02,
+            "state": "stale",
+            "calibration_status": "experimental_uncalibrated",
+            "usable_as_current_probability": false,
+            "research_only": true,
+            "official_alert": false,
+            "binary_threshold_percent": 50.0,
+            "binary_source_decision": "NAO_VAI"
+          },
+          "coverage_hours": 24,
+          "coverage_expected_hours": 24,
+          "forecast_complete": true
+        },
+        {
+          "hours": 48,
+          "rain": {
+            "point_mm": 19.03,
+            "ifs_direct_mm": 19.03,
+            "ifs_openmeteo_mm": 15.0,
+            "ifs_proxy_mm": 60.02,
+            "gefs_proxy_mm": 26.5,
+            "headwater": {
+              "mean_mm": 32.83,
+              "max_mm": 43.92,
+              "status": "shared_santa_reference",
+              "source": "Santa Tereza IFS spatial recut; not an independent Muçum catchment",
+              "independent_for_station": false
+            },
+            "method": "ponto Muçum + referência espacial Santa Tereza; sem máscara independente"
+          },
+          "soil": {
+            "model_m3m3": 0.502,
+            "status": "modeled_proxy",
+            "local_observation": false
+          },
+          "risk": {
+            "probability_percent": 0.07,
+            "decision": "NAO_VAI",
+            "source": "NOAA GEFS/NODD same-cell spatial proxy",
+            "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
+            "age_hours": 117.02,
+            "state": "stale",
+            "calibration_status": "experimental_uncalibrated",
+            "usable_as_current_probability": false,
+            "research_only": true,
+            "official_alert": false,
+            "binary_threshold_percent": 50.0,
+            "binary_source_decision": "NAO_VAI"
+          },
+          "coverage_hours": 48,
+          "coverage_expected_hours": 48,
+          "forecast_complete": true
+        },
+        {
+          "hours": 72,
+          "rain": {
+            "point_mm": 37.74,
+            "ifs_direct_mm": 37.74,
+            "ifs_openmeteo_mm": 22.2,
+            "ifs_proxy_mm": 60.46,
+            "gefs_proxy_mm": 34.5,
+            "headwater": {
+              "mean_mm": 78.56,
+              "max_mm": 91.11,
+              "status": "shared_santa_reference",
+              "source": "Santa Tereza IFS spatial recut; not an independent Muçum catchment",
+              "independent_for_station": false
+            },
+            "method": "ponto Muçum + referência espacial Santa Tereza; sem máscara independente"
+          },
+          "soil": {
+            "model_m3m3": 0.504,
+            "status": "modeled_proxy",
+            "local_observation": false
+          },
+          "risk": {
+            "probability_percent": 0.27,
+            "decision": "NAO_VAI",
+            "source": "NOAA GEFS/NODD same-cell spatial proxy",
+            "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
+            "age_hours": 117.02,
+            "state": "stale",
+            "calibration_status": "experimental_uncalibrated",
+            "usable_as_current_probability": false,
+            "research_only": true,
+            "official_alert": false,
+            "binary_threshold_percent": 50.0,
+            "binary_source_decision": "NAO_VAI"
+          },
+          "coverage_hours": 72,
+          "coverage_expected_hours": 72,
+          "forecast_complete": true
+        },
+        {
+          "hours": 120,
+          "rain": {
+            "point_mm": 39.96,
+            "ifs_direct_mm": 39.96,
+            "ifs_openmeteo_mm": 22.2,
+            "ifs_proxy_mm": 66.93,
+            "gefs_proxy_mm": 45.6,
+            "headwater": {
+              "mean_mm": 188.54,
+              "max_mm": 206.51,
+              "status": "shared_santa_reference",
+              "source": "Santa Tereza IFS spatial recut; not an independent Muçum catchment",
+              "independent_for_station": false
+            },
+            "method": "ponto Muçum + referência espacial Santa Tereza; sem máscara independente"
+          },
+          "soil": {
+            "model_m3m3": 0.494,
+            "status": "modeled_proxy",
+            "local_observation": false
+          },
+          "risk": {
+            "probability_percent": 0.57,
+            "decision": "NAO_VAI",
+            "source": "NOAA GEFS/NODD same-cell spatial proxy",
+            "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
+            "age_hours": 117.02,
+            "state": "stale",
+            "calibration_status": "experimental_uncalibrated",
+            "usable_as_current_probability": false,
+            "research_only": true,
+            "official_alert": false,
+            "binary_threshold_percent": 50.0,
+            "binary_source_decision": "NAO_VAI"
+          },
+          "coverage_hours": 120,
+          "coverage_expected_hours": 120,
+          "forecast_complete": true
+        },
+        {
+          "hours": 168,
+          "rain": {
+            "point_mm": 47.24,
+            "ifs_direct_mm": 47.24,
+            "ifs_openmeteo_mm": 31.2,
+            "ifs_proxy_mm": 80.37,
+            "gefs_proxy_mm": 55.5,
+            "headwater": {
+              "mean_mm": 191.86,
+              "max_mm": 210.37,
+              "status": "shared_santa_reference",
+              "source": "Santa Tereza IFS spatial recut; not an independent Muçum catchment",
+              "independent_for_station": false
+            },
+            "method": "ponto Muçum + referência espacial Santa Tereza; sem máscara independente"
+          },
+          "soil": {
+            "model_m3m3": 0.492,
+            "status": "modeled_proxy",
+            "local_observation": false
+          },
+          "risk": {
+            "probability_percent": 1.22,
+            "decision": "NAO_VAI",
+            "source": "NOAA GEFS/NODD same-cell spatial proxy",
+            "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
+            "age_hours": 117.02,
+            "state": "stale",
+            "calibration_status": "experimental_uncalibrated",
+            "usable_as_current_probability": false,
+            "research_only": true,
+            "official_alert": false,
+            "binary_threshold_percent": 50.0,
+            "binary_source_decision": "NAO_VAI"
+          },
+          "coverage_hours": 164,
+          "coverage_expected_hours": 168,
+          "forecast_complete": false
+        }
+      ],
+      "events": {
+        "candidate_events": 4,
+        "model_card_events": null,
+        "confirmed_or_above_threshold_records": 1,
+        "negative_control_events": null,
+        "threshold_cm": 1800,
+        "label_definition": "pico observado acima da cota de pesquisa; Muçum ainda contém candidatos pendentes de revisão ANA/SACE",
+        "training_mode": "shadow_only",
+        "evaluation": {
+          "model_verdict": "NAO_FUNCIONA_DE_FORMA_CONFIAVEL",
+          "metric": "sensibilidade de detecção de eventos positivos",
+          "by_horizon": [
+            {
+              "hours": 24,
+              "held_out_events": 3,
+              "detected_at_score_0_5": 1,
+              "sensitivity": 0.3333333333333333,
+              "sensitivity_percent": 33.33333333333333,
+              "result": "FRACA"
+            },
+            {
+              "hours": 48,
+              "held_out_events": 3,
+              "detected_at_score_0_5": 1,
+              "sensitivity": 0.3333333333333333,
+              "sensitivity_percent": 33.33333333333333,
+              "result": "FRACA"
+            },
+            {
+              "hours": 72,
+              "held_out_events": 3,
+              "detected_at_score_0_5": 0,
+              "sensitivity": 0.0,
+              "sensitivity_percent": 0.0,
+              "result": "FRACA"
+            },
+            {
+              "hours": 120,
+              "held_out_events": 3,
+              "detected_at_score_0_5": 0,
+              "sensitivity": 0.0,
+              "sensitivity_percent": 0.0,
+              "result": "FRACA"
+            },
+            {
+              "hours": 168,
+              "held_out_events": 4,
+              "detected_at_score_0_5": 0,
+              "sensitivity": 0.0,
+              "sensitivity_percent": 0.0,
+              "result": "FRACA"
+            }
+          ],
+          "false_positive_metrics": "indisponíveis: a base publicada não traz negativos independentes por evento"
+        },
+        "note": "N pequeno e ausência de negativos independentes impedem calibração operacional; o resultado serve para comparação retrospectiva."
+      },
+      "quality": {
+        "status": "DEGRADED",
+        "flags": [
+          "partial_horizon",
+          "point_forecast",
+          "shared_headwater_reference",
+          "no_local_soil_sensor"
+        ],
+        "source_hashes": {
+          "weather": "e84bd78146449be9e035b03731ea557333043b4ab929db9bd43ba6445880fb9f",
+          "pattern": "695f72dfdcead52cfecdfd176fd8078a26c5283be7a09ebb99fdb9e5e25ffb7f",
+          "probability": "f2a303f09c20812fa3763b2b25f2edd27f890a9c25e0d09f8b6fb03a92a3f55a",
+          "binary": "aee87fa33dfcdff985aeb821549c92a80be402949a85a6902d902a97939e70fd",
+          "live": "2326b4b5e9e285484c97ff2fdd39bf209dc82912e9113b689e4989510328cebf"
+        }
+      },
+      "sources": {
+        "weather": "assets/data/research_weather_mucum_latest.json",
+        "pattern": "assets/data/research_visual_patterns_mucum_latest.json",
+        "probability": "assets/data/research_probability_mucum_latest.json",
+        "binary": "assets/data/research_binary_decision_mucum_latest.json",
+        "live": "previsao_ao_vivo_mucum.json"
+      }
+    }
+  },
+  "signals": {
+    "observed_level": "ANA/SGB or robot live level, with timestamp and age",
+    "forecast_rain": "ECMWF IFS point or representative-cell recut, always labelled",
+    "headwater_rain": "Santa Tereza spatial recut; Muçum currently uses a shared reference, not an independent catchment",
+    "soil_moisture": "modelled proxy only; no local saturation sensor in the published feed",
+    "propagation": "short forecasts are shown; basin travel-time field remains unvalidated per event",
+    "probability": "experimental score/probability by source and age; never an official alert"
+  },
+  "automation": {
+    "status": "configured_by_workflow",
+    "workflow": ".github/workflows/research-basin.yml",
+    "triggers": [
+      "manual",
+      "hourly schedule",
+      "completion of weather/level workflows"
+    ],
+    "steps": [
+      "join current artifacts",
+      "write compact feed",
+      "run schema/QA",
+      "publish only changed artifacts"
+    ]
+  },
+  "gates": [
+    {
+      "id": "hydrologic_mask",
+      "status": "pending",
+      "reason": "outlet, flow accumulation and headwater polygons need a validated regional DEM/network"
+    },
+    {
+      "id": "mucum_independent_headwater",
+      "status": "pending",
+      "reason": "current spatial rain is a shared Santa Tereza reference, not an independent Muçum catchment"
+    },
+    {
+      "id": "soil_observation",
+      "status": "pending",
+      "reason": "no local in-situ saturation series is published for either station"
+    },
+    {
+      "id": "radar_qpe",
+      "status": "pending",
+      "reason": "CEMADEN radar/QPE feed requires a successful public download or credentials"
+    },
+    {
+      "id": "travel_time",
+      "status": "research_partial",
+      "reason": "known model anchors are displayed, but event-level propagation still needs validation"
+    },
+    {
+      "id": "probability_calibration",
+      "status": "research_only",
+      "reason": "few positive events, missing independent negatives, source mismatch and stale probability runs"
+    }
+  ],
+  "limitations": [
+    "A chuva acumulada não equivale sozinha a transbordamento: localização, nível inicial, solo e propagação importam.",
+    "A classificação VAI/NÃO VAI é uma regra de pesquisa sobre a saída publicada; não é certeza nem alerta.",
+    "Sem rótulo temporal causal e negativos independentes, não se publica probabilidade operacional calibrada.",
+    "Os artefatos públicos podem ter idades diferentes; a idade e a fonte aparecem por estação e horizonte."
+  ]
+}

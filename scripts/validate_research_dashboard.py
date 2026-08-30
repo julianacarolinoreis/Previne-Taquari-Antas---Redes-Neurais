@@ -31,6 +31,7 @@ VISUALS = {
 }
 PAGES = (ROOT / "pesquisa_status.html", ROOT / "pesquisa_status_mucum.html")
 BASIN_PAGE = ROOT / "dashboard_bacia.html"
+BASIN_RESEARCH = ROOT / "assets" / "data" / "research_basin_screening_latest.json"
 BASIN_ASSETS = (
     ROOT / "assets" / "css" / "bacia_dashboard.css",
     ROOT / "assets" / "js" / "bacia_dashboard.js",
@@ -262,6 +263,9 @@ def check_basin_page(errors: list[dict]) -> dict:
         'data-horizon="168"',
         "probabilidade",
         "não é a mesma coisa que probabilidade de inundação",
+        "research-context-grid",
+        "research-context-gates",
+        "research_basin_screening_latest.json",
     )
     missing = [token for token in required if token not in text]
     if missing:
@@ -279,6 +283,55 @@ def check_basin_page(errors: list[dict]) -> dict:
     return result
 
 
+def check_basin_research(errors: list[dict]) -> dict:
+    """Validate the compact join used by the basin research section."""
+    feed = load_json(BASIN_RESEARCH, errors) or {}
+    result: dict[str, object] = {"file": BASIN_RESEARCH.name}
+    if not feed:
+        return result
+    if feed.get("research_only") is not True or feed.get("official_alert") is not False:
+        errors.append({"severity": "FAIL", "code": "basin_research_scope"})
+    if feed.get("feed_type") != "basin_overflow_research_context":
+        errors.append({"severity": "FAIL", "code": "basin_research_feed_type"})
+    basin = feed.get("basin") if isinstance(feed.get("basin"), dict) else {}
+    boundary = basin.get("boundary") if isinstance(basin.get("boundary"), dict) else {}
+    hydro = basin.get("hydrologic_delineation") if isinstance(basin.get("hydrologic_delineation"), dict) else {}
+    if boundary.get("status") != "boundary_reference_only":
+        errors.append({"severity": "FAIL", "code": "basin_boundary_status"})
+    if hydro.get("status") != "not_validated":
+        errors.append({"severity": "FAIL", "code": "basin_hydrology_overclaim"})
+    stations = feed.get("stations") if isinstance(feed.get("stations"), dict) else {}
+    required_locations = ("santa_tereza", "mucum")
+    for location in required_locations:
+        item = stations.get(location) if isinstance(stations, dict) else None
+        if not isinstance(item, dict):
+            errors.append({"severity": "FAIL", "code": "basin_research_station_missing", "location": location})
+            continue
+        rows = horizon_rows(item.get("horizons"))
+        if [hours for hours, _ in rows] != list(REQUIRED_HORIZONS):
+            errors.append({"severity": "FAIL", "code": "basin_research_horizons", "location": location, "detail": [hours for hours, _ in rows]})
+        if not isinstance(item.get("quality"), dict):
+            errors.append({"severity": "FAIL", "code": "basin_research_quality_missing", "location": location})
+    mucum_rows = horizon_rows((stations.get("mucum") or {}).get("horizons")) if isinstance(stations.get("mucum"), dict) else []
+    if mucum_rows:
+        for hours, row in mucum_rows:
+            headwater = ((row.get("rain") or {}).get("headwater") or {}) if isinstance(row, dict) else {}
+            if headwater.get("independent_for_station") is not False:
+                errors.append({"severity": "FAIL", "code": "mucum_headwater_independence_overclaim", "horizon": hours})
+    gates = feed.get("gates")
+    if not isinstance(gates, list) or not gates:
+        errors.append({"severity": "FAIL", "code": "basin_research_gates_missing"})
+    result.update({
+        "sha256": sha256(BASIN_RESEARCH) if BASIN_RESEARCH.exists() else None,
+        "generated_at_utc": feed.get("generated_at_utc"),
+        "stations": sorted(stations) if isinstance(stations, dict) else [],
+        "gate_count": len(gates) if isinstance(gates, list) else 0,
+        "boundary_status": boundary.get("status"),
+        "hydrologic_status": hydro.get("status"),
+    })
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", default=str(REPORT))
@@ -289,9 +342,10 @@ def main() -> int:
     visuals = check_visual_patterns(errors)
     pages = check_pages(errors)
     basin = check_basin_page(errors)
+    basin_research = check_basin_research(errors)
     status = "FAIL" if any(e["severity"] == "FAIL" for e in errors) else "DEGRADED" if errors else "PASS"
     reference = max((x.get("generated_at_utc") or "" for x in feeds.values()), default=None)
-    report = {"schema_version": 1, "status": status, "research_only": True, "checked_reference_utc": reference, "feeds": feeds, "binary_decisions": binaries, "visual_patterns": visuals, "pages": pages, "basin_dashboard": basin, "issues": errors, "publication_decision": status}
+    report = {"schema_version": 1, "status": status, "research_only": True, "checked_reference_utc": reference, "feeds": feeds, "binary_decisions": binaries, "visual_patterns": visuals, "pages": pages, "basin_dashboard": basin, "basin_research": basin_research, "issues": errors, "publication_decision": status}
     target = Path(args.report)
     if not target.is_absolute():
         target = ROOT / target

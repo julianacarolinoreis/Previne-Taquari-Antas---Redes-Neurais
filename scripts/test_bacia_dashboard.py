@@ -44,10 +44,14 @@ class BasinDashboardTests(unittest.TestCase):
     def test_public_semantics_are_explicit(self) -> None:
         self.assertIn("não é a mesma coisa que probabilidade de inundação", self.text)
         self.assertIn("sem alerta automático", self.text)
+        self.assertIn("research-context-grid", self.text)
+        self.assertIn("research-context-gates", self.text)
+        self.assertIn("research_basin_screening_latest.json", self.text)
         script = (ROOT / "assets/js/bacia_dashboard.js").read_text(encoding="utf-8")
         self.assertIn("Não há probabilidade conjunta publicada", script)
         self.assertIn("PROBABILIDADE · experimental", script)
         self.assertIn("PROXY · célula espacial", script)
+        self.assertIn("renderResearchContext", script)
 
     def test_headwater_context_is_wired_on_station_pages(self) -> None:
         for name in ("pesquisa_status.html", "pesquisa_status_mucum.html"):

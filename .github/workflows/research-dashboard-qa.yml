@@ -14,6 +14,9 @@ on:
       - 'assets/js/research_patterns_dashboard.js'
       - 'assets/css/pv_dashboard.css'
       - 'assets/data/research_*_latest.json'
+      - 'assets/data/research_basin_screening_latest.json'
+      - 'scripts/build_basin_research_feed.py'
+      - 'scripts/test_basin_research_feed.py'
       - 'scripts/build_binary_research_decision.py'
       - 'scripts/build_visual_research_patterns.py'
       - 'scripts/test_visual_research_patterns.py'
@@ -55,6 +58,12 @@ jobs:
       - name: Gera feeds compactos do painel visual
         run: python -B scripts/build_visual_research_patterns.py
 
+      - name: Gera contexto integrado da bacia
+        run: python -B scripts/build_basin_research_feed.py
+
+      - name: Testa contexto integrado da bacia
+        run: python -m unittest scripts/test_basin_research_feed.py -v
+
       - name: Testa feeds compactos do painel visual
         run: python -m unittest scripts/test_visual_research_patterns.py -v
 
@@ -73,7 +82,7 @@ jobs:
         run: |
           git config user.name 'previne-qa-bot'
           git config user.email 'previne-qa-bot@users.noreply.github.com'
-          git add -- assets/data/research_dashboard_validation_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json assets/data/research_visual_patterns_mucum_latest.json assets/data/research_visual_patterns_santa_tereza_latest.json
+          git add -- assets/data/research_dashboard_validation_latest.json assets/data/research_basin_screening_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json assets/data/research_visual_patterns_mucum_latest.json assets/data/research_visual_patterns_santa_tereza_latest.json
           if git diff --cached --quiet; then
             echo 'Nenhuma mudança no relatório de QA.'
             exit 0
@@ -95,5 +104,6 @@ jobs:
           name: research-dashboard-qa
           path: |
             assets/data/research_dashboard_validation_latest.json
+            assets/data/research_basin_screening_latest.json
             qa.txt
           retention-days: 14

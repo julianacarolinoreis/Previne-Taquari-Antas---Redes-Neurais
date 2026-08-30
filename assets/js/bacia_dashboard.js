@@ -9,7 +9,8 @@
   if (!root) return;
 
   const $ = (id) => document.getElementById(id);
-  const state = { station: 'basin', horizon: 72, feeds: {} };
+  const state = { station: 'basin', horizon: 72, feeds: {}, research: null };
+  const researchUrl = 'assets/data/research_basin_screening_latest.json';
   const stations = {
     santa: {
       key: 'santa', label: 'Santa Tereza', code: '86472600', threshold: 1500,
@@ -148,6 +149,65 @@
   function liveSourceText(snap) {
     const src = snap.live && snap.live.estacao ? snap.live.estacao : snap.obs && snap.obs.source ? snap.obs.source : `ANA/SGB ${snap.station.code}`;
     return src;
+  }
+
+  function researchStation(key) {
+    return state.research && state.research.stations && state.research.stations[key] || null;
+  }
+  function researchRow(key, hours) {
+    const station = researchStation(key);
+    const rows = Array.isArray(station && station.horizons) ? station.horizons : [];
+    return rows.find((row) => Number(row.hours) === Number(hours)) || null;
+  }
+  function researchStateLabel(value) {
+    if (value === 'fresh' || value === 'current_window') return 'atualizado';
+    if (value === 'stale') return 'atrasado';
+    if (value === 'pending') return 'pendente';
+    return 'sem estado';
+  }
+  function researchMetric(label, value, note, cls = '') {
+    return `<div class="research-metric ${cls}"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(note)}</small></div>`;
+  }
+  function renderResearchContext() {
+    const grid = $('research-context-grid'); const gates = $('research-context-gates'); const upstream = $('research-upstream'); const status = $('research-context-status');
+    if (!grid || !gates || !upstream || !status) return;
+    if (!state.research || !state.research.stations) {
+      status.textContent = 'Feed integrado indisponível';
+      grid.innerHTML = '<div class="empty-block">O contexto da pesquisa ainda não foi publicado.</div>';
+      gates.innerHTML = '';
+      upstream.innerHTML = '';
+      return;
+    }
+    const keys = state.station === 'basin' ? ['santa_tereza', 'mucum'] : [state.station === 'santa' ? 'santa_tereza' : state.station];
+    const labels = { santa_tereza: 'Santa Tereza', mucum: 'Muçum' };
+    const h = state.horizon;
+    grid.innerHTML = keys.map((key) => {
+      const item = researchStation(key) || {}; const row = researchRow(key, h) || {}; const rain = row.rain || {}; const head = rain.headwater || {}; const risk = row.risk || {}; const current = item.current || {};
+      const short = Array.isArray(item.short_forecasts) && item.short_forecasts.length ? item.short_forecasts.map((f) => `+${f.hours} h: ${fmt(f.level_forecast_cm, 0)} cm`).join(' · ') : 'previsão curta sem valor';
+      const headValue = head.mean_mm == null ? '—' : `${fmt(head.mean_mm, 1)} mm`;
+      const headNote = head.max_mm == null ? 'sem máximo publicado' : `máx. ${fmt(head.max_mm, 1)} mm · ${head.status === 'shared_santa_reference' ? 'referência Santa Tereza' : 'recorte IFS'}`;
+      const point = rain.point_mm != null ? `${fmt(rain.point_mm, 1)} mm` : rain.ifs_direct_mm != null ? `${fmt(rain.ifs_direct_mm, 1)} mm` : '—';
+      const prob = risk.probability_percent == null ? '—' : pct(risk.probability_percent);
+      const probNote = risk.probability_percent == null ? 'sem estimativa' : `${researchStateLabel(risk.state)} · cota ${fmt(item.threshold_cm, 0)} cm · ${risk.calibration_status}`;
+      const quality = item.quality || {};
+      return `<article class="research-context-card ${quality.status === 'DEGRADED' ? 'is-degraded' : ''}">
+        <div class="research-context-card-head"><div><span class="research-station-kicker">${esc(labels[key] || key)}</span><h3>${esc(item.station_code || 'estação')}</h3></div><span class="research-quality ${quality.status === 'DEGRADED' ? 'warn' : ''}">${esc(quality.status || 'SEM STATUS')}</span></div>
+        <div class="research-metrics">
+          ${researchMetric('Nível observado', current.level_cm == null ? '—' : `${fmt(current.level_cm, 0)} cm`, `${researchStateLabel(current.state)} · ${when(current.observed_at_utc)}`, 'observed')}
+          ${researchMetric('Cabeceiras / montante', headValue, headNote, head.status === 'shared_santa_reference' ? 'proxy' : 'forecast')}
+          ${researchMetric('Chuva no ponto', point, `acumulado previsto · +${h} h`, 'forecast')}
+          ${researchMetric('Cruzamento da cota', prob, probNote, 'risk')}
+        </div>
+        <p class="research-context-short"><strong>Robô ao vivo:</strong> ${esc(short)}.</p>
+        <p class="research-context-source"><strong>Fonte:</strong> ${esc(item.forecast && item.forecast.provider || 'não informada')} · feed ${esc(researchStateLabel(item.forecast && item.forecast.state))} (${esc(when(item.forecast && item.forecast.generated_at_utc))}).</p>
+        ${head.status === 'shared_santa_reference' ? '<p class="research-context-warning">Muçum ainda não tem recorte hidrológico independente; esta chuva de cabeceira é uma referência compartilhada, não uma previsão local da bacia.</p>' : ''}
+      </article>`;
+    }).join('');
+    const pending = Array.isArray(state.research.gates) ? state.research.gates.filter((gate) => gate.status !== 'complete') : [];
+    gates.innerHTML = `<div class="research-gates-head"><strong>Gates científicos da pesquisa</strong><span>${pending.length} itens ainda sem validação final</span></div><div class="research-gates-list">${pending.map((gate) => `<span class="research-gate ${gate.status === 'research_partial' ? 'partial' : ''}"><b>${esc(gate.id.replace(/_/g, ' '))}</b><small>${esc(gate.reason)}</small></span>`).join('')}</div>`;
+    const gauges = state.research.basin && state.research.basin.upstream_gauges && Array.isArray(state.research.basin.upstream_gauges.stations) ? state.research.basin.upstream_gauges.stations : [];
+    upstream.innerHTML = gauges.length ? `<div class="research-upstream-head"><strong>Âncoras observadas a montante</strong><span>não confundir com chuva da bacia</span></div><div class="research-upstream-list">${gauges.map((gauge) => `<span class="research-upstream-item"><b>${esc(gauge.name || gauge.station_code)}</b><small>${gauge.current_level_cm == null ? 'nível —' : `${fmt(gauge.current_level_cm, 0)} cm`} · ${esc(gauge.lag_hours_declared == null ? 'defasagem não declarada' : `lag declarado ${fmt(gauge.lag_hours_declared, 0)} h`)}</small></span>`).join('')}</div>` : '';
+    status.textContent = `Contexto gerado em ${when(state.research.generated_at_utc)} · pesquisa, sem alerta automático`;
   }
 
   function renderAnswer() {
@@ -325,7 +385,7 @@
     $('control-status').textContent = `${keys.map((key) => { const s = stationSnapshot(key, state.horizon); return `${stations[key].label}: feed ${ageLabel(s.forecastAge)} · observação ${ageLabel(s.observedAge)}`; }).join(' · ')} · horário em BRT`;
   }
   function render() {
-    renderAnswer(); renderKpis(); renderStationComparison(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
+    renderAnswer(); renderResearchContext(); renderKpis(); renderStationComparison(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
   }
 
   async function loadJson(url) {
@@ -341,6 +401,7 @@
       const [pattern, weather, live] = await Promise.all([loadJson(cfg.pattern), loadJson(cfg.weather), loadJson(cfg.live)]);
       state.feeds[key] = { pattern, weather, live };
     }));
+    state.research = await loadJson(researchUrl);
     const available = pairs.filter(([key]) => stationFeed(key).pattern || stationFeed(key).weather).length;
     $('control-status').textContent = available ? 'Feeds publicados carregados · escolha local e horizonte' : 'Feeds indisponíveis no momento · tente atualizar a página';
     render();
