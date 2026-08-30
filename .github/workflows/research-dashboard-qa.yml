@@ -92,7 +92,23 @@ jobs:
             if git pull --rebase --autostash origin main && git push origin HEAD:main; then
               exit 0
             fi
+            # Se um robô publicar durante a QA, o rebase pode deixar conflitos
+            # nos JSONs gerados. Refazemos a QA sobre a main remota, em vez de
+            # repetir um checkout conflitado.
             echo "push ocupado; tentando novamente (${attempt}/5)"
+            git rebase --abort || true
+            git fetch origin main
+            git reset --keep origin/main
+            python -B scripts/build_binary_research_decision.py
+            python -B scripts/build_visual_research_patterns.py
+            python -B scripts/build_basin_research_feed.py
+            python -B scripts/validate_research_dashboard.py --report assets/data/research_dashboard_validation_latest.json
+            git add -- assets/data/research_dashboard_validation_latest.json assets/data/research_basin_screening_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json assets/data/research_visual_patterns_mucum_latest.json assets/data/research_visual_patterns_santa_tereza_latest.json
+            if git diff --cached --quiet; then
+              echo 'QA já foi publicada por outra execução.'
+              exit 0
+            fi
+            git commit -m 'bot: atualiza QA da pesquisa [skip ci]'
             sleep $((attempt * 2))
           done
           exit 1
