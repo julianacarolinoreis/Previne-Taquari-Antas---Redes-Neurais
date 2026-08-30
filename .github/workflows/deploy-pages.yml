@@ -1,0 +1,85 @@
+name: Deploy static research site to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "pesquisas.html"
+      - "pesquisas/**"
+      - "assets/data/agenda_pesquisas.json"
+      - "assets/data/estudo_caso_resposta_v002.json"
+      - "assets/data/rota_fuga_santa_tereza_cenario.json"
+      - "assets/data/servicos/**"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            /*
+            !*.mat
+            !*.tif
+            !*.py
+            !*.md
+            !*.yml
+            !*.yaml
+            !Gemfile
+            !Gemfile.lock
+          sparse-checkout-cone-mode: false
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepare static research site
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _site
+          mkdir -p _site
+
+          # Publica as páginas e os dados necessários para a pesquisa, mas não
+          # os binários pesados de treinamento (.mat) nem os rasters brutos
+          # (.tif), que não são consumidos pelo site estático.
+          while IFS= read -r -d '' file; do
+            case "$file" in
+              .github/*|scripts/*|*.py|*.mat|*.tif|*.md|*.yml|*.yaml|Gemfile|Gemfile.lock)
+                continue
+                ;;
+              *)
+                mkdir -p "_site/$(dirname "$file")"
+                cp -p -- "$file" "_site/$file"
+                ;;
+            esac
+          done < <(git ls-files -z)
+
+          touch _site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
