@@ -95,10 +95,20 @@
     .step b{display:flex;align-items:center;gap:8px;color:var(--deep);font-size:13px}
     .step b span{display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:var(--lime);color:var(--deep);font-size:11px}
     .step p{margin:6px 0 0;color:var(--muted);font-size:12px}
+    .agenda-panel{display:flex;align-items:center;justify-content:space-between;gap:22px;background:linear-gradient(120deg,#effaf3,#f7f2ff);border-color:#cfe1d7}
+    .agenda-panel p{max-width:780px}
+    .agenda-panel-actions{display:grid;gap:9px;min-width:190px;color:var(--muted);font-size:11px;line-height:1.55}
+    .agenda-open{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:8px 12px;border-radius:11px;background:var(--deep);color:#fff;text-decoration:none;font-size:12px;font-weight:850;white-space:nowrap}
+    .agenda-open:hover,.agenda-open:focus-visible{background:var(--deep-2);outline:3px solid rgba(19,87,77,.18);outline-offset:2px}
+    .maturity-catalog{margin-top:16px;background:linear-gradient(120deg,#f3f8ff,#fff9ec);border-color:#d7e1e2}
+    .catalog-maturity-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:14px}
+    .catalog-maturity-item{min-width:0;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.72)}
+    .catalog-maturity-item strong{display:block;color:var(--deep);font-size:12px}.catalog-maturity-item span{display:block;margin-top:4px;color:var(--muted);font-size:11px;line-height:1.4}.catalog-maturity-item.research{border-color:#cbd9ef;background:#f3f7ff}.catalog-maturity-item.prototype{border-color:#ddd3f1;background:#f8f5ff}.catalog-maturity-item.validated{border-color:#c5e3d0;background:#f2fbf5}.catalog-maturity-item.operation{border-color:#f0d49c;background:#fff9ed}
+    .maturity-note{margin:13px 0 0;padding:10px 12px;border-left:3px solid var(--coral);border-radius:0 10px 10px 0;background:#fff4f1;color:#7b4a42;font-size:12px}
     .footer{margin-top:16px;padding:18px 21px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
     .footer a{color:var(--deep-2);font-weight:800}
     @media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.context,.how{grid-template-columns:1fr}}
-    @media(max-width:650px){.shell{padding:12px 12px 30px}.hero{padding:22px 20px;border-radius:22px}.topline{align-items:flex-start;flex-direction:column;margin-bottom:24px}.hero-links{justify-content:flex-start}.hero-copy{font-size:15px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:14px}.metric b{font-size:23px}.reading-grid,.steps{grid-template-columns:1fr}.library,.panel{padding:16px}.section-head{display:block}.live-dot{margin-top:10px}.search-row{grid-template-columns:1fr}.toolbar{position:static}.cards{grid-template-columns:1fr}.card{padding:15px}.result-line{align-items:flex-start;flex-direction:column}.pagination{gap:6px;justify-content:space-between}.pagination button{min-width:0;flex:1;padding-left:5px;padding-right:5px;font-size:11px}.page-status{min-width:84px}}
+    @media(max-width:650px){.shell{padding:12px 12px 30px}.hero{padding:22px 20px;border-radius:22px}.topline{align-items:flex-start;flex-direction:column;margin-bottom:24px}.hero-links{justify-content:flex-start}.hero-copy{font-size:15px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:14px}.metric b{font-size:23px}.reading-grid,.steps{grid-template-columns:1fr}.library,.panel{padding:16px}.section-head{display:block}.live-dot{margin-top:10px}.search-row{grid-template-columns:1fr}.toolbar{position:static}.cards{grid-template-columns:1fr}.card{padding:15px}.result-line{align-items:flex-start;flex-direction:column}.pagination{gap:6px;justify-content:space-between}.pagination button{min-width:0;flex:1;padding-left:5px;padding-right:5px;font-size:11px}.page-status{min-width:84px}.agenda-panel{display:grid}.agenda-panel-actions{min-width:0}.catalog-maturity-grid{grid-template-columns:1fr 1fr}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.card{transition:none}.card:hover{transform:none}}
   </style>
 </head>
@@ -110,6 +120,7 @@
         <p class="eyebrow">PREVINE · memória de pesquisa</p>
         <nav class="hero-links" aria-label="Atalhos principais">
           <a href="index.html">← feed das RNAs</a>
+          <a href="pesquisas/agenda-avanco.html">agenda de avanço</a>
           <a href="pesquisas/estudo-caso-resposta-santa-tereza.html">abrir sala de decisão</a>
         </nav>
       </div>
@@ -122,7 +133,7 @@
       <div class="metric"><b id="metricTotal">—</b><span>páginas indexadas no arquivo</span></div>
       <div class="metric"><b id="metricTopics">—</b><span>frentes de pesquisa</span></div>
       <div class="metric"><b id="metricSite">—</b><span>páginas principais no site</span></div>
-      <div class="metric"><b>28/08</b><span>última revisão deste catálogo · 2026</span></div>
+      <div class="metric"><b>29/08</b><span>última revisão deste catálogo · 2026</span></div>
     </section>
 
     <section class="context" aria-label="Como usar o arquivo">
@@ -146,6 +157,31 @@
           <li>Leve só o que foi verificado para um exercício de mesa.</li>
         </ol>
       </article>
+    </section>
+
+    <section class="panel agenda-panel" aria-labelledby="agenda-title">
+      <div>
+        <div class="mini-title">Próximo passo do acervo</div>
+        <h2 id="agenda-title" style="margin-top:5px">O que merece avançar agora?</h2>
+        <p>O catálogo deixou de ser apenas memória. A agenda de avanço organiza cinco pesquisas em duas frentes — ciência da previsão e pessoas/resposta — com dados necessários, método, métricas e gate para não transformar hipótese em ordem de campo.</p>
+      </div>
+      <div class="agenda-panel-actions">
+        <a class="agenda-open" href="pesquisas/agenda-avanco.html">abrir agenda de avanço <span aria-hidden="true">→</span></a>
+        <span>30 dias · saneamento e mesa<br>90 dias · validação controlada<br>180 dias · modo sombra</span>
+      </div>
+    </section>
+
+    <section class="panel maturity-catalog" aria-labelledby="maturity-catalog-title">
+      <div class="mini-title">Legenda de maturidade</div>
+      <h2 id="maturity-catalog-title" style="margin-top:5px">O que esta página significa — e o que ela não significa</h2>
+      <p>O rótulo acompanha cada avanço para separar memória de pesquisa, protótipo de exercício, produto validado e operação autorizada.</p>
+      <div class="catalog-maturity-grid">
+        <div class="catalog-maturity-item research"><strong>Pesquisa</strong><span>pergunta, método ou evidência ainda em desenvolvimento.</span></div>
+        <div class="catalog-maturity-item prototype"><strong>Protótipo</strong><span>interface ou cenário para estudo e exercício supervisionado.</span></div>
+        <div class="catalog-maturity-item validated"><strong>Produto validado</strong><span>nenhum produto validado está declarado neste catálogo.</span></div>
+        <div class="catalog-maturity-item operation"><strong>Operação real</strong><span>nenhum alerta, rota ou despacho real é autorizado por estas páginas.</span></div>
+      </div>
+      <p class="maturity-note"><strong>Leitura segura:</strong> “publicado” descreve que uma página está acessível no site; não quer dizer que o modelo, mapa, rota, abrigo ou protocolo esteja validado para uso operacional.</p>
     </section>
 
     <main id="acervo" class="library" tabindex="-1">
@@ -209,13 +245,14 @@
     </section>
 
     <footer class="footer">
-      Revisado em 28/08/2026. O catálogo reúne páginas distintas encontradas no acervo local e mantém as páginas principais navegáveis; duplicatas, backups e clones ficam fora da contagem. <a href="index.html">Voltar ao feed das redes neurais →</a>
+      Revisado em 29/08/2026. O catálogo reúne páginas distintas encontradas no acervo local e mantém as páginas principais navegáveis; duplicatas, backups e clones ficam fora da contagem. <a href="index.html">Voltar ao feed das redes neurais →</a>
     </footer>
   </div>
 
   <script>
     const entries = [
-      {title:"Sala de decisão · resposta Santa Tereza",category:"Resposta",status:"estudo",description:"Ensaio de mesa para transformar previsão em decisão: zona, pessoas, rota, abrigo, equipe, comunicação e registro.",caveat:"Protótipo de exercício; corredores e abrigo precisam de validação de campo antes de qualquer uso operacional.",href:"pesquisas/estudo-caso-resposta-santa-tereza.html",source:"artefato revisado em 28/08/2026"},
+      {title:"Agenda de avanço · pesquisa → decisão",category:"Resposta",status:"estudo",description:"Plano estruturado das pesquisas prioritárias, do saneamento científico ao exercício de resposta supervisionado.",caveat:"Agenda de pesquisa; não é alerta, rota liberada ou autorização de despacho.",href:"pesquisas/agenda-avanco.html",source:"agenda revisada em 29/08/2026"},
+      {title:"Sala de decisão V002 · resposta Santa Tereza",category:"Resposta",status:"estudo",description:"Exercício controlado com briefing, checklist prévio, zona, pessoas, rota, abrigo, equipe, comunicação, contingências e métricas de aprendizado.",caveat:"Protótipo de exercício; dados UNKNOWN/STALE bloqueiam a ação e corredores/abrigo precisam de validação de campo.",href:"pesquisas/estudo-caso-resposta-santa-tereza.html",source:"artefato V002 revisado em 29/08/2026"},
       {title:"Estudo de caso · Muçum · slides",category:"Resposta",status:"estudo",description:"Narrativa visual para discutir a resposta a uma cheia e os pontos que precisam ser verificados antes da saída.",caveat:"Material de estudo; não é ordem de evacuação.",href:"pesquisas/mucum-estudo-caso-slides.html",source:"arquivo de pesquisa"},
       {title:"Estudo de caso · Muçum",category:"Resposta",status:"estudo",description:"Página de apoio para organizar cenário, exposição e possíveis ações em Muçum.",caveat:"Hipóteses do estudo devem ser separadas de dados observados.",href:"pesquisas/mucum-estudo-caso.html",source:"arquivo de pesquisa"},
       {title:"Mapa de impacto · Muçum",category:"Resposta",status:"preliminar",description:"Exploração visual de impactos e prioridades para apoiar a conversa sobre resposta.",caveat:"Camadas e prioridades não substituem reconhecimento local.",href:"pesquisas/mucum-mapa-impacto.html",source:"arquivo de pesquisa"},
@@ -230,7 +267,7 @@
       {title:"Painel de evacuação · Santa Tereza",category:"Resposta",status:"estudo",description:"Protótipo de priorização para decidir quem precisa de apoio, para onde ir e qual ação vem primeiro.",caveat:"Valores de pessoas e abrigos precisam de atualização e confirmação.",href:"pesquisas/santa-tereza-painel-evacuacao.html",source:"arquivo de pesquisa"},
       {title:"Rota de fuga por ruas · Santa Tereza · cenário",category:"Resposta",status:"preliminar",description:"Cenário visual de corredores de saída para exercício de mesa.",caveat:"Corredor sintético não é rota liberada.",href:"pesquisas/santa-tereza-rota-fuga-ruas-cenario.html",source:"arquivo de pesquisa"},
       {title:"Rota de fuga por ruas · Santa Tereza",category:"Resposta",status:"estudo",description:"Exploração de alternativas de saída e destinos para o território de Santa Tereza.",caveat:"Necessita reconhecimento local, acessibilidade e comunicação com a comunidade.",href:"pesquisas/santa-tereza-rota-fuga-ruas.html",source:"arquivo de pesquisa"},
-      {title:"Rota de fuga · Santa Tereza",category:"Resposta",status:"estudo",description:"Primeiro protótipo de organização da rota de fuga e dos pontos de apoio.",caveat:"Não usar como navegação ou despacho sem validação.",href:"pesquisas/santa-tereza-rota-fuga.html",source:"arquivo de pesquisa"},
+      {title:"Rota de fuga · Santa Tereza · protótipo inicial",category:"Resposta",status:"estudo",description:"Primeiro protótipo de organização da rota de fuga e dos pontos de apoio.",caveat:"Não usar como navegação ou despacho sem validação.",href:"pesquisas/santa-tereza-rota-fuga.html",source:"arquivo de pesquisa"},
       {title:"RNA 8h · piloto Mix10",category:"RNA",status:"comparativo",description:"Registro visual de uma rodada experimental de previsão com horizonte de 8 horas.",caveat:"Desempenho precisa ser lido com partição, eventos, baseline e validação compatíveis.",href:"pesquisas/rna-8h-piloto-mix10.html",source:"snapshot de pesquisa"},
       {title:"RNA 8h · split 4h",category:"RNA",status:"comparativo",description:"Comparação exploratória de configuração e horizonte para previsão de nível.",caveat:"Não promove modelo nem prova desempenho operacional por si só.",href:"pesquisas/rna-8h-split4h.html",source:"snapshot de pesquisa"},
       {title:"Relatório visual de RNAs",category:"RNA",status:"comparativo",description:"Leitura gráfica de modelos e métricas usadas nas pesquisas de redes neurais.",caveat:"Confira universo, partição e origem antes de comparar números.",href:"pesquisas/rna-relatorio-visual.html",source:"relatório de pesquisa"},
