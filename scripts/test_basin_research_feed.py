@@ -53,7 +53,11 @@ class BasinResearchFeedTests(unittest.TestCase):
     def test_current_level_prefers_the_newer_live_robot(self):
         for key in ("santa_tereza", "mucum"):
             raw = builder.load(ROOT / builder.STATIONS[key]["live"], {})
-            expected = builder.number(raw.get("telemetria_ultima_nivel_cm", raw.get("nivel_rio_agora_cm")))
+            # A live export may keep the preferred key present with ``null``
+            # while publishing a valid fallback key.  ``dict.get(default)``
+            # does not fall back in that case, so mirror the production
+            # selection and take the first numeric level.
+            expected = next((builder.number(raw.get(name)) for name in ("telemetria_ultima_nivel_cm", "nivel_rio_agora_cm", "nivel_atual_cm") if builder.number(raw.get(name)) is not None), None)
             current = self.feed["stations"][key]["current"]
             self.assertEqual(current["level_cm"], expected)
             self.assertIn(current["state"], {"fresh", "stale"})
