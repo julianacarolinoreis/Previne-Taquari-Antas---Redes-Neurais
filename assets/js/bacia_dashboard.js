@@ -9,7 +9,8 @@
   if (!root) return;
 
   const $ = (id) => document.getElementById(id);
-  const state = { station: 'basin', horizon: 72, feeds: {} };
+  const state = { station: 'basin', horizon: 72, feeds: {}, research: null, lastLoadedAt: null };
+  const researchUrl = 'assets/data/research_basin_screening_latest.json';
   const stations = {
     santa: {
       key: 'santa', label: 'Santa Tereza', code: '86472600', threshold: 1500,
@@ -29,8 +30,8 @@
     }
   };
   const zoneDefinitions = [
-    ['Cabeceiras / montante', 'água que desce para a bacia', 'A média espacial do recorte IFS funciona como proxy de chuva nas cabeceiras; não é uma máscara hidrológica oficial.', 'var(--blue)', '42%'],
-    ['Recorte da bacia', 'média e máximo das células', 'A média mostra o cenário típico e o máximo mostra onde a chuva pode se concentrar dentro do recorte.', 'var(--green)', '66%'],
+    ['Pontos monitorados a montante', 'sinal espacial de chuva que pode chegar', 'A média das células IFS únicas ligadas aos pontos monitorados funciona como proxy. Não é a média de toda a bacia.', 'var(--blue)', '42%'],
+    ['Cobertura hidrológica da bacia', 'máscara e ponderação por área', 'Ainda pendente de validação. O site não substitui essa cobertura pelo proxy de estações.', 'var(--green)', '66%'],
     ['Perto da estação', 'ponto de leitura', 'A chuva no ponto e o nível ANA/SGB são mostrados quando a fonte os publica.', 'var(--amber)', '82%'],
     ['Jusante / foz', 'propagação', 'Ainda não há série zonal independente e tempo de propagação validados neste painel.', 'var(--purple)', '33%']
   ];
@@ -40,7 +41,12 @@
       '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
     }[c]));
   }
+  function safeHttpUrl(value) {
+    const url = String(value == null ? '' : value).trim();
+    return /^https?:\/\//i.test(url) ? url : '';
+  }
   function num(value) {
+    if (value == null || (typeof value === 'string' && value.trim() === '')) return null;
     const n = Number(value);
     return Number.isFinite(n) ? n : null;
   }
@@ -110,14 +116,22 @@
     const ifsProxyRain = first(w.rain_ifs_proxy_mm, p.ifs_proxy_mm);
     const gefsProxyRain = first(w.rain_gefs_proxy_mm, p.gefs_proxy_mm);
     const soil = first(w.soil_moisture_model_mean_m3m3, p.soil_moisture_m3m3);
-    const risk = first(p.probability_percent, w.flood_probability_percent, num(w.flood_probability) == null ? null : w.flood_probability * 100);
+    // The integrated research feed is the authority for freshness.  Keep an
+    // archived score available for audit, but never present a stale score or
+    // binary decision as if it were a current estimate.
+    const integrated = researchRow(key === 'santa' ? 'santa_tereza' : key, hours) || {};
+    const integratedRisk = integrated.risk || {};
+    const archivedRisk = first(integratedRisk.probability_percent, p.probability_percent, w.flood_probability_percent, num(w.flood_probability) == null ? null : w.flood_probability * 100);
+    const riskUsable = integratedRisk.usable_as_current_probability === true && integratedRisk.state !== 'stale';
+    const risk = riskUsable ? archivedRisk : null;
     const score = first(p.rna_score_percent, w.rna_score_percent);
-    const decision = p.decision || w.flood_decision || (w.flood_answer && /VAI/.test(w.flood_answer) ? 'VAI' : null);
+    const archivedDecision = integratedRisk.decision || p.decision || w.flood_decision || (w.flood_answer && /VAI/.test(w.flood_answer) ? 'VAI' : null);
+    const decision = riskUsable ? archivedDecision : null;
     const generated = f.pattern && f.pattern.generated_at_utc || f.weather && f.weather.generated_at_utc;
     const forecastAge = ageHours(generated);
     const observedAge = ageHours(levelAt);
     const coverage = num(w.rain_hours_available);
-    return { key, horizon: hours, station: s, pattern: f.pattern, weather: f.weather, live, p, w, obs, level, levelAt, pointRain, basinMean, basinMax, meanRain, maxRain, directRain, ifsProxyRain, gefsProxyRain, soil, risk, score, decision, generated, forecastAge, observedAge, coverage };
+    return { key, horizon: hours, station: s, pattern: f.pattern, weather: f.weather, live, p, w, obs, level, levelAt, pointRain, basinMean, basinMax, meanRain, maxRain, directRain, ifsProxyRain, gefsProxyRain, soil, risk, archivedRisk, riskUsable, riskState: integratedRisk.state || 'unknown', riskGenerated: integratedRisk.generated_at_utc, riskCalibration: integratedRisk.calibration_status, score, decision, archivedDecision, generated, forecastAge, observedAge, coverage };
   }
   function qualityFor(snapshot) {
     const obsGood = snapshot.level != null && (snapshot.observedAge == null || snapshot.observedAge <= 3);
@@ -139,7 +153,7 @@
   }
   function displayRain(snap) {
     if (snap.key === 'mucum') return { value: snap.directRain, label: 'IFS direto no ponto', source: 'ECMWF IFS' };
-    return { value: snap.meanRain, label: 'média do recorte da bacia', source: 'ECMWF IFS' };
+    return { value: snap.meanRain, label: 'média das células monitoradas a montante', source: 'ECMWF IFS' };
   }
   function sourceGenerated(snap) {
     const values = [snap.weather && snap.weather.generated_at_utc, snap.pattern && snap.pattern.generated_at_utc].filter(Boolean);
@@ -148,6 +162,88 @@
   function liveSourceText(snap) {
     const src = snap.live && snap.live.estacao ? snap.live.estacao : snap.obs && snap.obs.source ? snap.obs.source : `ANA/SGB ${snap.station.code}`;
     return src;
+  }
+
+  function researchStation(key) {
+    return state.research && state.research.stations && state.research.stations[key] || null;
+  }
+  function researchRow(key, hours) {
+    const station = researchStation(key);
+    const rows = Array.isArray(station && station.horizons) ? station.horizons : [];
+    return rows.find((row) => Number(row.hours) === Number(hours)) || null;
+  }
+  function researchStateLabel(value) {
+    if (value === 'fresh' || value === 'current_window') return 'atualizado';
+    if (value === 'stale') return 'atrasado';
+    if (value === 'pending') return 'pendente';
+    return 'sem estado';
+  }
+  function researchMetric(label, value, note, cls = '') {
+    return `<div class="research-metric ${cls}"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(note)}</small></div>`;
+  }
+  function sourceStatusLabel(value) {
+    if (value === 'identified') return 'FONTE IDENTIFICADA';
+    if (value === 'conditional') return 'ACESSO CONDICIONAL';
+    if (value === 'integrated') return 'INTEGRADA E VALIDADA';
+    return String(value || 'SEM STATUS').replace(/_/g, ' ').toUpperCase();
+  }
+  function renderResearchSources(registry) {
+    const sources = registry && Array.isArray(registry.sources) ? registry.sources : [];
+    if (!sources.length) return '<div class="empty-block">O registro de fontes ainda não foi publicado.</div>';
+    const cards = sources.map((source) => {
+      const url = safeHttpUrl(source.url);
+      const metadata = safeHttpUrl(source.metadata_url);
+      const link = url ? `<a class="research-source-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">abrir fonte oficial ↗</a>` : '';
+      const metadataLink = metadata ? `<a class="research-source-meta" href="${esc(metadata)}" target="_blank" rel="noopener noreferrer">metadados ↗</a>` : '';
+      const status = source.status === 'integrated' ? 'integrated' : source.status === 'conditional' ? 'conditional' : 'identified';
+      return `<article class="research-source-card"><div class="research-source-head"><div><span class="research-source-type">${esc(source.type || 'fonte')}</span><h3>${esc(source.label || source.id || 'Fonte')}</h3></div><span class="research-source-status ${status}">${esc(sourceStatusLabel(source.status))}</span></div><p class="research-source-role"><strong>Gate:</strong> ${esc(String(source.gate || 'não associado').replace(/_/g, ' '))} · ${esc(source.role || 'papel não informado')}</p><p class="research-source-next"><strong>Próximo passo:</strong> ${esc(source.next_step || 'validar recorte, unidade, tempo e qualidade antes de integrar')}</p><div class="research-source-links">${link}${metadataLink}</div></article>`;
+    }).join('');
+    return `<div class="research-sources-head"><strong>${esc(registry.title || 'Fontes oficiais priorizadas')}</strong><span>revisado em ${esc(shortDate(registry.last_reviewed_utc))}</span></div><p class="research-sources-note">${esc(registry.note || 'Fonte identificada não é camada validada.')}</p><div class="research-source-list">${cards}</div>`;
+  }
+  function renderResearchContext() {
+    const grid = $('research-context-grid'); const gates = $('research-context-gates'); const upstream = $('research-upstream'); const registry = $('research-source-registry'); const status = $('research-context-status');
+    if (!grid || !gates || !upstream || !registry || !status) return;
+    if (!state.research || !state.research.stations) {
+      status.textContent = 'Feed integrado indisponível';
+      grid.innerHTML = '<div class="empty-block">O contexto da pesquisa ainda não foi publicado.</div>';
+      gates.innerHTML = '';
+      upstream.innerHTML = '';
+      registry.innerHTML = '';
+      return;
+    }
+    const keys = state.station === 'basin' ? ['santa_tereza', 'mucum'] : [state.station === 'santa' ? 'santa_tereza' : state.station];
+    const labels = { santa_tereza: 'Santa Tereza', mucum: 'Muçum' };
+    const h = state.horizon;
+    grid.innerHTML = keys.map((key) => {
+      const item = researchStation(key) || {}; const row = researchRow(key, h) || {}; const rain = row.rain || {}; const head = rain.headwater || {}; const risk = row.risk || {}; const current = item.current || {};
+      const short = Array.isArray(item.short_forecasts) && item.short_forecasts.length ? item.short_forecasts.map((f) => `+${f.hours} h: ${fmt(f.level_forecast_cm, 0)} cm`).join(' · ') : 'previsão curta sem valor';
+      const headValue = head.mean_mm == null ? '—' : `${fmt(head.mean_mm, 1)} mm`;
+      const headNote = head.max_mm == null ? 'sem máximo publicado' : `máx. ${fmt(head.max_mm, 1)} mm · ${head.status === 'shared_santa_reference' ? 'proxy compartilhada' : 'células monitoradas'}`;
+      const point = rain.point_mm != null ? `${fmt(rain.point_mm, 1)} mm` : rain.ifs_direct_mm != null ? `${fmt(rain.ifs_direct_mm, 1)} mm` : '—';
+      const archived = risk.probability_percent == null ? '' : ` · arquivado: ${pct(risk.probability_percent)}`;
+      const usable = risk.usable_as_current_probability === true && risk.state !== 'stale';
+      const prob = usable ? pct(risk.probability_percent) : '—';
+      const probNote = usable ? `${researchStateLabel(risk.state)} · cota ${fmt(item.threshold_cm, 0)} cm · ${risk.calibration_status}` : `${researchStateLabel(risk.state)} · não utilizável como leitura atual${archived}`;
+      const quality = item.quality || {};
+      return `<article class="research-context-card ${quality.status === 'DEGRADED' ? 'is-degraded' : ''}">
+        <div class="research-context-card-head"><div><span class="research-station-kicker">${esc(labels[key] || key)}</span><h3>${esc(item.station_code || 'estação')}</h3></div><span class="research-quality ${quality.status === 'DEGRADED' ? 'warn' : ''}">${esc(quality.status || 'SEM STATUS')}</span></div>
+        <div class="research-metrics">
+          ${researchMetric('Nível observado', current.level_cm == null ? '—' : `${fmt(current.level_cm, 0)} cm`, `${researchStateLabel(current.state)} · ${when(current.observed_at_utc)}`, 'observed')}
+          ${researchMetric('Pontos a montante · proxy', headValue, headNote, head.status === 'shared_santa_reference' ? 'proxy' : 'forecast')}
+          ${researchMetric('Chuva no ponto', point, `acumulado previsto · +${h} h`, 'forecast')}
+          ${researchMetric('Cruzamento da cota', prob, probNote, 'risk')}
+        </div>
+        <p class="research-context-short"><strong>Robô ao vivo:</strong> ${esc(short)}.</p>
+        <p class="research-context-source"><strong>Fonte:</strong> ${esc(item.forecast && item.forecast.provider || 'não informada')} · feed ${esc(researchStateLabel(item.forecast && item.forecast.state))} (${esc(when(item.forecast && item.forecast.generated_at_utc))}).</p>
+        ${head.status === 'shared_santa_reference' ? '<p class="research-context-warning">Muçum ainda não tem máscara hidrológica independente; este agregado é uma referência compartilhada dos pontos monitorados a montante, não a média da bacia de Muçum.</p>' : '<p class="research-context-warning">O agregado espacial resume pontos monitorados a montante; não é uma média ponderada de toda a bacia.</p>'}
+      </article>`;
+    }).join('');
+    const pending = Array.isArray(state.research.gates) ? state.research.gates.filter((gate) => gate.status !== 'complete') : [];
+    gates.innerHTML = `<div class="research-gates-head"><strong>Gates científicos da pesquisa</strong><span>${pending.length} itens ainda sem validação final</span></div><div class="research-gates-list">${pending.map((gate) => `<span class="research-gate ${gate.status === 'research_partial' ? 'partial' : ''}"><b>${esc(gate.id.replace(/_/g, ' '))}</b><small>${esc(gate.reason)}</small></span>`).join('')}</div>`;
+    const gauges = state.research.basin && state.research.basin.upstream_gauges && Array.isArray(state.research.basin.upstream_gauges.stations) ? state.research.basin.upstream_gauges.stations : [];
+    upstream.innerHTML = gauges.length ? `<div class="research-upstream-head"><strong>Âncoras observadas a montante</strong><span>não confundir com chuva da bacia</span></div><div class="research-upstream-list">${gauges.map((gauge) => `<span class="research-upstream-item"><b>${esc(gauge.name || gauge.station_code)}</b><small>${gauge.current_level_cm == null ? 'nível —' : `${fmt(gauge.current_level_cm, 0)} cm`} · ${esc(gauge.lag_hours_declared == null ? 'defasagem não declarada' : `lag declarado ${fmt(gauge.lag_hours_declared, 0)} h`)}</small></span>`).join('')}</div>` : '';
+    registry.innerHTML = renderResearchSources(state.research.source_registry);
+    status.textContent = `Contexto gerado em ${when(state.research.generated_at_utc)} · pesquisa, sem alerta automático`;
   }
 
   function renderAnswer() {
@@ -159,18 +255,20 @@
       const a = stationSnapshot('santa', hours); const b = stationSnapshot('mucum', hours);
       const ar = displayRain(a); const br = displayRain(b);
       answerTitle.textContent = `Na bacia, os modelos não contam uma história única em +${hours} h`;
-      answerText.textContent = `Santa Tereza: ${fmt(ar.value, 2)} mm (${ar.label}); Muçum: ${fmt(br.value, 2)} mm (${br.label}). As estimativas experimentais de cruzar a cota são ${pct(a.risk)} e ${pct(b.risk)}, respectivamente. Não há probabilidade conjunta publicada.`;
+      const riskNote = ((a.risk == null || b.risk == null) && (a.archivedRisk != null || b.archivedRisk != null)) ? ' Os scores antigos foram ocultados porque estão atrasados; permanecem nos JSONs para auditoria.' : '';
+      answerText.textContent = `Santa Tereza: ${fmt(ar.value, 2)} mm (${ar.label}); Muçum: ${fmt(br.value, 2)} mm (${br.label}). As estimativas experimentais utilizáveis de cruzar a cota são ${pct(a.risk)} e ${pct(b.risk)}, respectivamente. Não há probabilidade conjunta publicada.${riskNote}`;
       answerState.textContent = 'COMPARAÇÃO'; answerState.className = 'answer-state warn';
       return;
     }
     const snap = stationSnapshot(state.station, hours); const rain = displayRain(snap);
-    const riskText = snap.risk == null ? 'sem estimativa experimental utilizável' : `${pct(snap.risk)} de cruzar ${fmt(snap.station.threshold / 100, 2)} m (${fmt(snap.station.threshold, 0)} cm)`;
+    const riskStale = snap.riskState === 'stale' || (snap.risk == null && snap.archivedRisk != null);
+    const riskText = snap.risk == null ? (riskStale && snap.archivedRisk != null ? `${pct(snap.archivedRisk)} arquivada para comparação; rodada atrasada — não usar como previsão atual` : 'sem estimativa experimental utilizável') : `${pct(snap.risk)} de cruzar ${fmt(snap.station.threshold / 100, 2)} m (${fmt(snap.station.threshold, 0)} cm)`;
     const modelText = snap.decision ? decisionLabel(snap.decision).toLowerCase() : 'sem decisão binária publicada';
     answerTitle.textContent = `${snap.station.label}: janela de +${hours} h`;
     const coverageNote = snap.coverage != null && snap.coverage < hours ? ` A cobertura publicada é parcial (${fmt(snap.coverage, 0)}/${hours} h).` : '';
     answerText.textContent = `Previsão principal: ${fmt(rain.value, 2)} mm (${rain.label}). O modelo de pesquisa indica ${riskText}; decisão exibida: ${modelText}.${coverageNote} É um resultado experimental, não um alerta e não uma garantia de que vai ou não vai inundar.`;
-    answerState.textContent = snap.risk == null ? 'SEM VALOR' : 'PESQUISA';
-    answerState.className = `answer-state ${snap.risk == null ? 'unknown' : snap.risk >= 50 ? 'warn' : ''}`;
+    answerState.textContent = riskStale ? 'ATRASADO' : snap.risk == null ? 'SEM VALOR' : 'PESQUISA';
+    answerState.className = `answer-state ${riskStale || snap.risk == null ? 'unknown' : snap.risk >= 50 ? 'warn' : ''}`;
   }
 
   function renderKpis() {
@@ -187,7 +285,7 @@
     $('kpi-rain').textContent = rain || '—';
     $('kpi-rain-note').textContent = `horizonte +${hours} h · fonte principal de cada estação`;
     $('kpi-risk').textContent = risk || '—';
-    $('kpi-risk-note').textContent = 'estimativa experimental; não calibrada como alerta';
+    $('kpi-risk-note').textContent = snaps.some((s) => s.risk == null && s.archivedRisk != null) ? 'score atrasado ocultado; arquivo preservado para auditoria' : 'estimativa experimental; não calibrada como alerta';
     $('kpi-freshness').textContent = worst.label;
     $('kpi-freshness').className = `kpi-value ${worst.className}`;
     $('kpi-freshness-note').textContent = `${qualities.map((q, i) => `${stations[keys[i]].label}: ${q.label.toLowerCase()}`).join(' · ')}`;
@@ -199,7 +297,7 @@
       const coverage = s.coverage == null ? 'cobertura não informada' : `${fmt(s.coverage, 0)}/${state.horizon} h de cobertura`;
       return `<article class="station-card ${state.station === key ? 'selected' : ''}">
         <div class="station-card-head"><div><h3>${esc(s.station.label)}</h3><span class="station-code">ANA/SGB ${esc(s.station.code)} · cota ${fmt(s.station.threshold / 100, 2)} m</span></div><span class="station-decision ${decisionClass(s.decision)}">${esc(decisionLabel(s.decision))}</span></div>
-        <div class="station-card-main"><div class="station-mini"><strong>${fmt(s.level, 0)} cm</strong><span>nível observado · ${ageLabel(s.observedAge)}</span></div><div class="station-mini"><strong>${fmt(rain.value, 2)} mm</strong><span>${esc(rain.label)} · +${state.horizon} h</span></div><div class="station-mini"><strong>${pct(s.risk)}</strong><span>estimativa experimental de cruzar a cota</span></div></div>
+        <div class="station-card-main"><div class="station-mini"><strong>${fmt(s.level, 0)} cm</strong><span>nível observado · ${ageLabel(s.observedAge)}</span></div><div class="station-mini"><strong>${fmt(rain.value, 2)} mm</strong><span>${esc(rain.label)} · +${state.horizon} h</span></div><div class="station-mini"><strong>${pct(s.risk)}</strong><span>estimativa experimental de cruzar a cota${s.riskUsable ? '' : ' · score arquivado ocultado'}</span></div></div>
         <p class="station-foot"><b>${esc(q.label)}</b> · ${coverage} · emissão ${when(sourceGenerated(s))} · <a href="${esc(s.station.status)}">abrir estação →</a></p>
       </article>`;
     }).join('');
@@ -209,11 +307,11 @@
   function zoneValue(snap, zoneIndex) {
     if (!snap && state.station === 'basin' && zoneIndex === 0) {
       const a = stationSnapshot('santa', state.horizon);
-      return { value: a.basinMean == null ? '—' : `${fmt(a.basinMean, 1)} mm`, note: `média do recorte montante · ${stations.santa.label} · +${state.horizon} h` };
+      return { value: a.basinMean == null ? '—' : `${fmt(a.basinMean, 1)} mm`, note: `média das células monitoradas a montante · ${stations.santa.label} · +${state.horizon} h` };
     }
     if (!snap && state.station === 'basin' && zoneIndex === 1) {
       const a = stationSnapshot('santa', state.horizon);
-      return { value: a.basinMean == null && a.basinMax == null ? '—' : `média ${fmt(a.basinMean, 1)} · máx. ${fmt(a.basinMax, 1)} mm`, note: 'recorte espacial IFS montante · referência comum da bacia' };
+      return { value: '—', note: 'máscara hidrológica e ponderação por área ainda não validadas' };
     }
     if (!snap && state.station === 'basin' && zoneIndex === 2) {
       const a = stationSnapshot('santa', state.horizon); const b = stationSnapshot('mucum', state.horizon);
@@ -222,12 +320,12 @@
     if (!snap) return { value: '—', note: 'sem estação selecionada' };
     if (zoneIndex === 0) {
       const reference = snap.basinMean == null ? stationSnapshot('santa', state.horizon).basinMean : snap.basinMean;
-      return { value: reference == null ? '—' : `${fmt(reference, 1)} mm`, note: `média do recorte montante IFS · +${state.horizon} h${snap.basinMean == null ? ' · referência Santa Tereza' : ''}` };
+      return { value: reference == null ? '—' : `${fmt(reference, 1)} mm`, note: `média das células monitoradas a montante · +${state.horizon} h${snap.basinMean == null ? ' · proxy compartilhada' : ''}` };
     }
     if (zoneIndex === 1) {
       const reference = snap.basinMean == null && snap.basinMax == null ? stationSnapshot('santa', state.horizon) : snap;
       const mean = reference.basinMean, max = reference.basinMax;
-      return { value: mean == null && max == null ? '—' : `média ${fmt(mean, 1)} · máx. ${fmt(max, 1)} mm`, note: `recorte espacial IFS · +${state.horizon} h${reference.key === 'santa' && snap.key !== 'santa' ? ' · referência Santa Tereza' : ''}` };
+      return { value: '—', note: 'a cobertura hidrológica da bacia ainda não foi validada' };
     }
     if (zoneIndex === 2) {
       const r = displayRain(snap);
@@ -254,16 +352,16 @@
     keys.forEach((key) => {
       const s = stationSnapshot(key, state.horizon); const prefix = state.station === 'basin' ? `${s.station.label} · ` : '';
       if (key === 'santa') {
-        cards.push(modelCard(`${prefix}IFS · média do recorte`, 'PREVISÃO · chuva acumulada', s.meanRain, 'mm', 'Média das células do recorte usado pela rodada. Não é uma probabilidade.', 'ECMWF IFS', '#c47a10'));
-        cards.push(modelCard(`${prefix}IFS · máximo espacial`, 'PREVISÃO · chuva acumulada', s.maxRain, 'mm', 'Maior célula disponível no recorte; não representa a bacia inteira.', 'ECMWF IFS', '#d59a33'));
+        cards.push(modelCard(`${prefix}IFS · média monitorada a montante`, 'PREVISÃO · chuva acumulada', s.meanRain, 'mm', 'Média simples das células únicas ligadas aos pontos monitorados. Não é média de toda a bacia.', 'ECMWF IFS', '#c47a10'));
+        cards.push(modelCard(`${prefix}IFS · máximo monitorado`, 'PREVISÃO · chuva acumulada', s.maxRain, 'mm', 'Maior célula entre os pontos monitorados a montante; não representa a bacia inteira.', 'ECMWF IFS', '#d59a33'));
         cards.push(modelCard(`${prefix}IFS · ponto`, 'PREVISÃO · chuva acumulada', s.pointRain, 'mm', 'Valor do ponto/célula mais próxima da estação.', 'ECMWF IFS', '#e2b85c'));
         cards.push(modelCard(`${prefix}RNA do feed`, 'SCORE · não calibrado', s.score, '%', 'Score do modelo de pesquisa. Não é frequência nem chance real.', 'RNA / feed visual', '#7650b4', 'experimental-card'));
-        cards.push(modelCard(`${prefix}GEFS`, 'PROBABILIDADE · experimental', s.risk, '%', 'Estimativa experimental de cruzar a cota; não é alerta oficial.', 'NOAA GEFS · proxy/rodada', '#6541a7', 'experimental-card'));
+        cards.push(modelCard(`${prefix}GEFS`, 'PROBABILIDADE · experimental', s.risk, '%', s.riskUsable ? 'Estimativa experimental de cruzar a cota; não é alerta oficial.' : `Score arquivado não utilizável como leitura atual (${researchStateLabel(s.riskState)}).`, 'NOAA GEFS · proxy/rodada', '#6541a7', 'experimental-card'));
       } else {
         cards.push(modelCard(`${prefix}IFS direto`, 'PREVISÃO · ponto Muçum', s.directRain, 'mm', 'Chuva acumulada direta no ponto/rodada IFS.', 'ECMWF IFS', '#c47a10'));
         cards.push(modelCard(`${prefix}IFS proxy`, 'PROXY · célula espacial', s.ifsProxyRain, 'mm', 'Proxy espacial usado na conferência; não é medição local.', 'ECMWF IFS / célula', '#d59a33'));
         cards.push(modelCard(`${prefix}GEFS proxy`, 'PROXY · ensemble', s.gefsProxyRain, 'mm', 'Proxy da célula GEFS que alimenta o ajuste de pesquisa.', 'NOAA GEFS / célula', '#e2b85c'));
-        cards.push(modelCard(`${prefix}Cruzamento da cota`, 'PROBABILIDADE · experimental', s.risk, '%', 'Score logístico de pesquisa; não calibrado operacionalmente.', 'Modelo logístico · cota 1.800 cm', '#6541a7', 'experimental-card'));
+        cards.push(modelCard(`${prefix}Cruzamento da cota`, 'PROBABILIDADE · experimental', s.risk, '%', s.riskUsable ? 'Score logístico de pesquisa; não calibrado operacionalmente.' : `Score arquivado não utilizável como leitura atual (${researchStateLabel(s.riskState)}).`, 'Modelo logístico · cota 1.800 cm', '#6541a7', 'experimental-card'));
         cards.push(modelCard(`${prefix}Solo modelado`, 'PROXY · umidade', s.soil, 'm³/m³', 'Memória hídrica modelada. Não é sensor local de saturação.', 'Produto modelado', '#4d9b79'));
       }
     });
@@ -315,17 +413,19 @@
     const keys = state.station === 'basin' ? ['santa', 'mucum'] : [state.station];
     const html = keys.map((key) => {
       const s = stationSnapshot(key, state.horizon); const [feedState, feedClass] = freshnessState(s); const soilState = key === 'mucum' ? 'proxy' : 'indisponível';
-      return `<section class="provenance-station"><h3>${esc(s.station.label)} <span>· rodada ${esc(when(sourceGenerated(s)))}</span></h3>${provenanceRow('Nível ANA/SGB', `${liveSourceText(s)} · ${when(s.levelAt)} · ${ageLabel(s.observedAge)}`, s.level == null ? 'UNKNOWN' : s.observedAge != null && s.observedAge > 3 ? 'atrasado' : 'observado', s.level == null || (s.observedAge != null && s.observedAge > 3) ? 'pending' : '')}${provenanceRow('Chuva prevista', `${displayRain(s).label} · fonte principal · +${state.horizon} h`, s.meanRain == null ? 'UNKNOWN' : feedState, feedClass)}${provenanceRow('Risco de pesquisa', `estimativa experimental · ${s.pattern && s.pattern.sources && s.pattern.sources.probability || 'JSON de probabilidade'}`, s.risk == null ? 'UNKNOWN' : 'experimental', s.risk == null ? 'pending' : 'proxy')}${provenanceRow('Solo / saturação', key === 'mucum' ? 'umidade modelada; não é medição local' : 'medição local não publicada', soilState, 'proxy')}${provenanceRow('Zonas e propagação', 'polígonos, radar/QPE e tempos de viagem', 'integração pendente', 'pending')}</section>`;
+      const rain = displayRain(s);
+      return `<section class="provenance-station"><h3>${esc(s.station.label)} <span>· rodada ${esc(when(sourceGenerated(s)))}</span></h3>${provenanceRow('Nível ANA/SGB', `${liveSourceText(s)} · ${when(s.levelAt)} · ${ageLabel(s.observedAge)}`, s.level == null ? 'UNKNOWN' : s.observedAge != null && s.observedAge > 3 ? 'atrasado' : 'observado', s.level == null || (s.observedAge != null && s.observedAge > 3) ? 'pending' : '')}${provenanceRow('Chuva prevista', `${rain.label} · fonte principal · +${state.horizon} h`, rain.value == null ? 'UNKNOWN' : feedState, feedClass)}${provenanceRow('Risco de pesquisa', `estimativa experimental · ${s.pattern && s.pattern.sources && s.pattern.sources.probability || 'JSON de probabilidade'}`, s.risk == null ? 'UNKNOWN' : 'experimental', s.risk == null ? 'pending' : 'proxy')}${provenanceRow('Solo / saturação', key === 'mucum' ? 'umidade modelada; não é medição local' : 'medição local não publicada', soilState, 'proxy')}${provenanceRow('Zonas e propagação', 'polígonos, radar/QPE e tempos de viagem', 'integração pendente', 'pending')}</section>`;
     }).join('');
     $('provenance-content').innerHTML = html;
   }
 
   function renderStatus() {
     const keys = state.station === 'basin' ? ['santa', 'mucum'] : [state.station];
-    $('control-status').textContent = `${keys.map((key) => { const s = stationSnapshot(key, state.horizon); return `${stations[key].label}: feed ${ageLabel(s.forecastAge)} · observação ${ageLabel(s.observedAge)}`; }).join(' · ')} · horário em BRT`;
+    const loaded = state.lastLoadedAt ? ` · consulta ${when(state.lastLoadedAt)}` : '';
+    $('control-status').textContent = `${keys.map((key) => { const s = stationSnapshot(key, state.horizon); return `${stations[key].label}: feed ${ageLabel(s.forecastAge)} · observação ${ageLabel(s.observedAge)}`; }).join(' · ')} · horário em BRT${loaded}`;
   }
   function render() {
-    renderAnswer(); renderKpis(); renderStationComparison(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
+    renderAnswer(); renderResearchContext(); renderKpis(); renderStationComparison(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
   }
 
   async function loadJson(url) {
@@ -341,9 +441,27 @@
       const [pattern, weather, live] = await Promise.all([loadJson(cfg.pattern), loadJson(cfg.weather), loadJson(cfg.live)]);
       state.feeds[key] = { pattern, weather, live };
     }));
+    state.research = await loadJson(researchUrl);
+    state.lastLoadedAt = new Date().toISOString();
     const available = pairs.filter(([key]) => stationFeed(key).pattern || stationFeed(key).weather).length;
-    $('control-status').textContent = available ? 'Feeds publicados carregados · escolha local e horizonte' : 'Feeds indisponíveis no momento · tente atualizar a página';
+    $('control-status').textContent = available ? `Feeds publicados carregados às ${when(state.lastLoadedAt)} · escolha local e horizonte` : 'Feeds indisponíveis no momento · tente atualizar a página';
     render();
+  }
+
+  const refresh = $('refresh-feeds');
+  if (refresh) {
+    refresh.addEventListener('click', async () => {
+      refresh.disabled = true;
+      refresh.setAttribute('aria-busy', 'true');
+      refresh.textContent = 'Atualizando…';
+      $('control-status').textContent = 'Consultando feeds publicados…';
+      try { await loadFeeds(); }
+      finally {
+        refresh.disabled = false;
+        refresh.removeAttribute('aria-busy');
+        refresh.textContent = 'Atualizar dados';
+      }
+    });
   }
 
   root.querySelectorAll('[data-station]').forEach((button) => {

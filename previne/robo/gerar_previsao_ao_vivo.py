@@ -15,11 +15,34 @@ Modelo 2h ativo (desde 2026-08-06):
 
 EXPERIMENTAL — não é alerta oficial.
 """
-import os, json, hashlib, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
+import os, csv, json, hashlib, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
 import bisect
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from scipy.io import loadmat
+
+try:
+    from fontes_chuva_8h import (
+        CEMADEN_ESTACAO,
+        CEMADEN_ID,
+        CEMADEN_URL,
+        INMET_ESTACAO,
+        INMET_URL,
+        baixar_cemaden_chuva_recente,
+        baixar_inmet_chuva_recente,
+        metadados_serie,
+    )
+except ImportError:  # importacao como modulo a partir da raiz do repositorio
+    from previne.robo.fontes_chuva_8h import (
+        CEMADEN_ESTACAO,
+        CEMADEN_ID,
+        CEMADEN_URL,
+        INMET_ESTACAO,
+        INMET_URL,
+        baixar_cemaden_chuva_recente,
+        baixar_inmet_chuva_recente,
+        metadados_serie,
+    )
 
 BRT = dt.timezone(dt.timedelta(hours=-3))
 
@@ -47,9 +70,18 @@ MODELO_8H_MAT_SHA256 = "CDA80F39A2A81644F7969984AD6AF262694508D5D56C3EB00CE4BF12
 MODELO_8H_V002_MAT = "previne/assets/mat/RNAPREV__SANTA_TEREZA__08h__ALT__V002__28inputs_57hiddens_20260821.mat"
 MODELO_8H_V002_ID = "STZ_H8_ALT_V002_28IN_57NH"
 MODELO_8H_V002_MAT_SHA256 = "53424025359CED9A70DCCEEB4080B917992CF2DD3C8A2CBECB8CBB55AC2C1663"
-# As planilhas de formula dos 8h usam Passo Carreiro 86500000 no lugar do
-# CEMADEN. Todos os sinais de nivel e chuva sao ancorados em hora cheia.
-POSTO_CHUVA_PASSO_CARREIRO = "86500000"
+MODELO_8H_V001_FORMULA = "modelo_8h_V001_CORRIGIDO_GUARDAS_20260825_235111.xlsx"
+MODELO_8H_V001_FORMULA_SHA256 = "E675E77B671DBB6AC20E4A46230B851CA33B3A789AE6DBAA2A1C6409EB2BA9F6"
+MODELO_8H_V002_FORMULA = "modelo_8h_V002_CORRIGIDO_GUARDAS_20260825_235111.xlsx"
+MODELO_8H_V002_FORMULA_SHA256 = "9D036026B8DEDB7DA90F285CA39F1B13C53F194266D18DDFD46D106874044EDC"
+FORMULA_8H_CONTRATO = "stz_8h_excel_mae_20260825_v2"
+POSTO_CHUVA_INMET_A894 = INMET_ESTACAO
+POSTO_CHUVA_CEMADEN_SERAFINA = CEMADEN_ESTACAO
+POSTOS_CHUVA_MAE_PRINCIPAL = (
+    "2851072", POSTO_CHUVA_INMET_A894, POSTO_CHUVA_CEMADEN_SERAFINA,
+)
+POSTOS_CHUVA_MAE_6H = (POSTO_CHUVA_INMET_A894, POSTO_CHUVA_CEMADEN_SERAFINA)
+CHUVAS_HORARIAS_CSV = "assets/data/chuvas_horarias.csv"
 HORIZONTE = "2h"
 COMBO = "009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21"
 BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
@@ -80,7 +112,10 @@ METADADOS_ESTACOES = {
     "86447000": {"lat": None, "lon": None, "papel": "Montante - input 8h V002"},
     "86505500": {"lat": None, "lon": None, "papel": "Montante - input 8h V002"},
 }
-POSTOS_CHUVA_36H = ["2851044", "2851072", "86488000", "86490500", "86497000", "86505500", "86507000"]
+# Somente o modelo legado C0217 usava a media de 36h. Os modelos publicados
+# atualmente usam o contrato de chuva do Excel-mae de 8h; manter um unico
+# posto aqui reduz chamadas ANA e evita 429 no ciclo ao vivo.
+POSTOS_CHUVA_36H = ["2851072"]
 # O painel é atualizado frequentemente e preserva a última previsão válida
 # quando a ANA está indisponível. Limites curtos evitam que uma API presa
 # consuma todo o intervalo entre ciclos.
@@ -89,6 +124,7 @@ ANA_TIMEOUT_CHUVA_S = 8
 ANA_RETRIES_NIVEL = 1
 ANA_RETRIES_CHUVA = 1
 ULTIMA_RAW = {}
+CHUVA_ANA_CACHE = {}
 NOMES_ESTACOES = {
     "86472600": "Santa Tereza",
     "86472000": "Linha Jose Julio / Rio das Antas montante",
@@ -100,7 +136,8 @@ NOMES_ESTACOES = {
     "86298000": "Estacao 86298000 - montante (input 4h PRO)",
     "86430900": "Estacao 86430900",
     "86447000": "Estacao 86447000",
-    "86500000": "Passo Carreiro (chuva)",
+    "A894": "INMET Serafina Correa A894",
+    "432040401A": "CEMADEN Serafina Correa - Centro",
     "2851044": "Posto chuva Carreiro 2851044",
     "2851072": "Posto chuva Carreiro-Prata 2851072",
     "86488000": "Posto chuva Carreiro 86488000",
@@ -209,6 +246,9 @@ MODELOS = [
         "versao": "V001",
         "status_publicacao": "experimental",
         "modelo_sha256": MODELO_8H_MAT_SHA256,
+        "formula_contract_version": FORMULA_8H_CONTRATO,
+        "referencia_formula": MODELO_8H_V001_FORMULA,
+        "referencia_formula_sha256": MODELO_8H_V001_FORMULA_SHA256,
     },
     {
         "horizonte": "8h_v002",
@@ -227,6 +267,9 @@ MODELOS = [
         "versao": "V002",
         "status_publicacao": "sombra_experimental",
         "modelo_sha256": MODELO_8H_V002_MAT_SHA256,
+        "formula_contract_version": FORMULA_8H_CONTRATO,
+        "referencia_formula": MODELO_8H_V002_FORMULA,
+        "referencia_formula_sha256": MODELO_8H_V002_FORMULA_SHA256,
     },
 ]
 
@@ -335,9 +378,13 @@ def buscar_ana(cod, dias=5):
                 req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
                 xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_NIVEL_S).read()
                 serie, nbytes, ultima_raw = _serie_de_xml(xml)
+                chuva, _, ultima_chuva = _serie_chuva_de_xml(xml)
+                CHUVA_ANA_CACHE[cod] = chuva
                 print(f"[ANA {cod}] tentativa={rodada} {url.split('?')[1][:40]}... bytes={nbytes} linhas={len(serie)}")
                 if ultima_raw:
                     ULTIMA_RAW[cod] = ultima_raw
+                if ultima_chuva:
+                    ULTIMA_RAW[f"chuva_{cod}"] = ultima_chuva
                 if serie:
                     return serie
                 if nbytes:                          # veio resposta mas 0 linhas -> mostra amostra
@@ -350,6 +397,10 @@ def buscar_ana(cod, dias=5):
     return {}
 
 def buscar_ana_chuva(cod, dias=5):
+    if cod in CHUVA_ANA_CACHE:
+        serie = dict(CHUVA_ANA_CACHE[cod])
+        print(f"[ANA chuva {cod}] reaproveitada da consulta de nivel: horas={len(serie)}")
+        return serie
     fim = agora_brt()
     ini = fim - dt.timedelta(days=dias)
     tentativas = [
@@ -374,14 +425,144 @@ def buscar_ana_chuva(cod, dias=5):
     return {}
 
 
+def _carregar_chuvas_8h_csv(caminho=CHUVAS_HORARIAS_CSV, dias=10):
+    """Carrega somente observacoes reais recentes do CSV de contingencia.
+
+    A coluna CEMADEN conserva o nome legado com zero extra para nao quebrar
+    consumidores antigos, mas representa a estacao oficial 432040401A.
+    """
+    chaves_colunas = {
+        "86472600": "chuva_86472600",
+        "86472000": "chuva_86472000",
+        "2851072": "chuva_02851072",
+        POSTO_CHUVA_INMET_A894: "chuva_inmet_A894",
+        POSTO_CHUVA_CEMADEN_SERAFINA: "chuva_cemaden_4320404010A",
+    }
+    series = {chave: {} for chave in chaves_colunas}
+    if not os.path.exists(caminho):
+        return series
+    limite = agora_brt() - dt.timedelta(days=dias)
+    try:
+        with open(caminho, newline="", encoding="utf-8-sig") as arquivo:
+            for linha in csv.DictReader(arquivo):
+                try:
+                    hora = dt.datetime.strptime(str(linha.get("COD_SEQUENCIAL") or ""), "%Y%m%d%H%M")
+                except ValueError:
+                    continue
+                if hora < limite:
+                    continue
+                for chave, coluna in chaves_colunas.items():
+                    valor = linha.get(coluna)
+                    if valor in (None, ""):
+                        continue
+                    try:
+                        numero = float(str(valor).replace(",", "."))
+                    except ValueError:
+                        continue
+                    if numero >= 0:
+                        series[chave][hora] = numero
+    except Exception as exc:
+        print(f"[chuva 8h CSV] contingencia indisponivel: {exc}")
+    return series
+
+
+def _buscar_inmet_chuva_8h():
+    try:
+        serie = baixar_inmet_chuva_recente(
+            cod=POSTO_CHUVA_INMET_A894,
+            agora_brt=agora_brt(),
+            dias=8,
+            timeout=12,
+            tentativas=1,
+        )
+        print(f"[INMET chuva {POSTO_CHUVA_INMET_A894}] horas={len(serie)}")
+        return serie
+    except Exception as exc:
+        print(f"[INMET chuva {POSTO_CHUVA_INMET_A894}] erro: {exc}")
+        return {}
+
+
+def _buscar_cemaden_chuva_8h():
+    try:
+        serie = baixar_cemaden_chuva_recente(
+            id_estacao=CEMADEN_ID,
+            codigo=POSTO_CHUVA_CEMADEN_SERAFINA,
+            horas=168,
+            timeout=12,
+            tentativas=1,
+        )
+        print(f"[CEMADEN chuva {POSTO_CHUVA_CEMADEN_SERAFINA}] horas={len(serie)}")
+        return serie
+    except Exception as exc:
+        print(f"[CEMADEN chuva {POSTO_CHUVA_CEMADEN_SERAFINA}] erro: {exc}")
+        return {}
+
+
 def buscar_chuvas_8h(series):
-    """Busca os postos de chuva exclusivos das formulas V001/V002 de 8h."""
-    extra = ["86472600", "86472000", POSTO_CHUVA_PASSO_CARREIRO]
-    postos = buscar_series_paralelo(extra, buscar_ana_chuva, max_workers=3)
+    """Busca exatamente os postos das formulas V001/V002 do Excel-mae.
+
+    As medias seguem COUNT/AVERAGE: usam apenas os postos observados e ficam
+    ausentes quando nenhum componente existe. O CSV e somente contingencia de
+    observacoes reais; nunca fornece zero sintetico.
+    """
+    extra_ana = ["86472600", "86472000"]
+    postos = buscar_series_paralelo(extra_ana, buscar_ana_chuva, max_workers=2)
     postos["2851072"] = dict(series.get("__chuva36h_postos__", {}).get("2851072") or {})
     if not postos["2851072"]:
         postos["2851072"] = buscar_ana_chuva("2851072")
-    series.setdefault("__chuva8h_fontes__", {})["passo_carreiro"] = POSTO_CHUVA_PASSO_CARREIRO
+
+    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="chuva8h-oficial") as executor:
+        futuro_inmet = executor.submit(_buscar_inmet_chuva_8h)
+        futuro_cemaden = executor.submit(_buscar_cemaden_chuva_8h)
+        ao_vivo = {
+            POSTO_CHUVA_INMET_A894: futuro_inmet.result(),
+            POSTO_CHUVA_CEMADEN_SERAFINA: futuro_cemaden.result(),
+        }
+    postos.update(ao_vivo)
+
+    contingencia = _carregar_chuvas_8h_csv()
+    for chave in (
+        "86472600", "86472000", "2851072",
+        POSTO_CHUVA_INMET_A894, POSTO_CHUVA_CEMADEN_SERAFINA,
+    ):
+        mesclada = dict(contingencia.get(chave) or {})
+        mesclada.update(postos.get(chave) or {})  # consulta oficial atual prevalece
+        postos[chave] = mesclada
+        if mesclada:
+            ultima = max(mesclada)
+            ULTIMA_RAW[f"chuva_{chave}"] = (ultima, mesclada[ultima])
+
+    fontes = {
+        "contrato_formula": FORMULA_8H_CONTRATO,
+        "regra_ausencia": "COUNT/AVERAGE do Excel-mae; sem interpolacao e sem zero sintetico",
+        "alinhamento_a894": "UTC-3h para BRT e -1h do carimbo final para o inicio da hora",
+        "grupo_18h_24h": list(POSTOS_CHUVA_MAE_PRINCIPAL),
+        "grupo_6h": list(POSTOS_CHUVA_MAE_6H),
+        "estacoes": {
+            POSTO_CHUVA_INMET_A894: metadados_serie(
+                postos[POSTO_CHUVA_INMET_A894],
+                codigo=POSTO_CHUVA_INMET_A894,
+                fonte="INMET",
+                endpoint=INMET_URL,
+                estado=(
+                    "com_dados_ao_vivo" if ao_vivo[POSTO_CHUVA_INMET_A894]
+                    else "sem_dado_ao_vivo"
+                ),
+            ),
+            POSTO_CHUVA_CEMADEN_SERAFINA: metadados_serie(
+                postos[POSTO_CHUVA_CEMADEN_SERAFINA],
+                codigo=POSTO_CHUVA_CEMADEN_SERAFINA,
+                fonte="CEMADEN",
+                endpoint=CEMADEN_URL,
+                estado=(
+                    "com_dados_ao_vivo" if ao_vivo[POSTO_CHUVA_CEMADEN_SERAFINA]
+                    else "somente_contingencia_csv" if postos[POSTO_CHUVA_CEMADEN_SERAFINA]
+                    else "sem_dado_observado"
+                ),
+            ),
+        },
+    }
+    series["__chuva8h_fontes__"] = fontes
     return postos
 
 
@@ -971,11 +1152,11 @@ def _chuva_hora_exata(series, chave, t, h=0):
 
 
 def _chuva_acum_8h(series, chave, t, n_horas):
-    """Soma horaria conforme a planilha: buraco interno vira zero."""
+    """Soma somente uma janela observada completa, como exige o Excel-mae."""
     vals = [_chuva_hora_exata(series, chave, t, h) for h in range(n_horas)]
-    if all(v is None for v in vals):
+    if any(v is None for v in vals):
         return None
-    return float(sum(0.0 if v is None else v for v in vals))
+    return float(sum(vals))
 
 
 def _chuva_acum_24_dif_8h(series, chave, t):
@@ -987,11 +1168,6 @@ def _chuva_acum_24_dif_8h(series, chave, t):
 def _media_disponiveis(*vals):
     xs = [v for v in vals if v is not None]
     return None if not xs else float(sum(xs) / len(xs))
-
-
-def _media_disponiveis_ou_zero(*vals):
-    media = _media_disponiveis(*vals)
-    return 0.0 if media is None else media
 
 
 def montar_inputs_8h_alt_v001(series, t):
@@ -1025,10 +1201,19 @@ def montar_inputs_8h_alt_v001(series, t):
         _D_exato(series, "86448000", t, 16),
         _media_disponiveis(_chuva_acum_8h(series, "86472600", t, 18), _chuva_acum_8h(series, "86472000", t, 18)),
         _media_disponiveis(_chuva_acum_24_dif_8h(series, "86472600", t), _chuva_acum_24_dif_8h(series, "86472000", t)),
-        _media_disponiveis(_chuva_acum_8h(series, "2851072", t, 18), _chuva_acum_8h(series, POSTO_CHUVA_PASSO_CARREIRO, t, 18)),
-        _media_disponiveis(_chuva_acum_24_dif_8h(series, "2851072", t), _chuva_acum_24_dif_8h(series, POSTO_CHUVA_PASSO_CARREIRO, t)),
+        _media_disponiveis(*[
+            _chuva_acum_8h(series, chave, t, 18)
+            for chave in POSTOS_CHUVA_MAE_PRINCIPAL
+        ]),
+        _media_disponiveis(*[
+            _chuva_acum_24_dif_8h(series, chave, t)
+            for chave in POSTOS_CHUVA_MAE_PRINCIPAL
+        ]),
         _media_disponiveis(_chuva_acum_8h(series, "86472600", t, 3), _chuva_acum_8h(series, "86472000", t, 3)),
-        _media_disponiveis_ou_zero(_chuva_acum_8h(series, POSTO_CHUVA_PASSO_CARREIRO, t, 6)),
+        _media_disponiveis(*[
+            _chuva_acum_8h(series, chave, t, 6)
+            for chave in POSTOS_CHUVA_MAE_6H
+        ]),
     ]
     return inputs, st0
 
@@ -1061,10 +1246,19 @@ def montar_inputs_8h_alt_v002(series, t):
         _D_exato(series, "86505500", t, 24),
         _media_disponiveis(_chuva_acum_8h(series, "86472600", t, 18), _chuva_acum_8h(series, "86472000", t, 18)),
         _media_disponiveis(_chuva_acum_24_dif_8h(series, "86472600", t), _chuva_acum_24_dif_8h(series, "86472000", t)),
-        _media_disponiveis(_chuva_acum_8h(series, "2851072", t, 18), _chuva_acum_8h(series, POSTO_CHUVA_PASSO_CARREIRO, t, 18)),
-        _media_disponiveis(_chuva_acum_24_dif_8h(series, "2851072", t), _chuva_acum_24_dif_8h(series, POSTO_CHUVA_PASSO_CARREIRO, t)),
+        _media_disponiveis(*[
+            _chuva_acum_8h(series, chave, t, 18)
+            for chave in POSTOS_CHUVA_MAE_PRINCIPAL
+        ]),
+        _media_disponiveis(*[
+            _chuva_acum_24_dif_8h(series, chave, t)
+            for chave in POSTOS_CHUVA_MAE_PRINCIPAL
+        ]),
         _media_disponiveis(_chuva_acum_8h(series, "86472600", t, 3), _chuva_acum_8h(series, "86472000", t, 3)),
-        _media_disponiveis_ou_zero(_chuva_acum_8h(series, POSTO_CHUVA_PASSO_CARREIRO, t, 6)),
+        _media_disponiveis(*[
+            _chuva_acum_8h(series, chave, t, 6)
+            for chave in POSTOS_CHUVA_MAE_6H
+        ]),
     ]
     return inputs, st0
 
@@ -1075,6 +1269,15 @@ def auditoria_inputs_8h(cfg, t, valores):
     return {
         "status": "NORMAL" if not ausentes else "INVALIDO",
         "formula_conferida_com_montador": True,
+        "formula_contract_version": cfg.get("formula_contract_version"),
+        "referencia_formula": cfg.get("referencia_formula"),
+        "referencia_formula_sha256": cfg.get("referencia_formula_sha256"),
+        "regra_chuva_excel_mae": (
+            "18h e diferenca 24h = media disponivel de 02851072/A894/432040401A; "
+            "6h = media disponivel de A894/432040401A"
+        ),
+        "ausencia_chuva_vira_zero": False,
+        "janela_incompleta_vira_ausente": True,
         "n_inputs": len(valores),
         "n_exatos": len(valores) - ausentes,
         "n_inputs_nao_exatos": 0,
@@ -1083,7 +1286,7 @@ def auditoria_inputs_8h(cfg, t, valores):
         "hora_base_minuto": (t.minute if t else None),
         "usa_interpolacao_nivel": False,
         "usa_vizinho_nivel": False,
-        "regra_chuva": "hora cheia; buraco interno vale zero conforme a planilha; posto totalmente vazio fica ausente",
+        "regra_chuva": "hora cheia; janela incompleta fica ausente; nenhuma lacuna vira zero",
         "contrato_temporal": f"{cfg['inputs_total']} inputs em hora cheia exata; niveis sem interpolacao ou vizinho",
     }
 
@@ -1359,10 +1562,10 @@ def diagnosticar_inputs_faltantes_8h_v001(series, t, inputs):
     chuva = [
         ("inp26", "chuva ST+LJJ acumulada 18h", ["86472600", "86472000"], 18),
         ("inp27", "chuva ST+LJJ diferenca 24h", ["86472600", "86472000"], 48),
-        ("inp28", "chuva 2851072+Passo Carreiro acumulada 18h", ["2851072", POSTO_CHUVA_PASSO_CARREIRO], 18),
-        ("inp29", "chuva 2851072+Passo Carreiro diferenca 24h", ["2851072", POSTO_CHUVA_PASSO_CARREIRO], 48),
+        ("inp28", "chuva 02851072+A894+CEMADEN acumulada 18h", list(POSTOS_CHUVA_MAE_PRINCIPAL), 18),
+        ("inp29", "chuva 02851072+A894+CEMADEN diferenca 24h", list(POSTOS_CHUVA_MAE_PRINCIPAL), 48),
         ("inp30", "chuva ST+LJJ acumulada 3h", ["86472600", "86472000"], 3),
-        ("inp31", "chuva Passo Carreiro acumulada 6h", [POSTO_CHUVA_PASSO_CARREIRO], 6),
+        ("inp31", "chuva A894+CEMADEN acumulada 6h", list(POSTOS_CHUVA_MAE_6H), 6),
     ]
     return faltantes + _diagnosticar_chuva_8h(series, t, inputs, 25, chuva)
 
@@ -1396,10 +1599,10 @@ def diagnosticar_inputs_faltantes_8h_v002(series, t, inputs):
     chuva = [
         ("inp23", "chuva ST+LJJ acumulada 18h", ["86472600", "86472000"], 18),
         ("inp24", "chuva ST+LJJ diferenca 24h", ["86472600", "86472000"], 48),
-        ("inp25", "chuva 2851072+Passo Carreiro acumulada 18h", ["2851072", POSTO_CHUVA_PASSO_CARREIRO], 18),
-        ("inp26", "chuva 2851072+Passo Carreiro diferenca 24h", ["2851072", POSTO_CHUVA_PASSO_CARREIRO], 48),
+        ("inp25", "chuva 02851072+A894+CEMADEN acumulada 18h", list(POSTOS_CHUVA_MAE_PRINCIPAL), 18),
+        ("inp26", "chuva 02851072+A894+CEMADEN diferenca 24h", list(POSTOS_CHUVA_MAE_PRINCIPAL), 48),
         ("inp27", "chuva ST+LJJ acumulada 3h", ["86472600", "86472000"], 3),
-        ("inp28", "chuva Passo Carreiro acumulada 6h", [POSTO_CHUVA_PASSO_CARREIRO], 6),
+        ("inp28", "chuva A894+CEMADEN acumulada 6h", list(POSTOS_CHUVA_MAE_6H), 6),
     ]
     return faltantes + _diagnosticar_chuva_8h(series, t, inputs, 22, chuva)
 
@@ -1651,6 +1854,9 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
         "input_labels": cfg.get("input_labels"),
         "input_anchor_note": cfg.get("input_anchor_note"),
         "input_contract_version": cfg.get("input_contract_version"),
+        "formula_contract_version": cfg.get("formula_contract_version"),
+        "referencia_formula": cfg.get("referencia_formula"),
+        "referencia_formula_sha256": cfg.get("referencia_formula_sha256"),
         "input_grade": cfg.get("input_grade"),
         "bankfull_cm": BANKFULL_CM,
         "nivel_modelo_cm": (round(nivel_atual) if nivel_atual is not None else None),
@@ -1825,6 +2031,12 @@ def resumo_auditoria(registros, horizonte, modelo=None):
         "ultimas_conferidas": ultimas,
     }
 
+def _anexar_fontes_chuva_8h(out, cfg, series):
+    if cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
+        out["fontes_chuva_8h"] = series.get("__chuva8h_fontes__", {}) or {}
+    return out
+
+
 def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
     if t is None:
         out = _base_saida(
@@ -1858,13 +2070,13 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
                 "n_inputs": cfg.get("inputs_total"),
                 "contrato_temporal": cfg.get("input_contract_version"),
             }
-        return out
+        return _anexar_fontes_chuva_8h(out, cfg, series)
     try:
         x, st0 = montar_inputs_modelo(cfg, series, t)
     except Exception as e:
         out = _base_saida(cfg, None, None, t, f"falha ao montar inputs: {e}", aviso, [], estacoes_status)
         out["disponivel"] = True
-        return out
+        return _anexar_fontes_chuva_8h(out, cfg, series)
     if st0 is None or any(v is None for v in x):
         faltando = sum(v is None for v in x)
         inputs_faltantes = diagnosticar_inputs_modelo(cfg, series, t, x)
@@ -1874,7 +2086,7 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
             out["auditoria_inputs"] = auditoria_inputs_4h_v01_r10(series, t, valores=x)
         elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
             out["auditoria_inputs"] = auditoria_inputs_8h(cfg, t, x)
-        return out
+        return _anexar_fontes_chuva_8h(out, cfg, series)
     try:
         delta_bruto = prever(cfg["mat"], x)
         delta = delta_bruto
@@ -1916,15 +2128,13 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
                 )
         elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
             out["auditoria_inputs"] = auditoria_inputs_8h(cfg, t, x)
-            fontes = series.get("__chuva8h_fontes__", {}) or {}
-            if fontes:
-                out["fontes_chuva_8h"] = fontes
+            _anexar_fontes_chuva_8h(out, cfg, series)
         out["passos"] = [[out["hora_modelo"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
-        return out
+        return _anexar_fontes_chuva_8h(out, cfg, series)
     except Exception as e:
         out = _base_saida(cfg, st0, None, t, f"falha no modelo: {e}", aviso, [], estacoes_status)
         out["disponivel"] = True
-        return out
+        return _anexar_fontes_chuva_8h(out, cfg, series)
 
 def escolher_hora_modelo(cfg, series, horas_st):
     """Usa a hora mais recente em que todos os inputs do modelo existem."""
@@ -2069,6 +2279,7 @@ def algum_horizonte_com_previsao(horizontes):
 def main():
     aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h principal, 2h versao B em sombra, 4h, 8h V001 e 8h V002), em paralelo ao SGB/SACE. A versao B e o 8h V002 sao comparativos."
     try:
+        CHUVA_ANA_CACHE.clear()
         # As consultas são independentes. Paralelizar evita que um timeout de
         # uma estação deixe o painel sem atualização por vários minutos.
         series = buscar_series_paralelo(ESTACOES, buscar_ana, max_workers=6)

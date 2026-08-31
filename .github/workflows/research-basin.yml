@@ -1,0 +1,84 @@
+name: Contexto automático da pesquisa da bacia
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Mantém a camada integrada atualizada sem competir com cada leitura de
+    # cinco minutos dos robôs de nível.
+    - cron: '47 * * * *'
+  workflow_run:
+    workflows:
+      - 'Atualiza feed meteorológico de Santa Tereza'
+      - 'Atualiza feed meteorológico de Muçum'
+      - 'Previsao ao vivo - Santa Tereza'
+      - 'Previsao ao vivo - Mucum'
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: previne-basin-research
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Configura Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Gera contexto integrado da bacia
+        run: python -B scripts/build_basin_research_feed.py
+
+      - name: Testa o contrato do contexto
+        run: python -m unittest scripts/test_basin_research_feed.py -v
+
+      - name: Atualiza QA da pesquisa
+        run: python -B scripts/validate_research_dashboard.py --report assets/data/research_dashboard_validation_latest.json
+
+      - name: Publica somente se os artefatos mudaram
+        shell: bash
+        run: |
+          git config user.name 'previne-basin-research-bot'
+          git config user.email 'previne-basin-research-bot@users.noreply.github.com'
+          git add -- assets/data/research_basin_screening_latest.json assets/data/research_dashboard_validation_latest.json
+          if git diff --cached --quiet; then
+            echo 'Contexto da bacia sem mudança.'
+            exit 0
+          fi
+          git commit -m 'bot: atualiza contexto da pesquisa da bacia'
+          for attempt in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+            # Outro robô pode ter publicado enquanto este contexto era
+            # calculado. Uma falha de rebase deixa o checkout em estado
+            # intermediário; abortamos, voltamos exatamente à main remota e
+            # reconstruímos os dois artefatos antes de tentar novamente.
+            echo "Push ocupado; sincronizando (tentativa ${attempt}/5)."
+            git rebase --abort || true
+            git fetch origin main
+            git reset --keep origin/main
+            python -B scripts/build_basin_research_feed.py
+            python -B scripts/validate_research_dashboard.py --report assets/data/research_dashboard_validation_latest.json
+            git add -- assets/data/research_basin_screening_latest.json assets/data/research_dashboard_validation_latest.json
+            if git diff --cached --quiet; then
+              echo 'Contexto já foi publicado por outra execução.'
+              exit 0
+            fi
+            git commit -m 'bot: atualiza contexto da pesquisa da bacia'
+            sleep $((attempt * 2))
+          done
+          echo 'Não foi possível publicar o contexto da bacia após 5 tentativas.'
+          exit 1

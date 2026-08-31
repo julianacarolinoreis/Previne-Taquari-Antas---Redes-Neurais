@@ -1,0 +1,96 @@
+name: Atualiza feed meteorológico de Santa Tereza
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: santa-weather-feed
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Configura Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configura ecCodes para auditoria direta do ECMWF
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libeccodes-dev
+          python -m pip install --disable-pip-version-check eccodes
+
+      - name: Atualiza meteorologia prospectiva de Santa Tereza
+        run: python -B scripts/build_santa_weather_feed.py
+
+      - name: Atualiza derivados da pesquisa
+        run: |
+          python -B scripts/build_binary_research_decision.py
+          python -B scripts/build_visual_research_patterns.py
+          python -B scripts/build_basin_research_feed.py
+
+      - name: Testa contratos e valida a dashboard
+        run: |
+          python -m unittest scripts/test_santa_weather_feed.py -v
+          python -m unittest scripts/test_basin_research_feed.py -v
+          python -B scripts/validate_research_dashboard.py --report assets/data/research_dashboard_validation_latest.json
+
+      - name: Publica artefatos atualizados
+        shell: bash
+        run: |
+          git config user.name 'previne-santa-weather-bot'
+          git config user.email 'previne-santa-weather-bot@users.noreply.github.com'
+          artifacts=(
+            assets/data/research_weather_santa_tereza_latest.json
+            assets/data/research_basin_screening_latest.json
+            assets/data/research_binary_decision_mucum_latest.json
+            assets/data/research_binary_decision_santa_tereza_latest.json
+            assets/data/research_visual_patterns_mucum_latest.json
+            assets/data/research_visual_patterns_santa_tereza_latest.json
+            assets/data/research_dashboard_validation_latest.json
+          )
+          git add -- "${artifacts[@]}"
+          if git diff --cached --quiet; then
+            echo 'Nenhuma mudança no feed.'
+            exit 0
+          fi
+          git commit -m 'bot: atualiza previsão meteorológica de Santa Tereza'
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push ocupado; reconstruindo sobre a main (tentativa ${attempt}/5)."
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort || true
+              git reset --keep origin/main
+              python -B scripts/build_santa_weather_feed.py
+              python -B scripts/build_binary_research_decision.py
+              python -B scripts/build_visual_research_patterns.py
+              python -B scripts/build_basin_research_feed.py
+              python -B scripts/validate_research_dashboard.py --report assets/data/research_dashboard_validation_latest.json
+              git add -- "${artifacts[@]}"
+              if git diff --cached --quiet; then
+                echo 'Feed já publicado por outra execução.'
+                exit 0
+              fi
+              git commit -m 'bot: atualiza previsão meteorológica de Santa Tereza'
+            fi
+            sleep $((attempt * 2))
+          done
+          echo 'Não foi possível publicar após 5 tentativas.'
+          exit 1

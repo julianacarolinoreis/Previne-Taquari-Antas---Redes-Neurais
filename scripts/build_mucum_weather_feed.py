@@ -45,6 +45,14 @@ def parse_hour(value: str) -> datetime:
     return parsed.astimezone(timezone.utc)
 
 
+def parse_forecast_hour(value: str) -> datetime:
+    """Interpret Open-Meteo hourly values in the requested UTC timezone."""
+    parsed = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def iso_utc(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
@@ -55,7 +63,9 @@ def fetch_open_meteo() -> tuple[dict, str]:
         "longitude": LONGITUDE,
         "models": "ecmwf_ifs025",
         "hourly": "precipitation,soil_moisture_0_to_7cm,temperature_2m",
-        "forecast_days": 7,
+        # Eight calendar days keep a complete rolling +168 h window even when
+        # the workflow runs after 00 UTC.
+        "forecast_days": 8,
         "timezone": "UTC",
     }
     url = "https://api.open-meteo.com/v1/forecast?" + urlencode(params)
@@ -129,7 +139,7 @@ def build_feed(api: dict, source_url: str, live_path: Path) -> dict:
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             previous_horizons = {}
             previous_risk = {}
-    times = [parse_hour(value) for value in api.get("hourly", {}).get("time", [])]
+    times = [parse_forecast_hour(value) for value in api.get("hourly", {}).get("time", [])]
     rain = api.get("hourly", {}).get("precipitation", [])
     soil = api.get("hourly", {}).get("soil_moisture_0_to_7cm", [])
     temperature = api.get("hourly", {}).get("temperature_2m", [])

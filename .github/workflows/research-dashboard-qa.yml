@@ -14,6 +14,12 @@ on:
       - 'assets/js/research_patterns_dashboard.js'
       - 'assets/css/pv_dashboard.css'
       - 'assets/data/research_*_latest.json'
+      - 'assets/data/basin_forecast_points.json'
+      - 'assets/data/research_basin_screening_latest.json'
+      - 'scripts/build_santa_weather_feed.py'
+      - 'scripts/test_santa_weather_feed.py'
+      - 'scripts/build_basin_research_feed.py'
+      - 'scripts/test_basin_research_feed.py'
       - 'scripts/build_binary_research_decision.py'
       - 'scripts/build_visual_research_patterns.py'
       - 'scripts/test_visual_research_patterns.py'
@@ -55,6 +61,12 @@ jobs:
       - name: Gera feeds compactos do painel visual
         run: python -B scripts/build_visual_research_patterns.py
 
+      - name: Gera contexto integrado da bacia
+        run: python -B scripts/build_basin_research_feed.py
+
+      - name: Testa contexto integrado da bacia
+        run: python -m unittest scripts/test_basin_research_feed.py -v
+
       - name: Testa feeds compactos do painel visual
         run: python -m unittest scripts/test_visual_research_patterns.py -v
 
@@ -73,17 +85,33 @@ jobs:
         run: |
           git config user.name 'previne-qa-bot'
           git config user.email 'previne-qa-bot@users.noreply.github.com'
-          git add -- assets/data/research_dashboard_validation_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json assets/data/research_visual_patterns_mucum_latest.json assets/data/research_visual_patterns_santa_tereza_latest.json
+          git add -- assets/data/research_dashboard_validation_latest.json assets/data/research_basin_screening_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json assets/data/research_visual_patterns_mucum_latest.json assets/data/research_visual_patterns_santa_tereza_latest.json
           if git diff --cached --quiet; then
             echo 'Nenhuma mudança no relatório de QA.'
             exit 0
           fi
-          git commit -m 'bot: atualiza QA da pesquisa [skip ci]'
+          git commit -m 'bot: atualiza QA da pesquisa'
           for attempt in 1 2 3 4 5; do
             if git pull --rebase --autostash origin main && git push origin HEAD:main; then
               exit 0
             fi
+            # Se um robô publicar durante a QA, o rebase pode deixar conflitos
+            # nos JSONs gerados. Refazemos a QA sobre a main remota, em vez de
+            # repetir um checkout conflitado.
             echo "push ocupado; tentando novamente (${attempt}/5)"
+            git rebase --abort || true
+            git fetch origin main
+            git reset --keep origin/main
+            python -B scripts/build_binary_research_decision.py
+            python -B scripts/build_visual_research_patterns.py
+            python -B scripts/build_basin_research_feed.py
+            python -B scripts/validate_research_dashboard.py --report assets/data/research_dashboard_validation_latest.json
+            git add -- assets/data/research_dashboard_validation_latest.json assets/data/research_basin_screening_latest.json assets/data/research_binary_decision_mucum_latest.json assets/data/research_binary_decision_santa_tereza_latest.json assets/data/research_visual_patterns_mucum_latest.json assets/data/research_visual_patterns_santa_tereza_latest.json
+            if git diff --cached --quiet; then
+              echo 'QA já foi publicada por outra execução.'
+              exit 0
+            fi
+            git commit -m 'bot: atualiza QA da pesquisa'
             sleep $((attempt * 2))
           done
           exit 1
@@ -95,5 +123,6 @@ jobs:
           name: research-dashboard-qa
           path: |
             assets/data/research_dashboard_validation_latest.json
+            assets/data/research_basin_screening_latest.json
             qa.txt
           retention-days: 14

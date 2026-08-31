@@ -25,6 +25,17 @@ EIGHT_V1_MAT = ROOT / "previne/assets/mat/RNAPREV__SANTA_TEREZA__08h__ALT__V001_
 EIGHT_V1_SHA = "CDA80F39A2A81644F7969984AD6AF262694508D5D56C3EB00CE4BF12B67A9571"
 EIGHT_V2_MAT = ROOT / "previne/assets/mat/RNAPREV__SANTA_TEREZA__08h__ALT__V002__28inputs_57hiddens_20260821.mat"
 EIGHT_V2_SHA = "53424025359CED9A70DCCEEB4080B917992CF2DD3C8A2CBECB8CBB55AC2C1663"
+EIGHT_FORMULA_CONTRACT = "stz_8h_excel_mae_20260825_v2"
+EIGHT_FORMULAS = {
+    "8h": (
+        "modelo_8h_V001_CORRIGIDO_GUARDAS_20260825_235111.xlsx",
+        "E675E77B671DBB6AC20E4A46230B851CA33B3A789AE6DBAA2A1C6409EB2BA9F6",
+    ),
+    "8h_v002": (
+        "modelo_8h_V002_CORRIGIDO_GUARDAS_20260825_235111.xlsx",
+        "9D036026B8DEDB7DA90F285CA39F1B13C53F194266D18DDFD46D106874044EDC",
+    ),
+}
 REQUIRED = {"2h", "2h_versao_b", "4h", "8h", "8h_v002"}
 REQUIRED_FIELDS = {"horizonte", "horizonte_h", "modelo", "tipo", "status"}
 EXPECTED_HOURS = {"2h": 2, "2h_versao_b": 2, "4h": 4, "8h": 8, "8h_v002": 8}
@@ -122,6 +133,26 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
             or audit.get("usa_vizinho_nivel") is not False
         ):
             raise SystemExit(f"{key} sem declaracao estruturada de nivel exato")
+    for key, (formula, formula_sha) in EIGHT_FORMULAS.items():
+        item = horizons[key]
+        audit = item.get("auditoria_inputs") or {}
+        if item.get("formula_contract_version") != EIGHT_FORMULA_CONTRACT:
+            raise SystemExit(f"{key} sem contrato das formulas do Excel-mae")
+        if item.get("referencia_formula") != formula:
+            raise SystemExit(f"{key} com referencia de formula inesperada")
+        if item.get("referencia_formula_sha256") != formula_sha:
+            raise SystemExit(f"{key} com hash da planilha-mae inesperado")
+        fontes = item.get("fontes_chuva_8h") or {}
+        if fontes.get("contrato_formula") != EIGHT_FORMULA_CONTRACT:
+            raise SystemExit(f"{key} sem proveniencia das fontes de chuva")
+        if fontes.get("grupo_18h_24h") != ["2851072", "A894", "432040401A"]:
+            raise SystemExit(f"{key} com grupo 18h/24h divergente do Excel-mae")
+        if fontes.get("grupo_6h") != ["A894", "432040401A"]:
+            raise SystemExit(f"{key} com grupo 6h divergente do Excel-mae")
+        if audit.get("ausencia_chuva_vira_zero") is not False and item.get("nivel_previsto_cm") is not None:
+            raise SystemExit(f"{key} nao prova tratamento seguro de chuva ausente")
+        if item.get("nivel_previsto_cm") is not None and audit.get("janela_incompleta_vira_ausente") is not True:
+            raise SystemExit(f"{key} nao prova bloqueio de janela de chuva incompleta")
     four = horizons["4h"]
     audit = four.get("auditoria") or {}
     if audit.get("n_conferidas", 0) and audit.get("auditoria_versao") not in (None, "target_exact_v2"):
