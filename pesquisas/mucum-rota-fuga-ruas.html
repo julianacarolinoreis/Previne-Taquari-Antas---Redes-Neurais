@@ -27,6 +27,27 @@
  .location-result strong{font-size:13px}
  .location-result .result-warning{color:#9a3f2d;font-weight:700;margin-top:5px}
  .location-result .result-note{color:#5b6b62;font-size:11px;margin-top:5px}
+ .location-workflow{margin-top:9px;border-top:1px solid rgba(18,59,88,.14);padding-top:8px}
+ .location-workflow summary{cursor:pointer;color:#123b58;font-weight:800;font-size:12px;list-style-position:inside}
+ .workflow-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:8px}
+ .workflow-step{background:#fff;border:1px solid #cfe5df;border-radius:8px;padding:6px;color:#12655f;font-size:10px;font-weight:800;text-align:center}
+ .workflow-copy{color:#48635f;font-size:11px;line-height:1.35;margin:7px 0}
+ .group-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+ .group-grid label{color:#37635e;font-size:10px;font-weight:800}
+ .group-grid input,.group-grid select{display:block;width:100%;min-height:35px;margin-top:3px;border:1px solid #b5ded2;border-radius:7px;background:#fff;color:#163536;padding:0 7px;font:700 12px inherit}
+ .group-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+ .group-actions button{min-height:35px!important;flex:1}
+ .group-plan-result{background:#fff;border-radius:9px;margin-top:8px;padding:8px 9px;color:#163536;font-size:11.5px;line-height:1.4}
+ .group-plan-result .result-warning{color:#9a3f2d;font-weight:700;margin-top:4px}
+ .nearby-ref{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #e2eee9;padding-top:5px;margin-top:5px}
+ .nearby-ref span{color:#48635f;text-align:right}
+ .data-quality{background:rgba(141,229,200,.14);color:#dff8ef;border:1px solid rgba(141,229,200,.45);border-radius:8px;padding:7px 8px;margin-top:8px;font-size:10px;line-height:1.35}
+ .field-check-card{background:#fff3d9;color:#4b3510;border:1px solid #f0c66c;border-radius:9px;padding:8px 9px;font-size:11px;line-height:1.35}
+ .field-check-card strong{color:#4b3510}
+ .field-checks{display:grid;gap:5px;margin-top:6px}
+ .field-check{display:flex;gap:6px;align-items:flex-start;font-weight:700}
+ .field-check input{width:16px;height:16px;accent-color:#087f73;flex:0 0 auto}
+ .field-status{font-weight:800;color:#8a4a13;margin-top:7px}
  .rota{background:#eaf5ef;border:1px solid #bfe0cd;border-radius:10px;padding:9px 10px;font-size:13px;margin-top:9px}
  .route-unknown{display:block;color:#9a3f2d;font-weight:800;margin-top:4px}
  .rota .ok{display:block;color:#087f73;font-weight:800;margin-top:4px}
@@ -71,6 +92,7 @@
    .hud{top:8px;left:8px;right:8px;width:auto;max-width:none;max-height:calc(100vh - 16px);overflow:auto;padding:11px 12px}
    .hud h1{font-size:15px}.hud .sub{font-size:11.5px}.location button{flex:1;min-width:122px}.municipal-head>div:first-child{min-width:0;flex:1 1 170px}
     .municipal-tabs button{flex:1;padding:0 5px;font-size:10.5px}.municipal-list{max-height:none;overflow:visible}
+    .group-grid{grid-template-columns:1fr 1fr}.group-grid label:last-child{grid-column:1/-1}.nearby-ref{display:block}.nearby-ref span{display:block;text-align:left;margin-top:2px}
     .leg{display:none}
   }
 </style></head><body>
@@ -88,15 +110,28 @@
       <button id="locateMe" type="button">Usar minha localização</button>
       <button id="clearLocation" class="secondary" type="button" hidden>Limpar</button>
       <button id="basemapToggle" class="map-toggle" type="button" aria-pressed="false">Ver ruas</button>
-    </div>
-    <div class="location-result" id="locationResult" role="status" aria-live="polite" hidden></div>
-  </div>
+     </div>
+     <div class="location-result" id="locationResult" role="status" aria-live="polite" hidden></div>
+     <details class="location-workflow">
+       <summary>Preparar um grupo · exercício</summary>
+       <div class="workflow-steps" aria-label="Sequência de preparação"><span class="workflow-step">1 · localizar</span><span class="workflow-step">2 · declarar necessidade</span><span class="workflow-step">3 · confirmar em campo</span></div>
+       <p class="workflow-copy">Registre apenas uma hipótese local para estudar transporte e abrigo. Esses campos não são enviados, não ficam salvos e não reservam vaga.</p>
+       <div class="group-grid">
+         <label for="groupPeople">Pessoas no grupo<input id="groupPeople" type="number" min="1" inputmode="numeric" placeholder="não informado"></label>
+         <label for="groupTransport">Precisa de transporte<select id="groupTransport"><option value="unknown">não informado</option><option value="yes">sim</option><option value="no">não</option></select></label>
+         <label for="groupAnimals">Animais no grupo<input id="groupAnimals" type="number" min="0" inputmode="numeric" placeholder="0"></label>
+       </div>
+       <div class="group-actions"><button id="prepareGroup" type="button">Atualizar estudo</button><button id="clearGroup" class="secondary" type="button">Limpar dados</button></div>
+       <div class="group-plan-result" id="groupPlanResult" role="status" aria-live="polite">Informe as pessoas do grupo e, se desejar, use a localização para comparar referências do plano.</div>
+     </details>
+   </div>
   <section class="municipal-panel" id="municipalPanel" aria-label="Dados do Plano de Contingência de Muçum">
     <div class="municipal-head">
       <div><span class="panel-kicker">Plano municipal · julho de 2026</span><strong>O que conferir antes de mover pessoas</strong></div>
       <div><span class="panel-badge" id="municipalState">carregando</span><button id="municipalToggle" class="panel-toggle" type="button" aria-expanded="true" aria-controls="municipalBody">recolher</button></div>
     </div>
-    <div class="legend-inline" aria-label="Legenda dos símbolos"><span><i style="background:#f0ae3d"></i>abrigo planejado</span><span><i style="background:#2d8ad6"></i>ponto de encontro / apoio</span><span><i style="background:#8b5cf6"></i>ponte · geometria observada</span><span><i style="background:#ffd166"></i>hipótese de rota</span><span><i style="background:#0b8f83"></i>sua localização</span></div>
+     <div class="legend-inline" aria-label="Legenda dos símbolos"><span><i style="background:#f0ae3d"></i>abrigo planejado</span><span><i style="background:#2d8ad6"></i>ponto de encontro / apoio</span><span><i style="background:#8b5cf6"></i>ponte · geometria observada</span><span><i style="background:#ffd166"></i>hipótese de rota</span><span><i style="background:#0b8f83"></i>sua localização</span></div>
+     <div class="data-quality" id="municipalQuality" role="status" aria-live="polite">Conferindo integridade documental…</div>
     <div id="municipalBody">
     <div class="municipal-strip">
       <div><b id="shelterCount">—</b>locais no Quadro 13</div>
@@ -170,19 +205,25 @@ document.getElementById('leg').innerHTML='<b>Mapa de pesquisa</b><br><i style="b
  '<i style="background:#b3382c"></i>trecho com evidência de alagamento<br><i style="background:#8fa7b8"></i>rede viária de estudo<br><i style="background:#1e5fbf;opacity:.4"></i>mancha válida, quando carregada';
 let locationMarker=null,accuracyCircle=null,locationRoute=null;
 const byId=id=>document.getElementById(id);
-function haversine(la1,lo1,la2,lo2){const R=6371000,rad=Math.PI/180,a=Math.sin((la2-la1)*rad/2)**2+Math.cos(la1*rad)*Math.cos(la2*rad)*Math.sin((lo2-lo1)*rad/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
-function routeForNode(i0){const pts=[];let i=i0,guard=0;while(Number.isInteger(i)&&i>=0&&i<D.nos.length&&guard++<6000){pts.push(D.nos[i]);const nx=Number(D.prox&&D.prox[i]);if(!Number.isInteger(nx)||nx===i||nx<0)break;i=nx;}return pts;}
-function fmtDistance(m){return m>=1000?(m/1000).toFixed(2)+' km':Math.round(m)+' m';}
-let municipal=null,activeMunicipalView='shelters';
-const bridgeMarkers={},municipalMarkers={};
-const municipalUrl='../assets/data/mucum_contingencia_202607.json';
-function esc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
-function planCapacity(s){const q=Number(s.capacidade_quadro_13),f=Number(s.capacidade_ficha_tecnica);return q===f?`${q} pessoas no plano`:`Quadro 13: ${q} · ficha técnica: ${f} (divergente)`;}
-function resourceSummary(){return municipal.recursos.map(r=>`${r.quantidade} ${r.unidade} · ${r.nome.toLowerCase()}`).join(' · ');}
-function routeStageText(r,cota){const limit=Number(r.cota_inutilizacao_m);if(Number.isFinite(limit))return cota>=limit?`referência de inutilização do plano: ${limit} m · cota selecionada ${cota} m: limite atingido no documento; não é rota liberada`:`referência de inutilização do plano: ${limit} m · cota selecionada ${cota} m: abaixo do limite documental, sem validação de campo`;return`referência textual do plano: ${r.cota_inutilizacao||'limite não informado'} · cota selecionada ${cota} m: sem número reconciliado`}
-function exerciseAction(text){const value=String(text||'');if(/^Executar a evacuação/i.test(value))return'estudar a sequência de evacuação das áreas mapeadas, a abertura de alojamentos e o acionamento de socorro conforme o plano municipal';if(/^Ativar /i.test(value))return'estudar a ativação de '+value.slice(6);if(/^Intensificar /i.test(value))return'estudar a intensificação de '+value.slice(12);if(/^Monitoramento de rotina/i.test(value))return'estudar o monitoramento de rotina e a atualização de contatos e recursos';if(/^Preparar /i.test(value))return'estudar a preparação de '+value.slice(9);return value;}
-function focusMunicipalPoint(kind,id){const item=municipal&&municipal[kind]&&municipal[kind].find(x=>x.id===id);if(!item||!Number.isFinite(item.lat)||!Number.isFinite(item.lon))return;map.setView([item.lat,item.lon],16);const marker=kind==='pontes'?bridgeMarkers[id]:(municipalMarkers[id]||baseMarkers[id]);if(marker)marker.openPopup();}
-function renderMunicipal(view=activeMunicipalView){
+ function haversine(la1,lo1,la2,lo2){const R=6371000,rad=Math.PI/180,a=Math.sin((la2-la1)*rad/2)**2+Math.cos(la1*rad)*Math.cos(la2*rad)*Math.sin((lo2-lo1)*rad/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
+ function routeForNode(i0){const pts=[];let i=i0,guard=0;while(Number.isInteger(i)&&i>=0&&i<D.nos.length&&guard++<6000){pts.push(D.nos[i]);const nx=Number(D.prox&&D.prox[i]);if(!Number.isInteger(nx)||nx===i||nx<0)break;i=nx;}return pts;}
+ function fmtDistance(m){return m>=1000?(m/1000).toFixed(2)+' km':Math.round(m)+' m';}
+ function nearestMunicipalShelters(lat,lon){return municipal&&Array.isArray(municipal.abrigos)?municipal.abrigos.filter(s=>Number.isFinite(s.lat)&&Number.isFinite(s.lon)).map(s=>Object.assign({},s,{distance_m:haversine(lat,lon,s.lat,s.lon)})).sort((a,b)=>a.distance_m-b.distance_m):[];}
+ function renderGroupPlan(){const result=byId('groupPlanResult');if(!result)return;const peopleRaw=byId('groupPeople').value.trim(),people=Number(peopleRaw),animalsRaw=byId('groupAnimals').value.trim(),animals=animalsRaw===''?0:Number(animalsRaw),transport=byId('groupTransport').value;if(!peopleRaw||!Number.isInteger(people)||people<1){result.textContent='Informe as pessoas do grupo para registrar uma hipótese; os outros campos são opcionais.';return;}if(!Number.isInteger(animals)||animals<0){result.textContent='Informe um número válido de animais ou deixe 0.';return;}let html='<strong>Hipótese registrada:</strong> '+people+' pessoa(s)'+(animals?' · '+animals+' animal(is)':'')+'. ';if(transport==='yes')html+='A necessidade de transporte fica marcada para o exercício. ';else if(transport==='no')html+='O grupo informou que não precisa de transporte. ';else html+='Necessidade de transporte não informada. ';if(currentLocation){const nearby=nearestMunicipalShelters(currentLocation.lat,currentLocation.lon),s=nearby[0];if(s){const q=Number(s.capacidade_quadro_13);html+='<div class="nearby-ref"><b>Referência documental mais próxima</b><span>'+esc(s.nome)+' · '+fmtDistance(s.distance_m)+' em linha reta · '+esc(planCapacity(s))+'</span></div>';html+='<div class="result-warning">A distância é aérea aproximada, não é rota de deslocamento. '+(people>q?'A demanda declarada excede a capacidade planejada do Quadro 13;':'A demanda declarada cabe no número planejado do Quadro 13;')+' isso não significa vaga, abertura ou segurança atual.</div>';if(animals)html+='<div class="result-note">O plano informa aceitação de animais de pequeno porte em alguns locais; confirmar o abrigo e a condição atual antes de qualquer deslocamento.</div>';}}else html+='<div class="result-note">Use “Usar minha localização” para comparar a referência mais próxima do cadastro municipal. Sem localização, não há comparação espacial.</div>';result.innerHTML=html;}
+ let municipal=null,municipalQa=null,activeMunicipalView='shelters',currentLocation=null;
+ const fieldChecks={};
+ const bridgeMarkers={},municipalMarkers={};
+ const municipalUrl='../assets/data/mucum_contingencia_202607.json';
+ const municipalQaUrl='../assets/data/mucum_contingencia_qa_latest.json';
+ function esc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+ function planCapacity(s){const q=Number(s.capacidade_quadro_13),f=Number(s.capacidade_ficha_tecnica);return q===f?`${q} pessoas no plano`:`Quadro 13: ${q} · ficha técnica: ${f} (divergente)`;}
+ function resourceSummary(){return municipal.recursos.map(r=>`${r.quantidade} ${r.unidade} · ${r.nome.toLowerCase()}`).join(' · ');}
+ function renderMunicipalQuality(){const target=byId('municipalQuality');if(!target)return;if(!municipalQa){target.innerHTML='<b>Integridade documental: relatório indisponível</b><br>A ficha pode ser lida, mas a auditoria estrutural não foi carregada nesta abertura.';return;}const c=municipalQa.counts||{},cap=municipalQa.capacity_check||{},label=municipalQa.status==='PASS_WITH_KNOWN_CONFLICTS'?'BASE CONFERIDA · conflitos visíveis':municipalQa.status==='FAIL'?'REVISAR BASE DOCUMENTAL':'status '+municipalQa.status;target.innerHTML='<b>'+esc(label)+'</b><br>'+esc(c.shelters||'—')+' abrigos · '+esc(c.bridges||'—')+' pontes · '+esc(c.routes||'—')+' rotas · '+esc(c.resource_types||'—')+' tipos de recursos · '+esc(c.shelters_without_coordinates||0)+' abrigo(s) sem coordenada publicada.<br>Capacidades mantidas como divergência: Quadro 2 '+esc(cap.quadro_2_declared||'—')+' · Quadro 13 '+esc(cap.quadro_13_declared||'—')+' · ficha/Anexo 5 '+esc(cap.anexo_5_declared||'—')+'. Uso operacional: <b>BLOQUEADO</b>.';}
+ function routeStageText(r,cota){const limit=Number(r.cota_inutilizacao_m);if(Number.isFinite(limit))return cota>=limit?`referência de inutilização do plano: ${limit} m · cota selecionada ${cota} m: limite atingido no documento; não é rota liberada`:`referência de inutilização do plano: ${limit} m · cota selecionada ${cota} m: abaixo do limite documental, sem validação de campo`;return`referência textual do plano: ${r.cota_inutilizacao||'limite não informado'} · cota selecionada ${cota} m: sem número reconciliado`}
+ function exerciseAction(text){const value=String(text||'');if(/^Executar a evacuação/i.test(value))return'estudar a sequência de evacuação das áreas mapeadas, a abertura de alojamentos e o acionamento de socorro conforme o plano municipal';if(/^Ativar /i.test(value))return'estudar a ativação de '+value.slice(6);if(/^Intensificar /i.test(value))return'estudar a intensificação de '+value.slice(12);if(/^Monitoramento de rotina/i.test(value))return'estudar o monitoramento de rotina e a atualização de contatos e recursos';if(/^Preparar /i.test(value))return'estudar a preparação de '+value.slice(9);return value;}
+ function focusMunicipalPoint(kind,id){const item=municipal&&municipal[kind]&&municipal[kind].find(x=>x.id===id);if(!item||!Number.isFinite(item.lat)||!Number.isFinite(item.lon))return;map.setView([item.lat,item.lon],16);const marker=kind==='pontes'?bridgeMarkers[id]:(municipalMarkers[id]||baseMarkers[id]);if(marker)marker.openPopup();}
+ function fieldCheckMarkup(){const defs=[['access','via e ponte conferidas no campo'],['shelter','abrigo aberto e responsável confirmado'],['capacity','capacidade atual e necessidades do grupo conferidas'],['comms','canal e mensagem de comunicação testados']];const done=defs.filter(item=>fieldChecks[item[0]]).length;return '<article class="field-check-card"><strong>Conferência de campo · exercício</strong><div class="mini">Marque somente o que a equipe realmente conferiu. Este registro fica apenas nesta abertura e não muda o bloqueio operacional.</div><div class="field-checks">'+defs.map(item=>'<label class="field-check"><input type="checkbox" data-field-check="'+item[0]+'" '+(fieldChecks[item[0]]?'checked':'')+'>'+item[1]+'</label>').join('')+'</div><div class="field-status">'+done+'/'+defs.length+' itens registrados · a rota continua sem liberação automática</div></article>';}
+ function renderMunicipal(view=activeMunicipalView){
   if(!municipal)return;activeMunicipalView=view;
   const tabs=document.querySelectorAll('.municipal-tabs button');tabs.forEach(btn=>{const selected=btn.dataset.view===view;btn.setAttribute('aria-selected',String(selected));btn.tabIndex=selected?0:-1;});
   const list=byId('municipalList');
@@ -198,12 +239,12 @@ function renderMunicipal(view=activeMunicipalView){
     list.innerHTML=municipal.pontes.map(p=>`<article class="data-card"><strong>${esc(p.nome)}</strong><div class="mini">${esc(p.curso_dagua)} · ${esc(p.rodovia)}</div><div class="ok">imagem: ${esc(p.remote_sensing.status.replaceAll('_',' '))}</div><div class="mini">${esc(p.remote_sensing.observacao)}</div><div class="mini">Fonte: imagem Esri e geometria OSM · data da imagem não informada</div><div class="warn">engenharia: ${esc(p.status_engenharia)} · operação atual: ${esc(p.status_operacional)}</div><div class="meta-line"><span>OSM ${esc(p.osm_way_id)}</span><button type="button" class="status-chip" aria-label="Ver ${esc(p.nome)} no mapa" data-focus-kind="pontes" data-focus-id="${esc(p.id)}">ver no mapa</button></div></article>`).join('');
     byId('municipalFoot').innerHTML='A imagem ajuda a conferir posição e continuidade aparente. Não certifica estrutura, passagem, altura livre, bloqueio ou segurança atual. <a href="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer" target="_blank" rel="noopener">Fonte da imagem</a> · <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">geometria OSM</a>.';
   }else{
-    list.innerHTML='<div class="stage-control"><label for="stageCota">Testar uma cota do plano · exercício · referência documental</label><select id="stageCota">'+municipal.estagios.map(s=>`<option value="${s.cota_m}">${s.cota_m} m · ${esc(s.nome)}</option>`).join('')+'</select><div id="stageText" class="mini" style="margin-top:6px"></div></div><div id="routeCards"></div><article class="data-card"><strong>Recursos cadastrados no plano</strong><div class="mini">'+esc(resourceSummary())+'</div><div class="warn">inventário do plano; não representa disponibilidade, abertura ou despacho em tempo real. Embarcações próprias para resgate aquático: 0.</div></article>';
+     list.innerHTML='<div class="stage-control"><label for="stageCota">Testar uma cota do plano · exercício · referência documental</label><select id="stageCota">'+municipal.estagios.map(s=>`<option value="${s.cota_m}">${s.cota_m} m · ${esc(s.nome)}</option>`).join('')+'</select><div id="stageText" class="mini" style="margin-top:6px"></div></div><div id="routeCards"></div><article class="data-card"><strong>Recursos cadastrados no plano</strong><div class="mini">'+esc(resourceSummary())+'</div><div class="warn">inventário do plano; não representa disponibilidade, abertura ou despacho em tempo real. Embarcações próprias para resgate aquático: 0.</div></article>'+fieldCheckMarkup();
     const stageSelect=byId('stageCota'),routeCards=byId('routeCards');const renderRouteCards=()=>{const cota=Number(stageSelect.value);routeCards.innerHTML=municipal.rotas_plano.map(r=>`<article class="data-card"><strong>${esc(r.id)} · ${esc(r.nome)}</strong><div class="mini">${esc(r.distancia_km)} km · ${esc(r.tempo_min)} min · destino: ${esc(r.destinos)}</div><div class="warn">${esc(r.status)} · ${esc(routeStageText(r,cota))}</div><div class="mini">Fonte: Plano municipal · julho/2026</div></article>`).join('');};const updateStage=()=>{const s=municipal.estagios.find(x=>String(x.cota_m)===stageSelect.value)||municipal.estagios[0];byId('stageText').innerHTML='<b>Cenário de exercício · '+esc(s.nome)+'</b><br>No exercício, o plano associa esta cota a: '+esc(exerciseAction(s.acao))+'.<br><span class="warn">A cota é parâmetro do plano. As referências das rotas são atualizadas abaixo; o mapa não é recalculado por esta seleção.</span>';renderRouteCards();};stageSelect.addEventListener('change',updateStage);updateStage();
     byId('municipalFoot').innerHTML='As rotas são referências do plano municipal: conferir via, acessibilidade, cota, comunicação e capacidade antes de qualquer ação. <a href="'+municipal.meta.source+'" target="_blank" rel="noopener">Fonte municipal</a>.';
   }
 }
-function addMunicipalMapLayers(){
+ function addMunicipalMapLayers(){
   const baseIds=new Set(Object.keys(baseMarkers));
   municipal.abrigos.filter(s=>!baseIds.has(s.id)&&Number.isFinite(s.lat)&&Number.isFinite(s.lon)).forEach(s=>{const marker=L.circleMarker([s.lat,s.lon],{radius:8,color:'#fff',weight:2,fillColor:'#f0ae3d',fillOpacity:.95}).addTo(shelterLayer);municipalMarkers[s.id]=marker;labelMarker(marker,'Abrigo planejado · '+s.nome);marker.bindTooltip('Abrigo planejado · '+s.nome,{direction:'top'}).bindPopup('<b>'+esc(s.nome)+'</b><br>'+esc(planCapacity(s))+'<br><span style="color:#9a3f2d">ocupação e abertura atuais desconhecidas</span>');});
   municipal.abrigos.forEach(s=>{if(baseMarkers[s.id])baseMarkers[s.id].bindPopup('<b>'+esc(s.nome)+'</b><br>'+esc(planCapacity(s))+'<br><span style="color:#9a3f2d">ocupação e abertura atuais desconhecidas</span>');});
@@ -211,18 +252,19 @@ function addMunicipalMapLayers(){
   municipal.pontes.forEach(p=>{const marker=L.circleMarker([p.lat,p.lon],{radius:9,color:'#fff',weight:2,fillColor:'#8b5cf6',fillOpacity:.95}).addTo(bridgeLayer);bridgeMarkers[p.id]=marker;labelMarker(marker,'Ponte · '+p.nome);marker.bindPopup('<b>'+esc(p.nome)+'</b><br>imagem: geometria observada<br><span style="color:#9a3f2d">vistoria estrutural e status operacional necessários</span>');});
   renderMunicipal(activeMunicipalView);
 }
-async function loadMunicipal(){try{const response=await fetch(municipalUrl,{cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);municipal=await response.json();addMunicipalMapLayers();}catch(error){byId('municipalState').textContent='fonte indisponível';byId('municipalList').innerHTML='<div class="data-card"><strong>Cadastro municipal indisponível nesta abertura.</strong><div class="warn">Não conclua segurança, disponibilidade ou capacidade. Tente novamente com conexão.</div></div>';}}
+ async function loadMunicipal(){try{const response=await fetch(municipalUrl,{cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);municipal=await response.json();try{const qaResponse=await fetch(municipalQaUrl,{cache:'no-store'});municipalQa=qaResponse.ok?await qaResponse.json():null;}catch(error){municipalQa=null;}renderMunicipalQuality();addMunicipalMapLayers();}catch(error){byId('municipalState').textContent='fonte indisponível';byId('municipalQuality').innerHTML='<b>Integridade documental: fonte indisponível</b><br>Não conclua segurança, disponibilidade ou capacidade nesta abertura.';byId('municipalList').innerHTML='<div class="data-card"><strong>Cadastro municipal indisponível nesta abertura.</strong><div class="warn">Não conclua segurança, disponibilidade ou capacidade. Tente novamente com conexão.</div></div>';}}
 let municipalExpanded=false;function setMunicipalExpanded(expanded){municipalExpanded=expanded;const panel=byId('municipalPanel'),body=byId('municipalBody'),button=byId('municipalToggle');panel.classList.toggle('collapsed',!expanded);body.hidden=!expanded;button.setAttribute('aria-expanded',String(expanded));button.textContent=expanded?'recolher':'abrir plano';}
 byId('municipalToggle').addEventListener('click',()=>setMunicipalExpanded(!municipalExpanded));
 setMunicipalExpanded(false);
 document.querySelectorAll('.municipal-tabs button').forEach((btn,index,all)=>{btn.addEventListener('click',()=>renderMunicipal(btn.dataset.view));btn.addEventListener('keydown',event=>{if(!['ArrowRight','ArrowDown','ArrowLeft','ArrowUp','Home','End'].includes(event.key))return;event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?all.length-1:(index+(['ArrowRight','ArrowDown'].includes(event.key)?1:-1)+all.length)%all.length;all[next].focus();all[next].click();});});
 byId('roadsToggle').addEventListener('click',()=>{const showing=map.hasLayer(roadLayer);if(showing)map.removeLayer(roadLayer);else roadLayer.addTo(map);const btn=byId('roadsToggle');btn.setAttribute('aria-pressed',String(!showing));btn.textContent=showing?'Mostrar rede viária':'Ocultar rede viária';});
 byId('bridgesToggle').addEventListener('click',()=>{const showing=map.hasLayer(bridgeLayer);if(showing)map.removeLayer(bridgeLayer);else bridgeLayer.addTo(map);const btn=byId('bridgesToggle');btn.setAttribute('aria-pressed',String(!showing));btn.textContent=showing?'Mostrar pontes':'Ocultar pontes';});
-byId('municipalList').addEventListener('click',event=>{const button=event.target.closest('[data-focus-kind]');if(button)focusMunicipalPoint(button.dataset.focusKind,button.dataset.focusId);});
+ byId('municipalList').addEventListener('click',event=>{const button=event.target.closest('[data-focus-kind]');if(button)focusMunicipalPoint(button.dataset.focusKind,button.dataset.focusId);});
+ byId('municipalList').addEventListener('change',event=>{const check=event.target.closest('[data-field-check]');if(!check)return;fieldChecks[check.dataset.fieldCheck]=check.checked;renderMunicipal(activeMunicipalView);});
 function clearLocation(){
   if(locationMarker)map.removeLayer(locationMarker);if(accuracyCircle)map.removeLayer(accuracyCircle);if(locationRoute)map.removeLayer(locationRoute);
-  locationMarker=accuracyCircle=locationRoute=null;byId('locationResult').hidden=true;byId('clearLocation').hidden=true;
-  byId('locationStatus').textContent='A localização fica somente neste navegador. Nenhuma coordenada é enviada ou salva.';ajusta();
+  locationMarker=accuracyCircle=locationRoute=null;currentLocation=null;byId('locationResult').hidden=true;byId('clearLocation').hidden=true;
+  byId('locationStatus').textContent='A localização fica somente neste navegador. Nenhuma coordenada é enviada ou salva.';renderGroupPlan();ajusta();
 }
 function renderLocation(position){
   const c=position.coords,lat=c.latitude,lon=c.longitude,i0=noProximo(lat,lon),acc=Number.isFinite(c.accuracy)?c.accuracy:30;
@@ -230,22 +272,29 @@ function renderLocation(position){
   if(locationMarker)map.removeLayer(locationMarker);if(accuracyCircle)map.removeLayer(accuracyCircle);if(locationRoute)map.removeLayer(locationRoute);
   locationMarker=L.circleMarker([lat,lon],{radius:8,color:'#fff',weight:3,fillColor:'#0b8f83',fillOpacity:1}).addTo(map);labelMarker(locationMarker,'Sua localização · somente neste aparelho');locationMarker.bindTooltip('Sua localização · somente neste aparelho');
   accuracyCircle=L.circle([lat,lon],{radius:acc,color:'#0b8f83',weight:1,fillColor:'#55d6bd',fillOpacity:.16}).addTo(map);
-  const pts=routeForNode(i0),graphM=Number(D.dist_m&&D.dist_m[i0]),ab=D.abrigos.find(x=>x.id===D.dest[i0])||D.abrigos[0];
-  const directM=ab?haversine(lat,lon,ab.lat,ab.lon):NaN,routeM=Number.isFinite(graphM)&&graphM>0?graphM:directM;
-  if(pts.length>1)locationRoute=L.polyline(pts,{color:'#ffd166',weight:7,opacity:.95,dashArray:'10 8'}).addTo(map);
+  currentLocation={lat,lon,accuracy:acc};
+  const pts=routeForNode(i0),routeAb=D.abrigos.find(x=>x.id===D.dest[i0]),nearby=nearestMunicipalShelters(lat,lon),ab=nearby[0]||routeAb||D.abrigos[0];
+  const directM=ab?haversine(lat,lon,ab.lat,ab.lon):NaN;
+  const sameReference=Boolean(routeAb&&ab&&routeAb.id===ab.id);
+  if(sameReference&&pts.length>1)locationRoute=L.polyline(pts,{color:'#ffd166',weight:7,opacity:.95,dashArray:'10 8'}).addTo(map);
   map.setView([lat,lon],Math.max(map.getZoom(),15));
   const nivel=D.meta.nivel||{},timestamp=nivel.telemetria_em||D.meta.gerado_em||'não informado',mancha=D.mancha&&D.mancha.length;
   byId('locationStatus').textContent='Localização encontrada. A coordenada não saiu deste navegador.';byId('clearLocation').hidden=false;
   byId('locationResult').hidden=false;
-  const resultMain=ab?'<strong>Referência mais próxima: '+ab.nome+'</strong><br>Tipo: <b>'+destinationKind(ab)+'</b><br>Distância estimada: <b>'+(Number.isFinite(routeM)?fmtDistance(routeM):'não calculada')+'</b> · precisão do aparelho: ~'+Math.round(acc)+' m':'<strong>Nenhum ponto de referência cadastrado nesta captura.</strong>';
-  byId('locationResult').innerHTML=resultMain+'<div class="result-warning">Não iniciar deslocamento com esta tela: a rota precisa de confirmação em campo. O plano municipal registra capacidade planejada, mas ocupação, abertura e vagas atuais continuam desconhecidas.</div><div class="result-note">Rede: '+(D.meta.fonte_rede||'não informada')+' · nível: '+timestamp+' · mancha disponível nesta captura: '+(mancha?'sim, preliminar':'não')+'. A linha amarela é uma hipótese de pesquisa.</div>';
+  const resultMain=ab?'<strong>Referência documental mais próxima: '+esc(ab.nome)+'</strong><br>Tipo: <b>'+destinationKind(ab)+'</b><br>Distância aérea aproximada: <b>'+(Number.isFinite(directM)?fmtDistance(directM):'não calculada')+'</b> · precisão do aparelho: ~'+Math.round(acc)+' m':'<strong>Nenhum ponto de referência cadastrado nesta captura.</strong>';
+  const nearbyRefs=nearby.slice(0,3).map((s,index)=>'<div class="nearby-ref"><b>'+(index+1)+'. '+esc(s.nome)+'</b><span>'+fmtDistance(s.distance_m)+' em linha reta · '+esc(planCapacity(s))+'</span></div>').join('');
+  byId('locationResult').innerHTML=resultMain+(nearbyRefs?'<div class="result-note">Referências do plano ordenadas por distância aérea aproximada:</div>'+nearbyRefs:'')+'<div class="result-warning">Não iniciar deslocamento com esta tela: a distância não é rota segura. O plano municipal registra capacidade planejada, mas ocupação, abertura e vagas atuais continuam desconhecidas.</div><div class="result-note">Rede: '+(D.meta.fonte_rede||'não informada')+' · nível: '+timestamp+' · mancha disponível nesta captura: '+(mancha?'sim, preliminar':'não')+(sameReference?' · linha amarela: hipótese de pesquisa':'')+'.</div>';
+  renderGroupPlan();
 }
 function locateMe(){
   if(!navigator.geolocation){byId('locationStatus').textContent='Este navegador não disponibilizou localização.';return;}
   const btn=byId('locateMe');btn.disabled=true;btn.textContent='Buscando localização…';
   navigator.geolocation.getCurrentPosition(renderLocation,err=>{const msg=err.code===1?'permissão não concedida':err.code===3?'tempo esgotado':'localização indisponível';byId('locationStatus').textContent='Não foi possível obter a localização: '+msg+'. Você ainda pode clicar no mapa para estudar uma hipótese.';}, {enableHighAccuracy:true,timeout:12000,maximumAge:30000});
   setTimeout(()=>{btn.disabled=false;btn.textContent='Usar minha localização';},13000);
-}
-byId('locateMe').addEventListener('click',locateMe);byId('clearLocation').addEventListener('click',clearLocation);
-loadMunicipal();
+ }
+ byId('locateMe').addEventListener('click',locateMe);byId('clearLocation').addEventListener('click',clearLocation);
+ ['groupPeople','groupAnimals','groupTransport'].forEach(id=>{const input=byId(id);input.addEventListener('input',renderGroupPlan);input.addEventListener('change',renderGroupPlan);});
+ byId('prepareGroup').addEventListener('click',renderGroupPlan);
+ byId('clearGroup').addEventListener('click',()=>{byId('groupPeople').value='';byId('groupAnimals').value='';byId('groupTransport').value='unknown';renderGroupPlan();});
+ loadMunicipal();
 </script></body></html>
