@@ -63,6 +63,19 @@ class BasinResearchFeedTests(unittest.TestCase):
         self.assertTrue({"hydrologic_mask", "soil_observation", "probability_calibration"} <= gate_ids)
         self.assertTrue(all(gate.get("reason") for gate in self.feed["gates"]))
 
+    def test_official_source_registry_is_research_only_and_actionable(self):
+        registry = self.feed["source_registry"]
+        self.assertEqual(registry["scope"], "research_only")
+        self.assertGreaterEqual(len(registry["sources"]), 3)
+        self.assertEqual(registry["artifact"]["path"], "assets/data/research_source_registry.json")
+        source_ids = {item["id"] for item in registry["sources"]}
+        self.assertTrue({"ana_bho_2017_50k", "inpe_topodata_dem", "cemaden_radar_santa_tereza", "ana_hidrowebservice"} <= source_ids)
+        for item in registry["sources"]:
+            self.assertIn(item["status"], {"identified", "conditional", "integrated"})
+            self.assertTrue(item["url"].startswith("https://"))
+            self.assertTrue(item["role"])
+            self.assertTrue(item["next_step"])
+
 
 if __name__ == "__main__":
     unittest.main()

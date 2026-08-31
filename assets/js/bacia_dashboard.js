@@ -41,6 +41,10 @@
       '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
     }[c]));
   }
+  function safeHttpUrl(value) {
+    const url = String(value == null ? '' : value).trim();
+    return /^https?:\/\//i.test(url) ? url : '';
+  }
   function num(value) {
     if (value == null || (typeof value === 'string' && value.trim() === '')) return null;
     const n = Number(value);
@@ -177,14 +181,34 @@
   function researchMetric(label, value, note, cls = '') {
     return `<div class="research-metric ${cls}"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(note)}</small></div>`;
   }
+  function sourceStatusLabel(value) {
+    if (value === 'identified') return 'FONTE IDENTIFICADA';
+    if (value === 'conditional') return 'ACESSO CONDICIONAL';
+    if (value === 'integrated') return 'INTEGRADA E VALIDADA';
+    return String(value || 'SEM STATUS').replace(/_/g, ' ').toUpperCase();
+  }
+  function renderResearchSources(registry) {
+    const sources = registry && Array.isArray(registry.sources) ? registry.sources : [];
+    if (!sources.length) return '<div class="empty-block">O registro de fontes ainda não foi publicado.</div>';
+    const cards = sources.map((source) => {
+      const url = safeHttpUrl(source.url);
+      const metadata = safeHttpUrl(source.metadata_url);
+      const link = url ? `<a class="research-source-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">abrir fonte oficial ↗</a>` : '';
+      const metadataLink = metadata ? `<a class="research-source-meta" href="${esc(metadata)}" target="_blank" rel="noopener noreferrer">metadados ↗</a>` : '';
+      const status = source.status === 'integrated' ? 'integrated' : source.status === 'conditional' ? 'conditional' : 'identified';
+      return `<article class="research-source-card"><div class="research-source-head"><div><span class="research-source-type">${esc(source.type || 'fonte')}</span><h3>${esc(source.label || source.id || 'Fonte')}</h3></div><span class="research-source-status ${status}">${esc(sourceStatusLabel(source.status))}</span></div><p class="research-source-role"><strong>Gate:</strong> ${esc(String(source.gate || 'não associado').replace(/_/g, ' '))} · ${esc(source.role || 'papel não informado')}</p><p class="research-source-next"><strong>Próximo passo:</strong> ${esc(source.next_step || 'validar recorte, unidade, tempo e qualidade antes de integrar')}</p><div class="research-source-links">${link}${metadataLink}</div></article>`;
+    }).join('');
+    return `<div class="research-sources-head"><strong>${esc(registry.title || 'Fontes oficiais priorizadas')}</strong><span>revisado em ${esc(shortDate(registry.last_reviewed_utc))}</span></div><p class="research-sources-note">${esc(registry.note || 'Fonte identificada não é camada validada.')}</p><div class="research-source-list">${cards}</div>`;
+  }
   function renderResearchContext() {
-    const grid = $('research-context-grid'); const gates = $('research-context-gates'); const upstream = $('research-upstream'); const status = $('research-context-status');
-    if (!grid || !gates || !upstream || !status) return;
+    const grid = $('research-context-grid'); const gates = $('research-context-gates'); const upstream = $('research-upstream'); const registry = $('research-source-registry'); const status = $('research-context-status');
+    if (!grid || !gates || !upstream || !registry || !status) return;
     if (!state.research || !state.research.stations) {
       status.textContent = 'Feed integrado indisponível';
       grid.innerHTML = '<div class="empty-block">O contexto da pesquisa ainda não foi publicado.</div>';
       gates.innerHTML = '';
       upstream.innerHTML = '';
+      registry.innerHTML = '';
       return;
     }
     const keys = state.station === 'basin' ? ['santa_tereza', 'mucum'] : [state.station === 'santa' ? 'santa_tereza' : state.station];
@@ -218,6 +242,7 @@
     gates.innerHTML = `<div class="research-gates-head"><strong>Gates científicos da pesquisa</strong><span>${pending.length} itens ainda sem validação final</span></div><div class="research-gates-list">${pending.map((gate) => `<span class="research-gate ${gate.status === 'research_partial' ? 'partial' : ''}"><b>${esc(gate.id.replace(/_/g, ' '))}</b><small>${esc(gate.reason)}</small></span>`).join('')}</div>`;
     const gauges = state.research.basin && state.research.basin.upstream_gauges && Array.isArray(state.research.basin.upstream_gauges.stations) ? state.research.basin.upstream_gauges.stations : [];
     upstream.innerHTML = gauges.length ? `<div class="research-upstream-head"><strong>Âncoras observadas a montante</strong><span>não confundir com chuva da bacia</span></div><div class="research-upstream-list">${gauges.map((gauge) => `<span class="research-upstream-item"><b>${esc(gauge.name || gauge.station_code)}</b><small>${gauge.current_level_cm == null ? 'nível —' : `${fmt(gauge.current_level_cm, 0)} cm`} · ${esc(gauge.lag_hours_declared == null ? 'defasagem não declarada' : `lag declarado ${fmt(gauge.lag_hours_declared, 0)} h`)}</small></span>`).join('')}</div>` : '';
+    registry.innerHTML = renderResearchSources(state.research.source_registry);
     status.textContent = `Contexto gerado em ${when(state.research.generated_at_utc)} · pesquisa, sem alerta automático`;
   }
 

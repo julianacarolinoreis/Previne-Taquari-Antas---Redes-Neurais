@@ -26,6 +26,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "assets" / "data" / "research_basin_screening_latest.json"
+SOURCE_REGISTRY = ROOT / "assets" / "data" / "research_source_registry.json"
 HORIZONS = (24, 48, 72, 120, 168)
 BRT = timezone(timedelta(hours=-3))
 
@@ -117,6 +118,32 @@ def sha256(path: Path) -> str | None:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def source_registry() -> dict[str, Any]:
+    """Load the curated, official-source map used by the research UI.
+
+    The registry is intentionally separate from the hourly joins.  A source
+    can be identified and documented before it is downloaded and validated;
+    keeping that distinction in the feed prevents a URL from being mistaken
+    for an approved hydrologic layer or observation.
+    """
+    value = load(SOURCE_REGISTRY, {})
+    if not isinstance(value, dict):
+        value = {}
+    sources = value.get("sources") if isinstance(value.get("sources"), list) else []
+    return {
+        "schema_version": integer(value.get("schema_version")) or 1,
+        "scope": value.get("scope") or "research_only",
+        "last_reviewed_utc": value.get("last_reviewed_utc"),
+        "title": value.get("title") or "Fontes oficiais priorizadas para fechar os gates da bacia",
+        "note": value.get("note") or "Fonte identificada não é camada validada.",
+        "sources": [dict(item) for item in sources if isinstance(item, dict)],
+        "artifact": {
+            "path": rel(SOURCE_REGISTRY),
+            "sha256": sha256(SOURCE_REGISTRY),
+        },
+    }
 
 
 def rows(value: Any) -> list[dict[str, Any]]:
@@ -539,6 +566,7 @@ def build_feed(now: datetime | None = None) -> dict[str, Any]:
             "upstream_gauges": upstream_gauge_context(),
         },
         "stations": station_data,
+        "source_registry": source_registry(),
         "signals": {
             "observed_level": "ANA/SGB or robot live level, with timestamp and age",
             "forecast_rain": "ECMWF IFS at each target point plus an explicitly labelled upstream monitoring-grid proxy",
@@ -554,11 +582,11 @@ def build_feed(now: datetime | None = None) -> dict[str, Any]:
             "steps": ["join current artifacts", "write compact feed", "run schema/QA", "publish only changed artifacts"],
         },
         "gates": [
-            {"id": "hydrologic_mask", "status": "pending", "reason": "current hourly proxy covers monitored upstream cells; outlet, flow accumulation and headwater polygons still need a validated regional DEM/network"},
+            {"id": "hydrologic_mask", "status": "pending", "reason": "current hourly proxy covers monitored upstream cells; ANA BHO 2017/BHO6 and INPE TOPODATA were identified as inputs, but outlet, flow accumulation and headwater polygons still need validation"},
             {"id": "mucum_independent_headwater", "status": "pending", "reason": "Muçum currently shares the upstream monitoring-grid proxy; an independent catchment mask has not been validated"},
             {"id": "soil_observation", "status": "pending", "reason": "no local in-situ saturation series is published for either station"},
-            {"id": "radar_qpe", "status": "pending", "reason": "CEMADEN radar/QPE feed requires a successful public download or credentials"},
-            {"id": "travel_time", "status": "research_partial", "reason": "known model anchors are displayed, but event-level propagation still needs validation"},
+            {"id": "radar_qpe", "status": "pending", "reason": "CEMADEN radar/QPE option was identified, but a reproducible public download and quality check are still required"},
+            {"id": "travel_time", "status": "research_partial", "reason": "ANA HidroWebService was identified for station series, but event-level propagation still needs validation"},
             {"id": "probability_calibration", "status": "research_only", "reason": "few positive events, missing independent negatives, source mismatch and stale probability runs"},
         ],
         "limitations": [

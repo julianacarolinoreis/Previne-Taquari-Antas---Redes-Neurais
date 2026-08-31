@@ -73,6 +73,28 @@ Esses gates não impedem a pesquisa: eles impedem apenas que uma aproximação
 seja apresentada como alerta ou como certeza. Quando uma fonte nova for
 adicionada, o robô a incorpora e mantém a mesma trilha de auditoria.
 
+## Pesquisa de fontes oficiais para os próximos recortes
+
+Foi incluído no feed e na dashboard o arquivo
+`assets/data/research_source_registry.json`. Ele é um registro de fontes
+identificadas, não um catálogo de dados já aprovados. As prioridades são:
+
+- **ANA BHO 2017 / BHO6:** serviço consultável da [rede de trechos de
+  drenagem](https://www.snirh.gov.br/arcgis/rest/services/SPR/BHO2017_50K_TRECHODRENAGEM/FeatureServer/0)
+  e [metadados da BHO6](https://metadados.snirh.gov.br/geonetwork/srv/api/records/b228d007-6d68-46e5-b30d-a1e191b2b21f),
+  para conferir rede, áreas contribuintes, outlet e códigos Otto.
+- **INPE TOPODATA:** [modelo digital de elevação nacional](https://www.dsr.inpe.br/topodata/),
+  candidato a derivar direção e acumulação de fluxo no recorte regional.
+- **CEMADEN:** [opção pública de download de radares](https://mapainterativo.cemaden.gov.br/download/downradares.php),
+  incluindo Santa Teresa; o download ainda precisa ser reproduzido e ter a
+  qualidade conferida antes de virar entrada automática.
+- **ANA HidroWebService:** [documentação/Swagger da API](https://www.ana.gov.br/hidrowebservice/swagger-ui/index.html#),
+  para reconciliar séries de estações e testar propagação por evento.
+
+A dashboard mostra, para cada fonte, o gate associado, o estado “fonte
+identificada” e o próximo teste necessário. Nenhuma dessas URLs altera o
+estado dos gates por si só.
+
 ## QA executado nesta revisão
 
 - contratos Python da dashboard integrada e do feed da bacia: aprovados;

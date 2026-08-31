@@ -13,7 +13,7 @@
     ],
     "boundary": {
       "source": "assets/data/vulnerabilidade/bacia.geojson",
-      "sha256": "7924a437b47d962b2afca615fdfb08b5e286a473fab4b2a6abbf6a2db34d218f",
+      "sha256": "5f643583f824309612c605a3af46d03e8644e16616028042dd66e23ad5e796a7",
       "geometry_type": "Polygon",
       "feature_count": 1,
       "bbox": {
@@ -28,7 +28,7 @@
       "assets": [
         {
           "path": "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m.json",
-          "sha256": "a0d889413ea94108d5217eb9dc4ce8d5c6364cb0c80fab7eb393ba5e2a56a81b"
+          "sha256": "6c9ae8327b7933545957309421bf6e2358b8657ddc7d1ce91a6fe0fb956538e0"
         },
         {
           "path": "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m.png",
@@ -48,7 +48,7 @@
         },
         {
           "path": "assets/data/mucum_inundacao/mdt/altitude_terreno_10m.json",
-          "sha256": "35b123ae5f6801a144835b72747b22cafaf9f09b022702b93f8f19af5c908504"
+          "sha256": "505f5b360c5a1c94bfe9414e5037f966f38b048b73167a69a53bbc97ffdc3682"
         }
       ],
       "status": "terrain_reference_available",
@@ -512,11 +512,11 @@
           "no_local_soil_sensor"
         ],
         "source_hashes": {
-          "weather": "17a6bb8eb2d096afa437841c772cab1c91f4400b66ecce73f879361e0a9daf2d",
-          "pattern": "3f027b4147675452faed4743f9f2a2feca86a561b21d43b5320c739735f77ac6",
-          "probability": "d8a03619d0f3ce947124287eb9cbb42308e90d46e96fec5da0a68a544d7a8607",
-          "binary": "94d3477e61e61896603f39a64dde791d91f614d4ccf2f8aaea47e1f349574253",
-          "live": "b0b6fb24d17459bc8874ba138b90d1243c2f35faee5db22736b8a23fbbef6e46"
+          "weather": "eb7c87c649cfd73e9ac7972d27d5218df5c552a46ca33601faad7844c68f50b8",
+          "pattern": "376c1f92f10c4e6be7f0d78e34a6dfaa2aa81de7ae105ac93eb8a81b427fe4ad",
+          "probability": "a1aeaeaa39c3ed5802ee925595dfc982efb50ff1c74f4b2a1bc91f37f192bb18",
+          "binary": "4110acf63b443d7c6c26bae60d0a2dddcbfdc299bb21aa45b51e6aa8fed9fc70",
+          "live": "e062d473658c039271006e2610254c00e17ebc3e253e10d6d9506f6197018c5b"
         }
       },
       "sources": {
@@ -869,11 +869,11 @@
           "no_local_soil_sensor"
         ],
         "source_hashes": {
-          "weather": "8707fa97e2223e52a07ab20cdee868071e2ac934b9f1322e268f90f1cf8298c9",
-          "pattern": "065cb6f532a496dcbb5952bc4cf7e41344c372f1d61cb4f913ddd115c9ddff14",
-          "probability": "ce9780b6c6bc23ff903f42da102233155d1627af220d7c1d376df631094c0ce0",
-          "binary": "14e735517fef2b1ef5758eb750c1ba9a355459cc9e693a099a4a98bf88e3415c",
-          "live": "29bdd29d8584902fddf6b4d2290d015b2ad8bf4e82d1af9a0caa5d111cf631e6"
+          "weather": "ab56a9412651f3293e437b429dcdbce457aa8971ab543604b2d66863aa528ecd",
+          "pattern": "22360666fdfb68ae2b295ef68967ba62e3a8e9cc8ed6269314857190cf9c67e4",
+          "probability": "f2a303f09c20812fa3763b2b25f2edd27f890a9c25e0d09f8b6fb03a92a3f55a",
+          "binary": "6bb063da165465f00fe5e0088eca7c27642d1964af7c1fc1c3db991abed5d6e5",
+          "live": "1d76e5feee3cde185564ea5c758ff65e45abac02b8120edbb039541aca124389"
         }
       },
       "sources": {
@@ -883,6 +883,60 @@
         "binary": "assets/data/research_binary_decision_mucum_latest.json",
         "live": "previsao_ao_vivo_mucum.json"
       }
+    }
+  },
+  "source_registry": {
+    "schema_version": 1,
+    "scope": "research_only",
+    "last_reviewed_utc": "2026-08-31T00:00:00Z",
+    "title": "Fontes oficiais priorizadas para fechar os gates da bacia",
+    "note": "Uma fonte identificada ainda não é uma camada validada. Cada item exige recorte, conferência de unidade/tempo, comparação com as estações e registro da qualidade antes de entrar no cálculo.",
+    "sources": [
+      {
+        "id": "ana_bho_2017_50k",
+        "label": "ANA · BHO 2017 (rede e áreas de drenagem)",
+        "type": "hydrography",
+        "gate": "hydrologic_mask",
+        "status": "identified",
+        "role": "Rede hidrográfica e áreas contribuintes para substituir o limite de referência por uma máscara auditável.",
+        "url": "https://www.snirh.gov.br/arcgis/rest/services/SPR/BHO2017_50K_TRECHODRENAGEM/FeatureServer/0",
+        "metadata_url": "https://metadados.snirh.gov.br/geonetwork/srv/api/records/b228d007-6d68-46e5-b30d-a1e191b2b21f",
+        "next_step": "Recortar a área de interesse, ajustar as estações à rede, identificar o outlet e comparar a área contribuinte com a BHO6 antes de publicar polígonos."
+      },
+      {
+        "id": "inpe_topodata_dem",
+        "label": "INPE · TOPODATA",
+        "type": "dem",
+        "gate": "hydrologic_mask",
+        "status": "identified",
+        "role": "Modelo digital de elevação nacional derivado do SRTM para derivar fluxo e acumulação em um recorte regional.",
+        "url": "https://www.dsr.inpe.br/topodata/",
+        "next_step": "Baixar somente o recorte da bacia, documentar resolução e NoData, derivar direção/acumulação e validar o resultado contra a rede ANA."
+      },
+      {
+        "id": "cemaden_radar_santa_tereza",
+        "label": "CEMADEN · radar/QPE Santa Teresa",
+        "type": "radar_qpe",
+        "gate": "radar_qpe",
+        "status": "identified",
+        "role": "Fonte candidata de precipitação espacial; pode complementar o ponto e o proxy de células.",
+        "url": "https://mapainterativo.cemaden.gov.br/download/downradares.php",
+        "next_step": "Executar um download reproduzível, registrar timestamp/produto, conferir falhas e comparar o acumulado com pluviômetros antes de integrar."
+      },
+      {
+        "id": "ana_hidrowebservice",
+        "label": "ANA · HidroWebService",
+        "type": "hydrology_api",
+        "gate": "travel_time",
+        "status": "identified",
+        "role": "Metadados e séries de estações para testar defasagens e propagação por evento.",
+        "url": "https://www.ana.gov.br/hidrowebservice/swagger-ui/index.html#",
+        "next_step": "Obter acesso à API, reconciliar estação/código/fuso com os feeds atuais e medir a propagação somente em eventos com observações completas."
+      }
+    ],
+    "artifact": {
+      "path": "assets/data/research_source_registry.json",
+      "sha256": "978987e56e4e51639b9698c440bed53343e4a4ce0f01ccb097e63433f4f35cf5"
     }
   },
   "signals": {
@@ -912,7 +966,7 @@
     {
       "id": "hydrologic_mask",
       "status": "pending",
-      "reason": "current hourly proxy covers monitored upstream cells; outlet, flow accumulation and headwater polygons still need a validated regional DEM/network"
+      "reason": "current hourly proxy covers monitored upstream cells; ANA BHO 2017/BHO6 and INPE TOPODATA were identified as inputs, but outlet, flow accumulation and headwater polygons still need validation"
     },
     {
       "id": "mucum_independent_headwater",
@@ -927,12 +981,12 @@
     {
       "id": "radar_qpe",
       "status": "pending",
-      "reason": "CEMADEN radar/QPE feed requires a successful public download or credentials"
+      "reason": "CEMADEN radar/QPE option was identified, but a reproducible public download and quality check are still required"
     },
     {
       "id": "travel_time",
       "status": "research_partial",
-      "reason": "known model anchors are displayed, but event-level propagation still needs validation"
+      "reason": "ANA HidroWebService was identified for station series, but event-level propagation still needs validation"
     },
     {
       "id": "probability_calibration",

@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "scope": "research_only",
+  "last_reviewed_utc": "2026-08-31T00:00:00Z",
+  "title": "Fontes oficiais priorizadas para fechar os gates da bacia",
+  "note": "Uma fonte identificada ainda não é uma camada validada. Cada item exige recorte, conferência de unidade/tempo, comparação com as estações e registro da qualidade antes de entrar no cálculo.",
+  "sources": [
+    {
+      "id": "ana_bho_2017_50k",
+      "label": "ANA · BHO 2017 (rede e áreas de drenagem)",
+      "type": "hydrography",
+      "gate": "hydrologic_mask",
+      "status": "identified",
+      "role": "Rede hidrográfica e áreas contribuintes para substituir o limite de referência por uma máscara auditável.",
+      "url": "https://www.snirh.gov.br/arcgis/rest/services/SPR/BHO2017_50K_TRECHODRENAGEM/FeatureServer/0",
+      "metadata_url": "https://metadados.snirh.gov.br/geonetwork/srv/api/records/b228d007-6d68-46e5-b30d-a1e191b2b21f",
+      "next_step": "Recortar a área de interesse, ajustar as estações à rede, identificar o outlet e comparar a área contribuinte com a BHO6 antes de publicar polígonos."
+    },
+    {
+      "id": "inpe_topodata_dem",
+      "label": "INPE · TOPODATA",
+      "type": "dem",
+      "gate": "hydrologic_mask",
+      "status": "identified",
+      "role": "Modelo digital de elevação nacional derivado do SRTM para derivar fluxo e acumulação em um recorte regional.",
+      "url": "https://www.dsr.inpe.br/topodata/",
+      "next_step": "Baixar somente o recorte da bacia, documentar resolução e NoData, derivar direção/acumulação e validar o resultado contra a rede ANA."
+    },
+    {
+      "id": "cemaden_radar_santa_tereza",
+      "label": "CEMADEN · radar/QPE Santa Teresa",
+      "type": "radar_qpe",
+      "gate": "radar_qpe",
+      "status": "identified",
+      "role": "Fonte candidata de precipitação espacial; pode complementar o ponto e o proxy de células.",
+      "url": "https://mapainterativo.cemaden.gov.br/download/downradares.php",
+      "next_step": "Executar um download reproduzível, registrar timestamp/produto, conferir falhas e comparar o acumulado com pluviômetros antes de integrar."
+    },
+    {
+      "id": "ana_hidrowebservice",
+      "label": "ANA · HidroWebService",
+      "type": "hydrology_api",
+      "gate": "travel_time",
+      "status": "identified",
+      "role": "Metadados e séries de estações para testar defasagens e propagação por evento.",
+      "url": "https://www.ana.gov.br/hidrowebservice/swagger-ui/index.html#",
+      "next_step": "Obter acesso à API, reconciliar estação/código/fuso com os feeds atuais e medir a propagação somente em eventos com observações completas."
+    }
+  ]
+}
