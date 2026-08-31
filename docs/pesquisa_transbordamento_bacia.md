@@ -24,6 +24,12 @@ estima por horizonte**.
 5. **Risco experimental:** score/probabilidade dos artefatos publicados,
    sempre com fonte, idade, estado e regra binária de pesquisa (`>= 50%`).
 
+Na dashboard integrada, um score cuja fonte esteja `STALE` ou sem a marca
+`usable_as_current_probability: true` aparece como `—` na leitura principal.
+O valor arquivado continua visível apenas como valor de auditoria, com a data
+da rodada. Assim, atualizar a página ou usar **Atualizar dados** não transforma
+uma rodada antiga em uma estimativa atual.
+
 ## Separação temporal e de fontes
 
 O feed não usa o nível futuro (`NIVEL_FUTURO`) como entrada e não preenche
@@ -66,4 +72,14 @@ JSON para auditoria; o dashboard só consome o artefato publicado.
 Esses gates não impedem a pesquisa: eles impedem apenas que uma aproximação
 seja apresentada como alerta ou como certeza. Quando uma fonte nova for
 adicionada, o robô a incorpora e mantém a mesma trilha de auditoria.
+
+## QA executado nesta revisão
+
+- contratos Python da dashboard integrada e do feed da bacia: aprovados;
+- validação estrutural da publicação: aprovada;
+- navegador em 360 px: controles e atualização manual visíveis, sem overflow
+  horizontal e sem erros de console;
+- estado desta rodada: `DEGRADED`, por score/probabilidade não calibrado e
+  fonte espacial GEFS/NODD em proxy. Esse estado é intencional até que os gates
+  científicos acima tenham fonte e validação independentes.
 

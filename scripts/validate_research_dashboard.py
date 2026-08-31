@@ -290,6 +290,7 @@ def check_basin_page(errors: list[dict]) -> dict:
         "research-context-grid",
         "research-context-gates",
         "research_basin_screening_latest.json",
+        'id="refresh-feeds"',
     )
     missing = [token for token in required if token not in text]
     if missing:
@@ -300,7 +301,7 @@ def check_basin_page(errors: list[dict]) -> dict:
             errors.append({"severity": "FAIL", "code": "missing_basin_asset", "file": asset.relative_to(ROOT).as_posix()})
     js = ROOT / "assets" / "js" / "bacia_dashboard.js"
     js_text = js.read_text(encoding="utf-8") if js.exists() else ""
-    for token, code in (("loadFeeds", "basin_feed_loader"), ("stationSnapshot", "basin_station_normalization"), ("renderProvenance", "basin_provenance"), ("Não há probabilidade conjunta publicada", "basin_no_joint_probability")):
+    for token, code in (("loadFeeds", "basin_feed_loader"), ("stationSnapshot", "basin_station_normalization"), ("renderProvenance", "basin_provenance"), ("Não há probabilidade conjunta publicada", "basin_no_joint_probability"), ("riskUsable", "stale_risk_hidden"), ("refresh-feeds", "manual_refresh")):
         if token not in js_text:
             errors.append({"severity": "FAIL", "code": code})
     result["bacia_dashboard.js"] = {"sha256": sha256(js) if js.exists() else None}

@@ -9,7 +9,7 @@
   if (!root) return;
 
   const $ = (id) => document.getElementById(id);
-  const state = { station: 'basin', horizon: 72, feeds: {}, research: null };
+  const state = { station: 'basin', horizon: 72, feeds: {}, research: null, lastLoadedAt: null };
   const researchUrl = 'assets/data/research_basin_screening_latest.json';
   const stations = {
     santa: {
@@ -42,6 +42,7 @@
     }[c]));
   }
   function num(value) {
+    if (value == null || (typeof value === 'string' && value.trim() === '')) return null;
     const n = Number(value);
     return Number.isFinite(n) ? n : null;
   }
@@ -111,14 +112,22 @@
     const ifsProxyRain = first(w.rain_ifs_proxy_mm, p.ifs_proxy_mm);
     const gefsProxyRain = first(w.rain_gefs_proxy_mm, p.gefs_proxy_mm);
     const soil = first(w.soil_moisture_model_mean_m3m3, p.soil_moisture_m3m3);
-    const risk = first(p.probability_percent, w.flood_probability_percent, num(w.flood_probability) == null ? null : w.flood_probability * 100);
+    // The integrated research feed is the authority for freshness.  Keep an
+    // archived score available for audit, but never present a stale score or
+    // binary decision as if it were a current estimate.
+    const integrated = researchRow(key === 'santa' ? 'santa_tereza' : key, hours) || {};
+    const integratedRisk = integrated.risk || {};
+    const archivedRisk = first(integratedRisk.probability_percent, p.probability_percent, w.flood_probability_percent, num(w.flood_probability) == null ? null : w.flood_probability * 100);
+    const riskUsable = integratedRisk.usable_as_current_probability === true && integratedRisk.state !== 'stale';
+    const risk = riskUsable ? archivedRisk : null;
     const score = first(p.rna_score_percent, w.rna_score_percent);
-    const decision = p.decision || w.flood_decision || (w.flood_answer && /VAI/.test(w.flood_answer) ? 'VAI' : null);
+    const archivedDecision = integratedRisk.decision || p.decision || w.flood_decision || (w.flood_answer && /VAI/.test(w.flood_answer) ? 'VAI' : null);
+    const decision = riskUsable ? archivedDecision : null;
     const generated = f.pattern && f.pattern.generated_at_utc || f.weather && f.weather.generated_at_utc;
     const forecastAge = ageHours(generated);
     const observedAge = ageHours(levelAt);
     const coverage = num(w.rain_hours_available);
-    return { key, horizon: hours, station: s, pattern: f.pattern, weather: f.weather, live, p, w, obs, level, levelAt, pointRain, basinMean, basinMax, meanRain, maxRain, directRain, ifsProxyRain, gefsProxyRain, soil, risk, score, decision, generated, forecastAge, observedAge, coverage };
+    return { key, horizon: hours, station: s, pattern: f.pattern, weather: f.weather, live, p, w, obs, level, levelAt, pointRain, basinMean, basinMax, meanRain, maxRain, directRain, ifsProxyRain, gefsProxyRain, soil, risk, archivedRisk, riskUsable, riskState: integratedRisk.state || 'unknown', riskGenerated: integratedRisk.generated_at_utc, riskCalibration: integratedRisk.calibration_status, decision, archivedDecision, generated, forecastAge, observedAge, coverage };
   }
   function qualityFor(snapshot) {
     const obsGood = snapshot.level != null && (snapshot.observedAge == null || snapshot.observedAge <= 3);
@@ -187,8 +196,10 @@
       const headValue = head.mean_mm == null ? '—' : `${fmt(head.mean_mm, 1)} mm`;
       const headNote = head.max_mm == null ? 'sem máximo publicado' : `máx. ${fmt(head.max_mm, 1)} mm · ${head.status === 'shared_santa_reference' ? 'proxy compartilhada' : 'células monitoradas'}`;
       const point = rain.point_mm != null ? `${fmt(rain.point_mm, 1)} mm` : rain.ifs_direct_mm != null ? `${fmt(rain.ifs_direct_mm, 1)} mm` : '—';
-      const prob = risk.probability_percent == null ? '—' : pct(risk.probability_percent);
-      const probNote = risk.probability_percent == null ? 'sem estimativa' : `${researchStateLabel(risk.state)} · cota ${fmt(item.threshold_cm, 0)} cm · ${risk.calibration_status}`;
+      const archived = risk.probability_percent == null ? '' : ` · arquivado: ${pct(risk.probability_percent)}`;
+      const usable = risk.usable_as_current_probability === true && risk.state !== 'stale';
+      const prob = usable ? pct(risk.probability_percent) : '—';
+      const probNote = usable ? `${researchStateLabel(risk.state)} · cota ${fmt(item.threshold_cm, 0)} cm · ${risk.calibration_status}` : `${researchStateLabel(risk.state)} · não utilizável como leitura atual${archived}`;
       const quality = item.quality || {};
       return `<article class="research-context-card ${quality.status === 'DEGRADED' ? 'is-degraded' : ''}">
         <div class="research-context-card-head"><div><span class="research-station-kicker">${esc(labels[key] || key)}</span><h3>${esc(item.station_code || 'estação')}</h3></div><span class="research-quality ${quality.status === 'DEGRADED' ? 'warn' : ''}">${esc(quality.status || 'SEM STATUS')}</span></div>
@@ -219,7 +230,8 @@
       const a = stationSnapshot('santa', hours); const b = stationSnapshot('mucum', hours);
       const ar = displayRain(a); const br = displayRain(b);
       answerTitle.textContent = `Na bacia, os modelos não contam uma história única em +${hours} h`;
-      answerText.textContent = `Santa Tereza: ${fmt(ar.value, 2)} mm (${ar.label}); Muçum: ${fmt(br.value, 2)} mm (${br.label}). As estimativas experimentais de cruzar a cota são ${pct(a.risk)} e ${pct(b.risk)}, respectivamente. Não há probabilidade conjunta publicada.`;
+      const riskNote = ((a.risk == null || b.risk == null) && (a.archivedRisk != null || b.archivedRisk != null)) ? ' Os scores antigos foram ocultados porque estão atrasados; permanecem nos JSONs para auditoria.' : '';
+      answerText.textContent = `Santa Tereza: ${fmt(ar.value, 2)} mm (${ar.label}); Muçum: ${fmt(br.value, 2)} mm (${br.label}). As estimativas experimentais utilizáveis de cruzar a cota são ${pct(a.risk)} e ${pct(b.risk)}, respectivamente. Não há probabilidade conjunta publicada.${riskNote}`;
       answerState.textContent = 'COMPARAÇÃO'; answerState.className = 'answer-state warn';
       return;
     }
@@ -247,7 +259,7 @@
     $('kpi-rain').textContent = rain || '—';
     $('kpi-rain-note').textContent = `horizonte +${hours} h · fonte principal de cada estação`;
     $('kpi-risk').textContent = risk || '—';
-    $('kpi-risk-note').textContent = 'estimativa experimental; não calibrada como alerta';
+    $('kpi-risk-note').textContent = snaps.some((s) => s.risk == null && s.archivedRisk != null) ? 'score atrasado ocultado; arquivo preservado para auditoria' : 'estimativa experimental; não calibrada como alerta';
     $('kpi-freshness').textContent = worst.label;
     $('kpi-freshness').className = `kpi-value ${worst.className}`;
     $('kpi-freshness-note').textContent = `${qualities.map((q, i) => `${stations[keys[i]].label}: ${q.label.toLowerCase()}`).join(' · ')}`;
@@ -318,12 +330,12 @@
         cards.push(modelCard(`${prefix}IFS · máximo monitorado`, 'PREVISÃO · chuva acumulada', s.maxRain, 'mm', 'Maior célula entre os pontos monitorados a montante; não representa a bacia inteira.', 'ECMWF IFS', '#d59a33'));
         cards.push(modelCard(`${prefix}IFS · ponto`, 'PREVISÃO · chuva acumulada', s.pointRain, 'mm', 'Valor do ponto/célula mais próxima da estação.', 'ECMWF IFS', '#e2b85c'));
         cards.push(modelCard(`${prefix}RNA do feed`, 'SCORE · não calibrado', s.score, '%', 'Score do modelo de pesquisa. Não é frequência nem chance real.', 'RNA / feed visual', '#7650b4', 'experimental-card'));
-        cards.push(modelCard(`${prefix}GEFS`, 'PROBABILIDADE · experimental', s.risk, '%', 'Estimativa experimental de cruzar a cota; não é alerta oficial.', 'NOAA GEFS · proxy/rodada', '#6541a7', 'experimental-card'));
+        cards.push(modelCard(`${prefix}GEFS`, 'PROBABILIDADE · experimental', s.risk, '%', s.riskUsable ? 'Estimativa experimental de cruzar a cota; não é alerta oficial.' : `Score arquivado não utilizável como leitura atual (${researchStateLabel(s.riskState)}).`, 'NOAA GEFS · proxy/rodada', '#6541a7', 'experimental-card'));
       } else {
         cards.push(modelCard(`${prefix}IFS direto`, 'PREVISÃO · ponto Muçum', s.directRain, 'mm', 'Chuva acumulada direta no ponto/rodada IFS.', 'ECMWF IFS', '#c47a10'));
         cards.push(modelCard(`${prefix}IFS proxy`, 'PROXY · célula espacial', s.ifsProxyRain, 'mm', 'Proxy espacial usado na conferência; não é medição local.', 'ECMWF IFS / célula', '#d59a33'));
         cards.push(modelCard(`${prefix}GEFS proxy`, 'PROXY · ensemble', s.gefsProxyRain, 'mm', 'Proxy da célula GEFS que alimenta o ajuste de pesquisa.', 'NOAA GEFS / célula', '#e2b85c'));
-        cards.push(modelCard(`${prefix}Cruzamento da cota`, 'PROBABILIDADE · experimental', s.risk, '%', 'Score logístico de pesquisa; não calibrado operacionalmente.', 'Modelo logístico · cota 1.800 cm', '#6541a7', 'experimental-card'));
+        cards.push(modelCard(`${prefix}Cruzamento da cota`, 'PROBABILIDADE · experimental', s.risk, '%', s.riskUsable ? 'Score logístico de pesquisa; não calibrado operacionalmente.' : `Score arquivado não utilizável como leitura atual (${researchStateLabel(s.riskState)}).`, 'Modelo logístico · cota 1.800 cm', '#6541a7', 'experimental-card'));
         cards.push(modelCard(`${prefix}Solo modelado`, 'PROXY · umidade', s.soil, 'm³/m³', 'Memória hídrica modelada. Não é sensor local de saturação.', 'Produto modelado', '#4d9b79'));
       }
     });
@@ -383,7 +395,8 @@
 
   function renderStatus() {
     const keys = state.station === 'basin' ? ['santa', 'mucum'] : [state.station];
-    $('control-status').textContent = `${keys.map((key) => { const s = stationSnapshot(key, state.horizon); return `${stations[key].label}: feed ${ageLabel(s.forecastAge)} · observação ${ageLabel(s.observedAge)}`; }).join(' · ')} · horário em BRT`;
+    const loaded = state.lastLoadedAt ? ` · consulta ${when(state.lastLoadedAt)}` : '';
+    $('control-status').textContent = `${keys.map((key) => { const s = stationSnapshot(key, state.horizon); return `${stations[key].label}: feed ${ageLabel(s.forecastAge)} · observação ${ageLabel(s.observedAge)}`; }).join(' · ')} · horário em BRT${loaded}`;
   }
   function render() {
     renderAnswer(); renderResearchContext(); renderKpis(); renderStationComparison(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
@@ -403,9 +416,26 @@
       state.feeds[key] = { pattern, weather, live };
     }));
     state.research = await loadJson(researchUrl);
+    state.lastLoadedAt = new Date().toISOString();
     const available = pairs.filter(([key]) => stationFeed(key).pattern || stationFeed(key).weather).length;
-    $('control-status').textContent = available ? 'Feeds publicados carregados · escolha local e horizonte' : 'Feeds indisponíveis no momento · tente atualizar a página';
+    $('control-status').textContent = available ? `Feeds publicados carregados às ${when(state.lastLoadedAt)} · escolha local e horizonte` : 'Feeds indisponíveis no momento · tente atualizar a página';
     render();
+  }
+
+  const refresh = $('refresh-feeds');
+  if (refresh) {
+    refresh.addEventListener('click', async () => {
+      refresh.disabled = true;
+      refresh.setAttribute('aria-busy', 'true');
+      refresh.textContent = 'Atualizando…';
+      $('control-status').textContent = 'Consultando feeds publicados…';
+      try { await loadFeeds(); }
+      finally {
+        refresh.disabled = false;
+        refresh.removeAttribute('aria-busy');
+        refresh.textContent = 'Atualizar dados';
+      }
+    });
   }
 
   root.querySelectorAll('[data-station]').forEach((button) => {
