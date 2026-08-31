@@ -90,7 +90,7 @@ jobs:
             echo 'Nenhuma mudança no relatório de QA.'
             exit 0
           fi
-          git commit -m 'bot: atualiza QA da pesquisa [skip ci]'
+          git commit -m 'bot: atualiza QA da pesquisa'
           for attempt in 1 2 3 4 5; do
             if git pull --rebase --autostash origin main && git push origin HEAD:main; then
               exit 0
@@ -111,7 +111,7 @@ jobs:
               echo 'QA já foi publicada por outra execução.'
               exit 0
             fi
-            git commit -m 'bot: atualiza QA da pesquisa [skip ci]'
+            git commit -m 'bot: atualiza QA da pesquisa'
             sleep $((attempt * 2))
           done
           exit 1
