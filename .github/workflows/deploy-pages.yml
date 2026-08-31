@@ -90,6 +90,10 @@ jobs:
           # (.tif), que não são consumidos pelo site estático.
           while IFS= read -r -d '' file; do
             case "$file" in
+              assets/data/vulnerabilidade/referencias/README_OBITOS.md|assets/data/vulnerabilidade/referencias/README.md)
+                mkdir -p "_site/$(dirname "$file")"
+                cp -p -- "$file" "_site/$file"
+                ;;
               .github/*|scripts/*|*.py|*.mat|*.tif|*.md|*.yml|*.yaml|Gemfile|Gemfile.lock)
                 continue
                 ;;
