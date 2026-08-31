@@ -53,7 +53,7 @@
     .mode-switch{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px;flex:0 0 auto}
     .mode-button{border:1px solid #e5c77e;border-radius:7px;padding:7px 9px;background:rgba(255,255,255,.55);color:#8b6a35;font-size:10px;font-weight:800}
     .mode-button[aria-pressed="true"]{background:#8f5f1e;border-color:#8f5f1e;color:#fff}
-    .mode-button.locked{border-style:dashed;color:#967f5c}
+    .mode-button.locked{border-style:dashed;color:#735f3b}
     .intro{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:31px 0 22px}
     .eyebrow,.kicker{color:var(--blue);font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
     h1,h2,h3,p{margin-top:0}
@@ -173,6 +173,10 @@
     .secondary-button{background:#f8fafc;color:var(--navy)}
     button:disabled{cursor:not-allowed;opacity:.56;filter:saturate(.55)}
     .transport .primary-button{font-size:12px}
+    .state-tools{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:10px}
+    .state-tools button{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#f8fafc;color:var(--navy);font-size:10px;font-weight:800}
+    .state-tools button:last-of-type{color:#8f3342;border-color:#efc3c8;background:#fff7f7}
+    .state-status{color:var(--muted);font-size:9px;line-height:1.3}
     .panel-note{color:var(--muted);font-size:11px;line-height:1.45;margin:11px 0 0}
     .decision-panel{position:relative;overflow:hidden}
     .decision-panel.tone-danger{border-color:#efc3c8}
@@ -211,7 +215,7 @@
     .route-option-meta small{display:block;color:var(--muted);font-size:9px;line-height:1.2;margin-top:2px}
     .route-compare-note{padding:8px 0 10px;border-top:1px solid var(--line);color:var(--muted);font-size:10px;line-height:1.35}
     .safety-gate{margin:0 0 11px;padding:9px 10px;background:#fff8e9;border:1px solid #f0d6a0;border-radius:9px}
-    .safety-gate-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#8a5b1b;font-size:10px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}
+    .safety-gate-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#6d4e1d;font-size:10px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}
     .safety-gate-head strong{font-family:var(--mono);font-size:9px}
     .safety-gate.ready{background:#eff9f5;border-color:#b9ded2}
     .safety-gate.ready .safety-gate-head{color:#24745d}
@@ -227,7 +231,7 @@
     .confirmation-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
     .confirmation-grid .field label{color:#806b46}
     .confirmation-grid .field input{font-size:11px;background:#fffdf8;border-color:#ead8b2}
-    .safety-gate p{margin:7px 0 0;color:#806b46;font-size:10px;line-height:1.35}
+    .safety-gate p{margin:7px 0 0;color:#624c2c;font-size:10px;line-height:1.35}
     .safety-gate.ready p{color:#397661}
     .decision-callout{padding:9px 10px;background:#f4f7fb;border-left:3px solid var(--blue);border-radius:0 8px 8px 0;color:#41546a;font-size:11px;margin-bottom:11px}
     .decision-panel.tone-danger .decision-callout{border-left-color:var(--red);background:#fff6f6;color:#8b3d4a}
@@ -267,6 +271,10 @@
     .mission-details .panel-note{margin:8px 0 0;font-size:10px}
     .mission-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
     .mission-grid .field input{font-size:11px}
+    .mission-trigger{margin:8px 0 9px;padding:8px 9px;background:#f7f9fc;border-left:3px solid var(--blue);border-radius:0 8px 8px 0}
+    .mission-trigger span{display:block;color:var(--muted);font-size:9px;letter-spacing:.07em;text-transform:uppercase}
+    .mission-trigger strong{display:block;margin-top:3px;color:var(--navy);font-size:11px;line-height:1.3}
+    .mission-trigger small{display:block;margin-top:2px;color:var(--muted);font-size:9px;line-height:1.3}
     .mission-state{margin:8px 0 0;color:var(--muted);font-size:10px;line-height:1.35}
     .measurement-panel{margin:0 0 13px;border-bottom:1px solid var(--line);padding:0 0 10px}
     .measurement-panel summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--navy);font-size:10px;font-weight:850;cursor:pointer}
@@ -367,7 +375,7 @@
     .ops-icon.route{background:#fff2dc;color:#96621b}
     .ops-item strong{display:block;color:var(--navy);font-size:11px}
     .ops-item span{display:block;color:var(--muted);font-size:10px;margin-top:2px}
-    .ops-status{font-family:var(--mono);font-size:9px;font-weight:850;text-align:right;color:#738396}
+    .ops-status{font-family:var(--mono);font-size:9px;font-weight:850;text-align:right;color:#526274}
     .ops-status.active{color:#24745d}
     .ops-status.priority{color:#ad3548}
     .log-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 7px}
@@ -393,7 +401,7 @@
     @keyframes mapFocusPulse{0%,100%{opacity:.95}50%{opacity:.42}}
     #eventMap .zone-marker.selected .zone-ring{animation:mapFocusPulse 2.4s ease-in-out infinite}
     @media (pointer:coarse){
-      .teaser-action,.mode-button,.map-mode-button,.map-alt-button,.icon-button,.primary-button,.secondary-button{min-height:44px}
+      .teaser-action,.mode-button,.map-mode-button,.map-alt-button,.icon-button,.primary-button,.secondary-button,.state-tools button{min-height:44px}
       .zone-button{min-height:44px}
       .step-button{min-height:44px}
       .check-line{min-height:44px;align-items:center}
@@ -616,16 +624,21 @@
             <span id="phaseBadge" class="phase">recebimento</span>
           </div>
           <div class="event-clock">
-            <div><span class="clock-label">tempo do evento</span><strong id="eventClock" class="clock-value">T+00:00</strong></div>
+            <div><span class="clock-label">tempo do evento</span><strong id="eventClock" class="clock-value" role="status" aria-live="polite">T+00:00</strong></div>
             <div style="text-align:right"><span class="clock-label">cota do cenário</span><strong id="eventLevel" class="level-value">4,24 m</strong></div>
           </div>
           <div class="command-strip"><div><span>nível do exercício</span><strong id="commandStatus">observação</strong></div><span id="commandRule">sem despacho real</span></div>
           <div id="stepTrack" class="step-track" aria-label="Etapas do evento"></div>
-          <div class="time-scrubber"><div class="scrubber-label"><span>arraste para avançar</span><span>0 → 12 h · inclui o limite T+05:54</span></div><input id="timeScrubber" type="range" min="0" max="7" step="1" value="0" aria-label="Avançar o tempo do evento"></div>
+          <div class="time-scrubber"><div id="timeScrubberHelp" class="scrubber-label"><span>arraste para avançar</span><span>0 → 12 h · inclui o limite T+05:54</span></div><input id="timeScrubber" type="range" min="0" max="8" step="1" value="0" aria-label="Avançar o tempo do evento" aria-describedby="timeScrubberHelp eventClock phaseBadge"></div>
           <div class="transport">
             <button id="prevStep" class="icon-button" type="button" aria-label="Voltar uma etapa">‹</button>
             <button id="playStep" class="primary-button" type="button">Iniciar avanço automático</button>
             <button id="nextStep" class="icon-button" type="button" aria-label="Avançar uma etapa">›</button>
+          </div>
+          <div class="state-tools" role="group" aria-label="Registro local do exercício">
+            <button id="saveState" type="button">Salvar neste navegador</button>
+            <button id="resetState" type="button">Reiniciar registro</button>
+            <span id="saveStateStatus" class="state-status" role="status" aria-live="polite">sem salvamento local</span>
           </div>
           <p class="panel-note">A sequência já foi organizada antes da crise: identificar, acionar, retirar e reavaliar. Avance devagar ou clique direto na etapa.</p>
         </section>
@@ -677,7 +690,7 @@
           <div id="decisionCallout" class="decision-callout">—</div>
           <div class="action-stack">
             <button id="evacAction" class="primary-button" type="button">Registrar decisão</button>
-            <button id="dispatchAction" class="secondary-button" type="button">Registrar reconhecimento · exercício</button>
+            <button id="dispatchAction" class="secondary-button" type="button">Registrar tarefa local · exercício</button>
             <button id="shelterAction" class="secondary-button" type="button" aria-describedby="shelterSpatialNote capacityNote" disabled>Abrigo bloqueado · falta evidência</button>
           </div>
           <details class="message-draft">
@@ -689,7 +702,7 @@
               <div class="field"><label for="messageValidity">validade do rascunho</label><input id="messageValidity" type="text" placeholder="até reavaliar"></div>
               <div class="field"><label for="messageVersion">versão da mensagem</label><input id="messageVersion" type="text" placeholder="v1 · exercício"></div>
             </div>
-            <p>Preencha os metadados antes de copiar. O texto continua sendo rascunho até aprovação formal e confirmação de entrega.</p>
+            <p>Preencha os metadados antes de copiar. O texto copiado recebe o prefixo “RASCUNHO DO EXERCÍCIO”; continua sendo rascunho até aprovação formal e confirmação de entrega.</p>
             <button id="copyMessage" class="secondary-button" type="button">Copiar texto do exercício</button>
           </details>
           <div id="liveRegion" class="sr-only" role="status" aria-live="polite"></div>
@@ -706,6 +719,7 @@
           <p class="panel-note people-note">A estimativa territorial não é uma lista de famílias. Atualize apenas contagens confirmadas no exercício; dados individuais devem ficar em cadastro protegido. Campo vazio = ainda não informado.</p>
           <div class="people-grid">
           <div class="people-count"><span>estimadas no recorte</span><b id="peopleEstimated">—</b><small id="peopleEstimatedMeta">estimativa de apoio · IBGE 2022 · raio de 900 m</small></div>
+            <div class="field"><label for="peopleToShelter">demanda prevista para este abrigo</label><input id="peopleToShelter" aria-describedby="peopleStatus peopleEstimatedMeta" type="number" min="0" step="1" value="" placeholder="—" inputmode="numeric"></div>
             <div class="field"><label for="peopleContacted">contatadas</label><input id="peopleContacted" aria-describedby="peopleStatus peopleEstimatedMeta" type="number" min="0" step="1" value="" placeholder="—" inputmode="numeric"></div>
             <div class="field"><label for="peopleDeparted">saíram</label><input id="peopleDeparted" aria-describedby="peopleStatus peopleEstimatedMeta" type="number" min="0" step="1" value="" placeholder="—" inputmode="numeric"></div>
             <div class="field"><label for="peopleArrived">chegaram</label><input id="peopleArrived" aria-describedby="peopleStatus peopleEstimatedMeta" type="number" min="0" step="1" value="" placeholder="—" inputmode="numeric"></div>
@@ -719,6 +733,8 @@
               <label class="check-line"><input type="checkbox" data-need="health"> saúde / medicação</label>
               <label class="check-line"><input type="checkbox" data-need="care"> crianças / idosos</label>
               <label class="check-line"><input type="checkbox" data-need="animals"> animais</label>
+              <label class="check-line"><input type="checkbox" data-need="mobility"> mobilidade reduzida / equipamento</label>
+              <label class="check-line"><input type="checkbox" data-need="communication"> comunicação alternativa</label>
             </div>
           </details>
         </section>
@@ -763,6 +779,7 @@
               <label class="check-line"><input id="shelterOverflowPlanConfirmed" type="checkbox"> destino alternativo e transporte confirmados no exercício</label>
             </div>
           </div>
+          <div class="capacity-line"><span>demanda registrada no destino</span><b id="shelterDemand">—</b></div>
           <div class="capacity-line"><span>vagas livres · só após confirmação</span><b id="shelterAvailable">—</b></div>
           <div id="capacityMeter" class="capacity-track" role="progressbar" aria-label="Ocupação inicial do abrigo" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-valuetext="disponibilidade não confirmada"><div id="capacityFill" class="capacity-fill" style="width:0%"></div></div>
           <p id="capacityNote" class="capacity-note">Os números iniciais são didáticos. Sem confirmação, a disponibilidade não entra na decisão.</p>
@@ -872,6 +889,7 @@
           <div id="opsList" class="ops-list"></div>
             <details class="mission-details">
               <summary>Detalhar tarefa local do exercício</summary>
+              <div class="mission-trigger"><span>gatilho do ensaio</span><strong id="missionTrigger">—</strong><small>condição didática para preparar reconhecimento; não é um chamado externo.</small></div>
               <div class="mission-grid">
                 <div class="field"><label for="missionTeam">equipe / função a considerar</label><input id="missionTeam" type="text" placeholder="ex.: reconhecimento local"></div>
                 <div class="field"><label for="missionVehicle">recurso / viatura</label><input id="missionVehicle" type="text" placeholder="a confirmar"></div>
@@ -936,7 +954,7 @@
     </details>
 
     <footer class="footer">
-      <span>PREVINE · estudo de caso de resposta · V002 · versão 0.2</span>
+      <span>PREVINE · estudo de caso de resposta · V002 · versão 0.3</span>
       <span>arquivo autônomo · dados incorporados · sem conexão externa</span>
     </footer>
   </div>
@@ -1007,6 +1025,8 @@
       contingencyActive:null,
       log:[{time:"T+00:00", text:"Exercício aberto · leitura da previsão e da grade preliminar."}]
     };
+    const PERSISTENCE_KEY="previne:stz-v002:exercise:v3";
+    const PERSISTENCE_SCHEMA=1;
 
     const fmtInt = new Intl.NumberFormat("pt-BR",{maximumFractionDigits:0});
     const fmt1 = new Intl.NumberFormat("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
@@ -1032,6 +1052,75 @@
     }
     function fmtKm(m){ return (m/1000).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+" km"; }
     function announce(message){ setText("liveRegion",message); }
+
+    function persistedState(){
+      return {
+        schema_version:PERSISTENCE_SCHEMA,
+        saved_at:new Date().toISOString(),
+        stepIndex:state.stepIndex,
+        zoneId:state.zoneId,
+        mapMode:state.mapMode,
+        showAlternative:state.showAlternative,
+        actions:state.actions,
+        people:state.people,
+        confirmations:state.confirmations,
+        missions:state.missions,
+        messages:state.messages,
+        validation:state.validation,
+        metrics:state.metrics,
+        contingencyActive:state.contingencyActive,
+        log:Array.isArray(state.log) ? state.log.slice(0,100) : []
+      };
+    }
+
+    function saveState(silent){
+      try{
+        const savedAt=new Date();
+        localStorage.setItem(PERSISTENCE_KEY,JSON.stringify(persistedState()));
+        setText("saveStateStatus","salvo neste navegador · "+savedAt.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}));
+        if(!silent) announce("Registro do exercício salvo somente neste navegador.");
+        return true;
+      }catch(error){
+        setText("saveStateStatus","salvamento local indisponível");
+        if(!silent) announce("Não foi possível salvar o registro neste navegador.");
+        return false;
+      }
+    }
+
+    function restoreState(){
+      try{
+        const raw=localStorage.getItem(PERSISTENCE_KEY);
+        if(!raw) return false;
+        const saved=JSON.parse(raw);
+        if(!saved || saved.schema_version!==PERSISTENCE_SCHEMA) return false;
+        if(Number.isInteger(saved.stepIndex)) state.stepIndex=Math.max(0,Math.min(STEPS.length-1,saved.stepIndex));
+        if(ZONES.some(function(zone){return zone.id===saved.zoneId;})) state.zoneId=saved.zoneId;
+        if(saved.mapMode==="focus" || saved.mapMode==="context") state.mapMode=saved.mapMode;
+        state.showAlternative=!!saved.showAlternative;
+        ["actions","people","confirmations","missions","messages"].forEach(function(key){
+          if(saved[key] && typeof saved[key]==="object") state[key]=saved[key];
+        });
+        if(saved.validation && typeof saved.validation==="object") state.validation=Object.assign({},state.validation,saved.validation);
+        if(saved.metrics && typeof saved.metrics==="object") state.metrics=Object.assign({},state.metrics,saved.metrics);
+        state.contingencyActive=saved.contingencyActive && typeof saved.contingencyActive==="object" ? saved.contingencyActive : null;
+        state.log=Array.isArray(saved.log) ? saved.log.filter(function(item){return item && typeof item.time==="string" && typeof item.text==="string";}).slice(0,100) : state.log;
+        state.operatingMode="exercise";
+        state.auto=false;
+        state.timer=null;
+        const savedAt=Date.parse(saved.saved_at);
+        setText("saveStateStatus",Number.isFinite(savedAt) ? "restaurado · "+new Date(savedAt).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}) : "registro restaurado neste navegador");
+        return true;
+      }catch(error){
+        setText("saveStateStatus","registro local inválido · iniciado vazio");
+        return false;
+      }
+    }
+
+    function resetState(){
+      if(!window.confirm("Reiniciar o registro local deste exercício?")) return;
+      try{ localStorage.removeItem(PERSISTENCE_KEY); }catch(error){}
+      window.location.reload();
+    }
 
     function shelterSpatialStatus(){
       const reference=SERVICE.shelter.routeReference;
@@ -1097,8 +1186,8 @@
     function responseMetricSnapshot(){
       const zone=getZone(), record=peopleRecord(zone), shelter=shelterSnapshot(), confirmation=confirmationRecord(zone), mission=missionRecord(zone), metrics=state.metrics;
       let shelterGap="—", shelterGapValue=null;
-      if(shelterReady() && shelter.available!==null){
-        shelterGapValue=zone.population-shelter.available;
+      if(shelterReady() && shelter.available!==null && record.toShelter!==null){
+        shelterGapValue=record.toShelter-shelter.available;
         shelterGap=shelterGapValue===0 ? "0" : (shelterGapValue>0 ? "+" : "−")+fmtInt.format(Math.abs(shelterGapValue));
       }
       const hasCommunicationData=!!(confirmation.communication || confirmation.communicationResponsible || confirmation.communicationChannel || confirmation.communicationAlternate);
@@ -1116,6 +1205,8 @@
         routeConfirmation:fmtMetricMinutes(metrics.routeConfirmationMinutes),
         unlocated:record.unlocated===null ? "—" : fmtInt.format(record.unlocated),
         unlocatedValue:record.unlocated,
+        shelterDemand:record.toShelter===null ? "—" : fmtInt.format(record.toShelter),
+        shelterDemandValue:record.toShelter,
         shelterGap:shelterGap,
         shelterGapValue:shelterGapValue,
         criticalFailures:metrics.criticalFailures===null ? "—" : fmtInt.format(metrics.criticalFailures),
@@ -1135,6 +1226,7 @@
         time_to_first_decision_min:state.metrics.firstDecisionMinutes,
         time_to_route_confirmation_min:state.metrics.routeConfirmationMinutes,
         unlocated_count:values.unlocatedValue,
+        shelter_demand:values.shelterDemandValue,
         shelter_capacity_gap:values.shelterGapValue,
         message_comprehension:values.messageComprehensionValue,
         critical_failures:values.criticalFailuresValue,
@@ -1204,10 +1296,11 @@
     }
 
     function shelterReady(){
-      const snapshot=shelterSnapshot(), zone=getZone();
+      const snapshot=shelterSnapshot(), zone=getZone(), people=peopleRecord(zone);
       const spatial=shelterSpatialStatus();
       const overflowComplete=overflowReady(snapshot);
-      const destinationReady=snapshot.valid && (snapshot.available>=zone.population || (overflowComplete && snapshot.available+snapshot.overflowCapacity>=zone.population));
+      const demand=people.toShelter;
+      const destinationReady=snapshot.valid && Number.isInteger(demand) && (snapshot.available>=demand || (overflowComplete && snapshot.available+snapshot.overflowCapacity>=demand));
       const shelterContingency=state.contingencyActive && state.contingencyActive.zoneId===zone.id && state.contingencyActive.value==="shelter";
       return !!(spatial.reconciled && destinationReady && !shelterContingency && el("shelterVerified").checked && el("shelterAccessible").checked && (el("shelterVerifier").value||"").trim() && (el("shelterEvidence").value||"").trim());
     }
@@ -1260,15 +1353,18 @@
       if(!record.alternativeRouteVerifier || !record.alternativeRouteEvidence) missing.push("responsável/evidência do alternativo");
       if(!shelterReady()){
         if(!snapshot.valid) missing.push("capacidade/ocupação válidas");
-        const enoughCapacity=snapshot.valid && (snapshot.available>=zone.population || (overflowReady(snapshot) && snapshot.available+snapshot.overflowCapacity>=zone.population));
-        if(snapshot.valid && !enoughCapacity) missing.push(overflowReady(snapshot) ? "capacidade total insuficiente" : "transbordo completo");
+        const demand=peopleRecord(zone).toShelter;
+        if(!Number.isInteger(demand)) missing.push("demanda do abrigo");
+        const enoughCapacity=snapshot.valid && Number.isInteger(demand) && (snapshot.available>=demand || (overflowReady(snapshot) && snapshot.available+snapshot.overflowCapacity>=demand));
+        if(snapshot.valid && Number.isInteger(demand) && !enoughCapacity) missing.push(overflowReady(snapshot) ? "capacidade total insuficiente" : "transbordo completo");
         if(!el("shelterVerified").checked || !el("shelterAccessible").checked) missing.push("abrigo/acessibilidade");
         if(!(el("shelterVerifier").value||"").trim() || !(el("shelterEvidence").value||"").trim()) missing.push("responsável/evidência do abrigo");
       }
       if(contingency==="shelter"){
         if(!overflowDetailsReady(snapshot)) missing.push("destino alternativo ao abrigo");
         if(!snapshot.overflowPlanConfirmed) missing.push("plano alternativo e transporte confirmados");
-        if(overflowDetailsReady(snapshot) && (!snapshot.valid || snapshot.available+snapshot.overflowCapacity<zone.population)) missing.push("capacidade do destino alternativo");
+        const demand=peopleRecord(zone).toShelter;
+        if(overflowDetailsReady(snapshot) && (!snapshot.valid || !Number.isInteger(demand) || snapshot.available+snapshot.overflowCapacity<demand)) missing.push("capacidade do destino alternativo");
       }
       if(!record.communication) missing.push("comunicação");
       if(!record.communicationResponsible || !record.communicationChannel) missing.push("responsável/canal da comunicação");
@@ -1283,7 +1379,8 @@
     }
 
     function peopleRecord(zone){
-      if(!state.people[zone.id]) state.people[zone.id]={contacted:null,departed:null,arrived:null,unlocated:null,needs:{},errors:[]};
+      if(!state.people[zone.id]) state.people[zone.id]={toShelter:null,contacted:null,departed:null,arrived:null,unlocated:null,needs:{},errors:[]};
+      if(!Object.prototype.hasOwnProperty.call(state.people[zone.id],"toShelter")) state.people[zone.id].toShelter=null;
       if(!state.people[zone.id].needs) state.people[zone.id].needs={};
       if(!state.people[zone.id].errors) state.people[zone.id].errors=[];
       return state.people[zone.id];
@@ -1298,7 +1395,7 @@
 
     function peopleValidation(record,zone){
       const errors=[];
-      ["contacted","departed","arrived","unlocated"].forEach(function(key){
+      ["toShelter","contacted","departed","arrived","unlocated"].forEach(function(key){
         const value=record[key];
         if(value!==null && (!Number.isInteger(value) || value<0 || value>zone.population)) errors.push(key+" fora do universo estimado");
       });
@@ -1429,6 +1526,8 @@
 
     function renderMission(){
       const zone=getZone(), record=missionRecord(zone), fields=[["missionTeam","team"],["missionVehicle","vehicle"],["missionChannel","channel"],["missionEta","eta"]];
+      const remaining=zone.arrival-elapsedMinutes();
+      setText("missionTrigger",zone.id+" · "+currentStep().phase+" · "+(zone.arrival<=elapsedMinutes() ? "água já cruzou o ponto de referência" : "janela de "+fmtMinutes(remaining)));
       fields.forEach(function(pair){
         const input=el(pair[0]);
         const sameZone=input.dataset.zone===zone.id;
@@ -1566,7 +1665,7 @@
       el("teaserAction").textContent=gate.ready ? "Registrar hipótese · exercício" : "Confirmar requisitos antes de registrar";
       el("teaserAction").disabled=!gate.ready;
       setText("teaserGate",gate.ready ? "confirmações completas · ainda somente exercício" : "bloqueado até confirmar rota, abrigo, comunicação e recurso");
-      el("dispatchAction").textContent=hasAction("dispatch") ? "Reconhecimento registrado · atualizar" : "Registrar reconhecimento · exercício";
+      el("dispatchAction").textContent=hasAction("dispatch") ? "Tarefa local registrada · atualizar" : "Registrar tarefa local · exercício";
       el("shelterAction").textContent=hasAction("shelter") ? "Abrigo confirmado no exercício · atualizar" : (shelterReady() ? "Registrar capacidade confirmada · exercício" : "Abrigo bloqueado · falta evidência");
       el("shelterAction").disabled=!shelterReady();
       const teaserTitle=plan.blocked ? "Prioridade: reconhecer e replanejar." : (remaining<=120 ? "Janela curta: confirmar antes de orientar." : "Preparar capacidade antes da água.");
@@ -1623,30 +1722,33 @@
       const zone=getZone(), record=peopleRecord(zone);
       setText("peopleEstimated","≈"+fmtInt.format(zone.population));
       setText("peopleEstimatedMeta","estimativa agregada de apoio · IBGE 2022 · raio de 900 m · não é lista de famílias");
-      ["peopleContacted","peopleDeparted","peopleArrived","peopleUnlocated"].forEach(function(id){
-        const input=el(id), key=id.replace("people","").toLowerCase(), sameZone=input.dataset.zone===zone.id;
+      const peopleFields=[["peopleToShelter","toShelter"],["peopleContacted","contacted"],["peopleDeparted","departed"],["peopleArrived","arrived"],["peopleUnlocated","unlocated"]];
+      peopleFields.forEach(function(pair){
+        const input=el(pair[0]), key=pair[1], sameZone=input.dataset.zone===zone.id;
         input.max=String(zone.population);
         if(!sameZone || (document.activeElement!==input && !input.dataset.dirty)) input.value=record[key]===null ? "" : String(record[key]);
         input.dataset.zone=zone.id;
       });
       const errors=peopleValidation(record,zone);
       if(record.inputError) errors.push(record.inputError);
-      const status="contatadas: "+displayCount(record.contacted)+" · saíram: "+displayCount(record.departed)+" · chegaram: "+displayCount(record.arrived)+" · não localizadas: "+displayCount(record.unlocated);
+      const status="demanda no abrigo: "+displayCount(record.toShelter)+" · contatadas: "+displayCount(record.contacted)+" · saíram: "+displayCount(record.departed)+" · chegaram: "+displayCount(record.arrived)+" · não localizadas: "+displayCount(record.unlocated);
       const statusNode=el("peopleStatus");
-      const needLabels={transport:"transporte assistido",health:"saúde / medicação",care:"crianças / idosos",animals:"animais"};
-      const needs=["transport","health","care","animals"].filter(function(key){return !!record.needs[key];}).map(function(key){return needLabels[key];});
-      statusNode.textContent=(errors.length ? "Corrigir: "+errors.join(" · ")+". " : "")+([record.contacted,record.departed,record.arrived,record.unlocated].some(function(value){return value===null;}) && !errors.length ? "sem contagem operacional confirmada · " : "")+status+(needs.length ? " · confirmar: "+needs.join(", ") : "");
-      statusNode.className="people-status"+(errors.length || (record.unlocated||0)>0 ? " alert" : ([record.contacted,record.departed,record.arrived,record.unlocated].some(function(value){return value===null;}) ? " warn":""));
-      ["peopleContacted","peopleDeparted","peopleArrived","peopleUnlocated"].forEach(function(id){el(id).setAttribute("aria-invalid",errors.length ? "true":"false");});
+      const needLabels={transport:"transporte assistido",health:"saúde / medicação",care:"crianças / idosos",animals:"animais",mobility:"mobilidade reduzida / equipamento",communication:"comunicação alternativa"};
+      const needs=Object.keys(needLabels).filter(function(key){return !!record.needs[key];}).map(function(key){return needLabels[key];});
+      const countMissing=[record.toShelter,record.contacted,record.departed,record.arrived,record.unlocated].some(function(value){return value===null;});
+      statusNode.textContent=(errors.length ? "Corrigir: "+errors.join(" · ")+". " : "")+(countMissing && !errors.length ? "há contagens pendentes · " : "")+status+(needs.length ? " · confirmar: "+needs.join(", ") : "");
+      statusNode.className="people-status"+(errors.length || (record.unlocated||0)>0 ? " alert" : (countMissing ? " warn":""));
+      peopleFields.forEach(function(pair){el(pair[0]).setAttribute("aria-invalid",errors.length ? "true":"false");});
       document.querySelectorAll("[data-need]").forEach(function(input){input.checked=!!record.needs[input.dataset.need];});
     }
 
     function renderShelter(){
       const snapshot=shelterSnapshot(), capacity=snapshot.capacity, occupied=snapshot.occupied, available=snapshot.available;
-      const zone=getZone(), shelterContingency=state.contingencyActive && state.contingencyActive.zoneId===zone.id && state.contingencyActive.value==="shelter";
+      const zone=getZone(), people=peopleRecord(zone), demand=people.toShelter, shelterContingency=state.contingencyActive && state.contingencyActive.zoneId===zone.id && state.contingencyActive.value==="shelter";
       const spatial=shelterSpatialStatus();
       const ready=shelterReady(), visible=ready && available!==null ? available : null;
-      const deficit=snapshot.valid && available!==null ? zone.population-available : null;
+      const deficit=snapshot.valid && available!==null && demand!==null ? demand-available : null;
+      setText("shelterDemand",demand===null ? "—" : fmtInt.format(demand));
       setText("shelterAvailable",visible===null ? "—" : fmtInt.format(visible));
       setText("teaserShelter",visible===null ? "—" : fmtInt.format(visible));
       const fill=ready && capacity ? Math.min(100,(occupied/capacity)*100) : 0;
@@ -1870,7 +1972,7 @@
           SERVICE.nearestFire.name+' · '+SERVICE.nearestFire.city+' · '+fmtKm(SERVICE.nearestFire.distance_m)+' em linha reta · '+missionMeta+'</span></div><span class="ops-status '+fireClass+'">'+fireText+'</span></div>'+
         '<div class="ops-item"><span class="ops-icon">A</span><div><strong>'+SERVICE.shelter.name+'</strong><span>ponto de referência · '+(spatial.reconciled ? "capacidade definida no exercício":"coordenada ainda não reconciliada")+'</span></div><span class="ops-status '+shelterClass+'">'+shelterText+'</span></div>'+
         '<div class="ops-item"><span class="ops-icon route">R</span><div><strong>Corredor sintético para '+zone.id+'</strong><span>'+fmtKm(plan.safeDistance)+' · tempo de segurança estimado '+marginLabel(plan.safeMargin,plan.blocked)+' · campo '+(confirmation.routeField ? "marcado no exercício":"a confirmar")+' · não é rota viária</span></div><span class="ops-status '+evacClass+'">'+evacText+'</span></div>';
-      el("logList").innerHTML=state.log.map(function(item){return '<div class="log-row"><time>'+item.time+'</time><span>'+item.text+'</span></div>';}).join("");
+      el("logList").innerHTML=state.log.map(function(item){return '<div class="log-row"><time>'+escapeHtml(item.time)+'</time><span>'+escapeHtml(item.text)+'</span></div>';}).join("");
     }
 
     function renderContingency(){
@@ -1910,7 +2012,8 @@
     }
 
     function copyMessage(){
-      const text=el("messageDraft").textContent;
+      const body=el("messageDraft").textContent.replace(/^RASCUNHO\s+—\s+NÃO É ALERTA\s+·\s*/i,"");
+      const text="RASCUNHO DO EXERCÍCIO — NÃO É ALERTA, ORDEM DE EVACUAÇÃO OU DESPACHO\n\n"+body;
       const done=function(){announce("Texto copiado; ainda é um rascunho do exercício.");};
       if(navigator.clipboard && navigator.clipboard.writeText){
         navigator.clipboard.writeText(text).then(done).catch(function(){copyMessageFallback(text);});
@@ -1933,17 +2036,31 @@
     }
 
     function exportExercise(){
+      const exportedAt=new Date();
+      const spatial=shelterSpatialStatus();
       const payload={
-        exported_at:new Date().toISOString(),
+        export_schema_version:"exercise_record_v2",
+        exported_at:exportedAt.toISOString(),
+        exported_at_local:exportedAt.toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo"}),
+        timezone:"America/Sao_Paulo",
+        operator:(el("observer").value||"").trim() || null,
         mode:state.operatingMode,
-        artifact:{name:"estudo-caso-resposta-santa-tereza.html",version:"0.2",contract:"assets/data/estudo_caso_resposta_v002.json",validation:"exercício local; não operacional",operational_gate:"blocked"},
+        artifact:{name:"estudo-caso-resposta-santa-tereza.html",version:"0.3",revision:"UI hardening · 2026-08-31",contract:"assets/data/estudo_caso_resposta_v002.json",validation:"exercício local; não operacional",operational_gate:"blocked"},
+        source_provenance:{
+          acquisition:"snapshots incorporados na página; sem conexão externa",
+          files:[
+            {path:"assets/data/estudo_caso_resposta_v002.json",role:"contrato do exercício",sha256:"17E262DB027AEA61B0AA6348DB7507EF6D7EFD52F83F390E32704E3AAF6ACE26"},
+            {path:"assets/data/rota_fuga_santa_tereza_cenario.json",role:"grade espacial preliminar",sha256:"307DE181FA430376CB67D827B047A4AB0E28BFE3B07FF4F3B245B6BD0EA405A7"},
+            {path:"previsao_ao_vivo.json",role:"fonte do snapshot da RNA",sha256:"8AEA4D870A6A23A678319F224239B853F061A5F410052559890CCB788C9F0A84",snapshot:LIVE.snapshot}
+          ]
+        },
         event:{step:currentStep(),clock:fmtClock(currentStep().hours),zone:getZone().id,scenario:"22/07 · didático separado do feed da estação",spatial_coverage_until:fmtClock(SPATIAL_COVERAGE_MINUTES/60)},
         model_snapshot:{snapshot:LIVE.snapshot,snapshot_raw:LIVE.snapshot_raw,timestamp_note:LIVE.timestamp_note,station:LIVE.station,contract:LIVE.contract,observed_cm:LIVE.observed_cm,observed_at:LIVE.observed_at,consulted_at:LIVE.consulted_at,v001:LIVE.v001,v002:LIVE.v002},
         validation_checklist:state.validation,
         exercise_metrics:Object.assign({},state.metrics,{message_comprehension:state.metrics.messageComprehension,derived:exerciseMetricsSnapshot()}),
         confirmations:{zone:confirmationRecord(getZone()),shelter:{verified:el("shelterVerified").checked,accessible:el("shelterAccessible").checked,verifier:(el("shelterVerifier").value||"").trim(),evidence:(el("shelterEvidence").value||"").trim()},ready:shelterReady() && safetyGate().ready},
-        route:{plan:routePlan(getZone()),source:"heurística local incorporada",validated_for_field:false},
-        shelter:shelterSnapshot(),
+        route:{plan:routePlan(getZone()),source:"heurística local incorporada",validated_for_field:false,destination_reconciliation:spatial},
+        shelter:Object.assign({},shelterSnapshot(),{spatial_reconciliation:spatial}),
         people:state.people,
         actions:state.actions,
         missions:state.missions,
@@ -1984,6 +2101,7 @@
       const play=el("playStep");
       play.textContent=state.auto ? "Pausar avanço automático" : "Iniciar avanço automático";
       setText("eventLevel",fmtM(scenarioLevelM()));
+      saveState(true);
     }
 
     function stopAuto(){
@@ -2166,7 +2284,7 @@
       el(id).addEventListener("change",function(){render();});
     });
     function updatePeopleCount(input){
-      const zone=getZone(), record=peopleRecord(zone), key=input.id.replace("people","").toLowerCase();
+      const zone=getZone(), record=peopleRecord(zone), key={peopleToShelter:"toShelter",peopleContacted:"contacted",peopleDeparted:"departed",peopleArrived:"arrived",peopleUnlocated:"unlocated"}[input.id];
       const candidate=parseCount(input.value), next=Object.assign({},record,{[key]:candidate});
       const errors=Number.isNaN(candidate) ? [key+" precisa ser um inteiro não negativo"] : peopleValidation(next,zone);
       if(errors.length){
@@ -2181,9 +2299,10 @@
       input.setCustomValidity("");
       delete input.dataset.dirty;
       renderPeople();
+      saveState(true);
       announce("Contagem de pessoas atualizada para "+zone.id+".");
     }
-    ["peopleContacted","peopleDeparted","peopleArrived","peopleUnlocated"].forEach(function(id){
+    ["peopleToShelter","peopleContacted","peopleDeparted","peopleArrived","peopleUnlocated"].forEach(function(id){
       el(id).addEventListener("input",function(){updatePeopleCount(this);});
       el(id).addEventListener("change",function(){updatePeopleCount(this);});
     });
@@ -2192,6 +2311,7 @@
         const record=peopleRecord(getZone());
         record.needs[input.dataset.need]=input.checked;
         renderPeople();
+        saveState(true);
         announce("Necessidade marcada para confirmação no exercício.");
       });
     });
@@ -2199,6 +2319,11 @@
     el("contingencyApply").addEventListener("click",applyContingency);
     el("copyMessage").addEventListener("click",copyMessage);
     el("exportLog").addEventListener("click",exportExercise);
+    el("saveState").addEventListener("click",function(){saveState(false);});
+    el("resetState").addEventListener("click",resetState);
+    document.addEventListener("input",function(event){
+      if(event.target && event.target.matches("input,select,textarea")) saveState(true);
+    });
     document.querySelector(".skip-link").addEventListener("click",function(event){
       event.preventDefault();
       const target=el("decisionPanel");
@@ -2212,12 +2337,14 @@
       button.addEventListener("click",function(){
         state.mapMode=button.dataset.mapMode;
         renderMap();
+        saveState(true);
         announce(state.mapMode==="focus" ? "Mapa em foco na área selecionada." : "Mapa mostrando toda a grade do cenário.");
       });
     });
     el("altRouteToggle").addEventListener("click",function(){
       state.showAlternative=!state.showAlternative;
       renderMap();
+      saveState(true);
       announce(state.showAlternative ? "Trajeto B exibido para comparação." : "Trajeto B ocultado; corredor A em foco.");
     });
 
@@ -2225,7 +2352,7 @@
     svgStyle.textContent=
       '#eventMap .map-frame{fill:#f8fbfd;stroke:#d5e1e8;stroke-width:1.2}'+
       '#eventMap .map-grid-line{stroke:#e4ebf1;stroke-width:1}'+
-      '#eventMap .map-axis-label{fill:#506678;font-size:10px;font-family:var(--mono)}'+
+      '#eventMap .map-axis-label{fill:#3f5365;font-size:10px;font-family:var(--mono)}'+
       '#eventMap .north-arrow{fill:#17354a;font-size:12px;font-weight:800}'+
       '#eventMap .north-line{stroke:#17354a;stroke-width:1.5}'+
       '#eventMap .north-head{fill:#17354a}'+
@@ -2264,7 +2391,7 @@
     chartStyle.textContent=
       '#levelChart .chart-frame{fill:#fbfcfe;stroke:#dbe5ec;stroke-width:1}'+
       '#levelChart .chart-grid{stroke:#e7edf2;stroke-width:1}'+
-      '#levelChart .chart-label{fill:#5b6d7d;font-size:10px;font-family:var(--mono)}'+
+      '#levelChart .chart-label{fill:#445765;font-size:10px;font-family:var(--mono)}'+
       '#levelChart .chart-axis-title{fill:#4e6172;font-size:10px;font-weight:700}'+
       '#levelChart .chart-reference{stroke:#e8a044;stroke-width:1.5;stroke-dasharray:5 5}'+
       '#levelChart .chart-reference-label{fill:#a46b20;font-size:10px;font-weight:800}'+
@@ -2276,7 +2403,9 @@
       '#levelChart .chart-point-current{fill:#2e72dd;stroke:#fff;stroke-width:2.5}';
     document.head.appendChild(chartStyle);
 
+    const restored=restoreState();
     render();
+    announce(restored ? "Registro local restaurado; confira o estado antes de continuar o exercício." : "Exercício aberto no modo local; nenhuma ação externa foi executada.");
   </script>
 </body>
 </html>
