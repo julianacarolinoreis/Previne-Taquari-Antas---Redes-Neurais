@@ -353,7 +353,7 @@
     .map-alt-button[aria-pressed="true"]{border-color:#d59a4d;background:#fff7e9;color:#8d6020}
     .map-mode-hint{color:var(--muted);font-size:10px;text-align:right}
     .map-wrap{position:relative;margin:0 12px;border:1px solid #dfe7ee;border-radius:11px;overflow:hidden;background:#f5f8fb}
-    #eventMap{display:block;width:100%;height:auto;min-height:390px}
+    #eventMap{display:block;width:100%;height:auto;min-height:330px}
     .map-stamp{position:absolute;top:11px;left:12px;max-width:72%;padding:6px 8px;background:rgba(255,255,255,.92);border:1px solid rgba(216,226,235,.95);border-radius:7px;color:#5d7082;font-size:10px;font-weight:700;letter-spacing:.04em;line-height:1.3}
     .map-stamp b{color:var(--navy)}
     .map-focus-card{position:absolute;top:58px;right:12px;display:grid;gap:1px;min-width:145px;max-width:190px;padding:9px 10px;background:rgba(16,35,52,.95);border-radius:9px;color:#eaf4f8;box-shadow:0 8px 18px rgba(16,35,52,.15)}
@@ -458,7 +458,7 @@
       .rail>.priority-panel{order:5}
       .rail>.shelter-panel{order:6}
       .map-wrap{margin:0 8px}
-      #eventMap{min-height:350px}
+      #eventMap{min-height:300px}
       #eventMap.map-focus-mode .zone-map-code{font-size:24px !important;font-weight:900 !important}
       #eventMap.map-focus-mode .zone-map-text{display:none !important}
       #eventMap.map-focus-mode .service-label{font-size:18px !important;font-weight:900 !important}
@@ -843,7 +843,7 @@
             <span id="mapModeHint" class="map-mode-hint">Foco: só área, hipótese e destino. A grade fica em Contexto.</span>
           </div>
           <div class="map-wrap">
-            <svg id="eventMap" viewBox="0 0 860 470" role="group" aria-label="Mapa esquemático e interativo da grade preliminar de resposta em Santa Tereza">
+            <svg id="eventMap" viewBox="0 0 860 410" role="group" aria-label="Mapa esquemático e interativo da grade preliminar de resposta em Santa Tereza">
               <title>Mapa esquemático do evento</title>
               <desc>No foco, o mapa mostra somente a área selecionada, as hipóteses de corredor e o destino. O contexto completo da grade pode ser aberto pelo botão acima.</desc>
               <g id="mapBase"></g>
@@ -1817,7 +1817,7 @@
       const lonSpan=maxLon-minLon, latSpan=maxLat-minLat;
       const lonPad=state.mapMode==="focus" ? Math.max(lonSpan*.24,.0011) : lonSpan*.08;
       const latPad=state.mapMode==="focus" ? Math.max(latSpan*.24,.0011) : latSpan*.08;
-      return {w:860,h:470,pad:36,minLon:minLon-lonPad,maxLon:maxLon+lonPad,minLat:minLat-latPad,maxLat:maxLat+latPad};
+      return {w:860,h:410,pad:32,minLon:minLon-lonPad,maxLon:maxLon+lonPad,minLat:minLat-latPad,maxLat:maxLat+latPad};
     }
 
     function pointInBox(point,box){
@@ -1891,7 +1891,8 @@
       });
       const shelterPoint=project(SERVICE.shelter,box);
       const spatialStatus=shelterSpatialStatus();
-      services.push('<g class="shelter-marker"><rect x="'+(shelterPoint.x-10).toFixed(1)+'" y="'+(shelterPoint.y-10).toFixed(1)+'" width="20" height="20" rx="5" class="shelter-square"></rect><path d="M '+(shelterPoint.x-6)+' '+(shelterPoint.y)+' l 6 -6 l 6 6 M '+(shelterPoint.x-4)+' '+(shelterPoint.y)+' v 6 h 8 v -6" class="shelter-glyph"></path><text x="'+(shelterPoint.x+17).toFixed(1)+'" y="'+(shelterPoint.y-6).toFixed(1)+'" class="service-kicker">DESTINO</text><text x="'+(shelterPoint.x+17).toFixed(1)+'" y="'+(shelterPoint.y+9).toFixed(1)+'" class="service-label">Ginásio de Esportes</text><text x="'+(shelterPoint.x+17).toFixed(1)+'" y="'+(shelterPoint.y+22).toFixed(1)+'" class="service-state">'+(spatialStatus.reconciled ? "coordenada reconciliada" : "coordenada pendente")+'</text></g>');
+      const serviceLabelLeft=shelterPoint.x>box.w-260, serviceLabelX=serviceLabelLeft ? shelterPoint.x-17 : shelterPoint.x+17, serviceLabelAnchor=serviceLabelLeft ? "end" : "start", serviceLabelY=shelterPoint.y>box.h-72 ? shelterPoint.y-28 : shelterPoint.y-6;
+      services.push('<g class="shelter-marker"><rect x="'+(shelterPoint.x-10).toFixed(1)+'" y="'+(shelterPoint.y-10).toFixed(1)+'" width="20" height="20" rx="5" class="shelter-square"></rect><path d="M '+(shelterPoint.x-6)+' '+(shelterPoint.y)+' l 6 -6 l 6 6 M '+(shelterPoint.x-4)+' '+(shelterPoint.y)+' v 6 h 8 v -6" class="shelter-glyph"></path><text x="'+serviceLabelX.toFixed(1)+'" y="'+serviceLabelY.toFixed(1)+'" text-anchor="'+serviceLabelAnchor+'" class="service-kicker">DESTINO</text><text x="'+serviceLabelX.toFixed(1)+'" y="'+(serviceLabelY+15).toFixed(1)+'" text-anchor="'+serviceLabelAnchor+'" class="service-label">Ginásio de Esportes</text><text x="'+serviceLabelX.toFixed(1)+'" y="'+(serviceLabelY+28).toFixed(1)+'" text-anchor="'+serviceLabelAnchor+'" class="service-state">'+(spatialStatus.reconciled ? "coordenada reconciliada" : "coordenada pendente")+'</text></g>');
       if(state.mapMode==="context") SERVICE.schools.forEach(function(school){
         const p=project(school,box);
         services.push('<g class="school-marker"><rect x="'+(p.x-4).toFixed(1)+'" y="'+(p.y-4).toFixed(1)+'" width="8" height="8" rx="2" class="school-square"></rect><title>'+school.name+'</title></g>');
