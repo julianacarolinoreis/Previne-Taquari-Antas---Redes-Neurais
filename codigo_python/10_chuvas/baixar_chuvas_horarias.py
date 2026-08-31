@@ -9,7 +9,7 @@ ja com o COD_SEQUENCIAL (yyyymmddHHMM) usado nos modelos:
 
   assets/data/chuvas_horarias.csv
   colunas: COD_SEQUENCIAL, ANO, MES, DIA, HORA,
-           chuva_86472600, chuva_86472000, chuva_02851044,     (ANA)
+           chuva_86472600, chuva_86472000, chuva_02851072,     (ANA)
            chuva_inmet_A894,                                    (INMET)
            chuva_cemaden_4320404010A                            (CEMADEN)
 
@@ -19,15 +19,20 @@ Fontes e limites (o log imprime a cobertura real de cada estacao):
     para historico profundo pode faltar -> nesse caso usar o HidroWebService da ANA
     com credencial (variaveis de ambiente ANA_HIDRO_ID / ANA_HIDRO_SENHA — o robo
     tenta se estiverem setadas).
-  - INMET A894: apitempo.inmet.gov.br, historico horario publico completo (UTC ->
-    convertido para BRT). Fonte mais confiavel para dez/2022 -> agora.
-  - CEMADEN 4320404010A: tenta o endpoint publico; historico profundo costuma
-    exigir login. Se houver token, setar CEMADEN_TOKEN.
+  - INMET A894: apitempo.inmet.gov.br (UTC -> BRT). Quando a estacao estiver em
+    pane, o endpoint pode responder sem dados; isso e ausencia, nunca chuva zero.
+  - CEMADEN 432040401A: grade horaria publica recente; historico profundo usa
+    CEMADEN_TOKEN quando disponivel. O nome legado da coluna conserva o zero
+    extra apenas para compatibilidade.
+
+O arquivo anterior e mesclado antes da gravacao: falha transitoria de uma API
+nao apaga observacoes reais ja publicadas.
 
 Uso:
   python codigo_python/10_chuvas/baixar_chuvas_horarias.py [--inicio 2022-12-01] [--fim 2026-08-04]
 """
 import os
+import sys
 import csv
 import time
 import json
@@ -39,16 +44,36 @@ import urllib.parse
 import xml.etree.ElementTree as ET
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if RAIZ not in sys.path:
+    sys.path.insert(0, RAIZ)
+
+from previne.robo.fontes_chuva_8h import (  # noqa: E402
+    CEMADEN_ESTACAO,
+    CEMADEN_ID,
+    INMET_ESTACAO,
+    INMET_URL,
+    baixar_cemaden_chuva_recente,
+)
+
 SAIDA = os.path.join(RAIZ, "assets", "data", "chuvas_horarias.csv")
 BRT = dt.timezone(dt.timedelta(hours=-3))
 UA = {"User-Agent": "previne-robo-chuva/1.0"}
 
 ANA_URL = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
-INMET_URL = "https://apitempo.inmet.gov.br/estacao/{ini}/{fim}/{cod}"
 
-ANA_ESTACOES = ["86472600", "86472000", "02851044"]
-INMET_ESTACAO = "A894"
-CEMADEN_ESTACAO = "4320404010A"
+ANA_ESTACOES = {
+    "chuva_86472600": "86472600",
+    "chuva_86472000": "86472000",
+    "chuva_02851072": "2851072",
+}
+COLUNAS = [
+    "chuva_86472600",
+    "chuva_86472000",
+    "chuva_02851044",  # legado preservado; nao e input do Excel-mae de 8h
+    "chuva_02851072",
+    "chuva_inmet_A894",
+    "chuva_cemaden_4320404010A",
+]
 
 
 # ------------------------------------------------------------------ utils ---
@@ -95,6 +120,44 @@ def http_get(url, timeout=90, tentativas=3, headers=None):
             ult = e
             time.sleep(3 * k)
     raise ult
+
+
+def carregar_existente(colunas):
+    """Le o CSV publicado para preservar toda observacao nao vazia existente."""
+    series = {coluna: {} for coluna in colunas}
+    primeira = ultima = None
+    if not os.path.exists(SAIDA):
+        return series, primeira, ultima
+    with open(SAIDA, newline="", encoding="utf-8-sig") as arquivo:
+        for linha in csv.DictReader(arquivo):
+            try:
+                t = dt.datetime.strptime(str(linha.get("COD_SEQUENCIAL") or ""), "%Y%m%d%H%M")
+            except ValueError:
+                continue
+            primeira = t if primeira is None or t < primeira else primeira
+            ultima = t if ultima is None or t > ultima else ultima
+            for coluna in colunas:
+                valor = linha.get(coluna)
+                if valor in (None, ""):
+                    continue
+                try:
+                    numero = float(str(valor).replace(",", "."))
+                except ValueError:
+                    continue
+                if numero >= 0:
+                    series[coluna][t] = numero
+    return series, primeira, ultima
+
+
+def mesclar_observacoes(destino, novas):
+    """Acrescenta somente numeros observados; nunca sobrescreve com ausencia."""
+    for hora, valor in (novas or {}).items():
+        if valor is not None and float(valor) >= 0:
+            destino[hora] = float(valor)
+
+
+def _ultima_hora(serie):
+    return max(serie) if serie else None
 
 
 # -------------------------------------------------------------------- ANA ---
@@ -170,8 +233,10 @@ def inmet_chuva_horaria(cod, inicio, fim):
                 try:
                     hh = int(str(hr)[:2])
                     t_utc = dt.datetime.strptime(data, "%Y-%m-%d") + dt.timedelta(hours=hh)
-                    t_brt = t_utc - dt.timedelta(hours=3)             # UTC -> BRT
-                    serie[t_brt] = float(str(ch).replace(",", "."))
+                    # UTC->BRT (-3h) e -1h de rotulo: CHUVA do INMET e o
+                    # acumulado da hora que termina no carimbo.
+                    t_inicio_brt = t_utc - dt.timedelta(hours=4)
+                    serie[t_inicio_brt] = float(str(ch).replace(",", "."))
                 except Exception:
                     continue
             print(f"[INMET {cod}] {ini_m:%Y-%m} +{len(serie)-n0} horas")
@@ -183,73 +248,123 @@ def inmet_chuva_horaria(cod, inicio, fim):
 
 # ---------------------------------------------------------------- CEMADEN ---
 def cemaden_chuva_horaria(cod, inicio, fim):
-    """Tenta a chuva horaria do CEMADEN. Historico profundo geralmente exige
-    login; se CEMADEN_TOKEN estiver setado, usa a API autenticada."""
+    """Chuva CEMADEN exata: API autenticada profunda + grade publica recente."""
     token = os.environ.get("CEMADEN_TOKEN")
     serie = {}
-    if not token:
-        print(f"[CEMADEN {cod}] sem CEMADEN_TOKEN — historico profundo indisponivel "
-              f"(registrar em https://sws.cemaden.gov.br e setar o token).")
-        return serie
-    # com token: API PED de PCDs (chunk mensal)
-    base = "https://sws.cemaden.gov.br/PED/rest/pcds/dados_pcd"
-    ini_m = inicio.replace(day=1)
-    while ini_m <= fim:
-        prox = (ini_m.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
-        fim_m = min(prox - dt.timedelta(days=1), fim)
-        q = urllib.parse.urlencode({"codigo": cod, "inicio": ini_m.strftime("%Y%m%d"),
-                                    "fim": fim_m.strftime("%Y%m%d"), "sensor": "chuva"})
-        try:
-            req = urllib.request.Request(f"{base}?{q}",
-                                         headers={**UA, "token": token})
-            dados = json.loads(urllib.request.urlopen(req, timeout=120).read())
-            n0 = len(serie)
-            for r in (dados if isinstance(dados, list) else dados.get("dados", [])):
-                t = _parse_hora(r.get("datahora") or r.get("data"))
-                v = r.get("valor") if r.get("valor") is not None else r.get("chuva")
-                if t is None or v in (None, ""):
-                    continue
-                h = t.replace(minute=0, second=0, microsecond=0)
-                serie[h] = serie.get(h, 0.0) + float(str(v).replace(",", "."))
-            print(f"[CEMADEN {cod}] {ini_m:%Y-%m} +{len(serie)-n0} horas")
-        except Exception as e:
-            print(f"[CEMADEN {cod}] {ini_m:%Y-%m} erro: {e}")
-        ini_m = prox
+    if token:
+        base = "https://sws.cemaden.gov.br/PED/rest/pcds/dados_pcd"
+        ini_m = inicio.replace(day=1)
+        while ini_m <= fim:
+            prox = (ini_m.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
+            fim_m = min(prox - dt.timedelta(days=1), fim)
+            q = urllib.parse.urlencode({"codigo": cod, "inicio": ini_m.strftime("%Y%m%d"),
+                                        "fim": fim_m.strftime("%Y%m%d"), "sensor": "chuva"})
+            try:
+                req = urllib.request.Request(f"{base}?{q}", headers={**UA, "token": token})
+                dados = json.loads(urllib.request.urlopen(req, timeout=120).read())
+                n0 = len(serie)
+                for r in (dados if isinstance(dados, list) else dados.get("dados", [])):
+                    t_utc = _parse_hora(r.get("datahora") or r.get("data"))
+                    v = r.get("valor") if r.get("valor") is not None else r.get("chuva")
+                    if t_utc is None or v in (None, ""):
+                        continue
+                    h_brt = (t_utc - dt.timedelta(hours=3)).replace(
+                        minute=0, second=0, microsecond=0
+                    )
+                    serie[h_brt] = serie.get(h_brt, 0.0) + float(str(v).replace(",", "."))
+                print(f"[CEMADEN {cod}] PED {ini_m:%Y-%m} +{len(serie)-n0} horas")
+            except Exception as e:
+                print(f"[CEMADEN {cod}] PED {ini_m:%Y-%m} erro: {e}")
+            ini_m = prox
+    else:
+        print(f"[CEMADEN {cod}] sem token; usando grade horaria publica recente")
+
+    try:
+        recente = baixar_cemaden_chuva_recente(
+            id_estacao=CEMADEN_ID,
+            codigo=cod,
+            horas=168,
+            timeout=30,
+            tentativas=2,
+        )
+        recente = {hora: valor for hora, valor in recente.items() if inicio <= hora <= fim}
+        serie.update(recente)
+        print(f"[CEMADEN {cod}] publico recente +{len(recente)} horas")
+    except Exception as e:
+        print(f"[CEMADEN {cod}] publico recente erro: {e}")
     return serie
 
 
 # --------------------------------------------------------------------- main -
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--inicio", default="2022-12-01")
+    ap.add_argument(
+        "--inicio",
+        default=None,
+        help="YYYY-MM-DD; sem valor atualiza somente os ultimos 8 dias e preserva o CSV",
+    )
     ap.add_argument("--fim", default=dt.datetime.now(BRT).strftime("%Y-%m-%d"))
     args = ap.parse_args()
-    inicio = dt.datetime.strptime(args.inicio, "%Y-%m-%d")
+    existentes, primeira_existente, ultima_existente = carregar_existente(COLUNAS)
+    if args.inicio:
+        inicio = dt.datetime.strptime(args.inicio, "%Y-%m-%d")
+    elif ultima_existente:
+        inicio = min(
+            dt.datetime.now(BRT).replace(tzinfo=None) - dt.timedelta(days=8),
+            ultima_existente,
+        ).replace(minute=0, second=0, microsecond=0)
+    else:
+        inicio = dt.datetime(2022, 12, 1)
     fim = dt.datetime.strptime(args.fim, "%Y-%m-%d").replace(hour=23)
     print(f"Janela: {inicio:%Y-%m-%d} -> {fim:%Y-%m-%d} (BRT, horaria)")
 
-    series = {}                                   # nome_coluna -> {hora: mm}
-    for cod in ANA_ESTACOES:
-        series[f"chuva_{cod}"] = ana_chuva_horaria(cod, inicio, fim)
-    series["chuva_inmet_A894"] = inmet_chuva_horaria(INMET_ESTACAO, inicio, fim)
-    series["chuva_cemaden_4320404010A"] = cemaden_chuva_horaria(CEMADEN_ESTACAO, inicio, fim)
+    series = existentes
+    for coluna, cod in ANA_ESTACOES.items():
+        mesclar_observacoes(series[coluna], ana_chuva_horaria(cod, inicio, fim))
+    mesclar_observacoes(
+        series["chuva_inmet_A894"],
+        inmet_chuva_horaria(INMET_ESTACAO, inicio, fim),
+    )
+    mesclar_observacoes(
+        series["chuva_cemaden_4320404010A"],
+        cemaden_chuva_horaria(CEMADEN_ESTACAO, inicio, fim),
+    )
 
-    cols = ["chuva_86472600", "chuva_86472000", "chuva_02851044",
-            "chuva_inmet_A894", "chuva_cemaden_4320404010A"]
+    agora = dt.datetime.now(BRT).replace(tzinfo=None)
+    if fim >= agora - dt.timedelta(days=1):
+        ultima_cemaden = _ultima_hora(series["chuva_cemaden_4320404010A"])
+        atraso_h = None if ultima_cemaden is None else (agora - ultima_cemaden).total_seconds() / 3600
+        if atraso_h is None or atraso_h > 8:
+            raise SystemExit(
+                "QA FALHOU: CEMADEN 432040401A sem observacao nas ultimas 8 horas; "
+                "CSV anterior foi preservado e nao sera substituido"
+            )
+        ultima_a894 = _ultima_hora(series["chuva_inmet_A894"])
+        print(
+            "[QA recente] CEMADEN ultima=",
+            ultima_cemaden.isoformat(timespec="minutes"),
+            "A894 ultima=",
+            ultima_a894.isoformat(timespec="minutes") if ultima_a894 else "sem_dado (estacao em pane)",
+        )
+
+    saida_inicio = min(x for x in (primeira_existente, inicio) if x is not None)
+    saida_fim = max(x for x in (ultima_existente, fim) if x is not None)
     os.makedirs(os.path.dirname(SAIDA), exist_ok=True)
-    with open(SAIDA, "w", newline="", encoding="utf-8") as f:
+    temporario = SAIDA + ".tmp"
+    with open(temporario, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        w.writerow(["COD_SEQUENCIAL", "ANO", "MES", "DIA", "HORA"] + cols)
-        for t in horas(inicio, fim):
+        w.writerow(["COD_SEQUENCIAL", "ANO", "MES", "DIA", "HORA"] + COLUNAS)
+        for t in horas(saida_inicio, saida_fim):
             linha = [cod_seq(t), t.year, t.month, t.day, t.hour]
-            for c in cols:
+            for c in COLUNAS:
                 v = series[c].get(t)
                 linha.append("" if v is None else round(v, 2))
             w.writerow(linha)
+    os.replace(temporario, SAIDA)
 
     print("\n=== cobertura (horas com dado) ===")
-    total = sum(1 for _ in horas(inicio, fim))
-    for c in cols:
+    total = sum(1 for _ in horas(saida_inicio, saida_fim))
+    for c in COLUNAS:
         n = len(series[c])
         print(f"  {c:30s} {n:6d} / {total} horas ({100*n/total:4.1f}%)")
     print(f"-> {SAIDA}")

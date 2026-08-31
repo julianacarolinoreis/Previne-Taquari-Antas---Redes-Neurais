@@ -1,6 +1,6 @@
 name: Chuvas horarias (ANA + INMET + CEMADEN)
 
-# Baixa a chuva horaria das estacoes (dez/2022 -> agora) e grava
+# Atualiza incrementalmente a chuva horaria observada e preserva o historico
 # assets/data/chuvas_horarias.csv com o COD_SEQUENCIAL. Roda no GitHub Actions
 # (as APIs da ANA/INMET/CEMADEN sao bloqueadas na sessao do Claude, mas funcionam
 # aqui no CI). CEMADEN/ANA-historico podem exigir credencial via Secrets:
@@ -16,7 +16,7 @@ on:
         description: 'Data final (YYYY-MM-DD, vazio = hoje)'
         default: ''
   schedule:
-    - cron: '20 6 * * *'      # atualiza uma vez por dia (03h20 BRT)
+    - cron: '17 * * * *'      # contingencia horaria; o ao-vivo consulta direto
 
 jobs:
   chuvas:
@@ -46,13 +46,20 @@ jobs:
           git config user.email "previne-robo@users.noreply.github.com"
           git pull --rebase --autostash origin main
 
+          python -B -m py_compile \
+            previne/robo/fontes_chuva_8h.py \
+            codigo_python/10_chuvas/baixar_chuvas_horarias.py
+
           FIM="${{ github.event.inputs.fim }}"
           INI="${{ github.event.inputs.inicio }}"
-          [ -z "$INI" ] && INI="2022-12-01"
-          if [ -n "$FIM" ]; then
+          if [ -n "$INI" ] && [ -n "$FIM" ]; then
             python codigo_python/10_chuvas/baixar_chuvas_horarias.py --inicio "$INI" --fim "$FIM"
-          else
+          elif [ -n "$INI" ]; then
             python codigo_python/10_chuvas/baixar_chuvas_horarias.py --inicio "$INI"
+          elif [ -n "$FIM" ]; then
+            python codigo_python/10_chuvas/baixar_chuvas_horarias.py --fim "$FIM"
+          else
+            python codigo_python/10_chuvas/baixar_chuvas_horarias.py
           fi
 
           git add assets/data/chuvas_horarias.csv
