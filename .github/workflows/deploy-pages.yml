@@ -18,6 +18,14 @@ on:
       - "assets/data/estudo_caso_resposta_v002.json"
       - "assets/data/rota_fuga_santa_tereza_cenario.json"
       - "assets/data/servicos/**"
+      # Os feeds operacionais abaixo mudam por robos e precisam disparar uma
+      # nova versao do Pages; sem estes caminhos o site podia ficar atrasado
+      # mesmo com o Raw atualizado.
+      - "previsao_ao_vivo.json"
+      - "historico_previsoes_ao_vivo.json"
+      - "previsao_ao_vivo_mucum.json"
+      - "historico_previsoes_ao_vivo_mucum.json"
+      - "assets/data/chuvas_horarias.csv"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
