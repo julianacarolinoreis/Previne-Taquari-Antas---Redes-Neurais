@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
  html,body{height:100%;margin:0}
+ *,*::before,*::after{box-sizing:border-box}
  body{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#12211b}
  #map{position:fixed;top:0;left:0;width:100vw;height:100vh}
  .hud{position:absolute;z-index:500;top:10px;left:10px;background:#fff;border-radius:14px;
@@ -31,9 +32,10 @@
  .rota .ok{display:block;color:#087f73;font-weight:800;margin-top:4px}
  .municipal-panel{background:#102f32;color:#f7fffb;border-radius:12px;padding:11px;margin-top:10px;box-shadow:0 8px 18px rgba(16,47,50,.18)}
  .municipal-head{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+ .municipal-head>div:last-child{display:flex;gap:5px;align-items:center;justify-content:flex-end;flex-wrap:wrap;min-width:0}
  .municipal-head strong{display:block;font-size:14px;line-height:1.2;margin-top:2px}
  .panel-kicker{color:#8de5c8;font-size:9px;font-weight:800;letter-spacing:.045em;text-transform:uppercase;white-space:nowrap}
- .panel-badge,.status-chip{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;background:#f0ae3d;color:#322208;font-size:10px;font-weight:800;white-space:nowrap}
+ .panel-badge,.status-chip{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;background:#f0ae3d;color:#322208;font-size:10px;font-weight:800;white-space:normal;text-align:center}
  .panel-toggle{border:1px solid rgba(141,229,200,.65);border-radius:999px;min-height:32px;padding:0 9px;background:transparent;color:#dff8ef;font:700 10px inherit;cursor:pointer;white-space:nowrap}
  .panel-toggle:focus-visible{outline:3px solid #f0ae3d;outline-offset:2px}
  .municipal-strip{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px}
@@ -67,7 +69,7 @@
  .leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px}
  @media(max-width:600px){
    .hud{top:8px;left:8px;right:8px;width:auto;max-width:none;max-height:calc(100vh - 16px);overflow:auto;padding:11px 12px}
-   .hud h1{font-size:15px}.hud .sub{font-size:11.5px}.location button{flex:1;min-width:122px}
+   .hud h1{font-size:15px}.hud .sub{font-size:11.5px}.location button{flex:1;min-width:122px}.municipal-head>div:first-child{min-width:0;flex:1 1 170px}
     .municipal-tabs button{flex:1;padding:0 5px;font-size:10.5px}.municipal-list{max-height:none;overflow:visible}
     .leg{display:none}
   }
