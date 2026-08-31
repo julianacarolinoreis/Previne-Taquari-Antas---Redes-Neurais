@@ -232,6 +232,7 @@ def test_rendered_responsive_interactions() -> None:
                 assert page.locator("#metricResourceReady").inner_text() == "—"
                 assert page.locator("#metricContingencyResult").inner_text() == "—"
                 assert page.locator("#mapReadableSummary").is_visible()
+                assert page.locator(".map-reading-strip").is_visible()
                 assert "Z-01" in page.locator("#mapReadableZone").inner_text()
                 assert "Ginásio" in page.locator("#mapReadableDestination").inner_text()
                 assert "UNKNOWN" in page.locator("#mapReadableDestination").inner_text()
@@ -250,6 +251,14 @@ def test_rendered_responsive_interactions() -> None:
             page.on("pageerror", lambda error: errors.append("pageerror: " + str(error)))
             page.on("console", lambda message: errors.append("console: " + message.text) if message.type == "error" else None)
             page.goto(CASE.as_uri(), wait_until="domcontentloaded")
+            assert page.locator("#eventMap .cell-open").count() == 0
+            page.locator('[data-map-mode="context"]').click()
+            assert page.locator("#eventMap .cell-open").count() > 0
+            page.locator('[data-map-mode="focus"]').click()
+            assert page.locator("#eventMap .cell-open").count() == 0
+            page.locator("#altRouteToggle").click()
+            assert page.locator("#altRouteToggle").get_attribute("aria-pressed") == "true"
+            assert page.locator("#eventMap .route-label-group-muted").count() == 1
             page.locator("#nextStep").click()
             assert page.locator("#eventClock").inner_text() == "T+00:30"
             page.reload(wait_until="domcontentloaded")
