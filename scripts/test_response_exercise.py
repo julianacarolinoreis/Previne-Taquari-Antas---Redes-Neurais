@@ -73,6 +73,7 @@ def test_contract_and_sources() -> None:
     assert shelter_contract["occupancy"] is None
     assert shelter_contract["status"] == "unknown"
     assert shelter_contract["safe_point_confirmed"] is False
+    assert shelter_contract["route_reference"]["status"] == "unreconciled_placeholder"
     assert shelter["geometry"]["coordinates"] == [shelter_contract["longitude"], shelter_contract["latitude"]]
 
     assert live["modo"] == "ao_vivo"
@@ -145,6 +146,8 @@ def test_contract_and_sources() -> None:
     assert "unknown" in contract["state_vocabulary"]
     assert "stale" in contract["state_vocabulary"]
     assert len(contract["stop_criteria"]) >= 5
+    shelter_gap = next(item for item in contract["exercise_metrics"] if item["id"] == "shelter_capacity_gap")
+    assert "demanda declarada" in shelter_gap["definition"]
 
 
 def test_page_embeds_the_audited_snapshot_and_guardrails() -> None:
@@ -162,6 +165,13 @@ def test_page_embeds_the_audited_snapshot_and_guardrails() -> None:
     assert "estudo_caso_resposta_v002.json" in html
     assert "UNKNOWN" in html and "STALE" in html
     assert "nenhum despacho real será enviado" in html
+    assert "peopleToShelter" in html
+    assert "shelterDemand" in html
+    assert "PERSISTENCE_KEY" in html
+    assert "export_schema_version:\"exercise_record_v2\"" in html
+    assert "source_provenance" in html
+    assert "RASCUNHO DO EXERCÍCIO — NÃO É ALERTA, ORDEM DE EVACUAÇÃO OU DESPACHO" in html
+    assert "missionTrigger" in html
     assert "navigator.geolocation" not in html
     assert "fetch(" not in html
 
@@ -242,6 +252,8 @@ def test_rendered_responsive_interactions() -> None:
             page.goto(CASE.as_uri(), wait_until="domcontentloaded")
             page.locator("#nextStep").click()
             assert page.locator("#eventClock").inner_text() == "T+00:30"
+            page.reload(wait_until="domcontentloaded")
+            assert page.locator("#eventClock").inner_text() == "T+00:30"
             page.locator('[data-validation="forecast"]').check()
             assert "1/7" in page.locator("#validationProgress").inner_text()
             page.locator(".measurement-panel summary").click()
@@ -262,11 +274,17 @@ def test_rendered_responsive_interactions() -> None:
             assert "previne-exercicio-z-01" in download.suggested_filename
             exported = json.loads(Path(download.path()).read_text(encoding="utf-8"))
             assert exported["artifact"]["operational_gate"] == "blocked"
+            assert exported["export_schema_version"] == "exercise_record_v2"
+            assert exported["timezone"] == "America/Sao_Paulo"
+            assert exported["source_provenance"]["files"][0]["path"] == "assets/data/estudo_caso_resposta_v002.json"
+            assert exported["route"]["destination_reconciliation"]["reconciled"] is False
+            assert exported["shelter"]["spatial_reconciliation"]["reconciled"] is False
             assert exported["event"]["zone"] == "Z-01"
             assert exported["validation_checklist"]["forecast"] is True
             assert exported["exercise_metrics"]["criticalFailures"] == 1
             assert exported["exercise_metrics"]["derived"]["critical_failures"] == 1
             assert exported["exercise_metrics"]["derived"]["contingency_state"] == "pendente"
+            assert exported["exercise_metrics"]["derived"]["shelter_demand"] is None
             assert not errors, f"erros no console durante interação: {errors}"
             page.close()
         finally:
