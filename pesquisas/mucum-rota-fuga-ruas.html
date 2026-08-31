@@ -25,11 +25,39 @@
  .location-result .result-warning{color:#9a3f2d;font-weight:700;margin-top:5px}
  .location-result .result-note{color:#5b6b62;font-size:11px;margin-top:5px}
  .rota{background:#eaf5ef;border:1px solid #bfe0cd;border-radius:10px;padding:9px 10px;font-size:13px;margin-top:9px}
+ .municipal-panel{background:#102f32;color:#f7fffb;border-radius:12px;padding:11px;margin-top:10px;box-shadow:0 8px 18px rgba(16,47,50,.18)}
+ .municipal-head{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+ .municipal-head strong{display:block;font-size:14px;line-height:1.2;margin-top:2px}
+ .panel-kicker{color:#8de5c8;font-size:9px;font-weight:800;letter-spacing:.045em;text-transform:uppercase;white-space:nowrap}
+ .panel-badge,.status-chip{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;background:#f0ae3d;color:#322208;font-size:10px;font-weight:800;white-space:nowrap}
+ .municipal-strip{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px}
+ .municipal-strip div{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:7px 8px;color:#dff8ef;font-size:10px;line-height:1.25}
+ .municipal-strip b{display:block;color:#fff;font-size:15px}
+ .municipal-tabs{display:flex;gap:5px;margin-top:10px}
+ .municipal-tabs button,.map-switch button{border:1px solid rgba(141,229,200,.5);border-radius:999px;min-height:36px;padding:0 9px;background:transparent;color:#dff8ef;font:700 11px inherit;cursor:pointer}
+ .municipal-tabs button[aria-selected=true],.map-switch button[aria-pressed=true]{background:#8de5c8;color:#102f32;border-color:#8de5c8}
+ .municipal-tabs button:focus-visible,.map-switch button:focus-visible{outline:3px solid #f0ae3d;outline-offset:2px}
+ .municipal-list{display:grid;gap:7px;margin-top:9px;max-height:270px;overflow:auto;padding-right:2px}
+ .data-card{background:#f7fffb;color:#163536;border-radius:9px;padding:8px 9px;font-size:11px;line-height:1.35}
+ .data-card strong{font-size:12px;color:#102f32}
+ .data-card .mini{color:#48635f;margin-top:2px}
+ .data-card .warn{color:#9a3f2d;font-weight:700;margin-top:4px}
+ .data-card .ok{color:#087f73;font-weight:700;margin-top:4px}
+ .data-card .meta-line{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+ .data-card .meta-line span{background:#e7f4ee;border-radius:999px;padding:3px 6px;color:#17665d;font-size:10px;font-weight:700}
+ .municipal-footer{color:#b9d8ce;font-size:10.5px;line-height:1.35;margin-top:8px}
+ .municipal-footer a{color:#8de5c8}
+ .stage-control{background:#e7f4ee;border-radius:9px;color:#163536;padding:8px 9px;font-size:11px}
+ .stage-control label{display:block;font-size:10px;font-weight:800;color:#17665d;text-transform:uppercase;letter-spacing:.05em}
+ .stage-control select{width:100%;margin-top:5px;border:1px solid #b5ded2;border-radius:7px;min-height:35px;padding:0 7px;background:#fff;color:#163536;font:700 12px inherit}
+ .map-switch{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+ .map-switch button{flex:1;min-width:120px}
  .leg{position:absolute;z-index:500;bottom:14px;left:10px;background:#fff;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.15);padding:10px 12px;font-size:12.5px}
  .leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px}
  @media(max-width:600px){
-   .hud{top:8px;left:8px;right:8px;width:auto;max-width:none;max-height:calc(100vh - 90px);overflow:auto;padding:11px 12px}
-   .hud h1{font-size:15px}.hud .sub{font-size:11.5px}.location button{flex:1;min-width:122px}
+  .hud{top:8px;left:8px;right:8px;width:auto;max-width:none;max-height:calc(100vh - 90px);overflow:auto;padding:11px 12px}
+  .hud h1{font-size:15px}.hud .sub{font-size:11.5px}.location button{flex:1;min-width:122px}
+   .municipal-tabs button{flex:1;padding:0 5px;font-size:10.5px}.municipal-list{max-height:240px}
    .leg{left:8px;right:8px;bottom:8px;font-size:11px;padding:8px 10px}
  }
 </style></head><body>
@@ -49,6 +77,27 @@
     </div>
     <div class="location-result" id="locationResult" hidden></div>
   </div>
+  <section class="municipal-panel" id="municipalPanel" aria-label="Dados do Plano de Contingência de Muçum">
+    <div class="municipal-head">
+      <div><span class="panel-kicker">Plano municipal · julho de 2026</span><strong>O que conferir antes de mover pessoas</strong></div>
+      <span class="panel-badge" id="municipalState">carregando</span>
+    </div>
+    <div class="municipal-strip">
+      <div><b id="shelterCount">—</b>locais no Quadro 13</div>
+      <div><b id="capacityCount">—</b>capacidade planejada</div>
+    </div>
+    <div class="municipal-tabs" role="tablist" aria-label="Camadas do plano">
+      <button type="button" data-view="shelters" aria-selected="true">Abrigos</button>
+      <button type="button" data-view="bridges" aria-selected="false">Pontes</button>
+      <button type="button" data-view="routes" aria-selected="false">Rotas / cota</button>
+    </div>
+    <div class="municipal-list" id="municipalList"><div class="data-card">Lendo a fonte municipal local do projeto…</div></div>
+    <div class="municipal-footer" id="municipalFoot">A página é um estudo de pesquisa. Ocupação, abertura, interdição e autorização de deslocamento não são inferidas automaticamente.</div>
+    <div class="map-switch">
+      <button id="roadsToggle" type="button" aria-pressed="false">Mostrar rede viária</button>
+      <button id="bridgesToggle" type="button" aria-pressed="true">Ocultar pontes</button>
+    </div>
+  </section>
   <div class="aviso"><b>Pesquisa / exercício.</b> A linha no mapa é uma hipótese calculada com dados de captura. Não é rota segura confirmada, navegação nem ordem de evacuação.</div>
   <div class="rota" id="rota">Clique em qualquer ponto do mapa para ver a rota até o abrigo mais próximo.</div>
 </div>
@@ -76,11 +125,12 @@ document.getElementById('basemapToggle').addEventListener('click',()=>{
  else{t=`${nv.rotulo||''}`+(nv.calibrar_regua?' (nível provisório — calibrar régua)':'')+alTxt;}
  document.getElementById('meta').textContent=t+` · ${D.meta.n_nos} nós · ${D.meta.gerado_em}`;})();
 D.mancha.forEach(p=>L.polygon(p,{color:'#1e5fbf',weight:1,fillColor:'#1e5fbf',fillOpacity:.18}).addTo(map));
-const b=L.latLngBounds();
+const b=L.latLngBounds(),shelterLayer=L.layerGroup().addTo(map),bridgeLayer=L.layerGroup().addTo(map),roadLayer=L.layerGroup();
 D.edges.forEach(([a,c,ag])=>{const A=D.nos[a],C=D.nos[c];
-  L.polyline([A,C],{color:ag?'#b3382c':'#8fa7b8',weight:ag?2.5:1.5,opacity:ag?.7:.5}).addTo(map);b.extend(A);b.extend(C);});
-D.abrigos.forEach(a=>L.marker([a.lat,a.lon]).addTo(map).bindPopup('<b>'+a.nome+'</b><br>ponto de encontro / abrigo'));
-const BB=b.pad(0.05);function ajusta(){map.invalidateSize();map.fitBounds(BB);}
+  const line=L.polyline([A,C],{color:ag?'#b3382c':'#8fa7b8',weight:ag?2.5:1.5,opacity:ag?.7:.5});line.addTo(roadLayer);b.extend(A);b.extend(C);});
+const baseMarkers={};
+D.abrigos.forEach(a=>{const marker=L.marker([a.lat,a.lon]).addTo(shelterLayer);baseMarkers[a.id]=marker;marker.bindPopup('<b>'+a.nome+'</b><br>ponto de encontro / abrigo · dados do plano abaixo');});
+const BB=L.latLngBounds([[-29.19,-51.90],[-29.14,-51.84]]);function ajusta(){map.invalidateSize();map.fitBounds(BB);}
 ajusta();setTimeout(ajusta,300);window.addEventListener('resize',ajusta);
 let cam=null,orig=null;
 function d2(la1,lo1,la2,lo2){const dy=la1-la2,dx=(lo1-lo2)*Math.cos(la1*Math.PI/180);return dy*dy+dx*dx;}
@@ -100,6 +150,46 @@ const byId=id=>document.getElementById(id);
 function haversine(la1,lo1,la2,lo2){const R=6371000,rad=Math.PI/180,a=Math.sin((la2-la1)*rad/2)**2+Math.cos(la1*rad)*Math.cos(la2*rad)*Math.sin((lo2-lo1)*rad/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
 function routeForNode(i0){const pts=[];let i=i0,guard=0;while(Number.isInteger(i)&&i>=0&&i<D.nos.length&&guard++<6000){pts.push(D.nos[i]);const nx=Number(D.prox&&D.prox[i]);if(!Number.isInteger(nx)||nx===i||nx<0)break;i=nx;}return pts;}
 function fmtDistance(m){return m>=1000?(m/1000).toFixed(2)+' km':Math.round(m)+' m';}
+let municipal=null,activeMunicipalView='shelters';
+const bridgeMarkers={};
+const municipalUrl='../assets/data/mucum_contingencia_202607.json';
+function esc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function planCapacity(s){const q=Number(s.capacidade_quadro_13),f=Number(s.capacidade_ficha_tecnica);return q===f?`${q} pessoas no plano`:`Quadro 13: ${q} · ficha técnica: ${f} (divergente)`;}
+function resourceSummary(){const wanted=['Ambulâncias','Ônibus escolares','Caminhonetes 4x4','Embarcações próprias para resgate aquático'];return wanted.map(name=>{const r=municipal.recursos.find(x=>x.nome===name);return r?`${r.quantidade} ${r.unidade} · ${r.nome.toLowerCase()}`:'';}).filter(Boolean).join(' · ');}
+function focusMunicipalPoint(kind,id){const item=municipal&&municipal[kind]&&municipal[kind].find(x=>x.id===id);if(!item||!Number.isFinite(item.lat)||!Number.isFinite(item.lon))return;map.setView([item.lat,item.lon],16);const marker=kind==='pontes'?bridgeMarkers[id]:baseMarkers[id];if(marker)marker.openPopup();}
+function renderMunicipal(view=activeMunicipalView){
+  if(!municipal)return;activeMunicipalView=view;
+  const tabs=document.querySelectorAll('.municipal-tabs button');tabs.forEach(btn=>btn.setAttribute('aria-selected',String(btn.dataset.view===view)));
+  const list=byId('municipalList');
+  byId('shelterCount').textContent=municipal.resumo_capacidade.alojamentos_quadro_13;
+  byId('capacityCount').textContent=municipal.resumo_capacidade.capacidade_quadro_13_pessoas+'*';
+  byId('municipalState').textContent='reconciliação pendente';
+  if(view==='shelters'){
+    const shelterCards=municipal.abrigos.map(s=>`<article class="data-card"><strong>${esc(s.nome)}</strong><div class="mini">${esc(s.endereco)}</div><div class="meta-line"><span>${planCapacity(s)}</span><span>${esc(s.familias_quadro_13)} famílias</span></div><div class="${s.coordenada_status==='sem_coordenada_publicada'?'warn':'mini'}">${s.coordenada_status==='sem_coordenada_publicada'?'sem coordenada publicada; não aparece no mapa':esc(s.coordenada_status.replaceAll('_',' '))}</div><div class="warn">disponibilidade atual: desconhecida</div></article>`).join('');
+    const meetingCards=municipal.pontos_encontro.map(p=>`<article class="data-card"><strong>${esc(p.nome)}</strong><div class="mini">ponto de encontro · ${esc(p.capacidade_planejada)} pessoas planejadas · ${esc(p.acessibilidade)}</div><div class="warn">abertura e ocupação atuais: desconhecidas</div></article>`).join('');
+    list.innerHTML=shelterCards+'<div class="data-card"><strong>Pontos de encontro de apoio</strong>'+meetingCards+'</div>';
+    byId('municipalFoot').innerHTML='* O documento diverge: 446 pessoas (Quadro 2), 506 (Quadro 13) e 533 (Anexo 5). <a href="'+municipal.meta.source+'" target="_blank" rel="noopener">Abrir Plano de Contingência</a>.';
+  }else if(view==='bridges'){
+    list.innerHTML=municipal.pontes.map(p=>`<article class="data-card"><strong>${esc(p.nome)}</strong><div class="mini">${esc(p.curso_dagua)} · ${esc(p.rodovia)}</div><div class="ok">imagem: ${esc(p.remote_sensing.status.replaceAll('_',' '))}</div><div class="mini">${esc(p.remote_sensing.observacao)}</div><div class="warn">engenharia: ${esc(p.status_engenharia)} · operação atual: ${esc(p.status_operacional)}</div><div class="meta-line"><span>OSM ${esc(p.osm_way_id)}</span><button type="button" class="status-chip" data-focus-kind="pontes" data-focus-id="${esc(p.id)}">ver no mapa</button></div></article>`).join('');
+    byId('municipalFoot').innerHTML='A imagem ajuda a conferir posição e continuidade aparente. Não certifica estrutura, passagem, altura livre, bloqueio ou segurança atual. <a href="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer" target="_blank" rel="noopener">Fonte da imagem</a> · <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">geometria OSM</a>.';
+  }else{
+    list.innerHTML='<div class="stage-control"><label for="stageCota">Testar uma cota do plano · exercício</label><select id="stageCota">'+municipal.estagios.map(s=>`<option value="${s.cota_m}">${s.cota_m} m · ${esc(s.nome)}</option>`).join('')+'</select><div id="stageText" class="mini" style="margin-top:6px"></div></div>'+municipal.rotas_plano.map(r=>`<article class="data-card"><strong>${esc(r.id)} · ${esc(r.nome)}</strong><div class="mini">${esc(r.distancia_km)} km · ${esc(r.tempo_min)} min · destino: ${esc(r.destinos)}</div><div class="warn">${esc(r.status)}${r.cota_inutilizacao_m?` · referência do plano: até ${esc(r.cota_inutilizacao_m)} m`:''}</div></article>`).join('')+'<article class="data-card"><strong>Recursos cadastrados no plano</strong><div class="mini">'+esc(resourceSummary())+'</div><div class="warn">não representa disponibilidade ou despacho em tempo real; o plano registra 0 embarcações próprias para resgate aquático.</div></article>';
+    const stageSelect=byId('stageCota');const updateStage=()=>{const s=municipal.estagios.find(x=>String(x.cota_m)===stageSelect.value)||municipal.estagios[0];byId('stageText').innerHTML='<b>'+esc(s.nome)+'</b> · '+esc(s.acao)+'<br><span class="warn">A cota é parâmetro do plano, não comando automático.</span>';};stageSelect.addEventListener('change',updateStage);updateStage();
+    byId('municipalFoot').innerHTML='As rotas são referências do plano municipal: conferir via, acessibilidade, cota, comunicação e capacidade antes de qualquer ação. <a href="'+municipal.meta.source+'" target="_blank" rel="noopener">Fonte municipal</a>.';
+  }
+}
+function addMunicipalMapLayers(){
+  const baseIds=new Set(Object.keys(baseMarkers));
+  municipal.abrigos.filter(s=>!baseIds.has(s.id)&&Number.isFinite(s.lat)&&Number.isFinite(s.lon)).forEach(s=>{L.circleMarker([s.lat,s.lon],{radius:8,color:'#fff',weight:2,fillColor:'#f0ae3d',fillOpacity:.95}).addTo(shelterLayer).bindPopup('<b>'+esc(s.nome)+'</b><br>'+esc(planCapacity(s))+'<br><span style="color:#9a3f2d">ocupação e abertura atuais desconhecidas</span>');});
+  municipal.abrigos.forEach(s=>{if(baseMarkers[s.id])baseMarkers[s.id].bindPopup('<b>'+esc(s.nome)+'</b><br>'+esc(planCapacity(s))+'<br><span style="color:#9a3f2d">ocupação e abertura atuais desconhecidas</span>');});
+  municipal.pontes.forEach(p=>{const marker=L.circleMarker([p.lat,p.lon],{radius:9,color:'#fff',weight:2,fillColor:'#8b5cf6',fillOpacity:.95}).addTo(bridgeLayer);bridgeMarkers[p.id]=marker;marker.bindPopup('<b>'+esc(p.nome)+'</b><br>imagem: geometria observada<br><span style="color:#9a3f2d">vistoria estrutural e status operacional necessários</span>');});
+  renderMunicipal(activeMunicipalView);
+}
+async function loadMunicipal(){try{const response=await fetch(municipalUrl,{cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);municipal=await response.json();addMunicipalMapLayers();}catch(error){byId('municipalState').textContent='fonte indisponível';byId('municipalList').innerHTML='<div class="data-card"><strong>Fonte municipal não carregada nesta abertura.</strong><div class="warn">Abra pela página publicada ou por um servidor HTTP local para carregar o cadastro do plano.</div></div>';}}
+document.querySelectorAll('.municipal-tabs button').forEach(btn=>btn.addEventListener('click',()=>renderMunicipal(btn.dataset.view)));
+byId('roadsToggle').addEventListener('click',()=>{const showing=map.hasLayer(roadLayer);if(showing)map.removeLayer(roadLayer);else roadLayer.addTo(map);const btn=byId('roadsToggle');btn.setAttribute('aria-pressed',String(!showing));btn.textContent=showing?'Mostrar rede viária':'Ocultar rede viária';});
+byId('bridgesToggle').addEventListener('click',()=>{const showing=map.hasLayer(bridgeLayer);if(showing)map.removeLayer(bridgeLayer);else bridgeLayer.addTo(map);const btn=byId('bridgesToggle');btn.setAttribute('aria-pressed',String(!showing));btn.textContent=showing?'Mostrar pontes':'Ocultar pontes';});
+byId('municipalList').addEventListener('click',event=>{const button=event.target.closest('[data-focus-kind]');if(button)focusMunicipalPoint(button.dataset.focusKind,button.dataset.focusId);});
 function clearLocation(){
   if(locationMarker)map.removeLayer(locationMarker);if(accuracyCircle)map.removeLayer(accuracyCircle);if(locationRoute)map.removeLayer(locationRoute);
   locationMarker=accuracyCircle=locationRoute=null;byId('locationResult').hidden=true;byId('clearLocation').hidden=true;
@@ -119,7 +209,7 @@ function renderLocation(position){
   byId('locationStatus').textContent='Localização encontrada. A coordenada não saiu deste navegador.';byId('clearLocation').hidden=false;
   byId('locationResult').hidden=false;
   const resultMain=ab?'<strong>Referência mais próxima: '+ab.nome+'</strong><br>Distância estimada: <b>'+(Number.isFinite(routeM)?fmtDistance(routeM):'não calculada')+'</b> · precisão do aparelho: ~'+Math.round(acc)+' m':'<strong>Nenhum ponto de referência cadastrado nesta captura.</strong>';
-  byId('locationResult').innerHTML=resultMain+'<div class="result-warning">Não iniciar deslocamento com esta tela: a rota ainda precisa de confirmação em campo e a capacidade do abrigo não está informada.</div><div class="result-note">Rede: '+(D.meta.fonte_rede||'não informada')+' · nível: '+timestamp+' · mancha disponível nesta captura: '+(mancha?'sim, preliminar':'não')+'. A linha amarela é uma hipótese de pesquisa.</div>';
+  byId('locationResult').innerHTML=resultMain+'<div class="result-warning">Não iniciar deslocamento com esta tela: a rota precisa de confirmação em campo. O plano municipal registra capacidade planejada, mas ocupação, abertura e vagas atuais continuam desconhecidas.</div><div class="result-note">Rede: '+(D.meta.fonte_rede||'não informada')+' · nível: '+timestamp+' · mancha disponível nesta captura: '+(mancha?'sim, preliminar':'não')+'. A linha amarela é uma hipótese de pesquisa.</div>';
 }
 function locateMe(){
   if(!navigator.geolocation){byId('locationStatus').textContent='Este navegador não disponibilizou localização.';return;}
@@ -128,4 +218,5 @@ function locateMe(){
   setTimeout(()=>{btn.disabled=false;btn.textContent='Usar minha localização';},13000);
 }
 byId('locateMe').addEventListener('click',locateMe);byId('clearLocation').addEventListener('click',clearLocation);
+loadMunicipal();
 </script></body></html>
