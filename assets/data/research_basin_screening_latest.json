@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "feed_type": "basin_overflow_research_context",
-  "generated_at_utc": "2026-08-31T01:17:00Z",
+  "generated_at_utc": "2026-08-31T01:17:34Z",
   "research_only": true,
   "official_alert": false,
   "status": "research_screening_with_explicit_data_gates",
@@ -13,7 +13,7 @@
     ],
     "boundary": {
       "source": "assets/data/vulnerabilidade/bacia.geojson",
-      "sha256": "7924a437b47d962b2afca615fdfb08b5e286a473fab4b2a6abbf6a2db34d218f",
+      "sha256": "5f643583f824309612c605a3af46d03e8644e16616028042dd66e23ad5e796a7",
       "geometry_type": "Polygon",
       "feature_count": 1,
       "bbox": {
@@ -28,7 +28,7 @@
       "assets": [
         {
           "path": "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m.json",
-          "sha256": "a0d889413ea94108d5217eb9dc4ce8d5c6364cb0c80fab7eb393ba5e2a56a81b"
+          "sha256": "6c9ae8327b7933545957309421bf6e2358b8657ddc7d1ce91a6fe0fb956538e0"
         },
         {
           "path": "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m.png",
@@ -48,7 +48,7 @@
         },
         {
           "path": "assets/data/mucum_inundacao/mdt/altitude_terreno_10m.json",
-          "sha256": "35b123ae5f6801a144835b72747b22cafaf9f09b022702b93f8f19af5c908504"
+          "sha256": "505f5b360c5a1c94bfe9414e5037f966f38b048b73167a69a53bbc97ffdc3682"
         }
       ],
       "status": "terrain_reference_available",
@@ -182,12 +182,12 @@
       "current": {
         "level_cm": 587.0,
         "observed_at_utc": "2026-08-31T00:45:00Z",
-        "age_hours": 0.53,
+        "age_hours": 0.54,
         "state": "fresh",
         "source": "ANA/SGB · estação 86472600",
-        "change_24h_cm": 4.0,
-        "rain_observed_24h_mm": 0.0,
-        "rain_observed_72h_mm": 0.0
+        "change_24h_cm": null,
+        "rain_observed_24h_mm": null,
+        "rain_observed_72h_mm": null
       },
       "short_forecasts": [
         {
@@ -228,33 +228,35 @@
         }
       ],
       "forecast": {
-        "generated_at_utc": "2026-08-27T12:31:36Z",
-        "age_hours": 84.76,
-        "state": "stale",
-        "provider": "ECMWF Open Data / IFS",
-        "model": "ECMWF IFS 0.25° · rodada 2026-08-27 00Z",
-        "run_time_utc": "2026-08-27T00:00:00Z",
-        "source_url": "https://data.ecmwf.int/forecasts/"
+        "generated_at_utc": "2026-08-31T01:15:45Z",
+        "age_hours": 0.03,
+        "state": "current_window",
+        "provider": "ECMWF IFS via Open-Meteo; ECMWF Open Data direto para auditoria",
+        "model": "ECMWF IFS 0.25° (ecmwf_ifs025)",
+        "run_time_utc": null,
+        "source_url": "https://api.open-meteo.com/v1/forecast?latitude=-28.5919%2C-28.7117%2C-28.7922%2C-28.6847%2C-28.9414%2C-28.9722%2C-29.0978%2C-29.1781%2C-29.1672&longitude=-51.3247%2C-51.8525%2C-51.8578%2C-51.8506%2C-51.1892%2C-51.7558%2C-51.6997%2C-51.7322%2C-51.8686&models=ecmwf_ifs025&hourly=precipitation%2Csoil_moisture_0_to_7cm%2Ctemperature_2m&forecast_days=8&timezone=UTC"
       },
       "horizons": [
         {
           "hours": 24,
           "rain": {
-            "point_mm": 2.37,
-            "basin_mean_mm": 4.14,
-            "basin_max_mm": 4.58,
+            "point_mm": 20.3,
+            "basin_mean_mm": 39.05,
+            "basin_max_mm": 66.2,
             "headwater": {
-              "mean_mm": 4.14,
-              "max_mm": 4.58,
-              "status": "proxy_spatial_recut",
-              "source": "ECMWF IFS representative cells",
-              "independent_for_station": true
+              "mean_mm": 39.05,
+              "max_mm": 66.2,
+              "status": "upstream_monitoring_grid_proxy",
+              "source": "ECMWF IFS unique cells associated with upstream monitoring points",
+              "independent_for_station": true,
+              "hydrologic_mask": false,
+              "area_weighted": false
             },
-            "method": "média e máximo de uma célula IFS representativa por célula única"
+            "method": "média simples e máximo de células IFS únicas associadas a pontos monitorados a montante"
           },
           "soil": {
-            "model_m3m3": null,
-            "status": "unavailable_local_measurement",
+            "model_m3m3": 0.507,
+            "status": "modeled_proxy",
             "local_observation": false
           },
           "risk": {
@@ -262,7 +264,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA NODD / GEFS",
             "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
-            "age_hours": 84.78,
+            "age_hours": 84.79,
             "state": "stale",
             "calibration_status": "calibrated_for_declared_source",
             "usable_as_current_probability": false,
@@ -278,21 +280,23 @@
         {
           "hours": 48,
           "rain": {
-            "point_mm": 37.1,
-            "basin_mean_mm": 32.83,
-            "basin_max_mm": 43.92,
+            "point_mm": 23.0,
+            "basin_mean_mm": 42.12,
+            "basin_max_mm": 68.6,
             "headwater": {
-              "mean_mm": 32.83,
-              "max_mm": 43.92,
-              "status": "proxy_spatial_recut",
-              "source": "ECMWF IFS representative cells",
-              "independent_for_station": true
+              "mean_mm": 42.12,
+              "max_mm": 68.6,
+              "status": "upstream_monitoring_grid_proxy",
+              "source": "ECMWF IFS unique cells associated with upstream monitoring points",
+              "independent_for_station": true,
+              "hydrologic_mask": false,
+              "area_weighted": false
             },
-            "method": "média e máximo de uma célula IFS representativa por célula única"
+            "method": "média simples e máximo de células IFS únicas associadas a pontos monitorados a montante"
           },
           "soil": {
-            "model_m3m3": null,
-            "status": "unavailable_local_measurement",
+            "model_m3m3": 0.502,
+            "status": "modeled_proxy",
             "local_observation": false
           },
           "risk": {
@@ -300,7 +304,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA NODD / GEFS",
             "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
-            "age_hours": 84.78,
+            "age_hours": 84.79,
             "state": "stale",
             "calibration_status": "calibrated_for_declared_source",
             "usable_as_current_probability": false,
@@ -316,21 +320,23 @@
         {
           "hours": 72,
           "rain": {
-            "point_mm": 53.59,
-            "basin_mean_mm": 78.56,
-            "basin_max_mm": 91.11,
+            "point_mm": 23.0,
+            "basin_mean_mm": 42.12,
+            "basin_max_mm": 68.6,
             "headwater": {
-              "mean_mm": 78.56,
-              "max_mm": 91.11,
-              "status": "proxy_spatial_recut",
-              "source": "ECMWF IFS representative cells",
-              "independent_for_station": true
+              "mean_mm": 42.12,
+              "max_mm": 68.6,
+              "status": "upstream_monitoring_grid_proxy",
+              "source": "ECMWF IFS unique cells associated with upstream monitoring points",
+              "independent_for_station": true,
+              "hydrologic_mask": false,
+              "area_weighted": false
             },
-            "method": "média e máximo de uma célula IFS representativa por célula única"
+            "method": "média simples e máximo de células IFS únicas associadas a pontos monitorados a montante"
           },
           "soil": {
-            "model_m3m3": null,
-            "status": "unavailable_local_measurement",
+            "model_m3m3": 0.496,
+            "status": "modeled_proxy",
             "local_observation": false
           },
           "risk": {
@@ -338,7 +344,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA NODD / GEFS",
             "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
-            "age_hours": 84.78,
+            "age_hours": 84.79,
             "state": "stale",
             "calibration_status": "calibrated_for_declared_source",
             "usable_as_current_probability": false,
@@ -354,21 +360,23 @@
         {
           "hours": 120,
           "rain": {
-            "point_mm": 100.39,
-            "basin_mean_mm": 188.54,
-            "basin_max_mm": 206.51,
+            "point_mm": 23.0,
+            "basin_mean_mm": 42.2,
+            "basin_max_mm": 68.6,
             "headwater": {
-              "mean_mm": 188.54,
-              "max_mm": 206.51,
-              "status": "proxy_spatial_recut",
-              "source": "ECMWF IFS representative cells",
-              "independent_for_station": true
+              "mean_mm": 42.2,
+              "max_mm": 68.6,
+              "status": "upstream_monitoring_grid_proxy",
+              "source": "ECMWF IFS unique cells associated with upstream monitoring points",
+              "independent_for_station": true,
+              "hydrologic_mask": false,
+              "area_weighted": false
             },
-            "method": "média e máximo de uma célula IFS representativa por célula única"
+            "method": "média simples e máximo de células IFS únicas associadas a pontos monitorados a montante"
           },
           "soil": {
-            "model_m3m3": null,
-            "status": "unavailable_local_measurement",
+            "model_m3m3": 0.483,
+            "status": "modeled_proxy",
             "local_observation": false
           },
           "risk": {
@@ -376,7 +384,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA NODD / GEFS",
             "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
-            "age_hours": 84.78,
+            "age_hours": 84.79,
             "state": "stale",
             "calibration_status": "calibrated_for_declared_source",
             "usable_as_current_probability": false,
@@ -392,21 +400,23 @@
         {
           "hours": 168,
           "rain": {
-            "point_mm": 104.39,
-            "basin_mean_mm": 191.86,
-            "basin_max_mm": 210.37,
+            "point_mm": 23.0,
+            "basin_mean_mm": 42.2,
+            "basin_max_mm": 68.6,
             "headwater": {
-              "mean_mm": 191.86,
-              "max_mm": 210.37,
-              "status": "proxy_spatial_recut",
-              "source": "ECMWF IFS representative cells",
-              "independent_for_station": true
+              "mean_mm": 42.2,
+              "max_mm": 68.6,
+              "status": "upstream_monitoring_grid_proxy",
+              "source": "ECMWF IFS unique cells associated with upstream monitoring points",
+              "independent_for_station": true,
+              "hydrologic_mask": false,
+              "area_weighted": false
             },
-            "method": "média e máximo de uma célula IFS representativa por célula única"
+            "method": "média simples e máximo de células IFS únicas associadas a pontos monitorados a montante"
           },
           "soil": {
-            "model_m3m3": null,
-            "status": "unavailable_local_measurement",
+            "model_m3m3": 0.473,
+            "status": "modeled_proxy",
             "local_observation": false
           },
           "risk": {
@@ -414,7 +424,7 @@
             "decision": "VAI",
             "source": "NOAA NODD / GEFS",
             "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
-            "age_hours": 84.78,
+            "age_hours": 84.79,
             "state": "stale",
             "calibration_status": "calibrated_for_declared_source",
             "usable_as_current_probability": false,
@@ -498,16 +508,15 @@
       "quality": {
         "status": "DEGRADED",
         "flags": [
-          "forecast_stale_or_unknown",
-          "representative_cells_not_hydrologic_mask",
+          "upstream_monitoring_grid_proxy_not_hydrologic_mask",
           "no_local_soil_sensor"
         ],
         "source_hashes": {
-          "weather": "64cbc41dc1d7ac4b2a12ba394bf75833443a5b65b931cf379348f5400d4c5143",
-          "pattern": "088a3d3130e7841581de971e3263bb724cc55c2b697b4ea4b084257c03b7c706",
-          "probability": "d8a03619d0f3ce947124287eb9cbb42308e90d46e96fec5da0a68a544d7a8607",
-          "binary": "d5aa234dd5edb161cd35fbd190f1897490fafe02819927d5b032bb907b796328",
-          "live": "75af96dededdf06d81d94370c81a19b4318f00cad801e35284c8ef528c15d140"
+          "weather": "c7abe0daa78de4289b386ba294aa1d53546a416baa09c88ecaebb433968c459c",
+          "pattern": "418c53620cc0120beef174dcaa89019e5418140c3cf01091123406f6a18e2fe0",
+          "probability": "a1aeaeaa39c3ed5802ee925595dfc982efb50ff1c74f4b2a1bc91f37f192bb18",
+          "binary": "1d13b4070fdf35ec93e0f7dec21def43d048005f2d888c924e672317bcf4bd00",
+          "live": "24de82fc0dafd3ac471a75694c26a0ed66cc19edd87a7987a148ca59604e093e"
         }
       },
       "sources": {
@@ -529,7 +538,7 @@
       "current": {
         "level_cm": 544.0,
         "observed_at_utc": "2026-08-31T00:45:00Z",
-        "age_hours": 0.53,
+        "age_hours": 0.54,
         "state": "fresh",
         "source": "ANA/SGB · estação 86510000",
         "change_24h_cm": null,
@@ -575,34 +584,36 @@
         }
       ],
       "forecast": {
-        "generated_at_utc": "2026-08-30T23:31:22Z",
-        "age_hours": 1.76,
+        "generated_at_utc": "2026-08-31T01:15:51Z",
+        "age_hours": 0.03,
         "state": "current_window",
         "provider": "ECMWF IFS via Open-Meteo",
         "model": "ECMWF IFS 0.25° (ecmwf_ifs025)",
         "run_time_utc": null,
-        "source_url": "https://api.open-meteo.com/v1/forecast?latitude=-29.1672&longitude=-51.8686&models=ecmwf_ifs025&hourly=precipitation%2Csoil_moisture_0_to_7cm%2Ctemperature_2m&forecast_days=7&timezone=UTC"
+        "source_url": "https://api.open-meteo.com/v1/forecast?latitude=-29.1672&longitude=-51.8686&models=ecmwf_ifs025&hourly=precipitation%2Csoil_moisture_0_to_7cm%2Ctemperature_2m&forecast_days=8&timezone=UTC"
       },
       "horizons": [
         {
           "hours": 24,
           "rain": {
-            "point_mm": 13.44,
-            "ifs_direct_mm": 13.44,
-            "ifs_openmeteo_mm": 12.3,
+            "point_mm": 20.3,
+            "ifs_direct_mm": null,
+            "ifs_openmeteo_mm": 20.3,
             "ifs_proxy_mm": 41.24,
             "gefs_proxy_mm": 19.3,
             "headwater": {
-              "mean_mm": 4.14,
-              "max_mm": 4.58,
+              "mean_mm": 39.05,
+              "max_mm": 66.2,
               "status": "shared_santa_reference",
-              "source": "Santa Tereza IFS spatial recut; not an independent Muçum catchment",
-              "independent_for_station": false
+              "source": "shared upstream monitoring-grid proxy; not an independent Muçum catchment",
+              "independent_for_station": false,
+              "hydrologic_mask": false,
+              "area_weighted": false
             },
-            "method": "ponto Muçum + referência espacial Santa Tereza; sem máscara independente"
+            "method": "ponto Muçum + proxy compartilhada de células ligadas a pontos monitorados a montante; sem máscara independente"
           },
           "soil": {
-            "model_m3m3": 0.51,
+            "model_m3m3": 0.507,
             "status": "modeled_proxy",
             "local_observation": false
           },
@@ -611,7 +622,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA GEFS/NODD same-cell spatial proxy",
             "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
-            "age_hours": 130.75,
+            "age_hours": 130.76,
             "state": "stale",
             "calibration_status": "experimental_uncalibrated",
             "usable_as_current_probability": false,
@@ -627,22 +638,24 @@
         {
           "hours": 48,
           "rain": {
-            "point_mm": 22.29,
-            "ifs_direct_mm": 22.29,
-            "ifs_openmeteo_mm": 15.3,
+            "point_mm": 23.0,
+            "ifs_direct_mm": null,
+            "ifs_openmeteo_mm": 23.0,
             "ifs_proxy_mm": 60.02,
             "gefs_proxy_mm": 26.5,
             "headwater": {
-              "mean_mm": 32.83,
-              "max_mm": 43.92,
+              "mean_mm": 42.12,
+              "max_mm": 68.6,
               "status": "shared_santa_reference",
-              "source": "Santa Tereza IFS spatial recut; not an independent Muçum catchment",
-              "independent_for_station": false
+              "source": "shared upstream monitoring-grid proxy; not an independent Muçum catchment",
+              "independent_for_station": false,
+              "hydrologic_mask": false,
+              "area_weighted": false
             },
-            "method": "ponto Muçum + referência espacial Santa Tereza; sem máscara independente"
+            "method": "ponto Muçum + proxy compartilhada de células ligadas a pontos monitorados a montante; sem máscara independente"
           },
           "soil": {
-            "model_m3m3": 0.505,
+            "model_m3m3": 0.502,
             "status": "modeled_proxy",
             "local_observation": false
           },
@@ -651,7 +664,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA GEFS/NODD same-cell spatial proxy",
             "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
-            "age_hours": 130.75,
+            "age_hours": 130.76,
             "state": "stale",
             "calibration_status": "experimental_uncalibrated",
             "usable_as_current_probability": false,
@@ -667,22 +680,24 @@
         {
           "hours": 72,
           "rain": {
-            "point_mm": 24.0,
-            "ifs_direct_mm": 24.0,
-            "ifs_openmeteo_mm": 15.4,
+            "point_mm": 23.0,
+            "ifs_direct_mm": null,
+            "ifs_openmeteo_mm": 23.0,
             "ifs_proxy_mm": 60.46,
             "gefs_proxy_mm": 34.5,
             "headwater": {
-              "mean_mm": 78.56,
-              "max_mm": 91.11,
+              "mean_mm": 42.12,
+              "max_mm": 68.6,
               "status": "shared_santa_reference",
-              "source": "Santa Tereza IFS spatial recut; not an independent Muçum catchment",
-              "independent_for_station": false
+              "source": "shared upstream monitoring-grid proxy; not an independent Muçum catchment",
+              "independent_for_station": false,
+              "hydrologic_mask": false,
+              "area_weighted": false
             },
-            "method": "ponto Muçum + referência espacial Santa Tereza; sem máscara independente"
+            "method": "ponto Muçum + proxy compartilhada de células ligadas a pontos monitorados a montante; sem máscara independente"
           },
           "soil": {
-            "model_m3m3": 0.499,
+            "model_m3m3": 0.496,
             "status": "modeled_proxy",
             "local_observation": false
           },
@@ -691,7 +706,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA GEFS/NODD same-cell spatial proxy",
             "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
-            "age_hours": 130.75,
+            "age_hours": 130.76,
             "state": "stale",
             "calibration_status": "experimental_uncalibrated",
             "usable_as_current_probability": false,
@@ -707,22 +722,24 @@
         {
           "hours": 120,
           "rain": {
-            "point_mm": 24.02,
-            "ifs_direct_mm": 24.02,
-            "ifs_openmeteo_mm": 15.4,
+            "point_mm": 23.0,
+            "ifs_direct_mm": null,
+            "ifs_openmeteo_mm": 23.0,
             "ifs_proxy_mm": 66.93,
             "gefs_proxy_mm": 45.6,
             "headwater": {
-              "mean_mm": 188.54,
-              "max_mm": 206.51,
+              "mean_mm": 42.2,
+              "max_mm": 68.6,
               "status": "shared_santa_reference",
-              "source": "Santa Tereza IFS spatial recut; not an independent Muçum catchment",
-              "independent_for_station": false
+              "source": "shared upstream monitoring-grid proxy; not an independent Muçum catchment",
+              "independent_for_station": false,
+              "hydrologic_mask": false,
+              "area_weighted": false
             },
-            "method": "ponto Muçum + referência espacial Santa Tereza; sem máscara independente"
+            "method": "ponto Muçum + proxy compartilhada de células ligadas a pontos monitorados a montante; sem máscara independente"
           },
           "soil": {
-            "model_m3m3": 0.487,
+            "model_m3m3": 0.483,
             "status": "modeled_proxy",
             "local_observation": false
           },
@@ -731,7 +748,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA GEFS/NODD same-cell spatial proxy",
             "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
-            "age_hours": 130.75,
+            "age_hours": 130.76,
             "state": "stale",
             "calibration_status": "experimental_uncalibrated",
             "usable_as_current_probability": false,
@@ -747,22 +764,24 @@
         {
           "hours": 168,
           "rain": {
-            "point_mm": 24.08,
-            "ifs_direct_mm": 24.08,
-            "ifs_openmeteo_mm": 15.4,
+            "point_mm": 23.0,
+            "ifs_direct_mm": null,
+            "ifs_openmeteo_mm": 23.0,
             "ifs_proxy_mm": 80.37,
             "gefs_proxy_mm": 55.5,
             "headwater": {
-              "mean_mm": 191.86,
-              "max_mm": 210.37,
+              "mean_mm": 42.2,
+              "max_mm": 68.6,
               "status": "shared_santa_reference",
-              "source": "Santa Tereza IFS spatial recut; not an independent Muçum catchment",
-              "independent_for_station": false
+              "source": "shared upstream monitoring-grid proxy; not an independent Muçum catchment",
+              "independent_for_station": false,
+              "hydrologic_mask": false,
+              "area_weighted": false
             },
-            "method": "ponto Muçum + referência espacial Santa Tereza; sem máscara independente"
+            "method": "ponto Muçum + proxy compartilhada de células ligadas a pontos monitorados a montante; sem máscara independente"
           },
           "soil": {
-            "model_m3m3": 0.481,
+            "model_m3m3": 0.473,
             "status": "modeled_proxy",
             "local_observation": false
           },
@@ -771,7 +790,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA GEFS/NODD same-cell spatial proxy",
             "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
-            "age_hours": 130.75,
+            "age_hours": 130.76,
             "state": "stale",
             "calibration_status": "experimental_uncalibrated",
             "usable_as_current_probability": false,
@@ -780,9 +799,9 @@
             "binary_threshold_percent": 50.0,
             "binary_source_decision": "NAO_VAI"
           },
-          "coverage_hours": 147,
+          "coverage_hours": 168,
           "coverage_expected_hours": 168,
-          "forecast_complete": false
+          "forecast_complete": true
         }
       ],
       "events": {
@@ -845,17 +864,16 @@
       "quality": {
         "status": "DEGRADED",
         "flags": [
-          "partial_horizon",
           "point_forecast",
           "shared_headwater_reference",
           "no_local_soil_sensor"
         ],
         "source_hashes": {
-          "weather": "c88b46412efe9ed795a44baf1132d7c04de33318badbdefb6f9f791358a8ba0b",
-          "pattern": "7d4420222f4207e0eacdeaa5eea47c01e4c991df7b5e64129361c6e160f3e937",
-          "probability": "ce9780b6c6bc23ff903f42da102233155d1627af220d7c1d376df631094c0ce0",
-          "binary": "a73929c12567d95898c61044508eec48c32b55e392a1e8d4b2b8067f0d579018",
-          "live": "c8281d9d32bac551f317a4166a74d8c0cbe65a02f89c5a8321126f4cfe208a65"
+          "weather": "7201004c74a330c40371dd417834f27e58ec697272f1ec24f6b2bf07b1a60774",
+          "pattern": "e9c22e02611f8bd02c6eab3f2723eb1145a21ca05c8eda0e9dd0f48b908d02f9",
+          "probability": "f2a303f09c20812fa3763b2b25f2edd27f890a9c25e0d09f8b6fb03a92a3f55a",
+          "binary": "54bedd2d0534642492f18258eec41c4bc828cbe8af1ddfc8e8b1eec0483a3060",
+          "live": "0cead0d17fa6b0e2bb14289ea46fa2c7382822c7eb57e44991accd3e8e714418"
         }
       },
       "sources": {
@@ -869,8 +887,8 @@
   },
   "signals": {
     "observed_level": "ANA/SGB or robot live level, with timestamp and age",
-    "forecast_rain": "ECMWF IFS point or representative-cell recut, always labelled",
-    "headwater_rain": "Santa Tereza spatial recut; Muçum currently uses a shared reference, not an independent catchment",
+    "forecast_rain": "ECMWF IFS at each target point plus an explicitly labelled upstream monitoring-grid proxy",
+    "headwater_rain": "proxy from unique IFS cells associated with monitored upstream points; not an area-weighted hydrologic mean; Muçum currently shares this reference",
     "soil_moisture": "modelled proxy only; no local saturation sensor in the published feed",
     "propagation": "short forecasts are shown; basin travel-time field remains unvalidated per event",
     "probability": "experimental score/probability by source and age; never an official alert"
@@ -894,12 +912,12 @@
     {
       "id": "hydrologic_mask",
       "status": "pending",
-      "reason": "outlet, flow accumulation and headwater polygons need a validated regional DEM/network"
+      "reason": "current hourly proxy covers monitored upstream cells; outlet, flow accumulation and headwater polygons still need a validated regional DEM/network"
     },
     {
       "id": "mucum_independent_headwater",
       "status": "pending",
-      "reason": "current spatial rain is a shared Santa Tereza reference, not an independent Muçum catchment"
+      "reason": "Muçum currently shares the upstream monitoring-grid proxy; an independent catchment mask has not been validated"
     },
     {
       "id": "soil_observation",

@@ -36,6 +36,13 @@ class BasinResearchFeedTests(unittest.TestCase):
         self.assertFalse(mucum["independent_for_station"])
         self.assertEqual(mucum["status"], "shared_santa_reference")
 
+    def test_mucum_point_survives_unavailable_direct_grib_audit(self):
+        weather = builder.load(ROOT / builder.STATIONS["mucum"]["weather"], {})
+        source = next(row for row in weather["horizons"] if int(row["hours"]) == 24)
+        normalized = self.feed["stations"]["mucum"]["horizons"][0]["rain"]
+        if source.get("rain_ecmwf_direct_mm") is None:
+            self.assertEqual(normalized["point_mm"], builder.number(source.get("rain_point_mm")))
+
     def test_geometry_is_boundary_reference_not_flow_mask(self):
         geometry = self.feed["basin"]
         self.assertEqual(geometry["boundary"]["status"], "boundary_reference_only")

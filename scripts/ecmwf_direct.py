@@ -2,8 +2,8 @@
 
 The ECMWF files are GRIB2 and large (roughly 140 MB per forecast step).  The
 public portal also publishes a line-oriented index for every file, so this
-module downloads only the ``tp`` message needed for the Muçum grid point by
-HTTP byte range.  It is deliberately independent from the live level robot.
+module downloads only the ``tp`` message needed for one requested grid point
+by HTTP byte range.  It is deliberately independent from the live level robot.
 """
 
 from __future__ import annotations
@@ -89,7 +89,12 @@ def _find_tp_entry(index_text: str, hours: int) -> dict[str, Any]:
     raise RuntimeError(f"parâmetro tp no passo {hours} h não encontrado no índice ECMWF")
 
 
-def _decode_point(payload: bytes) -> dict[str, Any]:
+def _decode_point(
+    payload: bytes,
+    *,
+    latitude: float = LATITUDE,
+    longitude: float = LONGITUDE,
+) -> dict[str, Any]:
     try:
         import eccodes  # type: ignore
     except Exception as exc:  # pragma: no cover - depends on runner libraries
@@ -110,14 +115,14 @@ def _decode_point(payload: bytes) -> dict[str, Any]:
             j_consecutive = int(eccodes.codes_get(handle, "jPointsAreConsecutive")) == 1
             if not (ni > 0 and nj > 0 and di > 0 and dj > 0):
                 raise ValueError("geometria regular inválida")
-            target_lon = LONGITUDE % 360.0
+            target_lon = longitude % 360.0
             first_lon = lon1 % 360.0
             delta_lon = (target_lon - first_lon) % 360.0
             i = int(round(delta_lon / di))
             if i_negative:
                 i = int(round(((first_lon - target_lon) % 360.0) / di))
             i %= ni
-            j = int(round((LATITUDE - lat1) / dj)) if j_positive else int(round((lat1 - LATITUDE) / dj))
+            j = int(round((latitude - lat1) / dj)) if j_positive else int(round((lat1 - latitude) / dj))
             j = max(0, min(nj - 1, j))
             idx = i * nj + j if j_consecutive else j * ni + i
             if idx < 0 or idx >= len(values):
@@ -129,10 +134,10 @@ def _decode_point(payload: bytes) -> dict[str, Any]:
             # normally takes the fast path above; this keeps failures explicit.
             lats = eccodes.codes_get_array(handle, "latitudes")
             lons = eccodes.codes_get_array(handle, "longitudes")
-            target_lon = LONGITUDE % 360.0
+            target_lon = longitude % 360.0
             idx = min(
                 range(len(values)),
-                key=lambda k: (float(lats[k]) - LATITUDE) ** 2
+                key=lambda k: (float(lats[k]) - latitude) ** 2
                 + (((float(lons[k]) % 360.0) - target_lon + 180.0) % 360.0 - 180.0) ** 2,
             )
             grid_lat = float(lats[idx])
@@ -156,7 +161,13 @@ def _decode_point(payload: bytes) -> dict[str, Any]:
         eccodes.codes_release(handle)
 
 
-def fetch_ecmwf_direct(now: datetime | None = None) -> dict[str, Any]:
+def fetch_ecmwf_direct(
+    now: datetime | None = None,
+    *,
+    latitude: float = LATITUDE,
+    longitude: float = LONGITUDE,
+    target_name: str = "Muçum",
+) -> dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     try:
         cycle, prefix, files = _find_cycle(now)
@@ -169,7 +180,7 @@ def fetch_ecmwf_direct(now: datetime | None = None) -> dict[str, Any]:
             offset = int(entry["_offset"])
             length = int(entry["_length"])
             payload = _request(file_url, byte_range=(offset, offset + length - 1))
-            point = _decode_point(payload)
+            point = _decode_point(payload, latitude=latitude, longitude=longitude)
             horizons.append(
                 {
                     "hours": hours,
@@ -191,7 +202,7 @@ def fetch_ecmwf_direct(now: datetime | None = None) -> dict[str, Any]:
             "source_root": ROOT,
             "parameter": "tp",
             "unit": "mm",
-            "target": {"latitude": LATITUDE, "longitude": LONGITUDE},
+            "target": {"name": target_name, "latitude": latitude, "longitude": longitude},
             "horizons": horizons,
             "message": "Saída direta do IFS; usada como fonte de auditoria do ponto.",
         }
@@ -201,7 +212,7 @@ def fetch_ecmwf_direct(now: datetime | None = None) -> dict[str, Any]:
             "provider": "ECMWF Open Data",
             "model": "IFS",
             "source_root": ROOT,
-            "target": {"latitude": LATITUDE, "longitude": LONGITUDE},
+            "target": {"name": target_name, "latitude": latitude, "longitude": longitude},
             "horizons": [],
             "message": f"ECMWF direto indisponível nesta rodada: {exc}",
         }

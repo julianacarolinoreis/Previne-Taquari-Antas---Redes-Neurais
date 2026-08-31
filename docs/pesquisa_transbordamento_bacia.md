@@ -11,12 +11,14 @@ estima por horizonte**.
 1. **Nível observado:** leitura do robô ao vivo de ANA/SGB, com horário, idade e
    fonte. A previsão curta de +2 h/+4 h continua sendo a saída do modelo de
    nível, sem ser misturada à chuva de longo prazo.
-2. **Chuva prevista:** ECMWF IFS no ponto e, para Santa Tereza, média/máximo do
-   recorte de células representativas já auditado. Os acumulados são em mm e
-   não são probabilidade.
-3. **Cabeceiras:** a média/máximo do recorte IFS é mostrada como *proxy de
-   montante*. Para Muçum, a referência atual é compartilhada com Santa Tereza e
-   fica marcada como não independente.
+2. **Chuva prevista:** ECMWF IFS no ponto e uma rede auditada de células
+   associadas aos pontos monitorados a montante. Os acumulados são em mm e não
+   são probabilidade.
+3. **Montante/cabeceiras:** a média simples e o máximo das células únicas são
+   mostrados como *proxy da rede monitorada a montante*. Não são uma máscara
+   hidrológica, não têm ponderação por área e não representam a média oficial da
+   bacia. Para Muçum, a referência atual é compartilhada e fica marcada como não
+   independente.
 4. **Eventos:** picos acima da cota de pesquisa (1.500 cm em Santa Tereza e
    1.800 cm em Muçum), com candidatos e situação de revisão preservados.
 5. **Risco experimental:** score/probabilidade dos artefatos publicados,
@@ -32,8 +34,9 @@ feed fica velho ou tem cobertura parcial, a interface mostra `atrasado` ou
 
 ## O que está implementado automaticamente
 
-`.github/workflows/research-basin.yml` roda por agenda, manualmente e após os
-workflows de previsão. A sequência é:
+`.github/workflows/santa-weather-feed.yml` atualiza Santa Tereza de hora em
+hora. `.github/workflows/research-basin.yml` integra as duas estações por agenda,
+manualmente e após os workflows de previsão. A sequência é:
 
 ```text
 feeds publicados → contexto integrado → QA de schema/proveniência → commit
@@ -45,8 +48,9 @@ JSON para auditoria; o dashboard só consome o artefato publicado.
 
 ## Gates científicos ainda explícitos
 
-- `hydrologic_mask`: o polígono disponível é limite de referência; ainda não há
-  outlet, rede hidrográfica e acumulação de fluxo regional validados.
+- `hydrologic_mask`: a rede de pontos a montante já é atualizada, mas ainda não
+  há outlet, rede hidrográfica, acumulação de fluxo regional e ponderação por
+  área validados.
 - `mucum_independent_headwater`: Muçum precisa de um recorte espacial próprio;
   a referência Santa Tereza não deve ser lida como chuva local de Muçum.
 - `soil_observation`: a umidade atual é variável modelada; não há sensor local

@@ -30,8 +30,8 @@
     }
   };
   const zoneDefinitions = [
-    ['Cabeceiras / montante', 'água que desce para a bacia', 'A média espacial do recorte IFS funciona como proxy de chuva nas cabeceiras; não é uma máscara hidrológica oficial.', 'var(--blue)', '42%'],
-    ['Recorte da bacia', 'média e máximo das células', 'A média mostra o cenário típico e o máximo mostra onde a chuva pode se concentrar dentro do recorte.', 'var(--green)', '66%'],
+    ['Pontos monitorados a montante', 'sinal espacial de chuva que pode chegar', 'A média das células IFS únicas ligadas aos pontos monitorados funciona como proxy. Não é a média de toda a bacia.', 'var(--blue)', '42%'],
+    ['Cobertura hidrológica da bacia', 'máscara e ponderação por área', 'Ainda pendente de validação. O site não substitui essa cobertura pelo proxy de estações.', 'var(--green)', '66%'],
     ['Perto da estação', 'ponto de leitura', 'A chuva no ponto e o nível ANA/SGB são mostrados quando a fonte os publica.', 'var(--amber)', '82%'],
     ['Jusante / foz', 'propagação', 'Ainda não há série zonal independente e tempo de propagação validados neste painel.', 'var(--purple)', '33%']
   ];
@@ -140,7 +140,7 @@
   }
   function displayRain(snap) {
     if (snap.key === 'mucum') return { value: snap.directRain, label: 'IFS direto no ponto', source: 'ECMWF IFS' };
-    return { value: snap.meanRain, label: 'média do recorte da bacia', source: 'ECMWF IFS' };
+    return { value: snap.meanRain, label: 'média das células monitoradas a montante', source: 'ECMWF IFS' };
   }
   function sourceGenerated(snap) {
     const values = [snap.weather && snap.weather.generated_at_utc, snap.pattern && snap.pattern.generated_at_utc].filter(Boolean);
@@ -185,7 +185,7 @@
       const item = researchStation(key) || {}; const row = researchRow(key, h) || {}; const rain = row.rain || {}; const head = rain.headwater || {}; const risk = row.risk || {}; const current = item.current || {};
       const short = Array.isArray(item.short_forecasts) && item.short_forecasts.length ? item.short_forecasts.map((f) => `+${f.hours} h: ${fmt(f.level_forecast_cm, 0)} cm`).join(' · ') : 'previsão curta sem valor';
       const headValue = head.mean_mm == null ? '—' : `${fmt(head.mean_mm, 1)} mm`;
-      const headNote = head.max_mm == null ? 'sem máximo publicado' : `máx. ${fmt(head.max_mm, 1)} mm · ${head.status === 'shared_santa_reference' ? 'referência Santa Tereza' : 'recorte IFS'}`;
+      const headNote = head.max_mm == null ? 'sem máximo publicado' : `máx. ${fmt(head.max_mm, 1)} mm · ${head.status === 'shared_santa_reference' ? 'proxy compartilhada' : 'células monitoradas'}`;
       const point = rain.point_mm != null ? `${fmt(rain.point_mm, 1)} mm` : rain.ifs_direct_mm != null ? `${fmt(rain.ifs_direct_mm, 1)} mm` : '—';
       const prob = risk.probability_percent == null ? '—' : pct(risk.probability_percent);
       const probNote = risk.probability_percent == null ? 'sem estimativa' : `${researchStateLabel(risk.state)} · cota ${fmt(item.threshold_cm, 0)} cm · ${risk.calibration_status}`;
@@ -194,13 +194,13 @@
         <div class="research-context-card-head"><div><span class="research-station-kicker">${esc(labels[key] || key)}</span><h3>${esc(item.station_code || 'estação')}</h3></div><span class="research-quality ${quality.status === 'DEGRADED' ? 'warn' : ''}">${esc(quality.status || 'SEM STATUS')}</span></div>
         <div class="research-metrics">
           ${researchMetric('Nível observado', current.level_cm == null ? '—' : `${fmt(current.level_cm, 0)} cm`, `${researchStateLabel(current.state)} · ${when(current.observed_at_utc)}`, 'observed')}
-          ${researchMetric('Cabeceiras / montante', headValue, headNote, head.status === 'shared_santa_reference' ? 'proxy' : 'forecast')}
+          ${researchMetric('Pontos a montante · proxy', headValue, headNote, head.status === 'shared_santa_reference' ? 'proxy' : 'forecast')}
           ${researchMetric('Chuva no ponto', point, `acumulado previsto · +${h} h`, 'forecast')}
           ${researchMetric('Cruzamento da cota', prob, probNote, 'risk')}
         </div>
         <p class="research-context-short"><strong>Robô ao vivo:</strong> ${esc(short)}.</p>
         <p class="research-context-source"><strong>Fonte:</strong> ${esc(item.forecast && item.forecast.provider || 'não informada')} · feed ${esc(researchStateLabel(item.forecast && item.forecast.state))} (${esc(when(item.forecast && item.forecast.generated_at_utc))}).</p>
-        ${head.status === 'shared_santa_reference' ? '<p class="research-context-warning">Muçum ainda não tem recorte hidrológico independente; esta chuva de cabeceira é uma referência compartilhada, não uma previsão local da bacia.</p>' : ''}
+        ${head.status === 'shared_santa_reference' ? '<p class="research-context-warning">Muçum ainda não tem máscara hidrológica independente; este agregado é uma referência compartilhada dos pontos monitorados a montante, não a média da bacia de Muçum.</p>' : '<p class="research-context-warning">O agregado espacial resume pontos monitorados a montante; não é uma média ponderada de toda a bacia.</p>'}
       </article>`;
     }).join('');
     const pending = Array.isArray(state.research.gates) ? state.research.gates.filter((gate) => gate.status !== 'complete') : [];
@@ -269,11 +269,11 @@
   function zoneValue(snap, zoneIndex) {
     if (!snap && state.station === 'basin' && zoneIndex === 0) {
       const a = stationSnapshot('santa', state.horizon);
-      return { value: a.basinMean == null ? '—' : `${fmt(a.basinMean, 1)} mm`, note: `média do recorte montante · ${stations.santa.label} · +${state.horizon} h` };
+      return { value: a.basinMean == null ? '—' : `${fmt(a.basinMean, 1)} mm`, note: `média das células monitoradas a montante · ${stations.santa.label} · +${state.horizon} h` };
     }
     if (!snap && state.station === 'basin' && zoneIndex === 1) {
       const a = stationSnapshot('santa', state.horizon);
-      return { value: a.basinMean == null && a.basinMax == null ? '—' : `média ${fmt(a.basinMean, 1)} · máx. ${fmt(a.basinMax, 1)} mm`, note: 'recorte espacial IFS montante · referência comum da bacia' };
+      return { value: '—', note: 'máscara hidrológica e ponderação por área ainda não validadas' };
     }
     if (!snap && state.station === 'basin' && zoneIndex === 2) {
       const a = stationSnapshot('santa', state.horizon); const b = stationSnapshot('mucum', state.horizon);
@@ -282,12 +282,12 @@
     if (!snap) return { value: '—', note: 'sem estação selecionada' };
     if (zoneIndex === 0) {
       const reference = snap.basinMean == null ? stationSnapshot('santa', state.horizon).basinMean : snap.basinMean;
-      return { value: reference == null ? '—' : `${fmt(reference, 1)} mm`, note: `média do recorte montante IFS · +${state.horizon} h${snap.basinMean == null ? ' · referência Santa Tereza' : ''}` };
+      return { value: reference == null ? '—' : `${fmt(reference, 1)} mm`, note: `média das células monitoradas a montante · +${state.horizon} h${snap.basinMean == null ? ' · proxy compartilhada' : ''}` };
     }
     if (zoneIndex === 1) {
       const reference = snap.basinMean == null && snap.basinMax == null ? stationSnapshot('santa', state.horizon) : snap;
       const mean = reference.basinMean, max = reference.basinMax;
-      return { value: mean == null && max == null ? '—' : `média ${fmt(mean, 1)} · máx. ${fmt(max, 1)} mm`, note: `recorte espacial IFS · +${state.horizon} h${reference.key === 'santa' && snap.key !== 'santa' ? ' · referência Santa Tereza' : ''}` };
+      return { value: '—', note: 'a cobertura hidrológica da bacia ainda não foi validada' };
     }
     if (zoneIndex === 2) {
       const r = displayRain(snap);
@@ -314,8 +314,8 @@
     keys.forEach((key) => {
       const s = stationSnapshot(key, state.horizon); const prefix = state.station === 'basin' ? `${s.station.label} · ` : '';
       if (key === 'santa') {
-        cards.push(modelCard(`${prefix}IFS · média do recorte`, 'PREVISÃO · chuva acumulada', s.meanRain, 'mm', 'Média das células do recorte usado pela rodada. Não é uma probabilidade.', 'ECMWF IFS', '#c47a10'));
-        cards.push(modelCard(`${prefix}IFS · máximo espacial`, 'PREVISÃO · chuva acumulada', s.maxRain, 'mm', 'Maior célula disponível no recorte; não representa a bacia inteira.', 'ECMWF IFS', '#d59a33'));
+        cards.push(modelCard(`${prefix}IFS · média monitorada a montante`, 'PREVISÃO · chuva acumulada', s.meanRain, 'mm', 'Média simples das células únicas ligadas aos pontos monitorados. Não é média de toda a bacia.', 'ECMWF IFS', '#c47a10'));
+        cards.push(modelCard(`${prefix}IFS · máximo monitorado`, 'PREVISÃO · chuva acumulada', s.maxRain, 'mm', 'Maior célula entre os pontos monitorados a montante; não representa a bacia inteira.', 'ECMWF IFS', '#d59a33'));
         cards.push(modelCard(`${prefix}IFS · ponto`, 'PREVISÃO · chuva acumulada', s.pointRain, 'mm', 'Valor do ponto/célula mais próxima da estação.', 'ECMWF IFS', '#e2b85c'));
         cards.push(modelCard(`${prefix}RNA do feed`, 'SCORE · não calibrado', s.score, '%', 'Score do modelo de pesquisa. Não é frequência nem chance real.', 'RNA / feed visual', '#7650b4', 'experimental-card'));
         cards.push(modelCard(`${prefix}GEFS`, 'PROBABILIDADE · experimental', s.risk, '%', 'Estimativa experimental de cruzar a cota; não é alerta oficial.', 'NOAA GEFS · proxy/rodada', '#6541a7', 'experimental-card'));

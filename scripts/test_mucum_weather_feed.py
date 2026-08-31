@@ -9,9 +9,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 try:
-    from .build_mucum_weather_feed import parse_hour, read_live
+    from .build_mucum_weather_feed import parse_forecast_hour, parse_hour, read_live
 except ImportError:
-    from build_mucum_weather_feed import parse_hour, read_live
+    from build_mucum_weather_feed import parse_forecast_hour, parse_hour, read_live
 
 
 class MucumWeatherTimestampTests(unittest.TestCase):
@@ -19,6 +19,12 @@ class MucumWeatherTimestampTests(unittest.TestCase):
         self.assertEqual(
             parse_hour("2026-08-27T09:45:00"),
             datetime(2026, 8, 27, 12, 45, tzinfo=timezone.utc),
+        )
+
+    def test_naive_open_meteo_time_is_interpreted_as_utc(self) -> None:
+        self.assertEqual(
+            parse_forecast_hour("2026-08-27T09:45:00"),
+            datetime(2026, 8, 27, 9, 45, tzinfo=timezone.utc),
         )
 
     def test_live_feed_prefers_explicit_utc_timestamp(self) -> None:

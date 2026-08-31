@@ -62,7 +62,7 @@ class BasinDashboardTests(unittest.TestCase):
         script = (ROOT / "assets/js/pv_dashboard.js").read_text(encoding="utf-8")
         for token in ("normalizeBasin", "renderBasinContext", "Cabeceiras / montante", "Maior célula do recorte"):
             self.assertIn(token, script)
-        self.assertIn("Cabeceiras / montante", (ROOT / "assets/js/bacia_dashboard.js").read_text(encoding="utf-8"))
+        self.assertIn("Pontos a montante · proxy", (ROOT / "assets/js/bacia_dashboard.js").read_text(encoding="utf-8"))
 
     def test_compact_feeds_have_expected_horizons(self) -> None:
         for name in ("research_visual_patterns_santa_tereza_latest.json", "research_visual_patterns_mucum_latest.json"):

@@ -413,23 +413,30 @@ def station_context(key: str, now: datetime, santa_weather: dict[str, Any] | Non
             point = number(w.get("rain_point_mm", p.get("point_mm")))
             mean = number(w.get("basin_mean_mm", p.get("ifs_mean_mm")))
             maximum = number(w.get("basin_max_mm", p.get("ifs_max_mm")))
+            aggregation = weather.get("basin_aggregation") if isinstance(weather.get("basin_aggregation"), dict) else {}
             headwater = {
                 "mean_mm": mean,
                 "max_mm": maximum,
-                "status": "proxy_spatial_recut" if mean is not None else "not_available",
-                "source": "ECMWF IFS representative cells",
+                "status": aggregation.get("status", "upstream_monitoring_grid_proxy") if mean is not None else "not_available",
+                "source": "ECMWF IFS unique cells associated with upstream monitoring points",
                 "independent_for_station": True,
+                "hydrologic_mask": bool(aggregation.get("hydrologic_mask", False)),
+                "area_weighted": bool(aggregation.get("area_weighted", False)),
             }
             rain = {
                 "point_mm": point,
                 "basin_mean_mm": mean,
                 "basin_max_mm": maximum,
                 "headwater": headwater,
-                "method": (weather.get("basin_aggregation") or {}).get("method"),
+                "method": aggregation.get("method"),
             }
         else:
-            point = number(w.get("rain_ecmwf_direct_mm", w.get("rain_point_mm", p.get("ifs_direct_mm"))))
+            direct_point = number(w.get("rain_ecmwf_direct_mm", p.get("ifs_direct_mm")))
             direct_openmeteo = number(w.get("rain_point_mm", p.get("ifs_direct_mm")))
+            # The direct GRIB audit can be temporarily unavailable (for
+            # example HTTP 429 or ecCodes missing).  That must not erase the
+            # separately sourced prospective IFS point value.
+            point = direct_point if direct_point is not None else direct_openmeteo
             proxy = number(w.get("rain_ifs_proxy_mm", p.get("ifs_proxy_mm")))
             gefs = number(w.get("rain_gefs_proxy_mm", p.get("gefs_proxy_mm")))
             reference = row_at((santa_weather or {}).get("horizons"), hours)
@@ -439,17 +446,19 @@ def station_context(key: str, now: datetime, santa_weather: dict[str, Any] | Non
                 "mean_mm": ref_mean,
                 "max_mm": ref_max,
                 "status": "shared_santa_reference" if ref_mean is not None else "not_available",
-                "source": "Santa Tereza IFS spatial recut; not an independent Muçum catchment",
+                "source": "shared upstream monitoring-grid proxy; not an independent Muçum catchment",
                 "independent_for_station": False,
+                "hydrologic_mask": False,
+                "area_weighted": False,
             }
             rain = {
                 "point_mm": point,
-                "ifs_direct_mm": number(w.get("rain_ecmwf_direct_mm", p.get("ifs_direct_mm"))),
+                "ifs_direct_mm": direct_point,
                 "ifs_openmeteo_mm": direct_openmeteo,
                 "ifs_proxy_mm": proxy,
                 "gefs_proxy_mm": gefs,
                 "headwater": headwater,
-                "method": "ponto Muçum + referência espacial Santa Tereza; sem máscara independente",
+                "method": "ponto Muçum + proxy compartilhada de células ligadas a pontos monitorados a montante; sem máscara independente",
             }
         coverage = integer(w.get("rain_hours_available"))
         risk = risk_for(pattern, probability, binary, hours, now)
@@ -478,7 +487,7 @@ def station_context(key: str, now: datetime, santa_weather: dict[str, Any] | Non
     if key == "mucum":
         quality_flags.extend(["point_forecast", "shared_headwater_reference", "no_local_soil_sensor"])
     else:
-        quality_flags.extend(["representative_cells_not_hydrologic_mask", "no_local_soil_sensor"])
+        quality_flags.extend(["upstream_monitoring_grid_proxy_not_hydrologic_mask", "no_local_soil_sensor"])
     return {
         "station_code": config["code"],
         "station_name": config["name"],
@@ -532,8 +541,8 @@ def build_feed(now: datetime | None = None) -> dict[str, Any]:
         "stations": station_data,
         "signals": {
             "observed_level": "ANA/SGB or robot live level, with timestamp and age",
-            "forecast_rain": "ECMWF IFS point or representative-cell recut, always labelled",
-            "headwater_rain": "Santa Tereza spatial recut; Muçum currently uses a shared reference, not an independent catchment",
+            "forecast_rain": "ECMWF IFS at each target point plus an explicitly labelled upstream monitoring-grid proxy",
+            "headwater_rain": "proxy from unique IFS cells associated with monitored upstream points; not an area-weighted hydrologic mean; Muçum currently shares this reference",
             "soil_moisture": "modelled proxy only; no local saturation sensor in the published feed",
             "propagation": "short forecasts are shown; basin travel-time field remains unvalidated per event",
             "probability": "experimental score/probability by source and age; never an official alert",
@@ -545,8 +554,8 @@ def build_feed(now: datetime | None = None) -> dict[str, Any]:
             "steps": ["join current artifacts", "write compact feed", "run schema/QA", "publish only changed artifacts"],
         },
         "gates": [
-            {"id": "hydrologic_mask", "status": "pending", "reason": "outlet, flow accumulation and headwater polygons need a validated regional DEM/network"},
-            {"id": "mucum_independent_headwater", "status": "pending", "reason": "current spatial rain is a shared Santa Tereza reference, not an independent Muçum catchment"},
+            {"id": "hydrologic_mask", "status": "pending", "reason": "current hourly proxy covers monitored upstream cells; outlet, flow accumulation and headwater polygons still need a validated regional DEM/network"},
+            {"id": "mucum_independent_headwater", "status": "pending", "reason": "Muçum currently shares the upstream monitoring-grid proxy; an independent catchment mask has not been validated"},
             {"id": "soil_observation", "status": "pending", "reason": "no local in-situ saturation series is published for either station"},
             {"id": "radar_qpe", "status": "pending", "reason": "CEMADEN radar/QPE feed requires a successful public download or credentials"},
             {"id": "travel_time", "status": "research_partial", "reason": "known model anchors are displayed, but event-level propagation still needs validation"},

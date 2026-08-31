@@ -20,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REPORT = ROOT / "assets" / "data" / "research_dashboard_validation_latest.json"
 WEATHER = ROOT / "assets" / "data" / "research_weather_mucum_latest.json"
+SANTA_WEATHER = ROOT / "assets" / "data" / "research_weather_santa_tereza_latest.json"
 PROBABILITY = ROOT / "assets" / "data" / "research_probability_mucum_latest.json"
 BINARIES = {
     "mucum": ROOT / "assets" / "data" / "research_binary_decision_mucum_latest.json",
@@ -37,6 +38,7 @@ BASIN_ASSETS = (
     ROOT / "assets" / "js" / "bacia_dashboard.js",
 )
 REQUIRED_HORIZONS = (24, 48, 72, 120, 168)
+SANTA_WEATHER_HORIZONS = (24, 48, 72, 96, 120, 168)
 
 
 class IdParser(HTMLParser):
@@ -103,31 +105,53 @@ def horizon_rows(value: object) -> list[tuple[int, dict]]:
 
 def check_feeds(errors: list[dict]) -> dict:
     weather = load_json(WEATHER, errors) or {}
+    santa_weather = load_json(SANTA_WEATHER, errors) or {}
     probability = load_json(PROBABILITY, errors) or {}
     weather_rows = horizon_rows(weather.get("horizons"))
+    santa_weather_rows = horizon_rows(santa_weather.get("horizons"))
     probability_rows = horizon_rows(probability.get("horizons"))
     weather_hours = [h for h, _ in weather_rows]
+    santa_weather_hours = [h for h, _ in santa_weather_rows]
     probability_hours = [h for h, _ in probability_rows]
     if weather_hours != list(REQUIRED_HORIZONS):
         errors.append({"severity": "FAIL", "code": "weather_horizons", "detail": weather_hours})
+    if santa_weather_hours != list(SANTA_WEATHER_HORIZONS):
+        errors.append({"severity": "FAIL", "code": "santa_weather_horizons", "detail": santa_weather_hours})
     if probability_hours != list(REQUIRED_HORIZONS):
         errors.append({"severity": "FAIL", "code": "probability_horizons", "detail": probability_hours})
-    for label, feed in (("weather", weather), ("probability", probability)):
+    for label, feed in (("weather", weather), ("weather_santa_tereza", santa_weather), ("probability", probability)):
         if feed and parse_time(feed.get("generated_at_utc")) is None:
             errors.append({"severity": "FAIL", "code": "timestamp_without_timezone", "feed": label})
-    for hours, item in weather_rows:
-        for key in ("rain_point_mm", "rain_ecmwf_direct_mm"):
-            if key in item and item[key] is not None and not isinstance(item[key], (int, float)):
-                errors.append({"severity": "FAIL", "code": "non_numeric_weather_value", "horizon": hours, "field": key})
+    for location, rows_to_check in (("mucum", weather_rows), ("santa_tereza", santa_weather_rows)):
+        for hours, item in rows_to_check:
+            for key in ("rain_point_mm", "rain_ecmwf_direct_mm", "basin_mean_mm", "basin_max_mm"):
+                if key in item and item[key] is not None and not isinstance(item[key], (int, float)):
+                    errors.append({"severity": "FAIL", "code": "non_numeric_weather_value", "location": location, "horizon": hours, "field": key})
     coverage = {str(hours): item.get("rain_hours_available", hours) for hours, item in weather_rows}
+    santa_coverage = {str(hours): item.get("rain_hours_available", hours) for hours, item in santa_weather_rows}
     if weather_rows and any(item.get("rain_hours_available", hours) != hours for hours, item in weather_rows):
         errors.append({"severity": "DEGRADED", "code": "partial_forecast_window", "coverage": coverage})
+    if santa_weather_rows and any(item.get("rain_hours_available", hours) != hours for hours, item in santa_weather_rows):
+        errors.append({"severity": "DEGRADED", "code": "santa_partial_forecast_window", "coverage": santa_coverage})
+    aggregation = santa_weather.get("basin_aggregation") if isinstance(santa_weather.get("basin_aggregation"), dict) else {}
+    if aggregation.get("status") != "upstream_monitoring_grid_proxy":
+        errors.append({"severity": "FAIL", "code": "santa_spatial_proxy_status", "detail": aggregation.get("status")})
+    if aggregation.get("hydrologic_mask") is not False or aggregation.get("area_weighted") is not False:
+        errors.append({"severity": "FAIL", "code": "santa_hydrologic_overclaim"})
+    if aggregation.get("deduplication_applied") is not True:
+        errors.append({"severity": "FAIL", "code": "santa_grid_deduplication_missing"})
+    now = datetime.now(timezone.utc)
+    for location, feed in (("mucum", weather), ("santa_tereza", santa_weather)):
+        generated = parse_time(feed.get("generated_at_utc"))
+        if generated is None or (now - generated.astimezone(timezone.utc)).total_seconds() > 36 * 3600:
+            errors.append({"severity": "DEGRADED", "code": "weather_feed_stale", "location": location, "generated_at_utc": feed.get("generated_at_utc")})
     if probability.get("calibration_status") in ("experimental_uncalibrated", "uncalibrated"):
         errors.append({"severity": "DEGRADED", "code": "score_uncalibrated", "detail": "exibido como score, nunca como chance real"})
     if probability.get("direct_mucum_point") is False:
         errors.append({"severity": "DEGRADED", "code": "probability_proxy_source", "detail": probability.get("forecast_source")})
     return {
         "weather": {"generated_at_utc": weather.get("generated_at_utc"), "sha256": sha256(WEATHER) if WEATHER.exists() else None, "horizons": weather_hours, "coverage": coverage},
+        "weather_santa_tereza": {"generated_at_utc": santa_weather.get("generated_at_utc"), "sha256": sha256(SANTA_WEATHER) if SANTA_WEATHER.exists() else None, "horizons": santa_weather_hours, "coverage": santa_coverage, "spatial_proxy_status": aggregation.get("status"), "hydrologic_mask": aggregation.get("hydrologic_mask")},
         "probability": {"generated_at_utc": probability.get("generated_at_utc"), "sha256": sha256(PROBABILITY) if PROBABILITY.exists() else None, "horizons": probability_hours, "source": probability.get("forecast_source"), "calibration_status": probability.get("calibration_status")},
     }
 
