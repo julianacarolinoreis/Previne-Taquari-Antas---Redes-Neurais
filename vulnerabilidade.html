@@ -32,8 +32,8 @@
   header h1{font-size:16.5px;margin:0;font-weight:750;letter-spacing:-.01em;line-height:1.15}
   header .loc{font-size:11.5px;color:var(--muted)}
   header a.back{margin-left:auto;font-size:12px;color:var(--brand);font-weight:650;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--bg)}
-  main{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:calc(100vh - 55px)}
-  #map{position:relative;background:var(--bg)}
+  main{display:grid;grid-template-columns:minmax(0,1fr) 372px;grid-template-rows:auto minmax(0,1fr);height:calc(100vh - 55px)}
+  #map{grid-column:1;grid-row:1 / span 2;position:relative;background:var(--bg)}
   .map-hint{position:absolute;right:12px;top:74px;bottom:auto;z-index:700;max-width:min(310px,calc(100% - 24px));padding:8px 10px;border:1px solid rgba(15,107,74,.35);border-radius:8px;background:rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(20,45,35,.12);color:var(--ink);font-size:11.5px;line-height:1.35;font-weight:700;pointer-events:none}
   .map-hint[hidden]{display:none}
   .dataset-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:8px 0 10px;padding:6px;border:1px solid var(--line);border-radius:9px;background:#f7faf8}
@@ -51,6 +51,7 @@
   .ind button.search-hidden{display:none}
   .ind-group.search-empty{display:none}
   .location-picker{margin:8px 0 11px;padding:9px 10px;border:1px solid #b9d8c6;border-radius:10px;background:#f2faf5}
+  #locationPicker{grid-column:2;grid-row:1;margin:12px 15px 0;position:relative;z-index:751}
   .location-picker .q{margin:0 0 5px;color:var(--brand)}
   .location-picker select{min-height:40px;border:2px solid #9fcab0;background:#fff;font-weight:650}
   .location-picker .scope-help{margin-top:5px}
@@ -107,8 +108,27 @@
   .a11y-tools{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
   .a11y-tools button{min-height:32px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:11px;font-weight:700;cursor:pointer}
   .a11y-tools button[aria-pressed="true"]{background:#e8f1f8;border-color:#0b4f8a;color:#0b4f8a}
+  .start-here{margin:0 0 11px;padding:11px 10px;border:1px solid #b9d8c6;border-radius:11px;background:linear-gradient(180deg,#f4fbf7,#fbfdfc)}
+  .start-here-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .start-here-kicker{margin:0 0 2px;color:var(--brand);font-size:10px;font-weight:850;letter-spacing:.07em;text-transform:uppercase}
+  .start-here h2{margin:0;font-size:14px;line-height:1.2;letter-spacing:-.01em}
+  .start-here-state{flex:0 0 auto;border:1px solid #b9d8c6;border-radius:999px;background:#fff;padding:4px 7px;color:var(--brand);font-size:10px;font-weight:800;white-space:nowrap}
+  .start-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:0;padding:0;list-style:none}
+  .start-step{min-width:0}
+  .start-step a{display:flex;min-height:76px;height:100%;flex-direction:column;gap:2px;padding:7px 7px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);text-decoration:none}
+  .start-step a:hover,.start-step a:focus-visible{border-color:var(--brand);background:#f2faf5}
+  .start-step a.is-current{border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand);background:#eef7f2}
+  .start-step a.is-done{background:#f7faf8}
+  .start-step-num{color:var(--brand);font-size:10px;font-weight:850}
+  .start-step-title{font-size:11px;font-weight:800;line-height:1.2}
+  .start-step-detail{margin-top:auto;color:var(--muted);font-size:9.5px;line-height:1.25}
+  .start-here-note{margin:8px 0 0;color:var(--muted);font-size:10.5px;line-height:1.4}
+  .start-here-note b{color:var(--ink)}
+  .start-coverage{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+  .start-coverage span{padding:3px 6px;border:1px solid #d5e4da;border-radius:999px;background:#fff;color:var(--muted);font-size:9.5px;line-height:1.2}
+  .start-coverage b{color:var(--brand)}
   #legendHeading{scroll-margin-top:12px}
-  aside{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:15px 15px 40px}
+  aside{grid-column:2;grid-row:2;background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:10px 15px 40px}
   .q{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:12px 0 5px}
   .q:first-child{margin-top:0}
   .ind{display:flex;flex-wrap:wrap;gap:5px}
@@ -323,8 +343,10 @@
   .comparacao-tablewrap[role="region"],.icm-tablewrap[role="region"]{outline:none}
   .comparacao-tablewrap[role="region"]:focus-visible,.icm-tablewrap[role="region"]:focus-visible{outline:3px solid #1e5fbf;outline-offset:2px}
   @media (max-width:900px){
-    main{grid-template-columns:minmax(0,1fr);width:100%;max-width:100%;height:auto}
-    #map{height:58vh;min-height:340px}
+    main{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto;width:100%;max-width:100%;height:auto}
+    #locationPicker{grid-column:1;grid-row:1;margin:10px 10px 0}
+    #map{grid-column:1;grid-row:2;height:58vh;min-height:340px}
+    aside{grid-column:1;grid-row:3}
     aside{width:100%;max-width:100%;min-width:0;overflow-x:hidden;border-left:none;border-top:1px solid var(--line)}
     #inset{width:120px;height:92px;bottom:18px}
   }
@@ -384,7 +406,7 @@
        fica alinhada na coluna direita, sem sobrar um bloco vazio abaixo */
     main{height:calc(100vh - 58px);min-height:0;grid-template-columns:minmax(0,1fr) 300px;align-items:stretch}
     #map{height:100%;min-height:0}
-    #mapLegendMini,.map-empty-state,.welcome-dialog,.a11y-tools,.mun-search,.glossario,.reading-card,.action-groups{display:none!important}
+    #mapLegendMini,.map-empty-state,.welcome-dialog,.a11y-tools,.mun-search,.glossario,.reading-card,.action-groups,#locationPicker,.start-here{display:none!important}
     aside{height:100%;min-height:0;overflow:hidden;padding:8px 12px}
     .expl,.icm-wrap,.comparacao-wrap{break-inside:avoid}
     /* Somente o mapa precisa caber em uma unica prancha, sem uma segunda
@@ -466,7 +488,7 @@
     .concept-note{position:relative;top:auto;margin:0 0 8px}
     .research-banner{font-size:10px}
     .indicator-context{font-size:10px}
-    .location-picker{position:sticky;top:0;z-index:750;box-shadow:0 2px 8px rgba(20,45,35,.12)}
+    #locationPicker{position:sticky;top:0;z-index:750;box-shadow:0 2px 8px rgba(20,45,35,.12)}
     .tool-grid{grid-template-columns:1fr}
     .quick-actions{grid-template-columns:1fr 1fr}
     .map-hint{right:10px;top:70px;max-width:calc(100% - 20px)}
@@ -542,6 +564,16 @@
 </header>
 <main>
   <div id="map" role="region" aria-label="Mapa temático de vulnerabilidade da bacia Taquari-Antas" aria-describedby="mapLegendMini mapHint" tabindex="0"><div id="inset" role="img" aria-label="Localização da bacia Taquari-Antas no Rio Grande do Sul" title="Onde a bacia fica no Rio Grande do Sul"></div><div id="mapLegendMini" class="map-legend-mini" role="note" aria-live="polite"><strong>Carregando indicador…</strong><span>Escolha um município ou indicador.</span></div><div id="mapEmptyState" class="map-empty-state" hidden role="status" aria-live="polite"></div><div id="mapHint" class="map-hint" aria-hidden="true">Clique em um município para abrir setores censitários ou a grade 200 m.</div><div id="mapLoading" class="map-loading" role="status" aria-live="polite">Carregando municípios e camadas…</div></div>
+  <div class="location-picker" id="locationPicker">
+    <div class="q">1 · Localizar município</div>
+    <div class="mun-search">
+      <label class="sr-only" for="buscaTexto">Filtrar municípios por nome</label>
+      <input id="buscaTexto" type="search" placeholder="Digite para filtrar (ex.: Muçum, Encantado)" autocomplete="off" enterkeyhint="search">
+    </div>
+    <label class="sr-only" for="busca">Escolha um município para abrir o detalhe local</label>
+    <select id="busca"><option value="">— escolher um município —</option></select>
+    <div class="scope-help" id="municipioAjuda">Escolha um município aqui ou clique diretamente no mapa para abrir setores censitários ou a grade 200 m.</div>
+  </div>
   <aside>
     <div class="concept-note" role="note" aria-label="Diferença entre vulnerabilidade, perigo e risco">
       <b>Vulnerabilidade social &ne; perigo &ne; risco.</b>
@@ -554,19 +586,27 @@
       <div class="dataset-stat"><b id="summaryGrade">36.723</b><span>células 200 m</span></div>
       <div class="dataset-stat"><b id="summaryAno">2022</b><span>ano do Censo</span></div>
     </div>
+    <section class="start-here" id="startHere" aria-labelledby="startHereTitle">
+      <div class="start-here-head">
+        <div><p class="start-here-kicker">Comece aqui</p><h2 id="startHereTitle">Encontre um dado em 3 passos</h2></div>
+        <span class="start-here-state" id="startHereState" role="status" aria-live="polite">1 de 3</span>
+      </div>
+      <ol class="start-steps" aria-label="Roteiro de consulta">
+        <li class="start-step"><a href="#buscaTexto" data-start-target="buscaTexto" class="is-current" aria-current="step"><span class="start-step-num">1</span><span class="start-step-title">Escolha o município</span><span class="start-step-detail" id="startStep1Detail">busque ou clique no mapa</span></a></li>
+        <li class="start-step"><a href="#indicadorBusca" data-start-target="indicadorBusca"><span class="start-step-num">2</span><span class="start-step-title">Escolha o indicador</span><span class="start-step-detail" id="startStep2Detail">ex.: mulheres, TEA, água</span></a></li>
+        <li class="start-step"><a href="#camadas" data-start-target="camadas"><span class="start-step-num">3</span><span class="start-step-title">Abra o detalhe</span><span class="start-step-detail" id="startStep3Detail">setor ou grade 200 m</span></a></li>
+      </ol>
+      <p class="start-here-note" id="startHereNote"><b>Visão atual:</b> municípios da bacia. As cores mostram o indicador selecionado; clique em uma área para abrir a ficha.</p>
+      <div class="start-coverage" aria-label="Famílias de dados disponíveis">
+        <span><b>Quem</b> · pessoas e grupos</span>
+        <span><b>Onde</b> · domicílios e exposição</span>
+        <span><b>Capacidade</b> · ICM e IRM</span>
+        <span><b>Referências</b> · serviços, estradas, óbitos e Open Buildings</span>
+      </div>
+    </section>
     <div class="a11y-tools" role="group" aria-label="Acessibilidade do mapa">
       <button type="button" id="colorblindToggle" aria-pressed="false" title="Troca a rampa roxa por uma rampa azul–verde com melhor contraste para daltonismo">Paleta daltonismo</button>
       <button type="button" id="reabrirAjuda">Como começar</button>
-    </div>
-    <div class="location-picker" id="locationPicker">
-      <div class="q">Localizar município</div>
-      <div class="mun-search">
-        <label class="sr-only" for="buscaTexto">Filtrar municípios por nome</label>
-        <input id="buscaTexto" type="search" placeholder="Digite para filtrar (ex.: Muçum, Encantado)" autocomplete="off" enterkeyhint="search">
-      </div>
-      <label class="sr-only" for="busca">Escolha um município para abrir o detalhe local</label>
-      <select id="busca"><option value="">— escolher um município —</option></select>
-      <div class="scope-help" id="municipioAjuda">Digite para filtrar a lista, escolha o município ou clique no mapa. Depois abra setores censitários ou a grade 200 m.</div>
     </div>
     <div class="indicator-context" id="indicatorContext" role="region" aria-label="Definição do indicador ativo" aria-live="polite"></div>
     <div class="reading-card" id="readingCard" hidden role="status" aria-live="polite">
@@ -621,8 +661,8 @@
     <div class="indicator-search"><label for="indicadorBusca">Buscar indicador</label><input id="indicadorBusca" type="search" placeholder="Ex.: TEA, água, renda, hospitais" autocomplete="off"></div>
     <div class="ind grouped" id="ind" role="group" aria-label="Indicadores temáticos" tabindex="-1"></div>
     <div class="modes" id="modes" role="group" aria-label="Modo de apresentação do indicador">
-      <button data-m="abs" class="on" aria-pressed="true">valores</button>
-      <button data-m="pct" aria-pressed="false">% da população</button>
+      <button data-m="abs" class="on" aria-pressed="true">número / valor</button>
+      <button data-m="pct" aria-pressed="false">% na área</button>
     </div>
 
     <div class="q">Escopo dos valores municipais</div>
@@ -855,8 +895,9 @@
           <span style="background:#4d2a6e"></span>
         </div>
         <div class="expl-scale"><span>menor</span><span>maior concentração</span></div>
-        <p style="margin-top:12px">Em <b>“valores”</b> a cor segue a contagem; em <b>“% da população”</b>,
-          a proporção dentro de cada área — melhor pra comparar lugares de tamanhos diferentes. Você pode
+        <p style="margin-top:12px">No modo <b>“número / valor”</b> a cor segue a contagem ou o valor publicado; no modo
+          percentual, a proporção dentro de cada área — melhor pra comparar lugares de tamanhos diferentes.
+          Você pode
           fixar seus próprios limites em <b>“editar faixas”</b>. Já a <b>Capacidade (ICM)</b> usa faixas
           fixas A–D (não quantis).</p>
       </div>
@@ -1317,10 +1358,16 @@ function temSigilo(p, d){
 }
 function estaSuprimido(p, d){ return !!p?.setor && temSigilo(p,d); }
 function configuraPercentual(d, abrirAutomaticamente=false){
+  const ab = document.querySelector('#modes [data-m="abs"]');
   const pb = document.querySelector('#modes [data-m="pct"]');
   const pode = !!d.pct && baseDisponivel(d);
+  if (ab){
+    ab.textContent = d.money ? "valor (R$)" : d.base ? "número de domicílios" : d.pct ? "número de pessoas" : "número / valor";
+    ab.title = d.money ? "Valor monetário publicado" : d.base ? "Contagem de domicílios usada como numerador" : d.pct ? "Contagem absoluta do indicador" : "Valor absoluto publicado";
+  }
   pb.disabled = !pode;
-  pb.textContent = d.base ? "% dos domicílios ocupados" : "% da população";
+  pb.textContent = d.base ? "% dos domicílios" : "% da população";
+  pb.title = d.base ? "Proporção sobre domicílios permanentes ocupados" : "Proporção sobre a população da área";
   if (!pode && modo === "pct"){ modo = "abs"; sincronizaModos(); }
   if (abrirAutomaticamente && d.base && pode && modo !== "pct"){
     modo = "pct"; sincronizaModos();
@@ -1927,6 +1974,7 @@ function sincronizaCamadaUI(){
       localStatus.textContent=`Clique em um município no mapa. No popup, escolha “${rotuloAcaoDetalhe()}”.`;
     }
   }
+  atualizaStartHere();
 }
 
 // nomes dos municípios só a partir de certo zoom (e não durante o drill-down),
@@ -2174,10 +2222,41 @@ function atualizaLeituraMunicipio(){
   passos.push("use imprimir/PDF ou downloads para levar o recorte");
   next.innerHTML=`<b>Próximo passo:</b> ${escHTML(passos.slice(0,2).join(" · "))}.`;
 }
+function atualizaStartHere(){
+  const root=document.getElementById("startHere");
+  if(!root) return;
+  const d=INDS.find(i=>i.k===ind) || INDS[0] || {};
+  const state=document.getElementById("startHereState");
+  const note=document.getElementById("startHereNote");
+  const detail1=document.getElementById("startStep1Detail");
+  const detail2=document.getElementById("startStep2Detail");
+  const detail3=document.getElementById("startStep3Detail");
+  const links=[...root.querySelectorAll("[data-start-target]")];
+  let etapa=1, texto="1 de 3 · escolha o município";
+  if(munAtual && !setLayer){ etapa=2; texto="2 de 3 · confira o indicador"; }
+  else if(munAtual && setLayer){ etapa=3; texto="3 de 3 · abra o detalhe"; }
+  links.forEach((link,i)=>{
+    const n=i+1, done=n<etapa || (n===2 && etapa===3);
+    link.classList.toggle("is-current",n===etapa);
+    link.classList.toggle("is-done",done);
+    if(n===etapa) link.setAttribute("aria-current","step"); else link.removeAttribute("aria-current");
+  });
+  if(state) state.textContent=texto;
+  if(detail1) detail1.textContent=munAtual ? `${munAtual.nome} selecionado` : "busque ou clique no mapa";
+  if(detail2) detail2.textContent=d.nome || "indicador atual";
+  if(detail3) detail3.textContent=munAtual ? (camada === "grade" ? "grade 200 m ativa" : "setor censitário ativo") : "disponível após município";
+  if(note){
+    const visao=munAtual
+      ? (camada === "grade" ? `grade 200 m de ${munAtual.nome}` : `setores censitários de ${munAtual.nome}`)
+      : "municípios da bacia";
+    note.innerHTML=`<b>Visão atual:</b> ${escHTML(visao)} · indicador <b>${escHTML(d.nome || "selecionado")}</b>. ${munAtual ? "Clique em uma forma do mapa para abrir a ficha." : "Clique em uma área ou use a busca para começar."}`;
+  }
+}
 function sincronizaApoiosMapa(){
   atualizaLegendaMini();
   atualizaEmptyState();
   atualizaLeituraMunicipio();
+  atualizaStartHere();
 }
 function aplicaPaletaDaltonismo(liga){
   CORES = liga ? CORES_DALTONISMO.slice() : CORES_PADRAO.slice();
@@ -2231,6 +2310,18 @@ function initUxApoios(){
   document.getElementById("welcomeOk")?.addEventListener("click",()=>fechaWelcome(true));
   document.getElementById("welcomeSkip")?.addEventListener("click",()=>fechaWelcome(true));
   document.getElementById("buscaTexto")?.addEventListener("input",filtraOpcoesMunicipio);
+  document.querySelectorAll("[data-start-target]").forEach(link=>{
+    link.addEventListener("click",event=>{
+      event.preventDefault();
+      const alvo=document.getElementById(link.dataset.startTarget);
+      if(!alvo) return;
+      alvo.scrollIntoView({block:"center",behavior:"smooth"});
+      const focavel=alvo.matches?.("button,input,select,textarea,[tabindex]:not([tabindex='-1'])")
+        ? alvo : alvo.querySelector?.("button,input,select,textarea,[tabindex]:not([tabindex='-1'])");
+      requestAnimationFrame(()=>focavel?.focus?.({preventScroll:true}));
+    });
+  });
+  atualizaStartHere();
   // Atraso curto: deixa o mapa montar antes do diálogo.
   setTimeout(()=>abreWelcome(false), 600);
 }
