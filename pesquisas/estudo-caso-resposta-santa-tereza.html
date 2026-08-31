@@ -196,6 +196,7 @@
     .route-option{padding:8px 0 9px;border-top:1px solid var(--line)}
     .route-option:first-of-type{margin-top:8px}
     .route-option.closed{opacity:.65}
+    .route-option.unreconciled{border-top-color:#efc3c8;background:#fff8f7}
     .route-option-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
     .route-name{display:inline-flex;align-items:center;gap:6px;color:var(--navy);font-size:11px}
     .route-name strong{font-weight:800}
@@ -203,6 +204,7 @@
     .route-swatch.short{background:var(--orange)}
     .route-state{color:#96621b;font-family:var(--mono);font-size:9px;font-weight:850;text-transform:uppercase}
     .route-state.unvalidated{color:#96621b}
+    .route-state.unreconciled{color:#ad3548}
     .route-state.closed{color:var(--red)}
     .route-option-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:6px}
     .route-option-meta b{display:block;color:var(--navy);font-family:var(--mono);font-size:12px}
@@ -301,6 +303,7 @@
     .capacity-fill{height:100%;width:0;background:var(--cyan);border-radius:inherit;transition:width .25s ease}
     .capacity-note{font-size:11px;color:var(--muted);margin:7px 0 0}
     .capacity-note.alert{color:#a33b4c}
+    .shelter-spatial-note{margin:8px 0 0;padding:8px 9px;border-left:3px solid var(--red);border-radius:0 8px 8px 0;background:#fff4f4;color:#8f3342;font-size:10px;line-height:1.4}
     .municipal-context{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
     .municipal-context div{padding:8px 6px;background:var(--panel-soft);border-radius:8px;text-align:center}
     .municipal-context b{display:block;color:var(--navy);font-family:var(--mono);font-size:14px}
@@ -529,12 +532,12 @@
         <div class="model-cards">
           <article class="model-card reference">
             <div class="model-card-top"><span class="model-name" id="v001Label">8h V001</span><span class="model-pill">menor MAE · experimental</span></div>
-            <div class="model-level"><strong id="v001Level">—</strong><span>previsão em 8h</span></div>
+            <div class="model-level"><strong id="v001Level">—</strong><span>snapshot · horizonte 8h</span></div>
             <div class="model-meta"><span>base da rodada <b id="v001Now">—</b></span><span>últ. observado <b id="v001Observed">—</b></span><span>MAE 24h <b id="v001Mae">—</b></span><span id="v001Status" class="status-pill attention">—</span></div>
           </article>
           <article class="model-card shadow">
             <div class="model-card-top"><span class="model-name" id="v002Label">8h V002</span><span class="model-pill">sombra · comparativo</span></div>
-            <div class="model-level"><strong id="v002Level">—</strong><span>previsão em 8h</span></div>
+            <div class="model-level"><strong id="v002Level">—</strong><span>snapshot · horizonte 8h</span></div>
             <div class="model-meta"><span>base da rodada <b id="v002Now">—</b></span><span>últ. observado <b id="v002Observed">—</b></span><span>MAE 24h <b id="v002Mae">—</b></span><span id="v002Status" class="status-pill normal">—</span></div>
           </article>
         </div>
@@ -545,14 +548,14 @@
         <div class="coverage-note"><span class="coverage-label">limite de interpretação</span><span>V001 e V002 informam a estação em 8h. A grade espacial começa em 4,24 m e sobe 40 cm/h como hipótese didática independente; não é uma conversão da RNA nem uma previsão adicional para T+12h.</span></div>
       </div>
       <aside class="panel decision-teaser">
-        <div class="teaser-kicker">ação agora · plano pré-preparado</div>
+        <div class="teaser-kicker">exercício · próximo passo pré-preparado</div>
         <strong id="teaserTitle">Qual área precisa de decisão agora?</strong>
-        <p id="teaserText">Avance o evento e observe quando a rota deixa de ser evacuação e passa a ser resgate.</p>
+        <p id="teaserText">Avance o cenário e observe quando a hipótese perde a janela e exige replanejamento.</p>
         <div class="teaser-command" aria-label="Resumo da resposta">
-          <div><span>quem se move</span><b id="teaserOwner">—</b></div>
+          <div><span>papel a ensaiar</span><b id="teaserOwner">—</b></div>
           <div><span>prazo</span><b id="teaserDeadline">—</b></div>
           <div><span>destino</span><b id="teaserDestination">—</b></div>
-          <div><span>próximo movimento</span><b id="teaserNext">—</b></div>
+          <div><span>próximo passo no exercício</span><b id="teaserNext">—</b></div>
         </div>
         <div class="teaser-metrics">
           <div class="teaser-metric"><span>estimativa no recorte</span><b id="teaserPeople">—</b></div>
@@ -628,7 +631,7 @@
         </section>
 
         <section id="decisionPanel" class="panel decision-panel" tabindex="-1" aria-labelledby="decisionTitle">
-          <div class="decision-top"><span class="kicker">Decisão atual</span><span id="decisionTag" class="decision-tag warning">—</span></div>
+          <div class="decision-top"><span class="kicker">Decisão a ensaiar</span><span id="decisionTag" class="decision-tag warning">—</span></div>
           <div id="decisionTitle" class="decision-title">—</div>
           <p id="decisionBody" class="decision-body">—</p>
           <div class="decision-facts">
@@ -675,7 +678,7 @@
           <div class="action-stack">
             <button id="evacAction" class="primary-button" type="button">Registrar decisão</button>
             <button id="dispatchAction" class="secondary-button" type="button">Registrar reconhecimento · exercício</button>
-            <button id="shelterAction" class="secondary-button" type="button">Registrar validação do abrigo · exercício</button>
+            <button id="shelterAction" class="secondary-button" type="button" aria-describedby="shelterSpatialNote capacityNote" disabled>Abrigo bloqueado · falta evidência</button>
           </div>
           <details class="message-draft">
             <summary>Mensagem preparada · rascunho para aprovação</summary>
@@ -763,6 +766,7 @@
           <div class="capacity-line"><span>vagas livres · só após confirmação</span><b id="shelterAvailable">—</b></div>
           <div id="capacityMeter" class="capacity-track" role="progressbar" aria-label="Ocupação inicial do abrigo" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-valuetext="disponibilidade não confirmada"><div id="capacityFill" class="capacity-fill" style="width:0%"></div></div>
           <p id="capacityNote" class="capacity-note">Os números iniciais são didáticos. Sem confirmação, a disponibilidade não entra na decisão.</p>
+          <p id="shelterSpatialNote" class="shelter-spatial-note" role="alert">Destino espacial pendente: o contrato usa a coordenada do Ginásio, mas o arquivo de rota ainda traz outro ponto placeholder. Não tratar este destino como reconciliado.</p>
           <p class="panel-note">Fonte do ponto: Defesa Civil de Santa Tereza · capacidade publicada: não identificada no protótipo · coordenada e acesso precisam de conferência.</p>
           <div class="municipal-context">
             <div><b id="munPopulation">1.505</b><span>população municipal</span></div>
@@ -833,7 +837,7 @@
             <div class="score-item"><span>primeira decisão</span><strong id="metricFirstDecision">—</strong><small>minutos desde T+00:00</small></div>
             <div class="score-item"><span>rota principal confirmada</span><strong id="metricRouteConfirmation">—</strong><small>responsável + evidência</small></div>
             <div class="score-item"><span>não localizadas</span><strong id="metricUnlocated">—</strong><small>zona selecionada · confirmar</small></div>
-            <div class="score-item"><span>lacuna do abrigo</span><strong id="metricShelterGap">—</strong><small>vagas − recorte estimado</small></div>
+            <div class="score-item"><span>lacuna do abrigo</span><strong id="metricShelterGap">—</strong><small>recorte estimado − vagas livres · positivo = déficit</small></div>
             <div class="score-item"><span>falhas críticas</span><strong id="metricCriticalFailures">—</strong><small>preenchido pelo observador</small></div>
             <div class="score-item"><span>compreensão</span><strong id="metricMessageComprehension">—</strong><small>observação da mensagem</small></div>
             <div class="score-item"><span>comunicação</span><strong id="metricCommunicationReady">—</strong><small>canal + responsável + alternativa</small></div>
@@ -941,7 +945,7 @@
     const ROUTE = {"scenario":"22jul","label":"cenário de cheia (subida ~40 cm/h, referência 22/07)","level_cm":424,"zero_gauge_m":4.0,"cell_m":30.0,"grid":[{"lat":-29.162543,"lon":-51.740608,"hand":2.5,"cota":6.5,"arrival":339.0},{"lat":-29.162543,"lon":-51.740299,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.162543,"lon":-51.73999,"hand":2.2,"cota":6.2,"arrival":294.0},{"lat":-29.162543,"lon":-51.739682,"hand":2.4,"cota":6.4,"arrival":324.0},{"lat":-29.162543,"lon":-51.739373,"hand":2.5,"cota":6.5,"arrival":339.0},{"lat":-29.162543,"lon":-51.739065,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.162812,"lon":-51.740916,"hand":2.0,"cota":6.0,"arrival":264.0},{"lat":-29.162812,"lon":-51.740608,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.162812,"lon":-51.740299,"hand":1.2,"cota":5.2,"arrival":144.0},{"lat":-29.162812,"lon":-51.73999,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.162812,"lon":-51.739682,"hand":1.6,"cota":5.6,"arrival":204.0},{"lat":-29.162812,"lon":-51.739373,"hand":1.9,"cota":5.9,"arrival":249.0},{"lat":-29.162812,"lon":-51.739065,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.163082,"lon":-51.740916,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.163082,"lon":-51.740608,"hand":0.9,"cota":4.9,"arrival":99.0},{"lat":-29.163082,"lon":-51.740299,"hand":1.1,"cota":5.1,"arrival":129.0},{"lat":-29.163082,"lon":-51.73999,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.163082,"lon":-51.739682,"hand":1.8,"cota":5.8,"arrival":234.0},{"lat":-29.163082,"lon":-51.739373,"hand":2.0,"cota":6.0,"arrival":264.0},{"lat":-29.163351,"lon":-51.741225,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.163351,"lon":-51.740916,"hand":1.5,"cota":5.5,"arrival":189.0},{"lat":-29.163351,"lon":-51.740608,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.163351,"lon":-51.740299,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.163351,"lon":-51.73999,"hand":0.8,"cota":4.8,"arrival":84.0},{"lat":-29.163351,"lon":-51.739682,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.163621,"lon":-51.740916,"hand":1.9,"cota":5.9,"arrival":249.0},{"lat":-29.163621,"lon":-51.740608,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.163621,"lon":-51.739682,"hand":1.0,"cota":5.0,"arrival":114.0},{"lat":-29.163621,"lon":-51.739373,"hand":1.1,"cota":5.1,"arrival":129.0},{"lat":-29.16389,"lon":-51.740608,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.16389,"lon":-51.73999,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.16416,"lon":-51.740608,"hand":1.7,"cota":5.7,"arrival":219.0},{"lat":-29.16416,"lon":-51.740299,"hand":2.4,"cota":6.4,"arrival":324.0},{"lat":-29.16416,"lon":-51.73999,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.164429,"lon":-51.737214,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.165507,"lon":-51.735671,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.165777,"lon":-51.73598,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.165777,"lon":-51.735671,"hand":1.7,"cota":5.7,"arrival":219.0},{"lat":-29.166046,"lon":-51.744927,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.166316,"lon":-51.744618,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.166316,"lon":-51.736288,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.166316,"lon":-51.734437,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.166585,"lon":-51.74431,"hand":1.2,"cota":5.2,"arrival":144.0},{"lat":-29.166585,"lon":-51.736905,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.166855,"lon":-51.74431,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.166855,"lon":-51.737831,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.166855,"lon":-51.734745,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.167124,"lon":-51.736288,"hand":1.9,"cota":5.9,"arrival":249.0},{"lat":-29.167124,"lon":-51.734745,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.167394,"lon":-51.744001,"hand":2.4,"cota":6.4,"arrival":324.0},{"lat":-29.167394,"lon":-51.739682,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.167394,"lon":-51.739373,"hand":1.8,"cota":5.8,"arrival":234.0},{"lat":-29.167394,"lon":-51.739065,"hand":2.5,"cota":6.5,"arrival":339.0},{"lat":-29.167394,"lon":-51.738756,"hand":0.9,"cota":4.9,"arrival":99.0},{"lat":-29.167394,"lon":-51.738448,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.167394,"lon":-51.737522,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.167394,"lon":-51.737214,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.167394,"lon":-51.736905,"hand":1.1,"cota":5.1,"arrival":129.0},{"lat":-29.167394,"lon":-51.736597,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.167663,"lon":-51.744001,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.167663,"lon":-51.743693,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.167663,"lon":-51.73999,"hand":2.0,"cota":6.0,"arrival":264.0},{"lat":-29.167663,"lon":-51.737831,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.167663,"lon":-51.737522,"hand":1.2,"cota":5.2,"arrival":144.0},{"lat":-29.167663,"lon":-51.737214,"hand":2.0,"cota":6.0,"arrival":264.0},{"lat":-29.167933,"lon":-51.74215,"hand":2.0,"cota":6.0,"arrival":264.0},{"lat":-29.167933,"lon":-51.738756,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.168202,"lon":-51.741842,"hand":0.9,"cota":4.9,"arrival":99.0},{"lat":-29.168202,"lon":-51.739373,"hand":2.0,"cota":6.0,"arrival":264.0},{"lat":-29.168202,"lon":-51.735362,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.168472,"lon":-51.744927,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.168472,"lon":-51.73999,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.168472,"lon":-51.735362,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.168741,"lon":-51.744927,"hand":2.2,"cota":6.2,"arrival":294.0},{"lat":-29.168741,"lon":-51.744618,"hand":1.7,"cota":5.7,"arrival":219.0},{"lat":-29.168741,"lon":-51.735671,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.168741,"lon":-51.735362,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.169011,"lon":-51.744618,"hand":1.9,"cota":5.9,"arrival":249.0},{"lat":-29.169011,"lon":-51.74431,"hand":1.5,"cota":5.5,"arrival":189.0},{"lat":-29.169011,"lon":-51.740299,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.169011,"lon":-51.735671,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.16928,"lon":-51.744618,"hand":2.4,"cota":6.4,"arrival":324.0},{"lat":-29.16928,"lon":-51.74431,"hand":1.6,"cota":5.6,"arrival":204.0},{"lat":-29.16928,"lon":-51.744001,"hand":1.8,"cota":5.8,"arrival":234.0},{"lat":-29.16955,"lon":-51.74431,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.16955,"lon":-51.744001,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.16955,"lon":-51.743693,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.16955,"lon":-51.743384,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.16955,"lon":-51.735671,"hand":2.2,"cota":6.2,"arrival":294.0},{"lat":-29.169819,"lon":-51.744001,"hand":1.5,"cota":5.5,"arrival":189.0},{"lat":-29.169819,"lon":-51.743693,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.170358,"lon":-51.742767,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.170358,"lon":-51.742459,"hand":1.6,"cota":5.6,"arrival":204.0},{"lat":-29.170358,"lon":-51.739065,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.170628,"lon":-51.74215,"hand":1.7,"cota":5.7,"arrival":219.0},{"lat":-29.170897,"lon":-51.741842,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.170897,"lon":-51.738448,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.170897,"lon":-51.735054,"hand":1.0,"cota":5.0,"arrival":114.0},{"lat":-29.170897,"lon":-51.731043,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.170897,"lon":-51.730426,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.171167,"lon":-51.741533,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.171167,"lon":-51.738139,"hand":1.2,"cota":5.2,"arrival":144.0},{"lat":-29.171167,"lon":-51.731969,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.171167,"lon":-51.73166,"hand":2.2,"cota":6.2,"arrival":294.0},{"lat":-29.171167,"lon":-51.730426,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.171436,"lon":-51.741225,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.171436,"lon":-51.732277,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.171436,"lon":-51.731969,"hand":1.6,"cota":5.6,"arrival":204.0},{"lat":-29.171436,"lon":-51.73166,"hand":1.8,"cota":5.8,"arrival":234.0},{"lat":-29.171436,"lon":-51.730734,"hand":0.8,"cota":4.8,"arrival":84.0},{"lat":-29.171706,"lon":-51.740916,"hand":1.7,"cota":5.7,"arrival":219.0},{"lat":-29.171706,"lon":-51.733203,"hand":1.2,"cota":5.2,"arrival":144.0},{"lat":-29.171706,"lon":-51.732586,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.171706,"lon":-51.732277,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.171706,"lon":-51.731969,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.171975,"lon":-51.737214,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.172245,"lon":-51.736905,"hand":1.5,"cota":5.5,"arrival":189.0},{"lat":-29.172514,"lon":-51.739682,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.172514,"lon":-51.735362,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.172784,"lon":-51.739373,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.173323,"lon":-51.739065,"hand":2.5,"cota":6.5,"arrival":339.0},{"lat":-29.173592,"lon":-51.738756,"hand":2.4,"cota":6.4,"arrival":324.0},{"lat":-29.173862,"lon":-51.738448,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.174131,"lon":-51.738448,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.174131,"lon":-51.735054,"hand":0.9,"cota":4.9,"arrival":99.0},{"lat":-29.17467,"lon":-51.737831,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.175209,"lon":-51.734128,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.175748,"lon":-51.73382,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.176018,"lon":-51.736288,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.176018,"lon":-51.73382,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.176018,"lon":-51.733511,"hand":1.1,"cota":5.1,"arrival":129.0},{"lat":-29.176287,"lon":-51.736288,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.176287,"lon":-51.733511,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.176287,"lon":-51.733203,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.176557,"lon":-51.736288,"hand":2.6,"cota":6.6,"arrival":354.0},{"lat":-29.176557,"lon":-51.733203,"hand":2.2,"cota":6.2,"arrival":294.0},{"lat":-29.176826,"lon":-51.73598,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.176826,"lon":-51.733203,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.177096,"lon":-51.735671,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.177365,"lon":-51.735362,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.177365,"lon":-51.732894,"hand":1.7,"cota":5.7,"arrival":219.0},{"lat":-29.177635,"lon":-51.735054,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.177635,"lon":-51.732894,"hand":1.2,"cota":5.2,"arrival":144.0},{"lat":-29.177904,"lon":-51.732894,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.178174,"lon":-51.734745,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.178982,"lon":-51.734745,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.179791,"lon":-51.734745,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.18006,"lon":-51.734745,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.18006,"lon":-51.732894,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.180868,"lon":-51.735054,"hand":1.1,"cota":5.1,"arrival":129.0},{"lat":-29.180868,"lon":-51.733203,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.181138,"lon":-51.735362,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.181138,"lon":-51.735054,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.181407,"lon":-51.735671,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.181677,"lon":-51.73598,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.181677,"lon":-51.733511,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.181946,"lon":-51.73382,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.182216,"lon":-51.736288,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.182216,"lon":-51.73382,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.182485,"lon":-51.736288,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.182755,"lon":-51.736597,"hand":0.8,"cota":4.8,"arrival":84.0},{"lat":-29.182755,"lon":-51.736288,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.182755,"lon":-51.734128,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.183024,"lon":-51.736905,"hand":1.6,"cota":5.6,"arrival":204.0},{"lat":-29.183024,"lon":-51.736597,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.183294,"lon":-51.737214,"hand":2.2,"cota":6.2,"arrival":294.0},{"lat":-29.183294,"lon":-51.736905,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.183294,"lon":-51.734437,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.183563,"lon":-51.737214,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.183563,"lon":-51.734745,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.183833,"lon":-51.738139,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.183833,"lon":-51.737831,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.183833,"lon":-51.737522,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.183833,"lon":-51.735054,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.184102,"lon":-51.738139,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.184102,"lon":-51.735362,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.184372,"lon":-51.740916,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.184372,"lon":-51.740608,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.184372,"lon":-51.740299,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.184372,"lon":-51.73999,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.184372,"lon":-51.739682,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.184372,"lon":-51.739373,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.184372,"lon":-51.739065,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.184372,"lon":-51.738756,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.184372,"lon":-51.738448,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.184372,"lon":-51.735671,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.184641,"lon":-51.743693,"hand":2.3,"cota":6.3,"arrival":309.0},{"lat":-29.184641,"lon":-51.743384,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.184641,"lon":-51.743076,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.184641,"lon":-51.742767,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.184641,"lon":-51.742459,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.184641,"lon":-51.74215,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.184641,"lon":-51.741842,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.184641,"lon":-51.741533,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.184641,"lon":-51.741225,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.184641,"lon":-51.740916,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.184641,"lon":-51.73598,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.184911,"lon":-51.744001,"hand":0.7,"cota":4.7,"arrival":69.0},{"lat":-29.184911,"lon":-51.743693,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.184911,"lon":-51.73999,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.184911,"lon":-51.739682,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.184911,"lon":-51.739373,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.184911,"lon":-51.736288,"hand":0.5,"cota":4.5,"arrival":39.0},{"lat":-29.18518,"lon":-51.744927,"hand":0.8,"cota":4.8,"arrival":84.0},{"lat":-29.18518,"lon":-51.744618,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.18518,"lon":-51.74431,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.18518,"lon":-51.742767,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18518,"lon":-51.742459,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18518,"lon":-51.741533,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18518,"lon":-51.741225,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18518,"lon":-51.740916,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18518,"lon":-51.73999,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.18518,"lon":-51.739682,"hand":1.4,"cota":5.4,"arrival":174.0},{"lat":-29.18518,"lon":-51.739373,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.18545,"lon":-51.743693,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18545,"lon":-51.743384,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18545,"lon":-51.741533,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.18545,"lon":-51.741225,"hand":0.9,"cota":4.9,"arrival":99.0},{"lat":-29.18545,"lon":-51.740916,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.18545,"lon":-51.73999,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.18545,"lon":-51.739682,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.185719,"lon":-51.743384,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.185719,"lon":-51.743076,"hand":0.8,"cota":4.8,"arrival":84.0},{"lat":-29.185719,"lon":-51.742767,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.185719,"lon":-51.742459,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.185719,"lon":-51.741533,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.185719,"lon":-51.741225,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.185719,"lon":-51.740916,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.185989,"lon":-51.743384,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.185989,"lon":-51.743076,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.185989,"lon":-51.742767,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.186258,"lon":-51.737831,"hand":0.4,"cota":4.4,"arrival":24.0},{"lat":-29.186528,"lon":-51.738139,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.186797,"lon":-51.73999,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.186797,"lon":-51.738448,"hand":0.9,"cota":4.9,"arrival":99.0},{"lat":-29.187067,"lon":-51.744927,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.187067,"lon":-51.744618,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.187067,"lon":-51.74431,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.187067,"lon":-51.74215,"hand":0.1,"cota":4.1,"arrival":0.0},{"lat":-29.187067,"lon":-51.741842,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187067,"lon":-51.741533,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187067,"lon":-51.741225,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187067,"lon":-51.740916,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187067,"lon":-51.740608,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.187067,"lon":-51.740299,"hand":1.0,"cota":5.0,"arrival":114.0},{"lat":-29.187067,"lon":-51.739373,"hand":0.6,"cota":4.6,"arrival":54.0},{"lat":-29.187067,"lon":-51.739065,"hand":0.8,"cota":4.8,"arrival":84.0},{"lat":-29.187067,"lon":-51.738756,"hand":2.1,"cota":6.1,"arrival":279.0},{"lat":-29.187336,"lon":-51.744927,"hand":1.3,"cota":5.3,"arrival":159.0},{"lat":-29.187336,"lon":-51.744618,"hand":1.5,"cota":5.5,"arrival":189.0},{"lat":-29.187336,"lon":-51.74431,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187336,"lon":-51.744001,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187336,"lon":-51.743693,"hand":0.2,"cota":4.2,"arrival":0.0},{"lat":-29.187336,"lon":-51.743384,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.187336,"lon":-51.743076,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.187336,"lon":-51.742767,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.187336,"lon":-51.742459,"hand":0.3,"cota":4.3,"arrival":9.0},{"lat":-29.187336,"lon":-51.74215,"hand":0.8,"cota":4.8,"arrival":84.0}]};
     const LIVE = {"snapshot":"2026-08-28T20:00:00-03:00","snapshot_raw":"2026-08-28T20:00:00","timestamp_note":"fonte sem offset declarado; -03:00 é normalização de exibição do contrato","station":"86472600","city":"Santa Tereza","bankfull_cm":400.0,"contract":"hourly_exact_v1","observed_cm":276.0,"observed_at":"2026-08-28T20:45:00-03:00","consulted_at":"2026-08-28T21:33:15-03:00","max_observation_age_min":60,"v001":{"label":"8h V001","model":"STZ_H8_ALT_V001_31IN_63NH","forecast_cm":284.0,"current_cm":222.0,"inputs":31,"status":"ATENCAO","mae24":42.9,"maxabs":85.0,"publication":"experimental","shadow":false,"active":true},"v002":{"label":"8h V002","model":"STZ_H8_ALT_V002_28IN_57NH","forecast_cm":320.0,"current_cm":222.0,"inputs":28,"status":"ATENCAO","mae24":45.1,"maxabs":85.0,"publication":"sombra_experimental","shadow":true,"active":true}};
     const SERVICE = {
-      shelter: {"name":"Ginásio de Esportes","city":"Santa Tereza","lat":-29.168793,"lon":-51.7327164,"source":"Defesa Civil de Santa Tereza (repassado pela usuária via link do Google Maps)","status":"capacity_unpublished"},
+      shelter: {"name":"Ginásio de Esportes","city":"Santa Tereza","lat":-29.168793,"lon":-51.7327164,"source":"Defesa Civil de Santa Tereza (repassado pela usuária via link do Google Maps)","status":"capacity_unpublished","routeReference":{"name":"Ginásio (PLACEHOLDER — confirmar com a Defesa Civil)","lat":-29.1745,"lon":-51.7305,"status":"placeholder"}},
       schools: [{"name":"EMEI DESCOBRINDO CAMINHOS","city":"Santa Tereza","lat":-29.171315199610543,"lon":-51.73592460022483},{"name":"ESC EST ENS MED PADRE VICENTE RODRIGUES","city":"Santa Tereza","lat":-29.16820079917803,"lon":-51.7361658009244}],
       nearestFire: {"name":"Gr Encantado / 6º BBM","city":"Muçum","lat":-29.140423159196953,"lon":-51.81556613999999,"distance_m":8642.0}
     };
@@ -949,12 +953,12 @@
 
     const ZONES = [
       {
-        id:"Z-01", title:"Eixo oeste · evacuação imediata", lat:-29.163351, lon:-51.740608,
+        id:"Z-01", title:"Eixo oeste · prioridade no exercício", lat:-29.163351, lon:-51.740608,
         hand:0.6, cota:4.6, arrival:54, population:159, homes:71, sourceClass:"apertada",
         routeOffset:{lat:.00055,lon:.00155}, shortOffset:{lat:-.00045,lon:-.00125}
       },
       {
-        id:"Z-02", title:"Baixa central · resgate prioritário", lat:-29.167394, lon:-51.738448,
+        id:"Z-02", title:"Baixa central · área cruzada no exercício", lat:-29.167394, lon:-51.738448,
         hand:0.1, cota:4.1, arrival:0, population:387, homes:167, sourceClass:"alagada",
         routeOffset:{lat:.0002,lon:.00115}, shortOffset:{lat:-.0005,lon:-.0011}
       },
@@ -1028,6 +1032,12 @@
     }
     function fmtKm(m){ return (m/1000).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+" km"; }
     function announce(message){ setText("liveRegion",message); }
+
+    function shelterSpatialStatus(){
+      const reference=SERVICE.shelter.routeReference;
+      const distance=haversine(SERVICE.shelter,reference);
+      return {distance:distance,reconciled:Number.isFinite(distance) && distance<=50};
+    }
 
     function renderFreshness(){
       const statusNode=el("freshnessStatus"), noteNode=el("freshnessNote");
@@ -1195,10 +1205,11 @@
 
     function shelterReady(){
       const snapshot=shelterSnapshot(), zone=getZone();
+      const spatial=shelterSpatialStatus();
       const overflowComplete=overflowReady(snapshot);
       const destinationReady=snapshot.valid && (snapshot.available>=zone.population || (overflowComplete && snapshot.available+snapshot.overflowCapacity>=zone.population));
       const shelterContingency=state.contingencyActive && state.contingencyActive.zoneId===zone.id && state.contingencyActive.value==="shelter";
-      return !!(destinationReady && !shelterContingency && el("shelterVerified").checked && el("shelterAccessible").checked && (el("shelterVerifier").value||"").trim() && (el("shelterEvidence").value||"").trim());
+      return !!(spatial.reconciled && destinationReady && !shelterContingency && el("shelterVerified").checked && el("shelterAccessible").checked && (el("shelterVerifier").value||"").trim() && (el("shelterEvidence").value||"").trim());
     }
 
     function confirmationRecord(zone){
@@ -1242,6 +1253,7 @@
       const missing=[];
       const freshness=(el("freshnessStatus") && el("freshnessStatus").textContent) || "UNKNOWN";
       if(freshness==="STALE" || freshness==="UNKNOWN") missing.push("sinal "+freshness);
+      if(!shelterSpatialStatus().reconciled) missing.push("destino espacial reconciliado");
       if(!record.routeField) missing.push("rota em campo");
       if(!record.routeVerifier || !record.routeEvidence) missing.push("responsável/evidência da rota");
       if(!record.alternativeRouteField) missing.push("corredor alternativo");
@@ -1332,6 +1344,7 @@
     function routeState(value,blocked){
       if(blocked) return {label:"rota fechada",className:"closed"};
       if(value<=0) return {label:"janela cruzada",className:"closed"};
+      if(!shelterSpatialStatus().reconciled) return {label:"destino não reconciliado",className:"unreconciled"};
       return {label:"não confirmado",className:"unvalidated"};
     }
 
@@ -1341,7 +1354,7 @@
       if(waterCrossed) return {label:"resgate",tone:"danger"};
       if(plan.contingency==="route") return {label:"replanejar",tone:"warning"};
       if(plan.safeMargin<=0) return {label:"resgate",tone:"danger"};
-      if(zone.arrival-elapsedMinutes()<=120 || plan.safeMargin<30) return {label:"evacuar agora",tone:"warning"};
+      if(zone.arrival-elapsedMinutes()<=120 || plan.safeMargin<30) return {label:"priorizar confirmação",tone:"warning"};
       return {label:"preparar / monitorar",tone:"ready"};
     }
 
@@ -1454,8 +1467,8 @@
       const remaining=zone.arrival-elapsedMinutes();
       let tag,title,body,callout,actionText,owner,destination,nextMove,messageDraft;
       if(waterCrossed){
-        tag="resgate prioritário";
-        title="A água já chegou a esta área.";
+        tag="exercício · resgate prioritário";
+        title="Exercício: a água já chegou a esta área.";
         body="O cenário indica que a água já chegou ao ponto de referência. Não conduza moradores por conta própria: peça reconhecimento/resgate, bloqueie o acesso baixo e localize quem precisa de apoio.";
         callout="Primeiro movimento: acionar a equipe responsável e comunicar a liderança local. O abrigo só vira destino depois de confirmar o caminho.";
         actionText="Registrar resgate prioritário";
@@ -1463,7 +1476,7 @@
         destination="Abrigo após validar acesso";
         nextMove="Registrar tarefa de reconhecimento";
       }else if(routeClosed){
-        tag="rota bloqueada";
+        tag="exercício · rota bloqueada";
         title="Replanejar antes de orientar a saída.";
         body="O exercício marcou o corredor principal como fechado. Não orientar a população por essa linha: registrar a interdição, acionar reconhecimento e confirmar um corredor alternativo antes de retirar pessoas.";
         callout="Contingência ativa: a rota principal está fechada somente neste exercício. Um caminho alternativo precisa ser confirmado em campo.";
@@ -1472,7 +1485,7 @@
         destination="Destino a confirmar";
         nextMove="Confirmar corredor alternativo";
       }else if(plan.safeMargin<=0){
-        tag="rota assistida fechada";
+        tag="exercício · rota assistida não confirmada";
         title="A hipótese a pé não fecha a janela.";
         body="Com o tempo e as condições assumidas no exercício, caminhar não é suficiente. Compare transporte assistido ou resgate e confirme imediatamente os bloqueios, sem transformar a linha sintética em instrução.";
         callout="Não use a linha do mapa como instrução de rua. Registre a necessidade de equipe, transporte e confirmação de acesso.";
@@ -1481,7 +1494,7 @@
         destination=SERVICE.shelter.name;
         nextMove="Checar acesso + transporte";
       }else if(remaining<=120 || plan.safeMargin<30){
-        tag="prioridade de confirmação";
+        tag="exercício · prioridade de confirmação";
         title="Z-01 tem janela curta para confirmar.";
         body="A água pode chegar em "+fmtMinutes(remaining)+" ao ponto de referência da área. No exercício, esta área entra na frente da fila; não emitir ordem: confirmar pessoas, corredor, abrigo, comunicação e recurso antes de orientar qualquer saída.";
         callout="Hipótese do exercício: corredor A até o Ginásio. Não oriente a saída por esta linha antes da confirmação em campo.";
@@ -1490,7 +1503,7 @@
         destination=SERVICE.shelter.name;
         nextMove="Confirmar pessoas + corredor";
       }else{
-        tag="preparar / monitorar";
+        tag="exercício · preparar / monitorar";
         title="Ainda há janela para organizar a saída.";
         body="Ainda há tempo no cenário para organizar a saída. Prepare transporte, comunicação e vagas; não desloque a população sem confirmação de campo.";
         callout="A melhor decisão agora é ganhar capacidade: confirmar o abrigo, ordenar prioridades e deixar o reconhecimento pronto.";
@@ -1520,7 +1533,7 @@
       setText("phaseBadge",step.phase);
       setText("eventClock",fmtClock(step.hours));
       setText("eventLevel",fmtM(scenarioLevelM()));
-      setText("commandStatus",waterCrossed ? "resgate" : (routeClosed ? "replanejamento" : (plan.safeMargin<=0 ? "evacuação assistida" : (remaining<=120 || plan.safeMargin<30 ? "retirada prioritária" : "preparação"))));
+      setText("commandStatus",waterCrossed ? "resgate · exercício" : (routeClosed ? "replanejamento · exercício" : (plan.safeMargin<=0 ? "apoio assistido · exercício" : (remaining<=120 || plan.safeMargin<30 ? "priorizar confirmação" : "preparação · exercício"))));
       setText("commandRule",gate.ready ? "confirmações simuladas" : "aguarda validação");
       setText("decisionTag",tag);
       setText("decisionTitle",title);
@@ -1539,8 +1552,8 @@
       safeStateNode.className="route-state "+safeState.className;
       shortStateNode.textContent=shortState.label;
       shortStateNode.className="route-state "+shortState.className;
-      el("safeRouteOption").className="route-option "+(safeState.className==="closed" ? "closed":"");
-      el("shortRouteOption").className="route-option "+(shortState.className==="closed" ? "closed":"");
+      el("safeRouteOption").className="route-option "+(safeState.className==="closed" ? "closed" : (safeState.className==="unreconciled" ? "unreconciled":""));
+      el("shortRouteOption").className="route-option "+(shortState.className==="closed" ? "closed" : (shortState.className==="unreconciled" ? "unreconciled":""));
       setText("decisionCallout",callout);
       const gateNode=el("safetyGate");
       gateNode.className="safety-gate "+(gate.ready ? "ready":"");
@@ -1554,7 +1567,8 @@
       el("teaserAction").disabled=!gate.ready;
       setText("teaserGate",gate.ready ? "confirmações completas · ainda somente exercício" : "bloqueado até confirmar rota, abrigo, comunicação e recurso");
       el("dispatchAction").textContent=hasAction("dispatch") ? "Reconhecimento registrado · atualizar" : "Registrar reconhecimento · exercício";
-      el("shelterAction").textContent=hasAction("shelter") ? "Abrigo confirmado no exercício · atualizar" : "Registrar validação do abrigo · exercício";
+      el("shelterAction").textContent=hasAction("shelter") ? "Abrigo confirmado no exercício · atualizar" : (shelterReady() ? "Registrar capacidade confirmada · exercício" : "Abrigo bloqueado · falta evidência");
+      el("shelterAction").disabled=!shelterReady();
       const teaserTitle=plan.blocked ? "Prioridade: reconhecer e replanejar." : (remaining<=120 ? "Janela curta: confirmar antes de orientar." : "Preparar capacidade antes da água.");
       const teaserText=plan.blocked ? "A área selecionada já passou da janela do cenário; a prioridade é tarefa local, comunicação e acesso." : "A área selecionada tem "+fmtMinutes(remaining)+" até a água no cenário. A página organiza a conversa, mas não autoriza deslocamento.";
       setText("teaserTitle",teaserTitle);
@@ -1630,6 +1644,7 @@
     function renderShelter(){
       const snapshot=shelterSnapshot(), capacity=snapshot.capacity, occupied=snapshot.occupied, available=snapshot.available;
       const zone=getZone(), shelterContingency=state.contingencyActive && state.contingencyActive.zoneId===zone.id && state.contingencyActive.value==="shelter";
+      const spatial=shelterSpatialStatus();
       const ready=shelterReady(), visible=ready && available!==null ? available : null;
       const deficit=snapshot.valid && available!==null ? zone.population-available : null;
       setText("shelterAvailable",visible===null ? "—" : fmtInt.format(visible));
@@ -1642,10 +1657,13 @@
       meter.setAttribute("aria-valuetext",visible===null ? "disponibilidade não confirmada" : fmtInt.format(occupied)+" de "+fmtInt.format(capacity)+" ocupadas; "+fmtInt.format(visible)+" vagas livres");
       const note=el("capacityNote");
       const stateNode=el("shelterState");
-      stateNode.textContent=shelterContingency ? "abrigo lotado · exercício" : (ready ? "confirmado no exercício" : (!snapshot.valid ? "dados inválidos" : "capacidade não confirmada"));
+      stateNode.textContent=shelterContingency ? "abrigo lotado · exercício" : (!spatial.reconciled ? "coordenada não reconciliada" : (ready ? "confirmado no exercício" : (!snapshot.valid ? "dados inválidos" : "capacidade não confirmada")));
       stateNode.className="status-pill "+(ready ? "normal":"attention");
       if(shelterContingency){
         note.textContent="Contingência ativa: não indicar o abrigo principal. Preencha o destino alternativo, confirme sua capacidade e marque transporte/plano antes de prosseguir.";
+        note.className="capacity-note alert";
+      }else if(!spatial.reconciled){
+        note.textContent="Destino bloqueado: o ponto cadastrado e o ponto usado no arquivo de rota estão separados por "+fmtKm(spatial.distance)+". Resolva a reconciliação antes de registrar capacidade ou indicar este destino.";
         note.className="capacity-note alert";
       }else if(!snapshot.valid){
         note.textContent="Dados inválidos: "+snapshot.errors.join(" · ")+". A capacidade não entra na decisão.";
@@ -1728,7 +1746,7 @@
       const shortClass=plan.blocked ? "route-short route-closed" : "route-short route-preliminary";
       routes.push('<polyline points="'+polylinePoints(routePoints(zone,"safe"),box)+'" class="'+safeClass+'"></polyline>');
       const safeMid=project(routePoints(zone,"safe")[1],box);
-      const safeRouteLabel=plan.contingency==="route" ? "rota fechada" : (zone.arrival<=elapsedMinutes() ? "janela cruzada" : "não confirmado");
+      const safeRouteLabel=!shelterSpatialStatus().reconciled ? "destino pendente" : (plan.contingency==="route" ? "rota fechada" : (zone.arrival<=elapsedMinutes() ? "janela cruzada" : "não confirmado"));
       routes.push('<text x="'+(safeMid.x+8).toFixed(1)+'" y="'+(safeMid.y-8).toFixed(1)+'" class="route-label">A · '+safeRouteLabel+'</text>');
       if(state.showAlternative){
         routes.push('<polyline points="'+polylinePoints(routePoints(zone,"short"),box)+'" class="'+shortClass+'"></polyline>');
@@ -1784,8 +1802,9 @@
       setText("mapFocusState",zone.arrival<=elapsedMinutes() ? "resgate · água já chegou à área" : zoneState(zone).label+" · água em "+fmtMinutes(zone.arrival-elapsedMinutes()));
       setText("mapReadableZone",zone.id+" · "+zone.title);
       setText("mapReadableZoneMeta",(zone.arrival<=elapsedMinutes() ? "água já chegou ao ponto de referência" : "água em "+fmtMinutes(Math.max(0,zone.arrival-elapsedMinutes())))+" · ≈"+fmtInt.format(zone.population)+" pessoas · estimativa agregada");
-      setText("mapReadableDestination",SERVICE.shelter.name+" · "+(shelterReady() ? "vagas confirmadas no exercício" : "capacidade UNKNOWN"));
-      setText("mapReadableRoute",plan.blocked ? "corredor A bloqueado; alternativa B só após confirmação" : "A "+fmtKm(plan.safeDistance)+" · B "+fmtKm(plan.shortDistance)+" · geometria didática, não rota viária");
+      const spatial=shelterSpatialStatus();
+      setText("mapReadableDestination",SERVICE.shelter.name+" · "+(spatial.reconciled ? (shelterReady() ? "vagas confirmadas no exercício" : "capacidade UNKNOWN") : "capacidade UNKNOWN · coordenada não reconciliada · "+fmtKm(spatial.distance)+" de diferença"));
+      setText("mapReadableRoute",!spatial.reconciled ? "corredores bloqueados até reconciliar o destino" : (plan.blocked ? "corredor A bloqueado; alternativa B só após confirmação" : "A "+fmtKm(plan.safeDistance)+" · B "+fmtKm(plan.shortDistance)+" · geometria didática, não rota viária"));
       const altRouteButton=el("altRouteToggle");
       altRouteButton.textContent=state.showAlternative ? "Ocultar trajeto B" : "Comparar trajeto B";
       altRouteButton.setAttribute("aria-pressed",String(state.showAlternative));
@@ -1838,6 +1857,7 @@
       const zone=getZone(), plan=routePlan(zone), zs=zoneState(zone), gate=safetyGate();
       const mission=missionRecord(zone), confirmation=confirmationRecord(zone);
       const waterCrossed=zone.arrival<=elapsedMinutes(), routeClosed=plan.contingency==="route";
+      const spatial=shelterSpatialStatus();
       const fireText=hasAction("dispatch") ? "TAREFA LOCAL" : (waterCrossed ? "PRIORIDADE NO EXERCÍCIO" : (routeClosed ? "REPLANEJAR ROTA" : "aguardando"));
       const fireClass=hasAction("dispatch") ? "active" : (waterCrossed || routeClosed ? "priority":"");
       const shelterText=hasAction("shelter") ? "CONFIRMADO NO EXERCÍCIO" : (shelterReady() ? "CONFIRMADO NO EXERCÍCIO" : "BLOQUEADO");
@@ -1848,7 +1868,7 @@
       el("opsList").innerHTML=
         '<div class="ops-item"><span class="ops-icon fire">B</span><div><strong>Reconhecimento / resgate</strong><span>'+
           SERVICE.nearestFire.name+' · '+SERVICE.nearestFire.city+' · '+fmtKm(SERVICE.nearestFire.distance_m)+' em linha reta · '+missionMeta+'</span></div><span class="ops-status '+fireClass+'">'+fireText+'</span></div>'+
-        '<div class="ops-item"><span class="ops-icon">A</span><div><strong>'+SERVICE.shelter.name+'</strong><span>ponto de encontro cadastrado · capacidade definida no exercício</span></div><span class="ops-status '+shelterClass+'">'+shelterText+'</span></div>'+
+        '<div class="ops-item"><span class="ops-icon">A</span><div><strong>'+SERVICE.shelter.name+'</strong><span>ponto de referência · '+(spatial.reconciled ? "capacidade definida no exercício":"coordenada ainda não reconciliada")+'</span></div><span class="ops-status '+shelterClass+'">'+shelterText+'</span></div>'+
         '<div class="ops-item"><span class="ops-icon route">R</span><div><strong>Corredor sintético para '+zone.id+'</strong><span>'+fmtKm(plan.safeDistance)+' · tempo de segurança estimado '+marginLabel(plan.safeMargin,plan.blocked)+' · campo '+(confirmation.routeField ? "marcado no exercício":"a confirmar")+' · não é rota viária</span></div><span class="ops-status '+evacClass+'">'+evacText+'</span></div>';
       el("logList").innerHTML=state.log.map(function(item){return '<div class="log-row"><time>'+item.time+'</time><span>'+item.text+'</span></div>';}).join("");
     }

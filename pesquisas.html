@@ -132,7 +132,7 @@
     <section class="metrics" aria-label="Resumo do acervo">
       <div class="metric"><b id="metricTotal">—</b><span>páginas indexadas no arquivo</span></div>
       <div class="metric"><b id="metricTopics">—</b><span>frentes de pesquisa</span></div>
-      <div class="metric"><b id="metricSite">—</b><span>páginas principais no site</span></div>
+      <div class="metric"><b id="metricSite">—</b><span>entradas com página principal</span></div>
       <div class="metric"><b>29/08</b><span>última revisão deste catálogo · 2026</span></div>
     </section>
 
@@ -199,7 +199,7 @@
           <label class="sr-only" for="statusFilter">Filtrar por estado</label>
           <select class="control" id="statusFilter">
             <option value="all">Todos os estados</option>
-            <option value="publicado">Página principal</option>
+            <option value="publicado">Publicada no site</option>
             <option value="estudo">Estudo / protótipo</option>
             <option value="preliminar">Preliminar</option>
             <option value="auditoria">Auditoria</option>
@@ -214,10 +214,10 @@
           <button class="filter" type="button" data-category="Geoespacial" aria-pressed="false">Geoespacial</button>
           <button class="filter" type="button" data-category="Vulnerabilidade" aria-pressed="false">Vulnerabilidade</button>
           <button class="filter" type="button" data-category="SACE" aria-pressed="false">SACE</button>
-          <button class="filter" type="button" data-category="Publicados" aria-pressed="false">No site</button>
+          <button class="filter" type="button" data-category="Publicados" aria-pressed="false">Páginas principais</button>
         </div>
       </div>
-      <div class="result-line" aria-live="polite"><span id="resultsMeta">Carregando…</span><span>duplicatas, backups e clones ficam fora da contagem</span></div>
+      <div class="result-line" aria-live="polite"><span id="resultsMeta">Carregando…</span><span>55 entradas do catálogo · duplicatas, backups e clones ficam fora da contagem</span></div>
       <div class="cards" id="cards" tabindex="-1"></div>
       <div class="empty" id="empty" hidden><strong>Nenhum caminho encontrado.</strong>Tente outra palavra ou limpe os filtros.</div>
       <nav id="pagination" class="pagination" aria-label="Paginação do acervo" hidden>
@@ -245,7 +245,7 @@
     </section>
 
     <footer class="footer">
-      Revisado em 29/08/2026. O catálogo reúne páginas distintas encontradas no acervo local e mantém as páginas principais navegáveis; duplicatas, backups e clones ficam fora da contagem. <a href="index.html">Voltar ao feed das redes neurais →</a>
+      Revisado em 29/08/2026. As 55 entradas do catálogo reúnem páginas distintas encontradas no acervo local; o filtro “Publicada no site” conta somente entradas com página principal. Duplicatas, backups e clones ficam fora da contagem. <a href="index.html">Voltar ao feed das redes neurais →</a>
     </footer>
   </div>
 
@@ -308,7 +308,7 @@
       {title:"Santa Tereza · mapa de inundação",category:"Geoespacial",status:"publicado",description:"Mapa principal de contexto e inundação para Santa Tereza no acervo PREVINE.",caveat:"A camada precisa ser lida com data, fonte, escala e limitações; não é autorização de evacuação.",href:"santa_tereza_inundacao.html",source:"página principal"}
     ];
 
-    const statusLabels = {publicado:"página principal",estudo:"estudo / protótipo",preliminar:"preliminar",auditoria:"auditoria",comparativo:"comparativo / snapshot"};
+    const statusLabels = {publicado:"publicada no site · página principal",estudo:"estudo / protótipo",preliminar:"preliminar",auditoria:"auditoria",comparativo:"comparativo / snapshot"};
     const pageSize = 12;
     const state = {query:"",category:"all",status:"all",page:1};
     const cards = document.getElementById("cards");
@@ -345,7 +345,7 @@
           <div class="card-footer"><span class="source" title="${escapeHtml(item.source)}">${escapeHtml(item.source)}</span><a class="open" aria-label="Abrir ${escapeHtml(item.title)}" href="${escapeHtml(item.href)}">abrir <span aria-hidden="true">↗</span></a></div>
         </article>`).join("");
       empty.hidden = allVisible.length !== 0;
-      resultsMeta.innerHTML = `<strong>${allVisible.length}</strong> de ${entries.length} páginas no acervo${allVisible.length ? ` · página ${state.page} de ${pageCount}` : ""}`;
+      resultsMeta.innerHTML = `<strong>${allVisible.length}</strong> de ${entries.length} entradas do catálogo${allVisible.length ? ` · página ${state.page} de ${pageCount}` : ""}`;
       pagination.hidden = allVisible.length <= pageSize;
       previousPage.disabled = state.page<=1;
       nextPage.disabled = state.page>=pageCount;
