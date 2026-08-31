@@ -54,6 +54,8 @@ def main() -> int:
     assert "Permissions-Policy" in text, "Permissions-Policy meta ausente"
     assert "integrity=" in text and "unpkg.com" in text, "Leaflet sem SRI/fallback"
     assert "Estradas DAER/RS" in text and "Open Buildings" in text and "Óbitos" in text and "resiliencia" in text, "referencias novas ausentes"
+    assert 'id="locationPicker"' in text and 'id="startHere"' in text and "Encontre um dado em 3 passos" in text, "roteiro de primeira visita ausente"
+    assert "número / valor" in text and "% na área" in text, "rótulos de modo ambíguos ausentes"
     if args.expect_commit:
         assert f'DATA_FALLBACK_COMMIT = "{args.expect_commit}"' in text, "fallback commit divergente"
     assert headers.get("Strict-Transport-Security"), "HSTS ausente"
