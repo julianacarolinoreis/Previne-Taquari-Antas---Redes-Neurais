@@ -28,6 +28,16 @@ on:
       - "assets/data/chuvas_horarias.csv"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Previsao ao vivo - Santa Tereza"
+      - "Previsao ao vivo - Mucum"
+      - "Chuvas horarias (ANA + INMET + CEMADEN)"
+      - "Atualiza feed meteorológico de Santa Tereza"
+      - "Atualiza feed meteorológico de Muçum"
+      - "Contexto automático da pesquisa da bacia"
+    types:
+      - completed
 
 permissions:
   contents: read
@@ -40,6 +50,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
