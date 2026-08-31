@@ -51,6 +51,7 @@ class BasinDashboardTests(unittest.TestCase):
         script = (ROOT / "assets/js/bacia_dashboard.js").read_text(encoding="utf-8")
         self.assertIn("Não há probabilidade conjunta publicada", script)
         self.assertIn("PROBABILIDADE · experimental", script)
+        self.assertIn("rodada atrasada", script)
         self.assertIn("PROXY · célula espacial", script)
         self.assertIn("renderResearchContext", script)
         self.assertIn("riskUsable", script)
