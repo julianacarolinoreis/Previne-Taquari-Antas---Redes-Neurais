@@ -131,7 +131,7 @@
     const forecastAge = ageHours(generated);
     const observedAge = ageHours(levelAt);
     const coverage = num(w.rain_hours_available);
-    return { key, horizon: hours, station: s, pattern: f.pattern, weather: f.weather, live, p, w, obs, level, levelAt, pointRain, basinMean, basinMax, meanRain, maxRain, directRain, ifsProxyRain, gefsProxyRain, soil, risk, archivedRisk, riskUsable, riskState: integratedRisk.state || 'unknown', riskGenerated: integratedRisk.generated_at_utc, riskCalibration: integratedRisk.calibration_status, decision, archivedDecision, generated, forecastAge, observedAge, coverage };
+    return { key, horizon: hours, station: s, pattern: f.pattern, weather: f.weather, live, p, w, obs, level, levelAt, pointRain, basinMean, basinMax, meanRain, maxRain, directRain, ifsProxyRain, gefsProxyRain, soil, risk, archivedRisk, riskUsable, riskState: integratedRisk.state || 'unknown', riskGenerated: integratedRisk.generated_at_utc, riskCalibration: integratedRisk.calibration_status, score, decision, archivedDecision, generated, forecastAge, observedAge, coverage };
   }
   function qualityFor(snapshot) {
     const obsGood = snapshot.level != null && (snapshot.observedAge == null || snapshot.observedAge <= 3);
@@ -261,14 +261,14 @@
       return;
     }
     const snap = stationSnapshot(state.station, hours); const rain = displayRain(snap);
-    const riskStale = snap.riskMeta && snap.riskMeta.state === 'stale';
-    const riskText = snap.risk == null ? 'sem estimativa experimental utilizável' : `${pct(snap.risk)} de cruzar ${fmt(snap.station.threshold / 100, 2)} m (${fmt(snap.station.threshold, 0)} cm)${riskStale ? ' — rodada atrasada; não usar como previsão atual' : ''}`;
+    const riskStale = snap.riskState === 'stale' || (snap.risk == null && snap.archivedRisk != null);
+    const riskText = snap.risk == null ? (riskStale && snap.archivedRisk != null ? `${pct(snap.archivedRisk)} arquivada para comparação; rodada atrasada — não usar como previsão atual` : 'sem estimativa experimental utilizável') : `${pct(snap.risk)} de cruzar ${fmt(snap.station.threshold / 100, 2)} m (${fmt(snap.station.threshold, 0)} cm)`;
     const modelText = snap.decision ? decisionLabel(snap.decision).toLowerCase() : 'sem decisão binária publicada';
     answerTitle.textContent = `${snap.station.label}: janela de +${hours} h`;
     const coverageNote = snap.coverage != null && snap.coverage < hours ? ` A cobertura publicada é parcial (${fmt(snap.coverage, 0)}/${hours} h).` : '';
     answerText.textContent = `Previsão principal: ${fmt(rain.value, 2)} mm (${rain.label}). O modelo de pesquisa indica ${riskText}; decisão exibida: ${modelText}.${coverageNote} É um resultado experimental, não um alerta e não uma garantia de que vai ou não vai inundar.`;
-    answerState.textContent = snap.risk == null ? 'SEM VALOR' : riskStale ? 'ATRASADO' : 'PESQUISA';
-    answerState.className = `answer-state ${snap.risk == null ? 'unknown' : riskStale || snap.risk >= 50 ? 'warn' : ''}`;
+    answerState.textContent = riskStale ? 'ATRASADO' : snap.risk == null ? 'SEM VALOR' : 'PESQUISA';
+    answerState.className = `answer-state ${riskStale || snap.risk == null ? 'unknown' : snap.risk >= 50 ? 'warn' : ''}`;
   }
 
   function renderKpis() {
@@ -297,7 +297,7 @@
       const coverage = s.coverage == null ? 'cobertura não informada' : `${fmt(s.coverage, 0)}/${state.horizon} h de cobertura`;
       return `<article class="station-card ${state.station === key ? 'selected' : ''}">
         <div class="station-card-head"><div><h3>${esc(s.station.label)}</h3><span class="station-code">ANA/SGB ${esc(s.station.code)} · cota ${fmt(s.station.threshold / 100, 2)} m</span></div><span class="station-decision ${decisionClass(s.decision)}">${esc(decisionLabel(s.decision))}</span></div>
-        <div class="station-card-main"><div class="station-mini"><strong>${fmt(s.level, 0)} cm</strong><span>nível observado · ${ageLabel(s.observedAge)}</span></div><div class="station-mini"><strong>${fmt(rain.value, 2)} mm</strong><span>${esc(rain.label)} · +${state.horizon} h</span></div><div class="station-mini"><strong>${pct(s.risk)}</strong><span>estimativa experimental de cruzar a cota${s.riskMeta && s.riskMeta.state === 'stale' ? ' · rodada atrasada' : ''}</span></div></div>
+        <div class="station-card-main"><div class="station-mini"><strong>${fmt(s.level, 0)} cm</strong><span>nível observado · ${ageLabel(s.observedAge)}</span></div><div class="station-mini"><strong>${fmt(rain.value, 2)} mm</strong><span>${esc(rain.label)} · +${state.horizon} h</span></div><div class="station-mini"><strong>${pct(s.risk)}</strong><span>estimativa experimental de cruzar a cota${s.riskUsable ? '' : ' · score arquivado ocultado'}</span></div></div>
         <p class="station-foot"><b>${esc(q.label)}</b> · ${coverage} · emissão ${when(sourceGenerated(s))} · <a href="${esc(s.station.status)}">abrir estação →</a></p>
       </article>`;
     }).join('');
