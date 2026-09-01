@@ -33,7 +33,7 @@ flutter run
 
 ### Sem MacBook
 
-O desenvolvimento compartilhado pode continuar no Windows. O workflow em `.github/workflows/mobile.yml` valida o código Android e iOS em runners apropriados; a etapa iOS usa macOS na nuvem e não depende de um MacBook local.
+O desenvolvimento compartilhado pode continuar no Windows. O workflow em `.github/workflows/atlascampo-mobile.yml` valida o código Android e iOS em runners apropriados; a etapa iOS usa macOS na nuvem e não depende de um MacBook local.
 
 Para uma versão instalável no iPhone, configure uma conta Apple Developer, o App ID `br.com.atlascampo.app`, certificados/perfis e TestFlight. Para publicação Android, configure a chave de assinatura e o Google Play Console. Esses dados pertencem ao proprietário do aplicativo e não podem ser preenchidos automaticamente.
 
