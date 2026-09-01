@@ -89,6 +89,9 @@
  .plan-level-scale span:nth-child(4),.plan-level-scale span:last-child{color:#9a5d00}
  .plan-level small{display:block;color:#5b6b62;font-size:12px;line-height:1.35;margin-top:7px}
  .plan-level-status{color:#0f6b4a;font-size:13px;font-weight:800;margin-top:3px}
+ .plan-outside-note{border:1px solid #e7bd63;border-radius:9px;margin-top:8px;padding:9px 11px;background:#fff8e8;color:#6f4b09;font-size:12px;line-height:1.4}
+ .plan-outside-note b{display:block;font-size:13px;margin-bottom:2px}
+ .scope-note{display:block;color:#6f4b09;font-size:11px;line-height:1.3;margin-top:4px}
  .plan-focus{border-color:#a9d6b9;background:#fbfffc}
  .plan-warning{border-color:#efd08e;background:#fffaf0}
  .plan-disclosure{border:1px solid #dfe8e1;border-radius:8px;margin-top:7px;background:#fff;overflow:hidden}
@@ -116,8 +119,9 @@
   </div>
   <div class="bd">
     <div id="sliders" class="hide">
-      <div class="sub">Nível da cheia: <span class="lv" id="nvtxt"></span></div>
-      <input type="range" id="sld" min="0" max="100" value="0">
+      <div class="sub">Cota da camada exploratória: <span class="lv" id="nvtxt"></span></div>
+      <input type="range" id="sld" min="0" max="100" value="0" aria-label="Cota da camada exploratória, de 0 a 15 metros">
+      <small class="scope-note">Esta camada disponível vai até 15 m; isso não é o limite físico do rio.</small>
       <div class="sub">Velocidade: <span class="lv" id="taxatxt"></span> cm/h <span id="taxacen" style="color:#7a5b00;font-size:11px"></span></div>
       <input type="range" id="sldTaxa" min="10" max="120" value="40" step="5">
     </div>
@@ -157,8 +161,10 @@ function updatePlanMapStatus(value,stages){
   const box=document.getElementById('planMapStatus');
   if(!box)return;
   const target=nearestPlanStage(Number(value),stages),delta=Math.abs(Number(target?.cota_m||value)-Number(value));
-  const label=target?(delta<1?`${target.nome} · marco documentado`:`Entre ${target.nome.toLowerCase()} e o próximo marco`):'Entre marcos documentais';
-  box.innerHTML=`<small>Cota em foco no ensaio</small><strong>${escPlan(value)} m</strong><span>${escPlan(label)}</span><em>Referência de estudo · sem mancha calculada nesta cota</em>`;
+  const isLast=!!target&&Number(target.cota_m)===Number(stages[stages.length-1]?.cota_m);
+  const label=target?(delta<1?(isLast?`${target.nome} · último marco do plano`:`${target.nome} · marco documentado`):`Entre ${target.nome.toLowerCase()} e o próximo marco`):'Entre marcos documentais';
+  const note=isLast&&delta<1?'O rio pode subir além desta cota; não é limite físico.':'Referência de estudo · sem mancha calculada nesta cota';
+  box.innerHTML=`<small>Cota em foco no ensaio</small><strong>${escPlan(value)} m</strong><span>${escPlan(label)}</span><em>${escPlan(note)}</em>`;
   box.classList.add('show');
 }
 function renderPlan(){
@@ -172,7 +178,7 @@ function renderPlan(){
   if(!Number.isFinite(planLevelValue))planLevelValue=Number(selected)||levelMin;
   planLevelValue=Math.min(levelMax,Math.max(levelMin,planLevelValue));
   const levelStage=nearestPlanStage(planLevelValue,stages),levelDelta=Math.abs(Number(levelStage?.cota_m||levelMin)-planLevelValue);
-  const levelStatus=levelStage?(levelDelta<1?`${levelStage.nome} · marco documentado`:`Entre ${levelStage.nome.toLowerCase()} e o próximo marco do plano`):'Entre marcos documentais';
+  const levelStatus=levelStage?(levelDelta<1?(Number(levelStage.cota_m)===levelMax?`${levelStage.nome} · último marco do plano (não é limite do rio)`:`${levelStage.nome} · marco documentado`):`Entre ${levelStage.nome.toLowerCase()} e o próximo marco do plano`):'Entre marcos documentais';
   const levelPct=Math.round(((planLevelValue-levelMin)/Math.max(levelMax-levelMin,1))*100);
   const levelMarks=[levelMin,...stages.map(x=>Number(x.cota_m)),levelMax].filter((x,i,a)=>Number.isFinite(x)&&a.indexOf(x)===i).sort((a,b)=>a-b);
   updatePlanMapStatus(planLevelValue,stages);
@@ -188,7 +194,8 @@ function renderPlan(){
     <div class="sub"><b>${escPlan(planData.meta.documento)}</b> · ${escPlan(planData.meta.versao)}</div>
     <div class="plan-hero"><div class="eyebrow">Estudo de caso · Muçum</div><strong>O plano deixa a consulta pronta</strong><p>Use a cota e o estágio para organizar a leitura do exercício. A decisão real continua dependendo de confirmação local.</p><div class="plan-chips"><span class="plan-chip">Documento carregado</span><span class="plan-chip lock">Ação bloqueada</span><span class="plan-chip neutral">Vagas atuais: desconhecidas</span></div><div class="plan-map-key"><span><i class="shelter"></i>Abrigo no plano</span><span><i class="bridge"></i>Ponte a confirmar</span></div><div class="plan-map-actions" aria-label="Controles do mapa"><button type="button" data-plan-focus="all">Enquadrar tudo</button><button type="button" data-plan-focus="shelter">Ver abrigos</button><button type="button" data-plan-focus="bridge">Ver pontes</button></div></div>
     <div class="plan-sim" aria-label="Ensaio guiado do plano"><div class="plan-sim-head"><span><b>Ensaio guiado</b><small>Avance pelas etapas do documento para estudar a resposta.</small></span><span id="planSimStatus" class="plan-sim-status${planSimPlaying?' playing':''}">${simStatus}</span></div><div class="plan-sim-stage"><b>Etapa ${planSimIndex+1} de ${stages.length} · ${escPlan(simStage.cota_m)} m</b><br>${escPlan(simStage.nome)}</div><div class="plan-sim-progress" aria-hidden="true"><span style="width:${simPercent}%"></span></div><div class="plan-sim-actions"><button type="button" id="planSimPlay" class="primary">${planSimPlaying?'Pausar ensaio':'Iniciar ensaio'}</button><button type="button" id="planSimNext"${planSimIndex>=stages.length-1?' disabled':''}>Avançar etapa</button><button type="button" id="planSimReset">Reiniciar</button></div><div class="plan-sim-note"><b>Leitura desta etapa:</b> ${escPlan(simStage.acao)}</div></div>
-    <div class="plan-level" aria-label="Progressão de cota documentada"><div class="plan-level-head"><b>Cota em foco no ensaio</b><span id="planLevelValue" class="plan-level-value">${escPlan(planLevelValue)} m</span></div><input id="planLevelRange" type="range" min="${escPlan(levelMin)}" max="${escPlan(levelMax)}" step="1" value="${escPlan(planLevelValue)}" style="background:linear-gradient(90deg,#0f8b46 0%,#0f8b46 ${levelPct}%,#e2eee6 ${levelPct}%,#e2eee6 100%)" aria-label="Cota em foco do ensaio"><div class="plan-level-scale">${levelMarks.map(x=>`<span>${escPlan(x)} m</span>`).join('')}</div><div id="planLevelStatus" class="plan-level-status">${escPlan(levelStatus)}</div><small>A régua mostra a subida da cota até o máximo documentado. O plano possui marcos em 5, 7, 9, 15 e 18 m; ela não calcula novos polígonos de inundação.</small></div>
+    <div class="plan-level" aria-label="Progressão de cota documentada"><div class="plan-level-head"><b>Cota em foco no ensaio</b><span id="planLevelValue" class="plan-level-value">${escPlan(planLevelValue)} m</span></div><input id="planLevelRange" type="range" min="${escPlan(levelMin)}" max="${escPlan(levelMax)}" step="1" value="${escPlan(planLevelValue)}" style="background:linear-gradient(90deg,#0f8b46 0%,#0f8b46 ${levelPct}%,#e2eee6 ${levelPct}%,#e2eee6 100%)" aria-label="Cota em foco do ensaio"><div class="plan-level-scale">${levelMarks.map(x=>`<span>${escPlan(x)} m</span>`).join('')}</div><div id="planLevelStatus" class="plan-level-status">${escPlan(levelStatus)}</div><small>A régua cobre os marcos de 5, 7, 9, 15 e 18 m disponíveis neste plano. O último marco em 18 m não é o máximo possível do rio.</small></div>
+    <div class="plan-outside-note"><b>Fora do alcance deste cenário</b>Acima de 18 m, esta tela não possui marco, mancha ou ação calculada. Para estudar cotas maiores, precisamos carregar série histórica e modelagem compatível.</div>
     <div id="planSelection" aria-live="polite"></div>
     <div class="plan-note">O painel aplica o conteúdo documental ao exercício. Não confirma abertura, ocupação, vaga, integridade de ponte, rota segura ou ordem de saída.</div>
     <div class="plan-steps" aria-label="Como usar o plano"><div class="plan-step"><b>1 · Escolha o cenário</b>comece pelo ensaio guiado</div><div class="plan-step"><b>2 · Veja a cota</b>acompanhe a subida na régua</div><div class="plan-step"><b>3 · Verifique a resposta</b>confirme campo e comando local</div></div>
@@ -203,7 +210,7 @@ function renderPlan(){
   document.getElementById('planStage').onchange=e=>{planStageOverride=e.target.value;planLevelValue=Number(e.target.value);planSimIndex=Math.max(0,stages.findIndex(x=>String(x.cota_m)===String(e.target.value)));renderPlan();};
   document.getElementById('planEvacLevel').onchange=e=>{if(e.target.value){const target=nearestPlanStage(Number(e.target.value),stages);if(target){planStageOverride=String(target.cota_m);planLevelValue=Number(target.cota_m);planSimIndex=stages.indexOf(target);}}renderPlan();};
   const levelRange=document.getElementById('planLevelRange');
-  levelRange.oninput=e=>{planLevelValue=Number(e.target.value);const target=nearestPlanStage(planLevelValue,stages),pct=Math.round(((planLevelValue-levelMin)/Math.max(levelMax-levelMin,1))*100),delta=Math.abs(Number(target?.cota_m||levelMin)-planLevelValue);document.getElementById('planLevelValue').textContent=`${planLevelValue} m`;document.getElementById('planLevelStatus').textContent=target?(delta<1?`${target.nome} · marco documentado`:`Entre ${target.nome.toLowerCase()} e o próximo marco do plano`):'Entre marcos documentais';levelRange.style.background=`linear-gradient(90deg,#0f8b46 0%,#0f8b46 ${pct}%,#e2eee6 ${pct}%,#e2eee6 100%)`;updatePlanMapStatus(planLevelValue,stages);};
+  levelRange.oninput=e=>{planLevelValue=Number(e.target.value);const target=nearestPlanStage(planLevelValue,stages),pct=Math.round(((planLevelValue-levelMin)/Math.max(levelMax-levelMin,1))*100),delta=Math.abs(Number(target?.cota_m||levelMin)-planLevelValue),isLast=!!target&&Number(target.cota_m)===levelMax;document.getElementById('planLevelValue').textContent=`${planLevelValue} m`;document.getElementById('planLevelStatus').textContent=target?(delta<1?(isLast?`${target.nome} · último marco do plano (não é limite do rio)`:`${target.nome} · marco documentado`):`Entre ${target.nome.toLowerCase()} e o próximo marco do plano`):'Entre marcos documentais';levelRange.style.background=`linear-gradient(90deg,#0f8b46 0%,#0f8b46 ${pct}%,#e2eee6 ${pct}%,#e2eee6 100%)`;updatePlanMapStatus(planLevelValue,stages);};
   levelRange.onchange=e=>{const target=nearestPlanStage(Number(e.target.value),stages);if(target){planLevelValue=Number(e.target.value);planStageOverride=String(target.cota_m);planSimIndex=stages.indexOf(target);renderPlan();}};
   document.getElementById('planSimPlay').onclick=togglePlanSimulation;
   document.getElementById('planSimNext').onclick=advancePlanSimulation;
