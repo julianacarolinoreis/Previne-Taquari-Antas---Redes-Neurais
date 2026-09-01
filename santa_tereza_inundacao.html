@@ -162,7 +162,7 @@
           <div class="row2"><span class="sw b"></span><b>alcance previsto pela RNA</b> (laranja)</div>
           <div class="row2"><span class="sw u"></span>faixa de incerteza (a borda pode variar)</div>
         </div>
-        <div class="disc">A <b>confiança</b> cai quanto maior o horizonte (2 h é mais confiável que 12 h). A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata. Base: <b>mosaico 2&nbsp;m</b> (drone no centro urbano + ANADEM 30&nbsp;m nas bordas). A camada opcional <b>“MDT refinado · pesquisa”</b> remove apenas desvios isolados no corredor do talvegue; o MDT original permanece preservado e o refinamento ainda não é validação hidrológica.</div>
+        <div class="disc">A <b>confiança</b> cai quanto maior o horizonte (2 h é mais confiável que 12 h). A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata. Base: <b>mosaico 2&nbsp;m</b> (drone no centro urbano + ANADEM 30&nbsp;m nas bordas). A camada opcional <b>“MDT refinado · pesquisa”</b> remove apenas desvios isolados no corredor do talvegue; o MDT original permanece preservado e o refinamento ainda não é validação hidrológica. Na mancha desenhada, ilhas internas menores que <b>0,5 ha</b> são ocultadas somente para leitura visual; o GeoJSON original não muda.</div>
       </div></details>
     </div>
 
@@ -289,10 +289,35 @@ function achaFeature(mLvl){
   const alvo=Math.round(Math.max(0,Math.min(teto,mLvl))*10)/10;
   return contornos.features.find(f=>Math.abs(f.properties.nivel_m-alvo)<0.01) || null;
 }
+// O polígono original pode conter pequenas ilhas internas criadas pela
+// rasterização do HAND. Removemos somente anéis menores que 0,5 ha na camada
+// desenhada; o GeoJSON bruto continua sendo a fonte auditável.
+const MIN_VISUAL_HOLE_M2=5000;
+function ringAreaM2(ring){
+  if(!Array.isArray(ring)||ring.length<4) return 0;
+  let twice=0, lat=0, n=0;
+  for(let i=0;i<ring.length-1;i++){
+    const a=ring[i], b=ring[i+1];
+    if(!Array.isArray(a)||!Array.isArray(b)) continue;
+    twice += Number(a[0])*Number(b[1])-Number(b[0])*Number(a[1]);
+    lat += Number(a[1]); n++;
+  }
+  if(!n) return 0;
+  const mx=111320*Math.cos((lat/n)*Math.PI/180), my=111320;
+  return Math.abs(twice)*0.5*mx*my;
+}
+function visualGeometry(geom){
+  if(!geom||!geom.type) return geom;
+  const clean=poly=>Array.isArray(poly)&&poly.length ? [poly[0],...poly.slice(1).filter(r=>ringAreaM2(r)>=MIN_VISUAL_HOLE_M2)] : poly;
+  if(geom.type==='Polygon') return {...geom,coordinates:clean(geom.coordinates)};
+  if(geom.type==='MultiPolygon') return {...geom,coordinates:geom.coordinates.map(clean)};
+  return geom;
+}
+function visualFeature(feat){return feat?{...feat,geometry:visualGeometry(feat.geometry)}:feat;}
 function setLayer(layer, mLvl){
   const feat=achaFeature(mLvl);
   layer.clearLayers();
-  if(feat) layer.addData(feat);
+  if(feat) layer.addData(visualFeature(feat));
   return feat?feat.properties.area_ha:0;
 }
 

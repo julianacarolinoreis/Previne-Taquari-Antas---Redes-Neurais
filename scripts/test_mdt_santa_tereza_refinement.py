@@ -46,6 +46,9 @@ class SantaTerezaMdtRefinementTests(unittest.TestCase):
             self.assertIn("altitude_terreno_10m_refinado.json", text)
             self.assertIn("mdt_santa_tereza_10m_refinado_visual.png", text)
             self.assertIn("MDT refinado", text)
+            self.assertIn("MIN_VISUAL_HOLE_M2=5000", text)
+            self.assertIn("visualFeature(feat)", text)
+            self.assertIn("GeoJSON original não muda", text)
 
 
 if __name__ == "__main__":
