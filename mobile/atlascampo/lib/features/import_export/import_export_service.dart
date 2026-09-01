@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:file_picker/file_picker.dart';
@@ -27,12 +28,10 @@ class ImportedFeature {
 
 class ImportExportService {
   Future<PlatformFile?> pickFile(List<String> extensions) async {
-    final result = await FilePicker.platform.pickFiles(
+    return FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: extensions,
-      withData: false,
     );
-    return result?.files.single;
   }
 
   MapSourceType sourceTypeFor(String path) {
@@ -100,13 +99,6 @@ class ImportExportService {
     required String fileName,
     required List<MapFeature> features,
   }) async {
-    final target = await FilePicker.platform.saveFile(
-      dialogTitle: 'Exportar camada',
-      fileName: fileName.endsWith('.kml') ? fileName : '$fileName.kml',
-      type: FileType.custom,
-      allowedExtensions: ['kml'],
-    );
-    if (target == null) return null;
     final document = XmlDocument([
       XmlElement.tag('kml', attributes: [
         XmlAttribute(
@@ -119,8 +111,17 @@ class ImportExportService {
         ]),
       ]),
     ]);
-    await File(target).writeAsString(document.toXmlString(pretty: true));
-    return target;
+    final target = await FilePicker.saveFile(
+      dialogTitle: 'Exportar camada',
+      fileName: fileName.endsWith('.kml') ? fileName : '$fileName.kml',
+      bytes: Uint8List.fromList(
+        utf8.encode(document.toXmlString(pretty: true)),
+      ),
+      mimeType: 'application/vnd.google-earth.kml+xml',
+      type: FileType.custom,
+      allowedExtensions: ['kml'],
+    );
+    return target?.toString();
   }
 
   XmlElement _featureToKml(MapFeature feature) {
