@@ -162,7 +162,7 @@
           <div class="row2"><span class="sw b"></span><b>alcance previsto pela RNA</b> (laranja)</div>
           <div class="row2"><span class="sw u"></span>faixa de incerteza (a borda pode variar)</div>
         </div>
-        <div class="disc">A <b>confiança</b> cai quanto maior o horizonte (2 h é mais confiável que 12 h). A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata. Base: <b>mosaico 2&nbsp;m</b> (drone no centro urbano + ANADEM 30&nbsp;m nas bordas); precisão fina ainda depende de validação com cheias observadas e, no longo prazo, LiDAR.</div>
+        <div class="disc">A <b>confiança</b> cai quanto maior o horizonte (2 h é mais confiável que 12 h). A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata. Base: <b>mosaico 2&nbsp;m</b> (drone no centro urbano + ANADEM 30&nbsp;m nas bordas). A camada opcional <b>“MDT refinado · pesquisa”</b> remove apenas desvios isolados no corredor do talvegue; o MDT original permanece preservado e o refinamento ainda não é validação hidrológica. Na mancha desenhada, ilhas internas menores que <b>0,5 ha</b> são ocultadas somente para leitura visual; o GeoJSON original não muda.</div>
       </div></details>
     </div>
 
@@ -193,7 +193,7 @@
       <h4>Calibração · nível normal ↔ terreno</h4>
       <p class="disc" style="margin-top:2px"><b>Nível normal / zero operacional da régua</b>: leitura adotada como início da mancha no leito do rio (HAND 0). Padrão provisório calibrado em <b>4,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
       <input type="range" id="bankfull" min="100" max="700" step="10" value="400" style="width:100%">
-      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> Terreno: mosaico 2&nbsp;m (drone + ANADEM). O nível normal (HAND 0) foi estimado em ~405 cm e arredondado para <b>400 cm</b>. A cota de inundação oficial permanece <b>15 m</b> (SGB/SACE). Fora do footprint do drone a borda segue a resolução do ANADEM.</div>
+      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> Terreno: mosaico 2&nbsp;m (drone + ANADEM). O nível normal (HAND 0) foi estimado em ~405 cm e arredondado para <b>400 cm</b>. A cota de inundação oficial permanece <b>15 m</b> (SGB/SACE). Fora do footprint do drone a borda segue a resolução do ANADEM. O “MDT refinado” é somente visual e pode ser desligado no controle de camadas.</div>
     </div>
   </aside>
 </main>
@@ -207,7 +207,8 @@ const COTA_INUND=1500;
 const COLS=HAND.cols, ROWS=HAND.rows;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
 const CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_mancha.json';
-const ELEVATION_URL='assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m.json';
+const ELEVATION_URL='assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m_refinado.json';
+const MDT_VISUAL_URL='assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_10m_refinado_visual.png';
 let contornos=null, nowLayer=null, foreLayer=null, foreOutlineLayer=null, uncLayer=null;
 let elevationMeta=null, elevationArr=null;
 const latC=(HAND.S+HAND.N)/2;
@@ -288,10 +289,35 @@ function achaFeature(mLvl){
   const alvo=Math.round(Math.max(0,Math.min(teto,mLvl))*10)/10;
   return contornos.features.find(f=>Math.abs(f.properties.nivel_m-alvo)<0.01) || null;
 }
+// O polígono original pode conter pequenas ilhas internas criadas pela
+// rasterização do HAND. Removemos somente anéis menores que 0,5 ha na camada
+// desenhada; o GeoJSON bruto continua sendo a fonte auditável.
+const MIN_VISUAL_HOLE_M2=5000;
+function ringAreaM2(ring){
+  if(!Array.isArray(ring)||ring.length<4) return 0;
+  let twice=0, lat=0, n=0;
+  for(let i=0;i<ring.length-1;i++){
+    const a=ring[i], b=ring[i+1];
+    if(!Array.isArray(a)||!Array.isArray(b)) continue;
+    twice += Number(a[0])*Number(b[1])-Number(b[0])*Number(a[1]);
+    lat += Number(a[1]); n++;
+  }
+  if(!n) return 0;
+  const mx=111320*Math.cos((lat/n)*Math.PI/180), my=111320;
+  return Math.abs(twice)*0.5*mx*my;
+}
+function visualGeometry(geom){
+  if(!geom||!geom.type) return geom;
+  const clean=poly=>Array.isArray(poly)&&poly.length ? [poly[0],...poly.slice(1).filter(r=>ringAreaM2(r)>=MIN_VISUAL_HOLE_M2)] : poly;
+  if(geom.type==='Polygon') return {...geom,coordinates:clean(geom.coordinates)};
+  if(geom.type==='MultiPolygon') return {...geom,coordinates:geom.coordinates.map(clean)};
+  return geom;
+}
+function visualFeature(feat){return feat?{...feat,geometry:visualGeometry(feat.geometry)}:feat;}
 function setLayer(layer, mLvl){
   const feat=achaFeature(mLvl);
   layer.clearLayers();
-  if(feat) layer.addData(feat);
+  if(feat) layer.addData(visualFeature(feat));
   return feat?feat.properties.area_ha:0;
 }
 
@@ -430,7 +456,9 @@ async function init(){
     const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
     sat.on('tileerror',()=>{if(!map.hasLayer(osm)&&!map.hasLayer(sat)) osm.addTo(map);});
     sat.addTo(map); labels.addTo(map);
-    L.control.layers({'Satélite':sat,'Ruas':osm},{'Rótulos':labels},{position:'topright'}).addTo(map);
+    const layerControl=L.control.layers({'Satélite':sat,'Ruas':osm},{'Rótulos':labels},{position:'topright'}).addTo(map);
+    const mdtVisual=L.imageOverlay(MDT_VISUAL_URL,BOUNDS,{opacity:.48,interactive:false,alt:'MDT refinado de Santa Tereza, visual de pesquisa'});
+    layerControl.addOverlay(mdtVisual,'MDT refinado · pesquisa (visual)');
     map.createPane('uncertaintyPane'); map.getPane('uncertaintyPane').style.zIndex=410;
     map.createPane('predictionFillPane'); map.getPane('predictionFillPane').style.zIndex=420;
     map.createPane('currentFloodPane'); map.getPane('currentFloodPane').style.zIndex=430;

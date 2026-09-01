@@ -9,6 +9,8 @@ on:
       - "pesquisas.html"
       - "dashboard_bacia.html"
       - "vulnerabilidade.html"
+      - "santa_tereza_previsao_inundacao.html"
+      - "mucum_previsao_inundacao.html"
       - "pesquisa_status*.html"
       - "pesquisas/**"
       - "assets/css/**"
@@ -73,8 +75,15 @@ jobs:
             !*.yaml
             !Gemfile
             !Gemfile.lock
+            assets/data/vulnerabilidade/referencias/README_AGREGADOS_TAQUARI.md
             assets/data/vulnerabilidade/referencias/README_OBITOS.md
             assets/data/vulnerabilidade/referencias/README.md
+            assets/data/servicos/FONTES.md
+            assets/data/vulnerabilidade/metadados/README_PRODUTO.md
+            assets/data/vulnerabilidade/metadados/ESTILOS_QGIS_ARCGIS.md
+            assets/data/vulnerabilidade/metadados/README_ESTILOS_QGIS.md
+            assets/data/vulnerabilidade/metadados/ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.md
+            assets/data/vulnerabilidade/brutos/FONTES.md
           sparse-checkout-cone-mode: false
 
       - name: Configure GitHub Pages
@@ -92,7 +101,7 @@ jobs:
           # (.tif), que não são consumidos pelo site estático.
           while IFS= read -r -d '' file; do
             case "$file" in
-              assets/data/vulnerabilidade/referencias/README_OBITOS.md|assets/data/vulnerabilidade/referencias/README.md)
+              assets/data/vulnerabilidade/referencias/README_AGREGADOS_TAQUARI.md|assets/data/vulnerabilidade/referencias/README_OBITOS.md|assets/data/vulnerabilidade/referencias/README.md|assets/data/servicos/FONTES.md|assets/data/vulnerabilidade/metadados/README_PRODUTO.md|assets/data/vulnerabilidade/metadados/ESTILOS_QGIS_ARCGIS.md|assets/data/vulnerabilidade/metadados/README_ESTILOS_QGIS.md|assets/data/vulnerabilidade/metadados/ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.md|assets/data/vulnerabilidade/brutos/FONTES.md)
                 mkdir -p "_site/$(dirname "$file")"
                 cp -p -- "$file" "_site/$file"
                 ;;

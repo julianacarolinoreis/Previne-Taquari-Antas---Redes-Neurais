@@ -297,6 +297,7 @@ def main() -> int:
         "selectionPanel", "printDialog", "downloadMeta", "escopos", "triagem",
         "proveniencia", "atalhoTabela", "locationPicker", "startHere",
         "startHereState", "startHereNote",
+        "downloadVistaMeta",
     }
     missing = required_ids - parser.ids
     assert not missing, f"IDs essenciais ausentes: {sorted(missing)}"
