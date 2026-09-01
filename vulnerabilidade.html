@@ -3674,19 +3674,23 @@ document.getElementById("estradasBtn")?.addEventListener("click",()=>{
   carregaEstradas();
 });
 map.on("moveend",()=>{if(estradasAtiva && !estradaPopupTravado)carregaEstradas();});
-function abreEscolhaReferenciaSobreposta(road,obito,latlng){
+function abreEscolhaReferenciaSobreposta(road,obitos,latlng){
+  const pontos=(Array.isArray(obitos)?obitos:[obitos]).filter(Boolean);
+  if(!pontos.length){ if(road?.openPopup) road.openPopup(); return; }
   estradasEscolhaAberta=true;
-  const chooser=L.popup(POPUP_OPTS).setLatLng(latlng).setContent(`<div class="pop"><b>Mais de uma referência neste ponto</b><br><small>Escolha o registro que deseja consultar:</small><ul class="svc-overlap-list"><li><button type="button" data-ref-choice="road">Estrada DAER · ${escHTML(road.__previneRoadLabel||"trecho registrado")}</button></li><li><button type="button" data-ref-choice="obito">${escHTML(obito.__previneObitoLabel||"Óbito · registro")}</button></li></ul></div>`).openOn(map);
+  const itens=`<li><button type="button" data-ref-choice="road">Estrada DAER · ${escHTML(road.__previneRoadLabel||"trecho registrado")}</button></li>`+
+    pontos.map((p,i)=>`<li><button type="button" data-ref-choice="obito" data-obito-index="${i}">${escHTML(p.__previneObitoLabel||`Óbito · registro ${i+1}`)}</button></li>`).join("");
+  const chooser=L.popup(POPUP_OPTS).setLatLng(latlng).setContent(`<div class="pop"><b>Mais de uma referência neste ponto</b><br><small>Estrada DAER e ${fmt(pontos.length)} ${pontos.length===1?"registro de óbito":"registros de óbito"}. Escolha o que deseja consultar:</small><ul class="svc-overlap-list">${itens}</ul></div>`).openOn(map);
   chooser.on("remove",()=>{estradasEscolhaAberta=false;});
   requestAnimationFrame(()=>{
     const el=chooser.getElement?.();
     if(!el)return;
     el.setAttribute("role","dialog");el.setAttribute("aria-label","Escolha de referência sobreposta");
     el.querySelectorAll("[data-ref-choice]").forEach(btn=>btn.addEventListener("click",ev=>{
-      ev.preventDefault();ev.stopPropagation();const escolhido=btn.dataset.refChoice==="obito"?obito:road;
+      ev.preventDefault();ev.stopPropagation();const escolhido=btn.dataset.refChoice==="obito"?pontos[Number(btn.dataset.obitoIndex)]:road;
       estradasEscolhaAberta=false;
       map.closePopup();
-      if(btn.dataset.refChoice==="obito") requestAnimationFrame(()=>escolhido.openPopup());
+      if(btn.dataset.refChoice==="obito") requestAnimationFrame(()=>escolhido?.openPopup());
       else {
         // A consulta DAER pode substituir a camada durante o autopan do
         // popup. Abra a ficha do trecho como popup independente, usando o
@@ -3717,8 +3721,12 @@ map.getContainer().addEventListener("click",ev=>{
   let hit=null;
   estradasLayer.eachLayer(l=>{if(!hit && typeof l._containsPoint === "function" && l._containsPoint(lp)) hit=l;});
   let hitObito=null;
-  if(obitosAtiva && obitosLayer && map.hasLayer(obitosLayer)) obitosLayer.eachLayer(l=>{if(!hitObito && typeof l._containsPoint === "function" && l._containsPoint(lp)) hitObito=l;});
-  if(hit && hitObito){ev.preventDefault();ev.stopImmediatePropagation();abreEscolhaReferenciaSobreposta(hit,hitObito,map.containerPointToLatLng(cp));return;}
+  if(obitosAtiva && obitosLayer && map.hasLayer(obitosLayer)) obitosLayer.eachLayer(l=>{
+    const el=l.getElement?.();
+    const visivel=!el || (el.style.display!=="none" && el.getAttribute("aria-hidden")!=="true");
+    if(!hitObito && visivel && typeof l._containsPoint === "function" && l._containsPoint(lp)) hitObito=l;
+  });
+  if(hit && hitObito){ev.preventDefault();ev.stopImmediatePropagation();abreEscolhaReferenciaSobreposta(hit,obitosNoMesmoPonto(hitObito),map.containerPointToLatLng(cp));return;}
   const alvoObito=ev.target?.closest?.(".obitos-marker")?.__previneObitoLayer;
   if(alvoObito){ev.preventDefault();ev.stopImmediatePropagation();abreEscolhaObitos(obitosNoMesmoPonto(alvoObito),map.containerPointToLatLng(cp));return;}
   if(hit){ev.preventDefault();ev.stopImmediatePropagation();hit.openPopup();}
