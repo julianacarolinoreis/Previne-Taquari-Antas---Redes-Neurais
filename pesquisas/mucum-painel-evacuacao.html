@@ -6,6 +6,12 @@
  html,body{height:100%;margin:0}
  body{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#12211b}
  #map{position:fixed;top:0;left:0;width:100vw;height:100vh}
+ .plan-map-status{display:none;position:absolute;z-index:450;top:16px;right:16px;width:245px;max-width:calc(100vw - 32px);padding:11px 13px;border:1px solid rgba(255,255,255,.75);border-radius:10px;background:rgba(18,45,37,.93);color:#fff;box-shadow:0 5px 18px rgba(0,0,0,.24);pointer-events:none}
+ .plan-map-status.show{display:block}
+ .plan-map-status small{display:block;color:#d8f0e2;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+ .plan-map-status strong{display:block;font-size:20px;line-height:1.15;margin-top:2px}
+ .plan-map-status span{display:block;color:#ffe0a1;font-size:13px;font-weight:800;margin-top:3px}
+ .plan-map-status em{display:block;color:#e8f4ee;font-size:11px;font-style:normal;line-height:1.3;margin-top:5px}
  .hud{position:absolute;z-index:500;top:10px;left:10px;width:430px;max-width:calc(100vw - 24px);max-height:calc(100vh - 20px);overflow:auto;
       background:#fff;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.22);padding:0 0 12px;scrollbar-width:thin;scrollbar-color:#b8d4c4 transparent}
  .hud h1{font:600 21px Georgia,serif;margin:0;padding:14px 16px 8px}
@@ -98,6 +104,7 @@
  @media(max-width:520px){.hud{top:6px;left:6px;max-height:calc(100vh - 12px)}.hud h1{font-size:19px}.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{min-height:40px;font-size:13px}.sub{font-size:13px}.plan-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.plan-card{font-size:13px}.plan-steps{grid-template-columns:1fr}.plan-resource-grid{grid-template-columns:1fr}.plan-map-actions{grid-template-columns:1fr}.plan-sim-actions{flex-wrap:wrap}.plan-sim-actions button{flex:1 1 30%}.plan-hero strong{font-size:17px}.plan-level-value{font-size:19px}}
 </style></head><body>
 <div id="map"></div>
+<div id="planMapStatus" class="plan-map-status" aria-live="polite"></div>
 <div class="hud">
   <h1>Sala de situação · <span id="cid"></span></h1>
   <div class="bd"><div class="sub">Exercício de pesquisa · o plano orienta a leitura, mas não emite alerta, ordem ou despacho.</div></div>
@@ -146,6 +153,14 @@ let planSimIndex=-1,planSimPlaying=false,planSimTimer=null,planStageOverride=nul
 const escPlan=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function planStage(level){return (planData?.estagios||[]).find(x=>String(x.cota_m)===String(level));}
 function nearestPlanStage(value,stages){return (stages||[]).reduce((best,x)=>!best||Math.abs(Number(x.cota_m)-Number(value))<Math.abs(Number(best.cota_m)-Number(value))?x:best,null);}
+function updatePlanMapStatus(value,stages){
+  const box=document.getElementById('planMapStatus');
+  if(!box)return;
+  const target=nearestPlanStage(Number(value),stages),delta=Math.abs(Number(target?.cota_m||value)-Number(value));
+  const label=target?(delta<1?`${target.nome} · marco documentado`:`Entre ${target.nome.toLowerCase()} e o próximo marco`):'Entre marcos documentais';
+  box.innerHTML=`<small>Cota em foco no ensaio</small><strong>${escPlan(value)} m</strong><span>${escPlan(label)}</span><em>Referência de estudo · sem mancha calculada nesta cota</em>`;
+  box.classList.add('show');
+}
 function renderPlan(){
   const panel=document.getElementById('planPanel');
   if(!planData){panel.innerHTML='<div class="plan-note">Carregando o plano municipal…</div>';return;}
@@ -160,6 +175,7 @@ function renderPlan(){
   const levelStatus=levelStage?(levelDelta<1?`${levelStage.nome} · marco documentado`:`Entre ${levelStage.nome.toLowerCase()} e o próximo marco do plano`):'Entre marcos documentais';
   const levelPct=Math.round(((planLevelValue-levelMin)/Math.max(levelMax-levelMin,1))*100);
   const levelMarks=[levelMin,...stages.map(x=>Number(x.cota_m)),levelMax].filter((x,i,a)=>Number.isFinite(x)&&a.indexOf(x)===i).sort((a,b)=>a-b);
+  updatePlanMapStatus(planLevelValue,stages);
   const stage=planStage(selected)||stages[selectedIndex]||stages[0];
   const simStage=stages[planSimIndex]||stage;
   const evacLevel=document.getElementById('planEvacLevel')?.value||'';
@@ -187,7 +203,7 @@ function renderPlan(){
   document.getElementById('planStage').onchange=e=>{planStageOverride=e.target.value;planLevelValue=Number(e.target.value);planSimIndex=Math.max(0,stages.findIndex(x=>String(x.cota_m)===String(e.target.value)));renderPlan();};
   document.getElementById('planEvacLevel').onchange=e=>{if(e.target.value){const target=nearestPlanStage(Number(e.target.value),stages);if(target){planStageOverride=String(target.cota_m);planLevelValue=Number(target.cota_m);planSimIndex=stages.indexOf(target);}}renderPlan();};
   const levelRange=document.getElementById('planLevelRange');
-  levelRange.oninput=e=>{planLevelValue=Number(e.target.value);const target=nearestPlanStage(planLevelValue,stages),pct=Math.round(((planLevelValue-levelMin)/Math.max(levelMax-levelMin,1))*100),delta=Math.abs(Number(target?.cota_m||levelMin)-planLevelValue);document.getElementById('planLevelValue').textContent=`${planLevelValue} m`;document.getElementById('planLevelStatus').textContent=target?(delta<1?`${target.nome} · marco documentado`:`Entre ${target.nome.toLowerCase()} e o próximo marco do plano`):'Entre marcos documentais';levelRange.style.background=`linear-gradient(90deg,#0f8b46 0%,#0f8b46 ${pct}%,#e2eee6 ${pct}%,#e2eee6 100%)`;};
+  levelRange.oninput=e=>{planLevelValue=Number(e.target.value);const target=nearestPlanStage(planLevelValue,stages),pct=Math.round(((planLevelValue-levelMin)/Math.max(levelMax-levelMin,1))*100),delta=Math.abs(Number(target?.cota_m||levelMin)-planLevelValue);document.getElementById('planLevelValue').textContent=`${planLevelValue} m`;document.getElementById('planLevelStatus').textContent=target?(delta<1?`${target.nome} · marco documentado`:`Entre ${target.nome.toLowerCase()} e o próximo marco do plano`):'Entre marcos documentais';levelRange.style.background=`linear-gradient(90deg,#0f8b46 0%,#0f8b46 ${pct}%,#e2eee6 ${pct}%,#e2eee6 100%)`;updatePlanMapStatus(planLevelValue,stages);};
   levelRange.onchange=e=>{const target=nearestPlanStage(Number(e.target.value),stages);if(target){planLevelValue=Number(e.target.value);planStageOverride=String(target.cota_m);planSimIndex=stages.indexOf(target);renderPlan();}};
   document.getElementById('planSimPlay').onclick=togglePlanSimulation;
   document.getElementById('planSimNext').onclick=advancePlanSimulation;
@@ -288,7 +304,7 @@ function setModo(m){modo=m;
   document.getElementById('planPanel').classList.toggle('hide',m!=='plano');
   [manchaLayer,ruasLayer,cellsLayer,abrigos,planShelterLayer,planBridgeLayer].forEach(l=>map.removeLayer(l));
   if(cam){map.removeLayer(cam);cam=null;} if(orig){map.removeLayer(orig);orig=null;}
-  if(m!=='plano')stopPlanSimulation();
+  if(m!=='plano'){stopPlanSimulation();document.getElementById('planMapStatus')?.classList.remove('show');}
   if(m==='plano'){renderPlan();planShelterLayer.addTo(map);planBridgeLayer.addTo(map);ajPlan();}
   else{
     manchaLayer.addTo(map); abrigos.addTo(map);
