@@ -1,16 +1,18 @@
 # Fontes (dados completos oficiais)
-- Agregados por Setores Censit·rios ó Censo 2022: https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/
-  Temas usados: B·sico (populaÁ„o, domicÌlios), Demografia (faixas et·rias por sexo),
-  Cor ou raÁa (indÌgenas; pretos + pardos), DomicÌlio (·gua por rede geral, esgoto por rede geral).
-  Denominador de ·gua/esgoto: V00001 = DomicÌlios Particulares Permanentes Ocupados (dom_ocupados).
-  Valores X omitidos por sigilo estatÌstico permanecem nulos e tÍm flag booleana sigilo_<campo>.
-- Rendimento do Respons·vel por setor ó Censo 2022 (pasta ‡ parte, publicada em 2026):
+
+- Agregados por Setores Censit√°rios ‚Äî Censo 2022: https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/
+  Temas usados: B√°sico (popula√ß√£o, domic√≠lios), Demografia (faixas et√°rias por sexo),
+  Cor ou ra√ßa (ind√≠genas; pretos + pardos), Domic√≠lio (√°gua por rede geral, esgoto por rede geral).
+  Denominador de √°gua/esgoto: V00001 = Domic√≠lios Particulares Permanentes Ocupados (`dom_ocupados`).
+  Valores X omitidos por sigilo estat√≠stico permanecem nulos e t√™m flag booleana `sigilo_<campo>`.
+- Rendimento do Respons√°vel por setor ‚Äî Censo 2022 (pasta √† parte, publicada em 2026):
   https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios_Rendimento_do_Responsavel/
-  Vari·vel V06004 = rendimento nominal mÈdio mensal das pessoas respons·veis.
-- Malha de setores censit·rios 2022: https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_de_setores_censitarios__divisoes_intramunicipais/censo_2022/
+  Vari√°vel V06004 = rendimento nominal m√©dio mensal das pessoas respons√°veis.
+- Malha de setores censit√°rios 2022: https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_de_setores_censitarios__divisoes_intramunicipais/censo_2022/
 - Malha municipal 2022: https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2022/
-- Grade estatÌstica 2022 (cÈlulas de 200m, populaÁ„o e domicÌlios): https://geoftp.ibge.gov.br/recortes_para_fins_estatisticos/grade_estatistica/censo_2022/grade_estatistica/
-  Ladrilhos ID_14 e ID_15 (os que cobrem a bacia Taquari-Antas ó confirmado pelo total_bounds real dos dois shapefiles).
+- Grade estat√≠stica 2022 (c√©lulas de 200 m, popula√ß√£o e domic√≠lios): https://geoftp.ibge.gov.br/recortes_para_fins_estatisticos/grade_estatistica/censo_2022/grade_estatistica/
+  Ladrilhos ID_14 e ID_15 cobrem a bacia Taquari-Antas, conforme os `total_bounds` dos dois shapefiles.
 - Limite da bacia Taquari-Antas: https://iede.rs.gov.br/server/rest/services/DRH/Bacias_Hidrograficas/MapServer/0/query?where=1%3D1&outFields=*&returnGeometry=true&f=geojson
-Os CSVs aqui s„o o RECORTE dos municÌpios que intersectam a bacia; o estadual completo est· nas URLs acima.
-Energia elÈtrica n„o consta no agregado de caracterÌsticas do domicÌlio por setor (Censo 2022).
+
+Os CSVs aqui s√£o o recorte dos munic√≠pios que intersectam a bacia; o estadual completo est√° nas URLs acima.
+Energia el√©trica n√£o consta no agregado de caracter√≠sticas do domic√≠lio por setor (Censo 2022).
