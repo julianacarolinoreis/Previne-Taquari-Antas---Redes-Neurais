@@ -2384,6 +2384,15 @@ function fechaWelcome(gravar){
   if(dlg?.open) dlg.close();
   if(gravar){ try{ localStorage.setItem(WELCOME_KEY,"1"); }catch(_){} }
 }
+function prendeFocoWelcome(event){
+  if(event.key !== "Tab") return;
+  const dlg=event.currentTarget;
+  const focaveis=[...dlg.querySelectorAll("button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])")].filter(el=>!el.hidden && el.offsetParent!==null);
+  if(!focaveis.length) return;
+  const primeiro=focaveis[0], ultimo=focaveis[focaveis.length-1];
+  if(event.shiftKey && document.activeElement===primeiro){ event.preventDefault(); ultimo.focus(); }
+  else if(!event.shiftKey && document.activeElement===ultimo){ event.preventDefault(); primeiro.focus(); }
+}
 function abreWelcome(forcar){
   const dlg=document.getElementById("welcomeDialog");
   if(!dlg || typeof dlg.showModal!=="function") return;
@@ -2401,6 +2410,7 @@ function initUxApoios(){
   document.getElementById("reabrirAjuda")?.addEventListener("click",()=>abreWelcome(true));
   document.getElementById("welcomeOk")?.addEventListener("click",()=>fechaWelcome(true));
   document.getElementById("welcomeSkip")?.addEventListener("click",()=>fechaWelcome(true));
+  document.getElementById("welcomeDialog")?.addEventListener("keydown",prendeFocoWelcome);
   document.getElementById("buscaTexto")?.addEventListener("input",filtraOpcoesMunicipio);
   document.querySelectorAll("[data-start-target]").forEach(link=>{
     link.addEventListener("click",event=>{
