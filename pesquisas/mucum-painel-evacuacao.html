@@ -50,6 +50,30 @@
  .plan-map-key i{display:inline-block;width:9px;height:9px;border-radius:50%;border:2px solid}
  .plan-map-key .shelter{background:#d8f0e2;border-color:#0f6b4a}
  .plan-map-key .bridge{background:#ffe0a1;border-color:#7a4a08}
+ .plan-map-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:8px}
+ .plan-map-actions button,.plan-sim-actions button{border:1px solid #b9d8c4;border-radius:7px;background:#fff;color:#0f6b4a;padding:7px 6px;font:700 10px/1.15 inherit;cursor:pointer}
+ .plan-map-actions button:hover,.plan-sim-actions button:hover{background:#eaf8f0}
+ .plan-map-actions button:focus-visible,.plan-sim-actions button:focus-visible,.tabs button:focus-visible,.plan-select:focus-visible{outline:3px solid #f0b429;outline-offset:1px}
+ .plan-selection{border:1px solid #b9d8c4;border-radius:8px;margin-top:7px;padding:8px 9px;background:#fbfffc;font-size:11px;line-height:1.3}
+ .plan-selection strong{display:block;color:#17372a;font-size:12px;margin:2px 0}
+ .plan-selection small,.plan-selection-empty{color:#5b6b62;font-size:10px}
+ .plan-selection-empty{border:1px dashed #c8d9cf;border-radius:8px;padding:7px 8px;margin-top:7px;background:#f9fcfa}
+ .plan-sim{border:1px solid #8fc6a4;border-radius:10px;margin-top:8px;padding:9px 10px;background:linear-gradient(135deg,#f1fbf4,#f8fcff)}
+ .plan-sim-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+ .plan-sim-head b{display:block;color:#0f6b4a;font-size:12px}
+ .plan-sim-head small{display:block;color:#5b6b62;font-size:10px;line-height:1.25;margin-top:2px}
+ .plan-sim-status{white-space:nowrap;border-radius:999px;padding:3px 7px;background:#fff;border:1px solid #cfe1d5;color:#315a45;font-size:9px;font-weight:800;text-transform:uppercase}
+ .plan-sim-status.playing{background:#d8f0e2;border-color:#87c59e;color:#0f6b4a}
+ .plan-sim-stage{margin-top:7px;color:#30463b;font-size:11px;line-height:1.3}
+ .plan-sim-stage b{color:#17372a;font-size:12px}
+ .plan-sim-progress{height:7px;border-radius:999px;background:#e2eee6;overflow:hidden;margin-top:7px}
+ .plan-sim-progress span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#0f8b46,#f0b429);transition:width .25s ease}
+ .plan-sim-actions{display:flex;gap:4px;margin-top:8px}
+ .plan-sim-actions button{flex:1;min-height:32px}
+ .plan-sim-actions .primary{background:#0f6b4a;border-color:#0f6b4a;color:#fff}
+ .plan-sim-actions .primary:hover{background:#0b563b}
+ .plan-sim-actions button:disabled{opacity:.45;cursor:not-allowed}
+ .plan-sim-note{margin-top:7px;padding-top:7px;border-top:1px solid #d7e8dc;color:#40574c;font-size:10.5px;line-height:1.35}
  .plan-focus{border-color:#a9d6b9;background:#fbfffc}
  .plan-warning{border-color:#efd08e;background:#fffaf0}
  .plan-disclosure{border:1px solid #dfe8e1;border-radius:8px;margin-top:7px;background:#fff;overflow:hidden}
@@ -62,7 +86,7 @@
  .plan-resource-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
  .plan-resource{background:#f7faf8;border:1px solid #e1ebe4;border-radius:6px;padding:5px 6px;color:#30463b;font-size:10.5px;line-height:1.25}
  .plan-source{display:block;margin-top:8px;color:#5b6b62;font-size:10px}
- @media(max-width:520px){.hud{top:6px;left:6px;max-height:calc(100vh - 12px)}.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{min-height:34px}.plan-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.plan-card{font-size:11.5px}.plan-steps{grid-template-columns:1fr}.plan-resource-grid{grid-template-columns:1fr}}
+ @media(max-width:520px){.hud{top:6px;left:6px;max-height:calc(100vh - 12px)}.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{min-height:34px}.plan-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.plan-card{font-size:11.5px}.plan-steps{grid-template-columns:1fr}.plan-resource-grid{grid-template-columns:1fr}.plan-map-actions{grid-template-columns:1fr}.plan-sim-actions{flex-wrap:wrap}.plan-sim-actions button{flex:1 1 30%}}
 </style></head><body>
 <div id="map"></div>
 <div class="hud">
@@ -92,7 +116,7 @@ document.getElementById('cid').textContent=D.meta.municipio;
 let taxaCmH=D.meta.taxa_cm_h; const vel=D.meta.vel_idoso_ms, NVMAX=D.meta.nivel_max_m;
 const map=L.map('map');
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}).addTo(map);
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.9}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.55}).addTo(map);
 const CORES={alagada:'#1e5fbf',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84'};
 const ROT={alagada:'já na água',critica:'crítica — resgate',apertada:'apertada (<15 min)',atencao:'atenção (<1 h)',confortavel:'confortável (>1 h)',alto:'ponto alto'};
 const ordem=['alagada','critica','apertada','atencao','confortavel','alto'];
@@ -109,23 +133,31 @@ const abrigos=L.layerGroup(D.abrigos.map(a=>L.marker([a.lat,a.lon]).bindPopup('<
 const PLAN_URL='../assets/data/mucum_contingencia_202607.json';
 let planData=null;
 const planShelterLayer=L.layerGroup(),planBridgeLayer=L.layerGroup();
+let planSimIndex=-1,planSimPlaying=false,planSimTimer=null,planStageOverride=null,planSelectedPoint=null;
 const escPlan=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function planStage(level){return (planData?.estagios||[]).find(x=>String(x.cota_m)===String(level));}
 function renderPlan(){
   const panel=document.getElementById('planPanel');
   if(!planData){panel.innerHTML='<div class="plan-note">Carregando o plano municipal…</div>';return;}
   const stages=planData.estagios||[],ev=planData.evacuacao_por_cota||{},shelters=planData.abrigos||[],bridges=planData.pontes||[],routes=planData.rotas_plano||[],resources=planData.recursos||[],cap=planData.resumo_capacidade||{};
-  const selected=document.getElementById('planStage')?.value||'15';
-  const stage=planStage(selected)||stages[0];
+  const selected=planStageOverride||document.getElementById('planStage')?.value||'15';
+  const selectedIndex=Math.max(0,stages.findIndex(x=>String(x.cota_m)===String(selected)));
+  if(planSimIndex<0||planSimIndex>=stages.length)planSimIndex=selectedIndex;
+  const stage=planStage(selected)||stages[selectedIndex]||stages[0];
+  const simStage=stages[planSimIndex]||stage;
   const evacLevel=document.getElementById('planEvacLevel')?.value||'';
   const evac=evacLevel?ev[String(evacLevel)]||{}:null;
   const evacText=evac?Object.entries(evac).map(([k,v])=>`<li><b>${escPlan(k.replace('area_central','Área central').replace('bairro_fatima','Bairro Fátima').replace('bairro_guapore','Bairro Guaporé'))}:</b> ${escPlan(v)}</li>`).join(''):'<li>Selecione uma cota para consultar as áreas descritas no plano.</li>';
   const resourceText=resources.map(r=>`<div class="plan-resource"><b>${escPlan(r.quantidade)} ${escPlan(r.unidade)}</b><br>${escPlan(r.nome)}</div>`).join('');
+  const simPercent=Math.round(((planSimIndex+1)/Math.max(stages.length,1))*100);
+  const simStatus=planSimPlaying?'em andamento':'pausado';
   panel.innerHTML=`<span class="plan-lock">PLANO COMO REFERÊNCIA · PORTÃO OPERACIONAL BLOQUEADO</span>
     <div class="sub"><b>${escPlan(planData.meta.documento)}</b> · ${escPlan(planData.meta.versao)}</div>
-    <div class="plan-hero"><div class="eyebrow">Estudo de caso · Muçum</div><strong>O plano deixa a consulta pronta</strong><p>Use a cota e o estágio para organizar a leitura do exercício. A decisão real continua dependendo de confirmação local.</p><div class="plan-chips"><span class="plan-chip">Documento carregado</span><span class="plan-chip lock">Ação bloqueada</span><span class="plan-chip neutral">Vagas atuais: desconhecidas</span></div><div class="plan-map-key"><span><i class="shelter"></i>Abrigo no plano</span><span><i class="bridge"></i>Ponte a confirmar</span></div></div>
+    <div class="plan-hero"><div class="eyebrow">Estudo de caso · Muçum</div><strong>O plano deixa a consulta pronta</strong><p>Use a cota e o estágio para organizar a leitura do exercício. A decisão real continua dependendo de confirmação local.</p><div class="plan-chips"><span class="plan-chip">Documento carregado</span><span class="plan-chip lock">Ação bloqueada</span><span class="plan-chip neutral">Vagas atuais: desconhecidas</span></div><div class="plan-map-key"><span><i class="shelter"></i>Abrigo no plano</span><span><i class="bridge"></i>Ponte a confirmar</span></div><div class="plan-map-actions" aria-label="Controles do mapa"><button type="button" data-plan-focus="all">Enquadrar tudo</button><button type="button" data-plan-focus="shelter">Ver abrigos</button><button type="button" data-plan-focus="bridge">Ver pontes</button></div></div>
+    <div id="planSelection" aria-live="polite"></div>
     <div class="plan-note">O painel aplica o conteúdo documental ao exercício. Não confirma abertura, ocupação, vaga, integridade de ponte, rota segura ou ordem de saída.</div>
     <div class="plan-steps" aria-label="Como usar o plano"><div class="plan-step"><b>1 · Escolha</b>o estágio da simulação</div><div class="plan-step"><b>2 · Consulte</b>as áreas por cota</div><div class="plan-step"><b>3 · Confirme</b>campo e comando local</div></div>
+    <div class="plan-sim" aria-label="Ensaio guiado do plano"><div class="plan-sim-head"><span><b>Ensaio guiado</b><small>Avance pelas etapas do documento para estudar a resposta.</small></span><span id="planSimStatus" class="plan-sim-status${planSimPlaying?' playing':''}">${simStatus}</span></div><div class="plan-sim-stage"><b>Etapa ${planSimIndex+1} de ${stages.length} · ${escPlan(simStage.cota_m)} m</b><br>${escPlan(simStage.nome)}</div><div class="plan-sim-progress" aria-hidden="true"><span style="width:${simPercent}%"></span></div><div class="plan-sim-actions"><button type="button" id="planSimPlay" class="primary">${planSimPlaying?'Pausar ensaio':'Iniciar ensaio'}</button><button type="button" id="planSimNext"${planSimIndex>=stages.length-1?' disabled':''}>Avançar etapa</button><button type="button" id="planSimReset">Reiniciar</button></div><div class="plan-sim-note"><b>Leitura desta etapa:</b> ${escPlan(simStage.acao)}</div></div>
     <div class="plan-card plan-focus"><b>1 · Estágio da simulação</b><small>Escolha a cota apenas para ler o que o documento descreve.</small><select id="planStage" class="plan-select" aria-label="Estágio do plano por cota">${stages.map(x=>`<option value="${escPlan(x.cota_m)}"${String(x.cota_m)===String(selected)?' selected':''}>${escPlan(x.cota_m)} m · ${escPlan(x.nome)}</option>`).join('')}</select><small><b>${escPlan(stage.nome)}:</b> ${escPlan(stage.acao)}</small></div>
     <div class="plan-card plan-focus"><b>2 · Áreas descritas no documento</b><small>Referência textual do plano; não são polígonos calculados pelo mapa.</small><select id="planEvacLevel" class="plan-select" aria-label="Cota das áreas descritas no plano"><option value="">Consultar por cota…</option>${Object.keys(ev).map(k=>`<option value="${escPlan(k)}"${String(k)===String(evacLevel)?' selected':''}>${escPlan(k)} m · quadro de áreas</option>`).join('')}</select><ul class="plan-list">${evacText}</ul></div>
     <div class="plan-metrics"><div class="plan-metric"><b>${escPlan(shelters.length)}</b><small>abrigos cadastrados</small></div><div class="plan-metric"><b>${escPlan(routes.length)}</b><small>rotas de referência</small></div><div class="plan-metric"><b>${escPlan(cap.capacidade_quadro_13_pessoas||'—')}</b><small>pessoas no Quadro 13</small></div><div class="plan-metric"><b>${escPlan(bridges.length)}</b><small>pontes a verificar</small></div></div>
@@ -134,15 +166,37 @@ function renderPlan(){
     <details class="plan-disclosure"><summary><span>Rotas de referência<small>${escPlan(routes.length)} referências · sem geometria navegável nesta tela</small></span></summary><div class="inside"><ul class="plan-list">${routes.map(r=>`<li><b>${escPlan(r.id)} · ${escPlan(r.nome)}</b><br>${escPlan(r.destinos)}<br><small>${escPlan(r.distancia_km)} km · ${escPlan(r.tempo_min)} min · ${escPlan(r.status)}</small></li>`).join('')}</ul><small>As rotas são referências textuais do plano e não estão liberadas como navegação.</small></div></details>
     <details class="plan-disclosure"><summary><span>Pontes a verificar<small>${escPlan(bridges.length)} pontos · inspeção de engenharia e operação desconhecidas</small></span></summary><div class="inside"><ul class="plan-list">${bridges.map(b=>`<li><b>${escPlan(b.nome)}</b><br>${escPlan(b.rodovia)} · ${escPlan(b.status_engenharia)} · operação: ${escPlan(b.status_operacional)}</li>`).join('')}</ul><small>Sensoriamento remoto observa geometria aparente; não certifica segurança.</small></div></details>
     <span class="plan-source">Fonte: <a href="${escPlan(planData.meta.source)}" target="_blank" rel="noopener">Plano de Contingência de Muçum</a>. ${escPlan(planData.meta.nota)}</span>`;
-  document.getElementById('planStage').onchange=renderPlan;
+  document.getElementById('planStage').onchange=e=>{planStageOverride=e.target.value;planSimIndex=Math.max(0,stages.findIndex(x=>String(x.cota_m)===String(e.target.value)));renderPlan();};
   document.getElementById('planEvacLevel').onchange=renderPlan;
+  document.getElementById('planSimPlay').onclick=togglePlanSimulation;
+  document.getElementById('planSimNext').onclick=advancePlanSimulation;
+  document.getElementById('planSimReset').onclick=resetPlanSimulation;
+  document.querySelectorAll('[data-plan-focus]').forEach(x=>x.onclick=()=>focusPlan(x.dataset.planFocus));
+  renderPlanSelection();
+}
+function stopPlanSimulation(){if(planSimTimer){clearInterval(planSimTimer);planSimTimer=null;}planSimPlaying=false;}
+function advancePlanSimulation(){
+  if(!planData)return;
+  const stages=planData.estagios||[];
+  if(planSimIndex<stages.length-1){planSimIndex++;planStageOverride=String(stages[planSimIndex].cota_m);renderPlan();}
+  else{stopPlanSimulation();renderPlan();}
+}
+function togglePlanSimulation(){
+  if(planSimPlaying){stopPlanSimulation();renderPlan();return;}
+  planSimPlaying=true;renderPlan();
+  planSimTimer=setInterval(advancePlanSimulation,1800);
+}
+function resetPlanSimulation(){
+  stopPlanSimulation();
+  const first=(planData?.estagios||[])[0];
+  planSimIndex=0;planStageOverride=first?String(first.cota_m):null;renderPlan();
 }
 function loadPlan(){
   fetch(PLAN_URL,{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('plano');return r.json()}).then(p=>{
     planData=p;
     planShelterLayer.clearLayers();planBridgeLayer.clearLayers();
-    (p.abrigos||[]).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)).forEach(a=>L.circleMarker([a.lat,a.lon],{radius:7,color:'#0f6b4a',weight:2,fillColor:'#d8f0e2',fillOpacity:.95}).bindPopup(`<b>${escPlan(a.nome)}</b><br>${escPlan(a.endereco)}<br>capacidade planejada: ${escPlan(a.capacidade_quadro_13)} pessoas<br><small>ocupação, abertura e vagas atuais: desconhecidas</small>`).addTo(planShelterLayer));
-    (p.pontes||[]).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)).forEach(b=>L.circleMarker([b.lat,b.lon],{radius:7,color:'#7a4a08',weight:2,fillColor:'#ffe0a1',fillOpacity:.95}).bindPopup(`<b>${escPlan(b.nome)}</b><br>${escPlan(b.rodovia)}<br>engenharia: ${escPlan(b.status_engenharia)}<br>operação: ${escPlan(b.status_operacional)}<br><small>sensoriamento remoto observa geometria aparente; não certifica segurança.</small>`).addTo(planBridgeLayer));
+    (p.abrigos||[]).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)).forEach(a=>{const marker=L.circleMarker([a.lat,a.lon],{radius:8,color:'#0f6b4a',weight:2,fillColor:'#d8f0e2',fillOpacity:.95}).bindPopup(`<b>${escPlan(a.nome)}</b><br>${escPlan(a.endereco)}<br>capacidade planejada: ${escPlan(a.capacidade_quadro_13)} pessoas<br><small>ocupação, abertura e vagas atuais: desconhecidas</small>`);marker.on('click',()=>{planSelectedPoint={kind:'shelter',data:a};renderPlanSelection();});marker.addTo(planShelterLayer);});
+    (p.pontes||[]).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)).forEach(b=>{const marker=L.circleMarker([b.lat,b.lon],{radius:8,color:'#7a4a08',weight:2,fillColor:'#ffe0a1',fillOpacity:.95}).bindPopup(`<b>${escPlan(b.nome)}</b><br>${escPlan(b.rodovia)}<br>engenharia: ${escPlan(b.status_engenharia)}<br>operação: ${escPlan(b.status_operacional)}<br><small>sensoriamento remoto observa geometria aparente; não certifica segurança.</small>`);marker.on('click',()=>{planSelectedPoint={kind:'bridge',data:b};renderPlanSelection();});marker.addTo(planBridgeLayer);});
     if(modo==='plano'){renderPlan();planShelterLayer.addTo(map);planBridgeLayer.addTo(map);ajPlan();}
   }).catch(()=>{planData=null;renderPlan();});
 }
@@ -152,6 +206,20 @@ function ajPlan(){
   planShelterLayer.eachLayer(x=>{if(x.getLatLng)bounds.extend(x.getLatLng());});
   planBridgeLayer.eachLayer(x=>{if(x.getLatLng)bounds.extend(x.getLatLng());});
   if(bounds.isValid())map.fitBounds(bounds.pad(.22),{maxZoom:14});
+}
+function focusPlan(kind){
+  const layers=kind==='shelter'?[planShelterLayer]:kind==='bridge'?[planBridgeLayer]:[planShelterLayer,planBridgeLayer];
+  const bounds=L.latLngBounds([]);
+  layers.forEach(layer=>layer.eachLayer(x=>{if(x.getLatLng)bounds.extend(x.getLatLng());}));
+  if(bounds.isValid())map.fitBounds(bounds.pad(.32),{maxZoom:15});
+}
+function renderPlanSelection(){
+  const box=document.getElementById('planSelection');
+  if(!box)return;
+  if(!planSelectedPoint){box.innerHTML='<div class="plan-selection-empty">Toque em um ponto colorido do mapa para consultar a referência documental.</div>';return;}
+  const p=planSelectedPoint.data;
+  if(planSelectedPoint.kind==='shelter')box.innerHTML=`<div class="plan-selection"><small>ABRIGO NO PLANO</small><strong>${escPlan(p.nome)}</strong><span>${escPlan(p.endereco)}</span><br><small>capacidade planejada: ${escPlan(p.capacidade_quadro_13)} pessoas · ocupação, abertura e vagas atuais: desconhecidas</small></div>`;
+  else box.innerHTML=`<div class="plan-selection"><small>PONTE A CONFIRMAR</small><strong>${escPlan(p.nome)}</strong><span>${escPlan(p.rodovia)}</span><br><small>engenharia: ${escPlan(p.status_engenharia)} · operação: ${escPlan(p.status_operacional)}</small></div>`;
 }
 function classe(cota,dist,nivel){ if(cota===null||cota===undefined)return 'alto'; if(cota<=nivel)return 'alagada';
   const m=(cota-nivel)/(taxaCmH/100/60)-dist/vel/60; return m<0?'critica':m<15?'apertada':m<60?'atencao':'confortavel';}
@@ -199,6 +267,7 @@ function setModo(m){modo=m;
   document.getElementById('planPanel').classList.toggle('hide',m!=='plano');
   [manchaLayer,ruasLayer,cellsLayer,abrigos,planShelterLayer,planBridgeLayer].forEach(l=>map.removeLayer(l));
   if(cam){map.removeLayer(cam);cam=null;} if(orig){map.removeLayer(orig);orig=null;}
+  if(m!=='plano')stopPlanSimulation();
   if(m==='plano'){renderPlan();planShelterLayer.addTo(map);planBridgeLayer.addTo(map);ajPlan();}
   else{
     manchaLayer.addTo(map); abrigos.addTo(map);
