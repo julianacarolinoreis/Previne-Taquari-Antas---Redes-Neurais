@@ -1,6 +1,6 @@
 <!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Painel de evacuação</title>
+<title>Sala de situação · Muçum</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
  html,body{height:100%;margin:0}
@@ -22,14 +22,30 @@
  .rota{background:#eaf5ef;border:1px solid #bfe0cd;border-radius:8px;padding:8px 10px;font-size:13px;margin-top:6px}
  .big{font-size:12px;color:#7a5b00;margin-top:6px}
  .hide{display:none}
+ .plan-note{background:#f4fbff;border:1px solid #b7d5ef;border-radius:8px;padding:8px 10px;font-size:12px;color:#31516c;margin-top:6px}
+ .plan-lock{display:inline-block;color:#7a4a08;background:#fff4dc;border:1px solid #efd08e;border-radius:999px;padding:3px 7px;font-size:10px;font-weight:800;margin:3px 0 7px}
+ .plan-select{width:100%;border:1px solid #cbd9d3;border-radius:7px;padding:7px 8px;background:#fff;color:#12211b;font:inherit;font-size:12px;margin:3px 0 7px}
+ .plan-card{border:1px solid #dfe8e1;border-radius:8px;padding:8px 9px;margin-top:7px;background:#fff;font-size:12px}
+ .plan-card b{display:block;font-size:12px;margin-bottom:2px}
+ .plan-card small{display:block;color:#5b6b62;font-size:10.5px;line-height:1.35}
+ .plan-list{margin:5px 0 0;padding-left:16px;font-size:11px;color:#30463b}
+ .plan-list li{margin:3px 0}
+ .plan-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:7px}
+ .plan-metric{background:#f7faf8;border:1px solid #e1ebe4;border-radius:7px;padding:6px 7px}
+ .plan-metric b{font-size:16px;line-height:1.1}
+ .plan-metric small{font-size:9.5px}
+ .plan-source{display:block;margin-top:8px;color:#5b6b62;font-size:10px}
+ @media(max-width:520px){.hud{top:6px;left:6px}.plan-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.plan-card{font-size:11.5px}}
 </style></head><body>
 <div id="map"></div>
 <div class="hud">
-  <h1>Evacuação · <span id="cid"></span></h1>
+  <h1>Sala de situação · <span id="cid"></span></h1>
+  <div class="bd"><div class="sub">Exercício de pesquisa · o plano orienta a leitura, mas não emite alerta, ordem ou despacho.</div></div>
   <div class="tabs">
     <button data-m="rotas" class="on">Rotas</button>
     <button data-m="margem">Margem</button>
     <button data-m="impacto">Impacto</button>
+    <button data-m="plano">Plano municipal</button>
   </div>
   <div class="bd">
     <div id="sliders" class="hide">
@@ -39,6 +55,7 @@
       <input type="range" id="sldTaxa" min="10" max="120" value="40" step="5">
     </div>
     <div id="painel"></div>
+    <div id="planPanel" class="hide" aria-live="polite"></div>
   </div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -62,6 +79,45 @@ const cellsPl=D.cells.map(c=>L.polygon(c.poly,{weight:.6,color:'#2b3a34',fillOpa
   .bindPopup(()=>`<b>${c.pop} pessoas</b><br>alaga na cota ${c.cota==null?'—(alto)':c.cota+' m'}<br>a pé: ${(c.dist_m/1000).toFixed(2)} km`));
 const cellsLayer=L.layerGroup(cellsPl);
 const abrigos=L.layerGroup(D.abrigos.map(a=>L.marker([a.lat,a.lon]).bindPopup('<b>'+a.nome+'</b><br>abrigo / ponto de encontro')));
+const PLAN_URL='../assets/data/mucum_contingencia_202607.json';
+let planData=null;
+const planShelterLayer=L.layerGroup(),planBridgeLayer=L.layerGroup();
+const escPlan=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fmtPlan(v){return v==null||v===''?'—':String(v).replace('.',',');}
+function planStage(level){return (planData?.estagios||[]).find(x=>String(x.cota_m)===String(level));}
+function renderPlan(){
+  const panel=document.getElementById('planPanel');
+  if(!planData){panel.innerHTML='<div class="plan-note">Carregando o plano municipal…</div>';return;}
+  const stages=planData.estagios||[],ev=planData.evacuacao_por_cota||{},shelters=planData.abrigos||[],bridges=planData.pontes||[],routes=planData.rotas_plano||[],resources=planData.recursos||[],cap=planData.resumo_capacidade||{};
+  const selected=document.getElementById('planStage')?.value||'15';
+  const stage=planStage(selected)||stages[0];
+  const evacLevel=document.getElementById('planEvacLevel')?.value||'';
+  const evac=evacLevel?ev[String(evacLevel)]||{}:null;
+  const resourceText=resources.map(r=>`${escPlan(r.quantidade)} ${escPlan(r.unidade)} · ${escPlan(r.nome)}`).join('<br>');
+  const evacText=evac?Object.entries(evac).map(([k,v])=>`<li><b>${escPlan(k.replace('area_central','Área central').replace('bairro_fatima','Bairro Fátima').replace('bairro_guapore','Bairro Guaporé'))}:</b> ${escPlan(v)}</li>`).join(''):'<li>Selecione uma cota para consultar as áreas descritas no plano.</li>';
+  panel.innerHTML=`<span class="plan-lock">PLANO COMO REFERÊNCIA · PORTÃO OPERACIONAL BLOQUEADO</span>
+    <div class="sub"><b>${escPlan(planData.meta.documento)}</b> · ${escPlan(planData.meta.versao)}</div>
+    <div class="plan-note">O painel aplica o conteúdo documental ao exercício. Não confirma abertura, ocupação, vaga, integridade de ponte, rota segura ou ordem de saída.</div>
+    <div class="plan-card"><b>Estágio para este ensaio</b><small>Escolha a cota apenas para ler o que o documento descreve.</small><select id="planStage" class="plan-select" aria-label="Estágio do plano por cota">${stages.map(x=>`<option value="${escPlan(x.cota_m)}"${String(x.cota_m)===String(selected)?' selected':''}>${escPlan(x.cota_m)} m · ${escPlan(x.nome)}</option>`).join('')}</select><small><b>${escPlan(stage.nome)}:</b> ${escPlan(stage.acao)}</small></div>
+    <div class="plan-card"><b>Áreas descritas no documento</b><small>Referência textual do plano; não são polígonos calculados pelo mapa.</small><select id="planEvacLevel" class="plan-select" aria-label="Cota das áreas descritas no plano"><option value="">Consultar por cota…</option>${Object.keys(ev).map(k=>`<option value="${escPlan(k)}"${String(k)===String(evacLevel)?' selected':''}>${escPlan(k)} m · quadro de áreas</option>`).join('')}</select><ul class="plan-list">${evacText}</ul></div>
+    <div class="plan-metrics"><div class="plan-metric"><b>${escPlan(shelters.length)}</b><small>abrigos cadastrados</small></div><div class="plan-metric"><b>${escPlan(routes.length)}</b><small>rotas de referência</small></div><div class="plan-metric"><b>${escPlan(cap.capacidade_quadro_13_pessoas||'—')}</b><small>pessoas no Quadro 13</small></div><div class="plan-metric"><b>${escPlan(bridges.length)}</b><small>pontes a verificar</small></div></div>
+    <div class="plan-card"><b>Capacidade: conflito documental</b><small>Quadro 2: ${escPlan(cap.capacidade_quadro_2_pessoas)} · Quadro 13: ${escPlan(cap.capacidade_quadro_13_pessoas)} · Anexo 5: ${escPlan(cap.capacidade_anexo_5_pessoas)} pessoas planejadas. O cadastro ainda não permite saber ocupação ou vagas.</small></div>
+    <div class="plan-card"><b>Recursos cadastrados no plano</b><small>${resourceText}</small></div>
+    <div class="plan-card"><b>Rotas de referência</b><ul class="plan-list">${routes.map(r=>`<li><b>${escPlan(r.id)} · ${escPlan(r.nome)}</b><br>${escPlan(r.destinos)}<br><small>${escPlan(r.distancia_km)} km · ${escPlan(r.tempo_min)} min · ${escPlan(r.status)}</small></li>`).join('')}</ul></div>
+    <div class="plan-card"><b>Pontos que exigem confirmação</b><ul class="plan-list">${bridges.map(b=>`<li><b>${escPlan(b.nome)}</b><br>${escPlan(b.rodovia)} · ${escPlan(b.status_engenharia)} · operação: ${escPlan(b.status_operacional)}</li>`).join('')}</ul></div>
+    <span class="plan-source">Fonte: <a href="${escPlan(planData.meta.source)}" target="_blank" rel="noopener">Plano de Contingência de Muçum</a>. ${escPlan(planData.meta.nota)}</span>`;
+  document.getElementById('planStage').onchange=renderPlan;
+  document.getElementById('planEvacLevel').onchange=renderPlan;
+}
+function loadPlan(){
+  fetch(PLAN_URL,{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('plano');return r.json()}).then(p=>{
+    planData=p;
+    planShelterLayer.clearLayers();planBridgeLayer.clearLayers();
+    (p.abrigos||[]).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)).forEach(a=>L.circleMarker([a.lat,a.lon],{radius:7,color:'#0f6b4a',weight:2,fillColor:'#d8f0e2',fillOpacity:.95}).bindPopup(`<b>${escPlan(a.nome)}</b><br>${escPlan(a.endereco)}<br>capacidade planejada: ${escPlan(a.capacidade_quadro_13)} pessoas<br><small>ocupação, abertura e vagas atuais: desconhecidas</small>`).addTo(planShelterLayer));
+    (p.pontes||[]).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)).forEach(b=>L.circleMarker([b.lat,b.lon],{radius:7,color:'#7a4a08',weight:2,fillColor:'#ffe0a1',fillOpacity:.95}).bindPopup(`<b>${escPlan(b.nome)}</b><br>${escPlan(b.rodovia)}<br>engenharia: ${escPlan(b.status_engenharia)}<br>operação: ${escPlan(b.status_operacional)}<br><small>sensoriamento remoto observa geometria aparente; não certifica segurança.</small>`).addTo(planBridgeLayer));
+    if(modo==='plano'){renderPlan();planShelterLayer.addTo(map);planBridgeLayer.addTo(map);}
+  }).catch(()=>{planData=null;renderPlan();});
+}
 const BB=b.pad(0.06);function aj(){map.invalidateSize();map.fitBounds(BB);}
 function classe(cota,dist,nivel){ if(cota===null||cota===undefined)return 'alto'; if(cota<=nivel)return 'alagada';
   const m=(cota-nivel)/(taxaCmH/100/60)-dist/vel/60; return m<0?'critica':m<15?'apertada':m<60?'atencao':'confortavel';}
@@ -104,16 +160,21 @@ map.on('click',e=>{ if(modo!=='rotas')return;
 // troca de aba
 function setModo(m){modo=m;
   document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x.dataset.m===m));
-  document.getElementById('sliders').classList.toggle('hide',m==='rotas');
-  [manchaLayer,ruasLayer,cellsLayer].forEach(l=>map.removeLayer(l));
+  document.getElementById('sliders').classList.toggle('hide',m==='rotas'||m==='plano');
+  document.getElementById('painel').classList.toggle('hide',m==='plano');
+  document.getElementById('planPanel').classList.toggle('hide',m!=='plano');
+  [manchaLayer,ruasLayer,cellsLayer,abrigos,planShelterLayer,planBridgeLayer].forEach(l=>map.removeLayer(l));
   if(cam){map.removeLayer(cam);cam=null;} if(orig){map.removeLayer(orig);orig=null;}
-  manchaLayer.addTo(map); abrigos.addTo(map);
-  if(m==='impacto'){cellsLayer.addTo(map);renderImpacto();}
-  else{ruasLayer.addTo(map); if(m==='margem')renderMargem(); else renderRotas();}
+  if(m==='plano'){renderPlan();planShelterLayer.addTo(map);planBridgeLayer.addTo(map);}
+  else{
+    manchaLayer.addTo(map); abrigos.addTo(map);
+    if(m==='impacto'){cellsLayer.addTo(map);renderImpacto();}
+    else{ruasLayer.addTo(map); if(m==='margem')renderMargem(); else renderRotas();}
+  }
 }
 document.querySelectorAll('.tabs button').forEach(x=>x.onclick=()=>setModo(x.dataset.m));
 const sld=document.getElementById('sld'),sldTaxa=document.getElementById('sldTaxa');
 sld.oninput=redraw;sldTaxa.oninput=redraw;
 document.getElementById('taxatxt').textContent=taxaCmH;
-setModo('rotas'); aj(); setTimeout(aj,300); window.addEventListener('resize',aj);
+setModo('rotas'); loadPlan(); aj(); setTimeout(aj,300); window.addEventListener('resize',aj);
 </script></body></html>
