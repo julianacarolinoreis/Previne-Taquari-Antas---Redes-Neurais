@@ -113,7 +113,7 @@
    </div>
    <section class="map-layers" aria-label="Camadas visuais do estudo">
      <strong>Camadas do mapa</strong><div class="mini">O fundo é imagem aérea. A mancha é um proxy preliminar do HAND, não uma cota oficial.</div>
-     <div class="layer-actions"><button id="floodToggle" type="button" aria-pressed="true">Ocultar mancha preliminar</button><button id="routeToggle" type="button" aria-pressed="true">Ocultar rede do estudo</button></div>
+     <div class="layer-actions"><button id="cityFocus" type="button" aria-pressed="true">Focar cidade</button><button id="wideFocus" type="button" aria-pressed="false">Ver área ampla</button><button id="floodToggle" type="button" aria-pressed="true">Ocultar mancha preliminar</button><button id="routeToggle" type="button" aria-pressed="false">Mostrar rede do estudo</button></div>
      <label class="layer-range"><span>opacidade da mancha visual</span><input id="floodLevel" type="range" min="0.1" max="0.8" step="0.05" value="0.35"><output id="floodLevelValue">35%</output></label>
      <div class="mini" id="floodStatus">Carregando contorno visual…</div>
    </section>
@@ -155,7 +155,7 @@ document.getElementById('basemapToggle').addEventListener('click',()=>{
   byId('freshnessBadge').textContent='STALE · SNAPSHOT';
   byId('freshnessNote').textContent=`Não é alerta, rota liberada, autorização de evacuação ou despacho. Registro de pesquisa: ${nv.telemetria_em||'data não informada'} · confirme a fonte atual antes de qualquer decisão.`;
  })();
- const b=L.latLngBounds(),routeLayer=L.layerGroup().addTo(map),floodLayerGroup=L.layerGroup().addTo(map);
+  const b=L.latLngBounds(),routeLayer=L.layerGroup(),floodLayerGroup=L.layerGroup().addTo(map);
  const routeLines=[];
  D.edges.forEach(([a,c,ag])=>{const A=D.nos[a],C=D.nos[c];
    const line=L.polyline([A,C],{color:ag?'#b3382c':'#8fa7b8',weight:ag?2.5:1.5,opacity:ag?.7:.5}).addTo(routeLayer);routeLines.push(line);b.extend(A);b.extend(C);});
@@ -170,10 +170,12 @@ document.getElementById('basemapToggle').addEventListener('click',()=>{
  fetch(FLOOD_URL).then(response=>{if(!response.ok)throw new Error('HTTP '+response.status);return response.json()}).then(data=>{floodGeo=data;renderFlood()}).catch(()=>{byId('floodStatus').textContent='Mancha preliminar indisponível nesta abertura; a rede continua sendo apenas hipótese.';});
  byId('floodToggle').addEventListener('click',()=>{floodVisible=!floodVisible;byId('floodToggle').textContent=floodVisible?'Ocultar mancha preliminar':'Mostrar mancha preliminar';byId('floodToggle').setAttribute('aria-pressed',String(floodVisible));renderFlood();});
  byId('floodLevel').addEventListener('input',()=>{const opacity=Number(byId('floodLevel').value);byId('floodLevelValue').textContent=Math.round(opacity*100)+'%';renderFlood();});
- let routeVisible=true;
+  let routeVisible=false;
  byId('routeToggle').addEventListener('click',()=>{routeVisible=!routeVisible;if(routeVisible)routeLayer.addTo(map);else map.removeLayer(routeLayer);byId('routeToggle').textContent=routeVisible?'Ocultar rede do estudo':'Mostrar rede do estudo';byId('routeToggle').setAttribute('aria-pressed',String(routeVisible));});
-const BB=b.pad(0.05);function ajusta(){map.invalidateSize();map.fitBounds(BB);}
-ajusta();setTimeout(ajusta,300);window.addEventListener('resize',ajusta);
+ const BB=b.pad(0.05),focusPoint=D.abrigos[0]||{lat:-29.168793,lon:-51.732716},cityBounds=L.latLngBounds([focusPoint.lat-.012,focusPoint.lon-.018],[focusPoint.lat+.012,focusPoint.lon+.018]);let focusMode='city';
+ function ajusta(){map.invalidateSize();map.fitBounds(focusMode==='city'?cityBounds:BB,{padding:[18,18]});}
+ function setFocus(mode){focusMode=mode;byId('cityFocus').setAttribute('aria-pressed',String(mode==='city'));byId('wideFocus').setAttribute('aria-pressed',String(mode==='wide'));byId('cityFocus').textContent=mode==='city'?'Cidade em foco':'Focar cidade';byId('wideFocus').textContent=mode==='wide'?'Área ampla em foco':'Ver área ampla';ajusta();}
+ byId('cityFocus').addEventListener('click',()=>setFocus('city'));byId('wideFocus').addEventListener('click',()=>setFocus('wide'));ajusta();setTimeout(ajusta,300);window.addEventListener('resize',ajusta);
 let cam=null,orig=null;
 function d2(la1,lo1,la2,lo2){const dy=la1-la2,dx=(lo1-lo2)*Math.cos(la1*Math.PI/180);return dy*dy+dx*dx;}
 function noProximo(lat,lon){let best=-1,bd=1e9;for(let i=0;i<D.nos.length;i++){const d=d2(lat,lon,D.nos[i][0],D.nos[i][1]);if(d<bd){bd=d;best=i;}}return best;}
