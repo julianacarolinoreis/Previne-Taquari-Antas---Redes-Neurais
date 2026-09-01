@@ -71,7 +71,9 @@
   .map-legend-mini .mini-ramp i{flex:1;display:block}
   .map-legend-mini .mini-scale{display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted);margin:0}
   .map-legend-mini .mini-cuts{font-size:9.5px;color:var(--muted);line-height:1.25;margin-top:3px}
-  .reference-legend{position:absolute;left:12px;bottom:12px;z-index:702;max-width:min(300px,calc(100% - 24px));padding:7px 9px;border:1px solid rgba(12,42,34,.28);border-radius:8px;background:rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(20,45,35,.12);color:var(--ink);font-size:10.5px;line-height:1.3;pointer-events:none}
+  /* A legenda das camadas de referência fica acima do inset e da escala,
+     deixando o canto inferior esquerdo livre para a leitura cartográfica. */
+  .reference-legend{position:absolute;left:12px;bottom:166px;z-index:702;max-width:min(300px,calc(100% - 24px));padding:7px 9px;border:1px solid rgba(12,42,34,.28);border-radius:8px;background:rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(20,45,35,.12);color:var(--ink);font-size:10.5px;line-height:1.3;pointer-events:none}
   .reference-legend[hidden]{display:none!important}
   .reference-legend strong{display:block;color:var(--brand);font-size:10.5px;margin-bottom:3px}
   .reference-legend .ref-key{display:flex;align-items:center;gap:6px;margin:2px 0}
@@ -386,6 +388,7 @@
     .comparacao-controls{grid-template-columns:1fr!important}
     .comparacao-controls label{white-space:normal}
     #inset{left:7px;bottom:14px;width:106px;height:82px}
+    .reference-legend{left:8px;bottom:106px}
     .leaflet-control-scale{margin-bottom:10px!important}
     .zoom-choice{left:10px;right:10px;top:10px;max-width:none}
     .zoom-choice button{min-height:40px}
@@ -523,7 +526,7 @@
     .municipio-popup .popup-more[open]{max-height:calc(52vh - 180px)}
     .map-hint{left:120px;right:8px;top:110px!important;bottom:auto!important;max-width:none;max-height:72px;overflow:auto;font-size:11px}
     .leaflet-popup-content{max-height:calc(52vh - 34px);overflow:auto}
-    .reference-legend{left:8px;bottom:8px;max-width:calc(100% - 16px);font-size:10px}
+    .reference-legend{left:8px;bottom:120px;max-width:calc(100% - 16px);font-size:10px}
     .comparacao-wrap{padding:20px 8px 12px}
     .comparacao-inner{padding:14px 10px;border-radius:10px}
     .comparacao-inner h2{font-size:17px}
@@ -808,6 +811,7 @@
         <a href="assets/data/vulnerabilidade/referencias/README_AGREGADOS_TAQUARI.md" target="_blank" rel="noopener">README e fontes dos agregados</a>
         <a href="assets/data/vulnerabilidade/referencias/DICIONARIO_AGREGADOS_TAQUARI.csv" download>Dicionário dos agregados · CSV</a>
         <a href="assets/data/vulnerabilidade/downloads/catalogo.json" target="_blank" rel="noopener">Catálogo e testes de qualidade · JSON</a>
+        <div class="download-meta">No catálogo, caminhos com <code>metadados/</code>, <code>referencias/</code>, <code>perigo/</code> e <code>agregados/</code> são internos dos ZIPs; os quatro CSVs agregados acima são os arquivos públicos diretos.</div>
         <a href="#proveniencia">Metadados, dicionário e estilos QGIS/ArcGIS</a>
         <div class="download-meta" id="downloadMeta">Carregando o catálogo dos arquivos…</div>
       </div>
@@ -1079,7 +1083,7 @@ const INDS = [
   {k:"pcd_pessoas_2mais", nome:"Pessoas com deficiência (PcD) — contagem (2+ anos)", pct:false, un:" pessoas", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
   {k:"pcd_pct_2mais", nome:"Pessoas com deficiência (PcD) — percentual entre pessoas de 2+ anos (%)", pct:false, un:"%", denominador:"pessoas de 2 anos ou mais", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
   {k:"tea_pessoas", nome:"Transtorno do espectro autista (TEA) — contagem", pct:false, un:" pessoas", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
-  {k:"tea_pct", nome:"Transtorno do espectro autista (TEA) — percentual da população residente diagnosticada (%)", pct:false, un:"%", denominador:"população residente diagnosticada com autismo", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
+  {k:"tea_pct", nome:"Transtorno do espectro autista (TEA) — percentual de residentes diagnosticados com autismo (% da população residente total)", pct:false, un:"%", denominador:"população residente total", numerador:"população residente diagnosticada com autismo", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
   {k:"renda_resp",    nome:"Renda do responsável", money:true, opt:true, grupo:"Condições domiciliares"},
   {k:"dom_agua",   nome:"Água — rede geral",   pct:true, base:"dom_ocupados", opt:true, grupo:"Condições domiciliares"},
   {k:"dom_esgoto", nome:"Esgoto — rede geral", pct:true, base:"dom_ocupados", opt:true, grupo:"Condições domiciliares"},
@@ -1090,13 +1094,13 @@ const INDS = [
   // Agregados oficiais municipais recebidos/recuperados no Censo 2022.
   // municipalOnly evita que estes campos sejam lidos como estimativa na bacia
   // ou como valor de cada setor no drill-down.
-  {k:"dom_improvisados", nome:"Domicílios improvisados (IBGE)", pct:false, opt:true, municipalOnly:true, agregado:true, grupo:"Agregados municipais IBGE"},
-  {k:"dom_coletivos_com_morador", nome:"Domicílios coletivos com morador", pct:false, opt:true, municipalOnly:true, agregado:true, grupo:"Agregados municipais IBGE"},
-  {k:"entorno_pavimentada_pct", nome:"Entorno · via pavimentada (%)", pct:false, un:"%", opt:true, municipalOnly:true, agregado:true, grupo:"Entorno urbano IBGE"},
-  {k:"entorno_bueiro_pct", nome:"Entorno · bueiro (%)", pct:false, un:"%", opt:true, municipalOnly:true, agregado:true, grupo:"Entorno urbano IBGE"},
-  {k:"entorno_iluminacao_pct", nome:"Entorno · iluminação (%)", pct:false, un:"%", opt:true, municipalOnly:true, agregado:true, grupo:"Entorno urbano IBGE"},
-  {k:"entorno_ponto_onibus_pct", nome:"Entorno · ponto de ônibus (%)", pct:false, un:"%", opt:true, municipalOnly:true, agregado:true, grupo:"Entorno urbano IBGE"},
-  {k:"entorno_rampa_pct", nome:"Entorno · rampa (%)", pct:false, un:"%", opt:true, municipalOnly:true, agregado:true, grupo:"Entorno urbano IBGE"},
+  {k:"dom_improvisados", nome:"Domicílios improvisados (IBGE)", pct:false, un:" domicílios", opt:true, municipalOnly:true, agregado:true, grupo:"Agregados municipais IBGE"},
+  {k:"dom_coletivos_com_morador", nome:"Domicílios coletivos com morador", pct:false, un:" domicílios", opt:true, municipalOnly:true, agregado:true, grupo:"Agregados municipais IBGE"},
+  {k:"entorno_pavimentada_pct", nome:"Entorno · via pavimentada (%)", pct:false, un:"%", denominador:"domicílios selecionados (V05000)", opt:true, municipalOnly:true, agregado:true, grupo:"Entorno urbano IBGE"},
+  {k:"entorno_bueiro_pct", nome:"Entorno · bueiro (%)", pct:false, un:"%", denominador:"domicílios selecionados (V05000)", opt:true, municipalOnly:true, agregado:true, grupo:"Entorno urbano IBGE"},
+  {k:"entorno_iluminacao_pct", nome:"Entorno · iluminação (%)", pct:false, un:"%", denominador:"domicílios selecionados (V05000)", opt:true, municipalOnly:true, agregado:true, grupo:"Entorno urbano IBGE"},
+  {k:"entorno_ponto_onibus_pct", nome:"Entorno · ponto de ônibus (%)", pct:false, un:"%", denominador:"domicílios selecionados (V05000)", opt:true, municipalOnly:true, agregado:true, grupo:"Entorno urbano IBGE"},
+  {k:"entorno_rampa_pct", nome:"Entorno · rampa (%)", pct:false, un:"%", denominador:"domicílios selecionados (V05000)", opt:true, municipalOnly:true, agregado:true, grupo:"Entorno urbano IBGE"},
   // densidade de serviços por 10 mil habitantes (contagem por município ÷ população)
   {k:"svc_ubs",      nome:"Saúde IEDE · pontos publicados /10 mil hab",     svc:true, parcial:true, un:" /10 mil hab", grupo:"Cadastros de serviços*"},
   {k:"svc_escolas",  nome:"Escolas IEDE · pontos publicados /10 mil hab",   svc:true, parcial:true, un:" /10 mil hab", grupo:"Cadastros de serviços*"},
@@ -1296,13 +1300,15 @@ function atualizaNotaServico(){
 }
 function limpaErroDependencia(){ const box=document.getElementById("dependenciaAviso"); if(box)box.hidden=true; }
 function atualizaDownloads(){
-  const pronto = !!munData && servicosResolvidos && icmResolvido;
+  // A vista principal pode ser exportada assim que os municípios carregam;
+  // IEDE/ICM são camadas auxiliares e não devem bloquear CSV/GeoJSON.
+  const pronto = !!munData;
   const completo = pronto && servicosOk && icmOk;
-  document.getElementById("baixar").disabled = !completo;
-  document.getElementById("baixarGeo").disabled = !completo;
+  document.getElementById("baixar").disabled = !pronto;
+  document.getElementById("baixarGeo").disabled = !pronto;
   atualizaDownloadVistaMeta();
-  if (pronto && !completo){
-    mostraErroDependencia("Um cadastro auxiliar não carregou; downloads completos ficam bloqueados para evitar uma vista misturada. Tente novamente.");
+  if (pronto && servicosResolvidos && icmResolvido && !completo){
+    mostraErroDependencia("Uma camada auxiliar não carregou; CSV/GeoJSON da vista continuam disponíveis, mas sem os dados dessa camada.");
   } else if (pronto && !document.getElementById("status").textContent) informa("Vista atual pronta para exportar.");
 }
 function atualizaDownloadVistaMeta(){
@@ -1490,6 +1496,12 @@ function fonteIndicador(d){
   if (d?.k === "icm") return rotuloIcm();
   if (d?.k === "resiliencia") return rotuloResiliencia();
   return "IBGE Censo 2022";
+}
+function dataReferenciaIndicador(d){
+  if (d?.k === "resiliencia") return resilienciaData?.gerado_em_utc || "data não informada";
+  if (d?.k === "icm") return icmDataReferencia || "data não informada";
+  if (d?.svc) return servicosCaptura || "data não informada";
+  return "2022";
 }
 function unidadeIndicador(d){
   if (!d) return "valor absoluto";
@@ -2674,7 +2686,7 @@ function baixarTabelaComparacao(){
   const rows=linhasComparacaoFiltradas();
   if(!rows.length){informa("Nenhum registro para baixar na tabela.");return;}
   const d=INDS.find(i=>i.k===ind) || INDS[0];
-  const statusEscopo=escopoEfetivo(d), referencia=fonteIndicador(d);
+  const statusEscopo=escopoEfetivo(d), fonte=fonteIndicador(d), dataReferencia=dataReferenciaIndicador(d);
   const saida=rows.map((r,i)=>{
     // No drill-down, os indicadores municipalOnly aparecem nos setores como
     // contexto do município aberto; o status deve usar a mesma fonte.
@@ -2682,9 +2694,9 @@ function baixarTabelaComparacao(){
     const st = statusDadoTriagem(statusRef);
     const status = d.municipalOnly ? st : ((!munAtual && st) || (r.suprimido?"sem_dado_publicado":r.parcial?"cobertura_parcial":"publicado"));
     const completude = d.municipalOnly ? (st === "publicado" ? "publicado" : "não publicado") : (r.suprimido?"não publicado":r.parcial?"parcial":"publicado");
-    return {ordem:i+1,nome:r.nome,codigo:r.codigo,indicador:d.nome,valor:r.display,populacao:r.pop,status_dado:status,completude,n_validos:r.p?.[`${campoEscopo(d)}_n_validos`] ?? "",n_total:r.p?.[`${campoEscopo(d)}_n_total`] ?? "",escopo:statusEscopo,unidade:d.money?"R$ por mês":d.svc?"pontos cadastrados":d.pct?(d.base?"% dos domicílios permanentes ocupados":"% da população"):(d.un||"valor"),data_referencia:referencia,selecionado:r.selecionado?"sim":"não"};
+    return {ordem:i+1,nome:r.nome,codigo:r.codigo,indicador:d.nome,valor:r.display,populacao:r.pop,status_dado:status,completude,n_validos:r.p?.[`${campoEscopo(d)}_n_validos`] ?? "",n_total:r.p?.[`${campoEscopo(d)}_n_total`] ?? "",escopo:statusEscopo,unidade:d.money?"R$ por mês":d.svc?"pontos cadastrados":d.pct?(d.base?"% dos domicílios permanentes ocupados":"% da população"):(d.un||"valor"),fonte,data_referencia:dataReferencia,selecionado:r.selecionado?"sim":"não"};
   });
-  const cols=["ordem","nome","codigo","indicador","valor","populacao","status_dado","completude","n_validos","n_total","escopo","unidade","data_referencia","selecionado"];
+  const cols=["ordem","nome","codigo","indicador","valor","populacao","status_dado","completude","n_validos","n_total","escopo","unidade","fonte","data_referencia","selecionado"];
   const csv=[cols.map(csvCampo).join(";")].concat(saida.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
   baixarBlob(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}),`tabela_${slugLocal(escopoComparacao())}_${slugLocal(ind)}.csv`);
   informa(`${fmt(saida.length)} registros da tabela exportados em CSV.`);
@@ -2889,7 +2901,7 @@ INDS.forEach(d=>{
       const ajuda=document.createElement("p");
       ajuda.className="ind-group-help";
       ajuda.setAttribute("role","note");
-      ajuda.textContent="Como ler: contagem = número de pessoas; percentual = %. PcD = percentual entre pessoas de 2 anos ou mais; TEA = percentual da população residente diagnosticada com autismo. Dados preliminares do Censo 2022/SIDRA, no município inteiro — não são valores de setor ou da bacia. Sem dado publicado não significa zero.";
+      ajuda.textContent="Como ler: contagem = número de pessoas; percentual = %. PcD = percentual entre pessoas de 2 anos ou mais; TEA = percentual de residentes diagnosticados com autismo sobre a população residente total. Dados preliminares do Censo 2022/SIDRA, no município inteiro — não são valores de setor ou da bacia. Sem dado publicado não significa zero.";
       grupo.appendChild(ajuda);
     }
     indDiv.appendChild(grupo);
@@ -3232,8 +3244,8 @@ document.getElementById("triagemBaixar")?.addEventListener("click",()=>{
   const d=INDS.find(i=>i.k===ind) || INDS[0];
   const criterio=document.getElementById("triagemCriterio")?.value || "icm_cd";
   const regra=criterio.replaceAll("_"," ");
-   const rows=triagemResultado.map(p=>({nome:p.nome,cod_mun:p.cod_mun,pop_bacia:p.pop_bacia,area_pct_bacia:p.area_pct_bacia,indicador:d.nome,valor:valorTriagem(p),irm_faixa:p.irm_faixa||"",icm:p.icm_faixa||"",status_dado:rotuloStatusDado(statusDadoTriagem(p)),completude:completudeCampo(p,d) ?? "",escopo:escopoEfetivo(d),criterio:regra,rule_version:"triagem-v1",data_referencia:d.k==="resiliencia"?rotuloResiliencia():d.k==="icm"?rotuloIcm():"Censo IBGE 2022",service_coverage_status:"cadastro_IEDE_parcial_nao_inventario"}));
-   const cols=["nome","cod_mun","pop_bacia","area_pct_bacia","indicador","valor","irm_faixa","icm","status_dado","completude","escopo","criterio","rule_version","data_referencia","service_coverage_status"];
+   const rows=triagemResultado.map(p=>({nome:p.nome,cod_mun:p.cod_mun,pop_bacia:p.pop_bacia,area_pct_bacia:p.area_pct_bacia,indicador:d.nome,valor:valorTriagem(p),irm_faixa:p.irm_faixa||"",icm:p.icm_faixa||"",status_dado:rotuloStatusDado(statusDadoTriagem(p)),completude:completudeCampo(p,d) ?? "",escopo:escopoEfetivo(d),criterio:regra,rule_version:"triagem-v1",fonte:fonteIndicador(d),data_referencia:dataReferenciaIndicador(d),service_coverage_status:"cadastro_IEDE_parcial_nao_inventario"}));
+   const cols=["nome","cod_mun","pop_bacia","area_pct_bacia","indicador","valor","irm_faixa","icm","status_dado","completude","escopo","criterio","rule_version","fonte","data_referencia","service_coverage_status"];
   const csv=[cols.map(csvCampo).join(";")].concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
   baixarBlob(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}),`triagem_${slugLocal(ind)}.csv`); informa(`${fmt(rows.length)} municípios da triagem exportados.`);
 });
