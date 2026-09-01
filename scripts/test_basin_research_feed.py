@@ -53,11 +53,11 @@ class BasinResearchFeedTests(unittest.TestCase):
     def test_current_level_prefers_the_newer_live_robot(self):
         for key in ("santa_tereza", "mucum"):
             raw = builder.load(ROOT / builder.STATIONS[key]["live"], {})
-            # A live export may keep the preferred key present with ``null``
-            # while publishing a valid fallback key.  ``dict.get(default)``
-            # does not fall back in that case, so mirror the production
-            # selection and take the first numeric level.
-            expected = next((builder.number(raw.get(name)) for name in ("telemetria_ultima_nivel_cm", "nivel_rio_agora_cm", "nivel_atual_cm") if builder.number(raw.get(name)) is not None), None)
+            weather = builder.load(ROOT / builder.STATIONS[key]["weather"], {})
+            # Mirror the production selector: a live export can be missing or
+            # carry null level fields, in which case the newest weather
+            # observation is the valid fallback used by the joined feed.
+            expected = builder.live_current(raw, weather, datetime(2026, 8, 29, 23, tzinfo=timezone.utc))["level_cm"]
             current = self.feed["stations"][key]["current"]
             self.assertEqual(current["level_cm"], expected)
             self.assertIn(current["state"], {"fresh", "stale"})
