@@ -12,7 +12,7 @@
  .plan-map-status strong{display:block;font-size:20px;line-height:1.15;margin-top:2px}
  .plan-map-status span{display:block;color:#ffe0a1;font-size:13px;font-weight:800;margin-top:3px}
  .plan-map-status em{display:block;color:#e8f4ee;font-size:11px;font-style:normal;line-height:1.3;margin-top:5px}
- .hud{position:absolute;z-index:500;top:10px;left:10px;width:430px;max-width:calc(100vw - 24px);max-height:calc(100vh - 20px);overflow:auto;
+  .hud{position:absolute;z-index:500;top:10px;left:10px;width:480px;max-width:calc(100vw - 24px);max-height:calc(100vh - 20px);overflow:auto;
       background:#fff;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.22);padding:0 0 12px;scrollbar-width:thin;scrollbar-color:#b8d4c4 transparent}
  .hud h1{font:600 21px Georgia,serif;margin:0;padding:14px 16px 8px}
  .tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid #e6ece9;margin:0 0 8px;padding:0 6px;gap:2px}
@@ -80,7 +80,16 @@
  .plan-sim-actions .primary{background:#0f6b4a;border-color:#0f6b4a;color:#fff}
  .plan-sim-actions .primary:hover{background:#0b563b}
  .plan-sim-actions button:disabled{opacity:.45;cursor:not-allowed}
- .plan-sim-note{margin-top:8px;padding-top:8px;border-top:1px solid #d7e8dc;color:#40574c;font-size:12px;line-height:1.4}
+  .plan-sim-note{margin-top:8px;padding-top:8px;border-top:1px solid #d7e8dc;color:#40574c;font-size:12px;line-height:1.4}
+  .plan-scenario-shortcuts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:8px}
+  .plan-scenario-shortcuts button{border:1px solid #b8d4e9;border-radius:8px;background:#fff;color:#15578b;padding:8px 5px;font:800 13px/1.1 inherit;cursor:pointer;transition:transform .15s ease,background .15s ease,border-color .15s ease}
+  .plan-scenario-shortcuts button:hover,.plan-scenario-shortcuts button:focus-visible{background:#e9f5ff;border-color:#4b96ce;transform:translateY(-1px);outline:3px solid #f0b429;outline-offset:1px}
+  .plan-scenario-shortcuts button.selected{background:#15578b;color:#fff;border-color:#15578b;box-shadow:0 3px 8px rgba(21,87,139,.2)}
+  .plan-scenario-shortcuts small{display:block;font-size:9px;font-weight:700;opacity:.82;margin-top:3px}
+  .plan-decision{border:1px solid #d4e0e8;border-left:5px solid #15578b;border-radius:8px;margin-top:8px;padding:9px 10px;background:#fff;color:#29475b;font-size:12px;line-height:1.4}
+  .plan-decision b{display:block;color:#15578b;font-size:13px;margin-bottom:2px}
+  .plan-decision.research{border-left-color:#9a6518;background:#fffaf0;color:#6f4b09}
+  .plan-decision.research b{color:#8b5a08}
  .plan-level{border:2px solid #8fc6a4;border-radius:10px;margin-top:8px;padding:11px 12px;background:linear-gradient(180deg,#fbfffc,#f1fbf4)}
  .plan-level-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
  .plan-level-head b{font-size:15px;color:#17372a}
@@ -121,7 +130,7 @@
  .plan-resource-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
  .plan-resource{background:#f7faf8;border:1px solid #e1ebe4;border-radius:6px;padding:5px 6px;color:#30463b;font-size:10.5px;line-height:1.25}
  .plan-source{display:block;margin-top:8px;color:#5b6b62;font-size:10px}
-  @media(max-width:520px){.hud{top:6px;left:6px;max-height:calc(100vh - 12px)}.hud h1{font-size:19px}.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{min-height:40px;font-size:13px}.sub{font-size:13px}.plan-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.plan-flood-metrics{grid-template-columns:1fr}.plan-card{font-size:13px}.plan-steps{grid-template-columns:1fr}.plan-resource-grid{grid-template-columns:1fr}.plan-map-actions{grid-template-columns:1fr}.plan-sim-actions{flex-wrap:wrap}.plan-sim-actions button{flex:1 1 30%}.plan-hero strong{font-size:17px}.plan-level-value{font-size:19px}.plan-physical-head{display:block}.plan-physical-badge{display:inline-block;margin-top:7px}}
+  @media(max-width:520px){.hud{top:6px;left:6px;max-height:calc(100vh - 12px)}.hud h1{font-size:19px}.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{min-height:40px;font-size:13px}.sub{font-size:13px}.plan-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.plan-flood-metrics{grid-template-columns:1fr}.plan-scenario-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}.plan-card{font-size:13px}.plan-steps{grid-template-columns:1fr}.plan-resource-grid{grid-template-columns:1fr}.plan-map-actions{grid-template-columns:1fr}.plan-sim-actions{flex-wrap:wrap}.plan-sim-actions button{flex:1 1 30%}.plan-hero strong{font-size:17px}.plan-level-value{font-size:19px}.plan-physical-head{display:block}.plan-physical-badge{display:inline-block;margin-top:7px}}
 </style></head><body>
 <div id="map"></div>
 <div id="planMapStatus" class="plan-map-status" aria-live="polite"></div>
@@ -129,10 +138,10 @@
   <h1>Sala de situação · <span id="cid"></span></h1>
   <div class="bd"><div class="sub">Exercício de pesquisa · o plano orienta a leitura, mas não emite alerta, ordem ou despacho.</div></div>
   <div class="tabs">
-    <button data-m="rotas" class="on">Rotas</button>
-    <button data-m="margem">Margem</button>
-    <button data-m="impacto">Impacto</button>
-    <button data-m="plano">Plano municipal</button>
+    <button data-m="plano" class="on">Cenário</button>
+    <button data-m="impacto">Pessoas</button>
+    <button data-m="rotas">Rotas de estudo</button>
+    <button data-m="margem">Margem de saída</button>
   </div>
   <div class="bd">
     <div id="sliders" class="hide">
@@ -171,7 +180,7 @@ const abrigos=L.layerGroup(D.abrigos.map(a=>L.marker([a.lat,a.lon]).bindPopup('<
   const FLOOD_STUDY_URL='../assets/data/mucum_inundacao/contornos_extravasamento.json';
   let planData=null,floodStudy=null,floodStudyPromise=null;
   const planShelterLayer=L.layerGroup(),planBridgeLayer=L.layerGroup(),floodStudyLayer=L.featureGroup();
-let planSimIndex=-1,planSimPlaying=false,planSimTimer=null,planStageOverride=null,planSelectedPoint=null,planLevelValue=15;
+ let planSimIndex=-1,planSimPlaying=false,planSimTimer=null,planStageOverride=null,planSelectedPoint=null,planLevelValue=18;
 const escPlan=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function planStage(level){return (planData?.estagios||[]).find(x=>String(x.cota_m)===String(level));}
 function nearestPlanStage(value,stages){return (stages||[]).reduce((best,x)=>!best||Math.abs(Number(x.cota_m)-Number(value))<Math.abs(Number(best.cota_m)-Number(value))?x:best,null);}
@@ -218,7 +227,7 @@ function nearestPlanStage(value,stages){return (stages||[]).reduce((best,x)=>!be
   const panel=document.getElementById('planPanel');
   if(!planData){panel.innerHTML='<div class="plan-note">Carregando o plano municipal…</div>';return;}
   const stages=planData.estagios||[],ev=planData.evacuacao_por_cota||{},shelters=planData.abrigos||[],bridges=planData.pontes||[],routes=planData.rotas_plano||[],resources=planData.recursos||[],cap=planData.resumo_capacidade||{};
-  const selected=planStageOverride||document.getElementById('planStage')?.value||'15';
+   const selected=planStageOverride||document.getElementById('planStage')?.value||'18';
   const selectedIndex=Math.max(0,stages.findIndex(x=>String(x.cota_m)===String(selected)));
   if(planSimIndex<0||planSimIndex>=stages.length)planSimIndex=selectedIndex;
    const levelMin=Number(stages[0]?.cota_m||5),levelMax=25,documentMax=Number(stages[stages.length-1]?.cota_m||18);
@@ -236,14 +245,21 @@ function nearestPlanStage(value,stages){return (stages||[]).reduce((best,x)=>!be
   const evac=evacLevel?ev[String(evacLevel)]||{}:null;
   const evacText=evac?Object.entries(evac).map(([k,v])=>`<li><b>${escPlan(k.replace('area_central','Área central').replace('bairro_fatima','Bairro Fátima').replace('bairro_guapore','Bairro Guaporé'))}:</b> ${escPlan(v)}</li>`).join(''):'<li>Selecione uma cota para consultar as áreas descritas no plano.</li>';
   const resourceText=resources.map(r=>`<div class="plan-resource"><b>${escPlan(r.quantidade)} ${escPlan(r.unidade)}</b><br>${escPlan(r.nome)}</div>`).join('');
-  const simPercent=Math.round(((planSimIndex+1)/Math.max(stages.length,1))*100);
-  const simStatus=planSimPlaying?'em andamento':'pausado';
+   const simPercent=Math.round(((planSimIndex+1)/Math.max(stages.length,1))*100);
+   const simStatus=planSimPlaying?'em andamento':'pausado';
+   const quickLevels=[18,20,22,25];
+   const decisionAbove=planLevelValue>documentMax+0.001;
+   const decisionTitle=decisionAbove?'Reabrir o plano para este cenário':'Seguir a etapa correspondente do plano';
+   const decisionText=decisionAbove?'A camada mostra expansão topográfica acima do último marco municipal. O próximo trabalho é definir quais pessoas, acessos e abrigos precisam ser reavaliados; esta tela não autoriza uma nova ordem.':stage?.acao||'Use o marco documentado para conduzir o ensaio.';
   panel.innerHTML=`<span class="plan-lock">PLANO COMO REFERÊNCIA · PORTÃO OPERACIONAL BLOQUEADO</span>
     <div class="sub"><b>${escPlan(planData.meta.documento)}</b> · ${escPlan(planData.meta.versao)}</div>
-     <div class="plan-hero"><div class="eyebrow">Estudo de caso · Muçum</div><strong>O plano deixa a consulta pronta</strong><p>Use a cota e o estágio para organizar a leitura do exercício. A decisão real continua dependendo de confirmação local.</p><div class="plan-chips"><span class="plan-chip">Documento carregado</span><span class="plan-chip lock">Ação bloqueada</span><span class="plan-chip neutral">Vagas atuais: desconhecidas</span></div><div class="plan-map-key"><span><i class="shelter"></i>Abrigo no plano</span><span><i class="bridge"></i>Ponte a confirmar</span><span><i class="base"></i>Área HAND em foco</span></div><div class="plan-map-actions" aria-label="Controles do mapa"><button type="button" data-plan-focus="all">Enquadrar tudo</button><button type="button" data-plan-focus="study">Ver mancha HAND</button><button type="button" data-plan-focus="shelter">Ver abrigos</button><button type="button" data-plan-focus="bridge">Ver pontes</button></div></div>
+     <div class="plan-hero"><div class="eyebrow">Estudo de caso · Muçum</div><strong>Escolha o cenário. Veja o impacto. Confirme localmente.</strong><p>Esta sala junta o plano municipal, a população de referência e a expansão do MDT/HAND em uma sequência única de estudo.</p><div class="plan-chips"><span class="plan-chip">Fonte carregada</span><span class="plan-chip lock">Ação bloqueada</span><span class="plan-chip neutral">Vagas atuais: desconhecidas</span></div><div class="plan-map-key"><span><i class="shelter"></i>Abrigo no plano</span><span><i class="bridge"></i>Ponte a confirmar</span><span><i class="base"></i>Área HAND em foco</span></div><div class="plan-map-actions" aria-label="Controles do mapa"><button type="button" data-plan-focus="all">Enquadrar tudo</button><button type="button" data-plan-focus="study">Ver mancha HAND</button><button type="button" data-plan-focus="shelter">Ver abrigos</button><button type="button" data-plan-focus="bridge">Ver pontes</button></div></div>
+     <div class="plan-hero"><div class="eyebrow">Estudo de caso · Muçum</div><strong>Escolha o cenário. Veja o impacto. Confirme localmente.</strong><p>Esta sala junta o plano municipal, a população de referência e a expansão do MDT/HAND em uma sequência única de estudo.</p><div class="plan-chips"><span class="plan-chip">Fonte carregada</span><span class="plan-chip lock">Ação bloqueada</span><span class="plan-chip neutral">Vagas atuais: desconhecidas</span></div><div class="plan-map-key"><span><i class="shelter"></i>Abrigo no plano</span><span><i class="bridge"></i>Ponte a confirmar</span><span><i class="base"></i>Área HAND em foco</span></div><div class="plan-map-actions" aria-label="Controles do mapa"><button type="button" data-plan-focus="all">Enquadrar tudo</button><button type="button" data-plan-focus="study">Ver mancha HAND</button><button type="button" data-plan-focus="shelter">Ver abrigos</button><button type="button" data-plan-focus="bridge">Ver pontes</button></div></div>
     <div class="plan-sim" aria-label="Ensaio guiado do plano"><div class="plan-sim-head"><span><b>Ensaio guiado</b><small>Avance pelas etapas do documento para estudar a resposta.</small></span><span id="planSimStatus" class="plan-sim-status${planSimPlaying?' playing':''}">${simStatus}</span></div><div class="plan-sim-stage"><b>Etapa ${planSimIndex+1} de ${stages.length} · ${escPlan(simStage.cota_m)} m</b><br>${escPlan(simStage.nome)}</div><div class="plan-sim-progress" aria-hidden="true"><span style="width:${simPercent}%"></span></div><div class="plan-sim-actions"><button type="button" id="planSimPlay" class="primary">${planSimPlaying?'Pausar ensaio':'Iniciar ensaio'}</button><button type="button" id="planSimNext"${planSimIndex>=stages.length-1?' disabled':''}>Avançar etapa</button><button type="button" id="planSimReset">Reiniciar</button></div><div class="plan-sim-note"><b>Leitura desta etapa:</b> ${escPlan(simStage.acao)}</div></div>
      <div class="plan-level" aria-label="Progressão de cota do plano e cenário topográfico"><div class="plan-level-head"><b>Cenário em foco</b><span id="planLevelValue" class="plan-level-value">${escPlan(formatMeters(planLevelValue))} m</span></div><input id="planLevelRange" type="range" min="${escPlan(levelMin)}" max="${escPlan(levelMax)}" step="0.1" value="${escPlan(planLevelValue)}" style="background:linear-gradient(90deg,#0f8b46 0%,#0f8b46 ${levelPct}%,#e2eee6 ${levelPct}%,#e2eee6 100%)" aria-label="Cenário em foco, de 5 a 25 metros"><div class="plan-level-scale">${levelMarks.map(x=>`<span>${escPlan(x)} m</span>`).join('')}</div><div id="planLevelStatus" class="plan-level-status">${escPlan(levelStatus)}</div><small>De 5 a 18 m: marcos documentais do plano. De 18 a 25 m: contornos topográficos HAND disponíveis para estudo; 25 m é o teto desta camada, não o máximo físico do rio.</small></div>
-     <div class="plan-physical"><div class="plan-physical-head"><div><b>Se a água subir além de 18 m</b><small>O plano municipal termina em 18 m, mas o MDT/HAND permite visualizar a expansão topográfica no recorte até 25 m.</small></div><span class="plan-physical-badge">MDT/HAND · 0,1–25 m</span></div><div id="planFloodStatus" class="plan-flood-status"><b>Camada topográfica</b><br>Carregando os contornos do MDT/HAND…</div><div id="planFloodMetrics" class="plan-flood-metrics"></div><div class="plan-flood-legend"><span><i class="extra"></i>área adicional em relação ao HAND 0</span><span><i class="base"></i>referência de 18 m</span></div><small style="display:block;margin-top:7px;color:#4d687c;font-size:11px;line-height:1.35">Leitura correta: é um proxy de expansão relativa ao rio mais próximo. Para converter isso em nível da régua, probabilidade, rota segura ou ordem de evacuação ainda é necessário reconciliar a cota da estação, o datum vertical e a validação de campo. <a href="../assets/data/mucum_inundacao/README_mucum_inundacao.md" target="_blank" rel="noopener">Ver metodologia e limites</a>.</small></div>
+     <div class="plan-scenario-shortcuts" aria-label="Cenários rápidos">${quickLevels.map(x=>`<button type="button" data-scenario-level="${x}" class="${Math.abs(planLevelValue-x)<.05?'selected':''}">${escPlan(x)} m<small>${x===18?'último marco':x===25?'teto da camada':'cenário MDT/HAND'}</small></button>`).join('')}</div>
+     <div class="plan-decision${decisionAbove?' research':''}"><b>${escPlan(decisionTitle)}</b><span>${escPlan(decisionText)}</span></div>
+      <div class="plan-physical"><div class="plan-physical-head"><div><b>Se a água subir além de 18 m</b><small>O plano municipal termina em 18 m, mas o MDT/HAND permite visualizar a expansão topográfica no recorte até 25 m.</small></div><span class="plan-physical-badge">MDT/HAND · 0,1–25 m</span></div><div id="planFloodStatus" class="plan-flood-status"><b>Camada topográfica</b><br>Carregando os contornos do MDT/HAND…</div><div id="planFloodMetrics" class="plan-flood-metrics"></div><div class="plan-flood-legend"><span><i class="extra"></i>área adicional em relação ao HAND 0</span><span><i class="base"></i>referência de 18 m</span></div><small style="display:block;margin-top:7px;color:#4d687c;font-size:11px;line-height:1.35">Leitura correta: é um proxy de expansão relativa ao rio mais próximo. Para converter isso em nível da régua, probabilidade, rota segura ou ordem de evacuação ainda é necessário reconciliar a cota da estação, o datum vertical e a validação de campo. <a href="../assets/data/mucum_inundacao/README_mucum_inundacao.md" target="_blank" rel="noopener">Ver metodologia e limites</a>.</small></div>
     <div id="planSelection" aria-live="polite"></div>
     <div class="plan-note">O painel aplica o conteúdo documental ao exercício. Não confirma abertura, ocupação, vaga, integridade de ponte, rota segura ou ordem de saída.</div>
     <div class="plan-steps" aria-label="Como usar o plano"><div class="plan-step"><b>1 · Escolha o cenário</b>comece pelo ensaio guiado</div><div class="plan-step"><b>2 · Veja a cota</b>acompanhe a subida na régua</div><div class="plan-step"><b>3 · Verifique a resposta</b>confirme campo e comando local</div></div>
@@ -262,10 +278,11 @@ function nearestPlanStage(value,stages){return (stages||[]).reduce((best,x)=>!be
   levelRange.oninput=e=>{planLevelValue=Number(e.target.value);const target=nearestPlanStage(planLevelValue,stages),pct=Math.round(((planLevelValue-levelMin)/Math.max(levelMax-levelMin,1))*100),delta=Math.abs(Number(target?.cota_m||levelMin)-planLevelValue),above=planLevelValue>documentMax+.001;document.getElementById('planLevelValue').textContent=`${formatMeters(planLevelValue)} m`;document.getElementById('planLevelStatus').textContent=above?`Acima de ${formatMeters(documentMax)} m · cenário topográfico do MDT/HAND`:target?(delta<.05?(Number(target.cota_m)===documentMax?`${target.nome} · último marco do plano (não é limite do rio)`:`${target.nome} · marco documentado`):`Entre ${target.nome.toLowerCase()} e o próximo marco do plano`):'Entre marcos documentais';levelRange.style.background=`linear-gradient(90deg,#0f8b46 0%,#0f8b46 ${pct}%,#e2eee6 ${pct}%,#e2eee6 100%)`;updatePlanMapStatus(planLevelValue,stages);updateFloodStudy(planLevelValue);};
   levelRange.onchange=e=>{const target=nearestPlanStage(Number(e.target.value),stages);if(target){planLevelValue=Number(e.target.value);planStageOverride=String(target.cota_m);planSimIndex=stages.indexOf(target);renderPlan();}};
   document.getElementById('planSimPlay').onclick=togglePlanSimulation;
-  document.getElementById('planSimNext').onclick=advancePlanSimulation;
-  document.getElementById('planSimReset').onclick=resetPlanSimulation;
-  document.querySelectorAll('[data-plan-focus]').forEach(x=>x.onclick=()=>focusPlan(x.dataset.planFocus));
-  renderPlanSelection();
+   document.getElementById('planSimNext').onclick=advancePlanSimulation;
+   document.getElementById('planSimReset').onclick=resetPlanSimulation;
+   document.querySelectorAll('[data-plan-focus]').forEach(x=>x.onclick=()=>focusPlan(x.dataset.planFocus));
+   document.querySelectorAll('[data-scenario-level]').forEach(x=>x.onclick=()=>{planLevelValue=Number(x.dataset.scenarioLevel);const target=nearestPlanStage(planLevelValue,stages);if(target){planStageOverride=String(target.cota_m);planSimIndex=stages.indexOf(target);}renderPlan();});
+   renderPlanSelection();
 }
 function stopPlanSimulation(){if(planSimTimer){clearInterval(planSimTimer);planSimTimer=null;}planSimPlaying=false;}
 function advancePlanSimulation(){
@@ -366,9 +383,9 @@ function setModo(m){modo=m;
     else{ruasLayer.addTo(map); if(m==='margem')renderMargem(); else renderRotas();}
   }
 }
-document.querySelectorAll('.tabs button').forEach(x=>x.onclick=()=>setModo(x.dataset.m));
+ document.querySelectorAll('.tabs button').forEach(x=>x.onclick=()=>setModo(x.dataset.m));
 const sld=document.getElementById('sld'),sldTaxa=document.getElementById('sldTaxa');
 sld.oninput=redraw;sldTaxa.oninput=redraw;
 document.getElementById('taxatxt').textContent=taxaCmH;
-setModo('rotas'); loadPlan(); aj(); setTimeout(aj,300); window.addEventListener('resize',aj);
+ setModo('plano'); loadPlan(); aj(); setTimeout(aj,300); window.addEventListener('resize',aj);
 </script></body></html>
