@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: atlascampo
+      POSTGRES_USER: atlascampo
+      POSTGRES_PASSWORD: change-me-local-only
+    ports:
+      - '5433:5432'
+    volumes:
+      - atlascampo-db:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+
+  object-storage:
+    image: minio/minio:latest
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: atlascampo-local
+      MINIO_ROOT_PASSWORD: change-me-local-only
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - atlascampo-objects:/data
+
+volumes:
+  atlascampo-db:
+  atlascampo-objects:

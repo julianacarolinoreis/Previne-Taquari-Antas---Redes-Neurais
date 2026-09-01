@@ -1,0 +1,73 @@
+openapi: 3.0.3
+info:
+  title: AtlasCampo API
+  version: 1.0.0
+  description: API versionada para mapas, coleta de campo e sincronização offline.
+servers:
+  - url: https://api.example.invalid
+paths:
+  /v1/maps:
+    post:
+      summary: Solicita ingestão de um mapa
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/MapCreate'}
+      responses:
+        '202':
+          description: Ingestão enfileirada
+  /v1/sync/push:
+    post:
+      summary: Envia operações locais idempotentes
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deviceId, operations]
+              properties:
+                deviceId: {type: string}
+                operations:
+                  type: array
+                  items: {$ref: '#/components/schemas/SyncOperation'}
+      responses:
+        '200':
+          description: Resultado por operação, incluindo conflitos explícitos
+  /v1/sync/pull:
+    get:
+      summary: Baixa alterações posteriores ao cursor
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - {name: cursor, in: query, required: false, schema: {type: string}}
+      responses:
+        '200':
+          description: Lote de alterações e novo cursor
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    MapCreate:
+      type: object
+      required: [name, sourceFormat, objectKey, checksumSha256]
+      properties:
+        name: {type: string}
+        sourceFormat: {type: string, enum: [pdf, geotiff, mbtiles, geopackage]}
+        objectKey: {type: string}
+        checksumSha256: {type: string}
+    SyncOperation:
+      type: object
+      required: [operationId, entity, entityId, action, baseRevision]
+      properties:
+        operationId: {type: string}
+        entity: {type: string, enum: [layer, feature, photo, map]}
+        entityId: {type: string}
+        action: {type: string, enum: [upsert, delete]}
+        baseRevision: {type: integer, format: int64}
+        payload: {type: object, additionalProperties: true}
