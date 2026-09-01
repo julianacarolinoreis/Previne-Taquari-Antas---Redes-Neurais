@@ -28,6 +28,14 @@ INITIAL_ASSETS = (
     "assets/data/vulnerabilidade/referencias/obitos_metadata.json",
     "assets/data/vulnerabilidade/referencias/obitos_source.zip",
     "assets/data/vulnerabilidade/referencias/README_OBITOS.md",
+    "assets/data/vulnerabilidade/referencias/README_AGREGADOS_TAQUARI.md",
+    "assets/data/vulnerabilidade/referencias/README.md",
+    "assets/data/servicos/FONTES.md",
+    "assets/data/vulnerabilidade/metadados/README_PRODUTO.md",
+    "assets/data/vulnerabilidade/metadados/ESTILOS_QGIS_ARCGIS.md",
+    "assets/data/vulnerabilidade/metadados/README_ESTILOS_QGIS.md",
+    "assets/data/vulnerabilidade/metadados/ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.md",
+    "assets/data/vulnerabilidade/brutos/FONTES.md",
 )
 
 
@@ -55,7 +63,7 @@ def main() -> int:
     assert "integrity=" in text and "unpkg.com" in text, "Leaflet sem SRI/fallback"
     assert "Estradas DAER/RS" in text and "Open Buildings" in text and "Óbitos" in text and "resiliencia" in text, "referencias novas ausentes"
     assert 'id="locationPicker"' in text and 'id="startHere"' in text and "Encontre um dado em 3 passos" in text, "roteiro de primeira visita ausente"
-    assert "número / valor" in text and "% na área" in text, "rótulos de modo ambíguos ausentes"
+    assert "contagem / valor absoluto" in text and "percentual (%)" in text, "rótulos de modo claros ausentes"
     if args.expect_commit:
         assert f'DATA_FALLBACK_COMMIT = "{args.expect_commit}"' in text, "fallback commit divergente"
     assert headers.get("Strict-Transport-Security"), "HSTS ausente"
