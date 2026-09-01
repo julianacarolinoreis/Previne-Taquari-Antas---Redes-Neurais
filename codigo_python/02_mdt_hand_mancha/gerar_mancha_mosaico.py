@@ -29,12 +29,11 @@ dessa faixa pega o maior componente conectado abaixo do percentil 50 local
 — isso preserva a topologia da rede (vem do ANADEM, testado) e ainda assim
 capta a cota mais precisa do drone onde ele cobre.
 
-RESSALVA (Santa Tereza): o ponto mais baixo do MDT de drone corrigido de
-Santa Tereza é 6,0 m — bem abaixo da faixa do talvegue ANADEM ali (49-72 m).
-Pode ser um canal real mais encaixado que o ANADEM não resolve, OU um
-artefato residual do filtro DSM→MDT (o MDT de Santa Tereza é DERIVADO, não
-nativo — ver commit anterior). Não investigado a fundo aqui por tempo;
-fica documentado como pendência, junto com datum/data de voo já conhecidos.
+RESSALVA (Santa Tereza): o diagnóstico atual do MDT de drone ortométrico
+encontra mínimo de ~27,1 m, ainda abaixo da faixa do talvegue ANADEM ali
+(49–72 m). A regeneração do mosaico já mascara as 7 células abaixo de 40 m;
+o refinamento visual adicional é gerado separadamente por
+refinar_mdt_santa_tereza.py e não altera o HAND publicado.
 
 Uso: python codigo_python/02_mdt_hand_mancha/gerar_mancha_mosaico.py [mucum|santa_tereza]
 """
@@ -202,7 +201,7 @@ def injeta_santa_tereza(payload_extra):
         "cols": payload_extra["cols"], "rows": payload_extra["rows"],
         "S": payload_extra["S"], "W": payload_extra["W"], "N": payload_extra["N"], "E": payload_extra["E"],
         "station": old.get("station"), "ponte": old.get("ponte"),
-        "fonte": "Mosaico 2 m: drone (0,5 m, corrigido de datum via geoide IBGE hgeoHNOR2020/MAPGEO2015, offset residual ~0,20 m) no centro urbano + ANADEM 30 m reamostrado nas bordas — ver codigo_python/02_mdt_hand_mancha/gerar_mancha_mosaico.py. Pendência: talvegue no MDT de drone chega a 6 m de cota, bem abaixo da faixa do ANADEM ali (49-72 m) — pode ser canal real ou artefato do filtro DSM->MDT (MDT derivado, não nativo).",
+        "fonte": "Mosaico 2 m: drone (0,5 m, corrigido de datum via geoide IBGE hgeoHNOR2020/MAPGEO2015, offset residual ~0,20 m) no centro urbano + ANADEM 30 m reamostrado nas bordas — ver codigo_python/02_mdt_hand_mancha/gerar_mancha_mosaico.py. Diagnóstico atual: mínimo do drone ortométrico ~27 m; 7 células abaixo de 40 m são mascaradas na regeneração. O MDT refinado visual é separado e não altera o HAND.",
         "hand_png_b64": payload_extra["hand_png_b64"],
     }
     novo_json = json.dumps(novo_payload, ensure_ascii=False)

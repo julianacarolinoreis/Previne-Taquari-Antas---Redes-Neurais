@@ -247,7 +247,7 @@
           <div class="row2"><span class="sw b"></span><b>possível avanço fora do leito</b> (RNA, em laranja)</div>
           <div class="row2"><span class="sw u"></span>faixa de incerteza (a borda pode variar)</div>
         </div>
-        <div class="disc">A camada colorida exclui o contorno-base HAND 0, usado provisoriamente como aproximação do leito. Ela mostra somente a área adicional estimada fora desse contorno. A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata nem como alerta oficial.</div>
+        <div class="disc">A camada colorida exclui o contorno-base HAND 0, usado provisoriamente como aproximação do leito. Ela mostra somente a área adicional estimada fora desse contorno. A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata nem como alerta oficial. No controle de camadas, <b>“MDT refinado · pesquisa”</b> mostra uma visualização suavizada apenas para reduzir ruído isolado no talvegue; o original continua preservado.</div>
       </div></details>
     </div>
 
@@ -289,7 +289,7 @@
       <h4>Calibração · nível normal ↔ terreno</h4>
       <p class="disc" style="margin-top:2px"><b>Leitura da régua</b>: o valor em metros é a altura lida na estação Santa Tereza/SGB-ANA, não a profundidade total do rio. <b>Nível normal / zero operacional</b>: leitura adotada como início da mancha no leito do rio (HAND 0). Padrão provisório calibrado em <b>4,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
       <input type="range" id="bankfull" min="100" max="700" step="10" value="400" style="width:100%">
-      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> Terreno: mosaico 2&nbsp;m (drone + ANADEM). O nível normal (HAND 0) foi estimado em ~405 cm e arredondado para <b>400 cm</b>. O contorno HAND 0 é removido da camada colorida para não representar o leito normal como inundação. A cota de inundação oficial permanece <b>15 m</b> (SGB/SACE). Fora do footprint do drone a borda segue a resolução do ANADEM.</div>
+      <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> Terreno: mosaico 2&nbsp;m (drone + ANADEM). O nível normal (HAND 0) foi estimado em ~405 cm e arredondado para <b>400 cm</b>. O contorno HAND 0 é removido da camada colorida para não representar o leito normal como inundação. A cota de inundação oficial permanece <b>15 m</b> (SGB/SACE). Fora do footprint do drone a borda segue a resolução do ANADEM. O refinamento é visual, não substitui validação hidrológica.</div>
     </div>
   </aside>
 
@@ -428,7 +428,8 @@ const COTA_INUND=1500;
 const COLS=HAND.cols, ROWS=HAND.rows;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
 const CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_extravasamento.json';
-const ELEVATION_URL='assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m.json';
+const ELEVATION_URL='assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m_refinado.json';
+const MDT_VISUAL_URL='assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_10m_refinado_visual.png';
 let contornos=null, nowLayer=null, foreLayer=null, foreOutlineLayer=null, uncLayer=null;
 let elevationMeta=null, elevationArr=null;
 const latC=(HAND.S+HAND.N)/2;
@@ -1147,9 +1148,10 @@ async function init(){
     sat.on('tileerror',()=>{if(!map.hasLayer(osm)&&!map.hasLayer(sat)) osm.addTo(map);});
     sat.addTo(map); labels.addTo(map);
     telemetryLayer=L.layerGroup().addTo(map);
+    const mdtVisual=L.imageOverlay(MDT_VISUAL_URL,BOUNDS,{opacity:.48,interactive:false,alt:'MDT refinado de Santa Tereza, visual de pesquisa'});
     const layerControl=L.control.layers(
       {'Satélite':sat,'Ruas':osm},
-      {'Rótulos':labels,'Estações hidrotelemétricas':telemetryLayer},
+      {'Rótulos':labels,'Estações hidrotelemétricas':telemetryLayer,'MDT refinado · pesquisa (visual)':mdtVisual},
       {position:'topright'}
     ).addTo(map);
     // A borda prevista fica sempre acima do azul para a RNA continuar visível,

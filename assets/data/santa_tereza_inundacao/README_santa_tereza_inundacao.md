@@ -1,6 +1,6 @@
 # Santa Tereza - camadas de inundacao
 
-Atualizado em: 2026-08-07.
+Atualizado em: 2026-09-01.
 
 ## Produção atual (site)
 
@@ -11,8 +11,27 @@ nas bordas. Ver `codigo_python/02_mdt_hand_mancha/gerar_mosaico_mdt.py` e
 `gerar_mancha_mosaico.py`. Contornos vetoriais:
 `contornos_mancha.json` / `contornos_extravasamento.json`.
 
-Diagnóstico do talvegue do drone (pendência ~6 m vs ANADEM 49–72 m):
+Diagnóstico do talvegue do drone:
 `diagnostico_talvegue_drone.json`.
+
+### MDT refinado (pesquisa, visual)
+
+As duas páginas também oferecem a camada opcional **“MDT refinado · pesquisa
+(visual)”**. Ela é derivada do mosaico 2 m, mas só substitui desvios isolados
+de pelo menos 1,5 m pela mediana local 5x5 dentro de um corredor de 40 m
+ancorado no talvegue ANADEM. O mosaico e a grade originais continuam
+preservados; não há interpolação fora da máscara nem promoção para uso
+hidrológico. Artefatos e critérios auditáveis:
+
+- `mdt_refinamento_santa_tereza.json` — contagem, hashes e limites;
+- `mdt/altitude_terreno_10m_refinado.json` — grade usada nas consultas de
+  altitude do site;
+- `mdt/mdt_santa_tereza_10m_refinado_visual.png` — visualização colorida;
+- `codigo_python/02_mdt_hand_mancha/refinar_mdt_santa_tereza.py` — regeneração
+  reprodutível.
+
+O status permanece `visualization_only` até validação independente com máscara
+de água/ocupação do leito e referências de campo.
 
 ## Camadas preliminares legadas
 
