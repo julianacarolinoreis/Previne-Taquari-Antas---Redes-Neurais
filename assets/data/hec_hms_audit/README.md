@@ -18,6 +18,8 @@ proveniência das estações, respostas brutas e um recorte horário de evento.
 
 - `rainfall_station_audit_latest.json`: relatório, hashes, perfis, identidades e
   comparações hora a hora;
+- `terrain_inventory_latest.json`: resolução, CRS, extensão, cobertura das
+  estações e ressalvas semânticas dos seis rasters locais;
 - `raw/`: respostas preservadas da ANA, INMET e CEMADEN;
 - `derived/event_2023-09-01_2023-09-10_hourly_candidates.csv`: recorte horário
   candidato para revisão; chuva é soma intrahorária e nível/vazão são médias
