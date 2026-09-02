@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102334">
+  <title>PREVINE · Exposição cruzada</title>
+  <link rel="stylesheet" href="../assets/css/gestor_chrome.css">
+  <style>
+    :root { --ink:#12202b; --muted:#5b6b76; --line:#d7e1e8; --navy:#102334; --teal:#0f6b62; --amber:#a46b12; --warn-bg:#fff8ea; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #edf2f7; color: var(--ink); font: 15px/1.45 Inter, ui-sans-serif, system-ui, sans-serif; }
+    .shell { max-width: 1080px; margin: 0 auto; padding: 16px 18px 48px; }
+    .hero { padding: 22px 24px; background: linear-gradient(135deg, var(--navy), #1a4258); color: #eef4f8; border-radius: 18px; margin-bottom: 16px; }
+    h1 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 34px); letter-spacing: -.03em; }
+    .lede { margin: 0; max-width: 760px; color: #c5d4df; font-size: 14px; }
+    .section { margin-top: 14px; padding: 18px 20px; background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+    h2 { margin: 0 0 10px; font-size: 17px; color: var(--navy); }
+    .intro { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+    .status-pill { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; background: var(--warn-bg); color: var(--amber); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: #f9fbfd; }
+    tr:last-child td { border-bottom: 0; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .metric { padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #f9fbfd; }
+    .metric span { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+    .metric strong { display: block; margin-top: 5px; font-size: 20px; color: var(--navy); }
+    .note { margin-top: 12px; padding: 10px 12px; border-left: 4px solid var(--amber); border-radius: 0 10px 10px 0; background: var(--warn-bg); color: #6d4e16; font-size: 12px; }
+    .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .links a { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--navy); font-size: 12px; font-weight: 750; text-decoration: none; }
+    footer { margin-top: 18px; color: var(--muted); font-size: 11px; }
+    @media (max-width: 760px) { .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p style="margin:0 0 8px;font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:#9fd4c8">PREVINE · risco espacial × vulnerabilidade</p>
+      <h1>Exposição cruzada</h1>
+      <p class="lede">Cruzamento entre mancha de inundação (HAND/Zenodo) e indicadores censitários IBGE 2022. O produto <strong>vulnerabilidade ∩ mancha validada</strong> ainda não está calculado — esta página mostra o que já dá para ler e o que falta.</p>
+    </header>
+
+    <section class="section">
+      <h2>Estado do produto</h2>
+      <p class="intro"><span class="status-pill">UNKNOWN · cálculo pendente</span> Agregados por município/setor existem em <a href="../vulnerabilidade.html">vulnerabilidade</a>. A interseção espacial com mancha HAND calibrada por evento ainda não foi publicada como camada única.</p>
+      <div class="note"><strong>O que já temos:</strong> pontos fotográficos Zenodo jul/2020, métricas HAND×MGB, indicadores IBGE por município. <strong>O que falta:</strong> raster de exposição (pessoas/domicílios dentro da mancha validada por cota) com auditoria por tempestade.</div>
+    </section>
+
+    <section class="section" aria-labelledby="zenodo-title">
+      <h2 id="zenodo-title">Evidência Zenodo jul/2020 × HAND (Muçum)</h2>
+      <p class="intro">Fonte: Giordani, Fan &amp; Alves (2021) · DOI 10.5281/zenodo.4730371 · validação integrada (PR #79).</p>
+      <div class="metric-grid" id="zenodo-metrics">
+        <div class="metric"><span>Pontos no bbox HAND</span><strong>—</strong></div>
+        <div class="metric"><span>Cobertura @ pico 17,02 m</span><strong>—</strong></div>
+        <div class="metric"><span>IoU HAND × MGB</span><strong>—</strong></div>
+        <div class="metric"><span>Contornos até 15 m</span><strong>—</strong></div>
+      </div>
+      <table style="margin-top:14px">
+        <thead><tr><th>Município (rótulo Zenodo)</th><th>Pontos no dataset</th><th>Pop. IBGE 2022 (bacia)</th><th>Exposição cruzada</th></tr></thead>
+        <tbody id="municipio-rows"><tr><td colspan="4">Carregando…</td></tr></tbody>
+      </table>
+      <div class="links">
+        <a href="../assets/data/validacao_zenodo_2020/resumo.md">Relatório resumo</a>
+        <a href="../assets/data/validacao_zenodo_2020/relatorio_cruzamento.json">JSON completo</a>
+        <a href="../mucum_previsao_inundacao.html">Mapa HAND Muçum</a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="vuln-title">
+      <h2 id="vuln-title">Vulnerabilidade municipal (sem mancha)</h2>
+      <p class="intro">Indicadores agregados do Censo 2022 recortados à bacia. Úteis para priorização comunitária; não implicam lista nominal nem risco hidráulico.</p>
+      <div class="metric-grid" id="vuln-highlights">
+        <div class="metric"><span>Idosos 60+ (bacia)</span><strong>—</strong></div>
+        <div class="metric"><span>Idosos 70+ (bacia)</span><strong>—</strong></div>
+        <div class="metric"><span>Domicílios ocupados</span><strong>—</strong></div>
+        <div class="metric"><span>Setores censitários</span><strong>—</strong></div>
+      </div>
+      <div class="links">
+        <a href="../vulnerabilidade.html">Abrir mapa de vulnerabilidade</a>
+        <a href="../pesquisas/centro-resposta.html">Centro de resposta</a>
+      </div>
+    </section>
+
+    <footer>PREVINE · exposição cruzada · pesquisa FAPERGS · não substitui mapa oficial de risco.</footer>
+  </main>
+
+  <script src="../assets/js/gestor_chrome.js" data-page="pessoas" data-place="bacia"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../sw.js').catch(function () {});
+    }
+    (function () {
+      'use strict';
+      var zenodoCities = { 'Muçum': 55, 'Encantado': 91, 'Roca Sales': 109, 'Lajeado': 15 };
+      var ibgeMap = { 'Encantado': '4306809', 'Lajeado': '4311403', 'Roca Sales': '4315800', 'Muçum': null };
+
+      Promise.all([
+        fetch('../assets/data/validacao_zenodo_2020/relatorio_cruzamento.json').then(function (r) { return r.ok ? r.json() : null; }),
+        fetch('../assets/data/vulnerabilidade/indicadores_municipios.json').then(function (r) { return r.ok ? r.json() : null; }),
+        fetch('../assets/data/icm_municipios.json').then(function (r) { return r.ok ? r.json() : null; })
+      ]).then(function (parts) {
+        var cruz = parts[0], ind = parts[1], icm = parts[2];
+        var muc = cruz && cruz.cidades && cruz.cidades.mucum ? cruz.cidades.mucum : null;
+        if (muc) {
+          var metrics = document.getElementById('zenodo-metrics').children;
+          metrics[0].querySelector('strong').textContent = muc.n_pontos_no_bbox;
+          metrics[1].querySelector('strong').textContent = muc.cobertura_no_pico_pct + '%';
+          metrics[2].querySelector('strong').textContent = (cruz.iou['mucum_hand_vs_mgb_n0030_thr17.02'].iou).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          metrics[3].querySelector('strong').textContent = muc.cobertura_hand15_pct + '%';
+        }
+        var municipios = (ind && ind.municipios) || [];
+        function findMun(nome) {
+          return municipios.find(function (m) { return m.nome === nome; });
+        }
+        function findIcm(cod) {
+          if (!icm || !icm.municipios) return null;
+          return icm.municipios.find(function (m) { return m.cod_ibge === cod; });
+        }
+        var rows = ['Muçum', 'Encantado', 'Roca Sales', 'Lajeado'].map(function (nome) {
+          var m = findMun(nome);
+          var pop = m && m.pop_bacia != null ? Math.round(m.pop_bacia).toLocaleString('pt-BR') : '—';
+          var pts = zenodoCities[nome] != null ? zenodoCities[nome] : '—';
+          var icmRow = findIcm(ibgeMap[nome]);
+          var icmLabel = icmRow ? ('ICM ' + icmRow.faixa + ' · ' + icmRow.perfil_risco) : '—';
+          return '<tr><td><strong>' + nome + '</strong><br><small style="color:#5b6b76">' + icmLabel + '</small></td><td>' + pts + '</td><td>' + pop + '</td><td><span class="status-pill">UNKNOWN</span></td></tr>';
+        }).join('');
+        document.getElementById('municipio-rows').innerHTML = rows;
+
+        var totals = municipios.reduce(function (acc, m) {
+          if (!m.nome) return acc;
+          if (['Muçum', 'Encantado', 'Roca Sales', 'Lajeado', 'Santa Tereza'].indexOf(m.nome) < 0) return acc;
+          acc.i60 += num(m.i60_69_bacia);
+          acc.i70 += num(m.i70m_bacia);
+          acc.dom += num(m.dom_ocupados_bacia);
+          acc.set += num(m.n_setores_bacia);
+          return acc;
+        }, { i60: 0, i70: 0, dom: 0, set: 0 });
+        function num(v) { return Number.isFinite(Number(v)) ? Number(v) : 0; }
+        var hi = document.getElementById('vuln-highlights').children;
+        hi[0].querySelector('strong').textContent = totals.i60.toLocaleString('pt-BR');
+        hi[1].querySelector('strong').textContent = totals.i70.toLocaleString('pt-BR');
+        hi[2].querySelector('strong').textContent = totals.dom.toLocaleString('pt-BR');
+        hi[3].querySelector('strong').textContent = totals.set.toLocaleString('pt-BR');
+      }).catch(function () {
+        document.getElementById('municipio-rows').innerHTML = '<tr><td colspan="4">Não foi possível carregar os dados.</td></tr>';
+      });
+    })();
+  </script>
+</body>
+</html>
