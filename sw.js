@@ -1,8 +1,9 @@
 /* PREVINE · cache mínimo para centro de resposta e modo campo (pesquisa offline parcial). */
-var CACHE = 'previne-resposta-v2';
+var CACHE = 'previne-resposta-v3';
 var SHELL = [
   '/pesquisas/centro-resposta.html',
   '/pesquisas/modo-campo.html',
+  '/pesquisas/revisao-multiperspectiva.html',
   '/pesquisas/estudo-caso-resposta-mucum.html',
   '/pesquisas/estudo-caso-resposta-santa-tereza.html',
   '/pesquisas/exposicao-cruzada.html',
@@ -21,7 +22,9 @@ var SHELL = [
   '/pesquisa_status_encantado.html',
   '/assets/js/resposta_operacional.js',
   '/assets/js/gestor_chrome.js',
-  '/assets/css/gestor_chrome.css'
+  '/assets/css/gestor_chrome.css',
+  '/assets/js/previne_research_guard.js',
+  '/assets/css/previne_research_guard.css'
 ];
 
 self.addEventListener('install', function (event) {

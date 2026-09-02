@@ -92,9 +92,13 @@
       var summary = null;
       var FIELD_ITEMS = [
         { id: 'route_ok', label: 'Corredor principal passável (rua/ponte)' },
+        { id: 'bridge_ok', label: 'Ponte do corredor vistoriada (estrutura e passagem)' },
         { id: 'shelter_ok', label: 'Abrigo identificado e acessível' },
-        { id: 'comms_ok', label: 'Canal de comunicação testado' },
+        { id: 'pcd_ok', label: 'Evacuação assistida / PcD: transporte confirmado' },
+        { id: 'comms_ok', label: 'Canal de comunicação testado (rádio/WhatsApp)' },
+        { id: 'radio_ok', label: 'Mensagem de rádio/WhatsApp revisada (sem ordem de saída)' },
         { id: 'water_ok', label: 'Nível do rio conferido com placa/local' },
+        { id: 'night_ok', label: 'Condições noturnas: iluminação e acesso veicular OK' },
         { id: 'lead_ok', label: 'Responsável local acionado/registrado' }
       ];
       var FIELD_KEY = 'previne_campo_check_v1';
@@ -203,6 +207,7 @@
         var checked = FIELD_ITEMS.filter(function (item) { return state[current + '_' + item.id]; }).map(function (item) { return '✓ ' + item.label; });
         var text = R.statusBrief(s) + '\n\nCampo (' + done + '/' + FIELD_ITEMS.length + ' confirmações locais)';
         if (checked.length) text += '\n' + checked.join('\n');
+        text += '\n\nMensagem rádio/WhatsApp (copiar se útil):\n' + s.place.label + ' · nível ' + s.levelLabel + ' · ' + R.freshnessLabelPt(s.freshness) + '. Leitura PREVINE — não é alerta oficial. Sem ordem de evacuação.';
         text += '\nNão é alerta oficial.';
         copyFieldText(text);
       });
