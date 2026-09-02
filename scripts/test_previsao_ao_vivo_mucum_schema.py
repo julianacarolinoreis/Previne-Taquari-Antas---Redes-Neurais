@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import copy
+import datetime as dt
+import importlib.util
 import json
 import unittest
 from pathlib import Path
@@ -14,6 +16,11 @@ except ImportError:
 
 
 ROOT = Path(__file__).resolve().parents[1]
+LIVE_SCRIPT = ROOT / "codigo_python" / "01_previsao_ao_vivo" / "gerar_previsao_ao_vivo_mucum.py"
+LIVE_SPEC = importlib.util.spec_from_file_location("mucum_live_generator", LIVE_SCRIPT)
+LIVE = importlib.util.module_from_spec(LIVE_SPEC)
+assert LIVE_SPEC.loader is not None
+LIVE_SPEC.loader.exec_module(LIVE)
 
 
 class MucumFeedContractTests(unittest.TestCase):
@@ -74,6 +81,16 @@ class MucumFeedContractTests(unittest.TestCase):
         data["horizontes"]["4h"]["modelo"] = "4h_cascata_legado"
         with self.assertRaises(SystemExit):
             validate_data(data)
+
+    def test_stale_guard_uses_nested_horizon_when_2h_is_missing(self) -> None:
+        data = copy.deepcopy(self.data)
+        data["horizontes"]["2h"]["nivel_previsto_cm"] = None
+        data["horizontes"]["2h"]["disponivel"] = False
+        data["horizontes"]["2h"]["status"] = "inputs incompletos — sem previsão nesta hora"
+        self.assertEqual(
+            LIVE._hora_previsao_mais_recente(data),
+            dt.datetime(2026, 8, 28, 18, 0),
+        )
 
 
 if __name__ == "__main__":
