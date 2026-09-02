@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#0b3b36">
   <meta name="description" content="Arquivo vivo e navegável das pesquisas do PREVINE Taquari-Antas.">
   <title>PREVINE · Arquivo vivo de pesquisas</title>
+  <link rel="stylesheet" href="assets/css/gestor_chrome.css">
   <style>
     :root{
       --ink:#142b2a;--muted:#607372;--line:#dce9e5;--paper:#f6faf8;--card:#fff;
@@ -107,8 +108,14 @@
     .maturity-note{margin:13px 0 0;padding:10px 12px;border-left:3px solid var(--coral);border-radius:0 10px 10px 0;background:#fff4f1;color:#7b4a42;font-size:12px}
     .footer{margin-top:16px;padding:18px 21px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
     .footer a{color:var(--deep-2);font-weight:800}
-    @media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.context,.how{grid-template-columns:1fr}}
-    @media(max-width:650px){.shell{padding:12px 12px 30px}.hero{padding:22px 20px;border-radius:22px}.topline{align-items:flex-start;flex-direction:column;margin-bottom:24px}.hero-links{justify-content:flex-start}.hero-copy{font-size:15px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:14px}.metric b{font-size:23px}.reading-grid,.steps{grid-template-columns:1fr}.library,.panel{padding:16px}.section-head{display:block}.live-dot{margin-top:10px}.search-row{grid-template-columns:1fr}.toolbar{position:static}.cards{grid-template-columns:1fr}.card{padding:15px}.result-line{align-items:flex-start;flex-direction:column}.pagination{gap:6px;justify-content:space-between}.pagination button{min-width:0;flex:1;padding-left:5px;padding-right:5px;font-size:11px}.page-status{min-width:84px}.agenda-panel{display:grid}.agenda-panel-actions{min-width:0}.catalog-maturity-grid{grid-template-columns:1fr 1fr}}
+    .funil-panel{margin:16px 0;padding:22px;background:#fff;border:1px solid var(--line);border-radius:21px}
+    .funil-panel h2{margin:0;color:var(--deep);font-size:20px;letter-spacing:-.02em}
+    .funil-panel>p{margin:8px 0 16px;color:var(--muted);font-size:14px}
+    .funil-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .live-dot:before{background:#8b74dd;box-shadow:0 0 0 5px rgba(139,116,221,.15)}
+    .catalog-maturity-item.validated{border-color:#d7e1e2;background:#f7f8f8}
+    @media(max-width:900px){.cards,.funil-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.context,.how{grid-template-columns:1fr}}
+    @media(max-width:650px){.shell{padding:12px 12px 30px}.hero{padding:22px 20px;border-radius:22px}.topline{align-items:flex-start;flex-direction:column;margin-bottom:24px}.hero-links{justify-content:flex-start}.hero-copy{font-size:15px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:14px}.metric b{font-size:23px}.reading-grid,.steps{grid-template-columns:1fr}.library,.panel,.funil-panel{padding:16px}.funil-grid{grid-template-columns:1fr}.section-head{display:block}.live-dot{margin-top:10px}.search-row{grid-template-columns:1fr}.toolbar{position:static}.cards{grid-template-columns:1fr}.card{padding:15px}.result-line{align-items:flex-start;flex-direction:column}.pagination{gap:6px;justify-content:space-between}.pagination button{min-width:0;flex:1;padding-left:5px;padding-right:5px;font-size:11px}.page-status{min-width:84px}.agenda-panel{display:grid}.agenda-panel-actions{min-width:0}.catalog-maturity-grid{grid-template-columns:1fr 1fr}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.card{transition:none}.card:hover{transform:none}}
   </style>
 </head>
@@ -120,14 +127,29 @@
         <p class="eyebrow">PREVINE · memória de pesquisa</p>
         <nav class="hero-links" aria-label="Atalhos principais">
           <a href="index.html">← feed das RNAs</a>
+          <a href="pesquisas/briefing-gestores.html">briefing para gestores</a>
           <a href="pesquisas/agenda-avanco.html">agenda de avanço</a>
           <a href="pesquisas/estudo-caso-resposta-santa-tereza.html">abrir sala de decisão</a>
         </nav>
       </div>
-      <h1>O que já estudamos — em um lugar só.</h1>
-      <p class="hero-copy">Um arquivo vivo para voltar às hipóteses, mapas, modelos e ensaios do PREVINE. Pesquise por tema, abra cada página e encontre o próximo ponto a melhorar.</p>
+      <h1>Seis portas para gestores. O resto é arquivo.</h1>
+      <p class="hero-copy">Comece pelo briefing, pela situação da bacia ou pela mesa de Santa Tereza. O catálogo abaixo guarda as 56 hipóteses, mapas e RNAs — sem misturar pesquisa com alerta oficial.</p>
       <div class="hero-note"><strong>Leitura rápida:</strong> este acervo organiza pesquisa e protótipos; não substitui alerta oficial, rota liberada ou despacho real.</div>
     </header>
+
+    <section class="funil-panel" aria-labelledby="funil-title">
+      <div class="mini-title">Pacote mínimo · gestores</div>
+      <h2 id="funil-title" style="margin-top:5px">O que abrir na reunião — e o que deixar no arquivo</h2>
+      <p>Cinco superfícies vivas e uma folha A4. Encantado, Roca Sales e Lajeado ainda não têm ficha de município.</p>
+      <div class="funil-grid">
+        <a class="funil-card" href="dashboard_bacia.html"><b>1. Agora na bacia</b><span>Nível, chuva e score experimental. Sem probabilidade conjunta e sem VAI/NÃO VAI.</span><small>abrir dashboard →</small></a>
+        <a class="funil-card" href="pesquisa_status.html"><b>2. Ficha do município</b><span>Santa Tereza e Muçum em abas. UNKNOWN quando o feed atrasar. Score, não binário.</span><small>Santa Tereza · Muçum →</small></a>
+        <a class="funil-card" href="santa_tereza_previsao_inundacao.html"><b>3. Mapa da cidade</b><span>Mancha HAND é proxy de leito. Cota oficial: 15 m em ST, 18 m em Muçum.</span><small>mapa preliminar →</small></a>
+        <a class="funil-card" href="vulnerabilidade.html"><b>4. Pessoas no recorte</b><span>Censo 2022. Vulnerabilidade não é risco até cruzar mancha validada.</span><small>abrir exposição →</small></a>
+        <a class="funil-card" href="pesquisas/estudo-caso-resposta-santa-tereza.html"><b>5. Mesa Santa Tereza</b><span>Sala V002, checklist 0/7, ginásio sem capacidade. Exercício, não despacho.</span><small>abrir exercício →</small></a>
+        <a class="funil-card" href="pesquisas/briefing-gestores.html"><b>6. Briefing A4</b><span>Uma folha para imprimir ou copiar: o que é, o que não é, o que pedir na mesa.</span><small>imprimir briefing →</small></a>
+      </div>
+    </section>
 
     <section class="metrics" aria-label="Resumo do acervo">
       <div class="metric"><b id="metricTotal">—</b><span>páginas indexadas no arquivo</span></div>
@@ -187,10 +209,10 @@
     <main id="acervo" class="library" tabindex="-1">
       <div class="section-head">
         <div>
-          <h2>Explorar pesquisas</h2>
-          <p>Use a busca como memória: cidade, RNA, rota, abrigo, vulnerabilidade, mapa ou auditoria.</p>
+          <h2>Arquivo científico</h2>
+          <p>Rotas gêmeas, relatórios 8h, snapshots SACE e RNAs ficam aqui. Gestores usam as seis portas acima.</p>
         </div>
-        <div class="live-dot">catálogo local · sem dependência externa</div>
+        <div class="live-dot">arquivo · sem alerta</div>
       </div>
       <div class="toolbar" aria-label="Filtros do acervo">
         <div class="search-row">
@@ -252,6 +274,7 @@
 
   <script>
     const entries = [
+      {title:"Briefing para gestores · A4",category:"Resposta",status:"estudo",description:"One-pager para reunião: quatro camadas, URLs canônicas, o que pedir na mesa e o que não promover.",caveat:"Folha de pesquisa; não é alerta, rota liberada ou autorização de despacho.",href:"pesquisas/briefing-gestores.html",source:"pacote gestores 02/09/2026"},
       {title:"Agenda de avanço · pesquisa → decisão",category:"Resposta",status:"estudo",description:"Plano estruturado das pesquisas prioritárias, do saneamento científico ao exercício de resposta supervisionado.",caveat:"Agenda de pesquisa; não é alerta, rota liberada ou autorização de despacho.",href:"pesquisas/agenda-avanco.html",source:"agenda revisada em 29/08/2026"},
       {title:"Sala de decisão V002 · resposta Santa Tereza",category:"Resposta",status:"estudo",description:"Exercício controlado com briefing, checklist prévio, zona, pessoas, rota, abrigo, equipe, comunicação, contingências e métricas de aprendizado.",caveat:"Protótipo de exercício; dados UNKNOWN/STALE bloqueiam a ação e corredores/abrigo precisam de validação de campo.",href:"pesquisas/estudo-caso-resposta-santa-tereza.html",source:"artefato V002 revisado em 29/08/2026"},
       {title:"Estudo de caso · Muçum · slides",category:"Resposta",status:"estudo",description:"Narrativa visual para discutir a resposta a uma cheia e os pontos que precisam ser verificados antes da saída.",caveat:"Material de estudo; não é ordem de evacuação.",href:"pesquisas/mucum-estudo-caso-slides.html",source:"arquivo de pesquisa"},
@@ -292,7 +315,7 @@
       {title:"Auditoria de vulnerabilidade",category:"Vulnerabilidade",status:"auditoria",description:"Auditoria visual e metodológica das camadas de vulnerabilidade e seus limites de leitura.",caveat:"Vulnerabilidade social, perigo e risco são camadas diferentes.",href:"pesquisas/auditoria-vulnerabilidade.html",source:"relatório de auditoria"},
       {title:"Vulnerabilidade · pós-revisão",category:"Vulnerabilidade",status:"auditoria",description:"Versão pós-revisão do mapa e dos materiais de vulnerabilidade da bacia.",caveat:"Valores e escopos precisam ser lidos conforme a definição de município ou bacia.",href:"pesquisas/vulnerabilidade-postreview.html",source:"produto revisado"},
       {title:"Santa Tereza ao vivo · relatório de auditoria",category:"RNA",status:"auditoria",description:"Relatório estático com artefatos e pontos de auditoria ligados ao monitoramento experimental.",caveat:"Relatório histórico; data de captura e disponibilidade da fonte importam.",href:"pesquisas/relatorio-santa-tereza-ao-vivo-20260823.html",source:"relatório auditável"},
-      {title:"Dashboard da bacia · Taquari-Antas",category:"Publicados",status:"publicado",description:"Painel integrado para navegar pelas frentes de dados e pesquisas da bacia.",caveat:"O painel reúne pesquisa e produto; cada camada mantém sua própria fonte e limitação.",href:"pesquisas/dashboard-bacia-taquari-antas.html",source:"página catalogada"},
+      {title:"Dashboard da bacia · Taquari-Antas",category:"Publicados",status:"publicado",description:"Painel integrado para navegar pelas frentes de dados e pesquisas da bacia.",caveat:"Prévia arquivada com números congelados. A leitura viva está em dashboard_bacia.html; sem VAI/NÃO VAI.",href:"pesquisas/dashboard-bacia-taquari-antas.html",source:"página catalogada"},
       {title:"Gráfico observado × RNA · 4h",category:"RNA",status:"comparativo",description:"Figura de comparação entre série observada e resultado de RNA no horizonte de 4 horas.",caveat:"A comparação deve manter período, eventos e partição explícitos.",href:"pesquisas/grafico-4h-observado-rna.html",source:"figura de pesquisa"},
       {title:"Gráfico observado A/B · 2h",category:"RNA",status:"comparativo",description:"Figura exploratória de comparação entre séries e alternativas no horizonte de 2 horas.",caveat:"Figura não substitui a tabela de métricas e a auditoria de origem.",href:"pesquisas/grafico-2h-observado-a-b.html",source:"figura de pesquisa"},
       {title:"Santa Tereza · previsão de inundação",category:"Publicados",status:"publicado",description:"Página principal de monitoramento e previsão científica de Santa Tereza.",caveat:"A leitura operacional depende de fonte atual, cobertura e validação; previsão não é alerta oficial.",href:"santa_tereza_previsao_inundacao.html",source:"página principal"},
@@ -369,5 +392,6 @@
     document.getElementById("metricSite").textContent = entries.filter(item => item.status === "publicado").length;
     render();
   </script>
+  <script src="assets/js/gestor_chrome.js" data-page="arquivo" data-place="bacia"></script>
 </body>
 </html>
