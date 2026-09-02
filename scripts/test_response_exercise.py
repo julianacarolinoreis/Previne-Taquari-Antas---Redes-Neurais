@@ -73,7 +73,7 @@ def test_contract_and_sources() -> None:
     assert shelter_contract["occupancy"] is None
     assert shelter_contract["status"] == "unknown"
     assert shelter_contract["safe_point_confirmed"] is False
-    assert shelter_contract["route_reference"]["status"] == "unreconciled_placeholder"
+    assert shelter_contract["route_reference"]["status"] == "reconciled_abrigos_geojson"
     assert shelter["geometry"]["coordinates"] == [shelter_contract["longitude"], shelter_contract["latitude"]]
 
     assert live["modo"] == "ao_vivo"
@@ -152,8 +152,8 @@ def test_contract_and_sources() -> None:
 
 def test_page_embeds_the_audited_snapshot_and_guardrails() -> None:
     html = CASE.read_text(encoding="utf-8")
-    live_match = re.search(r"const LIVE = (\{.*?\});\s*\n", html, flags=re.S)
-    assert live_match, "snapshot LIVE ausente da página"
+    live_match = re.search(r"const LIVE_BASE = (\{.*?\});\s*\n", html, flags=re.S)
+    assert live_match, "snapshot LIVE_BASE ausente da página"
     embedded = json.loads(live_match.group(1))
     contract = load_json(CONTRACT)
     assert embedded["snapshot"] == contract["forecast"]["source_snapshot"]
@@ -161,6 +161,8 @@ def test_page_embeds_the_audited_snapshot_and_guardrails() -> None:
     assert embedded["observed_cm"] == contract["forecast"]["observed_level_cm"]
     assert embedded["v001"]["forecast_cm"] == 284.0
     assert embedded["v002"]["forecast_cm"] == 320.0
+    assert "Plantão" in html
+    assert "mesa_st_plantao.js" in html
     assert "V002 · exercício" in html
     assert "estudo_caso_resposta_v002.json" in html
     assert "UNKNOWN" in html and "STALE" in html
@@ -235,7 +237,7 @@ def test_rendered_responsive_interactions() -> None:
                 assert page.locator(".map-reading-strip").is_visible()
                 assert "Z-01" in page.locator("#mapReadableZone").inner_text()
                 assert "Ginásio" in page.locator("#mapReadableDestination").inner_text()
-                assert "UNKNOWN" in page.locator("#mapReadableDestination").inner_text()
+                assert "coordenada não reconciliada" not in page.locator("#mapReadableDestination").inner_text().lower()
                 assert page.locator("#freshnessStatus").inner_text() in {"UNKNOWN", "STALE", "ATENÇÃO"}
                 assert page.locator("#teaserAction").is_disabled()
                 if width <= 780:
@@ -286,8 +288,8 @@ def test_rendered_responsive_interactions() -> None:
             assert exported["export_schema_version"] == "exercise_record_v2"
             assert exported["timezone"] == "America/Sao_Paulo"
             assert exported["source_provenance"]["files"][0]["path"] == "assets/data/estudo_caso_resposta_v002.json"
-            assert exported["route"]["destination_reconciliation"]["reconciled"] is False
-            assert exported["shelter"]["spatial_reconciliation"]["reconciled"] is False
+            assert exported["route"]["destination_reconciliation"]["reconciled"] is True
+            assert exported["shelter"]["spatial_reconciliation"]["reconciled"] is True
             assert exported["event"]["zone"] == "Z-01"
             assert exported["validation_checklist"]["forecast"] is True
             assert exported["exercise_metrics"]["criticalFailures"] == 1
