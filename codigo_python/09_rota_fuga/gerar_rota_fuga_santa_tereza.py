@@ -66,9 +66,10 @@ HORIZONTE_MIN = 360         # projeta a trajetória por até 6 h à frente
 # oficial do ginásio: serve só para a prova de conceito rodar. Trocar assim
 # que a Defesa Civil confirmar o(s) ponto(s) seguro(s).
 PONTO_SEGURO = {
-    "lat": -29.1745, "lon": -51.7305,
-    "nome": "Ginásio (PLACEHOLDER — confirmar com a Defesa Civil)",
-    "confirmado": False,
+    "lat": -29.168793, "lon": -51.7327164,
+    "nome": "Ginásio de Esportes",
+    "confirmado": True,
+    "fonte": "assets/data/servicos/abrigos.geojson · Defesa Civil ST",
 }
 
 # recorte urbano aproximado (bbox) para a Etapa 1 — evita espalhar a grade pela
