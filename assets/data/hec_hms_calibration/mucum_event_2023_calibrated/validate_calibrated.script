@@ -1,0 +1,58 @@
+from hms.model.JythonHms import *
+from hec.heclib.dss import HecDss
+import csv
+import math
+
+project = r"D:/PREVINE/worktrees/previne-catalogo-pesquisas-20260828/assets/data/hec_hms_calibration/mucum_event_2023_calibrated"
+output = r"D:/PREVINE/worktrees/previne-catalogo-pesquisas-20260828/assets/data/hec_hms_calibration/mucum_event_2023_calibrated/Calibracao.dss"
+series_file = r"D:/PREVINE/worktrees/previne-catalogo-pesquisas-20260828/assets/data/hec_hms_calibration/mucum_event_2023_calibrated/calibrated_series.csv"
+metrics_file = r"D:/PREVINE/worktrees/previne-catalogo-pesquisas-20260828/assets/data/hec_hms_calibration/mucum_event_2023_calibrated/calibrated_metrics.csv"
+
+OpenProject("mucum_event_2023", project)
+Compute("Calibracao")
+dss = HecDss.open(output)
+sim = dss.get("//Saida_86472000/FLOW/01Sep2023/1Hour/RUN:Calibracao/")
+obs = dss.get("//Saida_86472000/FLOW-OBSERVED/01Sep2023/1Hour/RUN:Calibracao/")
+if sim is None or obs is None:
+    raise ValueError("simulated or observed result series not found")
+
+pairs = []
+count = min(sim.numberValues, obs.numberValues)
+for i in range(count):
+    observed = float(obs.values[i])
+    simulated = float(sim.values[i])
+    if observed > -1.0e20 and simulated > -1.0e20:
+        pairs.append((observed, simulated))
+if not pairs:
+    raise ValueError("no valid paired values")
+
+mean_observed = sum(pair[0] for pair in pairs) / len(pairs)
+mae = sum(abs(pair[1] - pair[0]) for pair in pairs) / len(pairs)
+rmse = math.sqrt(sum((pair[1] - pair[0]) ** 2 for pair in pairs) / len(pairs))
+denominator = sum((pair[0] - mean_observed) ** 2 for pair in pairs)
+nse = 1.0 - sum((pair[1] - pair[0]) ** 2 for pair in pairs) / denominator
+observed_peak = max(pair[0] for pair in pairs)
+simulated_peak = max(pair[1] for pair in pairs)
+observed_peak_index = [i for i, pair in enumerate(pairs) if pair[0] == observed_peak][0]
+simulated_peak_index = [i for i, pair in enumerate(pairs) if pair[1] == simulated_peak][0]
+
+with open(series_file, "wb") as handle:
+    writer = csv.writer(handle)
+    writer.writerow(["index", "observed_m3s", "simulated_m3s"])
+    for i, pair in enumerate(pairs):
+        writer.writerow([i, pair[0], pair[1]])
+with open(metrics_file, "wb") as handle:
+    writer = csv.writer(handle)
+    writer.writerow(["metric", "value"])
+    writer.writerow(["count", len(pairs)])
+    writer.writerow(["mae_m3s", mae])
+    writer.writerow(["rmse_m3s", rmse])
+    writer.writerow(["nse", nse])
+    writer.writerow(["observed_peak_m3s", observed_peak])
+    writer.writerow(["simulated_peak_m3s", simulated_peak])
+    writer.writerow(["observed_peak_index", observed_peak_index])
+    writer.writerow(["simulated_peak_index", simulated_peak_index])
+
+print("VALIDATED|count=%d|mae=%.10f|rmse=%.10f|nse=%.10f|observed_peak=%.10f|simulated_peak=%.10f|observed_peak_index=%d|simulated_peak_index=%d" % (len(pairs), mae, rmse, nse, observed_peak, simulated_peak, observed_peak_index, simulated_peak_index))
+dss.close()
+Exit(1)

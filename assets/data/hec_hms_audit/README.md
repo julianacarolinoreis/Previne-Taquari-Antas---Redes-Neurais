@@ -12,7 +12,9 @@ proveniência das estações, respostas brutas e um recorte horário de evento.
   telemetria, portanto a aceitação como precipitação precisa ser documentada;
 - `02851072` é pluviométrica em Ibiraiaras e não pode ser chamada de chuva de
   Santa Tereza;
-- a calibração HEC-HMS ainda não foi executada.
+- a calibração de replay do evento de Muçum foi executada e revalidada no pacote
+  `../hec_hms_calibration/mucum_event_2023_calibrated/`; ela continua sendo um
+  ajuste de pesquisa para um evento único, não uma previsão operacional.
 
 ## Arquivos
 

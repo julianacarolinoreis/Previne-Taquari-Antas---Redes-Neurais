@@ -44,7 +44,20 @@ O primeiro caso deve ser um replay histórico, não um cenário inventado:
 6. registrar cada entrada no meteorologic model pelo código oficial, município,
    coordenada e período de validade.
 
-## O que ainda é necessário antes de calibrar
+## Calibração de replay já executada
+
+O projeto de Muçum foi calculado no HEC-HMS 4.13 para o evento de
+01–10/09/2023. A busca coarse + focal + refinamento avaliou 360 combinações
+válidas; o conjunto selecionado foi reexecutado fora da busca e conferido com
+as mesmas 239 observações pareadas. O pacote reproduzível está em
+`assets/data/hec_hms_calibration/mucum_event_2023_calibrated/`.
+
+O conjunto selecionado produziu NSE 0,7717, RMSE 1.776,48 m³/s e pico simulado
+de 10.486,00 m³/s contra 15.447,88 m³/s observados, com diferença de três
+horas no índice do pico. Isso fecha a etapa “calibrado para pesquisa/replay”
+desse evento, mas não fecha a prontidão para previsão ou resposta.
+
+## O que ainda é necessário para aumentar a confiança
 
 ### Modelo físico e dados
 
@@ -78,5 +91,9 @@ O HEC-HMS só pode ser marcado como “calibrado para pesquisa” depois de:
 - calibração e validação reproduzidas por script;
 - relatório de incerteza e limitações revisado.
 
-Até esse gate, a classificação correta é “preparação de calibração” e não
-“previsão operacional”.
+O gate de “calibrado para pesquisa/replay de evento único” está atendido para
+Muçum neste pacote. O gate de “previsão operacional” continua bloqueado até a
+validação independente, a confirmação semântica de chuva/vazão e fuso, a
+delimitação hidrologicamente adequada da bacia e os testes de sensibilidade e
+campo. A classificação correta continua sendo pesquisa/replay, não previsão
+operacional.
