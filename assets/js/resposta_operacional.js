@@ -5,6 +5,7 @@
 
   var CHECKLIST_KEY = 'previne_resposta_checklist_v1';
   var ST_MESA_KEY = 'previne:stz-v002:exercise:v3';
+  var MUC_MESA_KEY = 'previne:muc-v002:exercise:v1';
   var ST_MESA_SCHEMA = 1;
   var DECISION_LOG_KEY = 'previne_resposta_decisions_v1';
   var CHECKLIST_ITEMS = [
@@ -109,9 +110,9 @@
     return { kind: 'fresh', label: 'RECENTE', detail: age != null ? 'Atualizado há ~' + age + ' min' : 'Telemetria publicada' };
   }
 
-  function readMesaValidation() {
+  function readMesaValidationFrom(key) {
     try {
-      var raw = localStorage.getItem(ST_MESA_KEY);
+      var raw = localStorage.getItem(key);
       if (!raw) return null;
       var saved = JSON.parse(raw);
       if (!saved || saved.schema_version !== ST_MESA_SCHEMA) return null;
@@ -121,24 +122,37 @@
     }
   }
 
-  function writeMesaValidation(patch) {
+  function readMesaValidation() {
+    var st = readMesaValidationFrom(ST_MESA_KEY);
+    var muc = readMesaValidationFrom(MUC_MESA_KEY);
+    if (!st && !muc) return null;
+    var merged = {};
+    CHECKLIST_ITEMS.forEach(function (item) {
+      merged[item.id] = !!(st && st[item.id]) || !!(muc && muc[item.id]);
+    });
+    return merged;
+  }
+
+  function writeMesaValidationTo(key, patch) {
     try {
-      var raw = localStorage.getItem(ST_MESA_KEY);
+      var raw = localStorage.getItem(key);
       var saved = raw ? JSON.parse(raw) : null;
       if (!saved || saved.schema_version !== ST_MESA_SCHEMA) {
-        saved = {
-          schema_version: ST_MESA_SCHEMA,
-          saved_at: new Date().toISOString(),
-          validation: {}
-        };
+        saved = { schema_version: ST_MESA_SCHEMA, saved_at: new Date().toISOString(), validation: {} };
       }
       saved.validation = Object.assign({}, saved.validation || {}, patch);
       saved.saved_at = new Date().toISOString();
-      localStorage.setItem(ST_MESA_KEY, JSON.stringify(saved));
+      localStorage.setItem(key, JSON.stringify(saved));
       return true;
     } catch (e) {
       return false;
     }
+  }
+
+  function writeMesaValidation(patch) {
+    writeMesaValidationTo(ST_MESA_KEY, patch);
+    writeMesaValidationTo(MUC_MESA_KEY, patch);
+    return true;
   }
 
   function mergeChecklistSources() {
@@ -173,16 +187,69 @@
 
   function clearChecklist() {
     try { localStorage.removeItem(CHECKLIST_KEY); } catch (e) { /* ignore */ }
-    try {
-      var raw = localStorage.getItem(ST_MESA_KEY);
-      if (!raw) return;
-      var saved = JSON.parse(raw);
-      if (!saved || saved.schema_version !== ST_MESA_SCHEMA) return;
-      saved.validation = {};
-      CHECKLIST_ITEMS.forEach(function (item) { saved.validation[item.id] = false; });
-      saved.saved_at = new Date().toISOString();
-      localStorage.setItem(ST_MESA_KEY, JSON.stringify(saved));
-    } catch (e) { /* ignore */ }
+    [ST_MESA_KEY, MUC_MESA_KEY].forEach(function (key) {
+      try {
+        var raw = localStorage.getItem(key);
+        if (!raw) return;
+        var saved = JSON.parse(raw);
+        if (!saved || saved.schema_version !== ST_MESA_SCHEMA) return;
+        saved.validation = {};
+        CHECKLIST_ITEMS.forEach(function (item) { saved.validation[item.id] = false; });
+        saved.saved_at = new Date().toISOString();
+        localStorage.setItem(key, JSON.stringify(saved));
+      } catch (e) { /* ignore */ }
+    });
+  }
+
+  function horizonSlot(feed, slot) {
+    if (!feed) return null;
+    if (feed.horizontes && feed.horizontes[slot]) return feed.horizontes[slot];
+    if (slot === '2h' && feed.horizonte_h === 2) return feed;
+    return null;
+  }
+
+  function summarizeHorizons(feed) {
+    var h2 = horizonSlot(feed, '2h') || feed;
+    var h8 = horizonSlot(feed, '8h');
+    var h8s = horizonSlot(feed, '8h_versao_b') || horizonSlot(feed, '8h_v002');
+    function pick(h) {
+      if (!h) return null;
+      return {
+        label: h.rotulo || h.horizonte || '—',
+        cm: h.nivel_previsto_cm != null ? h.nivel_previsto_cm : h.nivel_modelo_cm,
+        shadow: h.modelo_papel === 'comparativo' || (h.rotulo && /sombra|comparativo|rank 2/i.test(h.rotulo))
+      };
+    }
+    return { h2: pick(h2), h8: pick(h8), h8Shadow: pick(h8s) };
+  }
+
+  var exposureCache = {};
+
+  function fetchExposurePeak(placeKey) {
+    if (exposureCache[placeKey]) return exposureCache[placeKey];
+    var file = placeKey === 'mucum'
+      ? '/assets/data/exposicao_cruzada/exposicao_mucum.json'
+      : placeKey === 'santa'
+        ? '/assets/data/exposicao_cruzada/exposicao_santa_tereza.json'
+        : null;
+    if (!file) {
+      exposureCache[placeKey] = Promise.resolve(null);
+      return exposureCache[placeKey];
+    }
+    exposureCache[placeKey] = fetch(file, { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !data.niveis || !data.niveis.length) return null;
+        var peak = data.niveis.filter(function (n) { return n.hand_m >= 15; }).pop() || data.niveis[data.niveis.length - 1];
+        return {
+          pop: peak.grade_200m && peak.grade_200m.pop,
+          dom: peak.grade_200m && peak.grade_200m.dom,
+          hand_m: peak.hand_m,
+          pct: peak.pct_pop_municipio
+        };
+      })
+      .catch(function () { return null; });
+    return exposureCache[placeKey];
   }
 
   function freshnessLabelPt(fresh) {
@@ -298,14 +365,17 @@
       .catch(function () { return null; });
   }
 
-  function summarizePlace(feed, placeKey) {
+  function summarizePlace(feed, placeKey, opts) {
+    opts = opts || {};
     var place = PLACES[placeKey];
     var fresh = classifyFreshness(feed || {});
     var level = feed ? (feed.nivel_rio_agora_cm != null ? feed.nivel_rio_agora_cm : feed.telemetria_ultima_nivel_cm) : null;
     var pred = feed ? (feed.nivel_previsto_cm != null ? feed.nivel_previsto_cm : feed.nivel_modelo_cm) : null;
     var threshold = place.threshold;
     var gap = num(level) != null && num(threshold) != null ? threshold - num(level) : null;
-    return {
+    var age = feed && (feed.idade_telemetria_min != null ? feed.idade_telemetria_min : feed.idade_leitura_min);
+    var horizons = summarizeHorizons(feed);
+    var out = {
       place: place,
       freshness: fresh,
       levelCm: level,
@@ -314,21 +384,45 @@
       levelAt: feed ? (feed.nivel_rio_agora_em || feed.telemetria_ultima_em) : null,
       levelAtLabel: fmtWhen(feed ? (feed.nivel_rio_agora_em || feed.telemetria_ultima_em) : null),
       horizon: feed ? (feed.rotulo || feed.horizonte || '—') : '—',
+      horizons: horizons,
+      saceAgeMin: age,
       statusDados: feed ? (feed.status_dados || '—') : '—',
       gapToThreshold: gap,
-      gapLabel: gap == null ? '—' : gap.toLocaleString('pt-BR') + ' cm até cota ' + threshold.toLocaleString('pt-BR') + ' cm'
+      gapLabel: gap == null ? '—' : gap.toLocaleString('pt-BR') + ' cm até cota ' + threshold.toLocaleString('pt-BR') + ' cm',
+      exposurePeak: opts.exposurePeak || null
+    };
+    if (horizons.h8 && horizons.h8.cm != null) {
+      out.horizonDetail = '2h → ' + fmtLevel(pred) + ' · 8h → ' + fmtLevel(horizons.h8.cm);
+      if (horizons.h8Shadow && horizons.h8Shadow.cm != null) {
+        out.horizonDetail += ' · 8h sombra → ' + fmtLevel(horizons.h8Shadow.cm);
+      }
+    }
+    return out;
+  }
+
+  function summarizePair(feedMuc, feedSt) {
+    return {
+      mucum: summarizePlace(feedMuc, 'mucum'),
+      santa: summarizePlace(feedSt, 'santa'),
+      proxyMontante: feedSt ? fmtLevel(feedSt.nivel_rio_agora_cm || feedSt.telemetria_ultima_nivel_cm) : '—'
     };
   }
 
   function statusBrief(summary) {
-    return [
+    var lines = [
       'PREVINE · leitura de pesquisa · não é alerta oficial',
       summary.place.label + ' · estação ' + summary.place.code,
       'Nível: ' + summary.levelLabel + ' (' + summary.freshness.label + ')',
-      'Previsão RNA ' + summary.horizon + ': ' + summary.predLabel,
-      'Margem até cota de pesquisa: ' + summary.gapLabel,
-      'Atualizado: ' + summary.levelAtLabel
-    ].join('\n');
+      'Previsão RNA ' + summary.horizon + ': ' + summary.predLabel
+    ];
+    if (summary.horizonDetail) lines.push(summary.horizonDetail);
+    if (summary.saceAgeMin != null) lines.push('Relógio ANA-SACE: ~' + summary.saceAgeMin + ' min');
+    lines.push('Margem até cota de pesquisa: ' + summary.gapLabel);
+    lines.push('Atualizado: ' + summary.levelAtLabel);
+    if (summary.exposurePeak && summary.exposurePeak.pop != null) {
+      lines.push('Exposição @ HAND ' + summary.exposurePeak.hand_m + ' m: ~' + summary.exposurePeak.pop + ' pessoas (grade 200 m)');
+    }
+    return lines.join('\n');
   }
 
   function exportUnifiedAta() {
@@ -373,6 +467,7 @@
     CHECKLIST_ITEMS: CHECKLIST_ITEMS,
     CHECKLIST_KEY: CHECKLIST_KEY,
     ST_MESA_KEY: ST_MESA_KEY,
+    MUC_MESA_KEY: MUC_MESA_KEY,
     DECISION_LOG_KEY: DECISION_LOG_KEY,
     PLACES: PLACES,
     JUSANTE: JUSANTE,
@@ -389,7 +484,10 @@
     exportUnifiedAta: exportUnifiedAta,
     downloadCsv: downloadCsv,
     fetchLive: fetchLive,
+    fetchExposurePeak: fetchExposurePeak,
+    summarizeHorizons: summarizeHorizons,
     summarizePlace: summarizePlace,
+    summarizePair: summarizePair,
     statusBrief: statusBrief,
     fmtLevel: fmtLevel,
     fmtWhen: fmtWhen,

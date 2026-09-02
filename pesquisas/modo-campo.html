@@ -60,6 +60,7 @@
       <a class="primary" id="link-mapa" href="../santa_tereza_previsao_inundacao.html">Abrir mapa da mancha</a>
       <a id="link-rota" href="santa-tereza-rota-fuga-ruas.html">Rota por ruas</a>
       <a id="link-mesa" href="estudo-caso-resposta-santa-tereza.html">Mesa / sala</a>
+      <a id="link-exposicao" href="exposicao-cruzada.html">Exposição cruzada</a>
       <a href="centro-resposta.html">Centro de resposta</a>
     </nav>
 
@@ -137,12 +138,22 @@
       }
 
       function refresh() {
-        R.fetchLive(current).then(function (feed) {
-          summary = R.summarizePlace(feed, current);
+        Promise.all([
+          R.fetchLive(current),
+          current === 'mucum' ? R.fetchExposurePeak('mucum') : Promise.resolve(null)
+        ]).then(function (parts) {
+          var feed = parts[0];
+          var exp = parts[1];
+          summary = R.summarizePlace(feed, current, { exposurePeak: exp });
+          var meta = 'RNA ' + summary.horizon + ' → <strong>' + summary.predLabel + '</strong>';
+          if (summary.horizonDetail) meta += '<br>' + summary.horizonDetail;
+          if (summary.exposurePeak && summary.exposurePeak.pop != null) {
+            meta += '<br>Exposição @ ' + summary.exposurePeak.hand_m + ' m: ~' + summary.exposurePeak.pop + ' pessoas';
+          }
+          meta += '<br>' + summary.gapLabel + '<br>Obs: ' + summary.levelAtLabel;
+          if (summary.saceAgeMin != null) meta += ' · ANA-SACE ~' + summary.saceAgeMin + ' min';
           document.getElementById('level-value').textContent = summary.levelLabel;
-          document.getElementById('level-meta').innerHTML =
-            'RNA ' + summary.horizon + ' → <strong>' + summary.predLabel + '</strong><br>' +
-            summary.gapLabel + '<br>Obs: ' + summary.levelAtLabel;
+          document.getElementById('level-meta').innerHTML = meta;
           var pill = document.getElementById('fresh-pill');
           pill.textContent = R.freshnessLabelPt(summary.freshness) + ' · ' + summary.freshness.detail;
           pill.className = 'fresh-pill' + (summary.freshness.kind === 'stale' ? ' stale' : (summary.freshness.kind === 'unknown' ? ' unknown' : ''));

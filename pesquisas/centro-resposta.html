@@ -121,10 +121,10 @@
       <h2 id="gaps-title">O que ainda não está pronto</h2>
       <p class="section-intro">Transparência sobre bloqueios — a plataforma mostra lacunas para orientar o que levantar antes de tratar qualquer página como despacho.</p>
       <div class="gaps">
-        <div class="gap blocked"><b>Camada Resposta · BLOQUEADA</b>Rotas sintéticas, abrigos sem capacidade confirmada e comunicação não validada. Ginásio ST sem lotação publicada; bombeiros não cadastrados no protótipo.</div>
-        <div class="gap"><b>Exposição · UNKNOWN</b>Censo 2022 existe, mas risco = vulnerabilidade ∩ mancha validada ainda não está calculado. Consulte <a href="exposicao-cruzada.html">exposição cruzada</a> para o que já dá para ler.</div>
-        <div class="gap blocked"><b>Municípios a jusante · fichas leves</b>Encantado, Roca Sales e Lajeado têm ficha IBGE/ICM — sem estação PREVINE nem RNA. Ver <a href="../pesquisa_status_encantado.html">Encantado</a>, <a href="../pesquisa_status_roca_sales.html">Roca Sales</a>, <a href="../pesquisa_status_lajeado.html">Lajeado</a>.</div>
-        <div class="gap"><b>Validação de mancha · parcial</b>Zenodo jul/2020 integrado (PR #79) e fix mapa×clique (PR #53). Falta calibração operacional por tempestade.</div>
+        <div class="gap"><b>Exposição · CALCULADO (Muçum/ST)</b>Grade 200 m × HAND publicada para Muçum (~2.117 pop @ 17 m) e Santa Tereza. Municípios jusante: contexto Zenodo + IBGE — ver <a href="exposicao-cruzada.html">exposição cruzada</a>.</div>
+        <div class="gap blocked"><b>Resposta · BLOQUEADA (exercício)</b>Gate operacional: nenhum despacho real. Muçum: plano jul/2026 digitalizado (9 alojamentos). ST: Ginásio com coordenada da rota ≠ cadastro — conferir em campo.</div>
+        <div class="gap"><b>Municípios a jusante · fichas leves</b>Encantado, Roca Sales, Lajeado — IBGE/ICM/Zenodo; sem estação PREVINE. Ver fichas no centro ou <a href="../pesquisa_status_encantado.html">Encantado</a>.</div>
+        <div class="gap"><b>Validação de mancha · parcial</b>Zenodo jul/2020 integrado; contornos Muçum até 25 m. Falta calibração operacional por tempestade (2023/2024).</div>
         <div class="gap"><b>Operação autorizada</b>Nenhum produto neste site está em modo operação real. Matriz: pesquisa → protótipo → validado → operação.</div>
       </div>
     </section>
@@ -158,15 +158,23 @@
       var R = window.PREVINE_RESPOSTA;
       var summaries = {};
 
-      function renderLiveCard(summary) {
+      function renderLiveCard(summary, extra) {
         var p = summary.place;
         var freshClass = summary.freshness.kind === 'stale' ? ' stale' : (summary.freshness.kind === 'unknown' ? ' unknown' : '');
         var freshLabel = R.freshnessLabelPt(summary.freshness);
+        var horizonLine = summary.horizonDetail
+          ? summary.horizonDetail + '<br>'
+          : ('RNA ' + summary.horizon + ' → ' + summary.predLabel + '<br>');
+        var expLine = summary.exposurePeak && summary.exposurePeak.pop != null
+          ? 'Exposição @ ' + summary.exposurePeak.hand_m + ' m: ~' + summary.exposurePeak.pop.toLocaleString('pt-BR') + ' pessoas<br>'
+          : '';
+        var extraLine = extra ? extra + '<br>' : '';
         return '<article class="live-card">' +
           '<header><h3>' + p.label + '</h3><span class="fresh' + freshClass + '">' + freshLabel + '</span></header>' +
           '<div class="live-level">' + summary.levelLabel + '</div>' +
-          '<p class="live-meta">RNA ' + summary.horizon + ' → ' + summary.predLabel + '<br>' +
-          summary.gapLabel + '<br>Observação: ' + summary.levelAtLabel + ' · ' + summary.freshness.detail + '</p>' +
+          '<p class="live-meta">' + horizonLine + expLine + extraLine +
+          summary.gapLabel + '<br>Observação: ' + summary.levelAtLabel +
+          (summary.saceAgeMin != null ? ' · ANA-SACE ~' + summary.saceAgeMin + ' min' : '') + '</p>' +
           '<div class="live-actions">' +
             '<a class="primary" href="../' + p.ficha + '">Ficha técnica</a>' +
             '<a href="../' + p.mapa + '">Mapa</a>' +
@@ -177,10 +185,16 @@
 
       function loadLive() {
         var grid = document.getElementById('live-grid');
-        Promise.all([R.fetchLive('santa'), R.fetchLive('mucum')]).then(function (pair) {
-          summaries.santa = R.summarizePlace(pair[0], 'santa');
-          summaries.mucum = R.summarizePlace(pair[1], 'mucum');
-          grid.innerHTML = renderLiveCard(summaries.santa) + renderLiveCard(summaries.mucum);
+        Promise.all([
+          R.fetchLive('santa'),
+          R.fetchLive('mucum'),
+          R.fetchExposurePeak('santa'),
+          R.fetchExposurePeak('mucum')
+        ]).then(function (parts) {
+          summaries.santa = R.summarizePlace(parts[0], 'santa', { exposurePeak: parts[2] });
+          summaries.mucum = R.summarizePlace(parts[1], 'mucum', { exposurePeak: parts[3] });
+          var proxy = parts[0] ? 'Proxy montante ST → Muçum: ' + R.fmtLevel(parts[0].nivel_rio_agora_cm || parts[0].telemetria_ultima_nivel_cm) : '';
+          grid.innerHTML = renderLiveCard(summaries.santa) + renderLiveCard(summaries.mucum, proxy);
         });
       }
 
@@ -206,7 +220,7 @@
 
       document.getElementById('refresh-live').addEventListener('click', loadLive);
       document.getElementById('clear-checklist').addEventListener('click', function () {
-        if (!window.confirm('Limpar checklist neste aparelho (inclui sincronização com mesa ST V002)?')) return;
+        if (!window.confirm('Limpar checklist neste aparelho (mesas ST e Muçum V002)?')) return;
         R.clearChecklist();
         renderChecklist();
       });

@@ -305,11 +305,16 @@
     } else {
       setLayer('layer-perigo', snaps.map((s) => pct(s.risk)).join(' · ') + ' exp.', `cota oficial ${cota} · score experimental, sem corte 50% · HAND 0 separado`, '');
     }
-    setLayer('layer-exposicao', 'UNKNOWN', 'Censo 2022 existe; join mancha validada × grade 200 m ainda não publicado', 'is-unknown');
-    if (state.station === 'mucum') {
-      setLayer('layer-resposta', 'Bloqueado', 'Muçum ainda sem sala V002. Abrigo canônico e relógio ANA–SACE pendentes.', 'is-blocked');
+    if (state.station === 'mucum' || state.station === 'santa') {
+      const label = state.station === 'mucum' ? 'Muçum ~2.117 pop @17 m' : 'Santa Tereza · grade 200 m';
+      setLayer('layer-exposicao', 'CALCULADO', `${label} · HAND×IBGE por centroide · ver exposição cruzada`, '');
     } else {
-      setLayer('layer-resposta', 'Bloqueado', 'Sala V002: 0/7 confirmações. Ginásio sem capacidade. Não despachar.', 'is-blocked');
+      setLayer('layer-exposicao', 'CALCULADO (ST/Muçum)', 'Jusante: Zenodo+IBGE · join espacial local pendente', '');
+    }
+    if (state.station === 'mucum') {
+      setLayer('layer-resposta', 'Bloqueado', 'Mesa V002 + plano jul/2026 (9 alojamentos). Gate exercício — ocupação em campo desconhecida.', 'is-blocked');
+    } else {
+      setLayer('layer-resposta', 'Bloqueado', 'Sala V002 + Ginásio (coord. rota ≠ cadastro). Não despachar.', 'is-blocked');
     }
   }
 

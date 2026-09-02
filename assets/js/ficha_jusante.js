@@ -21,9 +21,12 @@
 
   Promise.all([
     fetch('assets/data/vulnerabilidade/indicadores_municipios.json').then(function (r) { return r.ok ? r.json() : null; }),
-    fetch('assets/data/icm_municipios.json').then(function (r) { return r.ok ? r.json() : null; })
+    fetch('assets/data/icm_municipios.json').then(function (r) { return r.ok ? r.json() : null; }),
+    fetch('assets/data/validacao_zenodo_2020/relatorio_cruzamento.json').then(function (r) { return r.ok ? r.json() : null; }),
+    R.fetchLive('mucum').catch(function () { return null; }),
+    R.fetchLive('santa').catch(function () { return null; })
   ]).then(function (parts) {
-    var ind = parts[0], icmData = parts[1];
+    var ind = parts[0], icmData = parts[1], zenodo = parts[2], feedMuc = parts[3], feedSt = parts[4];
     if (!ind) throw new Error('indicadores indisponíveis');
     var mun = (ind.municipios || []).find(function (m) { return m.cod_mun === cfg.codIbge || m.nome === cfg.label; });
     var icm = (icmData && icmData.municipios || []).find(function (m) { return m.cod_ibge === cfg.codIbge; });
@@ -38,6 +41,23 @@
     document.getElementById('k-perfil').textContent = icm ? ('Capacidade DC · ' + icm.perfil_risco) : '—';
     document.getElementById('k-renda').textContent = mun && mun.renda_resp_bacia ? ('R$ ' + fmt(mun.renda_resp_bacia)) : '—';
     document.title = 'PREVINE · Estado da pesquisa — ' + cfg.label;
+
+    var note = document.getElementById('exposure-note');
+    if (note) {
+      var zenodoPts = zenodo && zenodo.fonte_zenodo && zenodo.fonte_zenodo.cidades
+        ? zenodo.fonte_zenodo.cidades[cfg.label] : cfg.zenodoPoints;
+      var mucLevel = feedMuc && R.fmtLevel(feedMuc.nivel_rio_agora_cm || feedMuc.telemetria_ultima_nivel_cm);
+      var stLevel = feedSt && R.fmtLevel(feedSt.nivel_rio_agora_cm || feedSt.telemetria_ultima_nivel_cm);
+      note.innerHTML = '<strong>Exposição espacial local:</strong> sem HAND municipal publicado — ' +
+        zenodoPts + ' pontos fotográficos Zenodo jul/2020 neste município. ' +
+        'Proxy montante: Muçum ' + (mucLevel || '—') + ' · ST ' + (stLevel || '—') + '. ' +
+        'Exposição cruzada HAND×IBGE disponível para <a href="pesquisas/exposicao-cruzada.html">Muçum e Santa Tereza</a>.';
+    }
+
+    var proxy = document.getElementById('proxy-levels');
+    if (proxy && feedMuc && feedSt) {
+      proxy.textContent = 'Muçum ' + R.fmtLevel(feedMuc.nivel_rio_agora_cm) + ' · ST ' + R.fmtLevel(feedSt.nivel_rio_agora_cm);
+    }
   }).catch(function () {
     document.getElementById('mun-sub').textContent = 'Não foi possível carregar indicadores IBGE/ICM. Tente atualizar a página.';
   });
