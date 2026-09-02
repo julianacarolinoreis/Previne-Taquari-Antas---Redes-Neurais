@@ -386,6 +386,8 @@ def telemetry_summary(path: Path) -> tuple[dict[str, Any], dict[str, float]]:
     errors = [node.text.strip() for node in xml_nodes(path, "Error") if node.text]
     hourly: dict[str, float] = {}
     rain_records = 0
+    flow_records = 0
+    level_records = 0
     first_time: str | None = None
     last_time: str | None = None
     for row in rows:
@@ -399,6 +401,10 @@ def telemetry_summary(path: Path) -> tuple[dict[str, Any], dict[str, float]]:
             continue
         first_time = raw_time.strip() if first_time is None else first_time
         last_time = raw_time.strip()
+        if parse_number(fields.get("Vazao")) is not None:
+            flow_records += 1
+        if parse_number(fields.get("Nivel")) is not None:
+            level_records += 1
         rain = parse_number(fields.get("Chuva"))
         if rain is None:
             continue
@@ -409,6 +415,8 @@ def telemetry_summary(path: Path) -> tuple[dict[str, Any], dict[str, float]]:
         {
             "rows": len(rows),
             "rain_records": rain_records,
+            "flow_records": flow_records,
+            "level_records": level_records,
             "hourly_rain_values": len(hourly),
             "first_timestamp": first_time,
             "last_timestamp": last_time,
@@ -712,6 +720,21 @@ def repo_hms_scan() -> dict[str, Any]:
     }
 
 
+def raw_file_inventory() -> list[dict[str, Any]]:
+    files: list[dict[str, Any]] = []
+    if not RAW_ROOT.exists():
+        return files
+    for path in sorted(item for item in RAW_ROOT.rglob("*") if item.is_file()):
+        files.append(
+            {
+                "path": str(path.relative_to(ROOT)),
+                "bytes": path.stat().st_size,
+                "sha256": sha256(path),
+            }
+        )
+    return files
+
+
 def build_report(download_results: list[dict[str, Any]] | None) -> dict[str, Any]:
     local_csv, local = load_local_csv()
     ana = build_ana_audit(local_csv, local)
@@ -735,16 +758,18 @@ def build_report(download_results: list[dict[str, Any]] | None) -> dict[str, Any
         },
         "hms_execution": repo_hms_scan(),
         "event_candidate_package": event_candidate,
+        "raw_file_inventory": raw_file_inventory(),
         "calibration_gate": {
             "rainfall_provenance": "PARCIAL",
             "event_replay": "apto para reproduzir as colunas ANA 86472000 e 02851072 no evento auditado, com suas ressalvas geográficas",
             "full_santa_tereza_rainfall": "NÃO FECHADO",
+            "observed_response_target": "CANDIDATO DISPONÍVEL: 86472000 tem campos Vazao e Nivel intrahorários no evento; unidade e definição precisam ser confirmadas antes do ajuste",
             "calibration_execution": "NÃO EXECUTADA",
             "required_before_calibration": [
                 "decidir e documentar se Chuva de 86472000 será aceita como precipitação observada de estação fluviométrica",
                 "definir o conjunto de pluviômetros/telemetrias representativo da bacia de Santa Tereza, sem renomear Ibiraiaras ou Serafina Corrêa",
                 "reconciliar fuso, unidade, intervalo de acumulação e política de lacunas",
-                "obter vazão observada ou curva-chave válida para calibrar descarga; nível isolado não é vazão",
+                "confirmar a unidade e a definição do campo Vazao de 86472000; se o ajuste usar Nivel convertido, obter também curva-chave válida",
                 "entregar projeto HEC-HMS (bacia, meteorologia, controle e parâmetros) e executar eventos independentes de validação",
             ],
         },

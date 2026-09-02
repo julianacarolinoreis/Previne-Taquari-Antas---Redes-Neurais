@@ -17,6 +17,9 @@ campo.
   absoluto de 0 mm.
 - No mesmo evento, `chuva_02851072` reproduz a telemetria ANA em 240/240
   horas: soma de 390,8 mm e erro médio absoluto de 0 mm.
+- A telemetria de `86472000` também contém nível e vazão intrahorários em todo
+  o recorte horário candidato; isso oferece um alvo observado para o HMS, mas a
+  unidade e a definição do campo `Vazao` ainda precisam ser confirmadas.
 - A identidade oficial não é intercambiável: `86472000` é estação
   fluviométrica em Santa Tereza; `02851072` é pluviométrica em Ibiraiaras;
   `A894` e o CEMADEN `432040401A`/ID 8928 são de Serafina Corrêa.
@@ -51,8 +54,8 @@ O primeiro caso deve ser um replay histórico, não um cenário inventado:
 - meteorologic model com pluviômetros selecionados por área de contribuição,
   não por proximidade nominal;
 - control specifications com timestep, início/fim e janela de aquecimento;
-- observação de vazão no ponto de controle ou curva-chave válida para converter
-  nível em vazão; nível isolado não deve ser tratado como descarga;
+- observação de vazão no ponto de controle com unidade confirmada; caso se use
+  nível convertido em vazão, curva-chave válida e sua vigência;
 - inventário de lacunas, relógio e qualidade para cada evento.
 
 ### Ajuste e validação
