@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "artifact_id": "muc-response-exercise-v001",
+  "title": "Exercício controlado de resposta à inundação · Muçum",
+  "mode": "exercise",
+  "maturity": "prototype",
+  "operational_gate": {
+    "status": "blocked",
+    "reason": "Plano municipal parcialmente digitalizado; rotas e abrigos sem confirmação de campo; RNA Muçum ainda em calibração.",
+    "disallowed": ["official_alert", "evacuation_order", "public_dispatch", "route_navigation", "resource_allocation"]
+  },
+  "event": {
+    "event_id": "muc-2020-scenario",
+    "scenario_id": "jul2020",
+    "label": "Referência cheia jul/2020 · pico ~2202 cm",
+    "timezone": "America/Sao_Paulo",
+    "status": "historical_reference",
+    "note": "Cenário de pesquisa baseado no evento de 2020 e validação Zenodo; não representa evento em curso."
+  },
+  "forecast": {
+    "source": "previsao_ao_vivo_mucum.json",
+    "station": "86510000",
+    "threshold_cm": 1800,
+    "attention_cm": 500,
+    "alert_cm": 900,
+    "freshness_policy": {"missing": "unknown", "outside_validity": "stale", "max_observation_age_min": 180},
+    "note": "RNA 2h principal; score 24–168h é experimental e não calibrado."
+  },
+  "spatial": {
+    "source": "assets/data/mucum_inundacao/contornos_mancha.json",
+    "validation_zenodo": "assets/data/validacao_zenodo_2020/resumo.md",
+    "hand_peak_2020_m": 17.02,
+    "coverage_status": "preliminary",
+    "route_status": "plan_municipal_unvalidated",
+    "note": "HAND@pico 2020 ~17 m; contornos publicados até 25 m. IoU vs MGB ~0.55."
+  },
+  "shelter": {
+    "source": "plano_contingencia_municipal",
+    "status": "unknown",
+    "capacity": null,
+    "note": "Capacidades divergem entre quadros do plano; ocupação atual desconhecida."
+  },
+  "validation_checklist": [
+    {"id": "forecast", "label": "Fonte, horário, fuso, validade e qualidade do sinal", "status": "unknown"},
+    {"id": "spatial", "label": "Cota, HAND, mancha Zenodo/MDT e limite de cobertura", "status": "unknown"},
+    {"id": "routes", "label": "Rua, ponte, bloqueio, declividade e acessibilidade", "status": "unknown"},
+    {"id": "shelter", "label": "Abertura, capacidade, ocupação, acessibilidade e alternativa", "status": "unknown"},
+    {"id": "people", "label": "Cobertura comunitária e necessidades sem expor dados pessoais", "status": "unknown"},
+    {"id": "comms", "label": "Mensagem, canal, confirmação de recebimento e alternativa", "status": "unknown"},
+    {"id": "resources", "label": "Equipe, transporte, suprimentos e registro de decisão", "status": "unknown"}
+  ],
+  "surfaces": {
+    "mesa": "pesquisas/estudo-caso-resposta-mucum.html",
+    "sala": "pesquisas/mucum-painel-evacuacao.html",
+    "mapa": "mucum_previsao_inundacao.html",
+    "rota": "pesquisas/mucum-rota-fuga-ruas.html",
+    "ficha": "pesquisa_status_mucum.html",
+    "zenodo": "assets/data/validacao_zenodo_2020/resumo.md"
+  }
+}

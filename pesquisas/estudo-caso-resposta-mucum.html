@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102334">
+  <title>PREVINE · Mesa de exercício · Muçum</title>
+  <link rel="stylesheet" href="../assets/css/gestor_chrome.css">
+  <style>
+    :root { --ink:#12202b; --muted:#5b6b76; --line:#d7e1e8; --navy:#102334; --teal:#0f6b62; --amber:#a46b12; --coral:#a33d32; --mint:#e6f4ef; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #edf2f7; color: var(--ink); font: 15px/1.45 Inter, ui-sans-serif, system-ui, sans-serif; }
+    .shell { max-width: 980px; margin: 0 auto; padding: 16px 18px 48px; }
+    .hero { padding: 22px 24px; background: linear-gradient(135deg, var(--navy), #1a4258); color: #eef4f8; border-radius: 18px; margin-bottom: 16px; }
+    .hero .eyebrow { margin: 0 0 8px; font-size: 11px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; color: #9fd4c8; }
+    h1 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 32px); letter-spacing: -.03em; }
+    .lede { margin: 0; max-width: 720px; color: #c5d4df; font-size: 14px; }
+    .seal { display: inline-flex; margin-top: 14px; padding: 6px 10px; border: 1px solid #e3c27a; border-radius: 999px; background: #3a3018; color: #f3e0b0; font-size: 10px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+    .gate { margin-top: 14px; padding: 12px 14px; border-left: 4px solid var(--coral); border-radius: 0 12px 12px 0; background: #fff4f1; color: #7b3a32; font-size: 13px; }
+    .section { margin-top: 14px; padding: 18px 20px; background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+    h2 { margin: 0 0 10px; font-size: 17px; color: var(--navy); }
+    .section-intro { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+    .live-level { font-size: 36px; font-weight: 850; letter-spacing: -.04em; color: var(--navy); line-height: 1; }
+    .fresh { font-size: 10px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; padding: 4px 7px; border-radius: 999px; background: var(--mint); color: #24745d; }
+    .fresh.stale { background: #fff4e4; color: #9c5c1a; }
+    .fresh.unknown { background: #eceaf0; color: #5c5470; }
+    .live-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .live-meta { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .link-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+    .link-grid a { display: flex; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fafcfd; color: inherit; text-decoration: none; font-size: 13px; }
+    .link-grid a b { color: var(--navy); }
+    .link-grid a span { color: var(--muted); font-size: 11px; }
+    .checklist { display: grid; gap: 6px; }
+    .checklist label { display: flex; align-items: flex-start; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fafcfd; font-size: 13px; cursor: pointer; }
+    .checklist label:has(input:checked) { border-color: #9fd4c8; background: var(--mint); }
+    .checklist input { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--teal); }
+    .brief-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .brief-item { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #f9fbfd; font-size: 12px; }
+    .brief-item span { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+    .brief-item strong { display: block; margin-top: 4px; color: var(--navy); font-size: 14px; }
+    .decision-form { display: grid; gap: 8px; margin-top: 10px; }
+    .decision-form input, .decision-form textarea, .decision-form select { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; font-size: 14px; }
+    .decision-form textarea { min-height: 72px; resize: vertical; }
+    .log { margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .log-item { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 12px; }
+    .log-item:last-child { border-bottom: 0; }
+    .log-item time { display: block; color: var(--muted); font-size: 10px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .toolbar button, .toolbar a.btn { min-height: 40px; display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--navy); background: var(--navy); color: #fff; font: inherit; font-size: 13px; font-weight: 750; text-decoration: none; cursor: pointer; }
+    .toolbar .secondary { background: #fff; color: var(--navy); }
+    footer { margin-top: 18px; color: var(--muted); font-size: 11px; }
+    @media (max-width: 700px) { .link-grid, .brief-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p class="eyebrow">PREVINE · exercício controlado V001</p>
+      <h1>Mesa de resposta · Muçum</h1>
+      <p class="lede">Ensaio de leitura conjunta: telemetria, mancha HAND, plano municipal e checklist de sete confirmações. Referência histórica jul/2020 (pico ~2.202 cm). Não autoriza alerta, rota nem despacho.</p>
+      <span class="seal">Protótipo · gate operacional bloqueado</span>
+    </header>
+
+    <div class="gate" id="gate-note" role="note">Carregando contrato do exercício…</div>
+
+    <section class="section" aria-labelledby="live-title">
+      <div class="live-head">
+        <h2 id="live-title">Telemetria agora</h2>
+        <span class="fresh" id="fresh-badge">…</span>
+      </div>
+      <div class="live-level" id="live-level" aria-live="polite">—</div>
+      <p class="live-meta" id="live-meta">Carregando feed 86510000…</p>
+      <div class="toolbar">
+        <button type="button" id="refresh-live">Atualizar</button>
+        <a class="btn secondary" href="../mucum_previsao_inundacao.html">Mapa HAND</a>
+        <a class="btn secondary" href="mucum-painel-evacuacao.html">Sala com mapa</a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="brief-title">
+      <h2 id="brief-title">Referência espacial jul/2020</h2>
+      <p class="section-intro">Validação Zenodo × HAND publicada no repositório (PR #79 integrado).</p>
+      <div class="brief-grid" id="brief-grid">
+        <div class="brief-item"><span>HAND @ pico 2020</span><strong>17,02 m</strong></div>
+        <div class="brief-item"><span>Cobertura pontos Zenodo</span><strong>88,1%</strong></div>
+        <div class="brief-item"><span>IoU HAND × MGB</span><strong>0,55</strong></div>
+      </div>
+      <div class="link-grid">
+        <a href="../assets/data/validacao_zenodo_2020/resumo.md"><b>Relatório Zenodo</b><span>resumo.md</span></a>
+        <a href="exposicao-cruzada.html"><b>Exposição cruzada</b><span>vulnerabilidade ∩ mancha</span></a>
+        <a href="../pesquisa_status_mucum.html"><b>Ficha Muçum</b><span>RNA + probabilidade</span></a>
+        <a href="centro-resposta.html"><b>Centro de resposta</b><span>mesa + campo</span></a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="check-title">
+      <h2 id="check-title">Checklist pré-ação (7 itens)</h2>
+      <p class="section-intro" id="check-progress"><strong>0/7</strong> confirmações neste aparelho. Sincronizado com o checklist compartilhado e com a mesa Santa Tereza V002 quando existir registro local.</p>
+      <div class="checklist" id="checklist"></div>
+      <div class="toolbar">
+        <button type="button" class="secondary" id="clear-checklist">Limpar checklist</button>
+        <button type="button" id="copy-status">Copiar leitura</button>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="decision-title">
+      <h2 id="decision-title">Registro de decisão (local)</h2>
+      <p class="section-intro">Anotações de ensaio para exportar em CSV. Sem nomes, endereços ou dados sensíveis.</p>
+      <form class="decision-form" id="decision-form">
+        <select id="decision-action" aria-label="Tipo de registro">
+          <option value="leitura">Leitura / conferência</option>
+          <option value="pendencia">Pendência identificada</option>
+          <option value="contingencia">Contingência ensaiada</option>
+          <option value="comunicacao">Canal de comunicação</option>
+        </select>
+        <input type="text" id="decision-observer" placeholder="Observador ou função (sem nome completo se possível)" maxlength="80">
+        <textarea id="decision-note" placeholder="O que foi decidido ou verificado nesta rodada…" maxlength="500"></textarea>
+        <button type="submit">Registrar neste aparelho</button>
+      </form>
+      <div class="log" id="decision-log" aria-live="polite"></div>
+      <div class="toolbar">
+        <button type="button" class="secondary" id="export-csv">Exportar CSV</button>
+        <button type="button" class="secondary" id="clear-log">Limpar registros</button>
+      </div>
+    </section>
+
+    <footer>
+      PREVINE · mesa Muçum V001 · contrato <code>estudo_caso_resposta_mucum_v001.json</code>.
+      Alerta oficial = SGB/SACE + Defesa Civil.
+    </footer>
+  </main>
+
+  <script src="../assets/js/resposta_operacional.js"></script>
+  <script src="../assets/js/gestor_chrome.js" data-page="resposta" data-place="mucum"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../sw.js').catch(function () {});
+    }
+    (function () {
+      'use strict';
+      var R = window.PREVINE_RESPOSTA;
+      var summary = null;
+
+      fetch('../assets/data/estudo_caso_resposta_mucum_v001.json')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (contract) {
+          if (!contract) return;
+          var gate = contract.operational_gate || {};
+          document.getElementById('gate-note').innerHTML =
+            '<strong>Gate: ' + (gate.status || 'blocked').toUpperCase() + '</strong> · ' +
+            (gate.reason || 'Exercício de pesquisa sem validação operacional.');
+        });
+
+      function renderLive() {
+        R.fetchLive('mucum').then(function (feed) {
+          summary = R.summarizePlace(feed, 'mucum');
+          document.getElementById('live-level').textContent = summary.levelLabel;
+          var badge = document.getElementById('fresh-badge');
+          badge.textContent = summary.freshness.label;
+          badge.className = 'fresh' + (summary.freshness.kind === 'stale' ? ' stale' : (summary.freshness.kind === 'unknown' ? ' unknown' : ''));
+          document.getElementById('live-meta').innerHTML =
+            'RNA ' + summary.horizon + ' → ' + summary.predLabel + '<br>' +
+            summary.gapLabel + '<br>Observação: ' + summary.levelAtLabel + ' · ' + summary.freshness.detail;
+        });
+      }
+
+      function renderChecklist() {
+        var state = R.loadChecklist();
+        var prog = R.checklistProgress(state);
+        document.getElementById('check-progress').innerHTML =
+          '<strong>' + prog.done + '/' + prog.total + '</strong> confirmações (' + prog.pct + '%).';
+        document.getElementById('checklist').innerHTML = R.CHECKLIST_ITEMS.map(function (item) {
+          return '<label><input type="checkbox" data-check="' + item.id + '"' + (state[item.id] ? ' checked' : '') + '> ' + item.label + '</label>';
+        }).join('');
+        document.getElementById('checklist').querySelectorAll('input[data-check]').forEach(function (input) {
+          input.addEventListener('change', function () {
+            var s = R.loadChecklist();
+            s[input.getAttribute('data-check')] = input.checked;
+            R.saveChecklist(s);
+            renderChecklist();
+          });
+        });
+      }
+
+      function renderLog() {
+        var log = R.loadDecisionLog();
+        var box = document.getElementById('decision-log');
+        if (!log.length) {
+          box.innerHTML = '<div class="log-item">Nenhum registro neste aparelho.</div>';
+          return;
+        }
+        box.innerHTML = log.slice(0, 20).map(function (row) {
+          return '<div class="log-item"><time>' + R.fmtWhen(row.at) + ' · ' + (row.action || '—') + '</time>' +
+            (row.observer ? '<strong>' + row.observer + '</strong> · ' : '') +
+            (row.note || '') + '</div>';
+        }).join('');
+      }
+
+      document.getElementById('refresh-live').addEventListener('click', renderLive);
+      document.getElementById('clear-checklist').addEventListener('click', function () {
+        try { localStorage.removeItem(R.CHECKLIST_KEY); } catch (e) {}
+        renderChecklist();
+      });
+      document.getElementById('copy-status').addEventListener('click', function () {
+        var text = R.statusBrief(summary || R.summarizePlace(null, 'mucum'));
+        var prog = R.checklistProgress(R.loadChecklist());
+        navigator.clipboard.writeText(text + '\n\nChecklist: ' + prog.done + '/' + prog.total).then(function () {
+          document.getElementById('copy-status').textContent = 'Copiado';
+          setTimeout(function () { document.getElementById('copy-status').textContent = 'Copiar leitura'; }, 2000);
+        });
+      });
+      document.getElementById('decision-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        R.appendDecision({
+          place: 'Muçum',
+          action: document.getElementById('decision-action').value,
+          observer: document.getElementById('decision-observer').value.trim(),
+          note: document.getElementById('decision-note').value.trim()
+        });
+        document.getElementById('decision-note').value = '';
+        renderLog();
+      });
+      document.getElementById('export-csv').addEventListener('click', function () {
+        R.downloadCsv('previne-mucum-decisoes.csv', R.exportDecisionCsv({ includeMesaLog: false }));
+      });
+      document.getElementById('clear-log').addEventListener('click', function () {
+        if (window.confirm('Apagar todos os registros locais de decisão?')) {
+          R.clearDecisionLog();
+          renderLog();
+        }
+      });
+
+      renderChecklist();
+      renderLive();
+      renderLog();
+    })();
+  </script>
+</body>
+</html>
