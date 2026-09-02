@@ -331,6 +331,44 @@
     ].join('\n');
   }
 
+  function exportUnifiedAta() {
+    var log = loadDecisionLog();
+    var checklist = loadChecklist();
+    var prog = checklistProgress(checklist);
+    var exportedAt = new Date().toISOString();
+    var lines = [
+      '# PREVINE · ata unificada de exercício · ' + exportedAt,
+      '# Não é alerta oficial · gate bloqueado',
+      '',
+      ['secao', 'campo', 'valor'].map(csvEscape).join(',')
+    ];
+    ['santa', 'mucum'].forEach(function (key) {
+      var place = PLACES[key];
+      lines.push([key, 'label', place.label].map(csvEscape).join(','));
+      lines.push([key, 'estacao', place.code].map(csvEscape).join(','));
+    });
+    lines.push('');
+    lines.push(['decision_place', 'action', 'note', 'observer', 'at'].map(csvEscape).join(','));
+    log.forEach(function (row) {
+      lines.push([row.place, row.action, row.note, row.observer, row.at].map(csvEscape).join(','));
+    });
+    lines.push('');
+    lines.push(['checklist_item', 'checked'].map(csvEscape).join(','));
+    CHECKLIST_ITEMS.forEach(function (item) {
+      lines.push([item.id, checklist[item.id] ? 'yes' : 'no'].map(csvEscape).join(','));
+    });
+    lines.push('');
+    lines.push(['checklist_done', 'checklist_total'].map(csvEscape).join(','));
+    lines.push([prog.done, prog.total].map(csvEscape).join(','));
+    try {
+      var stRaw = localStorage.getItem(ST_MESA_KEY);
+      var mucRaw = localStorage.getItem('previne:muc-v002:exercise:v1');
+      if (stRaw) lines.push(['mesa_st_snapshot', stRaw.slice(0, 500)].map(csvEscape).join(','));
+      if (mucRaw) lines.push(['mesa_muc_snapshot', mucRaw.slice(0, 500)].map(csvEscape).join(','));
+    } catch (e) { /* ignore */ }
+    return lines.join('\n');
+  }
+
   global.PREVINE_RESPOSTA = {
     CHECKLIST_ITEMS: CHECKLIST_ITEMS,
     CHECKLIST_KEY: CHECKLIST_KEY,
@@ -348,11 +386,13 @@
     loadDecisionLog: loadDecisionLog,
     clearDecisionLog: clearDecisionLog,
     exportDecisionCsv: exportDecisionCsv,
+    exportUnifiedAta: exportUnifiedAta,
     downloadCsv: downloadCsv,
     fetchLive: fetchLive,
     summarizePlace: summarizePlace,
     statusBrief: statusBrief,
     fmtLevel: fmtLevel,
+    fmtWhen: fmtWhen,
     classifyFreshness: classifyFreshness
   };
 })(typeof window !== 'undefined' ? window : globalThis);
