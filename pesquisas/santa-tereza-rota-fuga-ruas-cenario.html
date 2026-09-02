@@ -42,6 +42,8 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/Worl
 // mancha de inundacao
 D.mancha.forEach(poly=>L.polygon(poly,{color:'#1e5fbf',weight:1,fillColor:'#1e5fbf',fillOpacity:.18}).addTo(map));
 // rede de ruas (seco x agua)
+const bridgeLayer=L.layerGroup().addTo(map);
+[{id:'ponte_santa_barbara',nome:'Ponte Santa Bárbara',lat:-29.0908727,lon:-51.713269},{id:'ponte_corredor',nome:'Corredor · pontes UNKNOWN',lat:-29.16855,lon:-51.7358}].forEach(p=>L.circleMarker([p.lat,p.lon],{radius:8,color:'#fff',weight:2,fillColor:'#8b5cf6',fillOpacity:.95}).addTo(bridgeLayer).bindPopup('<b>'+p.nome+'</b><br>status operacional: UNKNOWN'));
 const b=L.latLngBounds();
 D.edges.forEach(([a,c,ag])=>{const A=D.nos[a],C=D.nos[c];
   L.polyline([A,C],{color:ag?'#b3382c':'#8fa7b8',weight:ag?2.5:1.5,opacity:ag?.7:.5}).addTo(map);
@@ -74,4 +76,4 @@ document.getElementById('leg').innerHTML='<b>Mapa</b><br>'+
  '<i style="background:#b3382c"></i>rua que alaga (nível de projeto)<br>'+
  '<i style="background:#8fa7b8"></i>rua fora da mancha<br>'+
  '<i style="background:#1e5fbf;opacity:.4"></i>área de inundação';
-</script></body></html>
+</script><script src="../assets/js/hand_vs_hidro_block.js" data-target=".hud"></script></body></html>

@@ -1,5 +1,5 @@
 /* PREVINE · cache mínimo para centro de resposta e modo campo (pesquisa offline parcial). */
-var CACHE = 'previne-resposta-v3';
+var CACHE = 'previne-resposta-v4';
 var SHELL = [
   '/pesquisas/centro-resposta.html',
   '/pesquisas/modo-campo.html',
@@ -24,7 +24,12 @@ var SHELL = [
   '/assets/js/gestor_chrome.js',
   '/assets/css/gestor_chrome.css',
   '/assets/js/previne_research_guard.js',
-  '/assets/css/previne_research_guard.css'
+  '/assets/css/previne_research_guard.css',
+  '/assets/js/mesa_facilitador.js',
+  '/assets/css/mesa_facilitador.css',
+  '/assets/js/hand_vs_hidro_block.js',
+  '/assets/css/hand_vs_hidro_block.css',
+  '/assets/js/abrigo_capacidade_form.js'
 ];
 
 self.addEventListener('install', function (event) {

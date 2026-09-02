@@ -537,6 +537,7 @@
         <button type="button" class="mode-button" data-operating-mode="live" aria-pressed="false">Plantão · feed ao vivo</button>
         <button type="button" class="mode-button locked" data-operating-mode="public" aria-pressed="false">Mensagem pública · bloqueado</button>
       </div>
+      <div class="mode-switch" id="facilitador-mount" style="margin-top:8px"></div>
     </section>
 
     <section class="intro">
@@ -553,25 +554,29 @@
         <div class="panel-head">
           <div>
             <div class="kicker">Sinal da RNA · estação 86472600</div>
+            <p class="facil-plain kicker-facil" style="margin:0 0 4px;font-size:11px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;color:#24745d">Previsão do rio · próximas 8 horas</p>
             <h2>Janela de 8 horas</h2>
             <p>O modelo prevê a cota na estação. A conversão para cada rua ainda precisa de validação espacial.</p>
+            <p class="facil-plain" style="margin:0;color:var(--muted);font-size:13px">Leitura para a mesa: quanto o rio pode subir na estação nas próximas horas — <strong>não</strong> autoriza saída nem indica rua alagada.</p>
           </div>
-          <div class="snapshot" id="modelSnapshotNote">rodada 28/08/2026 20:00 · última telemetria 28/08/2026 20:45 −03:00 = 2,76 m · idade na consulta 48 min · fonte sem offset declarado · snapshot incorporado</div>
+          <div class="snapshot facil-hide" id="modelSnapshotNote">rodada 28/08/2026 20:00 · última telemetria 28/08/2026 20:45 −03:00 = 2,76 m · idade na consulta 48 min · fonte sem offset declarado · snapshot incorporado</div>
           <button type="button" class="mode-button" id="refreshLiveFeed" hidden>Atualizar feed</button>
         </div>
         <div class="model-cards">
           <article class="model-card reference">
-            <div class="model-card-top"><span class="model-name" id="v001Label">8h V001</span><span class="model-pill">menor MAE · experimental</span></div>
+            <div class="model-card-top"><span class="model-name" id="v001Label">8h V001</span><span class="model-pill facil-hide">menor MAE · experimental</span><span class="model-pill facil-plain-inline" style="display:none;padding:4px 8px;border-radius:999px;background:#e6f4ef;color:#24745d;font-size:10px;font-weight:850">versão principal</span></div>
             <div class="model-level"><strong id="v001Level">—</strong><span>snapshot · horizonte 8h</span></div>
-            <div class="model-meta"><span>base da rodada <b id="v001Now">—</b></span><span>últ. observado <b id="v001Observed">—</b></span><span>MAE 24h <b id="v001Mae">—</b></span><span id="v001Status" class="status-pill attention">—</span></div>
+            <div class="model-meta facil-hide"><span>base da rodada <b id="v001Now">—</b></span><span>últ. observado <b id="v001Observed">—</b></span><span>MAE 24h <b id="v001Mae">—</b></span><span id="v001Status" class="status-pill attention">—</span></div>
+            <p class="facil-plain" style="margin:8px 0 0;font-size:12px;color:var(--muted)">Cenário publicado para discussão na mesa.</p>
           </article>
           <article class="model-card shadow">
-            <div class="model-card-top"><span class="model-name" id="v002Label">8h V002</span><span class="model-pill">sombra · comparativo</span></div>
+            <div class="model-card-top"><span class="model-name" id="v002Label">8h V002</span><span class="model-pill facil-hide">sombra · comparativo</span><span class="model-pill facil-plain-inline" style="display:none;padding:4px 8px;border-radius:999px;background:#eceaf0;color:#5c5470;font-size:10px;font-weight:850">versão comparativa</span></div>
             <div class="model-level"><strong id="v002Level">—</strong><span>snapshot · horizonte 8h</span></div>
-            <div class="model-meta"><span>base da rodada <b id="v002Now">—</b></span><span>últ. observado <b id="v002Observed">—</b></span><span>MAE 24h <b id="v002Mae">—</b></span><span id="v002Status" class="status-pill normal">—</span></div>
+            <div class="model-meta facil-hide"><span>base da rodada <b id="v002Now">—</b></span><span>últ. observado <b id="v002Observed">—</b></span><span>MAE 24h <b id="v002Mae">—</b></span><span id="v002Status" class="status-pill normal">—</span></div>
+            <p class="facil-plain" style="margin:8px 0 0;font-size:12px;color:var(--muted)">Alternativa em teste — não promover sem validação.</p>
           </article>
         </div>
-        <div class="model-foot">
+        <div class="model-foot facil-hide">
           <span>contrato de entrada: <strong id="inputContract">hourly_exact_v1</strong> · sem interpolação · grade 22/07 independente</span>
           <span>cota de referência do feed: <strong id="bankfull">—</strong></span>
         </div>
@@ -2508,6 +2513,8 @@
   </script>
   <script src="../assets/js/resposta_operacional.js"></script>
   <script src="../assets/js/mesa_st_plantao.js"></script>
+  <script src="../assets/js/mesa_facilitador.js"></script>
+  <script>PREVINE_MESA_FACILITADOR.init({ prefix: '../', mount: document.getElementById('facilitador-mount') });</script>
   <script src="../assets/js/gestor_chrome.js" data-page="resposta" data-place="santa"></script>
 </body>
 </html>

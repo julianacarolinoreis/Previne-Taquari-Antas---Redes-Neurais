@@ -70,6 +70,11 @@
       <div class="field-checklist" id="field-checklist"></div>
     </section>
 
+    <section class="panel" aria-labelledby="abrigo-field-title">
+      <h2 id="abrigo-field-title">Capacidade de abrigo</h2>
+      <div id="abrigo-capacidade-mount"></div>
+    </section>
+
     <div class="toolbar">
       <button type="button" class="primary" id="copy-field">Copiar leitura para WhatsApp/rádio</button>
       <button type="button" id="refresh-field">Atualizar nível</button>
@@ -80,8 +85,10 @@
   </div>
 
   <script src="../assets/js/resposta_operacional.js"></script>
+  <script src="../assets/js/abrigo_capacidade_form.js"></script>
   <script src="../assets/js/gestor_chrome.js" data-page="campo" data-place="santa"></script>
   <script>
+    PREVINE_ABRIGO_FORM.mount(document.getElementById('abrigo-capacidade-mount'));
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('../sw.js').catch(function () {});
     }

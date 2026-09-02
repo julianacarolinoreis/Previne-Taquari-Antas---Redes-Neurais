@@ -99,6 +99,7 @@
         <button type="button" data-mode="plantao" aria-pressed="true">Plantão · feed ao vivo</button>
         <button type="button" data-mode="cenario" aria-pressed="false">Cenário jul/2020</button>
       </div>
+      <div class="mode-switch" id="facilitador-mount" style="margin-top:8px"></div>
       <p class="section-intro" id="mode-note">Plantão: telemetria e RNA atualizam a cada 2 min; UNKNOWN/STALE não significa rio baixo.</p>
     </section>
 
@@ -123,25 +124,29 @@
 
     <section class="section" aria-labelledby="models-title">
       <h2 id="models-title">RNA · horizontes publicados</h2>
-      <p class="section-intro">2h principal · 8h experimental · 8h sombra (rank 2). Não são alerta oficial.</p>
+      <p class="facil-plain" style="margin:-6px 0 10px;color:var(--teal);font-size:13px;font-weight:750">Previsão do rio · horizontes 2h e 8h</p>
+      <p class="section-intro facil-hide">2h principal · 8h experimental · 8h sombra (rank 2). Não são alerta oficial.</p>
+      <p class="section-intro facil-plain">Leitura para a mesa: tendência de curto prazo (2h) e janela maior (8h). Não autoriza saída.</p>
       <div class="model-grid">
         <div class="model-card">
           <span>2h · principal</span>
           <strong id="h2-level">—</strong>
-          <small id="h2-model">—</small>
+          <small id="h2-model" class="facil-hide">—</small>
         </div>
         <div class="model-card">
           <span>8h · experimental</span>
           <strong id="h8-level">—</strong>
-          <small id="h8-model">—</small>
+          <small id="h8-model" class="facil-hide">—</small>
         </div>
         <div class="model-card shadow">
-          <span id="h8s-badge">8h · sombra</span>
+          <span id="h8s-badge" class="facil-hide">8h · sombra</span>
+          <span class="facil-plain" style="display:none;font-size:10px;text-transform:uppercase;color:var(--muted)">8h · comparativo</span>
           <strong id="h8s-level">—</strong>
-          <small id="h8s-model">—</small>
+          <small id="h8s-model" class="facil-hide">—</small>
         </div>
       </div>
-      <p class="section-intro" style="margin-top:12px"><strong>Proxy montante:</strong> <span id="proxy-st-level">—</span> · <span id="proxy-st-note">Santa Tereza (86472600) informa tendência upstream; não substitui telemetria local.</span></p>
+      <p class="section-intro facil-hide" style="margin-top:12px"><strong>Proxy montante:</strong> <span id="proxy-st-level">—</span> · <span id="proxy-st-note">Santa Tereza (86472600) informa tendência upstream; não substitui telemetria local.</span></p>
+      <p class="facil-plain section-intro" style="margin-top:12px"><strong>Montante:</strong> <span id="proxy-st-level-facil">—</span> · leitura em Santa Tereza como referência de tendência — não substitui o nível local.</p>
     </section>
 
     <section class="section" aria-labelledby="zones-title">
@@ -193,6 +198,11 @@
       </div>
     </section>
 
+    <section class="section" aria-labelledby="shelter-form-title">
+      <h2 id="shelter-form-title">Capacidade de abrigo · registro exportável</h2>
+      <div id="abrigo-capacidade-mount"></div>
+    </section>
+
     <section class="section" aria-labelledby="check-title">
       <h2 id="check-title">Checklist pré-ação (7 itens)</h2>
       <p class="section-intro" id="check-progress"><strong>0/7</strong> confirmações neste aparelho.</p>
@@ -237,6 +247,17 @@
 
   <script src="../assets/js/resposta_operacional.js"></script>
   <script src="../assets/js/mesa_mucum_v002.js"></script>
+  <script src="../assets/js/mesa_facilitador.js"></script>
+  <script src="../assets/js/abrigo_capacidade_form.js"></script>
+  <script>
+    PREVINE_MESA_FACILITADOR.init({ prefix: '../', mount: document.getElementById('facilitador-mount') });
+    PREVINE_ABRIGO_FORM.mount(document.getElementById('abrigo-capacidade-mount'));
+    document.getElementById('proxy-st-level-facil') && new MutationObserver(function(){
+      var v = document.getElementById('proxy-st-level');
+      var f = document.getElementById('proxy-st-level-facil');
+      if (v && f) f.textContent = v.textContent;
+    }).observe(document.getElementById('proxy-st-level'), { childList: true, characterData: true, subtree: true });
+  </script>
   <script src="../assets/js/gestor_chrome.js" data-page="resposta" data-place="mucum"></script>
   <script>
     if ('serviceWorker' in navigator) {
