@@ -45,7 +45,7 @@ CIDADES = {
     },
 }
 
-NIVEIS = [round(x * 0.5, 1) for x in range(0, 31)]   # 0,0 .. 15,0 m
+NIVEIS = [round(x * 0.5, 1) for x in range(0, 51)]   # 0,0 .. 25,0 m (pico 2020 Muçum ~17 m)
 SIMPLIFY_PX = 1.0        # tolerância Douglas-Peucker, em pixels (desvio máximo)
 AREA_MIN_HA = 0.05       # descarta lascas menores que isso
 SO_CONECTADO = True            # desenha apenas o que tem ligação hidráulica com a drenagem
