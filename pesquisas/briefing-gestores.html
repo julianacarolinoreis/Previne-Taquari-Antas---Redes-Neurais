@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PREVINE · Briefing de pesquisa para gestores</title>
+  <link rel="stylesheet" href="../assets/css/gestor_chrome.css">
+  <style>
+    :root { --ink:#12202b; --muted:#5b6b76; --line:#d7e1e8; --navy:#102334; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #edf2f7;
+      color: var(--ink);
+      font: 15px/1.45 Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    }
+    .sheet {
+      max-width: 920px;
+      margin: 18px auto 48px;
+      padding: 28px 32px 36px;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+    .watermark {
+      margin: 0 0 10px;
+      color: #a46b12;
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -.03em; line-height: 1.1; }
+    .lede { margin: 0 0 18px; color: var(--muted); max-width: 720px; }
+    h2 { margin: 22px 0 8px; font-size: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 8px; }
+    .actions button, .actions a {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--navy);
+      background: var(--navy);
+      color: #fff;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 750;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .actions a.secondary { background: #fff; color: var(--navy); }
+    .do-dont { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .do, .dont { padding: 12px 14px; border-radius: 12px; font-size: 13px; }
+    .do { background: #f4f7fb; border: 1px solid #d7e1e8; }
+    .dont { background: #fff4f1; border: 1px solid #efd0c8; }
+    .do b, .dont b { display: block; margin-bottom: 4px; }
+    footer { margin-top: 22px; color: var(--muted); font-size: 11px; }
+    @media (max-width: 700px) { .sheet { margin: 0; border: 0; } .do-dont { grid-template-columns: 1fr; } }
+    @media print {
+      body { background: #fff; }
+      .sheet { margin: 0; border: 0; padding: 0; max-width: none; }
+      .actions, .gestor-chrome { display: none !important; }
+      .watermark { color: #7a5b20; }
+    }
+  </style>
+</head>
+<body>
+  <article class="sheet">
+    <p class="watermark">Pesquisa FAPERGS · sem alerta automático · não usar em despacho</p>
+    <h1>Briefing PREVINE — Taquari-Antas</h1>
+    <p class="lede">O boletim oficial continua sendo o SACE/SGB e a Defesa Civil. Esta folha resume o que a pesquisa já mostra, o que é UNKNOWN e o que a mesa de exercício pede. Processo FAPERGS 24/2551-0002124-8.</p>
+
+    <div class="actions">
+      <button type="button" id="print-briefing">Imprimir briefing</button>
+      <button type="button" class="secondary" id="copy-briefing" style="background:#fff;color:#102334">Copiar texto</button>
+      <a class="secondary" href="../dashboard_bacia.html">Abrir agora na bacia</a>
+    </div>
+
+    <section class="layer-strip" aria-label="Quatro camadas">
+      <article class="layer-card previsao">
+        <span class="layer-kicker">Previsão</span>
+        <strong>RNA em sombra</strong>
+        <p>Santa Tereza 86472600, 2h/4h publicados; 8h em sombra; 12h não é feed ao vivo. Score 24–168 h não é probabilidade calibrada.</p>
+      </article>
+      <article class="layer-card perigo">
+        <span class="layer-kicker">Perigo</span>
+        <strong>1.500 / 1.800 cm</strong>
+        <p>Cotas oficiais de pesquisa. HAND 0 (~4–5 m) é leito, não inundação. IoU/CSI da mancha ainda vazios.</p>
+      </article>
+      <article class="layer-card exposicao is-unknown">
+        <span class="layer-kicker">Exposição</span>
+        <strong>UNKNOWN</strong>
+        <p>Censo 2022 existe na bacia. Risco = vulnerabilidade ∩ mancha validada ainda não existe. Sem lista de famílias.</p>
+      </article>
+      <article class="layer-card resposta is-blocked">
+        <span class="layer-kicker">Resposta</span>
+        <strong>Bloqueado</strong>
+        <p>Sala V002 em Santa Tereza: 0/7 confirmações. Ginásio sem capacidade publicada. Bombeiros no município: não cadastrados.</p>
+      </article>
+    </section>
+
+    <h2>O que o briefing pode afirmar</h2>
+    <table>
+      <thead><tr><th>Fato</th><th>Valor</th><th>Limite</th></tr></thead>
+      <tbody>
+        <tr><td>Santa Tereza</td><td>5 eventos · cota 1.500 cm</td><td>Maio/2024 pode ser 1 tempestade, não 2 folds</td></tr>
+        <tr><td>Muçum</td><td>4 candidatos &gt; 1.800 cm</td><td>Onset/pico SACE e saída do leito pendentes</td></tr>
+        <tr><td>Limiar 50%</td><td>retirado da leitura pública</td><td>Recall@0,5 nulo em 24–72 h; “NÃO VAI” era falso negativo</td></tr>
+        <tr><td>Dado atrasado</td><td>UNKNOWN / STALE</td><td>Ausência não significa rio baixo</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Cinco superfícies canônicas</h2>
+    <table>
+      <thead><tr><th>Superfície</th><th>Para quem</th><th>Link</th></tr></thead>
+      <tbody>
+        <tr><td>Agora na bacia</td><td>coordenação, SGB, prefeituras</td><td><a href="../dashboard_bacia.html">dashboard_bacia.html</a></td></tr>
+        <tr><td>Ficha do município</td><td>DC e prefeitura</td><td><a href="../pesquisa_status.html">Santa Tereza</a> · <a href="../pesquisa_status_mucum.html">Muçum</a></td></tr>
+        <tr><td>Mapa da cidade</td><td>perigo espacial preliminar</td><td><a href="../santa_tereza_previsao_inundacao.html">ST</a> · <a href="../mucum_previsao_inundacao.html">Muçum</a></td></tr>
+        <tr><td>Mesa de decisão</td><td>exercício em Santa Tereza</td><td><a href="estudo-caso-resposta-santa-tereza.html">sala V002</a></td></tr>
+        <tr><td>Arquivo científico</td><td>pesquisa e FAPERGS</td><td><a href="../pesquisas.html">pesquisas.html</a></td></tr>
+      </tbody>
+    </table>
+
+    <div class="do-dont">
+      <div class="do"><b>Fazer agora</b>Convocar a mesa de 90 min em Santa Tereza com a sala V002. Pedir capacidade do Ginásio, pontes do corredor, canal oficial e PcD agregado sem nomes.</div>
+      <div class="dont"><b>Não fazer</b>Não orientar rua, não despachar, não publicar “vai inundar”, não tratar mancha laranja como cota SACE, não abrir a home de 282 modelos na reunião.</div>
+    </div>
+
+    <h2>Encantado, Roca Sales, Lajeado</h2>
+    <p class="lede">Ainda não há ficha de município. O que já vale para o vale: dashboard da bacia (chuva a montante) e vulnerabilidade IBGE 2022. Pedido para 180 dias: 1 ponto focal e 1 abrigo candidato.</p>
+
+    <footer>
+      Equipe: Juliana Carolino Reis · Guilherme Garcia de Oliveira · Fernanda Vier.
+      Alerta oficial = SGB/SACE + Defesa Civil. Publicado no site ≠ validado ≠ autorizado.
+    </footer>
+  </article>
+  <script src="../assets/js/gestor_chrome.js" data-page="briefing" data-place="bacia"></script>
+  <script>
+    document.getElementById('print-briefing').addEventListener('click', function () { window.print(); });
+    document.getElementById('copy-briefing').addEventListener('click', function () {
+      var text = [
+        'PREVINE · BRIEFING DE PESQUISA · não é alerta oficial',
+        'SACE/SGB e Defesa Civil = alerta. PREVINE = pesquisa FAPERGS.',
+        'Santa Tereza 86472600 · cota 1.500 cm · 5 eventos · RNA em sombra.',
+        'Muçum 86510000 · cota 1.800 cm · 4 candidatos · relógio ANA–SACE em revisão.',
+        'Previsão: RNA 2h/4h. Perigo: HAND 0 não é inundação. Exposição: UNKNOWN. Resposta: BLOQUEADO.',
+        'Não usar limiar 50% (VAI/NÃO VAI). Dado atrasado = UNKNOWN, nunca “não vai”.',
+        'Fazer: mesa Santa Tereza. Não fazer: despacho, rota, “vai inundar”.'
+      ].join('\n');
+      navigator.clipboard.writeText(text).then(function () {
+        document.getElementById('copy-briefing').textContent = 'Copiado';
+      });
+    });
+  </script>
+</body>
+</html>
