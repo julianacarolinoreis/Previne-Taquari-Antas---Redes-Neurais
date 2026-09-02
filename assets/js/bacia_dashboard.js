@@ -137,19 +137,19 @@
     const obsGood = snapshot.level != null && (snapshot.observedAge == null || snapshot.observedAge <= 3);
     const forecastGood = snapshot.meanRain != null && (snapshot.forecastAge == null || snapshot.forecastAge <= 72);
     const partial = snapshot.coverage != null && snapshot.coverage < snapshot.horizon;
-    if (!obsGood && !forecastGood) return { label: 'REVISAR', className: 'unknown' };
-    if (partial || !obsGood) return { label: 'PARCIAL', className: 'warn' };
-    return { label: 'ACOMPANHAR', className: 'good' };
+    if (!obsGood && !forecastGood) return { label: 'UNKNOWN', className: 'unknown' };
+    if (partial || !obsGood) return { label: 'STALE / PARCIAL', className: 'warn' };
+    return { label: 'FEEDS ATUALIZADOS', className: '' };
   }
-  function decisionLabel(value) {
-    if (value === 'VAI') return 'VAI · pesquisa';
-    if (value === 'NAO_VAI' || value === 'NAO VAI') return 'NÃO VAI · pesquisa';
-    return 'SEM DECISÃO';
+  function scoreStateLabel(snap) {
+    if (snap.riskState === 'stale' || (snap.risk == null && snap.archivedRisk != null)) return 'STALE · score ocultado';
+    if (snap.risk == null) return 'UNKNOWN · sem score utilizável';
+    return 'score experimental';
   }
-  function decisionClass(value) {
-    if (value === 'VAI') return 'warn';
-    if (value === 'NAO_VAI' || value === 'NAO VAI') return 'good';
-    return 'unknown';
+  function scoreStateClass(snap) {
+    if (snap.riskState === 'stale' || (snap.risk == null && snap.archivedRisk != null)) return 'warn';
+    if (snap.risk == null) return 'unknown';
+    return '';
   }
   function displayRain(snap) {
     if (snap.key === 'mucum') return { value: snap.directRain, label: 'IFS direto no ponto', source: 'ECMWF IFS' };
@@ -262,13 +262,55 @@
     }
     const snap = stationSnapshot(state.station, hours); const rain = displayRain(snap);
     const riskStale = snap.riskState === 'stale' || (snap.risk == null && snap.archivedRisk != null);
-    const riskText = snap.risk == null ? (riskStale && snap.archivedRisk != null ? `${pct(snap.archivedRisk)} arquivada para comparação; rodada atrasada — não usar como previsão atual` : 'sem estimativa experimental utilizável') : `${pct(snap.risk)} de cruzar ${fmt(snap.station.threshold / 100, 2)} m (${fmt(snap.station.threshold, 0)} cm)`;
-    const modelText = snap.decision ? decisionLabel(snap.decision).toLowerCase() : 'sem decisão binária publicada';
+    const riskText = snap.risk == null
+      ? (riskStale ? 'score atrasado ocultado — estado STALE, não “não vai inundar”' : 'UNKNOWN: sem estimativa experimental utilizável')
+      : `score experimental ${pct(snap.risk)} de cruzar ${fmt(snap.station.threshold / 100, 2)} m (${fmt(snap.station.threshold, 0)} cm)`;
     answerTitle.textContent = `${snap.station.label}: janela de +${hours} h`;
     const coverageNote = snap.coverage != null && snap.coverage < hours ? ` A cobertura publicada é parcial (${fmt(snap.coverage, 0)}/${hours} h).` : '';
-    answerText.textContent = `Previsão principal: ${fmt(rain.value, 2)} mm (${rain.label}). O modelo de pesquisa indica ${riskText}; decisão exibida: ${modelText}.${coverageNote} É um resultado experimental, não um alerta e não uma garantia de que vai ou não vai inundar.`;
-    answerState.textContent = riskStale ? 'ATRASADO' : snap.risk == null ? 'SEM VALOR' : 'PESQUISA';
-    answerState.className = `answer-state ${riskStale || snap.risk == null ? 'unknown' : snap.risk >= 50 ? 'warn' : ''}`;
+    answerText.textContent = `Previsão principal: ${fmt(rain.value, 2)} mm (${rain.label}). ${riskText}.${coverageNote} O corte 50% (VAI/NÃO VAI) foi retirado da leitura pública.`;
+    answerState.textContent = riskStale ? 'STALE' : snap.risk == null ? 'UNKNOWN' : 'PESQUISA';
+    answerState.className = `answer-state ${riskStale || snap.risk == null ? 'unknown' : ''}`;
+  }
+
+  function renderLayers() {
+    const hours = state.horizon;
+    const keys = state.station === 'basin' ? ['santa', 'mucum'] : [state.station];
+    const snaps = keys.map((key) => stationSnapshot(key, hours));
+    function setLayer(id, title, note, mode) {
+      const el = $(id);
+      if (!el) return;
+      el.classList.remove('is-unknown', 'is-stale', 'is-blocked');
+      if (mode) el.classList.add(mode);
+      const strong = el.querySelector('strong');
+      const p = el.querySelector('p');
+      if (strong) strong.textContent = title;
+      if (p) p.textContent = note;
+    }
+    const hasLevel = snaps.some((s) => s.level != null);
+    const staleObs = snaps.some((s) => s.observedAge != null && s.observedAge > 3);
+    if (!hasLevel) {
+      setLayer('layer-previsao', 'UNKNOWN', 'sem nível observado utilizável · ausência ≠ rio baixo', 'is-unknown');
+    } else if (staleObs) {
+      setLayer('layer-previsao', 'STALE', snaps.map((s) => `${s.station.label}: ${fmt(s.level, 0)} cm · ${ageLabel(s.observedAge)}`).join(' · '), 'is-stale');
+    } else {
+      setLayer('layer-previsao', snaps.map((s) => `${fmt(s.level, 0)} cm`).join(' · '), `horizonte +${hours} h · RNA de nível em sombra, não probabilidade de inundação`, '');
+    }
+    const cota = state.station === 'mucum' ? '18,00 m / 1.800 cm' : state.station === 'santa' ? '15,00 m / 1.500 cm' : 'ST 15,00 m · Muçum 18,00 m';
+    const usableRisk = snaps.some((s) => s.risk != null);
+    const staleRisk = snaps.some((s) => s.riskState === 'stale' || (s.risk == null && s.archivedRisk != null));
+    if (staleRisk && !usableRisk) {
+      setLayer('layer-perigo', 'STALE', `cota oficial ${cota} · HAND 0 é leito, não inundação · score atrasado ocultado`, 'is-stale');
+    } else if (!usableRisk) {
+      setLayer('layer-perigo', 'UNKNOWN', `cota oficial ${cota} · HAND 0 (~4–5 m) não é inundação · sem score utilizável`, 'is-unknown');
+    } else {
+      setLayer('layer-perigo', snaps.map((s) => pct(s.risk)).join(' · ') + ' exp.', `cota oficial ${cota} · score experimental, sem corte 50% · HAND 0 separado`, '');
+    }
+    setLayer('layer-exposicao', 'UNKNOWN', 'Censo 2022 existe; join mancha validada × grade 200 m ainda não publicado', 'is-unknown');
+    if (state.station === 'mucum') {
+      setLayer('layer-resposta', 'Bloqueado', 'Muçum ainda sem sala V002. Abrigo canônico e relógio ANA–SACE pendentes.', 'is-blocked');
+    } else {
+      setLayer('layer-resposta', 'Bloqueado', 'Sala V002: 0/7 confirmações. Ginásio sem capacidade. Não despachar.', 'is-blocked');
+    }
   }
 
   function renderKpis() {
@@ -279,15 +321,21 @@
     const rain = snaps.map((s) => { const r = displayRain(s); return `${s.station.label}: ${fmt(r.value, 2)} mm`; }).join(' · ');
     const risk = snaps.map((s) => `${s.station.label}: ${pct(s.risk)}`).join(' · ');
     const qualities = snaps.map(qualityFor);
-    const worst = qualities.some((q) => q.className === 'unknown') ? { label: 'REVISAR', className: 'unknown' } : qualities.some((q) => q.className === 'warn') ? { label: 'PARCIAL', className: 'warn' } : { label: 'ACOMPANHAR', className: 'good' };
-    $('kpi-level').textContent = level || '—';
-    $('kpi-level-note').textContent = snaps.length === 1 ? `${liveSourceText(snaps[0])} · ${ageLabel(snaps[0].observedAge)}` : 'duas estações de referência · não é média da bacia';
-    $('kpi-rain').textContent = rain || '—';
+    const worst = qualities.some((q) => q.className === 'unknown') ? { label: 'UNKNOWN', className: 'unknown' } : qualities.some((q) => q.className === 'warn') ? { label: 'STALE / PARCIAL', className: 'warn' } : { label: 'FEEDS ATUALIZADOS', className: '' };
+    const missingLevel = snaps.every((s) => s.level == null);
+    const missingRain = snaps.every((s) => displayRain(s).value == null);
+    const missingRisk = snaps.every((s) => s.risk == null);
+    $('kpi-level').textContent = missingLevel ? 'UNKNOWN' : (level || 'UNKNOWN');
+    $('kpi-level').className = `kpi-value${missingLevel ? ' is-unknown' : ''}`;
+    $('kpi-level-note').textContent = missingLevel ? 'ausência ≠ rio baixo' : snaps.length === 1 ? `${liveSourceText(snaps[0])} · ${ageLabel(snaps[0].observedAge)}` : 'duas estações de referência · não é média da bacia';
+    $('kpi-rain').textContent = missingRain ? 'UNKNOWN' : (rain || 'UNKNOWN');
+    $('kpi-rain').className = `kpi-value${missingRain ? ' is-unknown' : ''}`;
     $('kpi-rain-note').textContent = `horizonte +${hours} h · fonte principal de cada estação`;
-    $('kpi-risk').textContent = risk || '—';
-    $('kpi-risk-note').textContent = snaps.some((s) => s.risk == null && s.archivedRisk != null) ? 'score atrasado ocultado; arquivo preservado para auditoria' : 'estimativa experimental; não calibrada como alerta';
+    $('kpi-risk').textContent = missingRisk ? 'UNKNOWN' : (risk || 'UNKNOWN');
+    $('kpi-risk').className = `kpi-value${missingRisk ? ' is-unknown' : ''}`;
+    $('kpi-risk-note').textContent = snaps.some((s) => s.risk == null && s.archivedRisk != null) ? 'score atrasado ocultado; arquivo preservado para auditoria' : 'estimativa experimental; não calibrada; sem VAI/NÃO VAI';
     $('kpi-freshness').textContent = worst.label;
-    $('kpi-freshness').className = `kpi-value ${worst.className}`;
+    $('kpi-freshness').className = `kpi-value ${worst.className}${worst.className === 'unknown' ? ' is-unknown' : ''}`;
     $('kpi-freshness-note').textContent = `${qualities.map((q, i) => `${stations[keys[i]].label}: ${q.label.toLowerCase()}`).join(' · ')}`;
   }
 
@@ -296,7 +344,7 @@
       const s = stationSnapshot(key, state.horizon); const rain = displayRain(s); const q = qualityFor(s);
       const coverage = s.coverage == null ? 'cobertura não informada' : `${fmt(s.coverage, 0)}/${state.horizon} h de cobertura`;
       return `<article class="station-card ${state.station === key ? 'selected' : ''}">
-        <div class="station-card-head"><div><h3>${esc(s.station.label)}</h3><span class="station-code">ANA/SGB ${esc(s.station.code)} · cota ${fmt(s.station.threshold / 100, 2)} m</span></div><span class="station-decision ${decisionClass(s.decision)}">${esc(decisionLabel(s.decision))}</span></div>
+        <div class="station-card-head"><div><h3>${esc(s.station.label)}</h3><span class="station-code">ANA/SGB ${esc(s.station.code)} · cota ${fmt(s.station.threshold / 100, 2)} m</span></div><span class="station-decision ${scoreStateClass(s)}">${esc(scoreStateLabel(s))}</span></div>
         <div class="station-card-main"><div class="station-mini"><strong>${fmt(s.level, 0)} cm</strong><span>nível observado · ${ageLabel(s.observedAge)}</span></div><div class="station-mini"><strong>${fmt(rain.value, 2)} mm</strong><span>${esc(rain.label)} · +${state.horizon} h</span></div><div class="station-mini"><strong>${pct(s.risk)}</strong><span>estimativa experimental de cruzar a cota${s.riskUsable ? '' : ' · score arquivado ocultado'}</span></div></div>
         <p class="station-foot"><b>${esc(q.label)}</b> · ${coverage} · emissão ${when(sourceGenerated(s))} · <a href="${esc(s.station.status)}">abrir estação →</a></p>
       </article>`;
@@ -425,7 +473,7 @@
     $('control-status').textContent = `${keys.map((key) => { const s = stationSnapshot(key, state.horizon); return `${stations[key].label}: feed ${ageLabel(s.forecastAge)} · observação ${ageLabel(s.observedAge)}`; }).join(' · ')} · horário em BRT${loaded}`;
   }
   function render() {
-    renderAnswer(); renderResearchContext(); renderKpis(); renderStationComparison(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
+    renderAnswer(); renderLayers(); renderResearchContext(); renderKpis(); renderStationComparison(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
   }
 
   async function loadJson(url) {

@@ -43,6 +43,9 @@ ALVO = "86510000"
 LOCAL = "Muçum"
 AVISO = "EXPERIMENTAL — não é alerta oficial. Camada espacial da previsão de RNA para Muçum."
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
+# Espelho oficial do mesmo servico. Em alguns ciclos o host telemetriaws1
+# demora enquanto o host www responde normalmente.
+ANA_ESPELHO = "https://www.ana.gov.br/telemetria1ws/ServiceANA.asmx/DadosHidrometeorologicos"
 ULTIMA_RAW = {}
 ANA_TIMEOUT_NIVEL_S = 15
 ANA_TIMEOUT_CHUVA_S = 12
@@ -208,15 +211,26 @@ def _serie_chuva_de_xml(xml):
 
 def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
     """Telemetria da ANA. O endpoint às vezes devolve vazio/erro de forma
-    transitória, então tenta algumas vezes com backoff curto antes de desistir."""
+    transitória, então tenta algumas vezes com backoff curto antes de desistir.
+
+    A consulta com datas preenchidas é tentada antes da consulta sem datas,
+    porque a segunda pode ser muito mais lenta no ServiceANA. O segundo host
+    é apenas um espelho de transporte; os dados e o parser continuam sendo os
+    mesmos.
+    """
     import time
     fim = agora_brt(); ini = fim - dt.timedelta(days=dias)
-    urls = [
+    urls_com_data = [
         f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
+        f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
+    ]
+    urls_sem_data = [
         f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
+        f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio=&dataFim=",
     ]
     for attempt in range(tentativas_rede):
-        for url in urls:
+        resposta_vazia = False
+        for url in urls_com_data:
             try:
                 req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
                 xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_NIVEL_S).read()
@@ -224,8 +238,23 @@ def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
                 print(f"[ANA {cod}] tent={attempt+1} bytes={nbytes} linhas={len(serie)}")
                 if ultima_raw: ULTIMA_RAW[cod] = ultima_raw
                 if serie: return serie
+                resposta_vazia = True
             except Exception as e:
                 print(f"[ANA {cod}] tent={attempt+1} erro: {e}")
+        # So usa a rota historicamente mais lenta se algum host respondeu sem
+        # erro, mas sem leituras. Timeout nao deve encadear outra requisicao
+        # potencialmente longa no mesmo ciclo.
+        if resposta_vazia:
+            for url in urls_sem_data:
+                try:
+                    req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
+                    xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_NIVEL_S).read()
+                    serie, nbytes, ultima_raw = _serie_de_xml(xml)
+                    print(f"[ANA {cod}] tent={attempt+1} sem-data bytes={nbytes} linhas={len(serie)}")
+                    if ultima_raw: ULTIMA_RAW[cod] = ultima_raw
+                    if serie: return serie
+                except Exception as e:
+                    print(f"[ANA {cod}] tent={attempt+1} sem-data erro: {e}")
         if attempt < tentativas_rede - 1:
             time.sleep(4 * (attempt + 1))
     return {}
@@ -234,12 +263,17 @@ def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
 def buscar_ana_chuva(cod, dias=6, tentativas_rede=ANA_RETRIES_CHUVA):
     """Busca chuva observada e devolve somente acumulados horários reais."""
     fim = agora_brt(); ini = fim - dt.timedelta(days=dias)
-    urls = [
+    urls_com_data = [
         f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
+        f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
+    ]
+    urls_sem_data = [
         f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
+        f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio=&dataFim=",
     ]
     for attempt in range(tentativas_rede):
-        for url in urls:
+        resposta_vazia = False
+        for url in urls_com_data:
             try:
                 req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
                 xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_CHUVA_S).read()
@@ -247,8 +281,20 @@ def buscar_ana_chuva(cod, dias=6, tentativas_rede=ANA_RETRIES_CHUVA):
                 print(f"[ANA chuva {cod}] tent={attempt + 1} bytes={nbytes} horas={len(serie)}")
                 if ultima_raw: ULTIMA_RAW[f"chuva_{cod}"] = ultima_raw
                 if serie: return serie
+                resposta_vazia = True
             except Exception as e:
                 print(f"[ANA chuva {cod}] tent={attempt + 1} erro: {e}")
+        if resposta_vazia:
+            for url in urls_sem_data:
+                try:
+                    req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
+                    xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_CHUVA_S).read()
+                    serie, nbytes, ultima_raw = _serie_chuva_de_xml(xml)
+                    print(f"[ANA chuva {cod}] tent={attempt + 1} sem-data bytes={nbytes} horas={len(serie)}")
+                    if ultima_raw: ULTIMA_RAW[f"chuva_{cod}"] = ultima_raw
+                    if serie: return serie
+                except Exception as e:
+                    print(f"[ANA chuva {cod}] tent={attempt + 1} sem-data erro: {e}")
         if attempt < tentativas_rede - 1:
             time.sleep(2 * (attempt + 1))
     return {}
@@ -652,6 +698,30 @@ def _tem_previsao(d):
     hs = d.get("horizontes")
     return isinstance(hs, dict) and any(v.get("nivel_previsto_cm") is not None for v in hs.values() if isinstance(v, dict))
 
+
+def _hora_previsao_mais_recente(d):
+    """Encontra a hora-base mais recente de qualquer horizonte publicado.
+
+    O pacote principal pode estar sem 2h enquanto 4h/8h continuam validos.
+    Portanto, nao se pode olhar somente ``pacote['hora_modelo']`` para decidir
+    se existe uma previsao anterior que deve ser preservada.
+    """
+    candidatos = []
+    if isinstance(d, dict) and d.get("nivel_previsto_cm") is not None:
+        hora = _parse_hora(d.get("hora_modelo", ""))
+        if hora is not None:
+            candidatos.append(hora)
+    horizontes = d.get("horizontes") if isinstance(d, dict) else None
+    if isinstance(horizontes, dict):
+        for item in horizontes.values():
+            if not isinstance(item, dict) or item.get("nivel_previsto_cm") is None:
+                continue
+            hora = _parse_hora(item.get("hora_modelo", ""))
+            if hora is not None:
+                candidatos.append(hora)
+    return max(candidatos) if candidatos else None
+
+
 def escrever(top, horizontes, max_stale_h=6):
     top = dict(top)
     if horizontes:
@@ -662,17 +732,16 @@ def escrever(top, horizontes, max_stale_h=6):
     if not _tem_previsao(top) and os.path.exists(SAIDA):
         try:
             ant = json.load(open(SAIDA, encoding="utf-8"))
-            hm = ant.get("hora_modelo")
+            hm = _hora_previsao_mais_recente(ant)
             ant_horizontes = ant.get("horizontes")
             # A resiliência preserva um pacote somente depois que ele já tem
             # o contrato atual. Durante a migração 2h/4h -> 2h/4h/8h, deixar o
             # JSON legado passar faria o validador publicar um feed incompleto.
-            # Nesse primeiro ciclo sem ANA, escrevemos os cinco estados
-            # explícitos; o próximo ciclo reativa as previsões quando houver
-            # leitura exata.
+            # O teste da hora-base precisa considerar os horizontes aninhados:
+            # 2h pode estar sem inputs enquanto 4h/8h ainda têm previsoes boas.
             contrato_atual = isinstance(ant_horizontes, dict) and set(ant_horizontes) == HORIZONTES_AO_VIVO
             if contrato_atual and _tem_previsao(ant) and hm:
-                idade_h = (agora_brt() - dt.datetime.fromisoformat(hm)).total_seconds() / 3600
+                idade_h = (agora_brt() - hm).total_seconds() / 3600
                 if idade_h <= max_stale_h:
                     print(f"telemetria falhou neste ciclo; mantendo última previsão boa ({idade_h:.1f} h) — não sobrescreve")
                     return

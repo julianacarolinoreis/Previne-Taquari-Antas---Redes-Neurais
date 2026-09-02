@@ -18,7 +18,7 @@
   var color=function(kind){return kind==='gefs'?'gefs':kind==='risk'?'risk':kind==='rna'?'rna':'';};
   var fill=function(value,max,kind){var x=finite(Number(value))&&max>0?Math.max(0,Math.min(100,Number(value)/max*100)):0;return '<div class="pattern-model-track"><div class="pattern-model-fill '+color(kind)+'" style="width:'+x.toFixed(1)+'%"></div></div>';};
   var bar=function(label,value,max,kind,unit,decimals){return '<div class="pattern-bar-row"><span>'+esc(label)+'</span><div class="pattern-bar-track"><div class="pattern-bar-fill '+(kind||'')+'" style="width:'+(finite(Number(value))&&max>0?Math.max(0,Math.min(100,Number(value)/max*100)):0).toFixed(1)+'%"></div></div><b>'+n(value,decimals==null?1:decimals)+' '+esc(unit||'')+'</b></div>';};
-  var decision=function(v){var x=String(v||'').toUpperCase();return x==='VAI'?'VAI':x==='NAO_VAI'?'NÃO VAI':'UNKNOWN';};
+  var scoreLabel=function(v){var n=Number(v);return Number.isFinite(n)?p2.format(n)+'% exp.':'UNKNOWN';};
   var setText=function(sel,html){var el=q(sel);if(el)el.innerHTML=html;};
   function renderKpis(d){
     var s=d.summary||{}, events=Array.isArray(d.events)?d.events:[], hs=Array.isArray(d.horizons)?d.horizons:[], loc=d.location;
@@ -71,8 +71,8 @@
         rows.push(row('RNA IFS',h.rna_score_percent,100,'rna','%',2));
         rows.push(row('Prob. GEFS',h.probability_percent,100,'risk','%',2));
       }
-      var dec=decision(h.decision);var dc=dec==='VAI'?'risk':dec==='NÃO VAI'?'gefs':'';
-      return '<div class="pattern-horizon"><div class="pattern-horizon-head"><strong>+'+n(h.hours)+' h</strong><span class="'+dc+'">'+esc(dec)+' · '+(loc==='mucum'?'pesquisa':'estimativa')+'</span></div>'+rows.join('')+'</div>';
+      var score=scoreLabel(h.probability_percent);var dc=Number.isFinite(Number(h.probability_percent))?'risk':'';
+      return '<div class="pattern-horizon"><div class="pattern-horizon-head"><strong>+'+n(h.hours)+' h</strong><span class="'+dc+'">'+esc(score)+' · '+(loc==='mucum'?'pesquisa':'estimativa')+'</span></div>'+rows.join('')+'</div>';
     }).join('');
     setText('#pattern-models',html);
     var legend=loc==='mucum'?'<span>Chuva IFS</span><span class="gefs">GEFS</span><span class="risk">Risco logístico</span><span class="rna">Solo modelado</span>':'<span>Chuva IFS</span><span class="gefs">IFS máximo</span><span class="risk">Probabilidade GEFS</span><span class="rna">RNA do feed</span>';

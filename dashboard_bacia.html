@@ -7,6 +7,7 @@
   <link rel="icon" href="data:,">
   <title>PREVINE · Dashboard da bacia Taquari–Antas</title>
   <link rel="stylesheet" href="assets/css/bacia_dashboard.css">
+  <link rel="stylesheet" href="assets/css/gestor_chrome.css">
 </head>
 <body>
   <main class="bacia-shell" data-bacia-dashboard>
@@ -24,15 +25,16 @@
       <a class="active" aria-current="page" href="dashboard_bacia.html">Visão da bacia</a>
       <a href="pesquisa_status.html">Santa Tereza</a>
       <a href="pesquisa_status_mucum.html">Muçum</a>
+      <a href="pesquisas/briefing-gestores.html">Briefing A4</a>
       <a href="pesquisas/sala-integrada-eventos.html">Replay histórico</a>
-      <a href="index.html">Catálogo de modelos</a>
+      <a href="pesquisas.html">Arquivo</a>
     </nav>
 
     <section class="intro-card" aria-labelledby="intro-title">
       <div>
         <p class="section-kicker">Resposta rápida</p>
         <h2 id="intro-title">O que está previsto e o que ainda precisa ser conferido?</h2>
-        <p>Escolha uma estação e um horizonte para ver a chuva de cada fonte, o nível do rio e a estimativa experimental de cruzar a cota. <strong>Chuva prevista não é a mesma coisa que probabilidade de inundação.</strong></p>
+        <p>Escolha uma estação e um horizonte para ver a chuva de cada fonte, o nível do rio e o score experimental de cruzar a cota. <strong>Chuva prevista não é probabilidade de inundação. Ausência de valor é UNKNOWN, não “não vai inundar”.</strong></p>
       </div>
       <div class="legend-inline" aria-label="Legenda dos tipos de dado">
         <span><i class="dot observed"></i>observação</span>
@@ -85,7 +87,30 @@
       <div id="research-source-registry" class="research-source-registry" aria-live="polite"></div>
     </section>
 
-    <section class="kpi-grid" aria-label="Indicadores principais">
+    <section class="layer-strip" id="layer-strip" aria-label="Quatro camadas da decisão">
+      <article class="layer-card previsao is-unknown" id="layer-previsao">
+        <span class="layer-kicker">Previsão</span>
+        <strong>UNKNOWN</strong>
+        <p>consultando fonte · ausência ≠ seguro</p>
+      </article>
+      <article class="layer-card perigo is-unknown" id="layer-perigo">
+        <span class="layer-kicker">Perigo</span>
+        <strong>UNKNOWN</strong>
+        <p>cota oficial e HAND 0 ainda não cruzados nesta leitura</p>
+      </article>
+      <article class="layer-card exposicao is-unknown" id="layer-exposicao">
+        <span class="layer-kicker">Exposição</span>
+        <strong>UNKNOWN</strong>
+        <p>sem mancha validada ∩ grade 200 m</p>
+      </article>
+      <article class="layer-card resposta is-blocked" id="layer-resposta">
+        <span class="layer-kicker">Resposta</span>
+        <strong>Bloqueado</strong>
+        <p>rota, abrigo e comunicação sem confirmação de campo</p>
+      </article>
+    </section>
+
+    <section class="kpi-grid" aria-label="Indicadores hidrológicos">
       <article class="kpi-card kpi-level">
         <div class="kpi-top"><span class="kpi-label">Nível do rio agora</span><span class="tag observed">OBSERVAÇÃO</span></div>
         <strong id="kpi-level" class="kpi-value">—</strong>
@@ -158,6 +183,7 @@
       <div class="source-links">
         <a href="pesquisa_status.html">Santa Tereza · painel técnico →</a>
         <a href="pesquisa_status_mucum.html">Muçum · painel técnico →</a>
+        <a href="pesquisas/briefing-gestores.html">Briefing para gestores (A4) →</a>
         <a href="assets/data/research_visual_patterns_santa_tereza_latest.json">Santa Tereza · dados visuais (JSON) →</a>
         <a href="assets/data/research_visual_patterns_mucum_latest.json">Muçum · dados visuais (JSON) →</a>
         <a href="assets/data/research_basin_screening_latest.json">Bacia · contexto integrado (JSON) →</a>
@@ -171,6 +197,7 @@
       <strong>Não é alerta oficial. Não substitui ANA, SGB, SACE ou Defesa Civil.</strong>
     </footer>
   </main>
-  <script src="assets/js/bacia_dashboard.js?v=20260831-1" defer></script>
+  <script src="assets/js/bacia_dashboard.js?v=20260902-gestor" defer></script>
+  <script src="assets/js/gestor_chrome.js" data-page="agora" data-place="bacia"></script>
 </body>
 </html>
