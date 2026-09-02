@@ -28,6 +28,10 @@ def main() -> int:
         assert comparison["exact_match"] is True
         assert comparison["mean_absolute_error_mm"] == 0
 
+    assert stations["86472000"]["telemetry"]["flow_records"] >= 900
+    assert stations["86472000"]["telemetry"]["level_records"] >= 900
+    assert "CANDIDATO DISPONÍVEL" in report["calibration_gate"]["observed_response_target"]
+
     assert stations["02851072"]["official_identity"]["municipality"] == "IBIRAIARAS"
     assert report["inmet"]["official_identity"]["name"] == "SERAFINA CORRÊA"
     assert report["cemaden"]["official_identity"]["municipality"] == "SERAFINA CORRÊA"
@@ -36,6 +40,8 @@ def main() -> int:
     assert candidate.exists()
     assert report["event_candidate_package"]["rows"] == 240
     assert report["event_candidate_package"]["status"].startswith("candidato")
+    assert len(report["raw_file_inventory"]) >= 23
+    assert all(item["sha256"] for item in report["raw_file_inventory"])
     print("PASS: contrato de proveniência e bloqueios semânticos do relatório")
     return 0
 
