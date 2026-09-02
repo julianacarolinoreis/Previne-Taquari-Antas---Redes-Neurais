@@ -50,7 +50,11 @@ permissions:
 
 concurrency:
   group: github-pages
-  cancel-in-progress: true
+  # Nao cancele um deploy que ja esta fazendo upload: os robos publicam em
+  # ciclos curtos e o cancelamento em cascata deixava o Pages sem chegar ao
+  # passo Deploy to GitHub Pages. O proximo commit fica pendente e substitui
+  # somente outro pendente, mantendo a versao mais recente.
+  cancel-in-progress: false
 
 jobs:
   deploy:
