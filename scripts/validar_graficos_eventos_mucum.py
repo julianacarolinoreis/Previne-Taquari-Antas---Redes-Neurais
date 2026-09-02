@@ -43,18 +43,30 @@ def main() -> None:
     validar_motor_do_grafico(html)
     publicados = carregar_modelos_publicados(html)
 
+    # Q70 was intentionally published as a contract/catalog artifact. Its
+    # public workbooks do not contain point-by-point DADOS, so those two
+    # candidates are catalog-only and must not be treated as graph-ready.
+    q70_path = RAIZ / "assets" / "data" / "mucum_q70_publicacao.json"
+    q70 = json.loads(q70_path.read_text(encoding="utf-8")) if q70_path.exists() else {}
+    q70_catalog_only = {
+        str(model.get("modelo")).upper()
+        for model in q70.get("models", [])
+        if isinstance(model, dict)
+    } if "indisponiveis" in str(q70.get("series_graphs", "")).lower() else set()
+    graph_publicados = publicados - q70_catalog_only
+
     base = json.loads(
         (RAIZ / "assets" / "data" / "mucum_auditaveis_series.json").read_text(encoding="utf-8")
     )
     auditaveis = {str(modelo.get("name", "")).upper(): modelo for modelo in base.get("models", [])}
-    faltantes = sorted(publicados - auditaveis.keys())
+    faltantes = sorted(graph_publicados - auditaveis.keys())
     assert not faltantes, f"modelos publicados sem série auditável: {faltantes}"
 
     eventos = 0
     eventos_com_lacuna = 0
     horas_sem_ponto = 0
     referencia = None
-    for nome in sorted(publicados):
+    for nome in sorted(graph_publicados):
         modelo = auditaveis[nome]
         for chave, linhas in (modelo.get("series") or {}).items():
             assert linhas, f"{nome} / {chave}: evento sem linhas"
@@ -75,7 +87,7 @@ def main() -> None:
     assert referencia == (44, 53, 9), f"evento de referência divergente: {referencia}"
     print(
         "VALIDAÇÃO GRÁFICOS MUÇUM: OK | "
-        f"modelos={len(publicados)} eventos={eventos} "
+        f"modelos_graficos={len(graph_publicados)} modelos_catalogo_apenas={len(q70_catalog_only)} eventos={eventos} "
         f"eventos_com_lacuna={eventos_com_lacuna} horas_sem_ponto={horas_sem_ponto} "
         "referencia_evento19=44_pontos_em_53_horas_9_lacunas"
     )

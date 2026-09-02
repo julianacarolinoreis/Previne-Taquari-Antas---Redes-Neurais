@@ -1,0 +1,1633 @@
+{
+  "schema_version": 1,
+  "artifact_id": "research-event-replay-latest",
+  "generated_at_utc": "2026-09-02T01:30:50Z",
+  "research_only": true,
+  "official_alert": false,
+  "operational_gate": {
+    "status": "blocked",
+    "reason": "Replay, spatial triage and response inventory are source-backed research artifacts; gauge/HAND conversion, field route checks and current shelter capacity are not closed.",
+    "disallowed": [
+      "official_alert",
+      "evacuation_order",
+      "route_navigation",
+      "public_dispatch",
+      "resource_allocation"
+    ]
+  },
+  "purpose": "Reproduzir retrospectivamente o que os dados disponíveis teriam mostrado antes de um evento e registrar quais ligações ainda precisam ser validadas.",
+  "method": {
+    "interpolation": false,
+    "nearest_neighbor": false,
+    "spatial_join": "interseção geométrica com área positiva; filtro explícito id_grade=200M",
+    "population_semantics": "soma de células inteiras é limite superior de triagem; proxy ponderado por área não é contagem individual nem população evacuável",
+    "gauge_hand_conversion": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
+    "route_rule": "nenhuma rota é derivada do cruzamento espacial deste artefato",
+    "model_rule": "séries publicadas permanecem separadas de uma emissão operacional; timestamp de liberação T− ainda não foi reconciliado"
+  },
+  "forecast_sources": [
+    {
+      "id": "rna",
+      "status": "available_for_historical_replay",
+      "horizons_hours": [
+        8,
+        12
+      ],
+      "municipality_scope": [
+        "Muçum"
+      ]
+    },
+    {
+      "id": "rna_santa_tereza",
+      "status": "available_as_catalog_and_experimental_short_horizon; 8h/12h replay pending",
+      "horizons_hours": [
+        2
+      ],
+      "municipality_scope": [
+        "Santa Tereza"
+      ]
+    },
+    {
+      "id": "hec_hms",
+      "status": "not_integrated_yet",
+      "horizons_hours": [
+        72
+      ],
+      "municipality_scope": [
+        "Muçum",
+        "Santa Tereza"
+      ],
+      "required_inputs": [
+        "precipitação de bacia",
+        "modelo de perdas",
+        "parâmetros calibrados",
+        "vazão/nível observado",
+        "regras de propagação"
+      ],
+      "published_peak": null
+    }
+  ],
+  "replay_cases": [
+    {
+      "municipality": "Muçum",
+      "code_ibge": "4312609",
+      "station_code": "86472600",
+      "event_id": "mucum-q62-35",
+      "event_number": 35,
+      "peak_timestamp_local_without_offset": "2026-07-22 15:00:00",
+      "peak_observed_cm": 1986.0,
+      "catalog_peak_cm": 1981.0,
+      "recorte": {
+        "start": "2026-07-21 15:00:00",
+        "end": "2026-07-23 23:00:00",
+        "hours": 57,
+        "hours_before_peak": 24,
+        "hours_after_peak": 32
+      },
+      "event_status": "usable_research_test_record",
+      "independent_test_status": "test label available in audited series; exact release timestamp not reconciled",
+      "horizons": [
+        {
+          "horizon_hours": 8,
+          "selection_basis": "highest published score_equilibrio among candidates with event 35|Teste",
+          "candidate_count": 5,
+          "selected_model": "068_alt_MUC_H08_V24_RAIN18_24_48_SIGMOID_M06_S03",
+          "selected_model_metadata": {
+            "family": "8H_ALT",
+            "combo_id": "MUC_H08_V24_RAIN18_24_48_SIGMOID",
+            "rotation": "M06_S03",
+            "score_equilibrio": 0.8702791338,
+            "mae_teste_cm": 49.2401424313,
+            "source_workbook": "assets/audit_workbooks/8H_ALT__068_alt_MUC_H08_V24_RAIN18_24_48_SIGMOID_M06_S03.xlsx"
+          },
+          "series": {
+            "series_key": "35|Teste",
+            "set": "Teste",
+            "points_published": 47,
+            "points_expected_in_recorte": 57,
+            "missing_hours_in_recorte": 10,
+            "first_timestamp": "2026-07-21 23:00",
+            "last_timestamp": "2026-07-24 07:00",
+            "observed_peak_cm_in_series": 1986.0,
+            "predicted_peak_cm_in_series": 1944.408,
+            "prediction_at_observed_peak_cm": 1944.408,
+            "observed_peak_timestamp": "2026-07-22 15:00",
+            "forecast_target_timestamp": "2026-07-22 15:00",
+            "inferred_origin_timestamp": "2026-07-22 07:00",
+            "target_timestamp_present_in_series": true,
+            "prediction_at_target_cm": 1944.408,
+            "mean_absolute_error_cm_in_published_points": 118.888,
+            "timestamp_reconciliation_status": "target_aligned_series_only; release_timestamp_pending"
+          }
+        },
+        {
+          "horizon_hours": 12,
+          "selection_basis": "highest published score_equilibrio among candidates with event 35|Teste",
+          "candidate_count": 5,
+          "selected_model": "039_alt_MUC_H12_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21",
+          "selected_model_metadata": {
+            "family": "12H_ALT",
+            "combo_id": "MUC_H12_V24",
+            "rotation": "RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21",
+            "score_equilibrio": 0.7708001525,
+            "mae_teste_cm": 83.6542222759,
+            "source_workbook": "assets/audit_workbooks/12H_ALT__039_alt_MUC_H12_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21.xlsx"
+          },
+          "series": {
+            "series_key": "35|Teste",
+            "set": "Teste",
+            "points_published": 47,
+            "points_expected_in_recorte": 57,
+            "missing_hours_in_recorte": 10,
+            "first_timestamp": "2026-07-21 15:00",
+            "last_timestamp": "2026-07-23 23:00",
+            "observed_peak_cm_in_series": 1986.0,
+            "predicted_peak_cm_in_series": 1956.352,
+            "prediction_at_observed_peak_cm": 1881.828,
+            "observed_peak_timestamp": "2026-07-22 03:00",
+            "forecast_target_timestamp": "2026-07-22 15:00",
+            "inferred_origin_timestamp": "2026-07-22 03:00",
+            "target_timestamp_present_in_series": true,
+            "prediction_at_target_cm": 1636.948,
+            "mean_absolute_error_cm_in_published_points": 175.811,
+            "timestamp_reconciliation_status": "target_aligned_series_only; release_timestamp_pending"
+          }
+        }
+      ]
+    }
+  ],
+  "municipality_catalogs": {
+    "mucum": {
+      "event_count_catalog": 32,
+      "q62_used_event_count": 36,
+      "audited_model_count": 20
+    },
+    "santa_tereza": {
+      "event_count_catalog": 24,
+      "available_rotation_manifest": "assets/data/stz_2h_rotacao/MANIFESTO_ROTACAO_2H_ALT_STZ.csv",
+      "independent_holdout_protocol": {
+        "name": "protocolo_evento_estrangulado_leave_one_out",
+        "status": "proposto_para_execucao_rna",
+        "objective": "treinar RNAs deixando fora um evento critico com evidencia de estrangulamento/controle hidraulico e testar previsao + espacializacao nele",
+        "primary_event_candidate": {
+          "label": "cheia_setembro_2023_ponte_santa_barbara",
+          "reason": "evento destruiu a ponte antiga Santa Barbara / ERS-431; anteprojeto usa vestigio da cheia como referencia de cota da nova ponte",
+          "spatial_control": "ponte_santa_barbara_confluencia",
+          "holdout_role": "teste_externo",
+          "rna_event_id": "a_confirmar_nas_planilhas_SERIE"
+        },
+        "secondary_event_candidate": {
+          "label": "cheia_maio_2024_santa_tereza",
+          "reason": "evento com cota SGB forte em Santa Tereza e camadas de inundacao/impacto disponiveis",
+          "sgb_cota_nivelada_m": 22.42,
+          "holdout_role": "validacao_espacial_e_temporal",
+          "rna_event_id": "a_confirmar_nas_planilhas_SERIE"
+        },
+        "execution_steps": [
+          "mapear id SERIE/evento para datas reais nas planilhas auditaveis",
+          "selecionar evento estrangulado e remove-lo de treino/validacao",
+          "treinar 2h e 8h com mesmo conjunto de inputs do melhor modelo comparavel",
+          "rodar previsao no evento holdout inteiro",
+          "comparar H_previsto contra observado e persistencia",
+          "traduzir H_atual, H_2h, H_8h para camada espacial usando a mancha/cenario disponivel",
+          "medir erro temporal separadamente do erro espacial"
+        ]
+      },
+      "eight_or_twelve_hour_replay_status": "pending_rna_event_id_and_auditable_series_reconciliation"
+    }
+  },
+  "spatial_scenarios": {
+    "mucum": {
+      "grid_source": "assets/data/vulnerabilidade/grade/4312609.geojson",
+      "contour_source": "assets/data/mucum_inundacao/contornos_mancha.json",
+      "stage_conversion_status": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
+      "published_level_range_m": [
+        0.0,
+        25.0
+      ],
+      "scenarios": [
+        {
+          "level_m": 18.0,
+          "contour_area_ha": 1593.2,
+          "contour_feature_count_at_level": 1,
+          "cells_200m_touched": 67,
+          "population_upper_bound_whole_touched_cells": 3153,
+          "population_area_weighted_proxy": 2205.2,
+          "intersected_cells_200m": [
+            {
+              "id_grade": "200ME52118N81000",
+              "pop": 17,
+              "overlap_pct_proxy": 68.282
+            },
+            {
+              "id_grade": "200ME52120N81000",
+              "pop": 12,
+              "overlap_pct_proxy": 2.378
+            },
+            {
+              "id_grade": "200ME52122N80984",
+              "pop": 4,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52122N80996",
+              "pop": 4,
+              "overlap_pct_proxy": 2.65
+            },
+            {
+              "id_grade": "200ME52124N80994",
+              "pop": 13,
+              "overlap_pct_proxy": 18.688
+            },
+            {
+              "id_grade": "200ME52126N80984",
+              "pop": 8,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52126N80986",
+              "pop": 11,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52126N80990",
+              "pop": 8,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52126N80992",
+              "pop": 33,
+              "overlap_pct_proxy": 73.429
+            },
+            {
+              "id_grade": "200ME52128N80982",
+              "pop": 20,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52128N80984",
+              "pop": 117,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52128N80986",
+              "pop": 27,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52128N80990",
+              "pop": 60,
+              "overlap_pct_proxy": 99.855
+            },
+            {
+              "id_grade": "200ME52128N80992",
+              "pop": 131,
+              "overlap_pct_proxy": 24.862
+            },
+            {
+              "id_grade": "200ME52130N80982",
+              "pop": 129,
+              "overlap_pct_proxy": 99.473
+            },
+            {
+              "id_grade": "200ME52130N80984",
+              "pop": 146,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52130N80986",
+              "pop": 91,
+              "overlap_pct_proxy": 90.595
+            },
+            {
+              "id_grade": "200ME52130N80988",
+              "pop": 19,
+              "overlap_pct_proxy": 84.797
+            },
+            {
+              "id_grade": "200ME52130N80990",
+              "pop": 76,
+              "overlap_pct_proxy": 55.714
+            },
+            {
+              "id_grade": "200ME52132N80982",
+              "pop": 134,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52132N80984",
+              "pop": 180,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52132N80986",
+              "pop": 114,
+              "overlap_pct_proxy": 83.437
+            },
+            {
+              "id_grade": "200ME52132N80988",
+              "pop": 135,
+              "overlap_pct_proxy": 0.05
+            },
+            {
+              "id_grade": "200ME52134N80982",
+              "pop": 35,
+              "overlap_pct_proxy": 99.658
+            },
+            {
+              "id_grade": "200ME52134N80984",
+              "pop": 139,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52134N80986",
+              "pop": 98,
+              "overlap_pct_proxy": 81.804
+            },
+            {
+              "id_grade": "200ME52136N80984",
+              "pop": 36,
+              "overlap_pct_proxy": 96.975
+            },
+            {
+              "id_grade": "200ME52136N80986",
+              "pop": 124,
+              "overlap_pct_proxy": 57.492
+            },
+            {
+              "id_grade": "200ME52138N80984",
+              "pop": 94,
+              "overlap_pct_proxy": 90.534
+            },
+            {
+              "id_grade": "200ME52138N80986",
+              "pop": 102,
+              "overlap_pct_proxy": 66.226
+            },
+            {
+              "id_grade": "200ME52140N80984",
+              "pop": 21,
+              "overlap_pct_proxy": 97.656
+            },
+            {
+              "id_grade": "200ME52140N80986",
+              "pop": 113,
+              "overlap_pct_proxy": 81.664
+            },
+            {
+              "id_grade": "200ME52142N80986",
+              "pop": 13,
+              "overlap_pct_proxy": 87.827
+            },
+            {
+              "id_grade": "200ME52142N80988",
+              "pop": 101,
+              "overlap_pct_proxy": 16.351
+            },
+            {
+              "id_grade": "200ME52144N80988",
+              "pop": 100,
+              "overlap_pct_proxy": 72.354
+            },
+            {
+              "id_grade": "200ME52144N80990",
+              "pop": 79,
+              "overlap_pct_proxy": 5.506
+            },
+            {
+              "id_grade": "200ME52144N81008",
+              "pop": 39,
+              "overlap_pct_proxy": 14.754
+            },
+            {
+              "id_grade": "200ME52144N81014",
+              "pop": 1,
+              "overlap_pct_proxy": 45.234
+            },
+            {
+              "id_grade": "200ME52144N81016",
+              "pop": 4,
+              "overlap_pct_proxy": 14.776
+            },
+            {
+              "id_grade": "200ME52146N80990",
+              "pop": 104,
+              "overlap_pct_proxy": 73.99
+            },
+            {
+              "id_grade": "200ME52146N81004",
+              "pop": 3,
+              "overlap_pct_proxy": 0.481
+            },
+            {
+              "id_grade": "200ME52146N81006",
+              "pop": 51,
+              "overlap_pct_proxy": 41.146
+            },
+            {
+              "id_grade": "200ME52146N81008",
+              "pop": 25,
+              "overlap_pct_proxy": 95.743
+            },
+            {
+              "id_grade": "200ME52146N81010",
+              "pop": 4,
+              "overlap_pct_proxy": 65.649
+            },
+            {
+              "id_grade": "200ME52146N81012",
+              "pop": 1,
+              "overlap_pct_proxy": 11.312
+            },
+            {
+              "id_grade": "200ME52148N80990",
+              "pop": 17,
+              "overlap_pct_proxy": 99.885
+            },
+            {
+              "id_grade": "200ME52148N80992",
+              "pop": 38,
+              "overlap_pct_proxy": 54.833
+            },
+            {
+              "id_grade": "200ME52148N80994",
+              "pop": 49,
+              "overlap_pct_proxy": 7.537
+            },
+            {
+              "id_grade": "200ME52148N81000",
+              "pop": 50,
+              "overlap_pct_proxy": 0.604
+            },
+            {
+              "id_grade": "200ME52148N81002",
+              "pop": 41,
+              "overlap_pct_proxy": 39.108
+            },
+            {
+              "id_grade": "200ME52148N81004",
+              "pop": 20,
+              "overlap_pct_proxy": 75.57
+            },
+            {
+              "id_grade": "200ME52148N81008",
+              "pop": 9,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52148N81010",
+              "pop": 27,
+              "overlap_pct_proxy": 83.869
+            },
+            {
+              "id_grade": "200ME52148N81012",
+              "pop": 5,
+              "overlap_pct_proxy": 14.764
+            },
+            {
+              "id_grade": "200ME52150N80990",
+              "pop": 3,
+              "overlap_pct_proxy": 98.198
+            },
+            {
+              "id_grade": "200ME52150N80994",
+              "pop": 2,
+              "overlap_pct_proxy": 95.551
+            },
+            {
+              "id_grade": "200ME52150N80996",
+              "pop": 22,
+              "overlap_pct_proxy": 65.459
+            },
+            {
+              "id_grade": "200ME52150N80998",
+              "pop": 32,
+              "overlap_pct_proxy": 57.949
+            },
+            {
+              "id_grade": "200ME52150N81000",
+              "pop": 28,
+              "overlap_pct_proxy": 83.251
+            },
+            {
+              "id_grade": "200ME52150N81002",
+              "pop": 2,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52150N81012",
+              "pop": 16,
+              "overlap_pct_proxy": 89.635
+            },
+            {
+              "id_grade": "200ME52150N81014",
+              "pop": 3,
+              "overlap_pct_proxy": 9.825
+            },
+            {
+              "id_grade": "200ME52152N81016",
+              "pop": 2,
+              "overlap_pct_proxy": 0.561
+            },
+            {
+              "id_grade": "200ME52154N80994",
+              "pop": 2,
+              "overlap_pct_proxy": 89.963
+            },
+            {
+              "id_grade": "200ME52156N81016",
+              "pop": 1,
+              "overlap_pct_proxy": 99.141
+            },
+            {
+              "id_grade": "200ME52156N81018",
+              "pop": 1,
+              "overlap_pct_proxy": 33.492
+            },
+            {
+              "id_grade": "200ME52158N81018",
+              "pop": 7,
+              "overlap_pct_proxy": 94.802
+            }
+          ],
+          "join_status": "reproduced_geometry_intersection",
+          "invalid_200m_cells_seen": 0
+        },
+        {
+          "level_m": 20.0,
+          "contour_area_ha": 1752.3,
+          "contour_feature_count_at_level": 1,
+          "cells_200m_touched": 70,
+          "population_upper_bound_whole_touched_cells": 3351,
+          "population_area_weighted_proxy": 2423.6,
+          "intersected_cells_200m": [
+            {
+              "id_grade": "200ME52118N81000",
+              "pop": 17,
+              "overlap_pct_proxy": 82.182
+            },
+            {
+              "id_grade": "200ME52120N81000",
+              "pop": 12,
+              "overlap_pct_proxy": 10.806
+            },
+            {
+              "id_grade": "200ME52122N80984",
+              "pop": 4,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52122N80996",
+              "pop": 4,
+              "overlap_pct_proxy": 5.674
+            },
+            {
+              "id_grade": "200ME52124N80994",
+              "pop": 13,
+              "overlap_pct_proxy": 24.629
+            },
+            {
+              "id_grade": "200ME52126N80984",
+              "pop": 8,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52126N80986",
+              "pop": 11,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52126N80990",
+              "pop": 8,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52126N80992",
+              "pop": 33,
+              "overlap_pct_proxy": 80.988
+            },
+            {
+              "id_grade": "200ME52128N80982",
+              "pop": 20,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52128N80984",
+              "pop": 117,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52128N80986",
+              "pop": 27,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52128N80990",
+              "pop": 60,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52128N80992",
+              "pop": 131,
+              "overlap_pct_proxy": 34.498
+            },
+            {
+              "id_grade": "200ME52130N80982",
+              "pop": 129,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52130N80984",
+              "pop": 146,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52130N80986",
+              "pop": 91,
+              "overlap_pct_proxy": 91.841
+            },
+            {
+              "id_grade": "200ME52130N80988",
+              "pop": 19,
+              "overlap_pct_proxy": 86.826
+            },
+            {
+              "id_grade": "200ME52130N80990",
+              "pop": 76,
+              "overlap_pct_proxy": 64.892
+            },
+            {
+              "id_grade": "200ME52130N80992",
+              "pop": 89,
+              "overlap_pct_proxy": 0.759
+            },
+            {
+              "id_grade": "200ME52132N80982",
+              "pop": 134,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52132N80984",
+              "pop": 180,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52132N80986",
+              "pop": 114,
+              "overlap_pct_proxy": 98.374
+            },
+            {
+              "id_grade": "200ME52132N80988",
+              "pop": 135,
+              "overlap_pct_proxy": 7.659
+            },
+            {
+              "id_grade": "200ME52134N80982",
+              "pop": 35,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52134N80984",
+              "pop": 139,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52134N80986",
+              "pop": 98,
+              "overlap_pct_proxy": 99.526
+            },
+            {
+              "id_grade": "200ME52134N80988",
+              "pop": 36,
+              "overlap_pct_proxy": 3.424
+            },
+            {
+              "id_grade": "200ME52136N80984",
+              "pop": 36,
+              "overlap_pct_proxy": 99.764
+            },
+            {
+              "id_grade": "200ME52136N80986",
+              "pop": 124,
+              "overlap_pct_proxy": 77.707
+            },
+            {
+              "id_grade": "200ME52138N80984",
+              "pop": 94,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52138N80986",
+              "pop": 102,
+              "overlap_pct_proxy": 75.314
+            },
+            {
+              "id_grade": "200ME52140N80984",
+              "pop": 21,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52140N80986",
+              "pop": 113,
+              "overlap_pct_proxy": 92.984
+            },
+            {
+              "id_grade": "200ME52142N80986",
+              "pop": 13,
+              "overlap_pct_proxy": 99.902
+            },
+            {
+              "id_grade": "200ME52142N80988",
+              "pop": 101,
+              "overlap_pct_proxy": 25.23
+            },
+            {
+              "id_grade": "200ME52144N80988",
+              "pop": 100,
+              "overlap_pct_proxy": 86.778
+            },
+            {
+              "id_grade": "200ME52144N80990",
+              "pop": 79,
+              "overlap_pct_proxy": 8.692
+            },
+            {
+              "id_grade": "200ME52144N81008",
+              "pop": 39,
+              "overlap_pct_proxy": 24.282
+            },
+            {
+              "id_grade": "200ME52144N81014",
+              "pop": 1,
+              "overlap_pct_proxy": 59.19
+            },
+            {
+              "id_grade": "200ME52144N81016",
+              "pop": 4,
+              "overlap_pct_proxy": 29.721
+            },
+            {
+              "id_grade": "200ME52146N80990",
+              "pop": 104,
+              "overlap_pct_proxy": 80.822
+            },
+            {
+              "id_grade": "200ME52146N80992",
+              "pop": 73,
+              "overlap_pct_proxy": 0.305
+            },
+            {
+              "id_grade": "200ME52146N81004",
+              "pop": 3,
+              "overlap_pct_proxy": 5.859
+            },
+            {
+              "id_grade": "200ME52146N81006",
+              "pop": 51,
+              "overlap_pct_proxy": 59.827
+            },
+            {
+              "id_grade": "200ME52146N81008",
+              "pop": 25,
+              "overlap_pct_proxy": 99.625
+            },
+            {
+              "id_grade": "200ME52146N81010",
+              "pop": 4,
+              "overlap_pct_proxy": 81.981
+            },
+            {
+              "id_grade": "200ME52146N81012",
+              "pop": 1,
+              "overlap_pct_proxy": 12.742
+            },
+            {
+              "id_grade": "200ME52148N80990",
+              "pop": 17,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52148N80992",
+              "pop": 38,
+              "overlap_pct_proxy": 64.046
+            },
+            {
+              "id_grade": "200ME52148N80994",
+              "pop": 49,
+              "overlap_pct_proxy": 12.089
+            },
+            {
+              "id_grade": "200ME52148N81000",
+              "pop": 50,
+              "overlap_pct_proxy": 3.631
+            },
+            {
+              "id_grade": "200ME52148N81002",
+              "pop": 41,
+              "overlap_pct_proxy": 58.579
+            },
+            {
+              "id_grade": "200ME52148N81004",
+              "pop": 20,
+              "overlap_pct_proxy": 96.311
+            },
+            {
+              "id_grade": "200ME52148N81008",
+              "pop": 9,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52148N81010",
+              "pop": 27,
+              "overlap_pct_proxy": 96.426
+            },
+            {
+              "id_grade": "200ME52148N81012",
+              "pop": 5,
+              "overlap_pct_proxy": 22.953
+            },
+            {
+              "id_grade": "200ME52150N80990",
+              "pop": 3,
+              "overlap_pct_proxy": 98.706
+            },
+            {
+              "id_grade": "200ME52150N80994",
+              "pop": 2,
+              "overlap_pct_proxy": 99.298
+            },
+            {
+              "id_grade": "200ME52150N80996",
+              "pop": 22,
+              "overlap_pct_proxy": 81.167
+            },
+            {
+              "id_grade": "200ME52150N80998",
+              "pop": 32,
+              "overlap_pct_proxy": 72.686
+            },
+            {
+              "id_grade": "200ME52150N81000",
+              "pop": 28,
+              "overlap_pct_proxy": 92.392
+            },
+            {
+              "id_grade": "200ME52150N81002",
+              "pop": 2,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52150N81012",
+              "pop": 16,
+              "overlap_pct_proxy": 92.659
+            },
+            {
+              "id_grade": "200ME52150N81014",
+              "pop": 3,
+              "overlap_pct_proxy": 12.094
+            },
+            {
+              "id_grade": "200ME52152N81016",
+              "pop": 2,
+              "overlap_pct_proxy": 0.766
+            },
+            {
+              "id_grade": "200ME52154N80994",
+              "pop": 2,
+              "overlap_pct_proxy": 95.54
+            },
+            {
+              "id_grade": "200ME52156N81016",
+              "pop": 1,
+              "overlap_pct_proxy": 99.585
+            },
+            {
+              "id_grade": "200ME52156N81018",
+              "pop": 1,
+              "overlap_pct_proxy": 38.974
+            },
+            {
+              "id_grade": "200ME52158N81018",
+              "pop": 7,
+              "overlap_pct_proxy": 98.74
+            }
+          ],
+          "join_status": "reproduced_geometry_intersection",
+          "invalid_200m_cells_seen": 0
+        },
+        {
+          "level_m": 25.0,
+          "contour_area_ha": 2046.0,
+          "contour_feature_count_at_level": 1,
+          "cells_200m_touched": 79,
+          "population_upper_bound_whole_touched_cells": 3581,
+          "population_area_weighted_proxy": 2804.0,
+          "intersected_cells_200m": [
+            {
+              "id_grade": "200ME52118N81000",
+              "pop": 17,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52120N81000",
+              "pop": 12,
+              "overlap_pct_proxy": 77.009
+            },
+            {
+              "id_grade": "200ME52122N80984",
+              "pop": 4,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52122N80996",
+              "pop": 4,
+              "overlap_pct_proxy": 63.804
+            },
+            {
+              "id_grade": "200ME52122N80998",
+              "pop": 6,
+              "overlap_pct_proxy": 11.272
+            },
+            {
+              "id_grade": "200ME52124N80994",
+              "pop": 13,
+              "overlap_pct_proxy": 62.596
+            },
+            {
+              "id_grade": "200ME52124N80996",
+              "pop": 15,
+              "overlap_pct_proxy": 11.052
+            },
+            {
+              "id_grade": "200ME52126N80984",
+              "pop": 8,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52126N80986",
+              "pop": 11,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52126N80990",
+              "pop": 8,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52126N80992",
+              "pop": 33,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52126N80994",
+              "pop": 47,
+              "overlap_pct_proxy": 24.807
+            },
+            {
+              "id_grade": "200ME52128N80982",
+              "pop": 20,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52128N80984",
+              "pop": 117,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52128N80986",
+              "pop": 27,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52128N80990",
+              "pop": 60,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52128N80992",
+              "pop": 131,
+              "overlap_pct_proxy": 62.275
+            },
+            {
+              "id_grade": "200ME52130N80982",
+              "pop": 129,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52130N80984",
+              "pop": 146,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52130N80986",
+              "pop": 91,
+              "overlap_pct_proxy": 96.88
+            },
+            {
+              "id_grade": "200ME52130N80988",
+              "pop": 19,
+              "overlap_pct_proxy": 92.234
+            },
+            {
+              "id_grade": "200ME52130N80990",
+              "pop": 76,
+              "overlap_pct_proxy": 89.686
+            },
+            {
+              "id_grade": "200ME52130N80992",
+              "pop": 89,
+              "overlap_pct_proxy": 9.763
+            },
+            {
+              "id_grade": "200ME52132N80982",
+              "pop": 134,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52132N80984",
+              "pop": 180,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52132N80986",
+              "pop": 114,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52132N80988",
+              "pop": 135,
+              "overlap_pct_proxy": 68.489
+            },
+            {
+              "id_grade": "200ME52132N80990",
+              "pop": 32,
+              "overlap_pct_proxy": 22.487
+            },
+            {
+              "id_grade": "200ME52134N80982",
+              "pop": 35,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52134N80984",
+              "pop": 139,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52134N80986",
+              "pop": 98,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52134N80988",
+              "pop": 36,
+              "overlap_pct_proxy": 41.946
+            },
+            {
+              "id_grade": "200ME52136N80984",
+              "pop": 36,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52136N80986",
+              "pop": 124,
+              "overlap_pct_proxy": 97.436
+            },
+            {
+              "id_grade": "200ME52136N80988",
+              "pop": 54,
+              "overlap_pct_proxy": 10.191
+            },
+            {
+              "id_grade": "200ME52138N80984",
+              "pop": 94,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52138N80986",
+              "pop": 102,
+              "overlap_pct_proxy": 92.272
+            },
+            {
+              "id_grade": "200ME52140N80984",
+              "pop": 21,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52140N80986",
+              "pop": 113,
+              "overlap_pct_proxy": 99.975
+            },
+            {
+              "id_grade": "200ME52140N80988",
+              "pop": 15,
+              "overlap_pct_proxy": 7.152
+            },
+            {
+              "id_grade": "200ME52142N80986",
+              "pop": 13,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52142N80988",
+              "pop": 101,
+              "overlap_pct_proxy": 39.636
+            },
+            {
+              "id_grade": "200ME52144N80988",
+              "pop": 100,
+              "overlap_pct_proxy": 92.707
+            },
+            {
+              "id_grade": "200ME52144N80990",
+              "pop": 79,
+              "overlap_pct_proxy": 14.323
+            },
+            {
+              "id_grade": "200ME52144N81006",
+              "pop": 37,
+              "overlap_pct_proxy": 2.809
+            },
+            {
+              "id_grade": "200ME52144N81008",
+              "pop": 39,
+              "overlap_pct_proxy": 47.166
+            },
+            {
+              "id_grade": "200ME52144N81014",
+              "pop": 1,
+              "overlap_pct_proxy": 84.796
+            },
+            {
+              "id_grade": "200ME52144N81016",
+              "pop": 4,
+              "overlap_pct_proxy": 45.208
+            },
+            {
+              "id_grade": "200ME52146N80990",
+              "pop": 104,
+              "overlap_pct_proxy": 88.804
+            },
+            {
+              "id_grade": "200ME52146N80992",
+              "pop": 73,
+              "overlap_pct_proxy": 5.162
+            },
+            {
+              "id_grade": "200ME52146N81004",
+              "pop": 3,
+              "overlap_pct_proxy": 57.145
+            },
+            {
+              "id_grade": "200ME52146N81006",
+              "pop": 51,
+              "overlap_pct_proxy": 90.043
+            },
+            {
+              "id_grade": "200ME52146N81008",
+              "pop": 25,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52146N81010",
+              "pop": 4,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52146N81012",
+              "pop": 1,
+              "overlap_pct_proxy": 50.731
+            },
+            {
+              "id_grade": "200ME52146N81014",
+              "pop": 2,
+              "overlap_pct_proxy": 1.84
+            },
+            {
+              "id_grade": "200ME52148N80990",
+              "pop": 17,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52148N80992",
+              "pop": 38,
+              "overlap_pct_proxy": 76.707
+            },
+            {
+              "id_grade": "200ME52148N80994",
+              "pop": 49,
+              "overlap_pct_proxy": 24.375
+            },
+            {
+              "id_grade": "200ME52148N80996",
+              "pop": 22,
+              "overlap_pct_proxy": 0.238
+            },
+            {
+              "id_grade": "200ME52148N81000",
+              "pop": 50,
+              "overlap_pct_proxy": 21.598
+            },
+            {
+              "id_grade": "200ME52148N81002",
+              "pop": 41,
+              "overlap_pct_proxy": 90.087
+            },
+            {
+              "id_grade": "200ME52148N81004",
+              "pop": 20,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52148N81008",
+              "pop": 9,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52148N81010",
+              "pop": 27,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52148N81012",
+              "pop": 5,
+              "overlap_pct_proxy": 43.982
+            },
+            {
+              "id_grade": "200ME52150N80990",
+              "pop": 3,
+              "overlap_pct_proxy": 99.523
+            },
+            {
+              "id_grade": "200ME52150N80994",
+              "pop": 2,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52150N80996",
+              "pop": 22,
+              "overlap_pct_proxy": 90.335
+            },
+            {
+              "id_grade": "200ME52150N80998",
+              "pop": 32,
+              "overlap_pct_proxy": 86.678
+            },
+            {
+              "id_grade": "200ME52150N81000",
+              "pop": 28,
+              "overlap_pct_proxy": 99.83
+            },
+            {
+              "id_grade": "200ME52150N81002",
+              "pop": 2,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52150N81012",
+              "pop": 16,
+              "overlap_pct_proxy": 97.319
+            },
+            {
+              "id_grade": "200ME52150N81014",
+              "pop": 3,
+              "overlap_pct_proxy": 19.895
+            },
+            {
+              "id_grade": "200ME52152N81016",
+              "pop": 2,
+              "overlap_pct_proxy": 3.168
+            },
+            {
+              "id_grade": "200ME52154N80994",
+              "pop": 2,
+              "overlap_pct_proxy": 97.886
+            },
+            {
+              "id_grade": "200ME52156N81016",
+              "pop": 1,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52156N81018",
+              "pop": 1,
+              "overlap_pct_proxy": 47.89
+            },
+            {
+              "id_grade": "200ME52158N81018",
+              "pop": 7,
+              "overlap_pct_proxy": 99.909
+            }
+          ],
+          "join_status": "reproduced_geometry_intersection",
+          "invalid_200m_cells_seen": 0
+        }
+      ],
+      "note": "HAND/contorno é cenário de triagem espacial; não é uma cota de régua automaticamente convertida nem define uma rota."
+    },
+    "santa_tereza": {
+      "grid_source": "assets/data/vulnerabilidade/grade/4317251.geojson",
+      "contour_source": "assets/data/santa_tereza_inundacao/contornos_mancha.json",
+      "stage_conversion_status": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
+      "published_level_range_m": [
+        0.0,
+        15.0
+      ],
+      "higher_than_published_status": "not_published_in_current_contour_file",
+      "scenarios": [
+        {
+          "level_m": 15.0,
+          "contour_area_ha": 1378.0,
+          "contour_feature_count_at_level": 1,
+          "cells_200m_touched": 43,
+          "population_upper_bound_whole_touched_cells": 656,
+          "population_area_weighted_proxy": 315.3,
+          "intersected_cells_200m": [
+            {
+              "id_grade": "200ME52252N80964",
+              "pop": 2,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52254N80962",
+              "pop": 5,
+              "overlap_pct_proxy": 73.942
+            },
+            {
+              "id_grade": "200ME52258N80962",
+              "pop": 4,
+              "overlap_pct_proxy": 43.03
+            },
+            {
+              "id_grade": "200ME52266N80986",
+              "pop": 4,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52266N80988",
+              "pop": 2,
+              "overlap_pct_proxy": 31.01
+            },
+            {
+              "id_grade": "200ME52268N80984",
+              "pop": 2,
+              "overlap_pct_proxy": 98.144
+            },
+            {
+              "id_grade": "200ME52268N80988",
+              "pop": 2,
+              "overlap_pct_proxy": 97.513
+            },
+            {
+              "id_grade": "200ME52270N80980",
+              "pop": 5,
+              "overlap_pct_proxy": 100.0
+            },
+            {
+              "id_grade": "200ME52270N80982",
+              "pop": 10,
+              "overlap_pct_proxy": 96.208
+            },
+            {
+              "id_grade": "200ME52272N80980",
+              "pop": 18,
+              "overlap_pct_proxy": 85.638
+            },
+            {
+              "id_grade": "200ME52272N80982",
+              "pop": 58,
+              "overlap_pct_proxy": 65.047
+            },
+            {
+              "id_grade": "200ME52272N80984",
+              "pop": 14,
+              "overlap_pct_proxy": 96.972
+            },
+            {
+              "id_grade": "200ME52272N80986",
+              "pop": 16,
+              "overlap_pct_proxy": 26.837
+            },
+            {
+              "id_grade": "200ME52272N80988",
+              "pop": 2,
+              "overlap_pct_proxy": 94.136
+            },
+            {
+              "id_grade": "200ME52274N80976",
+              "pop": 9,
+              "overlap_pct_proxy": 99.971
+            },
+            {
+              "id_grade": "200ME52274N80978",
+              "pop": 50,
+              "overlap_pct_proxy": 86.009
+            },
+            {
+              "id_grade": "200ME52274N80980",
+              "pop": 44,
+              "overlap_pct_proxy": 61.512
+            },
+            {
+              "id_grade": "200ME52274N80982",
+              "pop": 11,
+              "overlap_pct_proxy": 63.285
+            },
+            {
+              "id_grade": "200ME52274N80984",
+              "pop": 17,
+              "overlap_pct_proxy": 99.835
+            },
+            {
+              "id_grade": "200ME52274N80986",
+              "pop": 6,
+              "overlap_pct_proxy": 95.742
+            },
+            {
+              "id_grade": "200ME52276N80972",
+              "pop": 3,
+              "overlap_pct_proxy": 88.287
+            },
+            {
+              "id_grade": "200ME52276N80974",
+              "pop": 10,
+              "overlap_pct_proxy": 84.217
+            },
+            {
+              "id_grade": "200ME52276N80976",
+              "pop": 23,
+              "overlap_pct_proxy": 55.967
+            },
+            {
+              "id_grade": "200ME52276N80978",
+              "pop": 57,
+              "overlap_pct_proxy": 10.197
+            },
+            {
+              "id_grade": "200ME52276N80980",
+              "pop": 4,
+              "overlap_pct_proxy": 99.351
+            },
+            {
+              "id_grade": "200ME52276N80984",
+              "pop": 7,
+              "overlap_pct_proxy": 75.614
+            },
+            {
+              "id_grade": "200ME52278N80978",
+              "pop": 21,
+              "overlap_pct_proxy": 23.627
+            },
+            {
+              "id_grade": "200ME52278N80980",
+              "pop": 8,
+              "overlap_pct_proxy": 66.805
+            },
+            {
+              "id_grade": "200ME52278N80982",
+              "pop": 20,
+              "overlap_pct_proxy": 2.741
+            },
+            {
+              "id_grade": "200ME52280N80978",
+              "pop": 19,
+              "overlap_pct_proxy": 20.542
+            },
+            {
+              "id_grade": "200ME52280N80980",
+              "pop": 3,
+              "overlap_pct_proxy": 60.382
+            },
+            {
+              "id_grade": "200ME52282N80978",
+              "pop": 87,
+              "overlap_pct_proxy": 17.349
+            },
+            {
+              "id_grade": "200ME52284N80978",
+              "pop": 32,
+              "overlap_pct_proxy": 39.678
+            },
+            {
+              "id_grade": "200ME52286N80976",
+              "pop": 2,
+              "overlap_pct_proxy": 7.24
+            },
+            {
+              "id_grade": "200ME52286N80978",
+              "pop": 6,
+              "overlap_pct_proxy": 62.729
+            },
+            {
+              "id_grade": "200ME52288N80978",
+              "pop": 13,
+              "overlap_pct_proxy": 5.356
+            },
+            {
+              "id_grade": "200ME52290N80976",
+              "pop": 15,
+              "overlap_pct_proxy": 41.236
+            },
+            {
+              "id_grade": "200ME52290N81078",
+              "pop": 3,
+              "overlap_pct_proxy": 71.855
+            },
+            {
+              "id_grade": "200ME52292N80974",
+              "pop": 29,
+              "overlap_pct_proxy": 11.746
+            },
+            {
+              "id_grade": "200ME52292N80976",
+              "pop": 4,
+              "overlap_pct_proxy": 22.926
+            },
+            {
+              "id_grade": "200ME52292N81074",
+              "pop": 3,
+              "overlap_pct_proxy": 63.191
+            },
+            {
+              "id_grade": "200ME52294N81066",
+              "pop": 5,
+              "overlap_pct_proxy": 6.781
+            },
+            {
+              "id_grade": "200ME52298N81062",
+              "pop": 1,
+              "overlap_pct_proxy": 23.875
+            }
+          ],
+          "join_status": "reproduced_geometry_intersection",
+          "invalid_200m_cells_seen": 0
+        }
+      ],
+      "note": "O arquivo atual chega a 15 m; não há cenário espacial publicado acima disso nesta fonte."
+    }
+  },
+  "response_inventory": {
+    "mucum": {
+      "source": "assets/data/mucum_contingencia_202607.json",
+      "shelters_count": 9,
+      "routes_in_plan_count": 6,
+      "bridges_in_plan_count": 3,
+      "planned_capacity_values_people": [
+        446,
+        506,
+        533
+      ],
+      "capacity_reconciliation_status": "pendente: o próprio documento diverge entre o Quadro 2, o Quadro 13 e o Anexo 5",
+      "current_occupancy_status": "unknown",
+      "route_traversability_status": "unknown",
+      "bridge_engineering_status": "inspection_required; operational_state_unknown",
+      "operational_gate": "blocked"
+    },
+    "santa_tereza": {
+      "source": "assets/data/estudo_caso_resposta_v002.json",
+      "shelters_count": 1,
+      "routes_in_plan_count": 0,
+      "bridges_in_plan_count": 0,
+      "planned_capacity_values_people": [
+        null
+      ],
+      "capacity_reconciliation_status": "unknown",
+      "current_occupancy_status": "unknown",
+      "route_traversability_status": "synthetic_unvalidated",
+      "bridge_engineering_status": "not_integrated",
+      "operational_gate": "blocked"
+    }
+  },
+  "sources": [
+    {
+      "path": "assets/data/mucum_q62/mucum_q62_recorte_eventos.csv",
+      "role": "Muçum Q62 event recortes",
+      "status": "available",
+      "sha256": "3ea9201a103b8637ae1d56dc4b9122b47465abba4486d11efba2f5c3068e7ff7"
+    },
+    {
+      "path": "assets/data/mucum_auditaveis_series.json",
+      "role": "Muçum auditável model series",
+      "status": "available",
+      "sha256": "14c31a3610ed6d0fa683c2cd2116e50d204ca3101c9e017267cd3eae0f0db37d"
+    },
+    {
+      "path": "assets/data/mucum_eventos_analise.json",
+      "role": "Muçum event catalog",
+      "status": "available",
+      "sha256": "a8629b2425fe77dfa4d1f4f4cf313e9fc296f55359cc31cdf8051fb410e375de"
+    },
+    {
+      "path": "assets/data/eventos_analise.json",
+      "role": "Santa Tereza event catalog",
+      "status": "available",
+      "sha256": "2171dd1fb9a2323f712c9045dc4a337ebaba42f3f3ac3884eb545fd31083d39b"
+    },
+    {
+      "path": "assets/data/research_basin_screening_latest.json",
+      "role": "basin research feed",
+      "status": "available_snapshot",
+      "sha256": "866e0e9fbc2b51147acfc9caa72fa70033c64ba953a5c0fbcfffbaf29bf378f9"
+    }
+  ]
+}
