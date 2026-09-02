@@ -2918,6 +2918,12 @@ INDS.forEach(d=>{
   if (d.opt) b.hidden = true;          // só aparece quando o robô publicar o campo
   if (d.k===ind) b.classList.add("on");
   b.onclick = ()=>{
+    // PcD/TEA e os demais agregados municipais não possuem distribuição
+    // publicada por setor ou por célula. Se o usuário estiver no detalhe
+    // local, voltar à visão municipal torna a troca visível no mapa sem
+    // pintar cada unidade com o mesmo valor (o que sugeriria uma medida
+    // local inexistente na fonte).
+    const saiuDoDetalheLocal = !!munAtual && !!d.municipalOnly;
     ind = d.k;
     // Se a pessoa escolher explicitamente população/domicílios dentro da
     // grade, essa escolha prevalece ao voltar para os setores.
@@ -2926,6 +2932,7 @@ INDS.forEach(d=>{
       const ativo = x.dataset.k===ind;
       x.classList.toggle("on", ativo); x.setAttribute("aria-pressed", ativo ? "true" : "false");
     });
+    if (saiuDoDetalheLocal) voltaBacia();
     configuraPercentual(d, true);
     atualizaEscopoDados();
     // ICM é categórico: 'editar faixas' não se aplica
@@ -2938,7 +2945,9 @@ INDS.forEach(d=>{
     // produza o detalhe espacial esperado, e não apenas a cor municipal.
     ativaServicoDoIndicador(d);
     sincronizaURL();
-    informa(`Indicador ${d.nome} · ${escopoComparacao()}.`);
+    informa(saiuDoDetalheLocal
+      ? `Indicador ${d.nome} · mapa voltou à visão dos municípios; o valor é do município inteiro, não do setor/grade.`
+      : `Indicador ${d.nome} · ${escopoComparacao()}.`);
     if(document.getElementById("triagem")?.open) geraTriagem();
   };
   gruposInd.get(d.grupo).appendChild(b);
