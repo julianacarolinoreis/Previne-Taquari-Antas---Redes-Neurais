@@ -81,6 +81,9 @@
   <script src="../assets/js/resposta_operacional.js"></script>
   <script src="../assets/js/gestor_chrome.js" data-page="campo" data-place="santa"></script>
   <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../sw.js').catch(function () {});
+    }
     (function () {
       'use strict';
       var R = window.PREVINE_RESPOSTA;

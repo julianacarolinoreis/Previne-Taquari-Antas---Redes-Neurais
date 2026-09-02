@@ -97,7 +97,9 @@
             <a href="../dashboard_bacia.html"><b>Visão da bacia</b><span>chuva + nível + score</span></a>
             <a href="briefing-gestores.html"><b>Briefing A4</b><span>imprimir ou copiar</span></a>
             <a href="estudo-caso-resposta-santa-tereza.html"><b>Mesa Santa Tereza V002</b><span>exercício · checklist 7 itens</span></a>
+            <a href="estudo-caso-resposta-mucum.html"><b>Mesa Muçum V001</b><span>exercício · registro CSV</span></a>
             <a href="mucum-painel-evacuacao.html"><b>Sala Muçum</b><span>plano + cenários MDT</span></a>
+            <a href="exposicao-cruzada.html"><b>Exposição cruzada</b><span>vulnerabilidade × mancha</span></a>
             <a href="sala-integrada-eventos.html"><b>Replay histórico</b><span>comparar eventos passados</span></a>
           </div>
         </article>
@@ -120,9 +122,9 @@
       <p class="section-intro">Transparência sobre bloqueios — a plataforma mostra lacunas para orientar o que levantar antes de tratar qualquer página como despacho.</p>
       <div class="gaps">
         <div class="gap blocked"><b>Camada Resposta · BLOQUEADA</b>Rotas sintéticas, abrigos sem capacidade confirmada e comunicação não validada. Ginásio ST sem lotação publicada; bombeiros não cadastrados no protótipo.</div>
-        <div class="gap"><b>Exposição · UNKNOWN</b>Censo 2022 existe, mas risco = vulnerabilidade ∩ mancha validada ainda não está calculado. Sem lista nominal de famílias.</div>
-        <div class="gap"><b>Municípios a jusante</b>Encantado, Roca Sales e Lajeado não têm ficha própria — use dashboard da bacia + vulnerabilidade municipal.</div>
-        <div class="gap"><b>Validação de mancha</b>PR #79 (Zenodo jul/2020) e divergência mapa×clique (PR #53) seguem abertos.</div>
+        <div class="gap"><b>Exposição · UNKNOWN</b>Censo 2022 existe, mas risco = vulnerabilidade ∩ mancha validada ainda não está calculado. Consulte <a href="exposicao-cruzada.html">exposição cruzada</a> para o que já dá para ler.</div>
+        <div class="gap blocked"><b>Municípios a jusante · fichas leves</b>Encantado, Roca Sales e Lajeado têm ficha IBGE/ICM — sem estação PREVINE nem RNA. Ver <a href="../pesquisa_status_encantado.html">Encantado</a>, <a href="../pesquisa_status_roca_sales.html">Roca Sales</a>, <a href="../pesquisa_status_lajeado.html">Lajeado</a>.</div>
+        <div class="gap"><b>Validação de mancha · parcial</b>Zenodo jul/2020 integrado (PR #79) e fix mapa×clique (PR #53). Falta calibração operacional por tempestade.</div>
         <div class="gap"><b>Operação autorizada</b>Nenhum produto neste site está em modo operação real. Matriz: pesquisa → protótipo → validado → operação.</div>
       </div>
     </section>
@@ -135,6 +137,7 @@
       <div class="toolbar">
         <button type="button" class="secondary" id="clear-checklist">Limpar checklist</button>
         <button type="button" id="copy-status">Copiar status dos dois municípios</button>
+        <button type="button" class="secondary" id="export-csv">Exportar checklist + decisões (CSV)</button>
       </div>
     </section>
 
@@ -147,6 +150,9 @@
   <script src="../assets/js/resposta_operacional.js"></script>
   <script src="../assets/js/gestor_chrome.js" data-page="centro" data-place="bacia"></script>
   <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../sw.js').catch(function () {});
+    }
     (function () {
       'use strict';
       var R = window.PREVINE_RESPOSTA;
@@ -210,6 +216,9 @@
           document.getElementById('copy-status').textContent = 'Copiado';
           setTimeout(function () { document.getElementById('copy-status').textContent = 'Copiar status dos dois municípios'; }, 2000);
         });
+      });
+      document.getElementById('export-csv').addEventListener('click', function () {
+        R.downloadCsv('previne-centro-resposta.csv', R.exportDecisionCsv({ includeMesaLog: true }));
       });
 
       renderChecklist();
