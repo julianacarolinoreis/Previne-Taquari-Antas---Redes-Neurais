@@ -1,0 +1,118 @@
+{
+  "schema_version": 2,
+  "artifact_id": "muc-response-exercise-v002",
+  "title": "Exercício controlado de resposta à inundação · Muçum",
+  "mode": "exercise",
+  "maturity": "prototype",
+  "operational_gate": {
+    "status": "blocked",
+    "reason": "RNA Muçum em calibração; gate operacional bloqueado no exercício. Plano municipal digitalizado — ocupação/abertura no evento exigem confirmação em campo.",
+    "disallowed": ["official_alert", "evacuation_order", "public_dispatch", "route_navigation", "resource_allocation"]
+  },
+  "event": {
+    "event_id": "muc-2020-scenario",
+    "scenario_id": "jul2020",
+    "label": "Referência cheia jul/2020 · pico ~2202 cm",
+    "timezone": "America/Sao_Paulo",
+    "status": "historical_reference",
+    "note": "Modo plantão lê feed ao vivo; modo cenário usa HAND@17,02 m validado com Zenodo."
+  },
+  "timeline": [
+    {"offset_min": 0, "label": "T+00:00", "phase": "recebimento", "decision": "ler telemetria ANA-SACE, RNA 2h/8h e idade do sinal"},
+    {"offset_min": 30, "label": "T+00:30", "phase": "triagem", "decision": "ordenar zonas Z-01…Z-04 pela exposição estimada"},
+    {"offset_min": 60, "label": "T+01:00", "phase": "reconhecimento", "decision": "confirmar ruas, pontes e plano municipal"},
+    {"offset_min": 120, "label": "T+02:00", "phase": "retirada", "decision": "ensaiar retirada prioritária somente após checklist"},
+    {"offset_min": 240, "label": "T+04:00", "phase": "escalada", "decision": "comparar horizonte 8h sombra sem transformar em rota"},
+    {"offset_min": 480, "label": "T+08:00", "phase": "regional", "decision": "registrar proxy montante (ST) e lacunas jusante"}
+  ],
+  "forecast": {
+    "source": "previsao_ao_vivo_mucum.json",
+    "station": "86510000",
+    "upstream_proxy_station": "86472600",
+    "upstream_proxy_label": "Santa Tereza (montante)",
+    "bankfull_cm": 500,
+    "threshold_cm": 1800,
+    "freshness_policy": {"missing": "unknown", "outside_validity": "stale", "max_observation_age_min": 180, "timezone": "America/Sao_Paulo"},
+    "horizons": [
+      {"id": "2h", "model_slot": "2h", "publication": "principal", "shadow": false},
+      {"id": "8h", "model_slot": "8h", "publication": "experimental", "shadow": false},
+      {"id": "8h_sombra", "model_slot": "8h_versao_b", "publication": "sombra_experimental", "shadow": true}
+    ],
+    "note": "Horizonte 8h é experimental; rank 2 publicado como sombra. Proxy montante informa tendência, não substitui telemetria local."
+  },
+  "spatial": {
+    "source": "assets/data/exposicao_cruzada/exposicao_mucum.json",
+    "contornos": "assets/data/mucum_inundacao/contornos_mancha.json",
+    "validation_zenodo": "assets/data/validacao_zenodo_2020/resumo.md",
+    "hand_peak_2020_m": 17.02,
+    "hand_contours_max_m": 25.0,
+    "coverage_status": "preliminary",
+    "route_status": "plan_municipal_unvalidated",
+    "exposure_at_peak": {"pop_grade": 2117, "dom_grade": 842, "pct_pop": 46.2},
+    "note": "Exposição @17,02 m por centroide de grade 200 m; contornos HAND até 25 m publicados."
+  },
+  "zones": [
+    {"id": "Z-01", "label": "Baixa central", "latitude": -29.166918, "longitude": -51.876005, "hand_m": 12.6, "population": 1923, "homes": 766, "people_status": "aggregate_estimate", "route_status": "plan_municipal_unvalidated"},
+    {"id": "Z-02", "label": "Eixo oeste", "latitude": -29.175693, "longitude": -51.80444, "hand_m": 8.5, "population": 35, "homes": 11, "people_status": "aggregate_estimate", "route_status": "plan_municipal_unvalidated"},
+    {"id": "Z-03", "label": "Corredor sul", "latitude": -29.148736, "longitude": -51.873014, "hand_m": 15.2, "population": 80, "homes": 30, "people_status": "aggregate_estimate", "route_status": "plan_municipal_unvalidated"},
+    {"id": "Z-04", "label": "Eixo alto", "latitude": -29.147508, "longitude": -51.857541, "hand_m": 4.7, "population": 94, "homes": 39, "people_status": "aggregate_estimate", "route_status": "plan_municipal_unvalidated"}
+  ],
+  "people": {
+    "source": "Grade Estatística IBGE 2022 · exposição @ HAND 17,02 m",
+    "method": "centroide de célula 200 m dentro da mancha",
+    "status": "estimate_not_operational",
+    "privacy": "Sem nomes ou endereços; zonas por quadrante espacial — não somar sobre áreas sobrepostas.",
+    "municipal_context": {"municipality": "Muçum", "code": "4312609", "population": 4585, "exposed_at_peak": 2117}
+  },
+  "shelter": {
+    "source": "assets/data/mucum_contingencia_202607.json",
+    "document": "Plano de Contingência Muçum - RS · julho de 2026",
+    "pdf_url": "https://mucum.rs.gov.br/portal/defesa-civil/PLANO%20DE%20CONTING%C3%8ANCIA%20DE%20MU%C3%87UM%20-%20DEFESA%20CIVIL.pdf",
+    "count": 9,
+    "capacity_quadro_13": 506,
+    "capacity_quadro_2": 446,
+    "capacity_anexo_5": 533,
+    "capacity_reference": "quadro_13",
+    "capacity_note": "O próprio plano municipal diverge entre Quadro 2, Quadro 13 e Anexo 5; os três totais ficam publicados sem apagar a divergência.",
+    "pontos_encontro": 2,
+    "rotas_plano": 6,
+    "status": "cadastrado_plano",
+    "operational_status": "desconhecido",
+    "safe_point_confirmed": false,
+    "note": "Cadastro completo do plano (abrigos, rotas, pontes, recursos). O que falta no evento real é abertura/ocupação/vagas atuais — não falta o documento."
+  },
+  "validation_checklist": [
+    {"id": "forecast", "label": "Fonte, horário, fuso, validade e qualidade do sinal", "status": "unknown"},
+    {"id": "spatial", "label": "Cota, HAND, mancha Zenodo/MDT e limite de cobertura", "status": "unknown"},
+    {"id": "routes", "label": "Rua, ponte, bloqueio, declividade e acessibilidade", "status": "unknown"},
+    {"id": "shelter", "label": "Abertura, capacidade, ocupação, acessibilidade e alternativa", "status": "unknown"},
+    {"id": "people", "label": "Cobertura comunitária e necessidades sem expor dados pessoais", "status": "unknown"},
+    {"id": "comms", "label": "Mensagem, canal, confirmação de recebimento e alternativa", "status": "unknown"},
+    {"id": "resources", "label": "Equipe, transporte, suprimentos e registro de decisão", "status": "unknown"}
+  ],
+  "exercise_metrics": [
+    {"id": "time_to_first_decision_min", "label": "Tempo até primeira decisão", "unit": "min", "value": null, "status": "not_collected"},
+    {"id": "time_to_route_confirmation_min", "label": "Tempo até confirmar rota", "unit": "min", "value": null, "status": "not_collected"},
+    {"id": "unlocated_count", "label": "Pessoas não localizadas", "unit": "people", "value": null, "status": "not_collected"},
+    {"id": "shelter_capacity_gap", "label": "Lacuna de capacidade", "unit": "people", "value": null, "status": "unknown"},
+    {"id": "message_comprehension", "label": "Compreensão da mensagem", "unit": "category", "value": null, "status": "not_collected"},
+    {"id": "critical_failures", "label": "Falhas críticas", "unit": "count", "value": null, "status": "not_collected"},
+    {"id": "communication_ready", "label": "Comunicação pronta", "unit": "category", "value": null, "status": "not_collected"},
+    {"id": "resource_task_ready", "label": "Tarefa de recurso pronta", "unit": "category", "value": null, "status": "not_collected"},
+    {"id": "contingency_result", "label": "Resultado da contingência", "unit": "category", "value": null, "status": "not_collected"}
+  ],
+  "sources": [
+    {"path": "assets/data/estudo_caso_resposta_mucum_v002.json", "role": "contrato do exercício"},
+    {"path": "previsao_ao_vivo_mucum.json", "role": "feed RNA + telemetria"},
+    {"path": "assets/data/mucum_contingencia_202607.json", "role": "plano municipal digitalizado (abrigos, rotas, pontes)"},
+    {"path": "assets/data/exposicao_cruzada/exposicao_mucum.json", "role": "exposição cruzada"},
+    {"path": "assets/data/mucum_inundacao/contornos_mancha.json", "role": "contornos HAND"},
+    {"path": "pesquisas/estudo-caso-resposta-mucum.html", "role": "mesa V002"}
+  ],
+  "surfaces": {
+    "mesa": "pesquisas/estudo-caso-resposta-mucum.html",
+    "exposicao": "pesquisas/exposicao-cruzada.html",
+    "mapa": "mucum_previsao_inundacao.html",
+    "centro": "pesquisas/centro-resposta.html"
+  }
+}

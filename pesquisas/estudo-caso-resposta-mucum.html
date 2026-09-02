@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102334">
+  <title>PREVINE · Mesa de exercício · Muçum V002</title>
+  <link rel="stylesheet" href="../assets/css/gestor_chrome.css">
+  <style>
+    :root { --ink:#12202b; --muted:#5b6b76; --line:#d7e1e8; --navy:#102334; --teal:#0f6b62; --amber:#a46b12; --coral:#a33d32; --mint:#e6f4ef; --blue:#2e72dd; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #edf2f7; color: var(--ink); font: 15px/1.45 Inter, ui-sans-serif, system-ui, sans-serif; }
+    .shell { max-width: 1080px; margin: 0 auto; padding: 16px 18px 48px; }
+    .hero { padding: 22px 24px; background: linear-gradient(135deg, var(--navy), #1a4258); color: #eef4f8; border-radius: 18px; margin-bottom: 16px; }
+    .hero .eyebrow { margin: 0 0 8px; font-size: 11px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; color: #9fd4c8; }
+    h1 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 32px); letter-spacing: -.03em; }
+    h2 { margin: 0 0 10px; font-size: 17px; color: var(--navy); }
+    .lede { margin: 0; max-width: 720px; color: #c5d4df; font-size: 14px; }
+    .seal { display: inline-flex; margin-top: 14px; padding: 6px 10px; border: 1px solid #e3c27a; border-radius: 999px; background: #3a3018; color: #f3e0b0; font-size: 10px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+    .gate { margin-top: 14px; padding: 12px 14px; border-left: 4px solid var(--coral); border-radius: 0 12px 12px 0; background: #fff4f1; color: #7b3a32; font-size: 13px; }
+    .section { margin-top: 14px; padding: 18px 20px; background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+    .section-intro { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+    .mode-switch { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .mode-switch button { padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: #f9fbfd; font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
+    .mode-switch button[aria-pressed="true"] { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .model-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .model-card { padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #f9fbfd; }
+    .model-card.shadow { border-color: #d8d1f2; background: #f8f7fe; }
+    .model-card span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .model-card strong { display: block; margin: 6px 0; font-size: 22px; color: var(--navy); }
+    .model-card small { color: var(--muted); font-size: 10px; word-break: break-all; }
+    .sace-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+    .sace-item { padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #fafcfd; font-size: 12px; }
+    .sace-item span { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; }
+    .sace-item strong { display: block; margin-top: 4px; color: var(--navy); }
+    .live-level { font-size: 36px; font-weight: 850; letter-spacing: -.04em; color: var(--navy); line-height: 1; }
+    .fresh { font-size: 10px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; padding: 4px 7px; border-radius: 999px; background: var(--mint); color: #24745d; }
+    .fresh.stale { background: #fff4e4; color: #9c5c1a; }
+    .fresh.unknown { background: #eceaf0; color: #5c5470; }
+    .live-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .live-meta { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .zone-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .zone-card { text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fafcfd; cursor: pointer; font: inherit; }
+    .zone-card.zone-selected { border-color: var(--teal); background: var(--mint); }
+    .zone-card .zone-id { font-size: 10px; font-weight: 850; color: var(--teal); letter-spacing: .06em; }
+    .zone-card strong { display: block; margin: 4px 0; color: var(--navy); font-size: 14px; }
+    .zone-card span:last-child { font-size: 11px; color: var(--muted); }
+    .timeline-track { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tl-step { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font: inherit; font-size: 11px; cursor: pointer; }
+    .tl-step.done { background: #eef9f4; border-color: #aad8c9; }
+    .tl-step.current { background: #fff8ea; border-color: #e3c27a; font-weight: 800; }
+    .tl-step span { display: block; font-weight: 750; }
+    .tl-step small { color: var(--muted); }
+    .score-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .score-item { padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #f9fbfd; font-size: 12px; }
+    .score-item span { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; }
+    .score-item strong { display: block; margin-top: 4px; color: var(--navy); font-size: 16px; }
+    .brief-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .brief-item { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #f9fbfd; font-size: 12px; }
+    .brief-item span { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+    .brief-item strong { display: block; margin-top: 4px; color: var(--navy); font-size: 14px; }
+    .link-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+    .link-grid a { display: flex; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fafcfd; color: inherit; text-decoration: none; font-size: 13px; }
+    .checklist { display: grid; gap: 6px; }
+    .checklist label { display: flex; align-items: flex-start; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fafcfd; font-size: 13px; cursor: pointer; }
+    .checklist label:has(input:checked) { border-color: #9fd4c8; background: var(--mint); }
+    .checklist input { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--teal); }
+    .decision-form { display: grid; gap: 8px; margin-top: 10px; }
+    .decision-form input, .decision-form textarea, .decision-form select { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; font-size: 14px; }
+    .decision-form textarea { min-height: 72px; resize: vertical; }
+    .log { margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .log-item { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 12px; }
+    .log-item:last-child { border-bottom: 0; }
+    .log-item time { display: block; color: var(--muted); font-size: 10px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .toolbar button, .toolbar a.btn { min-height: 40px; display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--navy); background: var(--navy); color: #fff; font: inherit; font-size: 13px; font-weight: 750; text-decoration: none; cursor: pointer; }
+    .toolbar .secondary { background: #fff; color: var(--navy); }
+    footer { margin-top: 18px; color: var(--muted); font-size: 11px; }
+    @media (max-width: 760px) {
+      .model-grid, .sace-row, .brief-grid, .score-grid { grid-template-columns: 1fr 1fr; }
+      .zone-grid, .link-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p class="eyebrow">PREVINE · exercício controlado V002</p>
+      <h1>Mesa de resposta · Muçum</h1>
+      <p class="lede">Plantão ao vivo (ANA-SACE + RNA 2h/8h) ou cenário jul/2020 (HAND@17,02 m). Zonas, exposição cruzada e scoreboard — gate operacional permanece bloqueado.</p>
+      <span class="seal">Protótipo · nenhum despacho real será enviado</span>
+    </header>
+
+    <div class="gate" id="gate-note" role="note">Carregando contrato V002…</div>
+
+    <section class="section" aria-labelledby="mode-title">
+      <h2 id="mode-title">Modo de leitura</h2>
+      <div class="mode-switch">
+        <button type="button" data-mode="plantao" aria-pressed="true">Plantão · feed ao vivo</button>
+        <button type="button" data-mode="cenario" aria-pressed="false">Cenário jul/2020</button>
+      </div>
+      <p class="section-intro" id="mode-note">Plantão: telemetria e RNA atualizam a cada 2 min; UNKNOWN/STALE não significa rio baixo.</p>
+    </section>
+
+    <section class="section" aria-labelledby="live-title">
+      <div class="live-head">
+        <h2 id="live-title">Telemetria · estação 86510000</h2>
+        <span class="fresh" id="fresh-badge">…</span>
+      </div>
+      <div class="live-level" id="live-level" aria-live="polite">—</div>
+      <p class="live-meta" id="live-meta">Carregando feed…</p>
+      <div class="sace-row">
+        <div class="sace-item"><span>Relógio ANA-SACE</span><strong id="sace-age">—</strong></div>
+        <div class="sace-item"><span>Estado</span><strong id="sace-status">—</strong></div>
+        <div class="sace-item"><span>Estação</span><strong id="sace-station">86510000</strong></div>
+      </div>
+      <div class="toolbar">
+        <button type="button" id="refresh-live">Atualizar</button>
+        <a class="btn secondary" href="../mucum_previsao_inundacao.html">Mapa HAND</a>
+        <a class="btn secondary" href="exposicao-cruzada.html">Exposição cruzada</a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="models-title">
+      <h2 id="models-title">RNA · horizontes publicados</h2>
+      <p class="section-intro">2h principal · 8h experimental · 8h sombra (rank 2). Não são alerta oficial.</p>
+      <div class="model-grid">
+        <div class="model-card">
+          <span>2h · principal</span>
+          <strong id="h2-level">—</strong>
+          <small id="h2-model">—</small>
+        </div>
+        <div class="model-card">
+          <span>8h · experimental</span>
+          <strong id="h8-level">—</strong>
+          <small id="h8-model">—</small>
+        </div>
+        <div class="model-card shadow">
+          <span id="h8s-badge">8h · sombra</span>
+          <strong id="h8s-level">—</strong>
+          <small id="h8s-model">—</small>
+        </div>
+      </div>
+      <p class="section-intro" style="margin-top:12px"><strong>Proxy montante:</strong> <span id="proxy-st-level">—</span> · <span id="proxy-st-note">Santa Tereza (86472600) informa tendência upstream; não substitui telemetria local.</span></p>
+    </section>
+
+    <section class="section" aria-labelledby="zones-title">
+      <h2 id="zones-title">Zonas de exposição @ HAND 17,02 m</h2>
+      <p class="section-intro" id="zone-detail">Quadrantes espaciais · estimativa por grade 200 m · não somar zonas.</p>
+      <div class="zone-grid" id="zone-grid"></div>
+      <div class="brief-grid" style="margin-top:12px">
+        <div class="brief-item"><span>Pop. na mancha</span><strong id="exp-pop">—</strong></div>
+        <div class="brief-item"><span>Domicílios</span><strong id="exp-dom">—</strong></div>
+        <div class="brief-item"><span>% do município</span><strong id="exp-pct">—</strong></div>
+        <div class="brief-item"><span>Idosos 70+ (setor)</span><strong id="exp-idosos">—</strong></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="timeline-title">
+      <h2 id="timeline-title">Linha do exercício · <span id="event-clock">T+00:00</span></h2>
+      <p class="section-intro" id="timeline-decision">—</p>
+      <div class="timeline-track" id="timeline-track"></div>
+      <div class="toolbar">
+        <button type="button" id="record-decision">Registrar primeira decisão</button>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="score-title">
+      <h2 id="score-title">Scoreboard · <span id="validationProgress">0/7</span> checklist</h2>
+      <div class="score-grid">
+        <div class="score-item"><span>1ª decisão</span><strong id="metricFirstDecision">—</strong></div>
+        <div class="score-item"><span>Confirmar rota</span><strong id="metricRouteConfirm">—</strong></div>
+        <div class="score-item"><span>Não localizadas</span><strong id="metricUnlocated">—</strong></div>
+        <div class="score-item"><span>Lacuna abrigo</span><strong id="metricShelterGap">—</strong></div>
+        <div class="score-item"><span>Falhas críticas</span><strong id="metricCriticalFailures">—</strong></div>
+        <div class="score-item"><span>Contingência</span><strong id="metricContingencyResult">—</strong></div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="shelter-title">
+      <h2 id="shelter-title">Alojamentos · plano municipal jul/2026</h2>
+      <p class="section-intro" id="shelter-intro">Cadastro digitalizado do plano de contingência — 9 alojamentos, 2 pontos de encontro, 6 rotas. Capacidade <strong>planejada</strong> (Quadro 13: 506 pessoas); abertura/ocupação no evento exigem confirmação em campo.</p>
+      <div class="brief-grid" id="shelter-summary">
+        <div class="brief-item"><span>Alojamentos</span><strong id="sh-count">—</strong></div>
+        <div class="brief-item"><span>Cap. Quadro 13</span><strong id="sh-cap13">—</strong></div>
+        <div class="brief-item"><span>Cap. Quadro 2</span><strong id="sh-cap2">—</strong></div>
+        <div class="brief-item"><span>Anexo 5 / ficha</span><strong id="sh-cap5">—</strong></div>
+      </div>
+      <div id="shelter-list" class="link-grid" style="margin-top:12px"></div>
+      <div class="toolbar">
+        <a class="btn secondary" href="mucum-rota-fuga-ruas.html">Mapa de rotas e abrigos</a>
+        <a class="btn secondary" href="../assets/data/mucum_contingencia_202607.json">JSON do plano</a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="check-title">
+      <h2 id="check-title">Checklist pré-ação (7 itens)</h2>
+      <p class="section-intro" id="check-progress"><strong>0/7</strong> confirmações neste aparelho.</p>
+      <div class="checklist" id="checklist"></div>
+      <div class="toolbar">
+        <button type="button" class="secondary" id="clear-checklist">Limpar checklist</button>
+        <button type="button" id="copy-status">Copiar leitura</button>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="decision-title">
+      <h2 id="decision-title">Registro de decisão (local)</h2>
+      <form class="decision-form" id="decision-form">
+        <select id="decision-action" aria-label="Tipo de registro">
+          <option value="leitura">Leitura / conferência</option>
+          <option value="pendencia">Pendência identificada</option>
+          <option value="contingencia">Contingência ensaiada</option>
+          <option value="comunicacao">Canal de comunicação</option>
+        </select>
+        <input type="text" id="decision-observer" placeholder="Observador ou função" maxlength="80">
+        <textarea id="decision-note" placeholder="O que foi decidido ou verificado…" maxlength="500"></textarea>
+        <button type="submit">Registrar neste aparelho</button>
+      </form>
+      <div class="log" id="decision-log" aria-live="polite"></div>
+      <div class="toolbar">
+        <button type="button" class="secondary" id="export-csv">Exportar CSV</button>
+        <button type="button" class="secondary" id="export-json">Exportar JSON (exercício)</button>
+        <button type="button" class="secondary" id="export-unified">Ata unificada (ST+Muçum)</button>
+        <button type="button" class="secondary" id="clear-log">Limpar registros</button>
+      </div>
+      <div class="link-grid">
+        <a href="estudo-caso-resposta-santa-tereza.html"><b>Mesa Santa Tereza V002</b><span>exercício paralelo</span></a>
+        <a href="centro-resposta.html"><b>Centro de resposta</b><span>hub operacional</span></a>
+      </div>
+    </section>
+
+    <footer>
+      PREVINE · mesa Muçum V002 · contrato <code>estudo_caso_resposta_mucum_v002.json</code>.
+      Alerta oficial = SGB/SACE + Defesa Civil.
+    </footer>
+  </main>
+
+  <script src="../assets/js/resposta_operacional.js"></script>
+  <script src="../assets/js/mesa_mucum_v002.js"></script>
+  <script src="../assets/js/gestor_chrome.js" data-page="resposta" data-place="mucum"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../sw.js').catch(function () {});
+    }
+    (function () {
+      'use strict';
+      var R = window.PREVINE_RESPOSTA;
+      var M = window.PREVINE_MESA_MUCUM;
+      var summary = null;
+
+      Promise.all([
+        fetch('../assets/data/estudo_caso_resposta_mucum_v002.json').then(function (r) { return r.ok ? r.json() : null; }),
+        fetch('../assets/data/exposicao_cruzada/exposicao_mucum.json').then(function (r) { return r.ok ? r.json() : null; }),
+        fetch('../assets/data/mucum_contingencia_202607.json').then(function (r) { return r.ok ? r.json() : null; })
+      ]).then(function (parts) {
+        var contract = parts[0];
+        var exposure = parts[1];
+        var plano = parts[2];
+        if (contract) {
+          var gate = contract.operational_gate || {};
+          document.getElementById('gate-note').innerHTML =
+            '<strong>Gate: ' + (gate.status || 'blocked').toUpperCase() + '</strong> · ' +
+            (gate.reason || 'Exercício de pesquisa.');
+        }
+        if (M) M.init(contract, exposure, plano);
+      });
+
+      function renderChecklist() {
+        var state = R.loadChecklist();
+        var prog = R.checklistProgress(state);
+        document.getElementById('check-progress').innerHTML =
+          '<strong>' + prog.done + '/' + prog.total + '</strong> confirmações (' + prog.pct + '%).';
+        document.getElementById('checklist').innerHTML = R.CHECKLIST_ITEMS.map(function (item) {
+          return '<label><input type="checkbox" data-check="' + item.id + '"' + (state[item.id] ? ' checked' : '') + '> ' + item.label + '</label>';
+        }).join('');
+        document.getElementById('checklist').querySelectorAll('input[data-check]').forEach(function (input) {
+          input.addEventListener('change', function () {
+            var s = R.loadChecklist();
+            s[input.getAttribute('data-check')] = input.checked;
+            R.saveChecklist(s);
+            renderChecklist();
+          });
+        });
+      }
+
+      function renderLog() {
+        var log = R.loadDecisionLog();
+        var box = document.getElementById('decision-log');
+        if (!log.length) {
+          box.innerHTML = '<div class="log-item">Nenhum registro neste aparelho.</div>';
+          return;
+        }
+        box.innerHTML = log.slice(0, 20).map(function (row) {
+          return '<div class="log-item"><time>' + R.fmtWhen(row.at) + ' · ' + (row.action || '—') + '</time>' +
+            (row.observer ? '<strong>' + row.observer + '</strong> · ' : '') +
+            (row.note || '') + '</div>';
+        }).join('');
+      }
+
+      document.getElementById('clear-checklist').addEventListener('click', function () {
+        if (!window.confirm('Limpar checklist neste aparelho?')) return;
+        R.clearChecklist();
+        renderChecklist();
+      });
+      document.getElementById('copy-status').addEventListener('click', function () {
+        summary = window.__MUCUM_LIVE_SUMMARY || R.summarizePlace(null, 'mucum');
+        var text = R.statusBrief(summary);
+        var prog = R.checklistProgress(R.loadChecklist());
+        navigator.clipboard.writeText(text + '\n\nChecklist: ' + prog.done + '/' + prog.total).catch(function () {});
+      });
+      document.getElementById('decision-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        R.appendDecision({
+          place: 'Muçum',
+          action: document.getElementById('decision-action').value,
+          observer: document.getElementById('decision-observer').value.trim(),
+          note: document.getElementById('decision-note').value.trim()
+        });
+        document.getElementById('decision-note').value = '';
+        renderLog();
+      });
+      document.getElementById('export-csv').addEventListener('click', function () {
+        R.downloadCsv('previne-mucum-decisoes.csv', R.exportDecisionCsv({ includeMesaLog: true }));
+      });
+      document.getElementById('clear-log').addEventListener('click', function () {
+        if (window.confirm('Apagar registros locais?')) {
+          R.clearDecisionLog();
+          renderLog();
+        }
+      });
+
+      renderChecklist();
+      renderLog();
+    })();
+  </script>
+</body>
+</html>

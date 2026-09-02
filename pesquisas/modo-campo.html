@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f6b4a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="Modo campo PREVINE: leitura rápida do rio, atalhos de mapa e rota, checklist de confirmação local.">
+  <title>PREVINE · Modo campo</title>
+  <link rel="stylesheet" href="../assets/css/gestor_chrome.css">
+  <style>
+    :root { --ink:#12211b; --muted:#5b6b62; --line:#dfe8e1; --brand:#0f6b4a; --warn:#a46b12; --bad:#9b2c22; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eef5f1; color: var(--ink); font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .app { max-width: 480px; margin: 0 auto; padding: 12px 14px calc(24px + env(safe-area-inset-bottom)); }
+    .banner { padding: 10px 12px; border-radius: 12px; background: #fff8e8; border: 1px solid #efd08e; color: #744f1d; font-size: 12px; line-height: 1.35; margin-bottom: 12px; }
+    .banner strong { color: #8b5a08; }
+    .place-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .place-switch button { min-height: 48px; border: 2px solid var(--line); border-radius: 12px; background: #fff; color: var(--muted); font: inherit; font-weight: 800; cursor: pointer; }
+    .place-switch button[aria-pressed="true"] { border-color: var(--brand); background: var(--brand); color: #fff; }
+    .level-card { padding: 20px 18px; border-radius: 16px; background: linear-gradient(160deg, #0f6b4a, #155d63); color: #fff; box-shadow: 0 10px 28px rgba(15,107,74,.22); margin-bottom: 12px; }
+    .level-card .label { font-size: 11px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; opacity: .85; }
+    .level-card .value { font-size: clamp(42px, 14vw, 56px); font-weight: 900; letter-spacing: -.04em; line-height: 1; margin: 6px 0; font-variant-numeric: tabular-nums; }
+    .level-card .meta { font-size: 13px; opacity: .92; line-height: 1.45; }
+    .fresh-pill { display: inline-block; margin-top: 8px; padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; background: rgba(255,255,255,.18); }
+    .fresh-pill.stale { background: #fff4e4; color: #9c5c1a; }
+    .fresh-pill.unknown { background: #eceaf0; color: #5c5470; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .actions a { min-height: 52px; display: flex; align-items: center; justify-content: center; padding: 10px; border-radius: 12px; background: #fff; border: 1px solid var(--line); color: var(--brand); font-weight: 850; font-size: 14px; text-decoration: none; text-align: center; }
+    .actions a.primary { grid-column: 1 / -1; background: var(--brand); border-color: var(--brand); color: #fff; font-size: 15px; }
+    .panel { padding: 14px 16px; background: #fff; border: 1px solid var(--line); border-radius: 14px; margin-bottom: 12px; }
+    .panel h2 { margin: 0 0 8px; font-size: 15px; color: var(--brand); }
+    .panel p { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+    .field-checklist label { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #eef3ef; font-size: 14px; }
+    .field-checklist label:last-child { border-bottom: 0; }
+    .field-checklist input { width: 22px; height: 22px; margin-top: 1px; accent-color: var(--brand); flex: 0 0 auto; }
+    .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .toolbar button { min-height: 48px; border-radius: 12px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-weight: 800; cursor: pointer; }
+    .toolbar button.primary { background: var(--brand); border-color: var(--brand); color: #fff; grid-column: 1 / -1; }
+    footer { margin-top: 8px; color: var(--muted); font-size: 11px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="banner" role="note"><strong>Modo campo · pesquisa.</strong> Confirme rua, ponte e abrigo antes de orientar pessoas. Não é alerta oficial nem navegação liberada.</div>
+
+    <div class="place-switch" role="group" aria-label="Município">
+      <button type="button" id="btn-santa" aria-pressed="true" data-place="santa">Santa Tereza</button>
+      <button type="button" id="btn-mucum" aria-pressed="false" data-place="mucum">Muçum</button>
+    </div>
+
+    <section class="level-card" aria-live="polite">
+      <div class="label" id="place-label">Santa Tereza · 86472600</div>
+      <div class="value" id="level-value">—</div>
+      <p class="meta" id="level-meta">Carregando telemetria…</p>
+      <span class="fresh-pill" id="fresh-pill">…</span>
+    </section>
+
+    <nav class="actions" aria-label="Atalhos de campo" id="field-links">
+      <a class="primary" id="link-mapa" href="../santa_tereza_previsao_inundacao.html">Abrir mapa da mancha</a>
+      <a id="link-rota" href="santa-tereza-rota-fuga-ruas.html">Rota por ruas</a>
+      <a id="link-mesa" href="estudo-caso-resposta-santa-tereza.html">Mesa / sala</a>
+      <a id="link-exposicao" href="exposicao-cruzada.html">Exposição cruzada</a>
+      <a href="centro-resposta.html">Centro de resposta</a>
+    </nav>
+
+    <section class="panel" aria-labelledby="field-check-title">
+      <h2 id="field-check-title">Confirmações de campo</h2>
+      <p>Marque apenas o que você viu ou ouviu de fonte local confiável.</p>
+      <div class="field-checklist" id="field-checklist"></div>
+    </section>
+
+    <div class="toolbar">
+      <button type="button" class="primary" id="copy-field">Copiar leitura para WhatsApp/rádio</button>
+      <button type="button" id="refresh-field">Atualizar nível</button>
+      <button type="button" id="clear-field">Limpar marcações</button>
+    </div>
+
+    <footer>PREVINE · modo campo · SGB/SACE/DC = alerta oficial</footer>
+  </div>
+
+  <script src="../assets/js/resposta_operacional.js"></script>
+  <script src="../assets/js/gestor_chrome.js" data-page="campo" data-place="santa"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../sw.js').catch(function () {});
+    }
+    (function () {
+      'use strict';
+      var R = window.PREVINE_RESPOSTA;
+      var current = 'santa';
+      var summary = null;
+      var FIELD_ITEMS = [
+        { id: 'route_ok', label: 'Corredor principal passável (rua/ponte)' },
+        { id: 'shelter_ok', label: 'Abrigo identificado e acessível' },
+        { id: 'comms_ok', label: 'Canal de comunicação testado' },
+        { id: 'water_ok', label: 'Nível do rio conferido com placa/local' },
+        { id: 'lead_ok', label: 'Responsável local acionado/registrado' }
+      ];
+      var FIELD_KEY = 'previne_campo_check_v1';
+
+      function loadField() {
+        try { return JSON.parse(localStorage.getItem(FIELD_KEY) || '{}'); } catch (e) { return {}; }
+      }
+      function saveField(state) {
+        try { localStorage.setItem(FIELD_KEY, JSON.stringify(state)); } catch (e) {}
+      }
+
+      function setPlace(place) {
+        current = place;
+        document.getElementById('btn-santa').setAttribute('aria-pressed', place === 'santa');
+        document.getElementById('btn-mucum').setAttribute('aria-pressed', place === 'mucum');
+        var p = R.PLACES[place];
+        document.getElementById('place-label').textContent = p.label + ' · ' + p.code;
+        document.getElementById('link-mapa').href = '../' + p.mapa;
+        document.getElementById('link-rota').href = '../' + p.rota;
+        document.getElementById('link-mesa').href = '../' + p.mesa;
+        var script = document.querySelector('script[data-page="campo"]');
+        if (script) script.setAttribute('data-place', place);
+        refresh();
+      }
+
+      function renderFieldChecklist() {
+        var state = loadField();
+        var prefix = current + '_';
+        document.getElementById('field-checklist').innerHTML = FIELD_ITEMS.map(function (item) {
+          var key = prefix + item.id;
+          var checked = state[key] ? ' checked' : '';
+          return '<label><input type="checkbox" data-key="' + key + '"' + checked + '> ' + item.label + '</label>';
+        }).join('');
+        document.querySelectorAll('#field-checklist input').forEach(function (input) {
+          input.addEventListener('change', function () {
+            var s = loadField();
+            s[input.getAttribute('data-key')] = input.checked;
+            saveField(s);
+          });
+        });
+      }
+
+      function refresh() {
+        Promise.all([
+          R.fetchLive(current),
+          current === 'mucum' ? R.fetchExposurePeak('mucum') : Promise.resolve(null)
+        ]).then(function (parts) {
+          var feed = parts[0];
+          var exp = parts[1];
+          summary = R.summarizePlace(feed, current, { exposurePeak: exp });
+          var meta = 'RNA ' + summary.horizon + ' → <strong>' + summary.predLabel + '</strong>';
+          if (summary.horizonDetail) meta += '<br>' + summary.horizonDetail;
+          if (summary.exposurePeak && summary.exposurePeak.pop != null) {
+            meta += '<br>Exposição @ ' + summary.exposurePeak.hand_m + ' m: ~' + summary.exposurePeak.pop + ' pessoas';
+          }
+          meta += '<br>' + summary.gapLabel + '<br>Obs: ' + summary.levelAtLabel;
+          if (summary.saceAgeMin != null) meta += ' · ANA-SACE ~' + summary.saceAgeMin + ' min';
+          document.getElementById('level-value').textContent = summary.levelLabel;
+          document.getElementById('level-meta').innerHTML = meta;
+          var pill = document.getElementById('fresh-pill');
+          pill.textContent = R.freshnessLabelPt(summary.freshness) + ' · ' + summary.freshness.detail;
+          pill.className = 'fresh-pill' + (summary.freshness.kind === 'stale' ? ' stale' : (summary.freshness.kind === 'unknown' ? ' unknown' : ''));
+        });
+        renderFieldChecklist();
+      }
+
+      document.getElementById('btn-santa').addEventListener('click', function () { setPlace('santa'); });
+      document.getElementById('btn-mucum').addEventListener('click', function () { setPlace('mucum'); });
+      document.getElementById('refresh-field').addEventListener('click', refresh);
+      document.getElementById('clear-field').addEventListener('click', function () {
+        var s = loadField();
+        FIELD_ITEMS.forEach(function (item) { delete s[current + '_' + item.id]; });
+        saveField(s);
+        renderFieldChecklist();
+      });
+      function copyFieldText(text) {
+        var btn = document.getElementById('copy-field');
+        function done(label) {
+          btn.textContent = label;
+          setTimeout(function () { btn.textContent = 'Copiar leitura para WhatsApp/rádio'; }, 2200);
+        }
+        function fallback() {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand('copy');
+            done('Copiado!');
+          } catch (e) {
+            done('Falha ao copiar');
+          }
+          document.body.removeChild(ta);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () { done('Copiado!'); }).catch(fallback);
+        } else {
+          fallback();
+        }
+      }
+
+      document.getElementById('copy-field').addEventListener('click', function () {
+        var s = summary || R.summarizePlace(null, current);
+        var state = loadField();
+        var done = FIELD_ITEMS.filter(function (item) { return state[current + '_' + item.id]; }).length;
+        var checked = FIELD_ITEMS.filter(function (item) { return state[current + '_' + item.id]; }).map(function (item) { return '✓ ' + item.label; });
+        var text = R.statusBrief(s) + '\n\nCampo (' + done + '/' + FIELD_ITEMS.length + ' confirmações locais)';
+        if (checked.length) text += '\n' + checked.join('\n');
+        text += '\nNão é alerta oficial.';
+        copyFieldText(text);
+      });
+
+      setPlace('santa');
+    })();
+  </script>
+</body>
+</html>

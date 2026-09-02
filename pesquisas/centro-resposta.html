@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102334">
+  <meta name="description" content="Centro operacional PREVINE: coordenação na mesa e apoio em campo para Santa Tereza e Muçum. Pesquisa, não alerta oficial.">
+  <title>PREVINE · Centro de resposta</title>
+  <link rel="stylesheet" href="../assets/css/gestor_chrome.css">
+  <style>
+    :root { --ink:#12202b; --muted:#5b6b76; --line:#d7e1e8; --navy:#102334; --teal:#0f6b62; --amber:#a46b12; --coral:#a33d32; --mint:#e6f4ef; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #edf2f7; color: var(--ink); font: 15px/1.45 Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif; }
+    .shell { max-width: 1080px; margin: 0 auto; padding: 16px 18px 48px; }
+    .hero { padding: 22px 24px; background: linear-gradient(135deg, var(--navy), #1a4258); color: #eef4f8; border-radius: 18px; margin-bottom: 16px; }
+    .hero .eyebrow { margin: 0 0 8px; font-size: 11px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; color: #9fd4c8; }
+    h1 { margin: 0 0 8px; font-size: clamp(26px, 4vw, 36px); letter-spacing: -.03em; line-height: 1.08; }
+    .lede { margin: 0; max-width: 720px; color: #c5d4df; font-size: 14px; }
+    .seal { display: inline-flex; margin-top: 14px; padding: 6px 10px; border: 1px solid #e3c27a; border-radius: 999px; background: #3a3018; color: #f3e0b0; font-size: 10px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+    h2 { margin: 0 0 10px; font-size: 17px; letter-spacing: -.02em; color: var(--navy); }
+    .section { margin-top: 14px; padding: 18px 20px; background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+    .section-intro { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+    .live-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .live-card { padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: #f9fbfd; }
+    .live-card header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .live-card h3 { margin: 0; font-size: 15px; color: var(--navy); }
+    .fresh { font-size: 10px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; padding: 4px 7px; border-radius: 999px; background: #e6f4ef; color: #24745d; }
+    .fresh.stale { background: #fff4e4; color: #9c5c1a; }
+    .fresh.unknown { background: #eceaf0; color: #5c5470; }
+    .live-level { font-size: 28px; font-weight: 850; letter-spacing: -.04em; color: var(--navy); line-height: 1; }
+    .live-meta { margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .live-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .live-actions a { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 12px; border-radius: 8px; border: 1px solid #c5d4df; background: #fff; color: var(--navy); font-size: 11px; font-weight: 800; text-decoration: none; }
+    .live-actions a.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
+    .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .role-card { padding: 16px; border-radius: 14px; border: 1px solid var(--line); }
+    .role-card.coord { background: linear-gradient(180deg, #f4f8ff, #fff); border-color: #c8d9ef; }
+    .role-card.field { background: linear-gradient(180deg, #f2fbf5, #fff); border-color: #b9dec8; }
+    .role-card .tag { display: inline-block; margin-bottom: 8px; font-size: 10px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .role-card.coord .tag { color: #3d5f9e; }
+    .role-card.field .tag { color: var(--teal); }
+    .link-list { display: grid; gap: 8px; margin-top: 10px; }
+    .link-list a { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: inherit; text-decoration: none; font-size: 13px; }
+    .link-list a b { color: var(--navy); }
+    .link-list a span { color: var(--muted); font-size: 11px; text-align: right; }
+    .link-list a:hover, .link-list a:focus-visible { border-color: var(--teal); outline: none; }
+    .gaps { display: grid; gap: 8px; }
+    .gap { padding: 10px 12px; border-left: 4px solid var(--amber); border-radius: 0 10px 10px 0; background: #fff8ea; font-size: 13px; color: #6d4e16; }
+    .gap.blocked { border-left-color: var(--coral); background: #fff4f1; color: #7b3a32; }
+    .gap b { display: block; margin-bottom: 2px; }
+    .checklist { display: grid; gap: 6px; margin-top: 8px; }
+    .checklist label { display: flex; align-items: flex-start; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fafcfd; font-size: 13px; cursor: pointer; }
+    .checklist label:has(input:checked) { border-color: #9fd4c8; background: var(--mint); }
+    .checklist input { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--teal); flex: 0 0 auto; }
+    .check-progress { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+    .check-progress strong { color: var(--navy); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .toolbar button, .toolbar a.btn { min-height: 44px; display: inline-flex; align-items: center; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--navy); background: var(--navy); color: #fff; font: inherit; font-size: 13px; font-weight: 750; text-decoration: none; cursor: pointer; }
+    .toolbar .secondary { background: #fff; color: var(--navy); }
+    footer { margin-top: 18px; color: var(--muted); font-size: 11px; }
+    @media (max-width: 760px) {
+      .live-grid, .role-grid { grid-template-columns: 1fr; }
+      .shell { padding: 12px 12px 36px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p class="eyebrow">PREVINE · gestão na hora do evento</p>
+      <h1>Centro de resposta</h1>
+      <p class="lede">Uma entrada só para quem coordena na mesa e para quem está em campo. Mostra o que já dá para ler agora, o que ainda falta confirmar e onde abrir mapa, rota ou exercício — sem confundir pesquisa com alerta oficial.</p>
+      <span class="seal">Pesquisa · não substitui SGB/SACE/Defesa Civil</span>
+    </header>
+
+    <section class="section" aria-labelledby="live-title">
+      <h2 id="live-title">Situação agora</h2>
+      <p class="section-intro">Nível observado e previsão RNA de 2 h. Se o feed atrasar, o estado vira <strong>desatualizado</strong> ou <strong>sem dado confiável</strong> — isso <strong>não</strong> significa que o rio está baixo.</p>
+      <div class="live-grid" id="live-grid" aria-live="polite">
+        <div class="live-card"><p class="live-meta">Carregando Santa Tereza…</p></div>
+        <div class="live-card"><p class="live-meta">Carregando Muçum…</p></div>
+      </div>
+      <div class="toolbar">
+        <button type="button" id="refresh-live">Atualizar leituras</button>
+        <a class="btn secondary" href="../dashboard_bacia.html">Dashboard da bacia</a>
+        <a class="btn secondary" href="modo-campo.html">Abrir modo campo →</a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="roles-title">
+      <h2 id="roles-title">Dois modos de uso</h2>
+      <div class="role-grid">
+        <article class="role-card coord">
+          <span class="tag">Coordenação · mesa</span>
+          <p class="section-intro" style="margin:0">Para prefeito, DC, SGB e equipe técnica reunidos. Integra previsão, mapa, pessoas e exercício de decisão.</p>
+          <div class="link-list">
+            <a href="../dashboard_bacia.html"><b>Visão da bacia</b><span>chuva + nível + score</span></a>
+            <a href="briefing-gestores.html"><b>Briefing A4</b><span>imprimir ou copiar</span></a>
+            <a href="estudo-caso-resposta-santa-tereza.html"><b>Mesa Santa Tereza V002</b><span>exercício · checklist 7 itens</span></a>
+            <a href="estudo-caso-resposta-mucum.html"><b>Mesa Muçum V002</b><span>plantão · zonas · scoreboard</span></a>
+            <a href="mucum-painel-evacuacao.html"><b>Sala Muçum</b><span>plano + cenários MDT</span></a>
+            <a href="exposicao-cruzada.html"><b>Exposição cruzada</b><span>vulnerabilidade × mancha</span></a>
+            <a href="sala-integrada-eventos.html"><b>Replay histórico</b><span>comparar eventos passados</span></a>
+          </div>
+        </article>
+        <article class="role-card field">
+          <span class="tag">Campo · equipe local</span>
+          <p class="section-intro" style="margin:0">Para quem confirma rua, ponte, abrigo e comunicação. Interface enxuta, pensada para celular.</p>
+          <div class="link-list">
+            <a href="modo-campo.html"><b>Modo campo</b><span>nível grande + atalhos</span></a>
+            <a href="santa-tereza-rota-fuga-ruas.html"><b>Rota Santa Tereza</b><span>confirmar corredor</span></a>
+            <a href="mucum-rota-fuga-ruas.html"><b>Rota Muçum</b><span>plano municipal + mapa</span></a>
+            <a href="../santa_tereza_previsao_inundacao.html"><b>Mapa ST</b><span>mancha preliminar</span></a>
+            <a href="../mucum_previsao_inundacao.html"><b>Mapa Muçum</b><span>cenários por cota</span></a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="gaps-title">
+      <h2 id="gaps-title">O que ainda não está pronto</h2>
+      <p class="section-intro">Transparência sobre bloqueios — a plataforma mostra lacunas para orientar o que levantar antes de tratar qualquer página como despacho.</p>
+      <div class="gaps">
+        <div class="gap"><b>Exposição · CALCULADO (Muçum/ST)</b>Grade 200 m × HAND publicada para Muçum (~2.117 pop @ 17 m) e Santa Tereza. Municípios jusante: contexto Zenodo + IBGE — ver <a href="exposicao-cruzada.html">exposição cruzada</a>.</div>
+        <div class="gap blocked"><b>Resposta · BLOQUEADA (exercício)</b>Gate operacional: nenhum despacho real. Muçum: plano jul/2026 digitalizado (9 alojamentos). ST: Ginásio com coordenada da rota ≠ cadastro — conferir em campo.</div>
+        <div class="gap"><b>Municípios a jusante · fichas leves</b>Encantado, Roca Sales, Lajeado — IBGE/ICM/Zenodo; sem estação PREVINE. Ver fichas no centro ou <a href="../pesquisa_status_encantado.html">Encantado</a>.</div>
+        <div class="gap"><b>Validação de mancha · parcial</b>Zenodo jul/2020 integrado; contornos Muçum até 25 m. Falta calibração operacional por tempestade (2023/2024).</div>
+        <div class="gap"><b>Operação autorizada</b>Nenhum produto neste site está em modo operação real. Matriz: pesquisa → protótipo → validado → operação.</div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="check-title">
+      <h2 id="check-title">Checklist pré-ação</h2>
+      <p class="check-progress" id="check-progress" aria-live="polite"><strong>0/7</strong> confirmações registradas neste aparelho.</p>
+      <p class="section-intro">Marque só o que foi verificado de fato. Persiste localmente; não libera alerta, rota ou despacho.</p>
+      <div class="checklist" id="checklist"></div>
+      <div class="toolbar">
+        <button type="button" class="secondary" id="clear-checklist">Limpar checklist</button>
+        <button type="button" id="copy-status">Copiar status dos dois municípios</button>
+        <button type="button" class="secondary" id="export-csv">Exportar checklist + decisões (CSV)</button>
+      </div>
+    </section>
+
+    <footer>
+      PREVINE Taquari-Antas · centro de resposta · FAPERGS 24/2551-0002124-8.
+      Alerta oficial = SGB/SACE + Defesa Civil. Publicado ≠ validado ≠ autorizado.
+    </footer>
+  </main>
+
+  <script src="../assets/js/resposta_operacional.js"></script>
+  <script src="../assets/js/gestor_chrome.js" data-page="centro" data-place="bacia"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../sw.js').catch(function () {});
+    }
+    (function () {
+      'use strict';
+      var R = window.PREVINE_RESPOSTA;
+      var summaries = {};
+
+      function renderLiveCard(summary, extra) {
+        var p = summary.place;
+        var freshClass = summary.freshness.kind === 'stale' ? ' stale' : (summary.freshness.kind === 'unknown' ? ' unknown' : '');
+        var freshLabel = R.freshnessLabelPt(summary.freshness);
+        var horizonLine = summary.horizonDetail
+          ? summary.horizonDetail + '<br>'
+          : ('RNA ' + summary.horizon + ' → ' + summary.predLabel + '<br>');
+        var expLine = summary.exposurePeak && summary.exposurePeak.pop != null
+          ? 'Exposição @ ' + summary.exposurePeak.hand_m + ' m: ~' + summary.exposurePeak.pop.toLocaleString('pt-BR') + ' pessoas<br>'
+          : '';
+        var extraLine = extra ? extra + '<br>' : '';
+        return '<article class="live-card">' +
+          '<header><h3>' + p.label + '</h3><span class="fresh' + freshClass + '">' + freshLabel + '</span></header>' +
+          '<div class="live-level">' + summary.levelLabel + '</div>' +
+          '<p class="live-meta">' + horizonLine + expLine + extraLine +
+          summary.gapLabel + '<br>Observação: ' + summary.levelAtLabel +
+          (summary.saceAgeMin != null ? ' · ANA-SACE ~' + summary.saceAgeMin + ' min' : '') + '</p>' +
+          '<div class="live-actions">' +
+            '<a class="primary" href="../' + p.ficha + '">Ficha técnica</a>' +
+            '<a href="../' + p.mapa + '">Mapa</a>' +
+            '<a href="../' + p.rota + '">Rota</a>' +
+            '<a href="../' + p.mesa + '">Mesa/sala</a>' +
+          '</div></article>';
+      }
+
+      function loadLive() {
+        var grid = document.getElementById('live-grid');
+        Promise.all([
+          R.fetchLive('santa'),
+          R.fetchLive('mucum'),
+          R.fetchExposurePeak('santa'),
+          R.fetchExposurePeak('mucum')
+        ]).then(function (parts) {
+          summaries.santa = R.summarizePlace(parts[0], 'santa', { exposurePeak: parts[2] });
+          summaries.mucum = R.summarizePlace(parts[1], 'mucum', { exposurePeak: parts[3] });
+          var proxy = parts[0] ? 'Proxy montante ST → Muçum: ' + R.fmtLevel(parts[0].nivel_rio_agora_cm || parts[0].telemetria_ultima_nivel_cm) : '';
+          grid.innerHTML = renderLiveCard(summaries.santa) + renderLiveCard(summaries.mucum, proxy);
+        });
+      }
+
+      function renderChecklist() {
+        var box = document.getElementById('checklist');
+        var state = R.loadChecklist();
+        var prog = R.checklistProgress(state);
+        document.getElementById('check-progress').innerHTML =
+          '<strong>' + prog.done + '/' + prog.total + '</strong> confirmações (' + prog.pct + '%) neste aparelho.';
+        box.innerHTML = R.CHECKLIST_ITEMS.map(function (item) {
+          var checked = state[item.id] ? ' checked' : '';
+          return '<label><input type="checkbox" data-check="' + item.id + '"' + checked + '> ' + item.label + '</label>';
+        }).join('');
+        box.querySelectorAll('input[data-check]').forEach(function (input) {
+          input.addEventListener('change', function () {
+            var s = R.loadChecklist();
+            s[input.getAttribute('data-check')] = input.checked;
+            R.saveChecklist(s);
+            renderChecklist();
+          });
+        });
+      }
+
+      document.getElementById('refresh-live').addEventListener('click', loadLive);
+      document.getElementById('clear-checklist').addEventListener('click', function () {
+        if (!window.confirm('Limpar checklist neste aparelho (mesas ST e Muçum V002)?')) return;
+        R.clearChecklist();
+        renderChecklist();
+      });
+      document.getElementById('copy-status').addEventListener('click', function () {
+        var lines = [R.statusBrief(summaries.santa || R.summarizePlace(null, 'santa')), '', R.statusBrief(summaries.mucum || R.summarizePlace(null, 'mucum'))];
+        var prog = R.checklistProgress(R.loadChecklist());
+        lines.push('', 'Checklist local: ' + prog.done + '/' + prog.total);
+        navigator.clipboard.writeText(lines.join('\n')).then(function () {
+          document.getElementById('copy-status').textContent = 'Copiado';
+          setTimeout(function () { document.getElementById('copy-status').textContent = 'Copiar status dos dois municípios'; }, 2000);
+        });
+      });
+      document.getElementById('export-csv').addEventListener('click', function () {
+        R.downloadCsv('previne-centro-resposta.csv', R.exportDecisionCsv({ includeMesaLog: true }));
+      });
+
+      renderChecklist();
+      loadLive();
+    })();
+  </script>
+</body>
+</html>

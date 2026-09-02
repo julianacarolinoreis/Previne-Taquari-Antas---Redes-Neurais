@@ -70,3 +70,9 @@ Limitacao tecnica:
 Estas camadas sao prova de conceito. A camada `NA 97,65` ainda depende da
 compatibilizacao entre datum da ponte, datum do DEM e zero da regua da estacao
 86472600 para uso operacional.
+
+## Validação com Zenodo julho/2020
+
+O dataset [10.5281/zenodo.4730371](https://doi.org/10.5281/zenodo.4730371) tem poucos/nenhum ponto em Santa Tereza
+(foco no Vale do Taquari). O cruzamento raster MGB × HAND está em
+`assets/data/validacao_zenodo_2020/`.
