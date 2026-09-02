@@ -1100,15 +1100,16 @@ async function init(){
       if(curS&&hd!=null){
         const pointHand=hd/10, ev=EVENTS[curEv];
         html+='<br>Altura acima do leito (HAND): '+nf1.format(pointHand)+' m';
+        const dNow=stageToHand(curS[1])-pointHand, dFore=curS[3]!=null?stageToHand(curS[3])-pointHand:null;
+        const NA_BORDA=0.30;
+        const fmt=d=>d>0.03?('<b class="pf">'+nf1.format(d*100)+' cm</b>')
+          :(d>-NA_BORDA?'<b>no limite da mancha</b>':'sem inundação prevista');
+        const hz=ev.horizonte==='—'?'':' (+'+ev.horizonte+')';
         if(pointHand<=0){
           html+='<br>Mancha: dentro do contorno-base do leito; não classificado como inundação.';
-        }else{
-          const dNow=stageToHand(curS[1])-pointHand, dFore=curS[3]!=null?stageToHand(curS[3])-pointHand:null;
-          const fmt=d=>d>0.03?('<b class="pf">'+nf1.format(d*100)+' cm</b>'):'sem inundação prevista';
-          const hz=ev.horizonte==='—'?'':' (+'+ev.horizonte+')';
-          html+='<br>Agora: '+(dNow>0.03?nf1.format(dNow*100)+' cm de água fora do leito':'sem inundação estimada');
-          if(dFore!=null) html+='<br>RNA'+hz+': '+fmt(dFore);
         }
+        html+='<br>Agora: '+(dNow>0.03?nf1.format(dNow*100)+' cm de água fora do leito':(dNow>-NA_BORDA?'<b>no limite da mancha</b>':'sem inundação estimada'));
+        if(dFore!=null) html+='<br>RNA'+hz+': '+fmt(dFore);
       }
       html+='<br><small>Coordenadas: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small>';
       html+='<br><small>Mancha relativa ao HAND 0 e ao zero operacional da régua; não é uma cota absoluta de água validada.</small>';
