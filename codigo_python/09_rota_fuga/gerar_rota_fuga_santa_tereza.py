@@ -319,7 +319,7 @@ def main():
         "zero_regua_m": ZERO_REGUA_M, "bloco_m": BLOCO_M,
         "ponto_seguro": PONTO_SEGURO, "etapa": 1,
         "estacao": geo["station"], "ponte": geo.get("ponte"),
-        "aviso": "Etapa 1: grade 30 m, linha reta, ponto seguro placeholder. Não usar para evacuação real.",
+        "aviso": "Etapa 1: grade 30 m, linha reta, ponto seguro cadastro DC reconciliado. Não usar para evacuação real.",
     }
     resumo = escreve_json(quadras, meta, SAIDA_JSON)
     escreve_html(quadras, passo_lat, passo_lon, meta, resumo, SAIDA_HTML)

@@ -21,6 +21,8 @@ def test_st_plantao_assets() -> None:
     assert "fetchLive" in js
     assert "PREVINE_MESA_ST" in js
     assert "PREVINE_RESPOSTA" in js
+    assert "Coordenada reconciliada" in html
+    assert "placeholder. Não tratar este destino como reconciliado" not in html
 
 
 def test_grade_exposta_geojson() -> None:

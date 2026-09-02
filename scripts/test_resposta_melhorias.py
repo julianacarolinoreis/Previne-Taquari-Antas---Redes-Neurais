@@ -13,6 +13,9 @@ def test_centro_resposta_gaps_updated() -> None:
     assert "Exposição · CALCULADO" in html
     assert "Exposição · UNKNOWN" not in html
     assert "plano jul/2026 digitalizado" in html
+    assert "Ginásio reconciliado" in html
+    assert "coordenada da rota ≠ cadastro" not in html
+    assert "relatorio_2023_2024.json" in html
     assert "fetchExposurePeak" in html
 
 

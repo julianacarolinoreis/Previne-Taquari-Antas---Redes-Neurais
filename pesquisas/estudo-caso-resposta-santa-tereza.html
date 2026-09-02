@@ -313,6 +313,7 @@
     .capacity-note{font-size:11px;color:var(--muted);margin:7px 0 0}
     .capacity-note.alert{color:#a33b4c}
     .shelter-spatial-note{margin:8px 0 0;padding:8px 9px;border-left:3px solid var(--red);border-radius:0 8px 8px 0;background:#fff4f4;color:#8f3342;font-size:10px;line-height:1.4}
+    .shelter-spatial-note.reconciled{border-left-color:var(--green);background:#f2faf5;color:#1b5a40}
     .municipal-context{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
     .municipal-context div{padding:8px 6px;background:var(--panel-soft);border-radius:8px;text-align:center}
     .municipal-context b{display:block;color:var(--navy);font-family:var(--mono);font-size:14px}
@@ -804,7 +805,7 @@
           <div class="capacity-line"><span>vagas livres · só após confirmação</span><b id="shelterAvailable">—</b></div>
           <div id="capacityMeter" class="capacity-track" role="progressbar" aria-label="Ocupação inicial do abrigo" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-valuetext="disponibilidade não confirmada"><div id="capacityFill" class="capacity-fill" style="width:0%"></div></div>
           <p id="capacityNote" class="capacity-note">Os números iniciais são didáticos. Sem confirmação, a disponibilidade não entra na decisão.</p>
-          <p id="shelterSpatialNote" class="shelter-spatial-note" role="alert">Destino espacial pendente: o contrato usa a coordenada do Ginásio, mas o arquivo de rota ainda traz outro ponto placeholder. Não tratar este destino como reconciliado.</p>
+          <p id="shelterSpatialNote" class="shelter-spatial-note reconciled" role="status">Coordenada reconciliada com abrigos.geojson e rota de fuga (cadastro DC). Capacidade, abertura e acesso ainda precisam de confirmação no exercício.</p>
           <p class="panel-note">Fonte do ponto: Defesa Civil de Santa Tereza · capacidade publicada: não identificada no protótipo · coordenada e acesso precisam de conferência.</p>
           <div class="municipal-context">
             <div><b id="munPopulation">1.505</b><span>população municipal</span></div>
@@ -854,7 +855,7 @@
               <g id="mapZones"></g>
               <g id="mapServices"></g>
             </svg>
-            <div class="map-stamp"><b>GRADE 30 m</b> · cenário 22/07 · coordenadas lat/lon · CRS/EPSG não informado · abrigo e rota não reconciliados</div>
+            <div class="map-stamp"><b>GRADE 30 m</b> · cenário 22/07 · coordenadas lat/lon · CRS/EPSG não informado · destino reconciliado · rota sintética não validada</div>
             <div class="map-focus-card"><span>área em foco</span><strong id="mapFocusZone">—</strong><em id="mapFocusState">—</em></div>
           </div>
           <div id="mapReadableSummary" class="map-readable-summary" aria-live="polite">
@@ -1813,6 +1814,20 @@
       }else{
         note.textContent="Capacidade confirmada somente no exercício; nenhum acionamento é enviado.";
         note.className="capacity-note";
+      }
+      const spatialNote=el("shelterSpatialNote");
+      if(spatialNote){
+        if(!spatial.reconciled){
+          spatialNote.hidden=false;
+          spatialNote.setAttribute("role","alert");
+          spatialNote.textContent="Destino espacial pendente: o ponto cadastrado e o arquivo de rota diferem em "+fmtKm(spatial.distance)+". Não tratar como reconciliado.";
+          spatialNote.className="shelter-spatial-note";
+        }else{
+          spatialNote.hidden=false;
+          spatialNote.setAttribute("role","status");
+          spatialNote.textContent="Coordenada reconciliada com abrigos.geojson e rota de fuga (cadastro DC). Capacidade, abertura e acesso ainda precisam de confirmação no exercício.";
+          spatialNote.className="shelter-spatial-note reconciled";
+        }
       }
     }
 
