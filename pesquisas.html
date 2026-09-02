@@ -141,11 +141,12 @@
     <section class="funil-panel" aria-labelledby="funil-title">
       <div class="mini-title">Pacote mínimo · gestores</div>
       <h2 id="funil-title" style="margin-top:5px">O que abrir na reunião — e o que deixar no arquivo</h2>
-      <p>Cinco superfícies vivas, fichas jusante e uma folha A4. Encantado, Roca Sales e Lajeado têm ficha IBGE/ICM leve (sem estação PREVINE).</p>
+      <p>Sete portas para gestores + fichas do vale abaixo. Encantado, Roca Sales e Lajeado têm ficha IBGE/ICM leve (sem estação PREVINE).</p>
       <div class="funil-grid">
         <a class="funil-card" href="pesquisas/centro-resposta.html"><b>0. Centro de resposta</b><span>Mesa + campo: nível ao vivo, lacunas, checklist e atalhos por papel.</span><small>abrir centro →</small></a>
         <a class="funil-card" href="dashboard_bacia.html"><b>1. Agora na bacia</b><span>Nível, chuva e score experimental. Sem probabilidade conjunta e sem VAI/NÃO VAI.</span><small>abrir dashboard →</small></a>
-        <a class="funil-card" href="pesquisa_status.html"><b>2. Ficha do município</b><span>Santa Tereza e Muçum em abas. UNKNOWN quando o feed atrasar. Score, não binário.</span><small>Santa Tereza · Muçum →</small></a>
+        <a class="funil-card" href="pesquisa_status.html"><b>2. Ficha do município</b><span>Santa Tereza e Muçum em abas. Sem dado confiável quando o feed atrasar. Score, não binário.</span><small>Santa Tereza · Muçum →</small></a>
+        <a class="funil-card" href="pesquisa_status_encantado.html"><b>2b. Vale abaixo</b><span>Encantado, Roca Sales e Lajeado: IBGE, ICM e Zenodo. Sem estação PREVINE.</span><small>Encantado · Roca · Lajeado →</small></a>
         <a class="funil-card" href="santa_tereza_previsao_inundacao.html"><b>3. Mapa da cidade</b><span>Mancha HAND é proxy de leito. Cota oficial: 15 m em ST, 18 m em Muçum.</span><small>mapa preliminar →</small></a>
         <a class="funil-card" href="vulnerabilidade.html"><b>4. Pessoas no recorte</b><span>Censo 2022. Vulnerabilidade não é risco até cruzar mancha validada.</span><small>abrir exposição →</small></a>
         <a class="funil-card" href="pesquisas/estudo-caso-resposta-santa-tereza.html"><b>5. Mesa Santa Tereza</b><span>Sala V002, checklist 0/7, ginásio sem capacidade. Exercício, não despacho.</span><small>abrir exercício →</small></a>
@@ -242,7 +243,7 @@
           <button class="filter" type="button" data-category="Publicados" aria-pressed="false">Páginas principais</button>
         </div>
       </div>
-      <div class="result-line" aria-live="polite"><span id="resultsMeta">Carregando…</span><span>58 entradas do catálogo · duplicatas, backups e clones ficam fora da contagem</span></div>
+      <div class="result-line" aria-live="polite"><span id="resultsMeta">Carregando…</span><span>entradas do catálogo · duplicatas, backups e clones ficam fora da contagem</span></div>
       <div class="cards" id="cards" tabindex="-1"></div>
       <div class="empty" id="empty" hidden><strong>Nenhum caminho encontrado.</strong>Tente outra palavra ou limpe os filtros.</div>
       <nav id="pagination" class="pagination" aria-label="Paginação do acervo" hidden>
@@ -277,6 +278,11 @@
   <script>
     const entries = [
       {title:"Centro de resposta · mesa e campo",category:"Resposta",status:"estudo",description:"Hub operacional: leitura ao vivo de Santa Tereza e Muçum, papéis coordenação/campo, lacunas abertas e checklist pré-ação com persistência local.",caveat:"Pesquisa; não libera alerta, rota ou despacho. Checklist local não substitui registro oficial.",href:"pesquisas/centro-resposta.html",source:"pacote resposta 02/09/2026"},
+      {title:"Exposição cruzada · vulnerabilidade × mancha",category:"Exposição",status:"preliminar",description:"Cruzamento Zenodo×HAND e indicadores IBGE; produto final vulnerabilidade ∩ mancha ainda UNKNOWN.",caveat:"Números agregados não substituem mapa de risco oficial nem lista nominal.",href:"pesquisas/exposicao-cruzada.html",source:"validação Zenodo + IBGE 2022"},
+      {title:"Mesa de exercício · Muçum V001",category:"Resposta",status:"estudo",description:"Ensaio leve com telemetria, checklist 7 itens e registro local exportável em CSV.",caveat:"Gate operacional bloqueado; não autoriza alerta ou despacho.",href:"pesquisas/estudo-caso-resposta-mucum.html",source:"contrato mucum v001"},
+      {title:"Ficha jusante · Encantado",category:"Exposição",status:"preliminar",description:"IBGE 2022, ICM e pontos Zenodo jul/2020. Sem estação PREVINE nem RNA dedicada.",caveat:"Exposição cruzada com mancha validada ainda UNKNOWN.",href:"pesquisa_status_encantado.html",source:"IBGE + ICM + Zenodo"},
+      {title:"Ficha jusante · Roca Sales",category:"Exposição",status:"preliminar",description:"IBGE 2022, ICM e 109 pontos Zenodo jul/2020 (maior contagem do vale naquela cheia).",caveat:"Sem estação PREVINE; leitura hidrológica via montante.",href:"pesquisa_status_roca_sales.html",source:"IBGE + ICM + Zenodo"},
+      {title:"Ficha jusante · Lajeado",category:"Exposição",status:"preliminar",description:"IBGE 2022, ICM e indicadores do maior município do recorte jusante.",caveat:"Sem estação PREVINE; use dashboard da bacia a montante.",href:"pesquisa_status_lajeado.html",source:"IBGE + ICM + Zenodo"},
       {title:"Modo campo · leitura móvel",category:"Resposta",status:"estudo",description:"Interface enxuta para equipe em campo: nível grande, atalhos de mapa/rota e confirmações locais.",caveat:"Confirmações são anotações neste aparelho; não validam corredor para evacuação real.",href:"pesquisas/modo-campo.html",source:"pacote resposta 02/09/2026"},
       {title:"Briefing para gestores · A4",category:"Resposta",status:"estudo",description:"One-pager para reunião: quatro camadas, URLs canônicas, o que pedir na mesa e o que não promover.",caveat:"Folha de pesquisa; não é alerta, rota liberada ou autorização de despacho.",href:"pesquisas/briefing-gestores.html",source:"pacote gestores 02/09/2026"},
       {title:"Agenda de avanço · pesquisa → decisão",category:"Resposta",status:"estudo",description:"Plano estruturado das pesquisas prioritárias, do saneamento científico ao exercício de resposta supervisionado.",caveat:"Agenda de pesquisa; não é alerta, rota liberada ou autorização de despacho.",href:"pesquisas/agenda-avanco.html",source:"agenda revisada em 29/08/2026"},

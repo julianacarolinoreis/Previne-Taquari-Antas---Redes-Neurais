@@ -49,7 +49,8 @@
 
     <section class="section" aria-labelledby="zenodo-title">
       <h2 id="zenodo-title">Evidência Zenodo jul/2020 × HAND (Muçum)</h2>
-      <p class="intro">Fonte: Giordani, Fan &amp; Alves (2021) · DOI 10.5281/zenodo.4730371 · validação integrada (PR #79).</p>
+      <p class="intro">Fonte: Giordani, Fan &amp; Alves (2021) · <a href="https://doi.org/10.5281/zenodo.4730371">DOI 10.5281/zenodo.4730371</a> · validação integrada (PR #79).</p>
+      <p class="intro note-inline" id="mucum-bbox-note" style="margin-top:0;font-size:12px;color:#6d4e16">No bbox HAND de Muçum entram <strong>84</strong> pontos (inclui rótulos de municípios vizinhos); com rótulo estrito “Muçum” são <strong>55</strong> pontos.</p>
       <div class="metric-grid" id="zenodo-metrics">
         <div class="metric"><span>Pontos no bbox HAND</span><strong>—</strong></div>
         <div class="metric"><span>Cobertura @ pico 17,02 m</span><strong>—</strong></div>
@@ -69,10 +70,10 @@
 
     <section class="section" aria-labelledby="vuln-title">
       <h2 id="vuln-title">Vulnerabilidade municipal (sem mancha)</h2>
-      <p class="intro">Indicadores agregados do Censo 2022 recortados à bacia. Úteis para priorização comunitária; não implicam lista nominal nem risco hidráulico.</p>
+      <p class="intro">Indicadores agregados do Censo 2022 recortados à bacia. Soma abaixo = <strong>5 municípios do eixo jusante + Santa Tereza</strong>, não a bacia inteira (~118 municípios).</p>
       <div class="metric-grid" id="vuln-highlights">
-        <div class="metric"><span>Idosos 60+ (bacia)</span><strong>—</strong></div>
-        <div class="metric"><span>Idosos 70+ (bacia)</span><strong>—</strong></div>
+        <div class="metric"><span>Idosos 60+ (5 mun.)</span><strong>—</strong></div>
+        <div class="metric"><span>Idosos 70+ (5 mun.)</span><strong>—</strong></div>
         <div class="metric"><span>Domicílios ocupados</span><strong>—</strong></div>
         <div class="metric"><span>Setores censitários</span><strong>—</strong></div>
       </div>
@@ -92,15 +93,16 @@
     }
     (function () {
       'use strict';
-      var zenodoCities = { 'Muçum': 55, 'Encantado': 91, 'Roca Sales': 109, 'Lajeado': 15 };
-      var ibgeMap = { 'Encantado': '4306809', 'Lajeado': '4311403', 'Roca Sales': '4315800', 'Muçum': null };
-
+      var zenodoCities = {};
       Promise.all([
         fetch('../assets/data/validacao_zenodo_2020/relatorio_cruzamento.json').then(function (r) { return r.ok ? r.json() : null; }),
         fetch('../assets/data/vulnerabilidade/indicadores_municipios.json').then(function (r) { return r.ok ? r.json() : null; }),
         fetch('../assets/data/icm_municipios.json').then(function (r) { return r.ok ? r.json() : null; })
       ]).then(function (parts) {
         var cruz = parts[0], ind = parts[1], icm = parts[2];
+        if (cruz && cruz.fonte_zenodo && cruz.fonte_zenodo.cidades) {
+          zenodoCities = cruz.fonte_zenodo.cidades;
+        }
         var muc = cruz && cruz.cidades && cruz.cidades.mucum ? cruz.cidades.mucum : null;
         if (muc) {
           var metrics = document.getElementById('zenodo-metrics').children;
@@ -117,12 +119,13 @@
           if (!icm || !icm.municipios) return null;
           return icm.municipios.find(function (m) { return m.cod_ibge === cod; });
         }
+        var ibgeMap = { 'Encantado': '4306809', 'Lajeado': '4311403', 'Roca Sales': '4315800', 'Muçum': '4312609' };
         var rows = ['Muçum', 'Encantado', 'Roca Sales', 'Lajeado'].map(function (nome) {
           var m = findMun(nome);
           var pop = m && m.pop_bacia != null ? Math.round(m.pop_bacia).toLocaleString('pt-BR') : '—';
           var pts = zenodoCities[nome] != null ? zenodoCities[nome] : '—';
           var icmRow = findIcm(ibgeMap[nome]);
-          var icmLabel = icmRow ? ('ICM ' + icmRow.faixa + ' · ' + icmRow.perfil_risco) : '—';
+          var icmLabel = icmRow ? ('ICM ' + icmRow.faixa + ' · capacidade DC · ' + icmRow.perfil_risco) : '—';
           return '<tr><td><strong>' + nome + '</strong><br><small style="color:#5b6b76">' + icmLabel + '</small></td><td>' + pts + '</td><td>' + pop + '</td><td><span class="status-pill">UNKNOWN</span></td></tr>';
         }).join('');
         document.getElementById('municipio-rows').innerHTML = rows;

@@ -30,7 +30,7 @@
     .live-level { font-size: 28px; font-weight: 850; letter-spacing: -.04em; color: var(--navy); line-height: 1; }
     .live-meta { margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.4; }
     .live-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .live-actions a { min-height: 36px; display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 8px; border: 1px solid #c5d4df; background: #fff; color: var(--navy); font-size: 11px; font-weight: 800; text-decoration: none; }
+    .live-actions a { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 12px; border-radius: 8px; border: 1px solid #c5d4df; background: #fff; color: var(--navy); font-size: 11px; font-weight: 800; text-decoration: none; }
     .live-actions a.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
     .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .role-card { padding: 16px; border-radius: 14px; border: 1px solid var(--line); }
@@ -55,7 +55,7 @@
     .check-progress { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
     .check-progress strong { color: var(--navy); }
     .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .toolbar button, .toolbar a.btn { min-height: 40px; display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--navy); background: var(--navy); color: #fff; font: inherit; font-size: 13px; font-weight: 750; text-decoration: none; cursor: pointer; }
+    .toolbar button, .toolbar a.btn { min-height: 44px; display: inline-flex; align-items: center; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--navy); background: var(--navy); color: #fff; font: inherit; font-size: 13px; font-weight: 750; text-decoration: none; cursor: pointer; }
     .toolbar .secondary { background: #fff; color: var(--navy); }
     footer { margin-top: 18px; color: var(--muted); font-size: 11px; }
     @media (max-width: 760px) {
@@ -75,7 +75,7 @@
 
     <section class="section" aria-labelledby="live-title">
       <h2 id="live-title">Situação agora</h2>
-      <p class="section-intro">Nível observado e previsão RNA de 2 h. Se o feed atrasar, o estado vira STALE ou UNKNOWN — isso <strong>não</strong> significa que o rio está baixo.</p>
+      <p class="section-intro">Nível observado e previsão RNA de 2 h. Se o feed atrasar, o estado vira <strong>desatualizado</strong> ou <strong>sem dado confiável</strong> — isso <strong>não</strong> significa que o rio está baixo.</p>
       <div class="live-grid" id="live-grid" aria-live="polite">
         <div class="live-card"><p class="live-meta">Carregando Santa Tereza…</p></div>
         <div class="live-card"><p class="live-meta">Carregando Muçum…</p></div>
@@ -161,8 +161,9 @@
       function renderLiveCard(summary) {
         var p = summary.place;
         var freshClass = summary.freshness.kind === 'stale' ? ' stale' : (summary.freshness.kind === 'unknown' ? ' unknown' : '');
+        var freshLabel = R.freshnessLabelPt(summary.freshness);
         return '<article class="live-card">' +
-          '<header><h3>' + p.label + '</h3><span class="fresh' + freshClass + '">' + summary.freshness.label + '</span></header>' +
+          '<header><h3>' + p.label + '</h3><span class="fresh' + freshClass + '">' + freshLabel + '</span></header>' +
           '<div class="live-level">' + summary.levelLabel + '</div>' +
           '<p class="live-meta">RNA ' + summary.horizon + ' → ' + summary.predLabel + '<br>' +
           summary.gapLabel + '<br>Observação: ' + summary.levelAtLabel + ' · ' + summary.freshness.detail + '</p>' +
@@ -205,7 +206,8 @@
 
       document.getElementById('refresh-live').addEventListener('click', loadLive);
       document.getElementById('clear-checklist').addEventListener('click', function () {
-        try { localStorage.removeItem(R.CHECKLIST_KEY); } catch (e) {}
+        if (!window.confirm('Limpar checklist neste aparelho (inclui sincronização com mesa ST V002)?')) return;
+        R.clearChecklist();
         renderChecklist();
       });
       document.getElementById('copy-status').addEventListener('click', function () {

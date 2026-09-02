@@ -144,7 +144,7 @@
             'RNA ' + summary.horizon + ' → <strong>' + summary.predLabel + '</strong><br>' +
             summary.gapLabel + '<br>Obs: ' + summary.levelAtLabel;
           var pill = document.getElementById('fresh-pill');
-          pill.textContent = summary.freshness.label + ' · ' + summary.freshness.detail;
+          pill.textContent = R.freshnessLabelPt(summary.freshness) + ' · ' + summary.freshness.detail;
           pill.className = 'fresh-pill' + (summary.freshness.kind === 'stale' ? ' stale' : (summary.freshness.kind === 'unknown' ? ' unknown' : ''));
         });
         renderFieldChecklist();
@@ -159,15 +159,41 @@
         saveField(s);
         renderFieldChecklist();
       });
+      function copyFieldText(text) {
+        var btn = document.getElementById('copy-field');
+        function done(label) {
+          btn.textContent = label;
+          setTimeout(function () { btn.textContent = 'Copiar leitura para WhatsApp/rádio'; }, 2200);
+        }
+        function fallback() {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand('copy');
+            done('Copiado!');
+          } catch (e) {
+            done('Falha ao copiar');
+          }
+          document.body.removeChild(ta);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () { done('Copiado!'); }).catch(fallback);
+        } else {
+          fallback();
+        }
+      }
+
       document.getElementById('copy-field').addEventListener('click', function () {
         var s = summary || R.summarizePlace(null, current);
         var state = loadField();
         var done = FIELD_ITEMS.filter(function (item) { return state[current + '_' + item.id]; }).length;
-        var text = R.statusBrief(s) + '\n\nCampo (' + done + '/' + FIELD_ITEMS.length + ' confirmações locais)\nNão é alerta oficial.';
-        navigator.clipboard.writeText(text).then(function () {
-          document.getElementById('copy-field').textContent = 'Copiado!';
-          setTimeout(function () { document.getElementById('copy-field').textContent = 'Copiar leitura para WhatsApp/rádio'; }, 1800);
-        });
+        var checked = FIELD_ITEMS.filter(function (item) { return state[current + '_' + item.id]; }).map(function (item) { return '✓ ' + item.label; });
+        var text = R.statusBrief(s) + '\n\nCampo (' + done + '/' + FIELD_ITEMS.length + ' confirmações locais)';
+        if (checked.length) text += '\n' + checked.join('\n');
+        text += '\nNão é alerta oficial.';
+        copyFieldText(text);
       });
 
       setPlace('santa');

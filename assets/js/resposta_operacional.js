@@ -23,7 +23,7 @@
       label: 'Santa Tereza',
       code: '86472600',
       threshold: 1500,
-      live: 'previsao_ao_vivo.json',
+      live: '/previsao_ao_vivo.json',
       mapa: 'santa_tereza_previsao_inundacao.html',
       rota: 'pesquisas/santa-tereza-rota-fuga-ruas.html',
       mesa: 'pesquisas/estudo-caso-resposta-santa-tereza.html',
@@ -34,7 +34,7 @@
       label: 'Muçum',
       code: '86510000',
       threshold: 1800,
-      live: 'previsao_ao_vivo_mucum.json',
+      live: '/previsao_ao_vivo_mucum.json',
       mapa: 'mucum_previsao_inundacao.html',
       rota: 'pesquisas/mucum-rota-fuga-ruas.html',
       mesa: 'pesquisas/estudo-caso-resposta-mucum.html',
@@ -171,6 +171,27 @@
     writeMesaValidation(mesaPatch);
   }
 
+  function clearChecklist() {
+    try { localStorage.removeItem(CHECKLIST_KEY); } catch (e) { /* ignore */ }
+    try {
+      var raw = localStorage.getItem(ST_MESA_KEY);
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (!saved || saved.schema_version !== ST_MESA_SCHEMA) return;
+      saved.validation = {};
+      CHECKLIST_ITEMS.forEach(function (item) { saved.validation[item.id] = false; });
+      saved.saved_at = new Date().toISOString();
+      localStorage.setItem(ST_MESA_KEY, JSON.stringify(saved));
+    } catch (e) { /* ignore */ }
+  }
+
+  function freshnessLabelPt(fresh) {
+    if (!fresh) return 'SEM DADO';
+    if (fresh.kind === 'fresh') return 'RECENTE';
+    if (fresh.kind === 'stale') return 'DESATUALIZADO';
+    return 'SEM DADO';
+  }
+
   function checklistProgress(state) {
     var done = CHECKLIST_ITEMS.filter(function (item) { return !!state[item.id]; }).length;
     return { done: done, total: CHECKLIST_ITEMS.length, pct: Math.round((done / CHECKLIST_ITEMS.length) * 100) };
@@ -219,12 +240,13 @@
     var log = loadDecisionLog();
     var checklist = loadChecklist();
     var prog = checklistProgress(checklist);
+    var exportedAt = new Date().toISOString();
     var lines = [
-      ['exported_at', 'place', 'action', 'note', 'observer', 'decision_at'].map(csvEscape).join(','),
+      '# exported_at,' + exportedAt,
+      ['place', 'action', 'note', 'observer', 'decision_at'].map(csvEscape).join(',')
     ];
     log.forEach(function (row) {
       lines.push([
-        row.at,
         row.place,
         row.action,
         row.note,
@@ -318,7 +340,9 @@
     JUSANTE: JUSANTE,
     loadChecklist: loadChecklist,
     saveChecklist: saveChecklist,
+    clearChecklist: clearChecklist,
     checklistProgress: checklistProgress,
+    freshnessLabelPt: freshnessLabelPt,
     readMesaValidation: readMesaValidation,
     appendDecision: appendDecision,
     loadDecisionLog: loadDecisionLog,

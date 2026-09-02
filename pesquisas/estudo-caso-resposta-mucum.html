@@ -156,7 +156,7 @@
           summary = R.summarizePlace(feed, 'mucum');
           document.getElementById('live-level').textContent = summary.levelLabel;
           var badge = document.getElementById('fresh-badge');
-          badge.textContent = summary.freshness.label;
+          badge.textContent = R.freshnessLabelPt(summary.freshness);
           badge.className = 'fresh' + (summary.freshness.kind === 'stale' ? ' stale' : (summary.freshness.kind === 'unknown' ? ' unknown' : ''));
           document.getElementById('live-meta').innerHTML =
             'RNA ' + summary.horizon + ' → ' + summary.predLabel + '<br>' +
@@ -198,7 +198,8 @@
 
       document.getElementById('refresh-live').addEventListener('click', renderLive);
       document.getElementById('clear-checklist').addEventListener('click', function () {
-        try { localStorage.removeItem(R.CHECKLIST_KEY); } catch (e) {}
+        if (!window.confirm('Limpar checklist neste aparelho (inclui sincronização com mesa ST V002)?')) return;
+        R.clearChecklist();
         renderChecklist();
       });
       document.getElementById('copy-status').addEventListener('click', function () {
@@ -221,7 +222,7 @@
         renderLog();
       });
       document.getElementById('export-csv').addEventListener('click', function () {
-        R.downloadCsv('previne-mucum-decisoes.csv', R.exportDecisionCsv({ includeMesaLog: false }));
+        R.downloadCsv('previne-mucum-decisoes.csv', R.exportDecisionCsv({ includeMesaLog: true }));
       });
       document.getElementById('clear-log').addEventListener('click', function () {
         if (window.confirm('Apagar todos os registros locais de decisão?')) {

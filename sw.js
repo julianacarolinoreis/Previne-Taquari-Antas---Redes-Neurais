@@ -5,6 +5,10 @@ var SHELL = [
   '/pesquisas/modo-campo.html',
   '/pesquisas/estudo-caso-resposta-mucum.html',
   '/pesquisas/exposicao-cruzada.html',
+  '/previsao_ao_vivo.json',
+  '/previsao_ao_vivo_mucum.json',
+  '/assets/js/ficha_jusante.js',
+  '/pesquisa_status_encantado.html',
   '/assets/js/resposta_operacional.js',
   '/assets/js/gestor_chrome.js',
   '/assets/css/gestor_chrome.css'
