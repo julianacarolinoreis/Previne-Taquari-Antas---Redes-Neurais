@@ -16,6 +16,8 @@
   var ficha = place === 'mucum'
     ? prefix + 'pesquisa_status_mucum.html'
     : prefix + 'pesquisa_status.html';
+  var centro = prefix + 'pesquisas/centro-resposta.html';
+  var campo = prefix + 'pesquisas/modo-campo.html';
 
   function current(id) {
     return page === id ? ' aria-current="page"' : '';
@@ -35,10 +37,12 @@
       '<a href="' + prefix + 'pesquisa_status_mucum.html"' + placeCurrent('mucum') + '>Muçum</a>' +
     '</div>' +
     '<div class="gestor-chrome-tabs" role="group" aria-label="Camadas">' +
+      '<a href="' + centro + '"' + current('centro') + '>Centro</a>' +
       '<a href="' + prefix + 'dashboard_bacia.html"' + current('agora') + '>Agora</a>' +
       '<a href="' + mapa + '"' + current('mapa') + '>Mapa</a>' +
       '<a href="' + prefix + 'vulnerabilidade.html"' + current('pessoas') + '>Pessoas</a>' +
       '<a href="' + resposta + '"' + current('resposta') + '>Resposta</a>' +
+      '<a href="' + campo + '"' + current('campo') + '>Campo</a>' +
       '<a href="' + ficha + '"' + current('ficha') + '>Ficha</a>' +
       '<a href="' + prefix + 'pesquisas/briefing-gestores.html"' + current('briefing') + '>Briefing</a>' +
       '<a href="' + prefix + 'pesquisas.html"' + current('arquivo') + '>Arquivo</a>' +
