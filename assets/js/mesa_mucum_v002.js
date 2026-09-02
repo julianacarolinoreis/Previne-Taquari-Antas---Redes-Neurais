@@ -180,11 +180,31 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   }
 
-  function init(contract, exposure) {
+  function renderShelters(plano) {
+    if (!plano) return;
+    var res = plano.resumo_capacidade || {};
+    setText('sh-count', res.alojamentos_quadro_13 || (plano.abrigos && plano.abrigos.length));
+    setText('sh-cap13', (res.capacidade_quadro_13_pessoas || '—') + ' pessoas');
+    setText('sh-cap2', (res.capacidade_quadro_2_pessoas || '—') + ' pessoas');
+    setText('sh-cap5', (res.capacidade_anexo_5_pessoas || '—') + ' pessoas');
+    var list = $('shelter-list');
+    if (!list || !plano.abrigos) return;
+    list.innerHTML = plano.abrigos.slice(0, 6).map(function (s) {
+      var cap = s.capacidade_quadro_13 != null ? s.capacidade_quadro_13 + ' pessoas' : '—';
+      var coord = (s.lat != null && s.lon != null) ? ' · no mapa' : ' · sem coord.';
+      return '<a href="mucum-rota-fuga-ruas.html"><b>' + s.nome + '</b><span>' + cap + coord + '</span></a>';
+    }).join('');
+    if (plano.abrigos.length > 6) {
+      list.innerHTML += '<p class="section-intro" style="grid-column:1/-1;margin:0">+' + (plano.abrigos.length - 6) + ' alojamentos no JSON completo.</p>';
+    }
+  }
+
+  function init(contract, exposure, plano) {
     var state = readState() || writeState({});
     renderZones(contract, state.zone_id || 'Z-01');
     renderTimeline(contract, state.timeline_min || 0);
     renderExposure(exposure);
+    renderShelters(plano);
     renderScoreboard(state, contract);
 
     document.querySelectorAll('[data-mode]').forEach(function (btn) {

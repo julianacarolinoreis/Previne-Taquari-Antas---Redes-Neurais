@@ -6,7 +6,7 @@
   "maturity": "prototype",
   "operational_gate": {
     "status": "blocked",
-    "reason": "RNA Muçum em calibração; rotas e abrigos sem confirmação de campo; exposição cruzada por centroide (aproximação).",
+    "reason": "RNA Muçum em calibração; gate operacional bloqueado no exercício. Plano municipal digitalizado — ocupação/abertura no evento exigem confirmação em campo.",
     "disallowed": ["official_alert", "evacuation_order", "public_dispatch", "route_navigation", "resource_allocation"]
   },
   "event": {
@@ -65,12 +65,21 @@
     "municipal_context": {"municipality": "Muçum", "code": "4312609", "population": 4585, "exposed_at_peak": 2117}
   },
   "shelter": {
-    "source": "plano_contingencia_municipal",
-    "status": "unknown",
-    "capacity": null,
-    "occupancy": null,
+    "source": "assets/data/mucum_contingencia_202607.json",
+    "document": "Plano de Contingência Muçum - RS · julho de 2026",
+    "pdf_url": "https://mucum.rs.gov.br/portal/defesa-civil/PLANO%20DE%20CONTING%C3%8ANCIA%20DE%20MU%C3%87UM%20-%20DEFESA%20CIVIL.pdf",
+    "count": 9,
+    "capacity_quadro_13": 506,
+    "capacity_quadro_2": 446,
+    "capacity_anexo_5": 533,
+    "capacity_reference": "quadro_13",
+    "capacity_note": "O próprio plano municipal diverge entre Quadro 2, Quadro 13 e Anexo 5; os três totais ficam publicados sem apagar a divergência.",
+    "pontos_encontro": 2,
+    "rotas_plano": 6,
+    "status": "cadastrado_plano",
+    "operational_status": "desconhecido",
     "safe_point_confirmed": false,
-    "note": "Capacidades divergem entre quadros do plano; reconciliação pendente como na mesa ST."
+    "note": "Cadastro completo do plano (abrigos, rotas, pontes, recursos). O que falta no evento real é abertura/ocupação/vagas atuais — não falta o documento."
   },
   "validation_checklist": [
     {"id": "forecast", "label": "Fonte, horário, fuso, validade e qualidade do sinal", "status": "unknown"},
@@ -95,6 +104,7 @@
   "sources": [
     {"path": "assets/data/estudo_caso_resposta_mucum_v002.json", "role": "contrato do exercício"},
     {"path": "previsao_ao_vivo_mucum.json", "role": "feed RNA + telemetria"},
+    {"path": "assets/data/mucum_contingencia_202607.json", "role": "plano municipal digitalizado (abrigos, rotas, pontes)"},
     {"path": "assets/data/exposicao_cruzada/exposicao_mucum.json", "role": "exposição cruzada"},
     {"path": "assets/data/mucum_inundacao/contornos_mancha.json", "role": "contornos HAND"},
     {"path": "pesquisas/estudo-caso-resposta-mucum.html", "role": "mesa V002"}

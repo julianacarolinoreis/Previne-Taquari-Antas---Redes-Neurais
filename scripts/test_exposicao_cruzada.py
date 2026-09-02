@@ -42,6 +42,9 @@ def test_mucum_v002_contract() -> None:
     assert len(c["zones"]) == 4
     assert c["spatial"]["hand_contours_max_m"] == 25.0
     assert c["spatial"]["exposure_at_peak"]["pop_grade"] == 2117
+    assert c["shelter"]["source"] == "assets/data/mucum_contingencia_202607.json"
+    assert c["shelter"]["count"] == 9
+    assert c["shelter"]["capacity_quadro_13"] == 506
     for src in c["sources"]:
         assert (ROOT / src["path"]).is_file(), src["path"]
 
@@ -54,6 +57,8 @@ def test_mesa_page_references_v002() -> None:
     assert "Scoreboard" in html
     assert "export-unified" in html
     assert "sombra" in html
+    assert "mucum_contingencia_202607.json" in html
+    assert "Alojamentos" in html
 
 
 if __name__ == "__main__":

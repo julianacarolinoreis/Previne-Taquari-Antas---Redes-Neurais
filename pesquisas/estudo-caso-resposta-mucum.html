@@ -177,6 +177,22 @@
       </div>
     </section>
 
+    <section class="section" aria-labelledby="shelter-title">
+      <h2 id="shelter-title">Alojamentos · plano municipal jul/2026</h2>
+      <p class="section-intro" id="shelter-intro">Cadastro digitalizado do plano de contingência — 9 alojamentos, 2 pontos de encontro, 6 rotas. Capacidade <strong>planejada</strong> (Quadro 13: 506 pessoas); abertura/ocupação no evento exigem confirmação em campo.</p>
+      <div class="brief-grid" id="shelter-summary">
+        <div class="brief-item"><span>Alojamentos</span><strong id="sh-count">—</strong></div>
+        <div class="brief-item"><span>Cap. Quadro 13</span><strong id="sh-cap13">—</strong></div>
+        <div class="brief-item"><span>Cap. Quadro 2</span><strong id="sh-cap2">—</strong></div>
+        <div class="brief-item"><span>Anexo 5 / ficha</span><strong id="sh-cap5">—</strong></div>
+      </div>
+      <div id="shelter-list" class="link-grid" style="margin-top:12px"></div>
+      <div class="toolbar">
+        <a class="btn secondary" href="mucum-rota-fuga-ruas.html">Mapa de rotas e abrigos</a>
+        <a class="btn secondary" href="../assets/data/mucum_contingencia_202607.json">JSON do plano</a>
+      </div>
+    </section>
+
     <section class="section" aria-labelledby="check-title">
       <h2 id="check-title">Checklist pré-ação (7 itens)</h2>
       <p class="section-intro" id="check-progress"><strong>0/7</strong> confirmações neste aparelho.</p>
@@ -234,17 +250,19 @@
 
       Promise.all([
         fetch('../assets/data/estudo_caso_resposta_mucum_v002.json').then(function (r) { return r.ok ? r.json() : null; }),
-        fetch('../assets/data/exposicao_cruzada/exposicao_mucum.json').then(function (r) { return r.ok ? r.json() : null; })
+        fetch('../assets/data/exposicao_cruzada/exposicao_mucum.json').then(function (r) { return r.ok ? r.json() : null; }),
+        fetch('../assets/data/mucum_contingencia_202607.json').then(function (r) { return r.ok ? r.json() : null; })
       ]).then(function (parts) {
         var contract = parts[0];
         var exposure = parts[1];
+        var plano = parts[2];
         if (contract) {
           var gate = contract.operational_gate || {};
           document.getElementById('gate-note').innerHTML =
             '<strong>Gate: ' + (gate.status || 'blocked').toUpperCase() + '</strong> · ' +
             (gate.reason || 'Exercício de pesquisa.');
         }
-        if (M) M.init(contract, exposure);
+        if (M) M.init(contract, exposure, plano);
       });
 
       function renderChecklist() {
