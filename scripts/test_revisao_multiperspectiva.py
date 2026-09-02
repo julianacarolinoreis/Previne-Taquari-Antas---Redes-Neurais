@@ -77,8 +77,9 @@ def test_todas_paginas_guard_ou_gestor() -> None:
 
 def test_inventario_67_linhas() -> None:
     html = (ROOT / "pesquisas" / "revisao-multiperspectiva.html").read_text(encoding="utf-8")
-    count = html.count('["')
-    assert count >= 67 * 3  # rough: each row has 3 strings
+    import re
+    rows = re.findall(r'\["[^"]+","[KFRA]","[^"]+"\]', html)
+    assert len(rows) == 67, f"esperado 67 linhas no inventário, encontrado {len(rows)}"
     assert "demais entradas RNA" not in html
 
 
