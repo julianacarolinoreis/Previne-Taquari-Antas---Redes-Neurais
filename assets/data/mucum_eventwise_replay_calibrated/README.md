@@ -44,6 +44,9 @@ E28 está documentado em
 `multi_event_common_calibration_audit_20260903.md` e em sua versão HTML
 `multi_event_common_calibration_audit_20260903.html`.
 
+A matriz consolidada dos seis eventos HEC-HMS de Muçum está disponível em
+`matriz_calibracao_hec_hms_mucum_20260903.html`.
+
 ## Eventos não fechados
 
 - E19 (mai/2023): melhor busca com NSE 0,2091 e atraso de 3 h. A vazão-alvo já
