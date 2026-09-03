@@ -267,10 +267,11 @@
   function fetchExposurePeak(placeKey) {
     if (exposureCache[placeKey]) return exposureCache[placeKey];
     var file = placeKey === 'mucum'
-      ? '/assets/data/exposicao_cruzada/exposicao_mucum.json'
+      ? '/assets/data/exposicao_cruzada/exposicao_mucum_v2.json'
       : placeKey === 'santa'
-        ? '/assets/data/exposicao_cruzada/exposicao_santa_tereza.json'
+        ? '/assets/data/exposicao_cruzada/exposicao_santa_tereza_v2.json'
         : null;
+    var peakHand = placeKey === 'mucum' ? 17.02 : (placeKey === 'santa' ? 15 : null);
     if (!file) {
       exposureCache[placeKey] = Promise.resolve(null);
       return exposureCache[placeKey];
@@ -279,12 +280,16 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data || !data.niveis || !data.niveis.length) return null;
-        var peak = data.niveis.filter(function (n) { return n.hand_m >= 15; }).pop() || data.niveis[data.niveis.length - 1];
+        var peak = peakHand != null
+          ? data.niveis.filter(function (n) { return Math.abs(n.hand_m - peakHand) < 0.01; })[0]
+          : null;
+        if (!peak) peak = data.niveis.filter(function (n) { return n.hand_m >= 15; }).pop() || data.niveis[data.niveis.length - 1];
         return {
           pop: peak.grade_200m && peak.grade_200m.pop,
           dom: peak.grade_200m && peak.grade_200m.dom,
           hand_m: peak.hand_m,
-          pct: peak.pct_pop_municipio
+          pct: peak.pct_pop_municipio,
+          schema_version: data.schema_version || 1
         };
       })
       .catch(function () { return null; });
@@ -369,19 +374,20 @@
     lines.push(['checklist_done', 'checklist_total', 'checklist_pct'].map(csvEscape).join(','));
     lines.push([prog.done, prog.total, prog.pct].map(csvEscape).join(','));
     if (options.includeMesaLog) {
-      try {
-        var raw = localStorage.getItem(ST_MESA_KEY);
-        if (raw) {
+      [ST_MESA_KEY, MUC_MESA_KEY].forEach(function (mesaKey) {
+        try {
+          var raw = localStorage.getItem(mesaKey);
+          if (!raw) return;
           var saved = JSON.parse(raw);
-          if (saved && Array.isArray(saved.log)) {
+          if (saved && Array.isArray(saved.log) && saved.log.length) {
             lines.push('');
-            lines.push(['mesa_time', 'mesa_text'].map(csvEscape).join(','));
+            lines.push(['mesa_key', 'mesa_time', 'mesa_text'].map(csvEscape).join(','));
             saved.log.forEach(function (item) {
-              lines.push([item.time, item.text].map(csvEscape).join(','));
+              lines.push([mesaKey, item.time, item.text].map(csvEscape).join(','));
             });
           }
-        }
-      } catch (e) { /* ignore */ }
+        } catch (e) { /* ignore */ }
+      });
     }
     return lines.join('\n');
   }
@@ -495,7 +501,7 @@
     lines.push([prog.done, prog.total].map(csvEscape).join(','));
     try {
       var stRaw = localStorage.getItem(ST_MESA_KEY);
-      var mucRaw = localStorage.getItem('previne:muc-v002:exercise:v1');
+      var mucRaw = localStorage.getItem(MUC_MESA_KEY);
       if (stRaw) lines.push(['mesa_st_snapshot', stRaw.slice(0, 500)].map(csvEscape).join(','));
       if (mucRaw) lines.push(['mesa_muc_snapshot', mucRaw.slice(0, 500)].map(csvEscape).join(','));
     } catch (e) { /* ignore */ }

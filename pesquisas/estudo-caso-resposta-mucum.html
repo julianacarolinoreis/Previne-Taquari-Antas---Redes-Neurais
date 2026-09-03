@@ -76,6 +76,17 @@
     .toolbar button, .toolbar a.btn { min-height: 40px; display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--navy); background: var(--navy); color: #fff; font: inherit; font-size: 13px; font-weight: 750; text-decoration: none; cursor: pointer; }
     .toolbar .secondary { background: #fff; color: var(--navy); }
     footer { margin-top: 18px; color: var(--muted); font-size: 11px; }
+    .contingency-panel { margin: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 9px 0; }
+    .contingency-panel summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--navy); font-size: 12px; font-weight: 850; cursor: pointer; }
+    .contingency-panel summary::-webkit-details-marker { display: none; }
+    .contingency-panel summary:after { content: "+"; color: var(--blue); font-size: 16px; font-weight: 400; }
+    .contingency-panel[open] summary:after { content: "−"; }
+    .contingency-panel .field { margin-top: 9px; }
+    .contingency-panel label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .contingency-panel select, .contingency-panel input { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; font: inherit; font-size: 13px; }
+    .contingency-panel p { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
+    .contingency-panel .secondary-button { width: 100%; margin-top: 8px; text-align: left; font-size: 11px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--navy); cursor: pointer; }
+    .contingency-status { display: block; margin-top: 7px; color: #96621b; font-family: ui-monospace, monospace; font-size: 10px; line-height: 1.35; }
     @media (max-width: 760px) {
       .model-grid, .sace-row, .brief-grid, .score-grid { grid-template-columns: 1fr 1fr; }
       .zone-grid, .link-grid { grid-template-columns: 1fr; }
@@ -152,6 +163,7 @@
     <section class="section" aria-labelledby="zones-title">
       <h2 id="zones-title">Zonas de exposição @ HAND 17,02 m</h2>
       <p class="section-intro" id="zone-detail">Quadrantes espaciais · estimativa por grade 200 m · não somar zonas.</p>
+      <p class="section-intro" id="exp-method-note" style="margin-top:-6px;font-size:12px;color:var(--teal)">Carregando exposição…</p>
       <div class="zone-grid" id="zone-grid"></div>
       <div class="brief-grid" style="margin-top:12px">
         <div class="brief-item"><span>Pop. na mancha</span><strong id="exp-pop">—</strong></div>
@@ -201,6 +213,31 @@
     <section class="section" aria-labelledby="shelter-form-title">
       <h2 id="shelter-form-title">Capacidade de abrigo · registro exportável</h2>
       <div id="abrigo-capacidade-mount"></div>
+    </section>
+
+    <section class="section" aria-labelledby="contingency-title">
+      <h2 id="contingency-title">Contingências · ensaio de mesa</h2>
+      <p class="section-intro">Aplicar somente neste exercício — não altera mapas, rotas nem despacho real.</p>
+      <details class="contingency-panel" open>
+        <summary>Cenário de contingência</summary>
+        <div class="field">
+          <label for="contingencySelect">situação para ensaiar</label>
+          <select id="contingencySelect">
+            <option value="route">rota principal fechada</option>
+            <option value="shelter">abrigo lotado</option>
+            <option value="comms">sem comunicação</option>
+            <option value="night">noite / baixa visibilidade</option>
+            <option value="combo">combo · noite + ponte + abrigo lotado</option>
+          </select>
+        </div>
+        <p id="contingencyText">Selecione uma contingência para ensaiar.</p>
+        <button id="contingencyApply" class="secondary-button" type="button">Aplicar cenário ao exercício</button>
+        <div class="field">
+          <label for="contingencyOutcome">resultado observado · após aplicar</label>
+          <input id="contingencyOutcome" type="text" placeholder="o que resolveu ou travou?" maxlength="200">
+        </div>
+        <span id="contingencyStatus" class="contingency-status">Nenhuma contingência aplicada.</span>
+      </details>
     </section>
 
     <section class="section" aria-labelledby="check-title">
@@ -271,7 +308,7 @@
 
       Promise.all([
         fetch('../assets/data/estudo_caso_resposta_mucum_v002.json').then(function (r) { return r.ok ? r.json() : null; }),
-        fetch('../assets/data/exposicao_cruzada/exposicao_mucum.json').then(function (r) { return r.ok ? r.json() : null; }),
+        fetch('../assets/data/exposicao_cruzada/exposicao_mucum_v2.json').then(function (r) { return r.ok ? r.json() : null; }),
         fetch('../assets/data/mucum_contingencia_202607.json').then(function (r) { return r.ok ? r.json() : null; })
       ]).then(function (parts) {
         var contract = parts[0];
@@ -288,7 +325,7 @@
 
       function renderChecklist() {
         var state = R.loadChecklist();
-        var prog = R.checklistProgress(state);
+        var prog = R.mesaChecklistProgress ? R.mesaChecklistProgress(R.MUC_MESA_KEY) : R.checklistProgress(state);
         document.getElementById('check-progress').innerHTML =
           '<strong>' + prog.done + '/' + prog.total + '</strong> confirmações (' + prog.pct + '%).';
         document.getElementById('checklist').innerHTML = R.CHECKLIST_ITEMS.map(function (item) {
@@ -296,9 +333,11 @@
         }).join('');
         document.getElementById('checklist').querySelectorAll('input[data-check]').forEach(function (input) {
           input.addEventListener('change', function () {
-            var s = R.loadChecklist();
-            s[input.getAttribute('data-check')] = input.checked;
-            R.saveChecklist(s);
+            var patch = {};
+            document.getElementById('checklist').querySelectorAll('input[data-check]').forEach(function (cb) {
+              patch[cb.getAttribute('data-check')] = cb.checked;
+            });
+            R.syncMesaValidation(R.MUC_MESA_KEY, patch);
             renderChecklist();
           });
         });

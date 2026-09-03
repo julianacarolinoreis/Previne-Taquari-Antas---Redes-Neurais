@@ -40,7 +40,9 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/Worl
  else{t=`${nv.rotulo||''}`+(nv.calibrar_regua?' (nível provisório — calibrar régua)':'')+alTxt;}
  document.getElementById('meta').textContent=t+` · ${D.meta.n_nos} nós · ${D.meta.gerado_em}`;})();
 D.mancha.forEach(p=>L.polygon(p,{color:'#1e5fbf',weight:1,fillColor:'#1e5fbf',fillOpacity:.18}).addTo(map));
-const b=L.latLngBounds();
+const b=L.latLngBounds(),bridgeLayer=L.layerGroup().addTo(map);
+const MUC_PONTES_UNKNOWN=[{id:'mucum_ponte_guapore',nome:'Ponte sobre o Rio Guaporé',lat:-29.143975,lon:-51.863835},{id:'mucum_ponte_arroio_brava',nome:'Ponte sobre o Arroio da Brava',lat:-29.167813,lon:-51.885892},{id:'mucum_ponte_brochado_rocha',nome:'Ponte Rodoferroviária Brochado da Rocha',lat:-29.171897,lon:-51.879803}];
+MUC_PONTES_UNKNOWN.forEach(p=>L.circleMarker([p.lat,p.lon],{radius:8,color:'#fff',weight:2,fillColor:'#8b5cf6',fillOpacity:.95}).addTo(bridgeLayer).bindPopup('<b>'+p.nome+'</b><br>status operacional: UNKNOWN · vistoria estrutural necessária'));
 D.edges.forEach(([a,c,ag])=>{const A=D.nos[a],C=D.nos[c];
   L.polyline([A,C],{color:ag?'#b3382c':'#8fa7b8',weight:ag?2.5:1.5,opacity:ag?.7:.5}).addTo(map);b.extend(A);b.extend(C);});
 D.abrigos.forEach(a=>L.marker([a.lat,a.lon]).addTo(map).bindPopup('<b>'+a.nome+'</b><br>ponto de encontro / abrigo'));
@@ -55,8 +57,8 @@ map.on('click',e=>{const i0=noProximo(e.latlng.lat,e.latlng.lng);const pts=[];le
   cam=L.polyline(pts,{color:'#0f8b46',weight:5,opacity:.95}).addTo(map);
   orig=L.circleMarker([D.nos[i0][0],D.nos[i0][1]],{radius:7,color:'#0f8b46',fillColor:'#fff',fillOpacity:1,weight:3}).addTo(map);
   const ab=D.abrigos.find(x=>x.id===D.dest[i0])||D.abrigos[0];const dm=D.dist_m[i0],ag=D.agua_m[i0];
-  document.getElementById('rota').innerHTML=`<b>Rota até ${ab?ab.nome:'abrigo'}</b><br>Distância a pé: <b>${(dm/1000).toFixed(2)} km</b>`+
-    (ag>0?`<br><span style="color:#b3382c">⚠ ${Math.round(ag)} m passam por área que alaga.</span>`:`<br><span style="color:#0f8b46">Rota fora da mancha.</span>`);});
-document.getElementById('leg').innerHTML='<b>Mapa</b><br><i style="background:#0f8b46"></i>sua rota até o abrigo<br>'+
+  const bridgeNote='<br><span style="color:#8b5cf6">⚠ Pontes UNKNOWN no plano municipal — passagem não validada.</span>';document.getElementById('rota').innerHTML=`<b>Rota até ${ab?ab.nome:'abrigo'}</b><br>Distância a pé: <b>${(dm/1000).toFixed(2)} km</b>`+
+    (ag>0?`<br><span style="color:#b3382c">⚠ ${Math.round(ag)} m passam por área que alaga.</span>`:`<br><span style="color:#0f8b46">Rota fora da mancha.</span>`)+bridgeNote;});
+document.getElementById('leg').innerHTML='<b>Mapa</b><br><i style="background:#0f8b46"></i>sua rota até o abrigo<br><i style="background:#8b5cf6"></i>pontes UNKNOWN<br>'+
  '<i style="background:#b3382c"></i>rua que alaga<br><i style="background:#8fa7b8"></i>rua fora da mancha<br><i style="background:#1e5fbf;opacity:.4"></i>área de inundação';
 </script></body></html>

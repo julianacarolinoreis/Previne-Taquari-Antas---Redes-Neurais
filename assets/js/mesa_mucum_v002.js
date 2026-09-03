@@ -137,19 +137,116 @@
     setText('metricUnlocated', m.unlocated != null ? String(m.unlocated) : '—');
     setText('metricShelterGap', m.shelterGap != null ? String(m.shelterGap) : '—');
     setText('metricCriticalFailures', m.criticalFailures != null ? String(m.criticalFailures) : '—');
-    setText('metricContingencyResult', m.contingencyResult || '—');
-    var prog = R.checklistProgress(R.loadChecklist());
+    var active = getActiveContingency(state, contract);
+    setText('metricContingencyResult', active ? (m.contingencyResult || 'pendente') : '—');
+    var prog = R.mesaChecklistProgress ? R.mesaChecklistProgress(MUC_MESA_KEY) : R.checklistProgress(R.loadChecklist());
     setText('validationProgress', prog.done + '/' + prog.total);
   }
 
   function renderExposure(exposure) {
     if (!exposure) return;
-    var peak = exposure.niveis && exposure.niveis.find(function (n) { return Math.abs(n.hand_m - 17.02) < 0.01; });
+    var peakHand = 17.02;
+    var peak = exposure.niveis && exposure.niveis.find(function (n) { return Math.abs(n.hand_m - peakHand) < 0.01; });
     if (!peak) return;
+    var isV2 = exposure.schema_version === 2;
     setText('exp-pop', peak.grade_200m.pop.toLocaleString('pt-BR'));
     setText('exp-dom', peak.grade_200m.dom.toLocaleString('pt-BR'));
     setText('exp-pct', peak.pct_pop_municipio + '%');
     setText('exp-idosos', (peak.setores_censitarios.idosos_70_mais || 0).toLocaleString('pt-BR'));
+    var note = $('exp-method-note');
+    if (note) note.textContent = isV2
+      ? 'Exposição v2 areal · interseção HAND × grade 200 m · pico jul/2020 @ 17,02 m'
+      : 'Exposição v1 centroide · pico jul/2020 @ 17,02 m';
+  }
+
+  var CONTINGENCY_LABELS = {
+    route: 'rota principal fechada',
+    shelter: 'abrigo lotado',
+    comms: 'sem comunicação',
+    night: 'noite / baixa visibilidade',
+    combo: 'noite + ponte + abrigo lotado'
+  };
+
+  var CONTINGENCY_TEXT = {
+    route: 'Bloquear orientação pelo corredor principal, registrar reconhecimento e só retomar após corredor alternativo confirmado.',
+    shelter: 'Parar de indicar abrigo principal, registrar transbordo e escalonar transporte.',
+    comms: 'Usar rádio, telefone e ponto de encontro; registrar mensagem para sincronizar depois.',
+    night: 'Reduzir circulação, confirmar iluminação e equipe, priorizar transporte assistido.',
+    combo: 'Cenário composto: corredor bloqueado + abrigo lotado + baixa visibilidade. Exercitar transbordo e corredor alternativo.'
+  };
+
+  function getZone(contract, state) {
+    var zones = (contract && contract.zones) || [];
+    return zones.find(function (z) { return z.id === (state && state.zone_id); }) || zones[0];
+  }
+
+  function getActiveContingency(state, contract) {
+    if (!state || !state.contingencyActive) return null;
+    var zone = getZone(contract, state);
+    if (!zone || state.contingencyActive.zoneId !== zone.id) return null;
+    return state.contingencyActive;
+  }
+
+  function contingencyIs(state, contract, flag) {
+    var active = getActiveContingency(state, contract);
+    if (!active) return false;
+    if (active.value === 'combo') return flag === 'route' || flag === 'shelter' || flag === 'night';
+    return active.value === flag;
+  }
+
+  function initContingency(contract) {
+    var select = $('contingencySelect');
+    if (!select) return;
+
+    function renderContingencyPanel() {
+      var state = readState() || {};
+      var zone = getZone(contract, state);
+      var value = select.value;
+      setText('contingencyText', (zone ? zone.id + ' · ' : '') + (CONTINGENCY_TEXT[value] || ''));
+      var active = getActiveContingency(state, contract);
+      setText('contingencyStatus', active
+        ? 'Aplicada · ' + active.label + ' · ' + ((state.metrics && state.metrics.contingencyResult) ? 'resultado registrado' : 'resultado pendente') + ' · sem efeito fora desta página.'
+        : 'Nenhuma contingência aplicada.');
+      var outcome = $('contingencyOutcome');
+      if (outcome && document.activeElement !== outcome && !outcome.dataset.dirty) {
+        outcome.value = (state.metrics && state.metrics.contingencyResult) || '';
+      }
+      renderScoreboard(state, contract);
+    }
+
+    select.addEventListener('change', renderContingencyPanel);
+    $('contingencyApply') && $('contingencyApply').addEventListener('click', function () {
+      var state = readState() || writeState({});
+      var zone = getZone(contract, state);
+      var value = select.value;
+      var entry = {
+        value: value,
+        label: CONTINGENCY_LABELS[value],
+        zoneId: zone.id,
+        applied_at: new Date().toISOString()
+      };
+      var log = (state.log || []).slice();
+      log.unshift({
+        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        text: 'Contingência aplicada · ' + CONTINGENCY_LABELS[value] + ' · ' + zone.id
+      });
+      writeState({ contingencyActive: entry, log: log.slice(0, 50) });
+      R.appendDecision({ place: 'Muçum', action: 'contingencia', note: CONTINGENCY_LABELS[value] + ' · ' + zone.id });
+      renderContingencyPanel();
+    });
+    var outcomeEl = $('contingencyOutcome');
+    if (outcomeEl) {
+      outcomeEl.addEventListener('input', function () { this.dataset.dirty = '1'; });
+      outcomeEl.addEventListener('change', function () {
+        var st = readState() || writeState({});
+        st.metrics = st.metrics || {};
+        st.metrics.contingencyResult = this.value.trim();
+        writeState({ metrics: st.metrics });
+        this.dataset.dirty = '';
+        renderContingencyPanel();
+      });
+    }
+    renderContingencyPanel();
   }
 
   function exportExerciseRecord(contract, feed) {
@@ -206,6 +303,7 @@
     renderExposure(exposure);
     renderShelters(plano);
     renderScoreboard(state, contract);
+    initContingency(contract);
 
     document.querySelectorAll('[data-mode]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -266,6 +364,8 @@
     MUC_MESA_KEY: MUC_MESA_KEY,
     init: init,
     readState: readState,
-    writeState: writeState
+    writeState: writeState,
+    contingencyIs: contingencyIs,
+    getActiveContingency: getActiveContingency
   };
 })(typeof window !== 'undefined' ? window : globalThis);

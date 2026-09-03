@@ -100,6 +100,9 @@
   .live-bar a{margin-left:auto;color:inherit;cursor:pointer;text-decoration:underline;font-weight:600}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
   .live-note{font-size:11px;color:#a5281c;background:#fff6f5;border:1px solid #f3d3cd;border-radius:9px;padding:7px 10px;margin-bottom:10px;line-height:1.4}
+  .live-status-note{font-size:11px;color:#6f4a12;background:#fff8e8;border:1px solid #efd49a;border-radius:9px;padding:7px 10px;margin:8px 0;line-height:1.4}
+  .live-status-note.ok{color:#176247;background:#f0faf5;border-color:#b8ddca}
+  .live-status-note.warn{color:#8a2d26;background:#fff5f3;border-color:#f0c1b8}
   /* pesquisa validada: painel separado do produto experimental ao vivo */
   .research-panel{border:1px solid #b9d9ca;background:linear-gradient(180deg,#f5fbf7,#fff);border-radius:14px;padding:13px 14px;margin:0 0 14px;box-shadow:var(--shadow)}
   .research-panel .rp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
@@ -160,6 +163,7 @@
     <button class="live-btn" id="live-btn" type="button" aria-pressed="false">🔴 Ativar previsão ao vivo · Muçum · 2 h, 4 h e 8 h</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
+    <div id="live-status-note" class="live-status-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
       <button type="button" data-live-hz="2h" class="on" aria-pressed="true">2 h</button>
       <button type="button" data-live-hz="4h" aria-pressed="false">4 h</button>
@@ -837,6 +841,36 @@ function liveMatchedAudit(L){
   (A.ultimas_conferidas||[]).forEach(u=>{ if(u) rows.push(u); });
   return rows.find(u=>u && u.hora_modelo===L.hora_modelo && u.observado_cm!=null) || null;
 }
+function renderLiveStatus(D,hz){
+  const box=document.getElementById('live-status-note');
+  if(!box) return;
+  const q=D&&D.qualidade_ao_vivo||{};
+  const A=D&&D.auditoria||{};
+  const mae24=A.mae_24h_cm!=null?A.mae_24h_cm:q.mae_24h_cm;
+  const iq=D&&D.auditoria_inputs||{};
+  const base=D&&D.hora_modelo?fmtWhen(D.hora_modelo):'—';
+  const tele=D&&D.telemetria_ultima_em?fmtWhen(D.telemetria_ultima_em):'—';
+  const consulted=D&&D.consultado_em?fmtWhen(D.consultado_em):'—';
+  const status=String(D&&D.status||'').toLowerCase();
+  const stale=status.includes('aguardando')||status.includes('atras')||status.includes('sem dado');
+  const parts=[];
+  if(stale){
+    parts.push(`<b>Previsão mantida da base ${escLive(base)}</b>: consulta recente sem leitura ANA nova (última ${escLive(tele)}; robô ${escLive(consulted)}).`);
+  }else{
+    parts.push(`<b>Base RNA (hora cheia):</b> ${escLive(base)} · ANA ${escLive(tele)} · robô ${escLive(consulted)}.`);
+  }
+  if(q.status==='ATENCAO'){
+    parts.push(`<b>${escLive(hzLabel(hz))} em atenção:</b> MAE 24h ${mae24!=null?nf1.format(mae24)+' cm':'—'}.`);
+  }else if(q.status){
+    parts.push(`<b>Qualidade:</b> ${escLive(q.status)} · MAE 24h ${mae24!=null?nf1.format(mae24)+' cm':'—'}.`);
+  }
+  if(iq.n_inputs!=null||iq.n_exatos!=null){
+    parts.push(`Inputs: ${iq.n_exatos||0}/${iq.n_inputs||D.inputs_total||'?'} exatos.`);
+  }
+  box.className='live-status-note '+(q.status==='ATENCAO'?'warn':(stale?'':'ok'));
+  box.innerHTML=parts.join(' ');
+  box.style.display='';
+}
 function renderLiveAudit(D){
   const block=document.getElementById('audit-live-block');
   if(!block) return;
@@ -941,6 +975,7 @@ function renderLiveStep(){
     const ei=document.getElementById('evinfo');
     if(ei) ei.innerHTML=liveInfoHtml(L,P,hz,tipoTxt,modoTxt);
     renderLiveAudit(L);
+    renderLiveStatus(L, hz);
     set('live-kind', liveWhenKind(L));
     set('live-when', liveWhenText(L,P));
     renderFrame();
@@ -959,6 +994,7 @@ function renderLiveStep(){
   const ei=document.getElementById('evinfo');
   if(ei) ei.innerHTML=liveInfoHtml(liveData,P,hz,tipoTxt,modoTxt);
   renderLiveAudit(liveData);
+  renderLiveStatus(liveData, hz);
   set('live-kind', liveWhenKind(liveData));
   set('live-when', liveWhenText(liveData,P));
   renderFrame();
@@ -983,6 +1019,7 @@ async function enterLive(){
 }
 function exitLive(){ liveMode=false; clearInterval(liveTimer); liveTimer=null; document.body.classList.remove('live');
   document.getElementById('live-bar').style.display='none'; document.getElementById('live-note').style.display='none';
+  const statusNote=document.getElementById('live-status-note'); if(statusNote) statusNote.style.display='none';
   document.getElementById('live-hz').style.display='none';
   if(window.PREVINE_PANORAMA)PREVINE_PANORAMA.update(null);
   const toggle=document.getElementById('live-btn'); if(toggle){toggle.textContent='🔴 Ativar previsão ao vivo · Muçum · 2 h, 4 h e 8 h';toggle.setAttribute('aria-pressed','false');}
