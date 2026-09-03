@@ -11,7 +11,7 @@ Foram preservados os três eventos que atenderam ao gate interno desta rodada:
 
 | Evento | Período | Chuva usada | NSE | Pico simulado / observado | Atraso do pico | Erro relativo do pico |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
-| E24 | nov/2023 | ANA 86472000 | 0,8804 | 12.983 / 11.435 m³/s | -2 h | 13,54% |
+| E24 | nov/2023 | ANA 86472000 | 0,8716 | 12.672 / 11.435 m³/s | 0 h | 10,82% |
 | E27 | mai/2024 | ANA 86472000 | 0,7853 | 13.499 / 14.525 m³/s | 0 h | 7,07% |
 | E28 | jun/2024 | ANA 86472000 | 0,9125 | 7.930 / 7.887 m³/s | -1 h | 0,54% |
 
@@ -20,12 +20,16 @@ baixo e atraso absoluto de no máximo duas horas; para a seleção final, foi da
 preferência a atraso de zero ou uma hora. Os números acima são calculados
 somente nas horas pareadas e existentes na série observada.
 
-E24 foi refinado em 03/09/2026 com 288 combinações focadas nos parâmetros de
-perda, concentração, armazenamento e recessão. O novo candidato reduziu o
-RMSE de 1.065,3 para 1.009,9 m³/s e o erro relativo do pico de 18,66% para
-13,54%, mantendo o atraso de -2 h. A versão anterior foi preservada em
-`event_E24_published_20260902/` e a tabela completa da busca em
-`E24_focused_search_results.csv`.
+E24 foi refinado em 03/09/2026 com uma busca fina de 324 combinações possíveis
+nos parâmetros de perda, concentração, armazenamento e recessão. Os primeiros
+69 candidatos válidos já produziram uma solução com pico na mesma hora da
+observação: NSE 0,8716, RMSE 1.046,3 m³/s e erro de pico de 10,82%. Essa é a
+versão principal do pacote porque, para resposta, a hora do pico é mais
+importante que maximizar isoladamente o NSE. Também foi registrada uma
+alternativa que reduz o erro do pico para 1,18%, mas com 1 h de diferença e
+RMSE 1.074,1 m³/s. A comparação está em
+`E24_timing_peak_tradeoffs.csv`; a versão anterior permanece em
+`event_E24_published_20260902/`.
 
 ## Eventos não fechados
 
@@ -61,7 +65,9 @@ apresentados como validação.
 ## Reprodução
 
 O script de busca é
-`scripts/calibrate_hec_hms_mucum_multi_event.py`. Os arquivos HEC-HMS
+`scripts/calibrate_hec_hms_mucum_multi_event.py` e o refinamento fino é
+reproduzível com `scripts/run_focused_mucum_search.py --event 24
+--profile timing_peak`. Os arquivos HEC-HMS
 selecionados estão em `event_E24/`, `event_E27/` e `event_E28/`; cada pasta
 também contém `metrics.csv` e `series.csv` com a conferência pareada. A série
 DSS compartilhada está em `mucum_target_multi_event.dss`.
