@@ -36,6 +36,8 @@ da configuração publicada e testes com a chuva da estação 86510000 e uma
 composição entre estações. Nenhuma alternativa superou o replay vigente; a
 lacuna oficial de chuva em 02/05/2024 está documentada em
 `E27_calibration_audit_20260903.md`.
+Também há uma versão navegável para o Pages em
+`E27_calibration_audit_20260903.html`.
 
 ## Eventos não fechados
 
