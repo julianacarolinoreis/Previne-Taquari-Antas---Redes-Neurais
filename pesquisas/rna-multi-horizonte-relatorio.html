@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang='pt-BR'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>Relatório RNA multi-horizonte (MIMO)</title>
+<style>
+body{font-family:Georgia,serif;line-height:1.5;margin:24px auto;max-width:960px;color:#1a1a1a}
+h1,h2{line-height:1.2}
+.good td:last-child{color:#0f6b4a;font-weight:700}
+.bad td:last-child{color:#a11919;font-weight:700}
+.neutral td:last-child{color:#6a5a00;font-weight:700}
+table{width:100%;border-collapse:collapse;margin:12px 0 24px;font-size:14px}
+th,td{border:1px solid #ccc;padding:6px 8px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+.meta{color:#555;font-size:13px}
+.box{background:#f7f7f2;border:1px solid #ddd;padding:12px 14px;margin:16px 0}
+ul{padding-left:20px}
+code{font-size:12px}
+</style>
+</head>
+<body>
+<h1>Relatório comparativo — RNA multi-horizonte (MIMO)</h1>
+<p class='meta'>Gerado em 2026-09-03T00:12:35+00:00 · Santa Tereza · modo pesquisa (não operacional)</p>
+
+<div class='box'>
+<strong>Pergunta:</strong> uma única rede prevendo 2h+4h (+8h) supera modelos Direct?<br>
+<strong>Comparação justa (arquitetura):</strong> Direct scratch vs MIMO — mesmo pipeline Python, mesmas amostras, split X do .mat.<br>
+<strong>Teto operacional:</strong> .mat MATLAB auditados (reprodução exata das previsões gravadas).
+</div>
+
+<h2>1. Amostras alinhadas</h2>
+<ul>
+<li>2h+4h: 2004 linhas — teste: 141</li>
+<li>2h+4h+8h: 35 linhas — teste: 4</li>
+<li>4h+8h: 39 linhas — teste: 8</li>
+</ul>
+
+<h2>2. Referência .mat (teste completo, não recorte)</h2>
+<ul>
+<li>2h: NASH 0,9962 · PERS 0,9688 · E95 10,4 cm</li>
+<li>4h: NASH 0,9926 · PERS 0,8782 · E95 58,8 cm</li>
+</ul>
+
+<h2>3. Experimento principal — 2h + 4h (15 inputs)</h2>
+<p>MIMO treinado: nh=40, seed=42.</p>
+<h3>Direct scratch (Python) vs MIMO — teste alinhado</h3>
+<table><thead><tr><th>Horizonte</th><th>NASH base</th><th>NASH MIMO</th><th>Δ NASH</th><th>PERS base</th><th>PERS MIMO</th><th>E95 base</th><th>E95 MIMO</th><th>Δ E95</th><th>Leitura</th></tr></thead><tbody>
+<tr class='good'><td>4h</td><td>0,6744</td><td>0,8646</td><td>0,1902</td><td>-0,0237</td><td>0,5742</td><td>109,1</td><td>61,6</td><td>-47,5</td><td>ganho</td></tr>
+<tr class='neutral'><td>2h</td><td>0,9549</td><td>0,9536</td><td>-0,0013</td><td>0,6109</td><td>0,5998</td><td>46,2</td><td>46,2</td><td>0,0</td><td>empate</td></tr>
+</tbody></table>
+<h3>.mat auditado vs MIMO — teste alinhado (teto)</h3>
+<table><thead><tr><th>Horizonte</th><th>NASH base</th><th>NASH MIMO</th><th>Δ NASH</th><th>PERS base</th><th>PERS MIMO</th><th>E95 base</th><th>E95 MIMO</th><th>Δ E95</th><th>Leitura</th></tr></thead><tbody>
+<tr class='bad'><td>2h</td><td>1,0000</td><td>0,9536</td><td>-0,0464</td><td>1,0000</td><td>0,5998</td><td>0,0</td><td>46,2</td><td>46,2</td><td>perda</td></tr>
+<tr class='bad'><td>4h</td><td>1,0000</td><td>0,8646</td><td>-0,1354</td><td>1,0000</td><td>0,5742</td><td>0,0</td><td>61,6</td><td>61,6</td><td>perda</td></tr>
+</tbody></table>
+
+<h2>4. Experimento 2h+4h+8h (31 inputs)</h2>
+<p>Amostra tripla pequena (n_teste=4). Leitura indicativa.</p>
+<h3>Direct scratch vs MIMO</h3>
+<table><thead><tr><th>Horizonte</th><th>NASH base</th><th>NASH MIMO</th><th>Δ NASH</th><th>PERS base</th><th>PERS MIMO</th><th>E95 base</th><th>E95 MIMO</th><th>Δ E95</th><th>Leitura</th></tr></thead><tbody>
+<tr class='neutral'><td>2h</td><td>0,9818</td><td>0,9804</td><td>-0,0014</td><td>0,0813</td><td>0,0120</td><td>14,3</td><td>12,3</td><td>-2,0</td><td>empate</td></tr>
+<tr class='neutral'><td>4h</td><td>0,9398</td><td>0,9398</td><td>-0,0000</td><td>0,1284</td><td>0,1284</td><td>29,9</td><td>29,9</td><td>0,0</td><td>empate</td></tr>
+<tr class='neutral'><td>8h</td><td>0,3006</td><td>0,3006</td><td>0,0000</td><td>-1,9785</td><td>-1,9785</td><td>79,8</td><td>79,8</td><td>0,0</td><td>empate</td></tr>
+</tbody></table>
+
+<h2>5. Coerência de trajetória (teste 2h+4h)</h2>
+<ul>
+<li>MIMO: taxa com 4h &lt; 2h = 0,660</li>
+<li>Direct .mat: 0,553</li>
+</ul>
+
+<h2>6. JSON auditável</h2>
+<p><a href='../assets/data/research_mimo_multihorizon_latest.json'>assets/data/research_mimo_multihorizon_latest.json</a></p>
+</body></html>
