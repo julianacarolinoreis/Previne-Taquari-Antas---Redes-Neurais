@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "assets" / "data" / "mucum_eventwise_replay_calibrated"
-EVENTS = ("E24", "E27", "E28")
+EVENTS = ("E19", "E22", "E24", "E26", "E27", "E28")
 HEC_EPOCH = datetime(1899, 12, 31)
 
 
@@ -30,10 +30,27 @@ def timestamp_label(value: str) -> str:
 
 
 def read_event(event_id: str, manifest_event: dict[str, object]) -> dict[str, object]:
-    event_dir = PACKAGE / f"event_{event_id}"
-    with (event_dir / "metrics.csv").open(encoding="utf-8", newline="") as handle:
+    if event_id == "E22":
+        event_dir = PACKAGE / "diagnostics" / "E22_partial"
+        metrics_path = event_dir / "focused_metrics_20260903.csv"
+        series_path = event_dir / "focused_series_20260903.csv"
+        metrics_href = "diagnostics/E22_partial/focused_metrics_20260903.csv"
+        series_href = "diagnostics/E22_partial/focused_series_20260903.csv"
+    elif manifest_event.get("status") == "not_promoted":
+        event_dir = PACKAGE / manifest_event["package_path"]
+        metrics_path = event_dir / "multi_event_metrics.csv"
+        series_path = event_dir / "multi_event_series.csv"
+        metrics_href = f"{manifest_event['package_path']}/multi_event_metrics.csv"
+        series_href = f"{manifest_event['package_path']}/multi_event_series.csv"
+    else:
+        event_dir = PACKAGE / manifest_event["package_path"]
+        metrics_path = event_dir / "metrics.csv"
+        series_path = event_dir / "series.csv"
+        metrics_href = f"{manifest_event['package_path']}/metrics.csv"
+        series_href = f"{manifest_event['package_path']}/series.csv"
+    with metrics_path.open(encoding="utf-8", newline="") as handle:
         metrics = next(csv.DictReader(handle))
-    with (event_dir / "series.csv").open(encoding="utf-8", newline="") as handle:
+    with series_path.open(encoding="utf-8", newline="") as handle:
         series = [
             [
                 timestamp_label(row["time_value"]),
@@ -45,6 +62,10 @@ def read_event(event_id: str, manifest_event: dict[str, object]) -> dict[str, ob
     return {
         "id": event_id,
         "period": manifest_event.get("period", ""),
+        "status": "fechado" if manifest_event.get("status") in {"calibrated_replay", "calibrated_replay_timing_priority"} else "diagnóstico",
+        "reason": manifest_event.get("reason", ""),
+        "metrics_href": metrics_href,
+        "series_href": series_href,
         "metrics": {
             key: number(metrics[key])
             for key in (
@@ -90,10 +111,10 @@ HTML = r'''<!doctype html>
 <p class="muted">Vazão observada e vazão simulada pelo HEC-HMS no posto de resposta <strong>86510000</strong>. Escolha um evento e explore a série — passe o dedo ou o mouse no gráfico; arraste para ampliar.</p>
 <div class="notice"><strong>Pesquisa, não operação.</strong> Este replay não é alerta, previsão ao vivo, ordem de evacuação, rota ou despacho.</div>
 <div class="toolbar"><div class="field"><label for="eventSelect">Evento histórico</label><select id="eventSelect"></select></div><div class="checks"><label class="check-label"><input id="showObserved" type="checkbox" checked> observado</label><label class="check-label"><input id="showSimulated" type="checkbox" checked> HEC-HMS</label></div><button class="button" id="resetZoom" type="button">Redefinir zoom</button></div>
-<div class="event-meta"><div><strong id="eventTitle">E24</strong><div class="small" id="eventPeriod"></div></div><span class="pill">série auditada · horas pareadas</span></div>
+<div class="event-meta"><div><strong id="eventTitle">E24</strong><div class="small" id="eventPeriod"></div></div><span class="pill" id="eventStatus">série auditada · horas pareadas</span></div>
 <div class="kpis" aria-label="Métricas do evento"><div class="kpi"><div class="label">Pico observado</div><div class="value" id="obsPeak">—</div><div class="unit">m³/s</div></div><div class="kpi"><div class="label">Pico HEC-HMS</div><div class="value" id="simPeak">—</div><div class="unit">m³/s</div></div><div class="kpi"><div class="label">Erro do pico</div><div class="value" id="peakError">—</div><div class="unit">diferença relativa</div></div><div class="kpi"><div class="label">Atraso do pico</div><div class="value" id="peakLag">—</div><div class="unit">HEC-HMS − observado</div></div><div class="kpi"><div class="label">NSE</div><div class="value" id="nse">—</div><div class="unit">ajuste da série</div></div><div class="kpi"><div class="label">Amostras</div><div class="value" id="pairs">—</div><div class="unit">horas pareadas</div></div></div>
 <section class="chart-panel" aria-labelledby="chartTitle"><div class="chart-head"><div><h2 id="chartTitle">E24 · observado × HEC-HMS</h2><div class="small" id="peakDates"></div></div><div class="legend"><span><i class="dot observed"></i>observado</span><span><i class="dot simulated"></i>HEC-HMS</span></div></div><div class="chart-wrap"><canvas id="chart" aria-label="Gráfico de vazão observada e simulada pelo HEC-HMS"></canvas><div class="tip" id="tip"></div></div><div class="chart-foot"><span id="rangeText"></span><span>Arraste horizontalmente para ampliar · duplo clique para voltar</span></div><div class="sr-only" id="srSummary" aria-live="polite"></div></section>
-<div class="below"><section class="info"><h2>Leitura rápida</h2><div class="metric-line"><span>O que comparar</span><b>forma, pico e horário</b></div><div class="metric-line"><span>Posto de resposta</span><b>86510000 · Muçum</b></div><div class="metric-line"><span>Área usada no modelo</span><b>16.000 km²</b></div><div class="metric-line"><span>Fonte da chuva</span><b>ANA 86472000</b></div></section><section class="info"><h2>Arquivos do HEC-HMS</h2><p><a id="metricsLink" href="event_E24/metrics.csv">Métricas do evento</a></p><p><a id="seriesLink" href="event_E24/series.csv">Série observada × simulada</a></p><p><a href="eventwise_manifest.json">Manifesto auditável</a> · <a href="E24_timing_peak_tradeoffs.csv">comparação E24</a></p><p style="margin-top:10px">O modelo é um replay histórico de pesquisa; lacunas não foram preenchidas e timestamps não foram deslocados artificialmente.</p></section></div>
+<div class="below"><section class="info"><h2>Leitura rápida</h2><div class="metric-line"><span>O que comparar</span><b>forma, pico e horário</b></div><div class="metric-line"><span>Posto de resposta</span><b>86510000 · Muçum</b></div><div class="metric-line"><span>Área usada no modelo</span><b>16.000 km²</b></div><div class="metric-line"><span>Fonte da chuva</span><b>ANA 86472000</b></div></section><section class="info"><h2>Arquivos do HEC-HMS</h2><p><a id="metricsLink" href="event_E24/metrics.csv">Métricas do evento</a></p><p><a id="seriesLink" href="event_E24/series.csv">Série observada × simulada</a></p><p><a href="eventwise_manifest.json">Manifesto auditável</a> · <a href="E24_timing_peak_tradeoffs.csv">comparação E24</a></p><p style="margin-top:10px">O modelo é um replay histórico de pesquisa. Os eventos diagnósticos permanecem visíveis, mas não foram promovidos; lacunas não foram preenchidas e timestamps não foram deslocados artificialmente.</p></section></div>
 </section></main>
 <script>
 const DATA = __DATA__;
@@ -106,7 +127,7 @@ function val(v,d=0){return Number.isFinite(Number(v))?Number(v):d}
 function metricText(){const m=current().metrics;return `Pico observado ${fmt1.format(m.observed_peak_m3s)} m³/s; HEC-HMS ${fmt1.format(m.simulated_peak_m3s)} m³/s; erro ${fmt1.format(m.peak_relative_error*100)}%; atraso ${m.peak_lag_hours>0?"+":""}${fmt1.format(m.peak_lag_hours)} h; NSE ${fmt1.format(m.nse)}.`}
 function setEvent(){state.event=$("eventSelect").value;state.start=0;state.end=current().series.length-1;render();}
 function populate(){for(const id of Object.keys(DATA.events)){const o=document.createElement("option");o.value=id;o.textContent=`${id} · ${DATA.events[id].period.split(" to ")[0]||"evento"}`;$("eventSelect").append(o)}$("eventSelect").value=state.event;$("eventSelect").addEventListener("change",setEvent);$("showObserved").addEventListener("change",draw);$("showSimulated").addEventListener("change",draw);$("resetZoom").addEventListener("click",()=>{state.start=0;state.end=current().series.length-1;draw()});state.end=current().series.length-1}
-function render(){const e=current(),m=e.metrics;$('eventTitle').textContent=e.id+' · '+(e.id==='E24'?'novembro de 2023':e.id==='E27'?'maio de 2024':'junho de 2024');$('eventPeriod').textContent=e.period;$('chartTitle').textContent=`${e.id} · observado × HEC-HMS`;$('obsPeak').textContent=fmt1.format(m.observed_peak_m3s);$('simPeak').textContent=fmt1.format(m.simulated_peak_m3s);$('peakError').textContent=fmt1.format(m.peak_relative_error*100)+'%';$('peakLag').textContent=(m.peak_lag_hours>0?'+':'')+fmt1.format(m.peak_lag_hours)+' h';$('nse').textContent=fmt1.format(m.nse);$('pairs').textContent=fmt0.format(m.pairs);$('metricsLink').href=`event_${e.id}/metrics.csv`;$('seriesLink').href=`event_${e.id}/series.csv`;$('peakDates').textContent=`Pico observado e HEC-HMS: ${peakDate(e,1)} · ${peakDate(e,2)}`;$('srSummary').textContent=metricText();draw()}
+function render(){const e=current(),m=e.metrics;$('eventTitle').textContent=e.id;$('eventPeriod').textContent=e.period;$('eventStatus').textContent=e.status==='fechado'?'replay fechado · horas pareadas':'diagnóstico · ainda não promovido';$('chartTitle').textContent=`${e.id} · observado × HEC-HMS`;$('obsPeak').textContent=fmt1.format(m.observed_peak_m3s);$('simPeak').textContent=fmt1.format(m.simulated_peak_m3s);$('peakError').textContent=fmt1.format(m.peak_relative_error*100)+'%';$('peakLag').textContent=(m.peak_lag_hours>0?'+':'')+fmt1.format(m.peak_lag_hours)+' h';$('nse').textContent=fmt1.format(m.nse);$('pairs').textContent=fmt0.format(m.pairs);$('metricsLink').href=e.metrics_href;$('seriesLink').href=e.series_href;$('peakDates').textContent=`Pico observado e HEC-HMS: ${peakDate(e,1)} · ${peakDate(e,2)}`;$('srSummary').textContent=metricText();draw()}
 function peakDate(e,col){let i=0;for(let j=1;j<e.series.length;j++)if(e.series[j][col]>e.series[i][col])i=j;return fmtDate.format(new Date(e.series[i][0]))}
 function bounds(){const s=current().series.slice(state.start,state.end+1);let ys=[];if($("showObserved").checked)ys=ys.concat(s.map(x=>x[1]));if($("showSimulated").checked)ys=ys.concat(s.map(x=>x[2]));if(!ys.length)ys=[0,1];let lo=Math.min(0,...ys),hi=Math.max(...ys);return {lo,hi:hi+(hi-lo)*.08||1}}
 function resize(){const r=canvas.getBoundingClientRect(),d=window.devicePixelRatio||1,w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}ctx.setTransform(d,0,0,d,0,0);draw()}
