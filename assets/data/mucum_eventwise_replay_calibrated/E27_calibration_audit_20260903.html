@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auditoria de calibração E27 · Muçum</title>
+  <style>
+    :root{--ink:#123047;--muted:#5e7480;--line:#d8e6e7;--panel:#fff;--bg:#f2f8f8;--accent:#0879c9;--warn:#a96712}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#eff9f8,#fffaf4);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+    main{max-width:1040px;margin:0 auto;padding:32px 20px 56px}header,.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 22px #12304712;padding:24px;margin-bottom:18px}h1{margin:0 0 6px;font-size:clamp(26px,4vw,42px);line-height:1.1}h2{margin:0 0 12px;font-size:21px}p{margin:10px 0;color:#27495a}.eyebrow{color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.08em}.meta{color:var(--muted);font-size:14px}.notice{border-left:5px solid var(--warn);background:#fff6e4;padding:12px 15px;border-radius:10px;color:#70480d}.table-wrap{overflow:auto}table{width:100%;min-width:760px;border-collapse:collapse;font-size:14px}th,td{text-align:left;border-bottom:1px solid var(--line);padding:11px 10px;vertical-align:top}th{background:#eef7f7;color:#315365}td.num,th.num{text-align:right;white-space:nowrap} .good{color:#087b6c;font-weight:800}.bad{color:#b3473e;font-weight:800}ul{padding-left:22px;color:#27495a}a{color:#056fb4;font-weight:700}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">PESQUISA · HEC-HMS 4.13 · MUÇUM</div>
+    <h1>Auditoria de calibração do E27</h1>
+    <div class="meta">Atualização: 03/09/2026 · evento de maio/2024</div>
+    <p>Esta página registra as buscas executadas para tentar reduzir o erro do E27, sem deslocar timestamps, interpolar vizinhos ou preencher chuva ausente com zero.</p>
+    <div class="notice"><strong>Escopo:</strong> replay histórico de pesquisa. Não é alerta, rota, ordem de evacuação, despacho ou capacidade de abrigo.</div>
+  </header>
+  <section class="panel">
+    <h2>Referência atualmente publicada</h2>
+    <p>O replay vigente usa a chuva horária da ANA 86472000 e compara com a vazão observada no posto-alvo ANA 86510000. O modelo é uma bacia agregada de 16.000 km²; não é uma delineação hidrológica completa derivada do MDT.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Fonte/configuração</th><th class="num">Horas</th><th class="num">NSE</th><th class="num">Pico simulado / observado</th><th class="num">Atraso</th><th class="num">Erro pico</th></tr></thead>
+      <tbody>
+        <tr><td>ANA 86472000 · configuração publicada</td><td class="num">245</td><td class="num good">0,7853</td><td class="num">13.498,8 / 14.525,2 m³/s</td><td class="num good">0 h</td><td class="num">7,066%</td></tr>
+        <tr><td>ANA 86472000 · refinamento local, 60 combinações</td><td class="num">245</td><td class="num">0,7853</td><td class="num">13.498,8 / 14.525,2 m³/s</td><td class="num">0 h</td><td class="num">7,066%</td></tr>
+        <tr><td>ANA 86510000 · melhor de 72 combinações</td><td class="num">73</td><td class="num">0,6541</td><td class="num">16.038,1 / 14.525,2 m³/s</td><td class="num bad">+4 h</td><td class="num bad">10,415%</td></tr>
+        <tr><td>Composta 86510000 + fallback 86472000 · 72 combinações</td><td class="num">245</td><td class="num">0,4464</td><td class="num">16.217,4 / 14.525,2 m³/s</td><td class="num bad">+1 h</td><td class="num bad">11,650%</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <section class="panel">
+    <h2>O que foi verificado</h2>
+    <ul>
+      <li>Foram testadas 60 combinações no entorno do E27 publicado, variando perda constante, tempo de concentração e armazenamento. Nenhuma superou o replay vigente.</li>
+      <li>A chuva direta da 86510000 foi consultada na fonte oficial da ANA. Há ausência em 02/05/2024 às 17:00, 17:15, 17:30 e 17:45; vazão e nível existem nesse intervalo.</li>
+      <li>Sem inventar chuva, a entrada direta termina antes da lacuna e fica com apenas 73 horas pareadas.</li>
+      <li>A composição com 86472000 atravessa a lacuna, mas piora o ajuste. Por isso permanece como sensibilidade, não como observação oficial.</li>
+      <li>Uma rodada antiga com a estação local 86472600 tinha apenas 37 horas pareadas e atraso de 9 horas, além de usar outro DSS e outra área; não é comparável.</li>
+    </ul>
+  </section>
+  <section class="panel">
+    <h2>Decisão científica</h2>
+    <p>O E27 permanece como replay calibrado de pesquisa, com chuva 86472000, NSE 0,7853, atraso zero e erro de pico 7,066%. Não foi aceito um candidato que melhorasse somente o pico sacrificando a curva completa, nem uma fonte incompleta ou um fallback tratado como observação.</p>
+    <p>O próximo avanço é obter uma série pluviométrica contínua e reconciliada para a bacia — ou usar um modelo distribuído com várias estações — e repetir a validação em eventos que não tenham sido usados para escolher os parâmetros.</p>
+    <p><a href="README.md">README do pacote</a> · <a href="eventwise_manifest.json">Manifesto auditável</a> · <a href="index.html">Visualizador HEC-HMS</a></p>
+  </section>
+</main>
+</body>
+</html>
