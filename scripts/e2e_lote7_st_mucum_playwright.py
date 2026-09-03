@@ -28,18 +28,20 @@ def main() -> None:
         page.screenshot(path=str(ARTIFACTS / "mesa_st_exposicao_v2.png"), full_page=False)
 
         page.goto(BASE + "/pesquisas/santa-tereza-rota-fuga-ruas.html", wait_until="networkidle")
-        page.wait_for_selector("#fieldChecksBox", timeout=8000)
-        results["st_rota_field"] = {"checks": page.locator("#fieldChecksBox .field-check").count() == 4}
         page.locator('summary:has-text("Registrar conferência local")').click()
+        page.wait_for_selector("#fieldChecksBox", state="visible", timeout=8000)
+        results["st_rota_field"] = {"checks": page.locator("#fieldChecksBox .field-check").count() == 4}
         page.wait_for_timeout(400)
         page.screenshot(path=str(ARTIFACTS / "st_rota_field_checks.png"), full_page=False)
 
         page.goto(BASE + "/mucum_previsao_inundacao.html", wait_until="networkidle")
-        page.wait_for_timeout(2000)
+        page.wait_for_function(
+            "() => { const t = document.querySelector('.leaflet-control-layers-overlays'); return t && t.textContent.includes('Exposição v2'); }",
+            timeout=10000,
+        )
         has_overlay = page.evaluate(
             """() => !!(window.PREVINE_EXPOSICAO_OVERLAY && document.querySelector('.leaflet-control-layers'))"""
         )
-        # open layers control and look for exposição label
         page.locator(".leaflet-control-layers").hover()
         page.wait_for_timeout(500)
         layers_text = page.locator(".leaflet-control-layers").inner_text()
@@ -50,7 +52,10 @@ def main() -> None:
         page.screenshot(path=str(ARTIFACTS / "mucum_previsao_exposicao_overlay.png"), full_page=False)
 
         page.goto(BASE + "/santa_tereza_previsao_inundacao.html", wait_until="networkidle")
-        page.wait_for_timeout(2000)
+        page.wait_for_function(
+            "() => { const t = document.querySelector('.leaflet-control-layers-overlays'); return t && t.textContent.includes('Exposição v2'); }",
+            timeout=10000,
+        )
         page.locator(".leaflet-control-layers").hover()
         page.wait_for_timeout(500)
         st_layers = page.locator(".leaflet-control-layers").inner_text()
