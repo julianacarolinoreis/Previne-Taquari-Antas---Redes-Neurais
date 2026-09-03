@@ -39,7 +39,7 @@ def render_table(summary, title=""):
     for row in rows:
         v = verdict(row["delta_nash"], row["delta_e95_cm"])
         cls = {"ganho": "good", "perda": "bad", "empate": "neutral"}[v]
-        base = row.get("direct") or row.get("base") or {}
+        base = row.get("direct") or {}
         mimo = row["mimo"]
         html.append(
             f"<tr class='{cls}'><td>{row['horizonte']}</td>"
@@ -56,8 +56,24 @@ def main():
     data = json.loads(JSON_IN.read_text(encoding="utf-8"))
     exp1 = data["experiments"]["exp1_2h4h_15in"]
     exp3 = data["experiments"]["exp3_2h4h8h_31in"]
+    loo = data["experiments"]["exp5_leave_one_event_out_2h4h"]
     ds = data["datasets"]
     ref = data["mat_reference_metrics_teste"]
+    cons = data["trajectory_consistency"]
+    repair_summary = exp1.get("summary_scratch_vs_mimo_repair") or {"ganhos": [], "empates": [], "perdas": []}
+    repair_cons = cons.get("mimo_15in_repair_2h4h") or {}
+
+    loo_rows = ""
+    if loo.get("status") == "ok":
+        for hz, payload in loo.get("pooled", {}).items():
+            wins = loo.get("wins_by_event", {}).get(hz, {})
+            loo_rows += (
+                f"<tr><td>{hz}</td><td>{fmt(payload['direct_scratch']['nash'])}</td>"
+                f"<td>{fmt(payload['mimo']['nash'])}</td><td>{fmt(payload['delta_nash'])}</td>"
+                f"<td>{fmt(payload['delta_e95_cm'],1)}</td>"
+                f"<td>{wins.get('mimo',0)} / {wins.get('direct',0)} / {wins.get('tie',0)}</td>"
+                f"<td>{payload['n']}</td></tr>"
+            )
 
     html = f"""<!doctype html>
 <html lang='pt-BR'>
@@ -66,7 +82,7 @@ def main():
 <meta name='viewport' content='width=device-width, initial-scale=1'>
 <title>Relatório RNA multi-horizonte (MIMO)</title>
 <style>
-body{{font-family:Georgia,serif;line-height:1.5;margin:24px auto;max-width:960px;color:#1a1a1a}}
+body{{font-family:Georgia,serif;line-height:1.5;margin:24px auto;max-width:980px;color:#1a1a1a}}
 h1,h2{{line-height:1.2}}
 .good td:last-child{{color:#0f6b4a;font-weight:700}}
 .bad td:last-child{{color:#a11919;font-weight:700}}
@@ -77,48 +93,55 @@ th:first-child,td:first-child{{text-align:left}}
 .meta{{color:#555;font-size:13px}}
 .box{{background:#f7f7f2;border:1px solid #ddd;padding:12px 14px;margin:16px 0}}
 ul{{padding-left:20px}}
-code{{font-size:12px}}
 </style>
 </head>
 <body>
 <h1>Relatório comparativo — RNA multi-horizonte (MIMO)</h1>
-<p class='meta'>Gerado em {data['generated_at_utc']} · Santa Tereza · modo pesquisa (não operacional)</p>
+<p class='meta'>Gerado em {data['generated_at_utc']} · Santa Tereza · modo pesquisa (não operacional) · schema v{data.get('schema_version')}</p>
 
 <div class='box'>
 <strong>Pergunta:</strong> uma única rede prevendo 2h+4h (+8h) supera modelos Direct?<br>
-<strong>Comparação justa (arquitetura):</strong> Direct scratch vs MIMO — mesmo pipeline Python, mesmas amostras, split X do .mat.<br>
-<strong>Teto operacional:</strong> .mat MATLAB auditados (reprodução exata das previsões gravadas).
+<strong>Comparação justa:</strong> Direct scratch vs MIMO — mesmo pipeline Python.<br>
+<strong>Teto operacional:</strong> .mat MATLAB auditados.<br>
+<strong>Extra:</strong> leave-one-event-out, loss de trajetória e correção pós-hoc em subidas.
 </div>
 
 <h2>1. Amostras alinhadas</h2>
 <ul>
-<li>2h+4h: {ds['2h_4h_aligned']['n_rows']} linhas — teste: {ds['2h_4h_aligned']['split_counts'].get('3', '—')}</li>
-<li>2h+4h+8h: {ds['2h_4h_8h_aligned']['n_rows']} linhas — teste: {ds['2h_4h_8h_aligned']['split_counts'].get('3', '—')}</li>
-<li>4h+8h: {ds['4h_8h_aligned']['n_rows']} linhas — teste: {ds['4h_8h_aligned']['split_counts'].get('3', '—')}</li>
+<li>2h+4h: {ds['2h_4h_aligned']['n_rows']} linhas · teste {ds['2h_4h_aligned']['split_counts'].get('3')} · eventos {ds['2h_4h_aligned'].get('n_events','—')}</li>
+<li>2h+4h+8h: {ds['2h_4h_8h_aligned']['n_rows']} linhas · teste {ds['2h_4h_8h_aligned']['split_counts'].get('3')}</li>
 </ul>
 
-<h2>2. Referência .mat (teste completo, não recorte)</h2>
+<h2>2. Referência .mat (teste completo)</h2>
 <ul>
 <li>2h: NASH {fmt(ref['2h']['nash'])} · PERS {fmt(ref['2h']['pers'])} · E95 {fmt(ref['2h']['e95'],1)} cm</li>
 <li>4h: NASH {fmt(ref['4h']['nash'])} · PERS {fmt(ref['4h']['pers'])} · E95 {fmt(ref['4h']['e95'],1)} cm</li>
 </ul>
 
 <h2>3. Experimento principal — 2h + 4h (15 inputs)</h2>
-<p>MIMO treinado: nh={exp1['mimo']['training']['hidden']}, seed={exp1['mimo']['training']['seed']}.</p>
-{render_table(exp1['summary_scratch_vs_mimo'], 'Direct scratch (Python) vs MIMO — teste alinhado')}
-{render_table(exp1['summary_mat_vs_mimo'], '.mat auditado vs MIMO — teste alinhado (teto)')}
+<p>MIMO base: nh={exp1['mimo']['training']['hidden']}, seed={exp1['mimo']['training']['seed']}.</p>
+{render_table(exp1['summary_scratch_vs_mimo'], 'Direct scratch vs MIMO base')}
+{render_table(repair_summary, 'Direct scratch vs MIMO + correção pós-hoc')}
+{render_table(exp1['summary_mat_vs_mimo'], '.mat auditado vs MIMO (teto)')}
 
-<h2>4. Experimento 2h+4h+8h (31 inputs)</h2>
-<p>Amostra tripla pequena (n_teste={ds['2h_4h_8h_aligned']['split_counts'].get('3')}). Leitura indicativa.</p>
+<h2>4. Leave-one-event-out</h2>
+<p>Status: {loo.get('status')} · eventos avaliados: {loo.get('n_events_evaluated')}</p>
+<table><thead><tr><th>Horizonte</th><th>NASH Direct</th><th>NASH MIMO</th><th>Δ NASH</th><th>Δ E95</th><th>Vitórias MIMO/Direct/empate</th><th>n</th></tr></thead>
+<tbody>{loo_rows or '<tr><td colspan="7">LOO indisponível</td></tr>'}</tbody></table>
+
+<h2>5. Coerência de trajetória no teste</h2>
+<ul>
+<li>MIMO base — violação em subidas: {fmt(cons['mimo_15in_2h4h'].get('rising_violation_rate'), 3)} ({cons['mimo_15in_2h4h'].get('n_rising_violations')}/{cons['mimo_15in_2h4h'].get('n_rising')})</li>
+<li>MIMO repair — violação em subidas: {fmt(repair_cons.get('rising_violation_rate'), 3)}</li>
+<li>Direct .mat — violação em subidas: {fmt(cons['direct_2h4h'].get('rising_violation_rate'), 3)}</li>
+</ul>
+<p>{data['method'].get('note_mono_loss','')}</p>
+
+<h2>6. Experimento 2h+4h+8h</h2>
+<p>Amostra pequena (n_teste={ds['2h_4h_8h_aligned']['split_counts'].get('3')}).</p>
 {render_table(exp3['summary_scratch_vs_mimo'], 'Direct scratch vs MIMO')}
 
-<h2>5. Coerência de trajetória (teste 2h+4h)</h2>
-<ul>
-<li>MIMO: taxa com 4h &lt; 2h = {fmt(data['trajectory_consistency']['mimo_15in_2h4h'].get('inconsistent_4h_below_2h_rate'), 3)}</li>
-<li>Direct .mat: {fmt(data['trajectory_consistency']['direct_2h4h'].get('inconsistent_4h_below_2h_rate'), 3)}</li>
-</ul>
-
-<h2>6. JSON auditável</h2>
+<h2>7. JSON auditável</h2>
 <p><a href='../assets/data/research_mimo_multihorizon_latest.json'>assets/data/research_mimo_multihorizon_latest.json</a></p>
 </body></html>"""
     HTML_OUT.write_text(html, encoding="utf-8")

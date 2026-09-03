@@ -53,11 +53,18 @@ class TestExperimentArtifact(unittest.TestCase):
         self.assertIn("summary_scratch_vs_mimo", exp)
         self.assertIn("direct_mat", exp)
         self.assertIn("mimo", exp)
+        self.assertIn("exp5_leave_one_event_out_2h4h", self.data["experiments"])
+        loo = self.data["experiments"]["exp5_leave_one_event_out_2h4h"]
+        self.assertEqual(loo.get("status"), "ok")
+        self.assertGreaterEqual(loo.get("n_events_evaluated", 0), 5)
 
     def test_test_split_present(self):
         exp = self.data["experiments"]["exp1_2h4h_15in"]
         self.assertIn("2h", exp["direct_mat"]["splits"]["teste"])
         self.assertIn("4h", exp["mimo"]["splits"]["teste"])
+        # MIMO scratch comparison should show gain or at least valid metrics on 4h
+        mimo4 = exp["mimo"]["splits"]["teste"]["4h"]
+        self.assertGreater(mimo4["nash"], 0.7)
 
 
 if __name__ == "__main__":

@@ -19,11 +19,15 @@ ROOT = Path(__file__).resolve().parents[2]
 MODELS = {
     "2h": {
         "mat": ROOT / "previne/assets/mat/009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.mat",
+        "workbook": ROOT / "assets/audit_workbooks/2H_ALT__009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.xlsx",
+        "sheet": "VAR",
         "horizon_h": 2,
         "n_inputs": 15,
     },
     "4h": {
         "mat": ROOT / "assets/mat/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.mat",
+        "workbook": ROOT / "assets/audit_workbooks/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.xlsx",
+        "sheet": "DADOS",
         "horizon_h": 4,
         "n_inputs": 26,
     },
@@ -62,6 +66,7 @@ class HorizonDataset:
     delta: np.ndarray
     split: np.ndarray
     mat_path: Path
+    events: np.ndarray | None = None
 
     @property
     def n_samples(self) -> int:
@@ -70,6 +75,31 @@ class HorizonDataset:
     @property
     def n_inputs(self) -> int:
         return int(self.inputs.shape[1])
+
+
+def load_event_ids(name: str, n_samples: int) -> np.ndarray | None:
+    cfg = MODELS[name]
+    workbook = cfg.get("workbook")
+    if not workbook or not Path(workbook).exists():
+        return None
+    import openpyxl
+
+    wb = openpyxl.load_workbook(workbook, read_only=True, data_only=True)
+    sheet_name = cfg.get("sheet")
+    ws = wb[sheet_name] if sheet_name in wb.sheetnames else wb[wb.sheetnames[0]]
+    rows = list(ws.iter_rows(values_only=True))
+    hdr = [str(h or "").strip() for h in rows[0]]
+    ix = {h: i for i, h in enumerate(hdr)}
+    if "EVENTO" not in ix:
+        return None
+    events = []
+    for row in rows[1:]:
+        if not row or row[ix["EVENTO"]] is None:
+            continue
+        events.append(int(float(row[ix["EVENTO"]])))
+    if len(events) != n_samples:
+        return None
+    return np.asarray(events, dtype=int)
 
 
 def load_horizon_dataset(name: str) -> HorizonDataset:
@@ -92,6 +122,7 @@ def load_horizon_dataset(name: str) -> HorizonDataset:
         delta = target_abs - atual
     if inputs.shape[0] != split.size:
         raise ValueError(f"{name}: split size {split.size} != samples {inputs.shape[0]}")
+    events = load_event_ids(name, inputs.shape[0])
     return HorizonDataset(
         name=name,
         horizon_h=int(cfg["horizon_h"]),
@@ -101,6 +132,7 @@ def load_horizon_dataset(name: str) -> HorizonDataset:
         delta=delta,
         split=split,
         mat_path=path,
+        events=events,
     )
 
 
@@ -127,7 +159,13 @@ def align_horizons(names: Iterable[str]) -> dict:
     for key in sorted(common_keys):
         indices = tuple(maps[key][0] for maps in index_maps)
         split = datasets[0].split[indices[0]]
-        rows.append({"key": key, "indices": indices, "split": int(split)})
+        event = None
+        if datasets[0].events is not None:
+            event = int(datasets[0].events[indices[0]])
+            # prefer agreement with 4h event id when available
+            if len(datasets) > 1 and datasets[1].events is not None:
+                event = int(datasets[1].events[indices[1]])
+        rows.append({"key": key, "indices": indices, "split": int(split), "event": event})
     return {"datasets": datasets, "rows": rows}
 
 
@@ -246,12 +284,19 @@ class MimoMLP:
         lr: float = 0.01,
         patience: int = 30,
         seed: int = 42,
+        horizon_weights: np.ndarray | None = None,
+        trajectory_weight: float = 0.0,
+        rising_mono_weight: float = 0.0,
     ) -> dict:
         rng = np.random.default_rng(seed)
         self.x_mean = x_train.mean(axis=0)
         self.x_std = np.clip(x_train.std(axis=0), 1e-6, None)
         self.y_mean = y_train.mean(axis=0)
         self.y_std = np.clip(y_train.std(axis=0), 1e-6, None)
+        if horizon_weights is None:
+            horizon_weights = np.ones(self.n_outputs, dtype=float)
+        else:
+            horizon_weights = np.asarray(horizon_weights, float)
 
         best_state = None
         best_val = float("inf")
@@ -265,10 +310,21 @@ class MimoMLP:
                 idx = order[start : start + batch_size]
                 xb = x_train[idx]
                 yb = y_train[idx]
-                self._train_batch(xb, yb, lr)
+                self._train_batch(
+                    xb,
+                    yb,
+                    lr,
+                    horizon_weights=horizon_weights,
+                    trajectory_weight=trajectory_weight,
+                    rising_mono_weight=rising_mono_weight,
+                )
 
             val_pred = self.forward_delta(x_val)
-            val_loss = float(np.mean((val_pred - y_val) ** 2))
+            val_loss = float(np.mean(horizon_weights * (val_pred - y_val) ** 2))
+            if trajectory_weight > 0 and self.n_outputs >= 2:
+                true_shape = y_val[:, 1] - y_val[:, 0]
+                pred_shape = val_pred[:, 1] - val_pred[:, 0]
+                val_loss += trajectory_weight * float(np.mean((pred_shape - true_shape) ** 2))
             history.append(val_loss)
             if val_loss + 1e-6 < best_val:
                 best_val = val_loss
@@ -299,9 +355,25 @@ class MimoMLP:
                 self.y_mean,
                 self.y_std,
             ) = best_state
-        return {"epochs": len(history), "best_val_mse": best_val, "history_tail": history[-5:]}
+        return {
+            "epochs": len(history),
+            "best_val_mse": best_val,
+            "history_tail": history[-5:],
+            "trajectory_weight": trajectory_weight,
+            "rising_mono_weight": rising_mono_weight,
+            "horizon_weights": horizon_weights.tolist(),
+        }
 
-    def _train_batch(self, xb: np.ndarray, yb: np.ndarray, lr: float) -> None:
+    def _train_batch(
+        self,
+        xb: np.ndarray,
+        yb: np.ndarray,
+        lr: float,
+        *,
+        horizon_weights: np.ndarray,
+        trajectory_weight: float,
+        rising_mono_weight: float,
+    ) -> None:
         xn = self._norm_x(xb)
         pn = xn
         zh = pn @ self.wh.T + self.bh
@@ -310,7 +382,27 @@ class MimoMLP:
         y_hat_n = logsig(zo)
         y_hat = y_hat_n * self.y_std + self.y_mean
         err = y_hat - yb
-        loss_grad_y = 2.0 * err / xb.shape[0]
+        loss_grad_y = 2.0 * horizon_weights * err / xb.shape[0]
+
+        if self.n_outputs >= 2 and trajectory_weight > 0:
+            true_shape = yb[:, 1] - yb[:, 0]
+            pred_shape = y_hat[:, 1] - y_hat[:, 0]
+            shape_err = pred_shape - true_shape
+            # d(loss)/d(y0) = -2 * shape_err / n; d(loss)/d(y1) = +2 * shape_err / n
+            g = 2.0 * trajectory_weight * shape_err / xb.shape[0]
+            loss_grad_y[:, 0] -= g
+            loss_grad_y[:, 1] += g
+
+        if self.n_outputs >= 2 and rising_mono_weight > 0:
+            # When true trajectory is rising, penalize pred4 < pred2.
+            rising = (yb[:, 1] - yb[:, 0]) > 0
+            violation = np.maximum(0.0, y_hat[:, 0] - y_hat[:, 1])
+            # d ReLU(y0-y1)/dy0 = 1 if violation>0 else 0; /dy1 = -1
+            active = rising & (violation > 0)
+            if np.any(active):
+                g = rising_mono_weight / xb.shape[0]
+                loss_grad_y[active, 0] += g
+                loss_grad_y[active, 1] -= g
 
         dyhat_dyn = self.y_std
         dyn_dzo = y_hat_n * (1.0 - y_hat_n)
@@ -327,6 +419,18 @@ class MimoMLP:
         self.bs -= lr * dbs
         self.wh -= lr * dwh
         self.bh -= lr * dbh
+
+
+def rising_inconsistency_rate(y_true_abs: np.ndarray, y_pred_abs: np.ndarray) -> dict:
+    """Fraction of rising cases where predicted 4h level < predicted 2h level."""
+    if y_true_abs.ndim != 2 or y_true_abs.shape[1] < 2:
+        return {"rate": None, "n_rising": 0, "n_violations": 0}
+    rising = y_true_abs[:, 1] > y_true_abs[:, 0]
+    n_rising = int(np.sum(rising))
+    if n_rising == 0:
+        return {"rate": None, "n_rising": 0, "n_violations": 0}
+    viol = np.sum(rising & (y_pred_abs[:, 1] < y_pred_abs[:, 0]))
+    return {"rate": float(viol / n_rising), "n_rising": n_rising, "n_violations": int(viol)}
 
 
 def evaluate_strategy(
