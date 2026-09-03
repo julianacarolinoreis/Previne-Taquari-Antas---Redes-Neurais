@@ -206,6 +206,24 @@
     return { done: done, total: CHECKLIST_ITEMS.length, pct: Math.round(100 * done / CHECKLIST_ITEMS.length) };
   }
 
+  /** Modo campo → checklist operacional (OR; não desmarca itens da mesa). */
+  function syncFieldChecklist(placeKey, fieldState) {
+    var prefix = placeKey + '_';
+    var patch = {};
+    if (fieldState[prefix + 'water_ok']) { patch.forecast = true; patch.spatial = true; }
+    if (fieldState[prefix + 'route_ok'] && fieldState[prefix + 'bridge_ok']) patch.routes = true;
+    if (fieldState[prefix + 'shelter_ok']) patch.shelter = true;
+    if (fieldState[prefix + 'pcd_ok']) patch.people = true;
+    if (fieldState[prefix + 'comms_ok'] || fieldState[prefix + 'radio_ok']) patch.comms = true;
+    if (fieldState[prefix + 'night_ok'] || fieldState[prefix + 'lead_ok']) patch.resources = true;
+    var mesaKey = placeKey === 'mucum' ? MUC_MESA_KEY : ST_MESA_KEY;
+    var existing = readMesaValidationFrom(mesaKey) || {};
+    CHECKLIST_ITEMS.forEach(function (item) {
+      if (patch[item.id]) existing[item.id] = true;
+    });
+    syncMesaValidation(mesaKey, existing);
+  }
+
   function clearChecklist() {
     try { localStorage.removeItem(CHECKLIST_KEY); } catch (e) { /* ignore */ }
     [ST_MESA_KEY, MUC_MESA_KEY].forEach(function (key) {
@@ -495,6 +513,7 @@
     loadChecklist: loadChecklist,
     saveChecklist: saveChecklist,
     syncMesaValidation: syncMesaValidation,
+    syncFieldChecklist: syncFieldChecklist,
     mesaChecklistProgress: mesaChecklistProgress,
     readMesaValidationFrom: readMesaValidationFrom,
     clearChecklist: clearChecklist,

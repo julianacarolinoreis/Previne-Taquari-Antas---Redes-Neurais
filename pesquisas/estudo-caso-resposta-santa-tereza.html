@@ -818,6 +818,12 @@
             <div><b id="munPcd">128</b><span>PcD · 2 anos+</span></div>
           </div>
         </section>
+
+        <section class="panel" aria-labelledby="abrigo-export-title">
+          <div class="kicker">Registro exportável</div>
+          <h3 id="abrigo-export-title">Capacidade abrigo · mesma folha do briefing</h3>
+          <div id="abrigo-capacidade-mount"></div>
+        </section>
       </aside>
 
       <section class="map-column" aria-label="Mapa e acompanhamento do evento">
@@ -942,7 +948,7 @@
             </details>
             <details class="contingency-panel">
               <summary>Se o plano falhar</summary>
-              <div class="field"><label for="contingencySelect">situação para ensaiar</label><select id="contingencySelect"><option value="route">rota principal fechada</option><option value="shelter">abrigo lotado</option><option value="comms">sem comunicação</option><option value="night">noite / baixa visibilidade</option></select></div>
+              <div class="field"><label for="contingencySelect">situação para ensaiar</label><select id="contingencySelect"><option value="route">rota principal fechada</option><option value="shelter">abrigo lotado</option><option value="comms">sem comunicação</option><option value="night">noite / baixa visibilidade</option><option value="combo">combo · noite + ponte + abrigo lotado</option></select></div>
               <p id="contingencyText">Acionar reconhecimento, bloquear a orientação a pé e mudar para o plano alternativo validado.</p>
               <button id="contingencyApply" class="secondary-button" type="button">Aplicar cenário ao exercício</button>
               <div class="field"><label for="contingencyOutcome">resultado observado · após aplicar</label><input id="contingencyOutcome" type="text" placeholder="o que resolveu ou travou?" /></div>
@@ -1341,7 +1347,7 @@
       const overflowComplete=overflowReady(snapshot);
       const demand=people.toShelter;
       const destinationReady=snapshot.valid && Number.isInteger(demand) && (snapshot.available>=demand || (overflowComplete && snapshot.available+snapshot.overflowCapacity>=demand));
-      const shelterContingency=state.contingencyActive && state.contingencyActive.zoneId===zone.id && state.contingencyActive.value==="shelter";
+      const shelterContingency=contingencyIs("shelter");
       return !!(spatial.reconciled && destinationReady && !shelterContingency && el("shelterVerified").checked && el("shelterAccessible").checked && (el("shelterVerifier").value||"").trim() && (el("shelterEvidence").value||"").trim());
     }
 
@@ -1400,7 +1406,7 @@
         if(!el("shelterVerified").checked || !el("shelterAccessible").checked) missing.push("abrigo/acessibilidade");
         if(!(el("shelterVerifier").value||"").trim() || !(el("shelterEvidence").value||"").trim()) missing.push("responsável/evidência do abrigo");
       }
-      if(contingency==="shelter"){
+      if(contingencyIs("shelter")){
         if(!overflowDetailsReady(snapshot)) missing.push("destino alternativo ao abrigo");
         if(!snapshot.overflowPlanConfirmed) missing.push("plano alternativo e transporte confirmados");
         const demand=peopleRecord(zone).toShelter;
@@ -1457,11 +1463,11 @@
     }
 
     function routePlan(zone){
-      const contingency=state.contingencyActive && state.contingencyActive.zoneId===zone.id ? state.contingencyActive.value : null;
+      const contingency=getActiveContingencyForZone(zone) ? getActiveContingencyForZone(zone).value : null;
       const direct=haversine(zone,SERVICE.shelter);
       const safeDistance=direct*1.36;
       const shortDistance=direct*1.08;
-      const nightPenalty=contingency==="night" ? 20 : 0;
+      const nightPenalty=contingencyIsForZone(zone,"night") ? 20 : 0;
       const safeWalk=safeDistance/54+nightPenalty;
       const shortWalk=shortDistance/54+nightPenalty;
       const remaining=Math.max(0,zone.arrival-elapsedMinutes());
@@ -1470,7 +1476,7 @@
       return {
         direct:direct,safeDistance:safeDistance,shortDistance:shortDistance,
         safeWalk:safeWalk,shortWalk:shortWalk,safeMargin:safeMargin,shortMargin:shortMargin,
-        remaining:remaining,blocked:zone.arrival<=elapsedMinutes() || contingency==="route",contingency:contingency,method:"distância geométrica + fatores didáticos; sem vias/declividade/bloqueios"
+        remaining:remaining,blocked:zone.arrival<=elapsedMinutes() || contingencyIsForZone(zone,"route"),contingency:contingency,routeBlocked:contingencyIsForZone(zone,"route"),method:"distância geométrica + fatores didáticos; sem vias/declividade/bloqueios"
       };
     }
 
@@ -1489,7 +1495,7 @@
       const plan=routePlan(zone);
       const waterCrossed=zone.arrival<=elapsedMinutes();
       if(waterCrossed) return {label:"resgate",tone:"danger"};
-      if(plan.contingency==="route") return {label:"replanejar",tone:"warning"};
+      if(plan.routeBlocked) return {label:"replanejar",tone:"warning"};
       if(plan.safeMargin<=0) return {label:"resgate",tone:"danger"};
       if(zone.arrival-elapsedMinutes()<=120 || plan.safeMargin<30) return {label:"priorizar confirmação",tone:"warning"};
       return {label:"preparar / monitorar",tone:"ready"};
@@ -1600,7 +1606,7 @@
       maybeMarkRouteConfirmation();
       const gate=safetyGate(), shelter=shelterSnapshot();
       const spatialCoverage=elapsedMinutes()<=SPATIAL_COVERAGE_MINUTES;
-      const waterCrossed=zone.arrival<=elapsedMinutes(), routeClosed=plan.contingency==="route";
+      const waterCrossed=zone.arrival<=elapsedMinutes(), routeClosed=plan.routeBlocked;
       const panel=el("decisionPanel");
       panel.className="panel decision-panel tone-"+zs.tone;
       const remaining=zone.arrival-elapsedMinutes();
@@ -1784,7 +1790,7 @@
 
     function renderShelter(){
       const snapshot=shelterSnapshot(), capacity=snapshot.capacity, occupied=snapshot.occupied, available=snapshot.available;
-      const zone=getZone(), people=peopleRecord(zone), demand=people.toShelter, shelterContingency=state.contingencyActive && state.contingencyActive.zoneId===zone.id && state.contingencyActive.value==="shelter";
+      const zone=getZone(), people=peopleRecord(zone), demand=people.toShelter, shelterContingency=contingencyIs("shelter");
       const spatial=shelterSpatialStatus();
       const ready=shelterReady(), visible=ready && available!==null ? available : null;
       const deficit=snapshot.valid && available!==null && demand!==null ? demand-available : null;
@@ -1903,7 +1909,7 @@
       routes.push('<polyline points="'+polylinePoints(safeRoute,box)+'" class="route-halo"></polyline>');
       routes.push('<polyline points="'+polylinePoints(safeRoute,box)+'" class="'+safeClass+'" marker-end="url(#routeArrowA)"></polyline>');
       const safeMid=project(safeRoute[1],box);
-      const safeRouteLabel=!shelterSpatialStatus().reconciled ? "destino pendente" : (plan.contingency==="route" ? "rota fechada" : (zone.arrival<=elapsedMinutes() ? "janela cruzada" : "não confirmado"));
+      const safeRouteLabel=!shelterSpatialStatus().reconciled ? "destino pendente" : (plan.routeBlocked ? "rota fechada" : (zone.arrival<=elapsedMinutes() ? "janela cruzada" : "não confirmado"));
       const safeLabelX=Math.min(box.w-190,Math.max(box.pad+15,safeMid.x-18)), safeLabelY=Math.max(box.pad+60,safeMid.y-22);
       routes.push('<g class="route-label-group"><rect x="'+safeLabelX.toFixed(1)+'" y="'+(safeLabelY-16).toFixed(1)+'" width="176" height="31" rx="7"></rect><text x="'+(safeLabelX+10).toFixed(1)+'" y="'+(safeLabelY-3).toFixed(1)+'" class="route-label">A · '+safeRouteLabel+'</text><text x="'+(safeLabelX+10).toFixed(1)+'" y="'+(safeLabelY+9).toFixed(1)+'" class="route-label-sub">'+fmtKm(plan.safeDistance)+' · hipótese</text></g>');
       if(state.showAlternative){
@@ -2017,7 +2023,7 @@
     function renderOps(){
       const zone=getZone(), plan=routePlan(zone), zs=zoneState(zone), gate=safetyGate();
       const mission=missionRecord(zone), confirmation=confirmationRecord(zone);
-      const waterCrossed=zone.arrival<=elapsedMinutes(), routeClosed=plan.contingency==="route";
+      const waterCrossed=zone.arrival<=elapsedMinutes(), routeClosed=plan.routeBlocked;
       const spatial=shelterSpatialStatus();
       const fireText=hasAction("dispatch") ? "TAREFA LOCAL" : (waterCrossed ? "PRIORIDADE NO EXERCÍCIO" : (routeClosed ? "REPLANEJAR ROTA" : "aguardando"));
       const fireClass=hasAction("dispatch") ? "active" : (waterCrossed || routeClosed ? "priority":"");
@@ -2034,6 +2040,22 @@
       el("logList").innerHTML=state.log.map(function(item){return '<div class="log-row"><time>'+escapeHtml(item.time)+'</time><span>'+escapeHtml(item.text)+'</span></div>';}).join("");
     }
 
+    function getActiveContingencyForZone(zone){
+      return state.contingencyActive && state.contingencyActive.zoneId===zone.id ? state.contingencyActive : null;
+    }
+    function contingencyIsForZone(zone, flag){
+      const active=getActiveContingencyForZone(zone);
+      if(!active) return false;
+      if(active.value==="combo") return flag==="route"||flag==="shelter"||flag==="night";
+      return active.value===flag;
+    }
+    function getActiveContingency(){
+      return getActiveContingencyForZone(getZone());
+    }
+    function contingencyIs(flag){
+      return contingencyIsForZone(getZone(), flag);
+    }
+
     function renderContingency(){
       const value=el("contingencySelect").value, zone=getZone(), shelter=shelterSnapshot();
       const outcome=el("contingencyOutcome");
@@ -2043,7 +2065,8 @@
         route:"Bloquear a orientação pelo corredor A, registrar uma tarefa de verificação e só retomar após um corredor alternativo ser confirmado.",
         shelter:"Parar de indicar o abrigo principal, registrar a necessidade de transbordo ("+overflow+") e escalonar transporte.",
         comms:"Usar rádio, telefone, ponto de encontro e liderança local; registrar a mensagem para sincronizar depois.",
-        night:"Reduzir a circulação, confirmar iluminação e equipe, priorizar transporte assistido e revisar cada travessia."
+        night:"Reduzir a circulação, confirmar iluminação e equipe, priorizar transporte assistido e revisar cada travessia.",
+        combo:"Cenário composto: corredor bloqueado + abrigo lotado + baixa visibilidade. Exercitar transbordo, corredor alternativo e transporte assistido antes de qualquer orientação."
       }[value];
       setText("contingencyText",zone.id+" · "+text);
       const active=state.contingencyActive && state.contingencyActive.zoneId===zone.id ? state.contingencyActive : null;
@@ -2051,7 +2074,7 @@
     }
 
     function applyContingency(){
-      const value=el("contingencySelect").value, labels={route:"rota principal fechada",shelter:"abrigo lotado",comms:"sem comunicação",night:"noite / baixa visibilidade"};
+      const value=el("contingencySelect").value, labels={route:"rota principal fechada",shelter:"abrigo lotado",comms:"sem comunicação",night:"noite / baixa visibilidade",combo:"noite + ponte + abrigo lotado"};
       state.contingencyActive={value:value,label:labels[value],zoneId:getZone().id,applied_at:new Date().toISOString()};
       addLog("Contingência aplicada somente no exercício para "+getZone().id+": "+labels[value]+".");
       render();
@@ -2240,7 +2263,7 @@
     function registerDecisionAction(){
       const zone=getZone(), plan=routePlan(zone);
       const gate=safetyGate();
-      const waterCrossed=zone.arrival<=elapsedMinutes(), routeClosed=plan.contingency==="route";
+      const waterCrossed=zone.arrival<=elapsedMinutes(), routeClosed=plan.routeBlocked;
       const actionType=waterCrossed ? "rescue" : (routeClosed ? "replan" : "evac");
       const label=waterCrossed ? "resgate prioritário" : (routeClosed ? "replanejamento" : (plan.safeMargin<=0 ? "evacuação assistida" : (zone.arrival-elapsedMinutes()<=120 ? "evacuação" : "preparação")));
       if(state.metrics.firstDecisionMinutes===null) state.metrics.firstDecisionMinutes=elapsedMinutes();
@@ -2516,9 +2539,11 @@
     announce(restored ? "Registro local restaurado; confira o estado antes de continuar o exercício." : "Exercício aberto no modo local; nenhuma ação externa foi executada.");
   </script>
   <script src="../assets/js/resposta_operacional.js"></script>
+  <script src="../assets/js/abrigo_capacidade_form.js"></script>
   <script src="../assets/js/mesa_st_plantao.js"></script>
   <script src="../assets/js/mesa_facilitador.js"></script>
   <script>PREVINE_MESA_FACILITADOR.init({ prefix: '../', mount: document.getElementById('facilitador-mount') });</script>
+  <script>PREVINE_ABRIGO_FORM.mount(document.getElementById('abrigo-capacidade-mount'));</script>
   <script src="../assets/js/gestor_chrome.js" data-page="resposta" data-place="santa"></script>
 </body>
 </html>

@@ -4281,56 +4281,67 @@ perigoBtn.onclick = ()=>{
 const EXPOSICAO_MAP = {"4312609":"mucum","4317251":"santa_tereza"};
 const exposicaoBtn = document.createElement("button");
 exposicaoBtn.type = "button";
-exposicaoBtn.textContent = "Exposição HAND · células 200 m";
+exposicaoBtn.textContent = "Exposição v1 · centroide";
 exposicaoBtn.setAttribute("aria-pressed", "false");
 exposicaoBtn.setAttribute("aria-busy", "false");
-exposicaoBtn.title = "Grade 200 m exposta no limiar HAND publicado (Muçum @17,02 m; Santa Tereza @15 m)";
+exposicaoBtn.title = "Grade 200 m exposta v1 centroide (Muçum @17,02 m; ST @15 m)";
 document.getElementById("exposicao").appendChild(exposicaoBtn);
-let exposicaoLayer = null, exposicaoCarregando = false, exposicaoCodAtual = null;
-exposicaoBtn.onclick = ()=>{
+const exposicaoV2Btn = document.createElement("button");
+exposicaoV2Btn.type = "button";
+exposicaoV2Btn.textContent = "Exposição v2 · areal";
+exposicaoV2Btn.setAttribute("aria-pressed", "false");
+exposicaoV2Btn.setAttribute("aria-busy", "false");
+exposicaoV2Btn.title = "Grade 200 m v2 interseção areal 4×4 (Muçum @17,02 m; ST @15 m)";
+document.getElementById("exposicao").appendChild(exposicaoV2Btn);
+let exposicaoLayer = null, exposicaoCarregando = false, exposicaoCodAtual = null, exposicaoVersao = "v1";
+function loadExposicaoLayer(key, versao, btn, otherBtn){
   if (exposicaoCarregando) return;
   const cod = munAtual?.cod_mun;
-  const key = EXPOSICAO_MAP[String(cod)];
-  if(!key){
-    mostraErroDependencia("Selecione Muçum ou Santa Tereza para ver a exposição HAND na grade 200 m.");
-    return;
-  }
-  if (exposicaoLayer && exposicaoCodAtual === String(cod)){
+  if(!key){ mostraErroDependencia("Selecione Muçum ou Santa Tereza para ver a exposição HAND na grade 200 m."); return; }
+  if (exposicaoLayer && exposicaoCodAtual === String(cod) && exposicaoVersao === versao){
     const liga = !map.hasLayer(exposicaoLayer);
     liga ? exposicaoLayer.addTo(map) : map.removeLayer(exposicaoLayer);
-    exposicaoBtn.classList.toggle("on", liga);
-    exposicaoBtn.setAttribute("aria-pressed", liga ? "true" : "false");
+    btn.classList.toggle("on", liga);
+    btn.setAttribute("aria-pressed", liga ? "true" : "false");
+    if(!liga) otherBtn.classList.remove("on"), otherBtn.setAttribute("aria-pressed","false");
     document.getElementById("exposicaoLeg").hidden = !liga;
     atualizaLegendaReferencias();
     return;
   }
   exposicaoCarregando = true;
-  exposicaoBtn.disabled = true;
-  exposicaoBtn.setAttribute("aria-busy", "true");
+  btn.disabled = true; otherBtn.disabled = true;
+  btn.setAttribute("aria-busy", "true");
   if(exposicaoLayer && map.hasLayer(exposicaoLayer)) map.removeLayer(exposicaoLayer);
-  carrega(`grade_exposta_${key}.geojson`, "assets/data/exposicao_cruzada").then(gj=>{
+  otherBtn.classList.remove("on"); otherBtn.setAttribute("aria-pressed","false");
+  const fname = versao === "v2" ? `grade_exposta_${key}_v2.geojson` : `grade_exposta_${key}.geojson`;
+  carrega(fname, "assets/data/exposicao_cruzada").then(gj=>{
     const meta = gj.metadata || {};
+    const isV2 = versao === "v2";
     exposicaoLayer = L.geoJSON(gj, {renderer:L.svg(),
-      style:()=>({color:"#5b21b6", weight:1.2, fillColor:"#7c3aed", fillOpacity:.35}),
+      style:()=>({color: isV2 ? "#0f766e" : "#5b21b6", weight:1.2, fillColor: isV2 ? "#14b8a6" : "#7c3aed", fillOpacity:.35}),
       onEachFeature:(f,l)=>{
         const p=f.properties||{};
-        l.bindTooltip(`${escHTML(p.id_grade||"célula")} · ~${fmt(+p.pop||0)} pessoas`, {sticky:true});
-        l.bindPopup(`<div class="pop"><b>Exposição HAND</b><br><span style="font-size:11px;color:#5c6b63">${escHTML(meta.cidade||"")} · limiar ${meta.hand_limite_m} m</span><table><tr><td>Célula</td><td>${escHTML(p.id_grade||"—")}</td></tr><tr><td>Pop.</td><td>${fmt(+p.pop||0)}</td></tr><tr><td>Dom.</td><td>${fmt(+p.dom||0)}</td></tr><tr><td>HAND centroide</td><td>${p.hand_m!=null?p.hand_m+" m":"—"}</td></tr></table><small>Centroide na grade 200 m; não é mancha contínua.</small></div>`);
+        const frac = p.frac_exposta != null ? ` · ${Math.round(p.frac_exposta*100)}% célula` : "";
+        l.bindTooltip(`${escHTML(p.id_grade||"célula")} · ~${fmt(+p.pop||0)} pessoas${frac}`, {sticky:true});
+        l.bindPopup(`<div class="pop"><b>Exposição HAND ${versao}</b><br><span style="font-size:11px;color:#5c6b63">${escHTML(meta.cidade||"")} · limiar ${meta.hand_limite_m} m</span><table><tr><td>Célula</td><td>${escHTML(p.id_grade||"—")}</td></tr><tr><td>Pop.</td><td>${fmt(+p.pop||0)}</td></tr><tr><td>Dom.</td><td>${fmt(+p.dom||0)}</td></tr><tr><td>HAND</td><td>${p.hand_m!=null?p.hand_m+" m":"—"}</td></tr>${isV2?`<tr><td>Fração exposta</td><td>${p.frac_exposta!=null?Math.round(p.frac_exposta*100)+"%":"—"}</td></tr>`:""}</table><small>${escHTML(meta.metodo||"")}</small></div>`);
       }
     }).addTo(map);
     exposicaoCodAtual = String(cod);
-    exposicaoBtn.classList.add("on");
-    exposicaoBtn.setAttribute("aria-pressed", "true");
+    exposicaoVersao = versao;
+    btn.classList.add("on");
+    btn.setAttribute("aria-pressed", "true");
     document.getElementById("exposicaoLeg").hidden = false;
     atualizaLegendaReferencias();
   }).catch(()=>{
-    mostraErroDependencia("Camada de exposição HAND indisponível nesta atualização.");
+    mostraErroDependencia("Camada de exposição HAND "+versao+" indisponível nesta atualização.");
   }).finally(()=>{
     exposicaoCarregando = false;
-    exposicaoBtn.disabled = false;
-    exposicaoBtn.setAttribute("aria-busy", "false");
+    btn.disabled = false; otherBtn.disabled = false;
+    btn.setAttribute("aria-busy", "false");
   });
-};
+}
+exposicaoBtn.onclick = ()=> loadExposicaoLayer(EXPOSICAO_MAP[String(munAtual?.cod_mun)], "v1", exposicaoBtn, exposicaoV2Btn);
+exposicaoV2Btn.onclick = ()=> loadExposicaoLayer(EXPOSICAO_MAP[String(munAtual?.cod_mun)], "v2", exposicaoV2Btn, exposicaoBtn);
 
 // ---- ICM: Indicador de Capacidade Municipal (MIDR/Sedec) ----
 carrega("icm_municipios.json", "assets/data").then(d=>{

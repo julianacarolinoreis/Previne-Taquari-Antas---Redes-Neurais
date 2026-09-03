@@ -32,7 +32,7 @@ def test_revisao_multiperspectiva_page() -> None:
     assert "Revisão multiperspectiva" in html
     assert "Bombeiro" in html and "Defesa Civil" in html
     assert "Agenda de pesquisa" in html
-    assert "68" in html
+    assert "69" in html
 
 
 def test_pesquisas_gestor_filter() -> None:
@@ -66,7 +66,7 @@ def test_todas_paginas_guard_ou_gestor() -> None:
     pages = sorted(
         p for p in ROOT.rglob("*.html") if "rascunhos/" not in str(p).replace("\\", "/")
     )
-    assert len(pages) == 68, f"esperado 68 páginas, encontrado {len(pages)}"
+    assert len(pages) == 69, f"esperado 69 páginas, encontrado {len(pages)}"
     missing = []
     for p in pages:
         html = p.read_text(encoding="utf-8")
@@ -75,11 +75,11 @@ def test_todas_paginas_guard_ou_gestor() -> None:
     assert not missing, "sem guard/gestor: " + ", ".join(missing)
 
 
-def test_inventario_68_linhas() -> None:
+def test_inventario_69_linhas() -> None:
     html = (ROOT / "pesquisas" / "revisao-multiperspectiva.html").read_text(encoding="utf-8")
     import re
     rows = re.findall(r'\["[^"]+","[KFRA]","[^"]+"\]', html)
-    assert len(rows) == 68, f"esperado 68 linhas no inventário, encontrado {len(rows)}"
+    assert len(rows) == 69, f"esperado 69 linhas no inventário, encontrado {len(rows)}"
     assert "demais entradas RNA" not in html
 
 
@@ -94,7 +94,7 @@ if __name__ == "__main__":
         test_painel_evacuacao_bloqueado,
         test_sace_snapshots_guard,
         test_todas_paginas_guard_ou_gestor,
-        test_inventario_68_linhas,
+        test_inventario_69_linhas,
     ):
         fn()
     print("REVISAO_MULTIPERSPECTIVA_QA_OK")

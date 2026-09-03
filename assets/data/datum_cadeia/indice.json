@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "artifact_id": "datum-cadeia-taquari-antas-v1",
+  "gerado_em": "2026-09-03T00:15:00Z",
+  "status": "auditavel_parcial",
+  "cadeia_leitura": [
+    "ANA/SACE publica nível em cm na estação fluviométrica",
+    "bankfull_cm define HAND 0 (início da mancha no leito)",
+    "cota_rio_cm = bankfull_cm + HAND_m × 100",
+    "MDT (mosaico drone + ANADEM) alimenta raster HAND embutido nas páginas de previsão",
+    "Exposição v2: fração areal da grade 200 m com HAND ≤ limiar"
+  ],
+  "estacoes": [
+    {
+      "cod_ana": "86472600",
+      "municipio": "Santa Tereza",
+      "cod_ibge": "4317251",
+      "bankfull_cm": 400,
+      "hand_zero_m": 4.0,
+      "cota_pesquisa_cm": 1500,
+      "crs_publico": "EPSG:4326",
+      "mdt_fonte": "HAND mosaico 2 m · Santa Tereza previsão",
+      "hand_artifact": "santa_tereza_previsao_inundacao.html#hand-data",
+      "notas": "Bankfull 400 cm no contrato ao vivo. Cota 15 m HAND ≈ 1.900 cm na régua."
+    },
+    {
+      "cod_ana": "86510000",
+      "municipio": "Muçum",
+      "cod_ibge": "4312609",
+      "bankfull_cm": 500,
+      "hand_zero_m": 5.0,
+      "cota_pesquisa_cm": 1800,
+      "crs_publico": "EPSG:4326",
+      "mdt_fonte": "Mosaico drone 0,5 m + ANADEM 30 m (offset geoide ~0,24 m documentado)",
+      "hand_artifact": "mucum_previsao_inundacao.html#hand-data",
+      "notas": "Pico jul/2020 HAND 17,02 m · Zenodo 4730371. Contornos até 25 m."
+    }
+  ],
+  "auditoria_pendente": [
+    "Vistoria in loco: régua ANA vs leitura PREVINE vs datum MDT",
+    "Evento calibrador por tempestade (ST 2023/2024 parcial)",
+    "Offset vertical residual Muçum (geoide IBGE) em campo"
+  ],
+  "links": {
+    "exposicao_v2": "assets/data/exposicao_cruzada/exposicao_mucum_v2.json",
+    "validacao_st": "assets/data/validacao_eventos/relatorio_2023_2024.json",
+    "benchmark": "assets/data/benchmark_hidrodinamica/indice.json"
+  }
+}

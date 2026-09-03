@@ -66,7 +66,7 @@
 
     <section class="panel" aria-labelledby="field-check-title">
       <h2 id="field-check-title">Confirmações de campo</h2>
-      <p>Marque apenas o que você viu ou ouviu de fonte local confiável.</p>
+      <p>Marque apenas o que você viu ou ouviu de fonte local confiável. Sincroniza com checklist da mesa e centro quando aplicável.</p>
       <div class="field-checklist" id="field-checklist"></div>
     </section>
 
@@ -144,6 +144,7 @@
             var s = loadField();
             s[input.getAttribute('data-key')] = input.checked;
             saveField(s);
+            if (R.syncFieldChecklist) R.syncFieldChecklist(current, s);
           });
         });
       }

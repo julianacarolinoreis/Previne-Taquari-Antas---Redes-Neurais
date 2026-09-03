@@ -72,7 +72,7 @@ def test_revisao_lote4_atualizada() -> None:
 
 def test_sw_v5_assets() -> None:
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
-    assert "previne-resposta-v5" in sw
+    assert "previne-resposta-v6" in sw
     assert "briefing_roteiro_90.js" in sw
     assert "exposicao_mucum_v2.json" in sw
 
