@@ -123,7 +123,7 @@
       <h2 id="gaps-title">O que ainda não está pronto</h2>
       <p class="section-intro">Transparência sobre bloqueios — a plataforma mostra lacunas para orientar o que levantar antes de tratar qualquer página como despacho.</p>
       <div class="gaps">
-        <div class="gap"><b>Exposição · CALCULADO (Muçum/ST)</b>Grade 200 m × HAND publicada para Muçum (~2.117 pop @ 17 m) e Santa Tereza (~363 pop @ 15 m). Camada no <a href="../vulnerabilidade.html">mapa de vulnerabilidade</a> e <a href="exposicao-cruzada.html">exposição cruzada</a>. Jusante: contexto Zenodo + IBGE.</div>
+        <div class="gap"><b>Exposição · CALCULADO v1 + v2 (Muçum/ST)</b>Grade 200 m × HAND: v1 centroide e v2 areal publicados (~2.070 pop Muçum @ 17 m v2). Ver <a href="exposicao-cruzada.html">exposição cruzada</a> e <a href="benchmark-hand-hidrodinamica.html">benchmark hidrodinâmica</a>.</div>
         <div class="gap blocked"><b>Resposta · BLOQUEADA (exercício)</b>Gate operacional: nenhum despacho real. Muçum: plano jul/2026 digitalizado (9 alojamentos). ST: Ginásio reconciliado com cadastro DC; capacidade e abertura ainda não publicadas.</div>
         <div class="gap"><b>Municípios a jusante · fichas leves</b>Encantado, Roca Sales, Lajeado — IBGE/ICM/Zenodo; sem estação PREVINE. Ver fichas no centro ou <a href="../pesquisa_status_encantado.html">Encantado</a>.</div>
         <div class="gap"><b>Validação de mancha · parcial</b>Zenodo jul/2020 integrado; contornos Muçum até 25 m. ST 2023/2024: concordância 77–96% no <a href="../assets/data/validacao_eventos/relatorio_2023_2024.json">relatório auditado</a>. Falta calibração operacional por tempestade em outros municípios.</div>
@@ -134,6 +134,7 @@
     <section class="section" aria-labelledby="check-title">
       <h2 id="check-title">Checklist pré-ação</h2>
       <p class="check-progress" id="check-progress" aria-live="polite"><strong>0/7</strong> confirmações registradas neste aparelho.</p>
+      <p class="section-intro" id="check-mesa-sync" style="font-size:12px;margin-top:-6px">Sincronizado com mesas V002 neste aparelho.</p>
       <p class="section-intro">Marque só o que foi verificado de fato. Persiste localmente; não libera alerta, rota ou despacho.</p>
       <div class="checklist" id="checklist"></div>
       <div class="toolbar">
@@ -206,6 +207,10 @@
         var prog = R.checklistProgress(state);
         document.getElementById('check-progress').innerHTML =
           '<strong>' + prog.done + '/' + prog.total + '</strong> confirmações (' + prog.pct + '%) neste aparelho.';
+        var stProg = R.mesaChecklistProgress(R.ST_MESA_KEY);
+        var mucProg = R.mesaChecklistProgress(R.MUC_MESA_KEY);
+        document.getElementById('check-mesa-sync').textContent =
+          'Mesas V002: Santa Tereza ' + stProg.done + '/7 · Muçum ' + mucProg.done + '/7 (OR unificado neste checklist).';
         box.innerHTML = R.CHECKLIST_ITEMS.map(function (item) {
           var checked = state[item.id] ? ' checked' : '';
           return '<label><input type="checkbox" data-check="' + item.id + '"' + checked + '> ' + item.label + '</label>';

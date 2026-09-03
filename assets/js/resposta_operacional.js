@@ -185,6 +185,27 @@
     writeMesaValidation(mesaPatch);
   }
 
+  /** Sincroniza checklist de uma mesa V002 → centro (OR entre ST e Muçum). */
+  function syncMesaValidation(mesaKey, validation) {
+    var patch = {};
+    CHECKLIST_ITEMS.forEach(function (item) {
+      patch[item.id] = !!(validation && validation[item.id]);
+    });
+    writeMesaValidationTo(mesaKey, patch);
+    var merged = mergeChecklistSources();
+    try {
+      localStorage.setItem(CHECKLIST_KEY, JSON.stringify(merged));
+    } catch (e) { /* ignore */ }
+    return merged;
+  }
+
+  function mesaChecklistProgress(mesaKey) {
+    var mesa = readMesaValidationFrom(mesaKey);
+    if (!mesa) return { done: 0, total: CHECKLIST_ITEMS.length, pct: 0 };
+    var done = CHECKLIST_ITEMS.filter(function (item) { return !!mesa[item.id]; }).length;
+    return { done: done, total: CHECKLIST_ITEMS.length, pct: Math.round(100 * done / CHECKLIST_ITEMS.length) };
+  }
+
   function clearChecklist() {
     try { localStorage.removeItem(CHECKLIST_KEY); } catch (e) { /* ignore */ }
     [ST_MESA_KEY, MUC_MESA_KEY].forEach(function (key) {
@@ -473,6 +494,9 @@
     JUSANTE: JUSANTE,
     loadChecklist: loadChecklist,
     saveChecklist: saveChecklist,
+    syncMesaValidation: syncMesaValidation,
+    mesaChecklistProgress: mesaChecklistProgress,
+    readMesaValidationFrom: readMesaValidationFrom,
     clearChecklist: clearChecklist,
     checklistProgress: checklistProgress,
     freshnessLabelPt: freshnessLabelPt,

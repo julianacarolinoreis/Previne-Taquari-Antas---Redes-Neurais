@@ -45,39 +45,64 @@
     <header class="hero">
       <p style="margin:0 0 8px;font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:#9fd4c8">PREVINE · risco espacial × vulnerabilidade</p>
       <h1>Exposição cruzada</h1>
-      <p class="lede">Cruzamento entre mancha HAND (mesma fonte do popup) e grade estatística 200 m / setores IBGE 2022. Produto publicado para Muçum e Santa Tereza — aproximação por centroide, com auditoria por cota.</p>
+      <p class="lede">Cruzamento entre mancha HAND (mesma fonte do popup) e grade estatística 200 m / setores IBGE 2022. Produto publicado para Muçum e Santa Tereza — v1 por centroide e v2 por fração areal interna da célula.</p>
     </header>
 
     <section class="section">
       <h2>Em linguagem de sala</h2>
       <div class="note" style="border-left-color:#9fd4c8;background:#f2faf5;color:#1b5a40">
-        <strong>O que dizer na reunião (90 min):</strong> (1) Muçum tem ~2.117 pessoas em células expostas no pico jul/2020 @ 17 m; Santa Tereza ~363 @ 15 m — números agregados, não lista de famílias. (2) Mancha laranja é HAND preliminar, não ordem de saída. (3) Capacidade de abrigo ainda UNKNOWN — Ginásio ST reconciliado espacialmente, Muçum tem 9 alojamentos no plano. (4) Validar pontes e corredor em campo antes de orientar qualquer saída.
+        <strong>O que dizer na reunião (90 min):</strong> (1) Muçum tem ~2.117 pessoas (v1 centroide) ou ~2.070 (v2 areal) em células expostas no pico jul/2020 @ 17 m; Santa Tereza ~363 (v1) ou ~336 (v2) @ 15 m — números agregados, não lista de famílias. (2) Mancha laranja é HAND preliminar, não ordem de saída. (3) Capacidade de abrigo ainda UNKNOWN — Ginásio ST reconciliado espacialmente, Muçum tem 9 alojamentos no plano. (4) Validar pontes e corredor em campo antes de orientar qualquer saída.
       </div>
     </section>
 
     <section class="section">
       <h2>Estado do produto</h2>
-      <p class="intro"><span class="status-pill ok" id="prod-status">CALCULADO · v1</span> Script <code>calcular_exposicao_cruzada.py</code> publica JSON por município. Contornos HAND Muçum estendidos até <strong>25 m</strong>.</p>
+      <p class="intro"><span class="status-pill ok" id="prod-status">CALCULADO · v1 + v2</span> Scripts <code>calcular_exposicao_cruzada.py</code> (v1 centroide) e <code>calcular_exposicao_v2_areal.py</code> (v2 areal 4×4). Contornos HAND Muçum estendidos até <strong>25 m</strong>.</p>
       <div class="note" id="metodo-note">Carregando método…</div>
+      <table style="margin-top:14px" aria-label="Comparação v1 vs v2 no pico">
+        <thead><tr><th>Município</th><th>Pico HAND</th><th>Pop. v1 (centroide)</th><th>Pop. v2 (areal)</th><th>Δ</th></tr></thead>
+        <tbody id="v1v2-compare"><tr><td colspan="5">Carregando…</td></tr></tbody>
+      </table>
+    </section>
+
+    <section class="section" aria-labelledby="st-title">
+      <h2 id="st-title">Santa Tereza · exposição por cota HAND</h2>
+      <p class="intro">Pico operacional de pesquisa ≈ <strong>15 m</strong> HAND · bankfull 400 cm.</p>
+      <div class="metric-grid" id="st-peak-metrics">
+        <div class="metric"><span>Pop. v1 @ 15 m</span><strong>—</strong></div>
+        <div class="metric"><span>Pop. v2 @ 15 m</span><strong>—</strong></div>
+        <div class="metric"><span>Domicílios v2</span><strong>—</strong></div>
+        <div class="metric"><span>% pop. municipal</span><strong>—</strong></div>
+      </div>
+      <table style="margin-top:14px">
+        <thead><tr><th>HAND (m)</th><th>Cota rio (cm)</th><th>Pop. v1</th><th>Pop. v2</th><th>Dom. v2</th></tr></thead>
+        <tbody id="st-level-rows"><tr><td colspan="5">Carregando…</td></tr></tbody>
+      </table>
+      <div class="links">
+        <a href="../santa_tereza_previsao_inundacao.html">Mapa HAND ST</a>
+        <a href="estudo-caso-resposta-santa-tereza.html">Mesa ST V002</a>
+        <a href="../assets/data/exposicao_cruzada/exposicao_santa_tereza_v2.json">JSON v2</a>
+      </div>
     </section>
 
     <section class="section" aria-labelledby="mucum-title">
       <h2 id="mucum-title">Muçum · exposição por cota HAND</h2>
       <p class="intro">Pico jul/2020 ≈ <strong>17,02 m</strong> HAND · bankfull 500 cm · validação Zenodo integrada.</p>
       <div class="metric-grid" id="mucum-peak-metrics">
-        <div class="metric"><span>Pop. @ pico 17,02 m</span><strong>—</strong></div>
-        <div class="metric"><span>Domicílios</span><strong>—</strong></div>
+        <div class="metric"><span>Pop. v1 @ 17,02 m</span><strong>—</strong></div>
+        <div class="metric"><span>Pop. v2 @ 17,02 m</span><strong>—</strong></div>
+        <div class="metric"><span>Dom. v2</span><strong>—</strong></div>
         <div class="metric"><span>% pop. municipal</span><strong>—</strong></div>
-        <div class="metric"><span>Contornos até</span><strong>25 m</strong></div>
       </div>
       <table style="margin-top:14px">
-        <thead><tr><th>HAND (m)</th><th>Cota rio (cm)</th><th>Pop. grade 200 m</th><th>Dom.</th><th>Idosos 70+ (setor)</th></tr></thead>
-        <tbody id="mucum-level-rows"><tr><td colspan="5">Carregando…</td></tr></tbody>
+        <thead><tr><th>HAND (m)</th><th>Cota rio (cm)</th><th>Pop. v1</th><th>Pop. v2</th><th>Dom. v2</th><th>Idosos 70+ (setor v2)</th></tr></thead>
+        <tbody id="mucum-level-rows"><tr><td colspan="6">Carregando…</td></tr></tbody>
       </table>
       <div class="links">
         <a href="../mucum_previsao_inundacao.html">Mapa HAND Muçum</a>
         <a href="estudo-caso-resposta-mucum.html">Mesa Muçum V002</a>
-        <a href="../assets/data/exposicao_cruzada/exposicao_mucum.json">JSON exposição</a>
+        <a href="../assets/data/exposicao_cruzada/exposicao_mucum.json">JSON v1</a>
+        <a href="../assets/data/exposicao_cruzada/exposicao_mucum_v2.json">JSON v2</a>
       </div>
     </section>
 
@@ -127,31 +152,74 @@
       'use strict';
       function num(v) { return Number.isFinite(Number(v)) ? Number(v) : 0; }
 
+      function findPeak(niveis, hand) {
+        return niveis.filter(function (n) { return Math.abs(n.hand_m - hand) < 0.01; })[0] ||
+          niveis[niveis.length - 1];
+      }
+
       Promise.all([
         fetch('../assets/data/exposicao_cruzada/exposicao_mucum.json').then(function (r) { return r.ok ? r.json() : null; }),
+        fetch('../assets/data/exposicao_cruzada/exposicao_mucum_v2.json').then(function (r) { return r.ok ? r.json() : null; }),
         fetch('../assets/data/exposicao_cruzada/exposicao_santa_tereza.json').then(function (r) { return r.ok ? r.json() : null; }),
+        fetch('../assets/data/exposicao_cruzada/exposicao_santa_tereza_v2.json').then(function (r) { return r.ok ? r.json() : null; }),
         fetch('../assets/data/validacao_zenodo_2020/relatorio_cruzamento.json').then(function (r) { return r.ok ? r.json() : null; }),
         fetch('../assets/data/vulnerabilidade/indicadores_municipios.json').then(function (r) { return r.ok ? r.json() : null; }),
         fetch('../assets/data/icm_municipios.json').then(function (r) { return r.ok ? r.json() : null; })
       ]).then(function (parts) {
-        var expMuc = parts[0], expSt = parts[1], cruz = parts[2], ind = parts[3], icm = parts[4];
-        if (expMuc && expMuc.metodo) {
+        var expMuc = parts[0], expMucV2 = parts[1], expSt = parts[2], expStV2 = parts[3], cruz = parts[4], ind = parts[5], icm = parts[6];
+        if (expMuc && expMucV2) {
           document.getElementById('metodo-note').innerHTML =
-            '<strong>Método:</strong> ' + expMuc.metodo.criterio + '. <strong>Limite:</strong> ' + expMuc.metodo.limitacao;
+            '<strong>v1:</strong> ' + expMuc.metodo.criterio + '<br><strong>v2:</strong> ' + expMucV2.metodo.criterio +
+            '<br><strong>Limite comum:</strong> ' + expMuc.metodo.limitacao;
         }
-        if (expMuc && expMuc.niveis) {
-          var peak = expMuc.niveis.filter(function (n) { return Math.abs(n.hand_m - 17.02) < 0.01; })[0] ||
-            expMuc.niveis[expMuc.niveis.length - 1];
-          if (peak) {
-            var pm = document.getElementById('mucum-peak-metrics').children;
-            pm[0].querySelector('strong').textContent = peak.grade_200m.pop.toLocaleString('pt-BR');
-            pm[1].querySelector('strong').textContent = peak.grade_200m.dom.toLocaleString('pt-BR');
-            pm[2].querySelector('strong').textContent = peak.pct_pop_municipio + '%';
+        var peakMucV1 = expMuc && expMuc.niveis ? findPeak(expMuc.niveis, 17.02) : null;
+        var peakMucV2 = expMucV2 && expMucV2.niveis ? findPeak(expMucV2.niveis, 17.02) : null;
+        var peakStV1 = expSt && expSt.niveis ? findPeak(expSt.niveis, 15) : null;
+        var peakStV2 = expStV2 && expStV2.niveis ? findPeak(expStV2.niveis, 15) : null;
+        if (peakMucV1 && peakMucV2 && peakStV1 && peakStV2) {
+          function delta(v1, v2) {
+            var d = v2 - v1;
+            return (d >= 0 ? '+' : '') + d.toLocaleString('pt-BR');
           }
+          document.getElementById('v1v2-compare').innerHTML =
+            '<tr><td><strong>Muçum</strong></td><td>17,02 m</td><td>' + peakMucV1.grade_200m.pop.toLocaleString('pt-BR') +
+            '</td><td>' + peakMucV2.grade_200m.pop.toLocaleString('pt-BR') + '</td><td>' + delta(peakMucV1.grade_200m.pop, peakMucV2.grade_200m.pop) + '</td></tr>' +
+            '<tr><td><strong>Santa Tereza</strong></td><td>15 m</td><td>' + peakStV1.grade_200m.pop.toLocaleString('pt-BR') +
+            '</td><td>' + peakStV2.grade_200m.pop.toLocaleString('pt-BR') + '</td><td>' + delta(peakStV1.grade_200m.pop, peakStV2.grade_200m.pop) + '</td></tr>';
+        }
+        if (expMuc && expMucV2 && expMuc.niveis) {
+          if (peakMucV1 && peakMucV2) {
+            var pm = document.getElementById('mucum-peak-metrics').children;
+            pm[0].querySelector('strong').textContent = peakMucV1.grade_200m.pop.toLocaleString('pt-BR');
+            pm[1].querySelector('strong').textContent = peakMucV2.grade_200m.pop.toLocaleString('pt-BR');
+            pm[2].querySelector('strong').textContent = peakMucV2.grade_200m.dom.toLocaleString('pt-BR');
+            pm[3].querySelector('strong').textContent = peakMucV2.pct_pop_municipio + '%';
+          }
+          var v2map = {};
+          expMucV2.niveis.forEach(function (n) { v2map[n.hand_m] = n; });
           document.getElementById('mucum-level-rows').innerHTML = expMuc.niveis.map(function (n) {
+            var v2 = v2map[n.hand_m];
             return '<tr><td>' + n.hand_m + '</td><td>' + Math.round(n.nivel_rio_cm) + '</td><td>' +
-              n.grade_200m.pop.toLocaleString('pt-BR') + '</td><td>' + n.grade_200m.dom.toLocaleString('pt-BR') + '</td><td>' +
-              (n.setores_censitarios.idosos_70_mais || 0).toLocaleString('pt-BR') + '</td></tr>';
+              n.grade_200m.pop.toLocaleString('pt-BR') + '</td><td>' + (v2 ? v2.grade_200m.pop.toLocaleString('pt-BR') : '—') + '</td><td>' +
+              (v2 ? v2.grade_200m.dom.toLocaleString('pt-BR') : '—') + '</td><td>' +
+              (v2 && v2.setores_censitarios ? (v2.setores_censitarios.idosos_70_mais || 0).toLocaleString('pt-BR') : '—') + '</td></tr>';
+          }).join('');
+        }
+        if (expSt && expStV2 && expSt.niveis) {
+          if (peakStV1 && peakStV2) {
+            var sm = document.getElementById('st-peak-metrics').children;
+            sm[0].querySelector('strong').textContent = peakStV1.grade_200m.pop.toLocaleString('pt-BR');
+            sm[1].querySelector('strong').textContent = peakStV2.grade_200m.pop.toLocaleString('pt-BR');
+            sm[2].querySelector('strong').textContent = peakStV2.grade_200m.dom.toLocaleString('pt-BR');
+            sm[3].querySelector('strong').textContent = peakStV2.pct_pop_municipio + '%';
+          }
+          var stV2map = {};
+          expStV2.niveis.forEach(function (n) { stV2map[n.hand_m] = n; });
+          document.getElementById('st-level-rows').innerHTML = expSt.niveis.map(function (n) {
+            var v2 = stV2map[n.hand_m];
+            return '<tr><td>' + n.hand_m + '</td><td>' + Math.round(n.nivel_rio_cm) + '</td><td>' +
+              n.grade_200m.pop.toLocaleString('pt-BR') + '</td><td>' + (v2 ? v2.grade_200m.pop.toLocaleString('pt-BR') : '—') + '</td><td>' +
+              (v2 ? v2.grade_200m.dom.toLocaleString('pt-BR') : '—') + '</td></tr>';
           }).join('');
         }
         var muc = cruz && cruz.cidades && cruz.cidades.mucum ? cruz.cidades.mucum : null;

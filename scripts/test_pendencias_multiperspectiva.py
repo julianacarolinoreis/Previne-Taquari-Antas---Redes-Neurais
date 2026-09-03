@@ -59,7 +59,9 @@ def test_revisao_pendencias_atualizadas() -> None:
     html = (ROOT / "pesquisas/revisao-multiperspectiva.html").read_text(encoding="utf-8")
     assert "Modo facilitador nas mesas V002" in html
     assert "Formulário exportável" in html
-    assert "Bloco HAND vs hidrodinâmica" in html
+    assert "roteiro 90 min cronometrado" in html
+    assert "v2 (interseção areal" in html
+    assert "benchmark-hand-hidrodinamica.html" in html
     assert "Falta: bloco HAND vs hidrodinâmica" not in html
 
 

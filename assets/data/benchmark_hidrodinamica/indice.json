@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "artifact_id": "benchmark-hand-hidrodinamica-v1",
+  "gerado_em": "2026-09-03T00:05:00Z",
+  "status_geral": "agenda",
+  "metodo": {
+    "hand": "Raster HAND embutido nas páginas de previsão (MDT − elevação drenagem)",
+    "hidrodinamica": "Simulação 2D superficial — HEC-RAS 2D ou LISFLOOD-FP em subárea calibrável",
+    "metricas_planejadas": ["IoU mancha", "CSI @ limiar HAND", "distância Hausdorff contorno", "tempo de chegada da onda"]
+  },
+  "subareas": [
+    {
+      "id": "mucum-centro-baixa",
+      "municipio": "Muçum",
+      "bbox_wgs84": [-51.895, -29.172, -51.878, -29.158],
+      "area_km2": 0.42,
+      "status": "agenda",
+      "hand_pico_m": 17.02,
+      "notas": "Corredor urbano baixo + Ginásio. Drone LIDAR/RTK para MDT local.",
+      "referencias": ["Zenodo 4730371 jul/2020", "Plano municipal jul/2026"]
+    },
+    {
+      "id": "st-corredor-etapa2",
+      "municipio": "Santa Tereza",
+      "bbox_wgs84": [-51.738, -29.182, -51.722, -29.168],
+      "area_km2": 0.35,
+      "status": "agenda",
+      "hand_pico_m": 15.0,
+      "notas": "Etapa 2 rota fuga + pontes UNKNOWN. Cruzar com validação 2023/2024.",
+      "referencias": ["relatorio_2023_2024.json", "santa-tereza-rota-fuga-ruas.html"]
+    }
+  ],
+  "ferramentas": [
+    { "nome": "HEC-RAS 2D", "papel": "Hidraulica superficial calibrada por evento", "status": "reservado" },
+    { "nome": "LISFLOOD-FP", "papel": "Alternativa acadêmica raster-based", "status": "reservado" },
+    { "nome": "HAND PREVINE", "papel": "Proxy rápido para exposição agregada", "status": "publicado" }
+  ],
+  "limitacoes": [
+    "HAND não modela obstruções urbanas nem comportamento dinâmico do rio",
+    "Benchmark exige datum régua ANA ↔ MDT auditável",
+    "Produto PREVINE permanece pesquisa — não substitui mapa oficial SGB"
+  ]
+}

@@ -2320,6 +2320,10 @@
       input.addEventListener("change",function(){
         state.validation[input.dataset.validation]=input.checked;
         renderValidationChecklist();
+        if(window.PREVINE_RESPOSTA && PREVINE_RESPOSTA.syncMesaValidation){
+          PREVINE_RESPOSTA.syncMesaValidation(PREVINE_RESPOSTA.ST_MESA_KEY, state.validation);
+        }
+        saveState(true);
         announce(input.checked ? "Item da pré-checagem marcado no exercício." : "Item da pré-checagem voltou a ficar pendente.");
       });
     });

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PREVINE · Benchmark HAND vs hidrodinâmica</title>
+  <link rel="stylesheet" href="../assets/css/gestor_chrome.css">
+  <style>
+    :root { --ink:#12202b; --muted:#5b6b76; --line:#d7e1e8; --navy:#102334; --teal:#0f6b62; --amber:#a46b12; --warn-bg:#fff8ea; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #edf2f7; color: var(--ink); font: 15px/1.45 Inter, ui-sans-serif, system-ui, sans-serif; }
+    .shell { max-width: 960px; margin: 0 auto; padding: 16px 18px 48px; }
+    .hero { padding: 22px 24px; background: linear-gradient(135deg, var(--navy), #1a4258); color: #eef4f8; border-radius: 18px; margin-bottom: 16px; }
+    h1 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 32px); }
+    .lede { margin: 0; max-width: 720px; color: #c5d4df; font-size: 14px; }
+    .section { margin-top: 14px; padding: 18px 20px; background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+    h2 { margin: 0 0 10px; font-size: 17px; color: var(--navy); }
+    .intro { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 10px; text-transform: uppercase; color: var(--muted); background: #f9fbfd; }
+    .status-pill { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 850; text-transform: uppercase; background: var(--warn-bg); color: var(--amber); }
+    .status-pill.ok { background: #e6f4ef; color: #24745d; }
+    .note { margin-top: 12px; padding: 10px 12px; border-left: 4px solid var(--amber); border-radius: 0 10px 10px 0; background: var(--warn-bg); color: #6d4e16; font-size: 12px; }
+    .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .links a { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--navy); font-size: 12px; font-weight: 750; text-decoration: none; }
+    footer { margin-top: 18px; color: var(--muted); font-size: 11px; }
+    @media (max-width: 760px) { table { display: block; overflow-x: auto; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p style="margin:0 0 8px;font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:#9fd4c8">Pesquisa · calibração espacial</p>
+      <h1>Benchmark HAND vs hidrodinâmica</h1>
+      <p class="lede">Agenda para comparar a mancha HAND (proxy de terreno) com simulação 2D (HEC-RAS ou LISFLOOD-FP) em subáreas drone. Não é produto operacional — orienta onde calibrar antes de falar de exposição nominal.</p>
+    </header>
+
+    <section class="section">
+      <h2>Em linguagem de sala</h2>
+      <div class="note" style="border-left-color:#9fd4c8;background:#f2faf5;color:#1b5a40">
+        <strong>O que dizer:</strong> HAND responde “onde o terreno é baixo em relação ao rio”. Hidrodinâmica responde “onde a água flui neste evento”. Os dois devem convergir na subárea calibrada; divergência grande = não usar HAND sozinho para despacho.
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Estado do benchmark</h2>
+      <p class="intro"><span class="status-pill" id="bench-status">AGENDA</span> Índice versionado em JSON. Simulações reservadas — métricas IoU/CSI serão publicadas após corrida HEC-RAS/LISFLOOD.</p>
+      <div id="bench-metodo" class="intro">Carregando…</div>
+    </section>
+
+    <section class="section">
+      <h2>Subáreas propostas</h2>
+      <table>
+        <thead><tr><th>ID</th><th>Município</th><th>HAND pico</th><th>Área</th><th>Status</th><th>Notas</th></tr></thead>
+        <tbody id="subarea-rows"><tr><td colspan="6">Carregando…</td></tr></tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Ferramentas</h2>
+      <table>
+        <thead><tr><th>Ferramenta</th><th>Papel</th><th>Status</th></tr></thead>
+        <tbody id="tool-rows"><tr><td colspan="3">Carregando…</td></tr></tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Limitações explícitas</h2>
+      <ul id="limit-list" class="intro" style="padding-left:18px;margin:0"></ul>
+      <div class="links">
+        <a href="exposicao-cruzada.html">Exposição cruzada v1/v2</a>
+        <a href="../santa_tereza_previsao_inundacao.html">Mapa HAND ST</a>
+        <a href="../mucum_previsao_inundacao.html">Mapa HAND Muçum</a>
+        <a href="centro-resposta.html">Centro de resposta</a>
+        <a href="briefing-gestores.html">Briefing A4</a>
+      </div>
+    </section>
+
+    <footer>PREVINE · benchmark HAND vs hidrodinâmica · FAPERGS · não substitui SGB/SACE.</footer>
+  </main>
+
+  <script src="../assets/js/gestor_chrome.js" data-page="pessoas" data-place="bacia"></script>
+  <script>
+    fetch('../assets/data/benchmark_hidrodinamica/indice.json').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d) return;
+      var st = document.getElementById('bench-status');
+      st.textContent = (d.status_geral || 'agenda').toUpperCase();
+      if (d.status_geral === 'publicado') st.className = 'status-pill ok';
+      document.getElementById('bench-metodo').innerHTML =
+        '<strong>HAND:</strong> ' + d.metodo.hand + '<br><strong>Hidrodinâmica:</strong> ' + d.metodo.hidrodinamica +
+        '<br><strong>Métricas planejadas:</strong> ' + (d.metodo.metricas_planejadas || []).join(', ');
+      document.getElementById('subarea-rows').innerHTML = (d.subareas || []).map(function (s) {
+        return '<tr><td><code>' + s.id + '</code></td><td>' + s.municipio + '</td><td>' + s.hand_pico_m + ' m</td><td>' +
+          s.area_km2 + ' km²</td><td><span class="status-pill">' + s.status + '</span></td><td>' + s.notas + '</td></tr>';
+      }).join('');
+      document.getElementById('tool-rows').innerHTML = (d.ferramentas || []).map(function (t) {
+        var cls = t.status === 'publicado' ? 'status-pill ok' : 'status-pill';
+        return '<tr><td><strong>' + t.nome + '</strong></td><td>' + t.papel + '</td><td><span class="' + cls + '">' + t.status + '</span></td></tr>';
+      }).join('');
+      document.getElementById('limit-list').innerHTML = (d.limitacoes || []).map(function (l) { return '<li>' + l + '</li>'; }).join('');
+    }).catch(function () {
+      document.getElementById('subarea-rows').innerHTML = '<tr><td colspan="6">Erro ao carregar índice.</td></tr>';
+    });
+  </script>
+</body>
+</html>

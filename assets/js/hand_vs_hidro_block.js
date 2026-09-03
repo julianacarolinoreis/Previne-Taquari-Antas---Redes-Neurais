@@ -21,6 +21,7 @@
     '<ul><li>HAND 0 ≈ leito — não confundir com “rio baixo” ou “sem risco”.</li>' +
     '<li>Cota oficial ST 15 m · Muçum 18 m — conferir régua e datum em campo.</li>' +
     '<li>Ordem de saída exige DC/bombeiros + ponte + abrigo confirmados.</li></ul>' +
+    '<a href="' + prefix + 'pesquisas/benchmark-hand-hidrodinamica.html">Benchmark HAND vs hidrodinâmica</a> · ' +
     '<a href="' + prefix + 'pesquisas/centro-resposta.html">Centro de resposta</a>';
   var sel = (script && script.getAttribute('data-target')) || 'aside';
   var mount = document.querySelector(sel);

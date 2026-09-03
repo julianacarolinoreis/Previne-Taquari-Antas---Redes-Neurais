@@ -66,7 +66,7 @@
     @media print {
       body { background: #fff; }
       .sheet { margin: 0; border: 0; padding: 0; max-width: none; }
-      .actions, .gestor-chrome { display: none !important; }
+      .actions, .gestor-chrome, .roteiro-btns { display: none !important; }
       .watermark { color: #7a5b20; }
     }
   </style>
@@ -84,6 +84,10 @@
         <p>1) O rio em Santa Tereza e Muçum aparece aqui como leitura de pesquisa — não substitui SGB/DC. 2) Se aparecer “sem dado confiável”, isso não significa “rio baixo”. 3) Mapa laranja é mancha preliminar, não ordem de evacuação. 4) Encantado, Roca Sales e Lajeado têm ficha IBGE, mas ainda sem estação própria. 5) Checklist de 7 itens é preparação — não libera despacho.</p>
       </article>
     </section>
+
+    <h2>Roteiro cronometrado · 90 min</h2>
+    <p class="lede">Use na reunião com gestores: oito fases com links canônicos. O cronômetro persiste neste aparelho (pausar/reiniciar).</p>
+    <div id="roteiro-90-mount"></div>
 
     <div class="actions">
       <button type="button" id="print-briefing">Imprimir briefing</button>
@@ -105,8 +109,8 @@
       </article>
       <article class="layer-card exposicao">
         <span class="layer-kicker">Exposição</span>
-        <strong>CALCULADO v1</strong>
-        <p>Muçum ~2.117 pop @ 17 m · ST ~363 pop @ 15 m (centroide grade 200 m). Não é lista nominal nem ordem de visita.</p>
+        <strong>CALCULADO v1 + v2</strong>
+        <p>Muçum ~2.117 pop @ 17 m (v1 centroide) · v2 areal publicado em <a href="exposicao-cruzada.html">exposição cruzada</a>. ST ~363 @ 15 m. Não é lista nominal.</p>
       </article>
       <article class="layer-card resposta is-blocked">
         <span class="layer-kicker">Resposta</span>
@@ -157,8 +161,10 @@
     </footer>
   </article>
   <script src="../assets/js/gestor_chrome.js" data-page="briefing" data-place="bacia"></script>
+  <script src="../assets/js/briefing_roteiro_90.js"></script>
   <script src="../assets/js/abrigo_capacidade_form.js"></script>
   <script>
+    PREVINE_ROTEIRO_90.mount(document.getElementById('roteiro-90-mount'));
     PREVINE_ABRIGO_FORM.mount(document.getElementById('abrigo-capacidade-mount'));
     document.getElementById('print-briefing').addEventListener('click', function () { window.print(); });
     document.getElementById('copy-briefing').addEventListener('click', function () {

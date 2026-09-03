@@ -1,18 +1,23 @@
 /* PREVINE · cache mínimo para centro de resposta e modo campo (pesquisa offline parcial). */
-var CACHE = 'previne-resposta-v4';
+var CACHE = 'previne-resposta-v5';
 var SHELL = [
   '/pesquisas/centro-resposta.html',
   '/pesquisas/modo-campo.html',
+  '/pesquisas/briefing-gestores.html',
   '/pesquisas/revisao-multiperspectiva.html',
+  '/pesquisas/benchmark-hand-hidrodinamica.html',
   '/pesquisas/estudo-caso-resposta-mucum.html',
   '/pesquisas/estudo-caso-resposta-santa-tereza.html',
   '/pesquisas/exposicao-cruzada.html',
   '/previsao_ao_vivo.json',
   '/previsao_ao_vivo_mucum.json',
   '/assets/data/exposicao_cruzada/exposicao_mucum.json',
+  '/assets/data/exposicao_cruzada/exposicao_mucum_v2.json',
+  '/assets/data/exposicao_cruzada/exposicao_santa_tereza_v2.json',
   '/assets/data/exposicao_cruzada/grade_exposta_mucum.geojson',
   '/assets/data/exposicao_cruzada/grade_exposta_santa_tereza.geojson',
   '/assets/data/exposicao_cruzada/indice.json',
+  '/assets/data/benchmark_hidrodinamica/indice.json',
   '/assets/data/validacao_eventos/relatorio_2023_2024.json',
   '/assets/data/vulnerabilidade/perigo/sgb_hand_cruzamento_st.json',
   '/assets/data/estudo_caso_resposta_mucum_v002.json',
@@ -29,7 +34,8 @@ var SHELL = [
   '/assets/css/mesa_facilitador.css',
   '/assets/js/hand_vs_hidro_block.js',
   '/assets/css/hand_vs_hidro_block.css',
-  '/assets/js/abrigo_capacidade_form.js'
+  '/assets/js/abrigo_capacidade_form.js',
+  '/assets/js/briefing_roteiro_90.js'
 ];
 
 self.addEventListener('install', function (event) {
