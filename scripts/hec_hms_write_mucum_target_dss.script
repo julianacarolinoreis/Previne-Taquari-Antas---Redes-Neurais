@@ -63,10 +63,12 @@ dss.close()
 print("WROTE_MUCUM_TARGET_DSS|%s" % target)
 
 local_values = {}
+local_86472000_values = {}
 local_02851072_values = {}
 with open(local_csv, "rb") as local_handle:
     for local_row in csv.DictReader(local_handle):
         local_values[local_row["COD_SEQUENCIAL"]] = local_row.get("chuva_86472600", "")
+        local_86472000_values[local_row["COD_SEQUENCIAL"]] = local_row.get("chuva_86472000", "")
         local_02851072_values[local_row["COD_SEQUENCIAL"]] = local_row.get("chuva_02851072", "")
 
 local_dss = HecDss.open(local_target)
@@ -87,6 +89,12 @@ for source in sorted(glob.glob(source_dir + "/event_*_hourly.csv")):
     year, month, day = [int(value) for value in first_date.split("-")]
     d_part = "01%s%04d" % (months[month - 1], year)
     put_series(local_dss, "/MUCUM/RAIN_E%s_86472600/PRECIP-INC/%s/1Hour/OBS/" % (event_id, d_part), local_rows, "local_rain", "MM", "PER-CUM")
+    local_rows_86472000 = []
+    for row in source_rows:
+        date, hour = row["timestamp_label"].split(" ")
+        cod = date.replace("-", "") + hour[:2] + "00"
+        local_rows_86472000.append({"timestamp_label": row["timestamp_label"], "local_rain": local_86472000_values.get(cod, "")})
+    put_series(local_dss, "/MUCUM/RAIN_E%s_86472000/PRECIP-INC/%s/1Hour/OBS/" % (event_id, d_part), local_rows_86472000, "local_rain", "MM", "PER-CUM")
     local_rows_02851072 = []
     for row in source_rows:
         date, hour = row["timestamp_label"].split(" ")

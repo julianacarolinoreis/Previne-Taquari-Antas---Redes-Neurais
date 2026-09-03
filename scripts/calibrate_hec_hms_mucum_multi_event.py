@@ -26,6 +26,7 @@ MULTI_DSS = ROOT / "assets" / "data" / "hec_hms_calibration" / "mucum_target_mul
 LOCAL_RAIN_DSS = ROOT / "assets" / "data" / "hec_hms_calibration" / "mucum_local_rain_candidates.dss"
 LOCAL_RAIN_ALL_DSS = ROOT / "assets" / "data" / "hec_hms_calibration" / "mucum_local_rain_all_events.dss"
 LOCAL_AVERAGE_RAIN_DSS = ROOT / "assets" / "data" / "hec_hms_calibration" / "mucum_local_rain_average.dss"
+SPATIAL_THIESSEN_RAIN_DSS = ROOT / "assets" / "data" / "hec_hms_calibration" / "mucum_spatial_rain_thiessen.dss"
 LOCAL_RAIN_CSV = ROOT / "assets" / "data" / "chuvas_horarias.csv"
 INPUT_DSS = MULTI_DSS
 OUT_ROOT = ROOT / "assets" / "data" / "hec_hms_calibration" / "mucum_multi_event_calibration"
@@ -57,11 +58,20 @@ def event_specs(wanted: set[int] | None = None, rain_source: str = "ana86472000"
             with derived.open(encoding="utf-8", newline="") as derived_handle:
                 derived_rows = list(csv.DictReader(derived_handle))
             local_rain = {}
-            if rain_source in ("local86472600", "local02851072"):
+            if rain_source in ("local86472600", "local02851072", "local_thiessen"):
                 with LOCAL_RAIN_CSV.open(encoding="utf-8", newline="") as local_handle:
                     for local_row in csv.DictReader(local_handle):
-                        column = "chuva_86472600" if rain_source == "local86472600" else "chuva_02851072"
-                        local_rain[local_row["COD_SEQUENCIAL"]] = local_row.get(column, "")
+                        if rain_source == "local86472600":
+                            local_rain[local_row["COD_SEQUENCIAL"]] = local_row.get("chuva_86472600", "")
+                        elif rain_source == "local02851072":
+                            local_rain[local_row["COD_SEQUENCIAL"]] = local_row.get("chuva_02851072", "")
+                        else:
+                            a = local_row.get("chuva_86472000", "").strip()
+                            b = local_row.get("chuva_02851072", "").strip()
+                            local_rain[local_row["COD_SEQUENCIAL"]] = (
+                                str(0.4550796672 * float(a) + 0.5449203328 * float(b))
+                                if a and b else ""
+                            )
             valid_rain_rows = []
             for rain_row in derived_rows:
                 rain_value = rain_row.get("86472000_rain_mm_sum", "")
@@ -69,7 +79,7 @@ def event_specs(wanted: set[int] | None = None, rain_source: str = "ana86472000"
                     rain_value = rain_row.get("86510000_rain_mm_sum", "")
                 if rain_source == "ana_composite":
                     rain_value = rain_row.get("86510000_rain_mm_sum", "") or rain_row.get("86472000_rain_mm_sum", "")
-                if rain_source in ("local86472600", "local02851072"):
+                if rain_source in ("local86472600", "local02851072", "local_thiessen"):
                     rain_dt = datetime.strptime(rain_row["timestamp_label"], "%Y-%m-%d %H:00:00")
                     rain_value = local_rain.get(rain_dt.strftime("%Y%m%d%H00"), "")
                 if not rain_value.strip():
@@ -153,10 +163,11 @@ End:
 """
 
 
-def met_text(spec: dict[str, object], area_km2: float) -> str:
+def met_text(spec: dict[str, object], area_km2: float, rain_source: str = "ana86472000") -> str:
     event_id = int(spec["id"])
+    rain_description = "Chuva espacializada Thiessen: ANA 86472000 + 02851072" if rain_source == "local_thiessen" else "Chuva horaria candidata ANA 86472000"
     return f"""Meteorology: Chuva E{event_id}
-     Description: Chuva horaria candidata ANA 86472000
+     Description: {rain_description}
      Last Modified Date: 02 September 2026
      Last Modified Time: 20:30
      Version: 4.13
@@ -341,6 +352,9 @@ def single_gage_text(spec: dict[str, object], rain_source: str = "ana86472000") 
     if rain_source == "local_average" and event_id == 27:
         rain_filename = "mucum_local_rain_average.dss"
         rain_path = "/MUCUM/RAIN_E27_AVG_86472000_86472600/PRECIP-INC/01Apr2024/1Hour/OBS/"
+    if rain_source == "local_thiessen":
+        rain_filename = "mucum_spatial_rain_thiessen.dss"
+        rain_path = f"/MUCUM/RAIN_E{event_id}_THIESSEN_86510000/PRECIP-INC/{dpart}/1Hour/OBS/"
     return f"""Gage Manager: Mucum E{event_id}
      Gage Manager: Mucum E{event_id}
      Version: 4.13
@@ -395,13 +409,15 @@ def make_candidate(index: int, params: dict[str, float], specs: list[dict[str, o
         shutil.copy2(INPUT_DSS, event_dir / "mucum_multi_event.dss")
         if rain_source in ("local86472600", "local02851072"):
             shutil.copy2(LOCAL_RAIN_ALL_DSS, event_dir / "mucum_local_rain_all_events.dss")
+        if rain_source == "local_thiessen":
+            shutil.copy2(SPATIAL_THIESSEN_RAIN_DSS, event_dir / "mucum_spatial_rain_thiessen.dss")
         if rain_source == "local_average" and event_id == 27:
             shutil.copy2(LOCAL_AVERAGE_RAIN_DSS, event_dir / "mucum_local_rain_average.dss")
         (event_dir / f"mucum_E{event_id}.hms").write_text(single_project_text(spec, area_km2), encoding="utf-8")
         (event_dir / f"mucum_E{event_id}.run").write_text(single_run_text(spec, area_km2), encoding="utf-8")
         (event_dir / f"mucum_E{event_id}.gage").write_text(single_gage_text(spec, rain_source), encoding="utf-8")
         (event_dir / f"bacia_E{event_id}.basin").write_text(basin_text(event_id, params, area_km2), encoding="utf-8")
-        (event_dir / f"chuva_E{event_id}.met").write_text(met_text(spec, area_km2), encoding="utf-8")
+        (event_dir / f"chuva_E{event_id}.met").write_text(met_text(spec, area_km2, rain_source), encoding="utf-8")
         (event_dir / f"evento_E{event_id}.control").write_text(control_text(spec), encoding="utf-8")
     return candidate
 
@@ -603,7 +619,7 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--timeout", type=int, default=240)
     parser.add_argument("--events", default="19,22,24,26,27,28")
-    parser.add_argument("--rain-source", choices=["ana86472000", "ana86510000", "ana_composite", "local86472600", "local02851072", "local_average"], default="ana86472000")
+    parser.add_argument("--rain-source", choices=["ana86472000", "ana86510000", "ana_composite", "local86472600", "local02851072", "local_average", "local_thiessen"], default="ana86472000")
     parser.add_argument("--output-dir", type=Path, default=OUT_ROOT)
     parser.add_argument("--input-dss", type=Path, default=MULTI_DSS)
     parser.add_argument("--area-km2", type=float, default=BASIN_AREA_KM2)
@@ -611,8 +627,8 @@ def main() -> int:
     if not HEC_CMD.exists() or not MULTI_DSS.exists():
         raise SystemExit("HEC-HMS or multi-event DSS is missing")
     wanted = {int(item.strip()) for item in args.events.split(",") if item.strip()}
-    OUT_ROOT = args.output_dir
-    INPUT_DSS = args.input_dss
+    OUT_ROOT = args.output_dir.resolve()
+    INPUT_DSS = args.input_dss.resolve()
     BASIN_AREA_KM2 = args.area_km2
     specs = event_specs(wanted, args.rain_source)
     OUT_ROOT.mkdir(parents=True, exist_ok=True)
