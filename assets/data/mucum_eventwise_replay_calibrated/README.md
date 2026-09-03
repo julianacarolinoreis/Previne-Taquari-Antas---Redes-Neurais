@@ -11,7 +11,7 @@ Foram preservados os três eventos que atenderam ao gate interno desta rodada:
 
 | Evento | Período | Chuva usada | NSE | Pico simulado / observado | Atraso do pico | Erro relativo do pico |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
-| E24 | nov/2023 | ANA 86472000 | 0,8669 | 13.569 / 11.435 m³/s | -2 h | 18,66% |
+| E24 | nov/2023 | ANA 86472000 | 0,8804 | 12.983 / 11.435 m³/s | -2 h | 13,54% |
 | E27 | mai/2024 | ANA 86472000 | 0,7853 | 13.499 / 14.525 m³/s | 0 h | 7,07% |
 | E28 | jun/2024 | ANA 86472000 | 0,9125 | 7.930 / 7.887 m³/s | -1 h | 0,54% |
 
@@ -20,14 +20,22 @@ baixo e atraso absoluto de no máximo duas horas; para a seleção final, foi da
 preferência a atraso de zero ou uma hora. Os números acima são calculados
 somente nas horas pareadas e existentes na série observada.
 
+E24 foi refinado em 03/09/2026 com 288 combinações focadas nos parâmetros de
+perda, concentração, armazenamento e recessão. O novo candidato reduziu o
+RMSE de 1.065,3 para 1.009,9 m³/s e o erro relativo do pico de 18,66% para
+13,54%, mantendo o atraso de -2 h. A versão anterior foi preservada em
+`event_E24_published_20260902/` e a tabela completa da busca em
+`E24_focused_search_results.csv`.
+
 ## Eventos não fechados
 
 - E19 (mai/2023): melhor busca com NSE 0,2091 e atraso de 3 h. A vazão-alvo já
   subia quando as chuvas pontuais disponíveis ainda estavam zeradas; não foi
   promovido.
-- E22 (set/2023): melhor busca com NSE 0,5785, pico subestimado em 33,96% e
-  somente 110 horas pareadas, porque o posto-alvo tem uma interrupção longa
-  durante o evento; não foi promovido.
+- E22 (set/2023): busca focada de 288 combinações chegou a NSE 0,6516,
+  RMSE 952,6 m³/s, atraso de 0 h e pico subestimado em 33,73%. Ainda há
+  somente 110 horas pareadas e uma interrupção longa no posto-alvo; continua
+  como diagnóstico em `diagnostics/E22_partial/`, não foi promovido.
 - E26 (abr/2024): NSE 0,3784, apesar de erro de pico de 12,74% e atraso de 2 h.
   A subida observada começa antes de uma chuva coerente nas fontes pontuais;
   não foi promovido.

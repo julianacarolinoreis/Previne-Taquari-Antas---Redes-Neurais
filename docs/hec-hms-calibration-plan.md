@@ -32,16 +32,16 @@ resposta observada, o evento foi mantido como pendente.
 
 Cada evento foi ajustado em projeto HEC-HMS isolado, usando a estação de
 resposta `86510000` e área de 16.000 km². A busca inicial avaliou 360
-combinações por evento; uma busca fina adicional de 240 combinações foi
-executada para E27 e E28. O critério interno de seleção combina NSE, erro
+combinações por evento; buscas focadas adicionais foram executadas para E24,
+E27 e E28. O critério interno de seleção combina NSE, erro
 relativo do pico e atraso absoluto do pico de no máximo duas horas, preferindo
 zero ou uma hora. Esse critério é de pesquisa e não um padrão operacional.
 
 | Evento | Período | Status | NSE | Pico simulado / observado | Atraso | Erro relativo do pico |
 |---|---|---:|---:|---:|---:|---:|
 | E19 | maio/2023 | pendente | 0,2091 | 1.267 / 1.408 m³/s | −3 h | 10,02% |
-| E22 | setembro/2023 | pendente | 0,5785 | 6.893 / 10.438 m³/s | 0 h | 33,96% |
-| E24 | novembro/2023 | replay calibrado | 0,8669 | 13.569 / 11.435 m³/s | −2 h | 18,66% |
+| E22 | setembro/2023 | pendente refinado | 0,6516 | 6.917 / 10.438 m³/s | 0 h | 33,73% |
+| E24 | novembro/2023 | replay calibrado refinado | 0,8804 | 12.983 / 11.435 m³/s | −2 h | 13,54% |
 | E26 | abril/2024 | pendente | 0,3784 | 1.375 / 1.576 m³/s | +2 h | 12,74% |
 | E27 | maio/2024 | replay calibrado | 0,7853 | 13.499 / 14.525 m³/s | 0 h | 7,07% |
 | E28 | junho/2024 | replay calibrado | 0,9125 | 7.930 / 7.887 m³/s | −1 h | 0,54% |
@@ -53,12 +53,38 @@ gate interno desta pesquisa. O pacote guarda os projetos, séries observadas e
 simuladas, parâmetros e métricas por evento em
 `assets/data/mucum_eventwise_replay_calibrated/`.
 
+O E24 foi refinado em 03/09/2026 com 288 combinações focadas. O melhor
+candidato reduziu o RMSE para 1.009,9 m³/s e o erro relativo do pico para
+13,54%, mantendo o atraso de −2 h. A busca completa está em
+`assets/data/mucum_eventwise_replay_calibrated/E24_focused_search_results.csv`;
+a versão anterior foi preservada em `event_E24_published_20260902/`.
+
 E19, E22 e E26 não foram promovidos. Em E19, a vazão observada sobe enquanto
 as chuvas disponíveis permanecem nulas no início do recorte; o conjunto atual
-não identifica essa resposta. E22 tem uma interrupção prolongada na série de
-resposta durante o evento, além de subestimar o pico. E26 é curto e apresenta
-desalinhamento entre chuva disponível e resposta. Esses eventos continuam no
-pacote como diagnóstico para a próxima rodada, não como calibração encerrada.
+não identifica essa resposta. E22 recebeu uma busca focada de 288 combinações;
+melhorou o NSE e o erro de pico, mas ainda tem interrupção prolongada na série
+de resposta e subestimação de 33,73%. E26 é curto e apresenta desalinhamento
+entre chuva disponível e resposta. Esses eventos continuam no pacote como
+diagnóstico para a próxima rodada, não como calibração encerrada.
+
+## Santa Tereza: replay de nível já fechado
+
+Santa Tereza agora tem um pacote separado em
+`assets/data/santa_tereza_eventwise_replay_rna_2h/`. Ele contém 21 eventos,
+2.677 pontos horários, a série observada, a série prevista pela RNA de 2 horas,
+erro do pico e atraso calculado por timestamp. A visualização é
+`santa_tereza_event_replay.html`; ela pode ser aberta diretamente no navegador
+e também foi ligada à sala integrada.
+
+Os episódios E4 (setembro/2023), E6 (novembro/2023) e E9 (maio/2024) estão
+disponíveis como replay histórico. Eles pertencem ao treino do modelo
+selecionado e, portanto, servem para reconstruir a pesquisa, não para declarar
+validação independente. O E12 é o caso de teste independente da rotação.
+
+Esse pacote ainda não é uma calibração HEC-HMS de vazão para Santa Tereza. A
+estação 86472600 tem identidade oficial de Santa Tereza no Rio Taquari, mas a
+auditoria local ainda não fecha uma série horária de vazão e uma curva-chave
+reconciliada. Não foi feita conversão de centímetros para m³/s por hipótese.
 
 ## Limite do MDT e do modelo atual
 
