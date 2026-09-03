@@ -39,6 +39,11 @@ lacuna oficial de chuva em 02/05/2024 está documentada em
 Também há uma versão navegável para o Pages em
 `E27_calibration_audit_20260903.html`.
 
+O teste de generalização com um único conjunto de parâmetros para E24, E27 e
+E28 está documentado em
+`multi_event_common_calibration_audit_20260903.md` e em sua versão HTML
+`multi_event_common_calibration_audit_20260903.html`.
+
 ## Eventos não fechados
 
 - E19 (mai/2023): melhor busca com NSE 0,2091 e atraso de 3 h. A vazão-alvo já
