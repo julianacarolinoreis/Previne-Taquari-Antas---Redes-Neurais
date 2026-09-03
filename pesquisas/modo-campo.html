@@ -152,7 +152,7 @@
       function refresh() {
         Promise.all([
           R.fetchLive(current),
-          current === 'mucum' ? R.fetchExposurePeak('mucum') : Promise.resolve(null)
+          R.fetchExposurePeak(current)
         ]).then(function (parts) {
           var feed = parts[0];
           var exp = parts[1];

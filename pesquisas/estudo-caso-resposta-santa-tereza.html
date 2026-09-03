@@ -817,6 +817,12 @@
             <div><b id="munOlder">553</b><span>pessoas 60+</span></div>
             <div><b id="munPcd">128</b><span>PcD · 2 anos+</span></div>
           </div>
+          <div class="municipal-context" id="exposure-compare" style="margin-top:8px" aria-label="Exposição HAND v1 vs v2">
+            <div><b id="exp-v1-pop">—</b><span>exposição v1 · centroide @15 m</span></div>
+            <div><b id="exp-v2-pop">—</b><span>exposição v2 · areal @15 m</span></div>
+            <div><b id="exp-v2-pct">—</b><span>% município · v2</span></div>
+          </div>
+          <p class="panel-note" id="exp-compare-note">Carregando comparação v1/v2 da grade 200 m…</p>
         </section>
 
         <section class="panel" aria-labelledby="abrigo-export-title">
@@ -2539,6 +2545,38 @@
     announce(restored ? "Registro local restaurado; confira o estado antes de continuar o exercício." : "Exercício aberto no modo local; nenhuma ação externa foi executada.");
   </script>
   <script src="../assets/js/resposta_operacional.js"></script>
+  <script>
+    (function () {
+      function peakAt(data, hand) {
+        if (!data || !data.niveis) return null;
+        return data.niveis.find(function (n) { return Math.abs(n.hand_m - hand) < 0.01; }) || null;
+      }
+      function set(id, text) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = text;
+      }
+      Promise.all([
+        fetch('../assets/data/exposicao_cruzada/exposicao_santa_tereza.json').then(function (r) { return r.ok ? r.json() : null; }),
+        fetch('../assets/data/exposicao_cruzada/exposicao_santa_tereza_v2.json').then(function (r) { return r.ok ? r.json() : null; })
+      ]).then(function (parts) {
+        var v1 = peakAt(parts[0], 15);
+        var v2 = peakAt(parts[1], 15);
+        var fmt = function (n) { return n == null ? '—' : Number(n).toLocaleString('pt-BR'); };
+        set('exp-v1-pop', v1 && v1.grade_200m ? '~' + fmt(v1.grade_200m.pop) : '—');
+        set('exp-v2-pop', v2 && v2.grade_200m ? '~' + fmt(v2.grade_200m.pop) : '—');
+        set('exp-v2-pct', v2 && v2.pct_pop_municipio != null ? v2.pct_pop_municipio + '%' : '—');
+        var note = document.getElementById('exp-compare-note');
+        if (note) {
+          note.textContent = (v1 && v2)
+            ? 'v1 centroide ~' + fmt(v1.grade_200m.pop) + ' · v2 areal ~' + fmt(v2.grade_200m.pop) + ' pessoas @ HAND 15 m · não é lista nominal.'
+            : 'Exposição cruzada indisponível nesta abertura.';
+        }
+      }).catch(function () {
+        var note = document.getElementById('exp-compare-note');
+        if (note) note.textContent = 'Não foi possível carregar a comparação v1/v2.';
+      });
+    })();
+  </script>
   <script src="../assets/js/abrigo_capacidade_form.js"></script>
   <script src="../assets/js/mesa_st_plantao.js"></script>
   <script src="../assets/js/mesa_facilitador.js"></script>

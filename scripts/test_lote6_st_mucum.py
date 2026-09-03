@@ -63,9 +63,9 @@ def test_stale_links_fixed() -> None:
     assert "estudo-caso-resposta-mucum.html" in briefing
 
 
-def test_sw_v7() -> None:
+def test_sw_v8() -> None:
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
-    assert "previne-resposta-v7" in sw
+    assert "previne-resposta-v8" in sw
 
 
 if __name__ == "__main__":
@@ -78,7 +78,7 @@ if __name__ == "__main__":
         test_mucum_previsao_live_status_note,
         test_mucum_contract_v2_exposure,
         test_stale_links_fixed,
-        test_sw_v7,
+        test_sw_v8,
     ):
         fn()
     print("LOTE6_QA_OK")

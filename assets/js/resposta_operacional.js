@@ -508,6 +508,79 @@
     return lines.join('\n');
   }
 
+  function syncRotaFieldChecks(placeKey, fieldChecks) {
+    var checks = fieldChecks || {};
+    var prefix = placeKey + '_';
+    var mapped = {};
+    if (checks.access) {
+      mapped[prefix + 'route_ok'] = true;
+      mapped[prefix + 'bridge_ok'] = true;
+    }
+    if (checks.shelter || checks.capacity) mapped[prefix + 'shelter_ok'] = true;
+    if (checks.comms) {
+      mapped[prefix + 'comms_ok'] = true;
+      mapped[prefix + 'radio_ok'] = true;
+    }
+    syncFieldChecklist(placeKey, mapped);
+    return mapped;
+  }
+
+  function buildFieldValidationPayload(options) {
+    options = options || {};
+    var place = PLACES[options.placeKey] || null;
+    return {
+      schema_version: 2,
+      mode: 'research_field_validation',
+      exported_at: new Date().toISOString(),
+      timezone: 'America/Sao_Paulo',
+      municipio: options.municipio || (place && place.label) || '',
+      place_key: options.placeKey || '',
+      operational_gate: 'blocked',
+      field_checks: options.fieldChecks || {},
+      records: Array.isArray(options.records) ? options.records : [],
+      source_provenance: options.source || null,
+      note: 'Registro de exercício · não libera rota, abrigo nem despacho.'
+    };
+  }
+
+  function exportFieldValidationCsv(payload) {
+    payload = payload || {};
+    var lines = [
+      '# PREVINE · validação de campo · ' + (payload.exported_at || ''),
+      '# municipio,' + csvEscape(payload.municipio || ''),
+      '# operational_gate,blocked',
+      '',
+      ['check_id', 'checked'].map(csvEscape).join(',')
+    ];
+    var checks = payload.field_checks || {};
+    Object.keys(checks).forEach(function (id) {
+      lines.push([id, checks[id] ? 'yes' : 'no'].map(csvEscape).join(','));
+    });
+    lines.push('');
+    lines.push(['target', 'status', 'when', 'responsible', 'evidence', 'note'].map(csvEscape).join(','));
+    (payload.records || []).forEach(function (row) {
+      lines.push([
+        row.target_label || row.target,
+        row.status,
+        row.when,
+        row.responsible,
+        row.evidence,
+        row.note
+      ].map(csvEscape).join(','));
+    });
+    return lines.join('\n');
+  }
+
+  function downloadJson(filename, obj) {
+    var blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
   global.PREVINE_RESPOSTA = {
     CHECKLIST_ITEMS: CHECKLIST_ITEMS,
     CHECKLIST_KEY: CHECKLIST_KEY,
@@ -532,6 +605,10 @@
     exportDecisionCsv: exportDecisionCsv,
     exportUnifiedAta: exportUnifiedAta,
     downloadCsv: downloadCsv,
+    downloadJson: downloadJson,
+    syncRotaFieldChecks: syncRotaFieldChecks,
+    buildFieldValidationPayload: buildFieldValidationPayload,
+    exportFieldValidationCsv: exportFieldValidationCsv,
     fetchLive: fetchLive,
     fetchExposurePeak: fetchExposurePeak,
     summarizeHorizons: summarizeHorizons,
