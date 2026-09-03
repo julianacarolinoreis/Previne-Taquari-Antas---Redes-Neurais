@@ -31,6 +31,12 @@ As alternativas e a referência anterior estão em
 `event_E24_published_20260902/`. O refinamento local que gerou a seleção está
 em `E24_loss_timing_refinement_20260903.csv`.
 
+O E27 também recebeu uma nova rodada de auditoria: 60 combinações no entorno
+da configuração publicada e testes com a chuva da estação 86510000 e uma
+composição entre estações. Nenhuma alternativa superou o replay vigente; a
+lacuna oficial de chuva em 02/05/2024 está documentada em
+`E27_calibration_audit_20260903.md`.
+
 ## Eventos não fechados
 
 - E19 (mai/2023): melhor busca com NSE 0,2091 e atraso de 3 h. A vazão-alvo já
