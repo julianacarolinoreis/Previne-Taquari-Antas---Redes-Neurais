@@ -28,8 +28,20 @@ def load_engine():
     return module
 
 
-def focused_grid(event_id: int) -> dict[str, list[float]]:
+def focused_grid(event_id: int, profile: str) -> dict[str, list[float]]:
     if event_id == 24:
+        if profile == "timing_peak":
+            # Fine neighborhood around the best timing/peak trade-off found
+            # in the first focused search. This is a diagnostic search: no
+            # timestamp shift or post-hoc hydrograph editing is allowed.
+            return {
+                "initial_loss": [5.5, 7.5, 9.5],
+                "constant_loss": [0.65, 0.75, 0.85],
+                "tc_min": [22.5, 25.0, 27.5],
+                "storage_min": [25.0, 30.0, 35.0],
+                "recession_factor": [0.7, 0.75],
+                "initial_flow_area_ratio": [0.001, 0.0025],
+            }
         # Published E24 replay: IL=5, CL=0.5, Tc=20 min, storage=30 min,
         # recession=0.7, initial-flow/area=0.0025.
         return {
@@ -60,10 +72,11 @@ def main() -> int:
     parser.add_argument("--event", type=int, choices=[22, 24], required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--timeout", type=int, default=240)
+    parser.add_argument("--profile", choices=["default", "timing_peak"], default="default")
     args = parser.parse_args()
 
     engine = load_engine()
-    engine.GRID = focused_grid(args.event)
+    engine.GRID = focused_grid(args.event, args.profile)
     count = 1
     for values in engine.GRID.values():
         count *= len(values)

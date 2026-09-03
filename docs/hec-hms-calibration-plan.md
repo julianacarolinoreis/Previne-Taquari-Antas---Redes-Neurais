@@ -41,7 +41,7 @@ zero ou uma hora. Esse critério é de pesquisa e não um padrão operacional.
 |---|---|---:|---:|---:|---:|---:|
 | E19 | maio/2023 | pendente | 0,2091 | 1.267 / 1.408 m³/s | −3 h | 10,02% |
 | E22 | setembro/2023 | pendente refinado | 0,6516 | 6.917 / 10.438 m³/s | 0 h | 33,73% |
-| E24 | novembro/2023 | replay calibrado refinado | 0,8804 | 12.983 / 11.435 m³/s | −2 h | 13,54% |
+| E24 | novembro/2023 | replay calibrado · prioridade temporal | 0,8716 | 12.672 / 11.435 m³/s | 0 h | 10,82% |
 | E26 | abril/2024 | pendente | 0,3784 | 1.375 / 1.576 m³/s | +2 h | 12,74% |
 | E27 | maio/2024 | replay calibrado | 0,7853 | 13.499 / 14.525 m³/s | 0 h | 7,07% |
 | E28 | junho/2024 | replay calibrado | 0,9125 | 7.930 / 7.887 m³/s | −1 h | 0,54% |
@@ -53,11 +53,12 @@ gate interno desta pesquisa. O pacote guarda os projetos, séries observadas e
 simuladas, parâmetros e métricas por evento em
 `assets/data/mucum_eventwise_replay_calibrated/`.
 
-O E24 foi refinado em 03/09/2026 com 288 combinações focadas. O melhor
-candidato reduziu o RMSE para 1.009,9 m³/s e o erro relativo do pico para
-13,54%, mantendo o atraso de −2 h. A busca completa está em
-`assets/data/mucum_eventwise_replay_calibrated/E24_focused_search_results.csv`;
-a versão anterior foi preservada em `event_E24_published_20260902/`.
+O E24 foi refinado em 03/09/2026 com uma vizinhança fina de 324 combinações
+possíveis. A solução principal escolhida para resposta tem pico alinhado na
+mesma hora (`0 h`), NSE 0,8716, RMSE 1.046,3 m³/s e erro relativo de 10,82%.
+Uma alternativa com erro de pico de 1,18% e atraso de 1 h foi preservada no
+arquivo `assets/data/mucum_eventwise_replay_calibrated/E24_timing_peak_tradeoffs.csv`.
+A versão anterior permanece em `event_E24_published_20260902/`.
 
 E19, E22 e E26 não foram promovidos. Em E19, a vazão observada sobe enquanto
 as chuvas disponíveis permanecem nulas no início do recorte; o conjunto atual

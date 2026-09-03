@@ -1,6 +1,7 @@
 {
   "schema_version": "1.0.0",
   "created_at": "2026-09-02",
+  "updated_at": "2026-09-03",
   "status": "research_replay_only",
   "software": {
     "model": "HEC-HMS",
@@ -161,27 +162,28 @@
     {
       "id": "E24",
       "period": "2023-11-16 00:00 to 2023-11-25 23:00 BRT",
-      "status": "calibrated_replay_improved",
-      "best_candidate": 78,
-      "search": "focused_timing_peak_E24_20260903",
+      "status": "calibrated_replay_timing_priority",
+      "best_candidate": 41,
+      "search": "focused_timing_peak_E24_20260903_partial",
       "parameters": {
-        "initial_loss": 2.5,
+        "initial_loss": 5.5,
         "constant_loss": 0.75,
-        "time_of_concentration_min": 20,
+        "time_of_concentration_min": 22.5,
         "storage_min": 30,
         "recession": 0.7,
-        "initial_flow_adjustment": 0.0025
+        "initial_flow_adjustment": 0.001
       },
       "metrics": {
         "paired_hours": 238,
-        "NSE": 0.8804239618,
-        "RMSE_m3s": 1009.867,
+        "NSE": 0.8716317459,
+        "RMSE_m3s": 1046.335,
         "observed_peak_m3s": 11434.95,
-        "simulated_peak_m3s": 12982.866,
-        "peak_lag_hours": -2,
-        "peak_relative_error": 0.1353670
+        "simulated_peak_m3s": 12672.153,
+        "peak_lag_hours": 0,
+        "peak_relative_error": 0.1081948
       },
       "rainfall_source": "86472000",
+      "selection_note": "Prioriza alinhamento temporal para resposta; alternativa de menor erro de pico registrada em E24_timing_peak_tradeoffs.csv",
       "package_path": "event_E24"
     },
     {
@@ -282,6 +284,7 @@
     ],
     "previous_E24_reference": "assets/data/mucum_eventwise_replay_calibrated/event_E24_published_20260902",
     "focused_E24_search_results": "assets/data/mucum_eventwise_replay_calibrated/E24_focused_search_results.csv",
+    "focused_E24_timing_peak_tradeoffs": "assets/data/mucum_eventwise_replay_calibrated/E24_timing_peak_tradeoffs.csv",
     "pending_event_diagnostics": [
       "assets/data/mucum_eventwise_replay_calibrated/diagnostics/E19",
       "assets/data/mucum_eventwise_replay_calibrated/diagnostics/E22_partial",
