@@ -47,6 +47,13 @@ E28 está documentado em
 A matriz consolidada dos seis eventos HEC-HMS de Muçum está disponível em
 `matriz_calibracao_hec_hms_mucum_20260903.html`.
 
+A auditoria específica da tentativa de eliminar todos os atrasos está em
+`zero_lag_calibration_audit_20260903.md` e em sua versão navegável
+`zero_lag_calibration_audit_20260903.html`. Ela mostra por que E19 e E26 não
+aceitam atraso zero sem destruir a curva e por que o E28 tem um compromisso de
+0,5 h no passo de 15 minutos, mas ainda não uma solução sem atraso e com erro
+de pico baixo.
+
 ## Eventos não fechados
 
 - E19 (mai/2023): melhor busca com NSE 0,2091 e atraso de 3 h. A vazão-alvo já
