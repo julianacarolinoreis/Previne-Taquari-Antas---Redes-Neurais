@@ -19,6 +19,8 @@ def fmt(x, nd=4):
 
 
 def verdict(delta_nash, delta_e95):
+    if delta_e95 is None:
+        return "empate"
     if delta_nash > 0.002 and delta_e95 <= 0:
         return "ganho"
     if delta_nash < -0.002 or delta_e95 > 1.0:
@@ -26,9 +28,11 @@ def verdict(delta_nash, delta_e95):
     return "empate"
 
 
-def render_table(summary, title=""):
+def render_table(summary, title="", footnote=""):
     rows = summary.get("ganhos", []) + summary.get("empates", []) + summary.get("perdas", [])
     html = [f"<h3>{title}</h3>" if title else ""]
+    if footnote:
+        html.append(f"<p class='meta'>{footnote}</p>")
     if not rows:
         html.append("<p>Sem comparações disponíveis.</p>")
         return "\n".join(html)
@@ -37,7 +41,7 @@ def render_table(summary, title=""):
         "<th>PERS base</th><th>PERS MIMO</th><th>E95 base</th><th>E95 MIMO</th><th>Δ E95</th><th>Leitura</th></tr></thead><tbody>"
     )
     for row in rows:
-        v = verdict(row["delta_nash"], row["delta_e95_cm"])
+        v = verdict(row["delta_nash"], row.get("delta_e95_cm"))
         cls = {"ganho": "good", "perda": "bad", "empate": "neutral"}[v]
         base = row.get("direct") or {}
         mimo = row["mimo"]
@@ -45,7 +49,7 @@ def render_table(summary, title=""):
             f"<tr class='{cls}'><td>{row['horizonte']}</td>"
             f"<td>{fmt(base.get('nash'))}</td><td>{fmt(mimo.get('nash'))}</td><td>{fmt(row['delta_nash'])}</td>"
             f"<td>{fmt(base.get('pers'))}</td><td>{fmt(mimo.get('pers'))}</td>"
-            f"<td>{fmt(base.get('e95'),1)}</td><td>{fmt(mimo.get('e95'),1)}</td><td>{fmt(row['delta_e95_cm'],1)}</td>"
+            f"<td>{fmt(base.get('e95'),1)}</td><td>{fmt(mimo.get('e95'),1)}</td><td>{fmt(row.get('delta_e95_cm'),1)}</td>"
             f"<td>{v}</td></tr>"
         )
     html.append("</tbody></table>")
@@ -102,7 +106,7 @@ ul{{padding-left:20px}}
 <div class='box'>
 <strong>Pergunta:</strong> uma única rede prevendo 2h+4h (+8h) supera modelos Direct?<br>
 <strong>Comparação justa:</strong> Direct scratch vs MIMO — mesmo pipeline Python.<br>
-<strong>Teto operacional:</strong> .mat MATLAB auditados.<br>
+<strong>Teto operacional:</strong> métricas do .mat no <em>teste completo</em> (`mat_reference_metrics_teste`). O replay alinhado do .mat dá NASH≈1 e não é teto.<br>
 <strong>Extra:</strong> leave-one-event-out, loss de trajetória e correção pós-hoc em subidas.
 </div>
 
@@ -122,7 +126,16 @@ ul{{padding-left:20px}}
 <p>MIMO base: nh={exp1['mimo']['training']['hidden']}, seed={exp1['mimo']['training']['seed']}.</p>
 {render_table(exp1['summary_scratch_vs_mimo'], 'Direct scratch vs MIMO base')}
 {render_table(repair_summary, 'Direct scratch vs MIMO + correção pós-hoc')}
-{render_table(exp1['summary_mat_vs_mimo'], '.mat auditado vs MIMO (teto)')}
+{render_table(
+    exp1['summary_mat_vs_mimo'],
+    '.mat (teste completo) vs MIMO — teto operacional',
+    footnote='Baseline = mat_reference_metrics_teste. Não usar o replay alinhado (NASH≈1) como teto.',
+)}
+{render_table(
+    exp1.get('summary_mat_aligned_replay_vs_mimo') or {'ganhos': [], 'empates': [], 'perdas': []},
+    '.mat alinhado (replay) vs MIMO — auditoria, não teto',
+    footnote=data['method'].get('note_mat_aligned_replay') or 'Replay das predições armazenadas no .mat no recorte alinhado.',
+)}
 
 <h2>4. Leave-one-event-out</h2>
 <p>Status: {loo.get('status')} · eventos avaliados: {loo.get('n_events_evaluated')}</p>

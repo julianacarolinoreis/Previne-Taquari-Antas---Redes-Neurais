@@ -288,6 +288,48 @@ def build_summary_vs(direct, mimo, recursive=None):
     return summary
 
 
+def build_summary_vs_mat_reference(ref_metrics: dict, mimo: dict) -> dict:
+    """Compara MIMO (recorte alinhado) ao teto real do .mat no teste completo.
+
+    O `direct_mat` no recorte alinhado reproduz as predições armazenadas no .mat
+    (NASH≈1) e NÃO deve ser usado como teto operacional.
+    """
+    summary = {"ganhos": [], "perdas": [], "empates": [], "baseline": "mat_reference_metrics_teste"}
+    teste = mimo.get("splits", {}).get("teste", {})
+    for hz, m in teste.items():
+        ref = ref_metrics.get(hz) or {}
+        if ref.get("nash") is None:
+            continue
+        d = {
+            "nash": float(ref["nash"]),
+            "pers": float(ref.get("pers")) if ref.get("pers") is not None else None,
+            "e95": float(ref.get("e95")) if ref.get("e95") is not None else None,
+            "mae": None,
+            "n": None,
+            "note": ref.get("note") or "mat completo (teste)",
+        }
+        delta_nash = m["nash"] - d["nash"]
+        delta_pers = (m["pers"] - d["pers"]) if d["pers"] is not None else None
+        delta_e95 = (m["e95"] - d["e95"]) if d["e95"] is not None else None
+        item = {
+            "horizonte": hz,
+            "delta_nash": round(delta_nash, 6),
+            "delta_pers": round(delta_pers, 6) if delta_pers is not None else None,
+            "delta_e95_cm": round(delta_e95, 3) if delta_e95 is not None else None,
+            "direct": {k: (round(d[k], 4) if isinstance(d[k], float) else d[k]) for k in ("nash", "pers", "e95", "mae", "n", "note")},
+            "mimo": {k: round(m[k], 4) if isinstance(m[k], float) else m[k] for k in ("nash", "pers", "e95", "mae", "n")},
+        }
+        if delta_e95 is None:
+            summary["empates"].append(item)
+        elif delta_nash > 0.002 and delta_e95 <= 0:
+            summary["ganhos"].append(item)
+        elif delta_nash < -0.002 or delta_e95 > 1.0:
+            summary["perdas"].append(item)
+        else:
+            summary["empates"].append(item)
+    return summary
+
+
 def leave_one_event_out(rows, datasets, input_idx, output_specs, hidden_sizes):
     events = sorted({r["event"] for r in rows if r.get("event") is not None})
     if len(events) < 3:
@@ -452,7 +494,13 @@ def run_all(output: Path) -> dict:
         predict_fn=mimo_repair_predict,
     )
     recursive24 = recursive_baseline(rows24, ds24)
-    summary24 = build_summary_vs(direct24, mimo15_24, recursive24)
+    summary24_replay = build_summary_vs(direct24, mimo15_24, recursive24)
+    mat_reference = {
+        "2h": {"nash": 0.9962, "pers": 0.9688, "e95": 10.39, "note": "mat completo, não recorte alinhado"},
+        "4h": {"nash": 0.9926, "pers": 0.8782, "e95": 58.84, "note": "mat completo"},
+        "8h_v001": {"note": "ver .mat; recorte alinhado menor"},
+    }
+    summary24 = build_summary_vs_mat_reference(mat_reference, mimo15_24)
     summary24_scratch = build_summary_vs(scratch24, mimo15_24)
     summary24_mono = build_summary_vs(scratch24, mimo15_mono)
     summary24_repair = build_summary_vs(scratch24, mimo_repair)
@@ -520,6 +568,10 @@ def run_all(output: Path) -> dict:
             "alignment_key": "nível ST + três primeiros inputs (arredondamento 0,1 cm)",
             "loo": "leave-one-event-out nos eventos do workbook auditável alinhado 2h+4h",
             "splits": {"1": "treino", "2": "validacao", "3": "teste"},
+            "note_mat_aligned_replay": (
+                "direct_mat no recorte alinhado reproduz as predições do .mat (NASH≈1). "
+                "O teto operacional usa mat_reference_metrics_teste (teste completo do .mat)."
+            ),
         },
         "datasets": {
             "2h_4h_aligned": {
@@ -539,6 +591,7 @@ def run_all(output: Path) -> dict:
                 "mimo_rising_repair": mimo_repair,
                 "recursive_2h_4h": recursive24,
                 "summary_mat_vs_mimo": summary24,
+                "summary_mat_aligned_replay_vs_mimo": summary24_replay,
                 "summary_scratch_vs_mimo": summary24_scratch,
                 "summary_scratch_vs_mimo_traj": summary24_mono,
                 "summary_scratch_vs_mimo_repair": summary24_repair,
@@ -563,11 +616,7 @@ def run_all(output: Path) -> dict:
             },
             "exp5_leave_one_event_out_2h4h": loo,
         },
-        "mat_reference_metrics_teste": {
-            "2h": {"nash": 0.9962, "pers": 0.9688, "e95": 10.39, "note": "mat completo, não recorte alinhado"},
-            "4h": {"nash": 0.9926, "pers": 0.8782, "e95": 58.84, "note": "mat completo"},
-            "8h_v001": {"note": "ver .mat; recorte alinhado menor"},
-        },
+        "mat_reference_metrics_teste": mat_reference,
         "trajectory_consistency": consistency,
     }
     save_json(output, payload)

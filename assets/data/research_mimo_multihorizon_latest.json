@@ -14,7 +14,8 @@
       "1": "treino",
       "2": "validacao",
       "3": "teste"
-    }
+    },
+    "note_mat_aligned_replay": "direct_mat no recorte alinhado reproduz as predições do .mat (NASH≈1). O teto operacional usa mat_reference_metrics_teste (teste completo do .mat)."
   },
   "datasets": {
     "2h_4h_aligned": {
@@ -580,15 +581,16 @@
         "perdas": [
           {
             "horizonte": "2h",
-            "delta_nash": -0.046421,
-            "delta_pers": -0.400173,
-            "delta_e95_cm": 46.182,
+            "delta_nash": -0.042621,
+            "delta_pers": -0.368973,
+            "delta_e95_cm": 35.792,
             "direct": {
-              "nash": 1.0,
-              "pers": 1.0,
-              "e95": 0.0,
-              "mae": 0.0,
-              "n": 141
+              "nash": 0.9962,
+              "pers": 0.9688,
+              "e95": 10.39,
+              "mae": null,
+              "n": null,
+              "note": "mat completo, não recorte alinhado"
             },
             "mimo": {
               "nash": 0.9536,
@@ -600,15 +602,16 @@
           },
           {
             "horizonte": "4h",
-            "delta_nash": -0.135433,
-            "delta_pers": -0.425806,
-            "delta_e95_cm": 61.631,
+            "delta_nash": -0.128033,
+            "delta_pers": -0.304006,
+            "delta_e95_cm": 2.791,
             "direct": {
-              "nash": 1.0,
-              "pers": 1.0,
-              "e95": 0.0,
-              "mae": 0.0,
-              "n": 141
+              "nash": 0.9926,
+              "pers": 0.8782,
+              "e95": 58.84,
+              "mae": null,
+              "n": null,
+              "note": "mat completo"
             },
             "mimo": {
               "nash": 0.8646,
@@ -620,16 +623,7 @@
           }
         ],
         "empates": [],
-        "recursivo_vs_direct": {
-          "2h": {
-            "delta_nash": 0.0,
-            "delta_e95_cm": 0.0
-          },
-          "4h": {
-            "delta_nash": -0.1152,
-            "delta_e95_cm": 58.909
-          }
-        }
+        "baseline": "mat_reference_metrics_teste"
       },
       "summary_scratch_vs_mimo": {
         "ganhos": [
@@ -771,6 +765,62 @@
             }
           }
         ]
+      },
+      "summary_mat_aligned_replay_vs_mimo": {
+        "ganhos": [],
+        "perdas": [
+          {
+            "horizonte": "2h",
+            "delta_nash": -0.046421,
+            "delta_pers": -0.400173,
+            "delta_e95_cm": 46.182,
+            "direct": {
+              "nash": 1.0,
+              "pers": 1.0,
+              "e95": 0.0,
+              "mae": 0.0,
+              "n": 141
+            },
+            "mimo": {
+              "nash": 0.9536,
+              "pers": 0.5998,
+              "e95": 46.182,
+              "mae": 11.4033,
+              "n": 141
+            }
+          },
+          {
+            "horizonte": "4h",
+            "delta_nash": -0.135433,
+            "delta_pers": -0.425806,
+            "delta_e95_cm": 61.631,
+            "direct": {
+              "nash": 1.0,
+              "pers": 1.0,
+              "e95": 0.0,
+              "mae": 0.0,
+              "n": 141
+            },
+            "mimo": {
+              "nash": 0.8646,
+              "pers": 0.5742,
+              "e95": 61.6307,
+              "mae": 20.5064,
+              "n": 141
+            }
+          }
+        ],
+        "empates": [],
+        "recursivo_vs_direct": {
+          "2h": {
+            "delta_nash": 0.0,
+            "delta_e95_cm": 0.0
+          },
+          "4h": {
+            "delta_nash": -0.1152,
+            "delta_e95_cm": 58.909
+          }
+        }
       }
     },
     "exp2_2h4h_26in": {

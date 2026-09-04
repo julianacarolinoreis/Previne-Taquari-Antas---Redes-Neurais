@@ -62,9 +62,41 @@ class TestExperimentArtifact(unittest.TestCase):
         exp = self.data["experiments"]["exp1_2h4h_15in"]
         self.assertIn("2h", exp["direct_mat"]["splits"]["teste"])
         self.assertIn("4h", exp["mimo"]["splits"]["teste"])
-        # MIMO scratch comparison should show gain or at least valid metrics on 4h
         mimo4 = exp["mimo"]["splits"]["teste"]["4h"]
         self.assertGreater(mimo4["nash"], 0.7)
+
+    def test_mat_ceiling_uses_reference_not_aligned_replay(self):
+        ref = self.data["mat_reference_metrics_teste"]
+        exp = self.data["experiments"]["exp1_2h4h_15in"]
+        summary = exp["summary_mat_vs_mimo"]
+        rows = summary.get("ganhos", []) + summary.get("empates", []) + summary.get("perdas", [])
+        self.assertTrue(rows, "summary_mat_vs_mimo vazio")
+        self.assertEqual(summary.get("baseline"), "mat_reference_metrics_teste")
+        for row in rows:
+            hz = row["horizonte"]
+            base_nash = row["direct"]["nash"]
+            self.assertNotAlmostEqual(base_nash, 1.0, places=3, msg=f"{hz}: teto não pode ser replay NASH=1")
+            self.assertAlmostEqual(base_nash, ref[hz]["nash"], places=4)
+        # Replay alinhado permanece documentado à parte.
+        replay = exp.get("summary_mat_aligned_replay_vs_mimo") or {}
+        replay_rows = replay.get("ganhos", []) + replay.get("empates", []) + replay.get("perdas", [])
+        if replay_rows:
+            self.assertAlmostEqual(replay_rows[0]["direct"]["nash"], 1.0, places=3)
+        self.assertIn("note_mat_aligned_replay", self.data["method"])
+
+    def test_report_html_avoids_fake_ceiling(self):
+        html_path = ROOT / "pesquisas/rna-multi-horizonte-relatorio.html"
+        if not html_path.exists():
+            subprocess.check_call([sys.executable, str(ROOT / "scripts/build_mimo_research_report.py")], cwd=str(ROOT))
+        html = html_path.read_text(encoding="utf-8")
+        self.assertIn("mat_reference_metrics_teste", html)
+        self.assertIn("teste completo", html)
+        # A tabela de teto operacional não deve listar 1,0000 como NASH base.
+        self.assertNotIn("<h3>.mat auditado vs MIMO (teto)</h3>", html)
+        self.assertIn("teto operacional", html.lower())
+        # Ainda pode documentar o replay, mas o bloco de teto usa 0,9962 / 0,9926.
+        self.assertIn("0,9962", html)
+        self.assertIn("0,9926", html)
 
 
 if __name__ == "__main__":

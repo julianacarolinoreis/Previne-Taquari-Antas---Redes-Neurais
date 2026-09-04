@@ -25,7 +25,7 @@ ul{padding-left:20px}
 <div class='box'>
 <strong>Pergunta:</strong> uma única rede prevendo 2h+4h (+8h) supera modelos Direct?<br>
 <strong>Comparação justa:</strong> Direct scratch vs MIMO — mesmo pipeline Python.<br>
-<strong>Teto operacional:</strong> .mat MATLAB auditados.<br>
+<strong>Teto operacional:</strong> métricas do .mat no <em>teste completo</em> (`mat_reference_metrics_teste`). O replay alinhado do .mat dá NASH≈1 e não é teto.<br>
 <strong>Extra:</strong> leave-one-event-out, loss de trajetória e correção pós-hoc em subidas.
 </div>
 
@@ -53,7 +53,14 @@ ul{padding-left:20px}
 <tr class='good'><td>4h</td><td>0,6744</td><td>0,8644</td><td>0,1900</td><td>-0,0237</td><td>0,5737</td><td>109,1</td><td>61,6</td><td>-47,5</td><td>ganho</td></tr>
 <tr class='neutral'><td>2h</td><td>0,9549</td><td>0,9536</td><td>-0,0013</td><td>0,6109</td><td>0,5998</td><td>46,2</td><td>46,2</td><td>0,0</td><td>empate</td></tr>
 </tbody></table>
-<h3>.mat auditado vs MIMO (teto)</h3>
+<h3>.mat (teste completo) vs MIMO — teto operacional</h3>
+<p class='meta'>Baseline = mat_reference_metrics_teste. Não usar o replay alinhado (NASH≈1) como teto.</p>
+<table><thead><tr><th>Horizonte</th><th>NASH base</th><th>NASH MIMO</th><th>Δ NASH</th><th>PERS base</th><th>PERS MIMO</th><th>E95 base</th><th>E95 MIMO</th><th>Δ E95</th><th>Leitura</th></tr></thead><tbody>
+<tr class='bad'><td>2h</td><td>0,9962</td><td>0,9536</td><td>-0,0426</td><td>0,9688</td><td>0,5998</td><td>10,4</td><td>46,2</td><td>35,8</td><td>perda</td></tr>
+<tr class='bad'><td>4h</td><td>0,9926</td><td>0,8646</td><td>-0,1280</td><td>0,8782</td><td>0,5742</td><td>58,8</td><td>61,6</td><td>2,8</td><td>perda</td></tr>
+</tbody></table>
+<h3>.mat alinhado (replay) vs MIMO — auditoria, não teto</h3>
+<p class='meta'>direct_mat no recorte alinhado reproduz as predições do .mat (NASH≈1). O teto operacional usa mat_reference_metrics_teste (teste completo do .mat).</p>
 <table><thead><tr><th>Horizonte</th><th>NASH base</th><th>NASH MIMO</th><th>Δ NASH</th><th>PERS base</th><th>PERS MIMO</th><th>E95 base</th><th>E95 MIMO</th><th>Δ E95</th><th>Leitura</th></tr></thead><tbody>
 <tr class='bad'><td>2h</td><td>1,0000</td><td>0,9536</td><td>-0,0464</td><td>1,0000</td><td>0,5998</td><td>0,0</td><td>46,2</td><td>46,2</td><td>perda</td></tr>
 <tr class='bad'><td>4h</td><td>1,0000</td><td>0,8646</td><td>-0,1354</td><td>1,0000</td><td>0,5742</td><td>0,0</td><td>61,6</td><td>61,6</td><td>perda</td></tr>
