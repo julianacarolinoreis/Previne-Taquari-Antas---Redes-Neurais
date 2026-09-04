@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Robô AO VIVO — PREVINE / Santa Tereza (86472600)
-Roda no GitHub Actions (a cada 30 min):
-  1) busca a telemetria da ANA (níveis das estações)
-  2) monta os 15 inputs do melhor modelo de 2h (ALT)
-  3) roda a RNA (.mat) -> variação prevista -> nível daqui a 2h
-  4) escreve previsao_ao_vivo.json (que o site lê e mostra)
+STUB LEGADO — NÃO É O ROBÔ DE PRODUÇÃO DE SANTA TEREZA.
+
+Fonte canônica (Actions a cada 5 min):
+  previne/robo/gerar_previsao_ao_vivo.py
+  .github/workflows/previsao-ao-vivo.yml
+
+Este arquivo ainda referencia o modelo antigo C0472 e um cron de 30 min.
+Não editar para operação; não é chamado pelo workflow.
+
+Histórico / rascunho abaixo (mantido só para auditoria local):
+  1) busca telemetria ANA
+  2) monta inputs do modelo 2h ALT legado
+  3) roda RNA (.mat) → variação prevista
+  4) escreve previsao_ao_vivo.json
 
 EXPERIMENTAL — não é alerta oficial.
 """

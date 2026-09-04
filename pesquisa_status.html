@@ -209,7 +209,7 @@
     <p id="weather-meta">Carregando IFS, ANA, chuva antecedente e score experimental…</p>
     <div class="weather-answer" id="weather-answer">Carregando resposta de 24 horas…<small>Não transformar ausência de dados em “não vai inundar”.</small></div>
     <div class="weather-grid" id="weather-grid"></div>
-    <table class="weather-table"><thead><tr><th>Horizonte</th><th>Chuva no ponto</th><th>Média da bacia</th><th>Máxima</th><th>Score RNA</th><th>Triagem</th></tr></thead><tbody id="weather-horizons"><tr><td colspan="6">Carregando rodada…</td></tr></tbody></table>
+    <table class="weather-table"><thead><tr><th>Horizonte</th><th>Chuva no ponto</th><th>Proxy montante</th><th>Máxima</th><th>Estado do risco</th><th>Triagem</th></tr></thead><tbody id="weather-horizons"><tr><td colspan="6">Carregando rodada…</td></tr></tbody></table>
     <p class="weather-foot" id="weather-foot">Fonte, emissão, disponibilidade e hashes serão exibidos quando o feed carregar.</p>
   </section>
 
@@ -322,13 +322,39 @@
   const mm=v=>v==null?'—':br.format(Number(v))+' mm';
   const score=v=>v==null?'—':br.format(Number(v)*100)+'%';
   function render(d){
-    const o=d.observation||{}, f=d.forecast||{}, r=d.rna||{}, a=d.answer_24h||{};
-    el('weather-meta').textContent=`Status: ${d.status||'indisponível'} · Rodada IFS: ${fmtTime(f.run_time_utc)} · disponível: ${fmtTime(f.available_at_utc)} · decisão: ${fmtTime(d.generated_at_utc)}.`;
-    el('weather-answer').innerHTML=`24 h: ${a.label||'resultado indisponível'}<small>Nível atual ${o.level_cm==null?'—':br.format(o.level_cm)+' cm'} · variação 24 h ${o.change_24h_cm==null?'—':(o.change_24h_cm>0?'+':'')+br.format(o.change_24h_cm)+' cm'} · score experimental ${score(a.score)} · não é alerta oficial.</small>`;
-    el('weather-grid').innerHTML=[['Nível atual',o.level_cm==null?'—':br.format(o.level_cm)+' cm'],['Chuva observada 24 h',mm(o.rain_observed_24h_mm)],['Chuva observada 72 h',mm(o.rain_observed_72h_mm)],['Chuva IFS 24 h',mm((f.horizons||[]).find(x=>x.horizon_hours===24)?.basin_mean_mm)],['RNA 24 h',score(a.score)]].map(x=>`<div class="weather-stat"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
-    const scores=r.scores||{};
-    el('weather-horizons').innerHTML=(f.horizons||[]).map(h=>{const s=scores[String(h.horizon_hours)];const tri=h.screening_threshold_mm==null?'sem limiar de triagem':(h.basin_max_mm<h.screening_threshold_mm?'abaixo do limiar':'acima do limiar');return `<tr><td><strong>+${h.horizon_hours} h</strong></td><td>${mm(h.target_santa_tereza_mm)}</td><td>${mm(h.basin_mean_mm)}</td><td>${mm(h.basin_max_mm)}</td><td>${score(s)} <span class="pill wait">experimental</span></td><td>${tri}</td></tr>`;}).join('')||'<tr><td colspan="6">Rodada meteorológica indisponível.</td></tr>';
-    el('weather-foot').textContent=`Observação: ${o.quality||'qualidade não informada'} · fonte meteorológica: ${f.source||'—'} · ${f.grid_points||'—'} pontos únicos · ${f.complete_rows||'—'} linhas completas. RNA treinada em GEFS e aplicada ao IFS; calibração IFS ainda não concluída.`;
+    const o=d.observation||{}, f=d.forecast||{}, risk=d.risk_model||{};
+    const horizons=Array.isArray(d.horizons)&&d.horizons.length?d.horizons:(f.horizons||[]);
+    const h24=horizons.find(x=>(x.horizon_hours??x.hours)===24)||{};
+    const rain24=h24.rain_point_mm??h24.target_santa_tereza_mm;
+    const proxy24=h24.basin_mean_mm??h24.rain_ifs_proxy_mm??h24.upstream_monitoring_proxy_mean_mm;
+    const levelTxt=o.level_cm==null?'—':br.format(o.level_cm)+' cm';
+    const riskLabel=risk.status==='experimental_probability_separate_feed'
+      ?'score GEFS em feed separado'
+      :(risk.message||'risco experimental não pontuado nesta rodada IFS');
+    el('weather-meta').textContent=`Status: ${d.status||'indisponível'} · Rodada IFS: ${fmtTime(f.run_time_utc)} · disponível: ${fmtTime(f.available_at_utc||d.generated_at_utc)} · decisão: ${fmtTime(d.generated_at_utc)}.`;
+    el('weather-answer').innerHTML=`24 h: chuva no ponto ${mm(rain24)} · proxy montante ${mm(proxy24)}<small>Nível atual ${levelTxt} · observação ${o.quality||o.state||'—'} · ${riskLabel}. Não é alerta oficial.</small>`;
+    el('weather-grid').innerHTML=[
+      ['Nível atual',levelTxt],
+      ['Observação',o.quality||o.state||'—'],
+      ['Chuva IFS 24 h (ponto)',mm(rain24)],
+      ['Proxy montante 24 h',mm(proxy24)],
+      ['Risco / probabilidade',risk.probabilities_available?'feed separado':'não pontuado na rodada IFS']
+    ].map(x=>`<div class="weather-stat"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
+    el('weather-horizons').innerHTML=horizons.map(h=>{
+      const hours=h.horizon_hours??h.hours;
+      const point=h.rain_point_mm??h.target_santa_tereza_mm;
+      const mean=h.basin_mean_mm??h.rain_ifs_proxy_mm??h.upstream_monitoring_proxy_mean_mm;
+      const max=h.basin_max_mm??h.upstream_monitoring_proxy_max_mm;
+      const thr=h.screening_threshold_mm;
+      const tri=thr==null?'sem limiar de triagem':(Number(max)<Number(thr)?'abaixo do limiar':'acima do limiar');
+      const riskCell=h.flood_probability_percent!=null
+        ? (br.format(Number(h.flood_probability_percent))+'% <span class="pill wait">experimental</span>')
+        : '<span class="pill wait">sem score nesta rodada</span>';
+      return `<tr><td><strong>+${hours} h</strong></td><td>${mm(point)}</td><td>${mm(mean)}</td><td>${mm(max)}</td><td>${riskCell}</td><td>${tri}</td></tr>`;
+    }).join('')||'<tr><td colspan="6">Rodada meteorológica indisponível.</td></tr>';
+    const cells=f.unique_upstream_grid_cells??d.basin_aggregation?.unique_upstream_grid_cells??'—';
+    const proxyNote=d.basin_aggregation?.metric_label||'proxy dos pontos monitorados a montante';
+    el('weather-foot').textContent=`Observação: ${o.quality||o.state||'qualidade não informada'} · fonte meteorológica: ${f.source||d.forecast_model||'—'} · ${cells} células únicas a montante · ${proxyNote}. ${risk.message||'Probabilidade GEFS e RNA de nível ficam em feeds separados da chuva IFS.'}`;
   }
   fetch(feed+'?cb='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(render).catch(()=>{el('weather-meta').textContent='Robô meteorológico indisponível no momento.';el('weather-answer').innerHTML='UNKNOWN: sem dados meteorológicos atuais.<small>Isso não significa “não vai inundar”.</small>';});
 })();

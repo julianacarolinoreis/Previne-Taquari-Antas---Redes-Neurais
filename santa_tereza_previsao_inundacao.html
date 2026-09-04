@@ -1343,7 +1343,6 @@ async function loadResearchWeatherPanel(){
       soilBadge.textContent='indisponível';
     }
     const probabilityReady=Boolean(probability&&probability.calibrated_for_current_source===true&&['CURRENT_CALIBRATED','CURRENT_GEFS_EXPERIMENTAL'].includes(probability.status));
-    const label=(data.answer_24h&&data.answer_24h.label)||'Resultado de 24 h indisponível';
     const p24=probability&&probability.horizons&&probability.horizons['24'];
     answer.textContent=probabilityReady&&p24&&Number.isFinite(Number(p24.probability))
       ?'PROBABILIDADE EXPERIMENTAL ATÉ 24 H: '+fmtNumber(Number(p24.probability)*100,2)+'% · chuva média prevista '+fmtNumber(h24.basin_mean_mm,1)+' mm'
@@ -1369,7 +1368,7 @@ async function loadResearchWeatherPanel(){
       item.append(title,chance,rain);
       horizons.appendChild(item);
     });
-    note.textContent=probabilityReady?'A probabilidade publicada vem da rodada GEFS/NOAA compatível; a chuva IFS fica separada e os dois feeds podem ter idades diferentes ('+weatherAgeText+'; '+probabilityAgeText+'). Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.':'Fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'. A probabilidade fica “não calculada” quando o calibrador não é compatível. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
+    note.textContent=probabilityReady?'A probabilidade publicada vem da rodada GEFS/NOAA compatível; a chuva IFS fica separada e os dois feeds podem ter idades diferentes ('+weatherAgeText+'; '+probabilityAgeText+'). Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.':'Fonte atual: '+(data.forecast_model||data.forecast_provider||(data.risk_model&&data.risk_model.current_weather_source)||'IFS')+'. A probabilidade fica “não calculada” quando o calibrador não é compatível. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
   }catch(error){
     meta.textContent='Feed meteorológico indisponível no momento.';
     now.textContent='Não foi possível comparar a leitura ao vivo com a base da rodada.';
