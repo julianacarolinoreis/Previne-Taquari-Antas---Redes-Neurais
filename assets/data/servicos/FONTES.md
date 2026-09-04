@@ -8,5 +8,3 @@ Recorte: pontos dentro dos municípios que intersectam a bacia Taquari-Antas
 cair fora). As camadas têm coberturas diferentes e não devem ser tratadas como
 inventário completo: ausência de ponto não prova ausência do serviço.
 Os cadastros estaduais consultados estão nas URLs acima.
-O pacote publicado foi gerado em 18/08/2026 (UTC); a data de atualização
-original de cada cadastro estadual não é informada pelo serviço consultado.
