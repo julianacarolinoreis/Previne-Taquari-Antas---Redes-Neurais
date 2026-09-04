@@ -99,5 +99,21 @@ class TestExperimentArtifact(unittest.TestCase):
         self.assertIn("0,9926", html)
 
 
+    def test_matlab_handoff_package(self):
+        import sys
+        sys.path.insert(0, str(ROOT / "codigo_python/11_experimento_mimo"))
+        import export_matlab_mimo_package as exp
+        manifest = exp.export_package()
+        out = ROOT / "assets/data/research_mimo_matlab_handoff"
+        self.assertGreaterEqual(manifest["n_rows"], 100)
+        self.assertTrue((out / "mimo_aligned_2h4h_15in.csv").is_file())
+        self.assertTrue((out / "manifest.json").is_file())
+        self.assertTrue((ROOT / "codigo_python/11_experimento_mimo/matlab/train_mimo_2h4h_stz.m").is_file())
+        # CSV header must expose dual targets
+        header = (out / "mimo_aligned_2h4h_15in.csv").read_text(encoding="utf-8").splitlines()[0]
+        self.assertIn("delta_2h_cm", header)
+        self.assertIn("delta_4h_cm", header)
+
+
 if __name__ == "__main__":
     unittest.main()

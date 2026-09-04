@@ -154,7 +154,13 @@ ul{{padding-left:20px}}
 <p>Amostra pequena (n_teste={ds['2h_4h_8h_aligned']['split_counts'].get('3')}).</p>
 {render_table(exp3['summary_scratch_vs_mimo'], 'Direct scratch vs MIMO')}
 
-<h2>7. JSON auditável</h2>
+<h2>7. Handoff MATLAB (próximo passo nativo)</h2>
+<p>Pacote de dados alinhados + script <code>train_mimo_2h4h_stz.m</code> em
+<code>codigo_python/11_experimento_mimo/matlab/</code>. CSVs em
+<a href='../assets/data/research_mimo_matlab_handoff/manifest.json'>assets/data/research_mimo_matlab_handoff/</a>.
+Rodar no MATLAB e comparar ao teto <code>mat_reference_metrics_teste</code> — não ao replay NASH≈1.</p>
+
+<h2>8. JSON auditável</h2>
 <p><a href='../assets/data/research_mimo_multihorizon_latest.json'>assets/data/research_mimo_multihorizon_latest.json</a></p>
 </body></html>"""
     HTML_OUT.write_text(html, encoding="utf-8")

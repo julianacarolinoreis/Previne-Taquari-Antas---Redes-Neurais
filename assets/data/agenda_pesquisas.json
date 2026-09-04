@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "title": "Agenda de avanço do PREVINE",
-  "generated_at": "2026-08-29",
+  "generated_at": "2026-09-04",
   "scope": "Plano de pesquisa para transformar evidência em decisões de resposta mais seguras.",
   "operational_gate": {
     "status": "bloqueado",
@@ -9,9 +9,9 @@
     "reason": "O catálogo contém pesquisas e protótipos; validação independente, de campo e autorização institucional ainda são necessárias."
   },
   "catalog_snapshot": {
-    "entries": 58,
-    "archived_html": 43,
-    "reviewed_at": "2026-08-29",
+    "entries": 59,
+    "archived_html": 47,
+    "reviewed_at": "2026-09-04",
     "public_url": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/pesquisas.html",
     "live_snapshot_note": "No snapshot ao vivo auditado em 23/08/2026 estavam publicados 2h, 2h versão B e 4h; o horizonte 12h não estava publicado naquele recorte."
   },
@@ -146,7 +146,10 @@
       "priority": "P1",
       "track": "ciencia",
       "primary_phase": 30,
-      "phase": [30, 90],
+      "phase": [
+        30,
+        90
+      ],
       "maturity": "pesquisa",
       "status": "experimento piloto concluido — ver rna-multi-horizonte-relatorio.html",
       "title": "RNA multi-horizonte de nível",
@@ -166,7 +169,14 @@
         "Normalizar, selecionar variáveis e escolher o modelo usando apenas treino/validação.",
         "Rodar em sombra antes de qualquer decisão supervisionada."
       ],
-      "metrics": ["MAE", "RMSE", "viés", "skill contra persistência", "erro e atraso de pico", "P95"],
+      "metrics": [
+        "MAE",
+        "RMSE",
+        "viés",
+        "skill contra persistência",
+        "erro e atraso de pico",
+        "P95"
+      ],
       "gate": [
         "Nenhum leakage detectado.",
         "Ganho consistente contra o baseline na validação e no teste bloqueado.",
@@ -175,9 +185,18 @@
       ],
       "next_action": "Rodada MIMO nativa em MATLAB com saída [Δ2h, Δ4h]; manter Direct .mat no ao vivo; expandir alinhamento 8h antes de triple-horizon.",
       "sources": [
-        {"label": "Relatório MIMO multi-horizonte", "href": "rna-multi-horizonte-relatorio.html"},
-        {"label": "Plano de exploração 8h", "href": "plano-exploracao-8h.html"},
-        {"label": "Feed vivo auditado", "href": "../assets/data/auditaveis_series.json"}
+        {
+          "label": "Relatório MIMO multi-horizonte",
+          "href": "rna-multi-horizonte-relatorio.html"
+        },
+        {
+          "label": "Plano de exploração 8h",
+          "href": "plano-exploracao-8h.html"
+        },
+        {
+          "label": "Feed vivo auditado",
+          "href": "../assets/data/auditaveis_series.json"
+        }
       ]
     },
     {
@@ -186,7 +205,10 @@
       "priority": "P2",
       "track": "ciencia",
       "primary_phase": 30,
-      "phase": [30, 90],
+      "phase": [
+        30,
+        90
+      ],
       "maturity": "pesquisa",
       "status": "bloqueada por reconciliação e calibração",
       "title": "Probabilidade calibrada de transbordamento",
@@ -206,7 +228,14 @@
         "Calibrar em conjunto separado do teste e não reutilizar o evento avaliado.",
         "Documentar custo de falso alerta, falso seguro e evento perdido."
       ],
-      "metrics": ["Brier", "calibração", "recall por evento", "eventos perdidos", "falsos alertas", "antecedência"],
+      "metrics": [
+        "Brier",
+        "calibração",
+        "recall por evento",
+        "eventos perdidos",
+        "falsos alertas",
+        "antecedência"
+      ],
       "gate": [
         "Relógios, fontes e limiares reconciliados.",
         "Calibração verificada fora do conjunto de ajuste.",
@@ -215,9 +244,18 @@
       ],
       "next_action": "Fechar a tabela de eventos e reconciliar ANA–SACE antes de treinar qualquer classificador.",
       "sources": [
-        {"label": "Pesquisa de Muçum", "href": "../pesquisa_status_mucum.html"},
-        {"label": "Evidência de eventos", "href": "../assets/data/research_mucum_evidence_latest.json"},
-        {"label": "Cálculo de probabilidade", "href": "../assets/data/research_probability_mucum_latest.json"}
+        {
+          "label": "Pesquisa de Muçum",
+          "href": "../pesquisa_status_mucum.html"
+        },
+        {
+          "label": "Evidência de eventos",
+          "href": "../assets/data/research_mucum_evidence_latest.json"
+        },
+        {
+          "label": "Cálculo de probabilidade",
+          "href": "../assets/data/research_probability_mucum_latest.json"
+        }
       ]
     },
     {
@@ -226,7 +264,10 @@
       "priority": "P3",
       "track": "ciencia",
       "primary_phase": 90,
-      "phase": [90, 180],
+      "phase": [
+        90,
+        180
+      ],
       "maturity": "prototipo",
       "status": "prova de conceito · validar espacialmente",
       "title": "Conversão de nível em mancha e profundidade",
@@ -246,7 +287,13 @@
         "Manter incerteza de borda e profundidade visível.",
         "Publicar a saída como perigo, nunca como risco pronto."
       ],
-      "metrics": ["IoU/CSI", "falso positivo", "falso negativo", "erro de profundidade", "distância da borda"],
+      "metrics": [
+        "IoU/CSI",
+        "falso positivo",
+        "falso negativo",
+        "erro de profundidade",
+        "distância da borda"
+      ],
       "gate": [
         "Geometria, datum e unidade de análise conferidos.",
         "Validação espacial independente concluída.",
@@ -255,9 +302,18 @@
       ],
       "next_action": "Inventariar footprints observados e conferir o datum vertical de cada camada antes de comparar mapas.",
       "sources": [
-        {"label": "Mancha preliminar Santa Tereza", "href": "mancha-inundacao-santa-tereza.html"},
-        {"label": "Mapa de inundação Muçum", "href": "../mucum_inundacao.html"},
-        {"label": "Dados de inundação", "href": "../assets/data/santa_tereza_inundacao/contornos_mancha.json"}
+        {
+          "label": "Mancha preliminar Santa Tereza",
+          "href": "mancha-inundacao-santa-tereza.html"
+        },
+        {
+          "label": "Mapa de inundação Muçum",
+          "href": "../mucum_inundacao.html"
+        },
+        {
+          "label": "Dados de inundação",
+          "href": "../assets/data/santa_tereza_inundacao/contornos_mancha.json"
+        }
       ]
     },
     {
@@ -266,7 +322,10 @@
       "priority": "P4",
       "track": "pessoas",
       "primary_phase": 180,
-      "phase": [90, 180],
+      "phase": [
+        90,
+        180
+      ],
       "maturity": "pesquisa",
       "status": "aguardando escala compatível",
       "title": "Exposição e vulnerabilidade em escala compatível",
@@ -286,7 +345,13 @@
         "Validar com impactos observados e vistoria, sem nota única não validada.",
         "Usar agregação e proteção de dados individuais."
       ],
-      "metrics": ["cobertura", "precisão/recall por grupo", "acessibilidade", "diferenças entre grupos", "lacunas encontradas"],
+      "metrics": [
+        "cobertura",
+        "precisão/recall por grupo",
+        "acessibilidade",
+        "diferenças entre grupos",
+        "lacunas encontradas"
+      ],
       "gate": [
         "Escopo, cobertura e data declarados por fonte.",
         "Ausência de cadastro não convertida em zero.",
@@ -295,9 +360,18 @@
       ],
       "next_action": "Criar uma matriz de lacunas por área e grupo, começando por dados agregados e revisão com a comunidade.",
       "sources": [
-        {"label": "Produto de vulnerabilidade", "href": "../vulnerabilidade.html"},
-        {"label": "Auditoria de vulnerabilidade", "href": "vulnerabilidade-postreview.html"},
-        {"label": "Catálogo de serviços", "href": "../assets/data/servicos/contagem_municipios.json"}
+        {
+          "label": "Produto de vulnerabilidade",
+          "href": "../vulnerabilidade.html"
+        },
+        {
+          "label": "Auditoria de vulnerabilidade",
+          "href": "vulnerabilidade-postreview.html"
+        },
+        {
+          "label": "Catálogo de serviços",
+          "href": "../assets/data/servicos/contagem_municipios.json"
+        }
       ]
     },
     {
@@ -306,7 +380,11 @@
       "priority": "P5",
       "track": "pessoas",
       "primary_phase": 30,
-      "phase": [30, 90, 180],
+      "phase": [
+        30,
+        90,
+        180
+      ],
       "maturity": "prototipo",
       "status": "exercício supervisionado",
       "title": "Previsão convertida em decisão de resposta",
@@ -326,7 +404,14 @@
         "Repetir com Defesa Civil, bombeiros, Saúde, assistência, abrigo e comunidade.",
         "Comparar checklist convencional e protótipo por tempo, falhas e rastreabilidade."
       ],
-      "metrics": ["tempo de decisão", "rotas inviáveis", "grupos esquecidos", "recursos insuficientes", "compreensão da mensagem", "rastreabilidade"],
+      "metrics": [
+        "tempo de decisão",
+        "rotas inviáveis",
+        "grupos esquecidos",
+        "recursos insuficientes",
+        "compreensão da mensagem",
+        "rastreabilidade"
+      ],
       "gate": [
         "Zero falha crítica não tratada no exercício.",
         "Rota e abrigo confirmados por responsável local.",
@@ -335,9 +420,18 @@
       ],
       "next_action": "Fazer a primeira mesa com um cenário de rota fechada e abrigo lotado, registrando cada decisão e sua evidência.",
       "sources": [
-        {"label": "Sala de decisão Santa Tereza", "href": "estudo-caso-resposta-santa-tereza.html"},
-        {"label": "Painel de evacuação Santa Tereza", "href": "santa-tereza-painel-evacuacao.html"},
-        {"label": "Rota em cenário", "href": "santa-tereza-rota-fuga-ruas-cenario.html"}
+        {
+          "label": "Sala de decisão Santa Tereza",
+          "href": "estudo-caso-resposta-santa-tereza.html"
+        },
+        {
+          "label": "Painel de evacuação Santa Tereza",
+          "href": "santa-tereza-painel-evacuacao.html"
+        },
+        {
+          "label": "Rota em cenário",
+          "href": "santa-tereza-rota-fuga-ruas-cenario.html"
+        }
       ]
     }
   ]

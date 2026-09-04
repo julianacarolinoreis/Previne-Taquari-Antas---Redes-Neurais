@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-09-04T18:20:32+00:00",
+  "research_only": true,
+  "official_alert": false,
+  "station": "86472600",
+  "horizons_h": [
+    2,
+    4
+  ],
+  "n_inputs": 15,
+  "n_rows": 2004,
+  "split_counts": {
+    "treino": 1356,
+    "validacao": 507,
+    "teste": 141
+  },
+  "alignment_key": "atual + inputs[0:3] arredondados a 0,1 cm",
+  "target": "deltas ALT (cm) para 2h e 4h; nível absoluto = atual + delta",
+  "source_mats": {
+    "2h": "previne/assets/mat/009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21.mat",
+    "4h": "assets/mat/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.mat"
+  },
+  "files": {
+    "all": "mimo_aligned_2h4h_15in.csv",
+    "treino": "mimo_aligned_2h4h_15in_treino.csv",
+    "validacao": "mimo_aligned_2h4h_15in_validacao.csv",
+    "teste": "mimo_aligned_2h4h_15in_teste.csv",
+    "matlab_script": "codigo_python/11_experimento_mimo/matlab/train_mimo_2h4h_stz.m",
+    "matlab_readme": "codigo_python/11_experimento_mimo/matlab/README.md"
+  },
+  "protocol": {
+    "activation": "logsig / unisig (estilo PREVINE)",
+    "outputs": 2,
+    "early_stopping": "mínimo EQ validação; patience sugerida 40",
+    "compare_against": [
+      "Direct scratch Python (mesmo CSV)",
+      "mat_reference_metrics_teste (NASH 2h≈0,9962 · 4h≈0,9926)"
+    ],
+    "do_not": [
+      "promover ao robô ao vivo sem revisão",
+      "usar replay alinhado NASH≈1 como teto"
+    ]
+  }
+}
