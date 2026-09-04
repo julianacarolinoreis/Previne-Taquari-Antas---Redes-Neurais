@@ -1,5 +1,5 @@
 /* PREVINE · cache mínimo para centro de resposta e modo campo (pesquisa offline parcial). */
-var CACHE = 'previne-resposta-v9';
+var CACHE = 'previne-resposta-v10';
 var SHELL = [
   '/pesquisas/centro-resposta.html',
   '/pesquisas/modo-campo.html',
@@ -26,6 +26,7 @@ var SHELL = [
   '/assets/data/validacao_eventos/relatorio_2023_2024.json',
   '/assets/data/vulnerabilidade/perigo/sgb_hand_cruzamento_st.json',
   '/assets/data/estudo_caso_resposta_mucum_v002.json',
+  '/assets/data/mucum_contingencia_202607.json',
   '/assets/js/mesa_mucum_v002.js',
   '/assets/js/mesa_st_plantao.js',
   '/assets/js/ficha_jusante.js',

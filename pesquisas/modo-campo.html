@@ -95,6 +95,7 @@
     (function () {
       'use strict';
       var R = window.PREVINE_RESPOSTA;
+      var abrigoRoot = document.getElementById('abrigo-capacidade-mount');
       var current = 'santa';
       var summary = null;
       var FIELD_ITEMS = [
@@ -128,6 +129,14 @@
         document.getElementById('link-mesa').href = '../' + p.mesa;
         var script = document.querySelector('script[data-page="campo"]');
         if (script) script.setAttribute('data-place', place);
+        if (window.PREVINE_ABRIGO_FORM && abrigoRoot) {
+          PREVINE_ABRIGO_FORM.setMunicipio(abrigoRoot, place);
+        }
+        try {
+          var url = new URL(window.location.href);
+          url.searchParams.set('place', place);
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        } catch (e) { /* ignore */ }
         refresh();
       }
 
@@ -220,7 +229,12 @@
         copyFieldText(text);
       });
 
-      setPlace('santa');
+      var initial = 'santa';
+      try {
+        var q = new URLSearchParams(window.location.search).get('place');
+        if (q === 'mucum' || q === 'santa') initial = q;
+      } catch (e) { /* ignore */ }
+      setPlace(initial);
     })();
   </script>
 </body>

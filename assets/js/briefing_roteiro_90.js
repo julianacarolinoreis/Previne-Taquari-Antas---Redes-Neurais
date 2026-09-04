@@ -6,9 +6,9 @@
     { min: 0, dur: 5, title: 'Abertura', text: 'Regra de ouro: PREVINE ≠ alerta SGB/SACE/DC. UNKNOWN/STALE ≠ rio baixo. Mancha ≠ ordem de saída.', link: 'centro-resposta.html' },
     { min: 5, dur: 15, title: 'Agora na bacia', text: 'Dashboard + fichas ST/Muçum: telemetria, score experimental, frescor dos dados.', link: '../dashboard_bacia.html' },
     { min: 20, dur: 15, title: 'Perigo e exposição', text: 'Mapa HAND + exposição cruzada v1/v2. Números agregados — não lista nominal.', link: 'exposicao-cruzada.html' },
-    { min: 35, dur: 15, title: 'Mesa V002', text: 'Exercício Santa Tereza: checklist 7 itens, ginásio sem capacidade, plantão ao vivo.', link: 'estudo-caso-resposta-santa-tereza.html' },
+    { min: 35, dur: 15, title: 'Mesas V002', text: 'Exercício ST ou Muçum: checklist 7 itens, contingências, rascunho de mensagem, plantão ao vivo.', link: 'estudo-caso-resposta-santa-tereza.html' },
     { min: 50, dur: 15, title: 'Rotas e pontes', text: 'Corredor Etapa 2 ST/Muçum: pontes UNKNOWN, abrigos plano Muçum, validação em campo.', link: 'santa-tereza-rota-fuga-ruas.html' },
-    { min: 65, dur: 10, title: 'Capacidade abrigo', text: 'Registrar Ginásio ST e alojamentos Muçum — exportar CSV antes de encerrar.', link: '#abrigo-capacidade-mount' },
+    { min: 65, dur: 10, title: 'Capacidade abrigo', text: 'Seeds: Ginásio ST + 9 alojamentos Muçum. Registrar só o confirmado — exportar CSV.', link: '#abrigo-capacidade-mount' },
     { min: 75, dur: 10, title: 'Benchmark HAND', text: 'HAND vs hidrodinâmica: agenda HEC-RAS/LISFLOOD — subárea drone.', link: 'benchmark-hand-hidrodinamica.html' },
     { min: 85, dur: 5, title: 'Encerramento', text: 'Recapitular lacunas abertas, responsáveis e data do próximo exercício.', link: 'agenda-avanco.html' }
   ];

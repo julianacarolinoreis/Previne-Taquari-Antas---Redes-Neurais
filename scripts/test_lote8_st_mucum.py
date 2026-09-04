@@ -49,9 +49,9 @@ def test_hub_narrative() -> None:
     assert "Mesa Muçum V002" in revisao
 
 
-def test_sw_v9_shell() -> None:
+def test_sw_v10_shell() -> None:
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
-    assert "previne-resposta-v9" in sw
+    assert "previne-resposta-v10" in sw
     assert "exposicao_grade_overlay.js" in sw
     assert "exposicao_santa_tereza.json" in sw
 
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         test_rota_exposicao_overlay,
         test_dashboard_exposicao_v2_copy,
         test_hub_narrative,
-        test_sw_v9_shell,
+        test_sw_v10_shell,
     ):
         fn()
     print("LOTE8_QA_OK")

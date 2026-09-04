@@ -960,7 +960,7 @@
               <div class="field"><label for="contingencyOutcome">resultado observado · após aplicar</label><input id="contingencyOutcome" type="text" placeholder="o que resolveu ou travou?" /></div>
               <span id="contingencyStatus" class="contingency-status">Nenhuma contingência aplicada.</span>
             </details>
-            <div class="log-title"><h3>Registro do exercício</h3><button id="exportLog" class="export-button" type="button">Exportar registro local</button></div>
+            <div class="log-title"><h3>Registro do exercício</h3><span><button id="exportLog" class="export-button" type="button">Exportar registro local</button> · <button id="exportUnified" class="export-button" type="button">Ata unificada ST+Muçum</button></span></div>
             <div id="logList" class="log-list" aria-live="polite"></div>
           </section>
         </div>
@@ -2441,6 +2441,12 @@
     el("contingencyApply").addEventListener("click",applyContingency);
     el("copyMessage").addEventListener("click",copyMessage);
     el("exportLog").addEventListener("click",exportExercise);
+    el("exportUnified") && el("exportUnified").addEventListener("click",function(){
+      if(window.PREVINE_RESPOSTA && PREVINE_RESPOSTA.exportUnifiedAta && PREVINE_RESPOSTA.downloadCsv){
+        PREVINE_RESPOSTA.downloadCsv("previne-ata-unificada.csv", PREVINE_RESPOSTA.exportUnifiedAta());
+        announce("Ata unificada exportada · ST+Muçum · gate permanece bloqueado.");
+      }
+    });
     el("saveState").addEventListener("click",function(){saveState(false);});
     el("resetState").addEventListener("click",resetState);
     document.addEventListener("input",function(event){

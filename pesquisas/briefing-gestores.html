@@ -115,7 +115,7 @@
       <article class="layer-card resposta is-blocked">
         <span class="layer-kicker">Resposta</span>
         <strong>Bloqueado</strong>
-        <p>Sala V002 em Santa Tereza: 0/7 confirmações. Ginásio sem capacidade publicada. Bombeiros no município: não cadastrados.</p>
+        <p id="briefing-resposta-status">Mesas V002 ST e Muçum: carregando checklist… Ginásio ST sem capacidade publicada. Muçum: 9 alojamentos planejados (jul/2026).</p>
       </article>
     </section>
 
@@ -161,11 +161,23 @@
     </footer>
   </article>
   <script src="../assets/js/gestor_chrome.js" data-page="briefing" data-place="bacia"></script>
+  <script src="../assets/js/resposta_operacional.js"></script>
   <script src="../assets/js/briefing_roteiro_90.js"></script>
   <script src="../assets/js/abrigo_capacidade_form.js"></script>
   <script>
     PREVINE_ROTEIRO_90.mount(document.getElementById('roteiro-90-mount'));
     PREVINE_ABRIGO_FORM.mount(document.getElementById('abrigo-capacidade-mount'));
+    (function () {
+      var R = window.PREVINE_RESPOSTA;
+      var statusEl = document.getElementById('briefing-resposta-status');
+      if (R && statusEl) {
+        var st = R.mesaChecklistProgress ? R.mesaChecklistProgress(R.ST_MESA_KEY) : R.checklistProgress(R.loadChecklist());
+        var muc = R.mesaChecklistProgress ? R.mesaChecklistProgress(R.MUC_MESA_KEY) : { done: 0, total: 7 };
+        statusEl.textContent =
+          'ST V002: ' + st.done + '/' + st.total + ' · Muçum V002: ' + muc.done + '/' + muc.total +
+          ' · Ginásio ST sem capacidade publicada · Muçum: 9 alojamentos planejados (jul/2026).';
+      }
+    })();
     document.getElementById('print-briefing').addEventListener('click', function () { window.print(); });
     document.getElementById('copy-briefing').addEventListener('click', function () {
       var text = [
@@ -173,9 +185,9 @@
         'SACE/SGB e Defesa Civil = alerta. PREVINE = pesquisa FAPERGS.',
         'Santa Tereza 86472600 · cota 1.500 cm · 5 eventos · RNA em sombra.',
         'Muçum 86510000 · cota 1.800 cm · 4 candidatos · relógio ANA–SACE em revisão.',
-        'Previsão: RNA 2h/4h. Perigo: HAND proxy (não hidrodinâmica). Exposição: CALCULADO @ limiar publicado (centroide). Resposta: BLOQUEADO.',
+        'Previsão: RNA 2h/4h. Perigo: HAND proxy (não hidrodinâmica). Exposição: CALCULADO v2 areal (Muçum ~2.070 @17,02 m; ST ~336 @15 m). Resposta: BLOQUEADO.',
         'Não usar limiar 50% (VAI/NÃO VAI). Dado atrasado = UNKNOWN, nunca “não vai”.',
-        'Fazer: mesa Santa Tereza. Não fazer: despacho, rota, “vai inundar”.'
+        'Fazer: mesa Santa Tereza V002 ou Muçum V002. Não fazer: despacho, rota, “vai inundar”.'
       ].join('\n');
       navigator.clipboard.writeText(text).then(function () {
         document.getElementById('copy-briefing').textContent = 'Copiado';
