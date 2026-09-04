@@ -87,6 +87,14 @@ def main() -> int:
             "scope": "corredor BHO6 conectado entre os três controles; não é a discretização integral da bacia Taquari-Antas",
             "representation": "três áreas incrementais e dois trechos de propagação entre postos, não três zonas da bacia",
             "full_taquari_antas_basin": False,
+            "source_network_extent": {
+                "all_bho6_segments_in_code_family": audit["topology"]["all_bho6_segments_in_code_786_family"],
+                "upstream_segments_reachable_from_86510000": audit["topology"]["upstream_segments_reachable_from_86510000"],
+                "mainstem_segments_in_upstream_network": audit["topology"]["mainstem_segments_in_upstream_network"],
+                "explicit_model_reach_segment_references": sum(path["segment_count"] for path in audit["topology"]["paths"].values()),
+                "explicit_model_reaches": len(audit["topology"]["paths"]),
+                "interpretation": "o recorte modelado acompanha somente o corredor principal entre os controles; os tributários e demais trechos da rede BHO6 não estão discretizados neste HEC-HMS",
+            },
             "source": audit["source"],
             "areas_km2": audit["topology"]["nested_catchment_area_km2_from_bho6"],
             "incremental_areas_km2": {

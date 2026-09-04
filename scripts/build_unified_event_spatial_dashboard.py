@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import csv
 import json
+from html import escape
 from pathlib import Path
 
 
@@ -274,6 +275,7 @@ def calibration_snapshot() -> dict[str, object]:
         "incremental_area_events": eligible.get("three_incremental_areas_complete_events", []),
         "model_scope": status.get("network", {}).get("scope"),
         "model_representation": status.get("network", {}).get("representation"),
+        "network_extent": status.get("network", {}).get("source_network_extent", {}),
         "target_rain_events": eligible.get("target_rain_sensitivity_complete_events", []),
         "two_station_events": two_station.get("events", []),
         "two_station_best": {
@@ -364,7 +366,7 @@ HTML = HTML.replace("Rede completa · 3 zonas", "Cobertura completa · 3 áreas 
 HTML = HTML.replace('id="threeZoneCount"', 'id="incrementalAreaCount"')
 HTML = HTML.replace('id="threeZoneDetail"', 'id="incrementalAreaDetail"')
 HTML = HTML.replace("chuva nos três postos + vazão-alvo", "chuva nos controles + vazão no exutório")
-HTML = HTML.replace('id="calibrationStatus">Verificando a cobertura dos dados…</div>', 'id="calibrationStatus">Verificando a cobertura dos dados…</div><div class="muted" id="calibrationScope" style="margin-top:5px">Escopo: corredor BHO6 conectado; não é a discretização integral da bacia Taquari-Antas.</div>')
+HTML = HTML.replace('id="calibrationStatus">Verificando a cobertura dos dados…</div>', 'id="calibrationStatus">Verificando a cobertura dos dados…</div><div class="muted" id="calibrationScope" style="margin-top:5px">__NETWORK_SCOPE__</div>')
 HTML = HTML.replace("const zone=c.three_zone_events||[]", "const area=c.incremental_area_events||[]")
 HTML = HTML.replace("A rede de três zonas", "A cobertura das três áreas incrementais")
 HTML = HTML.replace("A cobertura das três áreas incrementais só tem cobertura completa em", "A cobertura das três áreas incrementais está completa em")
@@ -405,8 +407,16 @@ def main() -> None:
         "spatial": spatial_data(),
         "calibration": calibration_snapshot(),
     }
+    extent = payload["calibration"].get("network_extent", {})
+    scope_text = (
+        f"Escopo: {payload['calibration'].get('model_scope') or 'corredor BHO6 conectado'}. "
+        f"A fonte BHO6 tem {int(extent.get('upstream_segments_reachable_from_86510000', 0)):,} trechos a montante do controle de Muçum, "
+        f"incluindo {int(extent.get('mainstem_segments_in_upstream_network', 0)):,} no eixo principal; este experimento usa "
+        f"{int(extent.get('explicit_model_reach_segment_references', 0))} referências em "
+        f"{int(extent.get('explicit_model_reaches', 0))} trechos de propagação."
+    ).replace(",", ".")
     output = ROOT / "pesquisas" / "replay-hidrologico-espacial.html"
-    output.write_text(HTML.replace("__DATA__", json.dumps(payload, ensure_ascii=False, separators=(",", ":"))), encoding="utf-8")
+    output.write_text(HTML.replace("__NETWORK_SCOPE__", escape(scope_text)).replace("__DATA__", json.dumps(payload, ensure_ascii=False, separators=(",", ":"))), encoding="utf-8")
     print(f"wrote {output} ({output.stat().st_size} bytes)")
 
 
