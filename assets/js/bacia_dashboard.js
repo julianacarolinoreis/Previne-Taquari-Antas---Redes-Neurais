@@ -306,8 +306,8 @@
       setLayer('layer-perigo', snaps.map((s) => pct(s.risk)).join(' · ') + ' exp.', `cota oficial ${cota} · score experimental, sem corte 50% · HAND 0 separado`, '');
     }
     if (state.station === 'mucum' || state.station === 'santa') {
-      const label = state.station === 'mucum' ? 'Muçum ~2.117 pop @17 m' : 'Santa Tereza · grade 200 m';
-      setLayer('layer-exposicao', 'CALCULADO', `${label} · HAND×IBGE por centroide · ver exposição cruzada`, '');
+      const label = state.station === 'mucum' ? 'Muçum ~2.070 pop @17,02 m (v2)' : 'Santa Tereza ~336 pop @15 m (v2)';
+      setLayer('layer-exposicao', 'CALCULADO', `${label} · HAND×grade 200 m areal · ver exposição cruzada`, '');
     } else {
       setLayer('layer-exposicao', 'CALCULADO (ST/Muçum)', 'Jusante: Zenodo+IBGE · join espacial local pendente', '');
     }

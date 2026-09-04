@@ -87,6 +87,16 @@
     .contingency-panel p { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
     .contingency-panel .secondary-button { width: 100%; margin-top: 8px; text-align: left; font-size: 11px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--navy); cursor: pointer; }
     .contingency-status { display: block; margin-top: 7px; color: #96621b; font-family: ui-monospace, monospace; font-size: 10px; line-height: 1.35; }
+    .message-draft { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 9px; }
+    .message-draft summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--navy); font-size: 12px; font-weight: 850; cursor: pointer; }
+    .message-draft summary::-webkit-details-marker { display: none; }
+    .message-draft summary:after { content: "+"; color: var(--blue); font-size: 16px; font-weight: 400; }
+    .message-draft[open] summary:after { content: "−"; }
+    .message-draft p { margin: 8px 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .message-draft .field { margin-top: 8px; }
+    .message-draft label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .message-draft input { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; font: inherit; font-size: 13px; }
+    .message-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     @media (max-width: 760px) {
       .model-grid, .sace-row, .brief-grid, .score-grid { grid-template-columns: 1fr 1fr; }
       .zone-grid, .link-grid { grid-template-columns: 1fr; }
@@ -171,6 +181,12 @@
         <div class="brief-item"><span>% do município</span><strong id="exp-pct">—</strong></div>
         <div class="brief-item"><span>Idosos 70+ (setor)</span><strong id="exp-idosos">—</strong></div>
       </div>
+      <div class="brief-grid" id="exposure-compare" style="margin-top:8px" aria-label="Exposição HAND v1 vs v2">
+        <div class="brief-item"><span>exposição v1 · centroide @17,02 m</span><strong id="exp-v1-pop">—</strong></div>
+        <div class="brief-item"><span>exposição v2 · areal @17,02 m</span><strong id="exp-v2-pop">—</strong></div>
+        <div class="brief-item"><span>% município · v2</span><strong id="exp-v2-pct">—</strong></div>
+      </div>
+      <p class="section-intro" id="exp-compare-note" style="margin-top:8px;font-size:12px">Carregando comparação v1/v2…</p>
     </section>
 
     <section class="section" aria-labelledby="timeline-title">
@@ -237,6 +253,18 @@
           <input id="contingencyOutcome" type="text" placeholder="o que resolveu ou travou?" maxlength="200">
         </div>
         <span id="contingencyStatus" class="contingency-status">Nenhuma contingência aplicada.</span>
+      </details>
+      <details class="message-draft" open>
+        <summary>Mensagem preparada · rascunho para aprovação</summary>
+        <p id="messageDraft">—</p>
+        <div class="message-meta-grid">
+          <div class="field"><label for="messageAudience">público / destinatário</label><input id="messageAudience" type="text" placeholder="liderança / comunidade" maxlength="80"></div>
+          <div class="field"><label for="messageApprover">aprovador no exercício</label><input id="messageApprover" type="text" placeholder="função responsável" maxlength="80"></div>
+        </div>
+        <p>O texto copiado recebe o prefixo “RASCUNHO DO EXERCÍCIO”; continua sendo rascunho até aprovação formal. Não é alerta nem ordem de saída.</p>
+        <div class="toolbar">
+          <button type="button" id="copyMessage">Copiar texto do exercício</button>
+        </div>
       </details>
     </section>
 
@@ -309,18 +337,20 @@
       Promise.all([
         fetch('../assets/data/estudo_caso_resposta_mucum_v002.json').then(function (r) { return r.ok ? r.json() : null; }),
         fetch('../assets/data/exposicao_cruzada/exposicao_mucum_v2.json').then(function (r) { return r.ok ? r.json() : null; }),
-        fetch('../assets/data/mucum_contingencia_202607.json').then(function (r) { return r.ok ? r.json() : null; })
+        fetch('../assets/data/mucum_contingencia_202607.json').then(function (r) { return r.ok ? r.json() : null; }),
+        fetch('../assets/data/exposicao_cruzada/exposicao_mucum.json').then(function (r) { return r.ok ? r.json() : null; })
       ]).then(function (parts) {
         var contract = parts[0];
         var exposure = parts[1];
         var plano = parts[2];
+        var exposureV1 = parts[3];
         if (contract) {
           var gate = contract.operational_gate || {};
           document.getElementById('gate-note').innerHTML =
             '<strong>Gate: ' + (gate.status || 'blocked').toUpperCase() + '</strong> · ' +
             (gate.reason || 'Exercício de pesquisa.');
         }
-        if (M) M.init(contract, exposure, plano);
+        if (M) M.init(contract, exposure, plano, exposureV1);
       });
 
       function renderChecklist() {

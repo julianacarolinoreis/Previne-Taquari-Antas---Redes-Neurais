@@ -52,9 +52,9 @@ def test_modo_campo_exposure_both() -> None:
     assert "R.fetchExposurePeak(current)" in html
 
 
-def test_sw_v8() -> None:
+def test_sw_v9() -> None:
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
-    assert "previne-resposta-v8" in sw
+    assert "previne-resposta-v9" in sw
 
 
 if __name__ == "__main__":
@@ -65,7 +65,7 @@ if __name__ == "__main__":
         test_rotas_field_export_parity,
         test_st_mesa_exposure_compare,
         test_modo_campo_exposure_both,
-        test_sw_v8,
+        test_sw_v9,
     ):
         fn()
     print("LOTE7_QA_OK")

@@ -100,6 +100,7 @@
         writeState({ zone_id: btn.getAttribute('data-zone') });
         renderZones(contract, btn.getAttribute('data-zone'));
         renderScoreboard(readState(), contract);
+        renderMessageDraft(contract);
       });
     });
     var z = zones.find(function (x) { return x.id === selectedId; }) || zones[0];
@@ -143,7 +144,7 @@
     setText('validationProgress', prog.done + '/' + prog.total);
   }
 
-  function renderExposure(exposure) {
+  function renderExposure(exposure, exposureV1) {
     if (!exposure) return;
     var peakHand = 17.02;
     var peak = exposure.niveis && exposure.niveis.find(function (n) { return Math.abs(n.hand_m - peakHand) < 0.01; });
@@ -157,6 +158,73 @@
     if (note) note.textContent = isV2
       ? 'Exposição v2 areal · interseção HAND × grade 200 m · pico jul/2020 @ 17,02 m'
       : 'Exposição v1 centroide · pico jul/2020 @ 17,02 m';
+
+    var peakV1 = exposureV1 && exposureV1.niveis
+      ? exposureV1.niveis.find(function (n) { return Math.abs(n.hand_m - peakHand) < 0.01; })
+      : null;
+    if (peakV1 && peakV1.grade_200m) {
+      setText('exp-v1-pop', '~' + peakV1.grade_200m.pop.toLocaleString('pt-BR'));
+    }
+    setText('exp-v2-pop', '~' + peak.grade_200m.pop.toLocaleString('pt-BR'));
+    setText('exp-v2-pct', peak.pct_pop_municipio != null ? peak.pct_pop_municipio + '%' : '—');
+    var cmp = $('exp-compare-note');
+    if (cmp && peakV1 && peakV1.grade_200m) {
+      cmp.textContent = 'v1 centroide ~' + peakV1.grade_200m.pop.toLocaleString('pt-BR') +
+        ' · v2 areal ~' + peak.grade_200m.pop.toLocaleString('pt-BR') +
+        ' pessoas @ HAND 17,02 m · não é lista nominal.';
+    }
+  }
+
+  function buildMessageDraft(contract, state, summary) {
+    var zone = getZone(contract, state);
+    var zoneLabel = zone ? zone.id + ' · ' + zone.label : 'zona';
+    var body;
+    if (contingencyIs(state, contract, 'route') && contingencyIs(state, contract, 'shelter')) {
+      body = zoneLabel + ': cenário combo (corredor + abrigo). Não orientar saída; confirmar corredor alternativo, transbordo e equipe antes de qualquer orientação.';
+    } else if (contingencyIs(state, contract, 'route')) {
+      body = zoneLabel + ': corredor principal fechado no exercício. Não orientar saída por esta linha; confirmar rota alternativa e comunicação.';
+    } else if (contingencyIs(state, contract, 'shelter')) {
+      body = zoneLabel + ': abrigo principal lotado no exercício. Registrar transbordo e transporte; não indicar o abrigo principal.';
+    } else if (contingencyIs(state, contract, 'night')) {
+      body = zoneLabel + ': noite / baixa visibilidade. Priorizar transporte assistido, iluminação e confirmação de cada travessia.';
+    } else if (contingencyIs(state, contract, 'comms')) {
+      body = zoneLabel + ': sem comunicação principal. Usar rádio/telefone e ponto de encontro; registrar mensagem para sincronizar depois.';
+    } else {
+      var level = summary && summary.levelLabel ? summary.levelLabel : 'nível a confirmar';
+      var fresh = summary && summary.freshness ? summary.freshness.label : 'SEM DADO';
+      body = zoneLabel + ': leitura de exercício · rio ' + level + ' (' + fresh + '). Confirmar rota, abrigo e canal oficial antes de orientar pessoas. Não é alerta.';
+    }
+    return 'RASCUNHO — NÃO É ALERTA · ' + body;
+  }
+
+  function renderMessageDraft(contract) {
+    var state = readState() || {};
+    var draft = buildMessageDraft(contract, state, global.__MUCUM_LIVE_SUMMARY);
+    setText('messageDraft', draft);
+  }
+
+  function initMessageDraft(contract) {
+    if (!$('messageDraft')) return;
+    renderMessageDraft(contract);
+    var copyBtn = $('copyMessage');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        var body = ($('messageDraft') && $('messageDraft').textContent || '')
+          .replace(/^RASCUNHO\s+—\s+NÃO É ALERTA\s+·\s*/i, '');
+        var text = 'RASCUNHO DO EXERCÍCIO — NÃO É ALERTA, ORDEM DE EVACUAÇÃO OU DESPACHO\n\n' + body;
+        var audience = ($('messageAudience') && $('messageAudience').value.trim()) || '';
+        var approver = ($('messageApprover') && $('messageApprover').value.trim()) || '';
+        if (audience) text += '\nPúblico: ' + audience;
+        if (approver) text += '\nAprovador (exercício): ' + approver;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).catch(function () {});
+        }
+        R.appendDecision({ place: 'Muçum', action: 'comunicacao', note: 'Rascunho copiado · ' + (getZone(contract, readState()) || {}).id });
+      });
+    }
+    ['messageAudience', 'messageApprover'].forEach(function (id) {
+      $(id) && $(id).addEventListener('input', function () { /* metadata only */ });
+    });
   }
 
   var CONTINGENCY_LABELS = {
@@ -233,6 +301,7 @@
       writeState({ contingencyActive: entry, log: log.slice(0, 50) });
       R.appendDecision({ place: 'Muçum', action: 'contingencia', note: CONTINGENCY_LABELS[value] + ' · ' + zone.id });
       renderContingencyPanel();
+      renderMessageDraft(contract);
     });
     var outcomeEl = $('contingencyOutcome');
     if (outcomeEl) {
@@ -296,14 +365,15 @@
     }
   }
 
-  function init(contract, exposure, plano) {
+  function init(contract, exposure, plano, exposureV1) {
     var state = readState() || writeState({});
     renderZones(contract, state.zone_id || 'Z-01');
     renderTimeline(contract, state.timeline_min || 0);
-    renderExposure(exposure);
+    renderExposure(exposure, exposureV1);
     renderShelters(plano);
     renderScoreboard(state, contract);
     initContingency(contract);
+    initMessageDraft(contract);
 
     document.querySelectorAll('[data-mode]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -332,6 +402,7 @@
         renderProxyMontante(feed, parts[1]);
         global.__MUCUM_LIVE_SUMMARY = summary;
         global.__MUCUM_LIVE_FEED = feed;
+        renderMessageDraft(contract);
       });
     }
 

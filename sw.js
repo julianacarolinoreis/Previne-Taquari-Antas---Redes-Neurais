@@ -1,5 +1,5 @@
 /* PREVINE · cache mínimo para centro de resposta e modo campo (pesquisa offline parcial). */
-var CACHE = 'previne-resposta-v8';
+var CACHE = 'previne-resposta-v9';
 var SHELL = [
   '/pesquisas/centro-resposta.html',
   '/pesquisas/modo-campo.html',
@@ -13,6 +13,7 @@ var SHELL = [
   '/previsao_ao_vivo_mucum.json',
   '/assets/data/exposicao_cruzada/exposicao_mucum.json',
   '/assets/data/exposicao_cruzada/exposicao_mucum_v2.json',
+  '/assets/data/exposicao_cruzada/exposicao_santa_tereza.json',
   '/pesquisas/datum-cadeia.html',
   '/assets/data/datum_cadeia/indice.json',
   '/assets/data/exposicao_cruzada/grade_exposta_mucum_v2.geojson',
@@ -30,6 +31,7 @@ var SHELL = [
   '/assets/js/ficha_jusante.js',
   '/pesquisa_status_encantado.html',
   '/assets/js/resposta_operacional.js',
+  '/assets/js/exposicao_grade_overlay.js',
   '/assets/js/gestor_chrome.js',
   '/assets/css/gestor_chrome.css',
   '/assets/js/previne_research_guard.js',
