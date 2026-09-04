@@ -1,6 +1,6 @@
 {
   "schema_version": "hec_hms_taquari_antas_calibration_status_v1",
-  "generated_at_utc": "2026-09-04T15:54:01.348726+00:00",
+  "generated_at_utc": "2026-09-04T16:30:38.380101+00:00",
   "purpose": "estudo de calibração e replay HEC-HMS; não é alerta, ordem de evacuação ou operação",
   "overall_status": "estrutura verificada; calibração comum ainda não concluída",
   "network": {
@@ -334,6 +334,110 @@
     "status": "candidata específica do E28; não promovida",
     "limitation": "não há vazão reconciliada em Santa Tereza para validar o ponto intermediário; E24/E27 têm lacuna interna na chuva bruta; a busca não prova generalização"
   },
+  "hybrid_e28_test": {
+    "event_id": "E28",
+    "rainfall_stations": [
+      "86472000 · Antas a montante",
+      "86472600 · Santa Tereza",
+      "86510000 · Muçum"
+    ],
+    "policy": "86472000 no Antas a montante; 86472600 no incremento Santa Tereza; 86510000 no incremento final de Muçum",
+    "candidate_count": 39,
+    "best_candidate": {
+      "candidate_id": 33,
+      "initial_loss": 2.5,
+      "constant_loss": 2.0,
+      "tc": 25.0,
+      "storage": 25.0,
+      "recession": 0.8,
+      "initial_flow_ratio": 0.003,
+      "k": 1.0,
+      "event_id": "E28",
+      "pairs": 209,
+      "mae_m3s": 502.7223928560104,
+      "rmse_m3s": 660.2346242310581,
+      "nse": 0.8630757708038599,
+      "observed_peak_m3s": 7886.72509765625,
+      "simulated_peak_m3s": 7609.9414661362425,
+      "peak_lag_hours": 1.0,
+      "peak_relative_error": 0.03509487500740467,
+      "status": "replay_scored_not_promoted",
+      "research_score": 0.8360567958023789
+    },
+    "replay_metrics": {
+      "event_id": "E28",
+      "pairs": 209,
+      "mae_m3s": 502.7223928560104,
+      "rmse_m3s": 660.2346242310581,
+      "nse": 0.8630757708038599,
+      "observed_peak_m3s": 7886.72509765625,
+      "simulated_peak_m3s": 7609.9414661362425,
+      "peak_lag_hours": 1.0,
+      "peak_relative_error": 0.03509487500740467,
+      "status": "replay_scored_not_promoted"
+    },
+    "comparison_station_distributed_same_stz": {
+      "candidate_id": 33,
+      "initial_loss": 2.5,
+      "constant_loss": 2.0,
+      "tc": 25.0,
+      "storage": 25.0,
+      "recession": 0.8,
+      "initial_flow_ratio": 0.003,
+      "k": 1.0,
+      "event_id": "E28",
+      "pairs": 209,
+      "mae_m3s": 503.2723856306582,
+      "rmse_m3s": 659.9165775003635,
+      "nse": 0.8632076566906512,
+      "observed_peak_m3s": 7886.72509765625,
+      "simulated_peak_m3s": 7605.333160236833,
+      "peak_lag_hours": 1.0,
+      "peak_relative_error": 0.03567918672644499,
+      "status": "replay_scored_not_promoted",
+      "research_score": 0.8360718193453622
+    },
+    "comparison_baseline_eventwise_proxy": {
+      "event_id": "E28",
+      "pairs": 209,
+      "mae_m3s": 462.2752666481204,
+      "rmse_m3s": 546.8114949827461,
+      "nse": 0.9060798053234148,
+      "observed_peak_m3s": 7886.72509765625,
+      "simulated_peak_m3s": 7900.829821869846,
+      "peak_lag_hours": 0.0,
+      "peak_relative_error": 0.0017884133197170952,
+      "status": "replay_scored_not_promoted"
+    },
+    "rainfall_audit": {
+      "generated_at_utc": "2026-09-04T16:21:20.695549+00:00",
+      "purpose": "chuva bruta ANA para teste híbrido E28; sem preenchimento",
+      "stations": [
+        "86472600",
+        "86510000"
+      ],
+      "events": {
+        "86472600": {
+          "hours": 240,
+          "first": "2024-06-16T00:00:00",
+          "last": "2024-06-25T23:00:00",
+          "missing_hours_inside": 0
+        },
+        "86510000": {
+          "hours": 240,
+          "first": "2024-06-16T00:00:00",
+          "last": "2024-06-25T23:00:00",
+          "missing_hours_inside": 0
+        }
+      },
+      "output_dss": "assets\\data\\hec_hms_calibration\\mucum_hybrid_e28_rain.dss",
+      "output_csv": "assets\\data\\hec_hms_audit\\derived\\mucum_hybrid_e28_rain_hourly.csv",
+      "hec_returncode": 0,
+      "hec_ok_marker": true
+    },
+    "status": "candidata híbrida específica do E28; não promovida",
+    "limitation": "a chuva local de E28 está completa, mas a vazão observada intermediária de Santa Tereza não está fechada; a busca continua específica do evento e não autoriza operação"
+  },
   "rainfall_input_audit": {
     "station": "86472600",
     "events": [
@@ -479,7 +583,7 @@
   },
   "gates": {
     "Santa_Tereza_observed_flow": "bloqueado: série/vazão reconciliada não fechada nesta rodada",
-    "rainfall_spatialization": "parcial: E28 tem candidata espacializada melhorada; E24/E27 têm lacuna interna e não foram preenchidos; estação intermediária ainda não tem vazão reconciliada",
+    "rainfall_spatialization": "parcial: E28 tem teste híbrido com 86472000, 86472600 e 86510000; E24/E27 têm lacuna interna e não foram preenchidos; estação intermediária ainda não tem vazão reconciliada",
     "reach_routing": "bloqueado para parametrização física: faltam seções de calha, nível/cota e política Manning/Muskingum-Cunge",
     "MDT": "auditado para geometria de terreno; não substitui fundo da calha nem seção hidráulica",
     "E26": "bloqueado: não há pacote HEC-HMS de entrada reconciliado nesta rodada",
@@ -496,6 +600,11 @@
     "station_e28_search_csv": "network_station_e28_calibration_search/station_e28_search.csv",
     "station_e28_best_candidate": "network_station_e28_calibration_search/candidate_033/E28",
     "station_distributed_replay": "network_replay_station_distributed_eventwise_all_events/network_metrics_all_events.json",
+    "hybrid_e28_search": "network_hybrid_e28_calibration_search/hybrid_e28_search_report.json",
+    "hybrid_e28_search_csv": "network_hybrid_e28_calibration_search/hybrid_e28_search.csv",
+    "hybrid_e28_replay": "network_replay_hybrid_e28/hybrid_e28_metrics.json",
+    "hybrid_e28_manifest": "network_replay_hybrid_e28/E28/event_network_manifest.json",
+    "hybrid_e28_rainfall_audit": "../hec_hms_audit/derived/mucum_hybrid_e28_rain_dss_report.json",
     "santa_tereza_input_audit": "../hec_hms_audit/santa_tereza_event_input_audit_latest.json",
     "santa_tereza_raw_rain_report": "../hec_hms_audit/derived/santa_tereza_raw_rain_dss_report.json",
     "dashboard": "network_dashboard/index.html"

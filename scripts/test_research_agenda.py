@@ -80,7 +80,7 @@ def test_agenda_sources_exist() -> None:
 def test_catalog_entries_are_unique_and_local_links_exist() -> None:
     html = CATALOG.read_text(encoding="utf-8")
     entries = re.findall(r'\{title:"([^"]+)"[^{}]*?href:"([^"]+)"', html)
-    assert len(entries) == 56, f"catálogo deveria ter 56 entradas, encontrou {len(entries)}"
+    assert len(entries) == 58, f"catálogo deveria ter 58 entradas, encontrou {len(entries)}"
     titles = [title for title, _ in entries]
     assert len(titles) == len(set(titles)), "títulos duplicados no catálogo"
     for title, href in entries:
