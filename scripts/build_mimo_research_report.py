@@ -62,6 +62,7 @@ def main():
     exp3 = data["experiments"]["exp3_2h4h8h_31in"]
     loo = data["experiments"]["exp5_leave_one_event_out_2h4h"]
     round3 = data["experiments"].get("exp6_close_mat_gap_2h4h") or {}
+    round4 = data["experiments"].get("exp7_mat_scale_warmstart_fix") or {}
     ds = data["datasets"]
     ref = data["mat_reference_metrics_teste"]
     cons = data["trajectory_consistency"]
@@ -80,18 +81,22 @@ def main():
                 f"<td>{payload['n']}</td></tr>"
             )
 
-    round3_rows = ""
-    if round3.get("ranking"):
-        for item in round3["ranking"]:
-            v = round3["variants"][item["key"]]["splits"]["teste"]
+    def _round_table(round_payload):
+        rows_html = ""
+        for item in round_payload.get("ranking") or []:
+            v = round_payload["variants"][item["key"]]["splits"]["teste"]
             flag = "ok" if item["ok_2h_vs_scratch"] else "no"
-            round3_rows += (
+            rows_html += (
                 f"<tr><td>{item['key']}</td>"
                 f"<td>{fmt(v['2h']['nash'])}</td><td>{fmt(v['4h']['nash'])}</td>"
                 f"<td>{fmt(item['delta_scratch_4h'])}</td>"
                 f"<td>{fmt(item['gap_mat_4h'])}</td>"
                 f"<td>{flag}</td></tr>"
             )
+        return rows_html
+
+    round3_rows = _round_table(round3)
+    round4_rows = _round_table(round4)
     round3_box = ""
     if round3:
         verd = round3.get("verdict", {})
@@ -106,9 +111,32 @@ bate scratch no 4h? {'sim' if verd.get('beats_scratch_4h') else 'não'}</p>
 <p class='meta'>{verd.get('note','')}</p>
 <ul>
 <li><strong>Peso em subidas</strong> foi a única alavanca Python estável (leve ganho no 4h).</li>
-<li><strong>Warm-start</strong> a partir do Direct .mat colapsou no fine-tune Python (escala ae/be ≠ z-score).</li>
+<li><strong>Warm-start full</strong> (ws+au/bu) colapsou — escala y sobrescrita no fit.</li>
 <li><strong>Peso forte no 4h</strong> [1,2] piorou o 2h além do limiar.</li>
-<li>Gap ao teto .mat no 4h permanece ≈0,13 NASH → handoff MATLAB nativo continua necessário.</li>
+<li>Gap ao teto .mat no 4h ≈0,14 NASH.</li>
+</ul>
+"""
+    round4_box = ""
+    if round4:
+        verd = round4.get("verdict", {})
+        best = round4.get("best_variant", "—")
+        r3ref = round4.get("round3_best_ref") or {}
+        round4_box = f"""
+<h2>6c. Rodada 4 — escala ae/be + warm-start corrigido</h2>
+<p>Pergunta: {round4.get('question','')}</p>
+<p class='meta'>Hipótese: {round4.get('hypothesis','')}</p>
+<p><strong>Melhor variante:</strong> {best} · fecha gap&lt;0,10? {'sim' if verd.get('closes_mat_gap') else 'não'} ·
+melhora r3 no 4h? {'sim' if verd.get('improves_vs_round3_4h') else 'não'}
+{f" · r3 ref 4h NASH {fmt((r3ref.get('teste') or {}).get('4h', {}).get('nash'))}" if r3ref else ""}</p>
+<table><thead><tr><th>Variante</th><th>NASH 2h</th><th>NASH 4h</th><th>Δ scratch 4h</th><th>gap teto 4h</th><th>2h ok</th></tr></thead>
+<tbody>{round4_rows or '<tr><td colspan="6">sem ranking</td></tr>'}</tbody></table>
+<p class='meta'>{verd.get('note','')}</p>
+<ul>
+<li><strong>warm_hidden_rising</strong> (Wh/bh do Direct + ae/be + peso em subidas) é estável e ligeiramente acima da r3 no 4h.</li>
+<li><strong>mat_input_only</strong> (só congelar ae/be) já recupera quase o mesmo 4h — a escala de entrada importa mais que copiar ws.</li>
+<li><strong>full_freeze_y</strong> ainda destrói o 2h; copiar a cabeça Direct não transferiu bem.</li>
+<li><strong>stitch</strong> Direct2h+MIMO4h: no recorte alinhado o 2h dá NASH≈1 (replay), mas o 4h não sobe além do MIMO — não fecha o teto operacional.</li>
+<li>Gap 4h permanece ≈0,12–0,13 → próximo passo: MATLAB nativo, não mais buscas ad-hoc em Python.</li>
 </ul>
 """
 
@@ -189,13 +217,15 @@ ul{{padding-left:20px}}
 
 {round3_box}
 
+{round4_box}
+
 <h2>7. Handoff MATLAB (próximo passo nativo)</h2>
 <p>Pacote de dados alinhados + script <code>train_mimo_2h4h_stz.m</code> em
 <code>codigo_python/11_experimento_mimo/matlab/</code>. CSVs em
 <a href='../assets/data/research_mimo_matlab_handoff/manifest.json'>assets/data/research_mimo_matlab_handoff/</a>.
 Rodar no MATLAB e comparar ao teto <code>mat_reference_metrics_teste</code> — não ao replay NASH≈1.
-A rodada 3 mostrou que warm-start Python do Direct .mat não fecha o gap; treino nativo MATLAB
-com a mesma pipeline dos Direct permanece o caminho mais promissor.</p>
+As rodadas 3–4 esgotaram alavancas Python estáveis (pesos de subida, ae/be congelado, warm-start só na oculta):
+gap 4h ≈0,12–0,13. Treino nativo MATLAB com a pipeline dos Direct permanece o caminho.</p>
 
 <h2>8. JSON auditável</h2>
 <p><a href='../assets/data/research_mimo_multihorizon_latest.json'>assets/data/research_mimo_multihorizon_latest.json</a></p>

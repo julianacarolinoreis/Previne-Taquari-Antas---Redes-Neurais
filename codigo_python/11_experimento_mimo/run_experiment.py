@@ -56,6 +56,8 @@ def _fit_search(
     scale_mode="zscore",
     lr=0.015,
     warm_start_weights=None,
+    warm_start_mode="hidden_only",
+    mat_input_scale_weights=None,
     sample_weights_tr=None,
     seeds=(42, 7, 19),
 ):
@@ -64,7 +66,9 @@ def _fit_search(
         for seed in seeds:
             model = MimoMLP(x_tr.shape[1], y_tr.shape[1], nh, seed=seed, scale_mode=scale_mode)
             if warm_start_weights is not None:
-                model.warm_start_from_direct(warm_start_weights, seed=seed)
+                model.warm_start_from_direct(warm_start_weights, seed=seed, mode=warm_start_mode)
+            elif mat_input_scale_weights is not None:
+                model.apply_mat_input_scale(mat_input_scale_weights)
             fit = model.fit(
                 x_tr,
                 y_tr,
@@ -110,8 +114,12 @@ def train_mimo_variants(
     scale_mode="zscore",
     lr=0.015,
     warm_start_weights=None,
+    warm_start_mode="hidden_only",
+    mat_input_scale_weights=None,
     sample_weights_tr=None,
     seeds=(42, 7, 19),
+    predict_fn_override=None,
+    strategy_name=None,
 ):
     train_rows, x_tr, y_tr, _, _ = _stack(rows, datasets, input_idx, output_specs, 1)
     val_rows, x_va, y_va, _, y_va_abs = _stack(rows, datasets, input_idx, output_specs, 2)
@@ -127,6 +135,8 @@ def train_mimo_variants(
         scale_mode=scale_mode,
         lr=lr,
         warm_start_weights=warm_start_weights,
+        warm_start_mode=warm_start_mode,
+        mat_input_scale_weights=mat_input_scale_weights,
         sample_weights_tr=sample_weights_tr,
         seeds=seeds,
     )
@@ -135,8 +145,12 @@ def train_mimo_variants(
         deltas = best["model"].forward_delta(x)[0]
         return [float(atual + d) for d in deltas]
 
+    if predict_fn_override is not None:
+        predict_fn = predict_fn_override
+
     result = evaluate_strategy(
-        name=f"mimo_nh{best['nh']}_in{datasets[input_idx].n_inputs}_out{len(output_specs)}{name_suffix}",
+        name=strategy_name
+        or f"mimo_nh{best['nh']}_in{datasets[input_idx].n_inputs}_out{len(output_specs)}{name_suffix}",
         rows=rows,
         datasets=datasets,
         input_dataset_idx=input_idx,
@@ -153,6 +167,8 @@ def train_mimo_variants(
         "scale_mode": best.get("scale_mode", scale_mode),
         "lr": best.get("lr", lr),
         "warm_start": warm_start_weights is not None,
+        "warm_start_mode": warm_start_mode if warm_start_weights is not None else None,
+        "mat_input_scale": mat_input_scale_weights is not None or warm_start_weights is not None,
         **best["fit"],
         "n_train": len(train_rows),
         "n_val": len(val_rows),

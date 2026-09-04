@@ -262,13 +262,32 @@ class MimoMLP:
         self.y_mean = np.zeros(n_outputs)
         self.y_std = np.ones(n_outputs)
         self._freeze_input_scale = False
+        self._freeze_output_scale = False
+        self._freeze_hidden = False
 
-    def warm_start_from_direct(self, weights: dict[str, np.ndarray], *, seed: int = 42) -> None:
-        """Copia camada oculta do Direct .mat; inicializa cabeças multi-saída.
+    def apply_mat_input_scale(self, weights: dict[str, np.ndarray]) -> None:
+        """Congela ae/be do .mat (be=média, ae=desvio — protocolo PREVINE)."""
+        self.x_mean = np.asarray(weights["be"], float).ravel().copy()
+        self.x_std = np.clip(np.asarray(weights["ae"], float).ravel().copy(), 1e-6, None)
+        self._freeze_input_scale = True
 
-        Também aplica ae/be do .mat na entrada. au/bu do Direct 2h vai para a
-        1ª saída; a 2ª saída começa com a mesma escala e é afinada no fit.
+    def warm_start_from_direct(
+        self,
+        weights: dict[str, np.ndarray],
+        *,
+        seed: int = 42,
+        mode: str = "hidden_only",
+    ) -> None:
+        """Transfere pesos do Direct .mat para o MIMO.
+
+        Modes:
+        - hidden_only: copia Wh/bh + ae/be; cabeças de saída aleatórias (recomendado).
+        - full: copia também ws/bs/au/bu (legado; colapsa se o fit trocar a escala y).
+        - full_freeze_y: como full, mas congela au/bu na 1ª cabeça e escala y do treino
+          só na 2ª (afinando com lr baixo).
         """
+        if mode not in {"hidden_only", "full", "full_freeze_y"}:
+            raise ValueError(f"warm_start mode inválido: {mode}")
         rng = np.random.default_rng(seed)
         wh = np.atleast_2d(np.asarray(weights["wh"], float))
         if wh.shape[0] == self.n_inputs and wh.shape[1] != self.n_inputs:
@@ -291,21 +310,35 @@ class MimoMLP:
             self.bh[:nh_src] = bh
             src_ws = np.zeros(self.n_hidden)
             src_ws[:nh_src] = ws1
+
+        self.apply_mat_input_scale(weights)
+        # ae/be é z-score PREVINE; saída do fit usa scale_mode do construtor
+        self.scale_mode = "zscore" if mode == "hidden_only" else self.scale_mode
+
+        if mode == "hidden_only":
+            self.ws = rng.normal(0, 0.35, size=(self.n_outputs, self.n_hidden))
+            self.bs = np.zeros(self.n_outputs)
+            self._freeze_output_scale = False
+            self._freeze_hidden = False
+            return
+
+        au = float(np.asarray(weights["au"]).ravel()[0])
+        bu = float(np.asarray(weights["bu"]).ravel()[0])
         self.ws = rng.normal(0, 0.15, size=(self.n_outputs, self.n_hidden))
         self.ws[0] = src_ws
         if self.n_outputs > 1:
             self.ws[1] = src_ws + rng.normal(0, 0.05, size=self.n_hidden)
         self.bs = np.zeros(self.n_outputs)
         self.bs[0] = float(np.asarray(weights["bs"]).ravel()[0])
-        # Escala de entrada do .mat (PREVINE)
-        self.x_mean = np.asarray(weights["be"], float).ravel().copy()
-        self.x_std = np.clip(np.asarray(weights["ae"], float).ravel().copy(), 1e-6, None)
-        au = float(np.asarray(weights["au"]).ravel()[0])
-        bu = float(np.asarray(weights["bu"]).ravel()[0])
         self.y_mean = np.full(self.n_outputs, bu, dtype=float)
         self.y_std = np.full(self.n_outputs, max(au, 1e-6), dtype=float)
-        self.scale_mode = "minmax"
-        self._freeze_input_scale = True
+        if mode == "full_freeze_y":
+            self._freeze_output_scale = True
+            self._freeze_hidden = True
+        else:
+            # legado: fit vai sobrescrever y com estatística do treino
+            self._freeze_output_scale = False
+            self._freeze_hidden = False
 
     def _norm_x(self, x: np.ndarray) -> np.ndarray:
         return (x - self.x_mean) / self.x_std
@@ -345,13 +378,22 @@ class MimoMLP:
             else:
                 self.x_mean = x_train.mean(axis=0)
                 self.x_std = np.clip(x_train.std(axis=0), 1e-6, None)
-        # Escala de saída: sempre pelo treino (2ª cabeça MIMO precisa do range real de Δ4h)
-        if self.scale_mode == "minmax" or getattr(self, "_freeze_input_scale", False):
-            self.y_mean = y_train.min(axis=0)
-            self.y_std = np.clip(y_train.max(axis=0) - self.y_mean, 1e-6, None)
-        else:
-            self.y_mean = y_train.mean(axis=0)
-            self.y_std = np.clip(y_train.std(axis=0), 1e-6, None)
+        # Escala de saída: pelo treino, salvo freeze explícito (warm-start full_freeze_y)
+        if not getattr(self, "_freeze_output_scale", False):
+            if self.scale_mode == "minmax":
+                self.y_mean = y_train.min(axis=0)
+                self.y_std = np.clip(y_train.max(axis=0) - self.y_mean, 1e-6, None)
+            else:
+                self.y_mean = y_train.mean(axis=0)
+                self.y_std = np.clip(y_train.std(axis=0), 1e-6, None)
+        elif self.n_outputs > 1:
+            # Congela cabeça 0 (au/bu do Direct); estima só a cabeça 4h+
+            if self.scale_mode == "minmax":
+                self.y_mean[1:] = y_train[:, 1:].min(axis=0)
+                self.y_std[1:] = np.clip(y_train[:, 1:].max(axis=0) - self.y_mean[1:], 1e-6, None)
+            else:
+                self.y_mean[1:] = y_train[:, 1:].mean(axis=0)
+                self.y_std[1:] = np.clip(y_train[:, 1:].std(axis=0), 1e-6, None)
         if horizon_weights is None:
             horizon_weights = np.ones(self.n_outputs, dtype=float)
         else:
@@ -486,8 +528,9 @@ class MimoMLP:
 
         self.ws -= lr * dws
         self.bs -= lr * dbs
-        self.wh -= lr * dwh
-        self.bh -= lr * dbh
+        if not getattr(self, "_freeze_hidden", False):
+            self.wh -= lr * dwh
+            self.bh -= lr * dbh
 
 
 def rising_inconsistency_rate(y_true_abs: np.ndarray, y_pred_abs: np.ndarray) -> dict:

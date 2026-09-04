@@ -20,7 +20,7 @@ ul{padding-left:20px}
 </head>
 <body>
 <h1>Relatório comparativo — RNA multi-horizonte (MIMO)</h1>
-<p class='meta'>Gerado em 2026-09-04T19:31:45+00:00 · Santa Tereza · modo pesquisa (não operacional) · schema v3</p>
+<p class='meta'>Gerado em 2026-09-04T19:37:09+00:00 · Santa Tereza · modo pesquisa (não operacional) · schema v4</p>
 
 <div class='box'>
 <strong>Pergunta:</strong> uma única rede prevendo 2h+4h (+8h) supera modelos Direct?<br>
@@ -98,9 +98,28 @@ bate scratch no 4h? sim</p>
 <p class='meta'>Ganho vs scratch no 4h já existia; rodada 3 busca aproximar o teto .mat. Se nenhuma variante reduzir gap_mat_4h < 0,10 mantendo 2h, o handoff MATLAB com inicialização nativa permanece o próximo passo.</p>
 <ul>
 <li><strong>Peso em subidas</strong> foi a única alavanca Python estável (leve ganho no 4h).</li>
-<li><strong>Warm-start</strong> a partir do Direct .mat colapsou no fine-tune Python (escala ae/be ≠ z-score).</li>
+<li><strong>Warm-start full</strong> (ws+au/bu) colapsou — escala y sobrescrita no fit.</li>
 <li><strong>Peso forte no 4h</strong> [1,2] piorou o 2h além do limiar.</li>
-<li>Gap ao teto .mat no 4h permanece ≈0,13 NASH → handoff MATLAB nativo continua necessário.</li>
+<li>Gap ao teto .mat no 4h ≈0,14 NASH.</li>
+</ul>
+
+
+
+<h2>6c. Rodada 4 — escala ae/be + warm-start corrigido</h2>
+<p>Pergunta: Corrigindo a escala ae/be (z-score PREVINE) e o warm-start (só oculta), fechamos o gap ao teto .mat sem piorar o 2h?</p>
+<p class='meta'>Hipótese: O colapso do warm-start na r3 veio de copiar ws+au/bu e sobrescrever a escala y; transferir só Wh/bh com ae/be congelado deve ser estável.</p>
+<p><strong>Melhor variante:</strong> mimo_warm_hidden_rising · fecha gap&lt;0,10? não ·
+melhora r3 no 4h? sim
+ · r3 ref 4h NASH 0,8567</p>
+<table><thead><tr><th>Variante</th><th>NASH 2h</th><th>NASH 4h</th><th>Δ scratch 4h</th><th>gap teto 4h</th><th>2h ok</th></tr></thead>
+<tbody><tr><td>mimo_warm_hidden_rising</td><td>0,9545</td><td>0,8673</td><td>0,1929</td><td>0,1253</td><td>ok</td></tr><tr><td>stitch_direct2h_mimo4h</td><td>1,0000</td><td>0,8673</td><td>0,1929</td><td>0,1253</td><td>ok</td></tr><tr><td>mimo_mat_input_only</td><td>0,9547</td><td>0,8642</td><td>0,1898</td><td>0,1284</td><td>ok</td></tr><tr><td>mimo_rising_r3_ref</td><td>0,9541</td><td>0,8567</td><td>0,1823</td><td>0,1359</td><td>ok</td></tr><tr><td>mimo_warm_hidden_only</td><td>0,9548</td><td>0,6744</td><td>0,0000</td><td>0,3182</td><td>ok</td></tr><tr><td>mimo_warm_full_freeze_y</td><td>-11,9466</td><td>0,8640</td><td>0,1896</td><td>0,1286</td><td>no</td></tr></tbody></table>
+<p class='meta'>Se gap_mat_4h continuar ≥0,10 após warm-start corrigido e stitch, o teto .mat exige treino nativo MATLAB (ou dados/protocolo idêntico ao Direct), não mais alavancas ad-hoc em Python.</p>
+<ul>
+<li><strong>warm_hidden_rising</strong> (Wh/bh do Direct + ae/be + peso em subidas) é estável e ligeiramente acima da r3 no 4h.</li>
+<li><strong>mat_input_only</strong> (só congelar ae/be) já recupera quase o mesmo 4h — a escala de entrada importa mais que copiar ws.</li>
+<li><strong>full_freeze_y</strong> ainda destrói o 2h; copiar a cabeça Direct não transferiu bem.</li>
+<li><strong>stitch</strong> Direct2h+MIMO4h: no recorte alinhado o 2h dá NASH≈1 (replay), mas o 4h não sobe além do MIMO — não fecha o teto operacional.</li>
+<li>Gap 4h permanece ≈0,12–0,13 → próximo passo: MATLAB nativo, não mais buscas ad-hoc em Python.</li>
 </ul>
 
 
@@ -109,8 +128,8 @@ bate scratch no 4h? sim</p>
 <code>codigo_python/11_experimento_mimo/matlab/</code>. CSVs em
 <a href='../assets/data/research_mimo_matlab_handoff/manifest.json'>assets/data/research_mimo_matlab_handoff/</a>.
 Rodar no MATLAB e comparar ao teto <code>mat_reference_metrics_teste</code> — não ao replay NASH≈1.
-A rodada 3 mostrou que warm-start Python do Direct .mat não fecha o gap; treino nativo MATLAB
-com a mesma pipeline dos Direct permanece o caminho mais promissor.</p>
+As rodadas 3–4 esgotaram alavancas Python estáveis (pesos de subida, ae/be congelado, warm-start só na oculta):
+gap 4h ≈0,12–0,13. Treino nativo MATLAB com a pipeline dos Direct permanece o caminho.</p>
 
 <h2>8. JSON auditável</h2>
 <p><a href='../assets/data/research_mimo_multihorizon_latest.json'>assets/data/research_mimo_multihorizon_latest.json</a></p>

@@ -111,6 +111,22 @@ class TestExperimentArtifact(unittest.TestCase):
         self.assertGreater(best["4h"]["nash"], 0.80)
         self.assertFalse(exp6["verdict"]["closes_mat_gap"], "gap ao teto .mat ainda não fechou")
 
+    def test_round4_mat_scale_warmstart_artifact(self):
+        exp7 = self.data["experiments"].get("exp7_mat_scale_warmstart_fix")
+        self.assertIsNotNone(exp7, "exp7_mat_scale_warmstart_fix ausente")
+        self.assertEqual(exp7.get("status"), "ok")
+        best = exp7["variants"][exp7["best_variant"]]["splits"]["teste"]
+        self.assertGreater(best["2h"]["nash"], 0.90)
+        self.assertGreater(best["4h"]["nash"], 0.85)
+        self.assertFalse(exp7["verdict"]["closes_mat_gap"])
+        # warm_hidden_rising deve superar o ref rising da r3 no 4h (ou empatar perto)
+        r3 = self.data["experiments"]["exp6_close_mat_gap_2h4h"]
+        r3_4h = r3["variants"][r3["best_variant"]]["splits"]["teste"]["4h"]["nash"]
+        self.assertGreaterEqual(best["4h"]["nash"], r3_4h - 0.005)
+        # full_freeze_y documentado como falha no 2h
+        full = exp7["variants"]["mimo_warm_full_freeze_y"]["splits"]["teste"]["2h"]["nash"]
+        self.assertLess(full, 0.0)
+
     def test_matlab_handoff_package(self):
         import sys
 
