@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang='pt-BR'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>Relatório RNA multi-horizonte (MIMO)</title>
+<style>
+body{font-family:Georgia,serif;line-height:1.5;margin:24px auto;max-width:980px;color:#1a1a1a}
+h1,h2{line-height:1.2}
+.good td:last-child{color:#0f6b4a;font-weight:700}
+.bad td:last-child{color:#a11919;font-weight:700}
+.neutral td:last-child{color:#6a5a00;font-weight:700}
+table{width:100%;border-collapse:collapse;margin:12px 0 24px;font-size:14px}
+th,td{border:1px solid #ccc;padding:6px 8px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+.meta{color:#555;font-size:13px}
+.box{background:#f7f7f2;border:1px solid #ddd;padding:12px 14px;margin:16px 0}
+ul{padding-left:20px}
+</style>
+</head>
+<body>
+<h1>Relatório comparativo — RNA multi-horizonte (MIMO)</h1>
+<p class='meta'>Gerado em 2026-09-04T19:37:09+00:00 · Santa Tereza · modo pesquisa (não operacional) · schema v4</p>
+
+<div class='box'>
+<strong>Pergunta:</strong> uma única rede prevendo 2h+4h (+8h) supera modelos Direct?<br>
+<strong>Comparação justa:</strong> Direct scratch vs MIMO — mesmo pipeline Python.<br>
+<strong>Teto operacional:</strong> métricas do .mat no <em>teste completo</em> (`mat_reference_metrics_teste`). O replay alinhado do .mat dá NASH≈1 e não é teto.<br>
+<strong>Extra:</strong> leave-one-event-out, loss de trajetória e correção pós-hoc em subidas.
+</div>
+
+<h2>1. Amostras alinhadas</h2>
+<ul>
+<li>2h+4h: 2004 linhas · teste 141 · eventos 20</li>
+<li>2h+4h+8h: 35 linhas · teste 4</li>
+</ul>
+
+<h2>2. Referência .mat (teste completo)</h2>
+<ul>
+<li>2h: NASH 0,9962 · PERS 0,9688 · E95 10,4 cm</li>
+<li>4h: NASH 0,9926 · PERS 0,8782 · E95 58,8 cm</li>
+</ul>
+
+<h2>3. Experimento principal — 2h + 4h (15 inputs)</h2>
+<p>MIMO base: nh=40, seed=42.</p>
+<h3>Direct scratch vs MIMO base</h3>
+<table><thead><tr><th>Horizonte</th><th>NASH base</th><th>NASH MIMO</th><th>Δ NASH</th><th>PERS base</th><th>PERS MIMO</th><th>E95 base</th><th>E95 MIMO</th><th>Δ E95</th><th>Leitura</th></tr></thead><tbody>
+<tr class='good'><td>4h</td><td>0,6744</td><td>0,8646</td><td>0,1902</td><td>-0,0237</td><td>0,5742</td><td>109,1</td><td>61,6</td><td>-47,5</td><td>ganho</td></tr>
+<tr class='neutral'><td>2h</td><td>0,9549</td><td>0,9536</td><td>-0,0013</td><td>0,6109</td><td>0,5998</td><td>46,2</td><td>46,2</td><td>0,0</td><td>empate</td></tr>
+</tbody></table>
+<h3>Direct scratch vs MIMO + correção pós-hoc</h3>
+<table><thead><tr><th>Horizonte</th><th>NASH base</th><th>NASH MIMO</th><th>Δ NASH</th><th>PERS base</th><th>PERS MIMO</th><th>E95 base</th><th>E95 MIMO</th><th>Δ E95</th><th>Leitura</th></tr></thead><tbody>
+<tr class='good'><td>4h</td><td>0,6744</td><td>0,8644</td><td>0,1900</td><td>-0,0237</td><td>0,5737</td><td>109,1</td><td>61,6</td><td>-47,5</td><td>ganho</td></tr>
+<tr class='neutral'><td>2h</td><td>0,9549</td><td>0,9536</td><td>-0,0013</td><td>0,6109</td><td>0,5998</td><td>46,2</td><td>46,2</td><td>0,0</td><td>empate</td></tr>
+</tbody></table>
+<h3>.mat (teste completo) vs MIMO — teto operacional</h3>
+<p class='meta'>Baseline = mat_reference_metrics_teste. Não usar o replay alinhado (NASH≈1) como teto.</p>
+<table><thead><tr><th>Horizonte</th><th>NASH base</th><th>NASH MIMO</th><th>Δ NASH</th><th>PERS base</th><th>PERS MIMO</th><th>E95 base</th><th>E95 MIMO</th><th>Δ E95</th><th>Leitura</th></tr></thead><tbody>
+<tr class='bad'><td>2h</td><td>0,9962</td><td>0,9536</td><td>-0,0426</td><td>0,9688</td><td>0,5998</td><td>10,4</td><td>46,2</td><td>35,8</td><td>perda</td></tr>
+<tr class='bad'><td>4h</td><td>0,9926</td><td>0,8646</td><td>-0,1280</td><td>0,8782</td><td>0,5742</td><td>58,8</td><td>61,6</td><td>2,8</td><td>perda</td></tr>
+</tbody></table>
+<h3>.mat alinhado (replay) vs MIMO — auditoria, não teto</h3>
+<p class='meta'>direct_mat no recorte alinhado reproduz as predições do .mat (NASH≈1). O teto operacional usa mat_reference_metrics_teste (teste completo do .mat).</p>
+<table><thead><tr><th>Horizonte</th><th>NASH base</th><th>NASH MIMO</th><th>Δ NASH</th><th>PERS base</th><th>PERS MIMO</th><th>E95 base</th><th>E95 MIMO</th><th>Δ E95</th><th>Leitura</th></tr></thead><tbody>
+<tr class='bad'><td>2h</td><td>1,0000</td><td>0,9536</td><td>-0,0464</td><td>1,0000</td><td>0,5998</td><td>0,0</td><td>46,2</td><td>46,2</td><td>perda</td></tr>
+<tr class='bad'><td>4h</td><td>1,0000</td><td>0,8646</td><td>-0,1354</td><td>1,0000</td><td>0,5742</td><td>0,0</td><td>61,6</td><td>61,6</td><td>perda</td></tr>
+</tbody></table>
+
+<h2>4. Leave-one-event-out</h2>
+<p>Status: ok · eventos avaliados: 20</p>
+<table><thead><tr><th>Horizonte</th><th>NASH Direct</th><th>NASH MIMO</th><th>Δ NASH</th><th>Δ E95</th><th>Vitórias MIMO/Direct/empate</th><th>n</th></tr></thead>
+<tbody><tr><td>2h</td><td>0,9887</td><td>0,9887</td><td>-0,0001</td><td>0,0</td><td>0 / 3 / 17</td><td>2004</td></tr><tr><td>4h</td><td>0,9556</td><td>0,9660</td><td>0,0104</td><td>-23,8</td><td>11 / 7 / 2</td><td>2004</td></tr></tbody></table>
+
+<h2>5. Coerência de trajetória no teste</h2>
+<ul>
+<li>MIMO base — violação em subidas: 0,333 (21/63)</li>
+<li>MIMO repair — violação em subidas: 0,317</li>
+<li>Direct .mat — violação em subidas: 0,000</li>
+</ul>
+<p>Penalidade ReLU em subidas com 4h<2h foi testada e piorou NASH/PERS; não usada na variante final</p>
+
+<h2>6. Experimento 2h+4h+8h</h2>
+<p>Amostra pequena (n_teste=4).</p>
+<h3>Direct scratch vs MIMO</h3>
+<table><thead><tr><th>Horizonte</th><th>NASH base</th><th>NASH MIMO</th><th>Δ NASH</th><th>PERS base</th><th>PERS MIMO</th><th>E95 base</th><th>E95 MIMO</th><th>Δ E95</th><th>Leitura</th></tr></thead><tbody>
+<tr class='neutral'><td>2h</td><td>0,9818</td><td>0,9804</td><td>-0,0014</td><td>0,0813</td><td>0,0120</td><td>14,3</td><td>12,3</td><td>-2,0</td><td>empate</td></tr>
+<tr class='neutral'><td>4h</td><td>0,9398</td><td>0,9398</td><td>-0,0000</td><td>0,1284</td><td>0,1284</td><td>29,9</td><td>29,9</td><td>0,0</td><td>empate</td></tr>
+<tr class='neutral'><td>8h</td><td>0,3006</td><td>0,3006</td><td>0,0000</td><td>-1,9785</td><td>-1,9785</td><td>79,8</td><td>79,8</td><td>0,0</td><td>empate</td></tr>
+</tbody></table>
+
+
+<h2>6b. Rodada 3 — fechar gap ao teto .mat</h2>
+<p>Pergunta: Qual variante MIMO reduz o gap ao teto .mat sem piorar o 2h vs Direct scratch?</p>
+<p><strong>Melhor variante:</strong> mimo_rising_weight · fecha gap&lt;0,10? não ·
+bate scratch no 4h? sim</p>
+<table><thead><tr><th>Variante</th><th>NASH 2h</th><th>NASH 4h</th><th>Δ scratch 4h</th><th>gap teto 4h</th><th>2h ok</th></tr></thead>
+<tbody><tr><td>mimo_rising_weight</td><td>0,9541</td><td>0,8567</td><td>0,1823</td><td>0,1359</td><td>ok</td></tr><tr><td>mimo_rising_w4h</td><td>0,9494</td><td>0,8457</td><td>0,1713</td><td>0,1469</td><td>ok</td></tr><tr><td>mimo_zscore_base</td><td>0,9522</td><td>0,8432</td><td>0,1688</td><td>0,1494</td><td>ok</td></tr><tr><td>mimo_weight_4h</td><td>0,8826</td><td>0,8431</td><td>0,1687</td><td>0,1495</td><td>no</td></tr><tr><td>mimo_warmstart_2h</td><td>-1,6032</td><td>-23,9416</td><td>-24,6160</td><td>24,9342</td><td>no</td></tr><tr><td>mimo_warm_rising</td><td>-1,6032</td><td>-23,9416</td><td>-24,6160</td><td>24,9342</td><td>no</td></tr></tbody></table>
+<p class='meta'>Ganho vs scratch no 4h já existia; rodada 3 busca aproximar o teto .mat. Se nenhuma variante reduzir gap_mat_4h < 0,10 mantendo 2h, o handoff MATLAB com inicialização nativa permanece o próximo passo.</p>
+<ul>
+<li><strong>Peso em subidas</strong> foi a única alavanca Python estável (leve ganho no 4h).</li>
+<li><strong>Warm-start full</strong> (ws+au/bu) colapsou — escala y sobrescrita no fit.</li>
+<li><strong>Peso forte no 4h</strong> [1,2] piorou o 2h além do limiar.</li>
+<li>Gap ao teto .mat no 4h ≈0,14 NASH.</li>
+</ul>
+
+
+
+<h2>6c. Rodada 4 — escala ae/be + warm-start corrigido</h2>
+<p>Pergunta: Corrigindo a escala ae/be (z-score PREVINE) e o warm-start (só oculta), fechamos o gap ao teto .mat sem piorar o 2h?</p>
+<p class='meta'>Hipótese: O colapso do warm-start na r3 veio de copiar ws+au/bu e sobrescrever a escala y; transferir só Wh/bh com ae/be congelado deve ser estável.</p>
+<p><strong>Melhor variante:</strong> mimo_warm_hidden_rising · fecha gap&lt;0,10? não ·
+melhora r3 no 4h? sim
+ · r3 ref 4h NASH 0,8567</p>
+<table><thead><tr><th>Variante</th><th>NASH 2h</th><th>NASH 4h</th><th>Δ scratch 4h</th><th>gap teto 4h</th><th>2h ok</th></tr></thead>
+<tbody><tr><td>mimo_warm_hidden_rising</td><td>0,9545</td><td>0,8673</td><td>0,1929</td><td>0,1253</td><td>ok</td></tr><tr><td>stitch_direct2h_mimo4h</td><td>1,0000</td><td>0,8673</td><td>0,1929</td><td>0,1253</td><td>ok</td></tr><tr><td>mimo_mat_input_only</td><td>0,9547</td><td>0,8642</td><td>0,1898</td><td>0,1284</td><td>ok</td></tr><tr><td>mimo_rising_r3_ref</td><td>0,9541</td><td>0,8567</td><td>0,1823</td><td>0,1359</td><td>ok</td></tr><tr><td>mimo_warm_hidden_only</td><td>0,9548</td><td>0,6744</td><td>0,0000</td><td>0,3182</td><td>ok</td></tr><tr><td>mimo_warm_full_freeze_y</td><td>-11,9466</td><td>0,8640</td><td>0,1896</td><td>0,1286</td><td>no</td></tr></tbody></table>
+<p class='meta'>Se gap_mat_4h continuar ≥0,10 após warm-start corrigido e stitch, o teto .mat exige treino nativo MATLAB (ou dados/protocolo idêntico ao Direct), não mais alavancas ad-hoc em Python.</p>
+<ul>
+<li><strong>warm_hidden_rising</strong> (Wh/bh do Direct + ae/be + peso em subidas) é estável e ligeiramente acima da r3 no 4h.</li>
+<li><strong>mat_input_only</strong> (só congelar ae/be) já recupera quase o mesmo 4h — a escala de entrada importa mais que copiar ws.</li>
+<li><strong>full_freeze_y</strong> ainda destrói o 2h; copiar a cabeça Direct não transferiu bem.</li>
+<li><strong>stitch</strong> Direct2h+MIMO4h: no recorte alinhado o 2h dá NASH≈1 (replay), mas o 4h não sobe além do MIMO — não fecha o teto operacional.</li>
+<li>Gap 4h permanece ≈0,12–0,13 → próximo passo: MATLAB nativo, não mais buscas ad-hoc em Python.</li>
+</ul>
+
+
+<h2>7. Handoff MATLAB (próximo passo nativo)</h2>
+<p>Pacote de dados alinhados + script <code>train_mimo_2h4h_stz.m</code> em
+<code>codigo_python/11_experimento_mimo/matlab/</code>. CSVs em
+<a href='../assets/data/research_mimo_matlab_handoff/manifest.json'>assets/data/research_mimo_matlab_handoff/</a>.
+Rodar no MATLAB e comparar ao teto <code>mat_reference_metrics_teste</code> — não ao replay NASH≈1.
+As rodadas 3–4 esgotaram alavancas Python estáveis (pesos de subida, ae/be congelado, warm-start só na oculta):
+gap 4h ≈0,12–0,13. Treino nativo MATLAB com a pipeline dos Direct permanece o caminho.</p>
+
+<h2>8. JSON auditável</h2>
+<p><a href='../assets/data/research_mimo_multihorizon_latest.json'>assets/data/research_mimo_multihorizon_latest.json</a></p>
+</body></html>
