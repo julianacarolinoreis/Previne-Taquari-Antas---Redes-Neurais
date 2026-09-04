@@ -2,10 +2,13 @@
   'use strict';
 
   const SVG_NS='http://www.w3.org/2000/svg';
-  const state={config:null,history:null,live:null,auditCatalog:null,researchRisk:null,researchReview:null,historyError:null,auditCatalogError:null,liveError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null,errorWindowHours:168};
+  const state={config:null,history:null,live:null,liveStaleHorizons:[],auditCatalog:null,researchRisk:null,researchReview:null,historyError:null,auditCatalogError:null,liveError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null,errorWindowHours:168};
   // Os feeds da pesquisa são deliberadamente tratados como dados com idade.
   // Um valor velho continua auditável, mas não deve parecer uma previsão atual.
   const FRESHNESS={liveMinutes:30,historyHours:24,researchWeatherHours:18,researchProbabilityHours:36,researchReviewHours:72};
+  // Uma previsão cujo alvo já passou não deve ocupar o papel de horizonte futuro.
+  // Ela continua disponível no histórico e na ficha detalhada para auditoria.
+  const ACTIVE_FORECAST_GRACE_MINUTES=30;
   // Fallback auditável quando o JSON do cartão ainda não foi publicado no Pages.
   // É replay histórico, não previsão atual nem alerta oficial.
   const RESEARCH_CARD_FALLBACK={
@@ -251,7 +254,7 @@
   function forecasts(live,anchor){
     if(!live) return [];
     const hs=live.horizontes&&Object.keys(live.horizontes).length?live.horizontes:{[live.horizonte||'2h']:live};
-    const picked=new Map();
+    const candidatesByHours=new Map();
     Object.entries(hs).forEach(([key,obj])=>{
       if(!obj||obj.disponivel===false||obj.shadow_only) return;
       const cm=number(obj.nivel_previsto_cm),hours=horizonHours(key,obj);
@@ -265,10 +268,28 @@
       if(!target) return;
       const exact=String(key).toLowerCase()===hours+'h';
       const candidate={hours,cm,time:target,baseTime,baseCm,key,model:obj.modelo||'',exact,alternate:!!obj.alternate};
-      const old=picked.get(hours);
-      if(!old||candidate.exact||(!old.exact&&!candidate.alternate)) picked.set(hours,candidate);
+      if(!candidatesByHours.has(hours)) candidatesByHours.set(hours,[]);
+      candidatesByHours.get(hours).push(candidate);
     });
-    return Array.from(picked.values()).sort((a,b)=>a.hours-b.hours);
+    const picked=new Map();
+    const stale=[];
+    candidatesByHours.forEach(candidates=>{
+      candidates.sort((a,b)=>{
+        if(a.exact!==b.exact) return a.exact?-1:1;
+        if(a.alternate!==b.alternate) return a.alternate?1:-1;
+        return 0;
+      });
+      const candidate=candidates[0];
+      const staleTarget=anchor&&candidate.time.getTime()<anchor.time.getTime()-ACTIVE_FORECAST_GRACE_MINUTES*60000;
+      if(staleTarget){
+        stale.push(candidate);
+        return;
+      }
+      picked.set(candidate.hours,candidate);
+    });
+    const result=Array.from(picked.values()).sort((a,b)=>a.hours-b.hours);
+    result.stale=stale.sort((a,b)=>a.hours-b.hours);
+    return result;
   }
 
   function pointBefore(points,targetMs){
@@ -800,7 +821,11 @@
       ?` leitura ANA há ${nf0.format(telemetryFresh.ageMinutes)} min${telemetryFresh.stale?' · telemetria atrasada':''}`
       :'';
     const liveHorizons=state.live&&state.live.horizontes?Object.keys(state.live.horizontes).filter(k=>/^(2h|4h|8h)/.test(k)).map(k=>k.replace('_versao_b',' B').replace('_v002',' V2').replace('h',' h')).join(', '):'';
-    detail.textContent=`Atualização automática a cada 5 minutos.${when} (${ageText}${liveFresh.stale?' · publicação marcada como atrasada':''};${telemetryText||' idade da leitura ANA n/d'}) A leitura ANA pode ocorrer em :15/:30/:45; os inputs das RNAs usam somente base :00. O robô atual publica previsões experimentais de ${liveHorizons||'nenhum horizonte'}. ${longForecast?'A previsão meteorológica e o score experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a RNA continuam em validação de pesquisa; não são alerta oficial.'}`;
+    const staleHorizons=Array.isArray(state.liveStaleHorizons)?state.liveStaleHorizons:[];
+    const staleText=staleHorizons.length
+      ?` ${staleHorizons.map(p=>`+${p.hours} h`).join(' e ')} ficou fora do panorama porque o horário-alvo já passou; permanece no histórico para auditoria.`
+      :'';
+    detail.textContent=`Atualização automática a cada 5 minutos.${when} (${ageText}${liveFresh.stale?' · publicação marcada como atrasada':''};${telemetryText||' idade da leitura ANA n/d'}) A leitura ANA pode ocorrer em :15/:30/:45; os inputs das RNAs usam somente base :00. O robô atual publica previsões experimentais de ${liveHorizons||'nenhum horizonte'}.${staleText} ${longForecast?'A previsão meteorológica e o score experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a RNA continuam em validação de pesquisa; não são alerta oficial.'}`;
   }
 
   function renderResearchRisk(){
@@ -928,6 +953,7 @@
     const weekPoints=pointsInWindow(allPoints,168);
     const current=allPoints.length?allPoints[allPoints.length-1]:null;
     const items=forecasts(state.live,current);
+    state.liveStaleHorizons=items.stale||[];
     const previous24=previousForecastPoints(state.history,state.live,current,24);
     const previousWeek=previousForecastPoints(state.history,state.live,current,168);
     const trend=trendInfo(points);
@@ -974,7 +1000,8 @@
     const accessible=document.getElementById('overview-accessible');
     if(accessible){
       const forecastText=items.length?items.map(p=>`mais ${p.hours} horas: ${fmtLevel(p.cm)}`).join('; '):'sem previsão ativa';
-      accessible.textContent=`Nível atual ${fmtLevel(current?current.cm:null)}. ${forecastText}. ${trend.label}. ${flood.label}.`;
+      const staleText=state.liveStaleHorizons.length?` ${state.liveStaleHorizons.map(p=>`+${p.hours} h com alvo vencido`).join('; ')}.`:'';
+      accessible.textContent=`Nível atual ${fmtLevel(current?current.cm:null)}. ${forecastText}.${staleText} ${trend.label}. ${flood.label}.`;
     }
   }
 

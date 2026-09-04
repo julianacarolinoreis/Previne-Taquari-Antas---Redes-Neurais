@@ -1,0 +1,503 @@
+{
+  "schema_version": "hec_hms_taquari_antas_calibration_status_v1",
+  "generated_at_utc": "2026-09-04T15:54:01.348726+00:00",
+  "purpose": "estudo de calibração e replay HEC-HMS; não é alerta, ordem de evacuação ou operação",
+  "overall_status": "estrutura verificada; calibração comum ainda não concluída",
+  "network": {
+    "topology": [
+      "86472000",
+      "86472600",
+      "86510000"
+    ],
+    "description": "Rio das Antas -> controle intermediário Santa Tereza -> Muçum",
+    "source": {
+      "provider": "ANA / SNIRH",
+      "dataset": "BHO6 main.geoft_bho_trecho_drenagem",
+      "endpoint": "https://portal1.snirh.gov.br/server/rest/services/Hosted/main_geoft_bho6_trecho_drenagem/FeatureServer/0/query",
+      "version_field": "dsversao",
+      "query": "cocursodag LIKE '786%'",
+      "network_semantics": "noorigem -> nodestino, trechos conectados com sentido de fluxo"
+    },
+    "areas_km2": {
+      "86472000": 12918.656,
+      "86472600": 15775.186,
+      "86510000": 15965.207
+    },
+    "incremental_areas_km2": {
+      "Antas_to_Santa_Tereza": 2856.53,
+      "Santa_Tereza_to_Mucum": 190.021
+    }
+  },
+  "terrain": {
+    "status": "terrain_screening_complete; reach routing parameters still require channel evidence",
+    "reaches": {
+      "86472000_to_86472600": {
+        "segment_count": 18,
+        "length_km_bho6": 20.872,
+        "mdt_source": "assets/data/hec_hms_spatialized_mucum/srtm_mosaic_wgs84.tif",
+        "mdt_crs": "EPSG:4326",
+        "sample_count": 264,
+        "start_terrain_elevation_m": 71.0,
+        "end_terrain_elevation_m": 60.0,
+        "terrain_drop_m": 11.0,
+        "mean_terrain_elevation_m": 68.18560606060606,
+        "min_terrain_elevation_m": 53.0,
+        "max_terrain_elevation_m": 109.0,
+        "approx_positive_slope_m_per_m": 0.0005270218474511307,
+        "missing_bho6_geometry_fids": [],
+        "routing_use": "diagnostic only; not a channel-bed slope or travel time"
+      },
+      "86472600_to_86510000": {
+        "segment_count": 24,
+        "length_km_bho6": 23.652,
+        "mdt_source": "assets/data/hec_hms_spatialized_mucum/srtm_mosaic_wgs84.tif",
+        "mdt_crs": "EPSG:4326",
+        "sample_count": 314,
+        "start_terrain_elevation_m": 67.0,
+        "end_terrain_elevation_m": 55.0,
+        "terrain_drop_m": 12.0,
+        "mean_terrain_elevation_m": 53.03503184713376,
+        "min_terrain_elevation_m": 28.0,
+        "max_terrain_elevation_m": 76.0,
+        "approx_positive_slope_m_per_m": 0.0005073566717402334,
+        "missing_bho6_geometry_fids": [],
+        "routing_use": "diagnostic only; not a channel-bed slope or travel time"
+      }
+    },
+    "limitation": "SRTM/MDT e terreno amostrado, nao substitui secao hidraulica, cota d'agua, Manning ou nivelamento de calha"
+  },
+  "event_replay": {
+    "candidate_package": "network_replay_eventwise_candidate_all_events",
+    "events": [
+      {
+        "event_id": "E19",
+        "pairs": 53,
+        "mae_m3s": 201.83633969047577,
+        "rmse_m3s": 238.31797140201263,
+        "nse": -1.2798599595803317,
+        "observed_peak_m3s": 1408.375,
+        "simulated_peak_m3s": 1283.3093855023744,
+        "peak_lag_hours": 28.0,
+        "peak_relative_error": 0.0888013593663801,
+        "status": "replay_scored_not_promoted",
+        "interpretation": "pendente: atraso e forma do hidrograma ainda não explicados",
+        "rainfall_policy": "Thiessen ANA; estação 86472000 como base do replay"
+      },
+      {
+        "event_id": "E22",
+        "pairs": 110,
+        "mae_m3s": 515.5756369144577,
+        "rmse_m3s": 1040.3381050686917,
+        "nse": 0.5843701224257745,
+        "observed_peak_m3s": 10437.6669921875,
+        "simulated_peak_m3s": 4716.578649249342,
+        "peak_lag_hours": 0.0,
+        "peak_relative_error": 0.5481194549721065,
+        "status": "replay_scored_not_promoted",
+        "interpretation": "pendente: pico subestimado; chuva/perdas ainda não reconciliadas",
+        "rainfall_policy": "Thiessen ANA; estação 86472000 como base do replay"
+      },
+      {
+        "event_id": "E24",
+        "pairs": 238,
+        "mae_m3s": 895.0738400230764,
+        "rmse_m3s": 1248.9191760058106,
+        "nse": 0.8171122940353276,
+        "observed_peak_m3s": 11434.9501953125,
+        "simulated_peak_m3s": 11400.199195758543,
+        "peak_lag_hours": 2.0,
+        "peak_relative_error": 0.0030390162580858555,
+        "status": "replay_scored_not_promoted",
+        "interpretation": "bom ajuste deste evento; não promovido para uso comum",
+        "rainfall_policy": "série específica 86472000; Thiessen bloqueada por 5 valores ausentes/negativos"
+      },
+      {
+        "event_id": "E27",
+        "pairs": 245,
+        "mae_m3s": 1413.1738251584557,
+        "rmse_m3s": 1688.6851842987319,
+        "nse": 0.8230813130783902,
+        "observed_peak_m3s": 14525.224609375,
+        "simulated_peak_m3s": 12634.526869958778,
+        "peak_lag_hours": 2.0,
+        "peak_relative_error": 0.13016650621677212,
+        "status": "replay_scored_not_promoted",
+        "interpretation": "ajuste intermediário; 2 h de atraso e viés de pico",
+        "rainfall_policy": "série específica 86472000"
+      },
+      {
+        "event_id": "E28",
+        "pairs": 209,
+        "mae_m3s": 462.2752666481204,
+        "rmse_m3s": 546.8114949827461,
+        "nse": 0.9060798053234148,
+        "observed_peak_m3s": 7886.72509765625,
+        "simulated_peak_m3s": 7900.829821869846,
+        "peak_lag_hours": 0.0,
+        "peak_relative_error": 0.0017884133197170952,
+        "status": "replay_scored_not_promoted",
+        "interpretation": "bom ajuste deste evento; não promovido para uso comum",
+        "rainfall_policy": "série específica 86472000"
+      }
+    ],
+    "excluded": {
+      "E26": "sem entrada HEC-HMS reconciliada nesta rodada"
+    },
+    "warning": "parâmetros e fontes de chuva variam por evento; estes resultados servem para diagnóstico e não demonstram generalização"
+  },
+  "diagnostic_searches": {
+    "E19": {
+      "best_candidate": {
+        "k1": 1.0,
+        "k2": 1.0,
+        "initial_loss": 10.0,
+        "constant_loss": 1.0,
+        "tc": 30.0,
+        "storage": 60.0,
+        "recession": 0.9,
+        "initial_flow_ratio": 0.001,
+        "pairs": 53,
+        "mae_m3s": 161.7464822755,
+        "rmse_m3s": 205.9322944959,
+        "nse": -0.7023290142,
+        "observed_peak_m3s": 1408.375,
+        "simulated_peak_m3s": 1481.3887535899,
+        "peak_lag_hours": 28.0,
+        "peak_relative_error": 0.0518425516,
+        "status": "ok",
+        "candidate_dir": "D:\\PREVINE\\worktrees\\previne-catalogo-pesquisas-20260828\\assets\\data\\hec_hms_integrated_taquari_antas\\parameter_search_E19\\k1_1_k2_1_initial_loss_10_constant_loss_1_tc_30_storage_60_recession_0p9_initial_flow_ratio_0p001",
+        "research_score": -1.27269752452
+      },
+      "scope": "busca de K, tempo de concentração e armazenamento; chuva mantida"
+    },
+    "E22": {
+      "best_candidate": {
+        "k1": 2.0,
+        "k2": 2.0,
+        "initial_loss": 1.0,
+        "constant_loss": 3.0,
+        "tc": 4.0,
+        "storage": 90.0,
+        "recession": 0.98,
+        "initial_flow_ratio": 0.005,
+        "pairs": 110,
+        "mae_m3s": 485.3320978376,
+        "rmse_m3s": 939.9544381441,
+        "nse": 0.6607097709,
+        "observed_peak_m3s": 10437.6669921875,
+        "simulated_peak_m3s": 5552.3083759189,
+        "peak_lag_hours": 0.0,
+        "peak_relative_error": 0.4680508221,
+        "status": "ok",
+        "candidate_dir": "D:\\PREVINE\\worktrees\\previne-catalogo-pesquisas-20260828\\assets\\data\\hec_hms_integrated_taquari_antas\\parameter_search_E22\\k1_2_k2_2_initial_loss_1_constant_loss_3_tc_4_storage_90_recession_0p98_initial_flow_ratio_0p005",
+        "research_score": 0.56709960648
+      },
+      "scope": "busca de K e perda constante; chuva mantida"
+    },
+    "E27_routing": {
+      "best_candidate": {
+        "k1_hours": 0.25,
+        "k2_hours": 0.25,
+        "x": 0.2,
+        "pairs": 245,
+        "mae_m3s": 1404.5385586781,
+        "rmse_m3s": 1649.206032784,
+        "nse": 0.8312568505,
+        "observed_peak_m3s": 14525.224609375,
+        "simulated_peak_m3s": 12660.5346262907,
+        "peak_lag_hours": 0.0,
+        "peak_relative_error": 0.1283759827,
+        "status": "ok",
+        "candidate_dir": "D:\\PREVINE\\worktrees\\previne-catalogo-pesquisas-20260828\\assets\\data\\hec_hms_integrated_taquari_antas\\routing_search_E27\\k1_0p25_k2_0p25_x_0p2"
+      },
+      "scope": "K dos dois trechos; zero atraso é métrica, não verdade física"
+    },
+    "E27_losses": {
+      "best_candidate": {
+        "k1_hours": 0.25,
+        "k2_hours": 0.25,
+        "x": 0.2,
+        "initial_loss_mm": 0.0,
+        "constant_loss_mm_per_hour": 3.0,
+        "recession_factor": 0.98,
+        "initial_flow_area_ratio": 0.005,
+        "pairs": 245,
+        "mae_m3s": 1694.3946338256,
+        "rmse_m3s": 2088.6846729941,
+        "nse": 0.7293412443,
+        "observed_peak_m3s": 14525.224609375,
+        "simulated_peak_m3s": 14063.4595022506,
+        "peak_lag_hours": 0.0,
+        "peak_relative_error": 0.0317905657,
+        "status": "ok",
+        "candidate_dir": "D:\\PREVINE\\worktrees\\previne-catalogo-pesquisas-20260828\\assets\\data\\hec_hms_integrated_taquari_antas\\loss_search_E27\\k1_0p25_k2_0p25_x_0p2_il_0_cl_3_rec_0p98_if_0p005"
+      },
+      "scope": "perdas; menor erro de pico pode piorar NSE"
+    },
+    "common_parameters": {
+      "generated_at_utc": "2026-09-04T15:19:11.373965+00:00",
+      "purpose": "busca diagnóstica de parâmetros comuns; não é calibração promovida",
+      "rainfall_policy": "86472000 explicit proxy applied to all three incremental areas",
+      "events": [
+        "E19",
+        "E22",
+        "E24",
+        "E27",
+        "E28"
+      ],
+      "candidates": 12,
+      "successful_common_candidates": 12,
+      "best_by_research_score": {
+        "candidate_id": 12,
+        "initial_loss": 2.5,
+        "constant_loss": 2.0,
+        "tc": 10.0,
+        "storage": 45.0,
+        "recession": 0.8,
+        "initial_flow_ratio": 0.0025,
+        "k1": 3.0,
+        "k2": 3.0,
+        "events_ok": 5,
+        "mean_nse": -1.0232466281800001,
+        "median_nse": 0.4841330698,
+        "mean_abs_lag_hours": 9.0,
+        "mean_peak_relative_error": 0.324041757,
+        "research_score": -1.26805497958,
+        "status": "common_parameter_diagnostic"
+      },
+      "artifacts": [
+        "common_search_summary.csv",
+        "common_search_event_metrics.csv"
+      ]
+    }
+  },
+  "station_distributed_test": {
+    "event_id": "E28",
+    "rainfall_station": "86472600 · Santa Tereza",
+    "policy": "86472000 no alto Antas; 86472600 nos dois incrementos a jusante de Santa Tereza",
+    "candidate_count": 39,
+    "best_candidate": {
+      "candidate_id": 33,
+      "initial_loss": 2.5,
+      "constant_loss": 2.0,
+      "tc": 25.0,
+      "storage": 25.0,
+      "recession": 0.8,
+      "initial_flow_ratio": 0.003,
+      "k": 1.0,
+      "event_id": "E28",
+      "pairs": 209,
+      "mae_m3s": 503.2723856306582,
+      "rmse_m3s": 659.9165775003635,
+      "nse": 0.8632076566906512,
+      "observed_peak_m3s": 7886.72509765625,
+      "simulated_peak_m3s": 7605.333160236833,
+      "peak_lag_hours": 1.0,
+      "peak_relative_error": 0.03567918672644499,
+      "status": "replay_scored_not_promoted",
+      "research_score": 0.8360718193453622
+    },
+    "candidate_package": "network_station_e28_calibration_search/candidate_033/E28",
+    "replay_metrics": {
+      "candidate_id": 33,
+      "initial_loss": 2.5,
+      "constant_loss": 2.0,
+      "tc": 25.0,
+      "storage": 25.0,
+      "recession": 0.8,
+      "initial_flow_ratio": 0.003,
+      "k": 1.0,
+      "event_id": "E28",
+      "pairs": 209,
+      "mae_m3s": 503.2723856306582,
+      "rmse_m3s": 659.9165775003635,
+      "nse": 0.8632076566906512,
+      "observed_peak_m3s": 7886.72509765625,
+      "simulated_peak_m3s": 7605.333160236833,
+      "peak_lag_hours": 1.0,
+      "peak_relative_error": 0.03567918672644499,
+      "status": "replay_scored_not_promoted",
+      "research_score": 0.8360718193453622
+    },
+    "comparison_baseline_eventwise_proxy": {
+      "event_id": "E28",
+      "pairs": 209,
+      "mae_m3s": 462.2752666481204,
+      "rmse_m3s": 546.8114949827461,
+      "nse": 0.9060798053234148,
+      "observed_peak_m3s": 7886.72509765625,
+      "simulated_peak_m3s": 7900.829821869846,
+      "peak_lag_hours": 0.0,
+      "peak_relative_error": 0.0017884133197170952,
+      "status": "replay_scored_not_promoted"
+    },
+    "status": "candidata específica do E28; não promovida",
+    "limitation": "não há vazão reconciliada em Santa Tereza para validar o ponto intermediário; E24/E27 têm lacuna interna na chuva bruta; a busca não prova generalização"
+  },
+  "rainfall_input_audit": {
+    "station": "86472600",
+    "events": [
+      {
+        "event_id": "E19",
+        "station": "86472600",
+        "start": "06/05/2023",
+        "end": "08/05/2023",
+        "url": "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos?codEstacao=86472600&dataInicio=06%2F05%2F2023&dataFim=08%2F05%2F2023",
+        "status": 200,
+        "bytes": 1193,
+        "sha256": "53c31320701a00b8d178cba432810ff76160014b7be7c9992198ee70f40ea02e",
+        "raw_path": "assets\\data\\hec_hms_audit\\raw\\ana\\events\\telemetry_86472600_E19.xml",
+        "rows": 0,
+        "rain_numeric_records": 0,
+        "rain_sum_mm": 0,
+        "rain_max_mm": null,
+        "flow_numeric_records": 0,
+        "level_numeric_records": 0,
+        "level_min_source_unit": null,
+        "level_max_source_unit": null,
+        "errors": [
+          "Sem dados para esta estação (Código: 86472600) no período solicitado!"
+        ],
+        "interpretation": "sem chuva numérica no recorte; não usar como chuva"
+      },
+      {
+        "event_id": "E22",
+        "station": "86472600",
+        "start": "04/09/2023",
+        "end": "12/09/2023",
+        "url": "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos?codEstacao=86472600&dataInicio=04%2F09%2F2023&dataFim=12%2F09%2F2023",
+        "status": 200,
+        "bytes": 1193,
+        "sha256": "53c31320701a00b8d178cba432810ff76160014b7be7c9992198ee70f40ea02e",
+        "raw_path": "assets\\data\\hec_hms_audit\\raw\\ana\\events\\telemetry_86472600_E22.xml",
+        "rows": 0,
+        "rain_numeric_records": 0,
+        "rain_sum_mm": 0,
+        "rain_max_mm": null,
+        "flow_numeric_records": 0,
+        "level_numeric_records": 0,
+        "level_min_source_unit": null,
+        "level_max_source_unit": null,
+        "errors": [
+          "Sem dados para esta estação (Código: 86472600) no período solicitado!"
+        ],
+        "interpretation": "sem chuva numérica no recorte; não usar como chuva"
+      },
+      {
+        "event_id": "E24",
+        "station": "86472600",
+        "start": "16/11/2023",
+        "end": "25/11/2023",
+        "url": "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos?codEstacao=86472600&dataInicio=16%2F11%2F2023&dataFim=25%2F11%2F2023",
+        "status": 200,
+        "bytes": 291944,
+        "sha256": "5cfe12b67efa38cf2848739349072124c8c3de27819b28e3a739a5252bd7d51f",
+        "raw_path": "assets\\data\\hec_hms_audit\\raw\\ana\\events\\telemetry_86472600_E24.xml",
+        "rows": 956,
+        "rain_numeric_records": 955,
+        "rain_sum_mm": 206.8,
+        "rain_max_mm": 14.6,
+        "flow_numeric_records": 0,
+        "level_numeric_records": 956,
+        "level_min_source_unit": 471.0,
+        "level_max_source_unit": 2161.0,
+        "errors": [],
+        "interpretation": "chuva disponível para uso como candidato espacial; vazão não disponível"
+      },
+      {
+        "event_id": "E27",
+        "station": "86472600",
+        "start": "29/04/2024",
+        "end": "09/05/2024",
+        "url": "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos?codEstacao=86472600&dataInicio=29%2F04%2F2024&dataFim=09%2F05%2F2024",
+        "status": 200,
+        "bytes": 321568,
+        "sha256": "03f938a47cbcbb3b749885f6be83e9496438ed9db3b492e91dd93cccc386912c",
+        "raw_path": "assets\\data\\hec_hms_audit\\raw\\ana\\events\\telemetry_86472600_E27.xml",
+        "rows": 1052,
+        "rain_numeric_records": 1052,
+        "rain_sum_mm": 709.2,
+        "rain_max_mm": 19.0,
+        "flow_numeric_records": 0,
+        "level_numeric_records": 1052,
+        "level_min_source_unit": 345.0,
+        "level_max_source_unit": 2233.0,
+        "errors": [],
+        "interpretation": "chuva disponível para uso como candidato espacial; vazão não disponível"
+      },
+      {
+        "event_id": "E28",
+        "station": "86472600",
+        "start": "16/06/2024",
+        "end": "25/06/2024",
+        "url": "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos?codEstacao=86472600&dataInicio=16%2F06%2F2024&dataFim=25%2F06%2F2024",
+        "status": 200,
+        "bytes": 293126,
+        "sha256": "3900b78db244f72e15b5fd7214245b37bde8c64507a4becb445f4c79e0fa1d05",
+        "raw_path": "assets\\data\\hec_hms_audit\\raw\\ana\\events\\telemetry_86472600_E28.xml",
+        "rows": 960,
+        "rain_numeric_records": 960,
+        "rain_sum_mm": 262.4,
+        "rain_max_mm": 25.6,
+        "flow_numeric_records": 0,
+        "level_numeric_records": 960,
+        "level_min_source_unit": 193.0,
+        "level_max_source_unit": 1638.0,
+        "errors": [],
+        "interpretation": "chuva disponível para uso como candidato espacial; vazão não disponível"
+      }
+    ],
+    "raw_hourly_dss": {
+      "generated_at_utc": "2026-09-04T15:30:14.298983+00:00",
+      "purpose": "chuva horária agregada diretamente da API ANA para teste de espacialização; sem preenchimento",
+      "source_station": "86472600",
+      "events": {
+        "E24": {
+          "hours": 239,
+          "first": "2023-11-16T00:00:00",
+          "last": "2023-11-25T23:00:00",
+          "missing_hours_inside": 1
+        },
+        "E27": {
+          "hours": 263,
+          "first": "2024-04-29T00:00:00",
+          "last": "2024-05-09T23:00:00",
+          "missing_hours_inside": 1
+        },
+        "E28": {
+          "hours": 240,
+          "first": "2024-06-16T00:00:00",
+          "last": "2024-06-25T23:00:00",
+          "missing_hours_inside": 0
+        }
+      },
+      "output_dss": "assets\\data\\hec_hms_calibration\\mucum_santa_tereza_raw_rain_events.dss",
+      "output_csv": "assets\\data\\hec_hms_audit\\derived\\santa_tereza_raw_rain_hourly.csv",
+      "hec_returncode": 0,
+      "hec_ok_marker": true
+    }
+  },
+  "gates": {
+    "Santa_Tereza_observed_flow": "bloqueado: série/vazão reconciliada não fechada nesta rodada",
+    "rainfall_spatialization": "parcial: E28 tem candidata espacializada melhorada; E24/E27 têm lacuna interna e não foram preenchidos; estação intermediária ainda não tem vazão reconciliada",
+    "reach_routing": "bloqueado para parametrização física: faltam seções de calha, nível/cota e política Manning/Muskingum-Cunge",
+    "MDT": "auditado para geometria de terreno; não substitui fundo da calha nem seção hidráulica",
+    "E26": "bloqueado: não há pacote HEC-HMS de entrada reconciliado nesta rodada",
+    "operational_promotion": "bloqueado: manter como pesquisa/replay"
+  },
+  "artifacts": {
+    "network_audit": "network_audit_latest.json",
+    "network_geojson": "bho6_taquari_antas_network.geojson",
+    "terrain_audit": "reach_terrain_metrics_latest.json",
+    "metrics_json": "network_replay_eventwise_candidate_all_events/network_metrics_all_events.json",
+    "metrics_csv": "network_replay_eventwise_candidate_all_events/network_metrics_all_events.csv",
+    "series_csv": "network_replay_eventwise_candidate_all_events/network_series_all_events.csv",
+    "station_e28_search": "network_station_e28_calibration_search/station_e28_search_report.json",
+    "station_e28_search_csv": "network_station_e28_calibration_search/station_e28_search.csv",
+    "station_e28_best_candidate": "network_station_e28_calibration_search/candidate_033/E28",
+    "station_distributed_replay": "network_replay_station_distributed_eventwise_all_events/network_metrics_all_events.json",
+    "santa_tereza_input_audit": "../hec_hms_audit/santa_tereza_event_input_audit_latest.json",
+    "santa_tereza_raw_rain_report": "../hec_hms_audit/derived/santa_tereza_raw_rain_dss_report.json",
+    "dashboard": "network_dashboard/index.html"
+  }
+}
