@@ -1,15 +1,21 @@
 # PREVINE Taquari-Antas - Redes Neurais
 
-Site publico e interativo com os resultados das redes neurais de previsao de nivel para Santa Tereza, na bacia Taquari-Antas.
+Site publico e interativo com os resultados das redes neurais de previsao de nivel para Santa Tereza e Muçum, na bacia Taquari-Antas.
 
 ## O que ha no site
 
-- Painel com 239 modelos auditaveis de 2h, 4h, 8h e 12h.
+- Painel de modelos auditaveis de 2h, 4h, 8h e 12h (contagem dinamica no `index.html`).
 - Ranking por familia, horizonte, montagem alternativa/convencional e metricas de desempenho.
 - Graficos de persistencia, erro em centimetros, equilibrio validacao/teste e inputs mais usados.
 - Tabela filtravel com metricas rastreaveis por modelo.
-- Catálogo vivo de pesquisas em `pesquisas.html` e agenda estruturada de avanço em `pesquisas/agenda-avanco.html` (55 registros, incluindo 43 páginas de pesquisa/agenda).
-- Sala de decisão V002 em `pesquisas/estudo-caso-resposta-santa-tereza.html`, com briefing, checklist, contingências, métricas de exercício e exportação local.
+- Catalogo vivo de pesquisas em `pesquisas.html` e agenda estruturada de avanco em `pesquisas/agenda-avanco.html`.
+- Sala de decisao V002 em `pesquisas/estudo-caso-resposta-santa-tereza.html`, com briefing, checklist, contingencias, metricas de exercicio e exportacao local.
+
+## Robo ao vivo (fonte canonica)
+
+- **Santa Tereza:** `previne/robo/gerar_previsao_ao_vivo.py` via `.github/workflows/previsao-ao-vivo.yml` (cron a cada **5 min**).
+- **Muçum:** `codigo_python/01_previsao_ao_vivo/gerar_previsao_ao_vivo_mucum.py` via `.github/workflows/previsao-ao-vivo-mucum.yml` (cron a cada **5 min**).
+- O arquivo legado `codigo_python/01_previsao_ao_vivo/gerar_previsao_ao_vivo.py` **nao** e o robo de producao; nao editar para operacao.
 
 ## Organizacao
 
