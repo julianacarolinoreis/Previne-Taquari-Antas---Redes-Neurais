@@ -20,7 +20,7 @@ ul{padding-left:20px}
 </head>
 <body>
 <h1>Relatório comparativo — RNA multi-horizonte (MIMO)</h1>
-<p class='meta'>Gerado em 2026-09-03T09:57:46+00:00 · Santa Tereza · modo pesquisa (não operacional) · schema v2</p>
+<p class='meta'>Gerado em 2026-09-04T19:31:45+00:00 · Santa Tereza · modo pesquisa (não operacional) · schema v3</p>
 
 <div class='box'>
 <strong>Pergunta:</strong> uma única rede prevendo 2h+4h (+8h) supera modelos Direct?<br>
@@ -88,11 +88,29 @@ ul{padding-left:20px}
 <tr class='neutral'><td>8h</td><td>0,3006</td><td>0,3006</td><td>0,0000</td><td>-1,9785</td><td>-1,9785</td><td>79,8</td><td>79,8</td><td>0,0</td><td>empate</td></tr>
 </tbody></table>
 
+
+<h2>6b. Rodada 3 — fechar gap ao teto .mat</h2>
+<p>Pergunta: Qual variante MIMO reduz o gap ao teto .mat sem piorar o 2h vs Direct scratch?</p>
+<p><strong>Melhor variante:</strong> mimo_rising_weight · fecha gap&lt;0,10? não ·
+bate scratch no 4h? sim</p>
+<table><thead><tr><th>Variante</th><th>NASH 2h</th><th>NASH 4h</th><th>Δ scratch 4h</th><th>gap teto 4h</th><th>2h ok</th></tr></thead>
+<tbody><tr><td>mimo_rising_weight</td><td>0,9541</td><td>0,8567</td><td>0,1823</td><td>0,1359</td><td>ok</td></tr><tr><td>mimo_rising_w4h</td><td>0,9494</td><td>0,8457</td><td>0,1713</td><td>0,1469</td><td>ok</td></tr><tr><td>mimo_zscore_base</td><td>0,9522</td><td>0,8432</td><td>0,1688</td><td>0,1494</td><td>ok</td></tr><tr><td>mimo_weight_4h</td><td>0,8826</td><td>0,8431</td><td>0,1687</td><td>0,1495</td><td>no</td></tr><tr><td>mimo_warmstart_2h</td><td>-1,6032</td><td>-23,9416</td><td>-24,6160</td><td>24,9342</td><td>no</td></tr><tr><td>mimo_warm_rising</td><td>-1,6032</td><td>-23,9416</td><td>-24,6160</td><td>24,9342</td><td>no</td></tr></tbody></table>
+<p class='meta'>Ganho vs scratch no 4h já existia; rodada 3 busca aproximar o teto .mat. Se nenhuma variante reduzir gap_mat_4h < 0,10 mantendo 2h, o handoff MATLAB com inicialização nativa permanece o próximo passo.</p>
+<ul>
+<li><strong>Peso em subidas</strong> foi a única alavanca Python estável (leve ganho no 4h).</li>
+<li><strong>Warm-start</strong> a partir do Direct .mat colapsou no fine-tune Python (escala ae/be ≠ z-score).</li>
+<li><strong>Peso forte no 4h</strong> [1,2] piorou o 2h além do limiar.</li>
+<li>Gap ao teto .mat no 4h permanece ≈0,13 NASH → handoff MATLAB nativo continua necessário.</li>
+</ul>
+
+
 <h2>7. Handoff MATLAB (próximo passo nativo)</h2>
 <p>Pacote de dados alinhados + script <code>train_mimo_2h4h_stz.m</code> em
 <code>codigo_python/11_experimento_mimo/matlab/</code>. CSVs em
 <a href='../assets/data/research_mimo_matlab_handoff/manifest.json'>assets/data/research_mimo_matlab_handoff/</a>.
-Rodar no MATLAB e comparar ao teto <code>mat_reference_metrics_teste</code> — não ao replay NASH≈1.</p>
+Rodar no MATLAB e comparar ao teto <code>mat_reference_metrics_teste</code> — não ao replay NASH≈1.
+A rodada 3 mostrou que warm-start Python do Direct .mat não fecha o gap; treino nativo MATLAB
+com a mesma pipeline dos Direct permanece o caminho mais promissor.</p>
 
 <h2>8. JSON auditável</h2>
 <p><a href='../assets/data/research_mimo_multihorizon_latest.json'>assets/data/research_mimo_multihorizon_latest.json</a></p>

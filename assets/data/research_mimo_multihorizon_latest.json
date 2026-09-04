@@ -1,6 +1,6 @@
 {
-  "schema_version": 2,
-  "generated_at_utc": "2026-09-03T09:57:46+00:00",
+  "schema_version": 3,
+  "generated_at_utc": "2026-09-04T19:31:45+00:00",
   "title": "Experimento RNA multi-horizonte (MIMO) — Santa Tereza",
   "method": {
     "strategy_baseline": "Direct por horizonte (.mat auditados, mesmas amostras alinhadas)",
@@ -15,7 +15,8 @@
       "2": "validacao",
       "3": "teste"
     },
-    "note_mat_aligned_replay": "direct_mat no recorte alinhado reproduz as predições do .mat (NASH≈1). O teto operacional usa mat_reference_metrics_teste (teste completo do .mat)."
+    "note_mat_aligned_replay": "direct_mat no recorte alinhado reproduz as predições do .mat (NASH≈1). O teto operacional usa mat_reference_metrics_teste (teste completo do .mat).",
+    "round3": "Busca minmax/warm-start/pesos de horizonte/subidas para fechar gap ao teto mat_reference."
   },
   "datasets": {
     "2h_4h_aligned": {
@@ -2912,6 +2913,748 @@
           }
         }
       ]
+    },
+    "exp6_close_mat_gap_2h4h": {
+      "status": "ok",
+      "generated_at_utc": "2026-09-04T19:31:45+00:00",
+      "question": "Qual variante MIMO reduz o gap ao teto .mat sem piorar o 2h vs Direct scratch?",
+      "baseline_scratch_teste": {
+        "2h": {
+          "nash": 0.9549,
+          "pers": 0.6109,
+          "e95": 46.182,
+          "mae": 10.4249,
+          "n": 141
+        },
+        "4h": {
+          "nash": 0.6744,
+          "pers": -0.0237,
+          "e95": 109.096,
+          "mae": 31.6912,
+          "n": 141
+        }
+      },
+      "mat_reference_metrics_teste": {
+        "2h": {
+          "nash": 0.9962,
+          "pers": 0.9688,
+          "e95": 10.39,
+          "note": "mat completo"
+        },
+        "4h": {
+          "nash": 0.9926,
+          "pers": 0.8782,
+          "e95": 58.84,
+          "note": "mat completo"
+        }
+      },
+      "variants": {
+        "mimo_zscore_base": {
+          "strategy": "mimo_nh40_in15_out2_r3_zscore",
+          "splits": {
+            "treino": {
+              "2h": {
+                "n": 1356,
+                "nash": 0.9889,
+                "pers": 0.311,
+                "e95": 71.59,
+                "mae": 16.9126
+              },
+              "4h": {
+                "n": 1356,
+                "nash": 0.9674,
+                "pers": 0.3198,
+                "e95": 148.942,
+                "mae": 33.3204
+              }
+            },
+            "validacao": {
+              "2h": {
+                "n": 507,
+                "nash": 0.9887,
+                "pers": 0.5013,
+                "e95": 51.807,
+                "mae": 13.3333
+              },
+              "4h": {
+                "n": 507,
+                "nash": 0.9644,
+                "pers": 0.486,
+                "e95": 96.469,
+                "mae": 27.8755
+              }
+            },
+            "teste": {
+              "2h": {
+                "n": 141,
+                "nash": 0.9522,
+                "pers": 0.5876,
+                "e95": 46.182,
+                "mae": 11.993
+              },
+              "4h": {
+                "n": 141,
+                "nash": 0.8432,
+                "pers": 0.5071,
+                "e95": 61.876,
+                "mae": 23.3212
+              }
+            }
+          },
+          "training": {
+            "hidden": 40,
+            "seed": 42,
+            "val_mse_delta": 1171.323225705694,
+            "scale_mode": "zscore",
+            "lr": 0.015,
+            "warm_start": false,
+            "epochs": 122,
+            "best_val_mse": 1171.323225705694,
+            "history_tail": [
+              1186.7409321207597,
+              1179.2478336955683,
+              1192.7004566821993,
+              1198.974282514408,
+              1190.8826488118318
+            ],
+            "trajectory_weight": 0.0,
+            "rising_mono_weight": 0.0,
+            "horizon_weights": [
+              1.0,
+              1.0
+            ],
+            "n_train": 1356,
+            "n_val": 507,
+            "rising_consistency_val": {
+              "rate": 0.5336322869955157,
+              "n_rising": 223,
+              "n_violations": 119
+            }
+          },
+          "score": {
+            "ok_2h_vs_scratch": true,
+            "delta_scratch_2h": -0.0027,
+            "delta_scratch_4h": 0.1688,
+            "gap_mat_2h": 0.044,
+            "gap_mat_4h": 0.1494,
+            "objective_4h": 0.8432
+          }
+        },
+        "mimo_warmstart_2h": {
+          "strategy": "mimo_nh30_in15_out2_r3_warm2h",
+          "splits": {
+            "treino": {
+              "2h": {
+                "n": 1356,
+                "nash": 0.8521,
+                "pers": -8.2233,
+                "e95": 177.316,
+                "mae": 123.9892
+              },
+              "4h": {
+                "n": 1356,
+                "nash": -0.5415,
+                "pers": -31.1624,
+                "e95": 512.43,
+                "mae": 402.6917
+              }
+            },
+            "validacao": {
+              "2h": {
+                "n": 507,
+                "nash": 0.645,
+                "pers": -14.6015,
+                "e95": 192.324,
+                "mae": 128.2624
+              },
+              "4h": {
+                "n": 507,
+                "nash": -2.1365,
+                "pers": -44.2383,
+                "e95": 471.025,
+                "mae": 391.5758
+              }
+            },
+            "teste": {
+              "2h": {
+                "n": 141,
+                "nash": -1.6032,
+                "pers": -21.4412,
+                "e95": 185.546,
+                "mae": 127.7302
+              },
+              "4h": {
+                "n": 141,
+                "nash": -23.9416,
+                "pers": -77.4171,
+                "e95": 449.099,
+                "mae": 395.3717
+              }
+            }
+          },
+          "training": {
+            "hidden": 30,
+            "seed": 42,
+            "val_mse_delta": 87164.00429164794,
+            "scale_mode": "minmax",
+            "lr": 0.008,
+            "warm_start": true,
+            "epochs": 41,
+            "best_val_mse": 87164.00429164794,
+            "history_tail": [
+              87164.00429164794,
+              87164.00429164794,
+              87164.00429164794,
+              87164.00429164794,
+              87164.00429164794
+            ],
+            "trajectory_weight": 0.0,
+            "rising_mono_weight": 0.0,
+            "horizon_weights": [
+              1.0,
+              1.0
+            ],
+            "n_train": 1356,
+            "n_val": 507,
+            "rising_consistency_val": {
+              "rate": 0.0,
+              "n_rising": 223,
+              "n_violations": 0
+            }
+          },
+          "score": {
+            "ok_2h_vs_scratch": false,
+            "delta_scratch_2h": -2.5581,
+            "delta_scratch_4h": -24.616,
+            "gap_mat_2h": 2.5994,
+            "gap_mat_4h": 24.9342,
+            "objective_4h": -23.9416
+          }
+        },
+        "mimo_weight_4h": {
+          "strategy": "mimo_nh40_in15_out2_r3_w4h",
+          "splits": {
+            "treino": {
+              "2h": {
+                "n": 1356,
+                "nash": 0.984,
+                "pers": 0.0012,
+                "e95": 85.831,
+                "mae": 22.9586
+              },
+              "4h": {
+                "n": 1356,
+                "nash": 0.9672,
+                "pers": 0.316,
+                "e95": 148.942,
+                "mae": 33.6236
+              }
+            },
+            "validacao": {
+              "2h": {
+                "n": 507,
+                "nash": 0.977,
+                "pers": -0.0092,
+                "e95": 70.026,
+                "mae": 19.3739
+              },
+              "4h": {
+                "n": 507,
+                "nash": 0.9643,
+                "pers": 0.4856,
+                "e95": 96.469,
+                "mae": 27.9178
+              }
+            },
+            "teste": {
+              "2h": {
+                "n": 141,
+                "nash": 0.8826,
+                "pers": -0.0116,
+                "e95": 61.557,
+                "mae": 18.3963
+              },
+              "4h": {
+                "n": 141,
+                "nash": 0.8431,
+                "pers": 0.5068,
+                "e95": 61.844,
+                "mae": 23.4499
+              }
+            }
+          },
+          "training": {
+            "hidden": 40,
+            "seed": 19,
+            "val_mse_delta": 1459.5661418898471,
+            "scale_mode": "zscore",
+            "lr": 0.015,
+            "warm_start": false,
+            "epochs": 82,
+            "best_val_mse": 2350.855193563886,
+            "history_tail": [
+              2373.032714476691,
+              2379.799183937643,
+              2389.0526214191436,
+              2375.1049258693542,
+              2388.1271022479327
+            ],
+            "trajectory_weight": 0.0,
+            "rising_mono_weight": 0.0,
+            "horizon_weights": [
+              1.0,
+              2.0
+            ],
+            "n_train": 1356,
+            "n_val": 507,
+            "rising_consistency_val": {
+              "rate": 0.5515695067264574,
+              "n_rising": 223,
+              "n_violations": 123
+            }
+          },
+          "score": {
+            "ok_2h_vs_scratch": false,
+            "delta_scratch_2h": -0.0723,
+            "delta_scratch_4h": 0.1687,
+            "gap_mat_2h": 0.1136,
+            "gap_mat_4h": 0.1495,
+            "objective_4h": 0.8431
+          }
+        },
+        "mimo_rising_weight": {
+          "strategy": "mimo_nh40_in15_out2_r3_rising",
+          "splits": {
+            "treino": {
+              "2h": {
+                "n": 1356,
+                "nash": 0.989,
+                "pers": 0.3151,
+                "e95": 71.59,
+                "mae": 16.1262
+              },
+              "4h": {
+                "n": 1356,
+                "nash": 0.9684,
+                "pers": 0.3406,
+                "e95": 148.942,
+                "mae": 30.3839
+              }
+            },
+            "validacao": {
+              "2h": {
+                "n": 507,
+                "nash": 0.9888,
+                "pers": 0.5098,
+                "e95": 51.807,
+                "mae": 12.4431
+              },
+              "4h": {
+                "n": 507,
+                "nash": 0.9668,
+                "pers": 0.5216,
+                "e95": 96.469,
+                "mae": 24.8416
+              }
+            },
+            "teste": {
+              "2h": {
+                "n": 141,
+                "nash": 0.9541,
+                "pers": 0.6045,
+                "e95": 46.182,
+                "mae": 10.9216
+              },
+              "4h": {
+                "n": 141,
+                "nash": 0.8567,
+                "pers": 0.5495,
+                "e95": 61.631,
+                "mae": 21.4325
+              }
+            }
+          },
+          "training": {
+            "hidden": 40,
+            "seed": 11,
+            "val_mse_delta": 1104.8326229455079,
+            "scale_mode": "zscore",
+            "lr": 0.015,
+            "warm_start": false,
+            "epochs": 350,
+            "best_val_mse": 1104.8326229455079,
+            "history_tail": [
+              1106.698446763864,
+              1128.5129082910075,
+              1145.9161355773156,
+              1105.174838959222,
+              1124.2343648177762
+            ],
+            "trajectory_weight": 0.0,
+            "rising_mono_weight": 0.0,
+            "horizon_weights": [
+              1.0,
+              1.0
+            ],
+            "n_train": 1356,
+            "n_val": 507,
+            "rising_consistency_val": {
+              "rate": 0.26905829596412556,
+              "n_rising": 223,
+              "n_violations": 60
+            }
+          },
+          "score": {
+            "ok_2h_vs_scratch": true,
+            "delta_scratch_2h": -0.0008,
+            "delta_scratch_4h": 0.1823,
+            "gap_mat_2h": 0.0421,
+            "gap_mat_4h": 0.1359,
+            "objective_4h": 0.8567
+          }
+        },
+        "mimo_rising_w4h": {
+          "strategy": "mimo_nh40_in15_out2_r3_rising_w4h",
+          "splits": {
+            "treino": {
+              "2h": {
+                "n": 1356,
+                "nash": 0.9889,
+                "pers": 0.3056,
+                "e95": 71.59,
+                "mae": 17.4951
+              },
+              "4h": {
+                "n": 1356,
+                "nash": 0.9672,
+                "pers": 0.3153,
+                "e95": 148.942,
+                "mae": 33.7102
+              }
+            },
+            "validacao": {
+              "2h": {
+                "n": 507,
+                "nash": 0.9884,
+                "pers": 0.4905,
+                "e95": 51.807,
+                "mae": 14.0148
+              },
+              "4h": {
+                "n": 507,
+                "nash": 0.9642,
+                "pers": 0.4834,
+                "e95": 96.469,
+                "mae": 28.0982
+              }
+            },
+            "teste": {
+              "2h": {
+                "n": 141,
+                "nash": 0.9494,
+                "pers": 0.5637,
+                "e95": 46.182,
+                "mae": 12.8486
+              },
+              "4h": {
+                "n": 141,
+                "nash": 0.8457,
+                "pers": 0.5148,
+                "e95": 61.631,
+                "mae": 23.2532
+              }
+            }
+          },
+          "training": {
+            "hidden": 40,
+            "seed": 42,
+            "val_mse_delta": 1181.9446083324262,
+            "scale_mode": "zscore",
+            "lr": 0.015,
+            "warm_start": false,
+            "epochs": 102,
+            "best_val_mse": 1629.4615151358814,
+            "history_tail": [
+              1652.9374156558588,
+              1693.986117137945,
+              1660.1755588162246,
+              1649.518991376808,
+              1657.0470595893146
+            ],
+            "trajectory_weight": 0.0,
+            "rising_mono_weight": 0.0,
+            "horizon_weights": [
+              1.0,
+              1.5
+            ],
+            "n_train": 1356,
+            "n_val": 507,
+            "rising_consistency_val": {
+              "rate": 0.5739910313901345,
+              "n_rising": 223,
+              "n_violations": 128
+            }
+          },
+          "score": {
+            "ok_2h_vs_scratch": true,
+            "delta_scratch_2h": -0.0055,
+            "delta_scratch_4h": 0.1713,
+            "gap_mat_2h": 0.0468,
+            "gap_mat_4h": 0.1469,
+            "objective_4h": 0.8457
+          }
+        },
+        "mimo_warm_rising": {
+          "strategy": "mimo_nh30_in15_out2_r3_warm_rising",
+          "splits": {
+            "treino": {
+              "2h": {
+                "n": 1356,
+                "nash": 0.8521,
+                "pers": -8.2233,
+                "e95": 177.316,
+                "mae": 123.9892
+              },
+              "4h": {
+                "n": 1356,
+                "nash": -0.5415,
+                "pers": -31.1624,
+                "e95": 512.43,
+                "mae": 402.6917
+              }
+            },
+            "validacao": {
+              "2h": {
+                "n": 507,
+                "nash": 0.645,
+                "pers": -14.6015,
+                "e95": 192.324,
+                "mae": 128.2624
+              },
+              "4h": {
+                "n": 507,
+                "nash": -2.1365,
+                "pers": -44.2383,
+                "e95": 471.025,
+                "mae": 391.5758
+              }
+            },
+            "teste": {
+              "2h": {
+                "n": 141,
+                "nash": -1.6032,
+                "pers": -21.4412,
+                "e95": 185.546,
+                "mae": 127.7302
+              },
+              "4h": {
+                "n": 141,
+                "nash": -23.9416,
+                "pers": -77.4171,
+                "e95": 449.099,
+                "mae": 395.3717
+              }
+            }
+          },
+          "training": {
+            "hidden": 30,
+            "seed": 42,
+            "val_mse_delta": 87164.00429164794,
+            "scale_mode": "minmax",
+            "lr": 0.008,
+            "warm_start": true,
+            "epochs": 41,
+            "best_val_mse": 87164.00429164794,
+            "history_tail": [
+              87164.00429164794,
+              87164.00429164794,
+              87164.00429164794,
+              87164.00429164794,
+              87164.00429164794
+            ],
+            "trajectory_weight": 0.0,
+            "rising_mono_weight": 0.0,
+            "horizon_weights": [
+              1.0,
+              1.0
+            ],
+            "n_train": 1356,
+            "n_val": 507,
+            "rising_consistency_val": {
+              "rate": 0.0,
+              "n_rising": 223,
+              "n_violations": 0
+            }
+          },
+          "score": {
+            "ok_2h_vs_scratch": false,
+            "delta_scratch_2h": -2.5581,
+            "delta_scratch_4h": -24.616,
+            "gap_mat_2h": 2.5994,
+            "gap_mat_4h": 24.9342,
+            "objective_4h": -23.9416
+          }
+        }
+      },
+      "ranking": [
+        {
+          "key": "mimo_rising_weight",
+          "ok_2h_vs_scratch": true,
+          "delta_scratch_2h": -0.0008,
+          "delta_scratch_4h": 0.1823,
+          "gap_mat_2h": 0.0421,
+          "gap_mat_4h": 0.1359,
+          "objective_4h": 0.8567
+        },
+        {
+          "key": "mimo_rising_w4h",
+          "ok_2h_vs_scratch": true,
+          "delta_scratch_2h": -0.0055,
+          "delta_scratch_4h": 0.1713,
+          "gap_mat_2h": 0.0468,
+          "gap_mat_4h": 0.1469,
+          "objective_4h": 0.8457
+        },
+        {
+          "key": "mimo_zscore_base",
+          "ok_2h_vs_scratch": true,
+          "delta_scratch_2h": -0.0027,
+          "delta_scratch_4h": 0.1688,
+          "gap_mat_2h": 0.044,
+          "gap_mat_4h": 0.1494,
+          "objective_4h": 0.8432
+        },
+        {
+          "key": "mimo_weight_4h",
+          "ok_2h_vs_scratch": false,
+          "delta_scratch_2h": -0.0723,
+          "delta_scratch_4h": 0.1687,
+          "gap_mat_2h": 0.1136,
+          "gap_mat_4h": 0.1495,
+          "objective_4h": 0.8431
+        },
+        {
+          "key": "mimo_warmstart_2h",
+          "ok_2h_vs_scratch": false,
+          "delta_scratch_2h": -2.5581,
+          "delta_scratch_4h": -24.616,
+          "gap_mat_2h": 2.5994,
+          "gap_mat_4h": 24.9342,
+          "objective_4h": -23.9416
+        },
+        {
+          "key": "mimo_warm_rising",
+          "ok_2h_vs_scratch": false,
+          "delta_scratch_2h": -2.5581,
+          "delta_scratch_4h": -24.616,
+          "gap_mat_2h": 2.5994,
+          "gap_mat_4h": 24.9342,
+          "objective_4h": -23.9416
+        }
+      ],
+      "best_variant": "mimo_rising_weight",
+      "summary_best_vs_scratch": {
+        "ganhos": [
+          {
+            "horizonte": "4h",
+            "delta_nash": 0.182302,
+            "delta_pers": 0.573203,
+            "delta_e95_cm": -47.465,
+            "direct": {
+              "nash": 0.6744,
+              "pers": -0.0237,
+              "e95": 109.096,
+              "mae": 31.6912,
+              "n": 141
+            },
+            "mimo": {
+              "nash": 0.8567,
+              "pers": 0.5495,
+              "e95": 61.631,
+              "mae": 21.4325,
+              "n": 141
+            }
+          }
+        ],
+        "perdas": [],
+        "empates": [
+          {
+            "horizonte": "2h",
+            "delta_nash": -0.000767,
+            "delta_pers": -0.006435,
+            "delta_e95_cm": 0.0,
+            "direct": {
+              "nash": 0.9549,
+              "pers": 0.6109,
+              "e95": 46.182,
+              "mae": 10.4249,
+              "n": 141
+            },
+            "mimo": {
+              "nash": 0.9541,
+              "pers": 0.6045,
+              "e95": 46.182,
+              "mae": 10.9216,
+              "n": 141
+            }
+          }
+        ]
+      },
+      "summary_best_vs_mat": {
+        "ganhos": [],
+        "perdas": [
+          {
+            "horizonte": "2h",
+            "delta_nash": -0.0421,
+            "delta_pers": -0.3643,
+            "delta_e95_cm": 35.792,
+            "direct": {
+              "nash": 0.9962,
+              "pers": 0.9688,
+              "e95": 10.39,
+              "mae": null,
+              "n": null,
+              "note": "mat completo"
+            },
+            "mimo": {
+              "nash": 0.9541,
+              "pers": 0.6045,
+              "e95": 46.182,
+              "mae": 10.9216,
+              "n": 141
+            }
+          },
+          {
+            "horizonte": "4h",
+            "delta_nash": -0.1359,
+            "delta_pers": -0.3287,
+            "delta_e95_cm": 2.791,
+            "direct": {
+              "nash": 0.9926,
+              "pers": 0.8782,
+              "e95": 58.84,
+              "mae": null,
+              "n": null,
+              "note": "mat completo"
+            },
+            "mimo": {
+              "nash": 0.8567,
+              "pers": 0.5495,
+              "e95": 61.631,
+              "mae": 21.4325,
+              "n": 141
+            }
+          }
+        ],
+        "empates": [],
+        "baseline": "mat_reference_metrics_teste"
+      },
+      "verdict": {
+        "best": "mimo_rising_weight",
+        "closes_mat_gap": false,
+        "beats_scratch_4h": true,
+        "note": "Ganho vs scratch no 4h já existia; rodada 3 busca aproximar o teto .mat. Se nenhuma variante reduzir gap_mat_4h < 0,10 mantendo 2h, o handoff MATLAB com inicialização nativa permanece o próximo passo."
+      }
     }
   },
   "mat_reference_metrics_teste": {

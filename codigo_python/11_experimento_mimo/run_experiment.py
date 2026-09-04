@@ -53,11 +53,18 @@ def _fit_search(
     trajectory_weight=0.0,
     rising_mono_weight=0.0,
     horizon_weights=None,
+    scale_mode="zscore",
+    lr=0.015,
+    warm_start_weights=None,
+    sample_weights_tr=None,
+    seeds=(42, 7, 19),
 ):
     best = None
     for nh in hidden_sizes:
-        for seed in (42, 7, 19):
-            model = MimoMLP(x_tr.shape[1], y_tr.shape[1], nh, seed=seed)
+        for seed in seeds:
+            model = MimoMLP(x_tr.shape[1], y_tr.shape[1], nh, seed=seed, scale_mode=scale_mode)
+            if warm_start_weights is not None:
+                model.warm_start_from_direct(warm_start_weights, seed=seed)
             fit = model.fit(
                 x_tr,
                 y_tr,
@@ -65,15 +72,24 @@ def _fit_search(
                 y_va,
                 max_epochs=500,
                 patience=40,
-                lr=0.015,
+                lr=lr,
                 seed=seed,
                 horizon_weights=horizon_weights,
                 trajectory_weight=trajectory_weight,
                 rising_mono_weight=rising_mono_weight,
+                sample_weights=sample_weights_tr,
             )
             val_pred = model.forward_delta(x_va)
             val_mse = float(np.mean((val_pred - y_va) ** 2))
-            cand = {"model": model, "nh": nh, "seed": seed, "val_mse": val_mse, "fit": fit}
+            cand = {
+                "model": model,
+                "nh": nh,
+                "seed": seed,
+                "val_mse": val_mse,
+                "fit": fit,
+                "scale_mode": scale_mode,
+                "lr": lr,
+            }
             if best is None or val_mse < best["val_mse"]:
                 best = cand
     assert best is not None
@@ -91,6 +107,11 @@ def train_mimo_variants(
     trajectory_weight=0.0,
     rising_mono_weight=0.0,
     horizon_weights=None,
+    scale_mode="zscore",
+    lr=0.015,
+    warm_start_weights=None,
+    sample_weights_tr=None,
+    seeds=(42, 7, 19),
 ):
     train_rows, x_tr, y_tr, _, _ = _stack(rows, datasets, input_idx, output_specs, 1)
     val_rows, x_va, y_va, _, y_va_abs = _stack(rows, datasets, input_idx, output_specs, 2)
@@ -103,6 +124,11 @@ def train_mimo_variants(
         trajectory_weight=trajectory_weight,
         rising_mono_weight=rising_mono_weight,
         horizon_weights=horizon_weights,
+        scale_mode=scale_mode,
+        lr=lr,
+        warm_start_weights=warm_start_weights,
+        sample_weights_tr=sample_weights_tr,
+        seeds=seeds,
     )
 
     def predict_fn(x, atual, _row):
@@ -117,16 +143,16 @@ def train_mimo_variants(
         output_specs=output_specs,
         predict_fn=predict_fn,
     )
-    # rising-only consistency on validation for diagnostics
-    val_pred = best["model"].forward_delta(x_va)
-    pred_abs = y_va_abs.copy()
-    # rebuild abs from atual of input set
     _, _, _, atual_va, y_va_abs = _stack(rows, datasets, input_idx, output_specs, 2)
+    val_pred = best["model"].forward_delta(x_va)
     pred_abs = atual_va[:, None] + val_pred
     result["training"] = {
         "hidden": best["nh"],
         "seed": best["seed"],
         "val_mse_delta": best["val_mse"],
+        "scale_mode": best.get("scale_mode", scale_mode),
+        "lr": best.get("lr", lr),
+        "warm_start": warm_start_weights is not None,
         **best["fit"],
         "n_train": len(train_rows),
         "n_val": len(val_rows),

@@ -245,11 +245,14 @@ def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray, y_pers: np.ndarray) 
 class MimoMLP:
     """MLP multi-saída estilo PREVINE: logsig na oculta e em cada saída."""
 
-    def __init__(self, n_inputs: int, n_outputs: int, n_hidden: int, seed: int = 42):
+    def __init__(self, n_inputs: int, n_outputs: int, n_hidden: int, seed: int = 42, scale_mode: str = "zscore"):
+        if scale_mode not in {"zscore", "minmax"}:
+            raise ValueError(f"scale_mode inválido: {scale_mode}")
         rng = np.random.default_rng(seed)
         self.n_inputs = n_inputs
         self.n_outputs = n_outputs
         self.n_hidden = n_hidden
+        self.scale_mode = scale_mode
         self.wh = rng.normal(0, 0.5, size=(n_hidden, n_inputs))
         self.bh = np.zeros(n_hidden)
         self.ws = rng.normal(0, 0.5, size=(n_outputs, n_hidden))
@@ -258,6 +261,51 @@ class MimoMLP:
         self.x_std = np.ones(n_inputs)
         self.y_mean = np.zeros(n_outputs)
         self.y_std = np.ones(n_outputs)
+        self._freeze_input_scale = False
+
+    def warm_start_from_direct(self, weights: dict[str, np.ndarray], *, seed: int = 42) -> None:
+        """Copia camada oculta do Direct .mat; inicializa cabeças multi-saída.
+
+        Também aplica ae/be do .mat na entrada. au/bu do Direct 2h vai para a
+        1ª saída; a 2ª saída começa com a mesma escala e é afinada no fit.
+        """
+        rng = np.random.default_rng(seed)
+        wh = np.atleast_2d(np.asarray(weights["wh"], float))
+        if wh.shape[0] == self.n_inputs and wh.shape[1] != self.n_inputs:
+            wh = wh.T
+        if wh.shape[1] != self.n_inputs:
+            raise ValueError(f"wh incompatível: {wh.shape} vs n_inputs={self.n_inputs}")
+        bh = np.asarray(weights["bh"], float).ravel()
+        ws1 = np.asarray(weights["ws"], float).ravel()
+        nh_src = wh.shape[0]
+        if nh_src == self.n_hidden:
+            self.wh = wh.copy()
+            self.bh = bh.copy()
+            src_ws = ws1
+        elif nh_src > self.n_hidden:
+            self.wh = wh[: self.n_hidden].copy()
+            self.bh = bh[: self.n_hidden].copy()
+            src_ws = ws1[: self.n_hidden]
+        else:
+            self.wh[:nh_src] = wh
+            self.bh[:nh_src] = bh
+            src_ws = np.zeros(self.n_hidden)
+            src_ws[:nh_src] = ws1
+        self.ws = rng.normal(0, 0.15, size=(self.n_outputs, self.n_hidden))
+        self.ws[0] = src_ws
+        if self.n_outputs > 1:
+            self.ws[1] = src_ws + rng.normal(0, 0.05, size=self.n_hidden)
+        self.bs = np.zeros(self.n_outputs)
+        self.bs[0] = float(np.asarray(weights["bs"]).ravel()[0])
+        # Escala de entrada do .mat (PREVINE)
+        self.x_mean = np.asarray(weights["be"], float).ravel().copy()
+        self.x_std = np.clip(np.asarray(weights["ae"], float).ravel().copy(), 1e-6, None)
+        au = float(np.asarray(weights["au"]).ravel()[0])
+        bu = float(np.asarray(weights["bu"]).ravel()[0])
+        self.y_mean = np.full(self.n_outputs, bu, dtype=float)
+        self.y_std = np.full(self.n_outputs, max(au, 1e-6), dtype=float)
+        self.scale_mode = "minmax"
+        self._freeze_input_scale = True
 
     def _norm_x(self, x: np.ndarray) -> np.ndarray:
         return (x - self.x_mean) / self.x_std
@@ -287,16 +335,32 @@ class MimoMLP:
         horizon_weights: np.ndarray | None = None,
         trajectory_weight: float = 0.0,
         rising_mono_weight: float = 0.0,
+        sample_weights: np.ndarray | None = None,
     ) -> dict:
         rng = np.random.default_rng(seed)
-        self.x_mean = x_train.mean(axis=0)
-        self.x_std = np.clip(x_train.std(axis=0), 1e-6, None)
-        self.y_mean = y_train.mean(axis=0)
-        self.y_std = np.clip(y_train.std(axis=0), 1e-6, None)
+        if not getattr(self, "_freeze_input_scale", False):
+            if self.scale_mode == "minmax":
+                self.x_mean = x_train.min(axis=0)
+                self.x_std = np.clip(x_train.max(axis=0) - self.x_mean, 1e-6, None)
+            else:
+                self.x_mean = x_train.mean(axis=0)
+                self.x_std = np.clip(x_train.std(axis=0), 1e-6, None)
+        # Escala de saída: sempre pelo treino (2ª cabeça MIMO precisa do range real de Δ4h)
+        if self.scale_mode == "minmax" or getattr(self, "_freeze_input_scale", False):
+            self.y_mean = y_train.min(axis=0)
+            self.y_std = np.clip(y_train.max(axis=0) - self.y_mean, 1e-6, None)
+        else:
+            self.y_mean = y_train.mean(axis=0)
+            self.y_std = np.clip(y_train.std(axis=0), 1e-6, None)
         if horizon_weights is None:
             horizon_weights = np.ones(self.n_outputs, dtype=float)
         else:
             horizon_weights = np.asarray(horizon_weights, float)
+        if sample_weights is None:
+            sample_weights = np.ones(x_train.shape[0], dtype=float)
+        else:
+            sample_weights = np.asarray(sample_weights, float)
+            sample_weights = sample_weights / (sample_weights.mean() + 1e-12)
 
         best_state = None
         best_val = float("inf")
@@ -310,6 +374,7 @@ class MimoMLP:
                 idx = order[start : start + batch_size]
                 xb = x_train[idx]
                 yb = y_train[idx]
+                wb = sample_weights[idx]
                 self._train_batch(
                     xb,
                     yb,
@@ -317,6 +382,7 @@ class MimoMLP:
                     horizon_weights=horizon_weights,
                     trajectory_weight=trajectory_weight,
                     rising_mono_weight=rising_mono_weight,
+                    sample_weights=wb,
                 )
 
             val_pred = self.forward_delta(x_val)
@@ -362,6 +428,7 @@ class MimoMLP:
             "trajectory_weight": trajectory_weight,
             "rising_mono_weight": rising_mono_weight,
             "horizon_weights": horizon_weights.tolist(),
+            "scale_mode": self.scale_mode,
         }
 
     def _train_batch(
@@ -373,6 +440,7 @@ class MimoMLP:
         horizon_weights: np.ndarray,
         trajectory_weight: float,
         rising_mono_weight: float,
+        sample_weights: np.ndarray | None = None,
     ) -> None:
         xn = self._norm_x(xb)
         pn = xn
@@ -382,25 +450,26 @@ class MimoMLP:
         y_hat_n = logsig(zo)
         y_hat = y_hat_n * self.y_std + self.y_mean
         err = y_hat - yb
-        loss_grad_y = 2.0 * horizon_weights * err / xb.shape[0]
+        if sample_weights is None:
+            sample_weights = np.ones(xb.shape[0], dtype=float)
+        w = sample_weights.reshape(-1, 1)
+        w_sum = float(np.sum(sample_weights)) + 1e-12
+        loss_grad_y = 2.0 * horizon_weights * err * w / w_sum
 
         if self.n_outputs >= 2 and trajectory_weight > 0:
             true_shape = yb[:, 1] - yb[:, 0]
             pred_shape = y_hat[:, 1] - y_hat[:, 0]
             shape_err = pred_shape - true_shape
-            # d(loss)/d(y0) = -2 * shape_err / n; d(loss)/d(y1) = +2 * shape_err / n
-            g = 2.0 * trajectory_weight * shape_err / xb.shape[0]
+            g = 2.0 * trajectory_weight * shape_err * sample_weights / w_sum
             loss_grad_y[:, 0] -= g
             loss_grad_y[:, 1] += g
 
         if self.n_outputs >= 2 and rising_mono_weight > 0:
-            # When true trajectory is rising, penalize pred4 < pred2.
             rising = (yb[:, 1] - yb[:, 0]) > 0
             violation = np.maximum(0.0, y_hat[:, 0] - y_hat[:, 1])
-            # d ReLU(y0-y1)/dy0 = 1 if violation>0 else 0; /dy1 = -1
             active = rising & (violation > 0)
             if np.any(active):
-                g = rising_mono_weight / xb.shape[0]
+                g = rising_mono_weight * sample_weights[active] / w_sum
                 loss_grad_y[active, 0] += g
                 loss_grad_y[active, 1] -= g
 

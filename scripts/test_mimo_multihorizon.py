@@ -99,17 +99,30 @@ class TestExperimentArtifact(unittest.TestCase):
         self.assertIn("0,9926", html)
 
 
+    def test_round3_close_mat_gap_artifact(self):
+        exp6 = self.data["experiments"].get("exp6_close_mat_gap_2h4h")
+        self.assertIsNotNone(exp6, "exp6_close_mat_gap_2h4h ausente")
+        self.assertEqual(exp6.get("status"), "ok")
+        self.assertIn("ranking", exp6)
+        self.assertIn("best_variant", exp6)
+        best = exp6["variants"][exp6["best_variant"]]["splits"]["teste"]
+        # Melhor variante deve manter 2h competitivo e 4h acima do scratch típico (~0,67)
+        self.assertGreater(best["2h"]["nash"], 0.90)
+        self.assertGreater(best["4h"]["nash"], 0.80)
+        self.assertFalse(exp6["verdict"]["closes_mat_gap"], "gap ao teto .mat ainda não fechou")
+
     def test_matlab_handoff_package(self):
         import sys
+
         sys.path.insert(0, str(ROOT / "codigo_python/11_experimento_mimo"))
         import export_matlab_mimo_package as exp
+
         manifest = exp.export_package()
         out = ROOT / "assets/data/research_mimo_matlab_handoff"
         self.assertGreaterEqual(manifest["n_rows"], 100)
         self.assertTrue((out / "mimo_aligned_2h4h_15in.csv").is_file())
         self.assertTrue((out / "manifest.json").is_file())
         self.assertTrue((ROOT / "codigo_python/11_experimento_mimo/matlab/train_mimo_2h4h_stz.m").is_file())
-        # CSV header must expose dual targets
         header = (out / "mimo_aligned_2h4h_15in.csv").read_text(encoding="utf-8").splitlines()[0]
         self.assertIn("delta_2h_cm", header)
         self.assertIn("delta_4h_cm", header)
