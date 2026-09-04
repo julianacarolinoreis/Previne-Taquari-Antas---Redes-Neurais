@@ -468,7 +468,7 @@
     border-radius:14px;box-shadow:var(--shadow);padding:24px 26px}
   .comparacao-inner h2{margin:0 0 4px;font-size:19px;letter-spacing:-.01em;font-weight:800}
   .comparacao-sub{font-size:11.5px;color:var(--muted);margin:0 0 14px}
-  .comparacao-controls{display:grid;grid-template-columns:minmax(180px,1fr) 180px auto auto;gap:8px;align-items:center;margin-bottom:10px}
+  .comparacao-controls{display:grid;grid-template-columns:minmax(180px,1fr) 180px auto auto auto auto;gap:8px;align-items:center;margin-bottom:10px}
   .comparacao-controls input,.comparacao-controls select{width:100%;font-size:12px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
   .comparacao-controls label{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);white-space:nowrap}
   .comparacao-controls input[type="checkbox"]{width:auto;accent-color:var(--brand)}
@@ -524,7 +524,9 @@
     .leaflet-popup-content{width:auto!important;max-width:calc(100vw - 48px)!important;margin:12px 10px}
     .municipio-popup{max-height:calc(52vh - 20px)}
     .municipio-popup .popup-more[open]{max-height:calc(52vh - 180px)}
-    .map-hint{left:120px;right:8px;top:110px!important;bottom:auto!important;max-width:none;max-height:72px;overflow:auto;font-size:11px}
+    /* Empilha a orientação abaixo da mini-legenda para que os dois avisos
+       não se cubram no detalhe local ou quando uma camada é ativada. */
+    .map-hint{left:10px;right:10px;top:156px!important;bottom:auto!important;max-width:none;max-height:58px;overflow:auto;font-size:11px}
     .leaflet-popup-content{max-height:calc(52vh - 34px);overflow:auto}
     .reference-legend{left:8px;bottom:120px;max-width:calc(100% - 16px);font-size:10px}
     .comparacao-wrap{padding:20px 8px 12px}
@@ -585,7 +587,7 @@
   <a class="back" href="index.html">← painel do projeto</a>
 </header>
 <main>
-  <div id="map" role="region" aria-label="Mapa temático de vulnerabilidade da bacia Taquari-Antas" aria-describedby="mapLegendMini mapHint" tabindex="0"><div id="inset" role="img" aria-label="Localização da bacia Taquari-Antas no Rio Grande do Sul" title="Onde a bacia fica no Rio Grande do Sul"></div><div id="mapLegendMini" class="map-legend-mini" role="note" aria-live="polite"><strong>Carregando indicador…</strong><span>Escolha um município ou indicador.</span></div><div id="referenceLegend" class="reference-legend" hidden role="note" aria-live="polite" aria-label="Legenda das camadas de referência"></div><div id="mapEmptyState" class="map-empty-state" hidden role="status" aria-live="polite"></div><div id="mapHint" class="map-hint">Clique no município e, na ficha, escolha setores censitários ou grade de 200 m.</div><div id="mapLoading" class="map-loading" role="status" aria-live="polite">Carregando municípios e camadas…</div></div>
+  <div id="map" role="region" aria-label="Mapa temático de vulnerabilidade da bacia Taquari-Antas" aria-describedby="mapLegendMini mapHint" tabindex="0"><div id="inset" role="img" aria-label="Localização da bacia Taquari-Antas no Rio Grande do Sul" title="Onde a bacia fica no Rio Grande do Sul"></div><div id="mapLegendMini" class="map-legend-mini" role="note" aria-live="polite"><strong>Carregando indicador…</strong><span>Escolha um município ou indicador.</span></div><div id="referenceLegend" class="reference-legend" hidden role="note" aria-live="polite" aria-label="Legenda das camadas de referência"></div><div id="mapEmptyState" class="map-empty-state" hidden role="status" aria-live="polite"></div><div id="mapHint" class="map-hint">Escolha um município; depois selecione setor censitário ou grade de 200 m.</div><div id="mapLoading" class="map-loading" role="status" aria-live="polite">Carregando municípios e camadas…</div></div>
   <div class="location-picker" id="locationPicker">
     <div class="q">1 · Localizar município</div>
     <div class="mun-search">
@@ -781,8 +783,8 @@
     <div class="svc-note">SGB, levantamento de 2025: 37 setores de risco setorizado somente em Santa Tereza. A camada mostra tipologia e grau do setor; não é mancha contínua nem inventário regional. Fora deles, ausência de polígono não significa ausência de perigo.</div>
 
     <div class="q" id="downloadAnchor">Baixar e compartilhar</div>
-    <div class="download-meta vista-meta" id="downloadVistaMeta" role="status" aria-live="polite">Aguardando a vista atual para informar quantos registros serão exportados.</div>
-    <div class="download-status" id="downloadStatus" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div class="download-meta vista-meta" id="downloadVistaMeta" role="note">Aguardando a vista atual para informar quantos registros serão exportados.</div>
+    <div class="download-status" id="downloadStatus" aria-hidden="true"></div>
     <div class="tool-grid">
       <button class="baixar" id="baixar" disabled>⬇ CSV da vista</button>
       <button class="baixar" id="baixarGeo" disabled>⬇ GeoJSON da vista</button>
@@ -972,6 +974,8 @@
         <option value="nome">ordem alfabética</option>
       </select></label>
       <label><input id="comparacaoSomenteSelecao" type="checkbox" disabled> somente seleção</label>
+      <button id="comparacaoLimparFiltro" type="button" class="table-action">limpar filtro</button>
+      <button id="comparacaoSelecionarPagina" type="button" class="table-action">selecionar página</button>
       <button id="comparacaoBaixar" type="button">↓ baixar tabela</button>
     </div>
     <div class="comparacao-meta" id="comparacaoMeta" aria-live="polite">carregando dados…</div>
@@ -1133,6 +1137,20 @@ function icmPrioritario(p){
   return false;
 }
 const fmt = n => Number(n).toLocaleString("pt-BR", {maximumFractionDigits: n < 100 ? 1 : 0});
+const UNIDADE_SINGULAR = {pessoas:"pessoa", domicílios:"domicílio", domicilios:"domicílio", pontos:"ponto", áreas:"área", registros:"registro", células:"célula", municípios:"município", setores:"setor", edificações:"edificação", edifícios:"edifício"};
+function quantidade(n, unidade){
+  const plural=String(unidade ?? "").trim();
+  if (!plural) return fmt(n);
+  return `${fmt(n)} ${Number(n) === 1 ? (UNIDADE_SINGULAR[plural] || plural.replace(/s$/i,"")) : plural}`;
+}
+function rotuloMapaIndicador(d){
+  if (!d) return "Indicador";
+  if (d.k === "tea_pct") return "TEA — percentual (%)";
+  if (d.k === "tea_pessoas") return "TEA — contagem";
+  if (d.k === "pcd_pct_2mais") return "PcD — percentual (%)";
+  if (d.k === "pcd_pessoas_2mais") return "PcD — contagem";
+  return d.nome;
+}
 const escHTML = v => String(v ?? "").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function acessibilizaPopup(layer, rotulo){
   const el = layer?.getPopup?.()?.getElement?.();
@@ -1474,7 +1492,7 @@ function valor(p){                     // valor do indicador nas propriedades p
 function rotulo(v){
   const d = INDS.find(i=>i.k===ind);
   if (d.money) return "R$ " + fmt(v);
-  return modo === "pct" && d.pct ? fmt(v)+"%" : fmt(v)+(d.un||"");
+  return modo === "pct" && d.pct ? fmt(v)+"%" : quantidade(v,d.un);
 }
 function fundeAgregados(payload){
   if (!payload || !munData) return;
@@ -1587,7 +1605,7 @@ function popup(p, extra){
     const parcial = !src.setor && (temSigilo(src,d) || (d.base && temSigilo(src,{k:d.base})));
     const cobertura = coberturaCampo(src,d);
     const indisponivel = sigilo || val === null;
-    const abs = indisponivel ? "—" : d.money ? "R$ "+fmt(val) : d.svc ? `${fmt(val)} ponto(s) cadastrado(s) · ${fmt(popSrc>0?val/popSrc*10000:0)} /10 mil` : fmt(val)+(d.un||"");
+    const abs = indisponivel ? "—" : d.money ? "R$ "+fmt(val) : d.svc ? `${quantidade(val,"pontos")} no cadastro · ${fmt(popSrc>0?val/popSrc*10000:0)} /10 mil` : (d.un === "%" ? `${fmt(val)}%` : quantidade(val,d.un));
     let pc = "";
     if (d.pct && !indisponivel){ const base = valorBruto(src,d.base ? {k:d.base} : {k:"pop"});
       if (base > 0) pc = ` <span style="color:#5c6b63">(${fmt(val/base*100)}%)</span>`;
@@ -1900,7 +1918,7 @@ function totaliza(props){
     const cobertura = conhecidos.length < feats.length ? `${fmt(conhecidos.length)} de ${fmt(feats.length)} municípios com ponto publicado` : "";
     const onde = munAtual ? `${munAtual.nome} · indicador municipal` : "municípios intersectantes";
     document.getElementById("tot").innerHTML = conhecidos.length
-      ? `${fmt(pop>0?pontos/pop*10000:0)} <small>/10 mil hab · ${fmt(pontos)} ponto(s) cadastrado(s) · ${onde}${cobertura ? " · base: municípios com ponto publicado" : ""}</small>${notaEscopoMunicipal}`
+      ? `${fmt(pop>0?pontos/pop*10000:0)} <small>/10 mil hab · ${quantidade(pontos,"pontos")} no cadastro · ${onde}${cobertura ? " · base: municípios com ponto publicado" : ""}</small>${notaEscopoMunicipal}`
       : `<span class="unknown-total">não estimado</span> <small>cadastro IEDE sem ponto publicado${munAtual ? ` · ${escHTML(munAtual.nome)}` : ""}</small>`;
     if (cobertura) document.getElementById("tot").insertAdjacentHTML("beforeend", ` <small>· cobertura: ${cobertura}</small>`);
     return;
@@ -1909,7 +1927,7 @@ function totaliza(props){
   const pop  = props.reduce((s,p)=>{const v=valorBruto(p,{k:"pop"});return s+(v===null?0:v)},0);
   const pc = d.pct && pop>0 ? ` <small>(${fmt(soma/pop*100)}% da população)</small>` : "";
   const escopoNota = !munAtual && escopo !== "bacia" ? " <small>· municípios inteiros intersectantes</small>" : "";
-  document.getElementById("tot").innerHTML = fmt(soma)+(d.un||"")+pc+escopoNota+notaSigilo;
+  document.getElementById("tot").innerHTML = (d.un === "%" ? `${fmt(soma)}%` : quantidade(soma,d.un))+pc+escopoNota+notaSigilo;
 }
 
 let reqSeq = 0;                        // invalida respostas atrasadas (troca rápida de município)
@@ -2021,7 +2039,7 @@ function sincronizaCamadaUI(){
   const gradeAjuda=document.getElementById("gradeAjuda");
   if (gradeAjuda) gradeAjuda.textContent = munAtual
     ? (camada === "grade"
-      ? "Grade 200 m ativa: escolha uma célula para ver população ou domicílios. Serviços, entorno, renda, PcD, TEA, ICM e IRM ficam na visão municipal/setorial."
+      ? "Grade 200 m ativa: escolha uma célula para ver população ou domicílios. Para TEA/PcD e os demais indicadores, volte aos setores ou à visão municipal."
       : "Escolha setor censitário para os indicadores do Censo ou grade 200 m para população e domicílios.")
     : (podeGrade ? "Você está aproximado: clique em um município e escolha setor censitário ou grade 200 m."
                  : "Abra um município para ativar a grade 200 m; ao aproximar, você poderá escolher a unidade.");
@@ -2041,8 +2059,8 @@ function sincronizaCamadaUI(){
     mapHint.textContent = selectionMode
       ? "Seleção de área: clique em dois cantos do retângulo."
       : munAtual
-        ? (camada === "grade" ? "Clique em uma célula de 200 m para abrir os valores." : "Clique em um setor censitário para abrir os valores.")
-        : "Clique no município e, na ficha, escolha setores censitários ou grade de 200 m.";
+        ? (camada === "grade" ? "Grade 200 m: clique numa célula para ver população ou domicílios." : "Setor censitário: clique numa área para ver os indicadores.")
+        : "Escolha um município no mapa ou na busca.";
   }
   const localStatus=document.getElementById("localFlowStatus");
   const municipioAjuda=document.getElementById("municipioAjuda");
@@ -2211,7 +2229,7 @@ function atualizaLegendaMini(){
     const cortes=brk?.length ? `<div class="mini-cuts">cortes: ${brk.map(v=>escHTML(rotulo(v))).join(" · ")}</div>` : "";
     ramp=`<div class="mini-ramp" aria-hidden="true">${CORES.map(c=>`<i style="background:${c}"></i>`).join("")}</div><div class="mini-scale"><span>menor valor</span><span>maior valor</span></div>${cortes}`;
   }
-  el.innerHTML=`<strong>${escHTML(d.nome)}</strong><span>${escHTML(modoTxt)} · ${escHTML(camadaTxt)}</span>${ramp}<small>${escHTML(aviso)}</small>`;
+  el.innerHTML=`<strong>${escHTML(rotuloMapaIndicador(d))}</strong><span>${escHTML(modoTxt)} · ${escHTML(camadaTxt)}</span>${ramp}<small>${escHTML(aviso)}</small>`;
   atualizaLegendaReferencias();
   atualizaContextoIndicador();
 }
@@ -2262,7 +2280,7 @@ function atualizaEmptyState(){
   }
   if (positivos>0 && positivos/Math.max(conhecidos,1) <= 0.08){
     el.hidden=false;
-    el.innerHTML=`<b>Indicador esparso</b>Só ${fmt(positivos)} de ${fmt(conhecidos)} área(s) com dado têm valor positivo. A cor destaca essas poucas áreas; o restante em zero ou sem publicação não significa ausência de risco social.`;
+    el.innerHTML=`<b>Indicador esparso</b>Só ${quantidade(positivos,"áreas")} com dado têm valor positivo, de ${fmt(conhecidos)} áreas conhecidas. A cor destaca essas poucas áreas; o restante em zero ou sem publicação não significa ausência de risco social.`;
     return;
   }
   if (cobertura < 0.35){
@@ -2300,7 +2318,7 @@ function atualizaLeituraMunicipio(){
     const taxa=pop>0 && pontos!==null ? pontos/pop*10000 : null;
     leitura=pontos===null
       ? `${munAtual.nome} sem ponto publicado neste cadastro IEDE (ausência ≠ inexistência do serviço).`
-      : `${munAtual.nome}: ${fmt(pontos)} ponto(s) no cadastro${taxa===null?"":` · ${fmt(taxa)} /10 mil hab`}.`;
+      : `${munAtual.nome}: ${quantidade(pontos,"pontos")} no cadastro${taxa===null?"":` · ${fmt(taxa)} /10 mil hab`}.`;
   } else if (d.municipalOnly){
     const v=valorBruto(munAtual,d);
     leitura=v===null
@@ -2521,14 +2539,14 @@ function resumoSelecao(){
     const publicados = props.map(p=>munAtual ? munAtual[d.k] : p[d.k]).filter(v=>v!==null && v!=="" && Number.isFinite(Number(v)));
     const pontos = publicados.reduce((s,v)=>s+Number(v),0);
     const desconhecidos = props.length - publicados.length;
-    detalhe = desconhecidos ? `${fmt(pontos)} <small>ponto(s) no cadastro IEDE · cobertura ${fmt(publicados.length)} de ${fmt(props.length)}</small>` : `${fmt(pontos)} <small>ponto(s) no cadastro IEDE</small>`;
-    detalheTexto=desconhecidos ? `${fmt(pontos)} ponto(s) no cadastro IEDE · cobertura ${fmt(publicados.length)} de ${fmt(props.length)}` : `${fmt(pontos)} ponto(s) no cadastro IEDE`;
+    detalhe = desconhecidos ? `${quantidade(pontos,"pontos")} <small>no cadastro IEDE · cobertura ${fmt(publicados.length)} de ${fmt(props.length)}</small>` : `${quantidade(pontos,"pontos")} <small>no cadastro IEDE</small>`;
+    detalheTexto=desconhecidos ? `${quantidade(pontos,"pontos")} no cadastro IEDE · cobertura ${fmt(publicados.length)} de ${fmt(props.length)}` : `${quantidade(pontos,"pontos")} no cadastro IEDE`;
   } else if (d.k !== "dens"){
     if (!indicadorConhecido){
       detalhe = "<small>não estimado</small>"; detalheTexto = "não estimado";
     } else {
-      detalhe = `${fmt(soma)}${d.un||""}`;
-      detalheTexto = `${fmt(soma)}${d.un||""}`;
+      detalhe = d.un === "%" ? `${fmt(soma)}%` : quantidade(soma,d.un);
+      detalheTexto = d.un === "%" ? `${fmt(soma)}%` : quantidade(soma,d.un);
       if (indicadorParcial){ detalhe += ` <small>(cobertura parcial)</small>`; detalheTexto += " (cobertura parcial)"; }
       if (d.pct && pop>0){ detalhe += ` <small>(${fmt(soma/pop*100)}% da população)</small>`; detalheTexto += ` (${fmt(soma/pop*100)}% da população)`; }
     }
@@ -2630,6 +2648,15 @@ function unidadeTabela(d){
   if (d.un) return String(d.un).trim();
   return "Valor absoluto";
 }
+function atualizaAcaoSelecaoPagina(visiveis){
+  const btn=document.getElementById("comparacaoSelecionarPagina");
+  if(!btn) return;
+  const todos=visiveis.length>0 && visiveis.every(r=>selectionLayers.includes(r.layer));
+  btn.disabled=!visiveis.length;
+  btn.textContent=todos ? "desmarcar página" : "selecionar página";
+  btn.setAttribute("aria-pressed",todos ? "true" : "false");
+  btn.title=todos ? "Remover da seleção os registros desta página" : "Adicionar à seleção os registros desta página";
+}
 function atualizaTabelaComparacao(){
   const body=document.getElementById("comparacaoBody");
   if(!body)return;
@@ -2645,6 +2672,7 @@ function atualizaTabelaComparacao(){
   comparacaoPagina=Math.min(Math.max(1,comparacaoPagina),paginas);
   const inicio=impressaoTabela ? 0 : (comparacaoPagina-1)*COMPARACAO_TAMANHO;
   const visiveis=impressaoTabela ? rows : rows.slice(inicio,inicio+COMPARACAO_TAMANHO);
+  atualizaAcaoSelecaoPagina(visiveis);
   const col=document.getElementById("comparacaoColValor");
   if(col)col.textContent=unidadeTabela(d);
   const popCol=document.getElementById("comparacaoColPop");
@@ -2705,6 +2733,24 @@ function baixarTabelaComparacao(){
 document.getElementById("comparacaoBusca").oninput=()=>{comparacaoPagina=1;atualizaTabelaComparacao();};
 document.getElementById("comparacaoOrdem").onchange=()=>{comparacaoPagina=1;atualizaTabelaComparacao();};
 document.getElementById("comparacaoSomenteSelecao").onchange=()=>{comparacaoPagina=1;atualizaTabelaComparacao();};
+document.getElementById("comparacaoLimparFiltro").onclick=()=>{
+  const busca=document.getElementById("comparacaoBusca");
+  if(!busca?.value) return;
+  busca.value=""; comparacaoPagina=1; atualizaTabelaComparacao(); busca.focus();
+  informa("Filtro da tabela limpo.");
+};
+document.getElementById("comparacaoSelecionarPagina").onclick=()=>{
+  const rows=linhasComparacaoFiltradas();
+  const paginas=Math.max(1,Math.ceil(rows.length/COMPARACAO_TAMANHO));
+  const pagina=Math.min(Math.max(1,comparacaoPagina),paginas);
+  const visiveis=impressaoTabela ? rows : rows.slice((pagina-1)*COMPARACAO_TAMANHO,pagina*COMPARACAO_TAMANHO);
+  if(!visiveis.length){ informa("Não há registros visíveis para selecionar."); return; }
+  const ids=new Set(visiveis.map(r=>r.layer));
+  const todos=visiveis.every(r=>selectionLayers.includes(r.layer));
+  selectionLayers=todos ? selectionLayers.filter(layer=>!ids.has(layer)) : [...selectionLayers,...visiveis.filter(r=>!selectionLayers.includes(r.layer)).map(r=>r.layer)];
+  repinta(); aplicaDestaqueSelecao(); atualizaPainelSelecao(); sincronizaURL();
+  informa(todos ? `${fmt(visiveis.length)} registros removidos da seleção.` : `${fmt(visiveis.length)} registros adicionados à seleção.`);
+};
 document.getElementById("comparacaoAnterior").onclick=()=>{comparacaoPagina--;atualizaTabelaComparacao();};
 document.getElementById("comparacaoProxima").onclick=()=>{comparacaoPagina++;atualizaTabelaComparacao();};
 document.getElementById("comparacaoBaixar").onclick=baixarTabelaComparacao;
@@ -3454,7 +3500,7 @@ function resumoOpenBuildings(gj){
   const total=fs.reduce((s,f)=>s+(Number(f.properties?.building_count)||0),0);
   const conf=fs.reduce((s,f)=>s+(Number(f.properties?.building_count_90pct)||0),0);
   const vintage=[...new Set(fs.map(f=>f.properties?.vintage_imagery).filter(Boolean))].join("; ") || "vintage não informado";
-  return `${fs.length} célula(s) de cobertura Open Buildings na área de interesse · ${fmt(total)} edifícios estimados na célula inteira · ${fmt(conf)} com confiança ≥90% · ${vintage}. O contorno não representa edificações individuais.`;
+  return `${quantidade(fs.length,"células")} de cobertura Open Buildings na área de interesse · ${quantidade(total,"edifícios")} estimados na célula inteira · ${quantidade(conf,"edifícios")} com confiança ≥90% · ${vintage}. O contorno não representa edificações individuais.`;
 }
 function montaReferenciasUI(){
   if(document.getElementById("referencias")) return;
@@ -3776,7 +3822,7 @@ function notaObitos(meta, gj, layer){
   const dentroTxt = Number.isFinite(dentro) ? `; ${fmt(dentro)} dentro da bacia publicada` : "";
   const somente=!!document.getElementById("obitosSomenteBacia")?.checked;
   const visiveis = layer ? layer.getLayers().filter(x=>x.getLatLng && map.getBounds().contains(x.getLatLng()) && (!somente || Number(x.feature?.properties?.na_bacia_publicada)===1)).length : (somente && Number.isFinite(dentro) ? dentro : validos);
-  return `Óbitos: ${fmt(validos)} ponto(s) válido(s) no arquivo${dentroTxt}; ${fmt(semCoord)} registro(s) de origem sem coordenada; ${fmt(visiveis)} na janela atual. O ativo não informa data, causa ou identificação nominal.`;
+  return `Óbitos: ${quantidade(validos,"pontos")} válidos no arquivo${dentroTxt}; ${quantidade(semCoord,"registros")} de origem sem coordenada; ${quantidade(visiveis,"pontos")} na janela atual. O ativo não informa data, causa ou identificação nominal.`;
 }
 function chavePontoObito(layer){
   const ll=layer?.getLatLng?.();
@@ -3988,7 +4034,18 @@ carrega("municipios.geojson").then(gj=>{
   });
 
   fundeICM();   // se o ICM já tiver carregado, funde as faixas agora
-  if (municipioInicial && munData.features.some(f=>String(f.properties.cod_mun)===String(municipioInicial))){
+  const linkMunicipalOnly = !!municipioInicial && !!indInicial?.municipalOnly;
+  if (linkMunicipalOnly){
+    // Links compartilhados de PcD/TEA (ou outro agregado municipal) não
+    // devem abrir um mapa local neutro. Normalizamos para a visão municipal,
+    // onde o agregado tem significado e sua unidade/denominador ficam claros.
+    camada = "setor";
+    sincronizaCamadaUI();
+    atualizaEscopoDados();
+    repinta();
+    sincronizaURL();
+    informa(`${indInicial.nome} é um agregado municipal; a visão municipal foi aberta. Para população ou domicílios locais, escolha setor ou grade 200 m.`);
+  } else if (municipioInicial && munData.features.some(f=>String(f.properties.cod_mun)===String(municipioInicial))){
     abreMunicipio(String(municipioInicial));
   } else {
     sincronizaURL();
@@ -4014,7 +4071,7 @@ carrega("downloads/catalogo.json").then(d=>{
   if(cm)cm.textContent=`${fmt(q.setores_com_dado_suprimido||0)} setor(es) com algum campo não publicado; consulte o catálogo para a definição dos campos.`;
   const sv=d.cobertura_servicos||{}, sn=document.getElementById("servicoNota");
   if(sn){
-    const resumo=Object.entries(sv).map(([k,v])=>`${k}: ${fmt(v.pontos_publicados||0)} ponto(s), ${fmt(v.municipios_sem_ponto_na_camada||0)} município(s) sem ponto publicado`).join(" · ");
+    const resumo=Object.entries(sv).map(([k,v])=>`${k}: ${quantidade(v.pontos_publicados||0,"pontos")}, ${quantidade(v.municipios_sem_ponto_na_camada||0,"municípios")} sem ponto publicado`).join(" · ");
     sn.dataset.resumo=resumo;
     atualizaNotaServico();
   }
@@ -4244,7 +4301,7 @@ perigoBtn.onclick = ()=>{
           `<tr><td>Risco</td><td>${escHTML(p.grau_risco||"—")}</td></tr>`+
           `<tr><td>Vulnerabilidade SGB</td><td>${escHTML(p.grau_vulne||"—")}</td></tr>`+
           `<tr><td>Local</td><td>${escHTML(p.local||"—")}</td></tr>`+
-          `<tr><td>Estimativa</td><td>${p.num_pess==null?"—":fmt(+p.num_pess)} pessoa(s) · ${p.num_edif==null?"—":fmt(+p.num_edif)} edificação(ões)</td></tr></table>`+
+          `<tr><td>Estimativa</td><td>${p.num_pess==null?"—":quantidade(+p.num_pess,"pessoas")} · ${p.num_edif==null?"—":quantidade(+p.num_edif,"edificações")}</td></tr></table>`+
           `<small>Risco setorizado com tipologia e grau; não é mancha contínua nem cadastro de imóveis. `+
           `<a href="https://rigeo.sgb.gov.br/items/646ab86b-280b-44f3-b279-87c6f995c0a8" target="_blank" rel="noopener">fonte SGB</a>.</small></div>`);
         l.on("popupopen", ()=>acessibilizaPopup(l, `Risco setorizado SGB: ${p.num_setor || "setor selecionado"}`));
