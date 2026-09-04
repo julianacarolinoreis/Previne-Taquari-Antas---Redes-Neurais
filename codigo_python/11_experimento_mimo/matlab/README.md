@@ -45,6 +45,8 @@ Ganho relevante: MIMO MATLAB ≥ Direct scratch no 4h **e** aproximar o teto do 
 ## 4. Protocolo
 
 - Ativação: logsig (unisig PREVINE)
+- Normalização: z-score no treino (igual ao `MimoMLP` Python)
+- Minibatch 64, lr 0,015, patience 40
 - Alvos: Δ nível 2h e 4h (ALT)
 - Split: coluna `split` do CSV (1 treino / 2 validação / 3 teste)
 - Early stopping na validação (patience 40)
