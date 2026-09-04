@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import csv
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -44,6 +45,19 @@ def main() -> int:
     santa_tereza_raw_rain = read_json(ROOT / "assets" / "data" / "hec_hms_audit" / "derived" / "santa_tereza_raw_rain_dss_report.json")
     station_search = read_json(BASE / "network_station_e28_calibration_search" / "station_e28_search_report.json")
     hybrid_search = read_json(BASE / "network_hybrid_e28_calibration_search" / "hybrid_e28_search_report.json")
+    hybrid_search_csv = BASE / "network_hybrid_e28_calibration_search" / "hybrid_e28_search.csv"
+    with hybrid_search_csv.open(encoding="utf-8", newline="") as handle:
+        hybrid_rows = list(csv.DictReader(handle))
+    zero_lag_rows = [row for row in hybrid_rows if float(row["peak_lag_hours"]) == 0.0]
+    best_zero_lag = max(zero_lag_rows, key=lambda row: float(row["research_score"])) if zero_lag_rows else None
+    if best_zero_lag:
+        best_zero_lag = {
+            "candidate_id": int(best_zero_lag["candidate_id"]),
+            "nse": float(best_zero_lag["nse"]),
+            "peak_lag_hours": float(best_zero_lag["peak_lag_hours"]),
+            "peak_relative_error": float(best_zero_lag["peak_relative_error"]),
+            "research_score": float(best_zero_lag["research_score"]),
+        }
     hybrid_replay = read_json(BASE / "network_replay_hybrid_e28" / "hybrid_e28_metrics.json")
     hybrid_rain = read_json(ROOT / "assets" / "data" / "hec_hms_audit" / "derived" / "mucum_hybrid_e28_rain_dss_report.json")
 
@@ -115,6 +129,11 @@ def main() -> int:
             "comparison_station_distributed_same_stz": station_search.get("best_by_research_score"),
             "comparison_baseline_eventwise_proxy": next((row for row in replay["events"] if row["event_id"] == "E28"), None),
             "rainfall_audit": hybrid_rain,
+            "zero_lag_tradeoff": {
+                "candidate_count": len(zero_lag_rows),
+                "best_by_research_score": best_zero_lag,
+                "interpretation": "zero atraso reduz uma métrica, mas não é escolhido se aumentar materialmente o erro do pico",
+            },
             "spatial_series": "network_replay_hybrid_e28/E28/spatial_series_e28.csv",
             "spatial_report": "network_replay_hybrid_e28/E28/spatial_series_e28_report.json",
             "status": "candidata híbrida específica do E28; não promovida",
