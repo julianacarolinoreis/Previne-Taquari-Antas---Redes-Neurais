@@ -2,7 +2,7 @@
   "schema_version": 1,
   "artifact_id": "research-event-replay-latest",
   "generated_at_utc": "2026-09-02T01:30:50Z",
-  "updated_at_utc": "2026-09-03T18:00:00Z",
+  "updated_at_utc": "2026-09-04T15:51:00Z",
   "research_only": true,
   "official_alert": false,
   "operational_gate": {
@@ -73,6 +73,35 @@
         "terrain": "SRTM regional D8 watershed",
         "rainfall_zones": ["86472000", "02851072"],
         "status": "research_replay_only",
+        "operational_gate": "blocked"
+      },
+      "nested_network_replay": {
+        "municipality_scope": ["Muçum", "Santa Tereza"],
+        "artifact": "assets/data/hec_hms_integrated_taquari_antas/network_dashboard/index.html",
+        "status": "structure_verified_calibration_common_pending",
+        "network": "ANA BHO6: 86472000 -> 86472600 -> 86510000",
+        "events_executed": ["E19", "E22", "E24", "E27", "E28"],
+        "event_blocked": {"E26": "sem entrada HEC-HMS reconciliada nesta rodada"},
+        "metrics": "assets/data/hec_hms_integrated_taquari_antas/network_replay_eventwise_candidate_all_events/network_metrics_all_events.json",
+        "status_note": "parâmetros e fontes de chuva ainda variam por evento; nenhum resultado foi promovido para operação",
+        "station_distributed_e28": {
+          "station": "86472600 · Santa Tereza",
+          "policy": "86472000 no alto Antas; 86472600 nos dois incrementos a jusante de Santa Tereza",
+          "candidate_count": 39,
+          "best_candidate": {
+            "candidate_id": 33,
+            "nse": 0.8632076567,
+            "peak_lag_hours": 1.0,
+            "peak_relative_error": 0.0356791867,
+            "mae_m3s": 503.2723856307,
+            "observed_peak_m3s": 7886.7250976563,
+            "simulated_peak_m3s": 7605.3331602368
+          },
+          "search_report": "assets/data/hec_hms_integrated_taquari_antas/network_station_e28_calibration_search/station_e28_search_report.json",
+          "search_csv": "assets/data/hec_hms_integrated_taquari_antas/network_station_e28_calibration_search/station_e28_search.csv",
+          "status": "candidata específica do E28; não promovida",
+          "limitations": "não há vazão reconciliada em Santa Tereza; E24/E27 têm lacuna interna na chuva bruta; falta validação cruzada"
+        },
         "operational_gate": "blocked"
       }
     }
