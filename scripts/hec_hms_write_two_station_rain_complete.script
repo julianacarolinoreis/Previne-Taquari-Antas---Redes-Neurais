@@ -1,0 +1,46 @@
+from hec.heclib.dss import HecDss
+from hec.heclib.util import HecTime
+from hec.io import TimeSeriesContainer
+from hms.model.JythonHms import Exit
+import csv
+
+source_dir = r"D:/PREVINE/worktrees/previne-catalogo-pesquisas-20260828/assets/data/hec_hms_audit/multi_event/derived"
+target = r"D:/PREVINE/worktrees/previne-catalogo-pesquisas-20260828/assets/data/hec_hms_calibration/mucum_two_station_rain_complete_v2.dss"
+events = {"19": "03May2023", "26": "11Apr2024", "28": "13Jun2024"}
+stations = {"86472000": "86472000_rain_mm_sum", "86510000": "86510000_rain_mm_sum"}
+months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+missing = -3.402823466e+38
+
+dss = HecDss.open(target)
+for event_id, date_part in events.items():
+    path = source_dir + "/event_" + event_id + "_hourly.csv"
+    rows = []
+    with open(path, "rb") as handle:
+        for row in csv.DictReader(handle):
+            rows.append(row)
+    if not rows:
+        raise ValueError("no rows for event " + event_id)
+    first_date, first_hour = rows[0]["timestamp_label"].split(" ")
+    year, month, day = [int(value) for value in first_date.split("-")]
+    start = HecTime("%02d%s%04d" % (day, months[month - 1], year), "%04d" % (int(first_hour[:2]) * 100))
+    for station, field in stations.items():
+        values = []
+        times = []
+        current = HecTime("%02d%s%04d" % (day, months[month - 1], year), "%04d" % (int(first_hour[:2]) * 100))
+        for row in rows:
+            raw = row.get(field, "").strip()
+            values.append(float(raw) if raw else missing)
+            times.append(current.value())
+            current.add(60)
+        container = TimeSeriesContainer()
+        container.fullName = "/MUCUM/RAIN_E%s_%s/PRECIP-INC/%s/1Hour/OBS/" % (event_id, station, date_part)
+        container.interval = 60
+        container.times = times
+        container.values = values
+        container.numberValues = len(values)
+        container.units = "MM"
+        container.type = "PER-CUM"
+        dss.put(container)
+dss.close()
+print("WROTE_TWO_STATION_RAIN_COMPLETE|%s" % target)
+Exit(1)

@@ -1,6 +1,6 @@
 {
   "schema_version": "hec_hms_taquari_antas_calibration_status_v1",
-  "generated_at_utc": "2026-09-04T17:21:08.390733+00:00",
+  "generated_at_utc": "2026-09-04T19:03:33.506884+00:00",
   "purpose": "estudo de calibração e replay HEC-HMS; não é alerta, ordem de evacuação ou operação",
   "overall_status": "estrutura verificada; calibração comum ainda não concluída",
   "network": {
@@ -269,6 +269,432 @@
         "common_search_summary.csv",
         "common_search_event_metrics.csv"
       ]
+    },
+    "two_station_network": {
+      "schema_version": "hec_hms_two_station_network_search_v1",
+      "generated_at_utc": "2026-09-04T19:02:53.553009+00:00",
+      "purpose": "busca diagnóstica na rede HEC-HMS com dois postos; não é calibração promovida nem operação",
+      "events": [
+        "E19",
+        "E28"
+      ],
+      "rainfall_policy": "86472000 no alto Antas; 86510000 nos incrementos a jusante de Santa Tereza",
+      "candidate_count": 40,
+      "successful_candidates": 40,
+      "best_by_research_score": {
+        "candidate_id": 8,
+        "initial_loss": 10.0,
+        "constant_loss": 1.0,
+        "tc": 60.0,
+        "storage": 90.0,
+        "recession": 0.95,
+        "initial_flow_ratio": 0.001,
+        "k": 3.0,
+        "status": "replay_scored_not_promoted",
+        "events": 2,
+        "mean_nse": -0.4895317806411049,
+        "mean_abs_peak_lag_hours": 20.0,
+        "mean_peak_relative_error": 0.218307339032755,
+        "research_score": -0.733193248447656,
+        "event_metrics": [
+          {
+            "event_id": "E19",
+            "pairs": 53,
+            "mae_m3s": 141.87024258239182,
+            "rmse_m3s": 178.22847842142212,
+            "nse": -0.2751133223438258,
+            "observed_peak_m3s": 1408.375,
+            "simulated_peak_m3s": 1361.0814887577692,
+            "peak_lag_hours": 4.0,
+            "peak_relative_error": 0.03358019791762194,
+            "status": "replay_scored_not_promoted"
+          },
+          {
+            "event_id": "E28",
+            "pairs": 209,
+            "mae_m3s": 1949.5687671825206,
+            "rmse_m3s": 2329.091752345176,
+            "nse": -0.703950238938384,
+            "observed_peak_m3s": 7886.72509765625,
+            "simulated_peak_m3s": 4708.102947853062,
+            "peak_lag_hours": 36.0,
+            "peak_relative_error": 0.40303448014788806,
+            "status": "replay_scored_not_promoted"
+          }
+        ]
+      },
+      "artifacts": [
+        "two_station_search.csv"
+      ],
+      "limitation": "a chuva de 86510000 continua sendo uma hipótese espacial; faltam séries completas de chuva no posto intermediário para uma calibração multi-evento de três zonas"
+    }
+  },
+  "calibration_input_gate": {
+    "schema_version": "hec_hms_calibration_input_gate_v1",
+    "generated_at_utc": "2026-09-04T18:57:33+00:00",
+    "purpose": "gate de qualidade de entradas para pesquisa HEC-HMS; não é calibração nem operação",
+    "policy": {
+      "missing_data": "não preencher, não interpolar, não truncar o recorte para esconder lacuna",
+      "target": "vazão horária do posto ANA 86510000",
+      "three_zone_network": "86472000 no alto Antas, 86472600 no incremento Santa Tereza, 86510000 no incremento final"
+    },
+    "events": [
+      {
+        "event_id": 19,
+        "score_window": {
+          "start": "2023-05-06 10:00:00",
+          "end": "2023-05-08 14:00:00"
+        },
+        "hourly_inputs": {
+          "rain_86472000": {
+            "field": "86472000_rain_mm_sum",
+            "expected_hours": 53,
+            "rows_in_score_window": 53,
+            "numeric_hours": 53,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          },
+          "rain_86510000": {
+            "field": "86510000_rain_mm_sum",
+            "expected_hours": 53,
+            "rows_in_score_window": 53,
+            "numeric_hours": 53,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          },
+          "flow_86510000": {
+            "field": "86510000_flow_mean",
+            "expected_hours": 53,
+            "rows_in_score_window": 53,
+            "numeric_hours": 53,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          }
+        },
+        "santa_tereza_86472600": {
+          "station": "86472600",
+          "raw_rows": 0,
+          "raw_numeric_rain_records": 0,
+          "hourly_hours": 0,
+          "missing_hours_inside_input": 0,
+          "rain_available": false,
+          "complete_hourly_input": false,
+          "status": "missing_or_incomplete"
+        },
+        "target_rain_and_flow_complete": true,
+        "three_zone_rainfall_and_target_flow_complete": false,
+        "blockers": [
+          "chuva Santa Tereza 86472600 ausente ou incompleta"
+        ]
+      },
+      {
+        "event_id": 22,
+        "score_window": {
+          "start": "2023-09-04 00:00:00",
+          "end": "2023-09-12 07:00:00"
+        },
+        "hourly_inputs": {
+          "rain_86472000": {
+            "field": "86472000_rain_mm_sum",
+            "expected_hours": 200,
+            "rows_in_score_window": 200,
+            "numeric_hours": 200,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          },
+          "rain_86510000": {
+            "field": "86510000_rain_mm_sum",
+            "expected_hours": 200,
+            "rows_in_score_window": 200,
+            "numeric_hours": 189,
+            "missing_hours": 11,
+            "first_missing": "2023-09-04 22:00:00",
+            "last_missing": "2023-09-08 13:00:00",
+            "complete": false
+          },
+          "flow_86510000": {
+            "field": "86510000_flow_mean",
+            "expected_hours": 200,
+            "rows_in_score_window": 200,
+            "numeric_hours": 110,
+            "missing_hours": 90,
+            "first_missing": "2023-09-04 20:00:00",
+            "last_missing": "2023-09-08 13:00:00",
+            "complete": false
+          }
+        },
+        "santa_tereza_86472600": {
+          "station": "86472600",
+          "raw_rows": 0,
+          "raw_numeric_rain_records": 0,
+          "hourly_hours": 0,
+          "missing_hours_inside_input": 0,
+          "rain_available": false,
+          "complete_hourly_input": false,
+          "status": "missing_or_incomplete"
+        },
+        "target_rain_and_flow_complete": false,
+        "three_zone_rainfall_and_target_flow_complete": false,
+        "blockers": [
+          "chuva 86510000 incompleta no recorte",
+          "vazao-alvo 86510000 incompleta no recorte",
+          "chuva Santa Tereza 86472600 ausente ou incompleta"
+        ]
+      },
+      {
+        "event_id": 24,
+        "score_window": {
+          "start": "2023-11-16 00:00:00",
+          "end": "2023-11-25 23:00:00"
+        },
+        "hourly_inputs": {
+          "rain_86472000": {
+            "field": "86472000_rain_mm_sum",
+            "expected_hours": 240,
+            "rows_in_score_window": 240,
+            "numeric_hours": 240,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          },
+          "rain_86510000": {
+            "field": "86510000_rain_mm_sum",
+            "expected_hours": 240,
+            "rows_in_score_window": 240,
+            "numeric_hours": 238,
+            "missing_hours": 2,
+            "first_missing": "2023-11-24 20:00:00",
+            "last_missing": "2023-11-24 21:00:00",
+            "complete": false
+          },
+          "flow_86510000": {
+            "field": "86510000_flow_mean",
+            "expected_hours": 240,
+            "rows_in_score_window": 240,
+            "numeric_hours": 238,
+            "missing_hours": 2,
+            "first_missing": "2023-11-24 20:00:00",
+            "last_missing": "2023-11-24 21:00:00",
+            "complete": false
+          }
+        },
+        "santa_tereza_86472600": {
+          "station": "86472600",
+          "raw_rows": 956,
+          "raw_numeric_rain_records": 955,
+          "hourly_hours": 239,
+          "missing_hours_inside_input": 1,
+          "rain_available": true,
+          "complete_hourly_input": false,
+          "status": "missing_or_incomplete"
+        },
+        "target_rain_and_flow_complete": false,
+        "three_zone_rainfall_and_target_flow_complete": false,
+        "blockers": [
+          "chuva 86510000 incompleta no recorte",
+          "vazao-alvo 86510000 incompleta no recorte",
+          "chuva Santa Tereza 86472600 ausente ou incompleta"
+        ]
+      },
+      {
+        "event_id": 26,
+        "score_window": {
+          "start": "2024-04-14 12:00:00",
+          "end": "2024-04-15 18:00:00"
+        },
+        "hourly_inputs": {
+          "rain_86472000": {
+            "field": "86472000_rain_mm_sum",
+            "expected_hours": 31,
+            "rows_in_score_window": 31,
+            "numeric_hours": 31,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          },
+          "rain_86510000": {
+            "field": "86510000_rain_mm_sum",
+            "expected_hours": 31,
+            "rows_in_score_window": 31,
+            "numeric_hours": 31,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          },
+          "flow_86510000": {
+            "field": "86510000_flow_mean",
+            "expected_hours": 31,
+            "rows_in_score_window": 31,
+            "numeric_hours": 31,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          }
+        },
+        "santa_tereza_86472600": {
+          "station": "86472600",
+          "raw_rows": 0,
+          "raw_numeric_rain_records": 0,
+          "hourly_hours": 0,
+          "missing_hours_inside_input": 0,
+          "rain_available": false,
+          "complete_hourly_input": false,
+          "status": "missing_or_incomplete"
+        },
+        "target_rain_and_flow_complete": true,
+        "three_zone_rainfall_and_target_flow_complete": false,
+        "blockers": [
+          "chuva Santa Tereza 86472600 ausente ou incompleta"
+        ]
+      },
+      {
+        "event_id": 27,
+        "score_window": {
+          "start": "2024-04-29 16:00:00",
+          "end": "2024-05-09 20:00:00"
+        },
+        "hourly_inputs": {
+          "rain_86472000": {
+            "field": "86472000_rain_mm_sum",
+            "expected_hours": 245,
+            "rows_in_score_window": 245,
+            "numeric_hours": 245,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          },
+          "rain_86510000": {
+            "field": "86510000_rain_mm_sum",
+            "expected_hours": 245,
+            "rows_in_score_window": 245,
+            "numeric_hours": 244,
+            "missing_hours": 1,
+            "first_missing": "2024-05-02 17:00:00",
+            "last_missing": "2024-05-02 17:00:00",
+            "complete": false
+          },
+          "flow_86510000": {
+            "field": "86510000_flow_mean",
+            "expected_hours": 245,
+            "rows_in_score_window": 245,
+            "numeric_hours": 245,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          }
+        },
+        "santa_tereza_86472600": {
+          "station": "86472600",
+          "raw_rows": 1052,
+          "raw_numeric_rain_records": 1052,
+          "hourly_hours": 263,
+          "missing_hours_inside_input": 1,
+          "rain_available": true,
+          "complete_hourly_input": false,
+          "status": "missing_or_incomplete"
+        },
+        "target_rain_and_flow_complete": false,
+        "three_zone_rainfall_and_target_flow_complete": false,
+        "blockers": [
+          "chuva 86510000 incompleta no recorte",
+          "chuva Santa Tereza 86472600 ausente ou incompleta"
+        ]
+      },
+      {
+        "event_id": 28,
+        "score_window": {
+          "start": "2024-06-16 10:00:00",
+          "end": "2024-06-25 02:00:00"
+        },
+        "hourly_inputs": {
+          "rain_86472000": {
+            "field": "86472000_rain_mm_sum",
+            "expected_hours": 209,
+            "rows_in_score_window": 209,
+            "numeric_hours": 209,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          },
+          "rain_86510000": {
+            "field": "86510000_rain_mm_sum",
+            "expected_hours": 209,
+            "rows_in_score_window": 209,
+            "numeric_hours": 209,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          },
+          "flow_86510000": {
+            "field": "86510000_flow_mean",
+            "expected_hours": 209,
+            "rows_in_score_window": 209,
+            "numeric_hours": 209,
+            "missing_hours": 0,
+            "first_missing": null,
+            "last_missing": null,
+            "complete": true
+          }
+        },
+        "santa_tereza_86472600": {
+          "station": "86472600",
+          "raw_rows": 960,
+          "raw_numeric_rain_records": 960,
+          "hourly_hours": 240,
+          "missing_hours_inside_input": 0,
+          "rain_available": true,
+          "complete_hourly_input": true,
+          "status": "complete_for_input_window"
+        },
+        "target_rain_and_flow_complete": true,
+        "three_zone_rainfall_and_target_flow_complete": true,
+        "blockers": []
+      }
+    ],
+    "eligible_sets": {
+      "target_rain_sensitivity_complete_events": [
+        19,
+        26,
+        28
+      ],
+      "three_zone_network_complete_events": [
+        28
+      ],
+      "common_three_zone_calibration": {
+        "status": "blocked",
+        "reason": "apenas um evento tem chuva horária completa nos três postos e vazão-alvo completa; não há conjunto multi-evento para validar generalização"
+      },
+      "target_rain_sensitivity": {
+        "events": [
+          19,
+          26,
+          28
+        ],
+        "status": "diagnostic_only",
+        "reason": "a chuva do posto de Muçum é uma hipótese de chuva representativa, não uma superfície espacial validada para toda a bacia"
+      }
+    },
+    "sources": {
+      "event_catalogue": "assets\\data\\mucum_q62\\mucum_q62_eventos_usados.csv",
+      "multi_event_hourly": "assets\\data\\hec_hms_audit\\multi_event\\derived",
+      "santa_tereza_event_audit": "assets\\data\\hec_hms_audit\\santa_tereza_event_input_audit_latest.json",
+      "santa_tereza_hourly_rain_audit": "assets\\data\\hec_hms_audit\\derived\\santa_tereza_raw_rain_dss_report.json"
     }
   },
   "station_distributed_test": {
@@ -451,6 +877,59 @@
     "status": "candidata híbrida específica do E28; não promovida",
     "limitation": "a chuva local de E28 está completa, mas a vazão observada intermediária de Santa Tereza não está fechada; a busca continua específica do evento e não autoriza operação"
   },
+  "two_station_network_test": {
+    "events": [
+      "E19",
+      "E28"
+    ],
+    "rainfall_policy": "86472000 no alto Antas; 86510000 nos incrementos a jusante de Santa Tereza",
+    "candidate_count": 40,
+    "successful_candidates": 40,
+    "best_by_research_score": {
+      "candidate_id": 8,
+      "initial_loss": 10.0,
+      "constant_loss": 1.0,
+      "tc": 60.0,
+      "storage": 90.0,
+      "recession": 0.95,
+      "initial_flow_ratio": 0.001,
+      "k": 3.0,
+      "status": "replay_scored_not_promoted",
+      "events": 2,
+      "mean_nse": -0.4895317806411049,
+      "mean_abs_peak_lag_hours": 20.0,
+      "mean_peak_relative_error": 0.218307339032755,
+      "research_score": -0.733193248447656,
+      "event_metrics": [
+        {
+          "event_id": "E19",
+          "pairs": 53,
+          "mae_m3s": 141.87024258239182,
+          "rmse_m3s": 178.22847842142212,
+          "nse": -0.2751133223438258,
+          "observed_peak_m3s": 1408.375,
+          "simulated_peak_m3s": 1361.0814887577692,
+          "peak_lag_hours": 4.0,
+          "peak_relative_error": 0.03358019791762194,
+          "status": "replay_scored_not_promoted"
+        },
+        {
+          "event_id": "E28",
+          "pairs": 209,
+          "mae_m3s": 1949.5687671825206,
+          "rmse_m3s": 2329.091752345176,
+          "nse": -0.703950238938384,
+          "observed_peak_m3s": 7886.72509765625,
+          "simulated_peak_m3s": 4708.102947853062,
+          "peak_lag_hours": 36.0,
+          "peak_relative_error": 0.40303448014788806,
+          "status": "replay_scored_not_promoted"
+        }
+      ]
+    },
+    "status": "diagnóstico espacial; não promovido",
+    "limitation": "a chuva de 86510000 continua sendo uma hipótese espacial; faltam séries completas de chuva no posto intermediário para uma calibração multi-evento de três zonas"
+  },
   "rainfall_input_audit": {
     "station": "86472600",
     "events": [
@@ -620,6 +1099,9 @@
     "hybrid_e28_spatial_series": "network_replay_hybrid_e28/E28/spatial_series_e28.csv",
     "hybrid_e28_spatial_report": "network_replay_hybrid_e28/E28/spatial_series_e28_report.json",
     "hybrid_e28_rainfall_audit": "../hec_hms_audit/derived/mucum_hybrid_e28_rain_dss_report.json",
+    "calibration_input_gate": "../hec_hms_audit/calibration_input_gate_latest.json",
+    "two_station_network_search": "network_two_station_search/two_station_search_report.json",
+    "two_station_network_search_csv": "network_two_station_search/two_station_search.csv",
     "santa_tereza_input_audit": "../hec_hms_audit/santa_tereza_event_input_audit_latest.json",
     "santa_tereza_raw_rain_report": "../hec_hms_audit/derived/santa_tereza_raw_rain_dss_report.json",
     "dashboard": "network_dashboard/index.html"

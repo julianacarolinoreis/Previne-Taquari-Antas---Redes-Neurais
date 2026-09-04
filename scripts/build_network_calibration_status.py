@@ -60,6 +60,8 @@ def main() -> int:
         }
     hybrid_replay = read_json(BASE / "network_replay_hybrid_e28" / "hybrid_e28_metrics.json")
     hybrid_rain = read_json(ROOT / "assets" / "data" / "hec_hms_audit" / "derived" / "mucum_hybrid_e28_rain_dss_report.json")
+    input_gate = read_json(ROOT / "assets" / "data" / "hec_hms_audit" / "calibration_input_gate_latest.json")
+    two_station_search = read_json(BASE / "network_two_station_search" / "two_station_search_report.json")
 
     events = []
     for metric in replay["events"]:
@@ -106,7 +108,9 @@ def main() -> int:
             "E27_routing": {"best_candidate": e27_route, "scope": "K dos dois trechos; zero atraso é métrica, não verdade física"},
             "E27_losses": {"best_candidate": e27_loss, "scope": "perdas; menor erro de pico pode piorar NSE"},
             "common_parameters": common_search,
+            "two_station_network": two_station_search,
         },
+        "calibration_input_gate": input_gate,
         "station_distributed_test": {
             "event_id": "E28",
             "rainfall_station": "86472600 · Santa Tereza",
@@ -139,6 +143,15 @@ def main() -> int:
             "status": "candidata híbrida específica do E28; não promovida",
             "limitation": "a chuva local de E28 está completa, mas a vazão observada intermediária de Santa Tereza não está fechada; a busca continua específica do evento e não autoriza operação",
         },
+        "two_station_network_test": {
+            "events": two_station_search.get("events"),
+            "rainfall_policy": two_station_search.get("rainfall_policy"),
+            "candidate_count": two_station_search.get("candidate_count"),
+            "successful_candidates": two_station_search.get("successful_candidates"),
+            "best_by_research_score": two_station_search.get("best_by_research_score"),
+            "status": "diagnóstico espacial; não promovido",
+            "limitation": two_station_search.get("limitation"),
+        },
         "rainfall_input_audit": {
             "station": santa_tereza_audit.get("station"),
             "events": santa_tereza_audit.get("events"),
@@ -170,6 +183,9 @@ def main() -> int:
             "hybrid_e28_spatial_series": "network_replay_hybrid_e28/E28/spatial_series_e28.csv",
             "hybrid_e28_spatial_report": "network_replay_hybrid_e28/E28/spatial_series_e28_report.json",
             "hybrid_e28_rainfall_audit": "../hec_hms_audit/derived/mucum_hybrid_e28_rain_dss_report.json",
+            "calibration_input_gate": "../hec_hms_audit/calibration_input_gate_latest.json",
+            "two_station_network_search": "network_two_station_search/two_station_search_report.json",
+            "two_station_network_search_csv": "network_two_station_search/two_station_search.csv",
             "santa_tereza_input_audit": "../hec_hms_audit/santa_tereza_event_input_audit_latest.json",
             "santa_tereza_raw_rain_report": "../hec_hms_audit/derived/santa_tereza_raw_rain_dss_report.json",
             "dashboard": "network_dashboard/index.html",
