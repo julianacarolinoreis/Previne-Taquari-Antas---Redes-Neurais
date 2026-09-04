@@ -1,6 +1,8 @@
 # Rede HEC-HMS Taquari–Antas — estado verificável
 
-Este diretório contém a primeira representação conectada da bacia usada no estudo: **Rio das Antas → Santa Tereza → Muçum**. A topologia foi montada a partir da BHO6/ANA, respeitando o sentido `noorigem → nodestino` e usando áreas incrementais em vez de lançar duas bacias diretamente no exutório.
+Este diretório contém a primeira representação conectada do **corredor BHO6 estudado**: **Rio das Antas → Santa Tereza → Muçum**. A topologia foi montada a partir da BHO6/ANA, respeitando o sentido `noorigem → nodestino` e usando áreas incrementais em vez de lançar duas bacias diretamente no exutório.
+
+**Nota de escopo:** o modelo não divide toda a bacia Taquari–Antas em três zonas. Ele representa três áreas incrementais do corredor entre os controles 86472000, 86472600 e 86510000, com dois trechos de propagação. As áreas são unidades do experimento HEC-HMS, não a discretização integral da bacia.
 
 ## O que já foi executado
 

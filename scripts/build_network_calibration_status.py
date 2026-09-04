@@ -77,13 +77,16 @@ def main() -> int:
         events.append(row)
 
     report = {
-        "schema_version": "hec_hms_taquari_antas_calibration_status_v1",
+        "schema_version": "hec_hms_taquari_antas_calibration_status_v2",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": "estudo de calibração e replay HEC-HMS; não é alerta, ordem de evacuação ou operação",
         "overall_status": "estrutura verificada; calibração comum ainda não concluída",
         "network": {
             "topology": audit["topology"]["connected_order"],
             "description": "Rio das Antas -> controle intermediário Santa Tereza -> Muçum",
+            "scope": "corredor BHO6 conectado entre os três controles; não é a discretização integral da bacia Taquari-Antas",
+            "representation": "três áreas incrementais e dois trechos de propagação entre postos, não três zonas da bacia",
+            "full_taquari_antas_basin": False,
             "source": audit["source"],
             "areas_km2": audit["topology"]["nested_catchment_area_km2_from_bho6"],
             "incremental_areas_km2": {
@@ -150,7 +153,7 @@ def main() -> int:
             "successful_candidates": two_station_search.get("successful_candidates"),
             "best_by_research_score": two_station_search.get("best_by_research_score"),
             "status": "diagnóstico espacial; não promovido",
-            "limitation": two_station_search.get("limitation"),
+            "limitation": two_station_search.get("limitation").replace("calibração multi-evento de três zonas", "calibração multi-evento das três áreas incrementais"),
         },
         "rainfall_input_audit": {
             "station": santa_tereza_audit.get("station"),

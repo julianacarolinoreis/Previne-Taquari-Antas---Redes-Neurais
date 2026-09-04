@@ -271,7 +271,9 @@ def calibration_snapshot() -> dict[str, object]:
     best = two_station.get("best_by_research_score") or {}
     return {
         "overall_status": status.get("overall_status"),
-        "three_zone_events": eligible.get("three_zone_network_complete_events", []),
+        "incremental_area_events": eligible.get("three_incremental_areas_complete_events", []),
+        "model_scope": status.get("network", {}).get("scope"),
+        "model_representation": status.get("network", {}).get("representation"),
         "target_rain_events": eligible.get("target_rain_sensitivity_complete_events", []),
         "two_station_events": two_station.get("events", []),
         "two_station_best": {
@@ -353,6 +355,25 @@ $("mapZoomIn").addEventListener("click",()=>{state.map.scale=Math.min(4,state.ma
 $("citySelect").addEventListener("change",()=>{state.city=$("citySelect").value;populateEvents();renderEvent()});$("eventSelect").addEventListener("change",()=>{state.key=$("eventSelect").value;renderEvent()});$("showObserved").addEventListener("change",draw);$("showModel").addEventListener("change",draw);$("resetZoom").addEventListener("click",()=>{state.start=0;state.end=current().series.length-1;draw()});$("levelRange").addEventListener("input",()=>{$("levelValue").textContent=fmt1.format(Number($("levelRange").value))+" m";renderMap()});window.addEventListener("resize",resize);
 renderSummary();populateEvents();$("eventSelect").value=state.key;renderEvent();resize();
 </script></body></html>'''
+
+
+# Keep the reader-facing language precise: the experiment contains three
+# incremental model areas along a connected BHO6 corridor, not three zones of
+# the whole Taquari-Antas basin.
+HTML = HTML.replace("Rede completa · 3 zonas", "Cobertura completa · 3 áreas incrementais")
+HTML = HTML.replace('id="threeZoneCount"', 'id="incrementalAreaCount"')
+HTML = HTML.replace('id="threeZoneDetail"', 'id="incrementalAreaDetail"')
+HTML = HTML.replace("chuva nos três postos + vazão-alvo", "chuva nos controles + vazão no exutório")
+HTML = HTML.replace('id="calibrationStatus">Verificando a cobertura dos dados…</div>', 'id="calibrationStatus">Verificando a cobertura dos dados…</div><div class="muted" id="calibrationScope" style="margin-top:5px">Escopo: corredor BHO6 conectado; não é a discretização integral da bacia Taquari-Antas.</div>')
+HTML = HTML.replace("const zone=c.three_zone_events||[]", "const area=c.incremental_area_events||[]")
+HTML = HTML.replace("A rede de três zonas", "A cobertura das três áreas incrementais")
+HTML = HTML.replace("A cobertura das três áreas incrementais só tem cobertura completa em", "A cobertura das três áreas incrementais está completa em")
+HTML = HTML.replace("zone.length", "area.length")
+HTML = HTML.replace("zone.join", "area.join")
+HTML = HTML.replace("$('threeZoneCount')", "$('incrementalAreaCount')")
+HTML = HTML.replace("$('threeZoneDetail')", "$('incrementalAreaDetail')")
+HTML = HTML.replace('$("threeZoneCount")', '$("incrementalAreaCount")')
+HTML = HTML.replace('$("threeZoneDetail")', '$("incrementalAreaDetail")')
 
 
 # Add the model-selection rationale without making the main event card harder

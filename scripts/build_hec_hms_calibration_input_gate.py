@@ -107,16 +107,16 @@ def main() -> int:
     stz = santa_tereza_profile()
     events = []
     target_rain_complete: list[int] = []
-    three_zone_complete: list[int] = []
+    three_incremental_area_complete: list[int] = []
     for event_id in sorted(EVENT_IDS):
         start, end = windows[event_id]
         hourly = hourly_profile(event_id, start, end)
         target_complete = hourly["rain_86510000"]["complete"] and hourly["flow_86510000"]["complete"]
-        three_zone = target_complete and hourly["rain_86472000"]["complete"] and stz[event_id]["complete_hourly_input"]
+        three_incremental_area = target_complete and hourly["rain_86472000"]["complete"] and stz[event_id]["complete_hourly_input"]
         if target_complete:
             target_rain_complete.append(event_id)
-        if three_zone:
-            three_zone_complete.append(event_id)
+        if three_incremental_area:
+            three_incremental_area_complete.append(event_id)
         blockers = []
         if not hourly["rain_86472000"]["complete"]:
             blockers.append("chuva 86472000 incompleta no recorte")
@@ -132,7 +132,7 @@ def main() -> int:
             "hourly_inputs": hourly,
             "santa_tereza_86472600": stz[event_id],
             "target_rain_and_flow_complete": target_complete,
-            "three_zone_rainfall_and_target_flow_complete": three_zone,
+            "three_incremental_areas_rainfall_and_target_flow_complete": three_incremental_area,
             "blockers": blockers,
         })
     report = {
@@ -142,13 +142,15 @@ def main() -> int:
         "policy": {
             "missing_data": "não preencher, não interpolar, não truncar o recorte para esconder lacuna",
             "target": "vazão horária do posto ANA 86510000",
-            "three_zone_network": "86472000 no alto Antas, 86472600 no incremento Santa Tereza, 86510000 no incremento final",
+            "model_scope": "corredor BHO6 entre os controles 86472000, 86472600 e 86510000; não é a discretização integral da bacia Taquari-Antas",
+            "three_incremental_areas": "86472000 ancora a área a montante; 86472600 representa o incremento até Santa Tereza; 86510000 representa o incremento final até Muçum",
+            "not_full_taquari_antas_basin": True,
         },
         "events": events,
         "eligible_sets": {
             "target_rain_sensitivity_complete_events": target_rain_complete,
-            "three_zone_network_complete_events": three_zone_complete,
-            "common_three_zone_calibration": {
+            "three_incremental_areas_complete_events": three_incremental_area_complete,
+            "common_three_incremental_areas_calibration": {
                 "status": "blocked",
                 "reason": "apenas um evento tem chuva horária completa nos três postos e vazão-alvo completa; não há conjunto multi-evento para validar generalização",
             },
@@ -166,7 +168,7 @@ def main() -> int:
         },
     }
     OUT.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"output": str(OUT), "target_rain_sensitivity_events": target_rain_complete, "three_zone_events": three_zone_complete}, ensure_ascii=False))
+    print(json.dumps({"output": str(OUT), "target_rain_sensitivity_events": target_rain_complete, "three_incremental_area_events": three_incremental_area_complete}, ensure_ascii=False))
     return 0
 
 

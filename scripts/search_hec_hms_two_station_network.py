@@ -82,6 +82,7 @@ def configure_event(candidate_dir: Path, event_id: str, params: dict[str, float]
     manifest_path = event_dir / "event_network_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest.update({
+        "model_scope": "corredor BHO6; as entradas são distribuídas em áreas incrementais, não em três zonas da bacia inteira",
         "rainfall_policy": "86472000 no alto Antas; 86510000 nos incrementos a jusante de Santa Tereza",
         "two_station_diagnostic": True,
         "rainfall_source": str(RAIN_DSS.relative_to(ROOT)),
@@ -164,7 +165,7 @@ def main() -> int:
         "successful_candidates": len(good),
         "best_by_research_score": good[0] if good else None,
         "artifacts": ["two_station_search.csv"],
-        "limitation": "a chuva de 86510000 continua sendo uma hipótese espacial; faltam séries completas de chuva no posto intermediário para uma calibração multi-evento de três zonas",
+        "limitation": "a chuva de 86510000 continua sendo uma hipótese espacial; faltam séries completas de chuva no posto intermediário para uma calibração multi-evento das três áreas incrementais",
     }
     (OUT / "two_station_search_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False), flush=True)
