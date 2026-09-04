@@ -282,10 +282,13 @@ def build() -> dict[str, Any]:
     stz_events_path = ROOT / "assets" / "data" / "eventos_analise.json"
     stz_protocol_path = ROOT / "assets" / "data" / "santa_tereza_inundacao" / "protocolo_leave_one_event_out_estrangulamento.json"
     basin_path = ROOT / "assets" / "data" / "research_basin_screening_latest.json"
+    hec_status_path = ROOT / "assets" / "data" / "hec_hms_integrated_taquari_antas" / "network_calibration_status_latest.json"
     muc_replays, audit_counts = mucum_replays(q62_path, audit_path)
     muc_events = read_json(muc_events_path)
     stz_events = read_json(stz_events_path)
     stz_protocol = read_json(stz_protocol_path)
+    hec_status = read_json(hec_status_path) if hec_status_path.exists() else {}
+    hybrid = hec_status.get("hybrid_e28_test", {})
     generated = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     return {
         "schema_version": 1,
@@ -313,11 +316,68 @@ def build() -> dict[str, Any]:
             {"id": "rna_santa_tereza", "status": "available_as_catalog_and_experimental_short_horizon; 8h/12h replay pending", "horizons_hours": [2], "municipality_scope": ["Santa Tereza"]},
             {
                 "id": "hec_hms",
-                "status": "not_integrated_yet",
+                "status": "spatialized_research_pilot_published_not_operational",
+                "status_detail": "research network replay integrated; forecast run and operational promotion pending",
                 "horizons_hours": [72],
                 "municipality_scope": ["Muçum", "Santa Tereza"],
                 "required_inputs": ["precipitação de bacia", "modelo de perdas", "parâmetros calibrados", "vazão/nível observado", "regras de propagação"],
                 "published_peak": None,
+                "published_research_pilot": {
+                    "municipality": "Muçum",
+                    "artifact": "assets/data/hec_hms_spatialized_mucum/index.html",
+                    "model": "HEC-HMS 4.13",
+                    "terrain": "SRTM regional D8 watershed",
+                    "rainfall_zones": ["86472000", "02851072"],
+                    "status": "research_replay_only",
+                    "operational_gate": "blocked",
+                },
+                "research_replay": {
+                    "artifact": "assets/data/hec_hms_integrated_taquari_antas/network_dashboard/index.html",
+                    "network": hec_status.get("network", {}).get("topology", "ANA BHO6: 86472000 -> 86472600 -> 86510000"),
+                    "events_executed": [row.get("event_id") for row in hec_status.get("event_replay", {}).get("events", [])],
+                    "event_blocked": hec_status.get("event_replay", {}).get("excluded", {}),
+                    "status": hec_status.get("overall_status", "estrutura verificada; calibração comum ainda não concluída"),
+                    "operational_gate": "blocked",
+                    "published_research_pilot": {
+                        "municipality": "Muçum",
+                        "artifact": "assets/data/hec_hms_spatialized_mucum/index.html",
+                        "model": "HEC-HMS 4.13",
+                        "terrain": "SRTM regional D8 watershed",
+                        "rainfall_zones": ["86472000", "02851072"],
+                        "status": "research_replay_only",
+                        "operational_gate": "blocked",
+                    },
+                    "nested_network_replay": {
+                        "municipality_scope": ["Muçum", "Santa Tereza"],
+                        "artifact": "assets/data/hec_hms_integrated_taquari_antas/network_dashboard/index.html",
+                        "status": hec_status.get("overall_status", "estrutura verificada; calibração comum ainda não concluída"),
+                        "network": "ANA BHO6: 86472000 -> 86472600 -> 86510000",
+                        "events_executed": [row.get("event_id") for row in hec_status.get("event_replay", {}).get("events", [])],
+                        "event_blocked": hec_status.get("event_replay", {}).get("excluded", {}),
+                        "metrics": "assets/data/hec_hms_integrated_taquari_antas/network_replay_eventwise_candidate_all_events/network_metrics_all_events.json",
+                        "station_distributed_e28": {
+                            "policy": hec_status.get("station_distributed_test", {}).get("policy"),
+                            "candidate_count": hec_status.get("station_distributed_test", {}).get("candidate_count"),
+                            "metrics": hec_status.get("station_distributed_test", {}).get("replay_metrics"),
+                            "status": hec_status.get("station_distributed_test", {}).get("status"),
+                        },
+                        "hybrid_e28": {
+                            "policy": hybrid.get("policy"),
+                            "candidate_count": hybrid.get("candidate_count"),
+                            "metrics": hybrid.get("replay_metrics"),
+                            "status": hybrid.get("status", "candidata híbrida específica do E28; não promovida"),
+                        },
+                        "operational_gate": "blocked",
+                    },
+                    "hybrid_e28": {
+                        "policy": hybrid.get("policy"),
+                        "candidate_count": hybrid.get("candidate_count"),
+                        "metrics": hybrid.get("replay_metrics"),
+                        "search_report": "assets/data/hec_hms_integrated_taquari_antas/network_hybrid_e28_calibration_search/hybrid_e28_search_report.json",
+                        "replay_report": "assets/data/hec_hms_integrated_taquari_antas/network_replay_hybrid_e28/hybrid_e28_metrics.json",
+                        "status": hybrid.get("status", "candidata híbrida específica do E28; não promovida"),
+                    },
+                },
             },
         ],
         "replay_cases": muc_replays,
@@ -338,6 +398,7 @@ def build() -> dict[str, Any]:
             source_ref(muc_events_path, "Muçum event catalog"),
             source_ref(stz_events_path, "Santa Tereza event catalog"),
             source_ref(basin_path, "basin research feed", "available_snapshot"),
+            source_ref(hec_status_path, "HEC-HMS network calibration status", "available_snapshot"),
         ],
     }
 

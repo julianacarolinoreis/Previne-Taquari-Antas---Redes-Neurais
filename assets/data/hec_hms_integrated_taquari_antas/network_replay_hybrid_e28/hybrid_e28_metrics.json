@@ -1,0 +1,70 @@
+{
+  "generated_at_utc": "2026-09-04T16:23:24.092924+00:00",
+  "purpose": "teste de replay HEC-HMS E28 com chuva ANA híbrida; não é calibração promovida nem operação",
+  "network": "ANA BHO6 nested incremental areas 86472000 -> 86472600 -> 86510000",
+  "rainfall_policy": "86472000 no Antas a montante; 86472600 no incremento Santa Tereza; 86510000 no incremento final de Muçum",
+  "gage_mapping": {
+    "SB_ANTAS_E28": "Chuva_86472000_E28",
+    "SB_INC_STZ_E28": "Chuva_86472600_E28",
+    "SB_INC_MUCUM_E28": "Chuva_86510000_E28"
+  },
+  "parameters": {
+    "initial_loss": 2.5,
+    "constant_loss": 2.0,
+    "tc": 25.0,
+    "storage": 25.0,
+    "recession": 0.8,
+    "initial_flow_ratio": 0.003,
+    "k": 1.0
+  },
+  "rainfall_input_audit": {
+    "generated_at_utc": "2026-09-04T16:21:20.695549+00:00",
+    "purpose": "chuva bruta ANA para teste híbrido E28; sem preenchimento",
+    "stations": [
+      "86472600",
+      "86510000"
+    ],
+    "events": {
+      "86472600": {
+        "hours": 240,
+        "first": "2024-06-16T00:00:00",
+        "last": "2024-06-25T23:00:00",
+        "missing_hours_inside": 0
+      },
+      "86510000": {
+        "hours": 240,
+        "first": "2024-06-16T00:00:00",
+        "last": "2024-06-25T23:00:00",
+        "missing_hours_inside": 0
+      }
+    },
+    "output_dss": "assets\\data\\hec_hms_calibration\\mucum_hybrid_e28_rain.dss",
+    "output_csv": "assets\\data\\hec_hms_audit\\derived\\mucum_hybrid_e28_rain_hourly.csv",
+    "hec_returncode": 0,
+    "hec_ok_marker": true
+  },
+  "run": {
+    "event_id": "E28",
+    "returncode": 0,
+    "ok_marker": true
+  },
+  "metrics": {
+    "event_id": "E28",
+    "pairs": 209,
+    "mae_m3s": 502.7223928560104,
+    "rmse_m3s": 660.2346242310581,
+    "nse": 0.8630757708038599,
+    "observed_peak_m3s": 7886.72509765625,
+    "simulated_peak_m3s": 7609.9414661362425,
+    "peak_lag_hours": 1.0,
+    "peak_relative_error": 0.03509487500740467,
+    "status": "replay_scored_not_promoted"
+  },
+  "status": "replay_scored_not_promoted",
+  "artifacts": [
+    "E28/event_network_manifest.json",
+    "E28/network_pairs_scored.csv",
+    "E28/network_pairs_scored.csv",
+    "E28/rain.dss"
+  ]
+}
