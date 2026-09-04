@@ -1,8 +1,7 @@
 {
   "schema_version": 1,
   "artifact_id": "research-event-replay-latest",
-  "generated_at_utc": "2026-09-02T01:30:50Z",
-  "updated_at_utc": "2026-09-04T15:51:00Z",
+  "generated_at_utc": "2026-09-04T16:34:24Z",
   "research_only": true,
   "official_alert": false,
   "operational_gate": {
@@ -51,6 +50,7 @@
     {
       "id": "hec_hms",
       "status": "spatialized_research_pilot_published_not_operational",
+      "status_detail": "research network replay integrated; forecast run and operational promotion pending",
       "horizons_hours": [
         72
       ],
@@ -71,38 +71,137 @@
         "artifact": "assets/data/hec_hms_spatialized_mucum/index.html",
         "model": "HEC-HMS 4.13",
         "terrain": "SRTM regional D8 watershed",
-        "rainfall_zones": ["86472000", "02851072"],
+        "rainfall_zones": [
+          "86472000",
+          "02851072"
+        ],
         "status": "research_replay_only",
         "operational_gate": "blocked"
       },
-      "nested_network_replay": {
-        "municipality_scope": ["Muçum", "Santa Tereza"],
+      "research_replay": {
         "artifact": "assets/data/hec_hms_integrated_taquari_antas/network_dashboard/index.html",
-        "status": "structure_verified_calibration_common_pending",
-        "network": "ANA BHO6: 86472000 -> 86472600 -> 86510000",
-        "events_executed": ["E19", "E22", "E24", "E27", "E28"],
-        "event_blocked": {"E26": "sem entrada HEC-HMS reconciliada nesta rodada"},
-        "metrics": "assets/data/hec_hms_integrated_taquari_antas/network_replay_eventwise_candidate_all_events/network_metrics_all_events.json",
-        "status_note": "parâmetros e fontes de chuva ainda variam por evento; nenhum resultado foi promovido para operação",
-        "station_distributed_e28": {
-          "station": "86472600 · Santa Tereza",
-          "policy": "86472000 no alto Antas; 86472600 nos dois incrementos a jusante de Santa Tereza",
-          "candidate_count": 39,
-          "best_candidate": {
-            "candidate_id": 33,
-            "nse": 0.8632076567,
-            "peak_lag_hours": 1.0,
-            "peak_relative_error": 0.0356791867,
-            "mae_m3s": 503.2723856307,
-            "observed_peak_m3s": 7886.7250976563,
-            "simulated_peak_m3s": 7605.3331602368
-          },
-          "search_report": "assets/data/hec_hms_integrated_taquari_antas/network_station_e28_calibration_search/station_e28_search_report.json",
-          "search_csv": "assets/data/hec_hms_integrated_taquari_antas/network_station_e28_calibration_search/station_e28_search.csv",
-          "status": "candidata específica do E28; não promovida",
-          "limitations": "não há vazão reconciliada em Santa Tereza; E24/E27 têm lacuna interna na chuva bruta; falta validação cruzada"
+        "network": [
+          "86472000",
+          "86472600",
+          "86510000"
+        ],
+        "events_executed": [
+          "E19",
+          "E22",
+          "E24",
+          "E27",
+          "E28"
+        ],
+        "event_blocked": {
+          "E26": "sem entrada HEC-HMS reconciliada nesta rodada"
         },
-        "operational_gate": "blocked"
+        "status": "estrutura verificada; calibração comum ainda não concluída",
+        "operational_gate": "blocked",
+        "published_research_pilot": {
+          "municipality": "Muçum",
+          "artifact": "assets/data/hec_hms_spatialized_mucum/index.html",
+          "model": "HEC-HMS 4.13",
+          "terrain": "SRTM regional D8 watershed",
+          "rainfall_zones": [
+            "86472000",
+            "02851072"
+          ],
+          "status": "research_replay_only",
+          "operational_gate": "blocked"
+        },
+        "nested_network_replay": {
+          "municipality_scope": [
+            "Muçum",
+            "Santa Tereza"
+          ],
+          "artifact": "assets/data/hec_hms_integrated_taquari_antas/network_dashboard/index.html",
+          "status": "estrutura verificada; calibração comum ainda não concluída",
+          "network": "ANA BHO6: 86472000 -> 86472600 -> 86510000",
+          "events_executed": [
+            "E19",
+            "E22",
+            "E24",
+            "E27",
+            "E28"
+          ],
+          "event_blocked": {
+            "E26": "sem entrada HEC-HMS reconciliada nesta rodada"
+          },
+          "metrics": "assets/data/hec_hms_integrated_taquari_antas/network_replay_eventwise_candidate_all_events/network_metrics_all_events.json",
+          "station_distributed_e28": {
+            "policy": "86472000 no alto Antas; 86472600 nos dois incrementos a jusante de Santa Tereza",
+            "candidate_count": 39,
+            "metrics": {
+              "candidate_id": 33,
+              "initial_loss": 2.5,
+              "constant_loss": 2.0,
+              "tc": 25.0,
+              "storage": 25.0,
+              "recession": 0.8,
+              "initial_flow_ratio": 0.003,
+              "k": 1.0,
+              "event_id": "E28",
+              "pairs": 209,
+              "mae_m3s": 503.2723856306582,
+              "rmse_m3s": 659.9165775003635,
+              "nse": 0.8632076566906512,
+              "observed_peak_m3s": 7886.72509765625,
+              "simulated_peak_m3s": 7605.333160236833,
+              "peak_lag_hours": 1.0,
+              "peak_relative_error": 0.03567918672644499,
+              "status": "replay_scored_not_promoted",
+              "research_score": 0.8360718193453622
+            },
+            "status": "candidata específica do E28; não promovida"
+          },
+          "hybrid_e28": {
+            "policy": "86472000 no Antas a montante; 86472600 no incremento Santa Tereza; 86510000 no incremento final de Muçum",
+            "candidate_count": 39,
+            "metrics": {
+              "event_id": "E28",
+              "pairs": 209,
+              "mae_m3s": 502.7223928560104,
+              "rmse_m3s": 660.2346242310581,
+              "nse": 0.8630757708038599,
+              "observed_peak_m3s": 7886.72509765625,
+              "simulated_peak_m3s": 7609.9414661362425,
+              "peak_lag_hours": 1.0,
+              "peak_relative_error": 0.03509487500740467,
+              "status": "replay_scored_not_promoted"
+            },
+            "spatial_series": "assets/data/hec_hms_integrated_taquari_antas/network_replay_hybrid_e28/E28/spatial_series_e28.csv",
+            "spatial_report": "assets/data/hec_hms_integrated_taquari_antas/network_replay_hybrid_e28/E28/spatial_series_e28_report.json",
+            "status": "candidata híbrida específica do E28; não promovida"
+          },
+          "operational_gate": "blocked"
+        },
+        "hybrid_e28": {
+          "policy": "86472000 no Antas a montante; 86472600 no incremento Santa Tereza; 86510000 no incremento final de Muçum",
+          "candidate_count": 39,
+          "metrics": {
+            "event_id": "E28",
+            "pairs": 209,
+            "mae_m3s": 502.7223928560104,
+            "rmse_m3s": 660.2346242310581,
+            "nse": 0.8630757708038599,
+            "observed_peak_m3s": 7886.72509765625,
+            "simulated_peak_m3s": 7609.9414661362425,
+            "peak_lag_hours": 1.0,
+            "peak_relative_error": 0.03509487500740467,
+            "status": "replay_scored_not_promoted"
+          },
+          "search_report": "assets/data/hec_hms_integrated_taquari_antas/network_hybrid_e28_calibration_search/hybrid_e28_search_report.json",
+          "replay_report": "assets/data/hec_hms_integrated_taquari_antas/network_replay_hybrid_e28/hybrid_e28_metrics.json",
+          "zero_lag_tradeoff": {
+            "candidate_count": 2,
+            "best_peak_relative_error": 0.13262716726354415,
+            "selected_candidate_peak_lag_hours": 1.0,
+            "interpretation": "zero atraso nao foi escolhido porque aumentou materialmente o erro do pico"
+          },
+          "spatial_series": "assets/data/hec_hms_integrated_taquari_antas/network_replay_hybrid_e28/E28/spatial_series_e28.csv",
+          "spatial_report": "assets/data/hec_hms_integrated_taquari_antas/network_replay_hybrid_e28/E28/spatial_series_e28_report.json",
+          "status": "candidata híbrida específica do E28; não promovida"
+        }
       }
     }
   ],
@@ -1666,7 +1765,13 @@
       "path": "assets/data/research_basin_screening_latest.json",
       "role": "basin research feed",
       "status": "available_snapshot",
-      "sha256": "866e0e9fbc2b51147acfc9caa72fa70033c64ba953a5c0fbcfffbaf29bf378f9"
+      "sha256": "7a47cc113b6915d8e2a9dd4a05aca5773b6e328619c467a052f3f518875323ee"
+    },
+    {
+      "path": "assets/data/hec_hms_integrated_taquari_antas/network_calibration_status_latest.json",
+      "role": "HEC-HMS network calibration status",
+      "status": "available_snapshot",
+      "sha256": "368abd8d3eddf25d644f49e0f15f956b566b1cf72f85eeab1fd7918f6a128c0d"
     }
   ]
 }

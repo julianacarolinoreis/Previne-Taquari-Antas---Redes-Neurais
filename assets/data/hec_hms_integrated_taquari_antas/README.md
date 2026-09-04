@@ -36,11 +36,19 @@ No E28, a busca fina testou **39 candidatos**. A melhor candidata específica fo
 
 Essa candidata é melhor que a primeira espacialização testada, mas ainda é específica do E28. Ela não prova que a mesma parametrização funcione em E19, E22, E24 e E27; também não fecha a validação no ponto intermediário porque a vazão reconciliada de Santa Tereza continua ausente. E24 e E27 têm lacuna interna na chuva bruta local, por isso permanecem no fallback explícito 86472000. O relatório está em [`station_e28_search_report.json`](network_station_e28_calibration_search/station_e28_search_report.json), com a tabela em [`station_e28_search.csv`](network_station_e28_calibration_search/station_e28_search.csv).
 
+## Teste híbrido da rede — E28
+
+O teste seguinte respeitou a topologia incremental completa: **86472000** ficou no Antas a montante, **86472600** alimentou somente o incremento de Santa Tereza e **86510000** alimentou somente o incremento final de Muçum. As duas séries locais têm 240 horas contínuas entre 16 e 25 de junho de 2024; os dados foram agregados diretamente dos registros ANA, sem interpolação ou preenchimento.
+
+Mantendo a busca de 39 candidatos, a melhor candidata permaneceu com perda inicial **2,5 mm**, perda constante **2,0 mm/h**, `Tc` **25 h**, armazenamento **25 h**, fator de recessão **0,80**, razão de vazão inicial **0,003** e `K` **1 h**. O replay híbrido resultou em **NSE 0,8631**, **atraso de 1 h**, **erro de pico 3,51%**, **MAE 502,72 m³/s** e pico simulado **7.609,94 m³/s** contra **7.886,73 m³/s** observado. Em relação ao teste que repetia a chuva de Santa Tereza nos dois incrementos, o erro do pico caiu de **3,57%** para **3,51%** e o MAE caiu de **503,27** para **502,72 m³/s**; o NSE variou de **0,8632** para **0,8631**, portanto o ganho é pequeno e não permite declarar calibração encerrada.
+
+Os artefatos estão em [`hybrid_e28_search_report.json`](network_hybrid_e28_calibration_search/hybrid_e28_search_report.json), [`hybrid_e28_search.csv`](network_hybrid_e28_calibration_search/hybrid_e28_search.csv), [`hybrid_e28_metrics.json`](network_replay_hybrid_e28/hybrid_e28_metrics.json) e no manifesto [`event_network_manifest.json`](network_replay_hybrid_e28/E28/event_network_manifest.json). A leitura visual foi atualizada no dashboard para deixar explícitos os três postos e os dois incrementos.
+
 ## O que ainda falta para chamar de calibração
 
 1. Fechar a série observada de Santa Tereza e sua curva cota–vazão, para que Santa Tereza seja um ponto de validação real e não apenas um nó geométrico.
-2. Repetir a busca espacializada em E24 e E27 depois de obter a hora faltante ou uma fonte independente auditada; não preencher a lacuna.
-3. Fechar a espacialização da chuva: quais estações representam cada área incremental, pesos, falhas e unidade; E24 tem cinco valores ausentes/negativos na série Thiessen e não recebeu preenchimento silencioso.
+2. Repetir a busca espacializada em E24 e E27 depois de obter a hora faltante ou uma fonte independente auditada; não preencher a lacuna. E28 agora tem o teste híbrido por posto local, mas isso ainda é uma hipótese específica do evento.
+3. Fechar a espacialização da chuva para todos os eventos: quais estações representam cada área incremental, pesos, falhas e unidade; E24/E27 têm lacunas internas na chuva local e não receberam preenchimento silencioso.
 4. Obter evidência de calha para os reaches: comprimento validado, seções, nível/cota, declividade hidráulica e escolha justificável entre Muskingum e Muskingum-Cunge.
 5. Rodar uma calibração comum em eventos de treino e validar em evento separado. Um ajuste bom em E24/E28 não pode ser promovido enquanto E19/E22/E27 não forem explicados pelo mesmo conjunto de regras.
 6. Só depois discutir integração com previsão RNA e, mais adiante, com o HEC-HMS de previsão. Até lá, a saída deve continuar rotulada como pesquisa/replay.
