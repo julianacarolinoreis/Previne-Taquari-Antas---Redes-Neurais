@@ -451,7 +451,7 @@
   function freshnessState(snap) {
     const feedAge = snap.forecastAge; const observedAge = snap.observedAge;
     if (feedAge == null) return ['desconhecido', 'pending'];
-    if (feedAge > 72 || (observedAge != null && observedAge > 3)) return ['parcial / atrasado', 'proxy'];
+    if (feedAge > 72 || (observedAge != null && observedAge > 3)) return ['rodada atrasada / parcial', 'proxy'];
     return ['publicado', ''];
   }
   function provenanceRow(label, detail, status, cls = '') {

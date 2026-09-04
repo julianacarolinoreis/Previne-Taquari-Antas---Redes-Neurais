@@ -1,0 +1,142 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-09-03",
+  "package": "santa_tereza_eventwise_replay_rna_2h",
+  "status": "research_replay_not_operational",
+  "municipality": "Santa Tereza, RS",
+  "purpose": "Replay histórico da RNA de nível em horizonte de 2 horas, com séries observadas e previstas preservadas por evento.",
+  "selected_model": {
+    "name": "001_alt_STZ_2H_R01_T12_V1-5-10-15-17-21",
+    "family": "2H_ALT",
+    "horizon": "2H",
+    "target": "2h_alt",
+    "source_ref": "redes_neurais/santa tereza/RNA_2h_rotacoes/RNA_2H_ALT_ROTACAO_STZ/auditaveis/001_alt_STZ_2H_R01_T12_V1-5-10-15-17-21_AUDITAVEL.xlsx",
+    "source_json": "assets/data/auditaveis_series.json",
+    "source_sha256": "9633f2cca80386a858088da7df9e91e5e89b27503d6354f02362aa8718dfbe31",
+    "aggregate_metrics": {
+      "all": {
+        "n": 2677,
+        "mae": 4.59,
+        "rmse": 8.65,
+        "bias": -0.95,
+        "maxAbs": 137.5,
+        "corr": 0.9996
+      },
+      "0": {
+        "n": 1958,
+        "mae": 4.54,
+        "rmse": 8.68,
+        "bias": -1.14,
+        "maxAbs": 137.5,
+        "corr": 0.9997
+      },
+      "1": {
+        "n": 462,
+        "mae": 4.89,
+        "rmse": 9.07,
+        "bias": -0.16,
+        "maxAbs": 66.59,
+        "corr": 0.9992
+      },
+      "2": {
+        "n": 257,
+        "mae": 4.46,
+        "rmse": 7.64,
+        "bias": -1.0,
+        "maxAbs": 39.84,
+        "corr": 0.9996
+      },
+      "3": {
+        "n": 0,
+        "mae": null,
+        "rmse": null,
+        "bias": null,
+        "maxAbs": null,
+        "corr": null
+      }
+    }
+  },
+  "event_scope": {
+    "event_count": 21,
+    "series_point_count": 2677,
+    "highlight_events": [
+      {
+        "evento": 4,
+        "descricao": "cheia de setembro de 2023",
+        "observacao": "treino_replay; não é teste independente"
+      },
+      {
+        "evento": 6,
+        "descricao": "cheia de novembro de 2023",
+        "observacao": "treino_replay; não é teste independente"
+      },
+      {
+        "evento": 9,
+        "descricao": "cheia de maio de 2024",
+        "observacao": "treino_replay; não é teste independente"
+      },
+      {
+        "evento": 12,
+        "descricao": "evento de junho/julho de 2025",
+        "observacao": "teste independente da rotação"
+      }
+    ]
+  },
+  "variables": {
+    "nivel_observado_cm": "cota/nível no arquivo auditável, em centímetros",
+    "nivel_rna_cm": "saída prevista pela RNA, em centímetros",
+    "timestamp_local": "horário local preservado na série de origem"
+  },
+  "station_identity": {
+    "code": "86472600",
+    "name": "SANTA TEREZA",
+    "river": "RIO TAQUARI",
+    "municipality": "SANTA TEREZA",
+    "operator": "SGB-CPRM",
+    "responsible": "ANA",
+    "local_audit_source": "assets/data/hec_hms_audit/rainfall_station_audit_latest.json",
+    "local_audit_sha256": "cd7574fc85805a2280e1febe759cdcf90bb725830f035be97e1518132811e1f3",
+    "sep_2023_telemetry_in_audit": {
+      "rows": 0,
+      "rain_records": 0,
+      "flow_records": 0,
+      "level_records": 0,
+      "hourly_rain_values": 0,
+      "first_timestamp": null,
+      "last_timestamp": null,
+      "errors": [
+        "Sem dados para esta estação (Código: 86472600) no período solicitado!"
+      ],
+      "raw_path": "assets\\data\\hec_hms_audit\\raw\\ana\\telemetry\\telemetry_86472600_2023-09-01_2023-09-10.xml"
+    }
+  },
+  "hydrologic_calibration_gate": {
+    "status": "blocked_for_flow_calibration",
+    "reason": "A estação 86472600 tem nível e chuva telemétricos auditados em janelas específicas, mas não há vazão horária reconciliada nem curva-chave anexada ao pacote.",
+    "allowed_now": [
+      "replay de nível da RNA",
+      "comparação de pico e atraso por timestamp",
+      "auditoria de cobertura e identidade"
+    ],
+    "not_allowed_now": [
+      "calibração HEC-HMS de vazão em Santa Tereza",
+      "converter cm em m3/s por fórmula inventada",
+      "usar o replay como ordem de evacuação ou despacho"
+    ],
+    "next_evidence": [
+      "série de vazão ou curva-chave oficial da estação 86472600",
+      "janela de chuva reconciliada por evento",
+      "validação independente fora do treino"
+    ]
+  },
+  "official_links": {
+    "ana_station_inventory": "https://portal1.snirh.gov.br/server/rest/services/dados_abertos/Estacao_Fluviometrica_com_Medicao_de_Descarga/MapServer/0",
+    "sgb_sace": "https://www.sgb.gov.br/sace/",
+    "sgb_telemetry_consistency": "https://rigeo.sgb.gov.br/bitstream/doc/25767/1/consistencia_dados_telemetria_artigo.pdf"
+  },
+  "files": {
+    "events_metrics": "events_metrics.csv",
+    "series_hourly": "series_hourly.csv",
+    "model_snapshot": "model_snapshot.json"
+  }
+}

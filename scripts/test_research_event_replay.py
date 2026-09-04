@@ -19,8 +19,10 @@ def main() -> None:
     assert data["operational_gate"]["status"] == "blocked"
     assert {source["id"] for source in data["forecast_sources"]} == {"rna", "rna_santa_tereza", "hec_hms"}
     hec = next(source for source in data["forecast_sources"] if source["id"] == "hec_hms")
-    assert hec["status"] == "not_integrated_yet"
+    assert hec["status"] == "spatialized_research_pilot_published_not_operational"
     assert hec["published_peak"] is None
+    assert hec["published_research_pilot"]["status"] == "research_replay_only"
+    assert hec["published_research_pilot"]["operational_gate"] == "blocked"
 
     case = next(item for item in data["replay_cases"] if item["event_id"] == "mucum-q62-35")
     assert case["event_status"] == "usable_research_test_record"

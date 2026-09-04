@@ -1,0 +1,296 @@
+{
+  "schema_version": "1.0.0",
+  "created_at": "2026-09-02",
+  "updated_at": "2026-09-03",
+  "status": "research_replay_only",
+  "software": {
+    "model": "HEC-HMS",
+    "version": "4.13",
+    "search_script": "scripts/calibrate_hec_hms_mucum_multi_event.py",
+    "calibration_type": "isolated_event_replay"
+  },
+  "basin": {
+    "municipality": "Muçum",
+    "area_km2": 16000,
+    "area_source": "SNIRH/ANA station inventory",
+    "area_source_url": "https://portal1.snirh.gov.br/server/rest/services/dados_abertos/Estacao_Fluviometrica_com_Medicao_de_Descarga/MapServer/0",
+    "terrain_model_status": "aggregated_model; not yet a complete MDT-derived hydrologic delineation"
+  },
+  "response_station": {
+    "code": "86510000",
+    "name": "MUÇUM",
+    "river": "RIO TAQUARI",
+    "type": "fluviometric",
+    "latitude": -29.1672,
+    "longitude": -51.8686,
+    "response_unit": "m3/s",
+    "role": "observed_response_target"
+  },
+  "rainfall_sources": {
+    "selected_for_closed_replays": {
+      "code": "86472000",
+      "role": "auxiliary_candidate_rainfall",
+      "station_type_caveat": "official station identity is not interchangeable with the Muçum response target"
+    },
+    "alternatives_tested": [
+      {
+        "code": "86472600",
+        "role": "Santa Teresa local rainfall candidate",
+        "selection": "not superior in the tested event searches"
+      },
+      {
+        "code": "86510000",
+        "role": "target-station rainfall candidate",
+        "selection": "not superior in the tested event searches"
+      },
+      {
+        "code": "02851072",
+        "role": "Ibiraiaras regional pluviometer",
+        "selection": "not selected"
+      },
+      {
+        "code": "composite",
+        "role": "target-first fallback to auxiliary source",
+        "selection": "not superior in the tested event searches"
+      }
+    ],
+    "missing_data_policy": "no silent imputation; no neighbor interpolation; no artificial timestamp shift"
+  },
+  "selection_gate": {
+    "scope": "internal research ranking, not an operational standard",
+    "metrics": ["NSE", "RMSE", "peak_relative_error", "peak_lag_hours"],
+    "maximum_absolute_peak_lag_hours": 2,
+    "preferred_absolute_peak_lag_hours": 1,
+    "promotion_requires": "reproducible parameter set plus auditable paired observations",
+    "does_not_authorize": ["forecast", "alert", "evacuation", "dispatch", "route", "shelter capacity"]
+  },
+  "searches": [
+    {
+      "name": "target_response_area16000_eventwise",
+      "events": ["E19", "E22", "E24", "E26", "E27", "E28"],
+      "samples_per_event": 360,
+      "response_station": "86510000",
+      "area_km2": 16000,
+      "rainfall_source": "86472000"
+    },
+    {
+      "name": "fine_timing_target_area16000",
+      "events": ["E27", "E28"],
+      "samples_per_event": 240,
+      "response_station": "86510000",
+      "area_km2": 16000,
+      "rainfall_source": "86472000",
+      "purpose": "improve timing without shifting observed timestamps"
+    },
+    {
+      "name": "focused_timing_peak_E24_20260903",
+      "events": ["E24"],
+      "samples_per_event": 288,
+      "response_station": "86510000",
+      "area_km2": 16000,
+      "rainfall_source": "86472000",
+      "purpose": "refinar conjuntamente o erro de pico e o atraso com parâmetros HEC-HMS explícitos"
+    },
+    {
+      "name": "focused_timing_peak_E22_20260903",
+      "events": ["E22"],
+      "samples_per_event": 288,
+      "response_station": "86510000",
+      "area_km2": 16000,
+      "rainfall_source": "86472000",
+      "purpose": "refinar o ajuste sem mascarar a interrupção da série de resposta"
+    },
+    {
+      "name": "alternative_rainfall_sensitivity",
+      "events": ["E24", "E26", "E27", "E28"],
+      "sources": ["86472600", "86510000", "02851072", "composite", "local_average"],
+      "purpose": "check whether a better supported rainfall source reduces timing or peak error"
+    }
+  ],
+  "events": [
+    {
+      "id": "E19",
+      "period": "2023-05-06 10:00 to 2023-05-08 14:00 BRT",
+      "status": "not_promoted",
+      "best_candidate": 351,
+      "parameters": {
+        "initial_loss": 0,
+        "constant_loss": 1,
+        "time_of_concentration_min": 60,
+        "storage_min": 120,
+        "recession": 0.7,
+        "initial_flow_adjustment": 0.01
+      },
+      "metrics": {
+        "paired_hours": 53,
+        "NSE": 0.2091183334,
+        "RMSE_m3s": 140.3649,
+        "observed_peak_m3s": 1408.375,
+        "simulated_peak_m3s": 1267.2275,
+        "peak_lag_hours": -3,
+        "peak_relative_error": 0.1002201
+      },
+      "reason": "observed flow rises while available rainfall is zero at the beginning of the recut; the current input set does not identify the response",
+      "package_path": "diagnostics/E19"
+    },
+    {
+      "id": "E22",
+      "period": "2023-09-04 00:00 to 2023-09-12 07:00 BRT",
+      "status": "not_promoted",
+      "best_candidate": 114,
+      "search": "focused_timing_peak_E22_20260903",
+      "parameters": {
+        "initial_loss": 20,
+        "constant_loss": 0.5,
+        "time_of_concentration_min": 45,
+        "storage_min": 30,
+        "recession": 0.85,
+        "initial_flow_adjustment": 0.02
+      },
+      "metrics": {
+        "paired_hours": 110,
+        "NSE": 0.6515544066,
+        "RMSE_m3s": 952.552,
+        "observed_peak_m3s": 10437.667,
+        "simulated_peak_m3s": 6916.588,
+        "peak_lag_hours": 0,
+        "peak_relative_error": 0.3373435
+      },
+      "reason": "busca focada melhorou NSE e reduziu levemente o erro do pico, mas o posto-alvo continua com interrupção longa durante o evento e subestimação de pico; permanece diagnóstico",
+      "package_path": "diagnostics/E22_partial"
+    },
+    {
+      "id": "E24",
+      "period": "2023-11-16 00:00 to 2023-11-25 23:00 BRT",
+      "status": "calibrated_replay_timing_priority",
+      "best_candidate": 4,
+      "search": "ultrafine_loss_timing_E24_20260903",
+      "parameters": {
+        "initial_loss": 5.5,
+        "constant_loss": 0.88,
+        "time_of_concentration_min": 22.5,
+        "storage_min": 34.3,
+        "recession": 0.7,
+        "initial_flow_adjustment": 0.001
+      },
+      "metrics": {
+        "paired_hours": 238,
+        "NSE": 0.8625227851,
+        "RMSE_m3s": 1082.8229,
+        "observed_peak_m3s": 11434.95,
+        "simulated_peak_m3s": 11434.6394,
+        "peak_lag_hours": 0,
+        "peak_relative_error": 0.0000271813
+      },
+      "rainfall_source": "86472000",
+      "selection_note": "Refinamento local prioriza simultaneamente pico e horário; NSE e alternativas permanecem auditáveis em E24_timing_peak_tradeoffs.csv",
+      "package_path": "event_E24"
+    },
+    {
+      "id": "E26",
+      "period": "2024-04-14 12:00 to 2024-04-15 18:00 BRT",
+      "status": "not_promoted",
+      "best_candidate": 1,
+      "parameters": {
+        "initial_loss": 2.5,
+        "constant_loss": 1,
+        "time_of_concentration_min": 45,
+        "storage_min": 5,
+        "recession": 0.7,
+        "initial_flow_adjustment": 0.005
+      },
+      "metrics": {
+        "paired_hours": 31,
+        "NSE": 0.37840326,
+        "RMSE_m3s": 278.898,
+        "observed_peak_m3s": 1575.875,
+        "simulated_peak_m3s": 1375.178,
+        "peak_lag_hours": 2,
+        "peak_relative_error": 0.127356
+      },
+      "reason": "short event with mismatch between the available point rainfall and the observed response onset",
+      "package_path": "diagnostics/E26"
+    },
+    {
+      "id": "E27",
+      "period": "2024-04-29 16:00 to 2024-05-09 20:00 BRT",
+      "status": "calibrated_replay",
+      "best_candidate": 54,
+      "search": "fine_timing_target_area16000",
+      "parameters": {
+        "initial_loss": 1,
+        "constant_loss": 4,
+        "time_of_concentration_min": 4,
+        "storage_min": 90,
+        "recession": 0.98,
+        "initial_flow_adjustment": 0.005
+      },
+      "metrics": {
+        "paired_hours": 245,
+        "NSE": 0.785340078,
+        "RMSE_m3s": 1860.104,
+        "observed_peak_m3s": 14525.225,
+        "simulated_peak_m3s": 13498.804,
+        "peak_lag_hours": 0,
+        "peak_relative_error": 0.0706647
+      },
+      "rainfall_source": "86472000",
+      "package_path": "event_E27"
+    },
+    {
+      "id": "E28",
+      "period": "2024-06-16 to 2024-06-25 BRT",
+      "status": "calibrated_replay",
+      "best_candidate": 78,
+      "search": "fine_timing_target_area16000",
+      "parameters": {
+        "initial_loss": 2.5,
+        "constant_loss": 2,
+        "time_of_concentration_min": 25,
+        "storage_min": 45,
+        "recession": 0.8,
+        "initial_flow_adjustment": 0.0025
+      },
+      "metrics": {
+        "paired_hours": 209,
+        "NSE": 0.9124924817,
+        "RMSE_m3s": 527.814,
+        "observed_peak_m3s": 7886.725,
+        "simulated_peak_m3s": 7929.58,
+        "peak_lag_hours": -1,
+        "peak_relative_error": 0.0054338
+      },
+      "rainfall_source": "86472000",
+      "package_path": "event_E28"
+    }
+  ],
+  "source_hashes_sha256": {
+    "assets/data/chuvas_horarias.csv": "292DD4A4695D9A6EF893F700C8AE31BBBDF96010526FD1BB4DBB2517F5E020D4",
+    "assets/data/hec_hms_audit/multi_event/derived/event_19_hourly.csv": "A121D4B1002EDFCE26C8CE68A9E117E7458E824C5E65025A57775C8E69FA34E7",
+    "assets/data/hec_hms_audit/multi_event/derived/event_22_hourly.csv": "EDF406E599A3B80F28860178B0B22C42C4F535D01E3A682391D92CF2E261805B",
+    "assets/data/hec_hms_audit/multi_event/derived/event_24_hourly.csv": "F14088290419FF47979947EF821F7A83DA308D764C3C908E6CDF1CC863AC14B6",
+    "assets/data/hec_hms_audit/multi_event/derived/event_26_hourly.csv": "E19401D0E0C23C66B29DBC3F1C3F24AE8B5430FF85CE68C76E436392D53CC88A",
+    "assets/data/hec_hms_audit/multi_event/derived/event_27_hourly.csv": "B9819E27AC5535D4A1D2E8A80CD71A3F6788AE2A9CD4501A62B7A78CFCECDEFE",
+    "assets/data/hec_hms_audit/multi_event/derived/event_28_hourly.csv": "E10746EB551450CF927810D0E5F8BEB7C9B25D7228A5F21A9E3091BA4DD63A87",
+    "assets/data/hec_hms_calibration/mucum_target_multi_event.dss": "4E2169626A50AA4D4F2706D8228043061ACA413D050DC2AAE44608C0D68BC69F"
+  },
+  "package_paths": {
+    "readme": "assets/data/mucum_eventwise_replay_calibrated/README.md",
+    "manifest": "assets/data/mucum_eventwise_replay_calibrated/eventwise_manifest.json",
+      "closed_event_projects": [
+      "assets/data/mucum_eventwise_replay_calibrated/event_E24",
+      "assets/data/mucum_eventwise_replay_calibrated/event_E27",
+      "assets/data/mucum_eventwise_replay_calibrated/event_E28"
+    ],
+    "previous_E24_reference": "assets/data/mucum_eventwise_replay_calibrated/event_E24_published_20260902",
+    "focused_E24_search_results": "assets/data/mucum_eventwise_replay_calibrated/E24_focused_search_results.csv",
+    "focused_E24_timing_peak_tradeoffs": "assets/data/mucum_eventwise_replay_calibrated/E24_timing_peak_tradeoffs.csv",
+    "focused_E24_loss_timing_refinement": "assets/data/mucum_eventwise_replay_calibrated/E24_loss_timing_refinement_20260903.csv",
+    "pending_event_diagnostics": [
+      "assets/data/mucum_eventwise_replay_calibrated/diagnostics/E19",
+      "assets/data/mucum_eventwise_replay_calibrated/diagnostics/E22_partial",
+      "assets/data/mucum_eventwise_replay_calibrated/diagnostics/E26"
+    ],
+    "shared_dss": "assets/data/mucum_eventwise_replay_calibrated/mucum_target_multi_event.dss"
+  }
+}

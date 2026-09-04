@@ -1,0 +1,66 @@
+from hms.model.JythonHms import *
+from hec.heclib.dss import HecDss
+from hec.heclib.util import HecTime
+import csv
+import math
+
+events = [['27', '29Apr2024', '1600', '09May2024', '2000', '01Apr2024', '.', 'mucum_E27']]
+
+def values_by_time(series):
+    return {int(series.times[i]): float(series.values[i]) for i in range(series.numberValues)}
+
+def merged_by_event(dss, event_id, kind):
+    prefix = "//Saida_E" + event_id + "/" + kind + "/"
+    merged = {}
+    for pathname in dss.getCatalogedPathnames():
+        if pathname.startswith(prefix) and "/1Hour/RUN:Calibracao/" in pathname:
+            merged.update(values_by_time(dss.get(pathname)))
+    return merged
+
+all_metrics = []
+with open(r"D:/PREVINE/worktrees/previne-catalogo-pesquisas-20260828/assets/data/mucum_semidistributed_E27_search_20260903/search/candidate_0060/multi_event_series.csv", "wb") as series_handle:
+    series_writer = csv.writer(series_handle)
+    series_writer.writerow(["event_id", "time_value", "observed_m3s", "simulated_m3s"])
+    for event_id, score_start_date, score_start_time, score_end_date, score_end_time, dpart, event_dir, project_name in events:
+        event_project = r"D:/PREVINE/worktrees/previne-catalogo-pesquisas-20260828/assets/data/mucum_semidistributed_E27_search_20260903/search/candidate_0060/" + event_dir
+        OpenProject(project_name, event_project)
+        Compute("Calibracao")
+        output = event_project + "/output.dss"
+        dss = HecDss.open(output)
+        sim_map = merged_by_event(dss, event_id, "FLOW")
+        obs_map = merged_by_event(dss, event_id, "FLOW-OBSERVED")
+        if not sim_map or not obs_map:
+            dss.close()
+            raise ValueError("missing HEC-HMS output for event " + event_id)
+        start_value = HecTime(score_start_date, score_start_time).value()
+        end_value = HecTime(score_end_date, score_end_time).value()
+        pairs = [(t, obs_map[t], sim_map[t]) for t in sorted(set(sim_map).intersection(obs_map)) if start_value <= t <= end_value and obs_map[t] > -1.0e20 and sim_map[t] > -1.0e20]
+        if len(pairs) < 24:
+            dss.close()
+            raise ValueError("less than 24 paired hours for event " + event_id)
+        for pair in pairs:
+            series_writer.writerow([event_id, pair[0], pair[1], pair[2]])
+        mean_obs = sum(pair[1] for pair in pairs) / len(pairs)
+        mae = sum(abs(pair[2] - pair[1]) for pair in pairs) / len(pairs)
+        rmse = math.sqrt(sum((pair[2] - pair[1]) ** 2 for pair in pairs) / len(pairs))
+        denominator = sum((pair[1] - mean_obs) ** 2 for pair in pairs)
+        nse = 1.0 - sum((pair[2] - pair[1]) ** 2 for pair in pairs) / denominator
+        observed_peak = max(pairs, key=lambda pair: pair[1])
+        simulated_peak = max(pairs, key=lambda pair: pair[2])
+        peak_lag_hours = (simulated_peak[0] - observed_peak[0]) / 60.0
+        peak_relative_error = abs(simulated_peak[2] - observed_peak[1]) / observed_peak[1]
+        all_metrics.append((event_id, len(pairs), mae, rmse, nse, observed_peak[1], simulated_peak[2], peak_lag_hours, peak_relative_error))
+        dss.close()
+
+with open(r"D:/PREVINE/worktrees/previne-catalogo-pesquisas-20260828/assets/data/mucum_semidistributed_E27_search_20260903/search/candidate_0060/multi_event_metrics.csv", "wb") as metrics_handle:
+    metrics_writer = csv.writer(metrics_handle)
+    metrics_writer.writerow(["event_id", "pairs", "mae_m3s", "rmse_m3s", "nse", "observed_peak_m3s", "simulated_peak_m3s", "peak_lag_hours", "peak_relative_error"])
+    for metric in all_metrics:
+        metrics_writer.writerow(metric)
+
+mean_nse = sum(metric[4] for metric in all_metrics) / len(all_metrics)
+mean_abs_peak_lag_hours = sum(abs(metric[7]) for metric in all_metrics) / len(all_metrics)
+mean_peak_relative_error = sum(metric[8] for metric in all_metrics) / len(all_metrics)
+fitness = mean_nse - 0.01 * mean_abs_peak_lag_hours - 0.2 * mean_peak_relative_error
+print("RESULT|events=%d|mean_nse=%.10f|mean_abs_peak_lag_hours=%.10f|mean_peak_relative_error=%.10f|fitness=%.10f" % (len(all_metrics), mean_nse, mean_abs_peak_lag_hours, mean_peak_relative_error, fitness))
+Exit(1)

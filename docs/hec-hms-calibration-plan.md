@@ -1,82 +1,116 @@
-# Plano de calibração HEC-HMS — Santa Tereza e Muçum
+# Plano de calibração HEC-HMS — Muçum e Santa Teresa
 
-## Escopo
+## Escopo e limite de uso
 
-Este documento organiza uma pesquisa de transformação chuva–vazão para
-reproduzir eventos históricos e, depois, testar cenários. Não é alerta, ordem de
-evacuação, despacho de bombeiros ou validação de rota. Qualquer uso pela Defesa
-Civil precisa de validação independente, procedimentos locais e confirmação em
-campo.
+Este documento registra uma pesquisa de transformação chuva–vazão para
+reproduzir eventos históricos. O resultado é um replay científico versionado:
+não é alerta, ordem de evacuação, despacho de bombeiros, rota segura ou
+capacidade operacional de abrigo. Qualquer uso pela Defesa Civil exige
+validação independente, procedimentos locais e confirmação em campo.
 
-## Evidência que já foi fechada
+## Correção da identificação hidrológica
 
-- `assets/data/chuvas_horarias.csv` tem 32.904 linhas horárias, sem duplicidade
-  de timestamp e sem quebra de cadência no recorte auditado.
-- No evento de 01 a 10/09/2023, a coluna `chuva_86472000` reproduz a telemetria
-  ANA agregada por hora em 240/240 horas: soma de 224,6 mm e erro médio
-  absoluto de 0 mm.
-- No mesmo evento, `chuva_02851072` reproduz a telemetria ANA em 240/240
-  horas: soma de 390,8 mm e erro médio absoluto de 0 mm.
-- A telemetria de `86472000` também contém nível e vazão intrahorários em todo
-  o recorte horário candidato; isso oferece um alvo observado para o HMS, mas a
-  unidade e a definição do campo `Vazao` ainda precisam ser confirmadas.
-- A identidade oficial não é intercambiável: `86472000` é estação
-  fluviométrica em Santa Tereza; `02851072` é pluviométrica em Ibiraiaras;
-  `A894` e o CEMADEN `432040401A`/ID 8928 são de Serafina Corrêa.
-- `86472600` é a estação de Santa Tereza no Rio Taquari, mas não apresentou
-  chuva na telemetria do evento auditado.
+O primeiro ajuste usava a estação `86472000` como se fosse a resposta de
+Muçum. Essa identificação estava errada para o objetivo do modelo. A série de
+resposta adotada agora é a estação fluviométrica ANA `86510000` (Muçum, Rio
+Taquari), com área de drenagem de 16.000 km² no inventário oficial do SNIRH/ANA
+([ficha da estação](https://portal1.snirh.gov.br/server/rest/services/dados_abertos/Estacao_Fluviometrica_com_Medicao_de_Descarga/MapServer/0)).
 
-O detalhe completo, com hashes e respostas brutas, está em
-`assets/data/hec_hms_audit/rainfall_station_audit_latest.json`.
+As demais estações permanecem explicitamente separadas:
 
-## Decisão de modelagem
+- `86472000`: estação auxiliar/candidato de precipitação usado em alguns
+  replays; não é o alvo fluviométrico de Muçum.
+- `86472600`: estação de Santa Teresa no Rio Taquari, usada como alternativa
+  de chuva local quando havia observação disponível.
+- `02851072`: pluviômetro regional de Ibiraiaras; não é Santa Teresa.
 
-O primeiro caso deve ser um replay histórico, não um cenário inventado:
+Não houve preenchimento silencioso de lacunas, interpolação de vizinhos ou
+deslocamento artificial de timestamps. Quando a chuva não explicava a
+resposta observada, o evento foi mantido como pendente.
 
-1. selecionar o evento 01–10/09/2023;
-2. usar os horários observados preservando BRT, unidade e intervalo de
-   acumulação;
-3. manter 86472000 como candidato de precipitação telemétrica qualificada,
-   explicitando que o inventário ANA o classifica como fluviométrico;
-4. manter 02851072 como pluviômetro regional de Ibiraiaras, sem renomeá-lo para
-   Santa Tereza;
-5. excluir do primeiro ajuste as colunas sem observação reconciliada no evento;
-6. registrar cada entrada no meteorologic model pelo código oficial, município,
-   coordenada e período de validade.
+## Eventos históricos e resultado atual
 
-## O que ainda é necessário antes de calibrar
+Cada evento foi ajustado em projeto HEC-HMS isolado, usando a estação de
+resposta `86510000` e área de 16.000 km². A busca inicial avaliou 360
+combinações por evento; buscas focadas adicionais foram executadas para E24,
+E27 e E28. O critério interno de seleção combina NSE, erro
+relativo do pico e atraso absoluto do pico de no máximo duas horas, preferindo
+zero ou uma hora. Esse critério é de pesquisa e não um padrão operacional.
 
-### Modelo físico e dados
+| Evento | Período | Status | NSE | Pico simulado / observado | Atraso | Erro relativo do pico |
+|---|---|---:|---:|---:|---:|---:|
+| E19 | maio/2023 | pendente | 0,2091 | 1.267 / 1.408 m³/s | −3 h | 10,02% |
+| E22 | setembro/2023 | pendente refinado | 0,6516 | 6.917 / 10.438 m³/s | 0 h | 33,73% |
+| E24 | novembro/2023 | replay calibrado · prioridade temporal | 0,8716 | 12.672 / 11.435 m³/s | 0 h | 10,82% |
+| E26 | abril/2024 | pendente | 0,3784 | 1.375 / 1.576 m³/s | +2 h | 12,74% |
+| E27 | maio/2024 | replay calibrado | 0,7853 | 13.499 / 14.525 m³/s | 0 h | 7,07% |
+| E28 | junho/2024 | replay calibrado | 0,9125 | 7.930 / 7.887 m³/s | −1 h | 0,54% |
 
-- bacias e sub-bacias delimitadas a partir do MDT, com área, declividade,
-  comprimento e declividade dos cursos;
-- uso do solo, solo, impermeabilização e parâmetros iniciais documentados;
-- meteorologic model com pluviômetros selecionados por área de contribuição,
-  não por proximidade nominal;
-- control specifications com timestep, início/fim e janela de aquecimento;
-- observação de vazão no ponto de controle com unidade confirmada; caso se use
-  nível convertido em vazão, curva-chave válida e sua vigência;
-- inventário de lacunas, relógio e qualidade para cada evento.
+### O que “replay calibrado” significa aqui
 
-### Ajuste e validação
+E24, E27 e E28 têm uma combinação reproduzível de parâmetros que atende ao
+gate interno desta pesquisa. O pacote guarda os projetos, séries observadas e
+simuladas, parâmetros e métricas por evento em
+`assets/data/mucum_eventwise_replay_calibrated/`.
 
-- calibrar somente em eventos com chuva e resposta hidrológica observadas;
-- reservar ao menos um evento independente para validação;
-- comparar volume, pico, horário do pico, NSE/KGE e PBIAS, sempre com a unidade
-  e o intervalo temporal explícitos;
-- testar sensibilidade dos parâmetros e reportar faixas, não apenas um número;
-- rejeitar resultados que dependam de preencher lacunas com vizinhos ou de
-  misturar nível futuro com a entrada disponível no instante da previsão.
+O E24 foi refinado em 03/09/2026 com uma vizinhança fina de 324 combinações
+possíveis. A solução principal escolhida para resposta tem pico alinhado na
+mesma hora (`0 h`), NSE 0,8716, RMSE 1.046,3 m³/s e erro relativo de 10,82%.
+Uma alternativa com erro de pico de 1,18% e atraso de 1 h foi preservada no
+arquivo `assets/data/mucum_eventwise_replay_calibrated/E24_timing_peak_tradeoffs.csv`.
+A versão anterior permanece em `event_E24_published_20260902/`.
 
-## Gate de saída
+E19, E22 e E26 não foram promovidos. Em E19, a vazão observada sobe enquanto
+as chuvas disponíveis permanecem nulas no início do recorte; o conjunto atual
+não identifica essa resposta. E22 recebeu uma busca focada de 288 combinações;
+melhorou o NSE e o erro de pico, mas ainda tem interrupção prolongada na série
+de resposta e subestimação de 33,73%. E26 é curto e apresenta desalinhamento
+entre chuva disponível e resposta. Esses eventos continuam no pacote como
+diagnóstico para a próxima rodada, não como calibração encerrada.
 
-O HEC-HMS só pode ser marcado como “calibrado para pesquisa” depois de:
+## Santa Tereza: replay de nível já fechado
 
-- projeto `.hms`/bacia/meteorologia/controle versionado;
-- fonte bruta e transformação de cada chuva preservadas;
-- curva-chave ou descarga observada auditada;
-- calibração e validação reproduzidas por script;
-- relatório de incerteza e limitações revisado.
+Santa Tereza agora tem um pacote separado em
+`assets/data/santa_tereza_eventwise_replay_rna_2h/`. Ele contém 21 eventos,
+2.677 pontos horários, a série observada, a série prevista pela RNA de 2 horas,
+erro do pico e atraso calculado por timestamp. A visualização é
+`santa_tereza_event_replay.html`; ela pode ser aberta diretamente no navegador
+e também foi ligada à sala integrada.
 
-Até esse gate, a classificação correta é “preparação de calibração” e não
-“previsão operacional”.
+Os episódios E4 (setembro/2023), E6 (novembro/2023) e E9 (maio/2024) estão
+disponíveis como replay histórico. Eles pertencem ao treino do modelo
+selecionado e, portanto, servem para reconstruir a pesquisa, não para declarar
+validação independente. O E12 é o caso de teste independente da rotação.
+
+Esse pacote ainda não é uma calibração HEC-HMS de vazão para Santa Tereza. A
+estação 86472600 tem identidade oficial de Santa Tereza no Rio Taquari, mas a
+auditoria local ainda não fecha uma série horária de vazão e uma curva-chave
+reconciliada. Não foi feita conversão de centímetros para m³/s por hipótese.
+
+## Limite do MDT e do modelo atual
+
+O modelo atual é agregado, de uma bacia, e não uma delimitação hidrológica
+completa derivada do MDT. Portanto, a calibração não valida por si só manchas
+de inundação, profundidades, casas atingidas, rotas, abrigos ou ordem de
+evacuação. O MDT deve entrar na próxima etapa com cobertura comprovada, sistema
+de referência, resolução, preenchimento hidrológico, área de contribuição,
+rede de drenagem e validação espacial documentados.
+
+## Reprodução
+
+O script principal é
+`scripts/calibrate_hec_hms_mucum_multi_event.py`. Os projetos e o DSS-alvo
+foram gerados com HEC-HMS 4.13; os caminhos, hashes e status estão em
+`assets/data/mucum_eventwise_replay_calibrated/eventwise_manifest.json`.
+
+Antes de qualquer promoção futura, ainda é necessário:
+
+- confirmar a semântica, unidade, curva-chave e vigência da vazão observada;
+- revisar cobertura, fuso, lacunas e intervalo de acumulação de cada chuva;
+- delimitar e parametrizar sub-bacias com o MDT real;
+- reservar eventos independentes para validação;
+- comparar volume, pico, horário do pico, NSE/KGE e PBIAS com incerteza;
+- testar em campo e somente então discutir integração com previsão ou resposta.
+
+O estado correto neste commit é `pesquisa/replay calibrado por evento`, não
+`previsão operacional`.

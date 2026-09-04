@@ -1,0 +1,228 @@
+{
+  "schema_version": "hec_hms_taquari_antas_network_audit_v1",
+  "generated_at_utc": "2026-09-04T13:52:30.461596+00:00",
+  "purpose": "estrutura de rede para pesquisa HEC-HMS; não é alerta nem autorização operacional",
+  "source": {
+    "provider": "ANA / SNIRH",
+    "dataset": "BHO6 main.geoft_bho_trecho_drenagem",
+    "endpoint": "https://portal1.snirh.gov.br/server/rest/services/Hosted/main_geoft_bho6_trecho_drenagem/FeatureServer/0/query",
+    "version_field": "dsversao",
+    "query": "cocursodag LIKE '786%'",
+    "network_semantics": "noorigem -> nodestino, trechos conectados com sentido de fluxo"
+  },
+  "stations": {
+    "86472000": {
+      "name": "Linha José Júlio",
+      "role": "Rio das Antas",
+      "lon": -51.6997,
+      "lat": -29.0978,
+      "segment": {
+        "fid": 2560104,
+        "nuareacont": 3.57292317,
+        "noespecif": "Antas",
+        "cocursodag": "786",
+        "nucomptrec": 2.55658445,
+        "nuareamont": 12918.65592517,
+        "noriocomp": "Rio das Antas",
+        "dsversao": "BHO bho_v_06_02_04 de 2022-10-11",
+        "nucompcda": 567.28024955,
+        "nunivotcda": 3,
+        "cobacia": "786711",
+        "nustrahler": 8,
+        "nodestino": 5387421,
+        "dedominial": "Estadual",
+        "noorigem": 5387407,
+        "cotrecho": 2560104
+      },
+      "station_to_bho6_mainstem_m": 133.19
+    },
+    "86472600": {
+      "name": "Santa Tereza",
+      "role": "controle intermediário no Rio Taquari",
+      "lon": -51.7322,
+      "lat": -29.1781,
+      "segment": {
+        "fid": 4650447,
+        "nuareacont": 0.40110934,
+        "noespecif": "Taquari",
+        "cocursodag": "786",
+        "nucomptrec": 0.54867966,
+        "nuareamont": 15775.18569034,
+        "noriocomp": "Rio Taquari",
+        "dsversao": "BHO bho_v_06_02_04 de 2022-10-11",
+        "nucompcda": 567.28024955,
+        "nunivotcda": 3,
+        "cobacia": "786577",
+        "nustrahler": 8,
+        "nodestino": 5387380,
+        "dedominial": "Estadual",
+        "noorigem": 5387378,
+        "cotrecho": 4650447
+      },
+      "station_to_bho6_mainstem_m": 111.37
+    },
+    "86510000": {
+      "name": "Muçum",
+      "role": "posto de resposta no Rio Taquari",
+      "lon": -51.8686,
+      "lat": -29.1672,
+      "segment": {
+        "fid": 1800968,
+        "nuareacont": 4.74730798,
+        "noespecif": "Taquari",
+        "cocursodag": "786",
+        "nucomptrec": 3.22592358,
+        "nuareamont": 15965.20663842,
+        "noriocomp": "Rio Taquari",
+        "dsversao": "BHO bho_v_06_02_04 de 2022-10-11",
+        "nucompcda": 567.28024955,
+        "nunivotcda": 3,
+        "cobacia": "786515",
+        "nustrahler": 8,
+        "nodestino": 5387013,
+        "dedominial": "Estadual",
+        "noorigem": 5387016,
+        "cotrecho": 1800968
+      },
+      "station_to_bho6_mainstem_m": 148.48
+    }
+  },
+  "topology": {
+    "all_bho6_segments_in_code_786_family": 33133,
+    "upstream_segments_reachable_from_86510000": 20853,
+    "mainstem_segments_in_upstream_network": 523,
+    "major_segments_at_or_above_area_threshold": 2403,
+    "major_area_threshold_km2": 50.0,
+    "connected_order": [
+      "86472000",
+      "86472600",
+      "86510000"
+    ],
+    "paths": {
+      "86472000_to_86472600": {
+        "segment_count": 18,
+        "length_km": 20.872,
+        "start_segment": 2560104,
+        "end_segment": 4650447,
+        "watercourses": [
+          "Rio Taquari",
+          "Rio das Antas"
+        ],
+        "segments": [
+          2560104,
+          646130,
+          2453151,
+          2364544,
+          81561,
+          2237671,
+          4173438,
+          1784157,
+          1103357,
+          2604649,
+          1517125,
+          3643397,
+          2678910,
+          2427847,
+          3917173,
+          4638889,
+          2891416,
+          4650447
+        ]
+      },
+      "86472600_to_86510000": {
+        "segment_count": 24,
+        "length_km": 23.652,
+        "start_segment": 4650447,
+        "end_segment": 1800968,
+        "watercourses": [
+          "Rio Taquari"
+        ],
+        "segments": [
+          4650447,
+          2370890,
+          1419348,
+          2313321,
+          4479383,
+          380825,
+          5464529,
+          3118818,
+          4625168,
+          3189471,
+          940175,
+          523120,
+          1449257,
+          1928975,
+          994522,
+          271955,
+          2813037,
+          3573484,
+          2421904,
+          1322884,
+          3260050,
+          2355281,
+          3717938,
+          1800968
+        ]
+      }
+    },
+    "nested_catchment_area_km2_from_bho6": {
+      "86472000": 12918.656,
+      "86472600": 15775.186,
+      "86510000": 15965.207
+    },
+    "nested_area_differences_km2": {
+      "86472000_to_86472600_km2": 2856.53,
+      "86472600_to_86510000_km2": 190.021,
+      "86472000_to_86510000_km2": 3046.551
+    }
+  },
+  "model_design": {
+    "scope": "bacia aninhada Rio das Antas -> Rio Taquari até Muçum",
+    "elements": [
+      {
+        "id": "SB_ANTAS_86472000",
+        "type": "subbasin",
+        "area_km2": 12918.656,
+        "status": "network_anchor"
+      },
+      {
+        "id": "R_ANTAS_SANTA_TEREZA",
+        "type": "reach",
+        "source_path": "86472000_to_86472600",
+        "status": "geometry_source_ready_routing_parameters_pending"
+      },
+      {
+        "id": "J_SANTA_TEREZA_86472600",
+        "type": "junction",
+        "station": "86472600",
+        "status": "control_point_no_reconciled_flow_target"
+      },
+      {
+        "id": "R_SANTA_TEREZA_MUCUM",
+        "type": "reach",
+        "source_path": "86472600_to_86510000",
+        "status": "geometry_source_ready_routing_parameters_pending"
+      },
+      {
+        "id": "J_MUCUM_86510000",
+        "type": "junction",
+        "station": "86510000",
+        "status": "calibration_target_candidate"
+      }
+    ],
+    "routing_method": "Muskingum or Muskingum-Cunge only after reach length/slope/section evidence is reconciled",
+    "rainfall_policy": "use only audited station variables; 86472600 has no audited event rainfall in the current package"
+  },
+  "calibration_gate": {
+    "network_topology": "CONFIRMED_FROM_BHO6",
+    "mucum_observed_flow": "CANDIDATE_AVAILABLE_BUT_UNIT_AND_SERIES_RECONCILIATION_REQUIRED",
+    "santa_tereza_observed_flow": "BLOCKED_CURRENT_AUDIT_HAS_NO_RECONCILED_SERIES",
+    "reach_routing_parameters": "BLOCKED_UNTIL_CHANNEL_LENGTH_SLOPE_AND_CROSS_SECTION_POLICY_IS_CLOSED",
+    "rainfall_spatialization": "PARTIAL_AUDITED_GAUGES_ONLY",
+    "calibration_status": "NOT_CLAIMED_AS_COMPLETED"
+  },
+  "artifacts": {
+    "network_geojson": "bho6_taquari_antas_network.geojson",
+    "this_report": "network_audit_latest.json"
+  }
+}
