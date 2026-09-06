@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import build_binary_research_decision as binary
+from scripts import build_binary_research_decision as binary
 
 
 class BinaryResearchDecisionTests(unittest.TestCase):

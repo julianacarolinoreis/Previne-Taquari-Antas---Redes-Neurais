@@ -24,6 +24,8 @@
   .modes{margin-left:auto;display:flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px}
   .modes button{border:none;background:transparent;color:var(--muted);font-size:12.5px;font-weight:650;padding:6px 13px;border-radius:999px;cursor:pointer}
   .modes button.on{background:var(--brand);color:#fff}
+  .modes button:focus-visible,.play:focus-visible,.method .step:focus-visible{outline:3px solid #f0a33a;outline-offset:2px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   /* layout */
   main{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:calc(100vh - 55px)}
   #map{position:relative;background:var(--bg)}
@@ -165,6 +167,12 @@
     #map{height:56vh}
     aside{border-left:0;border-top:1px solid var(--line)}
   }
+  @media(max-width:600px){
+    header{flex-wrap:wrap;padding:10px 12px}
+    header>div:not(.modes){min-width:0;flex:1}
+    .modes{width:100%;margin-left:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-radius:12px}
+    .modes button{white-space:normal;line-height:1.2;padding:8px 5px;font-size:11.5px}
+  }
 </style>
 <link rel="stylesheet" href="assets/previsao_panorama.css">
 <link rel="stylesheet" href="assets/css/gestor_chrome.css">
@@ -192,9 +200,9 @@
     <!-- ===== LINHA DO TEMPO (compartilhada) ===== -->
     <div class="tl">
       <div class="q" style="margin-top:2px">Quando isso pode acontecer?</div>
-      <div class="head"><button class="play" id="play">▶</button>
-        <div style="flex:1"><div class="tlab" id="tlab">—</div><input type="range" id="time" min="0" max="1" value="0"></div></div>
-      <div class="hint">Arraste a linha do tempo (ou dê play) para ver a água avançar. Clique em um ponto do mapa para a profundidade ali.</div>
+      <div class="head"><button type="button" class="play" id="play" aria-label="Reproduzir linha do tempo">▶</button>
+        <div style="flex:1"><div class="tlab" id="tlab">—</div><label class="sr-only" for="time">Momento da previsão na linha do tempo</label><input type="range" id="time" min="0" max="1" value="0" aria-describedby="timeline-hint"></div></div>
+      <div class="hint" id="timeline-hint">Arraste a linha do tempo (ou dê play) para ver a água avançar. Clique em um ponto do mapa para a profundidade ali.</div>
     </div>
 
     <!-- ===== MODO SIMPLES ===== -->
@@ -248,7 +256,7 @@
           <div class="row2"><span class="sw b"></span><b>possível avanço fora do leito</b> (RNA, em laranja)</div>
           <div class="row2"><span class="sw u"></span>faixa de incerteza (a borda pode variar)</div>
         </div>
-        <div class="disc">A camada colorida exclui o contorno-base HAND 0, usado provisoriamente como aproximação do leito. Ela mostra somente a área adicional estimada fora desse contorno. A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata nem como alerta oficial. No controle de camadas, <b>“MDT refinado · pesquisa”</b> mostra uma visualização suavizada apenas para reduzir ruído isolado no talvegue; o original continua preservado. Para leitura visual contínua, ilhas internas do polígono são ocultadas apenas no desenho; o GeoJSON original e suas áreas não mudam.</div>
+        <div class="disc">A camada colorida exclui o contorno-base HAND 0, usado provisoriamente como aproximação do leito. Ela mostra somente a área adicional estimada fora desse contorno. A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata nem como alerta oficial. No controle de camadas, <b>“MDT refinado · pesquisa”</b> mostra uma visualização suavizada apenas para reduzir ruído isolado no talvegue; o original continua preservado. Na mancha desenhada, somente ilhas internas menores que <b>0,5 ha</b> são ocultadas; o contorno-base HAND 0 e as ilhas maiores permanecem preservados. O GeoJSON original e suas áreas não mudam.</div>
       </div></details>
     </div>
 
@@ -289,7 +297,7 @@
 
       <h4>Calibração · nível normal ↔ terreno</h4>
       <p class="disc" style="margin-top:2px"><b>Leitura da régua</b>: o valor em metros é a altura lida na estação Santa Tereza/SGB-ANA, não a profundidade total do rio. <b>Nível normal / zero operacional</b>: leitura adotada como início da mancha no leito do rio (HAND 0). Padrão provisório calibrado em <b>4,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
-      <input type="range" id="bankfull" min="100" max="700" step="10" value="400" style="width:100%">
+      <label class="sr-only" for="bankfull">Nível normal provisório da régua usado na calibração visual</label><input type="range" id="bankfull" min="100" max="700" step="10" value="400" aria-valuetext="4,0 m" style="width:100%">
       <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> Terreno: mosaico 2&nbsp;m (drone + ANADEM). O nível normal (HAND 0) foi estimado em ~405 cm e arredondado para <b>400 cm</b>. O contorno HAND 0 é removido da camada colorida para não representar o leito normal como inundação. A cota de inundação oficial permanece <b>15 m</b> (SGB/SACE). Fora do footprint do drone a borda segue a resolução do ANADEM. O refinamento é visual, não substitui validação hidrológica.</div>
     </div>
   </aside>
@@ -359,7 +367,7 @@
       <div class="rp-grid" aria-label="Resumo da pesquisa">
         <div class="rp-stat"><b>86472600</b><span>estação Santa Tereza</span></div>
         <div class="rp-stat"><b>1.500 cm</b><span>cota oficial de inundação</span></div>
-        <div class="rp-stat"><b>5</b><span>eventos validados</span></div>
+        <div class="rp-stat"><b>5</b><span>eventos com séries de nível e chuva conferidas; mancha espacial ainda em pesquisa</span></div>
         <div class="rp-stat"><b>5</b><span>horizontes: 24/48/72/120/168 h</span></div>
       </div>
       <div class="rp-meta"><strong>Dados:</strong> série ANA rebaixada e auditada, com âncoras SGB. <strong>Chuva:</strong> backfill GEFS/NODD concluído (2.634 rodadas) e IFS prospectivo, sempre com emissão e disponibilidade registradas. <strong>Estado:</strong> a RNA experimental foi ajustada com os cinco eventos em modo sombra; promoção, alerta e resposta binária atual permanecem bloqueados quando a combinação estiver atrasada.</div>
@@ -515,7 +523,7 @@ function forecastTargetLabels(ev,s,D){
     ? {simple:`+${hz} · para ${alvo}`, tech:`${hz} · para ${alvo}`}
     : {simple:`+${hz}`, tech:hz};
 }
-let handArr=null, curEv=Object.keys(EVENTS)[0];
+let handArr=null, handLoadPromise=null, curEv=Object.keys(EVENTS)[0];
 let bankfull=400, tIdx=0, playing=false, timer=null, map=null, curS=null;
 const calibByEvent={};
 const LIVE_API_URL='https://api.github.com/repos/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/contents/previsao_ao_vivo.json?ref=main';
@@ -600,6 +608,11 @@ function loadHand(){return new Promise(res=>{
   img.onerror=()=>{handArr=null;res();};
   img.src='data:image/png;base64,'+HAND.hand_png_b64;
 });}
+function ensureHand(){
+  if(handArr) return Promise.resolve(handArr);
+  if(!handLoadPromise) handLoadPromise=loadHand().then(()=>handArr);
+  return handLoadPromise;
+}
 
 function loadContornos(){return fetch(CONTORNOS_URL).then(r=>r.json()).then(fc=>{contornos=fc;}).catch(e=>{console.error('falha ao carregar contornos', e); contornos=null;});}
 
@@ -642,9 +655,8 @@ function achaFeature(mLvl){
   const alvo=Math.round(Math.max(0,Math.min(teto,mLvl))*10)/10;
   return contornos.features.find(f=>Math.abs(f.properties.nivel_m-alvo)<0.01) || null;
 }
-// Suprime ilhas internas somente na camada desenhada (anti-ruído visual). Os
-// GeoJSON originais permanecem intactos para auditoria.
-const HIDE_ALL_VISUAL_HOLES=true;
+// Suprime apenas ilhas internas menores que 0,5 ha na camada desenhada. Os
+// anéis grandes e os GeoJSON originais permanecem intactos para auditoria.
 const MIN_VISUAL_HOLE_M2=5000;
 function ringAreaM2(ring){
   if(!Array.isArray(ring)||ring.length<4) return 0;
@@ -661,7 +673,7 @@ function ringAreaM2(ring){
 }
 function visualGeometry(geom){
   if(!geom||!geom.type) return geom;
-  const clean=poly=>Array.isArray(poly)&&poly.length ? [poly[0],...(HIDE_ALL_VISUAL_HOLES?[]:poly.slice(1).filter(r=>ringAreaM2(r)>=MIN_VISUAL_HOLE_M2))] : poly;
+  const clean=poly=>Array.isArray(poly)&&poly.length ? [poly[0],...poly.slice(1).filter(r=>ringAreaM2(r)>=MIN_VISUAL_HOLE_M2)] : poly;
   if(geom.type==='Polygon') return {...geom,coordinates:clean(geom.coordinates)};
   if(geom.type==='MultiPolygon') return {...geom,coordinates:geom.coordinates.map(clean)};
   return geom;
@@ -675,7 +687,7 @@ function setLayer(layer, mLvl){
 }
 
 function renderFrame(){
-  if(!handArr) return;
+  if(!contornos) return;
   const ev=EVENTS[curEv], s=ev.series[tIdx]; curS=s;
   const nowCm=s[1], obsCm=s[2], foreCm=s[3];
   // O modo ao vivo precisa ser resolvido antes de escolher o horizonte.
@@ -701,7 +713,7 @@ function renderFrame(){
   // TP/FP/FN vs observado ainda precisa do raster (comparacao ponto a ponto
   // com o nivel observado) -- so roda quando tem observado
   let TP=0,FP=0,FN=0;
-  if(hasObs){
+  if(hasObs&&handArr){
     for(let i=0;i<COLS*ROWS;i++){
       const hd=handArr[i];
       const inFore=hasFore&&hd>0&&hd<=foreDm, inObs=hd>0&&hd<=obsDm;
@@ -750,10 +762,11 @@ function renderFrame(){
   set('r-anew', hasFore?sgn1(areaNew)+' ha':'—');
   set('r-growth', hasFore&&hasNow?(growth!=null?sgn1(growth)+' %':(areaFore>0?'início do extravasamento':'0,0 %')):'—');
   const vb=document.getElementById('valblock');
-  if(hasObs){vb.style.display=''; const den=TP+FP+FN,iou=den>0?TP/den*100:0;
+  if(hasObs&&handArr){vb.style.display=''; const den=TP+FP+FN,iou=den>0?TP/den*100:0;
     set('v-iou',nf.format(iou)+' %'); set('v-fp',nf.format(FP*cellHa)+' ha'); set('v-fn',nf.format(FN*cellHa)+' ha');
   } else vb.style.display='none';
   set('tlab', s[0]);
+  document.getElementById('time').setAttribute('aria-valuetext',s[0]);
   drawHydro();
 }
 
@@ -778,13 +791,14 @@ function setEvent(ev){
   curEv=ev; tIdx=0;
   document.querySelectorAll('#scn button').forEach(b=>b.classList.toggle('on',b.dataset.ev===ev));
   const E=EVENTS[ev];
-  if(playing){playing=false; clearTimeout(timer); document.getElementById('play').textContent='▶';}
+  if(playing){playing=false; clearTimeout(timer); document.getElementById('play').textContent='▶'; document.getElementById('play').setAttribute('aria-label','Reproduzir linha do tempo');}
   document.getElementById('time').max=Math.max(0,E.series.length-1);
   document.getElementById('time').value=0;
   const hzt=E.horizonte==='—'?'':'+'+hzLabel(E.horizonte);
   set('hz',hzLabel(E.horizonte)); set('hz2',hzLabel(E.horizonte)); set('s-hz',hzt||'—'); set('s-hz2',hzHours(E.horizonte,E));
   if(calibByEvent[ev]!=null) bankfull=calibByEvent[ev];
   document.getElementById('bankfull').value=bankfull;
+  document.getElementById('bankfull').setAttribute('aria-valuetext',(bankfull/100).toFixed(1).replace('.',',')+' m');
   set('bfval',(bankfull/100).toFixed(1)+' m');
   set('bfevent', calibByEvent[ev]!=null?(bankfull/100).toFixed(1)+' m (ajustado)':'nível normal padrão');
   const est=!!E.estatico;
@@ -1155,9 +1169,10 @@ async function init(){
     cotaInundCm:COTA_INUND,
     onLayout:()=>{if(map)setTimeout(()=>map.invalidateSize(),50);}
   });
+  document.getElementById('mode-t').addEventListener('click',()=>ensureHand().then(renderFrame));
   document.getElementById('time').oninput=e=>{tIdx=+e.target.value; renderFrame();};
-  document.getElementById('bankfull').oninput=e=>{bankfull=+e.target.value; calibByEvent[curEv]=bankfull; set('bfval',(bankfull/100).toFixed(1)+' m'); set('bfevent',(bankfull/100).toFixed(1)+' m (ajustado)'); renderFrame();};
-  document.getElementById('play').onclick=()=>{playing=!playing; document.getElementById('play').textContent=playing?'⏸':'▶'; if(playing)tick(); else clearTimeout(timer);};
+  document.getElementById('bankfull').oninput=e=>{bankfull=+e.target.value; e.target.setAttribute('aria-valuetext',(bankfull/100).toFixed(1).replace('.',',')+' m'); calibByEvent[curEv]=bankfull; set('bfval',(bankfull/100).toFixed(1)+' m'); set('bfevent',(bankfull/100).toFixed(1)+' m (ajustado)'); renderFrame();};
+  document.getElementById('play').onclick=()=>{playing=!playing; const b=document.getElementById('play'); b.textContent=playing?'⏸':'▶'; b.setAttribute('aria-label',playing?'Pausar linha do tempo':'Reproduzir linha do tempo'); if(playing)tick(); else clearTimeout(timer);};
   document.getElementById('hydro').addEventListener('click',e=>{const E=EVENTS[curEv]; if(E.series.length<2)return;
     const r=e.currentTarget.getBoundingClientRect(), sx=(e.clientX-r.left)/r.width*320;
     let i=Math.round((sx-6)/(320-12)*(E.series.length-1)); i=Math.max(0,Math.min(E.series.length-1,i)); tIdx=i; document.getElementById('time').value=i; renderFrame();});
@@ -1165,7 +1180,7 @@ async function init(){
   document.getElementById('live-btn').onclick=()=>liveMode?exitLive():enterLive();
   document.querySelectorAll('[data-live-hz]').forEach(b=>b.onclick=()=>setLiveHorizon(b.dataset.liveHz));
 
-  await Promise.all([loadHand(), loadContornos(), loadElevation()]);
+  await Promise.all([loadContornos(), loadElevation()]);
   if(typeof L!=='undefined'){
     map=L.map('map',{scrollWheelZoom:true}).fitBounds(BOUNDS);
     const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'© Esri, Maxar'});
@@ -1230,7 +1245,8 @@ async function init(){
     stationControl.addTo(map);
     if(pt) L.circleMarker([pt.lat,pt.lon],{radius:6,color:'#fff',weight:2,fillColor:'#b04538',fillOpacity:.95}).addTo(map).bindPopup('<b>'+pt.label+'</b>');
     // clique no mapa -> altitude do MDT e profundidade de água no ponto
-    map.on('click', e=>{
+    map.on('click', async e=>{
+      await ensureHand();
       const hd=handAt(e.latlng.lat,e.latlng.lng), elev=elevationAt(e.latlng.lat,e.latlng.lng);
       if(hd==null&&elev==null) return;
       let html='<div class="pt-pop"><b>Neste ponto</b>';

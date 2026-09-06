@@ -24,6 +24,8 @@
   .modes{margin-left:auto;display:flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px}
   .modes button{border:none;background:transparent;color:var(--muted);font-size:12.5px;font-weight:650;padding:6px 13px;border-radius:999px;cursor:pointer}
   .modes button.on{background:var(--brand);color:#fff}
+  .modes button:focus-visible,.play:focus-visible,.method .step:focus-visible{outline:3px solid #f0a33a;outline-offset:2px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   /* layout */
   main{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:calc(100vh - 55px)}
   #map{position:relative;background:var(--bg)}
@@ -96,16 +98,22 @@
     #map{height:56vh}
     aside{border-left:0;border-top:1px solid var(--line)}
   }
+  @media(max-width:600px){
+    header{flex-wrap:wrap;padding:10px 12px}
+    header>div:not(.modes){min-width:0;flex:1}
+    .modes{width:100%;margin-left:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-radius:12px}
+    .modes button{white-space:normal;line-height:1.2;padding:8px 6px}
+  }
 </style>
 </head>
 <body>
 <header>
   <span class="mark"></span>
-  <div><h1>Cheias anteriores — até onde a água chegou</h1><div class="loc">Santa Tereza · bacia Taquari-Antas · espacialização da mancha nos eventos validados</div></div>
-  <div class="modes"><button id="mode-s" class="on">Visualização simples</button><button id="mode-t">Dados técnicos</button></div>
+  <div><h1>Cheias anteriores — até onde a água chegou</h1><div class="loc">Santa Tereza · bacia Taquari-Antas · séries de nível conferidas · mancha espacial em pesquisa</div></div>
+  <div class="modes" aria-label="Modo de visualização"><button type="button" id="mode-s" class="on" aria-pressed="true">Visualização simples</button><button type="button" id="mode-t" aria-pressed="false">Dados técnicos</button></div>
 </header>
 <main>
-  <div id="map"></div>
+  <div id="map" role="application" aria-label="Mapa interativo das cheias históricas em Santa Tereza" aria-describedby="map-accessible-description"><span class="sr-only" id="map-accessible-description">Use os controles de camadas para alternar o mapa de fundo. As manchas representam uma espacialização de pesquisa e não validação em nível de rua.</span></div>
   <aside>
     <div class="scn-intro">Escolha uma cheia que já aconteceu para ver a mancha que a RNA espacializou no terreno.</div>
     <div class="scn" id="scn"></div>
@@ -113,9 +121,9 @@
     <!-- ===== LINHA DO TEMPO (compartilhada) ===== -->
     <div class="tl">
       <div class="q" style="margin-top:2px">Quando isso pode acontecer?</div>
-      <div class="head"><button class="play" id="play">▶</button>
-        <div style="flex:1"><div class="tlab" id="tlab">—</div><input type="range" id="time" min="0" max="1" value="0"></div></div>
-      <div class="hint">Arraste a linha do tempo (ou dê play) para ver a água avançar. Clique em um ponto do mapa para a profundidade ali.</div>
+      <div class="head"><button type="button" class="play" id="play" aria-label="Reproduzir linha do tempo">▶</button>
+        <div style="flex:1"><div class="tlab" id="tlab">—</div><label class="sr-only" for="time">Momento da cheia na linha do tempo</label><input type="range" id="time" min="0" max="1" value="0" aria-describedby="timeline-hint"></div></div>
+      <div class="hint" id="timeline-hint">Arraste a linha do tempo (ou dê play) para ver a água avançar. Clique em um ponto do mapa para a profundidade ali.</div>
     </div>
 
     <!-- ===== MODO SIMPLES ===== -->
@@ -132,13 +140,6 @@
         <div class="row"><span>Nova área potencial</span><b id="s-newarea" class="prev">—</b></div>
         <div class="row"><span>Área total prevista</span><b id="s-atot">—</b></div>
         <div class="conf">Confiança da previsão: <span class="dot" id="s-confdot"></span><b id="s-conf">—</b></div>
-      </div>
-
-      <div class="tl">
-        <div class="q" style="margin-top:14px">Quando isso pode acontecer?</div>
-        <div class="head"><button class="play" id="play">▶</button>
-          <div><div class="tlab" id="tlab">—</div><input type="range" id="time" min="0" max="1" value="0"></div></div>
-        <div class="hint">Arraste a linha do tempo (ou dê play) para ver a água avançar. Clique em um ponto do mapa para a profundidade ali.</div>
       </div>
 
       <details class="card"><summary>Como esta previsão é feita?</summary><div class="body">
@@ -162,7 +163,7 @@
           <div class="row2"><span class="sw b"></span><b>alcance previsto pela RNA</b> (laranja)</div>
           <div class="row2"><span class="sw u"></span>faixa de incerteza (a borda pode variar)</div>
         </div>
-        <div class="disc">A <b>confiança</b> cai quanto maior o horizonte (2 h é mais confiável que 12 h). A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata. Base: <b>mosaico 2&nbsp;m</b> (drone no centro urbano + ANADEM 30&nbsp;m nas bordas). A camada opcional <b>“MDT refinado · pesquisa”</b> remove apenas desvios isolados no corredor do talvegue; o MDT original permanece preservado e o refinamento ainda não é validação hidrológica. Para leitura visual contínua, ilhas internas do polígono são ocultadas apenas no desenho; o GeoJSON original e suas áreas não mudam.</div>
+        <div class="disc">A <b>confiança</b> cai quanto maior o horizonte (2 h é mais confiável que 12 h). A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata. Base: <b>mosaico 2&nbsp;m</b> (drone no centro urbano + ANADEM 30&nbsp;m nas bordas). A camada opcional <b>“MDT refinado · pesquisa”</b> remove apenas desvios isolados no corredor do talvegue; o MDT original permanece preservado e o refinamento ainda não é validação hidrológica. Na mancha desenhada, somente ilhas internas menores que <b>0,5 ha</b> são ocultadas para reduzir ruído visual; ilhas maiores permanecem preservadas. O GeoJSON original e suas áreas não mudam.</div>
       </div></details>
     </div>
 
@@ -192,7 +193,7 @@
 
       <h4>Calibração · nível normal ↔ terreno</h4>
       <p class="disc" style="margin-top:2px"><b>Nível normal / zero operacional da régua</b>: leitura adotada como início da mancha no leito do rio (HAND 0). Padrão provisório calibrado em <b>4,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
-      <input type="range" id="bankfull" min="100" max="700" step="10" value="400" style="width:100%">
+      <label class="sr-only" for="bankfull">Nível normal provisório da régua usado na calibração visual</label><input type="range" id="bankfull" min="100" max="700" step="10" value="400" aria-valuetext="4,0 m" style="width:100%">
       <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> Terreno: mosaico 2&nbsp;m (drone + ANADEM). O nível normal (HAND 0) foi estimado em ~405 cm e arredondado para <b>400 cm</b>. A cota de inundação oficial permanece <b>15 m</b> (SGB/SACE). Fora do footprint do drone a borda segue a resolução do ANADEM. O “MDT refinado” é somente visual e pode ser desligado no controle de camadas.</div>
     </div>
   </aside>
@@ -225,7 +226,7 @@ const set=(id,t)=>{const e=document.getElementById(id); if(e)e.textContent=t;};
 // margem de incerteza (m) por horizonte — cresce com o lead
 const UNCERT={'2h':0.3,'4h':0.5,'8h':0.7,'12h':1.0,'—':0};
 const CONF={'2h':['Alta','#1b7a5a'],'4h':['Moderada','#c98a1a'],'8h':['Moderada','#c98a1a'],'12h':['Baixa','#c0392b'],'—':['—','#999']};
-let handArr=null, curEv=Object.keys(EVENTS)[0];
+let handArr=null, handLoadPromise=null, curEv=Object.keys(EVENTS)[0];
 let bankfull=400, tIdx=0, playing=false, timer=null, map=null, curS=null;
 const calibByEvent={};
 
@@ -245,6 +246,11 @@ function loadHand(){return new Promise(res=>{
   img.onerror=()=>{handArr=null;res();};
   img.src='data:image/png;base64,'+HAND.hand_png_b64;
 });}
+function ensureHand(){
+  if(handArr) return Promise.resolve(handArr);
+  if(!handLoadPromise) handLoadPromise=loadHand().then(()=>handArr);
+  return handLoadPromise;
+}
 
 function loadContornos(){return fetch(CONTORNOS_URL).then(r=>r.json()).then(fc=>{contornos=fc;}).catch(e=>{console.error('falha ao carregar contornos', e); contornos=null;});}
 
@@ -290,9 +296,8 @@ function achaFeature(mLvl){
   return contornos.features.find(f=>Math.abs(f.properties.nivel_m-alvo)<0.01) || null;
 }
 // O polígono original pode conter ilhas internas criadas pela rasterização do
-// HAND. Elas são ocultadas apenas na camada desenhada para a mancha ficar
-// contínua; o GeoJSON bruto continua sendo a fonte auditável.
-const HIDE_ALL_VISUAL_HOLES=true;
+// HAND. A camada desenhada oculta apenas ruídos menores que 0,5 ha e preserva
+// os anéis grandes; o GeoJSON bruto continua sendo a fonte auditável.
 const MIN_VISUAL_HOLE_M2=5000;
 function ringAreaM2(ring){
   if(!Array.isArray(ring)||ring.length<4) return 0;
@@ -309,7 +314,7 @@ function ringAreaM2(ring){
 }
 function visualGeometry(geom){
   if(!geom||!geom.type) return geom;
-  const clean=poly=>Array.isArray(poly)&&poly.length ? [poly[0],...(HIDE_ALL_VISUAL_HOLES?[]:poly.slice(1).filter(r=>ringAreaM2(r)>=MIN_VISUAL_HOLE_M2))] : poly;
+  const clean=poly=>Array.isArray(poly)&&poly.length ? [poly[0],...poly.slice(1).filter(r=>ringAreaM2(r)>=MIN_VISUAL_HOLE_M2)] : poly;
   if(geom.type==='Polygon') return {...geom,coordinates:clean(geom.coordinates)};
   if(geom.type==='MultiPolygon') return {...geom,coordinates:geom.coordinates.map(clean)};
   return geom;
@@ -323,7 +328,7 @@ function setLayer(layer, mLvl){
 }
 
 function renderFrame(){
-  if(!handArr) return;
+  if(!contornos) return;
   const ev=EVENTS[curEv], s=ev.series[tIdx]; curS=s;
   const nowCm=s[1], obsCm=s[2], foreCm=s[3];
   const hasNow=nowCm!=null&&Number.isFinite(Number(nowCm));
@@ -347,7 +352,7 @@ function renderFrame(){
   // TP/FP/FN vs observado ainda precisa do raster (comparação ponto a ponto
   // com o nível observado) — só roda quando tem observado, é o modo raro
   let TP=0,FP=0,FN=0;
-  if(hasObs){
+  if(hasObs&&handArr){
     for(let i=0;i<COLS*ROWS;i++){
       const hd=handArr[i];
       const inFore=hasFore&&hd<=foreDm, inObs=hd<=obsDm;
@@ -375,10 +380,11 @@ function renderFrame(){
   set('r-anew', hasFore?sgn1(areaNew)+' ha':'—');
   set('r-growth', hasFore&&hasNow?sgn1(growth)+' %':'—');
   const vb=document.getElementById('valblock');
-  if(hasObs){vb.style.display=''; const den=TP+FP+FN,iou=den>0?TP/den*100:0;
+  if(hasObs&&handArr){vb.style.display=''; const den=TP+FP+FN,iou=den>0?TP/den*100:0;
     set('v-iou',nf.format(iou)+' %'); set('v-fp',nf.format(FP*cellHa)+' ha'); set('v-fn',nf.format(FN*cellHa)+' ha');
   } else vb.style.display='none';
   set('tlab', s[0]);
+  document.getElementById('time').setAttribute('aria-valuetext',s[0]);
   drawHydro();
 }
 
@@ -403,13 +409,14 @@ function setEvent(ev){
   curEv=ev; tIdx=0;
   document.querySelectorAll('#scn button').forEach(b=>b.classList.toggle('on',b.dataset.ev===ev));
   const E=EVENTS[ev];
-  if(playing){playing=false; clearTimeout(timer); document.getElementById('play').textContent='▶';}
+  if(playing){playing=false; clearTimeout(timer); document.getElementById('play').textContent='▶'; document.getElementById('play').setAttribute('aria-label','Reproduzir linha do tempo');}
   document.getElementById('time').max=Math.max(0,E.series.length-1);
   document.getElementById('time').value=0;
   const hzt=E.horizonte==='—'?'':'+'+E.horizonte;
   set('hz',E.horizonte); set('hz2',E.horizonte); set('s-hz',hzt||'—'); set('s-hz2',(E.horizonte||'').replace('h',''));
   if(calibByEvent[ev]!=null) bankfull=calibByEvent[ev];
   document.getElementById('bankfull').value=bankfull;
+  document.getElementById('bankfull').setAttribute('aria-valuetext',(bankfull/100).toFixed(1).replace('.',',')+' m');
   set('bfval',(bankfull/100).toFixed(1)+' m');
   set('bfevent', calibByEvent[ev]!=null?(bankfull/100).toFixed(1)+' m (ajustado)':'nível normal padrão');
   const est=!!E.estatico;
@@ -439,17 +446,17 @@ function buildScenarios(){
 async function init(){
   buildScenarios();
   // modo simples/tecnico
-  document.getElementById('mode-s').onclick=()=>{document.body.classList.remove('tech'); document.getElementById('mode-s').classList.add('on'); document.getElementById('mode-t').classList.remove('on'); if(map)setTimeout(()=>map.invalidateSize(),50);};
-  document.getElementById('mode-t').onclick=()=>{document.body.classList.add('tech'); document.getElementById('mode-t').classList.add('on'); document.getElementById('mode-s').classList.remove('on'); if(map)setTimeout(()=>map.invalidateSize(),50);};
+  document.getElementById('mode-s').onclick=()=>{document.body.classList.remove('tech'); document.getElementById('mode-s').classList.add('on'); document.getElementById('mode-s').setAttribute('aria-pressed','true'); document.getElementById('mode-t').classList.remove('on'); document.getElementById('mode-t').setAttribute('aria-pressed','false'); if(map)setTimeout(()=>map.invalidateSize(),50);};
+  document.getElementById('mode-t').onclick=()=>{document.body.classList.add('tech'); document.getElementById('mode-t').classList.add('on'); document.getElementById('mode-t').setAttribute('aria-pressed','true'); document.getElementById('mode-s').classList.remove('on'); document.getElementById('mode-s').setAttribute('aria-pressed','false'); ensureHand().then(renderFrame); if(map)setTimeout(()=>map.invalidateSize(),50);};
   document.getElementById('time').oninput=e=>{tIdx=+e.target.value; renderFrame();};
-  document.getElementById('bankfull').oninput=e=>{bankfull=+e.target.value; calibByEvent[curEv]=bankfull; set('bfval',(bankfull/100).toFixed(1)+' m'); set('bfevent',(bankfull/100).toFixed(1)+' m (ajustado)'); renderFrame();};
-  document.getElementById('play').onclick=()=>{playing=!playing; document.getElementById('play').textContent=playing?'⏸':'▶'; if(playing)tick(); else clearTimeout(timer);};
+  document.getElementById('bankfull').oninput=e=>{bankfull=+e.target.value; e.target.setAttribute('aria-valuetext',(bankfull/100).toFixed(1).replace('.',',')+' m'); calibByEvent[curEv]=bankfull; set('bfval',(bankfull/100).toFixed(1)+' m'); set('bfevent',(bankfull/100).toFixed(1)+' m (ajustado)'); renderFrame();};
+  document.getElementById('play').onclick=()=>{playing=!playing; const b=document.getElementById('play'); b.textContent=playing?'⏸':'▶'; b.setAttribute('aria-label',playing?'Pausar linha do tempo':'Reproduzir linha do tempo'); if(playing)tick(); else clearTimeout(timer);};
   document.getElementById('hydro').addEventListener('click',e=>{const E=EVENTS[curEv]; if(E.series.length<2)return;
     const r=e.currentTarget.getBoundingClientRect(), sx=(e.clientX-r.left)/r.width*320;
     let i=Math.round((sx-6)/(320-12)*(E.series.length-1)); i=Math.max(0,Math.min(E.series.length-1,i)); tIdx=i; document.getElementById('time').value=i; renderFrame();});
-  document.querySelectorAll('.method .step').forEach(s=>s.onclick=()=>set('method-exp',s.dataset.exp));
+  document.querySelectorAll('.method .step').forEach(s=>{s.setAttribute('tabindex','0');s.setAttribute('role','button');const open=()=>set('method-exp',s.dataset.exp);s.onclick=open;s.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}}});
 
-  await Promise.all([loadHand(), loadContornos(), loadElevation()]);
+  await Promise.all([loadContornos(), loadElevation()]);
   if(typeof L!=='undefined'){
     map=L.map('map',{scrollWheelZoom:true}).fitBounds(BOUNDS);
     const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'© Esri, Maxar'});
@@ -472,7 +479,8 @@ async function init(){
     L.circleMarker([st.lat,st.lon],{radius:7,color:'#fff',weight:2,fillColor:'#1e5fbf',fillOpacity:.95}).addTo(map).bindPopup('<b>Estação '+st.code+'</b><br>Santa Tereza');
     if(pt) L.circleMarker([pt.lat,pt.lon],{radius:6,color:'#fff',weight:2,fillColor:'#b04538',fillOpacity:.95}).addTo(map).bindPopup('<b>'+pt.label+'</b>');
     // clique no mapa -> altitude do MDT e profundidade estimada no ponto
-    map.on('click', e=>{
+    map.on('click', async e=>{
+      await ensureHand();
       const altitude=elevationAt(e.latlng.lat,e.latlng.lng);
       const hd=handAt(e.latlng.lat,e.latlng.lng);
       if(altitude==null&&(!curS||hd==null)) return;
