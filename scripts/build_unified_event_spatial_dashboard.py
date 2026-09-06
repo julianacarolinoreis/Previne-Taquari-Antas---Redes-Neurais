@@ -328,6 +328,7 @@ def calibration_snapshot() -> dict[str, object]:
     best = two_station.get("best_by_research_score") or {}
     target_rain = eligible.get("target_rain_sensitivity", {})
     return {
+        "generated_at_utc": status.get("generated_at_utc"),
         "overall_status": status.get("overall_status"),
         "incremental_area_events": eligible.get("three_incremental_areas_complete_events", []),
         "model_scope": status.get("network", {}).get("scope"),
@@ -357,7 +358,7 @@ def calibration_snapshot() -> dict[str, object]:
 HTML = r'''<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,">
 <title>PREVINE · replay histórico e território</title>
 <style>
 :root{--ink:#12313b;--muted:#607681;--line:#d6e6e8;--paper:#fff;--bg:#eff8f7;--blue:#0879c9;--orange:#ed7a2a;--teal:#087d77;--pink:#df3f88;--gold:#b57216;--shadow:0 18px 44px rgba(15,57,70,.11)}
@@ -458,11 +459,48 @@ HTML = HTML.replace(
     '<div class="reading" id="reading">—</div><div id="selectionNote" style="display:none;margin-top:9px;border:1px solid #f0dfbd;border-left:4px solid #b57216;border-radius:11px;background:#fff8e9;padding:10px 12px;color:#70480d;font-size:12px"></div>',
 )
 
+# Expose freshness, add an event-comparison view, and let the reader replay the
+# historical hourly series. These controls use only values embedded in DATA.
+HTML = HTML.replace(
+    '<div class="notice"><strong>Pesquisa, não operação.</strong> As séries são replays históricos. A camada espacial é um cenário de triagem sobre MDT e manchas publicadas; a conversão cota–mancha, rotas, capacidade de abrigo e despacho continuam fora deste painel.</div>',
+    '<div class="notice"><strong>Pesquisa, não operação.</strong> As séries são replays históricos. A camada espacial é um cenário de triagem sobre MDT e manchas publicadas; a conversão cota–mancha, rotas, capacidade de abrigo e despacho continuam fora deste painel.</div><div class="snapshot-strip" aria-label="Atualização e natureza dos dados"><span id="snapshotFreshness">Data do snapshot indisponível</span><span id="snapshotSources">Fontes embarcadas e reproduzíveis · não é telemetria ao vivo</span></div>',
+)
+HTML = HTML.replace(
+    '<a href="#catalogTitle">Catálogo</a>',
+    '<a href="#comparisonTitle">Comparar eventos</a><a href="#catalogTitle">Catálogo</a>',
+)
+HTML = HTML.replace(
+    '<p class="chart-quality" id="chartQuality"></p>',
+    '<div class="playback-panel" aria-label="Reprodução do replay histórico"><button class="button playback-button" id="playReplay" type="button" aria-pressed="false">▶ Reproduzir replay</button><label for="playSpeed">Velocidade<select id="playSpeed"><option value="900">lenta</option><option value="450" selected>normal</option><option value="160">rápida</option></select></label><progress id="playProgress" max="1" value="0"></progress><output id="playStatus" aria-live="polite">—</output></div><p class="playback-note">A animação apenas percorre o replay histórico hora a hora; não é previsão em tempo real.</p><p class="chart-quality" id="chartQuality"></p>',
+)
+comparison = '''<section class="panel comparison-panel" aria-labelledby="comparisonTitle"><div class="event-head"><div><h2 id="comparisonTitle">Onde o replay mais divergiu</h2><div class="muted" id="comparisonSubtitle">Ordenando os eventos com dados disponíveis.</div></div><span class="pill" id="comparisonScope">—</span></div><div class="comparison-toolbar"><label for="comparisonMetric">Ordenar por<select id="comparisonMetric"><option value="peak_error">erro relativo do pico</option><option value="lag">diferença temporal do pico</option></select></label></div><div class="compare-rows" id="comparisonRows"></div><div class="comparison-foot"><button class="button" id="comparisonToggle" type="button" aria-expanded="false">Mostrar todos</button><p id="comparisonNote"></p></div></section>'''
+HTML = HTML.replace(
+    '<section class="panel all-events">',
+    comparison + '<section class="panel all-events">',
+    1,
+)
+HTML = HTML.replace(
+    '<p class="table-instruction">Em telas estreitas, arraste a tabela ou coloque o quadro em foco e use as setas.</p><div class="table-wrap" tabindex="0" role="region" aria-label="Catálogo completo de replays; use as setas para rolar">',
+    '<details class="catalog-details" id="catalogDetails"><summary><span id="catalogSummary">Abrir tabela com 27 eventos</span><small>valores exatos e status</small></summary><p class="table-instruction">Em telas estreitas, arraste a tabela ou coloque o quadro em foco e use as setas.</p><div class="table-wrap" tabindex="0" role="region" aria-label="Catálogo completo de replays; use as setas para rolar">',
+    1,
+)
+HTML = HTML.replace(
+    '</div></section>\n<div class="foot-grid">',
+    '</div></details></section>\n<div class="foot-grid">',
+    1,
+)
+
 def main() -> None:
+    spatial_manifest = json.loads(SPATIAL.read_text(encoding="utf-8"))
+    calibration = calibration_snapshot()
     payload = {
         "events": mucum_events() + santa_events(),
         "spatial": spatial_data(),
-        "calibration": calibration_snapshot(),
+        "calibration": calibration,
+        "meta": {
+            "spatial_generated_at_utc": spatial_manifest.get("generated_at_utc"),
+            "calibration_generated_at_utc": calibration.get("generated_at_utc"),
+        },
     }
     extent = payload["calibration"].get("network_extent", {})
     upstream = f"{int(extent.get('upstream_segments_reachable_from_86510000', 0)):,}".replace(",", ".")

@@ -29,7 +29,13 @@
   }
   const contourAt = (city, level) => city.contours.find(c => c.level===level) || null;
   function aspect(bounds) { return (bounds.east-bounds.west)*Math.cos((bounds.north+bounds.south)*Math.PI/360)/(bounds.north-bounds.south); }
-  const api = {number,time,html,zoomWindow,nearestIndex,gaps,contourAt,aspect};
+  function rankEvents(events, metric='peak_error', limit=8) {
+    return events.map(event=>({event,value:number(event.metrics&&event.metrics[metric])}))
+      .filter(item=>item.value!==null)
+      .sort((a,b)=>Math.abs(b.value)-Math.abs(a.value)||String(a.event.key).localeCompare(String(b.event.key)))
+      .slice(0,limit);
+  }
+  const api = {number,time,html,zoomWindow,nearestIndex,gaps,contourAt,aspect,rankEvents};
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
   if (typeof document === 'undefined') return;
 
@@ -37,8 +43,9 @@
   const formats = [0,1,2,3].map(d => new Intl.NumberFormat('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}));
   const f = (v,d=1) => number(v)===null ? '—' : formats[d].format(Number(v));
   const dateFmt = new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  const snapshotFmt = new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const stamp = value => Number.isFinite(time(value)) ? dateFmt.format(time(value)) : 'horário inválido';
-  const state = {key:DATA.events.some(e=>e.key==='mucum-E24')?'mucum-E24':DATA.events[0].key,city:'all',start:0,end:0,hover:null,drag:null,mapCity:null,level:18,selectedCell:null,selectedService:null,map:{scale:1,tx:0,ty:0}};
+  const state = {key:DATA.events.some(e=>e.key==='mucum-E24')?'mucum-E24':DATA.events[0].key,city:'all',start:0,end:0,hover:null,drag:null,mapCity:null,level:18,selectedCell:null,selectedService:null,map:{scale:1,tx:0,ty:0},comparisonMetric:'peak_error',comparisonExpanded:false,replayTimer:null,replayIndex:0};
   const current = () => DATA.events.find(e=>e.key===state.key);
   const city = () => DATA.spatial[current().city_key];
   const visible = () => current().series.slice(state.start,state.end+1);
@@ -56,6 +63,9 @@
     text('targetRainCount',t.length);text('targetRainDetail',(t.map(x=>String(x).startsWith('E')?x:`E${x}`).join(', ')||'nenhum evento completo')+` · ${c.target_rain_status==='diagnostic_only'?'somente diagnóstico':'status não reconciliado'}. ${c.target_rain_reason||''}`);
     text('twoStationScore',f(best.mean_nse,2));
     text('twoStationDetail',`NSE médio · erro temporal absoluto médio ${f(best.mean_abs_peak_lag_hours)} h · erro de pico ${f(number(best.mean_peak_relative_error)===null?null:best.mean_peak_relative_error*100,1)}%. Experimento distinto dos ajustes por evento.`);
+    const snapshots=[DATA.meta&&DATA.meta.spatial_generated_at_utc,DATA.meta&&DATA.meta.calibration_generated_at_utc].filter(value=>Number.isFinite(time(value)));
+    text('snapshotFreshness',snapshots.length?`Snapshot mais recente: ${snapshotFmt.format(Math.max(...snapshots.map(time)))} BRT`:'Data do snapshot indisponível');
+    text('snapshotSources','Fontes embarcadas e reproduzíveis · não é telemetria ao vivo');
   }
   function populateEvents() {
     const select=$('eventSelect');select.replaceChildren();
@@ -72,7 +82,7 @@
     return candidates.length?stamp(candidates.reduce((a,b)=>b[col]>a[col]?b:a)[0]):'—';
   }
   function renderEvent() {
-    const e=current(),m=e.metrics;state.start=0;state.end=Math.max(0,e.series.length-1);state.hover=null;state.drag=null;
+    stopPlayback();const e=current(),m=e.metrics;state.start=0;state.end=Math.max(0,e.series.length-1);state.hover=null;state.drag=null;state.replayIndex=0;
     text('eventTitle',`${e.municipality} · ${e.id}`);text('eventSubtitle',`${e.period} · ${e.model} · ${e.variable}`);
     text('eventStatus',niceStatus(e));$('eventStatus').className=statusClass(e);
     text('obsPeak',f(m.observed_peak));text('modelPeak',f(m.model_peak));text('unitObs',e.unit);text('unitModel',e.unit);
@@ -88,14 +98,29 @@
     $('metricsLink').href='../'+e.metrics_source;$('seriesLink').href='../'+e.series_source;
     $('manifestLink').href='../assets/data/'+(e.city_key==='mucum'?'mucum_eventwise_replay_calibrated':'santa_tereza_eventwise_replay_rna_2h')+'/eventwise_manifest.json';
     if (state.mapCity!==e.city_key) {state.mapCity=e.city_key;state.level=Math.min(e.city_key==='mucum'?18:15,city().level_max);state.map={scale:1,tx:0,ty:0};state.selectedCell=null;state.selectedService=null;}
-    renderMap();renderEventsTable();syncRange();resize();
+    renderMap();renderEventsTable();renderComparison();syncRange();resize();
   }
   function renderEventsTable() {
-    $('eventRows').replaceChildren();text('tableScope',`${filtered().length} eventos`);
+    $('eventRows').replaceChildren();text('tableScope',`${filtered().length} eventos`);text('catalogSummary',`Abrir tabela com ${filtered().length} eventos`);
     filtered().forEach(e=>{const tr=document.createElement('tr'),m=e.metrics;tr.classList.toggle('selected',e.key===state.key);
       tr.innerHTML=`<td><button class="event-button" type="button" ${e.key===state.key?'aria-current="true"':''}>${html(e.municipality)} · ${html(e.id)}</button></td><td>${html(e.municipality)}</td><td>${html(e.model)}</td><td>${html(e.period.split(' → ')[0])}</td><td>${f(m.observed_peak)} ${html(e.unit)}</td><td>${f(m.model_peak)} ${html(e.unit)}</td><td>${m.peak_error==null?'—':f(m.peak_error*100,2)+'%'}</td><td><span class="tiny-pill warn">${html(niceStatus(e))}</span></td>`;
       tr.addEventListener('click',()=>{state.key=e.key;$('eventSelect').value=e.key;renderEvent();$('eventTitle').focus();});$('eventRows').append(tr);
     });
+  }
+  function renderComparison() {
+    const metric=$('comparisonMetric').value;state.comparisonMetric=metric;
+    const all=rankEvents(filtered(),metric,Number.POSITIVE_INFINITY),shown=all.slice(0,state.comparisonExpanded?all.length:8),maximum=Math.max(1,...all.map(item=>Math.abs(item.value)));
+    const unit=metric==='peak_error'?'%':'h',scale=metric==='peak_error'?100:1;
+    text('comparisonScope',`${all.length} eventos com valor`);
+    text('comparisonSubtitle',metric==='peak_error'?'Diferença relativa entre os picos observado e modelado; barras partem de zero.':'Diferença temporal modelo − observado; a barra usa a magnitude e o rótulo preserva o sinal.');
+    const root=$('comparisonRows');root.replaceChildren();
+    shown.forEach(({event,value},rank)=>{
+      const button=document.createElement('button');button.type='button';button.className=`compare-row ${event.city_key}${event.key===state.key?' selected':''}`;button.setAttribute('aria-label',`${rank+1}. ${event.municipality}, ${event.id}, ${metric==='peak_error'?'erro do pico':'diferença temporal'} ${value>0?'+':''}${f(value*scale,metric==='peak_error'?2:1)} ${unit}. Abrir evento.`);if(event.key===state.key)button.setAttribute('aria-current','true');
+      button.innerHTML=`<span class="compare-rank">${rank+1}</span><span class="compare-label"><strong>${html(event.municipality)} · ${html(event.id)}</strong><small>${html(event.model)} · ${html(event.period.split(' → ')[0])}</small></span><span class="compare-track" aria-hidden="true"><i style="width:${Math.max(2,Math.abs(value)/maximum*100).toFixed(2)}%"></i></span><span class="compare-value">${value>0?'+':''}${f(value*scale,metric==='peak_error'?2:1)} ${unit}</span>`;
+      button.addEventListener('click',()=>{state.key=event.key;$('eventSelect').value=event.key;renderEvent();$('eventTitle').focus();});root.append(button);
+    });
+    const toggle=$('comparisonToggle');toggle.hidden=all.length<=8;toggle.textContent=state.comparisonExpanded?'Mostrar só 8':'Mostrar todos';toggle.setAttribute('aria-expanded',String(state.comparisonExpanded));
+    text('comparisonNote',state.city==='all'?'Muçum usa HEC-HMS de vazão e Santa Tereza usa RNA de nível: o ranking serve para localizar replays que exigem revisão, não para comparar qual modelo é “melhor”.':'Ordenação diagnóstica dentro da coleção selecionada; ajuste histórico não comprova desempenho prospectivo.');
   }
   function syncRange() {
     ['chartStart','chartEnd'].forEach((id,i)=>{const el=$(id);el.max=Math.max(0,current().series.length-1);el.value=i?state.end:state.start;el.disabled=current().series.length<2;el.setAttribute('aria-valuetext',current().series[Number(el.value)]?stamp(current().series[Number(el.value)][0])+' BRT':'sem série');});
@@ -104,7 +129,25 @@
     text('seriesCaption',`${current().municipality} · ${current().id} · ${current().unit} · horários BRT do intervalo`);
     $('seriesRows').innerHTML=s.map(r=>`<tr><td>${html(r[0].replace('T',' '))}</td><td>${f(r[1])}</td><td>${f(r[2])}</td></tr>`).join('');
     text('srSummary',`${current().model}. Pico observado ${f(current().metrics.observed_peak)} ${current().unit}; pico modelo ${f(current().metrics.model_peak)} ${current().unit}. ${s.length} registros no intervalo; ${g.missingHours} horas ausentes.`);
-    text('pointReadout','Selecione um horário com as setas no gráfico.');draw();
+    text('pointReadout','Selecione um horário com as setas no gráfico.');syncPlayback();draw();
+  }
+  function syncPlayback() {
+    const count=visible().length,progress=$('playProgress');progress.max=Math.max(0,count-1);progress.value=Math.max(0,Math.min(count-1,state.replayIndex));
+    text('playStatus',count?`${Math.min(count,state.replayIndex+1)} de ${count} horários`:'sem série');$('playReplay').disabled=count<2;
+  }
+  function stopPlayback() {
+    if(state.replayTimer!==null){clearInterval(state.replayTimer);state.replayTimer=null;}
+    if($('playReplay')){$('playReplay').textContent='▶ Reproduzir replay';$('playReplay').setAttribute('aria-pressed','false');}
+  }
+  function playbackStep() {
+    const rows=visible();if(!rows.length||state.replayIndex>=rows.length){stopPlayback();return;}
+    state.hover=state.replayIndex;draw();syncPlayback();state.replayIndex++;
+    if(state.replayIndex>=rows.length){state.replayIndex=Math.max(0,rows.length-1);stopPlayback();syncPlayback();}
+  }
+  function togglePlayback() {
+    if(state.replayTimer!==null){stopPlayback();return;}
+    const rows=visible();if(rows.length<2)return;if(state.replayIndex>=rows.length-1)state.replayIndex=0;
+    $('playReplay').textContent='❚❚ Pausar';$('playReplay').setAttribute('aria-pressed','true');playbackStep();state.replayTimer=setInterval(playbackStep,Number($('playSpeed').value));
   }
   function plot() {
     const w=canvas.clientWidth,h=canvas.clientHeight,pad={l:57,r:18,t:20,b:45},s=visible(),first=s.length?time(s[0][0]):0,last=s.length?time(s[s.length-1][0]):1;
@@ -142,8 +185,8 @@
   canvas.addEventListener('pointerleave',()=>{if(!state.drag){state.hover=null;draw();}});
   canvas.addEventListener('dblclick',()=>$('resetZoom').click());
   canvas.addEventListener('keydown',ev=>{const n=visible().length;if(ev.key==='Escape'){$('resetZoom').click();return;}if(!['ArrowLeft','ArrowRight','Home','End'].includes(ev.key)||!n)return;ev.preventDefault();state.hover=ev.key==='Home'?0:ev.key==='End'?n-1:Math.max(0,Math.min(n-1,(state.hover??-1)+(ev.key==='ArrowRight'?1:-1)));draw();text('srSummary',$('pointReadout').textContent);});
-  $('chartStart').addEventListener('input',()=>{state.start=Math.min(Number($('chartStart').value),state.end);state.hover=null;syncRange();});
-  $('chartEnd').addEventListener('input',()=>{state.end=Math.max(Number($('chartEnd').value),state.start);state.hover=null;syncRange();});
+  $('chartStart').addEventListener('input',()=>{stopPlayback();state.start=Math.min(Number($('chartStart').value),state.end);state.hover=null;state.replayIndex=0;syncRange();});
+  $('chartEnd').addEventListener('input',()=>{stopPlayback();state.end=Math.max(Number($('chartEnd').value),state.start);state.hover=null;state.replayIndex=0;syncRange();});
 
   function svg(tag,attrs={}) {const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(v)));return e;}
   function point(lon,lat){const b=city().bounds,height=1000/aspect(b);return {x:(lon-b.west)/(b.east-b.west)*1000,y:(b.north-lat)/(b.north-b.south)*height};}
@@ -152,18 +195,19 @@
   function ensureMapControls(){
     const panel=$('mapViewport').parentElement;
     if(!$('showContour')){
-      const tools=document.createElement('div');tools.className='map-tools';tools.innerHTML='<span class="map-tools-title">Camadas</span><label><input id="showContour" type="checkbox" checked> Contorno</label><label><input id="showGrid" type="checkbox" checked> Grade 200 m</label><label><input id="showServices" type="checkbox" checked> Inventário de serviços</label><label><input id="showLabels" type="checkbox"> Nomes</label>';
+      const tools=document.createElement('div');tools.className='map-tools';tools.innerHTML='<span class="map-tools-title">Camadas</span><label><input id="showContour" type="checkbox" checked> Contorno</label><label><input id="showGrid" type="checkbox"> Grade 200 m</label><label><input id="showServices" type="checkbox" checked> Pontos de referência</label><label><input id="showLabels" type="checkbox"> Nomes</label><button class="button map-clean" id="mapClean" type="button">Visão limpa</button>';
       panel.insertBefore(tools,$('mapViewport'));panel.insertBefore(document.querySelector('.level-box'),tools);
       const badge=$('mapBadge');panel.insertBefore(badge,$('mapViewport'));
       const controls=document.querySelector('.map-controls');panel.insertBefore(controls,$('mapViewport'));
       for(const [label,dx,dy] of [['Mover mapa à esquerda',50,0],['Mover mapa à direita',-50,0],['Mover mapa para cima',0,50],['Mover mapa para baixo',0,-50]]){const b=document.createElement('button');b.className='button pan-button';b.type='button';b.textContent=dx?dx>0?'←':'→':dy>0?'↑':'↓';b.setAttribute('aria-label',label);b.addEventListener('click',()=>{state.map.tx+=dx;state.map.ty+=dy;fitMap();});controls.append(b);}
       const list=document.createElement('div');list.id='mapPointList';list.className='map-point-list';list.setAttribute('aria-label','Inventário, sem confirmação de disponibilidade');panel.insertBefore(list,$('cellInfo'));
       ['showContour','showGrid','showServices','showLabels'].forEach(id=>$(id).addEventListener('change',renderMap));
+      $('mapClean').addEventListener('click',()=>{$('showContour').checked=true;$('showGrid').checked=false;$('showServices').checked=true;$('showLabels').checked=false;state.selectedCell=null;state.selectedService=null;state.map={scale:1,tx:0,ty:0};renderMap();});
     }
   }
   function renderMap(){
     ensureMapControls();const c=city(),root=$('mapSvg'),level=state.level,contour=contourAt(c,level),pub=c.published[String(level)];
-    text('mapTitle',`${c.label} · território em estudo`);text('mapSubtitle',`${c.background_label} · ${c.crs}. Fundo de terreno, não imagem de satélite.`);
+    text('mapTitle',`${c.label} · território em estudo`);text('mapSubtitle',`${c.background_label} · ${c.crs}. Verde/azul é altitude no MDT; rosa é o contorno do cenário manual.`);
     $('mapBg').src=c.background;$('mapBg').alt=`${c.label}: terreno para referência, não profundidade de inundação`;
     root.setAttribute('viewBox',`0 0 1000 ${1000/aspect(c.bounds)}`);root.replaceChildren();root.classList.toggle('show-labels',$('showLabels').checked);
     $('levelRange').min=c.level_min;$('levelRange').max=c.level_max;$('levelRange').value=level;text('levelValue',f(level)+' m');
@@ -192,7 +236,7 @@
   }
   function selectCell(index){const c=city().grid[index];if(!c)return;state.selectedCell=index;state.selectedService=null;$('cellSelect').value=String(index);document.querySelectorAll('.grid-cell').forEach(p=>{const chosen=Number(p.dataset.cell)===index;p.classList.toggle('selected',chosen);p.tabIndex=chosen?0:-1;});document.querySelectorAll('.service').forEach(p=>p.classList.remove('selected'));document.querySelectorAll('.map-point-button').forEach(p=>p.setAttribute('aria-pressed','false'));$('cellInfo').innerHTML=`<strong>${html(c.id||'Célula '+(index+1))}</strong><p>População agregada: <b>${f(c.pop,0)}</b> · domicílios: <b>${f(c.dom,0)}</b> · completude: <b>${html(c.pop_completude??'não informada')}</b>. Não é cadastro individual nem confirmação de exposição ao cenário.</p>`;}
   function showPoint(index){const p=city().points[index];if(!p)return;state.selectedService=index;state.selectedCell=null;$('cellSelect').value='';document.querySelectorAll('.grid-cell').forEach(p=>p.classList.remove('selected'));document.querySelectorAll('.service-group').forEach(g=>g.querySelector('.service').classList.toggle('selected',Number(g.dataset.service)===index));document.querySelectorAll('.map-point-button').forEach(b=>b.setAttribute('aria-pressed',String(b.textContent.startsWith((index+1)+' ·'))));$('cellInfo').innerHTML=`<strong>${index+1} · ${html(p.kind)}: ${html(p.name)}</strong><p>Fonte: ${html(p.source.split('/').pop())}. Cadastro não confirma abertura, capacidade, acessibilidade ou segurança durante a cheia. Não é destino de evacuação validado.</p>`;}
-  $('cellSelect').addEventListener('change',()=>{if($('cellSelect').value!=='')selectCell(Number($('cellSelect').value));});
+  $('cellSelect').addEventListener('change',()=>{if($('cellSelect').value==='')return;const index=Number($('cellSelect').value);if(!$('showGrid').checked){state.selectedCell=index;state.selectedService=null;$('showGrid').checked=true;renderMap();}else selectCell(index);});
   $('mapZoomIn').addEventListener('click',()=>{state.map.scale=Math.min(6,state.map.scale*1.3);fitMap();});
   $('mapZoomOut').addEventListener('click',()=>{state.map.scale=Math.max(1,state.map.scale/1.3);if(state.map.scale===1){state.map.tx=0;state.map.ty=0;}fitMap();});
   $('mapReset').addEventListener('click',()=>{state.map={scale:1,tx:0,ty:0};fitMap();});
@@ -203,8 +247,13 @@
   $('levelRange').addEventListener('input',()=>{state.level=Number($('levelRange').value);renderMap();});
   $('citySelect').addEventListener('change',()=>{state.city=$('citySelect').value;populateEvents();renderEvent();});
   $('eventSelect').addEventListener('change',()=>{state.key=$('eventSelect').value;renderEvent();});
+  $('comparisonMetric').addEventListener('change',()=>{state.comparisonExpanded=false;renderComparison();});
+  $('comparisonToggle').addEventListener('click',()=>{state.comparisonExpanded=!state.comparisonExpanded;renderComparison();});
+  $('playReplay').addEventListener('click',togglePlayback);
+  $('playSpeed').addEventListener('change',()=>{if(state.replayTimer!==null){stopPlayback();togglePlayback();}});
   ['showObserved','showModel'].forEach(id=>$(id).addEventListener('change',draw));
-  $('resetZoom').addEventListener('click',()=>{state.start=0;state.end=Math.max(0,current().series.length-1);state.hover=null;syncRange();});
+  $('resetZoom').addEventListener('click',()=>{stopPlayback();state.start=0;state.end=Math.max(0,current().series.length-1);state.hover=null;state.replayIndex=0;syncRange();});
   $('mapBg').addEventListener('error',()=>text('mapSubtitle','Fundo de terreno indisponível. Consulte as fontes antes de interpretar as geometrias.'));
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPlayback();});
   window.addEventListener('resize',resize);renderSummary();populateEvents();renderEvent();
 })();

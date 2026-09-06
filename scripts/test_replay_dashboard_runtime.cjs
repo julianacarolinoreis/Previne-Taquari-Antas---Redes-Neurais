@@ -18,4 +18,11 @@ assert.equal(runtime.contourAt({contours:[{level: 18}]}, 17), null);
 assert.equal(runtime.contourAt({contours:[{level: 18}]}, 18).level, 18);
 assert.ok(runtime.aspect({west:-52,east:-51,north:-28,south:-29}) > 0);
 assert.equal(runtime.html('<script>&'), '&lt;script&gt;&amp;');
+const ranked = runtime.rankEvents([
+  {key:'a',metrics:{lag:-1,peak_error:0.10}},
+  {key:'b',metrics:{lag:3,peak_error:0.02}},
+  {key:'c',metrics:{lag:null,peak_error:0.30}},
+], 'lag', 2);
+assert.deepEqual(ranked.map(item=>item.event.key), ['b','a']);
+assert.deepEqual(ranked.map(item=>item.value), [3,-1]);
 console.log('runtime contract: ok');
