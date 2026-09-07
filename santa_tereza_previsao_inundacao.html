@@ -356,7 +356,7 @@
       <div class="error-report-grid" id="rna-error-grid">
         <div class="error-report-empty">Carregando previsões conferidas…</div>
       </div>
-      <p class="overview-note" id="rna-error-note">“Acerto” é uma previsão conferida com erro absoluto de até 10 cm. MAE é o erro absoluto médio; valores positivos indicam que a RNA previu acima do observado. Só entram previsões com leitura ANA exatamente no horário-alvo.</p>
+      <p class="overview-note" id="rna-error-note">“Acerto” é uma previsão conferida com erro absoluto de até 10 cm. MAE é o erro absoluto médio e não tem sinal; o viés indica a direção: positivo quando a RNA previu acima do observado e negativo quando previu abaixo. Só entram previsões com leitura ANA exatamente no horário-alvo.</p>
     </section>
     <section class="research-panel overview-research-panel" aria-labelledby="research-panel-title">
       <div class="rp-head">
@@ -1359,7 +1359,8 @@ async function loadResearchWeatherPanel(){
       soilStatus.textContent='sem dado de solo nesta rodada';
       soilBadge.textContent='indisponível';
     }
-    const probabilityReady=Boolean(probability&&probability.calibrated_for_current_source===true&&['CURRENT_CALIBRATED','CURRENT_GEFS_EXPERIMENTAL'].includes(probability.status));
+    const probabilityFresh=probabilityAge!==null&&probabilityAge<=36*60;
+    const probabilityReady=Boolean(probability&&probabilityFresh&&probability.calibrated_for_current_source===true&&['CURRENT_CALIBRATED','CURRENT_GEFS_EXPERIMENTAL'].includes(probability.status));
     const label=(data.answer_24h&&data.answer_24h.label)||'Resultado de 24 h indisponível';
     const p24=probability&&probability.horizons&&probability.horizons['24'];
     answer.textContent=probabilityReady&&p24&&Number.isFinite(Number(p24.probability))
@@ -1370,7 +1371,9 @@ async function loadResearchWeatherPanel(){
       probabilityNote.textContent='Probabilidade experimental GEFS/NOAA · rodada '+fmtUtc(probability.forecast_run_time_utc)+' · disponível '+fmtUtc(probability.forecast_available_at_utc)+' · '+probabilityAgeText+'. Não é alerta oficial; a chuva IFS do cartão é outra fonte e pode ter outra idade.';
     }else{
       probabilityMain.textContent='Até 24 h: não calculada para esta rodada';
-      probabilityNote.textContent=(probability&&probability.message)||'A rodada IFS atual ainda não tem calibrador compatível. Isso é diferente de dizer “0%” ou “não vai inundar”.';
+      probabilityNote.textContent=probability&&!probabilityFresh
+        ?'A rodada GEFS/NOAA está atrasada ('+probabilityAgeText+'); os percentuais foram ocultados até uma nova rodada compatível. Isso é diferente de dizer “0%” ou “não vai inundar”.'
+        :(probability&&probability.message)||'A rodada IFS atual ainda não tem calibrador compatível. Isso é diferente de dizer “0%” ou “não vai inundar”.';
     }
     horizons.replaceChildren();
     [24,48,72,120,168].forEach((hours)=>{
@@ -1386,7 +1389,7 @@ async function loadResearchWeatherPanel(){
       item.append(title,chance,rain);
       horizons.appendChild(item);
     });
-    note.textContent=probabilityReady?'A probabilidade publicada vem da rodada GEFS/NOAA compatível; a chuva IFS fica separada e os dois feeds podem ter idades diferentes ('+weatherAgeText+'; '+probabilityAgeText+'). Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.':'Fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'. A probabilidade fica “não calculada” quando o calibrador não é compatível. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
+    note.textContent=probabilityReady?'A probabilidade publicada vem da rodada GEFS/NOAA compatível; a chuva IFS fica separada e os dois feeds podem ter idades diferentes ('+weatherAgeText+'; '+probabilityAgeText+'). Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.':(!probabilityFresh&&probability?'A probabilidade GEFS/NOAA está atrasada ('+probabilityAgeText+') e fica oculta até atualização; a chuva IFS segue separada. ':'Fonte atual: '+(data.rna&&data.rna.current_source||'IFS')+'. ' )+'A probabilidade fica “não calculada” quando o calibrador não é compatível. Solo: umidade volumétrica modelada, atualizada automaticamente; saturação física ainda não calibrada.';
   }catch(error){
     meta.textContent='Feed meteorológico indisponível no momento.';
     now.textContent='Não foi possível comparar a leitura ao vivo com a base da rodada.';

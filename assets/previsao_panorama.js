@@ -273,6 +273,10 @@
     });
     const picked=new Map();
     const stale=[];
+    // O relógio de parede é a referência para decidir se um alvo ainda é
+    // futuro. A última leitura ANA pode estar atrasada e não pode manter uma
+    // previsão já vencida no cartão de horizonte ativo.
+    const forecastReferenceMs=Date.now();
     candidatesByHours.forEach(candidates=>{
       candidates.sort((a,b)=>{
         if(a.exact!==b.exact) return a.exact?-1:1;
@@ -280,7 +284,7 @@
         return 0;
       });
       const candidate=candidates[0];
-      const staleTarget=anchor&&candidate.time.getTime()<anchor.time.getTime()-ACTIVE_FORECAST_GRACE_MINUTES*60000;
+      const staleTarget=candidate.time.getTime()<forecastReferenceMs-ACTIVE_FORECAST_GRACE_MINUTES*60000;
       if(staleTarget){
         stale.push(candidate);
         return;
@@ -503,12 +507,13 @@
     const labels=[];
     if(anchor){
       const x=X(anchor.time.getTime()),y=Y(anchor.cm);
+      const observedLabel=ageMinutes(anchor.time)>FRESHNESS.liveMinutes?'última leitura':'agora';
       const observedColor=cssValue('--panorama-observed','#1e5fbf');
       svg.appendChild(svgNode('line',{x1:x,y1:m.t,x2:x,y2:H-m.b,stroke:observedColor,'stroke-width':1,'stroke-dasharray':'2 4',opacity:.55}));
       const dot=svgNode('circle',{cx:x,cy:y,r:5.5,fill:observedColor,stroke:'var(--panel, #fff)','stroke-width':2});
-      dot.appendChild(svgNode('title',{},`Agora: ${fmtLevel(anchor.cm)} em ${fmtWhen(anchor.time)}`));
+      dot.appendChild(svgNode('title',{},`${observedLabel[0].toUpperCase()+observedLabel.slice(1)}: ${fmtLevel(anchor.cm)} em ${fmtWhen(anchor.time)}`));
       svg.appendChild(dot);
-      labels.push({x,y,color:observedColor,text:`agora · ${fmtLevel(anchor.cm)}`});
+      labels.push({x,y,color:observedColor,text:`${observedLabel} · ${fmtLevel(anchor.cm)}`});
     }
 
     if(items.length){
@@ -786,7 +791,8 @@
     const box=document.getElementById('overview-metrics');
     if(!box) return;
     const cards=[];
-    cards.push(`<article class="overview-metric"><span>Nível do rio agora</span><strong>${fmtLevel(current&&current.cm!==undefined?current.cm:null)}</strong><small>${current?fmtWhen(current.time):'aguardando telemetria'}</small></article>`);
+    const currentLabel=current&&ageMinutes(current.time)>FRESHNESS.liveMinutes?'Última leitura':'Nível do rio agora';
+    cards.push(`<article class="overview-metric"><span>${currentLabel}</span><strong>${fmtLevel(current&&current.cm!==undefined?current.cm:null)}</strong><small>${current?fmtWhen(current.time):'aguardando telemetria'}</small></article>`);
     items.forEach(p=>cards.push(`<article class="overview-metric forecast horizon-${p.hours}"><span>Previsão +${p.hours} h</span><strong>${fmtLevel(p.cm)}</strong><small>para ${fmtWhen(p.time)}${p.alternate?' · modelo alternativo':''}</small></article>`));
     if(!items.length) cards.push('<article class="overview-metric forecast"><span>Previsão da RNA</span><strong>Indisponível</strong><small>Nenhum horizonte ativo foi publicado agora.</small></article>');
     cards.push(`<article class="overview-metric ${flood.alert?'alert':''}"><span>Cota oficial</span><strong>${fmtLevel(cota)}</strong><small>${flood.label}</small></article>`);
