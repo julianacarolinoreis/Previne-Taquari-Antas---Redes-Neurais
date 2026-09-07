@@ -1,6 +1,11 @@
 name: Contexto automático da pesquisa da bacia
 
 on:
+  push:
+    paths:
+      - 'assets/data/research_source_registry.json'
+      - 'scripts/build_basin_research_feed.py'
+      - '.github/workflows/research-basin.yml'
   workflow_dispatch:
   schedule:
     # Mantém a camada integrada atualizada sem competir com cada leitura de
