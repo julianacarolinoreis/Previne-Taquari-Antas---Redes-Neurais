@@ -27,6 +27,7 @@
   .skip-link{position:fixed;left:8px;top:8px;z-index:1200;transform:translateY(-180%);background:#fff;color:#0f6b4a;border:2px solid #1e5fbf;border-radius:8px;padding:8px 10px;font-weight:750;text-decoration:none}
   .skip-link:focus{transform:translateY(0)}
   .skip-controls{top:52px;transform:translateY(-260%)}
+  .skip-search{top:96px;transform:translateY(-320%)}
   header{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:600}
   header .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--agora));flex:0 0 auto}
   header h1{font-size:16.5px;margin:0;font-weight:750;letter-spacing:-.01em;line-height:1.15}
@@ -577,6 +578,7 @@
 <body>
 <a class="skip-link" href="#map">Ir para o mapa</a>
 <a class="skip-link skip-controls" href="#ind">Ir para os controles do mapa</a>
+<a class="skip-link skip-search" href="#buscaTexto">Ir para localizar município</a>
 <header>
   <div class="mark"></div>
   <div>
@@ -587,7 +589,7 @@
   <a class="back" href="index.html">← painel do projeto</a>
 </header>
 <main>
-  <div id="map" role="region" aria-label="Mapa temático de vulnerabilidade da bacia Taquari-Antas" aria-describedby="mapLegendMini mapHint" tabindex="0"><div id="inset" role="img" aria-label="Localização da bacia Taquari-Antas no Rio Grande do Sul" title="Onde a bacia fica no Rio Grande do Sul"></div><div id="mapLegendMini" class="map-legend-mini" role="note" aria-live="polite"><strong>Carregando indicador…</strong><span>Escolha um município ou indicador.</span></div><div id="referenceLegend" class="reference-legend" hidden role="note" aria-live="polite" aria-label="Legenda das camadas de referência"></div><div id="mapEmptyState" class="map-empty-state" hidden role="status" aria-live="polite"></div><div id="mapHint" class="map-hint">Escolha um município; depois selecione setor censitário ou grade de 200 m.</div><div id="mapLoading" class="map-loading" role="status" aria-live="polite">Carregando municípios e camadas…</div></div>
+  <div id="map" role="region" aria-label="Mapa temático de vulnerabilidade da bacia Taquari-Antas" aria-describedby="mapLegendMini mapHint" tabindex="0"><div id="inset" role="img" aria-label="Localização da bacia Taquari-Antas no Rio Grande do Sul" title="Onde a bacia fica no Rio Grande do Sul"></div><div id="mapLegendMini" class="map-legend-mini" role="note" aria-live="polite"><strong>Carregando indicador…</strong><span>Escolha um município ou indicador.</span></div><div id="referenceLegend" class="reference-legend" hidden role="note" aria-live="polite" aria-label="Legenda das camadas de referência"></div><div id="mapEmptyState" class="map-empty-state" hidden role="status" aria-live="polite"></div><div id="mapHint" class="map-hint">Escolha um município; depois selecione setor censitário ou a Grade IBGE.</div><div id="mapLoading" class="map-loading" role="status" aria-live="polite">Carregando municípios e camadas…</div></div>
   <div class="location-picker" id="locationPicker">
     <div class="q">1 · Localizar município</div>
     <div class="mun-search">
@@ -596,7 +598,7 @@
     </div>
     <label class="sr-only" for="busca">Escolha um município para abrir o detalhe local</label>
     <select id="busca"><option value="">— escolher um município —</option></select>
-    <div class="scope-help" id="municipioAjuda">Escolha um município aqui ou clique no mapa; na ficha, escolha setores censitários ou a grade de 200 m.</div>
+    <div class="scope-help" id="municipioAjuda">Escolha um município aqui ou clique no mapa; na ficha, escolha setores censitários ou a Grade IBGE.</div>
   </div>
   <aside>
     <div class="concept-note" role="note" aria-label="Diferença entre vulnerabilidade, perigo e risco">
@@ -607,7 +609,7 @@
     <div class="dataset-strip" id="datasetStrip" role="group" aria-label="Resumo do conjunto de dados">
       <div class="dataset-stat"><b id="summaryMunicipios">118</b><span>municípios</span></div>
       <div class="dataset-stat"><b id="summarySetores">3.283</b><span>setores na bacia</span></div>
-      <div class="dataset-stat"><b id="summaryGrade">36.723</b><span>células 200 m</span></div>
+      <div class="dataset-stat"><b id="summaryGrade">36.723</b><span>células da Grade IBGE<br>200 m urbano / 1 km rural</span></div>
       <div class="dataset-stat"><b id="summaryAno">2022</b><span>ano do Censo</span></div>
     </div>
     <section class="start-here" id="startHere" aria-labelledby="startHereTitle">
@@ -618,7 +620,7 @@
       <ol class="start-steps" aria-label="Roteiro de consulta">
         <li class="start-step"><a href="#buscaTexto" data-start-target="buscaTexto" class="is-current" aria-current="step"><span class="start-step-num">1</span><span class="start-step-title">Escolha o município</span><span class="start-step-detail" id="startStep1Detail">busque ou clique no mapa</span></a></li>
         <li class="start-step"><a href="#indicadorBusca" data-start-target="indicadorBusca"><span class="start-step-num">2</span><span class="start-step-title">Escolha o indicador</span><span class="start-step-detail" id="startStep2Detail">ex.: mulheres, TEA, água</span></a></li>
-        <li class="start-step"><a href="#camadas" data-start-target="camadas"><span class="start-step-num">3</span><span class="start-step-title">Escolha a unidade</span><span class="start-step-detail" id="startStep3Detail">setor ou grade 200 m</span></a></li>
+        <li class="start-step"><a href="#camadas" data-start-target="camadas"><span class="start-step-num">3</span><span class="start-step-title">Escolha a unidade</span><span class="start-step-detail" id="startStep3Detail">setor ou Grade IBGE</span></a></li>
       </ol>
       <p class="start-here-note" id="startHereNote"><b>Visão atual:</b> municípios da bacia. As cores mostram o indicador selecionado; clique em uma área para abrir a ficha.</p>
       <div class="start-coverage" aria-label="Famílias de dados disponíveis">
@@ -643,7 +645,7 @@
       <ol>
         <li>Escolha um município pela busca ou pelo clique no mapa.</li>
         <li>Escolha um indicador e leia unidade, fonte e cobertura.</li>
-        <li>Escolha setor censitário ou grade 200 m para o detalhe local e use a legenda/tabela para comparar.</li>
+        <li>Escolha setor censitário ou a Grade IBGE (200 m urbano / 1 km rural) para o detalhe local e use a legenda/tabela para comparar.</li>
       </ol>
     </details>
     <details class="glossario" id="glossarioSiglas">
@@ -682,9 +684,9 @@
       <div class="local-flow-status" id="localFlowStatus" role="status" aria-live="polite" tabindex="-1">Clique em um município no mapa. O popup mostrará o botão para abrir o detalhe local.</div>
       <div class="modes" id="camadas" role="group" aria-label="Unidade espacial do detalhamento">
         <button data-c="setor" class="on" aria-pressed="true">setor censitário</button>
-        <button data-c="grade" aria-pressed="false">grade 200 m</button>
+        <button data-c="grade" aria-pressed="false">Grade IBGE · 200 m / 1 km</button>
       </div>
-      <div class="scope-help" id="gradeAjuda">Abra um município para ativar a grade 200 m; depois escolha setor censitário ou células de 200 m.</div>
+      <div class="scope-help" id="gradeAjuda">Abra um município para ativar a Grade IBGE 2022. Ela usa 200 m no urbano e 1 km no rural; a resolução aparece em cada célula.</div>
     </div>
 
     <div class="action-groups" aria-label="Ações rápidas">
@@ -802,8 +804,8 @@
         <a href="assets/data/vulnerabilidade/downloads/setores_na_bacia_combinados.geojson" download>Setores dentro da bacia · GeoJSON</a>
         <a href="assets/data/vulnerabilidade/downloads/setores_municipios_intersectantes_combinados.csv" download>Todos os setores dos municípios intersectantes · CSV</a>
         <a href="assets/data/vulnerabilidade/downloads/setores_municipios_intersectantes_combinados.geojson" download>Todos os setores dos municípios intersectantes · GeoJSON (auditoria de borda)</a>
-        <a href="assets/data/vulnerabilidade/downloads/grade_200m_na_bacia_combinada.csv" download>Grade 200 m dentro da bacia · CSV</a>
-        <span class="download-meta">A grade 200 m em GeoJSON está dentro do pacote completo ZIP.</span>
+        <a href="assets/data/vulnerabilidade/downloads/grade_200m_na_bacia_combinada.csv" download>Grade IBGE 2022 (200 m urbano / 1 km rural) dentro da bacia · CSV</a>
+        <span class="download-meta">O CSV mantém as células 200M e 1KME; o identificador e a resolução de cada célula ficam na tabela e no GeoJSON do pacote completo.</span>
         <a href="assets/data/vulnerabilidade/downloads/municipios_combinados.csv" download>Municípios combinados · CSV</a>
         <div class="download-meta"><b>Agregados oficiais IBGE/SIDRA · 118 municípios</b> — indicadores municipais, não recorte setorial na bacia.</div>
         <a href="assets/data/vulnerabilidade/downloads/Agregados_taquari_pessoa.csv" download>Agregados Taquari · pessoas · CSV</a>
@@ -877,7 +879,7 @@
     <ol>
       <li>Localize um <b>município</b> pela busca ou pelo clique no mapa.</li>
       <li>Escolha um <b>indicador</b> (ex.: idosos, indígenas, TEA ou capacidade ICM).</li>
-      <li>Escolha a unidade do detalhe: <b>setores</b> ou <b>grade 200 m</b>.</li>
+      <li>Escolha a unidade do detalhe: <b>setores</b> ou <b>Grade IBGE 2022 (200 m urbano / 1 km rural)</b>.</li>
       <li>Consulte a <b>legenda no mapa</b> e o cartão “leitura do município”.</li>
     </ol>
     <div class="welcome-actions">
@@ -1090,8 +1092,8 @@ const INDS = [
   {k:"tea_pessoas", nome:"Transtorno do espectro autista (TEA) — contagem", pct:false, un:" pessoas", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
   {k:"tea_pct", nome:"Transtorno do espectro autista (TEA) — percentual de residentes diagnosticados com autismo (% da população residente total)", pct:false, un:"%", denominador:"população residente total", numerador:"população residente diagnosticada com autismo", municipalOnly:true, agregado:true, grupo:"Deficiência e TEA"},
   {k:"renda_resp",    nome:"Renda do responsável", money:true, opt:true, grupo:"Condições domiciliares"},
-  {k:"dom_agua",   nome:"Água — rede geral",   pct:true, base:"dom_ocupados", opt:true, grupo:"Condições domiciliares"},
-  {k:"dom_esgoto", nome:"Esgoto — rede geral", pct:true, base:"dom_ocupados", opt:true, grupo:"Condições domiciliares"},
+  {k:"dom_agua",   nome:"Água — rede geral",   pct:true, base:"dom_ocupados", un:" domicílios", opt:true, grupo:"Condições domiciliares"},
+  {k:"dom_esgoto", nome:"Esgoto — rede geral", pct:true, base:"dom_ocupados", un:" domicílios", opt:true, grupo:"Condições domiciliares"},
   {k:"dom_ocupados", nome:"Domicílios permanentes ocupados", pct:false, un:" domicílios", opt:true, grupo:"Condições domiciliares"},
   {k:"dens",     nome:"Densidade",      pct:false, un:" hab/km²", grupo:"Exposição"},
   {k:"dom",      nome:"Domicílios totais (setor)", pct:false, un:" domicílios", grupo:"Exposição"},
@@ -1156,7 +1158,7 @@ function acessibilizaPopup(layer, rotulo){
   const el = layer?.getPopup?.()?.getElement?.();
   if (!el) return;
   const rotuloFinal = camada === "grade" && /setor/i.test(rotulo || "")
-    ? String(rotulo).replace(/setor/ig, "célula de grade 200 m")
+    ? String(rotulo).replace(/setor/ig, "célula da Grade IBGE")
     : (rotulo || "Informações do mapa");
   const acionador = layer.__previnePopupA11yTrigger || layer?.getElement?.();
   el.setAttribute("role", "dialog");
@@ -1250,6 +1252,17 @@ let camada = PARAMS.get("camada") === "grade" && municipioInicial ? "grade" : "s
 let escala = PARAMS.get("escala") === "local" ? "local" : "bacia";
 let opacidade = Math.min(1, Math.max(.25, (+PARAMS.get("opacidade") || 75) / 100));
 const GRADE_INDS = new Set(["pop", "dom"]);   // únicos indicadores que a grade estatística tem
+const GRADE_LABEL = "Grade Estatística IBGE 2022 (200 m urbano / 1 km rural)";
+function resolucaoGrade(p){
+  const id=String(p?.id_grade || p?.id_grade_previne || "").toUpperCase();
+  if(/^1KME/.test(id)) return "1 km rural";
+  if(/^200M/.test(id)) return "200 m urbano";
+  return "resolução não identificada";
+}
+function rotuloGrade(p){
+  const id=p?.id_grade || p?.id_grade_previne || "célula";
+  return `${id} · ${resolucaoGrade(p)}`;
+}
 let map, munLayer, setLayer = null, munData, munAtual = null, icmData = null, catalogoData = null;
 let agregadosData = null, agregadosOk = false;
 // Refer\u00eancias auxiliares entram como camada municipal sem alterar os campos do Censo.
@@ -1335,7 +1348,7 @@ function atualizaDownloadVistaMeta(){
   if(!el) return;
   if(!munData){ el.textContent="Aguardando a vista atual para informar quantos registros serão exportados."; return; }
   const n=typeof camadasVisiveis === "function" ? camadasVisiveis().length : 0;
-  const unidade=munAtual ? (camada === "grade" ? "células de 200 m" : "setores censitários") : "municípios";
+  const unidade=munAtual ? (camada === "grade" ? "células da Grade IBGE (200 m urbano / 1 km rural)" : "setores censitários") : "municípios";
   const selecao=selectionLayers?.length ? ` · ${fmt(selectionLayers.length)} na seleção` : "";
   el.textContent=`Vista atual: ${fmt(n)} ${unidade} disponíveis para CSV/GeoJSON${selecao}. O arquivo mantém a fonte, a unidade e o escopo.`;
 }
@@ -1546,7 +1559,7 @@ function atualizaContextoIndicador(){
   const unidade=unidadeIndicador(d);
   let geografia;
   if(d.municipalOnly || d.svc || d.cat) geografia=munAtual ? `município inteiro · ${munAtual.nome} (contexto)` : "município inteiro";
-  else if(munAtual) geografia=camada === "grade" ? `célula da grade 200 m de ${munAtual.nome}` : `setor censitário de ${munAtual.nome}`;
+  else if(munAtual) geografia=camada === "grade" ? `${GRADE_LABEL} de ${munAtual.nome}` : `setor censitário de ${munAtual.nome}`;
   else geografia=escopo === "bacia" ? "setores com ponto representativo dentro da bacia" : "município inteiro";
   const nota=d.municipalOnly
     ? `Agregado municipal: não é valor de setor, grade ou somente da bacia.${d.denominador ? ` Denominador: ${d.denominador}.` : ""}`
@@ -1610,7 +1623,7 @@ function popup(p, extra){
     if (d.pct && !indisponivel){ const base = valorBruto(src,d.base ? {k:d.base} : {k:"pop"});
       if (base > 0) pc = ` <span style="color:#5c6b63">(${fmt(val/base*100)}%)</span>`;
       else if (d.base) pc = ` <span class="partial-mark" title="Denominador de domicílios ocupados não publicado pelo IBGE">†</span>`; }
-    const nomeBase = naGrade && d.k === "dom" ? "Domicílios IBGE (grade 200 m)" : d.nome;
+    const nomeBase = naGrade && d.k === "dom" ? "Domicílios IBGE (Grade Estatística 2022)" : d.nome;
     const nome = d.municipalOnly ? `${nomeBase} · município inteiro` : nomeBase;
     const serviceUnknown = d.svc && indisponivel;
     const agregadoUnknown = d.agregado && indisponivel;
@@ -1640,9 +1653,9 @@ function popup(p, extra){
   const tabela = municipioPopup
     ? `<details class="popup-more"><summary>Ver mulheres, crianças e todos os dados publicados</summary><table>${linhas.join("")}</table></details>`
     : `<table>${linhas.join("")}</table>`;
-  const titulo = p.nome || (naGrade ? "Célula da grade (200×200 m)" : "Setor "+p.setor);
+  const titulo = p.nome || (naGrade ? `Célula da Grade IBGE · ${rotuloGrade(p)}` : "Setor "+p.setor);
   const contextoMunicipal = !municipioPopup && munAtual
-    ? `<div class="popup-context-banner"><b>Contexto municipal</b><br>PcD, TEA, entorno, ICM e IRM são publicados para o município inteiro; não são valores desta unidade local${camada === "grade" ? " de 200 m" : " setorial"}.</div>`
+    ? `<div class="popup-context-banner"><b>Contexto municipal</b><br>PcD, TEA, entorno, ICM e IRM são publicados para o município inteiro; não são valores desta unidade local${camada === "grade" ? " da Grade IBGE" : " setorial"}.</div>`
     : "";
   const irmDetalhe = htmlComponentesIRM(p);
   const scope = !munAtual && escopoEfetivo(INDS.find(i=>i.k===ind)) === "bacia" ? ` <span style="font-size:11px;color:#5c6b63">· somente na bacia</span>` : "";
@@ -1744,7 +1757,7 @@ function pintaSetores(){
                 color:indisponivel?"#59635f":(parcial?"#a56a14":borda.color), weight:borda.weight,
                 dashArray:indisponivel?"3 3":(parcial?"2 2":borda.dashArray)});
   });
-  legenda(brk, (camada==="grade" ? "· grade 200m de " : "· setores de ") + munAtual.nome);
+  legenda(brk, (camada==="grade" ? "· Grade IBGE de " : "· setores de ") + munAtual.nome);
   totaliza(feats.map(f=>f.properties));
   aplicaDestaqueSelecao();
   atualizaTabelaComparacao();
@@ -1844,7 +1857,7 @@ function defineMetadadosImpressao(texto){
     ? (d.base ? "percentual dos domicílios permanentes ocupados (%)" : "percentual da população (%)")
     : (d?.money ? "R$ por mês" : d?.svc ? "pontos publicados por 10 mil habitantes" : (String(d?.un || "valor absoluto").trim() || "valor absoluto"));
   const vista=munAtual
-    ? `${munAtual.nome} · ${camada === "grade" ? "grade 200 m" : "setor censitário"}`
+    ? `${munAtual.nome} · ${camada === "grade" ? "Grade IBGE 2022" : "setor censitário"}`
     : `visão ${escopo === "bacia" ? "somente na bacia" : "município inteiro"}`;
   const contexto=`Vista: ${vista}; unidade: ${unidade}; fonte: ${fonteIndicador(d)}`;
   const finalTexto=`${texto} ${contexto}.${extras.length ? ` ${extras.join("; ")}.` : ""}`;
@@ -1939,9 +1952,9 @@ function abreMunicipio(cod){
   limpaSelecao();
   const meu = ++reqSeq;
   const pasta = camada === "grade" ? "grade" : "setores";
-  informa(`Carregando ${camada === "grade" ? "grade de 200 m" : "setores censitários"} de ${f.properties.nome}…`);
+  informa(`Carregando ${camada === "grade" ? "Grade IBGE 2022 (200 m urbano / 1 km rural)" : "setores censitários"} de ${f.properties.nome}…`);
   const localStatus=document.getElementById("localFlowStatus");
-  if(localStatus) localStatus.textContent=`Carregando ${camada === "grade" ? "grade 200 m" : "setores censitários"} de ${f.properties.nome}…`;
+  if(localStatus) localStatus.textContent=`Carregando ${camada === "grade" ? "Grade IBGE 2022 (200 m urbano / 1 km rural)" : "setores censitários"} de ${f.properties.nome}…`;
   carrega(`${pasta}/${cod}.geojson`).then(gj=>{
     if (meu !== reqSeq) return;        // outra seleção (ou voltar, ou troca de camada) aconteceu depois
     if (setLayer) map.removeLayer(setLayer);
@@ -1951,7 +1964,7 @@ function abreMunicipio(cod){
     setLayer = L.geoJSON(gj, { pane:"detalheLocal", renderer: detalheLocalSvgRenderer,
       onEachFeature: (ft,l)=>{
         const rotuloFeicao = camada === "grade"
-          ? `Célula da grade 200 m: ${ft.properties.id_grade || ft.properties.id || "selecionada"}`
+          ? `Célula da Grade IBGE: ${rotuloGrade(ft.properties)}`
           : `Setor censitário: ${ft.properties.num_setor || ft.properties.id || "selecionado"}`;
         l.bindPopup(()=>popup(ft.properties,
           ft.properties.na_bacia ? "" : ` <span style="color:#8a5a12;font-size:11px">(fora do limite da bacia)</span>`), POPUP_OPTS);
@@ -1978,7 +1991,7 @@ function abreMunicipio(cod){
       ? "Grade pronta. População e domicílios vêm da Grade Estatística 2022; os totais podem diferir dos agregados por setor."
       : "Setores prontos. Áreas fora do limite da bacia aparecem com menor opacidade.");
     if (camada === "grade" && gradeIndicadorAjustado)
-      informa("A grade 200 m só publica população e domicílios; o indicador foi ajustado para o campo compatível.");
+      informa("A Grade IBGE só publica população e domicílios; o indicador foi ajustado para o campo compatível.");
     if (veioDoSeletor){
       requestAnimationFrame(()=>document.getElementById("localFlow")?.scrollIntoView({block:"center",behavior:"smooth"}));
     }
@@ -2009,7 +2022,7 @@ function voltaBacia(){
 }
 
 function rotuloAcaoDetalhe(){
-  return camada === "grade" ? "Abrir grade 200 m" : "Abrir setores censitários";
+  return camada === "grade" ? "Abrir Grade IBGE" : "Abrir setores censitários";
 }
 function descricaoAcaoDetalhe(){
   return camada === "grade" ? "ver população e domicílios da Grade Estatística 2022" : "ver mulheres, crianças, idosos e demais campos do Censo";
@@ -2034,15 +2047,15 @@ function sincronizaCamadaUI(){
   const podeGrade = !!munAtual || (!!map && map.getZoom() >= 9);
   if (gradeBtn){
     gradeBtn.disabled = !podeGrade;
-    gradeBtn.title = munAtual ? "Exibe a grade estatística 200 m do município aberto" : "Ao aproximar, escolha um município para abrir a grade estatística 200 m";
+    gradeBtn.title = munAtual ? `Exibe a ${GRADE_LABEL.toLowerCase()} do município aberto` : `Ao aproximar, escolha um município para abrir a ${GRADE_LABEL.toLowerCase()}`;
   }
   const gradeAjuda=document.getElementById("gradeAjuda");
   if (gradeAjuda) gradeAjuda.textContent = munAtual
     ? (camada === "grade"
-      ? "Grade 200 m ativa: escolha uma célula para ver população ou domicílios. Para TEA/PcD e os demais indicadores, volte aos setores ou à visão municipal."
-      : "Escolha setor censitário para os indicadores do Censo ou grade 200 m para população e domicílios.")
-    : (podeGrade ? "Você está aproximado: clique em um município e escolha setor censitário ou grade 200 m."
-                 : "Abra um município para ativar a grade 200 m; ao aproximar, você poderá escolher a unidade.");
+      ? `${GRADE_LABEL} ativa: escolha uma célula para ver população ou domicílios. A resolução aparece no ID da célula. Para TEA/PcD e os demais indicadores, volte aos setores ou à visão municipal.`
+      : `Escolha setor censitário para os indicadores do Censo ou a ${GRADE_LABEL} para população e domicílios.`)
+    : (podeGrade ? `Você está aproximado: clique em um município e escolha setor censitário ou a ${GRADE_LABEL}.`
+                 : `Abra um município para ativar a ${GRADE_LABEL}; ao aproximar, você poderá escolher a unidade.`);
   document.querySelectorAll("#camadas button").forEach(x=>{
     const ativo=x.dataset.c===camada;
     x.classList.toggle("on",ativo); x.setAttribute("aria-pressed",ativo?"true":"false");
@@ -2059,19 +2072,19 @@ function sincronizaCamadaUI(){
     mapHint.textContent = selectionMode
       ? "Seleção de área: clique em dois cantos do retângulo."
       : munAtual
-        ? (camada === "grade" ? "Grade 200 m: clique numa célula para ver população ou domicílios." : "Setor censitário: clique numa área para ver os indicadores.")
+        ? (camada === "grade" ? `Grade IBGE: clique numa célula para ver população ou domicílios; o ID informa 200 m urbano ou 1 km rural.` : "Setor censitário: clique numa área para ver os indicadores.")
         : "Escolha um município no mapa ou na busca.";
   }
   const localStatus=document.getElementById("localFlowStatus");
   const municipioAjuda=document.getElementById("municipioAjuda");
   if(municipioAjuda) municipioAjuda.textContent = munAtual
-    ? `${munAtual.nome} aberto; use “Detalhe local” para alternar setores censitários e grade 200 m.`
-    : "Escolha um município aqui ou clique no mapa; na ficha, escolha setores censitários ou a grade de 200 m.";
+    ? `${munAtual.nome} aberto; use “Detalhe local” para alternar setores censitários e a ${GRADE_LABEL}.`
+    : `Escolha um município aqui ou clique no mapa; na ficha, escolha setores censitários ou a ${GRADE_LABEL}.`;
   if(localStatus){
     if(munAtual){
-      localStatus.innerHTML=`<strong>${escHTML(munAtual.nome)}</strong> · ${camada === "grade" ? "grade 200 m ativa" : "setores censitários ativos"}`;
+      localStatus.innerHTML=`<strong>${escHTML(munAtual.nome)}</strong> · ${camada === "grade" ? "Grade IBGE ativa (200 m urbano / 1 km rural)" : "setores censitários ativos"}`;
     }else if(map?.getZoom?.() >= 9){
-      localStatus.textContent="Escolha um município no centro do mapa para abrir os setores censitários ou a grade 200 m.";
+      localStatus.textContent="Escolha um município no centro do mapa para abrir os setores censitários ou a Grade IBGE.";
     }else{
       localStatus.textContent=`Clique em um município no mapa. No popup, escolha “${rotuloAcaoDetalhe()}”.`;
     }
@@ -2126,7 +2139,7 @@ function camadasVisiveis(){
   return munLayer ? munLayer.getLayers().filter(l=>l.feature?.geometry) : [];
 }
 function nomeCamadaSelecao(){
-  if (munAtual) return camada === "grade" ? "células da grade 200 m" : "setores censitários";
+  if (munAtual) return camada === "grade" ? "células da Grade IBGE" : "setores censitários";
   return "municípios";
 }
 function slugLocal(v){
@@ -2136,15 +2149,13 @@ function slugLocal(v){
 function popDaSelecao(p){
   const atual=INDS.find(i=>i.k===ind);
   if (!munAtual){
-    if (atual?.svc || atual?.cat) return valorMunicipalBruto(p,"pop") ?? 0;
+    if (atual?.svc || atual?.cat || atual?.municipalOnly) return valorMunicipalBruto(p,"pop");
     const b = valorBruto(p,{k:"pop"});
     return b === null ? null : b;
   }
-  // Setores/grade já são a unidade local; fora do limite da bacia não entra
-  // no resumo quando na_bacia=0, evitando rotular o total como “na bacia”.
-  if (p && Object.prototype.hasOwnProperty.call(p,"na_bacia") && +p.na_bacia !== 1) return 0;
-  const b = +p.pop_bacia;
-  return Object.prototype.hasOwnProperty.call(p,"pop_bacia") && isFinite(b) ? b : (+p.pop || 0);
+  // A tabela e a seleção local incluem as unidades inteiras desenhadas, como
+  // o indicador. na_bacia sinaliza o recorte; não apaga a população publicada.
+  return valorMunicipalBruto(p,"pop");
 }
 function pontoNoRetangulo(pt,b){ return pt[0]>=b.getWest() && pt[0]<=b.getEast() && pt[1]>=b.getSouth() && pt[1]<=b.getNorth(); }
 function pontoNoAnel(pt,ring){
@@ -2204,7 +2215,7 @@ function textoEscopoDados(){
   }
   if (Number(munAtual?.n_setores_bacia) === 0)
     return "Este município intersecta a bacia, mas não tem setor com ponto representativo dentro dela; os setores exibidos são municipais e não representam população na bacia.";
-  if (camada === "grade") return "Escopo: células de 200 m do município aberto; população e domicílios vêm da Grade Estatística 2022.";
+  if (camada === "grade") return `Escopo: ${GRADE_LABEL} do município aberto; população e domicílios vêm da Grade Estatística 2022. A resolução de cada célula aparece no identificador.`;
   if (ehResiliencia()) return "Escopo: IRM V1 é municipal; ao abrir um município, os setores apenas herdam a faixa municipal.";
   if (INDS.find(i=>i.k===ind)?.svc) return "Escopo: indicador municipal repetido apenas como contexto; não é uma medida do setor.";
   if (INDS.find(i=>i.k===ind)?.cat) return "Escopo: ICM é municipal; os setores apenas herdam a faixa do município.";
@@ -2216,7 +2227,7 @@ function atualizaLegendaMini(){
   if(!el) return;
   const d=INDS.find(i=>i.k===ind) || INDS[0];
   const modoTxt=unidadeIndicador(d);
-  const camadaTxt=munAtual ? (camada === "grade" ? `grade 200 m · ${munAtual.nome}` : `setores censitários · ${munAtual.nome}`) : "municípios da bacia";
+  const camadaTxt=munAtual ? (camada === "grade" ? `Grade IBGE · ${munAtual.nome}` : `setores censitários · ${munAtual.nome}`) : "municípios da bacia";
   const aviso=d.municipalOnly ? "Dado municipal; não é valor do setor ou da grade." : d.svc ? "Taxa municipal; pontos cadastrados aparecem na camada de serviços." : d.cat ? "Índice municipal de capacidade; não é risco nem alerta." : ehResiliencia() ? "Faixas municipais de resiliência; não é alerta." : "Maior valor = maior presença/quantidade; não é automaticamente risco.";
   let ramp="";
   if (ehResiliencia()){
@@ -2339,7 +2350,7 @@ function atualizaLeituraMunicipio(){
   if (camada!=="grade" && !GRADE_INDS.has(d.k) && !d.municipalOnly && !d.svc && !d.cat && !ehResiliencia())
     passos.push("explore os setores no mapa ou na tabela");
   if (GRADE_INDS.has(d.k) || d.k==="pop" || d.k==="dom")
-    passos.push("compare com a grade 200 m");
+    passos.push("compare com a Grade IBGE");
   if (!d.svc) passos.push("ative serviços IEDE se precisar de equipamentos próximos");
   passos.push("use imprimir/PDF ou downloads para levar o recorte");
   next.innerHTML=`<b>Próximo passo:</b> ${escHTML(passos.slice(0,2).join(" · "))}.`;
@@ -2366,10 +2377,10 @@ function atualizaStartHere(){
   if(state) state.textContent=texto;
   if(detail1) detail1.textContent=munAtual ? `${munAtual.nome} selecionado` : "busque ou clique no mapa";
   if(detail2) detail2.textContent=d.nome || "indicador atual";
-  if(detail3) detail3.textContent=munAtual ? (camada === "grade" ? "grade 200 m ativa" : "setor censitário ativo") : "setor ou grade após município";
+  if(detail3) detail3.textContent=munAtual ? (camada === "grade" ? "Grade IBGE ativa" : "setor censitário ativo") : "setor ou Grade IBGE após município";
   if(note){
     const visao=munAtual
-      ? (camada === "grade" ? `grade 200 m de ${munAtual.nome}` : `setores censitários de ${munAtual.nome}`)
+      ? (camada === "grade" ? `${GRADE_LABEL} de ${munAtual.nome}` : `setores censitários de ${munAtual.nome}`)
       : "municípios da bacia";
     note.innerHTML=`<b>Visão atual:</b> ${escHTML(visao)} · indicador <b>${escHTML(d.nome || "selecionado")}</b>. ${munAtual ? "Clique em uma forma do mapa para abrir a ficha." : "Clique em uma área ou use a busca para começar."}`;
   }
@@ -2408,7 +2419,7 @@ function filtraOpcoesMunicipio(){
   });
   const ajuda=document.getElementById("municipioAjuda");
   if(ajuda && q) ajuda.textContent=visiveis ? `${visiveis} município(s) na lista filtrada. Escolha um ou limpe a busca.` : "Nenhum município com esse nome. Tente outro trecho.";
-  else if(ajuda && !q) ajuda.textContent="Digite para filtrar a lista, escolha o município ou clique no mapa. Depois abra setores censitários ou a grade 200 m.";
+  else if(ajuda && !q) ajuda.textContent="Digite para filtrar a lista, escolha o município ou clique no mapa. Depois abra setores censitários ou a Grade IBGE.";
 }
 function fechaWelcome(gravar){
   const dlg=document.getElementById("welcomeDialog");
@@ -2536,11 +2547,14 @@ function resumoSelecao(){
     const base=props.reduce((s,p)=>{const v=valorBruto(p,{k:d.base});return s+(v===null?0:v)},0);
     if(base>0){ detalhe = `${fmt(soma/base*100)}% <small>${escHTML(d.nome.toLowerCase())} · ${fmt(soma)} de ${fmt(base)}</small>`; detalheTexto=`${fmt(soma/base*100)}% · ${fmt(soma)} de ${fmt(base)}`; }
   } else if (d.svc){
-    const publicados = props.map(p=>munAtual ? munAtual[d.k] : p[d.k]).filter(v=>v!==null && v!=="" && Number.isFinite(Number(v)));
+    const fontes = munAtual ? [munAtual] : props;
+    const publicados = fontes.map(p=>valorMunicipalBruto(p,d.k)).filter(v=>v!==null);
     const pontos = publicados.reduce((s,v)=>s+Number(v),0);
-    const desconhecidos = props.length - publicados.length;
-    detalhe = desconhecidos ? `${quantidade(pontos,"pontos")} <small>no cadastro IEDE · cobertura ${fmt(publicados.length)} de ${fmt(props.length)}</small>` : `${quantidade(pontos,"pontos")} <small>no cadastro IEDE</small>`;
-    detalheTexto=desconhecidos ? `${quantidade(pontos,"pontos")} no cadastro IEDE · cobertura ${fmt(publicados.length)} de ${fmt(props.length)}` : `${quantidade(pontos,"pontos")} no cadastro IEDE`;
+    const cobertura = `cobertura ${fmt(publicados.length)} de ${fmt(fontes.length)} municípios`;
+    const contexto = munAtual ? " · município inteiro (contexto)" : "";
+    const numero = publicados.length ? quantidade(pontos,"pontos") : "sem ponto publicado";
+    detalhe = `${numero} <small>no cadastro IEDE · ${cobertura}${contexto}</small>`;
+    detalheTexto = `${numero} no cadastro IEDE · ${cobertura}${contexto}`;
   } else if (d.k !== "dens"){
     if (!indicadorConhecido){
       detalhe = "<small>não estimado</small>"; detalheTexto = "não estimado";
@@ -2571,7 +2585,7 @@ function aplicaDestaqueSelecao(){
   atualizaEscopoDados();
 }
 function escopoComparacao(){
-  if (munAtual) return camada === "grade" ? `grade 200 m de ${munAtual.nome}` : `setores de ${munAtual.nome}`;
+  if (munAtual) return camada === "grade" ? `${GRADE_LABEL} de ${munAtual.nome}` : `setores de ${munAtual.nome}`;
   const d=INDS.find(i=>i.k===ind);
   return escopoEfetivo(d) === "bacia" ? "municípios intersectantes · estimativa somente na bacia" : "municípios intersectantes · valor municipal inteiro";
 }
@@ -2596,7 +2610,7 @@ function linhaComparacao(layer, pos){
     display=numeric===null ? (d.svc && valorBruto(p,d)===null ? "sem ponto publicado" : "—") : rotulo(numeric);
   }
   if (d.municipalOnly && munAtual && numeric !== null) display += " · município inteiro (contexto)";
-  const nome=p.nome || (camada === "grade" ? `Célula ${p.id_grade || p.id_grade_previne || pos+1}` : `Setor ${p.setor || "—"}`);
+  const nome=p.nome || (camada === "grade" ? `Célula ${rotuloGrade(p)}` : `Setor ${p.setor || "—"}`);
   const codigo=p.nome ? (p.cod_mun || "—") : (p.setor || p.id_grade || p.id_grade_previne || "—");
   return {layer, p, nome, codigo, numeric, display, pop:popDaSelecao(p), parcial, suprimido, selecionado:selectionLayers.includes(layer)};
 }
@@ -2723,9 +2737,9 @@ function baixarTabelaComparacao(){
     const st = statusDadoTriagem(statusRef);
     const status = d.municipalOnly ? st : ((!munAtual && st) || (r.suprimido?"sem_dado_publicado":r.parcial?"cobertura_parcial":"publicado"));
     const completude = d.municipalOnly ? (st === "publicado" ? "publicado" : "não publicado") : (r.suprimido?"não publicado":r.parcial?"parcial":"publicado");
-    return {ordem:i+1,nome:r.nome,codigo:r.codigo,indicador:d.nome,valor:r.display,populacao:r.pop,status_dado:status,completude,n_validos:r.p?.[`${campoEscopo(d)}_n_validos`] ?? "",n_total:r.p?.[`${campoEscopo(d)}_n_total`] ?? "",escopo:statusEscopo,unidade:d.money?"R$ por mês":d.svc?"pontos cadastrados":d.pct?(d.base?"% dos domicílios permanentes ocupados":"% da população"):(d.un||"valor"),fonte,data_referencia:dataReferencia,selecionado:r.selecionado?"sim":"não"};
+    return {ordem:i+1,nome:r.nome,codigo:r.codigo,indicador:d.nome,valor:r.display,valor_numerico:r.numeric,populacao:r.pop,status_dado:status,completude,n_validos:r.p?.[`${campoEscopo(d)}_n_validos`] ?? "",n_total:r.p?.[`${campoEscopo(d)}_n_total`] ?? "",escopo:statusEscopo,unidade:unidadeIndicador(d),fonte,data_referencia:dataReferencia,selecionado:r.selecionado?"sim":"não"};
   });
-  const cols=["ordem","nome","codigo","indicador","valor","populacao","status_dado","completude","n_validos","n_total","escopo","unidade","fonte","data_referencia","selecionado"];
+  const cols=["ordem","nome","codigo","indicador","valor","valor_numerico","populacao","status_dado","completude","n_validos","n_total","escopo","unidade","fonte","data_referencia","selecionado"];
   const csv=[cols.map(csvCampo).join(";")].concat(saida.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
   baixarBlob(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}),`tabela_${slugLocal(escopoComparacao())}_${slugLocal(ind)}.csv`);
   informa(`${fmt(saida.length)} registros da tabela exportados em CSV.`);
@@ -2765,7 +2779,8 @@ function atualizaPainelSelecao(){
   if(!has){summary.textContent="";atualizaTabelaComparacao();return;}
   const r=resumoSelecao();
    summary.innerHTML=`<b>${fmt(r.count)}</b> ${r.nome} selecionado(s) · <b>${escHTML(r.popLabel)}</b> habitantes`+
-    (r.detalhe ? `<br><small>${escHTML(r.indicador)}:</small> ${r.detalhe}` : "");
+    (r.detalhe ? `<br><small>${escHTML(r.indicador)}:</small> ${r.detalhe}` : "")+
+    (munAtual ? "<br><small>População das unidades inteiras selecionadas, inclusive as que ficam fora da bacia.</small>" : "");
   atualizaTabelaComparacao();
 }
 function limpaSelecao(){
@@ -2836,7 +2851,7 @@ function fichaSelecao(){
     ? [(camada === "grade" ? "id_grade" : "setor"),"cod_mun","pop",ind]
     : ["nome","cod_mun","pop","pop_bacia",ind];
   const titulo=`Ficha da seleção · ${r.nome}`;
-  const campoRotulo={nome:"Local",setor:"Setor censitário",id_grade:"Célula da grade 200 m",cod_mun:"Código IBGE",pop:"População local",pop_bacia:"População na bacia"};
+  const campoRotulo={nome:"Local",setor:"Setor censitário",id_grade:"Célula da Grade IBGE",cod_mun:"Código IBGE",pop:"População local",pop_bacia:"População na bacia"};
   campoRotulo[ind]=d.nome;
   const cab=campos.map(c=>`<th scope="col">${escHTML(campoRotulo[c]||c)}</th>`).join("");
   const fichaValor=(p,c)=>{
@@ -3086,7 +3101,7 @@ function aplicaRestricaoCamada(){
   INDS.forEach(d=>{
     const b = indDiv.querySelector(`button[data-k="${d.k}"]`);
     if (!b) return;
-    b.textContent = restringe && d.k === "dom" ? "Domicílios IBGE (grade 200 m)" : d.nome;
+    b.textContent = restringe && d.k === "dom" ? "Domicílios IBGE (Grade 2022)" : d.nome;
     if (restringe) b.hidden = !GRADE_INDS.has(d.k);
     else if (!d.opt) b.hidden = false;      // devolve pro estado normal; opcionais recalculam abaixo
   });
@@ -3383,7 +3398,7 @@ function montaEscolhaZoom(){
   const el=document.createElement("div");
   el.className="zoom-choice"; el.id="zoomChoice"; el.hidden=true; el.setAttribute("role","dialog"); el.setAttribute("aria-modal","true"); el.setAttribute("aria-hidden","true"); el.setAttribute("tabindex","-1");
   el.setAttribute("aria-labelledby","zoomChoiceTitle"); el.setAttribute("aria-describedby","zoomChoiceDesc");
-  el.innerHTML=`<h2 id="zoomChoiceTitle">Você está em escala local</h2><p id="zoomChoiceDesc">Ao aproximar o mapa, escolha a unidade de detalhe que quer abrir no centro da tela.</p><div class="zoom-choice-actions"><button type="button" id="zoomSetor">setores censitários</button><button type="button" id="zoomGrade">grade 200 m</button></div><button type="button" class="zoom-choice-close" id="zoomChoiceClose">fechar aviso</button>`;
+  el.innerHTML=`<h2 id="zoomChoiceTitle">Você está em escala local</h2><p id="zoomChoiceDesc">Ao aproximar o mapa, escolha a unidade de detalhe que quer abrir no centro da tela.</p><div class="zoom-choice-actions"><button type="button" id="zoomSetor">setores censitários</button><button type="button" id="zoomGrade">Grade IBGE</button></div><button type="button" class="zoom-choice-close" id="zoomChoiceClose">fechar aviso</button>`;
   document.getElementById("map").appendChild(el);
   const fechaEscolha=()=>{zoomChoiceDismissed=true;el.hidden=true;el.setAttribute("aria-hidden","true");zoomChoiceTrigger?.focus?.({preventScroll:true});zoomChoiceTrigger=null;};
   el.querySelector("#zoomChoiceClose").onclick=fechaEscolha;
@@ -4044,7 +4059,7 @@ carrega("municipios.geojson").then(gj=>{
     atualizaEscopoDados();
     repinta();
     sincronizaURL();
-    informa(`${indInicial.nome} é um agregado municipal; a visão municipal foi aberta. Para população ou domicílios locais, escolha setor ou grade 200 m.`);
+    informa(`${indInicial.nome} é um agregado municipal; a visão municipal foi aberta. Para população ou domicílios locais, escolha setor ou a Grade IBGE.`);
   } else if (municipioInicial && munData.features.some(f=>String(f.properties.cod_mun)===String(municipioInicial))){
     abreMunicipio(String(municipioInicial));
   } else {
