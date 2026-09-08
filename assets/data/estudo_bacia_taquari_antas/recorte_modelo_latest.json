@@ -1,0 +1,143 @@
+{
+  "schema_version": "estudo_recorte_modelo_v1",
+  "generated_at_utc": "2026-09-08T23:58:52.311092+00:00",
+  "purpose": "briefing para Juliana escolher o recorte ANTES de qualquer HEC",
+  "status": "aguardando_decisao",
+  "discipline_rule": "Nao calibrar HEC nem inventar topologia ate o recorte estar escolhido.",
+  "facts_locked": {
+    "g040_km2": 26430,
+    "mucum_nested_km2": 15965.207,
+    "postos_ana_g040": 260,
+    "postos_por_upg": {
+      "Alto Taquari-Antas": 39,
+      "Baixo Taquari-Antas": 49,
+      "Carreiro": 37,
+      "Forqueta": 20,
+      "Guaporé": 28,
+      "Médio Taquari-Antas": 42,
+      "Prata": 45
+    },
+    "postos_por_familia_bho6": {
+      "786": 96,
+      "7868": 46,
+      "7866": 37,
+      "7864": 26,
+      "7862": 20
+    },
+    "fozes": {
+      "7868": {
+        "label": "sistema Prata / Turvo-Humatã (BHO6 7868)",
+        "position": "upstream_or_at_antas",
+        "delta_vs_mucum_km2": -3923.7
+      },
+      "7866": {
+        "label": "Rio Carreiro (BHO6 7866)",
+        "position": "between_antas_and_santa_tereza",
+        "delta_vs_mucum_km2": -479.68
+      },
+      "7864": {
+        "label": "Rio Guaporé (BHO6 7864)",
+        "position": "downstream_of_mucum",
+        "delta_vs_mucum_km2": 2494.97
+      },
+      "7862": {
+        "label": "sistema Forqueta (BHO6 7862)",
+        "position": "downstream_of_mucum",
+        "delta_vs_mucum_km2": 6539.7
+      }
+    },
+    "previne_flu_seeds_upgs": [
+      "Carreiro",
+      "Médio Taquari-Antas",
+      "Prata"
+    ],
+    "previne_rain_upgs": [
+      "Carreiro",
+      "Médio Taquari-Antas"
+    ],
+    "rain_stations_g040": 164
+  },
+  "options": [
+    {
+      "id": "A_corredor_mucum",
+      "name": "Corredor ate Muçum",
+      "area_km2_approx": 15965,
+      "includes_upgs": [
+        "Alto Taquari-Antas",
+        "Médio Taquari-Antas",
+        "Prata",
+        "Carreiro"
+      ],
+      "excludes_upgs": [
+        "Guaporé",
+        "Forqueta",
+        "Baixo Taquari-Antas"
+      ],
+      "sees_guapore_forqueta": false,
+      "aligns_with_current_previne": true,
+      "pros": [
+        "Casa com postos RNA/operacionais ja usados (Antas, STZ, Mucum, Prata, Carreiro).",
+        "Menor dominio: menos chuvas/parametros para calibrar depois.",
+        "Fozes de Guapore/Forqueta ficam a jusante — nao entram no balanco Ate Mucum."
+      ],
+      "cons": [
+        "NAO e a bacia Taquari-Antas (G040). Nao chamar de 'modelo da bacia'.",
+        "Ignora ~10 mil km2 oficiais e as UPG Guapore/Forqueta/Baixo.",
+        "Nao representa inundacoes do Baixo Taquari (Encantado, Lajeado, Estrela, etc.)."
+      ],
+      "hec_implication_later": "HEC, se vier, seria do CORREDOR — nao de G040."
+    },
+    {
+      "id": "B_g040_completa",
+      "name": "Bacia oficial G040 completa",
+      "area_km2_approx": 26430,
+      "includes_upgs": [
+        "Prata",
+        "Carreiro",
+        "Guaporé",
+        "Forqueta",
+        "Alto Taquari-Antas",
+        "Médio Taquari-Antas",
+        "Baixo Taquari-Antas"
+      ],
+      "excludes_upgs": [],
+      "sees_guapore_forqueta": true,
+      "aligns_with_current_previne": false,
+      "pros": [
+        "Fala a verdade do nome: Taquari-Antas oficial (~26,4 mil km2).",
+        "Inclui Guapore (28 postos ANA) e Forqueta (20) ja inventariados.",
+        "Permite estudar Baixo Taquari ate o Jacui."
+      ],
+      "cons": [
+        "Exige rede de chuva/nivel muito alem dos seeds PREVINE atuais.",
+        "Dominio maior: calibracao (quando houver) sera bem mais pesada.",
+        "RNA atual de Mucum/STZ nao cobre sozinha esse dominio."
+      ],
+      "hec_implication_later": "HEC teria de abrir UPG/familias 7864/7862/Baixo — nao so Carreiro."
+    },
+    {
+      "id": "C_hibrido_explicito",
+      "name": "Hibrido explicito (corredor + UPG escolhidas)",
+      "area_km2_approx": null,
+      "includes_upgs": "a definir com Juliana",
+      "excludes_upgs": "a definir",
+      "sees_guapore_forqueta": "talvez",
+      "aligns_with_current_previne": "parcial",
+      "pros": [
+        "Permite priorizar, por exemplo, Carreiro+Prata+tronco sem fingir G040 inteira.",
+        "Pode incluir Guapore se o alvo for Encantado/Muçum jusante — com rotulo honesto."
+      ],
+      "cons": [
+        "Precisa nomear exatamente o que entra e o que fica de fora.",
+        "Risco de voltar a misturar 'bacia' com 'corredor' se o rotulo for frouxo."
+      ],
+      "hec_implication_later": "HEC so depois da lista fechada de UPG/familias."
+    }
+  ],
+  "recommendation_engine_not_human": "O agente NAO escolhe o recorte. Juliana decide. Enquanto status=aguardando_decisao, nao abrir HEC novo.",
+  "artifacts": {
+    "json": "recorte_modelo_latest.json",
+    "html": "recorte_modelo.html",
+    "pluvio": "pluviometria_g040_latest.json"
+  }
+}

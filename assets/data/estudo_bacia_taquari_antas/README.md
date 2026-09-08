@@ -20,4 +20,9 @@ python scripts/build_estudo_bacia_taquari_antas.py
 python scripts/build_estudo_bacia_subbacias_fozes.py
 python scripts/build_estudo_hierarquia_rs_bacias.py
 python scripts/build_estudo_postos_por_upg.py
+python scripts/build_estudo_pluvio_recorte.py
 ```
+
+## Decisao de recorte
+
+Leia `recorte_modelo.html` antes de qualquer HEC.

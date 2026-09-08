@@ -208,7 +208,10 @@
       "UPGs sem posto no inventario atual: nenhuma.",
       "Inventario ANA dentro de G040: 260 postos; 7/7 UPG cobertas.",
       "PREVINE seeds cobrem so Carreiro, Médio Taquari-Antas, Prata; faltam seeds em Alto Taquari-Antas, Baixo Taquari-Antas, Forqueta, Guaporé.",
-      "Guapore e Forqueta tem dezenas de postos ANA, mas fora do uso operacional PREVINE atual."
+      "Guapore e Forqueta tem dezenas de postos ANA, mas fora do uso operacional PREVINE atual.",
+      "Pluviometria G040: 164 postos de chuva (ANA/INMET/CEMADEN seed).",
+      "Chuva PREVINE cobre UPG: Carreiro, Médio Taquari-Antas.",
+      "Briefing de recorte publicado; decisao humana pendente (A/B/C)."
     ],
     "unknown_or_unreconciled": [
       "Area projetada exata (m2) das 32 sub-bacias em EPSG:31982 (hoje aproximacao por graus).",
@@ -217,9 +220,8 @@
     ]
   },
   "next_study_steps_only": [
-    "Completar inventario pluviometrico (INMET/CEMADEN/codigos fora de 86*).",
-    "Decidir com Juliana o recorte de modelo: G040 inteira vs corredor Ate Mucum vs outro.",
-    "So depois discutir estrutura HEC alinhada ao recorte e aos postos por UPG."
+    "Juliana escolhe o recorte: A corredor Mucum, B G040 completa, ou C hibrido (listar UPG).",
+    "So depois discutir estrutura HEC alinhada ao recorte escolhido."
   ],
   "local_artifacts_related": {
     "iede_boundary": "assets/data/vulnerabilidade/bacia.geojson",
@@ -465,5 +467,66 @@
       "mapa": "mapa_postos_upg.html"
     },
     "updated_at_utc": "2026-09-08T23:25:30.328028+00:00"
+  },
+  "pluviometria_g040": {
+    "status": "inventariado",
+    "counts": {
+      "ana_plu_rs_fetched": 364,
+      "inmet_rs_fetched": 98,
+      "rain_stations_inside_g040": 164,
+      "by_rede": {
+        "ANA": 149,
+        "INMET": 14,
+        "CEMADEN": 1
+      },
+      "previne_rain_seeds_inside": 6,
+      "near_but_outside": 35
+    },
+    "coverage": {
+      "by_upg_counts": {
+        "Alto Taquari-Antas": 27,
+        "Baixo Taquari-Antas": 4,
+        "Carreiro": 32,
+        "Forqueta": 13,
+        "Guaporé": 20,
+        "Médio Taquari-Antas": 28,
+        "Prata": 40
+      },
+      "previne_rain_upgs": [
+        "Carreiro",
+        "Médio Taquari-Antas"
+      ],
+      "upgs_without_previne_rain_seed": [
+        "Alto Taquari-Antas",
+        "Baixo Taquari-Antas",
+        "Forqueta",
+        "Guaporé",
+        "Prata"
+      ]
+    },
+    "reading": {
+      "previne_rain_cluster": "A chuva operacional PREVINE concentra-se em Carreiro/Prata/Médio (ANA 28*, flu-chuva Antas/STZ, INMET A894, CEMADEN Serafina). UPGs sem seed de chuva PREVINE: Alto Taquari-Antas, Baixo Taquari-Antas, Forqueta, Guaporé, Prata.",
+      "ana_plu_available": "Ha centenas de pluviometricas ANA 28* no RS; dentro de G040 o inventario mostra cobertura bem maior que o seed operacional.",
+      "inmet_pane": "A894 Serafina Correa pode constar como Pane no INMET — ausencia != zero."
+    },
+    "artifacts": {
+      "json": "pluviometria_g040_latest.json",
+      "geojson": "pluviometria_g040.geojson"
+    },
+    "updated_at_utc": "2026-09-08T23:58:52.308592+00:00"
+  },
+  "recorte_modelo": {
+    "status": "aguardando_decisao",
+    "options": [
+      "A_corredor_mucum",
+      "B_g040_completa",
+      "C_hibrido_explicito"
+    ],
+    "artifacts": {
+      "json": "recorte_modelo_latest.json",
+      "html": "recorte_modelo.html",
+      "pluvio": "pluviometria_g040_latest.json"
+    },
+    "updated_at_utc": "2026-09-08T23:58:52.311092+00:00"
   }
 }
