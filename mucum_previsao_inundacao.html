@@ -258,8 +258,9 @@
         <div class="read"><span>Falso negativo (faltou)</span><b id="v-fn">—</b></div>
       </div>
 
-      <h4>Hidrograma do evento <span class="info" title="Nível observado ao longo do evento. Clique para pular no tempo; o mapa acompanha.">ⓘ</span></h4>
-      <div class="hydro"><svg id="hydro" viewBox="0 0 320 90" width="100%" style="cursor:pointer"></svg></div>
+      <h4>Hidrograma do evento <span class="info" title="Nível observado ao longo do evento. Clique ou use o teclado para pular no tempo; o mapa acompanha.">ⓘ</span></h4>
+      <div class="hydro"><svg id="hydro" viewBox="0 0 320 90" width="100%" style="cursor:pointer" role="img" aria-label="Hidrograma do evento; nível observado ao longo do evento." aria-describedby="hydro-accessible" tabindex="0"></svg></div>
+      <p class="sr-only" id="hydro-accessible">Gráfico do nível observado no evento selecionado. Use Enter ou a barra de espaço para focar o controle de horário; use as setas esquerda e direita para percorrer os horários.</p>
 
       <h4>Calibração · nível normal ↔ terreno</h4>
       <p class="disc" style="margin-top:2px"><b>Leitura da régua</b>: o valor em metros é a altura lida na estação Muçum/SGB-ANA, não a profundidade total do rio. <b>Nível normal / zero operacional</b>: leitura adotada como início da mancha no leito do rio (HAND 0). Padrão provisório adotado em <b>5,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
@@ -301,7 +302,7 @@
     </section>
     <section class="error-report" aria-labelledby="rna-error-title">
       <div class="error-report-head">
-        <div><h3 id="rna-error-title">Erros conferidos no ao vivo</h3><p>O relatório só compara previsão e leitura ANA no mesmo horário-alvo. “Sem resultado” permanece visível quando a leitura exata ainda não chegou.</p></div>
+        <div><h3 id="rna-error-title">Erros conferidos no ao vivo</h3><p>O relatório só compara previsão e leitura ANA no mesmo horário-alvo. “Sem resultado” permanece visível quando a leitura exata ainda não chegou. “Acerto” é uma previsão conferida com erro absoluto de até 10 cm. MAE é o erro absoluto médio e não tem sinal; o viés positivo indica que a RNA previu acima do observado e o negativo, abaixo. Só entram previsões com leitura ANA exatamente no horário-alvo.</p></div>
         <div class="error-window-control" aria-label="Janela dos erros conferidos"><span>janela</span><button type="button" data-error-window="168" class="on" aria-pressed="true">7 dias</button><button type="button" data-error-window="72" aria-pressed="false">3 dias</button><button type="button" data-error-window="24" aria-pressed="false">24 horas</button></div>
       </div>
       <div class="error-report-summary" id="rna-error-summary"></div>
@@ -1043,6 +1044,12 @@ async function init(){
   document.getElementById('hydro').addEventListener('click',e=>{const E=EVENTS[curEv]; if(E.series.length<2)return;
     const r=e.currentTarget.getBoundingClientRect(), sx=(e.clientX-r.left)/r.width*320;
     let i=Math.round((sx-6)/(320-12)*(E.series.length-1)); i=Math.max(0,Math.min(E.series.length-1,i)); tIdx=i; document.getElementById('time').value=i; renderFrame();});
+  document.getElementById('hydro').addEventListener('keydown',e=>{const E=EVENTS[curEv]; if(!E||E.series.length<2)return;
+    if(e.key==='Enter'||e.key===' '){e.preventDefault(); document.getElementById('time').focus(); return;}
+    if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+    e.preventDefault(); const max=E.series.length-1;
+    tIdx=e.key==='Home'?0:e.key==='End'?max:Math.max(0,Math.min(max,tIdx+(e.key==='ArrowRight'?1:-1)));
+    document.getElementById('time').value=tIdx; renderFrame();});
   document.querySelectorAll('.method .step').forEach(s=>{s.setAttribute('tabindex','0');s.setAttribute('role','button');const open=()=>set('method-exp',s.dataset.exp);s.onclick=open;s.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}}});
   document.getElementById('live-btn').onclick=()=>liveMode?exitLive():enterLive();
   document.querySelectorAll('[data-live-hz]').forEach(b=>b.onclick=()=>setLiveHorizon(b.dataset.liveHz));
