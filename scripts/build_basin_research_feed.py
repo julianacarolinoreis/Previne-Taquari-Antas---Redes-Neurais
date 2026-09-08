@@ -110,14 +110,34 @@ def rel(path: Path) -> str:
         return str(path).replace("\\", "/")
 
 
+TEXT_HASH_SUFFIXES = {
+    ".css",
+    ".csv",
+    ".geojson",
+    ".html",
+    ".js",
+    ".json",
+    ".md",
+    ".py",
+    ".svg",
+    ".txt",
+    ".xml",
+    ".yml",
+    ".yaml",
+}
+
+
 def sha256(path: Path) -> str | None:
     if not path.exists():
         return None
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
+    # Actions checks out text with LF, while Windows commonly exposes the
+    # same tracked file with CRLF.  Canonicalize only known text files so the
+    # provenance hash is stable across both environments; binary assets remain
+    # byte-for-byte hashes.
+    data = path.read_bytes()
+    if path.suffix.lower() in TEXT_HASH_SUFFIXES:
+        data = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(data).hexdigest()
 
 
 def source_registry() -> dict[str, Any]:
@@ -244,6 +264,64 @@ def short_forecasts(live: dict[str, Any]) -> list[dict[str, Any]]:
             }
         )
     return output
+
+
+def live_horizon_audit(live: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalize every published short-horizon candidate without hiding gaps.
+
+    The principal 4 h output can be unavailable while a comparative candidate
+    is valid (and the 8 h model can be available but above its error guardrail).
+    Keeping these states in the joined feed prevents a compact dashboard card
+    from collapsing them into one ambiguous ``previsão curta`` label.
+    """
+    live_horizons = live.get("horizontes") if isinstance(live.get("horizontes"), dict) else {}
+    rows: list[dict[str, Any]] = []
+    for key, item in live_horizons.items():
+        if not isinstance(item, dict):
+            continue
+        match = str(key).lower().replace("_versao_b", "").replace("h", "")
+        try:
+            hours = int(match)
+        except ValueError:
+            hours = integer(item.get("horizonte_h"))
+        if hours is None:
+            continue
+        input_audit = item.get("auditoria_inputs") if isinstance(item.get("auditoria_inputs"), dict) else {}
+        audit = item.get("auditoria") if isinstance(item.get("auditoria"), dict) else {}
+        quality = item.get("qualidade_ao_vivo") if isinstance(item.get("qualidade_ao_vivo"), dict) else {}
+        status = str(item.get("status") or "desconhecido")
+        # A model can publish a numeric forecast with an attached warning such
+        # as ``ok - atencao``.  Keep the value available, while exposing the
+        # warning separately through ``quality_status``.
+        available = item.get("nivel_previsto_cm") is not None and item.get("disponivel") is not False and status.lower().startswith("ok")
+        quality_status = quality.get("status")
+        if not quality_status:
+            quality_status = input_audit.get("status") if input_audit.get("status") != "NORMAL" else "NORMAL"
+        role = item.get("modelo_papel")
+        if not role:
+            role = "sombra_experimental" if item.get("shadow_only") else item.get("status_publicacao")
+        rows.append(
+            {
+                "key": str(key),
+                "hours": hours,
+                "model": item.get("modelo"),
+                "role": role or "principal",
+                "status": status,
+                "available": available,
+                "level_forecast_cm": number(item.get("nivel_previsto_cm")),
+                "issued_at_utc": latest_time(item.get("hora_modelo_utc"), item.get("hora_modelo")),
+                "target_at_utc": latest_time(item.get("hora_alvo_utc"), item.get("hora_alvo")),
+                "inputs_total": integer(input_audit.get("n_inputs", item.get("inputs_total"))),
+                "inputs_exact": integer(input_audit.get("n_exatos")),
+                "inputs_missing": integer(item.get("inputs_faltantes_n")),
+                "inputs_non_exact": integer(input_audit.get("n_inputs_nao_exatos", 0)),
+                "input_audit_status": input_audit.get("status"),
+                "quality_status": quality_status,
+                "mae_24h_cm": number(quality.get("mae_24h_cm", audit.get("mae_24h_cm"))),
+                "max_error_24h_cm": number(quality.get("maior_erro_abs_24h_cm", audit.get("maior_erro_abs_24h_cm"))),
+            }
+        )
+    return sorted(rows, key=lambda row: (int(row["hours"]), 0 if row["role"] == "principal" else 1, row["key"]))
 
 
 def event_summary(pattern: dict[str, Any], binary: dict[str, Any], *, location: str) -> dict[str, Any]:
@@ -427,6 +505,9 @@ def station_context(key: str, now: datetime, santa_weather: dict[str, Any] | Non
     binary = load(binary_path, {})
     live = load(live_path, {})
     current = live_current(live, weather, now)
+    live_feed_at = latest_time(live.get("consultado_em_utc"), live.get("consultado_em"), live.get("gerado_em_utc"), live.get("gerado_em"))
+    live_feed_age = age_hours(live_feed_at, now)
+    live_rows = live_horizon_audit(live)
     weather_generated = weather.get("generated_at_utc")
     forecast_age = age_hours(weather_generated, now)
     forecast_rows = {integer(row.get("hours", row.get("horizon_hours"))): row for row in rows(weather.get("horizons")) if integer(row.get("hours", row.get("horizon_hours"))) is not None}
@@ -511,6 +592,10 @@ def station_context(key: str, now: datetime, santa_weather: dict[str, Any] | Non
         quality_flags.append("observation_stale_or_unknown")
     if any(not row["forecast_complete"] for row in horizon_rows):
         quality_flags.append("partial_horizon")
+    if any(not row["available"] for row in live_rows if row["hours"] in (2, 4)):
+        quality_flags.append("live_short_forecast_incomplete")
+    if any(str(row["quality_status"]).upper() == "ATENCAO" for row in live_rows):
+        quality_flags.append("live_model_quality_attention")
     if key == "mucum":
         quality_flags.extend(["point_forecast", "shared_headwater_reference", "no_local_soil_sensor"])
     else:
@@ -522,6 +607,14 @@ def station_context(key: str, now: datetime, santa_weather: dict[str, Any] | Non
         "threshold_cm": config["threshold_cm"],
         "current": current,
         "short_forecasts": short_forecasts(live),
+        "live_horizons": live_rows,
+        "live_feed": {
+            "status": live.get("status"),
+            "generated_at_utc": latest_time(live.get("gerado_em_utc"), live.get("gerado_em")),
+            "consulted_at_utc": latest_time(live.get("consultado_em_utc"), live.get("consultado_em")),
+            "age_hours": round(live_feed_age, 2) if live_feed_age is not None else None,
+            "state": "fresh" if live_feed_age is not None and live_feed_age <= 1 else "stale_or_unknown",
+        },
         "forecast": {
             "generated_at_utc": weather_generated,
             "age_hours": round(forecast_age, 2) if forecast_age is not None else None,

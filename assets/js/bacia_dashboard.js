@@ -216,7 +216,15 @@
     const h = state.horizon;
     grid.innerHTML = keys.map((key) => {
       const item = researchStation(key) || {}; const row = researchRow(key, h) || {}; const rain = row.rain || {}; const head = rain.headwater || {}; const risk = row.risk || {}; const current = item.current || {};
-      const short = Array.isArray(item.short_forecasts) && item.short_forecasts.length ? item.short_forecasts.map((f) => `+${f.hours} h: ${fmt(f.level_forecast_cm, 0)} cm`).join(' · ') : 'previsão curta sem valor';
+      const liveRows = Array.isArray(item.live_horizons) ? item.live_horizons : [];
+      const short = liveRows.length
+        ? liveRows.map((f) => {
+          const label = f.role === 'comparativo' || f.role === 'sombra_experimental' ? ' (comparativo)' : '';
+          const value = f.available ? `${fmt(f.level_forecast_cm, 0)} cm` : 'indisponível';
+          const quality = f.quality_status && f.quality_status !== 'NORMAL' ? ` · ${f.quality_status}` : '';
+          return `+${f.hours} h${label}: ${value}${quality}`;
+        }).join(' · ')
+        : 'previsão curta sem valor';
       const headValue = head.mean_mm == null ? '—' : `${fmt(head.mean_mm, 1)} mm`;
       const headNote = head.max_mm == null ? 'sem máximo publicado' : `máx. ${fmt(head.max_mm, 1)} mm · ${head.status === 'shared_santa_reference' ? 'proxy compartilhada' : 'células monitoradas'}`;
       const point = rain.point_mm != null ? `${fmt(rain.point_mm, 1)} mm` : rain.ifs_direct_mm != null ? `${fmt(rain.ifs_direct_mm, 1)} mm` : '—';

@@ -54,6 +54,8 @@ class BasinDashboardTests(unittest.TestCase):
         self.assertIn("rodada atrasada", script)
         self.assertIn("PROXY · célula espacial", script)
         self.assertIn("renderResearchContext", script)
+        self.assertIn("live_horizons", script)
+        self.assertIn("indisponível", script)
         self.assertIn("riskUsable", script)
         self.assertIn("não utilizável como leitura atual", script)
         self.assertIn("refresh-feeds", script)
