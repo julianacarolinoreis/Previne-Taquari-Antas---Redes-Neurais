@@ -1,6 +1,6 @@
 {
   "schema_version": "estudo_bacia_taquari_antas_v1",
-  "generated_at_utc": "2026-09-08T21:53:13.084781+00:00",
+  "generated_at_utc": "2026-09-08T22:35:10.118097+00:00",
   "purpose": "estudo da bacia antes de qualquer modelo HEC; nao e calibracao nem alerta",
   "status": "estudo_em_andamento",
   "discipline_rule": "Nao subentender estrutura de modelo. Primeiro ler a bacia oficial; so depois discutir HEC.",
@@ -195,21 +195,28 @@
       "O nome muda de Antas para Taquari na foz do Carreiro.",
       "Muçum e Santa Tereza sao controles do tronco, nao o exutorio da bacia.",
       "No clip BHO6 a montante de Muçum, Guapore e Forqueta nao entram.",
-      "Areas citadas (tese UFRGS) para Prata/Carreiro/Guapore/Forqueta/Antas."
+      "Areas citadas (tese UFRGS) para Prata/Carreiro/Guapore/Forqueta/Antas.",
+      "IEDE disponibiliza as 32 sub-bacias do enquadramento sob codigo Q040.",
+      "IEDE disponibiliza as 7 UGs sob cod_bacia G040.",
+      "Guapore entra no tronco a jusante hidrologica do posto Mucum (~+2495 km2).",
+      "Forqueta entra ainda mais a jusante (~22.5 mil km2 aninhados).",
+      "Hierarquia RS: 3 RH, 25 BH, ~175 UPG, 32 enquadramentos G040, ~33133 ottobacias na arvore 786.",
+      "ZIP SEMA 'UBH' = 175 UPG; nao sao as mini-bacias finas SIOUT/ArcHydro.",
+      "So G040 contribui com escoamento ao Taquari-Antas; vizinhas nao sao afluentes.",
+      "Jacui/Guaiba podem influenciar o Baixo Taquari por remanso hidraulico."
     ],
     "unknown_or_unreconciled": [
-      "Shapefile oficial das 32 sub-bacias com areas reconciliadas no repo.",
-      "Posicao exata (km / area acumulada BHO6) da foz de Guapore e Forqueta no tronco.",
+      "Area projetada exata (m2) das 32 sub-bacias em EPSG:31982 (hoje aproximacao por graus).",
       "Inventario unico de postos fluviometricos/pluviometricos por UG.",
       "Curva-chave reconciliada em Santa Tereza.",
       "Qual recorte o PREVINE quer modelar: bacia toda, corredor ate Muçum, ou outro."
     ]
   },
   "next_study_steps_only": [
-    "Baixar/anexar shapefiles SEMA das sub-bacias/enquadramento e calcular areas.",
-    "Mapear foz de cada UG no tronco com BHO6 (incluindo jusante de Muçum).",
-    "Montar inventario de postos por UG sem forcar uso em HEC.",
-    "So depois escolher o recorte de modelo com a Juliana (bacia toda vs corredor)."
+    "Anexar amostra/resumo espacial das ottobacias 786 (sem baixar 33k poligonos inteiros no Pages).",
+    "Inventario de postos por UPG e por familia BHO6 (7868/7866/7864/7862).",
+    "Decidir com Juliana o recorte de modelo: G040 inteira vs corredor Ate Mucum vs outro.",
+    "So depois discutir estrutura HEC alinhada ao recorte escolhido."
   ],
   "local_artifacts_related": {
     "iede_boundary": "assets/data/vulnerabilidade/bacia.geojson",
@@ -220,5 +227,142 @@
       "assets/data/mucum_eventwise_replay_calibrated/"
     ],
     "note_on_premature_packages": "Podem ser uteis como experimentos de corredor, mas nao substituem o estudo da bacia oficial."
+  },
+  "subbacias_oficial_iede": {
+    "status": "baixado",
+    "counts": {
+      "subbacias_enquadramento": 32,
+      "ugs": 7,
+      "fozes_mapeadas": 4
+    },
+    "area_check_approx_km2": {
+      "sum_32_subbacias": 26517.97,
+      "sum_7_ugs": 26525.95,
+      "sema_official": 26430,
+      "note": "Areas aproximadas a partir de Shape__Area em graus; reconciliar com shapefile projetado depois."
+    },
+    "fozes_principais": [
+      {
+        "join_area_km2": 3775.9878373,
+        "mainstem_area_at_join_km2": 12041.50535265,
+        "fid": 3746331,
+        "name": null,
+        "cocursodag": "7868",
+        "lonlat": [
+          -51.47601649999996,
+          -29.018112999199037
+        ],
+        "label": "sistema Prata / Turvo-Humatã (BHO6 7868)",
+        "family_code": "7868",
+        "position_vs_controls": "upstream_or_at_antas",
+        "delta_vs_mucum_km2": -3923.7
+      },
+      {
+        "join_area_km2": 2564.1905369,
+        "mainstem_area_at_join_km2": 15485.53189009,
+        "fid": 4665424,
+        "name": null,
+        "cocursodag": "7866",
+        "lonlat": [
+          -51.71334739999997,
+          -29.09016859919778
+        ],
+        "label": "Rio Carreiro (BHO6 7866)",
+        "family_code": "7866",
+        "position_vs_controls": "between_antas_and_santa_tereza",
+        "delta_vs_mucum_km2": -479.68
+      },
+      {
+        "join_area_km2": 2486.72195807,
+        "mainstem_area_at_join_km2": 18460.17920563,
+        "fid": 5332058,
+        "name": null,
+        "cocursodag": "7864",
+        "lonlat": [
+          -51.88607349999995,
+          -29.170801699196396
+        ],
+        "label": "Rio Guaporé (BHO6 7864)",
+        "family_code": "7864",
+        "position_vs_controls": "downstream_of_mucum",
+        "delta_vs_mucum_km2": 2494.97
+      },
+      {
+        "join_area_km2": 2845.59935275,
+        "mainstem_area_at_join_km2": 22504.91188793,
+        "fid": 3999116,
+        "name": null,
+        "cocursodag": "7862",
+        "lonlat": [
+          -51.95624829999997,
+          -29.421623699192054
+        ],
+        "label": "sistema Forqueta (BHO6 7862)",
+        "family_code": "7862",
+        "position_vs_controls": "downstream_of_mucum",
+        "delta_vs_mucum_km2": 6539.7
+      }
+    ],
+    "reading": {
+      "guapore": "Foz do Guapore no tronco com area aninhada BHO6 ~18.460 km2, ~+2.495 km2 apos Muçum (15.965). Geograficamente perto de Mucum/Encantado, mas hidrologicamente a jusante do posto 86510000.",
+      "forqueta": "Foz do sistema Forqueta com area aninhada BHO6 ~22.505 km2, bem a jusante de Mucum.",
+      "carreiro": "Foz do Carreiro entre Antas e Santa Tereza (~15.486 km2 no tronco).",
+      "prata_system": "Sistema 7868 (Prata/componentes) entra a montante do posto Antas.",
+      "implication": "O PREVINE em Mucum nao ve Guapore nem Forqueta. Modelar so o corredor Ate Mucum nao e modelar a bacia Taquari-Antas."
+    },
+    "artifacts": {
+      "sub_bacias_geojson": "sub_bacias_q040_enquadramento.geojson",
+      "ugs_geojson": "ugs_g040.geojson",
+      "fozes_geojson": "fozes_principais_bho6.geojson",
+      "mapa": "mapa_subbacias.html"
+    },
+    "updated_at_utc": "2026-09-08T22:22:59.281987+00:00"
+  },
+  "hierarquia_rs": {
+    "status": "estudado",
+    "correction": {
+      "wrong_reading": "A Taquari-Antas tem so 32 sub-bacias — ponto final.",
+      "right_reading": "32 e o nivel de ENQUADRAMENTO (qualidade da agua, codigo Q040 no IEDE). Abaixo/ao lado existem 7 UPG de gestao, ~33 mil ottobacias/trechos BHO6 na arvore 786, e mini-bacias SIOUT (ArcHydro/BC25) usadas em outorga. Acima: 25 BH e 3 RH."
+    },
+    "hard_rule_influence": "So a chuva que cai DENTRO de G040 (e suas UPG/ottobacias internas) escoa para o Taquari-Antas. Bacias vizinhas NAO sao afluentes. Jusante (Jacui/Guaiba) pode afetar por remanso. Clima compartilhado != contribuicao hidrologica.",
+    "hierarchy_summary": [
+      {
+        "level": 1,
+        "name": "Regioes Hidrograficas",
+        "count": 3
+      },
+      {
+        "level": 2,
+        "name": "Bacias Hidrograficas (Decreto 53.885/2018)",
+        "count": 25
+      },
+      {
+        "level": 3,
+        "name": "UPG / Unidades publicadas como UBH (SEMA zip 2024)",
+        "count_rs": 175,
+        "count_g040": 7
+      },
+      {
+        "level": 4,
+        "name": "Sub-bacias de enquadramento (qualidade da agua)",
+        "count_g040_q040": 32
+      },
+      {
+        "level": 5,
+        "name": "Ottobacias / trechos BHO6 (mini-unidades hidrologicas)",
+        "count_polygons_hsig_cocursodag_786": 33133
+      },
+      {
+        "level": 6,
+        "name": "Mini-bacias SIOUT (ArcHydro sobre BC25)"
+      }
+    ],
+    "artifacts": {
+      "bacias_geojson": "bacias_rs_25.geojson",
+      "upgs_geojson": "upgs_rs_175.geojson",
+      "report": "hierarquia_rs_latest.json",
+      "mapa": "mapa_hierarquia_rs.html"
+    },
+    "updated_at_utc": "2026-09-08T22:33:22.943789+00:00"
   }
 }

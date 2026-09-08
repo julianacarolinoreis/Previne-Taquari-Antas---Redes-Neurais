@@ -1,14 +1,20 @@
 # Estudo da bacia Taquari-Antas
 
-Este pacote e **estudo**, nao modelo.
+**Estudo, nao modelo.** Nao sao so 32 sub-bacias.
 
-Leia `index.html` / `estudo_bacia_latest.json` antes de qualquer HEC.
+## Hierarquia
 
-## Regra
+1. 3 regioes hidrograficas
+2. 25 bacias (G040 = Taquari-Antas)
+3. ~175 UPG (zip SEMA "UBH" = este nivel)
+4. 32 enquadramentos em G040 (qualidade da agua)
+5. ~33 mil ottobacias BHO6 na arvore `786` (mini-unidades)
+6. mini-bacias SIOUT/ArcHydro (outorga) — distintas do zip UBH
 
-Nao subentender a estrutura. A bacia oficial (SEMA G040) tem ~26,4 mil km2,
-7 UGs e 32 sub-bacias. O corredor Ate Muçum (~16 mil km2) nao e a bacia toda.
+Leia `mapa_hierarquia_rs.html` e `hierarquia_rs_latest.json`.
 
 ```bash
 python scripts/build_estudo_bacia_taquari_antas.py
+python scripts/build_estudo_bacia_subbacias_fozes.py
+python scripts/build_estudo_hierarquia_rs_bacias.py
 ```

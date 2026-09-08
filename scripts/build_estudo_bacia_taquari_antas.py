@@ -183,16 +183,14 @@ def main() -> None:
                 "Areas citadas (tese UFRGS) para Prata/Carreiro/Guapore/Forqueta/Antas.",
             ],
             "unknown_or_unreconciled": [
-                "Shapefile oficial das 32 sub-bacias com areas reconciliadas no repo.",
-                "Posicao exata (km / area acumulada BHO6) da foz de Guapore e Forqueta no tronco.",
+                "Area projetada exata (m2) das 32 sub-bacias em EPSG:31982 (hoje aproximacao por graus).",
                 "Inventario unico de postos fluviometricos/pluviometricos por UG.",
                 "Curva-chave reconciliada em Santa Tereza.",
                 "Qual recorte o PREVINE quer modelar: bacia toda, corredor ate Muçum, ou outro.",
             ],
         },
         "next_study_steps_only": [
-            "Baixar/anexar shapefiles SEMA das sub-bacias/enquadramento e calcular areas.",
-            "Mapear foz de cada UG no tronco com BHO6 (incluindo jusante de Muçum).",
+            "Reconciliar areas das 32 sub-bacias em EPSG:31982 (hoje Shape__Area em graus).",
             "Montar inventario de postos por UG sem forcar uso em HEC.",
             "So depois escolher o recorte de modelo com a Juliana (bacia toda vs corredor).",
         ],
@@ -209,6 +207,23 @@ def main() -> None:
     }
 
     OUT.mkdir(parents=True, exist_ok=True)
+    prev_path = OUT / "estudo_bacia_latest.json"
+    if prev_path.exists():
+        prev = json.loads(prev_path.read_text(encoding="utf-8"))
+        if "subbacias_oficial_iede" in prev:
+            study["subbacias_oficial_iede"] = prev["subbacias_oficial_iede"]
+            known = study["known_vs_unknown"]["known"]
+            for item in prev.get("known_vs_unknown", {}).get("known", []):
+                if item not in known and ("IEDE" in item or "Guapore entra" in item or "Forqueta entra" in item or "Hierarquia RS" in item or "ZIP SEMA" in item or "So G040" in item or "Jacui/Guaiba" in item):
+                    known.append(item)
+        if "hierarquia_rs" in prev:
+            study["hierarquia_rs"] = prev["hierarquia_rs"]
+            known = study["known_vs_unknown"]["known"]
+            for item in prev.get("known_vs_unknown", {}).get("known", []):
+                if item not in known and ("Hierarquia RS" in item or "ZIP SEMA" in item or "So G040" in item or "Jacui/Guaiba" in item):
+                    known.append(item)
+            if prev.get("next_study_steps_only"):
+                study["next_study_steps_only"] = prev["next_study_steps_only"]
     (OUT / "estudo_bacia_latest.json").write_text(
         json.dumps(study, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -244,9 +259,9 @@ def main() -> None:
     .eyebrow {{ color:var(--accent); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }}
     .notice {{ border-left:5px solid var(--warn); background:#fff7e8; color:#6d4810; padding:12px 14px; border-radius:10px; }}
     .bad {{ border-left-color:var(--bad); background:#fff1ef; color:#7a2d28; }}
-    .grid {{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }}
+    .grid {{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }}
     .stat {{ border:1px solid var(--line); border-radius:12px; padding:12px; background:#f7fcfc; }}
-    .stat strong {{ display:block; font-size:28px; color:var(--accent); }}
+    .stat strong {{ display:block; font-size:26px; color:var(--accent); }}
     .ugs {{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }}
     .ug {{ border:1px solid var(--line); border-radius:12px; padding:12px; background:#f8fcfc; }}
     .ug h3 {{ margin:0 0 8px; font-size:1rem; }}
@@ -270,23 +285,33 @@ def main() -> None:
 
   <section>
     <div class="grid">
-      <div class="stat"><strong>26.430</strong><span>km² oficiais SEMA (G040)</span></div>
-      <div class="stat"><strong>7</strong><span>unidades de gestao</span></div>
-      <div class="stat"><strong>32</strong><span>sub-bacias oficiais</span></div>
+      <div class="stat"><strong>25</strong><span>bacias oficiais no RS</span></div>
+      <div class="stat"><strong>175</strong><span>UPG / UBH publicadas</span></div>
+      <div class="stat"><strong>32</strong><span>enquadramentos G040</span></div>
+      <div class="stat"><strong>~33k</strong><span>ottobacias arvore 786</span></div>
     </div>
+    <div class="notice bad" style="margin-top:12px"><strong>Correcao:</strong> 32 e so o nivel de enquadramento (qualidade da agua). As mini-unidades hidrologicas sao as ~33 mil ottobacias da arvore 786. O zip SEMA "UBH" sao as 175 UPG, nao as mini-bacias SIOUT.</div>
+    <p><a href="mapa_hierarquia_rs.html">Mapa das 25 bacias + influencia</a> ·
+       <a href="mapa_subbacias.html">7 UPG + fozes</a> ·
+       <a href="hierarquia_rs_latest.json">JSON hierarquia</a></p>
   </section>
 
   <section>
     <h2>Distincao critica</h2>
     <div class="notice bad"><strong>Nao confundir:</strong> {study['critical_distinction']['finding']}</div>
     <p>Muçum BHO6 aninhado: <strong>{mucum_nested}</strong> km² · Santa Tereza: <strong>{stz_nested}</strong> km² · Antas: <strong>{antas_nested}</strong> km².</p>
-    <p>Exutorio da bacia oficial: <strong>Rio Jacui</strong>, nao Muçum.</p>
+    <p>Exutorio da bacia oficial: <strong>Rio Jacui</strong>, nao Muçum. So G040 escorre para o Taquari-Antas; vizinhas nao sao afluentes.</p>
   </section>
 
   <section>
-    <h2>7 UGs e 32 sub-bacias</h2>
+    <h2>7 UPG e 32 sub-bacias de enquadramento (G040)</h2>
     <div class="ugs">{ugs_html}</div>
-    <p class="meta" style="color:#5d7380;font-size:13px">Fonte compilada do plano/enquadramento via pagina da bacia. Shapefile SEMA ainda precisa ser anexado ao repo para areas por sub-bacia.</p>
+    <p class="meta" style="color:#5d7380;font-size:13px">As 32 sao unidades de qualidade da agua (Q040). GeoJSON + fozes: <a href="mapa_subbacias.html">mapa_subbacias.html</a>.</p>
+  </section>
+
+  <section>
+    <h2>Mapa de fozes vs Muçum</h2>
+    <div class="notice"><strong>Fechado no estudo:</strong> Guapore entra no tronco ~+2.495 km² apos Muçum; Forqueta ~+6.540 km² apos Muçum; Carreiro entre Antas e Santa Tereza; sistema Prata a montante/na Antas. Ver <a href="mapa_subbacias.html">mapa interativo</a> e <a href="subbacias_e_fozes_latest.json">JSON</a>.</div>
   </section>
 
   <section>
@@ -308,7 +333,7 @@ def main() -> None:
   <section>
     <h2>Proximos passos de ESTUDO (sem HEC)</h2>
     <ul>{''.join(f'<li>{x}</li>' for x in study['next_study_steps_only'])}</ul>
-    <p><a href="estudo_bacia_latest.json">JSON auditavel</a> · fontes: <a href="https://www.sema.rs.gov.br/g040-bh-taquari-antas">SEMA G040</a> · <a href="https://www.sgb.gov.br/sace/taquari_caracteristicas.php">SGB SACE</a></p>
+    <p><a href="estudo_bacia_latest.json">JSON auditavel</a> · <a href="mapa_subbacias.html">mapa sub-bacias/fozes</a> · fontes: <a href="https://www.sema.rs.gov.br/g040-bh-taquari-antas">SEMA G040</a> · <a href="https://www.sgb.gov.br/sace/taquari_caracteristicas.php">SGB SACE</a> · IEDE Q040/G040</p>
   </section>
 </main>
 </body>
@@ -321,6 +346,7 @@ def main() -> None:
 Este pacote e **estudo**, nao modelo.
 
 Leia `index.html` / `estudo_bacia_latest.json` antes de qualquer HEC.
+Mapa das 32 sub-bacias + fozes: `mapa_subbacias.html`.
 
 ## Regra
 
@@ -329,6 +355,7 @@ Nao subentender a estrutura. A bacia oficial (SEMA G040) tem ~26,4 mil km2,
 
 ```bash
 python scripts/build_estudo_bacia_taquari_antas.py
+python scripts/build_estudo_bacia_subbacias_fozes.py
 ```
 """,
         encoding="utf-8",
