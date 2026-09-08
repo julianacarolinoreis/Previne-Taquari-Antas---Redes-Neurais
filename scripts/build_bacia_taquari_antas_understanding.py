@@ -495,6 +495,7 @@ def write_html(report: dict[str, Any], path: Path) -> None:
       <li><a href="major_tributary_joins.geojson"><code>major_tributary_joins.geojson</code></a> — confluências</li>
       <li><a href="../hec_hms_integrated_taquari_antas/bho6_taquari_antas_network.geojson">rede BHO6 do corredor</a></li>
       <li><a href="../hec_hms_integrated_taquari_antas/network_audit_latest.json">auditoria de rede</a></li>
+      <li><a href="../hec_hms_carreiro_split/index.html">próximo passo: estrutura HEC com Carreiro separado</a></li>
     </ul>
   </section>
 </main>
