@@ -63,8 +63,10 @@ def main():
     loo = data["experiments"]["exp5_leave_one_event_out_2h4h"]
     round3 = data["experiments"].get("exp6_close_mat_gap_2h4h") or {}
     round4 = data["experiments"].get("exp7_mat_scale_warmstart_fix") or {}
+    round5 = data["experiments"].get("exp8_previne_protocol_obs_labels") or {}
     ds = data["datasets"]
     ref = data["mat_reference_metrics_teste"]
+    fair_aligned = data.get("mat_reference_aligned_teste") or (round5.get("mat_reference_aligned_teste") or {})
     cons = data["trajectory_consistency"]
     repair_summary = exp1.get("summary_scratch_vs_mimo_repair") or {"ganhos": [], "empates": [], "perdas": []}
     repair_cons = cons.get("mimo_15in_repair_2h4h") or {}
@@ -81,7 +83,7 @@ def main():
                 f"<td>{payload['n']}</td></tr>"
             )
 
-    def _round_table(round_payload):
+    def _round_table(round_payload, gap_key="gap_mat_4h"):
         rows_html = ""
         for item in round_payload.get("ranking") or []:
             v = round_payload["variants"][item["key"]]["splits"]["teste"]
@@ -90,13 +92,14 @@ def main():
                 f"<tr><td>{item['key']}</td>"
                 f"<td>{fmt(v['2h']['nash'])}</td><td>{fmt(v['4h']['nash'])}</td>"
                 f"<td>{fmt(item['delta_scratch_4h'])}</td>"
-                f"<td>{fmt(item['gap_mat_4h'])}</td>"
+                f"<td>{fmt(item.get(gap_key, item.get('gap_mat_4h')))}</td>"
                 f"<td>{flag}</td></tr>"
             )
         return rows_html
 
     round3_rows = _round_table(round3)
     round4_rows = _round_table(round4)
+    round5_rows = _round_table(round5)
     round3_box = ""
     if round3:
         verd = round3.get("verdict", {})
@@ -108,12 +111,12 @@ def main():
 bate scratch no 4h? {'sim' if verd.get('beats_scratch_4h') else 'não'}</p>
 <table><thead><tr><th>Variante</th><th>NASH 2h</th><th>NASH 4h</th><th>Δ scratch 4h</th><th>gap teto 4h</th><th>2h ok</th></tr></thead>
 <tbody>{round3_rows or '<tr><td colspan="6">sem ranking</td></tr>'}</tbody></table>
-<p class='meta'>{verd.get('note','')}</p>
+<p class='meta'>{verd.get('note','')} · <em>Nota: métricas desta rodada ainda usavam Tctot1 (predição) como y_true — ver 6d.</em></p>
 <ul>
 <li><strong>Peso em subidas</strong> foi a única alavanca Python estável (leve ganho no 4h).</li>
 <li><strong>Warm-start full</strong> (ws+au/bu) colapsou — escala y sobrescrita no fit.</li>
 <li><strong>Peso forte no 4h</strong> [1,2] piorou o 2h além do limiar.</li>
-<li>Gap ao teto .mat no 4h ≈0,14 NASH.</li>
+<li>Gap ao teto .mat no 4h ≈0,14 NASH (inflado pelo rótulo errado).</li>
 </ul>
 """
     round4_box = ""
@@ -130,13 +133,38 @@ melhora r3 no 4h? {'sim' if verd.get('improves_vs_round3_4h') else 'não'}
 {f" · r3 ref 4h NASH {fmt((r3ref.get('teste') or {}).get('4h', {}).get('nash'))}" if r3ref else ""}</p>
 <table><thead><tr><th>Variante</th><th>NASH 2h</th><th>NASH 4h</th><th>Δ scratch 4h</th><th>gap teto 4h</th><th>2h ok</th></tr></thead>
 <tbody>{round4_rows or '<tr><td colspan="6">sem ranking</td></tr>'}</tbody></table>
+<p class='meta'>{verd.get('note','')} · <em>Nota: ainda com Tctot1 como y_true — ver 6d.</em></p>
+<ul>
+<li><strong>warm_hidden_rising</strong> estável; leve ganho vs r3.</li>
+<li><strong>full_freeze_y</strong> destrói o 2h.</li>
+<li>Gap aparente ≈0,12–0,13 (ainda inflado).</li>
+</ul>
+"""
+    round5_box = ""
+    if round5:
+        verd = round5.get("verdict", {})
+        best = round5.get("best_variant", "—")
+        gate = round5.get("gate_direct_2h_previne") or {}
+        fair4 = (fair_aligned.get("4h") or {}).get("nash")
+        fair2 = (fair_aligned.get("2h") or {}).get("nash")
+        round5_box = f"""
+<h2>6d. Rodada 5 — rótulos obs + protocolo PREVINE</h2>
+<p>Pergunta: {round5.get('question','')}</p>
+<p class='meta'>Correção: {round5.get('label_fix',{}).get('before','')} → {round5.get('label_fix',{}).get('after','')}</p>
+<p><strong>Gate Direct 2h PREVINE:</strong> NASH {fmt((gate.get('previne_twin_teste') or {}).get('nash'))}
+(pass={ 'sim' if gate.get('gate_pass') else 'não' }) · .mat ref {fmt((gate.get('mat_reference_teste') or {}).get('nash'))}</p>
+<p><strong>Teto justo alinhado (Direct vs obs):</strong> 2h {fmt(fair2)} · 4h {fmt(fair4)}</p>
+<p><strong>Melhor variante:</strong> {best} · gap justo 4h {fmt(verd.get('gap_fair_aligned_4h'))} ·
+fecha &lt;0,05? {'sim' if verd.get('closes_fair_aligned_gap') else 'não'} ·
+bate scratch 4h? {'sim' if verd.get('beats_scratch_4h') else 'não'}</p>
+<table><thead><tr><th>Variante</th><th>NASH 2h</th><th>NASH 4h</th><th>Δ scratch 4h</th><th>gap teto justo 4h</th><th>2h ok</th></tr></thead>
+<tbody>{round5_rows or '<tr><td colspan="6">sem ranking</td></tr>'}</tbody></table>
 <p class='meta'>{verd.get('note','')}</p>
 <ul>
-<li><strong>warm_hidden_rising</strong> (Wh/bh do Direct + ae/be + peso em subidas) é estável e ligeiramente acima da r3 no 4h.</li>
-<li><strong>mat_input_only</strong> (só congelar ae/be) já recupera quase o mesmo 4h — a escala de entrada importa mais que copiar ws.</li>
-<li><strong>full_freeze_y</strong> ainda destrói o 2h; copiar a cabeça Direct não transferiu bem.</li>
-<li><strong>stitch</strong> Direct2h+MIMO4h: no recorte alinhado o 2h dá NASH≈1 (replay), mas o 4h não sobe além do MIMO — não fecha o teto operacional.</li>
-<li>Gap 4h permanece ≈0,12–0,13 → próximo passo: MATLAB nativo, não mais buscas ad-hoc em Python.</li>
+<li><strong>Protocolo PREVINE</strong> (au/bu padded, dunisig, TX adaptativo) supera claramente o SGD legado no mesmo y_true.</li>
+<li><strong>mimo_previne_rising</strong> chega a ~0,98 / ~0,87; gap ao Direct alinhado no 4h ≈0,05.</li>
+<li>O “gap 0,13” das rodadas 3–4 misturava predição-como-rótulo e teto full 26in.</li>
+<li>Resto: 15 vs 26 inputs no 4h, ou Cic/nit plenos no MATLAB nativo.</li>
 </ul>
 """
 
@@ -167,8 +195,9 @@ ul{{padding-left:20px}}
 <div class='box'>
 <strong>Pergunta:</strong> uma única rede prevendo 2h+4h (+8h) supera modelos Direct?<br>
 <strong>Comparação justa:</strong> Direct scratch vs MIMO — mesmo pipeline Python.<br>
-<strong>Teto operacional:</strong> métricas do .mat no <em>teste completo</em> (`mat_reference_metrics_teste`). O replay alinhado do .mat dá NASH≈1 e não é teto.<br>
-<strong>Extra:</strong> leave-one-event-out, loss de trajetória e correção pós-hoc em subidas.
+<strong>Rótulos (desde rodada 5):</strong> observação <code>Ttot1</code> (não a predição <code>Tctot1</code>).<br>
+<strong>Teto justo (alinhado):</strong> Direct .mat vs obs no recorte 2h+4h.<br>
+<strong>Teto operacional full-test:</strong> <code>mat_reference_metrics_teste</code> (~0,996 / ~0,993; 4h=26in).
 </div>
 
 <h2>1. Amostras alinhadas</h2>
@@ -219,13 +248,14 @@ ul{{padding-left:20px}}
 
 {round4_box}
 
-<h2>7. Handoff MATLAB (próximo passo nativo)</h2>
-<p>Pacote de dados alinhados + script <code>train_mimo_2h4h_stz.m</code> em
-<code>codigo_python/11_experimento_mimo/matlab/</code>. CSVs em
+{round5_box}
+
+<h2>7. Handoff MATLAB (protocolo PREVINE)</h2>
+<p>Script <code>train_mimo_2h4h_stz.m</code> agora espelha o protocolo Direct (ae/be ddof=1, au/bu padded,
+dunisig, TX adaptativo). CSVs usam deltas <strong>observados</strong>.
 <a href='../assets/data/research_mimo_matlab_handoff/manifest.json'>assets/data/research_mimo_matlab_handoff/</a>.
-Rodar no MATLAB e comparar ao teto <code>mat_reference_metrics_teste</code> — não ao replay NASH≈1.
-As rodadas 3–4 esgotaram alavancas Python estáveis (pesos de subida, ae/be congelado, warm-start só na oculta):
-gap 4h ≈0,12–0,13. Treino nativo MATLAB com a pipeline dos Direct permanece o caminho.</p>
+Comparar ao teto justo alinhado e, se quiser o teto operacional full-test, ao
+<code>mat_reference_metrics_teste</code> (4h com 26 inputs).</p>
 
 <h2>8. JSON auditável</h2>
 <p><a href='../assets/data/research_mimo_multihorizon_latest.json'>assets/data/research_mimo_multihorizon_latest.json</a></p>

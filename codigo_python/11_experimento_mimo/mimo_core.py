@@ -10,9 +10,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-import h5py
 import numpy as np
 from scipy.io import loadmat
+
+try:
+    import h5py
+except ImportError:  # pragma: no cover - opcional p/ .mat v7.3
+    h5py = None
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -49,6 +53,10 @@ def _read_mat_dict(path: Path) -> dict:
     try:
         return loadmat(path, squeeze_me=True)
     except NotImplementedError:
+        if h5py is None:
+            raise ImportError(
+                f"Arquivo {path} é MATLAB v7.3 e requer h5py. Instale com: pip install h5py"
+            ) from None
         out: dict = {}
         with h5py.File(path, "r") as f:
             for key in f.keys():

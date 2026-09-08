@@ -1,6 +1,6 @@
 {
-  "schema_version": 4,
-  "generated_at_utc": "2026-09-04T19:37:09+00:00",
+  "schema_version": 5,
+  "generated_at_utc": "2026-09-08T16:13:19+00:00",
   "title": "Experimento RNA multi-horizonte (MIMO) — Santa Tereza",
   "method": {
     "strategy_baseline": "Direct por horizonte (.mat auditados, mesmas amostras alinhadas)",
@@ -17,7 +17,9 @@
     },
     "note_mat_aligned_replay": "direct_mat no recorte alinhado reproduz as predições do .mat (NASH≈1). O teto operacional usa mat_reference_metrics_teste (teste completo do .mat).",
     "round3": "Busca minmax/warm-start/pesos de horizonte/subidas para fechar gap ao teto mat_reference.",
-    "round4": "Warm-start hidden_only + ae/be congelado; full_freeze_y; stitch Direct2h+MIMO4h."
+    "round4": "Warm-start hidden_only + ae/be congelado; full_freeze_y; stitch Direct2h+MIMO4h.",
+    "round5": "Corrige y_true=obs (Ttot1); trainer PREVINE (au/bu padded, dunisig, TX adaptativo); teto justo = Direct .mat vs obs no alinhado.",
+    "note_labels": "target_abs/delta vêm de Ttot1/Ttot (observação). Tctot1 fica em pred_abs para auditoria."
   },
   "datasets": {
     "2h_4h_aligned": {
@@ -4405,6 +4407,620 @@
         "improves_vs_round3_4h": true,
         "note": "Se gap_mat_4h continuar ≥0,10 após warm-start corrigido e stitch, o teto .mat exige treino nativo MATLAB (ou dados/protocolo idêntico ao Direct), não mais alavancas ad-hoc em Python."
       }
+    },
+    "exp8_previne_protocol_obs_labels": {
+      "status": "ok",
+      "generated_at_utc": "2026-09-08T16:13:19+00:00",
+      "question": "Com rótulos corretos (obs) e trainer PREVINE, o MIMO fecha o gap ao teto justo (Direct .mat vs obs no alinhado)?",
+      "label_fix": {
+        "before": "Tctot1 (predição da rede) usado como y_true",
+        "after": "Ttot1 / Ttot (observação) como y_true; Tctot1 só em pred_abs"
+      },
+      "gate_direct_2h_previne": {
+        "status": "ok",
+        "mat_reference_teste": {
+          "nash": 0.9962,
+          "pers": 0.9688,
+          "e95": 9.715,
+          "mae": 3.5311,
+          "n": 172,
+          "stored_NASH_TESTE": 0.9962
+        },
+        "previne_twin_teste": {
+          "nash": 0.9568,
+          "pers": 0.641,
+          "e95": 39.438,
+          "mae": 11.2398,
+          "n": 172
+        },
+        "training": {
+          "hidden": 30,
+          "seed": 7,
+          "val_mse_delta": 276.58005278573637,
+          "scale_mode": "previne",
+          "lr": 0.015,
+          "warm_start": false,
+          "warm_start_mode": null,
+          "mat_input_scale": false,
+          "protocol": "previne",
+          "epochs": 6365,
+          "best_val_mse": 0.000500198163626251,
+          "history_tail": [
+            0.0005001990254037753,
+            0.0005001990254037753,
+            0.0005001990254037753,
+            0.0005001990254037753,
+            0.0005001990254037753
+          ],
+          "lr0": 0.01,
+          "f_pad": 0.05,
+          "au": [
+            743.6
+          ],
+          "bu": [
+            -287.8
+          ],
+          "ae_ddof": 1,
+          "n_train": 1895,
+          "n_val": 610,
+          "rising_consistency_val": {
+            "rate": null,
+            "n_rising": 0,
+            "n_violations": 0
+          }
+        },
+        "gate_pass": true,
+        "note": "Gate passa com NASH≥0,90 no teste (twin aproximado). Teto operacional do .mat (~0,996) exige Cic/nit plenos do MATLAB."
+      },
+      "fair_aligned_ceilings": {
+        "treino": {
+          "2h_direct_mat_vs_obs": {
+            "n": 1356,
+            "nash": 0.9993,
+            "pers": 0.9578,
+            "e95": 14.347,
+            "mae": 4.4053
+          },
+          "4h_direct_mat_vs_obs": {
+            "n": 1356,
+            "nash": 0.9898,
+            "pers": 0.838,
+            "e95": 49.034,
+            "mae": 15.7284
+          },
+          "n": 1356
+        },
+        "validacao": {
+          "2h_direct_mat_vs_obs": {
+            "n": 507,
+            "nash": 0.9989,
+            "pers": 0.953,
+            "e95": 15.681,
+            "mae": 4.0887
+          },
+          "4h_direct_mat_vs_obs": {
+            "n": 507,
+            "nash": 0.9891,
+            "pers": 0.8647,
+            "e95": 59.686,
+            "mae": 13.7688
+          },
+          "n": 507
+        },
+        "teste": {
+          "2h_direct_mat_vs_obs": {
+            "n": 141,
+            "nash": 0.9958,
+            "pers": 0.9621,
+            "e95": 10.674,
+            "mae": 3.7245
+          },
+          "4h_direct_mat_vs_obs": {
+            "n": 141,
+            "nash": 0.9202,
+            "pers": 0.7833,
+            "e95": 50.94,
+            "mae": 15.5374
+          },
+          "n": 141
+        }
+      },
+      "mat_reference_metrics_teste_full": {
+        "2h": {
+          "nash": 0.9962,
+          "pers": 0.9688,
+          "e95": 10.39,
+          "note": "mat completo vs obs"
+        },
+        "4h": {
+          "nash": 0.9926,
+          "pers": 0.8782,
+          "e95": 58.84,
+          "note": "mat completo vs obs (26in)"
+        }
+      },
+      "mat_reference_aligned_teste": {
+        "2h": {
+          "n": 141,
+          "nash": 0.9958,
+          "pers": 0.9621,
+          "e95": 10.674,
+          "mae": 3.7245,
+          "note": "Direct .mat vs obs no alinhado"
+        },
+        "4h": {
+          "n": 141,
+          "nash": 0.9202,
+          "pers": 0.7833,
+          "e95": 50.94,
+          "mae": 15.5374,
+          "note": "Direct .mat vs obs no alinhado (26in)"
+        }
+      },
+      "baseline_scratch_teste": {
+        "2h": {
+          "nash": 0.9543,
+          "pers": 0.5837,
+          "e95": 41.5817,
+          "mae": 11.8452,
+          "n": 141
+        },
+        "4h": {
+          "nash": 0.63,
+          "pers": -0.0044,
+          "e95": 93.3492,
+          "mae": 33.9693,
+          "n": 141
+        }
+      },
+      "variants": {
+        "mimo_sgd_rising_legacy": {
+          "strategy": "mimo_nh30_in15_out2_r5_sgd_rising",
+          "splits": {
+            "treino": {
+              "2h": {
+                "n": 1356,
+                "nash": 0.9881,
+                "pers": 0.2972,
+                "e95": 67.331,
+                "mae": 18.0995
+              },
+              "4h": {
+                "n": 1356,
+                "nash": 0.9552,
+                "pers": 0.2868,
+                "e95": 129.901,
+                "mae": 35.616
+              }
+            },
+            "validacao": {
+              "2h": {
+                "n": 507,
+                "nash": 0.989,
+                "pers": 0.5149,
+                "e95": 48.581,
+                "mae": 14.4948
+              },
+              "4h": {
+                "n": 507,
+                "nash": 0.9594,
+                "pers": 0.4944,
+                "e95": 92.651,
+                "mae": 29.7724
+              }
+            },
+            "teste": {
+              "2h": {
+                "n": 141,
+                "nash": 0.9491,
+                "pers": 0.536,
+                "e95": 41.581,
+                "mae": 13.5527
+              },
+              "4h": {
+                "n": 141,
+                "nash": 0.7931,
+                "pers": 0.4383,
+                "e95": 73.651,
+                "mae": 28.223
+              }
+            }
+          },
+          "training": {
+            "hidden": 30,
+            "seed": 7,
+            "val_mse_delta": 1280.280852154671,
+            "scale_mode": "zscore",
+            "lr": 0.015,
+            "warm_start": false,
+            "warm_start_mode": null,
+            "mat_input_scale": false,
+            "protocol": "sgd",
+            "epochs": 130,
+            "best_val_mse": 1280.280852154671,
+            "history_tail": [
+              1305.439166401836,
+              1287.0879037782472,
+              1302.1831508118753,
+              1304.9103243643444,
+              1299.5710866446746
+            ],
+            "trajectory_weight": 0.0,
+            "rising_mono_weight": 0.0,
+            "horizon_weights": [
+              1.0,
+              1.0
+            ],
+            "n_train": 1356,
+            "n_val": 507,
+            "rising_consistency_val": {
+              "rate": 0.675,
+              "n_rising": 200,
+              "n_violations": 135
+            }
+          },
+          "score": {
+            "ok_2h_vs_scratch": true,
+            "delta_scratch_2h": -0.0052,
+            "delta_scratch_4h": 0.1631,
+            "gap_mat_2h": 0.0467,
+            "gap_mat_4h": 0.1271,
+            "objective_4h": 0.7931,
+            "gap_mat_full_4h": 0.1995
+          }
+        },
+        "mimo_previne": {
+          "strategy": "mimo_nh30_in15_out2_r5_previne",
+          "splits": {
+            "treino": {
+              "2h": {
+                "n": 1356,
+                "nash": 0.9967,
+                "pers": 0.8073,
+                "e95": 30.609,
+                "mae": 9.6619
+              },
+              "4h": {
+                "n": 1356,
+                "nash": 0.9866,
+                "pers": 0.7869,
+                "e95": 68.726,
+                "mae": 22.6373
+              }
+            },
+            "validacao": {
+              "2h": {
+                "n": 507,
+                "nash": 0.994,
+                "pers": 0.7353,
+                "e95": 35.914,
+                "mae": 9.7459
+              },
+              "4h": {
+                "n": 507,
+                "nash": 0.9794,
+                "pers": 0.744,
+                "e95": 68.524,
+                "mae": 21.0369
+              }
+            },
+            "teste": {
+              "2h": {
+                "n": 141,
+                "nash": 0.9782,
+                "pers": 0.8014,
+                "e95": 22.67,
+                "mae": 8.8825
+              },
+              "4h": {
+                "n": 141,
+                "nash": 0.8355,
+                "pers": 0.5534,
+                "e95": 68.048,
+                "mae": 23.4272
+              }
+            }
+          },
+          "training": {
+            "hidden": 30,
+            "seed": 11,
+            "val_mse_delta": 659.0064017617891,
+            "scale_mode": "previne",
+            "lr": 0.015,
+            "warm_start": false,
+            "warm_start_mode": null,
+            "mat_input_scale": false,
+            "protocol": "previne",
+            "epochs": 8628,
+            "best_val_mse": 0.0005645486512198134,
+            "history_tail": [
+              0.0005645486592336356,
+              0.0005645486592336356,
+              0.0005645486592336356,
+              0.0005645486592336356,
+              0.0005645486592336356
+            ],
+            "lr0": 0.01,
+            "f_pad": 0.05,
+            "au": [
+              743.6,
+              1313.4
+            ],
+            "bu": [
+              -287.8,
+              -424.7
+            ],
+            "ae_ddof": 1,
+            "n_train": 1356,
+            "n_val": 507,
+            "rising_consistency_val": {
+              "rate": 0.31,
+              "n_rising": 200,
+              "n_violations": 62
+            }
+          },
+          "score": {
+            "ok_2h_vs_scratch": true,
+            "delta_scratch_2h": 0.0239,
+            "delta_scratch_4h": 0.2055,
+            "gap_mat_2h": 0.0176,
+            "gap_mat_4h": 0.0847,
+            "objective_4h": 0.8355,
+            "gap_mat_full_4h": 0.1571
+          }
+        },
+        "mimo_previne_rising": {
+          "strategy": "mimo_nh30_in15_out2_r5_previne_rising",
+          "splits": {
+            "treino": {
+              "2h": {
+                "n": 1356,
+                "nash": 0.9977,
+                "pers": 0.8667,
+                "e95": 27.446,
+                "mae": 8.3775
+              },
+              "4h": {
+                "n": 1356,
+                "nash": 0.9903,
+                "pers": 0.8458,
+                "e95": 61.433,
+                "mae": 19.3345
+              }
+            },
+            "validacao": {
+              "2h": {
+                "n": 507,
+                "nash": 0.9946,
+                "pers": 0.7613,
+                "e95": 34.657,
+                "mae": 9.4154
+              },
+              "4h": {
+                "n": 507,
+                "nash": 0.9814,
+                "pers": 0.7689,
+                "e95": 63.766,
+                "mae": 18.9813
+              }
+            },
+            "teste": {
+              "2h": {
+                "n": 141,
+                "nash": 0.9804,
+                "pers": 0.8215,
+                "e95": 23.744,
+                "mae": 8.6952
+              },
+              "4h": {
+                "n": 141,
+                "nash": 0.866,
+                "pers": 0.6363,
+                "e95": 57.779,
+                "mae": 20.9634
+              }
+            }
+          },
+          "training": {
+            "hidden": 30,
+            "seed": 11,
+            "val_mse_delta": 594.6158026880078,
+            "scale_mode": "previne",
+            "lr": 0.015,
+            "warm_start": false,
+            "warm_start_mode": null,
+            "mat_input_scale": false,
+            "protocol": "previne",
+            "epochs": 9187,
+            "best_val_mse": 0.0005092560466012915,
+            "history_tail": [
+              0.0005092560504672203,
+              0.0005092560504672203,
+              0.0005092560504672203,
+              0.0005092560504672203,
+              0.0005092560504672203
+            ],
+            "lr0": 0.01,
+            "f_pad": 0.05,
+            "au": [
+              743.6,
+              1313.4
+            ],
+            "bu": [
+              -287.8,
+              -424.7
+            ],
+            "ae_ddof": 1,
+            "n_train": 1356,
+            "n_val": 507,
+            "rising_consistency_val": {
+              "rate": 0.27,
+              "n_rising": 200,
+              "n_violations": 54
+            }
+          },
+          "score": {
+            "ok_2h_vs_scratch": true,
+            "delta_scratch_2h": 0.0261,
+            "delta_scratch_4h": 0.236,
+            "gap_mat_2h": 0.0154,
+            "gap_mat_4h": 0.0542,
+            "objective_4h": 0.866,
+            "gap_mat_full_4h": 0.1266
+          }
+        },
+        "mimo_previne_nh52": {
+          "strategy": "mimo_nh52_in15_out2_r5_previne_nh52",
+          "splits": {
+            "treino": {
+              "2h": {
+                "n": 1356,
+                "nash": 0.9975,
+                "pers": 0.851,
+                "e95": 30.052,
+                "mae": 9.0122
+              },
+              "4h": {
+                "n": 1356,
+                "nash": 0.9898,
+                "pers": 0.8377,
+                "e95": 61.096,
+                "mae": 19.3967
+              }
+            },
+            "validacao": {
+              "2h": {
+                "n": 507,
+                "nash": 0.9944,
+                "pers": 0.7528,
+                "e95": 39.793,
+                "mae": 9.1359
+              },
+              "4h": {
+                "n": 507,
+                "nash": 0.9725,
+                "pers": 0.6574,
+                "e95": 86.608,
+                "mae": 22.2072
+              }
+            },
+            "teste": {
+              "2h": {
+                "n": 141,
+                "nash": 0.9761,
+                "pers": 0.7816,
+                "e95": 24.038,
+                "mae": 8.6235
+              },
+              "4h": {
+                "n": 141,
+                "nash": 0.8233,
+                "pers": 0.5202,
+                "e95": 73.494,
+                "mae": 23.8175
+              }
+            }
+          },
+          "training": {
+            "hidden": 52,
+            "seed": 19,
+            "val_mse_delta": 821.6786056815947,
+            "scale_mode": "previne",
+            "lr": 0.015,
+            "warm_start": false,
+            "warm_start_mode": null,
+            "mat_input_scale": false,
+            "protocol": "previne",
+            "epochs": 11175,
+            "best_val_mse": 0.0006467403985792951,
+            "history_tail": [
+              0.0006467404701137745,
+              0.0006467404701137745,
+              0.0006467404701137745,
+              0.0006467404701137745,
+              0.0006467404701137745
+            ],
+            "lr0": 0.01,
+            "f_pad": 0.05,
+            "au": [
+              743.6,
+              1313.4
+            ],
+            "bu": [
+              -287.8,
+              -424.7
+            ],
+            "ae_ddof": 1,
+            "n_train": 1356,
+            "n_val": 507,
+            "rising_consistency_val": {
+              "rate": 0.345,
+              "n_rising": 200,
+              "n_violations": 69
+            }
+          },
+          "score": {
+            "ok_2h_vs_scratch": true,
+            "delta_scratch_2h": 0.0218,
+            "delta_scratch_4h": 0.1933,
+            "gap_mat_2h": 0.0197,
+            "gap_mat_4h": 0.0969,
+            "objective_4h": 0.8233,
+            "gap_mat_full_4h": 0.1693
+          }
+        }
+      },
+      "ranking": [
+        {
+          "key": "mimo_previne_rising",
+          "ok_2h_vs_scratch": true,
+          "delta_scratch_2h": 0.0261,
+          "delta_scratch_4h": 0.236,
+          "gap_mat_2h": 0.0154,
+          "gap_mat_4h": 0.0542,
+          "objective_4h": 0.866,
+          "gap_mat_full_4h": 0.1266
+        },
+        {
+          "key": "mimo_previne",
+          "ok_2h_vs_scratch": true,
+          "delta_scratch_2h": 0.0239,
+          "delta_scratch_4h": 0.2055,
+          "gap_mat_2h": 0.0176,
+          "gap_mat_4h": 0.0847,
+          "objective_4h": 0.8355,
+          "gap_mat_full_4h": 0.1571
+        },
+        {
+          "key": "mimo_previne_nh52",
+          "ok_2h_vs_scratch": true,
+          "delta_scratch_2h": 0.0218,
+          "delta_scratch_4h": 0.1933,
+          "gap_mat_2h": 0.0197,
+          "gap_mat_4h": 0.0969,
+          "objective_4h": 0.8233,
+          "gap_mat_full_4h": 0.1693
+        },
+        {
+          "key": "mimo_sgd_rising_legacy",
+          "ok_2h_vs_scratch": true,
+          "delta_scratch_2h": -0.0052,
+          "delta_scratch_4h": 0.1631,
+          "gap_mat_2h": 0.0467,
+          "gap_mat_4h": 0.1271,
+          "objective_4h": 0.7931,
+          "gap_mat_full_4h": 0.1995
+        }
+      ],
+      "best_variant": "mimo_previne_rising",
+      "verdict": {
+        "best": "mimo_previne_rising",
+        "closes_fair_aligned_gap": false,
+        "gap_fair_aligned_4h": 0.0542,
+        "beats_scratch_4h": true,
+        "gate_pass": true,
+        "note": "Rodadas 3–4 mediam contra predições e misturavam teto full 26in. Aqui o teto justo é Direct vs obs no alinhado (~0,92 no 4h). Trainer PREVINE é o twin Python; limite restante = multi-saída / 15 vs 26 inputs ou Cic/nit plenos no MATLAB."
+      }
     }
   },
   "mat_reference_metrics_teste": {
@@ -4452,6 +5068,24 @@
       "n_rising": 63,
       "n_rising_violations": 0,
       "n_test": 141
+    }
+  },
+  "mat_reference_aligned_teste": {
+    "2h": {
+      "n": 141,
+      "nash": 0.9958,
+      "pers": 0.9621,
+      "e95": 10.674,
+      "mae": 3.7245,
+      "note": "Direct .mat vs obs no alinhado"
+    },
+    "4h": {
+      "n": 141,
+      "nash": 0.9202,
+      "pers": 0.7833,
+      "e95": 50.94,
+      "mae": 15.5374,
+      "note": "Direct .mat vs obs no alinhado (26in)"
     }
   }
 }
