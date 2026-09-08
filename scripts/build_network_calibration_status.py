@@ -41,6 +41,13 @@ def main() -> int:
     e27_route = read_json(BASE / "routing_search_E27" / "routing_search_best.json")
     e27_loss = read_json(BASE / "loss_search_E27" / "loss_search_best.json")
     common_search = read_json(BASE / "network_common_calibration_search" / "common_search_report.json")
+    recent_common_path = ROOT / "assets" / "data" / "hec_hms_calibration" / "mucum_common_ana86472000_search_20260907" / "multi_event_search_best.json"
+    recent_common = read_json(recent_common_path) if recent_common_path.exists() else None
+    recent_common_results_path = recent_common_path.with_name("multi_event_search_results.csv")
+    recent_common_results = []
+    if recent_common_results_path.exists():
+        with recent_common_results_path.open(encoding="utf-8", newline="") as handle:
+            recent_common_results = list(csv.DictReader(handle))
     santa_tereza_audit = read_json(ROOT / "assets" / "data" / "hec_hms_audit" / "santa_tereza_event_input_audit_latest.json")
     santa_tereza_raw_rain = read_json(ROOT / "assets" / "data" / "hec_hms_audit" / "derived" / "santa_tereza_raw_rain_dss_report.json")
     station_search = read_json(BASE / "network_station_e28_calibration_search" / "station_e28_search_report.json")
@@ -119,6 +126,16 @@ def main() -> int:
             "E27_routing": {"best_candidate": e27_route, "scope": "K dos dois trechos; zero atraso é métrica, não verdade física"},
             "E27_losses": {"best_candidate": e27_loss, "scope": "perdas; menor erro de pico pode piorar NSE"},
             "common_parameters": common_search,
+            "common_parameters_recent": {
+                "best_candidate": recent_common,
+                "artifact": str(recent_common_path.relative_to(ROOT)).replace("\\", "/") if recent_common_path.exists() else None,
+                "results_artifact": str(recent_common_results_path.relative_to(ROOT)).replace("\\", "/") if recent_common_results_path.exists() else None,
+                "candidate_count": len(recent_common_results),
+                "successful_candidates": sum(1 for row in recent_common_results if row.get("status") == "ok"),
+                "rainfall_policy": "ANA 86472000 aplicada de forma idêntica aos seis eventos; proxy de chuva, não espacialização final",
+                "status": "diagnóstico recente; não promovido",
+                "interpretation": "a busca foi executada sem falhas, mas o melhor vetor comum ainda não reproduz simultaneamente forma, pico e tempo nos seis eventos",
+            },
             "two_station_network": two_station_search,
         },
         "calibration_input_gate": input_gate,

@@ -57,12 +57,14 @@
     text('totalEvents',DATA.events.length); text('mucumEvents',DATA.events.filter(e=>e.city_key==='mucum').length);
     text('santaEvents',DATA.events.filter(e=>e.city_key==='santa_tereza').length);
     text('independentEvents',DATA.events.filter(e=>e.status.includes('independente')).length);
-    const c=DATA.calibration,a=c.incremental_area_events||[],t=c.target_rain_events||[],best=c.two_station_best||{};
+    const c=DATA.calibration,a=c.incremental_area_events||[],t=c.target_rain_events||[],best=c.two_station_best||{},common=c.common_search_recent||{};
     text('calibrationStatus',`Generalização ainda não demonstrada. Apenas ${a.length} evento(s) com entradas completas para as três áreas incrementais. Bons ajustes individuais abaixo não substituem validação com parâmetros comuns.`);
     text('incrementalAreaCount',a.length);text('incrementalAreaDetail',a.length?a.join(', '):'nenhum evento completo');
     text('targetRainCount',t.length);text('targetRainDetail',(t.map(x=>String(x).startsWith('E')?x:`E${x}`).join(', ')||'nenhum evento completo')+` · ${c.target_rain_status==='diagnostic_only'?'somente diagnóstico':'status não reconciliado'}. ${c.target_rain_reason||''}`);
     text('twoStationScore',f(best.mean_nse,2));
     text('twoStationDetail',`NSE médio · erro temporal absoluto médio ${f(best.mean_abs_peak_lag_hours)} h · erro de pico ${f(number(best.mean_peak_relative_error)===null?null:best.mean_peak_relative_error*100,1)}%. Experimento distinto dos ajustes por evento.`);
+    text('commonSearchCount',common.candidate_count?`${common.successful||0}/${common.candidate_count}`:'—');
+    text('commonSearchDetail',common.candidate_count?`sucessos · NSE médio ${f(common.mean_nse,2)} · atraso médio ${f(common.mean_abs_peak_lag_hours)} h`:'nenhuma busca recente');
     const snapshots=[DATA.meta&&DATA.meta.spatial_generated_at_utc,DATA.meta&&DATA.meta.calibration_generated_at_utc].filter(value=>Number.isFinite(time(value)));
     text('snapshotFreshness',snapshots.length?`Snapshot mais recente: ${snapshotFmt.format(Math.max(...snapshots.map(time)))} BRT`:'Data do snapshot indisponível');
     text('snapshotSources','Fontes embarcadas e reproduzíveis · não é telemetria ao vivo');
