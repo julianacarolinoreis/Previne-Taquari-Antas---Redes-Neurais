@@ -42,7 +42,7 @@ class PostosPorUpgTests(unittest.TestCase):
         fc = json.loads((OUT / "postos_g040.geojson").read_text(encoding="utf-8"))
         self.assertGreaterEqual(len(fc["features"]), 100)
         html = (OUT / "mapa_postos_upg.html").read_text(encoding="utf-8")
-        self.assertIn("postos por UPG", html.lower())
+        self.assertIn("postos por upg", html.lower())
         index = (OUT / "index.html").read_text(encoding="utf-8")
         self.assertIn("mapa_postos_upg.html", index)
 
