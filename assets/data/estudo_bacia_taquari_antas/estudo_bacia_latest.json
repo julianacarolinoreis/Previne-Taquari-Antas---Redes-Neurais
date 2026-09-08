@@ -203,20 +203,23 @@
       "Hierarquia RS: 3 RH, 25 BH, ~175 UPG, 32 enquadramentos G040, ~33133 ottobacias na arvore 786.",
       "ZIP SEMA 'UBH' = 175 UPG; nao sao as mini-bacias finas SIOUT/ArcHydro.",
       "So G040 contribui com escoamento ao Taquari-Antas; vizinhas nao sao afluentes.",
-      "Jacui/Guaiba podem influenciar o Baixo Taquari por remanso hidraulico."
+      "Jacui/Guaiba podem influenciar o Baixo Taquari por remanso hidraulico.",
+      "Inventario ANA dentro de G040: 260 postos com UPG/familia BHO6.",
+      "UPGs sem posto no inventario atual: nenhuma.",
+      "Inventario ANA dentro de G040: 260 postos; 7/7 UPG cobertas.",
+      "PREVINE seeds cobrem so Carreiro, Médio Taquari-Antas, Prata; faltam seeds em Alto Taquari-Antas, Baixo Taquari-Antas, Forqueta, Guaporé.",
+      "Guapore e Forqueta tem dezenas de postos ANA, mas fora do uso operacional PREVINE atual."
     ],
     "unknown_or_unreconciled": [
       "Area projetada exata (m2) das 32 sub-bacias em EPSG:31982 (hoje aproximacao por graus).",
-      "Inventario unico de postos fluviometricos/pluviometricos por UG.",
       "Curva-chave reconciliada em Santa Tereza.",
       "Qual recorte o PREVINE quer modelar: bacia toda, corredor ate Muçum, ou outro."
     ]
   },
   "next_study_steps_only": [
-    "Anexar amostra/resumo espacial das ottobacias 786 (sem baixar 33k poligonos inteiros no Pages).",
-    "Inventario de postos por UPG e por familia BHO6 (7868/7866/7864/7862).",
+    "Completar inventario pluviometrico (INMET/CEMADEN/codigos fora de 86*).",
     "Decidir com Juliana o recorte de modelo: G040 inteira vs corredor Ate Mucum vs outro.",
-    "So depois discutir estrutura HEC alinhada ao recorte escolhido."
+    "So depois discutir estrutura HEC alinhada ao recorte e aos postos por UPG."
   ],
   "local_artifacts_related": {
     "iede_boundary": "assets/data/vulnerabilidade/bacia.geojson",
@@ -364,5 +367,103 @@
       "mapa": "mapa_hierarquia_rs.html"
     },
     "updated_at_utc": "2026-09-08T22:33:22.943789+00:00"
+  },
+  "postos_por_upg": {
+    "status": "inventariado",
+    "counts": {
+      "ana_unique_fetched": 260,
+      "inside_g040": 260,
+      "flu_inside": 258,
+      "plu_inside": 2,
+      "previne_seed_inside": 17,
+      "outside_or_no_coords": 0
+    },
+    "coverage_gaps": {
+      "upg_with_stations": [
+        "Alto Taquari-Antas",
+        "Baixo Taquari-Antas",
+        "Carreiro",
+        "Forqueta",
+        "Guaporé",
+        "Médio Taquari-Antas",
+        "Prata"
+      ],
+      "upg_without_stations": [],
+      "families_with_stations": [
+        "786",
+        "7861",
+        "7862",
+        "7863",
+        "7864",
+        "7866",
+        "7867",
+        "7868",
+        "7869"
+      ],
+      "previne_seeds_inside_g040": [
+        "2851044",
+        "2851072",
+        "86488000",
+        "86490500",
+        "86497000",
+        "86505500",
+        "86507000",
+        "86298000",
+        "86306000",
+        "86448000",
+        "86472000",
+        "86472600",
+        "86510000",
+        "86125130",
+        "86125500",
+        "86430900",
+        "86447000"
+      ],
+      "previne_seeds_outside_or_unlocated": [],
+      "previne_seeds_by_upg": {
+        "Carreiro": [
+          "2851044",
+          "2851072",
+          "86488000",
+          "86490500",
+          "86497000",
+          "86505500",
+          "86507000"
+        ],
+        "Médio Taquari-Antas": [
+          "86298000",
+          "86306000",
+          "86448000",
+          "86472000",
+          "86472600",
+          "86510000"
+        ],
+        "Prata": [
+          "86125130",
+          "86125500",
+          "86430900",
+          "86447000"
+        ]
+      },
+      "upgs_without_previne_seed": [
+        "Alto Taquari-Antas",
+        "Baixo Taquari-Antas",
+        "Forqueta",
+        "Guaporé"
+      ]
+    },
+    "reading": {
+      "guapore_forqueta": "Se Guapore/Forqueta tiverem poucos ou nenhum posto PREVINE, isso confirma que o corredor Ate Mucum nao observa essas UPG — coerente com fozes a jusante.",
+      "prata_carreiro": "Prata (7868) e Carreiro (7866) devem aparecer com postos se o inventario ANA estiver completo; sao entradas hidrologicas a montante de Santa Tereza/Mucum.",
+      "implication": "Inventario por UPG e o passo antes de escolher o recorte de modelo. Ainda nao e estrutura HEC.",
+      "previne_gap": "Os seeds PREVINE atuais concentram-se em Prata, Carreiro e Medio Taquari-Antas. UPGs sem seed PREVINE: Alto Taquari-Antas, Baixo Taquari-Antas, Forqueta, Guaporé. Guapore e Forqueta TEM postos ANA no inventario, mas o corredor operacional nao os usa — coerente com fozes a jusante de Mucum.",
+      "pluviometria": "No range ANA 86* quase so fluviometricas apareceram (258 flu / 2 plu). Chuva operacional PREVINE usa codigos 28xxxxx, INMET e CEMADEN — inventario pluvio ainda incompleto."
+    },
+    "artifacts": {
+      "json": "postos_por_upg_latest.json",
+      "geojson": "postos_g040.geojson",
+      "mapa": "mapa_postos_upg.html"
+    },
+    "updated_at_utc": "2026-09-08T23:25:30.328028+00:00"
   }
 }
