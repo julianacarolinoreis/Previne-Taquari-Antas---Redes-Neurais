@@ -1,0 +1,241 @@
+{
+  "schema_version": "previne_research_catalog_status_v1",
+  "generated_at_utc": "2026-09-08T23:20:39+00:00",
+  "research_only": true,
+  "official_alert": false,
+  "purpose": "Inventário consolidado do acervo de pesquisa do PREVINE; não é alerta, ordem de evacuação, rota liberada ou despacho.",
+  "models": {
+    "qualified_total": 304,
+    "types": {
+      "alt": 237,
+      "conv": 67
+    },
+    "horizons": {
+      "12h": 50,
+      "2h": 15,
+      "4h": 122,
+      "8h": 117
+    },
+    "by_city": {
+      "santa_tereza": {
+        "qualified_models": 282,
+        "original_models": 282,
+        "types": {
+          "alt": 215,
+          "conv": 67
+        },
+        "horizons": {
+          "12h": 44,
+          "2h": 10,
+          "4h": 117,
+          "8h": 111
+        },
+        "qualification_rule": "PERS_geral, PERS_treino, PERS_validacao e PERS_teste precisam ser positivos.",
+        "source": "index.html#data"
+      },
+      "mucum": {
+        "qualified_models": 22,
+        "original_models": 32,
+        "types": {
+          "alt": 22
+        },
+        "horizons": {
+          "12h": 6,
+          "2h": 5,
+          "4h": 5,
+          "8h": 6
+        },
+        "qualification_rule": "PERS geral, treino, validação e teste positivos; depois, Top 5 por horizonte pelo score_equilibrio.",
+        "source": "index.html#data-mucum"
+      }
+    },
+    "definition": "Modelos presentes nos recortes atuais do feed com persistência positiva nos recortes declarados pela ficha de cada cidade."
+  },
+  "rounds": {
+    "round_folders": 31,
+    "distinct_days": 18,
+    "by_city": {
+      "santa_tereza": {
+        "round_folders": 21,
+        "distinct_days": 11,
+        "source_generated_at": "2026-07-27 18:30:59"
+      },
+      "mucum": {
+        "round_folders": 10,
+        "distinct_days": 8,
+        "source_generated_at": "2026-07-27 18:30:59"
+      }
+    },
+    "source_generated_at": "2026-07-27 18:30:59",
+    "definition": "Varredura de pastas de rodada em D:/PREVINE/redes_neurais (mucum + santa tereza). Conta como rodada real qualquer pasta terminada em _AAAA_MM_DD que tenha pelo menos um .mat ou um resultados*.csv com conteudo — pastas de preparacao/auditoria/relatorio/analise sem esse sinal nao contam. Metrica de ESFORCO/PROCESSO: cobre TODO o historico de treino, nao so os modelos qualificados/publicados no site."
+  },
+  "catalogue": {
+    "catalogue_entries": 58,
+    "html_pages_in_worktree": 70,
+    "source": "pesquisas.html",
+    "definition": "Entradas são páginas distintas indexadas pelo catálogo; a contagem não é a quantidade de modelos nem de rodadas."
+  },
+  "events": {
+    "published_replay_cases": 1,
+    "catalog_events": {
+      "mucum": 32,
+      "mucum_q62_used": 36,
+      "santa_tereza": 24
+    },
+    "santa_tereza_8h_12h_status": "pending_rna_event_id_and_auditable_series_reconciliation",
+    "operational_gate": {
+      "status": "blocked",
+      "reason": "Replay, spatial triage and response inventory are source-backed research artifacts; gauge/HAND conversion, field route checks and current shelter capacity are not closed.",
+      "disallowed": [
+        "official_alert",
+        "evacuation_order",
+        "route_navigation",
+        "public_dispatch",
+        "resource_allocation"
+      ]
+    },
+    "research_only": true,
+    "source": "assets/data/research_event_replay_latest.json"
+  },
+  "spatial": {
+    "by_city": {
+      "mucum": {
+        "published_level_range_m": [
+          0.0,
+          25.0
+        ],
+        "scenario_levels_m": [
+          18.0,
+          20.0,
+          25.0
+        ],
+        "stage_conversion_status": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
+        "higher_than_published_status": null,
+        "source": "assets/data/mucum_inundacao/contornos_mancha.json"
+      },
+      "santa_tereza": {
+        "published_level_range_m": [
+          0.0,
+          15.0
+        ],
+        "scenario_levels_m": [
+          15.0
+        ],
+        "stage_conversion_status": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
+        "higher_than_published_status": "not_published_in_current_contour_file",
+        "source": "assets/data/santa_tereza_inundacao/contornos_mancha.json"
+      }
+    },
+    "definition": "Cenários espaciais publicados no arquivo de contornos; não são conversão automática de cota de régua nem mancha operacional."
+  },
+  "data_quality": {
+    "status": "DEGRADED",
+    "checked_reference_utc": "2026-09-02T14:31:20Z",
+    "issues": [
+      {
+        "code": "weather_feed_stale",
+        "severity": "DEGRADED",
+        "location": "mucum",
+        "detail": null
+      },
+      {
+        "code": "weather_feed_stale",
+        "severity": "DEGRADED",
+        "location": "santa_tereza",
+        "detail": null
+      },
+      {
+        "code": "score_uncalibrated",
+        "severity": "DEGRADED",
+        "location": null,
+        "detail": "exibido como score, nunca como chance real"
+      },
+      {
+        "code": "probability_proxy_source",
+        "severity": "DEGRADED",
+        "location": null,
+        "detail": "NOAA GEFS/NODD same-cell spatial proxy"
+      }
+    ],
+    "basin_screening_status": "research_screening_with_explicit_data_gates",
+    "basin_screening_generated_at_utc": "2026-09-07T16:01:07Z",
+    "basin_gates": [
+      {
+        "id": "hydrologic_mask",
+        "status": "pending",
+        "reason": "current hourly proxy covers monitored upstream cells; ANA BHO 2017/BHO6 and INPE TOPODATA were identified as inputs, but outlet, flow accumulation and headwater polygons still need validation"
+      },
+      {
+        "id": "mucum_independent_headwater",
+        "status": "pending",
+        "reason": "Muçum currently shares the upstream monitoring-grid proxy; an independent catchment mask has not been validated"
+      },
+      {
+        "id": "soil_observation",
+        "status": "pending",
+        "reason": "no local in-situ saturation series is published for either station"
+      },
+      {
+        "id": "radar_qpe",
+        "status": "pending",
+        "reason": "CEMADEN radar/QPE option was identified, but a reproducible public download and quality check are still required"
+      },
+      {
+        "id": "travel_time",
+        "status": "research_partial",
+        "reason": "ANA HidroWebService was identified for station series, but event-level propagation still needs validation"
+      },
+      {
+        "id": "probability_calibration",
+        "status": "research_only",
+        "reason": "few positive events, missing independent negatives, source mismatch and stale probability runs"
+      }
+    ],
+    "source": "assets/data/research_dashboard_validation_latest.json",
+    "basin_source": "assets/data/research_basin_screening_latest.json"
+  },
+  "hec_hms": {
+    "overall_status": "estrutura verificada; calibração comum ainda não concluída",
+    "scope": "corredor BHO6 conectado entre os três controles; não é a discretização integral da bacia Taquari-Antas",
+    "representation": "três áreas incrementais e dois trechos de propagação entre postos, não três zonas da bacia",
+    "scored_event_count": 5,
+    "complete_three_incremental_area_events": [
+      28
+    ],
+    "operational_promotion_gate": "bloqueado: manter como pesquisa/replay",
+    "source": "assets/data/hec_hms_integrated_taquari_antas/network_calibration_status_latest.json",
+    "definition": "Replay HEC-HMS diagnóstico no corredor BHO6; não é a discretização integral da bacia Taquari–Antas."
+  },
+  "response": {
+    "by_city": {
+      "mucum": {
+        "shelters_count": 9,
+        "routes_in_plan_count": 6,
+        "bridges_in_plan_count": 3,
+        "capacity_reconciliation_status": "pendente: o próprio documento diverge entre o Quadro 2, o Quadro 13 e o Anexo 5",
+        "current_occupancy_status": "unknown",
+        "route_traversability_status": "unknown",
+        "operational_gate": "blocked"
+      },
+      "santa_tereza": {
+        "shelters_count": 1,
+        "routes_in_plan_count": 0,
+        "bridges_in_plan_count": 0,
+        "capacity_reconciliation_status": "unknown",
+        "current_occupancy_status": "unknown",
+        "route_traversability_status": "synthetic_unvalidated",
+        "operational_gate": "blocked"
+      }
+    },
+    "definition": "Inventário documental para exercício; capacidade atual, ocupação, travessia e liberação de rota permanecem separadas."
+  },
+  "sources": [
+    "index.html",
+    "pesquisas.html",
+    "assets/data/rodadas_realizadas.json",
+    "assets/data/research_event_replay_latest.json",
+    "assets/data/research_dashboard_validation_latest.json",
+    "assets/data/research_basin_screening_latest.json",
+    "assets/data/hec_hms_integrated_taquari_antas/network_calibration_status_latest.json"
+  ]
+}
