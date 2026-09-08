@@ -486,7 +486,7 @@
       <article class="hero-card" role="status" aria-labelledby="estado-pesquisa-title">
         <div class="hero-card-top"><span class="hero-card-label">Estado do acervo</span><span class="hero-card-badge">pesquisa</span></div>
         <strong id="estado-pesquisa-title">Números rastreáveis para estudar o próximo avanço</strong>
-        <p><span id="hero-model-breakdown" aria-live="polite">Carregando modelos do recorte…</span>. Os resultados ajudam a comparar arquiteturas e eventos; <strong>não são alerta oficial, ordem de evacuação nem capacidade operacional.</strong></p>
+        <p><span id="hero-model-breakdown" aria-live="polite">Carregando modelos do recorte…</span>. <span id="hero-rounds-breakdown" aria-live="polite">Carregando o histórico de rodadas…</span> Esse histórico inclui rotação, cascata, regras hidrológicas, melhorias dirigidas e exploração — não apenas ALT e CONV. <strong>Os resultados não são alerta oficial, ordem de evacuação nem capacidade operacional.</strong></p>
         <div class="hero-actions"><a class="primary" href="dashboard_bacia.html">Abrir dashboard integrado&nbsp;→</a><a href="pesquisa_status.html">Ver painel técnico</a></div>
       </article>
       <article class="hero-card" role="region" aria-labelledby="arquivo-pesquisas-title">
@@ -839,7 +839,7 @@
       <h4>Previne · Bacia Taquari-Antas</h4>
       <em>Bacia Protegida, Comunidade Segura.</em><br>
       Previsão de níveis do rio Taquari em <strong>Santa Tereza, RS</strong> por redes neurais artificiais,
-      nos horizontes de 2h, 8h e 12h.
+      nos horizontes de 2h, 4h, 8h e 12h.
     </div>
     <div>
       <h4>Equipe</h4>
@@ -950,9 +950,9 @@
 
   /* ---------------- header / KPIs / champions (static) ---------------- */
   document.getElementById('stamp').textContent =
-    'Leitura deste painel: os totais são calculados ao carregar os payloads de Santa Tereza e Muçum; “rodadas realizadas” é esforço histórico de treino, não atualização ao vivo. A varredura completa segue na base auditável.';
+    'Leitura deste painel: os totais são calculados ao carregar os payloads de Santa Tereza e Muçum; “rodadas históricas catalogadas” é esforço de pesquisa e treino, não atualização ao vivo. A varredura completa segue na base auditável.';
   document.getElementById('src').textContent =
-    'Fontes do recorte: payloads JSON embutidos de Santa Tereza e Muçum; resultados apoiados em planilha auditável, arquivo .mat e status/CSV MATLAB. “Rodadas realizadas” vem de assets/data/rodadas_realizadas.json. Valores por modelo estão íntegros nas tabelas; os gráficos são leituras agregadas do mesmo recorte.';
+    'Fontes do recorte: payloads JSON embutidos de Santa Tereza e Muçum; resultados apoiados em planilha auditável, arquivo .mat e status/CSV MATLAB. “Rodadas históricas catalogadas” vem de assets/data/rodadas_realizadas.json. Valores por modelo estão íntegros nas tabelas; os gráficos são leituras agregadas do mesmo recorte.';
 
   // total de redes apresentadas soma TODAS as cidades do site, não só Santa Tereza —
   // cada painel de cidade chama PREVINE_SHARED.registrarModelosCidade(n) com o próprio
@@ -971,7 +971,7 @@
     const cidades=[];
     if (modelosPorCidade.santa_tereza!=null) cidades.push(nf.format(modelosPorCidade.santa_tereza)+' Santa Tereza');
     if (modelosPorCidade.mucum!=null) cidades.push(nf.format(modelosPorCidade.mucum)+' Muçum');
-    el.textContent = nf.format(totalRedesTodasCidades)+' modelos no recorte'+(cidades.length ? ' · '+cidades.join(' + ') : '');
+    el.textContent = nf.format(totalRedesTodasCidades)+' modelos qualificados no recorte'+(cidades.length ? ' · '+cidades.join(' + ') : '');
   }
   function registrarModelosCidade(n,cidade){
     const valor=Number(n)||0;
@@ -1016,13 +1016,23 @@
       .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(d=>{
         const dias = new Set();
-        Object.values(d.cidades||{}).forEach(c=>(c.dias||[]).forEach(dt=>dias.add(dt)));
+        let pastas = 0;
+        Object.values(d.cidades||{}).forEach(c=>{
+          (c.dias||[]).forEach(dt=>dias.add(dt));
+          pastas += (c.pastas||[]).length;
+        });
         const el = document.getElementById('kpi-dias-total');
-        if (el) el.textContent = nf.format(dias.size);
+        if (el) el.textContent = nf.format(pastas);
+        const note = el && el.parentElement ? el.parentElement.querySelector('.k-note') : null;
+        if (note) note.textContent = nf.format(dias.size)+' dias distintos · todas as rodadas catalogadas de Santa Tereza e Muçum';
+        const heroRounds = document.getElementById('hero-rounds-breakdown');
+        if (heroRounds) heroRounds.textContent = nf.format(pastas)+' pastas de rodada em '+nf.format(dias.size)+' dias distintos.';
       })
       .catch(e=>{
         const el = document.getElementById('kpi-dias-total');
         if (el) el.textContent = '—';
+        const heroRounds = document.getElementById('hero-rounds-breakdown');
+        if (heroRounds) heroRounds.textContent = 'O histórico de rodadas está indisponível nesta carga.';
         console.warn('rodadas_realizadas.json indisponível:', e.message);
       });
   })();
@@ -1037,10 +1047,10 @@
       .sort((a,b)=> (parseInt(a)||0)-(parseInt(b)||0));
     registrarHorizontesCidade(horizontes);
     const data=[
-      {label:'Redes apresentadas', value:nf.format(totalRedesTodasCidades), note:'282 Santa Tereza + 22 Muçum · persistência positiva no recorte', id:'kpi-total-redes'},
+      {label:'Modelos qualificados', value:nf.format(totalRedesTodasCidades), note:'282 Santa Tereza + 22 Muçum · persistência positiva no recorte', id:'kpi-total-redes'},
       {label:'Horizontes de previsão', value:nf.format(horizontesTodasCidades.size), note:horizontes.join(' · '), id:'kpi-horizontes-total', noteId:'kpi-horizontes-note'},
-      {label:'Por abordagem', value:nf.format(totalConvTodasCidades)+' CONV · '+nf.format(totalAltTodasCidades)+' ALT', note:'CONV = nível direto · ALT = variação · soma das duas cidades', id:'kpi-abordagens-total'},
-      {label:'Rodadas realizadas', value:'…', note:'dias distintos de treino, todo o histórico · Santa Tereza e Muçum', id:'kpi-dias-total'}
+      {label:'Tipos de modelo no recorte', value:'2 tipos', note:'Os modelos qualificados estão classificados em CONV e ALT; o histórico completo das rodadas aparece no card ao lado e no catálogo.', id:'kpi-abordagens-total'},
+      {label:'Rodadas históricas catalogadas', value:'…', note:'pastas de rodada · carregando os dias distintos', id:'kpi-dias-total'}
     ];
     const root=document.getElementById('kpis');
     data.forEach(d=>{
