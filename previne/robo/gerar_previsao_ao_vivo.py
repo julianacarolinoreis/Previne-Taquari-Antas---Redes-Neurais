@@ -1775,7 +1775,7 @@ def resumo_estacoes(series):
                 }
                 if ultima_fora_faixa else None
             ),
-            "limites_plausiveis_cm": [NIVEL_PLAUSIVEL_MIN_CM, NIVEL_PLAUSIVEL_MAX_CM],
+            "limites_plausiveis_cm": list(_limites_plausiveis(cod)),
         })
     return resumo
 

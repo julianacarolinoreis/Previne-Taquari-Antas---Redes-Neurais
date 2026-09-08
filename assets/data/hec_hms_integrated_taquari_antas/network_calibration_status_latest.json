@@ -1,6 +1,6 @@
 {
-  "schema_version": "hec_hms_taquari_antas_calibration_status_v1",
-  "generated_at_utc": "2026-09-04T19:03:33.506884+00:00",
+  "schema_version": "hec_hms_taquari_antas_calibration_status_v2",
+  "generated_at_utc": "2026-09-07T21:07:18.027168+00:00",
   "purpose": "estudo de calibração e replay HEC-HMS; não é alerta, ordem de evacuação ou operação",
   "overall_status": "estrutura verificada; calibração comum ainda não concluída",
   "network": {
@@ -10,6 +10,17 @@
       "86510000"
     ],
     "description": "Rio das Antas -> controle intermediário Santa Tereza -> Muçum",
+    "scope": "corredor BHO6 conectado entre os três controles; não é a discretização integral da bacia Taquari-Antas",
+    "representation": "três áreas incrementais e dois trechos de propagação entre postos, não três zonas da bacia",
+    "full_taquari_antas_basin": false,
+    "source_network_extent": {
+      "all_bho6_segments_in_code_family": 33133,
+      "upstream_segments_reachable_from_86510000": 20853,
+      "mainstem_segments_in_upstream_network": 523,
+      "explicit_model_reach_segment_references": 42,
+      "explicit_model_reaches": 2,
+      "interpretation": "o recorte modelado acompanha somente o corredor principal entre os controles; os tributários e demais trechos da rede BHO6 não estão discretizados neste HEC-HMS"
+    },
     "source": {
       "provider": "ANA / SNIRH",
       "dataset": "BHO6 main.geoft_bho_trecho_drenagem",
@@ -270,9 +281,35 @@
         "common_search_event_metrics.csv"
       ]
     },
+    "common_parameters_recent": {
+      "best_candidate": {
+        "index": 60,
+        "initial_loss": 2.5,
+        "constant_loss": 2.0,
+        "tc_min": 10.0,
+        "storage_min": 45.0,
+        "recession_factor": 0.8,
+        "initial_flow_area_ratio": 0.0025,
+        "status": "ok",
+        "returncode": 0,
+        "seconds": 3.483,
+        "events": 6.0,
+        "mean_nse": -1.7032359265,
+        "mean_abs_peak_lag_hours": 9.0,
+        "mean_peak_relative_error": 0.4049863359,
+        "fitness": -1.8742331937
+      },
+      "artifact": "assets/data/hec_hms_calibration/mucum_common_ana86472000_search_20260907/multi_event_search_best.json",
+      "results_artifact": "assets/data/hec_hms_calibration/mucum_common_ana86472000_search_20260907/multi_event_search_results.csv",
+      "candidate_count": 60,
+      "successful_candidates": 60,
+      "rainfall_policy": "ANA 86472000 aplicada de forma idêntica aos seis eventos; proxy de chuva, não espacialização final",
+      "status": "diagnóstico recente; não promovido",
+      "interpretation": "a busca foi executada sem falhas, mas o melhor vetor comum ainda não reproduz simultaneamente forma, pico e tempo nos seis eventos"
+    },
     "two_station_network": {
       "schema_version": "hec_hms_two_station_network_search_v1",
-      "generated_at_utc": "2026-09-04T19:02:53.553009+00:00",
+      "generated_at_utc": "2026-09-04T19:39:03.713701+00:00",
       "purpose": "busca diagnóstica na rede HEC-HMS com dois postos; não é calibração promovida nem operação",
       "events": [
         "E19",
@@ -326,17 +363,19 @@
       "artifacts": [
         "two_station_search.csv"
       ],
-      "limitation": "a chuva de 86510000 continua sendo uma hipótese espacial; faltam séries completas de chuva no posto intermediário para uma calibração multi-evento de três zonas"
+      "limitation": "a chuva de 86510000 continua sendo uma hipótese espacial; faltam séries completas de chuva no posto intermediário para uma calibração multi-evento das três áreas incrementais"
     }
   },
   "calibration_input_gate": {
     "schema_version": "hec_hms_calibration_input_gate_v1",
-    "generated_at_utc": "2026-09-04T18:57:33+00:00",
+    "generated_at_utc": "2026-09-04T19:32:05+00:00",
     "purpose": "gate de qualidade de entradas para pesquisa HEC-HMS; não é calibração nem operação",
     "policy": {
       "missing_data": "não preencher, não interpolar, não truncar o recorte para esconder lacuna",
       "target": "vazão horária do posto ANA 86510000",
-      "three_zone_network": "86472000 no alto Antas, 86472600 no incremento Santa Tereza, 86510000 no incremento final"
+      "model_scope": "corredor BHO6 entre os controles 86472000, 86472600 e 86510000; não é a discretização integral da bacia Taquari-Antas",
+      "three_incremental_areas": "86472000 ancora a área a montante; 86472600 representa o incremento até Santa Tereza; 86510000 representa o incremento final até Muçum",
+      "not_full_taquari_antas_basin": true
     },
     "events": [
       {
@@ -388,7 +427,7 @@
           "status": "missing_or_incomplete"
         },
         "target_rain_and_flow_complete": true,
-        "three_zone_rainfall_and_target_flow_complete": false,
+        "three_incremental_areas_rainfall_and_target_flow_complete": false,
         "blockers": [
           "chuva Santa Tereza 86472600 ausente ou incompleta"
         ]
@@ -442,7 +481,7 @@
           "status": "missing_or_incomplete"
         },
         "target_rain_and_flow_complete": false,
-        "three_zone_rainfall_and_target_flow_complete": false,
+        "three_incremental_areas_rainfall_and_target_flow_complete": false,
         "blockers": [
           "chuva 86510000 incompleta no recorte",
           "vazao-alvo 86510000 incompleta no recorte",
@@ -498,7 +537,7 @@
           "status": "missing_or_incomplete"
         },
         "target_rain_and_flow_complete": false,
-        "three_zone_rainfall_and_target_flow_complete": false,
+        "three_incremental_areas_rainfall_and_target_flow_complete": false,
         "blockers": [
           "chuva 86510000 incompleta no recorte",
           "vazao-alvo 86510000 incompleta no recorte",
@@ -554,7 +593,7 @@
           "status": "missing_or_incomplete"
         },
         "target_rain_and_flow_complete": true,
-        "three_zone_rainfall_and_target_flow_complete": false,
+        "three_incremental_areas_rainfall_and_target_flow_complete": false,
         "blockers": [
           "chuva Santa Tereza 86472600 ausente ou incompleta"
         ]
@@ -608,7 +647,7 @@
           "status": "missing_or_incomplete"
         },
         "target_rain_and_flow_complete": false,
-        "three_zone_rainfall_and_target_flow_complete": false,
+        "three_incremental_areas_rainfall_and_target_flow_complete": false,
         "blockers": [
           "chuva 86510000 incompleta no recorte",
           "chuva Santa Tereza 86472600 ausente ou incompleta"
@@ -663,7 +702,7 @@
           "status": "complete_for_input_window"
         },
         "target_rain_and_flow_complete": true,
-        "three_zone_rainfall_and_target_flow_complete": true,
+        "three_incremental_areas_rainfall_and_target_flow_complete": true,
         "blockers": []
       }
     ],
@@ -673,10 +712,10 @@
         26,
         28
       ],
-      "three_zone_network_complete_events": [
+      "three_incremental_areas_complete_events": [
         28
       ],
-      "common_three_zone_calibration": {
+      "common_three_incremental_areas_calibration": {
         "status": "blocked",
         "reason": "apenas um evento tem chuva horária completa nos três postos e vazão-alvo completa; não há conjunto multi-evento para validar generalização"
       },
@@ -928,7 +967,7 @@
       ]
     },
     "status": "diagnóstico espacial; não promovido",
-    "limitation": "a chuva de 86510000 continua sendo uma hipótese espacial; faltam séries completas de chuva no posto intermediário para uma calibração multi-evento de três zonas"
+    "limitation": "a chuva de 86510000 continua sendo uma hipótese espacial; faltam séries completas de chuva no posto intermediário para uma calibração multi-evento das três áreas incrementais"
   },
   "rainfall_input_audit": {
     "station": "86472600",

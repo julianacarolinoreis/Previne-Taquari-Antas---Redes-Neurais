@@ -80,6 +80,13 @@ class BasinResearchFeedTests(unittest.TestCase):
             self.assertTrue(item["role"])
             self.assertTrue(item["next_step"])
 
+    def test_published_feed_embeds_the_current_registry_hash(self):
+        published = builder.load(builder.OUTPUT, {})
+        self.assertEqual(
+            published.get("source_registry", {}).get("artifact", {}).get("sha256"),
+            builder.sha256(builder.SOURCE_REGISTRY),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

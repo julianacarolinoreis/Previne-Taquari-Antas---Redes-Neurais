@@ -21,7 +21,7 @@ mapa.
 ## Vulnerabilidade social e exposição
 
 Para `municipios_combinados`, `setores_na_bacia_combinados` e
-`grade_200m_na_bacia` use uma rampa sequencial de cinco classes:
+Para `grade_200m_na_bacia`, use uma rampa sequencial de cinco classes. A camada é a Grade Estatística IBGE 2022 híbrida: os prefixos `200M` e `1KME` identificam, respectivamente, células urbanas de 200 m e células rurais de 1 km:
 
 | Classe | Cor | Leitura |
 |---|---|---|

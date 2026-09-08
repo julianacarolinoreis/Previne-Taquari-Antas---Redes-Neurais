@@ -80,9 +80,20 @@ body.has-gestor-chrome.gestor-fill-layout {
 }
 body.has-gestor-chrome.gestor-fill-layout > header { flex: 0 0 auto; }
 body.has-gestor-chrome.gestor-fill-layout > main {
-  flex: 1 1 auto;
+  /* As páginas de mapa usam uma grade mapa + painel. Sem uma altura
+     resolvida, o flex container calcula a linha principal como 0 px e o
+     conteúdo seguinte cobre os controles do mapa. */
+  flex: 0 0 auto;
   min-height: 0;
-  height: auto !important;
+  height: calc(100vh - 55px) !important;
+}
+@media (max-width: 900px) {
+  /* No celular a grade vira uma coluna; deixe o conteúdo determinar a altura
+     para preservar o mapa, o seletor e o painel inteiro. */
+  body.has-gestor-chrome.gestor-fill-layout > main {
+    flex: 0 0 auto;
+    height: auto !important;
+  }
 }
 
 .state-unknown,
