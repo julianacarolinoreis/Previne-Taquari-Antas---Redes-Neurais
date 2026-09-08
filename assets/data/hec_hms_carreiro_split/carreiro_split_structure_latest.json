@@ -1,0 +1,241 @@
+{
+  "schema_version": "hec_hms_carreiro_split_structure_v1",
+  "generated_at_utc": "2026-09-08T18:43:57.834958+00:00",
+  "purpose": "estrutura HEC-HMS com Carreiro separado; não é calibração nem alerta",
+  "status": "structure_proposed_not_calibrated",
+  "sources": {
+    "bacia_understanding": {
+      "path": "assets/data/bacia_taquari_antas/bacia_understanding_latest.json",
+      "sha256": "7f75a1e041ec3dc4dde9b50dfca793cdef89c72cbe2641f5a1c34d6e09bc9921"
+    },
+    "network_audit": {
+      "path": "assets/data/hec_hms_integrated_taquari_antas/network_audit_latest.json",
+      "sha256": "e3991c306ef30f28b07c045d387f51f9bb6a4cf17bb6ab26e7c94355fc57d8f2"
+    }
+  },
+  "area_check": {
+    "antas_km2": 12918.656,
+    "carreiro_km2": 2564.19,
+    "stz_residual_km2": 292.34,
+    "stz_increment_km2": 2856.53,
+    "carreiro_fraction_of_stz_increment": 0.8977,
+    "antas_plus_carreiro_km2": 15482.846,
+    "mainstem_area_at_carreiro_join_km2": 15485.53,
+    "mucum_increment_km2": 190.021,
+    "sum_subbasin_areas_km2": 15965.207,
+    "mucum_nested_area_km2": 15965.207,
+    "area_closure_ok": true
+  },
+  "compared_to_previous_skeleton": {
+    "previous": {
+      "subbasins": 3,
+      "reaches": 2,
+      "ids": [
+        "SB_ANTAS_86472000",
+        "SB_INC_STZ (undifferentiated)",
+        "SB_INC_MUCUM",
+        "R_ANTAS_SANTA_TEREZA",
+        "R_SANTA_TEREZA_MUCUM"
+      ]
+    },
+    "proposed": {
+      "subbasins": 4,
+      "reaches": 3,
+      "junctions": 4,
+      "ids": [
+        "SB_ANTAS_86472000",
+        "J_ANTAS_86472000",
+        "R_ANTAS_TO_CARREIRO",
+        "SB_CARREIRO_7866",
+        "J_CARREIRO_CONFLUENCE",
+        "R_CARREIRO_TO_STZ",
+        "SB_STZ_RESIDUAL",
+        "J_SANTA_TEREZA_86472600",
+        "R_STZ_TO_MUCUM",
+        "SB_INC_MUCUM",
+        "J_MUCUM_86510000"
+      ]
+    },
+    "what_changed": [
+      "SB_INC_STZ foi partido em SB_CARREIRO_7866 + SB_STZ_RESIDUAL",
+      "Novo junction geométrico na confluência do Carreiro",
+      "Reach Antas→STZ partido em Antas→Carreiro e Carreiro→STZ"
+    ]
+  },
+  "elements": [
+    {
+      "id": "SB_ANTAS_86472000",
+      "type": "subbasin",
+      "area_km2": 12918.656,
+      "outlet": "J_ANTAS_86472000",
+      "rainfall_candidate_stations": [
+        "86472000"
+      ],
+      "notes": "Bacia a montante de Linha José Júlio (Rio das Antas). Ainda agrega sistemas ≥500 km² a montante."
+    },
+    {
+      "id": "J_ANTAS_86472000",
+      "type": "junction",
+      "station": "86472000",
+      "status": "observed_control_level_available_flow_not_required_here"
+    },
+    {
+      "id": "R_ANTAS_TO_CARREIRO",
+      "type": "reach",
+      "from": "J_ANTAS_86472000",
+      "to": "J_CARREIRO_CONFLUENCE",
+      "status": "routing_parameters_blocked_until_channel_evidence",
+      "geometry_hint": "mainstem segment between Antas gauge and Carreiro confluence (~mainstem area 15485 km²)"
+    },
+    {
+      "id": "SB_CARREIRO_7866",
+      "type": "subbasin",
+      "area_km2": 2564.19,
+      "outlet": "J_CARREIRO_CONFLUENCE",
+      "bho6_cocursodag": "7866",
+      "join_fid": 4665424,
+      "confluence_lonlat": [
+        -51.71334739999997,
+        -29.09016859919778
+      ],
+      "named_components": [
+        {
+          "name": "Rio Carreiro",
+          "max_upstream_area_km2": 350.13
+        },
+        {
+          "name": "Rio São Domingos",
+          "max_upstream_area_km2": 301.64
+        },
+        {
+          "name": "Arroio Quatipi",
+          "max_upstream_area_km2": 206.12
+        },
+        {
+          "name": "Arroio Nao Sabia",
+          "max_upstream_area_km2": 196.46
+        },
+        {
+          "name": "Arroio Vicente Rosa",
+          "max_upstream_area_km2": 112.16
+        },
+        {
+          "name": "Arroio Barra Grande",
+          "max_upstream_area_km2": 94.06
+        },
+        {
+          "name": "Arroio dos Gordos",
+          "max_upstream_area_km2": 83.77
+        },
+        {
+          "name": "Rio Machado",
+          "max_upstream_area_km2": 77.5
+        }
+      ],
+      "rainfall_candidate_stations": [
+        "86507000"
+      ],
+      "level_station": {
+        "code": "86507000",
+        "name": "PCH Cotiporã Jusante",
+        "river": "Rio Carreiro",
+        "role": "âncora de nível já usada na RNA; chuva/vazão ainda precisam de auditoria explícita"
+      },
+      "notes": "Entrada dominante do incremento Antas→Santa Tereza (~90%)."
+    },
+    {
+      "id": "J_CARREIRO_CONFLUENCE",
+      "type": "junction",
+      "status": "geometric_confluence_no_observed_flow_target",
+      "inflows": [
+        "R_ANTAS_TO_CARREIRO",
+        "SB_CARREIRO_7866"
+      ]
+    },
+    {
+      "id": "R_CARREIRO_TO_STZ",
+      "type": "reach",
+      "from": "J_CARREIRO_CONFLUENCE",
+      "to": "J_SANTA_TEREZA_86472600",
+      "status": "routing_parameters_blocked_until_channel_evidence"
+    },
+    {
+      "id": "SB_STZ_RESIDUAL",
+      "type": "subbasin",
+      "area_km2": 292.34,
+      "outlet": "J_SANTA_TEREZA_86472600",
+      "rainfall_candidate_stations": [
+        "86472600"
+      ],
+      "includes_named_joins": [
+        {
+          "label": "Arroio Marrecao",
+          "join_area_km2": 221.91,
+          "bho6_cocursodag": "78658"
+        }
+      ],
+      "notes": "Residual lateral Antas→STZ depois de retirar o Carreiro. Contém Marrecao (~222 km²) e laterais menores."
+    },
+    {
+      "id": "J_SANTA_TEREZA_86472600",
+      "type": "junction",
+      "station": "86472600",
+      "status": "control_point_no_reconciled_flow_target",
+      "inflows": [
+        "R_CARREIRO_TO_STZ",
+        "SB_STZ_RESIDUAL"
+      ],
+      "accumulated_area_km2": 15775.186
+    },
+    {
+      "id": "R_STZ_TO_MUCUM",
+      "type": "reach",
+      "from": "J_SANTA_TEREZA_86472600",
+      "to": "J_MUCUM_86510000",
+      "source_path": "86472600_to_86510000",
+      "length_km_bho6": 23.652,
+      "status": "routing_parameters_blocked_until_channel_evidence"
+    },
+    {
+      "id": "SB_INC_MUCUM",
+      "type": "subbasin",
+      "area_km2": 190.021,
+      "outlet": "J_MUCUM_86510000",
+      "rainfall_candidate_stations": [
+        "86510000"
+      ],
+      "notes": "Incremento curto STZ→Muçum; sem afluente ≥100 km² no clip."
+    },
+    {
+      "id": "J_MUCUM_86510000",
+      "type": "junction",
+      "station": "86510000",
+      "status": "calibration_target_candidate",
+      "inflows": [
+        "R_STZ_TO_MUCUM",
+        "SB_INC_MUCUM"
+      ],
+      "accumulated_area_km2": 15965.207
+    }
+  ],
+  "connectivity": [
+    "SB_ANTAS_86472000 -> J_ANTAS_86472000 -> R_ANTAS_TO_CARREIRO -> J_CARREIRO_CONFLUENCE",
+    "SB_CARREIRO_7866 -> J_CARREIRO_CONFLUENCE",
+    "J_CARREIRO_CONFLUENCE -> R_CARREIRO_TO_STZ -> J_SANTA_TEREZA_86472600",
+    "SB_STZ_RESIDUAL -> J_SANTA_TEREZA_86472600",
+    "J_SANTA_TEREZA_86472600 -> R_STZ_TO_MUCUM -> J_MUCUM_86510000",
+    "SB_INC_MUCUM -> J_MUCUM_86510000"
+  ],
+  "gates_before_calibration": [
+    "Auditar se 86507000 tem série de chuva horária utilizável nos eventos; senão buscar pluviômetro no sistema Carreiro.",
+    "Não reusar a chuva de 86472000 em SB_CARREIRO sem declarar proxy explícita.",
+    "Manter Santa Tereza sem target de vazão até curva-chave/série reconciliada.",
+    "Não promover parâmetros comuns enquanto a estrutura nova não rodar em ≥2 eventos com chuva auditada.",
+    "Routing continua bloqueado sem evidência de calha."
+  ],
+  "explicitly_not_done": [
+    "Nenhuma busca de parâmetros",
+    "Nenhum projeto .hms executado nesta proposta",
+    "Nenhuma métrica NSE inventada para a estrutura nova"
+  ]
+}

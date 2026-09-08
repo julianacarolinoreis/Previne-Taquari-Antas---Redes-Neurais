@@ -1,0 +1,469 @@
+{
+  "schema_version": "estudo_bacia_taquari_antas_v1",
+  "generated_at_utc": "2026-09-08T22:35:10.118097+00:00",
+  "purpose": "estudo da bacia antes de qualquer modelo HEC; nao e calibracao nem alerta",
+  "status": "estudo_em_andamento",
+  "discipline_rule": "Nao subentender estrutura de modelo. Primeiro ler a bacia oficial; so depois discutir HEC.",
+  "official_basin": {
+    "name": "Bacia Hidrografica do Rio Taquari-Antas",
+    "code_sema": "G040",
+    "region": "Regiao Hidrografica do Guaiaba",
+    "area_km2_sema": 26430,
+    "area_km2_sgb_sace": 26372.76,
+    "area_km2_wikipedia_compilation": 26491.82,
+    "area_note": "Fontes oficiais/compiladas divergem em dezenas de km2; usar faixa ~26,3-26,5 mil km2 ate reconciliar shapefile SEMA com BHO6.",
+    "outlet": "confluencia com o Rio Jacui (nao e Muçum)",
+    "mainstem_naming": {
+      "rule": "Chama-se Rio das Antas ate a foz do Rio Carreiro; depois Rio Taquari ate o Jacui",
+      "sources": [
+        "https://pt.wikipedia.org/wiki/Bacia_do_rio_Taquari-Antas",
+        "SBRH 2013 - Plano de Bacia Taquari-Antas"
+      ]
+    },
+    "sources": [
+      {
+        "name": "SEMA-RS G040",
+        "url": "https://www.sema.rs.gov.br/g040-bh-taquari-antas",
+        "says": "area 26.430 km2; lista de municipios; plano de bacia e enquadramento"
+      },
+      {
+        "name": "SGB/SACE caracteristicas",
+        "url": "https://www.sgb.gov.br/sace/taquari_caracteristicas.php",
+        "says": "area 26.372,76 km2; afluentes principais listados; precipitacao 1400-1900 mm/ano"
+      },
+      {
+        "name": "Wikipedia / plano de bacia (compilacao)",
+        "url": "https://pt.wikipedia.org/wiki/Bacia_do_rio_Taquari-Antas",
+        "says": "7 UGs e 32 sub-bacias; principais cursos; geomorfologia"
+      },
+      {
+        "name": "UFRGS - inundacoes/enxurradas (tese)",
+        "url": "https://lume.ufrgs.br/bitstream/handle/10183/198553/001098788.pdf",
+        "says": "areas de drenagem citadas: Antas 12.964; Prata 3.775; Forqueta 2.845; Carreiro 2.565; Guapore 2.489 km2"
+      }
+    ]
+  },
+  "official_units_of_management": {
+    "count_ug": 7,
+    "count_subbasins": 32,
+    "ugs": [
+      {
+        "name": "Alto Taquari-Antas",
+        "subbasins": [
+          "Alto Rio das Antas",
+          "Rio Camisas",
+          "Rio Tainhas",
+          "Arroio Pinheiro Alto",
+          "Arroio Sao Tome/Bagual",
+          "Lajeado Grande"
+        ]
+      },
+      {
+        "name": "Medio Taquari-Antas",
+        "subbasins": [
+          "Arroio Marrecao",
+          "Rio Burati/Arroio Retiro",
+          "Arroio Biazus",
+          "Arroio Tega",
+          "Rio Sao Marcos",
+          "Arroio do Inferno",
+          "Rio Quebra dentes/Arroio Mulada"
+        ]
+      },
+      {
+        "name": "Prata",
+        "subbasins": [
+          "Alto Rio Turvo",
+          "Rio da Prata",
+          "Baixo Rio Turvo"
+        ]
+      },
+      {
+        "name": "Carreiro",
+        "subbasins": [
+          "Alto Rio Carreiro",
+          "Medio Rio Carreiro",
+          "Baixo Rio Carreiro"
+        ]
+      },
+      {
+        "name": "Guapore",
+        "subbasins": [
+          "Alto Rio Guapore",
+          "Medio Rio Guapore",
+          "Baixo Rio Guapore"
+        ]
+      },
+      {
+        "name": "Forqueta",
+        "subbasins": [
+          "Alto Rio Forqueta",
+          "Rio Fao",
+          "Rio Forqueta"
+        ]
+      },
+      {
+        "name": "Baixo Taquari-Antas",
+        "subbasins": [
+          "Arroio Jacare/Augusta",
+          "Arroio Seca",
+          "Arroio Boa Vista",
+          "Arroio Sampaio/Estrela",
+          "Arroio Castelhano",
+          "Rio Taquari-Mirim",
+          "Baixo Taquari"
+        ]
+      }
+    ],
+    "source": "https://pt.wikipedia.org/wiki/Bacia_do_rio_Taquari-Antas (compilacao do plano/enquadramento)"
+  },
+  "main_tributaries_cited": [
+    {
+      "name": "Rio das Antas",
+      "role": "tronco superior",
+      "area_km2_cited": 12964,
+      "area_source": "UFRGS tese inundacoes"
+    },
+    {
+      "name": "Rio da Prata",
+      "role": "afluente",
+      "area_km2_cited": 3775,
+      "area_source": "UFRGS tese inundacoes"
+    },
+    {
+      "name": "Rio Forqueta",
+      "role": "afluente",
+      "area_km2_cited": 2845,
+      "area_source": "UFRGS tese inundacoes"
+    },
+    {
+      "name": "Rio Carreiro",
+      "role": "afluente; marca mudanca de nome Antas->Taquari",
+      "area_km2_cited": 2565,
+      "area_source": "UFRGS tese inundacoes"
+    },
+    {
+      "name": "Rio Guapore",
+      "role": "afluente",
+      "area_km2_cited": 2489,
+      "area_source": "UFRGS tese inundacoes"
+    },
+    {
+      "name": "Rio Tainhas",
+      "role": "afluente de montante",
+      "area_km2_cited": null,
+      "area_source": null
+    },
+    {
+      "name": "Camisas / Lajeado Grande / Quebra-Dentes / Taquari-Mirim",
+      "role": "afluentes citados por SGB/SACE",
+      "area_km2_cited": null,
+      "area_source": "SGB SACE"
+    }
+  ],
+  "critical_distinction": {
+    "title": "Bacia oficial != trecho monitorado pelo PREVINE em Muçum/Santa Tereza",
+    "full_basin_km2": 26430,
+    "mucum_nested_bho6_km2": 15965.207,
+    "santa_tereza_nested_bho6_km2": 15775.186,
+    "antas_nested_bho6_km2": 12918.656,
+    "finding": "O posto de Muçum (86510000) drena cerca de 16 mil km2 no BHO6 local. Isso NAO e a bacia Taquari-Antas inteira (~26,4 mil km2). Guapore e Forqueta NAO aparecem no recorte BHO6 a montante de Muçum: entram no tronco a jusante de Muçum. Portanto, qualquer HEC 'da bacia' feito so com Antas/STZ/Muçum esta estudando um CORREDOR, nao a bacia toda.",
+    "evidence_local": {
+      "bho6_clip_path": "assets/data/hec_hms_integrated_taquari_antas/bho6_taquari_antas_network.geojson",
+      "guapore_forqueta_in_mucum_upstream_clip": false
+    }
+  },
+  "previne_current_focus": {
+    "stations": [
+      "86472000 Antas",
+      "86472600 Santa Tereza",
+      "86510000 Muçum"
+    ],
+    "what_it_is": "corredor hidrologico Antas -> Santa Tereza -> Muçum",
+    "what_it_is_not": "modelo da bacia Taquari-Antas completa com 7 UGs / 32 sub-bacias"
+  },
+  "mistakes_to_stop_making": [
+    "Tratar 16.000 km2 de Muçum como se fosse a bacia Taquari-Antas.",
+    "Calibrar HEC agregado/eventwise e falar 'modelo da bacia'.",
+    "Abrir so Carreiro e achar que ja representou as varias bacias (faltam Prata, Guapore, Forqueta, Tainhas, etc.).",
+    "Inventar topologia HEC antes de fechar o mapa oficial das 32 sub-bacias e a posicao de cada foz."
+  ],
+  "known_vs_unknown": {
+    "known": [
+      "Area oficial da bacia ~26,4 mil km2 (SEMA G040).",
+      "Existem 7 UGs e 32 sub-bacias no plano/enquadramento.",
+      "O nome muda de Antas para Taquari na foz do Carreiro.",
+      "Muçum e Santa Tereza sao controles do tronco, nao o exutorio da bacia.",
+      "No clip BHO6 a montante de Muçum, Guapore e Forqueta nao entram.",
+      "Areas citadas (tese UFRGS) para Prata/Carreiro/Guapore/Forqueta/Antas.",
+      "IEDE disponibiliza as 32 sub-bacias do enquadramento sob codigo Q040.",
+      "IEDE disponibiliza as 7 UGs sob cod_bacia G040.",
+      "Guapore entra no tronco a jusante hidrologica do posto Mucum (~+2495 km2).",
+      "Forqueta entra ainda mais a jusante (~22.5 mil km2 aninhados).",
+      "Hierarquia RS: 3 RH, 25 BH, ~175 UPG, 32 enquadramentos G040, ~33133 ottobacias na arvore 786.",
+      "ZIP SEMA 'UBH' = 175 UPG; nao sao as mini-bacias finas SIOUT/ArcHydro.",
+      "So G040 contribui com escoamento ao Taquari-Antas; vizinhas nao sao afluentes.",
+      "Jacui/Guaiba podem influenciar o Baixo Taquari por remanso hidraulico.",
+      "Inventario ANA dentro de G040: 260 postos com UPG/familia BHO6.",
+      "UPGs sem posto no inventario atual: nenhuma.",
+      "Inventario ANA dentro de G040: 260 postos; 7/7 UPG cobertas.",
+      "PREVINE seeds cobrem so Carreiro, Médio Taquari-Antas, Prata; faltam seeds em Alto Taquari-Antas, Baixo Taquari-Antas, Forqueta, Guaporé.",
+      "Guapore e Forqueta tem dezenas de postos ANA, mas fora do uso operacional PREVINE atual."
+    ],
+    "unknown_or_unreconciled": [
+      "Area projetada exata (m2) das 32 sub-bacias em EPSG:31982 (hoje aproximacao por graus).",
+      "Curva-chave reconciliada em Santa Tereza.",
+      "Qual recorte o PREVINE quer modelar: bacia toda, corredor ate Muçum, ou outro."
+    ]
+  },
+  "next_study_steps_only": [
+    "Completar inventario pluviometrico (INMET/CEMADEN/codigos fora de 86*).",
+    "Decidir com Juliana o recorte de modelo: G040 inteira vs corredor Ate Mucum vs outro.",
+    "So depois discutir estrutura HEC alinhada ao recorte e aos postos por UPG."
+  ],
+  "local_artifacts_related": {
+    "iede_boundary": "assets/data/vulnerabilidade/bacia.geojson",
+    "bho6_mucum_upstream_clip": "assets/data/hec_hms_integrated_taquari_antas/",
+    "premature_hec_packages": [
+      "assets/data/hec_hms_carreiro_split/",
+      "assets/data/hec_hms_multi_bacia/",
+      "assets/data/mucum_eventwise_replay_calibrated/"
+    ],
+    "note_on_premature_packages": "Podem ser uteis como experimentos de corredor, mas nao substituem o estudo da bacia oficial."
+  },
+  "subbacias_oficial_iede": {
+    "status": "baixado",
+    "counts": {
+      "subbacias_enquadramento": 32,
+      "ugs": 7,
+      "fozes_mapeadas": 4
+    },
+    "area_check_approx_km2": {
+      "sum_32_subbacias": 26517.97,
+      "sum_7_ugs": 26525.95,
+      "sema_official": 26430,
+      "note": "Areas aproximadas a partir de Shape__Area em graus; reconciliar com shapefile projetado depois."
+    },
+    "fozes_principais": [
+      {
+        "join_area_km2": 3775.9878373,
+        "mainstem_area_at_join_km2": 12041.50535265,
+        "fid": 3746331,
+        "name": null,
+        "cocursodag": "7868",
+        "lonlat": [
+          -51.47601649999996,
+          -29.018112999199037
+        ],
+        "label": "sistema Prata / Turvo-Humatã (BHO6 7868)",
+        "family_code": "7868",
+        "position_vs_controls": "upstream_or_at_antas",
+        "delta_vs_mucum_km2": -3923.7
+      },
+      {
+        "join_area_km2": 2564.1905369,
+        "mainstem_area_at_join_km2": 15485.53189009,
+        "fid": 4665424,
+        "name": null,
+        "cocursodag": "7866",
+        "lonlat": [
+          -51.71334739999997,
+          -29.09016859919778
+        ],
+        "label": "Rio Carreiro (BHO6 7866)",
+        "family_code": "7866",
+        "position_vs_controls": "between_antas_and_santa_tereza",
+        "delta_vs_mucum_km2": -479.68
+      },
+      {
+        "join_area_km2": 2486.72195807,
+        "mainstem_area_at_join_km2": 18460.17920563,
+        "fid": 5332058,
+        "name": null,
+        "cocursodag": "7864",
+        "lonlat": [
+          -51.88607349999995,
+          -29.170801699196396
+        ],
+        "label": "Rio Guaporé (BHO6 7864)",
+        "family_code": "7864",
+        "position_vs_controls": "downstream_of_mucum",
+        "delta_vs_mucum_km2": 2494.97
+      },
+      {
+        "join_area_km2": 2845.59935275,
+        "mainstem_area_at_join_km2": 22504.91188793,
+        "fid": 3999116,
+        "name": null,
+        "cocursodag": "7862",
+        "lonlat": [
+          -51.95624829999997,
+          -29.421623699192054
+        ],
+        "label": "sistema Forqueta (BHO6 7862)",
+        "family_code": "7862",
+        "position_vs_controls": "downstream_of_mucum",
+        "delta_vs_mucum_km2": 6539.7
+      }
+    ],
+    "reading": {
+      "guapore": "Foz do Guapore no tronco com area aninhada BHO6 ~18.460 km2, ~+2.495 km2 apos Muçum (15.965). Geograficamente perto de Mucum/Encantado, mas hidrologicamente a jusante do posto 86510000.",
+      "forqueta": "Foz do sistema Forqueta com area aninhada BHO6 ~22.505 km2, bem a jusante de Mucum.",
+      "carreiro": "Foz do Carreiro entre Antas e Santa Tereza (~15.486 km2 no tronco).",
+      "prata_system": "Sistema 7868 (Prata/componentes) entra a montante do posto Antas.",
+      "implication": "O PREVINE em Mucum nao ve Guapore nem Forqueta. Modelar so o corredor Ate Mucum nao e modelar a bacia Taquari-Antas."
+    },
+    "artifacts": {
+      "sub_bacias_geojson": "sub_bacias_q040_enquadramento.geojson",
+      "ugs_geojson": "ugs_g040.geojson",
+      "fozes_geojson": "fozes_principais_bho6.geojson",
+      "mapa": "mapa_subbacias.html"
+    },
+    "updated_at_utc": "2026-09-08T22:22:59.281987+00:00"
+  },
+  "hierarquia_rs": {
+    "status": "estudado",
+    "correction": {
+      "wrong_reading": "A Taquari-Antas tem so 32 sub-bacias — ponto final.",
+      "right_reading": "32 e o nivel de ENQUADRAMENTO (qualidade da agua, codigo Q040 no IEDE). Abaixo/ao lado existem 7 UPG de gestao, ~33 mil ottobacias/trechos BHO6 na arvore 786, e mini-bacias SIOUT (ArcHydro/BC25) usadas em outorga. Acima: 25 BH e 3 RH."
+    },
+    "hard_rule_influence": "So a chuva que cai DENTRO de G040 (e suas UPG/ottobacias internas) escoa para o Taquari-Antas. Bacias vizinhas NAO sao afluentes. Jusante (Jacui/Guaiba) pode afetar por remanso. Clima compartilhado != contribuicao hidrologica.",
+    "hierarchy_summary": [
+      {
+        "level": 1,
+        "name": "Regioes Hidrograficas",
+        "count": 3
+      },
+      {
+        "level": 2,
+        "name": "Bacias Hidrograficas (Decreto 53.885/2018)",
+        "count": 25
+      },
+      {
+        "level": 3,
+        "name": "UPG / Unidades publicadas como UBH (SEMA zip 2024)",
+        "count_rs": 175,
+        "count_g040": 7
+      },
+      {
+        "level": 4,
+        "name": "Sub-bacias de enquadramento (qualidade da agua)",
+        "count_g040_q040": 32
+      },
+      {
+        "level": 5,
+        "name": "Ottobacias / trechos BHO6 (mini-unidades hidrologicas)",
+        "count_polygons_hsig_cocursodag_786": 33133
+      },
+      {
+        "level": 6,
+        "name": "Mini-bacias SIOUT (ArcHydro sobre BC25)"
+      }
+    ],
+    "artifacts": {
+      "bacias_geojson": "bacias_rs_25.geojson",
+      "upgs_geojson": "upgs_rs_175.geojson",
+      "report": "hierarquia_rs_latest.json",
+      "mapa": "mapa_hierarquia_rs.html"
+    },
+    "updated_at_utc": "2026-09-08T22:33:22.943789+00:00"
+  },
+  "postos_por_upg": {
+    "status": "inventariado",
+    "counts": {
+      "ana_unique_fetched": 260,
+      "inside_g040": 260,
+      "flu_inside": 258,
+      "plu_inside": 2,
+      "previne_seed_inside": 17,
+      "outside_or_no_coords": 0
+    },
+    "coverage_gaps": {
+      "upg_with_stations": [
+        "Alto Taquari-Antas",
+        "Baixo Taquari-Antas",
+        "Carreiro",
+        "Forqueta",
+        "Guaporé",
+        "Médio Taquari-Antas",
+        "Prata"
+      ],
+      "upg_without_stations": [],
+      "families_with_stations": [
+        "786",
+        "7861",
+        "7862",
+        "7863",
+        "7864",
+        "7866",
+        "7867",
+        "7868",
+        "7869"
+      ],
+      "previne_seeds_inside_g040": [
+        "2851044",
+        "2851072",
+        "86488000",
+        "86490500",
+        "86497000",
+        "86505500",
+        "86507000",
+        "86298000",
+        "86306000",
+        "86448000",
+        "86472000",
+        "86472600",
+        "86510000",
+        "86125130",
+        "86125500",
+        "86430900",
+        "86447000"
+      ],
+      "previne_seeds_outside_or_unlocated": [],
+      "previne_seeds_by_upg": {
+        "Carreiro": [
+          "2851044",
+          "2851072",
+          "86488000",
+          "86490500",
+          "86497000",
+          "86505500",
+          "86507000"
+        ],
+        "Médio Taquari-Antas": [
+          "86298000",
+          "86306000",
+          "86448000",
+          "86472000",
+          "86472600",
+          "86510000"
+        ],
+        "Prata": [
+          "86125130",
+          "86125500",
+          "86430900",
+          "86447000"
+        ]
+      },
+      "upgs_without_previne_seed": [
+        "Alto Taquari-Antas",
+        "Baixo Taquari-Antas",
+        "Forqueta",
+        "Guaporé"
+      ]
+    },
+    "reading": {
+      "guapore_forqueta": "Se Guapore/Forqueta tiverem poucos ou nenhum posto PREVINE, isso confirma que o corredor Ate Mucum nao observa essas UPG — coerente com fozes a jusante.",
+      "prata_carreiro": "Prata (7868) e Carreiro (7866) devem aparecer com postos se o inventario ANA estiver completo; sao entradas hidrologicas a montante de Santa Tereza/Mucum.",
+      "implication": "Inventario por UPG e o passo antes de escolher o recorte de modelo. Ainda nao e estrutura HEC.",
+      "previne_gap": "Os seeds PREVINE atuais concentram-se em Prata, Carreiro e Medio Taquari-Antas. UPGs sem seed PREVINE: Alto Taquari-Antas, Baixo Taquari-Antas, Forqueta, Guaporé. Guapore e Forqueta TEM postos ANA no inventario, mas o corredor operacional nao os usa — coerente com fozes a jusante de Mucum.",
+      "pluviometria": "No range ANA 86* quase so fluviometricas apareceram (258 flu / 2 plu). Chuva operacional PREVINE usa codigos 28xxxxx, INMET e CEMADEN — inventario pluvio ainda incompleto."
+    },
+    "artifacts": {
+      "json": "postos_por_upg_latest.json",
+      "geojson": "postos_g040.geojson",
+      "mapa": "mapa_postos_upg.html"
+    },
+    "updated_at_utc": "2026-09-08T23:25:30.328028+00:00"
+  }
+}
