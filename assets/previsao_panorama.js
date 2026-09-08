@@ -88,6 +88,46 @@
     return d?fmtWhen(v)+' BRT':'—';
   }
 
+  // O feed tem tres relogios diferentes: a leitura mais recente da ANA, a
+  // hora-base que realmente entrou na RNA e a hora em que o robo consultou e
+  // publicou o arquivo.  Deixar esses campos separados evita que uma base
+  // horaria valida pareca uma publicacao atrasada.
+  function fmtClock(v){
+    const d=parseWhen(v);
+    if(!d) return '—';
+    const parts=new Intl.DateTimeFormat('pt-BR',{
+      timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+    }).formatToParts(d);
+    const hour=(parts.find(p=>p.type==='hour')||{}).value||'—';
+    const minute=(parts.find(p=>p.type==='minute')||{}).value||'00';
+    return minute==='00'?`${hour}h`:`${hour}h${minute}`;
+  }
+
+  function nextHourlyBase(payload){
+    const base=parseWhen(payload&&payload.hora_modelo);
+    const telemetry=parseWhen(payload&&(payload.telemetria_ultima_em||payload.nivel_rio_agora_em));
+    if(!base||!telemetry||telemetry<=base) return null;
+    return new Date(base.getTime()+60*60*1000);
+  }
+
+  function baseLagReason(payload){
+    const base=parseWhen(payload&&payload.hora_modelo);
+    const telemetry=parseWhen(payload&&(payload.telemetria_ultima_em||payload.nivel_rio_agora_em));
+    if(!base) return 'hora-base da RNA ainda indisponível';
+    if(!telemetry||telemetry<=base) return 'ainda não chegou uma leitura posterior à hora-base';
+    const candidate=nextHourlyBase(payload);
+    const candidateLabel=fmtClock(candidate||new Date(base.getTime()+60*60*1000));
+    return `dados da hora ${candidateLabel} ainda incompletos ou não válidos para todos os inputs`;
+  }
+
+  function timingRowsHtml(payload){
+    const telemetry=payload&&(payload.telemetria_ultima_em||payload.nivel_rio_agora_em);
+    const base=payload&&payload.hora_modelo;
+    const consulted=payload&&payload.consultado_em;
+    const reason=baseLagReason(payload);
+    return `<span class="live-timing-rows"><span><b>Última leitura ANA:</b> ${escapeHtml(fmtClock(telemetry))}</span><span><b>Hora-base dos dados da RNA:</b> ${escapeHtml(fmtClock(base))}</span><span><b>Motivo:</b> ${escapeHtml(reason)}</span>${consulted?`<span class="live-timing-meta">Robô consultado/publicado: ${escapeHtml(fmtWhenWithZone(consulted))}</span>`:''}</span>`;
+  }
+
   function addCacheBust(url){
     return url+(url.includes('?')?'&':'?')+'cb='+Date.now();
   }
@@ -831,7 +871,7 @@
     const staleText=staleHorizons.length
       ?` ${staleHorizons.map(p=>`+${p.hours} h`).join(' e ')} ficou fora do panorama porque o horário-alvo já passou; permanece no histórico para auditoria.`
       :'';
-    detail.textContent=`Atualização automática a cada 5 minutos.${when} (${ageText}${liveFresh.stale?' · publicação marcada como atrasada':''};${telemetryText||' idade da leitura ANA n/d'}) A leitura ANA pode ocorrer em :15/:30/:45; os inputs das RNAs usam somente base :00. O robô atual publica previsões experimentais de ${liveHorizons||'nenhum horizonte'}.${staleText} ${longForecast?'A previsão meteorológica e o score experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a RNA continuam em validação de pesquisa; não são alerta oficial.'}`;
+    detail.innerHTML=`${timingRowsHtml(state.live)}<span class="live-timing-meta">${ageText}${liveFresh.stale?' · publicação marcada como atrasada':''}${telemetryText?` · ${telemetryText}`:''}. Atualização automática prevista a cada 5 minutos; a ANA pode chegar em :15/:30/:45, enquanto a RNA usa somente bases de hora cheia. O robô publica previsões experimentais de ${escapeHtml(liveHorizons||'nenhum horizonte')}.${escapeHtml(staleText)} ${longForecast?'A previsão meteorológica e o score experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a RNA continuam em validação de pesquisa; não são alerta oficial.'}</span>`;
   }
 
   function renderResearchRisk(){
