@@ -644,6 +644,10 @@ L.geoJSON(postos, {{
     `BHO6 ${{f.properties.bho6_family_label||f.properties.bho6_family||'?'}}`
   )
 }}).addTo(map);
+try {{
+  const b = L.latLngBounds(postos.features.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]));
+  map.fitBounds(b.pad(0.12));
+}} catch (e) {{}}
 </script>
 </body>
 </html>
