@@ -67,6 +67,7 @@ class HorizonDataset:
     split: np.ndarray
     mat_path: Path
     events: np.ndarray | None = None
+    pred_abs: np.ndarray | None = None
 
     @property
     def n_samples(self) -> int:
@@ -75,6 +76,20 @@ class HorizonDataset:
     @property
     def n_inputs(self) -> int:
         return int(self.inputs.shape[1])
+
+
+def liminf_limsup(y: np.ndarray, f: float = 0.05) -> tuple[np.ndarray, np.ndarray]:
+    """Faixa padded PREVINE: li=min-f·range, ls=max+f·range (por coluna)."""
+    y = np.atleast_2d(y)
+    ymin = y.min(axis=0)
+    ymax = y.max(axis=0)
+    span = ymax - ymin
+    return ymin - f * span, ymax + f * span
+
+
+def dunisig(a: np.ndarray, floor: float = 0.01) -> np.ndarray:
+    """Derivada do logsig com piso 0,01 (handles Dh/Ds do .mat)."""
+    return np.maximum(a * (1.0 - a), floor)
 
 
 def load_event_ids(name: str, n_samples: int) -> np.ndarray | None:
@@ -103,6 +118,11 @@ def load_event_ids(name: str, n_samples: int) -> np.ndarray | None:
 
 
 def load_horizon_dataset(name: str) -> HorizonDataset:
+    """Carrega horizonte a partir do .mat.
+
+    Alvos = observação (`Ttot`/`Ttot1`/`DADOS[:,n_in]`), nunca a predição (`Tctot1`).
+    A predição fica em `pred_abs` só para auditoria do forward-pass.
+    """
     cfg = MODELS[name]
     path = Path(cfg["mat"])
     m = _read_mat_dict(path)
@@ -112,14 +132,34 @@ def load_horizon_dataset(name: str) -> HorizonDataset:
     n_in = int(cfg["n_inputs"])
     inputs = np.asarray(dados[:, :n_in], float)
     split = np.asarray(m["X"], float).ravel().astype(int)
-    if cfg.get("delta_target"):
-        delta = np.asarray(m["Tctot"], float).ravel()
+
+    if "ATUAL_TOT" in m:
+        atual = np.asarray(m["ATUAL_TOT"], float).ravel()
+    else:
         atual = inputs[:, 0].copy()
+
+    if "Ttot1" in m:
+        target_abs = np.asarray(m["Ttot1"], float).ravel()
+        delta = target_abs - atual
+    elif "Ttot" in m:
+        delta = np.asarray(m["Ttot"], float).ravel()
+        target_abs = atual + delta
+    elif dados.shape[1] > n_in:
+        delta = np.asarray(dados[:, n_in], float).ravel()
+        target_abs = atual + delta
+    elif cfg.get("delta_target") and "Tctot" in m:
+        delta = np.asarray(m["Tctot"], float).ravel()
         target_abs = atual + delta
     else:
-        target_abs = np.asarray(m["Tctot1"], float).ravel()
-        atual = np.asarray(m["ATUAL_TOT"], float).ravel()
-        delta = target_abs - atual
+        raise KeyError(f"{name}: observação Ttot/Ttot1 ausente em {path}")
+
+    if "Tctot1" in m:
+        pred_abs = np.asarray(m["Tctot1"], float).ravel()
+    elif "Tctot" in m:
+        pred_abs = atual + np.asarray(m["Tctot"], float).ravel()
+    else:
+        pred_abs = np.full_like(target_abs, np.nan)
+
     if inputs.shape[0] != split.size:
         raise ValueError(f"{name}: split size {split.size} != samples {inputs.shape[0]}")
     events = load_event_ids(name, inputs.shape[0])
@@ -133,6 +173,7 @@ def load_horizon_dataset(name: str) -> HorizonDataset:
         split=split,
         mat_path=path,
         events=events,
+        pred_abs=pred_abs,
     )
 
 
@@ -471,6 +512,127 @@ class MimoMLP:
             "rising_mono_weight": rising_mono_weight,
             "horizon_weights": horizon_weights.tolist(),
             "scale_mode": self.scale_mode,
+        }
+
+    def fit_previne(
+        self,
+        x_train: np.ndarray,
+        y_train: np.ndarray,
+        x_val: np.ndarray,
+        y_val: np.ndarray,
+        *,
+        max_cycles: int = 40000,
+        lr0: float = 0.01,
+        lr_grow: float = 1.1,
+        f_pad: float = 0.05,
+        patience: int = 8000,
+        seed: int = 42,
+        sample_weights: np.ndarray | None = None,
+        horizon_weights: np.ndarray | None = None,
+    ) -> dict:
+        """Treino estilo PREVINE Direct (GD full-batch, ae/be ddof=1, au/bu padded)."""
+        y_train = np.atleast_2d(np.asarray(y_train, float))
+        y_val = np.atleast_2d(np.asarray(y_val, float))
+        if not getattr(self, "_freeze_input_scale", False):
+            self.x_mean = x_train.mean(axis=0)
+            self.x_std = np.clip(x_train.std(axis=0, ddof=1), 1e-6, None)
+        if not getattr(self, "_freeze_output_scale", False):
+            li, ls = liminf_limsup(y_train, f=f_pad)
+            self.y_mean = li.copy()
+            self.y_std = np.clip(ls - li, 1e-6, None)
+        self.scale_mode = "previne"
+
+        if horizon_weights is None:
+            horizon_weights = np.ones(self.n_outputs, dtype=float)
+        else:
+            horizon_weights = np.asarray(horizon_weights, float)
+        if sample_weights is None:
+            sample_weights = np.ones(x_train.shape[0], dtype=float)
+        else:
+            sample_weights = np.asarray(sample_weights, float)
+            sample_weights = sample_weights / (sample_weights.mean() + 1e-12)
+
+        tn_tr = (y_train - self.y_mean) / self.y_std
+        tn_va = (y_val - self.y_mean) / self.y_std
+        pn_tr = self._norm_x(x_train)
+        pn_va = self._norm_x(x_val)
+        w = sample_weights.reshape(-1, 1)
+        w_sum = float(np.sum(sample_weights)) + 1e-12
+
+        best_state = None
+        best_ev = float("inf")
+        stale = 0
+        tx = lr0
+        history: list[float] = []
+
+        for _cycle in range(1, max_cycles + 1):
+            h = logsig(pn_tr @ self.wh.T + self.bh)
+            yn = logsig(h @ self.ws.T + self.bs)
+            err = yn - tn_tr
+            snap = (self.wh.copy(), self.bh.copy(), self.ws.copy(), self.bs.copy())
+
+            dzo = (2.0 * horizon_weights * err * w / w_sum) * dunisig(yn)
+            dws = dzo.T @ h
+            dbs = dzo.sum(axis=0)
+            dh = dzo @ self.ws
+            dzh = dh * dunisig(h)
+            dwh = dzh.T @ pn_tr
+            dbh = dzh.sum(axis=0)
+
+            self.ws = self.ws - tx * dws
+            self.bs = self.bs - tx * dbs
+            if not getattr(self, "_freeze_hidden", False):
+                self.wh = self.wh - tx * dwh
+                self.bh = self.bh - tx * dbh
+
+            h_v = logsig(pn_va @ self.wh.T + self.bh)
+            yn_v = logsig(h_v @ self.ws.T + self.bs)
+            ev = float(np.mean(horizon_weights * (yn_v - tn_va) ** 2))
+            history.append(ev)
+
+            if ev + 1e-12 < best_ev:
+                best_ev = ev
+                stale = 0
+                tx *= lr_grow
+                best_state = (
+                    self.wh.copy(),
+                    self.bh.copy(),
+                    self.ws.copy(),
+                    self.bs.copy(),
+                    self.x_mean.copy(),
+                    self.x_std.copy(),
+                    self.y_mean.copy(),
+                    self.y_std.copy(),
+                )
+            else:
+                self.wh, self.bh, self.ws, self.bs = snap
+                tx = lr0
+                stale += 1
+                if stale >= patience:
+                    break
+
+        if best_state is not None:
+            (
+                self.wh,
+                self.bh,
+                self.ws,
+                self.bs,
+                self.x_mean,
+                self.x_std,
+                self.y_mean,
+                self.y_std,
+            ) = best_state
+
+        return {
+            "epochs": len(history),
+            "best_val_mse": best_ev,
+            "history_tail": history[-5:],
+            "protocol": "previne",
+            "lr0": lr0,
+            "f_pad": f_pad,
+            "au": self.y_std.tolist(),
+            "bu": self.y_mean.tolist(),
+            "ae_ddof": 1,
         }
 
     def _train_batch(

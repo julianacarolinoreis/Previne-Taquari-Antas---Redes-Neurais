@@ -60,6 +60,9 @@ def _fit_search(
     mat_input_scale_weights=None,
     sample_weights_tr=None,
     seeds=(42, 7, 19),
+    protocol="sgd",
+    max_cycles=40000,
+    patience_previne=8000,
 ):
     best = None
     for nh in hidden_sizes:
@@ -69,20 +72,33 @@ def _fit_search(
                 model.warm_start_from_direct(warm_start_weights, seed=seed, mode=warm_start_mode)
             elif mat_input_scale_weights is not None:
                 model.apply_mat_input_scale(mat_input_scale_weights)
-            fit = model.fit(
-                x_tr,
-                y_tr,
-                x_va,
-                y_va,
-                max_epochs=500,
-                patience=40,
-                lr=lr,
-                seed=seed,
-                horizon_weights=horizon_weights,
-                trajectory_weight=trajectory_weight,
-                rising_mono_weight=rising_mono_weight,
-                sample_weights=sample_weights_tr,
-            )
+            if protocol == "previne":
+                fit = model.fit_previne(
+                    x_tr,
+                    y_tr,
+                    x_va,
+                    y_va,
+                    max_cycles=max_cycles,
+                    patience=patience_previne,
+                    seed=seed,
+                    horizon_weights=horizon_weights,
+                    sample_weights=sample_weights_tr,
+                )
+            else:
+                fit = model.fit(
+                    x_tr,
+                    y_tr,
+                    x_va,
+                    y_va,
+                    max_epochs=500,
+                    patience=40,
+                    lr=lr,
+                    seed=seed,
+                    horizon_weights=horizon_weights,
+                    trajectory_weight=trajectory_weight,
+                    rising_mono_weight=rising_mono_weight,
+                    sample_weights=sample_weights_tr,
+                )
             val_pred = model.forward_delta(x_va)
             val_mse = float(np.mean((val_pred - y_va) ** 2))
             cand = {
@@ -91,8 +107,9 @@ def _fit_search(
                 "seed": seed,
                 "val_mse": val_mse,
                 "fit": fit,
-                "scale_mode": scale_mode,
+                "scale_mode": getattr(model, "scale_mode", scale_mode),
                 "lr": lr,
+                "protocol": protocol,
             }
             if best is None or val_mse < best["val_mse"]:
                 best = cand
@@ -120,6 +137,9 @@ def train_mimo_variants(
     seeds=(42, 7, 19),
     predict_fn_override=None,
     strategy_name=None,
+    protocol="sgd",
+    max_cycles=40000,
+    patience_previne=8000,
 ):
     train_rows, x_tr, y_tr, _, _ = _stack(rows, datasets, input_idx, output_specs, 1)
     val_rows, x_va, y_va, _, y_va_abs = _stack(rows, datasets, input_idx, output_specs, 2)
@@ -139,6 +159,9 @@ def train_mimo_variants(
         mat_input_scale_weights=mat_input_scale_weights,
         sample_weights_tr=sample_weights_tr,
         seeds=seeds,
+        protocol=protocol,
+        max_cycles=max_cycles,
+        patience_previne=patience_previne,
     )
 
     def predict_fn(x, atual, _row):
@@ -169,6 +192,7 @@ def train_mimo_variants(
         "warm_start": warm_start_weights is not None,
         "warm_start_mode": warm_start_mode if warm_start_weights is not None else None,
         "mat_input_scale": mat_input_scale_weights is not None or warm_start_weights is not None,
+        "protocol": protocol,
         **best["fit"],
         "n_train": len(train_rows),
         "n_val": len(val_rows),

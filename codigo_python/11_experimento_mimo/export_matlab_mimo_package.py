@@ -72,11 +72,13 @@ def export_package(out_dir: Path = OUT_DIR) -> dict:
             "teste": int(np.sum(table[:, -2] == 3)),
         },
         "alignment_key": "atual + inputs[0:3] arredondados a 0,1 cm",
-        "target": "deltas ALT (cm) para 2h e 4h; nível absoluto = atual + delta",
+        "target": "deltas ALT observados (cm) 2h+4h; nível absoluto = atual + delta",
+        "label_source": "observation Ttot1/Ttot (not Tctot1 network prediction)",
         "source_mats": {
             "2h": str(ds2.mat_path.relative_to(ROOT)),
             "4h": str(ds4.mat_path.relative_to(ROOT)),
         },
+        "protocol_hint": "PREVINE: ae/be=mean/std(ddof=1); au/bu=liminf/limsup(f=0.05); dunisig floor 0.01",
         "files": {
             "all": csv_path.name,
             "treino": "mimo_aligned_2h4h_15in_treino.csv",

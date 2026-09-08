@@ -25,8 +25,22 @@ class TestMimoCore(unittest.TestCase):
         ds = load_horizon_dataset("2h")
         w = load_mat_weights(ds.mat_path)
         pred = predict_direct_batch(w, ds.inputs, ds.atual)
-        rmse = float(((pred - ds.target_abs) ** 2).mean() ** 0.5)
-        self.assertLess(rmse, 1e-3)
+        # Fidelidade ao forward gravado (Tctot1), não à observação
+        self.assertIsNotNone(ds.pred_abs)
+        rmse_pred = float(((pred - ds.pred_abs) ** 2).mean() ** 0.5)
+        self.assertLess(rmse_pred, 1e-3)
+        rmse_obs = float(((ds.pred_abs - ds.target_abs) ** 2).mean() ** 0.5)
+        self.assertGreater(rmse_obs, 1.0)
+
+    def test_labels_are_observations(self):
+        import numpy as np
+        from scipy.io import loadmat
+
+        ds = load_horizon_dataset("2h")
+        m = loadmat(ds.mat_path, squeeze_me=True)
+        self.assertTrue(np.allclose(ds.delta, np.asarray(m["Ttot"], float).ravel()))
+        self.assertTrue(np.allclose(ds.target_abs, np.asarray(m["Ttot1"], float).ravel()))
+        self.assertFalse(np.allclose(ds.target_abs, np.asarray(m["Tctot1"], float).ravel()))
 
     def test_alignment_non_empty(self):
         a = align_horizons(["2h", "4h"])
@@ -127,6 +141,18 @@ class TestExperimentArtifact(unittest.TestCase):
         full = exp7["variants"]["mimo_warm_full_freeze_y"]["splits"]["teste"]["2h"]["nash"]
         self.assertLess(full, 0.0)
 
+    def test_round5_previne_obs_labels_artifact(self):
+        exp8 = self.data["experiments"].get("exp8_previne_protocol_obs_labels")
+        self.assertIsNotNone(exp8, "exp8_previne_protocol_obs_labels ausente")
+        self.assertEqual(exp8.get("status"), "ok")
+        self.assertTrue(exp8["gate_direct_2h_previne"]["gate_pass"])
+        fair = exp8["mat_reference_aligned_teste"]["4h"]["nash"]
+        self.assertGreater(fair, 0.85)
+        self.assertLess(fair, 0.99)  # não é o replay NASH≈1
+        best = exp8["variants"][exp8["best_variant"]]["splits"]["teste"]
+        self.assertGreater(best["2h"]["nash"], 0.85)
+        self.assertIn("note_labels", self.data["method"])
+
     def test_matlab_handoff_package(self):
         import sys
 
@@ -142,6 +168,7 @@ class TestExperimentArtifact(unittest.TestCase):
         header = (out / "mimo_aligned_2h4h_15in.csv").read_text(encoding="utf-8").splitlines()[0]
         self.assertIn("delta_2h_cm", header)
         self.assertIn("delta_4h_cm", header)
+        self.assertIn("observation", manifest.get("target", "").lower() + manifest.get("label_source", "").lower())
 
 
 if __name__ == "__main__":
