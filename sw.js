@@ -1,5 +1,5 @@
 /* PREVINE · cache mínimo para centro de resposta e modo campo (pesquisa offline parcial). */
-var CACHE = 'previne-resposta-v10';
+var CACHE = 'previne-resposta-v11';
 var SHELL = [
   '/pesquisas/centro-resposta.html',
   '/pesquisas/modo-campo.html',

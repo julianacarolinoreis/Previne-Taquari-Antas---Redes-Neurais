@@ -173,9 +173,17 @@
       if (R && statusEl) {
         var st = R.mesaChecklistProgress ? R.mesaChecklistProgress(R.ST_MESA_KEY) : R.checklistProgress(R.loadChecklist());
         var muc = R.mesaChecklistProgress ? R.mesaChecklistProgress(R.MUC_MESA_KEY) : { done: 0, total: 7 };
+        var campoSt = R.campoChecklistProgress ? R.campoChecklistProgress('santa') : { done: 0, total: 9 };
+        var campoMuc = R.campoChecklistProgress ? R.campoChecklistProgress('mucum') : { done: 0, total: 9 };
+        var abr = R.abrigoInventorySummary ? R.abrigoInventorySummary() : null;
+        var abrLine = abr
+          ? (' · Abrigos: ST ' + abr.santa.records + (abr.santa.ghost ? ' ghost/seed' : ' reg.') +
+            ' · Muçum ' + abr.mucum.records + (abr.mucum.ghost ? ' ghost/9 planejados' : ' reg.'))
+          : ' · Ginásio ST sem capacidade publicada · Muçum: 9 alojamentos planejados (jul/2026)';
         statusEl.textContent =
           'ST V002: ' + st.done + '/' + st.total + ' · Muçum V002: ' + muc.done + '/' + muc.total +
-          ' · Ginásio ST sem capacidade publicada · Muçum: 9 alojamentos planejados (jul/2026).';
+          ' · Campo ST ' + campoSt.done + '/' + campoSt.total + ' · Muçum ' + campoMuc.done + '/' + campoMuc.total +
+          abrLine + '.';
       }
     })();
     document.getElementById('print-briefing').addEventListener('click', function () { window.print(); });

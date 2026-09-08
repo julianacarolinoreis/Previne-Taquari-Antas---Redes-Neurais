@@ -28,7 +28,7 @@
   <input type="range" id="sldTaxa" min="10" max="120" value="40" step="5">
   <div id="cont"></div>
   <div class="leg" id="leg"></div>
-  <div class="sub" style="margin-top:6px;font-size:11px;color:#7a5b00">Margem = tempo até a água − tempo de caminhada (idoso, 0,9 m/s) até o abrigo mais próximo. Cenário ilustrativo.</div>
+  <div class="sub" style="margin-top:6px;font-size:11px;color:#7a5b00">Margem = tempo até a água − caminhada (idoso) ao abrigo. Cenário ilustrativo · <b>não é ordem de saída</b>.</div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -39,7 +39,7 @@ const map=L.map('map');
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}).addTo(map);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.9}).addTo(map);
 const CORES={alagada:'#1e5fbf',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84'};
-const ROT={alagada:'já na água',critica:'crítica — precisa de resgate',apertada:'apertada (<15 min)',atencao:'atenção (<1 h)',confortavel:'confortável (>1 h)',alto:'ponto alto (não alaga)'};
+const ROT={alagada:'já na água (cenário)',critica:'crítica — margem esgotada (cenário)',apertada:'apertada (<15 min)',atencao:'atenção (<1 h)',confortavel:'confortável (>1 h)',alto:'ponto alto (não alaga)'};
 const vel=D.meta.vel_idoso_ms;
 function classifica(i,nivel){
   const cota=D.cota_alaga_m[i];
@@ -79,4 +79,4 @@ function redraw(){
 }
 sld.oninput=redraw; sldTaxa.oninput=redraw;
 redraw();
-</script></body></html>
+</script><script src="../assets/js/hand_vs_hidro_block.js" data-target=".hud"></script></body></html>

@@ -8,6 +8,13 @@
   var MUC_MESA_KEY = 'previne:muc-v002:exercise:v1';
   var ST_MESA_SCHEMA = 1;
   var DECISION_LOG_KEY = 'previne_resposta_decisions_v1';
+  var CAMPO_KEY = 'previne_campo_check_v1';
+  var ABRIGO_KEY = 'previne:abrigo-capacidade:v1';
+  var ROTA_FIELD_PREFIX = 'previne_rota_field_v1_';
+  var CAMPO_ITEMS = [
+    'route_ok', 'bridge_ok', 'shelter_ok', 'pcd_ok', 'comms_ok',
+    'radio_ok', 'water_ok', 'night_ok', 'lead_ok'
+  ];
   var CHECKLIST_ITEMS = [
     { id: 'forecast', label: 'Previsão e telemetria conferidas (fonte, horário, idade)' },
     { id: 'spatial', label: 'Zona/perigo espacial revisado (HAND ≠ inundação oficial)' },
@@ -308,6 +315,80 @@
     return { done: done, total: CHECKLIST_ITEMS.length, pct: Math.round((done / CHECKLIST_ITEMS.length) * 100) };
   }
 
+  function loadCampoState() {
+    try {
+      var raw = localStorage.getItem(CAMPO_KEY);
+      return raw ? JSON.parse(raw) || {} : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function campoChecklistProgress(placeKey) {
+    var state = loadCampoState();
+    var prefix = placeKey + '_';
+    var done = CAMPO_ITEMS.filter(function (id) { return !!state[prefix + id]; }).length;
+    return {
+      done: done,
+      total: CAMPO_ITEMS.length,
+      pct: Math.round(100 * done / CAMPO_ITEMS.length)
+    };
+  }
+
+  function loadAbrigoRows() {
+    try {
+      var raw = localStorage.getItem(ABRIGO_KEY);
+      var list = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /** Contagem de registros locais vs seeds planejados (ghost = sem registro real). */
+  function abrigoInventorySummary() {
+    var rows = loadAbrigoRows();
+    function forMun(label, seedCount) {
+      var list = rows.filter(function (r) { return r.municipio === label; });
+      var withCap = list.filter(function (r) {
+        return r.capacidade_declarada != null && String(r.capacidade_declarada).trim() !== '';
+      }).length;
+      var openKnown = list.filter(function (r) {
+        var a = String(r.aberto || '').toLowerCase();
+        return a && a !== 'desconhecido' && a !== 'unknown';
+      }).length;
+      return {
+        label: label,
+        records: list.length,
+        seeds_planned: seedCount,
+        with_capacity: withCap,
+        open_known: openKnown,
+        ghost: list.length === 0
+      };
+    }
+    return {
+      santa: forMun('Santa Tereza', 1),
+      mucum: forMun('Muçum', 9),
+      total_records: rows.length
+    };
+  }
+
+  function loadRotaFieldChecks(placeKey) {
+    try {
+      var raw = localStorage.getItem(ROTA_FIELD_PREFIX + placeKey);
+      var obj = raw ? JSON.parse(raw) : {};
+      return obj && typeof obj === 'object' ? obj : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveRotaFieldChecks(placeKey, fieldChecks) {
+    try {
+      localStorage.setItem(ROTA_FIELD_PREFIX + placeKey, JSON.stringify(fieldChecks || {}));
+    } catch (e) { /* ignore */ }
+  }
+
   function loadDecisionLog() {
     try {
       var raw = localStorage.getItem(DECISION_LOG_KEY);
@@ -373,6 +454,25 @@
     lines.push('');
     lines.push(['checklist_done', 'checklist_total', 'checklist_pct'].map(csvEscape).join(','));
     lines.push([prog.done, prog.total, prog.pct].map(csvEscape).join(','));
+    lines.push('');
+    lines.push(['campo_place', 'campo_done', 'campo_total'].map(csvEscape).join(','));
+    ['santa', 'mucum'].forEach(function (key) {
+      var cp = campoChecklistProgress(key);
+      lines.push([key, cp.done, cp.total].map(csvEscape).join(','));
+    });
+    var abrigo = abrigoInventorySummary();
+    lines.push('');
+    lines.push(['abrigo_place', 'records', 'seeds_planned', 'with_capacity', 'ghost'].map(csvEscape).join(','));
+    lines.push(['santa', abrigo.santa.records, abrigo.santa.seeds_planned, abrigo.santa.with_capacity, abrigo.santa.ghost ? 'yes' : 'no'].map(csvEscape).join(','));
+    lines.push(['mucum', abrigo.mucum.records, abrigo.mucum.seeds_planned, abrigo.mucum.with_capacity, abrigo.mucum.ghost ? 'yes' : 'no'].map(csvEscape).join(','));
+    lines.push('');
+    lines.push(['rota_place', 'check_id', 'checked'].map(csvEscape).join(','));
+    ['santa', 'mucum'].forEach(function (key) {
+      var checks = loadRotaFieldChecks(key);
+      Object.keys(checks).forEach(function (id) {
+        lines.push([key, id, checks[id] ? 'yes' : 'no'].map(csvEscape).join(','));
+      });
+    });
     if (options.includeMesaLog) {
       [ST_MESA_KEY, MUC_MESA_KEY].forEach(function (mesaKey) {
         try {
@@ -499,6 +599,25 @@
     lines.push('');
     lines.push(['checklist_done', 'checklist_total'].map(csvEscape).join(','));
     lines.push([prog.done, prog.total].map(csvEscape).join(','));
+    lines.push('');
+    lines.push(['campo_place', 'campo_done', 'campo_total'].map(csvEscape).join(','));
+    ['santa', 'mucum'].forEach(function (key) {
+      var cp = campoChecklistProgress(key);
+      lines.push([key, cp.done, cp.total].map(csvEscape).join(','));
+    });
+    var abrigo = abrigoInventorySummary();
+    lines.push('');
+    lines.push(['abrigo_place', 'records', 'seeds_planned', 'ghost'].map(csvEscape).join(','));
+    lines.push(['santa', abrigo.santa.records, abrigo.santa.seeds_planned, abrigo.santa.ghost ? 'yes' : 'no'].map(csvEscape).join(','));
+    lines.push(['mucum', abrigo.mucum.records, abrigo.mucum.seeds_planned, abrigo.mucum.ghost ? 'yes' : 'no'].map(csvEscape).join(','));
+    lines.push('');
+    lines.push(['rota_place', 'check_id', 'checked'].map(csvEscape).join(','));
+    ['santa', 'mucum'].forEach(function (key) {
+      var checks = loadRotaFieldChecks(key);
+      Object.keys(checks).forEach(function (id) {
+        lines.push([key, id, checks[id] ? 'yes' : 'no'].map(csvEscape).join(','));
+      });
+    });
     try {
       var stRaw = localStorage.getItem(ST_MESA_KEY);
       var mucRaw = localStorage.getItem(MUC_MESA_KEY);
@@ -510,6 +629,7 @@
 
   function syncRotaFieldChecks(placeKey, fieldChecks) {
     var checks = fieldChecks || {};
+    saveRotaFieldChecks(placeKey, checks);
     var prefix = placeKey + '_';
     var mapped = {};
     if (checks.access) {
@@ -587,6 +707,10 @@
     ST_MESA_KEY: ST_MESA_KEY,
     MUC_MESA_KEY: MUC_MESA_KEY,
     DECISION_LOG_KEY: DECISION_LOG_KEY,
+    CAMPO_KEY: CAMPO_KEY,
+    ABRIGO_KEY: ABRIGO_KEY,
+    ROTA_FIELD_PREFIX: ROTA_FIELD_PREFIX,
+    CAMPO_ITEMS: CAMPO_ITEMS,
     PLACES: PLACES,
     JUSANTE: JUSANTE,
     loadChecklist: loadChecklist,
@@ -594,6 +718,10 @@
     syncMesaValidation: syncMesaValidation,
     syncFieldChecklist: syncFieldChecklist,
     mesaChecklistProgress: mesaChecklistProgress,
+    campoChecklistProgress: campoChecklistProgress,
+    abrigoInventorySummary: abrigoInventorySummary,
+    loadRotaFieldChecks: loadRotaFieldChecks,
+    saveRotaFieldChecks: saveRotaFieldChecks,
     readMesaValidationFrom: readMesaValidationFrom,
     clearChecklist: clearChecklist,
     checklistProgress: checklistProgress,

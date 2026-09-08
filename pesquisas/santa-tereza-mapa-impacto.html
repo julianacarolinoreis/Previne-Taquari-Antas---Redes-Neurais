@@ -28,7 +28,7 @@
   <input type="range" id="sldTaxa" min="10" max="120" value="40" step="5">
   <div id="cont" style="margin-top:6px"></div>
   <div class="big" id="resumo"></div>
-  <div class="sub" style="font-size:11px;color:#7a5b00;margin-top:4px">Pop.: grade IBGE. Margem = tempo até a água − caminhada (idoso) ao abrigo. Cenário ilustrativo.</div>
+  <div class="sub" style="font-size:11px;color:#7a5b00;margin-top:4px">Pop.: grade IBGE. Margem = tempo até a água − caminhada (idoso) ao abrigo. Cenário ilustrativo · <b>não é ordem de saída</b>.</div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -39,7 +39,7 @@ const map=L.map('map');
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}).addTo(map);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.9}).addTo(map);
 const CORES={alagada:'#1e5fbf',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84'};
-const ROT={alagada:'já na água',critica:'crítica — resgate',apertada:'apertada (<15 min)',atencao:'atenção (<1 h)',confortavel:'confortável (>1 h)',alto:'ponto alto'};
+const ROT={alagada:'já na água (cenário)',critica:'crítica — margem esgotada (cenário)',apertada:'apertada (<15 min)',atencao:'atenção (<1 h)',confortavel:'confortável (>1 h)',alto:'ponto alto'};
 function classe(c,nivel){
   if(c.cota===null||c.cota===undefined) return 'alto';
   if(c.cota<=nivel) return 'alagada';
@@ -59,10 +59,10 @@ function render(nivel){
   document.getElementById('cont').innerHTML=ordem.map(k=>
     `<div class="row"><span><i style="background:${CORES[k]}"></i>${ROT[k]}</span><b>${cnt[k].toLocaleString('pt-BR')}</b></div>`).join('');
   const emrisco=cnt.alagada+cnt.critica+cnt.apertada+cnt.atencao;
-  document.getElementById('resumo').innerHTML=`<b>${emrisco.toLocaleString('pt-BR')}</b> pessoas precisam sair · de <b>${D.meta.pop_total.toLocaleString('pt-BR')}</b> no total`;
+  document.getElementById('resumo').innerHTML=`<b>${emrisco.toLocaleString('pt-BR')}</b> pessoas em faixa apertada/crítica · cenário ilustrativo · <b>não é ordem de saída</b> · de <b>${D.meta.pop_total.toLocaleString('pt-BR')}</b>`;
 }
 const sld=document.getElementById('sld'),sldTaxa=document.getElementById('sldTaxa'),NVMAX=D.meta.nivel_max_m;
 function cen(t){return t<=25?'(cheia lenta)':t>=90?'(ritmo de recorde)':'';}
 function redraw(){taxaCmH=+sldTaxa.value;document.getElementById('taxatxt').textContent=taxaCmH;document.getElementById('taxacen').textContent=cen(taxaCmH);render(sld.value/100*NVMAX);}
 sld.oninput=redraw;sldTaxa.oninput=redraw;redraw();
-</script></body></html>
+</script><script src="../assets/js/hand_vs_hidro_block.js" data-target=".hud"></script></body></html>

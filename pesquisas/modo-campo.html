@@ -129,6 +129,9 @@
         document.getElementById('link-mesa').href = '../' + p.mesa;
         var script = document.querySelector('script[data-page="campo"]');
         if (script) script.setAttribute('data-place', place);
+        if (window.PREVINE_GESTOR_CHROME && PREVINE_GESTOR_CHROME.updatePlace) {
+          PREVINE_GESTOR_CHROME.updatePlace(place);
+        }
         if (window.PREVINE_ABRIGO_FORM && abrigoRoot) {
           PREVINE_ABRIGO_FORM.setMunicipio(abrigoRoot, place);
         }

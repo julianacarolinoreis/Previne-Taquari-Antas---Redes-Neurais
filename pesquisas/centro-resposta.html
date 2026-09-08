@@ -136,6 +136,7 @@
       <h2 id="check-title">Checklist pré-ação</h2>
       <p class="check-progress" id="check-progress" aria-live="polite"><strong>0/7</strong> confirmações registradas neste aparelho.</p>
       <p class="section-intro" id="check-mesa-sync" style="font-size:12px;margin-top:-6px">Sincronizado com mesas V002 neste aparelho.</p>
+      <p class="section-intro" id="ops-rollup" style="font-size:12px;margin-top:-4px">Campo e abrigos: carregando…</p>
       <p class="section-intro">Marque só o que foi verificado de fato. Persiste localmente; não libera alerta, rota ou despacho.</p>
       <div class="checklist" id="checklist"></div>
       <div class="toolbar">
@@ -212,6 +213,19 @@
         var mucProg = R.mesaChecklistProgress(R.MUC_MESA_KEY);
         document.getElementById('check-mesa-sync').textContent =
           'Mesas V002: Santa Tereza ' + stProg.done + '/7 · Muçum ' + mucProg.done + '/7 (OR unificado neste checklist).';
+        var roll = document.getElementById('ops-rollup');
+        if (roll && R.campoChecklistProgress && R.abrigoInventorySummary) {
+          var campoSt = R.campoChecklistProgress('santa');
+          var campoMuc = R.campoChecklistProgress('mucum');
+          var abr = R.abrigoInventorySummary();
+          var abrTxt =
+            'Abrigos: ST ' + abr.santa.records + ' reg.' + (abr.santa.ghost ? ' (inventário ghost · só seed Ginásio)' : '') +
+            ' · Muçum ' + abr.mucum.records + ' reg.' + (abr.mucum.ghost ? ' (ghost · 9 alojamentos planejados)' : '');
+          roll.textContent =
+            'Campo: ST ' + campoSt.done + '/' + campoSt.total +
+            ' · Muçum ' + campoMuc.done + '/' + campoMuc.total +
+            ' · ' + abrTxt;
+        }
         box.innerHTML = R.CHECKLIST_ITEMS.map(function (item) {
           var checked = state[item.id] ? ' checked' : '';
           return '<label><input type="checkbox" data-check="' + item.id + '"' + checked + '> ' + item.label + '</label>';
