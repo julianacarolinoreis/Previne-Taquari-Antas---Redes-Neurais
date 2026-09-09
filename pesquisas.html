@@ -585,10 +585,12 @@
     const normalize = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
     function filteredEntries(){
-      const q = normalize(state.query);
+      const q = normalize(state.query).trim();
+      const token = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = q ? new RegExp("(?:^|[^a-z0-9])" + token) : null;
       return entries.filter(item => {
         const hay = normalize([item.title,item.category,item.status,item.description,item.caveat,item.source].join(" "));
-        return (!q || hay.includes(q)) && (state.category === "all" || item.category === state.category) && (state.status === "all" || item.status === state.status);
+        return (!re || re.test(hay)) && (state.category === "all" || item.category === state.category) && (state.status === "all" || item.status === state.status);
       });
     }
     function render(){
