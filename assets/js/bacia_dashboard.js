@@ -226,7 +226,16 @@
         }).join(' · ')
         : 'previsão curta sem valor';
       const headValue = head.mean_mm == null ? '—' : `${fmt(head.mean_mm, 1)} mm`;
-      const headNote = head.max_mm == null ? 'sem máximo publicado' : `máx. ${fmt(head.max_mm, 1)} mm · ${head.status === 'shared_santa_reference' ? 'proxy compartilhada' : 'células monitoradas'}`;
+      const headOwn = key === 'mucum' && head.independent_for_station && head.status !== 'shared_santa_reference';
+      const headNote = head.max_mm == null
+        ? 'sem máximo publicado'
+        : `máx. ${fmt(head.max_mm, 1)} mm · ${head.status === 'shared_santa_reference' ? 'proxy compartilhada' : headOwn ? 'proxy própria Muçum' : 'células monitoradas'}`;
+      const headTone = head.status === 'shared_santa_reference' ? 'proxy' : 'forecast';
+      const headWarning = head.status === 'shared_santa_reference'
+        ? '<p class="research-context-warning">Muçum ainda não tem máscara hidrológica independente; este agregado é uma referência compartilhada dos pontos monitorados a montante, não a média da bacia de Muçum.</p>'
+        : headOwn
+          ? '<p class="research-context-warning">Muçum já publica um proxy próprio dos pontos a montante (com proveniência no polígono SRTM). Ainda não é média ponderada por área nem máscara hidrológica validada.</p>'
+          : '<p class="research-context-warning">O agregado espacial resume pontos monitorados a montante; não é uma média ponderada de toda a bacia.</p>';
       const point = rain.point_mm != null ? `${fmt(rain.point_mm, 1)} mm` : rain.ifs_direct_mm != null ? `${fmt(rain.ifs_direct_mm, 1)} mm` : '—';
       const archived = risk.probability_percent == null ? '' : ` · arquivado: ${pct(risk.probability_percent)}`;
       const usable = risk.usable_as_current_probability === true && risk.state !== 'stale';
@@ -237,13 +246,13 @@
         <div class="research-context-card-head"><div><span class="research-station-kicker">${esc(labels[key] || key)}</span><h3>${esc(item.station_code || 'estação')}</h3></div><span class="research-quality ${quality.status === 'DEGRADED' ? 'warn' : ''}">${esc(quality.status || 'SEM STATUS')}</span></div>
         <div class="research-metrics">
           ${researchMetric('Nível observado', current.level_cm == null ? '—' : `${fmt(current.level_cm, 0)} cm`, `${researchStateLabel(current.state)} · ${when(current.observed_at_utc)}`, 'observed')}
-          ${researchMetric('Pontos a montante · proxy', headValue, headNote, head.status === 'shared_santa_reference' ? 'proxy' : 'forecast')}
+          ${researchMetric('Pontos a montante · proxy', headValue, headNote, headTone)}
           ${researchMetric('Chuva no ponto', point, `acumulado previsto · +${h} h`, 'forecast')}
           ${researchMetric('Cruzamento da cota', prob, probNote, 'risk')}
         </div>
         <p class="research-context-short"><strong>Robô ao vivo:</strong> ${esc(short)}.</p>
         <p class="research-context-source"><strong>Fonte:</strong> ${esc(item.forecast && item.forecast.provider || 'não informada')} · feed ${esc(researchStateLabel(item.forecast && item.forecast.state))} (${esc(when(item.forecast && item.forecast.generated_at_utc))}).</p>
-        ${head.status === 'shared_santa_reference' ? '<p class="research-context-warning">Muçum ainda não tem máscara hidrológica independente; este agregado é uma referência compartilhada dos pontos monitorados a montante, não a média da bacia de Muçum.</p>' : '<p class="research-context-warning">O agregado espacial resume pontos monitorados a montante; não é uma média ponderada de toda a bacia.</p>'}
+        ${headWarning}
       </article>`;
     }).join('');
     const pending = Array.isArray(state.research.gates) ? state.research.gates.filter((gate) => gate.status !== 'complete') : [];

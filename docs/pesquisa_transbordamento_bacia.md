@@ -17,8 +17,9 @@ estima por horizonte**.
 3. **Montante/cabeceiras:** a média simples e o máximo das células únicas são
    mostrados como *proxy da rede monitorada a montante*. Não são uma máscara
    hidrológica, não têm ponderação por área e não representam a média oficial da
-   bacia. Para Muçum, a referência atual é compartilhada e fica marcada como não
-   independente.
+   bacia. Santa Tereza e Muçum publicam proxies **próprios**; o de Muçum inclui
+   Santa Tereza como ponto a montante e cita o polígono SRTM só como
+   proveniência.
 4. **Eventos:** picos acima da cota de pesquisa (1.500 cm em Santa Tereza e
    1.800 cm em Muçum), com candidatos e situação de revisão preservados.
 5. **Risco experimental:** score/probabilidade dos artefatos publicados,
@@ -57,8 +58,12 @@ JSON para auditoria; o dashboard só consome o artefato publicado.
 - `hydrologic_mask`: a rede de pontos a montante já é atualizada, mas ainda não
   há outlet, rede hidrográfica, acumulação de fluxo regional e ponderação por
   área validados.
-- `mucum_independent_headwater`: Muçum precisa de um recorte espacial próprio;
-  a referência Santa Tereza não deve ser lida como chuva local de Muçum.
+- `mucum_independent_headwater`: Muçum publica um **proxy próprio** dos
+  pontos monitorados a montante (inclui Santa Tereza, exclui o alvo Muçum) e
+  cita o polígono SRTM da bacia (`watershed_86510000_srtm.geojson`, razão de
+  área ≈ 0,98 vs ANA) só como proveniência. O status do gate é
+  `research_partial` porque a agregação ainda **não** é ponderada por área e
+  **não** fecha o gate `hydrologic_mask`.
 - `soil_observation`: a umidade atual é variável modelada; não há sensor local
   de saturação publicado para as estações.
 - `radar_qpe`: o radar/QPE CEMADEN permanece opcional até que o download e a

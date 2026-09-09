@@ -408,11 +408,23 @@ def check_basin_research(errors: list[dict]) -> dict:
     if mucum_rows:
         for hours, row in mucum_rows:
             headwater = ((row.get("rain") or {}).get("headwater") or {}) if isinstance(row, dict) else {}
-            if headwater.get("independent_for_station") is not False:
-                errors.append({"severity": "FAIL", "code": "mucum_headwater_independence_overclaim", "horizon": hours})
+            if headwater.get("independent_for_station") is not True:
+                errors.append({"severity": "FAIL", "code": "mucum_headwater_independence_missing", "horizon": hours})
+            if headwater.get("status") == "shared_santa_reference":
+                errors.append({"severity": "FAIL", "code": "mucum_headwater_still_shared", "horizon": hours})
+            if headwater.get("hydrologic_mask") is True or headwater.get("area_weighted") is True:
+                errors.append({"severity": "FAIL", "code": "mucum_headwater_hydrologic_overclaim", "horizon": hours})
     gates = feed.get("gates")
     if not isinstance(gates, list) or not gates:
         errors.append({"severity": "FAIL", "code": "basin_research_gates_missing"})
+    gate_by_id = {
+        item.get("id"): item
+        for item in (gates if isinstance(gates, list) else [])
+        if isinstance(item, dict)
+    }
+    mucum_gate = gate_by_id.get("mucum_independent_headwater") if isinstance(gate_by_id.get("mucum_independent_headwater"), dict) else {}
+    if mucum_gate.get("status") not in {"research_partial", "complete"}:
+        errors.append({"severity": "FAIL", "code": "mucum_independent_headwater_gate_status", "detail": mucum_gate.get("status")})
     result.update({
         "sha256": sha256(BASIN_RESEARCH) if BASIN_RESEARCH.exists() else None,
         "generated_at_utc": feed.get("generated_at_utc"),
@@ -421,6 +433,7 @@ def check_basin_research(errors: list[dict]) -> dict:
         "boundary_status": boundary.get("status"),
         "hydrologic_status": hydro.get("status"),
         "source_registry": source_summary,
+        "mucum_independent_headwater": mucum_gate.get("status"),
     })
     return result
 
