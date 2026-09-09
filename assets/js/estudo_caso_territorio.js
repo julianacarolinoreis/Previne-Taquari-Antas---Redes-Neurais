@@ -1,4 +1,4 @@
-/* Estudo de caso territorial: RNA + mancha HAND + grade IBGE 200 m + ruas + pessoas.
+/* Estudo territorial PREVINE: RNA + mancha HAND + grade IBGE 200 m + ruas + pessoas.
    Pesquisa. Não emite alerta, ordem de evacuação nem despacho. */
 (function () {
   'use strict';
@@ -62,7 +62,9 @@
       abrigos: null,
       highlight: null
     },
-    canvas: null
+    canvas: null,
+    streetHits: 0,
+    maxScore: 1
   };
 
   function $(id) { return document.getElementById(id); }
@@ -203,6 +205,12 @@
     return '#8dbf74';
   }
 
+  function setChain(step) {
+    document.querySelectorAll('.chain [data-step]').forEach(function (el) {
+      el.classList.toggle('is-active', el.getAttribute('data-step') === step);
+    });
+  }
+
   function ensureMap() {
     if (state.map) return state.map;
     state.canvas = L.canvas({ padding: 0.5 });
@@ -264,21 +272,23 @@
         var selected = id === state.selectedId;
         return {
           color: selected ? '#0c2a22' : '#5d6b62',
-          weight: selected ? 2.4 : 0.8,
+          weight: selected ? 2.6 : 0.8,
           fillColor: colorFor(cell ? cell.overlap : 0),
-          fillOpacity: cell ? (selected ? 0.72 : 0.55) : 0.12
+          fillOpacity: cell ? (selected ? 0.78 : 0.55) : 0.1
         };
       },
       onEachFeature: function (feature, layer) {
         var id = feature.properties && feature.properties.id_grade;
         layer.on('click', function () {
           state.selectedId = id;
+          setChain('grade');
           var bounds = layer.getBounds && layer.getBounds();
           var geometry = layer.feature && layer.feature.geometry;
           drawGrade(bundle);
           highlightStreets(bundle, bounds, geometry);
           if (bounds) state.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 });
           renderSide(bundle);
+          pulseMap();
         });
       }
     });
@@ -326,7 +336,7 @@
       type: 'Feature',
       geometry: { type: 'MultiLineString', coordinates: coords }
     }, {
-      style: { color: '#0c2a22', weight: 1.35, opacity: 0.55 },
+      style: { color: '#0c2a22', weight: 1.25, opacity: 0.5 },
       interactive: false,
       renderer: state.canvas
     }).addTo(state.layers.ruas);
@@ -392,9 +402,7 @@
     var closed = n > 2 && ring[0][0] === ring[n - 1][0] && ring[0][1] === ring[n - 1][1];
     var count = closed ? n - 1 : n;
     var edges = [];
-    for (var i = 0; i < count; i++) {
-      edges.push([ring[i], ring[(i + 1) % n]]);
-    }
+    for (var i = 0; i < count; i++) edges.push([ring[i], ring[(i + 1) % n]]);
     return edges;
   }
 
@@ -419,7 +427,7 @@
 
   function highlightStreets(bundle, bounds, geometry) {
     state.layers.highlight.clearLayers();
-    state._streetHits = 0;
+    state.streetHits = 0;
     if (!bundle.ruas || !Array.isArray(bundle.ruas.nos) || !Array.isArray(bundle.ruas.edges)) return;
     var nos = bundle.ruas.nos;
     var pad = 0.00015;
@@ -454,11 +462,12 @@
     if (!segs.length) return;
     L.polyline(segs, {
       color: '#0c2a22',
-      weight: 3.2,
+      weight: 3.4,
       opacity: 0.95,
       interactive: false
     }).addTo(state.layers.highlight);
-    state._streetHits = segs.length;
+    state.streetHits = segs.length;
+    setChain('ruas');
   }
 
   function abrigosOf(bundle) {
@@ -497,6 +506,32 @@
     });
   }
 
+  function renderGauge(now, fore, bank) {
+    var max = Math.max(bank || 0, now || 0, fore || 0, 1);
+    function pct(v) {
+      var n = num(v);
+      if (n == null) return 0;
+      return Math.max(2, Math.min(100, (n / max) * 100));
+    }
+    var bankEl = $('gauge-bank');
+    var nowEl = $('gauge-now');
+    var prevEl = $('gauge-prev');
+    var deltaEl = $('gauge-delta');
+    if (bankEl) bankEl.style.width = pct(bank) + '%';
+    if (nowEl) nowEl.style.width = pct(now) + '%';
+    if (prevEl) prevEl.style.width = pct(fore) + '%';
+    if (deltaEl) {
+      if (num(now) == null || num(fore) == null) {
+        deltaEl.textContent = 'Δ —';
+      } else {
+        var d = Math.round(fore - now);
+        deltaEl.textContent = 'Δ ' + (d > 0 ? '+' : '') + d + ' cm em +2 h';
+      }
+    }
+    var prevVal = $('rna-prev');
+    if (prevVal) prevVal.classList.toggle('is-hot', num(fore) != null && num(now) != null && fore > now);
+  }
+
   function renderRna(bundle) {
     var d = bundle.rna || {};
     var now = d.nivel_rio_agora_cm != null ? d.nivel_rio_agora_cm : d.nivel_atual_cm;
@@ -505,20 +540,23 @@
     $('rna-agora').textContent = fmtCm(now);
     $('rna-prev').textContent = fmtCm(fore);
     $('rna-bank').textContent = fmtCm(bank);
-    $('rna-estacao').textContent = (d.estacao || city().station) + ' · ' + (d.status_dados || 'status indisponível');
+    $('rna-estacao').textContent = (d.estacao || city().station);
     $('rna-agora-s').textContent = d.nivel_rio_agora_em || d.telemetria_ultima_em || 'horário não informado';
     $('rna-prev-s').textContent = (d.horizonte || d.rotulo || '+2 h') + (d.modelo ? ' · ' + d.modelo : '');
     $('rna-bank-s').textContent = 'cota de pesquisa da régua · não é o nível HAND do mapa';
-    $('rna-estacao-s').textContent = d.consultado_em ? 'consultado ' + d.consultado_em : (d.gerado_em || '');
-    var note = $('rna-note');
-    note.textContent = 'A RNA lê a régua em centímetros. O mapa mostra um cenário HAND publicado (' +
+    $('rna-estacao-s').textContent = (d.status_dados || 'status indisponível') +
+      (d.consultado_em ? ' · consultado ' + d.consultado_em : '');
+    $('rna-note').textContent = 'A RNA lê a régua em centímetros. O mapa mostra um cenário HAND publicado (' +
       state.level + ' m). A conversão régua ↔ HAND/MDT continua pendente — o nível previsto não escolhe sozinho o quadradinho.';
+    renderGauge(now, fore, bank);
+    setChain('rna');
   }
 
   function renderLevels() {
     var row = $('level-row');
     row.innerHTML = city().levels.map(function (lv) {
-      return '<button type="button" data-level="' + lv + '" aria-pressed="' + (Number(lv) === Number(state.level)) + '">HAND ' + lv + ' m</button>';
+      return '<button type="button" data-level="' + lv + '" aria-pressed="' +
+        (Number(lv) === Number(state.level)) + '">HAND ' + lv + ' m</button>';
     }).join('');
   }
 
@@ -531,6 +569,7 @@
   function renderSide(bundle) {
     var sc = scenario(bundle);
     var ranked = rankedCells(bundle);
+    state.maxScore = Math.max(1, ranked.reduce(function (m, c) { return Math.max(m, c.score); }, 1));
     var status = $('load-status');
     if (bundle.errors && bundle.errors.length) {
       status.className = 'load-status bad';
@@ -539,8 +578,7 @@
       status.className = 'load-status good';
       status.textContent = 'fontes carregadas · leitura de pesquisa';
     }
-    $('meta-line').textContent = city().label + ' · IBGE ' + city().ibge +
-      ' · cenário HAND ' + state.level + ' m · grade 200 m';
+    $('meta-line').textContent = 'IBGE ' + city().ibge + ' · cenário HAND ' + state.level + ' m · grade 200 m';
     $('stat-cells').textContent = sc ? fmtInt(sc.cells_200m_touched) : fmtInt(ranked.length);
     $('stat-pop').textContent = sc ? fmtInt(sc.population_upper_bound_whole_touched_cells) : '—';
     $('stat-proxy').textContent = sc && sc.population_area_weighted_proxy != null
@@ -555,13 +593,16 @@
     } else {
       var shown = ranked.slice(0, 24);
       list.innerHTML = shown.map(function (c, i) {
+        var width = Math.max(4, Math.round((c.score / state.maxScore) * 100));
         return '<li><button type="button" class="cell-btn" data-cell="' + esc(c.id) + '" aria-current="' +
           (c.id === state.selectedId) + '">' +
           '<span class="rank">' + String(i + 1).padStart(2, '0') + '</span>' +
           '<span class="id">' + esc(c.id) + '</span>' +
           '<span class="pop">' + fmtInt(c.pop) + ' pess.</span>' +
-          '<small>sobreposição ' + fmtPct(c.overlap) + ' · atenção de pesquisa ' +
-          Math.round(c.score).toLocaleString('pt-BR') + '</small></button></li>';
+          '<small>sobreposição ' + fmtPct(c.overlap) + ' · atenção ' +
+          Math.round(c.score).toLocaleString('pt-BR') + '</small>' +
+          '<span class="bar" aria-hidden="true"><i style="width:' + width + '%"></i></span>' +
+          '</button></li>';
       }).join('');
       if (ranked.length > shown.length) {
         list.innerHTML += '<li class="empty">Lista: ' + shown.length + ' de ' +
@@ -584,13 +625,14 @@
       ' domicílios na célula inteira (Censo 2022). Sobreposição com a mancha HAND ' +
       state.level + ' m: <strong>' + fmtPct(selected.overlap) + '</strong>.</p>' +
       '<p>Isso é limite superior de triagem: a célula inteira entra na conta, não o número de quem sairia.</p>' +
-      (state._streetHits
-        ? '<p>' + fmtInt(state._streetHits) + ' trechos de rua do grafo OSM tocam este quadradinho.</p>'
+      (state.streetHits
+        ? '<p>' + fmtInt(state.streetHits) + ' trechos de rua do grafo OSM tocam este quadradinho — inclusive trechos que só atravessam a célula.</p>'
         : '<p>As ruas OSM do estudo aparecem no mapa; clique no quadradinho para destacar os trechos que o cruzam.</p>') +
       (next.length
         ? '<p>Próximos quadradinhos a observar neste recorte (não é ordem de saída): ' +
-          next.map(function (c) { return esc(c.id.replace(/^200M/, '')); }).join(', ') + '.</p>'
+          next.map(function (c) { return esc(String(c.id).replace(/^200M/, '')); }).join(', ') + '.</p>'
         : '');
+    setChain('pessoas');
   }
 
   function applyLayersVisible() {
@@ -616,11 +658,19 @@
     });
   }
 
+  function pulseMap() {
+    var shell = document.querySelector('.map-shell');
+    if (!shell) return;
+    shell.classList.remove('cell-pulse');
+    void shell.offsetWidth;
+    shell.classList.add('cell-pulse');
+  }
+
   function drawAll(bundle) {
     ensureMap();
     var ranked = rankedCells(bundle);
     if (!state.selectedId && ranked[0]) state.selectedId = ranked[0].id;
-    state._streetHits = 0;
+    state.streetHits = 0;
     if (state.layers.highlight) state.layers.highlight.clearLayers();
     drawMancha(bundle);
     drawStreets(bundle);
@@ -628,6 +678,7 @@
     drawAbrigos(bundle);
     focusSelected(bundle);
     applyLayersVisible();
+    setChain('mancha');
     var bounds = studyBounds(bundle);
     if (bounds && bounds.isValid()) {
       state.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 15 });
@@ -691,6 +742,7 @@
     if (!btn) return;
     state.level = Number(btn.getAttribute('data-level'));
     state.selectedId = null;
+    setChain('mancha');
     var bundle = state.cache[state.city];
     if (!bundle || (bundle.errors && bundle.errors.length)) {
       bootCity();
@@ -714,6 +766,7 @@
       }
     });
     renderSide(bundle);
+    pulseMap();
   });
   ['ly-mancha', 'ly-grade', 'ly-ruas', 'ly-abrigos'].forEach(function (id) {
     $(id).addEventListener('change', applyLayersVisible);

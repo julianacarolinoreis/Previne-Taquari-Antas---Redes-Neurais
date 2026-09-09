@@ -130,10 +130,17 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         self.assertNotIn("carto", js.lower())
         self.assertIn("segmentHitsGeometry", js)
         self.assertIn("segsIntersect", js)
-        self.assertIn("Pendente por método", html)
+        self.assertIn("renderGauge", js)
+        self.assertIn("setChain", js)
+        self.assertIn("gauge-now", html)
+        self.assertIn("howto", html)
+        self.assertIn("class=\"brand\"", html)
+        self.assertIn("atenção espacial", html.lower())
         self.assertIn("não é alerta", html.lower())
         self.assertIn("assets/data/estudo_caso_territorio/**", deploy)
         self.assertIn(".territorio", css)
+        self.assertIn(".rna-cockpit", css)
+        self.assertIn(".gauge-scale", css)
 
     def test_acervo_indexes_the_page_and_hrefs_exist(self) -> None:
         catalog = json.loads(ACERVO.read_text(encoding="utf-8"))
