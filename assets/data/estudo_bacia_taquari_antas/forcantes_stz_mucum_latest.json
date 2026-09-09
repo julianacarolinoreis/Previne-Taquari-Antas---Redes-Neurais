@@ -1,0 +1,251 @@
+{
+  "schema_version": "estudo_forcantes_stz_mucum_v1",
+  "generated_at_utc": "2026-09-09T02:13:34.486075+00:00",
+  "purpose": "lista curta congelada de forçantes por modelo-alvo; nao e HEC",
+  "status": "forcantes_congeladas_v1",
+  "discipline_rule": "Estas listas sao o contrato de ENTRADAS candidato. Ainda nao definem subbacias HEC, parametros, nem calibracao.",
+  "selection_rules": [
+    "Priorizar seeds PREVINE ja usados em RNA/operacao.",
+    "Cobrir tronco + Prata + Carreiro (entradas hidrologicas a montante dos dois alvos).",
+    "Manter lista curta (<=6 nivel + <=5 chuva por modelo) para nao voltar ao inventario de 160 postos.",
+    "Excluir Guapore/Forqueta/Baixo — fora do recorte decidido.",
+    "Marcar backups e postos com pane/serie fraca sem promove-los a primario."
+  ],
+  "excluded_from_both": {
+    "upgs": [
+      "Guaporé",
+      "Forqueta",
+      "Baixo Taquari-Antas"
+    ],
+    "families": [
+      "7864",
+      "7862"
+    ],
+    "examples_not_used": [
+      "qualquer posto so na UPG Guapore/Forqueta/Baixo",
+      "2851044 como chuva primaria (legado vazio no CSV; nome 'GUAPORE' confunde)"
+    ]
+  },
+  "models": {
+    "santa_tereza": {
+      "target": {
+        "codigo": "86472600",
+        "nome": "Santa Tereza",
+        "papel": "alvo_predicao (nivel)",
+        "rede": "ANA",
+        "status": "ativo_proposto",
+        "notes": "Predictand do modelo STZ — nao contar como forçante de montante."
+      },
+      "nested_area_km2": 15775.186,
+      "level_forcings": [
+        {
+          "codigo": "86472000",
+          "nome": "Linha Jose Julio / Antas",
+          "papel": "nivel_montante_tronco",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": "Controle primario do tronco Antas a montante de STZ."
+        },
+        {
+          "codigo": "86507000",
+          "nome": "PCH Cotipora Jusante / Carreiro",
+          "papel": "nivel_afluente_carreiro",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": "Representa entrada Carreiro (7866) entre Antas e STZ."
+        },
+        {
+          "codigo": "86125500",
+          "nome": "PCH Jararaca Barramento / Prata",
+          "papel": "nivel_afluente_prata",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": "Representa sistema Prata (7868). Backup: 86447000, 86125130."
+        },
+        {
+          "codigo": "86448000",
+          "nome": "UHE Monte Claro Barramento",
+          "papel": "nivel_tronco_intermediario",
+          "rede": "ANA",
+          "status": "secundario",
+          "notes": "Opcional/secundario no tronco entre Prata e Antas-STZ."
+        }
+      ],
+      "rain_forcings": [
+        {
+          "codigo": "86472000",
+          "nome": "Linha Jose Julio (sensor chuva)",
+          "papel": "chuva_tronco",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": "Coluna chuva_86472000 do CSV operacional."
+        },
+        {
+          "codigo": "86472600",
+          "nome": "Santa Tereza (sensor chuva)",
+          "papel": "chuva_local_alvo",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": "Coluna chuva_86472600; serie pode ter buracos — nao inventar zero."
+        },
+        {
+          "codigo": "2851072",
+          "nome": "Ibiraiaras / Carreiro-Prata",
+          "papel": "chuva_carreiro_prata",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": "Coluna chuva_02851072 — primaria de afluente no Excel-mae 8h."
+        },
+        {
+          "codigo": "A894",
+          "nome": "INMET Serafina Correa",
+          "papel": "chuva_backup_inmet",
+          "rede": "INMET",
+          "status": "backup",
+          "notes": "Pode estar em Pane; ausencia != zero."
+        },
+        {
+          "codigo": "432040401A",
+          "nome": "CEMADEN Serafina Correa Centro",
+          "papel": "chuva_backup_cemaden",
+          "rede": "CEMADEN",
+          "status": "backup",
+          "notes": "Complemento espacial perto de Carreiro/Serafina."
+        }
+      ],
+      "not_in_this_model": [
+        "86510000 Muçum (alvo do outro modelo; jusante de STZ)",
+        "postos so Guapore/Forqueta/Baixo"
+      ],
+      "counts": {
+        "level_primary": 3,
+        "level_secondary": 1,
+        "rain_primary": 3,
+        "rain_backup": 2
+      }
+    },
+    "mucum": {
+      "target": {
+        "codigo": "86510000",
+        "nome": "Muçum",
+        "papel": "alvo_predicao (nivel)",
+        "rede": "ANA",
+        "status": "ativo_proposto",
+        "notes": "Predictand do modelo Muçum."
+      },
+      "nested_area_km2": 15965.207,
+      "level_forcings": [
+        {
+          "codigo": "86472600",
+          "nome": "Santa Tereza",
+          "papel": "nivel_montante_critico",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": "Forçante principal: quase todo o dominio Muçum passa por STZ."
+        },
+        {
+          "codigo": "86472000",
+          "nome": "Linha Jose Julio / Antas",
+          "papel": "nivel_montante_tronco",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": "Tronco Antas; util com STZ para separar onda de montante."
+        },
+        {
+          "codigo": "86507000",
+          "nome": "PCH Cotipora Jusante / Carreiro",
+          "papel": "nivel_afluente_carreiro",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": "Mesma entrada Carreiro do modelo STZ."
+        },
+        {
+          "codigo": "86125500",
+          "nome": "PCH Jararaca Barramento / Prata",
+          "papel": "nivel_afluente_prata",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": "Mesma entrada Prata do modelo STZ."
+        },
+        {
+          "codigo": "86448000",
+          "nome": "UHE Monte Claro Barramento",
+          "papel": "nivel_tronco_intermediario",
+          "rede": "ANA",
+          "status": "secundario",
+          "notes": "Opcional."
+        }
+      ],
+      "rain_forcings": [
+        {
+          "codigo": "86472000",
+          "nome": "Linha Jose Julio (sensor chuva)",
+          "papel": "chuva_tronco",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": null
+        },
+        {
+          "codigo": "86472600",
+          "nome": "Santa Tereza (sensor chuva)",
+          "papel": "chuva_faixa_stz_mucum",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": "Chuva entre STZ e Mucum + contexto local."
+        },
+        {
+          "codigo": "2851072",
+          "nome": "Ibiraiaras / Carreiro-Prata",
+          "papel": "chuva_carreiro_prata",
+          "rede": "ANA",
+          "status": "ativo_proposto",
+          "notes": null
+        },
+        {
+          "codigo": "A894",
+          "nome": "INMET Serafina Correa",
+          "papel": "chuva_backup_inmet",
+          "rede": "INMET",
+          "status": "backup",
+          "notes": "Pane possivel; ausencia != zero."
+        },
+        {
+          "codigo": "432040401A",
+          "nome": "CEMADEN Serafina Correa Centro",
+          "papel": "chuva_backup_cemaden",
+          "rede": "CEMADEN",
+          "status": "backup",
+          "notes": null
+        }
+      ],
+      "not_in_this_model": [
+        "postos so Guapore/Forqueta/Baixo",
+        "tratar Mucum como se visse Guapore (~+2495 km2 a jusante)"
+      ],
+      "counts": {
+        "level_primary": 4,
+        "level_secondary": 1,
+        "rain_primary": 3,
+        "rain_backup": 2
+      }
+    }
+  },
+  "shared_notes": {
+    "stz_inside_mucum": "O modelo Mucum reutiliza as forçantes de montante do STZ e acrescenta STZ como nivel critico. Nao sao o mesmo modelo: alvos e funcoes objetivo diferentes.",
+    "carreiro_is_not_optional_for_stz": "Carreiro entra entre Antas e STZ — forçante de nivel/chuva de afluente e obrigatoria no desenho STZ.",
+    "naming": "Nunca rotular estas listas como 'bacia Taquari-Antas completa'."
+  },
+  "next_steps": [
+    "Com forçantes congeladas: desenhar estrutura HEC (ou confirmar RNA) separada por alvo.",
+    "Validar disponibilidade de serie (buracos STZ chuva, A894 pane) antes de calibrar.",
+    "Manter Guapore/Forqueta fora ate mudar o recorte explicitamente."
+  ],
+  "artifacts": {
+    "json": "forcantes_stz_mucum_latest.json",
+    "html": "forcantes_stz_mucum.html"
+  },
+  "parent_decision": {
+    "source": "dois_modelos_stz_mucum_latest.json",
+    "chosen": "dois_modelos_alvo_STZ_e_Mucum"
+  }
+}
