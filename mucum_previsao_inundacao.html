@@ -518,22 +518,35 @@ function forecastTargetLabels(ev,s,D){
 let handArr=null, curEv=Object.keys(EVENTS)[0];
 let bankfull=500, tIdx=0, playing=false, timer=null, map=null, curS=null;
 const calibByEvent={};
+const LIVE_PAGE_URL='previsao_ao_vivo_mucum.json';
 const LIVE_API_URL='https://api.github.com/repos/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/contents/previsao_ao_vivo_mucum.json?ref=main';
 const LIVE_RAW_URL='https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/previsao_ao_vivo_mucum.json';
-function liveUrl(){ return LIVE_RAW_URL+'?cb='+Date.now(); }
-async function fetchLiveJson(){
+function withLiveCacheBust(url){ return url+(String(url).includes('?')?'&':'?')+'cb='+Date.now(); }
+function liveUrl(){ return withLiveCacheBust(LIVE_RAW_URL); }
+async function fetchJsonWithTimeout(url){
+  const ctl=new AbortController();
+  const timer=setTimeout(()=>ctl.abort(),8000);
   try{
-    const r=await fetch(LIVE_API_URL+'&cb='+Date.now(),{cache:'no-store'});
+    const r=await fetch(withLiveCacheBust(url),{cache:'no-store',signal:ctl.signal});
     if(!r.ok) throw new Error('HTTP '+r.status);
-    const meta=await r.json();
+    return await r.json();
+  }finally{ clearTimeout(timer); }
+}
+async function fetchLiveJson(){
+  const failures=[];
+  // O arquivo publicado no mesmo domínio evita a limitação de taxa da API e
+  // as falhas intermitentes do raw.githubusercontent.com.
+  try{ return await fetchJsonWithTimeout(LIVE_PAGE_URL); }
+  catch(e){ failures.push('arquivo publicado: '+(e&&e.message||'erro de rede')); }
+  try{
+    const meta=await fetchJsonWithTimeout(LIVE_API_URL);
     const b64=String(meta.content||'').replace(/\s/g,'');
     if(!b64) throw new Error('conteúdo vazio');
     return JSON.parse(decodeURIComponent(escape(atob(b64))));
-  }catch(e){
-    const r=await fetch(liveUrl(),{cache:'no-store'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    return r.json();
-  }
+  }catch(e){ failures.push('API GitHub: '+(e&&e.message||'erro de rede')); }
+  try{ return await fetchJsonWithTimeout(LIVE_RAW_URL); }
+  catch(e){ failures.push('arquivo Raw: '+(e&&e.message||'erro de rede')); }
+  throw new Error(failures.join(' · ')||'fontes indisponíveis');
 }
 function fmtWhen(s){ if(!s) return '—'; const m=String(s).replace('T',' ').match(/(\d{4})-(\d{2})-(\d{2})[ ]+(\d{2}):(\d{2})/); return m?`${m[3]}/${m[2]} ${m[4]}:${m[5]}`:String(s); }
 function fmtClock(s){
@@ -817,21 +830,45 @@ function liveFromEvent(key, tipo){
     passos:E.series.map(s=>[s[0],s[1],s[2],s[3]])
   };
 }
+function horizonHasForecast(D){
+  if(!D) return false;
+  if(D.nivel_previsto_cm!==null && D.nivel_previsto_cm!==undefined && D.nivel_previsto_cm!=='') return true;
+  return Array.isArray(D.passos) && D.passos.some(P=>Array.isArray(P)&&P.length>=3&&P[2]!==null&&P[2]!==undefined&&P[2]!=='');
+}
+function liveHorizonReady(key,D){
+  if(!D || D.disponivel===false || !horizonHasForecast(D)) return false;
+  const status=String(D.status||'').toLowerCase();
+  if(/sem hora valida|sem hora válida|sem previsao|sem previsão|inputs incompletos|indisponivel|indisponível/.test(status)) return false;
+  if(String(D.modo||'').toLowerCase()==='replay') return true;
+  const base=parseLocalWhen(D.hora_modelo), alvo=parseLocalWhen(D.hora_alvo);
+  return !!(base&&alvo);
+}
+function horizonUnavailableReason(D){
+  if(!D) return 'sem registro';
+  if(D.disponivel===false) return 'marcado como indisponível';
+  const falt=[];
+  if(!horizonHasForecast(D)) falt.push('previsão ausente');
+  if(!parseLocalWhen(D.hora_modelo)) falt.push('hora-base inválida');
+  if(!parseLocalWhen(D.hora_alvo)&&String(D.modo||'').toLowerCase()!=='replay') falt.push('hora-alvo inválida');
+  const status=String(D.status||'').trim();
+  if(status && /sem hora valida|sem hora válida|sem previsao|sem previsão|inputs incompletos|indisponivel|indisponível/.test(status.toLowerCase())) falt.push(status);
+  return falt.join('; ')||'conjunto incompleto';
+}
 function updateLiveHzButtons(){
   const hs=liveData&&liveData.horizontes?liveData.horizontes:{};
   document.querySelectorAll('[data-live-hz]').forEach(b=>{
     const D=hs[b.dataset.liveHz];
     // Horizontes indisponíveis ficam ocultos; ausência de previsão não vira
     // automaticamente uma conclusão de normalidade.
-    const ok=!!D && D.disponivel!==false;
+    const ok=liveHorizonReady(b.dataset.liveHz,D);
     b.style.display=ok?'':'none';
     const active=b.dataset.liveHz===liveHz;b.classList.toggle('on',active);b.setAttribute('aria-pressed',active?'true':'false');
   });
   const status=document.getElementById('live-horizon-status');
   if(status){
-    const missing=Object.entries(hs).filter(([key,D])=>!D||D.disponivel===false).map(([key,D])=>{
-      const falt=D&&D.inputs_faltantes_n!=null?`${D.inputs_faltantes_n}/${D.inputs_total||15}`:'sem conjunto completo';
-      return `${String(key).match(/\d+/)?.[0]||key} h indisponível · faltam ${falt} inputs`;
+    const missing=Object.entries(hs).filter(([key,D])=>!liveHorizonReady(key,D)).map(([key,D])=>{
+      const falt=D&&D.inputs_faltantes_n!=null?` · faltam ${D.inputs_faltantes_n}/${D.inputs_total||15} inputs`:'';
+      return `${String(key).match(/\d+/)?.[0]||key} h indisponível · ${horizonUnavailableReason(D)}${falt}`;
     });
     status.textContent=missing.length?missing.join(' · '):'';
     status.style.display=missing.length?'':'none';
@@ -845,14 +882,15 @@ function prepareLiveData(d){
     if(h2) hs['2h']=h2;
   }
   d.horizontes=hs;
-  liveHz=hs[liveHz]?liveHz:(hs[d.horizonte]?d.horizonte:(Object.keys(hs)[0]||'2h'));
+  const preferidos=[liveHz,d.horizonte,'2h',...Object.keys(hs)];
+  liveHz=preferidos.find(key=>key&&liveHorizonReady(key,hs[key]))||null;
   updateLiveHzButtons();
 }
 function activeLiveData(){
   return liveData&&liveData.horizontes&&liveData.horizontes[liveHz]?liveData.horizontes[liveHz]:liveData;
 }
 function setLiveHorizon(hz){
-  if(!liveData || !liveData.horizontes || !liveData.horizontes[hz]) return;
+  if(!liveData || !liveData.horizontes || !liveHorizonReady(hz,liveData.horizontes[hz])) return;
   liveHz=hz; liveIdx=0; updateLiveHzButtons();
   if(window.PREVINE_PANORAMA)PREVINE_PANORAMA.update(liveData,activeLiveData());
   renderLiveStep();
@@ -1023,14 +1061,18 @@ function liveWhenKind(D){
   return (D.telemetria_ultima_em||D.hora_modelo)?'leitura':'consulta';
 }
 function semHorizontes(x){ return !x || !x.horizontes || !Object.keys(x.horizontes).length; }
-function temPrevisao(x){ return !!(x && x.nivel_previsto_cm!=null); }
+function temPrevisao(x){
+  if(!x) return false;
+  if(x.nivel_previsto_cm!==null && x.nivel_previsto_cm!==undefined && x.nivel_previsto_cm!=='') return true;
+  return Array.isArray(x.passos) && x.passos.some(P=>Array.isArray(P)&&P.length>=3&&P[2]!==null&&P[2]!==undefined&&P[2]!=='');
+}
 // falha momentânea de telemetria: NENHUM horizonte tem previsão de verdade.
 // Ancorado na previsão (e não em 'horizontes'), que o prepareLiveData pode
 // sintetizar vazio a partir de 'passos' — vale igual na 1ª carga e no refresh de 60 s.
 function liveSemDado(){
   if(!liveData || liveData.modo==='replay') return false;
   const hs=liveData.horizontes||{};
-  const algum = Object.keys(hs).length ? Object.values(hs).some(temPrevisao) : temPrevisao(liveData);
+  const algum = Object.keys(hs).length ? Object.entries(hs).some(([key,D])=>liveHorizonReady(key,D)) : temPrevisao(liveData);
   return !algum;
 }
 function renderLiveStep(){
@@ -1054,8 +1096,10 @@ function renderLiveStep(){
     return;
   }
   const L=activeLiveData();
-  if(L && Array.isArray(L.passos) && L.passos.length){
-    const P=L.passos[liveIdx%L.passos.length]; // [datahora, atual, previsto] ou [datahora, atual, observado, previsto]
+  const passosL=L&&Array.isArray(L.passos)&&L.passos.length?L.passos:
+    (L&&horizonHasForecast(L)?[[L.hora_alvo||L.gerado_em||L.hora_modelo,liveNowCm(L),L.nivel_previsto_cm]]:null);
+  if(L && passosL && passosL.length){
+    const P=passosL[liveIdx%passosL.length]; // [datahora, atual, previsto] ou [datahora, atual, observado, previsto]
     const matched=liveMatchedAudit(L);
     // Em feeds ao vivo, P[2] é a leitura disponível na hora-base, não a
     // observação do horário-alvo. Só uma auditoria com hora_alvo exatamente
@@ -1081,7 +1125,12 @@ function renderLiveStep(){
     renderFrame();
     return;
   }
-  const P=liveData.passos[liveIdx]; // [datahora, nivel_atual_cm, nivel_previsto_cm]
+  const passosFallback=liveData&&Array.isArray(liveData.passos)&&liveData.passos.length?liveData.passos:null;
+  if(!passosFallback){
+    updateMapAccessibleSummary(liveData,'indisponível');
+    return;
+  }
+  const P=passosFallback[liveIdx%passosFallback.length]; // [datahora, nivel_atual_cm, nivel_previsto_cm]
   EVENTS['__live__']={label:'AO VIVO',horizonte:liveData.horizonte||'2h',combo:liveData.modelo||'—',pers:null,ilustra:false,estatico:false,n:1,pico_obs_cm:P[1],series:[[P[0],P[1],null,P[2]]]};
   bankfull=liveData.bankfull_cm||500;
   curEv='__live__'; tIdx=0;
