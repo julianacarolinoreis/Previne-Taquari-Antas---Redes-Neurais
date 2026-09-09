@@ -2,7 +2,7 @@
   "schema_version": "estudo_bacia_taquari_antas_v1",
   "generated_at_utc": "2026-09-08T22:35:10.118097+00:00",
   "purpose": "estudo da bacia antes de qualquer modelo HEC; nao e calibracao nem alerta",
-  "status": "estudo_em_andamento",
+  "status": "modelo_mucum_eventwise_v1_fechado_stz_q_blocked",
   "discipline_rule": "Nao subentender estrutura de modelo. Primeiro ler a bacia oficial; so depois discutir HEC.",
   "official_basin": {
     "name": "Bacia Hidrografica do Rio Taquari-Antas",
@@ -671,5 +671,34 @@
     "mucum_loo_mean_test_nse": 0.36824620967646987,
     "stz_status": "q_calibration_blocked_no_ana_vazao",
     "updated_at_utc": "2026-09-09T13:09:15.896210+00:00"
-  }
+  },
+  "modelo_mucum_fechado": {
+    "status": "modelo_mucum_eventwise_v1_fechado_stz_q_blocked",
+    "artifacts": {
+      "json": "modelo_mucum_eventwise_v1_fechado_latest.json",
+      "html": "modelo_mucum_eventwise_v1_fechado.html",
+      "params_csv": "modelo_mucum_eventwise_v1_fechado/params_library_eventwise.csv",
+      "twin_json": "hec_twin_stz_mucum_v1_latest.json",
+      "twin_html": "hec_twin_stz_mucum_v1.html",
+      "runs_dir": "hec_twin_stz_mucum_v1/"
+    },
+    "included_events": [
+      "E20",
+      "E21",
+      "E22",
+      "E24",
+      "E25",
+      "E27",
+      "E28",
+      "E31"
+    ],
+    "mean_nse_eventwise_ok": 0.8755317426480137,
+    "updated_at_utc": "2026-09-09T17:46:41.398683+00:00"
+  },
+  "next_steps": [
+    "Usar o pacote Muçum fechado (params eventwise) — não common-search.",
+    "STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
+    "Após curva: calibrar modelo STZ truncado.",
+    "Manter Guaporé/Forqueta fora do recorte."
+  ]
 }

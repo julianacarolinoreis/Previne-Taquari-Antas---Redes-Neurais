@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Modelo Muçum eventwise v1 — fechado</title>
+  <style>
+    :root { --ink:#1a303f; --muted:#5d7380; --line:#d7e4e8; --ok:#1b7a4a; --warn:#9a5b12; --bad:#a33b35; }
+    body { margin:0; color:var(--ink); font:16px/1.55 "Source Sans 3",Segoe UI,sans-serif; background:linear-gradient(165deg,#eef7f8,#fff9f2); }
+    main { max-width:980px; margin:auto; padding:28px 16px 64px; }
+    header, section { background:#fff; border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:14px; box-shadow:0 10px 26px #1a303f12; }
+    h1 { margin:0 0 8px; font:700 clamp(28px,4vw,40px)/1.08 "Fraunces",Georgia,serif; }
+    .eyebrow { color:var(--ok); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .notice { border-left:5px solid var(--warn); background:#fff7e8; color:#6d4810; padding:12px 14px; border-radius:10px; margin:10px 0; }
+    .ok { border-left-color:var(--ok); background:#eefaf3; color:#145c38; }
+    .bad { border-left-color:var(--bad); background:#fff1ef; color:#7a2d28; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { padding:7px; border-bottom:1px solid var(--line); text-align:left; }
+    th { background:#eef6f7; }
+    .muted { color:var(--muted); font-size:13px; }
+    a { color:#056999; font-weight:700; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">PREVINE · modelo fechado (estudo)</div>
+    <h1>Modelo Muçum · eventwise v1</h1>
+    <p class="muted">2026-09-09T17:46:41.398683+00:00 · modelo_mucum_eventwise_v1_fechado_stz_q_blocked</p>
+    <div class="notice ok"><strong>Fechado:</strong> biblioteca de 8 eventos com NSE≥0
+      (média 0.876). Alvo Vazão 86510000.</div>
+    <div class="notice">MODELO MUÇUM FECHADO (estudo). Biblioteca de parâmetros eventwise no gêmeo Python HEC (IC/Clark/Recession/Muskingum). NÃO é HEC-HMS 4.13 Windows. NÃO é alerta operacional. NÃO promover common-search / mediana como regra transferível.</div>
+    <div class="notice bad"><strong>STZ fora deste pacote:</strong> Sem curva-chave / Vazão ANA em 86472600 — modelo STZ não fecha agora.</div>
+  </header>
+
+  <section>
+    <h2>Biblioteca de parâmetros (usar por evento)</h2>
+    <table>
+      <thead><tr><th>Evento</th><th>NSE</th><th>RMSE</th><th>Lag</th><th>tc</th><th>storage</th><th>const_loss</th></tr></thead>
+      <tbody><tr><td>E20</td><td>0.911</td><td>241.3</td><td>0</td><td>25.0</td><td>45.0</td><td>1.0</td></tr><tr><td>E21</td><td>0.834</td><td>659.1</td><td>4</td><td>25.0</td><td>25.0</td><td>2.0</td></tr><tr><td>E22</td><td>0.810</td><td>704.2</td><td>0</td><td>25.0</td><td>25.0</td><td>1.0</td></tr><tr><td>E24</td><td>0.813</td><td>1262.3</td><td>3</td><td>25.0</td><td>25.0</td><td>1.0</td></tr><tr><td>E25</td><td>0.920</td><td>117.5</td><td>-3</td><td>25.0</td><td>45.0</td><td>2.0</td></tr><tr><td>E27</td><td>0.913</td><td>1181.4</td><td>1</td><td>4.0</td><td>45.0</td><td>4.0</td></tr><tr><td>E28</td><td>0.930</td><td>471.2</td><td>-2</td><td>25.0</td><td>25.0</td><td>0.5</td></tr><tr><td>E31</td><td>0.873</td><td>586.6</td><td>1</td><td>25.0</td><td>25.0</td><td>1.0</td></tr></tbody>
+    </table>
+    <p class="muted">CSV: <a href="modelo_mucum_eventwise_v1_fechado/params_library_eventwise.csv">modelo_mucum_eventwise_v1_fechado/params_library_eventwise.csv</a></p>
+  </section>
+
+  <section>
+    <h2>Como usar</h2>
+    <ul><li>Escolher o evento de referência mais parecido (época/pico) na biblioteca.</li><li>Rodar a rede Muçum com esses params e chuva ANA do evento (prefs do twin v1.4).</li><li>Não usar a mediana nem common-search como padrão operacional.</li><li>Séries obs×sim: hec_twin_stz_mucum_v1/mucum_E##_best_series.csv</li></ul>
+  </section>
+
+  <section>
+    <h2>Fora da biblioteca</h2>
+    <ul><li>E19 NSE=-20.864408613825663</li><li>E23 NSE=-0.9555539413478971</li><li>E26 NSE=-4.383051136647193</li><li>E29 NSE=-27.533837933521873</li><li>E30 NSE=-2.27361973832058</li></ul>
+  </section>
+
+  <section>
+    <h2>Próximos</h2>
+    <ul><li>Usar o pacote Muçum fechado (params eventwise) — não common-search.</li><li>STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.</li><li>Após curva: calibrar modelo STZ truncado.</li><li>Manter Guaporé/Forqueta fora do recorte.</li></ul>
+    <p>
+      <a href="modelo_mucum_eventwise_v1_fechado_latest.json">JSON</a> ·
+      <a href="hec_twin_stz_mucum_v1.html">HEC twin</a> ·
+      <a href="estrutura_stz_mucum.html">estrutura</a> ·
+      <a href="index.html">estudo-base</a>
+    </p>
+  </section>
+</main>
+</body>
+</html>

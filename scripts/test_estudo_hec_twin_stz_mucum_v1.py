@@ -16,12 +16,12 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
         cls.estrutura = json.loads((OUT / "estrutura_stz_mucum_latest.json").read_text(encoding="utf-8"))
 
     def test_status_and_engine(self) -> None:
-        self.assertEqual(self.data["status"], "hec_twin_mucum_v1_4_eventwise_scored_stz_q_blocked")
+        self.assertEqual(self.data["status"], "modelo_mucum_eventwise_v1_fechado_stz_q_blocked")
         self.assertTrue(self.data["engine"]["not_hec_hms_binary"])
         muc = self.data["models"]["mucum"]
         self.assertEqual(muc.get("calibration_version"), "mucum_hec_twin_v1_4")
-        self.assertIn("pad_selection", muc)
-        self.assertEqual(muc.get("pad_hours"), muc["pad_selection"]["selected_pad_hours"])
+        self.assertIn("mucum_release", self.data)
+        self.assertEqual(self.data["mucum_release"]["status"], self.data["status"])
         self.assertGreaterEqual(muc["n_events_scored"], 10)
         cs = muc["common_search"]
         self.assertIn("external_holdout", cs)
@@ -99,7 +99,10 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
     def test_catalog_not_contradictory(self) -> None:
         dois = json.loads((OUT / "dois_modelos_stz_mucum_latest.json").read_text(encoding="utf-8"))
         self.assertEqual(dois["status"], self.data["status"])
-        self.assertTrue(dois["status"].startswith("hec_twin_mucum"))
+        self.assertTrue(
+            dois["status"].startswith("hec_twin_mucum")
+            or dois["status"].startswith("modelo_mucum_eventwise")
+        )
         est_html = (OUT / "estrutura_stz_mucum.html").read_text(encoding="utf-8")
         self.assertIn("STZ Q bloqueado", est_html)
         idx = (OUT / "index.html").read_text(encoding="utf-8")

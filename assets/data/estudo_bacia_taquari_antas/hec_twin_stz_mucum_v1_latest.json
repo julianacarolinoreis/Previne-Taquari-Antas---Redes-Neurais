@@ -2,7 +2,7 @@
   "schema_version": "estudo_hec_twin_stz_mucum_v1",
   "generated_at_utc": "2026-09-09T13:09:15.896210+00:00",
   "purpose": "busca eventwise + common-search HEC v1.4 (eventos E19–E31, 2851072, PAD auto, hold-out/LOO/externos) no modelo Muçum; STZ diagnostico (Q bloqueado)",
-  "status": "hec_twin_mucum_v1_4_eventwise_scored_stz_q_blocked",
+  "status": "modelo_mucum_eventwise_v1_fechado_stz_q_blocked",
   "discipline_rule": "Isto e HEC estrutural + busca de parametros no gemeo Linux/Python. Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. v1.4: pool ampliado + Ibiraiaras 2851072; externos E26/E30/E31; STZ Q bloqueado ate curva-chave oficial.",
   "audit_fixes_v1_1": [
     "rain_stations HEC de evento separados dos aspiracionais RNA",
@@ -2409,10 +2409,9 @@
     }
   },
   "next_steps": [
-    "Muçum: usar params eventwise (common-search só se testes externos/LOO ok).",
+    "Usar o pacote Muçum fechado (params eventwise) — não common-search.",
     "STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
-    "Após curva: converter Nivel→Q e calibrar modelo STZ truncado.",
-    "Opcional: densificar chuva e revisar E19 com massa de montante.",
+    "Após curva: calibrar modelo STZ truncado.",
     "Manter Guaporé/Forqueta fora do recorte."
   ],
   "artifacts": {
@@ -2420,5 +2419,21 @@
     "html": "hec_twin_stz_mucum_v1.html",
     "runs_dir": "hec_twin_stz_mucum_v1/"
   },
-  "catalog_sync": "sync_estudo_hec_catalog_state_v1"
+  "catalog_sync": "sync_estudo_hec_catalog_state_v1",
+  "mucum_release": {
+    "status": "modelo_mucum_eventwise_v1_fechado_stz_q_blocked",
+    "artifact": "modelo_mucum_eventwise_v1_fechado_latest.json",
+    "html": "modelo_mucum_eventwise_v1_fechado.html",
+    "closed_at_utc": "2026-09-09T17:46:41.398683+00:00",
+    "included_events": [
+      "E20",
+      "E21",
+      "E22",
+      "E24",
+      "E25",
+      "E27",
+      "E28",
+      "E31"
+    ]
+  }
 }
