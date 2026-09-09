@@ -1,0 +1,121 @@
+{
+  "schema_version": "estudo_curva_chave_hunt_86472600_v1",
+  "target": "86472600",
+  "target_name": "SANTA TEREZA",
+  "verdict": "curva_chave_oficial_nao_encontrada_publicamente",
+  "found_for_target": {
+    "rating_curves_in_hydroDataBR_2026_06": 0,
+    "discharge_measurements_in_hydroDataBR_2026_06": 0,
+    "hydrobr_ANA_flow_data": "empty_no_objects",
+    "hydrobr_ANA_stage_data_non_null_days": 120,
+    "legacy_HidroSerieHistorica_tipo3_vazao": "empty_schema_only",
+    "legacy_HidroSerieHistorica_tipo1_cota": "present_monthly_daily_cotas",
+    "inventario_ANA_TipoEstacaoDescLiquida": 1,
+    "inventario_hydroDataBR_has_discharge_measurements_flag": true,
+    "note": "Inventário diz que a estação mede descarga líquida, mas nem o espelho hydroDataBR (jun/2026) nem o hydrobr/ANA público devolveram curva-chave nem série/medições de vazão para 86472600. Cotas sim."
+  },
+  "neighbors_official_curves_NOT_for_STZ": {
+    "86472000": {
+      "name": "Linha José Júlio",
+      "found": true,
+      "n_segments_total_history": 10,
+      "latest_rating_curve_id": "86472000__20240502000000__20261231000000__1",
+      "latest_valid_from": "2024-05-02",
+      "latest_valid_to": "2026-12-31",
+      "segments": [
+        {
+          "segment_number": 1,
+          "stage_min_cm": 187.0,
+          "stage_max_cm": 1746.0,
+          "a": 48.918,
+          "h0_m": 0.018600000000000002,
+          "n": 1.803,
+          "form": "Q = a * (h_m - h0_m)^n"
+        },
+        {
+          "segment_number": 2,
+          "stage_min_cm": 1746.0,
+          "stage_max_cm": 2773.0,
+          "a": 79.4989,
+          "h0_m": 0.016399999999999998,
+          "n": 1.618,
+          "form": "Q = a * (h_m - h0_m)^n"
+        }
+      ]
+    },
+    "86510000": {
+      "name": "Muçum",
+      "found": true,
+      "n_segments_total_history": 58,
+      "latest_rating_curve_id": "86510000__20240101000000__20261231000000__1",
+      "latest_valid_from": "2024-01-01",
+      "latest_valid_to": "2026-12-31",
+      "segments": [
+        {
+          "segment_number": 1,
+          "stage_min_cm": 35.0,
+          "stage_max_cm": 304.0,
+          "a": 81.4993,
+          "h0_m": 0.0034000000000000002,
+          "n": 1.599,
+          "form": "Q = a * (h_m - h0_m)^n"
+        },
+        {
+          "segment_number": 2,
+          "stage_min_cm": 304.0,
+          "stage_max_cm": 717.0,
+          "a": 97.2623,
+          "h0_m": 0.0064,
+          "n": 1.615,
+          "form": "Q = a * (h_m - h0_m)^n"
+        },
+        {
+          "segment_number": 3,
+          "stage_min_cm": 717.0,
+          "stage_max_cm": 2661.0,
+          "a": 30.6115,
+          "h0_m": -0.024399999999999998,
+          "n": 1.85,
+          "form": "Q = a * (h_m - h0_m)^n"
+        }
+      ]
+    },
+    "86507000": {
+      "name": "Carreiro/Cotiporã",
+      "found": true,
+      "n_segments_total_history": 1,
+      "latest_rating_curve_id": "86507000__20090228000000__20121122000000__2",
+      "latest_valid_from": "2009-02-28",
+      "latest_valid_to": "2012-11-22",
+      "segments": [
+        {
+          "segment_number": 1,
+          "stage_min_cm": 80.0,
+          "stage_max_cm": 700.0,
+          "a": 55.0178,
+          "h0_m": 0.0106,
+          "n": 1.6863,
+          "form": "Q = a * (h_m - h0_m)^n"
+        }
+      ]
+    }
+  },
+  "sources_checked": [
+    "https://github.com/hydrostat/hydroDataBR/tree/main/data (ana_rating_curves, ana_discharge_measurements, ana_stations)",
+    "hydrobr.get_data.ANA.flow_data / stage_data",
+    "telemetriaws1.ana.gov.br ServiceANA HidroSerieHistorica tipo 1/2/3",
+    "assets/data/hec_hms_audit/raw_ana inventory+telemetry events E19–E28",
+    "snirh.gov.br/hidroweb REST (401 sem credencial)",
+    "ana.gov.br/hidrowebservice (exige cadastro hidro@ana.gov.br)"
+  ],
+  "how_to_get_official_curve": [
+    "Baixar ZIP da estação 86472600 no portal HIDROWEB (Séries Históricas) — abas Curva-chave / Medições de descarga",
+    "Ou solicitar API HidroWebService: email hidro@ana.gov.br com CPF/CNPJ",
+    "Ou pedir ao operador SGB-CPRM (SAH Taquari) a curva vigente de Santa Tereza"
+  ],
+  "do_not": [
+    "Usar curva de Muçum (86510000) ou Antas (86472000) como se fosse STZ",
+    "Inventar Q = f(Nivel) sem medições de descarga no posto"
+  ],
+  "artifacts_dir": "assets/data/estudo_bacia_taquari_antas/curva_chave_86472600/"
+}
