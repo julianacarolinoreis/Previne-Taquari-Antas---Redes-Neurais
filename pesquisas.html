@@ -418,7 +418,7 @@
   <main id="acervo" tabindex="-1">
     <div class="wrap">
       <p class="label">Arquivo científico</p>
-      <h2 class="statement">As 58 hipóteses, mapas e RNAs.</h2>
+      <h2 class="statement" id="catalog-heading">O arquivo científico.</h2>
       <p class="lead">Rotas gêmeas, relatórios 8h, snapshots SACE e RNAs ficam aqui. As seis portas acima são o recorte curto; este catálogo é a memória completa.</p>
       <div class="toolbar" aria-label="Filtros do acervo">
         <div class="search-row">
@@ -632,6 +632,8 @@
       document.getElementById("metricTotal").textContent = String(entries.length);
       document.getElementById("metricTopics").textContent = String(new Set(entries.map(item => item.category)).size);
       document.getElementById("metricSite").textContent = String(entries.filter(item => item.status === "publicado").length);
+      var heading = document.getElementById("catalog-heading");
+      if (heading) heading.textContent = "As " + entries.length + " hipóteses, mapas e RNAs.";
     }
     bind();
     fetch("assets/data/acervo_pesquisas.json", {cache:"no-store"})

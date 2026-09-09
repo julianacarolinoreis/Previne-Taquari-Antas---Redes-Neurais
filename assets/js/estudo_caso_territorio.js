@@ -196,8 +196,7 @@
       });
   }
 
-  function colorFor(overlap, selected) {
-    if (selected) return '#155c47';
+  function colorFor(overlap) {
     if (!(overlap > 0)) return '#c5ccc4';
     if (overlap >= 80) return '#ef7a68';
     if (overlap >= 40) return '#f5c76b';
@@ -266,8 +265,8 @@
         return {
           color: selected ? '#0c2a22' : '#5d6b62',
           weight: selected ? 2.4 : 0.8,
-          fillColor: colorFor(cell ? cell.overlap : 0, selected),
-          fillOpacity: cell ? 0.55 : 0.12
+          fillColor: colorFor(cell ? cell.overlap : 0),
+          fillOpacity: cell ? (selected ? 0.72 : 0.55) : 0.12
         };
       },
       onEachFeature: function (feature, layer) {
@@ -275,11 +274,10 @@
         layer.on('click', function () {
           state.selectedId = id;
           var bounds = layer.getBounds && layer.getBounds();
+          var geometry = layer.feature && layer.feature.geometry;
           drawGrade(bundle);
-          if (bounds) {
-            highlightStreets(bundle, bounds);
-            state.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 });
-          }
+          highlightStreets(bundle, bounds, geometry);
+          if (bounds) state.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 });
           renderSide(bundle);
         });
       }
@@ -308,11 +306,6 @@
         if (hits[id]) bounds = extendBounds(bounds, layer);
       });
     }
-    if (state.layers.mancha) {
-      state.layers.mancha.eachLayer(function (layer) {
-        bounds = extendBounds(bounds, layer);
-      });
-    }
     if ((!bounds || !bounds.isValid()) && state._gradeLayer) bounds = extendBounds(bounds, state._gradeLayer);
     return bounds;
   }
@@ -339,18 +332,49 @@
     }).addTo(state.layers.ruas);
   }
 
-  function highlightStreets(bundle, bounds) {
+  function pointInRing(lat, lng, ring) {
+    var inside = false;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      var xi = ring[i][0], yi = ring[i][1];
+      var xj = ring[j][0], yj = ring[j][1];
+      var hit = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / ((yj - yi) || 1e-12) + xi);
+      if (hit) inside = !inside;
+    }
+    return inside;
+  }
+
+  function pointInGeometry(lat, lng, geometry) {
+    if (!geometry) return false;
+    var polys = geometry.type === 'MultiPolygon' ? geometry.coordinates
+      : geometry.type === 'Polygon' ? [geometry.coordinates]
+      : null;
+    if (!polys) return false;
+    for (var p = 0; p < polys.length; p++) {
+      if (!pointInRing(lat, lng, polys[p][0])) continue;
+      var hole = false;
+      for (var h = 1; h < polys[p].length; h++) {
+        if (pointInRing(lat, lng, polys[p][h])) hole = true;
+      }
+      if (!hole) return true;
+    }
+    return false;
+  }
+
+  function highlightStreets(bundle, bounds, geometry) {
     state.layers.highlight.clearLayers();
     state._streetHits = 0;
-    if (!bounds || !bundle.ruas || !Array.isArray(bundle.ruas.nos) || !Array.isArray(bundle.ruas.edges)) return;
+    if (!bundle.ruas || !Array.isArray(bundle.ruas.nos) || !Array.isArray(bundle.ruas.edges)) return;
     var nos = bundle.ruas.nos;
     var pad = 0.00015;
-    var south = bounds.getSouth() - pad;
-    var north = bounds.getNorth() + pad;
-    var west = bounds.getWest() - pad;
-    var east = bounds.getEast() + pad;
+    var south = bounds ? bounds.getSouth() - pad : null;
+    var north = bounds ? bounds.getNorth() + pad : null;
+    var west = bounds ? bounds.getWest() - pad : null;
+    var east = bounds ? bounds.getEast() + pad : null;
     function inside(pt) {
-      return pt && pt[0] >= south && pt[0] <= north && pt[1] >= west && pt[1] <= east;
+      if (!pt) return false;
+      if (geometry) return pointInGeometry(pt[0], pt[1], geometry);
+      if (!bounds) return false;
+      return pt[0] >= south && pt[0] <= north && pt[1] >= west && pt[1] <= east;
     }
     var segs = [];
     bundle.ruas.edges.forEach(function (e) {
@@ -504,6 +528,7 @@
     toggle(state.layers.mancha, $('ly-mancha').checked);
     toggle(state.layers.grade, $('ly-grade').checked);
     toggle(state.layers.ruas, $('ly-ruas').checked);
+    toggle(state.layers.highlight, $('ly-ruas').checked);
     toggle(state.layers.abrigos, $('ly-abrigos').checked);
   }
 
@@ -511,7 +536,9 @@
     if (!state.selectedId || !state._gradeLayer) return;
     state._gradeLayer.eachLayer(function (layer) {
       var id = layer.feature && layer.feature.properties && layer.feature.properties.id_grade;
-      if (id === state.selectedId && layer.getBounds) highlightStreets(bundle, layer.getBounds());
+      if (id === state.selectedId) {
+        highlightStreets(bundle, layer.getBounds && layer.getBounds(), layer.feature && layer.feature.geometry);
+      }
     });
   }
 
@@ -603,9 +630,9 @@
     drawGrade(bundle);
     state._gradeLayer.eachLayer(function (layer) {
       var id = layer.feature && layer.feature.properties && layer.feature.properties.id_grade;
-      if (id === state.selectedId && layer.getBounds) {
-        highlightStreets(bundle, layer.getBounds());
-        state.map.fitBounds(layer.getBounds(), { padding: [28, 28], maxZoom: 16 });
+      if (id === state.selectedId) {
+        highlightStreets(bundle, layer.getBounds && layer.getBounds(), layer.feature && layer.feature.geometry);
+        if (layer.getBounds) state.map.fitBounds(layer.getBounds(), { padding: [28, 28], maxZoom: 16 });
       }
     });
     renderSide(bundle);
