@@ -16,32 +16,45 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
         cls.estrutura = json.loads((OUT / "estrutura_stz_mucum_latest.json").read_text(encoding="utf-8"))
 
     def test_status_and_engine(self) -> None:
-        self.assertEqual(self.data["status"], "hec_twin_mucum_eventwise_scored_stz_q_blocked")
+        self.assertEqual(self.data["status"], "hec_twin_mucum_v1_2_eventwise_scored_stz_q_blocked")
         self.assertTrue(self.data["engine"]["not_hec_hms_binary"])
         self.assertIn("research_score", self.data["engine"]["optimization_objective"])
         self.assertIn("Muçum", self.data["purpose"])
-        self.assertNotIn("calibracao HEC (gemeo Python) dos modelos-alvo STZ", self.data["purpose"])
+        self.assertEqual(self.data["models"]["mucum"].get("calibration_version"), "mucum_hec_twin_v1_2")
+        self.assertEqual(self.data["models"]["mucum"].get("pad_hours"), 24)
+        cs = self.data["models"]["mucum"]["common_search"]
+        self.assertIn("holdout_e27", cs)
+        self.assertIn("leave_one_out", cs)
+        self.assertTrue(cs.get("promotion_blocked"))
+        self.assertLess(float(cs["holdout_e27"]["test_nse"]), 0.0)
 
     def test_mucum_eventwise_and_common(self) -> None:
         muc = self.data["models"]["mucum"]
         by_id = {e["event_id"]: e for e in muc["events"]}
         self.assertEqual(by_id["E19"]["status"], "fit_failed_eventwise")
         self.assertEqual(by_id["E22"]["status"], "eventwise_scored")
-        self.assertAlmostEqual(by_id["E22"]["metrics"]["nse"], 0.73, places=2)
-        self.assertAlmostEqual(by_id["E28"]["metrics"]["nse"], 0.95, places=2)
-        # E28 must not keep dry preferred Carreiro gage
+        # v1.2 PAD=24h: E22 ~0.56 (regrediu vs ~0.73 sem PAD); E28 permanece forte
+        self.assertAlmostEqual(by_id["E22"]["metrics"]["nse"], 0.56, places=2)
+        self.assertAlmostEqual(by_id["E28"]["metrics"]["nse"], 0.92, places=2)
         e28_rain = by_id["E28"]["rain"]
         self.assertEqual(e28_rain["subbasin_sources"]["SB_CARREIRO_7866"], "86472000")
         self.assertTrue(e28_rain["fallback_notes"])
         self.assertGreater(muc["mean_nse_eventwise"], 0.7)
         self.assertIn("common_search", muc)
         self.assertIsNotNone(muc["common_search"]["mean_nse"])
+        self.assertGreater(muc["common_search"]["mean_nse"], 0.3)
 
     def test_e28_series_recomputes_nse(self) -> None:
         with (RUN / "mucum_E28_best_series.csv").open(encoding="utf-8") as fh:
             rows = list(csv.DictReader(fh))
-        obs = [float(r["obs_m3s"]) for r in rows]
-        sim = [float(r["sim_m3s"]) for r in rows]
+        self.assertIn("in_core_window", rows[0])
+        paired = [
+            r
+            for r in rows
+            if r.get("in_core_window") == "1" and r.get("obs_m3s", "").strip() != ""
+        ]
+        obs = [float(r["obs_m3s"]) for r in paired]
+        sim = [float(r["sim_m3s"]) for r in paired]
         mean_o = sum(obs) / len(obs)
         ss_res = sum((o - s) ** 2 for o, s in zip(obs, sim))
         ss_tot = sum((o - mean_o) ** 2 for o in obs)
@@ -79,17 +92,17 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
         self.assertIn("busca Muçum", self.html)
         self.assertIn("research_score", self.html)
         self.assertIn("Common-search", self.html)
+        self.assertIn("hold-out", self.html.lower())
         idx = (OUT / "index.html").read_text(encoding="utf-8")
         self.assertIn("hec_twin_stz_mucum_v1.html", idx)
         pesquisas = (Path(__file__).resolve().parents[1] / "pesquisas.html").read_text(encoding="utf-8")
         self.assertIn("hec_twin_stz_mucum_v1.html", pesquisas)
 
-
-
     def test_catalog_not_contradictory(self) -> None:
         dois = json.loads((OUT / "dois_modelos_stz_mucum_latest.json").read_text(encoding="utf-8"))
         self.assertNotIn("Ainda nao calibrar HEC", dois["discipline_rule"])
         self.assertEqual(dois["status"], self.data["status"])
+        self.assertTrue(dois["status"].startswith("hec_twin_mucum"))
         est_html = (OUT / "estrutura_stz_mucum.html").read_text(encoding="utf-8")
         self.assertNotIn("ainda sem calibração", est_html.lower())
         self.assertIn("STZ Q bloqueado", est_html)
@@ -102,9 +115,9 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
 
     def test_e28_fallback_changes_simulation(self) -> None:
         """Fallback must materially change Q vs dry preferred Carreiro gage."""
-        import sys, types
-        path = Path(__file__).resolve().parents[0] / "run_hec_twin_stz_mucum_calibrate.py"
-        # scripts/ is parent of this test's directory? test is in scripts/
+        import sys
+        import types
+
         path = Path(__file__).resolve().parent / "run_hec_twin_stz_mucum_calibrate.py"
         mod = types.ModuleType("hec_twin_mod")
         mod.__file__ = str(path)
@@ -123,11 +136,12 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
             "SB_STZ_RESIDUAL",
             "SB_INC_MUCUM",
         ]
-        precip, meta = mod.build_precip_for_event("E28", hours, subbasins)
+        precip, meta = mod.build_precip_for_event(
+            "E28", hours, subbasins, magnitude_hours=hours
+        )
         self.assertIsNotNone(precip)
         self.assertEqual(meta["subbasin_sources"]["SB_CARREIRO_7866"], "86472000")
         self.assertTrue(meta["fallback_notes"])
-        # Force dry preferred station series for contrast
         rain_by = {}
         for st in ("86472000", "86472600", "86507000", "86510000"):
             rows = mod.load_event_series(st, "E28")

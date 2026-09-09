@@ -26,32 +26,34 @@
   <header>
     <div class="eyebrow">HEC · gêmeo Python v1 (auditoria)</div>
     <h1>HEC twin · busca Muçum · STZ diagnóstico</h1>
-    <p class="muted">2026-09-09T11:36:42.114436+00:00 · hec_twin_mucum_eventwise_scored_stz_q_blocked</p>
+    <p class="muted">2026-09-09T12:22:59.576969+00:00 · hec_twin_mucum_v1_2_eventwise_scored_stz_q_blocked</p>
     <div class="notice ok"><strong>Motor:</strong> python_hms_twin_ic_clark_recession_muskingum — HEC-HMS 4.13 do projeto e Windows-only; neste ambiente Linux roda o gemeo auditavel</div>
-    <div class="notice"><strong>Objetivo da busca:</strong> research_score = NSE − 0.05·|lag| − 0.5·erro_pico (não é argmax de NSE puro). Sem hold-out formal.</div>
+    <div class="notice"><strong>Objetivo da busca:</strong> research_score = NSE − 0.05·|lag| − 0.5·erro_pico (não é argmax de NSE puro). v1.2: PAD=24h + hold-out E27 + LOO; common-search <strong>não</strong> promovido.</div>
     <div class="notice bad"><strong>STZ Q:</strong> Posto 86472600 não tem Vazão ANA preenchida nos eventos E19–E28 deste pacote. E24/E27/E28 têm Nivel; E19/E22 sem Nivel e sem Vazao. Sem curva-chave reconciliada (ou série Q externa) não há alvo Q HEC. Probe HIDROWEB type=3 neste ambiente também voltou vazio.</div>
   </header>
 
   <section>
     <h2>Modelo Muçum · alvo Vazão 86510000</h2>
     <p class="muted">Estrutura Prata+Carreiro · NSE médio dos fits OK (NSE≥0):
-      <strong>0.822</strong> (4 eventos) ·
-      média incluindo falhas: -6.526</p>
+      <strong>0.784</strong> (4 eventos) ·
+      média incluindo falhas: -0.265</p>
     <div class="notice">E19 tipicamente fit_failed (NSE fortemente negativo). Headline = média dos eventos com NSE&gt;=0 (E22–E28).</div>
     <table>
       <thead><tr><th>Evento</th><th>Status</th><th>NSE</th><th>Score</th><th>RMSE</th><th>Lag pico (h)</th><th>Erro pico rel.</th></tr></thead>
-      <tbody><tr><td>E19</td><td>fit_failed_eventwise</td><td>-35.918</td><td>-36.735</td><td>959.0</td><td>16</td><td>0.034</td></tr><tr><td>E22</td><td>eventwise_scored</td><td>0.731</td><td>0.692</td><td>836.7</td><td>0</td><td>0.079</td></tr><tr><td>E24</td><td>eventwise_scored</td><td>0.796</td><td>0.614</td><td>1318.1</td><td>3</td><td>0.064</td></tr><tr><td>E27</td><td>eventwise_scored</td><td>0.816</td><td>0.705</td><td>1720.6</td><td>1</td><td>0.124</td></tr><tr><td>E28</td><td>eventwise_scored</td><td>0.946</td><td>0.893</td><td>415.0</td><td>1</td><td>0.005</td></tr></tbody>
+      <tbody><tr><td>E19</td><td>fit_failed_eventwise</td><td>-4.462</td><td>-5.869</td><td>368.9</td><td>28</td><td>0.013</td></tr><tr><td>E22</td><td>eventwise_scored</td><td>0.560</td><td>0.454</td><td>1070.8</td><td>0</td><td>0.211</td></tr><tr><td>E24</td><td>eventwise_scored</td><td>0.837</td><td>0.652</td><td>1180.6</td><td>3</td><td>0.069</td></tr><tr><td>E27</td><td>eventwise_scored</td><td>0.815</td><td>0.717</td><td>1724.9</td><td>1</td><td>0.097</td></tr><tr><td>E28</td><td>eventwise_scored</td><td>0.924</td><td>0.859</td><td>492.9</td><td>1</td><td>0.030</td></tr></tbody>
     </table>
   </section>
 
   <section>
     <h2>Common-search (diagnóstico — NÃO promover)</h2>
     <p class="muted">Eventos: E22, E24, E27, E28 ·
-      NSE médio comum: <strong>0.382</strong></p>
-    <div class="notice bad">Hipótese de params comuns nos eventos com fit eventwise NSE&gt;=0. NSE médio comum tipicamente fraco — NÃO promover. Sem hold-out formal. Eventwise bom ≠ params transferíveis.</div>
+      NSE médio comum: <strong>0.470</strong> ·
+      LOO teste médio: <strong>0.048</strong> ·
+      Hold-out E27 NSE: <strong>-0.501</strong></p>
+    <div class="notice bad">Common-search v1.2 com warm-up PAD e hold-out/LOO. Ainda pesquisa — promover só se hold-out/LOO forem aceitáveis. PAD=24h.</div>
     <table>
       <thead><tr><th>Evento</th><th>NSE</th><th>Lag</th><th>Erro pico</th></tr></thead>
-      <tbody><tr><td>E22</td><td>0.398</td><td>0</td><td>0.564</td></tr><tr><td>E24</td><td>0.631</td><td>-7</td><td>0.262</td></tr><tr><td>E27</td><td>-0.229</td><td>6</td><td>0.655</td></tr><tr><td>E28</td><td>0.729</td><td>-11</td><td>0.250</td></tr></tbody>
+      <tbody><tr><td>E22</td><td>0.604</td><td>0</td><td>0.491</td></tr><tr><td>E24</td><td>0.462</td><td>-5</td><td>0.415</td></tr><tr><td>E27</td><td>-0.013</td><td>8</td><td>0.429</td></tr><tr><td>E28</td><td>0.826</td><td>-10</td><td>0.140</td></tr></tbody>
     </table>
   </section>
 
@@ -64,7 +66,7 @@
 
   <section>
     <h2>Próximos</h2>
-    <ul><li>Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) ou série Q horária reconciliada.</li><li>Recalibrar modelo STZ truncado (eventwise + common-search) após N→Q.</li><li>Não promover common-search Muçum (NSE comum fraco) como regra transferível.</li><li>Manter Guaporé/Forqueta fora do recorte.</li></ul>
+    <ul><li>Não promover common-search Muçum (hold-out E27 e LOO fracos); seguir com eventwise.</li><li>Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) ou série Q horária reconciliada.</li><li>Recalibrar modelo STZ truncado (eventwise + common-search) após N→Q.</li><li>Manter Guaporé/Forqueta fora do recorte.</li></ul>
     <p>
       <a href="hec_twin_stz_mucum_v1_latest.json">JSON</a> ·
       <a href="estrutura_stz_mucum.html">estrutura</a> ·
