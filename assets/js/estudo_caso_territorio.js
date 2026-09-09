@@ -360,6 +360,63 @@
     return false;
   }
 
+  function orient(ax, ay, bx, by, cx, cy) {
+    var v = (by - ay) * (cx - bx) - (bx - ax) * (cy - by);
+    if (Math.abs(v) < 1e-18) return 0;
+    return v > 0 ? 1 : 2;
+  }
+
+  function onSeg(ax, ay, bx, by, cx, cy) {
+    return Math.min(ax, bx) - 1e-12 <= cx && cx <= Math.max(ax, bx) + 1e-12 &&
+      Math.min(ay, by) - 1e-12 <= cy && cy <= Math.max(ay, by) + 1e-12;
+  }
+
+  function segsIntersect(a, b, c, d) {
+    var ax = a[1], ay = a[0], bx = b[1], by = b[0];
+    var cx = c[1], cy = c[0], dx = d[1], dy = d[0];
+    var o1 = orient(ax, ay, bx, by, cx, cy);
+    var o2 = orient(ax, ay, bx, by, dx, dy);
+    var o3 = orient(cx, cy, dx, dy, ax, ay);
+    var o4 = orient(cx, cy, dx, dy, bx, by);
+    if (o1 !== o2 && o3 !== o4) return true;
+    if (o1 === 0 && onSeg(ax, ay, bx, by, cx, cy)) return true;
+    if (o2 === 0 && onSeg(ax, ay, bx, by, dx, dy)) return true;
+    if (o3 === 0 && onSeg(cx, cy, dx, dy, ax, ay)) return true;
+    if (o4 === 0 && onSeg(cx, cy, dx, dy, bx, by)) return true;
+    return false;
+  }
+
+  function ringEdges(ring) {
+    var n = ring && ring.length ? ring.length : 0;
+    if (n < 2) return [];
+    var closed = n > 2 && ring[0][0] === ring[n - 1][0] && ring[0][1] === ring[n - 1][1];
+    var count = closed ? n - 1 : n;
+    var edges = [];
+    for (var i = 0; i < count; i++) {
+      edges.push([ring[i], ring[(i + 1) % n]]);
+    }
+    return edges;
+  }
+
+  function segmentHitsGeometry(a, c, geometry) {
+    if (!a || !c) return false;
+    if (pointInGeometry(a[0], a[1], geometry) || pointInGeometry(c[0], c[1], geometry)) return true;
+    if (!geometry) return false;
+    var polys = geometry.type === 'MultiPolygon' ? geometry.coordinates
+      : geometry.type === 'Polygon' ? [geometry.coordinates]
+      : null;
+    if (!polys) return false;
+    for (var p = 0; p < polys.length; p++) {
+      var edges = ringEdges(polys[p][0]);
+      for (var i = 0; i < edges.length; i++) {
+        var p1 = [edges[i][0][1], edges[i][0][0]];
+        var p2 = [edges[i][1][1], edges[i][1][0]];
+        if (segsIntersect(a, c, p1, p2)) return true;
+      }
+    }
+    return false;
+  }
+
   function highlightStreets(bundle, bounds, geometry) {
     state.layers.highlight.clearLayers();
     state._streetHits = 0;
@@ -370,17 +427,29 @@
     var north = bounds ? bounds.getNorth() + pad : null;
     var west = bounds ? bounds.getWest() - pad : null;
     var east = bounds ? bounds.getEast() + pad : null;
-    function inside(pt) {
-      if (!pt) return false;
-      if (geometry) return pointInGeometry(pt[0], pt[1], geometry);
-      if (!bounds) return false;
+    function inPad(pt) {
+      if (!pt || south == null) return true;
       return pt[0] >= south && pt[0] <= north && pt[1] >= west && pt[1] <= east;
+    }
+    function segMayHit(a, c) {
+      if (south == null) return true;
+      var minLat = Math.min(a[0], c[0]);
+      var maxLat = Math.max(a[0], c[0]);
+      var minLng = Math.min(a[1], c[1]);
+      var maxLng = Math.max(a[1], c[1]);
+      return maxLat >= south && minLat <= north && maxLng >= west && minLng <= east;
+    }
+    function hits(a, c) {
+      if (!a || !c) return false;
+      if (!geometry) return inPad(a) || inPad(c);
+      if (!segMayHit(a, c)) return false;
+      return segmentHitsGeometry(a, c, geometry);
     }
     var segs = [];
     bundle.ruas.edges.forEach(function (e) {
       var a = nos[e[0]];
       var c = nos[e[1]];
-      if (inside(a) || inside(c)) segs.push([a, c]);
+      if (hits(a, c)) segs.push([a, c]);
     });
     if (!segs.length) return;
     L.polyline(segs, {
@@ -484,7 +553,8 @@
     if (!ranked.length) {
       list.innerHTML = '<li class="empty">Nenhum quadradinho 200 m intersecta este cenário publicado.</li>';
     } else {
-      list.innerHTML = ranked.slice(0, 24).map(function (c, i) {
+      var shown = ranked.slice(0, 24);
+      list.innerHTML = shown.map(function (c, i) {
         return '<li><button type="button" class="cell-btn" data-cell="' + esc(c.id) + '" aria-current="' +
           (c.id === state.selectedId) + '">' +
           '<span class="rank">' + String(i + 1).padStart(2, '0') + '</span>' +
@@ -493,6 +563,10 @@
           '<small>sobreposição ' + fmtPct(c.overlap) + ' · atenção de pesquisa ' +
           Math.round(c.score).toLocaleString('pt-BR') + '</small></button></li>';
       }).join('');
+      if (ranked.length > shown.length) {
+        list.innerHTML += '<li class="empty">Lista: ' + shown.length + ' de ' +
+          ranked.length + ' células tocadas, as de maior atenção espacial. As demais continuam no mapa.</li>';
+      }
     }
 
     var detail = $('cell-detail');
@@ -618,7 +692,11 @@
     state.level = Number(btn.getAttribute('data-level'));
     state.selectedId = null;
     var bundle = state.cache[state.city];
-    if (bundle) render(bundle);
+    if (!bundle || (bundle.errors && bundle.errors.length)) {
+      bootCity();
+      return;
+    }
+    render(bundle);
   });
   $('cell-list').addEventListener('click', function (ev) {
     var btn = ev.target.closest('[data-cell]');
