@@ -222,7 +222,9 @@
       "Séries de chuva das forçantes auditadas no CSV operacional (A894 vazio; STZ chuva com buracos).",
       "Calibração HEC ainda bloqueada; prototipo RNA com máscara possível.",
       "Contrato RNA+máscara v1: núcleos STZ e Muçum definidos; A894/CEMADEN fora do v1.",
-      "Caminho de estudo liberado = RNA com máscara; HEC ainda bloqueado."
+      "Caminho de estudo liberado = RNA com máscara; HEC ainda bloqueado.",
+      "Máscara horária de chuva do núcleo gerada (usable só com 3 chuvas + janela R6).",
+      "Máscaras de nível ainda não geradas (falta CSV multiestacao local)."
     ],
     "unknown_or_unreconciled": [
       "Area projetada exata (m2) das 32 sub-bacias em EPSG:31982 (hoje aproximacao por graus).",
@@ -231,9 +233,9 @@
     ]
   },
   "next_study_steps_only": [
-    "Implementar gerador de tabela máscara (CSV horário) para o núcleo STZ/Muçum.",
-    "Ou: baixar histórico ANA de 86125500 em arquivo local antes de HEC por evento.",
-    "Só depois: experimento de treino RNA controlado (ainda pesquisa)."
+    "Gerar máscaras de nível na mesma grade horária (ANA/Excel).",
+    "Montar tensor de treino só com usable_*=1 + lags do contrato.",
+    "Experimento RNA controlado por alvo — ainda pesquisa, sem promover operacional."
   ],
   "local_artifacts_related": {
     "iede_boundary": "assets/data/vulnerabilidade/bacia.geojson",
@@ -628,5 +630,16 @@
     "path": "RNA_com_mascara",
     "hec_status": "ainda_bloqueado_ate_series_reconciliadas",
     "updated_at_utc": "2026-09-09T03:14:25.820764+00:00"
+  },
+  "mascara_chuva_nucleo": {
+    "status": "mascara_chuva_nucleo_gerada_v1",
+    "artifacts": {
+      "csv": "mascara_chuva_nucleo_horaria.csv",
+      "json": "mascara_chuva_nucleo_latest.json",
+      "html": "mascara_chuva_nucleo.html"
+    },
+    "usable_after_r6": 21417,
+    "pct_usable_of_window": 83.1,
+    "updated_at_utc": "2026-09-09T03:19:09.103542+00:00"
   }
 }

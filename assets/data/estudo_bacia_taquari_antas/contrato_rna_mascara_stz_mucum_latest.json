@@ -2,7 +2,7 @@
   "schema_version": "estudo_contrato_rna_mascara_stz_mucum_v1",
   "generated_at_utc": "2026-09-09T03:14:25.820764+00:00",
   "purpose": "contrato de features e mascaras RNA por alvo; nao e treino nem calibracao",
-  "status": "contrato_rna_mascara_v1",
+  "status": "contrato_com_mascara_chuva_gerada",
   "discipline_rule": "Este artefato congela O QUE entra e COMO tratar buraco. Ainda nao treina pesos, nao publica NSE e nao libera HEC.",
   "path_chosen_by_study_gate": "RNA_com_mascara",
   "hec_status": "ainda_bloqueado_ate_series_reconciliadas",
@@ -278,12 +278,17 @@
     "arquivo .basin HEC calibrado"
   ],
   "next_steps": [
-    "Implementar gerador de tabela máscara (CSV horário) para o núcleo STZ/Muçum.",
-    "Ou: baixar histórico ANA de 86125500 em arquivo local antes de HEC por evento.",
-    "Só depois: experimento de treino RNA controlado (ainda pesquisa)."
+    "Gerar máscaras de nível na mesma grade horária (ANA/Excel).",
+    "Montar tensor de treino só com usable_*=1 + lags do contrato.",
+    "Experimento RNA controlado por alvo — ainda pesquisa, sem promover operacional."
   ],
   "artifacts": {
     "json": "contrato_rna_mascara_stz_mucum_latest.json",
     "html": "contrato_rna_mascara_stz_mucum.html"
+  },
+  "mascara_chuva_artifact": {
+    "csv": "mascara_chuva_nucleo_horaria.csv",
+    "json": "mascara_chuva_nucleo_latest.json",
+    "html": "mascara_chuva_nucleo.html"
   }
 }

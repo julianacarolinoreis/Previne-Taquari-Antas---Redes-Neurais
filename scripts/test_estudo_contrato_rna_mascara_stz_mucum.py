@@ -13,7 +13,10 @@ class ContratoRnaMascaraTests(unittest.TestCase):
         cls.html = (OUT / "contrato_rna_mascara_stz_mucum.html").read_text(encoding="utf-8")
 
     def test_status_and_path(self) -> None:
-        self.assertEqual(self.data["status"], "contrato_rna_mascara_v1")
+        self.assertIn(
+            self.data["status"],
+            {"contrato_rna_mascara_v1", "contrato_com_mascara_chuva_gerada"},
+        )
         self.assertEqual(self.data["path_chosen_by_study_gate"], "RNA_com_mascara")
         self.assertIn("bloqueado", self.data["hec_status"])
         self.assertIn("treino", " ".join(self.data["explicitly_not_done"]))

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Máscara de chuva do núcleo · STZ/Muçum</title>
+  <style>
+    :root { --ink:#1a303f; --muted:#5d7380; --line:#d7e4e8; --ok:#1b7a4a; --warn:#9a5b12; --bad:#a33b35; }
+    body { margin:0; color:var(--ink); font:16px/1.55 "Source Sans 3",Segoe UI,sans-serif; background:linear-gradient(165deg,#eef7f8,#fff9f2); }
+    main { max-width:1000px; margin:auto; padding:28px 16px 64px; }
+    header, section { background:#fff; border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:14px; box-shadow:0 10px 26px #1a303f12; }
+    h1 { margin:0 0 8px; font:700 clamp(28px,4vw,40px)/1.08 "Fraunces",Georgia,serif; }
+    .eyebrow { color:var(--ok); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .notice { border-left:5px solid var(--warn); background:#fff7e8; color:#6d4810; padding:12px 14px; border-radius:10px; margin:10px 0; }
+    .ok { border-left-color:var(--ok); background:#eefaf3; color:#145c38; }
+    .bad { border-left-color:var(--bad); background:#fff1ef; color:#7a2d28; }
+    .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .stat { border:1px solid var(--line); border-radius:12px; padding:12px; background:#f7fcfc; }
+    .stat strong { display:block; font-size:22px; color:var(--ok); }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { padding:7px; border-bottom:1px solid var(--line); text-align:left; }
+    th { background:#eef6f7; }
+    .muted { color:var(--muted); font-size:13px; }
+    a { color:#056999; font-weight:700; }
+    @media (max-width:800px) { .grid { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Estudo · máscara chuva v1</div>
+    <h1>Tabela horária — buraco continua buraco</h1>
+    <p class="muted">2026-09-09T03:19:09.103542+00:00 · mascara_chuva_nucleo_gerada_v1</p>
+    <div class="notice ok"><strong>Disciplina:</strong> Valores ausentes ficam vazios (nao viram 0). mask_*=1 so quando observado. usable_*=1 exige nucleo completo + janela R6.</div>
+    <div class="notice bad"><strong>Nível:</strong> Nao ha CSV multiestacao de nivel historico no repo cobrindo 86472000/86507000/86125500/86472600/86510000 na mesma grade. Proximo: alinhar ANA/Excel e emitir mask_nivel_*.</div>
+  </header>
+
+  <section>
+    <div class="grid">
+      <div class="stat"><strong>33,072</strong><span>horas no CSV</span></div>
+      <div class="stat"><strong>25,776</strong><span>horas na janela R6</span></div>
+      <div class="stat"><strong>21,417</strong><span>usable chuva (núcleo+R6)</span></div>
+      <div class="stat"><strong>83.1%</strong><span>da janela R6</span></div>
+    </div>
+    <p class="muted">1º usable: 2023-10-23 04:00 · último: 2026-09-08 10:00</p>
+    <p class="muted">Arquivo: <a href="mascara_chuva_nucleo_horaria.csv">mascara_chuva_nucleo_horaria.csv</a></p>
+  </section>
+
+  <section>
+    <h2>Presentes por feature (todas as horas)</h2>
+    <ul>
+      <li><code>chuva_86472000</code>: 32,162</li><li><code>chuva_86472600</code>: 25,209</li><li><code>chuva_02851072</code>: 29,390</li>
+    </ul>
+    <h2>Usable mensal (janela R6 · últimos meses)</h2>
+    <table>
+      <thead><tr><th>Mês</th><th>Horas</th><th>Usable</th><th>%</th></tr></thead>
+      <tbody><tr><td>2025-04</td><td>720</td><td>175</td><td>24.3%</td></tr><tr><td>2025-05</td><td>744</td><td>12</td><td>1.6%</td></tr><tr><td>2025-06</td><td>720</td><td>613</td><td>85.1%</td></tr><tr><td>2025-07</td><td>744</td><td>695</td><td>93.4%</td></tr><tr><td>2025-08</td><td>744</td><td>743</td><td>99.9%</td></tr><tr><td>2025-09</td><td>720</td><td>715</td><td>99.3%</td></tr><tr><td>2025-10</td><td>744</td><td>736</td><td>98.9%</td></tr><tr><td>2025-11</td><td>720</td><td>714</td><td>99.2%</td></tr><tr><td>2025-12</td><td>744</td><td>733</td><td>98.5%</td></tr><tr><td>2026-01</td><td>744</td><td>737</td><td>99.1%</td></tr><tr><td>2026-02</td><td>672</td><td>663</td><td>98.7%</td></tr><tr><td>2026-03</td><td>744</td><td>329</td><td>44.2%</td></tr><tr><td>2026-04</td><td>720</td><td>252</td><td>35.0%</td></tr><tr><td>2026-05</td><td>744</td><td>741</td><td>99.6%</td></tr><tr><td>2026-06</td><td>720</td><td>719</td><td>99.9%</td></tr><tr><td>2026-07</td><td>744</td><td>720</td><td>96.8%</td></tr><tr><td>2026-08</td><td>744</td><td>737</td><td>99.1%</td></tr><tr><td>2026-09</td><td>192</td><td>178</td><td>92.7%</td></tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Não feito</h2>
+    <ul><li>mascara de nivel</li><li>aplicacao de lags</li><li>treino RNA</li><li>NSE</li><li>calibracao HEC</li></ul>
+    <h2>Próximos</h2>
+    <ul><li>Gerar máscaras de nível na mesma grade horária (ANA/Excel).</li><li>Montar tensor de treino só com usable_*=1 + lags do contrato.</li><li>Experimento RNA controlado por alvo — ainda pesquisa, sem promover operacional.</li></ul>
+    <p>
+      <a href="mascara_chuva_nucleo_latest.json">JSON</a> ·
+      <a href="contrato_rna_mascara_stz_mucum.html">contrato</a> ·
+      <a href="series_forcantes_stz_mucum.html">séries</a> ·
+      <a href="index.html">estudo-base</a>
+    </p>
+  </section>
+</main>
+</body>
+</html>

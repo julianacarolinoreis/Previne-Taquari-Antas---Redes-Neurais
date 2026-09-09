@@ -57,6 +57,7 @@ class EstruturaStzMucumTests(unittest.TestCase):
             or "series" in domains["status"]
             or "contrato" in domains["status"]
             or "rna" in domains["status"]
+            or "mascara" in domains["status"]
         )
 
 
