@@ -64,9 +64,11 @@
     .lead { margin-top: 24px; max-width: 62ch; font-size: 17px; color: var(--ink-2); line-height: 1.65; }
 
     .stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 32px; margin-top: 48px; }
+    .stat { min-width: 0; }
     .stat .sn {
-      font-size: clamp(36px, 5.4vw, 72px); font-weight: 800;
+      font-size: clamp(32px, 4.4vw, 64px); font-weight: 800;
       letter-spacing: -.045em; line-height: .9; font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
     }
     .stat .sl { margin-top: 12px; font-size: 13px; color: var(--ink-2); max-width: 20ch; }
 
@@ -80,7 +82,7 @@
     .passos a.passo { text-decoration: none; }
     .passos a.passo:hover h3 { color: var(--green); }
 
-    .rows { margin-top: 28px; }
+    #portas, #situacao-acervo, #acervo { scroll-margin-top: 80px; }
     .row {
       display: grid; grid-template-columns: 160px 1fr auto; gap: 24px; align-items: baseline;
       padding: 18px 0; border-top: 1px solid var(--line); text-decoration: none;
@@ -635,7 +637,10 @@
       .then(data => {
         entries = data.entries || [];
         updateMetrics();
-        render();
+        const params = new URLSearchParams(location.search);
+        if (params.get("q")) { search.value = params.get("q"); state.query = params.get("q"); }
+        if (params.get("frente")) setCategory(params.get("frente"));
+        else render();
       })
       .catch(error => {
         resultsMeta.textContent = "Não foi possível carregar o catálogo: " + String(error.message || error);
