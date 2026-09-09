@@ -14,8 +14,9 @@ on:
       - "mucum_previsao_inundacao.html"
       - "pesquisa_status*.html"
       - "pesquisas/**"
-      - "assets/css/**"
       - "assets/js/**"
+      - "assets/css/**"
+      - "assets/audit_workbooks/**"
       - "assets/data/research_*.json"
       - "assets/data/basin_forecast_points.json"
       - "assets/data/agenda_pesquisas.json"
@@ -109,9 +110,10 @@ jobs:
           rm -rf _site
           mkdir -p _site
 
-          # Publica as páginas e os dados necessários para a pesquisa, mas não
-          # os binários pesados de treinamento (.mat) nem os rasters brutos
-          # (.tif), que não são consumidos pelo site estático.
+          # Publica as páginas, os dados da pesquisa e as planilhas auditáveis
+          # (.xlsx). Os binários pesados de treinamento (.mat) e os rasters
+          # brutos (.tif) ficam de fora: o site baixa as planilhas pelo Pages
+          # para evitar o 503 de raw.githubusercontent.com no Brasil.
           while IFS= read -r -d '' file; do
             case "$file" in
               assets/data/vulnerabilidade/referencias/README_AGREGADOS_TAQUARI.md|assets/data/vulnerabilidade/referencias/README_OBITOS.md|assets/data/vulnerabilidade/referencias/README.md|assets/data/servicos/FONTES.md|assets/data/vulnerabilidade/metadados/README_PRODUTO.md|assets/data/vulnerabilidade/metadados/ESTILOS_QGIS_ARCGIS.md|assets/data/vulnerabilidade/metadados/README_ESTILOS_QGIS.md|assets/data/vulnerabilidade/metadados/ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.md|assets/data/vulnerabilidade/brutos/FONTES.md)

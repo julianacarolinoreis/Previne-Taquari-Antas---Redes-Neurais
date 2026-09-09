@@ -7,6 +7,7 @@
 <!-- auditável integrado nesta página; guards de injeção: assets/css/audit_charts.css?v=20260705-pers-positive-v1 assets/js/audit_charts.js?v=20260705-pers-positive-v1 -->
 
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="assets/js/repo_downloads.js?v=20260909-xlsx-pages"></script>
 <style>
   :root{
     --page:#f5f3ec; --surface:#ffffff; --surface-2:#f2efe6;
@@ -1383,8 +1384,21 @@
   })();
 
   /* ---------------- base auditável (séries ponto a ponto) ---------------- */
-  const WB_RAW='https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/';
-  const wbHref=u=>u? (u.startsWith('http')?u:WB_RAW+u) : '';
+  /* Planilhas saem pelo GitHub Pages; raw.githubusercontent.com 503 no BR. */
+  const wbHref=u=> (window.PREVINE_DOWNLOADS && u) ? window.PREVINE_DOWNLOADS.hrefFor(u) : (u||'');
+  function startWorkbookDownload(url, btn){
+    const api=window.PREVINE_DOWNLOADS;
+    if(!url){ if(btn) btn.textContent='indisponível'; return; }
+    if(!api){ window.open(wbHref(url),'_blank'); return; }
+    const prev=btn?btn.textContent:'';
+    if(btn) btn.textContent='baixando…';
+    api.download(url).then(result=>{
+      if(btn) btn.textContent=prev||'⬇ xlsx';
+      if(!result||!result.ok){
+        window.alert('Não foi possível baixar a planilha agora. O GitHub está congestionado; tente de novo em alguns segundos.');
+      }
+    });
+  }
   const AUDIT_URL='assets/data/auditaveis_series.json';
   const NOVOS_URL='assets/data/novos_series.json';
   let NOVOS=null, NOVOS_LOADING=null;
@@ -1444,12 +1458,12 @@
     auditCount: 377,
     getAudit: m => { let au=auditFor(m); if(!au && m.novo && NOVOS && NOVOS[m.modelo]) au=NOVOS[m.modelo]; return au; },
     dlAudit: (m,btn) => {
-      if(m.wb_url){ window.open(wbHref(m.wb_url),'_blank'); return; }
+      if(m.wb_url){ startWorkbookDownload(m.wb_url, btn); return; }
       btn.textContent='…';
       loadAudit().then(()=>{
         const au=auditFor(m);
         const u=(au&&au.workbookUrl)||m.wb_url;
-        if(u){ btn.textContent='⬇ xlsx'; window.open(wbHref(u),'_blank'); }
+        if(u) startWorkbookDownload(u, btn);
         else { btn.textContent='indisponível'; }
       });
     }
@@ -1743,7 +1757,12 @@
 
   function fileRow(label, value, href){
     const d=document.createElement('div');
-    if(href){ const a=document.createElement('a'); a.href=href; a.textContent=label; a.setAttribute('download',''); d.appendChild(a); }
+    if(href){
+      const a=document.createElement('a'); a.textContent=label;
+      if(window.PREVINE_DOWNLOADS) window.PREVINE_DOWNLOADS.bindLink(a, href);
+      else { a.href=wbHref(href); a.setAttribute('download',''); }
+      d.appendChild(a);
+    }
     else { const b=document.createElement('strong'); b.textContent=label+': '; d.append(b, document.createTextNode(value)); }
     return d;
   }
@@ -1763,11 +1782,11 @@
     const fl=document.createElement('div'); fl.className='m-files';
     let au=ctx.getAudit(m);
     const wbUrl = (au && au.workbookUrl) || m.wb_url;
-    if(wbUrl) fl.appendChild(fileRow('⬇ Baixar planilha auditável (.xlsx)', '', wbHref(wbUrl)));
+    if(wbUrl) fl.appendChild(fileRow('⬇ Baixar planilha auditável (.xlsx)', '', wbUrl));
     if(m.arquivo_auditavel) fl.appendChild(fileRow('Planilha auditável', m.arquivo_auditavel));
     if(m.mat_url){
       const mb=Math.round(((m.mat && m.mat.size)||0)/1048576*10)/10;
-      fl.appendChild(fileRow('⬇ Baixar modelo treinado (.mat'+(mb?', '+mb+' MB':'')+')', '', wbHref(m.mat_url)));
+      fl.appendChild(fileRow('⬇ Baixar modelo treinado (.mat'+(mb?', '+mb+' MB':'')+')', '', m.mat_url));
     }
     if(m.arquivo_mat) fl.appendChild(fileRow('Modelo treinado (.mat) — caminho original', m.arquivo_mat));
     files.appendChild(fl);
@@ -2134,12 +2153,12 @@
           btn.textContent='⬇ xlsx'; btn.title='Baixar planilha auditável';
           btn.addEventListener('click',ev=>{
             ev.stopPropagation();
-            if(m.wb_url){ window.open(wbHref(m.wb_url),'_blank'); return; }
+            if(m.wb_url){ startWorkbookDownload(m.wb_url, btn); return; }
             btn.textContent='…';
             loadAudit().then(()=>{
               const au=auditFor(m);
               const u=(au&&au.workbookUrl)||m.wb_url;
-              if(u){ btn.textContent='⬇ xlsx'; window.open(wbHref(u),'_blank'); }
+              if(u) startWorkbookDownload(u, btn);
               else { btn.textContent='indisponível'; }
             });
           });
@@ -2214,7 +2233,7 @@
   window.PREVINE_SHARED = {
     el, txt, fmt, fmt1, fmt2, nf, HCOLOR, SOFT, FAMLABEL, FAMFULL, niceStep, median, empty,
     hoverable, showTipRows, showTipModel, hideTip,
-    statTile, persProfileSvg, errSvg, obsRnaScatter, eventLine, fileRow, MATDESC, wbHref,
+    statTile, persProfileSvg, errSvg, obsRnaScatter, eventLine, fileRow, MATDESC, wbHref, startWorkbookDownload,
     openModal, registrarModelosCidade, registrarHorizontesCidade, registrarAbordagensCidade
   };
 })();

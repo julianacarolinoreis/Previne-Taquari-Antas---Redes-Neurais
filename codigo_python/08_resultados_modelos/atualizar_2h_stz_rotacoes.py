@@ -17,7 +17,6 @@ RAIZ = Path(__file__).resolve().parents[2]
 SRC = Path("/tmp/rna_2h_inbox/RNA_2H_ALT_ROTACAO_STZ/RNA_2H_ALT_ROTACAO_STZ")
 RODADA = "RNA_2H_ALT_ROTACAO_STZ"
 INPUTS_VFINAL_15 = [0, 1, 11, 10, 13, 12, 14, 38, 27, 3, 17, 4, 22, 18, 24]
-RAW_BASE = "https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main"
 
 
 def r4(x):
@@ -132,8 +131,8 @@ def build_models():
                 "E95_geral_cm": float(met["E95_GERAL"]),
                 "E95_validacao_cm": float(met["E95_VALIDACAO"]),
                 "E95_teste_cm": float(met["E95_TESTE"]),
-                "wb_url": f"{RAW_BASE}/assets/audit_workbooks/{wb_name}",
-                "mat_url": f"{RAW_BASE}/assets/mat/{mat_name}",
+                "wb_url": f"assets/audit_workbooks/{wb_name}",
+                "mat_url": f"assets/mat/{mat_name}",
                 "mat": {
                     "nh": float(met.get("nh") or 30),
                     "nit": float(met.get("nit") or 10),

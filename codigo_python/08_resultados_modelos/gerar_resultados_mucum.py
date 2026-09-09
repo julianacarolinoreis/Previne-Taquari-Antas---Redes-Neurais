@@ -449,14 +449,17 @@ def imprimir_check(novos, ja_publicados, qualificados):
 
 
 def pin_urls_para_commit(sha: str):
-    """Troca URLs relativas (assets/mat/..., assets/audit_workbooks/...) por
-    raw.githubusercontent.com fixado no commit informado — necessario porque
-    o index.html resolve toda URL nao-absoluta contra um commit antigo
-    pinado (WB_RAW), entao um arquivo novo so fica baixavel com uma URL
-    absoluta apontando para o commit que de fato o contem."""
+    """Fix .mat URLs on a commit SHA.
+
+    Planilhas (.xlsx) permanecem relativas: o site baixa pelo GitHub Pages e
+    só cai no raw.githubusercontent.com se o Pages falhar. Piná-las no Raw
+    reintroduz o 503 Backend.max_conn visto no CDN brasileiro.
+    """
 
     def pin(url):
         if not url or url.startswith("http"):
+            return url
+        if str(url).startswith("assets/audit_workbooks/"):
             return url
         return f"{RAW_BASE}/{sha}/{url}"
 
