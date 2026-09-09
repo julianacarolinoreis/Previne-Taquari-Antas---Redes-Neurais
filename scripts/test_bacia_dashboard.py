@@ -31,7 +31,7 @@ class BasinDashboardTests(unittest.TestCase):
         self.assertTrue(self.page.exists())
         self.assertTrue((ROOT / "assets/css/bacia_dashboard.css").exists())
         self.assertTrue((ROOT / "assets/js/bacia_dashboard.js").exists())
-        for token in ("data-bacia-dashboard", "assets/css/bacia_dashboard.css", "assets/js/bacia_dashboard.js?v=20260909-live2", "dashboard_bacia.html"):
+        for token in ("data-bacia-dashboard", "assets/css/bacia_dashboard.css", "assets/js/bacia_dashboard.js?v=20260909-modelview", "dashboard_bacia.html"):
             self.assertIn(token, self.text)
 
     def test_controls_cover_basin_stations_and_horizons(self) -> None:
@@ -52,7 +52,7 @@ class BasinDashboardTests(unittest.TestCase):
         self.assertIn("Não há probabilidade conjunta publicada", script)
         self.assertIn("PROBABILIDADE · experimental", script)
         self.assertIn("rodada atrasada", script)
-        self.assertIn("PROXY · célula espacial", script)
+        self.assertIn("Célula espacial · IFS", script)
         self.assertIn("renderResearchContext", script)
         self.assertIn("live_horizons", script)
         self.assertIn("liveRowsFor", script)
@@ -62,6 +62,10 @@ class BasinDashboardTests(unittest.TestCase):
         self.assertIn("indisponível", script)
         self.assertIn("riskUsable", script)
         self.assertIn("não utilizável como leitura atual", script)
+        self.assertIn("rainSources", script)
+        self.assertIn("modelThresholdVisual", script)
+        self.assertIn("modelRiskVisual", script)
+        self.assertIn("escala comum", script)
         self.assertIn("refresh-feeds", script)
 
     def test_headwater_context_is_wired_on_station_pages(self) -> None:
