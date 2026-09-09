@@ -66,6 +66,7 @@ def main():
     round5 = data["experiments"].get("exp8_previne_protocol_obs_labels") or {}
     round6 = data["experiments"].get("exp9_python_26in_nit") or {}
     round7 = data["experiments"].get("exp10_mimo_vs_direct_pair") or {}
+    round8 = data["experiments"].get("exp11_loo_previne_26in_weights") or {}
     ds = data["datasets"]
     ref = data["mat_reference_metrics_teste"]
     fair_aligned = (
@@ -230,6 +231,39 @@ melhora r5? {'sim' if verd.get('improves_vs_round5_4h') else 'não'}
 <li>Twin PREVINE no 4h <em>completo</em> chega a ~0,97 (gap ~0,02 ao .mat) — fidelidade do treino Python está ok.</li>
 </ul>
 """
+    round8_box = ""
+    if round8 and round8.get("status") == "ok":
+        verd = round8.get("verdict", {})
+        loo = round8.get("loo") or {}
+        pooled = loo.get("pooled") or {}
+        wins = loo.get("wins_by_event") or {}
+        wexp = round8.get("weights_export") or {}
+        p2, p4 = pooled.get("2h") or {}, pooled.get("4h") or {}
+        round8_box = f"""
+<h2>6g. Rodada 8 — LOO PREVINE 26in + pesos Python</h2>
+<p>Pergunta: {round8.get('question','')}</p>
+<p>Eventos avaliados: {loo.get('n_events_evaluated')} ·
+vitórias 4h MIMO/Direct/empate: {wins.get('4h',{}).get('mimo',0)}/{wins.get('4h',{}).get('direct',0)}/{wins.get('4h',{}).get('tie',0)} ·
+2h: {wins.get('2h',{}).get('mimo',0)}/{wins.get('2h',{}).get('direct',0)}/{wins.get('2h',{}).get('tie',0)}</p>
+<table><thead><tr><th>Horizonte</th><th>NASH MIMO</th><th>NASH Direct</th><th>Δ NASH</th><th>Δ E95 cm</th><th>n</th></tr></thead>
+<tbody>
+<tr><td>2h</td><td>{fmt((p2.get('mimo') or {}).get('nash'))}</td><td>{fmt((p2.get('direct') or {}).get('nash'))}</td>
+<td>{fmt(p2.get('delta_nash'))}</td><td>{fmt(p2.get('delta_e95_cm'),1)}</td><td>{p2.get('n','—')}</td></tr>
+<tr><td>4h</td><td>{fmt((p4.get('mimo') or {}).get('nash'))}</td><td>{fmt((p4.get('direct') or {}).get('nash'))}</td>
+<td>{fmt(p4.get('delta_nash'))}</td><td>{fmt(p4.get('delta_e95_cm'),1)}</td><td>{p4.get('n','—')}</td></tr>
+</tbody></table>
+<p><strong>Pesos exportados (pesquisa):</strong>
+<a href='../assets/data/research_mimo_python_weights/manifest.json'>research_mimo_python_weights/</a>
+· teste 2h/4h NASH {fmt(((wexp.get('teste_metrics') or {}).get('2h') or {}).get('nash'))} /
+{fmt(((wexp.get('teste_metrics') or {}).get('4h') or {}).get('nash'))}
+· <em>não promover ao vivo</em></p>
+<p class='meta'>{verd.get('note','')}</p>
+<ul>
+<li>LOO confirma vantagem do MIMO no <strong>4h</strong> (16/20 eventos; ΔNASH pooled ≈+0,016; E95 −34 cm).</li>
+<li>No <strong>2h</strong>, Direct PREVINE single-output continua superior no LOO — trade-off esperado do multi-saída.</li>
+<li>Pacote <code>.npz</code> disponível para experimentação Python; Direct <code>.mat</code> permanece operacional.</li>
+</ul>
+"""
 
     html = f"""<!doctype html>
 <html lang='pt-BR'>
@@ -317,12 +351,14 @@ ul{{padding-left:20px}}
 
 {round7_box}
 
+{round8_box}
+
 <h2>7. Caminho Python (MATLAB opcional)</h2>
-<p><strong>Canônico:</strong> <code>fit_previne</code> + <code>run_research_round6.py</code> (26 inputs, nit=10).
-Os <code>.mat</code> Direct continuam só como teto/inferência.</p>
+<p><strong>Canônico:</strong> <code>fit_previne</code> + rodadas 5–8; pesos em
+<a href='../assets/data/research_mimo_python_weights/manifest.json'>assets/data/research_mimo_python_weights/</a>
+(research_only).</p>
 <p><strong>Opcional:</strong> espelho MATLAB em
-<code>codigo_python/11_experimento_mimo/matlab/OPTIONAL.md</code> —
-mesmo protocolo, sem ser requisito da pesquisa.</p>
+<code>codigo_python/11_experimento_mimo/matlab/OPTIONAL.md</code>.</p>
 
 <h2>8. JSON auditável</h2>
 <p><a href='../assets/data/research_mimo_multihorizon_latest.json'>assets/data/research_mimo_multihorizon_latest.json</a></p>

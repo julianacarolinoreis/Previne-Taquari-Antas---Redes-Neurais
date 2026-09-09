@@ -175,6 +175,19 @@ class TestExperimentArtifact(unittest.TestCase):
         self.assertLess(exp10["gate_direct_4h_full_previne"]["gap_to_mat"], 0.05)
         self.assertEqual(exp10["best_research_variant"], "mimo26_previne_nh52")
 
+    def test_round8_loo_and_weights(self):
+        exp11 = self.data["experiments"].get("exp11_loo_previne_26in_weights")
+        self.assertIsNotNone(exp11, "exp11_loo_previne_26in_weights ausente")
+        self.assertEqual(exp11.get("status"), "ok")
+        self.assertTrue(exp11["verdict"]["mimo_beats_direct_loo_4h"])
+        self.assertGreaterEqual(exp11["verdict"]["wins_4h"]["mimo"], 12)
+        self.assertGreater(exp11["verdict"]["pooled_delta_nash_4h"], 0.005)
+        wdir = ROOT / "assets/data/research_mimo_python_weights"
+        self.assertTrue((wdir / "manifest.json").is_file())
+        self.assertTrue((wdir / "mimo_previne_2h4h_26in_nh52.npz").is_file())
+        self.assertTrue(exp11["weights_export"]["do_not_promote_live"])
+        self.assertTrue(exp11["weights_export"]["research_only"])
+
     def test_matlab_handoff_package(self):
         import sys
 

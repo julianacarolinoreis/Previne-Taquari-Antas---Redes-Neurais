@@ -20,7 +20,7 @@ ul{padding-left:20px}
 </head>
 <body>
 <h1>Relatório comparativo — RNA multi-horizonte (MIMO)</h1>
-<p class='meta'>Gerado em 2026-09-09T15:44:44+00:00 · Santa Tereza · modo pesquisa (não operacional) · schema v7</p>
+<p class='meta'>Gerado em 2026-09-09T17:59:11+00:00 · Santa Tereza · modo pesquisa (não operacional) · schema v8</p>
 
 <div class='box'>
 <strong>Pergunta:</strong> uma única rede prevendo 2h+4h (+8h) supera modelos Direct?<br>
@@ -159,6 +159,23 @@ melhora r5? sim
 <li><strong>26 inputs + nh=52 + nit=10</strong> fecha o gap justo no 4h (&lt;0,05) em Python.</li>
 <li>Trade-off: 2h um pouco abaixo do pico 15in da r5, mas ainda ok vs scratch.</li>
 <li>Não falta MATLAB — o limite restante é multi-saída vs dois Direct independentes / teto full-test 26in.</li>
+</ul>
+
+
+
+<h2>6f. Rodada 7 — MIMO vs Direct×2 PREVINE</h2>
+<p>Pergunta: No alinhado, MIMO PREVINE 26in supera dois Direct PREVINE independentes? Residual ajuda? Twin 4h full-test aproxima o .mat?</p>
+<p><strong>Melhor pesquisa:</strong> mimo26_previne_nh52 · MIMO Δ4h vs Direct×2 0,0874 ·
+Δ2h -0,0129</p>
+<p><strong>Gate twin 4h full-test:</strong> NASH 0,9743
+· gap ao .mat 0,0183 (pass=sim)</p>
+<table><thead><tr><th>Variante</th><th>NASH 2h</th><th>NASH 4h</th><th>gap justo 4h</th><th>E95 4h</th><th>papel</th></tr></thead>
+<tbody><tr><td>mimo26_previne_nh52</td><td>0,9552</td><td>0,8734</td><td>0,0468</td><td>55,6</td><td>mimo</td></tr><tr><td>residual_previne</td><td>0,9681</td><td>0,8489</td><td>0,0713</td><td>54,3</td><td>residual</td></tr><tr><td>direct_previne_pair</td><td>0,9681</td><td>0,7860</td><td>0,1342</td><td>60,0</td><td>dois_direct_python</td></tr></tbody></table>
+<p class='meta'>Se Direct×2 PREVINE ≥ MIMO no 4h, o valor do MIMO é coerência/custo, não acurácia pura. Se o gate 4h full ainda ficar longe de 0,9926, falta fidelidade do twin (Cic/nit/init), não arquitetura MIMO.</p>
+<ul>
+<li><strong>MIMO ganha no 4h</strong> contra dois Direct PREVINE treinados no mesmo recorte alinhado (~+0,09 NASH).</li>
+<li>Direct×2 ainda é um pouco melhor no 2h; residual melhora 2h mas não bate o MIMO no 4h.</li>
+<li>Twin PREVINE no 4h <em>completo</em> chega a ~0,97 (gap ~0,02 ao .mat) — fidelidade do treino Python está ok.</li>
 </ul>
 
 
