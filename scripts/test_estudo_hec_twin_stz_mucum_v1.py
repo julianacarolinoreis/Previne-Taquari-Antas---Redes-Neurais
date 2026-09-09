@@ -30,7 +30,8 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
         self.assertAlmostEqual(muc["mean_nse_eventwise_excluding_e19"], 0.823, places=2)
 
     def test_e28_series_recomputes_nse(self) -> None:
-        rows = list(csv.DictReader((RUN / "mucum_E28_best_series.csv").open(encoding="utf-8")))
+        with (RUN / "mucum_E28_best_series.csv").open(encoding="utf-8") as fh:
+            rows = list(csv.DictReader(fh))
         obs = [float(r["obs_m3s"]) for r in rows]
         sim = [float(r["sim_m3s"]) for r in rows]
         mean_o = sum(obs) / len(obs)
