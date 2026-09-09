@@ -1,0 +1,23 @@
+{
+  "schema_version": "estudo_stz_q_unlock_checklist_v1",
+  "generated_note": "Desbloqueio HEC do modelo STZ após auditoria dual-agent",
+  "status": "blocked_waiting_external_rating_curve",
+  "target": "86472600",
+  "why_blocked": [
+    "Telemetria de evento E19–E28: Vazao vazia em todos",
+    "E24/E27/E28 têm Nivel; E19/E22 sem Nivel e sem Vazao",
+    "Nenhuma curva-chave / rating curve no repositório",
+    "Probe HIDROWEB HidroSerieHistorica tipo=3 (2020–2024) neste ambiente retornou vazio"
+  ],
+  "ready_once_curve_arrives": [
+    "Aplicar Nivel→Q em E24, E27, E28",
+    "Rodar busca eventwise + common-search no modelo STZ truncado (sem SB_INC_MUCUM)",
+    "Usar contrato rain_stations HEC de evento (não 2851072 aspiracional)"
+  ],
+  "do_not": [
+    "Usar Q simulada com params do Muçum como alvo de calibração STZ",
+    "Inventar curva-chave",
+    "Chamar o corredor de modelo da bacia G040"
+  ],
+  "ask_juliana_or_ops": "Anexar curva-chave oficial vigente de Santa Tereza (ou série Q horária reconciliada) em assets/data/estudo_bacia_taquari_antas/"
+}

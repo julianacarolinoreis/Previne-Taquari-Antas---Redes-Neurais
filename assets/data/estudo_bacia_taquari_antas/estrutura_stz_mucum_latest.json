@@ -1,9 +1,9 @@
 {
   "schema_version": "estudo_estrutura_stz_mucum_v1",
-  "generated_at_utc": "2026-09-09T02:32:08.620943+00:00",
-  "purpose": "estrutura candidata por modelo-alvo (HEC ou RNA); nao e calibracao",
+  "generated_at_utc": "2026-09-09T11:36:32.682103+00:00",
+  "purpose": "estrutura candidata por modelo-alvo (HEC ou RNA); topologia e areas, nao parametros finais",
   "status": "estrutura_com_hec_twin_v1",
-  "discipline_rule": "Dois projetos/logicas separados. Nunca rotular como 'modelo da bacia G040'. Parametros de perda/routing/NSE ainda bloqueados.",
+  "discipline_rule": "Dois projetos/logicas separados. Nunca rotular como 'modelo da bacia G040'. rain_stations = contrato HEC de evento (ANA raw_ana). rain_stations_rna_aspirational = pluvios do trilho RNA/forçantes. HEC twin v1: busca eventwise Muçum + common-search; STZ Q ainda bloqueado.",
   "parent_artifacts": {
     "forcantes": "forcantes_stz_mucum_latest.json",
     "dominios": "dois_modelos_stz_mucum_latest.json",
@@ -31,7 +31,9 @@
     "Carreiro (7866) separado — ~90% do incremento Antas→STZ.",
     "Modelo STZ para em J_STZ; nao inclui SB_INC_MUCUM.",
     "Modelo Muçum reusa esqueleto STZ e acrescenta R_STZ_TO_MUCUM + SB_INC_MUCUM.",
-    "Ainda nao abrir os 3 UP_* extras a montante de Antas (multi_bacia) — opcional depois."
+    "Ainda nao abrir os 3 UP_* extras a montante de Antas (multi_bacia) — opcional depois.",
+    "Contrato de chuva HEC de evento separado do aspiracional RNA (2851072/A894).",
+    "No twin, Prata+Antas residual sao runoff-lumped (mesma lamina ANA) para nao dobrar Initial+Constant."
   ],
   "models": {
     "santa_tereza": {
@@ -52,9 +54,13 @@
           "bho6_cocursodag": "7868",
           "level_station": "86125500",
           "rain_stations": [
+            "86472000",
+            "86507000"
+          ],
+          "rain_stations_rna_aspirational": [
             "2851072"
           ],
-          "notes": "Sistema Prata/Turvo-Humatã nomeado para casar com forçante 86125500. Ainda agrega componentes internos."
+          "notes": "Sistema Prata/Turvo-Humatã nomeado para casar com forçante 86125500. HEC twin eventwise usa telemetria ANA 86472000 (lumping com Antas residual). 2851072 fica aspiracional até haver série de evento."
         },
         {
           "id": "SB_ANTAS_RESIDUAL",
@@ -89,11 +95,15 @@
           "bho6_cocursodag": "7866",
           "level_station": "86507000",
           "rain_stations": [
+            "86507000",
+            "86472000"
+          ],
+          "rain_stations_rna_aspirational": [
             "2851072",
             "A894",
             "432040401A"
           ],
-          "notes": "~90% do incremento Antas→STZ. Obrigatório no desenho STZ."
+          "notes": "~90% do incremento Antas→STZ. HEC twin: preferir 86507000, com fallback de magnitude para 86472000 se a preferida estiver completa mas ~seca."
         },
         {
           "id": "J_CARREIRO_CONFLUENCE",
@@ -104,7 +114,7 @@
         {
           "id": "R_CARREIRO_TO_STZ",
           "type": "reach",
-          "frm": "J_CARREIRO_CONFLUENCE",
+          "from": "J_CARREIRO_CONFLUENCE",
           "to": "J_STZ_86472600",
           "status": "routing_blocked_until_channel_evidence"
         },
@@ -114,7 +124,8 @@
           "area_km2": 292.34,
           "outlet": "J_STZ_86472600",
           "rain_stations": [
-            "86472600"
+            "86472600",
+            "86472000"
           ],
           "notes": "Residual local (ex.: Marrecão) entre Carreiro e STZ."
         },
@@ -185,9 +196,13 @@
           "bho6_cocursodag": "7868",
           "level_station": "86125500",
           "rain_stations": [
+            "86472000",
+            "86507000"
+          ],
+          "rain_stations_rna_aspirational": [
             "2851072"
           ],
-          "notes": "Sistema Prata/Turvo-Humatã nomeado para casar com forçante 86125500. Ainda agrega componentes internos."
+          "notes": "Sistema Prata/Turvo-Humatã nomeado para casar com forçante 86125500. HEC twin eventwise usa telemetria ANA 86472000 (lumping com Antas residual). 2851072 fica aspiracional até haver série de evento."
         },
         {
           "id": "SB_ANTAS_RESIDUAL",
@@ -222,11 +237,15 @@
           "bho6_cocursodag": "7866",
           "level_station": "86507000",
           "rain_stations": [
+            "86507000",
+            "86472000"
+          ],
+          "rain_stations_rna_aspirational": [
             "2851072",
             "A894",
             "432040401A"
           ],
-          "notes": "~90% do incremento Antas→STZ. Obrigatório no desenho STZ."
+          "notes": "~90% do incremento Antas→STZ. HEC twin: preferir 86507000, com fallback de magnitude para 86472000 se a preferida estiver completa mas ~seca."
         },
         {
           "id": "J_CARREIRO_CONFLUENCE",
@@ -237,7 +256,7 @@
         {
           "id": "R_CARREIRO_TO_STZ",
           "type": "reach",
-          "frm": "J_CARREIRO_CONFLUENCE",
+          "from": "J_CARREIRO_CONFLUENCE",
           "to": "J_STZ_86472600",
           "status": "routing_blocked_until_channel_evidence"
         },
@@ -247,7 +266,8 @@
           "area_km2": 292.34,
           "outlet": "J_STZ_86472600",
           "rain_stations": [
-            "86472600"
+            "86472600",
+            "86472000"
           ],
           "notes": "Residual local (ex.: Marrecão) entre Carreiro e STZ."
         },
@@ -265,7 +285,7 @@
         {
           "id": "R_STZ_TO_MUCUM",
           "type": "reach",
-          "frm": "J_STZ_86472600",
+          "from": "J_STZ_86472600",
           "to": "J_MUCUM_86510000",
           "status": "routing_blocked_until_channel_evidence"
         },
@@ -275,7 +295,9 @@
           "area_km2": 190.021,
           "outlet": "J_MUCUM_86510000",
           "rain_stations": [
-            "86472600"
+            "86510000",
+            "86472600",
+            "86472000"
           ],
           "notes": "Incremento curto STZ→Muçum (~190 km²). Não inclui Guaporé."
         },
@@ -328,27 +350,21 @@
     }
   },
   "blocked_until_series_check": [
-    "buracos chuva_86472600",
-    "A894 pane (ausencia != zero)",
+    "buracos chuva_86472600 em series longas",
+    "A894 pane (ausencia != zero) no trilho RNA",
     "parametros de routing sem evidencia de canal",
-    "NSE / calibracao"
+    "STZ Q: curva-chave Nivel→Vazao reconciliada",
+    "telemetria de evento para pluvios aspiracionais 2851072"
   ],
   "next_steps": [
-    "Desbloquear STZ Q com curva-chave reconciliada (Nivel→Vazao) e recalibrar modelo STZ truncado.",
-    "Opcional: portar melhores params Muçum para projeto .basin HEC-HMS 4.13 no Windows.",
+    "Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) ou série Q horária reconciliada.",
+    "Recalibrar modelo STZ truncado (eventwise + common-search) após N→Q.",
+    "Opcional: portar best_params comuns Muçum para projeto .basin HEC-HMS 4.13 no Windows (hipótese).",
     "Manter Guaporé/Forqueta fora do recorte."
   ],
   "artifacts": {
     "json": "estrutura_stz_mucum_latest.json",
     "html": "estrutura_stz_mucum.html"
-  },
-  "series_artifact": {
-    "json": "series_forcantes_stz_mucum_latest.json",
-    "html": "series_forcantes_stz_mucum.html"
-  },
-  "contrato_rna_artifact": {
-    "json": "contrato_rna_mascara_stz_mucum_latest.json",
-    "html": "contrato_rna_mascara_stz_mucum.html"
   },
   "hec_twin_artifact": {
     "json": "hec_twin_stz_mucum_v1_latest.json",

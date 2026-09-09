@@ -33,6 +33,9 @@ def node(nid, ntype, **kwargs):
 
 
 def build_stz_elements():
+    # rain_stations = contrato HEC de evento (telemetria ANA no pacote raw_ana).
+    # rain_stations_rna_aspirational = pluvios do contrato RNA/forçantes (ex. 2851072),
+    # ainda sem série de evento no twin Linux.
     return [
         node(
             "SB_PRATA_7868",
@@ -41,8 +44,13 @@ def build_stz_elements():
             outlet="J_ANTAS_86472000",
             bho6_cocursodag="7868",
             level_station="86125500",
-            rain_stations=["2851072"],
-            notes="Sistema Prata/Turvo-Humatã nomeado para casar com forçante 86125500. Ainda agrega componentes internos.",
+            rain_stations=["86472000", "86507000"],
+            rain_stations_rna_aspirational=["2851072"],
+            notes=(
+                "Sistema Prata/Turvo-Humatã nomeado para casar com forçante 86125500. "
+                "HEC twin eventwise usa telemetria ANA 86472000 (lumping com Antas residual). "
+                "2851072 fica aspiracional até haver série de evento."
+            ),
         ),
         node(
             "SB_ANTAS_RESIDUAL",
@@ -74,8 +82,12 @@ def build_stz_elements():
             outlet="J_CARREIRO_CONFLUENCE",
             bho6_cocursodag="7866",
             level_station="86507000",
-            rain_stations=["2851072", "A894", "432040401A"],
-            notes="~90% do incremento Antas→STZ. Obrigatório no desenho STZ.",
+            rain_stations=["86507000", "86472000"],
+            rain_stations_rna_aspirational=["2851072", "A894", "432040401A"],
+            notes=(
+                "~90% do incremento Antas→STZ. HEC twin: preferir 86507000, com fallback "
+                "de magnitude para 86472000 se a preferida estiver completa mas ~seca."
+            ),
         ),
         node(
             "J_CARREIRO_CONFLUENCE",
@@ -95,7 +107,7 @@ def build_stz_elements():
             "subbasin",
             area_km2=STZ_RESIDUAL,
             outlet="J_STZ_86472600",
-            rain_stations=["86472600"],
+            rain_stations=["86472600", "86472000"],
             notes="Residual local (ex.: Marrecão) entre Carreiro e STZ.",
         ),
         node(
@@ -134,7 +146,7 @@ def build_mucum_elements():
                 "subbasin",
                 area_km2=MUCUM_INC,
                 outlet="J_MUCUM_86510000",
-                rain_stations=["86472600"],
+                rain_stations=["86510000", "86472600", "86472000"],
                 notes="Incremento curto STZ→Muçum (~190 km²). Não inclui Guaporé.",
             ),
             node(
@@ -185,11 +197,13 @@ def build_payload() -> dict:
     return {
         "schema_version": "estudo_estrutura_stz_mucum_v1",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "purpose": "estrutura candidata por modelo-alvo (HEC ou RNA); nao e calibracao",
-        "status": "estrutura_proposta_nao_calibrada",
+        "purpose": "estrutura candidata por modelo-alvo (HEC ou RNA); topologia e areas, nao parametros finais",
+        "status": "estrutura_com_hec_twin_v1",
         "discipline_rule": (
             "Dois projetos/logicas separados. Nunca rotular como 'modelo da bacia G040'. "
-            "Parametros de perda/routing/NSE ainda bloqueados."
+            "rain_stations = contrato HEC de evento (ANA raw_ana). "
+            "rain_stations_rna_aspirational = pluvios do trilho RNA/forçantes. "
+            "HEC twin v1: busca eventwise Muçum + common-search; STZ Q ainda bloqueado."
         ),
         "parent_artifacts": {
             "forcantes": "forcantes_stz_mucum_latest.json",
@@ -208,6 +222,8 @@ def build_payload() -> dict:
             "Modelo STZ para em J_STZ; nao inclui SB_INC_MUCUM.",
             "Modelo Muçum reusa esqueleto STZ e acrescenta R_STZ_TO_MUCUM + SB_INC_MUCUM.",
             "Ainda nao abrir os 3 UP_* extras a montante de Antas (multi_bacia) — opcional depois.",
+            "Contrato de chuva HEC de evento separado do aspiracional RNA (2851072/A894).",
+            "No twin, Prata+Antas residual sao runoff-lumped (mesma lamina ANA) para nao dobrar Initial+Constant.",
         ],
         "models": {
             "santa_tereza": {
@@ -252,10 +268,11 @@ def build_payload() -> dict:
             },
         },
         "blocked_until_series_check": [
-            "buracos chuva_86472600",
-            "A894 pane (ausencia != zero)",
+            "buracos chuva_86472600 em series longas",
+            "A894 pane (ausencia != zero) no trilho RNA",
             "parametros de routing sem evidencia de canal",
-            "NSE / calibracao",
+            "STZ Q: curva-chave Nivel→Vazao reconciliada",
+            "telemetria de evento para pluvios aspiracionais 2851072",
         ],
         "next_steps": [
             "Validar series das forçantes congeladas (nivel + chuva) por alvo.",

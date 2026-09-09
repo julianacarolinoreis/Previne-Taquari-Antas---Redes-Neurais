@@ -307,6 +307,9 @@ def candidate_grid() -> list[Params]:
     return out[:200]
 
 
+RAIN_MAGNITUDE_FALLBACK_RATIO = 0.2  # if preferred sum < 0.2 * best complete backup, use backup
+
+
 def build_precip_for_event(
     event_id: str,
     hours: list[str],
@@ -315,30 +318,57 @@ def build_precip_for_event(
     rain_by_station: dict[str, dict[str, float]] = {}
     for st in ("86472000", "86472600", "86507000", "86510000"):
         rows = load_event_series(st, event_id)
-        # Chuva field
         series = hourly_field(rows, "Chuva", reduce="sum")
         if not series:
             series = hourly_field(rows, "chuva", reduce="sum")
         rain_by_station[st] = series
 
-    meta = {"stations_mm_sum": {}, "subbasin_sources": {}, "runnable": True, "blocked_reason": None}
+    meta: dict[str, Any] = {
+        "stations_mm_sum": {},
+        "subbasin_sources": {},
+        "fallback_notes": [],
+        "runnable": True,
+        "blocked_reason": None,
+        "contract": "hec_event_ana_raw_ana_only",
+    }
     precip: dict[str, list[float]] = {}
     for sb in subbasins:
         prefs = RAIN_PREF[sb]
-        chosen = None
+        complete: list[tuple[str, list[float], float]] = []
         for st in prefs:
             series = rain_by_station.get(st, {})
             vals = [series.get(h) for h in hours]
             if all(v is not None for v in vals):
-                chosen = st
-                precip[sb] = [float(v) for v in vals]  # type: ignore[arg-type]
-                break
-        if chosen is None:
+                arr = [float(v) for v in vals]  # type: ignore[arg-type]
+                complete.append((st, arr, sum(arr)))
+        if not complete:
             meta["runnable"] = False
-            meta["blocked_reason"] = f"rain incomplete for {sb} (no station covers all hours without gaps)"
+            meta["blocked_reason"] = (
+                f"rain incomplete for {sb} (no station covers all hours without gaps)"
+            )
             return None, meta
-        meta["subbasin_sources"][sb] = chosen
-        meta["stations_mm_sum"][chosen] = round(sum(precip[sb]), 2)
+        # Prefer order, but reject a "dry complete" preferred gage vs wetter backup.
+        chosen_st, chosen_arr, chosen_sum = complete[0]
+        best_backup = max(complete, key=lambda t: t[2])
+        if (
+            len(complete) > 1
+            and best_backup[0] != chosen_st
+            and chosen_sum < RAIN_MAGNITUDE_FALLBACK_RATIO * best_backup[2]
+        ):
+            meta["fallback_notes"].append(
+                {
+                    "subbasin": sb,
+                    "rejected": chosen_st,
+                    "rejected_mm_sum": round(chosen_sum, 2),
+                    "chosen": best_backup[0],
+                    "chosen_mm_sum": round(best_backup[2], 2),
+                    "rule": f"preferred_sum < {RAIN_MAGNITUDE_FALLBACK_RATIO} * best_complete_backup",
+                }
+            )
+            chosen_st, chosen_arr, chosen_sum = best_backup
+        precip[sb] = chosen_arr
+        meta["subbasin_sources"][sb] = chosen_st
+        meta["stations_mm_sum"][chosen_st] = round(chosen_sum, 2)
     return precip, meta
 
 
@@ -352,6 +382,7 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
     ]
     params_list = candidate_grid()
     event_results = []
+    precip_cache: dict[str, tuple[dict[str, list[float]], dict[str, Any], list[str], dict[str, float]]] = {}
 
     for event_id, (start_s, end_s) in EVENTS.items():
         hours = expected_hours(parse_ts(start_s), parse_ts(end_s))
@@ -369,6 +400,8 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
             event_results.append(row)
             continue
 
+        precip_cache[event_id] = (precip, rain_meta, hours, flow)
+
         best_p = None
         best_m = None
         best_score = float("-inf")
@@ -384,7 +417,6 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
                 best_score, best_p, best_m, best_sim = score, p, m, sim
 
         assert best_p is not None and best_m is not None and best_sim is not None
-        # write series
         series_path = RUN / f"mucum_{event_id}_best_series.csv"
         with series_path.open("w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
@@ -392,9 +424,13 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
             for i, h in enumerate(hours):
                 w.writerow([h, flow.get(h, ""), f"{best_sim[i]:.4f}"])
 
+        status = "eventwise_scored"
+        if best_m["nse"] < 0:
+            status = "fit_failed_eventwise"
         row.update(
             {
-                "status": "calibrated_eventwise",
+                "status": status,
+                "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
                 "score": best_score,
                 "metrics": best_m,
                 "params": asdict(best_p),
@@ -403,59 +439,118 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         )
         event_results.append(row)
 
-    calibrated = [r for r in event_results if r["status"] == "calibrated_eventwise"]
-    mean_nse = (
-        sum(r["metrics"]["nse"] for r in calibrated) / len(calibrated) if calibrated else float("nan")
+    scored = [r for r in event_results if r["status"] in ("eventwise_scored", "fit_failed_eventwise")]
+    scored_ok = [r for r in scored if r["status"] == "eventwise_scored"]
+    mean_nse_all = (
+        sum(r["metrics"]["nse"] for r in scored) / len(scored) if scored else float("nan")
     )
-    # E19 is a known catastrophic outlier (same family as carreiro_split); report both means.
-    calibrated_no_e19 = [r for r in calibrated if r["event_id"] != "E19"]
-    mean_nse_no_e19 = (
-        sum(r["metrics"]["nse"] for r in calibrated_no_e19) / len(calibrated_no_e19)
-        if calibrated_no_e19
-        else float("nan")
+    mean_nse_ok = (
+        sum(r["metrics"]["nse"] for r in scored_ok) / len(scored_ok) if scored_ok else float("nan")
     )
+
+    # Common-parameter search (transferable rule) on events that are not catastrophic fits.
+    common_ids = [r["event_id"] for r in scored_ok]
+    best_common = None
+    best_common_score = float("-inf")
+    best_common_detail: list[dict[str, Any]] | None = None
+    for p in params_list:
+        details = []
+        scores = []
+        ok = True
+        for event_id in common_ids:
+            precip, _rain_meta, hours, flow = precip_cache[event_id]
+            paired = [i for i, h in enumerate(hours) if h in flow]
+            sim = run_network(precip, areas, p, include_mucum_increment=True)["at_mucum"]
+            m = metrics([flow[hours[i]] for i in paired], [sim[i] for i in paired])
+            details.append({"event_id": event_id, **m})
+            scores.append(research_score(m))
+        if not ok or not scores:
+            continue
+        mean_score = sum(scores) / len(scores)
+        if mean_score > best_common_score:
+            best_common_score = mean_score
+            best_common = p
+            best_common_detail = details
+
+    common_search = {
+        "runnable_events": common_ids,
+        "candidates_evaluated": len(params_list),
+        "best_params": None if best_common is None else asdict(best_common),
+        "best_mean_research_score": None if best_common is None else best_common_score,
+        "best_event_metrics": best_common_detail,
+        "mean_nse": (
+            None
+            if not best_common_detail
+            else sum(d["nse"] for d in best_common_detail) / len(best_common_detail)
+        ),
+        "note": (
+            "Regra comum transferível nos eventos com fit eventwise NSE>=0. "
+            "Não há hold-out formal; promoção operacional bloqueada."
+        ),
+    }
+
     return {
         "target": "86510000",
         "target_name": "Muçum",
         "quantity": "Vazao_m3s",
         "structure": "modelo_mucum_estrutura_stz_mucum_v1",
-        "n_events_calibrated": len(calibrated),
-        "mean_nse_eventwise": mean_nse,
-        "mean_nse_eventwise_excluding_e19": mean_nse_no_e19,
-        "n_events_excluding_e19": len(calibrated_no_e19),
+        "mode": "eventwise_plus_common_search",
+        "hold_out": False,
+        "n_events_scored": len(scored),
+        "n_events_fit_ok": len(scored_ok),
+        "mean_nse_eventwise_including_failed": mean_nse_all,
+        "mean_nse_eventwise": mean_nse_ok,
+        "mean_nse_eventwise_excluding_e19": mean_nse_ok,  # E19 fails NSE<0 → already out of scored_ok
+        "n_events_excluding_e19": len(scored_ok),
+        "mean_nse_eventwise_including_e19": mean_nse_all,
         "e19_note": (
-            "E19 derruba a média bruta (NSE ~−36). Eventos E22–E28 ficam no mesmo patamar "
-            "do carreiro_split (NSE ~0.73–0.95)."
+            "E19 tipicamente fit_failed (NSE fortemente negativo). "
+            "Headline = média dos eventos com NSE>=0 (E22–E28)."
         ),
+        "common_search": common_search,
         "events": event_results,
     }
 
 
 def diagnose_stz(areas: dict[str, float], mucum_report: dict[str, Any]) -> dict[str, Any]:
-    """STZ has no ANA Vazao — cannot do independent Q calibration."""
+    """STZ has no ANA Vazao in this package — cannot do independent Q calibration."""
     events_diag = []
     for event_id, (start_s, end_s) in EVENTS.items():
         hours = expected_hours(parse_ts(start_s), parse_ts(end_s))
-        nivel = hourly_field(load_event_series("86472600", event_id), "Nivel", reduce="mean")
+        rows = load_event_series("86472600", event_id)
+        nivel = hourly_field(rows, "Nivel", reduce="mean")
+        vazao = hourly_field(rows, "Vazao", reduce="mean")
+        n_nivel = len([h for h in hours if h in nivel])
+        n_vazao = len([h for h in hours if h in vazao])
+        if n_nivel == 0 and n_vazao == 0:
+            note = "Sem Nivel e sem Vazao preenchidos na telemetria de evento deste pacote"
+        elif n_vazao == 0:
+            note = "Nivel presente; Vazao vazia/ausente (precisa curva-chave Nivel→Vazao)"
+        else:
+            note = "Vazao presente — revisar bloqueio"
         events_diag.append(
             {
                 "event_id": event_id,
-                "nivel_hours": len([h for h in hours if h in nivel]),
-                "vazao_hours": 0,
-                "note": "ANA telemetry for 86472600 has Nivel only (empty Vazao) in available event files",
+                "nivel_hours": n_nivel,
+                "vazao_hours": n_vazao,
+                "note": note,
             }
         )
-    # Transfer params from best Muçum event as upstream skeleton demo (not STZ Q fit)
+
+    # Prefer common params when available; else per-event eventwise params.
+    common_params = (mucum_report.get("common_search") or {}).get("best_params")
     transferred = []
     for r in mucum_report["events"]:
-        if r["status"] != "calibrated_eventwise":
+        if r["status"] not in ("eventwise_scored", "fit_failed_eventwise"):
             continue
         subbasins = ["SB_PRATA_7868", "SB_ANTAS_RESIDUAL", "SB_CARREIRO_7866", "SB_STZ_RESIDUAL"]
         hours = expected_hours(parse_ts(EVENTS[r["event_id"]][0]), parse_ts(EVENTS[r["event_id"]][1]))
         precip, rain_meta = build_precip_for_event(r["event_id"], hours, subbasins)
         if precip is None:
             continue
-        p = Params(**{k: r["params"][k] for k in Params.__dataclass_fields__})
+        src = "mucum_common_search" if common_params else "mucum_eventwise_best"
+        pdict = common_params if common_params else r["params"]
+        p = Params(**{k: pdict[k] for k in Params.__dataclass_fields__})
         sim = run_network(precip, areas, p, include_mucum_increment=False)["at_stz"]
         series_path = RUN / f"stz_{r['event_id']}_sim_q_from_mucum_params.csv"
         with series_path.open("w", newline="", encoding="utf-8") as fh:
@@ -467,10 +562,10 @@ def diagnose_stz(areas: dict[str, float], mucum_report: dict[str, Any]) -> dict[
         transferred.append(
             {
                 "event_id": r["event_id"],
-                "params_from": "mucum_eventwise_best",
+                "params_from": src,
                 "series_csv": str(series_path.relative_to(ROOT)),
                 "rain": rain_meta,
-                "warning": "Simulated Q at STZ using Muçum-fitted params — NOT an STZ Q calibration",
+                "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration",
             }
         )
 
@@ -481,15 +576,17 @@ def diagnose_stz(areas: dict[str, float], mucum_report: dict[str, Any]) -> dict[
         "status": "q_calibration_blocked_no_ana_vazao",
         "structure": "modelo_stz_estrutura_stz_mucum_v1",
         "blocker": (
-            "Posto 86472600 não tem série de Vazão ANA nos eventos E19–E28 deste pacote "
-            "(só Nivel em parte dos eventos). Sem curva-chave reconciliada não há alvo Q HEC."
+            "Posto 86472600 não tem Vazão ANA preenchida nos eventos E19–E28 deste pacote. "
+            "E24/E27/E28 têm Nivel; E19/E22 sem Nivel e sem Vazao. "
+            "Sem curva-chave reconciliada (ou série Q externa) não há alvo Q HEC. "
+            "Probe HIDROWEB type=3 neste ambiente também voltou vazio."
         ),
         "events_inventory": events_diag,
         "diagnostic_transfer_from_mucum_params": transferred,
         "next_to_unlock_stz_q": [
-            "Reconciliar curva-chave Santa Tereza (Nivel→Vazao)",
-            "Ou obter Vazao observada confiável no posto/controle STZ",
-            "Só então rodar busca eventwise no modelo STZ truncado",
+            "Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) ou série Q horária reconciliada",
+            "Converter Nivel→Q só em E24/E27/E28 (onde há Nivel)",
+            "Só então rodar busca eventwise + common-search no modelo STZ truncado",
         ],
     }
 
@@ -497,24 +594,37 @@ def diagnose_stz(areas: dict[str, float], mucum_report: dict[str, Any]) -> dict[
 def write_html(payload: dict) -> None:
     muc = payload["models"]["mucum"]
     stz = payload["models"]["santa_tereza"]
+    common = muc.get("common_search") or {}
     rows = []
     for e in muc["events"]:
-        if e["status"] == "calibrated_eventwise":
+        if e["status"] in ("eventwise_scored", "fit_failed_eventwise"):
             m = e["metrics"]
             rows.append(
-                f"<tr><td>{e['event_id']}</td><td>{m['nse']:.3f}</td><td>{m['rmse_m3s']:.1f}</td>"
-                f"<td>{m['peak_lag_hours']:.0f}</td><td>{m['peak_relative_error']:.3f}</td></tr>"
+                f"<tr><td>{e['event_id']}</td><td>{html.escape(e['status'])}</td>"
+                f"<td>{m['nse']:.3f}</td><td>{e.get('score', float('nan')):.3f}</td>"
+                f"<td>{m['rmse_m3s']:.1f}</td><td>{m['peak_lag_hours']:.0f}</td>"
+                f"<td>{m['peak_relative_error']:.3f}</td></tr>"
             )
         else:
             rows.append(
-                f"<tr><td>{e['event_id']}</td><td colspan='4'>bloqueado — {html.escape(str(e.get('reason','')))}</td></tr>"
+                f"<tr><td>{e['event_id']}</td><td colspan='6'>bloqueado — "
+                f"{html.escape(str(e.get('reason','')))}</td></tr>"
             )
+    common_rows = []
+    for d in common.get("best_event_metrics") or []:
+        common_rows.append(
+            f"<tr><td>{d['event_id']}</td><td>{d['nse']:.3f}</td>"
+            f"<td>{d.get('peak_lag_hours', float('nan')):.0f}</td>"
+            f"<td>{d.get('peak_relative_error', float('nan')):.3f}</td></tr>"
+        )
+    mean_ok = muc.get("mean_nse_eventwise", float("nan"))
+    mean_all = muc.get("mean_nse_eventwise_including_e19", muc.get("mean_nse_eventwise_including_failed", float("nan")))
     page = f"""<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HEC twin · calibração STZ/Muçum v1</title>
+  <title>HEC twin · Muçum eventwise + STZ diagnóstico</title>
   <style>
     :root {{ --ink:#1a303f; --muted:#5d7380; --line:#d7e4e8; --ok:#1b7a4a; --warn:#9a5b12; --bad:#a33b35; }}
     body {{ margin:0; color:var(--ink); font:16px/1.55 "Source Sans 3",Segoe UI,sans-serif; background:linear-gradient(165deg,#eef7f8,#fff9f2); }}
@@ -535,31 +645,42 @@ def write_html(payload: dict) -> None:
 <body>
 <main>
   <header>
-    <div class="eyebrow">HEC · gêmeo Python v1</div>
-    <h1>Calibração HEC · Santa Tereza e Muçum</h1>
+    <div class="eyebrow">HEC · gêmeo Python v1 (auditoria)</div>
+    <h1>HEC twin · busca Muçum · STZ diagnóstico</h1>
     <p class="muted">{html.escape(payload['generated_at_utc'])} · {html.escape(payload['status'])}</p>
     <div class="notice ok"><strong>Motor:</strong> {html.escape(payload['engine']['name'])} — {html.escape(payload['engine']['why'])}</div>
+    <div class="notice"><strong>Objetivo da busca:</strong> research_score = NSE − 0.05·|lag| − 0.5·erro_pico (não é argmax de NSE puro). Sem hold-out formal.</div>
     <div class="notice bad"><strong>STZ Q:</strong> {html.escape(stz['blocker'])}</div>
   </header>
 
   <section>
     <h2>Modelo Muçum · alvo Vazão 86510000</h2>
-    <p class="muted">Estrutura Prata+Carreiro ·
-      NSE médio E22–E28: <strong>{muc.get('mean_nse_eventwise_excluding_e19', float('nan')):.3f}</strong>
-      ({muc.get('n_events_excluding_e19', 0)} eventos) ·
-      média bruta incl. E19: {muc['mean_nse_eventwise']:.3f} ({muc['n_events_calibrated']} eventos)</p>
+    <p class="muted">Estrutura Prata+Carreiro · NSE médio dos fits OK (NSE≥0):
+      <strong>{mean_ok:.3f}</strong> ({muc.get('n_events_fit_ok', 0)} eventos) ·
+      média incluindo falhas: {mean_all:.3f}</p>
     <div class="notice">{html.escape(muc.get('e19_note', ''))}</div>
     <table>
-      <thead><tr><th>Evento</th><th>NSE</th><th>RMSE</th><th>Lag pico (h)</th><th>Erro pico rel.</th></tr></thead>
+      <thead><tr><th>Evento</th><th>Status</th><th>NSE</th><th>Score</th><th>RMSE</th><th>Lag pico (h)</th><th>Erro pico rel.</th></tr></thead>
       <tbody>{''.join(rows)}</tbody>
     </table>
   </section>
 
   <section>
+    <h2>Common-search (regra transferível)</h2>
+    <p class="muted">Eventos: {', '.join(common.get('runnable_events') or [])} ·
+      NSE médio comum: <strong>{(common.get('mean_nse') if common.get('mean_nse') is not None else float('nan')):.3f}</strong></p>
+    <div class="notice">{html.escape(common.get('note', ''))}</div>
+    <table>
+      <thead><tr><th>Evento</th><th>NSE</th><th>Lag</th><th>Erro pico</th></tr></thead>
+      <tbody>{''.join(common_rows) if common_rows else '<tr><td colspan="4">sem common-search</td></tr>'}</tbody>
+    </table>
+  </section>
+
+  <section>
     <h2>Modelo Santa Tereza · alvo 86472600</h2>
-    <p class="muted">Status: <strong>{html.escape(stz['status'])}</strong></p>
+    <p class="muted">Status: <strong>{html.escape(stz['status'])}</strong> — não calibrado em Q</p>
     <ul>{''.join(f'<li>{html.escape(x)}</li>' for x in stz['next_to_unlock_stz_q'])}</ul>
-    <p class="muted">Séries diagnósticas (Q simulada com params do Muçum, sem calibrar STZ) em <code>hec_twin_stz_mucum_v1/</code>.</p>
+    <p class="muted">Séries diagnósticas (Q simulada com params do Muçum) em <code>hec_twin_stz_mucum_v1/</code>.</p>
   </section>
 
   <section>
@@ -580,15 +701,16 @@ def write_html(payload: dict) -> None:
 
 def merge(payload: dict) -> None:
     path = OUT / "estudo_bacia_latest.json"
+    muc = payload["models"]["mucum"]
     if path.exists():
         prev = json.loads(path.read_text(encoding="utf-8"))
         prev["hec_twin_stz_mucum_v1"] = {
             "status": payload["status"],
             "artifacts": payload["artifacts"],
-            "mucum_mean_nse": payload["models"]["mucum"]["mean_nse_eventwise"],
-            "mucum_mean_nse_excluding_e19": payload["models"]["mucum"].get(
-                "mean_nse_eventwise_excluding_e19"
-            ),
+            "mucum_mean_nse": muc.get("mean_nse_eventwise"),
+            "mucum_mean_nse_excluding_e19": muc.get("mean_nse_eventwise_excluding_e19"),
+            "mucum_mean_nse_including_e19": muc.get("mean_nse_eventwise_including_e19"),
+            "mucum_common_mean_nse": (muc.get("common_search") or {}).get("mean_nse"),
             "stz_status": payload["models"]["santa_tereza"]["status"],
             "updated_at_utc": payload["generated_at_utc"],
         }
@@ -603,7 +725,7 @@ def merge(payload: dict) -> None:
         data["hec_twin_artifact"] = payload["artifacts"]
         data["next_steps"] = payload["next_steps"]
         if name.startswith("dois_"):
-            data["status"] = "hec_twin_mucum_calibrado_stz_q_bloqueado"
+            data["status"] = payload["status"]
         if name.startswith("estrutura_"):
             data["status"] = "estrutura_com_hec_twin_v1"
         p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -621,7 +743,7 @@ def merge(payload: dict) -> None:
             block = """  <section>
     <h2>HEC twin calibração (v1)</h2>
     <div class="notice" style="border-left-color:#1b7a4a;background:#eefaf3;color:#145c38"><strong>HEC twin:</strong>
-    Muçum calibrado em Vazão no gêmeo Python da estrutura Prata+Carreiro. STZ Q bloqueado (sem Vazão ANA).
+    Muçum: busca eventwise + common-search no gêmeo Python. STZ Q bloqueado (sem Vazão ANA).
     Ver <a href="hec_twin_stz_mucum_v1.html">hec_twin_stz_mucum_v1.html</a>.</div>
   </section>
 
@@ -630,12 +752,25 @@ def merge(payload: dict) -> None:
                 "  <section>\n    <h2>Estrutura candidata (v1)</h2>",
                 block + "  <section>\n    <h2>Estrutura candidata (v1)</h2>",
             )
+        else:
+            text = text.replace(
+                "<strong>HEC (não MATLAB):</strong>",
+                "<strong>HEC twin:</strong>",
+            )
+            text = text.replace(
+                "Muçum calibrado em Vazão no gêmeo Python da estrutura Prata+Carreiro. STZ Q bloqueado (sem Vazão ANA).",
+                "Muçum: busca eventwise + common-search no gêmeo Python. STZ Q bloqueado (sem Vazão ANA).",
+            )
         steps = "".join(f"<li>{html.escape(x)}</li>" for x in payload["next_steps"])
         text = re.sub(
-            r"(<h2>Proximos passos de ESTUDO \(sem HEC\)</h2>\s*<ul>)(.*?)(</ul>)",
+            r"(<h2>Proximos passos de ESTUDO(?: \(sem HEC\))?</h2>\s*<ul>)(.*?)(</ul>)",
             r"\1" + steps + r"\3",
             text,
             flags=re.S,
+        )
+        text = text.replace(
+            "<h2>Proximos passos de ESTUDO (sem HEC)</h2>",
+            "<h2>Proximos passos de ESTUDO</h2>",
         )
         idx.write_text(text, encoding="utf-8")
 
@@ -643,7 +778,6 @@ def merge(payload: dict) -> None:
 def main() -> None:
     RUN.mkdir(parents=True, exist_ok=True)
     estrutura = json.loads(ESTRUTURA.read_text(encoding="utf-8"))
-    # areas from mucum model elements (superset)
     areas = {
         e["id"]: float(e["area_km2"])
         for e in estrutura["models"]["mucum"]["elements"]
@@ -656,24 +790,38 @@ def main() -> None:
     payload = {
         "schema_version": "estudo_hec_twin_stz_mucum_v1",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "purpose": "calibracao HEC (gemeo Python) dos modelos-alvo STZ e Mucum",
-        "status": "hec_twin_mucum_calibrado_stz_q_bloqueado",
+        "purpose": (
+            "busca eventwise + common-search HEC (gemeo Python) no modelo Muçum; "
+            "STZ apenas diagnostico (Q bloqueado)"
+        ),
+        "status": "hec_twin_mucum_eventwise_scored_stz_q_blocked",
         "discipline_rule": (
             "Isto e HEC estrutural + busca de parametros no gemeo Linux. "
-            "Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional."
+            "Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. "
+            "Eventwise != parametros transferiveis; common-search e hipotese, sem hold-out."
         ),
+        "audit_fixes_v1_1": [
+            "rain_stations HEC de evento separados dos aspiracionais RNA",
+            "fallback de magnitude se pluvio preferido completo mas seco",
+            "E19 como fit_failed quando NSE<0",
+            "common-search portado do sibling carreiro_split",
+            "rotulos: Muçum scored / STZ diagnostico",
+            "inventario STZ mede Nivel e Vazao de verdade",
+        ],
         "engine": {
             "name": "python_hms_twin_ic_clark_recession_muskingum",
             "not_hec_hms_binary": True,
             "why": "HEC-HMS 4.13 do projeto e Windows-only; neste ambiente Linux roda o gemeo auditavel",
             "methods": ["Initial+Constant", "Clark", "Recession", "Muskingum"],
+            "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
         },
         "structure_ref": "estrutura_stz_mucum_latest.json",
         "areas_km2": areas,
         "models": {"mucum": mucum, "santa_tereza": stz},
         "next_steps": [
-            "Desbloquear STZ Q com curva-chave reconciliada (Nivel→Vazao) e recalibrar modelo STZ truncado.",
-            "Opcional: portar melhores params Muçum para projeto .basin HEC-HMS 4.13 no Windows.",
+            "Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) ou série Q horária reconciliada.",
+            "Recalibrar modelo STZ truncado (eventwise + common-search) após N→Q.",
+            "Opcional: portar best_params comuns Muçum para projeto .basin HEC-HMS 4.13 no Windows (hipótese).",
             "Manter Guaporé/Forqueta fora do recorte.",
         ],
         "artifacts": {
@@ -694,17 +842,22 @@ def main() -> None:
             {
                 "ok": True,
                 "status": payload["status"],
-                "mucum_mean_nse": mucum["mean_nse_eventwise"],
-                "mucum_mean_nse_excluding_e19": mucum.get("mean_nse_eventwise_excluding_e19"),
+                "mucum_mean_nse_fit_ok": mucum["mean_nse_eventwise"],
+                "mucum_common_mean_nse": (mucum.get("common_search") or {}).get("mean_nse"),
                 "mucum_events": [
                     {
                         "id": e["event_id"],
                         "status": e["status"],
                         "nse": e.get("metrics", {}).get("nse"),
+                        "carreiro_rain": (e.get("rain") or {}).get("subbasin_sources", {}).get(
+                            "SB_CARREIRO_7866"
+                        ),
+                        "fallback": (e.get("rain") or {}).get("fallback_notes") or [],
                     }
                     for e in mucum["events"]
                 ],
                 "stz": stz["status"],
+                "stz_inventory": stz["events_inventory"],
             },
             ensure_ascii=False,
             indent=2,

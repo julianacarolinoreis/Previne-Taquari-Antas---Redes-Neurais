@@ -1,9 +1,17 @@
 {
   "schema_version": "estudo_hec_twin_stz_mucum_v1",
-  "generated_at_utc": "2026-09-09T11:11:05.193317+00:00",
-  "purpose": "calibracao HEC (gemeo Python) dos modelos-alvo STZ e Mucum",
-  "status": "hec_twin_mucum_calibrado_stz_q_bloqueado",
-  "discipline_rule": "Isto e HEC estrutural + busca de parametros no gemeo Linux. Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional.",
+  "generated_at_utc": "2026-09-09T11:36:42.114436+00:00",
+  "purpose": "busca eventwise + common-search HEC (gemeo Python) no modelo Muçum; STZ apenas diagnostico (Q bloqueado)",
+  "status": "hec_twin_mucum_eventwise_scored_stz_q_blocked",
+  "discipline_rule": "Isto e HEC estrutural + busca de parametros no gemeo Linux. Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. Eventwise != parametros transferiveis; common-search e hipotese, sem hold-out.",
+  "audit_fixes_v1_1": [
+    "rain_stations HEC de evento separados dos aspiracionais RNA",
+    "fallback de magnitude se pluvio preferido completo mas seco",
+    "E19 como fit_failed quando NSE<0",
+    "common-search portado do sibling carreiro_split",
+    "rotulos: Muçum scored / STZ diagnostico",
+    "inventario STZ mede Nivel e Vazao de verdade"
+  ],
   "engine": {
     "name": "python_hms_twin_ic_clark_recession_muskingum",
     "not_hec_hms_binary": true,
@@ -13,7 +21,8 @@
       "Clark",
       "Recession",
       "Muskingum"
-    ]
+    ],
+    "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error"
   },
   "structure_ref": "estrutura_stz_mucum_latest.json",
   "areas_km2": {
@@ -29,8 +38,86 @@
       "target_name": "Muçum",
       "quantity": "Vazao_m3s",
       "structure": "modelo_mucum_estrutura_stz_mucum_v1",
-      "n_events_calibrated": 5,
-      "mean_nse_eventwise": -6.525175857986895,
+      "mode": "eventwise_plus_common_search",
+      "hold_out": false,
+      "n_events_scored": 5,
+      "n_events_fit_ok": 4,
+      "mean_nse_eventwise_including_failed": -6.525652233405038,
+      "mean_nse_eventwise": 0.82242848724258,
+      "mean_nse_eventwise_excluding_e19": 0.82242848724258,
+      "n_events_excluding_e19": 4,
+      "mean_nse_eventwise_including_e19": -6.525652233405038,
+      "e19_note": "E19 tipicamente fit_failed (NSE fortemente negativo). Headline = média dos eventos com NSE>=0 (E22–E28).",
+      "common_search": {
+        "runnable_events": [
+          "E22",
+          "E24",
+          "E27",
+          "E28"
+        ],
+        "candidates_evaluated": 194,
+        "best_params": {
+          "initial_loss": 2.5,
+          "constant_loss": 2.0,
+          "tc": 10.0,
+          "storage": 45.0,
+          "recession": 0.98,
+          "initial_flow_ratio": 0.005,
+          "k1": 0.5,
+          "k2": 0.5,
+          "k3": 0.5,
+          "x": 0.2
+        },
+        "best_mean_research_score": -0.134076555010356,
+        "best_event_metrics": [
+          {
+            "event_id": "E22",
+            "pairs": 110.0,
+            "nse": 0.3976736492696892,
+            "rmse_m3s": 1252.3826972452757,
+            "mae_m3s": 894.4977148995981,
+            "peak_lag_hours": 0.0,
+            "peak_relative_error": 0.56430203447712,
+            "observed_peak_m3s": 10437.666666666666,
+            "simulated_peak_m3s": 4547.670131472647
+          },
+          {
+            "event_id": "E24",
+            "pairs": 238.0,
+            "nse": 0.6305838334361454,
+            "rmse_m3s": 1775.0068276241384,
+            "mae_m3s": 1256.6468454192154,
+            "peak_lag_hours": -7.0,
+            "peak_relative_error": 0.26180624832712024,
+            "observed_peak_m3s": 11434.95,
+            "simulated_peak_m3s": 8441.208640691797
+          },
+          {
+            "event_id": "E27",
+            "pairs": 245.0,
+            "nse": -0.2289284241168854,
+            "rmse_m3s": 4450.66737354842,
+            "mae_m3s": 3229.195653540478,
+            "peak_lag_hours": 6.0,
+            "peak_relative_error": 0.6545878954700916,
+            "observed_peak_m3s": 14525.225,
+            "simulated_peak_m3s": 24033.26146397956
+          },
+          {
+            "event_id": "E28",
+            "pairs": 209.0,
+            "nse": 0.7294771214793322,
+            "rmse_m3s": 928.0259982424445,
+            "mae_m3s": 559.2468687635749,
+            "peak_lag_hours": -11.0,
+            "peak_relative_error": 0.2495286219450786,
+            "observed_peak_m3s": 7886.724999999999,
+            "simulated_peak_m3s": 5918.7613790902
+          }
+        ],
+        "mean_nse": 0.3822015450170704,
+        "note": "Regra comum transferível nos eventos com fit eventwise NSE>=0. Não há hold-out formal; promoção operacional bloqueada."
+      },
       "events": [
         {
           "event_id": "E19",
@@ -46,11 +133,14 @@
               "SB_STZ_RESIDUAL": "86472000",
               "SB_INC_MUCUM": "86510000"
             },
+            "fallback_notes": [],
             "runnable": true,
-            "blocked_reason": null
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only"
           },
           "observed_points": 53,
-          "status": "calibrated_eventwise",
+          "status": "fit_failed_eventwise",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
           "score": -36.73502971344652,
           "metrics": {
             "pairs": 53.0,
@@ -90,11 +180,14 @@
               "SB_STZ_RESIDUAL": "86472000",
               "SB_INC_MUCUM": "86472000"
             },
+            "fallback_notes": [],
             "runnable": true,
-            "blocked_reason": null
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only"
           },
           "observed_points": 110,
-          "status": "calibrated_eventwise",
+          "status": "eventwise_scored",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
           "score": 0.6918737037117183,
           "metrics": {
             "pairs": 110.0,
@@ -133,11 +226,14 @@
               "SB_STZ_RESIDUAL": "86472000",
               "SB_INC_MUCUM": "86472000"
             },
+            "fallback_notes": [],
             "runnable": true,
-            "blocked_reason": null
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only"
           },
           "observed_points": 238,
-          "status": "calibrated_eventwise",
+          "status": "eventwise_scored",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
           "score": 0.6142121170981797,
           "metrics": {
             "pairs": 238.0,
@@ -177,11 +273,14 @@
               "SB_STZ_RESIDUAL": "86472000",
               "SB_INC_MUCUM": "86472000"
             },
+            "fallback_notes": [],
             "runnable": true,
-            "blocked_reason": null
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only"
           },
           "observed_points": 245,
-          "status": "calibrated_eventwise",
+          "status": "eventwise_scored",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
           "score": 0.7045192269177392,
           "metrics": {
             "pairs": 245.0,
@@ -212,40 +311,51 @@
           "rain": {
             "stations_mm_sum": {
               "86472000": 228.1,
-              "86507000": 7.4,
               "86472600": 227.4,
               "86510000": 235.2
             },
             "subbasin_sources": {
               "SB_PRATA_7868": "86472000",
               "SB_ANTAS_RESIDUAL": "86472000",
-              "SB_CARREIRO_7866": "86507000",
+              "SB_CARREIRO_7866": "86472000",
               "SB_STZ_RESIDUAL": "86472600",
               "SB_INC_MUCUM": "86510000"
             },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_CARREIRO_7866",
+                "rejected": "86507000",
+                "rejected_mm_sum": 7.4,
+                "chosen": "86472000",
+                "chosen_mm_sum": 228.1,
+                "rule": "preferred_sum < 0.2 * best_complete_backup"
+              }
+            ],
             "runnable": true,
-            "blocked_reason": null
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only"
           },
           "observed_points": 209,
-          "status": "calibrated_eventwise",
-          "score": 0.8971025684049615,
+          "status": "eventwise_scored",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
+          "score": 0.8932157653745671,
           "metrics": {
             "pairs": 209.0,
-            "nse": 0.9482891601735419,
-            "rmse_m3s": 405.74104047122114,
-            "mae_m3s": 326.749271071738,
+            "nse": 0.9459072830828276,
+            "rmse_m3s": 414.9803576565131,
+            "mae_m3s": 332.17431508609025,
             "peak_lag_hours": 1.0,
-            "peak_relative_error": 0.0023731835371606533,
+            "peak_relative_error": 0.005383035416520798,
             "observed_peak_m3s": 7886.724999999999,
-            "simulated_peak_m3s": 7868.008354067886
+            "simulated_peak_m3s": 7929.179519995359
           },
           "params": {
-            "initial_loss": 0.0,
-            "constant_loss": 1.0,
+            "initial_loss": 1.0,
+            "constant_loss": 2.0,
             "tc": 25.0,
             "storage": 25.0,
-            "recession": 0.85,
-            "initial_flow_ratio": 0.005,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.001,
             "k1": 0.5,
             "k2": 0.5,
             "k3": 0.5,
@@ -253,10 +363,7 @@
           },
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E28_best_series.csv"
         }
-      ],
-      "mean_nse_eventwise_excluding_e19": 0.8230239565152586,
-      "n_events_excluding_e19": 4,
-      "e19_note": "E19 derruba a média bruta (NSE ~−36). Eventos E22–E28 ficam no mesmo patamar do carreiro_split (NSE ~0.73–0.95)."
+      ]
     },
     "santa_tereza": {
       "target": "86472600",
@@ -264,43 +371,43 @@
       "quantity": "Vazao_m3s",
       "status": "q_calibration_blocked_no_ana_vazao",
       "structure": "modelo_stz_estrutura_stz_mucum_v1",
-      "blocker": "Posto 86472600 não tem série de Vazão ANA nos eventos E19–E28 deste pacote (só Nivel em parte dos eventos). Sem curva-chave reconciliada não há alvo Q HEC.",
+      "blocker": "Posto 86472600 não tem Vazão ANA preenchida nos eventos E19–E28 deste pacote. E24/E27/E28 têm Nivel; E19/E22 sem Nivel e sem Vazao. Sem curva-chave reconciliada (ou série Q externa) não há alvo Q HEC. Probe HIDROWEB type=3 neste ambiente também voltou vazio.",
       "events_inventory": [
         {
           "event_id": "E19",
           "nivel_hours": 0,
           "vazao_hours": 0,
-          "note": "ANA telemetry for 86472600 has Nivel only (empty Vazao) in available event files"
+          "note": "Sem Nivel e sem Vazao preenchidos na telemetria de evento deste pacote"
         },
         {
           "event_id": "E22",
           "nivel_hours": 0,
           "vazao_hours": 0,
-          "note": "ANA telemetry for 86472600 has Nivel only (empty Vazao) in available event files"
+          "note": "Sem Nivel e sem Vazao preenchidos na telemetria de evento deste pacote"
         },
         {
           "event_id": "E24",
           "nivel_hours": 239,
           "vazao_hours": 0,
-          "note": "ANA telemetry for 86472600 has Nivel only (empty Vazao) in available event files"
+          "note": "Nivel presente; Vazao vazia/ausente (precisa curva-chave Nivel→Vazao)"
         },
         {
           "event_id": "E27",
           "nivel_hours": 244,
           "vazao_hours": 0,
-          "note": "ANA telemetry for 86472600 has Nivel only (empty Vazao) in available event files"
+          "note": "Nivel presente; Vazao vazia/ausente (precisa curva-chave Nivel→Vazao)"
         },
         {
           "event_id": "E28",
           "nivel_hours": 209,
           "vazao_hours": 0,
-          "note": "ANA telemetry for 86472600 has Nivel only (empty Vazao) in available event files"
+          "note": "Nivel presente; Vazao vazia/ausente (precisa curva-chave Nivel→Vazao)"
         }
       ],
       "diagnostic_transfer_from_mucum_params": [
         {
           "event_id": "E19",
-          "params_from": "mucum_eventwise_best",
+          "params_from": "mucum_common_search",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E19_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
@@ -312,14 +419,16 @@
               "SB_CARREIRO_7866": "86472000",
               "SB_STZ_RESIDUAL": "86472000"
             },
+            "fallback_notes": [],
             "runnable": true,
-            "blocked_reason": null
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only"
           },
-          "warning": "Simulated Q at STZ using Muçum-fitted params — NOT an STZ Q calibration"
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
         },
         {
           "event_id": "E22",
-          "params_from": "mucum_eventwise_best",
+          "params_from": "mucum_common_search",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E22_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
@@ -332,14 +441,16 @@
               "SB_CARREIRO_7866": "86507000",
               "SB_STZ_RESIDUAL": "86472000"
             },
+            "fallback_notes": [],
             "runnable": true,
-            "blocked_reason": null
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only"
           },
-          "warning": "Simulated Q at STZ using Muçum-fitted params — NOT an STZ Q calibration"
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
         },
         {
           "event_id": "E24",
-          "params_from": "mucum_eventwise_best",
+          "params_from": "mucum_common_search",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E24_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
@@ -351,14 +462,16 @@
               "SB_CARREIRO_7866": "86472000",
               "SB_STZ_RESIDUAL": "86472000"
             },
+            "fallback_notes": [],
             "runnable": true,
-            "blocked_reason": null
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only"
           },
-          "warning": "Simulated Q at STZ using Muçum-fitted params — NOT an STZ Q calibration"
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
         },
         {
           "event_id": "E27",
-          "params_from": "mucum_eventwise_best",
+          "params_from": "mucum_common_search",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E27_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
@@ -371,43 +484,56 @@
               "SB_CARREIRO_7866": "86507000",
               "SB_STZ_RESIDUAL": "86472000"
             },
+            "fallback_notes": [],
             "runnable": true,
-            "blocked_reason": null
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only"
           },
-          "warning": "Simulated Q at STZ using Muçum-fitted params — NOT an STZ Q calibration"
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
         },
         {
           "event_id": "E28",
-          "params_from": "mucum_eventwise_best",
+          "params_from": "mucum_common_search",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E28_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
               "86472000": 228.1,
-              "86507000": 7.4,
               "86472600": 227.4
             },
             "subbasin_sources": {
               "SB_PRATA_7868": "86472000",
               "SB_ANTAS_RESIDUAL": "86472000",
-              "SB_CARREIRO_7866": "86507000",
+              "SB_CARREIRO_7866": "86472000",
               "SB_STZ_RESIDUAL": "86472600"
             },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_CARREIRO_7866",
+                "rejected": "86507000",
+                "rejected_mm_sum": 7.4,
+                "chosen": "86472000",
+                "chosen_mm_sum": 228.1,
+                "rule": "preferred_sum < 0.2 * best_complete_backup"
+              }
+            ],
             "runnable": true,
-            "blocked_reason": null
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only"
           },
-          "warning": "Simulated Q at STZ using Muçum-fitted params — NOT an STZ Q calibration"
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
         }
       ],
       "next_to_unlock_stz_q": [
-        "Reconciliar curva-chave Santa Tereza (Nivel→Vazao)",
-        "Ou obter Vazao observada confiável no posto/controle STZ",
-        "Só então rodar busca eventwise no modelo STZ truncado"
+        "Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) ou série Q horária reconciliada",
+        "Converter Nivel→Q só em E24/E27/E28 (onde há Nivel)",
+        "Só então rodar busca eventwise + common-search no modelo STZ truncado"
       ]
     }
   },
   "next_steps": [
-    "Desbloquear STZ Q com curva-chave reconciliada (Nivel→Vazao) e recalibrar modelo STZ truncado.",
-    "Opcional: portar melhores params Muçum para projeto .basin HEC-HMS 4.13 no Windows.",
+    "Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) ou série Q horária reconciliada.",
+    "Recalibrar modelo STZ truncado (eventwise + common-search) após N→Q.",
+    "Opcional: portar best_params comuns Muçum para projeto .basin HEC-HMS 4.13 no Windows (hipótese).",
     "Manter Guaporé/Forqueta fora do recorte."
   ],
   "artifacts": {

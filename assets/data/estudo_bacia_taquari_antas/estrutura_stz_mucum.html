@@ -29,8 +29,8 @@
   <header>
     <div class="eyebrow">Estudo · estrutura v1</div>
     <h1>Dois esqueletos — ainda sem calibração</h1>
-    <p class="muted">2026-09-09T02:32:08.620943+00:00 · estrutura_proposta_nao_calibrada</p>
-    <div class="notice ok"><strong>Disciplina:</strong> Dois projetos/logicas separados. Nunca rotular como &#x27;modelo da bacia G040&#x27;. Parametros de perda/routing/NSE ainda bloqueados.</div>
+    <p class="muted">2026-09-09T11:36:32.682103+00:00 · estrutura_com_hec_twin_v1</p>
+    <div class="notice ok"><strong>Disciplina:</strong> Dois projetos/logicas separados. Nunca rotular como &#x27;modelo da bacia G040&#x27;. rain_stations = contrato HEC de evento (ANA raw_ana). rain_stations_rna_aspirational = pluvios do trilho RNA/forçantes. HEC twin v1: busca eventwise Muçum + common-search; STZ Q ainda bloqueado.</div>
     <div class="notice bad"><strong>Fora:</strong> Guaporé, Forqueta, Baixo. Não rotular como bacia G040.</div>
   </header>
 
@@ -59,7 +59,7 @@ SB_INC_MUCUM (~190) ─────→ J_MUCUM</pre>
     <h2>Elementos — Santa Tereza</h2>
     <table>
       <thead><tr><th>ID</th><th>Tipo</th><th>Papel / destino</th><th>Área / posto</th><th>Nota</th></tr></thead>
-      <tbody><tr><td>SB_PRATA_7868</td><td>subbasin</td><td>J_ANTAS_86472000</td><td>86125500</td><td>Sistema Prata/Turvo-Humatã nomeado para casar com forçante 86125500. Ainda agrega componentes internos.</td></tr><tr><td>SB_ANTAS_RESIDUAL</td><td>subbasin</td><td>J_ANTAS_86472000</td><td>9,142.67 km²</td><td>Tronco Antas a montante de 86472000 depois de separar Prata. Pode abrir UP_* depois se necessário.</td></tr><tr><td>J_ANTAS_86472000</td><td>junction</td><td>controle_observado_nivel</td><td>86472000</td><td>Controle do tronco Antas; forçante de nível nos dois modelos.</td></tr><tr><td>R_ANTAS_TO_CARREIRO</td><td>reach</td><td>J_CARREIRO_CONFLUENCE</td><td></td><td></td></tr><tr><td>SB_CARREIRO_7866</td><td>subbasin</td><td>J_CARREIRO_CONFLUENCE</td><td>86507000</td><td>~90% do incremento Antas→STZ. Obrigatório no desenho STZ.</td></tr><tr><td>J_CARREIRO_CONFLUENCE</td><td>junction</td><td>confluencia_geometrica</td><td></td><td>Aqui o nome do rio passa de Antas para Taquari (estudo).</td></tr><tr><td>R_CARREIRO_TO_STZ</td><td>reach</td><td>J_STZ_86472600</td><td></td><td></td></tr><tr><td>SB_STZ_RESIDUAL</td><td>subbasin</td><td>J_STZ_86472600</td><td>292.34 km²</td><td>Residual local (ex.: Marrecão) entre Carreiro e STZ.</td></tr><tr><td>J_STZ_86472600</td><td>junction</td><td>ALVO_PREDICAO_modelo_STZ</td><td>86472600</td><td>Predictand do modelo Santa Tereza.</td></tr></tbody>
+      <tbody><tr><td>SB_PRATA_7868</td><td>subbasin</td><td>J_ANTAS_86472000</td><td>86125500</td><td>Sistema Prata/Turvo-Humatã nomeado para casar com forçante 86125500. HEC twin eventwise usa telemetria ANA 86472000 (lumping com Antas residual). 2851072 fica aspiracional até haver série de evento.</td></tr><tr><td>SB_ANTAS_RESIDUAL</td><td>subbasin</td><td>J_ANTAS_86472000</td><td>9,142.67 km²</td><td>Tronco Antas a montante de 86472000 depois de separar Prata. Pode abrir UP_* depois se necessário.</td></tr><tr><td>J_ANTAS_86472000</td><td>junction</td><td>controle_observado_nivel</td><td>86472000</td><td>Controle do tronco Antas; forçante de nível nos dois modelos.</td></tr><tr><td>R_ANTAS_TO_CARREIRO</td><td>reach</td><td>J_CARREIRO_CONFLUENCE</td><td></td><td></td></tr><tr><td>SB_CARREIRO_7866</td><td>subbasin</td><td>J_CARREIRO_CONFLUENCE</td><td>86507000</td><td>~90% do incremento Antas→STZ. HEC twin: preferir 86507000, com fallback de magnitude para 86472000 se a preferida estiver completa mas ~seca.</td></tr><tr><td>J_CARREIRO_CONFLUENCE</td><td>junction</td><td>confluencia_geometrica</td><td></td><td>Aqui o nome do rio passa de Antas para Taquari (estudo).</td></tr><tr><td>R_CARREIRO_TO_STZ</td><td>reach</td><td>J_STZ_86472600</td><td></td><td></td></tr><tr><td>SB_STZ_RESIDUAL</td><td>subbasin</td><td>J_STZ_86472600</td><td>292.34 km²</td><td>Residual local (ex.: Marrecão) entre Carreiro e STZ.</td></tr><tr><td>J_STZ_86472600</td><td>junction</td><td>ALVO_PREDICAO_modelo_STZ</td><td>86472600</td><td>Predictand do modelo Santa Tereza.</td></tr></tbody>
     </table>
   </section>
 
@@ -74,9 +74,9 @@ SB_INC_MUCUM (~190) ─────→ J_MUCUM</pre>
 
   <section>
     <h2>Escolhas de desenho</h2>
-    <ul><li>Prata (7868) nomeado como SB_PRATA_7868 — casa com forçante 86125500.</li><li>Carreiro (7866) separado — ~90% do incremento Antas→STZ.</li><li>Modelo STZ para em J_STZ; nao inclui SB_INC_MUCUM.</li><li>Modelo Muçum reusa esqueleto STZ e acrescenta R_STZ_TO_MUCUM + SB_INC_MUCUM.</li><li>Ainda nao abrir os 3 UP_* extras a montante de Antas (multi_bacia) — opcional depois.</li></ul>
+    <ul><li>Prata (7868) nomeado como SB_PRATA_7868 — casa com forçante 86125500.</li><li>Carreiro (7866) separado — ~90% do incremento Antas→STZ.</li><li>Modelo STZ para em J_STZ; nao inclui SB_INC_MUCUM.</li><li>Modelo Muçum reusa esqueleto STZ e acrescenta R_STZ_TO_MUCUM + SB_INC_MUCUM.</li><li>Ainda nao abrir os 3 UP_* extras a montante de Antas (multi_bacia) — opcional depois.</li><li>Contrato de chuva HEC de evento separado do aspiracional RNA (2851072/A894).</li><li>No twin, Prata+Antas residual sao runoff-lumped (mesma lamina ANA) para nao dobrar Initial+Constant.</li></ul>
     <h2>Bloqueado até checar séries</h2>
-    <ul><li>buracos chuva_86472600</li><li>A894 pane (ausencia != zero)</li><li>parametros de routing sem evidencia de canal</li><li>NSE / calibracao</li></ul>
+    <ul><li>buracos chuva_86472600 em series longas</li><li>A894 pane (ausencia != zero) no trilho RNA</li><li>parametros de routing sem evidencia de canal</li><li>STZ Q: curva-chave Nivel→Vazao reconciliada</li><li>telemetria de evento para pluvios aspiracionais 2851072</li></ul>
     <h2>Próximos</h2>
     <ul><li>Validar series das forçantes congeladas (nivel + chuva) por alvo.</li><li>Escolher caminho: montar .basin HEC-HMS por alvo OU treinar/confirmar RNA com o mesmo grafo de features.</li><li>So depois: calibracao — e apenas no modelo escolhido, nunca &#x27;da bacia&#x27;.</li></ul>
     <p>
