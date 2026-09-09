@@ -3396,7 +3396,7 @@ function atualizaPainelTerritorial(){
   const vista=dadosDaVista();
   const n=vista.features.length;
   const unidade=camada==="grade"?"células da Grade IBGE":"setores censitários";
-  if(meta) meta.textContent=`${fmt(n)} ${unidade} na exportação atual${exportSoNaBacia?" (somente na_bacia=1)":""}. O ZIP inclui CSV, GeoJSON da vista, polígono municipal e LEIA-ME.`;
+  if(meta) meta.textContent=`${fmt(n)} ${unidade} na exportação atual${exportSoNaBacia?" (somente na_bacia=1)":""}. CSV, GeoJSON, Shapefile e pacote GIS (ZIP) usam este recorte.`;
   const cod=encodeURIComponent(String(munAtual.cod_mun));
   if(links){
     links.innerHTML =
@@ -3511,14 +3511,17 @@ async function baixarPacoteMunicipio(){
   const csv=[cols.map(csvCampo).join(";")].concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
   zip.file(`${vista.prefixo}.csv`, "\uFEFF"+csv);
   zip.file(`${vista.prefixo}.geojson`, JSON.stringify({type:"FeatureCollection",features:vista.features}));
+  let shpOk=false;
   try{
     const api=shpWriteApi();
-    if(api?.zip){
-      let shpZip=api.zip(geojsonParaShapefile(vista.features), {folder:"shapefile", filename:vista.prefixo, outputType:"arraybuffer", compression:"DEFLATE", types:{polygon:"poligonos", point:"pontos", polyline:"linhas"}});
-      if(shpZip && typeof shpZip.then==="function") shpZip=await shpZip;
-      zip.file(`${vista.prefixo}_shapefile.zip`, shpZip);
-    }
-  }catch(_){}
+    if(!api?.zip) throw new Error("Biblioteca Shapefile indisponível");
+    let shpZip=api.zip(geojsonParaShapefile(vista.features), {folder:"shapefile", filename:vista.prefixo, outputType:"arraybuffer", compression:"DEFLATE", types:{polygon:"poligonos", point:"pontos", polyline:"linhas"}});
+    if(shpZip && typeof shpZip.then==="function") shpZip=await shpZip;
+    zip.file(`${vista.prefixo}_shapefile.zip`, shpZip);
+    shpOk=true;
+  }catch(err){
+    informa(err?.message || "Pacote sem Shapefile nesta rodada; CSV/GeoJSON seguem no ZIP.");
+  }
   const munFeat=munData?.features?.find(f=>String(f.properties.cod_mun)===String(munAtual.cod_mun));
   if(munFeat) zip.file(`municipio_${munAtual.cod_mun}_${slugLocal(munAtual.nome)}.geojson`, JSON.stringify({type:"FeatureCollection",features:[{type:"Feature",properties:{...munFeat.properties},geometry:munFeat.geometry}]}));
   // Inclui a outra camada estática se existir (setores quando grade ativa e vice-versa)
@@ -3533,7 +3536,8 @@ async function baixarPacoteMunicipio(){
     `Camada da vista: ${camada==="grade"?"Grade IBGE":"setores censitários"}`,
     `Filtro na_bacia: ${exportSoNaBacia?"sim":"não"}`,
     `Indicador ativo na sessão: ${INDS.find(i=>i.k===ind)?.nome||ind}`,
-    `Conteúdo: CSV, GeoJSON, Shapefile (ZIP interno), polígono municipal e (quando disponível) a outra camada estática.`,
+    `Conteúdo: CSV, GeoJSON${shpOk?", Shapefile (ZIP interno)":""}, polígono municipal e (quando disponível) a outra camada estática.`,
+    shpOk ? `Shapefile incluso: ${vista.prefixo}_shapefile.zip` : `Shapefile NÃO incluso nesta geração — use o botão SHP do painel ou o GeoJSON.`,
     `Para GeoPackage (.gpkg): no QGIS, abra o GeoJSON/SHP e use Salvar como → GeoPackage.`,
     `CRS: EPSG:4326 (reprojete para medir área/distância)`,
     `Atenção: vulnerabilidade social ≠ perigo ≠ risco; este pacote não é alerta.`,
@@ -3542,7 +3546,7 @@ async function baixarPacoteMunicipio(){
   zip.file("LEIA-ME.txt", leia);
   const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE"});
   baixarBlob(blob, `pacote_gis_${munAtual.cod_mun}_${slugLocal(munAtual.nome)}.zip`);
-  informa(`Pacote GIS de ${munAtual.nome} baixado (${fmt(vista.features.length)} feições da vista).`);
+  informa(`Pacote GIS de ${munAtual.nome} baixado (${fmt(vista.features.length)} feições · ${shpOk?"com SHP":"sem SHP"}).`);
 }
 function baixarBlob(blob, nome){
   const a = document.createElement("a");
