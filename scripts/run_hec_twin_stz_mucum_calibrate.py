@@ -484,8 +484,8 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
             else sum(d["nse"] for d in best_common_detail) / len(best_common_detail)
         ),
         "note": (
-            "Regra comum transferível nos eventos com fit eventwise NSE>=0. "
-            "Não há hold-out formal; promoção operacional bloqueada."
+            "Hipótese de params comuns nos eventos com fit eventwise NSE>=0. "
+            "NSE médio comum tipicamente fraco — NÃO promover. Sem hold-out formal."
         ),
     }
 
@@ -666,10 +666,10 @@ def write_html(payload: dict) -> None:
   </section>
 
   <section>
-    <h2>Common-search (regra transferível)</h2>
+    <h2>Common-search (diagnóstico — NÃO promover)</h2>
     <p class="muted">Eventos: {', '.join(common.get('runnable_events') or [])} ·
       NSE médio comum: <strong>{(common.get('mean_nse') if common.get('mean_nse') is not None else float('nan')):.3f}</strong></p>
-    <div class="notice">{html.escape(common.get('note', ''))}</div>
+    <div class="notice bad">{html.escape(common.get('note', ''))} Eventwise bom ≠ params transferíveis.</div>
     <table>
       <thead><tr><th>Evento</th><th>NSE</th><th>Lag</th><th>Erro pico</th></tr></thead>
       <tbody>{''.join(common_rows) if common_rows else '<tr><td colspan="4">sem common-search</td></tr>'}</tbody>

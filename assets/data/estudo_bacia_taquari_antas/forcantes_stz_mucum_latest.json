@@ -2,8 +2,8 @@
   "schema_version": "estudo_forcantes_stz_mucum_v1",
   "generated_at_utc": "2026-09-09T02:13:34.486075+00:00",
   "purpose": "lista curta congelada de forçantes por modelo-alvo; nao e HEC",
-  "status": "forcantes_congeladas_v1",
-  "discipline_rule": "Estas listas sao o contrato de ENTRADAS candidato. Ainda nao definem subbacias HEC, parametros, nem calibracao.",
+  "status": "forcantes_congeladas_v1_hec_twin_aware",
+  "discipline_rule": "Contrato de ENTRADAS candidato (nivel/chuva). Trilho paralelo ao HEC twin: forçantes nao substituem rain_stations HEC de evento. HEC twin Muçum ja rodou; STZ Q ainda bloqueado.",
   "selection_rules": [
     "Priorizar seeds PREVINE ja usados em RNA/operacao.",
     "Cobrir tronco + Prata + Carreiro (entradas hidrologicas a montante dos dois alvos).",
@@ -236,9 +236,10 @@
     "naming": "Nunca rotular estas listas como 'bacia Taquari-Antas completa'."
   },
   "next_steps": [
-    "Validar series das forçantes congeladas (nivel + chuva) por alvo.",
-    "Escolher caminho: montar .basin HEC-HMS por alvo OU treinar/confirmar RNA com o mesmo grafo de features.",
-    "So depois: calibracao — e apenas no modelo escolhido, nunca 'da bacia'."
+    "Forçantes continuam o contrato de entradas RNA/nível.",
+    "HEC twin usa rain_stations de evento (ANA raw_ana), não substituir por esta lista aspiracional.",
+    "Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) ou série Q horária reconciliada.",
+    "Recalibrar modelo STZ truncado (eventwise + common-search) após N→Q."
   ],
   "artifacts": {
     "json": "forcantes_stz_mucum_latest.json",
@@ -255,5 +256,10 @@
   "series_artifact": {
     "json": "series_forcantes_stz_mucum_latest.json",
     "html": "series_forcantes_stz_mucum.html"
+  },
+  "hec_twin_artifact": {
+    "json": "hec_twin_stz_mucum_v1_latest.json",
+    "html": "hec_twin_stz_mucum_v1.html",
+    "runs_dir": "hec_twin_stz_mucum_v1/"
   }
 }

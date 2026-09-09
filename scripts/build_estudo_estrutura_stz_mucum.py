@@ -275,9 +275,10 @@ def build_payload() -> dict:
             "telemetria de evento para pluvios aspiracionais 2851072",
         ],
         "next_steps": [
-            "Validar series das forçantes congeladas (nivel + chuva) por alvo.",
-            "Escolher caminho: montar .basin HEC-HMS por alvo OU treinar/confirmar RNA com o mesmo grafo de features.",
-            "So depois: calibracao — e apenas no modelo escolhido, nunca 'da bacia'.",
+            "Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) ou série Q horária reconciliada.",
+            "Recalibrar modelo STZ truncado (eventwise + common-search) após N→Q.",
+            "Não promover common-search Muçum (NSE comum fraco) como regra transferível.",
+            "Manter Guaporé/Forqueta fora do recorte.",
         ],
         "artifacts": {
             "json": "estrutura_stz_mucum_latest.json",
@@ -337,7 +338,7 @@ def write_html(payload: dict) -> None:
 <main>
   <header>
     <div class="eyebrow">Estudo · estrutura v1</div>
-    <h1>Dois esqueletos — ainda sem calibração</h1>
+    <h1>Dois esqueletos — com HEC twin Muçum; STZ Q bloqueado</h1>
     <p class="muted">{html.escape(payload['generated_at_utc'])} · {html.escape(payload['status'])}</p>
     <div class="notice ok"><strong>Disciplina:</strong> {html.escape(payload['discipline_rule'])}</div>
     <div class="notice bad"><strong>Fora:</strong> Guaporé, Forqueta, Baixo. Não rotular como bacia G040.</div>

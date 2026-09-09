@@ -85,5 +85,65 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
         self.assertIn("hec_twin_stz_mucum_v1.html", pesquisas)
 
 
+
+    def test_catalog_not_contradictory(self) -> None:
+        dois = json.loads((OUT / "dois_modelos_stz_mucum_latest.json").read_text(encoding="utf-8"))
+        self.assertNotIn("Ainda nao calibrar HEC", dois["discipline_rule"])
+        self.assertEqual(dois["status"], self.data["status"])
+        est_html = (OUT / "estrutura_stz_mucum.html").read_text(encoding="utf-8")
+        self.assertNotIn("ainda sem calibração", est_html.lower())
+        self.assertIn("STZ Q bloqueado", est_html)
+        idx = (OUT / "index.html").read_text(encoding="utf-8")
+        self.assertNotIn("Parar antes do HEC", idx)
+        self.assertNotIn("Ainda sem HEC.", idx)
+        forc = json.loads((OUT / "forcantes_stz_mucum_latest.json").read_text(encoding="utf-8"))
+        self.assertFalse(any("So depois: calibracao" in s for s in forc["next_steps"]))
+        self.assertIn("hec_twin_artifact", forc)
+
+    def test_e28_fallback_changes_simulation(self) -> None:
+        """Fallback must materially change Q vs dry preferred Carreiro gage."""
+        import sys, types
+        path = Path(__file__).resolve().parents[0] / "run_hec_twin_stz_mucum_calibrate.py"
+        # scripts/ is parent of this test's directory? test is in scripts/
+        path = Path(__file__).resolve().parent / "run_hec_twin_stz_mucum_calibrate.py"
+        mod = types.ModuleType("hec_twin_mod")
+        mod.__file__ = str(path)
+        sys.modules[mod.__name__] = mod
+        exec(compile(path.read_text(encoding="utf-8"), str(path), "exec"), mod.__dict__)
+        areas = {
+            e["id"]: float(e["area_km2"])
+            for e in self.estrutura["models"]["mucum"]["elements"]
+            if e["type"] == "subbasin"
+        }
+        hours = mod.expected_hours(mod.parse_ts(mod.EVENTS["E28"][0]), mod.parse_ts(mod.EVENTS["E28"][1]))
+        subbasins = [
+            "SB_PRATA_7868",
+            "SB_ANTAS_RESIDUAL",
+            "SB_CARREIRO_7866",
+            "SB_STZ_RESIDUAL",
+            "SB_INC_MUCUM",
+        ]
+        precip, meta = mod.build_precip_for_event("E28", hours, subbasins)
+        self.assertIsNotNone(precip)
+        self.assertEqual(meta["subbasin_sources"]["SB_CARREIRO_7866"], "86472000")
+        self.assertTrue(meta["fallback_notes"])
+        # Force dry preferred station series for contrast
+        rain_by = {}
+        for st in ("86472000", "86472600", "86507000", "86510000"):
+            rows = mod.load_event_series(st, "E28")
+            rain_by[st] = mod.hourly_field(rows, "Chuva", reduce="sum")
+        dry = [float(rain_by["86507000"][h]) for h in hours]
+        wet = precip["SB_CARREIRO_7866"]
+        self.assertGreater(sum(wet), 5 * sum(dry))
+        e28 = next(e for e in self.data["models"]["mucum"]["events"] if e["event_id"] == "E28")
+        p = mod.Params(**{k: e28["params"][k] for k in mod.Params.__dataclass_fields__})
+        sim_wet = mod.run_network(precip, areas, p, include_mucum_increment=True)["at_mucum"]
+        precip_dry = dict(precip)
+        precip_dry["SB_CARREIRO_7866"] = dry
+        sim_dry = mod.run_network(precip_dry, areas, p, include_mucum_increment=True)["at_mucum"]
+        max_delta = max(abs(a - b) for a, b in zip(sim_wet, sim_dry))
+        self.assertGreater(max_delta, 100.0)
+
+
 if __name__ == "__main__":
     unittest.main()
