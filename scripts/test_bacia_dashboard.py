@@ -31,7 +31,7 @@ class BasinDashboardTests(unittest.TestCase):
         self.assertTrue(self.page.exists())
         self.assertTrue((ROOT / "assets/css/bacia_dashboard.css").exists())
         self.assertTrue((ROOT / "assets/js/bacia_dashboard.js").exists())
-        for token in ("data-bacia-dashboard", "assets/css/bacia_dashboard.css", "assets/js/bacia_dashboard.js", "dashboard_bacia.html"):
+        for token in ("data-bacia-dashboard", "assets/css/bacia_dashboard.css", "assets/js/bacia_dashboard.js?v=20260909-live2", "dashboard_bacia.html"):
             self.assertIn(token, self.text)
 
     def test_controls_cover_basin_stations_and_horizons(self) -> None:
@@ -57,6 +57,7 @@ class BasinDashboardTests(unittest.TestCase):
         self.assertIn("live_horizons", script)
         self.assertIn("liveRowsFor", script)
         self.assertIn("key === 'santa_tereza' ? 'santa' : key", script)
+        self.assertIn("versao_b|versao b|v002|sombra|comparativo", script)
         self.assertIn("feed direto", script)
         self.assertIn("indisponível", script)
         self.assertIn("riskUsable", script)

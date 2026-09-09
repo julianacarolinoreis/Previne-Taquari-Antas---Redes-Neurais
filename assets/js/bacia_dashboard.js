@@ -182,7 +182,13 @@
       const hours = Number(item.horizonte_h ?? (match ? match[1] : NaN));
       const level = num(item.nivel_previsto_cm);
       const available = item.disponivel !== false && level != null;
-      const role = item.modelo_papel || (/versao_b|sombra|comparativo/i.test(name) ? 'comparativo' : 'principal');
+      // Some live producers leave modelo_papel empty and expose the role only
+      // in horizonte/rotulo/versao. Keep the comparative scenario explicit so
+      // two forecasts for the same horizon are never presented as one model.
+      const roleHint = [name, item.horizonte, item.rotulo, item.versao, item.modelo_papel].filter(Boolean).join(' ');
+      const role = /versao_b|versao b|v002|sombra|comparativo/i.test(roleHint)
+        ? 'comparativo'
+        : (item.modelo_papel || 'principal');
       const quality = item.qualidade_ao_vivo && item.qualidade_ao_vivo.status
         ? item.qualidade_ao_vivo.status
         : /atencao/i.test(String(item.status || '')) ? 'ATENCAO' : 'NORMAL';
