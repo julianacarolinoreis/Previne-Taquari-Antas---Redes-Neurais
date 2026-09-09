@@ -442,7 +442,7 @@
        fica alinhada na coluna direita, sem sobrar um bloco vazio abaixo */
     main{height:calc(100vh - 58px);min-height:0;grid-template-columns:minmax(0,1fr) 300px;align-items:stretch}
     #map{height:100%;min-height:0}
-    #mapLegendMini,.map-empty-state,.map-hint,.welcome-dialog,.a11y-tools,.mun-search,.glossario,.reading-card,.action-groups,#locationPicker,.start-here{display:none!important}
+    #mapLegendMini,.map-empty-state,.map-hint,.welcome-dialog,.a11y-tools,.mun-search,.glossario,.reading-card,.action-groups,#locationPicker,.start-here,.map-breadcrumb,.mun-download-panel,#manchaRefBox{display:none!important}
     aside{height:100%;min-height:0;overflow:hidden;padding:8px 12px}
     .expl,.icm-wrap,.comparacao-wrap{break-inside:avoid}
     /* Somente o mapa precisa caber em uma unica prancha, sem uma segunda
@@ -1996,6 +1996,7 @@ function abreMunicipio(cod){
   const veioDoSeletor = document.activeElement === document.getElementById("busca");
   gradeIndicadorAjustado = false;
   limpaSelecao();
+  desligaManchaRef();
   const meu = ++reqSeq;
   const pasta = camada === "grade" ? "grade" : "setores";
   informa(`Carregando ${camada === "grade" ? "Grade IBGE 2022 (200 m urbano / 1 km rural)" : "setores censitários"} de ${f.properties.nome}…`);
@@ -3377,6 +3378,7 @@ function atualizaPainelTerritorial(){
   }
   const ref=MANCHA_REF[String(munAtual.cod_mun)];
   if(box){
+    if(!ref && manchaRefAtiva) desligaManchaRef();
     box.hidden=!ref;
     if(ref && btnMancha){
       btnMancha.textContent = manchaRefAtiva ? "Ocultar mancha preliminar" : "Sobrepor mancha preliminar";
@@ -3435,8 +3437,9 @@ async function baixarPacoteMunicipio(){
   if(!munAtual){ informa("Abra um município antes de baixar o pacote."); return; }
   if(typeof JSZip === "undefined"){ informa("Biblioteca ZIP indisponível; use CSV/GeoJSON da vista."); return; }
   if(!setLayer){ informa("Aguarde o carregamento dos setores/grade deste município."); return; }
-  const zip=new JSZip();
   const vista=dadosDaVista();
+  if(!vista.features.length){ informa("Nenhuma feição para o pacote com o filtro atual. Desmarque na_bacia ou troque a camada."); return; }
+  const zip=new JSZip();
   const rows=vista.features.map(f=>f.properties);
   const cols=[...new Set(rows.flatMap(r=>Object.keys(r)))];
   const csv=[cols.map(csvCampo).join(";")].concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
