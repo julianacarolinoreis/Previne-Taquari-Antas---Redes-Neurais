@@ -56,6 +56,7 @@ class BasinDashboardTests(unittest.TestCase):
         self.assertIn("renderResearchContext", script)
         self.assertIn("live_horizons", script)
         self.assertIn("liveRowsFor", script)
+        self.assertIn("key === 'santa_tereza' ? 'santa' : key", script)
         self.assertIn("feed direto", script)
         self.assertIn("indisponível", script)
         self.assertIn("riskUsable", script)

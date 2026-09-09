@@ -173,7 +173,8 @@
     return rows.find((row) => Number(row.hours) === Number(hours)) || null;
   }
   function liveRowsFor(key) {
-    const live = stationFeed(key).live || {};
+    const feedKey = key === 'santa_tereza' ? 'santa' : key;
+    const live = stationFeed(feedKey).live || {};
     const horizons = live.horizontes && typeof live.horizontes === 'object' ? live.horizontes : {};
     return Object.entries(horizons).map(([name, row]) => {
       const item = row && typeof row === 'object' ? row : {};
@@ -197,7 +198,8 @@
     }).filter((item) => Number.isFinite(item.hours)).sort((a, b) => a.hours - b.hours || a.key.localeCompare(b.key));
   }
   function liveGeneratedFor(key) {
-    const live = stationFeed(key).live || {};
+    const feedKey = key === 'santa_tereza' ? 'santa' : key;
+    const live = stationFeed(feedKey).live || {};
     return live.gerado_em_utc || live.gerado_em || live.consultado_em_utc || live.consultado_em || null;
   }
   function researchStateLabel(value) {
