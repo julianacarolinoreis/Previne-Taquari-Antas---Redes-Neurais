@@ -182,7 +182,7 @@
       const hours = Number(item.horizonte_h ?? (match ? match[1] : NaN));
       const level = num(item.nivel_previsto_cm);
       const available = item.disponivel !== false && level != null;
-      const role = item.modelo_papel || (/versao_b|sombra|comparativo/i.test(name) ? 'comparativo' : 'principal');
+      const role = item.modelo_papel || (/versao_b|v002|sombra|comparativo/i.test(name) ? 'comparativo' : 'principal');
       const quality = item.qualidade_ao_vivo && item.qualidade_ao_vivo.status
         ? item.qualidade_ao_vivo.status
         : /atencao/i.test(String(item.status || '')) ? 'ATENCAO' : 'NORMAL';
