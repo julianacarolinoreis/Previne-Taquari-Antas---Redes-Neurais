@@ -27,6 +27,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "assets" / "data" / "research_basin_screening_latest.json"
 SOURCE_REGISTRY = ROOT / "assets" / "data" / "research_source_registry.json"
+TRAVEL_TIME_AUDIT = ROOT / "assets" / "data" / "research_travel_time_st_mucum_latest.json"
 HORIZONS = (24, 48, 72, 120, 168)
 BRT = timezone(timedelta(hours=-3))
 
@@ -696,10 +697,62 @@ def station_context(key: str, now: datetime, santa_weather: dict[str, Any] | Non
     }
 
 
+def travel_time_context() -> dict[str, Any]:
+    """Attach the published ST→Muçum event-lag audit without promoting a rule."""
+    audit = load(TRAVEL_TIME_AUDIT, {})
+    if not audit:
+        return {
+            "status": "not_available",
+            "artifact": {"path": rel(TRAVEL_TIME_AUDIT), "sha256": None},
+            "note": "Run scripts/build_travel_time_event_audit.py to publish peak-to-peak lags from local ANA XML.",
+        }
+    summary = audit.get("summary") if isinstance(audit.get("summary"), dict) else {}
+    lags = summary.get("peak_to_peak_lag_h") if isinstance(summary.get("peak_to_peak_lag_h"), dict) else {}
+    declared = audit.get("declared_model_lag") if isinstance(audit.get("declared_model_lag"), dict) else {}
+    gate = audit.get("gate") if isinstance(audit.get("gate"), dict) else {}
+    return {
+        "status": "research_event_lags_published",
+        "pair": audit.get("pair"),
+        "declared_model_lag_h": number(declared.get("hours")),
+        "scored_events": integer(summary.get("scored_events")),
+        "peak_to_peak_lag_h": {
+            "median": number(lags.get("median")),
+            "min": number(lags.get("min")),
+            "max": number(lags.get("max")),
+            "mean": number(lags.get("mean")),
+            "values": lags.get("values") if isinstance(lags.get("values"), list) else [],
+        },
+        "network_path_length_km": number(((audit.get("network_context") or {}) if isinstance(audit.get("network_context"), dict) else {}).get("path_length_km")),
+        "interpretation": summary.get("interpretation") or gate.get("reason"),
+        "promotion_allowed": False,
+        "artifact": {
+            "path": rel(TRAVEL_TIME_AUDIT),
+            "sha256": sha256(TRAVEL_TIME_AUDIT),
+            "generated_at_utc": audit.get("generated_at_utc"),
+        },
+    }
+
+
 def build_feed(now: datetime | None = None) -> dict[str, Any]:
     now = now or utc_now()
     santa_weather = load(ROOT / STATIONS["santa_tereza"]["weather"], {})
     station_data = {key: station_context(key, now, santa_weather=santa_weather) for key in STATIONS}
+    propagation = travel_time_context()
+    scored = integer(propagation.get("scored_events")) or 0
+    median = number((propagation.get("peak_to_peak_lag_h") or {}).get("median")) if isinstance(propagation.get("peak_to_peak_lag_h"), dict) else None
+    if scored >= 3 and median is not None:
+        travel_reason = (
+            f"Local ANA XML peak-to-peak lags published for {scored} paired events "
+            f"(median {median} h ST→Muçum). Declared ~16 h remains a Muçum RNA feature lag, "
+            "not a validated basin travel-time rule."
+        )
+        propagation_signal = (
+            "event peak-to-peak lags measured from local ANA XML for Santa Tereza→Muçum; "
+            "short forecasts remain separate; no operational travel-time rule"
+        )
+    else:
+        travel_reason = "ANA event series identified, but paired peak-to-peak lags are not yet published"
+        propagation_signal = "short forecasts are shown; basin travel-time field remains unvalidated per event"
     return {
         "schema_version": 1,
         "feed_type": "basin_overflow_research_context",
@@ -712,6 +765,7 @@ def build_feed(now: datetime | None = None) -> dict[str, Any]:
             "station_scope": ["Santa Tereza", "Muçum"],
             **geometry_summary(),
             "upstream_gauges": upstream_gauge_context(),
+            "propagation": propagation,
         },
         "stations": station_data,
         "source_registry": source_registry(),
@@ -720,7 +774,7 @@ def build_feed(now: datetime | None = None) -> dict[str, Any]:
             "forecast_rain": "ECMWF IFS at each target point plus an explicitly labelled upstream monitoring-grid proxy",
             "headwater_rain": "proxy from unique IFS cells associated with monitored upstream points; not an area-weighted hydrologic mean; Muçum publishes its own proxy with SRTM watershed provenance",
             "soil_moisture": "modelled proxy only; no local saturation sensor in the published feed",
-            "propagation": "short forecasts are shown; basin travel-time field remains unvalidated per event",
+            "propagation": propagation_signal,
             "probability": "experimental score/probability by source and age; never an official alert",
         },
         "automation": {
@@ -743,7 +797,7 @@ def build_feed(now: datetime | None = None) -> dict[str, Any]:
             },
             {"id": "soil_observation", "status": "pending", "reason": "no local in-situ saturation series is published for either station"},
             {"id": "radar_qpe", "status": "pending", "reason": "CEMADEN radar/QPE option was identified, but a reproducible public download and quality check are still required"},
-            {"id": "travel_time", "status": "research_partial", "reason": "ANA HidroWebService was identified for station series, but event-level propagation still needs validation"},
+            {"id": "travel_time", "status": "research_partial", "reason": travel_reason},
             {"id": "probability_calibration", "status": "research_only", "reason": "few positive events, missing independent negatives, source mismatch and stale probability runs"},
         ],
         "limitations": [

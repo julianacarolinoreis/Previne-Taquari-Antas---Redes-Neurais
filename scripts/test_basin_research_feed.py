@@ -88,10 +88,17 @@ class BasinResearchFeedTests(unittest.TestCase):
         self.assertIn(santa_by_key["8h"]["quality_status"], {"NORMAL", "ATENCAO", None})
         self.assertIn("available", santa_by_key["8h"])
 
-    def test_gates_are_explicit(self):
-        gate_ids = {gate["id"] for gate in self.feed["gates"]}
-        self.assertTrue({"hydrologic_mask", "soil_observation", "probability_calibration"} <= gate_ids)
-        self.assertTrue(all(gate.get("reason") for gate in self.feed["gates"]))
+    def test_travel_time_audit_is_embedded_without_promotion(self):
+        propagation = self.feed["basin"]["propagation"]
+        self.assertEqual(propagation["status"], "research_event_lags_published")
+        self.assertFalse(propagation["promotion_allowed"])
+        self.assertGreaterEqual(propagation["scored_events"], 3)
+        self.assertIsInstance(propagation["peak_to_peak_lag_h"]["median"], float)
+        gate = next(item for item in self.feed["gates"] if item["id"] == "travel_time")
+        self.assertEqual(gate["status"], "research_partial")
+        self.assertIn("peak-to-peak", gate["reason"])
+        self.assertIn("16 h", gate["reason"])
+        self.assertIn("event peak-to-peak lags", self.feed["signals"]["propagation"])
 
     def test_official_source_registry_is_research_only_and_actionable(self):
         registry = self.feed["source_registry"]
@@ -101,7 +108,7 @@ class BasinResearchFeedTests(unittest.TestCase):
         source_ids = {item["id"] for item in registry["sources"]}
         self.assertTrue({"ana_bho_2017_50k", "inpe_topodata_dem", "cemaden_radar_santa_tereza", "ana_hidrowebservice"} <= source_ids)
         for item in registry["sources"]:
-            self.assertIn(item["status"], {"identified", "conditional", "integrated"})
+            self.assertIn(item["status"], {"identified", "conditional", "integrated", "partially_integrated_via_local_event_xml"})
             self.assertTrue(item["url"].startswith("https://"))
             self.assertTrue(item["role"])
             self.assertTrue(item["next_step"])

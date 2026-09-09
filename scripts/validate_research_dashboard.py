@@ -352,7 +352,7 @@ def check_source_registry(errors: list[dict], feed: dict) -> dict:
         ids.append(source_id)
         if not source_id or source_id in ids[:-1]:
             errors.append({"severity": "FAIL", "code": "source_registry_duplicate_id", "detail": source_id})
-        if source.get("status") not in {"identified", "conditional", "integrated"}:
+        if source.get("status") not in {"identified", "conditional", "integrated", "partially_integrated_via_local_event_xml"}:
             errors.append({"severity": "FAIL", "code": "source_registry_status", "detail": source_id})
         if source.get("gate") not in known_gates:
             errors.append({"severity": "FAIL", "code": "source_registry_gate", "detail": source_id})

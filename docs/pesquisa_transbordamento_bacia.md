@@ -68,8 +68,12 @@ JSON para auditoria; o dashboard só consome o artefato publicado.
   de saturação publicado para as estações.
 - `radar_qpe`: o radar/QPE CEMADEN permanece opcional até que o download e a
   autenticação sejam reproduzíveis.
-- `travel_time`: há âncoras nos modelos ao vivo, mas a relação precisa ser
-  validada por evento antes de virar regra da bacia.
+- `travel_time`: lags pico-a-pico Santa Tereza→Muçum foram medidos nos XMLs
+  ANA locais para E24/E27/E28 e publicados em
+  `assets/data/research_travel_time_st_mucum_latest.json`. O status permanece
+  `research_partial`: a mediana observada é da ordem de horas, enquanto o
+  ~16 h declarado no catálogo Muçum continua sendo **lag de feature da RNA**,
+  não uma regra hidráulica operacional da bacia.
 - `probability_calibration`: cinco eventos em Santa Tereza e quatro candidatos
   em Muçum, sem negativos independentes e com fontes diferentes, não sustentam
   uma probabilidade operacional calibrada.

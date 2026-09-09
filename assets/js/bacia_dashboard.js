@@ -185,6 +185,7 @@
     if (value === 'identified') return 'FONTE IDENTIFICADA';
     if (value === 'conditional') return 'ACESSO CONDICIONAL';
     if (value === 'integrated') return 'INTEGRADA E VALIDADA';
+    if (value === 'partially_integrated_via_local_event_xml') return 'PARCIAL · XML LOCAL';
     return String(value || 'SEM STATUS').replace(/_/g, ' ').toUpperCase();
   }
   function renderResearchSources(registry) {
@@ -195,7 +196,13 @@
       const metadata = safeHttpUrl(source.metadata_url);
       const link = url ? `<a class="research-source-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">abrir fonte oficial ↗</a>` : '';
       const metadataLink = metadata ? `<a class="research-source-meta" href="${esc(metadata)}" target="_blank" rel="noopener noreferrer">metadados ↗</a>` : '';
-      const status = source.status === 'integrated' ? 'integrated' : source.status === 'conditional' ? 'conditional' : 'identified';
+      const status = source.status === 'integrated'
+        ? 'integrated'
+        : source.status === 'conditional'
+          ? 'conditional'
+          : source.status === 'partially_integrated_via_local_event_xml'
+            ? 'partial'
+            : 'identified';
       return `<article class="research-source-card"><div class="research-source-head"><div><span class="research-source-type">${esc(source.type || 'fonte')}</span><h3>${esc(source.label || source.id || 'Fonte')}</h3></div><span class="research-source-status ${status}">${esc(sourceStatusLabel(source.status))}</span></div><p class="research-source-role"><strong>Gate:</strong> ${esc(String(source.gate || 'não associado').replace(/_/g, ' '))} · ${esc(source.role || 'papel não informado')}</p><p class="research-source-next"><strong>Próximo passo:</strong> ${esc(source.next_step || 'validar recorte, unidade, tempo e qualidade antes de integrar')}</p><div class="research-source-links">${link}${metadataLink}</div></article>`;
     }).join('');
     return `<div class="research-sources-head"><strong>${esc(registry.title || 'Fontes oficiais priorizadas')}</strong><span>revisado em ${esc(shortDate(registry.last_reviewed_utc))}</span></div><p class="research-sources-note">${esc(registry.note || 'Fonte identificada não é camada validada.')}</p><div class="research-source-list">${cards}</div>`;

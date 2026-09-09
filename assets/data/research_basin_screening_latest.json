@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "feed_type": "basin_overflow_research_context",
-  "generated_at_utc": "2026-09-09T13:30:28Z",
+  "generated_at_utc": "2026-09-09T17:50:55Z",
   "research_only": true,
   "official_alert": false,
   "status": "research_screening_with_explicit_data_gates",
@@ -181,6 +181,42 @@
       ],
       "source": "assets/data/mucum_modelo_inputs.json",
       "note": "Inventário de estações de nível/âncoras; não é uma máscara de cabeceiras nem uma chuva média da bacia."
+    },
+    "propagation": {
+      "status": "research_event_lags_published",
+      "pair": {
+        "upstream": {
+          "code": "86472600",
+          "name": "Santa Tereza"
+        },
+        "downstream": {
+          "code": "86510000",
+          "name": "Muçum"
+        },
+        "metric": "peak_to_peak_lag_hours",
+        "timezone_note": "ANA DataHora values are kept as local timestamps without inventing availability times"
+      },
+      "declared_model_lag_h": 16.0,
+      "scored_events": 3,
+      "peak_to_peak_lag_h": {
+        "median": 2.25,
+        "min": -0.75,
+        "max": 3.0,
+        "mean": 1.5,
+        "values": [
+          3.0,
+          -0.75,
+          2.25
+        ]
+      },
+      "network_path_length_km": 23.652,
+      "interpretation": "Observed peak-to-peak lags on paired ANA XML are hours, not ~16 h. The declared 16 h remains a model-feature lag / upstream timing cue, not a validated basin travel-time rule.",
+      "promotion_allowed": false,
+      "artifact": {
+        "path": "assets/data/research_travel_time_st_mucum_latest.json",
+        "sha256": "b2d773cf6067f84d306b66495b429409877d53d700862340596199b561da570f",
+        "generated_at_utc": "2026-09-09T17:50:05Z"
+      }
     }
   },
   "stations": {
@@ -195,8 +231,8 @@
       "current": {
         "level_cm": 219.0,
         "observed_at_utc": "2026-09-09T11:45:00Z",
-        "age_hours": 1.76,
-        "state": "fresh",
+        "age_hours": 6.1,
+        "state": "stale",
         "source": "ANA/SGB · estação 86472600",
         "change_24h_cm": null,
         "rain_observed_24h_mm": null,
@@ -341,12 +377,12 @@
         "status": "ok",
         "generated_at_utc": "2026-09-09T11:00:00Z",
         "consulted_at_utc": "2026-09-09T12:47:55Z",
-        "age_hours": 0.71,
-        "state": "fresh"
+        "age_hours": 5.05,
+        "state": "stale_or_unknown"
       },
       "forecast": {
         "generated_at_utc": "2026-09-09T04:37:39Z",
-        "age_hours": 8.88,
+        "age_hours": 13.22,
         "state": "current_window",
         "provider": "ECMWF IFS via Open-Meteo; ECMWF Open Data direto para auditoria",
         "model": "ECMWF IFS 0.25° (ecmwf_ifs025)",
@@ -381,7 +417,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA NODD / GEFS",
             "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
-            "age_hours": 313.01,
+            "age_hours": 317.35,
             "state": "stale",
             "calibration_status": "calibrated_for_declared_source",
             "usable_as_current_probability": false,
@@ -421,7 +457,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA NODD / GEFS",
             "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
-            "age_hours": 313.01,
+            "age_hours": 317.35,
             "state": "stale",
             "calibration_status": "calibrated_for_declared_source",
             "usable_as_current_probability": false,
@@ -461,7 +497,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA NODD / GEFS",
             "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
-            "age_hours": 313.01,
+            "age_hours": 317.35,
             "state": "stale",
             "calibration_status": "calibrated_for_declared_source",
             "usable_as_current_probability": false,
@@ -501,7 +537,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA NODD / GEFS",
             "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
-            "age_hours": 313.01,
+            "age_hours": 317.35,
             "state": "stale",
             "calibration_status": "calibrated_for_declared_source",
             "usable_as_current_probability": false,
@@ -541,7 +577,7 @@
             "decision": "VAI",
             "source": "NOAA NODD / GEFS",
             "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
-            "age_hours": 313.01,
+            "age_hours": 317.35,
             "state": "stale",
             "calibration_status": "calibrated_for_declared_source",
             "usable_as_current_probability": false,
@@ -625,6 +661,7 @@
       "quality": {
         "status": "DEGRADED",
         "flags": [
+          "observation_stale_or_unknown",
           "live_model_quality_attention",
           "upstream_monitoring_grid_proxy_not_hydrologic_mask",
           "no_local_soil_sensor"
@@ -656,8 +693,8 @@
       "current": {
         "level_cm": 264.0,
         "observed_at_utc": "2026-09-09T12:30:00Z",
-        "age_hours": 1.01,
-        "state": "fresh",
+        "age_hours": 5.35,
+        "state": "stale",
         "source": "ANA/SGB · estação 86510000",
         "change_24h_cm": null,
         "rain_observed_24h_mm": null,
@@ -802,12 +839,12 @@
         "status": "ok",
         "generated_at_utc": "2026-09-09T12:00:00Z",
         "consulted_at_utc": "2026-09-09T12:55:52Z",
-        "age_hours": 0.58,
-        "state": "fresh"
+        "age_hours": 4.92,
+        "state": "stale_or_unknown"
       },
       "forecast": {
         "generated_at_utc": "2026-09-09T13:30:22Z",
-        "age_hours": 0.0,
+        "age_hours": 4.34,
         "state": "current_window",
         "provider": "ECMWF IFS via Open-Meteo",
         "model": "ECMWF IFS 0.25° (ecmwf_ifs025)",
@@ -860,7 +897,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA GEFS/NODD same-cell spatial proxy",
             "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
-            "age_hours": 358.98,
+            "age_hours": 363.32,
             "state": "stale",
             "calibration_status": "experimental_uncalibrated",
             "usable_as_current_probability": false,
@@ -918,7 +955,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA GEFS/NODD same-cell spatial proxy",
             "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
-            "age_hours": 358.98,
+            "age_hours": 363.32,
             "state": "stale",
             "calibration_status": "experimental_uncalibrated",
             "usable_as_current_probability": false,
@@ -976,7 +1013,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA GEFS/NODD same-cell spatial proxy",
             "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
-            "age_hours": 358.98,
+            "age_hours": 363.32,
             "state": "stale",
             "calibration_status": "experimental_uncalibrated",
             "usable_as_current_probability": false,
@@ -1034,7 +1071,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA GEFS/NODD same-cell spatial proxy",
             "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
-            "age_hours": 358.98,
+            "age_hours": 363.32,
             "state": "stale",
             "calibration_status": "experimental_uncalibrated",
             "usable_as_current_probability": false,
@@ -1092,7 +1129,7 @@
             "decision": "NAO_VAI",
             "source": "NOAA GEFS/NODD same-cell spatial proxy",
             "generated_at_utc": "2026-08-25T14:31:46.621445+00:00",
-            "age_hours": 358.98,
+            "age_hours": 363.32,
             "state": "stale",
             "calibration_status": "experimental_uncalibrated",
             "usable_as_current_probability": false,
@@ -1166,6 +1203,7 @@
       "quality": {
         "status": "DEGRADED",
         "flags": [
+          "observation_stale_or_unknown",
           "point_forecast",
           "mucum_independent_upstream_proxy_not_area_weighted",
           "no_local_soil_sensor"
@@ -1190,7 +1228,7 @@
   "source_registry": {
     "schema_version": 1,
     "scope": "research_only",
-    "last_reviewed_utc": "2026-08-31T00:00:00Z",
+    "last_reviewed_utc": "2026-09-09T00:00:00Z",
     "title": "Fontes oficiais priorizadas para fechar os gates da bacia",
     "note": "Uma fonte identificada ainda não é uma camada validada. Cada item exige recorte, conferência de unidade/tempo, comparação com as estações e registro da qualidade antes de entrar no cálculo.",
     "sources": [
@@ -1227,18 +1265,18 @@
       },
       {
         "id": "ana_hidrowebservice",
-        "label": "ANA · HidroWebService",
+        "label": "ANA · HidroWebService / telemetria local por evento",
         "type": "hydrology_api",
         "gate": "travel_time",
-        "status": "identified",
-        "role": "Metadados e séries de estações para testar defasagens e propagação por evento.",
+        "status": "partially_integrated_via_local_event_xml",
+        "role": "Séries locais ANA já versionadas no repo permitem medir defasagens pico-a-pico ST→Muçum sem inventar horário de disponibilidade.",
         "url": "https://www.ana.gov.br/hidrowebservice/swagger-ui/index.html#",
-        "next_step": "Obter acesso à API, reconciliar estação/código/fuso com os feeds atuais e medir a propagação somente em eventos com observações completas."
+        "next_step": "Manter a auditoria event-wise (E24/E27/E28) e só então decidir se vale buscar a API ao vivo; não promover ~16 h a regra hidráulica."
       }
     ],
     "artifact": {
       "path": "assets/data/research_source_registry.json",
-      "sha256": "e2d90b9682f26afacb98a66a4dc493021eea64e056acd5b7f664fb6a533e72ae"
+      "sha256": "ff7b3a679bf23e62560156ae51fec636fbe24ac824721b30bd3d6f431c7f869e"
     }
   },
   "signals": {
@@ -1246,7 +1284,7 @@
     "forecast_rain": "ECMWF IFS at each target point plus an explicitly labelled upstream monitoring-grid proxy",
     "headwater_rain": "proxy from unique IFS cells associated with monitored upstream points; not an area-weighted hydrologic mean; Muçum publishes its own proxy with SRTM watershed provenance",
     "soil_moisture": "modelled proxy only; no local saturation sensor in the published feed",
-    "propagation": "short forecasts are shown; basin travel-time field remains unvalidated per event",
+    "propagation": "event peak-to-peak lags measured from local ANA XML for Santa Tereza→Muçum; short forecasts remain separate; no operational travel-time rule",
     "probability": "experimental score/probability by source and age; never an official alert"
   },
   "automation": {
@@ -1288,7 +1326,7 @@
     {
       "id": "travel_time",
       "status": "research_partial",
-      "reason": "ANA HidroWebService was identified for station series, but event-level propagation still needs validation"
+      "reason": "Local ANA XML peak-to-peak lags published for 3 paired events (median 2.25 h ST→Muçum). Declared ~16 h remains a Muçum RNA feature lag, not a validated basin travel-time rule."
     },
     {
       "id": "probability_calibration",
