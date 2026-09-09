@@ -24,6 +24,8 @@
   .modes{margin-left:auto;display:flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px}
   .modes button{border:none;background:transparent;color:var(--muted);font-size:12.5px;font-weight:650;padding:6px 13px;border-radius:999px;cursor:pointer}
   .modes button.on{background:var(--brand);color:#fff}
+  .modes button:focus-visible,.play:focus-visible,.method .step:focus-visible,.live-btn:focus-visible,.live-hz button:focus-visible,.card summary:focus-visible,input:focus-visible,.leaflet-control a:focus-visible{outline:3px solid #f0a33a;outline-offset:2px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   /* layout */
   main{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:calc(100vh - 55px)}
   #map{position:relative;background:var(--bg)}
@@ -100,9 +102,13 @@
   .live-bar a{margin-left:auto;color:inherit;cursor:pointer;text-decoration:underline;font-weight:600}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
   .live-note{font-size:11px;color:#a5281c;background:#fff6f5;border:1px solid #f3d3cd;border-radius:9px;padding:7px 10px;margin-bottom:10px;line-height:1.4}
+  .live-status-note{font-size:11px;color:#6f4a12;background:#fff8e8;border:1px solid #efd49a;border-radius:9px;padding:7px 10px;margin:8px 0;line-height:1.4}
+  .live-status-note.ok{color:#176247;background:#f0faf5;border-color:#b8ddca}
+  .live-status-note.warn{color:#8a2d26;background:#fff5f3;border-color:#f0c1b8}
   .live-timing-rows{display:grid;gap:3px;line-height:1.35}
   .live-timing-rows>span{display:block}
   .live-timing-rows .live-timing-meta{font-size:10px;color:#5d6b63}
+  .live-timing-rows small{font-size:10px;color:#5d6b63}
   /* pesquisa validada: painel separado do produto experimental ao vivo */
   .research-panel{border:1px solid #b9d9ca;background:linear-gradient(180deg,#f5fbf7,#fff);border-radius:14px;padding:13px 14px;margin:0 0 14px;box-shadow:var(--shadow)}
   .research-panel .rp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
@@ -129,6 +135,7 @@
   .live-hz{display:none;gap:6px;margin:-2px 0 10px;flex-wrap:wrap}
   .live-hz button{flex:1 1 72px;border:1px solid #f3c0b8;background:#fff;color:#a5281c;border-radius:9px;padding:7px 8px;font-size:12px;font-weight:750;cursor:pointer}
   .live-hz button.on{background:#a5281c;color:#fff;border-color:#a5281c}
+  .live-horizon-status{font-size:10.5px;color:#7a5510;background:#fff8e8;border:1px solid #efd49a;border-radius:8px;padding:6px 8px;margin:-5px 0 10px;line-height:1.35}
   body.live #scn, body.live .tl{display:none}
   body.live .live-hz{display:flex}
   body.live .simple-only{display:block}
@@ -158,7 +165,7 @@
   <div class="modes" aria-label="Modo de visualização"><button id="mode-s" class="on" aria-pressed="true">Visualização simples</button><button id="mode-t" aria-pressed="false">Visualização detalhada</button><button id="mode-p" aria-pressed="false">Panorama Geral</button></div>
 </header>
 <main>
-  <div id="map" role="application" aria-label="Mapa interativo de previsão de inundação em Muçum" aria-describedby="map-accessible-description"><span class="sr-only" id="map-accessible-description">Use os controles de camadas para alternar imagem de satélite, ruas, rótulos e estações. A mancha colorida representa somente água estimada fora do leito; ela é um proxy de pesquisa.</span></div>
+  <div id="map" role="application" aria-label="Mapa interativo de previsão de inundação em Muçum" aria-describedby="map-accessible-description"><span class="sr-only" id="map-accessible-description">Use os controles de camadas para alternar imagem de satélite, ruas, rótulos e estações. A mancha colorida representa somente água estimada fora do leito; ela é um proxy de pesquisa.</span><span class="sr-only" id="map-accessible-summary" role="status" aria-live="polite"></span></div>
   <aside>
     <button class="live-btn" id="live-btn" type="button" aria-pressed="false">🔴 Ativar previsão ao vivo · Muçum · 2 h, 4 h e 8 h</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
@@ -166,22 +173,23 @@
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
       <button type="button" data-live-hz="2h" class="on" aria-pressed="true">2 h</button>
       <button type="button" data-live-hz="4h" aria-pressed="false">4 h</button>
-      <button type="button" data-live-hz="4h_versao_b" aria-pressed="false">4 h B</button>
+      <button type="button" data-live-hz="4h_versao_b" aria-pressed="false">4 h — comparativa</button>
       <button type="button" data-live-hz="8h" aria-pressed="false">8 h</button>
-      <button type="button" data-live-hz="8h_versao_b" aria-pressed="false">8 h B</button>
+      <button type="button" data-live-hz="8h_versao_b" aria-pressed="false">8 h — comparativa</button>
     </div>
+    <div id="live-horizon-status" class="live-horizon-status" role="status" aria-live="polite" style="display:none"></div>
 
     <!-- ===== LINHA DO TEMPO (compartilhada) ===== -->
     <div class="tl">
       <div class="q" style="margin-top:2px">Quando isso pode acontecer?</div>
-      <div class="head"><button class="play" id="play">▶</button>
-        <div style="flex:1"><div class="tlab" id="tlab">—</div><input type="range" id="time" min="0" max="1" value="0"></div></div>
-      <div class="hint">Arraste a linha do tempo (ou dê play) para ver a água avançar. Clique em um ponto do mapa para a profundidade ali.</div>
+      <div class="head"><button class="play" id="play" aria-label="Reproduzir linha do tempo">▶</button>
+        <div style="flex:1"><div class="tlab" id="tlab">—</div><label class="sr-only" for="time">Momento da previsão na linha do tempo</label><input type="range" id="time" min="0" max="1" value="0" aria-describedby="timeline-hint"></div></div>
+      <div class="hint" id="timeline-hint">Arraste a linha do tempo (ou dê play) para ver a água avançar. Clique em um ponto do mapa para a profundidade ali.</div>
     </div>
 
     <!-- ===== MODO SIMPLES ===== -->
     <div class="simple-only">
-      <div class="q">Nível do rio agora</div>
+      <div class="q" id="s-now-label">Nível do rio agora</div>
       <div class="big agora"><span id="s-now">—</span></div>
 
       <div class="q">Nível previsto do rio (<span id="s-hz">+N h</span>)</div>
@@ -202,6 +210,8 @@
         <div class="row"><span>Área total prevista</span><b id="s-atot">—</b></div>
         <div class="conf">Confiabilidade indicativa do horizonte (não é probabilidade): <span class="dot" id="s-confdot"></span><b id="s-conf">—</b></div>
       </div>
+
+      <div id="live-status-note" class="live-status-note" role="status" aria-live="polite" style="display:none"></div>
 
       <details class="card"><summary>Como esta previsão é feita?</summary><div class="body">
         <div class="method">
@@ -232,7 +242,7 @@
     <div class="tech-only">
       <div id="evinfo" class="disc" style="margin-top:0"></div>
       <h4>Leitura <span class="info" title="Nível do rio informado pela estação 86510000, na escala local da estação. A referência técnica é a régua local, mas para leitura pública o valor representa o nível do rio em Muçum. PERS: ganho contra persistência. Área: superfície estimada fora do contorno-base HAND 0.">ⓘ</span></h4>
-      <div class="read"><span class="now">Nível do rio agora</span><b class="now" id="r-now">—</b></div>
+      <div class="read"><span class="now" id="r-now-label">Nível do rio agora</span><b class="now" id="r-now">—</b></div>
       <div class="read" id="r-modelbase-row" style="display:none"><span>Base usada pela RNA</span><b id="r-modelbase">—</b></div>
       <div class="read"><span class="fore">Nível previsto do rio (+<span id="hz">?</span>)</span><b class="fore" id="r-fore">—</b></div>
       <div class="read"><span>Mudança prevista desde agora</span><b id="r-dnivel">—</b></div>
@@ -264,7 +274,7 @@
 
       <h4>Calibração · nível normal ↔ terreno</h4>
       <p class="disc" style="margin-top:2px"><b>Leitura da régua</b>: o valor em metros é a altura lida na estação Muçum/SGB-ANA, não a profundidade total do rio. <b>Nível normal / zero operacional</b>: leitura adotada como início da mancha no leito do rio (HAND 0). Padrão provisório adotado em <b>5,0 m</b>; ajuste apenas para auditoria visual. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
-      <input type="range" id="bankfull" min="100" max="900" step="10" value="500" style="width:100%">
+      <label class="sr-only" for="bankfull">Nível normal provisório da régua usado na calibração visual</label><input type="range" id="bankfull" min="100" max="900" step="10" value="500" aria-describedby="bankfull-hint" aria-valuetext="5,0 m" style="width:100%"><span class="sr-only" id="bankfull-hint">Ajuste visual de pesquisa, em centímetros; não é a cota oficial de inundação.</span>
       <div class="disc"><b>Prova de conceito — não validado em nível de rua.</b> Terreno: mosaico 2&nbsp;m (drone + ANADEM). O nível normal (HAND 0) foi estimado em ~405 cm e arredondado para <b>400 cm</b>. O contorno HAND 0 é removido da camada colorida para não representar o leito normal como inundação. A cota de inundação oficial é <b>18,00 m (1.800 cm)</b> (SGB/SACE). Fora do footprint do drone a borda segue a resolução do ANADEM.</div>
     </div>
   </aside>
@@ -495,18 +505,21 @@ function fmtClock(s){
   const m=(parts.find(p=>p.type==='minute')||{}).value||'00';
   return m==='00'?`${h}h`:`${h}h${m}`;
 }
+function fmtClockDate(s){ const ms=s instanceof Date?s.getTime():parseBrtMs(s); return Number.isFinite(ms)?`${fmtWhen(s)} BRT`:'—'; }
+function ageText(s){ const ms=s instanceof Date?s.getTime():parseBrtMs(s); if(!Number.isFinite(ms)) return 'idade indisponível'; const mins=Math.max(0,Math.round((Date.now()-ms)/60000)); if(mins<1)return 'agora'; if(mins<60)return `há ${mins} min`; const h=Math.floor(mins/60),r=mins%60; return r?`há ${h}h${String(r).padStart(2,'0')}`:`há ${h} h`; }
 function baseLagReason(D){
   const baseMs=parseBrtMs(D&&D.hora_modelo);
   const telemetryMs=parseBrtMs(D&&(D.telemetria_ultima_em||D.nivel_rio_agora_em));
-  if(!Number.isFinite(baseMs)) return 'hora-base da RNA ainda indisponível';
-  if(!Number.isFinite(telemetryMs)||telemetryMs<=baseMs) return 'ainda não chegou uma leitura posterior à hora-base';
-  return `dados da hora ${fmtClock(new Date(baseMs+60*60*1000))} ainda incompletos ou não válidos para todos os inputs`;
+  if(!Number.isFinite(baseMs)) return 'a hora-base da RNA ainda não está disponível';
+  if(!Number.isFinite(telemetryMs)) return 'a ANA ainda não trouxe uma leitura válida para formar a próxima base';
+  if(telemetryMs<=baseMs) return `a ANA ainda não trouxe uma leitura posterior à base ${fmtClock(new Date(baseMs))}`;
+  return `a ANA já trouxe uma leitura às ${fmtClock(new Date(telemetryMs))}, mas a RNA só usa bases completas de hora cheia; a próxima base será ${fmtClock(new Date(baseMs+60*60*1000))} quando a hora estiver fechada`;
 }
 function timingRowsHtml(D){
   const telemetry=D&&(D.telemetria_ultima_em||D.nivel_rio_agora_em);
   const base=D&&D.hora_modelo;
   const consulted=D&&D.consultado_em;
-  return `<span class="live-timing-rows"><span><b>Última leitura ANA:</b> ${escLive(fmtClock(telemetry))}</span><span><b>Hora-base dos dados da RNA:</b> ${escLive(fmtClock(base))}</span><span><b>Motivo:</b> ${escLive(baseLagReason(D))}</span>${consulted?`<span class="live-timing-meta">Robô consultado/publicado: ${escLive(fmtWhen(consulted))}</span>`:''}</span>`;
+  return `<span class="live-timing-rows"><span><b>Última leitura ANA:</b> ${escLive(fmtClockDate(telemetry))} <small>(${escLive(ageText(telemetry))})</small></span><span><b>Hora-base dos dados da RNA:</b> ${escLive(fmtClockDate(base))}</span><span><b>Motivo:</b> ${escLive(baseLagReason(D))}</span>${consulted?`<span class="live-timing-meta"><b>Última consulta do robô:</b> ${escLive(fmtClockDate(consulted))}</span>`:''}</span>`;
 }
 function firstNumber(){
   for(const v of arguments){
@@ -656,6 +669,8 @@ function renderFrame(){
   const growth=areaNow>0?(areaFore-areaNow)/areaNow*100:null;
   const activeD=liveMode?activeLiveData():null;
   const targetLabels=forecastTargetLabels(ev,s,activeD);
+  const currentLabel=(liveMode&&activeD&&ageMin(activeD.telemetria_ultima_em)>30)?'Último nível observado · telemetria com atraso':'Nível do rio agora';
+  set('s-now-label',currentLabel); set('r-now-label',currentLabel);
   set('s-hz', targetLabels.simple);
   set('hz', targetLabels.tech);
   set('hz2', targetLabels.tech);
@@ -766,6 +781,15 @@ function updateLiveHzButtons(){
     b.style.display=ok?'':'none';
     const active=b.dataset.liveHz===liveHz;b.classList.toggle('on',active);b.setAttribute('aria-pressed',active?'true':'false');
   });
+  const status=document.getElementById('live-horizon-status');
+  if(status){
+    const missing=Object.entries(hs).filter(([key,D])=>!D||D.disponivel===false).map(([key,D])=>{
+      const falt=D&&D.inputs_faltantes_n!=null?`${D.inputs_faltantes_n}/${D.inputs_total||15}`:'sem conjunto completo';
+      return `${String(key).match(/\d+/)?.[0]||key} h indisponível · faltam ${falt} inputs`;
+    });
+    status.textContent=missing.length?missing.join(' · '):'';
+    status.style.display=missing.length?'':'none';
+  }
 }
 function prepareLiveData(d){
   const hs=Object.assign({},d.horizontes||{});
@@ -820,7 +844,7 @@ function liveFreshnessHtml(D){
     const status=String(D.status_dados);
     const statusTelemetryStale=/telemetria\s+atrasada/i.test(status);
     const statusForPanel=statusTelemetryStale && idadeAna!=null && idadeAna<=120
-      ?`telemetria há ${durMin(idadeAna)} (dentro do limite de 2 h)`
+      ?`telemetria há ${durMin(idadeAna)} (fora da janela de atualização de 60 min)`
       :status;
     partes.push(`<b>${escLive(statusForPanel)}</b>`);
   }
@@ -897,6 +921,31 @@ function renderLiveAudit(D){
     }
   }
 }
+function renderLiveStatus(D,hz){
+  const box=document.getElementById('live-status-note');
+  if(!box) return;
+  const q=D&&D.qualidade_ao_vivo||{};
+  const A=D&&D.auditoria||{};
+  const iq=D&&D.auditoria_inputs||{};
+  const status=String(D&&D.status_dados||D&&D.status||'').toLowerCase();
+  const stale=/atras|sem dado|aguardando/.test(status)||(ageMin(D&&D.telemetria_ultima_em)!=null&&ageMin(D&&D.telemetria_ultima_em)>60);
+  const parts=[timingRowsHtml(D)];
+  if(stale){
+    parts.push(`<b>Telemetria atrasada:</b> a RNA mantém a última base horária completa até a ANA publicar uma leitura válida.`);
+  }else{
+    parts.push(`<span class="live-timing-meta">A ANA pode chegar em :15/:30/:45; a RNA só usa bases completas de hora cheia.</span>`);
+  }
+  if(iq.n_inputs!=null||iq.n_exatos!=null){
+    const base=fmtClock(D&&D.hora_modelo);
+    parts.push(`<b>Inputs da base ${escLive(base)}:</b> ${iq.n_exatos||0}/${iq.n_inputs||D.inputs_total||'?'} exatos, ${iq.n_inputs_atrasados||0} atrasados.`);
+  }else if(D&&D.inputs_total!=null){
+    parts.push(`<b>Inputs declarados:</b> ${D.inputs_total}; auditoria detalhada não publicada neste horizonte.`);
+  }
+  if(q.status) parts.push(`<b>Qualidade recente:</b> ${escLive(q.status)}${q.mae_24h_cm!=null?` · MAE 24h ${nf1.format(q.mae_24h_cm)} cm`:''}.`);
+  box.className='live-status-note '+(q.status==='ATENCAO'?'warn':(stale?'':'ok'));
+  box.innerHTML=parts.join(' ');
+  box.style.display='';
+}
 function liveWhenText(D,P){
   const base=fmtWhen(D.telemetria_ultima_em||D.hora_modelo||D.consultado_em||P[0]);
   const avisos=[];
@@ -961,6 +1010,7 @@ function renderLiveStep(){
     const ei=document.getElementById('evinfo');
     if(ei) ei.innerHTML=liveInfoHtml(L,P,hz,tipoTxt,modoTxt);
     renderLiveAudit(L);
+    renderLiveStatus(L,hz);
     set('live-kind', liveWhenKind(L));
     set('live-when', liveWhenText(L,P));
     renderFrame();
@@ -979,6 +1029,7 @@ function renderLiveStep(){
   const ei=document.getElementById('evinfo');
   if(ei) ei.innerHTML=liveInfoHtml(liveData,P,hz,tipoTxt,modoTxt);
   renderLiveAudit(liveData);
+  renderLiveStatus(liveData,hz);
   set('live-kind', liveWhenKind(liveData));
   set('live-when', liveWhenText(liveData,P));
   renderFrame();
@@ -1004,6 +1055,7 @@ async function enterLive(){
 function exitLive(){ liveMode=false; clearInterval(liveTimer); liveTimer=null; document.body.classList.remove('live');
   document.getElementById('live-bar').style.display='none'; document.getElementById('live-note').style.display='none';
   document.getElementById('live-hz').style.display='none';
+  const hstatus=document.getElementById('live-horizon-status'); if(hstatus){hstatus.style.display='none';hstatus.textContent='';}
   if(window.PREVINE_PANORAMA)PREVINE_PANORAMA.update(null);
   const toggle=document.getElementById('live-btn'); if(toggle){toggle.textContent='🔴 Ativar previsão ao vivo · Muçum · 2 h, 4 h e 8 h';toggle.setAttribute('aria-pressed','false');}
   delete EVENTS['__live__']; setEvent(Object.keys(EVENTS)[0]); }

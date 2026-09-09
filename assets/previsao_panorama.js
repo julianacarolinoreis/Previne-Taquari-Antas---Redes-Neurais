@@ -103,6 +103,22 @@
     return minute==='00'?`${hour}h`:`${hour}h${minute}`;
   }
 
+  function fmtClockDate(v){
+    const d=parseWhen(v);
+    if(!d) return '—';
+    return `${fmtWhen(v)} BRT`;
+  }
+
+  function ageText(v){
+    const age=ageMinutes(v);
+    if(age===null) return 'idade indisponível';
+    if(age<1) return 'agora';
+    const mins=Math.round(age);
+    if(mins<60) return `há ${mins} min`;
+    const hours=Math.floor(mins/60), rest=mins%60;
+    return rest?`há ${hours}h${String(rest).padStart(2,'0')}`:`há ${hours} h`;
+  }
+
   function nextHourlyBase(payload){
     const base=parseWhen(payload&&payload.hora_modelo);
     const telemetry=parseWhen(payload&&(payload.telemetria_ultima_em||payload.nivel_rio_agora_em));
@@ -113,11 +129,12 @@
   function baseLagReason(payload){
     const base=parseWhen(payload&&payload.hora_modelo);
     const telemetry=parseWhen(payload&&(payload.telemetria_ultima_em||payload.nivel_rio_agora_em));
-    if(!base) return 'hora-base da RNA ainda indisponível';
-    if(!telemetry||telemetry<=base) return 'ainda não chegou uma leitura posterior à hora-base';
+    if(!base) return 'a hora-base da RNA ainda não está disponível';
+    if(!telemetry) return 'a ANA ainda não trouxe uma leitura válida para formar a próxima base';
+    if(telemetry<=base) return `a ANA ainda não trouxe uma leitura posterior à base ${fmtClock(base)}`;
     const candidate=nextHourlyBase(payload);
     const candidateLabel=fmtClock(candidate||new Date(base.getTime()+60*60*1000));
-    return `dados da hora ${candidateLabel} ainda incompletos ou não válidos para todos os inputs`;
+    return `a ANA já trouxe uma leitura às ${fmtClock(telemetry)}, mas a RNA só usa bases completas de hora cheia; a próxima base será ${candidateLabel} quando a hora estiver fechada`;
   }
 
   function timingRowsHtml(payload){
@@ -125,7 +142,7 @@
     const base=payload&&payload.hora_modelo;
     const consulted=payload&&payload.consultado_em;
     const reason=baseLagReason(payload);
-    return `<span class="live-timing-rows"><span><b>Última leitura ANA:</b> ${escapeHtml(fmtClock(telemetry))}</span><span><b>Hora-base dos dados da RNA:</b> ${escapeHtml(fmtClock(base))}</span><span><b>Motivo:</b> ${escapeHtml(reason)}</span>${consulted?`<span class="live-timing-meta">Robô consultado/publicado: ${escapeHtml(fmtWhenWithZone(consulted))}</span>`:''}</span>`;
+    return `<span class="live-timing-rows"><span><b>Última leitura ANA:</b> ${escapeHtml(fmtClockDate(telemetry))} <small>(${escapeHtml(ageText(telemetry))})</small></span><span><b>Hora-base dos dados da RNA:</b> ${escapeHtml(fmtClockDate(base))}</span><span><b>Motivo:</b> ${escapeHtml(reason)}</span>${consulted?`<span class="live-timing-meta"><b>Última consulta do robô:</b> ${escapeHtml(fmtClockDate(consulted))}</span>`:''}</span>`;
   }
 
   function addCacheBust(url){
@@ -857,21 +874,29 @@
       return;
     }
     const telemetryWhen=state.live.telemetria_ultima_em||state.live.nivel_rio_agora_em;
-    const when=telemetryWhen?` Última leitura: ${fmtWhen(telemetryWhen)}.`:'';
     const liveFresh=state.live._freshness||freshness(feedTimestamp(state.live),FRESHNESS.liveMinutes);
-    const telemetryFresh=telemetryWhen?freshness(telemetryWhen,120):null;
-    label.textContent=liveFresh.stale?'Robô ao vivo: publicação atrasada':'Robô ao vivo ativo';
+    const telemetryFresh=telemetryWhen?freshness(telemetryWhen,60):null;
+    const telemetryAge=telemetryFresh&&telemetryFresh.ageMinutes;
+    label.textContent=liveFresh.stale
+      ?'Publicação atualizada com atraso'
+      :(telemetryAge!==null&&telemetryAge>60?'Dados publicados · telemetria ANA atrasada':(telemetryAge!==null&&telemetryAge>30?'Dados publicados · telemetria ANA com atraso':'Robô ao vivo ativo'));
     const longForecast=state.researchRisk&&state.researchRisk.feed_type==='meteorological_forecast';
     const ageText=liveFresh.ageMinutes===null?'consulta do robô com idade n/d':`robô consultado há ${nf0.format(liveFresh.ageMinutes)} min`;
     const telemetryText=telemetryFresh&&telemetryFresh.ageMinutes!==null
       ?` leitura ANA há ${nf0.format(telemetryFresh.ageMinutes)} min${telemetryFresh.stale?' · telemetria atrasada':''}`
       :'';
-    const liveHorizons=state.live&&state.live.horizontes?Object.keys(state.live.horizontes).filter(k=>/^(2h|4h|8h)/.test(k)).map(k=>k.replace('_versao_b',' B').replace('_v002',' V2').replace('h',' h')).join(', '):'';
+    const liveHorizons=state.live&&state.live.horizontes?Object.keys(state.live.horizontes).filter(k=>/^(2h|4h|8h)/.test(k)).map(k=>k.replace('_versao_b',' — comparativa').replace('_v002',' — comparativa').replace('h',' h')).join(', '):'';
     const staleHorizons=Array.isArray(state.liveStaleHorizons)?state.liveStaleHorizons:[];
     const staleText=staleHorizons.length
       ?` ${staleHorizons.map(p=>`+${p.hours} h`).join(' e ')} ficou fora do panorama porque o horário-alvo já passou; permanece no histórico para auditoria.`
       :'';
     detail.innerHTML=`${timingRowsHtml(state.live)}<span class="live-timing-meta">${ageText}${liveFresh.stale?' · publicação marcada como atrasada':''}${telemetryText?` · ${telemetryText}`:''}. Atualização automática prevista a cada 5 minutos; a ANA pode chegar em :15/:30/:45, enquanto a RNA usa somente bases de hora cheia. O robô publica previsões experimentais de ${escapeHtml(liveHorizons||'nenhum horizonte')}.${escapeHtml(staleText)} ${longForecast?'A previsão meteorológica e o score experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a RNA continuam em validação de pesquisa; não são alerta oficial.'}</span>`;
+    const mapSummary=document.getElementById('map-accessible-summary');
+    if(mapSummary){
+      const current=state.live&&(state.live.nivel_rio_agora_cm??state.live.telemetria_ultima_nivel_cm);
+      const horizons=state.live&&state.live.horizontes?Object.keys(state.live.horizontes).filter(k=>/^(2h|4h|8h)/.test(k)).join(', '):'nenhum';
+      mapSummary.textContent=`Resumo acessível do mapa: nível observado ${fmtLevel(number(current))}; horizonte(s) publicado(s): ${horizons}. Cota oficial configurada: ${fmtLevel(state.config&&state.config.cotaInundCm)}. A mancha colorida é estimativa de pesquisa e não é alerta oficial.`;
+    }
   }
 
   function renderResearchRisk(){

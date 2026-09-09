@@ -24,7 +24,7 @@
   .modes{margin-left:auto;display:flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px}
   .modes button{border:none;background:transparent;color:var(--muted);font-size:12.5px;font-weight:650;padding:6px 13px;border-radius:999px;cursor:pointer}
   .modes button.on{background:var(--brand);color:#fff}
-  .modes button:focus-visible,.play:focus-visible,.method .step:focus-visible{outline:3px solid #f0a33a;outline-offset:2px}
+  .modes button:focus-visible,.play:focus-visible,.method .step:focus-visible,.live-btn:focus-visible,.live-hz button:focus-visible,.card summary:focus-visible,input:focus-visible,.leaflet-control a:focus-visible{outline:3px solid #f0a33a;outline-offset:2px}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   /* layout */
   main{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:calc(100vh - 55px)}
@@ -108,6 +108,7 @@
   .live-timing-rows{display:grid;gap:3px;line-height:1.35}
   .live-timing-rows>span{display:block}
   .live-timing-rows .live-timing-meta{font-size:10px;color:#5d6b63}
+  .live-timing-rows small{font-size:10px;color:#5d6b63}
   /* pesquisa validada: painel separado do produto experimental ao vivo */
   .research-panel{border:1px solid #b9d9ca;background:linear-gradient(180deg,#f5fbf7,#fff);border-radius:14px;padding:13px 14px;margin:0 0 14px;box-shadow:var(--shadow)}
   .research-panel .rp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
@@ -152,6 +153,7 @@
   .live-hz button.on{background:#a5281c;color:#fff;border-color:#a5281c}
   .live-hz button.shadow{border-color:#7b61a8;color:#5d3f91;background:#fbf8ff}
   .live-hz button.shadow.on{background:#6f4aa1;color:#fff;border-color:#6f4aa1}
+  .live-horizon-status{font-size:10.5px;color:#7a5510;background:#fff8e8;border:1px solid #efd49a;border-radius:8px;padding:6px 8px;margin:-5px 0 10px;line-height:1.35}
   body.live #scn, body.live .tl{display:none}
   body.live .live-hz{display:flex}
   body.live .simple-only{display:block}
@@ -187,18 +189,19 @@
   <div class="modes" aria-label="Modo de visualização"><button id="mode-s" class="on" aria-pressed="true">Visualização simples</button><button id="mode-t" aria-pressed="false">Visualização detalhada</button><button id="mode-p" aria-pressed="false">Panorama Geral</button></div>
 </header>
 <main>
-  <div id="map" role="application" aria-label="Mapa interativo de previsão de inundação em Santa Tereza" aria-describedby="map-accessible-description"><span class="sr-only" id="map-accessible-description">Use os controles de camadas para alternar imagem de satélite, ruas, rótulos e estações. A mancha colorida representa somente água estimada fora do leito; ela é um proxy de pesquisa.</span></div>
+  <div id="map" role="application" aria-label="Mapa interativo de previsão de inundação em Santa Tereza" aria-describedby="map-accessible-description"><span class="sr-only" id="map-accessible-description">Use os controles de camadas para alternar imagem de satélite, ruas, rótulos e estações. A mancha colorida representa somente água estimada fora do leito; ela é um proxy de pesquisa.</span><span class="sr-only" id="map-accessible-summary" role="status" aria-live="polite"></span></div>
   <aside>
     <button class="live-btn" id="live-btn" type="button" aria-pressed="false">🔴 Ativar previsão ao vivo · Santa Tereza</button>
     <div class="live-bar" id="live-bar" style="display:none"><span class="ldot"></span> AO VIVO · <span id="live-kind">atualização</span>: <span id="live-when">—</span></div>
     <div class="live-note" id="live-note" style="display:none"></div>
     <div class="live-hz" id="live-hz" style="display:none" aria-label="Horizonte da previsao ao vivo">
       <button type="button" data-live-hz="2h" class="on" aria-pressed="true">2 h</button>
-      <button type="button" data-live-hz="2h_versao_b" class="shadow" aria-pressed="false">2 h B (sombra)</button>
+      <button type="button" data-live-hz="2h_versao_b" class="shadow" aria-pressed="false">2 h — comparativa</button>
       <button type="button" data-live-hz="4h" aria-pressed="false">4 h</button>
       <button type="button" data-live-hz="8h" aria-pressed="false">8 h V1</button>
-      <button type="button" data-live-hz="8h_v002" class="shadow" aria-pressed="false">8 h V2</button>
+      <button type="button" data-live-hz="8h_v002" class="shadow" aria-pressed="false">8 h — comparativa</button>
     </div>
+    <div id="live-horizon-status" class="live-horizon-status" role="status" aria-live="polite" style="display:none"></div>
 
     <!-- ===== LINHA DO TEMPO (compartilhada) ===== -->
     <div class="tl">
@@ -210,7 +213,7 @@
 
     <!-- ===== MODO SIMPLES ===== -->
     <div class="simple-only">
-      <div class="q">Nível do rio agora</div>
+      <div class="q" id="s-now-label">Nível do rio agora</div>
       <div class="big agora"><span id="s-now">—</span></div>
 
       <div class="q">Nível previsto do rio (<span id="s-hz">+N h</span>)</div>
@@ -232,7 +235,7 @@
         <div class="conf">Confiabilidade indicativa do horizonte (não é probabilidade): <span class="dot" id="s-confdot"></span><b id="s-conf">—</b></div>
       </div>
 
-      <div id="live-status-note" class="live-status-note" style="display:none"></div>
+      <div id="live-status-note" class="live-status-note" role="status" aria-live="polite" style="display:none"></div>
 
       <details class="card"><summary>Conferência das últimas previsões</summary><div class="body">
         <div id="live-audit-summary" class="disc" style="margin-top:0">Aguardando dados da auditoria.</div>
@@ -267,7 +270,7 @@
     <div class="tech-only">
       <div id="evinfo" class="disc" style="margin-top:0"></div>
       <h4>Leitura <span class="info" title="Nível do rio informado pela estação 86472600, na escala local da estação. A referência técnica é a régua local, mas para leitura pública o valor representa o nível do rio em Santa Tereza. PERS: ganho contra persistência. Área: superfície estimada fora do contorno-base HAND 0.">ⓘ</span></h4>
-      <div class="read"><span class="now">Nível do rio agora</span><b class="now" id="r-now">—</b></div>
+      <div class="read"><span class="now" id="r-now-label">Nível do rio agora</span><b class="now" id="r-now">—</b></div>
       <div class="read" id="r-modelbase-row" style="display:none"><span>Base usada pela RNA</span><b id="r-modelbase">—</b></div>
       <div class="read"><span class="fore">Nível previsto do rio (+<span id="hz">?</span>)</span><b class="fore" id="r-fore">—</b></div>
       <div class="read"><span>Mudança prevista desde agora</span><b id="r-dnivel">—</b></div>
@@ -555,19 +558,22 @@ function fmtClock(s){
   const m=(parts.find(p=>p.type==='minute')||{}).value||'00';
   return m==='00'?`${h}h`:`${h}h${m}`;
 }
+function fmtClockDate(s){ const d=parseLocalWhen(s); return d?`${fmtWhen(s)} BRT`:'—'; }
+function ageText(s){ const ms=parseLocalWhen(s); if(!ms) return 'idade indisponível'; const mins=Math.max(0,Math.round((Date.now()-ms.getTime())/60000)); if(mins<1)return 'agora'; if(mins<60)return `há ${mins} min`; const h=Math.floor(mins/60),r=mins%60; return r?`há ${h}h${String(r).padStart(2,'0')}`:`há ${h} h`; }
 function baseLagReason(D){
   const base=parseLocalWhen(D&&D.hora_modelo);
   const telemetry=parseLocalWhen(D&&(D.telemetria_ultima_em||D.nivel_rio_agora_em));
-  if(!base) return 'hora-base da RNA ainda indisponível';
-  if(!telemetry||telemetry<=base) return 'ainda não chegou uma leitura posterior à hora-base';
+  if(!base) return 'a hora-base da RNA ainda não está disponível';
+  if(!telemetry) return 'a ANA ainda não trouxe uma leitura válida para formar a próxima base';
+  if(telemetry<=base) return `a ANA ainda não trouxe uma leitura posterior à base ${fmtClock(base)}`;
   const next=new Date(base.getTime()+60*60*1000);
-  return `dados da hora ${fmtClock(next)} ainda incompletos ou não válidos para todos os inputs`;
+  return `a ANA já trouxe uma leitura às ${fmtClock(telemetry)}, mas a RNA só usa bases completas de hora cheia; a próxima base será ${fmtClock(next)} quando a hora estiver fechada`;
 }
 function timingRowsHtml(D){
   const telemetry=D&&(D.telemetria_ultima_em||D.nivel_rio_agora_em);
   const base=D&&D.hora_modelo;
   const consulted=D&&D.consultado_em;
-  return `<span class="live-timing-rows"><span><b>Última leitura ANA:</b> ${escLive(fmtClock(telemetry))}</span><span><b>Hora-base dos dados da RNA:</b> ${escLive(fmtClock(base))}</span><span><b>Motivo:</b> ${escLive(baseLagReason(D))}</span>${consulted?`<span class="live-timing-meta">Robô consultado/publicado: ${escLive(fmtWhen(consulted))}</span>`:''}</span>`;
+  return `<span class="live-timing-rows"><span><b>Última leitura ANA:</b> ${escLive(fmtClockDate(telemetry))} <small>(${escLive(ageText(telemetry))})</small></span><span><b>Hora-base dos dados da RNA:</b> ${escLive(fmtClockDate(base))}</span><span><b>Motivo:</b> ${escLive(baseLagReason(D))}</span>${consulted?`<span class="live-timing-meta"><b>Última consulta do robô:</b> ${escLive(fmtClockDate(consulted))}</span>`:''}</span>`;
 }
 function firstNumber(){
   for(const v of arguments){
@@ -749,6 +755,8 @@ function renderFrame(){
   const areaNew=areaFore-areaNow;
   const growth=areaNow>0?(areaFore-areaNow)/areaNow*100:null;
   const targetLabels=forecastTargetLabels(ev,s,activeD);
+  const currentLabel=(liveMode&&activeD&&ageMin(activeD.telemetria_ultima_em)>30)?'Último nível observado · telemetria com atraso':'Nível do rio agora';
+  set('s-now-label',currentLabel); set('r-now-label',currentLabel);
   set('s-hz', targetLabels.simple);
   set('hz', targetLabels.tech);
   set('hz2', targetLabels.tech);
@@ -868,6 +876,15 @@ function updateLiveHzButtons(){
     b.style.display=ok?'':'none';
     const active=b.dataset.liveHz===liveHz;b.classList.toggle('on',active);b.setAttribute('aria-pressed',active?'true':'false');
   });
+  const status=document.getElementById('live-horizon-status');
+  if(status){
+    const missing=Object.entries(hs).filter(([key,D])=>!liveHorizonReady(key,D)).map(([key,D])=>{
+      const falt=D&&D.inputs_faltantes_n!=null?`${D.inputs_faltantes_n}/${D.inputs_total||15}`:'sem conjunto completo';
+      return `${String(key).match(/\d+/)?.[0]||key} h indisponível · faltam ${falt} inputs`;
+    });
+    status.textContent=missing.length?missing.join(' · '):'';
+    status.style.display=missing.length?'':'none';
+  }
 }
 function prepareLiveData(d){
   const hs=Object.assign({},d.horizontes||{});
@@ -1018,8 +1035,8 @@ function renderLiveStatus(D,hz){
   const base=D&&D.hora_modelo?fmtWhen(D.hora_modelo):'—';
   const tele=D&&D.telemetria_ultima_em?fmtWhen(D.telemetria_ultima_em):'—';
   const consulted=D&&D.consultado_em?fmtWhen(D.consultado_em):'—';
-  const status=String(D&&D.status||'').toLowerCase();
-  const stale=status.includes('aguardando')||status.includes('atras')||status.includes('sem dado');
+  const status=String(D&&D.status||D&&D.status_dados||'').toLowerCase();
+  const stale=status.includes('aguardando')||status.includes('atras')||status.includes('sem dado')||(ageMin(D&&D.telemetria_ultima_em)!=null&&ageMin(D&&D.telemetria_ultima_em)>60);
   const parts=[];
   const timing=timingRowsHtml(D);
   if(stale){
@@ -1138,6 +1155,7 @@ function renderLiveStep(){
   const ei=document.getElementById('evinfo');
   if(ei) ei.innerHTML=liveInfoHtml(liveData,P,hz,tipoTxt,modoTxt);
   renderLiveAudit(liveData);
+  renderLiveStatus(liveData,hz);
   set('live-kind', liveWhenKind(liveData));
   set('live-when', liveWhenText(liveData,P));
   renderFrame();
@@ -1163,6 +1181,7 @@ async function enterLive(){
 function exitLive(){ liveMode=false; clearInterval(liveTimer); liveTimer=null; document.body.classList.remove('live');
   document.getElementById('live-bar').style.display='none'; document.getElementById('live-note').style.display='none';
   document.getElementById('live-hz').style.display='none';
+  const hstatus=document.getElementById('live-horizon-status'); if(hstatus){hstatus.style.display='none';hstatus.textContent='';}
   if(window.PREVINE_PANORAMA)PREVINE_PANORAMA.update(null);
   const toggle=document.getElementById('live-btn'); if(toggle){toggle.textContent='🔴 Ativar previsão ao vivo · Santa Tereza';toggle.setAttribute('aria-pressed','false');}
   delete EVENTS['__live__']; setEvent(Object.keys(EVENTS)[0]); }
