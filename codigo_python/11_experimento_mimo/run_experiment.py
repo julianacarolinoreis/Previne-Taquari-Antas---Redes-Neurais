@@ -241,6 +241,79 @@ def train_direct_scratch(rows, datasets, input_idx, output_specs, hidden_sizes):
     return result
 
 
+def train_direct_previne(
+    rows,
+    datasets,
+    input_idx,
+    output_specs,
+    hidden_sizes_by_out=None,
+    *,
+    seeds=(42, 7, 19, 11, 3),
+    max_cycles=80000,
+    patience_previne=12000,
+    name="direct_previne_pair",
+):
+    """Dois Direct independentes com protocolo PREVINE (um por horizonte)."""
+    models = []
+    for i, (ds_idx, _) in enumerate(output_specs):
+        ds = datasets[ds_idx]
+        if hidden_sizes_by_out is None:
+            hidden = [30, 40, 52] if ds.n_inputs <= 15 else [40, 52, 63]
+        else:
+            hidden = hidden_sizes_by_out[i]
+        picked_tr = _mask(rows, 1)
+        picked_va = _mask(rows, 2)
+        x_tr = np.asarray([ds.inputs[row["indices"][ds_idx]] for row in picked_tr], float)
+        y_tr = np.asarray([ds.delta[row["indices"][ds_idx]] for row in picked_tr], float).reshape(-1, 1)
+        x_va = np.asarray([ds.inputs[row["indices"][ds_idx]] for row in picked_va], float)
+        y_va = np.asarray([ds.delta[row["indices"][ds_idx]] for row in picked_va], float).reshape(-1, 1)
+        best = _fit_search(
+            x_tr,
+            y_tr,
+            x_va,
+            y_va,
+            hidden,
+            protocol="previne",
+            max_cycles=max_cycles,
+            patience_previne=patience_previne,
+            seeds=seeds,
+        )
+        models.append(best)
+
+    def predict_fn(_x, _atual, row):
+        out = []
+        for spec, trained in zip(output_specs, models):
+            ds_idx, _ = spec
+            ds = datasets[ds_idx]
+            idx = row["indices"][ds_idx]
+            x = ds.inputs[idx]
+            atual = float(ds.atual[idx])
+            delta = float(trained["model"].forward_delta(x)[0, 0])
+            out.append(atual + delta)
+        return out
+
+    result = evaluate_strategy(
+        name=name,
+        rows=rows,
+        datasets=datasets,
+        input_dataset_idx=input_idx,
+        output_specs=output_specs,
+        predict_fn=predict_fn,
+    )
+    result["training"] = [
+        {
+            "horizon": datasets[s[0]].name,
+            "hidden": m["nh"],
+            "seed": m["seed"],
+            "val_mse_delta": m["val_mse"],
+            "protocol": "previne",
+            "n_inputs": datasets[s[0]].n_inputs,
+        }
+        for s, m in zip(output_specs, models)
+    ]
+    return result, [m["model"] for m in models]
+
+
 def direct_baseline(rows, datasets, output_specs):
     weights = {ds.name: load_mat_weights(ds.mat_path) for ds in datasets}
 
