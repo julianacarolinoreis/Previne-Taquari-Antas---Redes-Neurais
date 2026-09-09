@@ -153,6 +153,18 @@ class TestExperimentArtifact(unittest.TestCase):
         self.assertGreater(best["2h"]["nash"], 0.85)
         self.assertIn("note_labels", self.data["method"])
 
+    def test_round6_python_26in_closes_fair_gap(self):
+        exp9 = self.data["experiments"].get("exp9_python_26in_nit")
+        self.assertIsNotNone(exp9, "exp9_python_26in_nit ausente")
+        self.assertEqual(exp9.get("status"), "ok")
+        self.assertTrue(exp9.get("python_first"))
+        self.assertTrue(exp9["verdict"]["closes_fair_aligned_gap"])
+        self.assertLess(exp9["verdict"]["gap_fair_aligned_4h"], 0.05)
+        best = exp9["variants"][exp9["best_variant"]]["splits"]["teste"]
+        self.assertGreater(best["4h"]["nash"], 0.85)
+        self.assertGreater(best["2h"]["nash"], 0.90)
+        self.assertTrue((ROOT / "codigo_python/11_experimento_mimo/matlab/OPTIONAL.md").is_file())
+
     def test_matlab_handoff_package(self):
         import sys
 
@@ -165,10 +177,12 @@ class TestExperimentArtifact(unittest.TestCase):
         self.assertTrue((out / "mimo_aligned_2h4h_15in.csv").is_file())
         self.assertTrue((out / "manifest.json").is_file())
         self.assertTrue((ROOT / "codigo_python/11_experimento_mimo/matlab/train_mimo_2h4h_stz.m").is_file())
+        self.assertTrue((ROOT / "codigo_python/11_experimento_mimo/matlab/OPTIONAL.md").is_file())
         header = (out / "mimo_aligned_2h4h_15in.csv").read_text(encoding="utf-8").splitlines()[0]
         self.assertIn("delta_2h_cm", header)
         self.assertIn("delta_4h_cm", header)
-        self.assertIn("observation", manifest.get("target", "").lower() + manifest.get("label_source", "").lower())
+        blob = (manifest.get("target", "") + " " + manifest.get("label_source", "")).lower()
+        self.assertIn("observation", blob)
 
 
 if __name__ == "__main__":

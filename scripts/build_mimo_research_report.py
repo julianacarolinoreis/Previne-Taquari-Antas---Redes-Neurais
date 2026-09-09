@@ -64,9 +64,14 @@ def main():
     round3 = data["experiments"].get("exp6_close_mat_gap_2h4h") or {}
     round4 = data["experiments"].get("exp7_mat_scale_warmstart_fix") or {}
     round5 = data["experiments"].get("exp8_previne_protocol_obs_labels") or {}
+    round6 = data["experiments"].get("exp9_python_26in_nit") or {}
     ds = data["datasets"]
     ref = data["mat_reference_metrics_teste"]
-    fair_aligned = data.get("mat_reference_aligned_teste") or (round5.get("mat_reference_aligned_teste") or {})
+    fair_aligned = (
+        data.get("mat_reference_aligned_teste")
+        or (round6.get("mat_reference_aligned_teste") if round6 else None)
+        or (round5.get("mat_reference_aligned_teste") or {})
+    )
     cons = data["trajectory_consistency"]
     repair_summary = exp1.get("summary_scratch_vs_mimo_repair") or {"ganhos": [], "empates": [], "perdas": []}
     repair_cons = cons.get("mimo_15in_repair_2h4h") or {}
@@ -100,6 +105,7 @@ def main():
     round3_rows = _round_table(round3)
     round4_rows = _round_table(round4)
     round5_rows = _round_table(round5)
+    round6_rows = _round_table(round6)
     round3_box = ""
     if round3:
         verd = round3.get("verdict", {})
@@ -164,7 +170,32 @@ bate scratch 4h? {'sim' if verd.get('beats_scratch_4h') else 'não'}</p>
 <li><strong>Protocolo PREVINE</strong> (au/bu padded, dunisig, TX adaptativo) supera claramente o SGD legado no mesmo y_true.</li>
 <li><strong>mimo_previne_rising</strong> chega a ~0,98 / ~0,87; gap ao Direct alinhado no 4h ≈0,05.</li>
 <li>O “gap 0,13” das rodadas 3–4 misturava predição-como-rótulo e teto full 26in.</li>
-<li>Resto: 15 vs 26 inputs no 4h, ou Cic/nit plenos no MATLAB nativo.</li>
+<li>Próximo: 26 inputs do 4h + nit ampliado em Python (rodada 6).</li>
+</ul>
+"""
+    round6_box = ""
+    if round6:
+        verd = round6.get("verdict", {})
+        best = round6.get("best_variant", "—")
+        fair4 = (fair_aligned.get("4h") or {}).get("nash")
+        fair2 = (fair_aligned.get("2h") or {}).get("nash")
+        r5ref = round6.get("round5_best_ref") or {}
+        round6_box = f"""
+<h2>6e. Rodada 6 — 100% Python · 26 inputs + nit</h2>
+<p>Pergunta: {round6.get('question','')}</p>
+<p class='meta'>MATLAB = opcional (<code>matlab/OPTIONAL.md</code>). Caminho canônico = <code>fit_previne</code>.</p>
+<p><strong>Teto justo alinhado:</strong> 2h {fmt(fair2)} · 4h {fmt(fair4)}</p>
+<p><strong>Melhor variante:</strong> {best} · gap justo 4h {fmt(verd.get('gap_fair_aligned_4h'))} ·
+fecha &lt;0,05? {'sim' if verd.get('closes_fair_aligned_gap') else 'não'} ·
+melhora r5? {'sim' if verd.get('improves_vs_round5_4h') else 'não'}
+{f" · r5 4h {fmt((r5ref.get('teste') or {}).get('4h', {}).get('nash'))}" if r5ref else ""}</p>
+<table><thead><tr><th>Variante</th><th>NASH 2h</th><th>NASH 4h</th><th>Δ scratch 4h</th><th>gap teto justo 4h</th><th>2h ok</th></tr></thead>
+<tbody>{round6_rows or '<tr><td colspan="6">sem ranking</td></tr>'}</tbody></table>
+<p class='meta'>{verd.get('note','')}</p>
+<ul>
+<li><strong>26 inputs + nh=52 + nit=10</strong> fecha o gap justo no 4h (&lt;0,05) em Python.</li>
+<li>Trade-off: 2h um pouco abaixo do pico 15in da r5, mas ainda ok vs scratch.</li>
+<li>Não falta MATLAB — o limite restante é multi-saída vs dois Direct independentes / teto full-test 26in.</li>
 </ul>
 """
 
@@ -250,12 +281,14 @@ ul{{padding-left:20px}}
 
 {round5_box}
 
-<h2>7. Handoff MATLAB (protocolo PREVINE)</h2>
-<p>Script <code>train_mimo_2h4h_stz.m</code> agora espelha o protocolo Direct (ae/be ddof=1, au/bu padded,
-dunisig, TX adaptativo). CSVs usam deltas <strong>observados</strong>.
-<a href='../assets/data/research_mimo_matlab_handoff/manifest.json'>assets/data/research_mimo_matlab_handoff/</a>.
-Comparar ao teto justo alinhado e, se quiser o teto operacional full-test, ao
-<code>mat_reference_metrics_teste</code> (4h com 26 inputs).</p>
+{round6_box}
+
+<h2>7. Caminho Python (MATLAB opcional)</h2>
+<p><strong>Canônico:</strong> <code>fit_previne</code> + <code>run_research_round6.py</code> (26 inputs, nit=10).
+Os <code>.mat</code> Direct continuam só como teto/inferência.</p>
+<p><strong>Opcional:</strong> espelho MATLAB em
+<code>codigo_python/11_experimento_mimo/matlab/OPTIONAL.md</code> —
+mesmo protocolo, sem ser requisito da pesquisa.</p>
 
 <h2>8. JSON auditável</h2>
 <p><a href='../assets/data/research_mimo_multihorizon_latest.json'>assets/data/research_mimo_multihorizon_latest.json</a></p>
