@@ -54,13 +54,10 @@ class ForcantesStzMucumTests(unittest.TestCase):
         idx = (OUT / "index.html").read_text(encoding="utf-8")
         self.assertIn("forcantes_stz_mucum.html", idx)
         domains = json.loads((OUT / "dois_modelos_stz_mucum_latest.json").read_text(encoding="utf-8"))
-        self.assertIn(domains["status"], {
-            "forcantes_congeladas_aguardando_estrutura",
-            "estrutura_proposta_aguardando_series_ou_caminho_hec_rna",
-        })
         self.assertTrue(
             domains["status"].startswith("forcantes_")
             or domains["status"].startswith("estrutura_")
+            or domains["status"].startswith("series_")
         )
 
 

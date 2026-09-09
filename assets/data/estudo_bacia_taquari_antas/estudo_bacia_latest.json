@@ -218,7 +218,9 @@
       "Forçantes v1 congeladas para modelo STZ e modelo Mucum (lista curta).",
       "Carreiro e Prata entram como forçantes de afluente nos dois alvos.",
       "Estrutura candidata v1: modelo STZ (4 SB) e modelo Muçum (5 SB) com Prata+Carreiro nomeados.",
-      "Modelo STZ para em J_STZ; modelo Muçum acrescenta incremento ~190 km²."
+      "Modelo STZ para em J_STZ; modelo Muçum acrescenta incremento ~190 km².",
+      "Séries de chuva das forçantes auditadas no CSV operacional (A894 vazio; STZ chuva com buracos).",
+      "Calibração HEC ainda bloqueada; prototipo RNA com máscara possível."
     ],
     "unknown_or_unreconciled": [
       "Area projetada exata (m2) das 32 sub-bacias em EPSG:31982 (hoje aproximacao por graus).",
@@ -227,9 +229,9 @@
     ]
   },
   "next_study_steps_only": [
-    "Validar series das forçantes congeladas (nivel + chuva) por alvo.",
-    "Escolher caminho: montar .basin HEC-HMS por alvo OU treinar/confirmar RNA com o mesmo grafo de features.",
-    "So depois: calibracao — e apenas no modelo escolhido, nunca 'da bacia'."
+    "Baixar/auditar nível histórico ANA para 86125500 (e opcional 86448000); definir máscara de buracos chuva_86472600; escolher caminho RNA vs .basin HEC.",
+    "Não calibrar HEC até fechar máscaras de chuva STZ e série Prata histórica.",
+    "Se priorizar RNA: usar forçantes ok_operacional/com_buracos com máscara; excluir A894 vazio do treino."
   ],
   "local_artifacts_related": {
     "iede_boundary": "assets/data/vulnerabilidade/bacia.geojson",
@@ -604,5 +606,15 @@
       "SB_INC_MUCUM"
     ],
     "updated_at_utc": "2026-09-09T02:32:08.620943+00:00"
+  },
+  "series_forcantes_stz_mucum": {
+    "status": "series_auditadas_v1",
+    "artifacts": {
+      "json": "series_forcantes_stz_mucum_latest.json",
+      "html": "series_forcantes_stz_mucum.html"
+    },
+    "pode_calibrar_hec_agora": false,
+    "pode_prototipar_rna_com_mascaras": true,
+    "updated_at_utc": "2026-09-09T03:09:14.629610+00:00"
   }
 }

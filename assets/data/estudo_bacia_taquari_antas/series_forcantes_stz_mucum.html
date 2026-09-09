@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Séries das forçantes · STZ e Muçum</title>
+  <style>
+    :root { --ink:#1a303f; --muted:#5d7380; --line:#d7e4e8; --ok:#1b7a4a; --warn:#9a5b12; --bad:#a33b35; }
+    body { margin:0; color:var(--ink); font:16px/1.55 "Source Sans 3",Segoe UI,sans-serif; background:linear-gradient(165deg,#eef7f8,#fff9f2); }
+    main { max-width:1100px; margin:auto; padding:28px 16px 64px; }
+    header, section { background:#fff; border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:14px; box-shadow:0 10px 26px #1a303f12; }
+    h1 { margin:0 0 8px; font:700 clamp(28px,4vw,40px)/1.08 "Fraunces",Georgia,serif; }
+    .eyebrow { color:var(--ok); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .notice { border-left:5px solid var(--warn); background:#fff7e8; color:#6d4810; padding:12px 14px; border-radius:10px; margin:10px 0; }
+    .ok { border-left-color:var(--ok); background:#eefaf3; color:#145c38; }
+    .bad { border-left-color:var(--bad); background:#fff1ef; color:#7a2d28; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { padding:7px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#eef6f7; }
+    .muted { color:var(--muted); font-size:13px; }
+    a { color:#056999; font-weight:700; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Estudo · séries v1</div>
+    <h1>Auditoria das forçantes — buraco ≠ zero</h1>
+    <p class="muted">2026-09-09T03:09:14.629610+00:00 · series_auditadas_v1</p>
+    <div class="notice ok"><strong>Disciplina:</strong> Buraco != zero. Pane/ausencia nao vira chuva zero. Esta auditoria libera prototipo com mascara; nao libera NSE/HEC calibrado.</div>
+    <div class="notice ok">
+      <strong>RNA com máscara:</strong> sim ·
+      <strong>Calibrar HEC agora:</strong> não
+    </div>
+    <div class="notice bad"><strong>HEC:</strong> Estrutura ok, mas calibração HEC exige séries de chuva/nível reconciliadas por evento sem imputar zero em buracos; A894/CEMADEN locais fracos; Prata sem raw de evento.</div>
+  </header>
+
+  <section>
+    <h2>Chuva · CSV operacional</h2>
+    <p class="muted">assets/data/chuvas_horarias.csv · 33072 h ·
+    2022-12-01 00:00 → 2026-09-08 23:00</p>
+    <table>
+      <thead><tr><th>Código</th><th>Coluna</th><th>% presente</th><th>Veredito</th><th>Portão</th><th>1º→último</th><th>Maior buraco</th></tr></thead>
+      <tbody><tr><td>86472000</td><td>chuva_86472000</td><td>97.2%</td><td>ok_operacional</td><td>usar</td><td>2022-12-01 00:00 → 2026-09-08 10:00</td><td>{&quot;hours&quot;: 653, &quot;start&quot;: &quot;2023-09-25 23:00&quot;, &quot;end&quot;: &quot;2023-10-23 03:00&quot;}</td></tr><tr><td>86472600</td><td>chuva_86472600</td><td>76.2%</td><td>com_buracos</td><td>usar_com_mascara_nao_imputar_zero</td><td>2023-10-01 00:00 → 2026-09-08 10:00</td><td>{&quot;hours&quot;: 7296, &quot;start&quot;: &quot;2022-12-01 00:00&quot;, &quot;end&quot;: &quot;2023-09-30 23:00&quot;}</td></tr><tr><td>2851072</td><td>chuva_02851072</td><td>88.9%</td><td>com_buracos</td><td>usar_com_mascara_nao_imputar_zero</td><td>2022-12-01 00:00 → 2026-09-08 10:00</td><td>{&quot;hours&quot;: 1207, &quot;start&quot;: &quot;2025-04-09 06:00&quot;, &quot;end&quot;: &quot;2025-05-29 12:00&quot;}</td></tr><tr><td>A894</td><td>chuva_inmet_A894</td><td>0.0%</td><td>vazio</td><td>bloquear_como_primaria</td><td>None → None</td><td>{&quot;hours&quot;: 33072, &quot;start&quot;: &quot;2022-12-01 00:00&quot;, &quot;end&quot;: &quot;2026-09-08 23:00&quot;}</td></tr><tr><td>432040401A</td><td>chuva_cemaden_4320404010A</td><td>1.1%</td><td>fraca</td><td>backup_ou_evitar_como_unica</td><td>2026-08-24 04:00 → 2026-09-08 11:00</td><td>{&quot;hours&quot;: 32692, &quot;start&quot;: &quot;2022-12-01 00:00&quot;, &quot;end&quot;: &quot;2026-08-24 03:00&quot;}</td></tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Nível · fontes locais</h2>
+    <table>
+      <thead><tr><th>Código</th><th>Papel</th><th>Fontes</th><th>Veredito</th><th>Portão</th></tr></thead>
+      <tbody><tr><td>86472000</td><td>alvo_ou_forcante</td><td>previne_robo_ESTACOES_NIVEL_stz, mucum_modelo_inputs, excel_rna_features, hec_event_telemetry_x5</td><td>presente_em_rna_ou_eventos</td><td>usar_com_auditoria_de_lacunas_por_evento</td></tr><tr><td>86507000</td><td>alvo_ou_forcante</td><td>previne_robo_ESTACOES_NIVEL_stz, mucum_modelo_inputs, excel_rna_features, hec_event_telemetry_x5</td><td>presente_em_rna_ou_eventos</td><td>usar_com_auditoria_de_lacunas_por_evento</td></tr><tr><td>86125500</td><td>alvo_ou_forcante</td><td>previne_robo_ESTACOES_NIVEL_stz, mucum_modelo_inputs, excel_rna_features</td><td>presente_em_rna_ou_eventos</td><td>usar_com_auditoria_de_lacunas_por_evento</td></tr><tr><td>86448000</td><td>secundario</td><td>previne_robo_ESTACOES_NIVEL_stz, mucum_modelo_inputs, excel_rna_features</td><td>presente_em_rna_ou_eventos</td><td>usar_com_auditoria_de_lacunas_por_evento</td></tr><tr><td>86472600</td><td>alvo_STZ / forcante_critica_Mucum</td><td>previne_robo_ESTACOES_NIVEL_stz, mucum_modelo_inputs, excel_rna_features, hec_event_telemetry_x5</td><td>presente_em_rna_ou_eventos</td><td>usar_com_auditoria_de_lacunas_por_evento</td></tr><tr><td>86510000</td><td>alvo_Mucum (nao esta no ESTACOES_NIVEL do robo STZ)</td><td>mucum_modelo_inputs, excel_rna_features, hec_event_telemetry_x5</td><td>presente_em_rna_ou_eventos</td><td>usar_com_auditoria_de_lacunas_por_evento</td></tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Bloqueios / avisos</h2>
+    <ul><li>A894 vazio no CSV publicado — backup só via API INMET; ausencia != zero.</li><li>CEMADEN quase vazio no CSV (coluna com zero extra no código); backup fraco no arquivo local.</li><li>chuva_86472600 com ~24% buracos e começa tarde (out/2023) — mascarar, não imputar zero.</li><li>86125500 (Prata) sem telemetria de evento HEC local — só live/Excel.</li><li>86448000 secundário sem telemetria de evento HEC local.</li></ul>
+    <h2>Próximos</h2>
+    <ul><li>Baixar/auditar nível histórico ANA para 86125500 (e opcional 86448000); definir máscara de buracos chuva_86472600; escolher caminho RNA vs .basin HEC.</li><li>Não calibrar HEC até fechar máscaras de chuva STZ e série Prata histórica.</li><li>Se priorizar RNA: usar forçantes ok_operacional/com_buracos com máscara; excluir A894 vazio do treino.</li></ul>
+    <p>
+      <a href="series_forcantes_stz_mucum_latest.json">JSON</a> ·
+      <a href="forcantes_stz_mucum.html">forçantes</a> ·
+      <a href="estrutura_stz_mucum.html">estrutura</a> ·
+      <a href="index.html">estudo-base</a>
+    </p>
+  </section>
+</main>
+</body>
+</html>

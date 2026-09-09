@@ -52,7 +52,9 @@ class EstruturaStzMucumTests(unittest.TestCase):
         idx = (OUT / "index.html").read_text(encoding="utf-8")
         self.assertIn("estrutura_stz_mucum.html", idx)
         domains = json.loads((OUT / "dois_modelos_stz_mucum_latest.json").read_text(encoding="utf-8"))
-        self.assertIn("estrutura", domains["status"])
+        self.assertTrue(
+            "estrutura" in domains["status"] or "series" in domains["status"]
+        )
 
 
 if __name__ == "__main__":
