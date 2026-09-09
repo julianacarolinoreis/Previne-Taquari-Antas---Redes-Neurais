@@ -26,7 +26,7 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
         self.assertIn("pad_selection", muc)
         self.assertIn("local_refine", muc["pad_selection"]["mode"])
         self.assertGreaterEqual(muc["n_events_fit_ok"], 8)
-        self.assertLessEqual(muc.get("mean_peak_relative_error_ok", 9), 0.08)
+        self.assertLessEqual(muc.get("mean_peak_relative_error_ok", 9), 0.03)
         self.assertTrue(muc["common_search"].get("promotion_blocked"))
 
     def test_mucum_peaks_improved(self) -> None:
@@ -35,7 +35,9 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
         self.assertEqual(by_id["E22"]["status"], "eventwise_scored")
         self.assertLessEqual(by_id["E22"]["metrics"]["peak_relative_error"], 0.05)
         self.assertEqual(by_id["E27"]["status"], "eventwise_scored")
-        self.assertLessEqual(by_id["E27"]["metrics"]["peak_relative_error"], 0.05)
+        self.assertLessEqual(by_id["E27"]["metrics"]["peak_relative_error"], 0.04)
+        self.assertLessEqual(by_id["E21"]["metrics"]["peak_relative_error"], 0.02)
+        self.assertLessEqual(by_id["E31"]["metrics"]["peak_relative_error"], 0.02)
         self.assertEqual(by_id["E28"]["status"], "eventwise_scored")
         self.assertGreaterEqual(by_id["E28"]["metrics"]["nse"], 0.90)
         self.assertEqual(by_id["E23"]["status"], "eventwise_scored")
@@ -106,8 +108,7 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
         sys.modules[mod.__name__] = mod
         exec(compile(path.read_text(encoding="utf-8"), str(path), "exec"), mod.__dict__)
         self.assertIn("2851072", mod.RAIN_STATIONS_LOAD)
-        self.assertLessEqual(mod.research_score.__doc__.find("v1.5") >= 0 or True, True)
-        # peak weight is 1.0
+        # peak_weight default 1.25 → 1.0 - 1.25*0.1 = 0.875
         fake = {
             "nse": 1.0,
             "peak_lag_hours": 0.0,

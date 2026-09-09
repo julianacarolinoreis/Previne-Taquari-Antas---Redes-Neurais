@@ -23,12 +23,14 @@ class ModeloMucumEventwiseFechadoV1Tests(unittest.TestCase):
         self.assertGreaterEqual(len(self.data["included_events"]), 8)
         self.assertGreaterEqual(self.data["calibration_source"]["mean_nse_eventwise_ok"], 0.80)
         peak_errs = [e["metrics"]["peak_relative_error"] for e in self.data["params_library_eventwise"]]
-        self.assertLessEqual(sum(peak_errs) / len(peak_errs), 0.06)
+        self.assertLessEqual(sum(peak_errs) / len(peak_errs), 0.025)
         self.assertIn("E22", self.data["included_events"])
         e22 = next(e for e in self.data["params_library_eventwise"] if e["event_id"] == "E22")
-        self.assertLessEqual(e22["metrics"]["peak_relative_error"], 0.05)
+        self.assertLessEqual(e22["metrics"]["peak_relative_error"], 0.03)
         e27 = next(e for e in self.data["params_library_eventwise"] if e["event_id"] == "E27")
-        self.assertLessEqual(e27["metrics"]["peak_relative_error"], 0.05)
+        self.assertLessEqual(e27["metrics"]["peak_relative_error"], 0.04)
+        e21 = next(e for e in self.data["params_library_eventwise"] if e["event_id"] == "E21")
+        self.assertLessEqual(e21["metrics"]["peak_relative_error"], 0.02)
 
     def test_params_csv(self) -> None:
         path = OUT / self.data["artifacts"]["params_csv"]
