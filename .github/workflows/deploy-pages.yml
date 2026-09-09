@@ -76,6 +76,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          # O deploy pode ficar na fila enquanto os robôs publicam outro
+          # ciclo. Ler a ponta atual de main no início do job evita que a
+          # fila publique o snapshot anterior ao evento que o acordou.
+          ref: main
           fetch-depth: 1
           filter: blob:none
           sparse-checkout: |
