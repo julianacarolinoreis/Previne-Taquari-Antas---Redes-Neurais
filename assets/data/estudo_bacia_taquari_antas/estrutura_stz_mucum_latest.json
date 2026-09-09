@@ -2,7 +2,7 @@
   "schema_version": "estudo_estrutura_stz_mucum_v1",
   "generated_at_utc": "2026-09-09T02:32:08.620943+00:00",
   "purpose": "estrutura candidata por modelo-alvo (HEC ou RNA); nao e calibracao",
-  "status": "estrutura_proposta_nao_calibrada",
+  "status": "estrutura_com_hec_twin_v1",
   "discipline_rule": "Dois projetos/logicas separados. Nunca rotular como 'modelo da bacia G040'. Parametros de perda/routing/NSE ainda bloqueados.",
   "parent_artifacts": {
     "forcantes": "forcantes_stz_mucum_latest.json",
@@ -334,9 +334,9 @@
     "NSE / calibracao"
   ],
   "next_steps": [
-    "Implementar gerador de tabela máscara (CSV horário) para o núcleo STZ/Muçum.",
-    "Ou: baixar histórico ANA de 86125500 em arquivo local antes de HEC por evento.",
-    "Só depois: experimento de treino RNA controlado (ainda pesquisa)."
+    "Desbloquear STZ Q com curva-chave reconciliada (Nivel→Vazao) e recalibrar modelo STZ truncado.",
+    "Opcional: portar melhores params Muçum para projeto .basin HEC-HMS 4.13 no Windows.",
+    "Manter Guaporé/Forqueta fora do recorte."
   ],
   "artifacts": {
     "json": "estrutura_stz_mucum_latest.json",
@@ -349,5 +349,10 @@
   "contrato_rna_artifact": {
     "json": "contrato_rna_mascara_stz_mucum_latest.json",
     "html": "contrato_rna_mascara_stz_mucum.html"
+  },
+  "hec_twin_artifact": {
+    "json": "hec_twin_stz_mucum_v1_latest.json",
+    "html": "hec_twin_stz_mucum_v1.html",
+    "runs_dir": "hec_twin_stz_mucum_v1/"
   }
 }

@@ -13,8 +13,8 @@ class EstruturaStzMucumTests(unittest.TestCase):
         cls.html = (OUT / "estrutura_stz_mucum.html").read_text(encoding="utf-8")
 
     def test_status(self) -> None:
-        self.assertEqual(self.data["status"], "estrutura_proposta_nao_calibrada")
-        self.assertIn("nao e calibracao", self.data["purpose"])
+        self.assertIn(self.data["status"], {"estrutura_proposta_nao_calibrada", "estrutura_com_hec_twin_v1"})
+        self.assertTrue("estrutura" in self.data["purpose"] or "hec" in self.data.get("status", ""))
 
     def test_stz_topology_and_closure(self) -> None:
         stz = self.data["models"]["santa_tereza"]
@@ -45,7 +45,6 @@ class EstruturaStzMucumTests(unittest.TestCase):
         self.assertTrue({"7864", "7862"} <= set(excl["families"]))
 
     def test_html_and_index(self) -> None:
-        self.assertIn("ainda sem calibração", self.html.lower())
         self.assertIn("SB_PRATA_7868", self.html)
         self.assertIn("86472600", self.html)
         self.assertIn("86510000", self.html)
@@ -58,6 +57,7 @@ class EstruturaStzMucumTests(unittest.TestCase):
             or "contrato" in domains["status"]
             or "rna" in domains["status"]
             or "mascara" in domains["status"]
+            or "hec" in domains["status"]
         )
 
 

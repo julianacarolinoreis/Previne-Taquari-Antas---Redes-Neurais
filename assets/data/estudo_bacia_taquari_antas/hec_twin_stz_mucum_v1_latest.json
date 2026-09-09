@@ -1,0 +1,418 @@
+{
+  "schema_version": "estudo_hec_twin_stz_mucum_v1",
+  "generated_at_utc": "2026-09-09T11:11:05.193317+00:00",
+  "purpose": "calibracao HEC (gemeo Python) dos modelos-alvo STZ e Mucum",
+  "status": "hec_twin_mucum_calibrado_stz_q_bloqueado",
+  "discipline_rule": "Isto e HEC estrutural + busca de parametros no gemeo Linux. Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional.",
+  "engine": {
+    "name": "python_hms_twin_ic_clark_recession_muskingum",
+    "not_hec_hms_binary": true,
+    "why": "HEC-HMS 4.13 do projeto e Windows-only; neste ambiente Linux roda o gemeo auditavel",
+    "methods": [
+      "Initial+Constant",
+      "Clark",
+      "Recession",
+      "Muskingum"
+    ]
+  },
+  "structure_ref": "estrutura_stz_mucum_latest.json",
+  "areas_km2": {
+    "SB_PRATA_7868": 3775.99,
+    "SB_ANTAS_RESIDUAL": 9142.666,
+    "SB_CARREIRO_7866": 2564.19,
+    "SB_STZ_RESIDUAL": 292.34,
+    "SB_INC_MUCUM": 190.021
+  },
+  "models": {
+    "mucum": {
+      "target": "86510000",
+      "target_name": "Muçum",
+      "quantity": "Vazao_m3s",
+      "structure": "modelo_mucum_estrutura_stz_mucum_v1",
+      "n_events_calibrated": 5,
+      "mean_nse_eventwise": -6.525175857986895,
+      "events": [
+        {
+          "event_id": "E19",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000": 19.8,
+              "86510000": 26.4
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000",
+              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_CARREIRO_7866": "86472000",
+              "SB_STZ_RESIDUAL": "86472000",
+              "SB_INC_MUCUM": "86510000"
+            },
+            "runnable": true,
+            "blocked_reason": null
+          },
+          "observed_points": 53,
+          "status": "calibrated_eventwise",
+          "score": -36.73502971344652,
+          "metrics": {
+            "pairs": 53.0,
+            "nse": -35.91797511599551,
+            "rmse_m3s": 959.0066934110791,
+            "mae_m3s": 853.510169569546,
+            "peak_lag_hours": 16.0,
+            "peak_relative_error": 0.03410919490202468,
+            "observed_peak_m3s": 1408.375,
+            "simulated_peak_m3s": 1456.413537370139
+          },
+          "params": {
+            "initial_loss": 2.5,
+            "constant_loss": 0.5,
+            "tc": 4.0,
+            "storage": 45.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.005,
+            "k1": 0.5,
+            "k2": 0.5,
+            "k3": 0.5,
+            "x": 0.2
+          },
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E19_best_series.csv"
+        },
+        {
+          "event_id": "E22",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000": 138.6,
+              "86507000": 176.2
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000",
+              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000",
+              "SB_INC_MUCUM": "86472000"
+            },
+            "runnable": true,
+            "blocked_reason": null
+          },
+          "observed_points": 110,
+          "status": "calibrated_eventwise",
+          "score": 0.6918737037117183,
+          "metrics": {
+            "pairs": 110.0,
+            "nse": 0.7311809993632206,
+            "rmse_m3s": 836.6640496689961,
+            "mae_m3s": 702.525624334417,
+            "peak_lag_hours": 0.0,
+            "peak_relative_error": 0.07861459130300454,
+            "observed_peak_m3s": 10437.666666666666,
+            "simulated_peak_m3s": 9617.113767509672
+          },
+          "params": {
+            "initial_loss": 5.5,
+            "constant_loss": 0.5,
+            "tc": 10.0,
+            "storage": 25.0,
+            "recession": 0.7,
+            "initial_flow_ratio": 0.005,
+            "k1": 0.5,
+            "k2": 0.5,
+            "k3": 0.5,
+            "x": 0.2
+          },
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E22_best_series.csv"
+        },
+        {
+          "event_id": "E24",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000": 202.4
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000",
+              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_CARREIRO_7866": "86472000",
+              "SB_STZ_RESIDUAL": "86472000",
+              "SB_INC_MUCUM": "86472000"
+            },
+            "runnable": true,
+            "blocked_reason": null
+          },
+          "observed_points": 238,
+          "status": "calibrated_eventwise",
+          "score": 0.6142121170981797,
+          "metrics": {
+            "pairs": 238.0,
+            "nse": 0.7962881870489348,
+            "rmse_m3s": 1318.105542443412,
+            "mae_m3s": 1036.2262917883274,
+            "peak_lag_hours": 3.0,
+            "peak_relative_error": 0.06415213990151017,
+            "observed_peak_m3s": 11434.95,
+            "simulated_peak_m3s": 12168.526512166774
+          },
+          "params": {
+            "initial_loss": 0.0,
+            "constant_loss": 1.0,
+            "tc": 25.0,
+            "storage": 25.0,
+            "recession": 0.85,
+            "initial_flow_ratio": 0.005,
+            "k1": 0.5,
+            "k2": 0.5,
+            "k3": 0.5,
+            "x": 0.2
+          },
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E24_best_series.csv"
+        },
+        {
+          "event_id": "E27",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000": 616.6,
+              "86507000": 750.6
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000",
+              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000",
+              "SB_INC_MUCUM": "86472000"
+            },
+            "runnable": true,
+            "blocked_reason": null
+          },
+          "observed_points": 245,
+          "status": "calibrated_eventwise",
+          "score": 0.7045192269177392,
+          "metrics": {
+            "pairs": 245.0,
+            "nse": 0.816337479475337,
+            "rmse_m3s": 1720.5690775105697,
+            "mae_m3s": 1456.1696092151371,
+            "peak_lag_hours": 1.0,
+            "peak_relative_error": 0.12363650511519562,
+            "observed_peak_m3s": 14525.225,
+            "simulated_peak_m3s": 12729.376944988133
+          },
+          "params": {
+            "initial_loss": 0.0,
+            "constant_loss": 4.0,
+            "tc": 4.0,
+            "storage": 90.0,
+            "recession": 0.85,
+            "initial_flow_ratio": 0.005,
+            "k1": 0.5,
+            "k2": 0.5,
+            "k3": 0.5,
+            "x": 0.2
+          },
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E27_best_series.csv"
+        },
+        {
+          "event_id": "E28",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000": 228.1,
+              "86507000": 7.4,
+              "86472600": 227.4,
+              "86510000": 235.2
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000",
+              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472600",
+              "SB_INC_MUCUM": "86510000"
+            },
+            "runnable": true,
+            "blocked_reason": null
+          },
+          "observed_points": 209,
+          "status": "calibrated_eventwise",
+          "score": 0.8971025684049615,
+          "metrics": {
+            "pairs": 209.0,
+            "nse": 0.9482891601735419,
+            "rmse_m3s": 405.74104047122114,
+            "mae_m3s": 326.749271071738,
+            "peak_lag_hours": 1.0,
+            "peak_relative_error": 0.0023731835371606533,
+            "observed_peak_m3s": 7886.724999999999,
+            "simulated_peak_m3s": 7868.008354067886
+          },
+          "params": {
+            "initial_loss": 0.0,
+            "constant_loss": 1.0,
+            "tc": 25.0,
+            "storage": 25.0,
+            "recession": 0.85,
+            "initial_flow_ratio": 0.005,
+            "k1": 0.5,
+            "k2": 0.5,
+            "k3": 0.5,
+            "x": 0.2
+          },
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E28_best_series.csv"
+        }
+      ],
+      "mean_nse_eventwise_excluding_e19": 0.8230239565152586,
+      "n_events_excluding_e19": 4,
+      "e19_note": "E19 derruba a média bruta (NSE ~−36). Eventos E22–E28 ficam no mesmo patamar do carreiro_split (NSE ~0.73–0.95)."
+    },
+    "santa_tereza": {
+      "target": "86472600",
+      "target_name": "Santa Tereza",
+      "quantity": "Vazao_m3s",
+      "status": "q_calibration_blocked_no_ana_vazao",
+      "structure": "modelo_stz_estrutura_stz_mucum_v1",
+      "blocker": "Posto 86472600 não tem série de Vazão ANA nos eventos E19–E28 deste pacote (só Nivel em parte dos eventos). Sem curva-chave reconciliada não há alvo Q HEC.",
+      "events_inventory": [
+        {
+          "event_id": "E19",
+          "nivel_hours": 0,
+          "vazao_hours": 0,
+          "note": "ANA telemetry for 86472600 has Nivel only (empty Vazao) in available event files"
+        },
+        {
+          "event_id": "E22",
+          "nivel_hours": 0,
+          "vazao_hours": 0,
+          "note": "ANA telemetry for 86472600 has Nivel only (empty Vazao) in available event files"
+        },
+        {
+          "event_id": "E24",
+          "nivel_hours": 239,
+          "vazao_hours": 0,
+          "note": "ANA telemetry for 86472600 has Nivel only (empty Vazao) in available event files"
+        },
+        {
+          "event_id": "E27",
+          "nivel_hours": 244,
+          "vazao_hours": 0,
+          "note": "ANA telemetry for 86472600 has Nivel only (empty Vazao) in available event files"
+        },
+        {
+          "event_id": "E28",
+          "nivel_hours": 209,
+          "vazao_hours": 0,
+          "note": "ANA telemetry for 86472600 has Nivel only (empty Vazao) in available event files"
+        }
+      ],
+      "diagnostic_transfer_from_mucum_params": [
+        {
+          "event_id": "E19",
+          "params_from": "mucum_eventwise_best",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E19_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000": 19.8
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000",
+              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_CARREIRO_7866": "86472000",
+              "SB_STZ_RESIDUAL": "86472000"
+            },
+            "runnable": true,
+            "blocked_reason": null
+          },
+          "warning": "Simulated Q at STZ using Muçum-fitted params — NOT an STZ Q calibration"
+        },
+        {
+          "event_id": "E22",
+          "params_from": "mucum_eventwise_best",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E22_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000": 138.6,
+              "86507000": 176.2
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000",
+              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000"
+            },
+            "runnable": true,
+            "blocked_reason": null
+          },
+          "warning": "Simulated Q at STZ using Muçum-fitted params — NOT an STZ Q calibration"
+        },
+        {
+          "event_id": "E24",
+          "params_from": "mucum_eventwise_best",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E24_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000": 202.4
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000",
+              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_CARREIRO_7866": "86472000",
+              "SB_STZ_RESIDUAL": "86472000"
+            },
+            "runnable": true,
+            "blocked_reason": null
+          },
+          "warning": "Simulated Q at STZ using Muçum-fitted params — NOT an STZ Q calibration"
+        },
+        {
+          "event_id": "E27",
+          "params_from": "mucum_eventwise_best",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E27_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000": 616.6,
+              "86507000": 750.6
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000",
+              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000"
+            },
+            "runnable": true,
+            "blocked_reason": null
+          },
+          "warning": "Simulated Q at STZ using Muçum-fitted params — NOT an STZ Q calibration"
+        },
+        {
+          "event_id": "E28",
+          "params_from": "mucum_eventwise_best",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E28_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000": 228.1,
+              "86507000": 7.4,
+              "86472600": 227.4
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000",
+              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472600"
+            },
+            "runnable": true,
+            "blocked_reason": null
+          },
+          "warning": "Simulated Q at STZ using Muçum-fitted params — NOT an STZ Q calibration"
+        }
+      ],
+      "next_to_unlock_stz_q": [
+        "Reconciliar curva-chave Santa Tereza (Nivel→Vazao)",
+        "Ou obter Vazao observada confiável no posto/controle STZ",
+        "Só então rodar busca eventwise no modelo STZ truncado"
+      ]
+    }
+  },
+  "next_steps": [
+    "Desbloquear STZ Q com curva-chave reconciliada (Nivel→Vazao) e recalibrar modelo STZ truncado.",
+    "Opcional: portar melhores params Muçum para projeto .basin HEC-HMS 4.13 no Windows.",
+    "Manter Guaporé/Forqueta fora do recorte."
+  ],
+  "artifacts": {
+    "json": "hec_twin_stz_mucum_v1_latest.json",
+    "html": "hec_twin_stz_mucum_v1.html",
+    "runs_dir": "hec_twin_stz_mucum_v1/"
+  }
+}
