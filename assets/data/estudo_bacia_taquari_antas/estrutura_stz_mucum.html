@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estrutura candidata · STZ e Muçum</title>
+  <style>
+    :root { --ink:#1a303f; --muted:#5d7380; --line:#d7e4e8; --ok:#1b7a4a; --warn:#9a5b12; --bad:#a33b35; --accent:#0a6f9c; }
+    body { margin:0; color:var(--ink); font:16px/1.55 "Source Sans 3",Segoe UI,sans-serif; background:linear-gradient(165deg,#eef7f8,#fff9f2); }
+    main { max-width:1100px; margin:auto; padding:28px 16px 64px; }
+    header, section { background:#fff; border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:14px; box-shadow:0 10px 26px #1a303f12; }
+    h1 { margin:0 0 8px; font:700 clamp(28px,4vw,40px)/1.08 "Fraunces",Georgia,serif; }
+    .eyebrow { color:var(--ok); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .notice { border-left:5px solid var(--warn); background:#fff7e8; color:#6d4810; padding:12px 14px; border-radius:10px; margin:10px 0; }
+    .ok { border-left-color:var(--ok); background:#eefaf3; color:#145c38; }
+    .bad { border-left-color:var(--bad); background:#fff1ef; color:#7a2d28; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    pre { background:#0f1c24; color:#d7f5e8; padding:14px; border-radius:12px; overflow:auto; font:12px/1.45 ui-monospace,Menlo,monospace; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { padding:7px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#eef6f7; }
+    .muted { color:var(--muted); font-size:13px; }
+    a { color:#056999; font-weight:700; }
+    @media (max-width:800px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Estudo · estrutura v1</div>
+    <h1>Dois esqueletos — ainda sem calibração</h1>
+    <p class="muted">2026-09-09T02:32:08.620943+00:00 · estrutura_proposta_nao_calibrada</p>
+    <div class="notice ok"><strong>Disciplina:</strong> Dois projetos/logicas separados. Nunca rotular como &#x27;modelo da bacia G040&#x27;. Parametros de perda/routing/NSE ainda bloqueados.</div>
+    <div class="notice bad"><strong>Fora:</strong> Guaporé, Forqueta, Baixo. Não rotular como bacia G040.</div>
+  </header>
+
+  <div class="grid">
+    <section>
+      <h2>Modelo Santa Tereza · alvo 86472600</h2>
+      <p class="muted">~15,775 km² · 4 subbacias · fechamento OK</p>
+      <pre>SB_PRATA_7868 ──┐
+SB_ANTAS_RESIDUAL ┼→ J_ANTAS_86472000 → R_ANTAS_TO_CARREIRO → J_CARREIRO
+SB_CARREIRO_7866 ─────────────────────→ J_CARREIRO
+                                      → R_CARREIRO_TO_STZ → J_STZ_86472600 ★ ALVO
+SB_STZ_RESIDUAL ──────────────────────→ J_STZ</pre>
+      <p class="muted">RNA: predictand nivel_86472600; níveis 86472000, 86507000, 86125500</p>
+    </section>
+    <section>
+      <h2>Modelo Muçum · alvo 86510000</h2>
+      <p class="muted">~15,965 km² · 5 subbacias · fechamento OK</p>
+      <pre>[mesmo esqueleto do modelo STZ até J_STZ_86472600]  ← forçante crítica
+  → R_STZ_TO_MUCUM → J_MUCUM_86510000 ★ ALVO
+SB_INC_MUCUM (~190) ─────→ J_MUCUM</pre>
+      <p class="muted">RNA: predictand nivel_86510000; STZ vira feature crítica</p>
+    </section>
+  </div>
+
+  <section>
+    <h2>Elementos — Santa Tereza</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Tipo</th><th>Papel / destino</th><th>Área / posto</th><th>Nota</th></tr></thead>
+      <tbody><tr><td>SB_PRATA_7868</td><td>subbasin</td><td>J_ANTAS_86472000</td><td>86125500</td><td>Sistema Prata/Turvo-Humatã nomeado para casar com forçante 86125500. Ainda agrega componentes internos.</td></tr><tr><td>SB_ANTAS_RESIDUAL</td><td>subbasin</td><td>J_ANTAS_86472000</td><td>9,142.67 km²</td><td>Tronco Antas a montante de 86472000 depois de separar Prata. Pode abrir UP_* depois se necessário.</td></tr><tr><td>J_ANTAS_86472000</td><td>junction</td><td>controle_observado_nivel</td><td>86472000</td><td>Controle do tronco Antas; forçante de nível nos dois modelos.</td></tr><tr><td>R_ANTAS_TO_CARREIRO</td><td>reach</td><td>J_CARREIRO_CONFLUENCE</td><td></td><td></td></tr><tr><td>SB_CARREIRO_7866</td><td>subbasin</td><td>J_CARREIRO_CONFLUENCE</td><td>86507000</td><td>~90% do incremento Antas→STZ. Obrigatório no desenho STZ.</td></tr><tr><td>J_CARREIRO_CONFLUENCE</td><td>junction</td><td>confluencia_geometrica</td><td></td><td>Aqui o nome do rio passa de Antas para Taquari (estudo).</td></tr><tr><td>R_CARREIRO_TO_STZ</td><td>reach</td><td>J_STZ_86472600</td><td></td><td></td></tr><tr><td>SB_STZ_RESIDUAL</td><td>subbasin</td><td>J_STZ_86472600</td><td>292.34 km²</td><td>Residual local (ex.: Marrecão) entre Carreiro e STZ.</td></tr><tr><td>J_STZ_86472600</td><td>junction</td><td>ALVO_PREDICAO_modelo_STZ</td><td>86472600</td><td>Predictand do modelo Santa Tereza.</td></tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Elementos — Muçum (delta em relação ao STZ)</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Tipo</th><th>Papel / destino</th><th>Área / posto</th><th>Nota</th></tr></thead>
+      <tbody><tr><td>J_STZ_86472600</td><td>junction</td><td>forcante_nivel_montante_critico</td><td>86472600</td><td>No modelo Muçum, STZ NÃO é o alvo — é a forçante crítica de montante (quase todo o domínio passa por aqui).</td></tr><tr><td>R_STZ_TO_MUCUM</td><td>reach</td><td>J_MUCUM_86510000</td><td></td><td></td></tr><tr><td>SB_INC_MUCUM</td><td>subbasin</td><td>J_MUCUM_86510000</td><td>190.02 km²</td><td>Incremento curto STZ→Muçum (~190 km²). Não inclui Guaporé.</td></tr><tr><td>J_MUCUM_86510000</td><td>junction</td><td>ALVO_PREDICAO_modelo_Mucum</td><td>86510000</td><td>Predictand do modelo Muçum. Corredor — não G040.</td></tr></tbody>
+    </table>
+    <p class="muted">O restante do grafo Muçum é idêntico ao STZ (Prata + Antas residual + Carreiro + residual STZ).</p>
+  </section>
+
+  <section>
+    <h2>Escolhas de desenho</h2>
+    <ul><li>Prata (7868) nomeado como SB_PRATA_7868 — casa com forçante 86125500.</li><li>Carreiro (7866) separado — ~90% do incremento Antas→STZ.</li><li>Modelo STZ para em J_STZ; nao inclui SB_INC_MUCUM.</li><li>Modelo Muçum reusa esqueleto STZ e acrescenta R_STZ_TO_MUCUM + SB_INC_MUCUM.</li><li>Ainda nao abrir os 3 UP_* extras a montante de Antas (multi_bacia) — opcional depois.</li></ul>
+    <h2>Bloqueado até checar séries</h2>
+    <ul><li>buracos chuva_86472600</li><li>A894 pane (ausencia != zero)</li><li>parametros de routing sem evidencia de canal</li><li>NSE / calibracao</li></ul>
+    <h2>Próximos</h2>
+    <ul><li>Validar series das forçantes congeladas (nivel + chuva) por alvo.</li><li>Escolher caminho: montar .basin HEC-HMS por alvo OU treinar/confirmar RNA com o mesmo grafo de features.</li><li>So depois: calibracao — e apenas no modelo escolhido, nunca &#x27;da bacia&#x27;.</li></ul>
+    <p>
+      <a href="estrutura_stz_mucum_latest.json">JSON</a> ·
+      <a href="forcantes_stz_mucum.html">forçantes</a> ·
+      <a href="dois_modelos_stz_mucum.html">domínios</a> ·
+      <a href="index.html">estudo-base</a>
+    </p>
+  </section>
+</main>
+</body>
+</html>

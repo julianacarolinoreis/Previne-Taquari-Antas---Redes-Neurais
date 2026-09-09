@@ -1,0 +1,345 @@
+{
+  "schema_version": "estudo_estrutura_stz_mucum_v1",
+  "generated_at_utc": "2026-09-09T02:32:08.620943+00:00",
+  "purpose": "estrutura candidata por modelo-alvo (HEC ou RNA); nao e calibracao",
+  "status": "estrutura_proposta_nao_calibrada",
+  "discipline_rule": "Dois projetos/logicas separados. Nunca rotular como 'modelo da bacia G040'. Parametros de perda/routing/NSE ainda bloqueados.",
+  "parent_artifacts": {
+    "forcantes": "forcantes_stz_mucum_latest.json",
+    "dominios": "dois_modelos_stz_mucum_latest.json",
+    "carreiro_split_ref": "assets/data/hec_hms_carreiro_split/carreiro_split_structure_latest.json",
+    "prata_area_ref": "assets/data/hec_hms_multi_bacia/multi_bacia_structure_latest.json"
+  },
+  "excluded_from_both": {
+    "upgs": [
+      "Guaporé",
+      "Forqueta",
+      "Baixo Taquari-Antas"
+    ],
+    "families": [
+      "7864",
+      "7862"
+    ],
+    "elements_never": [
+      "SB_GUAPORE",
+      "SB_FORQUETA",
+      "SB_BAIXO"
+    ]
+  },
+  "design_choices": [
+    "Prata (7868) nomeado como SB_PRATA_7868 — casa com forçante 86125500.",
+    "Carreiro (7866) separado — ~90% do incremento Antas→STZ.",
+    "Modelo STZ para em J_STZ; nao inclui SB_INC_MUCUM.",
+    "Modelo Muçum reusa esqueleto STZ e acrescenta R_STZ_TO_MUCUM + SB_INC_MUCUM.",
+    "Ainda nao abrir os 3 UP_* extras a montante de Antas (multi_bacia) — opcional depois."
+  ],
+  "models": {
+    "santa_tereza": {
+      "label": "modelo STZ",
+      "target": "86472600",
+      "nested_area_km2": 15775.186,
+      "counts": {
+        "subbasins": 4,
+        "reaches": 2,
+        "junctions": 3
+      },
+      "elements": [
+        {
+          "id": "SB_PRATA_7868",
+          "type": "subbasin",
+          "area_km2": 3775.99,
+          "outlet": "J_ANTAS_86472000",
+          "bho6_cocursodag": "7868",
+          "level_station": "86125500",
+          "rain_stations": [
+            "2851072"
+          ],
+          "notes": "Sistema Prata/Turvo-Humatã nomeado para casar com forçante 86125500. Ainda agrega componentes internos."
+        },
+        {
+          "id": "SB_ANTAS_RESIDUAL",
+          "type": "subbasin",
+          "area_km2": 9142.666,
+          "outlet": "J_ANTAS_86472000",
+          "rain_stations": [
+            "86472000"
+          ],
+          "notes": "Tronco Antas a montante de 86472000 depois de separar Prata. Pode abrir UP_* depois se necessário."
+        },
+        {
+          "id": "J_ANTAS_86472000",
+          "type": "junction",
+          "station": "86472000",
+          "role": "controle_observado_nivel",
+          "nested_area_km2": 12918.656,
+          "notes": "Controle do tronco Antas; forçante de nível nos dois modelos."
+        },
+        {
+          "id": "R_ANTAS_TO_CARREIRO",
+          "type": "reach",
+          "from": "J_ANTAS_86472000",
+          "to": "J_CARREIRO_CONFLUENCE",
+          "status": "routing_blocked_until_channel_evidence"
+        },
+        {
+          "id": "SB_CARREIRO_7866",
+          "type": "subbasin",
+          "area_km2": 2564.19,
+          "outlet": "J_CARREIRO_CONFLUENCE",
+          "bho6_cocursodag": "7866",
+          "level_station": "86507000",
+          "rain_stations": [
+            "2851072",
+            "A894",
+            "432040401A"
+          ],
+          "notes": "~90% do incremento Antas→STZ. Obrigatório no desenho STZ."
+        },
+        {
+          "id": "J_CARREIRO_CONFLUENCE",
+          "type": "junction",
+          "role": "confluencia_geometrica",
+          "notes": "Aqui o nome do rio passa de Antas para Taquari (estudo)."
+        },
+        {
+          "id": "R_CARREIRO_TO_STZ",
+          "type": "reach",
+          "frm": "J_CARREIRO_CONFLUENCE",
+          "to": "J_STZ_86472600",
+          "status": "routing_blocked_until_channel_evidence"
+        },
+        {
+          "id": "SB_STZ_RESIDUAL",
+          "type": "subbasin",
+          "area_km2": 292.34,
+          "outlet": "J_STZ_86472600",
+          "rain_stations": [
+            "86472600"
+          ],
+          "notes": "Residual local (ex.: Marrecão) entre Carreiro e STZ."
+        },
+        {
+          "id": "J_STZ_86472600",
+          "type": "junction",
+          "station": "86472600",
+          "role": "ALVO_PREDICAO_modelo_STZ",
+          "nested_area_km2": 15775.186,
+          "rain_stations": [
+            "86472600"
+          ],
+          "notes": "Predictand do modelo Santa Tereza."
+        }
+      ],
+      "area_check": {
+        "sum_subbasin_km2": 15775.186,
+        "nested_target_km2": 15775.186,
+        "closure_ok": true,
+        "subbasin_ids": [
+          "SB_PRATA_7868",
+          "SB_ANTAS_RESIDUAL",
+          "SB_CARREIRO_7866",
+          "SB_STZ_RESIDUAL"
+        ]
+      },
+      "topology_ascii": "SB_PRATA_7868 ──┐\nSB_ANTAS_RESIDUAL ┼→ J_ANTAS_86472000 → R_ANTAS_TO_CARREIRO → J_CARREIRO\nSB_CARREIRO_7866 ─────────────────────→ J_CARREIRO\n                                      → R_CARREIRO_TO_STZ → J_STZ_86472600 ★ ALVO\nSB_STZ_RESIDUAL ──────────────────────→ J_STZ",
+      "rna_mapping": {
+        "predictand": "nivel_86472600",
+        "features_nivel": [
+          "86472000",
+          "86507000",
+          "86125500"
+        ],
+        "features_chuva": [
+          "86472000",
+          "86472600",
+          "2851072"
+        ],
+        "optional": [
+          "86448000",
+          "A894",
+          "432040401A"
+        ],
+        "note": "Mesma topologia pode alimentar RNA sem abrir HMS; não misturar alvo Muçum."
+      },
+      "not_in_model": [
+        "SB_INC_MUCUM",
+        "J_MUCUM_86510000",
+        "Guaporé/Forqueta/Baixo"
+      ]
+    },
+    "mucum": {
+      "label": "modelo Muçum",
+      "target": "86510000",
+      "nested_area_km2": 15965.207,
+      "counts": {
+        "subbasins": 5,
+        "reaches": 3,
+        "junctions": 4
+      },
+      "elements": [
+        {
+          "id": "SB_PRATA_7868",
+          "type": "subbasin",
+          "area_km2": 3775.99,
+          "outlet": "J_ANTAS_86472000",
+          "bho6_cocursodag": "7868",
+          "level_station": "86125500",
+          "rain_stations": [
+            "2851072"
+          ],
+          "notes": "Sistema Prata/Turvo-Humatã nomeado para casar com forçante 86125500. Ainda agrega componentes internos."
+        },
+        {
+          "id": "SB_ANTAS_RESIDUAL",
+          "type": "subbasin",
+          "area_km2": 9142.666,
+          "outlet": "J_ANTAS_86472000",
+          "rain_stations": [
+            "86472000"
+          ],
+          "notes": "Tronco Antas a montante de 86472000 depois de separar Prata. Pode abrir UP_* depois se necessário."
+        },
+        {
+          "id": "J_ANTAS_86472000",
+          "type": "junction",
+          "station": "86472000",
+          "role": "controle_observado_nivel",
+          "nested_area_km2": 12918.656,
+          "notes": "Controle do tronco Antas; forçante de nível nos dois modelos."
+        },
+        {
+          "id": "R_ANTAS_TO_CARREIRO",
+          "type": "reach",
+          "from": "J_ANTAS_86472000",
+          "to": "J_CARREIRO_CONFLUENCE",
+          "status": "routing_blocked_until_channel_evidence"
+        },
+        {
+          "id": "SB_CARREIRO_7866",
+          "type": "subbasin",
+          "area_km2": 2564.19,
+          "outlet": "J_CARREIRO_CONFLUENCE",
+          "bho6_cocursodag": "7866",
+          "level_station": "86507000",
+          "rain_stations": [
+            "2851072",
+            "A894",
+            "432040401A"
+          ],
+          "notes": "~90% do incremento Antas→STZ. Obrigatório no desenho STZ."
+        },
+        {
+          "id": "J_CARREIRO_CONFLUENCE",
+          "type": "junction",
+          "role": "confluencia_geometrica",
+          "notes": "Aqui o nome do rio passa de Antas para Taquari (estudo)."
+        },
+        {
+          "id": "R_CARREIRO_TO_STZ",
+          "type": "reach",
+          "frm": "J_CARREIRO_CONFLUENCE",
+          "to": "J_STZ_86472600",
+          "status": "routing_blocked_until_channel_evidence"
+        },
+        {
+          "id": "SB_STZ_RESIDUAL",
+          "type": "subbasin",
+          "area_km2": 292.34,
+          "outlet": "J_STZ_86472600",
+          "rain_stations": [
+            "86472600"
+          ],
+          "notes": "Residual local (ex.: Marrecão) entre Carreiro e STZ."
+        },
+        {
+          "id": "J_STZ_86472600",
+          "type": "junction",
+          "station": "86472600",
+          "role": "forcante_nivel_montante_critico",
+          "nested_area_km2": 15775.186,
+          "rain_stations": [
+            "86472600"
+          ],
+          "notes": "No modelo Muçum, STZ NÃO é o alvo — é a forçante crítica de montante (quase todo o domínio passa por aqui)."
+        },
+        {
+          "id": "R_STZ_TO_MUCUM",
+          "type": "reach",
+          "frm": "J_STZ_86472600",
+          "to": "J_MUCUM_86510000",
+          "status": "routing_blocked_until_channel_evidence"
+        },
+        {
+          "id": "SB_INC_MUCUM",
+          "type": "subbasin",
+          "area_km2": 190.021,
+          "outlet": "J_MUCUM_86510000",
+          "rain_stations": [
+            "86472600"
+          ],
+          "notes": "Incremento curto STZ→Muçum (~190 km²). Não inclui Guaporé."
+        },
+        {
+          "id": "J_MUCUM_86510000",
+          "type": "junction",
+          "station": "86510000",
+          "role": "ALVO_PREDICAO_modelo_Mucum",
+          "nested_area_km2": 15965.207,
+          "notes": "Predictand do modelo Muçum. Corredor — não G040."
+        }
+      ],
+      "area_check": {
+        "sum_subbasin_km2": 15965.207,
+        "nested_target_km2": 15965.207,
+        "closure_ok": true,
+        "subbasin_ids": [
+          "SB_PRATA_7868",
+          "SB_ANTAS_RESIDUAL",
+          "SB_CARREIRO_7866",
+          "SB_STZ_RESIDUAL",
+          "SB_INC_MUCUM"
+        ]
+      },
+      "topology_ascii": "[mesmo esqueleto do modelo STZ até J_STZ_86472600]  ← forçante crítica\n  → R_STZ_TO_MUCUM → J_MUCUM_86510000 ★ ALVO\nSB_INC_MUCUM (~190) ─────→ J_MUCUM",
+      "rna_mapping": {
+        "predictand": "nivel_86510000",
+        "features_nivel": [
+          "86472600",
+          "86472000",
+          "86507000",
+          "86125500"
+        ],
+        "features_chuva": [
+          "86472000",
+          "86472600",
+          "2851072"
+        ],
+        "optional": [
+          "86448000",
+          "A894",
+          "432040401A"
+        ],
+        "note": "STZ (86472600) é feature crítica de montante, não predictand."
+      },
+      "not_in_model": [
+        "Guaporé/Forqueta/Baixo",
+        "tratar Muçum como se visse +2495 km² Guaporé"
+      ]
+    }
+  },
+  "blocked_until_series_check": [
+    "buracos chuva_86472600",
+    "A894 pane (ausencia != zero)",
+    "parametros de routing sem evidencia de canal",
+    "NSE / calibracao"
+  ],
+  "next_steps": [
+    "Validar series das forçantes congeladas (nivel + chuva) por alvo.",
+    "Escolher caminho: montar .basin HEC-HMS por alvo OU treinar/confirmar RNA com o mesmo grafo de features.",
+    "So depois: calibracao — e apenas no modelo escolhido, nunca 'da bacia'."
+  ],
+  "artifacts": {
+    "json": "estrutura_stz_mucum_latest.json",
+    "html": "estrutura_stz_mucum.html"
+  }
+}
