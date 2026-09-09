@@ -211,7 +211,10 @@
       "Guapore e Forqueta tem dezenas de postos ANA, mas fora do uso operacional PREVINE atual.",
       "Pluviometria G040: 164 postos de chuva (ANA/INMET/CEMADEN seed).",
       "Chuva PREVINE cobre UPG: Carreiro, Médio Taquari-Antas.",
-      "Briefing de recorte publicado; decisao humana pendente (A/B/C)."
+      "Briefing de recorte publicado; decisao humana pendente (A/B/C).",
+      "Decisao Juliana: um modelo para Santa Tereza e outro para Muçum (corredor, nao G040).",
+      "Guapore/Forqueta/Baixo excluidos dos dois modelos-alvo.",
+      "STZ nested ~15775.186 km2; Mucum nested ~15965.207 km2."
     ],
     "unknown_or_unreconciled": [
       "Area projetada exata (m2) das 32 sub-bacias em EPSG:31982 (hoje aproximacao por graus).",
@@ -220,8 +223,9 @@
     ]
   },
   "next_study_steps_only": [
-    "Juliana escolhe o recorte: A corredor Mucum, B G040 completa, ou C hibrido (listar UPG).",
-    "So depois discutir estrutura HEC alinhada ao recorte escolhido."
+    "Congelar lista curta de forçantes por modelo (quais postos flu/plu entram em cada um).",
+    "So depois desenhar estrutura HEC (ou manter RNA) alinhada a cada alvo.",
+    "Nao misturar Guapore/Forqueta nestes dois modelos sem mudar o recorte."
   ],
   "local_artifacts_related": {
     "iede_boundary": "assets/data/vulnerabilidade/bacia.geojson",
@@ -516,17 +520,43 @@
     "updated_at_utc": "2026-09-08T23:58:52.308592+00:00"
   },
   "recorte_modelo": {
-    "status": "aguardando_decisao",
-    "options": [
-      "A_corredor_mucum",
-      "B_g040_completa",
-      "C_hibrido_explicito"
-    ],
-    "artifacts": {
-      "json": "recorte_modelo_latest.json",
-      "html": "recorte_modelo.html",
-      "pluvio": "pluviometria_g040_latest.json"
+    "status": "decidido_dois_alvos_STZ_Mucum",
+    "decision": {
+      "by": "Juliana",
+      "statement": "Quero um modelo pra Muçum e outro pra Santa Tereza.",
+      "chosen": "dois_modelos_alvo_STZ_e_Mucum",
+      "not_chosen": [
+        "A_corredor_mucum como um unico modelo agregado",
+        "B_g040_completa",
+        "C_hibrido_explicito sem alvos"
+      ],
+      "locked_at_utc": "2026-09-09T00:20:33.167301+00:00"
     },
-    "updated_at_utc": "2026-09-08T23:58:52.311092+00:00"
+    "artifacts": {
+      "json": "dois_modelos_stz_mucum_latest.json",
+      "html": "dois_modelos_stz_mucum.html"
+    },
+    "updated_at_utc": "2026-09-09T00:20:33.167288+00:00"
+  },
+  "dois_modelos_stz_mucum": {
+    "status": "dominios_definidos_aguardando_estrutura",
+    "stz_km2": 15775.186,
+    "mucum_km2": 15965.207,
+    "excluded": {
+      "upgs": [
+        "Baixo Taquari-Antas",
+        "Forqueta",
+        "Guaporé"
+      ],
+      "bho6_families": [
+        "7862",
+        "7864"
+      ],
+      "reason": "Fozes a jusante hidrologica de Muçum; nao observaveis pelos alvos STZ/Mucum."
+    },
+    "artifacts": {
+      "json": "dois_modelos_stz_mucum_latest.json",
+      "html": "dois_modelos_stz_mucum.html"
+    }
   }
 }

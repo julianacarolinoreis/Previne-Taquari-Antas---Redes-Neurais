@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dois modelos · Santa Tereza e Muçum</title>
+  <style>
+    :root { --ink:#1a303f; --muted:#5d7380; --line:#d7e4e8; --accent:#0a6f9c; --warn:#9a5b12; --bad:#a33b35; --ok:#1b7a4a; }
+    body { margin:0; color:var(--ink); font:16px/1.55 "Source Sans 3",Segoe UI,sans-serif; background:linear-gradient(165deg,#eef7f8,#fff9f2); }
+    main { max-width:1100px; margin:auto; padding:28px 16px 64px; }
+    header, section { background:#fff; border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:14px; box-shadow:0 10px 26px #1a303f12; }
+    h1 { margin:0 0 8px; font:700 clamp(28px,4vw,42px)/1.08 "Fraunces",Georgia,serif; }
+    .eyebrow { color:var(--ok); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .notice { border-left:5px solid var(--warn); background:#fff7e8; color:#6d4810; padding:12px 14px; border-radius:10px; }
+    .ok { border-left-color:var(--ok); background:#eefaf3; color:#145c38; }
+    .bad { border-left-color:var(--bad); background:#fff1ef; color:#7a2d28; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .card { border:1px solid var(--line); border-radius:14px; padding:14px; background:#f7fcfc; }
+    .card strong.stat { display:block; font-size:28px; color:var(--accent); }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { padding:7px; border-bottom:1px solid var(--line); text-align:left; }
+    th { background:#eef6f7; }
+    .muted { color:var(--muted); font-size:13px; }
+    a { color:#056999; font-weight:700; }
+    @media (max-width:800px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Decisao registrada · Juliana</div>
+    <h1>Um modelo para Santa Tereza. Outro para Muçum.</h1>
+    <p class="muted">2026-09-09T00:20:33.167288+00:00</p>
+    <div class="notice ok"><strong>Escolha:</strong> Quero um modelo pra Muçum e outro pra Santa Tereza.</div>
+    <div class="notice bad"><strong>Rotulo honesto:</strong> Chamar de 'modelo Santa Tereza' e 'modelo Muçum' — nunca 'modelo da bacia Taquari-Antas'. Guapore/Forqueta/Baixo ficam fora dos dois.</div>
+  </header>
+
+  <section>
+    <div class="grid">
+      <div class="card">
+        <h2>Modelo Santa Tereza</h2>
+        <strong class="stat">15,775 km²</strong>
+        <p>Alvo <code>86472600</code> · 160 flu · 127 chuva</p>
+        <p>Carreiro entra entre Antas e STZ — critico para o modelo STZ. Incremento STZ→Muçum NAO faz parte deste alvo.</p>
+        <p class="muted">Entra: Prata + Carreiro + tronco Antas. Nao entra: faixa STZ→Muçum, Guapore, Forqueta, Baixo.</p>
+      </div>
+      <div class="card">
+        <h2>Modelo Muçum</h2>
+        <strong class="stat">15,965 km²</strong>
+        <p>Alvo <code>86510000</code> · 162 flu · 127 chuva</p>
+        <p>Dominio quase igual ao STZ (+~190 km2). Guapore continua FORA (foz ~+2495 km2 apos Muçum).</p>
+        <p class="muted">Inclui dominio STZ + ~190.021 km² ate Muçum. Guapore ainda fora.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Fozes principais vs os dois alvos</h2>
+    <table>
+      <thead><tr><th>Fam</th><th>Sistema</th><th>Posicao</th><th>No modelo STZ?</th><th>No modelo Mucum?</th></tr></thead>
+      <tbody><tr><td>7868</td><td>sistema Prata / Turvo-Humatã (BHO6 7868)</td><td>upstream_or_at_antas</td><td>sim</td><td>sim</td></tr><tr><td>7866</td><td>Rio Carreiro (BHO6 7866)</td><td>between_antas_and_santa_tereza</td><td>sim</td><td>sim</td></tr><tr><td>7864</td><td>Rio Guaporé (BHO6 7864)</td><td>downstream_of_mucum</td><td>nao</td><td>nao</td></tr><tr><td>7862</td><td>sistema Forqueta (BHO6 7862)</td><td>downstream_of_mucum</td><td>nao</td><td>nao</td></tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Seeds PREVINE no dominio STZ</h2>
+    <table><thead><tr><th>Codigo</th><th>Nome</th><th>UPG</th><th>BHO6</th></tr></thead>
+    <tbody><tr><td>2851044</td><td>GUAPORÉ</td><td>Carreiro</td><td>7866</td></tr><tr><td>2851072</td><td>IBIRAIARAS</td><td>Carreiro</td><td>7866</td></tr><tr><td>86488000</td><td>PCH CAÇADOR MONTANTE</td><td>Carreiro</td><td>7866</td></tr><tr><td>86490500</td><td>PCH BOA FÉ MONTANTE</td><td>Carreiro</td><td>7866</td></tr><tr><td>86497000</td><td>PCH SÃO PAULO JUSANTE</td><td>Carreiro</td><td>7866</td></tr><tr><td>86505500</td><td>PCH LINHA EMILIA JUSANTE</td><td>Carreiro</td><td>7866</td></tr><tr><td>86507000</td><td>PCH COTIPORÃ JUSANTE</td><td>Carreiro</td><td>7866</td></tr><tr><td>86298000</td><td>UHE CASTRO ALVES RS-122</td><td>Médio Taquari-Antas</td><td>786</td></tr><tr><td>86306000</td><td>UHE CASTRO ALVES ALÇA</td><td>Médio Taquari-Antas</td><td>786</td></tr><tr><td>86448000</td><td>UHE MONTE CLARO BARRAMENTO</td><td>Médio Taquari-Antas</td><td>786</td></tr><tr><td>86472000</td><td>LINHA JOSÉ JÚLIO</td><td>Médio Taquari-Antas</td><td>786</td></tr><tr><td>86472600</td><td>SANTA TEREZA</td><td>Médio Taquari-Antas</td><td>786</td></tr><tr><td>86125130</td><td>PCH MORRO GRANDE JUSANTE 2</td><td>Prata</td><td>7868</td></tr><tr><td>86125500</td><td>PCH JARARACA BARRAMENTO</td><td>Prata</td><td>7868</td></tr><tr><td>86430900</td><td>PCH DA ILHA BARRAMENTO</td><td>Prata</td><td>7868</td></tr><tr><td>86447000</td><td>UHE MONTE CLARO BALSA DO PRATA</td><td>Prata</td><td>7868</td></tr></tbody></table>
+  </section>
+
+  <section>
+    <h2>Seeds PREVINE no dominio Muçum</h2>
+    <table><thead><tr><th>Codigo</th><th>Nome</th><th>UPG</th><th>BHO6</th></tr></thead>
+    <tbody><tr><td>2851044</td><td>GUAPORÉ</td><td>Carreiro</td><td>7866</td></tr><tr><td>2851072</td><td>IBIRAIARAS</td><td>Carreiro</td><td>7866</td></tr><tr><td>86488000</td><td>PCH CAÇADOR MONTANTE</td><td>Carreiro</td><td>7866</td></tr><tr><td>86490500</td><td>PCH BOA FÉ MONTANTE</td><td>Carreiro</td><td>7866</td></tr><tr><td>86497000</td><td>PCH SÃO PAULO JUSANTE</td><td>Carreiro</td><td>7866</td></tr><tr><td>86505500</td><td>PCH LINHA EMILIA JUSANTE</td><td>Carreiro</td><td>7866</td></tr><tr><td>86507000</td><td>PCH COTIPORÃ JUSANTE</td><td>Carreiro</td><td>7866</td></tr><tr><td>86298000</td><td>UHE CASTRO ALVES RS-122</td><td>Médio Taquari-Antas</td><td>786</td></tr><tr><td>86306000</td><td>UHE CASTRO ALVES ALÇA</td><td>Médio Taquari-Antas</td><td>786</td></tr><tr><td>86448000</td><td>UHE MONTE CLARO BARRAMENTO</td><td>Médio Taquari-Antas</td><td>786</td></tr><tr><td>86472000</td><td>LINHA JOSÉ JÚLIO</td><td>Médio Taquari-Antas</td><td>786</td></tr><tr><td>86472600</td><td>SANTA TEREZA</td><td>Médio Taquari-Antas</td><td>786</td></tr><tr><td>86510000</td><td>MUÇUM</td><td>Médio Taquari-Antas</td><td>786</td></tr><tr><td>86125130</td><td>PCH MORRO GRANDE JUSANTE 2</td><td>Prata</td><td>7868</td></tr><tr><td>86125500</td><td>PCH JARARACA BARRAMENTO</td><td>Prata</td><td>7868</td></tr><tr><td>86430900</td><td>PCH DA ILHA BARRAMENTO</td><td>Prata</td><td>7868</td></tr><tr><td>86447000</td><td>UHE MONTE CLARO BALSA DO PRATA</td><td>Prata</td><td>7868</td></tr></tbody></table>
+  </section>
+
+  <section>
+    <h2>Proximos passos (ainda disciplina)</h2>
+    <ul><li>Congelar lista curta de forçantes por modelo (quais postos flu/plu entram em cada um).</li><li>So depois desenhar estrutura HEC (ou manter RNA) alinhada a cada alvo.</li><li>Nao misturar Guapore/Forqueta nestes dois modelos sem mudar o recorte.</li></ul>
+    <p><a href="dois_modelos_stz_mucum_latest.json">JSON</a> ·
+       <a href="recorte_modelo.html">briefing A/B/C (supersedido)</a> ·
+       <a href="index.html">estudo-base</a></p>
+  </section>
+</main>
+</body>
+</html>
