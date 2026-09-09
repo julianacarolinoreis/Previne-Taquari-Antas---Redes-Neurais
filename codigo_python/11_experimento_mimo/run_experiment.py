@@ -469,7 +469,24 @@ def build_summary_vs_mat_reference(ref_metrics: dict, mimo: dict) -> dict:
     return summary
 
 
-def leave_one_event_out(rows, datasets, input_idx, output_specs, hidden_sizes):
+def leave_one_event_out(
+    rows,
+    datasets,
+    input_idx,
+    output_specs,
+    hidden_sizes,
+    *,
+    protocol="sgd",
+    max_cycles=30000,
+    patience_previne=6000,
+    seeds=(42, 7, 19),
+    direct_protocol=None,
+    direct_hidden_by_out=None,
+    mimo_sample_weights_fn=None,
+):
+    """LOO por evento. `direct_protocol` default = mesmo `protocol`."""
+    if direct_protocol is None:
+        direct_protocol = protocol
     events = sorted({r["event"] for r in rows if r.get("event") is not None})
     if len(events) < 3:
         return {"status": "skipped", "reason": "menos de 3 eventos alinhados", "events": events}
@@ -485,7 +502,6 @@ def leave_one_event_out(rows, datasets, input_idx, output_specs, hidden_sizes):
         test_rows = [r for r in rows if r["event"] == held]
         if len(train_rows) < 50 or len(test_rows) < 5:
             continue
-        # Use 80/20 of remaining for train/val by original split when possible
         tr = [r for r in train_rows if r["split"] == 1] or train_rows[: int(0.8 * len(train_rows))]
         va = [r for r in train_rows if r["split"] == 2] or train_rows[int(0.8 * len(train_rows)) :]
         if len(va) < 5:
@@ -496,25 +512,44 @@ def leave_one_event_out(rows, datasets, input_idx, output_specs, hidden_sizes):
 
         _, x_tr, y_tr, _, _ = _stack(tr, datasets, input_idx, output_specs, None)
         _, x_va, y_va, _, _ = _stack(va, datasets, input_idx, output_specs, None)
+        sample_w = None
+        if mimo_sample_weights_fn is not None:
+            sample_w = mimo_sample_weights_fn(y_tr)
         mimo = _fit_search(
             x_tr,
             y_tr,
             x_va,
             y_va,
             hidden_sizes,
-            trajectory_weight=0.0,
-            rising_mono_weight=0.0,
-            horizon_weights=None,
+            protocol=protocol,
+            max_cycles=max_cycles,
+            patience_previne=patience_previne,
+            seeds=seeds,
+            sample_weights_tr=sample_w,
         )
-        # Direct scratch for each horizon on same fold
         dir_models = []
         for out_i, (ds_idx, _) in enumerate(output_specs):
             y_tr_i = y_tr[:, out_i : out_i + 1]
             y_va_i = y_va[:, out_i : out_i + 1]
-            # use horizon-specific inputs
             x_tr_i = np.asarray([datasets[ds_idx].inputs[r["indices"][ds_idx]] for r in tr], float)
             x_va_i = np.asarray([datasets[ds_idx].inputs[r["indices"][ds_idx]] for r in va], float)
-            dir_models.append(_fit_search(x_tr_i, y_tr_i, x_va_i, y_va_i, hidden_sizes))
+            if direct_hidden_by_out is not None:
+                hs = direct_hidden_by_out[out_i]
+            else:
+                hs = hidden_sizes
+            dir_models.append(
+                _fit_search(
+                    x_tr_i,
+                    y_tr_i,
+                    x_va_i,
+                    y_va_i,
+                    hs,
+                    protocol=direct_protocol,
+                    max_cycles=max_cycles,
+                    patience_previne=patience_previne,
+                    seeds=seeds,
+                )
+            )
 
         fold_metrics = {"event": held, "n_test": len(test_rows), "horizons": {}}
         for out_i, (ds_idx, _) in enumerate(output_specs):
@@ -544,7 +579,8 @@ def leave_one_event_out(rows, datasets, input_idx, output_specs, hidden_sizes):
             md = compute_metrics(yt, yd, yp)
             fold_metrics["horizons"][ds.name] = {
                 "mimo": mm.__dict__,
-                "direct_scratch": md.__dict__,
+                "direct": md.__dict__,
+                "direct_scratch": md.__dict__,  # alias legado
                 "delta_nash": mm.nash - md.nash,
                 "delta_e95_cm": mm.e95 - md.e95,
             }
@@ -553,6 +589,11 @@ def leave_one_event_out(rows, datasets, input_idx, output_specs, hidden_sizes):
             all_pred_dir[ds.name].extend(y_dir)
             all_pers[ds.name].extend(y_pers)
         per_event.append(fold_metrics)
+        print(
+            f"  LOO event={held} n={len(test_rows)} "
+            f"4h ΔNASH={fold_metrics['horizons'].get('4h', {}).get('delta_nash', float('nan')):.4f}",
+            flush=True,
+        )
 
     pooled = {}
     for name in all_true:
@@ -565,15 +606,15 @@ def leave_one_event_out(rows, datasets, input_idx, output_specs, hidden_sizes):
         mm = compute_metrics(yt, ym, yp)
         md = compute_metrics(yt, yd, yp)
         pooled[name] = {
-            "mimo": mm.__dict__,
-            "direct_scratch": md.__dict__,
+            "mimo": {k: (round(v, 4) if isinstance(v, float) else v) for k, v in mm.__dict__.items()},
+            "direct": {k: (round(v, 4) if isinstance(v, float) else v) for k, v in md.__dict__.items()},
+            "direct_scratch": {k: (round(v, 4) if isinstance(v, float) else v) for k, v in md.__dict__.items()},
             "delta_nash": round(mm.nash - md.nash, 6),
             "delta_pers": round(mm.pers - md.pers, 6),
             "delta_e95_cm": round(mm.e95 - md.e95, 3),
             "n": int(yt.size),
         }
 
-    # Wins by event
     wins = {name: {"mimo": 0, "direct": 0, "tie": 0} for name in all_true}
     for fold in per_event:
         for hz, payload in fold["horizons"].items():
@@ -587,6 +628,9 @@ def leave_one_event_out(rows, datasets, input_idx, output_specs, hidden_sizes):
 
     return {
         "status": "ok",
+        "protocol": protocol,
+        "direct_protocol": direct_protocol,
+        "n_inputs": int(datasets[input_idx].n_inputs),
         "n_events_evaluated": len(per_event),
         "events_evaluated": [f["event"] for f in per_event],
         "pooled": pooled,
