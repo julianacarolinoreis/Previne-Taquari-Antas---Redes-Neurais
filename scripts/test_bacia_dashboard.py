@@ -65,6 +65,8 @@ class BasinDashboardTests(unittest.TestCase):
         self.assertIn("rainSources", script)
         self.assertIn("modelThresholdVisual", script)
         self.assertIn("modelRiskVisual", script)
+        self.assertIn("modelComparisonSummary", script)
+        self.assertIn("escala comum entre estações", script)
         self.assertIn("escala comum", script)
         self.assertIn("refresh-feeds", script)
 

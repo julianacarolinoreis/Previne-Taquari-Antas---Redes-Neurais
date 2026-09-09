@@ -457,10 +457,19 @@
       { label: 'Célula · GEFS', value: snap.gefsProxyRain, note: 'proxy de ensemble usado na pesquisa', color: '#e2b85c' }
     ];
   }
-  function modelBar(entry, scale) {
+  function modelBar(entry, scale, isMax) {
     const value = num(entry.value);
     const width = value == null ? 0 : Math.max(0, Math.min(100, value / scale * 100));
-    return `<div class="model-bar-row" role="listitem"><div class="model-bar-label"><strong>${esc(entry.label)}</strong><span>${value == null ? '—' : `${fmt(value, 1)} mm`}</span></div><div class="model-bar-track" aria-hidden="true"><i style="width:${width.toFixed(1)}%;--bar-color:${entry.color}"></i></div><small>${esc(entry.note)}</small></div>`;
+    const label = value == null ? `${entry.label}: sem valor publicado` : `${entry.label}: ${fmt(value, 1)} milímetros`;
+    return `<div class="model-bar-row${isMax ? ' is-max' : ''}" role="listitem" aria-label="${esc(label)}"><div class="model-bar-label"><strong>${esc(entry.label)}${isMax ? '<em>maior valor</em>' : ''}</strong><span>${value == null ? '—' : `${fmt(value, 1)} mm`}</span></div><div class="model-bar-track" aria-hidden="true"><i style="width:${width.toFixed(1)}%;--bar-color:${entry.color}"></i></div><small>${esc(entry.note)}</small></div>`;
+  }
+  function modelComparisonSummary(sources, pointValue) {
+    if (!sources.length) return '<div class="model-station-summary is-empty">Nenhuma fonte de chuva foi publicada para este horizonte.</div>';
+    const ranked = sources.slice().sort((a, b) => Number(b.value) - Number(a.value));
+    const max = ranked[0];
+    const point = num(pointValue);
+    const delta = point == null ? null : Number(max.value) - point;
+    return `<div class="model-station-summary"><div><span>Maior valor comparado</span><strong>${fmt(max.value, 1)} mm</strong><small>${esc(max.label)}</small></div><div><span>Diferença até o ponto</span><strong>${delta == null ? '—' : `${delta >= 0 ? '+' : ''}${fmt(delta, 1)} mm`}</strong><small>maior valor − chuva no ponto</small></div></div>`;
   }
   function modelThresholdVisual(key, snap) {
     const live = liveRowsFor(key).filter((row) => row.available && num(row.level_forecast_cm) != null);
@@ -489,17 +498,22 @@
   }
   function renderModels() {
     const keys = state.station === 'basin' ? ['santa', 'mucum'] : [state.station];
-    const sections = keys.map((key) => {
+    const prepared = keys.map((key) => {
       const snap = stationSnapshot(key, state.horizon);
       const sources = rainSources(key, snap).filter((entry) => num(entry.value) != null);
-      const maxValue = sources.length ? Math.max(...sources.map((entry) => Number(entry.value))) : 0;
-      const scale = Math.max(10, Math.ceil((maxValue * 1.15) / 10) * 10);
-      const rainRows = sources.length ? sources.map((entry) => modelBar(entry, scale)).join('') : '<div class="empty-block">Sem chuva publicada neste horizonte.</div>';
+      return { key, snap, sources };
+    });
+    const allValues = prepared.flatMap((item) => item.sources.map((entry) => Number(entry.value)));
+    const sharedMaxValue = allValues.length ? Math.max(...allValues) : 0;
+    const sharedScale = Math.max(10, Math.ceil((sharedMaxValue * 1.15) / 10) * 10);
+    const sections = prepared.map(({ key, snap, sources }) => {
+      const rainRows = sources.length ? sources.map((entry) => modelBar(entry, sharedScale, Number(entry.value) === Math.max(...sources.map((item) => Number(item.value))))).join('') : '<div class="empty-block">Sem chuva publicada neste horizonte.</div>';
       const stationLabel = state.station === 'basin' ? `<span class="model-station-kicker">${esc(snap.station.label)}</span>` : '';
-      return `<section class="model-station-view"><div class="model-station-heading">${stationLabel}<h3>Chuva prevista no horizonte +${state.horizon} h</h3><span>escala comum 0–${fmt(scale, 0)} mm</span></div><div class="model-station-layout"><article class="model-rain-chart"><div class="model-subhead"><div><span class="model-eyebrow">Comparação na mesma unidade</span><h3>Onde a chuva aparece?</h3></div><span class="model-unit">mm acumulados</span></div><div class="model-bars" role="list">${rainRows}</div><p class="model-chart-note">As barras comparam chuva prevista. Proxy espacial não é medição local e não equivale a uma média hidrológica da bacia.</p></article><div class="model-status-stack">${modelThresholdVisual(key, snap)}${modelRiskVisual(snap)}${modelSoilVisual(snap)}</div></div></section>`;
+      const pointValue = key === 'santa' ? snap.pointRain : snap.directRain;
+      return `<section class="model-station-view"><div class="model-station-heading">${stationLabel}<h3>Chuva prevista no horizonte +${state.horizon} h</h3><span>escala comum entre estações · 0–${fmt(sharedScale, 0)} mm</span></div>${modelComparisonSummary(sources, pointValue)}<div class="model-station-layout"><article class="model-rain-chart"><div class="model-subhead"><div><span class="model-eyebrow">Comparação na mesma unidade</span><h3>Onde a chuva aparece?</h3></div><span class="model-unit">mm acumulados</span></div><div class="model-bars" role="list">${rainRows}</div><p class="model-chart-note">As barras comparam chuva prevista. Proxy espacial não é medição local e não equivale a uma média hidrológica da bacia.</p></article><div class="model-status-stack">${modelThresholdVisual(key, snap)}${modelRiskVisual(snap)}${modelSoilVisual(snap)}</div></div></section>`;
     }).join('');
     $('model-cards').innerHTML = sections || '<div class="empty-block">Sem modelos publicados para este recorte.</div>';
-    $('model-panel-note').textContent = `Chuva na mesma escala · nível e probabilidade em leituras separadas · horizonte +${state.horizon} h`;
+    $('model-panel-note').textContent = `Barras de chuva em escala única · nível e probabilidade em leituras separadas · horizonte +${state.horizon} h`;
   }
 
   function allEvents() {
