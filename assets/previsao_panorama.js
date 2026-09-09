@@ -153,7 +153,8 @@
     const base=payload&&payload.hora_modelo;
     const consulted=payload&&payload.consultado_em;
     const reason=baseLagReason(payload);
-    return `<span class="live-timing-rows"><span><b>Última leitura ANA:</b> ${escapeHtml(fmtClockDate(telemetry))} <small>(${escapeHtml(ageText(telemetry))})</small></span><span><b>Hora-base dos dados da RNA:</b> ${escapeHtml(fmtClockDate(base))}</span><span><b>Motivo:</b> ${escapeHtml(reason)}</span>${consulted?`<span class="live-timing-meta"><b>Última consulta do robô:</b> ${escapeHtml(fmtClockDate(consulted))}</span>`:''}</span>`;
+    const publicationStatus=payload&&payload.status_dados;
+    return `<span class="live-timing-rows"><span><b>Última leitura ANA:</b> ${escapeHtml(fmtClockDate(telemetry))} <small>(${escapeHtml(ageText(telemetry))})</small></span><span><b>Hora-base dos dados da RNA:</b> ${escapeHtml(fmtClockDate(base))}</span><span><b>Motivo:</b> ${escapeHtml(reason)}</span>${consulted?`<span class="live-timing-meta"><b>Última consulta do robô:</b> ${escapeHtml(fmtClockDate(consulted))}</span>`:''}${publicationStatus?`<span class="live-timing-meta"><b>Status do feed na publicação:</b> ${escapeHtml(publicationStatus)}. A classificação acima é recalculada quando a página é aberta.</span>`:''}</span>`;
   }
 
   function addCacheBust(url){
