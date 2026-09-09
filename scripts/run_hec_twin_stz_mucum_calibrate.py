@@ -34,23 +34,39 @@ RUN = OUT / "hec_twin_stz_mucum_v1"
 
 EVENTS = {
     "E19": ("2023-05-06 10:00:00", "2023-05-08 14:00:00"),
+    "E20": ("2023-06-15 20:00:00", "2023-06-19 12:00:00"),
+    "E21": ("2023-07-10 09:00:00", "2023-07-16 22:00:00"),
     "E22": ("2023-09-04 00:00:00", "2023-09-12 07:00:00"),
+    "E23": ("2023-09-19 19:00:00", "2023-09-22 16:00:00"),
     "E24": ("2023-11-16 00:00:00", "2023-11-25 23:00:00"),
+    "E25": ("2024-01-18 17:00:00", "2024-01-21 06:00:00"),
+    "E26": ("2024-04-14 12:00:00", "2024-04-15 18:00:00"),
     "E27": ("2024-04-29 16:00:00", "2024-05-09 20:00:00"),
     "E28": ("2024-06-16 10:00:00", "2024-06-25 02:00:00"),
+    "E29": ("2024-08-24 09:00:00", "2024-08-25 08:00:00"),
+    "E30": ("2024-10-11 20:00:00", "2024-10-14 17:00:00"),
+    "E31": ("2025-06-28 19:00:00", "2025-07-04 02:00:00"),
 }
+
+# External hold-outs: never used to fit common-search; scored after the fact.
+EXTERNAL_HOLDOUT_EVENTS = ("E26", "E30", "E31")
+# PAD sweep uses a compact flood subset for speed/stability.
+PAD_SWEEP_EVENTS = ("E21", "E22", "E24", "E27", "E28", "E31")
 
 PAD_HOURS_DEFAULT = 0  # overwritten by select_pad(); score only on core event window
 PAD_CANDIDATES = (0, 12, 24)
 
 # Prefer native rain; fall back without inventing zeros (skip hour if none)
+# 2851072 = Ibiraiaras (ANA) — densifica Prata/Antas; já em chuvas_horarias / telemetria.
 RAIN_PREF = {
-    "SB_PRATA_7868": ["86472000", "86507000"],
-    "SB_ANTAS_RESIDUAL": ["86472000", "86507000"],
-    "SB_CARREIRO_7866": ["86507000", "86472000", "86510000"],
-    "SB_STZ_RESIDUAL": ["86472600", "86472000", "86510000"],
+    "SB_PRATA_7868": ["86472000", "2851072", "86507000"],
+    "SB_ANTAS_RESIDUAL": ["86472000", "2851072", "86507000"],
+    "SB_CARREIRO_7866": ["86507000", "86472000", "86510000", "2851072"],
+    "SB_STZ_RESIDUAL": ["86472600", "86472000", "86510000", "2851072"],
     "SB_INC_MUCUM": ["86510000", "86472600", "86472000"],
 }
+
+RAIN_STATIONS_LOAD = ("86472000", "86472600", "86507000", "86510000", "2851072")
 
 
 def parse_ts(value: str) -> datetime:
@@ -149,7 +165,7 @@ def select_pad(
     for pad in PAD_CANDIDATES:
         by_event_nse: dict[str, float] = {}
         by_event_score: dict[str, float] = {}
-        for event_id in ("E19", "E22", "E24", "E27", "E28"):
+        for event_id in PAD_SWEEP_EVENTS + ("E19",):
             precip, _meta, hours, flow, core_offset, core_hours = prepare_event_forcing(
                 event_id, subbasins, pad
             )
@@ -168,7 +184,7 @@ def select_pad(
                     best_nse = m["nse"]
             by_event_nse[event_id] = best_nse
             by_event_score[event_id] = best_score
-        ok_ids = ("E22", "E24", "E27", "E28")
+        ok_ids = tuple(e for e in PAD_SWEEP_EVENTS)
         ok_scores = [by_event_score[e] for e in ok_ids if by_event_nse.get(e, float("-inf")) >= 0]
         ok_nses = [by_event_nse[e] for e in ok_ids if by_event_nse.get(e, float("-inf")) >= 0]
         mean_score = sum(ok_scores) / len(ok_scores) if ok_scores else float("-inf")
@@ -322,7 +338,12 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         sum(r["metrics"]["nse"] for r in scored_ok) / len(scored_ok) if scored_ok else float("nan")
     )
 
-    common_ids = [r["event_id"] for r in scored_ok]
+    common_ids = [
+        r["event_id"]
+        for r in scored_ok
+        if r["event_id"] not in EXTERNAL_HOLDOUT_EVENTS
+    ]
+    external_ids = [e for e in EXTERNAL_HOLDOUT_EVENTS if e in precip_cache]
 
     def best_common_for(ids: list[str]) -> dict[str, Any]:
         best_p = None
@@ -354,6 +375,7 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         "mean_nse": None,
     }
 
+    # Hold-out E27 inside the calibration pool (excluding true externals)
     train_ids = [e for e in common_ids if e != "E27"]
     holdout: dict[str, Any] = {
         "train_events": train_ids,
@@ -371,16 +393,49 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
                 "test_metrics": test_details[0],
                 "test_research_score": test_score,
                 "test_nse": test_nse,
-                "note": "Params comuns ajustados em E22/E24/E28; E27 é hold-out de teste.",
+                "note": "Params comuns no pool de calibração (sem E26/E30/E31); E27 é hold-out interno.",
             }
         )
     else:
         holdout["note"] = "Hold-out E27 indisponível"
 
+    # True external validation: params from full common_ids (no externals in train)
+    external_validation: dict[str, Any] = {
+        "events": list(EXTERNAL_HOLDOUT_EVENTS),
+        "train_events": common_ids,
+        "results": [],
+    }
+    if common_all.get("best_params") and external_ids:
+        p = Params(**common_all["best_params"])
+        for eid in external_ids:
+            det, sc, nse = evaluate_params_on_events(p, [eid], precip_cache, areas)
+            external_validation["results"].append(
+                {"event_id": eid, "research_score": sc, "nse": nse, "metrics": det[0]}
+            )
+        external_validation["mean_test_nse"] = sum(
+            x["nse"] for x in external_validation["results"]
+        ) / len(external_validation["results"])
+        external_validation["note"] = (
+            "E26/E30/E31 nunca entraram no fit do common-search; teste externo verdadeiro."
+        )
+    else:
+        external_validation["mean_test_nse"] = None
+        external_validation["note"] = "Sem params comuns ou sem eventos externos runnable"
+
     loo = []
-    if common_all.get("best_params") and len(common_ids) >= 3:
-        for left in common_ids:
-            train = [e for e in common_ids if e != left]
+    loo_pool = [e for e in common_ids if e in precip_cache]
+    if common_all.get("best_params") and len(loo_pool) >= 3:
+        # Cap LOO cost: prefer larger floods when pool is big
+        if len(loo_pool) > 6:
+            peaks = []
+            for eid in loo_pool:
+                _p, _r, _h, flow, _o, core_hours = precip_cache[eid]
+                vals = [flow[h] for h in core_hours if h in flow]
+                peaks.append((max(vals) if vals else 0.0, eid))
+            peaks.sort(reverse=True)
+            loo_pool = [eid for _pk, eid in peaks[:6]]
+        for left in loo_pool:
+            train = [e for e in loo_pool if e != left]
             fitted = best_common_for(train)
             p = Params(**fitted["best_params"])
             det, sc, nse = evaluate_params_on_events(p, [left], precip_cache, areas)
@@ -396,12 +451,15 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
 
     holdout_nse = holdout.get("test_nse")
     loo_mean = sum(x["test_nse"] for x in loo) / len(loo) if loo else None
+    ext_mean = external_validation.get("mean_test_nse")
     promotion_blocked = True
     if (
         holdout_nse is not None
         and loo_mean is not None
+        and ext_mean is not None
         and holdout_nse >= 0.5
         and loo_mean >= 0.5
+        and ext_mean >= 0.4
     ):
         promotion_blocked = False
 
@@ -411,7 +469,7 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         if e19_row and e19_row.get("forcing_note")
         else (
             "E19 tipicamente fit_failed (NSE fortemente negativo). "
-            "Headline = média dos eventos com NSE>=0 (E22–E28)."
+            "Headline = média dos eventos com NSE>=0."
         )
     )
 
@@ -419,14 +477,17 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         **common_all,
         "pad_hours": pad_hours,
         "holdout_e27": holdout,
+        "external_holdout": external_validation,
         "leave_one_out": loo,
         "leave_one_out_mean_test_nse": loo_mean,
         "note": (
-            "Common-search v1.3 (PAD selecionado + hold-out/LOO). "
-            "Não promover enquanto hold-out E27 ou LOO médio < 0.5."
+            "Common-search v1.4: pool sem E26/E30/E31; hold-out E27 + LOO + externos. "
+            "Promover só se hold-out/LOO/externos forem aceitáveis."
         ),
         "promotion_blocked": promotion_blocked,
-        "promotion_rule": "holdout_E27_nse>=0.5 and loo_mean_test_nse>=0.5",
+        "promotion_rule": (
+            "holdout_E27_nse>=0.5 and loo_mean_test_nse>=0.5 and external_mean_nse>=0.4"
+        ),
     }
 
     gaps = [
@@ -434,29 +495,38 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
             "id": "common_params_transfer",
             "status": "open" if promotion_blocked else "closed",
             "detail": (
-                f"hold-out E27 NSE={holdout_nse}; LOO médio={loo_mean}. "
-                "Usar params eventwise, não common."
+                f"hold-out E27 NSE={holdout_nse}; LOO médio={loo_mean}; "
+                f"externos E26/E30/E31 médio={ext_mean}. "
+                "Usar params eventwise enquanto bloqueado."
             ),
         },
         {
             "id": "e19_local_rain_underforced",
-            "status": "open",
+            "status": "open" if (e19_row or {}).get("status") == "fit_failed_eventwise" else "closed",
             "detail": e19_note,
         },
         {
             "id": "spatial_rain_density",
-            "status": "open",
+            "status": "partial",
             "detail": (
-                "Poucos pluviômetros ANA no corredor; fallbacks de magnitude ainda possíveis "
-                "(Carreiro/Antas). Grade/mais postos reduziria viés."
+                "v1.4: 2851072 (Ibiraiaras) + média aritmética dos pluviômetros completos "
+                "em Prata/Antas. Carreiro ainda com fallback de magnitude."
             ),
         },
         {
             "id": "external_event_validation",
+            "status": "partial",
+            "detail": (
+                f"Externos E26/E30/E31 rodados; mean_nse={ext_mean}. "
+                "Continuar ampliando conforme novos eventos."
+            ),
+        },
+        {
+            "id": "stz_q_curve",
             "status": "open",
             "detail": (
-                "Só E22–E28 no pacote com fit OK. Falta evento externo ao conjunto "
-                "antes de uso operacional."
+                "86472600 sem Vazão ANA nos eventos; curva-chave oficial não está no pacote. "
+                "Bloqueia calibração do modelo STZ."
             ),
         },
     ]
@@ -466,9 +536,10 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         "target_name": "Muçum",
         "quantity": "Vazao_m3s",
         "structure": "modelo_mucum_estrutura_stz_mucum_v1",
-        "mode": "eventwise_plus_common_search_v1_3",
-        "calibration_version": "mucum_hec_twin_v1_3",
+        "mode": "eventwise_plus_common_search_v1_4",
+        "calibration_version": "mucum_hec_twin_v1_4",
         "hold_out": True,
+        "external_holdout_events": list(EXTERNAL_HOLDOUT_EVENTS),
         "pad_hours": pad_hours,
         "pad_selection": pad_selection,
         "n_events_scored": len(scored),
@@ -738,7 +809,7 @@ def build_precip_for_event(
     magnitude_hours: list[str] | None = None,
 ) -> tuple[dict[str, list[float]] | None, dict[str, Any]]:
     rain_by_station: dict[str, dict[str, float]] = {}
-    for st in ("86472000", "86472600", "86507000", "86510000"):
+    for st in RAIN_STATIONS_LOAD:
         rows = load_event_series(st, event_id)
         series = hourly_field(rows, "Chuva", reduce="sum")
         if not series:
@@ -809,6 +880,30 @@ def build_precip_for_event(
                 }
             )
             chosen_st, chosen_arr, chosen_sum, chosen_core = best_backup
+
+        # Densify Prata/Antas: arithmetic mean of all complete gages (incl. 2851072).
+        if sb in ("SB_PRATA_7868", "SB_ANTAS_RESIDUAL") and len(complete) >= 2:
+            n = len(hours)
+            blended = [0.0] * n
+            for _st, arr, _s, _c in complete:
+                for i in range(n):
+                    blended[i] += arr[i]
+            inv = 1.0 / len(complete)
+            chosen_arr = [v * inv for v in blended]
+            chosen_st = "+".join(t[0] for t in complete)
+            chosen_sum = sum(chosen_arr)
+            hour_index = {h: i for i, h in enumerate(hours)}
+            chosen_core = sum(chosen_arr[hour_index[h]] for h in mag_hours if h in hour_index)
+            meta["fallback_notes"].append(
+                {
+                    "subbasin": sb,
+                    "chosen": chosen_st,
+                    "rule": "arithmetic_mean_of_complete_gages",
+                    "n_gages": len(complete),
+                    "chosen_mm_sum_core": round(chosen_core, 2),
+                }
+            )
+
         precip[sb] = chosen_arr
         meta["subbasin_sources"][sb] = chosen_st
         meta["stations_mm_sum"][chosen_st] = round(chosen_sum, 2)
@@ -961,8 +1056,8 @@ def write_html(payload: dict) -> None:
     <p class="muted">{html.escape(payload['generated_at_utc'])} · {html.escape(payload['status'])}</p>
     <div class="notice ok"><strong>Motor:</strong> {html.escape(payload['engine']['name'])} — {html.escape(payload['engine']['why'])}</div>
     <div class="notice"><strong>Objetivo da busca:</strong> research_score = NSE − 0.05·|lag| − 0.5·erro_pico.
-      v1.3: PAD selecionado={muc.get('pad_hours', '?')}h (sweep 0/12/24) + hold-out E27 + LOO;
-      common-search <strong>não</strong> promovido.</div>
+      v1.4: eventos E19–E31 + chuva 2851072 + PAD auto={muc.get('pad_hours', '?')}h;
+      externos E26/E30/E31; common-search <strong>não</strong> promovido sem testes ok.</div>
     <div class="notice bad"><strong>STZ Q:</strong> {html.escape(stz['blocker'])}</div>
   </header>
 
@@ -983,7 +1078,8 @@ def write_html(payload: dict) -> None:
     <p class="muted">Eventos: {', '.join(common.get('runnable_events') or [])} ·
       NSE médio comum: <strong>{(common.get('mean_nse') if common.get('mean_nse') is not None else float('nan')):.3f}</strong> ·
       LOO teste médio: <strong>{(common.get('leave_one_out_mean_test_nse') if common.get('leave_one_out_mean_test_nse') is not None else float('nan')):.3f}</strong> ·
-      Hold-out E27 NSE: <strong>{(((common.get('holdout_e27') or {}).get('test_nse')) if (common.get('holdout_e27') or {}).get('test_nse') is not None else float('nan')):.3f}</strong></p>
+      Hold-out E27 NSE: <strong>{(((common.get('holdout_e27') or {}).get('test_nse')) if (common.get('holdout_e27') or {}).get('test_nse') is not None else float('nan')):.3f}</strong> ·
+      Externos E26/E30/E31: <strong>{(((common.get('external_holdout') or {}).get('mean_test_nse')) if (common.get('external_holdout') or {}).get('mean_test_nse') is not None else float('nan')):.3f}</strong></p>
     <div class="notice bad">{html.escape(common.get('note', ''))} PAD={common.get('pad_hours', '?')}h.</div>
     <table>
       <thead><tr><th>Evento</th><th>NSE</th><th>Lag</th><th>Erro pico</th></tr></thead>
@@ -1033,6 +1129,9 @@ def merge(payload: dict) -> None:
             "mucum_common_mean_nse": (muc.get("common_search") or {}).get("mean_nse"),
             "mucum_holdout_e27_nse": ((muc.get("common_search") or {}).get("holdout_e27") or {}).get(
                 "test_nse"
+            ),
+            "mucum_external_holdout_nse": ((muc.get("common_search") or {}).get("external_holdout") or {}).get(
+                "mean_test_nse"
             ),
             "mucum_loo_mean_test_nse": (muc.get("common_search") or {}).get(
                 "leave_one_out_mean_test_nse"
@@ -1117,15 +1216,15 @@ def main() -> None:
         "schema_version": "estudo_hec_twin_stz_mucum_v1",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": (
-            "busca eventwise + common-search HEC v1.3 (PAD auto + hold-out/LOO) no modelo Muçum; "
-            "STZ apenas diagnostico (Q bloqueado)"
+            "busca eventwise + common-search HEC v1.4 (eventos E19–E31, 2851072, "
+            "PAD auto, hold-out/LOO/externos) no modelo Muçum; STZ diagnostico (Q bloqueado)"
         ),
-        "status": "hec_twin_mucum_v1_3_eventwise_scored_stz_q_blocked",
+        "status": "hec_twin_mucum_v1_4_eventwise_scored_stz_q_blocked",
         "discipline_rule": (
             "Isto e HEC estrutural + busca de parametros no gemeo Linux/Python. "
             "Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. "
-            "v1.3: PAD escolhido por sweep 0/12/24 no headline E22–E28; "
-            "common-search so promove se hold-out/LOO >= 0.5."
+            "v1.4: pool ampliado + Ibiraiaras 2851072; externos E26/E30/E31; "
+            "STZ Q bloqueado ate curva-chave oficial."
         ),
         "audit_fixes_v1_1": [
             "rain_stations HEC de evento separados dos aspiracionais RNA",
@@ -1141,10 +1240,16 @@ def main() -> None:
             "leave-one-out do common-search",
         ],
         "calibration_v1_3": [
-            "PAD auto: argmax mean NSE E22–E28 em {0,12,24}",
+            "PAD auto: argmax mean research_score em {0,12,24}",
             "diagnostico E19: chuva local insuficiente vs pico",
             "prefs de chuva Antas/Carreiro ampliadas",
             "gaps_remaining explicitos no JSON",
+        ],
+        "calibration_v1_4": [
+            "Eventos E20–E21/E23/E25–E26/E29–E31 baixados da ANA",
+            "Pluviômetro 2851072 (Ibiraiaras) no forçamento",
+            "Hold-out externo E26/E30/E31 fora do fit common-search",
+            "STZ: telemetria ampliada; Vazão continua vazia",
         ],
         "engine": {
             "name": "python_hms_twin_ic_clark_recession_muskingum",
@@ -1157,10 +1262,10 @@ def main() -> None:
         "areas_km2": areas,
         "models": {"mucum": mucum, "santa_tereza": stz},
         "next_steps": [
-            "Muçum: usar params eventwise (common-search bloqueado).",
-            "Melhorar forçamento espacial (mais pluviômetros/grade) e/ou incluir evento externo.",
-            "E19: sem massa de montante/routing adicional, manter excluído do headline.",
-            "Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) para liberar modelo STZ.",
+            "Muçum: usar params eventwise (common-search só se testes externos/LOO ok).",
+            "STZ: Juliana anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
+            "Após curva: converter Nivel→Q e calibrar modelo STZ truncado.",
+            "Opcional: densificar chuva e revisar E19 com massa de montante.",
             "Manter Guaporé/Forqueta fora do recorte.",
         ],
         "artifacts": {

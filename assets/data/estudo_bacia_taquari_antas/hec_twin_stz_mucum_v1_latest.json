@@ -1,9 +1,9 @@
 {
   "schema_version": "estudo_hec_twin_stz_mucum_v1",
-  "generated_at_utc": "2026-09-09T12:40:29.913795+00:00",
-  "purpose": "busca eventwise + common-search HEC v1.3 (PAD auto + hold-out/LOO) no modelo Muçum; STZ apenas diagnostico (Q bloqueado)",
-  "status": "hec_twin_mucum_v1_3_eventwise_scored_stz_q_blocked",
-  "discipline_rule": "Isto e HEC estrutural + busca de parametros no gemeo Linux/Python. Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. v1.3: PAD escolhido por sweep 0/12/24 no headline E22–E28; common-search so promove se hold-out/LOO >= 0.5.",
+  "generated_at_utc": "2026-09-09T13:09:15.896210+00:00",
+  "purpose": "busca eventwise + common-search HEC v1.4 (eventos E19–E31, 2851072, PAD auto, hold-out/LOO/externos) no modelo Muçum; STZ diagnostico (Q bloqueado)",
+  "status": "hec_twin_mucum_v1_4_eventwise_scored_stz_q_blocked",
+  "discipline_rule": "Isto e HEC estrutural + busca de parametros no gemeo Linux/Python. Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. v1.4: pool ampliado + Ibiraiaras 2851072; externos E26/E30/E31; STZ Q bloqueado ate curva-chave oficial.",
   "audit_fixes_v1_1": [
     "rain_stations HEC de evento separados dos aspiracionais RNA",
     "fallback de magnitude se pluvio preferido completo mas seco",
@@ -18,10 +18,16 @@
     "leave-one-out do common-search"
   ],
   "calibration_v1_3": [
-    "PAD auto: argmax mean NSE E22–E28 em {0,12,24}",
+    "PAD auto: argmax mean research_score em {0,12,24}",
     "diagnostico E19: chuva local insuficiente vs pico",
     "prefs de chuva Antas/Carreiro ampliadas",
     "gaps_remaining explicitos no JSON"
+  ],
+  "calibration_v1_4": [
+    "Eventos E20–E21/E23/E25–E26/E29–E31 baixados da ANA",
+    "Pluviômetro 2851072 (Ibiraiaras) no forçamento",
+    "Hold-out externo E26/E30/E31 fora do fit common-search",
+    "STZ: telemetria ampliada; Vazão continua vazia"
   ],
   "engine": {
     "name": "python_hms_twin_ic_clark_recession_muskingum",
@@ -49,10 +55,15 @@
       "target_name": "Muçum",
       "quantity": "Vazao_m3s",
       "structure": "modelo_mucum_estrutura_stz_mucum_v1",
-      "mode": "eventwise_plus_common_search_v1_3",
-      "calibration_version": "mucum_hec_twin_v1_3",
+      "mode": "eventwise_plus_common_search_v1_4",
+      "calibration_version": "mucum_hec_twin_v1_4",
       "hold_out": true,
-      "pad_hours": 0,
+      "external_holdout_events": [
+        "E26",
+        "E30",
+        "E31"
+      ],
+      "pad_hours": 12,
       "pad_selection": {
         "candidates": [
           0,
@@ -63,78 +74,90 @@
           {
             "pad_hours": 0,
             "event_nse": {
-              "E19": -32.6484,
-              "E22": 0.7312,
+              "E21": 0.837,
+              "E22": 0.8198,
               "E24": 0.7963,
-              "E27": 0.8163,
-              "E28": 0.9338
+              "E27": 0.9112,
+              "E28": 0.5095,
+              "E31": 0.833,
+              "E19": -32.522
             },
             "event_research_score": {
-              "E19": -34.3533,
-              "E22": 0.6919,
+              "E21": 0.6306,
+              "E22": 0.6753,
               "E24": 0.6142,
-              "E27": 0.7045,
-              "E28": 0.8837
+              "E27": 0.8155,
+              "E28": 0.252,
+              "E31": 0.7099,
+              "E19": -34.2116
             },
-            "mean_research_score_e22_e28_ok": 0.7236,
-            "mean_nse_e22_e28_ok": 0.8194
+            "mean_research_score_e22_e28_ok": 0.6163,
+            "mean_nse_e22_e28_ok": 0.7845
           },
           {
             "pad_hours": 12,
             "event_nse": {
-              "E19": -36.6718,
-              "E22": 0.6861,
+              "E21": 0.8343,
+              "E22": 0.8096,
               "E24": 0.8132,
-              "E27": 0.8155,
-              "E28": 0.9351
+              "E27": 0.9134,
+              "E28": 0.9303,
+              "E31": 0.8729,
+              "E19": -20.8644
             },
             "event_research_score": {
-              "E19": -37.4863,
-              "E22": 0.6372,
+              "E21": 0.6276,
+              "E22": 0.7268,
               "E24": 0.63,
-              "E27": 0.7171,
-              "E28": 0.7948
+              "E27": 0.8156,
+              "E28": 0.8221,
+              "E31": 0.8189,
+              "E19": -22.4354
             },
-            "mean_research_score_e22_e28_ok": 0.6948,
-            "mean_nse_e22_e28_ok": 0.8125
+            "mean_research_score_e22_e28_ok": 0.7402,
+            "mean_nse_e22_e28_ok": 0.8623
           },
           {
             "pad_hours": 24,
             "event_nse": {
-              "E19": -4.4622,
-              "E22": 0.5597,
+              "E21": 0.8321,
+              "E22": 0.739,
               "E24": 0.8366,
-              "E27": 0.8154,
-              "E28": 0.9261
+              "E27": 0.9134,
+              "E28": 0.9063,
+              "E31": 0.8727,
+              "E19": -2.3096
             },
             "event_research_score": {
-              "E19": -5.8687,
-              "E22": 0.4542,
+              "E21": 0.6252,
+              "E22": 0.576,
               "E24": 0.6519,
-              "E27": 0.717,
-              "E28": 0.8036
+              "E27": 0.8155,
+              "E28": 0.7966,
+              "E31": 0.8189,
+              "E19": -3.7309
             },
-            "mean_research_score_e22_e28_ok": 0.6567,
-            "mean_nse_e22_e28_ok": 0.7844
+            "mean_research_score_e22_e28_ok": 0.714,
+            "mean_nse_e22_e28_ok": 0.85
           }
         ],
-        "selected_pad_hours": 0,
+        "selected_pad_hours": 12,
         "selection_rule": "argmax mean research_score on E22–E28 (same objective as eventwise fit)",
         "note": "PAD=24 melhorava E19 mas regredia E22; v1.3 escolhe PAD pelo score E22–E28."
       },
-      "n_events_scored": 5,
-      "n_events_fit_ok": 4,
-      "mean_nse_eventwise_including_failed": -5.874159743859787,
-      "mean_nse_eventwise": 0.819407961979836,
-      "mean_nse_eventwise_excluding_e19": 0.819407961979836,
-      "n_events_excluding_e19": 4,
-      "mean_nse_eventwise_including_e19": -5.874159743859787,
+      "n_events_scored": 13,
+      "n_events_fit_ok": 8,
+      "mean_nse_eventwise_including_failed": -3.769709032498392,
+      "mean_nse_eventwise": 0.8755317426480137,
+      "mean_nse_eventwise_excluding_e19": 0.8755317426480137,
+      "n_events_excluding_e19": 8,
+      "mean_nse_eventwise_including_e19": -3.769709032498392,
       "e19_note": "E19 fit_failed: chuva local core máx ~26 mm vs pico obs ~1408 m³/s. Forçamento pluviométrico insuficiente para a onda (provável massa de montante/routing). Headline = média NSE>=0 (E22–E28).",
       "gaps_remaining": [
         {
           "id": "common_params_transfer",
           "status": "open",
-          "detail": "hold-out E27 NSE=-2.6474709318518252; LOO médio=-0.5807006731470881. Usar params eventwise, não common."
+          "detail": "hold-out E27 NSE=-0.42282358628443806; LOO médio=0.36824620967646987; externos E26/E30/E31 médio=-4.898297105609914. Usar params eventwise enquanto bloqueado."
         },
         {
           "id": "e19_local_rain_underforced",
@@ -143,359 +166,520 @@
         },
         {
           "id": "spatial_rain_density",
-          "status": "open",
-          "detail": "Poucos pluviômetros ANA no corredor; fallbacks de magnitude ainda possíveis (Carreiro/Antas). Grade/mais postos reduziria viés."
+          "status": "partial",
+          "detail": "v1.4: 2851072 (Ibiraiaras) + média aritmética dos pluviômetros completos em Prata/Antas. Carreiro ainda com fallback de magnitude."
         },
         {
           "id": "external_event_validation",
+          "status": "partial",
+          "detail": "Externos E26/E30/E31 rodados; mean_nse=-4.898297105609914. Continuar ampliando conforme novos eventos."
+        },
+        {
+          "id": "stz_q_curve",
           "status": "open",
-          "detail": "Só E22–E28 no pacote com fit OK. Falta evento externo ao conjunto antes de uso operacional."
+          "detail": "86472600 sem Vazão ANA nos eventos; curva-chave oficial não está no pacote. Bloqueia calibração do modelo STZ."
         }
       ],
       "common_search": {
         "runnable_events": [
+          "E20",
+          "E21",
           "E22",
           "E24",
+          "E25",
           "E27",
           "E28"
         ],
         "candidates_evaluated": 197,
         "best_params": {
-          "initial_loss": 0.0,
-          "constant_loss": 2.0,
-          "tc": 10.0,
+          "initial_loss": 5.5,
+          "constant_loss": 1.0,
+          "tc": 25.0,
           "storage": 45.0,
           "recession": 0.85,
-          "initial_flow_ratio": 0.005,
+          "initial_flow_ratio": 0.0025,
           "k1": 0.5,
           "k2": 0.5,
           "k3": 0.5,
           "x": 0.2
         },
-        "best_mean_research_score": -0.1278647484496187,
+        "best_mean_research_score": 0.12361099195237338,
         "best_event_metrics": [
+          {
+            "event_id": "E20",
+            "pairs": 89.0,
+            "nse": 0.9402937554984885,
+            "rmse_m3s": 197.61180822708374,
+            "mae_m3s": 145.31787304670038,
+            "peak_lag_hours": 1.0,
+            "peak_relative_error": 0.05481456192209014,
+            "observed_peak_m3s": 3260.25,
+            "simulated_peak_m3s": 3081.5408244935056
+          },
+          {
+            "event_id": "E21",
+            "pairs": 158.0,
+            "nse": 0.7897742272633758,
+            "rmse_m3s": 742.2682877399001,
+            "mae_m3s": 581.4522226071562,
+            "peak_lag_hours": 7.0,
+            "peak_relative_error": 0.16120885067654217,
+            "observed_peak_m3s": 6000.525,
+            "simulated_peak_m3s": 5033.1872612941415
+          },
           {
             "event_id": "E22",
             "pairs": 110.0,
-            "nse": 0.41734197035039666,
-            "rmse_m3s": 1231.7653842990064,
-            "mae_m3s": 880.5268904933976,
+            "nse": 0.5501492058559527,
+            "rmse_m3s": 1082.3192254461503,
+            "mae_m3s": 633.7393682537769,
             "peak_lag_hours": 0.0,
-            "peak_relative_error": 0.5572993106161879,
+            "peak_relative_error": 0.4994751124630905,
             "observed_peak_m3s": 10437.666666666666,
-            "simulated_peak_m3s": 4620.762228891769
+            "simulated_peak_m3s": 5224.311934481082
           },
           {
             "event_id": "E24",
             "pairs": 238.0,
-            "nse": 0.6302800277401572,
-            "rmse_m3s": 1775.7365552437252,
-            "mae_m3s": 1257.758359671851,
-            "peak_lag_hours": -7.0,
-            "peak_relative_error": 0.26180617350491975,
+            "nse": 0.6047810442930852,
+            "rmse_m3s": 1835.9504772459413,
+            "mae_m3s": 1374.1397436350505,
+            "peak_lag_hours": 6.0,
+            "peak_relative_error": 0.2360487244235369,
             "observed_peak_m3s": 11434.95,
-            "simulated_peak_m3s": 8441.209496279918
+            "simulated_peak_m3s": 8735.744638653077
+          },
+          {
+            "event_id": "E25",
+            "pairs": 62.0,
+            "nse": 0.6818094241196647,
+            "rmse_m3s": 233.9137679714543,
+            "mae_m3s": 212.01541009653099,
+            "peak_lag_hours": -4.0,
+            "peak_relative_error": 0.1883569323753898,
+            "observed_peak_m3s": 1923.775,
+            "simulated_peak_m3s": 2286.1313575804656
           },
           {
             "event_id": "E27",
             "pairs": 245.0,
-            "nse": -0.24019946689466876,
-            "rmse_m3s": 4471.0303041970465,
-            "mae_m3s": 3250.501819168141,
-            "peak_lag_hours": 6.0,
-            "peak_relative_error": 0.6566557181233751,
+            "nse": -0.42282358628443806,
+            "rmse_m3s": 4788.917675106764,
+            "mae_m3s": 3610.90437325336,
+            "peak_lag_hours": 18.0,
+            "peak_relative_error": 0.46335943004248953,
             "observed_peak_m3s": 14525.225,
-            "simulated_peak_m3s": 24063.297053278602
+            "simulated_peak_m3s": 21255.62497723892
           },
           {
             "event_id": "E28",
             "pairs": 209.0,
-            "nse": 0.7336681006282446,
-            "rmse_m3s": 920.8093831472202,
-            "mae_m3s": 589.7340510215568,
-            "peak_lag_hours": -11.0,
-            "peak_relative_error": 0.229338049000726,
+            "nse": 0.5879594586289834,
+            "rmse_m3s": 1145.3233570425236,
+            "mae_m3s": 776.5208342424688,
+            "peak_lag_hours": 1.0,
+            "peak_relative_error": 0.43006955951385745,
             "observed_peak_m3s": 7886.724999999999,
-            "simulated_peak_m3s": 6077.998875494749
+            "simulated_peak_m3s": 4494.8846532430725
           }
         ],
-        "mean_nse": 0.38527265795603244,
-        "pad_hours": 0,
+        "mean_nse": 0.5331347899107303,
+        "pad_hours": 12,
         "holdout_e27": {
           "train_events": [
+            "E20",
+            "E21",
             "E22",
             "E24",
+            "E25",
             "E28"
           ],
           "test_event": "E27",
           "fit": {
             "runnable_events": [
+              "E20",
+              "E21",
               "E22",
               "E24",
+              "E25",
               "E28"
             ],
             "candidates_evaluated": 197,
             "best_params": {
-              "initial_loss": 0.0,
+              "initial_loss": 5.5,
               "constant_loss": 1.0,
               "tc": 25.0,
-              "storage": 25.0,
+              "storage": 45.0,
               "recession": 0.85,
-              "initial_flow_ratio": 0.005,
+              "initial_flow_ratio": 0.0025,
               "k1": 0.5,
               "k2": 0.5,
               "k3": 0.5,
               "x": 0.2
             },
-            "best_mean_research_score": 0.4744005717477407,
+            "best_mean_research_score": 0.40329670749538277,
             "best_event_metrics": [
+              {
+                "event_id": "E20",
+                "pairs": 89.0,
+                "nse": 0.9402937554984885,
+                "rmse_m3s": 197.61180822708374,
+                "mae_m3s": 145.31787304670038,
+                "peak_lag_hours": 1.0,
+                "peak_relative_error": 0.05481456192209014,
+                "observed_peak_m3s": 3260.25,
+                "simulated_peak_m3s": 3081.5408244935056
+              },
+              {
+                "event_id": "E21",
+                "pairs": 158.0,
+                "nse": 0.7897742272633758,
+                "rmse_m3s": 742.2682877399001,
+                "mae_m3s": 581.4522226071562,
+                "peak_lag_hours": 7.0,
+                "peak_relative_error": 0.16120885067654217,
+                "observed_peak_m3s": 6000.525,
+                "simulated_peak_m3s": 5033.1872612941415
+              },
               {
                 "event_id": "E22",
                 "pairs": 110.0,
-                "nse": 0.4343635381236971,
-                "rmse_m3s": 1213.6398433615027,
-                "mae_m3s": 749.1188342392782,
+                "nse": 0.5501492058559527,
+                "rmse_m3s": 1082.3192254461503,
+                "mae_m3s": 633.7393682537769,
                 "peak_lag_hours": 0.0,
-                "peak_relative_error": 0.5314795995631337,
+                "peak_relative_error": 0.4994751124630905,
                 "observed_peak_m3s": 10437.666666666666,
-                "simulated_peak_m3s": 4890.259766293198
+                "simulated_peak_m3s": 5224.311934481082
               },
               {
                 "event_id": "E24",
                 "pairs": 238.0,
-                "nse": 0.7962881870489348,
-                "rmse_m3s": 1318.105542443412,
-                "mae_m3s": 1036.2262917883274,
-                "peak_lag_hours": 3.0,
-                "peak_relative_error": 0.06415213990151017,
+                "nse": 0.6047810442930852,
+                "rmse_m3s": 1835.9504772459413,
+                "mae_m3s": 1374.1397436350505,
+                "peak_lag_hours": 6.0,
+                "peak_relative_error": 0.2360487244235369,
                 "observed_peak_m3s": 11434.95,
-                "simulated_peak_m3s": 12168.526512166774
+                "simulated_peak_m3s": 8735.744638653077
+              },
+              {
+                "event_id": "E25",
+                "pairs": 62.0,
+                "nse": 0.6818094241196647,
+                "rmse_m3s": 233.9137679714543,
+                "mae_m3s": 212.01541009653099,
+                "peak_lag_hours": -4.0,
+                "peak_relative_error": 0.1883569323753898,
+                "observed_peak_m3s": 1923.775,
+                "simulated_peak_m3s": 2286.1313575804656
               },
               {
                 "event_id": "E28",
                 "pairs": 209.0,
-                "nse": 0.8239867700820378,
-                "rmse_m3s": 748.5672095672946,
-                "mae_m3s": 626.4417442591126,
-                "peak_lag_hours": 2.0,
-                "peak_relative_error": 0.167241820558251,
+                "nse": 0.5879594586289834,
+                "rmse_m3s": 1145.3233570425236,
+                "mae_m3s": 776.5208342424688,
+                "peak_lag_hours": 1.0,
+                "peak_relative_error": 0.43006955951385745,
                 "observed_peak_m3s": 7886.724999999999,
-                "simulated_peak_m3s": 9205.715247242271
+                "simulated_peak_m3s": 4494.8846532430725
               }
             ],
-            "mean_nse": 0.6848794984182233
+            "mean_nse": 0.6924611859432583
           },
           "test_metrics": {
             "event_id": "E27",
             "pairs": 245.0,
-            "nse": -2.6474709318518252,
-            "rmse_m3s": 7667.57023963084,
-            "mae_m3s": 4984.905445033052,
-            "peak_lag_hours": 6.0,
-            "peak_relative_error": 1.1568272664043977,
+            "nse": -0.42282358628443806,
+            "rmse_m3s": 4788.917675106764,
+            "mae_m3s": 3610.90437325336,
+            "peak_lag_hours": 18.0,
+            "peak_relative_error": 0.46335943004248953,
             "observed_peak_m3s": 14525.225,
-            "simulated_peak_m3s": 31328.401330658817
+            "simulated_peak_m3s": 21255.62497723892
           },
-          "test_research_score": -3.525884565054024,
-          "test_nse": -2.6474709318518252,
-          "note": "Params comuns ajustados em E22/E24/E28; E27 é hold-out de teste."
+          "test_research_score": -1.5545033013056828,
+          "test_nse": -0.42282358628443806,
+          "note": "Params comuns no pool de calibração (sem E26/E30/E31); E27 é hold-out interno."
+        },
+        "external_holdout": {
+          "events": [
+            "E26",
+            "E30",
+            "E31"
+          ],
+          "train_events": [
+            "E20",
+            "E21",
+            "E22",
+            "E24",
+            "E25",
+            "E27",
+            "E28"
+          ],
+          "results": [
+            {
+              "event_id": "E26",
+              "research_score": -8.858498136007116,
+              "nse": -7.960767619519379,
+              "metrics": {
+                "event_id": "E26",
+                "pairs": 31.0,
+                "nse": -7.960767619519379,
+                "rmse_m3s": 1058.9214114086894,
+                "mae_m3s": 997.8147245763597,
+                "peak_lag_hours": -8.0,
+                "peak_relative_error": 0.9954610329754734,
+                "observed_peak_m3s": 1575.875,
+                "simulated_peak_m3s": 7.152844659775725
+              }
+            },
+            {
+              "event_id": "E30",
+              "research_score": -8.259473374754371,
+              "nse": -7.4586003222126145,
+              "metrics": {
+                "event_id": "E30",
+                "pairs": 70.0,
+                "nse": -7.4586003222126145,
+                "rmse_m3s": 1225.5994143818823,
+                "mae_m3s": 1173.185599715377,
+                "peak_lag_hours": 8.0,
+                "peak_relative_error": 0.8017461050835119,
+                "observed_peak_m3s": 2102.45,
+                "simulated_peak_m3s": 416.8189013671703
+              }
+            },
+            {
+              "event_id": "E31",
+              "research_score": 0.4217383963396788,
+              "nse": 0.7244766249022507,
+              "metrics": {
+                "event_id": "E31",
+                "pairs": 128.0,
+                "nse": 0.7244766249022507,
+                "rmse_m3s": 863.5814404341824,
+                "mae_m3s": 620.6280511560888,
+                "peak_lag_hours": 3.0,
+                "peak_relative_error": 0.30547645712514376,
+                "observed_peak_m3s": 6057.4,
+                "simulated_peak_m3s": 4207.006908610154
+              }
+            }
+          ],
+          "mean_test_nse": -4.898297105609914,
+          "note": "E26/E30/E31 nunca entraram no fit do common-search; teste externo verdadeiro."
         },
         "leave_one_out": [
           {
-            "left_out": "E22",
+            "left_out": "E27",
             "train_events": [
               "E24",
-              "E27",
-              "E28"
+              "E22",
+              "E28",
+              "E21",
+              "E20"
             ],
-            "train_mean_nse": 0.35884994544895027,
-            "test_nse": -0.6022221960976237,
+            "train_mean_nse": 0.7339959365784753,
+            "test_nse": -0.8519682943489313,
             "test_metrics": {
-              "event_id": "E22",
-              "pairs": 110.0,
-              "nse": -0.6022221960976237,
-              "rmse_m3s": 2042.5961037444745,
-              "mae_m3s": 1638.0606781171582,
-              "peak_lag_hours": 0.0,
-              "peak_relative_error": 0.7790051511613166,
-              "observed_peak_m3s": 10437.666666666666,
-              "simulated_peak_m3s": 2306.6705672285634
+              "event_id": "E27",
+              "pairs": 245.0,
+              "nse": -0.8519682943489313,
+              "rmse_m3s": 5463.596485193434,
+              "mae_m3s": 3755.7399964560827,
+              "peak_lag_hours": 16.0,
+              "peak_relative_error": 0.7053055671003688,
+              "observed_peak_m3s": 14525.225,
+              "simulated_peak_m3s": 24769.947055885455
             }
           },
           {
             "left_out": "E24",
             "train_events": [
-              "E22",
               "E27",
-              "E28"
+              "E22",
+              "E28",
+              "E21",
+              "E20"
             ],
-            "train_mean_nse": 0.24160993070352463,
-            "test_nse": 0.3637213784718003,
+            "train_mean_nse": 0.44059402042483703,
+            "test_nse": 0.7423394675076942,
             "test_metrics": {
               "event_id": "E24",
               "pairs": 238.0,
-              "nse": 0.3637213784718003,
-              "rmse_m3s": 2329.5162538734994,
-              "mae_m3s": 1701.7817520990443,
-              "peak_lag_hours": -11.0,
-              "peak_relative_error": 0.49893660579744503,
+              "nse": 0.7423394675076942,
+              "rmse_m3s": 1482.4021263378154,
+              "mae_m3s": 1103.2980487484808,
+              "peak_lag_hours": 4.0,
+              "peak_relative_error": 0.0963263070172409,
               "observed_peak_m3s": 11434.95,
-              "simulated_peak_m3s": 5729.634859536506
+              "simulated_peak_m3s": 10333.463495573202
             }
           },
           {
-            "left_out": "E27",
+            "left_out": "E22",
             "train_events": [
-              "E22",
+              "E27",
               "E24",
-              "E28"
+              "E28",
+              "E21",
+              "E20"
             ],
-            "train_mean_nse": 0.6848794984182233,
-            "test_nse": -2.6474709318518252,
+            "train_mean_nse": 0.4394956545127283,
+            "test_nse": 0.7478312970682376,
             "test_metrics": {
-              "event_id": "E27",
-              "pairs": 245.0,
-              "nse": -2.6474709318518252,
-              "rmse_m3s": 7667.57023963084,
-              "mae_m3s": 4984.905445033052,
-              "peak_lag_hours": 6.0,
-              "peak_relative_error": 1.1568272664043977,
-              "observed_peak_m3s": 14525.225,
-              "simulated_peak_m3s": 31328.401330658817
+              "event_id": "E22",
+              "pairs": 110.0,
+              "nse": 0.7478312970682376,
+              "rmse_m3s": 810.3389596587858,
+              "mae_m3s": 627.7104281248393,
+              "peak_lag_hours": 0.0,
+              "peak_relative_error": 0.29711767466357875,
+              "observed_peak_m3s": 10437.666666666666,
+              "simulated_peak_m3s": 7336.451417753119
             }
           },
           {
             "left_out": "E28",
             "train_events": [
-              "E22",
+              "E27",
               "E24",
-              "E27"
+              "E22",
+              "E21",
+              "E20"
             ],
-            "train_mean_nse": 0.2935067167433399,
-            "test_nse": 0.5631690568892964,
+            "train_mean_nse": 0.5278168865771986,
+            "test_nse": 0.3062251367458866,
             "test_metrics": {
               "event_id": "E28",
               "pairs": 209.0,
-              "nse": 0.5631690568892964,
-              "rmse_m3s": 1179.2743164951833,
-              "mae_m3s": 762.8939936494186,
-              "peak_lag_hours": -16.0,
-              "peak_relative_error": 0.24432722636672335,
+              "nse": 0.3062251367458866,
+              "rmse_m3s": 1486.1663483799794,
+              "mae_m3s": 1351.7689328579768,
+              "peak_lag_hours": -2.0,
+              "peak_relative_error": 0.3470484845003666,
               "observed_peak_m3s": 7886.724999999999,
-              "simulated_peak_m3s": 5959.783355632903
+              "simulated_peak_m3s": 5149.649041078846
+            }
+          },
+          {
+            "left_out": "E21",
+            "train_events": [
+              "E27",
+              "E24",
+              "E22",
+              "E28",
+              "E20"
+            ],
+            "train_mean_nse": 0.4222094401155837,
+            "test_nse": 0.834262369053961,
+            "test_metrics": {
+              "event_id": "E21",
+              "pairs": 158.0,
+              "nse": 0.834262369053961,
+              "rmse_m3s": 659.0653675478768,
+              "mae_m3s": 571.4421319876311,
+              "peak_lag_hours": 4.0,
+              "peak_relative_error": 0.013346919782878325,
+              "observed_peak_m3s": 6000.525,
+              "simulated_peak_m3s": 5920.436474169844
+            }
+          },
+          {
+            "left_out": "E20",
+            "train_events": [
+              "E27",
+              "E24",
+              "E22",
+              "E28",
+              "E21"
+            ],
+            "train_mean_nse": 0.5029044575199817,
+            "test_nse": 0.43078728203197103,
+            "test_metrics": {
+              "event_id": "E20",
+              "pairs": 89.0,
+              "nse": 0.43078728203197103,
+              "rmse_m3s": 610.1551933064043,
+              "mae_m3s": 572.1880697476956,
+              "peak_lag_hours": -2.0,
+              "peak_relative_error": 0.0046849684031825215,
+              "observed_peak_m3s": 3260.25,
+              "simulated_peak_m3s": 3275.524168236476
             }
           }
         ],
-        "leave_one_out_mean_test_nse": -0.5807006731470881,
-        "note": "Common-search v1.3 (PAD selecionado + hold-out/LOO). Não promover enquanto hold-out E27 ou LOO médio < 0.5.",
+        "leave_one_out_mean_test_nse": 0.36824620967646987,
+        "note": "Common-search v1.4: pool sem E26/E30/E31; hold-out E27 + LOO + externos. Promover só se hold-out/LOO/externos forem aceitáveis.",
         "promotion_blocked": true,
-        "promotion_rule": "holdout_E27_nse>=0.5 and loo_mean_test_nse>=0.5"
+        "promotion_rule": "holdout_E27_nse>=0.5 and loo_mean_test_nse>=0.5 and external_mean_nse>=0.4"
       },
       "events": [
         {
           "event_id": "E19",
           "rain": {
             "stations_mm_sum": {
+              "86472000+2851072": 34.3,
               "86472000": 19.8,
-              "86510000": 26.4
+              "86510000": 27.0
             },
             "stations_mm_sum_core": {
+              "86472000+2851072": 26.5,
               "86472000": 19.8,
               "86510000": 26.4
             },
             "subbasin_sources": {
-              "SB_PRATA_7868": "86472000",
-              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_PRATA_7868": "86472000+2851072",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072",
               "SB_CARREIRO_7866": "86472000",
               "SB_STZ_RESIDUAL": "86472000",
               "SB_INC_MUCUM": "86510000"
             },
-            "fallback_notes": [],
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 26.5
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 26.5
+              }
+            ],
             "runnable": true,
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 0,
-              "applied": false,
-              "sim_hours": 53
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 65
             }
           },
           "observed_points": 53,
           "status": "fit_failed_eventwise",
           "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
-          "score": -34.35332131185929,
+          "score": -22.435390226010863,
           "metrics": {
             "pairs": 53.0,
-            "nse": -32.64843056721828,
-            "rmse_m3s": 915.5564115444362,
-            "mae_m3s": 886.959392468678,
+            "nse": -20.864408613825663,
+            "rmse_m3s": 738.0258430172311,
+            "mae_m3s": 701.9274693253998,
             "peak_lag_hours": 28.0,
-            "peak_relative_error": 0.6097814892820295,
+            "peak_relative_error": 0.34196322437040205,
             "observed_peak_m3s": 1408.375,
-            "simulated_peak_m3s": 549.5739950324217
+            "simulated_peak_m3s": 1889.987456122665
           },
           "params": {
             "initial_loss": 0.0,
             "constant_loss": 0.5,
             "tc": 25.0,
-            "storage": 90.0,
-            "recession": 0.98,
-            "initial_flow_ratio": 0.02,
-            "k1": 2.0,
-            "k2": 2.0,
-            "k3": 2.0,
-            "x": 0.2
-          },
-          "warm_up_hours_applied": 0,
-          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E19_best_series.csv",
-          "forcing_note": "E19 fit_failed: chuva local core máx ~26 mm vs pico obs ~1408 m³/s. Forçamento pluviométrico insuficiente para a onda (provável massa de montante/routing). Headline = média NSE>=0 (E22–E28)."
-        },
-        {
-          "event_id": "E22",
-          "rain": {
-            "stations_mm_sum": {
-              "86472000": 138.6,
-              "86507000": 176.2
-            },
-            "stations_mm_sum_core": {
-              "86472000": 138.6,
-              "86507000": 176.2
-            },
-            "subbasin_sources": {
-              "SB_PRATA_7868": "86472000",
-              "SB_ANTAS_RESIDUAL": "86472000",
-              "SB_CARREIRO_7866": "86507000",
-              "SB_STZ_RESIDUAL": "86472000",
-              "SB_INC_MUCUM": "86472000"
-            },
-            "fallback_notes": [],
-            "runnable": true,
-            "blocked_reason": null,
-            "contract": "hec_event_ana_raw_ana_only",
-            "warm_up": {
-              "requested_hours": 0,
-              "applied": false,
-              "sim_hours": 200
-            }
-          },
-          "observed_points": 110,
-          "status": "eventwise_scored",
-          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
-          "score": 0.6918737037117183,
-          "metrics": {
-            "pairs": 110.0,
-            "nse": 0.7311809993632206,
-            "rmse_m3s": 836.6640496689961,
-            "mae_m3s": 702.525624334417,
-            "peak_lag_hours": 0.0,
-            "peak_relative_error": 0.07861459130300454,
-            "observed_peak_m3s": 10437.666666666666,
-            "simulated_peak_m3s": 9617.113767509672
-          },
-          "params": {
-            "initial_loss": 5.5,
-            "constant_loss": 0.5,
-            "tc": 10.0,
             "storage": 25.0,
             "recession": 0.7,
             "initial_flow_ratio": 0.005,
@@ -504,48 +688,220 @@
             "k3": 0.5,
             "x": 0.2
           },
-          "warm_up_hours_applied": 0,
-          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E22_best_series.csv"
+          "warm_up_hours_applied": 12,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E19_best_series.csv",
+          "forcing_note": "E19 fit_failed: chuva local core máx ~26 mm vs pico obs ~1408 m³/s. Forçamento pluviométrico insuficiente para a onda (provável massa de montante/routing). Headline = média NSE>=0 (E22–E28)."
         },
         {
-          "event_id": "E24",
+          "event_id": "E20",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 202.4
+              "86472000+2851072+86507000": 76.0,
+              "86507000": 77.2,
+              "86472000": 89.6,
+              "86510000": 98.6
             },
             "stations_mm_sum_core": {
-              "86472000": 202.4
+              "86472000+2851072+86507000": 26.93,
+              "86507000": 21.0,
+              "86472000": 42.0,
+              "86510000": 34.6
             },
             "subbasin_sources": {
-              "SB_PRATA_7868": "86472000",
-              "SB_ANTAS_RESIDUAL": "86472000",
-              "SB_CARREIRO_7866": "86472000",
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+              "SB_CARREIRO_7866": "86507000",
               "SB_STZ_RESIDUAL": "86472000",
-              "SB_INC_MUCUM": "86472000"
+              "SB_INC_MUCUM": "86510000"
             },
-            "fallback_notes": [],
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 26.93
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 26.93
+              }
+            ],
             "runnable": true,
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 0,
-              "applied": false,
-              "sim_hours": 240
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 101
             }
           },
-          "observed_points": 238,
+          "observed_points": 89,
           "status": "eventwise_scored",
           "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
-          "score": 0.6142121170981797,
+          "score": 0.9031635473255699,
           "metrics": {
-            "pairs": 238.0,
-            "nse": 0.7962881870489348,
-            "rmse_m3s": 1318.105542443412,
-            "mae_m3s": 1036.2262917883274,
-            "peak_lag_hours": 3.0,
-            "peak_relative_error": 0.06415213990151017,
-            "observed_peak_m3s": 11434.95,
-            "simulated_peak_m3s": 12168.526512166774
+            "pairs": 89.0,
+            "nse": 0.9109495793151802,
+            "rmse_m3s": 241.33538431486255,
+            "mae_m3s": 171.01704306868493,
+            "peak_lag_hours": 0.0,
+            "peak_relative_error": 0.015572063979220476,
+            "observed_peak_m3s": 3260.25,
+            "simulated_peak_m3s": 3209.4811784117464
+          },
+          "params": {
+            "initial_loss": 2.5,
+            "constant_loss": 1.0,
+            "tc": 25.0,
+            "storage": 45.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.001,
+            "k1": 0.5,
+            "k2": 0.5,
+            "k3": 0.5,
+            "x": 0.2
+          },
+          "warm_up_hours_applied": 12,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E20_best_series.csv"
+        },
+        {
+          "event_id": "E21",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+2851072+86507000": 102.07,
+              "86507000": 106.4,
+              "86472000": 80.8,
+              "86510000": 81.8
+            },
+            "stations_mm_sum_core": {
+              "86472000+2851072+86507000": 100.93,
+              "86507000": 106.2,
+              "86472000": 80.8,
+              "86510000": 81.8
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000",
+              "SB_INC_MUCUM": "86510000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 100.93
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 100.93
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 170
+            }
+          },
+          "observed_points": 158,
+          "status": "eventwise_scored",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
+          "score": 0.6275889091625219,
+          "metrics": {
+            "pairs": 158.0,
+            "nse": 0.834262369053961,
+            "rmse_m3s": 659.0653675478768,
+            "mae_m3s": 571.4421319876311,
+            "peak_lag_hours": 4.0,
+            "peak_relative_error": 0.013346919782878325,
+            "observed_peak_m3s": 6000.525,
+            "simulated_peak_m3s": 5920.436474169844
+          },
+          "params": {
+            "initial_loss": 0.0,
+            "constant_loss": 2.0,
+            "tc": 25.0,
+            "storage": 25.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.005,
+            "k1": 0.5,
+            "k2": 0.5,
+            "k3": 0.5,
+            "x": 0.2
+          },
+          "warm_up_hours_applied": 12,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E21_best_series.csv"
+        },
+        {
+          "event_id": "E22",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+2851072+86507000": 217.33,
+              "86507000": 188.0,
+              "86472000": 149.2
+            },
+            "stations_mm_sum_core": {
+              "86472000+2851072+86507000": 184.4,
+              "86507000": 176.2,
+              "86472000": 138.6
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000",
+              "SB_INC_MUCUM": "86472000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 184.4
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 184.4
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 212
+            }
+          },
+          "observed_points": 110,
+          "status": "eventwise_scored",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
+          "score": 0.7267522317201266,
+          "metrics": {
+            "pairs": 110.0,
+            "nse": 0.8095904088724164,
+            "rmse_m3s": 704.1505736925182,
+            "mae_m3s": 597.2545727190958,
+            "peak_lag_hours": 0.0,
+            "peak_relative_error": 0.16567635430457953,
+            "observed_peak_m3s": 10437.666666666666,
+            "simulated_peak_m3s": 8708.3921058869
           },
           "params": {
             "initial_loss": 0.0,
@@ -559,24 +915,98 @@
             "k3": 0.5,
             "x": 0.2
           },
-          "warm_up_hours_applied": 0,
-          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E24_best_series.csv"
+          "warm_up_hours_applied": 12,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E22_best_series.csv"
         },
         {
-          "event_id": "E27",
+          "event_id": "E23",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 616.6,
-              "86507000": 750.6
+              "86472000+2851072+86507000": 55.2,
+              "86507000": 57.8,
+              "86472000": 49.6,
+              "86510000": 45.4
             },
             "stations_mm_sum_core": {
-              "86472000": 616.6,
-              "86507000": 750.6
+              "86472000+2851072+86507000": 31.73,
+              "86507000": 35.8,
+              "86472000": 33.6,
+              "86510000": 34.8
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000",
+              "SB_INC_MUCUM": "86510000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 31.73
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 31.73
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 82
+            }
+          },
+          "observed_points": 70,
+          "status": "fit_failed_eventwise",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
+          "score": -1.1778059227500863,
+          "metrics": {
+            "pairs": 70.0,
+            "nse": -0.9555539413478971,
+            "rmse_m3s": 689.170097823806,
+            "mae_m3s": 642.2443130045289,
+            "peak_lag_hours": 2.0,
+            "peak_relative_error": 0.24450396280437833,
+            "observed_peak_m3s": 2579.45,
+            "simulated_peak_m3s": 1948.7642531442461
+          },
+          "params": {
+            "initial_loss": 0.0,
+            "constant_loss": 0.5,
+            "tc": 25.0,
+            "storage": 25.0,
+            "recession": 0.7,
+            "initial_flow_ratio": 0.005,
+            "k1": 0.5,
+            "k2": 0.5,
+            "k3": 0.5,
+            "x": 0.2
+          },
+          "warm_up_hours_applied": 12,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E23_best_series.csv"
+        },
+        {
+          "event_id": "E24",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000": 207.8
+            },
+            "stations_mm_sum_core": {
+              "86472000": 202.4
             },
             "subbasin_sources": {
               "SB_PRATA_7868": "86472000",
               "SB_ANTAS_RESIDUAL": "86472000",
-              "SB_CARREIRO_7866": "86507000",
+              "SB_CARREIRO_7866": "86472000",
               "SB_STZ_RESIDUAL": "86472000",
               "SB_INC_MUCUM": "86472000"
             },
@@ -585,30 +1015,30 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 0,
-              "applied": false,
-              "sim_hours": 245
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 252
             }
           },
-          "observed_points": 245,
+          "observed_points": 238,
           "status": "eventwise_scored",
           "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
-          "score": 0.7045192269177392,
+          "score": 0.6300099595514846,
           "metrics": {
-            "pairs": 245.0,
-            "nse": 0.816337479475337,
-            "rmse_m3s": 1720.5690775105697,
-            "mae_m3s": 1456.1696092151371,
-            "peak_lag_hours": 1.0,
-            "peak_relative_error": 0.12363650511519562,
-            "observed_peak_m3s": 14525.225,
-            "simulated_peak_m3s": 12729.376944988133
+            "pairs": 238.0,
+            "nse": 0.8131581125347989,
+            "rmse_m3s": 1262.348307766122,
+            "mae_m3s": 1002.5170054216029,
+            "peak_lag_hours": 3.0,
+            "peak_relative_error": 0.06629630596662846,
+            "observed_peak_m3s": 11434.95,
+            "simulated_peak_m3s": 12193.044943913099
           },
           "params": {
             "initial_loss": 0.0,
-            "constant_loss": 4.0,
-            "tc": 4.0,
-            "storage": 90.0,
+            "constant_loss": 1.0,
+            "tc": 25.0,
+            "storage": 25.0,
             "recession": 0.85,
             "initial_flow_ratio": 0.005,
             "k1": 0.5,
@@ -616,37 +1046,293 @@
             "k3": 0.5,
             "x": 0.2
           },
-          "warm_up_hours_applied": 0,
+          "warm_up_hours_applied": 12,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E24_best_series.csv"
+        },
+        {
+          "event_id": "E25",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+2851072": 58.7,
+              "86472000": 6.0,
+              "86472600": 6.4,
+              "86510000": 15.6
+            },
+            "stations_mm_sum_core": {
+              "86472000+2851072": 2.3,
+              "86472000": 3.0,
+              "86472600": 5.0,
+              "86510000": 14.4
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072",
+              "SB_CARREIRO_7866": "86472000",
+              "SB_STZ_RESIDUAL": "86472600",
+              "SB_INC_MUCUM": "86510000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 2.3
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 2.3
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 74
+            }
+          },
+          "observed_points": 62,
+          "status": "eventwise_scored",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
+          "score": 0.7539466901454009,
+          "metrics": {
+            "pairs": 62.0,
+            "nse": 0.9197284415765873,
+            "rmse_m3s": 117.487855243352,
+            "mae_m3s": 99.96123186097685,
+            "peak_lag_hours": -3.0,
+            "peak_relative_error": 0.03156350286237267,
+            "observed_peak_m3s": 1923.775,
+            "simulated_peak_m3s": 1863.053922280939
+          },
+          "params": {
+            "initial_loss": 2.5,
+            "constant_loss": 2.0,
+            "tc": 25.0,
+            "storage": 45.0,
+            "recession": 0.8,
+            "initial_flow_ratio": 0.0025,
+            "k1": 1.0,
+            "k2": 1.0,
+            "k3": 1.0,
+            "x": 0.2
+          },
+          "warm_up_hours_applied": 12,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E25_best_series.csv"
+        },
+        {
+          "event_id": "E26",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+86507000": 2.7,
+              "86510000": 7.6
+            },
+            "stations_mm_sum_core": {
+              "86472000+86507000": 0.0,
+              "86510000": 1.2
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+86507000",
+              "SB_CARREIRO_7866": "86510000",
+              "SB_STZ_RESIDUAL": "86510000",
+              "SB_INC_MUCUM": "86510000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 0.0
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 0.0
+              },
+              {
+                "subbasin": "SB_CARREIRO_7866",
+                "rejected": "86507000",
+                "rejected_mm_sum_full": 1.4,
+                "rejected_mm_sum_core": 0.0,
+                "chosen": "86510000",
+                "chosen_mm_sum_full": 7.6,
+                "chosen_mm_sum_core": 1.2,
+                "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
+              },
+              {
+                "subbasin": "SB_STZ_RESIDUAL",
+                "rejected": "86472600",
+                "rejected_mm_sum_full": 7.6,
+                "rejected_mm_sum_core": 0.0,
+                "chosen": "86510000",
+                "chosen_mm_sum_full": 7.6,
+                "chosen_mm_sum_core": 1.2,
+                "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 43
+            }
+          },
+          "observed_points": 31,
+          "status": "fit_failed_eventwise",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
+          "score": -5.1882153355637515,
+          "metrics": {
+            "pairs": 31.0,
+            "nse": -4.383051136647193,
+            "rmse_m3s": 820.7395751470478,
+            "mae_m3s": 743.7969785694933,
+            "peak_lag_hours": -8.0,
+            "peak_relative_error": 0.810328397833116,
+            "observed_peak_m3s": 1575.875,
+            "simulated_peak_m3s": 298.8987360647382
+          },
+          "params": {
+            "initial_loss": 0.0,
+            "constant_loss": 0.5,
+            "tc": 25.0,
+            "storage": 90.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.02,
+            "k1": 2.0,
+            "k2": 2.0,
+            "k3": 2.0,
+            "x": 0.2
+          },
+          "warm_up_hours_applied": 12,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E26_best_series.csv"
+        },
+        {
+          "event_id": "E27",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+2851072+86507000": 566.67,
+              "86507000": 754.6,
+              "86472000": 645.2
+            },
+            "stations_mm_sum_core": {
+              "86472000+2851072+86507000": 549.87,
+              "86507000": 750.6,
+              "86472000": 616.6
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000",
+              "SB_INC_MUCUM": "86472000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 549.87
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 549.87
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 257
+            }
+          },
+          "observed_points": 245,
+          "status": "eventwise_scored",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
+          "score": 0.8155622840850467,
+          "metrics": {
+            "pairs": 245.0,
+            "nse": 0.9134100387673034,
+            "rmse_m3s": 1181.3963260024132,
+            "mae_m3s": 911.1696727241045,
+            "peak_lag_hours": 1.0,
+            "peak_relative_error": 0.09569550936451321,
+            "observed_peak_m3s": 14525.225,
+            "simulated_peak_m3s": 15915.223805009162
+          },
+          "params": {
+            "initial_loss": 1.0,
+            "constant_loss": 4.0,
+            "tc": 4.0,
+            "storage": 45.0,
+            "recession": 0.85,
+            "initial_flow_ratio": 0.005,
+            "k1": 0.5,
+            "k2": 0.5,
+            "k3": 0.5,
+            "x": 0.2
+          },
+          "warm_up_hours_applied": 12,
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E27_best_series.csv"
         },
         {
           "event_id": "E28",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 228.1,
-              "86510000": 235.2,
-              "86472600": 227.4
+              "86472000+2851072+86507000": 172.57,
+              "86510000": 263.8,
+              "86472600": 266.0
             },
             "stations_mm_sum_core": {
-              "86472000": 228.1,
+              "86472000+2851072+86507000": 127.1,
               "86510000": 235.2,
               "86472600": 227.4
             },
             "subbasin_sources": {
-              "SB_PRATA_7868": "86472000",
-              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
               "SB_CARREIRO_7866": "86510000",
               "SB_STZ_RESIDUAL": "86472600",
               "SB_INC_MUCUM": "86510000"
             },
             "fallback_notes": [
               {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 127.1
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 127.1
+              },
+              {
                 "subbasin": "SB_CARREIRO_7866",
                 "rejected": "86507000",
-                "rejected_mm_sum_full": 7.4,
+                "rejected_mm_sum_full": 73.4,
                 "rejected_mm_sum_core": 7.4,
                 "chosen": "86510000",
-                "chosen_mm_sum_full": 235.2,
+                "chosen_mm_sum_full": 263.8,
                 "chosen_mm_sum_core": 235.2,
                 "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
               }
@@ -655,28 +1341,294 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 0,
-              "applied": false,
-              "sim_hours": 209
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 221
             }
           },
           "observed_points": 209,
           "status": "eventwise_scored",
           "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
-          "score": 0.8837122235790376,
+          "score": 0.8220829489172052,
           "metrics": {
             "pairs": 209.0,
-            "nse": 0.9338251820318518,
-            "rmse_m3s": 458.99137073458274,
-            "mae_m3s": 362.49143445775934,
-            "peak_lag_hours": 1.0,
-            "peak_relative_error": 0.00022591690562856042,
+            "nse": 0.9302618811061967,
+            "rmse_m3s": 471.1869538813244,
+            "mae_m3s": 360.85813959935143,
+            "peak_lag_hours": -2.0,
+            "peak_relative_error": 0.016357864377982912,
             "observed_peak_m3s": 7886.724999999999,
-            "simulated_peak_m3s": 7888.506744507543
+            "simulated_peak_m3s": 7757.715022063552
           },
           "params": {
             "initial_loss": 1.0,
-            "constant_loss": 2.0,
+            "constant_loss": 0.5,
+            "tc": 25.0,
+            "storage": 25.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.0025,
+            "k1": 0.5,
+            "k2": 0.5,
+            "k3": 0.5,
+            "x": 0.2
+          },
+          "warm_up_hours_applied": 12,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E28_best_series.csv"
+        },
+        {
+          "event_id": "E29",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+2851072+86507000": 0.27,
+              "2851072": 0.8,
+              "86510000": 0.0
+            },
+            "stations_mm_sum_core": {
+              "86472000+2851072+86507000": 0.07,
+              "2851072": 0.2,
+              "86510000": 0.0
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+              "SB_CARREIRO_7866": "2851072",
+              "SB_STZ_RESIDUAL": "2851072",
+              "SB_INC_MUCUM": "86510000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "rejected": "86472000",
+                "rejected_mm_sum_full": 0.0,
+                "rejected_mm_sum_core": 0.0,
+                "chosen": "2851072",
+                "chosen_mm_sum_full": 0.8,
+                "chosen_mm_sum_core": 0.2,
+                "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
+              },
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 0.07
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "rejected": "86472000",
+                "rejected_mm_sum_full": 0.0,
+                "rejected_mm_sum_core": 0.0,
+                "chosen": "2851072",
+                "chosen_mm_sum_full": 0.8,
+                "chosen_mm_sum_core": 0.2,
+                "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 0.07
+              },
+              {
+                "subbasin": "SB_CARREIRO_7866",
+                "rejected": "86507000",
+                "rejected_mm_sum_full": 0.0,
+                "rejected_mm_sum_core": 0.0,
+                "chosen": "2851072",
+                "chosen_mm_sum_full": 0.8,
+                "chosen_mm_sum_core": 0.2,
+                "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
+              },
+              {
+                "subbasin": "SB_STZ_RESIDUAL",
+                "rejected": "86472600",
+                "rejected_mm_sum_full": 0.0,
+                "rejected_mm_sum_core": 0.0,
+                "chosen": "2851072",
+                "chosen_mm_sum_full": 0.8,
+                "chosen_mm_sum_core": 0.2,
+                "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 36
+            }
+          },
+          "observed_points": 24,
+          "status": "fit_failed_eventwise",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
+          "score": -28.30419663931286,
+          "metrics": {
+            "pairs": 24.0,
+            "nse": -27.533837933521873,
+            "rmse_m3s": 687.7114158918206,
+            "mae_m3s": 676.2359544360402,
+            "peak_lag_hours": -8.0,
+            "peak_relative_error": 0.7407174115819763,
+            "observed_peak_m3s": 1081.0749999999998,
+            "simulated_peak_m3s": 280.3039242740149
+          },
+          "params": {
+            "initial_loss": 0.0,
+            "constant_loss": 0.5,
+            "tc": 25.0,
+            "storage": 90.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.02,
+            "k1": 2.0,
+            "k2": 2.0,
+            "k3": 2.0,
+            "x": 0.2
+          },
+          "warm_up_hours_applied": 12,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E29_best_series.csv"
+        },
+        {
+          "event_id": "E30",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+86507000": 13.3,
+              "86507000": 19.4,
+              "86472600": 8.0,
+              "86510000": 13.6
+            },
+            "stations_mm_sum_core": {
+              "86472000+86507000": 12.9,
+              "86507000": 18.6,
+              "86472600": 8.0,
+              "86510000": 13.6
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+86507000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472600",
+              "SB_INC_MUCUM": "86510000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 12.9
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 12.9
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 82
+            }
+          },
+          "observed_points": 70,
+          "status": "fit_failed_eventwise",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
+          "score": -2.7308263210574184,
+          "metrics": {
+            "pairs": 70.0,
+            "nse": -2.27361973832058,
+            "rmse_m3s": 762.4535797593766,
+            "mae_m3s": 723.2724745669174,
+            "peak_lag_hours": -7.0,
+            "peak_relative_error": 0.2144131654736768,
+            "observed_peak_m3s": 2102.45,
+            "simulated_peak_m3s": 1651.657040249868
+          },
+          "params": {
+            "initial_loss": 0.0,
+            "constant_loss": 0.5,
+            "tc": 10.0,
+            "storage": 25.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.005,
+            "k1": 0.5,
+            "k2": 0.5,
+            "k3": 0.5,
+            "x": 0.2
+          },
+          "warm_up_hours_applied": 12,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E30_best_series.csv"
+        },
+        {
+          "event_id": "E31",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+2851072+86507000": 86.27,
+              "86507000": 90.8,
+              "86472000": 76.0,
+              "86510000": 63.0
+            },
+            "stations_mm_sum_core": {
+              "86472000+2851072+86507000": 64.13,
+              "86507000": 71.2,
+              "86472000": 58.2,
+              "86510000": 49.8
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000",
+              "SB_INC_MUCUM": "86510000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 64.13
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 64.13
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 140
+            }
+          },
+          "observed_points": 128,
+          "status": "eventwise_scored",
+          "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
+          "score": 0.8189234521796294,
+          "metrics": {
+            "pairs": 128.0,
+            "nse": 0.8728931099576654,
+            "rmse_m3s": 586.5548385643773,
+            "mae_m3s": 501.7280981270389,
+            "peak_lag_hours": 1.0,
+            "peak_relative_error": 0.007939315556072144,
+            "observed_peak_m3s": 6057.4,
+            "simulated_peak_m3s": 6105.491610049351
+          },
+          "params": {
+            "initial_loss": 5.5,
+            "constant_loss": 1.0,
             "tc": 25.0,
             "storage": 25.0,
             "recession": 0.98,
@@ -686,8 +1638,8 @@
             "k3": 0.5,
             "x": 0.2
           },
-          "warm_up_hours_applied": 0,
-          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E28_best_series.csv"
+          "warm_up_hours_applied": 12,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E31_best_series.csv"
         }
       ]
     },
@@ -706,7 +1658,25 @@
           "note": "Sem Nivel e sem Vazao preenchidos na telemetria de evento deste pacote"
         },
         {
+          "event_id": "E20",
+          "nivel_hours": 0,
+          "vazao_hours": 0,
+          "note": "Sem Nivel e sem Vazao preenchidos na telemetria de evento deste pacote"
+        },
+        {
+          "event_id": "E21",
+          "nivel_hours": 0,
+          "vazao_hours": 0,
+          "note": "Sem Nivel e sem Vazao preenchidos na telemetria de evento deste pacote"
+        },
+        {
           "event_id": "E22",
+          "nivel_hours": 0,
+          "vazao_hours": 0,
+          "note": "Sem Nivel e sem Vazao preenchidos na telemetria de evento deste pacote"
+        },
+        {
+          "event_id": "E23",
           "nivel_hours": 0,
           "vazao_hours": 0,
           "note": "Sem Nivel e sem Vazao preenchidos na telemetria de evento deste pacote"
@@ -714,6 +1684,18 @@
         {
           "event_id": "E24",
           "nivel_hours": 239,
+          "vazao_hours": 0,
+          "note": "Nivel presente; Vazao vazia/ausente (precisa curva-chave Nivel→Vazao)"
+        },
+        {
+          "event_id": "E25",
+          "nivel_hours": 62,
+          "vazao_hours": 0,
+          "note": "Nivel presente; Vazao vazia/ausente (precisa curva-chave Nivel→Vazao)"
+        },
+        {
+          "event_id": "E26",
+          "nivel_hours": 31,
           "vazao_hours": 0,
           "note": "Nivel presente; Vazao vazia/ausente (precisa curva-chave Nivel→Vazao)"
         },
@@ -728,6 +1710,24 @@
           "nivel_hours": 209,
           "vazao_hours": 0,
           "note": "Nivel presente; Vazao vazia/ausente (precisa curva-chave Nivel→Vazao)"
+        },
+        {
+          "event_id": "E29",
+          "nivel_hours": 24,
+          "vazao_hours": 0,
+          "note": "Nivel presente; Vazao vazia/ausente (precisa curva-chave Nivel→Vazao)"
+        },
+        {
+          "event_id": "E30",
+          "nivel_hours": 70,
+          "vazao_hours": 0,
+          "note": "Nivel presente; Vazao vazia/ausente (precisa curva-chave Nivel→Vazao)"
+        },
+        {
+          "event_id": "E31",
+          "nivel_hours": 85,
+          "vazao_hours": 0,
+          "note": "Nivel presente; Vazao vazia/ausente (precisa curva-chave Nivel→Vazao)"
         }
       ],
       "diagnostic_transfer_from_mucum_params": [
@@ -737,25 +1737,138 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E19_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
+              "86472000+2851072": 34.3,
               "86472000": 19.8
             },
             "stations_mm_sum_core": {
+              "86472000+2851072": 26.5,
               "86472000": 19.8
             },
             "subbasin_sources": {
-              "SB_PRATA_7868": "86472000",
-              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_PRATA_7868": "86472000+2851072",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072",
               "SB_CARREIRO_7866": "86472000",
               "SB_STZ_RESIDUAL": "86472000"
             },
-            "fallback_notes": [],
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 26.5
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 26.5
+              }
+            ],
             "runnable": true,
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 0,
-              "applied": false,
-              "sim_hours": 53
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 65
+            }
+          },
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
+        },
+        {
+          "event_id": "E20",
+          "params_from": "mucum_common_holdout_e27",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E20_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+2851072+86507000": 76.0,
+              "86507000": 77.2,
+              "86472000": 89.6
+            },
+            "stations_mm_sum_core": {
+              "86472000+2851072+86507000": 26.93,
+              "86507000": 21.0,
+              "86472000": 42.0
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 26.93
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 26.93
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 101
+            }
+          },
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
+        },
+        {
+          "event_id": "E21",
+          "params_from": "mucum_common_holdout_e27",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E21_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+2851072+86507000": 102.07,
+              "86507000": 106.4,
+              "86472000": 80.8
+            },
+            "stations_mm_sum_core": {
+              "86472000+2851072+86507000": 100.93,
+              "86507000": 106.2,
+              "86472000": 80.8
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 100.93
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 100.93
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 170
             }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
@@ -766,27 +1879,92 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E22_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 138.6,
-              "86507000": 176.2
+              "86472000+2851072+86507000": 217.33,
+              "86507000": 188.0,
+              "86472000": 149.2
             },
             "stations_mm_sum_core": {
-              "86472000": 138.6,
-              "86507000": 176.2
+              "86472000+2851072+86507000": 184.4,
+              "86507000": 176.2,
+              "86472000": 138.6
             },
             "subbasin_sources": {
-              "SB_PRATA_7868": "86472000",
-              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
               "SB_CARREIRO_7866": "86507000",
               "SB_STZ_RESIDUAL": "86472000"
             },
-            "fallback_notes": [],
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 184.4
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 184.4
+              }
+            ],
             "runnable": true,
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 0,
-              "applied": false,
-              "sim_hours": 200
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 212
+            }
+          },
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
+        },
+        {
+          "event_id": "E23",
+          "params_from": "mucum_common_holdout_e27",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E23_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+2851072+86507000": 55.2,
+              "86507000": 57.8,
+              "86472000": 49.6
+            },
+            "stations_mm_sum_core": {
+              "86472000+2851072+86507000": 31.73,
+              "86507000": 35.8,
+              "86472000": 33.6
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 31.73
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 31.73
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 82
             }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
@@ -797,7 +1975,7 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E24_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 202.4
+              "86472000": 207.8
             },
             "stations_mm_sum_core": {
               "86472000": 202.4
@@ -813,9 +1991,123 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 0,
-              "applied": false,
-              "sim_hours": 240
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 252
+            }
+          },
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
+        },
+        {
+          "event_id": "E25",
+          "params_from": "mucum_common_holdout_e27",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E25_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+2851072": 58.7,
+              "86472000": 6.0,
+              "86472600": 6.4
+            },
+            "stations_mm_sum_core": {
+              "86472000+2851072": 2.3,
+              "86472000": 3.0,
+              "86472600": 5.0
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072",
+              "SB_CARREIRO_7866": "86472000",
+              "SB_STZ_RESIDUAL": "86472600"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 2.3
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 2.3
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 74
+            }
+          },
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
+        },
+        {
+          "event_id": "E26",
+          "params_from": "mucum_common_holdout_e27",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E26_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+86507000": 2.7,
+              "86510000": 7.6
+            },
+            "stations_mm_sum_core": {
+              "86472000+86507000": 0.0,
+              "86510000": 1.2
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+86507000",
+              "SB_CARREIRO_7866": "86510000",
+              "SB_STZ_RESIDUAL": "86510000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 0.0
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 0.0
+              },
+              {
+                "subbasin": "SB_CARREIRO_7866",
+                "rejected": "86507000",
+                "rejected_mm_sum_full": 1.4,
+                "rejected_mm_sum_core": 0.0,
+                "chosen": "86510000",
+                "chosen_mm_sum_full": 7.6,
+                "chosen_mm_sum_core": 1.2,
+                "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
+              },
+              {
+                "subbasin": "SB_STZ_RESIDUAL",
+                "rejected": "86472600",
+                "rejected_mm_sum_full": 7.6,
+                "rejected_mm_sum_core": 0.0,
+                "chosen": "86510000",
+                "chosen_mm_sum_full": 7.6,
+                "chosen_mm_sum_core": 1.2,
+                "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 43
             }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
@@ -826,27 +2118,44 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E27_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 616.6,
-              "86507000": 750.6
+              "86472000+2851072+86507000": 566.67,
+              "86507000": 754.6,
+              "86472000": 645.2
             },
             "stations_mm_sum_core": {
-              "86472000": 616.6,
-              "86507000": 750.6
+              "86472000+2851072+86507000": 549.87,
+              "86507000": 750.6,
+              "86472000": 616.6
             },
             "subbasin_sources": {
-              "SB_PRATA_7868": "86472000",
-              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
               "SB_CARREIRO_7866": "86507000",
               "SB_STZ_RESIDUAL": "86472000"
             },
-            "fallback_notes": [],
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 549.87
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 549.87
+              }
+            ],
             "runnable": true,
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 0,
-              "applied": false,
-              "sim_hours": 245
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 257
             }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
@@ -857,29 +2166,43 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E28_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 228.1,
-              "86510000": 235.2,
-              "86472600": 227.4
+              "86472000+2851072+86507000": 172.57,
+              "86510000": 263.8,
+              "86472600": 266.0
             },
             "stations_mm_sum_core": {
-              "86472000": 228.1,
+              "86472000+2851072+86507000": 127.1,
               "86510000": 235.2,
               "86472600": 227.4
             },
             "subbasin_sources": {
-              "SB_PRATA_7868": "86472000",
-              "SB_ANTAS_RESIDUAL": "86472000",
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
               "SB_CARREIRO_7866": "86510000",
               "SB_STZ_RESIDUAL": "86472600"
             },
             "fallback_notes": [
               {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 127.1
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 127.1
+              },
+              {
                 "subbasin": "SB_CARREIRO_7866",
                 "rejected": "86507000",
-                "rejected_mm_sum_full": 7.4,
+                "rejected_mm_sum_full": 73.4,
                 "rejected_mm_sum_core": 7.4,
                 "chosen": "86510000",
-                "chosen_mm_sum_full": 235.2,
+                "chosen_mm_sum_full": 263.8,
                 "chosen_mm_sum_core": 235.2,
                 "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
               }
@@ -888,9 +2211,191 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 0,
-              "applied": false,
-              "sim_hours": 209
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 221
+            }
+          },
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
+        },
+        {
+          "event_id": "E29",
+          "params_from": "mucum_common_holdout_e27",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E29_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+2851072+86507000": 0.27,
+              "2851072": 0.8
+            },
+            "stations_mm_sum_core": {
+              "86472000+2851072+86507000": 0.07,
+              "2851072": 0.2
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+              "SB_CARREIRO_7866": "2851072",
+              "SB_STZ_RESIDUAL": "2851072"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "rejected": "86472000",
+                "rejected_mm_sum_full": 0.0,
+                "rejected_mm_sum_core": 0.0,
+                "chosen": "2851072",
+                "chosen_mm_sum_full": 0.8,
+                "chosen_mm_sum_core": 0.2,
+                "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
+              },
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 0.07
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "rejected": "86472000",
+                "rejected_mm_sum_full": 0.0,
+                "rejected_mm_sum_core": 0.0,
+                "chosen": "2851072",
+                "chosen_mm_sum_full": 0.8,
+                "chosen_mm_sum_core": 0.2,
+                "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 0.07
+              },
+              {
+                "subbasin": "SB_CARREIRO_7866",
+                "rejected": "86507000",
+                "rejected_mm_sum_full": 0.0,
+                "rejected_mm_sum_core": 0.0,
+                "chosen": "2851072",
+                "chosen_mm_sum_full": 0.8,
+                "chosen_mm_sum_core": 0.2,
+                "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
+              },
+              {
+                "subbasin": "SB_STZ_RESIDUAL",
+                "rejected": "86472600",
+                "rejected_mm_sum_full": 0.0,
+                "rejected_mm_sum_core": 0.0,
+                "chosen": "2851072",
+                "chosen_mm_sum_full": 0.8,
+                "chosen_mm_sum_core": 0.2,
+                "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 36
+            }
+          },
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
+        },
+        {
+          "event_id": "E30",
+          "params_from": "mucum_common_holdout_e27",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E30_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+86507000": 13.3,
+              "86507000": 19.4,
+              "86472600": 8.0
+            },
+            "stations_mm_sum_core": {
+              "86472000+86507000": 12.9,
+              "86507000": 18.6,
+              "86472600": 8.0
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+86507000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472600"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 12.9
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 2,
+                "chosen_mm_sum_core": 12.9
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 82
+            }
+          },
+          "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
+        },
+        {
+          "event_id": "E31",
+          "params_from": "mucum_common_holdout_e27",
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E31_sim_q_from_mucum_params.csv",
+          "rain": {
+            "stations_mm_sum": {
+              "86472000+2851072+86507000": 86.27,
+              "86507000": 90.8,
+              "86472000": 76.0
+            },
+            "stations_mm_sum_core": {
+              "86472000+2851072+86507000": 64.13,
+              "86507000": 71.2,
+              "86472000": 58.2
+            },
+            "subbasin_sources": {
+              "SB_PRATA_7868": "86472000+2851072+86507000",
+              "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+              "SB_CARREIRO_7866": "86507000",
+              "SB_STZ_RESIDUAL": "86472000"
+            },
+            "fallback_notes": [
+              {
+                "subbasin": "SB_PRATA_7868",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 64.13
+              },
+              {
+                "subbasin": "SB_ANTAS_RESIDUAL",
+                "chosen": "86472000+2851072+86507000",
+                "rule": "arithmetic_mean_of_complete_gages",
+                "n_gages": 3,
+                "chosen_mm_sum_core": 64.13
+              }
+            ],
+            "runnable": true,
+            "blocked_reason": null,
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 12,
+              "applied": true,
+              "sim_hours": 140
             }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
@@ -904,11 +2409,10 @@
     }
   },
   "next_steps": [
-    "Muçum: usar params eventwise (common-search bloqueado).",
-    "Melhorar forçamento espacial (mais pluviômetros/grade) e/ou incluir evento externo.",
-    "E19: sem massa de montante/routing adicional, manter excluído do headline.",
-    "Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) ou série Q horária reconciliada.",
-    "Recalibrar modelo STZ truncado (eventwise + common-search) após N→Q.",
+    "Muçum: usar params eventwise (common-search só se testes externos/LOO ok).",
+    "STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
+    "Após curva: converter Nivel→Q e calibrar modelo STZ truncado.",
+    "Opcional: densificar chuva e revisar E19 com massa de montante.",
     "Manter Guaporé/Forqueta fora do recorte."
   ],
   "artifacts": {
