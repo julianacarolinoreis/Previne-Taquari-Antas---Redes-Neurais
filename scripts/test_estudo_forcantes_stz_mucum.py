@@ -58,6 +58,7 @@ class ForcantesStzMucumTests(unittest.TestCase):
             domains["status"].startswith("forcantes_")
             or domains["status"].startswith("estrutura_")
             or domains["status"].startswith("series_")
+            or domains["status"].startswith("contrato_")
         )
 
 

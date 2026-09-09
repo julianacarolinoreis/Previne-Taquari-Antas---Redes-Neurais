@@ -1,0 +1,289 @@
+{
+  "schema_version": "estudo_contrato_rna_mascara_stz_mucum_v1",
+  "generated_at_utc": "2026-09-09T03:14:25.820764+00:00",
+  "purpose": "contrato de features e mascaras RNA por alvo; nao e treino nem calibracao",
+  "status": "contrato_rna_mascara_v1",
+  "discipline_rule": "Este artefato congela O QUE entra e COMO tratar buraco. Ainda nao treina pesos, nao publica NSE e nao libera HEC.",
+  "path_chosen_by_study_gate": "RNA_com_mascara",
+  "hec_status": "ainda_bloqueado_ate_series_reconciliadas",
+  "parent_artifacts": {
+    "forcantes": "forcantes_stz_mucum_latest.json",
+    "estrutura": "estrutura_stz_mucum_latest.json",
+    "series": "series_forcantes_stz_mucum_latest.json",
+    "forcantes_status": "forcantes_congeladas_v1",
+    "series_status": "series_auditadas_v1"
+  },
+  "mask_rules": [
+    {
+      "id": "R1_buraco_nao_e_zero",
+      "rule": "Célula vazia / None / pane NÃO vira 0.0 de chuva nem de nível.",
+      "applies_to": "todas as features de chuva e nível"
+    },
+    {
+      "id": "R2_mascara_por_feature",
+      "rule": "Para cada feature, gerar coluna irmã mask_<feature> (1=observado, 0=ausente). O valor numérico só entra no tensor quando mask=1.",
+      "applies_to": "chuva e nível"
+    },
+    {
+      "id": "R3_linha_incompleta_no_nucleo",
+      "rule": "Se faltar QUALQUER feature do núcleo (core) no instante t (ou no lag exigido), a linha de treino/previsão é DESCARTADA — não interpolar chuva.",
+      "applies_to": "core features"
+    },
+    {
+      "id": "R4_backup_fora_do_v1",
+      "rule": "A894 e CEMADEN ficam fora do núcleo v1 (CSV vazio/fraco). Podem voltar só com série preenchida por API e máscara própria.",
+      "applies_to": [
+        "A894",
+        "432040401A"
+      ]
+    },
+    {
+      "id": "R5_nao_misturar_alvos",
+      "rule": "Modelo STZ nunca usa 86510000 como feature; modelo Muçum usa 86472600 como feature, não como predictand.",
+      "applies_to": "ambos"
+    },
+    {
+      "id": "R6_janela_chuva_stz",
+      "rule": "Não treinar com chuva_86472600 antes de 2023-10-01 00:00 (coluna começa tarde no CSV). Preferir overlapping window.",
+      "applies_to": "86472600 chuva"
+    }
+  ],
+  "models": {
+    "santa_tereza": {
+      "label": "modelo STZ",
+      "predictand": {
+        "code": "86472600",
+        "name": "nivel_86472600",
+        "unit_hint": "cm (conferir escala do Excel-mãe / robô)"
+      },
+      "core_level_features": [
+        {
+          "code": "86472000",
+          "name": "nivel_86472000",
+          "role": "tronco_antas",
+          "required": true
+        },
+        {
+          "code": "86507000",
+          "name": "nivel_86507000",
+          "role": "afluente_carreiro",
+          "required": true
+        },
+        {
+          "code": "86125500",
+          "name": "nivel_86125500",
+          "role": "afluente_prata",
+          "required": true
+        }
+      ],
+      "core_rain_features": [
+        {
+          "code": "86472000",
+          "name": "chuva_86472000",
+          "csv_column": "chuva_86472000",
+          "series_verdict": "ok_operacional",
+          "required": true
+        },
+        {
+          "code": "86472600",
+          "name": "chuva_86472600",
+          "csv_column": "chuva_86472600",
+          "series_verdict": "com_buracos",
+          "required": true,
+          "note": "com buracos — máscara obrigatória"
+        },
+        {
+          "code": "2851072",
+          "name": "chuva_02851072",
+          "csv_column": "chuva_02851072",
+          "series_verdict": "com_buracos",
+          "required": true
+        }
+      ],
+      "optional_features": [
+        {
+          "code": "86448000",
+          "name": "nivel_86448000",
+          "role": "secundario_tronco",
+          "required": false
+        }
+      ],
+      "excluded_from_v1": [
+        {
+          "code": "A894",
+          "reason": "CSV 0% presente"
+        },
+        {
+          "code": "432040401A",
+          "reason": "CSV ~1% presente / naming quirk"
+        },
+        {
+          "code": "86510000",
+          "reason": "alvo do outro modelo; jusante"
+        },
+        {
+          "code": "2851044",
+          "reason": "legado vazio; nome confunde com Guaporé"
+        }
+      ],
+      "suggested_lags_hours": {
+        "nivel": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          6,
+          8
+        ],
+        "chuva": [
+          0,
+          1,
+          2,
+          3,
+          6,
+          12,
+          24
+        ],
+        "note": "Lags são hipótese de estudo alinhada ao robô 8h; não são hiperparâmetros calibrados aqui."
+      },
+      "train_window_hint": {
+        "rain_csv_overlap_start": "2023-10-01 00:00",
+        "rain_csv_end": "2026-09-08 23:00",
+        "drop_if_core_mask_incomplete": true
+      },
+      "topology_ref": "SB_PRATA_7868 ──┐\nSB_ANTAS_RESIDUAL ┼→ J_ANTAS_86472000 → R_ANTAS_TO_CARREIRO → J_CARREIRO\nSB_CARREIRO_7866 ─────────────────────→ J_CARREIRO\n                                      → R_CARREIRO_TO_STZ → J_STZ_86472600 ★ ALVO\nSB_STZ_RESIDUAL ──────────────────────→ J_STZ"
+    },
+    "mucum": {
+      "label": "modelo Muçum",
+      "predictand": {
+        "code": "86510000",
+        "name": "nivel_86510000",
+        "unit_hint": "cm",
+        "note": "Não está em ESTACOES_NIVEL do robô STZ — pipeline Muçum separado."
+      },
+      "core_level_features": [
+        {
+          "code": "86472600",
+          "name": "nivel_86472600",
+          "role": "montante_critico_stz",
+          "required": true,
+          "note": "Forçante crítica; quase todo o domínio passa por STZ."
+        },
+        {
+          "code": "86472000",
+          "name": "nivel_86472000",
+          "role": "tronco_antas",
+          "required": true
+        },
+        {
+          "code": "86507000",
+          "name": "nivel_86507000",
+          "role": "afluente_carreiro",
+          "required": true
+        },
+        {
+          "code": "86125500",
+          "name": "nivel_86125500",
+          "role": "afluente_prata",
+          "required": true
+        }
+      ],
+      "core_rain_features": [
+        {
+          "code": "86472000",
+          "name": "chuva_86472000",
+          "csv_column": "chuva_86472000",
+          "series_verdict": "ok_operacional",
+          "required": true
+        },
+        {
+          "code": "86472600",
+          "name": "chuva_86472600",
+          "csv_column": "chuva_86472600",
+          "series_verdict": "com_buracos",
+          "required": true,
+          "note": "com buracos — máscara obrigatória"
+        },
+        {
+          "code": "2851072",
+          "name": "chuva_02851072",
+          "csv_column": "chuva_02851072",
+          "series_verdict": "com_buracos",
+          "required": true
+        }
+      ],
+      "optional_features": [
+        {
+          "code": "86448000",
+          "name": "nivel_86448000",
+          "role": "secundario_tronco",
+          "required": false
+        }
+      ],
+      "excluded_from_v1": [
+        {
+          "code": "A894",
+          "reason": "CSV 0% presente"
+        },
+        {
+          "code": "432040401A",
+          "reason": "CSV ~1% presente"
+        },
+        {
+          "code": "Guaporé/Forqueta",
+          "reason": "fora do domínio decidido"
+        }
+      ],
+      "suggested_lags_hours": {
+        "nivel": [
+          0,
+          1,
+          2,
+          4,
+          8,
+          12,
+          16
+        ],
+        "chuva": [
+          0,
+          1,
+          2,
+          3,
+          6,
+          12,
+          24
+        ],
+        "note": "Lag STZ→Muçum ~16h aparece no catálogo Muçum; confirmar no treino, não fixar NSE aqui."
+      },
+      "train_window_hint": {
+        "rain_csv_overlap_start": "2023-10-01 00:00",
+        "rain_csv_end": "2026-09-08 23:00",
+        "drop_if_core_mask_incomplete": true
+      },
+      "topology_ref": "[mesmo esqueleto do modelo STZ até J_STZ_86472600]  ← forçante crítica\n  → R_STZ_TO_MUCUM → J_MUCUM_86510000 ★ ALVO\nSB_INC_MUCUM (~190) ─────→ J_MUCUM"
+    }
+  },
+  "implementation_checklist": [
+    "Gerar máscaras a partir de chuvas_horarias.csv (vazio → mask=0).",
+    "Alinhar níveis ANA/Excel na mesma grade horária; mask=0 se faltar.",
+    "Descartar linhas com core incompleto (R3).",
+    "Treinar STZ e Muçum em experimentos SEPARADOS (dois predictands).",
+    "Não promover a operacional sem validação por evento e baseline."
+  ],
+  "explicitly_not_done": [
+    "treino de rede",
+    "busca de hiperparâmetros",
+    "NSE / RMSE publicados",
+    "arquivo .basin HEC calibrado"
+  ],
+  "next_steps": [
+    "Implementar gerador de tabela máscara (CSV horário) para o núcleo STZ/Muçum.",
+    "Ou: baixar histórico ANA de 86125500 em arquivo local antes de HEC por evento.",
+    "Só depois: experimento de treino RNA controlado (ainda pesquisa)."
+  ],
+  "artifacts": {
+    "json": "contrato_rna_mascara_stz_mucum_latest.json",
+    "html": "contrato_rna_mascara_stz_mucum.html"
+  }
+}

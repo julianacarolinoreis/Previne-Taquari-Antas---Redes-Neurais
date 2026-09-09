@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contrato RNA + máscara · STZ e Muçum</title>
+  <style>
+    :root { --ink:#1a303f; --muted:#5d7380; --line:#d7e4e8; --ok:#1b7a4a; --warn:#9a5b12; --bad:#a33b35; }
+    body { margin:0; color:var(--ink); font:16px/1.55 "Source Sans 3",Segoe UI,sans-serif; background:linear-gradient(165deg,#eef7f8,#fff9f2); }
+    main { max-width:1100px; margin:auto; padding:28px 16px 64px; }
+    header, section { background:#fff; border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:14px; box-shadow:0 10px 26px #1a303f12; }
+    h1 { margin:0 0 8px; font:700 clamp(28px,4vw,40px)/1.08 "Fraunces",Georgia,serif; }
+    .eyebrow { color:var(--ok); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .notice { border-left:5px solid var(--warn); background:#fff7e8; color:#6d4810; padding:12px 14px; border-radius:10px; margin:10px 0; }
+    .ok { border-left-color:var(--ok); background:#eefaf3; color:#145c38; }
+    .bad { border-left-color:var(--bad); background:#fff1ef; color:#7a2d28; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { padding:7px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#eef6f7; }
+    .muted { color:var(--muted); font-size:13px; }
+    a { color:#056999; font-weight:700; }
+    @media (max-width:800px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Estudo · contrato RNA v1</div>
+    <h1>Features + máscara — ainda sem treino</h1>
+    <p class="muted">2026-09-09T03:14:25.820764+00:00 · contrato_rna_mascara_v1</p>
+    <div class="notice ok"><strong>Caminho liberado:</strong> RNA_com_mascara</div>
+    <div class="notice bad"><strong>HEC:</strong> ainda_bloqueado_ate_series_reconciliadas</div>
+    <div class="notice"><strong>Disciplina:</strong> Este artefato congela O QUE entra e COMO tratar buraco. Ainda nao treina pesos, nao publica NSE e nao libera HEC.</div>
+  </header>
+
+  <section>
+    <h2>Regras de máscara</h2>
+    <ul><li><strong>R1_buraco_nao_e_zero:</strong> Célula vazia / None / pane NÃO vira 0.0 de chuva nem de nível.</li><li><strong>R2_mascara_por_feature:</strong> Para cada feature, gerar coluna irmã mask_&lt;feature&gt; (1=observado, 0=ausente). O valor numérico só entra no tensor quando mask=1.</li><li><strong>R3_linha_incompleta_no_nucleo:</strong> Se faltar QUALQUER feature do núcleo (core) no instante t (ou no lag exigido), a linha de treino/previsão é DESCARTADA — não interpolar chuva.</li><li><strong>R4_backup_fora_do_v1:</strong> A894 e CEMADEN ficam fora do núcleo v1 (CSV vazio/fraco). Podem voltar só com série preenchida por API e máscara própria.</li><li><strong>R5_nao_misturar_alvos:</strong> Modelo STZ nunca usa 86510000 como feature; modelo Muçum usa 86472600 como feature, não como predictand.</li><li><strong>R6_janela_chuva_stz:</strong> Não treinar com chuva_86472600 antes de 2023-10-01 00:00 (coluna começa tarde no CSV). Preferir overlapping window.</li></ul>
+  </section>
+
+  <div class="grid">
+    <section>
+      <h2>Santa Tereza · predictand 86472600</h2>
+      <p class="muted">Núcleo nível: 86472000, 86507000, 86125500</p>
+      <p class="muted">Núcleo chuva: 86472000, 86472600, 2851072</p>
+      <p class="muted">Janela chuva a partir de 2023-10-01 00:00</p>
+    </section>
+    <section>
+      <h2>Muçum · predictand 86510000</h2>
+      <p class="muted">Núcleo nível: 86472600, 86472000, 86507000, 86125500</p>
+      <p class="muted">STZ (86472600) é feature crítica, não alvo.</p>
+      <p class="muted">Mesma chuva do STZ + máscaras idênticas.</p>
+    </section>
+  </div>
+
+  <section>
+    <h2>Núcleo STZ — nível</h2>
+    <table><thead><tr><th>Código</th><th>Nome</th><th>Papel</th><th>Obrig.</th><th>Nota</th></tr></thead>
+    <tbody><tr><td>86472000</td><td>nivel_86472000</td><td>tronco_antas</td><td>sim</td><td>—</td></tr><tr><td>86507000</td><td>nivel_86507000</td><td>afluente_carreiro</td><td>sim</td><td>—</td></tr><tr><td>86125500</td><td>nivel_86125500</td><td>afluente_prata</td><td>sim</td><td>—</td></tr></tbody></table>
+    <h2>Núcleo STZ — chuva</h2>
+    <table><thead><tr><th>Código</th><th>Nome</th><th>Coluna</th><th>Obrig.</th><th>Veredito série</th></tr></thead>
+    <tbody><tr><td>86472000</td><td>chuva_86472000</td><td>chuva_86472000</td><td>sim</td><td>ok_operacional</td></tr><tr><td>86472600</td><td>chuva_86472600</td><td>chuva_86472600</td><td>sim</td><td>com_buracos</td></tr><tr><td>2851072</td><td>chuva_02851072</td><td>chuva_02851072</td><td>sim</td><td>com_buracos</td></tr></tbody></table>
+    <h2>Excluídos do v1</h2>
+    <table><thead><tr><th>Código</th><th>Nome</th><th>—</th><th>—</th><th>Motivo</th></tr></thead>
+    <tbody><tr><td>A894</td><td></td><td>excl</td><td>não</td><td>CSV 0% presente</td></tr><tr><td>432040401A</td><td></td><td>excl</td><td>não</td><td>CSV ~1% presente / naming quirk</td></tr><tr><td>86510000</td><td></td><td>excl</td><td>não</td><td>alvo do outro modelo; jusante</td></tr><tr><td>2851044</td><td></td><td>excl</td><td>não</td><td>legado vazio; nome confunde com Guaporé</td></tr></tbody></table>
+  </section>
+
+  <section>
+    <h2>Checklist</h2>
+    <ul><li>Gerar máscaras a partir de chuvas_horarias.csv (vazio → mask=0).</li><li>Alinhar níveis ANA/Excel na mesma grade horária; mask=0 se faltar.</li><li>Descartar linhas com core incompleto (R3).</li><li>Treinar STZ e Muçum em experimentos SEPARADOS (dois predictands).</li><li>Não promover a operacional sem validação por evento e baseline.</li></ul>
+    <h2>Explicitamente NÃO feito</h2>
+    <ul><li>treino de rede</li><li>busca de hiperparâmetros</li><li>NSE / RMSE publicados</li><li>arquivo .basin HEC calibrado</li></ul>
+    <h2>Próximos</h2>
+    <ul><li>Implementar gerador de tabela máscara (CSV horário) para o núcleo STZ/Muçum.</li><li>Ou: baixar histórico ANA de 86125500 em arquivo local antes de HEC por evento.</li><li>Só depois: experimento de treino RNA controlado (ainda pesquisa).</li></ul>
+    <p>
+      <a href="contrato_rna_mascara_stz_mucum_latest.json">JSON</a> ·
+      <a href="series_forcantes_stz_mucum.html">séries</a> ·
+      <a href="estrutura_stz_mucum.html">estrutura</a> ·
+      <a href="index.html">estudo-base</a>
+    </p>
+  </section>
+</main>
+</body>
+</html>
