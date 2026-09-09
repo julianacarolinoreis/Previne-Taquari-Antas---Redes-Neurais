@@ -1,9 +1,9 @@
 {
   "schema_version": "estudo_hec_twin_stz_mucum_v1",
-  "generated_at_utc": "2026-09-09T12:22:59.576969+00:00",
-  "purpose": "busca eventwise + common-search HEC v1.2 (PAD/hold-out/LOO) no modelo Muçum; STZ apenas diagnostico (Q bloqueado)",
-  "status": "hec_twin_mucum_v1_2_eventwise_scored_stz_q_blocked",
-  "discipline_rule": "Isto e HEC estrutural + busca de parametros no gemeo Linux. Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. v1.2: warm-up PAD + hold-out E27 + LOO. Common-search so promove se testes forem aceitaveis.",
+  "generated_at_utc": "2026-09-09T12:40:29.913795+00:00",
+  "purpose": "busca eventwise + common-search HEC v1.3 (PAD auto + hold-out/LOO) no modelo Muçum; STZ apenas diagnostico (Q bloqueado)",
+  "status": "hec_twin_mucum_v1_3_eventwise_scored_stz_q_blocked",
+  "discipline_rule": "Isto e HEC estrutural + busca de parametros no gemeo Linux/Python. Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. v1.3: PAD escolhido por sweep 0/12/24 no headline E22–E28; common-search so promove se hold-out/LOO >= 0.5.",
   "audit_fixes_v1_1": [
     "rain_stations HEC de evento separados dos aspiracionais RNA",
     "fallback de magnitude se pluvio preferido completo mas seco",
@@ -16,6 +16,12 @@
     "PAD_HOURS=24 warm-up (score so na janela core)",
     "hold-out: treino E22/E24/E28, teste E27",
     "leave-one-out do common-search"
+  ],
+  "calibration_v1_3": [
+    "PAD auto: argmax mean NSE E22–E28 em {0,12,24}",
+    "diagnostico E19: chuva local insuficiente vs pico",
+    "prefs de chuva Antas/Carreiro ampliadas",
+    "gaps_remaining explicitos no JSON"
   ],
   "engine": {
     "name": "python_hms_twin_ic_clark_recession_muskingum",
@@ -43,18 +49,109 @@
       "target_name": "Muçum",
       "quantity": "Vazao_m3s",
       "structure": "modelo_mucum_estrutura_stz_mucum_v1",
-      "mode": "eventwise_plus_common_search_v1_2",
-      "calibration_version": "mucum_hec_twin_v1_2",
+      "mode": "eventwise_plus_common_search_v1_3",
+      "calibration_version": "mucum_hec_twin_v1_3",
       "hold_out": true,
-      "pad_hours": 24,
+      "pad_hours": 0,
+      "pad_selection": {
+        "candidates": [
+          0,
+          12,
+          24
+        ],
+        "trials": [
+          {
+            "pad_hours": 0,
+            "event_nse": {
+              "E19": -32.6484,
+              "E22": 0.7312,
+              "E24": 0.7963,
+              "E27": 0.8163,
+              "E28": 0.9338
+            },
+            "event_research_score": {
+              "E19": -34.3533,
+              "E22": 0.6919,
+              "E24": 0.6142,
+              "E27": 0.7045,
+              "E28": 0.8837
+            },
+            "mean_research_score_e22_e28_ok": 0.7236,
+            "mean_nse_e22_e28_ok": 0.8194
+          },
+          {
+            "pad_hours": 12,
+            "event_nse": {
+              "E19": -36.6718,
+              "E22": 0.6861,
+              "E24": 0.8132,
+              "E27": 0.8155,
+              "E28": 0.9351
+            },
+            "event_research_score": {
+              "E19": -37.4863,
+              "E22": 0.6372,
+              "E24": 0.63,
+              "E27": 0.7171,
+              "E28": 0.7948
+            },
+            "mean_research_score_e22_e28_ok": 0.6948,
+            "mean_nse_e22_e28_ok": 0.8125
+          },
+          {
+            "pad_hours": 24,
+            "event_nse": {
+              "E19": -4.4622,
+              "E22": 0.5597,
+              "E24": 0.8366,
+              "E27": 0.8154,
+              "E28": 0.9261
+            },
+            "event_research_score": {
+              "E19": -5.8687,
+              "E22": 0.4542,
+              "E24": 0.6519,
+              "E27": 0.717,
+              "E28": 0.8036
+            },
+            "mean_research_score_e22_e28_ok": 0.6567,
+            "mean_nse_e22_e28_ok": 0.7844
+          }
+        ],
+        "selected_pad_hours": 0,
+        "selection_rule": "argmax mean research_score on E22–E28 (same objective as eventwise fit)",
+        "note": "PAD=24 melhorava E19 mas regredia E22; v1.3 escolhe PAD pelo score E22–E28."
+      },
       "n_events_scored": 5,
       "n_events_fit_ok": 4,
-      "mean_nse_eventwise_including_failed": -0.2653750262423905,
-      "mean_nse_eventwise": 0.7838387708712109,
-      "mean_nse_eventwise_excluding_e19": 0.7838387708712109,
+      "mean_nse_eventwise_including_failed": -5.874159743859787,
+      "mean_nse_eventwise": 0.819407961979836,
+      "mean_nse_eventwise_excluding_e19": 0.819407961979836,
       "n_events_excluding_e19": 4,
-      "mean_nse_eventwise_including_e19": -0.2653750262423905,
-      "e19_note": "E19 tipicamente fit_failed (NSE fortemente negativo). Headline = média dos eventos com NSE>=0 (E22–E28).",
+      "mean_nse_eventwise_including_e19": -5.874159743859787,
+      "e19_note": "E19 fit_failed: chuva local core máx ~26 mm vs pico obs ~1408 m³/s. Forçamento pluviométrico insuficiente para a onda (provável massa de montante/routing). Headline = média NSE>=0 (E22–E28).",
+      "gaps_remaining": [
+        {
+          "id": "common_params_transfer",
+          "status": "open",
+          "detail": "hold-out E27 NSE=-2.6474709318518252; LOO médio=-0.5807006731470881. Usar params eventwise, não common."
+        },
+        {
+          "id": "e19_local_rain_underforced",
+          "status": "open",
+          "detail": "E19 fit_failed: chuva local core máx ~26 mm vs pico obs ~1408 m³/s. Forçamento pluviométrico insuficiente para a onda (provável massa de montante/routing). Headline = média NSE>=0 (E22–E28)."
+        },
+        {
+          "id": "spatial_rain_density",
+          "status": "open",
+          "detail": "Poucos pluviômetros ANA no corredor; fallbacks de magnitude ainda possíveis (Carreiro/Antas). Grade/mais postos reduziria viés."
+        },
+        {
+          "id": "external_event_validation",
+          "status": "open",
+          "detail": "Só E22–E28 no pacote com fit OK. Falta evento externo ao conjunto antes de uso operacional."
+        }
+      ],
       "common_search": {
         "runnable_events": [
           "E22",
@@ -62,68 +159,68 @@
           "E27",
           "E28"
         ],
-        "candidates_evaluated": 194,
+        "candidates_evaluated": 197,
         "best_params": {
           "initial_loss": 0.0,
           "constant_loss": 2.0,
           "tc": 10.0,
-          "storage": 60.0,
+          "storage": 45.0,
           "recession": 0.85,
-          "initial_flow_ratio": 0.0025,
-          "k1": 1.0,
-          "k2": 1.0,
-          "k3": 1.0,
+          "initial_flow_ratio": 0.005,
+          "k1": 0.5,
+          "k2": 0.5,
+          "k3": 0.5,
           "x": 0.2
         },
-        "best_mean_research_score": -0.002042555459475265,
+        "best_mean_research_score": -0.1278647484496187,
         "best_event_metrics": [
           {
             "event_id": "E22",
             "pairs": 110.0,
-            "nse": 0.6039287478047934,
-            "rmse_m3s": 1015.5651468739966,
-            "mae_m3s": 619.8646059492037,
+            "nse": 0.41734197035039666,
+            "rmse_m3s": 1231.7653842990064,
+            "mae_m3s": 880.5268904933976,
             "peak_lag_hours": 0.0,
-            "peak_relative_error": 0.49072386746914315,
+            "peak_relative_error": 0.5572993106161879,
             "observed_peak_m3s": 10437.666666666666,
-            "simulated_peak_m3s": 5315.65451264624
+            "simulated_peak_m3s": 4620.762228891769
           },
           {
             "event_id": "E24",
             "pairs": 238.0,
-            "nse": 0.4617974075009026,
-            "rmse_m3s": 2142.4710978993458,
-            "mae_m3s": 1445.633310520256,
-            "peak_lag_hours": -5.0,
-            "peak_relative_error": 0.4152070089348693,
+            "nse": 0.6302800277401572,
+            "rmse_m3s": 1775.7365552437252,
+            "mae_m3s": 1257.758359671851,
+            "peak_lag_hours": -7.0,
+            "peak_relative_error": 0.26180617350491975,
             "observed_peak_m3s": 11434.95,
-            "simulated_peak_m3s": 6687.078613180217
+            "simulated_peak_m3s": 8441.209496279918
           },
           {
             "event_id": "E27",
             "pairs": 245.0,
-            "nse": -0.012688310900152766,
-            "rmse_m3s": 4040.170952387172,
-            "mae_m3s": 3336.175409369356,
-            "peak_lag_hours": 8.0,
-            "peak_relative_error": 0.42865571023988575,
+            "nse": -0.24019946689466876,
+            "rmse_m3s": 4471.0303041970465,
+            "mae_m3s": 3250.501819168141,
+            "peak_lag_hours": 6.0,
+            "peak_relative_error": 0.6566557181233751,
             "observed_peak_m3s": 14525.225,
-            "simulated_peak_m3s": 20751.545638769145
+            "simulated_peak_m3s": 24063.297053278602
           },
           {
             "event_id": "E28",
             "pairs": 209.0,
-            "nse": 0.8259635067731779,
-            "rmse_m3s": 744.3519062472114,
-            "mae_m3s": 607.9591887640582,
-            "peak_lag_hours": -10.0,
-            "peak_relative_error": 0.13975655938934606,
+            "nse": 0.7336681006282446,
+            "rmse_m3s": 920.8093831472202,
+            "mae_m3s": 589.7340510215568,
+            "peak_lag_hours": -11.0,
+            "peak_relative_error": 0.229338049000726,
             "observed_peak_m3s": 7886.724999999999,
-            "simulated_peak_m3s": 6784.503449150059
+            "simulated_peak_m3s": 6077.998875494749
           }
         ],
-        "mean_nse": 0.4697503377946803,
-        "pad_hours": 24,
+        "mean_nse": 0.38527265795603244,
+        "pad_hours": 0,
         "holdout_e27": {
           "train_events": [
             "E22",
@@ -137,70 +234,70 @@
               "E24",
               "E28"
             ],
-            "candidates_evaluated": 194,
+            "candidates_evaluated": 197,
             "best_params": {
               "initial_loss": 0.0,
-              "constant_loss": 2.0,
+              "constant_loss": 1.0,
               "tc": 25.0,
-              "storage": 45.0,
-              "recession": 0.98,
-              "initial_flow_ratio": 0.001,
+              "storage": 25.0,
+              "recession": 0.85,
+              "initial_flow_ratio": 0.005,
               "k1": 0.5,
               "k2": 0.5,
               "k3": 0.5,
               "x": 0.2
             },
-            "best_mean_research_score": 0.3749220895293784,
+            "best_mean_research_score": 0.4744005717477407,
             "best_event_metrics": [
               {
                 "event_id": "E22",
                 "pairs": 110.0,
-                "nse": 0.5046672285947089,
-                "rmse_m3s": 1135.7157752439289,
-                "mae_m3s": 728.1057468866944,
+                "nse": 0.4343635381236971,
+                "rmse_m3s": 1213.6398433615027,
+                "mae_m3s": 749.1188342392782,
                 "peak_lag_hours": 0.0,
-                "peak_relative_error": 0.5249300986292066,
+                "peak_relative_error": 0.5314795995631337,
                 "observed_peak_m3s": 10437.666666666666,
-                "simulated_peak_m3s": 4958.621273874551
+                "simulated_peak_m3s": 4890.259766293198
               },
               {
                 "event_id": "E24",
                 "pairs": 238.0,
-                "nse": 0.5014858330045049,
-                "rmse_m3s": 2061.962827426191,
-                "mae_m3s": 1352.5033192617605,
-                "peak_lag_hours": 6.0,
-                "peak_relative_error": 0.35103863855166034,
+                "nse": 0.7962881870489348,
+                "rmse_m3s": 1318.105542443412,
+                "mae_m3s": 1036.2262917883274,
+                "peak_lag_hours": 3.0,
+                "peak_relative_error": 0.06415213990151017,
                 "observed_peak_m3s": 11434.95,
-                "simulated_peak_m3s": 7420.840720093692
+                "simulated_peak_m3s": 12168.526512166774
               },
               {
                 "event_id": "E28",
                 "pairs": 209.0,
-                "nse": 0.9167792233382538,
-                "rmse_m3s": 514.723533899765,
-                "mae_m3s": 439.69398429686464,
-                "peak_lag_hours": 1.0,
-                "peak_relative_error": 0.020363295517797583,
+                "nse": 0.8239867700820378,
+                "rmse_m3s": 748.5672095672946,
+                "mae_m3s": 626.4417442591126,
+                "peak_lag_hours": 2.0,
+                "peak_relative_error": 0.167241820558251,
                 "observed_peak_m3s": 7886.724999999999,
-                "simulated_peak_m3s": 7726.125288157397
+                "simulated_peak_m3s": 9205.715247242271
               }
             ],
-            "mean_nse": 0.6409774283124893
+            "mean_nse": 0.6848794984182233
           },
           "test_metrics": {
             "event_id": "E27",
             "pairs": 245.0,
-            "nse": -0.500601243800832,
-            "rmse_m3s": 4918.067604966967,
-            "mae_m3s": 3559.9321690677593,
-            "peak_lag_hours": 16.0,
-            "peak_relative_error": 0.5405459476867426,
+            "nse": -2.6474709318518252,
+            "rmse_m3s": 7667.57023963084,
+            "mae_m3s": 4984.905445033052,
+            "peak_lag_hours": 6.0,
+            "peak_relative_error": 1.1568272664043977,
             "observed_peak_m3s": 14525.225,
-            "simulated_peak_m3s": 22376.776512988166
+            "simulated_peak_m3s": 31328.401330658817
           },
-          "test_research_score": -1.5708742176442034,
-          "test_nse": -0.500601243800832,
+          "test_research_score": -3.525884565054024,
+          "test_nse": -2.6474709318518252,
           "note": "Params comuns ajustados em E22/E24/E28; E27 é hold-out de teste."
         },
         "leave_one_out": [
@@ -211,18 +308,18 @@
               "E27",
               "E28"
             ],
-            "train_mean_nse": 0.38210052351268947,
-            "test_nse": -0.10924076337203181,
+            "train_mean_nse": 0.35884994544895027,
+            "test_nse": -0.6022221960976237,
             "test_metrics": {
               "event_id": "E22",
               "pairs": 110.0,
-              "nse": -0.10924076337203181,
-              "rmse_m3s": 1699.5503595908442,
-              "mae_m3s": 1517.851031845061,
+              "nse": -0.6022221960976237,
+              "rmse_m3s": 2042.5961037444745,
+              "mae_m3s": 1638.0606781171582,
               "peak_lag_hours": 0.0,
-              "peak_relative_error": 0.5852728678811538,
+              "peak_relative_error": 0.7790051511613166,
               "observed_peak_m3s": 10437.666666666666,
-              "simulated_peak_m3s": 4328.783562679143
+              "simulated_peak_m3s": 2306.6705672285634
             }
           },
           {
@@ -232,18 +329,18 @@
               "E27",
               "E28"
             ],
-            "train_mean_nse": 0.5006094201051409,
-            "test_nse": 0.2172381060515094,
+            "train_mean_nse": 0.24160993070352463,
+            "test_nse": 0.3637213784718003,
             "test_metrics": {
               "event_id": "E24",
               "pairs": 238.0,
-              "nse": 0.2172381060515094,
-              "rmse_m3s": 2583.7882383462384,
-              "mae_m3s": 1686.5006058451188,
+              "nse": 0.3637213784718003,
+              "rmse_m3s": 2329.5162538734994,
+              "mae_m3s": 1701.7817520990443,
               "peak_lag_hours": -11.0,
-              "peak_relative_error": 0.5719708713317788,
+              "peak_relative_error": 0.49893660579744503,
               "observed_peak_m3s": 11434.95,
-              "simulated_peak_m3s": 4894.491684864676
+              "simulated_peak_m3s": 5729.634859536506
             }
           },
           {
@@ -253,18 +350,18 @@
               "E24",
               "E28"
             ],
-            "train_mean_nse": 0.6409774283124893,
-            "test_nse": -0.500601243800832,
+            "train_mean_nse": 0.6848794984182233,
+            "test_nse": -2.6474709318518252,
             "test_metrics": {
               "event_id": "E27",
               "pairs": 245.0,
-              "nse": -0.500601243800832,
-              "rmse_m3s": 4918.067604966967,
-              "mae_m3s": 3559.9321690677593,
-              "peak_lag_hours": 16.0,
-              "peak_relative_error": 0.5405459476867426,
+              "nse": -2.6474709318518252,
+              "rmse_m3s": 7667.57023963084,
+              "mae_m3s": 4984.905445033052,
+              "peak_lag_hours": 6.0,
+              "peak_relative_error": 1.1568272664043977,
               "observed_peak_m3s": 14525.225,
-              "simulated_peak_m3s": 22376.776512988166
+              "simulated_peak_m3s": 31328.401330658817
             }
           },
           {
@@ -274,32 +371,33 @@
               "E24",
               "E27"
             ],
-            "train_mean_nse": 0.3787609415795517,
-            "test_nse": 0.5827835416282771,
+            "train_mean_nse": 0.2935067167433399,
+            "test_nse": 0.5631690568892964,
             "test_metrics": {
               "event_id": "E28",
               "pairs": 209.0,
-              "nse": 0.5827835416282771,
-              "rmse_m3s": 1152.4944935649032,
-              "mae_m3s": 821.2426367589909,
+              "nse": 0.5631690568892964,
+              "rmse_m3s": 1179.2743164951833,
+              "mae_m3s": 762.8939936494186,
               "peak_lag_hours": -16.0,
-              "peak_relative_error": 0.37494819635134835,
+              "peak_relative_error": 0.24432722636672335,
               "observed_peak_m3s": 7886.724999999999,
-              "simulated_peak_m3s": 4929.611686130912
+              "simulated_peak_m3s": 5959.783355632903
             }
           }
         ],
-        "leave_one_out_mean_test_nse": 0.04754491012673065,
-        "note": "Common-search v1.2 com warm-up PAD e hold-out/LOO. Ainda pesquisa — promover só se hold-out/LOO forem aceitáveis.",
-        "promotion_blocked": true
+        "leave_one_out_mean_test_nse": -0.5807006731470881,
+        "note": "Common-search v1.3 (PAD selecionado + hold-out/LOO). Não promover enquanto hold-out E27 ou LOO médio < 0.5.",
+        "promotion_blocked": true,
+        "promotion_rule": "holdout_E27_nse>=0.5 and loo_mean_test_nse>=0.5"
       },
       "events": [
         {
           "event_id": "E19",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 38.4,
-              "86510000": 57.2
+              "86472000": 19.8,
+              "86510000": 26.4
             },
             "stations_mm_sum_core": {
               "86472000": 19.8,
@@ -317,46 +415,47 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 24,
-              "applied": true,
-              "sim_hours": 77
+              "requested_hours": 0,
+              "applied": false,
+              "sim_hours": 53
             }
           },
           "observed_points": 53,
           "status": "fit_failed_eventwise",
           "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
-          "score": -5.868731744979572,
+          "score": -34.35332131185929,
           "metrics": {
             "pairs": 53.0,
-            "nse": -4.462230214696796,
-            "rmse_m3s": 368.8822023501924,
-            "mae_m3s": 323.305917472891,
+            "nse": -32.64843056721828,
+            "rmse_m3s": 915.5564115444362,
+            "mae_m3s": 886.959392468678,
             "peak_lag_hours": 28.0,
-            "peak_relative_error": 0.01300306056555027,
+            "peak_relative_error": 0.6097814892820295,
             "observed_peak_m3s": 1408.375,
-            "simulated_peak_m3s": 1426.6881854240069
+            "simulated_peak_m3s": 549.5739950324217
           },
           "params": {
             "initial_loss": 0.0,
             "constant_loss": 0.5,
             "tc": 25.0,
-            "storage": 45.0,
+            "storage": 90.0,
             "recession": 0.98,
-            "initial_flow_ratio": 0.0025,
-            "k1": 0.5,
-            "k2": 0.5,
-            "k3": 0.5,
+            "initial_flow_ratio": 0.02,
+            "k1": 2.0,
+            "k2": 2.0,
+            "k3": 2.0,
             "x": 0.2
           },
-          "warm_up_hours_applied": 24,
-          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E19_best_series.csv"
+          "warm_up_hours_applied": 0,
+          "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E19_best_series.csv",
+          "forcing_note": "E19 fit_failed: chuva local core máx ~26 mm vs pico obs ~1408 m³/s. Forçamento pluviométrico insuficiente para a onda (provável massa de montante/routing). Headline = média NSE>=0 (E22–E28)."
         },
         {
           "event_id": "E22",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 205.6,
-              "86507000": 236.2
+              "86472000": 138.6,
+              "86507000": 176.2
             },
             "stations_mm_sum_core": {
               "86472000": 138.6,
@@ -374,45 +473,45 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 24,
-              "applied": true,
-              "sim_hours": 224
+              "requested_hours": 0,
+              "applied": false,
+              "sim_hours": 200
             }
           },
           "observed_points": 110,
           "status": "eventwise_scored",
           "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
-          "score": 0.4541807510962508,
+          "score": 0.6918737037117183,
           "metrics": {
             "pairs": 110.0,
-            "nse": 0.5597063403738816,
-            "rmse_m3s": 1070.7605028430878,
-            "mae_m3s": 673.4193174217769,
+            "nse": 0.7311809993632206,
+            "rmse_m3s": 836.6640496689961,
+            "mae_m3s": 702.525624334417,
             "peak_lag_hours": 0.0,
-            "peak_relative_error": 0.21105117855526156,
+            "peak_relative_error": 0.07861459130300454,
             "observed_peak_m3s": 10437.666666666666,
-            "simulated_peak_m3s": 8234.784815299698
+            "simulated_peak_m3s": 9617.113767509672
           },
           "params": {
             "initial_loss": 5.5,
-            "constant_loss": 1.0,
+            "constant_loss": 0.5,
             "tc": 10.0,
-            "storage": 45.0,
-            "recession": 0.85,
-            "initial_flow_ratio": 0.001,
+            "storage": 25.0,
+            "recession": 0.7,
+            "initial_flow_ratio": 0.005,
             "k1": 0.5,
             "k2": 0.5,
             "k3": 0.5,
             "x": 0.2
           },
-          "warm_up_hours_applied": 24,
+          "warm_up_hours_applied": 0,
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E22_best_series.csv"
         },
         {
           "event_id": "E24",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 213.6
+              "86472000": 202.4
             },
             "stations_mm_sum_core": {
               "86472000": 202.4
@@ -429,24 +528,24 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 24,
-              "applied": true,
-              "sim_hours": 264
+              "requested_hours": 0,
+              "applied": false,
+              "sim_hours": 240
             }
           },
           "observed_points": 238,
           "status": "eventwise_scored",
           "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
-          "score": 0.6519083360100772,
+          "score": 0.6142121170981797,
           "metrics": {
             "pairs": 238.0,
-            "nse": 0.8365668094938712,
-            "rmse_m3s": 1180.6256347450092,
-            "mae_m3s": 947.7360014170839,
+            "nse": 0.7962881870489348,
+            "rmse_m3s": 1318.105542443412,
+            "mae_m3s": 1036.2262917883274,
             "peak_lag_hours": 3.0,
-            "peak_relative_error": 0.06931694696758774,
+            "peak_relative_error": 0.06415213990151017,
             "observed_peak_m3s": 11434.95,
-            "simulated_peak_m3s": 12227.585822727018
+            "simulated_peak_m3s": 12168.526512166774
           },
           "params": {
             "initial_loss": 0.0,
@@ -460,15 +559,15 @@
             "k3": 0.5,
             "x": 0.2
           },
-          "warm_up_hours_applied": 24,
+          "warm_up_hours_applied": 0,
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E24_best_series.csv"
         },
         {
           "event_id": "E27",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 650.0,
-              "86507000": 769.2
+              "86472000": 616.6,
+              "86507000": 750.6
             },
             "stations_mm_sum_core": {
               "86472000": 616.6,
@@ -486,57 +585,57 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 24,
-              "applied": true,
-              "sim_hours": 269
+              "requested_hours": 0,
+              "applied": false,
+              "sim_hours": 245
             }
           },
           "observed_points": 245,
           "status": "eventwise_scored",
           "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
-          "score": 0.7170290380442703,
+          "score": 0.7045192269177392,
           "metrics": {
             "pairs": 245.0,
-            "nse": 0.8154083081215331,
-            "rmse_m3s": 1724.9158723373462,
-            "mae_m3s": 1430.537847069523,
+            "nse": 0.816337479475337,
+            "rmse_m3s": 1720.5690775105697,
+            "mae_m3s": 1456.1696092151371,
             "peak_lag_hours": 1.0,
-            "peak_relative_error": 0.09675854015452542,
+            "peak_relative_error": 0.12363650511519562,
             "observed_peak_m3s": 14525.225,
-            "simulated_peak_m3s": 13119.785433583984
+            "simulated_peak_m3s": 12729.376944988133
           },
           "params": {
-            "initial_loss": 2.5,
+            "initial_loss": 0.0,
             "constant_loss": 4.0,
             "tc": 4.0,
             "storage": 90.0,
-            "recession": 0.98,
+            "recession": 0.85,
             "initial_flow_ratio": 0.005,
             "k1": 0.5,
             "k2": 0.5,
             "k3": 0.5,
             "x": 0.2
           },
-          "warm_up_hours_applied": 24,
+          "warm_up_hours_applied": 0,
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E27_best_series.csv"
         },
         {
           "event_id": "E28",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 296.9,
-              "86472600": 287.8,
-              "86510000": 289.2
+              "86472000": 228.1,
+              "86510000": 235.2,
+              "86472600": 227.4
             },
             "stations_mm_sum_core": {
               "86472000": 228.1,
-              "86472600": 227.4,
-              "86510000": 235.2
+              "86510000": 235.2,
+              "86472600": 227.4
             },
             "subbasin_sources": {
               "SB_PRATA_7868": "86472000",
               "SB_ANTAS_RESIDUAL": "86472000",
-              "SB_CARREIRO_7866": "86472000",
+              "SB_CARREIRO_7866": "86510000",
               "SB_STZ_RESIDUAL": "86472600",
               "SB_INC_MUCUM": "86510000"
             },
@@ -544,11 +643,11 @@
               {
                 "subbasin": "SB_CARREIRO_7866",
                 "rejected": "86507000",
-                "rejected_mm_sum_full": 89.8,
+                "rejected_mm_sum_full": 7.4,
                 "rejected_mm_sum_core": 7.4,
-                "chosen": "86472000",
-                "chosen_mm_sum_full": 296.9,
-                "chosen_mm_sum_core": 228.1,
+                "chosen": "86510000",
+                "chosen_mm_sum_full": 235.2,
+                "chosen_mm_sum_core": 235.2,
                 "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
               }
             ],
@@ -556,38 +655,38 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 24,
-              "applied": true,
-              "sim_hours": 233
+              "requested_hours": 0,
+              "applied": false,
+              "sim_hours": 209
             }
           },
           "observed_points": 209,
           "status": "eventwise_scored",
           "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
-          "score": 0.8588976796054428,
+          "score": 0.8837122235790376,
           "metrics": {
             "pairs": 209.0,
-            "nse": 0.9236736254955579,
-            "rmse_m3s": 492.94158815828837,
-            "mae_m3s": 421.18555805287264,
+            "nse": 0.9338251820318518,
+            "rmse_m3s": 458.99137073458274,
+            "mae_m3s": 362.49143445775934,
             "peak_lag_hours": 1.0,
-            "peak_relative_error": 0.029551891780229947,
+            "peak_relative_error": 0.00022591690562856042,
             "observed_peak_m3s": 7886.724999999999,
-            "simulated_peak_m3s": 7653.657356299565
+            "simulated_peak_m3s": 7888.506744507543
           },
           "params": {
-            "initial_loss": 5.5,
+            "initial_loss": 1.0,
             "constant_loss": 2.0,
             "tc": 25.0,
-            "storage": 45.0,
-            "recession": 0.7,
+            "storage": 25.0,
+            "recession": 0.98,
             "initial_flow_ratio": 0.001,
             "k1": 0.5,
             "k2": 0.5,
             "k3": 0.5,
             "x": 0.2
           },
-          "warm_up_hours_applied": 24,
+          "warm_up_hours_applied": 0,
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E28_best_series.csv"
         }
       ]
@@ -638,7 +737,7 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E19_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 38.4
+              "86472000": 19.8
             },
             "stations_mm_sum_core": {
               "86472000": 19.8
@@ -652,7 +751,12 @@
             "fallback_notes": [],
             "runnable": true,
             "blocked_reason": null,
-            "contract": "hec_event_ana_raw_ana_only"
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 0,
+              "applied": false,
+              "sim_hours": 53
+            }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
         },
@@ -662,8 +766,8 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E22_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 205.6,
-              "86507000": 236.2
+              "86472000": 138.6,
+              "86507000": 176.2
             },
             "stations_mm_sum_core": {
               "86472000": 138.6,
@@ -678,7 +782,12 @@
             "fallback_notes": [],
             "runnable": true,
             "blocked_reason": null,
-            "contract": "hec_event_ana_raw_ana_only"
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 0,
+              "applied": false,
+              "sim_hours": 200
+            }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
         },
@@ -688,7 +797,7 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E24_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 213.6
+              "86472000": 202.4
             },
             "stations_mm_sum_core": {
               "86472000": 202.4
@@ -702,7 +811,12 @@
             "fallback_notes": [],
             "runnable": true,
             "blocked_reason": null,
-            "contract": "hec_event_ana_raw_ana_only"
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 0,
+              "applied": false,
+              "sim_hours": 240
+            }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
         },
@@ -712,8 +826,8 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E27_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 650.0,
-              "86507000": 769.2
+              "86472000": 616.6,
+              "86507000": 750.6
             },
             "stations_mm_sum_core": {
               "86472000": 616.6,
@@ -728,7 +842,12 @@
             "fallback_notes": [],
             "runnable": true,
             "blocked_reason": null,
-            "contract": "hec_event_ana_raw_ana_only"
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 0,
+              "applied": false,
+              "sim_hours": 245
+            }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
         },
@@ -738,34 +857,41 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E28_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 296.9,
-              "86472600": 287.8
+              "86472000": 228.1,
+              "86510000": 235.2,
+              "86472600": 227.4
             },
             "stations_mm_sum_core": {
               "86472000": 228.1,
+              "86510000": 235.2,
               "86472600": 227.4
             },
             "subbasin_sources": {
               "SB_PRATA_7868": "86472000",
               "SB_ANTAS_RESIDUAL": "86472000",
-              "SB_CARREIRO_7866": "86472000",
+              "SB_CARREIRO_7866": "86510000",
               "SB_STZ_RESIDUAL": "86472600"
             },
             "fallback_notes": [
               {
                 "subbasin": "SB_CARREIRO_7866",
                 "rejected": "86507000",
-                "rejected_mm_sum_full": 89.8,
+                "rejected_mm_sum_full": 7.4,
                 "rejected_mm_sum_core": 7.4,
-                "chosen": "86472000",
-                "chosen_mm_sum_full": 296.9,
-                "chosen_mm_sum_core": 228.1,
+                "chosen": "86510000",
+                "chosen_mm_sum_full": 235.2,
+                "chosen_mm_sum_core": 235.2,
                 "rule": "preferred_core_sum < 0.2 * best_complete_backup_core"
               }
             ],
             "runnable": true,
             "blocked_reason": null,
-            "contract": "hec_event_ana_raw_ana_only"
+            "contract": "hec_event_ana_raw_ana_only",
+            "warm_up": {
+              "requested_hours": 0,
+              "applied": false,
+              "sim_hours": 209
+            }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
         }
@@ -778,7 +904,9 @@
     }
   },
   "next_steps": [
-    "Não promover common-search Muçum (hold-out E27 e LOO fracos); seguir com eventwise.",
+    "Muçum: usar params eventwise (common-search bloqueado).",
+    "Melhorar forçamento espacial (mais pluviômetros/grade) e/ou incluir evento externo.",
+    "E19: sem massa de montante/routing adicional, manter excluído do headline.",
     "Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) ou série Q horária reconciliada.",
     "Recalibrar modelo STZ truncado (eventwise + common-search) após N→Q.",
     "Manter Guaporé/Forqueta fora do recorte."

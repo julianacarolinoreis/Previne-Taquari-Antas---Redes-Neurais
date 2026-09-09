@@ -15,9 +15,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "data" / "estudo_bacia_taquari_antas"
 
-HEC_STATUS = "hec_twin_mucum_v1_2_eventwise_scored_stz_q_blocked"
+HEC_STATUS = "hec_twin_mucum_v1_3_eventwise_scored_stz_q_blocked"
 NEXT = [
-    "Não promover common-search Muçum (hold-out E27 e LOO fracos); seguir com eventwise.",
+    "Muçum: usar params eventwise (common-search bloqueado).",
+    "Melhorar forçamento espacial (mais pluviômetros/grade) e/ou incluir evento externo.",
+    "E19: sem massa de montante/routing adicional, manter excluído do headline.",
     "Anexar curva-chave oficial Santa Tereza (Nivel→Vazao) ou série Q horária reconciliada.",
     "Recalibrar modelo STZ truncado (eventwise + common-search) após N→Q.",
     "Manter Guaporé/Forqueta fora do recorte.",
@@ -25,13 +27,13 @@ NEXT = [
 DOIS_DISCIPLINE = (
     "Dois modelos-alvo no CORREDOR Ate Muçum. Nao sao a bacia G040. "
     "Guapore/Forqueta/Baixo ficam de fora dos dois. "
-    "HEC twin v1.2: Muçum eventwise+common-search (PAD/hold-out/LOO); STZ Q bloqueado ate curva-chave. "
+    "HEC twin v1.3: Muçum eventwise+common-search (PAD auto/hold-out/LOO); STZ Q bloqueado ate curva-chave. "
     "Nao promover common-search Muçum."
 )
 FORCANTES_DISCIPLINE = (
     "Contrato de ENTRADAS candidato (nivel/chuva). "
     "Trilho paralelo ao HEC twin: forçantes nao substituem rain_stations HEC de evento. "
-    "HEC twin Muçum v1.2 ja rodou; STZ Q ainda bloqueado."
+    "HEC twin Muçum v1.3 ja rodou; STZ Q ainda bloqueado."
 )
 
 
