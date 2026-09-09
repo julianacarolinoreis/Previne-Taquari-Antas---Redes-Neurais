@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Fecha o modelo Muçum eventwise v1 como pacote de estudo entregável.
+"""Fecha o modelo Muçum eventwise como pacote de estudo entregável.
 
-Não recalibra. Empacota params dos eventos com NSE>=0 a partir do HEC twin v1.4.
+Não recalibra. Empacota params dos eventos com NSE>=0 a partir do HEC twin
+(v1.6: PAD por evento + polish local de pico).
 Rótulo honesto: biblioteca eventwise — NÃO é regra comum transferível.
 STZ permanece fora (Q bloqueado).
 """
@@ -24,7 +25,7 @@ PKG_DIR = OUT / "modelo_mucum_eventwise_v1_fechado"
 JSON_OUT = OUT / "modelo_mucum_eventwise_v1_fechado_latest.json"
 HTML_OUT = OUT / "modelo_mucum_eventwise_v1_fechado.html"
 
-STATUS = "modelo_mucum_eventwise_v1_5_fechado_stz_q_blocked"
+STATUS = "modelo_mucum_eventwise_v1_6_fechado_stz_q_blocked"
 NEXT = [
     "Usar o pacote Muçum fechado (params eventwise) — não common-search.",
     "STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
@@ -112,13 +113,12 @@ def main() -> None:
         "schema_version": "modelo_mucum_eventwise_v1_fechado",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": STATUS,
-        "release_name": "modelo_mucum_eventwise_v1_5",
+        "release_name": "modelo_mucum_eventwise_v1_6",
         "label_honest": (
-            "MODELO MUÇUM FECHADO v1.5 (estudo). Biblioteca eventwise com PAD por evento "
-            "e score pesado no pico. Gêmeo Python HEC (IC/Clark/Recession/Muskingum). "
+            "MODELO MUÇUM FECHADO v1.6 (estudo). Biblioteca eventwise com PAD por evento, "
+            "polish local de pico (peak_weight=1.25). Gêmeo Python HEC. "
             "NÃO é HEC-HMS 4.13 Windows. NÃO é alerta operacional. "
-            "NÃO promover common-search / mediana como regra transferível. "
-            "Biblioteca core = NSE>=0.75."
+            "NÃO promover common-search / mediana. Biblioteca core = NSE>=0.75."
         ),
         "target": {
             "station": "86510000",

@@ -16,18 +16,19 @@ class ModeloMucumEventwiseFechadoV1Tests(unittest.TestCase):
         cls.html = (OUT / "modelo_mucum_eventwise_v1_fechado.html").read_text(encoding="utf-8")
 
     def test_status_and_honesty(self) -> None:
-        self.assertEqual(self.data["status"], "modelo_mucum_eventwise_v1_5_fechado_stz_q_blocked")
+        self.assertEqual(self.data["status"], "modelo_mucum_eventwise_v1_6_fechado_stz_q_blocked")
         self.assertIn("NÃO promover common-search", self.data["label_honest"])
         self.assertFalse(self.data["santa_tereza"]["in_this_package"])
         self.assertTrue(self.data["params_median_diagnostic_only"]["promotion_blocked"])
         self.assertGreaterEqual(len(self.data["included_events"]), 8)
         self.assertGreaterEqual(self.data["calibration_source"]["mean_nse_eventwise_ok"], 0.80)
-        # peak quality on library
         peak_errs = [e["metrics"]["peak_relative_error"] for e in self.data["params_library_eventwise"]]
-        self.assertLessEqual(sum(peak_errs) / len(peak_errs), 0.10)
+        self.assertLessEqual(sum(peak_errs) / len(peak_errs), 0.06)
         self.assertIn("E22", self.data["included_events"])
         e22 = next(e for e in self.data["params_library_eventwise"] if e["event_id"] == "E22")
-        self.assertLessEqual(e22["metrics"]["peak_relative_error"], 0.08)
+        self.assertLessEqual(e22["metrics"]["peak_relative_error"], 0.05)
+        e27 = next(e for e in self.data["params_library_eventwise"] if e["event_id"] == "E27")
+        self.assertLessEqual(e27["metrics"]["peak_relative_error"], 0.05)
 
     def test_params_csv(self) -> None:
         path = OUT / self.data["artifacts"]["params_csv"]

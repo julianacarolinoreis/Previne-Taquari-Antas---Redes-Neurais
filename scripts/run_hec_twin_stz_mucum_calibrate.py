@@ -284,13 +284,18 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
             paired = [i for i, h in enumerate(core_hours) if h in flow]
             if precip is None or len(paired) < 12:
                 continue
-            for p in params_list:
-                m, score, sim_full = score_event(
-                    precip, areas, p, hours, flow, core_offset=core_offset, core_hours=core_hours
-                )
-                if score > best_score:
-                    best_score, best_p, best_m, best_sim = score, p, m, sim_full
-                    best_pack = (precip, rain_meta, hours, flow, core_offset, core_hours, pad)
+            # Coarse grid for this PAD
+            coarse_p, coarse_m, coarse_score, coarse_sim = score_params_list(
+                precip, areas, hours, flow, core_offset, core_hours, params_list
+            )
+            # Local peak polish around coarse best
+            refined = local_param_neighbors(coarse_p)
+            p, m, score, sim_full = score_params_list(
+                precip, areas, hours, flow, core_offset, core_hours, refined
+            )
+            if score > best_score:
+                best_score, best_p, best_m, best_sim = score, p, m, sim_full
+                best_pack = (precip, rain_meta, hours, flow, core_offset, core_hours, pad)
 
         row: dict[str, Any] = {
             "event_id": event_id,
@@ -339,13 +344,14 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
                 "observed_points": len([h for h in core_hours if h in flow]),
                 "status": status,
                 "optimization_objective": (
-                    "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error"
+                    "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error"
                 ),
                 "score": best_score,
                 "metrics": best_m,
                 "params": asdict(best_p),
                 "warm_up_hours_applied": core_offset,
                 "pad_hours_selected": pad,
+                "refinement": "local_param_neighbors_v1_6",
                 "series_csv": str(series_path.relative_to(ROOT)),
             }
         )
@@ -363,12 +369,15 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
     pad_hours = mode_pad
     pad_selection = {
         "candidates": list(PAD_CANDIDATES),
-        "mode": "per_event_argmax_research_score",
+        "mode": "per_event_argmax_research_score_with_local_refine",
         "selected_pad_hours_mode": mode_pad,
         "per_event": pad_by_event,
         "trials": pad_trials_global,
-        "selection_rule": "for each event, argmax research_score over PAD∈{0,12,24}",
-        "note": "v1.5: PAD por evento + score com peso forte no pico.",
+        "selection_rule": (
+            "for each event×PAD: coarse grid then local_param_neighbors; "
+            "argmax research_score (peak_weight=1.25)"
+        ),
+        "note": "v1.6: PAD por evento + polish local de pico.",
     }
 
     scored = [r for r in event_results if r["status"] in ("eventwise_scored", "fit_failed_eventwise")]
@@ -583,8 +592,8 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         "target_name": "Muçum",
         "quantity": "Vazao_m3s",
         "structure": "modelo_mucum_estrutura_stz_mucum_v1",
-        "mode": "eventwise_plus_common_search_v1_5",
-        "calibration_version": "mucum_hec_twin_v1_5",
+        "mode": "eventwise_plus_common_search_v1_6",
+        "calibration_version": "mucum_hec_twin_v1_6",
         "hold_out": True,
         "external_holdout_events": list(EXTERNAL_HOLDOUT_EVENTS),
         "pad_hours": pad_hours,
@@ -802,11 +811,102 @@ def metrics(obs: list[float], sim: list[float]) -> dict[str, float]:
     }
 
 
-def research_score(m: dict[str, float]) -> float:
-    """v1.5: penaliza erro de pico com mais peso (picos importam para cheia)."""
+def research_score(m: dict[str, float], *, peak_weight: float = 1.25) -> float:
+    """v1.6: peso forte no erro de pico; lag leve."""
     lag = abs(m["peak_lag_hours"]) if m["peak_lag_hours"] == m["peak_lag_hours"] else 99
     pre = m["peak_relative_error"] if m["peak_relative_error"] == m["peak_relative_error"] else 9
-    return m["nse"] - 0.02 * lag - 1.0 * pre
+    return m["nse"] - 0.02 * lag - peak_weight * pre
+
+
+def local_param_neighbors(seed: Params) -> list[Params]:
+    """One-at-a-time + tc/storage pairs around a seed (peak polish)."""
+    base = asdict(seed)
+    out: list[Params] = [seed]
+    deltas = {
+        "initial_loss": (-1.0, -0.5, 0.5, 1.0),
+        "constant_loss": (-1.0, -0.5, -0.25, 0.25, 0.5),
+        "tc": (-10.0, -5.0, -2.0, 2.0, 5.0, 10.0),
+        "storage": (-20.0, -10.0, -5.0, 5.0, 10.0, 20.0),
+        "recession": (-0.1, -0.05, 0.05, 0.1),
+        "initial_flow_ratio": (-0.002, -0.001, 0.001, 0.002, 0.005),
+        "k1": (-1.0, -0.5, 0.5, 1.0),
+        "k2": (-1.0, -0.5, 0.5, 1.0),
+        "k3": (-1.0, -0.5, 0.5, 1.0),
+    }
+    for field, ds in deltas.items():
+        for d in ds:
+            kw = dict(base)
+            val = float(base[field]) + d
+            if field == "recession":
+                val = min(0.995, max(0.55, val))
+            elif field == "x":
+                val = min(0.45, max(0.05, val))
+            elif field in ("tc", "storage", "k1", "k2", "k3"):
+                val = max(0.25, val)
+            else:
+                val = max(0.0, val)
+            kw[field] = val
+            out.append(Params(**kw))
+    for dtc, dst in (
+        (-8.0, -15.0),
+        (-8.0, 15.0),
+        (8.0, -15.0),
+        (8.0, 15.0),
+        (-4.0, -8.0),
+        (4.0, 8.0),
+        (0.0, -15.0),
+        (0.0, 15.0),
+    ):
+        kw = dict(base)
+        kw["tc"] = max(2.0, float(base["tc"]) + dtc)
+        kw["storage"] = max(5.0, float(base["storage"]) + dst)
+        out.append(Params(**kw))
+    out.append(
+        Params(
+            0.0,
+            max(0.0, float(base["constant_loss"]) - 0.5),
+            max(4.0, float(base["tc"]) - 5.0),
+            max(10.0, float(base["storage"]) - 15.0),
+            float(base["recession"]),
+            float(base["initial_flow_ratio"]),
+            float(base["k1"]),
+            float(base["k2"]),
+            float(base["k3"]),
+            float(base["x"]),
+        )
+    )
+    seen: set[tuple] = set()
+    uniq: list[Params] = []
+    for p in out:
+        key = tuple(asdict(p).values())
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(p)
+    return uniq
+
+
+def score_params_list(
+    precip: dict[str, list[float]],
+    areas: dict[str, float],
+    hours: list[str],
+    flow: dict[str, float],
+    core_offset: int,
+    core_hours: list[str],
+    params_list: list[Params],
+) -> tuple[Params, dict[str, float], float, list[float]]:
+    best_p = params_list[0]
+    best_m: dict[str, float] | None = None
+    best_score = float("-inf")
+    best_sim: list[float] | None = None
+    for p in params_list:
+        m, score, sim_full = score_event(
+            precip, areas, p, hours, flow, core_offset=core_offset, core_hours=core_hours
+        )
+        if score > best_score:
+            best_score, best_p, best_m, best_sim = score, p, m, sim_full
+    assert best_m is not None and best_sim is not None
+    return best_p, best_m, best_score, best_sim
 
 
 def candidate_grid() -> list[Params]:
@@ -1117,8 +1217,8 @@ def write_html(payload: dict) -> None:
     <h1>HEC twin · busca Muçum · STZ diagnóstico</h1>
     <p class="muted">{html.escape(payload['generated_at_utc'])} · {html.escape(payload['status'])}</p>
     <div class="notice ok"><strong>Motor:</strong> {html.escape(payload['engine']['name'])} — {html.escape(payload['engine']['why'])}</div>
-    <div class="notice"><strong>Objetivo da busca:</strong> research_score = NSE − 0.02·|lag| − 1.0·erro_pico.
-      v1.5: PAD por evento + grid ampliado; externos E26/E30/E31;
+    <div class="notice"><strong>Objetivo da busca:</strong> research_score = NSE − 0.02·|lag| − 1.25·erro_pico.
+      v1.6: PAD por evento + polish local; externos E26/E30/E31;
       common-search <strong>não</strong> promovido sem testes ok.</div>
     <div class="notice bad"><strong>STZ Q:</strong> {html.escape(stz['blocker'])}</div>
   </header>
@@ -1279,14 +1379,14 @@ def main() -> None:
         "schema_version": "estudo_hec_twin_stz_mucum_v1",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": (
-            "busca eventwise + common-search HEC v1.5 (PAD por evento, score de pico, "
-            "grid ampliado) no modelo Muçum; STZ diagnostico (Q bloqueado)"
+            "busca eventwise + common-search HEC v1.6 (PAD por evento, polish local de pico) "
+            "no modelo Muçum; STZ diagnostico (Q bloqueado)"
         ),
-        "status": "hec_twin_mucum_v1_5_eventwise_scored_stz_q_blocked",
+        "status": "hec_twin_mucum_v1_6_eventwise_scored_stz_q_blocked",
         "discipline_rule": (
             "Isto e HEC estrutural + busca de parametros no gemeo Linux/Python. "
             "Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. "
-            "v1.5: PAD por evento + research_score com peso forte no pico; "
+            "v1.6: PAD por evento + local refine de pico (peak_weight=1.25); "
             "STZ Q bloqueado ate curva-chave oficial."
         ),
         "audit_fixes_v1_1": [
@@ -1319,12 +1419,17 @@ def main() -> None:
             "research_score com peso 1.0 no erro relativo de pico",
             "grid ampliado (k1/k2/k3 independentes + seeds de pico)",
         ],
+        "calibration_v1_6": [
+            "Polish local (neighbors) após grid em cada PAD",
+            "peak_weight=1.25 no research_score",
+            "Foco em reduzir erro de pico E21/E27/E31 e levantar marginais",
+        ],
         "engine": {
             "name": "python_hms_twin_ic_clark_recession_muskingum",
             "not_hec_hms_binary": True,
             "why": "HEC-HMS 4.13 do projeto e Windows-only; neste ambiente Linux roda o gemeo auditavel",
             "methods": ["Initial+Constant", "Clark", "Recession", "Muskingum"],
-            "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
+            "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
         },
         "structure_ref": "estrutura_stz_mucum_latest.json",
         "areas_km2": areas,

@@ -18,28 +18,29 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
     def test_status_and_engine(self) -> None:
         # After release packaging, status may be the closed-model string.
         self.assertTrue(
-            self.data["status"].startswith("hec_twin_mucum_v1_5")
+            self.data["status"].startswith("hec_twin_mucum_v1_6")
             or self.data["status"].startswith("modelo_mucum_eventwise")
         )
         muc = self.data["models"]["mucum"]
-        self.assertEqual(muc.get("calibration_version"), "mucum_hec_twin_v1_5")
+        self.assertEqual(muc.get("calibration_version"), "mucum_hec_twin_v1_6")
         self.assertIn("pad_selection", muc)
-        self.assertEqual(muc["pad_selection"]["mode"], "per_event_argmax_research_score")
+        self.assertIn("local_refine", muc["pad_selection"]["mode"])
         self.assertGreaterEqual(muc["n_events_fit_ok"], 8)
-        self.assertLessEqual(muc.get("mean_peak_relative_error_ok", 9), 0.12)
+        self.assertLessEqual(muc.get("mean_peak_relative_error_ok", 9), 0.08)
         self.assertTrue(muc["common_search"].get("promotion_blocked"))
 
     def test_mucum_peaks_improved(self) -> None:
         muc = self.data["models"]["mucum"]
         by_id = {e["event_id"]: e for e in muc["events"]}
         self.assertEqual(by_id["E22"]["status"], "eventwise_scored")
-        self.assertLessEqual(by_id["E22"]["metrics"]["peak_relative_error"], 0.08)
+        self.assertLessEqual(by_id["E22"]["metrics"]["peak_relative_error"], 0.05)
+        self.assertEqual(by_id["E27"]["status"], "eventwise_scored")
+        self.assertLessEqual(by_id["E27"]["metrics"]["peak_relative_error"], 0.05)
         self.assertEqual(by_id["E28"]["status"], "eventwise_scored")
         self.assertGreaterEqual(by_id["E28"]["metrics"]["nse"], 0.90)
-        # E23 recovered in v1.5 with per-event PAD
         self.assertEqual(by_id["E23"]["status"], "eventwise_scored")
-        self.assertGreaterEqual(by_id["E23"]["metrics"]["nse"], 0.5)
         self.assertIn("pad_hours_selected", by_id["E22"])
+        self.assertEqual(by_id["E22"].get("refinement"), "local_param_neighbors_v1_6")
 
     def test_e28_series_recomputes_nse(self) -> None:
         with (RUN / "mucum_E28_best_series.csv").open(encoding="utf-8") as fh:
@@ -112,7 +113,7 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
             "peak_lag_hours": 0.0,
             "peak_relative_error": 0.1,
         }
-        self.assertAlmostEqual(mod.research_score(fake), 0.9, places=5)
+        self.assertAlmostEqual(mod.research_score(fake), 0.875, places=5)
 
 
 if __name__ == "__main__":
