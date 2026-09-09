@@ -53,6 +53,7 @@
     level: 15,
     selectedId: null,
     cache: {},
+    loadGen: 0,
     map: null,
     layers: {
       mancha: null,
@@ -118,23 +119,33 @@
   function loadCityBundle() {
     var c = city();
     var key = c.id;
-    if (state.cache[key] && state.cache[key].ready) return Promise.resolve(state.cache[key]);
-    var jobs = {
-      rna: fetchJson(c.rna),
-      grade: fetchJson(c.grade),
-      ruas: fetchJson(c.ruas),
-      mancha: fetchJson(c.mancha),
-      replay: state.cache._replay
-        ? Promise.resolve(state.cache._replay)
-        : fetchJson(REPLAY_URL)
+    var cached = state.cache[key] || {};
+    var needed = {
+      rna: c.rna,
+      grade: c.grade,
+      ruas: c.ruas,
+      mancha: c.mancha,
+      replay: REPLAY_URL
     };
-    if (c.plan) jobs.plan = fetchJson(c.plan);
+    if (c.plan) needed.plan = c.plan;
+    var jobs = {};
+    Object.keys(needed).forEach(function (k) {
+      if (k === 'replay' && state.cache._replay) {
+        jobs[k] = Promise.resolve(state.cache._replay);
+        return;
+      }
+      if (k !== 'rna' && cached[k]) {
+        jobs[k] = Promise.resolve(cached[k]);
+        return;
+      }
+      jobs[k] = fetchJson(needed[k]);
+    });
     return Promise.all(Object.keys(jobs).map(function (k) {
       return jobs[k].then(function (v) { return [k, v, null]; }).catch(function (err) {
         return [k, null, err];
       });
     })).then(function (pairs) {
-      var bundle = { ready: true, errors: [] };
+      var bundle = { errors: [] };
       pairs.forEach(function (p) {
         bundle[p[0]] = p[1];
         if (p[2]) bundle.errors.push(p[0] + ': ' + (p[2].message || p[2]));
@@ -200,7 +211,9 @@
       zoomControl: true,
       attributionControl: true,
       minZoom: 11,
-      maxZoom: 18
+      maxZoom: 18,
+      center: [-29.17, -51.80],
+      zoom: 13
     });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap',
@@ -240,6 +253,8 @@
 
   function drawGrade(bundle) {
     state.layers.grade.clearLayers();
+    state._gradeLayer = null;
+    if (!bundle.grade || !Array.isArray(bundle.grade.features)) return;
     var ranked = rankedCells(bundle);
     var byId = Object.create(null);
     ranked.forEach(function (c) { byId[c.id] = c; });
@@ -271,12 +286,35 @@
     });
     geo.addTo(state.layers.grade);
     state._gradeLayer = geo;
-    if (!state._fitted) {
-      try {
-        state.map.fitBounds(geo.getBounds(), { padding: [24, 24] });
-        state._fitted = true;
-      } catch (e) { /* bounds vazios */ }
+  }
+
+  function extendBounds(acc, layer) {
+    if (!layer || !layer.getBounds) return acc;
+    try {
+      var gb = layer.getBounds();
+      if (!gb || !gb.isValid()) return acc;
+      return acc ? acc.extend(gb) : L.latLngBounds(gb.getSouthWest(), gb.getNorthEast());
+    } catch (e) {
+      return acc;
     }
+  }
+
+  function studyBounds(bundle) {
+    var hits = hitMap(scenario(bundle));
+    var bounds = null;
+    if (state._gradeLayer) {
+      state._gradeLayer.eachLayer(function (layer) {
+        var id = layer.feature && layer.feature.properties && layer.feature.properties.id_grade;
+        if (hits[id]) bounds = extendBounds(bounds, layer);
+      });
+    }
+    if (state.layers.mancha) {
+      state.layers.mancha.eachLayer(function (layer) {
+        bounds = extendBounds(bounds, layer);
+      });
+    }
+    if ((!bounds || !bounds.isValid()) && state._gradeLayer) bounds = extendBounds(bounds, state._gradeLayer);
+    return bounds;
   }
 
   function drawStreets(bundle) {
@@ -303,7 +341,8 @@
 
   function highlightStreets(bundle, bounds) {
     state.layers.highlight.clearLayers();
-    if (!bounds || !bundle.ruas) return;
+    state._streetHits = 0;
+    if (!bounds || !bundle.ruas || !Array.isArray(bundle.ruas.nos) || !Array.isArray(bundle.ruas.edges)) return;
     var nos = bundle.ruas.nos;
     var pad = 0.00015;
     var south = bounds.getSouth() - pad;
@@ -480,7 +519,6 @@
     ensureMap();
     var ranked = rankedCells(bundle);
     if (!state.selectedId && ranked[0]) state.selectedId = ranked[0].id;
-    state._fitted = false;
     state._streetHits = 0;
     if (state.layers.highlight) state.layers.highlight.clearLayers();
     drawMancha(bundle);
@@ -489,7 +527,13 @@
     drawAbrigos(bundle);
     focusSelected(bundle);
     applyLayersVisible();
-    window.setTimeout(function () { state.map.invalidateSize(); }, 60);
+    var bounds = studyBounds(bundle);
+    if (bounds && bounds.isValid()) {
+      state.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 15 });
+    }
+    window.setTimeout(function () {
+      if (state.map) state.map.invalidateSize();
+    }, 80);
   }
 
   function render(bundle) {
@@ -511,14 +555,17 @@
   }
 
   function bootCity() {
+    var gen = ++state.loadGen;
     $('load-status').textContent = 'carregando ' + city().label + '…';
     $('load-status').className = 'load-status';
     return loadCityBundle().then(function (bundle) {
+      if (gen !== state.loadGen) return;
       if (!city().levels.some(function (lv) { return Number(lv) === Number(state.level); })) {
         state.level = city().defaultLevel;
       }
       render(bundle);
     }).catch(function (err) {
+      if (gen !== state.loadGen) return;
       $('load-status').className = 'load-status bad';
       $('load-status').textContent = 'falha ao carregar o estudo · ' + (err.message || err);
       console.error(err);
@@ -530,6 +577,7 @@
     state.city = id;
     state.level = city().defaultLevel;
     state.selectedId = null;
+    renderCityButtons();
     setUrl();
     bootCity();
   }
