@@ -2,7 +2,8 @@
   const DATA_URL = 'assets/data/auditaveis_series.json';
   const INVENTORY_URL = 'assets/data/auditoria_inventario.json';
   const RAW_BUNDLE_URL = 'assets/data/logs_metricas_brutos.zip';
-  const DOWNLOAD_BASE = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/';
+  const DOWNLOAD_BASE = 'https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/';
+  const RAW_DOWNLOAD_BASE = 'https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/';
   const COLORS = {
     treino: '#898781',
     validacao: '#2a78d6',
@@ -27,12 +28,23 @@
 
   function downloadUrl(url) {
     if (!url) return url;
+    if (window.PREVINE_DOWNLOADS) return window.PREVINE_DOWNLOADS.hrefFor(url);
     const value = String(url);
     if (/^https?:\/\//i.test(value)) return value;
-    if (value.indexOf('assets/audit_workbooks/') === 0 || value.indexOf('assets/mat/') === 0) {
-      return DOWNLOAD_BASE + value;
-    }
+    if (value.indexOf('assets/audit_workbooks/') === 0) return DOWNLOAD_BASE + value;
+    if (value.indexOf('assets/mat/') === 0) return RAW_DOWNLOAD_BASE + value;
     return value;
+  }
+
+  function onAuditDownloadClick(ev) {
+    const a = ev.target.closest('a.audit-download-btn, a.audit-mini-link');
+    if (!a || a.classList.contains('audit-download-raw')) return;
+    if (!window.PREVINE_DOWNLOADS) return;
+    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button) return;
+    const href = a.getAttribute('href');
+    if (!href) return;
+    ev.preventDefault();
+    window.PREVINE_DOWNLOADS.download(href);
   }
 
   function init() {
@@ -84,6 +96,7 @@
     else if (notes && notes.parentNode) notes.parentNode.insertBefore(section, notes);
     else wrap.appendChild(section);
     rewriteIntroForResults();
+    section.addEventListener('click', onAuditDownloadClick);
 
     fetch(DATA_URL, { cache: 'no-store' })
       .then(resp => {
