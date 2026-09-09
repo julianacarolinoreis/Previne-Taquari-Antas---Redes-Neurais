@@ -202,9 +202,8 @@
       minZoom: 11,
       maxZoom: 18
     });
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      subdomains: 'abcd',
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
       maxZoom: 19
     }).addTo(state.map);
     state.layers.mancha = L.layerGroup().addTo(state.map);
