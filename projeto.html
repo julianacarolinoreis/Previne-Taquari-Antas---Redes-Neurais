@@ -3,29 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="PREVINE Taquari-Antas — previsão, mapeamento e comunicação de risco para desastres geo-hidrológicos na Bacia Hidrográfica do Taquari-Antas, Rio Grande do Sul.">
+<meta name="description" content="PREVINE Taquari-Antas — projeto de pesquisa sobre prevenção de desastres geo-hidrológicos na Bacia Hidrográfica do Taquari-Antas, Rio Grande do Sul.">
 <title>PREVINE Taquari-Antas</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <style>
 :root {
   --paper: #f5f3ec;
-  --paper-2: #ebe6d8;
-  --ink: #111111;
-  --ink-2: #5c675f;
-  --muted: #8a9188;
-  --line: rgba(17,17,17,.12);
+  --ink: #1a1a1a;
+  --ink-2: #555;
+  --muted: #7a827c;
+  --line: rgba(0,0,0,.12);
   --line-d: rgba(245,243,236,.16);
   --dark: #0c2a22;
-  --dark-2: #103b30;
   --green: #155c47;
   --accent: #8dbf74;
   --yellow: #f5c76b;
   --coral: #ef7a68;
-  --live: #c45a12;
-  --white: #fff;
-  --ease: cubic-bezier(.16, 1.08, .38, .98);
   --display: Tahoma, "Helvetica Neue", Arial, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --max: 1180px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,44 +33,35 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: inherit; }
-img { display: block; max-width: 100%; }
 .skip {
   position: absolute; left: 12px; top: -40px; z-index: 200;
-  background: var(--ink); color: var(--white); padding: 8px 12px; font-size: 13px;
+  background: var(--ink); color: #fff; padding: 8px 12px; font-size: 13px;
 }
 .skip:focus { top: 12px; }
 .wrap { width: 100%; max-width: var(--max); margin: 0 auto; padding: 0 40px; }
 .label {
-  font-family: var(--mono);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: .18em;
   text-transform: uppercase;
   color: var(--ink-2);
 }
-.dark .label { color: rgba(245,243,236,.55); }
+.dark .label { color: rgba(245,243,236,.45); }
 
 .brandbar {
   height: 4px;
   background: linear-gradient(90deg, var(--accent) 0%, var(--yellow) 50%, var(--coral) 100%);
 }
 
-/* ---------- nav ---------- */
 nav {
   position: sticky; top: 0; z-index: 80;
-  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
   height: 64px; padding: 0 40px;
-  background: rgba(245,243,236,.88);
-  backdrop-filter: blur(14px);
+  background: var(--paper);
   border-bottom: 1px solid var(--line);
 }
 .wordmark {
-  display: flex; align-items: center; gap: 10px;
   text-decoration: none; font-weight: 800; letter-spacing: -.02em; font-size: 15px;
-}
-.mark {
-  width: 22px; height: 22px; border-radius: 6px; flex: none;
-  background: linear-gradient(135deg, var(--green), #1e5fbf);
 }
 .nav-links { display: flex; align-items: center; gap: 28px; }
 .nav-links a {
@@ -84,40 +69,21 @@ nav {
   text-decoration: none; color: var(--ink);
 }
 .nav-links a:hover { color: var(--green); }
-.btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-height: 48px; padding: 0 22px;
-  border-radius: 4px; text-decoration: none;
-  font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-  transition: transform .15s var(--ease), background .15s ease, color .15s ease;
-}
-.btn:hover { transform: translateY(-1px); }
-.btn-solid { background: var(--ink); color: var(--white); }
-.btn-solid:hover { background: var(--green); }
-.btn-light { background: var(--white); color: var(--ink); }
-.btn-light:hover { background: var(--accent); }
-.btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
-.btn-ghost:hover { border-color: var(--ink); }
-.btn-ghost-dark { background: transparent; color: var(--white); border: 1px solid rgba(255,255,255,.28); }
-.btn-ghost-dark:hover { border-color: var(--white); background: rgba(255,255,255,.06); }
-.btn:focus-visible, .nav-links a:focus-visible, .wordmark:focus-visible, a.row:focus-visible, a.pcard:focus-visible {
+.wordmark:focus-visible, .nav-links a:focus-visible, a.row:focus-visible, .text-link:focus-visible {
   outline: 3px solid var(--yellow); outline-offset: 2px;
 }
 
-/* ---------- hero ---------- */
 .hero {
   min-height: calc(100vh - 68px);
-  display: grid;
-  grid-template-columns: minmax(0,1.15fr) minmax(280px,.85fr);
-  gap: 48px;
-  align-items: end;
-  padding: 72px 40px 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 80px 40px 72px;
   max-width: calc(var(--max) + 80px);
   margin: 0 auto;
 }
 .hero .eyebrow {
-  font-family: var(--mono);
-  font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+  font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
   color: var(--ink-2); margin-bottom: 22px;
 }
 .hero h1 {
@@ -125,171 +91,85 @@ nav {
   font-weight: 800; line-height: .88; letter-spacing: -.045em;
 }
 .hero h1 span { display: block; }
-.hero h1 .accent { color: var(--green); }
 .hero-sub {
-  margin-top: 28px; max-width: 34em;
-  font-size: clamp(16px, 1.8vw, 20px); line-height: 1.5; color: var(--ink-2);
+  margin-top: 28px; max-width: 36em;
+  font-size: clamp(16px, 1.8vw, 20px); line-height: 1.55; color: var(--ink-2);
 }
-.hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; }
-
-.live-card {
-  background: var(--white);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 22px 24px 20px;
-  box-shadow: 0 2px 6px rgba(16,59,48,.05), 0 24px 50px rgba(16,59,48,.1);
-}
-.live-card .live-top {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  margin-bottom: 18px;
-}
-.live-pill {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-family: var(--mono); font-size: 10px; font-weight: 700;
-  letter-spacing: .16em; text-transform: uppercase; color: var(--green);
-}
-.live-dot {
-  width: 8px; height: 8px; border-radius: 50%; background: #1aa05a;
-  box-shadow: 0 0 0 4px rgba(26,160,90,.16);
-  animation: pulse 1.6s ease-in-out infinite;
-}
-.live-card .loc {
-  font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--muted);
-}
-.live-metric { padding: 12px 0; border-top: 1px solid var(--line); }
-.live-metric .k {
-  font-family: var(--mono); font-size: 10px; letter-spacing: .14em;
-  text-transform: uppercase; color: var(--muted);
-}
-.live-metric .v {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-  margin-top: 4px;
-}
-.live-metric .n {
-  font-size: clamp(32px, 4vw, 42px); font-weight: 800; letter-spacing: -.03em;
-  font-variant-numeric: tabular-nums; line-height: 1;
-}
-.live-metric .delta { font-size: 13px; font-weight: 700; color: var(--live); font-variant-numeric: tabular-nums; }
-.cota-track { height: 6px; border-radius: 99px; background: var(--paper-2); margin-top: 14px; overflow: hidden; }
-.cota-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--green), var(--yellow), var(--coral)); transition: width .8s var(--ease); }
-.live-foot {
-  margin-top: 12px; font-family: var(--mono); font-size: 10px;
-  letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+.hero-meta {
+  margin-top: 22px; font-size: 13px; color: var(--muted);
 }
 
-/* ---------- sections ---------- */
 section { padding: 96px 0; }
 .dark { background: var(--dark); color: var(--paper); }
 .statement {
-  font-size: clamp(28px, 4.6vw, 56px);
-  font-weight: 800; letter-spacing: -.03em; line-height: 1.05;
-  max-width: 16ch; text-wrap: balance; margin-top: 16px;
+  font-size: clamp(26px, 4.2vw, 48px);
+  font-weight: 800; letter-spacing: -.03em; line-height: 1.12;
+  max-width: 22ch; text-wrap: balance; margin-top: 14px;
 }
-.lead { margin-top: 24px; max-width: 58ch; font-size: 17px; color: var(--ink-2); line-height: 1.6; }
+.lead { margin-top: 24px; max-width: 62ch; font-size: 17px; color: var(--ink-2); line-height: 1.65; }
 .dark .lead { color: rgba(245,243,236,.68); }
-.fig {
-  font-family: var(--mono); font-size: 11px; letter-spacing: .14em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
-}
 
 .split {
-  display: grid; grid-template-columns: .9fr 1.1fr; gap: 48px; align-items: start;
+  display: grid; grid-template-columns: .85fr 1.15fr; gap: 56px; align-items: start;
 }
-
-.risks { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 0; margin-top: 56px; }
-.risk { padding: 28px 28px 8px 0; border-top: 1px solid var(--line-d); }
-.risk .n {
-  font-family: var(--mono); font-size: 11px; letter-spacing: .16em;
-  text-transform: uppercase; color: var(--accent); margin-bottom: 14px;
-}
-.risk p { font-size: clamp(18px, 2vw, 24px); font-weight: 700; letter-spacing: -.02em; line-height: 1.25; }
 
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 32px; margin-top: 48px; }
 .stat .sn {
-  font-size: clamp(44px, 6.4vw, 84px); font-weight: 800;
+  font-size: clamp(40px, 6vw, 80px); font-weight: 800;
   letter-spacing: -.045em; line-height: .9; font-variant-numeric: tabular-nums;
 }
 .stat .sl { margin-top: 12px; font-size: 13px; color: var(--ink-2); max-width: 16ch; }
-.source { margin-top: 28px; font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 
-/* passos — Daylight */
-.passos { margin-top: 56px; }
+.passos { margin-top: 48px; }
 .passo {
-  display: grid; grid-template-columns: 1.2fr .8fr; gap: 40px; align-items: center;
-  padding: 40px 0; border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: 72px 1fr; gap: 24px;
+  padding: 28px 0; border-top: 1px solid var(--line);
 }
-.passo .pn {
-  font-family: var(--mono); font-size: 11px; font-weight: 700;
-  letter-spacing: .18em; text-transform: uppercase; color: var(--green);
-}
-.passo h3 { font-size: clamp(22px, 3vw, 34px); font-weight: 800; letter-spacing: -.025em; margin-top: 8px; }
-.passo p { margin-top: 12px; font-size: 16px; color: var(--ink-2); max-width: 46ch; line-height: 1.6; }
-.pcard {
-  justify-self: end; width: min(100%, 300px);
-  background: var(--white); border: 1px solid var(--line); border-radius: 16px;
-  padding: 20px 22px; text-decoration: none;
-  box-shadow: 0 2px 6px rgba(16,59,48,.05), 0 16px 34px rgba(16,59,48,.08);
-  transition: transform .15s var(--ease), box-shadow .15s ease;
-}
-a.pcard:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(16,59,48,.14); }
-.pcard .pc-tag {
-  font-family: var(--mono); font-size: 10px; font-weight: 700;
-  letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
-}
-.pcard .pc-big {
-  display: block; margin-top: 8px; font-size: 34px; font-weight: 800;
-  letter-spacing: -.03em; color: var(--green); font-variant-numeric: tabular-nums;
-}
-.pcard .pc-big small { font-size: 14px; color: var(--live); }
-.pcard .pc-sub { display: block; margin-top: 6px; font-size: 12px; color: var(--ink-2); }
-.pnota { margin-top: 16px; font-size: 12px; color: var(--muted); }
+.passo .n { font-size: 13px; color: var(--ink-2); font-weight: 700; padding-top: 6px; }
+.passo h3 { font-size: clamp(20px, 2.4vw, 26px); font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; }
+.passo p { font-size: 15px; color: var(--ink-2); max-width: 54ch; line-height: 1.6; }
 
-/* eixos — OTC engines */
-.eixos { margin-top: 56px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 0; }
-.eixo { padding: 28px 28px 8px 0; border-top: 1px solid var(--line-d); }
-.eixo .num {
-  font-family: var(--mono); font-size: 12px; letter-spacing: .14em;
-  text-transform: uppercase; color: var(--accent);
+.eixos { margin-top: 48px; }
+.eixo {
+  display: grid; grid-template-columns: 72px 1fr; gap: 24px;
+  padding: 28px 0; border-top: 1px solid var(--line-d);
 }
-.eixo h3 { font-size: clamp(20px, 2.2vw, 26px); font-weight: 800; letter-spacing: -.02em; margin: 12px 0 10px; }
-.eixo p { font-size: 15px; color: rgba(245,243,236,.62); line-height: 1.55; max-width: 36ch; }
+.eixo .n { font-size: 13px; color: rgba(245,243,236,.45); font-weight: 700; padding-top: 6px; }
+.eixo h3 { font-size: clamp(20px, 2.4vw, 26px); font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; }
+.eixo p { font-size: 15px; color: rgba(245,243,236,.62); max-width: 54ch; line-height: 1.6; }
 
-/* frentes */
 .rows { margin-top: 40px; }
 .row {
   display: grid; grid-template-columns: 160px 1fr auto; gap: 24px; align-items: baseline;
-  padding: 22px 8px; border-top: 1px solid var(--line); text-decoration: none;
-  transition: background .15s ease;
+  padding: 20px 0; border-top: 1px solid var(--line); text-decoration: none;
 }
 .row:last-child { border-bottom: 1px solid var(--line); }
-a.row:hover { background: rgba(21,92,71,.05); }
 a.row:hover h3 { color: var(--green); }
 .row .area {
-  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  font-size: 11px; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase; color: var(--green);
 }
-.row h3 { font-size: clamp(18px, 2.2vw, 24px); font-weight: 800; letter-spacing: -.02em; }
+.row h3 { font-size: clamp(17px, 2vw, 22px); font-weight: 800; letter-spacing: -.015em; }
 .row .st { font-size: 13px; color: var(--ink-2); white-space: nowrap; text-align: right; }
-.row .st b { color: var(--green); }
 .status-dev { color: #8a6100; }
 .status-plan { color: var(--muted); }
 
 .insts {
   margin-top: 32px; display: flex; flex-wrap: wrap; align-items: baseline;
-  font-size: clamp(18px, 2.4vw, 26px); font-weight: 800; letter-spacing: -.02em; color: var(--white);
+  font-size: clamp(17px, 2.2vw, 24px); font-weight: 800; letter-spacing: -.02em;
 }
 .insts .dot { color: rgba(245,243,236,.35); padding: 0 12px; font-weight: 400; }
 
-.cta {
-  padding: 120px 0;
-  background:
-    radial-gradient(1200px 400px at 80% 120%, rgba(141,191,116,.18), transparent 60%),
-    var(--dark);
+.leitura {
+  margin-top: 28px; font-size: clamp(18px, 2.4vw, 26px); font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
-.cta .statement { max-width: 14ch; color: #fff; }
-.cta-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 36px; }
-.caveat { margin-top: 22px; font-size: 13px; color: rgba(245,243,236,.5); max-width: 52ch; }
+.text-link {
+  display: inline-block; margin-top: 14px;
+  font-size: 14px; color: var(--accent); text-decoration: none;
+  border-bottom: 1px solid var(--accent); padding-bottom: 2px;
+}
+.text-link:hover { opacity: .8; }
 
 footer {
   padding: 48px 0 56px;
@@ -299,40 +179,34 @@ footer {
 .f-cols { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px 40px; }
 footer a { color: var(--green); font-weight: 700; text-decoration: none; }
 footer a:hover { text-decoration: underline; }
-.f-note { margin-top: 22px; font-size: 12px; color: var(--muted); }
+.f-note { margin-top: 22px; font-size: 12px; color: var(--muted); max-width: 72ch; }
 
-.rv { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s var(--ease); }
+.rv { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
 .rv.in { opacity: 1; transform: none; }
 .rv[data-d="1"] { transition-delay: .08s; }
 .rv[data-d="2"] { transition-delay: .16s; }
 .rv[data-d="3"] { transition-delay: .24s; }
 .rv[data-d="4"] { transition-delay: .32s; }
 
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
-
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .rv { opacity: 1; transform: none; transition: none; }
-  .live-dot { animation: none; }
-  .btn:hover, a.pcard:hover { transform: none; }
 }
 
 @media (max-width: 900px) {
-  .hero, .split, .passo, .eixos, .risks, .stats { grid-template-columns: 1fr; }
-  .hero { min-height: 0; padding: 48px 20px 56px; gap: 32px; }
-  .passo { gap: 20px; }
-  .pcard { justify-self: start; }
-  .eixo, .risk { padding-right: 0; }
+  .hero, .split, .stats { grid-template-columns: 1fr; }
+  .hero { min-height: 0; padding: 56px 20px 48px; }
+  .stats { grid-template-columns: 1fr 1fr; }
   .row { grid-template-columns: 1fr; gap: 6px; }
   .row .st { text-align: left; }
-  .stats { grid-template-columns: 1fr 1fr; }
+  .passo, .eixo { grid-template-columns: 48px 1fr; gap: 16px; }
 }
 @media (max-width: 720px) {
   nav, .wrap, footer { padding-left: 20px; padding-right: 20px; }
   nav { padding: 0 20px; }
-  .nav-links { display: none; }
-  section, .cta { padding: 72px 0; }
-  .hero-actions .btn-ghost { display: none; }
+  .nav-links { gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+  nav { height: auto; min-height: 64px; padding: 12px 20px; }
+  section { padding: 72px 0; }
 }
 </style>
 </head>
@@ -341,78 +215,29 @@ footer a:hover { text-decoration: underline; }
 <div class="brandbar" aria-hidden="true"></div>
 
 <nav>
-  <a class="wordmark" href="projeto.html"><span class="mark" aria-hidden="true"></span>PREVINE</a>
+  <a class="wordmark" href="projeto.html">PREVINE</a>
   <div class="nav-links">
-    <a href="#como-funciona">Como funciona</a>
     <a href="#eixos">Eixos</a>
     <a href="#frentes">Frentes</a>
     <a href="#rede">Rede</a>
+    <a href="index.html">RNA</a>
   </div>
-  <a class="btn btn-solid" href="santa_tereza_previsao_inundacao.html">Previsão ao vivo</a>
 </nav>
 
 <header class="hero" id="conteudo">
-  <div>
-    <p class="eyebrow">FAPERGS · Edital 06/2024 · Desastres Climáticos</p>
-    <h1>
-      <span>PREVINE</span>
-      <span class="accent">Taquari-Antas</span>
-    </h1>
-    <p class="hero-sub">Previsão, mapeamento e comunicação de risco para inundações, enxurradas e movimentos de massa na bacia que mais sofre com desastres geo-hidrológicos no Rio Grande do Sul.</p>
-    <div class="hero-actions">
-      <a class="btn btn-solid" href="santa_tereza_previsao_inundacao.html">Ver a água no mapa</a>
-      <a class="btn btn-ghost" href="#como-funciona">Como funciona</a>
-    </div>
-  </div>
-  <aside class="live-card" aria-live="polite">
-    <div class="live-top">
-      <span class="live-pill"><span class="live-dot" aria-hidden="true"></span>Ao vivo</span>
-      <span class="loc" id="live-loc">Santa Tereza</span>
-    </div>
-    <div class="live-metric">
-      <div class="k">Nível agora</div>
-      <div class="v"><span class="n" id="live-now">…</span></div>
-    </div>
-    <div class="live-metric">
-      <div class="k">Previsão +2h</div>
-      <div class="v">
-        <span class="n" id="live-fore">…</span>
-        <span class="delta" id="live-delta"></span>
-      </div>
-    </div>
-    <div class="cota-track" aria-hidden="true"><div class="cota-fill" id="live-bar"></div></div>
-    <p class="live-foot" id="live-foot">Estação · carregando</p>
-  </aside>
+  <p class="eyebrow">FAPERGS · Edital 06/2024 · Desastres Climáticos</p>
+  <h1>
+    <span>PREVINE</span>
+    <span>Taquari-Antas</span>
+  </h1>
+  <p class="hero-sub">Prevenção de desastres geo-hidrológicos na Bacia Hidrográfica do Taquari-Antas, Rio Grande do Sul.</p>
+  <p class="hero-meta">Projeto de pesquisa · Coordenação UFRGS · 2024–2026</p>
 </header>
 
 <section>
   <div class="wrap split">
-    <div class="rv">
-      <p class="fig">Fig. A · O momento</p>
-      <h2 class="statement">O risco à vista de todos.</h2>
-    </div>
-    <p class="lead rv" data-d="1">A Bacia do Taquari-Antas concentra os maiores riscos de desastres geo-hidrológicos do Rio Grande do Sul. Entre 2023 e 2024 registrou os eventos extremos mais severos da sua história. O PREVINE reúne seis instituições para prever a água, mapear o território e comunicar o risco — antes da próxima cheia.</p>
-  </div>
-</section>
-
-<section class="dark">
-  <div class="wrap">
-    <p class="label rv">O que está em jogo</p>
-    <h2 class="statement rv">Poucas horas entre a chuva na cabeceira e a água na rua.</h2>
-    <div class="risks">
-      <article class="risk rv" data-d="1">
-        <div class="n">01 / Cheia</div>
-        <p>Inundações e enxurradas no mesmo vale, afetando dezenas de milhares de pessoas a cada evento extremo.</p>
-      </article>
-      <article class="risk rv" data-d="2">
-        <div class="n">02 / Encosta</div>
-        <p>Movimentos de massa nas mesmas chuvas que enchem o rio — o perigo não para na margem.</p>
-      </article>
-      <article class="risk rv" data-d="3">
-        <div class="n">03 / Tempo</div>
-        <p>A decisão de sair precisa acontecer com antecedência. Memória do último desastre não basta.</p>
-      </article>
-    </div>
+    <p class="label rv">Contexto</p>
+    <p class="lead rv" data-d="1">A Bacia do Taquari-Antas concentra os maiores riscos de desastres geo-hidrológicos do Rio Grande do Sul — inundações, movimentos de massa e enxurradas que afetam dezenas de milhares de pessoas a cada evento extremo. Entre 2023 e 2024 registrou os episódios mais severos da sua história.</p>
   </div>
 </section>
 
@@ -425,78 +250,65 @@ footer a:hover { text-decoration: underline; }
       <div class="stat rv" data-d="3"><div class="sn">24</div><div class="sl">meses de pesquisa</div></div>
       <div class="stat rv" data-d="4"><div class="sn">6</div><div class="sl">instituições parceiras</div></div>
     </div>
-    <p class="source rv">Fonte: projeto PREVINE Taquari-Antas · FAPERGS 06/2024.</p>
-  </div>
-</section>
-
-<section id="como-funciona">
-  <div class="wrap">
-    <div class="rv">
-      <p class="label">Como funciona</p>
-      <h2 class="statement">Da estação ao mapa, de hora em hora.</h2>
-    </div>
-    <div class="passos">
-      <div class="passo rv">
-        <div>
-          <span class="pn">Passo 1</span>
-          <h3>Medimos o rio</h3>
-          <p>As estações hidrometeorológicas da rede ANA registram o nível de hora em hora, ao longo da bacia. Santa Tereza é o ponto ao vivo desta página.</p>
-        </div>
-        <div class="pcard">
-          <span class="pc-tag">estação 86472600 · Santa Tereza</span>
-          <span class="pc-big" id="step-now">…</span>
-          <span class="pc-sub">nível agora · leitura de hora em hora</span>
-        </div>
-      </div>
-      <div class="passo rv">
-        <div>
-          <span class="pn">Passo 2</span>
-          <h3>Prevemos a subida</h3>
-          <p>Redes neurais treinadas com eventos da bacia projetam as próximas horas e rodam sozinhas. Pesquisa em curso — não é alerta oficial.</p>
-        </div>
-        <div class="pcard">
-          <span class="pc-tag">previsão · horizonte de 2 h</span>
-          <span class="pc-big" id="step-fore">…</span>
-          <span class="pc-sub">recalculada no painel ao vivo</span>
-        </div>
-      </div>
-      <div class="passo rv">
-        <div>
-          <span class="pn">Passo 3</span>
-          <h3>Mostramos até onde a água chega</h3>
-          <p>A previsão vira mancha no mapa da cidade: ruas, cota e horizonte no mesmo quadro — base para estudar alerta e resposta.</p>
-        </div>
-        <a class="pcard" href="santa_tereza_previsao_inundacao.html">
-          <span class="pc-tag">previsao.previne</span>
-          <span class="pc-big" style="font-size:22px">ver a previsão ao vivo →</span>
-          <span class="pc-sub">Santa Tereza · simulador público</span>
-        </a>
-      </div>
-    </div>
-    <p class="pnota rv">Os números desta página atualizam com a última leitura da estação. Não substituem aviso da Defesa Civil.</p>
   </div>
 </section>
 
 <section class="dark" id="eixos">
   <div class="wrap">
     <p class="label rv">Os três eixos</p>
-    <h2 class="statement rv">Uma plataforma de pesquisa, três motores.</h2>
+    <h2 class="statement rv">Pesquisa organizada em três linhas.</h2>
     <div class="eixos">
       <article class="eixo rv" data-d="1">
-        <span class="num">01</span>
-        <h3>Monitorar, modelar e prever</h3>
-        <p>Modelagem hidrológica, redes neurais, GNSS-R, mancha d’água e mapeamento de movimentos de massa. Dados em tempo real da estação de Santa Tereza.</p>
+        <span class="n">01</span>
+        <div>
+          <h3>Monitoramento, modelagem e mapeamento</h3>
+          <p>Modelagem hidrológica SWAT, previsão de inundações por redes neurais, mapeamento de movimentos de massa, GNSS-R e mancha d’água. Dados em tempo real da estação de Santa Tereza.</p>
+        </div>
       </article>
       <article class="eixo rv" data-d="2">
-        <span class="num">02</span>
-        <h3>Ciência cidadã</h3>
-        <p>Rede de monitoramento participativo com moradores dos 18 municípios. Coleta de campo, registro de eventos e validação comunitária dos resultados.</p>
+        <span class="n">02</span>
+        <div>
+          <h3>Ciência cidadã</h3>
+          <p>Rede de monitoramento participativo com moradores dos 18 municípios da bacia. Coleta de dados de campo, registro de eventos e validação comunitária dos resultados científicos.</p>
+        </div>
       </article>
       <article class="eixo rv" data-d="3">
-        <span class="num">03</span>
-        <h3>Alertar e responder</h3>
-        <p>Comunicação de risco acessível, rotas de fuga em estudo e plataformas digitais para populações em áreas vulneráveis da bacia.</p>
+        <span class="n">03</span>
+        <div>
+          <h3>Alerta e comunicação de risco</h3>
+          <p>Sistemas de alerta precoce, estratégias de comunicação acessível e plataformas digitais de disseminação de risco para populações em áreas vulneráveis da bacia.</p>
+        </div>
       </article>
+    </div>
+  </div>
+</section>
+
+<section id="metodo">
+  <div class="wrap">
+    <p class="label rv">Método, em síntese</p>
+    <h2 class="statement rv">Da estação ao mapa.</h2>
+    <div class="passos">
+      <div class="passo rv">
+        <span class="n">01</span>
+        <div>
+          <h3>Medição</h3>
+          <p>As estações hidrometeorológicas da rede ANA registram o nível do rio de hora em hora, ao longo da bacia.</p>
+        </div>
+      </div>
+      <div class="passo rv">
+        <span class="n">02</span>
+        <div>
+          <h3>Previsão</h3>
+          <p>Modelos hidrológicos e redes neurais projetam o nível das próximas horas a partir desses registros. Trabalho de pesquisa; não é alerta oficial.</p>
+        </div>
+      </div>
+      <div class="passo rv">
+        <span class="n">03</span>
+        <div>
+          <h3>Representação espacial</h3>
+          <p>A série prevista pode ser cruzada com mapas de mancha, encostas e vulnerabilidade — para estudo, não para despacho.</p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -504,57 +316,56 @@ footer a:hover { text-decoration: underline; }
 <section id="frentes">
   <div class="wrap">
     <p class="label rv">Frentes de pesquisa</p>
-    <h2 class="statement rv">Do monitoramento à resposta.</h2>
     <div class="rows">
       <a class="row rv" href="santa_tereza_previsao_inundacao.html">
         <span class="area">Hidrologia</span>
         <h3>Redes neurais</h3>
-        <span class="st"><b>No ar</b> — Santa Tereza →</span>
+        <span class="st">publicado</span>
       </a>
       <div class="row rv">
         <span class="area">Hidrologia</span>
         <h3>Modelagem SWAT</h3>
-        <span class="st status-dev">Em desenvolvimento</span>
+        <span class="st status-dev">em desenvolvimento</span>
       </div>
       <a class="row rv" href="encostas_movimentos_massa.html">
         <span class="area">Encostas</span>
         <h3>Movimentos de massa</h3>
-        <span class="st"><b>No ar</b> — mapa 2024 →</span>
+        <span class="st">publicado</span>
       </a>
       <div class="row rv">
         <span class="area">Geodésia</span>
         <h3>GNSS-R</h3>
-        <span class="st status-dev">Em desenvolvimento</span>
+        <span class="st status-dev">em desenvolvimento</span>
       </div>
       <a class="row rv" href="santa_tereza_inundacao.html">
         <span class="area">Sensoriamento</span>
         <h3>Mancha d’água</h3>
-        <span class="st status-dev">Em desenvolvimento — mapa de estudo →</span>
+        <span class="st status-dev">em desenvolvimento</span>
       </a>
       <div class="row rv">
         <span class="area">Comunidade</span>
         <h3>Ciência cidadã</h3>
-        <span class="st status-plan">Planejado</span>
+        <span class="st status-plan">planejado</span>
       </div>
       <div class="row rv">
         <span class="area">Comunicação</span>
         <h3>Comunicação de risco</h3>
-        <span class="st status-plan">Planejado</span>
+        <span class="st status-plan">planejado</span>
       </div>
       <div class="row rv">
         <span class="area">Clima</span>
         <h3>Clima futuro</h3>
-        <span class="st status-plan">Planejado</span>
+        <span class="st status-plan">planejado</span>
       </div>
       <a class="row rv" href="vulnerabilidade.html">
         <span class="area">Risco</span>
         <h3>Mapas multicritério</h3>
-        <span class="st"><b>No ar</b> — vulnerabilidade →</span>
+        <span class="st">publicado</span>
       </a>
       <a class="row rv" href="dashboard_bacia.html">
         <span class="area">Geotecnologia</span>
         <h3>WebSIG / dashboard da bacia</h3>
-        <span class="st"><b>No ar</b> — painel →</span>
+        <span class="st">publicado</span>
       </a>
     </div>
   </div>
@@ -562,9 +373,8 @@ footer a:hover { text-decoration: underline; }
 
 <section class="dark" id="rede">
   <div class="wrap">
-    <p class="label rv">A rede</p>
-    <h2 class="statement rv">Cada instituição fortalece a bacia.</h2>
-    <p class="lead rv">Coordenado pela UFRGS (prof. Guilherme Garcia de Oliveira), o PREVINE reúne pesquisadores da UFSM, UERGS, UNIVATES, APESC-UNISC e Universität Wien em torno de um objetivo: reduzir o impacto dos desastres geo-hidrológicos nos 18 municípios da bacia.</p>
+    <p class="label rv">A rede interinstitucional</p>
+    <p class="lead rv">Coordenado pela UFRGS (prof. Guilherme Garcia de Oliveira), o PREVINE Taquari-Antas reúne pesquisadores da UFSM, UERGS, UNIVATES, APESC-UNISC e Universität Wien em torno de um objetivo comum: reduzir o impacto dos desastres geo-hidrológicos nos 18 municípios da bacia.</p>
     <div class="insts rv">
       <span>UFRGS</span><span class="dot">·</span>
       <span>UFSM</span><span class="dot">·</span>
@@ -573,18 +383,9 @@ footer a:hover { text-decoration: underline; }
       <span>APESC-UNISC</span><span class="dot">·</span>
       <span>Universität Wien</span>
     </div>
-  </div>
-</section>
-
-<section class="cta">
-  <div class="wrap">
-    <p class="label rv">Entrar</p>
-    <h2 class="statement rv">A bacia precisa de previsão, não só de memória.</h2>
-    <div class="cta-actions rv">
-      <a class="btn btn-light" href="santa_tereza_previsao_inundacao.html">Previsão ao vivo</a>
-      <a class="btn btn-ghost-dark" href="pesquisas.html">Catálogo de pesquisas</a>
-    </div>
-    <p class="caveat rv">Pesquisa e protótipos. Não substitui alerta oficial, rota liberada ou despacho da Defesa Civil.</p>
+    <p class="label rv" style="margin-top:56px">Santa Tereza · Rio das Antas</p>
+    <div class="leitura rv" id="rna-display">carregando…</div>
+    <a class="text-link rv" href="index.html">Painel das redes neurais</a>
   </div>
 </section>
 
@@ -598,69 +399,40 @@ footer a:hover { text-decoration: underline; }
       </div>
       <div>
         Bacia Hidrográfica do Taquari-Antas<br>
-        Rio Grande do Sul · Brasil<br>
-        ODS 11 · 13 · 17
+        Rio Grande do Sul · Brasil
       </div>
       <div>
-        <a href="index.html">Painel das RNAs</a><br>
+        <a href="pesquisas.html">Catálogo de pesquisas</a><br>
         <a href="https://www.instagram.com/previne_taquari_antas" rel="noopener noreferrer" target="_blank">@previne_taquari_antas</a>
       </div>
     </div>
-    <p class="f-note">Os produtos ligados nesta página são pesquisa. Validação independente e autorização institucional continuam necessárias antes de qualquer uso operacional.</p>
+    <p class="f-note">Páginas e dados deste site são pesquisa. Não substituem alerta oficial, rota liberada ou despacho da Defesa Civil.</p>
   </div>
 </footer>
 
 <script>
 (function(){
-  function fmtM(cm){
-    if (cm == null || isNaN(Number(cm))) return '—';
-    return (Number(cm) / 100).toFixed(2).replace('.', ',') + ' m';
+  var el = document.getElementById('rna-display');
+  if (!el) return;
+  function fmt(v) {
+    if (v == null || isNaN(Number(v))) return null;
+    v = Number(v);
+    return v >= 100 ? (v / 100).toFixed(2).replace('.', ',') + ' m' : v + ' cm';
   }
-  function delta(fore, now){
-    if (fore == null || now == null) return '';
-    var d = Math.round(Number(fore) - Number(now));
-    if (!isFinite(d)) return '';
-    return (d > 0 ? '+' : '') + d + ' cm';
-  }
-  function setText(id, v){ var el = document.getElementById(id); if (el) el.textContent = v; }
-
   fetch('previsao_ao_vivo.json', { cache: 'no-store' })
     .then(function(r){ return r.json(); })
     .then(function(d){
-      var now = d.nivel_rio_agora_cm != null ? d.nivel_rio_agora_cm : d.telemetria_ultima_nivel_cm;
+      var now = d.nivel_rio_agora_cm != null ? d.nivel_rio_agora_cm : d.nivel_atual_cm;
       var fore = d.nivel_previsto_cm;
-      var bank = d.bankfull_cm || 400;
-      var loc = d.local || 'Santa Tereza';
-      var est = d.estacao || '86472600';
-      setText('live-loc', loc);
-      setText('live-now', fmtM(now));
-      setText('live-fore', fmtM(fore));
-      setText('live-delta', delta(fore, now));
-      setText('step-now', fmtM(now));
-      var stepFore = document.getElementById('step-fore');
-      if (stepFore) {
-        stepFore.textContent = fmtM(fore);
-        var dlt = delta(fore, now);
-        if (dlt) {
-          var sm = document.createElement('small');
-          sm.textContent = ' ' + dlt;
-          stepFore.appendChild(sm);
-        }
+      var nowT = fmt(now);
+      var foreT = fmt(fore);
+      if (nowT) {
+        el.textContent = 'Agora: ' + nowT + (foreT ? '  ·  previsão +2h: ' + foreT : '  ·  previsão indisponível');
+      } else {
+        el.textContent = 'Dados indisponíveis no momento.';
       }
-      var bar = document.getElementById('live-bar');
-      if (bar && now != null) bar.style.width = Math.max(4, Math.min(100, (Number(now) / bank) * 100)) + '%';
-      var idade = d.idade_telemetria_min;
-      var foot = 'Estação ' + est + ' · cota de margem ' + fmtM(bank);
-      if (idade != null) foot += ' · leitura há ' + idade + ' min';
-      setText('live-foot', foot);
     })
-    .catch(function(){
-      setText('live-now', '—');
-      setText('live-fore', '—');
-      setText('step-now', '—');
-      setText('step-fore', '—');
-      setText('live-foot', 'Sem conexão com o sensor neste momento.');
-    });
+    .catch(function(){ el.textContent = 'Sem conexão com o sensor.'; });
 })();
 
 (function(){
