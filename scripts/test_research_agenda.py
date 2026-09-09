@@ -10,6 +10,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 
@@ -185,19 +188,40 @@ def test_rendered_responsive_interactions_and_accessibility() -> None:
             assert "prefers-reduced-motion" in page.content()
             page.close()
 
-            for width in (320, 360, 768, 1440):
-                catalog_page = browser.new_page(viewport={"width": width, "height": 900})
-                catalog_page.goto(CATALOG.as_uri(), wait_until="domcontentloaded")
-                catalog_page.locator("#cards .card").first.wait_for()
-                dimensions = catalog_page.locator("body").evaluate(
-                    "body => ({bodyWidth: body.scrollWidth, documentWidth: document.documentElement.scrollWidth, viewport: window.innerWidth})"
-                )
-                assert dimensions["viewport"] == width
-                assert max(dimensions["bodyWidth"], dimensions["documentWidth"]) <= width + 1, (
-                    f"overflow horizontal no catálogo em {width}px: {dimensions}"
-                )
-                assert catalog_page.locator(".catalog-maturity-item").count() == 4
-                catalog_page.close()
+            handler = partial(SimpleHTTPRequestHandler, directory=str(ROOT))
+            server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+            server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+            server_thread.start()
+            try:
+                catalog_url = f"http://127.0.0.1:{server.server_port}/pesquisas.html"
+                for width in (320, 360, 768, 1440):
+                    catalog_page = browser.new_page(viewport={"width": width, "height": 900})
+                    catalog_page.goto(catalog_url, wait_until="domcontentloaded")
+                    catalog_page.locator("#cards .card").first.wait_for()
+                    catalog_page.locator("#archiveStatusGrid .status-card").first.wait_for()
+                    dimensions = catalog_page.locator("body").evaluate(
+                        "body => ({bodyWidth: body.scrollWidth, documentWidth: document.documentElement.scrollWidth, viewport: window.innerWidth})"
+                    )
+                    assert dimensions["viewport"] == width
+                    assert max(dimensions["bodyWidth"], dimensions["documentWidth"]) <= width + 1, (
+                        f"overflow horizontal no catálogo em {width}px: {dimensions}"
+                    )
+                    assert catalog_page.locator(".catalog-maturity-item").count() == 4
+                    assert catalog_page.locator("#archiveStatusGrid .status-card").count() == 6
+                    status_text = catalog_page.locator("#situacao-acervo").inner_text()
+                    assert "304" in status_text
+                    assert "31 pastas" in status_text
+                    assert "5 replays" in status_text
+                    assert "DEGRADED" in status_text
+                    assert "convertida" in status_text
+                    if width == 768:
+                        catalog_page.locator("#situacao-acervo summary").click()
+                        assert catalog_page.locator("#archiveStatusDetails").inner_text().strip()
+                    catalog_page.close()
+            finally:
+                server.shutdown()
+                server.server_close()
+                server_thread.join(timeout=2)
 
             for width in (320, 360, 768, 1440):
                 index_page = browser.new_page(viewport={"width": width, "height": 900})

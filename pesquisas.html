@@ -112,10 +112,28 @@
     .funil-panel h2{margin:0;color:var(--deep);font-size:20px;letter-spacing:-.02em}
     .funil-panel>p{margin:8px 0 16px;color:var(--muted);font-size:14px}
     .funil-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .archive-status{margin:16px 0;background:linear-gradient(135deg,#f0fbf5,#f7f5ff 58%,#fff8ed);border-color:#cfe1d7}
+    .status-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .status-title-row p{max-width:820px}
+    .status-pill{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:5px 10px;border-radius:999px;background:#fff0d5;color:#7b5311;font-size:11px;font-weight:900;letter-spacing:.05em;white-space:nowrap}
+    .status-pill.ok{background:#dff6e9;color:#126146}.status-pill.degraded{background:#fff0d5;color:#7b5311}.status-pill.blocked{background:#ffe8e3;color:#9e3d32}
+    .status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+    .status-card{min-width:0;padding:14px;border:1px solid rgba(177,207,196,.75);border-radius:15px;background:rgba(255,255,255,.78)}
+    .status-card .status-label{display:block;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+    .status-card strong{display:block;margin-top:5px;color:var(--deep);font-size:25px;line-height:1.05;letter-spacing:-.04em}
+    .status-card small{display:block;margin-top:7px;color:var(--muted);font-size:11px;line-height:1.4}
+    .status-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .status-mini{padding:12px 13px;border:1px solid rgba(177,207,196,.75);border-radius:14px;background:rgba(255,255,255,.65)}
+    .status-mini h3{margin:0;color:var(--deep);font-size:13px}.status-mini p{margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.45}
+    .status-detail{margin-top:12px;padding:10px 12px;border:1px dashed #b7d1c8;border-radius:12px;background:rgba(255,255,255,.55);color:var(--muted);font-size:12px}
+    .status-detail summary{cursor:pointer;color:var(--deep-2);font-weight:850}.status-detail ul{margin:9px 0 0;padding-left:18px}.status-detail li+li{margin-top:4px}
+    .status-link{color:var(--deep-2);font-weight:850;text-decoration:underline;text-underline-offset:2px}
+    .status-loading{color:var(--muted)}
     .live-dot:before{background:#8b74dd;box-shadow:0 0 0 5px rgba(139,116,221,.15)}
     .catalog-maturity-item.validated{border-color:#d7e1e2;background:#f7f8f8}
     @media(max-width:900px){.cards,.funil-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.context,.how{grid-template-columns:1fr}}
-    @media(max-width:650px){.shell{padding:12px 12px 30px}.hero{padding:22px 20px;border-radius:22px}.topline{align-items:flex-start;flex-direction:column;margin-bottom:24px}.hero-links{justify-content:flex-start}.hero-copy{font-size:15px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:14px}.metric b{font-size:23px}.reading-grid,.steps{grid-template-columns:1fr}.library,.panel,.funil-panel{padding:16px}.funil-grid{grid-template-columns:1fr}.section-head{display:block}.live-dot{margin-top:10px}.search-row{grid-template-columns:1fr}.toolbar{position:static}.cards{grid-template-columns:1fr}.card{padding:15px}.result-line{align-items:flex-start;flex-direction:column}.pagination{gap:6px;justify-content:space-between}.pagination button{min-width:0;flex:1;padding-left:5px;padding-right:5px;font-size:11px}.page-status{min-width:84px}.agenda-panel{display:grid}.agenda-panel-actions{min-width:0}.catalog-maturity-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:650px){.shell{padding:12px 12px 30px}.hero{padding:22px 20px;border-radius:22px}.topline{align-items:flex-start;flex-direction:column;margin-bottom:24px}.hero-links{justify-content:flex-start}.hero-copy{font-size:15px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:14px}.metric b{font-size:23px}.reading-grid,.steps{grid-template-columns:1fr}.library,.panel,.funil-panel{padding:16px}.funil-grid{grid-template-columns:1fr}.section-head{display:block}.live-dot{margin-top:10px}.search-row{grid-template-columns:1fr}.toolbar{position:static}.cards{grid-template-columns:1fr}.card{padding:15px}.result-line{align-items:flex-start;flex-direction:column}.pagination{gap:6px;justify-content:space-between}.pagination button{min-width:0;flex:1;padding-left:5px;padding-right:5px;font-size:11px}.page-status{min-width:84px}.agenda-panel{display:grid}.agenda-panel-actions{min-width:0}.catalog-maturity-grid{grid-template-columns:1fr 1fr}.status-title-row,.status-split{display:grid;grid-template-columns:1fr}.status-pill{justify-self:start}.status-grid{grid-template-columns:1fr 1fr}.status-card strong{font-size:22px}}
+    @media(max-width:420px){.status-grid{grid-template-columns:1fr}.status-card strong{font-size:24px}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.card{transition:none}.card:hover{transform:none}}
   </style>
 </head>
@@ -144,7 +162,7 @@
       <div class="funil-grid">
         <a class="funil-card" href="dashboard_bacia.html"><b>1. Agora na bacia</b><span>Nível, chuva e score experimental. Sem probabilidade conjunta e sem VAI/NÃO VAI.</span><small>abrir dashboard →</small></a>
         <a class="funil-card" href="pesquisa_status.html"><b>2. Ficha do município</b><span>Santa Tereza e Muçum em abas. UNKNOWN quando o feed atrasar. Score, não binário.</span><small>Santa Tereza · Muçum →</small></a>
-        <a class="funil-card" href="santa_tereza_previsao_inundacao.html"><b>3. Mapa da cidade</b><span>Mancha HAND é proxy de leito. Cota oficial: 15 m em ST, 18 m em Muçum.</span><small>mapa preliminar →</small></a>
+        <a class="funil-card" href="santa_tereza_previsao_inundacao.html"><b>3. Mapa da cidade</b><span>Contornos publicados: 15 m em Santa Tereza e 18/20/25 m em Muçum. A conversão cota–MDT ainda está pendente.</span><small>mapa preliminar →</small></a>
         <a class="funil-card" href="vulnerabilidade.html"><b>4. Pessoas no recorte</b><span>Censo 2022. Vulnerabilidade não é risco até cruzar mancha validada.</span><small>abrir exposição →</small></a>
         <a class="funil-card" href="pesquisas/estudo-caso-resposta-santa-tereza.html"><b>5. Mesa Santa Tereza</b><span>Sala V002, checklist 0/7, ginásio sem capacidade. Exercício, não despacho.</span><small>abrir exercício →</small></a>
         <a class="funil-card" href="pesquisas/briefing-gestores.html"><b>6. Briefing A4</b><span>Uma folha para imprimir ou copiar: o que é, o que não é, o que pedir na mesa.</span><small>imprimir briefing →</small></a>
@@ -156,6 +174,39 @@
       <div class="metric"><b id="metricTopics">—</b><span>frentes de pesquisa</span></div>
       <div class="metric"><b id="metricSite">—</b><span>entradas com página principal</span></div>
       <div class="metric"><b>29/08</b><span>última revisão deste catálogo · 2026</span></div>
+    </section>
+
+    <section class="panel archive-status" id="situacao-acervo" aria-labelledby="situacao-acervo-title">
+      <div class="status-title-row">
+        <div>
+          <div class="mini-title">estado consolidado · fonte única</div>
+          <h2 id="situacao-acervo-title" style="margin-top:5px">O que está pronto para ler — e o que ainda está pendente</h2>
+          <p>Os números abaixo preservam o recorte de cada camada: modelos qualificados, esforço histórico, páginas, replays, cenário espacial e HEC-HMS. Atualizado pelo manifesto de pesquisa; não é telemetria operacional.</p>
+        </div>
+        <span class="status-pill" id="archiveStatusPill">carregando</span>
+      </div>
+      <div class="status-grid" id="archiveStatusGrid" aria-live="polite">
+        <div class="status-card status-loading"><span class="status-label">modelos qualificados</span><strong>—</strong><small>carregando manifesto…</small></div>
+        <div class="status-card status-loading"><span class="status-label">rodadas históricas</span><strong>—</strong><small>carregando manifesto…</small></div>
+        <div class="status-card status-loading"><span class="status-label">replay integrado</span><strong>—</strong><small>carregando manifesto…</small></div>
+        <div class="status-card status-loading"><span class="status-label">qualidade do acervo</span><strong>—</strong><small>carregando manifesto…</small></div>
+        <div class="status-card status-loading"><span class="status-label">HEC-HMS</span><strong>—</strong><small>carregando manifesto…</small></div>
+        <div class="status-card status-loading"><span class="status-label">resposta documental</span><strong>—</strong><small>carregando manifesto…</small></div>
+      </div>
+      <div class="status-split">
+        <article class="status-mini">
+          <h3>Recorte espacial publicado</h3>
+          <p id="archiveSpatialSummary" class="status-loading">Carregando cenários…</p>
+        </article>
+        <article class="status-mini">
+          <h3>Próxima pendência que destrava a pesquisa</h3>
+          <p id="archiveNextGate" class="status-loading">Carregando gates…</p>
+        </article>
+      </div>
+      <details class="status-detail">
+        <summary>Ver definições, problemas conhecidos e fontes</summary>
+        <div id="archiveStatusDetails" class="status-loading">Carregando evidências…</div>
+      </details>
     </section>
 
     <section class="context" aria-label="Como usar o arquivo">
@@ -240,8 +291,7 @@
           <button class="filter" type="button" data-category="Publicados" aria-pressed="false">Páginas principais</button>
         </div>
       </div>
-      <div class="result-line" aria-live="polite"><span id="resultsMeta">Carregando…</span><span>59 entradas do catálogo · duplicatas, backups e clones ficam fora da contagem</span></div>
-      <div class="cards" id="cards" tabindex="-1"></div>
+      <div class="result-line" aria-live="polite"><span id="resultsMeta">Carregando…</span><span><a class="status-link" href="#situacao-acervo">ver situação do acervo</a> · 59 entradas · duplicatas, backups e clones ficam fora da contagem</span></div>      <div class="cards" id="cards" tabindex="-1"></div>
       <div class="empty" id="empty" hidden><strong>Nenhum caminho encontrado.</strong>Tente outra palavra ou limpe os filtros.</div>
       <nav id="pagination" class="pagination" aria-label="Paginação do acervo" hidden>
         <button id="previousPage" type="button">← anterior</button>
@@ -268,10 +318,79 @@
     </section>
 
     <footer class="footer">
-      Revisado em 04/09/2026. As 59 entradas do catálogo reúnem páginas distintas encontradas no acervo local; o filtro “Publicada no site” conta somente entradas com página principal. Duplicatas, backups e clones ficam fora da contagem. <a href="index.html">Voltar ao feed das redes neurais →</a>
-    </footer>
+      Revisado em 04/09/2026. As 59 entradas do catálogo reúnem páginas distintas encontradas no acervo local; o manifesto “Estado consolidado” separa páginas, modelos, rodadas, eventos e gates. Duplicatas, backups e clones ficam fora da contagem. <a href="index.html">Voltar ao feed das redes neurais →</a>    </footer>
   </div>
 
+  <script>
+    (function(){
+      const manifestPath = "assets/data/research_catalog_status_latest.json";
+      const pill = document.getElementById("archiveStatusPill");
+      const grid = document.getElementById("archiveStatusGrid");
+      const spatial = document.getElementById("archiveSpatialSummary");
+      const nextGate = document.getElementById("archiveNextGate");
+      const details = document.getElementById("archiveStatusDetails");
+      const fmt = value => value == null ? "—" : new Intl.NumberFormat("pt-BR").format(value);
+      const cityName = city => city === "santa_tereza" ? "Santa Tereza" : "Muçum";
+      const formatUtc = value => {
+        if (!value) return "sem data";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value);
+        return new Intl.DateTimeFormat("pt-BR", {dateStyle:"short", timeStyle:"short", timeZone:"America/Sao_Paulo"}).format(date) + " BRT";
+      };
+      const textNode = (tag, text) => { const node = document.createElement(tag); node.textContent = text; return node; };
+      function setPill(label, state){ pill.textContent = label; pill.className = "status-pill " + (state || ""); }
+      function renderStatus(data){
+        const models = data.models || {};
+        const rounds = data.rounds || {};
+        const catalogue = data.catalogue || {};
+        const events = data.events || {};
+        const quality = data.data_quality || {};
+        const hec = data.hec_hms || {};
+        const response = data.response || {};
+        const status = String(quality.status || "unknown").toUpperCase();
+        setPill(status === "DEGRADED" ? "qualidade · DEGRADED" : status, status === "DEGRADED" ? "degraded" : "");
+        const muc = (response.by_city || {}).mucum || {};
+        const st = (response.by_city || {}).santa_tereza || {};
+        const stModels = (models.by_city || {}).santa_tereza || {};
+        const mucModels = (models.by_city || {}).mucum || {};
+        const cards = [
+          ["modelos qualificados", fmt(models.qualified_total), `${fmt(stModels.qualified_models)} Santa Tereza · ${fmt(mucModels.qualified_models)} Muçum`],
+          ["rodadas históricas", `${fmt(rounds.round_folders)} pastas`, `${fmt(rounds.distinct_days)} dias distintos · esforço de processo; não é quantidade de modelos`],
+          ["replay integrado", `${fmt(events.published_replay_cases)} caso`, `Muçum ${fmt((events.catalog_events || {}).mucum)} eventos no catálogo · Santa Tereza 8/12 h pendente`],
+          ["qualidade do acervo", status, `${fmt((quality.issues || []).length)} problemas registrados · referência ${formatUtc(quality.checked_reference_utc)}`],
+          ["HEC-HMS", `${fmt(hec.scored_event_count)} replays`, `${fmt((hec.complete_three_incremental_area_events || []).length)} evento com 3 áreas incrementais completas · não promovido`],
+          ["resposta documental", "bloqueada", `Muçum ${fmt(muc.shelters_count)} abrigos / ${fmt(muc.routes_in_plan_count)} rotas · ST ${fmt(st.shelters_count)} abrigo / ${fmt(st.routes_in_plan_count)} rotas`]
+        ];
+        grid.innerHTML = cards.map(item => `<div class="status-card"><span class="status-label">${item[0]}</span><strong>${item[1]}</strong><small>${item[2]}</small></div>`).join("");
+        const spatialCities = (data.spatial || {}).by_city || {};
+        const spatialParts = Object.entries(spatialCities).map(([city, item]) => `${cityName(city)}: ${((item.published_level_range_m || []).join("–"))} m publicados`).join(" · ");
+        spatial.textContent = `${spatialParts}. É cenário de contorno, não cota oficial convertida nem rota.`;
+        const pending = (quality.basin_gates || []).filter(item => item.status === "pending");
+        nextGate.textContent = pending.length ? `${pending[0].id}: ${pending[0].reason}` : "Nenhum gate pendente foi informado no manifesto.";
+        details.innerHTML = "";
+        const intro = textNode("p", `Gerado em ${formatUtc(data.generated_at_utc)}. ${data.purpose || ""}`); details.appendChild(intro);
+        const defs = document.createElement("ul");
+        [models.definition, rounds.definition, catalogue.definition, (data.spatial || {}).definition, hec.definition, response.definition].filter(Boolean).forEach(item => defs.appendChild(textNode("li", item)));
+        details.appendChild(defs);
+        const issueList = document.createElement("p");
+        issueList.appendChild(textNode("strong", "Problemas: "));
+        issueList.appendChild(textNode("span", (quality.issues || []).map(item => item.code).join(" · ") || "nenhum listado"));
+        details.appendChild(issueList);
+        const sourceList = document.createElement("p");
+        sourceList.appendChild(textNode("strong", "Fontes: "));
+        sourceList.appendChild(textNode("span", (data.sources || []).join(" · ")));
+        details.appendChild(sourceList);
+        spatial.classList.remove("status-loading"); nextGate.classList.remove("status-loading"); details.classList.remove("status-loading");
+      }
+      fetch(manifestPath,{cache:"no-store"}).then(response => { if(!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); }).then(renderStatus).catch(error => {
+        setPill("manifesto indisponível", "blocked");
+        grid.innerHTML = `<div class="status-card"><span class="status-label">estado do acervo</span><strong>—</strong><small>Não foi possível carregar ${manifestPath}: ${String(error.message || error)}</small></div>`;
+        spatial.textContent = "Estado espacial indisponível até a fonte ser carregada.";
+        nextGate.textContent = "Estado dos gates indisponível até a fonte ser carregada.";
+        details.textContent = "Sem manifesto carregado; os números não foram substituídos por fallback.";
+      });
+    })();
+  </script>
   <script>
     const entries = [
       {title:"Briefing para gestores · A4",category:"Resposta",status:"estudo",description:"One-pager para reunião: quatro camadas, URLs canônicas, o que pedir na mesa e o que não promover.",caveat:"Folha de pesquisa; não é alerta, rota liberada ou autorização de despacho.",href:"pesquisas/briefing-gestores.html",source:"pacote gestores 02/09/2026"},

@@ -172,6 +172,36 @@
     const rows = Array.isArray(station && station.horizons) ? station.horizons : [];
     return rows.find((row) => Number(row.hours) === Number(hours)) || null;
   }
+  function liveRowsFor(key) {
+    const feedKey = key === 'santa_tereza' ? 'santa' : key;
+    const live = stationFeed(feedKey).live || {};
+    const horizons = live.horizontes && typeof live.horizontes === 'object' ? live.horizontes : {};
+    return Object.entries(horizons).map(([name, row]) => {
+      const item = row && typeof row === 'object' ? row : {};
+      const match = String(name).match(/^(\d+)/);
+      const hours = Number(item.horizonte_h ?? (match ? match[1] : NaN));
+      const level = num(item.nivel_previsto_cm);
+      const available = item.disponivel !== false && level != null;
+      const role = item.modelo_papel || (/versao_b|sombra|comparativo/i.test(name) ? 'comparativo' : 'principal');
+      const quality = item.qualidade_ao_vivo && item.qualidade_ao_vivo.status
+        ? item.qualidade_ao_vivo.status
+        : /atencao/i.test(String(item.status || '')) ? 'ATENCAO' : 'NORMAL';
+      return {
+        key: name,
+        hours,
+        role,
+        level_forecast_cm: level,
+        available,
+        quality_status: quality,
+        status: item.status || (available ? 'ok' : 'indisponível'),
+      };
+    }).filter((item) => Number.isFinite(item.hours)).sort((a, b) => a.hours - b.hours || a.key.localeCompare(b.key));
+  }
+  function liveGeneratedFor(key) {
+    const feedKey = key === 'santa_tereza' ? 'santa' : key;
+    const live = stationFeed(feedKey).live || {};
+    return live.gerado_em_utc || live.gerado_em || live.consultado_em_utc || live.consultado_em || null;
+  }
   function researchStateLabel(value) {
     if (value === 'fresh' || value === 'current_window') return 'atualizado';
     if (value === 'stale') return 'atrasado';
@@ -216,7 +246,20 @@
     const h = state.horizon;
     grid.innerHTML = keys.map((key) => {
       const item = researchStation(key) || {}; const row = researchRow(key, h) || {}; const rain = row.rain || {}; const head = rain.headwater || {}; const risk = row.risk || {}; const current = item.current || {};
-      const short = Array.isArray(item.short_forecasts) && item.short_forecasts.length ? item.short_forecasts.map((f) => `+${f.hours} h: ${fmt(f.level_forecast_cm, 0)} cm`).join(' · ') : 'previsão curta sem valor';
+      // The integrated research feed is a reproducible snapshot, but the
+      // station JSON is the direct owner of the current short-horizon robot.
+      // Prefer the direct feed when it exists so this card cannot show an old
+      // +2/+4 h value beside a newer observed level.
+      const directLiveRows = liveRowsFor(key);
+      const liveRows = directLiveRows.length ? directLiveRows : (Array.isArray(item.live_horizons) ? item.live_horizons : []);
+      const short = liveRows.length
+        ? liveRows.map((f) => {
+          const label = f.role === 'comparativo' || f.role === 'sombra_experimental' ? ' (comparativo)' : '';
+          const value = f.available ? `${fmt(f.level_forecast_cm, 0)} cm` : 'indisponível';
+          const quality = f.quality_status && f.quality_status !== 'NORMAL' ? ` · ${f.quality_status}` : '';
+          return `+${f.hours} h${label}: ${value}${quality}`;
+        }).join(' · ')
+        : 'previsão curta sem valor';
       const headValue = head.mean_mm == null ? '—' : `${fmt(head.mean_mm, 1)} mm`;
       const headNote = head.max_mm == null ? 'sem máximo publicado' : `máx. ${fmt(head.max_mm, 1)} mm · ${head.status === 'shared_santa_reference' ? 'proxy compartilhada' : 'células monitoradas'}`;
       const point = rain.point_mm != null ? `${fmt(rain.point_mm, 1)} mm` : rain.ifs_direct_mm != null ? `${fmt(rain.ifs_direct_mm, 1)} mm` : '—';
@@ -233,7 +276,7 @@
           ${researchMetric('Chuva no ponto', point, `acumulado previsto · +${h} h`, 'forecast')}
           ${researchMetric('Cruzamento da cota', prob, probNote, 'risk')}
         </div>
-        <p class="research-context-short"><strong>Robô ao vivo:</strong> ${esc(short)}.</p>
+        <p class="research-context-short"><strong>Robô ao vivo:</strong> ${esc(short)}. <span class="research-context-live-source">${esc(directLiveRows.length ? `feed direto · gerado em ${when(liveGeneratedFor(key))}` : 'snapshot integrado · horário da rodada acima')}</span></p>
         <p class="research-context-source"><strong>Fonte:</strong> ${esc(item.forecast && item.forecast.provider || 'não informada')} · feed ${esc(researchStateLabel(item.forecast && item.forecast.state))} (${esc(when(item.forecast && item.forecast.generated_at_utc))}).</p>
         ${head.status === 'shared_santa_reference' ? '<p class="research-context-warning">Muçum ainda não tem máscara hidrológica independente; este agregado é uma referência compartilhada dos pontos monitorados a montante, não a média da bacia de Muçum.</p>' : '<p class="research-context-warning">O agregado espacial resume pontos monitorados a montante; não é uma média ponderada de toda a bacia.</p>'}
       </article>`;

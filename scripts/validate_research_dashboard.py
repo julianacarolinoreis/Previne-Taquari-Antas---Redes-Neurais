@@ -40,6 +40,21 @@ BASIN_ASSETS = (
 )
 REQUIRED_HORIZONS = (24, 48, 72, 120, 168)
 SANTA_WEATHER_HORIZONS = (24, 48, 72, 96, 120, 168)
+TEXT_HASH_SUFFIXES = {
+    ".css",
+    ".csv",
+    ".geojson",
+    ".html",
+    ".js",
+    ".json",
+    ".md",
+    ".py",
+    ".svg",
+    ".txt",
+    ".xml",
+    ".yml",
+    ".yaml",
+}
 
 
 class IdParser(HTMLParser):
@@ -70,7 +85,12 @@ def parse_time(value: object) -> datetime | None:
 
 
 def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    # Keep provenance stable across the LF checkout used by Actions and the
+    # CRLF working tree normally used on Windows.  Never normalize binaries.
+    data = path.read_bytes()
+    if path.suffix.lower() in TEXT_HASH_SUFFIXES:
+        data = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(data).hexdigest()
 
 
 def load_json(path: Path, errors: list[dict]) -> dict | None:

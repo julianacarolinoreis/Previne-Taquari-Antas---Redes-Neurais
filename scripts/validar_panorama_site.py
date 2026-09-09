@@ -76,6 +76,8 @@ def validar_html(nome: str, esperado: dict[str, str]) -> None:
         "overview-week-status",
         "overview-legend",
         "overview-metrics",
+        "hydro",
+        "hydro-accessible",
     ):
         assert required in parser.ids, f"{nome}: falta #{required}"
     assert "assets/previsao_panorama.css" in parser.stylesheets, f"{nome}: CSS do panorama ausente"
@@ -92,6 +94,11 @@ def validar_html(nome: str, esperado: dict[str, str]) -> None:
     assert "Panorama Geral" in texto
     assert "Nível do rio nos últimos 7 dias" in texto
     assert "proxy de extravasamento" in texto
+    assert 'role="img" aria-label="Hidrograma do evento' in texto, f"{nome}: hidrograma sem nome acessível"
+    assert 'aria-describedby="hydro-accessible"' in texto, f"{nome}: hidrograma sem descrição acessível"
+    assert "document.getElementById('hydro').addEventListener('keydown'" in texto, f"{nome}: hidrograma sem navegação por teclado"
+    if nome == "mucum_previsao_inundacao.html":
+        assert "MAE é o erro absoluto médio e não tem sinal" in texto, f"{nome}: definição de MAE/viés ausente"
     assert "contornos_mancha.json';" not in texto, f"{nome}: ainda usa a mancha que inclui o leito"
     assert len(re.findall(r'id="play"', texto)) == 1, f"{nome}: controle play duplicado"
     assert len(re.findall(r'id="time"', texto)) == 1, f"{nome}: linha do tempo duplicada"
