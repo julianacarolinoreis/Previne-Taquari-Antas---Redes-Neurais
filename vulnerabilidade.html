@@ -90,6 +90,21 @@
   .map-empty-state[hidden]{display:none!important}
   .map-empty-state b{display:block;color:#8a5a12;margin-bottom:2px}
   #map.popup-open .map-empty-state{bottom:88px}
+  .map-breadcrumb{margin:0 0 10px;padding:8px 10px;border:1px solid #b9d8c6;border-radius:10px;background:#f2faf5}
+  .map-breadcrumb ol{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;margin:0;padding:0;list-style:none;font-size:12px}
+  .map-breadcrumb li{display:inline-flex;align-items:center;gap:6px;color:var(--muted);max-width:100%}
+  .map-breadcrumb li:not(:last-child)::after{content:"›";color:#9ab0a2;margin-left:2px}
+  .map-breadcrumb button,.map-breadcrumb span{border:0;background:transparent;color:var(--brand);font:inherit;font-weight:750;padding:0;cursor:pointer;text-align:left}
+  .map-breadcrumb li:last-child button,.map-breadcrumb li:last-child span{color:var(--ink);cursor:default}
+  .mun-download-panel{margin:0 0 10px;padding:10px;border:1px solid #9fcab0;border-radius:10px;background:#eef8f2}
+  .mun-download-panel[hidden]{display:none!important}
+  .mun-download-panel .q{margin-top:0;color:var(--brand)}
+  .mun-download-panel .export-filter{display:flex;align-items:flex-start;gap:8px;margin:6px 0 8px;font-size:12px;color:var(--ink);line-height:1.35}
+  .mun-download-panel .export-filter input{margin-top:2px}
+  .mun-download-panel .download-links{display:grid;gap:5px;margin-top:8px}
+  .mun-download-panel .download-links a{display:block;padding:7px 9px;border:1px solid #b9d8c6;border-radius:8px;background:#fff;color:var(--brand);font-size:12px;font-weight:700;text-decoration:none}
+  .mun-download-panel .download-links a:hover{border-color:var(--brand)}
+  .mancha-ref-note{font-size:11.5px;color:var(--muted);line-height:1.4;margin:4px 0 0}
   .reading-card{margin:8px 0 10px;padding:10px 11px;border:1px solid #b9d8c6;border-radius:10px;background:#f2faf5}
   .reading-card[hidden]{display:none!important}
   .reading-card .reading-kicker{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--brand);font-weight:800;margin:0 0 4px}
@@ -605,6 +620,13 @@
       <b>Vulnerabilidade social &ne; perigo &ne; risco.</b>
       Aqui você vê <b>quem</b> pode sofrer mais (pessoas e domicílios), a <b>exposição</b> (quanto há no lugar) e a <b>capacidade</b> municipal de gestão. Perigo é a ameaça física de cheia; risco só existe ao cruzar vulnerabilidade com uma mancha ou cota validada — ainda em fase seguinte do PREVINE.
     </div>
+    <nav class="map-breadcrumb" id="mapBreadcrumb" aria-label="Onde você está no mapa">
+      <ol>
+        <li><button type="button" id="bcBacia" title="Voltar aos municípios da bacia">Bacia Taquari-Antas</button></li>
+        <li id="bcMunWrap" hidden><button type="button" id="bcMun">Município</button></li>
+        <li><span id="bcInd">Indicador</span></li>
+      </ol>
+    </nav>
     <div class="research-banner" role="note"><b>Modo pesquisa:</b> consulte e compare dados. Esta página não é alerta, classificação de risco nem recomendação operacional.</div>
     <div class="dataset-strip" id="datasetStrip" role="group" aria-label="Resumo do conjunto de dados">
       <div class="dataset-stat"><b id="summaryMunicipios">118</b><span>municípios</span></div>
@@ -783,8 +805,23 @@
       <span><i style="background:#f59e0b"></i>risco alto</span>
     </div>
     <div class="svc-note">SGB, levantamento de 2025: 37 setores de risco setorizado somente em Santa Tereza. A camada mostra tipologia e grau do setor; não é mancha contínua nem inventário regional. Fora deles, ausência de polígono não significa ausência de perigo.</div>
+    <div class="ind" id="manchaRefBox" hidden role="group" aria-label="Mancha de inundação de referência">
+      <button type="button" id="manchaRefBtn" aria-pressed="false">Sobrepor mancha preliminar</button>
+      <p class="mancha-ref-note" id="manchaRefNota">Disponível em Santa Tereza e Muçum como referência hidrológica — não é risco cruzado nem alerta.</p>
+    </div>
 
     <div class="q" id="downloadAnchor">Baixar e compartilhar</div>
+    <div class="mun-download-panel" id="munDownloadPanel" hidden>
+      <div class="q" id="munDownloadTitle">Baixar este município</div>
+      <div class="download-meta" id="munDownloadMeta" role="note">Abra um município para baixar CSV, GeoJSON ou o pacote ZIP só dele.</div>
+      <label class="export-filter" for="exportSoNaBacia"><input type="checkbox" id="exportSoNaBacia"> <span>Exportar só unidades com <code>na_bacia=1</code> (dentro do limite da bacia)</span></label>
+      <div class="tool-grid">
+        <button class="baixar" id="baixarMunCsv" type="button">⬇ CSV deste município</button>
+        <button class="baixar" id="baixarMunGeo" type="button">⬇ GeoJSON deste município</button>
+        <button class="baixar wide" id="baixarMunZip" type="button">⬇ Pacote ZIP deste município</button>
+      </div>
+      <div class="download-links" id="munDownloadLinks"></div>
+    </div>
     <div class="download-meta vista-meta" id="downloadVistaMeta" role="note">Aguardando a vista atual para informar quantos registros serão exportados.</div>
     <div class="download-status" id="downloadStatus" aria-hidden="true"></div>
     <div class="tool-grid">
@@ -796,7 +833,7 @@
     <details class="download-center">
       <summary>Dados combinados da bacia</summary>
       <div class="download-links">
-        <div class="download-meta"><b>Escolha rápida:</b> “CSV da vista” é o recorte atual; este bloco traz o pacote completo para análise no QGIS/ArcGIS ou planilha.</div>
+        <div class="download-meta"><b>Escolha rápida:</b> com um município aberto, use “Baixar este município” acima. Este bloco é o pacote completo da bacia para QGIS/ArcGIS ou planilha.</div>
         <a href="assets/data/vulnerabilidade/downloads/dados_combinados_taquari_antas.zip" download>Pacote completo · ZIP (21,9 MB)</a>
         <a href="assets/data/vulnerabilidade/downloads/shapefiles_arcgis_qgis.zip" download>Camadas para ArcGIS/QGIS · Shapefile ZIP (7,2 MB)</a>
         <a href="assets/data/vulnerabilidade/downloads/geopackage_arcgis_qgis.zip" download>Camadas para QGIS/ArcGIS Pro · GeoPackage ZIP (8,1 MB)</a>
@@ -807,6 +844,7 @@
         <a href="assets/data/vulnerabilidade/downloads/grade_200m_na_bacia_combinada.csv" download>Grade IBGE 2022 (200 m urbano / 1 km rural) dentro da bacia · CSV</a>
         <span class="download-meta">O CSV mantém as células 200M e 1KME; o identificador e a resolução de cada célula ficam na tabela e no GeoJSON do pacote completo.</span>
         <a href="assets/data/vulnerabilidade/downloads/municipios_combinados.csv" download>Municípios combinados · CSV</a>
+        <a href="assets/data/vulnerabilidade/downloads/municipios_combinados.geojson" download>Municípios combinados · GeoJSON</a>
         <div class="download-meta"><b>Agregados oficiais IBGE/SIDRA · 118 municípios</b> — indicadores municipais, não recorte setorial na bacia.</div>
         <a href="assets/data/vulnerabilidade/downloads/Agregados_taquari_pessoa.csv" download>Agregados Taquari · pessoas · CSV</a>
         <a href="assets/data/vulnerabilidade/downloads/Agregados_taquari_domicilio.csv" download>Agregados Taquari · domicílios · CSV</a>
@@ -1033,6 +1071,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"
         onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';this.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';this.crossOrigin='anonymous'"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
 <script>
 // O cabeçalho fica acima do mapa; esta margem impede que popups longos sejam
 // automaticamente posicionados por trás dele.
@@ -1336,9 +1375,12 @@ function atualizaDownloads(){
   // IEDE/ICM são camadas auxiliares e não devem bloquear CSV/GeoJSON.
   const pronto = !!munData;
   const completo = pronto && servicosOk && icmOk;
-  document.getElementById("baixar").disabled = !pronto;
-  document.getElementById("baixarGeo").disabled = !pronto;
+  const btnCsv=document.getElementById("baixar");
+  const btnGeo=document.getElementById("baixarGeo");
+  if(btnCsv){ btnCsv.disabled = !pronto; btnCsv.textContent = munAtual ? `⬇ CSV · ${munAtual.nome}` : "⬇ CSV da vista (bacia)"; }
+  if(btnGeo){ btnGeo.disabled = !pronto; btnGeo.textContent = munAtual ? `⬇ GeoJSON · ${munAtual.nome}` : "⬇ GeoJSON da vista (bacia)"; }
   atualizaDownloadVistaMeta();
+  atualizaPainelTerritorial();
   if (pronto && servicosResolvidos && icmResolvido && !completo){
     mostraErroDependencia("Uma camada auxiliar não carregou; CSV/GeoJSON da vista continuam disponíveis, mas sem os dados dessa camada.");
   } else if (pronto && !document.getElementById("status").textContent) informa("Vista atual pronta para exportar.");
@@ -1347,10 +1389,14 @@ function atualizaDownloadVistaMeta(){
   const el=document.getElementById("downloadVistaMeta");
   if(!el) return;
   if(!munData){ el.textContent="Aguardando a vista atual para informar quantos registros serão exportados."; return; }
-  const n=typeof camadasVisiveis === "function" ? camadasVisiveis().length : 0;
+  const vista=typeof dadosDaVista === "function" ? dadosDaVista() : null;
+  const n=vista?.features?.length ?? (typeof camadasVisiveis === "function" ? camadasVisiveis().length : 0);
   const unidade=munAtual ? (camada === "grade" ? "células da Grade IBGE (200 m urbano / 1 km rural)" : "setores censitários") : "municípios";
+  const filtro=munAtual && exportSoNaBacia ? " · filtro na_bacia=1" : "";
   const selecao=selectionLayers?.length ? ` · ${fmt(selectionLayers.length)} na seleção` : "";
-  el.textContent=`Vista atual: ${fmt(n)} ${unidade} disponíveis para CSV/GeoJSON${selecao}. O arquivo mantém a fonte, a unidade e o escopo.`;
+  el.textContent=munAtual
+    ? `Município aberto: ${munAtual.nome} · ${fmt(n)} ${unidade} para CSV/GeoJSON/ZIP${filtro}${selecao}.`
+    : `Vista da bacia: ${fmt(n)} ${unidade} disponíveis para CSV/GeoJSON${selecao}. Abra um município para baixar só ele.`;
 }
 document.getElementById("tentarDependencias")?.addEventListener("click",()=>{ cacheJSON.clear(); location.reload(); });
 document.querySelectorAll(".download-links a[download]").forEach(link=>{
@@ -1983,6 +2029,7 @@ function abreMunicipio(cod){
     restauraSelecaoURL();
     document.getElementById("busca").value = String(cod);
     sincronizaURL();
+    atualizaDownloads();
     if (detalheFocoPendente){
       detalheFocoPendente = false;
       requestAnimationFrame(()=>document.querySelector(`#camadas button[data-c="${camada}"]`)?.focus({preventScroll:true}));
@@ -2017,7 +2064,9 @@ function voltaBacia(){
   map.fitBounds(munLayer.getBounds(), {padding:[10,10]});
   atualizaEscolhaZoom?.();
   document.getElementById("busca").value = "";
+  desligaManchaRef();
   sincronizaURL();
+  atualizaDownloads();
   if (devolverFoco) requestAnimationFrame(()=>document.getElementById("ind")?.focus({preventScroll:true}));
 }
 
@@ -2391,6 +2440,7 @@ function sincronizaApoiosMapa(){
   atualizaLeituraMunicipio();
   atualizaStartHere();
   atualizaDownloadVistaMeta();
+  if (typeof atualizaPainelTerritorial === "function") atualizaPainelTerritorial();
 }
 function aplicaPaletaDaltonismo(liga){
   CORES = liga ? CORES_DALTONISMO.slice() : CORES_PADRAO.slice();
@@ -3249,15 +3299,172 @@ function contextoMunicipioAtual(){
 function dadosDaVista(){
   if (munAtual && setLayer){
     const ctx = contextoMunicipioAtual();
-    const features = setLayer.getLayers().map(l=>({
+    let layers = setLayer.getLayers();
+    if (exportSoNaBacia){
+      layers = layers.filter(l=>Number(l.feature?.properties?.na_bacia)===1);
+    }
+    const features = layers.map(l=>({
       type:"Feature", geometry:l.feature.geometry, properties:{...l.feature.properties, ...ctx}
     }));
-    return {features, prefixo:`${camada}_${munAtual.cod_mun}_${munAtual.nome.normalize("NFD").replace(/[^\w]/g,"_")}`};
+    const sufixo = exportSoNaBacia ? "_na_bacia" : "";
+    return {features, prefixo:`${camada}_${munAtual.cod_mun}_${slugLocal(munAtual.nome)}${sufixo}`};
   }
   return {features:munData.features.map(f=>({type:"Feature",geometry:f.geometry,properties:{...f.properties}})),
           prefixo:"municipios_bacia_taquari_antas"};
 }
 
+let exportSoNaBacia = false;
+let manchaRefLayer = null;
+let manchaRefAtiva = false;
+const MANCHA_REF = {
+  "4317251": {
+    nome: "Santa Tereza",
+    url: "assets/data/santa_tereza_inundacao/mancha_preliminar_santa_tereza.geojson",
+    pagina: "santa_tereza_inundacao.html",
+    nota: "Mancha preliminar de Santa Tereza (referência). Não é cruzamento de risco nem alerta."
+  },
+  "4312609": {
+    nome: "Muçum",
+    url: "assets/data/mucum_inundacao/mancha_referencia_mucum.geojson",
+    pagina: "mucum_inundacao.html",
+    nota: "Contorno HAND de referência em Muçum (~12,5 m). Para a mancha interativa por cota, abra o mapa de inundação."
+  }
+};
+
+function atualizaBreadcrumb(){
+  const munWrap=document.getElementById("bcMunWrap");
+  const munBtn=document.getElementById("bcMun");
+  const indEl=document.getElementById("bcInd");
+  const d=INDS.find(i=>i.k===ind);
+  if(munWrap && munBtn){
+    if(munAtual){
+      munWrap.hidden=false;
+      munBtn.textContent=`${munAtual.nome} · ${camada==="grade"?"Grade IBGE":"setores"}`;
+    } else {
+      munWrap.hidden=true;
+    }
+  }
+  if(indEl) indEl.textContent = d?.nome || ind;
+}
+function atualizaPainelTerritorial(){
+  const panel=document.getElementById("munDownloadPanel");
+  const title=document.getElementById("munDownloadTitle");
+  const meta=document.getElementById("munDownloadMeta");
+  const links=document.getElementById("munDownloadLinks");
+  const box=document.getElementById("manchaRefBox");
+  const btnMancha=document.getElementById("manchaRefBtn");
+  const notaMancha=document.getElementById("manchaRefNota");
+  atualizaBreadcrumb();
+  if(!panel) return;
+  if(!munAtual){
+    panel.hidden=true;
+    if(box) box.hidden=true;
+    if(manchaRefAtiva) desligaManchaRef();
+    return;
+  }
+  panel.hidden=false;
+  if(title) title.textContent=`Baixar ${munAtual.nome}`;
+  const vista=dadosDaVista();
+  const n=vista.features.length;
+  const unidade=camada==="grade"?"células da Grade IBGE":"setores censitários";
+  if(meta) meta.textContent=`${fmt(n)} ${unidade} na exportação atual${exportSoNaBacia?" (somente na_bacia=1)":""}. O ZIP inclui CSV, GeoJSON da vista, polígono municipal e LEIA-ME.`;
+  const cod=encodeURIComponent(String(munAtual.cod_mun));
+  if(links){
+    links.innerHTML =
+      `<a href="${DATA}/setores/${cod}.geojson" download>GeoJSON estático · setores de ${escHTML(munAtual.nome)}</a>`+
+      `<a href="${DATA}/grade/${cod}.geojson" download>GeoJSON estático · Grade IBGE de ${escHTML(munAtual.nome)}</a>`+
+      `<a href="#downloadAnchor">Voltar aos botões CSV / GeoJSON / ZIP</a>`;
+  }
+  const ref=MANCHA_REF[String(munAtual.cod_mun)];
+  if(box){
+    box.hidden=!ref;
+    if(ref && btnMancha){
+      btnMancha.textContent = manchaRefAtiva ? "Ocultar mancha preliminar" : "Sobrepor mancha preliminar";
+      btnMancha.setAttribute("aria-pressed", manchaRefAtiva?"true":"false");
+    }
+    if(ref && notaMancha){
+      notaMancha.innerHTML=`${escHTML(ref.nota)} <a href="${escHTML(ref.pagina)}" target="_blank" rel="noopener">Abrir mapa de inundação</a>.`;
+    }
+  }
+}
+function desligaManchaRef(){
+  if(manchaRefLayer && map){ try{ map.removeLayer(manchaRefLayer); }catch(_){} }
+  manchaRefLayer=null; manchaRefAtiva=false;
+  const btn=document.getElementById("manchaRefBtn");
+  if(btn){ btn.setAttribute("aria-pressed","false"); btn.textContent="Sobrepor mancha preliminar"; }
+}
+function alternaManchaRef(){
+  if(!munAtual) return;
+  const ref=MANCHA_REF[String(munAtual.cod_mun)];
+  if(!ref){ informa("Mancha de referência disponível só em Santa Tereza e Muçum."); return; }
+  if(manchaRefAtiva){ desligaManchaRef(); atualizaPainelTerritorial(); informa("Mancha preliminar ocultada."); return; }
+  informa(`Carregando mancha preliminar de ${ref.nome}…`);
+  fetch(ref.url).then(r=>{ if(!r.ok) throw new Error("fail"); return r.json(); }).then(gj=>{
+    desligaManchaRef();
+    manchaRefLayer=L.geoJSON(gj,{
+      pane:"referencias",
+      style:{color:"#0b4f8a", weight:1.4, fillColor:"#3d8fd1", fillOpacity:0.28},
+      onEachFeature:(f,l)=>{
+        const p=f.properties||{};
+        const rotulo=p.nivel_m!=null?`Mancha ref. · HAND ~${p.nivel_m} m`:(p.area_ha_aprox!=null?`Mancha prelim. · ~${p.area_ha_aprox} ha`:"Mancha preliminar");
+        l.bindPopup(`<div class="pop"><b>${escHTML(rotulo)}</b><br><small>${escHTML(ref.nota)}</small></div>`);
+      }
+    }).addTo(map);
+    manchaRefAtiva=true;
+    atualizaPainelTerritorial();
+    informa(`Mancha preliminar de ${ref.nome} sobreposta (referência; não é alerta).`);
+  }).catch(()=>informa("Não foi possível carregar a mancha preliminar agora."));
+}
+function exportaVistaCsv(){
+  const vista = dadosDaVista(), rows = vista.features.map(f=>f.properties);
+  if(!rows.length){ informa("Nenhum registro para exportar com o filtro atual."); return; }
+  const cols = [...new Set(rows.flatMap(r=>Object.keys(r)))];
+  const csv = [cols.map(csvCampo).join(";")]
+    .concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
+  baixarBlob(new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8"}), `${vista.prefixo}.csv`);
+  informa(`${rows.length.toLocaleString("pt-BR")} registros exportados em CSV${munAtual?` · ${munAtual.nome}`:""}.`);
+}
+function exportaVistaGeo(){
+  const vista = dadosDaVista();
+  if(!vista.features.length){ informa("Nenhuma feição para exportar com o filtro atual."); return; }
+  const geo = JSON.stringify({type:"FeatureCollection",features:vista.features});
+  baixarBlob(new Blob([geo], {type:"application/geo+json;charset=utf-8"}), `${vista.prefixo}.geojson`);
+  informa(`${vista.features.length.toLocaleString("pt-BR")} feições exportadas em GeoJSON (EPSG:4326)${munAtual?` · ${munAtual.nome}`:""}.`);
+}
+async function baixarPacoteMunicipio(){
+  if(!munAtual){ informa("Abra um município antes de baixar o pacote."); return; }
+  if(typeof JSZip === "undefined"){ informa("Biblioteca ZIP indisponível; use CSV/GeoJSON da vista."); return; }
+  if(!setLayer){ informa("Aguarde o carregamento dos setores/grade deste município."); return; }
+  const zip=new JSZip();
+  const vista=dadosDaVista();
+  const rows=vista.features.map(f=>f.properties);
+  const cols=[...new Set(rows.flatMap(r=>Object.keys(r)))];
+  const csv=[cols.map(csvCampo).join(";")].concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
+  zip.file(`${vista.prefixo}.csv`, "\uFEFF"+csv);
+  zip.file(`${vista.prefixo}.geojson`, JSON.stringify({type:"FeatureCollection",features:vista.features}));
+  const munFeat=munData?.features?.find(f=>String(f.properties.cod_mun)===String(munAtual.cod_mun));
+  if(munFeat) zip.file(`municipio_${munAtual.cod_mun}_${slugLocal(munAtual.nome)}.geojson`, JSON.stringify({type:"FeatureCollection",features:[{type:"Feature",properties:{...munFeat.properties},geometry:munFeat.geometry}]}));
+  // Inclui a outra camada estática se existir (setores quando grade ativa e vice-versa)
+  const outra=camada==="grade"?"setores":"grade";
+  try{
+    const r=await fetch(`${DATA}/${outra}/${munAtual.cod_mun}.geojson`);
+    if(r.ok) zip.file(`${outra}_${munAtual.cod_mun}_${slugLocal(munAtual.nome)}.geojson`, await r.text());
+  }catch(_){}
+  const leia=[
+    `PREVINE · pacote municipal de vulnerabilidade social`,
+    `Município: ${munAtual.nome} (${munAtual.cod_mun})`,
+    `Camada da vista: ${camada==="grade"?"Grade IBGE":"setores censitários"}`,
+    `Filtro na_bacia: ${exportSoNaBacia?"sim":"não"}`,
+    `Indicador ativo na sessão: ${INDS.find(i=>i.k===ind)?.nome||ind}`,
+    `CRS: EPSG:4326 (reprojete para medir área/distância)`,
+    `Atenção: vulnerabilidade social ≠ perigo ≠ risco; este pacote não é alerta.`,
+    `Gerado em: ${new Date().toISOString()}`
+  ].join("\n");
+  zip.file("LEIA-ME.txt", leia);
+  const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE"});
+  baixarBlob(blob, `pacote_${munAtual.cod_mun}_${slugLocal(munAtual.nome)}.zip`);
+  informa(`Pacote ZIP de ${munAtual.nome} baixado (${fmt(vista.features.length)} feições da vista).`);
+}
 function baixarBlob(blob, nome){
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = nome; a.click();
@@ -3320,20 +3527,20 @@ document.getElementById("triagemBaixar")?.addEventListener("click",()=>{
   const csv=[cols.map(csvCampo).join(";")].concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
   baixarBlob(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}),`triagem_${slugLocal(ind)}.csv`); informa(`${fmt(rows.length)} municípios da triagem exportados.`);
 });
-document.getElementById("baixar").onclick = ()=>{
-  const vista = dadosDaVista(), rows = vista.features.map(f=>f.properties);
-  const cols = [...new Set(rows.flatMap(r=>Object.keys(r)))];
-  const csv = [cols.map(csvCampo).join(";")]
-    .concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
-  baixarBlob(new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8"}), `${vista.prefixo}.csv`);
-  informa(`${rows.length.toLocaleString("pt-BR")} registros exportados em CSV.`);
-};
-document.getElementById("baixarGeo").onclick = ()=>{
-  const vista = dadosDaVista();
-  const geo = JSON.stringify({type:"FeatureCollection",features:vista.features});
-  baixarBlob(new Blob([geo], {type:"application/geo+json;charset=utf-8"}), `${vista.prefixo}.geojson`);
-  informa(`${vista.features.length.toLocaleString("pt-BR")} feições exportadas em GeoJSON (EPSG:4326).`);
-};
+document.getElementById("baixar").onclick = ()=>exportaVistaCsv();
+document.getElementById("baixarGeo").onclick = ()=>exportaVistaGeo();
+document.getElementById("baixarMunCsv")?.addEventListener("click",()=>{ if(!munAtual){informa("Abra um município primeiro.");return;} exportaVistaCsv(); });
+document.getElementById("baixarMunGeo")?.addEventListener("click",()=>{ if(!munAtual){informa("Abra um município primeiro.");return;} exportaVistaGeo(); });
+document.getElementById("baixarMunZip")?.addEventListener("click",()=>baixarPacoteMunicipio());
+document.getElementById("exportSoNaBacia")?.addEventListener("change",e=>{
+  exportSoNaBacia=!!e.target.checked;
+  atualizaDownloadVistaMeta();
+  atualizaPainelTerritorial();
+  informa(exportSoNaBacia ? "Exportação filtrada: só unidades na bacia (na_bacia=1)." : "Exportação sem filtro na_bacia.");
+});
+document.getElementById("bcBacia")?.addEventListener("click",()=>{ if(munAtual) voltaBacia(); else map?.fitBounds?.(munLayer?.getBounds?.(),{padding:[10,10]}); });
+document.getElementById("bcMun")?.addEventListener("click",()=>{ if(munAtual && setLayer) map.fitBounds(setLayer.getBounds(),{padding:[18,18]}); });
+document.getElementById("manchaRefBtn")?.addEventListener("click",alternaManchaRef);
 document.getElementById("copiarLink").onclick = async()=>{
   sincronizaURL();
   try { await navigator.clipboard.writeText(location.href); informa("Link do mapa copiado. Cole em outra aba para conferir a mesma vista."); }
