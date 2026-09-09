@@ -76,10 +76,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          # No evento workflow_run, GITHUB_SHA pode representar a ponta
-          # padrão em vez da revisão que concluiu o robô. Fixar o SHA do
-          # evento evita publicar um artefato anterior por engano.
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          # O deploy pode ficar na fila enquanto os robôs publicam outro
+          # ciclo. Ler a ponta atual de main no início do job evita que a
+          # fila publique o snapshot anterior ao evento que o acordou.
+          ref: main
           fetch-depth: 1
           filter: blob:none
           sparse-checkout: |
