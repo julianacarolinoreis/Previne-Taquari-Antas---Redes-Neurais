@@ -26,43 +26,44 @@
   <header>
     <div class="eyebrow">HEC · gêmeo Python v1 (auditoria)</div>
     <h1>HEC twin · busca Muçum · STZ diagnóstico</h1>
-    <p class="muted">2026-09-09T13:09:15.896210+00:00 · modelo_mucum_eventwise_v1_fechado_stz_q_blocked</p>
+    <p class="muted">2026-09-09T18:07:34.406380+00:00 · hec_twin_mucum_v1_5_eventwise_scored_stz_q_blocked</p>
     <div class="notice ok"><strong>Motor:</strong> python_hms_twin_ic_clark_recession_muskingum — HEC-HMS 4.13 do projeto e Windows-only; neste ambiente Linux roda o gemeo auditavel</div>
-    <div class="notice"><strong>Objetivo da busca:</strong> research_score = NSE − 0.05·|lag| − 0.5·erro_pico.
-      v1.4: eventos E19–E31 + chuva 2851072 + PAD auto=12h;
-      externos E26/E30/E31; common-search <strong>não</strong> promovido sem testes ok.</div>
+    <div class="notice"><strong>Objetivo da busca:</strong> research_score = NSE − 0.02·|lag| − 1.0·erro_pico.
+      v1.5: PAD por evento + grid ampliado; externos E26/E30/E31;
+      common-search <strong>não</strong> promovido sem testes ok.</div>
     <div class="notice bad"><strong>STZ Q:</strong> Posto 86472600 não tem Vazão ANA preenchida nos eventos E19–E28 deste pacote. E24/E27/E28 têm Nivel; E19/E22 sem Nivel e sem Vazao. Sem curva-chave reconciliada (ou série Q externa) não há alvo Q HEC. Probe HIDROWEB type=3 neste ambiente também voltou vazio.</div>
   </header>
 
   <section>
     <h2>Modelo Muçum · alvo Vazão 86510000</h2>
     <p class="muted">Estrutura Prata+Carreiro · NSE médio dos fits OK (NSE≥0):
-      <strong>0.876</strong> (8 eventos) ·
-      média incluindo falhas: -3.770</p>
+      <strong>0.795</strong> (12 eventos) ·
+      erro pico médio: <strong>4.9%</strong> ·
+      média incluindo falhas: 0.661</p>
     <div class="notice">E19 fit_failed: chuva local core máx ~26 mm vs pico obs ~1408 m³/s. Forçamento pluviométrico insuficiente para a onda (provável massa de montante/routing). Headline = média NSE&gt;=0 (E22–E28).</div>
     <table>
-      <thead><tr><th>Evento</th><th>Status</th><th>NSE</th><th>Score</th><th>RMSE</th><th>Lag pico (h)</th><th>Erro pico rel.</th></tr></thead>
-      <tbody><tr><td>E19</td><td>fit_failed_eventwise</td><td>-20.864</td><td>-22.435</td><td>738.0</td><td>28</td><td>0.342</td></tr><tr><td>E20</td><td>eventwise_scored</td><td>0.911</td><td>0.903</td><td>241.3</td><td>0</td><td>0.016</td></tr><tr><td>E21</td><td>eventwise_scored</td><td>0.834</td><td>0.628</td><td>659.1</td><td>4</td><td>0.013</td></tr><tr><td>E22</td><td>eventwise_scored</td><td>0.810</td><td>0.727</td><td>704.2</td><td>0</td><td>0.166</td></tr><tr><td>E23</td><td>fit_failed_eventwise</td><td>-0.956</td><td>-1.178</td><td>689.2</td><td>2</td><td>0.245</td></tr><tr><td>E24</td><td>eventwise_scored</td><td>0.813</td><td>0.630</td><td>1262.3</td><td>3</td><td>0.066</td></tr><tr><td>E25</td><td>eventwise_scored</td><td>0.920</td><td>0.754</td><td>117.5</td><td>-3</td><td>0.032</td></tr><tr><td>E26</td><td>fit_failed_eventwise</td><td>-4.383</td><td>-5.188</td><td>820.7</td><td>-8</td><td>0.810</td></tr><tr><td>E27</td><td>eventwise_scored</td><td>0.913</td><td>0.816</td><td>1181.4</td><td>1</td><td>0.096</td></tr><tr><td>E28</td><td>eventwise_scored</td><td>0.930</td><td>0.822</td><td>471.2</td><td>-2</td><td>0.016</td></tr><tr><td>E29</td><td>fit_failed_eventwise</td><td>-27.534</td><td>-28.304</td><td>687.7</td><td>-8</td><td>0.741</td></tr><tr><td>E30</td><td>fit_failed_eventwise</td><td>-2.274</td><td>-2.731</td><td>762.5</td><td>-7</td><td>0.214</td></tr><tr><td>E31</td><td>eventwise_scored</td><td>0.873</td><td>0.819</td><td>586.6</td><td>1</td><td>0.008</td></tr></tbody>
+      <thead><tr><th>Evento</th><th>Status</th><th>NSE</th><th>Erro pico</th><th>Lag</th><th>PAD</th><th>Score</th><th>RMSE</th></tr></thead>
+      <tbody><tr><td>E19</td><td>fit_failed_eventwise</td><td>-0.955</td><td>6.2%</td><td>28</td><td>24</td><td>-1.577</td><td>220.7</td></tr><tr><td>E20</td><td>eventwise_scored</td><td>0.906</td><td>0.5%</td><td>1</td><td>12</td><td>0.881</td><td>248.1</td></tr><tr><td>E21</td><td>eventwise_scored</td><td>0.868</td><td>6.1%</td><td>-1</td><td>12</td><td>0.787</td><td>588.5</td></tr><tr><td>E22</td><td>eventwise_scored</td><td>0.768</td><td>2.3%</td><td>0</td><td>0</td><td>0.745</td><td>777.5</td></tr><tr><td>E23</td><td>eventwise_scored</td><td>0.798</td><td>4.4%</td><td>2</td><td>24</td><td>0.715</td><td>221.3</td></tr><tr><td>E24</td><td>eventwise_scored</td><td>0.832</td><td>1.2%</td><td>-4</td><td>24</td><td>0.740</td><td>1198.4</td></tr><tr><td>E25</td><td>eventwise_scored</td><td>0.952</td><td>0.3%</td><td>-2</td><td>12</td><td>0.908</td><td>91.0</td></tr><tr><td>E26</td><td>eventwise_scored</td><td>0.571</td><td>9.8%</td><td>3</td><td>24</td><td>0.413</td><td>231.7</td></tr><tr><td>E27</td><td>eventwise_scored</td><td>0.912</td><td>9.3%</td><td>1</td><td>0</td><td>0.799</td><td>1191.3</td></tr><tr><td>E28</td><td>eventwise_scored</td><td>0.970</td><td>1.4%</td><td>0</td><td>12</td><td>0.956</td><td>307.7</td></tr><tr><td>E29</td><td>eventwise_scored</td><td>0.671</td><td>7.7%</td><td>-1</td><td>24</td><td>0.574</td><td>73.8</td></tr><tr><td>E30</td><td>eventwise_scored</td><td>0.330</td><td>9.2%</td><td>4</td><td>24</td><td>0.159</td><td>344.8</td></tr><tr><td>E31</td><td>eventwise_scored</td><td>0.965</td><td>7.1%</td><td>0</td><td>12</td><td>0.894</td><td>308.3</td></tr></tbody>
     </table>
   </section>
 
   <section>
     <h2>Common-search (diagnóstico — NÃO promover)</h2>
-    <p class="muted">Eventos: E20, E21, E22, E24, E25, E27, E28 ·
-      NSE médio comum: <strong>0.533</strong> ·
-      LOO teste médio: <strong>0.368</strong> ·
-      Hold-out E27 NSE: <strong>-0.423</strong> ·
-      Externos E26/E30/E31: <strong>-4.898</strong></p>
-    <div class="notice bad">Common-search v1.4: pool sem E26/E30/E31; hold-out E27 + LOO + externos. Promover só se hold-out/LOO/externos forem aceitáveis. PAD=12h.</div>
+    <p class="muted">Eventos: E20, E21, E22, E23, E24, E25, E27, E28, E29 ·
+      NSE médio comum: <strong>0.040</strong> ·
+      LOO teste médio: <strong>0.434</strong> ·
+      Hold-out E27 NSE: <strong>-0.988</strong> ·
+      Externos E26/E30/E31: <strong>-0.288</strong></p>
+    <div class="notice bad">Common-search v1.5 (PAD por evento + score de pico). Promover só se hold-out/LOO/externos forem aceitáveis. PAD=24h.</div>
     <table>
       <thead><tr><th>Evento</th><th>NSE</th><th>Lag</th><th>Erro pico</th></tr></thead>
-      <tbody><tr><td>E20</td><td>0.940</td><td>1</td><td>0.055</td></tr><tr><td>E21</td><td>0.790</td><td>7</td><td>0.161</td></tr><tr><td>E22</td><td>0.550</td><td>0</td><td>0.499</td></tr><tr><td>E24</td><td>0.605</td><td>6</td><td>0.236</td></tr><tr><td>E25</td><td>0.682</td><td>-4</td><td>0.188</td></tr><tr><td>E27</td><td>-0.423</td><td>18</td><td>0.463</td></tr><tr><td>E28</td><td>0.588</td><td>1</td><td>0.430</td></tr></tbody>
+      <tbody><tr><td>E20</td><td>0.252</td><td>2</td><td>0.228</td></tr><tr><td>E21</td><td>0.750</td><td>8</td><td>0.062</td></tr><tr><td>E22</td><td>0.170</td><td>0</td><td>0.630</td></tr><tr><td>E23</td><td>0.583</td><td>2</td><td>0.053</td></tr><tr><td>E24</td><td>0.650</td><td>8</td><td>0.152</td></tr><tr><td>E25</td><td>-1.620</td><td>-3</td><td>0.505</td></tr><tr><td>E27</td><td>-0.988</td><td>19</td><td>0.553</td></tr><tr><td>E28</td><td>0.830</td><td>2</td><td>0.307</td></tr><tr><td>E29</td><td>-0.263</td><td>-3</td><td>0.140</td></tr></tbody>
     </table>
   </section>
 
   <section>
     <h2>O que ainda falta (Muçum)</h2>
-    <ul><li><strong>common_params_transfer</strong> [open]: hold-out E27 NSE=-0.42282358628443806; LOO médio=0.36824620967646987; externos E26/E30/E31 médio=-4.898297105609914. Usar params eventwise enquanto bloqueado.</li><li><strong>e19_local_rain_underforced</strong> [open]: E19 fit_failed: chuva local core máx ~26 mm vs pico obs ~1408 m³/s. Forçamento pluviométrico insuficiente para a onda (provável massa de montante/routing). Headline = média NSE&gt;=0 (E22–E28).</li><li><strong>spatial_rain_density</strong> [partial]: v1.4: 2851072 (Ibiraiaras) + média aritmética dos pluviômetros completos em Prata/Antas. Carreiro ainda com fallback de magnitude.</li><li><strong>external_event_validation</strong> [partial]: Externos E26/E30/E31 rodados; mean_nse=-4.898297105609914. Continuar ampliando conforme novos eventos.</li><li><strong>stz_q_curve</strong> [open]: 86472600 sem Vazão ANA nos eventos; curva-chave oficial não está no pacote. Bloqueia calibração do modelo STZ.</li></ul>
+    <ul><li><strong>common_params_transfer</strong> [open]: hold-out E27 NSE=-0.9884415992951683; LOO médio=0.4340954444834153; externos E26/E30/E31 médio=-0.2879901129677098. Usar params eventwise enquanto bloqueado.</li><li><strong>e19_local_rain_underforced</strong> [open]: E19 fit_failed: chuva local core máx ~26 mm vs pico obs ~1408 m³/s. Forçamento pluviométrico insuficiente para a onda (provável massa de montante/routing). Headline = média NSE&gt;=0 (E22–E28).</li><li><strong>spatial_rain_density</strong> [partial]: v1.4: 2851072 (Ibiraiaras) + média aritmética dos pluviômetros completos em Prata/Antas. Carreiro ainda com fallback de magnitude.</li><li><strong>external_event_validation</strong> [partial]: Externos E26/E30/E31 rodados; mean_nse=-0.2879901129677098. Continuar ampliando conforme novos eventos.</li><li><strong>stz_q_curve</strong> [open]: 86472600 sem Vazão ANA nos eventos; curva-chave oficial não está no pacote. Bloqueia calibração do modelo STZ.</li></ul>
   </section>
 
   <section>
@@ -74,7 +75,7 @@
 
   <section>
     <h2>Próximos</h2>
-    <ul><li>Usar o pacote Muçum fechado (params eventwise) — não common-search.</li><li>STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.</li><li>Após curva: calibrar modelo STZ truncado.</li><li>Manter Guaporé/Forqueta fora do recorte.</li></ul>
+    <ul><li>Usar o pacote Muçum v1.5 fechado (params eventwise com picos) — não common-search.</li><li>STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.</li><li>Após curva: calibrar modelo STZ truncado.</li><li>Manter Guaporé/Forqueta fora do recorte.</li></ul>
     <p>
       <a href="hec_twin_stz_mucum_v1_latest.json">JSON</a> ·
       <a href="estrutura_stz_mucum.html">estrutura</a> ·

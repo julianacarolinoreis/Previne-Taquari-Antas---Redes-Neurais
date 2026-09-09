@@ -266,42 +266,61 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         "SB_INC_MUCUM",
     ]
     params_list = candidate_grid()
-    pad_selection = select_pad(areas, subbasins, params_list)
-    pad_hours = int(pad_selection["selected_pad_hours"])
-
     event_results = []
     precip_cache: dict[str, Any] = {}
+    pad_by_event: dict[str, int] = {}
+    pad_trials_global: list[dict[str, Any]] = []
 
     for event_id in EVENTS:
-        precip, rain_meta, hours, flow, core_offset, core_hours = prepare_event_forcing(
-            event_id, subbasins, pad_hours
-        )
-        paired = [i for i, h in enumerate(core_hours) if h in flow]
-        row: dict[str, Any] = {
-            "event_id": event_id,
-            "rain": rain_meta,
-            "observed_points": len(paired),
-            "status": "blocked",
-        }
-        if precip is None or len(paired) < 12:
-            row["reason"] = (rain_meta or {}).get("blocked_reason") or "insufficient observed Vazao at Muçum"
-            event_results.append(row)
-            continue
-
-        precip_cache[event_id] = (precip, rain_meta, hours, flow, core_offset, core_hours)
-
         best_p = None
         best_m = None
         best_score = float("-inf")
         best_sim = None
-        for p in params_list:
-            m, score, sim_full = score_event(
-                precip, areas, p, hours, flow, core_offset=core_offset, core_hours=core_hours
+        best_pack = None  # precip, rain_meta, hours, flow, core_offset, core_hours, pad
+        for pad in PAD_CANDIDATES:
+            precip, rain_meta, hours, flow, core_offset, core_hours = prepare_event_forcing(
+                event_id, subbasins, pad
             )
-            if score > best_score:
-                best_score, best_p, best_m, best_sim = score, p, m, sim_full
+            paired = [i for i, h in enumerate(core_hours) if h in flow]
+            if precip is None or len(paired) < 12:
+                continue
+            for p in params_list:
+                m, score, sim_full = score_event(
+                    precip, areas, p, hours, flow, core_offset=core_offset, core_hours=core_hours
+                )
+                if score > best_score:
+                    best_score, best_p, best_m, best_sim = score, p, m, sim_full
+                    best_pack = (precip, rain_meta, hours, flow, core_offset, core_hours, pad)
 
-        assert best_p is not None and best_m is not None and best_sim is not None
+        row: dict[str, Any] = {
+            "event_id": event_id,
+            "status": "blocked",
+        }
+        if best_pack is None or best_p is None or best_m is None or best_sim is None:
+            # keep rain meta from pad=0 attempt for diagnostics
+            precip, rain_meta, hours, flow, core_offset, core_hours = prepare_event_forcing(
+                event_id, subbasins, 0
+            )
+            row["rain"] = rain_meta
+            row["observed_points"] = len([h for h in core_hours if h in flow])
+            row["reason"] = (rain_meta or {}).get("blocked_reason") or "insufficient observed Vazao at Muçum"
+            event_results.append(row)
+            continue
+
+        precip, rain_meta, hours, flow, core_offset, core_hours, pad = best_pack
+        pad_by_event[event_id] = pad
+        precip_cache[event_id] = (precip, rain_meta, hours, flow, core_offset, core_hours)
+        pad_trials_global.append(
+            {
+                "event_id": event_id,
+                "selected_pad_hours": pad,
+                "nse": round(best_m["nse"], 4),
+                "peak_relative_error": round(best_m["peak_relative_error"], 4),
+                "peak_lag_hours": best_m["peak_lag_hours"],
+                "research_score": round(best_score, 4),
+            }
+        )
+
         series_path = RUN / f"mucum_{event_id}_best_series.csv"
         with series_path.open("w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
@@ -316,18 +335,41 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
             status = "fit_failed_eventwise"
         row.update(
             {
+                "rain": rain_meta,
+                "observed_points": len([h for h in core_hours if h in flow]),
                 "status": status,
-                "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
+                "optimization_objective": (
+                    "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error"
+                ),
                 "score": best_score,
                 "metrics": best_m,
                 "params": asdict(best_p),
                 "warm_up_hours_applied": core_offset,
+                "pad_hours_selected": pad,
                 "series_csv": str(series_path.relative_to(ROOT)),
             }
         )
         if event_id == "E19":
             row["forcing_note"] = e19_forcing_note(rain_meta, flow, core_hours)
         event_results.append(row)
+
+    # Global PAD summary (mode of per-event); kept for catalog compatibility
+    if pad_by_event:
+        from collections import Counter
+
+        mode_pad = Counter(pad_by_event.values()).most_common(1)[0][0]
+    else:
+        mode_pad = 0
+    pad_hours = mode_pad
+    pad_selection = {
+        "candidates": list(PAD_CANDIDATES),
+        "mode": "per_event_argmax_research_score",
+        "selected_pad_hours_mode": mode_pad,
+        "per_event": pad_by_event,
+        "trials": pad_trials_global,
+        "selection_rule": "for each event, argmax research_score over PAD∈{0,12,24}",
+        "note": "v1.5: PAD por evento + score com peso forte no pico.",
+    }
 
     scored = [r for r in event_results if r["status"] in ("eventwise_scored", "fit_failed_eventwise")]
     scored_ok = [r for r in scored if r["status"] == "eventwise_scored"]
@@ -336,6 +378,11 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
     )
     mean_nse_ok = (
         sum(r["metrics"]["nse"] for r in scored_ok) / len(scored_ok) if scored_ok else float("nan")
+    )
+    mean_peak_err_ok = (
+        sum(r["metrics"]["peak_relative_error"] for r in scored_ok) / len(scored_ok)
+        if scored_ok
+        else float("nan")
     )
 
     common_ids = [
@@ -481,7 +528,7 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         "leave_one_out": loo,
         "leave_one_out_mean_test_nse": loo_mean,
         "note": (
-            "Common-search v1.4: pool sem E26/E30/E31; hold-out E27 + LOO + externos. "
+            "Common-search v1.5 (PAD por evento + score de pico). "
             "Promover só se hold-out/LOO/externos forem aceitáveis."
         ),
         "promotion_blocked": promotion_blocked,
@@ -536,8 +583,8 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         "target_name": "Muçum",
         "quantity": "Vazao_m3s",
         "structure": "modelo_mucum_estrutura_stz_mucum_v1",
-        "mode": "eventwise_plus_common_search_v1_4",
-        "calibration_version": "mucum_hec_twin_v1_4",
+        "mode": "eventwise_plus_common_search_v1_5",
+        "calibration_version": "mucum_hec_twin_v1_5",
         "hold_out": True,
         "external_holdout_events": list(EXTERNAL_HOLDOUT_EVENTS),
         "pad_hours": pad_hours,
@@ -546,6 +593,7 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         "n_events_fit_ok": len(scored_ok),
         "mean_nse_eventwise_including_failed": mean_nse_all,
         "mean_nse_eventwise": mean_nse_ok,
+        "mean_peak_relative_error_ok": mean_peak_err_ok,
         "mean_nse_eventwise_excluding_e19": mean_nse_ok,
         "n_events_excluding_e19": len(scored_ok),
         "mean_nse_eventwise_including_e19": mean_nse_all,
@@ -755,9 +803,10 @@ def metrics(obs: list[float], sim: list[float]) -> dict[str, float]:
 
 
 def research_score(m: dict[str, float]) -> float:
+    """v1.5: penaliza erro de pico com mais peso (picos importam para cheia)."""
     lag = abs(m["peak_lag_hours"]) if m["peak_lag_hours"] == m["peak_lag_hours"] else 99
     pre = m["peak_relative_error"] if m["peak_relative_error"] == m["peak_relative_error"] else 9
-    return m["nse"] - 0.05 * lag - 0.5 * pre
+    return m["nse"] - 0.02 * lag - 1.0 * pre
 
 
 def candidate_grid() -> list[Params]:
@@ -770,23 +819,33 @@ def candidate_grid() -> list[Params]:
         Params(1.0, 2.0, 10.0, 45.0, 0.85, 0.0025, 0.5, 1.0, 1.0),
         Params(2.5, 1.0, 20.0, 60.0, 0.80, 0.0025, 2.0, 2.0, 1.0),
         Params(2.5, 1.0, 4.0, 45.0, 0.98, 0.0025, 0.5, 0.5, 0.5),
-        # High baseflow seeds (small / routed events like E19)
         Params(0.0, 0.5, 25.0, 90.0, 0.98, 0.02, 2.0, 2.0, 2.0),
         Params(0.0, 0.5, 10.0, 45.0, 0.98, 0.01, 1.0, 1.0, 1.0),
         Params(1.0, 0.5, 25.0, 60.0, 0.85, 0.015, 2.0, 2.0, 1.0),
+        # peak-oriented seeds (v1.5)
+        Params(0.0, 0.25, 10.0, 15.0, 0.85, 0.0025, 0.5, 0.5, 0.5),
+        Params(0.0, 0.5, 4.0, 25.0, 0.85, 0.001, 1.0, 1.0, 0.5),
+        Params(0.0, 0.5, 20.0, 20.0, 0.98, 0.003, 0.5, 1.0, 1.0),
+        Params(1.0, 0.5, 15.0, 30.0, 0.85, 0.0025, 1.0, 0.5, 0.5),
+        Params(0.0, 1.0, 8.0, 20.0, 0.9, 0.002, 0.5, 0.5, 1.0),
+        Params(0.0, 0.25, 25.0, 25.0, 0.85, 0.0025, 0.5, 1.0, 1.0),
     ]
     thin = []
     i = 0
     for il in (0.0, 1.0, 2.5, 5.5):
-        for cl in (0.5, 1.0, 2.0, 4.0):
-            for tc in (4.0, 10.0, 25.0):
-                for storage in (25.0, 45.0, 90.0):
+        for cl in (0.25, 0.5, 1.0, 2.0, 4.0):
+            for tc in (4.0, 10.0, 20.0, 25.0):
+                for storage in (15.0, 25.0, 45.0, 60.0, 90.0):
                     for rec in (0.7, 0.85, 0.98):
                         for ratio in (0.001, 0.0025, 0.005):
-                            for k in (0.5, 1.0, 2.0):
-                                if i % 21 == 0:
-                                    thin.append(Params(il, cl, tc, storage, rec, ratio, k, k, k))
-                                i += 1
+                            for k1 in (0.5, 1.0, 2.0):
+                                for k2 in (0.5, 1.0, 2.0):
+                                    for k3 in (0.5, 1.0, 2.0):
+                                        if i % 37 == 0:
+                                            thin.append(
+                                                Params(il, cl, tc, storage, rec, ratio, k1, k2, k3)
+                                            )
+                                        i += 1
     seen = set()
     out = []
     for p in seeds + thin:
@@ -795,7 +854,7 @@ def candidate_grid() -> list[Params]:
             continue
         seen.add(key)
         out.append(p)
-    return out[:200]
+    return out[:1200]
 
 
 RAIN_MAGNITUDE_FALLBACK_RATIO = 0.2  # if preferred sum < 0.2 * best complete backup, use backup
@@ -940,12 +999,13 @@ def diagnose_stz(areas: dict[str, float], mucum_report: dict[str, Any]) -> dict[
     cs = mucum_report.get("common_search") or {}
     hold = cs.get("holdout_e27") or {}
     common_params = (hold.get("fit") or {}).get("best_params") or cs.get("best_params")
-    pad_hours = int(mucum_report.get("pad_hours") or 0)
+    per_event_pad = (mucum_report.get("pad_selection") or {}).get("per_event") or {}
     transferred = []
     for r in mucum_report["events"]:
         if r["status"] not in ("eventwise_scored", "fit_failed_eventwise"):
             continue
         subbasins = ["SB_PRATA_7868", "SB_ANTAS_RESIDUAL", "SB_CARREIRO_7866", "SB_STZ_RESIDUAL"]
+        pad_hours = int(r.get("pad_hours_selected") or per_event_pad.get(r["event_id"]) or 0)
         precip, rain_meta, hours, _flow, core_offset, core_hours = prepare_event_forcing(
             r["event_id"], subbasins, pad_hours
         )
@@ -1007,13 +1067,15 @@ def write_html(payload: dict) -> None:
             m = e["metrics"]
             rows.append(
                 f"<tr><td>{e['event_id']}</td><td>{html.escape(e['status'])}</td>"
-                f"<td>{m['nse']:.3f}</td><td>{e.get('score', float('nan')):.3f}</td>"
-                f"<td>{m['rmse_m3s']:.1f}</td><td>{m['peak_lag_hours']:.0f}</td>"
-                f"<td>{m['peak_relative_error']:.3f}</td></tr>"
+                f"<td>{m['nse']:.3f}</td><td>{100*m['peak_relative_error']:.1f}%</td>"
+                f"<td>{m['peak_lag_hours']:.0f}</td>"
+                f"<td>{e.get('pad_hours_selected', muc.get('pad_hours', '?'))}</td>"
+                f"<td>{e.get('score', float('nan')):.3f}</td>"
+                f"<td>{m['rmse_m3s']:.1f}</td></tr>"
             )
         else:
             rows.append(
-                f"<tr><td>{e['event_id']}</td><td colspan='6'>bloqueado — "
+                f"<tr><td>{e['event_id']}</td><td colspan='7'>bloqueado — "
                 f"{html.escape(str(e.get('reason','')))}</td></tr>"
             )
     common_rows = []
@@ -1055,9 +1117,9 @@ def write_html(payload: dict) -> None:
     <h1>HEC twin · busca Muçum · STZ diagnóstico</h1>
     <p class="muted">{html.escape(payload['generated_at_utc'])} · {html.escape(payload['status'])}</p>
     <div class="notice ok"><strong>Motor:</strong> {html.escape(payload['engine']['name'])} — {html.escape(payload['engine']['why'])}</div>
-    <div class="notice"><strong>Objetivo da busca:</strong> research_score = NSE − 0.05·|lag| − 0.5·erro_pico.
-      v1.4: eventos E19–E31 + chuva 2851072 + PAD auto={muc.get('pad_hours', '?')}h;
-      externos E26/E30/E31; common-search <strong>não</strong> promovido sem testes ok.</div>
+    <div class="notice"><strong>Objetivo da busca:</strong> research_score = NSE − 0.02·|lag| − 1.0·erro_pico.
+      v1.5: PAD por evento + grid ampliado; externos E26/E30/E31;
+      common-search <strong>não</strong> promovido sem testes ok.</div>
     <div class="notice bad"><strong>STZ Q:</strong> {html.escape(stz['blocker'])}</div>
   </header>
 
@@ -1065,10 +1127,11 @@ def write_html(payload: dict) -> None:
     <h2>Modelo Muçum · alvo Vazão 86510000</h2>
     <p class="muted">Estrutura Prata+Carreiro · NSE médio dos fits OK (NSE≥0):
       <strong>{mean_ok:.3f}</strong> ({muc.get('n_events_fit_ok', 0)} eventos) ·
+      erro pico médio: <strong>{(muc.get('mean_peak_relative_error_ok') if muc.get('mean_peak_relative_error_ok') is not None else float('nan'))*100:.1f}%</strong> ·
       média incluindo falhas: {mean_all:.3f}</p>
     <div class="notice">{html.escape(muc.get('e19_note', ''))}</div>
     <table>
-      <thead><tr><th>Evento</th><th>Status</th><th>NSE</th><th>Score</th><th>RMSE</th><th>Lag pico (h)</th><th>Erro pico rel.</th></tr></thead>
+      <thead><tr><th>Evento</th><th>Status</th><th>NSE</th><th>Erro pico</th><th>Lag</th><th>PAD</th><th>Score</th><th>RMSE</th></tr></thead>
       <tbody>{''.join(rows)}</tbody>
     </table>
   </section>
@@ -1216,14 +1279,14 @@ def main() -> None:
         "schema_version": "estudo_hec_twin_stz_mucum_v1",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": (
-            "busca eventwise + common-search HEC v1.4 (eventos E19–E31, 2851072, "
-            "PAD auto, hold-out/LOO/externos) no modelo Muçum; STZ diagnostico (Q bloqueado)"
+            "busca eventwise + common-search HEC v1.5 (PAD por evento, score de pico, "
+            "grid ampliado) no modelo Muçum; STZ diagnostico (Q bloqueado)"
         ),
-        "status": "hec_twin_mucum_v1_4_eventwise_scored_stz_q_blocked",
+        "status": "hec_twin_mucum_v1_5_eventwise_scored_stz_q_blocked",
         "discipline_rule": (
             "Isto e HEC estrutural + busca de parametros no gemeo Linux/Python. "
             "Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. "
-            "v1.4: pool ampliado + Ibiraiaras 2851072; externos E26/E30/E31; "
+            "v1.5: PAD por evento + research_score com peso forte no pico; "
             "STZ Q bloqueado ate curva-chave oficial."
         ),
         "audit_fixes_v1_1": [
@@ -1251,12 +1314,17 @@ def main() -> None:
             "Hold-out externo E26/E30/E31 fora do fit common-search",
             "STZ: telemetria ampliada; Vazão continua vazia",
         ],
+        "calibration_v1_5": [
+            "PAD selecionado por evento (0/12/24)",
+            "research_score com peso 1.0 no erro relativo de pico",
+            "grid ampliado (k1/k2/k3 independentes + seeds de pico)",
+        ],
         "engine": {
             "name": "python_hms_twin_ic_clark_recession_muskingum",
             "not_hec_hms_binary": True,
             "why": "HEC-HMS 4.13 do projeto e Windows-only; neste ambiente Linux roda o gemeo auditavel",
             "methods": ["Initial+Constant", "Clark", "Recession", "Muskingum"],
-            "optimization_objective": "research_score = NSE - 0.05*|peak_lag| - 0.5*peak_relative_error",
+            "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
         },
         "structure_ref": "estrutura_stz_mucum_latest.json",
         "areas_km2": areas,

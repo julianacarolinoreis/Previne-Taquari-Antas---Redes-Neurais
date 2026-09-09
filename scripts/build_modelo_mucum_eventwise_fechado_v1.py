@@ -24,7 +24,7 @@ PKG_DIR = OUT / "modelo_mucum_eventwise_v1_fechado"
 JSON_OUT = OUT / "modelo_mucum_eventwise_v1_fechado_latest.json"
 HTML_OUT = OUT / "modelo_mucum_eventwise_v1_fechado.html"
 
-STATUS = "modelo_mucum_eventwise_v1_fechado_stz_q_blocked"
+STATUS = "modelo_mucum_eventwise_v1_5_fechado_stz_q_blocked"
 NEXT = [
     "Usar o pacote Muçum fechado (params eventwise) — não common-search.",
     "STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
@@ -40,9 +40,12 @@ def main() -> None:
     stz = twin["models"]["santa_tereza"]
 
     ok_events = [e for e in muc["events"] if e.get("status") == "eventwise_scored"]
+    # Core library: strong fits only (NSE>=0.75). Marginal positives stay documented aside.
+    core_events = [e for e in ok_events if e["metrics"]["nse"] >= 0.75]
+    marginal_events = [e for e in ok_events if e["metrics"]["nse"] < 0.75]
     failed = [e for e in muc["events"] if e.get("status") == "fit_failed_eventwise"]
-    if len(ok_events) < 4:
-        raise SystemExit(f"poucos eventos OK para fechar: {len(ok_events)}")
+    if len(core_events) < 4:
+        raise SystemExit(f"poucos eventos core (NSE>=0.75) para fechar: {len(core_events)}")
 
     PKG_DIR.mkdir(parents=True, exist_ok=True)
     params_csv = PKG_DIR / "params_library_eventwise.csv"
@@ -56,13 +59,14 @@ def main() -> None:
             "peak_relative_error",
             "observed_peak_m3s",
             "simulated_peak_m3s",
+            "pad_hours_selected",
             "series_csv",
-            *sorted(ok_events[0]["params"].keys()),
+            *sorted(core_events[0]["params"].keys()),
         ]
         w = csv.DictWriter(fh, fieldnames=fields)
         w.writeheader()
         library = []
-        for e in ok_events:
+        for e in core_events:
             m = e["metrics"]
             row = {
                 "event_id": e["event_id"],
@@ -73,6 +77,7 @@ def main() -> None:
                 "peak_relative_error": m.get("peak_relative_error"),
                 "observed_peak_m3s": m.get("observed_peak_m3s"),
                 "simulated_peak_m3s": m.get("simulated_peak_m3s"),
+                "pad_hours_selected": e.get("pad_hours_selected"),
                 "series_csv": e.get("series_csv"),
                 **e["params"],
             }
@@ -87,28 +92,33 @@ def main() -> None:
                     "rain_sources": (e.get("rain") or {}).get("subbasin_sources"),
                     "series_csv": e.get("series_csv"),
                     "warm_up_hours_applied": e.get("warm_up_hours_applied", 0),
+                    "pad_hours_selected": e.get("pad_hours_selected"),
                 }
             )
 
-    # Median params across OK events — diagnostic only, not promoted.
-    keys = list(ok_events[0]["params"].keys())
+    # Median params across core events — diagnostic only, not promoted.
+    keys = list(core_events[0]["params"].keys())
     median_params = {}
     for k in keys:
-        vals = sorted(float(e["params"][k]) for e in ok_events)
+        vals = sorted(float(e["params"][k]) for e in core_events)
         mid = len(vals) // 2
         median_params[k] = vals[mid] if len(vals) % 2 else 0.5 * (vals[mid - 1] + vals[mid])
+
+    mean_nse_core = sum(e["metrics"]["nse"] for e in core_events) / len(core_events)
+    mean_peak_core = sum(e["metrics"]["peak_relative_error"] for e in core_events) / len(core_events)
 
     muc_elements = estrutura["models"]["mucum"]["elements"]
     payload = {
         "schema_version": "modelo_mucum_eventwise_v1_fechado",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": STATUS,
-        "release_name": "modelo_mucum_eventwise_v1",
+        "release_name": "modelo_mucum_eventwise_v1_5",
         "label_honest": (
-            "MODELO MUÇUM FECHADO (estudo). Biblioteca de parâmetros eventwise "
-            "no gêmeo Python HEC (IC/Clark/Recession/Muskingum). "
+            "MODELO MUÇUM FECHADO v1.5 (estudo). Biblioteca eventwise com PAD por evento "
+            "e score pesado no pico. Gêmeo Python HEC (IC/Clark/Recession/Muskingum). "
             "NÃO é HEC-HMS 4.13 Windows. NÃO é alerta operacional. "
-            "NÃO promover common-search / mediana como regra transferível."
+            "NÃO promover common-search / mediana como regra transferível. "
+            "Biblioteca core = NSE>=0.75."
         ),
         "target": {
             "station": "86510000",
@@ -123,12 +133,24 @@ def main() -> None:
         "calibration_source": {
             "artifact": "hec_twin_stz_mucum_v1_latest.json",
             "calibration_version": muc.get("calibration_version"),
-            "pad_hours": muc.get("pad_hours"),
-            "mean_nse_eventwise_ok": muc.get("mean_nse_eventwise"),
-            "n_events_ok": len(ok_events),
+            "pad_mode": (muc.get("pad_selection") or {}).get("mode"),
+            "mean_nse_eventwise_ok": mean_nse_core,
+            "mean_peak_relative_error_ok": mean_peak_core,
+            "n_events_core": len(core_events),
+            "n_events_marginal": len(marginal_events),
             "n_events_failed": len(failed),
+            "core_rule": "NSE>=0.75",
         },
-        "included_events": [e["event_id"] for e in ok_events],
+        "included_events": [e["event_id"] for e in core_events],
+        "marginal_events": [
+            {
+                "event_id": e["event_id"],
+                "nse": e["metrics"]["nse"],
+                "peak_relative_error": e["metrics"]["peak_relative_error"],
+                "note": "NSE>=0 mas <0.75 — fora da biblioteca core",
+            }
+            for e in marginal_events
+        ],
         "excluded_events": [
             {
                 "event_id": e["event_id"],
@@ -204,9 +226,11 @@ def main() -> None:
             {
                 "ok": True,
                 "status": STATUS,
-                "n_ok": len(ok_events),
-                "mean_nse": muc.get("mean_nse_eventwise"),
-                "events": [e["event_id"] for e in ok_events],
+                "n_core": len(core_events),
+                "mean_nse_core": mean_nse_core,
+                "mean_peak_err_core": mean_peak_core,
+                "events_core": [e["event_id"] for e in core_events],
+                "events_marginal": [e["event_id"] for e in marginal_events],
                 "artifacts": payload["artifacts"],
             },
             ensure_ascii=False,
@@ -219,10 +243,11 @@ def write_html(payload: dict) -> None:
     lib = payload["params_library_eventwise"]
     rows = "".join(
         f"<tr><td>{e['event_id']}</td><td>{e['nse']:.3f}</td>"
-        f"<td>{e['metrics'].get('rmse_m3s', float('nan')):.1f}</td>"
+        f"<td>{100*e['metrics'].get('peak_relative_error', float('nan')):.1f}%</td>"
         f"<td>{e['metrics'].get('peak_lag_hours', float('nan')):.0f}</td>"
-        f"<td>{e['params'].get('tc')}</td><td>{e['params'].get('storage')}</td>"
-        f"<td>{e['params'].get('constant_loss')}</td></tr>"
+        f"<td>{e['metrics'].get('observed_peak_m3s', float('nan')):.0f}</td>"
+        f"<td>{e['metrics'].get('simulated_peak_m3s', float('nan')):.0f}</td>"
+        f"<td>{e['params'].get('tc')}</td><td>{e['params'].get('storage')}</td></tr>"
         for e in lib
     )
     failed = "".join(
@@ -259,8 +284,10 @@ def write_html(payload: dict) -> None:
     <div class="eyebrow">PREVINE · modelo fechado (estudo)</div>
     <h1>Modelo Muçum · eventwise v1</h1>
     <p class="muted">{html.escape(payload['generated_at_utc'])} · {html.escape(payload['status'])}</p>
-    <div class="notice ok"><strong>Fechado:</strong> biblioteca de {len(lib)} eventos com NSE≥0
-      (média {payload['calibration_source']['mean_nse_eventwise_ok']:.3f}). Alvo Vazão 86510000.</div>
+    <div class="notice ok"><strong>Fechado v1.5:</strong> biblioteca core de {len(lib)} eventos (NSE≥0.75)
+      · média NSE {payload['calibration_source']['mean_nse_eventwise_ok']:.3f}
+      · erro pico médio {100*payload['calibration_source']['mean_peak_relative_error_ok']:.1f}%.
+      Alvo Vazão 86510000.</div>
     <div class="notice">{html.escape(payload['label_honest'])}</div>
     <div class="notice bad"><strong>STZ fora deste pacote:</strong> {html.escape(payload['santa_tereza']['blocker'])}</div>
   </header>
@@ -268,7 +295,7 @@ def write_html(payload: dict) -> None:
   <section>
     <h2>Biblioteca de parâmetros (usar por evento)</h2>
     <table>
-      <thead><tr><th>Evento</th><th>NSE</th><th>RMSE</th><th>Lag</th><th>tc</th><th>storage</th><th>const_loss</th></tr></thead>
+      <thead><tr><th>Evento</th><th>NSE</th><th>Erro pico</th><th>Lag</th><th>Pico obs</th><th>Pico sim</th><th>tc</th><th>storage</th></tr></thead>
       <tbody>{rows}</tbody>
     </table>
     <p class="muted">CSV: <a href="{html.escape(payload['artifacts']['params_csv'])}">{html.escape(payload['artifacts']['params_csv'])}</a></p>
