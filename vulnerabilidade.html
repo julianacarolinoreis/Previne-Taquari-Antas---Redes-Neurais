@@ -96,6 +96,15 @@
   .map-breadcrumb li:not(:last-child)::after{content:"›";color:#9ab0a2;margin-left:2px}
   .map-breadcrumb button,.map-breadcrumb span{border:0;background:transparent;color:var(--brand);font:inherit;font-weight:750;padding:0;cursor:pointer;text-align:left}
   .map-breadcrumb li:last-child button,.map-breadcrumb li:last-child span{color:var(--ink);cursor:default}
+  .area-download-panel{margin:8px 0 10px;padding:10px;border:1px solid #c5d4ea;border-radius:10px;background:#f3f7fc}
+  .area-download-panel .q{margin-top:0;color:#0b4f8a}
+  .carto-print-chrome{display:none}
+  body.print-map-carto .carto-print-chrome{display:block!important}
+  body.print-map-carto aside > *:not(#legendHeading):not(#legctx):not(#leg):not(#printMeta):not(.carto-print-chrome){display:none!important}
+  body.print-map-carto #legendHeading,body.print-map-carto #legctx,body.print-map-carto #leg,body.print-map-carto #printMeta{display:block!important}
+  body.print-map-carto .carto-title{font-size:15px;font-weight:800;color:var(--brand);margin:0 0 4px}
+  body.print-map-carto .carto-sub{font-size:11px;color:var(--muted);margin:0 0 8px;line-height:1.35}
+  body.print-map-carto .carto-foot{font-size:10px;color:var(--muted);margin-top:8px;line-height:1.35;border-top:1px solid var(--line);padding-top:6px}
   .mun-download-panel{margin:0 0 10px;padding:10px;border:1px solid #9fcab0;border-radius:10px;background:#eef8f2}
   .mun-download-panel[hidden]{display:none!important}
   .mun-download-panel .q{margin-top:0;color:var(--brand)}
@@ -415,14 +424,16 @@
     .expl,.icm-wrap,.comparacao-wrap{display:none!important}
     body.print-map-only aside{display:none!important}
     body.print-map-only main{display:block}
-    body.print-map-legend aside > *,body.print-map-summary aside > *,body.print-map-selection aside > *{display:none!important}
+    body.print-map-legend aside > *,body.print-map-summary aside > *,body.print-map-selection aside > *,body.print-map-carto aside > *{display:none!important}
     body.print-map-legend #legendHeading,body.print-map-legend #legctx,body.print-map-legend #leg{display:block!important}
-    body.print-map-legend #printMeta,body.print-map-summary #printMeta,body.print-map-selection #printMeta{display:block!important}
+    body.print-map-legend #printMeta,body.print-map-summary #printMeta,body.print-map-selection #printMeta,body.print-map-carto #printMeta{display:block!important}
     body.print-map-summary #legendHeading,body.print-map-summary #legctx,body.print-map-summary #leg,
     body.print-map-summary #totalHeading,body.print-map-summary #tot{display:block!important}
     body.print-map-selection #legendHeading,body.print-map-selection #legctx,body.print-map-selection #leg,
     body.print-map-selection #selectionPanel{display:block!important}
     body.print-map-selection #selectionPanel{margin-top:8px}
+    body.print-map-carto .carto-print-chrome,body.print-map-carto #legendHeading,body.print-map-carto #legctx,body.print-map-carto #leg,body.print-map-carto #printMeta{display:block!important}
+    body.print-map-carto .carto-print-chrome{margin:0 0 8px}
     body.print-map-table aside{display:none!important}
     body.print-map-table main{grid-template-columns:1fr}
     body.print-map-table #map{height:72vh}
@@ -442,7 +453,7 @@
        fica alinhada na coluna direita, sem sobrar um bloco vazio abaixo */
     main{height:calc(100vh - 58px);min-height:0;grid-template-columns:minmax(0,1fr) 300px;align-items:stretch}
     #map{height:100%;min-height:0}
-    #mapLegendMini,.map-empty-state,.map-hint,.welcome-dialog,.a11y-tools,.mun-search,.glossario,.reading-card,.action-groups,#locationPicker,.start-here,.map-breadcrumb,.mun-download-panel,#manchaRefBox{display:none!important}
+    #mapLegendMini,.map-empty-state,.map-hint,.welcome-dialog,.a11y-tools,.mun-search,.glossario,.reading-card,.action-groups,#locationPicker,.start-here,.map-breadcrumb,.mun-download-panel,#manchaRefBox,#areaDownloadPanel{display:none!important}
     aside{height:100%;min-height:0;overflow:hidden;padding:8px 12px}
     .expl,.icm-wrap,.comparacao-wrap{break-inside:avoid}
     /* Somente o mapa precisa caber em uma unica prancha, sem uma segunda
@@ -761,10 +772,15 @@
 
     <button class="volta" id="volta">← voltar aos municípios da bacia</button>
 
+    <div class="carto-print-chrome" id="cartoPrintChrome" aria-hidden="true">
+      <div class="carto-title" id="cartoTitle">PREVINE · Vulnerabilidade social</div>
+      <p class="carto-sub" id="cartoSub">Prancha cartográfica</p>
+    </div>
     <div class="q" id="legendHeading">Legenda <span id="legctx" style="text-transform:none;font-weight:600"></span></div>
     <div class="legend" id="leg" role="list" aria-live="polite" aria-label="Classes de cores do mapa"></div>
     <div class="quantile-note" id="quantileNote" role="note">Faixas automáticas: 5 classes por quantis; zeros ficam em classe própria quando presentes. Os cortes da escala bacia são congelados no catálogo de dados.</div>
     <div class="print-meta" id="printMeta">Fonte: IBGE Censo 2022; IEDE-RS; MIDR/ICM; SGB. Geometrias em EPSG:4326 (reprojete para medir área/distância).</div>
+    <div class="carto-print-chrome carto-foot" id="cartoFoot">Escala e norte no mapa · vulnerabilidade social ≠ perigo ≠ risco · não é alerta.</div>
     <button class="leg-btn" id="editfx" aria-expanded="false" aria-controls="fxbox">editar faixas</button>
     <div id="fxbox" hidden>
       <label class="sr-only" for="fx0">Primeiro limite da faixa</label><input type="number" step="any" id="fx0" aria-label="Primeiro limite da faixa">
@@ -777,21 +793,24 @@
       </div>
     </div>
 
-    <div class="q">Seleção espacial</div>
-    <div class="tool-grid">
-      <button class="baixar" id="selecionarArea" type="button" aria-pressed="false">▣ selecionar área</button>
-      <button class="baixar" id="limparSelecao" type="button" disabled>limpar seleção</button>
-    </div>
-    <div class="scope-help">Alternativa por teclado: use as caixas “seleção” na tabela comparativa abaixo; o botão “somente seleção” filtra os registros marcados.</div>
-    <div class="selection-box" id="selectionPanel" hidden>
-      <div class="selection-title">Seleção atual</div>
-      <div class="selection-summary" id="selectionSummary"></div>
-      <div class="tool-grid selection-actions">
-        <button class="baixar" id="baixarSelecao" type="button" disabled>↓ CSV selecionado</button>
-        <button class="baixar" id="baixarSelecaoGeo" type="button" disabled>↓ GeoJSON selecionado</button>
-        <button class="baixar wide" id="baixarFicha" type="button" disabled>▣ baixar ficha HTML</button>
+    <div class="q">Seleção espacial · baixar por área</div>
+    <div class="area-download-panel" id="areaDownloadPanel">
+      <div class="q">Desenhe um retângulo no mapa</div>
+      <div class="download-meta">Clique em “selecionar área”, marque dois cantos e baixe só as geometrias que intersectam o retângulo (municípios, setores ou grade). O link compartilhado guarda a área.</div>
+      <div class="tool-grid">
+        <button class="baixar" id="selecionarArea" type="button" aria-pressed="false">▣ selecionar área</button>
+        <button class="baixar" id="limparSelecao" type="button" disabled>limpar seleção</button>
+        <button class="baixar" id="baixarSelecao" type="button" disabled>↓ CSV da área</button>
+        <button class="baixar" id="baixarSelecaoGeo" type="button" disabled>↓ GeoJSON da área</button>
+        <button class="baixar" id="baixarSelecaoShp" type="button" disabled>↓ SHP da área</button>
+        <button class="baixar wide" id="baixarFicha" type="button" disabled>▣ ficha HTML da área</button>
+      </div>
+      <div class="selection-box" id="selectionPanel" hidden>
+        <div class="selection-title">Área selecionada</div>
+        <div class="selection-summary" id="selectionSummary"></div>
       </div>
     </div>
+    <div class="scope-help">Alternativa por teclado: use as caixas “seleção” na tabela comparativa abaixo; o botão “somente seleção” filtra os registros marcados.</div>
 
      <div class="q" id="servicosHeading">Serviços públicos no mapa · pontos cadastrados</div>
      <div class="scope-help service-layer-help">Camada de pontos: estes botões mostram os marcadores no mapa. Os indicadores “pontos publicados /10 mil hab” são taxas municipais do cadastro IEDE, não medem oferta, distância, capacidade ou tempo de atendimento.</div>
@@ -818,8 +837,10 @@
       <div class="tool-grid">
         <button class="baixar" id="baixarMunCsv" type="button">⬇ CSV deste município</button>
         <button class="baixar" id="baixarMunGeo" type="button">⬇ GeoJSON deste município</button>
-        <button class="baixar wide" id="baixarMunZip" type="button">⬇ Pacote ZIP deste município</button>
+        <button class="baixar" id="baixarMunShp" type="button">⬇ Shapefile (SHP) deste município</button>
+        <button class="baixar wide" id="baixarMunZip" type="button">⬇ Pacote GIS (ZIP: CSV+GeoJSON+SHP)</button>
       </div>
+      <div class="download-meta">O Shapefile abre direto no QGIS/ArcGIS. Para GeoPackage (.gpkg), importe o GeoJSON/SHP no QGIS e use “Salvar como… → GeoPackage”, ou baixe o GPKG da bacia abaixo.</div>
       <div class="download-links" id="munDownloadLinks"></div>
     </div>
     <div class="download-meta vista-meta" id="downloadVistaMeta" role="note">Aguardando a vista atual para informar quantos registros serão exportados.</div>
@@ -932,6 +953,7 @@
   <p id="printDescription">Escolha o conteúdo da folha. O mapa usa a seleção atual de indicador, escala, município e camada.</p>
   <fieldset class="print-options"><legend class="sr-only">Conteúdo da impressão</legend>
     <label><input type="radio" name="printMode" value="map-legend" checked> <span><b>Mapa + legenda</b><br><small>Recomendado para relatório e reunião.</small></span></label>
+    <label><input type="radio" name="printMode" value="map-carto"> <span><b>Prancha cartográfica (PDF)</b><br><small>Título, município/indicador, legenda, escala, norte e fontes — para salvar como PDF.</small></span></label>
     <label><input type="radio" name="printMode" value="map-summary"> <span><b>Mapa + legenda + resumo</b><br><small>Inclui o total calculado para a área vista.</small></span></label>
     <label><input type="radio" name="printMode" value="map-selection" disabled> <span><b>Mapa + legenda + seleção</b><br><small>Inclui o resumo da área selecionada no mapa.</small></span></label>
     <label><input type="radio" name="printMode" value="map-table"> <span><b>Mapa + tabela filtrada</b><br><small>Mostra todos os registros da tabela atual em uma folha de relatório.</small></span></label>
@@ -1072,6 +1094,8 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"
         onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';this.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';this.crossOrigin='anonymous'"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@mapbox/shp-write@0.4.3/shpwrite.js" crossorigin="anonymous"
+        onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@mapbox/shp-write@0.4.3/shpwrite.js'"></script>
 <script>
 // O cabeçalho fica acima do mapa; esta margem impede que popups longos sejam
 // automaticamente posicionados por trás dele.
@@ -2823,7 +2847,7 @@ function atualizaPainelSelecao(){
   const panel=document.getElementById("selectionPanel"), summary=document.getElementById("selectionSummary");
   const has=selectionLayers.length>0;
   panel.hidden=!has;
-  ["baixarSelecao","baixarSelecaoGeo","baixarFicha"].forEach(id=>{const b=document.getElementById(id); if(b)b.disabled=!has;});
+  ["baixarSelecao","baixarSelecaoGeo","baixarSelecaoShp","baixarFicha"].forEach(id=>{const b=document.getElementById(id); if(b)b.disabled=!has;});
   const printSel=document.querySelector('input[name="printMode"][value="map-selection"]');
   if(printSel)printSel.disabled=!has;
   document.getElementById("limparSelecao").disabled=!has && !selectionRect;
@@ -2973,8 +2997,12 @@ document.getElementById("baixarSelecao").onclick=()=>{
 document.getElementById("baixarSelecaoGeo").onclick=()=>{
   const vista=dadosDaSelecao(); if(!vista)return;
   baixarBlob(new Blob([JSON.stringify({type:"FeatureCollection",features:vista.features})],{type:"application/geo+json;charset=utf-8"}),`${vista.prefixo}.geojson`);
-  informa(`${fmt(vista.features.length)} feições selecionadas exportadas em GeoJSON (EPSG:4326).`);
+  informa(`${fmt(vista.features.length)} feições da área exportadas em GeoJSON (EPSG:4326).`);
 };
+document.getElementById("baixarSelecaoShp")?.addEventListener("click",()=>{
+  const vista=dadosDaSelecao(); if(!vista)return;
+  baixarShapefile(vista.features, vista.prefixo).catch(err=>informa(err?.message || "Não foi possível gerar o Shapefile da área."));
+});
 document.getElementById("baixarFicha").onclick=fichaSelecao;
 document.addEventListener("keydown",e=>{if(e.key==="Escape" && selectionMode){selectionMode=false;selectionStart=null;document.getElementById("map")?.classList.remove("selection-mode");atualizaBotaoSelecao();informa("Desenho cancelado; a seleção anterior foi mantida.");}});
 
@@ -3433,6 +3461,44 @@ function exportaVistaGeo(){
   baixarBlob(new Blob([geo], {type:"application/geo+json;charset=utf-8"}), `${vista.prefixo}.geojson`);
   informa(`${vista.features.length.toLocaleString("pt-BR")} feições exportadas em GeoJSON (EPSG:4326)${munAtual?` · ${munAtual.nome}`:""}.`);
 }
+function geojsonParaShapefile(features){
+  // Shapefile: campos ≤10 chars, sem objetos/listas; MultiPolygon ok no mapbox/shp-write.
+  return {
+    type:"FeatureCollection",
+    features:(features||[]).map((f,i)=>{
+      const props=f.properties||{};
+      const out={};
+      Object.keys(props).forEach(k=>{
+        let v=props[k];
+        if (v===null || v===undefined) return;
+        if (typeof v === "boolean") v = v ? 1 : 0;
+        if (typeof v === "object") v = JSON.stringify(v).slice(0,240);
+        const key=String(k).replace(/[^A-Za-z0-9_]/g,"_").slice(0,10) || `c${i}`;
+        let nome=key, n=1;
+        while(Object.prototype.hasOwnProperty.call(out,nome)){ nome=(key.slice(0,Math.max(1,10-String(n).length))+n).slice(0,10); n++; }
+        out[nome]=v;
+      });
+      return {type:"Feature", geometry:f.geometry, properties:out};
+    }).filter(f=>f.geometry)
+  };
+}
+function shpWriteApi(){
+  return (typeof shpwrite !== "undefined" && shpwrite) || (typeof window !== "undefined" && window.shpwrite) || null;
+}
+async function baixarShapefile(features, prefixo){
+  const api=shpWriteApi();
+  if(!api || typeof api.zip !== "function"){
+    throw new Error("Biblioteca Shapefile indisponível; use GeoJSON ou o pacote ZIP.");
+  }
+  if(!features?.length) throw new Error("Nenhuma feição para o Shapefile.");
+  const gj=geojsonParaShapefile(features);
+  const opts={folder:prefixo, filename:prefixo, outputType:"blob", compression:"DEFLATE", types:{polygon:prefixo.slice(0,8)||"polig", point:"pontos", polyline:"linhas"}};
+  let zipData=api.zip(gj, opts);
+  if (zipData && typeof zipData.then === "function") zipData = await zipData;
+  const blob = zipData instanceof Blob ? zipData : new Blob([zipData], {type:"application/zip"});
+  baixarBlob(blob, `${prefixo}_shapefile.zip`);
+  informa(`${fmt(features.length)} feições exportadas em Shapefile (ZIP · EPSG:4326).`);
+}
 async function baixarPacoteMunicipio(){
   if(!munAtual){ informa("Abra um município antes de baixar o pacote."); return; }
   if(typeof JSZip === "undefined"){ informa("Biblioteca ZIP indisponível; use CSV/GeoJSON da vista."); return; }
@@ -3445,6 +3511,14 @@ async function baixarPacoteMunicipio(){
   const csv=[cols.map(csvCampo).join(";")].concat(rows.map(r=>cols.map(c=>csvCampo(r[c])).join(";"))).join("\r\n");
   zip.file(`${vista.prefixo}.csv`, "\uFEFF"+csv);
   zip.file(`${vista.prefixo}.geojson`, JSON.stringify({type:"FeatureCollection",features:vista.features}));
+  try{
+    const api=shpWriteApi();
+    if(api?.zip){
+      let shpZip=api.zip(geojsonParaShapefile(vista.features), {folder:"shapefile", filename:vista.prefixo, outputType:"arraybuffer", compression:"DEFLATE", types:{polygon:"poligonos", point:"pontos", polyline:"linhas"}});
+      if(shpZip && typeof shpZip.then==="function") shpZip=await shpZip;
+      zip.file(`${vista.prefixo}_shapefile.zip`, shpZip);
+    }
+  }catch(_){}
   const munFeat=munData?.features?.find(f=>String(f.properties.cod_mun)===String(munAtual.cod_mun));
   if(munFeat) zip.file(`municipio_${munAtual.cod_mun}_${slugLocal(munAtual.nome)}.geojson`, JSON.stringify({type:"FeatureCollection",features:[{type:"Feature",properties:{...munFeat.properties},geometry:munFeat.geometry}]}));
   // Inclui a outra camada estática se existir (setores quando grade ativa e vice-versa)
@@ -3454,19 +3528,21 @@ async function baixarPacoteMunicipio(){
     if(r.ok) zip.file(`${outra}_${munAtual.cod_mun}_${slugLocal(munAtual.nome)}.geojson`, await r.text());
   }catch(_){}
   const leia=[
-    `PREVINE · pacote municipal de vulnerabilidade social`,
+    `PREVINE · pacote GIS municipal de vulnerabilidade social`,
     `Município: ${munAtual.nome} (${munAtual.cod_mun})`,
     `Camada da vista: ${camada==="grade"?"Grade IBGE":"setores censitários"}`,
     `Filtro na_bacia: ${exportSoNaBacia?"sim":"não"}`,
     `Indicador ativo na sessão: ${INDS.find(i=>i.k===ind)?.nome||ind}`,
+    `Conteúdo: CSV, GeoJSON, Shapefile (ZIP interno), polígono municipal e (quando disponível) a outra camada estática.`,
+    `Para GeoPackage (.gpkg): no QGIS, abra o GeoJSON/SHP e use Salvar como → GeoPackage.`,
     `CRS: EPSG:4326 (reprojete para medir área/distância)`,
     `Atenção: vulnerabilidade social ≠ perigo ≠ risco; este pacote não é alerta.`,
     `Gerado em: ${new Date().toISOString()}`
   ].join("\n");
   zip.file("LEIA-ME.txt", leia);
   const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE"});
-  baixarBlob(blob, `pacote_${munAtual.cod_mun}_${slugLocal(munAtual.nome)}.zip`);
-  informa(`Pacote ZIP de ${munAtual.nome} baixado (${fmt(vista.features.length)} feições da vista).`);
+  baixarBlob(blob, `pacote_gis_${munAtual.cod_mun}_${slugLocal(munAtual.nome)}.zip`);
+  informa(`Pacote GIS de ${munAtual.nome} baixado (${fmt(vista.features.length)} feições da vista).`);
 }
 function baixarBlob(blob, nome){
   const a = document.createElement("a");
@@ -3534,6 +3610,11 @@ document.getElementById("baixar").onclick = ()=>exportaVistaCsv();
 document.getElementById("baixarGeo").onclick = ()=>exportaVistaGeo();
 document.getElementById("baixarMunCsv")?.addEventListener("click",()=>{ if(!munAtual){informa("Abra um município primeiro.");return;} exportaVistaCsv(); });
 document.getElementById("baixarMunGeo")?.addEventListener("click",()=>{ if(!munAtual){informa("Abra um município primeiro.");return;} exportaVistaGeo(); });
+document.getElementById("baixarMunShp")?.addEventListener("click",()=>{
+  if(!munAtual){informa("Abra um município primeiro.");return;}
+  const vista=dadosDaVista();
+  baixarShapefile(vista.features, vista.prefixo).catch(err=>informa(err?.message || "Não foi possível gerar o Shapefile."));
+});
 document.getElementById("baixarMunZip")?.addEventListener("click",()=>baixarPacoteMunicipio());
 document.getElementById("exportSoNaBacia")?.addEventListener("change",e=>{
   exportSoNaBacia=!!e.target.checked;
@@ -3554,12 +3635,23 @@ let printTrigger = null, printing = false;
 function limpaModoImpressao(){
   const tabelaEmImpressao=impressaoTabela;
   impressaoTabela=false;
-  document.body.classList.remove("print-map-only","print-map-legend","print-map-summary","print-map-selection","print-map-table");
+  document.body.classList.remove("print-map-only","print-map-legend","print-map-summary","print-map-selection","print-map-table","print-map-carto");
   if(tabelaEmImpressao && typeof atualizaTabelaComparacao === "function") atualizaTabelaComparacao();
   document.querySelectorAll(".print-hide").forEach(el=>el.classList.remove("print-hide"));
 }
+function atualizaCartoPrintMeta(){
+  const d=INDS.find(i=>i.k===ind);
+  const titulo=document.getElementById("cartoTitle");
+  const sub=document.getElementById("cartoSub");
+  const foot=document.getElementById("cartoFoot");
+  const lugar=munAtual ? `${munAtual.nome} · ${camada==="grade"?"Grade IBGE":"setores censitários"}` : "Bacia Taquari-Antas · municípios";
+  if(titulo) titulo.textContent=`PREVINE · ${d?.nome || ind}`;
+  if(sub) sub.textContent=`${lugar} · ${new Date().toLocaleString("pt-BR")} · escala ${escala==="bacia"?"comparável na bacia":"local"}`;
+  if(foot) foot.textContent=`Escala e norte no mapa · fonte: ${fonteIndicador?.(d) || "IBGE/IEDE/ICM"} · vulnerabilidade social ≠ perigo ≠ risco · não é alerta.`;
+}
 function abreDialogImpressao(trigger){
   printTrigger=trigger || document.getElementById("imprimir");
+  atualizaCartoPrintMeta();
   if (printDialog?.showModal){ printDialog.showModal(); window.setTimeout(()=>document.getElementById("printConfirm")?.focus(),0); }
   else window.print();
 }
@@ -3570,6 +3662,7 @@ printDialog?.addEventListener("close",()=>{ if(!printing)limpaModoImpressao(); i
 document.getElementById("printConfirm").onclick = ()=>{
   const mode = document.querySelector('input[name="printMode"]:checked')?.value || "map-legend";
   limpaModoImpressao();
+  if (mode === "map-carto") atualizaCartoPrintMeta();
   document.body.classList.add(`print-${mode}`);
   if (mode === "map-table"){
     impressaoTabela=true;
