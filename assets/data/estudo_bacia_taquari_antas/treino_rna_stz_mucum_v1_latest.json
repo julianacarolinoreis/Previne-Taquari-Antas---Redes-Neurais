@@ -1,0 +1,162 @@
+{
+  "schema_version": "estudo_treino_rna_stz_mucum_v1",
+  "generated_at_utc": "2026-09-09T10:55:18.189379+00:00",
+  "purpose": "treino controlado MLP 8h STZ e Mucum com mascara de chuva; pesquisa",
+  "status": "treino_rna_v1_concluido_nao_operacional",
+  "discipline_rule": "Artefato de pesquisa. Nao substitui MATLAB/.mat operacionais. Nao e alerta. Nao calibra HEC.",
+  "horizon_h": 8,
+  "sources": {
+    "excel_eventos": "assets/audit_workbooks/8H_CONV__MUC_H8_CONV_STC021_M015.xlsx",
+    "rain_mask": "assets/data/estudo_bacia_taquari_antas/mascara_chuva_nucleo_horaria.csv",
+    "contract": "contrato_rna_mascara_stz_mucum_latest.json"
+  },
+  "notes": [
+    "Prata no Excel de eventos usa 86125130 (proxy); contrato preferia 86125500.",
+    "Máscaras de chuva entram como features; valor 0 com mask=0 é placeholder (não chuva observada).",
+    "Se Validacao/Teste do Excel zeram após máscara, usa holdout temporal nos usable.",
+    "Baseline = persistência do nível atual do alvo."
+  ],
+  "models": {
+    "santa_tereza": {
+      "model": "stz",
+      "split_mode": "excel_conjunto",
+      "n_usable_total": 2570,
+      "n_by_conjunto_before_mask": {
+        "Treino": 2286,
+        "Validacao": 286,
+        "Teste": 408
+      },
+      "n_by_conjunto_after_mask": {
+        "Treino": 1966,
+        "Validacao": 242,
+        "Teste": 362
+      },
+      "feature_names": [
+        "nivel_86472600_t",
+        "nivel_86472000",
+        "nivel_86507000",
+        "nivel_86125130_prata_proxy",
+        "chuva_86472000",
+        "chuva_86472600",
+        "chuva_02851072",
+        "mask_chuva_86472000",
+        "mask_chuva_86472600",
+        "mask_chuva_02851072"
+      ],
+      "metrics": {
+        "Treino": {
+          "n": 1966,
+          "rmse_cm": 52.75978435678476,
+          "mae_cm": 34.851778574836,
+          "nse": 0.9337026872599637,
+          "persistencia_rmse_cm": 78.64853181375872,
+          "persistencia_mae_cm": 46.455239064089525,
+          "skill_rmse_vs_pers": 0.3291701301974591
+        },
+        "Validacao": {
+          "n": 242,
+          "rmse_cm": 64.42318315646712,
+          "mae_cm": 37.166319647921306,
+          "nse": 0.8167200091846889,
+          "persistencia_rmse_cm": 70.22904557927016,
+          "persistencia_mae_cm": 40.47685950413223,
+          "skill_rmse_vs_pers": 0.08267038765676726
+        },
+        "Teste": {
+          "n": 362,
+          "rmse_cm": 82.59532864788878,
+          "mae_cm": 46.58992178033507,
+          "nse": 0.8754083255886249,
+          "persistencia_rmse_cm": 102.3505657000296,
+          "persistencia_mae_cm": 57.43646408839779,
+          "skill_rmse_vs_pers": 0.1930154163489407
+        }
+      },
+      "model_path": "assets/data/estudo_bacia_taquari_antas/treino_rna_stz_mucum_v1/modelo_stz.joblib",
+      "mlp": {
+        "hidden_layer_sizes": [
+          64,
+          32
+        ],
+        "activation": "relu",
+        "max_iter": 800
+      }
+    },
+    "mucum": {
+      "model": "mucum",
+      "split_mode": "excel_conjunto",
+      "n_usable_total": 2961,
+      "n_by_conjunto_before_mask": {
+        "Treino": 2286,
+        "Validacao": 286,
+        "Teste": 408
+      },
+      "n_by_conjunto_after_mask": {
+        "Treino": 2267,
+        "Validacao": 286,
+        "Teste": 408
+      },
+      "feature_names": [
+        "nivel_86510000_t",
+        "nivel_86472600",
+        "nivel_86472000",
+        "nivel_86507000",
+        "nivel_86125130_prata_proxy",
+        "chuva_86472000",
+        "chuva_86472600",
+        "chuva_02851072",
+        "mask_chuva_86472000",
+        "mask_chuva_86472600",
+        "mask_chuva_02851072"
+      ],
+      "metrics": {
+        "Treino": {
+          "n": 2267,
+          "rmse_cm": 30.443318915379887,
+          "mae_cm": 18.719374799361752,
+          "nse": 0.9884907242445834,
+          "persistencia_rmse_cm": 98.13930800609563,
+          "persistencia_mae_cm": 51.06087340097044,
+          "skill_rmse_vs_pers": 0.6897948484261883
+        },
+        "Validacao": {
+          "n": 286,
+          "rmse_cm": 41.103872280817704,
+          "mae_cm": 25.479633660959372,
+          "nse": 0.9501924739365696,
+          "persistencia_rmse_cm": 77.07382257209075,
+          "persistencia_mae_cm": 45.43006993006993,
+          "skill_rmse_vs_pers": 0.4666947750986228
+        },
+        "Teste": {
+          "n": 408,
+          "rmse_cm": 57.663080507914515,
+          "mae_cm": 33.48441059573637,
+          "nse": 0.9613438637313494,
+          "persistencia_rmse_cm": 124.20217941948128,
+          "persistencia_mae_cm": 68.23529411764706,
+          "skill_rmse_vs_pers": 0.5357321362843173
+        }
+      },
+      "model_path": "assets/data/estudo_bacia_taquari_antas/treino_rna_stz_mucum_v1/modelo_mucum.joblib",
+      "mlp": {
+        "hidden_layer_sizes": [
+          64,
+          32
+        ],
+        "activation": "relu",
+        "max_iter": 800
+      }
+    }
+  },
+  "next_steps": [
+    "Comparar contra .mat operacional / Excel-mãe nos mesmos eventos.",
+    "Trocar proxy 86125130 por 86125500 quando série local existir.",
+    "Só promover se bater baseline e disciplina de auditoria PREVINE."
+  ],
+  "artifacts": {
+    "json": "treino_rna_stz_mucum_v1_latest.json",
+    "html": "treino_rna_stz_mucum_v1.html",
+    "models_dir": "treino_rna_stz_mucum_v1/"
+  }
+}
