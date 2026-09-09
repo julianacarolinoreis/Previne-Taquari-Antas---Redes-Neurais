@@ -20,7 +20,7 @@ ul{padding-left:20px}
 </head>
 <body>
 <h1>Relatório comparativo — RNA multi-horizonte (MIMO)</h1>
-<p class='meta'>Gerado em 2026-09-09T13:34:57+00:00 · Santa Tereza · modo pesquisa (não operacional) · schema v6</p>
+<p class='meta'>Gerado em 2026-09-09T15:44:44+00:00 · Santa Tereza · modo pesquisa (não operacional) · schema v7</p>
 
 <div class='box'>
 <strong>Pergunta:</strong> uma única rede prevendo 2h+4h (+8h) supera modelos Direct?<br>
@@ -143,12 +143,31 @@ bate scratch 4h? sim</p>
 </ul>
 
 
-<h2>7. Handoff MATLAB (protocolo PREVINE)</h2>
-<p>Script <code>train_mimo_2h4h_stz.m</code> agora espelha o protocolo Direct (ae/be ddof=1, au/bu padded,
-dunisig, TX adaptativo). CSVs usam deltas <strong>observados</strong>.
-<a href='../assets/data/research_mimo_matlab_handoff/manifest.json'>assets/data/research_mimo_matlab_handoff/</a>.
-Comparar ao teto justo alinhado e, se quiser o teto operacional full-test, ao
-<code>mat_reference_metrics_teste</code> (4h com 26 inputs).</p>
+
+<h2>6e. Rodada 6 — 100% Python · 26 inputs + nit</h2>
+<p>Pergunta: Com 26 inputs do Direct 4h + nit=10 + Cic ampliado, o MIMO PREVINE fecha o gap justo alinhado no 4h (<0,05) sem piorar o 2h?</p>
+<p class='meta'>MATLAB = opcional (<code>matlab/OPTIONAL.md</code>). Caminho canônico = <code>fit_previne</code>.</p>
+<p><strong>Teto justo alinhado:</strong> 2h 0,9958 · 4h 0,9202</p>
+<p><strong>Melhor variante:</strong> mimo26_previne_nh52_nit10 · gap justo 4h 0,0468 ·
+fecha &lt;0,05? sim ·
+melhora r5? sim
+ · r5 4h 0,8660</p>
+<table><thead><tr><th>Variante</th><th>NASH 2h</th><th>NASH 4h</th><th>Δ scratch 4h</th><th>gap teto justo 4h</th><th>2h ok</th></tr></thead>
+<tbody><tr><td>mimo26_previne_nh52_nit10</td><td>0,9552</td><td>0,8734</td><td>0,2434</td><td>0,0468</td><td>ok</td></tr><tr><td>mimo15_previne_rising_r5ref</td><td>0,9828</td><td>0,8580</td><td>0,2280</td><td>0,0622</td><td>ok</td></tr><tr><td>mimo26_previne_rising</td><td>0,9554</td><td>0,8191</td><td>0,1891</td><td>0,1011</td><td>ok</td></tr><tr><td>mimo26_previne</td><td>0,9413</td><td>0,7165</td><td>0,0865</td><td>0,2037</td><td>no</td></tr></tbody></table>
+<p class='meta'>Caminho canônico = Python. MATLAB em matlab/OPTIONAL.md. Se 26in + nit não fechar gap<0,05, o limite é multi-saída vs dois Direct independentes — não falta de runtime MATLAB.</p>
+<ul>
+<li><strong>26 inputs + nh=52 + nit=10</strong> fecha o gap justo no 4h (&lt;0,05) em Python.</li>
+<li>Trade-off: 2h um pouco abaixo do pico 15in da r5, mas ainda ok vs scratch.</li>
+<li>Não falta MATLAB — o limite restante é multi-saída vs dois Direct independentes / teto full-test 26in.</li>
+</ul>
+
+
+<h2>7. Caminho Python (MATLAB opcional)</h2>
+<p><strong>Canônico:</strong> <code>fit_previne</code> + <code>run_research_round6.py</code> (26 inputs, nit=10).
+Os <code>.mat</code> Direct continuam só como teto/inferência.</p>
+<p><strong>Opcional:</strong> espelho MATLAB em
+<code>codigo_python/11_experimento_mimo/matlab/OPTIONAL.md</code> —
+mesmo protocolo, sem ser requisito da pesquisa.</p>
 
 <h2>8. JSON auditável</h2>
 <p><a href='../assets/data/research_mimo_multihorizon_latest.json'>assets/data/research_mimo_multihorizon_latest.json</a></p>

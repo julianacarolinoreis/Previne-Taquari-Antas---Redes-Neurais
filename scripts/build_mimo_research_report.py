@@ -65,10 +65,12 @@ def main():
     round4 = data["experiments"].get("exp7_mat_scale_warmstart_fix") or {}
     round5 = data["experiments"].get("exp8_previne_protocol_obs_labels") or {}
     round6 = data["experiments"].get("exp9_python_26in_nit") or {}
+    round7 = data["experiments"].get("exp10_mimo_vs_direct_pair") or {}
     ds = data["datasets"]
     ref = data["mat_reference_metrics_teste"]
     fair_aligned = (
         data.get("mat_reference_aligned_teste")
+        or (round7.get("mat_reference_aligned_teste") if round7 else None)
         or (round6.get("mat_reference_aligned_teste") if round6 else None)
         or (round5.get("mat_reference_aligned_teste") or {})
     )
@@ -106,6 +108,14 @@ def main():
     round4_rows = _round_table(round4)
     round5_rows = _round_table(round5)
     round6_rows = _round_table(round6)
+    round7_rows = ""
+    if round7.get("ranking_research"):
+        for item in round7["ranking_research"]:
+            round7_rows += (
+                f"<tr><td>{item['key']}</td><td>{fmt(item['nash_2h'])}</td>"
+                f"<td>{fmt(item['nash_4h'])}</td><td>{fmt(item['gap_fair_4h'])}</td>"
+                f"<td>{fmt(item['e95_4h'],1)}</td><td>{item.get('role','')}</td></tr>"
+            )
     round3_box = ""
     if round3:
         verd = round3.get("verdict", {})
@@ -198,6 +208,28 @@ melhora r5? {'sim' if verd.get('improves_vs_round5_4h') else 'não'}
 <li>Não falta MATLAB — o limite restante é multi-saída vs dois Direct independentes / teto full-test 26in.</li>
 </ul>
 """
+    round7_box = ""
+    if round7:
+        verd = round7.get("verdict", {})
+        best = round7.get("best_research_variant", "—")
+        mvp = round7.get("mimo_vs_direct_pair") or {}
+        gate4 = round7.get("gate_direct_4h_full_previne") or {}
+        round7_box = f"""
+<h2>6f. Rodada 7 — MIMO vs Direct×2 PREVINE</h2>
+<p>Pergunta: {round7.get('question','')}</p>
+<p><strong>Melhor pesquisa:</strong> {best} · MIMO Δ4h vs Direct×2 {fmt(mvp.get('delta_nash_4h'))} ·
+Δ2h {fmt(mvp.get('delta_nash_2h'))}</p>
+<p><strong>Gate twin 4h full-test:</strong> NASH {fmt((gate4.get('previne_twin_teste') or {}).get('nash'))}
+· gap ao .mat {fmt(gate4.get('gap_to_mat'))} (pass={'sim' if gate4.get('gate_pass') else 'não'})</p>
+<table><thead><tr><th>Variante</th><th>NASH 2h</th><th>NASH 4h</th><th>gap justo 4h</th><th>E95 4h</th><th>papel</th></tr></thead>
+<tbody>{round7_rows or '<tr><td colspan="6">sem ranking</td></tr>'}</tbody></table>
+<p class='meta'>{verd.get('note','')}</p>
+<ul>
+<li><strong>MIMO ganha no 4h</strong> contra dois Direct PREVINE treinados no mesmo recorte alinhado (~+0,09 NASH).</li>
+<li>Direct×2 ainda é um pouco melhor no 2h; residual melhora 2h mas não bate o MIMO no 4h.</li>
+<li>Twin PREVINE no 4h <em>completo</em> chega a ~0,97 (gap ~0,02 ao .mat) — fidelidade do treino Python está ok.</li>
+</ul>
+"""
 
     html = f"""<!doctype html>
 <html lang='pt-BR'>
@@ -282,6 +314,8 @@ ul{{padding-left:20px}}
 {round5_box}
 
 {round6_box}
+
+{round7_box}
 
 <h2>7. Caminho Python (MATLAB opcional)</h2>
 <p><strong>Canônico:</strong> <code>fit_previne</code> + <code>run_research_round6.py</code> (26 inputs, nit=10).

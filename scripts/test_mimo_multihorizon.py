@@ -165,6 +165,16 @@ class TestExperimentArtifact(unittest.TestCase):
         self.assertGreater(best["2h"]["nash"], 0.90)
         self.assertTrue((ROOT / "codigo_python/11_experimento_mimo/matlab/OPTIONAL.md").is_file())
 
+    def test_round7_mimo_vs_direct_pair(self):
+        exp10 = self.data["experiments"].get("exp10_mimo_vs_direct_pair")
+        self.assertIsNotNone(exp10, "exp10_mimo_vs_direct_pair ausente")
+        self.assertEqual(exp10.get("status"), "ok")
+        self.assertTrue(exp10["verdict"]["mimo_beats_direct_pair_4h"])
+        self.assertGreater(exp10["mimo_vs_direct_pair"]["delta_nash_4h"], 0.05)
+        self.assertTrue(exp10["gate_direct_4h_full_previne"]["gate_pass"])
+        self.assertLess(exp10["gate_direct_4h_full_previne"]["gap_to_mat"], 0.05)
+        self.assertEqual(exp10["best_research_variant"], "mimo26_previne_nh52")
+
     def test_matlab_handoff_package(self):
         import sys
 
