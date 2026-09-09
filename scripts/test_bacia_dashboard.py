@@ -31,7 +31,7 @@ class BasinDashboardTests(unittest.TestCase):
         self.assertTrue(self.page.exists())
         self.assertTrue((ROOT / "assets/css/bacia_dashboard.css").exists())
         self.assertTrue((ROOT / "assets/js/bacia_dashboard.js").exists())
-        for token in ("data-bacia-dashboard", "assets/css/bacia_dashboard.css", "assets/js/bacia_dashboard.js", "dashboard_bacia.html"):
+        for token in ("data-bacia-dashboard", "assets/css/bacia_dashboard.css", "assets/js/bacia_dashboard.js?v=20260909-live", "dashboard_bacia.html"):
             self.assertIn(token, self.text)
 
     def test_controls_cover_basin_stations_and_horizons(self) -> None:
