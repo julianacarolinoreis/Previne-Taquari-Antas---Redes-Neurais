@@ -1,9 +1,9 @@
 {
   "schema_version": "estudo_hec_twin_stz_mucum_v1",
-  "generated_at_utc": "2026-09-09T18:07:34.406380+00:00",
-  "purpose": "busca eventwise + common-search HEC v1.5 (PAD por evento, score de pico, grid ampliado) no modelo Muçum; STZ diagnostico (Q bloqueado)",
-  "status": "modelo_mucum_eventwise_v1_5_fechado_stz_q_blocked",
-  "discipline_rule": "Isto e HEC estrutural + busca de parametros no gemeo Linux/Python. Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. v1.5: PAD por evento + research_score com peso forte no pico; STZ Q bloqueado ate curva-chave oficial.",
+  "generated_at_utc": "2026-09-09T18:28:03.216590+00:00",
+  "purpose": "busca eventwise + common-search HEC v1.6 (PAD por evento, polish local de pico) no modelo Muçum; STZ diagnostico (Q bloqueado)",
+  "status": "modelo_mucum_eventwise_v1_6_fechado_stz_q_blocked",
+  "discipline_rule": "Isto e HEC estrutural + busca de parametros no gemeo Linux/Python. Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. v1.6: PAD por evento + local refine de pico (peak_weight=1.25); STZ Q bloqueado ate curva-chave oficial.",
   "audit_fixes_v1_1": [
     "rain_stations HEC de evento separados dos aspiracionais RNA",
     "fallback de magnitude se pluvio preferido completo mas seco",
@@ -34,6 +34,11 @@
     "research_score com peso 1.0 no erro relativo de pico",
     "grid ampliado (k1/k2/k3 independentes + seeds de pico)"
   ],
+  "calibration_v1_6": [
+    "Polish local (neighbors) após grid em cada PAD",
+    "peak_weight=1.25 no research_score",
+    "Foco em reduzir erro de pico E21/E27/E31 e levantar marginais"
+  ],
   "engine": {
     "name": "python_hms_twin_ic_clark_recession_muskingum",
     "not_hec_hms_binary": true,
@@ -44,7 +49,7 @@
       "Recession",
       "Muskingum"
     ],
-    "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error"
+    "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error"
   },
   "structure_ref": "estrutura_stz_mucum_latest.json",
   "areas_km2": {
@@ -60,8 +65,8 @@
       "target_name": "Muçum",
       "quantity": "Vazao_m3s",
       "structure": "modelo_mucum_estrutura_stz_mucum_v1",
-      "mode": "eventwise_plus_common_search_v1_5",
-      "calibration_version": "mucum_hec_twin_v1_5",
+      "mode": "eventwise_plus_common_search_v1_6",
+      "calibration_version": "mucum_hec_twin_v1_6",
       "hold_out": true,
       "external_holdout_events": [
         "E26",
@@ -75,146 +80,146 @@
           12,
           24
         ],
-        "mode": "per_event_argmax_research_score",
+        "mode": "per_event_argmax_research_score_with_local_refine",
         "selected_pad_hours_mode": 24,
         "per_event": {
           "E19": 24,
           "E20": 12,
-          "E21": 12,
+          "E21": 0,
           "E22": 0,
           "E23": 24,
-          "E24": 24,
+          "E24": 12,
           "E25": 12,
           "E26": 24,
           "E27": 0,
           "E28": 12,
           "E29": 24,
           "E30": 24,
-          "E31": 12
+          "E31": 24
         },
         "trials": [
           {
             "event_id": "E19",
             "selected_pad_hours": 24,
-            "nse": -0.9547,
-            "peak_relative_error": 0.0621,
+            "nse": -0.8102,
+            "peak_relative_error": 0.0331,
             "peak_lag_hours": 28.0,
-            "research_score": -1.5768
+            "research_score": -1.4116
           },
           {
             "event_id": "E20",
             "selected_pad_hours": 12,
-            "nse": 0.9059,
-            "peak_relative_error": 0.0054,
-            "peak_lag_hours": 1.0,
-            "research_score": 0.8805
+            "nse": 0.8973,
+            "peak_relative_error": 0.0044,
+            "peak_lag_hours": 0.0,
+            "research_score": 0.8917
           },
           {
             "event_id": "E21",
-            "selected_pad_hours": 12,
-            "nse": 0.8679,
-            "peak_relative_error": 0.0607,
-            "peak_lag_hours": -1.0,
-            "research_score": 0.7872
+            "selected_pad_hours": 0,
+            "nse": 0.8611,
+            "peak_relative_error": 0.0024,
+            "peak_lag_hours": 1.0,
+            "research_score": 0.8381
           },
           {
             "event_id": "E22",
             "selected_pad_hours": 0,
-            "nse": 0.7679,
-            "peak_relative_error": 0.0231,
+            "nse": 0.7629,
+            "peak_relative_error": 0.0119,
             "peak_lag_hours": 0.0,
-            "research_score": 0.7447
+            "research_score": 0.748
           },
           {
             "event_id": "E23",
             "selected_pad_hours": 24,
-            "nse": 0.7984,
-            "peak_relative_error": 0.0436,
+            "nse": 0.821,
+            "peak_relative_error": 0.0468,
             "peak_lag_hours": 2.0,
-            "research_score": 0.7148
+            "research_score": 0.7225
           },
           {
             "event_id": "E24",
-            "selected_pad_hours": 24,
-            "nse": 0.8316,
-            "peak_relative_error": 0.012,
-            "peak_lag_hours": -4.0,
-            "research_score": 0.7396
+            "selected_pad_hours": 12,
+            "nse": 0.7883,
+            "peak_relative_error": 0.0093,
+            "peak_lag_hours": 1.0,
+            "research_score": 0.7567
           },
           {
             "event_id": "E25",
             "selected_pad_hours": 12,
-            "nse": 0.9518,
+            "nse": 0.9574,
             "peak_relative_error": 0.0034,
             "peak_lag_hours": -2.0,
-            "research_score": 0.9084
+            "research_score": 0.9132
           },
           {
             "event_id": "E26",
             "selected_pad_hours": 24,
-            "nse": 0.5712,
-            "peak_relative_error": 0.0985,
-            "peak_lag_hours": 3.0,
-            "research_score": 0.4127
+            "nse": 0.6035,
+            "peak_relative_error": 0.107,
+            "peak_lag_hours": 4.0,
+            "research_score": 0.3897
           },
           {
             "event_id": "E27",
             "selected_pad_hours": 0,
-            "nse": 0.9119,
-            "peak_relative_error": 0.0929,
-            "peak_lag_hours": 1.0,
-            "research_score": 0.799
+            "nse": 0.9137,
+            "peak_relative_error": 0.022,
+            "peak_lag_hours": 2.0,
+            "research_score": 0.8462
           },
           {
             "event_id": "E28",
             "selected_pad_hours": 12,
-            "nse": 0.9703,
-            "peak_relative_error": 0.0144,
+            "nse": 0.9701,
+            "peak_relative_error": 0.0141,
             "peak_lag_hours": 0.0,
-            "research_score": 0.9558
+            "research_score": 0.9525
           },
           {
             "event_id": "E29",
             "selected_pad_hours": 24,
-            "nse": 0.6712,
-            "peak_relative_error": 0.0775,
-            "peak_lag_hours": -1.0,
-            "research_score": 0.5737
+            "nse": 0.6909,
+            "peak_relative_error": 0.0819,
+            "peak_lag_hours": 0.0,
+            "research_score": 0.5886
           },
           {
             "event_id": "E30",
             "selected_pad_hours": 24,
-            "nse": 0.3304,
-            "peak_relative_error": 0.0918,
+            "nse": 0.613,
+            "peak_relative_error": 0.025,
             "peak_lag_hours": 4.0,
-            "research_score": 0.1585
+            "research_score": 0.5018
           },
           {
             "event_id": "E31",
-            "selected_pad_hours": 12,
-            "nse": 0.9649,
-            "peak_relative_error": 0.0707,
+            "selected_pad_hours": 24,
+            "nse": 0.9702,
+            "peak_relative_error": 0.0088,
             "peak_lag_hours": 0.0,
-            "research_score": 0.8942
+            "research_score": 0.9592
           }
         ],
-        "selection_rule": "for each event, argmax research_score over PAD∈{0,12,24}",
-        "note": "v1.5: PAD por evento + score com peso forte no pico."
+        "selection_rule": "for each event×PAD: coarse grid then local_param_neighbors; argmax research_score (peak_weight=1.25)",
+        "note": "v1.6: PAD por evento + polish local de pico."
       },
       "n_events_scored": 13,
       "n_events_fit_ok": 12,
-      "mean_nse_eventwise_including_failed": 0.6606589292385482,
-      "mean_nse_eventwise": 0.7952699320907701,
-      "mean_peak_relative_error_ok": 0.04949138662010666,
-      "mean_nse_eventwise_excluding_e19": 0.7952699320907701,
+      "mean_nse_eventwise_including_failed": 0.6953185542076864,
+      "mean_nse_eventwise": 0.8207801472747982,
+      "mean_peak_relative_error_ok": 0.028081379884847376,
+      "mean_nse_eventwise_excluding_e19": 0.8207801472747982,
       "n_events_excluding_e19": 12,
-      "mean_nse_eventwise_including_e19": 0.6606589292385482,
+      "mean_nse_eventwise_including_e19": 0.6953185542076864,
       "e19_note": "E19 fit_failed: chuva local core máx ~26 mm vs pico obs ~1408 m³/s. Forçamento pluviométrico insuficiente para a onda (provável massa de montante/routing). Headline = média NSE>=0 (E22–E28).",
       "gaps_remaining": [
         {
           "id": "common_params_transfer",
           "status": "open",
-          "detail": "hold-out E27 NSE=-0.9884415992951683; LOO médio=0.4340954444834153; externos E26/E30/E31 médio=-0.2879901129677098. Usar params eventwise enquanto bloqueado."
+          "detail": "hold-out E27 NSE=-0.9884415992951683; LOO médio=0.4285363438603209; externos E26/E30/E31 médio=-0.2881268978302248. Usar params eventwise enquanto bloqueado."
         },
         {
           "id": "e19_local_rain_underforced",
@@ -229,7 +234,7 @@
         {
           "id": "external_event_validation",
           "status": "partial",
-          "detail": "Externos E26/E30/E31 rodados; mean_nse=-0.2879901129677098. Continuar ampliando conforme novos eventos."
+          "detail": "Externos E26/E30/E31 rodados; mean_nse=-0.2881268978302248. Continuar ampliando conforme novos eventos."
         },
         {
           "id": "stz_q_curve",
@@ -262,7 +267,7 @@
           "k3": 1.0,
           "x": 0.2
         },
-        "best_mean_research_score": -0.35664901317337816,
+        "best_mean_research_score": -0.43389114189061306,
         "best_event_metrics": [
           {
             "event_id": "E20",
@@ -278,13 +283,13 @@
           {
             "event_id": "E21",
             "pairs": 158.0,
-            "nse": 0.7495981836775467,
-            "rmse_m3s": 810.0963306263901,
-            "mae_m3s": 715.3463310476523,
+            "nse": 0.7531426028060506,
+            "rmse_m3s": 804.3424699681628,
+            "mae_m3s": 711.7713029880958,
             "peak_lag_hours": 8.0,
-            "peak_relative_error": 0.06237240976140005,
+            "peak_relative_error": 0.06246445421819193,
             "observed_peak_m3s": 6000.525,
-            "simulated_peak_m3s": 5626.257795916475
+            "simulated_peak_m3s": 5625.7054808523835
           },
           {
             "event_id": "E22",
@@ -311,13 +316,13 @@
           {
             "event_id": "E24",
             "pairs": 238.0,
-            "nse": 0.649678909186008,
-            "rmse_m3s": 1728.5232339952197,
-            "mae_m3s": 1424.0524227031635,
+            "nse": 0.617944855992075,
+            "rmse_m3s": 1805.115955485119,
+            "mae_m3s": 1480.2437630219536,
             "peak_lag_hours": 8.0,
-            "peak_relative_error": 0.15220097020105045,
+            "peak_relative_error": 0.15943524242893306,
             "observed_peak_m3s": 11434.95,
-            "simulated_peak_m3s": 9694.539515799499
+            "simulated_peak_m3s": 9611.815974587273
           },
           {
             "event_id": "E25",
@@ -364,7 +369,7 @@
             "simulated_peak_m3s": 929.2884198226874
           }
         ],
-        "mean_nse": 0.040165043952773836,
+        "mean_nse": 0.03703286238994838,
         "pad_hours": 24,
         "holdout_e27": {
           "train_events": [
@@ -402,7 +407,7 @@
               "k3": 1.0,
               "x": 0.2
             },
-            "best_mean_research_score": -0.16106151579856312,
+            "best_mean_research_score": -0.2306805545780546,
             "best_event_metrics": [
               {
                 "event_id": "E20",
@@ -418,13 +423,13 @@
               {
                 "event_id": "E21",
                 "pairs": 158.0,
-                "nse": 0.7495981836775467,
-                "rmse_m3s": 810.0963306263901,
-                "mae_m3s": 715.3463310476523,
+                "nse": 0.7531426028060506,
+                "rmse_m3s": 804.3424699681628,
+                "mae_m3s": 711.7713029880958,
                 "peak_lag_hours": 8.0,
-                "peak_relative_error": 0.06237240976140005,
+                "peak_relative_error": 0.06246445421819193,
                 "observed_peak_m3s": 6000.525,
-                "simulated_peak_m3s": 5626.257795916475
+                "simulated_peak_m3s": 5625.7054808523835
               },
               {
                 "event_id": "E22",
@@ -451,13 +456,13 @@
               {
                 "event_id": "E24",
                 "pairs": 238.0,
-                "nse": 0.649678909186008,
-                "rmse_m3s": 1728.5232339952197,
-                "mae_m3s": 1424.0524227031635,
+                "nse": 0.617944855992075,
+                "rmse_m3s": 1805.115955485119,
+                "mae_m3s": 1480.2437630219536,
                 "peak_lag_hours": 8.0,
-                "peak_relative_error": 0.15220097020105045,
+                "peak_relative_error": 0.15943524242893306,
                 "observed_peak_m3s": 11434.95,
-                "simulated_peak_m3s": 9694.539515799499
+                "simulated_peak_m3s": 9611.815974587273
               },
               {
                 "event_id": "E25",
@@ -493,7 +498,7 @@
                 "simulated_peak_m3s": 929.2884198226874
               }
             ],
-            "mean_nse": 0.1687408743587666
+            "mean_nse": 0.16521717010058795
           },
           "test_metrics": {
             "event_id": "E27",
@@ -506,7 +511,7 @@
             "observed_peak_m3s": 14525.225,
             "simulated_peak_m3s": 22556.3292856979
           },
-          "test_research_score": -1.9213489921718983,
+          "test_research_score": -2.059575840391081,
           "test_nse": -0.9884415992951683,
           "note": "Params comuns no pool de calibração (sem E26/E30/E31); E27 é hold-out interno."
         },
@@ -530,7 +535,7 @@
           "results": [
             {
               "event_id": "E26",
-              "research_score": -0.49789239707267857,
+              "research_score": -0.50130177687069,
               "nse": -0.40425487788063275,
               "metrics": {
                 "event_id": "E26",
@@ -546,7 +551,7 @@
             },
             {
               "event_id": "E30",
-              "research_score": -1.9379984795647627,
+              "research_score": -2.0469850334696176,
               "nse": -1.3220522639453423,
               "metrics": {
                 "event_id": "E30",
@@ -562,22 +567,22 @@
             },
             {
               "event_id": "E31",
-              "research_score": 0.6104074675930686,
-              "nse": 0.8623368029228455,
+              "research_score": 0.5669937819736727,
+              "nse": 0.8619264483353005,
               "metrics": {
                 "event_id": "E31",
                 "pairs": 128.0,
-                "nse": 0.8623368029228455,
-                "rmse_m3s": 610.4259685201345,
-                "mae_m3s": 425.81250988989865,
+                "nse": 0.8619264483353005,
+                "rmse_m3s": 611.3350884225146,
+                "mae_m3s": 426.62710581331953,
                 "peak_lag_hours": 4.0,
-                "peak_relative_error": 0.171929335329777,
+                "peak_relative_error": 0.1719461330893023,
                 "observed_peak_m3s": 6057.4,
-                "simulated_peak_m3s": 5015.955244173409
+                "simulated_peak_m3s": 5015.85349342486
               }
             }
           ],
-          "mean_test_nse": -0.2879901129677098,
+          "mean_test_nse": -0.2881268978302248,
           "note": "E26/E30/E31 nunca entraram no fit do common-search; teste externo verdadeiro."
         },
         "leave_one_out": [
@@ -590,7 +595,7 @@
               "E21",
               "E20"
             ],
-            "train_mean_nse": 0.6822443345975518,
+            "train_mean_nse": 0.6766415455904105,
             "test_nse": -0.26119764049947114,
             "test_metrics": {
               "event_id": "E27",
@@ -613,18 +618,18 @@
               "E21",
               "E20"
             ],
-            "train_mean_nse": 0.47740827936879393,
-            "test_nse": 0.7629826356443181,
+            "train_mean_nse": 0.4759699376255567,
+            "test_nse": 0.7432522616285715,
             "test_metrics": {
               "event_id": "E24",
               "pairs": 238.0,
-              "nse": 0.7629826356443181,
-              "rmse_m3s": 1421.779216630157,
-              "mae_m3s": 1082.3597026687428,
-              "peak_lag_hours": -3.0,
-              "peak_relative_error": 0.14617378048582547,
+              "nse": 0.7432522616285715,
+              "rmse_m3s": 1479.7740007463763,
+              "mae_m3s": 1117.9855487169243,
+              "peak_lag_hours": -4.0,
+              "peak_relative_error": 0.1530646212958389,
               "observed_peak_m3s": 11434.95,
-              "simulated_peak_m3s": 9763.46012883361
+              "simulated_peak_m3s": 9684.663708713148
             }
           },
           {
@@ -636,7 +641,7 @@
               "E21",
               "E20"
             ],
-            "train_mean_nse": 0.5385332553406509,
+            "train_mean_nse": 0.5327730083381939,
             "test_nse": 0.45537869724228297,
             "test_metrics": {
               "event_id": "E22",
@@ -659,7 +664,7 @@
               "E21",
               "E20"
             ],
-            "train_mean_nse": 0.5052589248421744,
+            "train_mean_nse": 0.49984162599771526,
             "test_nse": 0.6238938197677791,
             "test_metrics": {
               "event_id": "E28",
@@ -682,18 +687,18 @@
               "E28",
               "E20"
             ],
-            "train_mean_nse": 0.45237050776941246,
-            "test_nse": 0.8610210815886286,
+            "train_mean_nse": 0.45122525184111745,
+            "test_nse": 0.8473968518658088,
             "test_metrics": {
               "event_id": "E21",
               "pairs": 158.0,
-              "nse": 0.8610210815886286,
-              "rmse_m3s": 603.5210070398579,
-              "mae_m3s": 456.999002476419,
-              "peak_lag_hours": -2.0,
-              "peak_relative_error": 0.060787897261834076,
+              "nse": 0.8473968518658088,
+              "rmse_m3s": 632.4113768668537,
+              "mae_m3s": 477.2693920939864,
+              "peak_lag_hours": -3.0,
+              "peak_relative_error": 0.05371242125785379,
               "observed_peak_m3s": 6000.525,
-              "simulated_peak_m3s": 5635.765702782933
+              "simulated_peak_m3s": 5678.2222734317165
             }
           },
           {
@@ -705,7 +710,7 @@
               "E28",
               "E21"
             ],
-            "train_mean_nse": 0.5617323510902559,
+            "train_mean_nse": 0.5578986394571962,
             "test_nse": 0.1624940731569542,
             "test_metrics": {
               "event_id": "E20",
@@ -720,7 +725,7 @@
             }
           }
         ],
-        "leave_one_out_mean_test_nse": 0.4340954444834153,
+        "leave_one_out_mean_test_nse": 0.4285363438603209,
         "note": "Common-search v1.5 (PAD por evento + score de pico). Promover só se hold-out/LOO/externos forem aceitáveis.",
         "promotion_blocked": true,
         "promotion_rule": "holdout_E27_nse>=0.5 and loo_mean_test_nse>=0.5 and external_mean_nse>=0.4"
@@ -773,17 +778,17 @@
             }
           },
           "observed_points": 53,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": -1.5768133609330546,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": -1.411562504188467,
           "metrics": {
             "pairs": 53.0,
-            "nse": -0.9546731049881165,
-            "rmse_m3s": 220.66820925423286,
-            "mae_m3s": 170.2750449315974,
+            "nse": -0.8102205625976562,
+            "rmse_m3s": 212.35791316182082,
+            "mae_m3s": 169.220778272563,
             "peak_lag_hours": 28.0,
-            "peak_relative_error": 0.06214025594493793,
+            "peak_relative_error": 0.03307355327264866,
             "observed_peak_m3s": 1408.375,
-            "simulated_peak_m3s": 1495.891782966452
+            "simulated_peak_m3s": 1454.9549655903666
           },
           "params": {
             "initial_loss": 0.0,
@@ -794,11 +799,12 @@
             "initial_flow_ratio": 0.0025,
             "k1": 2.0,
             "k2": 2.0,
-            "k3": 1.0,
+            "k3": 2.0,
             "x": 0.2
           },
           "warm_up_hours_applied": 24,
           "pad_hours_selected": 24,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E19_best_series.csv",
           "forcing_note": "E19 fit_failed: chuva local core máx ~26 mm vs pico obs ~1408 m³/s. Forçamento pluviométrico insuficiente para a onda (provável massa de montante/routing). Headline = média NSE>=0 (E22–E28)."
         },
@@ -851,17 +857,17 @@
             }
           },
           "observed_points": 89,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": 0.8805274509040769,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": 0.8916941250390544,
           "metrics": {
             "pairs": 89.0,
-            "nse": 0.9058809506893947,
-            "rmse_m3s": 248.1085784751907,
-            "mae_m3s": 180.71903281777136,
-            "peak_lag_hours": 1.0,
-            "peak_relative_error": 0.005353499785317695,
+            "nse": 0.8972563923465218,
+            "rmse_m3s": 259.22711120380137,
+            "mae_m3s": 182.31760559268315,
+            "peak_lag_hours": 0.0,
+            "peak_relative_error": 0.00444981384597384,
             "observed_peak_m3s": 3260.25,
-            "simulated_peak_m3s": 3242.796252324918
+            "simulated_peak_m3s": 3245.742494408664
           },
           "params": {
             "initial_loss": 1.0,
@@ -870,13 +876,14 @@
             "storage": 45.0,
             "recession": 0.85,
             "initial_flow_ratio": 0.005,
-            "k1": 1.0,
+            "k1": 0.5,
             "k2": 0.5,
             "k3": 0.5,
             "x": 0.2
           },
           "warm_up_hours_applied": 12,
           "pad_hours_selected": 12,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E20_best_series.csv"
         },
         {
@@ -884,8 +891,8 @@
           "status": "eventwise_scored",
           "rain": {
             "stations_mm_sum": {
-              "86472000+2851072+86507000": 102.07,
-              "86507000": 106.4,
+              "86472000+2851072+86507000": 100.93,
+              "86507000": 106.2,
               "86472000": 80.8,
               "86510000": 81.8
             },
@@ -922,38 +929,39 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 12,
-              "applied": true,
-              "sim_hours": 170
+              "requested_hours": 0,
+              "applied": false,
+              "sim_hours": 158
             }
           },
           "observed_points": 158,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": 0.7871903518808755,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": 0.8381039001035745,
           "metrics": {
             "pairs": 158.0,
-            "nse": 0.8678600916633116,
-            "rmse_m3s": 588.4843641225877,
-            "mae_m3s": 446.86316990513814,
-            "peak_lag_hours": -1.0,
-            "peak_relative_error": 0.060669739782436095,
+            "nse": 0.8610719058759706,
+            "rmse_m3s": 603.4106437910551,
+            "mae_m3s": 486.12210614872595,
+            "peak_lag_hours": 1.0,
+            "peak_relative_error": 0.0023744046179168463,
             "observed_peak_m3s": 6000.525,
-            "simulated_peak_m3s": 5636.474709691997
+            "simulated_peak_m3s": 5986.277325730074
           },
           "params": {
-            "initial_loss": 1.0,
-            "constant_loss": 1.0,
-            "tc": 10.0,
+            "initial_loss": 0.0,
+            "constant_loss": 0.5,
+            "tc": 18.0,
             "storage": 45.0,
             "recession": 0.98,
-            "initial_flow_ratio": 0.0025,
-            "k1": 1.0,
-            "k2": 2.0,
-            "k3": 2.0,
+            "initial_flow_ratio": 0.005,
+            "k1": 0.5,
+            "k2": 0.5,
+            "k3": 0.5,
             "x": 0.2
           },
-          "warm_up_hours_applied": 12,
-          "pad_hours_selected": 12,
+          "warm_up_hours_applied": 0,
+          "pad_hours_selected": 0,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E21_best_series.csv"
         },
         {
@@ -1003,20 +1011,20 @@
             }
           },
           "observed_points": 110,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": 0.7447487246893694,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": 0.7479705519640722,
           "metrics": {
             "pairs": 110.0,
-            "nse": 0.7678553714117398,
-            "rmse_m3s": 777.5000880538724,
-            "mae_m3s": 645.9141788993738,
+            "nse": 0.7628699277845854,
+            "rmse_m3s": 785.8043778373271,
+            "mae_m3s": 651.9687190953879,
             "peak_lag_hours": 0.0,
-            "peak_relative_error": 0.023106646722370353,
+            "peak_relative_error": 0.011919500656410545,
             "observed_peak_m3s": 10437.666666666666,
-            "simulated_peak_m3s": 10196.487190394138
+            "simulated_peak_m3s": 10313.254891981938
           },
           "params": {
-            "initial_loss": 1.0,
+            "initial_loss": 0.0,
             "constant_loss": 1.0,
             "tc": 10.0,
             "storage": 25.0,
@@ -1029,6 +1037,7 @@
           },
           "warm_up_hours_applied": 0,
           "pad_hours_selected": 0,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E22_best_series.csv"
         },
         {
@@ -1080,17 +1089,17 @@
             }
           },
           "observed_points": 70,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": 0.7147990465877342,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": 0.7224713477277488,
           "metrics": {
             "pairs": 70.0,
-            "nse": 0.7984082034447375,
-            "rmse_m3s": 221.27276021823454,
-            "mae_m3s": 140.13172218863735,
+            "nse": 0.8210039267356701,
+            "rmse_m3s": 208.5034654710839,
+            "mae_m3s": 143.61733688280674,
             "peak_lag_hours": 2.0,
-            "peak_relative_error": 0.04360915685700325,
+            "peak_relative_error": 0.046826063206337046,
             "observed_peak_m3s": 2579.45,
-            "simulated_peak_m3s": 2466.962360345203
+            "simulated_peak_m3s": 2458.6645112624137
           },
           "params": {
             "initial_loss": 0.0,
@@ -1101,11 +1110,12 @@
             "initial_flow_ratio": 0.0025,
             "k1": 2.0,
             "k2": 2.0,
-            "k3": 2.0,
+            "k3": 2.5,
             "x": 0.2
           },
           "warm_up_hours_applied": 24,
           "pad_hours_selected": 24,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E23_best_series.csv"
         },
         {
@@ -1113,7 +1123,7 @@
           "status": "eventwise_scored",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 213.6
+              "86472000": 207.8
             },
             "stations_mm_sum_core": {
               "86472000": 202.4
@@ -1130,38 +1140,39 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 24,
+              "requested_hours": 12,
               "applied": true,
-              "sim_hours": 264
+              "sim_hours": 252
             }
           },
           "observed_points": 238,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": 0.7396201057445358,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": 0.7567498701314932,
           "metrics": {
             "pairs": 238.0,
-            "nse": 0.8315985113863484,
-            "rmse_m3s": 1198.436540792331,
-            "mae_m3s": 998.2646917481073,
-            "peak_lag_hours": -4.0,
-            "peak_relative_error": 0.011978405641812665,
+            "nse": 0.788315024137543,
+            "rmse_m3s": 1343.6529098964206,
+            "mae_m3s": 1050.3936131877251,
+            "peak_lag_hours": 1.0,
+            "peak_relative_error": 0.009252123204839787,
             "observed_peak_m3s": 11434.95,
-            "simulated_peak_m3s": 11297.977530406155
+            "simulated_peak_m3s": 11540.747566241183
           },
           "params": {
             "initial_loss": 0.0,
-            "constant_loss": 0.25,
-            "tc": 10.0,
-            "storage": 45.0,
-            "recession": 0.85,
+            "constant_loss": 1.75,
+            "tc": 20.0,
+            "storage": 25.0,
+            "recession": 0.7,
             "initial_flow_ratio": 0.005,
             "k1": 1.0,
-            "k2": 1.0,
-            "k3": 2.0,
+            "k2": 0.5,
+            "k3": 0.5,
             "x": 0.2
           },
-          "warm_up_hours_applied": 24,
-          "pad_hours_selected": 24,
+          "warm_up_hours_applied": 12,
+          "pad_hours_selected": 12,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E24_best_series.csv"
         },
         {
@@ -1213,17 +1224,17 @@
             }
           },
           "observed_points": 62,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": 0.908396887592548,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": 0.9132155835642424,
           "metrics": {
             "pairs": 62.0,
-            "nse": 0.951809277369155,
-            "rmse_m3s": 91.0319504049703,
-            "mae_m3s": 62.23897626923482,
+            "nse": 0.9574344985753226,
+            "rmse_m3s": 85.55413512927106,
+            "mae_m3s": 60.389734664977965,
             "peak_lag_hours": -2.0,
-            "peak_relative_error": 0.003412389776606986,
+            "peak_relative_error": 0.003375132008864142,
             "observed_peak_m3s": 1923.775,
-            "simulated_peak_m3s": 1930.3396701424922
+            "simulated_peak_m3s": 1930.2679945803527
           },
           "params": {
             "initial_loss": 1.0,
@@ -1233,12 +1244,13 @@
             "recession": 0.7,
             "initial_flow_ratio": 0.001,
             "k1": 2.0,
-            "k2": 0.5,
+            "k2": 0.25,
             "k3": 2.0,
             "x": 0.2
           },
           "warm_up_hours_applied": 12,
           "pad_hours_selected": 12,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E25_best_series.csv"
         },
         {
@@ -1306,17 +1318,17 @@
             }
           },
           "observed_points": 31,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": 0.41270035160967244,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": 0.389731887887471,
           "metrics": {
             "pairs": 31.0,
-            "nse": 0.571172592874815,
-            "rmse_m3s": 231.65004529377956,
-            "mae_m3s": 160.41878532321252,
-            "peak_lag_hours": 3.0,
-            "peak_relative_error": 0.09847224126514251,
+            "nse": 0.6035198576819945,
+            "rmse_m3s": 222.7418604056529,
+            "mae_m3s": 171.0492857546895,
+            "peak_lag_hours": 4.0,
+            "peak_relative_error": 0.10703037583561881,
             "observed_peak_m3s": 1575.875,
-            "simulated_peak_m3s": 1420.6950567962936
+            "simulated_peak_m3s": 1407.2085064800442
           },
           "params": {
             "initial_loss": 0.0,
@@ -1327,11 +1339,12 @@
             "initial_flow_ratio": 0.0025,
             "k1": 2.0,
             "k2": 2.0,
-            "k3": 2.0,
+            "k3": 3.0,
             "x": 0.2
           },
           "warm_up_hours_applied": 24,
           "pad_hours_selected": 24,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E26_best_series.csv"
         },
         {
@@ -1381,23 +1394,23 @@
             }
           },
           "observed_points": 245,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": 0.7990451038391608,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": 0.8462073047844462,
           "metrics": {
             "pairs": 245.0,
-            "nse": 0.911946687636105,
-            "rmse_m3s": 1191.3371703318758,
-            "mae_m3s": 925.7946065154495,
-            "peak_lag_hours": 1.0,
-            "peak_relative_error": 0.0929015837969441,
+            "nse": 0.9136798198020952,
+            "rmse_m3s": 1179.5545018624377,
+            "mae_m3s": 873.0357317874185,
+            "peak_lag_hours": 2.0,
+            "peak_relative_error": 0.02197801201411919,
             "observed_peak_m3s": 14525.225,
-            "simulated_peak_m3s": 15874.641407506968
+            "simulated_peak_m3s": 14844.460569557785
           },
           "params": {
             "initial_loss": 0.0,
             "constant_loss": 4.0,
             "tc": 4.0,
-            "storage": 45.0,
+            "storage": 50.0,
             "recession": 0.7,
             "initial_flow_ratio": 0.005,
             "k1": 0.5,
@@ -1407,6 +1420,7 @@
           },
           "warm_up_hours_applied": 0,
           "pad_hours_selected": 0,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E27_best_series.csv"
         },
         {
@@ -1466,24 +1480,24 @@
             }
           },
           "observed_points": 209,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": 0.9558398675549681,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": 0.9524936435364119,
           "metrics": {
             "pairs": 209.0,
-            "nse": 0.9702605139405969,
-            "rmse_m3s": 307.6981410732382,
-            "mae_m3s": 249.48135295282967,
+            "nse": 0.9701109968689429,
+            "rmse_m3s": 308.4706568653999,
+            "mae_m3s": 249.84219198024996,
             "peak_lag_hours": 0.0,
-            "peak_relative_error": 0.014420646385628842,
+            "peak_relative_error": 0.014093882666024763,
             "observed_peak_m3s": 7886.724999999999,
-            "simulated_peak_m3s": 7772.993327634301
+            "simulated_peak_m3s": 7775.570423230795
           },
           "params": {
             "initial_loss": 0.0,
             "constant_loss": 0.5,
             "tc": 25.0,
             "storage": 25.0,
-            "recession": 0.85,
+            "recession": 0.95,
             "initial_flow_ratio": 0.001,
             "k1": 1.0,
             "k2": 1.0,
@@ -1492,6 +1506,7 @@
           },
           "warm_up_hours_applied": 12,
           "pad_hours_selected": 12,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E28_best_series.csv"
         },
         {
@@ -1581,17 +1596,17 @@
             }
           },
           "observed_points": 24,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": 0.5737242129538737,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": 0.5885824189619584,
           "metrics": {
             "pairs": 24.0,
-            "nse": 0.6711942168752252,
-            "rmse_m3s": 73.82370921954339,
-            "mae_m3s": 66.98036326928356,
-            "peak_lag_hours": -1.0,
-            "peak_relative_error": 0.07747000392135155,
+            "nse": 0.6909148554461573,
+            "rmse_m3s": 71.5756341710605,
+            "mae_m3s": 65.0804584525597,
+            "peak_lag_hours": 0.0,
+            "peak_relative_error": 0.08186594918735914,
             "observed_peak_m3s": 1081.0749999999998,
-            "simulated_peak_m3s": 997.3241155107247
+            "simulated_peak_m3s": 992.5717689822756
           },
           "params": {
             "initial_loss": 0.0,
@@ -1602,11 +1617,12 @@
             "initial_flow_ratio": 0.005,
             "k1": 2.0,
             "k2": 2.0,
-            "k3": 2.0,
+            "k3": 2.5,
             "x": 0.2
           },
           "warm_up_hours_applied": 24,
           "pad_hours_selected": 24,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E29_best_series.csv"
         },
         {
@@ -1658,21 +1674,21 @@
             }
           },
           "observed_points": 70,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": 0.15853339870936484,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": 0.5017702711171109,
           "metrics": {
             "pairs": 70.0,
-            "nse": 0.33035740192753915,
-            "rmse_m3s": 344.84253486352446,
-            "mae_m3s": 312.63093266784244,
+            "nse": 0.6130025258290474,
+            "rmse_m3s": 262.1521100859726,
+            "mae_m3s": 215.57090963966593,
             "peak_lag_hours": 4.0,
-            "peak_relative_error": 0.0918240032181743,
+            "peak_relative_error": 0.024985803769549175,
             "observed_peak_m3s": 2102.45,
-            "simulated_peak_m3s": 1909.3946244339493
+            "simulated_peak_m3s": 2154.9814031352885
           },
           "params": {
             "initial_loss": 0.0,
-            "constant_loss": 0.25,
+            "constant_loss": 0.0,
             "tc": 20.0,
             "storage": 25.0,
             "recession": 0.98,
@@ -1684,6 +1700,7 @@
           },
           "warm_up_hours_applied": 24,
           "pad_hours_selected": 24,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E30_best_series.csv"
         },
         {
@@ -1691,7 +1708,7 @@
           "status": "eventwise_scored",
           "rain": {
             "stations_mm_sum": {
-              "86472000+2851072+86507000": 86.27,
+              "86472000+2851072+86507000": 86.4,
               "86507000": 90.8,
               "86472000": 76.0,
               "86510000": 63.0
@@ -1729,29 +1746,29 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 12,
+              "requested_hours": 24,
               "applied": true,
-              "sim_hours": 140
+              "sim_hours": 152
             }
           },
           "observed_points": 128,
-          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.0*peak_relative_error",
-          "score": 0.8942170435817824,
+          "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error",
+          "score": 0.9591501642072845,
           "metrics": {
             "pairs": 128.0,
-            "nse": 0.964895365870274,
-            "rmse_m3s": 308.2522822968503,
-            "mae_m3s": 263.51620239673815,
+            "nse": 0.9701820362137286,
+            "rmse_m3s": 284.0946575031297,
+            "mae_m3s": 243.80482961458475,
             "peak_lag_hours": 0.0,
-            "peak_relative_error": 0.0706783222884916,
+            "peak_relative_error": 0.008825497605155242,
             "observed_peak_m3s": 6057.4,
-            "simulated_peak_m3s": 5629.273130569691
+            "simulated_peak_m3s": 6110.859569193467
           },
           "params": {
             "initial_loss": 0.0,
             "constant_loss": 0.25,
             "tc": 20.0,
-            "storage": 45.0,
+            "storage": 40.0,
             "recession": 0.98,
             "initial_flow_ratio": 0.005,
             "k1": 1.0,
@@ -1759,8 +1776,9 @@
             "k3": 1.0,
             "x": 0.2
           },
-          "warm_up_hours_applied": 12,
-          "pad_hours_selected": 12,
+          "warm_up_hours_applied": 24,
+          "pad_hours_selected": 24,
+          "refinement": "local_param_neighbors_v1_6",
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E31_best_series.csv"
         }
       ]
@@ -1953,8 +1971,8 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E21_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
-              "86472000+2851072+86507000": 102.07,
-              "86507000": 106.4,
+              "86472000+2851072+86507000": 100.93,
+              "86507000": 106.2,
               "86472000": 80.8
             },
             "stations_mm_sum_core": {
@@ -1988,9 +2006,9 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 12,
-              "applied": true,
-              "sim_hours": 170
+              "requested_hours": 0,
+              "applied": false,
+              "sim_hours": 158
             }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
@@ -2097,7 +2115,7 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E24_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
-              "86472000": 213.6
+              "86472000": 207.8
             },
             "stations_mm_sum_core": {
               "86472000": 202.4
@@ -2113,9 +2131,9 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 24,
+              "requested_hours": 12,
               "applied": true,
-              "sim_hours": 264
+              "sim_hours": 252
             }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
@@ -2480,7 +2498,7 @@
           "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/stz_E31_sim_q_from_mucum_params.csv",
           "rain": {
             "stations_mm_sum": {
-              "86472000+2851072+86507000": 86.27,
+              "86472000+2851072+86507000": 86.4,
               "86507000": 90.8,
               "86472000": 76.0
             },
@@ -2515,9 +2533,9 @@
             "blocked_reason": null,
             "contract": "hec_event_ana_raw_ana_only",
             "warm_up": {
-              "requested_hours": 12,
+              "requested_hours": 24,
               "applied": true,
-              "sim_hours": 140
+              "sim_hours": 152
             }
           },
           "warning": "Simulated Q at STZ using Muçum params — NOT an STZ Q calibration"
@@ -2531,7 +2549,7 @@
     }
   },
   "next_steps": [
-    "Usar o pacote Muçum v1.5 fechado (params eventwise com picos) — não common-search.",
+    "Usar o pacote Muçum v1.6 fechado (params eventwise com picos polidos) — não common-search.",
     "STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
     "Após curva: calibrar modelo STZ truncado.",
     "Manter Guaporé/Forqueta fora do recorte."
@@ -2542,10 +2560,10 @@
     "runs_dir": "hec_twin_stz_mucum_v1/"
   },
   "mucum_release": {
-    "status": "modelo_mucum_eventwise_v1_5_fechado_stz_q_blocked",
+    "status": "modelo_mucum_eventwise_v1_6_fechado_stz_q_blocked",
     "artifact": "modelo_mucum_eventwise_v1_fechado_latest.json",
     "html": "modelo_mucum_eventwise_v1_fechado.html",
-    "closed_at_utc": "2026-09-09T18:08:54.041057+00:00",
+    "closed_at_utc": "2026-09-09T18:28:25.523215+00:00",
     "included_events": [
       "E20",
       "E21",
