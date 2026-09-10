@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0c2a22">
+  <meta name="description" content="Estudo de caso territorial do PREVINE: RNA, mancha HAND, quadradinhos IBGE 200 m, ruas e pessoas em Santa Tereza e Muçum, numa só página.">
+  <title>PREVINE · estudo de caso · território</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/site_chrome.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="../assets/css/estudo_caso_territorio.css">
+</head>
+<body class="territorio">
+  <a class="skip" href="#mapa-estudo">Pular para o mapa</a>
+  <script src="../assets/js/site_chrome.js"></script>
+
+  <div class="wrap cockpit-top">
+    <div class="cockpit-grid">
+      <header class="hero" id="conteudo">
+        <p class="eyebrow">pesquisa territorial · não é alerta</p>
+        <h1><span class="brand">PREVINE</span> Onde a água encontra o território.</h1>
+        <p class="lede">Santa Tereza e Muçum no mesmo recorte: RNA da régua, mancha HAND, grade IBGE 200&nbsp;m, ruas OSM e pessoas do Censo&nbsp;2022.</p>
+        <div class="notice">
+          <strong>Limite do método</strong>
+          <p>Não ordena evacuação. População = limite superior de células tocadas. Conversão régua ↔ HAND pendente. Não substitui ANA, SGB, SACE ou Defesa Civil.</p>
+        </div>
+      </header>
+
+      <section class="rna-cockpit" aria-label="Leitura da rede neural">
+        <div class="rna-head">
+          <div>
+            <p class="eyebrow">cockpit da régua</p>
+            <h2 id="city-label">Santa Tereza</h2>
+            <p class="meta-line" id="meta-line">grade 200 m · cenário HAND</p>
+          </div>
+          <div class="rna-head-tools">
+            <div class="city-row" role="group" aria-label="Município do estudo">
+              <button type="button" data-city="santa_tereza" aria-pressed="true">Santa Tereza</button>
+              <button type="button" data-city="mucum" aria-pressed="false">Muçum</button>
+            </div>
+            <p class="load-status" id="load-status">carregando…</p>
+          </div>
+        </div>
+
+        <div class="rna-strip">
+          <div class="rna-item"><div class="k">Agora na régua</div><div class="v" id="rna-agora">—</div><div class="s" id="rna-agora-s"></div></div>
+          <div class="rna-item"><div class="k">Previsto +2 h</div><div class="v" id="rna-prev">—</div><div class="s" id="rna-prev-s"></div></div>
+          <div class="rna-item"><div class="k">Cota de pesquisa</div><div class="v" id="rna-bank">—</div><div class="s" id="rna-bank-s"></div></div>
+          <div class="rna-item"><div class="k">Estação</div><div class="v" id="rna-estacao">—</div><div class="s" id="rna-estacao-s"></div></div>
+        </div>
+
+        <div class="gauge" aria-hidden="true">
+          <div class="gauge-scale">
+            <i class="gauge-bank" id="gauge-bank"></i>
+            <i class="gauge-now" id="gauge-now"></i>
+            <i class="gauge-prev" id="gauge-prev"></i>
+          </div>
+          <div class="gauge-legend">
+            <span><i class="swatch now"></i>agora</span>
+            <span><i class="swatch prev"></i>previsto</span>
+            <span><i class="swatch bank"></i>cota de pesquisa</span>
+            <span id="gauge-delta">Δ —</span>
+          </div>
+        </div>
+        <p class="rna-note" id="rna-note">A RNA e a mancha HAND ainda não estão na mesma vertical.</p>
+      </section>
+    </div>
+
+    <div class="chain" aria-label="Cadeia do estudo">
+      <span data-step="rna"><b>01 · RNA</b>Nível agora e +2 h na régua</span>
+      <span data-step="mancha"><b>02 · Mancha</b>Contorno HAND publicado</span>
+      <span data-step="grade"><b>03 · Grade</b>Quadradinhos IBGE 200 m</span>
+      <span data-step="ruas"><b>04 · Ruas</b>Grafo OSM do estudo</span>
+      <span data-step="pessoas"><b>05 · Pessoas</b>População da célula, limite superior</span>
+    </div>
+  </div>
+
+  <div class="studio" id="mapa-estudo">
+    <div class="map-shell">
+      <div id="map" role="region" aria-label="Mapa do estudo de caso"></div>
+      <div class="map-legend" aria-label="Legenda do mapa">
+        <p class="side-kicker">Sobreposição mancha ∩ célula</p>
+        <div class="legend-scale">
+          <span><i style="background:#8dbf74"></i>baixa</span>
+          <span><i style="background:#f5c76b"></i>média</span>
+          <span><i style="background:#ef7a68"></i>alta</span>
+          <span><i style="background:#176ca8"></i>mancha</span>
+        </div>
+        <p class="legend-note">Satélite no fundo para ver telhados e quarteirões. Verde → coral: fração da célula sob a mancha. Azul: contorno HAND (mais transparente para não tapar as casas).</p>
+      </div>
+    </div>
+    <aside class="side">
+      <p class="side-kicker">Município</p>
+      <div class="city-row city-row-side" role="group" aria-label="Município no mapa">
+        <button type="button" data-city="santa_tereza" aria-pressed="true">Santa Tereza</button>
+        <button type="button" data-city="mucum" aria-pressed="false">Muçum</button>
+      </div>
+
+      <p class="side-kicker">Fundo do mapa</p>
+      <div class="basemap-row" role="group" aria-label="Fundo do mapa">
+        <button type="button" data-basemap="sat" aria-pressed="true">Satélite · casas</button>
+        <button type="button" data-basemap="osm" aria-pressed="false">Ruas OSM</button>
+      </div>
+      <p class="meta-line basemap-note">Mesmo fundo Esri/Maxar das previsões de inundação. Não há ortofoto RGB local no acervo — os arquivos <code>*_ortho.tif</code> são DEM de elevação.</p>
+
+      <p class="side-kicker">Camadas</p>
+      <div class="layer-toggles">
+        <label><input type="checkbox" id="ly-mancha" checked> Mancha HAND</label>
+        <label><input type="checkbox" id="ly-grade" checked> Quadradinhos IBGE</label>
+        <label><input type="checkbox" id="ly-ruas" checked> Ruas do estudo</label>
+        <label><input type="checkbox" id="ly-abrigos" checked> Abrigos / referências</label>
+      </div>
+
+      <p class="side-kicker">Cenário HAND publicado</p>
+      <div class="level-row" id="level-row" role="group" aria-label="Nível HAND"></div>
+
+      <div class="stats-mini">
+        <div><span>células tocadas</span><b id="stat-cells">—</b></div>
+        <div><span>pessoas-limite</span><b id="stat-pop">—</b></div>
+        <div><span>proxy ponderado</span><b id="stat-proxy">—</b></div>
+        <div><span>trechos de rua</span><b id="stat-ruas">—</b></div>
+      </div>
+      <p class="meta-line">Abrigos no recorte: <span id="stat-abrigos">—</span> · ocupação atual desconhecida</p>
+
+      <div class="gate">
+        <strong>Quem sai primeiro? Pendente por método</strong>
+        <p>O cruzamento mancha ∩ grade está reproduzido para pesquisa. Ainda faltam conversão vertical, necessidades agregadas, vias vistoriadas, capacidade de abrigo e regra municipal. A lista abaixo é atenção espacial, não ordem de evacuação.</p>
+      </div>
+
+      <h2>Quadradinhos a observar</h2>
+      <p class="list-hint">Ordenados por pessoas da célula × fração da mancha. A barra mede atenção espacial relativa.</p>
+      <ul class="cell-list" id="cell-list"></ul>
+      <div class="detail" id="cell-detail" hidden></div>
+    </aside>
+  </div>
+
+  <div class="wrap">
+    <section class="howto" aria-labelledby="howto-title">
+      <div class="howto-copy">
+        <p class="eyebrow">como ler · estudo de caso</p>
+        <h2 id="howto-title">A água já chegou. O mapa mostra onde.</h2>
+        <p>Santa Tereza e Muçum têm manchas HAND publicadas e catálogos de eventos lidos pela RNA. Aqui o satélite deixa ver as casas sob o contorno; a régua e a mancha ainda não compartilham a mesma vertical.</p>
+      </div>
+      <ol class="howto-steps">
+        <li><b>01 · Régua</b><span>A RNA lê o nível agora e o previsto +2&nbsp;h, em centímetros na estação — com eventos históricos calibrados no acervo.</span></li>
+        <li><b>02 · Mancha</b><span>O contorno HAND publicado desenha um cenário de inundação sobre o território real (satélite). Conversão régua ↔ HAND continua pendente.</span></li>
+        <li><b>03 · Células</b><span>A grade IBGE 200&nbsp;m cruza a mancha; a lista ordena atenção espacial, não saída.</span></li>
+      </ol>
+    </section>
+  </div>
+
+  <section class="more">
+    <div class="wrap">
+      <h2>O que esta página junta — e o que permanece nas outras.</h2>
+      <p class="lede">Os painéis de evacuação, os mapas de impacto, o replay histórico e a mesa V002 continuam no acervo. Aqui o estudo de caso junta RNA, mancha HAND, satélite (casas), quadradinho IBGE, rua e gente — sem inventar ordem de evacuação.</p>
+      <p class="meta-line" id="event-note">Catálogos de eventos e replay espacial entram no painel quando as fontes carregam.</p>
+      <div class="links" id="city-links"></div>
+    </div>
+  </section>
+
+  <footer class="page-foot">
+    <div class="wrap">
+      PREVINE Taquari-Antas · FAPERGS Edital 06/2024 · UFRGS. Fontes: feeds RNA ao vivo, contornos HAND publicados, grade IBGE 2022 (id_grade 200M), grafo OSM extraído dos painéis de evacuação, replay espacial e plano municipal de Muçum quando houver coordenada.
+      <strong>Não é alerta oficial. Não é rota liberada. Não é despacho.</strong>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="../assets/js/estudo_caso_territorio.js?v=20260910-satelite"></script>
+</body>
+</html>

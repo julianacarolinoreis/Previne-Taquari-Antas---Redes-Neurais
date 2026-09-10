@@ -1,0 +1,73 @@
+/* Chrome institucional PREVINE — papel, Tahoma, sem CTA de produto. */
+:root {
+  --paper: #f5f3ec;
+  --ink: #1a1a1a;
+  --ink-2: #555;
+  --muted: #7a827c;
+  --line: rgba(0,0,0,.12);
+  --dark: #0c2a22;
+  --green: #155c47;
+  --accent: #8dbf74;
+  --yellow: #f5c76b;
+  --coral: #ef7a68;
+  --display: Tahoma, "Helvetica Neue", Arial, sans-serif;
+}
+.site-brandbar {
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--yellow) 50%, var(--coral) 100%);
+}
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 64px;
+  padding: 0 40px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--display);
+  color: var(--ink);
+}
+.site-nav a { color: inherit; text-decoration: none; }
+.site-wordmark {
+  font-weight: 800;
+  letter-spacing: -.02em;
+  font-size: 15px;
+}
+.site-nav-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 22px;
+  justify-content: flex-end;
+}
+.site-nav-links a {
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.site-nav-links a:hover,
+.site-nav-links a[aria-current="page"] { color: var(--green); }
+.site-nav-links a[aria-current="page"] { border-bottom: 1px solid var(--green); padding-bottom: 2px; }
+.site-wordmark:focus-visible,
+.site-nav-links a:focus-visible {
+  outline: 3px solid var(--yellow);
+  outline-offset: 2px;
+}
+@media (max-width: 720px) {
+  .site-nav { padding: 12px 20px; }
+  .site-nav-links { gap: 12px; }
+}
+body.has-site-chrome:not(.has-gestor-chrome) { background: var(--paper); }
+/* Gestor chrome fica abaixo da barra institucional quando as duas existem. */
+body.has-site-chrome.has-gestor-chrome .gestor-chrome {
+  top: 64px;
+}
+@media (max-width: 720px) {
+  body.has-site-chrome.has-gestor-chrome .gestor-chrome {
+    top: 88px;
+  }
+}
