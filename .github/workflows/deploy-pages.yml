@@ -48,6 +48,10 @@ on:
       - "Atualiza feed meteorológico de Santa Tereza"
       - "Atualiza feed meteorológico de Muçum"
       - "Contexto automático da pesquisa da bacia"
+      # A QA publica os JSONs de pesquisa com GITHUB_TOKEN. Esse commit não
+      # dispara outro workflow de push; ouvir a conclusão da QA mantém o
+      # Pages sincronizado com o estado que acabou de ser validado.
+      - "QA automatizada da pesquisa"
     types:
       - completed
 
@@ -75,6 +79,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          # O deploy pode ficar na fila enquanto os robôs publicam outro
+          # ciclo. Ler a ponta atual de main no início do job evita que a
+          # fila publique o snapshot anterior ao evento que o acordou.
+          ref: main
           fetch-depth: 1
           filter: blob:none
           sparse-checkout: |

@@ -200,6 +200,58 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
 .bar-key { width: 24px; height: 6px; display: inline-block; border-radius: 999px; }
 .rain-key { background: var(--amber); } .risk-key { background: var(--purple); } .soil-key { background: #4d9b79; }
 
+/* Visual comparison: keep rain, river level and risk on separate scales. */
+.model-station-view { padding: 15px; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(145deg, #fbfefc, #f3faf6); }
+.model-station-view + .model-station-view { margin-top: 12px; }
+.model-station-heading { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; margin-bottom: 12px; }
+.model-station-heading h3 { margin: 0; font-size: 18px; }
+.model-station-heading > span:last-child { margin-left: auto; color: var(--muted); font-size: 11px; }
+.model-station-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 0 0 12px; }
+.model-station-summary > div { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: baseline; padding: 9px 11px; border: 1px solid #d6e5dc; border-radius: 11px; background: #f8fcf9; }
+.model-station-summary span { color: var(--muted); font-size: 10px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+.model-station-summary strong { color: var(--ink); font-size: 16px; font-variant-numeric: tabular-nums; }
+.model-station-summary small { grid-column: 1 / -1; color: var(--ink-soft); font-size: 10px; }
+.model-station-summary.is-empty { display: block; padding: 10px 11px; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); font-size: 11px; }
+.model-station-kicker { color: var(--green); font-size: 11px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+.model-station-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(270px, .75fr); gap: 12px; align-items: stretch; }
+.model-rain-chart, .model-threshold-card, .model-risk-card, .model-soil-card { padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.model-rain-chart { min-width: 0; }
+.model-subhead { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.model-subhead h3 { margin: 3px 0 0; font-size: 15px; }
+.model-eyebrow { color: var(--green); font-size: 10px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+.model-unit { color: var(--muted); font-size: 10px; white-space: nowrap; }
+.model-bars { display: grid; gap: 12px; margin-top: 17px; }
+.model-bar-row { min-width: 0; }
+.model-bar-label { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; color: var(--ink-soft); font-size: 12px; }
+.model-bar-label strong { min-width: 0; font-weight: 780; }
+.model-bar-label strong em { display: inline-block; margin-left: 6px; padding: 2px 5px; border-radius: 999px; color: var(--amber); background: var(--amber-soft); font-size: 9px; font-style: normal; font-weight: 800; letter-spacing: .02em; vertical-align: 1px; }
+.model-bar-label span { color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; font-weight: 850; white-space: nowrap; }
+.model-bar-track { height: 13px; margin-top: 5px; overflow: hidden; border-radius: 999px; background: #e5eee9; }
+.model-bar-track i { display: block; height: 100%; border-radius: inherit; background: var(--bar-color, var(--amber)); }
+.model-bar-row small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+.model-chart-note { margin: 15px 0 0; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10.5px; line-height: 1.4; }
+.model-status-stack { display: grid; gap: 10px; min-width: 0; }
+.model-status-pill { display: inline-flex; align-items: center; padding: 4px 7px; border-radius: 999px; color: var(--muted); background: #edf3ef; font-size: 10px; font-weight: 850; white-space: nowrap; }
+.model-status-pill.is-ok { color: var(--green); background: var(--green-soft); }
+.model-status-pill.is-alert { color: var(--red); background: var(--red-soft); }
+.model-status-pill.is-stale { color: var(--amber); background: var(--amber-soft); }
+.model-status-pill.is-proxy { color: var(--amber); background: var(--amber-soft); }
+.threshold-scale { position: relative; height: 17px; margin: 24px 0 7px; border-radius: 999px; background: linear-gradient(90deg, #caead7, #f6e9c5 75%, #f4d2cb); }
+.threshold-scale::after { content: ""; position: absolute; top: -5px; right: 0; bottom: -5px; width: 2px; border-radius: 2px; background: #53605a; }
+.threshold-scale i { display: block; height: 100%; border-radius: inherit; background: var(--green); }
+.threshold-scale b { position: absolute; top: -21px; transform: translateX(-50%); color: var(--ink); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.threshold-labels { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 10px; }
+.model-takeaway { margin: 11px 0 0; color: var(--ink-soft); font-size: 10.5px; line-height: 1.4; }
+.model-risk-card.is-stale { border-color: #e3cda3; background: #fffaf0; }
+.model-risk-value { display: flex; align-items: baseline; gap: 7px; margin-top: 13px; color: var(--purple); font-size: 25px; font-weight: 850; font-variant-numeric: tabular-nums; }
+.model-risk-value span { color: var(--muted); font-size: 10px; font-weight: 600; }
+.model-risk-card p, .model-soil-card p { margin: 8px 0 0; color: var(--ink-soft); font-size: 10.5px; line-height: 1.4; }
+.model-source { display: block; margin-top: 9px; color: var(--muted); font-size: 10px; }
+.model-soil-value { display: flex; align-items: baseline; gap: 5px; margin-top: 12px; color: #347b5d; font-size: 24px; font-weight: 850; font-variant-numeric: tabular-nums; }
+.model-soil-value span { color: var(--muted); font-size: 11px; font-weight: 600; }
+.soil-meter { height: 9px; margin-top: 8px; overflow: hidden; border-radius: 999px; background: #e5eee9; }
+.soil-meter i { display: block; height: 100%; border-radius: inherit; background: #4d9b79; }
+
 .event-timeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .event-card { min-height: 185px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(160deg, #fff, #f7fbf9); }
 .event-card.confirmed { border-color: #9fd2b4; }
@@ -248,6 +300,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
 @media (max-width: 980px) {
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .model-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .model-station-layout { grid-template-columns: 1fr; }
   .zone-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .event-timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .research-context-grid { grid-template-columns: 1fr; }
@@ -272,6 +325,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
   .research-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .research-gates-list { grid-template-columns: 1fr; }
   .research-source-list { grid-template-columns: 1fr; }
+  .model-station-summary { grid-template-columns: 1fr; }
 }
 @media (max-width: 500px) {
   body { font-size: 14px; }
