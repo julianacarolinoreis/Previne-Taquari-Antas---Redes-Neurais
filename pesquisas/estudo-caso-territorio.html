@@ -87,7 +87,7 @@
           <span><i style="background:#ef7a68"></i>alta</span>
           <span><i style="background:#176ca8"></i>mancha</span>
         </div>
-        <p class="legend-note">Verde → coral: fração da célula sob a mancha. Azul: contorno HAND.</p>
+        <p class="legend-note">Satélite no fundo para ver telhados e quarteirões. Verde → coral: fração da célula sob a mancha. Azul: contorno HAND (mais transparente para não tapar as casas).</p>
       </div>
     </div>
     <aside class="side">
@@ -97,11 +97,18 @@
         <button type="button" data-city="mucum" aria-pressed="false">Muçum</button>
       </div>
 
+      <p class="side-kicker">Fundo do mapa</p>
+      <div class="basemap-row" role="group" aria-label="Fundo do mapa">
+        <button type="button" data-basemap="sat" aria-pressed="true">Satélite · casas</button>
+        <button type="button" data-basemap="osm" aria-pressed="false">Ruas OSM</button>
+      </div>
+      <p class="meta-line basemap-note">Mesmo fundo Esri/Maxar das previsões de inundação. Não há ortofoto RGB local no acervo — os arquivos <code>*_ortho.tif</code> são DEM de elevação.</p>
+
       <p class="side-kicker">Camadas</p>
       <div class="layer-toggles">
         <label><input type="checkbox" id="ly-mancha" checked> Mancha HAND</label>
         <label><input type="checkbox" id="ly-grade" checked> Quadradinhos IBGE</label>
-        <label><input type="checkbox" id="ly-ruas" checked> Ruas</label>
+        <label><input type="checkbox" id="ly-ruas" checked> Ruas do estudo</label>
         <label><input type="checkbox" id="ly-abrigos" checked> Abrigos / referências</label>
       </div>
 
@@ -131,13 +138,13 @@
   <div class="wrap">
     <section class="howto" aria-labelledby="howto-title">
       <div class="howto-copy">
-        <p class="eyebrow">como ler</p>
-        <h2 id="howto-title">Três camadas. Uma pergunta científica.</h2>
-        <p>O painel encadeia observação, cenário espacial e exposição. Cada número tem unidade e limite; o mapa mostra onde as evidências se tocam.</p>
+        <p class="eyebrow">como ler · estudo de caso</p>
+        <h2 id="howto-title">A água já chegou. O mapa mostra onde.</h2>
+        <p>Santa Tereza e Muçum têm manchas HAND publicadas e catálogos de eventos lidos pela RNA. Aqui o satélite deixa ver as casas sob o contorno; a régua e a mancha ainda não compartilham a mesma vertical.</p>
       </div>
       <ol class="howto-steps">
-        <li><b>01 · Régua</b><span>A RNA lê o nível agora e o previsto +2&nbsp;h, em centímetros na estação.</span></li>
-        <li><b>02 · Mancha</b><span>O contorno HAND publicado desenha um cenário de inundação — ainda sem conversão vertical da régua.</span></li>
+        <li><b>01 · Régua</b><span>A RNA lê o nível agora e o previsto +2&nbsp;h, em centímetros na estação — com eventos históricos calibrados no acervo.</span></li>
+        <li><b>02 · Mancha</b><span>O contorno HAND publicado desenha um cenário de inundação sobre o território real (satélite). Conversão régua ↔ HAND continua pendente.</span></li>
         <li><b>03 · Células</b><span>A grade IBGE 200&nbsp;m cruza a mancha; a lista ordena atenção espacial, não saída.</span></li>
       </ol>
     </section>
@@ -146,7 +153,8 @@
   <section class="more">
     <div class="wrap">
       <h2>O que esta página junta — e o que permanece nas outras.</h2>
-      <p class="lede">Os painéis de evacuação, os mapas de impacto, o replay histórico e a mesa V002 continuam no acervo. Aqui está o recorte que faltava: RNA, inundação, quadradinho, rua e gente na mesma vista.</p>
+      <p class="lede">Os painéis de evacuação, os mapas de impacto, o replay histórico e a mesa V002 continuam no acervo. Aqui o estudo de caso junta RNA, mancha HAND, satélite (casas), quadradinho IBGE, rua e gente — sem inventar ordem de evacuação.</p>
+      <p class="meta-line" id="event-note">Catálogos de eventos e replay espacial entram no painel quando as fontes carregam.</p>
       <div class="links" id="city-links"></div>
     </div>
   </section>
@@ -159,6 +167,6 @@
   </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="../assets/js/estudo_caso_territorio.js?v=20260910-cockpit"></script>
+  <script src="../assets/js/estudo_caso_territorio.js?v=20260910-satelite"></script>
 </body>
 </html>

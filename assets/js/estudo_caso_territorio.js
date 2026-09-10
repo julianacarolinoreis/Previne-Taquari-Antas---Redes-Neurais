@@ -52,10 +52,13 @@
     city: 'santa_tereza',
     level: 15,
     selectedId: null,
+    basemap: 'sat',
     cache: {},
     loadGen: 0,
     map: null,
     layers: {
+      basemap: null,
+      labels: null,
       mancha: null,
       grade: null,
       ruas: null,
@@ -219,20 +222,49 @@
       zoomControl: true,
       attributionControl: true,
       minZoom: 11,
-      maxZoom: 18,
+      maxZoom: 19,
       center: [-29.17, -51.80],
       zoom: 13
     });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap',
-      maxZoom: 19
-    }).addTo(state.map);
+    applyBasemap('sat');
     state.layers.mancha = L.layerGroup().addTo(state.map);
     state.layers.grade = L.layerGroup().addTo(state.map);
     state.layers.ruas = L.layerGroup().addTo(state.map);
     state.layers.abrigos = L.layerGroup().addTo(state.map);
     state.layers.highlight = L.layerGroup().addTo(state.map);
     return state.map;
+  }
+
+  function applyBasemap(mode) {
+    state.basemap = mode === 'osm' ? 'osm' : 'sat';
+    if (!state.map) return;
+    if (state.layers.basemap) state.map.removeLayer(state.layers.basemap);
+    if (state.layers.labels) state.map.removeLayer(state.layers.labels);
+    state.layers.basemap = null;
+    state.layers.labels = null;
+    if (state.basemap === 'osm') {
+      state.layers.basemap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+        maxZoom: 19
+      }).addTo(state.map);
+    } else {
+      /* Mesmo satélite das páginas de previsão / impacto / rotas — telhados e quarteirões. */
+      state.layers.basemap = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        {
+          attribution: '&copy; Esri, Maxar',
+          maxZoom: 19,
+          maxNativeZoom: 19
+        }
+      ).addTo(state.map);
+      state.layers.labels = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+        { maxZoom: 19, opacity: 0.75, interactive: false }
+      ).addTo(state.map);
+    }
+    document.querySelectorAll('[data-basemap]').forEach(function (btn) {
+      btn.setAttribute('aria-pressed', String(btn.getAttribute('data-basemap') === state.basemap));
+    });
   }
 
   function manchaFeature(bundle) {
@@ -249,11 +281,11 @@
     if (!feat) return;
     L.geoJSON(feat, {
       style: {
-        color: '#176ca8',
-        weight: 1.4,
+        color: '#7ec8e8',
+        weight: 1.6,
         fillColor: '#176ca8',
-        fillOpacity: 0.28,
-        opacity: 0.9
+        fillOpacity: 0.18,
+        opacity: 0.95
       },
       interactive: false
     }).addTo(state.layers.mancha);
@@ -272,10 +304,10 @@
         var cell = byId[id];
         var selected = id === state.selectedId;
         return {
-          color: selected ? '#0c2a22' : '#5d6b62',
-          weight: selected ? 2.6 : 0.8,
+          color: selected ? '#f5f3ec' : 'rgba(245,243,236,.55)',
+          weight: selected ? 2.4 : 0.7,
           fillColor: colorFor(cell ? cell.overlap : 0),
-          fillOpacity: cell ? (selected ? 0.78 : 0.55) : 0.1
+          fillOpacity: cell ? (selected ? 0.52 : 0.28) : 0.04
         };
       },
       onEachFeature: function (feature, layer) {
@@ -287,7 +319,7 @@
           var geometry = layer.feature && layer.feature.geometry;
           drawGrade(bundle);
           highlightStreets(bundle, bounds, geometry);
-          if (bounds) state.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 });
+          if (bounds) state.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 17 });
           renderSide(bundle);
           pulseMap();
         });
@@ -337,7 +369,11 @@
       type: 'Feature',
       geometry: { type: 'MultiLineString', coordinates: coords }
     }, {
-      style: { color: '#0c2a22', weight: 1.25, opacity: 0.5 },
+      style: {
+        color: state.basemap === 'sat' ? '#f5f3ec' : '#0c2a22',
+        weight: state.basemap === 'sat' ? 1.1 : 1.25,
+        opacity: state.basemap === 'sat' ? 0.72 : 0.5
+      },
       interactive: false,
       renderer: state.canvas
     }).addTo(state.layers.ruas);
@@ -697,9 +733,35 @@
     renderRna(bundle);
     drawAll(bundle);
     renderSide(bundle);
+    var catalogs = (bundle.replay && bundle.replay.municipality_catalogs) || {};
+    var catKey = state.city === 'mucum' ? 'mucum' : 'santa_tereza';
+    var cat = catalogs[catKey] || catalogs[city().label] || null;
+    var eventCount = cat && (cat.event_count_catalog || cat.event_count || cat.events_count || (cat.events && cat.events.length));
+    var cases = (bundle.replay && bundle.replay.replay_cases) || [];
+    var cityCases = cases.filter(function (c) {
+      var m = String((c && c.municipality) || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return state.city === 'mucum' ? m.indexOf('muc') >= 0 : m.indexOf('santa') >= 0 || m.indexOf('tereza') >= 0;
+    });
+    var eventNote = $('event-note');
+    if (eventNote) {
+      if (state.city === 'mucum' && cityCases[0]) {
+        eventNote.textContent =
+          'Muçum: ' + fmtInt(eventCount || 32) + ' eventos no catálogo · replay publicado ' +
+          (cityCases[0].event_id || '') +
+          ' (pico ~' + fmtCm(cityCases[0].peak_observed_cm) + '). A mancha no mapa ainda é cenário HAND fixo — não o pico da régua convertido.';
+      } else if (eventCount) {
+        eventNote.textContent =
+          city().label + ': ' + fmtInt(eventCount) +
+          ' eventos no catálogo de análise da RNA. A mancha no mapa é cenário HAND publicado; conversão régua ↔ HAND pendente.';
+      } else {
+        eventNote.textContent =
+          'Catálogos de eventos RNA e manchas HAND publicados alimentam o estudo de caso. Conversão régua ↔ HAND continua pendente.';
+      }
+    }
+
     var extra = $('city-links');
     extra.innerHTML =
-      '<a href="' + city().floodMap + '">Mapa de inundação (HAND ao vivo)</a>' +
+      '<a href="' + city().floodMap + '">Mapa de inundação (satélite + HAND)</a>' +
       '<a href="' + city().ficha + '">Ficha do município</a>' +
       '<a href="' + city().painel + '">Painel de ruas (protótipo)</a>' +
       (city().mesa ? '<a href="' + city().mesa + '">Mesa V002</a>' : '') +
@@ -738,6 +800,19 @@
   document.querySelectorAll('[data-city]').forEach(function (btn) {
     btn.addEventListener('click', function () { onCity(btn.getAttribute('data-city')); });
   });
+  document.querySelectorAll('[data-basemap]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var mode = btn.getAttribute('data-basemap');
+      if (!mode || mode === state.basemap) return;
+      applyBasemap(mode);
+      var bundle = state.cache[state.city];
+      if (bundle) {
+        drawStreets(bundle);
+        drawGrade(bundle);
+        focusSelected(bundle);
+      }
+    });
+  });
   $('level-row').addEventListener('click', function (ev) {
     var btn = ev.target.closest('[data-level]');
     if (!btn) return;
@@ -763,7 +838,7 @@
       var id = layer.feature && layer.feature.properties && layer.feature.properties.id_grade;
       if (id === state.selectedId) {
         highlightStreets(bundle, layer.getBounds && layer.getBounds(), layer.feature && layer.feature.geometry);
-        if (layer.getBounds) state.map.fitBounds(layer.getBounds(), { padding: [28, 28], maxZoom: 16 });
+        if (layer.getBounds) state.map.fitBounds(layer.getBounds(), { padding: [28, 28], maxZoom: 17 });
       }
     });
     renderSide(bundle);
