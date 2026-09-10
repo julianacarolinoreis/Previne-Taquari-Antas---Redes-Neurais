@@ -135,6 +135,103 @@ body.territorio.stage {
   box-shadow: 0 8px 24px rgba(0,0,0,.12);
 }
 
+.territorio .vertical-ledger {
+  position: fixed;
+  z-index: 520;
+  top: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: calc(100vw - 24px);
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(245, 243, 236, .94);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(0,0,0,.14);
+  backdrop-filter: blur(8px);
+}
+.territorio .vertical-ledger > div {
+  min-width: 88px;
+  padding: 4px 8px;
+  border-right: 1px solid var(--line);
+}
+.territorio .vertical-ledger > div:last-child { border-right: 0; }
+.territorio .vertical-ledger span {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.territorio .vertical-ledger b {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  letter-spacing: -.01em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.territorio .story-caption {
+  position: fixed;
+  z-index: 520;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  max-width: min(640px, calc(100vw - 280px));
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(12, 42, 34, .88);
+  color: var(--paper);
+  font-size: 13px;
+  line-height: 1.4;
+  letter-spacing: .01em;
+  box-shadow: 0 10px 28px rgba(0,0,0,.28);
+  pointer-events: none;
+  animation: territorio-rise .35s ease both;
+}
+.territorio .story-caption[data-step="rna"] {
+  box-shadow: 0 0 0 2px rgba(23, 108, 168, .45), 0 10px 28px rgba(0,0,0,.28);
+}
+
+.territorio .btn-recenter {
+  white-space: nowrap;
+}
+
+.territorio .hud-sheet {
+  display: none;
+}
+
+/* Palco limpo durante Apresentar */
+body.territorio.is-presenting .panel-data,
+body.territorio.is-presenting .panel-tools,
+body.territorio.is-presenting .context-box,
+body.territorio.is-presenting .stats-mini,
+body.territorio.is-presenting .level-row,
+body.territorio.is-presenting .side-kicker:not(:first-child) {
+  display: none !important;
+}
+body.territorio.is-presenting .hud-left {
+  bottom: auto;
+  max-height: none;
+}
+body.territorio.is-presenting .hud-right {
+  max-height: 42vh;
+}
+body.territorio.story-rna .rna-strip {
+  box-shadow: 0 0 0 2px rgba(23, 108, 168, .35);
+}
+body.territorio.is-presenting.story-rna .panel-data,
+body.territorio.is-presenting.story-rna .rna-strip,
+body.territorio.is-presenting.story-rna .gauge {
+  display: grid !important;
+}
+body.territorio.is-presenting.story-rna .gauge { display: block !important; }
+
 .territorio .side-kicker {
   font-size: 10px;
   font-weight: 700;
@@ -582,15 +679,64 @@ body.territorio.stage {
 
 @media (max-width: 980px) {
   .territorio .hud-right { display: none; }
+  .territorio .hud-sheet {
+    display: block;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    max-height: 34vh;
+    overflow: auto;
+  }
+  .territorio .sheet-gate {
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--gate-bg);
+    border: 1px solid var(--gate-line);
+    color: var(--gate);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .territorio .sheet-live strong {
+    display: block;
+    font-size: 14px;
+  }
+  .territorio .sheet-live p {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
   .territorio .hud-left {
-    width: min(320px, calc(100vw - 24px));
-    bottom: 100px;
+    top: 68px;
+    width: min(300px, calc(100vw - 24px));
+    bottom: calc(34vh + 28px);
+  }
+  .territorio .vertical-ledger {
+    top: auto;
+    bottom: calc(34vh + 16px);
+    left: 12px;
+    right: 12px;
+    transform: none;
+    max-width: none;
+  }
+  .territorio .story-caption {
+    bottom: calc(34vh + 72px);
+    max-width: calc(100vw - 24px);
+    left: 12px;
+    right: 12px;
+    transform: none;
   }
   .territorio .hud-note {
-    left: 12px;
-    right: auto;
-    bottom: 12px;
-    max-width: min(320px, calc(100vw - 24px));
+    display: none;
+  }
+  .territorio .hud-leg {
+    display: none;
+  }
+  body.territorio.is-presenting .hud-left {
+    bottom: calc(34vh + 28px);
   }
 }
 @media (max-width: 640px) {
@@ -604,10 +750,13 @@ body.territorio.stage {
     top: auto;
     left: 12px;
     right: 12px;
-    bottom: 12px;
+    bottom: calc(36vh + 12px);
     width: auto;
-    max-height: 46vh;
+    max-height: 38vh;
   }
-  .territorio .hud-leg { display: none; }
-  .territorio .hud-note { display: none; }
+  .territorio .hud-sheet {
+    max-height: 36vh;
+  }
+  .territorio .vertical-ledger > div { min-width: 72px; }
+  .territorio .story-caption { font-size: 12px; }
 }
