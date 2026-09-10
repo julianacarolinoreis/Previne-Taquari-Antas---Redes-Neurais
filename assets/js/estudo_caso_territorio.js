@@ -20,6 +20,7 @@
       floodMap: '../santa_tereza_previsao_inundacao.html',
       ficha: '../pesquisa_status.html',
       painel: 'santa-tereza-painel-evacuacao.html',
+      rotaCenario: '../santa_tereza_rota_fuga_ruas_cenario.html',
       mesa: 'estudo-caso-resposta-santa-tereza.html',
       impacto: 'santa-tereza-mapa-impacto.html',
       plan: null
@@ -40,6 +41,7 @@
       floodMap: '../mucum_previsao_inundacao.html',
       ficha: '../pesquisa_status_mucum.html',
       painel: 'mucum-painel-evacuacao.html',
+      rotaCenario: '../mucum_rota_fuga_ruas_cenario.html',
       mesa: null,
       impacto: 'mucum-mapa-impacto.html',
       plan: '../assets/data/mucum_contingencia_202607.json'
@@ -47,12 +49,15 @@
   };
 
   var REPLAY_URL = '../assets/data/research_event_replay_latest.json';
+  var STORY = ['territorio', 'rna', 'mancha', 'grade', 'ruas', 'pessoas'];
 
   var state = {
     city: 'santa_tereza',
     level: 15,
     selectedId: null,
     basemap: 'sat',
+    story: 'territorio',
+    storyTimer: null,
     cache: {},
     loadGen: 0,
     map: null,
@@ -67,7 +72,8 @@
     },
     canvas: null,
     streetHits: 0,
-    maxScore: 1
+    maxScore: 1,
+    clickMarker: null
   };
 
   function $(id) { return document.getElementById(id); }
@@ -232,6 +238,7 @@
     state.layers.ruas = L.layerGroup().addTo(state.map);
     state.layers.abrigos = L.layerGroup().addTo(state.map);
     state.layers.highlight = L.layerGroup().addTo(state.map);
+    state.map.on('click', onMapClick);
     return state.map;
   }
 
@@ -312,16 +319,9 @@
       },
       onEachFeature: function (feature, layer) {
         var id = feature.properties && feature.properties.id_grade;
-        layer.on('click', function () {
-          state.selectedId = id;
-          setChain('grade');
-          var bounds = layer.getBounds && layer.getBounds();
-          var geometry = layer.feature && layer.feature.geometry;
-          drawGrade(bundle);
-          highlightStreets(bundle, bounds, geometry);
-          if (bounds) state.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 17 });
-          renderSide(bundle);
-          pulseMap();
+        layer.on('click', function (ev) {
+          if (ev && ev.originalEvent) L.DomEvent.stopPropagation(ev.originalEvent);
+          selectCell(bundle, id, { zoom: true, story: 'pessoas' });
         });
       }
     });
@@ -673,16 +673,7 @@
   }
 
   function applyLayersVisible() {
-    function toggle(group, checked) {
-      if (!state.map || !group) return;
-      if (checked && !state.map.hasLayer(group)) group.addTo(state.map);
-      if (!checked && state.map.hasLayer(group)) state.map.removeLayer(group);
-    }
-    toggle(state.layers.mancha, $('ly-mancha').checked);
-    toggle(state.layers.grade, $('ly-grade').checked);
-    toggle(state.layers.ruas, $('ly-ruas').checked);
-    toggle(state.layers.highlight, $('ly-ruas').checked);
-    toggle(state.layers.abrigos, $('ly-abrigos').checked);
+    applyStoryLayers();
   }
 
   function focusSelected(bundle) {
@@ -696,33 +687,219 @@
   }
 
   function pulseMap() {
-    var shell = document.querySelector('.map-shell');
+    var shell = document.body;
     if (!shell) return;
     shell.classList.remove('cell-pulse');
     void shell.offsetWidth;
     shell.classList.add('cell-pulse');
   }
 
+  function updateLiveCard(bundle, cell, latlng) {
+    var card = $('live-card');
+    var title = $('live-title');
+    var copy = $('live-copy');
+    if (!card || !title || !copy) return;
+    card.classList.add('is-hit');
+    if (!cell) {
+      title.textContent = latlng
+        ? 'Ponto ' + latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5)
+        : 'Clique no mapa';
+      copy.textContent = 'Nenhuma célula IBGE 200 m tocada pela mancha neste clique. Experimente sobre a mancha azul ou um quadradinho colorido.';
+      return;
+    }
+    title.textContent = cell.id;
+    copy.innerHTML =
+      '<strong>' + fmtInt(cell.pop) + ' pessoas</strong> · ' + fmtInt(cell.dom) + ' domicílios · ' +
+      'sobreposição ' + fmtPct(cell.overlap) + ' com HAND ' + state.level + ' m · ' +
+      (state.streetHits ? fmtInt(state.streetHits) + ' trechos de rua cruzam a célula.' : 'clique de novo para destacar as ruas.') +
+      ' Atenção espacial — não é ordem de saída.';
+  }
+
+  function selectCell(bundle, id, opts) {
+    opts = opts || {};
+    state.selectedId = id;
+    if (opts.story) goStory(opts.story, { silentPlay: true });
+    setChain('pessoas');
+    var ranked = rankedCells(bundle);
+    var cell = ranked.find(function (c) { return c.id === id; }) || null;
+    drawGrade(bundle);
+    if (!state._gradeLayer) {
+      updateLiveCard(bundle, cell, null);
+      renderSide(bundle);
+      return;
+    }
+    state._gradeLayer.eachLayer(function (layer) {
+      var lid = layer.feature && layer.feature.properties && layer.feature.properties.id_grade;
+      if (lid !== id) return;
+      highlightStreets(bundle, layer.getBounds && layer.getBounds(), layer.feature && layer.feature.geometry);
+      if (opts.zoom && layer.getBounds) {
+        state.map.fitBounds(layer.getBounds(), { padding: [48, 48], maxZoom: 17 });
+      }
+      if (state.clickMarker) state.map.removeLayer(state.clickMarker);
+      var c = layer.getBounds && layer.getBounds().getCenter();
+      if (c) {
+        state.clickMarker = L.circleMarker(c, {
+          radius: 7, color: '#0f8b46', fillColor: '#fff', fillOpacity: 1, weight: 3
+        }).addTo(state.map);
+      }
+    });
+    updateLiveCard(bundle, cell, null);
+    renderSide(bundle);
+    pulseMap();
+  }
+
+  function nearestTouchedCell(bundle, lat, lng) {
+    var ranked = rankedCells(bundle);
+    if (!ranked.length || !state._gradeLayer) return null;
+    var best = null;
+    var bestD = 1e18;
+    state._gradeLayer.eachLayer(function (layer) {
+      var id = layer.feature && layer.feature.properties && layer.feature.properties.id_grade;
+      var cell = ranked.find(function (c) { return c.id === id; });
+      if (!cell) return;
+      var geom = layer.feature && layer.feature.geometry;
+      if (geom && pointInGeometry(lat, lng, geom)) {
+        best = cell;
+        bestD = -1;
+        return;
+      }
+      if (bestD < 0) return;
+      var c = layer.getBounds && layer.getBounds().getCenter();
+      if (!c) return;
+      var dy = c.lat - lat;
+      var dx = (c.lng - lng) * Math.cos(lat * Math.PI / 180);
+      var d = dy * dy + dx * dx;
+      if (d < bestD) { bestD = d; best = cell; }
+    });
+    return best;
+  }
+
+  function onMapClick(e) {
+    var bundle = state.cache[state.city];
+    if (!bundle || !state.map) return;
+    var cell = nearestTouchedCell(bundle, e.latlng.lat, e.latlng.lng);
+    if (cell) {
+      selectCell(bundle, cell.id, { zoom: true, story: 'pessoas' });
+    } else {
+      if (state.clickMarker) state.map.removeLayer(state.clickMarker);
+      state.clickMarker = L.circleMarker(e.latlng, {
+        radius: 6, color: '#0f8b46', fillColor: '#fff', fillOpacity: 1, weight: 3
+      }).addTo(state.map);
+      updateLiveCard(bundle, null, e.latlng);
+      pulseMap();
+    }
+  }
+
+  function storyIndex() {
+    var i = STORY.indexOf(state.story);
+    return i < 0 ? 0 : i;
+  }
+
+  function applyStoryLayers() {
+    var idx = storyIndex();
+    var showMancha = idx >= STORY.indexOf('mancha') && $('ly-mancha').checked;
+    var showGrade = idx >= STORY.indexOf('grade') && $('ly-grade').checked;
+    var showRuas = idx >= STORY.indexOf('ruas') && $('ly-ruas').checked;
+    var showAbrigos = idx >= STORY.indexOf('ruas') && $('ly-abrigos').checked;
+    function toggle(group, checked) {
+      if (!state.map || !group) return;
+      if (checked && !state.map.hasLayer(group)) group.addTo(state.map);
+      if (!checked && state.map.hasLayer(group)) state.map.removeLayer(group);
+    }
+    toggle(state.layers.mancha, showMancha);
+    toggle(state.layers.grade, showGrade);
+    toggle(state.layers.ruas, showRuas);
+    toggle(state.layers.highlight, showRuas && !!state.selectedId);
+    toggle(state.layers.abrigos, showAbrigos);
+  }
+
+  function goStory(step, opts) {
+    opts = opts || {};
+    if (STORY.indexOf(step) < 0) return;
+    state.story = step;
+    document.querySelectorAll('[data-story]').forEach(function (btn) {
+      btn.setAttribute('aria-pressed', String(btn.getAttribute('data-story') === step));
+    });
+    var chainMap = { territorio: 'rna', rna: 'rna', mancha: 'mancha', grade: 'grade', ruas: 'ruas', pessoas: 'pessoas' };
+    setChain(chainMap[step] || 'rna');
+    applyStoryLayers();
+    var bundle = state.cache[state.city];
+    if (!bundle) return;
+    if (step === 'territorio') {
+      var bounds = studyBounds(bundle);
+      if (bounds && bounds.isValid()) state.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+    }
+    if (step === 'rna') {
+      setChain('rna');
+      pulseMap();
+    }
+    if (step === 'mancha') {
+      var mb = studyBounds(bundle);
+      if (mb && mb.isValid()) state.map.fitBounds(mb, { padding: [36, 36], maxZoom: 15 });
+    }
+    if (step === 'pessoas') {
+      var ranked = rankedCells(bundle);
+      if (ranked[0] && !opts.keepSelection) {
+        selectCell(bundle, state.selectedId || ranked[0].id, { zoom: true });
+      }
+    }
+    if (!opts.silentPlay && state.storyTimer) stopStoryPlay();
+  }
+
+  function stopStoryPlay() {
+    if (state.storyTimer) {
+      window.clearInterval(state.storyTimer);
+      state.storyTimer = null;
+    }
+    var play = $('story-play');
+    if (play) {
+      play.setAttribute('aria-pressed', 'false');
+      play.textContent = '▶ Apresentar';
+    }
+  }
+
+  function startStoryPlay() {
+    stopStoryPlay();
+    var play = $('story-play');
+    if (play) {
+      play.setAttribute('aria-pressed', 'true');
+      play.textContent = '❚❚ Pausar';
+    }
+    goStory(STORY[0]);
+    var i = 0;
+    state.storyTimer = window.setInterval(function () {
+      i += 1;
+      if (i >= STORY.length) {
+        stopStoryPlay();
+        goStory('pessoas');
+        return;
+      }
+      goStory(STORY[i], { silentPlay: true });
+    }, 3200);
+  }
+
   function drawAll(bundle) {
     ensureMap();
     var ranked = rankedCells(bundle);
-    if (!state.selectedId && ranked[0]) state.selectedId = ranked[0].id;
     state.streetHits = 0;
     if (state.layers.highlight) state.layers.highlight.clearLayers();
     drawMancha(bundle);
     drawStreets(bundle);
     drawGrade(bundle);
     drawAbrigos(bundle);
-    focusSelected(bundle);
-    applyLayersVisible();
+    applyStoryLayers();
     setChain('mancha');
     var bounds = studyBounds(bundle);
     if (bounds && bounds.isValid()) {
-      state.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 15 });
+      state.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
     }
     window.setTimeout(function () {
       if (state.map) state.map.invalidateSize();
     }, 80);
+    goStory(state.story || 'territorio', { silentPlay: true, keepSelection: true });
+    if (ranked[0] && state.story === 'pessoas') {
+      selectCell(bundle, state.selectedId || ranked[0].id, { zoom: false });
+    }
   }
 
   function render(bundle) {
@@ -761,6 +938,7 @@
 
     var extra = $('city-links');
     extra.innerHTML =
+      '<a href="' + city().rotaCenario + '">Rota de fuga por ruas (clique no mapa)</a>' +
       '<a href="' + city().floodMap + '">Mapa de inundação (satélite + HAND)</a>' +
       '<a href="' + city().ficha + '">Ficha do município</a>' +
       '<a href="' + city().painel + '">Painel de ruas (protótipo)</a>' +
@@ -810,8 +988,29 @@
         drawStreets(bundle);
         drawGrade(bundle);
         focusSelected(bundle);
+        applyStoryLayers();
       }
     });
+  });
+  document.querySelectorAll('[data-story]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      stopStoryPlay();
+      goStory(btn.getAttribute('data-story'));
+    });
+  });
+  $('story-prev').addEventListener('click', function () {
+    stopStoryPlay();
+    var i = Math.max(0, storyIndex() - 1);
+    goStory(STORY[i]);
+  });
+  $('story-next').addEventListener('click', function () {
+    stopStoryPlay();
+    var i = Math.min(STORY.length - 1, storyIndex() + 1);
+    goStory(STORY[i]);
+  });
+  $('story-play').addEventListener('click', function () {
+    if (state.storyTimer) stopStoryPlay();
+    else startStoryPlay();
   });
   $('level-row').addEventListener('click', function (ev) {
     var btn = ev.target.closest('[data-level]');
@@ -819,6 +1018,7 @@
     state.level = Number(btn.getAttribute('data-level'));
     state.selectedId = null;
     setChain('mancha');
+    goStory('mancha', { silentPlay: true });
     var bundle = state.cache[state.city];
     if (!bundle || (bundle.errors && bundle.errors.length)) {
       bootCity();
@@ -826,24 +1026,15 @@
     }
     render(bundle);
   });
-  $('cell-list').addEventListener('click', function (ev) {
-    var btn = ev.target.closest('[data-cell]');
-    if (!btn) return;
-    state.selectedId = btn.getAttribute('data-cell');
-    var bundle = state.cache[state.city];
-    if (!bundle || !state._gradeLayer) return;
-    renderSide(bundle);
-    drawGrade(bundle);
-    state._gradeLayer.eachLayer(function (layer) {
-      var id = layer.feature && layer.feature.properties && layer.feature.properties.id_grade;
-      if (id === state.selectedId) {
-        highlightStreets(bundle, layer.getBounds && layer.getBounds(), layer.feature && layer.feature.geometry);
-        if (layer.getBounds) state.map.fitBounds(layer.getBounds(), { padding: [28, 28], maxZoom: 17 });
-      }
+  if ($('cell-list')) {
+    $('cell-list').addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-cell]');
+      if (!btn) return;
+      var bundle = state.cache[state.city];
+      if (!bundle) return;
+      selectCell(bundle, btn.getAttribute('data-cell'), { zoom: true, story: 'pessoas' });
     });
-    renderSide(bundle);
-    pulseMap();
-  });
+  }
   ['ly-mancha', 'ly-grade', 'ly-ruas', 'ly-abrigos'].forEach(function (id) {
     $(id).addEventListener('change', applyLayersVisible);
   });

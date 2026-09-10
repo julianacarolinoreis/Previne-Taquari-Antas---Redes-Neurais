@@ -145,6 +145,11 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         self.assertIn("não é alerta", html.lower())
         self.assertIn("assets/data/estudo_caso_territorio/**", deploy)
         self.assertIn(".territorio", css)
+        self.assertIn("story-play", html)
+        self.assertIn("Apresentar", html)
+        self.assertIn("goStory", js)
+        self.assertIn("onMapClick", js)
+        self.assertIn("rotaCenario", js)
         self.assertIn(".rna-cockpit", css)
         self.assertIn(".gauge-scale", css)
 
