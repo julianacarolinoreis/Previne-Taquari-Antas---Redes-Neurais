@@ -56,13 +56,13 @@
   var REPLAY_URL = '../assets/data/research_event_replay_latest.json';
   var STORY = ['territorio', 'rna', 'mancha', 'grade', 'ruas', 'pessoas', 'rotas'];
   var STORY_CAPTION = {
-    territorio: '01 · Território — satélite do centro urbano (casas e quarteirões)',
-    rna: '02 · Régua — RNA em centímetros (agora / +2 h); ainda não escolhe a mancha',
-    mancha: '03 · Mancha — cenário HAND publicado (metros); vertical distinta da RNA',
-    grade: '04 · Células — grade IBGE 200 m; população = limite da célula inteira',
-    ruas: '05 · Ruas — grafo OSM do estudo no centro',
-    pessoas: '06 · Pessoas — atenção espacial (não ordem de saída)',
-    rotas: '07 · Rotas — clique: abrigo, km e água do cenário de ruas (fixo)'
+    territorio: '1 · Lugar — o centro da cidade no satélite',
+    rna: '2 · Régua — nível do rio em centímetros (ainda não desenha a mancha)',
+    mancha: '3 · Água — mancha HAND publicada (metros, outro sistema)',
+    grade: '4 · Quadrados — grade IBGE 200 m sobre o centro',
+    ruas: '5 · Ruas — caminhos OSM do estudo',
+    pessoas: '6 · Gente — quantas pessoas no quadrado tocado pela água',
+    rotas: '7 · Abrigo — clique: caminho a pé, km e trecho sob água'
   };
   var STORY_DWELL = {
     territorio: 2800,
@@ -710,27 +710,16 @@
     var d = (bundle && bundle.rna) || {};
     var now = d.nivel_rio_agora_cm != null ? d.nivel_rio_agora_cm : d.nivel_atual_cm;
     rnaEl.textContent = fmtCm(now);
-    if (handEl) handEl.textContent = state.level + ' m';
+    if (handEl) handEl.textContent = 'HAND ' + state.level + ' m';
     var meta = bundle && bundle.rota && bundle.rota.meta;
     if (rotaEl) {
       if (meta && meta.nivel_projeto_m != null) {
-        rotaEl.textContent = 'HAND proj. ' + meta.nivel_projeto_m + ' m';
-      } else if (meta && meta.nivel && meta.nivel.rotulo) {
-        rotaEl.textContent = String(meta.nivel.rotulo).slice(0, 42);
+        rotaEl.textContent = 'rota @ HAND ' + meta.nivel_projeto_m + ' m';
       } else {
-        rotaEl.textContent = 'cenário fixo';
+        rotaEl.textContent = 'rota = cenário fixo';
       }
     }
-    var conv = 'pendente';
-    try {
-      var spatial = bundle && bundle.replay && bundle.replay.spatial_scenarios
-        && bundle.replay.spatial_scenarios[city().replayKey];
-      if (spatial && spatial.stage_conversion_status) conv = String(spatial.stage_conversion_status).split('_')[0];
-      else if (spatial && spatial.method && spatial.method.gauge_hand_conversion) {
-        conv = String(spatial.method.gauge_hand_conversion);
-      }
-    } catch (e) { /* ignore */ }
-    if (convEl) convEl.textContent = conv.indexOf('pend') >= 0 || conv === 'pending' ? 'pendente' : conv;
+    if (convEl) convEl.textContent = 'sem conversão';
   }
 
   function drawRota(bundle, lat, lon, opts) {
@@ -862,7 +851,7 @@
       status.className = 'load-status good';
       status.textContent = 'fontes carregadas · leitura de pesquisa';
     }
-    $('meta-line').textContent = 'IBGE ' + city().ibge + ' · cenário HAND ' + state.level + ' m · grade 200 m';
+    $('meta-line').textContent = 'centro · HAND ' + state.level + ' m';
     $('stat-cells').textContent = sc ? fmtInt(sc.cells_200m_touched) : fmtInt(ranked.length);
     $('stat-pop').textContent = sc ? fmtInt(sc.population_upper_bound_whole_touched_cells) : '—';
     $('stat-proxy').textContent = sc && sc.population_area_weighted_proxy != null
@@ -962,20 +951,19 @@
     var copyHtml;
     if (!cell) {
       titleText = latlng
-        ? 'Ponto ' + latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5)
+        ? 'Ponto no mapa'
         : 'Clique no mapa';
       copyHtml = (rotaBit
         ? rotaBit + ' '
-        : 'Nenhuma célula IBGE 200 m tocada pela mancha neste clique. ') +
-        'Atenção espacial — não é ordem de saída.';
+        : 'Nenhum quadrado IBGE sob a mancha aqui. ') +
+        'Não é ordem de saída.';
     } else {
-      titleText = cell.id;
+      titleText = fmtInt(cell.pop) + ' pessoas neste quadrado';
       copyHtml =
-        '<strong>' + fmtInt(cell.pop) + ' pessoas</strong> (limite da célula) · ' + fmtInt(cell.dom) + ' domicílios · ' +
-        'sobreposição ' + fmtPct(cell.overlap) + ' com HAND ' + state.level + ' m · ' +
-        (state.streetHits ? fmtInt(state.streetHits) + ' trechos de rua cruzam a célula.' : 'ruas do grafo no mapa.') +
-        rotaBit +
-        ' Atenção espacial — não é ordem de saída.';
+        'Sobreposição ' + fmtPct(cell.overlap) + ' com a mancha HAND ' + state.level + ' m' +
+        (state.streetHits ? ' · ' + fmtInt(state.streetHits) + ' trechos de rua' : '') +
+        '.' + rotaBit +
+        ' Limite da célula inteira — não é ordem de saída.';
     }
     title.textContent = titleText;
     copy.innerHTML = copyHtml;
@@ -1141,6 +1129,9 @@
     });
     updateStoryCaption(step);
     document.body.classList.toggle('story-rna', step === 'rna');
+    /* Abrir números só no passo da régua; senão deixar fechado. */
+    var dataWrap = $('panel-data-wrap');
+    if (dataWrap) dataWrap.open = step === 'rna';
     var chainMap = {
       territorio: 'rna', rna: 'rna', mancha: 'mancha', grade: 'grade',
       ruas: 'ruas', pessoas: 'pessoas', rotas: 'rotas'
