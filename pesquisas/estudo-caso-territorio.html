@@ -15,33 +15,57 @@
   <a class="skip" href="#mapa-estudo">Pular para o mapa</a>
   <script src="../assets/js/site_chrome.js"></script>
 
-  <header class="hero" id="conteudo">
-    <p class="eyebrow">pesquisa territorial · não é alerta</p>
-    <h1><span class="brand">PREVINE</span> Onde a água encontra o território.</h1>
-    <p class="lede">Santa Tereza e Muçum no mesmo recorte científico: a RNA da régua, a mancha HAND publicada, a grade IBGE de 200&nbsp;m, as ruas OSM do estudo e as pessoas do Censo&nbsp;2022.</p>
-    <div class="notice">
-      <strong>Limite do método</strong>
-      <p>Este painel não ordena evacuação. A população é limite superior de células inteiras tocadas pela mancha. A conversão régua ↔ HAND continua pendente. Não substitui ANA, SGB, SACE ou Defesa Civil.</p>
-    </div>
-    <div class="city-row" role="group" aria-label="Município do estudo">
-      <button type="button" data-city="santa_tereza" aria-pressed="true">Santa Tereza</button>
-      <button type="button" data-city="mucum" aria-pressed="false">Muçum</button>
-    </div>
-  </header>
+  <div class="wrap cockpit-top">
+    <div class="cockpit-grid">
+      <header class="hero" id="conteudo">
+        <p class="eyebrow">pesquisa territorial · não é alerta</p>
+        <h1><span class="brand">PREVINE</span> Onde a água encontra o território.</h1>
+        <p class="lede">Santa Tereza e Muçum no mesmo recorte: RNA da régua, mancha HAND, grade IBGE 200&nbsp;m, ruas OSM e pessoas do Censo&nbsp;2022.</p>
+        <div class="notice">
+          <strong>Limite do método</strong>
+          <p>Não ordena evacuação. População = limite superior de células tocadas. Conversão régua ↔ HAND pendente. Não substitui ANA, SGB, SACE ou Defesa Civil.</p>
+        </div>
+      </header>
 
-  <div class="wrap">
-    <section class="howto" aria-labelledby="howto-title">
-      <div class="howto-copy">
-        <p class="eyebrow">como ler</p>
-        <h2 id="howto-title">Três camadas. Uma pergunta científica.</h2>
-        <p>O painel encadeia observação, cenário espacial e exposição. Cada número tem unidade e limite; o mapa mostra onde as evidências se tocam.</p>
-      </div>
-      <ol class="howto-steps">
-        <li><b>01 · Régua</b><span>A RNA lê o nível agora e o previsto +2&nbsp;h, em centímetros na estação.</span></li>
-        <li><b>02 · Mancha</b><span>O contorno HAND publicado desenha um cenário de inundação — ainda sem conversão vertical da régua.</span></li>
-        <li><b>03 · Células</b><span>A grade IBGE 200&nbsp;m cruza a mancha; a lista ordena atenção espacial, não saída.</span></li>
-      </ol>
-    </section>
+      <section class="rna-cockpit" aria-label="Leitura da rede neural">
+        <div class="rna-head">
+          <div>
+            <p class="eyebrow">cockpit da régua</p>
+            <h2 id="city-label">Santa Tereza</h2>
+            <p class="meta-line" id="meta-line">grade 200 m · cenário HAND</p>
+          </div>
+          <div class="rna-head-tools">
+            <div class="city-row" role="group" aria-label="Município do estudo">
+              <button type="button" data-city="santa_tereza" aria-pressed="true">Santa Tereza</button>
+              <button type="button" data-city="mucum" aria-pressed="false">Muçum</button>
+            </div>
+            <p class="load-status" id="load-status">carregando…</p>
+          </div>
+        </div>
+
+        <div class="rna-strip">
+          <div class="rna-item"><div class="k">Agora na régua</div><div class="v" id="rna-agora">—</div><div class="s" id="rna-agora-s"></div></div>
+          <div class="rna-item"><div class="k">Previsto +2 h</div><div class="v" id="rna-prev">—</div><div class="s" id="rna-prev-s"></div></div>
+          <div class="rna-item"><div class="k">Cota de pesquisa</div><div class="v" id="rna-bank">—</div><div class="s" id="rna-bank-s"></div></div>
+          <div class="rna-item"><div class="k">Estação</div><div class="v" id="rna-estacao">—</div><div class="s" id="rna-estacao-s"></div></div>
+        </div>
+
+        <div class="gauge" aria-hidden="true">
+          <div class="gauge-scale">
+            <i class="gauge-bank" id="gauge-bank"></i>
+            <i class="gauge-now" id="gauge-now"></i>
+            <i class="gauge-prev" id="gauge-prev"></i>
+          </div>
+          <div class="gauge-legend">
+            <span><i class="swatch now"></i>agora</span>
+            <span><i class="swatch prev"></i>previsto</span>
+            <span><i class="swatch bank"></i>cota de pesquisa</span>
+            <span id="gauge-delta">Δ —</span>
+          </div>
+        </div>
+        <p class="rna-note" id="rna-note">A RNA e a mancha HAND ainda não estão na mesma vertical.</p>
+      </section>
+    </div>
 
     <div class="chain" aria-label="Cadeia do estudo">
       <span data-step="rna"><b>01 · RNA</b>Nível agora e +2 h na régua</span>
@@ -50,39 +74,6 @@
       <span data-step="ruas"><b>04 · Ruas</b>Grafo OSM do estudo</span>
       <span data-step="pessoas"><b>05 · Pessoas</b>População da célula, limite superior</span>
     </div>
-
-    <section class="rna-cockpit" aria-label="Leitura da rede neural">
-      <div class="rna-head">
-        <div>
-          <p class="eyebrow">cockpit da régua</p>
-          <h2 id="city-label">Santa Tereza</h2>
-          <p class="meta-line" id="meta-line">grade 200 m · cenário HAND</p>
-        </div>
-        <p class="load-status" id="load-status">carregando…</p>
-      </div>
-
-      <div class="rna-strip">
-        <div class="rna-item"><div class="k">Agora na régua</div><div class="v" id="rna-agora">—</div><div class="s" id="rna-agora-s"></div></div>
-        <div class="rna-item"><div class="k">Previsto +2 h</div><div class="v" id="rna-prev">—</div><div class="s" id="rna-prev-s"></div></div>
-        <div class="rna-item"><div class="k">Cota de pesquisa</div><div class="v" id="rna-bank">—</div><div class="s" id="rna-bank-s"></div></div>
-        <div class="rna-item"><div class="k">Estação</div><div class="v" id="rna-estacao">—</div><div class="s" id="rna-estacao-s"></div></div>
-      </div>
-
-      <div class="gauge" aria-hidden="true">
-        <div class="gauge-scale">
-          <i class="gauge-bank" id="gauge-bank"></i>
-          <i class="gauge-now" id="gauge-now"></i>
-          <i class="gauge-prev" id="gauge-prev"></i>
-        </div>
-        <div class="gauge-legend">
-          <span><i class="swatch now"></i>agora</span>
-          <span><i class="swatch prev"></i>previsto</span>
-          <span><i class="swatch bank"></i>cota de pesquisa</span>
-          <span id="gauge-delta">Δ —</span>
-        </div>
-      </div>
-      <p class="rna-note" id="rna-note">A RNA e a mancha HAND ainda não estão na mesma vertical.</p>
-    </section>
   </div>
 
   <div class="studio" id="mapa-estudo">
@@ -100,6 +91,12 @@
       </div>
     </div>
     <aside class="side">
+      <p class="side-kicker">Município</p>
+      <div class="city-row city-row-side" role="group" aria-label="Município no mapa">
+        <button type="button" data-city="santa_tereza" aria-pressed="true">Santa Tereza</button>
+        <button type="button" data-city="mucum" aria-pressed="false">Muçum</button>
+      </div>
+
       <p class="side-kicker">Camadas</p>
       <div class="layer-toggles">
         <label><input type="checkbox" id="ly-mancha" checked> Mancha HAND</label>
@@ -131,6 +128,21 @@
     </aside>
   </div>
 
+  <div class="wrap">
+    <section class="howto" aria-labelledby="howto-title">
+      <div class="howto-copy">
+        <p class="eyebrow">como ler</p>
+        <h2 id="howto-title">Três camadas. Uma pergunta científica.</h2>
+        <p>O painel encadeia observação, cenário espacial e exposição. Cada número tem unidade e limite; o mapa mostra onde as evidências se tocam.</p>
+      </div>
+      <ol class="howto-steps">
+        <li><b>01 · Régua</b><span>A RNA lê o nível agora e o previsto +2&nbsp;h, em centímetros na estação.</span></li>
+        <li><b>02 · Mancha</b><span>O contorno HAND publicado desenha um cenário de inundação — ainda sem conversão vertical da régua.</span></li>
+        <li><b>03 · Células</b><span>A grade IBGE 200&nbsp;m cruza a mancha; a lista ordena atenção espacial, não saída.</span></li>
+      </ol>
+    </section>
+  </div>
+
   <section class="more">
     <div class="wrap">
       <h2>O que esta página junta — e o que permanece nas outras.</h2>
@@ -147,6 +159,6 @@
   </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="../assets/js/estudo_caso_territorio.js?v=20260909-dashboard"></script>
+  <script src="../assets/js/estudo_caso_territorio.js?v=20260910-cockpit"></script>
 </body>
 </html>

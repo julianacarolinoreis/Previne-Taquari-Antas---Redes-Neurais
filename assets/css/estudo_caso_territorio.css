@@ -1,5 +1,6 @@
 /* Estudo territorial — cockpit científico do PREVINE. */
-.territorio {
+body.territorio,
+body.territorio.has-site-chrome {
   --river: #176ca8;
   --river-soft: rgba(23, 108, 168, .16);
   --warn: #7a4e12;
@@ -37,53 +38,58 @@
 }
 .territorio .skip:focus { top: 12px; }
 
+.territorio .cockpit-top {
+  padding-top: 8px;
+  padding-bottom: 0;
+}
+.territorio .cockpit-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.2fr);
+  gap: 20px 28px;
+  align-items: start;
+  margin-bottom: 6px;
+}
 .territorio .hero {
-  padding: 56px 40px 20px;
-  max-width: 1280px;
-  margin: 0 auto;
+  padding: 8px 0 4px;
+  max-width: none;
+  margin: 0;
   position: relative;
 }
-.territorio .hero::after {
-  content: "";
-  position: absolute;
-  inset: auto 40px 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--line), transparent);
-}
+.territorio .hero::after { display: none; }
 .territorio .eyebrow {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: .16em;
   text-transform: uppercase;
   color: var(--ink-2);
-  margin: 0 0 18px;
+  margin: 0 0 10px;
 }
 .territorio h1 {
-  font-size: clamp(40px, 7vw, 72px);
+  font-size: clamp(28px, 4.4vw, 44px);
   font-weight: 800;
-  line-height: .9;
+  line-height: .94;
   letter-spacing: -.045em;
-  max-width: 14ch;
+  max-width: 18ch;
   margin: 0;
 }
 .territorio h1 .brand {
   display: block;
-  font-size: clamp(18px, 2.4vw, 28px);
+  font-size: clamp(14px, 1.7vw, 20px);
   letter-spacing: .18em;
   text-transform: uppercase;
   color: var(--green);
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 .territorio .lede {
-  margin-top: 20px;
-  max-width: 62ch;
-  font-size: 17px;
-  line-height: 1.6;
+  margin-top: 10px;
+  max-width: 68ch;
+  font-size: 15px;
+  line-height: 1.5;
   color: var(--ink-2);
 }
 .territorio .notice {
-  margin-top: 24px;
-  padding: 14px 16px;
+  margin-top: 12px;
+  padding: 10px 12px;
   border: 1px solid var(--warn-line);
   background: var(--warn-bg);
   color: var(--warn);
@@ -96,13 +102,22 @@
   text-transform: uppercase;
   margin-bottom: 4px;
 }
-.territorio .notice p { margin: 0; font-size: 14px; line-height: 1.5; }
+.territorio .notice p { margin: 0; font-size: 13px; line-height: 1.45; }
 
 .territorio .city-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 26px;
+  margin-top: 0;
+}
+.territorio .city-row-side {
+  margin: 6px 0 14px;
+}
+.territorio .rna-head-tools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
 }
 .territorio .city-row button,
 .territorio .level-row button {
@@ -138,7 +153,7 @@
   display: grid;
   grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr);
   gap: 28px;
-  padding: 36px 0 8px;
+  padding: 40px 0 28px;
   align-items: start;
 }
 .territorio .howto h2 {
@@ -188,19 +203,19 @@
 .territorio .chain {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
-  margin: 18px 0 22px;
+  gap: 8px;
+  margin: 4px 0 10px;
 }
 .territorio .chain span {
   display: block;
-  padding: 12px 12px 14px;
+  padding: 8px 10px 10px;
   border-top: 3px solid var(--accent);
   background: rgba(255,255,255,.8);
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   border-left: 1px solid var(--line);
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: 12px;
+  line-height: 1.3;
   transition: transform .25s ease, box-shadow .25s ease, border-top-color .25s ease;
 }
 .territorio .chain span.is-active {
@@ -218,18 +233,18 @@
 }
 
 .territorio .rna-cockpit {
-  padding: 8px 0 28px;
+  padding: 0 0 10px;
 }
 .territorio .rna-head {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   align-items: end;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 .territorio .rna-head h2 {
-  margin: 6px 0 4px;
-  font-size: clamp(24px, 3vw, 34px);
+  margin: 4px 0 2px;
+  font-size: clamp(22px, 2.6vw, 30px);
   letter-spacing: -.03em;
 }
 .territorio .meta-line {
@@ -247,11 +262,19 @@
 
 .territorio .rna-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.territorio .rna-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--warn);
+  background: var(--warn-bg);
+  padding: 8px 10px;
+  border: 1px solid var(--warn-line);
 }
 .territorio .rna-item {
-  padding: 14px 14px 16px;
+  padding: 10px 12px 12px;
   background: rgba(255,255,255,.78);
   border: 1px solid var(--line);
   border-top: 3px solid var(--accent);
@@ -265,8 +288,8 @@
   color: var(--ink-2);
 }
 .territorio .rna-item .v {
-  margin-top: 8px;
-  font-size: clamp(22px, 2.6vw, 32px);
+  margin-top: 4px;
+  font-size: clamp(20px, 2.2vw, 28px);
   font-weight: 800;
   letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;
@@ -281,14 +304,14 @@
 }
 
 .territorio .gauge {
-  margin-top: 16px;
-  padding: 14px 16px 12px;
+  margin-top: 10px;
+  padding: 10px 12px 8px;
   background: rgba(255,255,255,.7);
   border: 1px solid var(--line);
 }
 .territorio .gauge-scale {
   position: relative;
-  height: 18px;
+  height: 14px;
   border-radius: 999px;
   background:
     repeating-linear-gradient(90deg, rgba(0,0,0,.04) 0 1px, transparent 1px 10%),
@@ -355,21 +378,25 @@
 .territorio .studio {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(320px, .86fr);
-  grid-template-rows: minmax(74vh, 1fr);
+  grid-template-rows: minmax(78vh, 1fr);
   gap: 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  min-height: 74vh;
+  min-height: 78vh;
   background: #fff;
+  margin-top: 8px;
 }
 .territorio .map-shell {
   position: relative;
   min-width: 0;
   background: #d7dfd4;
+  overflow: hidden;
+  isolation: isolate;
+  z-index: 1;
 }
 .territorio #map {
   height: 100%;
-  min-height: 74vh;
+  min-height: 78vh;
   background: #d7dfd4;
 }
 .territorio .map-legend {
@@ -409,11 +436,14 @@
 }
 
 .territorio .side {
+  position: relative;
+  z-index: 2;
   background: #fff;
   border-left: 1px solid var(--line);
-  padding: 18px 20px 28px;
+  padding: 16px 18px 24px;
   overflow: auto;
-  max-height: 74vh;
+  max-height: 78vh;
+  overscroll-behavior: contain;
 }
 .territorio .side h2 {
   font-size: 20px;
@@ -643,9 +673,8 @@
 }
 
 @media (max-width: 980px) {
-  .territorio .wrap,
-  .territorio .hero { padding-left: 20px; padding-right: 20px; }
-  .territorio .hero::after { left: 20px; right: 20px; }
+  .territorio .wrap { padding-left: 20px; padding-right: 20px; }
+  .territorio .cockpit-grid,
   .territorio .howto,
   .territorio .rna-strip,
   .territorio .chain { grid-template-columns: 1fr 1fr; }
@@ -662,9 +691,11 @@
   .territorio #gauge-delta { margin-left: 0; }
 }
 @media (max-width: 560px) {
+  .territorio .cockpit-grid,
   .territorio .howto,
   .territorio .rna-strip,
   .territorio .chain { grid-template-columns: 1fr; }
   .territorio .rna-head { flex-direction: column; align-items: start; }
+  .territorio .rna-head-tools { align-items: start; }
   .territorio h1 { max-width: 12ch; }
 }
