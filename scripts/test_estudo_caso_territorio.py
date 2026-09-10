@@ -150,8 +150,45 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         self.assertIn("goStory", js)
         self.assertIn("onMapClick", js)
         self.assertIn("rotaCenario", js)
+        self.assertIn("drawRota", js)
+        self.assertIn("resolveRota", js)
+        self.assertIn("rota_cenario_santa_tereza.json", js)
+        self.assertIn("rota_cenario_mucum.json", js)
+        self.assertIn('data-story="rotas"', html)
+        self.assertIn("context-box", html)
+        self.assertIn("rota-metrics", html)
         self.assertIn(".rna-cockpit", css)
         self.assertIn(".gauge-scale", css)
+        self.assertIn(".context-box", css)
+        self.assertTrue((DATA / "rota_cenario_santa_tereza.json").exists())
+        self.assertTrue((DATA / "rota_cenario_mucum.json").exists())
+
+    def test_rota_cenario_graphs_have_path_tables(self) -> None:
+        for city, path in (
+            ("santa_tereza", DATA / "rota_cenario_santa_tereza.json"),
+            ("mucum", DATA / "rota_cenario_mucum.json"),
+        ):
+            data = json.loads(path.read_text(encoding="utf-8"))
+            n = len(data["nos"])
+            self.assertEqual(len(data["prox"]), n, city)
+            self.assertEqual(len(data["dest"]), n, city)
+            self.assertEqual(len(data["dist_m"]), n, city)
+            self.assertEqual(len(data["agua_m"]), n, city)
+            self.assertGreater(len(data["abrigos"]), 0, city)
+            self.assertGreater(len(data["edges"]), 0, city)
+            # Sample a mid node: following prox should terminate
+            i = n // 3
+            seen = set()
+            guard = 0
+            while i >= 0 and guard < 8000:
+                self.assertNotIn(i, seen, city)
+                seen.add(i)
+                nxt = data["prox"][i]
+                if nxt == i or nxt < 0:
+                    break
+                i = nxt
+                guard += 1
+            self.assertLess(guard, 8000, city)
 
     def test_acervo_indexes_the_page_and_hrefs_exist(self) -> None:
         catalog = json.loads(ACERVO.read_text(encoding="utf-8"))

@@ -39,6 +39,7 @@
       <li><button type="button" data-story="grade" aria-pressed="false"><b>04 · Células</b><span>Grade IBGE 200 m</span></button></li>
       <li><button type="button" data-story="ruas" aria-pressed="false"><b>05 · Ruas</b><span>Grafo OSM do estudo</span></button></li>
       <li><button type="button" data-story="pessoas" aria-pressed="false"><b>06 · Pessoas</b><span>Atenção espacial</span></button></li>
+      <li><button type="button" data-story="rotas" aria-pressed="false"><b>07 · Rotas</b><span>Clique → abrigo, km e água</span></button></li>
     </ol>
 
     <div class="story-controls">
@@ -84,15 +85,24 @@
     <p class="side-kicker">Leitura ao vivo</p>
     <div class="live-card" id="live-card">
       <strong id="live-title">Clique no mapa</strong>
-      <p id="live-copy">Toque em um ponto ou em um quadradinho IBGE para ver população, sobreposição da mancha e ruas que cruzam a célula. Isto é atenção espacial — não ordem de evacuação.</p>
+      <p id="live-copy">Toque no mapa: célula IBGE (pessoas e mancha) e rota a pé até o abrigo do cenário publicado — km e trecho sob água. Atenção espacial; não é ordem de evacuação.</p>
+      <div class="rota-metrics" id="rota-metrics" hidden></div>
     </div>
     <div class="detail" id="cell-detail" hidden></div>
     <ul class="cell-list" id="cell-list" hidden></ul>
 
-    <div class="gate">
-      <strong>Quem sai primeiro? Pendente</strong>
-      <p>Conversão régua ↔ HAND, vias vistoriadas e regra municipal ainda faltam. A lista é estudo de caso, não despacho.</p>
-    </div>
+    <details class="context-box" id="context-box" open>
+      <summary>Contexto de pesquisa</summary>
+      <dl class="gloss">
+        <div><dt>RNA</dt><dd>régua em cm (agora / +2 h)</dd></div>
+        <div><dt>HAND</dt><dd>mancha de cenário no mapa (m)</dd></div>
+        <div><dt>Célula</dt><dd>grade IBGE 200 m · pop. limite</dd></div>
+        <div><dt>Rota</dt><dd>grafo OSM pré-computado → abrigo</dd></div>
+      </dl>
+      <p class="gate-line"><strong>Não é alerta nem despacho.</strong> Conversão régua ↔ HAND, vias vistoriadas e regra municipal ainda faltam. A rota mostra distância e metros sob a mancha do cenário de ruas — não minutos operacionais nem “quem sai primeiro”.</p>
+      <p class="meta-line" id="event-note">Catálogos de eventos RNA entram ao carregar.</p>
+      <p class="meta-line" id="rota-note">Grafo de rotas carrega com o município.</p>
+    </details>
 
     <p class="side-kicker">Camadas</p>
     <div class="layer-toggles">
@@ -100,6 +110,7 @@
       <label><input type="checkbox" id="ly-grade" checked> Grade</label>
       <label><input type="checkbox" id="ly-ruas" checked> Ruas</label>
       <label><input type="checkbox" id="ly-abrigos" checked> Abrigos</label>
+      <label><input type="checkbox" id="ly-rota" checked> Rota</label>
     </div>
     <div class="basemap-row" role="group" aria-label="Fundo do mapa">
       <button type="button" data-basemap="sat" aria-pressed="true">Satélite</button>
@@ -107,7 +118,6 @@
     </div>
 
     <div class="links" id="city-links"></div>
-    <p class="meta-line" id="event-note">Catálogos de eventos RNA entram ao carregar.</p>
   </aside>
 
   <div class="hud hud-leg" id="map-legend" aria-label="Legenda">
@@ -118,18 +128,22 @@
       <span><i style="background:#ef7a68"></i>alta</span>
       <span><i style="background:#176ca8"></i>mancha</span>
     </div>
-    <p class="legend-note">Clique no mapa para inspecionar. Verde→coral = fração da célula sob a mancha.</p>
+    <p class="legend-note">Clique: célula + rota verde até o abrigo. Verde→coral = fração sob a mancha HAND.</p>
   </div>
 
   <p class="rna-note hud-note" id="rna-note">A RNA e a mancha HAND ainda não estão na mesma vertical.</p>
 
   <!-- ids esperados pelos testes / cadeia -->
   <div class="chain visually-hidden" aria-hidden="true">
-    <span data-step="rna"></span><span data-step="mancha"></span><span data-step="grade"></span><span data-step="ruas"></span><span data-step="pessoas"></span>
+    <span data-step="rna"></span><span data-step="mancha"></span><span data-step="grade"></span><span data-step="ruas"></span><span data-step="pessoas"></span><span data-step="rotas"></span>
   </div>
   <div class="howto visually-hidden" aria-hidden="true">atenção espacial · não é alerta</div>
+  <div class="gate visually-hidden" aria-hidden="true">
+    <strong>Quem sai primeiro? Pendente</strong>
+    <p>Conversão régua ↔ HAND, vias vistoriadas e regra municipal ainda faltam. A lista é estudo de caso, não despacho.</p>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="../assets/js/estudo_caso_territorio.js?v=20260910-apresentacao"></script>
+  <script src="../assets/js/estudo_caso_territorio.js?v=20260910-rotas"></script>
 </body>
 </html>
