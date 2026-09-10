@@ -56,30 +56,31 @@
   var REPLAY_URL = '../assets/data/research_event_replay_latest.json';
   var STORY = ['territorio', 'rna', 'mancha', 'grade', 'ruas', 'pessoas', 'rotas'];
   var STORY_CAPTION = {
-    territorio: '1 · Lugar — o centro da cidade no satélite',
-    rna: '2 · Régua — nível do rio em centímetros (ainda não desenha a mancha)',
-    mancha: '3 · Água — mancha HAND publicada (metros, outro sistema)',
-    grade: '4 · Quadrados — grade IBGE 200 m sobre o centro',
-    ruas: '5 · Ruas — caminhos OSM do estudo',
-    pessoas: '6 · Gente — quantas pessoas no quadrado tocado pela água',
-    rotas: '7 · Abrigo — clique: caminho a pé, km e trecho sob água'
+    territorio: 'Centro urbano no satélite',
+    rna: 'Régua nas próximas 2 horas (cm)',
+    mancha: 'Mancha HAND do cenário (m)',
+    grade: 'Quadrados IBGE — gente no limite da célula',
+    ruas: 'Ruas do estudo',
+    pessoas: 'Quem está no quadrado sob a mancha',
+    rotas: 'Toque uma rua laranja ou o mapa → caminho até o abrigo seco'
   };
   var STORY_DWELL = {
-    territorio: 2800,
-    rna: 3600,
-    mancha: 4200,
-    grade: 3200,
-    ruas: 3000,
-    pessoas: 4200,
-    rotas: 4800
+    territorio: 2500,
+    rna: 3500,
+    mancha: 3500,
+    grade: 2800,
+    ruas: 2500,
+    pessoas: 3500,
+    rotas: 4500
   };
 
   var state = {
     city: 'santa_tereza',
     level: 15,
     selectedId: null,
+    selectedStreet: null,
     basemap: 'sat',
-    story: 'territorio',
+    story: 'rotas',
     storyTimer: null,
     presenting: false,
     cache: {},
@@ -91,6 +92,7 @@
       mancha: null,
       grade: null,
       ruas: null,
+      flood: null,
       abrigos: null,
       highlight: null,
       rota: null
@@ -99,7 +101,8 @@
     streetHits: 0,
     maxScore: 1,
     clickMarker: null,
-    lastRota: null
+    lastRota: null,
+    streetPriority: []
   };
 
   function $(id) { return document.getElementById(id); }
@@ -311,6 +314,7 @@
     state.layers.mancha = L.layerGroup().addTo(state.map);
     state.layers.grade = L.layerGroup().addTo(state.map);
     state.layers.ruas = L.layerGroup().addTo(state.map);
+    state.layers.flood = L.layerGroup().addTo(state.map);
     state.layers.abrigos = L.layerGroup().addTo(state.map);
     state.layers.highlight = L.layerGroup().addTo(state.map);
     state.layers.rota = L.layerGroup().addTo(state.map);
@@ -431,28 +435,144 @@
 
   function drawStreets(bundle) {
     state.layers.ruas.clearLayers();
+    if (state.layers.flood) state.layers.flood.clearLayers();
+    var rota = bundle.rota;
     var ruas = bundle.ruas;
-    if (!ruas || !Array.isArray(ruas.nos) || !Array.isArray(ruas.edges)) return;
-    var nos = ruas.nos;
-    var coords = [];
-    ruas.edges.forEach(function (e) {
+    var nos = (rota && rota.nos) || (ruas && ruas.nos);
+    var edges = (rota && rota.edges) || (ruas && ruas.edges);
+    if (!nos || !edges) return;
+    var dry = [];
+    var wet = [];
+    edges.forEach(function (e) {
       var a = nos[e[0]];
       var c = nos[e[1]];
       if (!a || !c) return;
-      coords.push([[a[1], a[0]], [c[1], c[0]]]);
+      var seg = [a, c];
+      if (e[2] === 1) wet.push(seg);
+      else dry.push(seg);
     });
-    L.geoJSON({
-      type: 'Feature',
-      geometry: { type: 'MultiLineString', coordinates: coords }
-    }, {
-      style: {
+    if (dry.length) {
+      L.polyline(dry, {
         color: state.basemap === 'sat' ? '#f5f3ec' : '#0c2a22',
-        weight: state.basemap === 'sat' ? 1.1 : 1.25,
-        opacity: state.basemap === 'sat' ? 0.72 : 0.5
-      },
-      interactive: false,
-      renderer: state.canvas
-    }).addTo(state.layers.ruas);
+        weight: state.basemap === 'sat' ? 1.05 : 1.2,
+        opacity: state.basemap === 'sat' ? 0.55 : 0.4,
+        interactive: false,
+        renderer: state.canvas
+      }).addTo(state.layers.ruas);
+    }
+    if (wet.length && state.layers.flood) {
+      L.polyline(wet, {
+        color: '#c45c26',
+        weight: 3.4,
+        opacity: 0.95,
+        lineCap: 'round',
+        interactive: false,
+        renderer: state.canvas
+      }).addTo(state.layers.flood);
+    }
+  }
+
+  function buildStreetPriority(bundle) {
+    var rota = bundle.rota;
+    if (!rota || !Array.isArray(rota.edges) || !Array.isArray(rota.nos)) return [];
+    var nos = rota.nos;
+    var cells = rankedCells(bundle);
+    var cellBounds = [];
+    if (state._gradeLayer) {
+      state._gradeLayer.eachLayer(function (layer) {
+        var id = layer.feature && layer.feature.properties && layer.feature.properties.id_grade;
+        var cell = cells.find(function (c) { return c.id === id; });
+        if (!cell || !layer.getBounds) return;
+        cellBounds.push({ cell: cell, bounds: layer.getBounds() });
+      });
+    }
+    var seen = Object.create(null);
+    var list = [];
+    rota.edges.forEach(function (e, idx) {
+      if (e[2] !== 1) return;
+      var a = nos[e[0]];
+      var b = nos[e[1]];
+      if (!a || !b) return;
+      var midLat = (a[0] + b[0]) / 2;
+      var midLon = (a[1] + b[1]) / 2;
+      var bucket = midLat.toFixed(3) + ':' + midLon.toFixed(3);
+      if (seen[bucket]) return;
+      seen[bucket] = true;
+      var agua = ((num(rota.agua_m[e[0]]) || 0) + (num(rota.agua_m[e[1]]) || 0)) / 2;
+      var dist = ((num(rota.dist_m[e[0]]) || 0) + (num(rota.dist_m[e[1]]) || 0)) / 2;
+      var popNear = 0;
+      for (var i = 0; i < cellBounds.length; i++) {
+        if (cellBounds[i].bounds.contains([midLat, midLon])) {
+          popNear = Math.max(popNear, cellBounds[i].cell.pop || 0);
+        }
+      }
+      list.push({
+        id: 's' + idx,
+        midLat: midLat,
+        midLon: midLon,
+        agua: agua,
+        dist: dist,
+        popNear: popNear,
+        score: popNear * 2 + agua + Math.max(0, 2500 - dist) * 0.05
+      });
+    });
+    list.sort(function (x, y) {
+      return (y.score - x.score) || (y.agua - x.agua) || (x.dist - y.dist);
+    });
+    return list.slice(0, 10);
+  }
+
+  function renderStreetPriority(bundle) {
+    var ol = $('street-priority');
+    var count = $('street-count');
+    state.streetPriority = buildStreetPriority(bundle);
+    var nFlood = 0;
+    if (bundle.rota && bundle.rota.edges) {
+      bundle.rota.edges.forEach(function (e) { if (e[2] === 1) nFlood += 1; });
+    }
+    if (count) {
+      count.textContent = nFlood
+        ? (nFlood + ' trechos sob a mancha · top ' + state.streetPriority.length + ' — toque para ver a saída')
+        : 'Nenhum trecho marcado sob a mancha neste cenário.';
+    }
+    if (!ol) return;
+    if (!state.streetPriority.length) {
+      ol.innerHTML = '<li class="empty">Sem trechos priorizados.</li>';
+      return;
+    }
+    ol.innerHTML = state.streetPriority.map(function (s, i) {
+      var km = s.dist != null ? (s.dist / 1000).toFixed(2).replace('.', ',') + ' km ao abrigo' : '—';
+      var gente = s.popNear > 0 ? fmtInt(s.popNear) + ' pessoas no quadrado' : 'fora das células tocadas';
+      return '<li><button type="button" class="street-btn" data-street="' + esc(s.id) + '" aria-pressed="' +
+        String(state.selectedStreet === s.id) + '">' +
+        '<span class="rank">' + String(i + 1).padStart(2, '0') + '</span>' +
+        '<span class="body"><b>Trecho sob água</b><small>' + esc(gente) + ' · ' + esc(km) + '</small></span>' +
+        '</button></li>';
+    }).join('');
+  }
+
+  function selectStreet(bundle, streetId) {
+    var s = (state.streetPriority || []).find(function (x) { return x.id === streetId; });
+    if (!s || !state.map) return;
+    state.selectedStreet = streetId;
+    renderStreetPriority(bundle);
+    goStory('rotas', { silentPlay: true, keepSelection: true });
+    if (state.clickMarker) state.map.removeLayer(state.clickMarker);
+    state.clickMarker = L.circleMarker([s.midLat, s.midLon], {
+      radius: 7, color: '#c45c26', fillColor: '#fff', fillOpacity: 1, weight: 3
+    }).addTo(state.map);
+    focusOnPoint(s.midLat, s.midLon, { zoom: 16, maxZoom: 17 });
+    var rotaInfo = drawRota(bundle, s.midLat, s.midLon, { fit: true });
+    var cell = nearestTouchedCell(bundle, s.midLat, s.midLon);
+    if (cell) {
+      state.selectedId = cell.id;
+      drawGrade(bundle);
+    }
+    updateLiveCard(bundle, cell, { lat: s.midLat, lng: s.midLon }, rotaInfo);
+    var cap = $('story-caption');
+    if (cap) cap.textContent = 'Rua sob a mancha → caminho até o abrigo seco';
+    pulseMap();
+    applyStoryLayers();
   }
 
   function pointInRing(lat, lng, ring) {
@@ -809,17 +929,44 @@
     var now = d.nivel_rio_agora_cm != null ? d.nivel_rio_agora_cm : d.nivel_atual_cm;
     var fore = d.nivel_previsto_cm;
     var bank = d.bankfull_cm != null ? d.bankfull_cm : city().bankfullFallback;
-    $('rna-agora').textContent = fmtCm(now);
-    $('rna-prev').textContent = fmtCm(fore);
-    $('rna-bank').textContent = fmtCm(bank);
-    $('rna-estacao').textContent = (d.estacao || city().station);
-    $('rna-agora-s').textContent = d.nivel_rio_agora_em || d.telemetria_ultima_em || 'horário não informado';
-    $('rna-prev-s').textContent = (d.horizonte || d.rotulo || '+2 h') + (d.modelo ? ' · ' + d.modelo : '');
-    $('rna-bank-s').textContent = 'cota de pesquisa da régua · não é o nível HAND do mapa';
-    $('rna-estacao-s').textContent = (d.status_dados || 'status indisponível') +
-      (d.consultado_em ? ' · consultado ' + d.consultado_em : '');
-    $('rna-note').textContent = 'A RNA lê a régua em centímetros. O mapa mostra um cenário HAND publicado (' +
-      state.level + ' m). A conversão régua ↔ HAND/MDT continua pendente — o nível previsto não escolhe sozinho o quadradinho.';
+    function setTxt(id, text) { var el = $(id); if (el) el.textContent = text; }
+    setTxt('rna-agora', fmtCm(now));
+    setTxt('rna-prev', fmtCm(fore));
+    setTxt('rna-bank', fmtCm(bank));
+    setTxt('rna-estacao', (d.estacao || city().station));
+    setTxt('rna-agora-s', d.nivel_rio_agora_em || d.telemetria_ultima_em || 'horário não informado');
+    setTxt('rna-prev-s', (d.horizonte || d.rotulo || '+2 h') + (d.modelo ? ' · ' + d.modelo : ''));
+    setTxt('rna-bank-s', 'cota de pesquisa da régua · não é o nível HAND do mapa');
+    setTxt('rna-estacao-s', (d.status_dados || 'status indisponível') +
+      (d.consultado_em ? ' · consultado ' + d.consultado_em : ''));
+    setTxt('rna-note', 'A RNA lê a régua em centímetros. O mapa mostra um cenário HAND publicado (' +
+      state.level + ' m). A conversão régua ↔ HAND/MDT continua pendente.');
+    setTxt('rna-note-inline', 'A régua (cm) ainda não escolhe sozinha a mancha HAND (m).');
+
+    var decide = $('rna-decide');
+    if (decide) {
+      var n = num(now);
+      var f = num(fore);
+      var b = num(bank);
+      var line;
+      if (n == null || f == null) {
+        line = 'Régua sem leitura completa neste momento.';
+      } else if (f > n + 5) {
+        line = 'Em +2 h a RNA vê a régua subir ' + Math.round(f - n) + ' cm (de ' +
+          Math.round(n) + ' para ' + Math.round(f) + ' cm).';
+      } else if (f < n - 5) {
+        line = 'Em +2 h a RNA vê a régua descer ' + Math.round(n - f) + ' cm (de ' +
+          Math.round(n) + ' para ' + Math.round(f) + ' cm).';
+      } else {
+        line = 'Em +2 h a RNA vê a régua estável (~' + Math.round(f) + ' cm).';
+      }
+      if (b != null && f != null) {
+        if (f >= b) line += ' Previsto acima da cota de referência (' + Math.round(b) + ' cm).';
+        else line += ' Ainda abaixo da cota de referência (' + Math.round(b) + ' cm).';
+      }
+      line += ' Isso não desenha sozinho a mancha — use as ruas abaixo.';
+      decide.textContent = line;
+    }
     renderGauge(now, fore, bank);
     renderLedger(bundle);
     setChain('rna');
@@ -827,6 +974,7 @@
 
   function renderLevels() {
     var row = $('level-row');
+    if (!row) return;
     row.innerHTML = city().levels.map(function (lv) {
       return '<button type="button" data-level="' + lv + '" aria-pressed="' +
         (Number(lv) === Number(state.level)) + '">HAND ' + lv + ' m</button>';
@@ -844,23 +992,31 @@
     var ranked = rankedCells(bundle);
     state.maxScore = Math.max(1, ranked.reduce(function (m, c) { return Math.max(m, c.score); }, 1));
     var status = $('load-status');
-    if (bundle.errors && bundle.errors.length) {
-      status.className = 'load-status bad';
-      status.textContent = 'leitura parcial · ' + bundle.errors.join(' · ');
-    } else {
-      status.className = 'load-status good';
-      status.textContent = 'fontes carregadas · leitura de pesquisa';
+    if (status) {
+      if (bundle.errors && bundle.errors.length) {
+        status.className = 'load-status bad';
+        status.textContent = 'leitura parcial · ' + bundle.errors.join(' · ');
+      } else {
+        status.className = 'load-status good';
+        status.textContent = 'fontes carregadas · leitura de pesquisa';
+      }
     }
-    $('meta-line').textContent = 'centro · HAND ' + state.level + ' m';
-    $('stat-cells').textContent = sc ? fmtInt(sc.cells_200m_touched) : fmtInt(ranked.length);
-    $('stat-pop').textContent = sc ? fmtInt(sc.population_upper_bound_whole_touched_cells) : '—';
-    $('stat-proxy').textContent = sc && sc.population_area_weighted_proxy != null
-      ? Math.round(sc.population_area_weighted_proxy).toLocaleString('pt-BR')
-      : '—';
-    $('stat-ruas').textContent = bundle.ruas && bundle.ruas.edges ? fmtInt(bundle.ruas.edges.length) : '—';
-    $('stat-abrigos').textContent = fmtInt(abrigosOf(bundle).length);
+    if ($('meta-line')) $('meta-line').textContent = 'centro · HAND ' + state.level + ' m';
+    if ($('stat-cells')) $('stat-cells').textContent = sc ? fmtInt(sc.cells_200m_touched) : fmtInt(ranked.length);
+    if ($('stat-pop')) $('stat-pop').textContent = sc ? fmtInt(sc.population_upper_bound_whole_touched_cells) : '—';
+    if ($('stat-proxy')) {
+      $('stat-proxy').textContent = sc && sc.population_area_weighted_proxy != null
+        ? Math.round(sc.population_area_weighted_proxy).toLocaleString('pt-BR')
+        : '—';
+    }
+    if ($('stat-ruas')) $('stat-ruas').textContent = bundle.ruas && bundle.ruas.edges ? fmtInt(bundle.ruas.edges.length) : '—';
+    if ($('stat-abrigos')) $('stat-abrigos').textContent = fmtInt(abrigosOf(bundle).length);
 
     var list = $('cell-list');
+    if (!list) {
+      renderStreetPriority(bundle);
+      return;
+    }
     if (!ranked.length) {
       list.innerHTML = '<li class="empty">Nenhum quadradinho 200 m intersecta este cenário publicado.</li>';
     } else {
@@ -1090,10 +1246,12 @@
 
   function applyStoryLayers() {
     var idx = storyIndex();
-    var showMancha = idx >= STORY.indexOf('mancha') && $('ly-mancha').checked;
-    var showGrade = idx >= STORY.indexOf('grade') && $('ly-grade').checked;
-    var showRuas = idx >= STORY.indexOf('ruas') && $('ly-ruas').checked;
-    var showAbrigos = idx >= STORY.indexOf('ruas') && $('ly-abrigos').checked;
+    var cockpit = document.body.classList.contains('is-cockpit');
+    var showMancha = (cockpit || idx >= STORY.indexOf('mancha')) && $('ly-mancha') && $('ly-mancha').checked;
+    var showGrade = (cockpit || idx >= STORY.indexOf('grade')) && $('ly-grade') && $('ly-grade').checked;
+    var showRuas = (cockpit || idx >= STORY.indexOf('ruas')) && $('ly-ruas') && $('ly-ruas').checked;
+    var showFlood = $('ly-flood') ? $('ly-flood').checked : true;
+    var showAbrigos = (cockpit || idx >= STORY.indexOf('ruas')) && $('ly-abrigos') && $('ly-abrigos').checked;
     var showRota = $('ly-rota') && $('ly-rota').checked && !!state.lastRota;
     function toggle(group, checked) {
       if (!state.map || !group) return;
@@ -1103,6 +1261,7 @@
     toggle(state.layers.mancha, showMancha);
     toggle(state.layers.grade, showGrade);
     toggle(state.layers.ruas, showRuas);
+    toggle(state.layers.flood, showFlood && showRuas);
     toggle(state.layers.highlight, showRuas && !!state.selectedId && state.story !== 'rotas');
     toggle(state.layers.abrigos, showAbrigos);
     toggle(state.layers.rota, showRota);
@@ -1214,26 +1373,33 @@
 
   function drawAll(bundle) {
     ensureMap();
-    var ranked = rankedCells(bundle);
     state.streetHits = 0;
+    state.selectedStreet = null;
     if (state.layers.highlight) state.layers.highlight.clearLayers();
     clearRota();
     drawMancha(bundle);
     drawStreets(bundle);
     drawGrade(bundle);
     drawAbrigos(bundle);
+    renderStreetPriority(bundle);
     applyStoryLayers();
-    setChain('mancha');
+    setChain('rotas');
     focusCenter({ animate: false });
     window.setTimeout(function () {
       if (state.map) state.map.invalidateSize();
     }, 80);
-    goStory(state.story || 'territorio', { silentPlay: true, keepSelection: true });
-    if (ranked[0] && (state.story === 'pessoas' || state.story === 'rotas')) {
-      selectCell(bundle, state.selectedId || ranked[0].id, {
-        zoom: true,
-        fitRota: state.story === 'rotas'
-      });
+    goStory(state.story || 'rotas', { silentPlay: true, keepSelection: true });
+    /* No cockpit: já mostra a 1ª rua prioritária com rota até o seco. */
+    if (document.body.classList.contains('is-cockpit') && state.streetPriority && state.streetPriority[0]) {
+      selectStreet(bundle, state.streetPriority[0].id);
+    } else if (state.story === 'pessoas' || state.story === 'rotas') {
+      var ranked = rankedCells(bundle);
+      if (ranked[0]) {
+        selectCell(bundle, state.selectedId || ranked[0].id, {
+          zoom: true,
+          fitRota: state.story === 'rotas'
+        });
+      }
     }
   }
 
@@ -1382,6 +1548,15 @@
     }
     render(bundle);
   });
+  if ($('street-priority')) {
+    $('street-priority').addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-street]');
+      if (!btn) return;
+      var bundle = state.cache[state.city];
+      if (!bundle) return;
+      selectStreet(bundle, btn.getAttribute('data-street'));
+    });
+  }
   if ($('cell-list')) {
     $('cell-list').addEventListener('click', function (ev) {
       var btn = ev.target.closest('[data-cell]');
@@ -1391,9 +1566,15 @@
       selectCell(bundle, btn.getAttribute('data-cell'), { zoom: true, story: 'pessoas' });
     });
   }
-  ['ly-mancha', 'ly-grade', 'ly-ruas', 'ly-abrigos', 'ly-rota'].forEach(function (id) {
+  ['ly-mancha', 'ly-grade', 'ly-ruas', 'ly-flood', 'ly-abrigos', 'ly-rota'].forEach(function (id) {
     if ($(id)) $(id).addEventListener('change', applyLayersVisible);
   });
+  if ($('btn-recenter')) {
+    $('btn-recenter').addEventListener('click', function () {
+      stopStoryPlay();
+      focusCenter({ zoom: focusOf().zoom });
+    });
+  }
   window.addEventListener('hashchange', function () {
     /* Sem cidade explícita no hash/query, não forçar Santa Tereza
        (hash vazio durante scroll/navegação não pode trocar o município). */

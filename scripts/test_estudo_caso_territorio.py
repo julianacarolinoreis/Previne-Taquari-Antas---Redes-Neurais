@@ -169,11 +169,28 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         self.assertIn(".context-box", css)
         self.assertIn(".vertical-ledger", css)
         self.assertIn(".hud-sheet", css)
+        self.assertIn("street-priority", html)
+        self.assertIn("rna-decide", html)
+        self.assertIn("buildStreetPriority", js)
+        self.assertIn("selectStreet", js)
+        self.assertIn("is-cockpit", html)
+        self.assertIn("hud-cockpit", html)
+        self.assertIn(".hud-cockpit", css)
+        self.assertIn("ly-flood", html)
         self.assertTrue((DATA / "rota_cenario_santa_tereza.json").exists())
         self.assertTrue((DATA / "rota_cenario_mucum.json").exists())
         # RNA formatter must not convert cm→m (HAND collision)
         self.assertNotIn('n / 100).toFixed', js)
         self.assertIn("Math.round(n).toLocaleString('pt-BR') + ' cm'", js)
+
+    def test_rota_edges_flag_flooded_segments(self) -> None:
+        for city, path in (
+            ("santa_tereza", DATA / "rota_cenario_santa_tereza.json"),
+            ("mucum", DATA / "rota_cenario_mucum.json"),
+        ):
+            data = json.loads(path.read_text(encoding="utf-8"))
+            flooded = [e for e in data["edges"] if len(e) > 2 and e[2] == 1]
+            self.assertGreater(len(flooded), 0, city)
 
     def test_rota_cenario_graphs_have_path_tables(self) -> None:
         for city, path in (

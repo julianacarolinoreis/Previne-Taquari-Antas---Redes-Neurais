@@ -854,3 +854,187 @@ body.territorio.is-simple .legend-note { display: none; }
   .territorio .vertical-ledger > div { min-width: 72px; }
   .territorio .story-caption { font-size: 12px; }
 }
+
+/* —— Painel de decisão (cockpit) —— */
+body.territorio.is-cockpit .hud-left,
+body.territorio.is-cockpit .hud-right { display: none !important; }
+
+body.territorio.is-cockpit .hud-cockpit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: fixed;
+  z-index: 510;
+  top: 64px;
+  left: 12px;
+  bottom: 72px;
+  width: min(360px, calc(100vw - 24px));
+  padding: 14px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: 14px;
+  background: rgba(245, 243, 236, .95);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 36px rgba(0,0,0,.2);
+  backdrop-filter: blur(8px);
+}
+.territorio .hud-cockpit { display: none; }
+
+.territorio .hud-cockpit h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -.03em;
+}
+.territorio .cockpit-block {
+  padding: 10px 0 4px;
+  border-top: 1px solid var(--line);
+}
+.territorio .cockpit-block:first-of-type { border-top: 0; padding-top: 0; }
+.territorio .cockpit-block h2 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+.territorio .decide-line {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ink);
+  font-weight: 650;
+}
+.territorio .rna-hours {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.territorio .rna-hours > div {
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.75);
+  border: 1px solid var(--line);
+}
+.territorio .rna-hours span {
+  display: block;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.territorio .rna-hours b {
+  display: block;
+  margin-top: 2px;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.territorio .rna-hours b.is-hot { color: #176ca8; }
+.territorio .micro {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.territorio .micro.warnish { color: var(--warn); }
+
+.territorio .street-priority {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  overflow: auto;
+}
+.territorio .street-priority .empty {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px;
+}
+.territorio .street-btn {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,.78);
+  cursor: pointer;
+  font: inherit;
+}
+.territorio .street-btn .rank {
+  font-size: 12px;
+  font-weight: 800;
+  color: #c45c26;
+  font-variant-numeric: tabular-nums;
+}
+.territorio .street-btn .body { display: grid; gap: 2px; }
+.territorio .street-btn b { font-size: 13px; }
+.territorio .street-btn small { font-size: 11px; color: var(--ink-2); }
+.territorio .street-btn[aria-pressed="true"] {
+  border-color: #c45c26;
+  box-shadow: 0 0 0 2px rgba(196, 92, 38, .2);
+  background: #fff;
+}
+
+.territorio .live-card {
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.8);
+  border: 1px solid var(--line);
+}
+.territorio .live-card strong { display: block; font-size: 15px; }
+.territorio .live-card p { margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+.territorio .compact-gate {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--gate-bg);
+  border: 1px solid var(--gate-line);
+  color: var(--gate);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.territorio .cockpit-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.territorio .cockpit-actions .btn-primary { flex: 1; }
+
+body.territorio.is-cockpit .vertical-ledger { display: none; }
+body.territorio.is-cockpit .story-caption {
+  left: auto;
+  right: 12px;
+  transform: none;
+  max-width: min(420px, calc(100vw - 400px));
+  bottom: 16px;
+  text-align: left;
+}
+body.territorio.is-cockpit .hud-leg {
+  left: auto;
+  right: 12px;
+  bottom: 68px;
+}
+
+@media (max-width: 980px) {
+  body.territorio.is-cockpit .hud-cockpit {
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    max-height: 48vh;
+  }
+  body.territorio.is-cockpit .hud-sheet { display: none; }
+  body.territorio.is-cockpit .story-caption {
+    left: 12px;
+    right: 12px;
+    bottom: calc(48vh + 20px);
+    max-width: none;
+  }
+  body.territorio.is-cockpit .hud-leg { display: none; }
+}
