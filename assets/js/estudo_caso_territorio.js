@@ -543,7 +543,8 @@
     ol.innerHTML = state.streetPriority.map(function (s, i) {
       var km = s.dist != null ? (s.dist / 1000).toFixed(2).replace('.', ',') + ' km ao abrigo' : '—';
       var gente = s.popNear > 0 ? fmtInt(s.popNear) + ' pessoas no quadrado' : 'fora das células tocadas';
-      return '<li><button type="button" class="street-btn" data-street="' + esc(s.id) + '" aria-pressed="' +
+      return '<li><button type="button" class="street-btn' + (state.selectedStreet === s.id ? ' is-active' : '') +
+        '" data-street="' + esc(s.id) + '" aria-pressed="' +
         String(state.selectedStreet === s.id) + '">' +
         '<span class="rank">' + String(i + 1).padStart(2, '0') + '</span>' +
         '<span class="body"><b>Trecho sob água</b><small>' + esc(gente) + ' · ' + esc(km) + '</small></span>' +
@@ -1552,6 +1553,8 @@
     $('street-priority').addEventListener('click', function (ev) {
       var btn = ev.target.closest('[data-street]');
       if (!btn) return;
+      ev.preventDefault();
+      ev.stopPropagation();
       var bundle = state.cache[state.city];
       if (!bundle) return;
       selectStreet(bundle, btn.getAttribute('data-street'));
