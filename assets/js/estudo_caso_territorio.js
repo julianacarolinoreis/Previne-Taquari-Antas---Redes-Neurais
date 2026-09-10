@@ -94,13 +94,14 @@
   }
   function city() { return CITIES[state.city]; }
 
-  function parseCity() {
+  function parseCity(opts) {
     var q = new URLSearchParams(location.search).get('cidade') || '';
     var h = (location.hash || '').replace('#', '');
     var raw = (q || h).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     if (raw.indexOf('muc') >= 0) return 'mucum';
     if (raw.indexOf('santa') >= 0 || raw.indexOf('tereza') >= 0) return 'santa_tereza';
-    return 'santa_tereza';
+    if (opts && opts.allowDefault) return 'santa_tereza';
+    return null;
   }
 
   function setUrl() {
@@ -772,11 +773,14 @@
     $(id).addEventListener('change', applyLayersVisible);
   });
   window.addEventListener('hashchange', function () {
-    var next = parseCity();
-    if (next !== state.city) onCity(next);
+    /* Sem cidade explícita no hash/query, não forçar Santa Tereza
+       (hash vazio durante scroll/navegação não pode trocar o município). */
+    var next = parseCity({ allowDefault: false });
+    if (!next || next === state.city) return;
+    onCity(next);
   });
 
-  state.city = parseCity();
+  state.city = parseCity({ allowDefault: true });
   state.level = city().defaultLevel;
   setUrl();
   bootCity();

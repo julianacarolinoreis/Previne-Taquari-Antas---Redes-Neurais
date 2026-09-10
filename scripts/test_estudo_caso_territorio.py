@@ -132,6 +132,8 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         self.assertIn("segsIntersect", js)
         self.assertIn("renderGauge", js)
         self.assertIn("setChain", js)
+        self.assertIn("allowDefault", js)
+        self.assertIn("parseCity({ allowDefault: false })", js)
         self.assertIn("gauge-now", html)
         self.assertIn("howto", html)
         self.assertIn("class=\"brand\"", html)
