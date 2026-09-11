@@ -54,22 +54,34 @@ class HindcastSkill5dTests(unittest.TestCase):
         self.assertIn("Hindcast", verdict["plain_pt"])
 
     def test_cli_writes_artifacts(self) -> None:
-        proc = subprocess.run(
-            [sys.executable, str(SCRIPTS / "run_hec_twin_mucum_hindcast_skill_5d.py"), "--events", "E23", "E28"],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        self.assertIn("wrote", proc.stdout)
-        data = json.loads((OUT / "hec_twin_mucum_hindcast_skill_5d_latest.json").read_text(encoding="utf-8"))
-        self.assertEqual(data["schema_version"], "hec_twin_mucum_hindcast_skill_5d_v1")
-        self.assertGreaterEqual(data["summary"]["n_scored"], 1)
-        self.assertIn("plain_pt", data["verdict"])
-        html = (OUT / "hec_twin_mucum_hindcast_skill_5d.html").read_text(encoding="utf-8")
-        self.assertIn("Veredito", html)
-        self.assertIn("rna", data["method"]["not"])
-        self.assertIn("stz_n", data["method"]["not"])
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "run_hec_twin_mucum_hindcast_skill_5d.py"),
+                    "--events",
+                    "E23",
+                    "E28",
+                    "--out-dir",
+                    str(out),
+                ],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertIn("wrote", proc.stdout)
+            data = json.loads((out / "hec_twin_mucum_hindcast_skill_5d_latest.json").read_text(encoding="utf-8"))
+            self.assertEqual(data["schema_version"], "hec_twin_mucum_hindcast_skill_5d_v1")
+            self.assertGreaterEqual(data["summary"]["n_scored"], 1)
+            self.assertIn("plain_pt", data["verdict"])
+            html = (out / "hec_twin_mucum_hindcast_skill_5d.html").read_text(encoding="utf-8")
+            self.assertIn("Veredito", html)
+            self.assertIn("rna", data["method"]["not"])
+            self.assertIn("stz_n", data["method"]["not"])
 
 
 if __name__ == "__main__":

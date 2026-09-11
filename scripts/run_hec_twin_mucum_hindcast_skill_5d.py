@@ -354,6 +354,12 @@ def main() -> None:
         default=None,
         help="Subset of event ids (default: library eventwise core).",
     )
+    parser.add_argument(
+        "--out-dir",
+        type=Path,
+        default=OUT,
+        help="Directory for JSON/HTML artifacts (default: estudo package dir).",
+    )
     args = parser.parse_args()
 
     modelo = json.loads(MODELO.read_text(encoding="utf-8"))
@@ -406,9 +412,10 @@ def main() -> None:
         },
     }
 
-    OUT.mkdir(parents=True, exist_ok=True)
-    json_path = OUT / "hec_twin_mucum_hindcast_skill_5d_latest.json"
-    html_path = OUT / "hec_twin_mucum_hindcast_skill_5d.html"
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    json_path = out_dir / "hec_twin_mucum_hindcast_skill_5d_latest.json"
+    html_path = out_dir / "hec_twin_mucum_hindcast_skill_5d.html"
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     html_path.write_text(render_html(payload), encoding="utf-8")
     print(f"wrote {json_path}")
