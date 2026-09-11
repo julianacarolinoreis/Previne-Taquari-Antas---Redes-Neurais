@@ -1075,8 +1075,15 @@
       if (b != null && f != null) {
         if (f >= b) {
           line += ' Acima da referência.';
-          if (tone === 'up' || tone === 'flat') tone = 'hot';
-          threatTxt = tone === 'down' ? 'DESCE · ACIMA DA REF.' : 'ACIMA DA REF.';
+          if (tone === 'up') {
+            tone = 'hot';
+            threatTxt = 'RIO SOBE · ACIMA DA REF.';
+          } else if (tone === 'down') {
+            threatTxt = 'DESCE · ACIMA DA REF.';
+          } else {
+            tone = 'hot';
+            threatTxt = 'ACIMA DA REF.';
+          }
         } else {
           line += ' Abaixo da referência.';
         }
@@ -1259,8 +1266,11 @@
           : ' · ' + Math.round(rotaInfo.aguaM) + ' m ainda sob água';
       }
       titleText = 'Abrigo: ' + rotaInfo.abrigo.nome;
-      copyHtml = 'Caminho marcado em verde: <strong>' + esc(km) + '</strong>' + esc(aguaBit) +
-        '. Estudo — não é ordem de saída.';
+      /* Na sala, os números vão em rota-metrics — aqui só a leitura curta. */
+      copyHtml = document.body.classList.contains('is-sitroom')
+        ? ('Linha verde no mapa' + esc(aguaBit) + '.')
+        : ('Caminho marcado em verde: <strong>' + esc(km) + '</strong>' + esc(aguaBit) +
+          '. Estudo — não é ordem de saída.');
     } else if (!cell) {
       titleText = latlng ? 'Ponto no mapa' : 'Toque o mapa ou uma rua laranja';
       copyHtml = 'Aqui aparece o caminho até o abrigo seco.';
@@ -1273,6 +1283,7 @@
     copy.innerHTML = copyHtml;
     if (sheetTitle) sheetTitle.textContent = titleText;
     if (sheetCopy) sheetCopy.innerHTML = copyHtml;
+    document.body.classList.toggle('has-exit', !!(rotaInfo && rotaInfo.abrigo));
   }
 
   function selectCell(bundle, id, opts) {
