@@ -35,6 +35,7 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
         self.assertEqual(by_id["E22"]["status"], "eventwise_scored")
         self.assertLessEqual(by_id["E22"]["metrics"]["peak_relative_error"], 0.05)
         self.assertEqual(by_id["E27"]["status"], "eventwise_scored")
+        self.assertLessEqual(by_id["E24"]["metrics"]["peak_relative_error"], 0.05)
         self.assertLessEqual(by_id["E27"]["metrics"]["peak_relative_error"], 0.10)
         self.assertLessEqual(by_id["E21"]["metrics"]["peak_relative_error"], 0.02)
         self.assertLessEqual(by_id["E31"]["metrics"]["peak_relative_error"], 0.02)
