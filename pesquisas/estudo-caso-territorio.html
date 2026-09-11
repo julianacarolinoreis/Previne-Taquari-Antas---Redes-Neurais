@@ -4,84 +4,74 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0c2a22">
-  <meta name="description" content="Estudo de caso PREVINE: a rede vê o rio subir, o mapa mostra onde a água cobre as ruas, e o toque indica o caminho até o abrigo seco. Pesquisa — não é alerta.">
-  <title>PREVINE · estudo de caso · território</title>
+  <meta name="description" content="Sala de situação PREVINE: rio, ruas com água e saída até o abrigo seco. Estudo de caso — não é alerta.">
+  <title>PREVINE · sala de situação · território</title>
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="../assets/css/estudo_caso_territorio.css">
 </head>
-<body class="territorio stage is-cockpit">
+<body class="territorio stage is-cockpit is-sitroom">
   <a class="skip" href="#map">Pular para o mapa</a>
 
-  <div id="map" role="application" aria-label="Mapa do estudo de caso"></div>
+  <div id="map" role="application" aria-label="Mapa da sala de situação"></div>
 
-  <header class="hud hud-top" id="conteudo">
+  <header class="hud hud-top sit-top" id="conteudo">
     <div class="hud-brand">
       <a class="brand" href="../projeto.html">PREVINE</a>
-      <p class="eyebrow">estudo de caso · não é alerta</p>
+      <p class="eyebrow">sala de situação · estudo · não é alerta</p>
     </div>
     <div class="city-row" role="group" aria-label="Município">
       <button type="button" data-city="santa_tereza" aria-pressed="true">Santa Tereza</button>
       <button type="button" data-city="mucum" aria-pressed="false">Muçum</button>
     </div>
+    <div class="case-row sit-cases" id="case-row" role="group" aria-label="Momento"></div>
     <button type="button" id="btn-recenter" class="btn-ghost btn-recenter" title="Centro urbano">Centro</button>
+    <button type="button" id="story-play" class="btn-ghost" aria-pressed="false" title="Percorrer a leitura">▶ Contar a história</button>
+    <button type="button" id="story-prev" class="btn-ghost visually-hidden">←</button>
+    <button type="button" id="story-next" class="btn-ghost visually-hidden">→</button>
     <p class="load-status" id="load-status">carregando…</p>
   </header>
 
-  <aside class="hud hud-cockpit" id="hud-cockpit" aria-label="Leitura do estudo">
-    <h1 id="city-label">Santa Tereza</h1>
-    <p class="lead-line" id="lead-line">Três passos: 1) o rio · 2) ruas com água · 3) caminho até o seco.</p>
+  <div class="sit-board" id="sit-board" aria-live="polite">
+    <div class="sit-threat" id="sit-threat" data-tone="idle">—</div>
+    <div class="sit-metrics" aria-label="Régua do rio">
+      <div><span>Agora</span><b id="rna-agora">—</b></div>
+      <div><span>+2 h</span><b id="rna-prev">—</b></div>
+      <div><span>Ref.</span><b id="rna-bank">—</b></div>
+      <div><span>Ruas</span><b id="sit-ruas">—</b></div>
+    </div>
+    <p class="sit-decide" id="rna-decide">Carregando…</p>
+  </div>
 
-    <div class="case-block">
-      <p class="case-label" id="case-label">Escolha o momento</p>
-      <div class="case-row" id="case-row" role="group" aria-label="Momento do estudo"></div>
-      <p class="case-banner" id="case-banner" role="status">Escolha um momento acima.</p>
+  <aside class="hud hud-cockpit sit-rail" id="hud-cockpit" aria-label="Saída">
+    <p class="sit-kicker"><span id="city-label">Santa Tereza</span> · saída</p>
+    <p class="case-banner sit-moment" id="case-banner" role="status"></p>
+    <p class="lead-line visually-hidden" id="lead-line" aria-hidden="true"></p>
+    <p class="case-label visually-hidden" id="case-label">Momento</p>
+
+    <div class="live-card sit-exit" id="live-card">
+      <strong id="live-title">Toque o mapa</strong>
+      <p id="live-copy">A rota verde aparece até o abrigo seco.</p>
+      <div class="rota-metrics" id="rota-metrics" hidden></div>
     </div>
 
-    <div class="cockpit-actions cockpit-actions-top">
-      <button type="button" id="story-play" class="btn-primary" aria-pressed="false">▶ Contar a história</button>
-      <button type="button" id="story-prev" class="btn-ghost visually-hidden">←</button>
-      <button type="button" id="story-next" class="btn-ghost visually-hidden">→</button>
+    <p class="sit-streets-label" id="street-count">Trocar trecho</p>
+    <ol class="street-priority sit-streets" id="street-priority" aria-label="Trechos com água"></ol>
+
+    <div class="gauge visually-hidden" aria-hidden="true">
+      <div class="gauge-scale">
+        <i class="gauge-bank" id="gauge-bank"></i>
+        <i class="gauge-now" id="gauge-now"></i>
+        <i class="gauge-prev" id="gauge-prev"></i>
+      </div>
     </div>
+    <p class="micro visually-hidden" id="rna-agora-s"></p>
+    <p class="micro warnish visually-hidden" id="rna-note-inline"></p>
 
-    <section class="cockpit-block" aria-labelledby="blk-rio">
-      <h2 id="blk-rio">1 · O rio</h2>
-      <p class="decide-line" id="rna-decide">Carregando a altura do rio…</p>
-      <div class="rna-hours" aria-label="Altura do rio agora e nas próximas horas">
-        <div><span>Agora</span><b id="rna-agora">—</b></div>
-        <div><span>+2 horas</span><b id="rna-prev">—</b></div>
-        <div><span>Referência</span><b id="rna-bank">—</b></div>
-      </div>
-      <div class="gauge" aria-hidden="true">
-        <div class="gauge-scale">
-          <i class="gauge-bank" id="gauge-bank"></i>
-          <i class="gauge-now" id="gauge-now"></i>
-          <i class="gauge-prev" id="gauge-prev"></i>
-        </div>
-      </div>
-      <p class="micro" id="rna-agora-s"></p>
-      <p class="micro warnish" id="rna-note-inline">Números da régua ≠ azul do mapa (ainda).</p>
-    </section>
-
-    <section class="cockpit-block" aria-labelledby="blk-ruas">
-      <h2 id="blk-ruas">2 · Ruas com água</h2>
-      <p class="micro" id="street-count">Laranja no mapa = rua com água. Toque um trecho.</p>
-      <ol class="street-priority" id="street-priority" aria-label="Ruas sob a mancha"></ol>
-    </section>
-
-    <section class="cockpit-block" aria-labelledby="blk-rota">
-      <h2 id="blk-rota">3 · Até o abrigo seco</h2>
-      <div class="live-card" id="live-card">
-        <strong id="live-title">Toque uma rua laranja ou o mapa</strong>
-        <p id="live-copy">Mostra o abrigo mais perto e quantos km faltam.</p>
-        <div class="rota-metrics" id="rota-metrics" hidden></div>
-      </div>
-    </section>
-
-    <p class="gate-line compact-gate"><strong>Não é ordem de evacuação.</strong> Isto é estudo — quem manda no operacional é a Defesa Civil.</p>
+    <p class="gate-line compact-gate">Estudo — não é ordem de evacuação.</p>
 
     <details class="more-box" id="panel-tools">
-      <summary>Mais opções (camadas e links)</summary>
+      <summary>Camadas</summary>
       <p class="micro" id="meta-line">cenário no mapa</p>
       <div class="level-row" id="level-row" role="group" aria-label="Cenário de inundação no mapa"></div>
       <div class="layer-toggles">
@@ -122,7 +112,7 @@
     </ol>
   </aside>
 
-  <p class="story-caption" id="story-caption" aria-live="polite">Toque uma rua laranja → caminho até o abrigo seco</p>
+  <p class="story-caption" id="story-caption" aria-live="polite">Toque o mapa ou um trecho laranja</p>
 
   <p class="vertical-ledger visually-hidden" id="vertical-ledger" aria-hidden="true">
     <span><b id="ledger-rna">—</b></span>
@@ -150,10 +140,10 @@
 
   <div class="hud hud-leg" id="map-legend" aria-label="Legenda">
     <div class="legend-scale">
-      <span><i style="background:#176ca8"></i>mancha</span>
-      <span><i style="background:#c45c26"></i>rua com água</span>
-      <span><i style="background:#0f8b46"></i>rota</span>
-      <span><i style="background:#f0c14a"></i>marca no chão</span>
+      <span><i style="background:#176ca8"></i>água</span>
+      <span><i style="background:#c45c26"></i>rua</span>
+      <span><i style="background:#0f8b46"></i>saída</span>
+      <span><i style="background:#f0c14a"></i>marca</span>
       <span><i style="background:#f5c76b"></i>abrigo</span>
     </div>
   </div>
@@ -168,6 +158,6 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="../assets/js/estudo_caso_territorio.js?v=20260911-claro4"></script>
+  <script src="../assets/js/estudo_caso_territorio.js?v=20260911-sala2"></script>
 </body>
 </html>

@@ -602,7 +602,7 @@
     list.sort(function (x, y) {
       return (y.score - x.score) || (y.agua - x.agua) || (x.dist - y.dist);
     });
-    return list.slice(0, 10);
+    return list.slice(0, 3);
   }
 
   function renderStreetPriority(bundle) {
@@ -613,20 +613,21 @@
     if (bundle.rota && bundle.rota.edges) {
       bundle.rota.edges.forEach(function (e) { if (e[2] === 1) nFlood += 1; });
     }
+    var sitRuas = $('sit-ruas');
+    if (sitRuas) sitRuas.textContent = nFlood ? fmtInt(nFlood) : '0';
     if (count) {
       count.textContent = nFlood
-        ? ('Laranja no mapa = água na rua. Toque um trecho abaixo (mostro ' +
-          state.streetPriority.length + ' dos ' + nFlood + ').')
-        : 'Neste momento o mapa não marca rua com água.';
+        ? ('Trocar trecho · ' + nFlood + ' com água')
+        : 'Sem rua com água neste momento';
     }
     if (!ol) return;
     if (!state.streetPriority.length) {
-      ol.innerHTML = '<li class="empty">Nenhum trecho para toque ainda.</li>';
+      ol.innerHTML = '<li class="empty">Sem trecho prioritário.</li>';
       return;
     }
     ol.innerHTML = state.streetPriority.map(function (s, i) {
-      var km = s.dist != null ? (s.dist / 1000).toFixed(1).replace('.', ',') + ' km até o seco' : '—';
-      var titulo = i === 0 ? 'Trecho mais perto do abrigo' : ('Trecho ' + (i + 1));
+      var km = s.dist != null ? (s.dist / 1000).toFixed(1).replace('.', ',') + ' km' : '—';
+      var titulo = i === 0 ? 'Mais perto' : ('Opção ' + (i + 1));
       return '<li><button type="button" class="street-btn' + (state.selectedStreet === s.id ? ' is-active' : '') +
         '" data-street="' + esc(s.id) + '" aria-pressed="' +
         String(state.selectedStreet === s.id) + '">' +
@@ -1048,24 +1049,50 @@
     }
 
     var decide = $('rna-decide');
+    var threat = $('sit-threat');
     if (decide) {
       var n = num(now);
       var f = num(fore);
       var b = num(bank);
       var line;
+      var tone = 'idle';
+      var threatTxt = 'SEM LEITURA';
       if (n == null || f == null) {
         line = 'Sem altura do rio neste momento.';
       } else if (f > n + 5) {
-        line = 'O rio sobe ' + Math.round(f - n) + ' cm em ' + hz + '.';
+        line = 'Rio sobe ' + Math.round(f - n) + ' cm em ' + hz + '.';
+        tone = 'up';
+        threatTxt = 'RIO SOBE';
       } else if (f < n - 5) {
-        line = 'O rio desce ' + Math.round(n - f) + ' cm em ' + hz + '.';
+        line = 'Rio desce ' + Math.round(n - f) + ' cm em ' + hz + '.';
+        tone = 'down';
+        threatTxt = 'RIO DESCE';
       } else {
-        line = 'O rio fica estável em ' + hz + '.';
+        line = 'Rio estável em ' + hz + '.';
+        tone = 'flat';
+        threatTxt = 'RIO ESTÁVEL';
       }
       if (b != null && f != null) {
-        line += f >= b ? ' Acima da referência.' : ' Ainda abaixo da referência.';
+        if (f >= b) {
+          line += ' Acima da referência.';
+          if (tone === 'up') {
+            tone = 'hot';
+            threatTxt = 'RIO SOBE · ACIMA DA REF.';
+          } else if (tone === 'down') {
+            threatTxt = 'DESCE · ACIMA DA REF.';
+          } else {
+            tone = 'hot';
+            threatTxt = 'ACIMA DA REF.';
+          }
+        } else {
+          line += ' Abaixo da referência.';
+        }
       }
       decide.textContent = line;
+      if (threat) {
+        threat.textContent = threatTxt;
+        threat.setAttribute('data-tone', tone);
+      }
     }
     var prevLabel = document.querySelector('.rna-hours > div:nth-child(2) > span');
     if (prevLabel) prevLabel.textContent = (caso && caso.mode === 'coupled') ? hz : '+2 horas';
@@ -1106,15 +1133,18 @@
     var caso = currentCase();
     if (banner) {
       banner.hidden = false;
-      banner.textContent = (caso && (caso.one_liner || caso.summary || caso.story)) ||
-        'Escolha um momento acima.';
+      banner.textContent = (caso && (caso.short || caso.label))
+        ? ('Momento: ' + (caso.short || caso.label))
+        : '';
     }
     var cap = $('story-caption');
-    if (cap && caso && caso.story) cap.textContent = caso.story;
-    var lead = $('lead-line');
-    if (lead) {
-      lead.textContent = 'Três passos: 1) o rio · 2) ruas com água · 3) caminho até o seco.';
+    if (cap) {
+      cap.textContent = (caso && caso.story)
+        ? caso.story
+        : 'Toque o mapa ou um trecho laranja';
     }
+    var lead = $('lead-line');
+    if (lead) lead.textContent = '';
   }
 
   function renderSide(bundle) {
@@ -1125,10 +1155,10 @@
     if (status) {
       if (bundle.errors && bundle.errors.length) {
         status.className = 'load-status bad';
-        status.textContent = 'leitura parcial · ' + bundle.errors.join(' · ');
+        status.textContent = 'parcial';
       } else {
         status.className = 'load-status good';
-        status.textContent = 'fontes carregadas · leitura de pesquisa';
+        status.textContent = 'pronto';
       }
     }
     if ($('meta-line')) $('meta-line').textContent = 'cenário de inundação no mapa: ' + state.level + ' m (publicado)';
@@ -1236,8 +1266,11 @@
           : ' · ' + Math.round(rotaInfo.aguaM) + ' m ainda sob água';
       }
       titleText = 'Abrigo: ' + rotaInfo.abrigo.nome;
-      copyHtml = 'Caminho marcado em verde: <strong>' + esc(km) + '</strong>' + esc(aguaBit) +
-        '. Estudo — não é ordem de saída.';
+      /* Na sala, os números vão em rota-metrics — aqui só a leitura curta. */
+      copyHtml = document.body.classList.contains('is-sitroom')
+        ? ('Linha verde no mapa' + esc(aguaBit) + '.')
+        : ('Caminho marcado em verde: <strong>' + esc(km) + '</strong>' + esc(aguaBit) +
+          '. Estudo — não é ordem de saída.');
     } else if (!cell) {
       titleText = latlng ? 'Ponto no mapa' : 'Toque o mapa ou uma rua laranja';
       copyHtml = 'Aqui aparece o caminho até o abrigo seco.';
@@ -1250,6 +1283,7 @@
     copy.innerHTML = copyHtml;
     if (sheetTitle) sheetTitle.textContent = titleText;
     if (sheetCopy) sheetCopy.innerHTML = copyHtml;
+    document.body.classList.toggle('has-exit', !!(rotaInfo && rotaInfo.abrigo));
   }
 
   function selectCell(bundle, id, opts) {
@@ -1533,7 +1567,7 @@
   }
 
   function render(bundle) {
-    document.title = 'PREVINE · estudo de caso · ' + city().label;
+    document.title = 'PREVINE · sala de situação · ' + city().label;
     $('city-label').textContent = city().label;
     renderCityButtons();
     renderCaseButtons();
