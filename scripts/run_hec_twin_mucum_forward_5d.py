@@ -23,6 +23,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from hec_twin_nested_v17 import NestedParams, ZoneParams  # noqa: E402
 from run_hec_twin_stz_mucum_calibrate import run_network  # noqa: E402
+import hec_twin_mucum_bacia_calibracao as bacia  # noqa: E402
 
 OUT = ROOT / "assets" / "data" / "estudo_bacia_taquari_antas"
 FORCING_DEFAULT = OUT / "hec_twin_ifs_forcing_5d_latest.json"
@@ -86,11 +87,7 @@ def params_from_library_row(row: dict[str, Any]) -> NestedParams:
 
 
 def event_core_rain_mm(hec_event: dict[str, Any]) -> float:
-    rain = hec_event.get("rain") or {}
-    core = rain.get("stations_mm_sum_core") or rain.get("stations_mm_sum") or {}
-    if not core:
-        return float("nan")
-    return float(sum(core.values()) / len(core))
+    return bacia.station_core_mean_mm(hec_event)
 
 
 def choose_analogs(
@@ -99,27 +96,34 @@ def choose_analogs(
     hec_events: list[dict[str, Any]],
     *,
     top_k: int = 3,
+    fingerprints: dict[str, dict[str, Any]] | None = None,
+    exclude_event_ids: set[str] | None = None,
 ) -> list[dict[str, Any]]:
-    by_id = {e["event_id"]: e for e in hec_events}
-    scored: list[dict[str, Any]] = []
-    for row in library:
-        eid = row["event_id"]
-        hist = event_core_rain_mm(by_id.get(eid) or {})
-        if hist != hist:
-            continue
-        scored.append(
-            {
-                "event_id": eid,
-                "historical_core_mean_mm": round(hist, 3),
-                "forecast_aw_total_mm": round(forecast_total_mm, 3),
-                "abs_mm_gap": round(abs(hist - forecast_total_mm), 3),
-                "nse": row.get("nse"),
-                "research_score": row.get("research_score"),
-                "row": row,
-            }
-        )
-    scored.sort(key=lambda r: (r["abs_mm_gap"], -(r["nse"] or -9)))
-    return scored[:top_k]
+    """Basin-calibrated analog transfer: AW rain fingerprint + loss-aware distance."""
+    return bacia.choose_analogs(
+        forecast_total_mm,
+        library,
+        hec_events,
+        top_k=top_k,
+        fingerprints=fingerprints,
+        exclude_event_ids=exclude_event_ids,
+    )
+
+
+def scale_params_to_observed_q0(
+    params: NestedParams,
+    precip: dict[str, list[float]],
+    areas: dict[str, float],
+    q0_m3s: float | None,
+) -> tuple[NestedParams, dict[str, Any]]:
+    return bacia.scale_params_to_q0(
+        params,
+        precip,
+        areas,
+        q0_m3s,
+        run_network=run_network,
+        include_mucum_increment=True,
+    )
 
 
 def mucum_curve_segments() -> list[dict[str, Any]]:
@@ -376,31 +380,59 @@ def build_package(
     times = list(forcing["times_utc"])
     forecast_total = float(forcing["area_weighted_mean_mm"]["total_mm"])
 
+    fingerprints = bacia.fingerprints_from_bacia_or_build(
+        hec_events,
+        areas,
+        prepare_event_forcing=__import__(
+            "run_hec_twin_stz_mucum_calibrate", fromlist=["prepare_event_forcing"]
+        ).prepare_event_forcing,
+    )
+
     if event_id:
         row = next((r for r in library if r["event_id"] == event_id), None)
         if row is None:
             raise RuntimeError(f"event {event_id} not in core library")
         he_ev = next((e for e in hec_events if e["event_id"] == event_id), {})
+        fp = fingerprints.get(event_id) or {}
         analogs = [
             {
                 "event_id": event_id,
+                "historical_aw_full_mm": fp.get("aw_full_mm"),
                 "historical_core_mean_mm": event_core_rain_mm(he_ev),
                 "forecast_aw_total_mm": forecast_total,
                 "abs_mm_gap": None,
+                "distance": 0.0,
                 "nse": row.get("nse"),
                 "research_score": row.get("research_score"),
                 "row": row,
             }
         ]
     else:
-        analogs = choose_analogs(forecast_total, library, hec_events, top_k=3)
+        analogs = choose_analogs(
+            forecast_total,
+            library,
+            hec_events,
+            top_k=3,
+            fingerprints=fingerprints,
+        )
         if not analogs:
             raise RuntimeError("no analogs scored")
 
     segments = mucum_curve_segments()
-    members: list[dict[str, Any]] = []
+    level_now = fetch_mucum_level_now(allow_network=allow_network)
+    q0 = None
+    ic_meta_base: dict = {"applied": False, "reason": "no_observed_stage"}
+    if level_now.get("ok") and level_now.get("stage_cm") is not None:
+        q_from_stage = stage_to_q_m3s(float(level_now["stage_cm"]), segments)
+        if q_from_stage.get("ok"):
+            q0 = float(q_from_stage["q_m3s"])
+            ic_meta_base = {"observed_stage_cm": level_now.get("stage_cm"), "q0_from_rating_m3s": q0}
+
+    members: list[dict] = []
     for analog in analogs:
         params = params_from_library_row(analog["row"])
+        params, ic_meta = scale_params_to_observed_q0(params, precip, areas, q0)
+        ic_meta = {**ic_meta_base, **ic_meta}
         net = run_network(precip, areas, params, include_mucum_increment=True)
         q_mucum = net["at_mucum"]
         q_antas = net["at_antas"]
@@ -412,6 +444,7 @@ def build_package(
                 "event_id": analog["event_id"],
                 "analog": {k: v for k, v in analog.items() if k != "row"},
                 "params": params.to_dict(),
+                "ic_scaling": ic_meta,
                 "peak_q_mucum_m3s": round(float(q_mucum[peak_i]), 3),
                 "peak_time_utc": times[peak_i] if times else None,
                 "peak_stage_mucum_cm": stages[peak_i].get("stage_cm") if stages else None,
@@ -427,6 +460,19 @@ def build_package(
         )
 
     level_now = fetch_mucum_level_now(allow_network=allow_network)
+    # Robust primary: member closest to median rise (before anchoring text)
+    # Temporary rise from model series for ranking
+    for m in members:
+        n_series = m["series"]["n_mucum_cm"]
+        n0 = n_series[0] if n_series else None
+        npeak = m["peak_stage_mucum_cm"]
+        m["rise"] = {
+            "rise_model_cm": None if n0 is None or npeak is None else round(float(npeak) - float(n0), 2)
+        }
+    primary_idx = bacia.pick_primary_by_median_rise(members)
+    if primary_idx != 0:
+        members = [members[primary_idx]] + [m for i, m in enumerate(members) if i != primary_idx]
+
     quanto_sobe = build_quanto_sobe(
         members,
         level_now=level_now,
@@ -483,10 +529,17 @@ def build_package(
             "point_proxy_not_areal_mask": True,
         },
         "param_selection": {
-            "method": "analog_eventwise_by_core_rain_mm" if event_id is None else "forced_event_id",
+            "method": "analog_basin_calibrated_aw_fingerprint_v1" if event_id is None else "forced_event_id",
             "forced_event_id": event_id,
             "analogs": [{k: v for k, v in a.items() if k != "row"} for a in analogs],
             "common_search": "blocked_not_used",
+            "basin_calibration": {
+                "artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
+                "rain_fingerprint": "area_weighted_full_window_mm",
+                "ic_scaling": "observed_stage_to_q0_via_mucum_rating",
+                "light_specialists": ["E30"],
+                "primary_rule": "median_rise_member",
+            },
         },
         "primary_member": {
             "event_id": primary["event_id"],

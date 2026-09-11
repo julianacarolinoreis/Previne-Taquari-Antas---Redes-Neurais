@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import run_hec_twin_mucum_forward_5d as fwd  # noqa: E402
 import run_hec_twin_stz_mucum_calibrate as cal  # noqa: E402
+import hec_twin_mucum_bacia_calibracao as bacia  # noqa: E402
 
 OUT = ROOT / "assets" / "data" / "estudo_bacia_taquari_antas"
 MODELO = OUT / "modelo_mucum_eventwise_v1_fechado_latest.json"
@@ -66,11 +67,17 @@ def pick_loo_analog(
     forecast_rain_mm: float,
     library: list[dict[str, Any]],
     hec_events: list[dict[str, Any]],
+    *,
+    fingerprints: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
-    pool = [r for r in library if r["event_id"] != target_event_id]
-    if not pool:
-        return None
-    scored = fwd.choose_analogs(forecast_rain_mm, pool, hec_events, top_k=1)
+    scored = fwd.choose_analogs(
+        forecast_rain_mm,
+        library,
+        hec_events,
+        top_k=1,
+        fingerprints=fingerprints,
+        exclude_event_ids={target_event_id},
+    )
     return scored[0] if scored else None
 
 
@@ -82,6 +89,7 @@ def score_event(
     hec_events: list[dict[str, Any]],
     areas: dict[str, float],
     segments: list[dict[str, Any]],
+    fingerprints: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     hec_ev = hec_by_id.get(event_id) or {}
     pad = int(hec_ev.get("pad_hours_selected") or 0)
@@ -96,11 +104,14 @@ def score_event(
         }
 
     rain_mm = area_weighted_rain_mm(precip, areas)
-    analog = pick_loo_analog(event_id, rain_mm, library, hec_events)
+    analog = pick_loo_analog(event_id, rain_mm, library, hec_events, fingerprints=fingerprints)
     if analog is None:
         return {"event_id": event_id, "status": "blocked_no_analog", "rain_mm_aw": rain_mm}
 
     params = fwd.params_from_library_row(analog["row"])
+    q0_candidates = [float(flow[h]) for h in core_hours if h in flow]
+    q0 = q0_candidates[0] if q0_candidates else None
+    params, ic_meta = fwd.scale_params_to_observed_q0(params, precip, areas, q0)
     net = cal.run_network(precip, areas, params, include_mucum_increment=True)
     q_sim = net["at_mucum"]
 
@@ -120,6 +131,8 @@ def score_event(
             "status": "blocked_obs",
             "rain_mm_aw": round(rain_mm, 3),
             "analog_event_id": analog["event_id"],
+        "analog_distance": analog.get("distance"),
+        "ic_scaling": ic_meta,
             "reason": "insufficient_observed_q_pairs",
         }
 
@@ -371,6 +384,11 @@ def main() -> None:
     hec_by_id = {e["event_id"]: e for e in hec_events}
     areas = fwd.load_areas()
     segments = fwd.mucum_curve_segments()
+    fingerprints = bacia.fingerprints_from_bacia_or_build(
+        hec_events,
+        areas,
+        prepare_event_forcing=cal.prepare_event_forcing,
+    )
 
     event_ids = args.events or [r["event_id"] for r in library]
     rows: list[dict[str, Any]] = []
@@ -384,6 +402,7 @@ def main() -> None:
                 hec_events=hec_events,
                 areas=areas,
                 segments=segments,
+                fingerprints=fingerprints,
             )
         )
 
@@ -399,7 +418,8 @@ def main() -> None:
         ),
         "method": {
             "forcing": "observed_event_rain_as_qpf_proxy",
-            "params": "leave_one_out_analog_by_rain_total",
+            "params": "leave_one_out_basin_calibrated_aw_fingerprint_v1",
+            "ic_scaling": "observed_q0_scale_initial_flow_ratio",
             "stage": "Q_to_N_via_mucum_official_rating_curve",
             "not": ["rna", "stz_n", "official_alert"],
         },
