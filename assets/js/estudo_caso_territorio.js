@@ -883,30 +883,25 @@
       if (sheetRota) { sheetRota.hidden = true; sheetRota.innerHTML = ''; }
       return;
     }
-    var km = info.distM != null ? (info.distM / 1000).toFixed(2).replace('.', ',') + ' km' : '—';
+    var km = info.distM != null ? (info.distM / 1000).toFixed(1).replace('.', ',') + ' km' : '—';
     var agua = info.aguaM != null
       ? (info.aguaM >= 1000
-        ? (info.aguaM / 1000).toFixed(2).replace('.', ',') + ' km sob a mancha do cenário'
-        : Math.round(info.aguaM) + ' m sob a mancha do cenário')
+        ? (info.aguaM / 1000).toFixed(1).replace('.', ',') + ' km ainda passam sob água'
+        : Math.round(info.aguaM) + ' m ainda passam sob água')
       : 'trecho sob água não informado';
     var nome = info.abrigo && info.abrigo.nome ? info.abrigo.nome : 'abrigo do cenário';
     metrics.hidden = false;
     metrics.innerHTML =
       '<div class="rota-line"><span>Abrigo</span><b>' + esc(nome) + '</b></div>' +
-      '<div class="rota-line"><span>A pé</span><b>' + esc(km) + '</b></div>' +
-      '<div class="rota-line"><span>Água (cenário de rota)</span><b>' + esc(agua) + '</b></div>' +
-      '<p class="rota-caveat">Proxy de esforço no grafo OSM — não é tempo operacional nem ordem de saída. Não acompanha o HAND do mapa.</p>';
+      '<div class="rota-line"><span>Caminho</span><b>' + esc(km) + '</b></div>' +
+      '<div class="rota-line"><span>Sob água</span><b>' + esc(agua) + '</b></div>' +
+      '<p class="rota-caveat">Estimativa de estudo — não é ordem de saída.</p>';
     if (sheetRota) {
       sheetRota.hidden = false;
       sheetRota.innerHTML = metrics.innerHTML;
     }
     if (note && info.meta) {
-      var rotulo = (info.meta.nivel && info.meta.nivel.rotulo) ||
-        (info.meta.nivel_projeto_m != null ? 'cenário de projeto ' + info.meta.nivel_projeto_m + ' m' : null);
-      note.textContent = 'Rota do cenário de ruas' +
-        (rotulo ? ' (' + rotulo + ')' : '') +
-        (info.meta.nivel_projeto_m != null ? ' · HAND projeto ' + info.meta.nivel_projeto_m + ' m' : '') +
-        '. Independente do HAND ' + state.level + ' m no mapa; conversão régua ↔ HAND pendente.';
+      note.textContent = 'Rota do estudo de ruas. Independente do azul do mapa.';
     }
     renderLedger(state.cache[state.city]);
   }
@@ -1230,31 +1225,26 @@
     if (!card || !title || !copy) return;
     card.classList.add('is-hit');
     rotaInfo = rotaInfo || state.lastRota;
-    var rotaBit = '';
-    if (rotaInfo && rotaInfo.abrigo) {
-      var km = rotaInfo.distM != null ? (rotaInfo.distM / 1000).toFixed(2).replace('.', ',') + ' km' : '—';
-      rotaBit = ' Rota a pé até <strong>' + esc(rotaInfo.abrigo.nome) + '</strong>: ' + km +
-        (rotaInfo.aguaM != null ? ' · ' + Math.round(rotaInfo.aguaM) + ' m sob a mancha do cenário de ruas.' : '.');
-    } else if (bundle && !bundle.rota) {
-      rotaBit = ' Grafo de rotas indisponível neste carregamento.';
-    }
     var titleText;
     var copyHtml;
-    if (!cell) {
-      titleText = latlng
-        ? 'Ponto no mapa'
-        : 'Clique no mapa';
-      copyHtml = (rotaBit
-        ? rotaBit + ' '
-        : 'Nenhum quadrado IBGE sob a mancha aqui. ') +
-        'Não é ordem de saída.';
+    if (rotaInfo && rotaInfo.abrigo) {
+      var km = rotaInfo.distM != null ? (rotaInfo.distM / 1000).toFixed(1).replace('.', ',') + ' km' : '—';
+      var aguaBit = '';
+      if (rotaInfo.aguaM != null && rotaInfo.aguaM > 0) {
+        aguaBit = rotaInfo.aguaM >= 1000
+          ? ' · ' + (rotaInfo.aguaM / 1000).toFixed(1).replace('.', ',') + ' km ainda sob água'
+          : ' · ' + Math.round(rotaInfo.aguaM) + ' m ainda sob água';
+      }
+      titleText = 'Abrigo: ' + rotaInfo.abrigo.nome;
+      copyHtml = 'Caminho marcado em verde: <strong>' + esc(km) + '</strong>' + esc(aguaBit) +
+        '. Estudo — não é ordem de saída.';
+    } else if (!cell) {
+      titleText = latlng ? 'Ponto no mapa' : 'Toque o mapa ou uma rua laranja';
+      copyHtml = 'Aqui aparece o caminho até o abrigo seco.';
     } else {
-      titleText = fmtInt(cell.pop) + ' pessoas neste quadrado';
-      copyHtml =
-        'Sobreposição ' + fmtPct(cell.overlap) + ' com a mancha HAND ' + state.level + ' m' +
-        (state.streetHits ? ' · ' + fmtInt(state.streetHits) + ' trechos de rua' : '') +
-        '.' + rotaBit +
-        ' Limite da célula inteira — não é ordem de saída.';
+      titleText = 'Área tocada pela água no mapa';
+      copyHtml = (cell.pop > 0 ? ('Até ' + fmtInt(cell.pop) + ' pessoas neste quadrado. ') : '') +
+        'Toque uma rua laranja para ver a saída.';
     }
     title.textContent = titleText;
     copy.innerHTML = copyHtml;
