@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Rascunho de artigo: recorte consolidado das redes neurais de previsão de nível em Santa Tereza. Pesquisa FAPERGS; não é alerta operacional.">
+  <title>PREVINE · Artigo (rascunho) — RNAs de Santa Tereza</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/site_chrome.css">
+  <style>
+    :root {
+      --ink: #1a1a1a;
+      --ink-2: #4a524e;
+      --muted: #7a827c;
+      --line: rgba(0,0,0,.12);
+      --paper: #f5f3ec;
+      --sheet: #fff;
+      --green: #155c47;
+      --yellow: #f5c76b;
+      --warn: #8a5a12;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 16px/1.55 Tahoma, "Helvetica Neue", Arial, sans-serif;
+    }
+    .sheet {
+      max-width: 860px;
+      margin: 18px auto 64px;
+      padding: 36px 40px 48px;
+      background: var(--sheet);
+      border: 1px solid var(--line);
+    }
+    .watermark {
+      margin: 0 0 10px;
+      color: var(--warn);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .kicker { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
+    h1 { margin: 8px 0 10px; font-size: clamp(26px, 4vw, 34px); letter-spacing: -.03em; line-height: 1.15; }
+    .authors { margin: 0 0 6px; color: var(--ink-2); font-size: 14px; }
+    .affil { margin: 0 0 16px; color: var(--muted); font-size: 12px; }
+    .lede { margin: 0 0 18px; color: var(--ink-2); }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 22px; }
+    .actions button, .actions a {
+      min-height: 40px; display: inline-flex; align-items: center;
+      padding: 8px 14px; border-radius: 10px; border: 1px solid var(--green);
+      background: var(--green); color: #fff; font: inherit; font-size: 13px;
+      font-weight: 700; text-decoration: none; cursor: pointer;
+    }
+    .actions a.secondary, .actions button.secondary { background: #fff; color: var(--green); }
+    h2 { margin: 28px 0 8px; font-size: 18px; }
+    h3 { margin: 18px 0 6px; font-size: 15px; }
+    p, li { font-size: 15px; }
+    .abstract {
+      background: #f7faf8;
+      border-left: 4px solid var(--green);
+      padding: 14px 16px;
+      margin: 12px 0 20px;
+    }
+    .keywords { font-size: 13px; color: var(--ink-2); }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 10px 0 18px; }
+    th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; word-break: break-all; }
+    .note, .warnbox, .improve {
+      padding: 12px 14px; margin: 12px 0 18px; font-size: 13.5px; line-height: 1.5;
+    }
+    .note { background: #f4f7fb; border-left: 4px solid #194d73; }
+    .warnbox { background: #fff6e6; border-left: 4px solid #d18700; }
+    .improve { background: #eef7f2; border-left: 4px solid var(--green); }
+    .bars { display: grid; gap: 8px; margin: 12px 0 20px; }
+    .bar-row { display: grid; grid-template-columns: 48px 1fr 90px; gap: 10px; align-items: center; font-size: 13px; }
+    .bar-track { height: 10px; background: #eceae3; border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--green); }
+    .refs { font-size: 13px; }
+    .refs li { margin: 0 0 8px; }
+    footer.meta { margin-top: 28px; color: var(--muted); font-size: 12px; }
+    .src-err { color: #9b1c1c; font-size: 13px; }
+    @media (max-width: 720px) {
+      .sheet { margin: 0; border: 0; padding: 20px 16px 40px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .sheet { margin: 0; border: 0; padding: 0; max-width: none; }
+      .actions, .site-nav, .site-brandbar { display: none !important; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <article class="sheet">
+    <p class="watermark">Rascunho de artigo · pesquisa FAPERGS · não é alerta oficial</p>
+    <p class="kicker">PREVINE Taquari-Antas · estação ANA/SGB 86472600</p>
+    <h1>Previsão de nível em Santa Tereza com redes neurais: síntese do recorte consolidado de <span data-fill="n_models">282</span> modelos MLP (2–12 h)</h1>
+    <p class="authors">Juliana Carolina Reis<sup>1</sup>; Guilherme Garcia de Oliveira<sup>1</sup>; Fernanda Vier<sup>1</sup></p>
+    <p class="affil"><sup>1</sup> Universidade Federal do Rio Grande do Sul (UFRGS) · PREVINE Taquari-Antas · processo FAPERGS 24/2551-0002124-8. A lista de autoria para submissão a periódico permanece a confirmar com a equipe do projeto.</p>
+
+    <div class="actions">
+      <button type="button" id="print-article">Imprimir / salvar PDF</button>
+      <a class="secondary" href="../index.html">Abrir o recorte auditável</a>
+      <a class="secondary" href="rna-relatorio-geral.html">Relatórios de processo (Codex)</a>
+    </div>
+
+    <p class="lede">Este texto inicia o artigo das redes já <strong>consolidadas</strong> no painel PREVINE. Ele substitui, como leitura científica, os relatórios de rodada (4 h e 8 h) que o Codex gerou em junho de 2026: aqueles documentos continuam úteis como memória de fila, mas não descrevem o recorte qualificado de Santa Tereza.</p>
+
+    <div class="warnbox">
+      <strong>Natureza.</strong> Pesquisa, replay histórico e auditoria de modelos. Não é boletim SACE/SGB, ordem de evacuação, rota liberada, despacho ou afirmação de capacidade de abrigo. Modelos ao vivo de 2 h operam em modo de pesquisa.
+    </div>
+
+    <h2>Resumo</h2>
+    <div class="abstract">
+      <p>As inundações de 2023–2024 na bacia Taquari–Antas tornaram urgente antecipar o nível do rio com a rede telemétrica já instalada. Este rascunho sintetiza o recorte consolidado de <strong><span data-fill="n_models">282</span> perceptrons multicamadas</strong> treinados em MATLAB para a estação de Santa Tereza (86472600), com horizontes de 2, 4, 8 e 12 horas. A qualificação exige persistência (PERS) positiva em treino, validação, teste e série completa. A métrica de escolha é o <em>score de equilíbrio</em> — o menor PERS entre esses recortes — e não o Nash–Sutcliffe isolado de uma partição.</p>
+      <p>O erro mediano no teste cresce com a antecedência: <strong><span data-fill="mae_2h">5,0</span> cm em 2 h</strong>, <span data-fill="mae_4h">13,8</span> cm em 4 h, <span data-fill="mae_8h">31,2</span> cm em 8 h e <span data-fill="mae_12h">47,9</span> cm em 12 h. Os dez modelos de 2 h (todos ALT, sem chuva) equilibram acima de 0,90; o campeão <span class="mono" data-fill="best_2h">009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21</span> (equilíbrio 0,969; MAE 3,5 cm) é também o modelo principal do feed ao vivo. Em 8 h, a família ALT generaliza melhor (mediana de equilíbrio 0,461 contra 0,286 da CONV), mas, entre candidatos com equilíbrio &gt; 0,50, a CONV reduz o erro extremo (E95 mínimo 46 cm contra 101 cm). Em 12 h só quatro redes cruzam equilíbrio 0,50; a melhor é CONV (0,690). Os relatórios Codex de junho ranqueavam baterias únicas por NASH ou PERS geral: o recorte consolidado muda a leitura porque a rotação de eventos e o equilíbrio separam recorde de generalização.</p>
+    </div>
+    <p class="keywords"><strong>Palavras-chave:</strong> previsão de nível; redes neurais artificiais; índice de persistência; Santa Tereza; Taquari–Antas; alerta de inundação (pesquisa).</p>
+
+    <h2>1. Introdução</h2>
+    <p>Sistemas de alerta de inundação na bacia Taquari–Antas combinam telemetria ANA/SGB, o SACE e, na pesquisa, modelos de nível de curto prazo. Finck (2020) demonstrou a aplicabilidade de RNAs em estações de jusante da mesma bacia (Encantado, Estrela, Porto Mariante e Taquari), com NSE médio da ordem de 0,93 / 0,89 / 0,71 em 8, 12 e 24 h. Santa Tereza, a montante, passou a ser o primeiro município com recorte publicado no PREVINE: o objetivo é antecipar o nível na régua 86472600 com 2 a 12 horas, usando níveis da própria estação, estações a montante e, quando a ficha do modelo inclui, chuva acumulada.</p>
+    <p>Entre junho e julho de 2026 a equipe treinou dezenas de rodadas MATLAB (21 pastas de Santa Tereza em 11 dias). Em paralelo, relatórios de processo — gerados automaticamente a partir de CSVs de uma bateria — descreveram combinações de inputs de 4 h e uma rodada 8 h ALT/CONV. Esses textos cumprem papel de caderno de laboratório. Eles não unificam horizontes, não usam o score de equilíbrio como régua e, em vários trechos, ranqueiam NASH de teste de uma partição só.</p>
+    <p>Este rascunho faz o passo seguinte: toma o recorte já consolidado em <a href="../index.html"><code>index.html</code></a> (<span data-fill="n_models">282</span> modelos com PERS positiva nos quatro recortes; 215 ALT e 67 CONV) e o organiza em formato de artigo. Muçum permanece fora do escopo, salvo menção de fronteira.</p>
+
+    <h2>2. Área de estudo e dados</h2>
+    <p>Santa Tereza (RS) situa-se no médio Taquari. A estação-alvo é a fluviométrica <strong>86472600</strong> (ANA/SGB). As fichas dos modelos combinam, conforme a rodada, o nível local e suas diferenças (D–<em>x</em> h) e acelerações (A–<em>x</em> h), níveis de montante (trecho a montante de Santa Tereza, Veranópolis, Ituim, Carreiro e outras estações do catálogo de 71 variáveis) e a chuva média acumulada em 36 h. A série é horária. A cota de pesquisa usada nas leituras públicas da cheia em Santa Tereza é 1.500 cm; ela não entra no treino como rótulo de classificação.</p>
+    <p>Os dados são partidos por <strong>eventos de cheia</strong>, não por janela aleatória. Treino, validação e teste trocam de papel entre rotações (R01–R10 no 2 h; onze rótulos no 4 h, inclusive um baseline; ondas altR_* / rot8h_* / conv8hR_* no 8 h). O evento 13 foi retirado de várias ondas curtas por ser pouco informativo — registro que os relatórios de 8 h de junho já faziam, e que o recorte consolidado preserva como decisão de processo, não como resultado de teste.</p>
+
+    <h2>3. Método</h2>
+    <h3>3.1 Arquitetura</h3>
+    <p>Cada modelo é um MLP de três camadas, treinado em MATLAB por retropropagação com gradiente adaptativo, até 100 mil ciclos, com várias inicializações (nit típico = 10) e retenção do ciclo de menor erro na validação. O catálogo de entrada tem 71 variáveis; cada rede usa um subconjunto (mediana de 15 inputs e 30 neurônios no 2 h; 20 e 40 no 4 h; 10 e 20 no 8 h ALT). A mediana da varredura é de <strong>dois neurônios por input</strong>.</p>
+    <p>As siglas <strong>ALT</strong> e <strong>CONV</strong> identificam famílias/rodadas do planilhão; não devem ser lidas, sozinhas, como duas equações de saída. Na ficha do modelo ao vivo de 2 h, ALT significa que a rede prevê a <em>variação</em> do nível e o nível previsto é o nível atual mais essa variação. O forward-pass desse .mat foi reproduzido em Python com RMSE nulo: normalização por média/desvio, <code>logsig</code> na oculta e na saída, desnormalização linear da variação.</p>
+    <h3>3.2 Métricas</h3>
+    <p>A persistência (PERS) mede o ganho sobre a previsão ingênua “daqui a <em>N</em> horas o nível será o de agora”, na linhagem de Kitanidis e Bras (1980). PERS = 1 é perfeito; 0 empata com a ingênua; negativo é pior do que não ter modelo. Complementam a leitura o coeficiente de Nash–Sutcliffe (Nash e Sutcliffe, 1970), o MAE e o percentil 95 do erro absoluto (E95), todos em centímetros na régua.</p>
+    <p>O <strong>score de equilíbrio</strong> é o mínimo entre PERS geral, de validação e de teste. Um recorde só no conjunto completo, se a validação ou o teste caem, não entra no topo. O recorte publicado já aplica o filtro: os <span data-fill="n_models">282</span> modelos têm os quatro PERS positivos. Achados de rodadas anteriores que citam persistência negativa descrevem redes <em>excluídas</em>, não este recorte.</p>
+
+    <h2>4. Resultados</h2>
+    <p>A Tabela 1 resume o recorte. Não há 2 h CONV nem 4 h CONV qualificados: nesses horizontes só a família ALT passou no filtro. O 8 h e o 12 h comparam as duas famílias.</p>
+    <table id="tbl-family"><caption style="caption-side:bottom;text-align:left;color:var(--muted);font-size:11px;padding-top:6px">Tabela 1. Recorte consolidado de Santa Tereza (PERS positiva nos quatro recortes). Medianas no teste, salvo indicação. Fonte: <code>index.html#data</code>.</caption></table>
+
+    <p>O MAE mediano no teste aumenta de forma monótona com o horizonte — o comportamento esperado de um modelo autorregressivo de nível, e o argumento mais simples contra tratar 2 h e 12 h com a mesma tolerância operacional.</p>
+    <div class="bars" id="mae-bars" aria-label="MAE mediano no teste por horizonte"></div>
+
+    <h3>4.1 Horizonte de 2 h</h3>
+    <p>Os dez modelos 2 h compartilham a mesma montagem de 15 inputs (nível local, diferenças e acelerações, mais montante) e 30 neurônios. Nenhum usa chuva. A mediana de equilíbrio é 0,945; o pior ainda equilibra 0,903. O campeão, <span class="mono">009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21</span>, testa os eventos 10, 15 e 16, equilibra 0,969, tem MAE de teste 3,5 cm e E95 10,4 cm. É o modelo <code>principal</code> do feed ao vivo. A Tabela 2 lista os dez; a diferença entre o primeiro e o décimo é pequena no MAE (3,5 a 6,3 cm) e maior no E95 (10,4 a 23,5 cm) — a cauda do erro, não a média, separa rotações.</p>
+    <table id="tbl-2h"><caption style="caption-side:bottom;text-align:left;color:var(--muted);font-size:11px;padding-top:6px">Tabela 2. Modelos 2 h ALT qualificados, ordenados por equilíbrio. Todos sem chuva, 15 inputs, 30 neurônios.</caption></table>
+
+    <h3>4.2 Horizonte de 4 h</h3>
+    <p>São 117 redes ALT, todas com chuva média de 36 h, equilíbrio mediano 0,801 e MAE mediano 13,8 cm. Todas equilibram acima de 0,50. O topo da rotação R10 (24 inputs, 48 neurônios) chega a equilíbrio 0,846. Vários identificadores (V01, V05, V06, V07) repetem a mesma métrica: são inicializações equivalentes, não campeões independentes. A bateria Codex de 5 de junho (20 rodadas, recomendação da combinação de inputs [1, 2, 4, 7, 8] por NASH de teste ≈ 0,984) é anterior a este recorte e não deve ser citada como resultado final de 4 h.</p>
+
+    <h3>4.3 Horizonte de 8 h</h3>
+    <p>Aqui o recorte corrige o relatório técnico de 28 de junho. Naquela rodada única, a CONV C0289 liderava o PERS geral (0,718). No recorte consolidado, com rotações:</p>
+    <ul>
+      <li>ALT tem mediana de equilíbrio <strong>0,461</strong> (66 redes; 22 acima de 0,50). A melhor é <span class="mono">altR_004_08_8h_alt_8H_ALT_C0289</span> (equilíbrio 0,694; MAE 32,0 cm; E95 135 cm).</li>
+      <li>CONV tem mediana de equilíbrio <strong>0,286</strong> (45 redes; só 5 acima de 0,50), mas PERS geral mediano alto (0,743). Sinal clássico de sobreajuste da métrica agregada.</li>
+      <li>Entre candidatos com equilíbrio &gt; 0,50, o menor E95 da CONV é <strong>46 cm</strong> (<span class="mono">rot8h_002_24_8h_conv_8H_CONV_C0289</span>, MAE 19,4 cm); o menor E95 da ALT no mesmo corte é <strong>101 cm</strong>. Nos extremos, a CONV desta família ainda é mais robusta.</li>
+    </ul>
+    <p>A combinação C0289 permanece central — o que o relatório de junho acertou — mas a escolha entre ALT e CONV deixa de ser um único ranking de PERS geral. Equilíbrio favorece ALT C0289 na rotação 004; erro de cauda favorece CONV C0289 na rotação 002.</p>
+    <p>A chuva discrimina no 8 h mesmo dentro do recorte já filtrado: 105 redes com chuva têm equilíbrio mediano 0,438 e MAE 31,2 cm; as 6 sem chuva caem para equilíbrio 0,161 e MAE 45,1 cm. A amostra sem chuva é pequena: leia como indício, não como experimento controlado.</p>
+
+    <h3>4.4 Horizonte de 12 h</h3>
+    <p>Quarenta e quatro redes, metade ALT e metade CONV, todas com chuva. Só quatro cruzam equilíbrio 0,50. A melhor é <span class="mono">004_conv_C0149_R01_T2_V1_3</span> (equilíbrio 0,690; MAE 40,9 cm; E95 125 cm). A ALT da mesma combinação equilibra 0,574. Prever 12 h à frente é viável em alguns recortes de evento; não é estável no conjunto. O teto de equilíbrio (0,690) empata o melhor 8 h ALT, com MAE bem maior.</p>
+
+    <h3>4.5 Campeões por horizonte</h3>
+    <table id="tbl-champions"><caption style="caption-side:bottom;text-align:left;color:var(--muted);font-size:11px;padding-top:6px">Tabela 3. Melhor modelo único por horizonte (desempate por métricas repetidas). Equilíbrio = min(PERS geral, validação, teste).</caption></table>
+
+    <h3>4.6 Inputs do quartil mais equilibrado</h3>
+    <p>Todos os modelos, e 100% do melhor quartil, usam o nível de Santa Tereza e o D–1 h. No quartil superior entram sempre D–2 h, D–4 h, A–2 h e o nível de montante. A chuva de 36 h aparece em 86% desse quartil (80% do recorte inteiro): ela é quase onipresente em 4–12 h e ausente no 2 h publicado. Inputs certos valem mais do que inflar a camada oculta — a mediana continua em dois neurônios por input, inclusive no topo.</p>
+    <table id="tbl-inputs"><caption style="caption-side:bottom;text-align:left;color:var(--muted);font-size:11px;padding-top:6px">Tabela 4. Frequência de inputs no quartil de maior equilíbrio versus o recorte completo.</caption></table>
+
+    <h2>5. Discussão: o que os relatórios Codex acertaram e o que este rascunho muda</h2>
+    <div class="improve">
+      <p><strong>Como este texto melhora os relatórios de processo.</strong> Os HTML em <code>pesquisas/rna-relatorio-*.html</code>, <code>relatorio-tecnico-8h.html</code>, <code>relatorio-8h-*.html</code> e <code>plano-exploracao-8h.html</code> são cadernos de uma bateria. Este rascunho (1) unifica os quatro horizontes no recorte já filtrado; (2) troca NASH de uma partição e PERS geral por equilíbrio + MAE/E95; (3) trata rotação de eventos como método, não como nota de rodapé; (4) separa família ALT/CONV de equação de saída; (5) corrige a leitura de 8 h (CONV “ganha” no geral, ALT generaliza, CONV segura a cauda); (6) não reapresenta como resultado as redes com PERS negativa que aqueles relatórios ainda listavam.</p>
+    </div>
+    <p>O relatório visual de 4 h (5 de junho) acertou a intuição de que inputs de montante e a aceleração local importam, e avisou que NASH de validação alto com E95 ruim não escolhe modelo. O recorte de 117 redes 4 h confirma os dois pontos e descarta a combinação [1, 2, 4, 7, 8] como “modelo final”: aquela bateria era estreita demais.</p>
+    <p>O relatório técnico de 8 h (28 de junho) acertou a centralidade de C0289 e a irregularidade da ALT na rodada original. Errou ao encerrar a comparação CONV vs ALT naquela amostra de 32 redes. As rotações posteriores — exatamente o plano de exploração de 29 de junho — eram o experimento que faltava; agora elas estão no recorte.</p>
+    <p>A comparação com Finck (2020) é apenas contextual: estações, período, filtros de chuva e horizonte de 24 h não coincidem. O que se pode afirmar é que NSE de teste da ordem de 0,99 em 2–4 h e ≈ 0,88–0,94 nos melhores 8–12 h é compatível com RNAs de nível em telemetria densa, e que o ganho que importa para alerta é o PERS, porque a persistência de 2 h já é uma previsão difícil de bater.</p>
+
+    <h2>6. Limitações</h2>
+    <ul>
+      <li>Os horizontes têm N muito diferentes (10, 117, 111, 44). Comparar medianas entre horizontes é descritivo, não um teste controlado.</li>
+      <li>Há poucos eventos de cheia; PERS e E95 no teste herdam a sorte da rotação. O spread entre recortes permanece o risco principal de superinterpretação.</li>
+      <li>O campo <code>evento_teste</code> do 4 h aparece preenchido com o mesmo rótulo em 117 linhas; a leitura segura da partição 4 h é o campo <code>rotacao</code>.</li>
+      <li>Não há 2 h CONV nem 4 h CONV no recorte qualificado: a comparação ALT/CONV só é justa em 8 h e 12 h.</li>
+      <li>A conversão régua → HAND/mancha, a calibração de probabilidade e o uso operacional continuam bloqueados. Replay de 2 h por evento existe; reconciliação auditável de 8 h/12 h por evento ainda está pendente.</li>
+      <li>Os relatórios Codex originais no Google Drive pessoal não puderam ser reabertos neste ambiente. A melhoria usa as cópias já versionadas no repositório e o recorte consolidado do site.</li>
+    </ul>
+
+    <h2>7. Conclusões</h2>
+    <p>O recorte consolidado de Santa Tereza sustenta quatro afirmações, e só elas, neste rascunho:</p>
+    <ol>
+      <li>Antecipar 2 h com MLP ALT de 15 inputs de nível (sem chuva) é estável nas dez rotações publicadas; o campeão já é o feed principal ao vivo, com MAE de teste de 3,5 cm.</li>
+      <li>Antecipar 4 h é igualmente denso no recorte (117 ALT com chuva, todas com equilíbrio &gt; 0,50), com MAE mediano de 14 cm.</li>
+      <li>Em 8 h não existe vencedor único: ALT generaliza melhor; CONV, quando equilibra, erra menos nos extremos. C0289 permanece a combinação a discutir, agora com duas leituras.</li>
+      <li>Em 12 h a viabilidade é pontual (quatro redes acima de 0,50). Mais eventos e novas montagens ainda são pesquisa aberta, não produto.</li>
+    </ol>
+    <p>O próximo manuscrito deve acrescentar hidrogramas dos eventos de teste do campeão de cada horizonte, a tabela de rotação 4 h conferida contra as planilhas .xlsx, e a decisão explícita de qual 8 h (ALT equilíbrio vs CONV E95) entra em sombra — sem promover alerta.</p>
+
+    <h2>Referências</h2>
+    <ol class="refs">
+      <li>FINCK, J. S. <em>Previsão em tempo atual de níveis fluviais com redes neurais artificiais: aplicação à bacia do Rio Taquari-Antas/RS</em>. Dissertação (Mestrado) — Universidade Federal do Rio Grande do Sul, Porto Alegre, 2020. Disponível em: <a href="https://lume.ufrgs.br/handle/10183/213406">https://lume.ufrgs.br/handle/10183/213406</a>.</li>
+      <li>KITANIDIS, P. K.; BRAS, R. L. Real-time forecasting with a conceptual hydrologic model. 2. Applications and results. <em>Water Resources Research</em>, v. 16, n. 6, p. 1034–1044, 1980.</li>
+      <li>NASH, J. E.; SUTCLIFFE, J. V. River flow forecasting through conceptual models part I — A discussion of principles. <em>Journal of Hydrology</em>, v. 10, n. 3, p. 282–290, 1970.</li>
+      <li>PREVINE Taquari-Antas. Recorte auditável de modelos RNA de Santa Tereza. In: <em>index.html</em> (script <code>data</code>). Repositório GitHub, 2026.</li>
+      <li>PREVINE Taquari-Antas. Relatórios de processo RNA 4 h e 8 h. In: <code>pesquisas/rna-relatorio-geral.html</code>; <code>pesquisas/relatorio-tecnico-8h.html</code>; <code>pesquisas/plano-exploracao-8h.html</code>. 2026.</li>
+    </ol>
+
+    <footer class="meta">
+      Rascunho gerado a partir de <code>assets/data/artigo_rna_santa_tereza.json</code>, reconstruído de <code>index.html#data</code>.
+      Equipe de comunicação no briefing do projeto: Juliana Carolina Reis · Guilherme Garcia de Oliveira · Fernanda Vier.
+      Alerta oficial = SGB/SACE + Defesa Civil. Publicado no site ≠ validado ≠ autorizado.
+      <span id="generated-at"></span>
+    </footer>
+    <p class="src-err" id="load-error" hidden>Não foi possível carregar as tabelas auditáveis. Abra esta página pelo site (GitHub Pages) ou sirva o repositório em HTTP.</p>
+  </article>
+  <script src="../assets/js/site_chrome.js" data-page="acervo"></script>
+  <script>
+    (function () {
+      const fmt = (value, digits) => {
+        if (value == null || Number.isNaN(Number(value))) return "—";
+        return Number(value).toLocaleString("pt-BR", {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits
+        });
+      };
+      const tipo = value => value === "alt" ? "ALT" : value === "conv" ? "CONV" : "—";
+      function fill(name, text) {
+        document.querySelectorAll('[data-fill="' + name + '"]').forEach(node => { node.textContent = text; });
+      }
+      function table(id, headers, rows, caption) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const head = "<thead><tr>" + headers.map(h => "<th" + (h.num ? ' class="num"' : "") + ">" + h.label + "</th>").join("") + "</tr></thead>";
+        const body = "<tbody>" + rows.map(row => "<tr>" + row.map((cell, i) => {
+          const cls = headers[i] && headers[i].num ? ' class="num"' : (headers[i] && headers[i].mono ? ' class="mono"' : "");
+          return "<td" + cls + ">" + cell + "</td>";
+        }).join("") + "</tr>").join("") + "</tbody>";
+        const cap = el.querySelector("caption");
+        el.innerHTML = head + body;
+        if (cap) el.appendChild(cap);
+        if (caption) { /* keep existing caption */ }
+      }
+      function render(data) {
+        fill("n_models", String(data.n_models));
+        const byH = Object.fromEntries((data.by_horizon || []).map(row => [row.horizonte, row]));
+        fill("mae_2h", fmt(byH["2h"] && byH["2h"].MAE_teste_cm_mediana, 1));
+        fill("mae_4h", fmt(byH["4h"] && byH["4h"].MAE_teste_cm_mediana, 1));
+        fill("mae_8h", fmt(byH["8h"] && byH["8h"].MAE_teste_cm_mediana, 1));
+        fill("mae_12h", fmt(byH["12h"] && byH["12h"].MAE_teste_cm_mediana, 1));
+        const best2 = (data.champions && data.champions["2h"] && data.champions["2h"][0]) || {};
+        fill("best_2h", best2.modelo || "—");
+        if (data.generated_at_utc) {
+          document.getElementById("generated-at").textContent = " Tabelas geradas em " + data.generated_at_utc + ".";
+        }
+        const famHeaders = [
+          {label: "Horizonte"}, {label: "Família"}, {label: "N", num: true},
+          {label: "Equil. med.", num: true}, {label: "Equil. máx.", num: true},
+          {label: "PERS teste", num: true}, {label: "MAE teste (cm)", num: true},
+          {label: "E95 teste (cm)", num: true}, {label: "N > 0,50", num: true}
+        ];
+        table("tbl-family", famHeaders, (data.by_family || []).filter(row => row.n).map(row => [
+          row.horizonte, tipo(row.tipo), String(row.n),
+          fmt(row.equilibrio_mediana, 3), fmt(row.equilibrio_max, 3),
+          fmt(row.PERS_teste_mediana, 3), fmt(row.MAE_teste_cm_mediana, 1),
+          fmt(row.E95_teste_cm_mediana, 1), String(row.n_equilibrio_gt_050)
+        ]));
+        const maxMae = Math.max(...(data.by_horizon || []).map(row => row.MAE_teste_cm_mediana || 0), 1);
+        document.getElementById("mae-bars").innerHTML = (data.by_horizon || []).map(row => {
+          const w = Math.max(8, 100 * (row.MAE_teste_cm_mediana || 0) / maxMae);
+          return '<div class="bar-row"><span>' + row.horizonte + '</span><span class="bar-track"><span class="bar-fill" style="width:' + w + '%"></span></span><span class="num">MAE ' + fmt(row.MAE_teste_cm_mediana, 1) + ' cm</span></div>';
+        }).join("");
+        table("tbl-2h",
+          [{label: "Modelo", mono: true}, {label: "Rotação"}, {label: "Teste"}, {label: "Equil.", num: true}, {label: "PERS teste", num: true}, {label: "MAE (cm)", num: true}, {label: "E95 (cm)", num: true}],
+          (data.two_hour_models || []).map(row => [
+            row.modelo, row.rotacao || "—", String(row.evento_teste || "—"),
+            fmt(row.score_equilibrio, 3), fmt(row.PERS_teste, 3),
+            fmt(row.MAE_teste_cm, 1), fmt(row.E95_teste_cm, 1)
+          ])
+        );
+        const champRows = [];
+        ["2h", "4h", "8h", "12h"].forEach(h => {
+          const row = data.champions && data.champions[h] && data.champions[h][0];
+          if (!row) return;
+          champRows.push([
+            h, tipo(row.tipo), row.modelo, row.rotacao || "—",
+            fmt(row.score_equilibrio, 3), fmt(row.PERS_teste, 3),
+            fmt(row.MAE_teste_cm, 1), fmt(row.E95_teste_cm, 1),
+            row.chuva ? "sim" : "não", String(row.n_inputs), String(row.neuronios)
+          ]);
+        });
+        table("tbl-champions",
+          [{label: "H"}, {label: "Fam."}, {label: "Modelo", mono: true}, {label: "Rotação"}, {label: "Equil.", num: true}, {label: "PERS t.", num: true}, {label: "MAE", num: true}, {label: "E95", num: true}, {label: "Chuva"}, {label: "In", num: true}, {label: "Nh", num: true}],
+          champRows
+        );
+        table("tbl-inputs",
+          [{label: "Input"}, {label: "% melhor quartil", num: true}, {label: "% recorte", num: true}],
+          (data.input_frequency_best_quartile || []).map(row => [
+            row.input, fmt(row.pct_melhor_quartil, 1) + " %", fmt(row.pct_recorte, 1) + " %"
+          ])
+        );
+      }
+      document.getElementById("print-article").addEventListener("click", function () { window.print(); });
+      fetch("../assets/data/artigo_rna_santa_tereza.json", {cache: "no-store"})
+        .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+        .then(render)
+        .catch(err => {
+          const box = document.getElementById("load-error");
+          box.hidden = false;
+          box.textContent = "Não foi possível carregar as tabelas auditáveis (" + err.message + ").";
+        });
+    })();
+  </script>
+</body>
+</html>
