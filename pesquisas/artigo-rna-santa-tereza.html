@@ -16,7 +16,6 @@
       --paper: #f5f3ec;
       --sheet: #fff;
       --green: #155c47;
-      --yellow: #f5c76b;
       --warn: #8a5a12;
     }
     * { box-sizing: border-box; }
@@ -69,14 +68,17 @@
     th { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
     td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; word-break: break-all; }
+    .vars { font-size: 12px; line-height: 1.45; }
+    caption { caption-side: bottom; text-align: left; color: var(--muted); font-size: 11px; padding-top: 6px; }
     .note, .warnbox, .improve {
       padding: 12px 14px; margin: 12px 0 18px; font-size: 13.5px; line-height: 1.5;
     }
     .note { background: #f4f7fb; border-left: 4px solid #194d73; }
     .warnbox { background: #fff6e6; border-left: 4px solid #d18700; }
     .improve { background: #eef7f2; border-left: 4px solid var(--green); }
+    .legend { margin: -4px 0 18px; color: var(--ink-2); font-size: 12.5px; }
     .bars { display: grid; gap: 8px; margin: 12px 0 20px; }
-    .bar-row { display: grid; grid-template-columns: 48px 1fr 90px; gap: 10px; align-items: center; font-size: 13px; }
+    .bar-row { display: grid; grid-template-columns: 48px 1fr 110px; gap: 10px; align-items: center; font-size: 13px; }
     .bar-track { height: 10px; background: #eceae3; border-radius: 99px; overflow: hidden; }
     .bar-fill { height: 100%; background: var(--green); }
     .refs { font-size: 13px; }
@@ -108,7 +110,7 @@
       <a class="secondary" href="rna-relatorio-geral.html">Relatórios de processo (Codex)</a>
     </div>
 
-    <p class="lede">Este texto inicia o artigo das redes já <strong>consolidadas</strong> no painel PREVINE. Ele substitui, como leitura científica, os relatórios de rodada (4 h e 8 h) que o Codex gerou em junho de 2026: aqueles documentos continuam úteis como memória de fila, mas não descrevem o recorte qualificado de Santa Tereza.</p>
+    <p class="lede">Este texto inicia o artigo das redes já <strong>consolidadas</strong> no painel PREVINE. A metodologia descreve as principais combinações de variáveis testadas. Os resultados reportam <strong>só o melhor modelo de cada horizonte</strong>. Os relatórios de rodada (4 h e 8 h) gerados em junho de 2026 continuam úteis como memória de fila, mas não descrevem este recorte.</p>
 
     <div class="warnbox">
       <strong>Natureza.</strong> Pesquisa, replay histórico e auditoria de modelos. Não é boletim SACE/SGB, ordem de evacuação, rota liberada, despacho ou afirmação de capacidade de abrigo. Modelos ao vivo de 2 h operam em modo de pesquisa.
@@ -116,8 +118,8 @@
 
     <h2>Resumo</h2>
     <div class="abstract">
-      <p>As inundações de 2023–2024 na bacia Taquari–Antas tornaram urgente antecipar o nível do rio com a rede telemétrica já instalada. Este rascunho sintetiza o recorte consolidado de <strong><span data-fill="n_models">282</span> perceptrons multicamadas</strong> treinados em MATLAB para a estação de Santa Tereza (86472600), com horizontes de 2, 4, 8 e 12 horas. A qualificação exige persistência (PERS) positiva em treino, validação, teste e série completa. A métrica de escolha é o <em>score de equilíbrio</em> — o menor PERS entre esses recortes — e não o Nash–Sutcliffe isolado de uma partição.</p>
-      <p>O erro mediano no teste cresce com a antecedência: <strong><span data-fill="mae_2h">5,0</span> cm em 2 h</strong>, <span data-fill="mae_4h">13,8</span> cm em 4 h, <span data-fill="mae_8h">31,2</span> cm em 8 h e <span data-fill="mae_12h">47,9</span> cm em 12 h. Os dez modelos de 2 h (todos ALT, sem chuva) equilibram acima de 0,90; o campeão <span class="mono" data-fill="best_2h">009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21</span> (equilíbrio 0,969; MAE 3,5 cm) é também o modelo principal do feed ao vivo. Em 8 h, a família ALT generaliza melhor (mediana de equilíbrio 0,461 contra 0,286 da CONV), mas, entre candidatos com equilíbrio &gt; 0,50, a CONV reduz o erro extremo (E95 mínimo 46 cm contra 101 cm). Em 12 h só quatro redes cruzam equilíbrio 0,50; a melhor é CONV (0,690). Os relatórios Codex de junho ranqueavam baterias únicas por NASH ou PERS geral: o recorte consolidado muda a leitura porque a rotação de eventos e o equilíbrio separam recorde de generalização.</p>
+      <p>As inundações de 2023–2024 na bacia Taquari–Antas tornaram urgente antecipar o nível do rio com a rede telemétrica já instalada. Este rascunho sintetiza o recorte consolidado de <strong><span data-fill="n_models">282</span> perceptrons multicamadas</strong> treinados em MATLAB para a estação de Santa Tereza (86472600), com horizontes de 2, 4, 8 e 12 horas. A qualificação exige persistência (PERS) positiva em treino, validação, teste e série completa. A métrica de escolha é o <em>score de equilíbrio</em> — o menor PERS entre geral, validação e teste.</p>
+      <p>O melhor modelo de 2 h (<span class="mono" data-fill="best_2h">009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21</span>) equilibra <span data-fill="eq_2h">0,969</span>, com MAE de teste de <strong><span data-fill="mae_2h">3,5</span> cm</strong> e E95 de <span data-fill="e95_2h">10,4</span> cm; é também o modelo principal do feed ao vivo. Em 4 h o melhor equilibra <span data-fill="eq_4h">0,846</span> (MAE <span data-fill="mae_4h">13,9</span> cm). Em 8 h, ALT C0289 equilibra <span data-fill="eq_8h">0,694</span> (MAE <span data-fill="mae_8h">32,0</span> cm). Em 12 h o melhor é CONV C0149 (equilíbrio <span data-fill="eq_12h">0,690</span>; MAE <span data-fill="mae_12h">40,9</span> cm). O erro do campeão cresce com a antecedência. Relatórios de processo de junho ranqueavam baterias únicas por NASH ou PERS geral: o recorte consolidado muda a leitura porque a rotação de eventos e o equilíbrio separam recorde de generalização.</p>
     </div>
     <p class="keywords"><strong>Palavras-chave:</strong> previsão de nível; redes neurais artificiais; índice de persistência; Santa Tereza; Taquari–Antas; alerta de inundação (pesquisa).</p>
 
@@ -132,71 +134,56 @@
 
     <h2>3. Método</h2>
     <h3>3.1 Arquitetura</h3>
-    <p>Cada modelo é um MLP de três camadas, treinado em MATLAB por retropropagação com gradiente adaptativo, até 100 mil ciclos, com várias inicializações (nit típico = 10) e retenção do ciclo de menor erro na validação. O catálogo de entrada tem 71 variáveis; cada rede usa um subconjunto (mediana de 15 inputs e 30 neurônios no 2 h; 20 e 40 no 4 h; 10 e 20 no 8 h ALT). A mediana da varredura é de <strong>dois neurônios por input</strong>.</p>
+    <p>Cada modelo é um MLP de três camadas, treinado em MATLAB por retropropagação com gradiente adaptativo, até 100 mil ciclos, com várias inicializações (nit típico = 10) e retenção do ciclo de menor erro na validação. O catálogo de entrada tem 71 variáveis; cada rede usa um subconjunto. A mediana da varredura é de <strong>dois neurônios por input</strong>.</p>
     <p>As siglas <strong>ALT</strong> e <strong>CONV</strong> identificam famílias/rodadas do planilhão; não devem ser lidas, sozinhas, como duas equações de saída. Na ficha do modelo ao vivo de 2 h, ALT significa que a rede prevê a <em>variação</em> do nível e o nível previsto é o nível atual mais essa variação. O forward-pass desse .mat foi reproduzido em Python com RMSE nulo: normalização por média/desvio, <code>logsig</code> na oculta e na saída, desnormalização linear da variação.</p>
-    <h3>3.2 Métricas</h3>
+    <h3>3.2 Métricas e regra de escolha</h3>
     <p>A persistência (PERS) mede o ganho sobre a previsão ingênua “daqui a <em>N</em> horas o nível será o de agora”, na linhagem de Kitanidis e Bras (1980). PERS = 1 é perfeito; 0 empata com a ingênua; negativo é pior do que não ter modelo. Complementam a leitura o coeficiente de Nash–Sutcliffe (Nash e Sutcliffe, 1970), o MAE e o percentil 95 do erro absoluto (E95), todos em centímetros na régua.</p>
-    <p>O <strong>score de equilíbrio</strong> é o mínimo entre PERS geral, de validação e de teste. Um recorde só no conjunto completo, se a validação ou o teste caem, não entra no topo. O recorte publicado já aplica o filtro: os <span data-fill="n_models">282</span> modelos têm os quatro PERS positivos. Achados de rodadas anteriores que citam persistência negativa descrevem redes <em>excluídas</em>, não este recorte.</p>
+    <p>O <strong>score de equilíbrio</strong> é o mínimo entre PERS geral, de validação e de teste. Um recorde só no conjunto completo, se a validação ou o teste caem, não entra no topo. O recorte publicado já aplica o filtro: os <span data-fill="n_models">282</span> modelos têm os quatro PERS positivos. Achados de rodadas anteriores que citam persistência negativa descrevem redes <em>excluídas</em>, não este recorte. Em cada horizonte reporta-se um único modelo: o de maior equilíbrio. Métricas idênticas (inicializações equivalentes) contam como o mesmo modelo.</p>
+    <h3>3.3 Combinações de variáveis</h3>
+    <p>A varredura testou muitas montagens a partir do catálogo de 71 variáveis. O recorte qualificado reúne <span data-fill="sets_2h">1</span> conjunto de inputs em 2 h, <span data-fill="sets_4h">6</span> em 4 h, <span data-fill="sets_8h">14</span> em 8 h e <span data-fill="sets_12h">5</span> em 12 h. O Quadro 1 não lista todas as combinações: traz as principais usadas em 2 h, 4 h e 8 h e, de forma compacta, a montagem do horizonte 12 h. <strong>O quadro descreve só as variáveis, sem métricas de desempenho.</strong></p>
+    <p>Em 4 h as seis montagens são aninhadas (13 ⊂ 14 ⊂ 15 ⊂ 16 ⊂ 20 ⊂ 24 entradas). O quadro mostra o núcleo (13), o núcleo com acelerações locais e a estação 86298000 (16) e o núcleo ampliado (24). Os intermediários de 14, 15 e 20 variáveis ficam de fora. Em 8 h, depois de unificar aliases do catálogo, restam 14 conjuntos; o quadro traz C0289, C0078 e C0265 — a mais recorrente, uma montagem com Ituim e a mais enxuta entre as frequentes.</p>
+    <table id="tbl-combinations">
+      <caption>Quadro 1. Principais combinações de variáveis testadas em Santa Tereza. Sem métricas de desempenho. Fonte: <code>index.html#data</code>.</caption>
+    </table>
+    <p class="legend">ST = Santa Tereza (86472600); D–<em>x</em> h = diferença em <em>x</em> horas; A–<em>x</em> h = aceleração; montante = trecho a montante de Santa Tereza; chuva 36 h = chuva média acumulada em 36 h. Códigos numéricos são estações ANA/SGB.</p>
 
     <h2>4. Resultados</h2>
-    <p>A Tabela 1 resume o recorte. Não há 2 h CONV nem 4 h CONV qualificados: nesses horizontes só a família ALT passou no filtro. O 8 h e o 12 h comparam as duas famílias.</p>
-    <table id="tbl-family"><caption style="caption-side:bottom;text-align:left;color:var(--muted);font-size:11px;padding-top:6px">Tabela 1. Recorte consolidado de Santa Tereza (PERS positiva nos quatro recortes). Medianas no teste, salvo indicação. Fonte: <code>index.html#data</code>.</caption></table>
+    <p>A Tabela 1 traz o melhor modelo de cada horizonte. Não se listam as dez rotações 2 h, nem um ranking intermediário, nem medianas de família. O erro do campeão no teste aumenta com a antecedência — o comportamento esperado de um modelo autorregressivo de nível, e o argumento mais simples contra tratar 2 h e 12 h com a mesma tolerância.</p>
+    <table id="tbl-champions">
+      <caption>Tabela 1. Melhor modelo de cada horizonte, pelo score de equilíbrio (desempate: métricas repetidas contam como o mesmo modelo). Equilíbrio = min(PERS geral, validação, teste).</caption>
+    </table>
+    <div class="bars" id="mae-bars" aria-label="MAE de teste do melhor modelo de cada horizonte"></div>
 
-    <p>O MAE mediano no teste aumenta de forma monótona com o horizonte — o comportamento esperado de um modelo autorregressivo de nível, e o argumento mais simples contra tratar 2 h e 12 h com a mesma tolerância operacional.</p>
-    <div class="bars" id="mae-bars" aria-label="MAE mediano no teste por horizonte"></div>
+    <p>Em <strong>2 h</strong> a única montagem do recorte (15 inputs de nível, sem chuva, 30 neurônios) gerou dez rotações; todas equilibram acima de 0,90. O campeão, <span class="mono">009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21</span>, testa os eventos 10, 15 e 16, equilibra 0,969, tem MAE de teste 3,5 cm e E95 10,4 cm. É o modelo <code>principal</code> do feed ao vivo.</p>
+    <p>Em <strong>4 h</strong> o recorte tem 117 redes ALT, todas com chuva de 36 h. O melhor é <span class="mono">V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000</span> (24 inputs, 48 neurônios, equilíbrio 0,846, MAE 13,9 cm, E95 52,7 cm). Identificadores V01, V05, V06 e V07 repetem a mesma métrica: são inicializações equivalentes, não campeões independentes. A bateria de 5 de junho (20 rodadas, combinação [1, 2, 4, 7, 8] por NASH de teste ≈ 0,984) é anterior a este recorte e não é o resultado de 4 h.</p>
+    <p>Em <strong>8 h</strong> o melhor pelo equilíbrio é <span class="mono">altR_004_08_8h_alt_8H_ALT_C0289</span> (10 inputs, 20 neurônios, equilíbrio 0,694, MAE 32,0 cm, E95 135 cm). A combinação C0289, já central no relatório de 28 de junho, permanece a montagem escolhida; a métrica de escolha, porém, deixa de ser o PERS geral de uma rodada única.</p>
+    <p>Em <strong>12 h</strong> o melhor é <span class="mono">004_conv_C0149_R01_T2_V1_3</span> (14 inputs, 28 neurônios, equilíbrio 0,690, MAE 40,9 cm, E95 125 cm). O teto de equilíbrio empata o 8 h escolhido, com MAE maior. Só quatro redes do horizonte cruzam equilíbrio 0,50: prever 12 h é viável em alguns recortes de evento, não estável no conjunto.</p>
 
-    <h3>4.1 Horizonte de 2 h</h3>
-    <p>Os dez modelos 2 h compartilham a mesma montagem de 15 inputs (nível local, diferenças e acelerações, mais montante) e 30 neurônios. Nenhum usa chuva. A mediana de equilíbrio é 0,945; o pior ainda equilibra 0,903. O campeão, <span class="mono">009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21</span>, testa os eventos 10, 15 e 16, equilibra 0,969, tem MAE de teste 3,5 cm e E95 10,4 cm. É o modelo <code>principal</code> do feed ao vivo. A Tabela 2 lista os dez; a diferença entre o primeiro e o décimo é pequena no MAE (3,5 a 6,3 cm) e maior no E95 (10,4 a 23,5 cm) — a cauda do erro, não a média, separa rotações.</p>
-    <table id="tbl-2h"><caption style="caption-side:bottom;text-align:left;color:var(--muted);font-size:11px;padding-top:6px">Tabela 2. Modelos 2 h ALT qualificados, ordenados por equilíbrio. Todos sem chuva, 15 inputs, 30 neurônios.</caption></table>
-
-    <h3>4.2 Horizonte de 4 h</h3>
-    <p>São 117 redes ALT, todas com chuva média de 36 h, equilíbrio mediano 0,801 e MAE mediano 13,8 cm. Todas equilibram acima de 0,50. O topo da rotação R10 (24 inputs, 48 neurônios) chega a equilíbrio 0,846. Vários identificadores (V01, V05, V06, V07) repetem a mesma métrica: são inicializações equivalentes, não campeões independentes. A bateria Codex de 5 de junho (20 rodadas, recomendação da combinação de inputs [1, 2, 4, 7, 8] por NASH de teste ≈ 0,984) é anterior a este recorte e não deve ser citada como resultado final de 4 h.</p>
-
-    <h3>4.3 Horizonte de 8 h</h3>
-    <p>Aqui o recorte corrige o relatório técnico de 28 de junho. Naquela rodada única, a CONV C0289 liderava o PERS geral (0,718). No recorte consolidado, com rotações:</p>
-    <ul>
-      <li>ALT tem mediana de equilíbrio <strong>0,461</strong> (66 redes; 22 acima de 0,50). A melhor é <span class="mono">altR_004_08_8h_alt_8H_ALT_C0289</span> (equilíbrio 0,694; MAE 32,0 cm; E95 135 cm).</li>
-      <li>CONV tem mediana de equilíbrio <strong>0,286</strong> (45 redes; só 5 acima de 0,50), mas PERS geral mediano alto (0,743). Sinal clássico de sobreajuste da métrica agregada.</li>
-      <li>Entre candidatos com equilíbrio &gt; 0,50, o menor E95 da CONV é <strong>46 cm</strong> (<span class="mono">rot8h_002_24_8h_conv_8H_CONV_C0289</span>, MAE 19,4 cm); o menor E95 da ALT no mesmo corte é <strong>101 cm</strong>. Nos extremos, a CONV desta família ainda é mais robusta.</li>
-    </ul>
-    <p>A combinação C0289 permanece central — o que o relatório de junho acertou — mas a escolha entre ALT e CONV deixa de ser um único ranking de PERS geral. Equilíbrio favorece ALT C0289 na rotação 004; erro de cauda favorece CONV C0289 na rotação 002.</p>
-    <p>A chuva discrimina no 8 h mesmo dentro do recorte já filtrado: 105 redes com chuva têm equilíbrio mediano 0,438 e MAE 31,2 cm; as 6 sem chuva caem para equilíbrio 0,161 e MAE 45,1 cm. A amostra sem chuva é pequena: leia como indício, não como experimento controlado.</p>
-
-    <h3>4.4 Horizonte de 12 h</h3>
-    <p>Quarenta e quatro redes, metade ALT e metade CONV, todas com chuva. Só quatro cruzam equilíbrio 0,50. A melhor é <span class="mono">004_conv_C0149_R01_T2_V1_3</span> (equilíbrio 0,690; MAE 40,9 cm; E95 125 cm). A ALT da mesma combinação equilibra 0,574. Prever 12 h à frente é viável em alguns recortes de evento; não é estável no conjunto. O teto de equilíbrio (0,690) empata o melhor 8 h ALT, com MAE bem maior.</p>
-
-    <h3>4.5 Campeões por horizonte</h3>
-    <table id="tbl-champions"><caption style="caption-side:bottom;text-align:left;color:var(--muted);font-size:11px;padding-top:6px">Tabela 3. Melhor modelo único por horizonte (desempate por métricas repetidas). Equilíbrio = min(PERS geral, validação, teste).</caption></table>
-
-    <h3>4.6 Inputs do quartil mais equilibrado</h3>
-    <p>Todos os modelos, e 100% do melhor quartil, usam o nível de Santa Tereza e o D–1 h. No quartil superior entram sempre D–2 h, D–4 h, A–2 h e o nível de montante. A chuva de 36 h aparece em 86% desse quartil (80% do recorte inteiro): ela é quase onipresente em 4–12 h e ausente no 2 h publicado. Inputs certos valem mais do que inflar a camada oculta — a mediana continua em dois neurônios por input, inclusive no topo.</p>
-    <table id="tbl-inputs"><caption style="caption-side:bottom;text-align:left;color:var(--muted);font-size:11px;padding-top:6px">Tabela 4. Frequência de inputs no quartil de maior equilíbrio versus o recorte completo.</caption></table>
-
-    <h2>5. Discussão: o que os relatórios Codex acertaram e o que este rascunho muda</h2>
+    <h2>5. Discussão: o que os relatórios de processo acertaram e o que este rascunho muda</h2>
     <div class="improve">
-      <p><strong>Como este texto melhora os relatórios de processo.</strong> Os HTML em <code>pesquisas/rna-relatorio-*.html</code>, <code>relatorio-tecnico-8h.html</code>, <code>relatorio-8h-*.html</code> e <code>plano-exploracao-8h.html</code> são cadernos de uma bateria. Este rascunho (1) unifica os quatro horizontes no recorte já filtrado; (2) troca NASH de uma partição e PERS geral por equilíbrio + MAE/E95; (3) trata rotação de eventos como método, não como nota de rodapé; (4) separa família ALT/CONV de equação de saída; (5) corrige a leitura de 8 h (CONV “ganha” no geral, ALT generaliza, CONV segura a cauda); (6) não reapresenta como resultado as redes com PERS negativa que aqueles relatórios ainda listavam.</p>
+      <p><strong>Como este texto melhora os relatórios de processo.</strong> Os HTML em <code>pesquisas/rna-relatorio-*.html</code>, <code>relatorio-tecnico-8h.html</code>, <code>relatorio-8h-*.html</code> e <code>plano-exploracao-8h.html</code> são cadernos de uma bateria. Este rascunho (1) unifica os quatro horizontes no recorte já filtrado; (2) troca NASH de uma partição e PERS geral por equilíbrio + MAE/E95; (3) trata rotação de eventos como método, não como nota de rodapé; (4) separa família ALT/CONV de equação de saída; (5) mostra na metodologia só o quadro das variáveis principais e, nos resultados, só o melhor modelo de cada horizonte; (6) não reapresenta como resultado as redes com PERS negativa que aqueles relatórios ainda listavam.</p>
     </div>
     <p>O relatório visual de 4 h (5 de junho) acertou a intuição de que inputs de montante e a aceleração local importam, e avisou que NASH de validação alto com E95 ruim não escolhe modelo. O recorte de 117 redes 4 h confirma os dois pontos e descarta a combinação [1, 2, 4, 7, 8] como “modelo final”: aquela bateria era estreita demais.</p>
-    <p>O relatório técnico de 8 h (28 de junho) acertou a centralidade de C0289 e a irregularidade da ALT na rodada original. Errou ao encerrar a comparação CONV vs ALT naquela amostra de 32 redes. As rotações posteriores — exatamente o plano de exploração de 29 de junho — eram o experimento que faltava; agora elas estão no recorte.</p>
+    <p>O relatório técnico de 8 h (28 de junho) acertou a centralidade de C0289. Naquela rodada única, a CONV C0289 liderava o PERS geral (0,718). No recorte consolidado o equilíbrio escolhe a ALT C0289 da rotação 004. Entre candidatos com equilíbrio &gt; 0,50, a CONV da mesma combinação ainda reduz o erro extremo: E95 mínimo <span data-fill="e95_8h_conv">46</span> cm (<span class="mono">rot8h_002_24_8h_conv_8H_CONV_C0289</span>, MAE 19,4 cm), contra 101 cm no menor E95 da ALT nesse corte. Isso é ressalva para uma futura sombra operacional — não um segundo campeão na Tabela 1.</p>
     <p>A comparação com Finck (2020) é apenas contextual: estações, período, filtros de chuva e horizonte de 24 h não coincidem. O que se pode afirmar é que NSE de teste da ordem de 0,99 em 2–4 h e ≈ 0,88–0,94 nos melhores 8–12 h é compatível com RNAs de nível em telemetria densa, e que o ganho que importa para alerta é o PERS, porque a persistência de 2 h já é uma previsão difícil de bater.</p>
 
     <h2>6. Limitações</h2>
     <ul>
-      <li>Os horizontes têm N muito diferentes (10, 117, 111, 44). Comparar medianas entre horizontes é descritivo, não um teste controlado.</li>
+      <li>Os horizontes têm N muito diferentes (10, 117, 111, 44). O crescimento do MAE dos campeões com o horizonte é descritivo, não um teste controlado.</li>
       <li>Há poucos eventos de cheia; PERS e E95 no teste herdam a sorte da rotação. O spread entre recortes permanece o risco principal de superinterpretação.</li>
       <li>O campo <code>evento_teste</code> do 4 h aparece preenchido com o mesmo rótulo em 117 linhas; a leitura segura da partição 4 h é o campo <code>rotacao</code>.</li>
-      <li>Não há 2 h CONV nem 4 h CONV no recorte qualificado: a comparação ALT/CONV só é justa em 8 h e 12 h.</li>
+      <li>Não há 2 h CONV nem 4 h CONV no recorte qualificado: a comparação ALT/CONV só é justa em 8 h e 12 h, e mesmo aí o resultado principal não a promove a ranking.</li>
       <li>A conversão régua → HAND/mancha, a calibração de probabilidade e o uso operacional continuam bloqueados. Replay de 2 h por evento existe; reconciliação auditável de 8 h/12 h por evento ainda está pendente.</li>
       <li>Os relatórios Codex originais no Google Drive pessoal não puderam ser reabertos neste ambiente. A melhoria usa as cópias já versionadas no repositório e o recorte consolidado do site.</li>
     </ul>
 
     <h2>7. Conclusões</h2>
-    <p>O recorte consolidado de Santa Tereza sustenta quatro afirmações, e só elas, neste rascunho:</p>
+    <p>O recorte consolidado de Santa Tereza sustenta quatro afirmações, e só elas, neste rascunho — cada uma ligada ao melhor modelo do horizonte:</p>
     <ol>
-      <li>Antecipar 2 h com MLP ALT de 15 inputs de nível (sem chuva) é estável nas dez rotações publicadas; o campeão já é o feed principal ao vivo, com MAE de teste de 3,5 cm.</li>
-      <li>Antecipar 4 h é igualmente denso no recorte (117 ALT com chuva, todas com equilíbrio &gt; 0,50), com MAE mediano de 14 cm.</li>
-      <li>Em 8 h não existe vencedor único: ALT generaliza melhor; CONV, quando equilibra, erra menos nos extremos. C0289 permanece a combinação a discutir, agora com duas leituras.</li>
-      <li>Em 12 h a viabilidade é pontual (quatro redes acima de 0,50). Mais eventos e novas montagens ainda são pesquisa aberta, não produto.</li>
+      <li>Em 2 h, o MLP ALT de 15 inputs de nível (sem chuva) <span class="mono">009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21</span> equilibra 0,969, com MAE de teste de 3,5 cm, e já é o feed principal ao vivo.</li>
+      <li>Em 4 h, o melhor é a montagem ampliada de 24 inputs com chuva, <span class="mono">V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000</span> (equilíbrio 0,846; MAE 13,9 cm).</li>
+      <li>Em 8 h, o melhor pelo equilíbrio é ALT C0289, <span class="mono">altR_004_08_8h_alt_8H_ALT_C0289</span> (0,694; MAE 32,0 cm). A CONV da mesma combinação, quando equilibra, erra menos nos extremos — ressalva de discussão, não segundo resultado.</li>
+      <li>Em 12 h, o melhor é CONV C0149, <span class="mono">004_conv_C0149_R01_T2_V1_3</span> (0,690; MAE 40,9 cm). A viabilidade nesse horizonte continua pontual.</li>
     </ol>
     <p>O próximo manuscrito deve acrescentar hidrogramas dos eventos de teste do campeão de cada horizonte, a tabela de rotação 4 h conferida contra as planilhas .xlsx, e a decisão explícita de qual 8 h (ALT equilíbrio vs CONV E95) entra em sombra — sem promover alerta.</p>
 
@@ -231,60 +218,57 @@
       function fill(name, text) {
         document.querySelectorAll('[data-fill="' + name + '"]').forEach(node => { node.textContent = text; });
       }
-      function table(id, headers, rows, caption) {
+      function champ(data, horizon) {
+        const row = data.champions && data.champions[horizon];
+        if (!row) return {};
+        return Array.isArray(row) ? (row[0] || {}) : row;
+      }
+      function table(id, headers, rows) {
         const el = document.getElementById(id);
         if (!el) return;
+        const cap = el.querySelector("caption");
         const head = "<thead><tr>" + headers.map(h => "<th" + (h.num ? ' class="num"' : "") + ">" + h.label + "</th>").join("") + "</tr></thead>";
         const body = "<tbody>" + rows.map(row => "<tr>" + row.map((cell, i) => {
-          const cls = headers[i] && headers[i].num ? ' class="num"' : (headers[i] && headers[i].mono ? ' class="mono"' : "");
+          const cls = headers[i] && headers[i].num ? ' class="num"' : (headers[i] && headers[i].cls ? ' class="' + headers[i].cls + '"' : "");
           return "<td" + cls + ">" + cell + "</td>";
         }).join("") + "</tr>").join("") + "</tbody>";
-        const cap = el.querySelector("caption");
         el.innerHTML = head + body;
         if (cap) el.appendChild(cap);
-        if (caption) { /* keep existing caption */ }
       }
       function render(data) {
         fill("n_models", String(data.n_models));
-        const byH = Object.fromEntries((data.by_horizon || []).map(row => [row.horizonte, row]));
-        fill("mae_2h", fmt(byH["2h"] && byH["2h"].MAE_teste_cm_mediana, 1));
-        fill("mae_4h", fmt(byH["4h"] && byH["4h"].MAE_teste_cm_mediana, 1));
-        fill("mae_8h", fmt(byH["8h"] && byH["8h"].MAE_teste_cm_mediana, 1));
-        fill("mae_12h", fmt(byH["12h"] && byH["12h"].MAE_teste_cm_mediana, 1));
-        const best2 = (data.champions && data.champions["2h"] && data.champions["2h"][0]) || {};
-        fill("best_2h", best2.modelo || "—");
+        const sets = data.n_unique_input_sets || {};
+        fill("sets_2h", String(sets["2h"] == null ? "—" : sets["2h"]));
+        fill("sets_4h", String(sets["4h"] == null ? "—" : sets["4h"]));
+        fill("sets_8h", String(sets["8h"] == null ? "—" : sets["8h"]));
+        fill("sets_12h", String(sets["12h"] == null ? "—" : sets["12h"]));
+        ["2h", "4h", "8h", "12h"].forEach(h => {
+          const row = champ(data, h);
+          fill("mae_" + h, fmt(row.MAE_teste_cm, 1));
+          fill("eq_" + h, fmt(row.score_equilibrio, 3));
+          fill("e95_" + h, fmt(row.E95_teste_cm, 1));
+          fill("best_" + h, row.modelo || "—");
+        });
+        const convE95 = data.eight_hour_extremes && data.eight_hour_extremes.conv && data.eight_hour_extremes.conv.menor_E95;
+        if (convE95) fill("e95_8h_conv", fmt(convE95.E95_teste_cm, 0));
         if (data.generated_at_utc) {
           document.getElementById("generated-at").textContent = " Tabelas geradas em " + data.generated_at_utc + ".";
         }
-        const famHeaders = [
-          {label: "Horizonte"}, {label: "Família"}, {label: "N", num: true},
-          {label: "Equil. med.", num: true}, {label: "Equil. máx.", num: true},
-          {label: "PERS teste", num: true}, {label: "MAE teste (cm)", num: true},
-          {label: "E95 teste (cm)", num: true}, {label: "N > 0,50", num: true}
-        ];
-        table("tbl-family", famHeaders, (data.by_family || []).filter(row => row.n).map(row => [
-          row.horizonte, tipo(row.tipo), String(row.n),
-          fmt(row.equilibrio_mediana, 3), fmt(row.equilibrio_max, 3),
-          fmt(row.PERS_teste_mediana, 3), fmt(row.MAE_teste_cm_mediana, 1),
-          fmt(row.E95_teste_cm_mediana, 1), String(row.n_equilibrio_gt_050)
-        ]));
-        const maxMae = Math.max(...(data.by_horizon || []).map(row => row.MAE_teste_cm_mediana || 0), 1);
-        document.getElementById("mae-bars").innerHTML = (data.by_horizon || []).map(row => {
-          const w = Math.max(8, 100 * (row.MAE_teste_cm_mediana || 0) / maxMae);
-          return '<div class="bar-row"><span>' + row.horizonte + '</span><span class="bar-track"><span class="bar-fill" style="width:' + w + '%"></span></span><span class="num">MAE ' + fmt(row.MAE_teste_cm_mediana, 1) + ' cm</span></div>';
-        }).join("");
-        table("tbl-2h",
-          [{label: "Modelo", mono: true}, {label: "Rotação"}, {label: "Teste"}, {label: "Equil.", num: true}, {label: "PERS teste", num: true}, {label: "MAE (cm)", num: true}, {label: "E95 (cm)", num: true}],
-          (data.two_hour_models || []).map(row => [
-            row.modelo, row.rotacao || "—", String(row.evento_teste || "—"),
-            fmt(row.score_equilibrio, 3), fmt(row.PERS_teste, 3),
-            fmt(row.MAE_teste_cm, 1), fmt(row.E95_teste_cm, 1)
+        table("tbl-combinations",
+          [{label: "Horizonte"}, {label: "Combinação"}, {label: "N var.", num: true}, {label: "Variáveis", cls: "vars"}],
+          (data.principal_combinations || []).map(row => [
+            row.horizonte,
+            '<span class="mono">' + (row.id || "—") + '</span>' + (row.label && row.label !== row.id ? " · " + row.label : ""),
+            String(row.n_inputs == null ? "—" : row.n_inputs),
+            (row.variables_short || []).join("; ")
           ])
         );
         const champRows = [];
+        const maeVals = [];
         ["2h", "4h", "8h", "12h"].forEach(h => {
-          const row = data.champions && data.champions[h] && data.champions[h][0];
-          if (!row) return;
+          const row = champ(data, h);
+          if (!row.modelo) return;
+          maeVals.push(row.MAE_teste_cm || 0);
           champRows.push([
             h, tipo(row.tipo), row.modelo, row.rotacao || "—",
             fmt(row.score_equilibrio, 3), fmt(row.PERS_teste, 3),
@@ -293,15 +277,16 @@
           ]);
         });
         table("tbl-champions",
-          [{label: "H"}, {label: "Fam."}, {label: "Modelo", mono: true}, {label: "Rotação"}, {label: "Equil.", num: true}, {label: "PERS t.", num: true}, {label: "MAE", num: true}, {label: "E95", num: true}, {label: "Chuva"}, {label: "In", num: true}, {label: "Nh", num: true}],
+          [{label: "H"}, {label: "Fam."}, {label: "Modelo", cls: "mono"}, {label: "Rotação"}, {label: "Equil.", num: true}, {label: "PERS t.", num: true}, {label: "MAE", num: true}, {label: "E95", num: true}, {label: "Chuva"}, {label: "In", num: true}, {label: "Nh", num: true}],
           champRows
         );
-        table("tbl-inputs",
-          [{label: "Input"}, {label: "% melhor quartil", num: true}, {label: "% recorte", num: true}],
-          (data.input_frequency_best_quartile || []).map(row => [
-            row.input, fmt(row.pct_melhor_quartil, 1) + " %", fmt(row.pct_recorte, 1) + " %"
-          ])
-        );
+        const maxMae = Math.max.apply(null, maeVals.concat([1]));
+        document.getElementById("mae-bars").innerHTML = ["2h", "4h", "8h", "12h"].map(h => {
+          const row = champ(data, h);
+          const mae = row.MAE_teste_cm || 0;
+          const w = Math.max(8, 100 * mae / maxMae);
+          return '<div class="bar-row"><span>' + h + '</span><span class="bar-track"><span class="bar-fill" style="width:' + w + '%"></span></span><span class="num">MAE ' + fmt(mae, 1) + ' cm</span></div>';
+        }).join("");
       }
       document.getElementById("print-article").addEventListener("click", function () { window.print(); });
       fetch("../assets/data/artigo_rna_santa_tereza.json", {cache: "no-store"})
