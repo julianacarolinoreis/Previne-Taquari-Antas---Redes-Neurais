@@ -1100,3 +1100,237 @@ body.territorio.is-cockpit .hud-leg {
   }
   body.territorio.is-cockpit .hud-leg { display: none; }
 }
+
+/* —— Sala de situação: mapa primeiro, HUD mínimo —— */
+body.territorio.is-sitroom .hud-top.sit-top {
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  transform: none;
+  width: auto;
+  max-width: none;
+  gap: 8px;
+  padding: 7px 10px;
+  flex-wrap: wrap;
+  background: rgba(245, 243, 236, .92);
+}
+body.territorio.is-sitroom .sit-cases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+}
+body.territorio.is-sitroom .sit-cases button {
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.75);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+body.territorio.is-sitroom .sit-cases button[aria-pressed="true"] {
+  background: var(--green);
+  border-color: var(--green);
+  color: #f5f3ec;
+}
+body.territorio.is-sitroom .load-status {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+body.territorio.is-sitroom .load-status.good { color: var(--green); }
+body.territorio.is-sitroom .load-status.bad { color: var(--gate); }
+
+body.territorio.is-sitroom .sit-board {
+  position: fixed;
+  z-index: 520;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  max-width: min(920px, calc(100vw - 24px));
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(245, 243, 236, .94);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 28px rgba(0,0,0,.16);
+  backdrop-filter: blur(8px);
+}
+body.territorio.is-sitroom .sit-threat {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  background: #e8efe9;
+  color: var(--ink);
+  white-space: nowrap;
+}
+body.territorio.is-sitroom .sit-threat[data-tone="up"],
+body.territorio.is-sitroom .sit-threat[data-tone="hot"] {
+  background: #ffe8d6;
+  color: #8a3b12;
+}
+body.territorio.is-sitroom .sit-threat[data-tone="down"] {
+  background: #e4f0ff;
+  color: #17548a;
+}
+body.territorio.is-sitroom .sit-threat[data-tone="flat"] {
+  background: #eef3ea;
+  color: var(--green);
+}
+body.territorio.is-sitroom .sit-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+body.territorio.is-sitroom .sit-metrics > div {
+  min-width: 68px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.8);
+  border: 1px solid var(--line);
+}
+body.territorio.is-sitroom .sit-metrics span {
+  display: block;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+body.territorio.is-sitroom .sit-metrics b {
+  display: block;
+  margin-top: 1px;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+body.territorio.is-sitroom .sit-decide {
+  margin: 0;
+  flex: 1 1 160px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+body.territorio.is-sitroom .hud-cockpit.sit-rail {
+  top: auto;
+  left: 12px;
+  bottom: 12px;
+  width: min(300px, calc(100vw - 24px));
+  max-height: min(42vh, 360px);
+  padding: 12px;
+  gap: 8px;
+  background: rgba(245, 243, 236, .95);
+}
+body.territorio.is-sitroom .sit-kicker {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--green);
+  font-weight: 800;
+}
+body.territorio.is-sitroom .sit-moment {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+body.territorio.is-sitroom .sit-exit {
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(15, 139, 70, .08);
+  border: 1px solid rgba(15, 139, 70, .28);
+}
+body.territorio.is-sitroom .sit-exit strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+body.territorio.is-sitroom .sit-exit p {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+}
+body.territorio.is-sitroom .sit-streets-label {
+  margin: 2px 0 0;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
+body.territorio.is-sitroom .street-priority.sit-streets {
+  max-height: none;
+  gap: 5px;
+}
+body.territorio.is-sitroom .street-btn {
+  padding: 7px 8px;
+}
+body.territorio.is-sitroom .street-btn b { font-size: 12.5px; }
+body.territorio.is-sitroom .compact-gate {
+  margin: 0;
+  padding: 6px 8px;
+  font-size: 11px;
+}
+body.territorio.is-sitroom .more-box summary {
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+body.territorio.is-sitroom .story-caption {
+  left: auto;
+  right: 12px;
+  bottom: 12px;
+  transform: none;
+  max-width: min(340px, calc(100vw - 340px));
+  text-align: left;
+  font-size: 12.5px;
+  padding: 8px 11px;
+}
+body.territorio.is-sitroom .hud-leg {
+  left: auto;
+  right: 12px;
+  bottom: 68px;
+  padding: 7px 9px;
+  font-size: 11px;
+}
+
+@media (max-width: 980px) {
+  body.territorio.is-sitroom .sit-board {
+    top: 108px;
+    left: 10px;
+    right: 10px;
+    transform: none;
+    max-width: none;
+  }
+  body.territorio.is-sitroom .hud-cockpit.sit-rail {
+    top: auto;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    width: auto;
+    max-height: 38vh;
+  }
+  body.territorio.is-sitroom .story-caption {
+    left: 10px;
+    right: 10px;
+    bottom: calc(38vh + 18px);
+    max-width: none;
+  }
+  body.territorio.is-sitroom .hud-leg { display: none; }
+  body.territorio.is-sitroom .hud-top.sit-top #story-play {
+    display: none;
+  }
+}
+
