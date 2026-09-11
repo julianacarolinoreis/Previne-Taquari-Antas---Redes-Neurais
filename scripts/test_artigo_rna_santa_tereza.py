@@ -124,6 +124,7 @@ class ArtigoRnaSantaTerezaTests(unittest.TestCase):
         self.assertIn("principal_combinations", self.page)
         self.assertIn("row.MAE_teste_cm", self.page)
         self.assertNotIn("MAE_teste_cm_mediana", self.page)
+        self.assertRegex(self.page, r"\.bar-fill\s*\{[^}]*display:\s*block")
 
     def test_manuscript_keeps_the_consolidated_claims(self) -> None:
         self.assertIn("282", self.manuscript)
