@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0c2a22">
-  <meta name="description" content="Painel de leitura territorial PREVINE: RNA em horas, ruas sob a mancha e caminho até abrigo seco em Santa Tereza e Muçum. Pesquisa — não é alerta.">
-  <title>PREVINE · painel de decisão · território</title>
+  <meta name="description" content="Estudo de caso PREVINE: a rede vê o rio subir, o mapa mostra onde a água cobre as ruas, e o toque indica o caminho até o abrigo seco. Pesquisa — não é alerta.">
+  <title>PREVINE · estudo de caso · território</title>
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="../assets/css/estudo_caso_territorio.css">
@@ -13,12 +13,12 @@
 <body class="territorio stage is-cockpit">
   <a class="skip" href="#map">Pular para o mapa</a>
 
-  <div id="map" role="application" aria-label="Mapa do painel territorial"></div>
+  <div id="map" role="application" aria-label="Mapa do estudo de caso"></div>
 
   <header class="hud hud-top" id="conteudo">
     <div class="hud-brand">
       <a class="brand" href="../projeto.html">PREVINE</a>
-      <p class="eyebrow">pesquisa · não é alerta oficial</p>
+      <p class="eyebrow">estudo de caso · não é alerta</p>
     </div>
     <div class="city-row" role="group" aria-label="Município">
       <button type="button" data-city="santa_tereza" aria-pressed="true">Santa Tereza</button>
@@ -28,21 +28,23 @@
     <p class="load-status" id="load-status">carregando…</p>
   </header>
 
-  <!-- Um painel só: o que fazer com o que se vê -->
-  <aside class="hud hud-cockpit" id="hud-cockpit" aria-label="Painel de decisão">
+  <aside class="hud hud-cockpit" id="hud-cockpit" aria-label="Leitura do estudo">
     <h1 id="city-label">Santa Tereza</h1>
-    <p class="meta-line" id="meta-line">centro urbano</p>
+    <p class="lead-line" id="lead-line">Três passos: o rio sobe → as ruas com água → o caminho até o seco.</p>
 
-    <div class="case-row" id="case-row" role="group" aria-label="Estudo de caso acoplado"></div>
-    <p class="case-banner" id="case-banner" role="status">Ao vivo · régua corrente; mancha HAND publicada (sem conversão).</p>
+    <div class="case-block">
+      <p class="case-label" id="case-label">Qual momento olhar?</p>
+      <div class="case-row" id="case-row" role="group" aria-label="Momento do estudo"></div>
+      <p class="case-banner" id="case-banner" role="status">Escolha um momento acima.</p>
+    </div>
 
     <section class="cockpit-block" aria-labelledby="blk-rio">
-      <h2 id="blk-rio">1 · O rio nas próximas horas</h2>
-      <p class="decide-line" id="rna-decide">Carregando a régua…</p>
-      <div class="rna-hours" aria-label="RNA agora e +2 horas">
+      <h2 id="blk-rio">1 · O rio</h2>
+      <p class="decide-line" id="rna-decide">Carregando a altura do rio…</p>
+      <div class="rna-hours" aria-label="Altura do rio agora e nas próximas horas">
         <div><span>Agora</span><b id="rna-agora">—</b></div>
         <div><span>+2 horas</span><b id="rna-prev">—</b></div>
-        <div><span>Cota ref.</span><b id="rna-bank">—</b></div>
+        <div><span>Referência</span><b id="rna-bank">—</b></div>
       </div>
       <div class="gauge" aria-hidden="true">
         <div class="gauge-scale">
@@ -52,47 +54,48 @@
         </div>
       </div>
       <p class="micro" id="rna-agora-s"></p>
-      <p class="micro warnish" id="rna-note-inline">A régua (cm) ainda não escolhe sozinha a mancha (m).</p>
+      <p class="micro warnish" id="rna-note-inline">A altura do rio (cm) e a mancha azul do mapa ainda não são a mesma coisa.</p>
     </section>
 
     <section class="cockpit-block" aria-labelledby="blk-ruas">
-      <h2 id="blk-ruas">2 · Ruas sob a mancha agora</h2>
-      <p class="micro" id="street-count">Prioridade = trechos OSM já dentro da mancha do cenário · toque para ver a saída.</p>
-      <ol class="street-priority" id="street-priority" aria-label="Ruas prioritárias"></ol>
+      <h2 id="blk-ruas">2 · Ruas com água</h2>
+      <p class="micro" id="street-count">Laranja no mapa = rua sob a mancha. Toque uma para ver a saída.</p>
+      <ol class="street-priority" id="street-priority" aria-label="Ruas sob a mancha"></ol>
     </section>
 
     <section class="cockpit-block" aria-labelledby="blk-rota">
-      <h2 id="blk-rota">3 · Caminho até o seco</h2>
+      <h2 id="blk-rota">3 · Até o abrigo seco</h2>
       <div class="live-card" id="live-card">
-        <strong id="live-title">Toque uma rua ou o mapa</strong>
-        <p id="live-copy">Mostra o abrigo mais próximo no grafo e quantos km (e trecho ainda sob água do cenário).</p>
+        <strong id="live-title">Toque uma rua laranja ou o mapa</strong>
+        <p id="live-copy">Mostra o abrigo mais perto e quantos km faltam (e quanto ainda passa sob água no cenário).</p>
         <div class="rota-metrics" id="rota-metrics" hidden></div>
       </div>
     </section>
 
-    <p class="gate-line compact-gate"><strong>Não é ordem de evacuação.</strong> Apoio de leitura de pesquisa — Defesa Civil e regra municipal mandam no operacional.</p>
+    <p class="gate-line compact-gate"><strong>Não é ordem de evacuação.</strong> Isto é estudo — quem manda no operacional é a Defesa Civil.</p>
 
     <div class="cockpit-actions">
-      <button type="button" id="story-play" class="btn-primary" aria-pressed="false">▶ Apresentar</button>
+      <button type="button" id="story-play" class="btn-primary" aria-pressed="false">▶ Contar a história</button>
       <button type="button" id="story-prev" class="btn-ghost visually-hidden">←</button>
       <button type="button" id="story-next" class="btn-ghost visually-hidden">→</button>
     </div>
 
     <details class="more-box" id="panel-tools">
-      <summary>Camadas e links</summary>
-      <div class="level-row" id="level-row" role="group" aria-label="Nível HAND"></div>
+      <summary>Mais opções (camadas e links)</summary>
+      <p class="micro" id="meta-line">cenário no mapa</p>
+      <div class="level-row" id="level-row" role="group" aria-label="Cenário de inundação no mapa"></div>
       <div class="layer-toggles">
-        <label><input type="checkbox" id="ly-mancha" checked> Mancha</label>
-        <label><input type="checkbox" id="ly-grade" checked> Grade</label>
+        <label><input type="checkbox" id="ly-mancha" checked> Mancha azul</label>
+        <label><input type="checkbox" id="ly-grade" checked> Quadrados IBGE</label>
         <label><input type="checkbox" id="ly-ruas" checked> Ruas</label>
-        <label><input type="checkbox" id="ly-flood" checked> Ruas sob água</label>
-        <label><input type="checkbox" id="ly-marks" checked> Marcas (Hotel…)</label>
+        <label><input type="checkbox" id="ly-flood" checked> Ruas com água</label>
+        <label><input type="checkbox" id="ly-marks" checked> Marcas no chão</label>
         <label><input type="checkbox" id="ly-abrigos" checked> Abrigos</label>
-        <label><input type="checkbox" id="ly-rota" checked> Rota</label>
+        <label><input type="checkbox" id="ly-rota" checked> Rota verde</label>
       </div>
       <div class="basemap-row" role="group" aria-label="Fundo do mapa">
         <button type="button" data-basemap="sat" aria-pressed="true">Satélite</button>
-        <button type="button" data-basemap="osm" aria-pressed="false">Ruas OSM</button>
+        <button type="button" data-basemap="osm" aria-pressed="false">Ruas</button>
       </div>
       <div class="links" id="city-links"></div>
       <div class="stats-mini visually-hidden" aria-hidden="true">
@@ -108,7 +111,6 @@
       <span class="visually-hidden" id="gauge-delta">Δ —</span>
     </details>
 
-    <!-- Roteiro oculto mas presente para Apresentar / testes -->
     <ol class="story-steps visually-hidden" id="story-steps" aria-hidden="true">
       <li><button type="button" data-story="territorio" aria-pressed="true"><b>1</b><span>Lugar</span></button></li>
       <li><button type="button" data-story="rna" aria-pressed="false"><b>2</b><span>Régua</span></button></li>
@@ -120,9 +122,8 @@
     </ol>
   </aside>
 
-  <p class="story-caption" id="story-caption" aria-live="polite">Toque uma rua laranja ou o mapa → caminho até o abrigo seco</p>
+  <p class="story-caption" id="story-caption" aria-live="polite">Toque uma rua laranja → caminho até o abrigo seco</p>
 
-  <!-- legado / testes -->
   <p class="vertical-ledger visually-hidden" id="vertical-ledger" aria-hidden="true">
     <span><b id="ledger-rna">—</b></span>
     <span><b id="ledger-hand">—</b></span>
@@ -139,10 +140,10 @@
   <p class="rna-note visually-hidden" id="rna-note"></p>
 
   <div class="hud hud-sheet" id="hud-sheet" aria-label="Leitura móvel">
-    <div class="sheet-gate" id="sheet-gate"><strong>Não é alerta.</strong> Régua em cm · mancha em m · pesquisa.</div>
+    <div class="sheet-gate" id="sheet-gate"><strong>Não é alerta.</strong> Estudo de caso.</div>
     <div class="sheet-live">
       <strong id="sheet-title">Toque o mapa ou uma rua</strong>
-      <p id="sheet-copy">Rio → ruas sob água → caminho até o seco.</p>
+      <p id="sheet-copy">Rio → ruas com água → caminho até o seco.</p>
       <div class="rota-metrics" id="sheet-rota" hidden></div>
     </div>
   </div>
@@ -150,8 +151,9 @@
   <div class="hud hud-leg" id="map-legend" aria-label="Legenda">
     <div class="legend-scale">
       <span><i style="background:#176ca8"></i>mancha</span>
-      <span><i style="background:#c45c26"></i>rua sob água</span>
-      <span><i style="background:#0f8b46"></i>rota ao abrigo</span>
+      <span><i style="background:#c45c26"></i>rua com água</span>
+      <span><i style="background:#0f8b46"></i>rota</span>
+      <span><i style="background:#f0c14a"></i>marca no chão</span>
       <span><i style="background:#f5c76b"></i>abrigo</span>
     </div>
   </div>
@@ -159,13 +161,13 @@
   <div class="chain visually-hidden" aria-hidden="true">
     <span data-step="rna"></span><span data-step="mancha"></span><span data-step="grade"></span><span data-step="ruas"></span><span data-step="pessoas"></span><span data-step="rotas"></span>
   </div>
-  <div class="howto visually-hidden" aria-hidden="true">atenção espacial · não é alerta</div>
+  <div class="howto visually-hidden" aria-hidden="true">estudo de caso · não é alerta</div>
   <div class="gate visually-hidden" aria-hidden="true">
-    <strong>Quem sai primeiro? Pendente</strong>
-    <p>Conversão régua ↔ HAND ainda falta. Isto é estudo de caso, não despacho.</p>
+    <strong>Não é despacho</strong>
+    <p>Estudo de caso. Defesa Civil manda no operacional.</p>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="../assets/js/estudo_caso_territorio.js?v=20260910-casos"></script>
+  <script src="../assets/js/estudo_caso_territorio.js?v=20260911-claro"></script>
 </body>
 </html>
