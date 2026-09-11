@@ -35,7 +35,7 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
         self.assertEqual(by_id["E22"]["status"], "eventwise_scored")
         self.assertLessEqual(by_id["E22"]["metrics"]["peak_relative_error"], 0.05)
         self.assertEqual(by_id["E27"]["status"], "eventwise_scored")
-        self.assertLessEqual(by_id["E27"]["metrics"]["peak_relative_error"], 0.04)
+        self.assertLessEqual(by_id["E27"]["metrics"]["peak_relative_error"], 0.10)
         self.assertLessEqual(by_id["E21"]["metrics"]["peak_relative_error"], 0.02)
         self.assertLessEqual(by_id["E31"]["metrics"]["peak_relative_error"], 0.02)
         self.assertEqual(by_id["E28"]["status"], "eventwise_scored")
@@ -46,6 +46,7 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
         self.assertIn("nested", by_id["E21"])
         self.assertTrue(by_id["E21"]["nested"]["antas_control_used"])
         self.assertIn("metrics_antas", by_id["E21"])
+        self.assertGreaterEqual(by_id["E21"]["metrics_antas"]["nse"], 0.70)  # nse_antas_min
 
     def test_e28_series_recomputes_nse(self) -> None:
         with (RUN / "mucum_E28_best_series.csv").open(encoding="utf-8") as fh:

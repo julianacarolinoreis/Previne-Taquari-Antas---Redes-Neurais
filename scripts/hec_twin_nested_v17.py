@@ -285,7 +285,64 @@ def best_nested_for_event(
                 best_antas_metrics, best_a_score = m_a, sc_a
             best_net = run_network(precip, areas, best, include_mucum_increment=True)
 
-    detail = {
+    # Stage C — Muçum peak polish with soft Antas floor
+    floor_antas = None if not antas_ok else (best_a_score - 0.12)
+    peak_pool: list[NestedParams] = [best]
+    for dn in local_zone_neighbors(best.dn):
+        for k2 in (max(0.25, best.k2 - 0.5), best.k2, best.k2 + 0.5):
+            for k3 in (max(0.25, best.k3 - 0.5), best.k3, best.k3 + 0.5):
+                peak_pool.append(
+                    NestedParams(up=best.up, dn=dn, k1=best.k1, k2=k2, k3=k3, x=best.x)
+                )
+    peak_pool = peak_pool[:220]
+    best_peak_obj = (
+        best_m_metrics["nse"]
+        - 0.02 * abs(best_m_metrics.get("peak_lag_hours", 0) or 0)
+        - 2.5 * float(best_m_metrics.get("peak_relative_error") or 9)
+    )
+    for cand in peak_pool:
+        m_m, sc_m, sim_m = score_junction(
+            precip,
+            areas,
+            cand,
+            hours,
+            flow_mucum,
+            core_offset=core_offset,
+            core_hours=core_hours,
+            junction="at_mucum",
+        )
+        if antas_ok:
+            m_a, sc_a, _ = score_junction(
+                precip,
+                areas,
+                cand,
+                hours,
+                flow_antas,
+                core_offset=core_offset,
+                core_hours=core_hours,
+                junction="at_antas",
+            )
+            if floor_antas is not None and sc_a < floor_antas:
+                continue
+        else:
+            m_a, sc_a = None, None
+        peak_obj = (
+            m_m["nse"]
+            - 0.02 * abs(m_m.get("peak_lag_hours", 0) or 0)
+            - 2.5 * float(m_m.get("peak_relative_error") or 9)
+        )
+        if peak_obj > best_peak_obj:
+            best_peak_obj = peak_obj
+            best = cand
+            best_m_metrics, best_m_score, best_sim_mucum = m_m, sc_m, sim_m
+            if m_a is not None and sc_a is not None:
+                best_antas_metrics, best_a_score = m_a, sc_a
+            best_combo = nested_combined_score(
+                sc_a if antas_ok else None, sc_m, antas_available=antas_ok
+            )
+            best_net = run_network(precip, areas, best, include_mucum_increment=True)
+
+        detail = {
         "mucum": best_m_metrics,
         "antas": best_antas_metrics if antas_ok else None,
         "antas_control_used": antas_ok,
@@ -295,7 +352,7 @@ def best_nested_for_event(
         "score_antas": best_a_score if antas_ok else None,
         "score_combined": best_combo,
         "stage": (
-            "antas_then_mucum_then_combined_polish"
+            "antas_then_mucum_combined_then_mucum_peak_polish"
             if antas_ok
             else "mucum_only_fallback_no_antas_q"
         ),
