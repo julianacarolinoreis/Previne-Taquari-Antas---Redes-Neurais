@@ -26,3 +26,16 @@ python scripts/build_estudo_pluvio_recorte.py
 ## Decisao de recorte
 
 Leia `recorte_modelo.html` antes de qualquer HEC.
+
+## Decisão de previsão (multi-dia / evacuação)
+
+**Primário ~5 dias:** gêmeo HEC + chuva IFS (`hec_twin_mucum_forward_5d.html`).
+
+**Curto prazo:** RNA de nível STZ/Muçum.
+
+STZ sem curva-chave: HEC não publica N em STZ.
+
+```bash
+python3 scripts/build_hec_twin_ifs_forcing_5d.py
+python3 scripts/run_hec_twin_mucum_forward_5d.py
+```

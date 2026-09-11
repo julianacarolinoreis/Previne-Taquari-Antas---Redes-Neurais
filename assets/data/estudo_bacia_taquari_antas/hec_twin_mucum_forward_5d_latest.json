@@ -1,0 +1,2200 @@
+{
+  "schema_version": "hec_twin_mucum_forward_5d_v1",
+  "generated_at_utc": "2026-09-11T19:57:45Z",
+  "status": "research_forward_5d_ready",
+  "label": "PESQUISA — previsão ~5 dias Muçum via gêmeo HEC + IFS. NÃO é alerta oficial / evacuação autorizada.",
+  "purpose": "Antecedência multi-dia (chuva prevista → Q → N em Muçum) para estudo de evacuação. RNA continua no curto prazo; HEC+QPF é o caminho de ~5 dias.",
+  "decision_alignment": {
+    "primary_for_multiday": "HEC_twin_plus_IFS_QPF",
+    "short_horizon_complement": "RNA_nivel_2h_4h_8h",
+    "stz_rating_curve": "absent — no N@STZ from HEC; Q@STZ diagnostic only",
+    "do_not": [
+      "invent_stz_rating_curve",
+      "promote_common_search_params",
+      "call_this_official_alert"
+    ]
+  },
+  "forcing": {
+    "artifact": "hec_twin_ifs_forcing_5d_latest.json",
+    "model": "ecmwf_ifs025_open_meteo",
+    "horizon_hours": 120,
+    "area_weighted_total_mm": 34.682,
+    "generated_at_utc": "2026-09-11T19:57:45Z",
+    "point_proxy_not_areal_mask": true
+  },
+  "param_selection": {
+    "method": "analog_eventwise_by_core_rain_mm",
+    "forced_event_id": null,
+    "analogs": [
+      {
+        "event_id": "E23",
+        "historical_core_mean_mm": 33.983,
+        "forecast_aw_total_mm": 34.682,
+        "abs_mm_gap": 0.7,
+        "nse": 0.8126364483782181,
+        "research_score": 0.6573785691229445
+      },
+      {
+        "event_id": "E20",
+        "historical_core_mean_mm": 31.133,
+        "forecast_aw_total_mm": 34.682,
+        "abs_mm_gap": 3.55,
+        "nse": 0.9307845686411361,
+        "research_score": 0.8165935139475657
+      },
+      {
+        "event_id": "E31",
+        "historical_core_mean_mm": 60.832,
+        "forecast_aw_total_mm": 34.682,
+        "abs_mm_gap": 26.15,
+        "nse": 0.9046638593707779,
+        "research_score": 0.913169021845677
+      }
+    ],
+    "common_search": "blocked_not_used"
+  },
+  "primary_member": {
+    "event_id": "E23",
+    "peak_q_mucum_m3s": 1489.234,
+    "peak_time_utc": "2026-09-13T01:00:00Z",
+    "peak_stage_mucum_cm": 542.34,
+    "params": {
+      "upstream": {
+        "initial_loss": 0.5,
+        "constant_loss": 1.0,
+        "tc": 25.0,
+        "storage": 40.0,
+        "recession": 0.98,
+        "initial_flow_ratio": 0.0025
+      },
+      "downstream": {
+        "initial_loss": 0.0,
+        "constant_loss": 0.0,
+        "tc": 25.0,
+        "storage": 35.0,
+        "recession": 0.75,
+        "initial_flow_ratio": 0.001
+      },
+      "k1": 0.25,
+      "k2": 4.0,
+      "k3": 4.5,
+      "x": 0.2
+    }
+  },
+  "ensemble_members": [
+    {
+      "event_id": "E23",
+      "analog": {
+        "event_id": "E23",
+        "historical_core_mean_mm": 33.983,
+        "forecast_aw_total_mm": 34.682,
+        "abs_mm_gap": 0.7,
+        "nse": 0.8126364483782181,
+        "research_score": 0.6573785691229445
+      },
+      "peak_q_mucum_m3s": 1489.234,
+      "peak_time_utc": "2026-09-13T01:00:00Z",
+      "peak_stage_mucum_cm": 542.34
+    },
+    {
+      "event_id": "E20",
+      "analog": {
+        "event_id": "E20",
+        "historical_core_mean_mm": 31.133,
+        "forecast_aw_total_mm": 34.682,
+        "abs_mm_gap": 3.55,
+        "nse": 0.9307845686411361,
+        "research_score": 0.8165935139475657
+      },
+      "peak_q_mucum_m3s": 1238.663,
+      "peak_time_utc": "2026-09-12T20:00:00Z",
+      "peak_stage_mucum_cm": 483.94
+    },
+    {
+      "event_id": "E31",
+      "analog": {
+        "event_id": "E31",
+        "historical_core_mean_mm": 60.832,
+        "forecast_aw_total_mm": 34.682,
+        "abs_mm_gap": 26.15,
+        "nse": 0.9046638593707779,
+        "research_score": 0.913169021845677
+      },
+      "peak_q_mucum_m3s": 2772.854,
+      "peak_time_utc": "2026-09-12T16:00:00Z",
+      "peak_stage_mucum_cm": 1140.07
+    }
+  ],
+  "series_primary": {
+    "time_utc": [
+      "2026-09-11T00:00:00Z",
+      "2026-09-11T01:00:00Z",
+      "2026-09-11T02:00:00Z",
+      "2026-09-11T03:00:00Z",
+      "2026-09-11T04:00:00Z",
+      "2026-09-11T05:00:00Z",
+      "2026-09-11T06:00:00Z",
+      "2026-09-11T07:00:00Z",
+      "2026-09-11T08:00:00Z",
+      "2026-09-11T09:00:00Z",
+      "2026-09-11T10:00:00Z",
+      "2026-09-11T11:00:00Z",
+      "2026-09-11T12:00:00Z",
+      "2026-09-11T13:00:00Z",
+      "2026-09-11T14:00:00Z",
+      "2026-09-11T15:00:00Z",
+      "2026-09-11T16:00:00Z",
+      "2026-09-11T17:00:00Z",
+      "2026-09-11T18:00:00Z",
+      "2026-09-11T19:00:00Z",
+      "2026-09-11T20:00:00Z",
+      "2026-09-11T21:00:00Z",
+      "2026-09-11T22:00:00Z",
+      "2026-09-11T23:00:00Z",
+      "2026-09-12T00:00:00Z",
+      "2026-09-12T01:00:00Z",
+      "2026-09-12T02:00:00Z",
+      "2026-09-12T03:00:00Z",
+      "2026-09-12T04:00:00Z",
+      "2026-09-12T05:00:00Z",
+      "2026-09-12T06:00:00Z",
+      "2026-09-12T07:00:00Z",
+      "2026-09-12T08:00:00Z",
+      "2026-09-12T09:00:00Z",
+      "2026-09-12T10:00:00Z",
+      "2026-09-12T11:00:00Z",
+      "2026-09-12T12:00:00Z",
+      "2026-09-12T13:00:00Z",
+      "2026-09-12T14:00:00Z",
+      "2026-09-12T15:00:00Z",
+      "2026-09-12T16:00:00Z",
+      "2026-09-12T17:00:00Z",
+      "2026-09-12T18:00:00Z",
+      "2026-09-12T19:00:00Z",
+      "2026-09-12T20:00:00Z",
+      "2026-09-12T21:00:00Z",
+      "2026-09-12T22:00:00Z",
+      "2026-09-12T23:00:00Z",
+      "2026-09-13T00:00:00Z",
+      "2026-09-13T01:00:00Z",
+      "2026-09-13T02:00:00Z",
+      "2026-09-13T03:00:00Z",
+      "2026-09-13T04:00:00Z",
+      "2026-09-13T05:00:00Z",
+      "2026-09-13T06:00:00Z",
+      "2026-09-13T07:00:00Z",
+      "2026-09-13T08:00:00Z",
+      "2026-09-13T09:00:00Z",
+      "2026-09-13T10:00:00Z",
+      "2026-09-13T11:00:00Z",
+      "2026-09-13T12:00:00Z",
+      "2026-09-13T13:00:00Z",
+      "2026-09-13T14:00:00Z",
+      "2026-09-13T15:00:00Z",
+      "2026-09-13T16:00:00Z",
+      "2026-09-13T17:00:00Z",
+      "2026-09-13T18:00:00Z",
+      "2026-09-13T19:00:00Z",
+      "2026-09-13T20:00:00Z",
+      "2026-09-13T21:00:00Z",
+      "2026-09-13T22:00:00Z",
+      "2026-09-13T23:00:00Z",
+      "2026-09-14T00:00:00Z",
+      "2026-09-14T01:00:00Z",
+      "2026-09-14T02:00:00Z",
+      "2026-09-14T03:00:00Z",
+      "2026-09-14T04:00:00Z",
+      "2026-09-14T05:00:00Z",
+      "2026-09-14T06:00:00Z",
+      "2026-09-14T07:00:00Z",
+      "2026-09-14T08:00:00Z",
+      "2026-09-14T09:00:00Z",
+      "2026-09-14T10:00:00Z",
+      "2026-09-14T11:00:00Z",
+      "2026-09-14T12:00:00Z",
+      "2026-09-14T13:00:00Z",
+      "2026-09-14T14:00:00Z",
+      "2026-09-14T15:00:00Z",
+      "2026-09-14T16:00:00Z",
+      "2026-09-14T17:00:00Z",
+      "2026-09-14T18:00:00Z",
+      "2026-09-14T19:00:00Z",
+      "2026-09-14T20:00:00Z",
+      "2026-09-14T21:00:00Z",
+      "2026-09-14T22:00:00Z",
+      "2026-09-14T23:00:00Z",
+      "2026-09-15T00:00:00Z",
+      "2026-09-15T01:00:00Z",
+      "2026-09-15T02:00:00Z",
+      "2026-09-15T03:00:00Z",
+      "2026-09-15T04:00:00Z",
+      "2026-09-15T05:00:00Z",
+      "2026-09-15T06:00:00Z",
+      "2026-09-15T07:00:00Z",
+      "2026-09-15T08:00:00Z",
+      "2026-09-15T09:00:00Z",
+      "2026-09-15T10:00:00Z",
+      "2026-09-15T11:00:00Z",
+      "2026-09-15T12:00:00Z",
+      "2026-09-15T13:00:00Z",
+      "2026-09-15T14:00:00Z",
+      "2026-09-15T15:00:00Z",
+      "2026-09-15T16:00:00Z",
+      "2026-09-15T17:00:00Z",
+      "2026-09-15T18:00:00Z",
+      "2026-09-15T19:00:00Z",
+      "2026-09-15T20:00:00Z",
+      "2026-09-15T21:00:00Z",
+      "2026-09-15T22:00:00Z",
+      "2026-09-15T23:00:00Z"
+    ],
+    "q_mucum_m3s": [
+      35.585,
+      35.541,
+      35.513,
+      35.46,
+      35.353,
+      35.24,
+      35.158,
+      35.138,
+      35.215,
+      35.404,
+      35.704,
+      36.094,
+      36.572,
+      37.353,
+      38.297,
+      39.543,
+      41.863,
+      45.57,
+      51.537,
+      61.321,
+      77.427,
+      101.573,
+      133.666,
+      173.156,
+      219.071,
+      270.386,
+      326.082,
+      385.194,
+      446.829,
+      510.193,
+      574.607,
+      639.513,
+      704.482,
+      769.156,
+      833.256,
+      896.577,
+      958.977,
+      1020.339,
+      1080.357,
+      1139.103,
+      1196.394,
+      1251.427,
+      1303.872,
+      1352.838,
+      1396.763,
+      1433.14,
+      1460.25,
+      1478.19,
+      1487.523,
+      1489.234,
+      1484.366,
+      1473.968,
+      1459.02,
+      1440.412,
+      1418.922,
+      1395.209,
+      1369.827,
+      1343.221,
+      1315.779,
+      1287.822,
+      1259.611,
+      1231.356,
+      1203.215,
+      1175.321,
+      1147.77,
+      1120.647,
+      1094.005,
+      1067.889,
+      1042.33,
+      1017.353,
+      992.968,
+      969.192,
+      946.027,
+      923.467,
+      901.5,
+      880.113,
+      859.29,
+      839.015,
+      819.273,
+      800.048,
+      781.319,
+      763.073,
+      745.292,
+      727.937,
+      710.986,
+      694.447,
+      678.312,
+      662.593,
+      647.287,
+      632.42,
+      617.985,
+      603.969,
+      590.359,
+      577.134,
+      564.27,
+      551.748,
+      539.541,
+      527.633,
+      516.01,
+      504.666,
+      493.593,
+      482.786,
+      472.24,
+      461.95,
+      451.911,
+      442.12,
+      432.577,
+      423.274,
+      414.219,
+      405.41,
+      396.818,
+      388.433,
+      380.223,
+      372.175,
+      364.247,
+      356.413,
+      348.664,
+      340.989,
+      333.392,
+      325.881
+    ],
+    "q_antas_m3s": [
+      32.297,
+      31.651,
+      31.018,
+      30.397,
+      29.789,
+      29.194,
+      28.61,
+      28.038,
+      27.477,
+      26.927,
+      26.389,
+      25.861,
+      25.344,
+      29.821,
+      39.171,
+      53.271,
+      82.687,
+      127.04,
+      185.961,
+      243.426,
+      299.469,
+      354.127,
+      407.433,
+      459.421,
+      510.124,
+      559.572,
+      607.798,
+      654.832,
+      700.702,
+      745.439,
+      789.068,
+      831.619,
+      873.118,
+      913.591,
+      953.062,
+      991.558,
+      1029.101,
+      1065.716,
+      1096.442,
+      1121.422,
+      1140.8,
+      1144.032,
+      1131.518,
+      1103.645,
+      1076.46,
+      1049.944,
+      1024.082,
+      998.857,
+      974.254,
+      950.257,
+      926.851,
+      904.022,
+      881.756,
+      860.038,
+      838.856,
+      818.195,
+      798.044,
+      778.389,
+      759.218,
+      740.52,
+      722.283,
+      704.494,
+      687.145,
+      670.222,
+      653.717,
+      637.618,
+      621.916,
+      606.601,
+      591.663,
+      577.093,
+      562.882,
+      549.021,
+      535.502,
+      522.316,
+      509.454,
+      496.91,
+      484.674,
+      472.74,
+      461.1,
+      449.747,
+      438.673,
+      427.873,
+      417.338,
+      407.063,
+      397.041,
+      387.265,
+      377.731,
+      368.431,
+      359.361,
+      350.514,
+      341.885,
+      333.468,
+      325.259,
+      317.252,
+      309.442,
+      301.825,
+      294.395,
+      287.148,
+      280.08,
+      273.185,
+      266.461,
+      259.902,
+      253.505,
+      247.265,
+      241.179,
+      235.243,
+      229.453,
+      223.805,
+      218.297,
+      212.924,
+      207.684,
+      202.572,
+      197.587,
+      192.724,
+      187.981,
+      183.355,
+      178.843,
+      174.442,
+      170.149,
+      165.962
+    ],
+    "q_stz_diagnostic_m3s": [
+      35.395,
+      35.362,
+      35.19,
+      34.922,
+      34.789,
+      34.802,
+      34.992,
+      35.366,
+      35.881,
+      36.499,
+      37.165,
+      37.927,
+      38.82,
+      39.77,
+      42.019,
+      47.419,
+      56.186,
+      71.379,
+      97.159,
+      136.318,
+      187.013,
+      244.611,
+      307.139,
+      372.651,
+      439.997,
+      508.288,
+      576.782,
+      644.904,
+      712.24,
+      778.501,
+      843.56,
+      907.331,
+      969.712,
+      1030.693,
+      1090.275,
+      1148.497,
+      1205.305,
+      1260.68,
+      1314.706,
+      1366.158,
+      1413.209,
+      1455.645,
+      1490.412,
+      1513.365,
+      1521.73,
+      1517.37,
+      1504.934,
+      1486.418,
+      1463.795,
+      1438.241,
+      1410.692,
+      1381.849,
+      1352.24,
+      1322.254,
+      1292.137,
+      1262.069,
+      1232.202,
+      1202.688,
+      1173.651,
+      1145.161,
+      1117.265,
+      1089.985,
+      1063.353,
+      1037.392,
+      1012.103,
+      987.459,
+      963.468,
+      940.128,
+      917.433,
+      895.376,
+      873.945,
+      853.112,
+      832.849,
+      813.13,
+      793.935,
+      775.245,
+      757.042,
+      739.312,
+      722.039,
+      705.212,
+      688.814,
+      672.81,
+      657.16,
+      641.87,
+      626.956,
+      612.44,
+      598.381,
+      584.786,
+      571.65,
+      558.913,
+      546.545,
+      534.529,
+      522.82,
+      511.386,
+      500.202,
+      489.251,
+      478.542,
+      468.077,
+      457.858,
+      447.885,
+      438.155,
+      428.665,
+      419.411,
+      410.388,
+      401.592,
+      393.017,
+      384.661,
+      376.556,
+      368.665,
+      360.962,
+      353.411,
+      345.95,
+      338.532,
+      331.109,
+      323.712,
+      316.364,
+      309.074,
+      301.875,
+      294.791,
+      287.839
+    ],
+    "n_mucum_cm": [
+      59.9,
+      59.85,
+      59.82,
+      59.77,
+      59.65,
+      59.54,
+      59.45,
+      59.43,
+      59.51,
+      59.71,
+      60.02,
+      60.43,
+      60.92,
+      61.73,
+      62.7,
+      63.96,
+      66.27,
+      69.86,
+      75.42,
+      84.04,
+      97.19,
+      115.1,
+      136.6,
+      160.55,
+      185.93,
+      212.04,
+      238.35,
+      264.48,
+      290.18,
+      315.24,
+      339.55,
+      321.59,
+      341.41,
+      360.46,
+      378.74,
+      396.28,
+      413.11,
+      429.26,
+      444.7,
+      459.5,
+      473.66,
+      487.02,
+      499.54,
+      511.06,
+      521.26,
+      529.61,
+      535.79,
+      539.85,
+      541.95,
+      542.34,
+      541.24,
+      538.89,
+      535.51,
+      531.27,
+      526.36,
+      520.9,
+      515.02,
+      508.81,
+      502.36,
+      495.73,
+      488.98,
+      482.17,
+      475.33,
+      468.48,
+      461.66,
+      454.89,
+      448.17,
+      441.52,
+      434.96,
+      428.48,
+      422.11,
+      415.83,
+      409.66,
+      403.59,
+      397.63,
+      391.77,
+      386.01,
+      380.36,
+      374.8,
+      369.34,
+      363.97,
+      358.69,
+      353.5,
+      348.39,
+      343.35,
+      338.4,
+      333.52,
+      328.72,
+      324.0,
+      319.39,
+      314.86,
+      310.43,
+      306.09,
+      340.48,
+      335.72,
+      331.05,
+      326.45,
+      321.93,
+      317.48,
+      313.1,
+      308.79,
+      304.55,
+      300.38,
+      296.27,
+      292.24,
+      288.26,
+      284.36,
+      280.53,
+      276.76,
+      273.07,
+      269.44,
+      265.87,
+      262.35,
+      258.87,
+      255.41,
+      251.96,
+      248.53,
+      245.1,
+      241.67,
+      238.26
+    ],
+    "n_mucum_meta": [
+      {
+        "stage_cm": 59.9,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 59.85,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 59.82,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 59.77,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 59.65,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 59.54,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 59.45,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 59.43,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 59.51,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 59.71,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 60.02,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 60.43,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 60.92,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 61.73,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 62.7,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 63.96,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 66.27,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 69.86,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 75.42,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 84.04,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 97.19,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 115.1,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 136.6,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 160.55,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 185.93,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 212.04,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 238.35,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 264.48,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 290.18,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 315.24,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": false,
+        "extrapolated": true
+      },
+      {
+        "stage_cm": 339.55,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": false,
+        "extrapolated": true
+      },
+      {
+        "stage_cm": 321.59,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 341.41,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 360.46,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 378.74,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 396.28,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 413.11,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 429.26,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 444.7,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 459.5,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 473.66,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 487.02,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 499.54,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 511.06,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 521.26,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 529.61,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 535.79,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 539.85,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 541.95,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 542.34,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 541.24,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 538.89,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 535.51,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 531.27,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 526.36,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 520.9,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 515.02,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 508.81,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 502.36,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 495.73,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 488.98,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 482.17,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 475.33,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 468.48,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 461.66,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 454.89,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 448.17,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 441.52,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 434.96,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 428.48,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 422.11,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 415.83,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 409.66,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 403.59,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 397.63,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 391.77,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 386.01,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 380.36,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 374.8,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 369.34,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 363.97,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 358.69,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 353.5,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 348.39,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 343.35,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 338.4,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 333.52,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 328.72,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 324.0,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 319.39,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 314.86,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 310.43,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 306.09,
+        "ok": true,
+        "segment_number": 2,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 340.48,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": false,
+        "extrapolated": true
+      },
+      {
+        "stage_cm": 335.72,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": false,
+        "extrapolated": true
+      },
+      {
+        "stage_cm": 331.05,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": false,
+        "extrapolated": true
+      },
+      {
+        "stage_cm": 326.45,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": false,
+        "extrapolated": true
+      },
+      {
+        "stage_cm": 321.93,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": false,
+        "extrapolated": true
+      },
+      {
+        "stage_cm": 317.48,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": false,
+        "extrapolated": true
+      },
+      {
+        "stage_cm": 313.1,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": false,
+        "extrapolated": true
+      },
+      {
+        "stage_cm": 308.79,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": false,
+        "extrapolated": true
+      },
+      {
+        "stage_cm": 304.55,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": false,
+        "extrapolated": true
+      },
+      {
+        "stage_cm": 300.38,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 296.27,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 292.24,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 288.26,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 284.36,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 280.53,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 276.76,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 273.07,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 269.44,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 265.87,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 262.35,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 258.87,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 255.41,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 251.96,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 248.53,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 245.1,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 241.67,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      },
+      {
+        "stage_cm": 238.26,
+        "ok": true,
+        "segment_number": 1,
+        "inside_segment": true,
+        "extrapolated": false
+      }
+    ]
+  },
+  "q_mucum_band_m3s": [
+    {
+      "min": 35.585,
+      "max": 81.945,
+      "primary": 35.585
+    },
+    {
+      "min": 35.541,
+      "max": 81.795,
+      "primary": 35.541
+    },
+    {
+      "min": 35.513,
+      "max": 81.345,
+      "primary": 35.513
+    },
+    {
+      "min": 35.46,
+      "max": 79.72,
+      "primary": 35.46
+    },
+    {
+      "min": 29.81,
+      "max": 77.347,
+      "primary": 35.353
+    },
+    {
+      "min": 24.718,
+      "max": 75.683,
+      "primary": 35.24
+    },
+    {
+      "min": 20.451,
+      "max": 75.378,
+      "primary": 35.158
+    },
+    {
+      "min": 16.987,
+      "max": 76.761,
+      "primary": 35.138
+    },
+    {
+      "min": 14.127,
+      "max": 79.909,
+      "primary": 35.215
+    },
+    {
+      "min": 11.779,
+      "max": 84.588,
+      "primary": 35.404
+    },
+    {
+      "min": 9.838,
+      "max": 90.391,
+      "primary": 35.704
+    },
+    {
+      "min": 8.233,
+      "max": 97.06,
+      "primary": 36.094
+    },
+    {
+      "min": 6.901,
+      "max": 104.698,
+      "primary": 36.572
+    },
+    {
+      "min": 6.275,
+      "max": 113.574,
+      "primary": 37.353
+    },
+    {
+      "min": 7.85,
+      "max": 125.24,
+      "primary": 38.297
+    },
+    {
+      "min": 13.542,
+      "max": 144.327,
+      "primary": 39.543
+    },
+    {
+      "min": 24.975,
+      "max": 177.665,
+      "primary": 41.863
+    },
+    {
+      "min": 45.57,
+      "max": 230.396,
+      "primary": 45.57
+    },
+    {
+      "min": 51.537,
+      "max": 309.895,
+      "primary": 51.537
+    },
+    {
+      "min": 61.321,
+      "max": 421.124,
+      "primary": 61.321
+    },
+    {
+      "min": 77.427,
+      "max": 561.318,
+      "primary": 77.427
+    },
+    {
+      "min": 101.573,
+      "max": 717.931,
+      "primary": 101.573
+    },
+    {
+      "min": 133.666,
+      "max": 876.247,
+      "primary": 133.666
+    },
+    {
+      "min": 173.156,
+      "max": 1031.374,
+      "primary": 173.156
+    },
+    {
+      "min": 219.071,
+      "max": 1181.792,
+      "primary": 219.071
+    },
+    {
+      "min": 270.386,
+      "max": 1327.638,
+      "primary": 270.386
+    },
+    {
+      "min": 326.082,
+      "max": 1468.969,
+      "primary": 326.082
+    },
+    {
+      "min": 385.194,
+      "max": 1605.475,
+      "primary": 385.194
+    },
+    {
+      "min": 446.829,
+      "max": 1736.737,
+      "primary": 446.829
+    },
+    {
+      "min": 510.193,
+      "max": 1863.067,
+      "primary": 510.193
+    },
+    {
+      "min": 574.607,
+      "max": 1985.275,
+      "primary": 574.607
+    },
+    {
+      "min": 639.513,
+      "max": 2103.936,
+      "primary": 639.513
+    },
+    {
+      "min": 704.482,
+      "max": 2218.962,
+      "primary": 704.482
+    },
+    {
+      "min": 769.156,
+      "max": 2329.748,
+      "primary": 769.156
+    },
+    {
+      "min": 833.256,
+      "max": 2435.347,
+      "primary": 833.256
+    },
+    {
+      "min": 896.577,
+      "max": 2533.064,
+      "primary": 896.577
+    },
+    {
+      "min": 958.977,
+      "max": 2619.379,
+      "primary": 958.977
+    },
+    {
+      "min": 1020.339,
+      "max": 2691.628,
+      "primary": 1020.339
+    },
+    {
+      "min": 1067.032,
+      "max": 2744.764,
+      "primary": 1080.357
+    },
+    {
+      "min": 1105.089,
+      "max": 2772.752,
+      "primary": 1139.103
+    },
+    {
+      "min": 1141.725,
+      "max": 2772.854,
+      "primary": 1196.394
+    },
+    {
+      "min": 1175.431,
+      "max": 2749.101,
+      "primary": 1251.427
+    },
+    {
+      "min": 1204.282,
+      "max": 2709.297,
+      "primary": 1303.872
+    },
+    {
+      "min": 1226.651,
+      "max": 2658.684,
+      "primary": 1352.838
+    },
+    {
+      "min": 1238.663,
+      "max": 2601.192,
+      "primary": 1396.763
+    },
+    {
+      "min": 1235.281,
+      "max": 2539.08,
+      "primary": 1433.14
+    },
+    {
+      "min": 1216.776,
+      "max": 2473.915,
+      "primary": 1460.25
+    },
+    {
+      "min": 1189.228,
+      "max": 2406.887,
+      "primary": 1478.19
+    },
+    {
+      "min": 1159.875,
+      "max": 2339.053,
+      "primary": 1487.523
+    },
+    {
+      "min": 1131.19,
+      "max": 2271.082,
+      "primary": 1489.234
+    },
+    {
+      "min": 1103.005,
+      "max": 2203.307,
+      "primary": 1484.366
+    },
+    {
+      "min": 1075.615,
+      "max": 2135.827,
+      "primary": 1473.968
+    },
+    {
+      "min": 1048.915,
+      "max": 2068.734,
+      "primary": 1459.02
+    },
+    {
+      "min": 1022.934,
+      "max": 2002.286,
+      "primary": 1440.412
+    },
+    {
+      "min": 997.633,
+      "max": 1936.831,
+      "primary": 1418.922
+    },
+    {
+      "min": 973.001,
+      "max": 1872.638,
+      "primary": 1395.209
+    },
+    {
+      "min": 949.015,
+      "max": 1809.93,
+      "primary": 1369.827
+    },
+    {
+      "min": 925.66,
+      "max": 1748.996,
+      "primary": 1343.221
+    },
+    {
+      "min": 902.915,
+      "max": 1690.22,
+      "primary": 1315.779
+    },
+    {
+      "min": 880.765,
+      "max": 1633.73,
+      "primary": 1287.822
+    },
+    {
+      "min": 859.191,
+      "max": 1579.424,
+      "primary": 1259.611
+    },
+    {
+      "min": 838.179,
+      "max": 1527.2,
+      "primary": 1231.356
+    },
+    {
+      "min": 817.712,
+      "max": 1477.138,
+      "primary": 1203.215
+    },
+    {
+      "min": 797.776,
+      "max": 1429.596,
+      "primary": 1175.321
+    },
+    {
+      "min": 778.354,
+      "max": 1384.784,
+      "primary": 1147.77
+    },
+    {
+      "min": 759.434,
+      "max": 1342.667,
+      "primary": 1120.647
+    },
+    {
+      "min": 741.0,
+      "max": 1303.06,
+      "primary": 1094.005
+    },
+    {
+      "min": 723.04,
+      "max": 1265.7,
+      "primary": 1067.889
+    },
+    {
+      "min": 705.54,
+      "max": 1230.466,
+      "primary": 1042.33
+    },
+    {
+      "min": 688.488,
+      "max": 1197.268,
+      "primary": 1017.353
+    },
+    {
+      "min": 671.872,
+      "max": 1165.979,
+      "primary": 992.968
+    },
+    {
+      "min": 655.679,
+      "max": 1136.45,
+      "primary": 969.192
+    },
+    {
+      "min": 639.897,
+      "max": 1108.396,
+      "primary": 946.027
+    },
+    {
+      "min": 624.517,
+      "max": 1081.509,
+      "primary": 923.467
+    },
+    {
+      "min": 609.526,
+      "max": 1055.666,
+      "primary": 901.5
+    },
+    {
+      "min": 594.914,
+      "max": 1030.797,
+      "primary": 880.113
+    },
+    {
+      "min": 580.671,
+      "max": 1006.837,
+      "primary": 859.29
+    },
+    {
+      "min": 566.787,
+      "max": 983.627,
+      "primary": 839.015
+    },
+    {
+      "min": 553.251,
+      "max": 960.958,
+      "primary": 819.273
+    },
+    {
+      "min": 540.056,
+      "max": 938.689,
+      "primary": 800.048
+    },
+    {
+      "min": 527.191,
+      "max": 916.71,
+      "primary": 781.319
+    },
+    {
+      "min": 514.649,
+      "max": 894.953,
+      "primary": 763.073
+    },
+    {
+      "min": 502.419,
+      "max": 873.339,
+      "primary": 745.292
+    },
+    {
+      "min": 490.494,
+      "max": 851.797,
+      "primary": 727.937
+    },
+    {
+      "min": 478.866,
+      "max": 830.649,
+      "primary": 710.986
+    },
+    {
+      "min": 467.526,
+      "max": 810.488,
+      "primary": 694.447
+    },
+    {
+      "min": 456.468,
+      "max": 791.672,
+      "primary": 678.312
+    },
+    {
+      "min": 445.684,
+      "max": 774.733,
+      "primary": 662.593
+    },
+    {
+      "min": 435.166,
+      "max": 760.027,
+      "primary": 647.287
+    },
+    {
+      "min": 424.907,
+      "max": 747.454,
+      "primary": 632.42
+    },
+    {
+      "min": 414.902,
+      "max": 736.378,
+      "primary": 617.985
+    },
+    {
+      "min": 405.142,
+      "max": 726.055,
+      "primary": 603.969
+    },
+    {
+      "min": 395.622,
+      "max": 716.329,
+      "primary": 590.359
+    },
+    {
+      "min": 386.335,
+      "max": 707.011,
+      "primary": 577.134
+    },
+    {
+      "min": 377.276,
+      "max": 697.897,
+      "primary": 564.27
+    },
+    {
+      "min": 368.438,
+      "max": 688.973,
+      "primary": 551.748
+    },
+    {
+      "min": 359.816,
+      "max": 680.251,
+      "primary": 539.541
+    },
+    {
+      "min": 351.404,
+      "max": 671.754,
+      "primary": 527.633
+    },
+    {
+      "min": 343.196,
+      "max": 663.492,
+      "primary": 516.01
+    },
+    {
+      "min": 335.188,
+      "max": 655.472,
+      "primary": 504.666
+    },
+    {
+      "min": 327.374,
+      "max": 647.696,
+      "primary": 493.593
+    },
+    {
+      "min": 319.749,
+      "max": 640.161,
+      "primary": 482.786
+    },
+    {
+      "min": 312.309,
+      "max": 632.868,
+      "primary": 472.24
+    },
+    {
+      "min": 305.049,
+      "max": 625.78,
+      "primary": 461.95
+    },
+    {
+      "min": 297.963,
+      "max": 618.651,
+      "primary": 451.911
+    },
+    {
+      "min": 291.049,
+      "max": 611.137,
+      "primary": 442.12
+    },
+    {
+      "min": 284.3,
+      "max": 603.028,
+      "primary": 432.577
+    },
+    {
+      "min": 277.714,
+      "max": 594.001,
+      "primary": 423.274
+    },
+    {
+      "min": 271.286,
+      "max": 583.831,
+      "primary": 414.219
+    },
+    {
+      "min": 265.012,
+      "max": 572.541,
+      "primary": 405.41
+    },
+    {
+      "min": 258.887,
+      "max": 560.374,
+      "primary": 396.818
+    },
+    {
+      "min": 252.91,
+      "max": 547.766,
+      "primary": 388.433
+    },
+    {
+      "min": 247.075,
+      "max": 534.974,
+      "primary": 380.223
+    },
+    {
+      "min": 241.379,
+      "max": 522.261,
+      "primary": 372.175
+    },
+    {
+      "min": 235.818,
+      "max": 509.719,
+      "primary": 364.247
+    },
+    {
+      "min": 230.39,
+      "max": 497.306,
+      "primary": 356.413
+    },
+    {
+      "min": 225.091,
+      "max": 485.094,
+      "primary": 348.664
+    },
+    {
+      "min": 219.917,
+      "max": 473.144,
+      "primary": 340.989
+    },
+    {
+      "min": 214.866,
+      "max": 461.502,
+      "primary": 333.392
+    },
+    {
+      "min": 209.935,
+      "max": 450.198,
+      "primary": 325.881
+    }
+  ],
+  "rating_curve_mucum": {
+    "station": "86510000",
+    "source": "curva_chave_hunt → neighbors_official_curves_NOT_for_STZ.86510000",
+    "n_segments": 3
+  },
+  "santa_tereza": {
+    "station": "86472600",
+    "q_status": "diagnostic_only_not_calibrated",
+    "n_status": "blocked_no_rating_curve",
+    "note": "Sem curva-chave oficial: HEC não publica N em STZ. Curto prazo: RNA STZ."
+  },
+  "artifacts": {
+    "json": "hec_twin_mucum_forward_5d_latest.json",
+    "html": "hec_twin_mucum_forward_5d.html",
+    "csv": "hec_twin_mucum_forward_5d/primary_series.csv"
+  }
+}
