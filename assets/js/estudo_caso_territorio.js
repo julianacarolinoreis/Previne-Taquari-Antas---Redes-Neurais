@@ -26,6 +26,7 @@
       rotaCenario: '../santa_tereza_rota_fuga_ruas_cenario.html',
       mesa: 'estudo-caso-resposta-santa-tereza.html',
       impacto: 'santa-tereza-mapa-impacto.html',
+      estudo: 'santa-tereza-estudo-caso.html',
       plan: null
     },
     mucum: {
@@ -49,8 +50,17 @@
       rotaCenario: '../mucum_rota_fuga_ruas_cenario.html',
       mesa: null,
       impacto: 'mucum-mapa-impacto.html',
+      estudo: 'mucum-estudo-caso.html',
       plan: '../assets/data/mucum_contingencia_202607.json'
     }
+  };
+
+  var MODULES = {
+    previsao: { label: 'Previsão', blurb: 'Régua ao vivo e até onde a água pode chegar' },
+    rotas: { label: 'Rotas', blurb: 'Caminho até o abrigo no cenário de ruas' },
+    painel: { label: 'Painel', blurb: 'Sala de evacuação: cenário, gente e margem' },
+    estudo: { label: 'Estudo', blurb: 'História curta do aviso antecipado' },
+    juntos: { label: 'Juntos', blurb: 'Régua + mancha + ruas + saída no mesmo mapa' }
   };
 
   var REPLAY_URL = '../assets/data/research_event_replay_latest.json';
@@ -86,6 +96,7 @@
     story: 'rotas',
     storyTimer: null,
     presenting: false,
+    module: 'juntos',
     cache: {},
     loadGen: 0,
     map: null,
@@ -183,6 +194,73 @@
     return n == null ? '—' : n.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' %';
   }
   function city() { return CITIES[state.city]; }
+
+  function moduleHref(key) {
+    var c = city();
+    if (key === 'previsao') return c.floodMap;
+    if (key === 'rotas') return c.rotaCenario;
+    if (key === 'painel') return c.painel;
+    if (key === 'estudo') return c.estudo;
+    return null;
+  }
+
+  function renderSiblingCards() {
+    var grid = $('sibling-grid');
+    if (!grid) return;
+    var c = city();
+    var items = [
+      { key: 'previsao', href: c.floodMap, title: 'Previsão de inundação', copy: 'Régua e mancha — a página que você já usa.' },
+      { key: 'rotas', href: c.rotaCenario, title: 'Rotas no cenário', copy: 'Clique no mapa e veja o caminho até o abrigo.' },
+      { key: 'painel', href: c.painel, title: 'Painel de evacuação', copy: 'Cenário, pessoas, rotas e margem numa sala.' },
+      { key: 'estudo', href: c.estudo, title: 'Estudo de caso', copy: 'História curta do aviso antecipado.' },
+      { key: 'juntos', href: null, title: 'Mapa juntos', copy: 'Régua + mancha + ruas + saída acoplados.' }
+    ];
+    grid.innerHTML = items.map(function (it) {
+      if (it.key === 'juntos') {
+        return '<button type="button" class="sibling-card" data-module-jump="juntos">' +
+          '<strong>' + esc(it.title) + '</strong><span>' + esc(it.copy) + '</span></button>';
+      }
+      return '<a class="sibling-card" href="' + esc(it.href) + '" data-module-jump="' + esc(it.key) + '">' +
+        '<strong>' + esc(it.title) + '</strong><span>' + esc(it.copy) + '</span></a>';
+    }).join('');
+  }
+
+  function setModule(key) {
+    if (!MODULES[key]) key = 'juntos';
+    state.module = key;
+    var wrap = $('module-frame-wrap');
+    var juntos = $('juntos-stage');
+    var frame = $('module-frame');
+    var title = $('module-frame-title');
+    var open = $('module-frame-open');
+    document.querySelectorAll('#module-tabs [data-module]').forEach(function (btn) {
+      var on = btn.getAttribute('data-module') === key;
+      btn.setAttribute('aria-selected', String(on));
+      btn.setAttribute('aria-pressed', String(on));
+    });
+    if (key === 'juntos') {
+      if (wrap) wrap.hidden = true;
+      if (juntos) juntos.hidden = false;
+      if (frame) frame.removeAttribute('src');
+      window.setTimeout(function () {
+        if (state.map) state.map.invalidateSize();
+      }, 80);
+      return;
+    }
+    var href = moduleHref(key);
+    if (!href) {
+      setModule('juntos');
+      return;
+    }
+    if (juntos) juntos.hidden = true;
+    if (wrap) wrap.hidden = false;
+    if (title) title.textContent = MODULES[key].label + ' · ' + city().label;
+    if (open) {
+      open.href = href;
+      open.textContent = 'Abrir ' + MODULES[key].label + ' em página cheia ↗';
+    }
+    if (frame && frame.getAttribute('src') !== href) frame.setAttribute('src', href);
+  }
 
   function parseCity(opts) {
     var q = new URLSearchParams(location.search).get('cidade') || '';
@@ -1571,10 +1649,12 @@
     $('city-label').textContent = city().label;
     renderCityButtons();
     renderCaseButtons();
+    renderSiblingCards();
     renderLevels();
     renderRna(bundle);
     drawAll(bundle);
     renderSide(bundle);
+    setModule(state.module || 'juntos');
     var catalogs = (bundle.replay && bundle.replay.municipality_catalogs) || {};
     var catKey = state.city === 'mucum' ? 'mucum' : 'santa_tereza';
     var cat = catalogs[catKey] || catalogs[city().label] || null;
@@ -1662,6 +1742,7 @@
     if (caso && caso.mode === 'coupled' && caso.hand_m != null) state.level = caso.hand_m;
     renderCityButtons();
     setUrl();
+    setModule(state.module === 'juntos' ? 'juntos' : state.module);
     bootCity();
   }
 
@@ -1784,6 +1865,29 @@
       var btn = ev.target.closest('[data-case]');
       if (!btn) return;
       onCase(btn.getAttribute('data-case'));
+      setModule('juntos');
+    });
+  }
+  if ($('module-tabs')) {
+    $('module-tabs').addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-module]');
+      if (!btn) return;
+      setModule(btn.getAttribute('data-module'));
+    });
+  }
+  if ($('sibling-grid')) {
+    $('sibling-grid').addEventListener('click', function (ev) {
+      var jump = ev.target.closest('[data-module-jump]');
+      if (!jump) return;
+      var key = jump.getAttribute('data-module-jump');
+      if (key === 'juntos') {
+        ev.preventDefault();
+        setModule('juntos');
+        return;
+      }
+      if (jump.tagName === 'A' && (ev.metaKey || ev.ctrlKey)) return;
+      ev.preventDefault();
+      setModule(key);
     });
   }
   window.addEventListener('hashchange', function () {
