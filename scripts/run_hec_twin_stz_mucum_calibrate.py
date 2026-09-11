@@ -390,7 +390,7 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
                 "params": best_p.to_dict(),
                 "warm_up_hours_applied": core_offset,
                 "pad_hours_selected": pad,
-                "refinement": "nested_antas_then_mucum_v1_7",
+                "refinement": "nested_antas_then_mucum_v1_8",
                 "series_csv": str(series_path.relative_to(ROOT)),
             }
         )
@@ -416,7 +416,7 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
             "for each event×PAD: coarse grid then local_param_neighbors; "
             "argmax research_score (peak_weight=1.25)"
         ),
-        "note": "v1.7: PAD por evento + calibração aninhada Antas→Muçum.",
+        "note": "v1.8: aninhado Antas→Muçum + attenuation grid de pico.",
     }
 
     scored = [r for r in event_results if r["status"] in ("eventwise_scored", "fit_failed_eventwise")]
@@ -631,8 +631,8 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         "target_name": "Muçum",
         "quantity": "Vazao_m3s",
         "structure": "modelo_mucum_estrutura_stz_mucum_v1",
-        "mode": "eventwise_nested_plus_common_search_v1_7",
-        "calibration_version": "mucum_hec_twin_v1_7",
+        "mode": "eventwise_nested_plus_common_search_v1_8",
+        "calibration_version": "mucum_hec_twin_v1_8",
         "hold_out": True,
         "external_holdout_events": list(EXTERNAL_HOLDOUT_EVENTS),
         "pad_hours": pad_hours,
@@ -1459,11 +1459,11 @@ def main() -> None:
             "busca eventwise aninhada (Antas→Muçum) + common-search HEC v1.7 (PAD por evento, polish local de pico) "
             "no modelo Muçum; STZ diagnostico (Q bloqueado)"
         ),
-        "status": "hec_twin_mucum_v1_7_nested_eventwise_scored_stz_q_blocked",
+        "status": "hec_twin_mucum_v1_8_nested_eventwise_scored_stz_q_blocked",
         "discipline_rule": (
             "Isto e HEC estrutural + busca de parametros no gemeo Linux/Python. "
             "Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. "
-            "v1.7: calibração aninhada Antas 86472000 + Muçum 86510000 (peak_weight=1.25); "
+            "v1.8: nested + attenuation peak polish (E24/E27) (peak_weight=1.25); "
             "STZ Q bloqueado ate curva-chave oficial."
         ),
         "audit_fixes_v1_1": [

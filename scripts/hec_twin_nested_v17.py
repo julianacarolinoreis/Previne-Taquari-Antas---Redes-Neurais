@@ -127,10 +127,28 @@ def nested_combined_score(
     score_mucum: float,
     *,
     antas_available: bool,
+    antas_nse: float | None = None,
 ) -> float:
     if not antas_available or score_antas is None or score_antas != score_antas:
         return score_mucum
-    return NESTED_W_ANTAS * float(score_antas) + NESTED_W_MUCUM * float(score_mucum)
+    # If Antas fit is weak, do not let it dominate Muçum (helps E30-like cases).
+    w_a = NESTED_W_ANTAS
+    w_m = NESTED_W_MUCUM
+    if antas_nse is not None and antas_nse == antas_nse and antas_nse < 0.60:
+        w_a, w_m = 0.15, 0.85
+    return w_a * float(score_antas) + w_m * float(score_mucum)
+
+
+def attenuation_zone_seeds() -> list[ZoneParams]:
+    """Downstream seeds that cut oversimulated peaks (more loss / storage / lag)."""
+    out: list[ZoneParams] = []
+    for il in (0.0, 2.5, 5.5):
+        for cl in (2.0, 3.0, 4.0, 6.0):
+            for tc in (25.0, 35.0, 45.0, 55.0):
+                for storage in (60.0, 90.0, 120.0):
+                    for rec in (0.7, 0.85, 0.98):
+                        out.append(ZoneParams(il, cl, tc, storage, rec, 0.001))
+    return out
 
 
 def best_nested_for_event(
@@ -239,7 +257,10 @@ def best_nested_for_event(
 
     best = NestedParams(up=best_up, dn=best_dn, k1=best_k1, k2=best_k2, k3=best_k3, x=0.2)
     best_combo = nested_combined_score(
-        best_a_score if antas_ok else None, best_m_score, antas_available=antas_ok
+        best_a_score if antas_ok else None,
+        best_m_score,
+        antas_available=antas_ok,
+        antas_nse=(None if not best_a_metrics else best_a_metrics.get("nse")),
     )
     best_antas_metrics = best_a_metrics
     best_net = run_network(precip, areas, best, include_mucum_increment=True)
@@ -276,7 +297,12 @@ def best_nested_for_event(
             )
         else:
             m_a, sc_a = None, None
-        combo = nested_combined_score(sc_a, sc_m, antas_available=antas_ok)
+        combo = nested_combined_score(
+            sc_a,
+            sc_m,
+            antas_available=antas_ok,
+            antas_nse=(None if m_a is None else m_a.get("nse")),
+        )
         if combo > best_combo:
             best_combo = combo
             best = cand
@@ -285,21 +311,68 @@ def best_nested_for_event(
                 best_antas_metrics, best_a_score = m_a, sc_a
             best_net = run_network(precip, areas, best, include_mucum_increment=True)
 
-    # Stage C — Muçum peak polish with soft Antas floor
-    floor_antas = None if not antas_ok else (best_a_score - 0.12)
+    # Stage C — Muçum peak polish with soft Antas floor (+ attenuation grid if overpeak)
+    antas_nse_now = None if not best_antas_metrics else best_antas_metrics.get("nse")
+    floor_antas = None if not antas_ok else (best_a_score - 0.20)
+    peak_w = 2.5
+    if float(best_m_metrics.get("peak_relative_error") or 0) > 0.05:
+        peak_w = 4.0
     peak_pool: list[NestedParams] = [best]
     for dn in local_zone_neighbors(best.dn):
-        for k2 in (max(0.25, best.k2 - 0.5), best.k2, best.k2 + 0.5):
-            for k3 in (max(0.25, best.k3 - 0.5), best.k3, best.k3 + 0.5):
+        for k2 in (max(0.25, best.k2 - 0.5), best.k2, best.k2 + 0.5, best.k2 + 1.0):
+            for k3 in (max(0.25, best.k3 - 0.5), best.k3, best.k3 + 0.5, best.k3 + 1.0):
                 peak_pool.append(
                     NestedParams(up=best.up, dn=dn, k1=best.k1, k2=k2, k3=k3, x=best.x)
                 )
-    peak_pool = peak_pool[:220]
+    if float(best_m_metrics.get("peak_relative_error") or 0) > 0.05:
+        for dn in attenuation_zone_seeds():
+            for k2 in (0.25, 0.5, 1.0, 2.0):
+                for k3 in (1.0, 2.0, 3.0, 4.0):
+                    for up_cl in (1.0, 1.25, 1.5):
+                        up = ZoneParams(
+                            best.up.initial_loss,
+                            min(8.0, max(0.0, best.up.constant_loss * up_cl)),
+                            best.up.tc,
+                            best.up.storage,
+                            best.up.recession,
+                            best.up.initial_flow_ratio,
+                        )
+                        peak_pool.append(
+                            NestedParams(up=up, dn=dn, k1=best.k1, k2=k2, k3=k3, x=best.x)
+                        )
+    # Deduplicate / cap
+    seen: set[tuple] = set()
+    uniq_pool: list[NestedParams] = []
+    for cand in peak_pool:
+        key = (
+            *asdict(cand.up).values(),
+            *asdict(cand.dn).values(),
+            cand.k1,
+            cand.k2,
+            cand.k3,
+            cand.x,
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq_pool.append(cand)
+    peak_pool = uniq_pool[:900]
+
     best_peak_obj = (
         best_m_metrics["nse"]
         - 0.02 * abs(best_m_metrics.get("peak_lag_hours", 0) or 0)
-        - 2.5 * float(best_m_metrics.get("peak_relative_error") or 9)
+        - peak_w * float(best_m_metrics.get("peak_relative_error") or 9)
     )
+    # Prefer staying in core library (NSE>=0.75) when a feasible peak cut exists.
+    def peak_rank(m: dict[str, float]) -> tuple:
+        nse = float(m["nse"])
+        peak = float(m.get("peak_relative_error") or 9)
+        lag = abs(float(m.get("peak_lag_hours") or 0))
+        core_ok = 1 if nse >= 0.75 else 0
+        # higher is better: core_ok first, then lower peak, then higher nse
+        return (core_ok, -peak, nse - 0.02 * lag)
+
+    best_rank = peak_rank(best_m_metrics)
     for cand in peak_pool:
         m_m, sc_m, sim_m = score_junction(
             precip,
@@ -311,6 +384,9 @@ def best_nested_for_event(
             core_hours=core_hours,
             junction="at_mucum",
         )
+        # Keep Muçum NSE in library range when possible
+        if m_m["nse"] < 0.72:
+            continue
         if antas_ok:
             m_a, sc_a, _ = score_junction(
                 precip,
@@ -326,23 +402,29 @@ def best_nested_for_event(
                 continue
         else:
             m_a, sc_a = None, None
+        rank = peak_rank(m_m)
         peak_obj = (
             m_m["nse"]
             - 0.02 * abs(m_m.get("peak_lag_hours", 0) or 0)
-            - 2.5 * float(m_m.get("peak_relative_error") or 9)
+            - peak_w * float(m_m.get("peak_relative_error") or 9)
         )
-        if peak_obj > best_peak_obj:
+        if rank > best_rank or (rank == best_rank and peak_obj > best_peak_obj):
+            best_rank = rank
             best_peak_obj = peak_obj
             best = cand
             best_m_metrics, best_m_score, best_sim_mucum = m_m, sc_m, sim_m
             if m_a is not None and sc_a is not None:
                 best_antas_metrics, best_a_score = m_a, sc_a
+                antas_nse_now = m_a.get("nse")
             best_combo = nested_combined_score(
-                sc_a if antas_ok else None, sc_m, antas_available=antas_ok
+                sc_a if antas_ok else None,
+                sc_m,
+                antas_available=antas_ok,
+                antas_nse=antas_nse_now,
             )
             best_net = run_network(precip, areas, best, include_mucum_increment=True)
 
-        detail = {
+    detail = {
         "mucum": best_m_metrics,
         "antas": best_antas_metrics if antas_ok else None,
         "antas_control_used": antas_ok,
@@ -352,7 +434,7 @@ def best_nested_for_event(
         "score_antas": best_a_score if antas_ok else None,
         "score_combined": best_combo,
         "stage": (
-            "antas_then_mucum_combined_then_mucum_peak_polish"
+            "antas_then_mucum_combined_then_mucum_peak_polish_v1_8"
             if antas_ok
             else "mucum_only_fallback_no_antas_q"
         ),

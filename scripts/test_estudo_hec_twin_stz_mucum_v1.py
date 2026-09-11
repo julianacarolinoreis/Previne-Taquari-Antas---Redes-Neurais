@@ -18,11 +18,11 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
     def test_status_and_engine(self) -> None:
         # After release packaging, status may be the closed-model string.
         self.assertTrue(
-            self.data["status"].startswith("hec_twin_mucum_v1_7")
+            self.data["status"].startswith("hec_twin_mucum_v1_8")
             or self.data["status"].startswith("modelo_mucum_eventwise")
         )
         muc = self.data["models"]["mucum"]
-        self.assertEqual(muc.get("calibration_version"), "mucum_hec_twin_v1_7")
+        self.assertEqual(muc.get("calibration_version"), "mucum_hec_twin_v1_8")
         self.assertIn("pad_selection", muc)
         self.assertIn("nested", muc["pad_selection"]["mode"])
         self.assertGreaterEqual(muc["n_events_fit_ok"], 8)
@@ -42,7 +42,7 @@ class HecTwinStzMucumV1Tests(unittest.TestCase):
         self.assertGreaterEqual(by_id["E28"]["metrics"]["nse"], 0.90)
         self.assertEqual(by_id["E23"]["status"], "eventwise_scored")
         self.assertIn("pad_hours_selected", by_id["E22"])
-        self.assertEqual(by_id["E22"].get("refinement"), "nested_antas_then_mucum_v1_7")
+        self.assertEqual(by_id["E22"].get("refinement"), "nested_antas_then_mucum_v1_8")
         self.assertIn("nested", by_id["E21"])
         self.assertTrue(by_id["E21"]["nested"]["antas_control_used"])
         self.assertIn("metrics_antas", by_id["E21"])

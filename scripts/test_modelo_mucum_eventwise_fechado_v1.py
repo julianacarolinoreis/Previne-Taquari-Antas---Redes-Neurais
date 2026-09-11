@@ -16,7 +16,7 @@ class ModeloMucumEventwiseFechadoV1Tests(unittest.TestCase):
         cls.html = (OUT / "modelo_mucum_eventwise_v1_fechado.html").read_text(encoding="utf-8")
 
     def test_status_and_honesty(self) -> None:
-        self.assertEqual(self.data["status"], "modelo_mucum_eventwise_v1_7_fechado_stz_q_blocked")
+        self.assertEqual(self.data["status"], "modelo_mucum_eventwise_v1_8_fechado_stz_q_blocked")
         self.assertIn("NÃO promover common-search", self.data["label_honest"])
         self.assertFalse(self.data["santa_tereza"]["in_this_package"])
         self.assertTrue(self.data["params_median_diagnostic_only"]["promotion_blocked"])

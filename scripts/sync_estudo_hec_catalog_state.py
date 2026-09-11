@@ -15,9 +15,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "data" / "estudo_bacia_taquari_antas"
 
-HEC_STATUS = "modelo_mucum_eventwise_v1_7_fechado_stz_q_blocked"
+HEC_STATUS = "modelo_mucum_eventwise_v1_8_fechado_stz_q_blocked"
 NEXT = [
-    "Usar o pacote Muçum v1.7 fechado (params eventwise com calibração aninhada Antas→Muçum) — não common-search.",
+    "Usar o pacote Muçum v1.8 fechado (params eventwise com calibração aninhada Antas→Muçum) — não common-search.",
     "STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
     "Após curva: calibrar modelo STZ truncado.",
     "Manter Guaporé/Forqueta fora do recorte.",

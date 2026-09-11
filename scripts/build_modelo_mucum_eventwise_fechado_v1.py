@@ -2,7 +2,7 @@
 """Fecha o modelo Muçum eventwise como pacote de estudo entregável.
 
 Não recalibra. Empacota params dos eventos com NSE>=0 a partir do HEC twin
-(v1.6: calibração aninhada Antas→Muçum (v1.7)).
+(v1.6: calibração aninhada Antas→Muçum (v1.8)).
 Rótulo honesto: biblioteca eventwise — NÃO é regra comum transferível.
 STZ permanece fora (Q bloqueado).
 """
@@ -25,7 +25,7 @@ PKG_DIR = OUT / "modelo_mucum_eventwise_v1_fechado"
 JSON_OUT = OUT / "modelo_mucum_eventwise_v1_fechado_latest.json"
 HTML_OUT = OUT / "modelo_mucum_eventwise_v1_fechado.html"
 
-STATUS = "modelo_mucum_eventwise_v1_7_fechado_stz_q_blocked"
+STATUS = "modelo_mucum_eventwise_v1_8_fechado_stz_q_blocked"
 NEXT = [
     "Usar o pacote Muçum fechado (params eventwise) — não common-search.",
     "STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
@@ -130,7 +130,7 @@ def main() -> None:
         "schema_version": "modelo_mucum_eventwise_v1_fechado",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": STATUS,
-        "release_name": "modelo_mucum_eventwise_v1_7",
+        "release_name": "modelo_mucum_eventwise_v1_8",
         "label_honest": (
             "MODELO MUÇUM FECHADO v1.6 (estudo). Biblioteca eventwise com PAD por evento, "
             "polish local de pico (nested Antas+Muçum). Gêmeo Python HEC. "
