@@ -16,22 +16,24 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "data" / "estudo_bacia_taquari_antas"
 
 HEC_STATUS = "modelo_mucum_eventwise_v1_8_fechado_stz_q_blocked"
+PRIMARY_PATH = "RNA_nivel_por_estacao_com_mascara"
 NEXT = [
-    "Usar o pacote Muçum v1.8 fechado (params eventwise com calibração aninhada Antas→Muçum) — não common-search.",
-    "STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
-    "Após curva: calibrar modelo STZ truncado.",
-    "Manter Guaporé/Forqueta fora do recorte.",
+    "Caminho principal: RNA de NÍVEL multi-alvo (ver decisao_previsao_nivel_multi_alvo.html) — não HEC-primeiro.",
+    "Fortalecer RNA STZ/Muçum (máscara, hold-out, multi-horizonte); auditar candidatos 86472000 / 86507000 / 86125500.",
+    "HEC twin Muçum v1.8 fica ESTACIONADO como pesquisa de Q; não abrir nova rodada salvo pedido explícito.",
+    "STZ sem curva-chave: irrelevante para RNA de nível; só anexa curva se quiser Q física em STZ (sem inventar N→Q).",
+    "Manter Guaporé/Forqueta/Baixo fora do recorte dos dois alvos.",
 ]
 DOIS_DISCIPLINE = (
-    "Dois modelos-alvo no CORREDOR Ate Muçum. Nao sao a bacia G040. "
-    "Guapore/Forqueta/Baixo ficam de fora dos dois. "
-    "Modelo Muçum eventwise v1.6 FECHADO (aninhado Antas+Muçum). "
-    "STZ Q bloqueado ate curva-chave. Nao promover common-search."
+    "Dois modelos-alvo de NÍVEL no CORREDOR até Muçum. Não são a bacia G040. "
+    "Caminho principal = RNA de nível (STZ + Muçum ao vivo). "
+    "HEC twin Muçum eventwise v1.8 ESTACIONADO (pesquisa Q). "
+    "STZ Q bloqueado sem curva — e isso não bloqueia RNA de N. Não promover common-search."
 )
 FORCANTES_DISCIPLINE = (
-    "Contrato de ENTRADAS candidato (nivel/chuva). "
-    "Trilho paralelo ao HEC twin: forçantes nao substituem rain_stations HEC de evento. "
-    "Modelo Muçum eventwise v1.6 fechado; STZ Q ainda bloqueado."
+    "Contrato de ENTRADAS (nível/chuva) para RNA. "
+    "HEC twin estacionado: forçantes não substituem rain_stations HEC de evento. "
+    "Produto = previsão de nível; curva STZ não é pré-requisito."
 )
 
 
@@ -56,14 +58,25 @@ def main() -> None:
     hec = json.loads((OUT / "hec_twin_stz_mucum_v1_latest.json").read_text(encoding="utf-8"))
     assert hec["status"] == HEC_STATUS
 
+    decisao_path = OUT / "decisao_previsao_nivel_multi_alvo_latest.json"
+    if decisao_path.exists():
+        decisao = json.loads(decisao_path.read_text(encoding="utf-8"))
+        assert decisao.get("decision", {}).get("chosen_path") == PRIMARY_PATH
+
     # dois_modelos
     dois_path = OUT / "dois_modelos_stz_mucum_latest.json"
     patch_json(
         dois_path,
-        status=HEC_STATUS,
+        status="rna_nivel_primary_hec_twin_estacionado",
         discipline_rule=DOIS_DISCIPLINE,
         next_steps=NEXT,
+        primary_path=PRIMARY_PATH,
+        hec_twin_status=HEC_STATUS,
         hec_twin_artifact=hec["artifacts"],
+        decisao_nivel_artifact={
+            "json": "decisao_previsao_nivel_multi_alvo_latest.json",
+            "html": "decisao_previsao_nivel_multi_alvo.html",
+        },
     )
     dois_html = OUT / "dois_modelos_stz_mucum.html"
     t = dois_html.read_text(encoding="utf-8")
@@ -142,6 +155,14 @@ def main() -> None:
         '<div class="notice"><strong>Histórico A/B/C:</strong> supersedido pela decisão STZ+Muçum (corredor). '
         'Mantido em <a href="recorte_modelo.html">recorte_modelo.html</a>.</div>',
     )
+    if "decisao_previsao_nivel_multi_alvo.html" not in text:
+        text = text.replace(
+            "<h2>Proximos passos de ESTUDO</h2>",
+            '<p class="notice ok"><strong>Decisão de produto:</strong> RNA de nível multi-alvo — '
+            '<a href="decisao_previsao_nivel_multi_alvo.html">decisao_previsao_nivel_multi_alvo.html</a>. '
+            "HEC estacionado.</p>\n"
+            "  <h2>Proximos passos de ESTUDO</h2>",
+        )
     steps = "".join(f"<li>{html.escape(x)}</li>" for x in NEXT)
     text = re.sub(
         r"(<h2>Proximos passos de ESTUDO</h2>\s*<ul>)(.*?)(</ul>)",
@@ -177,6 +198,8 @@ def main() -> None:
     )
     hec["next_steps"] = NEXT
     hec["catalog_sync"] = "sync_estudo_hec_catalog_state_v1"
+    hec["primary_product_path"] = PRIMARY_PATH
+    hec["hec_role_now"] = "estacionado_pesquisa_q_onde_ha_vazao"
     (OUT / "hec_twin_stz_mucum_v1_latest.json").write_text(
         json.dumps(hec, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )

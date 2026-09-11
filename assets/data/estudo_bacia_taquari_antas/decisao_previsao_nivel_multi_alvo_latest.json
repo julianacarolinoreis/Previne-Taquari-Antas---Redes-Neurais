@@ -1,0 +1,380 @@
+{
+  "schema_version": "estudo_decisao_previsao_nivel_multi_alvo_v1",
+  "generated_at_utc": "2026-09-11T19:30:27.218142+00:00",
+  "purpose": "Decisão de produto: melhor forma de prever NÍVEL do rio em vários locais da bacia — e o que NÃO investir agora.",
+  "status": "decidido_rna_nivel_multi_alvo_hec_estacionado",
+  "decision": {
+    "by": "Juliana (pedido) + agente (recomendação técnica travada)",
+    "question": "Qual a melhor forma de prever o nível do rio em vários locais da bacia?",
+    "chosen_path": "RNA_nivel_por_estacao_com_mascara",
+    "not_chosen_as_primary": [
+      "HEC-HMS / gêmeo HEC como caminho principal de previsão de nível",
+      "Inventar curva-chave N→Q para Santa Tereza",
+      "Usar curva de vizinho (Antas/Muçum) como se fosse STZ",
+      "Continuar entregas HEC pedaço a pedaço sem fechar a arquitetura de previsão"
+    ],
+    "why_rna": [
+      "O produto PREVINE já prevê NÍVEL (cm) com RNA ao vivo em Santa Tereza e Muçum.",
+      "Mancha/HAND consome cota/nível, não vazão HEC.",
+      "RNA supervisionada de nível não exige curva-chave.",
+      "Santa Tereza sem curva-chave: isso bloqueia HEC Q no alvo STZ e é irrelevante para RNA de N.",
+      "Multi-local honesto = um modelo (ou cabeça) por estação com série de N observada — não um HEC único da bacia."
+    ],
+    "why_not_hec_first": [
+      "HEC calibra/simula Q; converter Q→N em cada ponto exige curva local.",
+      "STZ (86472600) não tem curva oficial pública no estudo — hunt e checklist confirmam bloqueio.",
+      "Pacote HEC twin Muçum eventwise é pesquisa de processo hidrológico, não previsão operacional de nível multi-site.",
+      "Entregar mais polish HEC sem fechar a pergunta de produto atrasa o que importa."
+    ],
+    "hec_role_now": "estacionado_pesquisa_q_onde_ha_vazao",
+    "hec_may_return_when": [
+      "Curva oficial STZ anexada (se um dia quiser Q física em STZ)",
+      "Pergunta científica explícita sobre processo Q no corredor Muçum"
+    ],
+    "stz_rating_curve": {
+      "exists": false,
+      "impact_on_nivel_rna": "nenhum",
+      "impact_on_hec_q_stz": "bloqueia_calibracao_alvo_Q",
+      "rule": "Não inventar N→Q. Não pedir curva como pré-requisito da previsão de nível."
+    }
+  },
+  "architecture": {
+    "unit": "um_modelo_RNA_por_estacao_alvo_com_serie_de_nivel",
+    "predictand": "nivel_cm_ou_delta_nivel",
+    "features": "niveis_montante + chuva_nucleo + mascaras (buraco != zero)",
+    "existing_live_targets": [
+      "86472600",
+      "86510000"
+    ],
+    "expansion_rule": "Só promove estação a alvo se: (1) série de nível contínua/auditável, (2) caso de uso de alerta/mancha local, (3) contrato de features + máscara, (4) validação hold-out por evento antes de robô ao vivo.",
+    "ungaged_sites_rule": "Município sem posto de nível: transferência espacial (N do posto âncora + HAND/MDT) ou novo sensor — não HEC inventado.",
+    "excluded_from_current_corridor_cut": [
+      "Guaporé",
+      "Forqueta",
+      "Baixo Taquari-Antas"
+    ]
+  },
+  "investment_next": [
+    {
+      "priority": 1,
+      "id": "fortalecer_stz_mucum_nivel",
+      "action": "Manter e endurecer RNA STZ/Muçum (máscara, hold-out, multi-horizonte) — já é o produto."
+    },
+    {
+      "priority": 2,
+      "id": "auditar_candidatos_alvo",
+      "action": "Auditar série histórica de nível ANA para candidatos (86472000, 86507000, 86125500) e decidir quais viram alvo."
+    },
+    {
+      "priority": 3,
+      "id": "contrato_multi_alvo",
+      "action": "Generalizar contrato RNA+máscara para N alvos (não só STZ/Muçum)."
+    },
+    {
+      "priority": 4,
+      "id": "transferencia_sem_medidor",
+      "action": "Para Encantado/Roca Sales: desenhar transferência N-âncora→HAND, sem fingir posto local."
+    },
+    {
+      "priority": 99,
+      "id": "hec_estacionado",
+      "action": "Não abrir nova rodada HEC salvo pedido explícito de processo Q."
+    }
+  ],
+  "candidates": [
+    {
+      "station_code": "86472600",
+      "name": "Santa Tereza",
+      "tier": "alvo_operacional_rna",
+      "role_now": "target_santa_tereza",
+      "has_live_rna": true,
+      "needs_rating_curve_for_nivel_rna": false,
+      "needs_rating_curve_for_hec_q": true,
+      "rating_curve_status": "ausente_oficial_publica",
+      "note": "Alvo RNA de nível já publicado. Sem curva-chave — HEC Q bloqueado; RNA de N não precisa de curva.",
+      "municipio": "Santa Tereza",
+      "rio": "Rio Taquari",
+      "upg": "Médio Taquari-Antas",
+      "telemetrica": null,
+      "operando": "1",
+      "lat": -29.1781,
+      "lon": -51.7322,
+      "area_drenagem_km2": null
+    },
+    {
+      "station_code": "86510000",
+      "name": "Muçum",
+      "tier": "alvo_operacional_rna",
+      "role_now": "target_mucum",
+      "has_live_rna": true,
+      "needs_rating_curve_for_nivel_rna": false,
+      "needs_rating_curve_for_hec_q": false,
+      "rating_curve_status": "existe_para_Q_ANA_em_eventos",
+      "note": "Alvo RNA de nível já publicado. HEC twin Q eventwise existe como pesquisa paralela, não substitui RNA de N.",
+      "municipio": "Mucum",
+      "rio": "Rio Taquari",
+      "upg": "Médio Taquari-Antas",
+      "telemetrica": null,
+      "operando": "1",
+      "lat": -29.1672,
+      "lon": -51.8686,
+      "area_drenagem_km2": 16000.0
+    },
+    {
+      "station_code": "86125500",
+      "name": "PCH Jararaca / Prata",
+      "tier": "candidato_alvo_nivel",
+      "role_now": "upstream_feature",
+      "has_live_rna": false,
+      "needs_rating_curve_for_nivel_rna": false,
+      "needs_rating_curve_for_hec_q": false,
+      "rating_curve_status": "nao_avaliado_como_alvo",
+      "note": "Entrada 4h/8h/12h. Auditar série histórica ANA antes de treinar alvo próprio.",
+      "municipio": "Caxias do Sul",
+      "rio": "Rio Prata",
+      "upg": "Prata",
+      "telemetrica": null,
+      "operando": "1",
+      "lat": -28.9381,
+      "lon": -51.4656,
+      "area_drenagem_km2": 3658.7
+    },
+    {
+      "station_code": "86448000",
+      "name": "UHE Monte Claro / Antas",
+      "tier": "candidato_alvo_nivel",
+      "role_now": "upstream_feature",
+      "has_live_rna": false,
+      "needs_rating_curve_for_nivel_rna": false,
+      "needs_rating_curve_for_hec_q": false,
+      "rating_curve_status": "nao_avaliado_como_alvo",
+      "note": "Secundário no Excel. Só promover a alvo com série contínua e caso de uso claro.",
+      "municipio": "Veranopolis",
+      "rio": "Rio das Antas",
+      "upg": "Médio Taquari-Antas",
+      "telemetrica": null,
+      "operando": "1",
+      "lat": -29.0292,
+      "lon": -51.5219,
+      "area_drenagem_km2": 12113.7
+    },
+    {
+      "station_code": "86472000",
+      "name": "Linha José Júlio / Antas",
+      "tier": "candidato_alvo_nivel",
+      "role_now": "upstream_feature",
+      "has_live_rna": false,
+      "needs_rating_curve_for_nivel_rna": false,
+      "needs_rating_curve_for_hec_q": false,
+      "rating_curve_status": "vizinha_com_curva_em_hunt",
+      "note": "Hoje é forcante de nível. Pode virar alvo RNA próprio se houver interesse municipal/alerta no ponto.",
+      "municipio": "Santa Tereza",
+      "rio": "Rio das Antas",
+      "upg": "Médio Taquari-Antas",
+      "telemetrica": null,
+      "operando": "1",
+      "lat": -29.0978,
+      "lon": -51.6997,
+      "area_drenagem_km2": 13000.0
+    },
+    {
+      "station_code": "86507000",
+      "name": "PCH Cotiporã Jusante / Carreiro",
+      "tier": "candidato_alvo_nivel",
+      "role_now": "upstream_feature",
+      "has_live_rna": false,
+      "needs_rating_curve_for_nivel_rna": false,
+      "needs_rating_curve_for_hec_q": false,
+      "rating_curve_status": "nao_avaliado_como_alvo",
+      "note": "Forcante Carreiro. Candidato a alvo RNA se o risco local for relevante.",
+      "municipio": "Cotipora",
+      "rio": "Rio Carreiro",
+      "upg": "Carreiro",
+      "telemetrica": null,
+      "operando": "1",
+      "lat": -28.9722,
+      "lon": -51.7558,
+      "area_drenagem_km2": 2340.0
+    },
+    {
+      "station_code": "86125130",
+      "name": "PCH Morro Grande / Ituim",
+      "tier": "forcante_apenas",
+      "role_now": "upstream_feature",
+      "has_live_rna": false,
+      "needs_rating_curve_for_nivel_rna": false,
+      "needs_rating_curve_for_hec_q": false,
+      "rating_curve_status": "nao_aplicavel",
+      "note": "Útil como input; raramente faz sentido como alvo de alerta de cidade do corredor.",
+      "municipio": "Muitos Capoes",
+      "rio": "Rio Ituim",
+      "upg": "Prata",
+      "telemetrica": null,
+      "operando": "1",
+      "lat": -28.5919,
+      "lon": -51.3247,
+      "area_drenagem_km2": 1160.0
+    },
+    {
+      "station_code": "86298000",
+      "name": "UHE Castro Alves",
+      "tier": "forcante_apenas",
+      "role_now": "upstream_feature",
+      "has_live_rna": false,
+      "needs_rating_curve_for_nivel_rna": false,
+      "needs_rating_curve_for_hec_q": false,
+      "rating_curve_status": "nao_aplicavel",
+      "note": "Barramento / montante Antas — forcante, não prioridade de mancha urbana.",
+      "municipio": "Antonio Prado",
+      "rio": "Rio das Antas",
+      "upg": "Médio Taquari-Antas",
+      "telemetrica": null,
+      "operando": "1",
+      "lat": -28.9414,
+      "lon": -51.1892,
+      "area_drenagem_km2": 7370.0
+    },
+    {
+      "station_code": "86306000",
+      "name": "Estação 86306000",
+      "tier": "forcante_apenas",
+      "role_now": "upstream_feature_stz_robo",
+      "has_live_rna": false,
+      "needs_rating_curve_for_nivel_rna": false,
+      "needs_rating_curve_for_hec_q": false,
+      "rating_curve_status": "nao_avaliado",
+      "note": "No ESTACOES_NIVEL do robô STZ; auditar cobertura antes de qualquer promoção.",
+      "municipio": null,
+      "rio": null,
+      "upg": "Médio Taquari-Antas",
+      "telemetrica": null,
+      "operando": "1",
+      "lat": -29.0133,
+      "lon": -51.3675,
+      "area_drenagem_km2": 7748.3
+    },
+    {
+      "station_code": "86430900",
+      "name": "Estação 86430900",
+      "tier": "forcante_apenas",
+      "role_now": "upstream_feature_stz_robo",
+      "has_live_rna": false,
+      "needs_rating_curve_for_nivel_rna": false,
+      "needs_rating_curve_for_hec_q": false,
+      "rating_curve_status": "nao_avaliado",
+      "note": "Input 8h V001; sem ficha municipal de previsão hoje.",
+      "municipio": null,
+      "rio": null,
+      "upg": "Prata",
+      "telemetrica": null,
+      "operando": "1",
+      "lat": -28.8925,
+      "lon": -51.455,
+      "area_drenagem_km2": 3630.0
+    },
+    {
+      "station_code": "86447000",
+      "name": "Estação 86447000",
+      "tier": "forcante_apenas",
+      "role_now": "upstream_feature_stz_robo",
+      "has_live_rna": false,
+      "needs_rating_curve_for_nivel_rna": false,
+      "needs_rating_curve_for_hec_q": false,
+      "rating_curve_status": "nao_avaliado",
+      "note": "Input 8h V002; sem ficha municipal de previsão hoje.",
+      "municipio": null,
+      "rio": null,
+      "upg": "Prata",
+      "telemetrica": null,
+      "operando": "1",
+      "lat": -28.9714,
+      "lon": -51.4611,
+      "area_drenagem_km2": 3750.0
+    },
+    {
+      "station_code": "86505500",
+      "name": "Estação 86505500",
+      "tier": "forcante_apenas",
+      "role_now": "upstream_feature_stz_robo",
+      "has_live_rna": false,
+      "needs_rating_curve_for_nivel_rna": false,
+      "needs_rating_curve_for_hec_q": false,
+      "rating_curve_status": "nao_avaliado",
+      "note": "Pode ser chuva/nível misto no robô; não tratar como alvo sem auditoria.",
+      "municipio": null,
+      "rio": null,
+      "upg": "Carreiro",
+      "telemetrica": null,
+      "operando": "1",
+      "lat": -28.9414,
+      "lon": -51.7694,
+      "area_drenagem_km2": 2290.0
+    }
+  ],
+  "ungaged_or_sheetless": [
+    {
+      "name": "Encantado",
+      "tier": "sem_alvo_rna_proprio",
+      "path": "transferencia_espacial",
+      "note": "Sem ficha RNA municipal. Não inventar com HEC. Opções: posto mais próximo com N + HAND/MDT, ou novo sensor."
+    },
+    {
+      "name": "Roca Sales",
+      "tier": "sem_alvo_rna_proprio",
+      "path": "transferencia_espacial",
+      "note": "Sem ficha RNA municipal. Mesma lógica: N observado local ou transferência honesta a partir de Muçum/STZ."
+    },
+    {
+      "name": "Lajeado / Baixo Taquari",
+      "tier": "fora_do_corredor_atual",
+      "path": "novo_recorte",
+      "note": "Fora do recorte Guaporé/Forqueta/Baixo excluído dos dois modelos. Só entra com decisão explícita de domínio."
+    }
+  ],
+  "context_artifacts": {
+    "hec_twin_status": "modelo_mucum_eventwise_v1_8_fechado_stz_q_blocked",
+    "contrato_rna_status": "contrato_com_mascara_chuva_gerada",
+    "path_chosen_by_study_gate": "RNA_com_mascara",
+    "series_readiness": {
+      "pode_prototipar_RNA_com_mascaras": true,
+      "pode_calibrar_HEC_agora": false,
+      "motivo_hec_bloqueado": "Estrutura ok, mas calibração HEC exige séries de chuva/nível reconciliadas por evento sem imputar zero em buracos; A894/CEMADEN locais fracos; Prata sem raw de evento.",
+      "proxima_acao_recomendada": "Baixar/auditar nível histórico ANA para 86125500 (e opcional 86448000); definir máscara de buracos chuva_86472600; escolher caminho RNA vs .basin HEC."
+    },
+    "mucum_input_stations": [
+      "86125130",
+      "86125500",
+      "86298000",
+      "86448000",
+      "86472000",
+      "86472600",
+      "86507000",
+      "86510000"
+    ],
+    "stz_robo_nivel_stations": [
+      "86472600",
+      "86472000",
+      "86125130",
+      "86306000",
+      "86448000",
+      "86507000",
+      "86125500",
+      "86298000",
+      "86430900",
+      "86447000",
+      "86505500"
+    ]
+  },
+  "discipline_rules": [
+    "Prever NÍVEL, não exigir vazão, salvo pergunta Q explícita.",
+    "Santa Tereza sem curva-chave não bloqueia RNA de nível.",
+    "Não inventar curva-chave; não copiar curva de vizinho para STZ.",
+    "Não chamar corredor STZ–Muçum de modelo da bacia G040.",
+    "Não entregar HEC em fatias como se fosse o produto de previsão multi-local.",
+    "Alerta oficial continua bloqueado até validação institucional."
+  ],
+  "artifacts": {
+    "json": "decisao_previsao_nivel_multi_alvo_latest.json",
+    "html": "decisao_previsao_nivel_multi_alvo.html"
+  }
+}
