@@ -3,105 +3,203 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0c2a22">
-  <meta name="description" content="Sala de situação PREVINE: rio, ruas com água e saída até o abrigo seco. Estudo de caso — não é alerta.">
-  <title>PREVINE · sala de situação · território</title>
+  <meta name="theme-color" content="#0f6b4a">
+  <meta name="description" content="Sala de situação PREVINE: reúne previsão, rotas, painel e o mapa territorial no mesmo lugar. Pesquisa — não é alerta.">
+  <title>PREVINE · sala de situação</title>
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="../assets/css/estudo_caso_territorio.css">
 </head>
-<body class="territorio stage is-cockpit is-sitroom">
-  <a class="skip" href="#map">Pular para o mapa</a>
+<body class="territorio sala-reunida is-cockpit">
+  <a class="skip" href="#sala-stage">Pular para o conteúdo</a>
 
-  <div id="map" role="application" aria-label="Mapa da sala de situação"></div>
+  <div class="sala-app">
+    <header class="sala-top" id="conteudo">
+      <div class="sala-brand">
+        <a class="brand-mark" href="../projeto.html" aria-label="PREVINE"></a>
+        <div>
+          <p class="eyebrow">PREVINE · pesquisa</p>
+          <h1>Sala de <span>situação</span></h1>
+          <p class="lede">As páginas que você já usa — previsão, rotas, painel e o mapa territorial — no mesmo lugar.</p>
+        </div>
+      </div>
+      <div class="scope-badge">
+        <strong>ESTUDO · NÃO É ALERTA</strong>
+        <span>Não é ordem de evacuação nem despacho operacional.</span>
+      </div>
+    </header>
 
-  <header class="hud hud-top sit-top" id="conteudo">
-    <div class="hud-brand">
-      <a class="brand" href="../projeto.html">PREVINE</a>
-      <p class="eyebrow">sala de situação · estudo · não é alerta</p>
-    </div>
-    <div class="city-row" role="group" aria-label="Município">
-      <button type="button" data-city="santa_tereza" aria-pressed="true">Santa Tereza</button>
-      <button type="button" data-city="mucum" aria-pressed="false">Muçum</button>
-    </div>
-    <div class="case-row sit-cases" id="case-row" role="group" aria-label="Momento"></div>
-    <button type="button" id="btn-recenter" class="btn-ghost btn-recenter" title="Centro urbano">Centro</button>
-    <button type="button" id="story-play" class="btn-ghost" aria-pressed="false" title="Percorrer a leitura">▶ Contar a história</button>
-    <button type="button" id="story-prev" class="btn-ghost visually-hidden">←</button>
-    <button type="button" id="story-next" class="btn-ghost visually-hidden">→</button>
-    <p class="load-status" id="load-status">carregando…</p>
-  </header>
+    <nav class="sala-nav" aria-label="Navegação">
+      <a href="../projeto.html">Início</a>
+      <a href="../pesquisas.html">Catálogo</a>
+      <a href="sala-integrada-eventos.html">Sala de evento</a>
+      <a href="../santa_tereza_previsao_inundacao.html">Previsão ST</a>
+      <a href="../mucum_previsao_inundacao.html">Previsão Muçum</a>
+    </nav>
 
-  <div class="sit-board" id="sit-board" aria-live="polite">
-    <div class="sit-threat" id="sit-threat" data-tone="idle">—</div>
-    <div class="sit-metrics" aria-label="Régua do rio">
-      <div><span>Agora</span><b id="rna-agora">—</b></div>
-      <div><span>+2 h</span><b id="rna-prev">—</b></div>
-      <div><span>Ref.</span><b id="rna-bank">—</b></div>
-      <div><span>Ruas</span><b id="sit-ruas">—</b></div>
-    </div>
-    <p class="sit-decide" id="rna-decide">Carregando…</p>
+    <section class="control-dock" aria-label="Controles da sala">
+      <div class="control-field">
+        <span class="field-label">Município</span>
+        <div class="city-row segmented" role="group" aria-label="Município">
+          <button type="button" class="segment" data-city="santa_tereza" aria-pressed="true">Santa Tereza</button>
+          <button type="button" class="segment" data-city="mucum" aria-pressed="false">Muçum</button>
+        </div>
+      </div>
+      <div class="control-field">
+        <span class="field-label">Momento (mapa juntos)</span>
+        <div class="case-row segmented" id="case-row" role="group" aria-label="Momento"></div>
+      </div>
+      <div class="control-field">
+        <span class="field-label">Abrir módulo</span>
+        <div class="module-tabs segmented" id="module-tabs" role="tablist" aria-label="Módulos da sala">
+          <button type="button" class="segment" role="tab" data-module="juntos" aria-selected="true" aria-pressed="true">Juntos</button>
+          <button type="button" class="segment" role="tab" data-module="previsao" aria-selected="false" aria-pressed="false">Previsão</button>
+          <button type="button" class="segment" role="tab" data-module="rotas" aria-selected="false" aria-pressed="false">Rotas</button>
+          <button type="button" class="segment" role="tab" data-module="painel" aria-selected="false" aria-pressed="false">Painel</button>
+          <button type="button" class="segment" role="tab" data-module="estudo" aria-selected="false" aria-pressed="false">Estudo</button>
+        </div>
+      </div>
+      <p class="load-status" id="load-status" aria-live="polite">carregando…</p>
+    </section>
+
+    <p class="case-banner sala-moment" id="case-banner" role="status"></p>
+    <p class="lead-line visually-hidden" id="lead-line"></p>
+    <p class="case-label visually-hidden" id="case-label">Momento</p>
+    <h2 class="visually-hidden" id="city-label">Santa Tereza</h2>
+
+    <section class="sala-stage" id="sala-stage">
+      <!-- Módulo: páginas boas em iframe -->
+      <div class="module-frame-wrap" id="module-frame-wrap" hidden>
+        <div class="module-frame-bar">
+          <strong id="module-frame-title">Previsão</strong>
+          <a id="module-frame-open" href="#" target="_blank" rel="noopener">Abrir em página cheia ↗</a>
+        </div>
+        <iframe id="module-frame" title="Módulo da sala de situação" loading="lazy"></iframe>
+      </div>
+
+      <!-- Módulo: mapa territorial acoplado -->
+      <div class="juntos-stage" id="juntos-stage">
+        <div class="map-column">
+          <div class="map-shell">
+            <div id="map" role="application" aria-label="Mapa territorial acoplado"></div>
+            <p class="map-badge" id="story-caption">Rio · água nas ruas · saída até o abrigo</p>
+          </div>
+          <div class="hud-leg map-legend-inline" id="map-legend" aria-label="Legenda">
+            <div class="legend-scale">
+              <span><i style="background:#176ca8"></i>água</span>
+              <span><i style="background:#c45c26"></i>rua</span>
+              <span><i style="background:#0f8b46"></i>saída</span>
+              <span><i style="background:#f0c14a"></i>marca</span>
+              <span><i style="background:#f5c76b"></i>abrigo</span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="hud-cockpit detail-rail" id="hud-cockpit" aria-label="Leitura acoplada">
+          <article class="panel" aria-labelledby="blk-rio">
+            <div class="panel-head">
+              <div>
+                <p class="kicker">01 · o rio</p>
+                <h2 id="blk-rio">Régua</h2>
+              </div>
+              <span class="panel-tag" id="sit-threat">—</span>
+            </div>
+            <p class="decide-line answer-line" id="rna-decide">Carregando a altura do rio…</p>
+            <div class="rna-hours hero-metrics" aria-label="Altura do rio">
+              <div class="metric metric-blue"><span class="metric-label">Agora</span><b class="metric-value" id="rna-agora">—</b></div>
+              <div class="metric metric-orange"><span class="metric-label">+2 horas</span><b class="metric-value" id="rna-prev">—</b></div>
+              <div class="metric"><span class="metric-label">Referência</span><b class="metric-value" id="rna-bank">—</b></div>
+              <div class="metric"><span class="metric-label">Ruas com água</span><b class="metric-value" id="sit-ruas">—</b></div>
+            </div>
+            <div class="gauge" aria-hidden="true">
+              <div class="gauge-scale">
+                <i class="gauge-bank" id="gauge-bank"></i>
+                <i class="gauge-now" id="gauge-now"></i>
+                <i class="gauge-prev" id="gauge-prev"></i>
+              </div>
+            </div>
+            <p class="micro" id="rna-agora-s"></p>
+            <p class="micro warnish" id="rna-note-inline">Números da régua e azul do mapa ainda não são a mesma conversão.</p>
+          </article>
+
+          <article class="panel" aria-labelledby="blk-ruas">
+            <div class="panel-head">
+              <div>
+                <p class="kicker">02 · ruas</p>
+                <h2 id="blk-ruas">Com água</h2>
+              </div>
+            </div>
+            <p class="micro" id="street-count">Laranja no mapa = rua com água. Toque um trecho.</p>
+            <ol class="street-priority" id="street-priority" aria-label="Trechos com água"></ol>
+          </article>
+
+          <article class="panel" aria-labelledby="blk-rota">
+            <div class="panel-head">
+              <div>
+                <p class="kicker">03 · saída</p>
+                <h2 id="blk-rota">Até o abrigo</h2>
+              </div>
+            </div>
+            <div class="live-card" id="live-card">
+              <strong id="live-title">Toque uma rua laranja ou o mapa</strong>
+              <p id="live-copy">Mostra o abrigo mais perto e quantos km faltam.</p>
+              <div class="rota-metrics" id="rota-metrics" hidden></div>
+            </div>
+          </article>
+
+          <div class="cockpit-actions">
+            <button type="button" id="btn-recenter" class="btn">Centro urbano</button>
+            <button type="button" id="story-play" class="btn btn-primary" aria-pressed="false">▶ Contar a história</button>
+            <button type="button" id="story-prev" class="btn visually-hidden">←</button>
+            <button type="button" id="story-next" class="btn visually-hidden">→</button>
+          </div>
+
+          <details class="more-box" id="panel-tools">
+            <summary>Camadas e cenários do mapa</summary>
+            <p class="micro" id="meta-line">cenário no mapa</p>
+            <div class="level-row" id="level-row" role="group" aria-label="Cenário de inundação no mapa"></div>
+            <div class="layer-toggles">
+              <label><input type="checkbox" id="ly-mancha" checked> Mancha azul</label>
+              <label><input type="checkbox" id="ly-grade" checked> Quadrados IBGE</label>
+              <label><input type="checkbox" id="ly-ruas" checked> Ruas</label>
+              <label><input type="checkbox" id="ly-flood" checked> Ruas com água</label>
+              <label><input type="checkbox" id="ly-marks" checked> Marcas no chão</label>
+              <label><input type="checkbox" id="ly-abrigos" checked> Abrigos</label>
+              <label><input type="checkbox" id="ly-rota" checked> Rota verde</label>
+            </div>
+            <div class="basemap-row" role="group" aria-label="Fundo do mapa">
+              <button type="button" data-basemap="sat" aria-pressed="true">Satélite</button>
+              <button type="button" data-basemap="osm" aria-pressed="false">Ruas</button>
+            </div>
+            <div class="links" id="city-links"></div>
+          </details>
+
+          <p class="gate-line compact-gate"><strong>Não é ordem de evacuação.</strong> Isto é estudo — quem manda no operacional é a Defesa Civil.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="sibling-cards" aria-label="Páginas reunidas nesta sala">
+      <h2>Páginas desta sala</h2>
+      <p>Mesmos módulos que você já conhece. Use as abas acima ou abra em tela cheia.</p>
+      <div class="sibling-grid" id="sibling-grid"></div>
+    </section>
   </div>
 
-  <aside class="hud hud-cockpit sit-rail" id="hud-cockpit" aria-label="Saída">
-    <p class="sit-kicker"><span id="city-label">Santa Tereza</span> · saída</p>
-    <p class="case-banner sit-moment" id="case-banner" role="status"></p>
-    <p class="lead-line visually-hidden" id="lead-line" aria-hidden="true"></p>
-    <p class="case-label visually-hidden" id="case-label">Momento</p>
-
-    <div class="live-card sit-exit" id="live-card">
-      <strong id="live-title">Toque o mapa</strong>
-      <p id="live-copy">A rota verde aparece até o abrigo seco.</p>
-      <div class="rota-metrics" id="rota-metrics" hidden></div>
+  <!-- nós legados exigidos pelo JS / testes -->
+  <div class="visually-hidden" aria-hidden="true">
+    <div class="stats-mini">
+      <div><span>células</span><b id="stat-cells">—</b></div>
+      <div><span>pessoas-limite</span><b id="stat-pop">—</b></div>
+      <div><span>proxy área</span><b id="stat-proxy">—</b></div>
+      <div><span>ruas</span><b id="stat-ruas">—</b></div>
     </div>
-
-    <p class="sit-streets-label" id="street-count">Trocar trecho</p>
-    <ol class="street-priority sit-streets" id="street-priority" aria-label="Trechos com água"></ol>
-
-    <div class="gauge visually-hidden" aria-hidden="true">
-      <div class="gauge-scale">
-        <i class="gauge-bank" id="gauge-bank"></i>
-        <i class="gauge-now" id="gauge-now"></i>
-        <i class="gauge-prev" id="gauge-prev"></i>
-      </div>
-    </div>
-    <p class="micro visually-hidden" id="rna-agora-s"></p>
-    <p class="micro warnish visually-hidden" id="rna-note-inline"></p>
-
-    <p class="gate-line compact-gate">Estudo — não é ordem de evacuação.</p>
-
-    <details class="more-box" id="panel-tools">
-      <summary>Camadas</summary>
-      <p class="micro" id="meta-line">cenário no mapa</p>
-      <div class="level-row" id="level-row" role="group" aria-label="Cenário de inundação no mapa"></div>
-      <div class="layer-toggles">
-        <label><input type="checkbox" id="ly-mancha" checked> Mancha azul</label>
-        <label><input type="checkbox" id="ly-grade" checked> Quadrados IBGE</label>
-        <label><input type="checkbox" id="ly-ruas" checked> Ruas</label>
-        <label><input type="checkbox" id="ly-flood" checked> Ruas com água</label>
-        <label><input type="checkbox" id="ly-marks" checked> Marcas no chão</label>
-        <label><input type="checkbox" id="ly-abrigos" checked> Abrigos</label>
-        <label><input type="checkbox" id="ly-rota" checked> Rota verde</label>
-      </div>
-      <div class="basemap-row" role="group" aria-label="Fundo do mapa">
-        <button type="button" data-basemap="sat" aria-pressed="true">Satélite</button>
-        <button type="button" data-basemap="osm" aria-pressed="false">Ruas</button>
-      </div>
-      <div class="links" id="city-links"></div>
-      <div class="stats-mini visually-hidden" aria-hidden="true">
-        <div><span>células</span><b id="stat-cells">—</b></div>
-        <div><span>pessoas-limite</span><b id="stat-pop">—</b></div>
-        <div><span>proxy área</span><b id="stat-proxy">—</b></div>
-        <div><span>ruas</span><b id="stat-ruas">—</b></div>
-      </div>
-      <span class="visually-hidden" id="stat-abrigos">—</span>
-      <span class="visually-hidden" id="rna-estacao">—</span>
-      <span class="visually-hidden" id="rna-bank-s"></span>
-      <span class="visually-hidden" id="rna-prev-s"></span>
-      <span class="visually-hidden" id="gauge-delta">Δ —</span>
-    </details>
-
-    <ol class="story-steps visually-hidden" id="story-steps" aria-hidden="true">
+    <span id="stat-abrigos">—</span>
+    <span id="rna-estacao">—</span>
+    <span id="rna-bank-s"></span>
+    <span id="rna-prev-s"></span>
+    <span id="gauge-delta">Δ —</span>
+    <ol class="story-steps" id="story-steps">
       <li><button type="button" data-story="territorio" aria-pressed="true"><b>1</b><span>Lugar</span></button></li>
       <li><button type="button" data-story="rna" aria-pressed="false"><b>2</b><span>Régua</span></button></li>
       <li><button type="button" data-story="mancha" aria-pressed="false"><b>3</b><span>Água</span></button></li>
@@ -110,54 +208,36 @@
       <li><button type="button" data-story="pessoas" aria-pressed="false"><b>6</b><span>Gente</span></button></li>
       <li><button type="button" data-story="rotas" aria-pressed="true"><b>7</b><span>Abrigo</span></button></li>
     </ol>
-  </aside>
-
-  <p class="story-caption" id="story-caption" aria-live="polite">Toque o mapa ou um trecho laranja</p>
-
-  <p class="vertical-ledger visually-hidden" id="vertical-ledger" aria-hidden="true">
-    <span><b id="ledger-rna">—</b></span>
-    <span><b id="ledger-hand">—</b></span>
-    <span><b id="ledger-rota">—</b></span>
-    <span><b id="ledger-conv">—</b></span>
-  </p>
-  <div class="detail visually-hidden" id="cell-detail" hidden></div>
-  <ul class="cell-list visually-hidden" id="cell-list" hidden></ul>
-  <details class="context-box visually-hidden" id="context-box"><summary>contexto</summary>
-    <p class="meta-line" id="event-note"></p>
-    <p class="meta-line" id="rota-note"></p>
-  </details>
-  <div class="panel-data visually-hidden" id="panel-data"></div>
-  <p class="rna-note visually-hidden" id="rna-note"></p>
-
-  <div class="hud hud-sheet" id="hud-sheet" aria-label="Leitura móvel">
-    <div class="sheet-gate" id="sheet-gate"><strong>Não é alerta.</strong> Estudo de caso.</div>
-    <div class="sheet-live">
-      <strong id="sheet-title">Toque o mapa ou uma rua</strong>
-      <p id="sheet-copy">Rio → ruas com água → caminho até o seco.</p>
-      <div class="rota-metrics" id="sheet-rota" hidden></div>
+    <p class="vertical-ledger" id="vertical-ledger">
+      <span><b id="ledger-rna">—</b></span>
+      <span><b id="ledger-hand">—</b></span>
+      <span><b id="ledger-rota">—</b></span>
+      <span><b id="ledger-conv">—</b></span>
+    </p>
+    <div class="detail" id="cell-detail" hidden></div>
+    <ul class="cell-list" id="cell-list" hidden></ul>
+    <details class="context-box" id="context-box"><summary>contexto</summary>
+      <p class="meta-line" id="event-note"></p>
+      <p class="meta-line" id="rota-note"></p>
+    </details>
+    <div class="panel-data" id="panel-data"></div>
+    <p class="rna-note" id="rna-note"></p>
+    <div class="hud hud-sheet" id="hud-sheet">
+      <div class="sheet-gate" id="sheet-gate"><strong>Não é alerta.</strong> Estudo de caso.</div>
+      <div class="sheet-live">
+        <strong id="sheet-title">Toque o mapa ou uma rua</strong>
+        <p id="sheet-copy">Rio → ruas com água → caminho até o seco.</p>
+        <div class="rota-metrics" id="sheet-rota" hidden></div>
+      </div>
     </div>
-  </div>
-
-  <div class="hud hud-leg" id="map-legend" aria-label="Legenda">
-    <div class="legend-scale">
-      <span><i style="background:#176ca8"></i>água</span>
-      <span><i style="background:#c45c26"></i>rua</span>
-      <span><i style="background:#0f8b46"></i>saída</span>
-      <span><i style="background:#f0c14a"></i>marca</span>
-      <span><i style="background:#f5c76b"></i>abrigo</span>
+    <div class="chain">
+      <span data-step="rna"></span><span data-step="mancha"></span><span data-step="grade"></span><span data-step="ruas"></span><span data-step="pessoas"></span><span data-step="rotas"></span>
     </div>
-  </div>
-
-  <div class="chain visually-hidden" aria-hidden="true">
-    <span data-step="rna"></span><span data-step="mancha"></span><span data-step="grade"></span><span data-step="ruas"></span><span data-step="pessoas"></span><span data-step="rotas"></span>
-  </div>
-  <div class="howto visually-hidden" aria-hidden="true">estudo de caso · não é alerta</div>
-  <div class="gate visually-hidden" aria-hidden="true">
-    <strong>Não é despacho</strong>
-    <p>Estudo de caso. Defesa Civil manda no operacional.</p>
+    <div class="howto">estudo de caso · não é alerta</div>
+    <div class="gate"><strong>Não é despacho</strong><p>Estudo de caso. Defesa Civil manda no operacional.</p></div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="../assets/js/estudo_caso_territorio.js?v=20260911-sala2"></script>
+  <script src="../assets/js/estudo_caso_territorio.js?v=20260911-reunida1"></script>
 </body>
 </html>
