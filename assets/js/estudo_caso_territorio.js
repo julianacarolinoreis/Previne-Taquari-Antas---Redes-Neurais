@@ -54,6 +54,7 @@
   };
 
   var REPLAY_URL = '../assets/data/research_event_replay_latest.json';
+  var CASES_URL = '../assets/data/estudo_caso_territorio/casos_acoplados.json';
   var STORY = ['territorio', 'rna', 'mancha', 'grade', 'ruas', 'pessoas', 'rotas'];
   var STORY_CAPTION = {
     territorio: 'Centro urbano no satélite',
@@ -77,6 +78,8 @@
   var state = {
     city: 'santa_tereza',
     level: 15,
+    caseId: 'live',
+    casesDoc: null,
     selectedId: null,
     selectedStreet: null,
     basemap: 'sat',
@@ -95,7 +98,8 @@
       flood: null,
       abrigos: null,
       highlight: null,
-      rota: null
+      rota: null,
+      marks: null
     },
     canvas: null,
     streetHits: 0,
@@ -194,8 +198,50 @@
     var slug = state.city === 'mucum' ? 'mucum' : 'santa-tereza';
     var url = new URL(location.href);
     url.searchParams.set('cidade', slug);
+    if (state.caseId && state.caseId !== 'live') url.searchParams.set('caso', state.caseId);
+    else url.searchParams.delete('caso');
     url.hash = slug;
     history.replaceState(null, '', url.pathname + url.search + url.hash);
+  }
+
+  function parseCaseId() {
+    var q = (new URLSearchParams(location.search).get('caso') || '').trim();
+    return q || 'live';
+  }
+
+  function casesForCity() {
+    var doc = state.casesDoc;
+    if (!doc || !Array.isArray(doc.cases)) return [];
+    return doc.cases.filter(function (c) {
+      return !c.city || c.city === state.city || c.mode === 'live';
+    });
+  }
+
+  function currentCase() {
+    var list = casesForCity();
+    var found = null;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === state.caseId) { found = list[i]; break; }
+    }
+    if (found) return found;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].mode === 'live') return list[i];
+    }
+    return { id: 'live', mode: 'live', label: 'Ao vivo', short: 'Régua agora' };
+  }
+
+  function loadCasesDoc() {
+    if (state.casesDoc) return Promise.resolve(state.casesDoc);
+    return fetchJson(CASES_URL).then(function (doc) {
+      state.casesDoc = doc;
+      return doc;
+    }).catch(function (err) {
+      console.warn('casos acoplados indisponíveis', err);
+      state.casesDoc = {
+        cases: [{ id: 'live', mode: 'live', label: 'Ao vivo', short: 'Régua agora', city: null }]
+      };
+      return state.casesDoc;
+    });
   }
 
   function fetchJson(url) {
@@ -318,6 +364,7 @@
     state.layers.abrigos = L.layerGroup().addTo(state.map);
     state.layers.highlight = L.layerGroup().addTo(state.map);
     state.layers.rota = L.layerGroup().addTo(state.map);
+    state.layers.marks = L.layerGroup().addTo(state.map);
     state.map.on('click', onMapClick);
     return state.map;
   }
@@ -376,6 +423,34 @@
       },
       interactive: false
     }).addTo(state.layers.mancha);
+  }
+
+  function drawMarks() {
+    if (!state.layers.marks) return;
+    state.layers.marks.clearLayers();
+    var caso = currentCase();
+    var marks = (caso && caso.marks) || [];
+    if (!marks.length) return;
+    marks.forEach(function (m) {
+      if (num(m.lat) == null || num(m.lon) == null) return;
+      var hot = !!m.highlight || (caso.focus_mark && m.name === caso.focus_mark);
+      var marker = L.circleMarker([m.lat, m.lon], {
+        radius: hot ? 8 : 5,
+        color: hot ? '#7a2f28' : '#5c4033',
+        weight: hot ? 2.4 : 1.4,
+        fillColor: hot ? '#f0c14a' : '#d9c3a0',
+        fillOpacity: 0.95
+      });
+      var elev = m.elevation_m != null
+        ? (Number(m.elevation_m).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' m')
+        : 'cota não informada';
+      marker.bindPopup(
+        '<strong>' + esc(m.name) + '</strong><br>' +
+        'marca observada · ' + esc(elev) + '<br>' +
+        '<em>evidência histórica SGB — não é alerta atual</em>'
+      );
+      marker.addTo(state.layers.marks);
+    });
   }
 
   function drawGrade(bundle) {
@@ -926,23 +1001,44 @@
   }
 
   function renderRna(bundle) {
+    var caso = currentCase();
     var d = bundle.rna || {};
-    var now = d.nivel_rio_agora_cm != null ? d.nivel_rio_agora_cm : d.nivel_atual_cm;
-    var fore = d.nivel_previsto_cm;
-    var bank = d.bankfull_cm != null ? d.bankfull_cm : city().bankfullFallback;
+    var now, fore, bank, agoraS, prevS, hz;
+    bank = d.bankfull_cm != null ? d.bankfull_cm : city().bankfullFallback;
+    hz = '+2 h';
+    if (caso && caso.mode === 'coupled' && caso.rna && caso.rna.decision_frame) {
+      var fr = caso.rna.decision_frame;
+      now = fr.now_obs_cm;
+      fore = fr.plus_2h_rna_cm != null ? fr.plus_2h_rna_cm : fr.plus_2h_obs_cm;
+      if (caso.bankfull_cm != null) bank = caso.bankfull_cm;
+      hz = fr.horizon_label || ('+' + (caso.rna.horizon_h || 2) + ' h');
+      agoraS = 'recorte histórico · ' + (fr.t || '');
+      prevS = hz + ' no estudo · ' + (caso.rna.event_id || caso.short || '');
+    } else {
+      now = d.nivel_rio_agora_cm != null ? d.nivel_rio_agora_cm : d.nivel_atual_cm;
+      fore = d.nivel_previsto_cm;
+      agoraS = d.nivel_rio_agora_em || d.telemetria_ultima_em || 'horário não informado';
+      prevS = (d.horizonte || d.rotulo || '+2 h') + (d.modelo ? ' · ' + d.modelo : '');
+    }
     function setTxt(id, text) { var el = $(id); if (el) el.textContent = text; }
     setTxt('rna-agora', fmtCm(now));
     setTxt('rna-prev', fmtCm(fore));
     setTxt('rna-bank', fmtCm(bank));
     setTxt('rna-estacao', (d.estacao || city().station));
-    setTxt('rna-agora-s', d.nivel_rio_agora_em || d.telemetria_ultima_em || 'horário não informado');
-    setTxt('rna-prev-s', (d.horizonte || d.rotulo || '+2 h') + (d.modelo ? ' · ' + d.modelo : ''));
+    setTxt('rna-agora-s', agoraS);
+    setTxt('rna-prev-s', prevS);
     setTxt('rna-bank-s', 'cota de pesquisa da régua · não é o nível HAND do mapa');
     setTxt('rna-estacao-s', (d.status_dados || 'status indisponível') +
       (d.consultado_em ? ' · consultado ' + d.consultado_em : ''));
-    setTxt('rna-note', 'A RNA lê a régua em centímetros. O mapa mostra um cenário HAND publicado (' +
-      state.level + ' m). A conversão régua ↔ HAND/MDT continua pendente.');
-    setTxt('rna-note-inline', 'A régua (cm) ainda não escolhe sozinha a mancha HAND (m).');
+    if (caso && caso.mode === 'coupled') {
+      setTxt('rna-note', 'Estudo acoplado: hidrograma RNA histórico + mancha HAND ' +
+        state.level + ' m já publicada. Sem conversão automática régua ↔ HAND.');
+      setTxt('rna-note-inline', 'Caso histórico · régua (cm) e mancha (m) no mesmo evento — sem conversão.');
+    } else {
+      setTxt('rna-note', 'A RNA lê a régua em centímetros. O mapa mostra um cenário HAND publicado (' +
+        state.level + ' m). A conversão régua ↔ HAND/MDT continua pendente.');
+      setTxt('rna-note-inline', 'A régua (cm) ainda não escolhe sozinha a mancha HAND (m).');
+    }
 
     var decide = $('rna-decide');
     if (decide) {
@@ -953,21 +1049,28 @@
       if (n == null || f == null) {
         line = 'Régua sem leitura completa neste momento.';
       } else if (f > n + 5) {
-        line = 'Em +2 h a RNA vê a régua subir ' + Math.round(f - n) + ' cm (de ' +
+        line = 'Em ' + hz + ' a RNA vê a régua subir ' + Math.round(f - n) + ' cm (de ' +
           Math.round(n) + ' para ' + Math.round(f) + ' cm).';
       } else if (f < n - 5) {
-        line = 'Em +2 h a RNA vê a régua descer ' + Math.round(n - f) + ' cm (de ' +
+        line = 'Em ' + hz + ' a RNA vê a régua descer ' + Math.round(n - f) + ' cm (de ' +
           Math.round(n) + ' para ' + Math.round(f) + ' cm).';
       } else {
-        line = 'Em +2 h a RNA vê a régua estável (~' + Math.round(f) + ' cm).';
+        line = 'Em ' + hz + ' a RNA vê a régua estável (~' + Math.round(f) + ' cm).';
       }
       if (b != null && f != null) {
         if (f >= b) line += ' Previsto acima da cota de referência (' + Math.round(b) + ' cm).';
         else line += ' Ainda abaixo da cota de referência (' + Math.round(b) + ' cm).';
       }
-      line += ' Isso não desenha sozinho a mancha — use as ruas abaixo.';
+      if (caso && caso.mode === 'coupled') {
+        line += ' Mancha e marcas vêm do mesmo evento publicado — não de uma fórmula cm→m.';
+        if (caso.coupling) line += ' ' + caso.coupling;
+      } else {
+        line += ' Isso não desenha sozinho a mancha — use as ruas abaixo.';
+      }
       decide.textContent = line;
     }
+    var prevLabel = document.querySelector('.rna-hours > div:nth-child(2) > span');
+    if (prevLabel) prevLabel.textContent = (caso && caso.mode === 'coupled') ? hz : '+2 horas';
     renderGauge(now, fore, bank);
     renderLedger(bundle);
     setChain('rna');
@@ -986,6 +1089,29 @@
     document.querySelectorAll('[data-city]').forEach(function (btn) {
       btn.setAttribute('aria-pressed', String(btn.getAttribute('data-city') === state.city));
     });
+  }
+
+  function renderCaseButtons() {
+    var row = $('case-row');
+    if (!row) return;
+    var list = casesForCity();
+    if (!list.some(function (c) { return c.id === state.caseId; })) state.caseId = 'live';
+    row.innerHTML = list.map(function (c) {
+      return '<button type="button" data-case="' + esc(c.id) + '" aria-pressed="' +
+        String(c.id === state.caseId) + '" title="' + esc(c.summary || c.coupling || c.label) + '">' +
+        esc(c.short || c.label) + '</button>';
+    }).join('');
+    var banner = $('case-banner');
+    var caso = currentCase();
+    if (banner) {
+      banner.hidden = false;
+      if (caso && caso.mode === 'coupled') {
+        banner.innerHTML = '<strong>' + esc(caso.label) + '</strong> · ' +
+          esc(caso.coupling || 'RNA histórica + mancha HAND do mesmo evento. Sem conversão cm→m.');
+      } else {
+        banner.innerHTML = '<strong>Ao vivo</strong> · régua corrente; mancha = cenário HAND publicado (sem conversão).';
+      }
+    }
   }
 
   function renderSide(bundle) {
@@ -1266,6 +1392,9 @@
     toggle(state.layers.highlight, showRuas && !!state.selectedId && state.story !== 'rotas');
     toggle(state.layers.abrigos, showAbrigos);
     toggle(state.layers.rota, showRota);
+    var showMarks = $('ly-marks') ? $('ly-marks').checked : true;
+    var casoMarks = currentCase();
+    toggle(state.layers.marks, showMarks && !!(casoMarks.marks && casoMarks.marks.length));
   }
 
   function setPresenting(on) {
@@ -1379,6 +1508,7 @@
     if (state.layers.highlight) state.layers.highlight.clearLayers();
     clearRota();
     drawMancha(bundle);
+    drawMarks();
     drawStreets(bundle);
     drawGrade(bundle);
     drawAbrigos(bundle);
@@ -1408,6 +1538,7 @@
     document.title = 'PREVINE · estudo de caso · ' + city().label;
     $('city-label').textContent = city().label;
     renderCityButtons();
+    renderCaseButtons();
     renderLevels();
     renderRna(bundle);
     drawAll(bundle);
@@ -1487,9 +1618,42 @@
     state.city = id;
     state.level = city().defaultLevel;
     state.selectedId = null;
+    /* Ao trocar município, volta ao vivo se o caso não pertencer à cidade. */
+    var keep = casesForCity().some(function (c) { return c.id === state.caseId; });
+    if (!keep) state.caseId = 'live';
+    var caso = currentCase();
+    if (caso && caso.mode === 'coupled' && caso.hand_m != null) state.level = caso.hand_m;
     renderCityButtons();
     setUrl();
     bootCity();
+  }
+
+  function onCase(id) {
+    if (!id || id === state.caseId) return;
+    state.caseId = id;
+    state.selectedId = null;
+    var caso = currentCase();
+    if (caso && caso.mode === 'coupled' && caso.hand_m != null) {
+      state.level = caso.hand_m;
+    } else {
+      state.level = city().defaultLevel;
+    }
+    setUrl();
+    var bundle = state.cache[state.city];
+    if (!bundle) {
+      bootCity();
+      return;
+    }
+    render(bundle);
+    if (caso && caso.mode === 'coupled' && caso.focus_mark && caso.marks) {
+      var focus = null;
+      for (var i = 0; i < caso.marks.length; i++) {
+        if (caso.marks[i].name === caso.focus_mark) { focus = caso.marks[i]; break; }
+      }
+      if (focus && state.map) {
+        state.map.setView([focus.lat, focus.lon], Math.max(state.map.getZoom(), 16), { animate: true });
+      }
+    }
   }
 
   document.querySelectorAll('[data-city]').forEach(function (btn) {
@@ -1569,13 +1733,20 @@
       selectCell(bundle, btn.getAttribute('data-cell'), { zoom: true, story: 'pessoas' });
     });
   }
-  ['ly-mancha', 'ly-grade', 'ly-ruas', 'ly-flood', 'ly-abrigos', 'ly-rota'].forEach(function (id) {
+  ['ly-mancha', 'ly-grade', 'ly-ruas', 'ly-flood', 'ly-abrigos', 'ly-rota', 'ly-marks'].forEach(function (id) {
     if ($(id)) $(id).addEventListener('change', applyLayersVisible);
   });
   if ($('btn-recenter')) {
     $('btn-recenter').addEventListener('click', function () {
       stopStoryPlay();
       focusCenter({ zoom: focusOf().zoom });
+    });
+  }
+  if ($('case-row')) {
+    $('case-row').addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-case]');
+      if (!btn) return;
+      onCase(btn.getAttribute('data-case'));
     });
   }
   window.addEventListener('hashchange', function () {
@@ -1587,7 +1758,13 @@
   });
 
   state.city = parseCity({ allowDefault: true });
+  state.caseId = parseCaseId();
   state.level = city().defaultLevel;
-  setUrl();
-  bootCity();
+  loadCasesDoc().then(function () {
+    var caso = currentCase();
+    state.caseId = caso.id || 'live';
+    if (caso && caso.mode === 'coupled' && caso.hand_m != null) state.level = caso.hand_m;
+    setUrl();
+    bootCity();
+  });
 })();
