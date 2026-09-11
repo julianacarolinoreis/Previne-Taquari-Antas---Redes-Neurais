@@ -21,6 +21,7 @@ on:
       - "assets/data/acervo_pesquisas.json"
       - "assets/data/basin_forecast_points.json"
       - "assets/data/agenda_pesquisas.json"
+      - "scripts/validate_osm_tiles.py"
       - "assets/data/estudo_caso_resposta_v002.json"
       - "assets/data/estudo_caso_territorio/**"
       - "assets/data/rota_fuga_santa_tereza_cenario.json"
@@ -93,6 +94,7 @@ jobs:
             !*.md
             !*.yml
             !*.yaml
+            scripts/validate_osm_tiles.py
             !Gemfile
             !Gemfile.lock
             assets/data/vulnerabilidade/referencias/README_AGREGADOS_TAQUARI.md
@@ -105,6 +107,9 @@ jobs:
             assets/data/vulnerabilidade/metadados/ESPECIFICACAO_FICHA_TRIAGEM_CENARIOS.md
             assets/data/vulnerabilidade/brutos/FONTES.md
           sparse-checkout-cone-mode: false
+
+      - name: Validate OpenStreetMap tile contract
+        run: python scripts/validate_osm_tiles.py
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

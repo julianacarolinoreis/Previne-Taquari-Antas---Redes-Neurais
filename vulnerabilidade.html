@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Permissions-Policy" content="camera=(), geolocation=(), microphone=()">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://unpkg.com https://cdn.jsdelivr.net https://*.tile.openstreetmap.org https://server.arcgisonline.com; connect-src 'self' https://raw.githubusercontent.com https://iede.rs.gov.br; font-src 'self' data:; worker-src 'self' blob:; frame-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://unpkg.com https://cdn.jsdelivr.net https://tile.openstreetmap.org https://server.arcgisonline.com; connect-src 'self' https://raw.githubusercontent.com https://iede.rs.gov.br; font-src 'self' data:; worker-src 'self' blob:; frame-src 'none'">
 <title>PREVINE · Vulnerabilidade social — bacia Taquari-Antas</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -3481,8 +3481,9 @@ map.createPane("detalheLocal").style.zIndex = 480;
 map.getPane("mascara").style.pointerEvents = "none";
 // O contorno da bacia e informativo e nao deve capturar cliques das camadas abaixo.
 map.getPane("bacia").style.pointerEvents = "none";
-const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                        {maxZoom:19, opacity:.72, attribution:"© OpenStreetMap"}).addTo(map);
+const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        {maxZoom:19, opacity:.72, referrerPolicy:"strict-origin-when-cross-origin",
+                         attribution:"&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"}).addTo(map);
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
                         {maxZoom:19, maxNativeZoom:19, attribution:"© Esri, Maxar"});
 const semMapa = L.layerGroup();
@@ -3927,7 +3928,11 @@ carrega("rs_contorno.geojson").then(gj=>{
 // mini-mapa de localização: o RS com a SILHUETA da bacia destacada
 const inset = L.map("inset", {zoomControl:false, attributionControl:true, dragging:false,
   scrollWheelZoom:false, doubleClickZoom:false, boxZoom:false, keyboard:false, touchZoom:false});
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:8, attribution:"© OpenStreetMap"}).addTo(inset);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom:8,
+  referrerPolicy:"strict-origin-when-cross-origin",
+  attribution:"&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
+}).addTo(inset);
 inset.fitBounds([[-33.9,-57.7],[-27.0,-49.5]]);
 carrega("rs_contorno.geojson").then(gj=>{     // contorno do estado (gerado pelo robô)
   L.geoJSON(gj, {style:{color:"#8a9a91", weight:1, fillColor:"#c9d4cd", fillOpacity:.5}}).addTo(inset);

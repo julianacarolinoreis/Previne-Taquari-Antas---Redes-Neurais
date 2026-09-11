@@ -1399,8 +1399,10 @@
       try{
         box.replaceChildren();
         const map=L.map(box,{scrollWheelZoom:false}).setView([-28.95,-51.45],9); MAP=map;
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-          maxZoom:17, attribution:'© OpenStreetMap'
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+          maxZoom:17,
+          referrerPolicy:'strict-origin-when-cross-origin',
+          attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
         STATIONS.filter(s=>s.lat!=null).forEach(st=>{
           const mk=L.circleMarker([st.lat,st.lon],{

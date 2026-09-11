@@ -381,6 +381,11 @@ def main() -> int:
     assert "/main/assets/data/vulnerabilidade" not in html, "fallback ainda aponta para branch mutavel"
     assert "Content-Security-Policy" in html and 'name="referrer"' in html, "polÃ­tica de seguranÃ§a ausente"
     assert "Permissions-Policy" in html, "Permissions-Policy ausente"
+    assert "https://{s}.tile.openstreetmap.org" not in html, "host OSM antigo ainda configurado"
+    assert "https://tile.openstreetmap.org/{z}/{x}/{y}.png" in html, "host OSM canônico ausente"
+    assert html.count('referrerPolicy:"strict-origin-when-cross-origin"') >= 2, "Referer OSM não preservado nos dois mapas"
+    assert "https://www.openstreetmap.org/copyright" in html and "OpenStreetMap</a> contributors" in html, "atribuição OSM incompleta"
+    assert "https://tile.openstreetmap.org https://server.arcgisonline.com" in html, "CSP não permite o host OSM canônico"
 
     print(json.dumps({
         "municipios": len(codes),
