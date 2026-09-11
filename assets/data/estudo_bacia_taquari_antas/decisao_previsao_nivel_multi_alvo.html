@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <title>Decisão: previsão de nível multi-alvo</title>
+  <style>
+    :root { --ink:#1a2421; --muted:#4a5a55; --bg:#e8f0ec; --card:#f7fbf8; --ok:#1f6b4a; --warn:#8a5a12; --bad:#8a2f2f; }
+    body { margin:0; font-family:"Source Serif 4", "Libre Baskerville", Georgia, serif; color:var(--ink);
+      background: radial-gradient(1200px 600px at 10% -10%, #cfe3d8, transparent),
+                  linear-gradient(165deg, #d5e6df, #eef3ef 55%, #f4f7f5); }
+    main { max-width: 920px; margin: 0 auto; padding: 2.2rem 1.2rem 3rem; }
+    h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin: 0 0 .4rem; letter-spacing: -0.02em; }
+    .lead { color: var(--muted); font-size: 1.05rem; margin-bottom: 1.4rem; }
+    .pill { display:inline-block; padding:.25rem .7rem; border:1px solid #9bb8a8; color:var(--ok); font-size:.85rem; }
+    section { margin: 1.6rem 0; padding: 1rem 0; border-top: 1px solid #c5d5cc; }
+    h2 { font-size: 1.15rem; margin: 0 0 .7rem; }
+    ul { padding-left: 1.15rem; }
+    li { margin: .35rem 0; }
+    table { width:100%; border-collapse: collapse; font-size: .92rem; background: var(--card); }
+    th, td { text-align:left; padding: .45rem .5rem; border-bottom: 1px solid #d5e0da; vertical-align: top; }
+    th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .86em; }
+    .notice { padding: .8rem 1rem; margin: 1rem 0; background: #e3f0e8; border-left: 4px solid var(--ok); }
+    .notice.warn { background: #f5ecda; border-left-color: var(--warn); }
+    a { color: var(--ok); }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="pill">decidido_rna_nivel_multi_alvo_hec_estacionado</p>
+    <h1>Prever nível em vários locais: RNA, não HEC-primeiro</h1>
+    <p class="lead">Qual a melhor forma de prever o nível do rio em vários locais da bacia?</p>
+    <div class="notice">
+      <strong>Decisão travada:</strong> RNA_nivel_por_estacao_com_mascara.
+      HEC fica <em>estacionado_pesquisa_q_onde_ha_vazao</em>.
+      Santa Tereza sem curva-chave <strong>não</strong> bloqueia previsão de nível.
+    </div>
+    <section>
+      <h2>Por que RNA de nível</h2>
+      <ul><li>O produto PREVINE já prevê NÍVEL (cm) com RNA ao vivo em Santa Tereza e Muçum.</li><li>Mancha/HAND consome cota/nível, não vazão HEC.</li><li>RNA supervisionada de nível não exige curva-chave.</li><li>Santa Tereza sem curva-chave: isso bloqueia HEC Q no alvo STZ e é irrelevante para RNA de N.</li><li>Multi-local honesto = um modelo (ou cabeça) por estação com série de N observada — não um HEC único da bacia.</li></ul>
+    </section>
+    <section>
+      <h2>Por que não HEC como caminho principal</h2>
+      <ul><li>HEC calibra/simula Q; converter Q→N em cada ponto exige curva local.</li><li>STZ (86472600) não tem curva oficial pública no estudo — hunt e checklist confirmam bloqueio.</li><li>Pacote HEC twin Muçum eventwise é pesquisa de processo hidrológico, não previsão operacional de nível multi-site.</li><li>Entregar mais polish HEC sem fechar a pergunta de produto atrasa o que importa.</li></ul>
+    </section>
+    <section>
+      <h2>Investimento (ordem)</h2>
+      <ul><li><strong>P1</strong> — Manter e endurecer RNA STZ/Muçum (máscara, hold-out, multi-horizonte) — já é o produto.</li><li><strong>P2</strong> — Auditar série histórica de nível ANA para candidatos (86472000, 86507000, 86125500) e decidir quais viram alvo.</li><li><strong>P3</strong> — Generalizar contrato RNA+máscara para N alvos (não só STZ/Muçum).</li><li><strong>P4</strong> — Para Encantado/Roca Sales: desenhar transferência N-âncora→HAND, sem fingir posto local.</li><li><strong>P99</strong> — Não abrir nova rodada HEC salvo pedido explícito de processo Q.</li></ul>
+    </section>
+    <section>
+      <h2>Estações: alvos, candidatos e forcantes</h2>
+      <table>
+        <thead><tr><th>Código</th><th>Nome</th><th>Tier</th><th>Papel hoje</th><th>RNA ao vivo</th><th>Nota</th></tr></thead>
+        <tbody><tr><td><code>86472600</code></td><td>Santa Tereza</td><td>alvo_operacional_rna</td><td>target_santa_tereza</td><td>sim</td><td>Alvo RNA de nível já publicado. Sem curva-chave — HEC Q bloqueado; RNA de N não precisa de curva.</td></tr><tr><td><code>86510000</code></td><td>Muçum</td><td>alvo_operacional_rna</td><td>target_mucum</td><td>sim</td><td>Alvo RNA de nível já publicado. HEC twin Q eventwise existe como pesquisa paralela, não substitui RNA de N.</td></tr><tr><td><code>86125500</code></td><td>PCH Jararaca / Prata</td><td>candidato_alvo_nivel</td><td>upstream_feature</td><td>não</td><td>Entrada 4h/8h/12h. Auditar série histórica ANA antes de treinar alvo próprio.</td></tr><tr><td><code>86448000</code></td><td>UHE Monte Claro / Antas</td><td>candidato_alvo_nivel</td><td>upstream_feature</td><td>não</td><td>Secundário no Excel. Só promover a alvo com série contínua e caso de uso claro.</td></tr><tr><td><code>86472000</code></td><td>Linha José Júlio / Antas</td><td>candidato_alvo_nivel</td><td>upstream_feature</td><td>não</td><td>Hoje é forcante de nível. Pode virar alvo RNA próprio se houver interesse municipal/alerta no ponto.</td></tr><tr><td><code>86507000</code></td><td>PCH Cotiporã Jusante / Carreiro</td><td>candidato_alvo_nivel</td><td>upstream_feature</td><td>não</td><td>Forcante Carreiro. Candidato a alvo RNA se o risco local for relevante.</td></tr><tr><td><code>86125130</code></td><td>PCH Morro Grande / Ituim</td><td>forcante_apenas</td><td>upstream_feature</td><td>não</td><td>Útil como input; raramente faz sentido como alvo de alerta de cidade do corredor.</td></tr><tr><td><code>86298000</code></td><td>UHE Castro Alves</td><td>forcante_apenas</td><td>upstream_feature</td><td>não</td><td>Barramento / montante Antas — forcante, não prioridade de mancha urbana.</td></tr><tr><td><code>86306000</code></td><td>Estação 86306000</td><td>forcante_apenas</td><td>upstream_feature_stz_robo</td><td>não</td><td>No ESTACOES_NIVEL do robô STZ; auditar cobertura antes de qualquer promoção.</td></tr><tr><td><code>86430900</code></td><td>Estação 86430900</td><td>forcante_apenas</td><td>upstream_feature_stz_robo</td><td>não</td><td>Input 8h V001; sem ficha municipal de previsão hoje.</td></tr><tr><td><code>86447000</code></td><td>Estação 86447000</td><td>forcante_apenas</td><td>upstream_feature_stz_robo</td><td>não</td><td>Input 8h V002; sem ficha municipal de previsão hoje.</td></tr><tr><td><code>86505500</code></td><td>Estação 86505500</td><td>forcante_apenas</td><td>upstream_feature_stz_robo</td><td>não</td><td>Pode ser chuva/nível misto no robô; não tratar como alvo sem auditoria.</td></tr></tbody>
+      </table>
+    </section>
+    <section>
+      <h2>Locais sem ficha de nível própria</h2>
+      <ul><li><strong>Encantado</strong> — Sem ficha RNA municipal. Não inventar com HEC. Opções: posto mais próximo com N + HAND/MDT, ou novo sensor.</li><li><strong>Roca Sales</strong> — Sem ficha RNA municipal. Mesma lógica: N observado local ou transferência honesta a partir de Muçum/STZ.</li><li><strong>Lajeado / Baixo Taquari</strong> — Fora do recorte Guaporé/Forqueta/Baixo excluído dos dois modelos. Só entra com decisão explícita de domínio.</li></ul>
+    </section>
+    <section>
+      <h2>Disciplina</h2>
+      <ul><li>Prever NÍVEL, não exigir vazão, salvo pergunta Q explícita.</li><li>Santa Tereza sem curva-chave não bloqueia RNA de nível.</li><li>Não inventar curva-chave; não copiar curva de vizinho para STZ.</li><li>Não chamar corredor STZ–Muçum de modelo da bacia G040.</li><li>Não entregar HEC em fatias como se fosse o produto de previsão multi-local.</li><li>Alerta oficial continua bloqueado até validação institucional.</li></ul>
+      <p class="notice warn">Artefato de decisão de estudo — não é alerta oficial.</p>
+      <p><a href="decisao_previsao_nivel_multi_alvo_latest.json">JSON</a> ·
+         <a href="contrato_rna_mascara_stz_mucum.html">Contrato RNA</a> ·
+         <a href="hec_twin_stz_mucum_v1.html">HEC twin (estacionado)</a></p>
+    </section>
+  </main>
+</body>
+</html>

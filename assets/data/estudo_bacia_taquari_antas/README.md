@@ -26,3 +26,14 @@ python scripts/build_estudo_pluvio_recorte.py
 ## Decisao de recorte
 
 Leia `recorte_modelo.html` antes de qualquer HEC.
+Leia `decisao_previsao_nivel_multi_alvo.html` antes de qualquer nova rodada HEC.
+
+## Decisão de previsão (nível multi-alvo)
+
+**Caminho principal:** RNA de nível por estação (`decisao_previsao_nivel_multi_alvo.html`).
+
+HEC/gêmeo HEC está **estacionado** como pesquisa de Q onde há vazão. Santa Tereza sem curva-chave não bloqueia RNA de nível.
+
+```bash
+python3 scripts/build_estudo_decisao_previsao_nivel_multi_alvo.py
+```
