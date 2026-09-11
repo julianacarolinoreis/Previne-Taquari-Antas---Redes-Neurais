@@ -209,12 +209,16 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         hotel = next(c for c in doc["cases"] if c["id"] == "mucum-e27-mai2024-hotel")
         self.assertEqual(hotel["mode"], "coupled")
         self.assertEqual(hotel["hand_m"], 25)
+        self.assertEqual(hotel["short"], "Hotel")
         self.assertEqual(hotel["focus_mark"], "MCM01 (Hotel)")
         self.assertTrue(any("Hotel" in (m.get("name") or "") for m in hotel["marks"]))
         frame = hotel["rna"]["decision_frame"]
         self.assertIsNotNone(frame.get("now_obs_cm"))
         self.assertIsNotNone(frame.get("plus_2h_rna_cm"))
         js = JS.read_text(encoding="utf-8")
+        self.assertIn("defaultCaseId", js)
+        self.assertIn("mucum-e27-mai2024-hotel", js)
+        self.assertIn("st-e4-set2023", js)
         self.assertNotIn("cm * 0.01", js)
         self.assertNotIn("/ 100)", js.split("drawMarks")[0][-200:] + js.split("drawMarks")[-1][:200])
 
