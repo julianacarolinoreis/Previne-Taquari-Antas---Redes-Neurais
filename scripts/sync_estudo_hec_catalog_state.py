@@ -15,9 +15,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "data" / "estudo_bacia_taquari_antas"
 
-HEC_STATUS = "modelo_mucum_eventwise_v1_6_fechado_stz_q_blocked"
+HEC_STATUS = "modelo_mucum_eventwise_v1_7_fechado_stz_q_blocked"
 NEXT = [
-    "Usar o pacote Muçum v1.6 fechado (params eventwise com picos polidos) — não common-search.",
+    "Usar o pacote Muçum v1.7 fechado (params eventwise com calibração aninhada Antas→Muçum) — não common-search.",
     "STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
     "Após curva: calibrar modelo STZ truncado.",
     "Manter Guaporé/Forqueta fora do recorte.",
@@ -25,7 +25,7 @@ NEXT = [
 DOIS_DISCIPLINE = (
     "Dois modelos-alvo no CORREDOR Ate Muçum. Nao sao a bacia G040. "
     "Guapore/Forqueta/Baixo ficam de fora dos dois. "
-    "Modelo Muçum eventwise v1.6 FECHADO (polish de pico). "
+    "Modelo Muçum eventwise v1.6 FECHADO (aninhado Antas+Muçum). "
     "STZ Q bloqueado ate curva-chave. Nao promover common-search."
 )
 FORCANTES_DISCIPLINE = (

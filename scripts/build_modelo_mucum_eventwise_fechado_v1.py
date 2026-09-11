@@ -2,7 +2,7 @@
 """Fecha o modelo Muçum eventwise como pacote de estudo entregável.
 
 Não recalibra. Empacota params dos eventos com NSE>=0 a partir do HEC twin
-(v1.6: PAD por evento + polish local de pico).
+(v1.6: calibração aninhada Antas→Muçum (v1.7)).
 Rótulo honesto: biblioteca eventwise — NÃO é regra comum transferível.
 STZ permanece fora (Q bloqueado).
 """
@@ -25,13 +25,29 @@ PKG_DIR = OUT / "modelo_mucum_eventwise_v1_fechado"
 JSON_OUT = OUT / "modelo_mucum_eventwise_v1_fechado_latest.json"
 HTML_OUT = OUT / "modelo_mucum_eventwise_v1_fechado.html"
 
-STATUS = "modelo_mucum_eventwise_v1_6_fechado_stz_q_blocked"
+STATUS = "modelo_mucum_eventwise_v1_7_fechado_stz_q_blocked"
 NEXT = [
     "Usar o pacote Muçum fechado (params eventwise) — não common-search.",
     "STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
     "Após curva: calibrar modelo STZ truncado.",
     "Manter Guaporé/Forqueta fora do recorte.",
 ]
+
+
+def flatten_params(params: dict) -> dict:
+    """Flatten nested upstream/downstream params for CSV columns."""
+    if not params:
+        return {}
+    if "upstream" in params and "downstream" in params:
+        out = {}
+        for zone, prefix in (("upstream", "up_"), ("downstream", "dn_")):
+            for k, v in (params.get(zone) or {}).items():
+                out[f"{prefix}{k}"] = v
+        for k in ("k1", "k2", "k3", "x"):
+            if k in params:
+                out[k] = params[k]
+        return out
+    return dict(params)
 
 
 def main() -> None:
@@ -62,7 +78,7 @@ def main() -> None:
             "simulated_peak_m3s",
             "pad_hours_selected",
             "series_csv",
-            *sorted(core_events[0]["params"].keys()),
+            *sorted(flatten_params(core_events[0]["params"]).keys()),
         ]
         w = csv.DictWriter(fh, fieldnames=fields)
         w.writeheader()
@@ -80,7 +96,7 @@ def main() -> None:
                 "simulated_peak_m3s": m.get("simulated_peak_m3s"),
                 "pad_hours_selected": e.get("pad_hours_selected"),
                 "series_csv": e.get("series_csv"),
-                **e["params"],
+                **flatten_params(e["params"]),
             }
             w.writerow(row)
             library.append(
@@ -98,10 +114,11 @@ def main() -> None:
             )
 
     # Median params across core events — diagnostic only, not promoted.
-    keys = list(core_events[0]["params"].keys())
+    flat_core = [flatten_params(e["params"]) for e in core_events]
+    keys = list(flat_core[0].keys())
     median_params = {}
     for k in keys:
-        vals = sorted(float(e["params"][k]) for e in core_events)
+        vals = sorted(float(row[k]) for row in flat_core)
         mid = len(vals) // 2
         median_params[k] = vals[mid] if len(vals) % 2 else 0.5 * (vals[mid - 1] + vals[mid])
 
@@ -113,10 +130,10 @@ def main() -> None:
         "schema_version": "modelo_mucum_eventwise_v1_fechado",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": STATUS,
-        "release_name": "modelo_mucum_eventwise_v1_6",
+        "release_name": "modelo_mucum_eventwise_v1_7",
         "label_honest": (
             "MODELO MUÇUM FECHADO v1.6 (estudo). Biblioteca eventwise com PAD por evento, "
-            "polish local de pico (peak_weight=1.25). Gêmeo Python HEC. "
+            "polish local de pico (nested Antas+Muçum). Gêmeo Python HEC. "
             "NÃO é HEC-HMS 4.13 Windows. NÃO é alerta operacional. "
             "NÃO promover common-search / mediana. Biblioteca core = NSE>=0.75."
         ),

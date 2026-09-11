@@ -24,6 +24,9 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from hec_twin_nested_v17 import NestedParams, ZoneParams, best_nested_for_event, zone_grid
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,6 +71,10 @@ RAIN_PREF = {
 
 RAIN_STATIONS_LOAD = ("86472000", "86472600", "86507000", "86510000", "2851072")
 
+CONTROL_ANTAS = "86472000"
+CONTROL_MUCUM = "86510000"
+CONTROL_CARREIRO_REJECTED = "86507000"  # Q ceiling ~300 — not confluence control
+
 
 def parse_ts(value: str) -> datetime:
     return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
@@ -110,10 +117,11 @@ def prepare_event_forcing(
     event_id: str,
     subbasins: list[str],
     pad_hours: int,
-) -> tuple[dict[str, list[float]] | None, dict[str, Any], list[str], dict[str, float], int, list[str]]:
-    """Build precip + flow aligned to optional warm-up pad."""
+) -> tuple[dict[str, list[float]] | None, dict[str, Any], list[str], dict[str, float], dict[str, float], int, list[str]]:
+    """Build precip + Muçum/Antas flows aligned to optional warm-up pad."""
     pad_sim, core_hours, pad = event_windows(event_id, pad_hours)
-    flow = hourly_field(load_event_series("86510000", event_id), "Vazao", reduce="mean")
+    flow = hourly_field(load_event_series(CONTROL_MUCUM, event_id), "Vazao", reduce="mean")
+    flow_antas = hourly_field(load_event_series(CONTROL_ANTAS, event_id), "Vazao", reduce="mean")
     precip, rain_meta = build_precip_for_event(
         event_id, pad_sim, subbasins, magnitude_hours=core_hours
     )
@@ -139,7 +147,7 @@ def prepare_event_forcing(
             "applied": pad_hours > 0 and core_offset > 0,
             "sim_hours": len(hours),
         }
-    return precip, rain_meta, hours, flow, core_offset, core_hours
+    return precip, rain_meta, hours, flow, flow_antas, core_offset, core_hours
 
 
 def e19_forcing_note(rain_meta: dict[str, Any] | None, flow: dict[str, float], core_hours: list[str]) -> str:
@@ -166,7 +174,7 @@ def select_pad(
         by_event_nse: dict[str, float] = {}
         by_event_score: dict[str, float] = {}
         for event_id in PAD_SWEEP_EVENTS + ("E19",):
-            precip, _meta, hours, flow, core_offset, core_hours = prepare_event_forcing(
+            precip, _meta, hours, flow, _flow_antas, core_offset, core_hours = prepare_event_forcing(
                 event_id, subbasins, pad
             )
             if precip is None:
@@ -265,45 +273,45 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         "SB_STZ_RESIDUAL",
         "SB_INC_MUCUM",
     ]
-    params_list = candidate_grid()
+    params_list = candidate_grid()  # shared-zone grid kept for common-search diagnostics
+    zones = zone_grid()
     event_results = []
     precip_cache: dict[str, Any] = {}
     pad_by_event: dict[str, int] = {}
     pad_trials_global: list[dict[str, Any]] = []
 
     for event_id in EVENTS:
-        best_p = None
-        best_m = None
+        best_p: NestedParams | None = None
+        best_detail: dict[str, Any] | None = None
         best_score = float("-inf")
-        best_sim = None
-        best_pack = None  # precip, rain_meta, hours, flow, core_offset, core_hours, pad
+        best_net: dict[str, list[float]] | None = None
+        best_pack = None
         for pad in PAD_CANDIDATES:
-            precip, rain_meta, hours, flow, core_offset, core_hours = prepare_event_forcing(
+            precip, rain_meta, hours, flow, flow_antas, core_offset, core_hours = prepare_event_forcing(
                 event_id, subbasins, pad
             )
             paired = [i for i, h in enumerate(core_hours) if h in flow]
             if precip is None or len(paired) < 12:
                 continue
-            # Coarse grid for this PAD
-            coarse_p, coarse_m, coarse_score, coarse_sim = score_params_list(
-                precip, areas, hours, flow, core_offset, core_hours, params_list
-            )
-            # Local peak polish around coarse best
-            refined = local_param_neighbors(coarse_p)
-            p, m, score, sim_full = score_params_list(
-                precip, areas, hours, flow, core_offset, core_hours, refined
+            p, detail, score, net = best_nested_for_event(
+                precip=precip,
+                areas=areas,
+                hours=hours,
+                flow_mucum=flow,
+                flow_antas=flow_antas,
+                core_offset=core_offset,
+                core_hours=core_hours,
+                zones=zones,
+                score_junction=score_at_junction,
+                run_network=run_network,
             )
             if score > best_score:
-                best_score, best_p, best_m, best_sim = score, p, m, sim_full
-                best_pack = (precip, rain_meta, hours, flow, core_offset, core_hours, pad)
+                best_score, best_p, best_detail, best_net = score, p, detail, net
+                best_pack = (precip, rain_meta, hours, flow, flow_antas, core_offset, core_hours, pad)
 
-        row: dict[str, Any] = {
-            "event_id": event_id,
-            "status": "blocked",
-        }
-        if best_pack is None or best_p is None or best_m is None or best_sim is None:
-            # keep rain meta from pad=0 attempt for diagnostics
-            precip, rain_meta, hours, flow, core_offset, core_hours = prepare_event_forcing(
+        row: dict[str, Any] = {"event_id": event_id, "status": "blocked"}
+        if best_pack is None or best_p is None or best_detail is None or best_net is None:
+            precip, rain_meta, hours, flow, flow_antas, core_offset, core_hours = prepare_event_forcing(
                 event_id, subbasins, 0
             )
             row["rain"] = rain_meta
@@ -312,7 +320,8 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
             event_results.append(row)
             continue
 
-        precip, rain_meta, hours, flow, core_offset, core_hours, pad = best_pack
+        precip, rain_meta, hours, flow, flow_antas, core_offset, core_hours, pad = best_pack
+        best_m = best_detail["mucum"]
         pad_by_event[event_id] = pad
         precip_cache[event_id] = (precip, rain_meta, hours, flow, core_offset, core_hours)
         pad_trials_global.append(
@@ -323,17 +332,33 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
                 "peak_relative_error": round(best_m["peak_relative_error"], 4),
                 "peak_lag_hours": best_m["peak_lag_hours"],
                 "research_score": round(best_score, 4),
+                "antas_control_used": best_detail["antas_control_used"],
+                "nse_antas": None
+                if not best_detail["antas"]
+                else round(best_detail["antas"]["nse"], 4),
             }
         )
 
         series_path = RUN / f"mucum_{event_id}_best_series.csv"
         with series_path.open("w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
-            w.writerow(["timestamp", "obs_m3s", "sim_m3s", "in_core_window"])
+            w.writerow(
+                [
+                    "timestamp",
+                    "obs_m3s",
+                    "sim_m3s",
+                    "obs_antas_m3s",
+                    "sim_antas_m3s",
+                    "in_core_window",
+                ]
+            )
+            sim_m = best_net["at_mucum"]
+            sim_a = best_net["at_antas"]
             for i, h in enumerate(hours):
                 in_core = 1 if i >= core_offset else 0
-                obs = flow.get(h, "") if in_core else ""
-                w.writerow([h, obs, f"{best_sim[i]:.4f}", in_core])
+                obs_m = flow.get(h, "") if in_core else ""
+                obs_a = flow_antas.get(h, "") if in_core else ""
+                w.writerow([h, obs_m, f"{sim_m[i]:.4f}", obs_a, f"{sim_a[i]:.4f}", in_core])
 
         status = "eventwise_scored"
         if best_m["nse"] < 0:
@@ -344,14 +369,28 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
                 "observed_points": len([h for h in core_hours if h in flow]),
                 "status": status,
                 "optimization_objective": (
-                    "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error"
+                    "nested v1.7: Antas(86472000) → Muçum(86510000) → "
+                    "combined polish 0.4*Antas+0.6*Muçum research_score"
                 ),
                 "score": best_score,
                 "metrics": best_m,
-                "params": asdict(best_p),
+                "metrics_antas": best_detail["antas"],
+                "nested": {
+                    "control_antas": CONTROL_ANTAS,
+                    "control_mucum": CONTROL_MUCUM,
+                    "antas_control_used": best_detail["antas_control_used"],
+                    "score_antas": best_detail["score_antas"],
+                    "score_mucum": best_detail["score_mucum"],
+                    "score_combined": best_detail["score_combined"],
+                    "stage": best_detail["stage"],
+                    "carreiro_86507000_rejected": (
+                        "Vazao presente mas teto ~300 m³/s — não é controle da confluência"
+                    ),
+                },
+                "params": best_p.to_dict(),
                 "warm_up_hours_applied": core_offset,
                 "pad_hours_selected": pad,
-                "refinement": "local_param_neighbors_v1_6",
+                "refinement": "nested_antas_then_mucum_v1_7",
                 "series_csv": str(series_path.relative_to(ROOT)),
             }
         )
@@ -369,7 +408,7 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
     pad_hours = mode_pad
     pad_selection = {
         "candidates": list(PAD_CANDIDATES),
-        "mode": "per_event_argmax_research_score_with_local_refine",
+        "mode": "per_event_nested_antas_then_mucum_with_local_refine",
         "selected_pad_hours_mode": mode_pad,
         "per_event": pad_by_event,
         "trials": pad_trials_global,
@@ -377,7 +416,7 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
             "for each event×PAD: coarse grid then local_param_neighbors; "
             "argmax research_score (peak_weight=1.25)"
         ),
-        "note": "v1.6: PAD por evento + polish local de pico.",
+        "note": "v1.7: PAD por evento + calibração aninhada Antas→Muçum.",
     }
 
     scored = [r for r in event_results if r["status"] in ("eventwise_scored", "fit_failed_eventwise")]
@@ -592,8 +631,8 @@ def calibrate_mucum(areas: dict[str, float]) -> dict[str, Any]:
         "target_name": "Muçum",
         "quantity": "Vazao_m3s",
         "structure": "modelo_mucum_estrutura_stz_mucum_v1",
-        "mode": "eventwise_plus_common_search_v1_6",
-        "calibration_version": "mucum_hec_twin_v1_6",
+        "mode": "eventwise_nested_plus_common_search_v1_7",
+        "calibration_version": "mucum_hec_twin_v1_7",
         "hold_out": True,
         "external_holdout_events": list(EXTERNAL_HOLDOUT_EVENTS),
         "pad_hours": pad_hours,
@@ -659,6 +698,7 @@ def load_event_series(station: str, event_id: str) -> list[dict[str, str]]:
 
 @dataclass
 class Params:
+    """Shared-zone params (common-search diagnostics)."""
     initial_loss: float
     constant_loss: float
     tc: float
@@ -669,6 +709,17 @@ class Params:
     k2: float
     k3: float
     x: float = 0.2
+
+    def as_nested(self) -> NestedParams:
+        z = ZoneParams(
+            self.initial_loss,
+            self.constant_loss,
+            self.tc,
+            self.storage,
+            self.recession,
+            self.initial_flow_ratio,
+        )
+        return NestedParams(up=z, dn=ZoneParams(**asdict(z)), k1=self.k1, k2=self.k2, k3=self.k3, x=self.x)
 
 
 def clark_uh(tc_h: float, r_h: float, dt_h: float = 1.0) -> list[float]:
@@ -745,47 +796,73 @@ def muskingum(inflow: list[float], k_h: float, x: float, dt_h: float = 1.0) -> l
 def run_network(
     precip_by_sb: dict[str, list[float]],
     areas: dict[str, float],
-    params: Params,
+    params: NestedParams | Params,
     *,
     include_mucum_increment: bool,
 ) -> dict[str, list[float]]:
-    """Run twin.
-
-    Prata + Antas residual share the same gage depth; applying Initial+Constant
-    separately would double-count initial loss. They are runoff-lumped here,
-    matching the Carreiro-split Antas bucket, while the structure still names Prata.
-    """
-    uh = clark_uh(params.tc, params.storage)
+    """Run twin with nested zone params (v1.7) or shared Params."""
+    np = params.as_nested() if isinstance(params, Params) else params
+    uh_up = clark_uh(np.up.tc, np.up.storage)
+    uh_dn = clark_uh(np.dn.tc, np.dn.storage)
     n = len(next(iter(precip_by_sb.values())))
 
     antas_area = areas["SB_PRATA_7868"] + areas["SB_ANTAS_RESIDUAL"]
-    # Prefer Antas residual rain series (86472000); identical to Prata prefs when complete
     antas_precip = precip_by_sb.get("SB_ANTAS_RESIDUAL") or precip_by_sb["SB_PRATA_7868"]
-    antas_excess = apply_loss(antas_precip, params.initial_loss, params.constant_loss)
-    antas_direct = excess_to_flow(antas_excess, antas_area, uh)
-    antas_base = recession_baseflow(n, antas_area, params.initial_flow_ratio, params.recession)
+    antas_excess = apply_loss(antas_precip, np.up.initial_loss, np.up.constant_loss)
+    antas_direct = excess_to_flow(antas_excess, antas_area, uh_up)
+    antas_base = recession_baseflow(n, antas_area, np.up.initial_flow_ratio, np.up.recession)
     at_antas = [d + b for d, b in zip(antas_direct, antas_base)]
 
-    def one(sb: str) -> list[float]:
-        excess = apply_loss(precip_by_sb[sb], params.initial_loss, params.constant_loss)
-        direct = excess_to_flow(excess, areas[sb], uh)
-        base = recession_baseflow(n, areas[sb], params.initial_flow_ratio, params.recession)
+    def one_dn(sb: str) -> list[float]:
+        excess = apply_loss(precip_by_sb[sb], np.dn.initial_loss, np.dn.constant_loss)
+        direct = excess_to_flow(excess, areas[sb], uh_dn)
+        base = recession_baseflow(n, areas[sb], np.dn.initial_flow_ratio, np.dn.recession)
         return [d + b for d, b in zip(direct, base)]
 
-    carreiro = one("SB_CARREIRO_7866")
-    residual = one("SB_STZ_RESIDUAL")
+    carreiro = one_dn("SB_CARREIRO_7866")
+    residual = one_dn("SB_STZ_RESIDUAL")
 
-    after_r1 = muskingum(at_antas, params.k1, params.x)
+    after_r1 = muskingum(at_antas, np.k1, np.x)
     at_carreiro = [a + c for a, c in zip(after_r1, carreiro)]
-    after_r2 = muskingum(at_carreiro, params.k2, params.x)
+    after_r2 = muskingum(at_carreiro, np.k2, np.x)
     at_stz = [a + r for a, r in zip(after_r2, residual)]
 
     result = {"at_antas": at_antas, "at_carreiro": at_carreiro, "at_stz": at_stz}
     if include_mucum_increment:
-        mucum_inc = one("SB_INC_MUCUM")
-        after_r3 = muskingum(at_stz, params.k3, params.x)
+        mucum_inc = one_dn("SB_INC_MUCUM")
+        after_r3 = muskingum(at_stz, np.k3, np.x)
         result["at_mucum"] = [a + m for a, m in zip(after_r3, mucum_inc)]
     return result
+
+
+def score_at_junction(
+    precip: dict[str, list[float]],
+    areas: dict[str, float],
+    params: NestedParams | Params,
+    hours: list[str],
+    flow: dict[str, float],
+    *,
+    core_offset: int,
+    core_hours: list[str],
+    junction: str,
+) -> tuple[dict[str, float], float, list[float]]:
+    net = run_network(precip, areas, params, include_mucum_increment=True)
+    sim_full = net[junction]
+    sim_core = sim_full[core_offset : core_offset + len(core_hours)]
+    paired = [i for i, h in enumerate(core_hours) if h in flow]
+    if len(paired) < 3:
+        empty = {
+            "pairs": float(len(paired)),
+            "nse": float("-inf"),
+            "rmse_m3s": float("nan"),
+            "peak_lag_hours": float("nan"),
+            "peak_relative_error": float("nan"),
+        }
+        return empty, float("-inf"), sim_full
+    obs = [flow[core_hours[i]] for i in paired]
+    sim_p = [sim_core[i] for i in paired]
+    m = metrics(obs, sim_p)
+    return m, research_score(m), sim_full
 
 
 def metrics(obs: list[float], sim: list[float]) -> dict[str, float]:
@@ -1106,7 +1183,7 @@ def diagnose_stz(areas: dict[str, float], mucum_report: dict[str, Any]) -> dict[
             continue
         subbasins = ["SB_PRATA_7868", "SB_ANTAS_RESIDUAL", "SB_CARREIRO_7866", "SB_STZ_RESIDUAL"]
         pad_hours = int(r.get("pad_hours_selected") or per_event_pad.get(r["event_id"]) or 0)
-        precip, rain_meta, hours, _flow, core_offset, core_hours = prepare_event_forcing(
+        precip, rain_meta, hours, _flow, _flow_antas, core_offset, core_hours = prepare_event_forcing(
             r["event_id"], subbasins, pad_hours
         )
         if precip is None:
@@ -1379,14 +1456,14 @@ def main() -> None:
         "schema_version": "estudo_hec_twin_stz_mucum_v1",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "purpose": (
-            "busca eventwise + common-search HEC v1.6 (PAD por evento, polish local de pico) "
+            "busca eventwise aninhada (Antas→Muçum) + common-search HEC v1.7 (PAD por evento, polish local de pico) "
             "no modelo Muçum; STZ diagnostico (Q bloqueado)"
         ),
-        "status": "hec_twin_mucum_v1_6_eventwise_scored_stz_q_blocked",
+        "status": "hec_twin_mucum_v1_7_nested_eventwise_scored_stz_q_blocked",
         "discipline_rule": (
             "Isto e HEC estrutural + busca de parametros no gemeo Linux/Python. "
             "Nao e HEC-HMS 4.13 binario Windows. Nao e alerta operacional. "
-            "v1.6: PAD por evento + local refine de pico (peak_weight=1.25); "
+            "v1.7: calibração aninhada Antas 86472000 + Muçum 86510000 (peak_weight=1.25); "
             "STZ Q bloqueado ate curva-chave oficial."
         ),
         "audit_fixes_v1_1": [
