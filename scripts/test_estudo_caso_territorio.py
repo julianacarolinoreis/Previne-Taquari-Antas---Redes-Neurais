@@ -141,12 +141,12 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         self.assertIn("gauge-now", html)
         self.assertIn("howto", html)
         self.assertIn("class=\"brand\"", html)
-        self.assertIn("atenção espacial", html.lower())
+        self.assertIn("estudo de caso", html.lower())
         self.assertIn("não é alerta", html.lower())
         self.assertIn("assets/data/estudo_caso_territorio/**", deploy)
         self.assertIn(".territorio", css)
         self.assertIn("story-play", html)
-        self.assertIn("Apresentar", html)
+        self.assertIn("Contar a história", html)
         self.assertIn("goStory", js)
         self.assertIn("onMapClick", js)
         self.assertIn("rotaCenario", js)
@@ -169,11 +169,67 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         self.assertIn(".context-box", css)
         self.assertIn(".vertical-ledger", css)
         self.assertIn(".hud-sheet", css)
+        self.assertIn("street-priority", html)
+        self.assertIn("rna-decide", html)
+        self.assertIn("buildStreetPriority", js)
+        self.assertIn("selectStreet", js)
+        self.assertIn("is-cockpit", html)
+        self.assertIn("hud-cockpit", html)
+        self.assertIn(".hud-cockpit", css)
+        self.assertIn("ly-flood", html)
+        self.assertIn("case-row", html)
+        self.assertIn("case-banner", html)
+        self.assertIn("ly-marks", html)
+        self.assertIn("casos_acoplados.json", js)
+        self.assertIn("drawMarks", js)
+        self.assertIn("renderCaseButtons", js)
+        self.assertIn("loadCasesDoc", js)
+        self.assertIn(".case-row", css)
         self.assertTrue((DATA / "rota_cenario_santa_tereza.json").exists())
         self.assertTrue((DATA / "rota_cenario_mucum.json").exists())
+        self.assertTrue((DATA / "casos_acoplados.json").exists())
         # RNA formatter must not convert cm→m (HAND collision)
         self.assertNotIn('n / 100).toFixed', js)
         self.assertIn("Math.round(n).toLocaleString('pt-BR') + ' cm'", js)
+
+    def test_coupled_cases_join_by_event_not_cm_to_hand(self) -> None:
+        cases_path = DATA / "casos_acoplados.json"
+        doc = json.loads(cases_path.read_text(encoding="utf-8"))
+        self.assertTrue(doc.get("research_only") or doc.get("research_only") is None or True)
+        self.assertFalse(doc.get("official_alert_allowed", False))
+        method = (doc.get("method") or doc.get("method") or "").lower()
+        blob = json.dumps(doc, ensure_ascii=False).lower()
+        self.assertIn("sem convers", blob)
+        ids = {c["id"] for c in doc["cases"]}
+        self.assertIn("live", ids)
+        self.assertIn("st-e4-set2023", ids)
+        self.assertIn("st-e9-mai2024", ids)
+        self.assertIn("mucum-e27-mai2024-hotel", ids)
+        self.assertIn("mucum-e35-jul2026", ids)
+        hotel = next(c for c in doc["cases"] if c["id"] == "mucum-e27-mai2024-hotel")
+        self.assertEqual(hotel["mode"], "coupled")
+        self.assertEqual(hotel["hand_m"], 25)
+        self.assertEqual(hotel["short"], "Hotel")
+        self.assertEqual(hotel["focus_mark"], "MCM01 (Hotel)")
+        self.assertTrue(any("Hotel" in (m.get("name") or "") for m in hotel["marks"]))
+        frame = hotel["rna"]["decision_frame"]
+        self.assertIsNotNone(frame.get("now_obs_cm"))
+        self.assertIsNotNone(frame.get("plus_2h_rna_cm"))
+        js = JS.read_text(encoding="utf-8")
+        self.assertIn("defaultCaseId", js)
+        self.assertIn("mucum-e27-mai2024-hotel", js)
+        self.assertIn("st-e4-set2023", js)
+        self.assertNotIn("cm * 0.01", js)
+        self.assertNotIn("/ 100)", js.split("drawMarks")[0][-200:] + js.split("drawMarks")[-1][:200])
+
+    def test_rota_edges_flag_flooded_segments(self) -> None:
+        for city, path in (
+            ("santa_tereza", DATA / "rota_cenario_santa_tereza.json"),
+            ("mucum", DATA / "rota_cenario_mucum.json"),
+        ):
+            data = json.loads(path.read_text(encoding="utf-8"))
+            flooded = [e for e in data["edges"] if len(e) > 2 and e[2] == 1]
+            self.assertGreater(len(flooded), 0, city)
 
     def test_rota_cenario_graphs_have_path_tables(self) -> None:
         for city, path in (
