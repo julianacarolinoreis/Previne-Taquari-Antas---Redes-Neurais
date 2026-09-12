@@ -87,15 +87,15 @@ QUADRO1_ROWS = [
     ],
 ]
 
-QUADRO2_HEADERS = ["Código ANA/SGB", "Nome", "Latitude", "Longitude", "Distância geodésica até 86472600"]
+QUADRO2_HEADERS = ["Código ANA/SGB", "Nome na telemetria do projeto", "Latitude", "Longitude"]
 QUADRO2_ROWS = [
-    ["86472600", "Santa Tereza (estação-alvo)", "29,1781° S", "51,7322° W", "—"],
-    ["86472000", "Linha José Júlio / rio das Antas montante", "29,0978° S", "51,6997° W", "9,5 km"],
-    ["86448000", "Veranópolis / rio das Antas", "29,0292° S", "51,5219° W", "26,3 km"],
-    ["86125130", "Ituim / alto Antas", "28,5919° S", "51,3247° W", "76,3 km"],
-    ["86507000", "Carreiro", "não recuperada", "não recuperada", "—"],
-    ["86298000", "Nome HidroWeb a confirmar", "não recuperada", "não recuperada", "—"],
-    ["86430900", "Nome HidroWeb a confirmar", "não recuperada", "não recuperada", "—"],
+    ["86472600", "Santa Tereza", "29,1781° S", "51,7322° W"],
+    ["86472000", "Linha Jose Julio / Rio das Antas montante", "29,0978° S", "51,6997° W"],
+    ["86448000", "Veranopolis / Rio das Antas", "29,0292° S", "51,5219° W"],
+    ["86125130", "Ituim", "28,5919° S", "51,3247° W"],
+    ["86507000", "Carreiro", "—", "—"],
+    ["86298000", "Estacao 86298000 - montante (input 4h PRO)", "—", "—"],
+    ["86430900", "Estacao 86430900", "—", "—"],
 ]
 
 TABELA1_HEADERS = [
@@ -133,7 +133,6 @@ REFS = [
     "MAIER, H. R.; JAIN, A.; DANDY, G. C.; SUDHEER, K. P. Methods used for the development of neural networks for the prediction of water resource variables in river systems: current status and future directions. Environmental Modelling & Software, v. 25, n. 8, p. 891–909, 2010. DOI: https://doi.org/10.1016/j.envsoft.2010.02.003.",
     "MATOS, A. B.; PEDROLLO, O. C.; CASTRO, N. M. R. Efeito do controle de montante de sub-bacias embutidas na previsão hidrológica de curto prazo com redes neurais: aplicação à bacia de Ponte Mística. Revista Brasileira de Recursos Hídricos, v. 19, n. 1, p. 87–99, 2014. DOI: https://doi.org/10.21168/rbrh.v19n1.p87-99.",
     "NASH, J. E.; SUTCLIFFE, J. V. River flow forecasting through conceptual models part I — A discussion of principles. Journal of Hydrology, v. 10, n. 3, p. 282–290, 1970. DOI: https://doi.org/10.1016/0022-1694(70)90255-6.",
-    "NEVO, S. et al. Flood forecasting with machine learning models in an operational framework. Hydrology and Earth System Sciences, v. 26, p. 4013–4032, 2022. DOI: https://doi.org/10.5194/hess-26-4013-2022.",
     "OLIVEIRA, G. G.; PEDROLLO, O. C.; CASTRO, N. M. R. Metodologia de análise de sensibilidade e exclusão de variáveis de entrada em simulação hidrológica por Redes Neurais Artificiais (RNAs): resultados preliminares. In: Anais do XIX Simpósio Brasileiro de Recursos Hídricos, Maceió, 2011.",
     "OLIVEIRA, G. G.; PEDROLLO, O. C.; CASTRO, N. M. R.; BRAVO, J. M. Simulações hidrológicas com diferentes proporções de área controlada na bacia hidrográfica. Revista Brasileira de Recursos Hídricos, v. 18, n. 3, p. 193–204, 2013. DOI: https://doi.org/10.21168/rbrh.v18n3.p193-204.",
     "OLIVEIRA, G. G.; PEDROLLO, O. C.; CASTRO, N. M. R. O desempenho das redes neurais artificiais (RNAs) para simulação hidrológica mensal. Revista Brasileira de Recursos Hídricos, v. 19, n. 2, p. 251–265, 2014. DOI: https://doi.org/10.21168/rbrh.v19n2.p251-265.",
@@ -149,11 +148,10 @@ def paragraphs() -> list[tuple[str, str]]:
     return [
         ("kicker", "Pesquisa FAPERGS 24/2551-0002124-8 · manuscrito para a Revista Brasileira de Recursos Hídricos"),
         ("title", TITLE),
-        ("center", "Juliana Carolina Reis¹*; Guilherme Garcia de Oliveira²; Fernanda Vier¹"),
+        ("center", "Juliana Carolina Reis¹*; Guilherme Garcia de Oliveira¹; Fernanda Vier¹"),
         (
             "center",
-            "¹ Universidade Federal do Rio Grande do Sul (UFRGS), Porto Alegre, RS, Brasil.\n"
-            "² Departamento Interdisciplinar, Campus Litoral Norte, Universidade Federal do Rio Grande do Sul (UFRGS), Tramandaí, RS, Brasil.\n"
+            "¹ Afiliação institucional a confirmar.\n"
             "* Autor correspondente: julianacarolinoreis@gmail.com",
         ),
         ("h1", "RESUMO"),
@@ -181,30 +179,30 @@ def paragraphs() -> list[tuple[str, str]]:
         ),
         (
             "p",
-            "Na previsão de níveis, Campolo, Soldati e Andreussi (2003) e Dornelles, Goldenfum e Pedrollo (2013) mostraram que o desempenho depende do particionamento e da repetição do treinamento. Oliveira, Pedrollo e Castro (2014, 2015) argumentaram que a seleção de entradas é hipótese hidrológica: modelos mais parcimoniosos podem igualar ou superar redes maiores no coeficiente de Nash-Sutcliffe (NS) e, sobretudo, tornar interpretável o funcionamento da rede. Matos, Pedrollo e Castro (2014) examinaram o controle de montante em sub-bacias embutidas. Na bacia do rio Taquari-Antas, Finck (2020) aplicou RNAs às estações de Encantado, Estrela, Porto Mariante e Taquari, com NS médio da ordem de 0,93 / 0,89 / 0,71 em 8, 12 e 24 h.",
+            "Na previsão de níveis, Dornelles, Goldenfum e Pedrollo (2013) mostraram que o desempenho depende do particionamento e da repetição do treinamento. Oliveira, Pedrollo, Castro e Bravo (2013) examinaram simulações com diferentes proporções de área controlada. Oliveira, Pedrollo e Castro (2014, 2015) argumentaram que a seleção de entradas é hipótese hidrológica: modelos mais parcimoniosos podem igualar ou superar redes maiores no coeficiente de Nash-Sutcliffe (NS) e, sobretudo, tornar interpretável o funcionamento da rede. Matos, Pedrollo e Castro (2014) examinaram o controle de montante em sub-bacias embutidas. Na bacia do rio Taquari-Antas, Finck (2020) aplicou RNAs às estações de Encantado, Estrela, Porto Mariante e Taquari, com NS médio de 0,93, 0,89 e 0,71 em 8, 12 e 24 h (resumo da dissertação).",
         ),
         (
             "p",
-            "Este estudo aplica a mesma classe de modelos à estação 86472600, a montante daquelas estações, para a previsão de nível na régua com 2 a 12 horas. O objeto não é um novo experimento de arquitetura, nem o ranking de uma campanha de treino, nem o erro de uma janela móvel do serviço experimental. O objeto é o conjunto de 282 redes com PERS positiva em treino, validação, teste e série completa (215 da família ALT e 67 da família CONV), com um único modelo por horizonte — o de maior índice de equilíbrio publicado no inventário — e com as combinações de entrada apresentadas como hipóteses de propagação. Muçum permanece fora do escopo. Pergunta-se: (i) quais combinações de variáveis de entrada foram examinadas e se as defasagens são compatíveis com a geometria dos postos; (ii) qual modelo de cada horizonte maximiza o índice de equilíbrio; (iii) se o MAE e o E95 desse modelo são interpretáveis sem hidrograma de teste, ou apenas como resumo pontual.",
+            "Este estudo aplica a mesma classe de modelos à estação 86472600 (Santa Tereza) para a previsão de nível na régua com 2 a 12 horas. O objeto não é um novo experimento de arquitetura, nem o ranking de uma campanha de treino, nem o erro de uma janela móvel do serviço experimental. O objeto é o conjunto de 282 redes com PERS positiva em treino, validação, teste e série completa (215 da família ALT e 67 da família CONV), com um único modelo por horizonte — o de maior índice de equilíbrio publicado no inventário — e com as combinações de entrada do próprio catálogo. Muçum permanece fora do escopo. Pergunta-se: (i) quais combinações de variáveis de entrada o recorte publica; (ii) qual modelo de cada horizonte maximiza o índice de equilíbrio da ficha; (iii) quais MAE, NS e E95 de teste as fichas registram para esses quatro modelos.",
         ),
         ("h1", "2 ÁREA DE ESTUDO E DADOS"),
         (
             "p",
-            "A bacia hidrográfica do rio Taquari-Antas drena o nordeste do Rio Grande do Sul. Santa Tereza situa-se no médio curso, a jusante da confluência do rio das Antas com o rio Carreiro, onde se inicia o Taquari. A estação-alvo é a fluviométrica 86472600 (ANA/SGB), junto à antiga estação ferroviária, nas coordenadas 29,1781° S e 51,7322° W, obtidas da telemetria SGB/ANA publicada pelo projeto. A camada GIS de referência do projeto fecha a bacia Taquari-Antas em cerca de 26.400 km²; essa cifra descreve a bacia como um todo, não a área afluente ao código 86472600. O campo de área de drenagem do inventário HidroWeb/ANA para este posto não foi recuperado nesta versão (o serviço HidroInventario retornou erro interno; o HidroWebService exigiu autenticação). Sem esse número, as defasagens de montante permanecem hipóteses auditáveis, não evidência de roteamento.",
+            "A estação-alvo é a fluviométrica 86472600 (ANA/SGB). Na telemetria do projeto o código chama-se Santa Tereza, com latitude −29,1781° e longitude −51,7322° (previsao_ao_vivo.json, fonte SGB/ANA). Os demais postos que entram nas redes estão no Quadro 2, com o nome e a coordenada que esse arquivo publica. Área de drenagem do posto, tempo de viagem e hidrografia não constam desse arquivo nem do recorte de 282 redes; não são estimados aqui.",
         ),
         (
             "p",
-            "A Figura 1 localiza os postos com coordenada conhecida. O Quadro 2 lista códigos, nomes e a distância geodésica (haversine) até a régua-alvo. Carreiro (86507000) e as estações 86298000 e 86430900 entram nas combinações do Quadro 1, mas a telemetria do projeto não traz latitude nem longitude para elas. Distância geodésica não é tempo de viagem: Matos, Pedrollo e Castro (2014) exigem que a informação de montante caiba no horizonte; aqui essa exigência fica explícita e não resolvida.",
+            "A Figura 1 plota os quatro postos que têm latitude e longitude em previsao_ao_vivo.json. O Quadro 2 copia código, nome da telemetria e coordenadas quando existem. Carreiro (86507000) e as estações 86298000 e 86430900 entram nas combinações do Quadro 1; nesse arquivo a latitude e a longitude desses três códigos são nulas.",
         ),
-        ("fig", "Figura 1. Localização da estação Santa Tereza (86472600) e dos postos de montante com coordenada na telemetria SGB/ANA. Carreiro, 86298000 e 86430900 não figuram no mapa por ausência de coordenada. A área afluente ao 86472600 não foi recuperada no HidroWeb."),
-        ("caption", "Quadro 2. Postos das combinações principais. Coordenadas da telemetria SGB/ANA do projeto. Distância geodésica até 86472600; não é tempo de viagem."),
+        ("fig", "Figura 1. Postos com latitude e longitude em previsao_ao_vivo.json (telemetria SGB/ANA do projeto). Carreiro, 86298000 e 86430900 não figuram: nesse arquivo a coordenada é nula. Sem hidrografia e sem área de drenagem."),
+        ("caption", "Quadro 2. Postos das combinações principais. Código, nome e coordenadas copiados de previsao_ao_vivo.json. Travessão: latitude ou longitude nula nesse arquivo."),
         (
             "p",
-            "A série de nível é horária. As fichas combinam, conforme a rodada, o nível local e suas diferenças (D–x h, primeira diferença) e acelerações (A–x h, segunda diferença), níveis de montante e a chuva média acumulada em 36 h. Essa chuva é preditor de estado antecedente, não previsão de precipitação no horizonte. O modelo selecionado em 2 h não inclui chuva: em duas horas o sinal que ainda pode chegar à régua está, em grande parte, na rede de níveis. Em 4–12 h a chuva de 36 h entra como volume já observado.",
+            "A série de nível é horária. As fichas combinam, conforme a rodada, o nível local e suas diferenças (D–x h, primeira diferença) e acelerações (A–x h, segunda diferença), níveis de montante e a chuva média acumulada em 36 h. No recorte de 282 redes, nenhuma das 10 redes de 2 h usa chuva; as 117 redes de 4 h e as redes selecionadas de 8 h e 12 h usam chuva média acumulada em 36 h. Isso é o que o catálogo registra, não um tempo de viagem medido.",
         ),
         (
             "p",
-            "A cota de 1.500 cm é limiar de pesquisa para leituras públicas de cheia em Santa Tereza; não entra no treino como classe. As inundações de 2023–2024 registraram picos acima desse limiar na série pública do posto (2.365 cm em 4 de setembro de 2023, 2.161 cm em 18 de novembro de 2023 e 2.232 cm em 29 de abril de 2024). Os dados são partidos por eventos de cheia, não por janela aleatória. Treino, validação e teste trocam de papel entre rotações (R01–R10 no 2 h; onze rótulos no 4 h, inclusive uma partição de referência; ondas distintas no 8 h). O evento 13 foi retirado de várias campanhas curtas por ser pouco informativo — decisão de processo, não uniforme em todos os horizontes, e que precisa ser reconciliada com a coluna de teste do 4 h, a qual repete o mesmo rótulo nas 117 linhas e não deve ser usada.",
+            "A cota de 1.500 cm é o limiar de pesquisa das leituras públicas de cheia em Santa Tereza no painel do projeto (research_visual_patterns_santa_tereza_latest.json); não entra no treino como classe. Esse arquivo registra picos de 2.365 cm em 4 de setembro de 2023, 2.161 cm em 18 de novembro de 2023 e 2.232 cm em 29 de abril de 2024. Os dados das redes são partidos por eventos de cheia, não por janela aleatória. Treino, validação e teste trocam de papel entre rotações (R01–R10 no 2 h; onze rótulos no 4 h, inclusive uma partição de referência; ondas distintas no 8 h). O evento 13 foi retirado de várias campanhas curtas por ser pouco informativo — decisão de processo, não uniforme em todos os horizontes. A coluna evento_teste do 4 h repete o mesmo rótulo nas 117 linhas e não deve ser usada; a partição de 4 h lê-se no campo rotacao.",
         ),
         ("h1", "3 MATERIAIS E MÉTODOS"),
         ("h2", "3.1 Arquitetura das RNAs"),
@@ -214,7 +212,7 @@ def paragraphs() -> list[tuple[str, str]]:
         ),
         (
             "p",
-            "Os pesos são reinicializados de forma independente. O valor típico neste inventário é de dez inicializações; inicializações que reproduzem as mesmas métricas contam como o mesmo modelo. Dornelles, Goldenfum e Pedrollo (2013) observaram estabilização do desempenho após cerca de 30 inicializações: o presente conjunto usa um número menor, o que se declara como limitação de treinamento, não como equivalente àquele protocolo. O número de neurônios ocultos segue, na quase totalidade do conjunto, a regra heurística de dois neurônios por variável de entrada (nos quatro modelos selecionados: 30, 48, 20 e 28 neurônios para 15, 24, 10 e 14 entradas). Oliveira, Pedrollo e Castro (2014) adotaram, com apoio do critério de Akaike, um número de neurônios igual ou inferior ao de entradas. A regra 2n deste inventário é palpite de capacidade, não o resultado de uma busca em grade nem a aplicação daquele critério.",
+            "Os pesos são reinicializados de forma independente. O campo nit das fichas dos quatro modelos selecionados vale 10; inicializações que reproduzem as mesmas métricas contam como o mesmo modelo. Dornelles, Goldenfum e Pedrollo (2013) discutiram a repetição do treinamento; o número usado aqui é o das fichas, não a equivalência a outro protocolo. O número de neurônios ocultos nos quatro modelos selecionados é o dobro das entradas (30, 48, 20 e 28 neurônios para 15, 24, 10 e 14 entradas). Oliveira, Pedrollo e Castro (2014) adotaram, com apoio do critério de Akaike, um número de neurônios igual ou inferior ao de entradas. A regra 2n deste inventário não é o resultado de uma busca em grade nem a aplicação daquele critério.",
         ),
         (
             "p",
@@ -236,7 +234,7 @@ def paragraphs() -> list[tuple[str, str]]:
         ("h2", "3.3 Combinações de variáveis"),
         (
             "p",
-            "O Quadro 1 traz as principais combinações examinadas em 2 h, 4 h e 8 h e, de forma compacta, a montagem do horizonte 12 h. O quadro descreve só as variáveis, sem métricas de desempenho. Em 8 h, depois de unificar aliases do catálogo, restam 14 conjuntos; o quadro traz C0289, C0078 e C0265 — a mais recorrente, uma montagem com Ituim e a mais enxuta entre as frequentes. As defasagens (por exemplo Ituim D–11 h, Carreiro D–16 h, montante A–20 h no horizonte de 2 h) só têm sentido físico se o tempo de viagem couber na hora-base (Matos, Pedrollo e Castro, 2014).",
+            "O Quadro 1 traz as principais combinações examinadas em 2 h, 4 h e 8 h e, de forma compacta, a montagem do horizonte 12 h. O quadro descreve só as variáveis, sem métricas de desempenho. Em 8 h, depois de unificar aliases do catálogo, restam 14 conjuntos; o quadro traz C0289, C0078 e C0265 — a mais recorrente, uma montagem com Ituim e a mais enxuta entre as frequentes. Tempo de viagem das defasagens não está no recorte.",
         ),
         ("caption", "Quadro 1. Principais combinações de variáveis examinadas em Santa Tereza. Sem métricas de desempenho."),
         (
@@ -254,11 +252,11 @@ def paragraphs() -> list[tuple[str, str]]:
         ),
         (
             "p",
-            "Em 2 h a única montagem do conjunto filtrado (15 entradas de nível, sem chuva, 30 neurônios) gerou dez rotações de eventos; todas têm equilíbrio acima de 0,90 também quando se reaplica o mínimo dos três PERS. O modelo selecionado testa os eventos 10, 15 e 16 e é a rede em operação experimental contínua — fato de implantação, não evidência adicional de teste. Pode-se observar que o MAE de teste de 3,5 cm não deve ser lido como o MAE da janela móvel de 2 de setembro de 2026 (12,2 cm em 2 h). São contratos distintos: partição por eventos de cheia versus pares recentes conferidos no serviço experimental. O mesmo vale em 4 h (MAE de teste 13,9 cm; 33,6 cm na janela de setembro da configuração de referência do serviço, que não coincide com o modelo selecionado de 4 h) e em 8 h (MAE de teste 32 cm; 31,1 cm na janela de setembro). A proximidade numérica em 8 h é coincidência de janela, não validação cruzada.",
+            "Em 2 h a única montagem do conjunto filtrado (15 entradas de nível, sem chuva, 30 neurônios) gerou dez rotações de eventos; todas têm equilíbrio acima de 0,90 também quando se reaplica o mínimo dos três PERS. O modelo selecionado testa os eventos 10, 15 e 16 e é a rede em operação experimental contínua — fato de implantação, não evidência adicional de teste. O MAE de teste da ficha (3,5 cm em 2 h; 13,9 cm em 4 h; 32 cm em 8 h) não é o MAE de uma janela móvel do serviço experimental: são contratos distintos (partição por eventos de cheia versus pares recentes conferidos no feed).",
         ),
         (
             "p",
-            "Em 4 h o conjunto tem 117 redes ALT, todas com chuva de 36 h. O modelo selecionado é a montagem ampliada de 24 entradas e 48 neurônios. A leitura segura da partição é o identificador de rotação (R10 testa os eventos 19 e 21). Uma seleção anterior por NS de teste em subconjunto estreito de entradas não sobrevive a este conjunto filtrado. Oliveira, Pedrollo e Castro (2014, 2015) escolheriam, diante de um ganho quantitativo pequeno, o modelo mais simples e fisicamente consistente: no rio Ijuí, a RNA de três entradas (NS 0,904) foi preferida à de dez entradas (NS 0,907) após análise de sensibilidade. Neste inventário o critério publicado elegeu o conjunto mais largo das seis montagens aninhadas. Sem índice de contribuição nem curvas de Lek, não se pode atribuir o ganho a um posto isolado (Carreiro, 86298000 ou uma defasagem) nem afirmar que as 24 entradas são hidrologicamente necessárias. A seleção por equilíbrio e a parcimônia da escola IPH não coincidem neste horizonte; declara-se essa divergência em vez de forçar uma narrativa de simplificação que o catálogo não sustenta.",
+            "Em 4 h o conjunto tem 117 redes ALT, todas com chuva de 36 h. O modelo selecionado é a montagem ampliada de 24 entradas e 48 neurônios. A leitura segura da partição é o identificador de rotação (R10 testa os eventos 19 e 21). Oliveira, Pedrollo e Castro (2014) selecionaram redes mais simples depois de análise de sensibilidade; Oliveira, Pedrollo e Castro (2015) mostraram que retirar entradas pouco informativas pode melhorar o NS. Este inventário não tem essa análise. A rede de 24 entradas entra aqui porque é a de maior score_equilibrio no horizonte de 4 h, com NS de teste 0,993 e MAE 13,9 cm. A ficha imprime equilíbrio 0,846; o mínimo entre os três PERS publicados é 0,876 (teste). O identificador MATLAB é o mesmo nos dois critérios. Sem índice de contribuição nem curvas de Lek, o catálogo não atribui o ganho a um posto isolado nem afirma que as 24 entradas são hidrologicamente necessárias.",
         ),
         (
             "p",
@@ -266,7 +264,7 @@ def paragraphs() -> list[tuple[str, str]]:
         ),
         (
             "p",
-            "A previsão de persistência — manter o nível da hora-base — já é uma referência difícil de superar em 2 h, de modo que o PERS, e não o NS isolado, é o ganho que importa (Kitanidis e Bras, 1980). NS de teste da ordem de 0,99 em 2–4 h descreve sobretudo a inércia do hidrograma; não autoriza escolher rede por uma partição só, nem ranquear horizontes, nem comparar desempenho com Finck (2020). Aquele estudo treinou RNAs em estações de jusante, com NS médio da ordem de 0,93 / 0,89 / 0,71 em 8, 12 e 24 h. Santa Tereza está a montante; o período, o filtro de chuva e o horizonte de 24 h não coincidem. O que se pode afirmar é a mesma família de modelos, na mesma bacia, com o mesmo tipo de alvo (nível na régua).",
+            "A previsão de persistência — manter o nível da hora-base — já é uma referência difícil de superar em 2 h, de modo que o PERS, e não o NS isolado, é o ganho que importa (Kitanidis e Bras, 1980). NS de teste da ordem de 0,99 em 2–4 h descreve sobretudo a inércia da série de nível; não autoriza escolher rede por uma partição só, nem ranquear horizontes, nem comparar desempenho com Finck (2020). Aquele estudo treinou RNAs em Encantado, Estrela, Porto Mariante e Taquari, com NS médio de 0,93, 0,89 e 0,71 em 8, 12 e 24 h (resumo da dissertação). O recorte deste artigo é o posto 86472600; período, filtro de chuva e horizonte de 24 h não coincidem.",
         ),
         (
             "p",

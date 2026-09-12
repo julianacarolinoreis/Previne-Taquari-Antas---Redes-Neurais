@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Figura 1 — postos com coordenada conhecida na telemetria SGB/ANA do projeto.
+"""Figura 1 — postos com latitude e longitude em previsao_ao_vivo.json.
 
-Não desenha área de drenagem: o campo AreaDrenagem do HidroWeb/ANA não foi
-recuperado nesta versão (HidroInventario HTTP 500; HidroWebService HTTP 401).
-Distâncias no mapa são geodésicas (haversine), não tempo de viagem.
+Só plota o que a telemetria publica. Sem hidrografia, sem área de drenagem,
+sem distância entre postos.
 """
 
 from __future__ import annotations
@@ -111,15 +110,6 @@ def build(dest: Path | None = None) -> Path:
             arrowprops=dict(arrowstyle="-", color="#666", lw=0.5),
         )
 
-    # Esquema de fluxo Antas → Taquari (apenas orientação, não hidrografia oficial).
-    ax.annotate(
-        "",
-        xy=(-51.70, -29.16),
-        xytext=(-51.36, -28.64),
-        arrowprops=dict(arrowstyle="-|>", color="#6a8aaa", lw=1.4, connectionstyle="arc3,rad=0.12"),
-    )
-    ax.text(-51.46, -28.88, "Antas\n(sentido jusante)", fontsize=7, color="#3a5a72", ha="center")
-
     lats = [p["lat"] for p in POSTOS]
     lons = [p["lon"] for p in POSTOS]
     ax.set_xlim(min(lons) - 0.18, max(lons) + 0.22)
@@ -155,16 +145,15 @@ def build(dest: Path | None = None) -> Path:
     ]
     ax.legend(handles=legend, loc="lower right", fontsize=7.5, frameon=True, fancybox=False, edgecolor="#ccc")
     ax.set_title(
-        "Postos fluviométricos com coordenada na telemetria SGB/ANA\n"
-        "usados nas combinações principais — Santa Tereza, RS",
+        "Postos com latitude e longitude na telemetria SGB/ANA do projeto\n"
+        "(previsao_ao_vivo.json). Sem hidrografia, sem área de drenagem.",
         fontsize=10,
         pad=8,
     )
     fig.text(
         0.5,
         0.01,
-        "Carreiro (86507000), 86298000 e 86430900 entram no Quadro 1, mas sem latitude/longitude na telemetria do projeto.\n"
-        "A área afluente ao 86472600 não foi recuperada no HidroWeb nesta versão. Distâncias no mapa são geodésicas.",
+        "Fonte: coordenadas publicadas na telemetria do projeto. Carreiro (86507000), 86298000 e 86430900 não entram no mapa: a telemetria não traz coordenada.",
         ha="center",
         va="bottom",
         fontsize=6.5,
