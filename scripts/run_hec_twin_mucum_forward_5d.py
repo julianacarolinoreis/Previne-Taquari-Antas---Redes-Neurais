@@ -98,8 +98,9 @@ def choose_analogs(
     top_k: int = 3,
     fingerprints: dict[str, dict[str, Any]] | None = None,
     exclude_event_ids: set[str] | None = None,
+    wetness: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    """Basin-calibrated analog transfer: AW rain fingerprint + loss-aware distance."""
+    """Basin-calibrated analog transfer: AW rain fingerprint + wetness-aware distance."""
     return bacia.choose_analogs(
         forecast_total_mm,
         library,
@@ -107,6 +108,34 @@ def choose_analogs(
         top_k=top_k,
         fingerprints=fingerprints,
         exclude_event_ids=exclude_event_ids,
+        wetness=wetness,
+    )
+
+
+def infer_forcing_wetness(
+    forcing: dict[str, Any],
+    *,
+    stage_cm: float | None = None,
+    stage_rising: bool | None = None,
+    now_index: int | None = None,
+) -> dict[str, Any]:
+    """Derive wetness from forcing window (past AW rain) + optional live stage."""
+    aw = forcing.get("area_weighted_mean_mm") or {}
+    hourly = list(aw.get("hourly") or [])
+    past_mm = aw.get("past_mm")
+    if past_mm is None and hourly:
+        if now_index is None:
+            # Heuristic: if window metadata exists use it, else assume first half is past.
+            win = forcing.get("window") or {}
+            past_h = int(win.get("past_hours") or max(1, len(hourly) // 2))
+            now_index = min(max(past_h - 1, 0), len(hourly) - 1)
+        past_mm = float(sum(hourly[: now_index + 1]))
+    total = float(aw.get("total_mm") or sum(hourly) or 0.0)
+    return bacia.infer_wetness_state(
+        forecast_aw_mm=total,
+        past_aw_mm=None if past_mm is None else float(past_mm),
+        stage_cm=stage_cm,
+        stage_rising=stage_rising,
     )
 
 
@@ -388,6 +417,28 @@ def build_package(
         ).prepare_event_forcing,
     )
 
+    segments = mucum_curve_segments()
+    level_now = fetch_mucum_level_now(allow_network=allow_network)
+    q0 = None
+    ic_meta_base: dict = {"applied": False, "reason": "no_observed_stage"}
+    stage_cm = None
+    if level_now.get("ok") and level_now.get("stage_cm") is not None:
+        stage_cm = float(level_now["stage_cm"])
+        q_from_stage = stage_to_q_m3s(stage_cm, segments)
+        if q_from_stage.get("ok"):
+            q0 = float(q_from_stage["q_m3s"])
+            ic_meta_base = {"observed_stage_cm": stage_cm, "q0_from_rating_m3s": q0}
+
+    # Rising limb if forcing carries a hint; default unknown->None (wet-by-rain still works).
+    stage_rising = forcing.get("stage_rising")
+    if stage_rising is None and stage_cm is not None and stage_cm >= bacia.WET_STAGE_CM:
+        stage_rising = True
+    wetness = infer_forcing_wetness(
+        forcing,
+        stage_cm=stage_cm,
+        stage_rising=stage_rising,
+    )
+
     if event_id:
         row = next((r for r in library if r["event_id"] == event_id), None)
         if row is None:
@@ -404,6 +455,7 @@ def build_package(
                 "distance": 0.0,
                 "nse": row.get("nse"),
                 "research_score": row.get("research_score"),
+                "wetness": wetness,
                 "row": row,
             }
         ]
@@ -414,25 +466,17 @@ def build_package(
             hec_events,
             top_k=3,
             fingerprints=fingerprints,
+            wetness=wetness,
         )
         if not analogs:
             raise RuntimeError("no analogs scored")
 
-    segments = mucum_curve_segments()
-    level_now = fetch_mucum_level_now(allow_network=allow_network)
-    q0 = None
-    ic_meta_base: dict = {"applied": False, "reason": "no_observed_stage"}
-    if level_now.get("ok") and level_now.get("stage_cm") is not None:
-        q_from_stage = stage_to_q_m3s(float(level_now["stage_cm"]), segments)
-        if q_from_stage.get("ok"):
-            q0 = float(q_from_stage["q_m3s"])
-            ic_meta_base = {"observed_stage_cm": level_now.get("stage_cm"), "q0_from_rating_m3s": q0}
-
     members: list[dict] = []
     for analog in analogs:
         params = params_from_library_row(analog["row"])
+        params, wet_loss_meta = bacia.damp_losses_for_wetness(params, wetness)
         params, ic_meta = scale_params_to_observed_q0(params, precip, areas, q0)
-        ic_meta = {**ic_meta_base, **ic_meta}
+        ic_meta = {**ic_meta_base, **ic_meta, "wet_loss_damping": wet_loss_meta, "wetness": wetness}
         net = run_network(precip, areas, params, include_mucum_increment=True)
         q_mucum = net["at_mucum"]
         q_antas = net["at_antas"]
@@ -469,7 +513,7 @@ def build_package(
         m["rise"] = {
             "rise_model_cm": None if n0 is None or npeak is None else round(float(npeak) - float(n0), 2)
         }
-    primary_idx = bacia.pick_primary_by_median_rise(members)
+    primary_idx = bacia.pick_primary_by_median_rise(members, wetness=wetness)
     if primary_idx != 0:
         members = [members[primary_idx]] + [m for i, m in enumerate(members) if i != primary_idx]
 
@@ -529,16 +573,18 @@ def build_package(
             "point_proxy_not_areal_mask": True,
         },
         "param_selection": {
-            "method": "analog_basin_calibrated_aw_fingerprint_v1" if event_id is None else "forced_event_id",
+            "method": "analog_basin_calibrated_aw_fingerprint_wetness_v2" if event_id is None else "forced_event_id",
             "forced_event_id": event_id,
             "analogs": [{k: v for k, v in a.items() if k != "row"} for a in analogs],
             "common_search": "blocked_not_used",
+            "wetness": wetness,
             "basin_calibration": {
                 "artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
                 "rain_fingerprint": "area_weighted_full_window_mm",
                 "ic_scaling": "observed_stage_to_q0_via_mucum_rating",
+                "wet_loss_damping": True,
                 "light_specialists": ["E30"],
-                "primary_rule": "median_rise_member",
+                "primary_rule": "median_rise_member_or_wet_upper",
             },
         },
         "primary_member": {

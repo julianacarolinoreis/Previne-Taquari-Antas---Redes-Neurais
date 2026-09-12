@@ -1,250 +1,221 @@
 {
-  "schema_version": "hec_twin_mucum_live_eval_v3",
-  "generated_at_utc": "2026-09-12T03:21:56Z",
-  "status": "research_live_eval_ready",
-  "label_pt": "Rodada ao vivo — o que o HEC diz para Muçum com a chuva de agora",
+  "schema_version": "hec_twin_mucum_live_eval_v4_wetness",
+  "generated_at_utc": "2026-09-12T15:36:37Z",
+  "status": "research_live_eval_replay_ready",
+  "label_pt": "Replay ao vivo com transferência úmida — Muçum",
   "observations": {
     "level_now": {
       "ok": true,
       "stage_cm": 425.0,
       "observed_at_utc": "2026-09-12T02:45:00Z",
-      "source": "ANA_telemetria_direct",
+      "source": "ANA_anchor_replay",
       "station": "86510000"
     },
-    "note_pt": "Telemetria ANA Muçum em 425 cm (12/set 02:45Z). Subiu bastante vs ~299–334 cm dias anteriores."
+    "latest_ana": {
+      "stage_cm": 651.0,
+      "observed_at_utc": "2026-09-12T15:15:00Z",
+      "rise_from_anchor_cm": 226.0,
+      "peak_so_far_cm": 651.0,
+      "peak_so_far_at_utc": "2026-09-12T15:15:00Z"
+    }
   },
   "rain_ifs": {
     "past_48h_mm": 29.737,
     "next_72h_mm": 3.527,
-    "window_total_mm": 33.264,
-    "future_only_mm": 3.527,
-    "model": "ECMWF IFS 0.25° via Open-Meteo (ponto→sub-bacia)"
+    "window_total_mm": 33.264
+  },
+  "param_selection": {
+    "method": "analog_basin_calibrated_aw_fingerprint_wetness_v2",
+    "forced_event_id": null,
+    "analogs": [
+      {
+        "event_id": "E23",
+        "historical_aw_full_mm": 81.117,
+        "historical_core_mean_mm": 33.983,
+        "forecast_aw_total_mm": 33.264,
+        "abs_mm_gap": 47.853,
+        "distance": 0.368,
+        "distance_detail": {
+          "rain_gap": 0.5899,
+          "eff_gap": 0.0,
+          "loss_penalty": -0.35,
+          "donor_penalty": 0.1,
+          "nse_term": 0.0281,
+          "loss_sum_mm": 1.5,
+          "constant_loss_sum_mm": 1.0,
+          "hist_peak_per_mm": 31.799,
+          "is_light_specialist": false,
+          "is_wet": true,
+          "apply_light_dry_guards": false
+        },
+        "hist_rain_source": "aw_full_fingerprint",
+        "regime_forecast": "light",
+        "regime_hist": "moderate",
+        "nse": 0.8126364483782181,
+        "research_score": 0.6573785691229445,
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 29.737,
+          "stage_cm": 425.0,
+          "stage_rising": true,
+          "wet_by_rain": true,
+          "wet_by_stage": true,
+          "forecast_aw_mm": 33.264
+        }
+      },
+      {
+        "event_id": "E20",
+        "historical_aw_full_mm": 76.711,
+        "historical_core_mean_mm": 31.133,
+        "forecast_aw_total_mm": 33.264,
+        "abs_mm_gap": 43.447,
+        "distance": 0.5768,
+        "distance_detail": {
+          "rain_gap": 0.5664,
+          "eff_gap": 0.0,
+          "loss_penalty": 0.0,
+          "donor_penalty": 0.0,
+          "nse_term": 0.0104,
+          "loss_sum_mm": 4.0,
+          "constant_loss_sum_mm": 3.0,
+          "hist_peak_per_mm": 42.501,
+          "is_light_specialist": false,
+          "is_wet": true,
+          "apply_light_dry_guards": false
+        },
+        "hist_rain_source": "aw_full_fingerprint",
+        "regime_forecast": "light",
+        "regime_hist": "light",
+        "nse": 0.9307845686411361,
+        "research_score": 0.8165935139475657,
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 29.737,
+          "stage_cm": 425.0,
+          "stage_rising": true,
+          "wet_by_rain": true,
+          "wet_by_stage": true,
+          "forecast_aw_mm": 33.264
+        }
+      },
+      {
+        "event_id": "E25",
+        "historical_aw_full_mm": 48.765,
+        "historical_core_mean_mm": 6.175,
+        "forecast_aw_total_mm": 33.264,
+        "abs_mm_gap": 15.501,
+        "distance": 0.5789,
+        "distance_detail": {
+          "rain_gap": 0.3179,
+          "eff_gap": 0.0,
+          "loss_penalty": 0.25,
+          "donor_penalty": 0.0,
+          "nse_term": 0.011,
+          "loss_sum_mm": 7.0,
+          "constant_loss_sum_mm": 6.0,
+          "hist_peak_per_mm": 39.45,
+          "is_light_specialist": false,
+          "is_wet": true,
+          "apply_light_dry_guards": false
+        },
+        "hist_rain_source": "aw_full_fingerprint",
+        "regime_forecast": "light",
+        "regime_hist": "light",
+        "nse": 0.9265554244853058,
+        "research_score": 0.9064522037728319,
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 29.737,
+          "stage_cm": 425.0,
+          "stage_rising": true,
+          "wet_by_rain": true,
+          "wet_by_stage": true,
+          "forecast_aw_mm": 33.264
+        }
+      }
+    ],
+    "common_search": "blocked_not_used",
+    "wetness": {
+      "is_wet": true,
+      "past_aw_mm": 29.737,
+      "stage_cm": 425.0,
+      "stage_rising": true,
+      "wet_by_rain": true,
+      "wet_by_stage": true,
+      "forecast_aw_mm": 33.264
+    },
+    "basin_calibration": {
+      "artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
+      "rain_fingerprint": "area_weighted_full_window_mm",
+      "ic_scaling": "observed_stage_to_q0_via_mucum_rating",
+      "wet_loss_damping": true,
+      "light_specialists": [
+        "E30"
+      ],
+      "primary_rule": "median_rise_member_or_wet_upper"
+    }
   },
   "answer_from_now": {
     "question_pt": "A partir do nível atual, quanto ainda sobe?",
-    "method": "full_window_with_past_rain_then_delta_from_now_index",
-    "why_not_future_only_pt": "Rodar só a chuva futura (~3.5 mm) zera a onda: perde a água já caída que ainda está chegando em Muçum. A fatia a partir de agora na janela com passado preserva o atraso de roteamento.",
-    "plain_pt": "Com o nível atual 425 cm em Muçum e a chuva IFS recente (~29.7 mm / 48h, ainda ~3.5 mm pela frente), o gêmeo HEC indica que o rio ainda sobe ~143 cm (banda 143–262 cm) por causa da onda em trânsito, pico ancorado ~568 cm em 2026-09-12T20:00:00Z (análogo E20).",
+    "method": "full_window_past_rain_plus_wetness_aware_analogs_v2",
+    "plain_pt": "Com nível 425 cm e chuva recente IFS (~29.737 mm / 48h), o gêmeo HEC (estado úmido) indica ainda ~286 cm (banda 164–286), pico ancorado ~711 cm em 2026-09-13T01:00:00Z (análogo E23).",
     "primary": {
-      "event_id": "E20",
-      "rise_from_now_cm": 143.0,
-      "peak_from_now_anchored_cm": 568.0,
-      "peak_time_utc": "2026-09-12T20:00:00Z",
-      "n_model_now_cm": 340.93,
-      "n_model_peak_cm": 483.93,
-      "peak_already_passed": false
+      "event_id": "E23",
+      "rise_from_now_cm": 286.19,
+      "peak_from_now_anchored_cm": 711.19,
+      "peak_time_utc": "2026-09-13T01:00:00Z",
+      "n_model_now_cm": 307.11,
+      "n_model_peak_cm": 593.3
     },
-    "ensemble_from_now": [
-      {
-        "event_id": "E25",
-        "rise_from_now_cm": 142.97,
-        "peak_from_now_anchored_cm": 567.97,
-        "peak_time_utc": "2026-09-13T09:00:00Z",
-        "n_model_now_cm": 196.34,
-        "n_model_peak_cm": 339.31,
-        "peak_already_passed": false
-      },
-      {
-        "event_id": "E20",
-        "rise_from_now_cm": 143.0,
-        "peak_from_now_anchored_cm": 568.0,
-        "peak_time_utc": "2026-09-12T20:00:00Z",
-        "n_model_now_cm": 340.93,
-        "n_model_peak_cm": 483.93,
-        "peak_already_passed": false
-      },
-      {
-        "event_id": "E23",
-        "rise_from_now_cm": 262.4,
-        "peak_from_now_anchored_cm": 687.4,
-        "peak_time_utc": "2026-09-13T01:00:00Z",
-        "n_model_now_cm": 290.03,
-        "n_model_peak_cm": 552.43,
-        "peak_already_passed": false
-      }
-    ],
     "ensemble_rise_cm": {
-      "min": 142.97,
-      "primary": 143.0,
-      "max": 262.4
+      "min": 164.12,
+      "primary": 286.19,
+      "max": 286.19
     },
-    "future_only_control": {
-      "question_pt": "A partir do nível atual, quanto ainda sobe?",
-      "method": "future_only_forcing_plus_basin_calibrated_analogs",
-      "plain_pt": "Com ~3.5 mm de chuva prevista em 72 h e nível atual 425 cm em Muçum, o gêmeo HEC indica subida de ~0 cm (banda 0–0 cm), pico ancorado ~425 cm em 2026-09-12T03:00:00Z.",
-      "primary": {
-        "event_id": "E25",
-        "rise_cm": 0.0,
-        "peak_time_utc": "2026-09-12T03:00:00Z",
-        "peak_anchored_cm": 425.0,
-        "n_model_t0_cm": 121.17,
-        "n_model_peak_cm": 121.17
-      },
-      "ensemble_rise_cm": {
-        "min": 0.0,
-        "primary": 0.0,
-        "max": 0.0,
-        "by_event": [
-          {
-            "event_id": "E25",
-            "rise_cm": 0.0,
-            "peak_anchored_cm": 425.0
-          },
-          {
-            "event_id": "E20",
-            "rise_cm": 0.0,
-            "peak_anchored_cm": 425.0
-          },
-          {
-            "event_id": "E28",
-            "rise_cm": 0.0,
-            "peak_anchored_cm": 425.0
-          }
-        ]
-      },
-      "param_selection": {
-        "method": "analog_basin_calibrated_aw_fingerprint_v1",
-        "forced_event_id": null,
-        "analogs": [
-          {
-            "event_id": "E25",
-            "historical_aw_full_mm": 48.765,
-            "historical_core_mean_mm": 6.175,
-            "forecast_aw_total_mm": 3.527,
-            "abs_mm_gap": 45.238,
-            "distance": 0.9387,
-            "distance_detail": {
-              "rain_gap": 0.9277,
-              "eff_gap": 0.0,
-              "loss_penalty": 0.0,
-              "donor_penalty": 0.0,
-              "nse_term": 0.011,
-              "loss_sum_mm": 7.0,
-              "constant_loss_sum_mm": 6.0,
-              "hist_peak_per_mm": 39.45,
-              "is_light_specialist": false
-            },
-            "hist_rain_source": "aw_full_fingerprint",
-            "regime_forecast": "light",
-            "regime_hist": "light",
-            "nse": 0.9265554244853058,
-            "research_score": 0.9064522037728319
-          },
-          {
-            "event_id": "E20",
-            "historical_aw_full_mm": 76.711,
-            "historical_core_mean_mm": 31.133,
-            "forecast_aw_total_mm": 3.527,
-            "abs_mm_gap": 73.184,
-            "distance": 0.9644,
-            "distance_detail": {
-              "rain_gap": 0.954,
-              "eff_gap": 0.0,
-              "loss_penalty": 0.0,
-              "donor_penalty": 0.0,
-              "nse_term": 0.0104,
-              "loss_sum_mm": 4.0,
-              "constant_loss_sum_mm": 3.0,
-              "hist_peak_per_mm": 42.501,
-              "is_light_specialist": false
-            },
-            "hist_rain_source": "aw_full_fingerprint",
-            "regime_forecast": "light",
-            "regime_hist": "light",
-            "nse": 0.9307845686411361,
-            "research_score": 0.8165935139475657
-          },
-          {
-            "event_id": "E28",
-            "historical_aw_full_mm": 190.016,
-            "historical_core_mean_mm": 196.567,
-            "forecast_aw_total_mm": 3.527,
-            "abs_mm_gap": 186.489,
-            "distance": 1.2352,
-            "distance_detail": {
-              "rain_gap": 0.9814,
-              "eff_gap": 0.0,
-              "loss_penalty": 0.0,
-              "donor_penalty": 0.25,
-              "nse_term": 0.0037,
-              "loss_sum_mm": 6.25,
-              "constant_loss_sum_mm": 2.25,
-              "hist_peak_per_mm": 41.505,
-              "is_light_specialist": false
-            },
-            "hist_rain_source": "aw_full_fingerprint",
-            "regime_forecast": "light",
-            "regime_hist": "heavy",
-            "nse": 0.9750979641674853,
-            "research_score": 0.9750910812039111
-          }
-        ],
-        "common_search": "blocked_not_used",
-        "basin_calibration": {
-          "artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
-          "rain_fingerprint": "area_weighted_full_window_mm",
-          "ic_scaling": "observed_stage_to_q0_via_mucum_rating",
-          "light_specialists": [
-            "E30"
-          ],
-          "primary_rule": "median_rise_member"
-        }
-      }
-    }
-  },
-  "answer_full_window_including_past": {
-    "question_pt": "Na janela 48h passadas+72h futuras, quanto o modelo sobe (inclui onda já ocorrida)?",
-    "plain_pt": "Com ~33.3 mm de chuva prevista em 120 h e nível atual 425 cm em Muçum, o gêmeo HEC indica subida de ~288 cm (banda 216–390 cm), pico ancorado ~713 cm em 2026-09-12T20:00:00Z.",
-    "primary": {
-      "event_id": "E20",
-      "rise_cm": 288.31,
-      "peak_time_utc": "2026-09-12T20:00:00Z",
-      "peak_anchored_cm": 713.31,
-      "n_model_t0_cm": 195.62,
-      "n_model_peak_cm": 483.93
-    },
-    "from_now_slice_on_same_run": [
+    "ensemble": [
       {
-        "event_id": "E25",
-        "rise_from_now_cm": 142.97,
-        "peak_from_now_anchored_cm": 567.97,
-        "peak_time_utc": "2026-09-13T09:00:00Z",
-        "n_model_now_cm": 196.34,
-        "n_model_peak_cm": 339.31,
-        "peak_already_passed": false
+        "event_id": "E23",
+        "rise_from_now_cm": 286.19,
+        "peak_from_now_anchored_cm": 711.19,
+        "peak_time_utc": "2026-09-13T01:00:00Z",
+        "n_model_now_cm": 307.11,
+        "n_model_peak_cm": 593.3
       },
       {
         "event_id": "E20",
-        "rise_from_now_cm": 143.0,
-        "peak_from_now_anchored_cm": 568.0,
+        "rise_from_now_cm": 203.12,
+        "peak_from_now_anchored_cm": 628.12,
         "peak_time_utc": "2026-09-12T20:00:00Z",
-        "n_model_now_cm": 340.93,
-        "n_model_peak_cm": 483.93,
-        "peak_already_passed": false
+        "n_model_now_cm": 347.06,
+        "n_model_peak_cm": 550.18
       },
       {
-        "event_id": "E23",
-        "rise_from_now_cm": 262.4,
-        "peak_from_now_anchored_cm": 687.4,
-        "peak_time_utc": "2026-09-13T01:00:00Z",
-        "n_model_now_cm": 290.03,
-        "n_model_peak_cm": 552.43,
-        "peak_already_passed": false
+        "event_id": "E25",
+        "rise_from_now_cm": 164.12,
+        "peak_from_now_anchored_cm": 589.12,
+        "peak_time_utc": "2026-09-12T22:00:00Z",
+        "n_model_now_cm": 272.31,
+        "n_model_peak_cm": 436.43
       }
-    ],
-    "note_pt": "ΔN da janela cheia mistura subida já ocorrida; use answer_from_now para decisão operacional."
+    ]
   },
-  "interpretation_pt": "Muçum está em 425 cm agora (ANA). O IFS mostra chuva recente relevante (~29.7 mm / 48h) e pouca chuva à frente (~3.5 mm / 72h). O gêmeo HEC, com calibração de bacia, diz que ainda sobe ~143 cm (banda 143–262), pico ~568 cm — principalmente pela onda da chuva que já caiu, não por tempestade nova. Isso é coerente com a telemetria (rio já alto). Se a chuva local for bem maior que o IFS, o pico fica subestimado.",
+  "verification": {
+    "verdict_level": "hit_band_and_primary_so_far",
+    "plain_pt": "Replay úmido melhorou: primary E23 ΔN≈286 cm (pico≈711). Obs 651 cm (+226) dentro da banda 164–286 e ainda sob o pico primary.",
+    "old_primary_peak_cm": 568.0,
+    "new_primary_peak_cm": 711.19,
+    "obs_latest_cm": 651.0,
+    "old_error_cm": 83.0,
+    "new_error_cm": -60.19,
+    "improved": true,
+    "rise_within_band": true,
+    "above_primary_peak": false
+  },
+  "interpretation_pt": "Replay úmido melhorou: primary E23 ΔN≈286 cm (pico≈711). Obs 651 cm (+226) dentro da banda 164–286 e ainda sob o pico primary.",
+  "plain_pt": "Replay úmido melhorou: primary E23 ΔN≈286 cm (pico≈711). Obs 651 cm (+226) dentro da banda 164–286 e ainda sob o pico primary.",
   "discipline": {
     "not_official_alert": true,
     "rna_untouched": true,
-    "stz_no_rating_curve": true,
-    "ifs_point_proxy_not_areal_mask": true
-  },
-  "artifacts": {
-    "forcing_window": "hec_twin_ifs_forcing_live_eval_latest.json",
-    "json": "hec_twin_mucum_live_eval_latest.json",
-    "html": "hec_twin_mucum_live_eval.html"
-  },
-  "plain_pt": "Com o nível atual 425 cm em Muçum e a chuva IFS recente (~29.7 mm / 48h, ainda ~3.5 mm pela frente), o gêmeo HEC indica que o rio ainda sobe ~143 cm (banda 143–262 cm) por causa da onda em trânsito, pico ancorado ~568 cm em 2026-09-12T20:00:00Z (análogo E20)."
+    "stz_no_rating_curve": true
+  }
 }

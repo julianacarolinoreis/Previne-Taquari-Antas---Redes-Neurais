@@ -31,6 +31,37 @@ REGIME_LIGHT_MAX_MM = 80.0
 REGIME_HEAVY_MIN_MM = 160.0
 LIGHT_SPECIALIST_EVENTS = ("E30",)
 
+# Wet-catchment thresholds for transfer (live wave / recent rain).
+WET_PAST_AW_MM = 20.0
+WET_STAGE_CM = 350.0
+
+
+def infer_wetness_state(
+    *,
+    forecast_aw_mm: float | None = None,
+    past_aw_mm: float | None = None,
+    stage_cm: float | None = None,
+    stage_rising: bool | None = None,
+) -> dict:
+    """Detect already-wet basin so light-storm dry penalties do not demote wet donors."""
+    past = float(past_aw_mm) if past_aw_mm is not None and past_aw_mm == past_aw_mm else None
+    stage = float(stage_cm) if stage_cm is not None and stage_cm == stage_cm else None
+    rising = bool(stage_rising) if stage_rising is not None else None
+    wet_by_rain = past is not None and past >= WET_PAST_AW_MM
+    wet_by_stage = stage is not None and stage >= WET_STAGE_CM and (rising is not False)
+    is_wet = bool(wet_by_rain or wet_by_stage)
+    return {
+        "is_wet": is_wet,
+        "past_aw_mm": None if past is None else round(past, 3),
+        "stage_cm": None if stage is None else round(stage, 2),
+        "stage_rising": rising,
+        "wet_by_rain": wet_by_rain,
+        "wet_by_stage": wet_by_stage,
+        "forecast_aw_mm": None if forecast_aw_mm is None else round(float(forecast_aw_mm), 3),
+    }
+
+
+
 
 def area_weighted_total_mm(precip: dict[str, list[float]], areas: dict[str, float]) -> float:
     total_area = sum(areas[sb] for sb in precip if sb in areas)
@@ -159,17 +190,23 @@ def analog_distance(
     hist_aw_mm: float,
     row: dict[str, Any],
     fp: dict[str, Any] | None,
+    *,
+    wetness: dict[str, Any] | None = None,
 ) -> tuple[float, dict[str, Any]]:
     scale = max(forecast_aw_mm, hist_aw_mm, 25.0)
     rain_gap = abs(hist_aw_mm - forecast_aw_mm) / scale
 
+    wet = wetness or {}
+    is_wet = bool(wet.get("is_wet"))
     is_light = forecast_aw_mm < REGIME_LIGHT_MAX_MM
+    # When catchment is already wet, do not treat the storm as a dry light event.
+    apply_light_dry_guards = is_light and not is_wet
     is_specialist = row.get("source") == "marginal_light_specialist" or row["event_id"] in LIGHT_SPECIALIST_EVENTS
 
-    # Efficiency: high peak/mm donors overstate light QPF rises.
+    # Efficiency: high peak/mm donors overstate *dry* light QPF rises.
     eff_gap = 0.0
     hist_eff = (fp or {}).get("peak_per_mm")
-    if is_light and hist_eff is not None and hist_eff == hist_eff:
+    if apply_light_dry_guards and hist_eff is not None and hist_eff == hist_eff:
         if float(hist_eff) > 70.0:
             eff_gap = 0.85
         elif float(hist_eff) > 45.0:
@@ -182,21 +219,34 @@ def analog_distance(
     const_loss = float(up.get("constant_loss") or 0.0) + float(dn.get("constant_loss") or 0.0)
 
     loss_penalty = 0.0
-    if is_light and not is_specialist:
+    if apply_light_dry_guards and not is_specialist:
         if const_loss < 0.5:
-            loss_penalty += 1.1  # zero continuous loss tends to over-run light storms
+            loss_penalty += 1.1  # zero continuous loss tends to over-run dry light storms
         if loss < 0.75:
             loss_penalty += 0.4
         elif loss < 2.0:
             loss_penalty += 0.2
+    elif is_wet:
+        # Prefer moderately wet donors; avoid pathological zero-loss / ultra-efficient extremes.
+        past = wet.get("past_aw_mm")
+        if loss <= 2.5 and const_loss >= 0.25:
+            loss_penalty -= 0.35
+        elif loss >= 6.0:
+            loss_penalty += 0.25
+        if const_loss < 0.25 and past is not None and float(past) >= WET_PAST_AW_MM:
+            # Zero continuous loss on an already-wet corridor overshoots hard (E31-class).
+            loss_penalty += 0.9
+        if hist_eff is not None and hist_eff == hist_eff and float(hist_eff) > 80.0:
+            loss_penalty += 0.4
 
     donor_penalty = 0.0
     if row["event_id"] == "E25" and forecast_aw_mm > 60.0:
         donor_penalty += 0.8
-    # Prefer same regime when fingerprints exist
     hist_regime = (fp or {}).get("regime") or classify_regime(hist_aw_mm)
-    if hist_regime != classify_regime(forecast_aw_mm):
-        donor_penalty += 0.25
+    forecast_regime = classify_regime(forecast_aw_mm)
+    if hist_regime != forecast_regime:
+        # Soften regime mismatch when wet: recent rain already moved mass through the corridor.
+        donor_penalty += 0.10 if is_wet else 0.25
 
     nse = row.get("nse")
     nse_term = 0.0 if nse is None else max(0.0, 0.15 * (1.0 - float(nse)))
@@ -212,6 +262,8 @@ def analog_distance(
         "constant_loss_sum_mm": round(const_loss, 3),
         "hist_peak_per_mm": hist_eff,
         "is_light_specialist": is_specialist,
+        "is_wet": is_wet,
+        "apply_light_dry_guards": apply_light_dry_guards,
     }
     return distance, detail
 
@@ -224,10 +276,16 @@ def choose_analogs(
     top_k: int = 3,
     fingerprints: dict[str, dict[str, Any]] | None = None,
     exclude_event_ids: set[str] | None = None,
+    wetness: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     exclude_event_ids = exclude_event_ids or set()
     fps = fingerprints or {}
-    pool = expand_library_with_light_specialists(library, hec_events, forecast_aw_mm)
+    wet = wetness or infer_wetness_state(forecast_aw_mm=forecast_aw_mm)
+    # Light specialists (E30) are for dry/light QPF only — skip when catchment already wet.
+    if wet.get("is_wet"):
+        pool = list(library)
+    else:
+        pool = expand_library_with_light_specialists(library, hec_events, forecast_aw_mm)
     by_id = {e["event_id"]: e for e in hec_events}
     scored: list[dict[str, Any]] = []
     for row in pool:
@@ -243,7 +301,7 @@ def choose_analogs(
             hist_source = "station_core_mean_fallback"
         if hist != hist:
             continue
-        dist, detail = analog_distance(forecast_aw_mm, hist, row, fp)
+        dist, detail = analog_distance(forecast_aw_mm, hist, row, fp, wetness=wet)
         scored.append(
             {
                 "event_id": eid,
@@ -258,6 +316,7 @@ def choose_analogs(
                 "regime_hist": (fp or {}).get("regime") or classify_regime(hist),
                 "nse": row.get("nse"),
                 "research_score": row.get("research_score"),
+                "wetness": wet,
                 "row": row,
             }
         )
@@ -307,7 +366,11 @@ def median(xs: list[float]) -> float:
     return ys[len(ys) // 2]
 
 
-def pick_primary_by_median_rise(members: list[dict[str, Any]]) -> int:
+def pick_primary_by_median_rise(
+    members: list[dict[str, Any]],
+    *,
+    wetness: dict[str, Any] | None = None,
+) -> int:
     rises: list[tuple[int, float]] = []
     for i, m in enumerate(members):
         r = (m.get("rise") or {}).get("rise_model_cm")
@@ -320,8 +383,55 @@ def pick_primary_by_median_rise(members: list[dict[str, Any]]) -> int:
             rises.append((i, float(r)))
     if not rises:
         return 0
-    med = median([r for _, r in rises])
+    vals = [r for _, r in rises]
+    med = median(vals)
+    wet = wetness or {}
+    # Wet + rising: prefer upper-half member (closer to max than to min among those >= median).
+    rising = wet.get("stage_rising")
+    if rising is None:
+        rising = bool(wet.get("wet_by_rain") or wet.get("wet_by_stage"))
+    if wet.get("is_wet") and rising:
+        upper = [t for t in rises if t[1] >= med - 1e-9]
+        if upper:
+            target = median([r for _, r in upper])
+            # bias toward wetter/higher rises inside the upper half
+            target = 0.35 * target + 0.65 * max(r for _, r in upper)
+            return min(upper, key=lambda t: abs(t[1] - target))[0]
     return min(rises, key=lambda t: abs(t[1] - med))[0]
+
+
+def damp_losses_for_wetness(
+    params: NestedParams,
+    wetness: dict[str, Any] | None,
+    *,
+    factor: float = 0.55,
+) -> tuple[NestedParams, dict[str, Any]]:
+    """Reduce initial/constant losses when catchment is already wet (more immediate runoff)."""
+    wet = wetness or {}
+    if not wet.get("is_wet"):
+        return params, {"applied": False, "reason": "not_wet"}
+    f = min(max(float(factor), 0.2), 1.0)
+    scaled = NestedParams(
+        up=replace(
+            params.up,
+            initial_loss=float(params.up.initial_loss) * f,
+            constant_loss=float(params.up.constant_loss) * f,
+        ),
+        dn=replace(
+            params.dn,
+            initial_loss=float(params.dn.initial_loss) * f,
+            constant_loss=float(params.dn.constant_loss) * f,
+        ),
+        k1=params.k1,
+        k2=params.k2,
+        k3=params.k3,
+        x=params.x,
+    )
+    return scaled, {
+        "applied": True,
+        "loss_scale_factor": f,
+        "wetness": wet,
+    }
 
 
 def load_bacia_artifact() -> dict[str, Any]:
