@@ -104,14 +104,14 @@ TABELA1_HEADERS = [
     "Família",
     "Equilíbrio",
     "PERS\n(geral / validação / teste)",
-    "NS",
+    "NS\n(teste)",
     "MAE\n(cm)",
     "E95\n(cm)",
 ]
 TABELA1_ROWS = [
     ["2 h", "ALT", "0,969", "0,955 / 0,936 / 0,969", "0,996", "3,5", "10,4"],
     ["4 h", "ALT", "0,846", "0,888 / 0,878 / 0,876", "0,993", "13,9", "52,7"],
-    ["8 h", "ALT", "0,694", "0,739 / 0,811 / 0,694", "0,940", "32", "135"],
+    ["8 h", "ALT", "0,694", "0,739 / 0,811 / 0,694", "0,940", "32,0", "135"],
     ["12 h", "CONV", "0,690", "0,824 / 0,690 / 0,696", "0,885", "40,9", "125"],
 ]
 
@@ -140,11 +140,11 @@ TABLE_SPECS = {
     "tabela1": {
         "kind": "tabela",
         "n": 1,
-        "title": "Desempenho no teste do modelo de maior equilíbrio publicado em cada horizonte",
+        "title": "Desempenho do modelo de maior equilíbrio publicado em cada horizonte",
         "headers": TABELA1_HEADERS,
         "rows": TABELA1_ROWS,
         "fonte": "Fichas do recorte de 282 redes (artigo_rna_santa_tereza.json).",
-        "nota": "NS = coeficiente de Nash-Sutcliffe no teste. MAE e E95 no teste por eventos, em centímetros na régua. ALT: a rede prevê a variação do nível. CONV: família complementar (equação de saída a declarar). Identificadores MATLAB: 2 h = 009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21; 4 h = V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000; 8 h = altR_004_08_8h_alt_8H_ALT_C0289; 12 h = 004_conv_C0149_R01_T2_V1_3. Chuva de 36 h ausente só em 2 h. Entradas / neurônios ocultos: 15/30, 24/48, 10/20 e 14/28.",
+        "nota": "Equilíbrio é o campo publicado na ficha, não o mínimo dos três PERS; a ordem na coluna PERS é geral / validação / teste. NS = coeficiente de Nash-Sutcliffe no teste. MAE e E95 no teste por eventos, em centímetros na régua. ALT: a rede prevê a variação do nível. CONV: família complementar (equação de saída a declarar). Chuva de 36 h ausente só em 2 h. Entradas / neurônios ocultos: 15/30, 24/48, 10/20 e 14/28.",
         "numeric": (2, 4, 5, 6),
         "nowrap_head": (0, 1, 2, 4),
         "nowrap_body": (0, 1, 2, 3, 4, 5, 6),
@@ -190,7 +190,7 @@ def paragraphs() -> list[tuple[str, str]]:
         ("h1", "RESUMO"),
         (
             "p",
-            "O objetivo deste estudo foi avaliar o desempenho de redes neurais artificiais (RNAs) na previsão horária de nível na estação fluviométrica Santa Tereza (ANA/SGB 86472600), na bacia do rio Taquari-Antas, Rio Grande do Sul, Brasil, nos horizontes de 2, 4, 8 e 12 h. Os procedimentos adotados foram: i) organização do inventário de perceptrons de três camadas já treinados em MATLAB; ii) qualificação das redes com índice de persistência (PERS) positivo em treino, validação, teste e série completa, resultando em 282 modelos; iii) descrição das principais combinações de variáveis de entrada, sem métricas; iv) seleção de um único modelo por horizonte pelo índice de equilíbrio publicado no inventário; v) avaliação quantitativa por PERS, coeficiente de Nash-Sutcliffe (NS), erro absoluto médio (MAE) e percentil 95 do erro absoluto (E95). O modelo de 2 h, com 15 entradas de nível local e de montante e sem precipitação, apresentou índice de equilíbrio 0,969, NS de teste 0,996, MAE de 3,5 cm e E95 de 10,4 cm. Em 4 h, o modelo selecionado possui 24 entradas, incluindo a chuva média acumulada em 36 h (equilíbrio 0,846; NS 0,993; MAE 13,9 cm). Em 8 h, a RNA com 10 entradas (combinação C0289) atingiu equilíbrio 0,694, NS 0,940 e MAE 32 cm. Em 12 h, o modelo selecionado (C0149) atingiu equilíbrio 0,690, NS 0,885 e MAE 40,9 cm. Conclui-se que as RNAs reproduzem o nível na régua com ganho sobre a persistência nos quatro horizontes quando a seleção exige equilíbrio entre partições. O NS isolado de uma partição e o erro de uma janela do serviço experimental não substituem o teste por eventos de cheia.",
+            "O objetivo deste estudo foi avaliar o desempenho de redes neurais artificiais (RNAs) na previsão horária de nível na estação fluviométrica Santa Tereza (ANA/SGB 86472600), na bacia do rio Taquari-Antas, Rio Grande do Sul, Brasil, nos horizontes de 2, 4, 8 e 12 h. Os procedimentos adotados foram: i) organização do inventário de perceptrons de três camadas já treinados em MATLAB; ii) qualificação das redes com índice de persistência (PERS) positivo em treino, validação, teste e série completa, resultando em 282 modelos; iii) descrição das principais combinações de variáveis de entrada, sem métricas; iv) seleção de um único modelo por horizonte pelo índice de equilíbrio publicado no inventário; v) avaliação quantitativa por PERS, coeficiente de Nash-Sutcliffe (NS), erro absoluto médio (MAE) e percentil 95 do erro absoluto (E95). O modelo de 2 h, com 15 entradas de nível local e de montante e sem precipitação, apresentou índice de equilíbrio 0,969, NS de teste 0,996, MAE de 3,5 cm e E95 de 10,4 cm. Em 4 h, o modelo selecionado possui 24 entradas, incluindo a chuva média acumulada em 36 h (equilíbrio 0,846; NS 0,993; MAE 13,9 cm). Em 8 h, a RNA com 10 entradas (combinação C0289) atingiu equilíbrio 0,694, NS 0,940 e MAE 32,0 cm. Em 12 h, o modelo selecionado (C0149) atingiu equilíbrio 0,690, NS 0,885 e MAE 40,9 cm. Conclui-se que as RNAs reproduzem o nível na régua com ganho sobre a persistência nos quatro horizontes quando a seleção exige equilíbrio entre partições. O NS isolado de uma partição e o erro de uma janela do serviço experimental não substituem o teste por eventos de cheia.",
         ),
         (
             "kw",
@@ -199,7 +199,7 @@ def paragraphs() -> list[tuple[str, str]]:
         ("h1", "ABSTRACT"),
         (
             "p",
-            "The aim of this study was to evaluate artificial neural networks (ANNs) for hourly water-level forecasting at the Santa Tereza gauging station (ANA/SGB 86472600), Taquari-Antas River basin, Rio Grande do Sul, Brazil, at 2, 4, 8 and 12 h lead times. The procedures were: i) organisation of an inventory of three-layer perceptrons already trained in MATLAB; ii) retention of networks with positive persistence index (PERS) on training, validation, testing and the full series (282 models); iii) description of the main input combinations, without performance metrics; iv) selection of one model per horizon by the published equilibrium score; v) evaluation using PERS, the Nash-Sutcliffe coefficient (NS), mean absolute error (MAE) and the 95th percentile of absolute error (E95). The 2 h model, with 15 local and upstream stage inputs and no rainfall, attained an equilibrium score of 0.969, NS of 0.996, MAE of 3.5 cm and E95 of 10.4 cm. At 4 h the selected model has 24 inputs including 36 h mean accumulated rainfall (equilibrium 0.846; NS 0.993; MAE 13.9 cm). At 8 h the 10-input network (combination C0289) reached 0.694, NS 0.940 and MAE 32 cm. At 12 h the selected model reached 0.690, NS 0.885 and MAE 40.9 cm. ANNs reproduce stage with skill over persistence at all four horizons when selection requires balance across partitions. Partition-wise NS and the error of an experimental-service window do not replace event-based testing.",
+            "The aim of this study was to evaluate artificial neural networks (ANNs) for hourly water-level forecasting at the Santa Tereza gauging station (ANA/SGB 86472600), Taquari-Antas River basin, Rio Grande do Sul, Brazil, at 2, 4, 8 and 12 h lead times. The procedures were: i) organisation of an inventory of three-layer perceptrons already trained in MATLAB; ii) retention of networks with positive persistence index (PERS) on training, validation, testing and the full series (282 models); iii) description of the main input combinations, without performance metrics; iv) selection of one model per horizon by the published equilibrium score; v) evaluation using PERS, the Nash-Sutcliffe coefficient (NS), mean absolute error (MAE) and the 95th percentile of absolute error (E95). The 2 h model, with 15 local and upstream stage inputs and no rainfall, attained an equilibrium score of 0.969, NS of 0.996, MAE of 3.5 cm and E95 of 10.4 cm. At 4 h the selected model has 24 inputs including 36 h mean accumulated rainfall (equilibrium 0.846; NS 0.993; MAE 13.9 cm). At 8 h the 10-input network (combination C0289) reached 0.694, NS 0.940 and MAE 32.0 cm. At 12 h the selected model reached 0.690, NS 0.885 and MAE 40.9 cm. ANNs reproduce stage with skill over persistence at all four horizons when selection requires balance across partitions. Partition-wise NS and the error of an experimental-service window do not replace event-based testing.",
         ),
         (
             "kw",
@@ -278,7 +278,7 @@ def paragraphs() -> list[tuple[str, str]]:
         ("table", "tabela1"),
         (
             "p",
-            "Em 2 h a única montagem do conjunto filtrado (15 entradas de nível, sem chuva, 30 neurônios) gerou dez rotações de eventos; todas têm equilíbrio acima de 0,90 também quando se reaplica o mínimo dos três PERS. O modelo selecionado testa os eventos 10, 15 e 16 e é a rede em operação experimental contínua — fato de implantação, não evidência adicional de teste. O MAE de teste da ficha (3,5 cm em 2 h; 13,9 cm em 4 h; 32 cm em 8 h) não é o MAE de uma janela móvel do serviço experimental: são contratos distintos (partição por eventos de cheia versus pares recentes conferidos no feed).",
+            "Em 2 h a única montagem do conjunto filtrado (15 entradas de nível, sem chuva, 30 neurônios) gerou dez rotações de eventos; todas têm equilíbrio acima de 0,90 também quando se reaplica o mínimo dos três PERS. O modelo selecionado testa os eventos 10, 15 e 16 e é a rede em operação experimental contínua — fato de implantação, não evidência adicional de teste. O MAE de teste da ficha (3,5 cm em 2 h; 13,9 cm em 4 h; 32,0 cm em 8 h) não é o MAE de uma janela móvel do serviço experimental: são contratos distintos (partição por eventos de cheia versus pares recentes conferidos no feed).",
         ),
         (
             "p",
@@ -311,7 +311,7 @@ def paragraphs() -> list[tuple[str, str]]:
         ),
         (
             "p",
-            "3. Em 8 h, o modelo selecionado é ALT C0289 (altR_004_08_8h_alt_8H_ALT_C0289; equilíbrio 0,694; NS 0,940; MAE 32 cm). A CONV da mesma combinação, quando equilibra, reduz o E95 — ressalva da discussão, não segundo resultado.",
+            "3. Em 8 h, o modelo selecionado é ALT C0289 (altR_004_08_8h_alt_8H_ALT_C0289; equilíbrio 0,694; NS 0,940; MAE 32,0 cm). A CONV da mesma combinação, quando equilibra, reduz o E95 — ressalva da discussão, não segundo resultado.",
         ),
         (
             "p",
