@@ -35,7 +35,16 @@ Leia `recorte_modelo.html` antes de qualquer HEC.
 
 STZ sem curva-chave: HEC não publica N em STZ.
 
+## Plataforma HEC/REC (onde o resultado vai parar)
+
+Página pública no GitHub Pages (como a das RNAs), com mapa do corredor, ΔN, verificação e links auditáveis:
+
+- Atalho raiz: `plataforma_hec_twin.html`
+- Mapa + painel: `plataforma_hec_twin_mucum.html`
+- Feed: `plataforma_hec_twin_mucum_latest.json`
+
 ```bash
 python3 scripts/build_hec_twin_ifs_forcing_5d.py
 python3 scripts/run_hec_twin_mucum_forward_5d.py
+python3 scripts/build_plataforma_hec_twin_mucum.py
 ```
