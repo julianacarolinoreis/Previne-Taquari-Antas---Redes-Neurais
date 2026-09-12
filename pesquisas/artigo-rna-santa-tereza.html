@@ -101,9 +101,9 @@
   <article class="sheet">
     <p class="watermark">Rascunho de artigo · pesquisa FAPERGS · não é alerta oficial</p>
     <p class="kicker">PREVINE Taquari-Antas · estação ANA/SGB 86472600</p>
-    <h1>Previsão de nível em Santa Tereza com redes neurais: síntese do recorte consolidado de <span data-fill="n_models">282</span> modelos MLP (2–12 h)</h1>
-    <p class="authors">Juliana Carolina Reis<sup>1</sup>; Guilherme Garcia de Oliveira<sup>1</sup>; Fernanda Vier<sup>1</sup></p>
-    <p class="affil"><sup>1</sup> Universidade Federal do Rio Grande do Sul (UFRGS) · PREVINE Taquari-Antas · processo FAPERGS 24/2551-0002124-8. A lista de autoria para submissão a periódico permanece a confirmar com a equipe do projeto.</p>
+    <h1>Previsão de níveis fluviais com redes neurais artificiais: aplicação à estação Santa Tereza, bacia do rio Taquari-Antas</h1>
+    <p class="authors">Juliana Carolina Reis<sup>1*</sup>; Guilherme Garcia de Oliveira<sup>2</sup>; Fernanda Vier<sup>1</sup></p>
+    <p class="affil"><sup>1</sup> Universidade Federal do Rio Grande do Sul (UFRGS), Porto Alegre, RS.<br><sup>2</sup> Departamento Interdisciplinar, Campus Litoral Norte, UFRGS, Tramandaí, RS.<br>* Autor correspondente: julianacarolinoreis@gmail.com. Financiamento FAPERGS 24/2551-0002124-8 (PREVINE Taquari-Antas), nos agradecimentos. Autoria para submissão: a confirmar.</p>
 
     <div class="actions">
       <button type="button" id="print-article">Imprimir / salvar PDF</button>
@@ -122,7 +122,7 @@
       <p>As inundações de 2023–2024 na bacia Taquari–Antas tornaram urgente antecipar o nível do rio com a rede telemétrica já instalada. Este rascunho sintetiza o recorte consolidado de <strong><span data-fill="n_models">282</span> perceptrons multicamadas</strong> treinados em MATLAB para a estação de Santa Tereza (86472600), com horizontes de 2, 4, 8 e 12 horas. A qualificação exige persistência (PERS) positiva em treino, validação, teste e série completa. A métrica de escolha é o <em>score de equilíbrio</em> — o menor PERS entre geral, validação e teste.</p>
       <p>O melhor modelo de 2 h (<span class="mono" data-fill="best_2h">009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21</span>) equilibra <span data-fill="eq_2h">0,969</span>, com MAE de teste de <strong><span data-fill="mae_2h">3,5</span> cm</strong> e E95 de <span data-fill="e95_2h">10,4</span> cm; é também o modelo principal do feed ao vivo. Em 4 h o melhor equilibra <span data-fill="eq_4h">0,846</span> (MAE <span data-fill="mae_4h">13,9</span> cm). Em 8 h, ALT C0289 equilibra <span data-fill="eq_8h">0,694</span> (MAE <span data-fill="mae_8h">32,0</span> cm). Em 12 h o melhor é CONV C0149 (equilíbrio <span data-fill="eq_12h">0,690</span>; MAE <span data-fill="mae_12h">40,9</span> cm). O erro do campeão cresce com a antecedência. Relatórios de processo de junho ranqueavam baterias únicas por NASH ou PERS geral: o recorte consolidado muda a leitura porque a rotação de eventos e o equilíbrio separam recorde de generalização.</p>
     </div>
-    <p class="keywords"><strong>Palavras-chave:</strong> previsão de nível; redes neurais artificiais; índice de persistência; Santa Tereza; Taquari–Antas; alerta de inundação (pesquisa).</p>
+    <p class="keywords"><strong>Palavras-chave:</strong> bacia hidrográfica do rio Taquari-Antas; redes neurais artificiais; previsão de nível fluvial; índice de persistência; Santa Tereza.</p>
 
     <h2>1. Introdução</h2>
     <p>Sistemas de alerta de inundação na bacia Taquari–Antas combinam telemetria ANA/SGB, o SACE e, na pesquisa, modelos de nível de curto prazo. Finck (2020) demonstrou a aplicabilidade de RNAs em estações de jusante da mesma bacia (Encantado, Estrela, Porto Mariante e Taquari), com NSE médio da ordem de 0,93 / 0,89 / 0,71 em 8, 12 e 24 h. Santa Tereza, a montante, passou a ser o primeiro município com recorte publicado no PREVINE: o objetivo é antecipar o nível na régua 86472600 com 2 a 12 horas, usando níveis da própria estação, estações a montante e, quando a ficha do modelo inclui, chuva acumulada.</p>

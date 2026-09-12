@@ -144,6 +144,12 @@ class ArtigoRnaSantaTerezaTests(unittest.TestCase):
         self.assertIn("V01_R10_T19-21", results)
         self.assertIn("altR_004_08_8h_alt_8H_ALT_C0289", results)
         self.assertIn("004_conv_C0149", results)
+        self.assertIn("OLIVEIRA, G. G.; PEDROLLO, O. C.; CASTRO, N. M. R. O desempenho das redes neurais", self.manuscript)
+        self.assertIn("julianacarolinoreis@gmail.com", self.manuscript)
+        self.assertIn("Campus Litoral Norte", self.manuscript)
+        self.assertIn("Figura 1", self.manuscript)
+        self.assertIn("Nash-Sutcliffe (NS)", self.manuscript)
+        self.assertNotIn("Garcia de Oliveira et al", self.manuscript)
 
     def test_acervo_lists_the_draft_as_research(self) -> None:
         entries = self.acervo["entries"]

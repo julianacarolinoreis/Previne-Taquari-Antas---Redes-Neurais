@@ -1,0 +1,588 @@
+#!/usr/bin/env python3
+"""Manuscrito RBRH no molde da escola IPH (Oliveira/Pedrollo) + pareceres JoH/HESS/WRR.
+
+Gera Markdown, HTML e DOCX a partir do mesmo texto. Não inventa km² nem hidrogramas.
+"""
+
+from __future__ import annotations
+
+import html
+from pathlib import Path
+
+from docx import Document
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Cm, Inches, Pt, RGBColor
+
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from fig_mapa_postos_santa_tereza import build as build_map
+
+ROOT = Path(__file__).resolve().parents[1]
+FIG = ROOT / "pesquisas" / "figuras" / "figura1_postos_santa_tereza.png"
+MD_OUT = ROOT / "docs" / "artigo_rna_santa_tereza.md"
+HTML_OUT = ROOT / "pesquisas" / "manuscrito-drive.html"
+DOCX_OUT = ROOT / "pesquisas" / "manuscrito-drive.docx"
+ART_HTML = Path("/opt/cursor/artifacts/01_manuscrito_rna_santa_tereza_2h_4h_8h.html")
+ART_DOCX = Path("/opt/cursor/artifacts/01_manuscrito_rna_santa_tereza_2h_4h_8h.docx")
+ART_MD = Path("/opt/cursor/artifacts/01_manuscrito_rna_santa_tereza_2h_4h_8h.md")
+
+TITLE = (
+    "PREVISÃO DE NÍVEIS FLUVIAIS COM REDES NEURAIS ARTIFICIAIS: "
+    "APLICAÇÃO À ESTAÇÃO SANTA TEREZA, BACIA DO RIO TAQUARI-ANTAS"
+)
+
+QUADRO1_HEADERS = ["Horizonte", "Combinação", "N var.", "Variáveis"]
+QUADRO1_ROWS = [
+    [
+        "2 h",
+        "Nível local e montante, sem chuva",
+        "15",
+        "ST; ST D–1 h; ST D–2 h; ST D–4 h; ST A–1 h; ST A–2 h; ST A–4 h; ST D–8 h; ST A–12 h; montante; montante D–1 h; montante D–2 h; montante D–5 h; montante A–12 h; montante A–20 h",
+    ],
+    [
+        "4 h",
+        "Núcleo 4 h",
+        "13",
+        "ST; ST D–1 h; chuva 36 h; montante; montante D–2 h; Veranópolis; montante A–14 h; Veranópolis D–14 h; Ituim; Ituim D–11 h; ST D–4 h; ST D–2 h; ST A–2 h",
+    ],
+    [
+        "4 h",
+        "Núcleo + ST A–1 h + ST A–4 h + 86298000",
+        "16",
+        "Núcleo; ST A–1 h; ST A–4 h; 86298000",
+    ],
+    [
+        "4 h",
+        "Núcleo ampliado (Carreiro e mais defasagens)",
+        "24",
+        "Núcleo de 16; montante D–4 h; montante D–1 h; montante A–12 h; Veranópolis D–12 h; Carreiro; Carreiro D–16 h; montante D–5 h; Ituim D–12 h",
+    ],
+    [
+        "8 h",
+        "C0289",
+        "10",
+        "ST; ST D–1 h; chuva 36 h; montante; montante D–2 h; Veranópolis; montante A–14 h; Veranópolis D–14 h; 86430900; 86430900 D–14 h",
+    ],
+    [
+        "8 h",
+        "C0078",
+        "11",
+        "ST; ST D–1 h; chuva 36 h; Veranópolis; Veranópolis D–14 h; Ituim; Ituim D–11 h; ST D–4 h; ST D–2 h; ST A–2 h; ST A–1 h",
+    ],
+    [
+        "8 h",
+        "C0265",
+        "8",
+        "ST; ST D–1 h; chuva 36 h; montante; montante D–2 h; Veranópolis; montante A–14 h; Veranópolis D–14 h",
+    ],
+    [
+        "12 h",
+        "C0149",
+        "14",
+        "ST; ST D–1 h; chuva 36 h; montante; montante D–2 h; Ituim; Ituim D–11 h; ST D–4 h; ST D–2 h; montante D–4 h; montante D–1 h; montante A–12 h; Ituim D–12 h; Ituim D–10 h",
+    ],
+]
+
+QUADRO2_HEADERS = ["Código ANA/SGB", "Nome", "Latitude", "Longitude", "Distância geodésica até 86472600"]
+QUADRO2_ROWS = [
+    ["86472600", "Santa Tereza (estação-alvo)", "29,1781° S", "51,7322° W", "—"],
+    ["86472000", "Linha José Júlio / rio das Antas montante", "29,0978° S", "51,6997° W", "9,5 km"],
+    ["86448000", "Veranópolis / rio das Antas", "29,0292° S", "51,5219° W", "26,3 km"],
+    ["86125130", "Ituim / alto Antas", "28,5919° S", "51,3247° W", "76,3 km"],
+    ["86507000", "Carreiro", "não recuperada", "não recuperada", "—"],
+    ["86298000", "Nome HidroWeb a confirmar", "não recuperada", "não recuperada", "—"],
+    ["86430900", "Nome HidroWeb a confirmar", "não recuperada", "não recuperada", "—"],
+]
+
+TABELA1_HEADERS = [
+    "H",
+    "Família",
+    "Modelo",
+    "Rotação",
+    "Eq. ficha",
+    "PERS g / v / t",
+    "NS teste",
+    "MAE (cm)",
+    "E95 (cm)",
+    "Chuva",
+    "N ent.",
+    "N oc.",
+]
+TABELA1_ROWS = [
+    ["2 h", "ALT", "15 entradas, sem chuva", "R09", "0,969", "0,955 / 0,936 / 0,969", "0,996", "3,5", "10,4", "não", "15", "30"],
+    ["4 h", "ALT", "24 entradas, chuva 36 h", "R10", "0,846", "0,888 / 0,878 / 0,876", "0,993", "13,9", "52,7", "sim", "24", "48"],
+    ["8 h", "ALT", "10 entradas (C0289)", "altR_004", "0,694", "0,739 / 0,811 / 0,694", "0,940", "32", "135", "sim", "10", "20"],
+    ["12 h", "CONV", "14 entradas (C0149)", "R01_T2_V1_3", "0,690", "0,824 / 0,690 / 0,696", "0,885", "40,9", "125", "sim", "14", "28"],
+]
+
+REFS = [
+    "DAWSON, C. W.; WILBY, R. An artificial neural network approach to rainfall-runoff modelling. Hydrological Sciences Journal, v. 43, n. 1, p. 47–66, 1998. DOI: https://doi.org/10.1080/02626669809492102.",
+    "DORNELLES, F.; GOLDENFUM, J. A.; PEDROLLO, O. C. Artificial neural network methods applied to forecasting river levels. Revista Brasileira de Recursos Hídricos, v. 18, n. 4, p. 45–54, 2013. DOI: https://doi.org/10.21168/rbrh.v18n4.p45-54.",
+    "FINCK, J. S. Previsão em tempo atual de níveis fluviais com redes neurais artificiais: aplicação à bacia do Rio Taquari-Antas/RS. Dissertação (Mestrado) — Universidade Federal do Rio Grande do Sul, Porto Alegre, 2020. Disponível em: https://lume.ufrgs.br/handle/10183/213406.",
+    "HECHT-NIELSEN, R. Kolmogorov’s mapping neural network existence theorem. In: Proceedings of the First IEEE International Joint Conference on Neural Networks. San Diego: IEEE, 1987. p. 11–14.",
+    "HORNIK, K.; STINCHCOMBE, M.; WHITE, H. Multilayer feedforward networks are universal approximators. Neural Networks, v. 2, n. 5, p. 359–366, 1989. DOI: https://doi.org/10.1016/0893-6080(89)90020-8.",
+    "HSU, K. L.; GUPTA, H. V.; SOROOSHIAN, S. Artificial neural network modeling of the rainfall-runoff process. Water Resources Research, v. 31, n. 10, p. 2517–2530, 1995. DOI: https://doi.org/10.1029/95WR01955.",
+    "KITANIDIS, P. K.; BRAS, R. L. Real-time forecasting with a conceptual hydrologic model. 2. Applications and results. Water Resources Research, v. 16, n. 6, p. 1034–1044, 1980. DOI: https://doi.org/10.1029/WR016i006p01034.",
+    "KRATZERT, F.; KLOTZ, D.; BRENNER, C.; SCHULZ, K.; HERRNEGGER, M. Rainfall–runoff modelling using Long Short-Term Memory (LSTM) networks. Hydrology and Earth System Sciences, v. 22, p. 6005–6022, 2018. DOI: https://doi.org/10.5194/hess-22-6005-2018.",
+    "LEK, S.; DELACOSTE, M.; BARAN, P.; DIMOPOULOS, I.; LAUGA, J.; AULAGNIER, S. Application of neural networks to modelling nonlinear relationships in ecology. Ecological Modelling, v. 90, p. 39–52, 1996. DOI: https://doi.org/10.1016/0304-3800(95)00142-5.",
+    "MAIER, H. R.; DANDY, G. C. Neural networks for the prediction and forecasting of water resources variables: a review of modelling issues and applications. Environmental Modelling & Software, v. 15, n. 1, p. 101–124, 2000. DOI: https://doi.org/10.1016/S1364-8152(99)00007-9.",
+    "MAIER, H. R.; JAIN, A.; DANDY, G. C.; SUDHEER, K. P. Methods used for the development of neural networks for the prediction of water resource variables in river systems: current status and future directions. Environmental Modelling & Software, v. 25, n. 8, p. 891–909, 2010. DOI: https://doi.org/10.1016/j.envsoft.2010.02.003.",
+    "MATOS, A. B.; PEDROLLO, O. C.; CASTRO, N. M. R. Efeito do controle de montante de sub-bacias embutidas na previsão hidrológica de curto prazo com redes neurais: aplicação à bacia de Ponte Mística. Revista Brasileira de Recursos Hídricos, v. 19, n. 1, p. 87–99, 2014. DOI: https://doi.org/10.21168/rbrh.v19n1.p87-99.",
+    "NASH, J. E.; SUTCLIFFE, J. V. River flow forecasting through conceptual models part I — A discussion of principles. Journal of Hydrology, v. 10, n. 3, p. 282–290, 1970. DOI: https://doi.org/10.1016/0022-1694(70)90255-6.",
+    "NEVO, S. et al. Flood forecasting with machine learning models in an operational framework. Hydrology and Earth System Sciences, v. 26, p. 4013–4032, 2022. DOI: https://doi.org/10.5194/hess-26-4013-2022.",
+    "OLIVEIRA, G. G.; PEDROLLO, O. C.; CASTRO, N. M. R. Metodologia de análise de sensibilidade e exclusão de variáveis de entrada em simulação hidrológica por Redes Neurais Artificiais (RNAs): resultados preliminares. In: Anais do XIX Simpósio Brasileiro de Recursos Hídricos, Maceió, 2011.",
+    "OLIVEIRA, G. G.; PEDROLLO, O. C.; CASTRO, N. M. R.; BRAVO, J. M. Simulações hidrológicas com diferentes proporções de área controlada na bacia hidrográfica. Revista Brasileira de Recursos Hídricos, v. 18, n. 3, p. 193–204, 2013. DOI: https://doi.org/10.21168/rbrh.v18n3.p193-204.",
+    "OLIVEIRA, G. G.; PEDROLLO, O. C.; CASTRO, N. M. R. O desempenho das redes neurais artificiais (RNAs) para simulação hidrológica mensal. Revista Brasileira de Recursos Hídricos, v. 19, n. 2, p. 251–265, 2014. DOI: https://doi.org/10.21168/rbrh.v19n2.p251-265.",
+    "OLIVEIRA, G. G.; PEDROLLO, O. C.; CASTRO, N. M. R. Simplifying artificial neural network models of river basin behaviour by an automated procedure for input variable selection. Engineering Applications of Artificial Intelligence, v. 40, p. 47–61, 2015. DOI: https://doi.org/10.1016/j.engappai.2015.01.001.",
+    "RUMELHART, D. E.; HINTON, G. E.; WILLIAMS, R. J. Learning representations by back-propagating errors. Nature, v. 323, p. 533–536, 1986. DOI: https://doi.org/10.1038/323533a0.",
+    "WIDROW, B.; HOFF, M. E. Adaptive switching circuits. In: IRE WESCON Convention Record. New York: IRE, 1960. Part 4, p. 96–104.",
+    "YILMAZ, K. K.; GUPTA, H. V.; WAGENER, T. A process-based diagnostic approach to model evaluation: application to the NWS distributed hydrologic model. Water Resources Research, v. 44, W09417, 2008. DOI: https://doi.org/10.1029/2007WR006716.",
+]
+
+
+def paragraphs() -> list[tuple[str, str]]:
+    """Return (kind, text) blocks. kind: kicker, title, center, h1, h2, p, note, kw, ref, caption, fig."""
+    return [
+        ("kicker", "Pesquisa FAPERGS 24/2551-0002124-8 · manuscrito para a Revista Brasileira de Recursos Hídricos"),
+        ("title", TITLE),
+        ("center", "Juliana Carolina Reis¹*; Guilherme Garcia de Oliveira²; Fernanda Vier¹"),
+        (
+            "center",
+            "¹ Universidade Federal do Rio Grande do Sul (UFRGS), Porto Alegre, RS, Brasil.\n"
+            "² Departamento Interdisciplinar, Campus Litoral Norte, Universidade Federal do Rio Grande do Sul (UFRGS), Tramandaí, RS, Brasil.\n"
+            "* Autor correspondente: julianacarolinoreis@gmail.com",
+        ),
+        ("h1", "RESUMO"),
+        (
+            "p",
+            "O objetivo deste estudo foi avaliar o desempenho de redes neurais artificiais (RNAs) na previsão horária de nível na estação fluviométrica Santa Tereza (ANA/SGB 86472600), na bacia do rio Taquari-Antas, Rio Grande do Sul, Brasil, nos horizontes de 2, 4, 8 e 12 h. Os procedimentos adotados foram: i) organização do inventário de perceptrons de três camadas já treinados em MATLAB; ii) qualificação das redes com índice de persistência (PERS) positivo em treino, validação, teste e série completa, resultando em 282 modelos; iii) descrição das principais combinações de variáveis de entrada, sem métricas; iv) seleção de um único modelo por horizonte pelo índice de equilíbrio publicado no inventário; v) avaliação quantitativa por PERS, coeficiente de Nash-Sutcliffe (NS), erro absoluto médio (MAE) e percentil 95 do erro absoluto (E95). O modelo de 2 h, com 15 entradas de nível local e de montante e sem precipitação, apresentou índice de equilíbrio 0,969, NS de teste 0,996, MAE de 3,5 cm e E95 de 10,4 cm. Em 4 h, o modelo selecionado possui 24 entradas, incluindo a chuva média acumulada em 36 h (equilíbrio 0,846; NS 0,993; MAE 13,9 cm). Em 8 h, a RNA com 10 entradas (combinação C0289) atingiu equilíbrio 0,694, NS 0,940 e MAE 32 cm. Em 12 h, o modelo selecionado (C0149) atingiu equilíbrio 0,690, NS 0,885 e MAE 40,9 cm. Conclui-se que as RNAs reproduzem o nível na régua com ganho sobre a persistência nos quatro horizontes quando a seleção exige equilíbrio entre partições. O NS isolado de uma partição e o erro de uma janela do serviço experimental não substituem o teste por eventos de cheia.",
+        ),
+        (
+            "kw",
+            "Palavras-chave: bacia hidrográfica do rio Taquari-Antas; redes neurais artificiais; previsão de nível fluvial; índice de persistência; Santa Tereza.",
+        ),
+        ("h1", "ABSTRACT"),
+        (
+            "p",
+            "The aim of this study was to evaluate artificial neural networks (ANNs) for hourly water-level forecasting at the Santa Tereza gauging station (ANA/SGB 86472600), Taquari-Antas River basin, Rio Grande do Sul, Brazil, at 2, 4, 8 and 12 h lead times. The procedures were: i) organisation of an inventory of three-layer perceptrons already trained in MATLAB; ii) retention of networks with positive persistence index (PERS) on training, validation, testing and the full series (282 models); iii) description of the main input combinations, without performance metrics; iv) selection of one model per horizon by the published equilibrium score; v) evaluation using PERS, the Nash-Sutcliffe coefficient (NS), mean absolute error (MAE) and the 95th percentile of absolute error (E95). The 2 h model, with 15 local and upstream stage inputs and no rainfall, attained an equilibrium score of 0.969, NS of 0.996, MAE of 3.5 cm and E95 of 10.4 cm. At 4 h the selected model has 24 inputs including 36 h mean accumulated rainfall (equilibrium 0.846; NS 0.993; MAE 13.9 cm). At 8 h the 10-input network (combination C0289) reached 0.694, NS 0.940 and MAE 32 cm. At 12 h the selected model reached 0.690, NS 0.885 and MAE 40.9 cm. ANNs reproduce stage with skill over persistence at all four horizons when selection requires balance across partitions. Partition-wise NS and the error of an experimental-service window do not replace event-based testing.",
+        ),
+        (
+            "kw",
+            "Keywords: Taquari-Antas River basin; artificial neural networks; river-level forecasting; persistence index; Santa Tereza.",
+        ),
+        ("h1", "1 INTRODUÇÃO"),
+        (
+            "p",
+            "As redes neurais artificiais (RNAs) são modelos matemáticos empíricos, com capacidade de armazenar conhecimento experimental por meio do treinamento e da resposta aos estímulos (variáveis de entrada). A difusão da técnica em hidrologia está ligada ao algoritmo retropropagativo (Rumelhart, Hinton e Williams, 1986), generalização da Regra Delta (Widrow e Hoff, 1960). Hsu, Gupta e Sorooshian (1995) e Dawson e Wilby (1998) situaram as RNAs como representadores não lineares de relações chuva–vazão e de previsão de curto prazo. Maier e Dandy (2000) e Maier et al. (2010) sintetizaram as questões de modelagem — partição das amostras, seleção de entradas e risco de superajustamento — que ainda organizam a prática.",
+        ),
+        (
+            "p",
+            "Na previsão de níveis, Campolo, Soldati e Andreussi (2003) e Dornelles, Goldenfum e Pedrollo (2013) mostraram que o desempenho depende do particionamento e da repetição do treinamento. Oliveira, Pedrollo e Castro (2014, 2015) argumentaram que a seleção de entradas é hipótese hidrológica: modelos mais parcimoniosos podem igualar ou superar redes maiores no coeficiente de Nash-Sutcliffe (NS) e, sobretudo, tornar interpretável o funcionamento da rede. Matos, Pedrollo e Castro (2014) examinaram o controle de montante em sub-bacias embutidas. Na bacia do rio Taquari-Antas, Finck (2020) aplicou RNAs às estações de Encantado, Estrela, Porto Mariante e Taquari, com NS médio da ordem de 0,93 / 0,89 / 0,71 em 8, 12 e 24 h.",
+        ),
+        (
+            "p",
+            "Este estudo aplica a mesma classe de modelos à estação 86472600, a montante daquelas estações, para a previsão de nível na régua com 2 a 12 horas. O objeto não é um novo experimento de arquitetura, nem o ranking de uma campanha de treino, nem o erro de uma janela móvel do serviço experimental. O objeto é o conjunto de 282 redes com PERS positiva em treino, validação, teste e série completa (215 da família ALT e 67 da família CONV), com um único modelo por horizonte — o de maior índice de equilíbrio publicado no inventário — e com as combinações de entrada apresentadas como hipóteses de propagação. Muçum permanece fora do escopo. Pergunta-se: (i) quais combinações de variáveis de entrada foram examinadas e se as defasagens são compatíveis com a geometria dos postos; (ii) qual modelo de cada horizonte maximiza o índice de equilíbrio; (iii) se o MAE e o E95 desse modelo são interpretáveis sem hidrograma de teste, ou apenas como resumo pontual.",
+        ),
+        ("h1", "2 ÁREA DE ESTUDO E DADOS"),
+        (
+            "p",
+            "A bacia hidrográfica do rio Taquari-Antas drena o nordeste do Rio Grande do Sul. Santa Tereza situa-se no médio curso, a jusante da confluência do rio das Antas com o rio Carreiro, onde se inicia o Taquari. A estação-alvo é a fluviométrica 86472600 (ANA/SGB), junto à antiga estação ferroviária, nas coordenadas 29,1781° S e 51,7322° W, obtidas da telemetria SGB/ANA publicada pelo projeto. A camada GIS de referência do projeto fecha a bacia Taquari-Antas em cerca de 26.400 km²; essa cifra descreve a bacia como um todo, não a área afluente ao código 86472600. O campo de área de drenagem do inventário HidroWeb/ANA para este posto não foi recuperado nesta versão (o serviço HidroInventario retornou erro interno; o HidroWebService exigiu autenticação). Sem esse número, as defasagens de montante permanecem hipóteses auditáveis, não evidência de roteamento.",
+        ),
+        (
+            "p",
+            "A Figura 1 localiza os postos com coordenada conhecida. O Quadro 2 lista códigos, nomes e a distância geodésica (haversine) até a régua-alvo. Carreiro (86507000) e as estações 86298000 e 86430900 entram nas combinações do Quadro 1, mas a telemetria do projeto não traz latitude nem longitude para elas. Distância geodésica não é tempo de viagem: Matos, Pedrollo e Castro (2014) exigem que a informação de montante caiba no horizonte; aqui essa exigência fica explícita e não resolvida.",
+        ),
+        ("fig", "Figura 1. Localização da estação Santa Tereza (86472600) e dos postos de montante com coordenada na telemetria SGB/ANA. Carreiro, 86298000 e 86430900 não figuram no mapa por ausência de coordenada. A área afluente ao 86472600 não foi recuperada no HidroWeb."),
+        ("caption", "Quadro 2. Postos das combinações principais. Coordenadas da telemetria SGB/ANA do projeto. Distância geodésica até 86472600; não é tempo de viagem."),
+        (
+            "p",
+            "A série de nível é horária. As fichas combinam, conforme a rodada, o nível local e suas diferenças (D–x h, primeira diferença) e acelerações (A–x h, segunda diferença), níveis de montante e a chuva média acumulada em 36 h. Essa chuva é preditor de estado antecedente, não previsão de precipitação no horizonte. O modelo selecionado em 2 h não inclui chuva: em duas horas o sinal que ainda pode chegar à régua está, em grande parte, na rede de níveis. Em 4–12 h a chuva de 36 h entra como volume já observado.",
+        ),
+        (
+            "p",
+            "A cota de 1.500 cm é limiar de pesquisa para leituras públicas de cheia em Santa Tereza; não entra no treino como classe. As inundações de 2023–2024 registraram picos acima desse limiar na série pública do posto (2.365 cm em 4 de setembro de 2023, 2.161 cm em 18 de novembro de 2023 e 2.232 cm em 29 de abril de 2024). Os dados são partidos por eventos de cheia, não por janela aleatória. Treino, validação e teste trocam de papel entre rotações (R01–R10 no 2 h; onze rótulos no 4 h, inclusive uma partição de referência; ondas distintas no 8 h). O evento 13 foi retirado de várias campanhas curtas por ser pouco informativo — decisão de processo, não uniforme em todos os horizontes, e que precisa ser reconciliada com a coluna de teste do 4 h, a qual repete o mesmo rótulo nas 117 linhas e não deve ser usada.",
+        ),
+        ("h1", "3 MATERIAIS E MÉTODOS"),
+        ("h2", "3.1 Arquitetura das RNAs"),
+        (
+            "p",
+            "Cada modelo é um perceptron de três camadas (entrada, oculta, saída), programado no MATLAB e treinado pelo algoritmo retropropagativo (Rumelhart, Hinton e Williams, 1986) com taxa de aprendizado adaptativa, com no máximo 100 mil ciclos. A cada treinamento retém-se o ciclo de menor erro na validação cruzada, de modo a evitar o superajustamento (Hecht-Nielsen, 1987). A função de ativação é a sigmoide logística (logsig) na camada oculta; na rede de 2 h a mesma função foi reproduzida também na saída. Os valores de entrada foram escalonados por média e desvio. Conforme o teorema de Hecht-Nielsen (1987) e o resultado de Hornik, Stinchcombe e White (1989), uma única camada oculta basta para aproximar relações contínuas, desde que o número de neurônios e o treinamento sejam adequados.",
+        ),
+        (
+            "p",
+            "Os pesos são reinicializados de forma independente. O valor típico neste inventário é de dez inicializações; inicializações que reproduzem as mesmas métricas contam como o mesmo modelo. Dornelles, Goldenfum e Pedrollo (2013) observaram estabilização do desempenho após cerca de 30 inicializações: o presente conjunto usa um número menor, o que se declara como limitação de treinamento, não como equivalente àquele protocolo. O número de neurônios ocultos segue, na quase totalidade do conjunto, a regra heurística de dois neurônios por variável de entrada (nos quatro modelos selecionados: 30, 48, 20 e 28 neurônios para 15, 24, 10 e 14 entradas). Oliveira, Pedrollo e Castro (2014) adotaram, com apoio do critério de Akaike, um número de neurônios igual ou inferior ao de entradas. A regra 2n deste inventário é palpite de capacidade, não o resultado de uma busca em grade nem a aplicação daquele critério.",
+        ),
+        (
+            "p",
+            "O catálogo de candidatos tem 71 variáveis. Cada rede usa um subconjunto. Não se trata de busca exaustiva no espaço das 2^71 montagens, nem do procedimento automático de Oliveira, Pedrollo e Castro (2015). O conjunto filtrado reúne 1 montagem em 2 h, 6 em 4 h, 14 em 8 h e 5 em 12 h — busca dirigida. Em 4 h as seis montagens são aninhadas (13 ⊂ 14 ⊂ 15 ⊂ 16 ⊂ 20 ⊂ 24 entradas): ablação por inclusão sucessiva, em que capacidade da rede e conteúdo de informação crescem juntos.",
+        ),
+        (
+            "p",
+            "As siglas ALT e CONV identificam famílias de experimento no inventário. Na ficha da rede de 2 h em operação experimental contínua, ALT significa que a rede prevê a variação do nível, ΔĤ(t+h) = f_h(X_t), e o nível previsto é reconstruído como Ĥ(t+h) = H(t) + ΔĤ(t+h). A previsão de persistência correspondente é Ĥ_pers(t+h) = H(t). A equação de saída da família CONV — em particular a do modelo selecionado de 12 h — ainda não foi reconstruída fora do MATLAB; até lá, ALT/CONV não se compara como fator experimental em 2 h nem em 4 h, onde só há redes ALT no conjunto filtrado. A única reprodução independente da propagação direta foi feita para a rede de 2 h, com erro quadrático médio nulo em relação às saídas gravadas. Essa reprodução não se estende aos horizontes de 4, 8 e 12 h. Sigmoide na saída de um modelo ALT comprime a resposta à faixa vista no treino.",
+        ),
+        ("h2", "3.2 Métricas e regra de escolha"),
+        (
+            "p",
+            "O índice de persistência (PERS) mede o ganho sobre a previsão ingênua “daqui a N horas o nível será o de agora” (Kitanidis e Bras, 1980): PERS = 1 é reprodução perfeita; 0 empata com a ingênua; valor negativo é pior do que não ter modelo. Em previsão de nível horário com antecedência de poucas horas, esse é o índice que discrimina habilidade. O coeficiente de Nash-Sutcliffe (NS; Nash e Sutcliffe, 1970) compara o modelo à média da amostra e, nessa série, herda a inércia do nível: valores da ordem de 0,99 em 2–4 h descrevem sobretudo que o hidrograma não é ruído em torno da média. Complementam a leitura o MAE e o E95, ambos em centímetros na régua. Uma métrica agregada só não distingue atraso de pico, viés e recessão (Yilmaz, Gupta e Wagener, 2008). A análise de sensibilidade no estilo de Lek et al. (1996) e Oliveira, Pedrollo e Castro (2011, 2014), que abriria a caixa-preta das entradas, ainda não foi aplicada a estes quatro modelos.",
+        ),
+        (
+            "p",
+            "A definição verbal do índice de equilíbrio neste artigo é o mínimo entre o PERS da série completa (geral), o da validação e o do teste. O inventário, porém, já publica um campo de equilíbrio por ficha, e foi esse campo que selecionou os quatro modelos. Nos selecionados de 8 h e 12 h, campo e mínimo coincidem (0,694 e 0,690). Em 2 h o campo vale 0,969 (igual ao PERS de teste) e o mínimo dos três PERS é 0,936 (validação). Em 4 h o campo vale 0,846 e o mínimo dos três PERS publicados é 0,876 (teste). A identidade do modelo selecionado em cada horizonte não muda se o mínimo for reaplicado ao conjunto filtrado. Os 282 modelos têm PERS positiva nos quatro recortes — critério de inclusão no catálogo, aplicado a uma biblioteca já treinada: o teste participa da porta de entrada e da escolha. Em cada horizonte reporta-se um único modelo.",
+        ),
+        ("h2", "3.3 Combinações de variáveis"),
+        (
+            "p",
+            "O Quadro 1 traz as principais combinações examinadas em 2 h, 4 h e 8 h e, de forma compacta, a montagem do horizonte 12 h. O quadro descreve só as variáveis, sem métricas de desempenho. Em 8 h, depois de unificar aliases do catálogo, restam 14 conjuntos; o quadro traz C0289, C0078 e C0265 — a mais recorrente, uma montagem com Ituim e a mais enxuta entre as frequentes. As defasagens (por exemplo Ituim D–11 h, Carreiro D–16 h, montante A–20 h no horizonte de 2 h) só têm sentido físico se o tempo de viagem couber na hora-base (Matos, Pedrollo e Castro, 2014).",
+        ),
+        ("caption", "Quadro 1. Principais combinações de variáveis examinadas em Santa Tereza. Sem métricas de desempenho."),
+        (
+            "note",
+            "ST = Santa Tereza (86472600); D–x h = diferença em x horas; A–x h = aceleração (segunda diferença); montante = trecho a montante de Santa Tereza (86472000); chuva 36 h = chuva média acumulada em 36 h (estado antecedente). Códigos numéricos são estações ANA/SGB. Fonte: conjunto filtrado de 282 modelos com PERS positiva nos quatro recortes.",
+        ),
+        ("h1", "4. Resultados e discussões"),
+        (
+            "p",
+            "A Tabela 1 traz o modelo de maior índice de equilíbrio publicado em cada horizonte. Não se listam as dez rotações 2 h, nem um ranking intermediário, nem medianas de família, nem o MAE da janela móvel do serviço experimental. O MAE de teste do modelo selecionado aumenta com o horizonte de previsão — descrição esperada de um modelo autorregressivo de nível, não um teste controlado entre horizontes (N = 10, 117, 111 e 44 redes). Os identificadores MATLAB, para auditoria, são: 2 h = 009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21; 4 h = V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000; 8 h = altR_004_08_8h_alt_8H_ALT_C0289; 12 h = 004_conv_C0149_R01_T2_V1_3.",
+        ),
+        (
+            "caption",
+            "Tabela 1. Modelo de maior índice de equilíbrio publicado em cada horizonte. MAE e E95 em cm no teste por eventos. PERS g / v / t = geral, validação e teste. NS = Nash-Sutcliffe de teste. ALT: a rede prevê a variação do nível. CONV: família complementar (equação de saída a declarar).",
+        ),
+        (
+            "p",
+            "Em 2 h a única montagem do conjunto filtrado (15 entradas de nível, sem chuva, 30 neurônios) gerou dez rotações de eventos; todas têm equilíbrio acima de 0,90 também quando se reaplica o mínimo dos três PERS. O modelo selecionado testa os eventos 10, 15 e 16 e é a rede em operação experimental contínua — fato de implantação, não evidência adicional de teste. Pode-se observar que o MAE de teste de 3,5 cm não deve ser lido como o MAE da janela móvel de 2 de setembro de 2026 (12,2 cm em 2 h). São contratos distintos: partição por eventos de cheia versus pares recentes conferidos no serviço experimental. O mesmo vale em 4 h (MAE de teste 13,9 cm; 33,6 cm na janela de setembro da configuração de referência do serviço, que não coincide com o modelo selecionado de 4 h) e em 8 h (MAE de teste 32 cm; 31,1 cm na janela de setembro). A proximidade numérica em 8 h é coincidência de janela, não validação cruzada.",
+        ),
+        (
+            "p",
+            "Em 4 h o conjunto tem 117 redes ALT, todas com chuva de 36 h. O modelo selecionado é a montagem ampliada de 24 entradas e 48 neurônios. A leitura segura da partição é o identificador de rotação (R10 testa os eventos 19 e 21). Uma seleção anterior por NS de teste em subconjunto estreito de entradas não sobrevive a este conjunto filtrado. Oliveira, Pedrollo e Castro (2014, 2015) escolheriam, diante de um ganho quantitativo pequeno, o modelo mais simples e fisicamente consistente: no rio Ijuí, a RNA de três entradas (NS 0,904) foi preferida à de dez entradas (NS 0,907) após análise de sensibilidade. Neste inventário o critério publicado elegeu o conjunto mais largo das seis montagens aninhadas. Sem índice de contribuição nem curvas de Lek, não se pode atribuir o ganho a um posto isolado (Carreiro, 86298000 ou uma defasagem) nem afirmar que as 24 entradas são hidrologicamente necessárias. A seleção por equilíbrio e a parcimônia da escola IPH não coincidem neste horizonte; declara-se essa divergência em vez de forçar uma narrativa de simplificação que o catálogo não sustenta.",
+        ),
+        (
+            "p",
+            "Em 8 h o modelo selecionado pelo equilíbrio publicado é a combinação C0289 (10 entradas, 20 neurônios). Em 12 h o modelo selecionado é C0149, da família CONV (14 entradas, 28 neurônios). O índice de equilíbrio de 12 h é da mesma ordem que o de 8 h, com MAE maior. Só quatro redes do horizonte de 12 h cruzam equilíbrio 0,50: a previsão nesse horizonte só se sustenta em alguns eventos.",
+        ),
+        (
+            "p",
+            "A previsão de persistência — manter o nível da hora-base — já é uma referência difícil de superar em 2 h, de modo que o PERS, e não o NS isolado, é o ganho que importa (Kitanidis e Bras, 1980). NS de teste da ordem de 0,99 em 2–4 h descreve sobretudo a inércia do hidrograma; não autoriza escolher rede por uma partição só, nem ranquear horizontes, nem comparar desempenho com Finck (2020). Aquele estudo treinou RNAs em estações de jusante, com NS médio da ordem de 0,93 / 0,89 / 0,71 em 8, 12 e 24 h. Santa Tereza está a montante; o período, o filtro de chuva e o horizonte de 24 h não coincidem. O que se pode afirmar é a mesma família de modelos, na mesma bacia, com o mesmo tipo de alvo (nível na régua).",
+        ),
+        (
+            "p",
+            "Entre redes da combinação C0289 com equilíbrio publicado maior que 0,50, a família CONV reduz o erro de cauda (E95 mínimo 46 cm, MAE 19,4 cm) em relação ao menor E95 da família ALT nesse corte (101 cm). Isso é ressalva para avaliação em paralelo — não um segundo modelo na Tabela 1. O E95 de 135 cm do modelo selecionado de 8 h é da ordem de 1,35 m e impede reivindicar antecedência útil de cota até que haja hidrograma observado × simulado × persistência nos eventos de teste. Os quatro horizontes não são um experimento balanceado; PERS e E95 de teste herdam a sorte da rotação. Não há redes CONV qualificadas em 2 h nem em 4 h. A conversão da régua em mancha, a calibração de probabilidade e arquiteturas LSTM (Kratzert et al., 2018) permanecem fora do escopo.",
+        ),
+        ("h1", "5 CONCLUSÕES"),
+        (
+            "p",
+            "Considerando o conjunto de resultados apresentados, conclui-se que a metodologia proposta para a previsão horária de nível na estação Santa Tereza, com base em RNAs, apresentou ganho sobre a persistência nos horizontes de 2, 4, 8 e 12 h quando se escolhe, em cada horizonte, um único modelo pelo índice de equilíbrio publicado. Esta consistência é demonstrada pelos indicadores quantitativos (PERS, NS, MAE e E95). A avaliação visual de hidrogramas e a análise de sensibilidade das entradas, que nos trabalhos de Oliveira, Pedrollo e Castro (2014) complementam o NS, ainda não foram aplicadas a estes quatro modelos.",
+        ),
+        (
+            "p",
+            "1. Em 2 h, a RNA de 15 entradas de nível, sem chuva (009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21), tem equilíbrio publicado 0,969, NS de teste 0,996 e MAE de 3,5 cm.",
+        ),
+        (
+            "p",
+            "2. Em 4 h, o modelo selecionado é a montagem de 24 entradas com chuva de 36 h (V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000; equilíbrio 0,846; NS 0,993; MAE 13,9 cm). Essa escolha privilegia o equilíbrio do inventário, não a parcimônia.",
+        ),
+        (
+            "p",
+            "3. Em 8 h, o modelo selecionado é ALT C0289 (altR_004_08_8h_alt_8H_ALT_C0289; equilíbrio 0,694; NS 0,940; MAE 32 cm). A CONV da mesma combinação, quando equilibra, reduz o E95 — ressalva da discussão, não segundo resultado.",
+        ),
+        (
+            "p",
+            "4. Em 12 h, o modelo selecionado é CONV C0149 (004_conv_C0149_R01_T2_V1_3; equilíbrio 0,690; NS 0,885; MAE 40,9 cm). A viabilidade nesse horizonte permanece dependente da partição.",
+        ),
+        ("h1", "DISPONIBILIDADE DE DADOS"),
+        (
+            "p",
+            "Os níveis e as chuvas de entrada provêm da rede telemétrica ANA/SGB (estação-alvo 86472600 e estações a montante listadas nos Quadros 1 e 2). A consulta pública desses dados segue a política da Agência. O inventário dos 282 modelos qualificados, as combinações do Quadro 1 e as métricas somente dos quatro modelos selecionados estão no material do projeto PREVINE Taquari-Antas. Pesos MATLAB e o script de propagação direta da rede de 2 h serão depositados em repositório com DOI no ato da submissão.",
+        ),
+        ("h1", "CONTRIBUIÇÕES DOS AUTORES"),
+        (
+            "p",
+            "A ordem de autoria e os papéis CRediT serão confirmados pela equipe antes da submissão. A lista provisória deste manuscrito é a que figura no cabeçalho: Juliana Carolina Reis; Guilherme Garcia de Oliveira; Fernanda Vier.",
+        ),
+        ("h1", "AGRADECIMENTOS"),
+        (
+            "p",
+            "Agradecimento à Fundação de Amparo à Pesquisa do Estado do Rio Grande do Sul (FAPERGS) pelo financiamento — processo 24/2551-0002124-8, projeto PREVINE Taquari-Antas. Agradecimento à Agência Nacional de Águas e Saneamento Básico e ao Serviço Geológico do Brasil (ANA/SGB) pela telemetria. Os modelos e os textos são de responsabilidade dos autores e não constituem boletim oficial de alerta.",
+        ),
+        ("h1", "CONFLITO DE INTERESSE"),
+        ("p", "Os autores declaram não haver conflitos de interesse."),
+        ("h1", "REFERÊNCIAS"),
+    ]
+
+
+def md_table(headers: list[str], rows: list[list[str]]) -> str:
+    head = "| " + " | ".join(headers) + " |"
+    sep = "| " + " | ".join("---" for _ in headers) + " |"
+    body = "\n".join("| " + " | ".join(r) + " |" for r in rows)
+    return f"{head}\n{sep}\n{body}"
+
+
+def write_markdown(fig_rel: str) -> str:
+    chunks: list[str] = []
+    inserted_q2 = False
+    inserted_q1 = False
+    inserted_t1 = False
+    for kind, text in paragraphs():
+        if kind == "kicker":
+            chunks.append(f"*{text}*\n")
+        elif kind == "title":
+            chunks.append(f"# {text}\n")
+        elif kind == "center":
+            chunks.append(text.replace("\n", "  \n") + "\n")
+        elif kind == "h1":
+            chunks.append(f"## {text}\n" if not text[0].isdigit() else f"## {text}\n")
+            if text.startswith("1 "):
+                chunks[-1] = f"## {text}\n"
+        elif kind == "h2":
+            chunks.append(f"### {text}\n")
+        elif kind == "p":
+            chunks.append(f"{text}\n")
+        elif kind == "kw":
+            chunks.append(f"**{text}**\n")
+        elif kind == "note":
+            chunks.append(f"{text}\n")
+        elif kind == "fig":
+            chunks.append(f"![{text}]({fig_rel})\n\n*{text}*\n")
+        elif kind == "caption":
+            if text.startswith("Quadro 2") and not inserted_q2:
+                chunks.append(f"**{text}**\n\n{md_table(QUADRO2_HEADERS, QUADRO2_ROWS)}\n")
+                inserted_q2 = True
+            elif text.startswith("Quadro 1") and not inserted_q1:
+                chunks.append(f"**{text}**\n\n{md_table(QUADRO1_HEADERS, QUADRO1_ROWS)}\n")
+                inserted_q1 = True
+            elif text.startswith("Tabela 1") and not inserted_t1:
+                chunks.append(f"**{text}**\n\n{md_table(TABELA1_HEADERS, TABELA1_ROWS)}\n")
+                inserted_t1 = True
+            else:
+                chunks.append(f"*{text}*\n")
+    for ref in REFS:
+        chunks.append(f"{ref}\n")
+    return "\n".join(chunks).replace("## RESUMO", "## Resumo").replace("## ABSTRACT", "## Abstract")
+
+
+def set_run_font(run, *, name="Times New Roman", size=12, bold=False, italic=False):
+    run.font.name = name
+    run._element.rPr.rFonts.set(qn("w:eastAsia"), name)
+    run.font.size = Pt(size)
+    run.bold = bold
+    run.italic = italic
+    run.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
+
+
+def add_p(doc, text="", *, align=None, size=12, bold=False, italic=False, space_after=8, first_line=True):
+    p = doc.add_paragraph()
+    pf = p.paragraph_format
+    pf.space_after = Pt(space_after)
+    pf.line_spacing = 1.5
+    if first_line and align is None:
+        pf.first_line_indent = Cm(1.25)
+    if align is not None:
+        p.alignment = align
+        pf.first_line_indent = Cm(0)
+    for i, line in enumerate(text.split("\n")):
+        if i:
+            p.add_run().add_break()
+        run = p.add_run(line)
+        set_run_font(run, size=size, bold=bold, italic=italic)
+    return p
+
+
+def shade_header(cell):
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = OxmlElement("w:shd")
+    shd.set(qn("w:fill"), "E8EEE9")
+    shd.set(qn("w:val"), "clear")
+    tcPr.append(shd)
+
+
+def add_table(doc, headers, rows, caption):
+    cap = doc.add_paragraph()
+    cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    cap.paragraph_format.first_line_indent = Cm(0)
+    cap.paragraph_format.space_before = Pt(12)
+    cap.paragraph_format.space_after = Pt(6)
+    cap.paragraph_format.line_spacing = 1.15
+    r = cap.add_run(caption)
+    set_run_font(r, size=10, italic=True)
+    table = doc.add_table(rows=1 + len(rows), cols=len(headers))
+    table.style = "Table Grid"
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    for i, h in enumerate(headers):
+        cell = table.rows[0].cells[i]
+        cell.text = ""
+        p = cell.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run(h)
+        set_run_font(run, size=8, bold=True)
+        shade_header(cell)
+    for ri, row in enumerate(rows):
+        for ci, val in enumerate(row):
+            cell = table.rows[ri + 1].cells[ci]
+            cell.text = ""
+            p = cell.paragraphs[0]
+            run = p.add_run(str(val))
+            set_run_font(run, size=7)
+    return table
+
+
+def add_ref(doc, text):
+    p = doc.add_paragraph()
+    p.paragraph_format.first_line_indent = Cm(-1.25)
+    p.paragraph_format.left_indent = Cm(1.25)
+    p.paragraph_format.space_after = Pt(6)
+    p.paragraph_format.line_spacing = 1.15
+    run = p.add_run(text)
+    set_run_font(run, size=11)
+
+
+def write_docx(fig: Path, dest: Path) -> None:
+    doc = Document()
+    for section in doc.sections:
+        section.top_margin = Cm(3)
+        section.bottom_margin = Cm(2.5)
+        section.left_margin = Cm(2.5)
+        section.right_margin = Cm(2.5)
+
+    for kind, text in paragraphs():
+        if kind == "kicker":
+            add_p(doc, text, align=WD_ALIGN_PARAGRAPH.CENTER, size=10, italic=True, first_line=False, space_after=8)
+        elif kind == "title":
+            t = doc.add_paragraph()
+            t.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            t.paragraph_format.first_line_indent = Cm(0)
+            t.paragraph_format.space_after = Pt(10)
+            r = t.add_run(text)
+            set_run_font(r, size=13, bold=True)
+        elif kind == "center":
+            add_p(doc, text, align=WD_ALIGN_PARAGRAPH.CENTER, size=11, first_line=False, space_after=6)
+        elif kind == "h1":
+            p = doc.add_paragraph()
+            p.paragraph_format.first_line_indent = Cm(0)
+            p.paragraph_format.space_before = Pt(16)
+            p.paragraph_format.space_after = Pt(8)
+            r = p.add_run(text.upper() if not text[0].isdigit() else text.upper())
+            set_run_font(r, size=12, bold=True)
+        elif kind == "h2":
+            p = doc.add_paragraph()
+            p.paragraph_format.first_line_indent = Cm(0)
+            p.paragraph_format.space_before = Pt(12)
+            r = p.add_run(text)
+            set_run_font(r, size=12, bold=True)
+        elif kind == "p":
+            add_p(doc, text)
+        elif kind == "kw":
+            k = add_p(doc, "", first_line=False, space_after=12)
+            k.clear()
+            label, _, rest = text.partition(": ")
+            r = k.add_run(label + ": ")
+            set_run_font(r, size=12, bold=True)
+            r = k.add_run(rest)
+            set_run_font(r, size=12, italic=True)
+        elif kind == "note":
+            add_p(doc, text, first_line=False, size=10, space_after=12)
+        elif kind == "fig":
+            cap = add_p(doc, "", align=WD_ALIGN_PARAGRAPH.CENTER, first_line=False, space_after=6)
+            cap.clear()
+            r = cap.add_run(text)
+            set_run_font(r, size=10, italic=True)
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.first_line_indent = Cm(0)
+            p.add_run().add_picture(str(fig), width=Inches(6.1))
+        elif kind == "caption":
+            if text.startswith("Quadro 2"):
+                add_table(doc, QUADRO2_HEADERS, QUADRO2_ROWS, text)
+            elif text.startswith("Quadro 1"):
+                add_table(doc, QUADRO1_HEADERS, QUADRO1_ROWS, text)
+            elif text.startswith("Tabela 1"):
+                add_table(doc, TABELA1_HEADERS, TABELA1_ROWS, text)
+    for item in REFS:
+        add_ref(doc, item)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    doc.save(dest)
+
+
+def html_table(headers, rows) -> str:
+    th = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
+    body = []
+    for row in rows:
+        tds = "".join(f"<td>{html.escape(c)}</td>" for c in row)
+        body.append(f"<tr>{tds}</tr>")
+    return f"<table><tr>{th}</tr>{''.join(body)}</table>"
+
+
+def write_html(fig: Path, dest: Path, img_src: str | None = None) -> None:
+    parts = [
+        "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='utf-8'>",
+        f"<title>{html.escape(TITLE)}</title>",
+        "<style>body{font-family:'Times New Roman',Times,serif;max-width:860px;margin:2.5rem auto;line-height:1.5;color:#111;font-size:12pt}"
+        "h1{font-size:13pt;text-align:center;margin:0.4rem 0}h2{font-size:12pt;text-transform:uppercase;margin:1.3rem 0 0.5rem}"
+        "h3{font-size:12pt;margin:1rem 0 0.4rem}p{margin:0 0 0.65rem;text-align:justify;text-indent:1.25cm}"
+        "p.center{text-align:center;text-indent:0;font-size:10pt}p.note{text-indent:0;font-size:10pt}"
+        "p.ref{text-indent:-1.25cm;margin-left:1.25cm;font-size:11pt;line-height:1.15}"
+        "table{border-collapse:collapse;width:100%;font-size:8pt;margin:0 0 0.7rem}th,td{border:1px solid #333;padding:3px 4px;vertical-align:top}th{background:#e8eee9}"
+        "img.fig{display:block;max-width:100%;margin:0.4rem auto 0.8rem}p.cap{text-indent:0;text-align:center;font-size:10pt;font-style:italic}</style></head><body>",
+    ]
+    for kind, text in paragraphs():
+        if kind == "kicker":
+            parts.append(f"<p class='center'><em>{html.escape(text)}</em></p>")
+        elif kind == "title":
+            parts.append(f"<h1>{html.escape(text)}</h1>")
+        elif kind == "center":
+            parts.append(f"<p class='center'>{html.escape(text).replace(chr(10), '<br>')}</p>")
+        elif kind == "h1":
+            parts.append(f"<h2>{html.escape(text)}</h2>")
+        elif kind == "h2":
+            parts.append(f"<h3>{html.escape(text)}</h3>")
+        elif kind == "p":
+            parts.append(f"<p>{html.escape(text)}</p>")
+        elif kind == "kw":
+            label, _, rest = text.partition(": ")
+            parts.append(f"<p class='note'><strong>{html.escape(label)}: </strong>{html.escape(rest)}</p>")
+        elif kind == "note":
+            parts.append(f"<p class='note'>{html.escape(text)}</p>")
+        elif kind == "fig":
+            parts.append(f"<p class='cap'>{html.escape(text)}</p>")
+            src = img_src or fig.name
+            parts.append(f"<img class='fig' alt='Figura 1' src='{html.escape(src)}'>")
+        elif kind == "caption":
+            parts.append(f"<p class='cap'>{html.escape(text)}</p>")
+            if text.startswith("Quadro 2"):
+                parts.append(html_table(QUADRO2_HEADERS, QUADRO2_ROWS))
+            elif text.startswith("Quadro 1"):
+                parts.append(html_table(QUADRO1_HEADERS, QUADRO1_ROWS))
+            elif text.startswith("Tabela 1"):
+                parts.append(html_table(TABELA1_HEADERS, TABELA1_ROWS))
+    for item in REFS:
+        parts.append(f"<p class='ref'>{html.escape(item)}</p>")
+    parts.append("</body></html>")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text("".join(parts), encoding="utf-8")
+    if img_src is None or "/" not in img_src:
+        sibling = dest.parent / fig.name
+        if sibling.resolve() != fig.resolve():
+            sibling.write_bytes(fig.read_bytes())
+
+
+def build() -> dict[str, Path]:
+    fig = build_map(FIG)
+    md = write_markdown("../pesquisas/figuras/figura1_postos_santa_tereza.png")
+    MD_OUT.parent.mkdir(parents=True, exist_ok=True)
+    MD_OUT.write_text(md, encoding="utf-8")
+    write_html(fig, HTML_OUT, img_src="figuras/figura1_postos_santa_tereza.png")
+    write_docx(fig, DOCX_OUT)
+    ART_HTML.parent.mkdir(parents=True, exist_ok=True)
+    ART_MD.write_text(md, encoding="utf-8")
+    write_html(fig, ART_HTML, img_src=fig.name)
+    ART_DOCX.write_bytes(DOCX_OUT.read_bytes())
+    return {"fig": fig, "md": MD_OUT, "html": HTML_OUT, "docx": DOCX_OUT}
+
+
+if __name__ == "__main__":
+    paths = build()
+    for k, v in paths.items():
+        print(f"{k}: {v}")
