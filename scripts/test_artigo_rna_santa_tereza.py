@@ -125,6 +125,9 @@ class ArtigoRnaSantaTerezaTests(unittest.TestCase):
         self.assertIn("row.MAE_teste_cm", self.page)
         self.assertNotIn("MAE_teste_cm_mediana", self.page)
         self.assertRegex(self.page, r"\.bar-fill\s*\{[^}]*display:\s*block")
+        self.assertIn("julianacarolinoreis@gmail.com", self.page)
+        self.assertIn("Afiliação institucional a confirmar", self.page)
+        self.assertNotIn("Campus Litoral Norte", self.page)
 
     def test_manuscript_keeps_the_consolidated_claims(self) -> None:
         self.assertIn("282", self.manuscript)
@@ -144,6 +147,33 @@ class ArtigoRnaSantaTerezaTests(unittest.TestCase):
         self.assertIn("V01_R10_T19-21", results)
         self.assertIn("altR_004_08_8h_alt_8H_ALT_C0289", results)
         self.assertIn("004_conv_C0149", results)
+        self.assertIn("OLIVEIRA, G. G.; PEDROLLO, O. C.; CASTRO, N. M. R. O desempenho das redes neurais", self.manuscript)
+        self.assertIn("julianacarolinoreis@gmail.com", self.manuscript)
+        self.assertIn("Afiliação institucional a confirmar", self.manuscript)
+        self.assertNotIn("Campus Litoral Norte", self.manuscript)
+        self.assertNotIn("9,5 km", self.manuscript)
+        self.assertNotIn("26,3 km", self.manuscript)
+        self.assertNotIn("76,3 km", self.manuscript)
+        self.assertNotIn("26.400", self.manuscript)
+        self.assertNotIn("HidroInventario", self.manuscript)
+        self.assertNotIn("Campolo", self.manuscript)
+        self.assertNotIn("escolheriam", self.manuscript)
+        self.assertNotIn("Nome HidroWeb a confirmar", self.manuscript)
+        self.assertNotIn("alto Antas", self.manuscript)
+        self.assertIn("Tabela 1 –", self.manuscript)
+        self.assertIn("Quadro 1 –", self.manuscript)
+        self.assertIn("Quadro 2 –", self.manuscript)
+        self.assertIn("Fonte:", self.manuscript)
+        self.assertIn("PERS (geral / validação / teste)", self.manuscript)
+        self.assertNotIn("PERS g / v / t", self.manuscript)
+        html_ms = (ROOT / "pesquisas" / "manuscrito-drive.html").read_text(encoding="utf-8")
+        self.assertIn("PERS<br>(geral / validação / teste)", html_ms)
+        self.assertIn("border-left:none;border-right:none", html_ms)
+        bloco = html_ms.split("<strong>Tabela 1</strong>", 1)[1].split("<strong>Fonte:</strong>", 1)[0]
+        self.assertEqual(bloco.count("<th "), 7)
+        self.assertIn("Figura 1", self.manuscript)
+        self.assertIn("Nash-Sutcliffe (NS)", self.manuscript)
+        self.assertNotIn("Garcia de Oliveira et al", self.manuscript)
 
     def test_acervo_lists_the_draft_as_research(self) -> None:
         entries = self.acervo["entries"]
