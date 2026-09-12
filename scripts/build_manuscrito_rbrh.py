@@ -99,25 +99,56 @@ QUADRO2_ROWS = [
 ]
 
 TABELA1_HEADERS = [
-    "H",
+    "Horizonte",
     "Família",
-    "Modelo",
-    "Rotação",
-    "Eq. ficha",
-    "PERS g / v / t",
-    "NS teste",
+    "Equilíbrio",
+    "PERS geral",
+    "PERS validação",
+    "PERS teste",
+    "NS",
     "MAE (cm)",
     "E95 (cm)",
-    "Chuva",
-    "N ent.",
-    "N oc.",
 ]
 TABELA1_ROWS = [
-    ["2 h", "ALT", "15 entradas, sem chuva", "R09", "0,969", "0,955 / 0,936 / 0,969", "0,996", "3,5", "10,4", "não", "15", "30"],
-    ["4 h", "ALT", "24 entradas, chuva 36 h", "R10", "0,846", "0,888 / 0,878 / 0,876", "0,993", "13,9", "52,7", "sim", "24", "48"],
-    ["8 h", "ALT", "10 entradas (C0289)", "altR_004", "0,694", "0,739 / 0,811 / 0,694", "0,940", "32", "135", "sim", "10", "20"],
-    ["12 h", "CONV", "14 entradas (C0149)", "R01_T2_V1_3", "0,690", "0,824 / 0,690 / 0,696", "0,885", "40,9", "125", "sim", "14", "28"],
+    ["2 h", "ALT", "0,969", "0,955", "0,936", "0,969", "0,996", "3,5", "10,4"],
+    ["4 h", "ALT", "0,846", "0,888", "0,878", "0,876", "0,993", "13,9", "52,7"],
+    ["8 h", "ALT", "0,694", "0,739", "0,811", "0,694", "0,940", "32", "135"],
+    ["12 h", "CONV", "0,690", "0,824", "0,690", "0,696", "0,885", "40,9", "125"],
 ]
+
+# ABNT/IBGE: Tabela = dado numérico (só traços horizontais). Quadro = informação textual (moldura).
+TABLE_SPECS = {
+    "quadro2": {
+        "kind": "quadro",
+        "n": 2,
+        "title": "Postos das combinações principais",
+        "headers": QUADRO2_HEADERS,
+        "rows": QUADRO2_ROWS,
+        "fonte": "previsao_ao_vivo.json (telemetria SGB/ANA do projeto).",
+        "nota": "Travessão indica latitude ou longitude nula nesse arquivo.",
+        "numeric": (),
+    },
+    "quadro1": {
+        "kind": "quadro",
+        "n": 1,
+        "title": "Principais combinações de variáveis examinadas em Santa Tereza",
+        "headers": QUADRO1_HEADERS,
+        "rows": QUADRO1_ROWS,
+        "fonte": "Conjunto filtrado de 282 modelos com PERS positiva em treino, validação, teste e série completa.",
+        "nota": "Sem métricas de desempenho. ST = Santa Tereza (86472600); D–x h = diferença em x horas; A–x h = aceleração (segunda diferença); montante = posto 86472000; chuva 36 h = chuva média acumulada em 36 h. Códigos numéricos são estações ANA/SGB.",
+        "numeric": (2,),
+    },
+    "tabela1": {
+        "kind": "tabela",
+        "n": 1,
+        "title": "Desempenho no teste do modelo de maior equilíbrio publicado em cada horizonte",
+        "headers": TABELA1_HEADERS,
+        "rows": TABELA1_ROWS,
+        "fonte": "Fichas do recorte de 282 redes (artigo_rna_santa_tereza.json).",
+        "nota": "NS = coeficiente de Nash-Sutcliffe no teste. MAE e E95 no teste por eventos, em centímetros na régua. ALT: a rede prevê a variação do nível. CONV: família complementar (equação de saída a declarar). Identificadores MATLAB: 2 h = 009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21; 4 h = V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000; 8 h = altR_004_08_8h_alt_8H_ALT_C0289; 12 h = 004_conv_C0149_R01_T2_V1_3. Chuva de 36 h ausente só em 2 h. Entradas / neurônios ocultos: 15/30, 24/48, 10/20 e 14/28.",
+        "numeric": (2, 3, 4, 5, 6, 7, 8),
+    },
+}
 
 REFS = [
     "DAWSON, C. W.; WILBY, R. An artificial neural network approach to rainfall-runoff modelling. Hydrological Sciences Journal, v. 43, n. 1, p. 47–66, 1998. DOI: https://doi.org/10.1080/02626669809492102.",
@@ -194,8 +225,8 @@ def paragraphs() -> list[tuple[str, str]]:
             "p",
             "A Figura 1 plota os quatro postos que têm latitude e longitude em previsao_ao_vivo.json. O Quadro 2 copia código, nome da telemetria e coordenadas quando existem. Carreiro (86507000) e as estações 86298000 e 86430900 entram nas combinações do Quadro 1; nesse arquivo a latitude e a longitude desses três códigos são nulas.",
         ),
-        ("fig", "Figura 1. Postos com latitude e longitude em previsao_ao_vivo.json (telemetria SGB/ANA do projeto). Carreiro, 86298000 e 86430900 não figuram: nesse arquivo a coordenada é nula. Sem hidrografia e sem área de drenagem."),
-        ("caption", "Quadro 2. Postos das combinações principais. Código, nome e coordenadas copiados de previsao_ao_vivo.json. Travessão: latitude ou longitude nula nesse arquivo."),
+        ("fig", "Figura 1 – Postos com latitude e longitude em previsao_ao_vivo.json (telemetria SGB/ANA do projeto). Carreiro, 86298000 e 86430900 não figuram: nesse arquivo a coordenada é nula. Sem hidrografia e sem área de drenagem."),
+        ("table", "quadro2"),
         (
             "p",
             "A série de nível é horária. As fichas combinam, conforme a rodada, o nível local e suas diferenças (D–x h, primeira diferença) e acelerações (A–x h, segunda diferença), níveis de montante e a chuva média acumulada em 36 h. No recorte de 282 redes, nenhuma das 10 redes de 2 h usa chuva; as 117 redes de 4 h e as redes selecionadas de 8 h e 12 h usam chuva média acumulada em 36 h. Isso é o que o catálogo registra, não um tempo de viagem medido.",
@@ -236,20 +267,13 @@ def paragraphs() -> list[tuple[str, str]]:
             "p",
             "O Quadro 1 traz as principais combinações examinadas em 2 h, 4 h e 8 h e, de forma compacta, a montagem do horizonte 12 h. O quadro descreve só as variáveis, sem métricas de desempenho. Em 8 h, depois de unificar aliases do catálogo, restam 14 conjuntos; o quadro traz C0289, C0078 e C0265 — a mais recorrente, uma montagem com Ituim e a mais enxuta entre as frequentes. Tempo de viagem das defasagens não está no recorte.",
         ),
-        ("caption", "Quadro 1. Principais combinações de variáveis examinadas em Santa Tereza. Sem métricas de desempenho."),
-        (
-            "note",
-            "ST = Santa Tereza (86472600); D–x h = diferença em x horas; A–x h = aceleração (segunda diferença); montante = trecho a montante de Santa Tereza (86472000); chuva 36 h = chuva média acumulada em 36 h (estado antecedente). Códigos numéricos são estações ANA/SGB. Fonte: conjunto filtrado de 282 modelos com PERS positiva nos quatro recortes.",
-        ),
+        ("table", "quadro1"),
         ("h1", "4. Resultados e discussões"),
         (
             "p",
             "A Tabela 1 traz o modelo de maior índice de equilíbrio publicado em cada horizonte. Não se listam as dez rotações 2 h, nem um ranking intermediário, nem medianas de família, nem o MAE da janela móvel do serviço experimental. O MAE de teste do modelo selecionado aumenta com o horizonte de previsão — descrição esperada de um modelo autorregressivo de nível, não um teste controlado entre horizontes (N = 10, 117, 111 e 44 redes). Os identificadores MATLAB, para auditoria, são: 2 h = 009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21; 4 h = V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000; 8 h = altR_004_08_8h_alt_8H_ALT_C0289; 12 h = 004_conv_C0149_R01_T2_V1_3.",
         ),
-        (
-            "caption",
-            "Tabela 1. Modelo de maior índice de equilíbrio publicado em cada horizonte. MAE e E95 em cm no teste por eventos. PERS g / v / t = geral, validação e teste. NS = Nash-Sutcliffe de teste. ALT: a rede prevê a variação do nível. CONV: família complementar (equação de saída a declarar).",
-        ),
+        ("table", "tabela1"),
         (
             "p",
             "Em 2 h a única montagem do conjunto filtrado (15 entradas de nível, sem chuva, 30 neurônios) gerou dez rotações de eventos; todas têm equilíbrio acima de 0,90 também quando se reaplica o mínimo dos três PERS. O modelo selecionado testa os eventos 10, 15 e 16 e é a rede em operação experimental contínua — fato de implantação, não evidência adicional de teste. O MAE de teste da ficha (3,5 cm em 2 h; 13,9 cm em 4 h; 32 cm em 8 h) não é o MAE de uma janela móvel do serviço experimental: são contratos distintos (partição por eventos de cheia versus pares recentes conferidos no feed).",
@@ -312,6 +336,11 @@ def paragraphs() -> list[tuple[str, str]]:
     ]
 
 
+def abnt_label(spec: dict) -> str:
+    word = "Tabela" if spec["kind"] == "tabela" else "Quadro"
+    return f"{word} {spec['n']} – {spec['title']}"
+
+
 def md_table(headers: list[str], rows: list[list[str]]) -> str:
     head = "| " + " | ".join(headers) + " |"
     sep = "| " + " | ".join("---" for _ in headers) + " |"
@@ -319,11 +348,16 @@ def md_table(headers: list[str], rows: list[list[str]]) -> str:
     return f"{head}\n{sep}\n{body}"
 
 
+def md_abnt_block(spec: dict) -> str:
+    chunks = [f"**{abnt_label(spec)}**", "", md_table(spec["headers"], spec["rows"]), ""]
+    chunks.append(f"**Fonte:** {spec['fonte']}")
+    if spec.get("nota"):
+        chunks.append(f"**Nota:** {spec['nota']}")
+    return "\n".join(chunks) + "\n"
+
+
 def write_markdown(fig_rel: str) -> str:
     chunks: list[str] = []
-    inserted_q2 = False
-    inserted_q1 = False
-    inserted_t1 = False
     for kind, text in paragraphs():
         if kind == "kicker":
             chunks.append(f"*{text}*\n")
@@ -332,9 +366,7 @@ def write_markdown(fig_rel: str) -> str:
         elif kind == "center":
             chunks.append(text.replace("\n", "  \n") + "\n")
         elif kind == "h1":
-            chunks.append(f"## {text}\n" if not text[0].isdigit() else f"## {text}\n")
-            if text.startswith("1 "):
-                chunks[-1] = f"## {text}\n"
+            chunks.append(f"## {text}\n")
         elif kind == "h2":
             chunks.append(f"### {text}\n")
         elif kind == "p":
@@ -345,18 +377,8 @@ def write_markdown(fig_rel: str) -> str:
             chunks.append(f"{text}\n")
         elif kind == "fig":
             chunks.append(f"![{text}]({fig_rel})\n\n*{text}*\n")
-        elif kind == "caption":
-            if text.startswith("Quadro 2") and not inserted_q2:
-                chunks.append(f"**{text}**\n\n{md_table(QUADRO2_HEADERS, QUADRO2_ROWS)}\n")
-                inserted_q2 = True
-            elif text.startswith("Quadro 1") and not inserted_q1:
-                chunks.append(f"**{text}**\n\n{md_table(QUADRO1_HEADERS, QUADRO1_ROWS)}\n")
-                inserted_q1 = True
-            elif text.startswith("Tabela 1") and not inserted_t1:
-                chunks.append(f"**{text}**\n\n{md_table(TABELA1_HEADERS, TABELA1_ROWS)}\n")
-                inserted_t1 = True
-            else:
-                chunks.append(f"*{text}*\n")
+        elif kind == "table":
+            chunks.append(md_abnt_block(TABLE_SPECS[text]))
     for ref in REFS:
         chunks.append(f"{ref}\n")
     return "\n".join(chunks).replace("## RESUMO", "## Resumo").replace("## ABSTRACT", "## Abstract")
@@ -389,41 +411,120 @@ def add_p(doc, text="", *, align=None, size=12, bold=False, italic=False, space_
     return p
 
 
-def shade_header(cell):
-    tcPr = cell._tc.get_or_add_tcPr()
-    shd = OxmlElement("w:shd")
-    shd.set(qn("w:fill"), "E8EEE9")
-    shd.set(qn("w:val"), "clear")
-    tcPr.append(shd)
+def _tc_borders(cell, top=None, left=None, bottom=None, right=None):
+    tc_pr = cell._tc.get_or_add_tcPr()
+    for child in list(tc_pr):
+        if child.tag == qn("w:tcBorders"):
+            tc_pr.remove(child)
+    borders = OxmlElement("w:tcBorders")
+    for name, sz in (("top", top), ("left", left), ("bottom", bottom), ("right", right)):
+        el = OxmlElement(f"w:{name}")
+        if sz:
+            el.set(qn("w:val"), "single")
+            el.set(qn("w:sz"), str(sz))
+            el.set(qn("w:space"), "0")
+            el.set(qn("w:color"), "000000")
+        else:
+            el.set(qn("w:val"), "nil")
+        borders.append(el)
+    tc_pr.append(borders)
 
 
-def add_table(doc, headers, rows, caption):
+def _clear_shading(cell):
+    tc_pr = cell._tc.get_or_add_tcPr()
+    for child in list(tc_pr):
+        if child.tag == qn("w:shd"):
+            tc_pr.remove(child)
+
+
+def _nil_tbl_borders(table):
+    tbl_pr = table._tbl.tblPr
+    for child in list(tbl_pr):
+        if child.tag == qn("w:tblBorders"):
+            tbl_pr.remove(child)
+    borders = OxmlElement("w:tblBorders")
+    for name in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        el = OxmlElement(f"w:{name}")
+        el.set(qn("w:val"), "nil")
+        borders.append(el)
+    tbl_pr.append(borders)
+
+
+def add_abnt_caption(doc, spec):
     cap = doc.add_paragraph()
-    cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    cap.alignment = WD_ALIGN_PARAGRAPH.LEFT
     cap.paragraph_format.first_line_indent = Cm(0)
     cap.paragraph_format.space_before = Pt(12)
     cap.paragraph_format.space_after = Pt(6)
     cap.paragraph_format.line_spacing = 1.15
-    r = cap.add_run(caption)
-    set_run_font(r, size=10, italic=True)
+    word = "Tabela" if spec["kind"] == "tabela" else "Quadro"
+    r = cap.add_run(f"{word} {spec['n']}")
+    set_run_font(r, size=10, bold=True)
+    r = cap.add_run(f" – {spec['title']}")
+    set_run_font(r, size=10)
+
+
+def add_fonte_nota(doc, spec):
+    fonte = doc.add_paragraph()
+    fonte.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    fonte.paragraph_format.first_line_indent = Cm(0)
+    fonte.paragraph_format.space_before = Pt(4)
+    fonte.paragraph_format.space_after = Pt(2)
+    fonte.paragraph_format.line_spacing = 1.15
+    r = fonte.add_run("Fonte: ")
+    set_run_font(r, size=10, bold=True)
+    r = fonte.add_run(spec["fonte"])
+    set_run_font(r, size=10)
+    if spec.get("nota"):
+        nota = doc.add_paragraph()
+        nota.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        nota.paragraph_format.first_line_indent = Cm(0)
+        nota.paragraph_format.space_after = Pt(10)
+        nota.paragraph_format.line_spacing = 1.15
+        r = nota.add_run("Nota: ")
+        set_run_font(r, size=10, bold=True)
+        r = nota.add_run(spec["nota"])
+        set_run_font(r, size=10)
+
+
+def add_table(doc, spec):
+    add_abnt_caption(doc, spec)
+    headers, rows = spec["headers"], spec["rows"]
+    numeric = set(spec.get("numeric") or ())
     table = doc.add_table(rows=1 + len(rows), cols=len(headers))
-    table.style = "Table Grid"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.autofit = True
+    _nil_tbl_borders(table)
+    last = len(rows)
     for i, h in enumerate(headers):
         cell = table.rows[0].cells[i]
         cell.text = ""
+        _clear_shading(cell)
         p = cell.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_after = Pt(0)
         run = p.add_run(h)
-        set_run_font(run, size=8, bold=True)
-        shade_header(cell)
+        set_run_font(run, size=10, bold=True)
+        if spec["kind"] == "tabela":
+            _tc_borders(cell, top=16, bottom=8)
+        else:
+            _tc_borders(cell, top=8, left=8, bottom=8, right=8)
     for ri, row in enumerate(rows):
         for ci, val in enumerate(row):
             cell = table.rows[ri + 1].cells[ci]
             cell.text = ""
+            _clear_shading(cell)
             p = cell.paragraphs[0]
+            p.paragraph_format.space_after = Pt(0)
+            p.alignment = WD_ALIGN_PARAGRAPH.RIGHT if ci in numeric else WD_ALIGN_PARAGRAPH.LEFT
             run = p.add_run(str(val))
-            set_run_font(run, size=7)
+            set_run_font(run, size=10)
+            if spec["kind"] == "tabela":
+                bottom = 16 if ri + 1 == last else None
+                _tc_borders(cell, bottom=bottom)
+            else:
+                _tc_borders(cell, top=8, left=8, bottom=8, right=8)
+    add_fonte_nota(doc, spec)
     return table
 
 
@@ -483,34 +584,75 @@ def write_docx(fig: Path, dest: Path) -> None:
         elif kind == "note":
             add_p(doc, text, first_line=False, size=10, space_after=12)
         elif kind == "fig":
-            cap = add_p(doc, "", align=WD_ALIGN_PARAGRAPH.CENTER, first_line=False, space_after=6)
-            cap.clear()
-            r = cap.add_run(text)
-            set_run_font(r, size=10, italic=True)
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.first_line_indent = Cm(0)
+            p.paragraph_format.space_before = Pt(12)
             p.add_run().add_picture(str(fig), width=Inches(6.1))
-        elif kind == "caption":
-            if text.startswith("Quadro 2"):
-                add_table(doc, QUADRO2_HEADERS, QUADRO2_ROWS, text)
-            elif text.startswith("Quadro 1"):
-                add_table(doc, QUADRO1_HEADERS, QUADRO1_ROWS, text)
-            elif text.startswith("Tabela 1"):
-                add_table(doc, TABELA1_HEADERS, TABELA1_ROWS, text)
+            cap = add_p(doc, "", align=WD_ALIGN_PARAGRAPH.LEFT, first_line=False, space_after=10)
+            cap.clear()
+            r = cap.add_run(text)
+            set_run_font(r, size=10)
+        elif kind == "table":
+            add_table(doc, TABLE_SPECS[text])
     for item in REFS:
         add_ref(doc, item)
     dest.parent.mkdir(parents=True, exist_ok=True)
     doc.save(dest)
 
 
-def html_table(headers, rows) -> str:
-    th = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
+def html_abnt_block(spec: dict) -> str:
+    numeric = set(spec.get("numeric") or ())
+    is_tabela = spec["kind"] == "tabela"
+    last = len(spec["rows"]) - 1
+    if is_tabela:
+        th_style = (
+            "border-top:1.5pt solid #000;border-bottom:0.75pt solid #000;"
+            "border-left:none;border-right:none;padding:4pt 5pt;font-size:10pt;"
+            "font-weight:bold;text-align:center;background:transparent;vertical-align:bottom"
+        )
+        td_mid = (
+            "border:none;padding:4pt 5pt;font-size:10pt;vertical-align:top"
+        )
+        td_last = (
+            "border-top:none;border-left:none;border-right:none;"
+            "border-bottom:1.5pt solid #000;padding:4pt 5pt;font-size:10pt;vertical-align:top"
+        )
+    else:
+        box = "0.75pt solid #000"
+        th_style = (
+            f"border:{box};padding:4pt 5pt;font-size:10pt;font-weight:bold;"
+            "text-align:center;background:transparent;vertical-align:bottom"
+        )
+        td_mid = td_last = (
+            f"border:{box};padding:4pt 5pt;font-size:10pt;vertical-align:top"
+        )
+    word = "Tabela" if is_tabela else "Quadro"
+    title = (
+        f"<p class='tab-title'><strong>{html.escape(word)} {spec['n']}</strong>"
+        f" – {html.escape(spec['title'])}</p>"
+    )
+    head = "".join(f"<th style='{th_style}'>{html.escape(h)}</th>" for h in spec["headers"])
     body = []
-    for row in rows:
-        tds = "".join(f"<td>{html.escape(c)}</td>" for c in row)
-        body.append(f"<tr>{tds}</tr>")
-    return f"<table><tr>{th}</tr>{''.join(body)}</table>"
+    for ri, row in enumerate(spec["rows"]):
+        style = td_last if ri == last else td_mid
+        tds = []
+        for ci, val in enumerate(row):
+            align = "text-align:right;" if ci in numeric else "text-align:left;"
+            tds.append(f"<td style='{style};{align}'>{html.escape(val)}</td>")
+        body.append(f"<tr>{''.join(tds)}</tr>")
+    table = (
+        "<table style='border-collapse:collapse;width:100%;border:none;"
+        "font-family:Times New Roman,Times,serif'>"
+        f"<tr>{head}</tr>{''.join(body)}</table>"
+    )
+    fonte = (
+        f"<p class='fonte'><strong>Fonte:</strong> {html.escape(spec['fonte'])}</p>"
+    )
+    nota = ""
+    if spec.get("nota"):
+        nota = f"<p class='fonte'><strong>Nota:</strong> {html.escape(spec['nota'])}</p>"
+    return title + table + fonte + nota
 
 
 def write_html(fig: Path, dest: Path, img_src: str | None = None) -> None:
@@ -522,8 +664,10 @@ def write_html(fig: Path, dest: Path, img_src: str | None = None) -> None:
         "h3{font-size:12pt;margin:1rem 0 0.4rem}p{margin:0 0 0.65rem;text-align:justify;text-indent:1.25cm}"
         "p.center{text-align:center;text-indent:0;font-size:10pt}p.note{text-indent:0;font-size:10pt}"
         "p.ref{text-indent:-1.25cm;margin-left:1.25cm;font-size:11pt;line-height:1.15}"
-        "table{border-collapse:collapse;width:100%;font-size:8pt;margin:0 0 0.7rem}th,td{border:1px solid #333;padding:3px 4px;vertical-align:top}th{background:#e8eee9}"
-        "img.fig{display:block;max-width:100%;margin:0.4rem auto 0.8rem}p.cap{text-indent:0;text-align:center;font-size:10pt;font-style:italic}</style></head><body>",
+        "p.tab-title{text-indent:0;text-align:left;font-size:10pt;margin:14pt 0 6pt}"
+        "p.fonte{text-indent:0;text-align:left;font-size:10pt;margin:4pt 0 6pt}"
+        "img.fig{display:block;max-width:100%;margin:0.8rem auto 0.4rem}"
+        "p.cap{text-indent:0;text-align:left;font-size:10pt;margin:0 0 12pt}</style></head><body>",
     ]
     for kind, text in paragraphs():
         if kind == "kicker":
@@ -544,17 +688,11 @@ def write_html(fig: Path, dest: Path, img_src: str | None = None) -> None:
         elif kind == "note":
             parts.append(f"<p class='note'>{html.escape(text)}</p>")
         elif kind == "fig":
-            parts.append(f"<p class='cap'>{html.escape(text)}</p>")
             src = img_src or fig.name
             parts.append(f"<img class='fig' alt='Figura 1' src='{html.escape(src)}'>")
-        elif kind == "caption":
             parts.append(f"<p class='cap'>{html.escape(text)}</p>")
-            if text.startswith("Quadro 2"):
-                parts.append(html_table(QUADRO2_HEADERS, QUADRO2_ROWS))
-            elif text.startswith("Quadro 1"):
-                parts.append(html_table(QUADRO1_HEADERS, QUADRO1_ROWS))
-            elif text.startswith("Tabela 1"):
-                parts.append(html_table(TABELA1_HEADERS, TABELA1_ROWS))
+        elif kind == "table":
+            parts.append(html_abnt_block(TABLE_SPECS[text]))
     for item in REFS:
         parts.append(f"<p class='ref'>{html.escape(item)}</p>")
     parts.append("</body></html>")

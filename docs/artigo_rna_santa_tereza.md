@@ -33,11 +33,11 @@ A estação-alvo é a fluviométrica 86472600 (ANA/SGB). Na telemetria do projet
 
 A Figura 1 plota os quatro postos que têm latitude e longitude em previsao_ao_vivo.json. O Quadro 2 copia código, nome da telemetria e coordenadas quando existem. Carreiro (86507000) e as estações 86298000 e 86430900 entram nas combinações do Quadro 1; nesse arquivo a latitude e a longitude desses três códigos são nulas.
 
-![Figura 1. Postos com latitude e longitude em previsao_ao_vivo.json (telemetria SGB/ANA do projeto). Carreiro, 86298000 e 86430900 não figuram: nesse arquivo a coordenada é nula. Sem hidrografia e sem área de drenagem.](../pesquisas/figuras/figura1_postos_santa_tereza.png)
+![Figura 1 – Postos com latitude e longitude em previsao_ao_vivo.json (telemetria SGB/ANA do projeto). Carreiro, 86298000 e 86430900 não figuram: nesse arquivo a coordenada é nula. Sem hidrografia e sem área de drenagem.](../pesquisas/figuras/figura1_postos_santa_tereza.png)
 
-*Figura 1. Postos com latitude e longitude em previsao_ao_vivo.json (telemetria SGB/ANA do projeto). Carreiro, 86298000 e 86430900 não figuram: nesse arquivo a coordenada é nula. Sem hidrografia e sem área de drenagem.*
+*Figura 1 – Postos com latitude e longitude em previsao_ao_vivo.json (telemetria SGB/ANA do projeto). Carreiro, 86298000 e 86430900 não figuram: nesse arquivo a coordenada é nula. Sem hidrografia e sem área de drenagem.*
 
-**Quadro 2. Postos das combinações principais. Código, nome e coordenadas copiados de previsao_ao_vivo.json. Travessão: latitude ou longitude nula nesse arquivo.**
+**Quadro 2 – Postos das combinações principais**
 
 | Código ANA/SGB | Nome na telemetria do projeto | Latitude | Longitude |
 | --- | --- | --- | --- |
@@ -48,6 +48,9 @@ A Figura 1 plota os quatro postos que têm latitude e longitude em previsao_ao_v
 | 86507000 | Carreiro | — | — |
 | 86298000 | Estacao 86298000 - montante (input 4h PRO) | — | — |
 | 86430900 | Estacao 86430900 | — | — |
+
+**Fonte:** previsao_ao_vivo.json (telemetria SGB/ANA do projeto).
+**Nota:** Travessão indica latitude ou longitude nula nesse arquivo.
 
 A série de nível é horária. As fichas combinam, conforme a rodada, o nível local e suas diferenças (D–x h, primeira diferença) e acelerações (A–x h, segunda diferença), níveis de montante e a chuva média acumulada em 36 h. No recorte de 282 redes, nenhuma das 10 redes de 2 h usa chuva; as 117 redes de 4 h e as redes selecionadas de 8 h e 12 h usam chuva média acumulada em 36 h. Isso é o que o catálogo registra, não um tempo de viagem medido.
 
@@ -75,7 +78,7 @@ A definição verbal do índice de equilíbrio neste artigo é o mínimo entre o
 
 O Quadro 1 traz as principais combinações examinadas em 2 h, 4 h e 8 h e, de forma compacta, a montagem do horizonte 12 h. O quadro descreve só as variáveis, sem métricas de desempenho. Em 8 h, depois de unificar aliases do catálogo, restam 14 conjuntos; o quadro traz C0289, C0078 e C0265 — a mais recorrente, uma montagem com Ituim e a mais enxuta entre as frequentes. Tempo de viagem das defasagens não está no recorte.
 
-**Quadro 1. Principais combinações de variáveis examinadas em Santa Tereza. Sem métricas de desempenho.**
+**Quadro 1 – Principais combinações de variáveis examinadas em Santa Tereza**
 
 | Horizonte | Combinação | N var. | Variáveis |
 | --- | --- | --- | --- |
@@ -88,20 +91,24 @@ O Quadro 1 traz as principais combinações examinadas em 2 h, 4 h e 8 h e, de f
 | 8 h | C0265 | 8 | ST; ST D–1 h; chuva 36 h; montante; montante D–2 h; Veranópolis; montante A–14 h; Veranópolis D–14 h |
 | 12 h | C0149 | 14 | ST; ST D–1 h; chuva 36 h; montante; montante D–2 h; Ituim; Ituim D–11 h; ST D–4 h; ST D–2 h; montante D–4 h; montante D–1 h; montante A–12 h; Ituim D–12 h; Ituim D–10 h |
 
-ST = Santa Tereza (86472600); D–x h = diferença em x horas; A–x h = aceleração (segunda diferença); montante = trecho a montante de Santa Tereza (86472000); chuva 36 h = chuva média acumulada em 36 h (estado antecedente). Códigos numéricos são estações ANA/SGB. Fonte: conjunto filtrado de 282 modelos com PERS positiva nos quatro recortes.
+**Fonte:** Conjunto filtrado de 282 modelos com PERS positiva em treino, validação, teste e série completa.
+**Nota:** Sem métricas de desempenho. ST = Santa Tereza (86472600); D–x h = diferença em x horas; A–x h = aceleração (segunda diferença); montante = posto 86472000; chuva 36 h = chuva média acumulada em 36 h. Códigos numéricos são estações ANA/SGB.
 
 ## 4. Resultados e discussões
 
 A Tabela 1 traz o modelo de maior índice de equilíbrio publicado em cada horizonte. Não se listam as dez rotações 2 h, nem um ranking intermediário, nem medianas de família, nem o MAE da janela móvel do serviço experimental. O MAE de teste do modelo selecionado aumenta com o horizonte de previsão — descrição esperada de um modelo autorregressivo de nível, não um teste controlado entre horizontes (N = 10, 117, 111 e 44 redes). Os identificadores MATLAB, para auditoria, são: 2 h = 009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21; 4 h = V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000; 8 h = altR_004_08_8h_alt_8H_ALT_C0289; 12 h = 004_conv_C0149_R01_T2_V1_3.
 
-**Tabela 1. Modelo de maior índice de equilíbrio publicado em cada horizonte. MAE e E95 em cm no teste por eventos. PERS g / v / t = geral, validação e teste. NS = Nash-Sutcliffe de teste. ALT: a rede prevê a variação do nível. CONV: família complementar (equação de saída a declarar).**
+**Tabela 1 – Desempenho no teste do modelo de maior equilíbrio publicado em cada horizonte**
 
-| H | Família | Modelo | Rotação | Eq. ficha | PERS g / v / t | NS teste | MAE (cm) | E95 (cm) | Chuva | N ent. | N oc. |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2 h | ALT | 15 entradas, sem chuva | R09 | 0,969 | 0,955 / 0,936 / 0,969 | 0,996 | 3,5 | 10,4 | não | 15 | 30 |
-| 4 h | ALT | 24 entradas, chuva 36 h | R10 | 0,846 | 0,888 / 0,878 / 0,876 | 0,993 | 13,9 | 52,7 | sim | 24 | 48 |
-| 8 h | ALT | 10 entradas (C0289) | altR_004 | 0,694 | 0,739 / 0,811 / 0,694 | 0,940 | 32 | 135 | sim | 10 | 20 |
-| 12 h | CONV | 14 entradas (C0149) | R01_T2_V1_3 | 0,690 | 0,824 / 0,690 / 0,696 | 0,885 | 40,9 | 125 | sim | 14 | 28 |
+| Horizonte | Família | Equilíbrio | PERS geral | PERS validação | PERS teste | NS | MAE (cm) | E95 (cm) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2 h | ALT | 0,969 | 0,955 | 0,936 | 0,969 | 0,996 | 3,5 | 10,4 |
+| 4 h | ALT | 0,846 | 0,888 | 0,878 | 0,876 | 0,993 | 13,9 | 52,7 |
+| 8 h | ALT | 0,694 | 0,739 | 0,811 | 0,694 | 0,940 | 32 | 135 |
+| 12 h | CONV | 0,690 | 0,824 | 0,690 | 0,696 | 0,885 | 40,9 | 125 |
+
+**Fonte:** Fichas do recorte de 282 redes (artigo_rna_santa_tereza.json).
+**Nota:** NS = coeficiente de Nash-Sutcliffe no teste. MAE e E95 no teste por eventos, em centímetros na régua. ALT: a rede prevê a variação do nível. CONV: família complementar (equação de saída a declarar). Identificadores MATLAB: 2 h = 009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21; 4 h = V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000; 8 h = altR_004_08_8h_alt_8H_ALT_C0289; 12 h = 004_conv_C0149_R01_T2_V1_3. Chuva de 36 h ausente só em 2 h. Entradas / neurônios ocultos: 15/30, 24/48, 10/20 e 14/28.
 
 Em 2 h a única montagem do conjunto filtrado (15 entradas de nível, sem chuva, 30 neurônios) gerou dez rotações de eventos; todas têm equilíbrio acima de 0,90 também quando se reaplica o mínimo dos três PERS. O modelo selecionado testa os eventos 10, 15 e 16 e é a rede em operação experimental contínua — fato de implantação, não evidência adicional de teste. O MAE de teste da ficha (3,5 cm em 2 h; 13,9 cm em 4 h; 32 cm em 8 h) não é o MAE de uma janela móvel do serviço experimental: são contratos distintos (partição por eventos de cheia versus pares recentes conferidos no feed).
 

@@ -63,14 +63,17 @@
       margin: 12px 0 20px;
     }
     .keywords { font-size: 13px; color: var(--ink-2); }
-    table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 10px 0 18px; }
-    #tbl-champions { font-size: 11.5px; }
-    th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
-    th { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 8px; }
+    #tbl-champions { font-size: 13px; }
+    #tbl-champions th, #tbl-champions td { border-left: 0; border-right: 0; }
+    #tbl-champions thead th { border-top: 1.5pt solid #111; border-bottom: 0.75pt solid #111; background: transparent; text-transform: none; letter-spacing: 0; color: #111; font-size: 12px; font-weight: 700; }
+    #tbl-champions tbody tr:last-child td { border-bottom: 1.5pt solid #111; }
+    th, td { text-align: left; padding: 6px 7px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 12px; color: #111; }
     td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; word-break: break-all; }
     .vars { font-size: 12px; line-height: 1.45; }
-    caption { caption-side: bottom; text-align: left; color: var(--muted); font-size: 11px; padding-top: 6px; }
+    caption { caption-side: top; text-align: left; color: #111; font-size: 13px; padding: 0 0 8px; font-weight: 600; }
     .note, .warnbox, .improve {
       padding: 12px 14px; margin: 12px 0 18px; font-size: 13.5px; line-height: 1.5;
     }
@@ -144,15 +147,16 @@
     <p>A varredura testou muitas montagens a partir do catálogo de 71 variáveis. O recorte qualificado reúne <span data-fill="sets_2h">1</span> conjunto de inputs em 2 h, <span data-fill="sets_4h">6</span> em 4 h, <span data-fill="sets_8h">14</span> em 8 h e <span data-fill="sets_12h">5</span> em 12 h. O Quadro 1 não lista todas as combinações: traz as principais usadas em 2 h, 4 h e 8 h e, de forma compacta, a montagem do horizonte 12 h. <strong>O quadro descreve só as variáveis, sem métricas de desempenho.</strong></p>
     <p>Em 4 h as seis montagens são aninhadas (13 ⊂ 14 ⊂ 15 ⊂ 16 ⊂ 20 ⊂ 24 entradas). O quadro mostra o núcleo (13), o núcleo com acelerações locais e a estação 86298000 (16) e o núcleo ampliado (24). Os intermediários de 14, 15 e 20 variáveis ficam de fora. Em 8 h, depois de unificar aliases do catálogo, restam 14 conjuntos; o quadro traz C0289, C0078 e C0265 — a mais recorrente, uma montagem com Ituim e a mais enxuta entre as frequentes.</p>
     <table id="tbl-combinations">
-      <caption>Quadro 1. Principais combinações de variáveis testadas em Santa Tereza. Sem métricas de desempenho. Fonte: <code>index.html#data</code>.</caption>
+      <caption>Quadro 1 – Principais combinações de variáveis examinadas em Santa Tereza</caption>
     </table>
-    <p class="legend">ST = Santa Tereza (86472600); D–<em>x</em> h = diferença em <em>x</em> horas; A–<em>x</em> h = aceleração; montante = trecho a montante de Santa Tereza; chuva 36 h = chuva média acumulada em 36 h. Códigos numéricos são estações ANA/SGB.</p>
+    <p class="legend"><strong>Fonte:</strong> conjunto filtrado de 282 modelos com PERS positiva nos quatro recortes (<code>index.html#data</code>).<br><strong>Nota:</strong> Sem métricas de desempenho. ST = Santa Tereza (86472600); D–<em>x</em> h = diferença em <em>x</em> horas; A–<em>x</em> h = aceleração; montante = trecho a montante de Santa Tereza; chuva 36 h = chuva média acumulada em 36 h. Códigos numéricos são estações ANA/SGB.</p>
 
     <h2>4. Resultados</h2>
     <p>A Tabela 1 traz o melhor modelo de cada horizonte. Não se listam as dez rotações 2 h, nem um ranking intermediário, nem medianas de família. O erro do campeão no teste aumenta com a antecedência — o comportamento esperado de um modelo autorregressivo de nível, e o argumento mais simples contra tratar 2 h e 12 h com a mesma tolerância.</p>
     <table id="tbl-champions">
-      <caption>Tabela 1. Melhor modelo de cada horizonte, pelo score de equilíbrio (desempate: métricas repetidas contam como o mesmo modelo). Equilíbrio = min(PERS geral, validação, teste).</caption>
+      <caption>Tabela 1 – Desempenho no teste do modelo de maior equilíbrio publicado em cada horizonte</caption>
     </table>
+    <p class="legend"><strong>Fonte:</strong> fichas do recorte de 282 redes (<code>artigo_rna_santa_tereza.json</code>).</p>
     <div class="bars" id="mae-bars" aria-label="MAE de teste do melhor modelo de cada horizonte"></div>
 
     <p>Em <strong>2 h</strong> a única montagem do recorte (15 inputs de nível, sem chuva, 30 neurônios) gerou dez rotações; todas equilibram acima de 0,90. O campeão, <span class="mono">009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21</span>, testa os eventos 10, 15 e 16, equilibra 0,969, tem MAE de teste 3,5 cm e E95 10,4 cm. É o modelo <code>principal</code> do feed ao vivo.</p>
@@ -234,7 +238,7 @@
           return "<td" + cls + ">" + cell + "</td>";
         }).join("") + "</tr>").join("") + "</tbody>";
         el.innerHTML = head + body;
-        if (cap) el.appendChild(cap);
+        if (cap) el.prepend(cap);
       }
       function render(data) {
         fill("n_models", String(data.n_models));
@@ -271,14 +275,28 @@
           if (!row.modelo) return;
           maeVals.push(row.MAE_teste_cm || 0);
           champRows.push([
-            h, tipo(row.tipo), row.modelo, row.rotacao || "—",
-            fmt(row.score_equilibrio, 3), fmt(row.PERS_teste, 3),
-            fmt(row.MAE_teste_cm, 1), fmt(row.E95_teste_cm, 1),
-            row.chuva ? "sim" : "não", String(row.n_inputs), String(row.neuronios)
+            h.replace("h", " h"), tipo(row.tipo),
+            fmt(row.score_equilibrio, 3),
+            fmt(row.PERS_geral, 3),
+            fmt(row.PERS_validacao, 3),
+            fmt(row.PERS_teste, 3),
+            fmt(row.NASH_teste, 3),
+            fmt(row.MAE_teste_cm, 1),
+            fmt(row.E95_teste_cm, 1)
           ]);
         });
         table("tbl-champions",
-          [{label: "H"}, {label: "Fam."}, {label: "Modelo", cls: "mono"}, {label: "Rotação"}, {label: "Equil.", num: true}, {label: "PERS t.", num: true}, {label: "MAE", num: true}, {label: "E95", num: true}, {label: "Chuva"}, {label: "In", num: true}, {label: "Nh", num: true}],
+          [
+            {label: "Horizonte"},
+            {label: "Família"},
+            {label: "Equilíbrio", num: true},
+            {label: "PERS geral", num: true},
+            {label: "PERS validação", num: true},
+            {label: "PERS teste", num: true},
+            {label: "NS", num: true},
+            {label: "MAE (cm)", num: true},
+            {label: "E95 (cm)", num: true}
+          ],
           champRows
         );
         const maxMae = Math.max.apply(null, maeVals.concat([1]));
