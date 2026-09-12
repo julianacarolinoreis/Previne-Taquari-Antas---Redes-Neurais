@@ -1,6 +1,6 @@
 {
   "schema_version": "modelo_mucum_bacia_calibrado_v1",
-  "generated_at_utc": "2026-09-12T15:36:53Z",
+  "generated_at_utc": "2026-09-12T16:00:48Z",
   "status": "research_basin_calibrated_ready",
   "label_pt": "Calibração de transferência do gêmeo HEC Muçum por regime de chuva (leve/moderado/pesado). Não é alerta. Não altera RNA. Não inventa curva STZ.",
   "method": {
@@ -183,227 +183,677 @@
   "loo_skill": {
     "summary": {
       "n_scored": 9,
-      "mean_nse_loo": 0.1089,
-      "mean_peak_q_rel_err": 0.2813,
-      "median_peak_q_rel_err": 0.2973,
-      "mean_rise_n_abs_err_cm": 441.51,
-      "median_rise_n_abs_err_cm": 326.95,
-      "mean_rise_n_rel_err": 0.3637,
-      "n_rise_n_within_50pct": 7,
-      "n_rise_n_within_100pct": 9,
+      "mean_nse_loo": 0.2293,
+      "mean_peak_q_rel_err": 0.2506,
+      "median_peak_q_rel_err": 0.1637,
+      "mean_rise_n_abs_err_cm": 384.1,
+      "median_rise_n_abs_err_cm": 325.59,
+      "mean_rise_n_rel_err": 0.349,
+      "n_rise_n_within_50pct": 8,
+      "n_rise_n_within_100pct": 8,
       "n_peak_q_within_30pct": 5
     },
     "verdict": {
       "level": "usable_research",
-      "plain_pt": "Hindcast LOO: ΔN médio com erro relativo ~36% (7/9 eventos ≤50%). Pico Q médio |err|~28%. Útil como pesquisa; ainda não é alerta."
+      "plain_pt": "Hindcast LOO: ΔN médio com erro relativo ~35% (8/9 eventos ≤50%). Pico Q médio |err|~25%. Útil como pesquisa; ainda não é alerta."
     },
     "events": [
       {
         "event_id": "E20",
         "status": "scored",
         "rain_mm_aw": 76.711,
-        "analog_event_id": "E23",
+        "analog_event_id": "BLEND",
+        "analog_members": [
+          "E23",
+          "E21",
+          "E24",
+          "E28",
+          "E22"
+        ],
         "analog_abs_mm_gap": 4.406,
+        "blend_weights": [
+          {
+            "event_id": "E23",
+            "weight": 0.9614,
+            "distance": -0.1676
+          },
+          {
+            "event_id": "E21",
+            "weight": 0.0153,
+            "distance": 0.6148
+          },
+          {
+            "event_id": "E24",
+            "weight": 0.0103,
+            "distance": 0.768
+          },
+          {
+            "event_id": "E28",
+            "weight": 0.007,
+            "distance": 0.95
+          },
+          {
+            "event_id": "E22",
+            "weight": 0.0061,
+            "distance": 1.0209
+          }
+        ],
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 50.363,
+          "stage_cm": 304.8,
+          "stage_rising": null,
+          "wet_by_rain": true,
+          "wet_by_stage": false,
+          "forecast_aw_mm": 76.711
+        },
         "pad_hours": 12,
         "pairs": 89,
-        "nse_loo": 0.3212,
+        "nse_loo": 0.4302,
         "self_fit_nse": 0.9307845686411361,
         "obs_peak_q_m3s": 3260.25,
-        "sim_peak_q_m3s": 3861.05,
-        "peak_q_rel_err": 0.1843,
+        "sim_peak_q_m3s": 3793.99,
+        "peak_q_rel_err": 0.1637,
         "obs_rise_q_m3s": 2673.9,
-        "sim_rise_q_m3s": 3456.8,
-        "rise_q_rel_err": 0.2928,
+        "sim_rise_q_m3s": 3453.39,
+        "rise_q_rel_err": 0.2915,
         "obs_rise_n_cm": 939.78,
-        "sim_rise_n_cm": 1091.38,
-        "rise_n_abs_err_cm": 151.6,
-        "rise_n_rel_err": 0.1613,
+        "sim_rise_n_cm": 1106.15,
+        "rise_n_abs_err_cm": 166.37,
+        "rise_n_rel_err": 0.177,
         "obs_n_t0_cm": 304.8,
-        "sim_n_t0_cm": 272.58
+        "sim_n_t0_cm": 244.93,
+        "ic_scaling": {
+          "applied": true,
+          "factor": 2.0898,
+          "q0_target_m3s": 586.35,
+          "q_sim0_before_m3s": 280.573,
+          "q0_index": 12
+        }
       },
       {
         "event_id": "E21",
         "status": "scored",
         "rain_mm_aw": 101.183,
-        "analog_event_id": "E23",
+        "analog_event_id": "BLEND",
+        "analog_members": [
+          "E23",
+          "E20",
+          "E24",
+          "E28",
+          "E31"
+        ],
         "analog_abs_mm_gap": 20.066,
+        "blend_weights": [
+          {
+            "event_id": "E23",
+            "weight": 0.9821,
+            "distance": -0.1236
+          },
+          {
+            "event_id": "E20",
+            "weight": 0.01,
+            "distance": 0.3522
+          },
+          {
+            "event_id": "E24",
+            "weight": 0.0035,
+            "distance": 0.6503
+          },
+          {
+            "event_id": "E28",
+            "weight": 0.0023,
+            "distance": 0.8212
+          },
+          {
+            "event_id": "E31",
+            "weight": 0.0021,
+            "distance": 0.872
+          }
+        ],
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 0.0,
+          "stage_cm": 542.57,
+          "stage_rising": true,
+          "wet_by_rain": false,
+          "wet_by_stage": true,
+          "forecast_aw_mm": 101.183
+        },
         "pad_hours": 0,
         "pairs": 158,
-        "nse_loo": 0.5348,
+        "nse_loo": 0.5455,
         "self_fit_nse": 0.8473541435574965,
         "obs_peak_q_m3s": 6000.52,
-        "sim_peak_q_m3s": 5665.58,
-        "peak_q_rel_err": 0.0558,
+        "sim_peak_q_m3s": 5662.63,
+        "peak_q_rel_err": 0.0563,
         "obs_rise_q_m3s": 4510.25,
-        "sim_rise_q_m3s": 5488.87,
-        "rise_q_rel_err": 0.217,
+        "sim_rise_q_m3s": 5484.36,
+        "rise_q_rel_err": 0.216,
         "obs_rise_n_cm": 1189.13,
-        "sim_rise_n_cm": 1516.08,
-        "rise_n_abs_err_cm": 326.95,
-        "rise_n_rel_err": 0.2749,
+        "sim_rise_n_cm": 1514.72,
+        "rise_n_abs_err_cm": 325.59,
+        "rise_n_rel_err": 0.2738,
         "obs_n_t0_cm": 542.57,
-        "sim_n_t0_cm": 162.6
+        "sim_n_t0_cm": 163.49,
+        "ic_scaling": {
+          "applied": true,
+          "factor": 5.0,
+          "q0_target_m3s": 1490.275,
+          "q_sim0_before_m3s": 35.343,
+          "q0_index": 0
+        }
       },
       {
         "event_id": "E22",
         "status": "scored",
         "rain_mm_aw": 210.564,
-        "analog_event_id": "E24",
+        "analog_event_id": "BLEND",
+        "analog_members": [
+          "E24",
+          "E28",
+          "E23",
+          "E20",
+          "E21"
+        ],
         "analog_abs_mm_gap": 2.764,
+        "blend_weights": [
+          {
+            "event_id": "E24",
+            "weight": 0.8264,
+            "distance": 0.0503
+          },
+          {
+            "event_id": "E28",
+            "weight": 0.0754,
+            "distance": 0.3513
+          },
+          {
+            "event_id": "E23",
+            "weight": 0.0627,
+            "distance": 0.3929
+          },
+          {
+            "event_id": "E20",
+            "weight": 0.0206,
+            "distance": 0.7461
+          },
+          {
+            "event_id": "E21",
+            "weight": 0.0148,
+            "distance": 0.8924
+          }
+        ],
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 28.864,
+          "stage_cm": 384.53,
+          "stage_rising": true,
+          "wet_by_rain": true,
+          "wet_by_stage": true,
+          "forecast_aw_mm": 210.564
+        },
         "pad_hours": 12,
         "pairs": 110,
-        "nse_loo": 0.7364,
+        "nse_loo": 0.7186,
         "self_fit_nse": 0.7652268571862344,
         "obs_peak_q_m3s": 10437.67,
-        "sim_peak_q_m3s": 9900.87,
-        "peak_q_rel_err": 0.0514,
+        "sim_peak_q_m3s": 10517.47,
+        "peak_q_rel_err": 0.0076,
         "obs_rise_q_m3s": 9583.72,
-        "sim_rise_q_m3s": 9380.53,
-        "rise_q_rel_err": 0.0212,
+        "sim_rise_q_m3s": 9931.55,
+        "rise_q_rel_err": 0.0363,
         "obs_rise_n_cm": 1952.07,
-        "sim_rise_n_cm": 1951.65,
-        "rise_n_abs_err_cm": 0.42,
-        "rise_n_rel_err": 0.0002,
+        "sim_rise_n_cm": 2041.59,
+        "rise_n_abs_err_cm": 89.52,
+        "rise_n_rel_err": 0.0459,
         "obs_n_t0_cm": 384.53,
-        "sim_n_t0_cm": 319.14
+        "sim_n_t0_cm": 304.66,
+        "ic_scaling": {
+          "applied": true,
+          "factor": 1.3564,
+          "q0_target_m3s": 853.95,
+          "q_sim0_before_m3s": 629.559,
+          "q0_index": 12
+        }
       },
       {
         "event_id": "E23",
         "status": "scored",
         "rain_mm_aw": 81.117,
-        "analog_event_id": "E21",
-        "analog_abs_mm_gap": 20.066,
+        "analog_event_id": "BLEND",
+        "analog_members": [
+          "E20",
+          "E21",
+          "E24",
+          "E28",
+          "E22"
+        ],
+        "analog_abs_mm_gap": 4.406,
+        "blend_weights": [
+          {
+            "event_id": "E20",
+            "weight": 0.7168,
+            "distance": 0.1647
+          },
+          {
+            "event_id": "E21",
+            "weight": 0.1413,
+            "distance": 0.4712
+          },
+          {
+            "event_id": "E24",
+            "weight": 0.0628,
+            "distance": 0.7468
+          },
+          {
+            "event_id": "E28",
+            "weight": 0.0423,
+            "distance": 0.9268
+          },
+          {
+            "event_id": "E22",
+            "weight": 0.0368,
+            "distance": 1.0
+          }
+        ],
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 48.66,
+          "stage_cm": 436.7,
+          "stage_rising": true,
+          "wet_by_rain": true,
+          "wet_by_stage": true,
+          "forecast_aw_mm": 81.117
+        },
         "pad_hours": 24,
         "pairs": 70,
-        "nse_loo": -1.0085,
+        "nse_loo": 0.001,
         "self_fit_nse": 0.8126364483782181,
         "obs_peak_q_m3s": 2579.45,
-        "sim_peak_q_m3s": 2586.74,
-        "peak_q_rel_err": 0.0028,
+        "sim_peak_q_m3s": 2908.09,
+        "peak_q_rel_err": 0.1274,
         "obs_rise_q_m3s": 1530.35,
-        "sim_rise_q_m3s": 349.16,
-        "rise_q_rel_err": 0.7718,
+        "sim_rise_q_m3s": 896.46,
+        "rise_q_rel_err": 0.4142,
         "obs_rise_n_cm": 659.58,
-        "sim_rise_n_cm": 400.31,
-        "rise_n_abs_err_cm": 259.27,
-        "rise_n_rel_err": 0.3931,
+        "sim_rise_n_cm": 516.67,
+        "rise_n_abs_err_cm": 142.91,
+        "rise_n_rel_err": 0.2167,
         "obs_n_t0_cm": 436.7,
-        "sim_n_t0_cm": 697.65
+        "sim_n_t0_cm": 653.19,
+        "ic_scaling": {
+          "applied": true,
+          "factor": 0.6211,
+          "q0_target_m3s": 1049.1,
+          "q_sim0_before_m3s": 1688.988,
+          "q0_index": 24
+        }
       },
       {
         "event_id": "E24",
         "status": "scored",
         "rain_mm_aw": 207.8,
-        "analog_event_id": "E22",
+        "analog_event_id": "BLEND",
+        "analog_members": [
+          "E22",
+          "E28",
+          "E23",
+          "E20",
+          "E21"
+        ],
         "analog_abs_mm_gap": 2.764,
+        "blend_weights": [
+          {
+            "event_id": "E22",
+            "weight": 0.3529,
+            "distance": 0.2983
+          },
+          {
+            "event_id": "E28",
+            "weight": 0.2872,
+            "distance": 0.3393
+          },
+          {
+            "event_id": "E23",
+            "weight": 0.2309,
+            "distance": 0.3877
+          },
+          {
+            "event_id": "E20",
+            "weight": 0.0749,
+            "distance": 0.7412
+          },
+          {
+            "event_id": "E21",
+            "weight": 0.0541,
+            "distance": 0.886
+          }
+        ],
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 5.4,
+          "stage_cm": 575.66,
+          "stage_rising": true,
+          "wet_by_rain": false,
+          "wet_by_stage": true,
+          "forecast_aw_mm": 207.8
+        },
         "pad_hours": 12,
         "pairs": 238,
-        "nse_loo": 0.7077,
+        "nse_loo": 0.7653,
         "self_fit_nse": 0.7520225645223316,
         "obs_peak_q_m3s": 11434.95,
-        "sim_peak_q_m3s": 14834.42,
-        "peak_q_rel_err": 0.2973,
+        "sim_peak_q_m3s": 12147.7,
+        "peak_q_rel_err": 0.0623,
         "obs_rise_q_m3s": 9795.0,
-        "sim_rise_q_m3s": 14686.97,
-        "rise_q_rel_err": 0.4994,
+        "sim_rise_q_m3s": 11973.7,
+        "rise_q_rel_err": 0.2224,
         "obs_rise_n_cm": 1879.21,
-        "sim_rise_n_cm": 2680.85,
-        "rise_n_abs_err_cm": 801.64,
-        "rise_n_rel_err": 0.4266,
+        "sim_rise_n_cm": 2375.48,
+        "rise_n_abs_err_cm": 496.27,
+        "rise_n_rel_err": 0.2641,
         "obs_n_t0_cm": 575.66,
-        "sim_n_t0_cm": 145.23
+        "sim_n_t0_cm": 161.03,
+        "ic_scaling": {
+          "applied": true,
+          "factor": 5.0,
+          "q0_target_m3s": 1639.95,
+          "q_sim0_before_m3s": 29.49,
+          "q0_index": 12
+        }
       },
       {
         "event_id": "E25",
         "status": "scored",
         "rain_mm_aw": 48.765,
-        "analog_event_id": "E20",
-        "analog_abs_mm_gap": 27.946,
+        "analog_event_id": "BLEND",
+        "analog_members": [
+          "E23",
+          "E20",
+          "E21",
+          "E24",
+          "E28"
+        ],
+        "analog_abs_mm_gap": 32.352,
+        "blend_weights": [
+          {
+            "event_id": "E23",
+            "weight": 0.6644,
+            "distance": 0.1769
+          },
+          {
+            "event_id": "E20",
+            "weight": 0.2121,
+            "distance": 0.3747
+          },
+          {
+            "event_id": "E21",
+            "weight": 0.0465,
+            "distance": 0.8909
+          },
+          {
+            "event_id": "E24",
+            "weight": 0.0454,
+            "distance": 0.9025
+          },
+          {
+            "event_id": "E28",
+            "weight": 0.0316,
+            "distance": 1.0971
+          }
+        ],
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 46.159,
+          "stage_cm": 296.91,
+          "stage_rising": null,
+          "wet_by_rain": true,
+          "wet_by_stage": false,
+          "forecast_aw_mm": 48.765
+        },
         "pad_hours": 12,
         "pairs": 62,
-        "nse_loo": 0.0091,
+        "nse_loo": -0.5679,
         "self_fit_nse": 0.9265554244853058,
         "obs_peak_q_m3s": 1923.78,
-        "sim_peak_q_m3s": 2516.25,
-        "peak_q_rel_err": 0.308,
+        "sim_peak_q_m3s": 2655.65,
+        "peak_q_rel_err": 0.3804,
         "obs_rise_q_m3s": 1460.23,
-        "sim_rise_q_m3s": 1575.12,
-        "rise_q_rel_err": 0.0787,
+        "sim_rise_q_m3s": 1978.48,
+        "rise_q_rel_err": 0.3549,
         "obs_rise_n_cm": 338.49,
-        "sim_rise_n_cm": 673.31,
-        "rise_n_abs_err_cm": 334.82,
-        "rise_n_rel_err": 0.9892,
+        "sim_rise_n_cm": 780.54,
+        "rise_n_abs_err_cm": 442.05,
+        "rise_n_rel_err": 1.3059,
         "obs_n_t0_cm": 296.91,
-        "sim_n_t0_cm": 408.34
+        "sim_n_t0_cm": 333.17,
+        "ic_scaling": {
+          "applied": true,
+          "factor": 1.112,
+          "q0_target_m3s": 463.55,
+          "q_sim0_before_m3s": 416.843,
+          "q0_index": 12
+        }
       },
       {
         "event_id": "E27",
         "status": "scored",
         "rain_mm_aw": 599.224,
-        "analog_event_id": "E22",
+        "analog_event_id": "BLEND",
+        "analog_members": [
+          "E22",
+          "E28",
+          "E24",
+          "E21",
+          "E20"
+        ],
         "analog_abs_mm_gap": 388.66,
+        "blend_weights": [
+          {
+            "event_id": "E22",
+            "weight": 0.2639,
+            "distance": 0.6838
+          },
+          {
+            "event_id": "E28",
+            "weight": 0.262,
+            "distance": 0.6866
+          },
+          {
+            "event_id": "E24",
+            "weight": 0.2594,
+            "distance": 0.6904
+          },
+          {
+            "event_id": "E21",
+            "weight": 0.1098,
+            "distance": 1.104
+          },
+          {
+            "event_id": "E20",
+            "weight": 0.1048,
+            "distance": 1.1324
+          }
+        ],
+        "wetness": {
+          "is_wet": false,
+          "past_aw_mm": 15.101,
+          "stage_cm": 322.03,
+          "stage_rising": null,
+          "wet_by_rain": false,
+          "wet_by_stage": false,
+          "forecast_aw_mm": 599.224
+        },
         "pad_hours": 12,
         "pairs": 245,
-        "nse_loo": -0.8406,
+        "nse_loo": -0.6151,
         "self_fit_nse": 0.87682516409052,
         "obs_peak_q_m3s": 14525.23,
-        "sim_peak_q_m3s": 27260.5,
-        "peak_q_rel_err": 0.8768,
+        "sim_peak_q_m3s": 25754.87,
+        "peak_q_rel_err": 0.7731,
         "obs_rise_q_m3s": 13997.33,
-        "sim_rise_q_m3s": 27109.05,
-        "rise_q_rel_err": 0.9367,
+        "sim_rise_q_m3s": 25575.9,
+        "rise_q_rel_err": 0.8272,
         "obs_rise_n_cm": 2472.03,
-        "sim_rise_n_cm": 3779.99,
-        "rise_n_abs_err_cm": 1307.96,
-        "rise_n_rel_err": 0.5291,
+        "sim_rise_n_cm": 3644.92,
+        "rise_n_abs_err_cm": 1172.89,
+        "rise_n_rel_err": 0.4745,
         "obs_n_t0_cm": 322.03,
-        "sim_n_t0_cm": 147.68
+        "sim_n_t0_cm": 163.89,
+        "ic_scaling": {
+          "applied": true,
+          "factor": 5.0,
+          "q0_target_m3s": 527.9,
+          "q_sim0_before_m3s": 33.493,
+          "q0_index": 12
+        }
       },
       {
         "event_id": "E28",
         "status": "scored",
         "rain_mm_aw": 190.016,
-        "analog_event_id": "E24",
+        "analog_event_id": "BLEND",
+        "analog_members": [
+          "E24",
+          "E23",
+          "E22",
+          "E20",
+          "E21"
+        ],
         "analog_abs_mm_gap": 17.784,
+        "blend_weights": [
+          {
+            "event_id": "E24",
+            "weight": 0.6544,
+            "distance": 0.1228
+          },
+          {
+            "event_id": "E23",
+            "weight": 0.1447,
+            "distance": 0.3512
+          },
+          {
+            "event_id": "E22",
+            "weight": 0.1257,
+            "distance": 0.3828
+          },
+          {
+            "event_id": "E20",
+            "weight": 0.0435,
+            "distance": 0.7067
+          },
+          {
+            "event_id": "E21",
+            "weight": 0.0318,
+            "distance": 0.8404
+          }
+        ],
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 42.431,
+          "stage_cm": 260.87,
+          "stage_rising": null,
+          "wet_by_rain": true,
+          "wet_by_stage": false,
+          "forecast_aw_mm": 190.016
+        },
         "pad_hours": 12,
         "pairs": 209,
-        "nse_loo": 0.1655,
+        "nse_loo": 0.4456,
         "self_fit_nse": 0.9750979641674853,
         "obs_peak_q_m3s": 7886.72,
-        "sim_peak_q_m3s": 5322.93,
-        "peak_q_rel_err": 0.3251,
+        "sim_peak_q_m3s": 5349.99,
+        "peak_q_rel_err": 0.3216,
         "obs_rise_q_m3s": 7509.92,
-        "sim_rise_q_m3s": 4400.49,
-        "rise_q_rel_err": 0.414,
+        "sim_rise_q_m3s": 4630.09,
+        "rise_q_rel_err": 0.3835,
         "obs_rise_n_cm": 1746.94,
-        "sim_rise_n_cm": 1219.63,
-        "rise_n_abs_err_cm": 527.31,
-        "rise_n_rel_err": 0.3018,
+        "sim_rise_n_cm": 1281.39,
+        "rise_n_abs_err_cm": 465.55,
+        "rise_n_rel_err": 0.2665,
         "obs_n_t0_cm": 260.87,
-        "sim_n_t0_cm": 403.31
+        "sim_n_t0_cm": 346.01,
+        "ic_scaling": {
+          "applied": true,
+          "factor": 0.4245,
+          "q0_target_m3s": 376.8,
+          "q_sim0_before_m3s": 887.622,
+          "q0_index": 12
+        }
       },
       {
         "event_id": "E31",
         "status": "scored",
         "rain_mm_aw": 64.989,
-        "analog_event_id": "E20",
-        "analog_abs_mm_gap": 11.722,
+        "analog_event_id": "BLEND",
+        "analog_members": [
+          "E23",
+          "E20",
+          "E21",
+          "E24",
+          "E28"
+        ],
+        "analog_abs_mm_gap": 16.128,
+        "blend_weights": [
+          {
+            "event_id": "E23",
+            "weight": 0.9378,
+            "distance": -0.0231
+          },
+          {
+            "event_id": "E20",
+            "weight": 0.0513,
+            "distance": 0.1632
+          },
+          {
+            "event_id": "E21",
+            "weight": 0.0046,
+            "distance": 0.7306
+          },
+          {
+            "event_id": "E24",
+            "weight": 0.0037,
+            "distance": 0.8244
+          },
+          {
+            "event_id": "E28",
+            "weight": 0.0025,
+            "distance": 1.0117
+          }
+        ],
+        "wetness": {
+          "is_wet": true,
+          "past_aw_mm": 0.0,
+          "stage_cm": 401.65,
+          "stage_rising": true,
+          "wet_by_rain": false,
+          "wet_by_stage": true,
+          "forecast_aw_mm": 64.989
+        },
         "pad_hours": 0,
         "pairs": 128,
-        "nse_loo": 0.3546,
+        "nse_loo": 0.3401,
         "self_fit_nse": 0.9046638593707779,
         "obs_peak_q_m3s": 6057.4,
-        "sim_peak_q_m3s": 3449.98,
-        "peak_q_rel_err": 0.4305,
+        "sim_peak_q_m3s": 3860.54,
+        "peak_q_rel_err": 0.3627,
         "obs_rise_q_m3s": 5141.1,
-        "sim_rise_q_m3s": 3187.8,
-        "rise_q_rel_err": 0.3799,
+        "sim_rise_q_m3s": 3651.31,
+        "rise_q_rel_err": 0.2898,
         "obs_rise_n_cm": 1338.91,
-        "sim_rise_n_cm": 1075.3,
-        "rise_n_abs_err_cm": 263.61,
-        "rise_n_rel_err": 0.1969,
+        "sim_rise_n_cm": 1183.19,
+        "rise_n_abs_err_cm": 155.72,
+        "rise_n_rel_err": 0.1163,
         "obs_n_t0_cm": 401.65,
-        "sim_n_t0_cm": 208.0
+        "sim_n_t0_cm": 180.67,
+        "ic_scaling": {
+          "applied": true,
+          "factor": 5.0,
+          "q0_target_m3s": 916.3,
+          "q_sim0_before_m3s": 63.211,
+          "q0_index": 0
+        }
       }
     ]
   },
@@ -414,33 +864,28 @@
       "donor_ranking": [
         {
           "event_id": "E23",
-          "n_targets": 1,
-          "mean_rise_n_rel_err": 0.1613
-        },
-        {
-          "event_id": "E20",
-          "n_targets": 2,
-          "mean_rise_n_rel_err": 0.593
+          "n_targets": 3,
+          "mean_rise_n_rel_err": 0.5331
         }
       ],
-      "mean_target_rise_n_rel_err": 0.4491
+      "mean_target_rise_n_rel_err": 0.5331
     },
     "moderate": {
       "n_loo_targets": 2,
-      "recommended_donor_event_id": "E23",
+      "recommended_donor_event_id": "E20",
       "donor_ranking": [
+        {
+          "event_id": "E20",
+          "n_targets": 1,
+          "mean_rise_n_rel_err": 0.2167
+        },
         {
           "event_id": "E23",
           "n_targets": 1,
-          "mean_rise_n_rel_err": 0.2749
-        },
-        {
-          "event_id": "E21",
-          "n_targets": 1,
-          "mean_rise_n_rel_err": 0.3931
+          "mean_rise_n_rel_err": 0.2738
         }
       ],
-      "mean_target_rise_n_rel_err": 0.334
+      "mean_target_rise_n_rel_err": 0.2452
     },
     "heavy": {
       "n_loo_targets": 4,
@@ -449,15 +894,15 @@
         {
           "event_id": "E24",
           "n_targets": 2,
-          "mean_rise_n_rel_err": 0.151
+          "mean_rise_n_rel_err": 0.1562
         },
         {
           "event_id": "E22",
           "n_targets": 2,
-          "mean_rise_n_rel_err": 0.4778
+          "mean_rise_n_rel_err": 0.3693
         }
       ],
-      "mean_target_rise_n_rel_err": 0.3144
+      "mean_target_rise_n_rel_err": 0.2627
     }
   },
   "core_library_event_ids": [

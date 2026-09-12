@@ -29,7 +29,7 @@ class HindcastSkill5dTests(unittest.TestCase):
         segments = fwd.mucum_curve_segments()
 
         target = "E23"
-        analog = skill.pick_loo_analog(target, 120.0, library, hec_events)
+        analog = skill.pick_loo_analogs(target, 120.0, library, hec_events)[0]
         self.assertIsNotNone(analog)
         assert analog is not None
         self.assertNotEqual(analog["event_id"], target)
@@ -43,7 +43,10 @@ class HindcastSkill5dTests(unittest.TestCase):
             segments=segments,
         )
         self.assertEqual(row["status"], "scored")
-        self.assertNotEqual(row["analog_event_id"], target)
+        if row["analog_event_id"] == "BLEND":
+            self.assertNotIn(target, row.get("analog_members") or [])
+        else:
+            self.assertNotEqual(row["analog_event_id"], target)
         self.assertIsNotNone(row["obs_rise_n_cm"])
         self.assertIsNotNone(row["sim_rise_n_cm"])
         self.assertGreater(row["pairs"], 6)
@@ -75,7 +78,7 @@ class HindcastSkill5dTests(unittest.TestCase):
             )
             self.assertIn("wrote", proc.stdout)
             data = json.loads((out / "hec_twin_mucum_hindcast_skill_5d_latest.json").read_text(encoding="utf-8"))
-            self.assertEqual(data["schema_version"], "hec_twin_mucum_hindcast_skill_5d_v1")
+            self.assertEqual(data["schema_version"], "hec_twin_mucum_hindcast_skill_5d_v3")
             self.assertGreaterEqual(data["summary"]["n_scored"], 1)
             self.assertIn("plain_pt", data["verdict"])
             html = (out / "hec_twin_mucum_hindcast_skill_5d.html").read_text(encoding="utf-8")

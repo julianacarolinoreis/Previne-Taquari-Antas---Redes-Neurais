@@ -1,39 +1,95 @@
 {
-  "schema_version": "hec_twin_mucum_live_eval_verify_v2",
-  "generated_at_utc": "2026-09-12T15:36:37Z",
+  "schema_version": "hec_twin_mucum_live_eval_verify_v3",
+  "generated_at_utc": "2026-09-12T15:59:49Z",
   "status": "research_verification_ready",
   "forecast_ref": {
-    "method": "wetness_aware_v2",
+    "method": "now_index_blend_v3",
     "anchor_stage_cm": 425.0,
     "anchor_observed_at_utc": "2026-09-12T02:45:00Z",
-    "predicted_rise_cm": 286.19,
-    "predicted_peak_anchored_cm": 711.19,
-    "predicted_peak_time_utc": "2026-09-13T01:00:00Z",
+    "predicted_rise_cm": 223.62,
+    "predicted_peak_anchored_cm": 648.62,
+    "predicted_peak_time_utc": "2026-09-12T21:00:00Z",
     "ensemble_rise_cm": {
-      "min": 164.12,
-      "primary": 286.19,
-      "max": 286.19
+      "min": 134.29,
+      "primary": 223.62,
+      "max": 296.42,
+      "by_event": [
+        {
+          "event_id": "BLEND",
+          "rise_cm": 223.62,
+          "peak_anchored_cm": 648.62
+        },
+        {
+          "event_id": "E23",
+          "rise_cm": 296.42,
+          "peak_anchored_cm": 721.42
+        },
+        {
+          "event_id": "E20",
+          "rise_cm": 203.14,
+          "peak_anchored_cm": 628.14
+        },
+        {
+          "event_id": "E25",
+          "rise_cm": 164.9,
+          "peak_anchored_cm": 589.9
+        },
+        {
+          "event_id": "E24",
+          "rise_cm": 175.84,
+          "peak_anchored_cm": 600.84
+        },
+        {
+          "event_id": "E21",
+          "rise_cm": 134.29,
+          "peak_anchored_cm": 559.29
+        }
+      ]
     },
-    "analog": "E23"
+    "analog": "BLEND",
+    "mid_event": {
+      "applied": true,
+      "obs_index": 60,
+      "obs_time_utc": "2026-09-12T15:00:00Z",
+      "n_model_at_obs_cm": 506.93,
+      "n_model_peak_cm": 540.6,
+      "remaining_model_cm": 33.67,
+      "underprediction_cm": 147.07,
+      "revision": {
+        "remaining_cm": 45.45,
+        "factor": 1.35,
+        "boost_cm": 11.78,
+        "applied": true,
+        "k": 0.75,
+        "cap": 1.35,
+        "frac_left": 0.1506,
+        "underprediction_cm": 147.07
+      },
+      "peak_reanchored_cm": 699.45,
+      "rise_from_obs_cm": 45.45,
+      "peak_time_utc": "2026-09-12T21:00:00Z"
+    }
   },
   "observed": {
-    "stage_cm": 651.0,
-    "observed_at_utc": "2026-09-12T15:15:00Z",
-    "rise_from_anchor_cm": 226.0,
-    "peak_so_far_cm": 651.0,
-    "peak_so_far_at_utc": "2026-09-12T15:15:00Z"
+    "stage_cm": 654.0,
+    "observed_at_utc": "2026-09-12T15:30:00Z",
+    "rise_from_anchor_cm": 229.0,
+    "peak_so_far_cm": 654.0,
+    "peak_so_far_at_utc": "2026-09-12T15:30:00Z"
   },
   "scorecard": {
-    "verdict_level": "hit_band_and_primary_so_far",
-    "plain_pt": "Replay úmido melhorou: primary E23 ΔN≈286 cm (pico≈711). Obs 651 cm (+226) dentro da banda 164–286 e ainda sob o pico primary.",
+    "verdict_level": "partial_hit_band_primary_low",
+    "plain_pt": "Calibração v3: primary BLEND ΔN≈224 (pico≈649). Obs 654 (+229) na banda, mas já acima do primary. Atualização no meio do evento (obs 654): ainda ~45 cm (pico revisto ~699).",
     "old_primary_peak_cm": 568.0,
-    "new_primary_peak_cm": 711.19,
-    "obs_latest_cm": 651.0,
-    "old_error_cm": 83.0,
-    "new_error_cm": -60.19,
-    "improved": true,
+    "new_primary_peak_cm": 648.62,
+    "mid_event_peak_cm": 699.45,
+    "obs_latest_cm": 654.0,
+    "old_error_cm": 86.0,
+    "new_error_cm": 5.38,
+    "mid_event_error_cm": -45.45,
+    "improved_vs_old": true,
     "rise_within_band": true,
-    "above_primary_peak": false
+    "above_primary_peak": true
   },
-  "plain_pt": "Replay úmido melhorou: primary E23 ΔN≈286 cm (pico≈711). Obs 651 cm (+226) dentro da banda 164–286 e ainda sob o pico primary."
+  "plain_pt": "Calibração v3: primary BLEND ΔN≈224 (pico≈649). Obs 654 (+229) na banda, mas já acima do primary. Atualização no meio do evento (obs 654): ainda ~45 cm (pico revisto ~699)."
 }

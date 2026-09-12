@@ -332,16 +332,29 @@ def scale_params_to_q0(
     *,
     run_network: Callable[..., dict[str, list[float]]],
     include_mucum_increment: bool = True,
+    q0_index: int = 0,
 ) -> tuple[NestedParams, dict[str, Any]]:
+    """Scale initial_flow_ratio so simulated Q at ``q0_index`` matches observed Q0.
+
+    For past+future forcing windows, pass the index of "now" so IC matches the
+    live stage instead of the start of the past-rain pad.
+    """
     if q0_m3s is None or q0_m3s != q0_m3s or q0_m3s <= 0:
         return params, {"applied": False, "reason": "invalid_q0"}
     net = run_network(precip, areas, params, include_mucum_increment=include_mucum_increment)
     q_series = net.get("at_mucum") or []
     if not q_series:
         return params, {"applied": False, "reason": "empty_sim"}
-    q_sim0 = float(q_series[0])
+    idx = int(q0_index) if q0_index is not None else 0
+    idx = min(max(idx, 0), len(q_series) - 1)
+    q_sim0 = float(q_series[idx])
     if q_sim0 <= 1e-3:
-        return params, {"applied": False, "reason": "sim_q0_near_zero", "q_sim0": q_sim0}
+        return params, {
+            "applied": False,
+            "reason": "sim_q0_near_zero",
+            "q_sim0": q_sim0,
+            "q0_index": idx,
+        }
     factor = min(max(float(q0_m3s) / q_sim0, 0.2), 5.0)
     scaled = NestedParams(
         up=replace(params.up, initial_flow_ratio=float(params.up.initial_flow_ratio) * factor),
@@ -356,6 +369,7 @@ def scale_params_to_q0(
         "factor": round(factor, 4),
         "q0_target_m3s": round(float(q0_m3s), 3),
         "q_sim0_before_m3s": round(q_sim0, 3),
+        "q0_index": idx,
     }
 
 
@@ -400,6 +414,22 @@ def pick_primary_by_median_rise(
     return min(rises, key=lambda t: abs(t[1] - med))[0]
 
 
+def should_damp_losses(wetness: dict[str, Any] | None) -> bool:
+    """Strict wet gate for loss damping: recent rain AND elevated stage.
+
+    Soft ``is_wet`` (OR) is fine for analog ranking; damping needs AND so LOO
+    dry/light events are not systematically over-run.
+    """
+    wet = wetness or {}
+    past = wet.get("past_aw_mm")
+    stage = wet.get("stage_cm")
+    wet_by_rain = past is not None and float(past) >= WET_PAST_AW_MM
+    wet_by_stage = stage is not None and float(stage) >= WET_STAGE_CM
+    if wet.get("wet_by_rain") is True and wet.get("wet_by_stage") is True:
+        return True
+    return bool(wet_by_rain and wet_by_stage)
+
+
 def damp_losses_for_wetness(
     params: NestedParams,
     wetness: dict[str, Any] | None,
@@ -408,8 +438,12 @@ def damp_losses_for_wetness(
 ) -> tuple[NestedParams, dict[str, Any]]:
     """Reduce initial/constant losses when catchment is already wet (more immediate runoff)."""
     wet = wetness or {}
-    if not wet.get("is_wet"):
-        return params, {"applied": False, "reason": "not_wet"}
+    if not should_damp_losses(wet):
+        return params, {
+            "applied": False,
+            "reason": "strict_wet_not_met",
+            "is_wet_soft": bool(wet.get("is_wet")),
+        }
     f = min(max(float(factor), 0.2), 1.0)
     scaled = NestedParams(
         up=replace(
@@ -430,7 +464,68 @@ def damp_losses_for_wetness(
     return scaled, {
         "applied": True,
         "loss_scale_factor": f,
+        "gate": "past_aw_and_stage",
         "wetness": wet,
+    }
+
+
+def distance_weighted_blend(
+    series_list: list[list[float]],
+    distances: list[float],
+    *,
+    eps: float = 0.08,
+) -> tuple[list[float], list[float]]:
+    """Blend member hydrographs with weights ~ 1/(distance+eps)^2."""
+    if not series_list:
+        return [], []
+    if len(series_list) == 1:
+        return list(series_list[0]), [1.0]
+    raw = [1.0 / ((float(d) + eps) ** 2) for d in distances]
+    total = sum(raw) or 1.0
+    weights = [w / total for w in raw]
+    n = len(series_list[0])
+    blended = [
+        sum(weights[j] * float(series_list[j][i]) for j in range(len(series_list)))
+        for i in range(n)
+    ]
+    return blended, [round(w, 6) for w in weights]
+
+
+def revise_remaining_rise_cm(
+    remaining_model_cm: float,
+    underprediction_so_far_cm: float,
+    model_peak_rise_cm: float,
+    *,
+    k: float = 0.75,
+    cap: float = 1.35,
+) -> dict[str, Any]:
+    """Soft residual catch-up for mid-event updates (no slope-ratio blow-up).
+
+    Adds a fraction of the underprediction so far, scaled by how much of the
+    model rise is still ahead, then caps the boost.
+    """
+    rem = max(0.0, float(remaining_model_cm))
+    under = max(0.0, float(underprediction_so_far_cm))
+    peak_rise = max(float(model_peak_rise_cm), 1.0)
+    if rem <= 0.0 or under <= 0.0:
+        return {
+            "remaining_cm": round(rem, 2),
+            "factor": 1.0,
+            "boost_cm": 0.0,
+            "applied": False,
+        }
+    frac_left = rem / peak_rise
+    boosted = rem + under * frac_left * float(k)
+    capped = min(boosted, rem * float(cap))
+    return {
+        "remaining_cm": round(capped, 2),
+        "factor": round(capped / rem, 4),
+        "boost_cm": round(capped - rem, 2),
+        "applied": capped > rem + 1e-9,
+        "k": k,
+        "cap": cap,
+        "frac_left": round(frac_left, 4),
+        "underprediction_cm": round(under, 2),
     }
 
 

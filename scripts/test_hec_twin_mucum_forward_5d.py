@@ -64,10 +64,11 @@ class Forward5dTests(unittest.TestCase):
         package = fwd.build_package(_synthetic_forcing(48), allow_network=False)
         self.assertEqual(package["status"], "research_forward_5d_ready")
         lib = json.loads((OUT / "modelo_mucum_eventwise_v1_fechado_latest.json").read_text(encoding="utf-8"))
-        self.assertIn(
-            package["primary_member"]["event_id"],
-            {r["event_id"] for r in lib["params_library_eventwise"]},
-        )
+        primary_id = package["primary_member"]["event_id"]
+        lib_ids = {r["event_id"] for r in lib["params_library_eventwise"]}
+        self.assertTrue(primary_id == "BLEND" or primary_id in lib_ids)
+        self.assertEqual(package["schema_version"], "hec_twin_mucum_forward_5d_v3")
+        self.assertIn("now_index", package["quanto_sobe"])
         qs = package["quanto_sobe"]
         self.assertIn("plain_pt", qs)
         self.assertIsNotNone(qs["primary"]["rise_cm"])

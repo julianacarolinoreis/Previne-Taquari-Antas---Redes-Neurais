@@ -58,7 +58,12 @@ def regime_specialists(
             err = r.get("rise_n_rel_err")
             if aid is None or err is None:
                 continue
-            analog_scores.setdefault(aid, []).append(float(err))
+            # Expand BLEND into its top-weight donor for specialist recommendation.
+            if aid == "BLEND":
+                weights = r.get("blend_weights") or []
+                if weights:
+                    aid = max(weights, key=lambda w: float(w.get("weight") or 0.0)).get("event_id") or aid
+            analog_scores.setdefault(str(aid), []).append(float(err))
         ranked = sorted(
             (
                 {

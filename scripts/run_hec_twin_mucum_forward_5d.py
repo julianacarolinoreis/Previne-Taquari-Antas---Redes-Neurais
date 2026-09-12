@@ -144,6 +144,8 @@ def scale_params_to_observed_q0(
     precip: dict[str, list[float]],
     areas: dict[str, float],
     q0_m3s: float | None,
+    *,
+    q0_index: int = 0,
 ) -> tuple[NestedParams, dict[str, Any]]:
     return bacia.scale_params_to_q0(
         params,
@@ -152,7 +154,32 @@ def scale_params_to_observed_q0(
         q0_m3s,
         run_network=run_network,
         include_mucum_increment=True,
+        q0_index=q0_index,
     )
+
+
+def resolve_now_index(forcing: dict[str, Any], times: list[str]) -> int:
+    """Index of "now" inside a past+future forcing window (default: start)."""
+    if not times:
+        return 0
+    win = forcing.get("window") or {}
+    now_utc = win.get("now_utc") or forcing.get("now_utc")
+    if now_utc:
+        if now_utc in times:
+            return times.index(now_utc)
+        # nearest by string parse
+        def _parse(ts: str) -> datetime:
+            return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+
+        try:
+            target = _parse(str(now_utc))
+            return min(range(len(times)), key=lambda i: abs((_parse(times[i]) - target).total_seconds()))
+        except ValueError:
+            pass
+    past_h = win.get("past_hours")
+    if past_h is not None:
+        return min(max(int(past_h) - 1, 0), len(times) - 1)
+    return 0
 
 
 def mucum_curve_segments() -> list[dict[str, Any]]:
@@ -287,10 +314,35 @@ def fetch_mucum_level_now(*, allow_network: bool = True) -> dict[str, Any]:
     return {"ok": False, "stage_cm": None, "observed_at_utc": None, "source": None, "station": MUCUM_CODE, "reason": last_err}
 
 
-def member_rise(member: dict[str, Any], level_now_cm: float | None) -> dict[str, Any]:
+def member_rise(
+    member: dict[str, Any],
+    level_now_cm: float | None,
+    *,
+    now_index: int = 0,
+) -> dict[str, Any]:
     n_series = member["series"]["n_mucum_cm"]
-    n0 = n_series[0] if n_series and n_series[0] is not None else None
-    n_peak = member["peak_stage_mucum_cm"]
+    if not n_series:
+        return {
+            "n_model_t0_cm": None,
+            "n_model_peak_cm": None,
+            "rise_model_cm": None,
+            "level_now_cm": level_now_cm,
+            "peak_anchored_cm": None,
+            "n_anchored_cm": None,
+            "peak_time_utc": member.get("peak_time_utc"),
+            "now_index": now_index,
+        }
+    idx = min(max(int(now_index), 0), len(n_series) - 1)
+    n0 = n_series[idx] if n_series[idx] is not None else None
+    future = [v for v in n_series[idx:] if v is not None]
+    n_peak = max(future) if future else member.get("peak_stage_mucum_cm")
+    # peak time from future window
+    peak_time = member.get("peak_time_utc")
+    if future:
+        rel = max(range(len(n_series) - idx), key=lambda j: -1e18 if n_series[idx + j] is None else float(n_series[idx + j]))
+        times = member["series"].get("time_utc") or []
+        if times and idx + rel < len(times):
+            peak_time = times[idx + rel]
     rise_model = None if n0 is None or n_peak is None else round(float(n_peak) - float(n0), 2)
     anchored_peak = None if level_now_cm is None or rise_model is None else round(float(level_now_cm) + rise_model, 2)
     anchored_series = None
@@ -300,12 +352,13 @@ def member_rise(member: dict[str, Any], level_now_cm: float | None) -> dict[str,
         ]
     return {
         "n_model_t0_cm": n0,
-        "n_model_peak_cm": n_peak,
+        "n_model_peak_cm": None if n_peak is None else round(float(n_peak), 2),
         "rise_model_cm": rise_model,
         "level_now_cm": level_now_cm,
         "peak_anchored_cm": anchored_peak,
         "n_anchored_cm": anchored_series,
-        "peak_time_utc": member["peak_time_utc"],
+        "peak_time_utc": peak_time,
+        "now_index": idx,
     }
 
 
@@ -316,9 +369,10 @@ def build_quanto_sobe(
     rain_mm: float,
     horizon_hours: int | None,
     segments: list[dict[str, Any]],
+    now_index: int = 0,
 ) -> dict[str, Any]:
     now_cm = level_now.get("stage_cm") if level_now.get("ok") else None
-    rises = [member_rise(m, now_cm) for m in members]
+    rises = [member_rise(m, now_cm, now_index=now_index) for m in members]
     for m, r in zip(members, rises):
         m["rise"] = {k: v for k, v in r.items() if k != "n_anchored_cm"}
         if r["n_anchored_cm"] is not None:
@@ -352,12 +406,14 @@ def build_quanto_sobe(
 
     return {
         "question": "Com a chuva prevista, quanto sobe o nível em Muçum?",
-        "method": "delta_n_model_applied_to_observed_stage",
+        "method": "delta_n_from_now_index_plus_observed_stage",
         "method_note": (
-            "ΔN = N_modelo(pico) − N_modelo(t0). Se há telemetria, "
-            "N_ancorado(t) = N_obs + (N_modelo(t) − N_modelo(t0)). "
+            "ΔN = N_modelo(pico≥agora) − N_modelo(agora). Se há telemetria, "
+            "N_ancorado(t) = N_obs + (N_modelo(t) − N_modelo(agora)). "
+            "Janelas past+future usam o índice de agora (não o início do pad). "
             "Não inventa curva STZ; não mexe na RNA."
         ),
+        "now_index": now_index,
         "rain_forecast_mm_area_weighted": round(float(rain_mm), 3),
         "horizon_hours": horizon_hours,
         "level_now": level_now,
@@ -408,6 +464,7 @@ def build_package(
             raise RuntimeError(f"area missing for {sb}")
     times = list(forcing["times_utc"])
     forecast_total = float(forcing["area_weighted_mean_mm"]["total_mm"])
+    now_index = resolve_now_index(forcing, times)
 
     fingerprints = bacia.fingerprints_from_bacia_or_build(
         hec_events,
@@ -437,6 +494,7 @@ def build_package(
         forcing,
         stage_cm=stage_cm,
         stage_rising=stage_rising,
+        now_index=now_index,
     )
 
     if event_id:
@@ -464,7 +522,7 @@ def build_package(
             forecast_total,
             library,
             hec_events,
-            top_k=3,
+            top_k=5,
             fingerprints=fingerprints,
             wetness=wetness,
         )
@@ -475,8 +533,16 @@ def build_package(
     for analog in analogs:
         params = params_from_library_row(analog["row"])
         params, wet_loss_meta = bacia.damp_losses_for_wetness(params, wetness)
-        params, ic_meta = scale_params_to_observed_q0(params, precip, areas, q0)
-        ic_meta = {**ic_meta_base, **ic_meta, "wet_loss_damping": wet_loss_meta, "wetness": wetness}
+        params, ic_meta = scale_params_to_observed_q0(
+            params, precip, areas, q0, q0_index=now_index
+        )
+        ic_meta = {
+            **ic_meta_base,
+            **ic_meta,
+            "wet_loss_damping": wet_loss_meta,
+            "wetness": wetness,
+            "now_index": now_index,
+        }
         net = run_network(precip, areas, params, include_mucum_increment=True)
         q_mucum = net["at_mucum"]
         q_antas = net["at_antas"]
@@ -504,18 +570,54 @@ def build_package(
         )
 
     level_now = fetch_mucum_level_now(allow_network=allow_network)
-    # Robust primary: member closest to median rise (before anchoring text)
-    # Temporary rise from model series for ranking
-    for m in members:
-        n_series = m["series"]["n_mucum_cm"]
-        n0 = n_series[0] if n_series else None
-        npeak = m["peak_stage_mucum_cm"]
-        m["rise"] = {
-            "rise_model_cm": None if n0 is None or npeak is None else round(float(npeak) - float(n0), 2)
+
+    # Distance-weighted Q blend as consensus primary when multiple analogs.
+    analog_members = list(members)
+    blend_meta = {"applied": False}
+    if event_id is None and len(analog_members) >= 2:
+        q_lists = [m["series"]["q_mucum_m3s"] for m in analog_members]
+        distances = [float((m.get("analog") or {}).get("distance") or 0.0) for m in analog_members]
+        q_blend, weights = bacia.distance_weighted_blend(q_lists, distances)
+        stages_b = [q_to_stage_cm(q, segments) for q in q_blend]
+        # peak from now_index forward
+        peak_i = now_index + max(
+            range(len(q_blend) - now_index),
+            key=lambda j: q_blend[now_index + j],
+        )
+        blend_member = {
+            "event_id": "BLEND",
+            "analog": {
+                "event_id": "BLEND",
+                "distance": round(sum(d * w for d, w in zip(distances, weights)), 4),
+                "blend_weights": [
+                    {"event_id": m["event_id"], "weight": w, "distance": d}
+                    for m, w, d in zip(analog_members, weights, distances)
+                ],
+                "method": "distance_weighted_q_blend",
+            },
+            "params": {"note": "consensus_blend_no_single_param_set"},
+            "ic_scaling": analog_members[0].get("ic_scaling"),
+            "peak_q_mucum_m3s": round(float(q_blend[peak_i]), 3),
+            "peak_time_utc": times[peak_i] if times else None,
+            "peak_stage_mucum_cm": stages_b[peak_i].get("stage_cm") if stages_b else None,
+            "series": {
+                "time_utc": times,
+                "q_mucum_m3s": [round(float(x), 3) for x in q_blend],
+                "q_antas_m3s": analog_members[0]["series"]["q_antas_m3s"],
+                "q_stz_diagnostic_m3s": analog_members[0]["series"]["q_stz_diagnostic_m3s"],
+                "n_mucum_cm": [s.get("stage_cm") for s in stages_b],
+                "n_mucum_meta": stages_b,
+            },
         }
-    primary_idx = bacia.pick_primary_by_median_rise(members, wetness=wetness)
-    if primary_idx != 0:
-        members = [members[primary_idx]] + [m for i, m in enumerate(members) if i != primary_idx]
+        members = [blend_member] + analog_members
+        blend_meta = {"applied": True, "weights": blend_member["analog"]["blend_weights"]}
+    else:
+        for m in members:
+            rise = member_rise(m, None, now_index=now_index)
+            m["rise"] = {"rise_model_cm": rise["rise_model_cm"]}
+        primary_idx = bacia.pick_primary_by_median_rise(members, wetness=wetness)
+        if primary_idx != 0:
+            members = [members[primary_idx]] + [m for i, m in enumerate(members) if i != primary_idx]
 
     quanto_sobe = build_quanto_sobe(
         members,
@@ -523,6 +625,7 @@ def build_package(
         rain_mm=forecast_total,
         horizon_hours=forcing.get("horizon_hours"),
         segments=segments,
+        now_index=now_index,
     )
     primary = members[0]
 
@@ -541,7 +644,7 @@ def build_package(
         )
 
     return {
-        "schema_version": "hec_twin_mucum_forward_5d_v2",
+        "schema_version": "hec_twin_mucum_forward_5d_v3",
         "generated_at_utc": utc_now(),
         "status": "research_forward_5d_ready",
         "label": (
@@ -573,7 +676,7 @@ def build_package(
             "point_proxy_not_areal_mask": True,
         },
         "param_selection": {
-            "method": "analog_basin_calibrated_aw_fingerprint_wetness_v2" if event_id is None else "forced_event_id",
+            "method": "analog_basin_calibrated_aw_fingerprint_wetness_blend_v3" if event_id is None else "forced_event_id",
             "forced_event_id": event_id,
             "analogs": [{k: v for k, v in a.items() if k != "row"} for a in analogs],
             "common_search": "blocked_not_used",
@@ -581,10 +684,13 @@ def build_package(
             "basin_calibration": {
                 "artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
                 "rain_fingerprint": "area_weighted_full_window_mm",
-                "ic_scaling": "observed_stage_to_q0_via_mucum_rating",
-                "wet_loss_damping": True,
+                "ic_scaling": "observed_stage_to_q_at_now_index_via_mucum_rating",
+                "now_index": now_index,
+                "wet_loss_damping": "strict_past_and_stage",
                 "light_specialists": ["E30"],
-                "primary_rule": "median_rise_member_or_wet_upper",
+                "primary_rule": "distance_weighted_q_blend_top5" if event_id is None else "forced_event",
+                "blend": blend_meta,
+                "top_k": 5 if event_id is None else 1,
             },
         },
         "primary_member": {

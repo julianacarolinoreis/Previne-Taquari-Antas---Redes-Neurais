@@ -71,6 +71,39 @@ class BasinCalibrationTests(unittest.TestCase):
         idx = bacia.pick_primary_by_median_rise(members, wetness=wet)
         self.assertEqual(members[idx]["event_id"], "E23")
 
+    def test_strict_damp_and_blend_helpers(self) -> None:
+        import hec_twin_mucum_bacia_calibracao as bacia
+        from hec_twin_nested_v17 import NestedParams, ZoneParams
+
+        soft_only = bacia.infer_wetness_state(
+            forecast_aw_mm=40.0, past_aw_mm=25.0, stage_cm=200.0, stage_rising=False
+        )
+        self.assertTrue(soft_only["is_wet"])
+        self.assertFalse(bacia.should_damp_losses(soft_only))
+
+        strict = bacia.infer_wetness_state(
+            forecast_aw_mm=33.0, past_aw_mm=29.0, stage_cm=425.0, stage_rising=True
+        )
+        self.assertTrue(bacia.should_damp_losses(strict))
+
+        params = NestedParams(
+            up=ZoneParams(1.0, 2.0, 10.0, 20.0, 0.8, 0.01),
+            dn=ZoneParams(1.0, 2.0, 10.0, 20.0, 0.8, 0.01),
+            k1=0.2, k2=1.0, k3=0.5, x=0.2,
+        )
+        damp, meta = bacia.damp_losses_for_wetness(params, strict, factor=0.5)
+        self.assertTrue(meta["applied"])
+        self.assertAlmostEqual(damp.up.initial_loss, 0.5)
+
+        blend, weights = bacia.distance_weighted_blend([[1.0, 3.0], [3.0, 5.0]], [0.1, 0.5])
+        self.assertEqual(len(blend), 2)
+        self.assertAlmostEqual(sum(weights), 1.0, places=5)
+        self.assertLess(blend[0], 3.0)
+
+        rev = bacia.revise_remaining_rise_cm(80.0, 140.0, 280.0)
+        self.assertTrue(rev["applied"])
+        self.assertLessEqual(rev["remaining_cm"], 80.0 * 1.35 + 1e-6)
+
     def test_bacia_artifact_exists_with_regimes(self) -> None:
         path = OUT / "modelo_mucum_bacia_calibrado_v1_latest.json"
         self.assertTrue(path.exists())

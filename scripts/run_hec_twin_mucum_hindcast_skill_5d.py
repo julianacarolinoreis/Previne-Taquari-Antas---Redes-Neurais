@@ -62,23 +62,25 @@ def area_weighted_rain_mm(precip: dict[str, list[float]], areas: dict[str, float
     return acc / total_area
 
 
-def pick_loo_analog(
+def pick_loo_analogs(
     target_event_id: str,
     forecast_rain_mm: float,
     library: list[dict[str, Any]],
     hec_events: list[dict[str, Any]],
     *,
     fingerprints: dict[str, dict[str, Any]] | None = None,
-) -> dict[str, Any] | None:
-    scored = fwd.choose_analogs(
+    wetness: dict[str, Any] | None = None,
+    top_k: int = 5,
+) -> list[dict[str, Any]]:
+    return fwd.choose_analogs(
         forecast_rain_mm,
         library,
         hec_events,
-        top_k=1,
+        top_k=top_k,
         fingerprints=fingerprints,
         exclude_event_ids={target_event_id},
+        wetness=wetness,
     )
-    return scored[0] if scored else None
 
 
 def score_event(
@@ -104,16 +106,59 @@ def score_event(
         }
 
     rain_mm = area_weighted_rain_mm(precip, areas)
-    analog = pick_loo_analog(event_id, rain_mm, library, hec_events, fingerprints=fingerprints)
-    if analog is None:
-        return {"event_id": event_id, "status": "blocked_no_analog", "rain_mm_aw": rain_mm}
+    past_mm = 0.0
+    if core_offset > 0:
+        past_precip = {sb: series[:core_offset] for sb, series in precip.items()}
+        past_mm = area_weighted_rain_mm(past_precip, areas)
 
-    params = fwd.params_from_library_row(analog["row"])
     q0_candidates = [float(flow[h]) for h in core_hours if h in flow]
     q0 = q0_candidates[0] if q0_candidates else None
-    params, ic_meta = fwd.scale_params_to_observed_q0(params, precip, areas, q0)
-    net = cal.run_network(precip, areas, params, include_mucum_increment=True)
-    q_sim = net["at_mucum"]
+    stage_cm = None
+    if q0 is not None:
+        stage_cm = fwd.q_to_stage_cm(q0, segments).get("stage_cm")
+
+    wetness = bacia.infer_wetness_state(
+        forecast_aw_mm=rain_mm,
+        past_aw_mm=past_mm,
+        stage_cm=stage_cm,
+        stage_rising=True if (stage_cm or 0) >= bacia.WET_STAGE_CM else None,
+    )
+
+    analogs = pick_loo_analogs(
+        event_id,
+        rain_mm,
+        library,
+        hec_events,
+        fingerprints=fingerprints,
+        wetness=wetness,
+        top_k=5,
+    )
+    if not analogs:
+        return {"event_id": event_id, "status": "blocked_no_analog", "rain_mm_aw": rain_mm}
+
+    member_qs: list[list[float]] = []
+    distances: list[float] = []
+    ic_metas: list[dict[str, Any]] = []
+    for analog in analogs:
+        params = fwd.params_from_library_row(analog["row"])
+        params, _wet_meta = bacia.damp_losses_for_wetness(params, wetness)
+        params, ic_meta = fwd.scale_params_to_observed_q0(
+            params, precip, areas, q0, q0_index=int(core_offset or 0)
+        )
+        net = cal.run_network(precip, areas, params, include_mucum_increment=True)
+        member_qs.append(net["at_mucum"])
+        distances.append(float(analog.get("distance") or 0.0))
+        ic_metas.append(ic_meta)
+
+    if len(member_qs) == 1:
+        q_sim = member_qs[0]
+        analog_id = analogs[0]["event_id"]
+        blend_weights = [1.0]
+        ic_meta = ic_metas[0]
+    else:
+        q_sim, blend_weights = bacia.distance_weighted_blend(member_qs, distances)
+        analog_id = "BLEND"
+        ic_meta = ic_metas[0]
 
     # Align observed flow on core window timestamps
     obs_map = {h: flow[h] for h in core_hours if h in flow}
@@ -130,9 +175,9 @@ def score_event(
             "event_id": event_id,
             "status": "blocked_obs",
             "rain_mm_aw": round(rain_mm, 3),
-            "analog_event_id": analog["event_id"],
-        "analog_distance": analog.get("distance"),
-        "ic_scaling": ic_meta,
+            "analog_event_id": analog_id,
+            "analog_distance": round(sum(d * w for d, w in zip(distances, blend_weights)), 4),
+            "ic_scaling": ic_meta,
             "reason": "insufficient_observed_q_pairs",
         }
 
@@ -182,8 +227,14 @@ def score_event(
         "event_id": event_id,
         "status": "scored",
         "rain_mm_aw": round(rain_mm, 3),
-        "analog_event_id": analog["event_id"],
-        "analog_abs_mm_gap": analog.get("abs_mm_gap"),
+        "analog_event_id": analog_id,
+        "analog_members": [a["event_id"] for a in analogs],
+        "analog_abs_mm_gap": analogs[0].get("abs_mm_gap"),
+        "blend_weights": [
+            {"event_id": a["event_id"], "weight": round(w, 4), "distance": round(float(a.get("distance") or 0), 4)}
+            for a, w in zip(analogs, blend_weights)
+        ],
+        "wetness": wetness,
         "pad_hours": pad,
         "pairs": len(paired_obs),
         "nse_loo": round(nse, 4),
@@ -200,6 +251,7 @@ def score_event(
         "rise_n_rel_err": round(rise_n_rel_err, 4) if rise_n_rel_err == rise_n_rel_err else None,
         "obs_n_t0_cm": round(float(obs_n0), 2) if obs_n0 == obs_n0 else None,
         "sim_n_t0_cm": round(float(sim_n0), 2) if sim_n0 == sim_n0 else None,
+        "ic_scaling": ic_meta,
     }
 
 
@@ -409,7 +461,7 @@ def main() -> None:
     summary = summarize(rows)
     verdict = build_verdict(summary)
     payload = {
-        "schema_version": "hec_twin_mucum_hindcast_skill_5d_v1",
+        "schema_version": "hec_twin_mucum_hindcast_skill_5d_v3",
         "generated_at_utc": utc_now(),
         "status": "research_hindcast_skill_ready",
         "purpose": (
@@ -418,8 +470,9 @@ def main() -> None:
         ),
         "method": {
             "forcing": "observed_event_rain_as_qpf_proxy",
-            "params": "leave_one_out_basin_calibrated_aw_fingerprint_v1",
-            "ic_scaling": "observed_q0_scale_initial_flow_ratio",
+            "params": "leave_one_out_top5_distance_blend_wetness_v3",
+            "ic_scaling": "observed_q0_at_core_start_scale_initial_flow_ratio",
+            "wet_loss_damping": "strict_past_and_stage",
             "stage": "Q_to_N_via_mucum_official_rating_curve",
             "not": ["rna", "stz_n", "official_alert"],
         },
