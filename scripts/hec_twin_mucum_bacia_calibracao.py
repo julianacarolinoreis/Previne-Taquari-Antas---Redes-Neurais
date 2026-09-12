@@ -474,21 +474,77 @@ def distance_weighted_blend(
     distances: list[float],
     *,
     eps: float = 0.08,
+    rises_cm: list[float] | None = None,
+    mode: str = "distance",
+    wet_bias_power: float = 1.5,
 ) -> tuple[list[float], list[float]]:
-    """Blend member hydrographs with weights ~ 1/(distance+eps)^2."""
+    """Blend member hydrographs with shared weight rules (see ``compute_blend_weights``)."""
     if not series_list:
         return [], []
-    if len(series_list) == 1:
-        return list(series_list[0]), [1.0]
-    raw = [1.0 / ((float(d) + eps) ** 2) for d in distances]
+    weights = compute_blend_weights(
+        distances,
+        rises_cm=rises_cm,
+        mode=mode,
+        wet_bias_power=wet_bias_power,
+        eps=eps,
+    )
+    blended = blend_series_with_weights(series_list, weights)
+    return blended, [round(w, 6) for w in weights]
+
+
+def choose_blend_mode(wetness: dict[str, Any] | None) -> str:
+    """Use wet-biased blend only under the strict wet gate (past rain AND stage)."""
+    return "wet_bias" if should_damp_losses(wetness) else "distance"
+
+
+def compute_blend_weights(
+    distances: list[float],
+    *,
+    rises_cm: list[float] | None = None,
+    mode: str = "distance",
+    wet_bias_power: float = 1.5,
+    eps: float = 0.08,
+) -> list[float]:
+    """Normalized blend weights (shared by Q and N blending)."""
+    if not distances:
+        return []
+    if len(distances) == 1:
+        return [1.0]
+    mode = (mode or "distance").lower()
+    rises = list(rises_cm) if rises_cm is not None else [1.0] * len(distances)
+    if len(rises) != len(distances):
+        rises = [1.0] * len(distances)
+    raw: list[float] = []
+    if mode == "upper_half":
+        med = median([float(r) for r in rises])
+        for d, r in zip(distances, rises):
+            base = 1.0 / ((float(d) + eps) ** 2)
+            raw.append(base if float(r) >= med - 1e-9 else 0.0)
+        if sum(raw) <= 0:
+            raw = [1.0 / ((float(d) + eps) ** 2) for d in distances]
+    elif mode == "wet_bias":
+        pwr = float(wet_bias_power)
+        for d, r in zip(distances, rises):
+            raw.append((1.0 / ((float(d) + eps) ** 2)) * (max(float(r), 1.0) ** pwr))
+    else:
+        raw = [1.0 / ((float(d) + eps) ** 2) for d in distances]
     total = sum(raw) or 1.0
-    weights = [w / total for w in raw]
+    return [w / total for w in raw]
+
+
+def blend_series_with_weights(
+    series_list: list[list[float]],
+    weights: list[float],
+) -> list[float]:
+    if not series_list:
+        return []
+    if len(series_list) == 1:
+        return list(series_list[0])
     n = len(series_list[0])
-    blended = [
-        sum(weights[j] * float(series_list[j][i]) for j in range(len(series_list)))
+    return [
+        sum(float(weights[j]) * float(series_list[j][i]) for j in range(len(series_list)))
         for i in range(n)
     ]
-    return blended, [round(w, 6) for w in weights]
 
 
 def revise_remaining_rise_cm(

@@ -334,6 +334,36 @@ def member_rise(
         }
     idx = min(max(int(now_index), 0), len(n_series) - 1)
     n0 = n_series[idx] if n_series[idx] is not None else None
+    # Prefer explicit rise blend magnitude (wet-bias consensus) when present.
+    if member.get("rise_blend_cm") is not None and n0 is not None:
+        rise_model = round(float(member["rise_blend_cm"]), 2)
+        n_peak = round(float(n0) + rise_model, 2)
+        peak_time = member.get("peak_time_utc")
+        anchored_peak = None if level_now_cm is None else round(float(level_now_cm) + rise_model, 2)
+        anchored_series = None
+        if level_now_cm is not None:
+            # Scale series shape to the blended rise magnitude.
+            future_vals = [v for v in n_series[idx:] if v is not None]
+            shape_rise = (max(future_vals) - float(n0)) if future_vals else 0.0
+            scale = (rise_model / shape_rise) if shape_rise > 1e-6 else 1.0
+            anchored_series = []
+            for i, v in enumerate(n_series):
+                if v is None:
+                    anchored_series.append(None)
+                else:
+                    delta = (float(v) - float(n0)) * scale
+                    anchored_series.append(round(float(level_now_cm) + delta, 2))
+        return {
+            "n_model_t0_cm": n0,
+            "n_model_peak_cm": n_peak,
+            "rise_model_cm": rise_model,
+            "level_now_cm": level_now_cm,
+            "peak_anchored_cm": anchored_peak,
+            "n_anchored_cm": anchored_series,
+            "peak_time_utc": peak_time,
+            "now_index": idx,
+            "peak_from": member.get("peak_from") or "rise_blend_cm",
+        }
     future = [v for v in n_series[idx:] if v is not None]
     n_peak = max(future) if future else member.get("peak_stage_mucum_cm")
     # peak time from future window
@@ -577,12 +607,36 @@ def build_package(
     if event_id is None and len(analog_members) >= 2:
         q_lists = [m["series"]["q_mucum_m3s"] for m in analog_members]
         distances = [float((m.get("analog") or {}).get("distance") or 0.0) for m in analog_members]
-        q_blend, weights = bacia.distance_weighted_blend(q_lists, distances)
-        stages_b = [q_to_stage_cm(q, segments) for q in q_blend]
-        # peak from now_index forward
+        # Rise from now_index for wet-biased weighting under strict wet gate.
+        rises_for_blend: list[float] = []
+        for m in analog_members:
+            n_ser = m["series"]["n_mucum_cm"]
+            n0 = n_ser[now_index] if now_index < len(n_ser) else None
+            fut = [v for v in n_ser[now_index:] if v is not None]
+            if n0 is None or not fut:
+                rises_for_blend.append(0.0)
+            else:
+                rises_for_blend.append(float(max(fut)) - float(n0))
+        blend_mode = bacia.choose_blend_mode(wetness)
+        weights = bacia.compute_blend_weights(
+            distances,
+            rises_cm=rises_for_blend,
+            mode=blend_mode,
+            wet_bias_power=1.5,
+        )
+        # Blend Q for discharge series; blend N with SAME weights for ΔN product
+        # (rating curve is nonlinear — Q-blend understates peak stage).
+        q_blend = bacia.blend_series_with_weights(q_lists, weights)
+        n_lists = [m["series"]["n_mucum_cm"] for m in analog_members]
+        n_blend = bacia.blend_series_with_weights(n_lists, weights)
+        stages_b = [
+            {"stage_cm": None if v is None else round(float(v), 2), "ok": v is not None, "source": "n_blend"}
+            for v in n_blend
+        ]
+        # peak from now_index forward on blended stage
         peak_i = now_index + max(
-            range(len(q_blend) - now_index),
-            key=lambda j: q_blend[now_index + j],
+            range(len(n_blend) - now_index),
+            key=lambda j: -1e18 if n_blend[now_index + j] is None else float(n_blend[now_index + j]),
         )
         blend_member = {
             "event_id": "BLEND",
@@ -590,10 +644,11 @@ def build_package(
                 "event_id": "BLEND",
                 "distance": round(sum(d * w for d, w in zip(distances, weights)), 4),
                 "blend_weights": [
-                    {"event_id": m["event_id"], "weight": w, "distance": d}
+                    {"event_id": m["event_id"], "weight": round(float(w), 6), "distance": d}
                     for m, w, d in zip(analog_members, weights, distances)
                 ],
-                "method": "distance_weighted_q_blend",
+                "method": f"{blend_mode}_weighted_q_blend",
+                "blend_mode": blend_mode,
             },
             "params": {"note": "consensus_blend_no_single_param_set"},
             "ic_scaling": analog_members[0].get("ic_scaling"),
@@ -609,8 +664,25 @@ def build_package(
                 "n_mucum_meta": stages_b,
             },
         }
+        # Peak-of-blended-hydrograph understates magnitude when member peaks are
+        # asynchronous. For "quanto sobe", use weighted mean of member rises.
+        rise_blend = sum(float(w) * float(r) for w, r in zip(weights, rises_for_blend))
+        blend_member["peak_stage_mucum_cm"] = round(
+            float(n_blend[now_index]) + float(rise_blend), 2
+        ) if n_blend[now_index] is not None else blend_member["peak_stage_mucum_cm"]
+        # Keep hydrograph shape from N-blend, but record rise-blend magnitude.
+        blend_member["rise_blend_cm"] = round(float(rise_blend), 2)
+        blend_member["peak_from"] = "weighted_member_rises"
         members = [blend_member] + analog_members
-        blend_meta = {"applied": True, "weights": blend_member["analog"]["blend_weights"]}
+        blend_meta = {
+            "applied": True,
+            "mode": blend_mode,
+            "wet_bias_power": 1.5 if blend_mode == "wet_bias" else None,
+            "weights": blend_member["analog"]["blend_weights"],
+            "member_rises_cm": [round(r, 2) for r in rises_for_blend],
+            "rise_blend_cm": round(float(rise_blend), 2),
+            "note": "primary_rise_uses_weighted_member_rises_not_peak_of_blended_hydrograph",
+        }
     else:
         for m in members:
             rise = member_rise(m, None, now_index=now_index)
@@ -644,7 +716,7 @@ def build_package(
         )
 
     return {
-        "schema_version": "hec_twin_mucum_forward_5d_v3",
+        "schema_version": "hec_twin_mucum_forward_5d_v4",
         "generated_at_utc": utc_now(),
         "status": "research_forward_5d_ready",
         "label": (
@@ -676,7 +748,7 @@ def build_package(
             "point_proxy_not_areal_mask": True,
         },
         "param_selection": {
-            "method": "analog_basin_calibrated_aw_fingerprint_wetness_blend_v3" if event_id is None else "forced_event_id",
+            "method": "analog_basin_calibrated_aw_fingerprint_wetness_blend_v4" if event_id is None else "forced_event_id",
             "forced_event_id": event_id,
             "analogs": [{k: v for k, v in a.items() if k != "row"} for a in analogs],
             "common_search": "blocked_not_used",
@@ -688,7 +760,7 @@ def build_package(
                 "now_index": now_index,
                 "wet_loss_damping": "strict_past_and_stage",
                 "light_specialists": ["E30"],
-                "primary_rule": "distance_weighted_q_blend_top5" if event_id is None else "forced_event",
+                "primary_rule": "wet_bias_or_distance_q_blend_top5" if event_id is None else "forced_event",
                 "blend": blend_meta,
                 "top_k": 5 if event_id is None else 1,
             },

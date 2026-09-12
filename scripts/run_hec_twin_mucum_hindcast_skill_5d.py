@@ -139,6 +139,7 @@ def score_event(
     member_qs: list[list[float]] = []
     distances: list[float] = []
     ic_metas: list[dict[str, Any]] = []
+    member_rises: list[float] = []
     for analog in analogs:
         params = fwd.params_from_library_row(analog["row"])
         params, _wet_meta = bacia.damp_losses_for_wetness(params, wetness)
@@ -146,19 +147,36 @@ def score_event(
             params, precip, areas, q0, q0_index=int(core_offset or 0)
         )
         net = cal.run_network(precip, areas, params, include_mucum_increment=True)
-        member_qs.append(net["at_mucum"])
+        q = net["at_mucum"]
+        member_qs.append(q)
         distances.append(float(analog.get("distance") or 0.0))
         ic_metas.append(ic_meta)
+        # core-window rise for wet-bias weights
+        sim_core = q[core_offset : core_offset + len(core_hours)]
+        paired = [float(sim_core[i]) for i, h in enumerate(core_hours) if h in flow and i < len(sim_core)]
+        sn = [fwd.q_to_stage_cm(x, segments).get("stage_cm") for x in paired]
+        sn = [v for v in sn if v is not None]
+        member_rises.append((max(sn) - sn[0]) if sn else 0.0)
 
+    blend_mode = bacia.choose_blend_mode(wetness)
     if len(member_qs) == 1:
         q_sim = member_qs[0]
         analog_id = analogs[0]["event_id"]
         blend_weights = [1.0]
         ic_meta = ic_metas[0]
+        sim_rise_override = None
     else:
-        q_sim, blend_weights = bacia.distance_weighted_blend(member_qs, distances)
+        blend_weights = bacia.compute_blend_weights(
+            distances,
+            rises_cm=member_rises,
+            mode=blend_mode,
+            wet_bias_power=1.5,
+        )
+        q_sim = bacia.blend_series_with_weights(member_qs, blend_weights)
         analog_id = "BLEND"
         ic_meta = ic_metas[0]
+        # Primary ΔN uses weighted member rises (same as forward product).
+        sim_rise_override = sum(float(w) * float(r) for w, r in zip(blend_weights, member_rises))
 
     # Align observed flow on core window timestamps
     obs_map = {h: flow[h] for h in core_hours if h in flow}
@@ -198,6 +216,8 @@ def score_event(
         sim_n_peak = max(s for _, s in obs_n_valid)
         obs_rise_n = float(obs_n_peak) - float(obs_n0)
         sim_rise_n = float(sim_n_peak) - float(sim_n0)
+        if sim_rise_override is not None:
+            sim_rise_n = float(sim_rise_override)
     else:
         obs_n0 = sim_n0 = obs_n_peak = sim_n_peak = obs_rise_n = sim_rise_n = float("nan")
 
@@ -461,7 +481,7 @@ def main() -> None:
     summary = summarize(rows)
     verdict = build_verdict(summary)
     payload = {
-        "schema_version": "hec_twin_mucum_hindcast_skill_5d_v3",
+        "schema_version": "hec_twin_mucum_hindcast_skill_5d_v4",
         "generated_at_utc": utc_now(),
         "status": "research_hindcast_skill_ready",
         "purpose": (
@@ -470,7 +490,7 @@ def main() -> None:
         ),
         "method": {
             "forcing": "observed_event_rain_as_qpf_proxy",
-            "params": "leave_one_out_top5_distance_blend_wetness_v3",
+            "params": "leave_one_out_top5_wet_bias_blend_v4",
             "ic_scaling": "observed_q0_at_core_start_scale_initial_flow_ratio",
             "wet_loss_damping": "strict_past_and_stage",
             "stage": "Q_to_N_via_mucum_official_rating_curve",

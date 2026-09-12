@@ -78,7 +78,7 @@ class HindcastSkill5dTests(unittest.TestCase):
             )
             self.assertIn("wrote", proc.stdout)
             data = json.loads((out / "hec_twin_mucum_hindcast_skill_5d_latest.json").read_text(encoding="utf-8"))
-            self.assertEqual(data["schema_version"], "hec_twin_mucum_hindcast_skill_5d_v3")
+            self.assertEqual(data["schema_version"], "hec_twin_mucum_hindcast_skill_5d_v4")
             self.assertGreaterEqual(data["summary"]["n_scored"], 1)
             self.assertIn("plain_pt", data["verdict"])
             html = (out / "hec_twin_mucum_hindcast_skill_5d.html").read_text(encoding="utf-8")

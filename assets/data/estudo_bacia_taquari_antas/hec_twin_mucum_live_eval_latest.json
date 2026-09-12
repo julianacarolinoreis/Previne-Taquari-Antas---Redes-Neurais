@@ -1,6 +1,6 @@
 {
   "schema_version": "hec_twin_mucum_live_eval_v5_nowindex_blend",
-  "generated_at_utc": "2026-09-12T15:59:49Z",
+  "generated_at_utc": "2026-09-12T21:57:10Z",
   "status": "research_live_eval_replay_ready",
   "label_pt": "Replay ao vivo com now-index + blend — Muçum",
   "observations": {
@@ -12,11 +12,11 @@
       "station": "86510000"
     },
     "latest_ana": {
-      "stage_cm": 654.0,
-      "observed_at_utc": "2026-09-12T15:30:00Z",
-      "rise_from_anchor_cm": 229.0,
-      "peak_so_far_cm": 654.0,
-      "peak_so_far_at_utc": "2026-09-12T15:30:00Z"
+      "stage_cm": 676.0,
+      "observed_at_utc": "2026-09-12T21:30:00Z",
+      "rise_from_anchor_cm": 251.0,
+      "peak_so_far_cm": 680.0,
+      "peak_so_far_at_utc": "2026-09-12T19:30:00Z"
     }
   },
   "rain_ifs": {
@@ -25,7 +25,7 @@
     "window_total_mm": 33.264
   },
   "param_selection": {
-    "method": "analog_basin_calibrated_aw_fingerprint_wetness_blend_v3",
+    "method": "analog_basin_calibrated_aw_fingerprint_wetness_blend_v4",
     "forced_event_id": null,
     "analogs": [
       {
@@ -223,36 +223,47 @@
       "light_specialists": [
         "E30"
       ],
-      "primary_rule": "distance_weighted_q_blend_top5",
+      "primary_rule": "wet_bias_or_distance_q_blend_top5",
       "blend": {
         "applied": true,
+        "mode": "wet_bias",
+        "wet_bias_power": 1.5,
         "weights": [
           {
             "event_id": "E23",
-            "weight": 0.441309,
+            "weight": 0.630413,
             "distance": 0.368
           },
           {
             "event_id": "E20",
-            "weight": 0.20532,
+            "weight": 0.166397,
             "distance": 0.5768
           },
           {
             "event_id": "E25",
-            "weight": 0.204014,
+            "weight": 0.120924,
             "distance": 0.5789
           },
           {
             "event_id": "E24",
-            "weight": 0.079262,
+            "weight": 0.051733,
             "distance": 0.9771
           },
           {
             "event_id": "E21",
-            "weight": 0.070095,
+            "weight": 0.030533,
             "distance": 1.0441
           }
-        ]
+        ],
+        "member_rises_cm": [
+          296.42,
+          203.14,
+          164.9,
+          175.84,
+          134.29
+        ],
+        "rise_blend_cm": 253.81,
+        "note": "primary_rise_uses_weighted_member_rises_not_peak_of_blended_hydrograph"
       },
       "top_k": 5
     }
@@ -260,24 +271,24 @@
   "answer_from_anchor": {
     "question_pt": "A partir do nível na âncora, quanto sobe?",
     "method": "now_index_ic_plus_distance_weighted_blend_v3",
-    "plain_pt": "Com ~33.3 mm de chuva prevista em 120 h e nível atual 425 cm em Muçum, o gêmeo HEC indica subida de ~224 cm (banda 134–296 cm), pico ancorado ~649 cm em 2026-09-12T21:00:00Z.",
+    "plain_pt": "Com ~33.3 mm de chuva prevista em 120 h e nível atual 425 cm em Muçum, o gêmeo HEC indica subida de ~254 cm (banda 134–296 cm), pico ancorado ~679 cm em 2026-09-12T22:00:00Z.",
     "primary": {
       "event_id": "BLEND",
-      "rise_cm": 223.62,
-      "peak_time_utc": "2026-09-12T21:00:00Z",
-      "peak_anchored_cm": 648.62,
-      "n_model_t0_cm": 316.98,
-      "n_model_peak_cm": 540.6
+      "rise_cm": 253.81,
+      "peak_time_utc": "2026-09-12T22:00:00Z",
+      "peak_anchored_cm": 678.81,
+      "n_model_t0_cm": 315.65,
+      "n_model_peak_cm": 569.46
     },
     "ensemble_rise_cm": {
       "min": 134.29,
-      "primary": 223.62,
+      "primary": 253.81,
       "max": 296.42,
       "by_event": [
         {
           "event_id": "BLEND",
-          "rise_cm": 223.62,
-          "peak_anchored_cm": 648.62
+          "rise_cm": 253.81,
+          "peak_anchored_cm": 678.81
         },
         {
           "event_id": "E23",
@@ -309,42 +320,42 @@
   },
   "answer_from_latest_obs": {
     "applied": true,
-    "obs_index": 60,
-    "obs_time_utc": "2026-09-12T15:00:00Z",
-    "n_model_at_obs_cm": 506.93,
-    "n_model_peak_cm": 540.6,
-    "remaining_model_cm": 33.67,
-    "underprediction_cm": 147.07,
+    "obs_index": 66,
+    "obs_time_utc": "2026-09-12T21:00:00Z",
+    "n_model_at_obs_cm": 552.75,
+    "n_model_peak_cm": 554.69,
+    "remaining_model_cm": 1.94,
+    "underprediction_cm": 123.25,
     "revision": {
-      "remaining_cm": 45.45,
+      "remaining_cm": 2.62,
       "factor": 1.35,
-      "boost_cm": 11.78,
+      "boost_cm": 0.68,
       "applied": true,
       "k": 0.75,
       "cap": 1.35,
-      "frac_left": 0.1506,
-      "underprediction_cm": 147.07
+      "frac_left": 0.0081,
+      "underprediction_cm": 123.25
     },
-    "peak_reanchored_cm": 699.45,
-    "rise_from_obs_cm": 45.45,
-    "peak_time_utc": "2026-09-12T21:00:00Z"
+    "peak_reanchored_cm": 678.62,
+    "rise_from_obs_cm": 2.62,
+    "peak_time_utc": "2026-09-12T22:00:00Z"
   },
   "verification": {
-    "verdict_level": "partial_hit_band_primary_low",
-    "plain_pt": "Calibração v3: primary BLEND ΔN≈224 (pico≈649). Obs 654 (+229) na banda, mas já acima do primary. Atualização no meio do evento (obs 654): ainda ~45 cm (pico revisto ~699).",
+    "verdict_level": "hit_band_and_primary_so_far",
+    "plain_pt": "Calibração v3 (now-index+blend): primary BLEND ΔN≈254 cm (pico≈679). Obs 676 cm (+251) dentro da banda 134–296 e ainda sob o pico primary. Atualização no meio do evento (obs 676): ainda ~3 cm (pico revisto ~679).",
     "old_primary_peak_cm": 568.0,
-    "new_primary_peak_cm": 648.62,
-    "mid_event_peak_cm": 699.45,
-    "obs_latest_cm": 654.0,
-    "old_error_cm": 86.0,
-    "new_error_cm": 5.38,
-    "mid_event_error_cm": -45.45,
+    "new_primary_peak_cm": 678.81,
+    "mid_event_peak_cm": 678.62,
+    "obs_latest_cm": 676.0,
+    "old_error_cm": 108.0,
+    "new_error_cm": -2.81,
+    "mid_event_error_cm": -2.62,
     "improved_vs_old": true,
     "rise_within_band": true,
-    "above_primary_peak": true
+    "above_primary_peak": false
   },
-  "interpretation_pt": "Calibração v3: primary BLEND ΔN≈224 (pico≈649). Obs 654 (+229) na banda, mas já acima do primary. Atualização no meio do evento (obs 654): ainda ~45 cm (pico revisto ~699).",
-  "plain_pt": "Calibração v3: primary BLEND ΔN≈224 (pico≈649). Obs 654 (+229) na banda, mas já acima do primary. Atualização no meio do evento (obs 654): ainda ~45 cm (pico revisto ~699).",
+  "interpretation_pt": "Calibração v3 (now-index+blend): primary BLEND ΔN≈254 cm (pico≈679). Obs 676 cm (+251) dentro da banda 134–296 e ainda sob o pico primary. Atualização no meio do evento (obs 676): ainda ~3 cm (pico revisto ~679).",
+  "plain_pt": "Calibração v3 (now-index+blend): primary BLEND ΔN≈254 cm (pico≈679). Obs 676 cm (+251) dentro da banda 134–296 e ainda sob o pico primary. Atualização no meio do evento (obs 676): ainda ~3 cm (pico revisto ~679).",
   "discipline": {
     "not_official_alert": true,
     "rna_untouched": true,
