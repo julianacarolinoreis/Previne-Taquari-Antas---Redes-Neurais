@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<title>HEC · quanto sobe Muçum (~5d)</title>
+<style>
+:root { --ink:#14231c; --muted:#4d6358; --card:#f7fbf8; --ok:#1f6b4a; --warn:#8a5a12; }
+body { margin:0; font-family:"Source Serif 4",Georgia,serif; color:var(--ink);
+  background:radial-gradient(900px 500px at 0% 0%, #cfe0d4, transparent), linear-gradient(160deg,#d9e6de,#f2f6f3); }
+main { max-width:960px; margin:0 auto; padding:2rem 1.1rem 3rem; }
+h1 { font-size:clamp(1.5rem,3vw,2.1rem); margin:0 0 .4rem; }
+.lead { color:var(--muted); }
+.pill { display:inline-block; padding:.2rem .65rem; border:1px solid #9bb8a8; color:var(--ok); font-size:.85rem; }
+.notice { padding:.85rem 1rem; margin:1rem 0; background:#e3f0e8; border-left:4px solid var(--ok); }
+.notice.warn { background:#f5ecda; border-left-color:var(--warn); }
+.hero { font-size:1.35rem; line-height:1.45; }
+section { margin-top:1.5rem; border-top:1px solid #c5d5cc; padding-top:1rem; }
+table { width:100%; border-collapse:collapse; background:var(--card); font-size:.92rem; }
+th,td { text-align:left; padding:.4rem .5rem; border-bottom:1px solid #d5e0da; }
+th { color:var(--muted); font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; }
+code { font-family:ui-monospace,monospace; font-size:.86em; }
+</style>
+</head>
+<body>
+<main>
+<p class="pill">research_forward_5d_ready</p>
+<h1>Com a chuva prevista, quanto sobe Muçum?</h1>
+<p class="lead">Responder quanto o nível sobe em Muçum dado a chuva prevista. RNA permanece no curto prazo e não é alterada aqui.</p>
+<div class="notice warn"><strong>PESQUISA — com a chuva prevista, quanto sobe Muçum (~5 dias, gêmeo HEC + IFS). NÃO é alerta oficial.</strong></div>
+<div class="notice hero"><strong>Resposta:</strong> Com ~5.5 mm de chuva prevista em 120 h e nível atual 299 cm em Muçum, o gêmeo HEC indica subida de ~0 cm (banda 0–0 cm), pico ancorado ~299 cm em 2026-09-12T00:00:00Z.</div>
+<div class="notice">
+  <strong>Números:</strong> chuva IFS ~5.5 mm / 120 h
+  · ΔN principal <strong>0.0</strong> cm
+  · banda 0.0–0.0 cm
+  · pico ancorado <strong>299.0</strong> cm
+  · análogo <code>BLEND</code>
+  · em 2026-09-12T00:00:00Z
+</div>
+<section>
+<h2>Método (honesto)</h2>
+<ul>
+<li>Chuva prevista (IFS) → gêmeo HEC eventwise → Q Muçum → curva-chave → N.</li>
+<li>ΔN = N_modelo(pico) − N_modelo(início); se há telemetria, ancora no nível atual.</li>
+<li>RNA não é alterada. Santa Tereza sem curva: só Q diagnóstico.</li>
+</ul>
+</section>
+<section>
+<h2>Ensemble de análogos (top 3)</h2>
+<ul><li><code>BLEND</code> — sobe 0.0 cm · pico ancorado 299.0 cm · Q 152.909 m³/s · gap chuva None mm</li><li><code>E25</code> — sobe 0.0 cm · pico ancorado 299.0 cm · Q 110.292 m³/s · gap chuva 43.265 mm</li><li><code>E20</code> — sobe 0.0 cm · pico ancorado 299.0 cm · Q 237.647 m³/s · gap chuva 71.211 mm</li><li><code>E28</code> — sobe 0.0 cm · pico ancorado 299.0 cm · Q 140.757 m³/s · gap chuva 184.516 mm</li><li><code>E27</code> — sobe 0.0 cm · pico ancorado 299.0 cm · Q 79.826 m³/s · gap chuva 593.724 mm</li><li><code>E23</code> — sobe 0.0 cm · pico ancorado 299.0 cm · Q 176.812 m³/s · gap chuva 75.617 mm</li></ul>
+</section>
+<section>
+<h2>Série ancorada (amostra 6 h)</h2>
+<table>
+<thead><tr><th>UTC</th><th>Q Muçum</th><th>banda Q</th><th>N ancorado cm</th><th>ΔN cm</th><th>Q STZ diag.</th></tr></thead>
+<tbody><tr><td>2026-09-12T00:00:00Z</td><td>152.909</td><td>79.826–237.647</td><td>299.0</td><td>0.0</td><td>107.441</td></tr><tr><td>2026-09-12T06:00:00Z</td><td>107.707</td><td>60.511–172.874</td><td>269.83</td><td>-29.17</td><td>77.932</td></tr><tr><td>2026-09-12T12:00:00Z</td><td>70.828</td><td>26.765–158.637</td><td>242.38</td><td>-56.62</td><td>45.85</td></tr><tr><td>2026-09-12T18:00:00Z</td><td>52.845</td><td>10.46–145.991</td><td>227.05</td><td>-71.95</td><td>27.822</td></tr><tr><td>2026-09-13T00:00:00Z</td><td>43.666</td><td>3.973–136.929</td><td>218.47</td><td>-80.53</td><td>17.694</td></tr><tr><td>2026-09-13T06:00:00Z</td><td>38.402</td><td>1.499–130.403</td><td>213.24</td><td>-85.76</td><td>11.724</td></tr><tr><td>2026-09-13T12:00:00Z</td><td>34.671</td><td>0.565–122.947</td><td>209.38</td><td>-89.62</td><td>8.023</td></tr><tr><td>2026-09-13T18:00:00Z</td><td>31.629</td><td>0.213–114.363</td><td>206.11</td><td>-92.89</td><td>5.621</td></tr><tr><td>2026-09-14T00:00:00Z</td><td>29.239</td><td>0.08–107.295</td><td>203.45</td><td>-95.55</td><td>4.004</td></tr><tr><td>2026-09-14T06:00:00Z</td><td>27.17</td><td>0.03–100.482</td><td>201.09</td><td>-97.91</td><td>2.883</td></tr><tr><td>2026-09-14T12:00:00Z</td><td>25.296</td><td>0.011–93.665</td><td>198.89</td><td>-100.11</td><td>2.092</td></tr><tr><td>2026-09-14T18:00:00Z</td><td>23.634</td><td>0.004–86.671</td><td>196.89</td><td>-102.11</td><td>1.525</td></tr><tr><td>2026-09-15T00:00:00Z</td><td>22.652</td><td>0.002–80.111</td><td>195.68</td><td>-103.32</td><td>1.115</td></tr><tr><td>2026-09-15T06:00:00Z</td><td>21.871</td><td>0.001–75.681</td><td>194.71</td><td>-104.29</td><td>0.817</td></tr><tr><td>2026-09-15T12:00:00Z</td><td>21.127</td><td>0.0–75.66</td><td>193.77</td><td>-105.23</td><td>0.599</td></tr><tr><td>2026-09-15T18:00:00Z</td><td>20.766</td><td>0.0–76.356</td><td>193.31</td><td>-105.69</td><td>0.44</td></tr><tr><td>2026-09-16T00:00:00Z</td><td>20.423</td><td>0.0–75.748</td><td>192.86</td><td>-106.14</td><td>0.323</td></tr><tr><td>2026-09-16T06:00:00Z</td><td>19.996</td><td>0.0–74.464</td><td>192.31</td><td>-106.69</td><td>0.237</td></tr><tr><td>2026-09-16T12:00:00Z</td><td>19.547</td><td>0.0–72.961</td><td>191.73</td><td>-107.27</td><td>0.174</td></tr><tr><td>2026-09-16T18:00:00Z</td><td>18.537</td><td>0.0–68.694</td><td>190.39</td><td>-108.61</td><td>0.128</td></tr><tr><td>2026-09-16T23:00:00Z</td><td>17.19</td><td>0.0–63.951</td><td>188.56</td><td>-110.44</td><td>0.099</td></tr></tbody>
+</table>
+</section>
+<section>
+<h2>Disciplina</h2>
+<ul>
+<li>Params = biblioteca eventwise (análogo por chuva); common-search bloqueado.</li>
+<li>Forçante IFS é proxy pontual por sub-bacia — não máscara areal fechada.</li>
+<li>Não inventar curva STZ. Não chamar de alerta oficial.</li>
+</ul>
+<p><a href="hec_twin_mucum_forward_5d_latest.json">JSON</a> ·
+<a href="hec_twin_mucum_forward_5d/primary_series.csv">CSV</a> ·
+<a href="hec_twin_ifs_forcing_5d_latest.json">Forçante IFS</a></p>
+</section>
+</main>
+</body>
+</html>
