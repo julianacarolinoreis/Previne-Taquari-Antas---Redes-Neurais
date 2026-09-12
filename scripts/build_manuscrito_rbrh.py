@@ -98,22 +98,21 @@ QUADRO2_ROWS = [
     ["86430900", "Estacao 86430900", "—", "—"],
 ]
 
+# Quebra de linha no cabeçalho é intencional (ABNT: unidade/desdobramento na linha de baixo).
 TABELA1_HEADERS = [
     "Horizonte",
     "Família",
     "Equilíbrio",
-    "PERS geral",
-    "PERS validação",
-    "PERS teste",
+    "PERS\n(geral / validação / teste)",
     "NS",
-    "MAE (cm)",
-    "E95 (cm)",
+    "MAE\n(cm)",
+    "E95\n(cm)",
 ]
 TABELA1_ROWS = [
-    ["2 h", "ALT", "0,969", "0,955", "0,936", "0,969", "0,996", "3,5", "10,4"],
-    ["4 h", "ALT", "0,846", "0,888", "0,878", "0,876", "0,993", "13,9", "52,7"],
-    ["8 h", "ALT", "0,694", "0,739", "0,811", "0,694", "0,940", "32", "135"],
-    ["12 h", "CONV", "0,690", "0,824", "0,690", "0,696", "0,885", "40,9", "125"],
+    ["2 h", "ALT", "0,969", "0,955 / 0,936 / 0,969", "0,996", "3,5", "10,4"],
+    ["4 h", "ALT", "0,846", "0,888 / 0,878 / 0,876", "0,993", "13,9", "52,7"],
+    ["8 h", "ALT", "0,694", "0,739 / 0,811 / 0,694", "0,940", "32", "135"],
+    ["12 h", "CONV", "0,690", "0,824 / 0,690 / 0,696", "0,885", "40,9", "125"],
 ]
 
 # ABNT/IBGE: Tabela = dado numérico (só traços horizontais). Quadro = informação textual (moldura).
@@ -146,7 +145,10 @@ TABLE_SPECS = {
         "rows": TABELA1_ROWS,
         "fonte": "Fichas do recorte de 282 redes (artigo_rna_santa_tereza.json).",
         "nota": "NS = coeficiente de Nash-Sutcliffe no teste. MAE e E95 no teste por eventos, em centímetros na régua. ALT: a rede prevê a variação do nível. CONV: família complementar (equação de saída a declarar). Identificadores MATLAB: 2 h = 009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21; 4 h = V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000; 8 h = altR_004_08_8h_alt_8H_ALT_C0289; 12 h = 004_conv_C0149_R01_T2_V1_3. Chuva de 36 h ausente só em 2 h. Entradas / neurônios ocultos: 15/30, 24/48, 10/20 e 14/28.",
-        "numeric": (2, 3, 4, 5, 6, 7, 8),
+        "numeric": (2, 4, 5, 6),
+        "nowrap_head": (0, 1, 2, 4),
+        "nowrap_body": (0, 1, 2, 3, 4, 5, 6),
+        "widths_cm": (1.9, 1.7, 2.0, 5.2, 1.4, 1.9, 1.9),
     },
 }
 
@@ -341,10 +343,14 @@ def abnt_label(spec: dict) -> str:
     return f"{word} {spec['n']} – {spec['title']}"
 
 
+def md_cell(text: str) -> str:
+    return " ".join(str(text).split())
+
+
 def md_table(headers: list[str], rows: list[list[str]]) -> str:
-    head = "| " + " | ".join(headers) + " |"
+    head = "| " + " | ".join(md_cell(h) for h in headers) + " |"
     sep = "| " + " | ".join("---" for _ in headers) + " |"
-    body = "\n".join("| " + " | ".join(r) + " |" for r in rows)
+    body = "\n".join("| " + " | ".join(md_cell(c) for c in r) + " |" for r in rows)
     return f"{head}\n{sep}\n{body}"
 
 
@@ -450,6 +456,67 @@ def _nil_tbl_borders(table):
     tbl_pr.append(borders)
 
 
+def _set_tbl_grid(table, widths_cm):
+    """Largura fixa por coluna (tblGrid + tcW). cell.width sozinho o Word ignora."""
+    dxas = [int(round(w * 567)) for w in widths_cm]
+    tbl = table._tbl
+    tbl_pr = tbl.tblPr
+    for child in list(tbl_pr):
+        if child.tag in (qn("w:tblLayout"), qn("w:tblW")):
+            tbl_pr.remove(child)
+    layout = OxmlElement("w:tblLayout")
+    layout.set(qn("w:type"), "fixed")
+    tbl_pr.append(layout)
+    total = OxmlElement("w:tblW")
+    total.set(qn("w:w"), str(sum(dxas)))
+    total.set(qn("w:type"), "dxa")
+    tbl_pr.append(total)
+    for child in list(tbl):
+        if child.tag == qn("w:tblGrid"):
+            tbl.remove(child)
+    grid = OxmlElement("w:tblGrid")
+    for d in dxas:
+        col = OxmlElement("w:gridCol")
+        col.set(qn("w:w"), str(d))
+        grid.append(col)
+    tbl_pr.addnext(grid)
+    return dxas
+
+
+def _tc_width(cell, dxa):
+    tc_pr = cell._tc.get_or_add_tcPr()
+    for child in list(tc_pr):
+        if child.tag == qn("w:tcW"):
+            tc_pr.remove(child)
+    tcw = OxmlElement("w:tcW")
+    tcw.set(qn("w:w"), str(dxa))
+    tcw.set(qn("w:type"), "dxa")
+    tc_pr.append(tcw)
+
+
+def _tc_nowrap(cell, on=True):
+    tc_pr = cell._tc.get_or_add_tcPr()
+    for child in list(tc_pr):
+        if child.tag == qn("w:noWrap"):
+            tc_pr.remove(child)
+    if on:
+        tc_pr.append(OxmlElement("w:noWrap"))
+
+
+def _write_cell_lines(cell, text, *, size=10, bold=False, align=None):
+    p = cell.paragraphs[0]
+    p.paragraph_format.space_after = Pt(0)
+    p.paragraph_format.space_before = Pt(0)
+    if align is not None:
+        p.alignment = align
+    lines = str(text).split("\n")
+    for i, line in enumerate(lines):
+        if i:
+            p.add_run().add_break()
+        run = p.add_run(line)
+        set_run_font(run, size=size, bold=bold)
+
+
 def add_abnt_caption(doc, spec):
     cap = doc.add_paragraph()
     cap.alignment = WD_ALIGN_PARAGRAPH.LEFT
@@ -493,18 +560,21 @@ def add_table(doc, spec):
     numeric = set(spec.get("numeric") or ())
     table = doc.add_table(rows=1 + len(rows), cols=len(headers))
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
-    table.autofit = True
+    table.autofit = False
     _nil_tbl_borders(table)
+    widths = spec.get("widths_cm")
+    dxas = _set_tbl_grid(table, widths) if widths else None
     last = len(rows)
+    nowrap_head = set(spec.get("nowrap_head") or spec.get("nowrap") or ())
+    nowrap_body = set(spec.get("nowrap_body") or spec.get("nowrap") or ())
     for i, h in enumerate(headers):
         cell = table.rows[0].cells[i]
         cell.text = ""
         _clear_shading(cell)
-        p = cell.paragraphs[0]
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.paragraph_format.space_after = Pt(0)
-        run = p.add_run(h)
-        set_run_font(run, size=10, bold=True)
+        _write_cell_lines(cell, h, size=10, bold=True, align=WD_ALIGN_PARAGRAPH.CENTER)
+        if dxas:
+            _tc_width(cell, dxas[i])
+        _tc_nowrap(cell, i in nowrap_head)
         if spec["kind"] == "tabela":
             _tc_borders(cell, top=16, bottom=8)
         else:
@@ -514,11 +584,11 @@ def add_table(doc, spec):
             cell = table.rows[ri + 1].cells[ci]
             cell.text = ""
             _clear_shading(cell)
-            p = cell.paragraphs[0]
-            p.paragraph_format.space_after = Pt(0)
-            p.alignment = WD_ALIGN_PARAGRAPH.RIGHT if ci in numeric else WD_ALIGN_PARAGRAPH.LEFT
-            run = p.add_run(str(val))
-            set_run_font(run, size=10)
+            align = WD_ALIGN_PARAGRAPH.RIGHT if ci in numeric else WD_ALIGN_PARAGRAPH.LEFT
+            _write_cell_lines(cell, val, size=10, align=align)
+            if dxas:
+                _tc_width(cell, dxas[ci])
+            _tc_nowrap(cell, ci in nowrap_body)
             if spec["kind"] == "tabela":
                 bottom = 16 if ri + 1 == last else None
                 _tc_borders(cell, bottom=bottom)
@@ -632,19 +702,38 @@ def html_abnt_block(spec: dict) -> str:
         f"<p class='tab-title'><strong>{html.escape(word)} {spec['n']}</strong>"
         f" – {html.escape(spec['title'])}</p>"
     )
-    head = "".join(f"<th style='{th_style}'>{html.escape(h)}</th>" for h in spec["headers"])
+    nowrap_head = set(spec.get("nowrap_head") or spec.get("nowrap") or ())
+    nowrap_body = set(spec.get("nowrap_body") or spec.get("nowrap") or ())
+    widths = spec.get("widths_cm")
+    cols = ""
+    if widths:
+        total = sum(widths)
+        cols = "".join(
+            f"<col style='width:{100 * w / total:.1f}%'>" for w in widths
+        )
+        cols = f"<colgroup>{cols}</colgroup>"
+    nohyph = "hyphens:none;word-break:keep-all;"
+    head_cells = []
+    for i, h in enumerate(spec["headers"]):
+        extra = "white-space:nowrap;" if i in nowrap_head else ""
+        label = html.escape(h).replace("\n", "<br>")
+        head_cells.append(f"<th style='{th_style};{nohyph}{extra}'>{label}</th>")
+    head = "".join(head_cells)
     body = []
     for ri, row in enumerate(spec["rows"]):
         style = td_last if ri == last else td_mid
         tds = []
         for ci, val in enumerate(row):
             align = "text-align:right;" if ci in numeric else "text-align:left;"
-            tds.append(f"<td style='{style};{align}'>{html.escape(val)}</td>")
+            extra = "white-space:nowrap;" if ci in nowrap_body else ""
+            tds.append(
+                f"<td style='{style};{align}{nohyph}{extra}'>{html.escape(val)}</td>"
+            )
         body.append(f"<tr>{''.join(tds)}</tr>")
     table = (
         "<table style='border-collapse:collapse;width:100%;border:none;"
-        "font-family:Times New Roman,Times,serif'>"
-        f"<tr>{head}</tr>{''.join(body)}</table>"
+        "table-layout:fixed;font-family:Times New Roman,Times,serif'>"
+        f"{cols}<tr>{head}</tr>{''.join(body)}</table>"
     )
     fonte = (
         f"<p class='fonte'><strong>Fonte:</strong> {html.escape(spec['fonte'])}</p>"

@@ -100,12 +100,12 @@ A Tabela 1 traz o modelo de maior índice de equilíbrio publicado em cada horiz
 
 **Tabela 1 – Desempenho no teste do modelo de maior equilíbrio publicado em cada horizonte**
 
-| Horizonte | Família | Equilíbrio | PERS geral | PERS validação | PERS teste | NS | MAE (cm) | E95 (cm) |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2 h | ALT | 0,969 | 0,955 | 0,936 | 0,969 | 0,996 | 3,5 | 10,4 |
-| 4 h | ALT | 0,846 | 0,888 | 0,878 | 0,876 | 0,993 | 13,9 | 52,7 |
-| 8 h | ALT | 0,694 | 0,739 | 0,811 | 0,694 | 0,940 | 32 | 135 |
-| 12 h | CONV | 0,690 | 0,824 | 0,690 | 0,696 | 0,885 | 40,9 | 125 |
+| Horizonte | Família | Equilíbrio | PERS (geral / validação / teste) | NS | MAE (cm) | E95 (cm) |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2 h | ALT | 0,969 | 0,955 / 0,936 / 0,969 | 0,996 | 3,5 | 10,4 |
+| 4 h | ALT | 0,846 | 0,888 / 0,878 / 0,876 | 0,993 | 13,9 | 52,7 |
+| 8 h | ALT | 0,694 | 0,739 / 0,811 / 0,694 | 0,940 | 32 | 135 |
+| 12 h | CONV | 0,690 | 0,824 / 0,690 / 0,696 | 0,885 | 40,9 | 125 |
 
 **Fonte:** Fichas do recorte de 282 redes (artigo_rna_santa_tereza.json).
 **Nota:** NS = coeficiente de Nash-Sutcliffe no teste. MAE e E95 no teste por eventos, em centímetros na régua. ALT: a rede prevê a variação do nível. CONV: família complementar (equação de saída a declarar). Identificadores MATLAB: 2 h = 009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21; 4 h = V01_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000; 8 h = altR_004_08_8h_alt_8H_ALT_C0289; 12 h = 004_conv_C0149_R01_T2_V1_3. Chuva de 36 h ausente só em 2 h. Entradas / neurônios ocultos: 15/30, 24/48, 10/20 e 14/28.
