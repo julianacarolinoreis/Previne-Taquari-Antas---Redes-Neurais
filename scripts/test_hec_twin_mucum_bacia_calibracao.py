@@ -114,5 +114,16 @@ class BasinCalibrationTests(unittest.TestCase):
         self.assertLessEqual(data["loo_skill"]["summary"]["mean_rise_n_rel_err"], 0.45)
 
 
+    def test_estimate_peak_time_uses_fraction_of_rise(self) -> None:
+        import hec_twin_mucum_bacia_calibracao as bacia
+        times = [f"2026-09-12T{h:02d}:00:00Z" for h in range(12, 24)]
+        # rise 100 cm from t0, reaches 95 at hour 18, argmax at 21
+        stages = [0, 20, 40, 60, 80, 95, 98, 100, 100, 99, 98, 97]
+        out = bacia.estimate_peak_time(times, stages, now_index=0, target_rise_cm=100.0, fraction=0.95)
+        self.assertEqual(out["peak_time_utc"], "2026-09-12T17:00:00Z")
+        self.assertEqual(out["peak_time_argmax_utc"], "2026-09-12T19:00:00Z")
+        self.assertIn("0.95", out["peak_time_method"])
+
+
 if __name__ == "__main__":
     unittest.main()

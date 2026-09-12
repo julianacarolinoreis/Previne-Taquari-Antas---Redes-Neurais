@@ -1,6 +1,6 @@
 {
-  "schema_version": "hec_twin_mucum_live_eval_v5_nowindex_blend",
-  "generated_at_utc": "2026-09-12T21:57:10Z",
+  "schema_version": "hec_twin_mucum_live_eval_v6_timing",
+  "generated_at_utc": "2026-09-12T22:18:41Z",
   "status": "research_live_eval_replay_ready",
   "label_pt": "Replay ao vivo com now-index + blend — Muçum",
   "observations": {
@@ -12,9 +12,9 @@
       "station": "86510000"
     },
     "latest_ana": {
-      "stage_cm": 676.0,
-      "observed_at_utc": "2026-09-12T21:30:00Z",
-      "rise_from_anchor_cm": 251.0,
+      "stage_cm": 677.0,
+      "observed_at_utc": "2026-09-12T21:45:00Z",
+      "rise_from_anchor_cm": 252.0,
       "peak_so_far_cm": 680.0,
       "peak_so_far_at_utc": "2026-09-12T19:30:00Z"
     }
@@ -271,11 +271,13 @@
   "answer_from_anchor": {
     "question_pt": "A partir do nível na âncora, quanto sobe?",
     "method": "now_index_ic_plus_distance_weighted_blend_v3",
-    "plain_pt": "Com ~33.3 mm de chuva prevista em 120 h e nível atual 425 cm em Muçum, o gêmeo HEC indica subida de ~254 cm (banda 134–296 cm), pico ancorado ~679 cm em 2026-09-12T22:00:00Z.",
+    "plain_pt": "Com ~33.3 mm de chuva prevista em 120 h e nível atual 425 cm em Muçum, o gêmeo HEC indica subida de ~254 cm (banda 134–296 cm), pico ancorado ~679 cm em 2026-09-12T20:00:00Z.",
     "primary": {
       "event_id": "BLEND",
       "rise_cm": 253.81,
-      "peak_time_utc": "2026-09-12T22:00:00Z",
+      "peak_time_utc": "2026-09-12T20:00:00Z",
+      "peak_time_argmax_utc": "2026-09-12T22:00:00Z",
+      "peak_time_method": "first_reach_0.95_of_rise",
       "peak_anchored_cm": 678.81,
       "n_model_t0_cm": 315.65,
       "n_model_peak_cm": 569.46
@@ -320,42 +322,44 @@
   },
   "answer_from_latest_obs": {
     "applied": true,
-    "obs_index": 66,
-    "obs_time_utc": "2026-09-12T21:00:00Z",
-    "n_model_at_obs_cm": 552.75,
+    "obs_index": 67,
+    "obs_time_utc": "2026-09-12T22:00:00Z",
+    "n_model_at_obs_cm": 554.69,
     "n_model_peak_cm": 554.69,
-    "remaining_model_cm": 1.94,
-    "underprediction_cm": 123.25,
+    "remaining_model_cm": 0.0,
+    "underprediction_cm": 122.31,
     "revision": {
-      "remaining_cm": 2.62,
-      "factor": 1.35,
-      "boost_cm": 0.68,
-      "applied": true,
-      "k": 0.75,
-      "cap": 1.35,
-      "frac_left": 0.0081,
-      "underprediction_cm": 123.25
+      "remaining_cm": 0.0,
+      "factor": 1.0,
+      "boost_cm": 0.0,
+      "applied": false
     },
-    "peak_reanchored_cm": 678.62,
-    "rise_from_obs_cm": 2.62,
+    "peak_reanchored_cm": 677.0,
+    "rise_from_obs_cm": 0.0,
     "peak_time_utc": "2026-09-12T22:00:00Z"
   },
   "verification": {
     "verdict_level": "hit_band_and_primary_so_far",
-    "plain_pt": "Calibração v3 (now-index+blend): primary BLEND ΔN≈254 cm (pico≈679). Obs 676 cm (+251) dentro da banda 134–296 e ainda sob o pico primary. Atualização no meio do evento (obs 676): ainda ~3 cm (pico revisto ~679).",
+    "plain_pt": "Calibração v5 (ΔN+horário): primary BLEND ΔN≈254 cm (pico≈679). Obs 677 cm (+252) dentro da banda 134–296 e ainda sob o pico primary. Horário do pico: previsto 2026-09-12T20:00:00Z vs obs 2026-09-12T19:30:00Z (+0.5 h). Atualização no meio do evento (obs 677): ainda ~0 cm (pico revisto ~677).",
     "old_primary_peak_cm": 568.0,
     "new_primary_peak_cm": 678.81,
-    "mid_event_peak_cm": 678.62,
-    "obs_latest_cm": 676.0,
-    "old_error_cm": 108.0,
-    "new_error_cm": -2.81,
-    "mid_event_error_cm": -2.62,
+    "mid_event_peak_cm": 677.0,
+    "obs_latest_cm": 677.0,
+    "old_error_cm": 109.0,
+    "new_error_cm": -1.81,
+    "mid_event_error_cm": 0.0,
     "improved_vs_old": true,
     "rise_within_band": true,
-    "above_primary_peak": false
+    "above_primary_peak": false,
+    "obs_peak_cm": 680.0,
+    "obs_peak_at_utc": "2026-09-12T19:30:00Z",
+    "peak_error_cm": 1.19,
+    "predicted_peak_time_utc": "2026-09-12T20:00:00Z",
+    "peak_time_method": "first_reach_0.95_of_rise",
+    "timing_error_h": 0.5
   },
-  "interpretation_pt": "Calibração v3 (now-index+blend): primary BLEND ΔN≈254 cm (pico≈679). Obs 676 cm (+251) dentro da banda 134–296 e ainda sob o pico primary. Atualização no meio do evento (obs 676): ainda ~3 cm (pico revisto ~679).",
-  "plain_pt": "Calibração v3 (now-index+blend): primary BLEND ΔN≈254 cm (pico≈679). Obs 676 cm (+251) dentro da banda 134–296 e ainda sob o pico primary. Atualização no meio do evento (obs 676): ainda ~3 cm (pico revisto ~679).",
+  "interpretation_pt": "Calibração v5 (ΔN+horário): primary BLEND ΔN≈254 cm (pico≈679). Obs 677 cm (+252) dentro da banda 134–296 e ainda sob o pico primary. Horário do pico: previsto 2026-09-12T20:00:00Z vs obs 2026-09-12T19:30:00Z (+0.5 h). Atualização no meio do evento (obs 677): ainda ~0 cm (pico revisto ~677).",
+  "plain_pt": "Calibração v5 (ΔN+horário): primary BLEND ΔN≈254 cm (pico≈679). Obs 677 cm (+252) dentro da banda 134–296 e ainda sob o pico primary. Horário do pico: previsto 2026-09-12T20:00:00Z vs obs 2026-09-12T19:30:00Z (+0.5 h). Atualização no meio do evento (obs 677): ainda ~0 cm (pico revisto ~677).",
   "discipline": {
     "not_official_alert": true,
     "rna_untouched": true,

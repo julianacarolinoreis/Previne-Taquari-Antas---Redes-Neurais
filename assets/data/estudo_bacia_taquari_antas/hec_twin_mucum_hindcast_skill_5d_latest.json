@@ -1,20 +1,17 @@
 {
-  "schema_version": "hec_twin_mucum_hindcast_skill_5d_v1",
-  "generated_at_utc": "2026-09-12T21:57:42Z",
+  "schema_version": "hec_twin_mucum_hindcast_skill_5d_v4",
+  "generated_at_utc": "2026-09-12T22:18:46Z",
   "status": "research_hindcast_skill_ready",
-  "purpose": "Skill LOO do quanto sobe Muçum com calibração de bacia v1.",
+  "purpose": "Skill leave-one-out do produto 'chuva prevista → quanto sobe Muçum' usando chuva observada de evento como QPF proxy.",
   "method": {
-    "rain_fingerprint": "area_weighted_full_window_mm",
-    "analog_distance": "aw_rain + loss/efficiency penalties + regime match",
-    "light_specialists": [
-      "E30"
-    ],
-    "ic_scaling": "observed_q0_scales_initial_flow_ratio",
-    "primary_rule": "median_rise_ensemble_member",
+    "forcing": "observed_event_rain_as_qpf_proxy",
+    "params": "leave_one_out_top5_wet_bias_blend_v4",
+    "ic_scaling": "observed_q0_at_core_start_scale_initial_flow_ratio",
+    "wet_loss_damping": "strict_past_and_stage",
+    "stage": "Q_to_N_via_mucum_official_rating_curve",
     "not": [
       "rna",
       "stz_n",
-      "common_search_params",
       "official_alert"
     ]
   },
@@ -695,7 +692,6 @@
   ],
   "artifacts": {
     "json": "hec_twin_mucum_hindcast_skill_5d_latest.json",
-    "html": "hec_twin_mucum_hindcast_skill_5d.html",
-    "bacia": "modelo_mucum_bacia_calibrado_v1_latest.json"
+    "html": "hec_twin_mucum_hindcast_skill_5d.html"
   }
 }

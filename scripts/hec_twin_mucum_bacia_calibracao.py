@@ -547,6 +547,78 @@ def blend_series_with_weights(
     ]
 
 
+
+def estimate_peak_time(
+    times_utc: list[str],
+    stage_cm: list[float | None],
+    *,
+    now_index: int = 0,
+    target_rise_cm: float | None = None,
+    fraction: float = 0.95,
+) -> dict[str, Any]:
+    """Estimate peak timing from a stage hydrograph.
+
+    Absolute argmax of a flat crest is often late. For operational "quando
+    chega o pico", use the first time the series reaches ``fraction`` of the
+    target rise (default 95%). Also returns the hydrograph argmax.
+    """
+    if not times_utc or not stage_cm:
+        return {
+            "peak_time_utc": None,
+            "peak_time_argmax_utc": None,
+            "peak_time_method": "empty",
+            "fraction": fraction,
+            "timing_index": None,
+        }
+    n = min(len(times_utc), len(stage_cm))
+    idx0 = min(max(int(now_index), 0), n - 1)
+    n0 = stage_cm[idx0]
+    future_idx = [i for i in range(idx0, n) if stage_cm[i] is not None]
+    if not future_idx or n0 is None:
+        return {
+            "peak_time_utc": None,
+            "peak_time_argmax_utc": None,
+            "peak_time_method": "no_future",
+            "fraction": fraction,
+            "timing_index": None,
+        }
+    imax = max(future_idx, key=lambda i: float(stage_cm[i]))
+    argmax_time = times_utc[imax]
+    # Target rise: explicit or from hydrograph shape
+    if target_rise_cm is None:
+        rise = float(stage_cm[imax]) - float(n0)
+    else:
+        rise = float(target_rise_cm)
+    if rise <= 1e-6:
+        return {
+            "peak_time_utc": times_utc[idx0],
+            "peak_time_argmax_utc": argmax_time,
+            "peak_time_method": "no_rise",
+            "fraction": fraction,
+            "timing_index": idx0,
+        }
+    frac = min(max(float(fraction), 0.5), 1.0)
+    thr = float(n0) + frac * rise
+    itime = None
+    for i in future_idx:
+        if float(stage_cm[i]) >= thr - 1e-6:
+            itime = i
+            break
+    if itime is None:
+        itime = imax
+        method = "argmax_fallback"
+    else:
+        method = f"first_reach_{frac:.2f}_of_rise"
+    return {
+        "peak_time_utc": times_utc[itime],
+        "peak_time_argmax_utc": argmax_time,
+        "peak_time_method": method,
+        "fraction": frac,
+        "timing_index": itime,
+        "threshold_stage_cm": round(thr, 2),
+        "target_rise_cm": round(rise, 2),
+    }
+
 def revise_remaining_rise_cm(
     remaining_model_cm: float,
     underprediction_so_far_cm: float,

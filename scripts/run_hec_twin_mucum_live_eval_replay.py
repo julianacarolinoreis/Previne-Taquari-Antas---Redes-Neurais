@@ -185,31 +185,48 @@ def main() -> None:
     old_err = latest_n - OLD_PRIMARY_PEAK
     new_err = latest_n - pred_peak
     mid_err = None if not mid.get("applied") else latest_n - float(mid["peak_reanchored_cm"])
+    peak_err = peak_n - pred_peak
+
+    pred_peak_time = primary.get("peak_time_utc")
+    timing_error_h = None
+    if pred_peak_time:
+        pred_dt = datetime.fromisoformat(str(pred_peak_time).replace("Z", "+00:00"))
+        timing_error_h = round((pred_dt - peak_t).total_seconds() / 3600.0, 2)
+    timing_txt = (
+        f" Horário do pico: previsto {pred_peak_time} vs obs {peak_t.isoformat().replace('+00:00','Z')} "
+        f"({timing_error_h:+.1f} h)."
+        if timing_error_h is not None
+        else ""
+    )
 
     if within and not above_primary:
         verdict = "hit_band_and_primary_so_far"
         plain = (
-            f"Calibração v3 (now-index+blend): primary {primary['event_id']} ΔN≈{pred_rise:.0f} cm "
+            f"Calibração v5 (ΔN+horário): primary {primary['event_id']} ΔN≈{pred_rise:.0f} cm "
             f"(pico≈{pred_peak:.0f}). Obs {latest_n:.0f} cm (+{rise_obs:.0f}) dentro da banda "
             f"{band['min']:.0f}–{band['max']:.0f} e ainda sob o pico primary."
+            f"{timing_txt}"
         )
     elif within and above_primary:
         verdict = "partial_hit_band_primary_low"
         plain = (
-            f"Calibração v3: primary {primary['event_id']} ΔN≈{pred_rise:.0f} (pico≈{pred_peak:.0f}). "
+            f"Calibração v5: primary {primary['event_id']} ΔN≈{pred_rise:.0f} (pico≈{pred_peak:.0f}). "
             f"Obs {latest_n:.0f} (+{rise_obs:.0f}) na banda, mas já acima do primary."
+            f"{timing_txt}"
         )
     elif rise_obs > band["max"]:
         verdict = "miss_high"
         plain = (
             f"Ainda baixo: primary {primary['event_id']} banda até {band['max']:.0f} cm, "
             f"obs +{rise_obs:.0f} cm (nível {latest_n:.0f})."
+            f"{timing_txt}"
         )
     else:
         verdict = "miss_low_or_other"
         plain = (
             f"Replay v3: primary {primary['event_id']} ΔN≈{pred_rise:.0f}; "
             f"obs +{rise_obs:.0f} (nível {latest_n:.0f})."
+         f"{timing_txt}"
         )
 
     if mid.get("applied"):
@@ -219,7 +236,7 @@ def main() -> None:
         )
 
     payload = {
-        "schema_version": "hec_twin_mucum_live_eval_v5_nowindex_blend",
+        "schema_version": "hec_twin_mucum_live_eval_v6_timing",
         "generated_at_utc": utc_now(),
         "status": "research_live_eval_replay_ready",
         "label_pt": "Replay ao vivo com now-index + blend — Muçum",
@@ -260,6 +277,12 @@ def main() -> None:
             "improved_vs_old": abs(new_err) < abs(old_err),
             "rise_within_band": within,
             "above_primary_peak": above_primary,
+            "obs_peak_cm": peak_n,
+            "obs_peak_at_utc": peak_t.isoformat().replace("+00:00", "Z"),
+            "peak_error_cm": round(peak_err, 2),
+            "predicted_peak_time_utc": pred_peak_time,
+            "peak_time_method": primary.get("peak_time_method"),
+            "timing_error_h": timing_error_h,
         },
         "interpretation_pt": plain,
         "plain_pt": plain,
@@ -272,7 +295,7 @@ def main() -> None:
 
     EVAL.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     verify = {
-        "schema_version": "hec_twin_mucum_live_eval_verify_v3",
+        "schema_version": "hec_twin_mucum_live_eval_verify_v4",
         "generated_at_utc": utc_now(),
         "status": "research_verification_ready",
         "forecast_ref": {
@@ -305,6 +328,7 @@ def main() -> None:
 <li>Observado: {latest_n:.0f} cm (+{rise_obs:.0f})</li>
 <li>Erro antigo ({OLD_PRIMARY_PEAK:.0f}): {old_err:+.0f} cm → erro novo: {new_err:+.0f} cm</li>
 <li>Meio do evento (revisto): pico ~{mid.get('peak_reanchored_cm')} (erro {mid_err_txt} cm)</li>
+<li>Horário do pico: previsto {pred_peak_time} vs obs {peak_t.isoformat().replace("+00:00","Z")} ({timing_error_h:+.1f} h)</li>
 </ul>
 </body></html>
 """,

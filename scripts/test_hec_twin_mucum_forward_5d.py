@@ -67,7 +67,7 @@ class Forward5dTests(unittest.TestCase):
         primary_id = package["primary_member"]["event_id"]
         lib_ids = {r["event_id"] for r in lib["params_library_eventwise"]}
         self.assertTrue(primary_id == "BLEND" or primary_id in lib_ids)
-        self.assertEqual(package["schema_version"], "hec_twin_mucum_forward_5d_v4")
+        self.assertEqual(package["schema_version"], "hec_twin_mucum_forward_5d_v5")
         self.assertIn("now_index", package["quanto_sobe"])
         qs = package["quanto_sobe"]
         self.assertIn("plain_pt", qs)

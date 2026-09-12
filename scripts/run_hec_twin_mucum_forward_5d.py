@@ -338,21 +338,32 @@ def member_rise(
     if member.get("rise_blend_cm") is not None and n0 is not None:
         rise_model = round(float(member["rise_blend_cm"]), 2)
         n_peak = round(float(n0) + rise_model, 2)
-        peak_time = member.get("peak_time_utc")
         anchored_peak = None if level_now_cm is None else round(float(level_now_cm) + rise_model, 2)
         anchored_series = None
+        times = member["series"].get("time_utc") or []
+        # Scale series shape to the blended rise magnitude.
+        future_vals = [v for v in n_series[idx:] if v is not None]
+        shape_rise = (max(future_vals) - float(n0)) if future_vals else 0.0
+        scale = (rise_model / shape_rise) if shape_rise > 1e-6 else 1.0
+        scaled_model = []
+        for v in n_series:
+            if v is None or n0 is None:
+                scaled_model.append(None)
+            else:
+                scaled_model.append(float(n0) + (float(v) - float(n0)) * scale)
         if level_now_cm is not None:
-            # Scale series shape to the blended rise magnitude.
-            future_vals = [v for v in n_series[idx:] if v is not None]
-            shape_rise = (max(future_vals) - float(n0)) if future_vals else 0.0
-            scale = (rise_model / shape_rise) if shape_rise > 1e-6 else 1.0
-            anchored_series = []
-            for i, v in enumerate(n_series):
-                if v is None:
-                    anchored_series.append(None)
-                else:
-                    delta = (float(v) - float(n0)) * scale
-                    anchored_series.append(round(float(level_now_cm) + delta, 2))
+            anchored_series = [
+                None if v is None else round(float(level_now_cm) + (float(v) - float(n0)) * scale, 2)
+                for v in n_series
+            ]
+        timing = bacia.estimate_peak_time(
+            times,
+            scaled_model,
+            now_index=idx,
+            target_rise_cm=rise_model,
+            fraction=0.95,
+        )
+        peak_time = timing.get("peak_time_utc") or member.get("peak_time_utc")
         return {
             "n_model_t0_cm": n0,
             "n_model_peak_cm": n_peak,
@@ -361,18 +372,22 @@ def member_rise(
             "peak_anchored_cm": anchored_peak,
             "n_anchored_cm": anchored_series,
             "peak_time_utc": peak_time,
+            "peak_time_argmax_utc": timing.get("peak_time_argmax_utc"),
+            "peak_time_method": timing.get("peak_time_method"),
             "now_index": idx,
             "peak_from": member.get("peak_from") or "rise_blend_cm",
         }
     future = [v for v in n_series[idx:] if v is not None]
     n_peak = max(future) if future else member.get("peak_stage_mucum_cm")
-    # peak time from future window
-    peak_time = member.get("peak_time_utc")
-    if future:
-        rel = max(range(len(n_series) - idx), key=lambda j: -1e18 if n_series[idx + j] is None else float(n_series[idx + j]))
-        times = member["series"].get("time_utc") or []
-        if times and idx + rel < len(times):
-            peak_time = times[idx + rel]
+    times = member["series"].get("time_utc") or []
+    timing = bacia.estimate_peak_time(
+        times,
+        n_series,
+        now_index=idx,
+        target_rise_cm=None if n0 is None or n_peak is None else float(n_peak) - float(n0),
+        fraction=0.95,
+    )
+    peak_time = timing.get("peak_time_utc") or member.get("peak_time_utc")
     rise_model = None if n0 is None or n_peak is None else round(float(n_peak) - float(n0), 2)
     anchored_peak = None if level_now_cm is None or rise_model is None else round(float(level_now_cm) + rise_model, 2)
     anchored_series = None
@@ -388,6 +403,8 @@ def member_rise(
         "peak_anchored_cm": anchored_peak,
         "n_anchored_cm": anchored_series,
         "peak_time_utc": peak_time,
+        "peak_time_argmax_utc": timing.get("peak_time_argmax_utc"),
+        "peak_time_method": timing.get("peak_time_method"),
         "now_index": idx,
     }
 
@@ -452,6 +469,8 @@ def build_quanto_sobe(
             "event_id": members[0]["event_id"],
             "rise_cm": primary["rise_model_cm"],
             "peak_time_utc": primary["peak_time_utc"],
+            "peak_time_argmax_utc": primary.get("peak_time_argmax_utc"),
+            "peak_time_method": primary.get("peak_time_method"),
             "peak_anchored_cm": primary["peak_anchored_cm"],
             "n_model_t0_cm": primary["n_model_t0_cm"],
             "n_model_peak_cm": primary["n_model_peak_cm"],
@@ -716,7 +735,7 @@ def build_package(
         )
 
     return {
-        "schema_version": "hec_twin_mucum_forward_5d_v4",
+        "schema_version": "hec_twin_mucum_forward_5d_v5",
         "generated_at_utc": utc_now(),
         "status": "research_forward_5d_ready",
         "label": (
