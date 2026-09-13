@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke tests for the HEC/REC platform feed (anchors + automation)."""
+"""Smoke tests for the HEC/REC platform feed (basin G040 + Muçum twin product)."""
 
 from __future__ import annotations
 
@@ -33,7 +33,6 @@ class PlataformaHecTwinTests(unittest.TestCase):
         mucum = [a for a in anchors if a["code"] == "86510000"]
         self.assertEqual(len(mucum), 1)
         self.assertEqual(mucum[0]["role"], "target")
-        # PREVINE seeds densified on the corridor map
         codes = {a["code"] for a in anchors}
         for code in ("86306000", "86430900", "86447000", "B859", "2851044"):
             self.assertIn(code, codes)
@@ -49,7 +48,6 @@ class PlataformaHecTwinTests(unittest.TestCase):
         trace = self.feed["event_trace"]
         self.assertGreaterEqual(trace["n_points"], 10)
         self.assertTrue(trace["series"])
-        self.assertEqual(trace["series"][0].keys(), set(trace["series"][0].keys()) | {"t", "n_cm"})
         self.assertIn("t", trace["series"][0])
         self.assertIn("n_cm", trace["series"][0])
         fresh = self.feed["freshness"]
@@ -60,10 +58,37 @@ class PlataformaHecTwinTests(unittest.TestCase):
         self.assertGreaterEqual(self.feed["spatial"]["anchor_count"], 25)
         self.assertIn("ug_rain_mm", self.feed["spatial"])
 
-    def test_corridor_basin_calibration_not_stz_shortcut(self) -> None:
+    def test_basin_g040_is_spatial_subject(self) -> None:
+        """Juliana: the page is the FULL Taquari–Antas basin, not Muçum-only."""
+        label = self.feed["label_pt"].lower()
+        self.assertIn("bacia", label)
+        self.assertIn("g040", label.replace("–", "-").lower())
+        self.assertNotIn("corredor calibrado", label)
+
+        framing = self.feed["spatial"]["basin_framing"]
+        self.assertEqual(framing.get("spatial_subject"), "g040_full_basin")
+        self.assertEqual(len(framing["g040_ugs"]), 7)
+        for ug in (
+            "Alto Taquari-Antas",
+            "Guaporé",
+            "Forqueta",
+            "Baixo Taquari-Antas",
+            "Prata",
+            "Carreiro",
+            "Médio Taquari-Antas",
+        ):
+            self.assertIn(ug, framing["g040_ugs"])
+            self.assertIn(ug, self.feed["spatial"]["ug_filter"])
+
+        # Twin product remains corridor (honest HEC domain).
         corridor = self.feed["corridor"]
         self.assertTrue(corridor["not_full_g040"])
-        self.assertTrue(corridor["not_only_stz_mucum_shortcut"])
+        self.assertTrue(corridor.get("is_product_inside_basin"))
+        self.assertTrue(framing["hec_twin_not_full_basin"])
+        self.assertIn("Alto Taquari-Antas", framing["twin_domain_ugs"])
+        self.assertEqual(len(framing["twin_domain_ugs"]), 4)
+        self.assertIn("Guaporé", framing["excluded_ugs"])
+
         ids = [s["id"] for s in corridor["subbasins"]]
         self.assertEqual(
             ids,
@@ -75,18 +100,11 @@ class PlataformaHecTwinTests(unittest.TestCase):
                 "SB_INC_MUCUM",
             ],
         )
-        self.assertIn("Guaporé", corridor["excluded_pt"])
         labels = " ".join(a["label"] for a in self.feed["spatial"]["anchors"])
         self.assertNotIn("Guaporé", labels)
         self.assertTrue(self.feed["discipline"]["basin_calibrated_analogs"])
-        self.assertIn("corredor", self.feed["label_pt"].lower())
-        framing = self.feed["spatial"]["basin_framing"]
-        self.assertTrue(framing["not_full_basin_model"])
-        self.assertIn("Alto Taquari-Antas", framing["twin_domain_ugs"])
-        self.assertIn("Guaporé", framing["excluded_ugs"])
-        self.assertEqual(len(framing["g040_ugs"]), 7)
-        self.assertIn("Alto Taquari-Antas", self.feed["spatial"]["ug_filter"])
         self.assertIn("g040", self.feed["spatial"]["note_pt"].lower())
+
         html = (
             ROOT
             / "assets"
@@ -96,15 +114,41 @@ class PlataformaHecTwinTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("pointInspector", html)
         self.assertIn("showInspector", html)
-        self.assertIn("Bacia G040", html)
+        self.assertIn("bacia Taquari–Antas (G040)", html)
+        self.assertIn("Rede G040", html)
         self.assertIn("loadFozes", html)
-        self.assertIn("Fozes BHO6", html)
         self.assertEqual(
             self.feed["spatial"].get("fozes_geojson"),
             "fozes_principais_bho6.geojson",
         )
 
-    def test_hindcast_skill_events_and_corridor_network(self) -> None:
+    def test_basin_network_covers_all_seven_ugs(self) -> None:
+        net = self.feed["spatial"].get("basin_network") or self.feed["spatial"][
+            "corridor_network"
+        ]
+        self.assertGreaterEqual((net.get("counts") or {}).get("total", 0), 300)
+        ugs = {
+            (f.get("properties") or {}).get("ug")
+            for f in (net.get("features") or [])
+        }
+        for ug in (
+            "Alto Taquari-Antas",
+            "Prata",
+            "Carreiro",
+            "Médio Taquari-Antas",
+            "Guaporé",
+            "Forqueta",
+            "Baixo Taquari-Antas",
+        ):
+            self.assertIn(ug, ugs, f"missing UG in basin network: {ug}")
+        self.assertGreater(
+            net["counts"]["total"], self.feed["spatial"]["anchor_count"]
+        )
+        self.assertGreaterEqual(
+            (net.get("counts") or {}).get("outside_twin_domain", 0), 50
+        )
+
+    def test_hindcast_skill_events(self) -> None:
         skill = self.feed["products"]["hindcast_skill"]
         self.assertGreaterEqual(len(skill.get("events") or []), 9)
         cal = skill.get("calibration") or {}
@@ -112,13 +156,7 @@ class PlataformaHecTwinTests(unittest.TestCase):
         self.assertEqual(cal.get("best_event_id"), "E22")
         self.assertEqual(cal.get("worst_rel_event_id"), "E25")
         self.assertEqual(cal.get("worst_peak_event_id"), "E27")
-        net = self.feed["spatial"]["corridor_network"]
-        self.assertGreaterEqual((net.get("counts") or {}).get("total", 0), 150)
-        self.assertGreaterEqual(len(net.get("features") or []), 150)
-        # curated anchors remain a subset signal — network is the dense inventory
-        self.assertGreater(
-            net["counts"]["total"], self.feed["spatial"]["anchor_count"]
-        )
+
 
 if __name__ == "__main__":
     unittest.main()

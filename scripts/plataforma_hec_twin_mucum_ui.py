@@ -233,10 +233,11 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     </div>
     <h1>Plataforma <span>HEC/REC</span></h1>
     <p class="lede">
-      A <strong>bacia Taquari–Antas (G040)</strong> é o contexto (~26,4 mil km², 7 UGs).
-      O gêmeo modela só o <strong>corredor até Muçum</strong> (~16 mil km²: Alto, Prata,
-      Carreiro, Médio — com sub-bacias aninhadas até o alvo). Produto: ΔN em Muçum.
-      Clique num ponto para abrir a curva. RNAs de curto prazo intactas.
+      Esta página é da <strong>bacia Taquari–Antas (G040)</strong> inteira
+      (~26,4 mil km², 7 UGs: Alto, Prata, Carreiro, Médio, Guaporé, Forqueta e Baixo).
+      Dentro dela, o <strong>produto gêmeo</strong> estima ΔN em Muçum no corredor aninhado
+      (~16 mil km²). Guaporé/Forqueta/Baixo entram no mapa da bacia; não no balanço até Muçum.
+      Clique num ponto do produto para abrir a curva.
     </p>
     <div class="{{FRESH_CLS}}" id="freshnessBanner">
       <span>Atualização: <strong>{{GENERATED}}</strong> UTC</span>
@@ -249,8 +250,8 @@ svg.mini-chart { width:100%; height:168px; display:block; }
 
 
   <section class="card" style="margin-bottom:.9rem" id="corridorCard">
-    <h2>Corredor calibrado (REC)</h2>
-    <p class="muted" id="corridorNote">Cinco sub-bacias aninhadas · calibração por análogos na bacia.</p>
+    <h2>Produto gêmeo · corredor até Muçum</h2>
+    <p class="muted" id="corridorNote">Dentro da bacia G040 · cinco sub-bacias aninhadas · análogos.</p>
     <div class="chips" id="corridorChips"></div>
     <p class="muted mono" id="corridorMeta" style="margin-top:.55rem"></p>
   </section>
@@ -312,7 +313,7 @@ svg.mini-chart { width:100%; height:168px; display:block; }
 
   <section class="grid split" style="margin-bottom:.9rem">
     <article class="card">
-      <h2>Mapa · bacia G040 + domínio do gêmeo</h2>
+      <h2>Mapa · bacia Taquari–Antas (G040)</h2>
       <p class="muted" id="mapFramingNote" style="margin:.15rem 0 .55rem"></p>
       <div class="chips" id="roleChips"></div>
       <div id="map"></div>
@@ -338,9 +339,10 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <h2>Como o robô alimenta esta página</h2>
     <ol class="muted" id="robotSteps"></ol>
     <p class="foot">
-      G040 = contexto da bacia; gêmeo = corredor até Muçum (inclui Alto). Calibração = análogos.
-      IFS hoje = proxy pontual por sub-bacia (não a máscara areal ECMWF/REC do e-mail ao Guilherme).
-      Guaporé/Forqueta/Baixo fora do domínio. STZ sem curva N↔Q inventada. Pesquisa, não alerta.
+      Sujeito = bacia Taquari–Antas (G040, 7 UGs). Produto gêmeo = corredor até Muçum
+      (Alto+Prata+Carreiro+Médio). Guaporé/Forqueta/Baixo no mapa da bacia, fora do balanço
+      até Muçum. IFS do produto = proxy pontual (não máscara areal do e-mail ao Guilherme).
+      STZ sem curva N↔Q inventada. Pesquisa, não alerta.
     </p>
   </section>
 </div>
@@ -547,7 +549,7 @@ const basinLayer = L.layerGroup().addTo(map);
 const ugLayer = L.layerGroup().addTo(map);
 const fozLayer = L.layerGroup().addTo(map);
 const rainLayer = L.layerGroup().addTo(map);
-const networkLayer = L.layerGroup(); // off by default — dense inventory
+const networkLayer = L.layerGroup().addTo(map); // G040 inventory — on by default
 const anchorLayer = L.layerGroup().addTo(map);
 const markers = {};
 
@@ -555,9 +557,10 @@ const markers = {};
   const fr = ((DATA.spatial || {}).basin_framing) || {};
   const el = document.getElementById("mapFramingNote");
   if (!el) return;
-  el.textContent = (fr.g040_label_pt || "G040") + " (~" + fmt(fr.g040_km2, 0) + " km²) = contexto · " +
-    (fr.twin_domain_label_pt || "domínio do gêmeo") + " (~" + fmt(fr.twin_domain_km2, 0) + " km²) = modelo · " +
-    "fora: " + ((fr.excluded_ugs || []).join(", ") || "—");
+  el.textContent =
+    "Bacia: " + (fr.g040_label_pt || "G040") + " (~" + fmt(fr.g040_km2, 0) + " km², 7 UGs) · " +
+    "produto gêmeo: corredor até Muçum (~" + fmt(fr.twin_domain_km2, 0) + " km²) · " +
+    "no mapa da bacia também: " + ((fr.excluded_ugs || []).join(", ") || "—");
 })();
 
 const legend = L.control({position:"bottomright"});
@@ -569,17 +572,17 @@ legend.onAdd = function() {
     "<div><i style=\"background:#3d7a92\"></i>chuva</div>" +
     "<div><i style=\"background:#6a737a\"></i>monitor</div>" +
     "<div><i style=\"background:#b8892d\"></i>foz BHO6</div>" +
-    "<div><i style=\"background:#a8b2b8\"></i>rede (suave)</div>" +
-    "<div style=\"margin-top:.25rem\">tracejado = G040 · preenchido = domínio</div>";
+    "<div><i style=\"background:#a8b2b8\"></i>rede G040</div>" +
+    "<div style=\"margin-top:.25rem\">fill = bacia · contorno forte = produto gêmeo</div>";
   return d;
 };
 legend.addTo(map);
 L.control.layers(null, {
   "Bacia G040":basinLayer,
-  "Domínio gêmeo":ugLayer,
+  "Produto gêmeo":ugLayer,
   "Fozes BHO6":fozLayer,
   "Chuva IFS":rainLayer,
-  "Rede corredor":networkLayer,
+  "Rede G040":networkLayer,
   "Âncoras":anchorLayer
 }, {collapsed:false}).addTo(map);
 
@@ -597,19 +600,24 @@ function renderChips() {
 
 function renderNetwork() {
   networkLayer.clearLayers();
-  const net = ((DATA.spatial || {}).corridor_network) || {};
+  const net = ((DATA.spatial || {}).basin_network)
+    || ((DATA.spatial || {}).corridor_network)
+    || {};
   const feats = net.features || [];
   feats.forEach(function(f) {
     const p = f.properties || {};
     const c = (f.geometry && f.geometry.coordinates) || [];
     if (c.length < 2) return;
     const isRain = p.kind === "rain";
+    const inTwin = !!p.in_twin_domain;
     const m = L.circleMarker([c[1], c[0]], {
-      radius: isRain ? 2.1 : 2.4,
-      color: "rgba(255,255,255,0.35)",
-      weight: 0.6,
-      fillColor: isRain ? "#8aa7b8" : "#9aa3aa",
-      fillOpacity: 0.28
+      radius: isRain ? 2.0 : 2.3,
+      color: "rgba(255,255,255,0.30)",
+      weight: 0.5,
+      fillColor: inTwin
+        ? (isRain ? "#8aa7b8" : "#9aa3aa")
+        : (isRain ? "#c4a574" : "#b8a890"),
+      fillOpacity: inTwin ? 0.26 : 0.34
     });
     m.on("click", function() {
       showInspector({
@@ -624,7 +632,9 @@ function renderNetwork() {
     m.bindPopup(
       "<strong>" + (p.name || p.code) + "</strong><br/>" +
       (isRain ? "chuva inventário" : "flu inventário") +
-      (p.ug ? " · " + p.ug : "") + "<br/>" + (p.code || "")
+      (p.ug ? " · " + p.ug : "") +
+      (inTwin ? " · corredor gêmeo" : " · bacia G040 (fora do gêmeo Muçum)") +
+      "<br/>" + (p.code || "")
     );
     m.addTo(networkLayer);
   });
@@ -802,9 +812,19 @@ async function loadUgs() {
     if (!res.ok) return;
     const geo = await res.json();
     const rainByUg = (DATA.spatial || {}).ug_rain_mm || {};
-    const corridorSet = new Set((DATA.spatial || {}).ug_filter || []);
-    const g040Set = new Set((DATA.spatial || {}).ug_g040 || []);
+    const twinSet = new Set(
+      (DATA.spatial || {}).ug_twin_domain
+      || ((DATA.spatial || {}).basin_framing || {}).twin_domain_ugs
+      || []
+    );
+    const g040Set = new Set(
+      (DATA.spatial || {}).ug_basin
+      || (DATA.spatial || {}).ug_g040
+      || (DATA.spatial || {}).ug_filter
+      || []
+    );
 
+    // Primary subject: full G040 basin (all 7 UGs), visible fill.
     L.geoJSON(geo, {
       filter: function(feat) {
         const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "";
@@ -813,38 +833,40 @@ async function loadUgs() {
       },
       style: function(feat) {
         const name = (feat.properties && feat.properties.sub_bacia) || "";
-        const inTwin = corridorSet.has(name);
-        // G040 context: dashed mute outline; twin UGs get almost no fill here
+        const inTwin = twinSet.has(name);
         return {
-          color: inTwin ? "#3d6b58" : "#8a9a90",
-          weight: inTwin ? 1.1 : 1.0,
-          dashArray: inTwin ? null : "5 5",
-          fillColor: "#8a9a90",
-          fillOpacity: 0.015
+          color: inTwin ? "#2f5a48" : "#5a6e62",
+          weight: inTwin ? 1.2 : 1.05,
+          dashArray: null,
+          fillColor: inTwin ? "#3d6b58" : "#6a7f72",
+          fillOpacity: inTwin ? 0.10 : 0.07
         };
       },
       onEachFeature: function(feat, lyr) {
         const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "UG";
-        const inTwin = corridorSet.has(name);
+        const inTwin = twinSet.has(name);
         lyr.bindPopup("<strong>" + name + "</strong><br/>" +
-          (inTwin ? "UG no domínio do gêmeo" : "UG da bacia G040 · fora do gêmeo") +
+          (inTwin
+            ? "UG da bacia · também no produto gêmeo (corredor Muçum)"
+            : "UG da bacia G040 · fora do balanço do gêmeo até Muçum") +
           (rainByUg[name] != null ? "<br/>chuva proxy: " + Number(rainByUg[name]).toFixed(1) + " mm" : ""));
       }
     }).addTo(basinLayer);
 
+    // Secondary overlay: twin product domain outline.
     L.geoJSON(geo, {
       filter: function(feat) {
         const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "";
-        if (corridorSet.size) return corridorSet.has(name);
+        if (twinSet.size) return twinSet.has(name);
         return /Alto Taquari|Prata|Carreiro|M[eé]dio Taquari/i.test(name);
       },
       style: function() {
-        return {color:"#2f5a48", weight:1.35, fillColor:"#2f5a48", fillOpacity:0.06};
+        return {color:"#1f4a3a", weight:2.0, fillColor:"#1f4a3a", fillOpacity:0.04};
       },
       onEachFeature: function(feat, lyr) {
         const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "UG";
         const rain = rainByUg[name];
-        lyr.bindPopup("<strong>" + name + "</strong><br/>domínio do gêmeo" +
+        lyr.bindPopup("<strong>" + name + "</strong><br/>produto gêmeo · corredor até Muçum" +
           (rain != null ? "<br/>chuva proxy: " + Number(rain).toFixed(1) + " mm" : ""));
       }
     }).addTo(ugLayer);
@@ -866,9 +888,9 @@ async function loadUgs() {
   const meta = document.getElementById("corridorMeta");
   if (!chips) return;
   if (note) {
-    note.textContent = (c.label_pt || "Corredor HEC/REC") +
+    note.textContent = (c.label_pt || "Produto gêmeo · corredor até Muçum") +
       (c.nested_area_km2 != null ? (" · ~" + Number(c.nested_area_km2).toFixed(0) + " km²") : "") +
-      " · análogos da bacia · NÃO é a bacia G040 inteira";
+      " · dentro da bacia G040 · não substitui a bacia inteira";
   }
   const rainBySb = {};
   ((((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f) {
@@ -885,16 +907,18 @@ async function loadUgs() {
     chips.appendChild(b);
   });
   if (meta) {
-    const net = ((DATA.spatial || {}).corridor_network) || {};
+    const net = ((DATA.spatial || {}).basin_network)
+      || ((DATA.spatial || {}).corridor_network)
+      || {};
     const counts = net.counts || {};
     const fr = ((DATA.spatial || {}).basin_framing) || {};
     meta.textContent =
-      "UGs domínio: " + ((fr.twin_domain_ugs || (DATA.spatial || {}).ug_filter || []).join(", ")) +
+      "Bacia G040 · produto gêmeo UGs: " + ((fr.twin_domain_ugs || (DATA.spatial || {}).ug_twin_domain || []).join(", ")) +
       " · calibração: " + (c.calibration_method || "análogos") +
       " · saída " + (c.outlet_pt || "Muçum") +
-      " · fora: " + ((c.excluded_pt || fr.excluded_ugs || []).join(", ") || "—") +
-      " · âncoras " + ((((DATA.spatial || {}).anchors) || []).length) +
-      " · rede " + (counts.total != null ? counts.total : "—");
+      " · no mapa também: " + ((c.excluded_pt || fr.excluded_ugs || []).join(", ") || "—") +
+      " · âncoras produto " + ((((DATA.spatial || {}).anchors) || []).length) +
+      " · rede G040 " + (counts.total != null ? counts.total : "—");
   }
 })();
 

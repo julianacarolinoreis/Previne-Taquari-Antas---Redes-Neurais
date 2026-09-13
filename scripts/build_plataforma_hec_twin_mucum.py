@@ -48,19 +48,25 @@ SUBBASIN_OFFSETS = {
     "SB_INC_MUCUM": (-0.03, -0.04),
 }
 
-# Corredor até Muçum (recorte_modelo A): inclui Alto — NÃO é G040 completa.
-UG_CORRIDOR = {
+# Sujeito espacial da plataforma = bacia oficial G040 (7 UGs).
+# Domínio do gêmeo HEC/REC (produto ΔN Muçum) = corredor aninhado até Muçum.
+UG_G040 = {
+    "Alto Taquari-Antas",
+    "Prata",
+    "Carreiro",
+    "Médio Taquari-Antas",
+    "Guaporé",
+    "Forqueta",
+    "Baixo Taquari-Antas",
+}
+UG_TWIN_DOMAIN = {
     "Alto Taquari-Antas",
     "Prata",
     "Carreiro",
     "Médio Taquari-Antas",
 }
-UG_G040 = UG_CORRIDOR | {
-    "Guaporé",
-    "Forqueta",
-    "Baixo Taquari-Antas",
-}
-UG_EXCLUDED_FROM_TWIN = UG_G040 - UG_CORRIDOR
+UG_CORRIDOR = UG_TWIN_DOMAIN  # alias legado
+UG_EXCLUDED_FROM_TWIN = UG_G040 - UG_TWIN_DOMAIN
 
 
 def utc_now() -> str:
@@ -257,8 +263,8 @@ def series_sample(
     return rows
 
 
-def build_corridor_network() -> dict[str, Any]:
-    """Dense corridor station layer (flu + rain) beyond curated anchors."""
+def build_basin_network() -> dict[str, Any]:
+    """Dense G040 station layer (flu + rain) beyond curated twin anchors."""
     features: list[dict[str, Any]] = []
     seen: set[str] = set()
 
@@ -273,14 +279,16 @@ def build_corridor_network() -> dict[str, Any]:
     ) -> None:
         if not code or code in seen or lat is None or lon is None:
             return
-        if ug not in UG_CORRIDOR:
+        if ug not in UG_G040:
             return
         seen.add(code)
+        in_twin = ug in UG_TWIN_DOMAIN
         props = {
             "code": code,
             "name": name or code,
             "kind": kind,
             "ug": ug,
+            "in_twin_domain": in_twin,
         }
         if extra:
             props.update(extra)
@@ -334,16 +342,28 @@ def build_corridor_network() -> dict[str, Any]:
 
     n_flu = sum(1 for f in features if f["properties"]["kind"] == "flu")
     n_rain = sum(1 for f in features if f["properties"]["kind"] == "rain")
+    n_twin = sum(1 for f in features if f["properties"].get("in_twin_domain"))
     return {
         "type": "FeatureCollection",
         "features": features,
-        "counts": {"flu": n_flu, "rain": n_rain, "total": len(features)},
+        "counts": {
+            "flu": n_flu,
+            "rain": n_rain,
+            "total": len(features),
+            "in_twin_domain": n_twin,
+            "outside_twin_domain": len(features) - n_twin,
+        },
         "note_pt": (
-            "Rede do domínio do gêmeo (Alto + Prata + Carreiro + Médio): inventário "
-            "ANA/INMET/CEMADEN. Âncoras curadas em destaque; camada delicada = restante. "
-            "Guaporé/Forqueta/Baixo ficam fora desta rede (jusante de Muçum / fora do corredor)."
+            "Rede da bacia Taquari–Antas (G040, 7 UGs): inventário ANA/INMET/CEMADEN. "
+            "Inclui Guaporé, Forqueta e Baixo. Âncoras curadas = produto gêmeo Muçum; "
+            "esta camada mostra a bacia inteira."
         ),
     }
+
+
+def build_corridor_network() -> dict[str, Any]:
+    """Back-compat alias — rede espacial agora é a bacia G040 completa."""
+    return build_basin_network()
 
 
 def compact_hindcast_events(hind: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -469,7 +489,7 @@ def build_spatial(
         )
 
     anchors = build_anchors(stations)
-    network = build_corridor_network()
+    network = build_basin_network()
     # Primary twin controls remain the IFS sample / target set.
     primary_codes = {"86510000", "86472600", "86472000", "86507000"}
     controls = [
@@ -487,27 +507,29 @@ def build_spatial(
 
     return {
         "note_pt": (
-            "A bacia Taquari–Antas (G040, ~26,4 mil km², 7 UGs) aparece como contexto. "
-            "O gêmeo HEC/REC modela só o CORREDOR até Muçum (~16 mil km²: Alto + Prata + "
-            "Carreiro + Médio), com sub-bacias aninhadas Prata + Antas residual + Carreiro "
-            "+ residual STZ + incremento Muçum. Chuva IFS = proxy pontual por sub-bacia "
-            "(ainda não a máscara areal ECMWF/REC do recorte enviado ao Guilherme). "
-            "Guaporé/Forqueta/Baixo fora do domínio do modelo. "
-            f"Âncoras curadas={len(anchors)}; rede inventário corredor="
+            "Sujeito espacial: bacia Taquari–Antas (G040, ~26,4 mil km², 7 UGs) — "
+            "Alto, Prata, Carreiro, Médio, Guaporé, Forqueta e Baixo. "
+            "Produto gêmeo HEC/REC (ΔN Muçum) usa só o corredor aninhado (~16 mil km²: "
+            "Alto+Prata+Carreiro+Médio); Guaporé/Forqueta/Baixo entram no mapa da bacia "
+            "mas não no balanço do gêmeo até Muçum. Chuva IFS do produto = proxy pontual "
+            "por sub-bacia do corredor (ainda não máscara areal ECMWF/REC). "
+            f"Âncoras do produto={len(anchors)}; rede inventário G040="
             f"{(network.get('counts') or {}).get('total', 0)} pontos."
         ),
         "basin_framing": {
+            "spatial_subject": "g040_full_basin",
             "g040_label_pt": "Bacia Taquari–Antas (G040)",
             "g040_km2": 26430,
             "g040_ugs": sorted(UG_G040),
-            "twin_domain_label_pt": "Domínio do gêmeo (corredor até Muçum)",
+            "twin_domain_label_pt": "Produto gêmeo · corredor até Muçum",
             "twin_domain_km2": 15965.207,
-            "twin_domain_ugs": sorted(UG_CORRIDOR),
+            "twin_domain_ugs": sorted(UG_TWIN_DOMAIN),
             "excluded_ugs": sorted(UG_EXCLUDED_FROM_TWIN),
+            "hec_twin_not_full_basin": True,
             "not_full_basin_model": True,
             "ifs_is_point_proxy_not_areal_ecmwf_mask": True,
             "click_shows_curve_pt": (
-                "Clique numa âncora: Muçum mostra a curva N+chuva do evento; "
+                "Clique numa âncora do produto: Muçum mostra N+chuva; "
                 "STZ só nível/controle (sem N↔Q inventada); chuva mostra hietograma proxy."
             ),
         },
@@ -519,8 +541,11 @@ def build_spatial(
         "controls": controls,
         "anchors": anchors,
         "anchor_count": len(anchors),
+        "basin_network": network,
         "corridor_network": network,
-        "ug_filter": sorted(UG_CORRIDOR),
+        "ug_filter": sorted(UG_G040),
+        "ug_basin": sorted(UG_G040),
+        "ug_twin_domain": sorted(UG_TWIN_DOMAIN),
         "ug_g040": sorted(UG_G040),
         "ug_geojson": "ugs_g040.geojson",
         "fozes_geojson": "fozes_principais_bho6.geojson",
@@ -876,15 +901,21 @@ def build_feed() -> dict[str, Any]:
         "schema_version": "plataforma_hec_twin_mucum_v1",
         "generated_at_utc": utc_now(),
         "status": "research_platform_ready",
-        "label_pt": "Plataforma HEC/REC · corredor calibrado ~5d",
+        "label_pt": "Plataforma HEC/REC · bacia Taquari–Antas (G040)",
         "purpose_pt": (
-            "Gêmeo hidrológico do CORREDOR Taquari–Antas (REC), calibrado na bacia "
-            "por análogos (fingerprint areal + regime + umidade) — não um atalho "
-            "Santa Tereza→Muçum. Produto de saída: ΔN em Muçum. STZ é controle de "
-            "nível (sem curva N↔Q inventada). Guaporé/Forqueta/Baixo fora."
+            "Mapa e inventário da bacia oficial Taquari–Antas (G040, ~26,4 mil km², "
+            "7 UGs). Dentro dela, o produto gêmeo HEC/REC estima ΔN em Muçum no corredor "
+            "aninhado (~16 mil km²). Guaporé/Forqueta/Baixo aparecem na bacia; não entram "
+            "no balanço do gêmeo até Muçum. STZ sem curva N↔Q inventada. Pesquisa."
         ),
+        "basin": {
+            "label_pt": "Bacia Taquari–Antas (G040)",
+            "area_km2": 26430,
+            "ugs": sorted(UG_G040),
+            "spatial_subject": True,
+        },
         "corridor": {
-            "label_pt": "Corredor HEC/REC calibrado",
+            "label_pt": "Produto gêmeo · corredor até Muçum",
             "calibration_method": (
                 (live or {}).get("param_selection") or {}
             ).get("method")
@@ -924,6 +955,7 @@ def build_feed() -> dict[str, Any]:
             "excluded_pt": ["Guaporé", "Forqueta", "Baixo Taquari-Antas"],
             "not_full_g040": True,
             "not_only_stz_mucum_shortcut": True,
+            "is_product_inside_basin": True,
         },
         "discipline": {
             "research_not_alert": True,
