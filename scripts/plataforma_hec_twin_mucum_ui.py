@@ -364,7 +364,7 @@ const local = ((DATA.where_results_go || {}).local) || {};
   links.appendChild(a);
 });
 
-(function drawChart() {
+function drawChart() {
   const svg = document.getElementById("eventChart");
   const note = document.getElementById("chartNote");
   const trace = DATA.event_trace || {};
@@ -412,7 +412,7 @@ const local = ((DATA.where_results_go || {}).local) || {};
   document.getElementById("chartCaption").textContent =
     "Fonte do traço: " + (trace.source || "—") + (trace.note ? " · " + trace.note : "");
   note.textContent = "Linha verde = nível estimado (cm). Barras azuis = chuva proxy (mm).";
-})();
+}
 
 const anchors = ((DATA.spatial || {}).anchors) || [];
 const roleChips = document.getElementById("roleChips");
