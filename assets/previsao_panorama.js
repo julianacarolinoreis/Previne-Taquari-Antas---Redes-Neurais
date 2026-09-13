@@ -639,7 +639,7 @@
   }
 
   const ERROR_HIT_LIMIT_CM=10;
-  const ERROR_WINDOW_LABELS={168:'últimos 7 dias',72:'últimos 3 dias',24:'últimas 24 horas',12:'últimas 12 horas'};
+  const ERROR_WINDOW_LABELS={168:'últimos 7 dias',120:'últimos 5 dias',72:'últimos 3 dias',24:'últimas 24 horas',12:'últimas 12 horas',6:'últimas 6 horas'};
 
   function escapeHtml(value){
     return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -795,6 +795,8 @@
     const grid=document.getElementById(ids.grid),summaryBox=document.getElementById(ids.summary),source=document.getElementById(ids.source);
     if(!grid||!summaryBox) return;
     const hours=ERROR_WINDOW_LABELS[state.errorWindowHours]?state.errorWindowHours:168;
+    const title=document.getElementById(sourceKind==='catalog'?'rna-catalog-error-title':'rna-error-title');
+    if(title) title.textContent=sourceKind==='catalog'?`Auditoria histórica dos modelos · ${ERROR_WINDOW_LABELS[hours]}`:`Erros conferidos no ao vivo · ${ERROR_WINDOW_LABELS[hours]}`;
     if(loading&&!error){
       summaryBox.innerHTML='<div class="error-report-empty">Carregando o histórico auditado para calcular os erros.</div>';
       grid.innerHTML='<div class="error-report-empty">Carregando previsões conferidas…</div>';
@@ -819,23 +821,28 @@
     const windowPoints=groups.flatMap(group=>group.points),windowMissing=groups.flatMap(group=>group.pending);
     const overall=errorSummary(windowPoints),windowLabel=ERROR_WINDOW_LABELS[hours];
     summaryBox.innerHTML=[
-      `<div class="error-summary-item"><span>Previsões conferidas</span><strong>${nf0.format(overall.n)}</strong><small>${windowLabel}</small></div>`,
+      `<div class="error-summary-item"><span>Previsões conferidas</span><strong>${nf0.format(overall.n)}</strong><small>combinações modelo × horário · ${windowLabel}</small></div>`,
       `<div class="error-summary-item"><span>Acertos · até ±${ERROR_HIT_LIMIT_CM} cm</span><strong>${overall.n?nf1.format(overall.hitPct)+'%':'—'}</strong><small>${nf0.format(overall.hits)} de ${nf0.format(overall.n)}</small></div>`,
       `<div class="error-summary-item"><span>MAE geral</span><strong>${overall.mae===null?'—':nf1.format(overall.mae)+' cm'}</strong><small>todas as RNAs com resultado</small></div>`,
+      `<div class="error-summary-item"><span>RMSE geral</span><strong>${overall.rmse===null?'—':nf1.format(overall.rmse)+' cm'}</strong><small>penaliza erros maiores</small></div>`,
+      `<div class="error-summary-item"><span>Viés médio</span><strong>${overall.bias===null?'—':`${overall.bias>0?'+':''}${nf1.format(overall.bias)} cm`}</strong><small>${overall.bias===null?'sem amostra':overall.bias>0?'tendência a superestimar':'tendência a subestimar'}</small></div>`,
+      `<div class="error-summary-item"><span>Maior erro</span><strong>${overall.maxAbs===null?'—':nf1.format(overall.maxAbs)+' cm'}</strong><small>erro absoluto na janela</small></div>`,
       `<div class="error-summary-item"><span>Sem resultado</span><strong>${nf0.format(windowMissing.length)}</strong><small>aguardando ou sem dado ANA</small></div>`
     ].join('');
     const historyWhen=sourceKind==='live'&&state.history&&state.history.atualizado_em;
     const catalogWhen=sourceKind==='catalog'&&state.auditCatalog&&state.auditCatalog.meta&&state.auditCatalog.meta.generatedAt;
-    if(source) source.textContent=`Janela de ${windowLabel}, encerrada em ${fmtWhen(referenceTime)}. ${groups.length} combinações de horizonte e RNA; somente previsões conferidas entram nos erros.${historyWhen?` Snapshot público atualizado em ${fmtWhen(historyWhen)}.`:''}${catalogWhen?` Catálogo auditável gerado em ${catalogWhen}.`:''}`;
+    const overallSampleNote=overall.n<10?' Amostra muito curta nesta janela; leitura exploratória.':overall.n<30?' Amostra curta nesta janela; interpretar com cautela.':'';
+    if(source) source.textContent=`Janela de ${windowLabel}, encerrada em ${fmtWhen(referenceTime)}. ${groups.length} combinações de horizonte e RNA; somente previsões conferidas entram nos erros.${overallSampleNote}${historyWhen?` Snapshot público atualizado em ${fmtWhen(historyWhen)}.`:''}${catalogWhen?` Catálogo auditável gerado em ${catalogWhen}.`:''}`;
     grid.innerHTML=groups.map((group,index)=>{
       const metric=errorSummary(group.points),missing=group.pending.length;
       const badgeClass=!metric.n?'empty':missing?'partial':'';
       const badge=!metric.n?'sem resultado':missing?'parcial':'completo';
       const model=escapeHtml(group.model);
       const modelLine=sourceKind==='catalog'?`auditoria histórica · ${model}`:model;
+      const sampleNote=metric.n<10?'Amostra muito curta nesta janela; leitura exploratória. ':metric.n<30?'Amostra curta nesta janela; interpretar com cautela. ':'';
       const note=!metric.n
         ?(group.windowRows.length?`${group.windowRows.length} previsão(ões) registrada(s) na janela, mas sem leitura ANA conferida no horário-alvo.`:'Nenhuma previsão deste modelo caiu na janela selecionada.')
-        :`${missing?`${missing} sem resultado nesta janela. `:''}Acertos: ${nf0.format(metric.hits)} de ${nf0.format(metric.n)} com erro absoluto até ${ERROR_HIT_LIMIT_CM} cm.`;
+        :`${sampleNote}${missing?`${missing} sem resultado nesta janela. `:''}Acertos: ${nf0.format(metric.hits)} de ${nf0.format(metric.n)} com erro absoluto até ${ERROR_HIT_LIMIT_CM} cm.`;
       return `<article class="error-card"><div class="error-card-head"><div><h4>${escapeHtml(group.label)}</h4><p>${modelLine}</p></div><span class="error-card-badge ${badgeClass}">${badge}</span></div><div class="error-chart-shell"><svg class="error-chart" data-error-chart="${index}" viewBox="0 0 680 250" role="img" aria-label="${escapeHtml(group.label)} · observado e RNA"></svg></div><div class="error-kpis"><div class="error-kpi"><span>conferidas</span><strong>${nf0.format(metric.n)}</strong></div><div class="error-kpi"><span>MAE</span><strong>${metric.mae===null?'—':nf1.format(metric.mae)+' cm'}</strong></div><div class="error-kpi"><span>RMSE</span><strong>${metric.rmse===null?'—':nf1.format(metric.rmse)+' cm'}</strong></div><div class="error-kpi"><span>viés</span><strong>${metric.bias===null?'—':`${metric.bias>0?'+':''}${nf1.format(metric.bias)} cm`}</strong></div><div class="error-kpi"><span>maior erro</span><strong class="${metric.maxAbs!==null&&metric.maxAbs>ERROR_HIT_LIMIT_CM?'bad':'good'}">${metric.maxAbs===null?'—':nf1.format(metric.maxAbs)+' cm'}</strong></div></div><p class="error-card-note">${note}</p></article>`;
     }).join('');
     grid.querySelectorAll('[data-error-chart]').forEach(svg=>{
@@ -854,6 +861,13 @@
     renderErrorPanel(liveRows,!state.history, state.historyError, {grid:'rna-error-grid',summary:'rna-error-summary',source:'rna-error-source'}, 'live');
     const catalogRows=state.auditCatalog?errorReportRows(catalogErrorRows(state.auditCatalog)):[];
     renderErrorPanel(catalogRows,!state.auditCatalog, state.auditCatalogError, {grid:'rna-catalog-error-grid',summary:'rna-catalog-error-summary',source:'rna-catalog-error-source'}, 'catalog');
+  }
+
+  function setErrorWindow(hours){
+    const selected=Number(hours);
+    if(!ERROR_WINDOW_LABELS[selected]) return;
+    state.errorWindowHours=selected;
+    renderErrorReport();
   }
 
   function renderMetrics(current,items,trend,flood,cota){
@@ -1116,14 +1130,14 @@
       const mode=id==='mode-s'?'simple':id==='mode-t'?'tech':'panorama';
       b.onclick=()=>setMode(mode);
     });
-    document.querySelectorAll('[data-error-window]').forEach(button=>{
-      button.onclick=()=>{
-        const selected=Number(button.dataset.errorWindow);
-        if(ERROR_WINDOW_LABELS[selected]){
-          state.errorWindowHours=selected;
-          renderErrorReport();
-        }
-      };
+    // A delegação mantém a troca funcional mesmo se uma atualização recriar
+    // os chips. A janela escolhida recalcula resumo, cartões e gráficos juntos.
+    document.addEventListener('click',event=>{
+      const target=event.target;
+      const button=target&&target.closest?target.closest('[data-error-window]'):null;
+      if(!button) return;
+      event.preventDefault();
+      setErrorWindow(button.dataset.errorWindow);
     });
     setMode('simple');
     loadHistory();
