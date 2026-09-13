@@ -449,7 +449,7 @@ function renderChips() {
     b.className = "chip" + (r === activeRole ? " active" : "");
     b.type = "button";
     b.textContent = r === "all" ? "todos" : roleLabel(r);
-    b.onclick = function(){ activeRole = r; renderAnchors(); };
+    b.onclick = function(){ activeRole = r; renderChips(); renderAnchors(); };
     roleChips.appendChild(b);
   });
 }
