@@ -69,21 +69,40 @@ def load_json(path: Path) -> dict[str, Any] | None:
 # Corridor anchoring catalog: forçantes HEC + monitores upstream + chuvas PREVINE.
 # Codes without coords in basin_forecast_points are resolved from postos/pluvio inventories.
 ANCHOR_SPEC: list[tuple[str, str, str]] = [
+    # Alvo + controles de nível no corredor
     ("86510000", "target", "Muçum (alvo N)"),
+    ("86509000", "level_control", "Rio Taquari em Muçum (controle)"),
     ("86472600", "level_control", "Santa Tereza (sem curva N↔Q)"),
     ("86472000", "level_control", "Antas / Linha José Júlio"),
     ("86507000", "level_control", "Carreiro / Cotiporã"),
     ("86125500", "level_control", "Prata / Jararaca"),
     ("86448000", "level_control", "Monte Claro barramento"),
-    ("2851072", "rain", "Ibiraiaras (chuva Carreiro–Prata)"),
-    ("A894", "rain", "Serafina INMET A894"),
-    ("432040401A", "rain", "Serafina CEMADEN Centro"),
+    # Seeds PREVINE que faltavam no mapa + monitores de tronco
+    ("86306000", "upstream_monitor", "UHE Castro Alves alça"),
+    ("86298000", "upstream_monitor", "UHE Castro Alves RS-122"),
+    ("86430900", "upstream_monitor", "PCH da Ilha barramento"),
+    ("86447000", "upstream_monitor", "UHE Monte Claro balsa do Prata"),
+    ("86470800", "upstream_monitor", "UHE 14 de Julho barramento"),
+    ("86471000", "upstream_monitor", "UHE 14 de Julho jusante"),
+    ("86329000", "upstream_monitor", "Rio das Antas / Nova Roma"),
+    ("86480000", "upstream_monitor", "Passo Migliavaca / Carreiro"),
+    ("86500000", "upstream_monitor", "Passo Carreiro"),
     ("86488000", "upstream_monitor", "PCH Caçador montante"),
     ("86490500", "upstream_monitor", "PCH Boa Fé montante"),
     ("86497000", "upstream_monitor", "PCH São Paulo jusante"),
     ("86505500", "upstream_monitor", "PCH Linha Emília jusante"),
-    ("86298000", "upstream_monitor", "UHE Castro Alves"),
     ("86125130", "upstream_monitor", "PCH Morro Grande jusante 2"),
+    # Chuvas PREVINE + densificação INMET/CEMADEN no corredor
+    ("2851072", "rain", "Ibiraiaras (chuva Carreiro–Prata)"),
+    ("2851044", "rain", "Chuva Carreiro (código 2851044)"),
+    ("A894", "rain", "Serafina INMET A894"),
+    ("432040401A", "rain", "Serafina CEMADEN Centro"),
+    ("B859", "rain", "Muçum INMET B859"),
+    ("A840", "rain", "Bento Gonçalves INMET A840"),
+    ("A880", "rain", "Vacaria INMET A880"),
+    ("B817", "rain", "Caxias Criúva INMET B817"),
+    ("B818", "rain", "Caxias Aeroporto INMET B818"),
+    ("B858", "rain", "Casca INMET B858"),
 ]
 
 ROLE_LABEL_PT = {
@@ -226,6 +245,182 @@ def series_sample(
     return rows
 
 
+def build_corridor_network() -> dict[str, Any]:
+    """Dense corridor station layer (flu + rain) beyond curated anchors."""
+    features: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def _add(
+        code: str,
+        name: str | None,
+        lat: Any,
+        lon: Any,
+        kind: str,
+        ug: str | None,
+        extra: dict[str, Any] | None = None,
+    ) -> None:
+        if not code or code in seen or lat is None or lon is None:
+            return
+        if ug not in UG_CORRIDOR:
+            return
+        seen.add(code)
+        props = {
+            "code": code,
+            "name": name or code,
+            "kind": kind,
+            "ug": ug,
+        }
+        if extra:
+            props.update(extra)
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [float(lon), float(lat)],
+                },
+                "properties": props,
+            }
+        )
+
+    postos = load_json(OUT / "postos_por_upg_latest.json") or {}
+    by_upg = postos.get("by_upg") or {}
+    for ug, rows in by_upg.items():
+        lst = rows if isinstance(rows, list) else (rows or {}).get("stations") or []
+        for st in lst:
+            if not isinstance(st, dict):
+                continue
+            _add(
+                str(st.get("codigo") or ""),
+                st.get("nome"),
+                st.get("lat"),
+                st.get("lon"),
+                "flu",
+                str(st.get("upg") or ug),
+                {
+                    "previne_seed": bool(st.get("in_previne_seed")),
+                    "area_km2": st.get("area_drenagem_km2"),
+                },
+            )
+
+    pluv = load_json(OUT / "pluviometria_g040_latest.json") or {}
+    for st in pluv.get("stations") or []:
+        if not isinstance(st, dict):
+            continue
+        _add(
+            str(st.get("codigo") or ""),
+            st.get("nome"),
+            st.get("lat"),
+            st.get("lon"),
+            "rain",
+            str(st.get("upg") or ""),
+            {
+                "network": st.get("rede"),
+                "previne_rain": bool(st.get("in_previne_rain")),
+            },
+        )
+
+    n_flu = sum(1 for f in features if f["properties"]["kind"] == "flu")
+    n_rain = sum(1 for f in features if f["properties"]["kind"] == "rain")
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "counts": {"flu": n_flu, "rain": n_rain, "total": len(features)},
+        "note_pt": (
+            "Rede completa do corredor (Prata + Carreiro + Médio): inventário ANA/INMET/"
+            "CEMADEN. Âncoras curadas ficam em destaque; esta camada mostra o restante."
+        ),
+    }
+
+
+def compact_hindcast_events(hind: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Per-event LOO errors for platform skill panel."""
+    rows: list[dict[str, Any]] = []
+    for ev in (hind or {}).get("events") or []:
+        if not isinstance(ev, dict) or ev.get("status") != "scored":
+            continue
+        abs_err = ev.get("rise_n_abs_err_cm")
+        rel_err = ev.get("rise_n_rel_err")
+        peak_err = ev.get("peak_q_rel_err")
+        nse = ev.get("nse_loo")
+        rain = ev.get("rain_mm_aw")
+        tag = "ok"
+        if rel_err is not None and abs(float(rel_err)) >= 0.8:
+            tag = "worst_rel_dn"
+        elif peak_err is not None and abs(float(peak_err)) >= 0.5:
+            tag = "worst_peak_q"
+        elif nse is not None and float(nse) < 0:
+            tag = "negative_nse"
+        elif rel_err is not None and abs(float(rel_err)) <= 0.12:
+            tag = "best_rel_dn"
+        rows.append(
+            {
+                "event_id": ev.get("event_id"),
+                "rain_mm_aw": rain,
+                "nse_loo": nse,
+                "peak_q_rel_err": peak_err,
+                "rise_n_abs_err_cm": abs_err,
+                "rise_n_rel_err": rel_err,
+                "obs_rise_n_cm": ev.get("obs_rise_n_cm"),
+                "sim_rise_n_cm": ev.get("sim_rise_n_cm"),
+                "analog_event_id": ev.get("analog_event_id"),
+                "analog_members": (ev.get("analog_members") or [])[:5],
+                "wet": bool(((ev.get("wetness") or {}).get("is_wet"))),
+                "tag": tag,
+            }
+        )
+    rows.sort(key=lambda r: abs(float(r.get("rise_n_rel_err") or 99)))
+    return rows
+
+
+def calibration_lessons(
+    events: list[dict[str, Any]], summary: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Where LOO is right/wrong — actionable research notes."""
+    if not events:
+        return {
+            "best_event_id": None,
+            "worst_rel_event_id": None,
+            "worst_peak_event_id": None,
+            "lessons_pt": [],
+        }
+    best = min(events, key=lambda r: abs(float(r.get("rise_n_rel_err") or 99)))
+    worst_rel = max(events, key=lambda r: abs(float(r.get("rise_n_rel_err") or 0)))
+    worst_peak = max(events, key=lambda r: abs(float(r.get("peak_q_rel_err") or 0)))
+    lessons = [
+        (
+            f"Melhor ΔN relativo: {best.get('event_id')} "
+            f"(|err|≈{abs(float(best.get('rise_n_rel_err') or 0))*100:.0f}%, "
+            f"NSE={best.get('nse_loo')}) — fingerprint+blend funcionam em eventos médios."
+        ),
+        (
+            f"Pior ΔN relativo: {worst_rel.get('event_id')} "
+            f"(|err|≈{abs(float(worst_rel.get('rise_n_rel_err') or 0))*100:.0f}%, "
+            f"chuva≈{worst_rel.get('rain_mm_aw')} mm) — eventos pequenos/úmidos "
+            f"superestimam a subida; revisar análogos e IC."
+        ),
+        (
+            f"Pior pico Q: {worst_peak.get('event_id')} "
+            f"(|err|≈{abs(float(worst_peak.get('peak_q_rel_err') or 0))*100:.0f}%, "
+            f"chuva≈{worst_peak.get('rain_mm_aw')} mm) — extremos secos→muito chuvosos "
+            f"pedem amortecimento / especialista de regime."
+        ),
+        (
+            "Calibração continua leave-one-out na biblioteca de eventos "
+            f"({(summary or {}).get('n_scored', len(events))} marcados): "
+            "não reajustar RNA; só parâmetros do gêmeo HEC/REC."
+        ),
+    ]
+    return {
+        "best_event_id": best.get("event_id"),
+        "worst_rel_event_id": worst_rel.get("event_id"),
+        "worst_peak_event_id": worst_peak.get("event_id"),
+        "mean_rise_n_rel_err": (summary or {}).get("mean_rise_n_rel_err"),
+        "mean_peak_q_rel_err": (summary or {}).get("mean_peak_q_rel_err"),
+        "lessons_pt": lessons,
+    }
+
+
 def build_spatial(
     force: dict[str, Any] | None,
     stations: dict[str, dict[str, Any]],
@@ -261,8 +456,9 @@ def build_spatial(
         )
 
     anchors = build_anchors(stations)
+    network = build_corridor_network()
     # Primary twin controls remain the IFS sample / target set.
-    primary_codes = {"86472000", "86472600", "86507000", "86510000"}
+    primary_codes = {"86510000", "86472600", "86472000", "86507000"}
     controls = [
         {
             "code": a["code"],
@@ -280,7 +476,9 @@ def build_spatial(
         "note_pt": (
             "Corredor calibrado REC: Prata + Antas residual + Carreiro + residual STZ "
             "+ incremento Muçum. Chuva IFS = proxy pontual por sub-bacia (não máscara "
-            "areal). UG G040 só como contorno; Guaporé/Forqueta/Baixo fora do modelo."
+            "areal). UG G040 só como contorno; Guaporé/Forqueta/Baixo fora do modelo. "
+            f"Âncoras curadas={len(anchors)}; rede inventário corredor="
+            f"{(network.get('counts') or {}).get('total', 0)} pontos."
         ),
         "area_weighted_total_mm": aw.get("total_mm"),
         "area_weighted_past_mm": aw.get("past_mm"),
@@ -290,6 +488,7 @@ def build_spatial(
         "controls": controls,
         "anchors": anchors,
         "anchor_count": len(anchors),
+        "corridor_network": network,
         "ug_filter": sorted(UG_CORRIDOR),
         "ug_geojson": "ugs_g040.geojson",
         "fozes_geojson": "fozes_principais_bho6.geojson",
@@ -502,13 +701,22 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
         ug = None
         if "Muçum" in label or "Mucum" in label:
             ug = "Médio Taquari-Antas"
-        elif "Carreiro" in label:
+        elif "Carreiro" in label or "Cotiporã" in label or "Migliavaca" in label:
             ug = "Carreiro"
-        elif "Prata" in label or "Jararaca" in label:
+        elif "Prata" in label or "Jararaca" in label or "Ilha" in label:
             ug = "Prata"
-        elif "Antas" in label or "Santa Tereza" in label or "Monte Claro" in label:
+        elif (
+            "Antas" in label
+            or "Santa Tereza" in label
+            or "Monte Claro" in label
+            or "Castro Alves" in label
+            or "14 de Julho" in label
+            or "Bento" in label
+            or "Vacaria" in label
+            or "Caxias" in label
+        ):
             ug = "Médio Taquari-Antas"
-        elif "Ibiraiaras" in label or "Serafina" in label:
+        elif "Ibiraiaras" in label or "Serafina" in label or "Casca" in label:
             ug = "Carreiro"
         row["ug"] = ug
         row["rain_mm_window"] = ug_rain.get(ug) if ug else None
@@ -769,6 +977,16 @@ def build_feed() -> dict[str, Any]:
                 "generated_at_utc": (hind or {}).get("generated_at_utc"),
                 "summary": (hind or {}).get("summary"),
                 "verdict": (hind or {}).get("verdict"),
+                "events": compact_hindcast_events(hind),
+                "calibration": calibration_lessons(
+                    compact_hindcast_events(hind),
+                    (hind or {}).get("summary"),
+                ),
+                "calibration_artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
+                "method_pt": (
+                    "Leave-one-out nos eventos da biblioteca: chuva observada como "
+                    "proxy de QPF → gêmeo HEC → ΔN Muçum via curva oficial."
+                ),
             },
         },
         "spatial": build_spatial(force_live or force_fwd, stations),

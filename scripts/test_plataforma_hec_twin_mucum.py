@@ -24,7 +24,7 @@ class PlataformaHecTwinTests(unittest.TestCase):
 
     def test_has_many_anchors(self) -> None:
         anchors = self.feed["spatial"]["anchors"]
-        self.assertGreaterEqual(len(anchors), 12)
+        self.assertGreaterEqual(len(anchors), 25)
         roles = {a["role"] for a in anchors}
         self.assertIn("target", roles)
         self.assertIn("level_control", roles)
@@ -33,6 +33,10 @@ class PlataformaHecTwinTests(unittest.TestCase):
         mucum = [a for a in anchors if a["code"] == "86510000"]
         self.assertEqual(len(mucum), 1)
         self.assertEqual(mucum[0]["role"], "target")
+        # PREVINE seeds densified on the corridor map
+        codes = {a["code"] for a in anchors}
+        for code in ("86306000", "86430900", "86447000", "B859", "2851044"):
+            self.assertIn(code, codes)
 
     def test_automation_robot_declared(self) -> None:
         auto = self.feed["automation"]
@@ -53,7 +57,7 @@ class PlataformaHecTwinTests(unittest.TestCase):
         self.assertIn("preferred_source", fresh)
         self.assertIn("live_eval", self.feed["products"])
         self.assertIn("forward_5d", self.feed["products"])
-        self.assertGreaterEqual(self.feed["spatial"]["anchor_count"], 12)
+        self.assertGreaterEqual(self.feed["spatial"]["anchor_count"], 25)
         self.assertIn("ug_rain_mm", self.feed["spatial"])
 
     def test_corridor_basin_calibration_not_stz_shortcut(self) -> None:
@@ -79,6 +83,21 @@ class PlataformaHecTwinTests(unittest.TestCase):
         # Map must not rely on heavy UG choropleth language in the note.
         self.assertIn("contorno", self.feed["spatial"]["note_pt"].lower())
 
+    def test_hindcast_skill_events_and_corridor_network(self) -> None:
+        skill = self.feed["products"]["hindcast_skill"]
+        self.assertGreaterEqual(len(skill.get("events") or []), 9)
+        cal = skill.get("calibration") or {}
+        self.assertTrue(cal.get("lessons_pt"))
+        self.assertEqual(cal.get("best_event_id"), "E22")
+        self.assertEqual(cal.get("worst_rel_event_id"), "E25")
+        self.assertEqual(cal.get("worst_peak_event_id"), "E27")
+        net = self.feed["spatial"]["corridor_network"]
+        self.assertGreaterEqual((net.get("counts") or {}).get("total", 0), 150)
+        self.assertGreaterEqual(len(net.get("features") or []), 150)
+        # curated anchors remain a subset signal — network is the dense inventory
+        self.assertGreater(
+            net["counts"]["total"], self.feed["spatial"]["anchor_count"]
+        )
 
 if __name__ == "__main__":
     unittest.main()

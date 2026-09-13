@@ -192,6 +192,21 @@ svg.chart { width:100%; min-width:520px; height:280px; display:block; }
 }
 .foot { margin-top:1.1rem; color:var(--muted); font-size:.82rem; }
 ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
+
+.skill-table { width:100%; border-collapse:collapse; font-size:.84rem; margin-top:.55rem; }
+.skill-table th, .skill-table td {
+  border-bottom:1px solid var(--line); padding:.4rem .35rem; text-align:left;
+  font-variant-numeric:tabular-nums;
+}
+.skill-table th { color:var(--muted); font-weight:650; font-size:.75rem; text-transform:uppercase; letter-spacing:.03em; }
+.skill-table tr.tag-best_rel_dn td:first-child { color:var(--live); font-weight:700; }
+.skill-table tr.tag-worst_rel_dn td:first-child,
+.skill-table tr.tag-worst_peak_q td:first-child,
+.skill-table tr.tag-negative_nse td:first-child { color:#8a3b12; font-weight:700; }
+.lessons { margin:.55rem 0 0; padding-left:1.1rem; }
+.lessons li { margin:.25rem 0; color:var(--muted); }
+.skill-summary { display:flex; flex-wrap:wrap; gap:.55rem 1rem; margin:.35rem 0 .2rem; }
+.skill-summary strong { color:var(--live); }
 @keyframes rise {
   from { opacity:0; transform:translateY(8px); }
   to { opacity:1; transform:translateY(0); }
@@ -258,6 +273,24 @@ ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
   <section class="grid products" style="margin-bottom:.9rem">
     <article class="card product-live"><h3>Live eval (evento)</h3><p class="muted" id="liveSummary">Carregando…</p></article>
     <article class="card product-fwd"><h3>Forward ~5d (operacional)</h3><p class="muted" id="fwdSummary">Carregando…</p></article>
+  </section>
+
+
+  <section class="card" style="margin-bottom:.9rem" id="skillCard">
+    <h2>Calibração · erros LOO por evento</h2>
+    <p class="muted" id="skillVerdict">Hindcast leave-one-out: onde o gêmeo acerta e onde erra.</p>
+    <div class="skill-summary" id="skillSummary"></div>
+    <div style="overflow-x:auto">
+      <table class="skill-table" id="skillTable">
+        <thead>
+          <tr>
+            <th>Evento</th><th>Chuva mm</th><th>NSE</th><th>|err| ΔN cm</th><th>err ΔN %</th><th>err pico Q %</th><th>Tag</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <ol class="lessons" id="skillLessons"></ol>
   </section>
 
   <section class="card" style="margin-bottom:.9rem">
@@ -435,6 +468,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 const ugLayer = L.layerGroup().addTo(map);
 const rainLayer = L.layerGroup().addTo(map);
+const networkLayer = L.layerGroup(); // off by default — dense inventory
 const anchorLayer = L.layerGroup().addTo(map);
 const markers = {};
 
@@ -446,11 +480,17 @@ legend.onAdd = function() {
     "<div><i style=\"background:#1d4f91\"></i>nível / controle</div>" +
     "<div><i style=\"background:#2f6b54\"></i>chuva sub-bacia</div>" +
     "<div><i style=\"background:#5a6570\"></i>monitor montante</div>" +
+    "<div><i style=\"background:#8a96a0\"></i>rede inventário</div>" +
     "<div style=\"margin-top:.25rem\">contorno = UG do corredor</div>";
   return d;
 };
 legend.addTo(map);
-L.control.layers(null, {"UGs HEC":ugLayer, "Chuva IFS":rainLayer, "Âncoras":anchorLayer}, {collapsed:false}).addTo(map);
+L.control.layers(null, {
+  "UGs HEC":ugLayer,
+  "Chuva IFS":rainLayer,
+  "Rede corredor":networkLayer,
+  "Âncoras":anchorLayer
+}, {collapsed:false}).addTo(map);
 
 function renderChips() {
   roleChips.innerHTML = "";
@@ -462,6 +502,74 @@ function renderChips() {
     b.onclick = function(){ activeRole = r; renderChips(); renderAnchors(); };
     roleChips.appendChild(b);
   });
+}
+
+
+function renderNetwork() {
+  networkLayer.clearLayers();
+  const net = ((DATA.spatial || {}).corridor_network) || {};
+  const feats = net.features || [];
+  feats.forEach(function(f) {
+    const p = f.properties || {};
+    const c = (f.geometry && f.geometry.coordinates) || [];
+    if (c.length < 2) return;
+    const isRain = p.kind === "rain";
+    L.circleMarker([c[1], c[0]], {
+      radius: isRain ? 3.2 : 3.8,
+      color: isRain ? "#6a8aa0" : "#7a868f",
+      weight: 1,
+      fillColor: isRain ? "#9bb7c9" : "#a0a8b0",
+      fillOpacity: 0.7
+    }).bindPopup(
+      "<strong>" + (p.name || p.code) + "</strong><br/>" +
+      (isRain ? "chuva inventário" : "flu inventário") +
+      (p.ug ? " · " + p.ug : "") + "<br/>" + (p.code || "")
+    ).addTo(networkLayer);
+  });
+}
+
+function renderSkill() {
+  const skill = ((DATA.products || {}).hindcast_skill) || {};
+  const verdictEl = document.getElementById("skillVerdict");
+  const sumEl = document.getElementById("skillSummary");
+  const tbody = document.querySelector("#skillTable tbody");
+  const lessonsEl = document.getElementById("skillLessons");
+  if (!tbody) return;
+  const summary = skill.summary || {};
+  const verdict = skill.verdict || {};
+  if (verdictEl) {
+    verdictEl.textContent = verdict.plain_pt || skill.method_pt ||
+      "Hindcast leave-one-out: onde o gêmeo acerta e onde erra.";
+  }
+  if (sumEl) {
+    sumEl.innerHTML =
+      "<span><strong>" + fmt(summary.n_scored, 0) + "</strong> eventos</span>" +
+      "<span>ΔN rel médio <strong>" + fmt((summary.mean_rise_n_rel_err || 0) * 100, 0) + "%</strong></span>" +
+      "<span>pico Q |err| médio <strong>" + fmt((summary.mean_peak_q_rel_err || 0) * 100, 0) + "%</strong></span>" +
+      "<span>NSE médio <strong>" + fmt(summary.mean_nse_loo, 2) + "</strong></span>";
+  }
+  tbody.innerHTML = "";
+  (skill.events || []).forEach(function(e) {
+    const tr = document.createElement("tr");
+    tr.className = "tag-" + (e.tag || "ok");
+    tr.innerHTML =
+      "<td>" + (e.event_id || "—") + "</td>" +
+      "<td>" + fmt(e.rain_mm_aw, 0) + "</td>" +
+      "<td>" + fmt(e.nse_loo, 2) + "</td>" +
+      "<td>" + fmt(e.rise_n_abs_err_cm, 0) + "</td>" +
+      "<td>" + fmt((e.rise_n_rel_err || 0) * 100, 0) + "%</td>" +
+      "<td>" + fmt((e.peak_q_rel_err || 0) * 100, 0) + "%</td>" +
+      "<td>" + (e.tag || "ok") + "</td>";
+    tbody.appendChild(tr);
+  });
+  if (lessonsEl) {
+    lessonsEl.innerHTML = "";
+    (((skill.calibration || {}).lessons_pt) || []).forEach(function(line) {
+      const li = document.createElement("li");
+      li.textContent = line;
+      lessonsEl.appendChild(li);
+    });
+  }
 }
 
 function renderAnchors() {
@@ -592,16 +700,22 @@ async function loadUgs() {
     chips.appendChild(b);
   });
   if (meta) {
+    const net = ((DATA.spatial || {}).corridor_network) || {};
+    const counts = net.counts || {};
     meta.textContent =
       "Calibração: " + (c.calibration_method || "análogos da bacia") +
       " · saída " + (c.outlet_pt || "Muçum") +
-      " · fora: " + ((c.excluded_pt || []).join(", ") || "—");
+      " · fora: " + ((c.excluded_pt || []).join(", ") || "—") +
+      " · âncoras " + ((((DATA.spatial || {}).anchors) || []).length) +
+      " · rede " + (counts.total != null ? counts.total : "—");
   }
 })();
 
 drawChart();
 renderChips();
 renderAnchors();
+renderNetwork();
+renderSkill();
 loadUgs();
 setTimeout(function(){ map.invalidateSize(); }, 200);
 </script>
