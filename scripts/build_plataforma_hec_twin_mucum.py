@@ -361,6 +361,95 @@ def build_basin_network() -> dict[str, Any]:
     }
 
 
+def ug_area_km2_lookup() -> dict[str, float]:
+    """Official UG areas from ugs_g040.geojson (approx km²)."""
+    path = OUT / "ugs_g040.geojson"
+    raw = load_json(path) or {}
+    out: dict[str, float] = {}
+    for feat in raw.get("features") or []:
+        props = feat.get("properties") or {}
+        name = props.get("sub_bacia") or props.get("nome")
+        area = props.get("area_km2_approx")
+        if name and area is not None:
+            out[str(name)] = float(area)
+    return out
+
+
+def g040_bbox_latlon() -> list[list[float]]:
+    """Leaflet-friendly [[south, west], [north, east]] from UG polygons."""
+    path = OUT / "ugs_g040.geojson"
+    raw = load_json(path) or {}
+    lats: list[float] = []
+    lons: list[float] = []
+
+    def _walk(coords: Any) -> None:
+        if not isinstance(coords, (list, tuple)) or not coords:
+            return
+        if isinstance(coords[0], (int, float)) and len(coords) >= 2:
+            lons.append(float(coords[0]))
+            lats.append(float(coords[1]))
+            return
+        for item in coords:
+            _walk(item)
+
+    for feat in raw.get("features") or []:
+        geom = feat.get("geometry") or {}
+        _walk(geom.get("coordinates"))
+    if not lats or not lons:
+        return [[-29.95, -52.64], [-28.18, -49.93]]
+    return [[min(lats), min(lons)], [max(lats), max(lons)]]
+
+
+def build_inventory_stats(network: dict[str, Any]) -> dict[str, Any]:
+    """Per-UG station inventory for the full G040 basin (no HEC invented)."""
+    areas = ug_area_km2_lookup()
+    by_ug: dict[str, dict[str, Any]] = {
+        ug: {
+            "flu": 0,
+            "rain": 0,
+            "total": 0,
+            "area_km2_approx": areas.get(ug),
+            "in_twin_domain": ug in UG_TWIN_DOMAIN,
+            "hec_forcing": ug in UG_TWIN_DOMAIN,
+        }
+        for ug in sorted(UG_G040)
+    }
+    for feat in network.get("features") or []:
+        props = feat.get("properties") or {}
+        ug = props.get("ug")
+        if ug not in by_ug:
+            continue
+        kind = props.get("kind")
+        if kind == "flu":
+            by_ug[ug]["flu"] += 1
+        elif kind == "rain":
+            by_ug[ug]["rain"] += 1
+        by_ug[ug]["total"] += 1
+    counts = network.get("counts") or {}
+    return {
+        "by_ug": by_ug,
+        "totals": {
+            "flu": counts.get("flu"),
+            "rain": counts.get("rain"),
+            "total": counts.get("total"),
+            "in_twin_domain": counts.get("in_twin_domain"),
+            "outside_twin_domain": counts.get("outside_twin_domain"),
+            "ugs": len(UG_G040),
+            "ugs_twin": len(UG_TWIN_DOMAIN),
+            "ugs_inventory_only": len(UG_EXCLUDED_FROM_TWIN),
+        },
+        "sources": [
+            "postos_por_upg_latest.json",
+            "pluviometria_g040_latest.json",
+            "ugs_g040.geojson",
+        ],
+        "honesty_pt": (
+            "Inventário da bacia G040. Guaporé/Forqueta/Baixo entram nas contagens; "
+            "não há forçante HEC/ΔN inventada para essas UGs."
+        ),
+    }
+
+
 def build_corridor_network() -> dict[str, Any]:
     """Back-compat alias — rede espacial agora é a bacia G040 completa."""
     return build_basin_network()
@@ -521,6 +610,7 @@ def build_spatial(
             "g040_label_pt": "Bacia Taquari–Antas (G040)",
             "g040_km2": 26430,
             "g040_ugs": sorted(UG_G040),
+            "g040_bbox_latlon": g040_bbox_latlon(),
             "twin_domain_label_pt": "Produto gêmeo · corredor até Muçum",
             "twin_domain_km2": 15965.207,
             "twin_domain_ugs": sorted(UG_TWIN_DOMAIN),
@@ -543,6 +633,7 @@ def build_spatial(
         "anchor_count": len(anchors),
         "basin_network": network,
         "corridor_network": network,
+        "inventory_stats": build_inventory_stats(network),
         "ug_filter": sorted(UG_G040),
         "ug_basin": sorted(UG_G040),
         "ug_twin_domain": sorted(UG_TWIN_DOMAIN),
@@ -795,11 +886,12 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
 
     feed["schema_version"] = "plataforma_hec_twin_mucum_v2"
     feed["product"] = {
-        "name": "Corredor calibrado · ΔN Muçum ~5d",
+        "name": "Produto gêmeo · ΔN Muçum ~5d",
         "horizon": "~5 dias",
-        "target": "Muçum (exutório N)",
+        "target": "Muçum (exutório N do produto)",
         "mode": "pesquisa · REC bacia",
         "domain_pt": "Prata + Antas residual + Carreiro + residual STZ + incremento Muçum",
+        "nested_inside_pt": "Dentro da bacia G040 · não é a bacia inteira",
     }
     feed["summary"] = {
         "peak_n_cm": primary.get("peak_anchored_cm"),
@@ -1103,9 +1195,9 @@ def render_root_entry() -> str:
 </head>
 <body>
 <main>
-  <p><strong>PREVINE · Plataforma HEC/REC</strong></p>
-  <p>Redirecionando para o mapa e os resultados do gêmeo Muçum ~5d…</p>
-  <p><a href="assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html">Abrir plataforma</a>
+  <p><strong>PREVINE · Bacia Taquari–Antas (G040)</strong></p>
+  <p>Redirecionando para o mapa da bacia e o produto gêmeo ΔN Muçum…</p>
+  <p><a href="assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html">Abrir plataforma da bacia</a>
      · <a href="mucum_previsao_inundacao.html">Plataforma RNA Muçum</a></p>
 </main>
 </body>

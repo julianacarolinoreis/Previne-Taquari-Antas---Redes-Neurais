@@ -158,5 +158,38 @@ class PlataformaHecTwinTests(unittest.TestCase):
         self.assertEqual(cal.get("worst_peak_event_id"), "E27")
 
 
+    def test_inventory_stats_cover_excluded_ugs(self) -> None:
+        inv = self.feed["spatial"]["inventory_stats"]
+        totals = inv["totals"]
+        self.assertEqual(totals["ugs"], 7)
+        self.assertGreaterEqual(totals["outside_twin_domain"], 50)
+        by = inv["by_ug"]
+        for ug in ("Guaporé", "Forqueta", "Baixo Taquari-Antas"):
+            self.assertIn(ug, by)
+            self.assertFalse(by[ug]["in_twin_domain"])
+            self.assertGreaterEqual(by[ug]["total"], 1)
+            self.assertIsNotNone(by[ug].get("area_km2_approx"))
+
+    def test_html_puts_basin_before_mucum_product(self) -> None:
+        html = (
+            ROOT
+            / "assets"
+            / "data"
+            / "estudo_bacia_taquari_antas"
+            / "plataforma_hec_twin_mucum.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Bacia Taquari–Antas", html)
+        self.assertIn("Inventário por UG", html)
+        self.assertIn("renderUgInventory", html)
+        self.assertIn("ugInventory", html)
+        self.assertLess(html.find("basinMapSection"), html.find("corridorCard"))
+        self.assertLess(html.find("basinMetrics"), html.find("productMetrics"))
+        self.assertIn("Guaporé", html)
+        self.assertIn("Forqueta", html)
+        hero = html[html.find("<header") : html.find("</header>")]
+        self.assertIn("G040", hero)
+        self.assertTrue("26.430" in hero or "26,430" in hero or "26430" in hero)
+
+
 if __name__ == "__main__":
     unittest.main()

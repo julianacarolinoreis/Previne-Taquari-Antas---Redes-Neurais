@@ -1,6 +1,6 @@
 {
   "schema_version": "plataforma_hec_twin_mucum_v2",
-  "generated_at_utc": "2026-09-13T20:25:53Z",
+  "generated_at_utc": "2026-09-13T23:54:19Z",
   "status": "research_platform_ready",
   "label_pt": "Plataforma HEC/REC · bacia Taquari–Antas (G040)",
   "purpose_pt": "Mapa e inventário da bacia oficial Taquari–Antas (G040, ~26,4 mil km², 7 UGs). Dentro dela, o produto gêmeo HEC/REC estima ΔN em Muçum no corredor aninhado (~16 mil km²). Guaporé/Forqueta/Baixo aparecem na bacia; não entram no balanço do gêmeo até Muçum. STZ sem curva N↔Q inventada. Pesquisa.",
@@ -228,7 +228,7 @@
       "note_pt": "Produto operacional de pesquisa (~5d). Se a forçante estiver seca ou a telemetria cair, o ΔN pode ir a zero — conferir live eval.",
       "available": true,
       "artifact": "hec_twin_mucum_forward_5d.html",
-      "age_hours": 22.12,
+      "age_hours": 25.59,
       "stale": true,
       "note": "Forward seco/stale — preferir live para o evento.",
       "peak_delta_n_cm": 0.0,
@@ -322,7 +322,7 @@
       },
       "available": true,
       "artifact": "hec_twin_mucum_live_eval.html",
-      "age_hours": 22.12,
+      "age_hours": 25.59,
       "timing_error_h": 0.5,
       "note": "Replay do evento com âncora + verificação ANA.",
       "peak_delta_n_cm": 253.81,
@@ -593,6 +593,16 @@
         "Guaporé",
         "Médio Taquari-Antas",
         "Prata"
+      ],
+      "g040_bbox_latlon": [
+        [
+          -29.94607697018336,
+          -52.637991984
+        ],
+        [
+          -28.178205897214017,
+          -49.92611542399998
+        ]
       ],
       "twin_domain_label_pt": "Produto gêmeo · corredor até Muçum",
       "twin_domain_km2": 15965.207,
@@ -17148,6 +17158,82 @@
       },
       "note_pt": "Rede da bacia Taquari–Antas (G040, 7 UGs): inventário ANA/INMET/CEMADEN. Inclui Guaporé, Forqueta e Baixo. Âncoras curadas = produto gêmeo Muçum; esta camada mostra a bacia inteira."
     },
+    "inventory_stats": {
+      "by_ug": {
+        "Alto Taquari-Antas": {
+          "flu": 39,
+          "rain": 27,
+          "total": 66,
+          "area_km2_approx": 5191.66,
+          "in_twin_domain": true,
+          "hec_forcing": true
+        },
+        "Baixo Taquari-Antas": {
+          "flu": 49,
+          "rain": 4,
+          "total": 53,
+          "area_km2_approx": 5141.07,
+          "in_twin_domain": false,
+          "hec_forcing": false
+        },
+        "Carreiro": {
+          "flu": 37,
+          "rain": 30,
+          "total": 67,
+          "area_km2_approx": 2563.91,
+          "in_twin_domain": true,
+          "hec_forcing": true
+        },
+        "Forqueta": {
+          "flu": 20,
+          "rain": 13,
+          "total": 33,
+          "area_km2_approx": 2864.03,
+          "in_twin_domain": false,
+          "hec_forcing": false
+        },
+        "Guaporé": {
+          "flu": 28,
+          "rain": 20,
+          "total": 48,
+          "area_km2_approx": 2487.5,
+          "in_twin_domain": false,
+          "hec_forcing": false
+        },
+        "Médio Taquari-Antas": {
+          "flu": 42,
+          "rain": 26,
+          "total": 68,
+          "area_km2_approx": 4498.16,
+          "in_twin_domain": true,
+          "hec_forcing": true
+        },
+        "Prata": {
+          "flu": 45,
+          "rain": 40,
+          "total": 85,
+          "area_km2_approx": 3779.62,
+          "in_twin_domain": true,
+          "hec_forcing": true
+        }
+      },
+      "totals": {
+        "flu": 260,
+        "rain": 160,
+        "total": 420,
+        "in_twin_domain": 286,
+        "outside_twin_domain": 134,
+        "ugs": 7,
+        "ugs_twin": 4,
+        "ugs_inventory_only": 3
+      },
+      "sources": [
+        "postos_por_upg_latest.json",
+        "pluviometria_g040_latest.json",
+        "ugs_g040.geojson"
+      ],
+      "honesty_pt": "Inventário da bacia G040. Guaporé/Forqueta/Baixo entram nas contagens; não há forçante HEC/ΔN inventada para essas UGs."
+    },
     "ug_filter": [
       "Alto Taquari-Antas",
       "Baixo Taquari-Antas",
@@ -17835,11 +17921,12 @@
     ]
   },
   "product": {
-    "name": "Corredor calibrado · ΔN Muçum ~5d",
+    "name": "Produto gêmeo · ΔN Muçum ~5d",
     "horizon": "~5 dias",
-    "target": "Muçum (exutório N)",
+    "target": "Muçum (exutório N do produto)",
     "mode": "pesquisa · REC bacia",
-    "domain_pt": "Prata + Antas residual + Carreiro + residual STZ + incremento Muçum"
+    "domain_pt": "Prata + Antas residual + Carreiro + residual STZ + incremento Muçum",
+    "nested_inside_pt": "Dentro da bacia G040 · não é a bacia inteira"
   },
   "summary": {
     "peak_n_cm": 678.81,
@@ -17851,8 +17938,8 @@
   },
   "freshness": {
     "preferred_source": "live_eval",
-    "live_age_hours": 22.12,
-    "forward_age_hours": 22.12,
+    "live_age_hours": 25.59,
+    "forward_age_hours": 25.59,
     "stale_forward": true,
     "forward_max_delta_n_cm": 0.0,
     "note_pt": "Quando o forward está seco/stale, headline e hidrograma preferem o live eval."

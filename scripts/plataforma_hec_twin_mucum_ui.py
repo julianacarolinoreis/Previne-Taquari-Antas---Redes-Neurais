@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HTML renderer for the HEC/REC twin research platform (Muçum)."""
+"""HTML renderer for the HEC/REC platform — bacia Taquari–Antas (G040)."""
 
 from __future__ import annotations
 
@@ -19,14 +19,14 @@ def _esc(value: Any) -> str:
 
 def render_platform_html(feed: dict[str, Any]) -> str:
     """Render the self-contained research platform page from an enriched feed."""
-    blob = json.dumps(feed, ensure_ascii=False).replace("</", "<\\/")
+    blob = json.dumps(feed, ensure_ascii=False).replace("</", "<" + chr(92) + "/")
 
-    title = _esc(feed.get("label_pt") or "Plataforma HEC/REC · Muçum")
+    title = _esc(feed.get("label_pt") or "Plataforma HEC/REC · bacia Taquari–Antas (G040)")
     generated = _esc(feed.get("generated_at_utc") or "—")
     status = _esc(feed.get("status") or "research")
 
     product = feed.get("product") or {}
-    product_name = _esc(product.get("name") or "ΔN ~5d · Muçum")
+    product_name = _esc(product.get("name") or "Produto gêmeo · ΔN Muçum ~5d")
     product_horizon = _esc(product.get("horizon") or "~5 dias")
     product_target = _esc(product.get("target") or "Muçum")
     product_mode = _esc(product.get("mode") or "pesquisa")
@@ -60,7 +60,18 @@ def render_platform_html(feed: dict[str, Any]) -> str:
     peak_dn_txt = "—" if peak_dn is None else f"{float(peak_dn):+.0f} cm"
     timing_txt = "—" if timing is None else f"{float(timing):+.1f} h"
     n_anchor_txt = "—" if n_anchor is None else f"{float(n_anchor):.0f} cm"
-    n_anchors = int((feed.get("spatial") or {}).get("anchor_count") or 0)
+
+    spatial = feed.get("spatial") or {}
+    framing = spatial.get("basin_framing") or {}
+    inv = spatial.get("inventory_stats") or {}
+    totals = inv.get("totals") or ((spatial.get("basin_network") or {}).get("counts") or {})
+    basin = feed.get("basin") or {}
+
+    n_anchors = int(spatial.get("anchor_count") or 0)
+    n_network = int(totals.get("total") or 0)
+    n_outside = int(totals.get("outside_twin_domain") or 0)
+    basin_km2 = basin.get("area_km2") or framing.get("g040_km2") or 26430
+    n_ugs = int(totals.get("ugs") or len(basin.get("ugs") or framing.get("g040_ugs") or []) or 7)
     fresh_cls = "fresh warn" if stale else "fresh"
 
     html = TEMPLATE
@@ -84,11 +95,16 @@ def render_platform_html(feed: dict[str, Any]) -> str:
         "LIVE_AGE": live_age_txt,
         "FWD_AGE": fwd_age_txt,
         "N_ANCHORS": str(n_anchors),
+        "N_NETWORK": f"{n_network:,}".replace(",", "."),
+        "N_OUTSIDE": str(n_outside),
+        "BASIN_KM2": f"{int(basin_km2):,}".replace(",", "."),
+        "N_UGS": str(n_ugs),
         "FRESH_CLS": fresh_cls,
         "BLOB": blob,
     }.items():
         html = html.replace("{{" + key + "}}", val)
     return html
+
 
 
 TEMPLATE = r"""<!doctype html>
@@ -214,6 +230,17 @@ ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
 .inspector h3 { margin:0 0 .35rem; font-family:Fraunces, Georgia, serif; font-size:.98rem; }
 .inspector .empty { color:var(--muted); font-size:.88rem; }
 svg.mini-chart { width:100%; height:168px; display:block; }
+
+.ug-inventory { display:grid; gap:.45rem; max-height:280px; overflow:auto; margin-top:.45rem; }
+.ug-row {
+  border:1px solid var(--line); border-radius:10px; padding:.5rem .65rem; background:#fff;
+  display:grid; gap:.15rem;
+}
+.ug-row .name { font-weight:650; display:flex; justify-content:space-between; gap:.5rem; }
+.ug-row .meta { color:var(--muted); font-size:.8rem; }
+.ug-row.twin { border-left:3px solid #2f5a48; }
+.ug-row.inventory { border-left:3px solid #8a6a28; }
+.pill.quiet { opacity:.85; font-weight:550; }
 @keyframes rise {
   from { opacity:0; transform:translateY(8px); }
   to { opacity:1; transform:translateY(0); }
@@ -226,37 +253,90 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <div class="kicker">
       <span class="pill ok">pesquisa · não é alerta oficial</span>
       <span class="pill">{{STATUS}}</span>
+      <span class="pill ok">G040 · {{BASIN_KM2}} km²</span>
+      <span class="pill ok">7 UGs</span>
+      <span class="pill">rede {{N_NETWORK}}</span>
       <span class="pill">{{PRODUCT_NAME}}</span>
-      <span class="pill">{{PRODUCT_HORIZON}}</span>
-      <span class="pill">alvo {{PRODUCT_TARGET}}</span>
-      <span class="pill">{{PRODUCT_MODE}}</span>
     </div>
-    <h1>Plataforma <span>HEC/REC</span></h1>
+    <h1>Bacia Taquari–Antas <span>G040</span></h1>
     <p class="lede">
-      Esta página é da <strong>bacia Taquari–Antas (G040)</strong> inteira
-      (~26,4 mil km², 7 UGs: Alto, Prata, Carreiro, Médio, Guaporé, Forqueta e Baixo).
-      Dentro dela, o <strong>produto gêmeo</strong> estima ΔN em Muçum no corredor aninhado
-      (~16 mil km²). Guaporé/Forqueta/Baixo entram no mapa da bacia; não no balanço até Muçum.
-      Clique num ponto do produto para abrir a curva.
+      Esta página é da <strong>bacia oficial inteira</strong>
+      (~{{BASIN_KM2}} km², {{N_UGS}} UGs: Alto, Prata, Carreiro, Médio, Guaporé, Forqueta e Baixo).
+      O <strong>produto gêmeo</strong> (ΔN em Muçum) é um produto <em>dentro</em> da bacia —
+      corredor aninhado ~16 mil km² — não o limite espacial. Guaporé/Forqueta/Baixo entram
+      no inventário e no mapa; não no balanço HEC até Muçum.
     </p>
     <div class="{{FRESH_CLS}}" id="freshnessBanner">
       <span>Atualização: <strong>{{GENERATED}}</strong> UTC</span>
       <span>Fonte preferida: <strong>{{PREFERRED}}</strong></span>
       <span>Live eval: <span class="mono">{{LIVE_AGE}}</span></span>
       <span>Forward: <span class="mono">{{FWD_AGE}}</span></span>
-      <span>Âncoras: <strong>{{N_ANCHORS}}</strong></span>
+      <span>Rede G040: <strong>{{N_NETWORK}}</strong></span>
+      <span>fora do gêmeo: <strong>{{N_OUTSIDE}}</strong></span>
+      <span>Âncoras produto: <strong>{{N_ANCHORS}}</strong></span>
     </div>
   </header>
 
+  <section class="grid metrics" style="margin-bottom:.9rem" id="basinMetrics">
+    <article class="card metric">
+      <div class="label">Área da bacia</div>
+      <div class="value">{{BASIN_KM2}}</div>
+      <div class="hint">km² · G040 oficial</div>
+    </article>
+    <article class="card metric">
+      <div class="label">Unidades de gestão</div>
+      <div class="value">{{N_UGS}}</div>
+      <div class="hint">Alto→Baixo · inventário completo</div>
+    </article>
+    <article class="card metric">
+      <div class="label">Rede inventário</div>
+      <div class="value">{{N_NETWORK}}</div>
+      <div class="hint">flu+chuva · {{N_OUTSIDE}} fora do gêmeo</div>
+    </article>
+    <article class="card metric">
+      <div class="label">Produto ΔN</div>
+      <div class="value" style="font-size:1.15rem">{{PEAK_DN}}</div>
+      <div class="hint">Muçum · dentro da bacia</div>
+    </article>
+  </section>
+
+  <section class="grid split" style="margin-bottom:.9rem" id="basinMapSection">
+    <article class="card">
+      <h2>Mapa · bacia Taquari–Antas (G040)</h2>
+      <p class="muted" id="mapFramingNote" style="margin:.15rem 0 .55rem"></p>
+      <div class="chips" id="roleChips"></div>
+      <div id="map"></div>
+      <div class="inspector" id="pointInspector">
+        <h3 id="inspectorTitle">Curva do ponto</h3>
+        <p class="empty" id="inspectorEmpty">Clique numa âncora (ou na lista) para ver a curva / hietograma.</p>
+        <div id="inspectorBody" hidden>
+          <p class="muted" id="inspectorMeta"></p>
+          <svg class="mini-chart" id="inspectorChart" viewBox="0 0 520 168" role="img" aria-label="Curva do ponto selecionado"></svg>
+          <p class="chart-caption" id="inspectorNote"></p>
+        </div>
+      </div>
+    </article>
+    <article class="card">
+      <h2>Inventário por UG</h2>
+      <p class="muted">7 UGs da G040. As 3 fora do gêmeo (Guaporé, Forqueta, Baixo) aparecem sem ΔN HEC inventado.</p>
+      <div class="ug-inventory" id="ugInventory"></div>
+      <h2 style="margin-top:1rem">Pontos de amarração (produto)</h2>
+      <p class="muted">Âncoras curadas do gêmeo Muçum. Clique para focar e abrir a curva.</p>
+      <div class="chips" id="roleChipsSide"></div>
+      <div class="anchor-list" id="anchorList"></div>
+      <div class="links" id="artifactLinks"></div>
+    </article>
+  </section>
 
   <section class="card" style="margin-bottom:.9rem" id="corridorCard">
     <h2>Produto gêmeo · corredor até Muçum</h2>
-    <p class="muted" id="corridorNote">Dentro da bacia G040 · cinco sub-bacias aninhadas · análogos.</p>
+    <p class="muted" id="corridorNote">Produto dentro da bacia G040 · cinco sub-bacias aninhadas · análogos.</p>
     <div class="chips" id="corridorChips"></div>
+    <div class="chips" id="ugDomainChips" style="margin-top:.35rem"></div>
     <p class="muted mono" id="corridorMeta" style="margin-top:.55rem"></p>
   </section>
 
-  <section class="grid metrics" style="margin-bottom:.9rem">
+  <section class="grid metrics" style="margin-bottom:.9rem" id="productMetrics">
     <article class="card metric">
       <div class="label">ΔN pico (live)</div>
       <div class="value">{{PEAK_DN}}</div>
@@ -284,7 +364,6 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <article class="card product-fwd"><h3>Forward ~5d (operacional)</h3><p class="muted" id="fwdSummary">Carregando…</p></article>
   </section>
 
-
   <section class="card" style="margin-bottom:.9rem" id="skillCard">
     <h2>Calibração · erros LOO por evento</h2>
     <p class="muted" id="skillVerdict">Hindcast leave-one-out: onde o gêmeo acerta e onde erra.</p>
@@ -311,30 +390,6 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <p class="chart-caption" id="chartNote"></p>
   </section>
 
-  <section class="grid split" style="margin-bottom:.9rem">
-    <article class="card">
-      <h2>Mapa · bacia Taquari–Antas (G040)</h2>
-      <p class="muted" id="mapFramingNote" style="margin:.15rem 0 .55rem"></p>
-      <div class="chips" id="roleChips"></div>
-      <div id="map"></div>
-      <div class="inspector" id="pointInspector">
-        <h3 id="inspectorTitle">Curva do ponto</h3>
-        <p class="empty" id="inspectorEmpty">Clique numa âncora (ou na lista) para ver a curva / hietograma.</p>
-        <div id="inspectorBody" hidden>
-          <p class="muted" id="inspectorMeta"></p>
-          <svg class="mini-chart" id="inspectorChart" viewBox="0 0 520 168" role="img" aria-label="Curva do ponto selecionado"></svg>
-          <p class="chart-caption" id="inspectorNote"></p>
-        </div>
-      </div>
-    </article>
-    <article class="card">
-      <h2>Pontos de amarração</h2>
-      <p class="muted">Clique para focar no mapa e abrir a curva. Filtro por papel no gêmeo.</p>
-      <div class="anchor-list" id="anchorList"></div>
-      <div class="links" id="artifactLinks"></div>
-    </article>
-  </section>
-
   <section class="card">
     <h2>Como o robô alimenta esta página</h2>
     <ol class="muted" id="robotSteps"></ol>
@@ -346,6 +401,7 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     </p>
   </section>
 </div>
+
 
 <script>
 const DATA = {{BLOB}};
@@ -369,6 +425,77 @@ function roleColor(role) {
 function roleLabel(role) {
   return ({target:"alvo", level_control:"nível", rain:"chuva", upstream_monitor:"montante"})[role] || role;
 }
+
+const UG_COLORS = {
+  "Alto Taquari-Antas": "#3d6b58",
+  "Prata": "#2f6b54",
+  "Carreiro": "#4a7a62",
+  "Médio Taquari-Antas": "#1f5a46",
+  "Guaporé": "#9a6b2f",
+  "Forqueta": "#5a6e8a",
+  "Baixo Taquari-Antas": "#6a7a8e"
+};
+
+function ugColor(name, fallback) {
+  return UG_COLORS[name] || fallback || "#6a7f72";
+}
+
+function renderUgInventory() {
+  const el = document.getElementById("ugInventory");
+  if (!el) return;
+  const inv = ((DATA.spatial || {}).inventory_stats) || {};
+  const by = inv.by_ug || {};
+  const names = Object.keys(by).sort(function(a, b) {
+    const oa = by[a].in_twin_domain ? 0 : 1;
+    const ob = by[b].in_twin_domain ? 0 : 1;
+    if (oa !== ob) return oa - ob;
+    return a.localeCompare(b, "pt-BR");
+  });
+  if (!names.length) {
+    el.innerHTML = "<p class=\"muted\">Inventário por UG indisponível neste build.</p>";
+    return;
+  }
+  el.innerHTML = names.map(function(name) {
+    const row = by[name] || {};
+    const twin = !!row.in_twin_domain;
+    const area = row.area_km2_approx != null ? fmt(row.area_km2_approx, 0) + " km²" : "área —";
+    const badge = twin ? "gêmeo" : "inventário · sem HEC";
+    return "<div class=\"ug-row " + (twin ? "twin" : "inventory") + "\">" +
+      "<div class=\"name\"><span><i class=\"swatch\" style=\"background:" + ugColor(name) + "\"></i>" + name +
+      "</span><span class=\"meta\">" + badge + "</span></div>" +
+      "<div class=\"meta\">" + area + " · flu " + fmt(row.flu, 0) +
+      " · chuva " + fmt(row.rain, 0) + " · total " + fmt(row.total, 0) + "</div>" +
+      "</div>";
+  }).join("");
+}
+
+function renderUgDomainChips() {
+  const el = document.getElementById("ugDomainChips");
+  if (!el) return;
+  const fr = ((DATA.spatial || {}).basin_framing) || {};
+  const twin = fr.twin_domain_ugs || (DATA.spatial || {}).ug_twin_domain || [];
+  const excl = fr.excluded_ugs || [];
+  el.innerHTML = "";
+  twin.forEach(function(ug) {
+    const b = document.createElement("span");
+    b.className = "chip";
+    b.style.cursor = "default";
+    b.style.borderColor = ugColor(ug);
+    b.textContent = ug.replace(" Taquari-Antas", "") + " · gêmeo";
+    el.appendChild(b);
+  });
+  excl.forEach(function(ug) {
+    const b = document.createElement("span");
+    b.className = "chip";
+    b.style.cursor = "default";
+    b.style.borderColor = ugColor(ug);
+    b.textContent = ug.replace(" Taquari-Antas", "") + " · inventário";
+    b.title = "UG da bacia G040 · fora do balanço HEC até Muçum";
+    el.appendChild(b);
+  });
+}
+
+
 function anchorRain(a) {
   return (a && a.rain_mm_window != null) ? a.rain_mm_window : null;
 }
@@ -541,7 +668,11 @@ const roles = ["all"].concat(Array.from(new Set(anchors.map(function(a){ return 
 let activeRole = "all";
 let activeId = null;
 const list = document.getElementById("anchorList");
-const map = L.map("map", {scrollWheelZoom:true}).setView([-29.05, -51.75], 8);
+const _bb0 = (((DATA.spatial || {}).basin_framing) || {}).g040_bbox_latlon;
+const _center = _bb0 && _bb0.length === 2
+  ? [(_bb0[0][0] + _bb0[1][0]) / 2, (_bb0[0][1] + _bb0[1][1]) / 2]
+  : [-29.05, -51.35];
+const map = L.map("map", {scrollWheelZoom:true}).setView(_center, 8);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom:18, attribution:"&copy; OpenStreetMap"
 }).addTo(map);
@@ -569,11 +700,11 @@ legend.onAdd = function() {
   d.innerHTML =
     "<div><i style=\"background:#0f5c45\"></i>alvo Muçum</div>" +
     "<div><i style=\"background:#1d4f91\"></i>nível / controle</div>" +
-    "<div><i style=\"background:#3d7a92\"></i>chuva</div>" +
-    "<div><i style=\"background:#6a737a\"></i>monitor</div>" +
+    "<div><i style=\"background:#9a6b2f\"></i>Guaporé</div>" +
+    "<div><i style=\"background:#5a6e8a\"></i>Forqueta</div>" +
+    "<div><i style=\"background:#6a7a8e\"></i>Baixo</div>" +
     "<div><i style=\"background:#b8892d\"></i>foz BHO6</div>" +
-    "<div><i style=\"background:#a8b2b8\"></i>rede G040</div>" +
-    "<div style=\"margin-top:.25rem\">fill = bacia · contorno forte = produto gêmeo</div>";
+    "<div style=\"margin-top:.25rem\">fill colorido = 7 UGs · contorno = produto gêmeo</div>";
   return d;
 };
 legend.addTo(map);
@@ -610,14 +741,13 @@ function renderNetwork() {
     if (c.length < 2) return;
     const isRain = p.kind === "rain";
     const inTwin = !!p.in_twin_domain;
+    const base = ugColor(p.ug, inTwin ? "#9aa3aa" : "#b8a890");
     const m = L.circleMarker([c[1], c[0]], {
-      radius: isRain ? 2.0 : 2.3,
-      color: "rgba(255,255,255,0.30)",
-      weight: 0.5,
-      fillColor: inTwin
-        ? (isRain ? "#8aa7b8" : "#9aa3aa")
-        : (isRain ? "#c4a574" : "#b8a890"),
-      fillOpacity: inTwin ? 0.26 : 0.34
+      radius: isRain ? 2.1 : 2.45,
+      color: "rgba(255,255,255,0.35)",
+      weight: 0.55,
+      fillColor: base,
+      fillOpacity: inTwin ? 0.28 : 0.48
     });
     m.on("click", function() {
       showInspector({
@@ -834,22 +964,29 @@ async function loadUgs() {
       style: function(feat) {
         const name = (feat.properties && feat.properties.sub_bacia) || "";
         const inTwin = twinSet.has(name);
+        const fill = ugColor(name, inTwin ? "#3d6b58" : "#6a7f72");
         return {
-          color: inTwin ? "#2f5a48" : "#5a6e62",
-          weight: inTwin ? 1.2 : 1.05,
-          dashArray: null,
-          fillColor: inTwin ? "#3d6b58" : "#6a7f72",
-          fillOpacity: inTwin ? 0.10 : 0.07
+          color: inTwin ? "#1f4a3a" : fill,
+          weight: inTwin ? 1.15 : 1.35,
+          dashArray: inTwin ? null : "4 3",
+          fillColor: fill,
+          fillOpacity: inTwin ? 0.10 : 0.16
         };
       },
       onEachFeature: function(feat, lyr) {
         const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "UG";
         const inTwin = twinSet.has(name);
+        const inv = ((((DATA.spatial || {}).inventory_stats) || {}).by_ug || {})[name] || {};
+        const area = (feat.properties && feat.properties.area_km2_approx) || inv.area_km2_approx;
         lyr.bindPopup("<strong>" + name + "</strong><br/>" +
           (inTwin
             ? "UG da bacia · também no produto gêmeo (corredor Muçum)"
-            : "UG da bacia G040 · fora do balanço do gêmeo até Muçum") +
-          (rainByUg[name] != null ? "<br/>chuva proxy: " + Number(rainByUg[name]).toFixed(1) + " mm" : ""));
+            : "UG da bacia G040 · inventário · sem forçante HEC até Muçum") +
+          (area != null ? "<br/>área ~" + Number(area).toFixed(0) + " km²" : "") +
+          (inv.total != null ? "<br/>rede: flu " + inv.flu + " · chuva " + inv.rain + " · total " + inv.total : "") +
+          (rainByUg[name] != null
+            ? "<br/>chuva proxy produto: " + Number(rainByUg[name]).toFixed(1) + " mm"
+            : (inTwin ? "" : "<br/><em>sem ug_rain_mm HEC (fora do domínio)</em>")));
       }
     }).addTo(basinLayer);
 
@@ -872,11 +1009,28 @@ async function loadUgs() {
     }).addTo(ugLayer);
 
     try {
-      map.fitBounds(L.geoJSON(geo).getBounds().pad(0.04));
+      const g040SetLocal = g040Set;
+      const filtered = {
+        type: "FeatureCollection",
+        features: (geo.features || []).filter(function(feat) {
+          const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "";
+          return !g040SetLocal.size || g040SetLocal.has(name);
+        })
+      };
+      map.fitBounds(L.geoJSON(filtered).getBounds().pad(0.05));
     } catch (e) {
-      const pts = [];
-      (((DATA.spatial || {}).anchors) || []).forEach(function(a){ if (a.lat != null) pts.push([a.lat, a.lon]); });
-      if (pts.length) map.fitBounds(pts, {padding:[28,28]});
+      const bb = (((DATA.spatial || {}).basin_framing) || {}).g040_bbox_latlon;
+      if (bb && bb.length === 2) {
+        map.fitBounds(bb, {padding:[28,28]});
+      } else {
+        const pts = [];
+        const net = ((DATA.spatial || {}).basin_network) || {};
+        (net.features || []).forEach(function(f) {
+          const c = (f.geometry && f.geometry.coordinates) || [];
+          if (c.length >= 2) pts.push([c[1], c[0]]);
+        });
+        if (pts.length) map.fitBounds(pts, {padding:[28,28]});
+      }
     }
   } catch (e) {}
 }
@@ -927,6 +1081,8 @@ renderChips();
 renderAnchors();
 renderNetwork();
 renderSkill();
+renderUgInventory();
+renderUgDomainChips();
 loadUgs();
 loadFozes();
 setTimeout(function(){ map.invalidateSize(); }, 200);
