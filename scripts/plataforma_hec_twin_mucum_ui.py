@@ -501,7 +501,7 @@ function rainRadius(mm) {
   return Math.max(8, Math.min(34, 8 + Math.sqrt(v) * 3.2));
 }
 
-((((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f) {
+((((DATA.spatial || {}).rain_geojson) || ((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f) {
   const pr = f.properties || {};
   const coords = (f.geometry && f.geometry.coordinates) || [];
   if (coords.length < 2) return;
@@ -554,9 +554,11 @@ async function loadUgs() {
   } catch (e) {}
 }
 
+drawChart();
 renderChips();
 renderAnchors();
 loadUgs();
+setTimeout(function(){ map.invalidateSize(); }, 200);
 </script>
 </body>
 </html>
