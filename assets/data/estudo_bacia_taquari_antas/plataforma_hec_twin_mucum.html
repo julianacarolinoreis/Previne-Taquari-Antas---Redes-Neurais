@@ -1,180 +1,400 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>PREVINE · Plataforma HEC/REC — Muçum ~5d</title>
+<title>Plataforma HEC/REC · gêmeo Muçum ~5d</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;550;650;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  :root {
-    --ink:#12241c; --muted:#4a6356; --line:#c5d5cb; --panel:#f3f7f4;
-    --brand:#0f5c45; --warn:#8a5a12; --ok:#1f6b4a; --mapmist:#d7e4dc;
-  }
-  * { box-sizing:border-box }
-  html,body { margin:0; height:100%; color:var(--ink);
-    font-family:"IBM Plex Sans", "Segoe UI", sans-serif;
-    background:
-      radial-gradient(900px 420px at 10% -10%, #cfe2d6 0%, transparent 55%),
-      linear-gradient(165deg, #d9e6de 0%, #eef3ef 45%, #f7f4ee 100%);
-  }
-  .shell { display:grid; grid-template-columns:minmax(320px,420px) 1fr; height:100vh; }
-  aside {
-    overflow:auto; padding:1rem 1.05rem 2rem; border-right:1px solid var(--line);
-    background:linear-gradient(180deg, rgba(243,247,244,.96), rgba(238,243,239,.92));
-  }
-  #map { height:100%; background:var(--mapmist); position:relative; }
-  .brand {
-    font-family:Fraunces, Georgia, serif;
-    font-size:clamp(1.55rem, 2.4vw, 1.95rem); line-height:1.05; margin:0 0 .35rem;
-  }
-  .brand span { color:var(--brand); }
-  .eyebrow {
-    display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.08em;
-    text-transform:uppercase; color:var(--brand); margin:0 0 .55rem;
-  }
-  .lede { color:var(--muted); font-size:.95rem; margin:0 0 .9rem; }
-  .warn {
-    border-left:4px solid var(--warn); background:#f5ecda; color:#6d4810;
-    padding:.65rem .75rem; font-size:.86rem; margin:0 0 .9rem;
-  }
-  .hero-answer {
-    background:linear-gradient(135deg, #12352a, #1a4d3a 55%, #245744);
-    color:#eef7f1; padding:1rem 1.05rem; margin:0 0 1rem;
-    box-shadow:0 12px 28px rgba(18,52,42,.22);
-  }
-  .hero-answer .k { font-size:.72rem; letter-spacing:.07em; text-transform:uppercase; opacity:.8; }
-  .hero-answer .big {
-    font-family:Fraunces, Georgia, serif; font-size:clamp(1.7rem, 3vw, 2.25rem);
-    margin:.15rem 0;
-  }
-  .hero-answer .sub { font-size:.92rem; opacity:.92; line-height:1.4; }
-  .grid { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; margin:0 0 1rem; }
-  .stat { background:var(--panel); border:1px solid var(--line); padding:.65rem .7rem; }
-  .stat b { display:block; font-size:1.15rem; font-variant-numeric:tabular-nums; color:var(--brand); }
-  .stat span { font-size:.75rem; color:var(--muted); }
-  section { margin:1.1rem 0 0; padding-top:.85rem; border-top:1px solid var(--line); }
-  h2 { font-family:Fraunces, Georgia, serif; font-size:1.05rem; margin:0 0 .45rem; }
-  p, li { font-size:.9rem; line-height:1.45; color:#24362d; }
-  ul, ol { margin:.35rem 0 0; padding-left:1.1rem; }
-  a { color:#0a5f7a; font-weight:650; }
-  .path {
-    font-family:ui-monospace, "IBM Plex Mono", monospace; font-size:.72rem;
-    background:#e7efe9; padding:.35rem .45rem; word-break:break-all; display:block;
-  }
-  .pipe { font-size:.84rem; color:var(--muted); }
-  table { width:100%; border-collapse:collapse; font-size:.82rem; background:#fff; }
-  th, td { text-align:left; padding:.35rem .4rem; border-bottom:1px solid #d7e2db; }
-  th { color:var(--muted); font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; }
-  .legend {
-    position:absolute; z-index:500; right:12px; bottom:12px; background:rgba(243,247,244,.94);
-    border:1px solid var(--line); padding:.55rem .7rem; font-size:.78rem; max-width:240px;
-  }
-  .legend i { display:inline-block; width:10px; height:10px; margin-right:6px; vertical-align:middle; }
-  .verdict-ok { color:var(--ok); font-weight:700; }
-  .verdict-warn { color:var(--warn); font-weight:700; }
-  @media (max-width:900px) {
-    .shell { grid-template-columns:1fr; grid-template-rows:auto minmax(48vh,1fr); height:auto; min-height:100vh; }
-    aside { border-right:0; border-bottom:1px solid var(--line); }
-    #map { min-height:48vh; }
-  }
+:root {
+  --ink:#12241c; --muted:#4a6356; --line:#c5d5cb; --panel:rgba(243,247,244,.94);
+  --live:#0f5c45; --fwd:#1d4f91; --warn:#8a5a12; --shadow:0 12px 28px rgba(18,52,42,.10);
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; color:var(--ink);
+  font:15px/1.55 "IBM Plex Sans", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(1100px 520px at 8% -12%, #cfe2d6 0%, transparent 55%),
+    radial-gradient(900px 480px at 100% 0%, #d5e4ef 0%, transparent 50%),
+    linear-gradient(165deg, #d9e6de 0%, #eef3ef 45%, #f7f4ee 100%);
+  min-height:100vh;
+}
+.wrap { max-width:1180px; margin:0 auto; padding:1.15rem 1rem 2.5rem; }
+header.hero { display:grid; gap:.85rem; margin-bottom:1rem; animation:rise .55s ease both; }
+.kicker { display:flex; flex-wrap:wrap; gap:.45rem; align-items:center; }
+.pill {
+  display:inline-flex; align-items:center; gap:.3rem;
+  border:1px solid var(--line); background:#fff; border-radius:999px;
+  padding:.18rem .62rem; font-size:.74rem; color:var(--muted);
+  letter-spacing:.04em; text-transform:uppercase; font-weight:650;
+}
+.pill.ok { border-color:#9fd6c0; color:var(--live); background:#f0faf6; }
+h1 {
+  margin:0; font-family:Fraunces, Georgia, serif;
+  font-size:clamp(1.55rem, 3vw, 2.15rem); letter-spacing:-.02em; line-height:1.15;
+}
+h1 span { color:var(--live); }
+.lede { margin:0; color:var(--muted); max-width:64ch; }
+.fresh {
+  display:flex; flex-wrap:wrap; gap:.7rem 1.1rem; align-items:center;
+  padding:.7rem .9rem; border-radius:12px; border:1px solid #c9e2d6;
+  background:linear-gradient(90deg,#f3fbf7,#eef6fb); box-shadow:var(--shadow);
+}
+.fresh.warn { border-color:#e7c9a4; background:linear-gradient(90deg,#fff7f0,#eef6fb); }
+.fresh strong { color:var(--live); }
+.grid { display:grid; gap:.9rem; }
+@media (min-width:900px) {
+  .metrics { grid-template-columns:repeat(4,1fr); }
+  .products { grid-template-columns:1fr 1fr; }
+  .split { grid-template-columns:1.35fr 1fr; }
+}
+.card {
+  background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:.9rem 1rem; box-shadow:var(--shadow); backdrop-filter:blur(6px);
+  animation:rise .6s ease both;
+}
+.card h2, .card h3 { margin:0 0 .45rem; font-family:Fraunces, Georgia, serif; font-size:1.05rem; }
+.metric .label { color:var(--muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; }
+.metric .value { font-size:1.55rem; font-weight:700; letter-spacing:-.02em; margin-top:.15rem; font-variant-numeric:tabular-nums; }
+.metric .hint { color:var(--muted); font-size:.8rem; margin-top:.15rem; }
+.product-live { border-top:3px solid var(--live); }
+.product-fwd { border-top:3px solid var(--fwd); }
+.product-live h3 { color:var(--live); }
+.product-fwd h3 { color:var(--fwd); }
+.muted { color:var(--muted); }
+.mono { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.84rem; }
+.chips { display:flex; flex-wrap:wrap; gap:.4rem; margin:.55rem 0 .7rem; }
+.chip {
+  border:1px solid var(--line); background:#fff; color:var(--muted);
+  border-radius:999px; padding:.28rem .72rem; font-size:.8rem; cursor:pointer; font-family:inherit;
+}
+.chip.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+#map { height:min(62vh, 560px); border-radius:12px; border:1px solid var(--line); }
+.legend {
+  background:rgba(255,255,255,.94); border:1px solid var(--line); border-radius:10px;
+  padding:.45rem .6rem; font-size:.78rem; line-height:1.35; box-shadow:var(--shadow);
+}
+.legend i { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:.35rem; vertical-align:-1px; }
+.chart-wrap { overflow-x:auto; }
+svg.chart { width:100%; min-width:520px; height:280px; display:block; }
+.chart-caption { color:var(--muted); font-size:.82rem; margin-top:.4rem; }
+.anchor-list { max-height:360px; overflow:auto; display:grid; gap:.45rem; }
+.anchor-item {
+  border:1px solid var(--line); border-radius:10px; padding:.55rem .7rem; background:#fff;
+  cursor:pointer; transition:border-color .15s ease, transform .15s ease;
+}
+.anchor-item:hover { border-color:#9eb6cc; transform:translateY(-1px); }
+.anchor-item.active { border-color:var(--fwd); box-shadow:inset 0 0 0 1px rgba(29,79,145,.25); }
+.anchor-item .name { font-weight:650; }
+.anchor-item .meta { color:var(--muted); font-size:.8rem; }
+.links { display:flex; flex-wrap:wrap; gap:.55rem; margin-top:.7rem; }
+.links a {
+  text-decoration:none; color:var(--fwd); border:1px solid #bfd0e4; background:#f5f9fd;
+  border-radius:999px; padding:.35rem .8rem; font-size:.84rem; font-weight:650;
+}
+.foot { margin-top:1.1rem; color:var(--muted); font-size:.82rem; }
+ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
+@keyframes rise {
+  from { opacity:0; transform:translateY(8px); }
+  to { opacity:1; transform:translateY(0); }
+}
 </style>
 </head>
 <body>
-<div class="shell">
-  <aside>
-    <p class="eyebrow">PREVINE · pesquisa · não é alerta</p>
-    <h1 class="brand">Plataforma <span>HEC/REC</span></h1>
-    <p class="lede">Onde o resultado do gêmeo hidrológico vai parar — quanto sobe em Muçum, com a chuva no mapa do corredor.</p>
-    <div class="warn"><strong>PESQUISA.</strong> Não substitui alerta oficial. RNA de curto prazo segue noutro trilho e não é alterada aqui. Santa Tereza: só Q diagnóstico (sem curva).</div>
-
-    <div class="hero-answer">
-      <div class="k">Resultado em destaque</div>
-      <div class="big" id="hero-big">Carregando…</div>
-      <div class="sub" id="hero-sub"></div>
+<div class="wrap">
+  <header class="hero">
+    <div class="kicker">
+      <span class="pill ok">pesquisa · não é alerta oficial</span>
+      <span class="pill">research_platform_ready</span>
+      <span class="pill">ΔN ~5d · Muçum</span>
+      <span class="pill">~5 dias</span>
+      <span class="pill">alvo Muçum</span>
+      <span class="pill">pesquisa</span>
     </div>
-    <div class="grid" id="stats"></div>
+    <h1>Plataforma <span>HEC/REC</span></h1>
+    <p class="lede">
+      Onde o resultado do gêmeo hidrológico vai parar — quanto sobe em Muçum, com a chuva
+      no mapa do corredor, hidrograma do evento e amarração nos postos. RNAs de curto prazo
+      permanecem intactas.
+    </p>
+    <div class="fresh warn" id="freshnessBanner">
+      <span>Atualização: <strong>2026-09-13T01:10:24Z</strong> UTC</span>
+      <span>Fonte preferida: <strong>live_eval</strong></span>
+      <span>Live eval: <span class="mono">2.9 h</span></span>
+      <span>Forward: <span class="mono">2.9 h</span></span>
+      <span>Âncoras: <strong>16</strong></span>
+    </div>
+  </header>
 
-    <section>
-      <h2>Para onde vai o resultado?</h2>
-      <p>GitHub Pages — mesma casa da plataforma das RNAs, pasta do estudo HEC:</p>
-      <p class="path" id="pages-url"></p>
-      <ol class="pipe" id="pipeline"></ol>
-    </section>
+  <section class="grid metrics" style="margin-bottom:.9rem">
+    <article class="card metric">
+      <div class="label">ΔN pico (live)</div>
+      <div class="value">+254 cm</div>
+      <div class="hint">acima da âncora 425 cm</div>
+    </article>
+    <article class="card metric">
+      <div class="label">N pico estimado</div>
+      <div class="value">679 cm</div>
+      <div class="hint">em 2026-09-12T20:00:00Z</div>
+    </article>
+    <article class="card metric">
+      <div class="label">Timing vs obs</div>
+      <div class="value">+0.5 h</div>
+      <div class="hint">erro de tempo do pico</div>
+    </article>
+    <article class="card metric">
+      <div class="label">Robô HEC</div>
+      <div class="value" style="font-size:1.02rem">HEC twin Muçum forward ~5d</div>
+      <div class="hint mono">12 */6 * * * · previne-hec-bot</div>
+    </article>
+  </section>
 
-    <section>
-      <h2>Verificação ao vivo</h2>
-      <p id="verify-plain"></p>
-      <div class="grid" id="verify-stats"></div>
-    </section>
+  <section class="grid products" style="margin-bottom:.9rem">
+    <article class="card product-live"><h3>Live eval (evento)</h3><p class="muted" id="liveSummary">Carregando…</p></article>
+    <article class="card product-fwd"><h3>Forward ~5d (operacional)</h3><p class="muted" id="fwdSummary">Carregando…</p></article>
+  </section>
 
-    <section>
-      <h2>Skill hindcast (LOO)</h2>
-      <p id="hind-plain"></p>
-    </section>
+  <section class="card" style="margin-bottom:.9rem">
+    <h2>Traço do evento · hidrograma + chuva</h2>
+    <p class="muted" id="chartCaption">Série do live eval (quando disponível) ou amostra do forward.</p>
+    <div class="chart-wrap">
+      <svg class="chart" id="eventChart" viewBox="0 0 960 280" role="img" aria-label="Hidrograma do evento"></svg>
+    </div>
+    <p class="chart-caption" id="chartNote"></p>
+  </section>
 
-    <section>
-      <h2>Robô automático</h2>
-      <p id="robot-plain"></p>
-      <ol class="pipe" id="robot-steps"></ol>
-    </section>
-
-    <section>
+  <section class="grid split" style="margin-bottom:.9rem">
+    <article class="card">
+      <h2>Mapa espacial · UGs + âncoras</h2>
+      <div class="chips" id="roleChips"></div>
+      <div id="map"></div>
+    </article>
+    <article class="card">
       <h2>Pontos de amarração</h2>
-      <p class="lede" style="margin:0 0 .5rem">Forçantes de nível/chuva e monitores do corredor — não só o alvo Muçum.</p>
-      <table>
-        <thead><tr><th>Papel</th><th>Ponto</th><th>Código</th></tr></thead>
-        <tbody id="anchor-rows"></tbody>
-      </table>
-    </section>
+      <p class="muted">Clique para focar no mapa. Filtro por papel no corredor HEC.</p>
+      <div class="anchor-list" id="anchorList"></div>
+      <div class="links" id="artifactLinks"></div>
+    </article>
+  </section>
 
-    <section>
-      <h2>Chuva por sub-bacia (proxy IFS)</h2>
-      <table>
-        <thead><tr><th>Sub-bacia</th><th>Total</th><th>Passado</th><th>Futuro</th></tr></thead>
-        <tbody id="rain-rows"></tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Série ancorada (amostra 6 h)</h2>
-      <table>
-        <thead><tr><th>UTC</th><th>N anc.</th><th>ΔN</th><th>Q</th></tr></thead>
-        <tbody id="series-rows"></tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Produtos auditáveis</h2>
-      <ul id="product-links"></ul>
-      <p style="margin-top:.7rem">
-        <a href="../../mucum_previsao_inundacao.html">Plataforma RNA Muçum (curto prazo)</a> ·
-        <a href="index.html">Estudo da bacia</a> ·
-        <a href="mapa_subbacias.html">Mapa UPG + fozes</a>
-      </p>
-    </section>
-  </aside>
-  <div id="map" role="application" aria-label="Mapa do corredor HEC com chuva por sub-bacia">
-    <div class="legend">
-      <div><i style="background:#0f5c45"></i>UG do corredor</div>
-      <div><i style="background:#b85a1a;border-radius:50%"></i>Chuva IFS (mm)</div>
-      <div><i style="background:#b85a1a"></i>Alvo Muçum</div>
-      <div><i style="background:#1e5fbf"></i>Controle de nível</div>
-      <div><i style="background:#0a7a6a;border-radius:50%"></i>Chuva (forçante)</div>
-      <div><i style="background:#5a6570"></i>Monitor montante</div>
-    </div>
-  </div>
+  <section class="card">
+    <h2>Como o robô alimenta esta página</h2>
+    <ol class="muted" id="robotSteps"></ol>
+    <p class="foot">
+      IFS = proxy pontual por sub-bacia (não máscara areal). Modelo de corredor ≠ G040 completa
+      (Guaporé/Forqueta fora). Santa Tereza sem curva-chave inventada. Pesquisa, não alerta oficial.
+    </p>
+  </section>
 </div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-const FEED = {"schema_version": "plataforma_hec_twin_mucum_v1", "generated_at_utc": "2026-09-13T00:38:21Z", "status": "research_platform_ready", "label_pt": "Plataforma HEC/REC · gêmeo Muçum ~5d", "purpose_pt": "Onde o resultado do gêmeo HEC (REC) vai parar: quanto sobe em Muçum, chuva espacializada no corredor, verificação ao vivo e skill hindcast — no GitHub Pages, como a plataforma das RNAs.", "discipline": {"research_not_alert": true, "does_not_touch_rna": true, "no_invented_stz_rating_curve": true, "ifs_point_proxy_not_areal_mask": true, "corridor_not_full_g040": true}, "where_results_go": {"pages_base": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais", "study_dir": "assets/data/estudo_bacia_taquari_antas", "pages": {"platform_html": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html", "platform_root": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/plataforma_hec_twin.html", "platform_json": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json", "forward_html": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html", "live_eval_html": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_live_eval.html", "verify_html": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_live_eval_verify.html", "hindcast_html": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_hindcast_skill_5d.html", "mapa_subbacias": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/mapa_subbacias.html", "rna_mucum_live": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/mucum_previsao_inundacao.html"}, "local": {"platform_html": "plataforma_hec_twin_mucum.html", "platform_json": "plataforma_hec_twin_mucum_latest.json", "forward_html": "hec_twin_mucum_forward_5d.html", "forward_json": "hec_twin_mucum_forward_5d_latest.json", "live_eval_html": "hec_twin_mucum_live_eval.html", "live_eval_json": "hec_twin_mucum_live_eval_latest.json", "verify_html": "hec_twin_mucum_live_eval_verify.html", "verify_json": "hec_twin_mucum_live_eval_verify_latest.json", "hindcast_html": "hec_twin_mucum_hindcast_skill_5d.html", "hindcast_json": "hec_twin_mucum_hindcast_skill_5d_latest.json", "forcing_live_json": "hec_twin_ifs_forcing_live_eval_latest.json", "forcing_forward_json": "hec_twin_ifs_forcing_5d_latest.json", "mapa_subbacias": "mapa_subbacias.html"}, "pipeline_pt": ["IFS QPF → forçante por sub-bacia (JSON)", "Gêmeo HEC eventwise → Q Muçum → curva-chave → ΔN", "Feed estável plataforma_hec_twin_mucum_latest.json", "Página mapa plataforma_hec_twin_mucum.html (+ atalho raiz)", "Deploy Pages quando paths do estudo / plataforma mudam"]}, "headline": {"source": "live_eval", "question_pt": "Com a chuva (prevista ou do evento), quanto sobe Muçum?", "plain_pt": "Com ~33.3 mm de chuva prevista em 120 h e nível atual 425 cm em Muçum, o gêmeo HEC indica subida de ~254 cm (banda 134–296 cm), pico ancorado ~679 cm em 2026-09-12T20:00:00Z.", "primary": {"event_id": "BLEND", "rise_cm": 253.81, "peak_anchored_cm": 678.81, "peak_time_utc": "2026-09-12T20:00:00Z", "peak_time_argmax_utc": "2026-09-12T22:00:00Z", "peak_time_method": "first_reach_0.95_of_rise"}, "ensemble_rise_cm": {"min": 134.29, "primary": 253.81, "max": 296.42, "by_event": [{"event_id": "BLEND", "rise_cm": 253.81, "peak_anchored_cm": 678.81}, {"event_id": "E23", "rise_cm": 296.42, "peak_anchored_cm": 721.42}, {"event_id": "E20", "rise_cm": 203.14, "peak_anchored_cm": 628.14}, {"event_id": "E25", "rise_cm": 164.9, "peak_anchored_cm": 589.9}, {"event_id": "E24", "rise_cm": 175.84, "peak_anchored_cm": 600.84}, {"event_id": "E21", "rise_cm": 134.29, "peak_anchored_cm": 559.29}]}, "rain_mm_area_weighted": 33.264, "verification_plain_pt": "Calibração v5 (ΔN+horário): primary BLEND ΔN≈254 cm (pico≈679). Obs 677 cm (+252) dentro da banda 134–296 e ainda sob o pico primary. Horário do pico: previsto 2026-09-12T20:00:00Z vs obs 2026-09-12T19:30:00Z (+0.5 h). Atualização no meio do evento (obs 677): ainda ~0 cm (pico revisto ~677).", "scorecard": {"verdict_level": "hit_band_and_primary_so_far", "peak_error_cm": 1.19, "timing_error_h": 0.5, "obs_peak_cm": 680.0, "predicted_peak_anchored_cm": 678.81}}, "products": {"forward_5d": {"status": "research_forward_5d_ready", "generated_at_utc": "2026-09-12T22:18:45Z", "plain_pt": "Com ~5.5 mm de chuva prevista em 120 h e nível atual 299 cm em Muçum, o gêmeo HEC indica subida de ~0 cm (banda 0–0 cm), pico ancorado ~299 cm em 2026-09-12T00:00:00Z.", "primary": {"event_id": "BLEND", "rise_cm": 0.0, "peak_anchored_cm": 299.0, "peak_time_utc": "2026-09-12T00:00:00Z", "peak_time_argmax_utc": "2026-09-12T00:00:00Z", "peak_time_method": "no_rise"}, "ensemble_rise_cm": {"min": 0.0, "primary": 0.0, "max": 0.0, "by_event": [{"event_id": "BLEND", "rise_cm": 0.0, "peak_anchored_cm": 299.0}, {"event_id": "E25", "rise_cm": 0.0, "peak_anchored_cm": 299.0}, {"event_id": "E20", "rise_cm": 0.0, "peak_anchored_cm": 299.0}, {"event_id": "E28", "rise_cm": 0.0, "peak_anchored_cm": 299.0}, {"event_id": "E27", "rise_cm": 0.0, "peak_anchored_cm": 299.0}, {"event_id": "E23", "rise_cm": 0.0, "peak_anchored_cm": 299.0}]}, "rain_forecast_mm": 5.5, "level_now": {"ok": true, "stage_cm": 299.0, "observed_at_utc": "2026-09-08T17:00:00Z", "source": "previsao_ao_vivo_mucum.json", "station": "86510000", "fallback_reason": "network_disabled"}, "note_pt": "Produto operacional de pesquisa (~5d). Se a forçante estiver seca ou a telemetria cair, o ΔN pode ir a zero — conferir live eval."}, "live_eval": {"status": "research_live_eval_replay_ready", "generated_at_utc": "2026-09-12T22:18:41Z", "plain_pt": "Com ~33.3 mm de chuva prevista em 120 h e nível atual 425 cm em Muçum, o gêmeo HEC indica subida de ~254 cm (banda 134–296 cm), pico ancorado ~679 cm em 2026-09-12T20:00:00Z.", "primary": {"event_id": "BLEND", "rise_cm": 253.81, "peak_anchored_cm": 678.81, "peak_time_utc": "2026-09-12T20:00:00Z", "peak_time_argmax_utc": "2026-09-12T22:00:00Z", "peak_time_method": "first_reach_0.95_of_rise"}, "ensemble_rise_cm": {"min": 134.29, "primary": 253.81, "max": 296.42, "by_event": [{"event_id": "BLEND", "rise_cm": 253.81, "peak_anchored_cm": 678.81}, {"event_id": "E23", "rise_cm": 296.42, "peak_anchored_cm": 721.42}, {"event_id": "E20", "rise_cm": 203.14, "peak_anchored_cm": 628.14}, {"event_id": "E25", "rise_cm": 164.9, "peak_anchored_cm": 589.9}, {"event_id": "E24", "rise_cm": 175.84, "peak_anchored_cm": 600.84}, {"event_id": "E21", "rise_cm": 134.29, "peak_anchored_cm": 559.29}]}, "observations": {"level_now": {"ok": true, "stage_cm": 425.0, "observed_at_utc": "2026-09-12T02:45:00Z", "source": "ANA_anchor_replay", "station": "86510000"}, "latest_ana": {"stage_cm": 677.0, "observed_at_utc": "2026-09-12T21:45:00Z", "rise_from_anchor_cm": 252.0, "peak_so_far_cm": 680.0, "peak_so_far_at_utc": "2026-09-12T19:30:00Z"}}, "verification": {"verdict_level": "hit_band_and_primary_so_far", "plain_pt": "Calibração v5 (ΔN+horário): primary BLEND ΔN≈254 cm (pico≈679). Obs 677 cm (+252) dentro da banda 134–296 e ainda sob o pico primary. Horário do pico: previsto 2026-09-12T20:00:00Z vs obs 2026-09-12T19:30:00Z (+0.5 h). Atualização no meio do evento (obs 677): ainda ~0 cm (pico revisto ~677).", "old_primary_peak_cm": 568.0, "new_primary_peak_cm": 678.81, "mid_event_peak_cm": 677.0, "obs_latest_cm": 677.0, "old_error_cm": 109.0, "new_error_cm": -1.81, "mid_event_error_cm": 0.0, "improved_vs_old": true, "rise_within_band": true, "above_primary_peak": false, "obs_peak_cm": 680.0, "obs_peak_at_utc": "2026-09-12T19:30:00Z", "peak_error_cm": 1.19, "predicted_peak_time_utc": "2026-09-12T20:00:00Z", "peak_time_method": "first_reach_0.95_of_rise", "timing_error_h": 0.5}}, "verify": {"status": "research_verification_ready", "generated_at_utc": "2026-09-12T22:18:41Z", "plain_pt": "Calibração v5 (ΔN+horário): primary BLEND ΔN≈254 cm (pico≈679). Obs 677 cm (+252) dentro da banda 134–296 e ainda sob o pico primary. Horário do pico: previsto 2026-09-12T20:00:00Z vs obs 2026-09-12T19:30:00Z (+0.5 h). Atualização no meio do evento (obs 677): ainda ~0 cm (pico revisto ~677).", "observed": {"stage_cm": 677.0, "observed_at_utc": "2026-09-12T21:45:00Z", "rise_from_anchor_cm": 252.0, "peak_so_far_cm": 680.0, "peak_so_far_at_utc": "2026-09-12T19:30:00Z"}, "scorecard": {"verdict_level": "hit_band_and_primary_so_far", "plain_pt": "Calibração v5 (ΔN+horário): primary BLEND ΔN≈254 cm (pico≈679). Obs 677 cm (+252) dentro da banda 134–296 e ainda sob o pico primary. Horário do pico: previsto 2026-09-12T20:00:00Z vs obs 2026-09-12T19:30:00Z (+0.5 h). Atualização no meio do evento (obs 677): ainda ~0 cm (pico revisto ~677).", "old_primary_peak_cm": 568.0, "new_primary_peak_cm": 678.81, "mid_event_peak_cm": 677.0, "obs_latest_cm": 677.0, "old_error_cm": 109.0, "new_error_cm": -1.81, "mid_event_error_cm": 0.0, "improved_vs_old": true, "rise_within_band": true, "above_primary_peak": false, "obs_peak_cm": 680.0, "obs_peak_at_utc": "2026-09-12T19:30:00Z", "peak_error_cm": 1.19, "predicted_peak_time_utc": "2026-09-12T20:00:00Z", "peak_time_method": "first_reach_0.95_of_rise", "timing_error_h": 0.5}}, "hindcast_skill": {"status": "research_hindcast_skill_ready", "generated_at_utc": "2026-09-12T22:18:46Z", "summary": {"n_scored": 9, "mean_nse_loo": 0.2669, "mean_peak_q_rel_err": 0.2498, "median_peak_q_rel_err": 0.1637, "mean_rise_n_abs_err_cm": 391.89, "median_rise_n_abs_err_cm": 327.71, "mean_rise_n_rel_err": 0.3583, "n_rise_n_within_50pct": 8, "n_rise_n_within_100pct": 8, "n_peak_q_within_30pct": 5}, "verdict": {"level": "usable_research", "plain_pt": "Hindcast LOO: ΔN médio com erro relativo ~36% (8/9 eventos ≤50%). Pico Q médio |err|~25%. Útil como pesquisa; ainda não é alerta."}}}, "spatial": {"note_pt": "Chuva IFS é proxy pontual por sub-bacia do corredor HEC — não máscara areal fechada. Pontos de amarração = forçantes + monitores do corredor (Prata/Carreiro/Antas→Muçum). UG G040 é contexto; Guaporé/Forqueta fora.", "area_weighted_total_mm": 33.264, "area_weighted_past_mm": 29.737, "area_weighted_future_mm": 3.527, "window": {"past_hours": 48, "future_hours": 72, "now_utc": "2026-09-12T03:00:00Z", "start_utc": "2026-09-10T03:00:00Z", "end_utc": "2026-09-15T02:00:00Z"}, "rain_geojson": {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [-51.7597, -29.0578]}, "properties": {"subbasin_id": "SB_PRATA_7868", "label": "Prata / Turvo-Humatã", "point_code": "86472000", "point_name": "Linha José Júlio", "total_mm": 33.4, "past_mm": 29.9, "future_mm": 3.5}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-51.6797, -29.1178]}, "properties": {"subbasin_id": "SB_ANTAS_RESIDUAL", "label": "Antas residual", "point_code": "86472000", "point_name": "Linha José Júlio", "total_mm": 33.4, "past_mm": 29.9, "future_mm": 3.5}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-51.7558, -28.9722]}, "properties": {"subbasin_id": "SB_CARREIRO_7866", "label": "Carreiro", "point_code": "86507000", "point_name": "PCH Cotiporã Jusante", "total_mm": 33.4, "past_mm": 29.9, "future_mm": 3.5}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-51.7022, -29.1481]}, "properties": {"subbasin_id": "SB_STZ_RESIDUAL", "label": "Residual até Santa Tereza", "point_code": "86472600", "point_name": "Santa Tereza", "total_mm": 28.9, "past_mm": 24.5, "future_mm": 4.4}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-51.9086, -29.197200000000002]}, "properties": {"subbasin_id": "SB_INC_MUCUM", "label": "Incremento até Muçum", "point_code": "86510000", "point_name": "Muçum", "total_mm": 28.9, "past_mm": 24.5, "future_mm": 4.4}}]}, "controls": [{"code": "86510000", "label": "Muçum (alvo N)", "name": "Muçum", "lat": -29.1672, "lon": -51.8686, "role": "target"}, {"code": "86472600", "label": "Santa Tereza (sem curva N↔Q)", "name": "Santa Tereza", "lat": -29.1781, "lon": -51.7322, "role": "level_control"}, {"code": "86472000", "label": "Antas / Linha José Júlio", "name": "Linha José Júlio", "lat": -29.0978, "lon": -51.6997, "role": "level_control"}, {"code": "86507000", "label": "Carreiro / Cotiporã", "name": "PCH Cotiporã Jusante", "lat": -28.9722, "lon": -51.7558, "role": "level_control"}], "anchors": [{"code": "86510000", "role": "target", "role_pt": "alvo", "label": "Muçum (alvo N)", "name": "Muçum", "lat": -29.1672, "lon": -51.8686, "coord_source": "basin_forecast_points"}, {"code": "86472600", "role": "level_control", "role_pt": "nível / controle", "label": "Santa Tereza (sem curva N↔Q)", "name": "Santa Tereza", "lat": -29.1781, "lon": -51.7322, "coord_source": "basin_forecast_points"}, {"code": "86472000", "role": "level_control", "role_pt": "nível / controle", "label": "Antas / Linha José Júlio", "name": "Linha José Júlio", "lat": -29.0978, "lon": -51.6997, "coord_source": "basin_forecast_points"}, {"code": "86507000", "role": "level_control", "role_pt": "nível / controle", "label": "Carreiro / Cotiporã", "name": "PCH Cotiporã Jusante", "lat": -28.9722, "lon": -51.7558, "coord_source": "basin_forecast_points"}, {"code": "86125500", "role": "level_control", "role_pt": "nível / controle", "label": "Prata / Jararaca", "name": "PCH JARARACA BARRAMENTO", "lat": -28.9381, "lon": -51.4656, "coord_source": "postos_por_upg"}, {"code": "86448000", "role": "level_control", "role_pt": "nível / controle", "label": "Monte Claro barramento", "name": "UHE MONTE CLARO BARRAMENTO", "lat": -29.0292, "lon": -51.5219, "coord_source": "postos_por_upg"}, {"code": "2851072", "role": "rain", "role_pt": "chuva", "label": "Ibiraiaras (chuva Carreiro–Prata)", "name": "IBIRAIARAS", "lat": -28.3811, "lon": -51.6331, "coord_source": "postos_por_upg"}, {"code": "2851044", "role": "rain", "role_pt": "chuva", "label": "Guaporé (chuva)", "name": "GUAPORÉ", "lat": -28.8444, "lon": -51.8792, "coord_source": "postos_por_upg"}, {"code": "A894", "role": "rain", "role_pt": "chuva", "label": "Serafina INMET A894", "name": "SERAFINA CORREA", "lat": -28.70472222, "lon": -51.87083332, "coord_source": "pluviometria_g040"}, {"code": "432040401A", "role": "rain", "role_pt": "chuva", "label": "Serafina CEMADEN Centro", "name": "Serafina Correa - Centro", "lat": -28.7125, "lon": -51.8667, "coord_source": "pluviometria_g040"}, {"code": "86488000", "role": "upstream_monitor", "role_pt": "monitor montante", "label": "PCH Caçador montante", "name": "Estação 86488000", "lat": -28.6847, "lon": -51.8506, "coord_source": "basin_forecast_points"}, {"code": "86490500", "role": "upstream_monitor", "role_pt": "monitor montante", "label": "PCH Boa Fé montante", "name": "Estação 86490500", "lat": -28.7117, "lon": -51.8525, "coord_source": "basin_forecast_points"}, {"code": "86497000", "role": "upstream_monitor", "role_pt": "monitor montante", "label": "PCH São Paulo jusante", "name": "Estação 86497000", "lat": -28.7922, "lon": -51.8578, "coord_source": "basin_forecast_points"}, {"code": "86505500", "role": "upstream_monitor", "role_pt": "monitor montante", "label": "PCH Linha Emília jusante", "name": "PCH LINHA EMILIA JUSANTE", "lat": -28.9414, "lon": -51.7694, "coord_source": "postos_por_upg"}, {"code": "86298000", "role": "upstream_monitor", "role_pt": "monitor montante", "label": "UHE Castro Alves", "name": "UHE Castro Alves RS-122", "lat": -28.9414, "lon": -51.1892, "coord_source": "basin_forecast_points"}, {"code": "86125130", "role": "upstream_monitor", "role_pt": "monitor montante", "label": "PCH Morro Grande jusante 2", "name": "PCH Morro Grande Jusante 2", "lat": -28.5919, "lon": -51.3247, "coord_source": "basin_forecast_points"}], "anchor_count": 16, "ug_filter": ["Carreiro", "Médio Taquari-Antas", "Prata"], "ug_geojson": "ugs_g040.geojson", "fozes_geojson": "fozes_principais_bho6.geojson"}, "hydrograph_sample_6h": [{"time_utc": "2026-09-12T00:00:00Z", "n_anchored_cm": 299.0, "delta_n_cm": 0.0, "q_mucum_m3s": 152.909}, {"time_utc": "2026-09-12T06:00:00Z", "n_anchored_cm": 271.02, "delta_n_cm": -27.98, "q_mucum_m3s": 107.707}, {"time_utc": "2026-09-12T12:00:00Z", "n_anchored_cm": 240.49, "delta_n_cm": -58.51, "q_mucum_m3s": 70.828}, {"time_utc": "2026-09-12T18:00:00Z", "n_anchored_cm": 221.48, "delta_n_cm": -77.52, "q_mucum_m3s": 52.845}, {"time_utc": "2026-09-13T00:00:00Z", "n_anchored_cm": 209.91, "delta_n_cm": -89.09, "q_mucum_m3s": 43.666}, {"time_utc": "2026-09-13T06:00:00Z", "n_anchored_cm": 202.59, "delta_n_cm": -96.41, "q_mucum_m3s": 38.402}, {"time_utc": "2026-09-13T12:00:00Z", "n_anchored_cm": 197.49, "delta_n_cm": -101.51, "q_mucum_m3s": 34.671}, {"time_utc": "2026-09-13T18:00:00Z", "n_anchored_cm": 193.65, "delta_n_cm": -105.35, "q_mucum_m3s": 31.629}, {"time_utc": "2026-09-14T00:00:00Z", "n_anchored_cm": 190.73, "delta_n_cm": -108.27, "q_mucum_m3s": 29.239}, {"time_utc": "2026-09-14T06:00:00Z", "n_anchored_cm": 188.35, "delta_n_cm": -110.65, "q_mucum_m3s": 27.17}, {"time_utc": "2026-09-14T12:00:00Z", "n_anchored_cm": 186.3, "delta_n_cm": -112.7, "q_mucum_m3s": 25.296}, {"time_utc": "2026-09-14T18:00:00Z", "n_anchored_cm": 184.52, "delta_n_cm": -114.48, "q_mucum_m3s": 23.634}, {"time_utc": "2026-09-15T00:00:00Z", "n_anchored_cm": 183.36, "delta_n_cm": -115.64, "q_mucum_m3s": 22.652}, {"time_utc": "2026-09-15T06:00:00Z", "n_anchored_cm": 182.42, "delta_n_cm": -116.58, "q_mucum_m3s": 21.871}, {"time_utc": "2026-09-15T12:00:00Z", "n_anchored_cm": 181.56, "delta_n_cm": -117.44, "q_mucum_m3s": 21.127}, {"time_utc": "2026-09-15T18:00:00Z", "n_anchored_cm": 181.03, "delta_n_cm": -117.97, "q_mucum_m3s": 20.766}, {"time_utc": "2026-09-16T00:00:00Z", "n_anchored_cm": 180.56, "delta_n_cm": -118.44, "q_mucum_m3s": 20.423}, {"time_utc": "2026-09-16T06:00:00Z", "n_anchored_cm": 180.06, "delta_n_cm": -118.94, "q_mucum_m3s": 19.996}, {"time_utc": "2026-09-16T12:00:00Z", "n_anchored_cm": 179.56, "delta_n_cm": -119.44, "q_mucum_m3s": 19.547}, {"time_utc": "2026-09-16T18:00:00Z", "n_anchored_cm": 178.62, "delta_n_cm": -120.38, "q_mucum_m3s": 18.537}, {"time_utc": "2026-09-16T23:00:00Z", "n_anchored_cm": 177.39, "delta_n_cm": -121.61, "q_mucum_m3s": 17.19}], "param_selection": {"forward": {"method": "analog_basin_calibrated_aw_fingerprint_wetness_blend_v4", "forced_event_id": null, "analogs": [{"event_id": "E25", "historical_aw_full_mm": 48.765, "historical_core_mean_mm": 6.175, "forecast_aw_total_mm": 5.5, "abs_mm_gap": 43.265, "distance": 0.8982, "distance_detail": {"rain_gap": 0.8872, "eff_gap": 0.0, "loss_penalty": 0.0, "donor_penalty": 0.0, "nse_term": 0.011, "loss_sum_mm": 7.0, "constant_loss_sum_mm": 6.0, "hist_peak_per_mm": 39.45, "is_light_specialist": false, "is_wet": false, "apply_light_dry_guards": true}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "light", "nse": 0.9265554244853058, "research_score": 0.9064522037728319, "wetness": {"is_wet": false, "past_aw_mm": 0.1, "stage_cm": 299.0, "stage_rising": null, "wet_by_rain": false, "wet_by_stage": false, "forecast_aw_mm": 5.5}}, {"event_id": "E20", "historical_aw_full_mm": 76.711, "historical_core_mean_mm": 31.133, "forecast_aw_total_mm": 5.5, "abs_mm_gap": 71.211, "distance": 0.9387, "distance_detail": {"rain_gap": 0.9283, "eff_gap": 0.0, "loss_penalty": 0.0, "donor_penalty": 0.0, "nse_term": 0.0104, "loss_sum_mm": 4.0, "constant_loss_sum_mm": 3.0, "hist_peak_per_mm": 42.501, "is_light_specialist": false, "is_wet": false, "apply_light_dry_guards": true}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "light", "nse": 0.9307845686411361, "research_score": 0.8165935139475657, "wetness": {"is_wet": false, "past_aw_mm": 0.1, "stage_cm": 299.0, "stage_rising": null, "wet_by_rain": false, "wet_by_stage": false, "forecast_aw_mm": 5.5}}, {"event_id": "E28", "historical_aw_full_mm": 190.016, "historical_core_mean_mm": 196.567, "forecast_aw_total_mm": 5.5, "abs_mm_gap": 184.516, "distance": 1.2248, "distance_detail": {"rain_gap": 0.9711, "eff_gap": 0.0, "loss_penalty": 0.0, "donor_penalty": 0.25, "nse_term": 0.0037, "loss_sum_mm": 6.25, "constant_loss_sum_mm": 2.25, "hist_peak_per_mm": 41.505, "is_light_specialist": false, "is_wet": false, "apply_light_dry_guards": true}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "heavy", "nse": 0.9750979641674853, "research_score": 0.9750910812039111, "wetness": {"is_wet": false, "past_aw_mm": 0.1, "stage_cm": 299.0, "stage_rising": null, "wet_by_rain": false, "wet_by_stage": false, "forecast_aw_mm": 5.5}}, {"event_id": "E27", "historical_aw_full_mm": 599.224, "historical_core_mean_mm": 639.023, "forecast_aw_total_mm": 5.5, "abs_mm_gap": 593.724, "distance": 1.2593, "distance_detail": {"rain_gap": 0.9908, "eff_gap": 0.0, "loss_penalty": 0.0, "donor_penalty": 0.25, "nse_term": 0.0185, "loss_sum_mm": 16.25, "constant_loss_sum_mm": 8.25, "hist_peak_per_mm": 24.24, "is_light_specialist": false, "is_wet": false, "apply_light_dry_guards": true}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "heavy", "nse": 0.87682516409052, "research_score": 0.8047342976819711, "wetness": {"is_wet": false, "past_aw_mm": 0.1, "stage_cm": 299.0, "stage_rising": null, "wet_by_rain": false, "wet_by_stage": false, "forecast_aw_mm": 5.5}}, {"event_id": "E23", "historical_aw_full_mm": 81.117, "historical_core_mean_mm": 33.983, "forecast_aw_total_mm": 5.5, "abs_mm_gap": 75.617, "distance": 1.4103, "distance_detail": {"rain_gap": 0.9322, "eff_gap": 0.0, "loss_penalty": 0.2, "donor_penalty": 0.25, "nse_term": 0.0281, "loss_sum_mm": 1.5, "constant_loss_sum_mm": 1.0, "hist_peak_per_mm": 31.799, "is_light_specialist": false, "is_wet": false, "apply_light_dry_guards": true}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "moderate", "nse": 0.8126364483782181, "research_score": 0.6573785691229445, "wetness": {"is_wet": false, "past_aw_mm": 0.1, "stage_cm": 299.0, "stage_rising": null, "wet_by_rain": false, "wet_by_stage": false, "forecast_aw_mm": 5.5}}], "common_search": "blocked_not_used", "wetness": {"is_wet": false, "past_aw_mm": 0.1, "stage_cm": 299.0, "stage_rising": null, "wet_by_rain": false, "wet_by_stage": false, "forecast_aw_mm": 5.5}, "basin_calibration": {"artifact": "modelo_mucum_bacia_calibrado_v1_latest.json", "rain_fingerprint": "area_weighted_full_window_mm", "ic_scaling": "observed_stage_to_q_at_now_index_via_mucum_rating", "now_index": 0, "wet_loss_damping": "strict_past_and_stage", "light_specialists": ["E30"], "primary_rule": "wet_bias_or_distance_q_blend_top5", "blend": {"applied": true, "mode": "distance", "wet_bias_power": null, "weights": [{"event_id": "E25", "weight": 0.28999, "distance": 0.8982}, {"event_id": "E20", "weight": 0.26739, "distance": 0.9387}, {"event_id": "E28", "weight": 0.162986, "distance": 1.2248}, {"event_id": "E27", "weight": 0.154697, "distance": 1.2593}, {"event_id": "E23", "weight": 0.124937, "distance": 1.4103}], "member_rises_cm": [0.0, 0.0, 0.0, 0.0, 0.0], "rise_blend_cm": 0.0, "note": "primary_rise_uses_weighted_member_rises_not_peak_of_blended_hydrograph"}, "top_k": 5}}, "live": {"method": "analog_basin_calibrated_aw_fingerprint_wetness_blend_v4", "forced_event_id": null, "analogs": [{"event_id": "E23", "historical_aw_full_mm": 81.117, "historical_core_mean_mm": 33.983, "forecast_aw_total_mm": 33.264, "abs_mm_gap": 47.853, "distance": 0.368, "distance_detail": {"rain_gap": 0.5899, "eff_gap": 0.0, "loss_penalty": -0.35, "donor_penalty": 0.1, "nse_term": 0.0281, "loss_sum_mm": 1.5, "constant_loss_sum_mm": 1.0, "hist_peak_per_mm": 31.799, "is_light_specialist": false, "is_wet": true, "apply_light_dry_guards": false}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "moderate", "nse": 0.8126364483782181, "research_score": 0.6573785691229445, "wetness": {"is_wet": true, "past_aw_mm": 29.737, "stage_cm": 425.0, "stage_rising": true, "wet_by_rain": true, "wet_by_stage": true, "forecast_aw_mm": 33.264}}, {"event_id": "E20", "historical_aw_full_mm": 76.711, "historical_core_mean_mm": 31.133, "forecast_aw_total_mm": 33.264, "abs_mm_gap": 43.447, "distance": 0.5768, "distance_detail": {"rain_gap": 0.5664, "eff_gap": 0.0, "loss_penalty": 0.0, "donor_penalty": 0.0, "nse_term": 0.0104, "loss_sum_mm": 4.0, "constant_loss_sum_mm": 3.0, "hist_peak_per_mm": 42.501, "is_light_specialist": false, "is_wet": true, "apply_light_dry_guards": false}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "light", "nse": 0.9307845686411361, "research_score": 0.8165935139475657, "wetness": {"is_wet": true, "past_aw_mm": 29.737, "stage_cm": 425.0, "stage_rising": true, "wet_by_rain": true, "wet_by_stage": true, "forecast_aw_mm": 33.264}}, {"event_id": "E25", "historical_aw_full_mm": 48.765, "historical_core_mean_mm": 6.175, "forecast_aw_total_mm": 33.264, "abs_mm_gap": 15.501, "distance": 0.5789, "distance_detail": {"rain_gap": 0.3179, "eff_gap": 0.0, "loss_penalty": 0.25, "donor_penalty": 0.0, "nse_term": 0.011, "loss_sum_mm": 7.0, "constant_loss_sum_mm": 6.0, "hist_peak_per_mm": 39.45, "is_light_specialist": false, "is_wet": true, "apply_light_dry_guards": false}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "light", "nse": 0.9265554244853058, "research_score": 0.9064522037728319, "wetness": {"is_wet": true, "past_aw_mm": 29.737, "stage_cm": 425.0, "stage_rising": true, "wet_by_rain": true, "wet_by_stage": true, "forecast_aw_mm": 33.264}}, {"event_id": "E24", "historical_aw_full_mm": 207.8, "historical_core_mean_mm": 202.4, "forecast_aw_total_mm": 33.264, "abs_mm_gap": 174.536, "distance": 0.9771, "distance_detail": {"rain_gap": 0.8399, "eff_gap": 0.0, "loss_penalty": 0.0, "donor_penalty": 0.1, "nse_term": 0.0372, "loss_sum_mm": 3.875, "constant_loss_sum_mm": 3.875, "hist_peak_per_mm": 55.029, "is_light_specialist": false, "is_wet": true, "apply_light_dry_guards": false}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "heavy", "nse": 0.7520225645223316, "research_score": 0.6637275476017248, "wetness": {"is_wet": true, "past_aw_mm": 29.737, "stage_cm": 425.0, "stage_rising": true, "wet_by_rain": true, "wet_by_stage": true, "forecast_aw_mm": 33.264}}, {"event_id": "E21", "historical_aw_full_mm": 101.183, "historical_core_mean_mm": 92.433, "forecast_aw_total_mm": 33.264, "abs_mm_gap": 67.919, "distance": 1.0441, "distance_detail": {"rain_gap": 0.6712, "eff_gap": 0.0, "loss_penalty": 0.25, "donor_penalty": 0.1, "nse_term": 0.0229, "loss_sum_mm": 7.0, "constant_loss_sum_mm": 2.5, "hist_peak_per_mm": 59.304, "is_light_specialist": false, "is_wet": true, "apply_light_dry_guards": false}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "moderate", "nse": 0.8473541435574965, "research_score": 0.8291599739161672, "wetness": {"is_wet": true, "past_aw_mm": 29.737, "stage_cm": 425.0, "stage_rising": true, "wet_by_rain": true, "wet_by_stage": true, "forecast_aw_mm": 33.264}}], "common_search": "blocked_not_used", "wetness": {"is_wet": true, "past_aw_mm": 29.737, "stage_cm": 425.0, "stage_rising": true, "wet_by_rain": true, "wet_by_stage": true, "forecast_aw_mm": 33.264}, "basin_calibration": {"artifact": "modelo_mucum_bacia_calibrado_v1_latest.json", "rain_fingerprint": "area_weighted_full_window_mm", "ic_scaling": "observed_stage_to_q_at_now_index_via_mucum_rating", "now_index": 48, "wet_loss_damping": "strict_past_and_stage", "light_specialists": ["E30"], "primary_rule": "wet_bias_or_distance_q_blend_top5", "blend": {"applied": true, "mode": "wet_bias", "wet_bias_power": 1.5, "weights": [{"event_id": "E23", "weight": 0.630413, "distance": 0.368}, {"event_id": "E20", "weight": 0.166397, "distance": 0.5768}, {"event_id": "E25", "weight": 0.120924, "distance": 0.5789}, {"event_id": "E24", "weight": 0.051733, "distance": 0.9771}, {"event_id": "E21", "weight": 0.030533, "distance": 1.0441}], "member_rises_cm": [296.42, 203.14, 164.9, 175.84, 134.29], "rise_blend_cm": 253.81, "note": "primary_rise_uses_weighted_member_rises_not_peak_of_blended_hydrograph"}, "top_k": 5}}}, "artifacts": {"json": "plataforma_hec_twin_mucum_latest.json", "html": "plataforma_hec_twin_mucum.html", "root_entry": "plataforma_hec_twin.html"}, "automation": {"robot_pt": "Robô GitHub Actions puxa IFS → gêmeo HEC → plataforma", "workflow": ".github/workflows/hec-twin-mucum-forward.yml", "schedule_cron": "12 */6 * * *", "schedule_pt": "a cada 6 horas (min :12) + disparo manual", "steps_pt": ["Busca chuva IFS (Open-Meteo) por sub-bacia do corredor", "Roda gêmeo HEC Muçum ~5d (âncora no nível ao vivo se houver)", "Reconstrói plataforma_hec_twin_mucum (mapa + feed)", "Publica no main → GitHub Pages atualiza"], "does_not_touch_rna": true, "research_not_alert": true}};
 
-function fmt(n, d=0) {
-  if (n == null || Number.isNaN(Number(n))) return "—";
-  return Number(n).toLocaleString("pt-BR", { maximumFractionDigits:d, minimumFractionDigits:d });
+<script>
+const DATA = {"schema_version": "plataforma_hec_twin_mucum_v2", "generated_at_utc": "2026-09-13T01:10:24Z", "status": "research_platform_ready", "label_pt": "Plataforma HEC/REC · gêmeo Muçum ~5d", "purpose_pt": "Onde o resultado do gêmeo HEC (REC) vai parar: quanto sobe em Muçum, chuva espacializada no corredor, verificação ao vivo e skill hindcast — no GitHub Pages, como a plataforma das RNAs.", "discipline": {"research_not_alert": true, "does_not_touch_rna": true, "no_invented_stz_rating_curve": true, "ifs_point_proxy_not_areal_mask": true, "corridor_not_full_g040": true}, "where_results_go": {"pages_base": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais", "study_dir": "assets/data/estudo_bacia_taquari_antas", "pages": {"platform_html": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html", "platform_root": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/plataforma_hec_twin.html", "platform_json": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json", "forward_html": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html", "live_eval_html": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_live_eval.html", "verify_html": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_live_eval_verify.html", "hindcast_html": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_hindcast_skill_5d.html", "mapa_subbacias": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/mapa_subbacias.html", "rna_mucum_live": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais/mucum_previsao_inundacao.html"}, "local": {"platform_html": "plataforma_hec_twin_mucum.html", "platform_json": "plataforma_hec_twin_mucum_latest.json", "forward_html": "hec_twin_mucum_forward_5d.html", "forward_json": "hec_twin_mucum_forward_5d_latest.json", "live_eval_html": "hec_twin_mucum_live_eval.html", "live_eval_json": "hec_twin_mucum_live_eval_latest.json", "verify_html": "hec_twin_mucum_live_eval_verify.html", "verify_json": "hec_twin_mucum_live_eval_verify_latest.json", "hindcast_html": "hec_twin_mucum_hindcast_skill_5d.html", "hindcast_json": "hec_twin_mucum_hindcast_skill_5d_latest.json", "forcing_live_json": "hec_twin_ifs_forcing_live_eval_latest.json", "forcing_forward_json": "hec_twin_ifs_forcing_5d_latest.json", "mapa_subbacias": "mapa_subbacias.html"}, "pipeline_pt": ["IFS QPF → forçante por sub-bacia (JSON)", "Gêmeo HEC eventwise → Q Muçum → curva-chave → ΔN", "Feed estável plataforma_hec_twin_mucum_latest.json", "Página mapa plataforma_hec_twin_mucum.html (+ atalho raiz)", "Deploy Pages quando paths do estudo / plataforma mudam"]}, "headline": {"source": "live_eval", "question_pt": "Com a chuva (prevista ou do evento), quanto sobe Muçum?", "plain_pt": "Com ~33.3 mm de chuva prevista em 120 h e nível atual 425 cm em Muçum, o gêmeo HEC indica subida de ~254 cm (banda 134–296 cm), pico ancorado ~679 cm em 2026-09-12T20:00:00Z.", "primary": {"event_id": "BLEND", "rise_cm": 253.81, "peak_anchored_cm": 678.81, "peak_time_utc": "2026-09-12T20:00:00Z", "peak_time_argmax_utc": "2026-09-12T22:00:00Z", "peak_time_method": "first_reach_0.95_of_rise"}, "ensemble_rise_cm": {"min": 134.29, "primary": 253.81, "max": 296.42, "by_event": [{"event_id": "BLEND", "rise_cm": 253.81, "peak_anchored_cm": 678.81}, {"event_id": "E23", "rise_cm": 296.42, "peak_anchored_cm": 721.42}, {"event_id": "E20", "rise_cm": 203.14, "peak_anchored_cm": 628.14}, {"event_id": "E25", "rise_cm": 164.9, "peak_anchored_cm": 589.9}, {"event_id": "E24", "rise_cm": 175.84, "peak_anchored_cm": 600.84}, {"event_id": "E21", "rise_cm": 134.29, "peak_anchored_cm": 559.29}]}, "rain_mm_area_weighted": 33.264, "verification_plain_pt": "Calibração v5 (ΔN+horário): primary BLEND ΔN≈254 cm (pico≈679). Obs 677 cm (+252) dentro da banda 134–296 e ainda sob o pico primary. Horário do pico: previsto 2026-09-12T20:00:00Z vs obs 2026-09-12T19:30:00Z (+0.5 h). Atualização no meio do evento (obs 677): ainda ~0 cm (pico revisto ~677).", "scorecard": {"verdict_level": "hit_band_and_primary_so_far", "peak_error_cm": 1.19, "timing_error_h": 0.5, "obs_peak_cm": 680.0, "predicted_peak_anchored_cm": 678.81}}, "products": {"forward_5d": {"status": "research_forward_5d_ready", "generated_at_utc": "2026-09-12T22:18:45Z", "plain_pt": "Com ~5.5 mm de chuva prevista em 120 h e nível atual 299 cm em Muçum, o gêmeo HEC indica subida de ~0 cm (banda 0–0 cm), pico ancorado ~299 cm em 2026-09-12T00:00:00Z.", "primary": {"event_id": "BLEND", "rise_cm": 0.0, "peak_anchored_cm": 299.0, "peak_time_utc": "2026-09-12T00:00:00Z", "peak_time_argmax_utc": "2026-09-12T00:00:00Z", "peak_time_method": "no_rise"}, "ensemble_rise_cm": {"min": 0.0, "primary": 0.0, "max": 0.0, "by_event": [{"event_id": "BLEND", "rise_cm": 0.0, "peak_anchored_cm": 299.0}, {"event_id": "E25", "rise_cm": 0.0, "peak_anchored_cm": 299.0}, {"event_id": "E20", "rise_cm": 0.0, "peak_anchored_cm": 299.0}, {"event_id": "E28", "rise_cm": 0.0, "peak_anchored_cm": 299.0}, {"event_id": "E27", "rise_cm": 0.0, "peak_anchored_cm": 299.0}, {"event_id": "E23", "rise_cm": 0.0, "peak_anchored_cm": 299.0}]}, "rain_forecast_mm": 5.5, "level_now": {"ok": true, "stage_cm": 299.0, "observed_at_utc": "2026-09-08T17:00:00Z", "source": "previsao_ao_vivo_mucum.json", "station": "86510000", "fallback_reason": "network_disabled"}, "note_pt": "Produto operacional de pesquisa (~5d). Se a forçante estiver seca ou a telemetria cair, o ΔN pode ir a zero — conferir live eval.", "available": true, "artifact": "hec_twin_mucum_forward_5d.html", "age_hours": 2.86, "stale": true, "note": "Forward seco/stale — preferir live para o evento.", "peak_delta_n_cm": 0.0, "peak_n_cm": 299.0, "peak_when_utc": "2026-09-12T00:00:00Z"}, "live_eval": {"status": "research_live_eval_replay_ready", "generated_at_utc": "2026-09-12T22:18:41Z", "plain_pt": "Com ~33.3 mm de chuva prevista em 120 h e nível atual 425 cm em Muçum, o gêmeo HEC indica subida de ~254 cm (banda 134–296 cm), pico ancorado ~679 cm em 2026-09-12T20:00:00Z.", "primary": {"event_id": "BLEND", "rise_cm": 253.81, "peak_anchored_cm": 678.81, "peak_time_utc": "2026-09-12T20:00:00Z", "peak_time_argmax_utc": "2026-09-12T22:00:00Z", "peak_time_method": "first_reach_0.95_of_rise"}, "ensemble_rise_cm": {"min": 134.29, "primary": 253.81, "max": 296.42, "by_event": [{"event_id": "BLEND", "rise_cm": 253.81, "peak_anchored_cm": 678.81}, {"event_id": "E23", "rise_cm": 296.42, "peak_anchored_cm": 721.42}, {"event_id": "E20", "rise_cm": 203.14, "peak_anchored_cm": 628.14}, {"event_id": "E25", "rise_cm": 164.9, "peak_anchored_cm": 589.9}, {"event_id": "E24", "rise_cm": 175.84, "peak_anchored_cm": 600.84}, {"event_id": "E21", "rise_cm": 134.29, "peak_anchored_cm": 559.29}]}, "observations": {"level_now": {"ok": true, "stage_cm": 425.0, "observed_at_utc": "2026-09-12T02:45:00Z", "source": "ANA_anchor_replay", "station": "86510000"}, "latest_ana": {"stage_cm": 677.0, "observed_at_utc": "2026-09-12T21:45:00Z", "rise_from_anchor_cm": 252.0, "peak_so_far_cm": 680.0, "peak_so_far_at_utc": "2026-09-12T19:30:00Z"}}, "verification": {"verdict_level": "hit_band_and_primary_so_far", "plain_pt": "Calibração v5 (ΔN+horário): primary BLEND ΔN≈254 cm (pico≈679). Obs 677 cm (+252) dentro da banda 134–296 e ainda sob o pico primary. Horário do pico: previsto 2026-09-12T20:00:00Z vs obs 2026-09-12T19:30:00Z (+0.5 h). Atualização no meio do evento (obs 677): ainda ~0 cm (pico revisto ~677).", "old_primary_peak_cm": 568.0, "new_primary_peak_cm": 678.81, "mid_event_peak_cm": 677.0, "obs_latest_cm": 677.0, "old_error_cm": 109.0, "new_error_cm": -1.81, "mid_event_error_cm": 0.0, "improved_vs_old": true, "rise_within_band": true, "above_primary_peak": false, "obs_peak_cm": 680.0, "obs_peak_at_utc": "2026-09-12T19:30:00Z", "peak_error_cm": 1.19, "predicted_peak_time_utc": "2026-09-12T20:00:00Z", "peak_time_method": "first_reach_0.95_of_rise", "timing_error_h": 0.5}, "available": true, "artifact": "hec_twin_mucum_live_eval.html", "age_hours": 2.86, "timing_error_h": 0.5, "note": "Replay do evento com âncora + verificação ANA.", "peak_delta_n_cm": 253.81, "peak_n_cm": 678.81, "peak_when_utc": "2026-09-12T20:00:00Z"}, "verify": {"status": "research_verification_ready", "generated_at_utc": "2026-09-12T22:18:41Z", "plain_pt": "Calibração v5 (ΔN+horário): primary BLEND ΔN≈254 cm (pico≈679). Obs 677 cm (+252) dentro da banda 134–296 e ainda sob o pico primary. Horário do pico: previsto 2026-09-12T20:00:00Z vs obs 2026-09-12T19:30:00Z (+0.5 h). Atualização no meio do evento (obs 677): ainda ~0 cm (pico revisto ~677).", "observed": {"stage_cm": 677.0, "observed_at_utc": "2026-09-12T21:45:00Z", "rise_from_anchor_cm": 252.0, "peak_so_far_cm": 680.0, "peak_so_far_at_utc": "2026-09-12T19:30:00Z"}, "scorecard": {"verdict_level": "hit_band_and_primary_so_far", "plain_pt": "Calibração v5 (ΔN+horário): primary BLEND ΔN≈254 cm (pico≈679). Obs 677 cm (+252) dentro da banda 134–296 e ainda sob o pico primary. Horário do pico: previsto 2026-09-12T20:00:00Z vs obs 2026-09-12T19:30:00Z (+0.5 h). Atualização no meio do evento (obs 677): ainda ~0 cm (pico revisto ~677).", "old_primary_peak_cm": 568.0, "new_primary_peak_cm": 678.81, "mid_event_peak_cm": 677.0, "obs_latest_cm": 677.0, "old_error_cm": 109.0, "new_error_cm": -1.81, "mid_event_error_cm": 0.0, "improved_vs_old": true, "rise_within_band": true, "above_primary_peak": false, "obs_peak_cm": 680.0, "obs_peak_at_utc": "2026-09-12T19:30:00Z", "peak_error_cm": 1.19, "predicted_peak_time_utc": "2026-09-12T20:00:00Z", "peak_time_method": "first_reach_0.95_of_rise", "timing_error_h": 0.5}}, "hindcast_skill": {"status": "research_hindcast_skill_ready", "generated_at_utc": "2026-09-12T22:18:46Z", "summary": {"n_scored": 9, "mean_nse_loo": 0.2669, "mean_peak_q_rel_err": 0.2498, "median_peak_q_rel_err": 0.1637, "mean_rise_n_abs_err_cm": 391.89, "median_rise_n_abs_err_cm": 327.71, "mean_rise_n_rel_err": 0.3583, "n_rise_n_within_50pct": 8, "n_rise_n_within_100pct": 8, "n_peak_q_within_30pct": 5}, "verdict": {"level": "usable_research", "plain_pt": "Hindcast LOO: ΔN médio com erro relativo ~36% (8/9 eventos ≤50%). Pico Q médio |err|~25%. Útil como pesquisa; ainda não é alerta."}}}, "spatial": {"note_pt": "Chuva IFS é proxy pontual por sub-bacia do corredor HEC — não máscara areal fechada. Pontos de amarração = forçantes + monitores do corredor (Prata/Carreiro/Antas→Muçum). UG G040 é contexto; Guaporé/Forqueta fora.", "area_weighted_total_mm": 33.264, "area_weighted_past_mm": 29.737, "area_weighted_future_mm": 3.527, "window": {"past_hours": 48, "future_hours": 72, "now_utc": "2026-09-12T03:00:00Z", "start_utc": "2026-09-10T03:00:00Z", "end_utc": "2026-09-15T02:00:00Z"}, "rain_geojson": {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [-51.7597, -29.0578]}, "properties": {"subbasin_id": "SB_PRATA_7868", "label": "Prata / Turvo-Humatã", "point_code": "86472000", "point_name": "Linha José Júlio", "total_mm": 33.4, "past_mm": 29.9, "future_mm": 3.5}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-51.6797, -29.1178]}, "properties": {"subbasin_id": "SB_ANTAS_RESIDUAL", "label": "Antas residual", "point_code": "86472000", "point_name": "Linha José Júlio", "total_mm": 33.4, "past_mm": 29.9, "future_mm": 3.5}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-51.7558, -28.9722]}, "properties": {"subbasin_id": "SB_CARREIRO_7866", "label": "Carreiro", "point_code": "86507000", "point_name": "PCH Cotiporã Jusante", "total_mm": 33.4, "past_mm": 29.9, "future_mm": 3.5}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-51.7022, -29.1481]}, "properties": {"subbasin_id": "SB_STZ_RESIDUAL", "label": "Residual até Santa Tereza", "point_code": "86472600", "point_name": "Santa Tereza", "total_mm": 28.9, "past_mm": 24.5, "future_mm": 4.4}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [-51.9086, -29.197200000000002]}, "properties": {"subbasin_id": "SB_INC_MUCUM", "label": "Incremento até Muçum", "point_code": "86510000", "point_name": "Muçum", "total_mm": 28.9, "past_mm": 24.5, "future_mm": 4.4}}]}, "controls": [{"code": "86510000", "label": "Muçum (alvo N)", "name": "Muçum", "lat": -29.1672, "lon": -51.8686, "role": "target"}, {"code": "86472600", "label": "Santa Tereza (sem curva N↔Q)", "name": "Santa Tereza", "lat": -29.1781, "lon": -51.7322, "role": "level_control"}, {"code": "86472000", "label": "Antas / Linha José Júlio", "name": "Linha José Júlio", "lat": -29.0978, "lon": -51.6997, "role": "level_control"}, {"code": "86507000", "label": "Carreiro / Cotiporã", "name": "PCH Cotiporã Jusante", "lat": -28.9722, "lon": -51.7558, "role": "level_control"}], "anchors": [{"code": "86510000", "role": "target", "role_pt": "alvo", "label": "Muçum (alvo N)", "name": "Muçum", "lat": -29.1672, "lon": -51.8686, "coord_source": "basin_forecast_points", "id": "86510000", "ug": "Médio Taquari-Antas", "rain_mm_window": 30.4}, {"code": "86472600", "role": "level_control", "role_pt": "nível / controle", "label": "Santa Tereza (sem curva N↔Q)", "name": "Santa Tereza", "lat": -29.1781, "lon": -51.7322, "coord_source": "basin_forecast_points", "id": "86472600", "ug": "Médio Taquari-Antas", "rain_mm_window": 30.4}, {"code": "86472000", "role": "level_control", "role_pt": "nível / controle", "label": "Antas / Linha José Júlio", "name": "Linha José Júlio", "lat": -29.0978, "lon": -51.6997, "coord_source": "basin_forecast_points", "id": "86472000", "ug": "Médio Taquari-Antas", "rain_mm_window": 30.4}, {"code": "86507000", "role": "level_control", "role_pt": "nível / controle", "label": "Carreiro / Cotiporã", "name": "PCH Cotiporã Jusante", "lat": -28.9722, "lon": -51.7558, "coord_source": "basin_forecast_points", "id": "86507000", "ug": "Carreiro", "rain_mm_window": 33.4}, {"code": "86125500", "role": "level_control", "role_pt": "nível / controle", "label": "Prata / Jararaca", "name": "PCH JARARACA BARRAMENTO", "lat": -28.9381, "lon": -51.4656, "coord_source": "postos_por_upg", "id": "86125500", "ug": "Prata", "rain_mm_window": 33.4}, {"code": "86448000", "role": "level_control", "role_pt": "nível / controle", "label": "Monte Claro barramento", "name": "UHE MONTE CLARO BARRAMENTO", "lat": -29.0292, "lon": -51.5219, "coord_source": "postos_por_upg", "id": "86448000", "ug": "Médio Taquari-Antas", "rain_mm_window": 30.4}, {"code": "2851072", "role": "rain", "role_pt": "chuva", "label": "Ibiraiaras (chuva Carreiro–Prata)", "name": "IBIRAIARAS", "lat": -28.3811, "lon": -51.6331, "coord_source": "postos_por_upg", "id": "2851072", "ug": "Carreiro", "rain_mm_window": 33.4}, {"code": "2851044", "role": "rain", "role_pt": "chuva", "label": "Guaporé (chuva)", "name": "GUAPORÉ", "lat": -28.8444, "lon": -51.8792, "coord_source": "postos_por_upg", "id": "2851044", "ug": null, "rain_mm_window": null}, {"code": "A894", "role": "rain", "role_pt": "chuva", "label": "Serafina INMET A894", "name": "SERAFINA CORREA", "lat": -28.70472222, "lon": -51.87083332, "coord_source": "pluviometria_g040", "id": "A894", "ug": "Carreiro", "rain_mm_window": 33.4}, {"code": "432040401A", "role": "rain", "role_pt": "chuva", "label": "Serafina CEMADEN Centro", "name": "Serafina Correa - Centro", "lat": -28.7125, "lon": -51.8667, "coord_source": "pluviometria_g040", "id": "432040401A", "ug": "Carreiro", "rain_mm_window": 33.4}, {"code": "86488000", "role": "upstream_monitor", "role_pt": "monitor montante", "label": "PCH Caçador montante", "name": "Estação 86488000", "lat": -28.6847, "lon": -51.8506, "coord_source": "basin_forecast_points", "id": "86488000", "ug": null, "rain_mm_window": null}, {"code": "86490500", "role": "upstream_monitor", "role_pt": "monitor montante", "label": "PCH Boa Fé montante", "name": "Estação 86490500", "lat": -28.7117, "lon": -51.8525, "coord_source": "basin_forecast_points", "id": "86490500", "ug": null, "rain_mm_window": null}, {"code": "86497000", "role": "upstream_monitor", "role_pt": "monitor montante", "label": "PCH São Paulo jusante", "name": "Estação 86497000", "lat": -28.7922, "lon": -51.8578, "coord_source": "basin_forecast_points", "id": "86497000", "ug": null, "rain_mm_window": null}, {"code": "86505500", "role": "upstream_monitor", "role_pt": "monitor montante", "label": "PCH Linha Emília jusante", "name": "PCH LINHA EMILIA JUSANTE", "lat": -28.9414, "lon": -51.7694, "coord_source": "postos_por_upg", "id": "86505500", "ug": null, "rain_mm_window": null}, {"code": "86298000", "role": "upstream_monitor", "role_pt": "monitor montante", "label": "UHE Castro Alves", "name": "UHE Castro Alves RS-122", "lat": -28.9414, "lon": -51.1892, "coord_source": "basin_forecast_points", "id": "86298000", "ug": null, "rain_mm_window": null}, {"code": "86125130", "role": "upstream_monitor", "role_pt": "monitor montante", "label": "PCH Morro Grande jusante 2", "name": "PCH Morro Grande Jusante 2", "lat": -28.5919, "lon": -51.3247, "coord_source": "basin_forecast_points", "id": "86125130", "ug": null, "rain_mm_window": null}], "anchor_count": 16, "ug_filter": ["Carreiro", "Médio Taquari-Antas", "Prata"], "ug_geojson": "ugs_g040.geojson", "fozes_geojson": "fozes_principais_bho6.geojson", "ug_rain_mm": {"Prata": 33.4, "Médio Taquari-Antas": 30.4, "Carreiro": 33.4}}, "hydrograph_sample_6h": [{"time_utc": "2026-09-12T00:00:00Z", "n_anchored_cm": 299.0, "delta_n_cm": 0.0, "q_mucum_m3s": 152.909}, {"time_utc": "2026-09-12T06:00:00Z", "n_anchored_cm": 271.02, "delta_n_cm": -27.98, "q_mucum_m3s": 107.707}, {"time_utc": "2026-09-12T12:00:00Z", "n_anchored_cm": 240.49, "delta_n_cm": -58.51, "q_mucum_m3s": 70.828}, {"time_utc": "2026-09-12T18:00:00Z", "n_anchored_cm": 221.48, "delta_n_cm": -77.52, "q_mucum_m3s": 52.845}, {"time_utc": "2026-09-13T00:00:00Z", "n_anchored_cm": 209.91, "delta_n_cm": -89.09, "q_mucum_m3s": 43.666}, {"time_utc": "2026-09-13T06:00:00Z", "n_anchored_cm": 202.59, "delta_n_cm": -96.41, "q_mucum_m3s": 38.402}, {"time_utc": "2026-09-13T12:00:00Z", "n_anchored_cm": 197.49, "delta_n_cm": -101.51, "q_mucum_m3s": 34.671}, {"time_utc": "2026-09-13T18:00:00Z", "n_anchored_cm": 193.65, "delta_n_cm": -105.35, "q_mucum_m3s": 31.629}, {"time_utc": "2026-09-14T00:00:00Z", "n_anchored_cm": 190.73, "delta_n_cm": -108.27, "q_mucum_m3s": 29.239}, {"time_utc": "2026-09-14T06:00:00Z", "n_anchored_cm": 188.35, "delta_n_cm": -110.65, "q_mucum_m3s": 27.17}, {"time_utc": "2026-09-14T12:00:00Z", "n_anchored_cm": 186.3, "delta_n_cm": -112.7, "q_mucum_m3s": 25.296}, {"time_utc": "2026-09-14T18:00:00Z", "n_anchored_cm": 184.52, "delta_n_cm": -114.48, "q_mucum_m3s": 23.634}, {"time_utc": "2026-09-15T00:00:00Z", "n_anchored_cm": 183.36, "delta_n_cm": -115.64, "q_mucum_m3s": 22.652}, {"time_utc": "2026-09-15T06:00:00Z", "n_anchored_cm": 182.42, "delta_n_cm": -116.58, "q_mucum_m3s": 21.871}, {"time_utc": "2026-09-15T12:00:00Z", "n_anchored_cm": 181.56, "delta_n_cm": -117.44, "q_mucum_m3s": 21.127}, {"time_utc": "2026-09-15T18:00:00Z", "n_anchored_cm": 181.03, "delta_n_cm": -117.97, "q_mucum_m3s": 20.766}, {"time_utc": "2026-09-16T00:00:00Z", "n_anchored_cm": 180.56, "delta_n_cm": -118.44, "q_mucum_m3s": 20.423}, {"time_utc": "2026-09-16T06:00:00Z", "n_anchored_cm": 180.06, "delta_n_cm": -118.94, "q_mucum_m3s": 19.996}, {"time_utc": "2026-09-16T12:00:00Z", "n_anchored_cm": 179.56, "delta_n_cm": -119.44, "q_mucum_m3s": 19.547}, {"time_utc": "2026-09-16T18:00:00Z", "n_anchored_cm": 178.62, "delta_n_cm": -120.38, "q_mucum_m3s": 18.537}, {"time_utc": "2026-09-16T23:00:00Z", "n_anchored_cm": 177.39, "delta_n_cm": -121.61, "q_mucum_m3s": 17.19}], "param_selection": {"forward": {"method": "analog_basin_calibrated_aw_fingerprint_wetness_blend_v4", "forced_event_id": null, "analogs": [{"event_id": "E25", "historical_aw_full_mm": 48.765, "historical_core_mean_mm": 6.175, "forecast_aw_total_mm": 5.5, "abs_mm_gap": 43.265, "distance": 0.8982, "distance_detail": {"rain_gap": 0.8872, "eff_gap": 0.0, "loss_penalty": 0.0, "donor_penalty": 0.0, "nse_term": 0.011, "loss_sum_mm": 7.0, "constant_loss_sum_mm": 6.0, "hist_peak_per_mm": 39.45, "is_light_specialist": false, "is_wet": false, "apply_light_dry_guards": true}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "light", "nse": 0.9265554244853058, "research_score": 0.9064522037728319, "wetness": {"is_wet": false, "past_aw_mm": 0.1, "stage_cm": 299.0, "stage_rising": null, "wet_by_rain": false, "wet_by_stage": false, "forecast_aw_mm": 5.5}}, {"event_id": "E20", "historical_aw_full_mm": 76.711, "historical_core_mean_mm": 31.133, "forecast_aw_total_mm": 5.5, "abs_mm_gap": 71.211, "distance": 0.9387, "distance_detail": {"rain_gap": 0.9283, "eff_gap": 0.0, "loss_penalty": 0.0, "donor_penalty": 0.0, "nse_term": 0.0104, "loss_sum_mm": 4.0, "constant_loss_sum_mm": 3.0, "hist_peak_per_mm": 42.501, "is_light_specialist": false, "is_wet": false, "apply_light_dry_guards": true}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "light", "nse": 0.9307845686411361, "research_score": 0.8165935139475657, "wetness": {"is_wet": false, "past_aw_mm": 0.1, "stage_cm": 299.0, "stage_rising": null, "wet_by_rain": false, "wet_by_stage": false, "forecast_aw_mm": 5.5}}, {"event_id": "E28", "historical_aw_full_mm": 190.016, "historical_core_mean_mm": 196.567, "forecast_aw_total_mm": 5.5, "abs_mm_gap": 184.516, "distance": 1.2248, "distance_detail": {"rain_gap": 0.9711, "eff_gap": 0.0, "loss_penalty": 0.0, "donor_penalty": 0.25, "nse_term": 0.0037, "loss_sum_mm": 6.25, "constant_loss_sum_mm": 2.25, "hist_peak_per_mm": 41.505, "is_light_specialist": false, "is_wet": false, "apply_light_dry_guards": true}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "heavy", "nse": 0.9750979641674853, "research_score": 0.9750910812039111, "wetness": {"is_wet": false, "past_aw_mm": 0.1, "stage_cm": 299.0, "stage_rising": null, "wet_by_rain": false, "wet_by_stage": false, "forecast_aw_mm": 5.5}}, {"event_id": "E27", "historical_aw_full_mm": 599.224, "historical_core_mean_mm": 639.023, "forecast_aw_total_mm": 5.5, "abs_mm_gap": 593.724, "distance": 1.2593, "distance_detail": {"rain_gap": 0.9908, "eff_gap": 0.0, "loss_penalty": 0.0, "donor_penalty": 0.25, "nse_term": 0.0185, "loss_sum_mm": 16.25, "constant_loss_sum_mm": 8.25, "hist_peak_per_mm": 24.24, "is_light_specialist": false, "is_wet": false, "apply_light_dry_guards": true}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "heavy", "nse": 0.87682516409052, "research_score": 0.8047342976819711, "wetness": {"is_wet": false, "past_aw_mm": 0.1, "stage_cm": 299.0, "stage_rising": null, "wet_by_rain": false, "wet_by_stage": false, "forecast_aw_mm": 5.5}}, {"event_id": "E23", "historical_aw_full_mm": 81.117, "historical_core_mean_mm": 33.983, "forecast_aw_total_mm": 5.5, "abs_mm_gap": 75.617, "distance": 1.4103, "distance_detail": {"rain_gap": 0.9322, "eff_gap": 0.0, "loss_penalty": 0.2, "donor_penalty": 0.25, "nse_term": 0.0281, "loss_sum_mm": 1.5, "constant_loss_sum_mm": 1.0, "hist_peak_per_mm": 31.799, "is_light_specialist": false, "is_wet": false, "apply_light_dry_guards": true}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "moderate", "nse": 0.8126364483782181, "research_score": 0.6573785691229445, "wetness": {"is_wet": false, "past_aw_mm": 0.1, "stage_cm": 299.0, "stage_rising": null, "wet_by_rain": false, "wet_by_stage": false, "forecast_aw_mm": 5.5}}], "common_search": "blocked_not_used", "wetness": {"is_wet": false, "past_aw_mm": 0.1, "stage_cm": 299.0, "stage_rising": null, "wet_by_rain": false, "wet_by_stage": false, "forecast_aw_mm": 5.5}, "basin_calibration": {"artifact": "modelo_mucum_bacia_calibrado_v1_latest.json", "rain_fingerprint": "area_weighted_full_window_mm", "ic_scaling": "observed_stage_to_q_at_now_index_via_mucum_rating", "now_index": 0, "wet_loss_damping": "strict_past_and_stage", "light_specialists": ["E30"], "primary_rule": "wet_bias_or_distance_q_blend_top5", "blend": {"applied": true, "mode": "distance", "wet_bias_power": null, "weights": [{"event_id": "E25", "weight": 0.28999, "distance": 0.8982}, {"event_id": "E20", "weight": 0.26739, "distance": 0.9387}, {"event_id": "E28", "weight": 0.162986, "distance": 1.2248}, {"event_id": "E27", "weight": 0.154697, "distance": 1.2593}, {"event_id": "E23", "weight": 0.124937, "distance": 1.4103}], "member_rises_cm": [0.0, 0.0, 0.0, 0.0, 0.0], "rise_blend_cm": 0.0, "note": "primary_rise_uses_weighted_member_rises_not_peak_of_blended_hydrograph"}, "top_k": 5}}, "live": {"method": "analog_basin_calibrated_aw_fingerprint_wetness_blend_v4", "forced_event_id": null, "analogs": [{"event_id": "E23", "historical_aw_full_mm": 81.117, "historical_core_mean_mm": 33.983, "forecast_aw_total_mm": 33.264, "abs_mm_gap": 47.853, "distance": 0.368, "distance_detail": {"rain_gap": 0.5899, "eff_gap": 0.0, "loss_penalty": -0.35, "donor_penalty": 0.1, "nse_term": 0.0281, "loss_sum_mm": 1.5, "constant_loss_sum_mm": 1.0, "hist_peak_per_mm": 31.799, "is_light_specialist": false, "is_wet": true, "apply_light_dry_guards": false}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "moderate", "nse": 0.8126364483782181, "research_score": 0.6573785691229445, "wetness": {"is_wet": true, "past_aw_mm": 29.737, "stage_cm": 425.0, "stage_rising": true, "wet_by_rain": true, "wet_by_stage": true, "forecast_aw_mm": 33.264}}, {"event_id": "E20", "historical_aw_full_mm": 76.711, "historical_core_mean_mm": 31.133, "forecast_aw_total_mm": 33.264, "abs_mm_gap": 43.447, "distance": 0.5768, "distance_detail": {"rain_gap": 0.5664, "eff_gap": 0.0, "loss_penalty": 0.0, "donor_penalty": 0.0, "nse_term": 0.0104, "loss_sum_mm": 4.0, "constant_loss_sum_mm": 3.0, "hist_peak_per_mm": 42.501, "is_light_specialist": false, "is_wet": true, "apply_light_dry_guards": false}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "light", "nse": 0.9307845686411361, "research_score": 0.8165935139475657, "wetness": {"is_wet": true, "past_aw_mm": 29.737, "stage_cm": 425.0, "stage_rising": true, "wet_by_rain": true, "wet_by_stage": true, "forecast_aw_mm": 33.264}}, {"event_id": "E25", "historical_aw_full_mm": 48.765, "historical_core_mean_mm": 6.175, "forecast_aw_total_mm": 33.264, "abs_mm_gap": 15.501, "distance": 0.5789, "distance_detail": {"rain_gap": 0.3179, "eff_gap": 0.0, "loss_penalty": 0.25, "donor_penalty": 0.0, "nse_term": 0.011, "loss_sum_mm": 7.0, "constant_loss_sum_mm": 6.0, "hist_peak_per_mm": 39.45, "is_light_specialist": false, "is_wet": true, "apply_light_dry_guards": false}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "light", "nse": 0.9265554244853058, "research_score": 0.9064522037728319, "wetness": {"is_wet": true, "past_aw_mm": 29.737, "stage_cm": 425.0, "stage_rising": true, "wet_by_rain": true, "wet_by_stage": true, "forecast_aw_mm": 33.264}}, {"event_id": "E24", "historical_aw_full_mm": 207.8, "historical_core_mean_mm": 202.4, "forecast_aw_total_mm": 33.264, "abs_mm_gap": 174.536, "distance": 0.9771, "distance_detail": {"rain_gap": 0.8399, "eff_gap": 0.0, "loss_penalty": 0.0, "donor_penalty": 0.1, "nse_term": 0.0372, "loss_sum_mm": 3.875, "constant_loss_sum_mm": 3.875, "hist_peak_per_mm": 55.029, "is_light_specialist": false, "is_wet": true, "apply_light_dry_guards": false}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "heavy", "nse": 0.7520225645223316, "research_score": 0.6637275476017248, "wetness": {"is_wet": true, "past_aw_mm": 29.737, "stage_cm": 425.0, "stage_rising": true, "wet_by_rain": true, "wet_by_stage": true, "forecast_aw_mm": 33.264}}, {"event_id": "E21", "historical_aw_full_mm": 101.183, "historical_core_mean_mm": 92.433, "forecast_aw_total_mm": 33.264, "abs_mm_gap": 67.919, "distance": 1.0441, "distance_detail": {"rain_gap": 0.6712, "eff_gap": 0.0, "loss_penalty": 0.25, "donor_penalty": 0.1, "nse_term": 0.0229, "loss_sum_mm": 7.0, "constant_loss_sum_mm": 2.5, "hist_peak_per_mm": 59.304, "is_light_specialist": false, "is_wet": true, "apply_light_dry_guards": false}, "hist_rain_source": "aw_full_fingerprint", "regime_forecast": "light", "regime_hist": "moderate", "nse": 0.8473541435574965, "research_score": 0.8291599739161672, "wetness": {"is_wet": true, "past_aw_mm": 29.737, "stage_cm": 425.0, "stage_rising": true, "wet_by_rain": true, "wet_by_stage": true, "forecast_aw_mm": 33.264}}], "common_search": "blocked_not_used", "wetness": {"is_wet": true, "past_aw_mm": 29.737, "stage_cm": 425.0, "stage_rising": true, "wet_by_rain": true, "wet_by_stage": true, "forecast_aw_mm": 33.264}, "basin_calibration": {"artifact": "modelo_mucum_bacia_calibrado_v1_latest.json", "rain_fingerprint": "area_weighted_full_window_mm", "ic_scaling": "observed_stage_to_q_at_now_index_via_mucum_rating", "now_index": 48, "wet_loss_damping": "strict_past_and_stage", "light_specialists": ["E30"], "primary_rule": "wet_bias_or_distance_q_blend_top5", "blend": {"applied": true, "mode": "wet_bias", "wet_bias_power": 1.5, "weights": [{"event_id": "E23", "weight": 0.630413, "distance": 0.368}, {"event_id": "E20", "weight": 0.166397, "distance": 0.5768}, {"event_id": "E25", "weight": 0.120924, "distance": 0.5789}, {"event_id": "E24", "weight": 0.051733, "distance": 0.9771}, {"event_id": "E21", "weight": 0.030533, "distance": 1.0441}], "member_rises_cm": [296.42, 203.14, 164.9, 175.84, 134.29], "rise_blend_cm": 253.81, "note": "primary_rise_uses_weighted_member_rises_not_peak_of_blended_hydrograph"}, "top_k": 5}}}, "artifacts": {"json": "plataforma_hec_twin_mucum_latest.json", "html": "plataforma_hec_twin_mucum.html", "root_entry": "plataforma_hec_twin.html"}, "automation": {"robot_pt": "Robô GitHub Actions puxa IFS → gêmeo HEC → plataforma", "workflow": ".github/workflows/hec-twin-mucum-forward.yml", "schedule_cron": "12 */6 * * *", "schedule_pt": "a cada 6 horas (min :12) + disparo manual", "steps_pt": ["Busca chuva IFS (Open-Meteo) por sub-bacia do corredor", "Roda gêmeo HEC Muçum ~5d (âncora no nível ao vivo se houver)", "Reconstrói plataforma_hec_twin_mucum (mapa + feed)", "Publica no main → GitHub Pages atualiza"], "does_not_touch_rna": true, "research_not_alert": true, "workflow_name": "HEC twin Muçum forward ~5d", "commit_author": "previne-hec-bot", "pipeline": ["Busca chuva IFS (Open-Meteo) por sub-bacia do corredor", "Roda gêmeo HEC Muçum ~5d (âncora no nível ao vivo se houver)", "Reconstrói plataforma_hec_twin_mucum (mapa + feed)", "Publica no main → GitHub Pages atualiza"]}, "product": {"name": "ΔN ~5d · Muçum", "horizon": "~5 dias", "target": "Muçum", "mode": "pesquisa"}, "summary": {"peak_n_cm": 678.81, "peak_delta_n_cm": 253.81, "peak_when_utc": "2026-09-12T20:00:00Z", "timing_error_h": 0.5, "n_anchor_cm": 425.0, "source": "live_eval"}, "freshness": {"preferred_source": "live_eval", "live_age_hours": 2.86, "forward_age_hours": 2.86, "stale_forward": true, "forward_max_delta_n_cm": 0.0, "note_pt": "Quando o forward está seco/stale, headline e hidrograma preferem o live eval."}, "event_trace": {"source": "live_eval_rebuild", "note": "Traço reconstruído da forçante live-eval (mesmo ΔN do headline).", "series": [{"t": "2026-09-10T03:00:00Z", "n_cm": 190.05}, {"t": "2026-09-10T06:00:00Z", "n_cm": 186.87}, {"t": "2026-09-10T09:00:00Z", "n_cm": 180.08}, {"t": "2026-09-10T12:00:00Z", "n_cm": 173.43}, {"t": "2026-09-10T15:00:00Z", "n_cm": 167.47}, {"t": "2026-09-10T18:00:00Z", "n_cm": 162.37}, {"t": "2026-09-10T21:00:00Z", "n_cm": 158.0}, {"t": "2026-09-11T00:00:00Z", "n_cm": 154.25}, {"t": "2026-09-11T03:00:00Z", "n_cm": 151.12}, {"t": "2026-09-11T06:00:00Z", "n_cm": 148.96}, {"t": "2026-09-11T09:00:00Z", "n_cm": 148.04}, {"t": "2026-09-11T12:00:00Z", "n_cm": 148.14}, {"t": "2026-09-11T15:00:00Z", "n_cm": 157.97}, {"t": "2026-09-11T18:00:00Z", "n_cm": 193.01}, {"t": "2026-09-11T21:00:00Z", "n_cm": 264.29}, {"t": "2026-09-12T00:00:00Z", "n_cm": 347.39}, {"t": "2026-09-12T03:00:00Z", "n_cm": 425.0}, {"t": "2026-09-12T06:00:00Z", "n_cm": 472.5}, {"t": "2026-09-12T09:00:00Z", "n_cm": 527.7}, {"t": "2026-09-12T12:00:00Z", "n_cm": 579.64}, {"t": "2026-09-12T15:00:00Z", "n_cm": 623.12}, {"t": "2026-09-12T18:00:00Z", "n_cm": 656.83}, {"t": "2026-09-12T21:00:00Z", "n_cm": 676.75}, {"t": "2026-09-13T00:00:00Z", "n_cm": 677.03}, {"t": "2026-09-13T03:00:00Z", "n_cm": 664.79}, {"t": "2026-09-13T06:00:00Z", "n_cm": 645.87}, {"t": "2026-09-13T09:00:00Z", "n_cm": 623.82}, {"t": "2026-09-13T12:00:00Z", "n_cm": 600.74}, {"t": "2026-09-13T15:00:00Z", "n_cm": 577.73}, {"t": "2026-09-13T18:00:00Z", "n_cm": 557.39}, {"t": "2026-09-13T21:00:00Z", "n_cm": 535.86}, {"t": "2026-09-14T00:00:00Z", "n_cm": 516.61}, {"t": "2026-09-14T03:00:00Z", "n_cm": 497.04}, {"t": "2026-09-14T06:00:00Z", "n_cm": 483.28}, {"t": "2026-09-14T09:00:00Z", "n_cm": 465.42}, {"t": "2026-09-14T12:00:00Z", "n_cm": 455.29}, {"t": "2026-09-14T15:00:00Z", "n_cm": 438.8}, {"t": "2026-09-14T18:00:00Z", "n_cm": 423.12}, {"t": "2026-09-14T21:00:00Z", "n_cm": 408.23}, {"t": "2026-09-15T00:00:00Z", "n_cm": 394.07}, {"t": "2026-09-15T02:00:00Z", "n_cm": 410.58}], "rain_mm": [0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.58, 1.07, 0.79, 0.21, 0.58, 5.15, 13.16, 6.72, 0.88, 0.5, 0.6, 0.39, 0.1, 0.01, 0.2, 0.29, 0.1, 0.0, 0.0, 0.01, 0.21, 0.51, 0.21, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.59, 0.3, 0.0, 0.0, 0.0, 0.0], "n_points": 41}};
+
+function fmt(v, digits) {
+  if (digits === undefined) digits = 0;
+  if (v === null || v === undefined || Number.isNaN(Number(v))) return "—";
+  return Number(v).toLocaleString("pt-BR", {maximumFractionDigits:digits, minimumFractionDigits:digits});
 }
+function ageLabel(h) {
+  if (h === null || h === undefined) return "idade desconhecida";
+  if (h < 1) return Math.round(h * 60) + " min";
+  return Number(h).toFixed(1) + " h";
+}
+function roleColor(role) {
+  if (role === "target") return "#0f5c45";
+  if (role === "level_control") return "#1d4f91";
+  if (role === "rain") return "#1d6b9f";
+  return "#5a6570";
+}
+function roleLabel(role) {
+  return ({target:"alvo", level_control:"nível", rain:"chuva", upstream_monitor:"montante"})[role] || role;
+}
+function anchorRain(a) {
+  return (a && a.rain_mm_window != null) ? a.rain_mm_window : null;
+}
+
+const live = (DATA.products && DATA.products.live_eval) || {};
+const fwd = (DATA.products && DATA.products.forward_5d) || {};
+const liveP = live.primary || {};
+const fwdP = fwd.primary || {};
+const liveEl = document.getElementById("liveSummary");
+const fwdEl = document.getElementById("fwdSummary");
+
+if (live.available !== false && (liveP.rise_cm != null || live.plain_pt)) {
+  liveEl.innerHTML =
+    "<span class=\"mono\">" + (live.artifact || "live_eval") + "</span><br/>" +
+    "ΔN " + fmt(liveP.rise_cm, 0) + " cm · N pico " + fmt(liveP.peak_anchored_cm, 0) + " cm<br/>" +
+    "quando " + (liveP.peak_time_utc || "—") +
+    (live.timing_error_h != null ? " · timing " + fmt(live.timing_error_h, 1) + " h" : "") + "<br/>" +
+    "<span class=\"muted\">idade " + ageLabel(live.age_hours) + (live.note ? " · " + live.note : "") + "</span>";
+} else {
+  liveEl.textContent = "Live eval indisponível neste build.";
+}
+
+if (fwd.available !== false) {
+  fwdEl.innerHTML =
+    "<span class=\"mono\">" + (fwd.artifact || "forward_5d") + "</span><br/>" +
+    "ΔN " + fmt(fwdP.rise_cm, 0) + " cm · N pico " + fmt(fwdP.peak_anchored_cm, 0) + " cm<br/>" +
+    "quando " + (fwdP.peak_time_utc || "—") + "<br/>" +
+    "<span class=\"muted\">idade " + ageLabel(fwd.age_hours) +
+    (fwd.stale ? " · forward seco/stale — preferir live para o evento" : "") + "</span>";
+} else {
+  fwdEl.textContent = "Forward ainda não gerado.";
+}
+
+const steps = document.getElementById("robotSteps");
+((DATA.automation && (DATA.automation.steps_pt || DATA.automation.pipeline)) || []).forEach(function(s) {
+  const li = document.createElement("li");
+  li.textContent = s;
+  steps.appendChild(li);
+});
+
+const links = document.getElementById("artifactLinks");
+const local = ((DATA.where_results_go || {}).local) || {};
+[
+  ["Forward ~5d", local.forward_html],
+  ["Live eval", local.live_eval_html],
+  ["Verify", local.verify_html],
+  ["Hindcast", local.hindcast_html],
+  ["Feed JSON", local.platform_json],
+  ["Mapa UGs", local.mapa_subbacias]
+].forEach(function(pair) {
+  if (!pair[1]) return;
+  const a = document.createElement("a");
+  a.href = pair[1];
+  a.textContent = pair[0];
+  links.appendChild(a);
+});
+
+(function drawChart() {
+  const svg = document.getElementById("eventChart");
+  const note = document.getElementById("chartNote");
+  const trace = DATA.event_trace || {};
+  const series = trace.series || [];
+  const rain = trace.rain_mm || [];
+  if (!series.length) {
+    svg.innerHTML = "<text x=\"24\" y=\"140\" fill=\"#4a6356\">Sem série para plotar.</text>";
+    return;
+  }
+  const W = 960, H = 280, pad = {l:54, r:18, t:18, b:36};
+  const innerW = W - pad.l - pad.r, innerH = H - pad.t - pad.b;
+  const ys = series.map(function(p){ return Number(p.n_cm); }).filter(function(v){ return !Number.isNaN(v); });
+  const yMin = Math.min.apply(null, ys.concat([0]));
+  const yMax = Math.max.apply(null, ys.concat([1]));
+  const xAt = function(i){ return pad.l + (i / Math.max(series.length - 1, 1)) * innerW; };
+  const yAt = function(v){ return pad.t + (1 - ((v - yMin) / (yMax - yMin || 1))) * innerH; };
+  let path = "";
+  series.forEach(function(p, i) {
+    const x = xAt(i), y = yAt(Number(p.n_cm));
+    path += (i ? " L " : "M ") + x.toFixed(1) + " " + y.toFixed(1);
+  });
+  const rainMax = Math.max.apply(null, rain.concat([1]));
+  let bars = "";
+  rain.forEach(function(v, i) {
+    const h = (Number(v) / rainMax) * (innerH * 0.28);
+    const x = xAt(i);
+    const bw = Math.max(2, innerW / Math.max(rain.length, 1) * 0.55);
+    bars += "<rect x=\"" + (x - bw/2).toFixed(1) + "\" y=\"" + (pad.t + 4).toFixed(1) +
+      "\" width=\"" + bw.toFixed(1) + "\" height=\"" + h.toFixed(1) +
+      "\" fill=\"rgba(29,107,159,0.28)\"></rect>";
+  });
+  const grid = [];
+  for (let g = 0; g < 4; g++) {
+    const yy = pad.t + (innerH * g / 3);
+    const val = yMax - (yMax - yMin) * g / 3;
+    grid.push("<line x1=\"" + pad.l + "\" x2=\"" + (W-pad.r) + "\" y1=\"" + yy + "\" y2=\"" + yy + "\" stroke=\"#d7e2db\"/>");
+    grid.push("<text x=\"8\" y=\"" + (yy+4) + "\" fill=\"#4a6356\" font-size=\"11\">" + val.toFixed(0) + "</text>");
+  }
+  svg.innerHTML = grid.join("") + bars +
+    "<path d=\"" + path + "\" fill=\"none\" stroke=\"#0f5c45\" stroke-width=\"2.4\"></path>" +
+    "<text x=\"" + pad.l + "\" y=\"" + (H-10) + "\" fill=\"#4a6356\" font-size=\"11\">" +
+    (series[0] && series[0].t ? series[0].t : "") + "</text>" +
+    "<text x=\"" + (W-pad.r) + "\" y=\"" + (H-10) + "\" fill=\"#4a6356\" font-size=\"11\" text-anchor=\"end\">" +
+    (series[series.length-1] && series[series.length-1].t ? series[series.length-1].t : "") + "</text>";
+  document.getElementById("chartCaption").textContent =
+    "Fonte do traço: " + (trace.source || "—") + (trace.note ? " · " + trace.note : "");
+  note.textContent = "Linha verde = nível estimado (cm). Barras azuis = chuva proxy (mm).";
+})();
+
+const anchors = ((DATA.spatial || {}).anchors) || [];
+const roleChips = document.getElementById("roleChips");
+const roles = ["all"].concat(Array.from(new Set(anchors.map(function(a){ return a.role; }))));
+let activeRole = "all";
+let activeId = null;
+const list = document.getElementById("anchorList");
+const map = L.map("map", {scrollWheelZoom:true}).setView([-29.05, -51.75], 9);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom:18, attribution:"&copy; OpenStreetMap"
+}).addTo(map);
+const ugLayer = L.layerGroup().addTo(map);
+const rainLayer = L.layerGroup().addTo(map);
+const anchorLayer = L.layerGroup().addTo(map);
+const markers = {};
+
+const legend = L.control({position:"bottomright"});
+legend.onAdd = function() {
+  const d = L.DomUtil.create("div", "legend");
+  d.innerHTML =
+    "<div><i style=\"background:#0f5c45\"></i>alvo</div>" +
+    "<div><i style=\"background:#1d4f91\"></i>nível</div>" +
+    "<div><i style=\"background:#1d6b9f\"></i>chuva</div>" +
+    "<div><i style=\"background:#5a6570\"></i>montante</div>";
+  return d;
+};
+legend.addTo(map);
+L.control.layers(null, {"UGs HEC":ugLayer, "Chuva IFS":rainLayer, "Âncoras":anchorLayer}, {collapsed:false}).addTo(map);
+
+function renderChips() {
+  roleChips.innerHTML = "";
+  roles.forEach(function(r) {
+    const b = document.createElement("button");
+    b.className = "chip" + (r === activeRole ? " active" : "");
+    b.type = "button";
+    b.textContent = r === "all" ? "todos" : roleLabel(r);
+    b.onclick = function(){ activeRole = r; renderAnchors(); };
+    roleChips.appendChild(b);
+  });
+}
+
+function renderAnchors() {
+  list.innerHTML = "";
+  anchorLayer.clearLayers();
+  Object.keys(markers).forEach(function(k){ delete markers[k]; });
+  anchors.filter(function(a){ return activeRole === "all" || a.role === activeRole; }).forEach(function(a) {
+    const id = a.code || a.id;
+    const rain = anchorRain(a);
+    const item = document.createElement("div");
+    item.className = "anchor-item" + (id === activeId ? " active" : "");
+    item.innerHTML =
+      "<div class=\"name\">" + (a.label || a.name) + "</div>" +
+      "<div class=\"meta\">" + (a.role_pt || roleLabel(a.role)) +
+      (a.ug ? " · " + a.ug : "") +
+      (rain != null ? " · chuva " + Number(rain).toFixed(1) + " mm" : "") + "</div>";
+    item.onclick = function() {
+      activeId = id;
+      map.setView([a.lat, a.lon], 11, {animate:true});
+      if (markers[id]) markers[id].openPopup();
+      renderAnchors();
+    };
+    list.appendChild(item);
+    const m = L.circleMarker([a.lat, a.lon], {
+      radius: a.role === "target" ? 9 : 7, color:"#fff", weight:2,
+      fillColor: roleColor(a.role), fillOpacity:0.95
+    }).bindPopup(
+      "<strong>" + (a.label || a.name) + "</strong><br/>" +
+      (a.role_pt || roleLabel(a.role)) + "<br/>" + (a.name || "") + " · " + id +
+      (rain != null ? "<br/>chuva janela: " + Number(rain).toFixed(1) + " mm" : "")
+    );
+    m.addTo(anchorLayer);
+    markers[id] = m;
+  });
+}
+
 function rainColor(mm) {
   if (mm == null) return "#9bb8a8";
   if (mm < 5) return "#a8c5b4";
@@ -188,148 +408,62 @@ function rainRadius(mm) {
   return Math.max(8, Math.min(34, 8 + Math.sqrt(v) * 3.2));
 }
 
-const h = FEED.headline || {};
-const p = h.primary || {};
-const ens = h.ensemble_rise_cm || {};
-document.getElementById("hero-big").textContent =
-  (p.rise_cm == null) ? "Sem ΔN" : ("+" + fmt(p.rise_cm, 0) + " cm");
-document.getElementById("hero-sub").textContent =
-  (h.plain_pt || "") +
-  (p.peak_anchored_cm != null
-    ? (" · pico ancorado ~" + fmt(p.peak_anchored_cm, 0) + " cm" +
-       (p.peak_time_utc ? (" @ " + p.peak_time_utc) : ""))
-    : "");
-
-document.getElementById("stats").innerHTML = [
-  ["Fonte", h.source === "live_eval" ? "live eval" : "forward 5d"],
-  ["Banda ΔN", (ens.min != null) ? (fmt(ens.min,0) + "–" + fmt(ens.max,0) + " cm") : "—"],
-  ["Chuva AW", fmt(h.rain_mm_area_weighted, 1) + " mm"],
-  ["Análogo", p.event_id || "—"],
-].map(([k,v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
-
-document.getElementById("pages-url").textContent =
-  (FEED.where_results_go && FEED.where_results_go.pages && FEED.where_results_go.pages.platform_html) || "";
-document.getElementById("pipeline").innerHTML =
-  ((FEED.where_results_go && FEED.where_results_go.pipeline_pt) || [])
-    .map(t => `<li>${t}</li>`).join("");
-
-document.getElementById("verify-plain").textContent =
-  h.verification_plain_pt || "Sem verificação publicada.";
-const sc = h.scorecard || {};
-document.getElementById("verify-stats").innerHTML = [
-  ["Erro de pico", (sc.peak_error_cm == null ? "—" : fmt(sc.peak_error_cm, 1) + " cm")],
-  ["Erro horário", (sc.timing_error_h == null ? "—" : fmt(sc.timing_error_h, 1) + " h")],
-  ["Obs pico", fmt(sc.obs_peak_cm, 0) + " cm"],
-  ["Prev pico", fmt(sc.predicted_peak_anchored_cm, 0) + " cm"],
-].map(([k,v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
-
-const hind = (FEED.products && FEED.products.hindcast_skill) || {};
-const verd = hind.verdict || {};
-const summ = hind.summary || {};
-document.getElementById("hind-plain").innerHTML =
-  `<span class="${(verd.level === "usable_research") ? "verdict-ok" : "verdict-warn"}">${verd.level || "—"}</span>
-   — ${verd.plain_pt || ""}
-   (n=${summ.n_scored ?? "—"}, ΔN rel ~${summ.mean_rise_n_rel_err != null ? Math.round(100*summ.mean_rise_n_rel_err)+"%" : "—"},
-   ${summ.n_rise_n_within_50pct ?? "—"}/${summ.n_scored ?? "—"} ≤50%).`;
-
-const rainFeats = (((FEED.spatial || {}).rain_geojson || {}).features) || [];
-document.getElementById("rain-rows").innerHTML = rainFeats.map(f => {
+((((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f) {
   const pr = f.properties || {};
-  return `<tr><td>${pr.label || pr.subbasin_id}</td><td>${fmt(pr.total_mm,1)}</td><td>${fmt(pr.past_mm,1)}</td><td>${fmt(pr.future_mm,1)}</td></tr>`;
-}).join("") || `<tr><td colspan="4">Sem forçante espacial</td></tr>`;
-
-document.getElementById("series-rows").innerHTML =
-  (FEED.hydrograph_sample_6h || []).slice(0, 16).map(r =>
-    `<tr><td>${r.time_utc}</td><td>${fmt(r.n_anchored_cm,1)}</td><td>${fmt(r.delta_n_cm,1)}</td><td>${fmt(r.q_mucum_m3s,1)}</td></tr>`
-  ).join("") || `<tr><td colspan="4">Sem série forward</td></tr>`;
-
-const loc = (FEED.where_results_go && FEED.where_results_go.local) || {};
-document.getElementById("product-links").innerHTML = [
-  ["Forward ~5d", loc.forward_html, loc.forward_json],
-  ["Live eval", loc.live_eval_html, loc.live_eval_json],
-  ["Verify", loc.verify_html, loc.verify_json],
-  ["Hindcast skill", loc.hindcast_html, loc.hindcast_json],
-  ["Forçante IFS (live)", null, loc.forcing_live_json],
-  ["Feed desta plataforma", null, loc.platform_json],
-].map(([label, html, js]) =>
-  `<li><strong>${label}:</strong> ${html ? `<a href="${html}">HTML</a> · ` : ""}${js ? `<a href="${js}">JSON</a>` : ""}</li>`
-).join("");
-
-const auto = FEED.automation || {};
-document.getElementById("robot-plain").textContent =
-  (auto.robot_pt || "Robô previsto") +
-  (auto.schedule_pt ? (" · " + auto.schedule_pt) : "") +
-  (auto.workflow ? (" · `" + auto.workflow + "`") : "");
-document.getElementById("robot-steps").innerHTML =
-  (auto.steps_pt || []).map(t => `<li>${t}</li>`).join("");
-
-const anchors = (FEED.spatial && FEED.spatial.anchors) || [];
-document.getElementById("anchor-rows").innerHTML = anchors.map(a =>
-  `<tr><td>${a.role_pt || a.role}</td><td>${a.label}</td><td><code>${a.code}</code></td></tr>`
-).join("") || `<tr><td colspan="3">Sem pontos de amarração</td></tr>`;
-
-const map = L.map("map", { zoomControl:true }).setView([-29.12, -51.72], 9);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "&copy; OpenStreetMap", maxZoom: 18,
-}).addTo(map);
-
-const ugFilter = new Set((FEED.spatial && FEED.spatial.ug_filter) || []);
-fetch("ugs_g040.geojson").then(r => r.json()).then(geo => {
-  L.geoJSON(geo, {
-    filter: f => ugFilter.has((f.properties || {}).sub_bacia),
-    style: { color:"#0f5c45", weight:1.2, fillColor:"#0f5c45", fillOpacity:0.08 },
-    onEachFeature: (f, layer) => {
-      layer.bindPopup(`<strong>${(f.properties || {}).sub_bacia || "UG"}</strong><br/>contexto G040 (corredor)`);
-    },
-  }).addTo(map);
-}).catch(() => {});
-
-fetch("fozes_principais_bho6.geojson").then(r => r.json()).then(geo => {
-  L.geoJSON(geo, {
-    pointToLayer: (_f, latlng) => L.circleMarker(latlng, {
-      radius:5, color:"#245744", weight:2, fillColor:"#fff", fillOpacity:1,
-    }),
-    onEachFeature: (f, layer) => {
-      layer.bindPopup(`<strong>${(f.properties || {}).label || "foz"}</strong>`);
-    },
-  }).addTo(map);
-}).catch(() => {});
-
-rainFeats.forEach(f => {
-  const pr = f.properties || {};
-  const [lon, lat] = f.geometry.coordinates;
+  const coords = (f.geometry && f.geometry.coordinates) || [];
+  if (coords.length < 2) return;
   const mm = pr.total_mm;
-  L.circleMarker([lat, lon], {
+  L.circleMarker([coords[1], coords[0]], {
     radius: rainRadius(mm), color:"#5c4030", weight:1,
-    fillColor: rainColor(mm), fillOpacity:0.72,
+    fillColor: rainColor(mm), fillOpacity:0.72
   }).bindPopup(
-    `<strong>${pr.label}</strong><br/>total ${fmt(mm,1)} mm` +
-    `<br/>passado ${fmt(pr.past_mm,1)} · futuro ${fmt(pr.future_mm,1)}` +
-    `<br/><span style="opacity:.75">proxy ${pr.point_code} · ${pr.point_name || ""}</span>`
-  ).addTo(map);
+    "<strong>" + (pr.label || pr.subbasin_id || "") + "</strong><br/>total " + fmt(mm,1) + " mm" +
+    "<br/>passado " + fmt(pr.past_mm,1) + " · futuro " + fmt(pr.future_mm,1)
+  ).addTo(rainLayer);
 });
 
-function anchorStyle(role) {
-  if (role === "target") return { radius: 8, color: "#b85a1a", fillColor: "#f0a35a", fillOpacity: 0.95 };
-  if (role === "level_control") return { radius: 6, color: "#1e5fbf", fillColor: "#fff", fillOpacity: 1 };
-  if (role === "rain") return { radius: 6, color: "#0a7a6a", fillColor: "#3cbc9c", fillOpacity: 0.85 };
-  return { radius: 5, color: "#5a6570", fillColor: "#d5dbe0", fillOpacity: 0.95 };
+async function loadUgs() {
+  const path = (DATA.spatial || {}).ug_geojson;
+  if (!path) return;
+  try {
+    const res = await fetch(path);
+    if (!res.ok) return;
+    const geo = await res.json();
+    const rainByUg = (DATA.spatial || {}).ug_rain_mm || {};
+    const filterSet = new Set((DATA.spatial || {}).ug_filter || []);
+    const layer = L.geoJSON(geo, {
+      filter: function(feat) {
+        const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "";
+        if (filterSet.size) return filterSet.has(name);
+        return /Prata|Carreiro|M[eé]dio Taquari/i.test(name);
+      },
+      style: function(feat) {
+        const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "";
+        const rain = rainByUg[name];
+        let fill = "#94a3b8";
+        if (rain != null) {
+          if (rain >= 80) fill = "#1d4ed8";
+          else if (rain >= 40) fill = "#3b82f6";
+          else if (rain >= 15) fill = "#93c5fd";
+          else fill = "#dbeafe";
+        }
+        return {color:"#1e3a5f", weight:1.2, fillColor:fill, fillOpacity:0.35};
+      },
+      onEachFeature: function(feat, lyr) {
+        const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "UG";
+        const rain = rainByUg[name];
+        lyr.bindPopup("<strong>" + name + "</strong>" +
+          (rain != null ? "<br/>chuva proxy: " + Number(rain).toFixed(1) + " mm" : ""));
+      }
+    });
+    layer.addTo(ugLayer);
+    try { map.fitBounds(layer.getBounds().pad(0.08)); } catch (e) {}
+  } catch (e) {}
 }
-(anchors.length ? anchors : ((FEED.spatial && FEED.spatial.controls) || [])).forEach(c => {
-  if (c.lat == null || c.lon == null) return;
-  const style = anchorStyle(c.role || (c.code === "86510000" ? "target" : "level_control"));
-  L.circleMarker([c.lat, c.lon], Object.assign({ weight: 2 }, style))
-    .bindPopup(`<strong>${c.label}</strong><br/>${c.role_pt || c.role || ""}<br/>${c.name || ""} · ${c.code}`)
-    .addTo(map);
-});
 
-const note = document.createElement("div");
-note.className = "legend";
-note.style.right = "12px";
-note.style.bottom = "92px";
-note.style.maxWidth = "260px";
-note.textContent = (FEED.spatial && FEED.spatial.note_pt) || "";
-document.getElementById("map").appendChild(note);
+renderChips();
+renderAnchors();
+loadUgs();
 </script>
 </body>
 </html>

@@ -41,6 +41,21 @@ class PlataformaHecTwinTests(unittest.TestCase):
         self.assertTrue(auto["research_not_alert"])
         self.assertGreaterEqual(len(auto["steps_pt"]), 3)
 
+    def test_event_trace_and_freshness(self) -> None:
+        trace = self.feed["event_trace"]
+        self.assertGreaterEqual(trace["n_points"], 10)
+        self.assertTrue(trace["series"])
+        self.assertEqual(trace["series"][0].keys(), set(trace["series"][0].keys()) | {"t", "n_cm"})
+        self.assertIn("t", trace["series"][0])
+        self.assertIn("n_cm", trace["series"][0])
+        fresh = self.feed["freshness"]
+        self.assertIn("stale_forward", fresh)
+        self.assertIn("preferred_source", fresh)
+        self.assertIn("live_eval", self.feed["products"])
+        self.assertIn("forward_5d", self.feed["products"])
+        self.assertGreaterEqual(self.feed["spatial"]["anchor_count"], 12)
+        self.assertIn("ug_rain_mm", self.feed["spatial"])
+
 
 if __name__ == "__main__":
     unittest.main()

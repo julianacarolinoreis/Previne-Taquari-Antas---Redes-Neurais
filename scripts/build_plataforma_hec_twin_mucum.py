@@ -10,9 +10,14 @@ Research only. Does not touch RNA. Does not invent STZ rating curve.
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import plataforma_hec_twin_mucum_ui as platform_ui  # noqa: E402
+import run_hec_twin_mucum_forward_5d as hec_fwd  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "data" / "estudo_bacia_taquari_antas"
@@ -292,6 +297,278 @@ def build_spatial(
     }
 
 
+
+SUBBASIN_TO_UG = {
+    "SB_PRATA_7868": "Prata",
+    "SB_ANTAS_RESIDUAL": "Médio Taquari-Antas",
+    "SB_CARREIRO_7866": "Carreiro",
+    "SB_STZ_RESIDUAL": "Médio Taquari-Antas",
+    "SB_INC_MUCUM": "Médio Taquari-Antas",
+}
+
+LIVE_ANCHOR_CM = 425.0
+LIVE_ANCHOR_UTC = "2026-09-12T02:45:00Z"
+
+
+def parse_utc(ts: str | None) -> datetime | None:
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def age_hours(ts: str | None, now: datetime | None = None) -> float | None:
+    dt = parse_utc(ts)
+    if dt is None:
+        return None
+    now = now or datetime.now(timezone.utc)
+    return round((now - dt.astimezone(timezone.utc)).total_seconds() / 3600.0, 2)
+
+
+def series_max_delta(series: dict[str, Any] | None) -> float:
+    vals = [
+        float(v)
+        for v in ((series or {}).get("delta_n_from_now_cm") or [])
+        if v is not None
+    ]
+    return max(vals) if vals else 0.0
+
+
+def rebuild_live_series(force_live: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Rebuild anchored hydrograph from live-eval forcing (offline)."""
+    if not force_live:
+        return None
+    level_now = {
+        "ok": True,
+        "stage_cm": LIVE_ANCHOR_CM,
+        "observed_at_utc": LIVE_ANCHOR_UTC,
+        "source": "platform_live_trace_rebuild",
+        "station": "86510000",
+    }
+    orig = hec_fwd.fetch_mucum_level_now
+    hec_fwd.fetch_mucum_level_now = lambda *, allow_network=True: level_now
+    try:
+        pkg = hec_fwd.build_package(dict(force_live), allow_network=False)
+    except Exception:
+        return None
+    finally:
+        hec_fwd.fetch_mucum_level_now = orig
+    series = pkg.get("series_primary")
+    return series if isinstance(series, dict) and series.get("time_utc") else None
+
+
+def rain_hourly(force: dict[str, Any] | None) -> list[float]:
+    aw = (force or {}).get("area_weighted_mean_mm") or {}
+    return list(aw.get("hourly") or [])
+
+
+def ug_rain_mm(force: dict[str, Any] | None) -> dict[str, float]:
+    totals = ((force or {}).get("area_weighted_mean_mm") or {}).get(
+        "totals_by_subbasin_mm"
+    ) or {}
+    bucket: dict[str, list[float]] = {}
+    for sb_id, mm in totals.items():
+        ug = SUBBASIN_TO_UG.get(str(sb_id))
+        if not ug or mm is None:
+            continue
+        bucket.setdefault(ug, []).append(float(mm))
+    return {ug: round(sum(vals) / len(vals), 2) for ug, vals in bucket.items() if vals}
+
+
+def build_event_trace(
+    *,
+    live_series: dict[str, Any] | None,
+    fwd_series: dict[str, Any] | None,
+    force_live: dict[str, Any] | None,
+    force_fwd: dict[str, Any] | None,
+    prefer_live: bool,
+) -> dict[str, Any]:
+    live_delta = series_max_delta(live_series)
+    fwd_delta = series_max_delta(fwd_series)
+    use_live = prefer_live and live_series is not None and live_delta >= 5.0
+    if use_live:
+        series, force, source = live_series, force_live, "live_eval_rebuild"
+        note = "Traço reconstruído da forçante live-eval (mesmo ΔN do headline)."
+    elif fwd_series is not None and fwd_delta >= 5.0:
+        series, force, source = fwd_series, force_fwd, "forward_5d"
+        note = "Traço do forward operacional ~5d."
+    elif live_series is not None:
+        series, force, source = live_series, force_live, "live_eval_rebuild"
+        note = "Forward seco/stale — traço do live-eval."
+    else:
+        series, force, source = fwd_series, force_fwd, "forward_5d"
+        note = "Sem série live; amostra do forward."
+
+    times = list((series or {}).get("time_utc") or [])
+    n_anch = list((series or {}).get("n_mucum_anchored_cm") or [])
+    rain = rain_hourly(force)
+    step = 3
+    pts: list[dict[str, Any]] = []
+    rain_s: list[float] = []
+    for i, ts in enumerate(times):
+        if i % step != 0 and i != len(times) - 1:
+            continue
+        pts.append({"t": ts, "n_cm": n_anch[i] if i < len(n_anch) else None})
+        if i < len(rain):
+            rain_s.append(round(sum(rain[i : i + step]), 2))
+        else:
+            rain_s.append(0.0)
+    return {
+        "source": source,
+        "note": note,
+        "series": pts,
+        "rain_mm": rain_s,
+        "n_points": len(pts),
+    }
+
+
+
+def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
+    """Attach freshness, event trace, product cards and UI helpers."""
+    fwd = load_json(OUT / "hec_twin_mucum_forward_5d_latest.json")
+    live = load_json(OUT / "hec_twin_mucum_live_eval_latest.json")
+    force_live = load_json(OUT / "hec_twin_ifs_forcing_live_eval_latest.json")
+    force_fwd = load_json(OUT / "hec_twin_ifs_forcing_5d_latest.json")
+
+    live_series = rebuild_live_series(force_live)
+    fwd_series = (fwd or {}).get("series_primary")
+    prefer_live = (feed.get("headline") or {}).get("source") == "live_eval"
+    fwd_delta = series_max_delta(fwd_series)
+    stale_forward = fwd_delta < 5.0
+
+    live_age = age_hours((live or {}).get("generated_at_utc"))
+    fwd_age = age_hours((fwd or {}).get("generated_at_utc"))
+
+    primary = (feed.get("headline") or {}).get("primary") or {}
+    score = (feed.get("headline") or {}).get("scorecard") or {}
+    live_obs = ((live or {}).get("observations") or {}).get("level_now") or {}
+    n_anchor = live_obs.get("stage_cm")
+    if n_anchor is None:
+        n_anchor = LIVE_ANCHOR_CM
+
+    products = dict(feed.get("products") or {})
+    live_p = dict(products.get("live_eval") or {})
+    fwd_p = dict(products.get("forward_5d") or {})
+    live_primary = live_p.get("primary") or {}
+    fwd_primary = fwd_p.get("primary") or {}
+
+    live_p.update(
+        {
+            "available": bool(live_primary.get("rise_cm") is not None),
+            "artifact": ((feed.get("where_results_go") or {}).get("local") or {}).get(
+                "live_eval_html"
+            ),
+            "age_hours": live_age,
+            "timing_error_h": score.get("timing_error_h"),
+            "note": "Replay do evento com âncora + verificação ANA.",
+            "peak_delta_n_cm": live_primary.get("rise_cm"),
+            "peak_n_cm": live_primary.get("peak_anchored_cm"),
+            "peak_when_utc": live_primary.get("peak_time_utc"),
+        }
+    )
+    fwd_p.update(
+        {
+            "available": fwd is not None,
+            "artifact": ((feed.get("where_results_go") or {}).get("local") or {}).get(
+                "forward_html"
+            ),
+            "age_hours": fwd_age,
+            "stale": stale_forward,
+            "note": (
+                "Forward seco/stale — preferir live para o evento."
+                if stale_forward
+                else "Produto operacional de pesquisa (~5d)."
+            ),
+            "peak_delta_n_cm": fwd_primary.get("rise_cm"),
+            "peak_n_cm": fwd_primary.get("peak_anchored_cm"),
+            "peak_when_utc": fwd_primary.get("peak_time_utc"),
+        }
+    )
+    local_paths = ((feed.get("where_results_go") or {}).get("local") or {})
+    live_p["artifact"] = local_paths.get("live_eval_html")
+    fwd_p["artifact"] = local_paths.get("forward_html")
+    products["live_eval"] = live_p
+    products["forward_5d"] = fwd_p
+
+    spatial = dict(feed.get("spatial") or {})
+    ug_rain = ug_rain_mm(force_live if prefer_live else (force_fwd or force_live))
+    anchors = []
+    for a in spatial.get("anchors") or []:
+        row = dict(a)
+        row["id"] = row.get("code")
+        # Attach corridor rain to rain/target anchors when UG known via label heuristics.
+        label = str(row.get("label") or row.get("name") or "")
+        ug = None
+        if "Muçum" in label or "Mucum" in label:
+            ug = "Médio Taquari-Antas"
+        elif "Carreiro" in label:
+            ug = "Carreiro"
+        elif "Prata" in label or "Jararaca" in label:
+            ug = "Prata"
+        elif "Antas" in label or "Santa Tereza" in label or "Monte Claro" in label:
+            ug = "Médio Taquari-Antas"
+        elif "Ibiraiaras" in label or "Serafina" in label:
+            ug = "Carreiro"
+        row["ug"] = ug
+        row["rain_mm_window"] = ug_rain.get(ug) if ug else None
+        anchors.append(row)
+    spatial["anchors"] = anchors
+    spatial["anchor_count"] = len(anchors)
+    spatial["ug_rain_mm"] = ug_rain
+    # Prefer existing key names used by current feed.
+    if "ug_geojson" in spatial and "ug_geojson" not in spatial:
+        pass
+    spatial.setdefault("ug_geojson", spatial.get("ug_geojson") or "ugs_g040.geojson")
+
+    auto = dict(feed.get("automation") or {})
+    auto.setdefault("workflow_name", "HEC twin Muçum forward ~5d")
+    auto.setdefault("schedule_cron", auto.get("schedule_cron") or auto.get("schedule_cron"))
+    auto.setdefault("commit_author", "previne-hec-bot")
+    auto.setdefault("pipeline", auto.get("steps_pt") or [])
+    auto.setdefault("steps_pt", auto.get("steps_pt") or [])
+
+    feed["schema_version"] = "plataforma_hec_twin_mucum_v2"
+    feed["product"] = {
+        "name": "ΔN ~5d · Muçum",
+        "horizon": "~5 dias",
+        "target": "Muçum",
+        "mode": "pesquisa",
+    }
+    feed["summary"] = {
+        "peak_n_cm": primary.get("peak_anchored_cm"),
+        "peak_delta_n_cm": primary.get("rise_cm"),
+        "peak_when_utc": primary.get("peak_time_utc"),
+        "timing_error_h": score.get("timing_error_h"),
+        "n_anchor_cm": n_anchor,
+        "source": (feed.get("headline") or {}).get("source"),
+    }
+    feed["freshness"] = {
+        "preferred_source": "live_eval" if prefer_live else "forward",
+        "live_age_hours": live_age,
+        "forward_age_hours": fwd_age,
+        "stale_forward": stale_forward,
+        "forward_max_delta_n_cm": round(fwd_delta, 2),
+        "note_pt": (
+            "Quando o forward está seco/stale, headline e hidrograma preferem o live eval."
+            if stale_forward
+            else "Forward e live disponíveis."
+        ),
+    }
+    feed["products"] = products
+    feed["spatial"] = spatial
+    feed["event_trace"] = build_event_trace(
+        live_series=live_series,
+        fwd_series=fwd_series,
+        force_live=force_live,
+        force_fwd=force_fwd,
+        prefer_live=prefer_live,
+    )
+    feed["automation"] = auto
+    return feed
+
+
 def build_feed() -> dict[str, Any]:
     fwd = load_json(OUT / "hec_twin_mucum_forward_5d_latest.json")
     live = load_json(OUT / "hec_twin_mucum_live_eval_latest.json")
@@ -475,343 +752,7 @@ def build_feed() -> dict[str, Any]:
 
 
 def render_html(feed: dict[str, Any]) -> str:
-    payload = json.dumps(feed, ensure_ascii=False).replace("<", "\\u003c")
-    return f"""<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>PREVINE · Plataforma HEC/REC — Muçum ~5d</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;550;650;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<style>
-  :root {{
-    --ink:#12241c; --muted:#4a6356; --line:#c5d5cb; --panel:#f3f7f4;
-    --brand:#0f5c45; --warn:#8a5a12; --ok:#1f6b4a; --mapmist:#d7e4dc;
-  }}
-  * {{ box-sizing:border-box }}
-  html,body {{ margin:0; height:100%; color:var(--ink);
-    font-family:"IBM Plex Sans", "Segoe UI", sans-serif;
-    background:
-      radial-gradient(900px 420px at 10% -10%, #cfe2d6 0%, transparent 55%),
-      linear-gradient(165deg, #d9e6de 0%, #eef3ef 45%, #f7f4ee 100%);
-  }}
-  .shell {{ display:grid; grid-template-columns:minmax(320px,420px) 1fr; height:100vh; }}
-  aside {{
-    overflow:auto; padding:1rem 1.05rem 2rem; border-right:1px solid var(--line);
-    background:linear-gradient(180deg, rgba(243,247,244,.96), rgba(238,243,239,.92));
-  }}
-  #map {{ height:100%; background:var(--mapmist); position:relative; }}
-  .brand {{
-    font-family:Fraunces, Georgia, serif;
-    font-size:clamp(1.55rem, 2.4vw, 1.95rem); line-height:1.05; margin:0 0 .35rem;
-  }}
-  .brand span {{ color:var(--brand); }}
-  .eyebrow {{
-    display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.08em;
-    text-transform:uppercase; color:var(--brand); margin:0 0 .55rem;
-  }}
-  .lede {{ color:var(--muted); font-size:.95rem; margin:0 0 .9rem; }}
-  .warn {{
-    border-left:4px solid var(--warn); background:#f5ecda; color:#6d4810;
-    padding:.65rem .75rem; font-size:.86rem; margin:0 0 .9rem;
-  }}
-  .hero-answer {{
-    background:linear-gradient(135deg, #12352a, #1a4d3a 55%, #245744);
-    color:#eef7f1; padding:1rem 1.05rem; margin:0 0 1rem;
-    box-shadow:0 12px 28px rgba(18,52,42,.22);
-  }}
-  .hero-answer .k {{ font-size:.72rem; letter-spacing:.07em; text-transform:uppercase; opacity:.8; }}
-  .hero-answer .big {{
-    font-family:Fraunces, Georgia, serif; font-size:clamp(1.7rem, 3vw, 2.25rem);
-    margin:.15rem 0;
-  }}
-  .hero-answer .sub {{ font-size:.92rem; opacity:.92; line-height:1.4; }}
-  .grid {{ display:grid; grid-template-columns:1fr 1fr; gap:.55rem; margin:0 0 1rem; }}
-  .stat {{ background:var(--panel); border:1px solid var(--line); padding:.65rem .7rem; }}
-  .stat b {{ display:block; font-size:1.15rem; font-variant-numeric:tabular-nums; color:var(--brand); }}
-  .stat span {{ font-size:.75rem; color:var(--muted); }}
-  section {{ margin:1.1rem 0 0; padding-top:.85rem; border-top:1px solid var(--line); }}
-  h2 {{ font-family:Fraunces, Georgia, serif; font-size:1.05rem; margin:0 0 .45rem; }}
-  p, li {{ font-size:.9rem; line-height:1.45; color:#24362d; }}
-  ul, ol {{ margin:.35rem 0 0; padding-left:1.1rem; }}
-  a {{ color:#0a5f7a; font-weight:650; }}
-  .path {{
-    font-family:ui-monospace, "IBM Plex Mono", monospace; font-size:.72rem;
-    background:#e7efe9; padding:.35rem .45rem; word-break:break-all; display:block;
-  }}
-  .pipe {{ font-size:.84rem; color:var(--muted); }}
-  table {{ width:100%; border-collapse:collapse; font-size:.82rem; background:#fff; }}
-  th, td {{ text-align:left; padding:.35rem .4rem; border-bottom:1px solid #d7e2db; }}
-  th {{ color:var(--muted); font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; }}
-  .legend {{
-    position:absolute; z-index:500; right:12px; bottom:12px; background:rgba(243,247,244,.94);
-    border:1px solid var(--line); padding:.55rem .7rem; font-size:.78rem; max-width:240px;
-  }}
-  .legend i {{ display:inline-block; width:10px; height:10px; margin-right:6px; vertical-align:middle; }}
-  .verdict-ok {{ color:var(--ok); font-weight:700; }}
-  .verdict-warn {{ color:var(--warn); font-weight:700; }}
-  @media (max-width:900px) {{
-    .shell {{ grid-template-columns:1fr; grid-template-rows:auto minmax(48vh,1fr); height:auto; min-height:100vh; }}
-    aside {{ border-right:0; border-bottom:1px solid var(--line); }}
-    #map {{ min-height:48vh; }}
-  }}
-</style>
-</head>
-<body>
-<div class="shell">
-  <aside>
-    <p class="eyebrow">PREVINE · pesquisa · não é alerta</p>
-    <h1 class="brand">Plataforma <span>HEC/REC</span></h1>
-    <p class="lede">Onde o resultado do gêmeo hidrológico vai parar — quanto sobe em Muçum, com a chuva no mapa do corredor.</p>
-    <div class="warn"><strong>PESQUISA.</strong> Não substitui alerta oficial. RNA de curto prazo segue noutro trilho e não é alterada aqui. Santa Tereza: só Q diagnóstico (sem curva).</div>
-
-    <div class="hero-answer">
-      <div class="k">Resultado em destaque</div>
-      <div class="big" id="hero-big">Carregando…</div>
-      <div class="sub" id="hero-sub"></div>
-    </div>
-    <div class="grid" id="stats"></div>
-
-    <section>
-      <h2>Para onde vai o resultado?</h2>
-      <p>GitHub Pages — mesma casa da plataforma das RNAs, pasta do estudo HEC:</p>
-      <p class="path" id="pages-url"></p>
-      <ol class="pipe" id="pipeline"></ol>
-    </section>
-
-    <section>
-      <h2>Verificação ao vivo</h2>
-      <p id="verify-plain"></p>
-      <div class="grid" id="verify-stats"></div>
-    </section>
-
-    <section>
-      <h2>Skill hindcast (LOO)</h2>
-      <p id="hind-plain"></p>
-    </section>
-
-    <section>
-      <h2>Robô automático</h2>
-      <p id="robot-plain"></p>
-      <ol class="pipe" id="robot-steps"></ol>
-    </section>
-
-    <section>
-      <h2>Pontos de amarração</h2>
-      <p class="lede" style="margin:0 0 .5rem">Forçantes de nível/chuva e monitores do corredor — não só o alvo Muçum.</p>
-      <table>
-        <thead><tr><th>Papel</th><th>Ponto</th><th>Código</th></tr></thead>
-        <tbody id="anchor-rows"></tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Chuva por sub-bacia (proxy IFS)</h2>
-      <table>
-        <thead><tr><th>Sub-bacia</th><th>Total</th><th>Passado</th><th>Futuro</th></tr></thead>
-        <tbody id="rain-rows"></tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Série ancorada (amostra 6 h)</h2>
-      <table>
-        <thead><tr><th>UTC</th><th>N anc.</th><th>ΔN</th><th>Q</th></tr></thead>
-        <tbody id="series-rows"></tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Produtos auditáveis</h2>
-      <ul id="product-links"></ul>
-      <p style="margin-top:.7rem">
-        <a href="../../mucum_previsao_inundacao.html">Plataforma RNA Muçum (curto prazo)</a> ·
-        <a href="index.html">Estudo da bacia</a> ·
-        <a href="mapa_subbacias.html">Mapa UPG + fozes</a>
-      </p>
-    </section>
-  </aside>
-  <div id="map" role="application" aria-label="Mapa do corredor HEC com chuva por sub-bacia">
-    <div class="legend">
-      <div><i style="background:#0f5c45"></i>UG do corredor</div>
-      <div><i style="background:#b85a1a;border-radius:50%"></i>Chuva IFS (mm)</div>
-      <div><i style="background:#b85a1a"></i>Alvo Muçum</div>
-      <div><i style="background:#1e5fbf"></i>Controle de nível</div>
-      <div><i style="background:#0a7a6a;border-radius:50%"></i>Chuva (forçante)</div>
-      <div><i style="background:#5a6570"></i>Monitor montante</div>
-    </div>
-  </div>
-</div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-const FEED = {payload};
-
-function fmt(n, d=0) {{
-  if (n == null || Number.isNaN(Number(n))) return "—";
-  return Number(n).toLocaleString("pt-BR", {{ maximumFractionDigits:d, minimumFractionDigits:d }});
-}}
-function rainColor(mm) {{
-  if (mm == null) return "#9bb8a8";
-  if (mm < 5) return "#a8c5b4";
-  if (mm < 15) return "#5f9e7a";
-  if (mm < 30) return "#c47a2a";
-  if (mm < 50) return "#b85a1a";
-  return "#8f2f2a";
-}}
-function rainRadius(mm) {{
-  const v = Math.max(0, Number(mm) || 0);
-  return Math.max(8, Math.min(34, 8 + Math.sqrt(v) * 3.2));
-}}
-
-const h = FEED.headline || {{}};
-const p = h.primary || {{}};
-const ens = h.ensemble_rise_cm || {{}};
-document.getElementById("hero-big").textContent =
-  (p.rise_cm == null) ? "Sem ΔN" : ("+" + fmt(p.rise_cm, 0) + " cm");
-document.getElementById("hero-sub").textContent =
-  (h.plain_pt || "") +
-  (p.peak_anchored_cm != null
-    ? (" · pico ancorado ~" + fmt(p.peak_anchored_cm, 0) + " cm" +
-       (p.peak_time_utc ? (" @ " + p.peak_time_utc) : ""))
-    : "");
-
-document.getElementById("stats").innerHTML = [
-  ["Fonte", h.source === "live_eval" ? "live eval" : "forward 5d"],
-  ["Banda ΔN", (ens.min != null) ? (fmt(ens.min,0) + "–" + fmt(ens.max,0) + " cm") : "—"],
-  ["Chuva AW", fmt(h.rain_mm_area_weighted, 1) + " mm"],
-  ["Análogo", p.event_id || "—"],
-].map(([k,v]) => `<div class="stat"><b>${{v}}</b><span>${{k}}</span></div>`).join("");
-
-document.getElementById("pages-url").textContent =
-  (FEED.where_results_go && FEED.where_results_go.pages && FEED.where_results_go.pages.platform_html) || "";
-document.getElementById("pipeline").innerHTML =
-  ((FEED.where_results_go && FEED.where_results_go.pipeline_pt) || [])
-    .map(t => `<li>${{t}}</li>`).join("");
-
-document.getElementById("verify-plain").textContent =
-  h.verification_plain_pt || "Sem verificação publicada.";
-const sc = h.scorecard || {{}};
-document.getElementById("verify-stats").innerHTML = [
-  ["Erro de pico", (sc.peak_error_cm == null ? "—" : fmt(sc.peak_error_cm, 1) + " cm")],
-  ["Erro horário", (sc.timing_error_h == null ? "—" : fmt(sc.timing_error_h, 1) + " h")],
-  ["Obs pico", fmt(sc.obs_peak_cm, 0) + " cm"],
-  ["Prev pico", fmt(sc.predicted_peak_anchored_cm, 0) + " cm"],
-].map(([k,v]) => `<div class="stat"><b>${{v}}</b><span>${{k}}</span></div>`).join("");
-
-const hind = (FEED.products && FEED.products.hindcast_skill) || {{}};
-const verd = hind.verdict || {{}};
-const summ = hind.summary || {{}};
-document.getElementById("hind-plain").innerHTML =
-  `<span class="${{(verd.level === "usable_research") ? "verdict-ok" : "verdict-warn"}}">${{verd.level || "—"}}</span>
-   — ${{verd.plain_pt || ""}}
-   (n=${{summ.n_scored ?? "—"}}, ΔN rel ~${{summ.mean_rise_n_rel_err != null ? Math.round(100*summ.mean_rise_n_rel_err)+"%" : "—"}},
-   ${{summ.n_rise_n_within_50pct ?? "—"}}/${{summ.n_scored ?? "—"}} ≤50%).`;
-
-const rainFeats = (((FEED.spatial || {{}}).rain_geojson || {{}}).features) || [];
-document.getElementById("rain-rows").innerHTML = rainFeats.map(f => {{
-  const pr = f.properties || {{}};
-  return `<tr><td>${{pr.label || pr.subbasin_id}}</td><td>${{fmt(pr.total_mm,1)}}</td><td>${{fmt(pr.past_mm,1)}}</td><td>${{fmt(pr.future_mm,1)}}</td></tr>`;
-}}).join("") || `<tr><td colspan="4">Sem forçante espacial</td></tr>`;
-
-document.getElementById("series-rows").innerHTML =
-  (FEED.hydrograph_sample_6h || []).slice(0, 16).map(r =>
-    `<tr><td>${{r.time_utc}}</td><td>${{fmt(r.n_anchored_cm,1)}}</td><td>${{fmt(r.delta_n_cm,1)}}</td><td>${{fmt(r.q_mucum_m3s,1)}}</td></tr>`
-  ).join("") || `<tr><td colspan="4">Sem série forward</td></tr>`;
-
-const loc = (FEED.where_results_go && FEED.where_results_go.local) || {{}};
-document.getElementById("product-links").innerHTML = [
-  ["Forward ~5d", loc.forward_html, loc.forward_json],
-  ["Live eval", loc.live_eval_html, loc.live_eval_json],
-  ["Verify", loc.verify_html, loc.verify_json],
-  ["Hindcast skill", loc.hindcast_html, loc.hindcast_json],
-  ["Forçante IFS (live)", null, loc.forcing_live_json],
-  ["Feed desta plataforma", null, loc.platform_json],
-].map(([label, html, js]) =>
-  `<li><strong>${{label}}:</strong> ${{html ? `<a href="${{html}}">HTML</a> · ` : ""}}${{js ? `<a href="${{js}}">JSON</a>` : ""}}</li>`
-).join("");
-
-const auto = FEED.automation || {{}};
-document.getElementById("robot-plain").textContent =
-  (auto.robot_pt || "Robô previsto") +
-  (auto.schedule_pt ? (" · " + auto.schedule_pt) : "") +
-  (auto.workflow ? (" · `" + auto.workflow + "`") : "");
-document.getElementById("robot-steps").innerHTML =
-  (auto.steps_pt || []).map(t => `<li>${{t}}</li>`).join("");
-
-const anchors = (FEED.spatial && FEED.spatial.anchors) || [];
-document.getElementById("anchor-rows").innerHTML = anchors.map(a =>
-  `<tr><td>${{a.role_pt || a.role}}</td><td>${{a.label}}</td><td><code>${{a.code}}</code></td></tr>`
-).join("") || `<tr><td colspan="3">Sem pontos de amarração</td></tr>`;
-
-const map = L.map("map", {{ zoomControl:true }}).setView([-29.12, -51.72], 9);
-L.tileLayer("https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png", {{
-  attribution: "&copy; OpenStreetMap", maxZoom: 18,
-}}).addTo(map);
-
-const ugFilter = new Set((FEED.spatial && FEED.spatial.ug_filter) || []);
-fetch("ugs_g040.geojson").then(r => r.json()).then(geo => {{
-  L.geoJSON(geo, {{
-    filter: f => ugFilter.has((f.properties || {{}}).sub_bacia),
-    style: {{ color:"#0f5c45", weight:1.2, fillColor:"#0f5c45", fillOpacity:0.08 }},
-    onEachFeature: (f, layer) => {{
-      layer.bindPopup(`<strong>${{(f.properties || {{}}).sub_bacia || "UG"}}</strong><br/>contexto G040 (corredor)`);
-    }},
-  }}).addTo(map);
-}}).catch(() => {{}});
-
-fetch("fozes_principais_bho6.geojson").then(r => r.json()).then(geo => {{
-  L.geoJSON(geo, {{
-    pointToLayer: (_f, latlng) => L.circleMarker(latlng, {{
-      radius:5, color:"#245744", weight:2, fillColor:"#fff", fillOpacity:1,
-    }}),
-    onEachFeature: (f, layer) => {{
-      layer.bindPopup(`<strong>${{(f.properties || {{}}).label || "foz"}}</strong>`);
-    }},
-  }}).addTo(map);
-}}).catch(() => {{}});
-
-rainFeats.forEach(f => {{
-  const pr = f.properties || {{}};
-  const [lon, lat] = f.geometry.coordinates;
-  const mm = pr.total_mm;
-  L.circleMarker([lat, lon], {{
-    radius: rainRadius(mm), color:"#5c4030", weight:1,
-    fillColor: rainColor(mm), fillOpacity:0.72,
-  }}).bindPopup(
-    `<strong>${{pr.label}}</strong><br/>total ${{fmt(mm,1)}} mm` +
-    `<br/>passado ${{fmt(pr.past_mm,1)}} · futuro ${{fmt(pr.future_mm,1)}}` +
-    `<br/><span style="opacity:.75">proxy ${{pr.point_code}} · ${{pr.point_name || ""}}</span>`
-  ).addTo(map);
-}});
-
-function anchorStyle(role) {{
-  if (role === "target") return {{ radius: 8, color: "#b85a1a", fillColor: "#f0a35a", fillOpacity: 0.95 }};
-  if (role === "level_control") return {{ radius: 6, color: "#1e5fbf", fillColor: "#fff", fillOpacity: 1 }};
-  if (role === "rain") return {{ radius: 6, color: "#0a7a6a", fillColor: "#3cbc9c", fillOpacity: 0.85 }};
-  return {{ radius: 5, color: "#5a6570", fillColor: "#d5dbe0", fillOpacity: 0.95 }};
-}}
-(anchors.length ? anchors : ((FEED.spatial && FEED.spatial.controls) || [])).forEach(c => {{
-  if (c.lat == null || c.lon == null) return;
-  const style = anchorStyle(c.role || (c.code === "86510000" ? "target" : "level_control"));
-  L.circleMarker([c.lat, c.lon], Object.assign({{ weight: 2 }}, style))
-    .bindPopup(`<strong>${{c.label}}</strong><br/>${{c.role_pt || c.role || ""}}<br/>${{c.name || ""}} · ${{c.code}}`)
-    .addTo(map);
-}});
-
-const note = document.createElement("div");
-note.className = "legend";
-note.style.right = "12px";
-note.style.bottom = "92px";
-note.style.maxWidth = "260px";
-note.textContent = (FEED.spatial && FEED.spatial.note_pt) || "";
-document.getElementById("map").appendChild(note);
-</script>
-</body>
-</html>
-"""
+    return platform_ui.render_platform_html(feed)
 
 
 def render_root_entry() -> str:
@@ -843,7 +784,7 @@ def render_root_entry() -> str:
 
 
 def main() -> None:
-    feed = build_feed()
+    feed = enrich_feed(build_feed())
     FEED_JSON.write_text(json.dumps(feed, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     FEED_HTML.write_text(render_html(feed), encoding="utf-8")
     ROOT_HTML.write_text(render_root_entry(), encoding="utf-8")
