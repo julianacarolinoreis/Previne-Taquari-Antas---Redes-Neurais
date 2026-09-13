@@ -61,14 +61,127 @@ def load_json(path: Path) -> dict[str, Any] | None:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+# Corridor anchoring catalog: forçantes HEC + monitores upstream + chuvas PREVINE.
+# Codes without coords in basin_forecast_points are resolved from postos/pluvio inventories.
+ANCHOR_SPEC: list[tuple[str, str, str]] = [
+    ("86510000", "target", "Muçum (alvo N)"),
+    ("86472600", "level_control", "Santa Tereza (sem curva N↔Q)"),
+    ("86472000", "level_control", "Antas / Linha José Júlio"),
+    ("86507000", "level_control", "Carreiro / Cotiporã"),
+    ("86125500", "level_control", "Prata / Jararaca"),
+    ("86448000", "level_control", "Monte Claro barramento"),
+    ("2851072", "rain", "Ibiraiaras (chuva Carreiro–Prata)"),
+    ("2851044", "rain", "Guaporé (chuva)"),
+    ("A894", "rain", "Serafina INMET A894"),
+    ("432040401A", "rain", "Serafina CEMADEN Centro"),
+    ("86488000", "upstream_monitor", "PCH Caçador montante"),
+    ("86490500", "upstream_monitor", "PCH Boa Fé montante"),
+    ("86497000", "upstream_monitor", "PCH São Paulo jusante"),
+    ("86505500", "upstream_monitor", "PCH Linha Emília jusante"),
+    ("86298000", "upstream_monitor", "UHE Castro Alves"),
+    ("86125130", "upstream_monitor", "PCH Morro Grande jusante 2"),
+]
+
+ROLE_LABEL_PT = {
+    "target": "alvo",
+    "level_control": "nível / controle",
+    "rain": "chuva",
+    "upstream_monitor": "monitor montante",
+}
+
+
 def station_index() -> dict[str, dict[str, Any]]:
-    raw = load_json(POINTS) or {}
+    """Merge basin IFS points + postos ANA + pluviometria for anchor coords."""
     out: dict[str, dict[str, Any]] = {}
+
+    raw = load_json(POINTS) or {}
     for row in raw.get("points") or []:
         code = str(row.get("station_code") or "")
-        if code:
-            out[code] = row
+        if not code:
+            continue
+        out[code] = {
+            "station_code": code,
+            "name": row.get("name"),
+            "latitude": row.get("latitude"),
+            "longitude": row.get("longitude"),
+            "role": row.get("role"),
+            "source": "basin_forecast_points",
+        }
+
+    def _ingest_station(st: dict[str, Any], source: str) -> None:
+        code = str(st.get("codigo") or st.get("code") or st.get("station_code") or "")
+        if not code or code in out:
+            return
+        lat = st.get("lat") if st.get("lat") is not None else st.get("latitude")
+        lon = st.get("lon") if st.get("lon") is not None else st.get("longitude")
+        if lat is None or lon is None:
+            return
+        out[code] = {
+            "station_code": code,
+            "name": st.get("nome") or st.get("name"),
+            "latitude": float(lat),
+            "longitude": float(lon),
+            "role": "inventory",
+            "source": source,
+        }
+
+    postos = load_json(OUT / "postos_por_upg_latest.json") or {}
+    by_upg = postos.get("by_upg")
+    if isinstance(by_upg, dict):
+        for rows in by_upg.values():
+            if isinstance(rows, list):
+                for st in rows:
+                    if isinstance(st, dict):
+                        _ingest_station(st, "postos_por_upg")
+            elif isinstance(rows, dict):
+                for st in rows.get("stations") or []:
+                    if isinstance(st, dict):
+                        _ingest_station(st, "postos_por_upg")
+    for st in postos.get("stations_inside_g040") or []:
+        if isinstance(st, dict):
+            _ingest_station(st, "postos_g040")
+
+    pluv = load_json(OUT / "pluviometria_g040_latest.json") or {}
+    for st in pluv.get("stations") or []:
+        code = str(st.get("codigo") or st.get("code") or "")
+        if not code or code in out:
+            continue
+        lat = st.get("lat")
+        lon = st.get("lon")
+        if lat is None or lon is None:
+            continue
+        out[code] = {
+            "station_code": code,
+            "name": st.get("nome") or st.get("name"),
+            "latitude": float(lat),
+            "longitude": float(lon),
+            "role": "rain_inventory",
+            "source": "pluviometria_g040",
+        }
     return out
+
+
+def build_anchors(stations: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    anchors: list[dict[str, Any]] = []
+    for code, role, label in ANCHOR_SPEC:
+        st = stations.get(code) or {}
+        lat = st.get("latitude")
+        lon = st.get("longitude")
+        if lat is None or lon is None:
+            continue
+        anchors.append(
+            {
+                "code": code,
+                "role": role,
+                "role_pt": ROLE_LABEL_PT.get(role, role),
+                "label": label,
+                "name": st.get("name") or label,
+                "lat": float(lat),
+                "lon": float(lon),
+                "coord_source": st.get("source"),
+            }
+        )
+    return anchors
 
 
 def compact_primary(primary: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -143,31 +256,27 @@ def build_spatial(
             }
         )
 
-    controls: list[dict[str, Any]] = []
-    for code, role in (
-        ("86472000", "Antas / Linha José Júlio"),
-        ("86472600", "Santa Tereza (sem curva N↔Q)"),
-        ("86507000", "Carreiro proxy"),
-        ("86510000", "Muçum (alvo N)"),
-    ):
-        st = stations.get(code)
-        if not st:
-            continue
-        controls.append(
-            {
-                "code": code,
-                "label": role,
-                "name": st.get("name"),
-                "lat": st.get("latitude"),
-                "lon": st.get("longitude"),
-            }
-        )
+    anchors = build_anchors(stations)
+    # Primary twin controls remain the IFS sample / target set.
+    primary_codes = {"86472000", "86472600", "86507000", "86510000"}
+    controls = [
+        {
+            "code": a["code"],
+            "label": a["label"],
+            "name": a["name"],
+            "lat": a["lat"],
+            "lon": a["lon"],
+            "role": a["role"],
+        }
+        for a in anchors
+        if a["code"] in primary_codes
+    ]
 
     return {
         "note_pt": (
             "Chuva IFS é proxy pontual por sub-bacia do corredor HEC — não máscara "
-            "areal fechada. UG G040 no mapa é contexto; Guaporé/Forqueta ficam fora "
-            "do modelo."
+            "areal fechada. Pontos de amarração = forçantes + monitores do corredor "
+            "(Prata/Carreiro/Antas→Muçum). UG G040 é contexto; Guaporé/Forqueta fora."
         ),
         "area_weighted_total_mm": aw.get("total_mm"),
         "area_weighted_past_mm": aw.get("past_mm"),
@@ -175,6 +284,8 @@ def build_spatial(
         "window": (force or {}).get("window"),
         "rain_geojson": {"type": "FeatureCollection", "features": features},
         "controls": controls,
+        "anchors": anchors,
+        "anchor_count": len(anchors),
         "ug_filter": sorted(UG_CORRIDOR),
         "ug_geojson": "ugs_g040.geojson",
         "fozes_geojson": "fozes_principais_bho6.geojson",
@@ -346,6 +457,20 @@ def build_feed() -> dict[str, Any]:
             "html": "plataforma_hec_twin_mucum.html",
             "root_entry": "plataforma_hec_twin.html",
         },
+        "automation": {
+            "robot_pt": "Robô GitHub Actions puxa IFS → gêmeo HEC → plataforma",
+            "workflow": ".github/workflows/hec-twin-mucum-forward.yml",
+            "schedule_cron": "12 */6 * * *",
+            "schedule_pt": "a cada 6 horas (min :12) + disparo manual",
+            "steps_pt": [
+                "Busca chuva IFS (Open-Meteo) por sub-bacia do corredor",
+                "Roda gêmeo HEC Muçum ~5d (âncora no nível ao vivo se houver)",
+                "Reconstrói plataforma_hec_twin_mucum (mapa + feed)",
+                "Publica no main → GitHub Pages atualiza",
+            ],
+            "does_not_touch_rna": True,
+            "research_not_alert": True,
+        },
     }
 
 
@@ -469,6 +594,21 @@ def render_html(feed: dict[str, Any]) -> str:
     </section>
 
     <section>
+      <h2>Robô automático</h2>
+      <p id="robot-plain"></p>
+      <ol class="pipe" id="robot-steps"></ol>
+    </section>
+
+    <section>
+      <h2>Pontos de amarração</h2>
+      <p class="lede" style="margin:0 0 .5rem">Forçantes de nível/chuva e monitores do corredor — não só o alvo Muçum.</p>
+      <table>
+        <thead><tr><th>Papel</th><th>Ponto</th><th>Código</th></tr></thead>
+        <tbody id="anchor-rows"></tbody>
+      </table>
+    </section>
+
+    <section>
       <h2>Chuva por sub-bacia (proxy IFS)</h2>
       <table>
         <thead><tr><th>Sub-bacia</th><th>Total</th><th>Passado</th><th>Futuro</th></tr></thead>
@@ -498,7 +638,10 @@ def render_html(feed: dict[str, Any]) -> str:
     <div class="legend">
       <div><i style="background:#0f5c45"></i>UG do corredor</div>
       <div><i style="background:#b85a1a;border-radius:50%"></i>Chuva IFS (mm)</div>
-      <div><i style="background:#1e5fbf"></i>Controles / alvo</div>
+      <div><i style="background:#b85a1a"></i>Alvo Muçum</div>
+      <div><i style="background:#1e5fbf"></i>Controle de nível</div>
+      <div><i style="background:#0a7a6a;border-radius:50%"></i>Chuva (forçante)</div>
+      <div><i style="background:#5a6570"></i>Monitor montante</div>
     </div>
   </div>
 </div>
@@ -590,6 +733,19 @@ document.getElementById("product-links").innerHTML = [
   `<li><strong>${{label}}:</strong> ${{html ? `<a href="${{html}}">HTML</a> · ` : ""}}${{js ? `<a href="${{js}}">JSON</a>` : ""}}</li>`
 ).join("");
 
+const auto = FEED.automation || {{}};
+document.getElementById("robot-plain").textContent =
+  (auto.robot_pt || "Robô previsto") +
+  (auto.schedule_pt ? (" · " + auto.schedule_pt) : "") +
+  (auto.workflow ? (" · `" + auto.workflow + "`") : "");
+document.getElementById("robot-steps").innerHTML =
+  (auto.steps_pt || []).map(t => `<li>${{t}}</li>`).join("");
+
+const anchors = (FEED.spatial && FEED.spatial.anchors) || [];
+document.getElementById("anchor-rows").innerHTML = anchors.map(a =>
+  `<tr><td>${{a.role_pt || a.role}}</td><td>${{a.label}}</td><td><code>${{a.code}}</code></td></tr>`
+).join("") || `<tr><td colspan="3">Sem pontos de amarração</td></tr>`;
+
 const map = L.map("map", {{ zoomControl:true }}).setView([-29.12, -51.72], 9);
 L.tileLayer("https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png", {{
   attribution: "&copy; OpenStreetMap", maxZoom: 18,
@@ -631,16 +787,18 @@ rainFeats.forEach(f => {{
   ).addTo(map);
 }});
 
-((FEED.spatial && FEED.spatial.controls) || []).forEach(c => {{
+function anchorStyle(role) {{
+  if (role === "target") return {{ radius: 8, color: "#b85a1a", fillColor: "#f0a35a", fillOpacity: 0.95 }};
+  if (role === "level_control") return {{ radius: 6, color: "#1e5fbf", fillColor: "#fff", fillOpacity: 1 }};
+  if (role === "rain") return {{ radius: 6, color: "#0a7a6a", fillColor: "#3cbc9c", fillOpacity: 0.85 }};
+  return {{ radius: 5, color: "#5a6570", fillColor: "#d5dbe0", fillOpacity: 0.95 }};
+}}
+(anchors.length ? anchors : ((FEED.spatial && FEED.spatial.controls) || [])).forEach(c => {{
   if (c.lat == null || c.lon == null) return;
-  const isTarget = c.code === "86510000";
-  L.circleMarker([c.lat, c.lon], {{
-    radius: isTarget ? 8 : 6,
-    color: isTarget ? "#b85a1a" : "#1e5fbf",
-    weight:2,
-    fillColor: isTarget ? "#f0a35a" : "#fff",
-    fillOpacity: isTarget ? 0.95 : 1,
-  }}).bindPopup(`<strong>${{c.label}}</strong><br/>${{c.name || ""}} · ${{c.code}}`).addTo(map);
+  const style = anchorStyle(c.role || (c.code === "86510000" ? "target" : "level_control"));
+  L.circleMarker([c.lat, c.lon], Object.assign({{ weight: 2 }}, style))
+    .bindPopup(`<strong>${{c.label}}</strong><br/>${{c.role_pt || c.role || ""}}<br/>${{c.name || ""}} · ${{c.code}}`)
+    .addTo(map);
 }});
 
 const note = document.createElement("div");

@@ -42,9 +42,19 @@ Página pública no GitHub Pages (como a das RNAs), com mapa do corredor, ΔN, v
 - Atalho raiz: `plataforma_hec_twin.html`
 - Mapa + painel: `plataforma_hec_twin_mucum.html`
 - Feed: `plataforma_hec_twin_mucum_latest.json`
+- Amarrações no mapa: forçantes de nível/chuva + monitores montante do corredor (não só Muçum)
 
 ```bash
 python3 scripts/build_hec_twin_ifs_forcing_5d.py
 python3 scripts/run_hec_twin_mucum_forward_5d.py
 python3 scripts/build_plataforma_hec_twin_mucum.py
 ```
+
+## Robô automático (previsão)
+
+Workflow `.github/workflows/hec-twin-mucum-forward.yml`:
+
+- Agenda: a cada 6 h (`12 */6 * * *`) + `workflow_dispatch`
+- Passos: IFS Open-Meteo → gêmeo HEC Muçum ~5d → reconstrói plataforma → commit no `main`
+- Pages: path `estudo_bacia_taquari_antas/**` + `workflow_run` do robô HEC
+- Não altera RNA; produto de pesquisa (não alerta)

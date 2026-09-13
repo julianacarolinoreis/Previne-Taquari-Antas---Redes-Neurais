@@ -1,6 +1,6 @@
 {
   "schema_version": "plataforma_hec_twin_mucum_v1",
-  "generated_at_utc": "2026-09-13T00:10:16Z",
+  "generated_at_utc": "2026-09-13T00:38:21Z",
   "status": "research_platform_ready",
   "label_pt": "Plataforma HEC/REC · gêmeo Muçum ~5d",
   "purpose_pt": "Onde o resultado do gêmeo HEC (REC) vai parar: quanto sobe em Muçum, chuva espacializada no corredor, verificação ao vivo e skill hindcast — no GitHub Pages, como a plataforma das RNAs.",
@@ -308,7 +308,7 @@
     }
   },
   "spatial": {
-    "note_pt": "Chuva IFS é proxy pontual por sub-bacia do corredor HEC — não máscara areal fechada. UG G040 no mapa é contexto; Guaporé/Forqueta ficam fora do modelo.",
+    "note_pt": "Chuva IFS é proxy pontual por sub-bacia do corredor HEC — não máscara areal fechada. Pontos de amarração = forçantes + monitores do corredor (Prata/Carreiro/Antas→Muçum). UG G040 é contexto; Guaporé/Forqueta fora.",
     "area_weighted_total_mm": 33.264,
     "area_weighted_past_mm": 29.737,
     "area_weighted_future_mm": 3.527,
@@ -421,34 +421,201 @@
     },
     "controls": [
       {
-        "code": "86472000",
-        "label": "Antas / Linha José Júlio",
-        "name": "Linha José Júlio",
-        "lat": -29.0978,
-        "lon": -51.6997
+        "code": "86510000",
+        "label": "Muçum (alvo N)",
+        "name": "Muçum",
+        "lat": -29.1672,
+        "lon": -51.8686,
+        "role": "target"
       },
       {
         "code": "86472600",
         "label": "Santa Tereza (sem curva N↔Q)",
         "name": "Santa Tereza",
         "lat": -29.1781,
-        "lon": -51.7322
+        "lon": -51.7322,
+        "role": "level_control"
+      },
+      {
+        "code": "86472000",
+        "label": "Antas / Linha José Júlio",
+        "name": "Linha José Júlio",
+        "lat": -29.0978,
+        "lon": -51.6997,
+        "role": "level_control"
       },
       {
         "code": "86507000",
-        "label": "Carreiro proxy",
+        "label": "Carreiro / Cotiporã",
         "name": "PCH Cotiporã Jusante",
         "lat": -28.9722,
-        "lon": -51.7558
-      },
+        "lon": -51.7558,
+        "role": "level_control"
+      }
+    ],
+    "anchors": [
       {
         "code": "86510000",
+        "role": "target",
+        "role_pt": "alvo",
         "label": "Muçum (alvo N)",
         "name": "Muçum",
         "lat": -29.1672,
-        "lon": -51.8686
+        "lon": -51.8686,
+        "coord_source": "basin_forecast_points"
+      },
+      {
+        "code": "86472600",
+        "role": "level_control",
+        "role_pt": "nível / controle",
+        "label": "Santa Tereza (sem curva N↔Q)",
+        "name": "Santa Tereza",
+        "lat": -29.1781,
+        "lon": -51.7322,
+        "coord_source": "basin_forecast_points"
+      },
+      {
+        "code": "86472000",
+        "role": "level_control",
+        "role_pt": "nível / controle",
+        "label": "Antas / Linha José Júlio",
+        "name": "Linha José Júlio",
+        "lat": -29.0978,
+        "lon": -51.6997,
+        "coord_source": "basin_forecast_points"
+      },
+      {
+        "code": "86507000",
+        "role": "level_control",
+        "role_pt": "nível / controle",
+        "label": "Carreiro / Cotiporã",
+        "name": "PCH Cotiporã Jusante",
+        "lat": -28.9722,
+        "lon": -51.7558,
+        "coord_source": "basin_forecast_points"
+      },
+      {
+        "code": "86125500",
+        "role": "level_control",
+        "role_pt": "nível / controle",
+        "label": "Prata / Jararaca",
+        "name": "PCH JARARACA BARRAMENTO",
+        "lat": -28.9381,
+        "lon": -51.4656,
+        "coord_source": "postos_por_upg"
+      },
+      {
+        "code": "86448000",
+        "role": "level_control",
+        "role_pt": "nível / controle",
+        "label": "Monte Claro barramento",
+        "name": "UHE MONTE CLARO BARRAMENTO",
+        "lat": -29.0292,
+        "lon": -51.5219,
+        "coord_source": "postos_por_upg"
+      },
+      {
+        "code": "2851072",
+        "role": "rain",
+        "role_pt": "chuva",
+        "label": "Ibiraiaras (chuva Carreiro–Prata)",
+        "name": "IBIRAIARAS",
+        "lat": -28.3811,
+        "lon": -51.6331,
+        "coord_source": "postos_por_upg"
+      },
+      {
+        "code": "2851044",
+        "role": "rain",
+        "role_pt": "chuva",
+        "label": "Guaporé (chuva)",
+        "name": "GUAPORÉ",
+        "lat": -28.8444,
+        "lon": -51.8792,
+        "coord_source": "postos_por_upg"
+      },
+      {
+        "code": "A894",
+        "role": "rain",
+        "role_pt": "chuva",
+        "label": "Serafina INMET A894",
+        "name": "SERAFINA CORREA",
+        "lat": -28.70472222,
+        "lon": -51.87083332,
+        "coord_source": "pluviometria_g040"
+      },
+      {
+        "code": "432040401A",
+        "role": "rain",
+        "role_pt": "chuva",
+        "label": "Serafina CEMADEN Centro",
+        "name": "Serafina Correa - Centro",
+        "lat": -28.7125,
+        "lon": -51.8667,
+        "coord_source": "pluviometria_g040"
+      },
+      {
+        "code": "86488000",
+        "role": "upstream_monitor",
+        "role_pt": "monitor montante",
+        "label": "PCH Caçador montante",
+        "name": "Estação 86488000",
+        "lat": -28.6847,
+        "lon": -51.8506,
+        "coord_source": "basin_forecast_points"
+      },
+      {
+        "code": "86490500",
+        "role": "upstream_monitor",
+        "role_pt": "monitor montante",
+        "label": "PCH Boa Fé montante",
+        "name": "Estação 86490500",
+        "lat": -28.7117,
+        "lon": -51.8525,
+        "coord_source": "basin_forecast_points"
+      },
+      {
+        "code": "86497000",
+        "role": "upstream_monitor",
+        "role_pt": "monitor montante",
+        "label": "PCH São Paulo jusante",
+        "name": "Estação 86497000",
+        "lat": -28.7922,
+        "lon": -51.8578,
+        "coord_source": "basin_forecast_points"
+      },
+      {
+        "code": "86505500",
+        "role": "upstream_monitor",
+        "role_pt": "monitor montante",
+        "label": "PCH Linha Emília jusante",
+        "name": "PCH LINHA EMILIA JUSANTE",
+        "lat": -28.9414,
+        "lon": -51.7694,
+        "coord_source": "postos_por_upg"
+      },
+      {
+        "code": "86298000",
+        "role": "upstream_monitor",
+        "role_pt": "monitor montante",
+        "label": "UHE Castro Alves",
+        "name": "UHE Castro Alves RS-122",
+        "lat": -28.9414,
+        "lon": -51.1892,
+        "coord_source": "basin_forecast_points"
+      },
+      {
+        "code": "86125130",
+        "role": "upstream_monitor",
+        "role_pt": "monitor montante",
+        "label": "PCH Morro Grande jusante 2",
+        "name": "PCH Morro Grande Jusante 2",
+        "lat": -28.5919,
+        "lon": -51.3247,
+        "coord_source": "basin_forecast_points"
       }
     ],
+    "anchor_count": 16,
     "ug_filter": [
       "Carreiro",
       "Médio Taquari-Antas",
@@ -1079,5 +1246,19 @@
     "json": "plataforma_hec_twin_mucum_latest.json",
     "html": "plataforma_hec_twin_mucum.html",
     "root_entry": "plataforma_hec_twin.html"
+  },
+  "automation": {
+    "robot_pt": "Robô GitHub Actions puxa IFS → gêmeo HEC → plataforma",
+    "workflow": ".github/workflows/hec-twin-mucum-forward.yml",
+    "schedule_cron": "12 */6 * * *",
+    "schedule_pt": "a cada 6 horas (min :12) + disparo manual",
+    "steps_pt": [
+      "Busca chuva IFS (Open-Meteo) por sub-bacia do corredor",
+      "Roda gêmeo HEC Muçum ~5d (âncora no nível ao vivo se houver)",
+      "Reconstrói plataforma_hec_twin_mucum (mapa + feed)",
+      "Publica no main → GitHub Pages atualiza"
+    ],
+    "does_not_touch_rna": true,
+    "research_not_alert": true
   }
 }
