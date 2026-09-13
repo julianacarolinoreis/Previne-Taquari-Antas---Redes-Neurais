@@ -591,8 +591,8 @@ document.getElementById("product-links").innerHTML = [
 ).join("");
 
 const map = L.map("map", {{ zoomControl:true }}).setView([-29.12, -51.72], 9);
-L.tileLayer("https://{{s}}.basemaps.cartocdn.com/light_all/{{z}}/{{x}}/{{y}}{{r}}.png", {{
-  attribution: "&copy; OpenStreetMap &copy; CARTO", maxZoom: 18,
+L.tileLayer("https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png", {{
+  attribution: "&copy; OpenStreetMap", maxZoom: 18,
 }}).addTo(map);
 
 const ugFilter = new Set((FEED.spatial && FEED.spatial.ug_filter) || []);
