@@ -11,7 +11,7 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[1]
 FORMATO_DATA = "%Y-%m-%d %H:%M"
-MODELO_REFERENCIA = "020_alt_MUC_H04_V30_LJJ_CA_CHUVA_AUDITADO_SEM32_R05_T33_V18-20-21"
+MODELO_REFERENCIA = "002_MUC_H02_BASE_COMPLETA_Q58_V15_RISE_GATE_NH32_M00_S02"
 
 
 def carregar_modelos_publicados(html: str) -> set[str]:
@@ -81,15 +81,15 @@ def main() -> None:
             if lacunas:
                 eventos_com_lacuna += 1
                 horas_sem_ponto += lacunas
-            if nome == MODELO_REFERENCIA.upper() and chave == "19|Treino":
+            if nome == MODELO_REFERENCIA.upper() and chave == "4|Treino":
                 referencia = (len(datas), horas, lacunas)
 
-    assert referencia == (44, 53, 9), f"evento de referência divergente: {referencia}"
+    assert referencia == (69, 69, 0), f"evento de referência q79 divergente: {referencia}"
     print(
         "VALIDAÇÃO GRÁFICOS MUÇUM: OK | "
         f"modelos_graficos={len(graph_publicados)} modelos_catalogo_apenas={len(q70_catalog_only)} eventos={eventos} "
         f"eventos_com_lacuna={eventos_com_lacuna} horas_sem_ponto={horas_sem_ponto} "
-        "referencia_evento19=44_pontos_em_53_horas_9_lacunas"
+        "referencia_q79_evento4=69_pontos_em_69_horas_0_lacunas"
     )
 
 
