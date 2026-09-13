@@ -76,7 +76,6 @@ ANCHOR_SPEC: list[tuple[str, str, str]] = [
     ("86125500", "level_control", "Prata / Jararaca"),
     ("86448000", "level_control", "Monte Claro barramento"),
     ("2851072", "rain", "Ibiraiaras (chuva Carreiro–Prata)"),
-    ("2851044", "rain", "Guaporé (chuva)"),
     ("A894", "rain", "Serafina INMET A894"),
     ("432040401A", "rain", "Serafina CEMADEN Centro"),
     ("86488000", "upstream_monitor", "PCH Caçador montante"),
@@ -279,9 +278,9 @@ def build_spatial(
 
     return {
         "note_pt": (
-            "Chuva IFS é proxy pontual por sub-bacia do corredor HEC — não máscara "
-            "areal fechada. Pontos de amarração = forçantes + monitores do corredor "
-            "(Prata/Carreiro/Antas→Muçum). UG G040 é contexto; Guaporé/Forqueta fora."
+            "Corredor calibrado REC: Prata + Antas residual + Carreiro + residual STZ "
+            "+ incremento Muçum. Chuva IFS = proxy pontual por sub-bacia (não máscara "
+            "areal). UG G040 só como contorno; Guaporé/Forqueta/Baixo fora do modelo."
         ),
         "area_weighted_total_mm": aw.get("total_mm"),
         "area_weighted_past_mm": aw.get("past_mm"),
@@ -531,10 +530,11 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
 
     feed["schema_version"] = "plataforma_hec_twin_mucum_v2"
     feed["product"] = {
-        "name": "ΔN ~5d · Muçum",
+        "name": "Corredor calibrado · ΔN Muçum ~5d",
         "horizon": "~5 dias",
-        "target": "Muçum",
-        "mode": "pesquisa",
+        "target": "Muçum (exutório N)",
+        "mode": "pesquisa · REC bacia",
+        "domain_pt": "Prata + Antas residual + Carreiro + residual STZ + incremento Muçum",
     }
     feed["summary"] = {
         "peak_n_cm": primary.get("peak_anchored_cm"),
@@ -636,18 +636,63 @@ def build_feed() -> dict[str, Any]:
         "schema_version": "plataforma_hec_twin_mucum_v1",
         "generated_at_utc": utc_now(),
         "status": "research_platform_ready",
-        "label_pt": "Plataforma HEC/REC · gêmeo Muçum ~5d",
+        "label_pt": "Plataforma HEC/REC · corredor calibrado ~5d",
         "purpose_pt": (
-            "Onde o resultado do gêmeo HEC (REC) vai parar: quanto sobe em Muçum, "
-            "chuva espacializada no corredor, verificação ao vivo e skill hindcast — "
-            "no GitHub Pages, como a plataforma das RNAs."
+            "Gêmeo hidrológico do CORREDOR Taquari–Antas (REC), calibrado na bacia "
+            "por análogos (fingerprint areal + regime + umidade) — não um atalho "
+            "Santa Tereza→Muçum. Produto de saída: ΔN em Muçum. STZ é controle de "
+            "nível (sem curva N↔Q inventada). Guaporé/Forqueta/Baixo fora."
         ),
+        "corridor": {
+            "label_pt": "Corredor HEC/REC calibrado",
+            "calibration_method": (
+                (live or {}).get("param_selection") or {}
+            ).get("method")
+            or ((fwd or {}).get("param_selection") or {}).get("method")
+            or "analog_basin_calibrated_aw_fingerprint_wetness_blend_v4",
+            "calibration_artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
+            "nested_area_km2": 15965.207,
+            "outlet_pt": "Muçum (ΔN via curva-chave oficial)",
+            "level_control_pt": "Santa Tereza (nível observado; Q diagnóstico sem curva)",
+            "subbasins": [
+                {
+                    "id": "SB_PRATA_7868",
+                    "label": "Prata / Turvo-Humatã",
+                    "role": "montante",
+                },
+                {
+                    "id": "SB_ANTAS_RESIDUAL",
+                    "label": "Antas residual",
+                    "role": "tronco",
+                },
+                {
+                    "id": "SB_CARREIRO_7866",
+                    "label": "Carreiro",
+                    "role": "afluente",
+                },
+                {
+                    "id": "SB_STZ_RESIDUAL",
+                    "label": "Residual até Santa Tereza",
+                    "role": "controle",
+                },
+                {
+                    "id": "SB_INC_MUCUM",
+                    "label": "Incremento STZ→Muçum",
+                    "role": "trecho_final",
+                },
+            ],
+            "excluded_pt": ["Guaporé", "Forqueta", "Baixo Taquari-Antas"],
+            "not_full_g040": True,
+            "not_only_stz_mucum_shortcut": True,
+        },
         "discipline": {
             "research_not_alert": True,
             "does_not_touch_rna": True,
             "no_invented_stz_rating_curve": True,
             "ifs_point_proxy_not_areal_mask": True,
             "corridor_not_full_g040": True,
+            "basin_calibrated_analogs": True,
+            "not_stz_mucum_only_shortcut": True,
         },
         "where_results_go": {
             "pages_base": PAGES_BASE,
@@ -664,7 +709,10 @@ def build_feed() -> dict[str, Any]:
         },
         "headline": {
             "source": headline_source,
-            "question_pt": "Com a chuva (prevista ou do evento), quanto sobe Muçum?",
+            "question_pt": (
+                "Com a chuva do corredor calibrado (Prata–Carreiro–Antas→STZ→Muçum), "
+                "quanto sobe o nível em Muçum?"
+            ),
             "plain_pt": headline_plain,
             "primary": headline_primary,
             "ensemble_rise_cm": headline_ensemble,

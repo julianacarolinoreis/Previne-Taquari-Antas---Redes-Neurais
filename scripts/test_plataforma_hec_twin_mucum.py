@@ -56,6 +56,29 @@ class PlataformaHecTwinTests(unittest.TestCase):
         self.assertGreaterEqual(self.feed["spatial"]["anchor_count"], 12)
         self.assertIn("ug_rain_mm", self.feed["spatial"])
 
+    def test_corridor_basin_calibration_not_stz_shortcut(self) -> None:
+        corridor = self.feed["corridor"]
+        self.assertTrue(corridor["not_full_g040"])
+        self.assertTrue(corridor["not_only_stz_mucum_shortcut"])
+        ids = [s["id"] for s in corridor["subbasins"]]
+        self.assertEqual(
+            ids,
+            [
+                "SB_PRATA_7868",
+                "SB_ANTAS_RESIDUAL",
+                "SB_CARREIRO_7866",
+                "SB_STZ_RESIDUAL",
+                "SB_INC_MUCUM",
+            ],
+        )
+        self.assertIn("Guaporé", corridor["excluded_pt"])
+        labels = " ".join(a["label"] for a in self.feed["spatial"]["anchors"])
+        self.assertNotIn("Guaporé", labels)
+        self.assertTrue(self.feed["discipline"]["basin_calibrated_analogs"])
+        self.assertIn("corredor", self.feed["label_pt"].lower())
+        # Map must not rely on heavy UG choropleth language in the note.
+        self.assertIn("contorno", self.feed["spatial"]["note_pt"].lower())
+
 
 if __name__ == "__main__":
     unittest.main()

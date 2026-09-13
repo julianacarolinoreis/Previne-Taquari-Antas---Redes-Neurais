@@ -1,15 +1,59 @@
 {
   "schema_version": "plataforma_hec_twin_mucum_v2",
-  "generated_at_utc": "2026-09-13T02:22:54Z",
+  "generated_at_utc": "2026-09-13T13:14:46Z",
   "status": "research_platform_ready",
-  "label_pt": "Plataforma HEC/REC · gêmeo Muçum ~5d",
-  "purpose_pt": "Onde o resultado do gêmeo HEC (REC) vai parar: quanto sobe em Muçum, chuva espacializada no corredor, verificação ao vivo e skill hindcast — no GitHub Pages, como a plataforma das RNAs.",
+  "label_pt": "Plataforma HEC/REC · corredor calibrado ~5d",
+  "purpose_pt": "Gêmeo hidrológico do CORREDOR Taquari–Antas (REC), calibrado na bacia por análogos (fingerprint areal + regime + umidade) — não um atalho Santa Tereza→Muçum. Produto de saída: ΔN em Muçum. STZ é controle de nível (sem curva N↔Q inventada). Guaporé/Forqueta/Baixo fora.",
+  "corridor": {
+    "label_pt": "Corredor HEC/REC calibrado",
+    "calibration_method": "analog_basin_calibrated_aw_fingerprint_wetness_blend_v4",
+    "calibration_artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
+    "nested_area_km2": 15965.207,
+    "outlet_pt": "Muçum (ΔN via curva-chave oficial)",
+    "level_control_pt": "Santa Tereza (nível observado; Q diagnóstico sem curva)",
+    "subbasins": [
+      {
+        "id": "SB_PRATA_7868",
+        "label": "Prata / Turvo-Humatã",
+        "role": "montante"
+      },
+      {
+        "id": "SB_ANTAS_RESIDUAL",
+        "label": "Antas residual",
+        "role": "tronco"
+      },
+      {
+        "id": "SB_CARREIRO_7866",
+        "label": "Carreiro",
+        "role": "afluente"
+      },
+      {
+        "id": "SB_STZ_RESIDUAL",
+        "label": "Residual até Santa Tereza",
+        "role": "controle"
+      },
+      {
+        "id": "SB_INC_MUCUM",
+        "label": "Incremento STZ→Muçum",
+        "role": "trecho_final"
+      }
+    ],
+    "excluded_pt": [
+      "Guaporé",
+      "Forqueta",
+      "Baixo Taquari-Antas"
+    ],
+    "not_full_g040": true,
+    "not_only_stz_mucum_shortcut": true
+  },
   "discipline": {
     "research_not_alert": true,
     "does_not_touch_rna": true,
     "no_invented_stz_rating_curve": true,
     "ifs_point_proxy_not_areal_mask": true,
-    "corridor_not_full_g040": true
+    "corridor_not_full_g040": true,
+    "basin_calibrated_analogs": true,
+    "not_stz_mucum_only_shortcut": true
   },
   "where_results_go": {
     "pages_base": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais",
@@ -50,7 +94,7 @@
   },
   "headline": {
     "source": "live_eval",
-    "question_pt": "Com a chuva (prevista ou do evento), quanto sobe Muçum?",
+    "question_pt": "Com a chuva do corredor calibrado (Prata–Carreiro–Antas→STZ→Muçum), quanto sobe o nível em Muçum?",
     "plain_pt": "Com ~33.3 mm de chuva prevista em 120 h e nível atual 425 cm em Muçum, o gêmeo HEC indica subida de ~254 cm (banda 134–296 cm), pico ancorado ~679 cm em 2026-09-12T20:00:00Z.",
     "primary": {
       "event_id": "BLEND",
@@ -169,7 +213,7 @@
       "note_pt": "Produto operacional de pesquisa (~5d). Se a forçante estiver seca ou a telemetria cair, o ΔN pode ir a zero — conferir live eval.",
       "available": true,
       "artifact": "hec_twin_mucum_forward_5d.html",
-      "age_hours": 4.07,
+      "age_hours": 14.93,
       "stale": true,
       "note": "Forward seco/stale — preferir live para o evento.",
       "peak_delta_n_cm": 0.0,
@@ -263,7 +307,7 @@
       },
       "available": true,
       "artifact": "hec_twin_mucum_live_eval.html",
-      "age_hours": 4.07,
+      "age_hours": 14.93,
       "timing_error_h": 0.5,
       "note": "Replay do evento com âncora + verificação ANA.",
       "peak_delta_n_cm": 253.81,
@@ -324,7 +368,7 @@
     }
   },
   "spatial": {
-    "note_pt": "Chuva IFS é proxy pontual por sub-bacia do corredor HEC — não máscara areal fechada. Pontos de amarração = forçantes + monitores do corredor (Prata/Carreiro/Antas→Muçum). UG G040 é contexto; Guaporé/Forqueta fora.",
+    "note_pt": "Corredor calibrado REC: Prata + Antas residual + Carreiro + residual STZ + incremento Muçum. Chuva IFS = proxy pontual por sub-bacia (não máscara areal). UG G040 só como contorno; Guaporé/Forqueta/Baixo fora do modelo.",
     "area_weighted_total_mm": 33.264,
     "area_weighted_past_mm": 29.737,
     "area_weighted_future_mm": 3.527,
@@ -562,19 +606,6 @@
         "rain_mm_window": 33.4
       },
       {
-        "code": "2851044",
-        "role": "rain",
-        "role_pt": "chuva",
-        "label": "Guaporé (chuva)",
-        "name": "GUAPORÉ",
-        "lat": -28.8444,
-        "lon": -51.8792,
-        "coord_source": "postos_por_upg",
-        "id": "2851044",
-        "ug": null,
-        "rain_mm_window": null
-      },
-      {
         "code": "A894",
         "role": "rain",
         "role_pt": "chuva",
@@ -679,7 +710,7 @@
         "rain_mm_window": null
       }
     ],
-    "anchor_count": 16,
+    "anchor_count": 15,
     "ug_filter": [
       "Carreiro",
       "Médio Taquari-Antas",
@@ -1339,10 +1370,11 @@
     ]
   },
   "product": {
-    "name": "ΔN ~5d · Muçum",
+    "name": "Corredor calibrado · ΔN Muçum ~5d",
     "horizon": "~5 dias",
-    "target": "Muçum",
-    "mode": "pesquisa"
+    "target": "Muçum (exutório N)",
+    "mode": "pesquisa · REC bacia",
+    "domain_pt": "Prata + Antas residual + Carreiro + residual STZ + incremento Muçum"
   },
   "summary": {
     "peak_n_cm": 678.81,
@@ -1354,8 +1386,8 @@
   },
   "freshness": {
     "preferred_source": "live_eval",
-    "live_age_hours": 4.07,
-    "forward_age_hours": 4.07,
+    "live_age_hours": 14.93,
+    "forward_age_hours": 14.93,
     "stale_forward": true,
     "forward_max_delta_n_cm": 0.0,
     "note_pt": "Quando o forward está seco/stale, headline e hidrograma preferem o live eval."

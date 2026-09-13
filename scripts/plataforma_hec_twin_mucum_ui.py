@@ -211,9 +211,9 @@ ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
     </div>
     <h1>Plataforma <span>HEC/REC</span></h1>
     <p class="lede">
-      Onde o resultado do gêmeo hidrológico vai parar — quanto sobe em Muçum, com a chuva
-      no mapa do corredor, hidrograma do evento e amarração nos postos. RNAs de curto prazo
-      permanecem intactas.
+      Gêmeo HEC/REC do <strong>corredor calibrado</strong> da bacia (Prata, Antas residual,
+      Carreiro, residual até Santa Tereza e incremento até Muçum) — não um atalho
+      Santa Tereza→Muçum. Produto de saída: ΔN em Muçum. RNAs de curto prazo intactas.
     </p>
     <div class="{{FRESH_CLS}}" id="freshnessBanner">
       <span>Atualização: <strong>{{GENERATED}}</strong> UTC</span>
@@ -223,6 +223,14 @@ ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
       <span>Âncoras: <strong>{{N_ANCHORS}}</strong></span>
     </div>
   </header>
+
+
+  <section class="card" style="margin-bottom:.9rem" id="corridorCard">
+    <h2>Corredor calibrado (REC)</h2>
+    <p class="muted" id="corridorNote">Cinco sub-bacias aninhadas · calibração por análogos na bacia.</p>
+    <div class="chips" id="corridorChips"></div>
+    <p class="muted mono" id="corridorMeta" style="margin-top:.55rem"></p>
+  </section>
 
   <section class="grid metrics" style="margin-bottom:.9rem">
     <article class="card metric">
@@ -263,7 +271,7 @@ ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
 
   <section class="grid split" style="margin-bottom:.9rem">
     <article class="card">
-      <h2>Mapa espacial · UGs + âncoras</h2>
+      <h2>Mapa do corredor · sub-bacias + âncoras</h2>
       <div class="chips" id="roleChips"></div>
       <div id="map"></div>
     </article>
@@ -279,8 +287,9 @@ ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
     <h2>Como o robô alimenta esta página</h2>
     <ol class="muted" id="robotSteps"></ol>
     <p class="foot">
-      IFS = proxy pontual por sub-bacia (não máscara areal). Modelo de corredor ≠ G040 completa
-      (Guaporé/Forqueta fora). Santa Tereza sem curva-chave inventada. Pesquisa, não alerta oficial.
+      Calibração = análogos da bacia (fingerprint areal + regime + umidade). IFS = proxy pontual
+      por sub-bacia do corredor (não máscara areal). Guaporé/Forqueta/Baixo fora. STZ sem curva
+      N↔Q inventada. Pesquisa, não alerta oficial.
     </p>
   </section>
 </div>
@@ -433,10 +442,11 @@ const legend = L.control({position:"bottomright"});
 legend.onAdd = function() {
   const d = L.DomUtil.create("div", "legend");
   d.innerHTML =
-    "<div><i style=\"background:#0f5c45\"></i>alvo</div>" +
-    "<div><i style=\"background:#1d4f91\"></i>nível</div>" +
-    "<div><i style=\"background:#1d6b9f\"></i>chuva</div>" +
-    "<div><i style=\"background:#5a6570\"></i>montante</div>";
+    "<div><i style=\"background:#0f5c45\"></i>alvo Muçum</div>" +
+    "<div><i style=\"background:#1d4f91\"></i>nível / controle</div>" +
+    "<div><i style=\"background:#2f6b54\"></i>chuva sub-bacia</div>" +
+    "<div><i style=\"background:#5a6570\"></i>monitor montante</div>" +
+    "<div style=\"margin-top:.25rem\">contorno = UG do corredor</div>";
   return d;
 };
 legend.addTo(map);
@@ -489,16 +499,16 @@ function renderAnchors() {
 }
 
 function rainColor(mm) {
-  if (mm == null) return "#9bb8a8";
-  if (mm < 5) return "#a8c5b4";
-  if (mm < 15) return "#5f9e7a";
-  if (mm < 30) return "#c47a2a";
-  if (mm < 50) return "#b85a1a";
-  return "#8f2f2a";
+  if (mm == null) return "#7a9e8c";
+  if (mm < 10) return "#6f9e86";
+  if (mm < 25) return "#3f7f64";
+  if (mm < 40) return "#2f6b54";
+  return "#1f5a46";
 }
 function rainRadius(mm) {
   const v = Math.max(0, Number(mm) || 0);
-  return Math.max(8, Math.min(34, 8 + Math.sqrt(v) * 3.2));
+  // pontos discretos — sem bolha grande no meio do mapa
+  return Math.max(5, Math.min(11, 5 + Math.sqrt(v) * 0.7));
 }
 
 ((((DATA.spatial || {}).rain_geojson) || ((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f) {
@@ -507,8 +517,8 @@ function rainRadius(mm) {
   if (coords.length < 2) return;
   const mm = pr.total_mm;
   L.circleMarker([coords[1], coords[0]], {
-    radius: rainRadius(mm), color:"#5c4030", weight:1,
-    fillColor: rainColor(mm), fillOpacity:0.72
+    radius: rainRadius(mm), color:"#1f4a3a", weight:1.2,
+    fillColor: rainColor(mm), fillOpacity:0.85
   }).bindPopup(
     "<strong>" + (pr.label || pr.subbasin_id || "") + "</strong><br/>total " + fmt(mm,1) + " mm" +
     "<br/>passado " + fmt(pr.past_mm,1) + " · futuro " + fmt(pr.future_mm,1)
@@ -531,16 +541,8 @@ async function loadUgs() {
         return /Prata|Carreiro|M[eé]dio Taquari/i.test(name);
       },
       style: function(feat) {
-        const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "";
-        const rain = rainByUg[name];
-        let fill = "#94a3b8";
-        if (rain != null) {
-          if (rain >= 80) fill = "#1d4ed8";
-          else if (rain >= 40) fill = "#3b82f6";
-          else if (rain >= 15) fill = "#93c5fd";
-          else fill = "#dbeafe";
-        }
-        return {color:"#1e3a5f", weight:1.2, fillColor:fill, fillOpacity:0.35};
+        // só contorno — a UG "Médio Taquari-Antas" é grande demais para pintar
+        return {color:"#2f5a48", weight:1.4, fillColor:"#2f5a48", fillOpacity:0.04};
       },
       onEachFeature: function(feat, lyr) {
         const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "UG";
@@ -550,9 +552,52 @@ async function loadUgs() {
       }
     });
     layer.addTo(ugLayer);
-    try { map.fitBounds(layer.getBounds().pad(0.08)); } catch (e) {}
+    try {
+      const pts = [];
+      (((DATA.spatial || {}).anchors) || []).forEach(function(a){ if (a.lat != null) pts.push([a.lat, a.lon]); });
+      ((((DATA.spatial || {}).rain_geojson) || ((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f){
+        const c = (f.geometry && f.geometry.coordinates) || [];
+        if (c.length >= 2) pts.push([c[1], c[0]]);
+      });
+      if (pts.length) map.fitBounds(pts, {padding:[28,28]});
+      else map.fitBounds(layer.getBounds().pad(0.06));
+    } catch (e) {}
   } catch (e) {}
 }
+
+
+(function fillCorridor() {
+  const c = DATA.corridor || {};
+  const note = document.getElementById("corridorNote");
+  const chips = document.getElementById("corridorChips");
+  const meta = document.getElementById("corridorMeta");
+  if (!chips) return;
+  if (note) {
+    note.textContent = (c.label_pt || "Corredor HEC/REC") +
+      (c.nested_area_km2 != null ? (" · ~" + Number(c.nested_area_km2).toFixed(0) + " km²") : "") +
+      " · calibração por análogos da bacia · não é G040 completa";
+  }
+  const rainBySb = {};
+  ((((DATA.spatial || {}).rain_geojson) || ((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f) {
+    const p = f.properties || {};
+    if (p.subbasin_id) rainBySb[p.subbasin_id] = p.total_mm;
+  });
+  (c.subbasins || []).forEach(function(sb) {
+    const b = document.createElement("span");
+    b.className = "chip";
+    b.style.cursor = "default";
+    const mm = rainBySb[sb.id];
+    b.textContent = sb.label + (mm != null ? (" · " + Number(mm).toFixed(0) + " mm") : "");
+    b.title = sb.id + " · " + (sb.role || "");
+    chips.appendChild(b);
+  });
+  if (meta) {
+    meta.textContent =
+      "Calibração: " + (c.calibration_method || "análogos da bacia") +
+      " · saída " + (c.outlet_pt || "Muçum") +
+      " · fora: " + ((c.excluded_pt || []).join(", ") || "—");
+  }
+})();
 
 drawChart();
 renderChips();
