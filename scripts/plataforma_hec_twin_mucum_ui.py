@@ -207,6 +207,13 @@ ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
 .lessons li { margin:.25rem 0; color:var(--muted); }
 .skill-summary { display:flex; flex-wrap:wrap; gap:.55rem 1rem; margin:.35rem 0 .2rem; }
 .skill-summary strong { color:var(--live); }
+.inspector {
+  margin-top:.7rem; border:1px solid var(--line); border-radius:12px;
+  background:rgba(255,255,255,.78); padding:.7rem .8rem; min-height:9.5rem;
+}
+.inspector h3 { margin:0 0 .35rem; font-family:Fraunces, Georgia, serif; font-size:.98rem; }
+.inspector .empty { color:var(--muted); font-size:.88rem; }
+svg.mini-chart { width:100%; height:168px; display:block; }
 @keyframes rise {
   from { opacity:0; transform:translateY(8px); }
   to { opacity:1; transform:translateY(0); }
@@ -226,9 +233,10 @@ ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
     </div>
     <h1>Plataforma <span>HEC/REC</span></h1>
     <p class="lede">
-      Gêmeo HEC/REC do <strong>corredor calibrado</strong> da bacia (Prata, Antas residual,
-      Carreiro, residual até Santa Tereza e incremento até Muçum) — não um atalho
-      Santa Tereza→Muçum. Produto de saída: ΔN em Muçum. RNAs de curto prazo intactas.
+      A <strong>bacia Taquari–Antas (G040)</strong> é o contexto (~26,4 mil km², 7 UGs).
+      O gêmeo modela só o <strong>corredor até Muçum</strong> (~16 mil km²: Alto, Prata,
+      Carreiro, Médio — com sub-bacias aninhadas até o alvo). Produto: ΔN em Muçum.
+      Clique num ponto para abrir a curva. RNAs de curto prazo intactas.
     </p>
     <div class="{{FRESH_CLS}}" id="freshnessBanner">
       <span>Atualização: <strong>{{GENERATED}}</strong> UTC</span>
@@ -304,13 +312,23 @@ ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
 
   <section class="grid split" style="margin-bottom:.9rem">
     <article class="card">
-      <h2>Mapa do corredor · sub-bacias + âncoras</h2>
+      <h2>Mapa · bacia G040 + domínio do gêmeo</h2>
+      <p class="muted" id="mapFramingNote" style="margin:.15rem 0 .55rem"></p>
       <div class="chips" id="roleChips"></div>
       <div id="map"></div>
+      <div class="inspector" id="pointInspector">
+        <h3 id="inspectorTitle">Curva do ponto</h3>
+        <p class="empty" id="inspectorEmpty">Clique numa âncora (ou na lista) para ver a curva / hietograma.</p>
+        <div id="inspectorBody" hidden>
+          <p class="muted" id="inspectorMeta"></p>
+          <svg class="mini-chart" id="inspectorChart" viewBox="0 0 520 168" role="img" aria-label="Curva do ponto selecionado"></svg>
+          <p class="chart-caption" id="inspectorNote"></p>
+        </div>
+      </div>
     </article>
     <article class="card">
       <h2>Pontos de amarração</h2>
-      <p class="muted">Clique para focar no mapa. Filtro por papel no corredor HEC.</p>
+      <p class="muted">Clique para focar no mapa e abrir a curva. Filtro por papel no gêmeo.</p>
       <div class="anchor-list" id="anchorList"></div>
       <div class="links" id="artifactLinks"></div>
     </article>
@@ -320,9 +338,9 @@ ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
     <h2>Como o robô alimenta esta página</h2>
     <ol class="muted" id="robotSteps"></ol>
     <p class="foot">
-      Calibração = análogos da bacia (fingerprint areal + regime + umidade). IFS = proxy pontual
-      por sub-bacia do corredor (não máscara areal). Guaporé/Forqueta/Baixo fora. STZ sem curva
-      N↔Q inventada. Pesquisa, não alerta oficial.
+      G040 = contexto da bacia; gêmeo = corredor até Muçum (inclui Alto). Calibração = análogos.
+      IFS hoje = proxy pontual por sub-bacia (não a máscara areal ECMWF/REC do e-mail ao Guilherme).
+      Guaporé/Forqueta/Baixo fora do domínio. STZ sem curva N↔Q inventada. Pesquisa, não alerta.
     </p>
   </section>
 </div>
@@ -406,54 +424,113 @@ const local = ((DATA.where_results_go || {}).local) || {};
   links.appendChild(a);
 });
 
-function drawChart() {
-  const svg = document.getElementById("eventChart");
-  const note = document.getElementById("chartNote");
-  const trace = DATA.event_trace || {};
-  const series = trace.series || [];
-  const rain = trace.rain_mm || [];
-  if (!series.length) {
-    svg.innerHTML = "<text x=\"24\" y=\"140\" fill=\"#4a6356\">Sem série para plotar.</text>";
+function drawSeriesSvg(svg, series, rain, opts) {
+  opts = opts || {};
+  const W = opts.W || 960, H = opts.H || 280;
+  const pad = opts.pad || {l:54, r:18, t:18, b:36};
+  if (!series || !series.length) {
+    svg.innerHTML = "<text x=\"24\" y=\"" + (H/2) + "\" fill=\"#4a6356\">Sem série para plotar.</text>";
     return;
   }
-  const W = 960, H = 280, pad = {l:54, r:18, t:18, b:36};
   const innerW = W - pad.l - pad.r, innerH = H - pad.t - pad.b;
+  const mode = opts.mode || "level";
   const ys = series.map(function(p){ return Number(p.n_cm); }).filter(function(v){ return !Number.isNaN(v); });
-  const yMin = Math.min.apply(null, ys.concat([0]));
-  const yMax = Math.max.apply(null, ys.concat([1]));
-  const xAt = function(i){ return pad.l + (i / Math.max(series.length - 1, 1)) * innerW; };
+  const yMin = mode === "rain" ? 0 : Math.min.apply(null, ys.concat([0]));
+  const yMax = mode === "rain"
+    ? Math.max.apply(null, (rain || []).concat([1]))
+    : Math.max.apply(null, ys.concat([1]));
+  const xAt = function(i, n){ return pad.l + (i / Math.max(n - 1, 1)) * innerW; };
   const yAt = function(v){ return pad.t + (1 - ((v - yMin) / (yMax - yMin || 1))) * innerH; };
   let path = "";
-  series.forEach(function(p, i) {
-    const x = xAt(i), y = yAt(Number(p.n_cm));
-    path += (i ? " L " : "M ") + x.toFixed(1) + " " + y.toFixed(1);
-  });
-  const rainMax = Math.max.apply(null, rain.concat([1]));
+  if (mode !== "rain") {
+    series.forEach(function(p, i) {
+      const x = xAt(i, series.length), y = yAt(Number(p.n_cm));
+      path += (i ? " L " : "M ") + x.toFixed(1) + " " + y.toFixed(1);
+    });
+  }
+  const rainArr = rain || [];
+  const rainMax = Math.max.apply(null, rainArr.concat([1]));
   let bars = "";
-  rain.forEach(function(v, i) {
-    const h = (Number(v) / rainMax) * (innerH * 0.28);
-    const x = xAt(i);
-    const bw = Math.max(2, innerW / Math.max(rain.length, 1) * 0.55);
-    bars += "<rect x=\"" + (x - bw/2).toFixed(1) + "\" y=\"" + (pad.t + 4).toFixed(1) +
+  rainArr.forEach(function(v, i) {
+    const h = (Number(v) / rainMax) * (mode === "rain" ? innerH * 0.92 : innerH * 0.28);
+    const x = xAt(i, Math.max(rainArr.length, series.length));
+    const bw = Math.max(1.6, innerW / Math.max(rainArr.length, 1) * 0.5);
+    const y0 = mode === "rain" ? (pad.t + innerH - h) : (pad.t + 4);
+    bars += "<rect x=\"" + (x - bw/2).toFixed(1) + "\" y=\"" + y0.toFixed(1) +
       "\" width=\"" + bw.toFixed(1) + "\" height=\"" + h.toFixed(1) +
-      "\" fill=\"rgba(29,107,159,0.28)\"></rect>";
+      "\" fill=\"rgba(29,107,159," + (mode === "rain" ? "0.42" : "0.22") + ")\"></rect>";
   });
   const grid = [];
   for (let g = 0; g < 4; g++) {
     const yy = pad.t + (innerH * g / 3);
     const val = yMax - (yMax - yMin) * g / 3;
     grid.push("<line x1=\"" + pad.l + "\" x2=\"" + (W-pad.r) + "\" y1=\"" + yy + "\" y2=\"" + yy + "\" stroke=\"#d7e2db\"/>");
-    grid.push("<text x=\"8\" y=\"" + (yy+4) + "\" fill=\"#4a6356\" font-size=\"11\">" + val.toFixed(0) + "</text>");
+    grid.push("<text x=\"8\" y=\"" + (yy+4) + "\" fill=\"#4a6356\" font-size=\"10\">" + val.toFixed(0) + "</text>");
   }
+  const stroke = opts.stroke || "#0f5c45";
   svg.innerHTML = grid.join("") + bars +
-    "<path d=\"" + path + "\" fill=\"none\" stroke=\"#0f5c45\" stroke-width=\"2.4\"></path>" +
-    "<text x=\"" + pad.l + "\" y=\"" + (H-10) + "\" fill=\"#4a6356\" font-size=\"11\">" +
+    (path ? ("<path d=\"" + path + "\" fill=\"none\" stroke=\"" + stroke + "\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path>") : "") +
+    "<text x=\"" + pad.l + "\" y=\"" + (H-8) + "\" fill=\"#4a6356\" font-size=\"10\">" +
     (series[0] && series[0].t ? series[0].t : "") + "</text>" +
-    "<text x=\"" + (W-pad.r) + "\" y=\"" + (H-10) + "\" fill=\"#4a6356\" font-size=\"11\" text-anchor=\"end\">" +
+    "<text x=\"" + (W-pad.r) + "\" y=\"" + (H-8) + "\" fill=\"#4a6356\" font-size=\"10\" text-anchor=\"end\">" +
     (series[series.length-1] && series[series.length-1].t ? series[series.length-1].t : "") + "</text>";
+}
+
+function drawChart() {
+  const svg = document.getElementById("eventChart");
+  const note = document.getElementById("chartNote");
+  const trace = DATA.event_trace || {};
+  const series = trace.series || [];
+  const rain = trace.rain_mm || [];
+  drawSeriesSvg(svg, series, rain, {W:960, H:280, mode:"level"});
   document.getElementById("chartCaption").textContent =
     "Fonte do traço: " + (trace.source || "—") + (trace.note ? " · " + trace.note : "");
-  note.textContent = "Linha verde = nível estimado (cm). Barras azuis = chuva proxy (mm).";
+  note.textContent = "Linha = nível estimado em Muçum (cm). Barras = chuva proxy areal ponderada (mm).";
+}
+
+function showInspector(anchor, kind) {
+  const empty = document.getElementById("inspectorEmpty");
+  const body = document.getElementById("inspectorBody");
+  const title = document.getElementById("inspectorTitle");
+  const meta = document.getElementById("inspectorMeta");
+  const note = document.getElementById("inspectorNote");
+  const svg = document.getElementById("inspectorChart");
+  const trace = DATA.event_trace || {};
+  const series = trace.series || [];
+  const rain = trace.rain_mm || [];
+  empty.hidden = true;
+  body.hidden = false;
+  const label = (anchor && (anchor.label || anchor.name)) || (anchor && anchor.code) || "Ponto";
+  title.textContent = label;
+  if (kind === "network") {
+    meta.textContent = (anchor.kind === "rain" ? "chuva inventário" : "flu inventário") +
+      (anchor.ug ? " · " + anchor.ug : "") + " · " + (anchor.code || "");
+    svg.innerHTML = "<text x=\"18\" y=\"84\" fill=\"#4a6356\" font-size=\"12\">Ponto de inventário — sem série do gêmeo neste build.</text>";
+    note.textContent = "Use as âncoras curadas para abrir hidrograma / hietograma do evento.";
+    return;
+  }
+  const role = anchor.role;
+  const rainWin = anchorRain(anchor);
+  meta.textContent = (anchor.role_pt || roleLabel(role)) +
+    (anchor.ug ? " · " + anchor.ug : "") +
+    " · " + (anchor.code || "") +
+    (rainWin != null ? " · chuva UG " + Number(rainWin).toFixed(1) + " mm" : "");
+  if (role === "target") {
+    drawSeriesSvg(svg, series, rain, {W:520, H:168, pad:{l:40,r:12,t:12,b:28}, mode:"level", stroke:"#0f5c45"});
+    note.textContent = "Curva do produto: N estimado em Muçum + chuva proxy da janela.";
+  } else if (role === "level_control") {
+    drawSeriesSvg(svg, series, rain, {W:520, H:168, pad:{l:40,r:12,t:12,b:28}, mode:"level", stroke:"#1d4f91"});
+    note.textContent = "STZ = controle de nível (sem curva N↔Q inventada). Traço exibido = produto Muçum da mesma janela, só para contexto temporal.";
+  } else if (role === "rain") {
+    const rainSeries = rain.map(function(v, i) {
+      return {t: (series[i] && series[i].t) || ("i"+i), n_cm: Number(v) || 0};
+    });
+    drawSeriesSvg(svg, rainSeries, rain, {W:520, H:168, pad:{l:40,r:12,t:12,b:28}, mode:"rain"});
+    note.textContent = "Hietograma proxy da janela (IFS pontual por sub-bacia — ainda não máscara areal ECMWF/REC).";
+  } else {
+    drawSeriesSvg(svg, series, rain, {W:520, H:168, pad:{l:40,r:12,t:12,b:28}, mode:"level", stroke:"#5a6570"});
+    note.textContent = "Monitor de montante: série do produto Muçum na janela (contexto). Sem curva local inventada.";
+  }
 }
 
 const anchors = ((DATA.spatial || {}).anchors) || [];
@@ -462,15 +539,25 @@ const roles = ["all"].concat(Array.from(new Set(anchors.map(function(a){ return 
 let activeRole = "all";
 let activeId = null;
 const list = document.getElementById("anchorList");
-const map = L.map("map", {scrollWheelZoom:true}).setView([-29.05, -51.75], 9);
+const map = L.map("map", {scrollWheelZoom:true}).setView([-29.05, -51.75], 8);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom:18, attribution:"&copy; OpenStreetMap"
 }).addTo(map);
+const basinLayer = L.layerGroup().addTo(map);
 const ugLayer = L.layerGroup().addTo(map);
 const rainLayer = L.layerGroup().addTo(map);
 const networkLayer = L.layerGroup(); // off by default — dense inventory
 const anchorLayer = L.layerGroup().addTo(map);
 const markers = {};
+
+(function fillMapFraming() {
+  const fr = ((DATA.spatial || {}).basin_framing) || {};
+  const el = document.getElementById("mapFramingNote");
+  if (!el) return;
+  el.textContent = (fr.g040_label_pt || "G040") + " (~" + fmt(fr.g040_km2, 0) + " km²) = contexto · " +
+    (fr.twin_domain_label_pt || "domínio do gêmeo") + " (~" + fmt(fr.twin_domain_km2, 0) + " km²) = modelo · " +
+    "fora: " + ((fr.excluded_ugs || []).join(", ") || "—");
+})();
 
 const legend = L.control({position:"bottomright"});
 legend.onAdd = function() {
@@ -478,15 +565,16 @@ legend.onAdd = function() {
   d.innerHTML =
     "<div><i style=\"background:#0f5c45\"></i>alvo Muçum</div>" +
     "<div><i style=\"background:#1d4f91\"></i>nível / controle</div>" +
-    "<div><i style=\"background:#2f6b54\"></i>chuva sub-bacia</div>" +
-    "<div><i style=\"background:#5a6570\"></i>monitor montante</div>" +
-    "<div><i style=\"background:#8a96a0\"></i>rede inventário</div>" +
-    "<div style=\"margin-top:.25rem\">contorno = UG do corredor</div>";
+    "<div><i style=\"background:#3d7a92\"></i>chuva</div>" +
+    "<div><i style=\"background:#6a737a\"></i>monitor</div>" +
+    "<div><i style=\"background:#a8b2b8\"></i>rede (suave)</div>" +
+    "<div style=\"margin-top:.25rem\">tracejado = G040 · preenchido = domínio</div>";
   return d;
 };
 legend.addTo(map);
 L.control.layers(null, {
-  "UGs HEC":ugLayer,
+  "Bacia G040":basinLayer,
+  "Domínio gêmeo":ugLayer,
   "Chuva IFS":rainLayer,
   "Rede corredor":networkLayer,
   "Âncoras":anchorLayer
@@ -504,7 +592,6 @@ function renderChips() {
   });
 }
 
-
 function renderNetwork() {
   networkLayer.clearLayers();
   const net = ((DATA.spatial || {}).corridor_network) || {};
@@ -514,17 +601,29 @@ function renderNetwork() {
     const c = (f.geometry && f.geometry.coordinates) || [];
     if (c.length < 2) return;
     const isRain = p.kind === "rain";
-    L.circleMarker([c[1], c[0]], {
-      radius: isRain ? 3.2 : 3.8,
-      color: isRain ? "#6a8aa0" : "#7a868f",
-      weight: 1,
-      fillColor: isRain ? "#9bb7c9" : "#a0a8b0",
-      fillOpacity: 0.7
-    }).bindPopup(
+    const m = L.circleMarker([c[1], c[0]], {
+      radius: isRain ? 2.1 : 2.4,
+      color: "rgba(255,255,255,0.35)",
+      weight: 0.6,
+      fillColor: isRain ? "#8aa7b8" : "#9aa3aa",
+      fillOpacity: 0.28
+    });
+    m.on("click", function() {
+      showInspector({
+        label: p.name || p.code,
+        name: p.name,
+        code: p.code,
+        ug: p.ug,
+        kind: p.kind,
+        role: "network"
+      }, "network");
+    });
+    m.bindPopup(
       "<strong>" + (p.name || p.code) + "</strong><br/>" +
       (isRain ? "chuva inventário" : "flu inventário") +
       (p.ug ? " · " + p.ug : "") + "<br/>" + (p.code || "")
-    ).addTo(networkLayer);
+    );
+    m.addTo(networkLayer);
   });
 }
 
@@ -572,6 +671,21 @@ function renderSkill() {
   }
 }
 
+function selectAnchor(a) {
+  activeId = a.code || a.id;
+  showInspector(a, "anchor");
+  renderAnchors();
+  map.setView([a.lat, a.lon], 11, {animate:true});
+  if (markers[activeId]) markers[activeId].openPopup();
+}
+
+function delicateRadius(role) {
+  if (role === "target") return 5.2;
+  if (role === "level_control") return 4.4;
+  if (role === "rain") return 3.4;
+  return 3.8;
+}
+
 function renderAnchors() {
   list.innerHTML = "";
   anchorLayer.clearLayers();
@@ -586,21 +700,22 @@ function renderAnchors() {
       "<div class=\"meta\">" + (a.role_pt || roleLabel(a.role)) +
       (a.ug ? " · " + a.ug : "") +
       (rain != null ? " · chuva " + Number(rain).toFixed(1) + " mm" : "") + "</div>";
-    item.onclick = function() {
-      activeId = id;
-      map.setView([a.lat, a.lon], 11, {animate:true});
-      if (markers[id]) markers[id].openPopup();
-      renderAnchors();
-    };
+    item.onclick = function() { selectAnchor(a); };
     list.appendChild(item);
     const m = L.circleMarker([a.lat, a.lon], {
-      radius: a.role === "target" ? 9 : 7, color:"#fff", weight:2,
-      fillColor: roleColor(a.role), fillOpacity:0.95
-    }).bindPopup(
+      radius: delicateRadius(a.role),
+      color: "rgba(255,255,255,0.55)",
+      weight: 1,
+      fillColor: roleColor(a.role),
+      fillOpacity: a.role === "target" ? 0.78 : 0.62
+    });
+    m.bindPopup(
       "<strong>" + (a.label || a.name) + "</strong><br/>" +
       (a.role_pt || roleLabel(a.role)) + "<br/>" + (a.name || "") + " · " + id +
-      (rain != null ? "<br/>chuva janela: " + Number(rain).toFixed(1) + " mm" : "")
+      (rain != null ? "<br/>chuva janela: " + Number(rain).toFixed(1) + " mm" : "") +
+      "<br/><em>clique no ponto para a curva</em>"
     );
+    m.on("click", function() { selectAnchor(a); });
     m.addTo(anchorLayer);
     markers[id] = m;
   });
@@ -615,21 +730,24 @@ function rainColor(mm) {
 }
 function rainRadius(mm) {
   const v = Math.max(0, Number(mm) || 0);
-  // pontos discretos — sem bolha grande no meio do mapa
-  return Math.max(5, Math.min(11, 5 + Math.sqrt(v) * 0.7));
+  return Math.max(3.2, Math.min(6.5, 3.2 + Math.sqrt(v) * 0.45));
 }
 
-((((DATA.spatial || {}).rain_geojson) || ((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f) {
+((((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f) {
   const pr = f.properties || {};
   const coords = (f.geometry && f.geometry.coordinates) || [];
   if (coords.length < 2) return;
   const mm = pr.total_mm;
   L.circleMarker([coords[1], coords[0]], {
-    radius: rainRadius(mm), color:"#1f4a3a", weight:1.2,
-    fillColor: rainColor(mm), fillOpacity:0.85
+    radius: rainRadius(mm),
+    color: "rgba(255,255,255,0.4)",
+    weight: 0.8,
+    fillColor: rainColor(mm),
+    fillOpacity: 0.55
   }).bindPopup(
     "<strong>" + (pr.label || pr.subbasin_id || "") + "</strong><br/>total " + fmt(mm,1) + " mm" +
-    "<br/>passado " + fmt(pr.past_mm,1) + " · futuro " + fmt(pr.future_mm,1)
+    "<br/>passado " + fmt(pr.past_mm,1) + " · futuro " + fmt(pr.future_mm,1) +
+    "<br/><span style=\"opacity:.8\">proxy pontual IFS (não máscara areal)</span>"
   ).addTo(rainLayer);
 });
 
@@ -641,38 +759,62 @@ async function loadUgs() {
     if (!res.ok) return;
     const geo = await res.json();
     const rainByUg = (DATA.spatial || {}).ug_rain_mm || {};
-    const filterSet = new Set((DATA.spatial || {}).ug_filter || []);
-    const layer = L.geoJSON(geo, {
+    const corridorSet = new Set((DATA.spatial || {}).ug_filter || []);
+    const g040Set = new Set((DATA.spatial || {}).ug_g040 || []);
+
+    L.geoJSON(geo, {
       filter: function(feat) {
         const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "";
-        if (filterSet.size) return filterSet.has(name);
-        return /Prata|Carreiro|M[eé]dio Taquari/i.test(name);
+        if (g040Set.size) return g040Set.has(name);
+        return true;
       },
       style: function(feat) {
-        // só contorno — a UG "Médio Taquari-Antas" é grande demais para pintar
-        return {color:"#2f5a48", weight:1.4, fillColor:"#2f5a48", fillOpacity:0.04};
+        const name = (feat.properties && feat.properties.sub_bacia) || "";
+        const inTwin = corridorSet.has(name);
+        // G040 context: dashed mute outline; twin UGs get almost no fill here
+        return {
+          color: inTwin ? "#3d6b58" : "#8a9a90",
+          weight: inTwin ? 1.1 : 1.0,
+          dashArray: inTwin ? null : "5 5",
+          fillColor: "#8a9a90",
+          fillOpacity: 0.015
+        };
+      },
+      onEachFeature: function(feat, lyr) {
+        const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "UG";
+        const inTwin = corridorSet.has(name);
+        lyr.bindPopup("<strong>" + name + "</strong><br/>" +
+          (inTwin ? "UG no domínio do gêmeo" : "UG da bacia G040 · fora do gêmeo") +
+          (rainByUg[name] != null ? "<br/>chuva proxy: " + Number(rainByUg[name]).toFixed(1) + " mm" : ""));
+      }
+    }).addTo(basinLayer);
+
+    L.geoJSON(geo, {
+      filter: function(feat) {
+        const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "";
+        if (corridorSet.size) return corridorSet.has(name);
+        return /Alto Taquari|Prata|Carreiro|M[eé]dio Taquari/i.test(name);
+      },
+      style: function() {
+        return {color:"#2f5a48", weight:1.35, fillColor:"#2f5a48", fillOpacity:0.06};
       },
       onEachFeature: function(feat, lyr) {
         const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "UG";
         const rain = rainByUg[name];
-        lyr.bindPopup("<strong>" + name + "</strong>" +
+        lyr.bindPopup("<strong>" + name + "</strong><br/>domínio do gêmeo" +
           (rain != null ? "<br/>chuva proxy: " + Number(rain).toFixed(1) + " mm" : ""));
       }
-    });
-    layer.addTo(ugLayer);
+    }).addTo(ugLayer);
+
     try {
+      map.fitBounds(L.geoJSON(geo).getBounds().pad(0.04));
+    } catch (e) {
       const pts = [];
       (((DATA.spatial || {}).anchors) || []).forEach(function(a){ if (a.lat != null) pts.push([a.lat, a.lon]); });
-      ((((DATA.spatial || {}).rain_geojson) || ((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f){
-        const c = (f.geometry && f.geometry.coordinates) || [];
-        if (c.length >= 2) pts.push([c[1], c[0]]);
-      });
       if (pts.length) map.fitBounds(pts, {padding:[28,28]});
-      else map.fitBounds(layer.getBounds().pad(0.06));
-    } catch (e) {}
+    }
   } catch (e) {}
 }
-
 
 (function fillCorridor() {
   const c = DATA.corridor || {};
@@ -683,10 +825,10 @@ async function loadUgs() {
   if (note) {
     note.textContent = (c.label_pt || "Corredor HEC/REC") +
       (c.nested_area_km2 != null ? (" · ~" + Number(c.nested_area_km2).toFixed(0) + " km²") : "") +
-      " · calibração por análogos da bacia · não é G040 completa";
+      " · análogos da bacia · NÃO é a bacia G040 inteira";
   }
   const rainBySb = {};
-  ((((DATA.spatial || {}).rain_geojson) || ((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f) {
+  ((((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f) {
     const p = f.properties || {};
     if (p.subbasin_id) rainBySb[p.subbasin_id] = p.total_mm;
   });
@@ -702,10 +844,12 @@ async function loadUgs() {
   if (meta) {
     const net = ((DATA.spatial || {}).corridor_network) || {};
     const counts = net.counts || {};
+    const fr = ((DATA.spatial || {}).basin_framing) || {};
     meta.textContent =
-      "Calibração: " + (c.calibration_method || "análogos da bacia") +
+      "UGs domínio: " + ((fr.twin_domain_ugs || (DATA.spatial || {}).ug_filter || []).join(", ")) +
+      " · calibração: " + (c.calibration_method || "análogos") +
       " · saída " + (c.outlet_pt || "Muçum") +
-      " · fora: " + ((c.excluded_pt || []).join(", ") || "—") +
+      " · fora: " + ((c.excluded_pt || fr.excluded_ugs || []).join(", ") || "—") +
       " · âncoras " + ((((DATA.spatial || {}).anchors) || []).length) +
       " · rede " + (counts.total != null ? counts.total : "—");
   }

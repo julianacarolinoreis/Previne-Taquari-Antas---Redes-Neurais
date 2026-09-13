@@ -1,6 +1,6 @@
 {
   "schema_version": "plataforma_hec_twin_mucum_v2",
-  "generated_at_utc": "2026-09-13T15:23:07Z",
+  "generated_at_utc": "2026-09-13T17:18:56Z",
   "status": "research_platform_ready",
   "label_pt": "Plataforma HEC/REC · corredor calibrado ~5d",
   "purpose_pt": "Gêmeo hidrológico do CORREDOR Taquari–Antas (REC), calibrado na bacia por análogos (fingerprint areal + regime + umidade) — não um atalho Santa Tereza→Muçum. Produto de saída: ΔN em Muçum. STZ é controle de nível (sem curva N↔Q inventada). Guaporé/Forqueta/Baixo fora.",
@@ -213,7 +213,7 @@
       "note_pt": "Produto operacional de pesquisa (~5d). Se a forçante estiver seca ou a telemetria cair, o ΔN pode ir a zero — conferir live eval.",
       "available": true,
       "artifact": "hec_twin_mucum_forward_5d.html",
-      "age_hours": 17.07,
+      "age_hours": 19.0,
       "stale": true,
       "note": "Forward seco/stale — preferir live para o evento.",
       "peak_delta_n_cm": 0.0,
@@ -307,7 +307,7 @@
       },
       "available": true,
       "artifact": "hec_twin_mucum_live_eval.html",
-      "age_hours": 17.07,
+      "age_hours": 19.0,
       "timing_error_h": 0.5,
       "note": "Replay do evento com âncora + verificação ANA.",
       "peak_delta_n_cm": 253.81,
@@ -565,7 +565,36 @@
     }
   },
   "spatial": {
-    "note_pt": "Corredor calibrado REC: Prata + Antas residual + Carreiro + residual STZ + incremento Muçum. Chuva IFS = proxy pontual por sub-bacia (não máscara areal). UG G040 só como contorno; Guaporé/Forqueta/Baixo fora do modelo. Âncoras curadas=31; rede inventário corredor=220 pontos.",
+    "note_pt": "A bacia Taquari–Antas (G040, ~26,4 mil km², 7 UGs) aparece como contexto. O gêmeo HEC/REC modela só o CORREDOR até Muçum (~16 mil km²: Alto + Prata + Carreiro + Médio), com sub-bacias aninhadas Prata + Antas residual + Carreiro + residual STZ + incremento Muçum. Chuva IFS = proxy pontual por sub-bacia (ainda não a máscara areal ECMWF/REC do recorte enviado ao Guilherme). Guaporé/Forqueta/Baixo fora do domínio do modelo. Âncoras curadas=31; rede inventário corredor=286 pontos.",
+    "basin_framing": {
+      "g040_label_pt": "Bacia Taquari–Antas (G040)",
+      "g040_km2": 26430,
+      "g040_ugs": [
+        "Alto Taquari-Antas",
+        "Baixo Taquari-Antas",
+        "Carreiro",
+        "Forqueta",
+        "Guaporé",
+        "Médio Taquari-Antas",
+        "Prata"
+      ],
+      "twin_domain_label_pt": "Domínio do gêmeo (corredor até Muçum)",
+      "twin_domain_km2": 15965.207,
+      "twin_domain_ugs": [
+        "Alto Taquari-Antas",
+        "Carreiro",
+        "Médio Taquari-Antas",
+        "Prata"
+      ],
+      "excluded_ugs": [
+        "Baixo Taquari-Antas",
+        "Forqueta",
+        "Guaporé"
+      ],
+      "not_full_basin_model": true,
+      "ifs_is_point_proxy_not_areal_ecmwf_mask": true,
+      "click_shows_curve_pt": "Clique numa âncora: Muçum mostra a curva N+chuva do evento; STZ só nível/controle (sem N↔Q inventada); chuva mostra hietograma proxy."
+    },
     "area_weighted_total_mm": 33.264,
     "area_weighted_past_mm": 29.737,
     "area_weighted_future_mm": 3.527,
@@ -1119,6 +1148,708 @@
     "corridor_network": {
       "type": "FeatureCollection",
       "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.0067,
+              -28.9342
+            ]
+          },
+          "properties": {
+            "code": "86060000",
+            "name": "USINA ARCADO",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 20.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.0556,
+              -28.9489
+            ]
+          },
+          "properties": {
+            "code": "86060010",
+            "name": "CGH CAMBARÁ BARRAMENTO",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 28.63
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.0844,
+              -28.9364
+            ]
+          },
+          "properties": {
+            "code": "86070000",
+            "name": "USINA SANTANA",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 224.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.1614,
+              -28.9325
+            ]
+          },
+          "properties": {
+            "code": "86080000",
+            "name": "PASSO DA GARRAFA",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 354.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.4278,
+              -28.8
+            ]
+          },
+          "properties": {
+            "code": "86095000",
+            "name": "RIO DAS ANTAS (Jaquirana)",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 1557.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.4297,
+              -28.7986
+            ]
+          },
+          "properties": {
+            "code": "86095100",
+            "name": "BOM JESUS/JAQUIRANA",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": null
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.4936,
+              -28.8047
+            ]
+          },
+          "properties": {
+            "code": "86099000",
+            "name": "PCH PEZZI MONTANTE",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 1787.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.495,
+              -28.8056
+            ]
+          },
+          "properties": {
+            "code": "86100000",
+            "name": "PASSO DO GABRIEL",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 1820.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.5211,
+              -28.7575
+            ]
+          },
+          "properties": {
+            "code": "86100600",
+            "name": "PCH PEZZI ARROIO PINHEIRO ALTO",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": null
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.5647,
+              -28.7922
+            ]
+          },
+          "properties": {
+            "code": "86100800",
+            "name": "PCH PEZZI BARRAMENTO",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 1786.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.5611,
+              -28.7883
+            ]
+          },
+          "properties": {
+            "code": "86101000",
+            "name": "PCH PASSO DO MEIO MONTANTE",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 2070.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.6789,
+              -28.79
+            ]
+          },
+          "properties": {
+            "code": "86117000",
+            "name": "PCH SERRA DOS CAVALINHOS I ARROIO DO GOVERNADOR",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 120.15
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7294,
+              -28.7964
+            ]
+          },
+          "properties": {
+            "code": "86118000",
+            "name": "PCH SERRA DOS CAVALINHOS I BARRAMENTO",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 3764.9
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.4561,
+              -28.8681
+            ]
+          },
+          "properties": {
+            "code": "86160000",
+            "name": "PASSO TAINHAS",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 1120.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.4561,
+              -28.8681
+            ]
+          },
+          "properties": {
+            "code": "86160010",
+            "name": "PASSO TAINHAS JAQUIRANA",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 26429.7
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7458,
+              -28.7914
+            ]
+          },
+          "properties": {
+            "code": "86162000",
+            "name": "PCH SERRA DOS CAVALINHOS II BARRAMENTO",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 352.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7447,
+              -28.7869
+            ]
+          },
+          "properties": {
+            "code": "86163000",
+            "name": "PCH SERRA DOS CAVALINHOS II JUSANTE",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": null
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.8108,
+              -28.8964
+            ]
+          },
+          "properties": {
+            "code": "86210900",
+            "name": "PCH PALANQUINHO BARRAMENTO",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 829.3
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.8206,
+              -28.8681
+            ]
+          },
+          "properties": {
+            "code": "86213000",
+            "name": "PCH PALANQUINHO JUSANTE DESATIVADA",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 828.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -49.9819,
+              -28.7836
+            ]
+          },
+          "properties": {
+            "code": "86030000",
+            "name": "RIO DAS ANTAS (S. José dos Ausentes)",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": null
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.1753,
+              -29.1075
+            ]
+          },
+          "properties": {
+            "code": "86050000",
+            "name": "CAMISAS",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 110.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.5622,
+              -28.8644
+            ]
+          },
+          "properties": {
+            "code": "86102000",
+            "name": "PCH PASSO DO MEIO MONTANTE TAINHAS",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 1400.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.6128,
+              -28.8067
+            ]
+          },
+          "properties": {
+            "code": "86109000",
+            "name": "PCH PASSO DO MEIO BARRAMENTO",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": null
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.6214,
+              -28.8161
+            ]
+          },
+          "properties": {
+            "code": "86110000",
+            "name": "PCH PASSO DO MEIO JUSANTE",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 3540.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.3083,
+              -29.27
+            ]
+          },
+          "properties": {
+            "code": "86120000",
+            "name": "TAINHAS",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 207.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.3147,
+              -29.2647
+            ]
+          },
+          "properties": {
+            "code": "86120050",
+            "name": "SÃO FRANCISCO DE PAULA-CAMBARÁ DO SUL",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": null
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.3644,
+              -29.0864
+            ]
+          },
+          "properties": {
+            "code": "86140000",
+            "name": "PASSO DO S",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 704.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.6208,
+              -28.9236
+            ]
+          },
+          "properties": {
+            "code": "86170000",
+            "name": "SÃO TOMÉ",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 1941.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.6314,
+              -28.9311
+            ]
+          },
+          "properties": {
+            "code": "86180000",
+            "name": "USINA CAZUZA FERREIRA",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 142.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7264,
+              -29.0239
+            ]
+          },
+          "properties": {
+            "code": "86190000",
+            "name": "PCH CRIÚVA MONTANTE",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 426.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7156,
+              -29.0231
+            ]
+          },
+          "properties": {
+            "code": "86194900",
+            "name": "PCH CAZUZA FERREIRA MONTANTE",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 394.9
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7314,
+              -29.0206
+            ]
+          },
+          "properties": {
+            "code": "86195000",
+            "name": "PCH CAZUZA FERREIRA BARRAMENTO",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 429.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7339,
+              -29.0197
+            ]
+          },
+          "properties": {
+            "code": "86195100",
+            "name": "PCH CAZUZA FERREIRA ALÇA",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 435.6
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7333,
+              -29.0167
+            ]
+          },
+          "properties": {
+            "code": "86200000",
+            "name": "LAGEADO GRANDE",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 436.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7342,
+              -29.0206
+            ]
+          },
+          "properties": {
+            "code": "86200500",
+            "name": "PCH CAZUZA FERREIRA JUSANTE",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 429.0
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7989,
+              -28.9653
+            ]
+          },
+          "properties": {
+            "code": "86200900",
+            "name": "PCH CRIÚVA BARRAMENTO",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 243.2
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.8028,
+              -28.9639
+            ]
+          },
+          "properties": {
+            "code": "86201000",
+            "name": "PCH CRIÚVA  ALÇA",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 242.1
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.79,
+              -28.945
+            ]
+          },
+          "properties": {
+            "code": "86210000",
+            "name": "PCH CRIÚVA JUSANTE",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 317.5
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.8136,
+              -28.8994
+            ]
+          },
+          "properties": {
+            "code": "86211000",
+            "name": "PCH PALANQUINHO ALÇA",
+            "kind": "flu",
+            "ug": "Alto Taquari-Antas",
+            "previne_seed": false,
+            "area_km2": 799.0
+          }
+        },
         {
           "type": "Feature",
           "geometry": {
@@ -3356,6 +4087,492 @@
           "geometry": {
             "type": "Point",
             "coordinates": [
+              -50.4419,
+              -28.6686
+            ]
+          },
+          "properties": {
+            "code": "2850001",
+            "name": "BOM JESUS",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.0689,
+              -28.7144
+            ]
+          },
+          "properties": {
+            "code": "2850002",
+            "name": "CAPELA SÃO JOSÉ DOS AUSENTES",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.1667,
+              -28.9333
+            ]
+          },
+          "properties": {
+            "code": "2850007",
+            "name": "PASSO DA GARRAFA",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.4561,
+              -28.8675
+            ]
+          },
+          "properties": {
+            "code": "2850009",
+            "name": "PASSO TAINHAS CONVENCIONAL",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.3833,
+              -28.6833
+            ]
+          },
+          "properties": {
+            "code": "2850012",
+            "name": "BOM JESUS (APARADOS DA SERRA)",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.6542,
+              -28.9375
+            ]
+          },
+          "properties": {
+            "code": "2850016",
+            "name": "CAZUZA FERREIRA",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7808,
+              -28.6839
+            ]
+          },
+          "properties": {
+            "code": "2850020",
+            "name": "MONTE ALEGRE DOS CAMPOS",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.6208,
+              -28.9236
+            ]
+          },
+          "properties": {
+            "code": "2850021",
+            "name": "SÃO TOMÉ",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7147,
+              -28.6347
+            ]
+          },
+          "properties": {
+            "code": "2850023",
+            "name": "RIACHINHO",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.8136,
+              -28.8992
+            ]
+          },
+          "properties": {
+            "code": "2850029",
+            "name": "PCH PALANQUINHO ALÇA",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.8186,
+              -28.8683
+            ]
+          },
+          "properties": {
+            "code": "2850032",
+            "name": "PCH PALANQUINHO JUSANTE DESATIVADA",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7447,
+              -28.7869
+            ]
+          },
+          "properties": {
+            "code": "2850033",
+            "name": "PCH SERRA DOS CAVALINHOS II JUSANTE",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.5611,
+              -28.7883
+            ]
+          },
+          "properties": {
+            "code": "2850034",
+            "name": "PCH PASSO DO MEIO MONTANTE",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.5622,
+              -28.8644
+            ]
+          },
+          "properties": {
+            "code": "2850035",
+            "name": "PCH PASSO DO MEIO MONTANTE TAINHAS",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.6214,
+              -28.8161
+            ]
+          },
+          "properties": {
+            "code": "2850036",
+            "name": "PCH PASSO DO MEIO JUSANTE",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.4936,
+              -28.8047
+            ]
+          },
+          "properties": {
+            "code": "2850038",
+            "name": "PCH PEZZI MONTANTE",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.5211,
+              -28.7575
+            ]
+          },
+          "properties": {
+            "code": "2850039",
+            "name": "PCH PEZZI ARROIO PINHEIRO ALTO",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.6789,
+              -28.79
+            ]
+          },
+          "properties": {
+            "code": "2850044",
+            "name": "PCH SERRA DOS CAVALINHOS I ARROIO DO GOVERNADOR",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.7989,
+              -28.9653
+            ]
+          },
+          "properties": {
+            "code": "2850046",
+            "name": "PCH CRIÚVA BARRAMENTO",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.4561,
+              -28.8681
+            ]
+          },
+          "properties": {
+            "code": "2850047",
+            "name": "PASSO TAINHAS",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.4336,
+              -28.6717
+            ]
+          },
+          "properties": {
+            "code": "2850048",
+            "name": "BRIGADA MILITAR BOM JESUS",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.4561,
+              -28.8681
+            ]
+          },
+          "properties": {
+            "code": "2850049",
+            "name": "PASSO TAINHAS JAQUIRANA",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.0556,
+              -28.9489
+            ]
+          },
+          "properties": {
+            "code": "2850050",
+            "name": "CGH CAMBARÁ BARRAMENTO",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.4297,
+              -28.7986
+            ]
+          },
+          "properties": {
+            "code": "2850064",
+            "name": "BOM JESUS/JAQUIRANA",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "ANA",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.05777777,
+              -28.7486111
+            ]
+          },
+          "properties": {
+            "code": "A829",
+            "name": "SAO JOSE DOS AUSENTES",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "INMET",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.14972221,
+              -29.04916666
+            ]
+          },
+          "properties": {
+            "code": "A897",
+            "name": "CAMBARA DO SUL",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "INMET",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              -50.44194444,
+              -28.66944443
+            ]
+          },
+          "properties": {
+            "code": "B856",
+            "name": "BOM JESUS (INMET)",
+            "kind": "rain",
+            "ug": "Alto Taquari-Antas",
+            "network": "INMET",
+            "previne_rain": false
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
               -51.7833,
               -28.8
             ]
@@ -5081,14 +6298,24 @@
         }
       ],
       "counts": {
-        "flu": 124,
-        "rain": 96,
-        "total": 220
+        "flu": 163,
+        "rain": 123,
+        "total": 286
       },
-      "note_pt": "Rede completa do corredor (Prata + Carreiro + Médio): inventário ANA/INMET/CEMADEN. Âncoras curadas ficam em destaque; esta camada mostra o restante."
+      "note_pt": "Rede do domínio do gêmeo (Alto + Prata + Carreiro + Médio): inventário ANA/INMET/CEMADEN. Âncoras curadas em destaque; camada delicada = restante. Guaporé/Forqueta/Baixo ficam fora desta rede (jusante de Muçum / fora do corredor)."
     },
     "ug_filter": [
+      "Alto Taquari-Antas",
       "Carreiro",
+      "Médio Taquari-Antas",
+      "Prata"
+    ],
+    "ug_g040": [
+      "Alto Taquari-Antas",
+      "Baixo Taquari-Antas",
+      "Carreiro",
+      "Forqueta",
+      "Guaporé",
       "Médio Taquari-Antas",
       "Prata"
     ],
@@ -5762,8 +6989,8 @@
   },
   "freshness": {
     "preferred_source": "live_eval",
-    "live_age_hours": 17.07,
-    "forward_age_hours": 17.07,
+    "live_age_hours": 19.0,
+    "forward_age_hours": 19.0,
     "stale_forward": true,
     "forward_max_delta_n_cm": 0.0,
     "note_pt": "Quando o forward está seco/stale, headline e hidrograma preferem o live eval."

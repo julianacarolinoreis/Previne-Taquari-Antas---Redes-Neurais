@@ -80,8 +80,23 @@ class PlataformaHecTwinTests(unittest.TestCase):
         self.assertNotIn("Guaporé", labels)
         self.assertTrue(self.feed["discipline"]["basin_calibrated_analogs"])
         self.assertIn("corredor", self.feed["label_pt"].lower())
-        # Map must not rely on heavy UG choropleth language in the note.
-        self.assertIn("contorno", self.feed["spatial"]["note_pt"].lower())
+        framing = self.feed["spatial"]["basin_framing"]
+        self.assertTrue(framing["not_full_basin_model"])
+        self.assertIn("Alto Taquari-Antas", framing["twin_domain_ugs"])
+        self.assertIn("Guaporé", framing["excluded_ugs"])
+        self.assertEqual(len(framing["g040_ugs"]), 7)
+        self.assertIn("Alto Taquari-Antas", self.feed["spatial"]["ug_filter"])
+        self.assertIn("g040", self.feed["spatial"]["note_pt"].lower())
+        html = (
+            ROOT
+            / "assets"
+            / "data"
+            / "estudo_bacia_taquari_antas"
+            / "plataforma_hec_twin_mucum.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("pointInspector", html)
+        self.assertIn("showInspector", html)
+        self.assertIn("Bacia G040", html)
 
     def test_hindcast_skill_events_and_corridor_network(self) -> None:
         skill = self.feed["products"]["hindcast_skill"]

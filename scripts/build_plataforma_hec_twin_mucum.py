@@ -48,7 +48,19 @@ SUBBASIN_OFFSETS = {
     "SB_INC_MUCUM": (-0.03, -0.04),
 }
 
-UG_CORRIDOR = {"Prata", "Carreiro", "Médio Taquari-Antas"}
+# Corredor até Muçum (recorte_modelo A): inclui Alto — NÃO é G040 completa.
+UG_CORRIDOR = {
+    "Alto Taquari-Antas",
+    "Prata",
+    "Carreiro",
+    "Médio Taquari-Antas",
+}
+UG_G040 = UG_CORRIDOR | {
+    "Guaporé",
+    "Forqueta",
+    "Baixo Taquari-Antas",
+}
+UG_EXCLUDED_FROM_TWIN = UG_G040 - UG_CORRIDOR
 
 
 def utc_now() -> str:
@@ -327,8 +339,9 @@ def build_corridor_network() -> dict[str, Any]:
         "features": features,
         "counts": {"flu": n_flu, "rain": n_rain, "total": len(features)},
         "note_pt": (
-            "Rede completa do corredor (Prata + Carreiro + Médio): inventário ANA/INMET/"
-            "CEMADEN. Âncoras curadas ficam em destaque; esta camada mostra o restante."
+            "Rede do domínio do gêmeo (Alto + Prata + Carreiro + Médio): inventário "
+            "ANA/INMET/CEMADEN. Âncoras curadas em destaque; camada delicada = restante. "
+            "Guaporé/Forqueta/Baixo ficam fora desta rede (jusante de Muçum / fora do corredor)."
         ),
     }
 
@@ -474,12 +487,30 @@ def build_spatial(
 
     return {
         "note_pt": (
-            "Corredor calibrado REC: Prata + Antas residual + Carreiro + residual STZ "
-            "+ incremento Muçum. Chuva IFS = proxy pontual por sub-bacia (não máscara "
-            "areal). UG G040 só como contorno; Guaporé/Forqueta/Baixo fora do modelo. "
+            "A bacia Taquari–Antas (G040, ~26,4 mil km², 7 UGs) aparece como contexto. "
+            "O gêmeo HEC/REC modela só o CORREDOR até Muçum (~16 mil km²: Alto + Prata + "
+            "Carreiro + Médio), com sub-bacias aninhadas Prata + Antas residual + Carreiro "
+            "+ residual STZ + incremento Muçum. Chuva IFS = proxy pontual por sub-bacia "
+            "(ainda não a máscara areal ECMWF/REC do recorte enviado ao Guilherme). "
+            "Guaporé/Forqueta/Baixo fora do domínio do modelo. "
             f"Âncoras curadas={len(anchors)}; rede inventário corredor="
             f"{(network.get('counts') or {}).get('total', 0)} pontos."
         ),
+        "basin_framing": {
+            "g040_label_pt": "Bacia Taquari–Antas (G040)",
+            "g040_km2": 26430,
+            "g040_ugs": sorted(UG_G040),
+            "twin_domain_label_pt": "Domínio do gêmeo (corredor até Muçum)",
+            "twin_domain_km2": 15965.207,
+            "twin_domain_ugs": sorted(UG_CORRIDOR),
+            "excluded_ugs": sorted(UG_EXCLUDED_FROM_TWIN),
+            "not_full_basin_model": True,
+            "ifs_is_point_proxy_not_areal_ecmwf_mask": True,
+            "click_shows_curve_pt": (
+                "Clique numa âncora: Muçum mostra a curva N+chuva do evento; "
+                "STZ só nível/controle (sem N↔Q inventada); chuva mostra hietograma proxy."
+            ),
+        },
         "area_weighted_total_mm": aw.get("total_mm"),
         "area_weighted_past_mm": aw.get("past_mm"),
         "area_weighted_future_mm": aw.get("future_mm"),
@@ -490,6 +521,7 @@ def build_spatial(
         "anchor_count": len(anchors),
         "corridor_network": network,
         "ug_filter": sorted(UG_CORRIDOR),
+        "ug_g040": sorted(UG_G040),
         "ug_geojson": "ugs_g040.geojson",
         "fozes_geojson": "fozes_principais_bho6.geojson",
     }
