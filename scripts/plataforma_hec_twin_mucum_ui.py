@@ -545,6 +545,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 const basinLayer = L.layerGroup().addTo(map);
 const ugLayer = L.layerGroup().addTo(map);
+const fozLayer = L.layerGroup().addTo(map);
 const rainLayer = L.layerGroup().addTo(map);
 const networkLayer = L.layerGroup(); // off by default — dense inventory
 const anchorLayer = L.layerGroup().addTo(map);
@@ -567,6 +568,7 @@ legend.onAdd = function() {
     "<div><i style=\"background:#1d4f91\"></i>nível / controle</div>" +
     "<div><i style=\"background:#3d7a92\"></i>chuva</div>" +
     "<div><i style=\"background:#6a737a\"></i>monitor</div>" +
+    "<div><i style=\"background:#b8892d\"></i>foz BHO6</div>" +
     "<div><i style=\"background:#a8b2b8\"></i>rede (suave)</div>" +
     "<div style=\"margin-top:.25rem\">tracejado = G040 · preenchido = domínio</div>";
   return d;
@@ -575,6 +577,7 @@ legend.addTo(map);
 L.control.layers(null, {
   "Bacia G040":basinLayer,
   "Domínio gêmeo":ugLayer,
+  "Fozes BHO6":fozLayer,
   "Chuva IFS":rainLayer,
   "Rede corredor":networkLayer,
   "Âncoras":anchorLayer
@@ -751,6 +754,46 @@ function rainRadius(mm) {
   ).addTo(rainLayer);
 });
 
+function fozPositionPt(pos) {
+  if (pos === "upstream_or_at_antas") return "montante / na Antas (dentro do gêmeo)";
+  if (pos === "between_antas_and_santa_tereza") return "entre Antas e Santa Tereza (dentro do gêmeo)";
+  if (pos === "downstream_of_mucum") return "jusante de Muçum · fora do gêmeo";
+  return pos || "posição vs Muçum desconhecida";
+}
+
+async function loadFozes() {
+  const path = (DATA.spatial || {}).fozes_geojson;
+  if (!path) return;
+  try {
+    const res = await fetch(path);
+    if (!res.ok) return;
+    const geo = await res.json();
+    L.geoJSON(geo, {
+      pointToLayer: function(feat, latlng) {
+        const p = feat.properties || {};
+        const downstream = String(p.position_vs_controls || "").indexOf("downstream") >= 0;
+        return L.circleMarker(latlng, {
+          radius: 4.2,
+          color: "rgba(255,255,255,0.55)",
+          weight: 1,
+          fillColor: downstream ? "#a67c2a" : "#8a6a28",
+          fillOpacity: 0.72
+        });
+      },
+      onEachFeature: function(feat, lyr) {
+        const p = feat.properties || {};
+        const delta = p.delta_vs_mucum_km2;
+        lyr.bindPopup(
+          "<strong>" + (p.label || p.name || "Foz BHO6") + "</strong><br/>" +
+          fozPositionPt(p.position_vs_controls) +
+          (delta != null ? "<br/>Δ área vs Muçum: " + Number(delta).toFixed(0) + " km²" : "") +
+          "<br/><span style=\"opacity:.8\">marca topológica — não é âncora do gêmeo</span>"
+        );
+      }
+    }).addTo(fozLayer);
+  } catch (e) {}
+}
+
 async function loadUgs() {
   const path = (DATA.spatial || {}).ug_geojson;
   if (!path) return;
@@ -861,6 +904,7 @@ renderAnchors();
 renderNetwork();
 renderSkill();
 loadUgs();
+loadFozes();
 setTimeout(function(){ map.invalidateSize(); }, 200);
 </script>
 </body>

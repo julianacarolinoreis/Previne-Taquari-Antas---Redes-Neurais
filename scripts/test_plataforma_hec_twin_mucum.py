@@ -97,6 +97,12 @@ class PlataformaHecTwinTests(unittest.TestCase):
         self.assertIn("pointInspector", html)
         self.assertIn("showInspector", html)
         self.assertIn("Bacia G040", html)
+        self.assertIn("loadFozes", html)
+        self.assertIn("Fozes BHO6", html)
+        self.assertEqual(
+            self.feed["spatial"].get("fozes_geojson"),
+            "fozes_principais_bho6.geojson",
+        )
 
     def test_hindcast_skill_events_and_corridor_network(self) -> None:
         skill = self.feed["products"]["hindcast_skill"]
