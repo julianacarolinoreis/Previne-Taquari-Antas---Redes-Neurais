@@ -293,7 +293,7 @@ def live_horizon_audit(live: dict[str, Any]) -> list[dict[str, Any]]:
         # A model can publish a numeric forecast with an attached warning such
         # as ``ok - atencao``.  Keep the value available, while exposing the
         # warning separately through ``quality_status``.
-        available = item.get("nivel_previsto_cm") is not None and item.get("disponivel") is not False and status.lower().startswith("ok")
+        available = item.get("nivel_previsto_cm") is not None and item.get("disponivel") is not False
         quality_status = quality.get("status")
         if not quality_status:
             quality_status = input_audit.get("status") if input_audit.get("status") != "NORMAL" else "NORMAL"
@@ -671,7 +671,7 @@ def build_feed(now: datetime | None = None) -> dict[str, Any]:
         "automation": {
             "status": "configured_by_workflow",
             "workflow": ".github/workflows/research-basin.yml",
-            "triggers": ["manual", "hourly schedule", "completion of weather/level workflows"],
+            "triggers": ["manual", "hourly schedule", "push when source registry, builder, or workflow changes"],
             "steps": ["join current artifacts", "write compact feed", "run schema/QA", "publish only changed artifacts"],
         },
         "gates": [
