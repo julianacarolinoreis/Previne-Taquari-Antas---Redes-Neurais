@@ -78,6 +78,7 @@ class G040BasinProfilesTests(unittest.TestCase):
         text = index.read_text(encoding="utf-8")
         self.assertIn("perfis_longitudinais_g040.html", text)
         self.assertIn("Perfis longitudinais MDT", text)
+        self.assertIn("../../../pesquisas/perfis-g040-mdt.html", text)
 
     def test_municipal_profiles(self) -> None:
         muns = self.report.get("municipal_profiles") or []
