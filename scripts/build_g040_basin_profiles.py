@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Perfis longitudinais MDT da bacia G040 (tronco + Guaporé + Forqueta).
+"""Perfis por município + eixos longitudinais MDT da bacia G040.
 
-Diagnóstico de relevo a partir de SRTM (Skadi) amostrado sobre o eixo BHO6
-oficial (cocursodag 786 / 7864 / 7862). Não é seção hidráulica, não é calha
-nivelada, não alimenta HEC-RAS/alerta.
+Produto principal: hipsometria SRTM na área de cada município da G040.
+Complementar: eixos BHO6 (tronco 786 / Guaporé 7864 / Forqueta 7862),
+marcadores de postos/fozes. Não é seção hidráulica, não alimenta alerta.
 
 Saídas (estudo G040):
   - perfis_longitudinais_g040_latest.json
@@ -24,8 +24,10 @@ from pathlib import Path
 from typing import Any
 
 import rasterio
+import numpy as np
 import requests
 from pyproj import Transformer
+from rasterio.mask import mask as raster_mask
 from rasterio.merge import merge
 from shapely.geometry import LineString, MultiLineString, mapping, shape
 from shapely.ops import linemerge, transform as shapely_transform
@@ -334,6 +336,107 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def sample_hypsometry(
+    dem: rasterio.DatasetReader,
+    poly: Any,
+    max_curve_pts: int = 120,
+) -> dict[str, Any] | None:
+    """Area hypsometry of SRTM inside the município polygon."""
+    try:
+        data, _ = raster_mask(dem, [mapping(poly)], crop=True, filled=True, nodata=dem.nodata)
+    except ValueError:
+        return None
+    band = data[0]
+    nodata = dem.nodata
+    if nodata is None:
+        valid = band[np.isfinite(band)]
+    else:
+        valid = band[(band != nodata) & np.isfinite(band)]
+    valid = valid[valid > -50]
+    if valid.size < 30:
+        return None
+    elevs = np.sort(valid.astype(np.float64))
+    n = int(elevs.size)
+    area_utm = shapely_transform(lambda x, y: TO_UTM.transform(x, y), poly).area
+    area_km2 = float(area_utm) / 1e6
+    idx = np.linspace(0, n - 1, num=min(max_curve_pts, n), dtype=int)
+    curve = [
+        {
+            "area_below_pct": round(100.0 * float(i) / float(n - 1), 2),
+            "elev_m": round(float(elevs[i]), 1),
+        }
+        for i in idx
+    ]
+    return {
+        "n_pixels": n,
+        "area_km2": round(area_km2, 2),
+        "elev_min_m": round(float(elevs[0]), 1),
+        "elev_max_m": round(float(elevs[-1]), 1),
+        "elev_mean_m": round(float(elevs.mean()), 1),
+        "elev_median_m": round(float(np.median(elevs)), 1),
+        "elev_p10_m": round(float(np.percentile(elevs, 10)), 1),
+        "elev_p90_m": round(float(np.percentile(elevs, 90)), 1),
+        "relief_m": round(float(elevs[-1] - elevs[0]), 1),
+        "curve": curve,
+    }
+
+
+def svg_hypsometry(
+    hypo: dict[str, Any],
+    width: int = 680,
+    height: int = 220,
+) -> str:
+    curve = hypo.get("curve") or []
+    if len(curve) < 2:
+        return (
+            f'<svg viewBox="0 0 {width} {height}">'
+            f'<text x="24" y="120" fill="#4a6356">Sem hipsometria.</text></svg>'
+        )
+    pad_l, pad_r, pad_t, pad_b = 48, 18, 22, 40
+    xs = [float(p["area_below_pct"]) for p in curve]
+    ys = [float(p["elev_m"]) for p in curve]
+    xmin, xmax = 0.0, 100.0
+    ymin, ymax = min(ys), max(ys)
+    if ymax <= ymin:
+        ymax = ymin + 1.0
+
+    def x_at(v: float) -> float:
+        return pad_l + (v - xmin) / (xmax - xmin) * (width - pad_l - pad_r)
+
+    def y_at(v: float) -> float:
+        return pad_t + (1.0 - (v - ymin) / (ymax - ymin)) * (height - pad_t - pad_b)
+
+    pts = " ".join(f"{x_at(x):.1f},{y_at(y):.1f}" for x, y in zip(xs, ys))
+    y0 = y_at(ymin)
+    med = hypo.get("elev_median_m")
+    med_line = ""
+    if med is not None:
+        ym = y_at(float(med))
+        med_line = (
+            f'<line x1="{pad_l}" y1="{ym:.1f}" x2="{width-pad_r}" y2="{ym:.1f}" '
+            f'stroke="#8a5a12" stroke-dasharray="4 3" stroke-width="1.2"/>'
+            f'<text x="{width-pad_r}" y="{ym-4:.1f}" fill="#8a5a12" font-size="10" '
+            f'text-anchor="end">mediana {med} m</text>'
+        )
+    return (
+        f'<svg viewBox="0 0 {width} {height}" role="img" '
+        f'aria-label="hipsometria municipal">'
+        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff"/>'
+        f'<line x1="{pad_l}" y1="{y0:.1f}" x2="{width-pad_r}" y2="{y0:.1f}" stroke="#9aa096"/>'
+        f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{y0:.1f}" stroke="#9aa096"/>'
+        f'<polyline points="{pts}" fill="none" stroke="#0f5c45" stroke-width="2.4"/>'
+        + med_line
+        + f'<text x="{pad_l}" y="{height-12}" fill="#4a6356" font-size="11">0% área</text>'
+        f'<text x="{(pad_l + width - pad_r) / 2:.0f}" y="{height-12}" fill="#4a6356" '
+        f'font-size="11" text-anchor="middle">área abaixo da cota</text>'
+        f'<text x="{width-pad_r}" y="{height-12}" fill="#4a6356" font-size="11" '
+        f'text-anchor="end">100%</text>'
+        f'<text x="8" y="{pad_t+4}" fill="#4a6356" font-size="11">{ymax:.0f} m</text>'
+        f'<text x="8" y="{y0:.1f}" fill="#4a6356" font-size="11">{ymin:.0f} m</text>'
+        f"</svg>"
+    )
+
+
 def elev_at_distance(rows: list[dict[str, Any]], dist_km: float) -> float | None:
     if not rows:
         return None
@@ -575,7 +678,7 @@ def build_municipal_profiles(
     axis_lines: dict[str, LineString],
     axis_labels: dict[str, str],
 ) -> list[dict[str, Any]]:
-    """Clip each axis by município and sample longitudinal MDT profiles."""
+    """Perfil por município: hipsometria de área (+ trecho de rio quando cruza eixo)."""
     if not MUN_GEOJSON.exists():
         print("WARN: municipal geojson missing", MUN_GEOJSON)
         return []
@@ -594,19 +697,23 @@ def build_municipal_profiles(
             poly = poly.buffer(0)
         if poly.is_empty:
             continue
+
+        hypo = sample_hypsometry(dem, poly)
+        if hypo is None:
+            continue
+        hypo_svg = svg_hypsometry(hypo)
+
         stretches: list[dict[str, Any]] = []
         for aid, line in axis_lines.items():
             inter = line.intersection(poly)
             parts = line_parts(inter)
             if not parts:
                 continue
-            # Order parts by position along the full axis (head → mouth).
             ranked: list[tuple[float, LineString]] = []
             for part in parts:
                 mid = part.interpolate(0.5, normalized=True)
                 ranked.append((project_point_m(axis_utm[aid], mid.x, mid.y), part))
             ranked.sort(key=lambda t: t[0])
-            # Concatenate local distances across parts for one mun×axis chart.
             series: list[dict[str, Any]] = []
             local_offset_m = 0.0
             for _, part in ranked:
@@ -644,29 +751,63 @@ def build_municipal_profiles(
                     "svg": svg_polyline(series, width=680, height=200),
                 }
             )
-        if not stretches:
-            continue
-        # Primary stretch = longest river length inside the município.
-        primary = max(stretches, key=lambda s: float(s["summary"].get("length_km") or 0))
+
+        primary = None
+        if stretches:
+            primary = max(stretches, key=lambda s: float(s["summary"].get("length_km") or 0))
+
         out.append(
             {
                 "id": f"mun_{cod}",
                 "cod_mun": cod,
                 "nome": nome,
                 "pct_na_bacia": props.get("pct_na_bacia"),
+                "status_borda_bacia": props.get("status_borda_bacia"),
+                "hypsometry": {
+                    **{k: v for k, v in hypo.items() if k != "curve"},
+                    "curve": hypo["curve"],
+                },
+                "svg": hypo_svg,
                 "axes": [s["axis_id"] for s in stretches],
                 "stretches": stretches,
-                "primary_axis_id": primary["axis_id"],
-                "summary": primary["summary"],
-                "svg": primary["svg"],
-                "label_pt": f"{nome} · {primary['axis_label_pt']}",
+                "primary_axis_id": None if primary is None else primary["axis_id"],
+                "river_summary": None if primary is None else primary["summary"],
+                "river_svg": None if primary is None else primary["svg"],
+                "summary": {
+                    "area_km2": hypo["area_km2"],
+                    "elev_min_m": hypo["elev_min_m"],
+                    "elev_max_m": hypo["elev_max_m"],
+                    "elev_mean_m": hypo["elev_mean_m"],
+                    "elev_median_m": hypo["elev_median_m"],
+                    "relief_m": hypo["relief_m"],
+                    "n_pixels": hypo["n_pixels"],
+                    "river_length_km": None
+                    if primary is None
+                    else primary["summary"].get("length_km"),
+                },
+                "label_pt": f"{nome} · hipsometria municipal",
                 "note_pt": (
-                    "Trecho do eixo BHO6 dentro do polígono municipal (SRTM). "
-                    "Pode haver mais de um eixo se o município cruza afluentes."
+                    "Perfil por município = hipsometria SRTM na área do polígono IBGE "
+                    "(cota vs % de área abaixo). "
+                    + (
+                        "Trecho de rio no eixo BHO6 é complementar."
+                        if stretches
+                        else "Município não cruza os eixos tronco/Guaporé/Forqueta plotados."
+                    )
+                    + (
+                        f" Atenção: só {props.get('pct_na_bacia')}% da área municipal está na G040."
+                        if float(props.get("pct_na_bacia") or 100) < 99.5
+                        else ""
+                    )
                 ),
             }
         )
-    out.sort(key=lambda m: (-float(m["summary"].get("length_km") or 0), m["nome"]))
+    out.sort(
+        key=lambda m: (
+            -float((m.get("summary") or {}).get("relief_m") or 0),
+            m["nome"],
+        )
+    )
     print("municipal profiles", len(out))
     return out
 
@@ -751,29 +892,31 @@ def build_html(report: dict[str, Any]) -> str:
     mun_cards = []
     for m in report.get("municipal_profiles") or []:
         s = m["summary"]
-        axes = ", ".join(m.get("axes") or [])
+        axes = ", ".join(m.get("axes") or []) or "sem eixo plotado"
+        pct = m.get("pct_na_bacia")
         meta = (
-            f"eixo principal: {m.get('primary_axis_id')} · "
-            f"comprimento {s.get('length_km')} km · "
-            f"cota {s.get('elev_start_m')}→{s.get('elev_end_m')} m · "
-            f"queda {s.get('drop_m')} m"
+            f"área {s.get('area_km2')} km² · "
+            f"% na G040 {pct} · "
+            f"cota {s.get('elev_min_m')}–{s.get('elev_max_m')} m · "
+            f"mediana {s.get('elev_median_m')} m · "
+            f"relevo {s.get('relief_m')} m"
         )
-        extra = ""
-        if len(m.get("stretches") or []) > 1:
-            bits = []
-            for st in m["stretches"]:
-                ss = st["summary"]
-                bits.append(
-                    f"{st['axis_label_pt']}: {ss.get('length_km')} km / queda {ss.get('drop_m')} m"
-                )
-            extra = "<p class=\"note\">Também: " + " · ".join(bits) + "</p>"
+        river_block = ""
+        if m.get("river_svg"):
+            rs = m.get("river_summary") or {}
+            river_block = (
+                f'<p class="note">Trecho de rio complementar '
+                f"({m.get('primary_axis_id')}): "
+                f"{rs.get('length_km')} km · queda {rs.get('drop_m')} m</p>"
+                f"{m['river_svg']}"
+            )
         mun_cards.append(
-            f"""<section class="profile mun" data-axes="{axes}" data-nome="{(m.get('nome') or '').lower()}">
+            f"""<section class="profile mun" data-axes="{axes}" data-nome="{(m.get('nome') or '').lower()}" data-has-river="{'1' if m.get('river_svg') else '0'}">
   <h2>{m.get('nome')}</h2>
   <div class="meta">{meta}</div>
   <p class="note">{m.get('note_pt') or ''}</p>
-  {extra}
   {m['svg']}
+  {river_block}
 </section>"""
         )
 
@@ -790,7 +933,7 @@ def build_html(report: dict[str, Any]) -> str:
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Perfis longitudinais G040 · MDT SRTM</title>
+<title>Perfis por município · G040 · MDT SRTM</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 :root {{ --ink:#12241c; --muted:#4a6356; --line:#c5d5cb; }}
@@ -828,45 +971,49 @@ th {{ color:var(--muted); font-weight:650; }}
 <header>
   <span class="pill">pesquisa · não é alerta</span>
   <span class="pill">G040 · SRTM</span>
-  <span class="pill">BHO6</span>
+  <span class="pill">perfil por município</span>
   <span class="pill">{n_mun} municípios</span>
-  <span class="pill">{n_mark} marcadores</span>
-  <h1>Perfis longitudinais · bacia Taquari–Antas (G040)</h1>
+  <span class="pill">{n_mark} marcadores de eixo</span>
+  <h1>Perfis por município · bacia Taquari–Antas (G040)</h1>
   <p class="lede">{report['purpose_pt']}</p>
 </header>
 <main>
-<h2 class="section-title" id="mapa">Mapa dos eixos</h2>
-<p class="note">Tronco, Guaporé e Forqueta (BHO6) com postos-chave e fozes projetados no eixo mais próximo.</p>
-<div id="axisMap" role="img" aria-label="mapa dos eixos longitudinais G040"></div>
-<p class="map-legend">Linha verde = tronco · azul = Guaporé · ocre = Forqueta · círculos = flu · losangos = foz.</p>
-
-<h2 class="section-title">Eixos da bacia</h2>
-{''.join(cards)}
-
 <h2 class="section-title" id="municipios">Perfis por município</h2>
-<p class="note">Trechos do eixo BHO6 (tronco / Guaporé / Forqueta) cortados pelo polígono de cada município que cruza o rio. {n_mun} municípios com perfil.</p>
+<p class="note">Hipsometria SRTM na área de cada município da G040 (cota × % da área abaixo). Trecho de rio nos eixos BHO6 é complementar quando o polígono cruza o eixo. {n_mun} municípios.</p>
 <div class="filters" id="axisFilters">
   <button type="button" class="active" data-axis="all">todos</button>
-  <button type="button" data-axis="tronco_taquari_antas">tronco</button>
-  <button type="button" data-axis="guapore">Guaporé</button>
-  <button type="button" data-axis="forqueta">Forqueta</button>
+  <button type="button" data-axis="tronco_taquari_antas">com tronco</button>
+  <button type="button" data-axis="guapore">com Guaporé</button>
+  <button type="button" data-axis="forqueta">com Forqueta</button>
+  <button type="button" data-axis="sem_eixo">só área (sem eixo)</button>
 </div>
 <p><input id="munSearch" type="search" placeholder="Filtrar município…" aria-label="Filtrar município"/></p>
 <div class="table-wrap" style="margin-bottom:.8rem">
 <table>
-<thead><tr><th>Município</th><th>Eixos</th><th>Comp. km</th><th>Queda m</th><th>Cota início→fim</th></tr></thead>
+<thead><tr><th>Município</th><th>% G040</th><th>Área km²</th><th>Cota min–max</th><th>Mediana</th><th>Relevo m</th><th>Eixos</th></tr></thead>
 <tbody>
 {''.join(
-    f"<tr><td>{m.get('nome')}</td><td>{', '.join(m.get('axes') or [])}</td>"
-    f"<td>{(m.get('summary') or {}).get('length_km')}</td>"
-    f"<td>{(m.get('summary') or {}).get('drop_m')}</td>"
-    f"<td>{(m.get('summary') or {}).get('elev_start_m')}→{(m.get('summary') or {}).get('elev_end_m')}</td></tr>"
+    f"<tr><td>{m.get('nome')}</td>"
+    f"<td>{m.get('pct_na_bacia')}</td>"
+    f"<td>{(m.get('summary') or {}).get('area_km2')}</td>"
+    f"<td>{(m.get('summary') or {}).get('elev_min_m')}–{(m.get('summary') or {}).get('elev_max_m')}</td>"
+    f"<td>{(m.get('summary') or {}).get('elev_median_m')}</td>"
+    f"<td>{(m.get('summary') or {}).get('relief_m')}</td>"
+    f"<td>{', '.join(m.get('axes') or []) or '—'}</td></tr>"
     for m in (report.get('municipal_profiles') or [])
 )}
 </tbody>
 </table>
 </div>
 {''.join(mun_cards)}
+
+<h2 class="section-title" id="mapa">Mapa dos eixos (complementar)</h2>
+<p class="note">Tronco, Guaporé e Forqueta (BHO6) com postos-chave e fozes projetados no eixo mais próximo.</p>
+<div id="axisMap" role="img" aria-label="mapa dos eixos longitudinais G040"></div>
+<p class="map-legend">Linha verde = tronco · azul = Guaporé · ocre = Forqueta · círculos = flu · losangos = foz.</p>
+
+<h2 class="section-title">Eixos da bacia (complementar)</h2>
+{''.join(cards)}
 </main>
 <p class="foot">Gerado {report['generated_at_utc']} · MDT {report['dem']['source']} ·
 rede ANA BHO6 · municípios IBGE (pacote vulnerabilidade PREVINE) ·
@@ -882,9 +1029,13 @@ cota amostrada no terreno (não leito hidráulico). {report['discipline']['cavea
   function apply() {{
     const q = (search && search.value || '').trim().toLowerCase();
     cards.forEach(function(card) {{
-      const axes = (card.getAttribute('data-axes') || '').split(/\\s+/);
+      const axesRaw = (card.getAttribute('data-axes') || '').trim();
+      const axes = axesRaw ? axesRaw.split(/\\s+/) : [];
       const nome = card.getAttribute('data-nome') || '';
-      const okAxis = axis === 'all' || axes.indexOf(axis) >= 0;
+      const hasRiver = card.getAttribute('data-has-river') === '1';
+      let okAxis = true;
+      if (axis === 'sem_eixo') okAxis = !hasRiver;
+      else if (axis !== 'all') okAxis = axes.indexOf(axis) >= 0;
       const okName = !q || nome.indexOf(q) >= 0;
       card.classList.toggle('hidden', !(okAxis && okName));
     }});
@@ -1022,14 +1173,14 @@ def main() -> None:
     print("axis markers", len(axis_markers))
 
     report = {
-        "schema_version": "g040_basin_profiles_v3",
+        "schema_version": "g040_basin_profiles_v4",
         "generated_at_utc": utc_now(),
         "status": "research_profiles_ready",
         "purpose_pt": (
-            "Perfis longitudinais de terreno (SRTM) na bacia oficial Taquari–Antas (G040): "
-            "eixos BHO6 (tronco 786, Guaporé 7864, Forqueta 7862), trechos por município "
-            "e marcadores de postos-chave/fozes no eixo. Diagnóstico de relevo — não é "
-            "seção hidráulica nem alerta."
+            "Perfil por município na bacia oficial Taquari–Antas (G040): hipsometria SRTM "
+            "na área de cada município (cota × % da área abaixo). Complementar: eixos BHO6 "
+            "(tronco 786, Guaporé 7864, Forqueta 7862) com marcadores de postos/fozes. "
+            "Diagnóstico de relevo — não é seção hidráulica nem alerta."
         ),
         "discipline": {
             "not_hydraulic_cross_section": True,
@@ -1037,13 +1188,15 @@ def main() -> None:
             "not_hec_ras": True,
             "research_not_alert": True,
             "dem_is_srtm_surface_approx": True,
-            "municipal_profiles_are_axis_clips": True,
+            "municipal_profiles_are_hypsometry": True,
+            "municipal_river_clips_are_complementary": True,
             "markers_are_axis_projections": True,
+            "border_mun_use_full_polygon": True,
             "caveat_pt": (
-                "SRTM ≈ superfície/terreno grosso (~30 m); pode ficar acima do leito. "
-                "Perfis municipais = eixo BHO cortado pelo polígono IBGE, não perfil de "
-                "toda a área do município. Marcadores = projeção ortogonal no eixo mais "
-                "próximo (off-axis reportado). Use só para leitura de queda/comprimento."
+                "SRTM ≈ superfície/terreno grosso (~30 m). Perfil municipal = hipsometria "
+                "na área do polígono IBGE (não só o rio). Municípios de borda usam o "
+                "polígono inteiro — veja pct_na_bacia. Trechos de rio e marcadores são "
+                "complementares. Não é leito hidráulico nem alerta."
             ),
         },
         "dem": {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke tests for G040 longitudinal basin profiles."""
+"""Smoke tests for G040 municipal + basin MDT profiles."""
 
 from __future__ import annotations
 
@@ -48,9 +48,10 @@ class G040BasinProfilesTests(unittest.TestCase):
         d = self.report["discipline"]
         self.assertTrue(d["not_hydraulic_cross_section"])
         self.assertTrue(d["research_not_alert"])
+        self.assertTrue(d.get("municipal_profiles_are_hypsometry"))
         self.assertTrue(d.get("markers_are_axis_projections"))
         self.assertIn("SRTM", self.report["dem"]["source"])
-        self.assertEqual(self.report["schema_version"], "g040_basin_profiles_v3")
+        self.assertEqual(self.report["schema_version"], "g040_basin_profiles_v4")
 
     def test_axis_markers(self) -> None:
         markers = self.report.get("axis_markers") or []
@@ -60,39 +61,40 @@ class G040BasinProfilesTests(unittest.TestCase):
             self.assertIn(required, codes)
         foz_codes = {m["code"] for m in markers if m.get("kind") == "foz"}
         self.assertTrue({"7868", "7866", "7864", "7862"} <= foz_codes)
-        by_axis = {p["id"]: p for p in self.report["profiles"]}
-        for p in by_axis.values():
-            self.assertIn("markers", p)
         mucum = next(m for m in markers if m.get("code") == "86510000")
         self.assertEqual(mucum["axis_id"], "tronco_taquari_antas")
         self.assertIsNotNone(mucum.get("distance_km"))
         self.assertLess(float(mucum.get("off_axis_m") or 1e9), 5000)
-        html = PAGES.read_text(encoding="utf-8")
-        self.assertIn("axisMap", html)
-        self.assertIn("leaflet", html.lower())
-        self.assertIn("Muçum", html)
-        self.assertIn("Mapa dos eixos", html)
 
     def test_estudo_index_link(self) -> None:
         index = OUT / "index.html"
         text = index.read_text(encoding="utf-8")
         self.assertIn("perfis_longitudinais_g040.html", text)
-        self.assertIn("Perfis longitudinais MDT", text)
+        self.assertIn("Perfis por município", text)
         self.assertIn("../../../pesquisas/perfis-g040-mdt.html", text)
 
-    def test_municipal_profiles(self) -> None:
+    def test_municipal_hypsometry(self) -> None:
         muns = self.report.get("municipal_profiles") or []
-        self.assertGreaterEqual(len(muns), 40)
+        self.assertGreaterEqual(len(muns), 100)
         names = {m["nome"] for m in muns}
-        for required in ("Muçum", "Encantado", "Santa Tereza", "Lajeado", "Taquari"):
+        for required in ("Muçum", "Encantado", "Santa Tereza", "Lajeado", "Taquari", "Montenegro"):
             self.assertIn(required, names)
         mucum = next(m for m in muns if m["nome"] == "Muçum")
-        self.assertIn("tronco_taquari_antas", mucum["axes"])
-        self.assertGreater(mucum["summary"]["length_km"], 1.0)
+        hypo = mucum.get("hypsometry") or {}
+        self.assertGreater(hypo.get("area_km2") or 0, 50)
+        self.assertGreater(hypo.get("relief_m") or 0, 10)
+        self.assertGreaterEqual(len(hypo.get("curve") or []), 20)
+        self.assertIn("tronco_taquari_antas", mucum.get("axes") or [])
+        self.assertIsNotNone(mucum.get("river_svg"))
+        # Border mun still has area hypsometry even without main axes.
+        montenegro = next(m for m in muns if m["nome"] == "Montenegro")
+        self.assertGreater((montenegro.get("hypsometry") or {}).get("n_pixels") or 0, 100)
         html = PAGES.read_text(encoding="utf-8")
         self.assertIn("Perfis por município", html)
+        self.assertIn("hipsometria", html.lower())
         self.assertIn("munSearch", html)
         self.assertIn("Muçum", html)
+        self.assertIn("área abaixo da cota", html)
 
     def test_html_artifacts(self) -> None:
         for path in (HTML, PAGES):
@@ -103,6 +105,7 @@ class G040BasinProfilesTests(unittest.TestCase):
             self.assertIn("Forqueta", text)
             self.assertIn("não é seção hidráulica", text)
             self.assertIn("<polyline", text)
+            self.assertIn("axisMap", text)
 
     def test_centerlines_geojson(self) -> None:
         geo = json.loads(CENTER.read_text(encoding="utf-8"))
