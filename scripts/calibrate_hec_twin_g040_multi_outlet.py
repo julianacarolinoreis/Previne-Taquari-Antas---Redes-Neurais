@@ -6,11 +6,12 @@ Honest scope
 - Guaporé / Forqueta join the Taquari *downstream* of Muçum (86510000).
 - Guaporé mouth (86595000) and Forqueta mouth (86746000): no ANA Q → gated.
 - Capigui (86520100): partial Guaporé (~684 of ~2487 km²).
+- Rastro de Auto (86743700): partial Forqueta (~564 of ~2864 km²).
 - Porto Mariante (86895000): Baixo nested Q (~24 600 km²) =
   Encantado routed + Forqueta residual.
-- Lumped Open-Meteo → IC+Clark twins: Passo Tainhas (Alto), Caçador (Carreiro),
-  Balsa do Prata (Prata), José Júlio (Médio nested).
-- Encantado (86720000): Muçum Q routed + Guaporé residual.
+- Lumped twins use *areal* Open-Meteo (média em pluviômetros da UG),
+  not a single point.
+- Encantado (86720000): Muçum Q routed + Guaporé residual areal.
 
 Does not invent an STZ rating. Does not touch RNA.
 """
@@ -36,7 +37,7 @@ OUT = ROOT / "assets" / "data" / "estudo_bacia_taquari_antas"
 SERIES_DIR = OUT / "hec_twin_stz_mucum_v1"
 CACHE = Path(__file__).resolve().parent / "__pycache__"
 FETCH_CACHE = OUT / "_cache_multi_outlet_fetches"
-UA = "PREVINE-G040-multi-outlet/2.0"
+UA = "PREVINE-G040-multi-outlet/3.0"
 
 AREA_MUCUM_KM2 = 15965.207
 AREA_GUAPORE_KM2 = 2487.5
@@ -47,8 +48,8 @@ AREA_G040_KM2 = 26430.0
 AREA_MARIANTE_KM2 = 24600.0
 
 CORE_EVENTS = ["E20", "E21", "E22", "E23", "E24", "E25", "E27", "E28", "E31"]
-GUAPORE_CENTROID = (-28.95, -51.95)
-FORQUETA_CENTROID = (-29.2239, -52.1622)  # Barra do Fão
+PLUV_JSON = OUT / "pluviometria_g040_latest.json"
+POSTOS_JSON = OUT / "postos_por_upg_latest.json"
 
 TRIBUTARIES: list[dict[str, Any]] = [
     {
@@ -56,50 +57,66 @@ TRIBUTARIES: list[dict[str, Any]] = [
         "station_code": "86160000",
         "label_pt": "Passo Tainhas (Alto)",
         "ugs": ["Alto Taquari-Antas"],
+        "rain_ugs": ["Alto Taquari-Antas"],
         "nested_area_km2": 1120.0,
         "lat": -28.8681,
         "lon": -50.4561,
-        "note_pt": "Tributário Alto: Open-Meteo pontual → IC+Clark vs Q ANA.",
+        "note_pt": "Tributário Alto: Open-Meteo areal (pluvios UG) → IC+Clark vs Q ANA.",
     },
     {
         "outlet_id": "cacador_carreiro",
         "station_code": "86488000",
         "label_pt": "PCH Caçador montante (Carreiro)",
         "ugs": ["Carreiro"],
+        "rain_ugs": ["Carreiro"],
         "nested_area_km2": 2090.0,
         "lat": -28.6847,
         "lon": -51.8506,
-        "note_pt": "Carreiro quase-foz: Open-Meteo pontual → IC+Clark vs Q ANA.",
+        "note_pt": "Carreiro quase-foz: Open-Meteo areal → IC+Clark vs Q ANA.",
     },
     {
         "outlet_id": "balsa_prata",
         "station_code": "86447000",
         "label_pt": "Balsa do Prata (Prata)",
         "ugs": ["Prata"],
+        "rain_ugs": ["Prata"],
         "nested_area_km2": 3750.0,
         "lat": -28.9714,
         "lon": -51.4611,
-        "note_pt": "Prata quase-foz: Open-Meteo pontual → IC+Clark vs Q ANA.",
+        "note_pt": "Prata quase-foz: Open-Meteo areal → IC+Clark vs Q ANA.",
     },
     {
         "outlet_id": "capigui_guapore",
         "station_code": "86520100",
         "label_pt": "PCH Capigui jusante (Guaporé parcial)",
         "ugs": ["Guaporé"],
+        "rain_ugs": ["Guaporé"],
         "nested_area_km2": 684.0,
         "lat": -28.3825,
         "lon": -52.2586,
-        "note_pt": "Guaporé parcial (~684/2487 km²). Foz 86595000 ainda sem Q.",
+        "note_pt": "Guaporé parcial (~684/2487 km²). PCH — Q pode ser regulada. Foz 86595000 sem Q.",
+    },
+    {
+        "outlet_id": "rastro_forqueta",
+        "station_code": "86743700",
+        "label_pt": "PCH Rastro de Auto (Forqueta parcial)",
+        "ugs": ["Forqueta"],
+        "rain_ugs": ["Forqueta"],
+        "nested_area_km2": 564.0,
+        "lat": -29.0419,
+        "lon": -52.2222,
+        "note_pt": "Forqueta parcial (~564/2864 km²). PCH montante. Foz 86746000 sem Q.",
     },
     {
         "outlet_id": "jose_julio",
         "station_code": "86472000",
         "label_pt": "Linha José Júlio (Médio aninhado)",
         "ugs": ["Alto Taquari-Antas", "Prata", "Médio Taquari-Antas"],
+        "rain_ugs": ["Alto Taquari-Antas", "Prata", "Médio Taquari-Antas"],
         "nested_area_km2": 13000.0,
         "lat": -29.0978,
         "lon": -51.6997,
-        "note_pt": "Tronco a montante de Muçum (~13 mil km²); lumped research.",
+        "note_pt": "Tronco a montante de Muçum (~13 mil km²); lumped + chuva areal multi-UG.",
     },
 ]
 
@@ -213,6 +230,85 @@ def fetch_open_meteo_rain(lat: float, lon: float, t0: pd.Timestamp, t1: pd.Times
     )
     times = pd.to_datetime(hourly["time"], utc=True).tz_localize(None)
     return pd.Series(hourly["precipitation"], index=times, dtype=float).fillna(0.0)
+
+
+def pluv_points_for_ugs(ugs: list[str], max_points: int = 5) -> list[tuple[float, float]]:
+    """Spatial rain samples inside each UG.
+
+    Prefer fluviometric station coords (polygon-assigned). Pluviometers labeled
+    by UPG are often outside the actual drainage (e.g. Forqueta labels sit north
+    of the flu bbox) — keep only those inside the flu bounding box.
+    """
+    want = set(ugs)
+    flu_pts: list[tuple[float, float]] = []
+    bbox: dict[str, tuple[float, float, float, float]] = {}
+    if POSTOS_JSON.exists():
+        postos = json.loads(POSTOS_JSON.read_text(encoding="utf-8"))
+        for ug in want:
+            sts = [
+                s
+                for s in (postos.get("by_upg") or {}).get(ug, [])
+                if s.get("lat") is not None and s.get("lon") is not None
+            ]
+            if not sts:
+                continue
+            lats = [float(s["lat"]) for s in sts]
+            lons = [float(s["lon"]) for s in sts]
+            bbox[ug] = (min(lats), max(lats), min(lons), max(lons))
+            for s in sts:
+                flu_pts.append((float(s["lat"]), float(s["lon"])))
+
+    pluv_pts: list[tuple[float, float]] = []
+    if PLUV_JSON.exists():
+        payload = json.loads(PLUV_JSON.read_text(encoding="utf-8"))
+        for s in payload.get("stations") or []:
+            ug = s.get("upg")
+            if ug not in want or s.get("lat") is None or s.get("lon") is None:
+                continue
+            la, lo = float(s["lat"]), float(s["lon"])
+            if ug in bbox:
+                la0, la1, lo0, lo1 = bbox[ug]
+                # small pad
+                if not (la0 - 0.05 <= la <= la1 + 0.05 and lo0 - 0.05 <= lo <= lo1 + 0.05):
+                    continue
+            pluv_pts.append((la, lo))
+
+    pts = flu_pts + pluv_pts
+    if not pts:
+        return []
+    pts = sorted(set((round(la, 4), round(lo, 4)) for la, lo in pts))
+    if len(pts) <= max_points:
+        return pts
+    idxs = [round(i * (len(pts) - 1) / (max_points - 1)) for i in range(max_points)]
+    return [pts[i] for i in idxs]
+
+
+def fetch_areal_rain(
+    points: list[tuple[float, float]],
+    t0: pd.Timestamp,
+    t1: pd.Timestamp,
+    fallback: tuple[float, float] | None = None,
+) -> tuple[pd.Series, dict[str, Any]]:
+    """Mean Open-Meteo precipitation across sample points (areal proxy)."""
+    use = list(points)
+    if not use and fallback is not None:
+        use = [fallback]
+    if not use:
+        raise ValueError("no rain points")
+    series_list = [fetch_open_meteo_rain(lat, lon, t0, t1) for lat, lon in use]
+    # union index
+    idx = series_list[0].index
+    for s in series_list[1:]:
+        idx = idx.union(s.index)
+    idx = idx.sort_values()
+    stacked = pd.concat([s.reindex(idx, fill_value=0.0) for s in series_list], axis=1)
+    mean = stacked.mean(axis=1)
+    meta = {
+        "n_points": len(use),
+        "points": [{"lat": la, "lon": lo} for la, lo in use],
+        "method": "open_meteo_mean_pluv_sample",
+    }
+    return mean.fillna(0.0), meta
 
 
 def _ln(tag: str) -> str:
@@ -353,7 +449,10 @@ def _core_flags(muc: pd.DataFrame, n: int) -> list[int]:
 def align_tributary(spec: dict[str, Any], event_id: str) -> dict[str, Any] | None:
     muc = load_mucum_obs(event_id)
     t0, t1 = muc["timestamp"].iloc[0], muc["timestamp"].iloc[-1]
-    rain = fetch_open_meteo_rain(spec["lat"], spec["lon"], t0, t1)
+    points = pluv_points_for_ugs(spec.get("rain_ugs") or spec["ugs"])
+    rain, rain_meta = fetch_areal_rain(
+        points, t0, t1, fallback=(float(spec["lat"]), float(spec["lon"]))
+    )
     q = fetch_ana_tele_flow(spec["station_code"], t0, t1)
     if q.empty or q.notna().sum() < 20:
         return None
@@ -370,6 +469,7 @@ def align_tributary(spec: dict[str, Any], event_id: str) -> dict[str, Any] | Non
         "in_core_window": _core_flags(muc, len(idx)),
         "rain_sum_mm": float(rain_h.sum()),
         "peak_obs": float(pd.Series(obs).max(skipna=True)),
+        "rain_meta": rain_meta,
     }
 
 
@@ -397,7 +497,8 @@ def fit_tributary(bundle: dict[str, Any], area_km2: float) -> dict[str, Any]:
 def align_encantado(event_id: str) -> dict[str, Any] | None:
     muc = load_mucum_obs(event_id)
     t0, t1 = muc["timestamp"].iloc[0], muc["timestamp"].iloc[-1]
-    rain = fetch_open_meteo_rain(GUAPORE_CENTROID[0], GUAPORE_CENTROID[1], t0, t1)
+    points = pluv_points_for_ugs(["Guaporé"])
+    rain, rain_meta = fetch_areal_rain(points, t0, t1, fallback=(-28.95, -51.95))
     enc = fetch_ana_tele_flow("86720000", t0, t1)
     if enc.empty or enc.notna().sum() < 10:
         return None
@@ -417,13 +518,15 @@ def align_encantado(event_id: str) -> dict[str, Any] | None:
         "rain_sum_mm": float(rain_h.sum()),
         "peak_obs": float(pd.Series(enc_list).max(skipna=True)),
         "upstream_peak": float(pd.Series(muc_filled).max(skipna=True)),
+        "rain_meta": rain_meta,
     }
 
 
 def align_mariante(event_id: str) -> dict[str, Any] | None:
     muc = load_mucum_obs(event_id)
     t0, t1 = muc["timestamp"].iloc[0], muc["timestamp"].iloc[-1]
-    rain = fetch_open_meteo_rain(FORQUETA_CENTROID[0], FORQUETA_CENTROID[1], t0, t1)
+    points = pluv_points_for_ugs(["Forqueta"])
+    rain, rain_meta = fetch_areal_rain(points, t0, t1, fallback=(-29.2239, -52.1622))
     enc = fetch_ana_tele_flow("86720000", t0, t1)
     mar = fetch_ana_tele_flow("86895000", t0, t1)
     if enc.empty or enc.notna().sum() < 10 or mar.empty or mar.notna().sum() < 20:
@@ -459,6 +562,7 @@ def align_mariante(event_id: str) -> dict[str, Any] | None:
         "rain_sum_mm": float(rain_h.sum()),
         "peak_obs": float(pd.Series(obs).max(skipna=True)),
         "upstream_peak": float(pd.Series(filled_up).max(skipna=True)),
+        "rain_meta": rain_meta,
     }
 
 
@@ -590,7 +694,7 @@ def calibrate_tributary(spec: dict[str, Any]) -> dict[str, Any]:
         "quantity": "Q_ana_telemetria",
         "status": status,
         "note_pt": spec["note_pt"],
-        "engine": "open_meteo_point_ic_clark",
+        "engine": "open_meteo_areal_ic_clark",
         "self_fit": fits,
         "loo": loo,
         "summary": summary,
@@ -704,7 +808,16 @@ def calibrate_mariante() -> dict[str, Any]:
     loo = loo_blend(bundles, fits, sim_fn) if len(fits) >= 2 else []
     summary = _summary(fits, loo)
     print(" summary", summary)
-    status = "calibrated_multi_outlet_v1" if len(fits) >= 3 else "fragile_thin_events"
+    loo_mean = summary.get("mean_nse_loo")
+    self_mean = summary.get("mean_self_fit_nse")
+    if len(fits) >= 3 and loo_mean is not None and loo_mean > 0 and self_mean is not None and self_mean > 0.2:
+        status = "calibrated_multi_outlet_v1"
+    elif len(fits) >= 3 and self_mean is not None and self_mean > 0.2:
+        status = "fragile_self_fit_only"
+    elif len(fits) >= 3:
+        status = "fragile_no_transfer"
+    else:
+        status = "fragile_thin_events"
     return {
         "outlet_id": "porto_mariante",
         "station_code": "86895000",
@@ -821,7 +934,8 @@ def outlet_catalog(
                 "quantity": "Q",
                 "status": "blocked_no_ana_q_series",
                 "blocker_pt": (
-                    "Foz sem Q. Residual Forqueta entra em Porto Mariante; "
+                    "Foz sem Q. Proxy parcial em Rastro de Auto (86743700); "
+                    "residual Forqueta também entra em Porto Mariante. "
                     "Barra do Fão só nível."
                 ),
             },
@@ -868,14 +982,15 @@ def main() -> None:
     outlets = outlet_catalog(trib_results, mariante)
     calibrated = [o for o in outlets if str(o.get("status", "")).startswith("calibrated")]
     report = {
-        "schema_version": "hec_twin_g040_multi_outlet_v2",
+        "schema_version": "hec_twin_g040_multi_outlet_v3",
         "generated_at_utc": utc_now(),
         "purpose_pt": (
-            "Calibração multi-exutório G040: Muçum + Encantado + tributários com Q "
-            "(Alto/Carreiro/Prata/Guaporé parcial/José Júlio) + Porto Mariante (Baixo). "
-            "Foz Guaporé, foz Forqueta e Taquari-nível ainda gated."
+            "Calibração multi-exutório G040 v3: chuva areal Open-Meteo (média nos "
+            "pluviômetros da UG) + Muçum/Encantado/Mariante + tributários com Q "
+            "(inclui Forqueta parcial Rastro). Foz Guaporé, foz Forqueta e "
+            "Taquari-nível ainda gated."
         ),
-        "status": "research_multi_outlet_v2",
+        "status": "research_multi_outlet_v3",
         "discipline": {
             "not_single_mucum_as_g040": True,
             "guapore_forqueta_downstream_of_mucum": True,
@@ -895,12 +1010,12 @@ def main() -> None:
         },
         "outlets": outlets,
         "engine": {
-            "name": "python_hms_twin_g040_multi_outlet_v2",
+            "name": "python_hms_twin_g040_multi_outlet_v3",
             "not_hec_hms_binary": True,
             "methods": [
                 "Muçum eventwise library (existing)",
                 "Muskingum + residual Clark (Encantado, Porto Mariante)",
-                "Open-Meteo point → Initial+Constant + Clark (tributaries)",
+                "Open-Meteo areal mean over UG pluviometer sample → IC+Clark",
             ],
         },
         "encantado_calibration": enc,
@@ -909,10 +1024,10 @@ def main() -> None:
         },
         "mariante_calibration": _compact_fit_block(mariante),
         "blocked_next": [
-            "Puxar Q/curva oficial 86595000 (foz Guaporé) — Capigui cobre só ~684 km².",
-            "Puxar Q/curva oficial 86746000 (foz Forqueta) — hoje residual só em Mariante.",
+            "Puxar Q/curva oficial 86595000 (foz Guaporé) — Capigui cobre só ~684 km² e é PCH.",
+            "Puxar Q/curva oficial 86746000 (foz Forqueta) — Rastro cobre só ~564 km² e é PCH.",
             "Taquari 86950000: nível sem curva; Mariante já fecha Q Baixo aninhado.",
-            "Trocar chuva Open-Meteo pontual por máscara areal ANA/INMET por UG.",
+            "Substituir Open-Meteo areal por chuva observada ANA/INMET horária por UG.",
         ],
         "artifacts": {
             "json": "modelo_g040_multi_exutorio_v1_latest.json",

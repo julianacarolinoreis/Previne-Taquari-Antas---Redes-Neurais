@@ -1,9 +1,9 @@
 {
   "schema_version": "plataforma_hec_twin_mucum_v2",
-  "generated_at_utc": "2026-09-14T03:32:13Z",
+  "generated_at_utc": "2026-09-14T12:26:34Z",
   "status": "research_platform_ready",
   "label_pt": "Plataforma HEC/REC · bacia Taquari–Antas (G040)",
-  "purpose_pt": "Mapa e inventário da bacia oficial Taquari–Antas (G040, ~26,4 mil km², 7 UGs). Multi-exutório calibrado: Muçum + Encantado (após Guaporé) + Porto Mariante (Baixo com Q). Tributários com Q ANA (Alto/Carreiro/Prata/Capigui/José Júlio) foram tentados — self-fit ≠ LOO com chuva pontual. Foz Guaporé, foz Forqueta e Taquari-nível ainda gated. Não é HEC-HMS binário. Pesquisa, não alerta.",
+  "purpose_pt": "Mapa e inventário da bacia oficial Taquari–Antas (G040, ~26,4 mil km², 7 UGs). Multi-exutório v3: chuva areal Open-Meteo por UG; Muçum + Encantado + Porto Mariante; tributários com Q (inclui Forqueta parcial). Foz Guaporé, foz Forqueta e Taquari-nível ainda gated. Não é HEC-HMS binário. Pesquisa.",
   "methodology": {
     "family_arm_pt": "Gêmeo Python HMS-like (não binário HEC-HMS)",
     "engine_name": "python_hms_twin_ic_clark_recession_muskingum",
@@ -161,8 +161,8 @@
     "corridor_analog_transfer": true,
     "ifs_point_proxy": true,
     "multi_outlet_encantado_calibrated": true,
-    "multi_outlet_mariante_calibrated": true,
-    "tributary_point_rain_fragile": true,
+    "multi_outlet_mariante_attempted": true,
+    "tributary_areal_rain_v3": true,
     "guapore_mouth_q_blocked": true,
     "forqueta_mouth_q_blocked": true
   },
@@ -326,7 +326,7 @@
       "note_pt": "Produto operacional de pesquisa (~5d). Se a forçante estiver seca ou a telemetria cair, o ΔN pode ir a zero — conferir live eval.",
       "available": true,
       "artifact": "hec_twin_mucum_forward_5d.html",
-      "age_hours": 29.22,
+      "age_hours": 38.13,
       "stale": true,
       "note": "Forward seco/stale — preferir live para o evento.",
       "peak_delta_n_cm": 0.0,
@@ -420,7 +420,7 @@
       },
       "available": true,
       "artifact": "hec_twin_mucum_live_eval.html",
-      "age_hours": 29.23,
+      "age_hours": 38.13,
       "timing_error_h": 0.5,
       "note": "Replay do evento com âncora + verificação ANA.",
       "peak_delta_n_cm": 253.81,
@@ -690,9 +690,9 @@
       "method_pt": "Leave-one-out nos eventos da biblioteca: chuva observada como proxy de QPF → gêmeo Python HMS-like → ΔN Muçum via curva oficial. Self-fit ≠ skill de previsão."
     },
     "g040_multi_outlet": {
-      "status": "research_multi_outlet_v2",
-      "generated_at_utc": "2026-09-14T03:25:36Z",
-      "purpose_pt": "Calibração multi-exutório G040: Muçum + Encantado (LOO>0) + Porto Mariante (Baixo Q). Tributários Alto/Carreiro/Prata/Capigui/José Júlio com Q ANA foram tentados — self-fit ≠ transferência LOO (chuva pontual). Foz Guaporé, foz Forqueta e Taquari-nível gated.",
+      "status": "research_multi_outlet_v3",
+      "generated_at_utc": "2026-09-14T12:25:34Z",
+      "purpose_pt": "Calibração multi-exutório G040 v3: chuva areal Open-Meteo (amostra espacial na UG). Encantado LOO≈0.8328 (ganho vs pontual). Forqueta parcial (Rastro) e tributários com self-fit; LOO ainda frágil. Foz Guaporé/Forqueta e Taquari-nível gated.",
       "outlets": [
         {
           "outlet_id": "mucum",
@@ -708,8 +708,7 @@
           "quantity": "Q_and_stage_via_official_rating",
           "status": "calibrated_eventwise_v1",
           "calibration_artifact": "modelo_mucum_eventwise_v1_fechado_latest.json",
-          "note_pt": "Corredor eventwise existente (self-fit ≠ LOO).",
-          "blocker_pt": null
+          "note_pt": "Corredor eventwise existente (self-fit ≠ LOO)."
         },
         {
           "outlet_id": "encantado_guapore_join",
@@ -728,12 +727,11 @@
           "note_pt": "Muçum Q roteada + residual Guaporé (Open-Meteo → Clark).",
           "skill": {
             "n_events_fitted": 8,
-            "mean_self_fit_nse": 0.8902,
-            "mean_nse_loo": 0.5221,
-            "mean_peak_rel_err_loo": 0.2148
+            "mean_self_fit_nse": 0.8912,
+            "mean_nse_loo": 0.8328,
+            "mean_peak_rel_err_loo": 0.1539
           },
-          "verdict_pt": "Self-fit Encantado médio NSE≈0.8902; LOO NSE≈0.5221. Fecha Guaporé+corredor em Encantado; foz Guaporé isolada ainda gated.",
-          "blocker_pt": null
+          "verdict_pt": "Self-fit Encantado médio NSE≈0.8912; LOO NSE≈0.8328. Fecha Guaporé+corredor em Encantado; foz Guaporé isolada ainda gated."
         },
         {
           "outlet_id": "passo_tainhas",
@@ -745,14 +743,14 @@
           "nested_area_km2": 1120.0,
           "quantity": "Q_ana_telemetria",
           "status": "fragile_no_transfer",
-          "note_pt": "Tributário Alto: Open-Meteo pontual → IC+Clark vs Q ANA.",
+          "note_pt": "Tributário Alto: Open-Meteo areal (pluvios UG) → IC+Clark vs Q ANA.",
           "skill": {
             "n_events_fitted": 9,
-            "mean_self_fit_nse": -1.1847,
-            "mean_nse_loo": -38.9052,
-            "mean_peak_rel_err_loo": 0.9371
+            "mean_self_fit_nse": -2.8494,
+            "mean_nse_loo": -75.7849,
+            "mean_peak_rel_err_loo": 1.1167
           },
-          "blocker_pt": "Self-fit NSE≈-1.1847, LOO NSE≈-38.9052. Sinal frágil (possível regulação PCH ou chuva pontual inadequada)."
+          "blocker_pt": "Self-fit NSE≈-2.8494; LOO NSE≈-75.7849. Chuva areal Open-Meteo ainda não fecha transferência."
         },
         {
           "outlet_id": "cacador_carreiro",
@@ -764,14 +762,14 @@
           "nested_area_km2": 2090.0,
           "quantity": "Q_ana_telemetria",
           "status": "fragile_self_fit_only",
-          "note_pt": "Carreiro quase-foz: Open-Meteo pontual → IC+Clark vs Q ANA.",
+          "note_pt": "Carreiro quase-foz: Open-Meteo areal → IC+Clark vs Q ANA.",
           "skill": {
             "n_events_fitted": 8,
-            "mean_self_fit_nse": 0.5304,
-            "mean_nse_loo": -1.0844,
-            "mean_peak_rel_err_loo": 0.2767
+            "mean_self_fit_nse": 0.6899,
+            "mean_nse_loo": -1.25,
+            "mean_peak_rel_err_loo": 0.3186
           },
-          "blocker_pt": "Self-fit NSE≈0.53 mas LOO NSE≈-1.0844. Chuva pontual Open-Meteo não transfere; precisa máscara areal / Q de foz."
+          "blocker_pt": "Self-fit NSE≈0.6899; LOO NSE≈-1.25. Chuva areal Open-Meteo ainda não fecha transferência."
         },
         {
           "outlet_id": "balsa_prata",
@@ -783,14 +781,14 @@
           "nested_area_km2": 3750.0,
           "quantity": "Q_ana_telemetria",
           "status": "fragile_self_fit_only",
-          "note_pt": "Prata quase-foz: Open-Meteo pontual → IC+Clark vs Q ANA.",
+          "note_pt": "Prata quase-foz: Open-Meteo areal → IC+Clark vs Q ANA.",
           "skill": {
-            "n_events_fitted": 7,
-            "mean_self_fit_nse": 0.3073,
-            "mean_nse_loo": -15.3784,
-            "mean_peak_rel_err_loo": 1.1246
+            "n_events_fitted": 6,
+            "mean_self_fit_nse": 0.5238,
+            "mean_nse_loo": -17.0489,
+            "mean_peak_rel_err_loo": 1.0784
           },
-          "blocker_pt": "Self-fit NSE≈0.31 mas LOO NSE≈-15.3784. Chuva pontual Open-Meteo não transfere; precisa máscara areal / Q de foz."
+          "blocker_pt": "Self-fit NSE≈0.5238; LOO NSE≈-17.0489. Chuva areal Open-Meteo ainda não fecha transferência."
         },
         {
           "outlet_id": "capigui_guapore",
@@ -802,14 +800,33 @@
           "nested_area_km2": 684.0,
           "quantity": "Q_ana_telemetria",
           "status": "fragile_no_transfer",
-          "note_pt": "Guaporé parcial (~684/2487 km²). Foz 86595000 ainda sem Q.",
+          "note_pt": "Guaporé parcial (~684/2487 km²). PCH — Q pode ser regulada. Foz 86595000 sem Q.",
           "skill": {
             "n_events_fitted": 7,
-            "mean_self_fit_nse": -42.9856,
-            "mean_nse_loo": -120.9118,
-            "mean_peak_rel_err_loo": 4.7595
+            "mean_self_fit_nse": -16.1782,
+            "mean_nse_loo": -44.2975,
+            "mean_peak_rel_err_loo": 2.3163
           },
-          "blocker_pt": "Self-fit NSE≈-42.9856, LOO NSE≈-120.9118. Sinal frágil (possível regulação PCH ou chuva pontual inadequada)."
+          "blocker_pt": "Self-fit NSE≈-16.1782; LOO NSE≈-44.2975. Chuva areal Open-Meteo ainda não fecha transferência."
+        },
+        {
+          "outlet_id": "rastro_forqueta",
+          "station_code": "86743700",
+          "label_pt": "PCH Rastro de Auto (Forqueta parcial)",
+          "ugs": [
+            "Forqueta"
+          ],
+          "nested_area_km2": 564.0,
+          "quantity": "Q_ana_telemetria",
+          "status": "fragile_self_fit_only",
+          "note_pt": "Forqueta parcial (~564/2864 km²). PCH montante. Foz 86746000 sem Q.",
+          "skill": {
+            "n_events_fitted": 6,
+            "mean_self_fit_nse": 0.7167,
+            "mean_nse_loo": -1.29,
+            "mean_peak_rel_err_loo": 0.2936
+          },
+          "blocker_pt": "Self-fit NSE≈0.7167; LOO NSE≈-1.29. Chuva areal Open-Meteo ainda não fecha transferência."
         },
         {
           "outlet_id": "jose_julio",
@@ -823,14 +840,14 @@
           "nested_area_km2": 13000.0,
           "quantity": "Q_ana_telemetria",
           "status": "fragile_no_transfer",
-          "note_pt": "Tronco a montante de Muçum (~13 mil km²); lumped research.",
+          "note_pt": "Tronco a montante de Muçum (~13 mil km²); lumped + chuva areal multi-UG.",
           "skill": {
             "n_events_fitted": 8,
-            "mean_self_fit_nse": -0.5454,
-            "mean_nse_loo": -183.5987,
-            "mean_peak_rel_err_loo": 0.8522
+            "mean_self_fit_nse": 0.0504,
+            "mean_nse_loo": -167.4087,
+            "mean_peak_rel_err_loo": 0.8039
           },
-          "blocker_pt": "Self-fit NSE≈-0.5454, LOO NSE≈-183.5987. Sinal frágil (possível regulação PCH ou chuva pontual inadequada)."
+          "blocker_pt": "Self-fit NSE≈0.0504; LOO NSE≈-167.4087. Chuva areal Open-Meteo ainda não fecha transferência."
         },
         {
           "outlet_id": "porto_mariante",
@@ -847,16 +864,15 @@
           ],
           "nested_area_km2": 24600.0,
           "quantity": "Q_ana_telemetria",
-          "status": "calibrated_multi_outlet_v1",
-          "note_pt": "Encantado Q roteada + residual Forqueta (Open-Meteo → Clark). Quase-G040.",
+          "status": "fragile_self_fit_only",
+          "note_pt": "Encantado Q roteada + residual Forqueta areal. Self-fit ok; LOO ~0 — transferência ainda frágil.",
           "skill": {
             "n_events_fitted": 7,
-            "mean_self_fit_nse": 0.4458,
-            "mean_nse_loo": 0.1288,
-            "mean_peak_rel_err_loo": 0.3607
+            "mean_self_fit_nse": 0.4004,
+            "mean_nse_loo": -0.0174,
+            "mean_peak_rel_err_loo": 0.353
           },
-          "verdict_pt": "Porto Mariante: self-fit NSE≈0.4458; LOO NSE≈0.1288. Baixo com Q; foz Forqueta isolada e Taquari (nível) ainda gated.",
-          "blocker_pt": null
+          "blocker_pt": "Self-fit NSE≈0.4004; LOO NSE≈-0.0174. Residual Forqueta / Q Baixo ainda limitados."
         },
         {
           "outlet_id": "guapore_mouth",
@@ -868,8 +884,7 @@
           "nested_area_km2": 2487.5,
           "quantity": "Q",
           "status": "blocked_no_ana_q_series",
-          "blocker_pt": "Foz sem Q. Proxy parcial calibrado em Capigui (86520100).",
-          "note_pt": null
+          "blocker_pt": "Foz sem Q. Proxy parcial calibrado em Capigui (86520100)."
         },
         {
           "outlet_id": "forqueta_mouth",
@@ -881,8 +896,7 @@
           "nested_area_km2": 2864.0,
           "quantity": "Q",
           "status": "blocked_no_ana_q_series",
-          "blocker_pt": "Foz sem Q. Residual Forqueta entra em Porto Mariante; Barra do Fão só nível.",
-          "note_pt": null
+          "blocker_pt": "Foz sem Q. Proxy parcial em Rastro de Auto (86743700); residual Forqueta também entra em Porto Mariante. Barra do Fão só nível."
         },
         {
           "outlet_id": "baixo_taquari_stage",
@@ -894,8 +908,7 @@
           "nested_area_km2": 26430.0,
           "quantity": "stage_only",
           "status": "stage_only_no_q_curve",
-          "blocker_pt": "Só nível. Q Baixo calibrado em Porto Mariante (86895000).",
-          "note_pt": null
+          "blocker_pt": "Só nível. Q Baixo calibrado em Porto Mariante (86895000)."
         }
       ],
       "encantado": {
@@ -904,8 +917,8 @@
           "E20": {
             "event_id": "E20",
             "params": {
-              "initial_loss_mm": 15.0,
-              "constant_loss_mm_h": 1.5,
+              "initial_loss_mm": 5.0,
+              "constant_loss_mm_h": 0.5,
               "tc_h": 20.0,
               "r_h": 10.0,
               "musk_k_h": 4.0,
@@ -913,15 +926,15 @@
               "baseflow_m3s": 37.3125
             },
             "metrics": {
-              "nse": 0.9649618475471474,
-              "peak_rel_err": 0.0027410632635545733,
-              "research_score": 0.9615355184677042,
+              "nse": 0.9804102411846627,
+              "peak_rel_err": 0.004714867743838122,
+              "research_score": 0.9745166565048651,
               "n_pairs": 89.0
             },
-            "rain_sum_mm": 83.1,
+            "rain_sum_mm": 64.17999999999999,
             "peak_obs": 3992.6,
             "upstream_peak": 3260.25,
-            "sim_peak": 4003.543969186068
+            "sim_peak": 4011.424580954048
           },
           "E21": {
             "event_id": "E21",
@@ -935,15 +948,15 @@
               "baseflow_m3s": 89.55
             },
             "metrics": {
-              "nse": 0.9660721042729518,
-              "peak_rel_err": 0.12233602237990464,
-              "research_score": 0.813152076298071,
+              "nse": 0.9464596948074218,
+              "peak_rel_err": 0.15523902271820095,
+              "research_score": 0.7524109164096706,
               "n_pairs": 150.0
             },
-            "rain_sum_mm": 90.89999999999999,
+            "rain_sum_mm": 71.94000000000001,
             "peak_obs": 8169.3,
             "upstream_peak": 6000.525,
-            "sim_peak": 7169.900332371845
+            "sim_peak": 6901.105851708201
           },
           "E22": {
             "event_id": "E22",
@@ -953,24 +966,24 @@
               "tc_h": 6.0,
               "r_h": 10.0,
               "musk_k_h": 4.0,
-              "musk_x": 0.2,
+              "musk_x": 0.3,
               "baseflow_m3s": 89.55
             },
             "metrics": {
-              "nse": 0.7330796760891715,
-              "peak_rel_err": 0.1597758040225259,
-              "research_score": 0.533359921061014,
+              "nse": 0.7513124435018589,
+              "peak_rel_err": 0.15886778859084974,
+              "research_score": 0.5527277077632967,
               "n_pairs": 23.0
             },
-            "rain_sum_mm": 121.49999999999999,
+            "rain_sum_mm": 136.98,
             "peak_obs": 15857.150000000001,
             "upstream_peak": 14955.2949,
-            "sim_peak": 15552.88957305605
+            "sim_peak": 15681.805900263542
           },
           "E24": {
             "event_id": "E24",
             "params": {
-              "initial_loss_mm": 5.0,
+              "initial_loss_mm": 15.0,
               "constant_loss_mm_h": 0.5,
               "tc_h": 20.0,
               "r_h": 10.0,
@@ -979,37 +992,37 @@
               "baseflow_m3s": 89.55
             },
             "metrics": {
-              "nse": 0.97438633612952,
-              "peak_rel_err": 0.07318939768688039,
-              "research_score": 0.8828995890209195,
+              "nse": 0.9498921403165105,
+              "peak_rel_err": 0.13563201158430116,
+              "research_score": 0.780352125836134,
               "n_pairs": 240.0
             },
-            "rain_sum_mm": 250.6,
+            "rain_sum_mm": 236.72,
             "peak_obs": 15822.8,
             "upstream_peak": 11434.95,
-            "sim_peak": 14664.738798280028
+            "sim_peak": 13676.721807103919
           },
           "E25": {
             "event_id": "E25",
             "params": {
-              "initial_loss_mm": 30.0,
-              "constant_loss_mm_h": 1.5,
-              "tc_h": 12.0,
-              "r_h": 20.0,
-              "musk_k_h": 8.0,
+              "initial_loss_mm": 5.0,
+              "constant_loss_mm_h": 0.5,
+              "tc_h": 6.0,
+              "r_h": 30.0,
+              "musk_k_h": 4.0,
               "musk_x": 0.2,
               "baseflow_m3s": 37.3125
             },
             "metrics": {
-              "nse": 0.9810028653245707,
-              "peak_rel_err": 0.00033089634710657716,
-              "research_score": 0.9805892448906874,
+              "nse": 0.9793867043412139,
+              "peak_rel_err": 0.0045711702049372645,
+              "research_score": 0.9736727415850424,
               "n_pairs": 62.0
             },
-            "rain_sum_mm": 101.2,
+            "rain_sum_mm": 69.49999999999999,
             "peak_obs": 2471.425,
             "upstream_peak": 1923.775,
-            "sim_peak": 2472.242785504648
+            "sim_peak": 2482.7223043237373
           },
           "E27": {
             "event_id": "E27",
@@ -1017,21 +1030,21 @@
               "initial_loss_mm": 5.0,
               "constant_loss_mm_h": 0.5,
               "tc_h": 20.0,
-              "r_h": 20.0,
+              "r_h": 30.0,
               "musk_k_h": 4.0,
               "musk_x": 0.3,
               "baseflow_m3s": 89.55
             },
             "metrics": {
-              "nse": 0.6671840761636472,
-              "peak_rel_err": 0.12172275895274044,
-              "research_score": 0.5150306274727217,
+              "nse": 0.6511711972152144,
+              "peak_rel_err": 0.16018171076167728,
+              "research_score": 0.4509440587631178,
               "n_pairs": 66.0
             },
-            "rain_sum_mm": 255.99999999999997,
+            "rain_sum_mm": 240.84,
             "peak_obs": 10082.5,
             "upstream_peak": 14525.225,
-            "sim_peak": 15409.618790471679
+            "sim_peak": 14848.2838368791
           },
           "E28": {
             "event_id": "E28",
@@ -1045,15 +1058,15 @@
               "baseflow_m3s": 89.55
             },
             "metrics": {
-              "nse": 0.8690275787191655,
-              "peak_rel_err": 0.22027272047629376,
-              "research_score": 0.5936866781237983,
+              "nse": 0.8876720132552682,
+              "peak_rel_err": 0.20346540217316422,
+              "research_score": 0.633340260538813,
               "n_pairs": 120.0
             },
-            "rain_sum_mm": 161.0,
+            "rain_sum_mm": 208.42000000000002,
             "peak_obs": 10750.475,
             "upstream_peak": 7886.724999999999,
-            "sim_peak": 8382.438625337616
+            "sim_peak": 8563.125280572453
           },
           "E31": {
             "event_id": "E31",
@@ -1067,208 +1080,208 @@
               "baseflow_m3s": 89.55
             },
             "metrics": {
-              "nse": 0.965649779738866,
-              "peak_rel_err": 0.07729403360363946,
-              "research_score": 0.8690322377343167,
+              "nse": 0.9833763837181012,
+              "peak_rel_err": 0.035344273402152196,
+              "research_score": 0.939196041965411,
               "n_pairs": 128.0
             },
-            "rain_sum_mm": 50.0,
+            "rain_sum_mm": 65.58,
             "peak_obs": 7494.724999999999,
             "upstream_peak": 6057.4,
-            "sim_peak": 6915.427473999963
+            "sim_peak": 7229.829390526054
           }
         },
         "loo": [
           {
             "event_id": "E20",
-            "rain_sum_mm": 83.1,
-            "self_fit_nse": 0.9649618475471474,
-            "nse_loo": 0.9512950633896701,
-            "peak_rel_err": 0.06524781760302537,
+            "rain_sum_mm": 64.17999999999999,
+            "self_fit_nse": 0.9804102411846627,
+            "nse_loo": 0.9778522845060544,
+            "peak_rel_err": 0.002307990989629903,
             "donor_events": [
-              "E21",
-              "E25",
               "E31",
+              "E25",
+              "E21",
               "E22",
               "E28"
             ],
             "blend_params": {
-              "initial_loss_mm": 10.608623098971863,
-              "constant_loss_mm_h": 0.7243449239588745,
-              "tc_h": 16.682656022882224,
-              "r_h": 12.243449239588747,
-              "musk_k_h": 4.897379695835498,
-              "musk_x": 0.2666899034223498,
-              "baseflow_m3s": 77.83078203469829
+              "initial_loss_mm": 5.000000000000001,
+              "constant_loss_mm_h": 0.5,
+              "tc_h": 16.610370089324313,
+              "r_h": 14.460357453246305,
+              "musk_k_h": 4.0,
+              "musk_x": 0.2776982127337685,
+              "baseflow_m3s": 77.9001038768023
             }
           },
           {
             "event_id": "E21",
-            "rain_sum_mm": 90.89999999999999,
-            "self_fit_nse": 0.9660721042729518,
-            "nse_loo": 0.9151738885752038,
-            "peak_rel_err": 0.20816327766005666,
+            "rain_sum_mm": 71.94000000000001,
+            "self_fit_nse": 0.9464596948074218,
+            "nse_loo": 0.9262005997483876,
+            "peak_rel_err": 0.19067517655242108,
             "donor_events": [
-              "E20",
               "E25",
-              "E22",
               "E31",
+              "E20",
+              "E22",
               "E28"
             ],
             "blend_params": {
-              "initial_loss_mm": 17.32479787991559,
-              "constant_loss_mm_h": 1.2439292414003105,
-              "tc_h": 15.763833868164488,
-              "r_h": 13.257003643941655,
-              "musk_k_h": 5.302801457576662,
-              "musk_x": 0.21396019574081043,
-              "baseflow_m3s": 50.68899625235127
+              "initial_loss_mm": 5.0,
+              "constant_loss_mm_h": 0.5,
+              "tc_h": 12.39661414286901,
+              "r_h": 20.32419610997883,
+              "musk_k_h": 4.0,
+              "musk_x": 0.22810776681407427,
+              "baseflow_m3s": 51.995294689502046
             }
           },
           {
             "event_id": "E22",
-            "rain_sum_mm": 121.49999999999999,
-            "self_fit_nse": 0.7330796760891715,
-            "nse_loo": 0.462191107242623,
-            "peak_rel_err": 0.2638466831855891,
+            "rain_sum_mm": 136.98,
+            "self_fit_nse": 0.7513124435018589,
+            "nse_loo": 0.7105126717926069,
+            "peak_rel_err": 0.17449995168645183,
             "donor_events": [
-              "E25",
               "E21",
-              "E20",
+              "E25",
+              "E31",
               "E28",
-              "E31"
+              "E20"
             ],
             "blend_params": {
-              "initial_loss_mm": 15.020532498169835,
-              "constant_loss_mm_h": 1.0077181324197904,
-              "tc_h": 17.3635460405483,
-              "r_h": 13.295567449314621,
-              "musk_k_h": 5.318226979725848,
-              "musk_x": 0.24922818675802091,
-              "baseflow_m3s": 63.028074057721184
+              "initial_loss_mm": 5.0,
+              "constant_loss_mm_h": 0.5,
+              "tc_h": 17.116998981286073,
+              "r_h": 14.11857288387704,
+              "musk_k_h": 4.0,
+              "musk_x": 0.26029874323048613,
+              "baseflow_m3s": 68.81105599502517
             }
           },
           {
             "event_id": "E24",
-            "rain_sum_mm": 250.6,
-            "self_fit_nse": 0.97438633612952,
-            "nse_loo": 0.9603718246513472,
-            "peak_rel_err": 0.10349694350206597,
+            "rain_sum_mm": 236.72,
+            "self_fit_nse": 0.9498921403165105,
+            "nse_loo": 0.9352236190873395,
+            "peak_rel_err": 0.1615613238986753,
             "donor_events": [
               "E27",
               "E28",
               "E22",
-              "E25",
-              "E21"
+              "E21",
+              "E25"
             ],
             "blend_params": {
-              "initial_loss_mm": 5.884893625348166,
-              "constant_loss_mm_h": 0.5353957450139266,
-              "tc_h": 19.143972543337288,
-              "r_h": 18.671957528412058,
-              "musk_k_h": 4.1415829800557065,
-              "musk_x": 0.29236855766609804,
-              "baseflow_m3s": 87.701014769835
+              "initial_loss_mm": 4.999999999999999,
+              "constant_loss_mm_h": 0.5,
+              "tc_h": 19.115973722288096,
+              "r_h": 26.01438319930554,
+              "musk_k_h": 4.0,
+              "musk_x": 0.2976348897548043,
+              "baseflow_m3s": 88.3145255356659
             }
           },
           {
             "event_id": "E25",
-            "rain_sum_mm": 101.2,
-            "self_fit_nse": 0.9810028653245707,
-            "nse_loo": -1.5098373090269224,
-            "peak_rel_err": 0.5519475580899733,
+            "rain_sum_mm": 69.49999999999999,
+            "self_fit_nse": 0.9793867043412139,
+            "nse_loo": 0.6249455665715518,
+            "peak_rel_err": 0.24306484171905265,
             "donor_events": [
               "E21",
+              "E31",
               "E20",
               "E22",
-              "E31",
               "E28"
             ],
             "blend_params": {
-              "initial_loss_mm": 7.34355360559416,
-              "constant_loss_mm_h": 0.734355360559416,
-              "tc_h": 17.057905004056902,
-              "r_h": 9.999999999999998,
+              "initial_loss_mm": 5.0,
+              "constant_loss_mm_h": 0.5,
+              "tc_h": 19.69664494616777,
+              "r_h": 10.0,
               "musk_k_h": 4.0,
-              "musk_x": 0.255549499687322,
-              "baseflow_m3s": 77.3078618527775
+              "musk_x": 0.2765215256708508,
+              "baseflow_m3s": 77.28543197231069
             }
           },
           {
             "event_id": "E27",
-            "rain_sum_mm": 255.99999999999997,
-            "self_fit_nse": 0.6671840761636472,
-            "nse_loo": 0.6555197634013807,
-            "peak_rel_err": 0.12704668730210014,
+            "rain_sum_mm": 240.84,
+            "self_fit_nse": 0.6511711972152144,
+            "nse_loo": 0.6374516915815849,
+            "peak_rel_err": 0.17534552793460406,
             "donor_events": [
               "E24",
               "E28",
               "E22",
-              "E25",
-              "E21"
+              "E21",
+              "E25"
             ],
             "blend_params": {
-              "initial_loss_mm": 5.860452758468456,
-              "constant_loss_mm_h": 0.5344181103387382,
-              "tc_h": 19.170612443704442,
-              "r_h": 10.344181103387383,
-              "musk_k_h": 4.137672441354953,
-              "musk_x": 0.29260074129765723,
-              "baseflow_m3s": 87.75208396118015
+              "initial_loss_mm": 12.924729196646929,
+              "constant_loss_mm_h": 0.5,
+              "tc_h": 19.128675930713705,
+              "r_h": 10.470867047543601,
+              "musk_k_h": 4.0,
+              "musk_x": 0.29764566476228194,
+              "baseflow_m3s": 88.32015413019705
             }
           },
           {
             "event_id": "E28",
-            "rain_sum_mm": 161.0,
-            "self_fit_nse": 0.8690275787191655,
-            "nse_loo": 0.8152378405722915,
-            "peak_rel_err": 0.25657134934238324,
+            "rain_sum_mm": 208.42000000000002,
+            "self_fit_nse": 0.8876720132552682,
+            "nse_loo": 0.8737311079525181,
+            "peak_rel_err": 0.20784605851119542,
             "donor_events": [
+              "E24",
+              "E27",
               "E22",
-              "E25",
               "E21",
-              "E20",
-              "E24"
+              "E25"
             ],
             "blend_params": {
-              "initial_loss_mm": 11.816516550326257,
-              "constant_loss_mm_h": 0.8690243604264981,
-              "tc_h": 13.95227001446714,
-              "r_h": 12.084181964040853,
-              "musk_k_h": 4.833672785616341,
-              "musk_x": 0.23180910385520606,
-              "baseflow_m3s": 70.2730899722208
+              "initial_loss_mm": 8.69860719175062,
+              "constant_loss_mm_h": 0.5,
+              "tc_h": 16.821308765011793,
+              "r_h": 18.034306138135584,
+              "musk_k_h": 4.0,
+              "musk_x": 0.2922549177588412,
+              "baseflow_m3s": 85.50416266427469
             }
           },
           {
             "event_id": "E31",
-            "rain_sum_mm": 50.0,
-            "self_fit_nse": 0.965649779738866,
-            "nse_loo": 0.9266079969175578,
-            "peak_rel_err": 0.1422299767108128,
+            "rain_sum_mm": 65.58,
+            "self_fit_nse": 0.9833763837181012,
+            "nse_loo": 0.9761938598649726,
+            "peak_rel_err": 0.07557299634085897,
             "donor_events": [
               "E20",
-              "E21",
               "E25",
+              "E21",
               "E22",
               "E28"
             ],
             "blend_params": {
-              "initial_loss_mm": 13.122196923775372,
-              "constant_loss_mm_h": 1.0099640556724734,
-              "tc_h": 16.35681205891496,
-              "r_h": 12.015037578033759,
-              "musk_k_h": 4.806015031213503,
-              "musk_x": 0.23449532387090957,
-              "baseflow_m3s": 62.91075264180917
+              "initial_loss_mm": 5.0,
+              "constant_loss_mm_h": 0.5,
+              "tc_h": 16.086680197456616,
+              "r_h": 15.234726807038303,
+              "musk_k_h": 4.0,
+              "musk_x": 0.22017041619266617,
+              "baseflow_m3s": 47.84902115864398
             }
           }
         ],
         "summary": {
           "n_events_fitted": 8,
-          "mean_self_fit_nse": 0.8902,
-          "mean_nse_loo": 0.5221,
-          "mean_peak_rel_err_loo": 0.2148
+          "mean_self_fit_nse": 0.8912,
+          "mean_nse_loo": 0.8328,
+          "mean_peak_rel_err_loo": 0.1539
         },
         "skipped_events": [
           {
@@ -1278,229 +1291,229 @@
         ],
         "verdict": {
           "level": "usable_research",
-          "plain_pt": "Self-fit Encantado médio NSE≈0.8902; LOO NSE≈0.5221. Fecha Guaporé+corredor em Encantado; foz Guaporé isolada ainda gated."
+          "plain_pt": "Self-fit Encantado médio NSE≈0.8912; LOO NSE≈0.8328. Fecha Guaporé+corredor em Encantado; foz Guaporé isolada ainda gated."
         }
       },
       "mariante": {
         "summary": {
           "n_events_fitted": 7,
-          "mean_self_fit_nse": 0.4458,
-          "mean_nse_loo": 0.1288,
-          "mean_peak_rel_err_loo": 0.3607
+          "mean_self_fit_nse": 0.4004,
+          "mean_nse_loo": -0.0174,
+          "mean_peak_rel_err_loo": 0.353
         },
         "verdict": {
-          "level": "usable_research",
-          "plain_pt": "Porto Mariante: self-fit NSE≈0.4458; LOO NSE≈0.1288. Baixo com Q; foz Forqueta isolada e Taquari (nível) ainda gated."
+          "level": "fragile",
+          "plain_pt": "Porto Mariante: self-fit NSE≈0.4004; LOO NSE≈-0.0174. Baixo com Q; foz Forqueta isolada e Taquari (nível) ainda gated."
         },
         "loo": [
           {
             "event_id": "E20",
-            "rain_sum_mm": 103.2,
-            "self_fit_nse": 0.8221729914051787,
-            "nse_loo": 0.5893484541324652,
-            "peak_rel_err": 0.2400382613928409,
+            "rain_sum_mm": 85.0,
+            "self_fit_nse": 0.7300362646430893,
+            "nse_loo": 0.22140731952048043,
+            "peak_rel_err": 0.254910079754479,
             "donor_events": [
               "E21",
-              "E24",
               "E31",
+              "E22",
               "E28",
-              "E22"
+              "E24"
             ],
             "blend_params": {
-              "initial_loss_mm": 27.73808927226675,
-              "constant_loss_mm_h": 0.7060799128496273,
-              "tc_h": 11.04813774272952,
-              "r_h": 11.524234888104578,
-              "musk_k_h": 13.75961248844145,
-              "musk_x": 0.2,
-              "baseflow_m3s": 98.1462118886288
+              "initial_loss_mm": 21.971904874864947,
+              "constant_loss_mm_h": 1.457236474729115,
+              "tc_h": 12.323062939857822,
+              "r_h": 16.922339968003236,
+              "musk_k_h": 12.560246846157277,
+              "musk_x": 0.20000000000000004,
+              "baseflow_m3s": 90.94073914140854
             }
           },
           {
             "event_id": "E21",
-            "rain_sum_mm": 101.3,
-            "self_fit_nse": 0.970066743467276,
-            "nse_loo": 0.7981347826553788,
-            "peak_rel_err": 0.24435496777459662,
+            "rain_sum_mm": 105.22000000000001,
+            "self_fit_nse": 0.9666116773087252,
+            "nse_loo": 0.9038512647600686,
+            "peak_rel_err": 0.14588788489141105,
             "donor_events": [
               "E20",
-              "E24",
+              "E22",
               "E31",
               "E28",
-              "E22"
+              "E24"
             ],
             "blend_params": {
-              "initial_loss_mm": 6.663931550365664,
-              "constant_loss_mm_h": 0.6998480639963125,
-              "tc_h": 11.06019419945235,
-              "r_h": 28.401215488029504,
-              "musk_k_h": 5.317621591109158,
-              "musk_x": 0.28433656999087253,
-              "baseflow_m3s": 98.29613521560233
+              "initial_loss_mm": 12.423485634070866,
+              "constant_loss_mm_h": 1.1459949783697259,
+              "tc_h": 12.271061704418713,
+              "r_h": 20.352710384171687,
+              "musk_k_h": 8.572684392115207,
+              "musk_x": 0.2447932978887051,
+              "baseflow_m3s": 87.56291120837248
             }
           },
           {
             "event_id": "E22",
-            "rain_sum_mm": 178.40000000000003,
-            "self_fit_nse": 0.33228715105555706,
-            "nse_loo": 0.0421263126640562,
-            "peak_rel_err": 0.8318042469885919,
+            "rain_sum_mm": 163.16,
+            "self_fit_nse": 0.33372674223816845,
+            "nse_loo": 0.03853985571442642,
+            "peak_rel_err": 0.8333238464846837,
             "donor_events": [
               "E28",
               "E24",
+              "E21",
               "E27",
-              "E20",
-              "E21"
+              "E20"
             ],
             "blend_params": {
-              "initial_loss_mm": 20.906034218524184,
-              "constant_loss_mm_h": 0.976538152640446,
-              "tc_h": 8.269404094517423,
-              "r_h": 24.78187672038272,
-              "musk_k_h": 12.268566297971457,
-              "musk_x": 0.2173143370202854,
-              "baseflow_m3s": 91.6396357390372
+              "initial_loss_mm": 21.277178711639518,
+              "constant_loss_mm_h": 1.020947811170106,
+              "tc_h": 8.712267178093997,
+              "r_h": 23.672984846636023,
+              "musk_k_h": 12.150464798607109,
+              "musk_x": 0.21849535201392892,
+              "baseflow_m3s": 93.24282997257129
             }
           },
           {
             "event_id": "E24",
-            "rain_sum_mm": 150.6,
-            "self_fit_nse": -0.2397158874322456,
-            "nse_loo": -0.9470841628877416,
-            "peak_rel_err": 0.7944443407966862,
+            "rain_sum_mm": 202.08,
+            "self_fit_nse": -0.4397940053119411,
+            "nse_loo": -1.6164591867925888,
+            "peak_rel_err": 0.875772015760394,
             "donor_events": [
+              "E27",
               "E28",
               "E22",
-              "E20",
               "E21",
-              "E27"
+              "E20"
             ],
             "blend_params": {
-              "initial_loss_mm": 24.01558370186071,
-              "constant_loss_mm_h": 1.1327138138287085,
-              "tc_h": 9.015949255659203,
-              "r_h": 22.04013317314499,
-              "musk_k_h": 11.606233480744285,
-              "musk_x": 0.2239376651925572,
-              "baseflow_m3s": 87.88242415243447
+              "initial_loss_mm": 19.786967423774055,
+              "constant_loss_mm_h": 1.1155881700260166,
+              "tc_h": 8.21093753232741,
+              "r_h": 23.323341876808016,
+              "musk_k_h": 9.91478696950962,
+              "musk_x": 0.24085213030490382,
+              "baseflow_m3s": 90.37194015840511
             }
           },
           {
             "event_id": "E27",
-            "rain_sum_mm": 231.70000000000002,
-            "self_fit_nse": -0.1375605292920956,
-            "nse_loo": -0.7209234020344817,
-            "peak_rel_err": 0.24037765752043438,
+            "rain_sum_mm": 226.16000000000003,
+            "self_fit_nse": -0.13275367225449908,
+            "nse_loo": -0.761029925002044,
+            "peak_rel_err": 0.2479004065183591,
             "donor_events": [
-              "E22",
-              "E28",
               "E24",
-              "E20",
-              "E21"
+              "E28",
+              "E22",
+              "E21",
+              "E20"
             ],
             "blend_params": {
-              "initial_loss_mm": 21.949158332377486,
-              "constant_loss_mm_h": 1.737684440991121,
-              "tc_h": 7.488533917945385,
-              "r_h": 17.635701648844673,
-              "musk_k_h": 12.750521548370871,
-              "musk_x": 0.21249478451629128,
-              "baseflow_m3s": 73.32828279241201
+              "initial_loss_mm": 16.91849485347716,
+              "constant_loss_mm_h": 2.1392121592391153,
+              "tc_h": 8.379333543237745,
+              "r_h": 15.003814490920679,
+              "musk_k_h": 13.215297419098798,
+              "musk_x": 0.20784702580901201,
+              "baseflow_m3s": 65.86933023755992
             }
           },
           {
             "event_id": "E28",
-            "rain_sum_mm": 169.70000000000002,
-            "self_fit_nse": 0.5381498486229839,
-            "nse_loo": 0.319016307516952,
-            "peak_rel_err": 0.10829756251781923,
+            "rain_sum_mm": 174.28,
+            "self_fit_nse": 0.5076955582031464,
+            "nse_loo": 0.2676777490090386,
+            "peak_rel_err": 0.07553824472228192,
             "donor_events": [
               "E22",
               "E24",
               "E27",
-              "E20",
-              "E21"
+              "E21",
+              "E20"
             ],
             "blend_params": {
-              "initial_loss_mm": 19.840527984479426,
-              "constant_loss_mm_h": 2.430423277749155,
-              "tc_h": 8.008509010722157,
-              "r_h": 13.100703573713957,
-              "musk_k_h": 12.44964821314302,
-              "musk_x": 0.21550351786856978,
-              "baseflow_m3s": 56.66264895322192
+              "initial_loss_mm": 19.98249502365351,
+              "constant_loss_mm_h": 2.4031958844037207,
+              "tc_h": 8.197652294724373,
+              "r_h": 13.027910451233428,
+              "musk_k_h": 12.143096040958802,
+              "musk_x": 0.21856903959041202,
+              "baseflow_m3s": 59.444015704776845
             }
           },
           {
             "event_id": "E31",
-            "rain_sum_mm": 43.3,
-            "self_fit_nse": 0.8352211461026323,
-            "nse_loo": 0.8210408056881141,
-            "peak_rel_err": 0.06543805469670048,
+            "rain_sum_mm": 46.059999999999995,
+            "self_fit_nse": 0.837540752225306,
+            "nse_loo": 0.8240963828220319,
+            "peak_rel_err": 0.03756560664156066,
             "donor_events": [
-              "E21",
               "E20",
-              "E24",
+              "E21",
+              "E22",
               "E28",
-              "E22"
+              "E24"
             ],
             "blend_params": {
-              "initial_loss_mm": 18.903983132054428,
-              "constant_loss_mm_h": 1.2171782638870527,
-              "tc_h": 9.463965989978142,
-              "r_h": 18.397810786605305,
-              "musk_k_h": 11.159104901185566,
-              "musk_x": 0.22840895098814434,
-              "baseflow_m3s": 85.85041219871084
+              "initial_loss_mm": 17.776779978905914,
+              "constant_loss_mm_h": 1.3361900930126795,
+              "tc_h": 15.07981173142898,
+              "r_h": 16.307348883223412,
+              "musk_k_h": 10.102173014394408,
+              "musk_x": 0.2389782698560559,
+              "baseflow_m3s": 89.2127854487352
             }
           }
         ],
         "self_fit": {
           "E20": {
             "metrics": {
-              "nse": 0.8221729914051787,
-              "peak_rel_err": 0.014145053211518566,
-              "research_score": 0.8044916748907806,
+              "nse": 0.7300362646430893,
+              "peak_rel_err": 0.015453860201573572,
+              "research_score": 0.7107189393911224,
               "n_pairs": 89.0
             },
             "params": {
               "initial_loss_mm": 5.0,
               "constant_loss_mm_h": 0.5,
-              "tc_h": 12.0,
-              "r_h": 30.0,
+              "tc_h": 20.0,
+              "r_h": 20.0,
               "musk_k_h": 4.0,
               "musk_x": 0.3,
               "baseflow_m3s": 103.104
             },
-            "rain_sum_mm": 103.2,
+            "rain_sum_mm": 85.0,
             "peak_obs": 5273.3,
-            "sim_peak": 5198.708890899699
+            "sim_peak": 5191.807158999042
           },
           "E21": {
             "metrics": {
-              "nse": 0.970066743467276,
-              "peak_rel_err": 0.00028259675551338225,
-              "research_score": 0.9697134975228843,
+              "nse": 0.9666116773087252,
+              "peak_rel_err": 0.0017943394983347496,
+              "research_score": 0.9643687529358068,
               "n_pairs": 158.0
             },
             "params": {
               "initial_loss_mm": 30.0,
-              "constant_loss_mm_h": 0.5,
-              "tc_h": 12.0,
+              "constant_loss_mm_h": 1.5,
+              "tc_h": 20.0,
               "r_h": 10.0,
               "musk_k_h": 14.0,
               "musk_x": 0.2,
               "baseflow_m3s": 103.104
             },
-            "rain_sum_mm": 101.3,
+            "rain_sum_mm": 105.22000000000001,
             "peak_obs": 7262.174999999999,
-            "sim_peak": 7264.22726709297
+            "sim_peak": 7275.205807446318
           },
           "E22": {
             "metrics": {
-              "nse": 0.33228715105555706,
-              "peak_rel_err": 0.6842409024648347,
-              "research_score": -0.5230139770254864,
+              "nse": 0.33372674223816845,
+              "peak_rel_err": 0.6819269213461105,
+              "research_score": -0.5186819094444697,
               "n_pairs": 198.0
             },
             "params": {
@@ -1512,15 +1525,15 @@
               "musk_x": 0.2,
               "baseflow_m3s": 42.96
             },
-            "rain_sum_mm": 178.40000000000003,
+            "rain_sum_mm": 163.16,
             "peak_obs": 8837.9,
-            "sim_peak": 14885.152671893962
+            "sim_peak": 14864.70193816479
           },
           "E24": {
             "metrics": {
-              "nse": -0.2397158874322456,
-              "peak_rel_err": 0.6742419379748267,
-              "research_score": -1.082518309900779,
+              "nse": -0.4397940053119411,
+              "peak_rel_err": 0.6895503841086278,
+              "research_score": -1.3017319854477258,
               "n_pairs": 87.0
             },
             "params": {
@@ -1532,35 +1545,35 @@
               "musk_x": 0.2,
               "baseflow_m3s": 42.96
             },
-            "rain_sum_mm": 150.6,
+            "rain_sum_mm": 202.08,
             "peak_obs": 8533.075,
-            "sim_peak": 14286.432024884545
+            "sim_peak": 14417.06014387773
           },
           "E27": {
             "metrics": {
-              "nse": -0.1375605292920956,
-              "peak_rel_err": 0.03498932058745211,
-              "research_score": -0.18129718002641076,
+              "nse": -0.13275367225449908,
+              "peak_rel_err": 0.021064128937678492,
+              "research_score": -0.15908383342659718,
               "n_pairs": 71.0
             },
             "params": {
               "initial_loss_mm": 5.0,
               "constant_loss_mm_h": 0.5,
-              "tc_h": 20.0,
+              "tc_h": 6.0,
               "r_h": 30.0,
               "musk_k_h": 4.0,
               "musk_x": 0.3,
               "baseflow_m3s": 103.104
             },
-            "rain_sum_mm": 231.70000000000002,
+            "rain_sum_mm": 226.16000000000003,
             "peak_obs": 8847.84,
-            "sim_peak": 18963.246070186084
+            "sim_peak": 18346.44903299517
           },
           "E28": {
             "metrics": {
-              "nse": 0.5381498486229839,
-              "peak_rel_err": 0.07946592670100627,
-              "research_score": 0.43881744024672603,
+              "nse": 0.5076955582031464,
+              "peak_rel_err": 0.05113773574740273,
+              "research_score": 0.443773388518893,
               "n_pairs": 44.0
             },
             "params": {
@@ -1572,15 +1585,15 @@
               "musk_x": 0.2,
               "baseflow_m3s": 103.104
             },
-            "rain_sum_mm": 169.70000000000002,
+            "rain_sum_mm": 174.28,
             "peak_obs": 7757.91,
-            "sim_peak": 9662.236375143046
+            "sim_peak": 9617.383260688923
           },
           "E31": {
             "metrics": {
-              "nse": 0.8352211461026323,
-              "peak_rel_err": 0.0021917751628960664,
-              "research_score": 0.8324814271490122,
+              "nse": 0.837540752225306,
+              "peak_rel_err": 0.005969872865976912,
+              "research_score": 0.8300784111428349,
               "n_pairs": 128.0
             },
             "params": {
@@ -1592,9 +1605,9 @@
               "musk_x": 0.2,
               "baseflow_m3s": 103.104
             },
-            "rain_sum_mm": 43.3,
+            "rain_sum_mm": 46.059999999999995,
             "peak_obs": 7345.43,
-            "sim_peak": 7361.529531034792
+            "sim_peak": 7389.281283245933
           }
         },
         "skipped_events": [
@@ -1612,211 +1625,211 @@
         "passo_tainhas": {
           "summary": {
             "n_events_fitted": 9,
-            "mean_self_fit_nse": -1.1847,
-            "mean_nse_loo": -38.9052,
-            "mean_peak_rel_err_loo": 0.9371
+            "mean_self_fit_nse": -2.8494,
+            "mean_nse_loo": -75.7849,
+            "mean_peak_rel_err_loo": 1.1167
           },
           "verdict": {
             "level": "fragile",
-            "plain_pt": "Passo Tainhas (Alto): self-fit NSE≈-1.1847; LOO NSE≈-38.9052."
+            "plain_pt": "Passo Tainhas (Alto): self-fit NSE≈-2.8494; LOO NSE≈-75.7849."
           },
           "loo": [
             {
               "event_id": "E20",
-              "rain_sum_mm": 78.10000000000001,
-              "self_fit_nse": 0.7427736084997854,
-              "nse_loo": -3.3984892594101765,
-              "peak_rel_err": 0.9314350542026818,
+              "rain_sum_mm": 71.91999999999999,
+              "self_fit_nse": 0.9437985184246945,
+              "nse_loo": -0.9275111043869557,
+              "peak_rel_err": 0.6528994022404319,
               "donor_events": [
-                "E21",
                 "E25",
-                "E31",
                 "E22",
+                "E21",
+                "E31",
                 "E23"
               ],
               "blend_params": {
-                "initial_loss_mm": 25.288949464608603,
-                "constant_loss_mm_h": 1.9957651081666736,
-                "tc_h": 10.126713126687966,
-                "r_h": 24.80101860552117,
-                "baseflow_m3s": 32.49564854609159
+                "initial_loss_mm": 19.262349929161008,
+                "constant_loss_mm_h": 1.926234992916101,
+                "tc_h": 13.804909564610059,
+                "r_h": 23.396612043163397,
+                "baseflow_m3s": 25.438770024431108
               }
             },
             {
               "event_id": "E21",
-              "rain_sum_mm": 83.5,
-              "self_fit_nse": 0.9814016247835418,
-              "nse_loo": 0.4485741928134732,
-              "peak_rel_err": 0.4549699126801277,
+              "rain_sum_mm": 84.51999999999998,
+              "self_fit_nse": 0.9624611318957926,
+              "nse_loo": 0.7167079500330333,
+              "peak_rel_err": 0.3043885284021591,
               "donor_events": [
+                "E22",
+                "E25",
                 "E20",
                 "E31",
-                "E25",
-                "E22",
                 "E23"
               ],
               "blend_params": {
-                "initial_loss_mm": 26.060402713994183,
-                "constant_loss_mm_h": 2.668617063072786,
-                "tc_h": 12.292188028327015,
-                "r_h": 25.348936504582284,
-                "baseflow_m3s": 23.7965295016913
+                "initial_loss_mm": 15.341027135489337,
+                "constant_loss_mm_h": 1.534102713548934,
+                "tc_h": 11.841019807877862,
+                "r_h": 16.98736365452488,
+                "baseflow_m3s": 34.19342806665504
               }
             },
             {
               "event_id": "E22",
-              "rain_sum_mm": 57.099999999999994,
-              "self_fit_nse": 0.3134354272880988,
-              "nse_loo": -0.5236169200674554,
-              "peak_rel_err": 0.9483354758738899,
+              "rain_sum_mm": 82.55999999999999,
+              "self_fit_nse": 0.6199533761064835,
+              "nse_loo": -0.3667670969983159,
+              "peak_rel_err": 0.9213337655558324,
               "donor_events": [
-                "E25",
-                "E23",
-                "E20",
                 "E21",
-                "E31"
+                "E25",
+                "E20",
+                "E31",
+                "E23"
               ],
               "blend_params": {
-                "initial_loss_mm": 23.649828083905803,
-                "constant_loss_mm_h": 2.4076262986300447,
-                "tc_h": 13.330822661135086,
-                "r_h": 24.951917480274783,
-                "baseflow_m3s": 26.921900872474495
+                "initial_loss_mm": 21.48484443858669,
+                "constant_loss_mm_h": 2.148484443858669,
+                "tc_h": 16.467464106234075,
+                "r_h": 28.0,
+                "baseflow_m3s": 32.89502019426954
               }
             },
             {
               "event_id": "E23",
-              "rain_sum_mm": 42.9,
-              "self_fit_nse": 0.8925285144225479,
-              "nse_loo": -1.5545504948380549,
-              "peak_rel_err": 0.45204214687416927,
+              "rain_sum_mm": 39.9,
+              "self_fit_nse": 0.8975337017847177,
+              "nse_loo": -1.3171756063208084,
+              "peak_rel_err": 0.5765081431185642,
               "donor_events": [
-                "E22",
-                "E25",
                 "E20",
+                "E25",
+                "E22",
                 "E21",
                 "E31"
               ],
               "blend_params": {
-                "initial_loss_mm": 20.634693525005577,
-                "constant_loss_mm_h": 1.8581530182410646,
-                "tc_h": 10.06605815031611,
-                "r_h": 20.50775482000446,
-                "baseflow_m3s": 30.9364257084752
+                "initial_loss_mm": 22.28955207722529,
+                "constant_loss_mm_h": 2.2289552077225294,
+                "tc_h": 14.526374855686855,
+                "r_h": 24.081646048379394,
+                "baseflow_m3s": 33.81601778670401
               }
             },
             {
               "event_id": "E24",
-              "rain_sum_mm": 221.6,
-              "self_fit_nse": 0.7947317416873438,
-              "nse_loo": 0.748280538410125,
-              "peak_rel_err": 0.07187015165328459,
+              "rain_sum_mm": 210.29999999999998,
+              "self_fit_nse": 0.7132786345573481,
+              "nse_loo": 0.6830486277813748,
+              "peak_rel_err": 0.099333213525036,
               "donor_events": [
                 "E27",
                 "E28",
                 "E31",
                 "E21",
-                "E20"
+                "E22"
               ],
               "blend_params": {
-                "initial_loss_mm": 13.05693822460798,
-                "constant_loss_mm_h": 1.6480257484173357,
-                "tc_h": 10.140054553739542,
-                "r_h": 18.4618601970236,
-                "baseflow_m3s": 39.96593787549642
+                "initial_loss_mm": 7.337075820859359,
+                "constant_loss_mm_h": 0.7337075820859358,
+                "tc_h": 5.803026325646298,
+                "r_h": 24.791868154266293,
+                "baseflow_m3s": 43.243955598542776
               }
             },
             {
               "event_id": "E25",
-              "rain_sum_mm": 68.1,
-              "self_fit_nse": -15.825757152445863,
-              "nse_loo": -344.88241028462136,
-              "peak_rel_err": 4.109785074899074,
+              "rain_sum_mm": 77.54,
+              "self_fit_nse": -31.27906552281675,
+              "nse_loo": -678.621371321497,
+              "peak_rel_err": 5.706809730490284,
               "donor_events": [
-                "E20",
                 "E22",
+                "E20",
                 "E21",
                 "E31",
                 "E23"
               ],
               "blend_params": {
-                "initial_loss_mm": 20.317344643617556,
-                "constant_loss_mm_h": 1.861845964046732,
-                "tc_h": 9.953259940058548,
-                "r_h": 21.227210703598455,
-                "baseflow_m3s": 35.42955278293793
+                "initial_loss_mm": 16.853345110900353,
+                "constant_loss_mm_h": 1.685334511090035,
+                "tc_h": 13.577015717196545,
+                "r_h": 21.4611188923303,
+                "baseflow_m3s": 41.22351663436793
               }
             },
             {
               "event_id": "E27",
-              "rain_sum_mm": 193.10000000000002,
-              "self_fit_nse": 0.43427507150468625,
-              "nse_loo": 0.26250892997565944,
-              "peak_rel_err": 0.16139769606765791,
+              "rain_sum_mm": 200.58,
+              "self_fit_nse": 0.4418214512126867,
+              "nse_loo": 0.31613529094053283,
+              "peak_rel_err": 0.01720311879372014,
               "donor_events": [
                 "E24",
                 "E28",
                 "E31",
                 "E21",
-                "E20"
+                "E22"
               ],
               "blend_params": {
-                "initial_loss_mm": 24.347815911652763,
-                "constant_loss_mm_h": 1.1945579360866512,
-                "tc_h": 7.56350029209711,
-                "r_h": 23.47825272932221,
-                "baseflow_m3s": 24.271814389934374
+                "initial_loss_mm": 24.685657676337556,
+                "constant_loss_mm_h": 1.436084126759786,
+                "tc_h": 5.930999496808531,
+                "r_h": 16.24508532845853,
+                "baseflow_m3s": 43.144831087123414
               }
             },
             {
               "event_id": "E28",
-              "rain_sum_mm": 138.29999999999998,
-              "self_fit_nse": 0.19567118055350385,
-              "nse_loo": -1.4359384091437626,
-              "peak_rel_err": 0.8712564780388041,
+              "rain_sum_mm": 136.14,
+              "self_fit_nse": 0.16308928087488161,
+              "nse_loo": -1.5201391475506036,
+              "peak_rel_err": 0.9015779351415738,
               "donor_events": [
                 "E31",
                 "E21",
-                "E27",
-                "E20",
-                "E25"
+                "E22",
+                "E25",
+                "E20"
               ],
               "blend_params": {
-                "initial_loss_mm": 24.869361381929043,
-                "constant_loss_mm_h": 2.3843233658314844,
-                "tc_h": 11.334066484065776,
-                "r_h": 25.53729346332594,
-                "baseflow_m3s": 29.43245682330252
+                "initial_loss_mm": 22.391650007910005,
+                "constant_loss_mm_h": 2.2391650007910004,
+                "tc_h": 12.452422305958322,
+                "r_h": 24.248230001089162,
+                "baseflow_m3s": 32.168117231778
               }
             },
             {
               "event_id": "E31",
-              "rain_sum_mm": 91.9,
-              "self_fit_nse": 0.8083785186100696,
-              "nse_loo": 0.18848383317704043,
-              "peak_rel_err": 0.4325343609599836,
+              "rain_sum_mm": 101.71999999999997,
+              "self_fit_nse": 0.8926161913551789,
+              "nse_loo": -1.0266382641635632,
+              "peak_rel_err": 0.8705267978502561,
               "donor_events": [
                 "E21",
-                "E20",
-                "E25",
                 "E22",
+                "E25",
+                "E20",
                 "E28"
               ],
               "blend_params": {
-                "initial_loss_mm": 25.34471860274019,
-                "constant_loss_mm_h": 1.9284233658510865,
-                "tc_h": 12.64153110952153,
-                "r_h": 24.27577488219215,
-                "baseflow_m3s": 33.56323742846124
+                "initial_loss_mm": 16.484982941436897,
+                "constant_loss_mm_h": 1.6484982941436896,
+                "tc_h": 14.96194854815921,
+                "r_h": 20.404871370398023,
+                "baseflow_m3s": 37.85554840438511
               }
             }
           ],
           "self_fit": {
             "E20": {
               "metrics": {
-                "nse": 0.7427736084997854,
-                "peak_rel_err": 0.20171285498081573,
-                "research_score": 0.4906325397737657,
+                "nse": 0.9437985184246945,
+                "peak_rel_err": 0.03835800660415619,
+                "research_score": 0.8958510101694993,
                 "n_pairs": 89.0
               },
               "params": {
@@ -1824,89 +1837,89 @@
                 "constant_loss_mm_h": 3.0,
                 "tc_h": 18.0,
                 "r_h": 28.0,
-                "baseflow_m3s": 22.400000000000002
+                "baseflow_m3s": 44.800000000000004
               },
-              "rain_sum_mm": 78.10000000000001,
+              "rain_sum_mm": 71.91999999999999,
               "peak_obs": 131.1,
-              "sim_peak": 157.54455528798493
+              "sim_peak": 126.07126533419512
             },
             "E21": {
               "metrics": {
-                "nse": 0.9814016247835418,
-                "peak_rel_err": 0.055708954812249835,
-                "research_score": 0.9117654312682295,
+                "nse": 0.9624611318957926,
+                "peak_rel_err": 0.03238752383267009,
+                "research_score": 0.921976727104955,
                 "n_pairs": 99.0
               },
               "params": {
-                "initial_loss_mm": 30.0,
+                "initial_loss_mm": 15.0,
                 "constant_loss_mm_h": 1.5,
-                "tc_h": 10.0,
+                "tc_h": 18.0,
                 "r_h": 28.0,
                 "baseflow_m3s": 44.800000000000004
               },
-              "rain_sum_mm": 83.5,
+              "rain_sum_mm": 84.51999999999998,
               "peak_obs": 247.02499999999998,
-              "sim_peak": 233.26349543750396
+              "sim_peak": 255.0255280747653
             },
             "E22": {
               "metrics": {
-                "nse": 0.3134354272880988,
-                "peak_rel_err": 0.4636231131763468,
-                "research_score": -0.2660934641823347,
+                "nse": 0.6199533761064835,
+                "peak_rel_err": 0.5025352391225573,
+                "research_score": -0.008215672796713092,
                 "n_pairs": 200.0
               },
               "params": {
                 "initial_loss_mm": 5.0,
                 "constant_loss_mm_h": 0.5,
-                "tc_h": 4.0,
+                "tc_h": 10.0,
                 "r_h": 8.0,
                 "baseflow_m3s": 44.800000000000004
               },
-              "rain_sum_mm": 57.099999999999994,
+              "rain_sum_mm": 82.55999999999999,
               "peak_obs": 841.5,
-              "sim_peak": 451.36115026210416
+              "sim_peak": 418.6165962783681
             },
             "E23": {
               "metrics": {
-                "nse": 0.8925285144225479,
-                "peak_rel_err": 0.006752409335236912,
-                "research_score": 0.8840880027535017,
+                "nse": 0.8975337017847177,
+                "peak_rel_err": 0.04519466553238902,
+                "research_score": 0.8410403698692315,
                 "n_pairs": 70.0
               },
               "params": {
                 "initial_loss_mm": 5.0,
-                "constant_loss_mm_h": 1.5,
-                "tc_h": 10.0,
-                "r_h": 16.0,
-                "baseflow_m3s": 44.800000000000004
-              },
-              "rain_sum_mm": 42.9,
-              "peak_obs": 104.475,
-              "sim_peak": 105.18045796529887
-            },
-            "E24": {
-              "metrics": {
-                "nse": 0.7947317416873438,
-                "peak_rel_err": 0.02930985008025738,
-                "research_score": 0.7580944290870221,
-                "n_pairs": 240.0
-              },
-              "params": {
-                "initial_loss_mm": 30.0,
                 "constant_loss_mm_h": 0.5,
                 "tc_h": 4.0,
                 "r_h": 28.0,
                 "baseflow_m3s": 8.96
               },
-              "rain_sum_mm": 221.6,
+              "rain_sum_mm": 39.9,
+              "peak_obs": 104.475,
+              "sim_peak": 109.19671268149634
+            },
+            "E24": {
+              "metrics": {
+                "nse": 0.7132786345573481,
+                "peak_rel_err": 0.06871000022002985,
+                "research_score": 0.6273911342823107,
+                "n_pairs": 240.0
+              },
+              "params": {
+                "initial_loss_mm": 30.0,
+                "constant_loss_mm_h": 1.5,
+                "tc_h": 4.0,
+                "r_h": 16.0,
+                "baseflow_m3s": 44.800000000000004
+              },
+              "rain_sum_mm": 210.29999999999998,
               "peak_obs": 943.2,
-              "sim_peak": 915.5549494043013
+              "sim_peak": 878.3927277924679
             },
             "E25": {
               "metrics": {
-                "nse": -15.825757152445863,
-                "peak_rel_err": 0.5685939533161047,
-                "research_score": -16.536499594090994,
+                "nse": -31.27906552281675,
+                "peak_rel_err": 0.9632462723921538,
+                "research_score": -32.483123363306944,
                 "n_pairs": 62.0
               },
               "params": {
@@ -1916,33 +1929,33 @@
                 "r_h": 28.0,
                 "baseflow_m3s": 8.96
               },
-              "rain_sum_mm": 68.1,
+              "rain_sum_mm": 77.54,
               "peak_obs": 47.2,
-              "sim_peak": 74.03763459652015
+              "sim_peak": 92.66522405690966
             },
             "E27": {
               "metrics": {
-                "nse": 0.43427507150468625,
-                "peak_rel_err": 0.01763303977300676,
-                "research_score": 0.4122337717884278,
+                "nse": 0.4418214512126867,
+                "peak_rel_err": 0.046405962410579565,
+                "research_score": 0.3838139981994622,
                 "n_pairs": 245.0
               },
               "params": {
                 "initial_loss_mm": 5.0,
-                "constant_loss_mm_h": 1.5,
-                "tc_h": 10.0,
-                "r_h": 16.0,
+                "constant_loss_mm_h": 0.5,
+                "tc_h": 4.0,
+                "r_h": 28.0,
                 "baseflow_m3s": 44.800000000000004
               },
-              "rain_sum_mm": 193.10000000000002,
+              "rain_sum_mm": 200.58,
               "peak_obs": 675.9,
-              "sim_peak": 663.9818284174247
+              "sim_peak": 644.5342100066892
             },
             "E28": {
               "metrics": {
-                "nse": 0.19567118055350385,
-                "peak_rel_err": 0.40861851844726316,
-                "research_score": -0.31510196750557506,
+                "nse": 0.16308928087488161,
+                "peak_rel_err": 0.43934574042719665,
+                "research_score": -0.3860928946591142,
                 "n_pairs": 205.0
               },
               "params": {
@@ -1952,15 +1965,15 @@
                 "r_h": 8.0,
                 "baseflow_m3s": 44.800000000000004
               },
-              "rain_sum_mm": 138.29999999999998,
+              "rain_sum_mm": 136.14,
               "peak_obs": 886.5975,
-              "sim_peak": 524.3173430909526
+              "sim_peak": 497.0746649015985
             },
             "E31": {
               "metrics": {
-                "nse": 0.8083785186100696,
-                "peak_rel_err": 0.05415929566077682,
-                "research_score": 0.7406793990340985,
+                "nse": 0.8926161913551789,
+                "peak_rel_err": 0.02297044931558703,
+                "research_score": 0.863903129710695,
                 "n_pairs": 128.0
               },
               "params": {
@@ -1970,9 +1983,9 @@
                 "r_h": 28.0,
                 "baseflow_m3s": 22.400000000000002
               },
-              "rain_sum_mm": 91.9,
+              "rain_sum_mm": 101.71999999999997,
               "peak_obs": 316.2725,
-              "sim_peak": 333.401595836873
+              "sim_peak": 323.537421431164
             }
           },
           "skipped_events": []
@@ -1980,299 +1993,209 @@
         "cacador_carreiro": {
           "summary": {
             "n_events_fitted": 8,
-            "mean_self_fit_nse": 0.5304,
-            "mean_nse_loo": -1.0844,
-            "mean_peak_rel_err_loo": 0.2767
+            "mean_self_fit_nse": 0.6899,
+            "mean_nse_loo": -1.25,
+            "mean_peak_rel_err_loo": 0.3186
           },
           "verdict": {
             "level": "fragile",
-            "plain_pt": "PCH Caçador montante (Carreiro): self-fit NSE≈0.5304; LOO NSE≈-1.0844."
+            "plain_pt": "PCH Caçador montante (Carreiro): self-fit NSE≈0.6899; LOO NSE≈-1.25."
           },
           "loo": [
             {
               "event_id": "E20",
-              "rain_sum_mm": 66.4,
-              "self_fit_nse": 0.9537808752680653,
-              "nse_loo": 0.6944063862305573,
-              "peak_rel_err": 0.14833951638175022,
+              "rain_sum_mm": 76.4,
+              "self_fit_nse": 0.8951199705370672,
+              "nse_loo": 0.3406454051532116,
+              "peak_rel_err": 0.34924206462421153,
               "donor_events": [
                 "E31",
-                "E25",
                 "E21",
+                "E25",
                 "E22",
                 "E28"
               ],
               "blend_params": {
-                "initial_loss_mm": 6.73342946859314,
-                "constant_loss_mm_h": 0.8910559293486194,
-                "tc_h": 14.394548514280004,
-                "r_h": 15.676113677339496,
-                "baseflow_m3s": 37.66188508427746
+                "initial_loss_mm": 10.683084956365516,
+                "constant_loss_mm_h": 0.9909987430126459,
+                "tc_h": 12.085470241117477,
+                "r_h": 15.369861670080802,
+                "baseflow_m3s": 50.14847661790962
               }
             },
             {
               "event_id": "E21",
-              "rain_sum_mm": 111.3,
-              "self_fit_nse": 0.9333098890786121,
-              "nse_loo": 0.4829022150109433,
-              "peak_rel_err": 0.1946292915445331,
+              "rain_sum_mm": 90.44000000000001,
+              "self_fit_nse": 0.9374831901780832,
+              "nse_loo": 0.5746345636369744,
+              "peak_rel_err": 0.36464446590033295,
               "donor_events": [
-                "E22",
-                "E28",
                 "E25",
                 "E20",
-                "E31"
+                "E31",
+                "E22",
+                "E28"
               ],
               "blend_params": {
-                "initial_loss_mm": 7.17008165365641,
-                "constant_loss_mm_h": 1.679595396367792,
-                "tc_h": 8.927714631660725,
-                "r_h": 13.199275832629073,
-                "baseflow_m3s": 67.10414119480603
+                "initial_loss_mm": 16.509723860020618,
+                "constant_loss_mm_h": 2.0422901487780254,
+                "tc_h": 6.442592401478899,
+                "r_h": 15.305623471900015,
+                "baseflow_m3s": 69.00759957785779
               }
             },
             {
               "event_id": "E22",
-              "rain_sum_mm": 128.4,
-              "self_fit_nse": -0.909821055019741,
-              "nse_loo": -12.01887540196257,
-              "peak_rel_err": 0.6055807571873979,
+              "rain_sum_mm": 124.62,
+              "self_fit_nse": 0.07479831954534177,
+              "nse_loo": -13.218408128879302,
+              "peak_rel_err": 0.6874804357839441,
               "donor_events": [
-                "E28",
-                "E21",
                 "E25",
+                "E21",
+                "E28",
                 "E20",
                 "E31"
               ],
               "blend_params": {
-                "initial_loss_mm": 16.809312442410807,
-                "constant_loss_mm_h": 0.6818150916220226,
-                "tc_h": 10.644486741508924,
+                "initial_loss_mm": 19.27304292620756,
+                "constant_loss_mm_h": 1.310828276730555,
+                "tc_h": 10.305479943493415,
                 "r_h": 16.0,
-                "baseflow_m3s": 61.397955281159966
+                "baseflow_m3s": 74.37162393316272
               }
             },
             {
               "event_id": "E24",
-              "rain_sum_mm": 207.79999999999998,
-              "self_fit_nse": 0.40600023888383374,
-              "nse_loo": 0.3343710230882009,
-              "peak_rel_err": 0.26038923626093846,
+              "rain_sum_mm": 227.89999999999998,
+              "self_fit_nse": 0.7298093613835522,
+              "nse_loo": 0.6830124658074752,
+              "peak_rel_err": 0.2950104036853951,
               "donor_events": [
                 "E27",
                 "E28",
                 "E22",
-                "E21",
-                "E25"
+                "E25",
+                "E21"
               ],
               "blend_params": {
-                "initial_loss_mm": 10.326576842484554,
-                "constant_loss_mm_h": 1.419848088861518,
-                "tc_h": 6.561463595223672,
-                "r_h": 19.570397682835594,
-                "baseflow_m3s": 71.29618484863536
+                "initial_loss_mm": 9.590173328435895,
+                "constant_loss_mm_h": 1.3189200003903165,
+                "tc_h": 6.220733348102341,
+                "r_h": 15.311579000825,
+                "baseflow_m3s": 77.84480044689703
               }
             },
             {
               "event_id": "E25",
-              "rain_sum_mm": 74.19999999999999,
-              "self_fit_nse": 0.9543670504376389,
-              "nse_loo": 0.8728865589971532,
-              "peak_rel_err": 0.001996644949396034,
+              "rain_sum_mm": 95.14,
+              "self_fit_nse": 0.9463033325002255,
+              "nse_loo": 0.4772092099640526,
+              "peak_rel_err": 0.31931362368913974,
               "donor_events": [
+                "E21",
                 "E20",
                 "E31",
-                "E21",
                 "E22",
                 "E28"
               ],
               "blend_params": {
-                "initial_loss_mm": 8.164085831085707,
-                "constant_loss_mm_h": 1.1231198620624963,
-                "tc_h": 12.144849171003194,
-                "r_h": 15.431766343404151,
-                "baseflow_m3s": 65.86482391648515
+                "initial_loss_mm": 15.97008574466933,
+                "constant_loss_mm_h": 0.6635165991341483,
+                "tc_h": 9.697903785867526,
+                "r_h": 15.152803761966382,
+                "baseflow_m3s": 68.79100975917237
               }
             },
             {
               "event_id": "E27",
-              "rain_sum_mm": 239.4,
-              "self_fit_nse": 0.6434633113310226,
-              "nse_loo": 0.6583799042136248,
-              "peak_rel_err": 0.28157199085458756,
+              "rain_sum_mm": 240.67999999999998,
+              "self_fit_nse": 0.6509046167685331,
+              "nse_loo": 0.7105865210619335,
+              "peak_rel_err": 0.25181891086455205,
               "donor_events": [
                 "E24",
                 "E28",
                 "E22",
-                "E21",
-                "E25"
+                "E25",
+                "E21"
               ],
               "blend_params": {
-                "initial_loss_mm": 9.626584003037307,
-                "constant_loss_mm_h": 0.9478447954645514,
-                "tc_h": 9.153382312725592,
-                "r_h": 14.871176416967456,
-                "baseflow_m3s": 72.12368572388493
+                "initial_loss_mm": 9.133681125118853,
+                "constant_loss_mm_h": 0.659681724462817,
+                "tc_h": 10.057359350463239,
+                "r_h": 15.360334600299849,
+                "baseflow_m3s": 49.86023575092316
               }
             },
             {
               "event_id": "E28",
-              "rain_sum_mm": 139.5,
-              "self_fit_nse": 0.5444015573257981,
-              "nse_loo": -0.15790256644742273,
-              "peak_rel_err": 0.43998248270212154,
+              "rain_sum_mm": 160.32,
+              "self_fit_nse": 0.6105776089124733,
+              "nse_loo": 0.1665194089112838,
+              "peak_rel_err": 0.01147391841377311,
               "donor_events": [
                 "E22",
-                "E21",
                 "E25",
                 "E24",
-                "E20"
+                "E21",
+                "E27"
               ],
               "blend_params": {
-                "initial_loss_mm": 10.354392271908695,
-                "constant_loss_mm_h": 1.9708606065061935,
-                "tc_h": 6.898877599873044,
-                "r_h": 11.865170133164058,
-                "baseflow_m3s": 68.33881584972981
+                "initial_loss_mm": 8.505993050045372,
+                "constant_loss_mm_h": 1.100759657899519,
+                "tc_h": 6.065525289449411,
+                "r_h": 13.384379588440005,
+                "baseflow_m3s": 54.41984043620714
               }
             },
             {
               "event_id": "E31",
-              "rain_sum_mm": 63.0,
-              "self_fit_nse": 0.7175099446724715,
-              "nse_loo": 0.45874310634467663,
-              "peak_rel_err": 0.28100979756586547,
+              "rain_sum_mm": 68.19999999999999,
+              "self_fit_nse": 0.6739757883118367,
+              "nse_loo": 0.2658601544953504,
+              "peak_rel_err": 0.2695556710524753,
               "donor_events": [
                 "E20",
-                "E25",
                 "E21",
+                "E25",
                 "E22",
                 "E28"
               ],
               "blend_params": {
-                "initial_loss_mm": 6.779452031376601,
-                "constant_loss_mm_h": 1.470357443285427,
-                "tc_h": 9.74723179019332,
-                "r_h": 15.662975720257759,
-                "baseflow_m3s": 65.89353621996077
+                "initial_loss_mm": 22.499234793193086,
+                "constant_loss_mm_h": 1.4188708019393763,
+                "tc_h": 5.894184222974449,
+                "r_h": 15.35399401896546,
+                "baseflow_m3s": 78.19938999855127
               }
             }
           ],
           "self_fit": {
             "E20": {
               "metrics": {
-                "nse": 0.9537808752680653,
-                "peak_rel_err": 0.04856472732834828,
-                "research_score": 0.8930749661076299,
+                "nse": 0.8951199705370672,
+                "peak_rel_err": 0.02369809077496197,
+                "research_score": 0.8654973570683647,
                 "n_pairs": 89.0
               },
               "params": {
-                "initial_loss_mm": 5.0,
+                "initial_loss_mm": 30.0,
                 "constant_loss_mm_h": 1.5,
-                "tc_h": 10.0,
+                "tc_h": 4.0,
                 "r_h": 16.0,
                 "baseflow_m3s": 83.60000000000001
               },
-              "rain_sum_mm": 66.4,
+              "rain_sum_mm": 76.4,
               "peak_obs": 619.1,
-              "sim_peak": 589.0335773110196
+              "sim_peak": 604.4285120012211
             },
             "E21": {
               "metrics": {
-                "nse": 0.9333098890786121,
-                "peak_rel_err": 0.04146634425845908,
-                "research_score": 0.8814769587555382,
+                "nse": 0.9374831901780832,
+                "peak_rel_err": 0.020090799388385632,
+                "research_score": 0.9123696909426012,
                 "n_pairs": 143.0
-              },
-              "params": {
-                "initial_loss_mm": 30.0,
-                "constant_loss_mm_h": 0.5,
-                "tc_h": 10.0,
-                "r_h": 16.0,
-                "baseflow_m3s": 41.800000000000004
-              },
-              "rain_sum_mm": 111.3,
-              "peak_obs": 1120.3,
-              "sim_peak": 1346.6338107669912
-            },
-            "E22": {
-              "metrics": {
-                "nse": -0.909821055019741,
-                "peak_rel_err": 0.03314220690617174,
-                "research_score": -0.9512488136524556,
-                "n_pairs": 8.0
-              },
-              "params": {
-                "initial_loss_mm": 5.0,
-                "constant_loss_mm_h": 3.0,
-                "tc_h": 4.0,
-                "r_h": 8.0,
-                "baseflow_m3s": 83.60000000000001
-              },
-              "rain_sum_mm": 128.4,
-              "peak_obs": 996.6,
-              "sim_peak": 963.5704765973093
-            },
-            "E24": {
-              "metrics": {
-                "nse": 0.40600023888383374,
-                "peak_rel_err": 0.013447398020781182,
-                "research_score": 0.3891909913578573,
-                "n_pairs": 209.0
-              },
-              "params": {
-                "initial_loss_mm": 5.0,
-                "constant_loss_mm_h": 0.5,
-                "tc_h": 10.0,
-                "r_h": 16.0,
-                "baseflow_m3s": 83.60000000000001
-              },
-              "rain_sum_mm": 207.79999999999998,
-              "peak_obs": 1161.0,
-              "sim_peak": 2417.626756497983
-            },
-            "E25": {
-              "metrics": {
-                "nse": 0.9543670504376389,
-                "peak_rel_err": 0.013198516931315343,
-                "research_score": 0.9378689042734948,
-                "n_pairs": 55.0
-              },
-              "params": {
-                "initial_loss_mm": 5.0,
-                "constant_loss_mm_h": 1.5,
-                "tc_h": 10.0,
-                "r_h": 16.0,
-                "baseflow_m3s": 16.720000000000002
-              },
-              "rain_sum_mm": 74.19999999999999,
-              "peak_obs": 1161.0,
-              "sim_peak": 1164.5076085135488
-            },
-            "E27": {
-              "metrics": {
-                "nse": 0.6434633113310226,
-                "peak_rel_err": 0.008868274311706977,
-                "research_score": 0.6323779684413889,
-                "n_pairs": 200.0
-              },
-              "params": {
-                "initial_loss_mm": 5.0,
-                "constant_loss_mm_h": 1.5,
-                "tc_h": 4.0,
-                "r_h": 28.0,
-                "baseflow_m3s": 83.60000000000001
-              },
-              "rain_sum_mm": 239.4,
-              "peak_obs": 1147.3,
-              "sim_peak": 1324.1641454149722
-            },
-            "E28": {
-              "metrics": {
-                "nse": 0.5444015573257981,
-                "peak_rel_err": 0.024648246943899423,
-                "research_score": 0.5135912486459238,
-                "n_pairs": 140.0
               },
               "params": {
                 "initial_loss_mm": 15.0,
@@ -2281,15 +2204,105 @@
                 "r_h": 16.0,
                 "baseflow_m3s": 83.60000000000001
               },
-              "rain_sum_mm": 139.5,
+              "rain_sum_mm": 90.44000000000001,
+              "peak_obs": 1120.3,
+              "sim_peak": 1206.2588889665687
+            },
+            "E22": {
+              "metrics": {
+                "nse": 0.07479831954534177,
+                "peak_rel_err": 0.11329505202400922,
+                "research_score": -0.06682049548466976,
+                "n_pairs": 8.0
+              },
+              "params": {
+                "initial_loss_mm": 5.0,
+                "constant_loss_mm_h": 0.5,
+                "tc_h": 4.0,
+                "r_h": 8.0,
+                "baseflow_m3s": 16.720000000000002
+              },
+              "rain_sum_mm": 124.62,
+              "peak_obs": 996.6,
+              "sim_peak": 1143.3754897486845
+            },
+            "E24": {
+              "metrics": {
+                "nse": 0.7298093613835522,
+                "peak_rel_err": 0.03356941862292765,
+                "research_score": 0.6878475881048927,
+                "n_pairs": 209.0
+              },
+              "params": {
+                "initial_loss_mm": 5.0,
+                "constant_loss_mm_h": 0.5,
+                "tc_h": 10.0,
+                "r_h": 16.0,
+                "baseflow_m3s": 41.800000000000004
+              },
+              "rain_sum_mm": 227.89999999999998,
+              "peak_obs": 1161.0,
+              "sim_peak": 2185.5529435999442
+            },
+            "E25": {
+              "metrics": {
+                "nse": 0.9463033325002255,
+                "peak_rel_err": 0.005806520893991548,
+                "research_score": 0.9390451813827361,
+                "n_pairs": 55.0
+              },
+              "params": {
+                "initial_loss_mm": 15.0,
+                "constant_loss_mm_h": 3.0,
+                "tc_h": 4.0,
+                "r_h": 16.0,
+                "baseflow_m3s": 83.60000000000001
+              },
+              "rain_sum_mm": 95.14,
+              "peak_obs": 1161.0,
+              "sim_peak": 1167.7413707579242
+            },
+            "E27": {
+              "metrics": {
+                "nse": 0.6509046167685331,
+                "peak_rel_err": 0.0023064069481803892,
+                "research_score": 0.6480216080833076,
+                "n_pairs": 200.0
+              },
+              "params": {
+                "initial_loss_mm": 5.0,
+                "constant_loss_mm_h": 1.5,
+                "tc_h": 4.0,
+                "r_h": 16.0,
+                "baseflow_m3s": 83.60000000000001
+              },
+              "rain_sum_mm": 240.67999999999998,
+              "peak_obs": 1147.3,
+              "sim_peak": 1826.9703587435968
+            },
+            "E28": {
+              "metrics": {
+                "nse": 0.6105776089124733,
+                "peak_rel_err": 0.010631851296633701,
+                "research_score": 0.5972877947916811,
+                "n_pairs": 140.0
+              },
+              "params": {
+                "initial_loss_mm": 30.0,
+                "constant_loss_mm_h": 0.5,
+                "tc_h": 18.0,
+                "r_h": 16.0,
+                "baseflow_m3s": 83.60000000000001
+              },
+              "rain_sum_mm": 160.32,
               "peak_obs": 812.03,
-              "sim_peak": 792.0148840341453
+              "sim_peak": 820.6633822084054
             },
             "E31": {
               "metrics": {
-                "nse": 0.7175099446724715,
-                "peak_rel_err": 0.15307123486331084,
-                "research_score": 0.526170901093333,
+                "nse": 0.6739757883118367,
+                "peak_rel_err": 0.10781250694614095,
+                "research_score": 0.5392101546291606,
                 "n_pairs": 85.0
               },
               "params": {
@@ -2297,11 +2310,11 @@
                 "constant_loss_mm_h": 0.5,
                 "tc_h": 18.0,
                 "r_h": 16.0,
-                "baseflow_m3s": 41.800000000000004
+                "baseflow_m3s": 16.720000000000002
               },
-              "rain_sum_mm": 63.0,
+              "rain_sum_mm": 68.19999999999999,
               "peak_obs": 1147.34,
-              "sim_peak": 972.2122097931864
+              "sim_peak": 1025.5998556661755
             }
           },
           "skipped_events": [
@@ -2313,188 +2326,167 @@
         },
         "balsa_prata": {
           "summary": {
-            "n_events_fitted": 7,
-            "mean_self_fit_nse": 0.3073,
-            "mean_nse_loo": -15.3784,
-            "mean_peak_rel_err_loo": 1.1246
+            "n_events_fitted": 6,
+            "mean_self_fit_nse": 0.5238,
+            "mean_nse_loo": -17.0489,
+            "mean_peak_rel_err_loo": 1.0784
           },
           "verdict": {
             "level": "fragile",
-            "plain_pt": "Balsa do Prata (Prata): self-fit NSE≈0.3073; LOO NSE≈-15.3784."
+            "plain_pt": "Balsa do Prata (Prata): self-fit NSE≈0.5238; LOO NSE≈-17.0489."
           },
           "loo": [
             {
               "event_id": "E20",
-              "rain_sum_mm": 90.89999999999999,
-              "self_fit_nse": 0.6228784903155133,
-              "nse_loo": -0.03186722356096361,
-              "peak_rel_err": 0.04748973486559879,
+              "rain_sum_mm": 75.68,
+              "self_fit_nse": 0.7764438144030683,
+              "nse_loo": 0.2509387056032978,
+              "peak_rel_err": 0.026548086300462792,
               "donor_events": [
-                "E25",
-                "E21",
-                "E22",
                 "E31",
-                "E24"
+                "E21",
+                "E25",
+                "E22",
+                "E27"
               ],
               "blend_params": {
-                "initial_loss_mm": 17.37546328143513,
-                "constant_loss_mm_h": 1.7024170156531138,
-                "tc_h": 15.426632937171943,
-                "r_h": 19.776486496569973,
-                "baseflow_m3s": 91.65165562382336
+                "initial_loss_mm": 9.673971363899678,
+                "constant_loss_mm_h": 0.9673971363899677,
+                "tc_h": 12.779547037173216,
+                "r_h": 20.715901876659917,
+                "baseflow_m3s": 135.97808590830095
               }
             },
             {
               "event_id": "E21",
-              "rain_sum_mm": 77.6,
-              "self_fit_nse": 0.19166750558720147,
-              "nse_loo": -0.4648255245822459,
-              "peak_rel_err": 0.6665939100963373,
+              "rain_sum_mm": 85.46000000000001,
+              "self_fit_nse": 0.16465770316661432,
+              "nse_loo": -0.42845181320046977,
+              "peak_rel_err": 0.6675153540408532,
               "donor_events": [
-                "E20",
                 "E25",
                 "E31",
+                "E20",
                 "E22",
-                "E24"
+                "E27"
               ],
               "blend_params": {
-                "initial_loss_mm": 11.941534348104478,
-                "constant_loss_mm_h": 1.5011644575711856,
-                "tc_h": 15.62888004198083,
-                "r_h": 24.97404243873519,
-                "baseflow_m3s": 118.10347699547613
+                "initial_loss_mm": 16.25818590577456,
+                "constant_loss_mm_h": 1.6258185905774563,
+                "tc_h": 14.051333759632698,
+                "r_h": 25.028079823155785,
+                "baseflow_m3s": 116.22544228267631
               }
             },
             {
               "event_id": "E22",
-              "rain_sum_mm": 110.1,
-              "self_fit_nse": 0.5099292786534123,
-              "nse_loo": -2.7293778246565727,
-              "peak_rel_err": 0.9088478350363844,
+              "rain_sum_mm": 96.03999999999999,
+              "self_fit_nse": 0.7018217067287682,
+              "nse_loo": -2.5176334792333757,
+              "peak_rel_err": 0.8730080220822046,
               "donor_events": [
                 "E25",
-                "E20",
                 "E21",
                 "E31",
-                "E24"
-              ],
-              "blend_params": {
-                "initial_loss_mm": 16.265788722807972,
-                "constant_loss_mm_h": 1.8399422067076718,
-                "tc_h": 17.64636395032428,
-                "r_h": 24.62726215309274,
-                "baseflow_m3s": 97.91341690994766
-              }
-            },
-            {
-              "event_id": "E24",
-              "rain_sum_mm": 236.90000000000003,
-              "self_fit_nse": 0.8129611841765841,
-              "nse_loo": -8.693603650532925,
-              "peak_rel_err": 1.634790124351352,
-              "donor_events": [
-                "E27",
-                "E22",
-                "E25",
                 "E20",
-                "E21"
+                "E27"
               ],
               "blend_params": {
-                "initial_loss_mm": 6.333593835937965,
-                "constant_loss_mm_h": 0.6844169761697071,
-                "tc_h": 6.117118067651665,
-                "r_h": 10.088026920268584,
-                "baseflow_m3s": 143.59874958749776
+                "initial_loss_mm": 13.872228506924042,
+                "constant_loss_mm_h": 1.387222850692404,
+                "tc_h": 16.470727414549692,
+                "r_h": 21.931540683874065,
+                "baseflow_m3s": 123.38331447922786
               }
             },
             {
               "event_id": "E25",
-              "rain_sum_mm": 97.20000000000002,
-              "self_fit_nse": -0.2655379175912158,
-              "nse_loo": -74.55316993466576,
-              "peak_rel_err": 3.230915770212076,
+              "rain_sum_mm": 87.97999999999999,
+              "self_fit_nse": 0.594506977605322,
+              "nse_loo": -89.19673926969742,
+              "peak_rel_err": 3.7627747351184047,
               "donor_events": [
-                "E20",
-                "E22",
                 "E21",
                 "E31",
-                "E24"
+                "E22",
+                "E20",
+                "E27"
               ],
               "blend_params": {
-                "initial_loss_mm": 5.617307349284299,
-                "constant_loss_mm_h": 1.0006108914743883,
-                "tc_h": 14.30326160040107,
-                "r_h": 19.62812748612592,
-                "baseflow_m3s": 148.1480779521471
+                "initial_loss_mm": 5.0,
+                "constant_loss_mm_h": 0.5,
+                "tc_h": 13.842473063330152,
+                "r_h": 14.403911844955324,
+                "baseflow_m3s": 150.0
               }
             },
             {
               "event_id": "E27",
-              "rain_sum_mm": 245.4,
-              "self_fit_nse": 0.3104175804146613,
-              "nse_loo": -1.0552735999778253,
-              "peak_rel_err": 0.9137147928995504,
+              "rain_sum_mm": 219.84,
+              "self_fit_nse": 0.07556224126136946,
+              "nse_loo": -0.4992455466292094,
+              "peak_rel_err": 0.8414774846084309,
               "donor_events": [
-                "E24",
                 "E22",
                 "E25",
-                "E20",
-                "E21"
+                "E21",
+                "E31",
+                "E20"
               ],
               "blend_params": {
-                "initial_loss_mm": 26.260787293900265,
-                "constant_loss_mm_h": 1.475638974507134,
-                "tc_h": 10.823646051972439,
-                "r_h": 25.985539571110152,
-                "baseflow_m3s": 83.92677823975042
+                "initial_loss_mm": 10.095748303932652,
+                "constant_loss_mm_h": 1.0095748303932652,
+                "tc_h": 13.421430770593206,
+                "r_h": 19.6594052963327,
+                "baseflow_m3s": 134.71275508820207
               }
             },
             {
               "event_id": "E31",
-              "rain_sum_mm": 55.2,
-              "self_fit_nse": -0.030948608251631038,
-              "nse_loo": -20.120398768674,
-              "peak_rel_err": 0.47002046196336134,
+              "rain_sum_mm": 80.22,
+              "self_fit_nse": 0.8300690824564445,
+              "nse_loo": -9.902485611592425,
+              "peak_rel_err": 0.29892809152279065,
               "donor_events": [
-                "E21",
                 "E20",
+                "E21",
                 "E25",
                 "E22",
-                "E24"
+                "E27"
               ],
               "blend_params": {
-                "initial_loss_mm": 11.159719976362737,
-                "constant_loss_mm_h": 1.279244335777769,
-                "tc_h": 15.476574277772396,
-                "r_h": 17.601470642813833,
-                "baseflow_m3s": 122.54571596179949
+                "initial_loss_mm": 10.472641749236033,
+                "constant_loss_mm_h": 1.0472641749236031,
+                "tc_h": 16.40388874167347,
+                "r_h": 19.30090642802531,
+                "baseflow_m3s": 133.5820747522919
               }
             }
           ],
           "self_fit": {
             "E20": {
               "metrics": {
-                "nse": 0.6228784903155133,
-                "peak_rel_err": 0.02724436325276709,
-                "research_score": 0.5888230362495545,
+                "nse": 0.7764438144030683,
+                "peak_rel_err": 0.06701488468243852,
+                "research_score": 0.6926752085500202,
                 "n_pairs": 89.0
               },
               "params": {
                 "initial_loss_mm": 5.0,
-                "constant_loss_mm_h": 1.5,
+                "constant_loss_mm_h": 0.5,
                 "tc_h": 18.0,
                 "r_h": 28.0,
                 "baseflow_m3s": 150.0
               },
-              "rain_sum_mm": 90.89999999999999,
+              "rain_sum_mm": 75.68,
               "peak_obs": 1300.9,
-              "sim_peak": 1336.3421921555248
+              "sim_peak": 1388.0796634833844
             },
             "E21": {
               "metrics": {
-                "nse": 0.19166750558720147,
-                "peak_rel_err": 0.1762256760852933,
-                "research_score": -0.028614589519415146,
+                "nse": 0.16465770316661432,
+                "peak_rel_err": 0.09813541792228168,
+                "research_score": 0.04198843076376221,
                 "n_pairs": 158.0
               },
               "params": {
@@ -2504,15 +2496,15 @@
                 "r_h": 8.0,
                 "baseflow_m3s": 150.0
               },
-              "rain_sum_mm": 77.6,
+              "rain_sum_mm": 85.46000000000001,
               "peak_obs": 2826.4,
-              "sim_peak": 2328.315749112527
+              "sim_peak": 2549.030054784463
             },
             "E22": {
               "metrics": {
-                "nse": 0.5099292786534123,
-                "peak_rel_err": 0.2437617895851987,
-                "research_score": 0.2052270416719139,
+                "nse": 0.7018217067287682,
+                "peak_rel_err": 0.22860173771171768,
+                "research_score": 0.4160695345891211,
                 "n_pairs": 10.0
               },
               "params": {
@@ -2522,33 +2514,15 @@
                 "r_h": 8.0,
                 "baseflow_m3s": 150.0
               },
-              "rain_sum_mm": 110.1,
+              "rain_sum_mm": 96.03999999999999,
               "peak_obs": 1797.0,
-              "sim_peak": 2391.6861749028067
-            },
-            "E24": {
-              "metrics": {
-                "nse": 0.8129611841765841,
-                "peak_rel_err": 0.09714520997184678,
-                "research_score": 0.6915296717117757,
-                "n_pairs": 62.0
-              },
-              "params": {
-                "initial_loss_mm": 30.0,
-                "constant_loss_mm_h": 1.5,
-                "tc_h": 10.0,
-                "r_h": 28.0,
-                "baseflow_m3s": 75.0
-              },
-              "rain_sum_mm": 236.90000000000003,
-              "peak_obs": 1985.8,
-              "sim_peak": 2705.3546372079372
+              "sim_peak": 1813.94922192704
             },
             "E25": {
               "metrics": {
-                "nse": -0.2655379175912158,
-                "peak_rel_err": 0.4308055342844119,
-                "research_score": -0.8040448354467307,
+                "nse": 0.594506977605322,
+                "peak_rel_err": 0.1702833548572727,
+                "research_score": 0.38165278403373115,
                 "n_pairs": 62.0
               },
               "params": {
@@ -2556,53 +2530,57 @@
                 "constant_loss_mm_h": 3.0,
                 "tc_h": 18.0,
                 "r_h": 28.0,
-                "baseflow_m3s": 30.0
+                "baseflow_m3s": 75.0
               },
-              "rain_sum_mm": 97.20000000000002,
+              "rain_sum_mm": 87.97999999999999,
               "peak_obs": 599.5,
-              "sim_peak": 857.7679178035049
+              "sim_peak": 701.584871236935
             },
             "E27": {
               "metrics": {
-                "nse": 0.3104175804146613,
-                "peak_rel_err": 0.14998884526037948,
-                "research_score": 0.12293152383918693,
+                "nse": 0.07556224126136946,
+                "peak_rel_err": 0.6856736753743883,
+                "research_score": -0.7815298529566159,
                 "n_pairs": 48.0
               },
               "params": {
                 "initial_loss_mm": 5.0,
                 "constant_loss_mm_h": 0.5,
-                "tc_h": 4.0,
+                "tc_h": 18.0,
                 "r_h": 8.0,
                 "baseflow_m3s": 150.0
               },
-              "rain_sum_mm": 245.4,
+              "rain_sum_mm": 219.84,
               "peak_obs": 2006.1,
-              "sim_peak": 4430.861966290986
+              "sim_peak": 3994.119428177417
             },
             "E31": {
               "metrics": {
-                "nse": -0.030948608251631038,
-                "peak_rel_err": 0.05969649142938202,
-                "research_score": -0.10556922253835857,
+                "nse": 0.8300690824564445,
+                "peak_rel_err": 0.08031802474435937,
+                "research_score": 0.7296715515259953,
                 "n_pairs": 37.0
               },
               "params": {
                 "initial_loss_mm": 5.0,
                 "constant_loss_mm_h": 0.5,
-                "tc_h": 18.0,
+                "tc_h": 10.0,
                 "r_h": 28.0,
                 "baseflow_m3s": 150.0
               },
-              "rain_sum_mm": 55.2,
+              "rain_sum_mm": 80.22,
               "peak_obs": 276.19,
-              "sim_peak": 1154.823944487941
+              "sim_peak": 1863.3665738514194
             }
           },
           "skipped_events": [
             {
               "event_id": "E23",
               "error": "q_series_thin"
+            },
+            {
+              "event_id": "E24",
+              "error": "<urlopen error _ssl.c:983: The handshake operation timed out>"
             },
             {
               "event_id": "E28",
@@ -2613,159 +2591,159 @@
         "capigui_guapore": {
           "summary": {
             "n_events_fitted": 7,
-            "mean_self_fit_nse": -42.9856,
-            "mean_nse_loo": -120.9118,
-            "mean_peak_rel_err_loo": 4.7595
+            "mean_self_fit_nse": -16.1782,
+            "mean_nse_loo": -44.2975,
+            "mean_peak_rel_err_loo": 2.3163
           },
           "verdict": {
             "level": "fragile",
-            "plain_pt": "PCH Capigui jusante (Guaporé parcial): self-fit NSE≈-42.9856; LOO NSE≈-120.9118."
+            "plain_pt": "PCH Capigui jusante (Guaporé parcial): self-fit NSE≈-16.1782; LOO NSE≈-44.2975."
           },
           "loo": [
             {
               "event_id": "E20",
-              "rain_sum_mm": 36.8,
-              "self_fit_nse": -14.978622056183607,
-              "nse_loo": -113.6679872173311,
-              "peak_rel_err": 2.2060562417671354,
+              "rain_sum_mm": 64.17999999999999,
+              "self_fit_nse": -49.43593568041795,
+              "nse_loo": -122.52051229063676,
+              "peak_rel_err": 1.8229558446637073,
               "donor_events": [
+                "E31",
                 "E25",
                 "E21",
-                "E31",
-                "E24",
-                "E27"
+                "E28",
+                "E24"
               ],
               "blend_params": {
-                "initial_loss_mm": 29.826981604155808,
-                "constant_loss_mm_h": 0.9654318266470494,
-                "tc_h": 5.007426412677157,
-                "r_h": 15.949798744268238,
+                "initial_loss_mm": 30.0,
+                "constant_loss_mm_h": 3.0,
+                "tc_h": 13.426653331044587,
+                "r_h": 24.746310578473373,
                 "baseflow_m3s": 5.472
               }
             },
             {
               "event_id": "E21",
-              "rain_sum_mm": 57.199999999999996,
-              "self_fit_nse": -5.2887738164905365,
-              "nse_loo": -92.335980974997,
-              "peak_rel_err": 4.495248352264682,
+              "rain_sum_mm": 71.94000000000001,
+              "self_fit_nse": -8.696543804188485,
+              "nse_loo": -70.37768853769343,
+              "peak_rel_err": 3.368309218599008,
               "donor_events": [
-                "E31",
                 "E25",
+                "E31",
                 "E20",
-                "E24",
-                "E27"
+                "E28",
+                "E24"
               ],
               "blend_params": {
-                "initial_loss_mm": 29.48490680515737,
-                "constant_loss_mm_h": 2.258736442954896,
-                "tc_h": 9.546852880008199,
-                "r_h": 18.29611892541319,
+                "initial_loss_mm": 30.0,
+                "constant_loss_mm_h": 3.0,
+                "tc_h": 7.6171557759538455,
+                "r_h": 23.87908280561799,
                 "baseflow_m3s": 5.472000000000001
               }
             },
             {
               "event_id": "E24",
-              "rain_sum_mm": 220.1,
-              "self_fit_nse": -9.469285512991112,
-              "nse_loo": -16.545088691619412,
-              "peak_rel_err": 3.1409859816742998,
+              "rain_sum_mm": 236.72,
+              "self_fit_nse": -0.1431768067925534,
+              "nse_loo": -0.8062934941312989,
+              "peak_rel_err": 0.9578093110761031,
               "donor_events": [
                 "E27",
                 "E28",
-                "E31",
                 "E21",
-                "E25"
+                "E25",
+                "E31"
               ],
               "blend_params": {
-                "initial_loss_mm": 20.60324321972477,
-                "constant_loss_mm_h": 2.938246943393591,
-                "tc_h": 8.498603793530336,
-                "r_h": 14.624186629040986,
+                "initial_loss_mm": 10.249767716911506,
+                "constant_loss_mm_h": 3.0000000000000004,
+                "tc_h": 11.148104763105067,
+                "r_h": 11.711836423308851,
                 "baseflow_m3s": 5.472
               }
             },
             {
               "event_id": "E25",
-              "rain_sum_mm": 38.5,
-              "self_fit_nse": 0.23458105495727044,
-              "nse_loo": -1.4448287123243948,
-              "peak_rel_err": 0.8086713286713286,
+              "rain_sum_mm": 69.49999999999999,
+              "self_fit_nse": -0.13115856151002658,
+              "nse_loo": -2.2222135819081883,
+              "peak_rel_err": 0.9374049800019321,
               "donor_events": [
-                "E20",
                 "E21",
                 "E31",
-                "E24",
-                "E27"
+                "E20",
+                "E28",
+                "E24"
               ],
               "blend_params": {
-                "initial_loss_mm": 29.82749376415427,
+                "initial_loss_mm": 29.999999999999996,
                 "constant_loss_mm_h": 2.9999999999999996,
-                "tc_h": 5.037472578124594,
-                "r_h": 9.482103683035135,
+                "tc_h": 11.049435679661226,
+                "r_h": 14.50394171100805,
                 "baseflow_m3s": 5.472
               }
             },
             {
               "event_id": "E27",
-              "rain_sum_mm": 226.29999999999998,
-              "self_fit_nse": 0.6031923208098526,
-              "nse_loo": -34.69963700582823,
-              "peak_rel_err": 3.434146417364266,
+              "rain_sum_mm": 240.84,
+              "self_fit_nse": 0.8460882528836359,
+              "nse_loo": -3.3259210423509256,
+              "peak_rel_err": 1.118796759784576,
               "donor_events": [
                 "E24",
                 "E28",
-                "E31",
                 "E21",
-                "E25"
+                "E25",
+                "E31"
               ],
               "blend_params": {
                 "initial_loss_mm": 29.999999999999996,
-                "constant_loss_mm_h": 2.9498516448117003,
-                "tc_h": 17.407465195816275,
-                "r_h": 27.31399644491152,
-                "baseflow_m3s": 5.4719999999999995
+                "constant_loss_mm_h": 3.0000000000000004,
+                "tc_h": 6.199759588984851,
+                "r_h": 27.514764912742937,
+                "baseflow_m3s": 5.472
               }
             },
             {
               "event_id": "E28",
-              "rain_sum_mm": 234.6,
-              "self_fit_nse": -212.6471267202117,
-              "nse_loo": -350.4946689076091,
-              "peak_rel_err": 8.48099413101452,
+              "rain_sum_mm": 208.42000000000002,
+              "self_fit_nse": -25.774850036694954,
+              "nse_loo": -46.14490933477429,
+              "peak_rel_err": 2.9898494710060226,
               "donor_events": [
-                "E27",
                 "E24",
-                "E31",
+                "E27",
                 "E21",
-                "E25"
+                "E25",
+                "E31"
               ],
               "blend_params": {
-                "initial_loss_mm": 21.45931549861532,
-                "constant_loss_mm_h": 2.932835814423408,
-                "tc_h": 9.2370305111677,
-                "r_h": 15.696397552656094,
+                "initial_loss_mm": 21.24311512085762,
+                "constant_loss_mm_h": 3.0,
+                "tc_h": 7.751911947867921,
+                "r_h": 19.291523853096116,
                 "baseflow_m3s": 5.472
               }
             },
             {
               "event_id": "E31",
-              "rain_sum_mm": 72.4,
-              "self_fit_nse": -59.35322914422204,
-              "nse_loo": -237.1944123608072,
-              "peak_rel_err": 10.75017923470979,
+              "rain_sum_mm": 65.58,
+              "self_fit_nse": -29.91193432901237,
+              "nse_loo": -64.68521419076679,
+              "peak_rel_err": 5.018635833899406,
               "donor_events": [
-                "E21",
-                "E25",
                 "E20",
-                "E24",
-                "E27"
+                "E25",
+                "E21",
+                "E28",
+                "E24"
               ],
               "blend_params": {
-                "initial_loss_mm": 29.260138285673147,
-                "constant_loss_mm_h": 2.4527001931746457,
-                "tc_h": 4.719329349333876,
-                "r_h": 10.778972738032383,
+                "initial_loss_mm": 29.999999999999996,
+                "constant_loss_mm_h": 3.0,
+                "tc_h": 5.187363429610636,
+                "r_h": 13.621326462091712,
                 "baseflow_m3s": 5.472
               }
             }
@@ -2773,9 +2751,9 @@
           "self_fit": {
             "E20": {
               "metrics": {
-                "nse": -14.978622056183607,
-                "peak_rel_err": 0.14000000000000012,
-                "research_score": -15.153622056183607,
+                "nse": -49.43593568041795,
+                "peak_rel_err": 1.765250428325512,
+                "research_score": -51.642498715824836,
                 "n_pairs": 68.0
               },
               "params": {
@@ -2785,87 +2763,87 @@
                 "r_h": 8.0,
                 "baseflow_m3s": 5.472
               },
-              "rain_sum_mm": 36.8,
+              "rain_sum_mm": 64.17999999999999,
               "peak_obs": 4.8,
-              "sim_peak": 5.472
+              "sim_peak": 29.501394014589536
             },
             "E21": {
               "metrics": {
-                "nse": -5.2887738164905365,
-                "peak_rel_err": 1.1738563269335685,
-                "research_score": -6.756094225157497,
+                "nse": -8.696543804188485,
+                "peak_rel_err": 1.6575154471832068,
+                "research_score": -10.768438113167493,
                 "n_pairs": 126.0
               },
               "params": {
                 "initial_loss_mm": 30.0,
                 "constant_loss_mm_h": 3.0,
-                "tc_h": 4.0,
+                "tc_h": 10.0,
                 "r_h": 8.0,
                 "baseflow_m3s": 5.472
               },
-              "rain_sum_mm": 57.199999999999996,
+              "rain_sum_mm": 71.94000000000001,
               "peak_obs": 5.8,
-              "sim_peak": 103.9865034768742
+              "sim_peak": 69.33558415516308
             },
             "E24": {
               "metrics": {
-                "nse": -9.469285512991112,
-                "peak_rel_err": 1.3487499376559966,
-                "research_score": -11.155222935061108,
+                "nse": -0.1431768067925534,
+                "peak_rel_err": 0.4634489101876699,
+                "research_score": -0.7224879445271408,
                 "n_pairs": 106.0
               },
               "params": {
                 "initial_loss_mm": 30.0,
                 "constant_loss_mm_h": 3.0,
-                "tc_h": 18.0,
+                "tc_h": 4.0,
                 "r_h": 28.0,
                 "baseflow_m3s": 5.472
               },
-              "rain_sum_mm": 220.1,
+              "rain_sum_mm": 236.72,
               "peak_obs": 34.9,
-              "sim_peak": 238.52224436804923
+              "sim_peak": 310.33264834565074
             },
             "E25": {
               "metrics": {
-                "nse": 0.23458105495727044,
-                "peak_rel_err": 0.09302257474983551,
-                "research_score": 0.11830283651997606,
+                "nse": -0.13115856151002658,
+                "peak_rel_err": 0.4058068576187734,
+                "research_score": -0.6384171335334933,
                 "n_pairs": 62.0
               },
               "params": {
                 "initial_loss_mm": 30.0,
-                "constant_loss_mm_h": 0.5,
+                "constant_loss_mm_h": 3.0,
                 "tc_h": 4.0,
-                "r_h": 16.0,
+                "r_h": 28.0,
                 "baseflow_m3s": 5.472
               },
-              "rain_sum_mm": 38.5,
+              "rain_sum_mm": 69.49999999999999,
               "peak_obs": 28.6,
-              "sim_peak": 25.939554362154706
+              "sim_peak": 40.20607612789692
             },
             "E27": {
               "metrics": {
-                "nse": 0.6031923208098526,
-                "peak_rel_err": 0.714571132127779,
-                "research_score": -0.2900215943498712,
+                "nse": 0.8460882528836359,
+                "peak_rel_err": 0.14117239453990682,
+                "research_score": 0.6696227597087523,
                 "n_pairs": 60.0
               },
               "params": {
-                "initial_loss_mm": 15.0,
+                "initial_loss_mm": 5.0,
                 "constant_loss_mm_h": 3.0,
-                "tc_h": 4.0,
+                "tc_h": 10.0,
                 "r_h": 8.0,
                 "baseflow_m3s": 5.472
               },
-              "rain_sum_mm": 226.29999999999998,
+              "rain_sum_mm": 240.84,
               "peak_obs": 48.4,
-              "sim_peak": 977.8876744896055
+              "sim_peak": 635.4778778392006
             },
             "E28": {
               "metrics": {
-                "nse": -212.6471267202117,
-                "peak_rel_err": 5.1786062111773665,
-                "research_score": -219.1203844841834,
+                "nse": -25.774850036694954,
+                "peak_rel_err": 1.8627742615236083,
+                "research_score": -28.103317863599464,
                 "n_pairs": 209.0
               },
               "params": {
@@ -2875,15 +2853,15 @@
                 "r_h": 28.0,
                 "baseflow_m3s": 5.472
               },
-              "rain_sum_mm": 234.6,
+              "rain_sum_mm": 208.42000000000002,
               "peak_obs": 27.7,
-              "sim_peak": 171.14739204961305
+              "sim_peak": 79.29884704420395
             },
             "E31": {
               "metrics": {
-                "nse": -59.35322914422204,
-                "peak_rel_err": 2.963369223665386,
-                "research_score": -63.057440673803775,
+                "nse": -29.91193432901237,
+                "peak_rel_err": 1.910860963188404,
+                "research_score": -32.300510532997876,
                 "n_pairs": 128.0
               },
               "params": {
@@ -2893,9 +2871,9 @@
                 "r_h": 28.0,
                 "baseflow_m3s": 5.472
               },
-              "rain_sum_mm": 72.4,
+              "rain_sum_mm": 65.58,
               "peak_obs": 22.49,
-              "sim_peak": 89.13617384023452
+              "sim_peak": 65.4652630621072
             }
           },
           "skipped_events": [
@@ -2909,229 +2887,493 @@
             }
           ]
         },
-        "jose_julio": {
+        "rastro_forqueta": {
           "summary": {
-            "n_events_fitted": 8,
-            "mean_self_fit_nse": -0.5454,
-            "mean_nse_loo": -183.5987,
-            "mean_peak_rel_err_loo": 0.8522
+            "n_events_fitted": 6,
+            "mean_self_fit_nse": 0.7167,
+            "mean_nse_loo": -1.29,
+            "mean_peak_rel_err_loo": 0.2936
           },
           "verdict": {
             "level": "fragile",
-            "plain_pt": "Linha José Júlio (Médio aninhado): self-fit NSE≈-0.5454; LOO NSE≈-183.5987."
+            "plain_pt": "PCH Rastro de Auto (Forqueta parcial): self-fit NSE≈0.7167; LOO NSE≈-1.29."
           },
           "loo": [
             {
               "event_id": "E20",
-              "rain_sum_mm": 102.6,
-              "self_fit_nse": 0.9448677699386494,
-              "nse_loo": -3.869039295217566,
-              "peak_rel_err": 1.0346518726990008,
+              "rain_sum_mm": 85.0,
+              "self_fit_nse": 0.4861737622244682,
+              "nse_loo": 0.10574109202498727,
+              "peak_rel_err": 0.3861557376892206,
               "donor_events": [
-                "E21",
                 "E25",
+                "E21",
+                "E23",
                 "E22",
-                "E31",
-                "E23"
+                "E24"
               ],
               "blend_params": {
-                "initial_loss_mm": 26.152400576042357,
-                "constant_loss_mm_h": 0.8593854466803313,
-                "tc_h": 18.993498701613856,
-                "r_h": 26.204671895784504,
-                "baseflow_m3s": 460.1982616723928
+                "initial_loss_mm": 28.374476376125834,
+                "constant_loss_mm_h": 2.7150550475268287,
+                "tc_h": 5.628390779241176,
+                "r_h": 15.717944357506724,
+                "baseflow_m3s": 6.842411796846424
               }
             },
             {
               "event_id": "E21",
-              "rain_sum_mm": 100.1,
-              "self_fit_nse": 0.95412713829445,
-              "nse_loo": 0.539878332385632,
-              "peak_rel_err": 0.4155447464310184,
+              "rain_sum_mm": 105.22000000000001,
+              "self_fit_nse": 0.8558369129134074,
+              "nse_loo": 0.8315281613787342,
+              "peak_rel_err": 0.36971896028259965,
               "donor_events": [
                 "E20",
                 "E25",
+                "E23",
                 "E22",
-                "E31",
-                "E23"
+                "E24"
               ],
               "blend_params": {
-                "initial_loss_mm": 26.222405005426083,
-                "constant_loss_mm_h": 2.622240500542608,
-                "tc_h": 19.190084931984565,
-                "r_h": 26.28972541145693,
-                "baseflow_m3s": 273.6794009093972
+                "initial_loss_mm": 16.282065460344068,
+                "constant_loss_mm_h": 1.8658283894907335,
+                "tc_h": 7.9856971823651515,
+                "r_h": 20.68972966180751,
+                "baseflow_m3s": 7.574065831144793
               }
             },
             {
               "event_id": "E22",
-              "rain_sum_mm": 142.0,
-              "self_fit_nse": 0.7393850944564809,
-              "nse_loo": 0.2763597185044425,
-              "peak_rel_err": 0.7160919219658922,
+              "rain_sum_mm": 163.16,
+              "self_fit_nse": 0.6752628440769647,
+              "nse_loo": 0.7320134989968701,
+              "peak_rel_err": 0.4172416428950307,
               "donor_events": [
-                "E20",
+                "E24",
                 "E21",
+                "E20",
                 "E25",
-                "E27",
-                "E31"
+                "E23"
               ],
               "blend_params": {
-                "initial_loss_mm": 22.834229857959293,
-                "constant_loss_mm_h": 1.651266487595295,
-                "tc_h": 16.97089503516802,
-                "r_h": 23.22736667478539,
-                "baseflow_m3s": 370.3168222914491
+                "initial_loss_mm": 14.702550549367148,
+                "constant_loss_mm_h": 1.746282656924935,
+                "tc_h": 8.931205964258952,
+                "r_h": 17.584292722697864,
+                "baseflow_m3s": 15.295308372149156
               }
             },
             {
               "event_id": "E23",
-              "rain_sum_mm": 48.80000000000001,
-              "self_fit_nse": 0.7238337976909499,
-              "nse_loo": 0.10633177991905551,
-              "peak_rel_err": 0.17822183900104666,
+              "rain_sum_mm": 48.98,
+              "self_fit_nse": 0.7667914592515237,
+              "nse_loo": -7.740928267866083,
+              "peak_rel_err": 0.2721660465514961,
               "donor_events": [
-                "E31",
                 "E25",
-                "E21",
                 "E20",
-                "E22"
+                "E21",
+                "E22",
+                "E24"
               ],
               "blend_params": {
-                "initial_loss_mm": 10.600456628022181,
-                "constant_loss_mm_h": 0.8906326506332344,
-                "tc_h": 17.550432286630905,
-                "r_h": 18.387232326709658,
-                "baseflow_m3s": 465.08782827539113
+                "initial_loss_mm": 20.437592884967597,
+                "constant_loss_mm_h": 1.8792499151411253,
+                "tc_h": 7.029060361018937,
+                "r_h": 17.31218269698624,
+                "baseflow_m3s": 10.11994067241517
               }
             },
             {
               "event_id": "E24",
-              "rain_sum_mm": 250.8,
-              "self_fit_nse": 0.9360843005765144,
-              "nse_loo": 0.8876945386903639,
-              "peak_rel_err": 0.037868270538314146,
+              "rain_sum_mm": 202.08,
+              "self_fit_nse": 0.7177562925547389,
+              "nse_loo": 0.5046560384957761,
+              "peak_rel_err": 0.0679584150340804,
               "donor_events": [
-                "E27",
                 "E22",
-                "E20",
                 "E21",
-                "E25"
+                "E20",
+                "E25",
+                "E23"
               ],
               "blend_params": {
-                "initial_loss_mm": 14.607945305469338,
-                "constant_loss_mm_h": 1.1333790842989548,
-                "tc_h": 16.13569935641057,
-                "r_h": 15.686356244375471,
-                "baseflow_m3s": 435.37878208457795
+                "initial_loss_mm": 23.61954119811782,
+                "constant_loss_mm_h": 1.2871192729561394,
+                "tc_h": 12.579951942212128,
+                "r_h": 14.24852033986871,
+                "baseflow_m3s": 11.300793753432496
               }
             },
             {
               "event_id": "E25",
-              "rain_sum_mm": 86.5,
-              "self_fit_nse": -9.882399241514724,
-              "nse_loo": -1466.1398297818967,
-              "peak_rel_err": 3.176670358054383,
+              "rain_sum_mm": 83.77999999999999,
+              "self_fit_nse": 0.7986254014258419,
+              "nse_loo": -2.1729968502898362,
+              "peak_rel_err": 0.24863301355152337,
               "donor_events": [
-                "E21",
                 "E20",
-                "E31",
+                "E21",
                 "E23",
-                "E22"
-              ],
-              "blend_params": {
-                "initial_loss_mm": 20.938136134998125,
-                "constant_loss_mm_h": 1.2340592667854027,
-                "tc_h": 18.623288219162337,
-                "r_h": 24.496260684381912,
-                "baseflow_m3s": 443.6578362543181
-              }
-            },
-            {
-              "event_id": "E27",
-              "rain_sum_mm": 206.1,
-              "self_fit_nse": 0.33290427557743174,
-              "nse_loo": -0.9105394469900057,
-              "peak_rel_err": 0.7578543976910468,
-              "donor_events": [
-                "E24",
                 "E22",
-                "E20",
-                "E21",
-                "E25"
+                "E24"
               ],
               "blend_params": {
-                "initial_loss_mm": 24.041499349378302,
-                "constant_loss_mm_h": 1.5323522842728585,
-                "tc_h": 20.40395451072816,
-                "r_h": 19.158993170298555,
-                "baseflow_m3s": 427.87478586913824
-              }
-            },
-            {
-              "event_id": "E31",
-              "rain_sum_mm": 52.599999999999994,
-              "self_fit_nse": 0.888272555633392,
-              "nse_loo": 0.31950207825683985,
-              "peak_rel_err": 0.5006751408954249,
-              "donor_events": [
-                "E23",
-                "E25",
-                "E21",
-                "E20",
-                "E22"
-              ],
-              "blend_params": {
-                "initial_loss_mm": 10.973436899844502,
-                "constant_loss_mm_h": 0.918533886198185,
-                "tc_h": 26.325498778660382,
-                "r_h": 27.23254199259877,
-                "baseflow_m3s": 460.96674545777404
+                "initial_loss_mm": 7.620786533643206,
+                "constant_loss_mm_h": 1.4771210076580612,
+                "tc_h": 5.623678156312541,
+                "r_h": 25.718390380349977,
+                "baseflow_m3s": 6.771799689225995
               }
             }
           ],
           "self_fit": {
             "E20": {
               "metrics": {
-                "nse": 0.9448677699386494,
-                "peak_rel_err": 0.02015956914899685,
-                "research_score": 0.9196683085024033,
+                "nse": 0.4861737622244682,
+                "peak_rel_err": 0.006137078539206295,
+                "research_score": 0.4785024140504603,
                 "n_pairs": 89.0
               },
               "params": {
-                "initial_loss_mm": 30.0,
-                "constant_loss_mm_h": 3.0,
-                "tc_h": 16.0,
+                "initial_loss_mm": 5.0,
+                "constant_loss_mm_h": 1.5,
+                "tc_h": 4.0,
                 "r_h": 28.0,
-                "baseflow_m3s": 260.0
+                "baseflow_m3s": 4.512
               },
-              "rain_sum_mm": 102.6,
-              "peak_obs": 2741.925,
-              "sim_peak": 2797.2010266388634
+              "rain_sum_mm": 85.0,
+              "peak_obs": 168.7,
+              "sim_peak": 169.7353251495641
             },
             "E21": {
               "metrics": {
-                "nse": 0.95412713829445,
-                "peak_rel_err": 0.00897442386558844,
-                "research_score": 0.9429091084624645,
+                "nse": 0.8558369129134074,
+                "peak_rel_err": 0.016492880147736488,
+                "research_score": 0.8352208127287367,
                 "n_pairs": 158.0
               },
               "params": {
                 "initial_loss_mm": 30.0,
-                "constant_loss_mm_h": 0.5,
-                "tc_h": 16.0,
-                "r_h": 28.0,
-                "baseflow_m3s": 520.0
+                "constant_loss_mm_h": 1.5,
+                "tc_h": 10.0,
+                "r_h": 8.0,
+                "baseflow_m3s": 22.56
               },
-              "rain_sum_mm": 100.1,
-              "peak_obs": 5029.275,
-              "sim_peak": 4984.140154413392
+              "rain_sum_mm": 105.22000000000001,
+              "peak_obs": 383.8,
+              "sim_peak": 377.47003259929875
             },
             "E22": {
               "metrics": {
-                "nse": 0.7393850944564809,
-                "peak_rel_err": 0.4228432518002886,
-                "research_score": 0.21083102970612022,
+                "nse": 0.6752628440769647,
+                "peak_rel_err": 0.005310499878338126,
+                "research_score": 0.668624719229042,
+                "n_pairs": 200.0
+              },
+              "params": {
+                "initial_loss_mm": 30.0,
+                "constant_loss_mm_h": 0.5,
+                "tc_h": 18.0,
+                "r_h": 8.0,
+                "baseflow_m3s": 11.28
+              },
+              "rain_sum_mm": 163.16,
+              "peak_obs": 401.5,
+              "sim_peak": 399.36783429884724
+            },
+            "E23": {
+              "metrics": {
+                "nse": 0.7667914592515237,
+                "peak_rel_err": 0.030368088584088352,
+                "research_score": 0.7288313485214133,
+                "n_pairs": 70.0
+              },
+              "params": {
+                "initial_loss_mm": 5.0,
+                "constant_loss_mm_h": 1.5,
+                "tc_h": 18.0,
+                "r_h": 28.0,
+                "baseflow_m3s": 11.28
+              },
+              "rain_sum_mm": 48.98,
+              "peak_obs": 36.4,
+              "sim_peak": 35.29460157553918
+            },
+            "E24": {
+              "metrics": {
+                "nse": 0.7177562925547389,
+                "peak_rel_err": 0.026455752830018626,
+                "research_score": 0.6846866015172156,
+                "n_pairs": 231.0
+              },
+              "params": {
+                "initial_loss_mm": 5.0,
+                "constant_loss_mm_h": 1.5,
+                "tc_h": 10.0,
+                "r_h": 16.0,
+                "baseflow_m3s": 22.56
+              },
+              "rain_sum_mm": 202.08,
+              "peak_obs": 416.7,
+              "sim_peak": 441.79188595050636
+            },
+            "E25": {
+              "metrics": {
+                "nse": 0.7986254014258419,
+                "peak_rel_err": 0.07412207768350185,
+                "research_score": 0.7059728043214646,
+                "n_pairs": 62.0
+              },
+              "params": {
+                "initial_loss_mm": 30.0,
+                "constant_loss_mm_h": 3.0,
+                "tc_h": 4.0,
+                "r_h": 16.0,
+                "baseflow_m3s": 4.512
+              },
+              "rain_sum_mm": 83.77999999999999,
+              "peak_obs": 222.5,
+              "sim_peak": 195.3602416087811
+            }
+          },
+          "skipped_events": [
+            {
+              "event_id": "E27",
+              "error": "<urlopen error _ssl.c:983: The handshake operation timed out>"
+            },
+            {
+              "event_id": "E28",
+              "error": "q_series_thin"
+            },
+            {
+              "event_id": "E31",
+              "error": "fit_nan_nse"
+            }
+          ]
+        },
+        "jose_julio": {
+          "summary": {
+            "n_events_fitted": 8,
+            "mean_self_fit_nse": 0.0504,
+            "mean_nse_loo": -167.4087,
+            "mean_peak_rel_err_loo": 0.8039
+          },
+          "verdict": {
+            "level": "fragile",
+            "plain_pt": "Linha José Júlio (Médio aninhado): self-fit NSE≈0.0504; LOO NSE≈-167.4087."
+          },
+          "loo": [
+            {
+              "event_id": "E20",
+              "rain_sum_mm": 77.34,
+              "self_fit_nse": 0.8653308678894879,
+              "nse_loo": 0.4163073730017972,
+              "peak_rel_err": 0.35994714916386167,
+              "donor_events": [
+                "E25",
+                "E21",
+                "E31",
+                "E22",
+                "E23"
+              ],
+              "blend_params": {
+                "initial_loss_mm": 22.498822940048186,
+                "constant_loss_mm_h": 2.169856500161995,
+                "tc_h": 26.68853251284448,
+                "r_h": 24.184837497297753,
+                "baseflow_m3s": 357.7009755385003
+              }
+            },
+            {
+              "event_id": "E21",
+              "rain_sum_mm": 83.66,
+              "self_fit_nse": 0.9142480750298293,
+              "nse_loo": 0.42191937651518574,
+              "peak_rel_err": 0.5080716059778753,
+              "donor_events": [
+                "E25",
+                "E31",
+                "E20",
+                "E22",
+                "E23"
+              ],
+              "blend_params": {
+                "initial_loss_mm": 15.575226001249895,
+                "constant_loss_mm_h": 1.8618097633685018,
+                "tc_h": 21.175986240702876,
+                "r_h": 25.71849186624513,
+                "baseflow_m3s": 368.7742681821263
+              }
+            },
+            {
+              "event_id": "E22",
+              "rain_sum_mm": 109.91999999999999,
+              "self_fit_nse": 0.49789984636605944,
+              "nse_loo": -0.03908763108911506,
+              "peak_rel_err": 0.8419419053735921,
+              "donor_events": [
+                "E31",
+                "E21",
+                "E25",
+                "E20",
+                "E23"
+              ],
+              "blend_params": {
+                "initial_loss_mm": 14.149621618462168,
+                "constant_loss_mm_h": 1.4721209352848175,
+                "tc_h": 22.23657071094309,
+                "r_h": 23.408720858358375,
+                "baseflow_m3s": 419.5566558949205
+              }
+            },
+            {
+              "event_id": "E23",
+              "rain_sum_mm": 39.74,
+              "self_fit_nse": 0.5708854301822399,
+              "nse_loo": -3.444193698719224,
+              "peak_rel_err": 0.7157678293201312,
+              "donor_events": [
+                "E20",
+                "E25",
+                "E21",
+                "E31",
+                "E22"
+              ],
+              "blend_params": {
+                "initial_loss_mm": 15.348072354955987,
+                "constant_loss_mm_h": 1.5126733433034734,
+                "tc_h": 22.874564937867447,
+                "r_h": 22.887854792769385,
+                "baseflow_m3s": 396.28007650555696
+              }
+            },
+            {
+              "event_id": "E24",
+              "rain_sum_mm": 204.44,
+              "self_fit_nse": 0.8222191604517018,
+              "nse_loo": 0.6566972210909479,
+              "peak_rel_err": 0.056905088574215786,
+              "donor_events": [
+                "E27",
+                "E22",
+                "E31",
+                "E21",
+                "E25"
+              ],
+              "blend_params": {
+                "initial_loss_mm": 6.076281996270588,
+                "constant_loss_mm_h": 0.609085827871137,
+                "tc_h": 10.313159178617077,
+                "r_h": 9.52337622225466,
+                "baseflow_m3s": 512.0992971526405
+              }
+            },
+            {
+              "event_id": "E25",
+              "rain_sum_mm": 78.55999999999999,
+              "self_fit_nse": -3.984309212565485,
+              "nse_loo": -1337.3199484434174,
+              "peak_rel_err": 3.157287128813558,
+              "donor_events": [
+                "E20",
+                "E21",
+                "E31",
+                "E22",
+                "E23"
+              ],
+              "blend_params": {
+                "initial_loss_mm": 13.10897577793549,
+                "constant_loss_mm_h": 1.209698670456145,
+                "tc_h": 19.483615954526257,
+                "r_h": 23.92492785402835,
+                "baseflow_m3s": 365.4226492331044
+              }
+            },
+            {
+              "event_id": "E27",
+              "rain_sum_mm": 207.89999999999998,
+              "self_fit_nse": -0.2542380266159936,
+              "nse_loo": -0.7856342566789141,
+              "peak_rel_err": 0.7427733665830106,
+              "donor_events": [
+                "E24",
+                "E22",
+                "E31",
+                "E21",
+                "E25"
+              ],
+              "blend_params": {
+                "initial_loss_mm": 27.751257348332476,
+                "constant_loss_mm_h": 0.6065446406428836,
+                "tc_h": 17.196667998619784,
+                "r_h": 9.487148986283467,
+                "baseflow_m3s": 512.2777681255932
+              }
+            },
+            {
+              "event_id": "E31",
+              "rain_sum_mm": 89.01999999999998,
+              "self_fit_nse": 0.9711043225492149,
+              "nse_loo": 0.8246785770782576,
+              "peak_rel_err": 0.0483140244997378,
+              "donor_events": [
+                "E21",
+                "E25",
+                "E20",
+                "E22",
+                "E23"
+              ],
+              "blend_params": {
+                "initial_loss_mm": 16.680072381488532,
+                "constant_loss_mm_h": 1.2637142473232879,
+                "tc_h": 25.56658982178177,
+                "r_h": 19.77746808340905,
+                "baseflow_m3s": 408.93938596154106
+              }
+            }
+          ],
+          "self_fit": {
+            "E20": {
+              "metrics": {
+                "nse": 0.8653308678894879,
+                "peak_rel_err": 0.0005248945378383403,
+                "research_score": 0.8646747497171899,
+                "n_pairs": 89.0
+              },
+              "params": {
+                "initial_loss_mm": 15.0,
+                "constant_loss_mm_h": 1.5,
+                "tc_h": 16.0,
+                "r_h": 28.0,
+                "baseflow_m3s": 260.0
+              },
+              "rain_sum_mm": 77.34,
+              "peak_obs": 2741.925,
+              "sim_peak": 2740.485778544338
+            },
+            "E21": {
+              "metrics": {
+                "nse": 0.9142480750298293,
+                "peak_rel_err": 0.01350078130494774,
+                "research_score": 0.8973720983986446,
+                "n_pairs": 158.0
+              },
+              "params": {
+                "initial_loss_mm": 15.0,
+                "constant_loss_mm_h": 0.5,
+                "tc_h": 28.0,
+                "r_h": 16.0,
+                "baseflow_m3s": 520.0
+              },
+              "rain_sum_mm": 83.66,
+              "peak_obs": 5029.275,
+              "sim_peak": 5097.174141897441
+            },
+            "E22": {
+              "metrics": {
+                "nse": 0.49789984636605944,
+                "peak_rel_err": 0.5896583236032503,
+                "research_score": -0.2391730581380035,
                 "n_pairs": 200.0
               },
               "params": {
@@ -3141,51 +3383,51 @@
                 "r_h": 8.0,
                 "baseflow_m3s": 520.0
               },
-              "rain_sum_mm": 142.0,
+              "rain_sum_mm": 109.91999999999999,
               "peak_obs": 15447.875,
-              "sim_peak": 8915.845301595617
+              "sim_peak": 6338.9069242674395
             },
             "E23": {
               "metrics": {
-                "nse": 0.7238337976909499,
-                "peak_rel_err": 0.07452973242836573,
-                "research_score": 0.6306716321554927,
+                "nse": 0.5708854301822399,
+                "peak_rel_err": 0.11500734396632449,
+                "research_score": 0.4271262502243343,
                 "n_pairs": 70.0
               },
               "params": {
                 "initial_loss_mm": 5.0,
                 "constant_loss_mm_h": 0.5,
                 "tc_h": 28.0,
-                "r_h": 28.0,
+                "r_h": 8.0,
                 "baseflow_m3s": 520.0
               },
-              "rain_sum_mm": 48.80000000000001,
+              "rain_sum_mm": 39.74,
               "peak_obs": 2073.38,
-              "sim_peak": 1918.8515433776752
+              "sim_peak": 1834.9260731671022
             },
             "E24": {
               "metrics": {
-                "nse": 0.9360843005765144,
-                "peak_rel_err": 0.025362390397510953,
-                "research_score": 0.9043813125796257,
+                "nse": 0.8222191604517018,
+                "peak_rel_err": 0.002291473536779725,
+                "research_score": 0.8193548185307272,
                 "n_pairs": 240.0
               },
               "params": {
                 "initial_loss_mm": 30.0,
-                "constant_loss_mm_h": 1.5,
+                "constant_loss_mm_h": 0.5,
                 "tc_h": 16.0,
-                "r_h": 16.0,
+                "r_h": 8.0,
                 "baseflow_m3s": 520.0
               },
-              "rain_sum_mm": 250.8,
+              "rain_sum_mm": 204.44,
               "peak_obs": 13034.0475,
-              "sim_peak": 12703.472898845299
+              "sim_peak": 13063.91467492338
             },
             "E25": {
               "metrics": {
-                "nse": -9.882399241514724,
-                "peak_rel_err": 0.3202665352703905,
-                "research_score": -10.282732410602712,
+                "nse": -3.984309212565485,
+                "peak_rel_err": 0.016479787729851463,
+                "research_score": -4.004908947227799,
                 "n_pairs": 12.0
               },
               "params": {
@@ -3193,17 +3435,17 @@
                 "constant_loss_mm_h": 3.0,
                 "tc_h": 28.0,
                 "r_h": 28.0,
-                "baseflow_m3s": 104.0
+                "baseflow_m3s": 260.0
               },
-              "rain_sum_mm": 86.5,
+              "rain_sum_mm": 78.55999999999999,
               "peak_obs": 707.07,
-              "sim_peak": 2075.8495905529785
+              "sim_peak": 1383.8785315876246
             },
             "E27": {
               "metrics": {
-                "nse": 0.33290427557743174,
-                "peak_rel_err": 0.33071560414743617,
-                "research_score": -0.08049022960686347,
+                "nse": -0.2542380266159936,
+                "peak_rel_err": 0.6311726654006063,
+                "research_score": -1.0432038583667516,
                 "n_pairs": 43.0
               },
               "params": {
@@ -3213,27 +3455,27 @@
                 "r_h": 8.0,
                 "baseflow_m3s": 520.0
               },
-              "rain_sum_mm": 206.1,
+              "rain_sum_mm": 207.89999999999998,
               "peak_obs": 13088.2,
-              "sim_peak": 10225.753741799112
+              "sim_peak": 12699.359463378718
             },
             "E31": {
               "metrics": {
-                "nse": 0.888272555633392,
-                "peak_rel_err": 0.059608310418661145,
-                "research_score": 0.8137621676100656,
+                "nse": 0.9711043225492149,
+                "peak_rel_err": 0.0032380255062985854,
+                "research_score": 0.9670567906663416,
                 "n_pairs": 128.0
               },
               "params": {
                 "initial_loss_mm": 5.0,
-                "constant_loss_mm_h": 0.5,
+                "constant_loss_mm_h": 1.5,
                 "tc_h": 16.0,
-                "r_h": 16.0,
+                "r_h": 28.0,
                 "baseflow_m3s": 520.0
               },
-              "rain_sum_mm": 52.599999999999994,
+              "rain_sum_mm": 89.01999999999998,
               "peak_obs": 5607.55,
-              "sim_peak": 5273.293418911837
+              "sim_peak": 5625.707389927845
             }
           },
           "skipped_events": [
@@ -3259,13 +3501,13 @@
         "no_invented_stz_rating": true,
         "does_not_touch_rna": true,
         "research_not_alert": true,
-        "calibrated_outlet_count": 3
+        "calibrated_outlet_count": 2
       },
       "blocked_next": [
-        "Capigui/PCH e foz Guaporé 86595000: precisa Q de foz natural, não só jusante de PCH.",
-        "Foz Forqueta 86746000: só residual em Mariante; Barra do Fão é nível.",
-        "Tributários com fragile_*: trocar Open-Meteo pontual por máscara areal ANA/INMET.",
-        "Taquari 86950000: nível sem curva; Mariante já fecha Q Baixo aninhado."
+        "Puxar Q/curva oficial 86595000 (foz Guaporé) — Capigui cobre só ~684 km² e é PCH.",
+        "Puxar Q/curva oficial 86746000 (foz Forqueta) — Rastro cobre só ~564 km² e é PCH.",
+        "Taquari 86950000: nível sem curva; Mariante já fecha Q Baixo aninhado.",
+        "Substituir Open-Meteo areal por chuva observada ANA/INMET horária por UG."
       ],
       "artifact_html": "modelo_g040_multi_exutorio_v1.html",
       "artifact_json": "modelo_g040_multi_exutorio_v1_latest.json"
@@ -20630,8 +20872,8 @@
   },
   "freshness": {
     "preferred_source": "live_eval",
-    "live_age_hours": 29.23,
-    "forward_age_hours": 29.22,
+    "live_age_hours": 38.13,
+    "forward_age_hours": 38.13,
     "stale_forward": true,
     "forward_max_delta_n_cm": 0.0,
     "note_pt": "Quando o forward está seco/stale, headline e hidrograma preferem o live eval."

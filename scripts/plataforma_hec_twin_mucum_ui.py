@@ -278,9 +278,9 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <h1>Bacia Taquari–Antas <span>G040</span></h1>
     <p class="lede">
       Esta página é da <strong>bacia oficial inteira</strong>
-      (~{{BASIN_KM2}} km², {{N_UGS}} UGs). Multi-exutório: Muçum + Encantado (Guaporé) +
-      Porto Mariante (Baixo Q). Tributários tentados com Q ANA; foz Guaporé/Forqueta e
-      Taquari-nível ainda gated — inventário + gate, não ΔN inventado.
+      (~{{BASIN_KM2}} km², {{N_UGS}} UGs).       Multi-exutório v3: chuva areal por UG; Muçum + Encantado (Guaporé) +
+      Mariante/tributários com Q. Foz Guaporé/Forqueta e Taquari-nível ainda
+      gated — inventário + gate, não ΔN inventado.
     </p>
     <div class="{{FRESH_CLS}}" id="freshnessBanner">
       <span>Atualização: <strong>{{GENERATED}}</strong> UTC</span>
