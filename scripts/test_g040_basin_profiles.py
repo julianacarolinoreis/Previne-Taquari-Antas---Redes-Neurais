@@ -50,6 +50,20 @@ class G040BasinProfilesTests(unittest.TestCase):
         self.assertTrue(d["research_not_alert"])
         self.assertIn("SRTM", self.report["dem"]["source"])
 
+    def test_municipal_profiles(self) -> None:
+        muns = self.report.get("municipal_profiles") or []
+        self.assertGreaterEqual(len(muns), 40)
+        names = {m["nome"] for m in muns}
+        for required in ("Muçum", "Encantado", "Santa Tereza", "Lajeado", "Taquari"):
+            self.assertIn(required, names)
+        mucum = next(m for m in muns if m["nome"] == "Muçum")
+        self.assertIn("tronco_taquari_antas", mucum["axes"])
+        self.assertGreater(mucum["summary"]["length_km"], 1.0)
+        html = PAGES.read_text(encoding="utf-8")
+        self.assertIn("Perfis por município", html)
+        self.assertIn("munSearch", html)
+        self.assertIn("Muçum", html)
+
     def test_html_artifacts(self) -> None:
         for path in (HTML, PAGES):
             text = path.read_text(encoding="utf-8")

@@ -35,6 +35,7 @@ OUT = ROOT / "assets" / "data" / "estudo_bacia_taquari_antas"
 DEM_DIR = OUT / "_dem_srtm_g040"
 DEM_DIR.mkdir(parents=True, exist_ok=True)
 PAGES_HTML = ROOT / "pesquisas" / "perfis-g040-mdt.html"
+MUN_GEOJSON = ROOT / "assets" / "data" / "vulnerabilidade" / "municipios.geojson"
 
 UA = "PREVINE-G040-basin-profiles/1.0"
 BHO6_QUERY = (
@@ -340,6 +341,146 @@ def svg_polyline(rows: list[dict[str, Any]], width: int = 720, height: int = 240
     )
 
 
+def downsample_rows(rows: list[dict[str, Any]], max_n: int = 400) -> list[dict[str, Any]]:
+    if len(rows) <= max_n:
+        return rows
+    step = max(1, len(rows) // max_n)
+    kept = rows[::step]
+    if kept[-1]["distance_km"] != rows[-1]["distance_km"]:
+        kept.append(rows[-1])
+    return kept
+
+
+def line_parts(geom: Any) -> list[LineString]:
+    if geom.is_empty:
+        return []
+    if geom.geom_type == "LineString":
+        return [geom]
+    if geom.geom_type == "MultiLineString":
+        return [g for g in geom.geoms if not g.is_empty and g.length > 0]
+    if geom.geom_type == "GeometryCollection":
+        out: list[LineString] = []
+        for g in geom.geoms:
+            out.extend(line_parts(g))
+        return out
+    return []
+
+
+def project_point_m(axis_utm: LineString, lon: float, lat: float) -> float:
+    from shapely.geometry import Point as ShPoint
+
+    x, y = TO_UTM.transform(lon, lat)
+    return float(axis_utm.project(ShPoint(x, y)))
+
+
+def sample_line_profile(
+    dem: rasterio.DatasetReader, line_wgs: LineString, step_m: float = 250.0
+) -> list[dict[str, Any]]:
+    samples = densify_wgs(line_wgs, step_m=step_m)
+    return sample_profile(dem, samples)
+
+
+def build_municipal_profiles(
+    dem: rasterio.DatasetReader,
+    axis_lines: dict[str, LineString],
+    axis_labels: dict[str, str],
+) -> list[dict[str, Any]]:
+    """Clip each axis by município and sample longitudinal MDT profiles."""
+    if not MUN_GEOJSON.exists():
+        print("WARN: municipal geojson missing", MUN_GEOJSON)
+        return []
+    mun = json.loads(MUN_GEOJSON.read_text(encoding="utf-8"))
+    axis_utm = {
+        aid: shapely_transform(lambda x, y: TO_UTM.transform(x, y), line)
+        for aid, line in axis_lines.items()
+    }
+    out: list[dict[str, Any]] = []
+    for feat in mun["features"]:
+        props = feat.get("properties") or {}
+        nome = props.get("nome") or props.get("NM_MUN") or "Município"
+        cod = str(props.get("cod_mun") or props.get("CD_MUN") or "")
+        poly = shape(feat["geometry"])
+        if not poly.is_valid:
+            poly = poly.buffer(0)
+        if poly.is_empty:
+            continue
+        stretches: list[dict[str, Any]] = []
+        for aid, line in axis_lines.items():
+            inter = line.intersection(poly)
+            parts = line_parts(inter)
+            if not parts:
+                continue
+            # Order parts by position along the full axis (head → mouth).
+            ranked: list[tuple[float, LineString]] = []
+            for part in parts:
+                mid = part.interpolate(0.5, normalized=True)
+                ranked.append((project_point_m(axis_utm[aid], mid.x, mid.y), part))
+            ranked.sort(key=lambda t: t[0])
+            # Concatenate local distances across parts for one mun×axis chart.
+            series: list[dict[str, Any]] = []
+            local_offset_m = 0.0
+            for _, part in ranked:
+                dense = densify_wgs(part, step_m=200.0)
+                if not dense:
+                    continue
+                rows = sample_profile(dem, dense)
+                if not rows:
+                    continue
+                part_len_m = dense[-1][2]
+                for r in rows:
+                    series.append(
+                        {
+                            "distance_km": round(local_offset_m / 1000.0 + r["distance_km"], 3),
+                            "lon": r["lon"],
+                            "lat": r["lat"],
+                            "elev_m": r["elev_m"],
+                            "axis_distance_km": round(
+                                project_point_m(axis_utm[aid], r["lon"], r["lat"]) / 1000.0, 3
+                            ),
+                        }
+                    )
+                local_offset_m += part_len_m
+            series = downsample_rows(series, max_n=180)
+            if len(series) < 3:
+                continue
+            summary = summarize(series)
+            stretches.append(
+                {
+                    "axis_id": aid,
+                    "axis_label_pt": axis_labels.get(aid, aid),
+                    "part_count": len(ranked),
+                    "summary": summary,
+                    "series": series,
+                    "svg": svg_polyline(series, width=680, height=200),
+                }
+            )
+        if not stretches:
+            continue
+        # Primary stretch = longest river length inside the município.
+        primary = max(stretches, key=lambda s: float(s["summary"].get("length_km") or 0))
+        out.append(
+            {
+                "id": f"mun_{cod}",
+                "cod_mun": cod,
+                "nome": nome,
+                "pct_na_bacia": props.get("pct_na_bacia"),
+                "axes": [s["axis_id"] for s in stretches],
+                "stretches": stretches,
+                "primary_axis_id": primary["axis_id"],
+                "summary": primary["summary"],
+                "svg": primary["svg"],
+                "label_pt": f"{nome} · {primary['axis_label_pt']}",
+                "note_pt": (
+                    "Trecho do eixo BHO6 dentro do polígono municipal (SRTM). "
+                    "Pode haver mais de um eixo se o município cruza afluentes."
+                ),
+            }
+        )
+    out.sort(key=lambda m: (-float(m["summary"].get("length_km") or 0), m["nome"]))
+    print("municipal profiles", len(out))
+    return out
+
+
 def build_html(report: dict[str, Any]) -> str:
     cards = []
     for p in report["profiles"]:
@@ -358,6 +499,37 @@ def build_html(report: dict[str, Any]) -> str:
   {p['svg']}
 </section>"""
         )
+
+    mun_cards = []
+    for m in report.get("municipal_profiles") or []:
+        s = m["summary"]
+        axes = ", ".join(m.get("axes") or [])
+        meta = (
+            f"eixo principal: {m.get('primary_axis_id')} · "
+            f"comprimento {s.get('length_km')} km · "
+            f"cota {s.get('elev_start_m')}→{s.get('elev_end_m')} m · "
+            f"queda {s.get('drop_m')} m"
+        )
+        extra = ""
+        if len(m.get("stretches") or []) > 1:
+            bits = []
+            for st in m["stretches"]:
+                ss = st["summary"]
+                bits.append(
+                    f"{st['axis_label_pt']}: {ss.get('length_km')} km / queda {ss.get('drop_m')} m"
+                )
+            extra = "<p class=\"note\">Também: " + " · ".join(bits) + "</p>"
+        mun_cards.append(
+            f"""<section class="profile mun" data-axes="{axes}" data-nome="{(m.get('nome') or '').lower()}">
+  <h2>{m.get('nome')}</h2>
+  <div class="meta">{meta}</div>
+  <p class="note">{m.get('note_pt') or ''}</p>
+  {extra}
+  {m['svg']}
+</section>"""
+        )
+
+    n_mun = len(report.get("municipal_profiles") or [])
     return f"""<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -370,7 +542,7 @@ body {{ margin:0; font:15px/1.5 "IBM Plex Sans", "Segoe UI", sans-serif; color:v
   background: linear-gradient(165deg,#d9e6de 0%,#eef3ef 45%,#f7f4ee 100%); }}
 header {{ padding:1.1rem 1.2rem; background:rgba(255,255,255,.92); border-bottom:1px solid var(--line); }}
 h1 {{ margin:0; font-family:Georgia, serif; font-size:clamp(1.35rem,2.5vw,1.85rem); }}
-.lede {{ margin:.45rem 0 0; color:var(--muted); max-width:70ch; }}
+.lede {{ margin:.45rem 0 0; color:var(--muted); max-width:72ch; }}
 main {{ display:grid; gap:12px; padding:12px; max-width:1100px; margin:0 auto; }}
 .profile {{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; }}
 h2 {{ margin:0 0 4px; font-size:1.05rem; }}
@@ -380,6 +552,17 @@ svg {{ width:100%; height:auto; border:1px solid #e2e4dc; border-radius:8px; }}
 .foot {{ color:var(--muted); font-size:.8rem; padding:0 1.2rem 1.5rem; max-width:1100px; margin:0 auto; }}
 .pill {{ display:inline-block; border:1px solid var(--line); border-radius:999px; padding:.12rem .55rem;
   font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-right:.35rem; }}
+.section-title {{ margin:1.1rem 0 .2rem; font-family:Georgia, serif; font-size:1.25rem; }}
+.filters {{ display:flex; flex-wrap:wrap; gap:.4rem; margin:.4rem 0 .7rem; }}
+.filters button {{ border:1px solid var(--line); background:#fff; border-radius:999px; padding:.28rem .7rem;
+  font:inherit; font-size:.82rem; cursor:pointer; color:var(--muted); }}
+.filters button.active {{ background:var(--ink); color:#fff; border-color:var(--ink); }}
+#munSearch {{ width:min(100%,320px); padding:.45rem .65rem; border:1px solid var(--line); border-radius:8px; font:inherit; }}
+.mun.hidden {{ display:none; }}
+.table-wrap {{ overflow:auto; background:#fff; border:1px solid var(--line); border-radius:12px; padding:.4rem; }}
+table {{ border-collapse:collapse; width:100%; font-size:.84rem; }}
+th,td {{ border-bottom:1px solid #e2e4dc; padding:.35rem .45rem; text-align:left; }}
+th {{ color:var(--muted); font-weight:650; }}
 </style>
 </head>
 <body>
@@ -387,14 +570,68 @@ svg {{ width:100%; height:auto; border:1px solid #e2e4dc; border-radius:8px; }}
   <span class="pill">pesquisa · não é alerta</span>
   <span class="pill">G040 · SRTM</span>
   <span class="pill">BHO6</span>
+  <span class="pill">{n_mun} municípios</span>
   <h1>Perfis longitudinais · bacia Taquari–Antas (G040)</h1>
   <p class="lede">{report['purpose_pt']}</p>
 </header>
 <main>
+<h2 class="section-title">Eixos da bacia</h2>
 {''.join(cards)}
+
+<h2 class="section-title" id="municipios">Perfis por município</h2>
+<p class="note">Trechos do eixo BHO6 (tronco / Guaporé / Forqueta) cortados pelo polígono de cada município que cruza o rio. {n_mun} municípios com perfil.</p>
+<div class="filters" id="axisFilters">
+  <button type="button" class="active" data-axis="all">todos</button>
+  <button type="button" data-axis="tronco_taquari_antas">tronco</button>
+  <button type="button" data-axis="guapore">Guaporé</button>
+  <button type="button" data-axis="forqueta">Forqueta</button>
+</div>
+<p><input id="munSearch" type="search" placeholder="Filtrar município…" aria-label="Filtrar município"/></p>
+<div class="table-wrap" style="margin-bottom:.8rem">
+<table>
+<thead><tr><th>Município</th><th>Eixos</th><th>Comp. km</th><th>Queda m</th><th>Cota início→fim</th></tr></thead>
+<tbody>
+{''.join(
+    f"<tr><td>{m.get('nome')}</td><td>{', '.join(m.get('axes') or [])}</td>"
+    f"<td>{(m.get('summary') or {}).get('length_km')}</td>"
+    f"<td>{(m.get('summary') or {}).get('drop_m')}</td>"
+    f"<td>{(m.get('summary') or {}).get('elev_start_m')}→{(m.get('summary') or {}).get('elev_end_m')}</td></tr>"
+    for m in (report.get('municipal_profiles') or [])
+)}
+</tbody>
+</table>
+</div>
+{''.join(mun_cards)}
 </main>
 <p class="foot">Gerado {report['generated_at_utc']} · MDT {report['dem']['source']} ·
-rede ANA BHO6 · cota amostrada no terreno (não leito hidráulico). {report['discipline']['caveat_pt']}</p>
+rede ANA BHO6 · municípios IBGE (pacote vulnerabilidade PREVINE) ·
+cota amostrada no terreno (não leito hidráulico). {report['discipline']['caveat_pt']}</p>
+<script>
+(function() {{
+  const buttons = Array.from(document.querySelectorAll('#axisFilters button'));
+  const cards = Array.from(document.querySelectorAll('section.mun'));
+  const search = document.getElementById('munSearch');
+  let axis = 'all';
+  function apply() {{
+    const q = (search && search.value || '').trim().toLowerCase();
+    cards.forEach(function(card) {{
+      const axes = (card.getAttribute('data-axes') || '').split(/\\s+/);
+      const nome = card.getAttribute('data-nome') || '';
+      const okAxis = axis === 'all' || axes.indexOf(axis) >= 0;
+      const okName = !q || nome.indexOf(q) >= 0;
+      card.classList.toggle('hidden', !(okAxis && okName));
+    }});
+  }}
+  buttons.forEach(function(b) {{
+    b.addEventListener('click', function() {{
+      axis = b.getAttribute('data-axis') || 'all';
+      buttons.forEach(function(x) {{ x.classList.toggle('active', x === b); }});
+      apply();
+    }});
+  }});
+  if (search) search.addEventListener('input', apply);
+}})();
+</script>
 </body>
 </html>
 """
@@ -410,6 +647,8 @@ def main() -> None:
 
     profiles_out: list[dict[str, Any]] = []
     centerlines: dict[str, Any] = {"type": "FeatureCollection", "features": []}
+    axis_lines: dict[str, LineString] = {}
+    axis_labels = {p["id"]: p["label_pt"] for p in PROFILES}
 
     with rasterio.open(mosaic) as dem:
         for spec in PROFILES:
@@ -417,14 +656,9 @@ def main() -> None:
             feats = fetch_bho_mainstem(session, spec["cocursodag"])
             ordered = order_mainstem(feats)
             line = merge_ordered_line(ordered)
+            axis_lines[spec["id"]] = line
             samples = densify_wgs(line, step_m=250.0)
-            rows = sample_profile(dem, samples)
-            if len(rows) > 400:
-                step = max(1, len(rows) // 400)
-                kept = rows[::step]
-                if kept[-1]["distance_km"] != rows[-1]["distance_km"]:
-                    kept.append(rows[-1])
-                rows = kept
+            rows = downsample_rows(sample_profile(dem, samples), max_n=400)
             summary = summarize(rows)
             svg = svg_polyline(rows)
             profiles_out.append(
@@ -463,14 +697,16 @@ def main() -> None:
                 f"L={summary.get('length_km')} km drop={summary.get('drop_m')} m"
             )
 
+        municipal = build_municipal_profiles(dem, axis_lines, axis_labels)
+
     report = {
-        "schema_version": "g040_basin_profiles_v1",
+        "schema_version": "g040_basin_profiles_v2",
         "generated_at_utc": utc_now(),
         "status": "research_profiles_ready",
         "purpose_pt": (
-            "Perfis longitudinais de terreno (SRTM) ao longo dos eixos BHO6 da bacia "
-            "oficial Taquari–Antas (G040): tronco 786, Guaporé 7864 e Forqueta 7862. "
-            "Diagnóstico de relevo — não é seção hidráulica nem alerta."
+            "Perfis longitudinais de terreno (SRTM) na bacia oficial Taquari–Antas (G040): "
+            "eixos BHO6 (tronco 786, Guaporé 7864, Forqueta 7862) e trechos por município "
+            "que o rio atravessa. Diagnóstico de relevo — não é seção hidráulica nem alerta."
         ),
         "discipline": {
             "not_hydraulic_cross_section": True,
@@ -478,9 +714,11 @@ def main() -> None:
             "not_hec_ras": True,
             "research_not_alert": True,
             "dem_is_srtm_surface_approx": True,
+            "municipal_profiles_are_axis_clips": True,
             "caveat_pt": (
                 "SRTM ≈ superfície/terreno grosso (~30 m); pode ficar acima do leito. "
-                "Use só para leitura de queda/comprimento e enquadramento espacial."
+                "Perfis municipais = eixo BHO cortado pelo polígono IBGE, não perfil de "
+                "toda a área do município. Use só para leitura de queda/comprimento."
             ),
         },
         "dem": {
@@ -493,8 +731,11 @@ def main() -> None:
         "network": {
             "source": "ANA BHO6 FeatureServer main_geoft_bho6_trecho_drenagem",
             "families": [p["cocursodag"] for p in PROFILES],
+            "municipalities_source": str(MUN_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
         },
         "profiles": profiles_out,
+        "municipal_profiles": municipal,
+        "municipal_count": len(municipal),
         "artifacts": {
             "json": "perfis_longitudinais_g040_latest.json",
             "html": "perfis_longitudinais_g040.html",
@@ -506,16 +747,8 @@ def main() -> None:
     json_path = OUT / "perfis_longitudinais_g040_latest.json"
     html_path = OUT / "perfis_longitudinais_g040.html"
     cl_path = OUT / "perfis_longitudinais_g040_centerlines.geojson"
-    # Slim JSON for Pages: drop per-point if huge? keep series — useful.
-    slim = dict(report)
-    slim_profiles = []
-    for p in profiles_out:
-        q = dict(p)
-        # keep series; SVG also kept for self-contained HTML rebuild
-        slim_profiles.append(q)
-    slim["profiles"] = slim_profiles
 
-    json_path.write_text(json.dumps(slim, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    json_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     html = build_html(report)
     html_path.write_text(html, encoding="utf-8")
     PAGES_HTML.parent.mkdir(parents=True, exist_ok=True)
@@ -526,6 +759,7 @@ def main() -> None:
     print("wrote", html_path.relative_to(ROOT))
     print("wrote", PAGES_HTML.relative_to(ROOT))
     print("wrote", cl_path.relative_to(ROOT))
+    print("municipal_count", len(municipal))
 
 
 if __name__ == "__main__":
