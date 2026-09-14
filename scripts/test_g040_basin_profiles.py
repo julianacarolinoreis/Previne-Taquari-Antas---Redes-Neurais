@@ -48,7 +48,36 @@ class G040BasinProfilesTests(unittest.TestCase):
         d = self.report["discipline"]
         self.assertTrue(d["not_hydraulic_cross_section"])
         self.assertTrue(d["research_not_alert"])
+        self.assertTrue(d.get("markers_are_axis_projections"))
         self.assertIn("SRTM", self.report["dem"]["source"])
+        self.assertEqual(self.report["schema_version"], "g040_basin_profiles_v3")
+
+    def test_axis_markers(self) -> None:
+        markers = self.report.get("axis_markers") or []
+        self.assertGreaterEqual(len(markers), 10)
+        codes = {m["code"] for m in markers if m.get("kind") == "flu"}
+        for required in ("86510000", "86472600", "86720000", "86895000"):
+            self.assertIn(required, codes)
+        foz_codes = {m["code"] for m in markers if m.get("kind") == "foz"}
+        self.assertTrue({"7868", "7866", "7864", "7862"} <= foz_codes)
+        by_axis = {p["id"]: p for p in self.report["profiles"]}
+        for p in by_axis.values():
+            self.assertIn("markers", p)
+        mucum = next(m for m in markers if m.get("code") == "86510000")
+        self.assertEqual(mucum["axis_id"], "tronco_taquari_antas")
+        self.assertIsNotNone(mucum.get("distance_km"))
+        self.assertLess(float(mucum.get("off_axis_m") or 1e9), 5000)
+        html = PAGES.read_text(encoding="utf-8")
+        self.assertIn("axisMap", html)
+        self.assertIn("leaflet", html.lower())
+        self.assertIn("Muçum", html)
+        self.assertIn("Mapa dos eixos", html)
+
+    def test_estudo_index_link(self) -> None:
+        index = OUT / "index.html"
+        text = index.read_text(encoding="utf-8")
+        self.assertIn("perfis_longitudinais_g040.html", text)
+        self.assertIn("Perfis longitudinais MDT", text)
 
     def test_municipal_profiles(self) -> None:
         muns = self.report.get("municipal_profiles") or []

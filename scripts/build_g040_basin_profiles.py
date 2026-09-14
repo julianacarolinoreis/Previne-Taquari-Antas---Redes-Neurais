@@ -36,6 +36,36 @@ DEM_DIR = OUT / "_dem_srtm_g040"
 DEM_DIR.mkdir(parents=True, exist_ok=True)
 PAGES_HTML = ROOT / "pesquisas" / "perfis-g040-mdt.html"
 MUN_GEOJSON = ROOT / "assets" / "data" / "vulnerabilidade" / "municipios.geojson"
+POSTOS_GEOJSON = OUT / "postos_g040.geojson"
+FOZES_GEOJSON = OUT / "fozes_principais_bho6.geojson"
+
+KEY_STATION_CODES = {
+    "86160000",  # Passo Tainhas
+    "86447000",  # Balsa do Prata
+    "86472000",  # José Júlio
+    "86472600",  # Santa Tereza
+    "86488000",  # Caçador / Carreiro
+    "86510000",  # Muçum
+    "86520100",  # Capigui
+    "86720000",  # Encantado
+    "86743700",  # Rastro Forqueta
+    "86895000",  # Porto Mariante
+    "86950000",  # Taquari
+}
+
+STATION_SHORT_LABEL = {
+    "86160000": "Tainhas",
+    "86447000": "Balsa Prata",
+    "86472000": "José Júlio",
+    "86472600": "STZ",
+    "86488000": "Caçador",
+    "86510000": "Muçum",
+    "86520100": "Capigui",
+    "86720000": "Encantado",
+    "86743700": "Rastro",
+    "86895000": "Mariante",
+    "86950000": "Taquari",
+}
 
 UA = "PREVINE-G040-basin-profiles/1.0"
 BHO6_QUERY = (
@@ -304,10 +334,30 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def svg_polyline(rows: list[dict[str, Any]], width: int = 720, height: int = 240) -> str:
+def elev_at_distance(rows: list[dict[str, Any]], dist_km: float) -> float | None:
+    if not rows:
+        return None
+    if dist_km <= rows[0]["distance_km"]:
+        return float(rows[0]["elev_m"])
+    if dist_km >= rows[-1]["distance_km"]:
+        return float(rows[-1]["elev_m"])
+    for left, right in zip(rows, rows[1:]):
+        if left["distance_km"] <= dist_km <= right["distance_km"]:
+            span = right["distance_km"] - left["distance_km"] or 1e-9
+            t = (dist_km - left["distance_km"]) / span
+            return float(left["elev_m"] + t * (right["elev_m"] - left["elev_m"]))
+    return None
+
+
+def svg_polyline(
+    rows: list[dict[str, Any]],
+    width: int = 720,
+    height: int = 240,
+    markers: list[dict[str, Any]] | None = None,
+) -> str:
     if len(rows) < 2:
         return f'<svg viewBox="0 0 {width} {height}"><text x="24" y="120" fill="#4a6356">Sem pontos.</text></svg>'
-    pad_l, pad_r, pad_t, pad_b = 48, 18, 18, 36
+    pad_l, pad_r, pad_t, pad_b = 48, 18, 22, 36
     xs = [r["distance_km"] for r in rows]
     ys = [r["elev_m"] for r in rows]
     xmin, xmax = min(xs), max(xs)
@@ -325,13 +375,36 @@ def svg_polyline(rows: list[dict[str, Any]], width: int = 720, height: int = 240
 
     pts = " ".join(f"{x_at(x):.1f},{y_at(y):.1f}" for x, y in zip(xs, ys))
     y0 = y_at(ymin)
+    marks: list[str] = []
+    for m in markers or []:
+        d = m.get("distance_km")
+        if d is None or d < xmin - 0.5 or d > xmax + 0.5:
+            continue
+        elev = m.get("elev_m")
+        if elev is None:
+            elev = elev_at_distance(rows, float(d))
+        if elev is None:
+            continue
+        x = x_at(float(d))
+        y = y_at(float(elev))
+        label = str(m.get("short_label") or m.get("label") or "")
+        marks.append(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4.2" fill="#8a5a12" '
+            f'stroke="#fff" stroke-width="1.2"/>'
+        )
+        if label:
+            marks.append(
+                f'<text x="{x+5:.1f}" y="{y-7:.1f}" fill="#8a5a12" font-size="10">'
+                f"{label}</text>"
+            )
     return (
         f'<svg viewBox="0 0 {width} {height}" role="img" aria-label="perfil longitudinal">'
         f'<rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff"/>'
         f'<line x1="{pad_l}" y1="{y0:.1f}" x2="{width-pad_r}" y2="{y0:.1f}" stroke="#9aa096"/>'
         f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{y0:.1f}" stroke="#9aa096"/>'
         f'<polyline points="{pts}" fill="none" stroke="#0f5c45" stroke-width="2.4"/>'
-        f'<text x="{pad_l}" y="{height-10}" fill="#4a6356" font-size="11">'
+        + "".join(marks)
+        + f'<text x="{pad_l}" y="{height-10}" fill="#4a6356" font-size="11">'
         f"{xmin:.0f} km</text>"
         f'<text x="{width-pad_r}" y="{height-10}" fill="#4a6356" font-size="11" text-anchor="end">'
         f"{xmax:.0f} km</text>"
@@ -339,6 +412,123 @@ def svg_polyline(rows: list[dict[str, Any]], width: int = 720, height: int = 240
         f'<text x="8" y="{y0:.1f}" fill="#4a6356" font-size="11">{ymin:.0f} m</text>'
         f"</svg>"
     )
+
+
+def attach_axis_markers(
+    axis_lines: dict[str, LineString],
+    profiles_by_id: dict[str, dict[str, Any]],
+    max_off_axis_m: float = 8000.0,
+) -> list[dict[str, Any]]:
+    """Project key flu stations + fozes onto nearest BHO axis."""
+    from shapely.geometry import Point as ShPoint
+
+    axis_utm = {
+        aid: shapely_transform(lambda x, y: TO_UTM.transform(x, y), line)
+        for aid, line in axis_lines.items()
+    }
+    candidates: list[dict[str, Any]] = []
+    if POSTOS_GEOJSON.exists():
+        postos = json.loads(POSTOS_GEOJSON.read_text(encoding="utf-8"))
+        for feat in postos.get("features") or []:
+            p = feat.get("properties") or {}
+            code = str(p.get("codigo") or "")
+            if code not in KEY_STATION_CODES:
+                continue
+            coords = (feat.get("geometry") or {}).get("coordinates") or []
+            if len(coords) < 2:
+                continue
+            lon, lat = float(coords[0]), float(coords[1])
+            candidates.append(
+                {
+                    "kind": "flu",
+                    "code": code,
+                    "label": p.get("nome") or code,
+                    "short_label": STATION_SHORT_LABEL.get(code)
+                    or (p.get("nome") or code).split()[0][:12],
+                    "municipio": p.get("municipio"),
+                    "lon": lon,
+                    "lat": lat,
+                }
+            )
+    if FOZES_GEOJSON.exists():
+        fozes = json.loads(FOZES_GEOJSON.read_text(encoding="utf-8"))
+        for feat in fozes.get("features") or []:
+            p = feat.get("properties") or {}
+            coords = (feat.get("geometry") or {}).get("coordinates") or []
+            if len(coords) < 2:
+                continue
+            family = str(p.get("family_code") or p.get("cocursodag") or "")
+            label = p.get("label") or f"foz {family}"
+            short = {
+                "7868": "foz Prata",
+                "7866": "foz Carreiro",
+                "7864": "foz Guaporé",
+                "7862": "foz Forqueta",
+            }.get(family, f"foz {family}")
+            candidates.append(
+                {
+                    "kind": "foz",
+                    "code": family,
+                    "label": label,
+                    "short_label": short,
+                    "municipio": None,
+                    "lon": float(coords[0]),
+                    "lat": float(coords[1]),
+                    "prefer_axis": {
+                        "7864": "guapore",
+                        "7862": "forqueta",
+                        "7868": "tronco_taquari_antas",
+                        "7866": "tronco_taquari_antas",
+                    }.get(family),
+                }
+            )
+
+    markers: list[dict[str, Any]] = []
+    for c in candidates:
+        px, py = TO_UTM.transform(c["lon"], c["lat"])
+        pt = ShPoint(px, py)
+        best_aid = None
+        best_dist = 1e18
+        best_along = None
+        prefer = c.get("prefer_axis")
+        axis_ids = list(axis_utm.keys())
+        if prefer and prefer in axis_utm:
+            axis_ids = [prefer] + [a for a in axis_ids if a != prefer]
+        for aid in axis_ids:
+            line_u = axis_utm[aid]
+            d = float(line_u.distance(pt))
+            # Prefer preferred axis even if slightly farther.
+            score = d * (0.55 if prefer and aid == prefer else 1.0)
+            if score < best_dist:
+                best_dist = score
+                best_aid = aid
+                best_along = float(line_u.project(pt))
+        true_dist = float(axis_utm[best_aid].distance(pt)) if best_aid else 1e18
+        if best_aid is None or true_dist > max_off_axis_m:
+            continue
+        series = (profiles_by_id.get(best_aid) or {}).get("series") or []
+        dist_km = round((best_along or 0.0) / 1000.0, 3)
+        elev = elev_at_distance(series, dist_km)
+        marker = {
+            **c,
+            "axis_id": best_aid,
+            "distance_km": dist_km,
+            "off_axis_m": round(true_dist, 1),
+            "elev_m": None if elev is None else round(elev, 1),
+        }
+        markers.append(marker)
+        # attach to profile list
+        profiles_by_id[best_aid].setdefault("markers", []).append(marker)
+
+    # rebuild SVGs with markers
+    for aid, prof in profiles_by_id.items():
+        marks = prof.get("markers") or []
+        marks = sorted(marks, key=lambda m: float(m.get("distance_km") or 0))
+        prof["markers"] = marks
+        prof["svg"] = svg_polyline(prof["series"], markers=marks)
+
+    markers.sort(key=lambda m: (m.get("axis_id") or "", float(m.get("distance_km") or 0)))
+    return markers
 
 
 def downsample_rows(rows: list[dict[str, Any]], max_n: int = 400) -> list[dict[str, Any]]:
@@ -481,6 +671,56 @@ def build_municipal_profiles(
     return out
 
 
+def simplify_centerlines_for_map(
+    centerlines: dict[str, Any],
+    max_pts_per_line: int = 400,
+) -> dict[str, Any]:
+    """Downsample LineString coords so Leaflet payload stays small."""
+    out_feats: list[dict[str, Any]] = []
+    for feat in centerlines.get("features") or []:
+        geom = feat.get("geometry") or {}
+        coords = geom.get("coordinates") or []
+        if geom.get("type") != "LineString" or len(coords) <= max_pts_per_line:
+            out_feats.append(feat)
+            continue
+        step = max(1, len(coords) // max_pts_per_line)
+        kept = list(coords[::step])
+        if kept[-1] != coords[-1]:
+            kept.append(coords[-1])
+        out_feats.append(
+            {
+                "type": "Feature",
+                "properties": feat.get("properties") or {},
+                "geometry": {"type": "LineString", "coordinates": kept},
+            }
+        )
+    return {"type": "FeatureCollection", "features": out_feats}
+
+
+def markers_table_html(markers: list[dict[str, Any]]) -> str:
+    if not markers:
+        return ""
+    rows = []
+    for m in markers:
+        kind = "flu" if m.get("kind") == "flu" else "foz"
+        rows.append(
+            "<tr>"
+            f"<td>{kind}</td>"
+            f"<td>{m.get('short_label') or m.get('label')}</td>"
+            f"<td>{m.get('code')}</td>"
+            f"<td>{m.get('distance_km')}</td>"
+            f"<td>{m.get('elev_m')}</td>"
+            f"<td>{m.get('off_axis_m')}</td>"
+            "</tr>"
+        )
+    return (
+        '<div class="table-wrap markers-table"><table>'
+        "<thead><tr><th>Tipo</th><th>Marcador</th><th>Código</th>"
+        "<th>km eixo</th><th>cota m</th><th>off-axis m</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table></div>"
+    )
+
+
 def build_html(report: dict[str, Any]) -> str:
     cards = []
     for p in report["profiles"]:
@@ -491,12 +731,20 @@ def build_html(report: dict[str, Any]) -> str:
             f"queda {s.get('drop_m')} m · "
             f"n={s.get('n')}"
         )
+        marks = p.get("markers") or []
+        mark_note = (
+            f'<p class="note">{len(marks)} marcadores (postos-chave + fozes projetados no eixo).</p>'
+            if marks
+            else ""
+        )
         cards.append(
             f"""<section class="profile">
   <h2>{p['label_pt']}</h2>
   <div class="meta">{meta}</div>
   <p class="note">{p.get('note_pt') or ''}</p>
   {p['svg']}
+  {mark_note}
+  {markers_table_html(marks)}
 </section>"""
         )
 
@@ -530,12 +778,20 @@ def build_html(report: dict[str, Any]) -> str:
         )
 
     n_mun = len(report.get("municipal_profiles") or [])
+    n_mark = len(report.get("axis_markers") or [])
+    map_payload = {
+        "centerlines": report.get("map_centerlines_simplified")
+        or {"type": "FeatureCollection", "features": []},
+        "markers": report.get("axis_markers") or [],
+    }
+    map_json = json.dumps(map_payload, ensure_ascii=False)
     return f"""<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Perfis longitudinais G040 · MDT SRTM</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 :root {{ --ink:#12241c; --muted:#4a6356; --line:#c5d5cb; }}
 body {{ margin:0; font:15px/1.5 "IBM Plex Sans", "Segoe UI", sans-serif; color:var(--ink);
@@ -560,9 +816,12 @@ svg {{ width:100%; height:auto; border:1px solid #e2e4dc; border-radius:8px; }}
 #munSearch {{ width:min(100%,320px); padding:.45rem .65rem; border:1px solid var(--line); border-radius:8px; font:inherit; }}
 .mun.hidden {{ display:none; }}
 .table-wrap {{ overflow:auto; background:#fff; border:1px solid var(--line); border-radius:12px; padding:.4rem; }}
+.markers-table {{ margin-top:.55rem; }}
 table {{ border-collapse:collapse; width:100%; font-size:.84rem; }}
 th,td {{ border-bottom:1px solid #e2e4dc; padding:.35rem .45rem; text-align:left; }}
 th {{ color:var(--muted); font-weight:650; }}
+#axisMap {{ height:min(420px,55vh); width:100%; border-radius:10px; border:1px solid var(--line); }}
+.map-legend {{ color:var(--muted); font-size:.8rem; margin:.35rem 0 0; }}
 </style>
 </head>
 <body>
@@ -571,10 +830,16 @@ th {{ color:var(--muted); font-weight:650; }}
   <span class="pill">G040 · SRTM</span>
   <span class="pill">BHO6</span>
   <span class="pill">{n_mun} municípios</span>
+  <span class="pill">{n_mark} marcadores</span>
   <h1>Perfis longitudinais · bacia Taquari–Antas (G040)</h1>
   <p class="lede">{report['purpose_pt']}</p>
 </header>
 <main>
+<h2 class="section-title" id="mapa">Mapa dos eixos</h2>
+<p class="note">Tronco, Guaporé e Forqueta (BHO6) com postos-chave e fozes projetados no eixo mais próximo.</p>
+<div id="axisMap" role="img" aria-label="mapa dos eixos longitudinais G040"></div>
+<p class="map-legend">Linha verde = tronco · azul = Guaporé · ocre = Forqueta · círculos = flu · losangos = foz.</p>
+
 <h2 class="section-title">Eixos da bacia</h2>
 {''.join(cards)}
 
@@ -606,6 +871,8 @@ th {{ color:var(--muted); font-weight:650; }}
 <p class="foot">Gerado {report['generated_at_utc']} · MDT {report['dem']['source']} ·
 rede ANA BHO6 · municípios IBGE (pacote vulnerabilidade PREVINE) ·
 cota amostrada no terreno (não leito hidráulico). {report['discipline']['caveat_pt']}</p>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script id="mapData" type="application/json">{map_json}</script>
 <script>
 (function() {{
   const buttons = Array.from(document.querySelectorAll('#axisFilters button'));
@@ -630,6 +897,57 @@ cota amostrada no terreno (não leito hidráulico). {report['discipline']['cavea
     }});
   }});
   if (search) search.addEventListener('input', apply);
+
+  const raw = document.getElementById('mapData');
+  if (!raw || typeof L === 'undefined') return;
+  const payload = JSON.parse(raw.textContent || '{{}}');
+  const map = L.map('axisMap').setView([-29.15, -51.55], 8);
+  L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 16
+  }}).addTo(map);
+  const colors = {{
+    tronco_taquari_antas: '#0f5c45',
+    guapore: '#1d6f9c',
+    forqueta: '#8a5a12'
+  }};
+  const layers = [];
+  if (payload.centerlines && payload.centerlines.features) {{
+    const cl = L.geoJSON(payload.centerlines, {{
+      style: function(feat) {{
+        const id = (feat.properties && feat.properties.id) || '';
+        return {{ color: colors[id] || '#333', weight: 3.2, opacity: 0.92 }};
+      }},
+      onEachFeature: function(feat, layer) {{
+        const p = feat.properties || {{}};
+        layer.bindPopup((p.label_pt || p.id || '') +
+          '<br>L=' + (p.length_km || '?') + ' km · queda ' + (p.drop_m || '?') + ' m');
+      }}
+    }}).addTo(map);
+    layers.push(cl);
+  }}
+  (payload.markers || []).forEach(function(m) {{
+    if (m.lat == null || m.lon == null) return;
+    const isFoz = m.kind === 'foz';
+    const marker = L.circleMarker([m.lat, m.lon], {{
+      radius: isFoz ? 7 : 5.5,
+      color: '#fff',
+      weight: 1.4,
+      fillColor: isFoz ? '#8a5a12' : '#12241c',
+      fillOpacity: 0.95
+    }}).addTo(map);
+    marker.bindPopup(
+      '<strong>' + (m.short_label || m.label || '') + '</strong><br>' +
+      (m.kind || '') + ' · ' + (m.code || '') + '<br>' +
+      'eixo ' + (m.axis_id || '') + ' · ' + (m.distance_km || '?') + ' km · ' +
+      (m.elev_m != null ? m.elev_m + ' m' : 'cota n/d')
+    );
+    layers.push(marker);
+  }});
+  if (layers.length) {{
+    const group = L.featureGroup(layers);
+    map.fitBounds(group.getBounds().pad(0.08));
+  }}
 }})();
 </script>
 </body>
@@ -699,14 +1017,19 @@ def main() -> None:
 
         municipal = build_municipal_profiles(dem, axis_lines, axis_labels)
 
+    profiles_by_id = {p["id"]: p for p in profiles_out}
+    axis_markers = attach_axis_markers(axis_lines, profiles_by_id)
+    print("axis markers", len(axis_markers))
+
     report = {
-        "schema_version": "g040_basin_profiles_v2",
+        "schema_version": "g040_basin_profiles_v3",
         "generated_at_utc": utc_now(),
         "status": "research_profiles_ready",
         "purpose_pt": (
             "Perfis longitudinais de terreno (SRTM) na bacia oficial Taquari–Antas (G040): "
-            "eixos BHO6 (tronco 786, Guaporé 7864, Forqueta 7862) e trechos por município "
-            "que o rio atravessa. Diagnóstico de relevo — não é seção hidráulica nem alerta."
+            "eixos BHO6 (tronco 786, Guaporé 7864, Forqueta 7862), trechos por município "
+            "e marcadores de postos-chave/fozes no eixo. Diagnóstico de relevo — não é "
+            "seção hidráulica nem alerta."
         ),
         "discipline": {
             "not_hydraulic_cross_section": True,
@@ -715,10 +1038,12 @@ def main() -> None:
             "research_not_alert": True,
             "dem_is_srtm_surface_approx": True,
             "municipal_profiles_are_axis_clips": True,
+            "markers_are_axis_projections": True,
             "caveat_pt": (
                 "SRTM ≈ superfície/terreno grosso (~30 m); pode ficar acima do leito. "
                 "Perfis municipais = eixo BHO cortado pelo polígono IBGE, não perfil de "
-                "toda a área do município. Use só para leitura de queda/comprimento."
+                "toda a área do município. Marcadores = projeção ortogonal no eixo mais "
+                "próximo (off-axis reportado). Use só para leitura de queda/comprimento."
             ),
         },
         "dem": {
@@ -732,8 +1057,13 @@ def main() -> None:
             "source": "ANA BHO6 FeatureServer main_geoft_bho6_trecho_drenagem",
             "families": [p["cocursodag"] for p in PROFILES],
             "municipalities_source": str(MUN_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
+            "postos_source": str(POSTOS_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
+            "fozes_source": str(FOZES_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
         },
         "profiles": profiles_out,
+        "axis_markers": axis_markers,
+        "axis_marker_count": len(axis_markers),
+        "map_centerlines_simplified": simplify_centerlines_for_map(centerlines),
         "municipal_profiles": municipal,
         "municipal_count": len(municipal),
         "artifacts": {
@@ -748,8 +1078,11 @@ def main() -> None:
     html_path = OUT / "perfis_longitudinais_g040.html"
     cl_path = OUT / "perfis_longitudinais_g040_centerlines.geojson"
 
-    json_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     html = build_html(report)
+    # Keep simplified centerlines out of the audit JSON (full lines live in geojson).
+    report.pop("map_centerlines_simplified", None)
+
+    json_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     html_path.write_text(html, encoding="utf-8")
     PAGES_HTML.parent.mkdir(parents=True, exist_ok=True)
     PAGES_HTML.write_text(html, encoding="utf-8")
