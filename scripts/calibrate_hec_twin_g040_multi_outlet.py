@@ -9,9 +9,10 @@ Honest scope
 - Rastro de Auto (86743700): partial Forqueta (~564 of ~2864 km²).
 - Porto Mariante (86895000): Baixo nested Q (~24 600 km²) =
   Encantado routed + Forqueta residual.
-- Lumped twins use *areal* Open-Meteo (média em pluviômetros da UG),
-  not a single point.
-- Encantado (86720000): Muçum Q routed + Guaporé residual areal.
+- Lumped twins prefer ANA telemetria *Chuva* when flu stations in the UG
+  publish it; Open-Meteo areal mean is the fallback.
+- Encantado (86720000): Muçum Q routed + Guaporé residual rain.
+- Mouths 86595000 / 86746000: telemetria probed empty (Q=0) → stay gated.
 
 Does not invent an STZ rating. Does not touch RNA.
 """
@@ -37,7 +38,20 @@ OUT = ROOT / "assets" / "data" / "estudo_bacia_taquari_antas"
 SERIES_DIR = OUT / "hec_twin_stz_mucum_v1"
 CACHE = Path(__file__).resolve().parent / "__pycache__"
 FETCH_CACHE = OUT / "_cache_multi_outlet_fetches"
-UA = "PREVINE-G040-multi-outlet/3.0"
+UA = "PREVINE-G040-multi-outlet/4.0"
+
+# Flu stations that publish Chuva on ANA telemetria (probed Apr/May 2024 window).
+ANA_TELE_RAIN_CODES_BY_UG: dict[str, list[str]] = {
+    "Forqueta": ["86780000", "86743800", "86748001"],
+    "Guaporé": ["86520000"],
+    "Baixo Taquari-Antas": [
+        "86895000",
+        "86720000",
+        "86879300",
+        "86881000",
+        "86950000",
+    ],
+}
 
 AREA_MUCUM_KM2 = 15965.207
 AREA_GUAPORE_KM2 = 2487.5
@@ -315,14 +329,16 @@ def _ln(tag: str) -> str:
     return tag.split("}")[-1] if "}" in tag else tag
 
 
-def fetch_ana_tele_flow(code: str, t0: pd.Timestamp, t1: pd.Timestamp) -> pd.Series:
-    cache = _cache_file("tele_q", f"{code}_{t0.date()}_{t1.date()}")
+def _parse_ana_tele_field(code: str, t0: pd.Timestamp, t1: pd.Timestamp, field: str) -> pd.Series:
+    """Fetch one ANA telemetria numeric field (Vazao / Chuva / Nivel), cached."""
+    kind = {"Vazao": "tele_q", "Chuva": "tele_rain", "Nivel": "tele_n"}.get(field, f"tele_{field}")
+    cache = _cache_file(kind, f"{code}_{t0.date()}_{t1.date()}")
     if cache.exists():
         rows = json.loads(cache.read_text(encoding="utf-8"))
         if not rows:
             return pd.Series(dtype=float)
         s = pd.Series({pd.Timestamp(t): v for t, v in rows}).sort_index()
-        return s.resample("1h").mean()
+        return s.resample("1h").mean() if field == "Vazao" else s.resample("1h").sum()
     start = t0.strftime("%d/%m/%Y")
     end = (t1 + pd.Timedelta(days=1)).strftime("%d/%m/%Y")
     q = urllib.parse.urlencode({"codEstacao": code, "dataInicio": start, "dataFim": end})
@@ -337,8 +353,8 @@ def fetch_ana_tele_flow(code: str, t0: pd.Timestamp, t1: pd.Timestamp) -> pd.Ser
             continue
         fields = {_ln(c.tag): (c.text or "").strip() for c in list(node)}
         ts = fields.get("DataHora")
-        vaz = fields.get("Vazao")
-        if not ts or not vaz:
+        raw = fields.get(field)
+        if not ts or not raw:
             continue
         try:
             t = pd.to_datetime(ts.strip(), format="%Y-%m-%d %H:%M:%S", errors="coerce")
@@ -346,7 +362,7 @@ def fetch_ana_tele_flow(code: str, t0: pd.Timestamp, t1: pd.Timestamp) -> pd.Ser
                 t = pd.to_datetime(ts, dayfirst=True, errors="coerce")
             if pd.isna(t):
                 continue
-            v = float(vaz.replace(",", "."))
+            v = float(raw.replace(",", "."))
         except ValueError:
             continue
         rows.append((str(t), v))
@@ -354,7 +370,72 @@ def fetch_ana_tele_flow(code: str, t0: pd.Timestamp, t1: pd.Timestamp) -> pd.Ser
     if not rows:
         return pd.Series(dtype=float)
     s = pd.Series({pd.Timestamp(t): v for t, v in rows}).sort_index()
-    return s.resample("1h").mean()
+    return s.resample("1h").mean() if field == "Vazao" else s.resample("1h").sum()
+
+
+def fetch_ana_tele_rain(code: str, t0: pd.Timestamp, t1: pd.Timestamp) -> pd.Series:
+    return _parse_ana_tele_field(code, t0, t1, "Chuva")
+
+
+def fetch_ana_areal_rain(
+    ugs: list[str],
+    t0: pd.Timestamp,
+    t1: pd.Timestamp,
+    min_hours: int = 24,
+) -> tuple[pd.Series | None, dict[str, Any]]:
+    """Mean ANA telemetria Chuva across known flu codes in the UGs (no zero-fill of stations)."""
+    codes: list[str] = []
+    for ug in ugs:
+        codes.extend(ANA_TELE_RAIN_CODES_BY_UG.get(ug) or [])
+    # unique preserve order
+    seen: set[str] = set()
+    codes = [c for c in codes if not (c in seen or seen.add(c))]
+    used: list[dict[str, Any]] = []
+    series_list: list[pd.Series] = []
+    for code in codes:
+        s = fetch_ana_tele_rain(code, t0, t1)
+        n = int(s.notna().sum()) if not s.empty else 0
+        if n < min_hours:
+            continue
+        series_list.append(s)
+        used.append({"code": code, "n_hours": n, "sum_mm": round(float(s.sum()), 2)})
+    if not series_list:
+        return None, {"method": "ana_tele_chuva_mean", "n_stations": 0, "stations": []}
+    idx = series_list[0].index
+    for s in series_list[1:]:
+        idx = idx.union(s.index)
+    idx = idx.sort_values()
+    stacked = pd.concat([s.reindex(idx) for s in series_list], axis=1)
+    mean = stacked.mean(axis=1, skipna=True).fillna(0.0)
+    meta = {
+        "method": "ana_tele_chuva_mean",
+        "n_stations": len(used),
+        "stations": used,
+        "ugs": list(ugs),
+    }
+    return mean, meta
+
+
+def fetch_preferred_areal_rain(
+    ugs: list[str],
+    t0: pd.Timestamp,
+    t1: pd.Timestamp,
+    fallback: tuple[float, float] | None = None,
+) -> tuple[pd.Series, dict[str, Any]]:
+    """Prefer ANA tele Chuva; fall back to Open-Meteo areal sample."""
+    ana, ana_meta = fetch_ana_areal_rain(ugs, t0, t1)
+    if ana is not None and int(ana_meta.get("n_stations") or 0) >= 1:
+        return ana, ana_meta
+    points = pluv_points_for_ugs(ugs)
+    rain, meta = fetch_areal_rain(points, t0, t1, fallback=fallback)
+    meta = dict(meta)
+    meta["ana_attempt"] = ana_meta
+    meta["fallback_from"] = "ana_tele_chuva_unavailable"
+    return rain, meta
+
+
+def fetch_ana_tele_flow(code: str, t0: pd.Timestamp, t1: pd.Timestamp) -> pd.Series:
+    return _parse_ana_tele_field(code, t0, t1, "Vazao")
 
 
 def clark_runoff(rain_mm: list[float], area_km2: float, params: ClarkParams) -> list[float]:
@@ -449,9 +530,9 @@ def _core_flags(muc: pd.DataFrame, n: int) -> list[int]:
 def align_tributary(spec: dict[str, Any], event_id: str) -> dict[str, Any] | None:
     muc = load_mucum_obs(event_id)
     t0, t1 = muc["timestamp"].iloc[0], muc["timestamp"].iloc[-1]
-    points = pluv_points_for_ugs(spec.get("rain_ugs") or spec["ugs"])
-    rain, rain_meta = fetch_areal_rain(
-        points, t0, t1, fallback=(float(spec["lat"]), float(spec["lon"]))
+    rain_ugs = spec.get("rain_ugs") or spec["ugs"]
+    rain, rain_meta = fetch_preferred_areal_rain(
+        rain_ugs, t0, t1, fallback=(float(spec["lat"]), float(spec["lon"]))
     )
     q = fetch_ana_tele_flow(spec["station_code"], t0, t1)
     if q.empty or q.notna().sum() < 20:
@@ -497,8 +578,9 @@ def fit_tributary(bundle: dict[str, Any], area_km2: float) -> dict[str, Any]:
 def align_encantado(event_id: str) -> dict[str, Any] | None:
     muc = load_mucum_obs(event_id)
     t0, t1 = muc["timestamp"].iloc[0], muc["timestamp"].iloc[-1]
-    points = pluv_points_for_ugs(["Guaporé"])
-    rain, rain_meta = fetch_areal_rain(points, t0, t1, fallback=(-28.95, -51.95))
+    rain, rain_meta = fetch_preferred_areal_rain(
+        ["Guaporé"], t0, t1, fallback=(-28.95, -51.95)
+    )
     enc = fetch_ana_tele_flow("86720000", t0, t1)
     if enc.empty or enc.notna().sum() < 10:
         return None
@@ -525,8 +607,9 @@ def align_encantado(event_id: str) -> dict[str, Any] | None:
 def align_mariante(event_id: str) -> dict[str, Any] | None:
     muc = load_mucum_obs(event_id)
     t0, t1 = muc["timestamp"].iloc[0], muc["timestamp"].iloc[-1]
-    points = pluv_points_for_ugs(["Forqueta"])
-    rain, rain_meta = fetch_areal_rain(points, t0, t1, fallback=(-29.2239, -52.1622))
+    rain, rain_meta = fetch_preferred_areal_rain(
+        ["Forqueta"], t0, t1, fallback=(-29.2239, -52.1622)
+    )
     enc = fetch_ana_tele_flow("86720000", t0, t1)
     mar = fetch_ana_tele_flow("86895000", t0, t1)
     if enc.empty or enc.notna().sum() < 10 or mar.empty or mar.notna().sum() < 20:
@@ -834,7 +917,10 @@ def calibrate_mariante() -> dict[str, Any]:
         "nested_area_km2": AREA_MARIANTE_KM2,
         "quantity": "Q_ana_telemetria",
         "status": status,
-        "note_pt": "Encantado Q roteada + residual Forqueta (Open-Meteo → Clark). Quase-G040.",
+        "note_pt": (
+            "Encantado Q roteada + residual Forqueta (ANA tele Chuva quando houver; "
+            "senão Open-Meteo). Quase-G040."
+        ),
         "engine": "encantado_route_plus_forqueta_clark",
         "self_fit": fits,
         "loo": loo,
@@ -923,7 +1009,10 @@ def outlet_catalog(
                 "nested_area_km2": AREA_GUAPORE_KM2,
                 "quantity": "Q",
                 "status": "blocked_no_ana_q_series",
-                "blocker_pt": "Foz sem Q. Proxy parcial calibrado em Capigui (86520100).",
+                "blocker_pt": (
+                    "Foz sondada na telemetria ANA (janela 2024-04/05): Vazao=0. "
+                    "Proxy parcial calibrado em Capigui (86520100)."
+                ),
             },
             {
                 "outlet_id": "forqueta_mouth",
@@ -934,9 +1023,9 @@ def outlet_catalog(
                 "quantity": "Q",
                 "status": "blocked_no_ana_q_series",
                 "blocker_pt": (
-                    "Foz sem Q. Proxy parcial em Rastro de Auto (86743700); "
-                    "residual Forqueta também entra em Porto Mariante. "
-                    "Barra do Fão só nível."
+                    "Foz sondada na telemetria ANA (janela 2024-04/05): Vazao=0. "
+                    "Proxy parcial em Rastro (86743700); residual Forqueta também "
+                    "entra em Porto Mariante (chuva ANA tele quando disponível)."
                 ),
             },
             {
@@ -982,15 +1071,15 @@ def main() -> None:
     outlets = outlet_catalog(trib_results, mariante)
     calibrated = [o for o in outlets if str(o.get("status", "")).startswith("calibrated")]
     report = {
-        "schema_version": "hec_twin_g040_multi_outlet_v3",
+        "schema_version": "hec_twin_g040_multi_outlet_v4",
         "generated_at_utc": utc_now(),
         "purpose_pt": (
-            "Calibração multi-exutório G040 v3: chuva areal Open-Meteo (média nos "
-            "pluviômetros da UG) + Muçum/Encantado/Mariante + tributários com Q "
-            "(inclui Forqueta parcial Rastro). Foz Guaporé, foz Forqueta e "
-            "Taquari-nível ainda gated."
+            "Calibração multi-exutório G040 v4: chuva preferida = ANA telemetria Chuva "
+            "(média nos flu com Chuva na UG); fallback Open-Meteo areal. "
+            "Muçum + Encantado + Mariante + tributários com Q. "
+            "Foz Guaporé/Forqueta sondadas sem Vazao na telemetria; Taquari-nível gated."
         ),
-        "status": "research_multi_outlet_v3",
+        "status": "research_multi_outlet_v4",
         "discipline": {
             "not_single_mucum_as_g040": True,
             "guapore_forqueta_downstream_of_mucum": True,
@@ -998,6 +1087,8 @@ def main() -> None:
             "does_not_touch_rna": True,
             "research_not_alert": True,
             "calibrated_outlet_count": len(calibrated),
+            "ana_tele_rain_preferred": True,
+            "mouths_tele_q_probed_empty": True,
         },
         "areas_km2": {
             "g040": AREA_G040_KM2,
@@ -1010,12 +1101,12 @@ def main() -> None:
         },
         "outlets": outlets,
         "engine": {
-            "name": "python_hms_twin_g040_multi_outlet_v3",
+            "name": "python_hms_twin_g040_multi_outlet_v4",
             "not_hec_hms_binary": True,
             "methods": [
                 "Muçum eventwise library (existing)",
                 "Muskingum + residual Clark (Encantado, Porto Mariante)",
-                "Open-Meteo areal mean over UG pluviometer sample → IC+Clark",
+                "ANA tele Chuva mean (prefer) / Open-Meteo areal fallback → IC+Clark",
             ],
         },
         "encantado_calibration": enc,
@@ -1024,10 +1115,11 @@ def main() -> None:
         },
         "mariante_calibration": _compact_fit_block(mariante),
         "blocked_next": [
-            "Puxar Q/curva oficial 86595000 (foz Guaporé) — Capigui cobre só ~684 km² e é PCH.",
-            "Puxar Q/curva oficial 86746000 (foz Forqueta) — Rastro cobre só ~564 km² e é PCH.",
+            "HidroSerieHistorica / curva oficial para 86595000 e 86746000 "
+            "(telemetria Vazao vazia nestas fozes).",
             "Taquari 86950000: nível sem curva; Mariante já fecha Q Baixo aninhado.",
-            "Substituir Open-Meteo areal por chuva observada ANA/INMET horária por UG.",
+            "Ampliar rede ANA/INMET Chuva por UG (hoje poucos flu publicam Chuva).",
+            "Capigui/Rastro: Q PCH — tratar regulação se LOO continuar frágil.",
         ],
         "artifacts": {
             "json": "modelo_g040_multi_exutorio_v1_latest.json",
@@ -1063,13 +1155,13 @@ def main() -> None:
     )
     html = f"""<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"/>
-<title>G040 multi-exutório v2</title>
+<title>G040 multi-exutório v4</title>
 <style>
 body{{font:15px/1.45 system-ui,sans-serif;margin:1.5rem;max-width:960px;color:#12241c}}
 table{{border-collapse:collapse;width:100%}} th,td{{border-bottom:1px solid #c5d5cb;padding:.4rem;text-align:left}}
 .muted{{color:#4a6356}} code{{background:#eef3ef;padding:.1rem .35rem;border-radius:4px}}
 </style></head><body>
-<h1>Gêmeo G040 multi-exutório v2</h1>
+<h1>Gêmeo G040 multi-exutório v4</h1>
 <p class="muted">{report['purpose_pt']}</p>
 <p>{len(calibrated)} exutórios calibrados · pesquisa, não alerta.</p>
 <h2>Exutórios</h2>
