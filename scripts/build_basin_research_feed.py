@@ -671,7 +671,7 @@ def build_feed(now: datetime | None = None) -> dict[str, Any]:
         "automation": {
             "status": "configured_by_workflow",
             "workflow": ".github/workflows/research-basin.yml",
-            "triggers": ["manual", "hourly schedule", "completion of weather/level workflows"],
+            "triggers": ["manual", "hourly schedule", "push when source registry, builder, or workflow changes"],
             "steps": ["join current artifacts", "write compact feed", "run schema/QA", "publish only changed artifacts"],
         },
         "gates": [
