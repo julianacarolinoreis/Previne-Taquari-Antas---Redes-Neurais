@@ -862,7 +862,7 @@ function renderSkill() {
       "<span>Self-fit biblioteca <strong>" + fmt(summary.mean_self_fit_nse, 2) + "</strong></span>" +
       "<span>≠</span>" +
       "<span>NSE LOO transferência <strong>" + fmt(summary.mean_nse_loo, 2) + "</strong></span>" +
-      "<span class="muted">" + (summary.contrast_pt || skill.method_pt ||
+      "<span class=\"muted\">" + (summary.contrast_pt || skill.method_pt ||
         "Self-fit mede ajuste no próprio evento; LOO mede previsão por análogo.") + "</span>";
   }
   tbody.innerHTML = "";
