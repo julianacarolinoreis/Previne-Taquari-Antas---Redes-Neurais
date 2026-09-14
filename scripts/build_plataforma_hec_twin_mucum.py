@@ -1177,10 +1177,10 @@ def build_feed() -> dict[str, Any]:
         "label_pt": "Plataforma HEC/REC · bacia Taquari–Antas (G040)",
         "purpose_pt": (
             "Mapa e inventário da bacia oficial Taquari–Antas (G040, ~26,4 mil km², "
-            "7 UGs). Produtos hidrológicos multi-exutório: (1) corredor Muçum ~16 mil km²; "
-            "(2) Encantado após foz Guaporé ~19 mil km² (Muçum roteado + residual Guaporé). "
-            "Foz Guaporé isolada, Forqueta e Baixo ainda gated sem Q oficial. "
-            "Não é HEC-HMS binário / RAS / CWMS. STZ sem curva N↔Q inventada. Pesquisa."
+            "7 UGs). Multi-exutório calibrado: Muçum + Encantado (após Guaporé) + Porto Mariante "
+            "(Baixo com Q). Tributários com Q ANA (Alto/Carreiro/Prata/Capigui/José Júlio) "
+            "foram tentados — self-fit ≠ LOO com chuva pontual. Foz Guaporé, foz Forqueta e "
+            "Taquari-nível ainda gated. Não é HEC-HMS binário. Pesquisa, não alerta."
         ),
         "methodology": methodology,
         "basin": {
@@ -1245,6 +1245,8 @@ def build_feed() -> dict[str, Any]:
             "corridor_analog_transfer": True,
             "ifs_point_proxy": True,
             "multi_outlet_encantado_calibrated": True,
+            "multi_outlet_mariante_calibrated": True,
+            "tributary_point_rain_fragile": True,
             "guapore_mouth_q_blocked": True,
             "forqueta_mouth_q_blocked": True,
         },
@@ -1343,13 +1345,21 @@ def build_feed() -> dict[str, Any]:
             },
             "g040_multi_outlet": {
                 "status": (multi or {}).get("status") or "research_multi_outlet",
-                "generated_at_utc": (multi or {}).get("generated_at_utc"),
-                "purpose_pt": (multi or {}).get("purpose_pt"),
+                "generated_at_utc": (multi or {}).get("generated_at_utc")
+                or (multi or {}).get("generated_at_utc"),
+                "purpose_pt": (multi or {}).get("purpose_pt")
+                or (multi or {}).get("purpose_pt"),
                 "outlets": (multi or {}).get("outlets") or [],
                 "encantado": ((multi or {}).get("encantado_calibration") or {}),
-                "areas_km2": (multi or {}).get("areas_km2"),
-                "discipline": (multi or {}).get("discipline"),
-                "blocked_next": (multi or {}).get("blocked_next") or [],
+                "mariante": ((multi or {}).get("mariante_calibration") or {}),
+                "tributaries": ((multi or {}).get("tributary_calibrations") or {}),
+                "areas_km2": (multi or {}).get("areas_km2")
+                or (multi or {}).get("areas_km2"),
+                "discipline": (multi or {}).get("discipline")
+                or (multi or {}).get("discipline"),
+                "blocked_next": (multi or {}).get("blocked_next")
+                or (multi or {}).get("blocked_next")
+                or [],
                 "artifact_html": "modelo_g040_multi_exutorio_v1.html",
                 "artifact_json": "modelo_g040_multi_exutorio_v1_latest.json",
             },

@@ -278,9 +278,9 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <h1>Bacia Taquari–Antas <span>G040</span></h1>
     <p class="lede">
       Esta página é da <strong>bacia oficial inteira</strong>
-      (~{{BASIN_KM2}} km², {{N_UGS}} UGs). Produtos multi-exutório: corredor Muçum (~16 mil km²)
-      e Encantado após Guaporé (~19 mil km²). Foz Guaporé isolada, Forqueta e Baixo ainda
-      sem Q oficial — inventário + gate, não ΔN inventado.
+      (~{{BASIN_KM2}} km², {{N_UGS}} UGs). Multi-exutório: Muçum + Encantado (Guaporé) +
+      Porto Mariante (Baixo Q). Tributários tentados com Q ANA; foz Guaporé/Forqueta e
+      Taquari-nível ainda gated — inventário + gate, não ΔN inventado.
     </p>
     <div class="{{FRESH_CLS}}" id="freshnessBanner">
       <span>Atualização: <strong>{{GENERATED}}</strong> UTC</span>
@@ -302,8 +302,9 @@ svg.mini-chart { width:100%; height:168px; display:block; }
 
   <section class="card" style="margin-bottom:.9rem" id="multiOutletCard">
     <h2>Calibração G040 · multi-exutório</h2>
-    <p class="muted" id="multiOutletLede">Muçum + Encantado (Guaporé) calibrados; fozes Guaporé/Forqueta e Baixo gated.</p>
+    <p class="muted" id="multiOutletLede">Muçum + Encantado + Mariante calibrados; tributários pontuais frágeis; fozes gated.</p>
     <div class="contrast" id="encantadoContrast"></div>
+    <div class="contrast" id="marianteContrast" style="margin-top:.45rem"></div>
     <div class="ug-inventory" id="outletInventory"></div>
     <ol class="lessons" id="multiOutletNext"></ol>
   </section>
@@ -807,38 +808,62 @@ function renderNetwork() {
 function renderMultiOutlet() {
   const mo = ((DATA.products || {}).g040_multi_outlet) || {};
   const lede = document.getElementById("multiOutletLede");
-  if (lede && mo.purpose_pt) lede.textContent = mo.purpose_pt;
-  const enc = mo.encantado || {};
-  const sum = enc.summary || {};
-  const verd = enc.verdict || {};
+  if (lede && (mo.purpose_pt || mo.purpose_pt)) lede.textContent = mo.purpose_pt || mo.purpose_pt;
+  function skillOf(block) {
+    const s = (block || {}).summary || {};
+    return {
+      self: s.mean_self_fit_nse != null ? s.mean_self_fit_nse : s.mean_self_fit_nse,
+      loo: s.mean_nse_loo != null ? s.mean_nse_loo : s.mean_nse_loo,
+      plain: ((block || {}).verdict || {}).plain_pt || ((block || {}).verdict || {}).plain_pt || ""
+    };
+  }
+  const encS = skillOf(mo.encantado);
   const contrast = document.getElementById("encantadoContrast");
   if (contrast) {
     contrast.innerHTML =
-      "<span>Encantado self-fit <strong>" + fmt(sum.mean_self_fit_nse, 2) + "</strong></span>" +
+      "<span>Encantado self-fit <strong>" + fmt(encS.self, 2) + "</strong></span>" +
       "<span>≠</span>" +
-      "<span>NSE LOO <strong>" + fmt(sum.mean_nse_loo, 2) + "</strong></span>" +
-      "<span class=\"muted\">" + (verd.plain_pt || "Muçum roteado + residual Guaporé vs Q ANA Encantado.") + "</span>";
+      "<span>NSE LOO <strong>" + fmt(encS.loo, 2) + "</strong></span>" +
+      "<span class=\"muted\">" + (encS.plain || "Muçum roteado + residual Guaporé vs Q ANA Encantado.") + "</span>";
+  }
+  const marS = skillOf(mo.mariante);
+  const mcontrast = document.getElementById("marianteContrast");
+  if (mcontrast && (marS.self != null || marS.loo != null)) {
+    mcontrast.innerHTML =
+      "<span>Mariante self-fit <strong>" + fmt(marS.self, 2) + "</strong></span>" +
+      "<span>≠</span>" +
+      "<span>NSE LOO <strong>" + fmt(marS.loo, 2) + "</strong></span>" +
+      "<span class=\"muted\">" + (marS.plain || "Encantado roteado + residual Forqueta vs Q ANA Mariante.") + "</span>";
   }
   const inv = document.getElementById("outletInventory");
   if (inv) {
     const outlets = mo.outlets || [];
     inv.innerHTML = outlets.map(function(o) {
-      const ok = (o.status || "").indexOf("calibrated") >= 0;
+      const st = o.status || "";
+      const ok = st.indexOf("calibrated") >= 0;
+      const fragile = st.indexOf("fragile") >= 0;
       const cls = ok ? "twin" : "inventory";
-      const badge = ok ? "calibrado" : (o.status || "gated");
+      const badge = ok ? "calibrado" : (fragile ? "frágil" : st);
+      const sk = o.skill || {};
+      const self = sk.mean_self_fit_nse != null ? sk.mean_self_fit_nse : sk.mean_self_fit_nse;
+      const loo = sk.mean_nse_loo != null ? sk.mean_nse_loo : sk.mean_nse_loo;
+      const skillTxt = (self != null) ? (" · self " + fmt(self, 2) + " / LOO " + fmt(loo, 2)) : "";
+      const label = o.label_pt || o.label_pt || o.outlet_id;
+      const code = o.station_code || o.station_code || "";
+      const note = o.note_pt || o.blocker_pt || o.note_pt || o.blocker_pt || "";
       return "<div class=\"ug-row " + cls + "\">" +
-        "<div class=\"name\"><span>" + (o.label_pt || o.outlet_id) +
-        " · <span class=\"mono\">" + (o.station_code || "") + "</span></span>" +
-        "<span class=\"meta\">" + badge + "</span></div>" +
+        "<div class=\"name\"><span>" + label +
+        " · <span class=\"mono\">" + code + "</span></span>" +
+        "<span class=\"meta\">" + badge + skillTxt + "</span></div>" +
         "<div class=\"meta\">" + fmt(o.nested_area_km2, 0) + " km² · " +
         ((o.ugs || []).join(", ")) + "</div>" +
-        "<div class=\"meta\">" + (o.note_pt || o.blocker_pt || "") + "</div></div>";
+        "<div class=\"meta\">" + note + "</div></div>";
     }).join("");
   }
   const next = document.getElementById("multiOutletNext");
   if (next) {
     next.innerHTML = "";
-    (mo.blocked_next || []).forEach(function(line) {
+    (mo.blocked_next || mo.blocked_next || []).forEach(function(line) {
       const li = document.createElement("li");
       li.textContent = line;
       next.appendChild(li);

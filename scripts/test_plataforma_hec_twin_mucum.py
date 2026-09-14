@@ -230,16 +230,29 @@ class PlataformaHecTwinTests(unittest.TestCase):
         outlets = {o["outlet_id"]: o for o in mo["outlets"]}
         self.assertIn("mucum", outlets)
         self.assertIn("encantado_guapore_join", outlets)
+        self.assertIn("porto_mariante", outlets)
         self.assertIn("guapore_mouth", outlets)
         self.assertIn("forqueta_mouth", outlets)
         self.assertTrue(str(outlets["mucum"]["status"]).startswith("calibrated"))
         self.assertTrue(str(outlets["encantado_guapore_join"]["status"]).startswith("calibrated"))
+        self.assertTrue(str(outlets["porto_mariante"]["status"]).startswith("calibrated"))
         self.assertIn("blocked", outlets["guapore_mouth"]["status"])
         enc = mo["encantado"]["summary"]
         self.assertGreaterEqual(enc["n_events_fitted"], 5)
         self.assertGreater(enc["mean_self_fit_nse"], 0.5)
         self.assertIsNotNone(enc["mean_nse_loo"])
+        mar = mo["mariante"]["summary"]
+        self.assertGreaterEqual(mar["n_events_fitted"], 3)
+        self.assertIsNotNone(mar["mean_nse_loo"])
         self.assertTrue(self.feed["discipline"]["multi_outlet_encantado_calibrated"])
+        self.assertTrue(self.feed["discipline"]["multi_outlet_mariante_calibrated"])
+        # tributaries were attempted; LOO may be fragile with point rain
+        fragile = [
+            oid
+            for oid, o in outlets.items()
+            if "fragile" in str(o.get("status", ""))
+        ]
+        self.assertGreaterEqual(len(fragile), 1)
         html = (
             Path(__file__).resolve().parents[1]
             / "assets"
@@ -249,6 +262,7 @@ class PlataformaHecTwinTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("multiOutletCard", html)
         self.assertIn("renderMultiOutlet", html)
+        self.assertIn("marianteContrast", html)
 
 
 if __name__ == "__main__":

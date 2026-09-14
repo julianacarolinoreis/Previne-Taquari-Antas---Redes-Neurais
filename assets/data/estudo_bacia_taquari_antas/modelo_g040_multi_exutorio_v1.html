@@ -1,29 +1,28 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"/>
-<title>G040 multi-exutório v1</title>
+<title>G040 multi-exutório v2</title>
 <style>
-body{font:15px/1.45 system-ui,sans-serif;margin:1.5rem;max-width:920px;color:#12241c}
+body{font:15px/1.45 system-ui,sans-serif;margin:1.5rem;max-width:980px;color:#12241c}
 table{border-collapse:collapse;width:100%} th,td{border-bottom:1px solid #c5d5cb;padding:.4rem;text-align:left}
 .muted{color:#4a6356} code{background:#eef3ef;padding:.1rem .35rem;border-radius:4px}
 </style></head><body>
-<h1>Gêmeo G040 multi-exutório v1</h1>
-<p class="muted">Calibração multi-exutório da G040: corredor Muçum + Encantado (Muçum roteado + residual Guaporé). Guaporé/Forqueta foz e Baixo ficam gated até haver Q oficial.</p>
-<p>Self-fit médio NSE <strong>0.8863</strong> ·
-LOO NSE <strong>0.4412</strong> · pesquisa, não alerta.</p>
+<h1>Gêmeo G040 multi-exutório v2</h1>
+<p class="muted">Calibração multi-exutório G040: Muçum + Encantado (LOO>0) + Porto Mariante (Baixo Q). Tributários Alto/Carreiro/Prata/Capigui/José Júlio com Q ANA foram tentados — self-fit ≠ transferência LOO (chuva pontual). Foz Guaporé, foz Forqueta e Taquari-nível gated.</p>
+<p>3 exutórios calibrated_* · Encantado LOO≈0.5221 · Mariante LOO≈0.1288 · pesquisa, não alerta.</p>
 <h2>Exutórios</h2>
-<ul><li><strong>Muçum</strong> (86510000) — <code>calibrated_eventwise_v1</code> · </li>
+<ul><li><strong>Muçum</strong> (86510000) — <code>calibrated_eventwise_v1</code> · Corredor eventwise existente (self-fit ≠ LOO).</li>
 <li><strong>Encantado (após foz Guaporé)</strong> (86720000) — <code>calibrated_multi_outlet_v1</code> · Muçum Q roteada + residual Guaporé (Open-Meteo → Clark).</li>
-<li><strong>Barra do Zeferino (foz Guaporé)</strong> (86595000) — <code>blocked_no_ana_q_series</code> · HydroBr/telemetria sem série de vazão/nível no posto da foz.</li>
-<li><strong>Rio Forqueta (Travesseiro)</strong> (86746000) — <code>blocked_no_ana_q_series</code> · HydroBr/telemetria sem série de vazão/nível no posto da foz.</li>
-<li><strong>Taquari (exutório Baixo)</strong> (86950000) — <code>stage_only_no_q_curve</code> · Telemetria com nível; sem vazão consistente / curva-chave fechada no pacote.</li></ul>
-<h2>Encantado LOO</h2>
-<table><thead><tr><th>Evento</th><th>Chuva Guaporé mm</th><th>Self-fit</th><th>NSE LOO</th><th>|err| pico</th></tr></thead>
-<tbody><tr><td>E20</td><td>83</td><td>0.976</td><td>0.951</td><td>0.07</td></tr>
-<tr><td>E21</td><td>91</td><td>0.961</td><td>0.880</td><td>0.21</td></tr>
-<tr><td>E24</td><td>251</td><td>0.975</td><td>0.961</td><td>0.10</td></tr>
-<tr><td>E25</td><td>101</td><td>0.980</td><td>-1.879</td><td>0.55</td></tr>
-<tr><td>E27</td><td>256</td><td>0.514</td><td>0.494</td><td>0.13</td></tr>
-<tr><td>E28</td><td>161</td><td>0.871</td><td>0.816</td><td>0.26</td></tr>
-<tr><td>E31</td><td>50</td><td>0.927</td><td>0.865</td><td>0.14</td></tr></tbody></table>
-<p class="muted">Gerado 2026-09-14T02:39:56Z</p>
+<li><strong>Passo Tainhas (Alto)</strong> (86160000) — <code>fragile_no_transfer</code> · Self-fit NSE≈-1.1847, LOO NSE≈-38.9052. Sinal frágil (possível regulação PCH ou chuva pontual inadequada).</li>
+<li><strong>PCH Caçador montante (Carreiro)</strong> (86488000) — <code>fragile_self_fit_only</code> · Self-fit NSE≈0.53 mas LOO NSE≈-1.0844. Chuva pontual Open-Meteo não transfere; precisa máscara areal / Q de foz.</li>
+<li><strong>Balsa do Prata (Prata)</strong> (86447000) — <code>fragile_self_fit_only</code> · Self-fit NSE≈0.31 mas LOO NSE≈-15.3784. Chuva pontual Open-Meteo não transfere; precisa máscara areal / Q de foz.</li>
+<li><strong>PCH Capigui jusante (Guaporé parcial)</strong> (86520100) — <code>fragile_no_transfer</code> · Self-fit NSE≈-42.9856, LOO NSE≈-120.9118. Sinal frágil (possível regulação PCH ou chuva pontual inadequada).</li>
+<li><strong>Linha José Júlio (Médio aninhado)</strong> (86472000) — <code>fragile_no_transfer</code> · Self-fit NSE≈-0.5454, LOO NSE≈-183.5987. Sinal frágil (possível regulação PCH ou chuva pontual inadequada).</li>
+<li><strong>Porto Mariante (Baixo aninhado)</strong> (86895000) — <code>calibrated_multi_outlet_v1</code> · Encantado Q roteada + residual Forqueta (Open-Meteo → Clark). Quase-G040.</li>
+<li><strong>Barra do Zeferino (foz Guaporé)</strong> (86595000) — <code>blocked_no_ana_q_series</code> · Foz sem Q. Proxy parcial calibrado em Capigui (86520100).</li>
+<li><strong>Rio Forqueta (Travesseiro)</strong> (86746000) — <code>blocked_no_ana_q_series</code> · Foz sem Q. Residual Forqueta entra em Porto Mariante; Barra do Fão só nível.</li>
+<li><strong>Taquari (nível · Baixo)</strong> (86950000) — <code>stage_only_no_q_curve</code> · Só nível. Q Baixo calibrado em Porto Mariante (86895000).</li></ul>
+<h2>Skill</h2>
+<table><thead><tr><th>Outlet</th><th>Posto</th><th>Status</th><th>n</th><th>Self-fit NSE</th><th>NSE LOO</th></tr></thead>
+<tbody><tr><td>Muçum</td><td>86510000</td><td><code>calibrated_eventwise_v1</code></td><td></td><td></td><td></td></tr><tr><td>Encantado (após foz Guaporé)</td><td>86720000</td><td><code>calibrated_multi_outlet_v1</code></td><td>8</td><td>0.8902</td><td>0.5221</td></tr><tr><td>Passo Tainhas (Alto)</td><td>86160000</td><td><code>fragile_no_transfer</code></td><td>9</td><td>-1.1847</td><td>-38.9052</td></tr><tr><td>PCH Caçador montante (Carreiro)</td><td>86488000</td><td><code>fragile_self_fit_only</code></td><td>8</td><td>0.5304</td><td>-1.0844</td></tr><tr><td>Balsa do Prata (Prata)</td><td>86447000</td><td><code>fragile_self_fit_only</code></td><td>7</td><td>0.3073</td><td>-15.3784</td></tr><tr><td>PCH Capigui jusante (Guaporé parcial)</td><td>86520100</td><td><code>fragile_no_transfer</code></td><td>7</td><td>-42.9856</td><td>-120.9118</td></tr><tr><td>Linha José Júlio (Médio aninhado)</td><td>86472000</td><td><code>fragile_no_transfer</code></td><td>8</td><td>-0.5454</td><td>-183.5987</td></tr><tr><td>Porto Mariante (Baixo aninhado)</td><td>86895000</td><td><code>calibrated_multi_outlet_v1</code></td><td>7</td><td>0.4458</td><td>0.1288</td></tr><tr><td>Barra do Zeferino (foz Guaporé)</td><td>86595000</td><td><code>blocked_no_ana_q_series</code></td><td></td><td></td><td></td></tr><tr><td>Rio Forqueta (Travesseiro)</td><td>86746000</td><td><code>blocked_no_ana_q_series</code></td><td></td><td></td><td></td></tr><tr><td>Taquari (nível · Baixo)</td><td>86950000</td><td><code>stage_only_no_q_curve</code></td><td></td><td></td><td></td></tr></tbody></table>
+<p class="muted">Gerado 2026-09-14T03:25:36Z</p>
 </body></html>
