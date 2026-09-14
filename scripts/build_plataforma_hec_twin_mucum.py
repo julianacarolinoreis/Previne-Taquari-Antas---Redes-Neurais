@@ -1177,9 +1177,10 @@ def build_feed() -> dict[str, Any]:
         "label_pt": "Plataforma HEC/REC · bacia Taquari–Antas (G040)",
         "purpose_pt": (
             "Página da bacia oficial Taquari–Antas (G040, ~26,4 mil km², 7 UGs) — "
-            "não é uma página do Muçum. Multi-exutório v3: inventário G040 + braços "
-            "calibrados (Muçum, Encantado, Mariante/tributários com Q). Foz Guaporé, "
-            "foz Forqueta e Taquari-nível ainda gated. Não é HEC-HMS binário. Pesquisa."
+            "não é uma página do Muçum. Multi-exutório v4: chuva ANA tele quando há; "
+            "braços calibrados (Muçum, Encantado, Mariante) + tributários com Q. "
+            "Foz Guaporé/Forqueta sondadas sem Vazao; Taquari-nível gated. "
+            "Não é HEC-HMS binário. Pesquisa."
         ),
         "methodology": methodology,
         "basin": {
@@ -1246,6 +1247,7 @@ def build_feed() -> dict[str, Any]:
             "multi_outlet_encantado_calibrated": True,
             "multi_outlet_mariante_attempted": True,
             "tributary_areal_rain_v3": True,
+            "ana_tele_rain_preferred_v4": True,
             "guapore_mouth_q_blocked": True,
             "forqueta_mouth_q_blocked": True,
         },

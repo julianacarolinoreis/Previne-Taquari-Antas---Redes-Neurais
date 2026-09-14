@@ -249,20 +249,19 @@ class PlataformaHecTwinTests(unittest.TestCase):
         self.assertIn("forqueta_mouth", outlets)
         self.assertTrue(str(outlets["mucum"]["status"]).startswith("calibrated"))
         self.assertTrue(str(outlets["encantado_guapore_join"]["status"]).startswith("calibrated"))
-        # Mariante has Q and self-fit, but LOO may still be fragile with Forqueta residual
-        self.assertTrue(
-            str(outlets["porto_mariante"]["status"]).startswith("calibrated")
-            or "fragile" in str(outlets["porto_mariante"]["status"])
-        )
         self.assertIn("blocked", outlets["guapore_mouth"]["status"])
         enc = mo["encantado"]["summary"]
         self.assertGreaterEqual(enc["n_events_fitted"], 5)
         self.assertGreater(enc["mean_self_fit_nse"], 0.5)
         self.assertIsNotNone(enc["mean_nse_loo"])
-        self.assertGreater(enc["mean_nse_loo"], 0.4)  # areal Guaporé improved LOO
+        self.assertGreater(enc["mean_nse_loo"], 0.4)
         mar = mo["mariante"]["summary"]
         self.assertGreaterEqual(mar["n_events_fitted"], 3)
         self.assertIsNotNone(mar["mean_nse_loo"])
+        self.assertGreater(mar["mean_nse_loo"], 0.0)  # ANA Forqueta Chuva improved LOO
+        self.assertTrue(
+            str(outlets["porto_mariante"]["status"]).startswith("calibrated")
+        )
         self.assertTrue(self.feed["discipline"]["multi_outlet_encantado_calibrated"])
         # rastro = Forqueta partial with ANA Q
         self.assertTrue(
