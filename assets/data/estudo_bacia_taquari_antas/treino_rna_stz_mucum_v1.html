@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Treino RNA controlado · STZ e Muçum v1</title>
+  <style>
+    :root { --ink:#1a303f; --muted:#5d7380; --line:#d7e4e8; --ok:#1b7a4a; --warn:#9a5b12; --bad:#a33b35; }
+    body { margin:0; color:var(--ink); font:16px/1.55 "Source Sans 3",Segoe UI,sans-serif; background:linear-gradient(165deg,#eef7f8,#fff9f2); }
+    main { max-width:1050px; margin:auto; padding:28px 16px 64px; }
+    header, section { background:#fff; border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:14px; box-shadow:0 10px 26px #1a303f12; }
+    h1 { margin:0 0 8px; font:700 clamp(28px,4vw,40px)/1.08 "Fraunces",Georgia,serif; }
+    .eyebrow { color:var(--ok); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .notice { border-left:5px solid var(--warn); background:#fff7e8; color:#6d4810; padding:12px 14px; border-radius:10px; margin:10px 0; }
+    .ok { border-left-color:var(--ok); background:#eefaf3; color:#145c38; }
+    .bad { border-left-color:var(--bad); background:#fff1ef; color:#7a2d28; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { padding:7px; border-bottom:1px solid var(--line); text-align:left; }
+    th { background:#eef6f7; }
+    .muted { color:var(--muted); font-size:13px; }
+    a { color:#056999; font-weight:700; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Estudo · treino RNA v1</div>
+    <h1>MLP 8h treinado — ainda pesquisa</h1>
+    <p class="muted">2026-09-09T10:55:18.189379+00:00 · treino_rna_v1_concluido_nao_operacional</p>
+    <div class="notice ok"><strong>Feito:</strong> dois modelos separados (STZ e Muçum) com máscara de chuva e splits Treino/Validação/Teste do Excel de eventos.</div>
+    <div class="notice bad"><strong>Não promover:</strong> Artefato de pesquisa. Nao substitui MATLAB/.mat operacionais. Nao e alerta. Nao calibra HEC.</div>
+  </header>
+
+  <section>
+    <h2>Santa Tereza · alvo 86472600 (+8h)</h2>
+    <p class="muted">usable 2570 · features nivel_86472600_t, nivel_86472000, nivel_86507000, nivel_86125130_prata_proxy, chuva_86472000, chuva_86472600, chuva_02851072, mask_chuva_86472000, mask_chuva_86472600, mask_chuva_02851072</p>
+    <table>
+      <thead><tr><th>Split</th><th>N</th><th>RMSE</th><th>MAE</th><th>NSE</th><th>Pers RMSE</th><th>Skill vs pers</th></tr></thead>
+      <tbody><tr><td>Treino</td><td>1966</td><td>52.76</td><td>34.85</td><td>0.934</td><td>78.65</td><td>0.329</td></tr><tr><td>Validacao</td><td>242</td><td>64.42</td><td>37.17</td><td>0.817</td><td>70.23</td><td>0.083</td></tr><tr><td>Teste</td><td>362</td><td>82.60</td><td>46.59</td><td>0.875</td><td>102.35</td><td>0.193</td></tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Muçum · alvo 86510000 (+8h)</h2>
+    <p class="muted">usable 2961 · STZ entra como feature crítica</p>
+    <table>
+      <thead><tr><th>Split</th><th>N</th><th>RMSE</th><th>MAE</th><th>NSE</th><th>Pers RMSE</th><th>Skill vs pers</th></tr></thead>
+      <tbody><tr><td>Treino</td><td>2267</td><td>30.44</td><td>18.72</td><td>0.988</td><td>98.14</td><td>0.690</td></tr><tr><td>Validacao</td><td>286</td><td>41.10</td><td>25.48</td><td>0.950</td><td>77.07</td><td>0.467</td></tr><tr><td>Teste</td><td>408</td><td>57.66</td><td>33.48</td><td>0.961</td><td>124.20</td><td>0.536</td></tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Notas</h2>
+    <ul><li>Prata no Excel de eventos usa 86125130 (proxy); contrato preferia 86125500.</li><li>Máscaras de chuva entram como features; valor 0 com mask=0 é placeholder (não chuva observada).</li><li>Se Validacao/Teste do Excel zeram após máscara, usa holdout temporal nos usable.</li><li>Baseline = persistência do nível atual do alvo.</li></ul>
+    <h2>Próximos</h2>
+    <ul><li>Comparar contra .mat operacional / Excel-mãe nos mesmos eventos.</li><li>Trocar proxy 86125130 por 86125500 quando série local existir.</li><li>Só promover se bater baseline e disciplina de auditoria PREVINE.</li></ul>
+    <p>
+      <a href="treino_rna_stz_mucum_v1_latest.json">JSON</a> ·
+      <a href="mascara_chuva_nucleo.html">máscara chuva</a> ·
+      <a href="contrato_rna_mascara_stz_mucum.html">contrato</a> ·
+      <a href="index.html">estudo-base</a>
+    </p>
+  </section>
+</main>
+</body>
+</html>

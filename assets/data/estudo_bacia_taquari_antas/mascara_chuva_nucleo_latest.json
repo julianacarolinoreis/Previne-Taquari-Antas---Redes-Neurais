@@ -1,0 +1,296 @@
+{
+  "schema_version": "estudo_mascara_chuva_nucleo_v1",
+  "generated_at_utc": "2026-09-09T03:19:09.103542+00:00",
+  "purpose": "tabela horaria de mascara do nucleo de chuva STZ/Mucum; nao e treino",
+  "status": "mascara_chuva_nucleo_gerada_v1",
+  "discipline_rule": "Valores ausentes ficam vazios (nao viram 0). mask_*=1 so quando observado. usable_*=1 exige nucleo completo + janela R6.",
+  "parent_contract": "contrato_rna_mascara_stz_mucum_latest.json",
+  "source_csv": "assets/data/chuvas_horarias.csv",
+  "output_csv": "assets/data/estudo_bacia_taquari_antas/mascara_chuva_nucleo_horaria.csv",
+  "core_rain_columns": [
+    "chuva_86472000",
+    "chuva_86472600",
+    "chuva_02851072"
+  ],
+  "excluded_columns_r4": [
+    "chuva_inmet_A894",
+    "chuva_cemaden_4320404010A",
+    "chuva_02851044"
+  ],
+  "level_masks": {
+    "status": "nao_geradas_neste_passo",
+    "reason": "Nao ha CSV multiestacao de nivel historico no repo cobrindo 86472000/86507000/86125500/86472600/86510000 na mesma grade. Proximo: alinhar ANA/Excel e emitir mask_nivel_*.",
+    "schema_reserved": [
+      "nivel_86472000",
+      "mask_nivel_86472000",
+      "nivel_86507000",
+      "mask_nivel_86507000",
+      "nivel_86125500",
+      "mask_nivel_86125500",
+      "nivel_86472600",
+      "mask_nivel_86472600",
+      "nivel_86510000",
+      "mask_nivel_86510000"
+    ]
+  },
+  "window_r6": {
+    "start": "2023-10-01 00:00",
+    "hours_in_window": 25776
+  },
+  "counts": {
+    "rows_total": 33072,
+    "core_rain_complete_any_time": 21417,
+    "usable_after_r6": 21417,
+    "pct_usable_of_window": 83.1,
+    "pct_usable_of_all_rows": 64.8,
+    "per_feature_present": {
+      "chuva_86472000": 32162,
+      "chuva_86472600": 25209,
+      "chuva_02851072": 29390
+    },
+    "first_usable": "2023-10-23 04:00",
+    "last_usable": "2026-09-08 10:00"
+  },
+  "monthly_usable_in_window": [
+    {
+      "ym": "2023-10",
+      "hours": 744,
+      "usable": 212,
+      "pct_usable": 28.5
+    },
+    {
+      "ym": "2023-11",
+      "hours": 720,
+      "usable": 708,
+      "pct_usable": 98.3
+    },
+    {
+      "ym": "2023-12",
+      "hours": 744,
+      "usable": 738,
+      "pct_usable": 99.2
+    },
+    {
+      "ym": "2024-01",
+      "hours": 744,
+      "usable": 735,
+      "pct_usable": 98.8
+    },
+    {
+      "ym": "2024-02",
+      "hours": 696,
+      "usable": 665,
+      "pct_usable": 95.5
+    },
+    {
+      "ym": "2024-03",
+      "hours": 744,
+      "usable": 731,
+      "pct_usable": 98.3
+    },
+    {
+      "ym": "2024-04",
+      "hours": 720,
+      "usable": 684,
+      "pct_usable": 95.0
+    },
+    {
+      "ym": "2024-05",
+      "hours": 744,
+      "usable": 711,
+      "pct_usable": 95.6
+    },
+    {
+      "ym": "2024-06",
+      "hours": 720,
+      "usable": 699,
+      "pct_usable": 97.1
+    },
+    {
+      "ym": "2024-07",
+      "hours": 744,
+      "usable": 744,
+      "pct_usable": 100.0
+    },
+    {
+      "ym": "2024-08",
+      "hours": 744,
+      "usable": 738,
+      "pct_usable": 99.2
+    },
+    {
+      "ym": "2024-09",
+      "hours": 720,
+      "usable": 720,
+      "pct_usable": 100.0
+    },
+    {
+      "ym": "2024-10",
+      "hours": 744,
+      "usable": 33,
+      "pct_usable": 4.4
+    },
+    {
+      "ym": "2024-11",
+      "hours": 720,
+      "usable": 387,
+      "pct_usable": 53.8
+    },
+    {
+      "ym": "2024-12",
+      "hours": 744,
+      "usable": 730,
+      "pct_usable": 98.1
+    },
+    {
+      "ym": "2025-01",
+      "hours": 744,
+      "usable": 721,
+      "pct_usable": 96.9
+    },
+    {
+      "ym": "2025-02",
+      "hours": 672,
+      "usable": 535,
+      "pct_usable": 79.6
+    },
+    {
+      "ym": "2025-03",
+      "hours": 744,
+      "usable": 714,
+      "pct_usable": 96.0
+    },
+    {
+      "ym": "2025-04",
+      "hours": 720,
+      "usable": 175,
+      "pct_usable": 24.3
+    },
+    {
+      "ym": "2025-05",
+      "hours": 744,
+      "usable": 12,
+      "pct_usable": 1.6
+    },
+    {
+      "ym": "2025-06",
+      "hours": 720,
+      "usable": 613,
+      "pct_usable": 85.1
+    },
+    {
+      "ym": "2025-07",
+      "hours": 744,
+      "usable": 695,
+      "pct_usable": 93.4
+    },
+    {
+      "ym": "2025-08",
+      "hours": 744,
+      "usable": 743,
+      "pct_usable": 99.9
+    },
+    {
+      "ym": "2025-09",
+      "hours": 720,
+      "usable": 715,
+      "pct_usable": 99.3
+    },
+    {
+      "ym": "2025-10",
+      "hours": 744,
+      "usable": 736,
+      "pct_usable": 98.9
+    },
+    {
+      "ym": "2025-11",
+      "hours": 720,
+      "usable": 714,
+      "pct_usable": 99.2
+    },
+    {
+      "ym": "2025-12",
+      "hours": 744,
+      "usable": 733,
+      "pct_usable": 98.5
+    },
+    {
+      "ym": "2026-01",
+      "hours": 744,
+      "usable": 737,
+      "pct_usable": 99.1
+    },
+    {
+      "ym": "2026-02",
+      "hours": 672,
+      "usable": 663,
+      "pct_usable": 98.7
+    },
+    {
+      "ym": "2026-03",
+      "hours": 744,
+      "usable": 329,
+      "pct_usable": 44.2
+    },
+    {
+      "ym": "2026-04",
+      "hours": 720,
+      "usable": 252,
+      "pct_usable": 35.0
+    },
+    {
+      "ym": "2026-05",
+      "hours": 744,
+      "usable": 741,
+      "pct_usable": 99.6
+    },
+    {
+      "ym": "2026-06",
+      "hours": 720,
+      "usable": 719,
+      "pct_usable": 99.9
+    },
+    {
+      "ym": "2026-07",
+      "hours": 744,
+      "usable": 720,
+      "pct_usable": 96.8
+    },
+    {
+      "ym": "2026-08",
+      "hours": 744,
+      "usable": 737,
+      "pct_usable": 99.1
+    },
+    {
+      "ym": "2026-09",
+      "hours": 192,
+      "usable": 178,
+      "pct_usable": 92.7
+    }
+  ],
+  "rules_applied": [
+    "R1",
+    "R2",
+    "R3_rain_core",
+    "R4",
+    "R6"
+  ],
+  "not_done": [
+    "mascara de nivel",
+    "aplicacao de lags",
+    "treino RNA",
+    "NSE",
+    "calibracao HEC"
+  ],
+  "next_steps": [
+    "Gerar máscaras de nível na mesma grade horária (ANA/Excel).",
+    "Montar tensor de treino só com usable_*=1 + lags do contrato.",
+    "Experimento RNA controlado por alvo — ainda pesquisa, sem promover operacional."
+  ],
+  "artifacts": {
+    "csv": "mascara_chuva_nucleo_horaria.csv",
+    "json": "mascara_chuva_nucleo_latest.json",
+    "html": "mascara_chuva_nucleo.html"
+  }
+}

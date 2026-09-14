@@ -1,0 +1,60 @@
+# Estudo da bacia Taquari-Antas
+
+**Estudo, nao modelo.** Nao sao so 32 sub-bacias.
+
+## Hierarquia
+
+1. 3 regioes hidrograficas
+2. 25 bacias (G040 = Taquari-Antas)
+3. ~175 UPG (zip SEMA "UBH" = este nivel)
+4. 32 enquadramentos em G040 (qualidade da agua)
+5. ~33 mil ottobacias BHO6 na arvore `786` (mini-unidades)
+6. mini-bacias SIOUT/ArcHydro (outorga) — distintas do zip UBH
+
+Leia `mapa_hierarquia_rs.html`, `mapa_postos_upg.html` e os JSONs.
+
+Postos: `postos_por_upg_latest.json` (ANA ∩ G040 por UPG/familia BHO6).
+
+```bash
+python scripts/build_estudo_bacia_taquari_antas.py
+python scripts/build_estudo_bacia_subbacias_fozes.py
+python scripts/build_estudo_hierarquia_rs_bacias.py
+python scripts/build_estudo_postos_por_upg.py
+python scripts/build_estudo_pluvio_recorte.py
+```
+
+## Decisao de recorte
+
+Leia `recorte_modelo.html` antes de qualquer HEC.
+
+## Decisão de previsão (multi-dia / evacuação)
+
+**Primário ~5 dias:** gêmeo HEC + chuva IFS (`hec_twin_mucum_forward_5d.html`).
+
+**Curto prazo:** RNA de nível STZ/Muçum.
+
+STZ sem curva-chave: HEC não publica N em STZ.
+
+## Plataforma HEC/REC (onde o resultado vai parar)
+
+Página pública no GitHub Pages (como a das RNAs), com mapa do corredor, ΔN, verificação e links auditáveis:
+
+- Atalho raiz: `plataforma_hec_twin.html`
+- Mapa + painel: `plataforma_hec_twin_mucum.html`
+- Feed: `plataforma_hec_twin_mucum_latest.json`
+- Amarrações no mapa: forçantes de nível/chuva + monitores montante do corredor (não só Muçum)
+
+```bash
+python3 scripts/build_hec_twin_ifs_forcing_5d.py
+python3 scripts/run_hec_twin_mucum_forward_5d.py
+python3 scripts/build_plataforma_hec_twin_mucum.py
+```
+
+## Robô automático (previsão)
+
+Workflow `.github/workflows/hec-twin-mucum-forward.yml`:
+
+- Agenda: a cada 6 h (`12 */6 * * *`) + `workflow_dispatch`
+- Passos: IFS Open-Meteo → gêmeo HEC Muçum ~5d → reconstrói plataforma → commit no `main`
+- Pages: path `estudo_bacia_taquari_antas/**` + `workflow_run` do robô HEC
+- Não altera RNA; produto de pesquisa (não alerta)
