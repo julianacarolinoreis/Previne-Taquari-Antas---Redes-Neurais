@@ -1,0 +1,621 @@
+{
+  "schema_version": "modelo_mucum_eventwise_v1_fechado",
+  "generated_at_utc": "2026-09-11T14:24:18.239385+00:00",
+  "status": "modelo_mucum_eventwise_v1_8_fechado_stz_q_blocked",
+  "release_name": "modelo_mucum_eventwise_v1_8",
+  "label_honest": "MODELO MUÇUM FECHADO v1.6 (estudo). Biblioteca eventwise com PAD por evento, polish local de pico (nested Antas+Muçum). Gêmeo Python HEC. NÃO é HEC-HMS 4.13 Windows. NÃO é alerta operacional. NÃO promover common-search / mediana. Biblioteca core = NSE>=0.75.",
+  "target": {
+    "station": "86510000",
+    "name": "Muçum",
+    "quantity": "Vazao_m3s",
+    "nested_area_km2": 15965.207
+  },
+  "structure_ref": "estrutura_stz_mucum_latest.json",
+  "structure_id": "modelo_mucum_estrutura_stz_mucum_v1",
+  "engine": {
+    "name": "python_hms_twin_ic_clark_recession_muskingum",
+    "not_hec_hms_binary": true,
+    "why": "HEC-HMS 4.13 do projeto e Windows-only; neste ambiente Linux roda o gemeo auditavel",
+    "methods": [
+      "Initial+Constant",
+      "Clark",
+      "Recession",
+      "Muskingum"
+    ],
+    "optimization_objective": "research_score = NSE - 0.02*|peak_lag| - 1.25*peak_relative_error"
+  },
+  "calibration_source": {
+    "artifact": "hec_twin_stz_mucum_v1_latest.json",
+    "calibration_version": "mucum_hec_twin_v1_8",
+    "pad_mode": "per_event_nested_antas_then_mucum_with_local_refine",
+    "mean_nse_eventwise_ok": 0.8656852215999451,
+    "mean_peak_relative_error_ok": 0.012176302752931292,
+    "n_events_core": 9,
+    "n_events_marginal": 3,
+    "n_events_failed": 1,
+    "core_rule": "NSE>=0.75"
+  },
+  "included_events": [
+    "E20",
+    "E21",
+    "E22",
+    "E23",
+    "E24",
+    "E25",
+    "E27",
+    "E28",
+    "E31"
+  ],
+  "marginal_events": [
+    {
+      "event_id": "E26",
+      "nse": 0.40130085523744263,
+      "peak_relative_error": 0.1719239664477301,
+      "note": "NSE>=0 mas <0.75 — fora da biblioteca core"
+    },
+    {
+      "event_id": "E29",
+      "nse": 0.7236167260352093,
+      "peak_relative_error": 0.03321235268011252,
+      "note": "NSE>=0 mas <0.75 — fora da biblioteca core"
+    },
+    {
+      "event_id": "E30",
+      "nse": 0.7213669700808033,
+      "peak_relative_error": 0.0033903921686492928,
+      "note": "NSE>=0 mas <0.75 — fora da biblioteca core"
+    }
+  ],
+  "excluded_events": [
+    {
+      "event_id": "E19",
+      "status": "fit_failed_eventwise",
+      "nse": -0.6301738326314101,
+      "reason": "fit_failed_eventwise — fora da biblioteca fechada"
+    }
+  ],
+  "params_library_eventwise": [
+    {
+      "event_id": "E20",
+      "nse": 0.9307845686411361,
+      "research_score": 0.8165935139475657,
+      "metrics": {
+        "pairs": 89.0,
+        "nse": 0.9307845686411361,
+        "rmse_m3s": 212.7671025911646,
+        "mae_m3s": 150.87173478527876,
+        "peak_lag_hours": 2.0,
+        "peak_relative_error": 2.710503100045603e-05,
+        "observed_peak_m3s": 3260.25,
+        "simulated_peak_m3s": 3260.3383691773192
+      },
+      "params": {
+        "upstream": {
+          "initial_loss": 0.5,
+          "constant_loss": 1.0,
+          "tc": 27.0,
+          "storage": 45.0,
+          "recession": 0.85,
+          "initial_flow_ratio": 0.0025
+        },
+        "downstream": {
+          "initial_loss": 0.5,
+          "constant_loss": 2.0,
+          "tc": 27.0,
+          "storage": 25.0,
+          "recession": 0.75,
+          "initial_flow_ratio": 0.005
+        },
+        "k1": 0.25,
+        "k2": 1.0,
+        "k3": 0.5,
+        "x": 0.2
+      },
+      "rain_sources": {
+        "SB_PRATA_7868": "86472000+2851072+86507000",
+        "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+        "SB_CARREIRO_7866": "86507000",
+        "SB_STZ_RESIDUAL": "86472000",
+        "SB_INC_MUCUM": "86510000"
+      },
+      "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E20_best_series.csv",
+      "warm_up_hours_applied": 12,
+      "pad_hours_selected": 12
+    },
+    {
+      "event_id": "E21",
+      "nse": 0.8473541435574965,
+      "research_score": 0.8291599739161672,
+      "metrics": {
+        "pairs": 158.0,
+        "nse": 0.8473541435574965,
+        "rmse_m3s": 632.4998656396049,
+        "mae_m3s": 550.2411288901806,
+        "peak_lag_hours": 0.0,
+        "peak_relative_error": 1.182300793732812e-06,
+        "observed_peak_m3s": 6000.525,
+        "simulated_peak_m3s": 6000.53209442547
+      },
+      "params": {
+        "upstream": {
+          "initial_loss": 1.0,
+          "constant_loss": 2.0,
+          "tc": 18.0,
+          "storage": 25.0,
+          "recession": 0.98,
+          "initial_flow_ratio": 0.005
+        },
+        "downstream": {
+          "initial_loss": 3.5,
+          "constant_loss": 0.5,
+          "tc": 10.0,
+          "storage": 60.0,
+          "recession": 0.7,
+          "initial_flow_ratio": 0.005
+        },
+        "k1": 0.25,
+        "k2": 0.5,
+        "k3": 2.0,
+        "x": 0.2
+      },
+      "rain_sources": {
+        "SB_PRATA_7868": "86472000+2851072+86507000",
+        "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+        "SB_CARREIRO_7866": "86507000",
+        "SB_STZ_RESIDUAL": "86472000",
+        "SB_INC_MUCUM": "86510000"
+      },
+      "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E21_best_series.csv",
+      "warm_up_hours_applied": 0,
+      "pad_hours_selected": 0
+    },
+    {
+      "event_id": "E22",
+      "nse": 0.7652268571862344,
+      "research_score": 0.8037830772728479,
+      "metrics": {
+        "pairs": 110.0,
+        "nse": 0.7652268571862344,
+        "rmse_m3s": 781.8894154894597,
+        "mae_m3s": 665.8964058609974,
+        "peak_lag_hours": 0.0,
+        "peak_relative_error": 5.8957584675649494e-05,
+        "observed_peak_m3s": 10437.666666666666,
+        "simulated_peak_m3s": 10438.282046282982
+      },
+      "params": {
+        "upstream": {
+          "initial_loss": 6.5,
+          "constant_loss": 0.5,
+          "tc": 18.0,
+          "storage": 15.0,
+          "recession": 0.98,
+          "initial_flow_ratio": 0.0025
+        },
+        "downstream": {
+          "initial_loss": 2.5,
+          "constant_loss": 4.25,
+          "tc": 15.0,
+          "storage": 110.0,
+          "recession": 0.7,
+          "initial_flow_ratio": 0.001
+        },
+        "k1": 0.25,
+        "k2": 1.0,
+        "k3": 5.5,
+        "x": 0.2
+      },
+      "rain_sources": {
+        "SB_PRATA_7868": "86472000+2851072+86507000",
+        "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+        "SB_CARREIRO_7866": "86507000",
+        "SB_STZ_RESIDUAL": "86472000",
+        "SB_INC_MUCUM": "86472000"
+      },
+      "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E22_best_series.csv",
+      "warm_up_hours_applied": 12,
+      "pad_hours_selected": 12
+    },
+    {
+      "event_id": "E23",
+      "nse": 0.8126364483782181,
+      "research_score": 0.6573785691229445,
+      "metrics": {
+        "pairs": 70.0,
+        "nse": 0.8126364483782181,
+        "rmse_m3s": 213.3212308538352,
+        "mae_m3s": 180.4520557355174,
+        "peak_lag_hours": 7.0,
+        "peak_relative_error": 0.0012050211434649022,
+        "observed_peak_m3s": 2579.45,
+        "simulated_peak_m3s": 2576.3417082114893
+      },
+      "params": {
+        "upstream": {
+          "initial_loss": 0.5,
+          "constant_loss": 1.0,
+          "tc": 25.0,
+          "storage": 40.0,
+          "recession": 0.98,
+          "initial_flow_ratio": 0.0025
+        },
+        "downstream": {
+          "initial_loss": 0.0,
+          "constant_loss": 0.0,
+          "tc": 25.0,
+          "storage": 35.0,
+          "recession": 0.75,
+          "initial_flow_ratio": 0.001
+        },
+        "k1": 0.25,
+        "k2": 4.0,
+        "k3": 4.5,
+        "x": 0.2
+      },
+      "rain_sources": {
+        "SB_PRATA_7868": "86472000+2851072+86507000",
+        "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+        "SB_CARREIRO_7866": "86507000",
+        "SB_STZ_RESIDUAL": "86472000",
+        "SB_INC_MUCUM": "86510000"
+      },
+      "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E23_best_series.csv",
+      "warm_up_hours_applied": 24,
+      "pad_hours_selected": 24
+    },
+    {
+      "event_id": "E24",
+      "nse": 0.7520225645223316,
+      "research_score": 0.6637275476017248,
+      "metrics": {
+        "pairs": 238.0,
+        "nse": 0.7520225645223316,
+        "rmse_m3s": 1454.2804349903558,
+        "mae_m3s": 1238.4001159676038,
+        "peak_lag_hours": 0.0,
+        "peak_relative_error": 0.04725332583002233,
+        "observed_peak_m3s": 11434.95,
+        "simulated_peak_m3s": 11975.289418200015
+      },
+      "params": {
+        "upstream": {
+          "initial_loss": 0.0,
+          "constant_loss": 1.875,
+          "tc": 22.0,
+          "storage": 15.0,
+          "recession": 0.85,
+          "initial_flow_ratio": 0.005
+        },
+        "downstream": {
+          "initial_loss": 0.0,
+          "constant_loss": 2.0,
+          "tc": 35.0,
+          "storage": 60.0,
+          "recession": 0.7,
+          "initial_flow_ratio": 0.001
+        },
+        "k1": 0.25,
+        "k2": 0.25,
+        "k3": 2.0,
+        "x": 0.2
+      },
+      "rain_sources": {
+        "SB_PRATA_7868": "86472000",
+        "SB_ANTAS_RESIDUAL": "86472000",
+        "SB_CARREIRO_7866": "86472000",
+        "SB_STZ_RESIDUAL": "86472000",
+        "SB_INC_MUCUM": "86472000"
+      },
+      "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E24_best_series.csv",
+      "warm_up_hours_applied": 12,
+      "pad_hours_selected": 12
+    },
+    {
+      "event_id": "E25",
+      "nse": 0.9265554244853058,
+      "research_score": 0.9064522037728319,
+      "metrics": {
+        "pairs": 62.0,
+        "nse": 0.9265554244853058,
+        "rmse_m3s": 112.38076678613038,
+        "mae_m3s": 71.70500344874257,
+        "peak_lag_hours": -1.0,
+        "peak_relative_error": 8.257656997917252e-05,
+        "observed_peak_m3s": 1923.775,
+        "simulated_peak_m3s": 1923.6161412590884
+      },
+      "params": {
+        "upstream": {
+          "initial_loss": 1.0,
+          "constant_loss": 2.0,
+          "tc": 25.0,
+          "storage": 45.0,
+          "recession": 0.88,
+          "initial_flow_ratio": 0.001
+        },
+        "downstream": {
+          "initial_loss": 0.0,
+          "constant_loss": 4.0,
+          "tc": 10.0,
+          "storage": 90.0,
+          "recession": 0.95,
+          "initial_flow_ratio": 0.003
+        },
+        "k1": 2.5,
+        "k2": 0.75,
+        "k3": 2.0,
+        "x": 0.2
+      },
+      "rain_sources": {
+        "SB_PRATA_7868": "86472000+2851072",
+        "SB_ANTAS_RESIDUAL": "86472000+2851072",
+        "SB_CARREIRO_7866": "86472000",
+        "SB_STZ_RESIDUAL": "86472600",
+        "SB_INC_MUCUM": "86510000"
+      },
+      "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E25_best_series.csv",
+      "warm_up_hours_applied": 12,
+      "pad_hours_selected": 12
+    },
+    {
+      "event_id": "E27",
+      "nse": 0.87682516409052,
+      "research_score": 0.8047342976819711,
+      "metrics": {
+        "pairs": 245.0,
+        "nse": 0.87682516409052,
+        "rmse_m3s": 1409.0384343179164,
+        "mae_m3s": 1065.0700789476573,
+        "peak_lag_hours": 5.0,
+        "peak_relative_error": 0.06087192521238192,
+        "observed_peak_m3s": 14525.225,
+        "simulated_peak_m3s": 15409.40340989302
+      },
+      "params": {
+        "upstream": {
+          "initial_loss": 5.5,
+          "constant_loss": 4.25,
+          "tc": 4.0,
+          "storage": 25.0,
+          "recession": 0.85,
+          "initial_flow_ratio": 0.001
+        },
+        "downstream": {
+          "initial_loss": 2.5,
+          "constant_loss": 4.0,
+          "tc": 45.0,
+          "storage": 110.0,
+          "recession": 0.7,
+          "initial_flow_ratio": 0.001
+        },
+        "k1": 0.25,
+        "k2": 1.25,
+        "k3": 4.0,
+        "x": 0.2
+      },
+      "rain_sources": {
+        "SB_PRATA_7868": "86472000+2851072+86507000",
+        "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+        "SB_CARREIRO_7866": "86507000",
+        "SB_STZ_RESIDUAL": "86472000",
+        "SB_INC_MUCUM": "86472000"
+      },
+      "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E27_best_series.csv",
+      "warm_up_hours_applied": 12,
+      "pad_hours_selected": 12
+    },
+    {
+      "event_id": "E28",
+      "nse": 0.9750979641674853,
+      "research_score": 0.9750910812039111,
+      "metrics": {
+        "pairs": 209.0,
+        "nse": 0.9750979641674853,
+        "rmse_m3s": 281.56299090506786,
+        "mae_m3s": 219.3678945314993,
+        "peak_lag_hours": 0.0,
+        "peak_relative_error": 5.506370859343738e-06,
+        "observed_peak_m3s": 7886.724999999999,
+        "simulated_peak_m3s": 7886.768427232715
+      },
+      "params": {
+        "upstream": {
+          "initial_loss": 2.5,
+          "constant_loss": 0.25,
+          "tc": 23.0,
+          "storage": 25.0,
+          "recession": 0.98,
+          "initial_flow_ratio": 0.001
+        },
+        "downstream": {
+          "initial_loss": 1.5,
+          "constant_loss": 2.0,
+          "tc": 20.0,
+          "storage": 25.0,
+          "recession": 0.995,
+          "initial_flow_ratio": 0.005
+        },
+        "k1": 2.5,
+        "k2": 2.5,
+        "k3": 1.0,
+        "x": 0.2
+      },
+      "rain_sources": {
+        "SB_PRATA_7868": "86472000+2851072+86507000",
+        "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+        "SB_CARREIRO_7866": "86510000",
+        "SB_STZ_RESIDUAL": "86472600",
+        "SB_INC_MUCUM": "86510000"
+      },
+      "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E28_best_series.csv",
+      "warm_up_hours_applied": 12,
+      "pad_hours_selected": 12
+    },
+    {
+      "event_id": "E31",
+      "nse": 0.9046638593707779,
+      "research_score": 0.913169021845677,
+      "metrics": {
+        "pairs": 128.0,
+        "nse": 0.9046638593707779,
+        "rmse_m3s": 507.98730462899476,
+        "mae_m3s": 438.9532239444202,
+        "peak_lag_hours": 1.0,
+        "peak_relative_error": 8.112473320411516e-05,
+        "observed_peak_m3s": 6057.4,
+        "simulated_peak_m3s": 6056.908595041089
+      },
+      "params": {
+        "upstream": {
+          "initial_loss": 0.0,
+          "constant_loss": 0.0,
+          "tc": 20.0,
+          "storage": 25.0,
+          "recession": 0.85,
+          "initial_flow_ratio": 0.005
+        },
+        "downstream": {
+          "initial_loss": 5.5,
+          "constant_loss": 0.0,
+          "tc": 2.25,
+          "storage": 60.0,
+          "recession": 0.85,
+          "initial_flow_ratio": 0.005
+        },
+        "k1": 0.25,
+        "k2": 3.0,
+        "k3": 1.25,
+        "x": 0.2
+      },
+      "rain_sources": {
+        "SB_PRATA_7868": "86472000+2851072+86507000",
+        "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+        "SB_CARREIRO_7866": "86507000",
+        "SB_STZ_RESIDUAL": "86472000",
+        "SB_INC_MUCUM": "86510000"
+      },
+      "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_E31_best_series.csv",
+      "warm_up_hours_applied": 0,
+      "pad_hours_selected": 0
+    }
+  ],
+  "params_median_diagnostic_only": {
+    "params": {
+      "up_initial_loss": 1.0,
+      "up_constant_loss": 1.0,
+      "up_tc": 22.0,
+      "up_storage": 25.0,
+      "up_recession": 0.88,
+      "up_initial_flow_ratio": 0.0025,
+      "dn_initial_loss": 1.5,
+      "dn_constant_loss": 2.0,
+      "dn_tc": 20.0,
+      "dn_storage": 60.0,
+      "dn_recession": 0.75,
+      "dn_initial_flow_ratio": 0.003,
+      "k1": 0.25,
+      "k2": 1.0,
+      "k3": 2.0,
+      "x": 0.2
+    },
+    "promotion_blocked": true,
+    "note": "Mediana dos params OK — só diagnóstico. Common-search/hold-out/externos do twin NÃO autorizam promoção."
+  },
+  "common_search_verdict": {
+    "promotion_blocked": true,
+    "holdout_e27_nse": -1.0618435642181185,
+    "loo_mean_test_nse": 0.3450982037542933,
+    "external_mean_nse": -0.45273092863849157,
+    "rule": "Usar params do evento análogo / biblioteca eventwise."
+  },
+  "how_to_use": [
+    "Escolher o evento de referência mais parecido (época/pico) na biblioteca.",
+    "Rodar a rede Muçum com esses params e chuva ANA do evento (prefs do twin v1.4).",
+    "Não usar a mediana nem common-search como padrão operacional.",
+    "Séries obs×sim: hec_twin_stz_mucum_v1/mucum_E##_best_series.csv"
+  ],
+  "santa_tereza": {
+    "in_this_package": false,
+    "status": "q_calibration_blocked_no_ana_vazao",
+    "blocker": "Sem curva-chave / Vazão ANA em 86472600 — modelo STZ não fecha agora.",
+    "next": "Anexar curva-chave oficial; depois calibrar STZ truncado."
+  },
+  "scope_discipline": {
+    "is_g040_basin": false,
+    "corridor_only": true,
+    "excluded": [
+      "Guaporé",
+      "Forqueta",
+      "Baixo Taquari-Antas"
+    ]
+  },
+  "elements_summary": [
+    {
+      "id": "SB_PRATA_7868",
+      "type": "subbasin",
+      "area_km2": 3775.99
+    },
+    {
+      "id": "SB_ANTAS_RESIDUAL",
+      "type": "subbasin",
+      "area_km2": 9142.666
+    },
+    {
+      "id": "J_ANTAS_86472000",
+      "type": "junction"
+    },
+    {
+      "id": "R_ANTAS_TO_CARREIRO",
+      "type": "reach"
+    },
+    {
+      "id": "SB_CARREIRO_7866",
+      "type": "subbasin",
+      "area_km2": 2564.19
+    },
+    {
+      "id": "J_CARREIRO_CONFLUENCE",
+      "type": "junction"
+    },
+    {
+      "id": "R_CARREIRO_TO_STZ",
+      "type": "reach"
+    },
+    {
+      "id": "SB_STZ_RESIDUAL",
+      "type": "subbasin",
+      "area_km2": 292.34
+    },
+    {
+      "id": "J_STZ_86472600",
+      "type": "junction"
+    },
+    {
+      "id": "R_STZ_TO_MUCUM",
+      "type": "reach"
+    },
+    {
+      "id": "SB_INC_MUCUM",
+      "type": "subbasin",
+      "area_km2": 190.021
+    },
+    {
+      "id": "J_MUCUM_86510000",
+      "type": "junction"
+    }
+  ],
+  "next_steps": [
+    "Usar o pacote Muçum fechado (params eventwise) — não common-search.",
+    "STZ: anexar curva-chave oficial 86472600 (HIDROWEB/ANA/SGB) — sem inventar N→Q.",
+    "Após curva: calibrar modelo STZ truncado.",
+    "Manter Guaporé/Forqueta fora do recorte."
+  ],
+  "artifacts": {
+    "json": "modelo_mucum_eventwise_v1_fechado_latest.json",
+    "html": "modelo_mucum_eventwise_v1_fechado.html",
+    "params_csv": "modelo_mucum_eventwise_v1_fechado/params_library_eventwise.csv",
+    "twin_json": "hec_twin_stz_mucum_v1_latest.json",
+    "twin_html": "hec_twin_stz_mucum_v1.html",
+    "runs_dir": "hec_twin_stz_mucum_v1/"
+  }
+}
