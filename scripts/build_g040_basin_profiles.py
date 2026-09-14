@@ -892,7 +892,7 @@ def build_html(report: dict[str, Any]) -> str:
     mun_cards = []
     for m in report.get("municipal_profiles") or []:
         s = m["summary"]
-        axes = ", ".join(m.get("axes") or []) or "sem eixo plotado"
+        axes_attr = " ".join(m.get("axes") or [])
         pct = m.get("pct_na_bacia")
         meta = (
             f"área {s.get('area_km2')} km² · "
@@ -911,7 +911,7 @@ def build_html(report: dict[str, Any]) -> str:
                 f"{m['river_svg']}"
             )
         mun_cards.append(
-            f"""<section class="profile mun" data-axes="{axes}" data-nome="{(m.get('nome') or '').lower()}" data-has-river="{'1' if m.get('river_svg') else '0'}">
+            f"""<section class="profile mun" data-axes="{axes_attr}" data-nome="{(m.get('nome') or '').lower()}" data-has-river="{'1' if m.get('river_svg') else '0'}">
   <h2>{m.get('nome')}</h2>
   <div class="meta">{meta}</div>
   <p class="note">{m.get('note_pt') or ''}</p>
