@@ -278,10 +278,9 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <h1>Bacia Taquari–Antas <span>G040</span></h1>
     <p class="lede">
       Esta página é da <strong>bacia oficial inteira</strong>
-      (~{{BASIN_KM2}} km², {{N_UGS}} UGs: Alto, Prata, Carreiro, Médio, Guaporé, Forqueta e Baixo).
-      O <strong>produto gêmeo</strong> (ΔN em Muçum) é um produto <em>dentro</em> da bacia —
-      corredor aninhado ~16 mil km² — não o limite espacial. Guaporé/Forqueta/Baixo entram
-      no inventário e no mapa; não no balanço HEC até Muçum.
+      (~{{BASIN_KM2}} km², {{N_UGS}} UGs). Produtos multi-exutório: corredor Muçum (~16 mil km²)
+      e Encantado após Guaporé (~19 mil km²). Foz Guaporé isolada, Forqueta e Baixo ainda
+      sem Q oficial — inventário + gate, não ΔN inventado.
     </p>
     <div class="{{FRESH_CLS}}" id="freshnessBanner">
       <span>Atualização: <strong>{{GENERATED}}</strong> UTC</span>
@@ -299,6 +298,14 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <p class="muted" id="methodLede">Braço da família HEC/REC, domínio e validação — sem overclaim.</p>
     <div class="contrast" id="skillContrast"></div>
     <div class="method-grid" id="methodGrid"></div>
+  </section>
+
+  <section class="card" style="margin-bottom:.9rem" id="multiOutletCard">
+    <h2>Calibração G040 · multi-exutório</h2>
+    <p class="muted" id="multiOutletLede">Muçum + Encantado (Guaporé) calibrados; fozes Guaporé/Forqueta e Baixo gated.</p>
+    <div class="contrast" id="encantadoContrast"></div>
+    <div class="ug-inventory" id="outletInventory"></div>
+    <ol class="lessons" id="multiOutletNext"></ol>
   </section>
 
   <section class="grid metrics" style="margin-bottom:.9rem" id="basinMetrics">
@@ -570,7 +577,8 @@ const local = ((DATA.where_results_go || {}).local) || {};
   ["Verify", local.verify_html],
   ["Hindcast", local.hindcast_html],
   ["Feed JSON", local.platform_json],
-  ["Mapa UGs", local.mapa_subbacias]
+  ["Mapa UGs", local.mapa_subbacias],
+  ["Multi-exutório", local.multi_outlet_html]
 ].forEach(function(pair) {
   if (!pair[1]) return;
   const a = document.createElement("a");
@@ -794,6 +802,49 @@ function renderNetwork() {
   });
 }
 
+
+
+function renderMultiOutlet() {
+  const mo = ((DATA.products || {}).g040_multi_outlet) || {};
+  const lede = document.getElementById("multiOutletLede");
+  if (lede && mo.purpose_pt) lede.textContent = mo.purpose_pt;
+  const enc = mo.encantado || {};
+  const sum = enc.summary || {};
+  const verd = enc.verdict || {};
+  const contrast = document.getElementById("encantadoContrast");
+  if (contrast) {
+    contrast.innerHTML =
+      "<span>Encantado self-fit <strong>" + fmt(sum.mean_self_fit_nse, 2) + "</strong></span>" +
+      "<span>≠</span>" +
+      "<span>NSE LOO <strong>" + fmt(sum.mean_nse_loo, 2) + "</strong></span>" +
+      "<span class=\"muted\">" + (verd.plain_pt || "Muçum roteado + residual Guaporé vs Q ANA Encantado.") + "</span>";
+  }
+  const inv = document.getElementById("outletInventory");
+  if (inv) {
+    const outlets = mo.outlets || [];
+    inv.innerHTML = outlets.map(function(o) {
+      const ok = (o.status || "").indexOf("calibrated") >= 0;
+      const cls = ok ? "twin" : "inventory";
+      const badge = ok ? "calibrado" : (o.status || "gated");
+      return "<div class=\"ug-row " + cls + "\">" +
+        "<div class=\"name\"><span>" + (o.label_pt || o.outlet_id) +
+        " · <span class=\"mono\">" + (o.station_code || "") + "</span></span>" +
+        "<span class=\"meta\">" + badge + "</span></div>" +
+        "<div class=\"meta\">" + fmt(o.nested_area_km2, 0) + " km² · " +
+        ((o.ugs || []).join(", ")) + "</div>" +
+        "<div class=\"meta\">" + (o.note_pt || o.blocker_pt || "") + "</div></div>";
+    }).join("");
+  }
+  const next = document.getElementById("multiOutletNext");
+  if (next) {
+    next.innerHTML = "";
+    (mo.blocked_next || []).forEach(function(line) {
+      const li = document.createElement("li");
+      li.textContent = line;
+      next.appendChild(li);
+    });
+  }
+}
 
 function renderMethodology() {
   const m = DATA.methodology || {};
@@ -1157,6 +1208,7 @@ renderChips();
 renderAnchors();
 renderNetwork();
 renderMethodology();
+renderMultiOutlet();
 renderSkill();
 renderUgInventory();
 renderUgDomainChips();

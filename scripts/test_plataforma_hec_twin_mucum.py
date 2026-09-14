@@ -225,5 +225,31 @@ class PlataformaHecTwinTests(unittest.TestCase):
         self.assertNotIn("networkLayer = L.layerGroup().addTo(map)", html)
 
 
+    def test_g040_multi_outlet_product(self) -> None:
+        mo = self.feed["products"]["g040_multi_outlet"]
+        outlets = {o["outlet_id"]: o for o in mo["outlets"]}
+        self.assertIn("mucum", outlets)
+        self.assertIn("encantado_guapore_join", outlets)
+        self.assertIn("guapore_mouth", outlets)
+        self.assertIn("forqueta_mouth", outlets)
+        self.assertTrue(str(outlets["mucum"]["status"]).startswith("calibrated"))
+        self.assertTrue(str(outlets["encantado_guapore_join"]["status"]).startswith("calibrated"))
+        self.assertIn("blocked", outlets["guapore_mouth"]["status"])
+        enc = mo["encantado"]["summary"]
+        self.assertGreaterEqual(enc["n_events_fitted"], 5)
+        self.assertGreater(enc["mean_self_fit_nse"], 0.5)
+        self.assertIsNotNone(enc["mean_nse_loo"])
+        self.assertTrue(self.feed["discipline"]["multi_outlet_encantado_calibrated"])
+        html = (
+            Path(__file__).resolve().parents[1]
+            / "assets"
+            / "data"
+            / "estudo_bacia_taquari_antas"
+            / "plataforma_hec_twin_mucum.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("multiOutletCard", html)
+        self.assertIn("renderMultiOutlet", html)
+
+
 if __name__ == "__main__":
     unittest.main()

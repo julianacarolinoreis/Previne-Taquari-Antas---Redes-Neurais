@@ -1110,6 +1110,7 @@ def build_feed() -> dict[str, Any]:
     force_live = load_json(OUT / "hec_twin_ifs_forcing_live_eval_latest.json")
     force_fwd = load_json(OUT / "hec_twin_ifs_forcing_5d_latest.json")
     eventwise = load_json(OUT / "modelo_mucum_eventwise_v1_fechado_latest.json")
+    multi = load_json(OUT / "modelo_g040_multi_exutorio_v1_latest.json")
     stations = station_index()
     methodology = build_methodology(eventwise, hind, force_live)
 
@@ -1165,6 +1166,8 @@ def build_feed() -> dict[str, Any]:
         "forcing_live_json": "hec_twin_ifs_forcing_live_eval_latest.json",
         "forcing_forward_json": "hec_twin_ifs_forcing_5d_latest.json",
         "mapa_subbacias": "mapa_subbacias.html",
+        "multi_outlet_json": "modelo_g040_multi_exutorio_v1_latest.json",
+        "multi_outlet_html": "modelo_g040_multi_exutorio_v1.html",
     }
 
     return {
@@ -1174,10 +1177,10 @@ def build_feed() -> dict[str, Any]:
         "label_pt": "Plataforma HEC/REC · bacia Taquari–Antas (G040)",
         "purpose_pt": (
             "Mapa e inventário da bacia oficial Taquari–Antas (G040, ~26,4 mil km², "
-            "7 UGs). O produto hidrológico é um gêmeo Python HMS-like no corredor até "
-            "Muçum (~16 mil km²) — não HEC-HMS binário, não RAS, não CWMS, e ainda não "
-            "uma calibração da G040 inteira. Guaporé/Forqueta/Baixo no inventário; fora "
-            "do balanço até Muçum. STZ sem curva N↔Q inventada. Pesquisa, não alerta."
+            "7 UGs). Produtos hidrológicos multi-exutório: (1) corredor Muçum ~16 mil km²; "
+            "(2) Encantado após foz Guaporé ~19 mil km² (Muçum roteado + residual Guaporé). "
+            "Foz Guaporé isolada, Forqueta e Baixo ainda gated sem Q oficial. "
+            "Não é HEC-HMS binário / RAS / CWMS. STZ sem curva N↔Q inventada. Pesquisa."
         ),
         "methodology": methodology,
         "basin": {
@@ -1241,6 +1244,9 @@ def build_feed() -> dict[str, Any]:
             "not_full_g040_calibrated": True,
             "corridor_analog_transfer": True,
             "ifs_point_proxy": True,
+            "multi_outlet_encantado_calibrated": True,
+            "guapore_mouth_q_blocked": True,
+            "forqueta_mouth_q_blocked": True,
         },
         "where_results_go": {
             "pages_base": PAGES_BASE,
@@ -1334,6 +1340,18 @@ def build_feed() -> dict[str, Any]:
                     "proxy de QPF → gêmeo Python HMS-like → ΔN Muçum via curva oficial. "
                     "Self-fit ≠ skill de previsão."
                 ),
+            },
+            "g040_multi_outlet": {
+                "status": (multi or {}).get("status") or "research_multi_outlet",
+                "generated_at_utc": (multi or {}).get("generated_at_utc"),
+                "purpose_pt": (multi or {}).get("purpose_pt"),
+                "outlets": (multi or {}).get("outlets") or [],
+                "encantado": ((multi or {}).get("encantado_calibration") or {}),
+                "areas_km2": (multi or {}).get("areas_km2"),
+                "discipline": (multi or {}).get("discipline"),
+                "blocked_next": (multi or {}).get("blocked_next") or [],
+                "artifact_html": "modelo_g040_multi_exutorio_v1.html",
+                "artifact_json": "modelo_g040_multi_exutorio_v1_latest.json",
             },
         },
         "spatial": build_spatial(force_live or force_fwd, stations),
