@@ -388,7 +388,7 @@ def build_basin_network() -> dict[str, Any]:
         },
         "note_pt": (
             "Rede da bacia Taquari–Antas (G040, 7 UGs): inventário ANA/INMET/CEMADEN. "
-            "Inclui Guaporé, Forqueta e Baixo. Âncoras curadas = produto gêmeo Muçum; "
+            "Inclui Guaporé, Forqueta e Baixo. Âncoras curadas = braço Muçum (um exutório); "
             "esta camada mostra a bacia inteira."
         ),
     }
@@ -774,7 +774,7 @@ def build_spatial(
         "note_pt": (
             "Sujeito espacial: bacia Taquari–Antas (G040, ~26,4 mil km², 7 UGs) — "
             "Alto, Prata, Carreiro, Médio, Guaporé, Forqueta e Baixo. "
-            "Produto gêmeo HEC/REC (ΔN Muçum) usa só o corredor aninhado (~16 mil km²: "
+            "Braço Muçum do multi-exutório G040 (ΔN) usa o corredor aninhado (~16 mil km²: "
             "Alto+Prata+Carreiro+Médio); Guaporé/Forqueta/Baixo entram no mapa da bacia "
             "mas não no balanço do gêmeo até Muçum. Chuva IFS do produto = proxy pontual "
             "por sub-bacia do corredor (ainda não máscara areal ECMWF/REC). "
@@ -787,7 +787,7 @@ def build_spatial(
             "g040_km2": 26430,
             "g040_ugs": sorted(UG_G040),
             "g040_bbox_latlon": g040_bbox_latlon(),
-            "twin_domain_label_pt": "Produto gêmeo · corredor até Muçum",
+            "twin_domain_label_pt": "Braço Muçum · um exutório da G040",
             "twin_domain_km2": 15965.207,
             "twin_domain_ugs": sorted(UG_TWIN_DOMAIN),
             "excluded_ugs": sorted(UG_EXCLUDED_FROM_TWIN),
@@ -795,7 +795,7 @@ def build_spatial(
             "not_full_basin_model": True,
             "ifs_is_point_proxy_not_areal_ecmwf_mask": True,
             "click_shows_curve_pt": (
-                "Clique numa âncora do produto: Muçum mostra N+chuva; "
+                "Clique numa âncora do braço Muçum: o exutório mostra N+chuva; "
                 "STZ só nível/controle (sem N↔Q inventada); chuva mostra hietograma proxy."
             ),
         },
@@ -1054,7 +1054,7 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
     spatial.setdefault("ug_geojson", spatial.get("ug_geojson") or "ugs_g040.geojson")
 
     auto = dict(feed.get("automation") or {})
-    auto.setdefault("workflow_name", "HEC twin Muçum forward ~5d")
+    auto.setdefault("workflow_name", "HEC twin G040 multi-outlet · pesquisa")
     auto.setdefault("schedule_cron", auto.get("schedule_cron") or auto.get("schedule_cron"))
     auto.setdefault("commit_author", "previne-hec-bot")
     auto.setdefault("pipeline", auto.get("steps_pt") or [])
@@ -1062,12 +1062,12 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
 
     feed["schema_version"] = "plataforma_hec_twin_mucum_v2"
     feed["product"] = {
-        "name": "Produto gêmeo · ΔN Muçum ~5d",
+        "name": "Multi-exutório G040 · pesquisa",
         "horizon": "~5 dias",
-        "target": "Muçum (exutório N do produto)",
+        "target": "Bacia G040 (Muçum = um dos exutórios)",
         "mode": "pesquisa · REC bacia",
-        "domain_pt": "Prata + Antas residual + Carreiro + residual STZ + incremento Muçum",
-        "nested_inside_pt": "Dentro da bacia G040 · não é a bacia inteira",
+        "domain_pt": "G040 inteira no inventário; braço Muçum = Prata+Antas+Carreiro+STZ+Muçum",
+        "nested_inside_pt": "Sujeito = bacia G040 · Muçum é um braço, não o assunto da página",
     }
     feed["summary"] = {
         "peak_n_cm": primary.get("peak_anchored_cm"),
@@ -1176,9 +1176,9 @@ def build_feed() -> dict[str, Any]:
         "status": "research_platform_ready",
         "label_pt": "Plataforma HEC/REC · bacia Taquari–Antas (G040)",
         "purpose_pt": (
-            "Mapa e inventário da bacia oficial Taquari–Antas (G040, ~26,4 mil km², "
-            "7 UGs). Multi-exutório v3: chuva areal Open-Meteo por UG; Muçum + Encantado "
-            "+ Porto Mariante; tributários com Q (inclui Forqueta parcial). Foz Guaporé, "
+            "Página da bacia oficial Taquari–Antas (G040, ~26,4 mil km², 7 UGs) — "
+            "não é uma página do Muçum. Multi-exutório v3: inventário G040 + braços "
+            "calibrados (Muçum, Encantado, Mariante/tributários com Q). Foz Guaporé, "
             "foz Forqueta e Taquari-nível ainda gated. Não é HEC-HMS binário. Pesquisa."
         ),
         "methodology": methodology,
@@ -1189,7 +1189,7 @@ def build_feed() -> dict[str, Any]:
             "spatial_subject": True,
         },
         "corridor": {
-            "label_pt": "Produto gêmeo · corredor até Muçum",
+            "label_pt": "Braço Muçum · um exutório da G040",
             "calibration_method": (
                 (live or {}).get("param_selection") or {}
             ).get("method")
@@ -1265,8 +1265,8 @@ def build_feed() -> dict[str, Any]:
         "headline": {
             "source": headline_source,
             "question_pt": (
-                "Com a chuva do corredor (Prata–Carreiro–Antas→STZ→Muçum) e transferência "
-                "por análogos LOO, quanto sobe o nível em Muçum?"
+                "Na bacia G040, com a chuva do braço Muçum (Prata–Carreiro–Antas→STZ→Muçum) "
+                "e transferência por análogos LOO, quanto sobe o nível nesse exutório?"
             ),
             "plain_pt": headline_plain,
             "primary": headline_primary,
@@ -1414,7 +1414,7 @@ def render_root_entry() -> str:
 <body>
 <main>
   <p><strong>PREVINE · Bacia Taquari–Antas (G040)</strong></p>
-  <p>Redirecionando para o mapa da bacia e o produto gêmeo ΔN Muçum…</p>
+  <p>Redirecionando para a plataforma da bacia (multi-exutório G040)…</p>
   <p><a href="assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html">Abrir plataforma da bacia</a>
      · <a href="mucum_previsao_inundacao.html">Plataforma RNA Muçum</a></p>
 </main>

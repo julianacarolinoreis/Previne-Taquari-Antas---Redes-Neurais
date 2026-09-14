@@ -189,6 +189,19 @@ class PlataformaHecTwinTests(unittest.TestCase):
         hero = html[html.find("<header") : html.find("</header>")]
         self.assertIn("G040", hero)
         self.assertTrue("26.430" in hero or "26,430" in hero or "26430" in hero)
+        self.assertIn("não é uma página do Muçum", hero)
+        self.assertIn("bacia oficial inteira", hero)
+        self.assertIn("Multi-exutório G040", hero)
+        self.assertNotIn("Produto gêmeo · ΔN Muçum", hero)
+        self.assertNotIn("Produto gêmeo · corredor até Muçum", html)
+        product = self.feed["product"]
+        self.assertIn("G040", product["name"])
+        self.assertIn("bacia", product["target"].lower())
+        self.assertNotIn("ΔN Muçum", product["name"])
+        self.assertEqual(
+            self.feed["corridor"]["label_pt"],
+            "Braço Muçum · um exutório da G040",
+        )
 
 
     def test_methodology_is_honest(self) -> None:

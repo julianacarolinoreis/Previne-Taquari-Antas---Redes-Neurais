@@ -26,9 +26,9 @@ def render_platform_html(feed: dict[str, Any]) -> str:
     status = _esc(feed.get("status") or "research")
 
     product = feed.get("product") or {}
-    product_name = _esc(product.get("name") or "Produto gêmeo · ΔN Muçum ~5d")
+    product_name = _esc(product.get("name") or "Multi-exutório G040 · pesquisa")
     product_horizon = _esc(product.get("horizon") or "~5 dias")
-    product_target = _esc(product.get("target") or "Muçum")
+    product_target = _esc(product.get("target") or "Bacia G040")
     product_mode = _esc(product.get("mode") or "pesquisa")
 
     summary = feed.get("summary") or {}
@@ -40,7 +40,7 @@ def render_platform_html(feed: dict[str, Any]) -> str:
 
     auto = feed.get("automation") or {}
     auto_name = _esc(
-        auto.get("workflow_name") or auto.get("workflow") or "HEC twin Muçum forward"
+        auto.get("workflow_name") or auto.get("workflow") or "HEC twin G040 multi-outlet"
     )
     auto_sched = _esc(auto.get("schedule_cron") or "12 */6 * * *")
     auto_owner = _esc(auto.get("commit_author") or "previne-hec-bot")
@@ -273,14 +273,16 @@ svg.mini-chart { width:100%; height:168px; display:block; }
       <span class="pill ok">G040 · {{BASIN_KM2}} km²</span>
       <span class="pill ok">7 UGs</span>
       <span class="pill">rede {{N_NETWORK}}</span>
-      <span class="pill">{{PRODUCT_NAME}}</span>
+      <span class="pill ok">{{PRODUCT_NAME}}</span>
+      <span class="pill">{{PRODUCT_TARGET}}</span>
     </div>
     <h1>Bacia Taquari–Antas <span>G040</span></h1>
     <p class="lede">
       Esta página é da <strong>bacia oficial inteira</strong>
-      (~{{BASIN_KM2}} km², {{N_UGS}} UGs).       Multi-exutório v3: chuva areal por UG; Muçum + Encantado (Guaporé) +
-      Mariante/tributários com Q. Foz Guaporé/Forqueta e Taquari-nível ainda
-      gated — inventário + gate, não ΔN inventado.
+      (~{{BASIN_KM2}} km², {{N_UGS}} UGs) — <strong>não é uma página do Muçum</strong>.
+      Multi-exutório G040: inventário das 7 UGs + braços com Q
+      (Muçum, Encantado, Mariante/tributários). Foz Guaporé/Forqueta e Taquari-nível
+      ainda gated — inventário + gate, sem ΔN inventado.
     </p>
     <div class="{{FRESH_CLS}}" id="freshnessBanner">
       <span>Atualização: <strong>{{GENERATED}}</strong> UTC</span>
@@ -288,21 +290,21 @@ svg.mini-chart { width:100%; height:168px; display:block; }
       <span>Live eval: <span class="mono">{{LIVE_AGE}}</span></span>
       <span>Forward: <span class="mono">{{FWD_AGE}}</span></span>
       <span>Rede G040: <strong>{{N_NETWORK}}</strong></span>
-      <span>fora do gêmeo: <strong>{{N_OUTSIDE}}</strong></span>
-      <span>Âncoras produto: <strong>{{N_ANCHORS}}</strong></span>
+      <span>fora do braço Muçum: <strong>{{N_OUTSIDE}}</strong></span>
+      <span>Âncoras (braço Muçum): <strong>{{N_ANCHORS}}</strong></span>
     </div>
   </header>
 
   <section class="card" style="margin-bottom:.9rem" id="methodCard">
     <h2>Método · o que isto é (e o que não é)</h2>
-    <p class="muted" id="methodLede">Braço da família HEC/REC, domínio e validação — sem overclaim.</p>
+    <p class="muted" id="methodLede">Braço da família HEC/REC na bacia G040 — multi-exutório, sem overclaim.</p>
     <div class="contrast" id="skillContrast"></div>
     <div class="method-grid" id="methodGrid"></div>
   </section>
 
   <section class="card" style="margin-bottom:.9rem" id="multiOutletCard">
     <h2>Calibração G040 · multi-exutório</h2>
-    <p class="muted" id="multiOutletLede">Muçum + Encantado + Mariante calibrados; tributários pontuais frágeis; fozes gated.</p>
+    <p class="muted" id="multiOutletLede">Bacia G040: Muçum + Encantado calibrados; Mariante/tributários com Q; fozes gated.</p>
     <div class="contrast" id="encantadoContrast"></div>
     <div class="contrast" id="marianteContrast" style="margin-top:.45rem"></div>
     <div class="ug-inventory" id="outletInventory"></div>
@@ -323,12 +325,12 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <article class="card metric">
       <div class="label">Rede inventário</div>
       <div class="value">{{N_NETWORK}}</div>
-      <div class="hint">flu+chuva · {{N_OUTSIDE}} fora do gêmeo</div>
+      <div class="hint">flu+chuva · {{N_OUTSIDE}} fora do braço Muçum</div>
     </article>
     <article class="card metric">
-      <div class="label">Produto ΔN</div>
+      <div class="label">ΔN · um braço (Muçum)</div>
       <div class="value" style="font-size:1.15rem">{{PEAK_DN}}</div>
-      <div class="hint">Muçum · dentro da bacia</div>
+      <div class="hint">não resume a G040</div>
     </article>
   </section>
 
@@ -350,10 +352,10 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     </article>
     <article class="card">
       <h2>Inventário por UG</h2>
-      <p class="muted">7 UGs da G040. As 3 fora do gêmeo (Guaporé, Forqueta, Baixo) aparecem sem ΔN HEC inventado.</p>
+      <p class="muted">7 UGs da G040. Guaporé, Forqueta e Baixo no inventário; sem ΔN inventado onde ainda falta Q.</p>
       <div class="ug-inventory" id="ugInventory"></div>
-      <h2 style="margin-top:1rem">Pontos de amarração (produto)</h2>
-      <p class="muted">Âncoras curadas do gêmeo Muçum. Clique para focar e abrir a curva.</p>
+      <h2 style="margin-top:1rem">Âncoras do braço Muçum</h2>
+      <p class="muted">Um exutório dentro da G040 — não o assunto da página. Clique para focar e abrir a curva.</p>
       <div class="chips" id="roleChipsSide"></div>
       <div class="anchor-list" id="anchorList"></div>
       <div class="links" id="artifactLinks"></div>
@@ -361,8 +363,8 @@ svg.mini-chart { width:100%; height:168px; display:block; }
   </section>
 
   <section class="card" style="margin-bottom:.9rem" id="corridorCard">
-    <h2>Produto gêmeo · corredor até Muçum</h2>
-    <p class="muted" id="corridorNote">Produto dentro da bacia G040 · cinco sub-bacias aninhadas · análogos.</p>
+    <h2>Braço Muçum · um exutório da G040</h2>
+    <p class="muted" id="corridorNote">Não é a bacia inteira · corredor aninhado (~16 mil km²) dentro da G040.</p>
     <div class="chips" id="corridorChips"></div>
     <div class="chips" id="ugDomainChips" style="margin-top:.35rem"></div>
     <p class="muted mono" id="corridorMeta" style="margin-top:.55rem"></p>
@@ -370,30 +372,30 @@ svg.mini-chart { width:100%; height:168px; display:block; }
 
   <section class="grid metrics" style="margin-bottom:.9rem" id="productMetrics">
     <article class="card metric">
-      <div class="label">ΔN pico (live)</div>
+      <div class="label">ΔN pico · braço Muçum</div>
       <div class="value">{{PEAK_DN}}</div>
       <div class="hint">acima da âncora {{N_ANCHOR}}</div>
     </article>
     <article class="card metric">
-      <div class="label">N pico estimado</div>
+      <div class="label">N pico · Muçum</div>
       <div class="value">{{PEAK_N}}</div>
       <div class="hint">em {{PEAK_WHEN}}</div>
     </article>
     <article class="card metric">
       <div class="label">Timing vs obs</div>
       <div class="value">{{TIMING}}</div>
-      <div class="hint">erro de tempo do pico</div>
+      <div class="hint">erro de tempo do pico · Muçum</div>
     </article>
     <article class="card metric">
-      <div class="label">Robô HEC</div>
+      <div class="label">Robô HEC · G040</div>
       <div class="value" style="font-size:1.02rem">{{AUTO_NAME}}</div>
       <div class="hint mono">{{AUTO_SCHED}} · {{AUTO_OWNER}}</div>
     </article>
   </section>
 
   <section class="grid products" style="margin-bottom:.9rem">
-    <article class="card product-live"><h3>Live eval (evento)</h3><p class="muted" id="liveSummary">Carregando…</p></article>
-    <article class="card product-fwd"><h3>Forward ~5d (operacional)</h3><p class="muted" id="fwdSummary">Carregando…</p></article>
+    <article class="card product-live"><h3>Live eval · braço Muçum</h3><p class="muted" id="liveSummary">Carregando…</p></article>
+    <article class="card product-fwd"><h3>Forward ~5d · braço Muçum</h3><p class="muted" id="fwdSummary">Carregando…</p></article>
   </section>
 
   <section class="card" style="margin-bottom:.9rem" id="skillCard">
@@ -426,11 +428,10 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <h2>Como o robô alimenta esta página</h2>
     <ol class="muted" id="robotSteps"></ol>
     <p class="foot">
-      Sujeito espacial = bacia Taquari–Antas (G040, 7 UGs). Produto = gêmeo Python HMS-like
-      no corredor até Muçum (Alto+Prata+Carreiro+Médio) — não HEC-HMS binário, não RAS, não CWMS,
-      e ainda não calibração da G040 inteira. Guaporé/Forqueta/Baixo no inventário, fora do balanço.
-      IFS = proxy pontual. Validação honesta = LOO (não self-fit). STZ sem curva N↔Q inventada.
-      Pesquisa, não alerta.
+      Sujeito da página = bacia Taquari–Antas (G040, 7 UGs). Muçum é um braço do multi-exutório
+      (corredor Alto+Prata+Carreiro+Médio), não o assunto. Engine = gêmeo Python HMS-like —
+      não HEC-HMS binário, não RAS, não CWMS. Ainda não há balanço fechado da G040 inteira.
+      Guaporé/Forqueta/Baixo no inventário; fozes gated. Validação honesta = LOO. Pesquisa, não alerta.
     </p>
   </section>
 </div>
@@ -514,7 +515,7 @@ function renderUgDomainChips() {
     b.className = "chip";
     b.style.cursor = "default";
     b.style.borderColor = ugColor(ug);
-    b.textContent = ug.replace(" Taquari-Antas", "") + " · gêmeo";
+    b.textContent = ug.replace(" Taquari-Antas", "") + " · braço Muçum";
     el.appendChild(b);
   });
   excl.forEach(function(ug) {
@@ -523,7 +524,7 @@ function renderUgDomainChips() {
     b.style.cursor = "default";
     b.style.borderColor = ugColor(ug);
     b.textContent = ug.replace(" Taquari-Antas", "") + " · inventário";
-    b.title = "UG da bacia G040 · fora do balanço HEC até Muçum";
+    b.title = "UG da bacia G040 · fora do balanço HEC do braço Muçum";
     el.appendChild(b);
   });
 }
@@ -649,7 +650,7 @@ function drawChart() {
   drawSeriesSvg(svg, series, rain, {W:960, H:280, mode:"level"});
   document.getElementById("chartCaption").textContent =
     "Fonte do traço: " + (trace.source || "—") + (trace.note ? " · " + trace.note : "");
-  note.textContent = "Linha = nível estimado em Muçum (cm). Barras = chuva proxy areal ponderada (mm).";
+  note.textContent = "Linha = nível estimado no braço Muçum (cm). Barras = chuva proxy da janela (mm). Um braço da G040 — não resume a bacia.";
 }
 
 function showInspector(anchor, kind) {
@@ -669,8 +670,8 @@ function showInspector(anchor, kind) {
   if (kind === "network") {
     meta.textContent = (anchor.kind === "rain" ? "chuva inventário" : "flu inventário") +
       (anchor.ug ? " · " + anchor.ug : "") + " · " + (anchor.code || "");
-    svg.innerHTML = "<text x=\"18\" y=\"84\" fill=\"#4a6356\" font-size=\"12\">Ponto de inventário — sem série do gêmeo neste build.</text>";
-    note.textContent = "Use as âncoras curadas para abrir hidrograma / hietograma do evento.";
+    svg.innerHTML = "<text x=\"18\" y=\"84\" fill=\"#4a6356\" font-size=\"12\">Ponto de inventário G040 — sem série HEC neste build.</text>";
+    note.textContent = "Use as âncoras do braço Muçum para abrir hidrograma / hietograma do evento.";
     return;
   }
   const role = anchor.role;
@@ -681,10 +682,10 @@ function showInspector(anchor, kind) {
     (rainWin != null ? " · chuva UG " + Number(rainWin).toFixed(1) + " mm" : "");
   if (role === "target") {
     drawSeriesSvg(svg, series, rain, {W:520, H:168, pad:{l:40,r:12,t:12,b:28}, mode:"level", stroke:"#0f5c45"});
-    note.textContent = "Curva do produto: N estimado em Muçum + chuva proxy da janela.";
+    note.textContent = "Exutório Muçum (um braço da G040): N estimado + chuva proxy da janela.";
   } else if (role === "level_control") {
     drawSeriesSvg(svg, series, rain, {W:520, H:168, pad:{l:40,r:12,t:12,b:28}, mode:"level", stroke:"#1d4f91"});
-    note.textContent = "STZ = controle de nível (sem curva N↔Q inventada). Traço exibido = produto Muçum da mesma janela, só para contexto temporal.";
+    note.textContent = "STZ = controle de nível (sem curva N↔Q inventada). Traço = série do braço Muçum na mesma janela (contexto).";
   } else if (role === "rain") {
     const rainSeries = rain.map(function(v, i) {
       return {t: (series[i] && series[i].t) || ("i"+i), n_cm: Number(v) || 0};
@@ -693,7 +694,7 @@ function showInspector(anchor, kind) {
     note.textContent = "Hietograma proxy da janela (IFS pontual por sub-bacia — ainda não máscara areal ECMWF/REC).";
   } else {
     drawSeriesSvg(svg, series, rain, {W:520, H:168, pad:{l:40,r:12,t:12,b:28}, mode:"level", stroke:"#5a6570"});
-    note.textContent = "Monitor de montante: série do produto Muçum na janela (contexto). Sem curva local inventada.";
+    note.textContent = "Monitor de montante: série do braço Muçum na janela (contexto). Sem curva local inventada.";
   }
 }
 
@@ -722,28 +723,29 @@ const markers = {};
   const el = document.getElementById("mapFramingNote");
   if (!el) return;
   el.textContent =
-    "Bacia: " + (fr.g040_label_pt || "G040") + " (~" + fmt(fr.g040_km2, 0) + " km², 7 UGs) · " +
-    "produto gêmeo: corredor até Muçum (~" + fmt(fr.twin_domain_km2, 0) + " km²) · " +
-    "no mapa da bacia também: " + ((fr.excluded_ugs || []).join(", ") || "—") + " · rede G040 desligada por padrão (ligue no controle de camadas).";
+    "Assunto do mapa: " + (fr.g040_label_pt || "G040") + " (~" + fmt(fr.g040_km2, 0) + " km², 7 UGs). " +
+    "Contorno interno = braço Muçum (~" + fmt(fr.twin_domain_km2, 0) + " km²) — um exutório, não a bacia. " +
+    "No inventário também: " + ((fr.excluded_ugs || []).join(", ") || "—") +
+    ". Rede G040 desligada por padrão (ligue no controle de camadas).";
 })();
 
 const legend = L.control({position:"bottomright"});
 legend.onAdd = function() {
   const d = L.DomUtil.create("div", "legend");
   d.innerHTML =
-    "<div><i style=\"background:#0f5c45\"></i>alvo Muçum</div>" +
+    "<div><i style=\"background:#0f5c45\"></i>exutório Muçum</div>" +
     "<div><i style=\"background:#1d4f91\"></i>nível / controle</div>" +
     "<div><i style=\"background:#9a6b2f\"></i>Guaporé</div>" +
     "<div><i style=\"background:#5a6e8a\"></i>Forqueta</div>" +
     "<div><i style=\"background:#6a7a8e\"></i>Baixo</div>" +
     "<div><i style=\"background:#b8892d\"></i>foz BHO6</div>" +
-    "<div style=\"margin-top:.25rem\">fill colorido = 7 UGs · contorno = produto gêmeo</div>";
+    "<div style=\"margin-top:.25rem\">fill = 7 UGs G040 · contorno = braço Muçum</div>";
   return d;
 };
 legend.addTo(map);
 L.control.layers(null, {
   "Bacia G040":basinLayer,
-  "Produto gêmeo":ugLayer,
+  "Braço Muçum":ugLayer,
   "Fozes BHO6":fozLayer,
   "Chuva IFS":rainLayer,
   "Rede G040":networkLayer,
@@ -796,7 +798,7 @@ function renderNetwork() {
       "<strong>" + (p.name || p.code) + "</strong><br/>" +
       (isRain ? "chuva inventário" : "flu inventário") +
       (p.ug ? " · " + p.ug : "") +
-      (inTwin ? " · corredor gêmeo" : " · bacia G040 (fora do gêmeo Muçum)") +
+      (inTwin ? " · braço Muçum" : " · bacia G040 (fora do braço Muçum)") +
       "<br/>" + (p.code || "")
     );
     m.addTo(networkLayer);
@@ -1047,10 +1049,10 @@ function rainRadius(mm) {
 });
 
 function fozPositionPt(pos) {
-  if (pos === "upstream_or_at_antas") return "montante / na Antas (dentro do gêmeo)";
-  if (pos === "between_antas_and_santa_tereza") return "entre Antas e Santa Tereza (dentro do gêmeo)";
-  if (pos === "downstream_of_mucum") return "jusante de Muçum · fora do gêmeo";
-  return pos || "posição vs Muçum desconhecida";
+  if (pos === "upstream_or_at_antas") return "montante / na Antas (braço Muçum)";
+  if (pos === "between_antas_and_santa_tereza") return "entre Antas e Santa Tereza (braço Muçum)";
+  if (pos === "downstream_of_mucum") return "jusante de Muçum · ainda na G040, fora do braço";
+  return pos || "posição na G040 desconhecida";
 }
 
 async function loadFozes() {
@@ -1078,8 +1080,8 @@ async function loadFozes() {
         lyr.bindPopup(
           "<strong>" + (p.label || p.name || "Foz BHO6") + "</strong><br/>" +
           fozPositionPt(p.position_vs_controls) +
-          (delta != null ? "<br/>Δ área vs Muçum: " + Number(delta).toFixed(0) + " km²" : "") +
-          "<br/><span style=\"opacity:.8\">marca topológica — não é âncora do gêmeo</span>"
+          (delta != null ? "<br/>Δ área vs exutório Muçum: " + Number(delta).toFixed(0) + " km²" : "") +
+          "<br/><span style=\"opacity:.8\">marca topológica da bacia — não é âncora HEC</span>"
         );
       }
     }).addTo(fozLayer);
@@ -1132,17 +1134,17 @@ async function loadUgs() {
         const area = (feat.properties && feat.properties.area_km2_approx) || inv.area_km2_approx;
         lyr.bindPopup("<strong>" + name + "</strong><br/>" +
           (inTwin
-            ? "UG da bacia · também no produto gêmeo (corredor Muçum)"
-            : "UG da bacia G040 · inventário · sem forçante HEC até Muçum") +
+            ? "UG da bacia G040 · também no braço Muçum (HEC)"
+            : "UG da bacia G040 · inventário · fora do balanço HEC do braço Muçum") +
           (area != null ? "<br/>área ~" + Number(area).toFixed(0) + " km²" : "") +
           (inv.total != null ? "<br/>rede: flu " + inv.flu + " · chuva " + inv.rain + " · total " + inv.total : "") +
           (rainByUg[name] != null
             ? "<br/>chuva proxy produto: " + Number(rainByUg[name]).toFixed(1) + " mm"
-            : (inTwin ? "" : "<br/><em>sem ug_rain_mm HEC (fora do domínio)</em>")));
+            : (inTwin ? "" : "<br/><em>sem ug_rain_mm HEC (fora do braço Muçum)</em>")));
       }
     }).addTo(basinLayer);
 
-    // Secondary overlay: twin product domain outline.
+    // Secondary overlay: Muçum arm outline (one outlet inside G040).
     L.geoJSON(geo, {
       filter: function(feat) {
         const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "";
@@ -1155,7 +1157,7 @@ async function loadUgs() {
       onEachFeature: function(feat, lyr) {
         const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "UG";
         const rain = rainByUg[name];
-        lyr.bindPopup("<strong>" + name + "</strong><br/>produto gêmeo · corredor até Muçum" +
+        lyr.bindPopup("<strong>" + name + "</strong><br/>braço Muçum · um exutório da G040" +
           (rain != null ? "<br/>chuva proxy: " + Number(rain).toFixed(1) + " mm" : ""));
       }
     }).addTo(ugLayer);
@@ -1194,9 +1196,9 @@ async function loadUgs() {
   const meta = document.getElementById("corridorMeta");
   if (!chips) return;
   if (note) {
-    note.textContent = (c.label_pt || "Produto gêmeo · corredor até Muçum") +
+    note.textContent = (c.label_pt || "Braço Muçum · um exutório da G040") +
       (c.nested_area_km2 != null ? (" · ~" + Number(c.nested_area_km2).toFixed(0) + " km²") : "") +
-      " · dentro da bacia G040 · não substitui a bacia inteira";
+      " · dentro da bacia G040 · não é o assunto da página";
   }
   const rainBySb = {};
   ((((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f) {
@@ -1219,11 +1221,11 @@ async function loadUgs() {
     const counts = net.counts || {};
     const fr = ((DATA.spatial || {}).basin_framing) || {};
     meta.textContent =
-      "Bacia G040 · produto gêmeo UGs: " + ((fr.twin_domain_ugs || (DATA.spatial || {}).ug_twin_domain || []).join(", ")) +
+      "Bacia G040 · UGs do braço Muçum: " + ((fr.twin_domain_ugs || (DATA.spatial || {}).ug_twin_domain || []).join(", ")) +
       " · calibração: " + (c.calibration_method || "análogos") +
-      " · saída " + (c.outlet_pt || "Muçum") +
+      " · saída " + (c.outlet_pt || "Muçum (um exutório)") +
       " · no mapa também: " + ((c.excluded_pt || fr.excluded_ugs || []).join(", ") || "—") +
-      " · âncoras produto " + ((((DATA.spatial || {}).anchors) || []).length) +
+      " · âncoras braço " + ((((DATA.spatial || {}).anchors) || []).length) +
       " · rede G040 " + (counts.total != null ? counts.total : "—");
   }
 })();
