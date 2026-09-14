@@ -747,6 +747,118 @@
     };
   }
 
+  function errorWindowSnapshot(rows,windowHours){
+    const confirmed=rows.filter(item=>item.error!==null);
+    if(!confirmed.length){
+      return {n:0,mae:null,rmse:null,bias:null,maxAbs:null,hits:0,hitPct:null,referenceTime:null,groups:[],windowPoints:[],windowRows:[],pending:[]};
+    }
+    const referenceTime=confirmed.reduce((latest,item)=>item.target>latest?item.target:latest,confirmed[0].target);
+    const groups=errorReportGroups(rows,referenceTime,windowHours);
+    const windowPoints=groups.flatMap(group=>group.points);
+    const windowRows=groups.flatMap(group=>group.windowRows);
+    const pending=groups.flatMap(group=>group.pending);
+    return {...errorSummary(windowPoints),referenceTime,groups,windowPoints,windowRows,pending};
+  }
+
+  function metricText(value,suffix=' cm'){
+    return value===null||value===undefined?'—':nf1.format(value)+suffix;
+  }
+
+  function renderBriefing(current,items,historyRows){
+    const summary=document.getElementById('briefing-summary');
+    if(!summary) return;
+    const hours=ERROR_WINDOW_LABELS[state.errorWindowHours]?state.errorWindowHours:168;
+    const windowLabel=ERROR_WINDOW_LABELS[hours];
+    const snapshot=errorWindowSnapshot(historyRows,hours);
+    const primary=items.length?items[0]:null;
+    const liveState=document.getElementById('briefing-live-state');
+    const liveDetail=document.getElementById('briefing-live-detail');
+    const historyState=document.getElementById('briefing-history-state');
+    const historyDetail=document.getElementById('briefing-history-detail');
+    const badge=document.getElementById('briefing-state');
+    const currentBox=document.getElementById('briefing-current');
+    const currentWhen=document.getElementById('briefing-current-when');
+    const forecastBox=document.getElementById('briefing-forecast');
+    const forecastWhen=document.getElementById('briefing-forecast-when');
+    const windowBox=document.getElementById('briefing-window');
+    const windowDetail=document.getElementById('briefing-window-detail');
+    const sourceBox=document.getElementById('briefing-source');
+    const sourceDetail=document.getElementById('briefing-source-detail');
+    const footnote=document.getElementById('briefing-footnote');
+    const liveFresh=state.live&&(state.live._freshness||freshness(feedTimestamp(state.live),FRESHNESS.liveMinutes));
+    const historyLoaded=!!state.history;
+    const liveIsUsable=!!(state.live&&!state.liveError&&items.length&&!liveFresh.stale);
+
+    let liveLabel='não ativado',liveText='Ative a previsão ao vivo para carregar a rodada atual.',liveClass='unknown';
+    if(state.liveError){
+      liveLabel='indisponível';liveText=`O feed ao vivo não carregou: ${state.liveError.message}.`;liveClass='warn';
+    }else if(state.live){
+      liveLabel=liveFresh.stale?'atrasado':'disponível';
+      liveClass=liveFresh.stale?'warn':'good';
+      liveText=items.length?`${items.length} horizonte(s) publicado(s)${state.live.hora_modelo?` · rodada ${fmtWhen(state.live.hora_modelo)}`:''}.`:'Nenhum horizonte ativo foi publicado nesta rodada.';
+    }
+    if(liveState){liveState.textContent=liveLabel;liveState.dataset.state=liveClass;}
+    if(liveDetail) liveDetail.textContent=liveText;
+
+    let historyLabel='carregando',historyText='A fonte histórica ainda está carregando.',historyClass='unknown';
+    if(state.historyError){
+      historyLabel='indisponível';historyText=`O histórico não carregou: ${state.historyError.message}.`;historyClass='warn';
+    }else if(historyLoaded){
+      historyLabel=snapshot.n?`${nf0.format(snapshot.n)} conferidas`:'sem conferências';
+      historyText=snapshot.n?`Previsões comparadas com ANA em ${windowLabel}.`:'Ainda não há leitura ANA no mesmo horário-alvo nesta janela.';
+      historyClass=snapshot.n?'good':'unknown';
+    }
+    if(historyState){historyState.textContent=historyLabel;historyState.dataset.state=historyClass;}
+    if(historyDetail) historyDetail.textContent=historyText;
+
+    if(badge){
+      let badgeClass='unknown',badgeText='incompleto';
+      if(liveIsUsable&&snapshot.n){badgeClass='good';badgeText='ao vivo + conferência';}
+      else if(state.live&&liveFresh.stale){badgeClass='warn';badgeText='ao vivo atrasado';}
+      else if(snapshot.n){badgeClass='good';badgeText='histórico conferido';}
+      badge.className=`briefing-badge ${badgeClass}`;badge.textContent=badgeText;
+    }
+    if(currentBox) currentBox.textContent=fmtLevel(current&&current.cm!==undefined?current.cm:null);
+    if(currentWhen) currentWhen.textContent=current?`observado em ${fmtWhen(current.time)}`:'sem leitura observada';
+    if(forecastBox) forecastBox.textContent=primary?`+${primary.hours} h · ${fmtLevel(primary.cm)}`:'—';
+    if(forecastWhen) forecastWhen.textContent=primary?`alvo ${fmtWhen(primary.time)}`:(state.live?'sem horizonte utilizável':'ative o ao vivo');
+    if(windowBox) windowBox.textContent=windowLabel;
+    if(windowDetail) windowDetail.textContent=snapshot.n?`MAE ${metricText(snapshot.mae)} · viés ${snapshot.bias>0?'+':''}${metricText(snapshot.bias)}`:'sem amostra conferida';
+    if(sourceBox) sourceBox.textContent=state.live?'ANA + RNA':'ANA · histórico';
+    if(sourceDetail) sourceDetail.textContent=state.live?'rodada ao vivo separada do replay histórico':'sem previsão atual carregada';
+
+    let summaryText='';
+    if(state.live&&primary&&current) summaryText=`O rio está em ${fmtLevel(current.cm)} e a rodada ao vivo publica ${fmtLevel(primary.cm)} para +${primary.hours} h. `;
+    else if(!state.live) summaryText='O painel está mostrando o histórico conferido; a previsão atual fica separada e só aparece depois de ativar o ao vivo. ';
+    else if(state.live&&state.liveError) summaryText='A rodada ao vivo está indisponível; o histórico conferido continua separado para pesquisa. ';
+    else if(state.live) summaryText='A rodada ao vivo foi carregada, mas ainda não há um horizonte utilizável para resumir. ';
+    summaryText+=snapshot.n?`Na janela de ${windowLabel}, há ${nf0.format(snapshot.n)} previsões conferidas, MAE de ${metricText(snapshot.mae)} e viés de ${snapshot.bias>0?'+':''}${metricText(snapshot.bias)}.`:`Na janela de ${windowLabel}, ainda não há amostra conferida suficiente para calcular erro.`;
+    summary.textContent=summaryText;
+    if(footnote) footnote.textContent=`Pesquisa científica · ${windowLabel} selecionados para os erros · ausência ou atraso permanece visível · não é alerta oficial, ordem de evacuação ou autorização de rota.`;
+  }
+
+  function renderWindowComparison(rows,loading,error){
+    const body=document.getElementById('window-compare-body');
+    const source=document.getElementById('window-compare-source');
+    if(!body) return;
+    if(loading&&!error){body.innerHTML='<tr><td class="table-empty" colspan="6">Carregando as seis janelas de avaliação…</td></tr>';if(source) source.textContent='A tabela será preenchida somente com previsões e leituras auditáveis.';return;}
+    if(error){body.innerHTML='<tr><td class="table-empty" colspan="6">O histórico não carregou; nenhuma métrica foi substituída.</td></tr>';if(source) source.textContent='Falha ao carregar a fonte auditável; a comparação permanece sem números.';return;}
+    const confirmed=rows.filter(item=>item.error!==null);
+    if(!confirmed.length){body.innerHTML='<tr><td class="table-empty" colspan="6">Ainda não há previsões conferidas para comparar as janelas.</td></tr>';if(source) source.textContent='O cálculo exige uma leitura ANA exatamente no horário-alvo da previsão.';return;}
+    const hoursList=[168,120,72,24,12,6];
+    body.innerHTML=hoursList.map(hours=>{
+      const snap=errorWindowSnapshot(rows,hours),selected=hours===state.errorWindowHours;
+      const label=ERROR_WINDOW_LABELS[hours];
+      const sample=snap.n?'pares modelo × horário':(snap.windowRows.length?`${nf0.format(snap.windowRows.length)} pendentes`:'sem registros');
+      const hitClass=snap.hitPct===null?'':snap.hitPct>=80?'metric-good':snap.hitPct<50?'metric-warn':'';
+      return `<tr class="${selected?'selected':''}" data-window-row="${hours}"><td><strong>${label}</strong><small>${selected?'selecionada':'clique no botão acima para detalhar'}</small></td><td>${nf0.format(snap.n)}<small>${sample}</small></td><td class="${hitClass}">${snap.hitPct===null?'—':nf1.format(snap.hitPct)+'%'}</td><td>${metricText(snap.mae)}</td><td>${metricText(snap.rmse)}</td><td>${snap.bias===null?'—':`${snap.bias>0?'+':''}${metricText(snap.bias)}`}</td></tr>`;
+    }).join('');
+    if(source){
+      const latest=errorWindowSnapshot(rows,168).referenceTime;
+      source.textContent=`Comparação calculada a partir das mesmas previsões conferidas do relatório ao vivo; último horário-alvo com resultado: ${fmtWhen(latest)}. MAE, RMSE e viés são recalculados dentro de cada janela. “Acerto” significa erro absoluto até ${ERROR_HIT_LIMIT_CM} cm.`;
+    }
+  }
+
   function errorPath(points,field,X,Y,maxGapMs){
     return points.map((point,index)=>{
       const previous=points[index-1];
@@ -859,6 +971,7 @@
     });
     const liveRows=state.history?errorReportRows(state.history):[];
     renderErrorPanel(liveRows,!state.history, state.historyError, {grid:'rna-error-grid',summary:'rna-error-summary',source:'rna-error-source'}, 'live');
+    renderWindowComparison(liveRows,!state.history,state.historyError);
     const catalogRows=state.auditCatalog?errorReportRows(catalogErrorRows(state.auditCatalog)):[];
     renderErrorPanel(catalogRows,!state.auditCatalog, state.auditCatalogError, {grid:'rna-catalog-error-grid',summary:'rna-catalog-error-summary',source:'rna-catalog-error-source'}, 'catalog');
   }
@@ -1069,6 +1182,7 @@
     renderLegend(items,previous24.length>0||previousWeek.length>0);
     renderWeekCoverage(weekPoints);
     renderErrorReport();
+    renderBriefing(current,items,state.history?errorReportRows(state.history):[]);
     renderMetrics(current,items,trend,flood,state.config.cotaInundCm);
     renderRobotStatus();
     renderResearchRisk();
