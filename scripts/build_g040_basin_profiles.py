@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Perfis por município + eixos longitudinais MDT da bacia G040.
 
-Produto principal: hipsometria SRTM na área de cada município da G040.
-Complementar: eixos BHO6 (tronco 786 / Guaporé 7864 / Forqueta 7862),
-marcadores de postos/fozes. Não é seção hidráulica, não alimenta alerta.
+Produto principal: hipsometria SRTM na área de cada município ∩ G040,
+com UG principal. Complementar: eixos BHO6 (tronco / Prata / Carreiro /
+Guaporé / Forqueta), marcadores de postos/fozes. Não é seção hidráulica.
 
 Saídas (estudo G040):
   - perfis_longitudinais_g040_latest.json
@@ -102,6 +102,20 @@ PROFILES = [
         "note_pt": "Eixo principal da G040 (cabeceira → Baixo), passa por Muçum e recebe Guaporé/Forqueta.",
     },
     {
+        "id": "prata",
+        "label_pt": "Sistema Prata / Turvo–Humatã (BHO 7868)",
+        "cocursodag": "7868",
+        "role": "tributary_join_upstream_stz",
+        "note_pt": "Afluente do tronco a montante de Santa Tereza; foz BHO 7868.",
+    },
+    {
+        "id": "carreiro",
+        "label_pt": "Rio Carreiro (BHO 7866)",
+        "cocursodag": "7866",
+        "role": "tributary_join_between_antas_stz",
+        "note_pt": "Afluente entre Antas e Santa Tereza; PCH Caçador no eixo; foz BHO 7866.",
+    },
+    {
         "id": "guapore",
         "label_pt": "Rio Guaporé (BHO 7864)",
         "cocursodag": "7864",
@@ -116,6 +130,8 @@ PROFILES = [
         "note_pt": "Afluente que entra jusante de Encantado; foz BHO fid 3999116.",
     },
 ]
+
+UGS_GEOJSON = OUT / "ugs_g040.geojson"
 
 TO_UTM = Transformer.from_crs("EPSG:4326", "EPSG:31982", always_xy=True)
 TO_WGS = Transformer.from_crs("EPSG:31982", "EPSG:4326", always_xy=True)
@@ -357,6 +373,57 @@ def load_g040_polygon() -> Any:
             return geom
     raise ValueError("G040 feature not found in bacias_rs_25.geojson")
 
+
+def load_ug_polygons() -> list[tuple[str, Any]]:
+    """Return [(ug_name, geometry), ...] for the 7 UGs of G040."""
+    if not UGS_GEOJSON.exists():
+        print("WARN: UG geojson missing", UGS_GEOJSON)
+        return []
+    data = json.loads(UGS_GEOJSON.read_text(encoding="utf-8"))
+    out: list[tuple[str, Any]] = []
+    for feat in data.get("features") or []:
+        props = feat.get("properties") or {}
+        name = str(props.get("sub_bacia") or props.get("bacia_hidr") or "").strip()
+        if not name:
+            continue
+        geom = shape(feat["geometry"])
+        if not geom.is_valid:
+            geom = geom.buffer(0)
+        if geom.is_empty:
+            continue
+        out.append((name, geom))
+    return out
+
+
+def primary_ug_for_poly(poly: Any, ug_polys: list[tuple[str, Any]]) -> dict[str, Any] | None:
+    """Pick UG with largest intersection area with the (clipped) municipal polygon."""
+    if not ug_polys or poly is None or poly.is_empty:
+        return None
+    best_name = None
+    best_area = 0.0
+    overlaps: list[dict[str, Any]] = []
+    poly_area = area_km2(poly)
+    for name, ug in ug_polys:
+        inter = poly.intersection(ug)
+        if inter.is_empty:
+            continue
+        a = area_km2(inter)
+        if a <= 0:
+            continue
+        pct = round(100.0 * a / poly_area, 1) if poly_area > 0 else None
+        overlaps.append({"ug": name, "area_km2": round(a, 2), "pct": pct})
+        if a > best_area:
+            best_area = a
+            best_name = name
+    if best_name is None:
+        return None
+    overlaps.sort(key=lambda o: -float(o["area_km2"]))
+    return {
+        "ug": best_name,
+        "area_km2": round(best_area, 2),
+        "pct": round(100.0 * best_area / poly_area, 1) if poly_area > 0 else None,
+        "overlaps": overlaps,
+    }
 
 def sample_hypsometry(
     dem: rasterio.DatasetReader,
@@ -601,8 +668,8 @@ def attach_axis_markers(
                     "prefer_axis": {
                         "7864": "guapore",
                         "7862": "forqueta",
-                        "7868": "tronco_taquari_antas",
-                        "7866": "tronco_taquari_antas",
+                        "7868": "prata",
+                        "7866": "carreiro",
                     }.get(family),
                 }
             )
@@ -705,7 +772,8 @@ def build_municipal_profiles(
         return []
     mun = json.loads(MUN_GEOJSON.read_text(encoding="utf-8"))
     g040 = load_g040_polygon()
-    print("G040 polygon loaded, area_km2", round(area_km2(g040), 1))
+    ug_polys = load_ug_polygons()
+    print("G040 polygon loaded, area_km2", round(area_km2(g040), 1), "ugs", len(ug_polys))
     axis_utm = {
         aid: shapely_transform(lambda x, y: TO_UTM.transform(x, y), line)
         for aid, line in axis_lines.items()
@@ -732,6 +800,7 @@ def build_municipal_profiles(
         area_full = area_km2(poly_full)
         area_in = area_km2(poly_in)
         pct_geom = round(100.0 * area_in / area_full, 1) if area_full > 0 else None
+        ug_info = primary_ug_for_poly(poly_in, ug_polys)
 
         hypo = sample_hypsometry(dem, poly_in)
         if hypo is None:
@@ -802,6 +871,9 @@ def build_municipal_profiles(
                 "pct_na_bacia": pct_geom if pct_geom is not None else props.get("pct_na_bacia"),
                 "pct_na_bacia_attr": props.get("pct_na_bacia"),
                 "status_borda_bacia": "parcial" if border else "total",
+                "ug": None if ug_info is None else ug_info.get("ug"),
+                "ug_overlap_pct": None if ug_info is None else ug_info.get("pct"),
+                "ug_overlaps": None if ug_info is None else ug_info.get("overlaps"),
                 "hypsometry_domain": "municipio_intersect_g040",
                 "area_mun_km2": round(area_full, 2),
                 "area_in_basin_km2": round(area_in, 2),
@@ -828,15 +900,21 @@ def build_municipal_profiles(
                     "river_length_km": None
                     if primary is None
                     else primary["summary"].get("length_km"),
+                    "ug": None if ug_info is None else ug_info.get("ug"),
                 },
                 "label_pt": f"{nome} · hipsometria na G040",
                 "note_pt": (
                     "Perfil por município = hipsometria SRTM na interseção "
                     "polígono IBGE ∩ bacia oficial G040 (cota vs % de área abaixo). "
                     + (
-                        "Trecho de rio no eixo BHO6 é complementar."
+                        f"UG principal: {ug_info.get('ug')}."
+                        if ug_info
+                        else ""
+                    )
+                    + (
+                        " Trecho de rio no eixo BHO6 é complementar."
                         if stretches
-                        else "Município não cruza os eixos tronco/Guaporé/Forqueta plotados."
+                        else " Município não cruza os eixos BHO plotados."
                     )
                     + (
                         f" Borda: {pct_geom}% da área municipal dentro da G040 "
@@ -939,7 +1017,9 @@ def build_html(report: dict[str, Any]) -> str:
         s = m["summary"]
         axes_attr = " ".join(m.get("axes") or [])
         pct = m.get("pct_na_bacia")
+        ug = m.get("ug") or "—"
         meta = (
+            f"UG {ug} · "
             f"área na G040 {s.get('area_in_basin_km2') or s.get('area_km2')} km² · "
             f"% mun {pct} · "
             f"cota {s.get('elev_min_m')}–{s.get('elev_max_m')} m · "
@@ -955,8 +1035,9 @@ def build_html(report: dict[str, Any]) -> str:
                 f"{rs.get('length_km')} km · queda {rs.get('drop_m')} m</p>"
                 f"{m['river_svg']}"
             )
+        ug_slug = (ug or "").lower().replace(" ", "-")
         mun_cards.append(
-            f"""<section class="profile mun" data-axes="{axes_attr}" data-nome="{(m.get('nome') or '').lower()}" data-has-river="{'1' if m.get('river_svg') else '0'}">
+            f"""<section class="profile mun" data-axes="{axes_attr}" data-ug="{ug_slug}" data-nome="{(m.get('nome') or '').lower()}" data-has-river="{'1' if m.get('river_svg') else '0'}">
   <h2>{m.get('nome')}</h2>
   <div class="meta">{meta}</div>
   <p class="note">{m.get('note_pt') or ''}</p>
@@ -1028,17 +1109,30 @@ th {{ color:var(--muted); font-weight:650; }}
 <div class="filters" id="axisFilters">
   <button type="button" class="active" data-axis="all">todos</button>
   <button type="button" data-axis="tronco_taquari_antas">com tronco</button>
+  <button type="button" data-axis="prata">com Prata</button>
+  <button type="button" data-axis="carreiro">com Carreiro</button>
   <button type="button" data-axis="guapore">com Guaporé</button>
   <button type="button" data-axis="forqueta">com Forqueta</button>
   <button type="button" data-axis="sem_eixo">só área (sem eixo)</button>
 </div>
+<div class="filters" id="ugFilters">
+  <button type="button" class="active" data-ug="all">todas UGs</button>
+  <button type="button" data-ug="alto-taquari-antas">Alto</button>
+  <button type="button" data-ug="médio-taquari-antas">Médio</button>
+  <button type="button" data-ug="prata">Prata</button>
+  <button type="button" data-ug="carreiro">Carreiro</button>
+  <button type="button" data-ug="guaporé">Guaporé</button>
+  <button type="button" data-ug="forqueta">Forqueta</button>
+  <button type="button" data-ug="baixo-taquari-antas">Baixo</button>
+</div>
 <p><input id="munSearch" type="search" placeholder="Filtrar município…" aria-label="Filtrar município"/></p>
 <div class="table-wrap" style="margin-bottom:.8rem">
 <table>
-<thead><tr><th>Município</th><th>% G040</th><th>Área na G040 km²</th><th>Cota min–max</th><th>Mediana</th><th>Relevo m</th><th>Eixos</th></tr></thead>
+<thead><tr><th>Município</th><th>UG</th><th>% G040</th><th>Área na G040 km²</th><th>Cota min–max</th><th>Mediana</th><th>Relevo m</th><th>Eixos</th></tr></thead>
 <tbody>
 {''.join(
     f"<tr><td>{m.get('nome')}</td>"
+    f"<td>{m.get('ug') or '—'}</td>"
     f"<td>{m.get('pct_na_bacia')}</td>"
     f"<td>{(m.get('summary') or {}).get('area_in_basin_km2') or (m.get('summary') or {}).get('area_km2')}</td>"
     f"<td>{(m.get('summary') or {}).get('elev_min_m')}–{(m.get('summary') or {}).get('elev_max_m')}</td>"
@@ -1053,9 +1147,9 @@ th {{ color:var(--muted); font-weight:650; }}
 {''.join(mun_cards)}
 
 <h2 class="section-title" id="mapa">Mapa dos eixos (complementar)</h2>
-<p class="note">Tronco, Guaporé e Forqueta (BHO6) com postos-chave e fozes projetados no eixo mais próximo.</p>
+<p class="note">Tronco, Prata, Carreiro, Guaporé e Forqueta (BHO6) com postos-chave e fozes projetados no eixo mais próximo.</p>
 <div id="axisMap" role="img" aria-label="mapa dos eixos longitudinais G040"></div>
-<p class="map-legend">Linha verde = tronco · azul = Guaporé · ocre = Forqueta · círculos = flu · losangos = foz.</p>
+<p class="map-legend">Verde = tronco · roxo = Prata · teal = Carreiro · azul = Guaporé · ocre = Forqueta · círculos = flu · losangos = foz.</p>
 
 <h2 class="section-title">Eixos da bacia (complementar)</h2>
 {''.join(cards)}
@@ -1067,28 +1161,39 @@ cota amostrada no terreno (não leito hidráulico). {report['discipline']['cavea
 <script id="mapData" type="application/json">{map_json}</script>
 <script>
 (function() {{
-  const buttons = Array.from(document.querySelectorAll('#axisFilters button'));
+  const axisButtons = Array.from(document.querySelectorAll('#axisFilters button'));
+  const ugButtons = Array.from(document.querySelectorAll('#ugFilters button'));
   const cards = Array.from(document.querySelectorAll('section.mun'));
   const search = document.getElementById('munSearch');
   let axis = 'all';
+  let ug = 'all';
   function apply() {{
     const q = (search && search.value || '').trim().toLowerCase();
     cards.forEach(function(card) {{
       const axesRaw = (card.getAttribute('data-axes') || '').trim();
       const axes = axesRaw ? axesRaw.split(/\\s+/) : [];
       const nome = card.getAttribute('data-nome') || '';
+      const cardUg = card.getAttribute('data-ug') || '';
       const hasRiver = card.getAttribute('data-has-river') === '1';
       let okAxis = true;
       if (axis === 'sem_eixo') okAxis = !hasRiver;
       else if (axis !== 'all') okAxis = axes.indexOf(axis) >= 0;
+      const okUg = ug === 'all' || cardUg === ug;
       const okName = !q || nome.indexOf(q) >= 0;
-      card.classList.toggle('hidden', !(okAxis && okName));
+      card.classList.toggle('hidden', !(okAxis && okUg && okName));
     }});
   }}
-  buttons.forEach(function(b) {{
+  axisButtons.forEach(function(b) {{
     b.addEventListener('click', function() {{
       axis = b.getAttribute('data-axis') || 'all';
-      buttons.forEach(function(x) {{ x.classList.toggle('active', x === b); }});
+      axisButtons.forEach(function(x) {{ x.classList.toggle('active', x === b); }});
+      apply();
+    }});
+  }});
+  ugButtons.forEach(function(b) {{
+    b.addEventListener('click', function() {{
+      ug = b.getAttribute('data-ug') || 'all';
+      ugButtons.forEach(function(x) {{ x.classList.toggle('active', x === b); }});
       apply();
     }});
   }});
@@ -1104,6 +1209,8 @@ cota amostrada no terreno (não leito hidráulico). {report['discipline']['cavea
   }}).addTo(map);
   const colors = {{
     tronco_taquari_antas: '#0f5c45',
+    prata: '#6b3fa0',
+    carreiro: '#0e7c7b',
     guapore: '#1d6f9c',
     forqueta: '#8a5a12'
   }};
@@ -1218,14 +1325,15 @@ def main() -> None:
     print("axis markers", len(axis_markers))
 
     report = {
-        "schema_version": "g040_basin_profiles_v5",
+        "schema_version": "g040_basin_profiles_v6",
         "generated_at_utc": utc_now(),
         "status": "research_profiles_ready",
         "purpose_pt": (
             "Perfil por município na bacia oficial Taquari–Antas (G040): hipsometria SRTM "
-            "na interseção município IBGE ∩ G040 (cota × % da área abaixo). Complementar: "
-            "eixos BHO6 (tronco 786, Guaporé 7864, Forqueta 7862) com marcadores de "
-            "postos/fozes. Diagnóstico de relevo — não é seção hidráulica nem alerta."
+            "na interseção município IBGE ∩ G040 (cota × % da área abaixo), com UG principal. "
+            "Complementar: eixos BHO6 (tronco 786, Prata 7868, Carreiro 7866, Guaporé 7864, "
+            "Forqueta 7862) com marcadores de postos/fozes. Diagnóstico de relevo — não é "
+            "seção hidráulica nem alerta."
         ),
         "discipline": {
             "not_hydraulic_cross_section": True,
@@ -1257,6 +1365,7 @@ def main() -> None:
             "families": [p["cocursodag"] for p in PROFILES],
             "municipalities_source": str(MUN_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
             "basin_source": str(BACIAS_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
+            "ugs_source": str(UGS_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
             "postos_source": str(POSTOS_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
             "fozes_source": str(FOZES_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
         },
