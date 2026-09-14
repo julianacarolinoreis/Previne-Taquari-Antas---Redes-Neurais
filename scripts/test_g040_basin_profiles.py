@@ -49,9 +49,11 @@ class G040BasinProfilesTests(unittest.TestCase):
         self.assertTrue(d["not_hydraulic_cross_section"])
         self.assertTrue(d["research_not_alert"])
         self.assertTrue(d.get("municipal_profiles_are_hypsometry"))
+        self.assertTrue(d.get("municipal_hypsometry_clipped_to_g040"))
+        self.assertFalse(d.get("border_mun_use_full_polygon"))
         self.assertTrue(d.get("markers_are_axis_projections"))
         self.assertIn("SRTM", self.report["dem"]["source"])
-        self.assertEqual(self.report["schema_version"], "g040_basin_profiles_v4")
+        self.assertEqual(self.report["schema_version"], "g040_basin_profiles_v5")
 
     def test_axis_markers(self) -> None:
         markers = self.report.get("axis_markers") or []
@@ -81,20 +83,27 @@ class G040BasinProfilesTests(unittest.TestCase):
             self.assertIn(required, names)
         mucum = next(m for m in muns if m["nome"] == "Muçum")
         hypo = mucum.get("hypsometry") or {}
+        self.assertEqual(mucum.get("hypsometry_domain"), "municipio_intersect_g040")
         self.assertGreater(hypo.get("area_km2") or 0, 50)
         self.assertGreater(hypo.get("relief_m") or 0, 10)
         self.assertGreaterEqual(len(hypo.get("curve") or []), 20)
         self.assertIn("tronco_taquari_antas", mucum.get("axes") or [])
         self.assertIsNotNone(mucum.get("river_svg"))
-        # Border mun still has area hypsometry even without main axes.
+        # Border mun: hypsometry clipped to G040 (area_in << area_mun).
         montenegro = next(m for m in muns if m["nome"] == "Montenegro")
         self.assertGreater((montenegro.get("hypsometry") or {}).get("n_pixels") or 0, 100)
+        self.assertLess(float(montenegro.get("pct_na_bacia") or 100), 20)
+        self.assertLess(
+            float(montenegro.get("area_in_basin_km2") or 0),
+            float(montenegro.get("area_mun_km2") or 1e9) * 0.25,
+        )
         html = PAGES.read_text(encoding="utf-8")
         self.assertIn("Perfis por município", html)
         self.assertIn("hipsometria", html.lower())
         self.assertIn("munSearch", html)
         self.assertIn("Muçum", html)
         self.assertIn("área abaixo da cota", html)
+        self.assertIn("interseção", html.lower())
 
     def test_html_artifacts(self) -> None:
         for path in (HTML, PAGES):

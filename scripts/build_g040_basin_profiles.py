@@ -38,6 +38,7 @@ DEM_DIR = OUT / "_dem_srtm_g040"
 DEM_DIR.mkdir(parents=True, exist_ok=True)
 PAGES_HTML = ROOT / "pesquisas" / "perfis-g040-mdt.html"
 MUN_GEOJSON = ROOT / "assets" / "data" / "vulnerabilidade" / "municipios.geojson"
+BACIAS_GEOJSON = OUT / "bacias_rs_25.geojson"
 POSTOS_GEOJSON = OUT / "postos_g040.geojson"
 FOZES_GEOJSON = OUT / "fozes_principais_bho6.geojson"
 
@@ -336,12 +337,33 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def area_km2(geom: Any) -> float:
+    if geom is None or geom.is_empty:
+        return 0.0
+    return float(shapely_transform(lambda x, y: TO_UTM.transform(x, y), geom).area) / 1e6
+
+
+def load_g040_polygon() -> Any:
+    """Official G040 polygon from the RS 25-basins layer."""
+    if not BACIAS_GEOJSON.exists():
+        raise FileNotFoundError(f"missing basin layer: {BACIAS_GEOJSON}")
+    data = json.loads(BACIAS_GEOJSON.read_text(encoding="utf-8"))
+    for feat in data.get("features") or []:
+        props = feat.get("properties") or {}
+        if str(props.get("codigo") or "").upper() == "G040":
+            geom = shape(feat["geometry"])
+            if not geom.is_valid:
+                geom = geom.buffer(0)
+            return geom
+    raise ValueError("G040 feature not found in bacias_rs_25.geojson")
+
+
 def sample_hypsometry(
     dem: rasterio.DatasetReader,
     poly: Any,
     max_curve_pts: int = 120,
 ) -> dict[str, Any] | None:
-    """Area hypsometry of SRTM inside the município polygon."""
+    """Area hypsometry of SRTM inside a polygon (município ∩ G040)."""
     try:
         data, _ = raster_mask(dem, [mapping(poly)], crop=True, filled=True, nodata=dem.nodata)
     except ValueError:
@@ -357,8 +379,7 @@ def sample_hypsometry(
         return None
     elevs = np.sort(valid.astype(np.float64))
     n = int(elevs.size)
-    area_utm = shapely_transform(lambda x, y: TO_UTM.transform(x, y), poly).area
-    area_km2 = float(area_utm) / 1e6
+    area_km2_val = area_km2(poly)
     idx = np.linspace(0, n - 1, num=min(max_curve_pts, n), dtype=int)
     curve = [
         {
@@ -369,7 +390,7 @@ def sample_hypsometry(
     ]
     return {
         "n_pixels": n,
-        "area_km2": round(area_km2, 2),
+        "area_km2": round(area_km2_val, 2),
         "elev_min_m": round(float(elevs[0]), 1),
         "elev_max_m": round(float(elevs[-1]), 1),
         "elev_mean_m": round(float(elevs.mean()), 1),
@@ -678,34 +699,50 @@ def build_municipal_profiles(
     axis_lines: dict[str, LineString],
     axis_labels: dict[str, str],
 ) -> list[dict[str, Any]]:
-    """Perfil por município: hipsometria de área (+ trecho de rio quando cruza eixo)."""
+    """Perfil por município: hipsometria na área do município ∩ G040."""
     if not MUN_GEOJSON.exists():
         print("WARN: municipal geojson missing", MUN_GEOJSON)
         return []
     mun = json.loads(MUN_GEOJSON.read_text(encoding="utf-8"))
+    g040 = load_g040_polygon()
+    print("G040 polygon loaded, area_km2", round(area_km2(g040), 1))
     axis_utm = {
         aid: shapely_transform(lambda x, y: TO_UTM.transform(x, y), line)
         for aid, line in axis_lines.items()
     }
     out: list[dict[str, Any]] = []
+    skipped_empty = 0
     for feat in mun["features"]:
         props = feat.get("properties") or {}
         nome = props.get("nome") or props.get("NM_MUN") or "Município"
         cod = str(props.get("cod_mun") or props.get("CD_MUN") or "")
-        poly = shape(feat["geometry"])
-        if not poly.is_valid:
-            poly = poly.buffer(0)
-        if poly.is_empty:
+        poly_full = shape(feat["geometry"])
+        if not poly_full.is_valid:
+            poly_full = poly_full.buffer(0)
+        if poly_full.is_empty:
             continue
 
-        hypo = sample_hypsometry(dem, poly)
+        poly_in = poly_full.intersection(g040)
+        if not poly_in.is_valid:
+            poly_in = poly_in.buffer(0)
+        if poly_in.is_empty:
+            skipped_empty += 1
+            continue
+
+        area_full = area_km2(poly_full)
+        area_in = area_km2(poly_in)
+        pct_geom = round(100.0 * area_in / area_full, 1) if area_full > 0 else None
+
+        hypo = sample_hypsometry(dem, poly_in)
         if hypo is None:
+            skipped_empty += 1
             continue
         hypo_svg = svg_hypsometry(hypo)
 
+        # River clips against the full municipal polygon (axes already in-basin).
         stretches: list[dict[str, Any]] = []
         for aid, line in axis_lines.items():
-            inter = line.intersection(poly)
+            inter = line.intersection(poly_full)
             parts = line_parts(inter)
             if not parts:
                 continue
@@ -756,13 +793,18 @@ def build_municipal_profiles(
         if stretches:
             primary = max(stretches, key=lambda s: float(s["summary"].get("length_km") or 0))
 
+        border = bool(pct_geom is not None and pct_geom < 99.5)
         out.append(
             {
                 "id": f"mun_{cod}",
                 "cod_mun": cod,
                 "nome": nome,
-                "pct_na_bacia": props.get("pct_na_bacia"),
-                "status_borda_bacia": props.get("status_borda_bacia"),
+                "pct_na_bacia": pct_geom if pct_geom is not None else props.get("pct_na_bacia"),
+                "pct_na_bacia_attr": props.get("pct_na_bacia"),
+                "status_borda_bacia": "parcial" if border else "total",
+                "hypsometry_domain": "municipio_intersect_g040",
+                "area_mun_km2": round(area_full, 2),
+                "area_in_basin_km2": round(area_in, 2),
                 "hypsometry": {
                     **{k: v for k, v in hypo.items() if k != "curve"},
                     "curve": hypo["curve"],
@@ -775,6 +817,8 @@ def build_municipal_profiles(
                 "river_svg": None if primary is None else primary["svg"],
                 "summary": {
                     "area_km2": hypo["area_km2"],
+                    "area_mun_km2": round(area_full, 2),
+                    "area_in_basin_km2": round(area_in, 2),
                     "elev_min_m": hypo["elev_min_m"],
                     "elev_max_m": hypo["elev_max_m"],
                     "elev_mean_m": hypo["elev_mean_m"],
@@ -785,18 +829,19 @@ def build_municipal_profiles(
                     if primary is None
                     else primary["summary"].get("length_km"),
                 },
-                "label_pt": f"{nome} · hipsometria municipal",
+                "label_pt": f"{nome} · hipsometria na G040",
                 "note_pt": (
-                    "Perfil por município = hipsometria SRTM na área do polígono IBGE "
-                    "(cota vs % de área abaixo). "
+                    "Perfil por município = hipsometria SRTM na interseção "
+                    "polígono IBGE ∩ bacia oficial G040 (cota vs % de área abaixo). "
                     + (
                         "Trecho de rio no eixo BHO6 é complementar."
                         if stretches
                         else "Município não cruza os eixos tronco/Guaporé/Forqueta plotados."
                     )
                     + (
-                        f" Atenção: só {props.get('pct_na_bacia')}% da área municipal está na G040."
-                        if float(props.get("pct_na_bacia") or 100) < 99.5
+                        f" Borda: {pct_geom}% da área municipal dentro da G040 "
+                        f"({round(area_in, 1)} de {round(area_full, 1)} km²)."
+                        if border
                         else ""
                     )
                 ),
@@ -808,7 +853,7 @@ def build_municipal_profiles(
             m["nome"],
         )
     )
-    print("municipal profiles", len(out))
+    print("municipal profiles", len(out), "skipped_empty", skipped_empty)
     return out
 
 
@@ -895,8 +940,8 @@ def build_html(report: dict[str, Any]) -> str:
         axes_attr = " ".join(m.get("axes") or [])
         pct = m.get("pct_na_bacia")
         meta = (
-            f"área {s.get('area_km2')} km² · "
-            f"% na G040 {pct} · "
+            f"área na G040 {s.get('area_in_basin_km2') or s.get('area_km2')} km² · "
+            f"% mun {pct} · "
             f"cota {s.get('elev_min_m')}–{s.get('elev_max_m')} m · "
             f"mediana {s.get('elev_median_m')} m · "
             f"relevo {s.get('relief_m')} m"
@@ -979,7 +1024,7 @@ th {{ color:var(--muted); font-weight:650; }}
 </header>
 <main>
 <h2 class="section-title" id="municipios">Perfis por município</h2>
-<p class="note">Hipsometria SRTM na área de cada município da G040 (cota × % da área abaixo). Trecho de rio nos eixos BHO6 é complementar quando o polígono cruza o eixo. {n_mun} municípios.</p>
+<p class="note">Hipsometria SRTM na interseção município IBGE ∩ bacia oficial G040 (cota × % da área abaixo). Trecho de rio nos eixos BHO6 é complementar. {n_mun} municípios.</p>
 <div class="filters" id="axisFilters">
   <button type="button" class="active" data-axis="all">todos</button>
   <button type="button" data-axis="tronco_taquari_antas">com tronco</button>
@@ -990,12 +1035,12 @@ th {{ color:var(--muted); font-weight:650; }}
 <p><input id="munSearch" type="search" placeholder="Filtrar município…" aria-label="Filtrar município"/></p>
 <div class="table-wrap" style="margin-bottom:.8rem">
 <table>
-<thead><tr><th>Município</th><th>% G040</th><th>Área km²</th><th>Cota min–max</th><th>Mediana</th><th>Relevo m</th><th>Eixos</th></tr></thead>
+<thead><tr><th>Município</th><th>% G040</th><th>Área na G040 km²</th><th>Cota min–max</th><th>Mediana</th><th>Relevo m</th><th>Eixos</th></tr></thead>
 <tbody>
 {''.join(
     f"<tr><td>{m.get('nome')}</td>"
     f"<td>{m.get('pct_na_bacia')}</td>"
-    f"<td>{(m.get('summary') or {}).get('area_km2')}</td>"
+    f"<td>{(m.get('summary') or {}).get('area_in_basin_km2') or (m.get('summary') or {}).get('area_km2')}</td>"
     f"<td>{(m.get('summary') or {}).get('elev_min_m')}–{(m.get('summary') or {}).get('elev_max_m')}</td>"
     f"<td>{(m.get('summary') or {}).get('elev_median_m')}</td>"
     f"<td>{(m.get('summary') or {}).get('relief_m')}</td>"
@@ -1173,14 +1218,14 @@ def main() -> None:
     print("axis markers", len(axis_markers))
 
     report = {
-        "schema_version": "g040_basin_profiles_v4",
+        "schema_version": "g040_basin_profiles_v5",
         "generated_at_utc": utc_now(),
         "status": "research_profiles_ready",
         "purpose_pt": (
             "Perfil por município na bacia oficial Taquari–Antas (G040): hipsometria SRTM "
-            "na área de cada município (cota × % da área abaixo). Complementar: eixos BHO6 "
-            "(tronco 786, Guaporé 7864, Forqueta 7862) com marcadores de postos/fozes. "
-            "Diagnóstico de relevo — não é seção hidráulica nem alerta."
+            "na interseção município IBGE ∩ G040 (cota × % da área abaixo). Complementar: "
+            "eixos BHO6 (tronco 786, Guaporé 7864, Forqueta 7862) com marcadores de "
+            "postos/fozes. Diagnóstico de relevo — não é seção hidráulica nem alerta."
         ),
         "discipline": {
             "not_hydraulic_cross_section": True,
@@ -1189,13 +1234,14 @@ def main() -> None:
             "research_not_alert": True,
             "dem_is_srtm_surface_approx": True,
             "municipal_profiles_are_hypsometry": True,
+            "municipal_hypsometry_clipped_to_g040": True,
             "municipal_river_clips_are_complementary": True,
             "markers_are_axis_projections": True,
-            "border_mun_use_full_polygon": True,
+            "border_mun_use_full_polygon": False,
             "caveat_pt": (
                 "SRTM ≈ superfície/terreno grosso (~30 m). Perfil municipal = hipsometria "
-                "na área do polígono IBGE (não só o rio). Municípios de borda usam o "
-                "polígono inteiro — veja pct_na_bacia. Trechos de rio e marcadores são "
+                "na área do município dentro da G040 (IBGE ∩ bacia oficial). "
+                "pct_na_bacia vem da geometria. Trechos de rio e marcadores são "
                 "complementares. Não é leito hidráulico nem alerta."
             ),
         },
@@ -1210,6 +1256,7 @@ def main() -> None:
             "source": "ANA BHO6 FeatureServer main_geoft_bho6_trecho_drenagem",
             "families": [p["cocursodag"] for p in PROFILES],
             "municipalities_source": str(MUN_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
+            "basin_source": str(BACIAS_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
             "postos_source": str(POSTOS_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
             "fozes_source": str(FOZES_GEOJSON.relative_to(ROOT)).replace("\\", "/"),
         },
