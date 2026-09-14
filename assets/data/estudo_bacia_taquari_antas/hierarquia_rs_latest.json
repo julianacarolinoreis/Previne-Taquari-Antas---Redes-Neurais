@@ -1,0 +1,1340 @@
+{
+  "schema_version": "estudo_hierarquia_rs_v1",
+  "generated_at_utc": "2026-09-08T22:33:22.943789+00:00",
+  "purpose": "estudo profundo da hierarquia hidrografica do RS e da influencia sobre Taquari-Antas; NAO e HEC",
+  "discipline_rule": "Nao tratar 32 sub-bacias de enquadramento como se fossem todas as unidades da bacia. Ha varios niveis com fins distintos.",
+  "correction": {
+    "wrong_reading": "A Taquari-Antas tem so 32 sub-bacias — ponto final.",
+    "right_reading": "32 e o nivel de ENQUADRAMENTO (qualidade da agua, codigo Q040 no IEDE). Abaixo/ao lado existem 7 UPG de gestao, ~33 mil ottobacias/trechos BHO6 na arvore 786, e mini-bacias SIOUT (ArcHydro/BC25) usadas em outorga. Acima: 25 BH e 3 RH."
+  },
+  "hierarchy_levels": [
+    {
+      "level": 1,
+      "name": "Regioes Hidrograficas",
+      "count": 3,
+      "names": [
+        "Uruguai",
+        "Guaiba",
+        "Litoral"
+      ],
+      "source": "https://iede.rs.gov.br/server/rest/services/DRH/limite_regioes_hidrograficas"
+    },
+    {
+      "level": 2,
+      "name": "Bacias Hidrograficas (Decreto 53.885/2018)",
+      "count": 25,
+      "g040": {
+        "codigo": "G040",
+        "nome": "Taquari-Antas",
+        "area_km2": 26430
+      },
+      "source": "https://iede.rs.gov.br/server/rest/services/DRH/Bacias_Hidrograficas"
+    },
+    {
+      "level": 3,
+      "name": "UPG / Unidades publicadas como UBH (SEMA zip 2024)",
+      "count_rs": 175,
+      "count_g040": 7,
+      "g040_names": [
+        "Guaporé",
+        "Médio Taquari-Antas",
+        "Alto Taquari-Antas",
+        "Baixo Taquari-Antas",
+        "Prata",
+        "Carreiro",
+        "Forqueta"
+      ],
+      "warning": "O arquivo SEMA 'Unidades_Balanco_Hidrico.zip' tem 175 poligonos = nivel UPG, NAO as mini-bacias finas do artigo SIOUT/ArcHydro.",
+      "source_iede": "https://iede.rs.gov.br/server/rest/services/DRH/limites_sub_bacias_hidrograficas",
+      "source_zip": "https://www.sema.rs.gov.br/upload/arquivos/202406/24164843-unidades-balanco-hidrico.zip"
+    },
+    {
+      "level": 4,
+      "name": "Sub-bacias de enquadramento (qualidade da agua)",
+      "count_g040_q040": 32,
+      "count_cai_g030_same_layer": 29,
+      "note": "Layer IEDE compartilhado Taquari-Antas + Cai. Codigo da bacia no layer = Q040 (nao G040).",
+      "source": "https://iede.rs.gov.br/server/rest/services/DRH/Enquad_Sub_Bacias_Taquari_Antas_Cai"
+    },
+    {
+      "level": 5,
+      "name": "Ottobacias / trechos BHO6 (mini-unidades hidrologicas)",
+      "count_polygons_hsig_cocursodag_786": 33133,
+      "count_trechos_bho6_cocursodag_786": 33133,
+      "families_bho6_trechos": {
+        "786 (tronco)": 638,
+        "7868 Prata-sistema": 5145,
+        "7866 Carreiro": 3261,
+        "7864 Guapore": 4047,
+        "7862 Forqueta": 2891
+      },
+      "note": "Este e o nivel fino de contribuicao hidrologica (Pfafstetter). Para modelagem fisica, sao dezenas de milhares de unidades — nao 32.",
+      "sources": [
+        "https://hsig.sema.rs.gov.br/arcgis/rest/services/1_RSAGUAS/Mapa_basico_SIGRSAGUA/FeatureServer/7",
+        "https://portal1.snirh.gov.br/server/rest/services/Hosted/main_geoft_bho6_trecho_drenagem/FeatureServer/0/query"
+      ]
+    },
+    {
+      "level": 6,
+      "name": "Mini-bacias SIOUT (ArcHydro sobre BC25)",
+      "status": "existentes_no_sistema_de_outorga_nao_espelhadas_no_zip_ubh_publico",
+      "note": "Artigo SBRH 2019 descreve mini-bacias hierarquizadas por bacia para balanco/outorga. Nao confundir com o shapefile publico UBH (175 UPGs) nem com minibacias do Atlas Hidroenergetico.",
+      "reference": "https://sema.rs.gov.br/upload/arquivos/202004/29135341-sbrh-2019-balanco-siout-rs.pdf"
+    }
+  ],
+  "what_influences_taquari_antas": {
+    "runoff_contributors": [
+      {
+        "codigo": "G040",
+        "nome": "Taquari-Antas",
+        "regiao": "Guaíba",
+        "area_km2": 26430.0,
+        "n_upg": 7,
+        "n_balanco_iede": 7,
+        "role": "alvo",
+        "runoff_into_taquari_antas": true,
+        "note": "Unica bacia cuja chuva escoa para o tronco Taquari-Antas.",
+        "touches_g040_geometry": true
+      }
+    ],
+    "hydraulic_downstream": [
+      {
+        "codigo": "G070",
+        "nome": "Baixo Jacuí",
+        "regiao": "Guaíba",
+        "area_km2": 17359.0,
+        "n_upg": 3,
+        "n_balanco_iede": 3,
+        "role": "jusante_hidraulica",
+        "runoff_into_taquari_antas": false,
+        "note": "Baixo Jacui recebe o Taquari; remanso/nivel no Jacui pode afetar o Baixo Taquari.",
+        "touches_g040_geometry": true
+      },
+      {
+        "codigo": "G080",
+        "nome": "Lago Guaíba",
+        "regiao": "Guaíba",
+        "area_km2": 2919.0,
+        "n_upg": 11,
+        "n_balanco_iede": 11,
+        "role": "jusante_sistema",
+        "runoff_into_taquari_antas": false,
+        "note": "Lago Guaiba e o sistema receptor a jusante do Jacui; influencia hidraulica indireta.",
+        "touches_g040_geometry": false
+      }
+    ],
+    "geometric_or_divide_neighbors": [
+      {
+        "codigo": "G020",
+        "nome": "Sinos",
+        "regiao": "Guaíba",
+        "boundary_length_deg_approx": 0.171,
+        "role": "vizinha_divisor",
+        "runoff_into_taquari_antas": false,
+        "note": "Sinos: mesma RH Guaiba; sem escoamento para G040. Contato geometrico com o limite G040 (divisor / fronteira de bacia)."
+      },
+      {
+        "codigo": "L010",
+        "nome": "Tramandaí",
+        "regiao": "Litoral",
+        "boundary_length_deg_approx": 0.388,
+        "role": "vizinha_divisor",
+        "runoff_into_taquari_antas": false,
+        "note": "RH Litoral: sem contribuicao hidrologica ao Taquari-Antas. Contato geometrico com o limite G040 (divisor / fronteira de bacia)."
+      },
+      {
+        "codigo": "G070",
+        "nome": "Baixo Jacuí",
+        "regiao": "Guaíba",
+        "boundary_length_deg_approx": 1.33,
+        "role": "jusante_hidraulica",
+        "runoff_into_taquari_antas": false,
+        "note": "Baixo Jacui recebe o Taquari; remanso/nivel no Jacui pode afetar o Baixo Taquari."
+      },
+      {
+        "codigo": "G030",
+        "nome": "Caí",
+        "regiao": "Guaíba",
+        "boundary_length_deg_approx": 2.247,
+        "role": "vizinha_divisor",
+        "runoff_into_taquari_antas": false,
+        "note": "Cai: bacia vizinha (mesmo layer de enquadramento). Nao e afluente do Taquari; divide e clima compartilhado."
+      },
+      {
+        "codigo": "L050",
+        "nome": "Mampituba",
+        "regiao": "Litoral",
+        "boundary_length_deg_approx": 0.549,
+        "role": "vizinha_divisor",
+        "runoff_into_taquari_antas": false,
+        "note": "RH Litoral: sem contribuicao hidrologica ao Taquari-Antas. Contato geometrico com o limite G040 (divisor / fronteira de bacia)."
+      },
+      {
+        "codigo": "G090",
+        "nome": "Pardo",
+        "regiao": "Guaíba",
+        "boundary_length_deg_approx": 1.15,
+        "role": "vizinha_via_jacui",
+        "runoff_into_taquari_antas": false,
+        "note": "Pardo: afluente do Jacui; pode modular nivel no Jacui a jusante, nao o tronco Taquari."
+      },
+      {
+        "codigo": "G050",
+        "nome": "Alto Jacuí",
+        "regiao": "Guaíba",
+        "boundary_length_deg_approx": 1.0,
+        "role": "vizinha_divisor",
+        "runoff_into_taquari_antas": false,
+        "note": "Alto Jacui: vizinha a oeste; nao drena para o Taquari."
+      },
+      {
+        "codigo": "U010",
+        "nome": "Apuaê-Inhandava",
+        "regiao": "Uruguai",
+        "boundary_length_deg_approx": 3.366,
+        "role": "vizinha_divisor",
+        "runoff_into_taquari_antas": false,
+        "note": "RH Uruguai: nao contribui hidrologicamente ao Taquari-Antas (pode compartilhar frente meteorologica em escala sinotica). Contato geometrico com o limite G040 (divisor / fronteira de bacia)."
+      }
+    ],
+    "same_rh_guaiba_no_direct_runoff": [
+      {
+        "codigo": "G010",
+        "nome": "Gravataí",
+        "area_km2": 2015.0,
+        "role": "mesma_rh",
+        "note": "Gravatai: mesma RH Guaiba; sem escoamento para G040."
+      },
+      {
+        "codigo": "G020",
+        "nome": "Sinos",
+        "area_km2": 3694.0,
+        "role": "vizinha_divisor",
+        "note": "Sinos: mesma RH Guaiba; sem escoamento para G040. Contato geometrico com o limite G040 (divisor / fronteira de bacia)."
+      },
+      {
+        "codigo": "G030",
+        "nome": "Caí",
+        "area_km2": 4983.0,
+        "role": "vizinha_divisor",
+        "note": "Cai: bacia vizinha (mesmo layer de enquadramento). Nao e afluente do Taquari; divide e clima compartilhado."
+      },
+      {
+        "codigo": "G050",
+        "nome": "Alto Jacuí",
+        "area_km2": 13064.0,
+        "role": "vizinha_divisor",
+        "note": "Alto Jacui: vizinha a oeste; nao drena para o Taquari."
+      },
+      {
+        "codigo": "G060",
+        "nome": "Vacacaí-Vacacaí Mirim",
+        "area_km2": 11177.0,
+        "role": "mesma_rh_jacui",
+        "note": "Vacacai: RH Guaiba / sistema Jacui; sem contribuicao direta ao Taquari."
+      },
+      {
+        "codigo": "G070",
+        "nome": "Baixo Jacuí",
+        "area_km2": 17359.0,
+        "role": "jusante_hidraulica",
+        "note": "Baixo Jacui recebe o Taquari; remanso/nivel no Jacui pode afetar o Baixo Taquari."
+      },
+      {
+        "codigo": "G080",
+        "nome": "Lago Guaíba",
+        "area_km2": 2919.0,
+        "role": "jusante_sistema",
+        "note": "Lago Guaiba e o sistema receptor a jusante do Jacui; influencia hidraulica indireta."
+      },
+      {
+        "codigo": "G090",
+        "nome": "Pardo",
+        "area_km2": 3638.0,
+        "role": "vizinha_via_jacui",
+        "note": "Pardo: afluente do Jacui; pode modular nivel no Jacui a jusante, nao o tronco Taquari."
+      }
+    ],
+    "hard_rule": "So a chuva que cai DENTRO de G040 (e suas UPG/ottobacias internas) escoa para o Taquari-Antas. Bacias vizinhas NAO sao afluentes. Jusante (Jacui/Guaiba) pode afetar por remanso. Clima compartilhado != contribuicao hidrologica.",
+    "serra_divide_note": "U010 (Apuae-Inhandava), L050 (Mampituba) e L010 (Tramandai) tocam G040 no divisor da Serra: compartilham crista, nao agua. Cai (G030) e o vizinho mais longo a leste; Alto Jacui (G050) a oeste; Baixo Jacui (G070) na foz."
+  },
+  "all_25_basins": [
+    {
+      "codigo": "G010",
+      "nome": "Gravataí",
+      "regiao": "Guaíba",
+      "area_km2": 2015.0,
+      "n_upg": 4,
+      "n_balanco_iede": 4,
+      "role": "mesma_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "Gravatai: mesma RH Guaiba; sem escoamento para G040.",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "G020",
+      "nome": "Sinos",
+      "regiao": "Guaíba",
+      "area_km2": 3694.0,
+      "n_upg": 16,
+      "n_balanco_iede": 21,
+      "role": "vizinha_divisor",
+      "runoff_into_taquari_antas": false,
+      "note": "Sinos: mesma RH Guaiba; sem escoamento para G040. Contato geometrico com o limite G040 (divisor / fronteira de bacia).",
+      "touches_g040_geometry": true
+    },
+    {
+      "codigo": "G030",
+      "nome": "Caí",
+      "regiao": "Guaíba",
+      "area_km2": 4983.0,
+      "n_upg": 20,
+      "n_balanco_iede": 20,
+      "role": "vizinha_divisor",
+      "runoff_into_taquari_antas": false,
+      "note": "Cai: bacia vizinha (mesmo layer de enquadramento). Nao e afluente do Taquari; divide e clima compartilhado.",
+      "touches_g040_geometry": true
+    },
+    {
+      "codigo": "G040",
+      "nome": "Taquari-Antas",
+      "regiao": "Guaíba",
+      "area_km2": 26430.0,
+      "n_upg": 7,
+      "n_balanco_iede": 7,
+      "role": "alvo",
+      "runoff_into_taquari_antas": true,
+      "note": "Unica bacia cuja chuva escoa para o tronco Taquari-Antas.",
+      "touches_g040_geometry": true
+    },
+    {
+      "codigo": "G050",
+      "nome": "Alto Jacuí",
+      "regiao": "Guaíba",
+      "area_km2": 13064.0,
+      "n_upg": 5,
+      "n_balanco_iede": 5,
+      "role": "vizinha_divisor",
+      "runoff_into_taquari_antas": false,
+      "note": "Alto Jacui: vizinha a oeste; nao drena para o Taquari.",
+      "touches_g040_geometry": true
+    },
+    {
+      "codigo": "G060",
+      "nome": "Vacacaí-Vacacaí Mirim",
+      "regiao": "Guaíba",
+      "area_km2": 11177.0,
+      "n_upg": 6,
+      "n_balanco_iede": 6,
+      "role": "mesma_rh_jacui",
+      "runoff_into_taquari_antas": false,
+      "note": "Vacacai: RH Guaiba / sistema Jacui; sem contribuicao direta ao Taquari.",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "G070",
+      "nome": "Baixo Jacuí",
+      "regiao": "Guaíba",
+      "area_km2": 17359.0,
+      "n_upg": 3,
+      "n_balanco_iede": 3,
+      "role": "jusante_hidraulica",
+      "runoff_into_taquari_antas": false,
+      "note": "Baixo Jacui recebe o Taquari; remanso/nivel no Jacui pode afetar o Baixo Taquari.",
+      "touches_g040_geometry": true
+    },
+    {
+      "codigo": "G080",
+      "nome": "Lago Guaíba",
+      "regiao": "Guaíba",
+      "area_km2": 2919.0,
+      "n_upg": 11,
+      "n_balanco_iede": 11,
+      "role": "jusante_sistema",
+      "runoff_into_taquari_antas": false,
+      "note": "Lago Guaiba e o sistema receptor a jusante do Jacui; influencia hidraulica indireta.",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "G090",
+      "nome": "Pardo",
+      "regiao": "Guaíba",
+      "area_km2": 3638.0,
+      "n_upg": 14,
+      "n_balanco_iede": 14,
+      "role": "vizinha_via_jacui",
+      "runoff_into_taquari_antas": false,
+      "note": "Pardo: afluente do Jacui; pode modular nivel no Jacui a jusante, nao o tronco Taquari.",
+      "touches_g040_geometry": true
+    },
+    {
+      "codigo": "L010",
+      "nome": "Tramandaí",
+      "regiao": "Litoral",
+      "area_km2": 2980.0,
+      "n_upg": 2,
+      "n_balanco_iede": 2,
+      "role": "vizinha_divisor",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Litoral: sem contribuicao hidrologica ao Taquari-Antas. Contato geometrico com o limite G040 (divisor / fronteira de bacia).",
+      "touches_g040_geometry": true
+    },
+    {
+      "codigo": "L020",
+      "nome": "Litoral Médio",
+      "regiao": "Litoral",
+      "area_km2": 6113.0,
+      "n_upg": 0,
+      "n_balanco_iede": 0,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Litoral: sem contribuicao hidrologica ao Taquari-Antas.",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "L030",
+      "nome": "Camaquã",
+      "regiao": "Litoral",
+      "area_km2": 21657.0,
+      "n_upg": 5,
+      "n_balanco_iede": 5,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Litoral: sem contribuicao hidrologica ao Taquari-Antas.",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "L040",
+      "nome": "Mirim São Gonçalo",
+      "regiao": "Litoral",
+      "area_km2": 28499.0,
+      "n_upg": 4,
+      "n_balanco_iede": 4,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Litoral: sem contribuicao hidrologica ao Taquari-Antas.",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "L050",
+      "nome": "Mampituba",
+      "regiao": "Litoral",
+      "area_km2": 709.0,
+      "n_upg": 1,
+      "n_balanco_iede": 1,
+      "role": "vizinha_divisor",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Litoral: sem contribuicao hidrologica ao Taquari-Antas. Contato geometrico com o limite G040 (divisor / fronteira de bacia).",
+      "touches_g040_geometry": true
+    },
+    {
+      "codigo": "U010",
+      "nome": "Apuaê-Inhandava",
+      "regiao": "Uruguai",
+      "area_km2": 14508.0,
+      "n_upg": 9,
+      "n_balanco_iede": 9,
+      "role": "vizinha_divisor",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Uruguai: nao contribui hidrologicamente ao Taquari-Antas (pode compartilhar frente meteorologica em escala sinotica). Contato geometrico com o limite G040 (divisor / fronteira de bacia).",
+      "touches_g040_geometry": true
+    },
+    {
+      "codigo": "U020",
+      "nome": "Passo Fundo",
+      "regiao": "Uruguai",
+      "area_km2": 4859.0,
+      "n_upg": 5,
+      "n_balanco_iede": 5,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Uruguai: nao contribui hidrologicamente ao Taquari-Antas (pode compartilhar frente meteorologica em escala sinotica).",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "U030",
+      "nome": "Turvo Santa Rosa Santo Cristo",
+      "regiao": "Uruguai",
+      "area_km2": 10793.0,
+      "n_upg": 7,
+      "n_balanco_iede": 7,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Uruguai: nao contribui hidrologicamente ao Taquari-Antas (pode compartilhar frente meteorologica em escala sinotica).",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "U040",
+      "nome": "Piratinim",
+      "regiao": "Uruguai",
+      "area_km2": 7656.0,
+      "n_upg": 21,
+      "n_balanco_iede": 1,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Uruguai: nao contribui hidrologicamente ao Taquari-Antas (pode compartilhar frente meteorologica em escala sinotica).",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "U050",
+      "nome": "Ibicuí",
+      "regiao": "Uruguai",
+      "area_km2": 35131.0,
+      "n_upg": 6,
+      "n_balanco_iede": 6,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Uruguai: nao contribui hidrologicamente ao Taquari-Antas (pode compartilhar frente meteorologica em escala sinotica).",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "U060",
+      "nome": "Quaraí",
+      "regiao": "Uruguai",
+      "area_km2": 6659.0,
+      "n_upg": 3,
+      "n_balanco_iede": 3,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Uruguai: nao contribui hidrologicamente ao Taquari-Antas (pode compartilhar frente meteorologica em escala sinotica).",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "U070",
+      "nome": "Santa Maria",
+      "regiao": "Uruguai",
+      "area_km2": 15741.0,
+      "n_upg": 10,
+      "n_balanco_iede": 10,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Uruguai: nao contribui hidrologicamente ao Taquari-Antas (pode compartilhar frente meteorologica em escala sinotica).",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "U080",
+      "nome": "Negro",
+      "regiao": "Uruguai",
+      "area_km2": 2969.0,
+      "n_upg": 1,
+      "n_balanco_iede": 1,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Uruguai: nao contribui hidrologicamente ao Taquari-Antas (pode compartilhar frente meteorologica em escala sinotica).",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "U090",
+      "nome": "Ijuí",
+      "regiao": "Uruguai",
+      "area_km2": 10766.0,
+      "n_upg": 11,
+      "n_balanco_iede": 15,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Uruguai: nao contribui hidrologicamente ao Taquari-Antas (pode compartilhar frente meteorologica em escala sinotica).",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "U100",
+      "nome": "Várzea",
+      "regiao": "Uruguai",
+      "area_km2": 9479.0,
+      "n_upg": 2,
+      "n_balanco_iede": 2,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Uruguai: nao contribui hidrologicamente ao Taquari-Antas (pode compartilhar frente meteorologica em escala sinotica).",
+      "touches_g040_geometry": false
+    },
+    {
+      "codigo": "U110",
+      "nome": "Butuí-Icamaquã",
+      "regiao": "Uruguai",
+      "area_km2": 8008.0,
+      "n_upg": 2,
+      "n_balanco_iede": 2,
+      "role": "outra_rh",
+      "runoff_into_taquari_antas": false,
+      "note": "RH Uruguai: nao contribui hidrologicamente ao Taquari-Antas (pode compartilhar frente meteorologica em escala sinotica).",
+      "touches_g040_geometry": false
+    }
+  ],
+  "upgs_by_basin": {
+    "G010": [
+      {
+        "upg": "Alto Gravataí - Banhado Grande",
+        "area_km2_approx": 524.51
+      },
+      {
+        "upg": "Alto Gravataí - Formadores",
+        "area_km2_approx": 261.2
+      },
+      {
+        "upg": "Baixo Gravataí",
+        "area_km2_approx": 370.77
+      },
+      {
+        "upg": "Médio Gravataí",
+        "area_km2_approx": 880.46
+      }
+    ],
+    "G020": [
+      {
+        "upg": "Alto Sinos - Arroio Caraa",
+        "area_km2_approx": 286.46
+      },
+      {
+        "upg": "Alto Sinos - Ilha",
+        "area_km2_approx": 356.65
+      },
+      {
+        "upg": "Alto Sinos - Trecho Alto",
+        "area_km2_approx": 124.92
+      },
+      {
+        "upg": "Alto Sinos - Trecho Médio",
+        "area_km2_approx": 210.23
+      },
+      {
+        "upg": "Altos Sinos - Alto Rolante",
+        "area_km2_approx": 303.22
+      },
+      {
+        "upg": "Altos Sinos - Areia",
+        "area_km2_approx": 172.52
+      },
+      {
+        "upg": "Altos Sinos - Baixo Rolante",
+        "area_km2_approx": 154.6
+      },
+      {
+        "upg": "Altos Sinos - Médio Rolante - Riozinho",
+        "area_km2_approx": 194.3
+      },
+      {
+        "upg": "Baixo Sinos - Nova Santa Rita",
+        "area_km2_approx": 126.74
+      },
+      {
+        "upg": "Baixo Sinos - Novo Hamburgo",
+        "area_km2_approx": 145.11
+      },
+      {
+        "upg": "Baixo Sinos - Portao/Estancia Velha",
+        "area_km2_approx": 316.64
+      },
+      {
+        "upg": "Baixo Sinos - Sapiranga/Campo Bom",
+        "area_km2_approx": 206.24
+      },
+      {
+        "upg": "Baixo Sinos - Sapucaia/Esteio",
+        "area_km2_approx": 178.11
+      },
+      {
+        "upg": "Médio Sinos - Alto Paranhana",
+        "area_km2_approx": 396.91
+      },
+      {
+        "upg": "Médio Sinos - Baixo Paranhana",
+        "area_km2_approx": 182.74
+      },
+      {
+        "upg": "Médio Sinos - Margem Esquerda",
+        "area_km2_approx": 367.4
+      }
+    ],
+    "G030": [
+      {
+        "upg": "Alto Cadeia",
+        "area_km2_approx": 532.23
+      },
+      {
+        "upg": "Alto Caí - Barragens",
+        "area_km2_approx": 514.65
+      },
+      {
+        "upg": "Alto Caí - Caracol/Juá",
+        "area_km2_approx": 300.95
+      },
+      {
+        "upg": "Alto Caí - Lava Pés",
+        "area_km2_approx": 315.06
+      },
+      {
+        "upg": "Alto Caí - Macaco/Forqueta",
+        "area_km2_approx": 288.3
+      },
+      {
+        "upg": "Alto Caí - Trecho baixo",
+        "area_km2_approx": 107.78
+      },
+      {
+        "upg": "Arroio Belo",
+        "area_km2_approx": 75.74
+      },
+      {
+        "upg": "Arroio Feitoria",
+        "area_km2_approx": 269.48
+      },
+      {
+        "upg": "Arroio Forromeco",
+        "area_km2_approx": 384.53
+      },
+      {
+        "upg": "Arroio Maratá",
+        "area_km2_approx": 358.38
+      },
+      {
+        "upg": "Arroio Piaí",
+        "area_km2_approx": 330.29
+      },
+      {
+        "upg": "Arroio Pinhal",
+        "area_km2_approx": 85.61
+      },
+      {
+        "upg": "Arroio do Ouro",
+        "area_km2_approx": 135.7
+      },
+      {
+        "upg": "Baixo Cadeia",
+        "area_km2_approx": 90.22
+      },
+      {
+        "upg": "Baixo Caí - Trecho Baixo",
+        "area_km2_approx": 85.63
+      },
+      {
+        "upg": "Baixo Caí - Trecho Médio",
+        "area_km2_approx": 156.68
+      },
+      {
+        "upg": "Baixo Caí - trecho alto",
+        "area_km2_approx": 361.6
+      },
+      {
+        "upg": "Médio Caí - Trecho alto",
+        "area_km2_approx": 258.97
+      },
+      {
+        "upg": "Médio Caí - Tupandi",
+        "area_km2_approx": 226.7
+      },
+      {
+        "upg": "Médio Caí - trecho Baixo",
+        "area_km2_approx": 102.79
+      }
+    ],
+    "G040": [
+      {
+        "upg": "Alto Taquari-Antas",
+        "area_km2_approx": 5166.35
+      },
+      {
+        "upg": "Baixo Taquari-Antas",
+        "area_km2_approx": 5116.01
+      },
+      {
+        "upg": "Carreiro",
+        "area_km2_approx": 2551.41
+      },
+      {
+        "upg": "Forqueta",
+        "area_km2_approx": 2850.07
+      },
+      {
+        "upg": "Guaporé",
+        "area_km2_approx": 2475.37
+      },
+      {
+        "upg": "Médio Taquari-Antas",
+        "area_km2_approx": 4476.23
+      },
+      {
+        "upg": "Prata",
+        "area_km2_approx": 3761.2
+      }
+    ],
+    "G050": [
+      {
+        "upg": "Colorado",
+        "area_km2_approx": 3226.48
+      },
+      {
+        "upg": "Ivaí",
+        "area_km2_approx": 2736.71
+      },
+      {
+        "upg": "Jacuizinho",
+        "area_km2_approx": 2115.48
+      },
+      {
+        "upg": "Nascentes do Jacuí",
+        "area_km2_approx": 1824.41
+      },
+      {
+        "upg": "Passo Real",
+        "area_km2_approx": 3116.4
+      }
+    ],
+    "G060": [
+      {
+        "upg": "Alto Vacacaí",
+        "area_km2_approx": 2986.69
+      },
+      {
+        "upg": "Baixo Vacacaí",
+        "area_km2_approx": 666.68
+      },
+      {
+        "upg": "Médio Vacacaí",
+        "area_km2_approx": 3510.45
+      },
+      {
+        "upg": "Santa Bárbara",
+        "area_km2_approx": 1627.88
+      },
+      {
+        "upg": "São Sepé",
+        "area_km2_approx": 1289.69
+      },
+      {
+        "upg": "Vacacaí-Mirim",
+        "area_km2_approx": 1185.68
+      }
+    ],
+    "G070": [
+      {
+        "upg": "Capané",
+        "area_km2_approx": 11004.84
+      },
+      {
+        "upg": "Capivari",
+        "area_km2_approx": 3276.28
+      },
+      {
+        "upg": "dos Ratos",
+        "area_km2_approx": 3217.6
+      }
+    ],
+    "G080": [
+      {
+        "upg": "Arroio Araçá",
+        "area_km2_approx": 560.83
+      },
+      {
+        "upg": "Arroio Capivaras",
+        "area_km2_approx": 236.19
+      },
+      {
+        "upg": "Arroio Chico Barcelos",
+        "area_km2_approx": 37.68
+      },
+      {
+        "upg": "Arroio Dilúvio",
+        "area_km2_approx": 82.0
+      },
+      {
+        "upg": "Arroio Estância",
+        "area_km2_approx": 39.63
+      },
+      {
+        "upg": "Arroio Passo Fundo",
+        "area_km2_approx": 76.55
+      },
+      {
+        "upg": "Arroio Petin",
+        "area_km2_approx": 193.97
+      },
+      {
+        "upg": "Arroio Ribeiro",
+        "area_km2_approx": 544.58
+      },
+      {
+        "upg": "Arroio do Conde",
+        "area_km2_approx": 211.05
+      },
+      {
+        "upg": "Arroio do Lami",
+        "area_km2_approx": 55.58
+      },
+      {
+        "upg": "Arroio do Salso",
+        "area_km2_approx": 94.53
+      }
+    ],
+    "G090": [
+      {
+        "upg": "Alto Pardinho (Api)",
+        "area_km2_approx": 65.39
+      },
+      {
+        "upg": "Alto Pardo (APo)",
+        "area_km2_approx": 516.83
+      },
+      {
+        "upg": "Alto Pequeno (APe)",
+        "area_km2_approx": 88.36
+      },
+      {
+        "upg": "Alto Plumbs/Francisco Alves (APb)",
+        "area_km2_approx": 109.78
+      },
+      {
+        "upg": "Alto-Médio Pardinho (AMPi)",
+        "area_km2_approx": 310.4
+      },
+      {
+        "upg": "Alto-Médio Pequeno (AMPe)",
+        "area_km2_approx": 133.4
+      },
+      {
+        "upg": "Andreas (An)",
+        "area_km2_approx": 83.29
+      },
+      {
+        "upg": "Baixo Pardinho (BPi)",
+        "area_km2_approx": 220.99
+      },
+      {
+        "upg": "Baixo Pardo (BPo)",
+        "area_km2_approx": 196.24
+      },
+      {
+        "upg": "Baixo Plumbs/Francisco Alves (BPb)",
+        "area_km2_approx": 237.47
+      },
+      {
+        "upg": "Médio Pardinho (MPi)",
+        "area_km2_approx": 184.0
+      },
+      {
+        "upg": "Médio Pardo (MPo)",
+        "area_km2_approx": 776.48
+      },
+      {
+        "upg": "Sub-Médio Pardo - Montante (SMPo-M)",
+        "area_km2_approx": 170.11
+      },
+      {
+        "upg": "Sub-Médio Pardo Jusante (SMPo-J)",
+        "area_km2_approx": 565.0
+      }
+    ],
+    "L010": [
+      {
+        "upg": "Maquiné",
+        "area_km2_approx": 551.0
+      },
+      {
+        "upg": "Três Forquilhas",
+        "area_km2_approx": 530.92
+      }
+    ],
+    "L030": [
+      {
+        "upg": "Alto Camaquã",
+        "area_km2_approx": 7539.02
+      },
+      {
+        "upg": "Arroio Turuçu",
+        "area_km2_approx": 878.85
+      },
+      {
+        "upg": "Arroio Velhaco",
+        "area_km2_approx": 735.12
+      },
+      {
+        "upg": "Baixo Camaquã-Duro",
+        "area_km2_approx": 3042.41
+      },
+      {
+        "upg": "Médio Camaquã",
+        "area_km2_approx": 7287.91
+      }
+    ],
+    "L040": [
+      {
+        "upg": "Arroio Del Rei",
+        "area_km2_approx": 1736.64
+      },
+      {
+        "upg": "Arroio Grande",
+        "area_km2_approx": 1026.95
+      },
+      {
+        "upg": "Rio Jaguarão",
+        "area_km2_approx": 2234.21
+      },
+      {
+        "upg": "Rio Piratini",
+        "area_km2_approx": 5706.51
+      }
+    ],
+    "L050": [
+      {
+        "upg": "Forno-Jacaré",
+        "area_km2_approx": 319.05
+      }
+    ],
+    "U010": [
+      {
+        "upg": "Apuaê",
+        "area_km2_approx": 3676.8
+      },
+      {
+        "upg": "Ausentes - Rio Cerquinha",
+        "area_km2_approx": 493.83
+      },
+      {
+        "upg": "Ausentes - Rio Silveira",
+        "area_km2_approx": 381.99
+      },
+      {
+        "upg": "Ausentes - Rio dos Touros",
+        "area_km2_approx": 535.1
+      },
+      {
+        "upg": "Bernardo José",
+        "area_km2_approx": 940.67
+      },
+      {
+        "upg": "Dourado",
+        "area_km2_approx": 341.11
+      },
+      {
+        "upg": "Inhandava",
+        "area_km2_approx": 2374.15
+      },
+      {
+        "upg": "Santana - Rio Santana",
+        "area_km2_approx": 793.81
+      },
+      {
+        "upg": "Santana - Rio Socorro",
+        "area_km2_approx": 525.34
+      }
+    ],
+    "U020": [
+      {
+        "upg": "Douradinho",
+        "area_km2_approx": 496.91
+      },
+      {
+        "upg": "Erechim",
+        "area_km2_approx": 1182.38
+      },
+      {
+        "upg": "Passo Fundo Alto",
+        "area_km2_approx": 1404.48
+      },
+      {
+        "upg": "Passo Fundo Baixo",
+        "area_km2_approx": 937.4
+      },
+      {
+        "upg": "Passo Fundo Médio",
+        "area_km2_approx": 776.31
+      }
+    ],
+    "U030": [
+      {
+        "upg": "Buricá - Rio Buricá",
+        "area_km2_approx": 2312.68
+      },
+      {
+        "upg": "Comandaí / Amandaú - Rio Amandaú",
+        "area_km2_approx": 526.35
+      },
+      {
+        "upg": "Comandaí / Amandaú - Rio Comandaí",
+        "area_km2_approx": 1404.9
+      },
+      {
+        "upg": "Santa Rosa / Santo Cristo - Rio Santa Rosa",
+        "area_km2_approx": 1380.0
+      },
+      {
+        "upg": "Santa Rosa / Santo Cristo - Rio Santo Cristo",
+        "area_km2_approx": 882.48
+      },
+      {
+        "upg": "Turvo / Lajeado Grande - Lajeado Grande",
+        "area_km2_approx": 518.67
+      },
+      {
+        "upg": "Turvo / Lajeado Grande - Rio Turvo",
+        "area_km2_approx": 1847.65
+      }
+    ],
+    "U040": [
+      {
+        "upg": "Amanoa",
+        "area_km2_approx": 658.12
+      },
+      {
+        "upg": "Chuni",
+        "area_km2_approx": 144.28
+      },
+      {
+        "upg": "Guaracapa",
+        "area_km2_approx": 122.42
+      },
+      {
+        "upg": "Inhacapetum - Alto",
+        "area_km2_approx": 251.01
+      },
+      {
+        "upg": "Inhacapetum - Baixo",
+        "area_km2_approx": 401.84
+      },
+      {
+        "upg": "Inhacapetuzinho",
+        "area_km2_approx": 159.39
+      },
+      {
+        "upg": "Inhandiju",
+        "area_km2_approx": 134.78
+      },
+      {
+        "upg": "Itu",
+        "area_km2_approx": 153.57
+      },
+      {
+        "upg": "Jaguatirica",
+        "area_km2_approx": 203.3
+      },
+      {
+        "upg": "Passo da Areia",
+        "area_km2_approx": 218.18
+      },
+      {
+        "upg": "Piraju",
+        "area_km2_approx": 537.59
+      },
+      {
+        "upg": "Piratini - Alto",
+        "area_km2_approx": 344.43
+      },
+      {
+        "upg": "Piratini - Baixo",
+        "area_km2_approx": 594.11
+      },
+      {
+        "upg": "Piratini - Médio",
+        "area_km2_approx": 977.81
+      },
+      {
+        "upg": "Piratini-Siriema",
+        "area_km2_approx": 442.89
+      },
+      {
+        "upg": "Piratinizinho",
+        "area_km2_approx": 142.62
+      },
+      {
+        "upg": "Santa Bárbara",
+        "area_km2_approx": 166.44
+      },
+      {
+        "upg": "Santana",
+        "area_km2_approx": 142.85
+      },
+      {
+        "upg": "Siriema",
+        "area_km2_approx": 184.53
+      },
+      {
+        "upg": "Urucutai",
+        "area_km2_approx": 496.96
+      },
+      {
+        "upg": "Ximbocu",
+        "area_km2_approx": 243.83
+      }
+    ],
+    "U050": [
+      {
+        "upg": "Baixo Ibicuí/Ibirocaí",
+        "area_km2_approx": 5031.4
+      },
+      {
+        "upg": "Ibicuí-Mirim",
+        "area_km2_approx": 2434.71
+      },
+      {
+        "upg": "Ibirapuitã",
+        "area_km2_approx": 8063.11
+      },
+      {
+        "upg": "Jaguari",
+        "area_km2_approx": 5154.14
+      },
+      {
+        "upg": "Médio Ibicuí/Itu",
+        "area_km2_approx": 7462.56
+      },
+      {
+        "upg": "Toropi",
+        "area_km2_approx": 3401.9
+      }
+    ],
+    "U060": [
+      {
+        "upg": "Arroio Espinilho",
+        "area_km2_approx": 718.55
+      },
+      {
+        "upg": "Arroio Garupa",
+        "area_km2_approx": 1184.16
+      },
+      {
+        "upg": "Arroio Sarandi II",
+        "area_km2_approx": 1056.62
+      }
+    ],
+    "U070": [
+      {
+        "upg": "Baixo Ibicuí da Armada",
+        "area_km2_approx": 1470.43
+      },
+      {
+        "upg": "Baixo Santa Maria",
+        "area_km2_approx": 1032.59
+      },
+      {
+        "upg": "Cacequi",
+        "area_km2_approx": 1899.28
+      },
+      {
+        "upg": "Ibicuí da Armada - Trecho Alto",
+        "area_km2_approx": 2851.58
+      },
+      {
+        "upg": "Ibicuí da Faxina",
+        "area_km2_approx": 1763.27
+      },
+      {
+        "upg": "Jaguari-Taquarembó",
+        "area_km2_approx": 2883.95
+      },
+      {
+        "upg": "Médio Santa Maria",
+        "area_km2_approx": 1143.95
+      },
+      {
+        "upg": "Nascentes",
+        "area_km2_approx": 1365.57
+      },
+      {
+        "upg": "Poncho Verde",
+        "area_km2_approx": 796.18
+      },
+      {
+        "upg": "Saicã",
+        "area_km2_approx": 801.51
+      }
+    ],
+    "U080": [
+      {
+        "upg": "Rio Negro",
+        "area_km2_approx": 2595.53
+      }
+    ],
+    "U090": [
+      {
+        "upg": "Alto Ijuí",
+        "area_km2_approx": 1459.15
+      },
+      {
+        "upg": "Baixo Ijuí - Trecho Baixo",
+        "area_km2_approx": 1203.82
+      },
+      {
+        "upg": "Baixo Ijuí - Trecho Médio",
+        "area_km2_approx": 1569.82
+      },
+      {
+        "upg": "Formadores do Rio Ijuí: Rio Caxambu",
+        "area_km2_approx": 535.92
+      },
+      {
+        "upg": "Formadores do Rio Ijuí: Rio Fiúza",
+        "area_km2_approx": 327.44
+      },
+      {
+        "upg": "Formadores do Rio Ijuí: Rio Fiúza e Caxambu",
+        "area_km2_approx": 768.66
+      },
+      {
+        "upg": "Formadores do Rio Ijuí: Rio Fiúza e Caxambu",
+        "area_km2_approx": 18.54
+      },
+      {
+        "upg": "Médio Ijuí - Margem Direita: Itaquarinxim",
+        "area_km2_approx": 919.09
+      },
+      {
+        "upg": "Rio Conceição",
+        "area_km2_approx": 980.79
+      },
+      {
+        "upg": "Rio Ijuizinho",
+        "area_km2_approx": 2271.25
+      },
+      {
+        "upg": "Rio Potiribu",
+        "area_km2_approx": 653.42
+      }
+    ],
+    "U100": [
+      {
+        "upg": "Rio Guarita",
+        "area_km2_approx": 2200.69
+      },
+      {
+        "upg": "Rio da Várzea",
+        "area_km2_approx": 5379.78
+      }
+    ],
+    "U110": [
+      {
+        "upg": "Arroio Butuí",
+        "area_km2_approx": 2373.4
+      },
+      {
+        "upg": "Rio Icamaquã",
+        "area_km2_approx": 4864.67
+      }
+    ]
+  },
+  "g040_internal_stack": {
+    "bh": "G040 Taquari-Antas ~26430 km2",
+    "upg_7": [
+      "Guaporé",
+      "Médio Taquari-Antas",
+      "Alto Taquari-Antas",
+      "Baixo Taquari-Antas",
+      "Prata",
+      "Carreiro",
+      "Forqueta"
+    ],
+    "enquadramento_32": 32,
+    "ottobacias_786": 33133,
+    "previne_corridor_note": "O corredor Antas/STZ/Mucum (~16 mil km2) NAO inclui Guapore/Forqueta/Baixo Taquari completo."
+  },
+  "artifacts": {
+    "bacias_geojson": "bacias_rs_25.geojson",
+    "upgs_geojson": "upgs_rs_175.geojson",
+    "report": "hierarquia_rs_latest.json",
+    "mapa": "mapa_hierarquia_rs.html"
+  },
+  "next_study_steps_only": [
+    "Anexar amostra/resumo espacial das ottobacias 786 (sem baixar 33k poligonos inteiros no Pages).",
+    "Inventario de postos por UPG e por familia BHO6 (7868/7866/7864/7862).",
+    "Decidir com Juliana o recorte de modelo: G040 inteira vs corredor Ate Mucum vs outro.",
+    "So depois discutir estrutura HEC alinhada ao recorte escolhido."
+  ]
+}
