@@ -16,6 +16,39 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+
+def _load_pyc_module(name: str):
+    """Load a scripts/__pycache__ module when the .py source is absent."""
+    import importlib.util
+
+    cache = Path(__file__).resolve().parent / "__pycache__"
+    matches = sorted(cache.glob(f"{name}.cpython-*.pyc"))
+    if not matches:
+        raise ModuleNotFoundError(name)
+    spec = importlib.util.spec_from_file_location(name, matches[-1])
+    if spec is None or spec.loader is None:
+        raise ModuleNotFoundError(name)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+# Twin runtime sources may ship as bytecode-only in this environment.
+for _dep in (
+    "hec_twin_nested_v17",
+    "run_hec_twin_stz_mucum_calibrate",
+    "hec_twin_mucum_bacia_calibracao",
+    "build_hec_twin_ifs_forcing_5d",
+    "run_hec_twin_mucum_forward_5d",
+):
+    if _dep not in sys.modules:
+        try:
+            __import__(_dep)
+        except ModuleNotFoundError:
+            _load_pyc_module(_dep)
+
 import plataforma_hec_twin_mucum_ui as platform_ui  # noqa: E402
 import run_hec_twin_mucum_forward_5d as hec_fwd  # noqa: E402
 
@@ -475,11 +508,13 @@ def compact_hindcast_events(hind: dict[str, Any] | None) -> list[dict[str, Any]]
             tag = "negative_nse"
         elif rel_err is not None and abs(float(rel_err)) <= 0.12:
             tag = "best_rel_dn"
+        self_fit = ev.get("self_fit_nse")
         rows.append(
             {
                 "event_id": ev.get("event_id"),
                 "rain_mm_aw": rain,
                 "nse_loo": nse,
+                "self_fit_nse": self_fit,
                 "peak_q_rel_err": peak_err,
                 "rise_n_abs_err_cm": abs_err,
                 "rise_n_rel_err": rel_err,
@@ -493,6 +528,138 @@ def compact_hindcast_events(hind: dict[str, Any] | None) -> list[dict[str, Any]]
         )
     rows.sort(key=lambda r: abs(float(r.get("rise_n_rel_err") or 99)))
     return rows
+
+
+def build_methodology(
+    eventwise: dict[str, Any] | None,
+    hind: dict[str, Any] | None,
+    force_live: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Honest method card: which HEC/REC arm, events, LOO vs self-fit."""
+    eng = (eventwise or {}).get("engine") or {}
+    lib = (eventwise or {}).get("params_library_eventwise") or []
+    self_fit_nses = [
+        float(x["nse"]) for x in lib if isinstance(x, dict) and x.get("nse") is not None
+    ]
+    mean_self = sum(self_fit_nses) / len(self_fit_nses) if self_fit_nses else None
+    hind_sum = (hind or {}).get("summary") or {}
+    mean_loo = hind_sum.get("mean_nse_loo")
+    point_map: list[dict[str, Any]] = []
+    meta = (force_live or {}).get("subbasin_meta") or {}
+    if isinstance(meta, dict):
+        for sb_id, row in meta.items():
+            if not isinstance(row, dict):
+                continue
+            point_map.append(
+                {
+                    "subbasin_id": sb_id,
+                    "point_code": row.get("point_code") or row.get("station_code"),
+                    "label": SUBBASIN_LABELS.get(str(sb_id), str(sb_id)),
+                }
+            )
+    if not point_map:
+        point_map = [
+            {"subbasin_id": "SB_PRATA_7868", "point_code": "86472000", "label": "Prata"},
+            {
+                "subbasin_id": "SB_ANTAS_RESIDUAL",
+                "point_code": "86472000",
+                "label": "Antas residual",
+            },
+            {
+                "subbasin_id": "SB_CARREIRO_7866",
+                "point_code": "86507000",
+                "label": "Carreiro",
+            },
+            {
+                "subbasin_id": "SB_STZ_RESIDUAL",
+                "point_code": "86472600",
+                "label": "Residual STZ",
+            },
+            {
+                "subbasin_id": "SB_INC_MUCUM",
+                "point_code": "86510000",
+                "label": "Incremento Muçum",
+            },
+        ]
+    marginal = [
+        m.get("event_id")
+        for m in ((eventwise or {}).get("marginal_events") or [])
+        if isinstance(m, dict)
+    ]
+    failed = [
+        m.get("event_id")
+        for m in ((eventwise or {}).get("excluded_events") or [])
+        if isinstance(m, dict)
+    ]
+    return {
+        "family_arm_pt": "Gêmeo Python HMS-like (não binário HEC-HMS)",
+        "engine_name": eng.get("name")
+        or "python_hms_twin_ic_clark_recession_muskingum",
+        "not_hec_hms_binary": bool(eng.get("not_hec_hms_binary", True)),
+        "not_hec_ras": True,
+        "not_cwms": True,
+        "methods": eng.get("methods") or eng.get("methods")
+        or ["Initial+Constant", "Clark", "Recession", "Muskingum"],
+        "why_pt": eng.get("why")
+        or (
+            "HEC-HMS 4.13 do projeto é Windows-only; no Linux/Pages roda o gêmeo "
+            "auditável em Python."
+        ),
+        "forcing_pt": (
+            "ECMWF IFS 0.25° via Open-Meteo — proxy pontual por sub-bacia "
+            "(não máscara areal ECMWF/REC)."
+        ),
+        "forcing_point_map": point_map,
+        "transfer_pt": (
+            "Biblioteca eventwise + transferência por análogo "
+            "(fingerprint AW + wetness blend LOO)."
+        ),
+        "rating_pt": (
+            "ΔN em Muçum via curva-chave oficial 86510000. "
+            "STZ = nível observado; sem curva N↔Q inventada."
+        ),
+        "domain_pt": (
+            "Corredor aninhado ~15.965 km² (Alto+Prata+Carreiro+Médio). "
+            "G040 (~26.430 km², 7 UGs) = inventário espacial; "
+            "Guaporé/Forqueta/Baixo fora do balanço."
+        ),
+        "events": {
+            "core": list((eventwise or {}).get("included_events") or []),
+            "marginal": marginal,
+            "failed": failed,
+            "core_rule_pt": "NSE≥0,75 no ajuste eventwise",
+        },
+        "skill": {
+            "mean_self_fit_nse": None if mean_self is None else round(mean_self, 4),
+            "mean_nse_loo": mean_loo,
+            "mean_rise_n_abs_err_cm": hind_sum.get("mean_rise_n_abs_err_cm"),
+            "mean_rise_n_rel_err": hind_sum.get("mean_rise_n_rel_err"),
+            "n_scored_loo": hind_sum.get("n_scored") or hind_sum.get("n_scored"),
+            "verdict_level": ((hind or {}).get("verdict") or {}).get("level"),
+            "contrast_pt": (
+                f"Self-fit médio da biblioteca ≈{mean_self:.2f} "
+                f"(ajuste no próprio evento). "
+                f"NSE LOO de transferência ≈{mean_loo:.2f} "
+                f"(métrica honesta de previsão). "
+                "Não confunda os dois."
+                if mean_self is not None and mean_loo is not None
+                else "Contraste self-fit vs LOO indisponível neste build."
+            ),
+        },
+        "live_verify_pt": (
+            "Verify ao vivo é n=1 — acerto pontual não valida calibração operacional."
+        ),
+        "not_pt": [
+            "Não é HEC-HMS 4.13 binário",
+            "Não é HEC-RAS / mancha",
+            "Não é CWMS",
+            "Não é calibração da G040 inteira",
+            "Não é máscara areal ECMWF/REC",
+            "Não é alerta oficial",
+            "Não toca a RNA de curto prazo",
+        ],
+        "label_honest": (eventwise or {}).get("label_honest"),
+    }
 
 
 def calibration_lessons(
@@ -530,7 +697,16 @@ def calibration_lessons(
         (
             "Calibração continua leave-one-out na biblioteca de eventos "
             f"({(summary or {}).get('n_scored', len(events))} marcados): "
-            "não reajustar RNA; só parâmetros do gêmeo HEC/REC."
+            "não reajustar RNA; só parâmetros do gêmeo Python HMS-like."
+        ),
+        (
+            "Self-fit médio da biblioteca (~0,87) NÃO é skill de previsão: "
+            "use o NSE LOO (~0,27) e o erro de ΔN como métrica honesta."
+        ),
+        (
+            "Domínio calibrado = corredor até Muçum (~16 mil km²). "
+            "G040 (~26,4 mil km²) é inventário espacial — Guaporé/Forqueta/Baixo "
+            "ainda sem produto HEC."
         ),
     ]
     return {
@@ -933,7 +1109,9 @@ def build_feed() -> dict[str, Any]:
     hind = load_json(OUT / "hec_twin_mucum_hindcast_skill_5d_latest.json")
     force_live = load_json(OUT / "hec_twin_ifs_forcing_live_eval_latest.json")
     force_fwd = load_json(OUT / "hec_twin_ifs_forcing_5d_latest.json")
+    eventwise = load_json(OUT / "modelo_mucum_eventwise_v1_fechado_latest.json")
     stations = station_index()
+    methodology = build_methodology(eventwise, hind, force_live)
 
     qs = (fwd or {}).get("quanto_sobe") or {}
     live_ans = (live or {}).get("answer_from_anchor") or {}
@@ -996,10 +1174,12 @@ def build_feed() -> dict[str, Any]:
         "label_pt": "Plataforma HEC/REC · bacia Taquari–Antas (G040)",
         "purpose_pt": (
             "Mapa e inventário da bacia oficial Taquari–Antas (G040, ~26,4 mil km², "
-            "7 UGs). Dentro dela, o produto gêmeo HEC/REC estima ΔN em Muçum no corredor "
-            "aninhado (~16 mil km²). Guaporé/Forqueta/Baixo aparecem na bacia; não entram "
-            "no balanço do gêmeo até Muçum. STZ sem curva N↔Q inventada. Pesquisa."
+            "7 UGs). O produto hidrológico é um gêmeo Python HMS-like no corredor até "
+            "Muçum (~16 mil km²) — não HEC-HMS binário, não RAS, não CWMS, e ainda não "
+            "uma calibração da G040 inteira. Guaporé/Forqueta/Baixo no inventário; fora "
+            "do balanço até Muçum. STZ sem curva N↔Q inventada. Pesquisa, não alerta."
         ),
+        "methodology": methodology,
         "basin": {
             "label_pt": "Bacia Taquari–Antas (G040)",
             "area_km2": 26430,
@@ -1057,6 +1237,10 @@ def build_feed() -> dict[str, Any]:
             "corridor_not_full_g040": True,
             "basin_calibrated_analogs": True,
             "not_stz_mucum_only_shortcut": True,
+            "not_hec_hms_binary": True,
+            "not_full_g040_calibrated": True,
+            "corridor_analog_transfer": True,
+            "ifs_point_proxy": True,
         },
         "where_results_go": {
             "pages_base": PAGES_BASE,
@@ -1065,7 +1249,7 @@ def build_feed() -> dict[str, Any]:
             "local": local,
             "pipeline_pt": [
                 "IFS QPF → forçante por sub-bacia (JSON)",
-                "Gêmeo HEC eventwise → Q Muçum → curva-chave → ΔN",
+                "Gêmeo Python HMS-like (IC+Clark+Muskingum) → Q Muçum → curva-chave → ΔN",
                 "Feed estável plataforma_hec_twin_mucum_latest.json",
                 "Página mapa plataforma_hec_twin_mucum.html (+ atalho raiz)",
                 "Deploy Pages quando paths do estudo / plataforma mudam",
@@ -1074,8 +1258,8 @@ def build_feed() -> dict[str, Any]:
         "headline": {
             "source": headline_source,
             "question_pt": (
-                "Com a chuva do corredor calibrado (Prata–Carreiro–Antas→STZ→Muçum), "
-                "quanto sobe o nível em Muçum?"
+                "Com a chuva do corredor (Prata–Carreiro–Antas→STZ→Muçum) e transferência "
+                "por análogos LOO, quanto sobe o nível em Muçum?"
             ),
             "plain_pt": headline_plain,
             "primary": headline_primary,
@@ -1131,7 +1315,13 @@ def build_feed() -> dict[str, Any]:
             "hindcast_skill": {
                 "status": (hind or {}).get("status"),
                 "generated_at_utc": (hind or {}).get("generated_at_utc"),
-                "summary": (hind or {}).get("summary"),
+                "summary": {
+                    **((hind or {}).get("summary") or {}),
+                    "mean_self_fit_nse": (methodology.get("skill") or {}).get(
+                        "mean_self_fit_nse"
+                    ),
+                    "contrast_pt": (methodology.get("skill") or {}).get("contrast_pt"),
+                },
                 "verdict": (hind or {}).get("verdict"),
                 "events": compact_hindcast_events(hind),
                 "calibration": calibration_lessons(
@@ -1141,7 +1331,8 @@ def build_feed() -> dict[str, Any]:
                 "calibration_artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
                 "method_pt": (
                     "Leave-one-out nos eventos da biblioteca: chuva observada como "
-                    "proxy de QPF → gêmeo HEC → ΔN Muçum via curva oficial."
+                    "proxy de QPF → gêmeo Python HMS-like → ΔN Muçum via curva oficial. "
+                    "Self-fit ≠ skill de previsão."
                 ),
             },
         },
