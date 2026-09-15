@@ -1,9 +1,96 @@
 {
   "schema_version": "plataforma_hec_twin_mucum_v2",
-  "generated_at_utc": "2026-09-13T23:54:19Z",
+  "generated_at_utc": "2026-09-14T02:20:35Z",
   "status": "research_platform_ready",
   "label_pt": "Plataforma HEC/REC · bacia Taquari–Antas (G040)",
-  "purpose_pt": "Mapa e inventário da bacia oficial Taquari–Antas (G040, ~26,4 mil km², 7 UGs). Dentro dela, o produto gêmeo HEC/REC estima ΔN em Muçum no corredor aninhado (~16 mil km²). Guaporé/Forqueta/Baixo aparecem na bacia; não entram no balanço do gêmeo até Muçum. STZ sem curva N↔Q inventada. Pesquisa.",
+  "purpose_pt": "Mapa e inventário da bacia oficial Taquari–Antas (G040, ~26,4 mil km², 7 UGs). O produto hidrológico é um gêmeo Python HMS-like no corredor até Muçum (~16 mil km²) — não HEC-HMS binário, não RAS, não CWMS, e ainda não uma calibração da G040 inteira. Guaporé/Forqueta/Baixo no inventário; fora do balanço até Muçum. STZ sem curva N↔Q inventada. Pesquisa, não alerta.",
+  "methodology": {
+    "family_arm_pt": "Gêmeo Python HMS-like (não binário HEC-HMS)",
+    "engine_name": "python_hms_twin_ic_clark_recession_muskingum",
+    "not_hec_hms_binary": true,
+    "not_hec_ras": true,
+    "not_cwms": true,
+    "methods": [
+      "Initial+Constant",
+      "Clark",
+      "Recession",
+      "Muskingum"
+    ],
+    "why_pt": "HEC-HMS 4.13 do projeto e Windows-only; neste ambiente Linux roda o gemeo auditavel",
+    "forcing_pt": "ECMWF IFS 0.25° via Open-Meteo — proxy pontual por sub-bacia (não máscara areal ECMWF/REC).",
+    "forcing_point_map": [
+      {
+        "subbasin_id": "SB_PRATA_7868",
+        "point_code": "86472000",
+        "label": "Prata / Turvo-Humatã"
+      },
+      {
+        "subbasin_id": "SB_ANTAS_RESIDUAL",
+        "point_code": "86472000",
+        "label": "Antas residual"
+      },
+      {
+        "subbasin_id": "SB_CARREIRO_7866",
+        "point_code": "86507000",
+        "label": "Carreiro"
+      },
+      {
+        "subbasin_id": "SB_STZ_RESIDUAL",
+        "point_code": "86472600",
+        "label": "Residual até Santa Tereza"
+      },
+      {
+        "subbasin_id": "SB_INC_MUCUM",
+        "point_code": "86510000",
+        "label": "Incremento até Muçum"
+      }
+    ],
+    "transfer_pt": "Biblioteca eventwise + transferência por análogo (fingerprint AW + wetness blend LOO).",
+    "rating_pt": "ΔN em Muçum via curva-chave oficial 86510000. STZ = nível observado; sem curva N↔Q inventada.",
+    "domain_pt": "Corredor aninhado ~15.965 km² (Alto+Prata+Carreiro+Médio). G040 (~26.430 km², 7 UGs) = inventário espacial; Guaporé/Forqueta/Baixo fora do balanço.",
+    "events": {
+      "core": [
+        "E20",
+        "E21",
+        "E22",
+        "E23",
+        "E24",
+        "E25",
+        "E27",
+        "E28",
+        "E31"
+      ],
+      "marginal": [
+        "E26",
+        "E29",
+        "E30"
+      ],
+      "failed": [
+        "E19"
+      ],
+      "core_rule_pt": "NSE≥0,75 no ajuste eventwise"
+    },
+    "skill": {
+      "mean_self_fit_nse": 0.8657,
+      "mean_nse_loo": 0.2669,
+      "mean_rise_n_abs_err_cm": 391.89,
+      "mean_rise_n_rel_err": 0.3583,
+      "n_scored_loo": 9,
+      "verdict_level": "usable_research",
+      "contrast_pt": "Self-fit médio da biblioteca ≈0.87 (ajuste no próprio evento). NSE LOO de transferência ≈0.27 (métrica honesta de previsão). Não confunda os dois."
+    },
+    "live_verify_pt": "Verify ao vivo é n=1 — acerto pontual não valida calibração operacional.",
+    "not_pt": [
+      "Não é HEC-HMS 4.13 binário",
+      "Não é HEC-RAS / mancha",
+      "Não é CWMS",
+      "Não é calibração da G040 inteira",
+      "Não é máscara areal ECMWF/REC",
+      "Não é alerta oficial",
+      "Não toca a RNA de curto prazo"
+    ],
+    "label_honest": "MODELO MUÇUM FECHADO v1.6 (estudo). Biblioteca eventwise com PAD por evento, polish local de pico (nested Antas+Muçum). Gêmeo Python HEC. NÃO é HEC-HMS 4.13 Windows. NÃO é alerta operacional. NÃO promover common-search / mediana. Biblioteca core = NSE>=0.75."
+  },
   "basin": {
     "label_pt": "Bacia Taquari–Antas (G040)",
     "area_km2": 26430,
@@ -68,7 +155,11 @@
     "ifs_point_proxy_not_areal_mask": true,
     "corridor_not_full_g040": true,
     "basin_calibrated_analogs": true,
-    "not_stz_mucum_only_shortcut": true
+    "not_stz_mucum_only_shortcut": true,
+    "not_hec_hms_binary": true,
+    "not_full_g040_calibrated": true,
+    "corridor_analog_transfer": true,
+    "ifs_point_proxy": true
   },
   "where_results_go": {
     "pages_base": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais",
@@ -101,7 +192,7 @@
     },
     "pipeline_pt": [
       "IFS QPF → forçante por sub-bacia (JSON)",
-      "Gêmeo HEC eventwise → Q Muçum → curva-chave → ΔN",
+      "Gêmeo Python HMS-like (IC+Clark+Muskingum) → Q Muçum → curva-chave → ΔN",
       "Feed estável plataforma_hec_twin_mucum_latest.json",
       "Página mapa plataforma_hec_twin_mucum.html (+ atalho raiz)",
       "Deploy Pages quando paths do estudo / plataforma mudam"
@@ -109,7 +200,7 @@
   },
   "headline": {
     "source": "live_eval",
-    "question_pt": "Com a chuva do corredor calibrado (Prata–Carreiro–Antas→STZ→Muçum), quanto sobe o nível em Muçum?",
+    "question_pt": "Com a chuva do corredor (Prata–Carreiro–Antas→STZ→Muçum) e transferência por análogos LOO, quanto sobe o nível em Muçum?",
     "plain_pt": "Com ~33.3 mm de chuva prevista em 120 h e nível atual 425 cm em Muçum, o gêmeo HEC indica subida de ~254 cm (banda 134–296 cm), pico ancorado ~679 cm em 2026-09-12T20:00:00Z.",
     "primary": {
       "event_id": "BLEND",
@@ -228,7 +319,7 @@
       "note_pt": "Produto operacional de pesquisa (~5d). Se a forçante estiver seca ou a telemetria cair, o ΔN pode ir a zero — conferir live eval.",
       "available": true,
       "artifact": "hec_twin_mucum_forward_5d.html",
-      "age_hours": 25.59,
+      "age_hours": 28.03,
       "stale": true,
       "note": "Forward seco/stale — preferir live para o evento.",
       "peak_delta_n_cm": 0.0,
@@ -322,7 +413,7 @@
       },
       "available": true,
       "artifact": "hec_twin_mucum_live_eval.html",
-      "age_hours": 25.59,
+      "age_hours": 28.03,
       "timing_error_h": 0.5,
       "note": "Replay do evento com âncora + verificação ANA.",
       "peak_delta_n_cm": 253.81,
@@ -374,7 +465,9 @@
         "mean_rise_n_rel_err": 0.3583,
         "n_rise_n_within_50pct": 8,
         "n_rise_n_within_100pct": 8,
-        "n_peak_q_within_30pct": 5
+        "n_peak_q_within_30pct": 5,
+        "mean_self_fit_nse": 0.8657,
+        "contrast_pt": "Self-fit médio da biblioteca ≈0.87 (ajuste no próprio evento). NSE LOO de transferência ≈0.27 (métrica honesta de previsão). Não confunda os dois."
       },
       "verdict": {
         "level": "usable_research",
@@ -385,6 +478,7 @@
           "event_id": "E22",
           "rain_mm_aw": 210.564,
           "nse_loo": 0.6758,
+          "self_fit_nse": 0.7652268571862344,
           "peak_q_rel_err": 0.042,
           "rise_n_abs_err_cm": 116.16,
           "rise_n_rel_err": 0.0595,
@@ -405,6 +499,7 @@
           "event_id": "E31",
           "rain_mm_aw": 64.989,
           "nse_loo": 0.3401,
+          "self_fit_nse": 0.9046638593707779,
           "peak_q_rel_err": 0.3627,
           "rise_n_abs_err_cm": 151.29,
           "rise_n_rel_err": 0.113,
@@ -425,6 +520,7 @@
           "event_id": "E20",
           "rain_mm_aw": 76.711,
           "nse_loo": 0.4302,
+          "self_fit_nse": 0.9307845686411361,
           "peak_q_rel_err": 0.1637,
           "rise_n_abs_err_cm": 177.13,
           "rise_n_rel_err": 0.1885,
@@ -445,6 +541,7 @@
           "event_id": "E23",
           "rain_mm_aw": 81.117,
           "nse_loo": 0.383,
+          "self_fit_nse": 0.8126364483782181,
           "peak_q_rel_err": 0.0859,
           "rise_n_abs_err_cm": 139.95,
           "rise_n_rel_err": 0.2122,
@@ -465,6 +562,7 @@
           "event_id": "E28",
           "rain_mm_aw": 190.016,
           "nse_loo": 0.4456,
+          "self_fit_nse": 0.9750979641674853,
           "peak_q_rel_err": 0.3216,
           "rise_n_abs_err_cm": 435.18,
           "rise_n_rel_err": 0.2491,
@@ -485,6 +583,7 @@
           "event_id": "E21",
           "rain_mm_aw": 101.183,
           "nse_loo": 0.5455,
+          "self_fit_nse": 0.8473541435574965,
           "peak_q_rel_err": 0.0563,
           "rise_n_abs_err_cm": 327.71,
           "rise_n_rel_err": 0.2756,
@@ -505,6 +604,7 @@
           "event_id": "E24",
           "rain_mm_aw": 207.8,
           "nse_loo": 0.7653,
+          "self_fit_nse": 0.7520225645223316,
           "peak_q_rel_err": 0.0623,
           "rise_n_abs_err_cm": 532.2,
           "rise_n_rel_err": 0.2832,
@@ -525,6 +625,7 @@
           "event_id": "E27",
           "rain_mm_aw": 599.224,
           "nse_loo": -0.6151,
+          "self_fit_nse": 0.87682516409052,
           "peak_q_rel_err": 0.7731,
           "rise_n_abs_err_cm": 1185.85,
           "rise_n_rel_err": 0.4797,
@@ -545,6 +646,7 @@
           "event_id": "E25",
           "rain_mm_aw": 48.765,
           "nse_loo": -0.5679,
+          "self_fit_nse": 0.9265554244853058,
           "peak_q_rel_err": 0.3804,
           "rise_n_abs_err_cm": 461.53,
           "rise_n_rel_err": 1.3635,
@@ -572,11 +674,13 @@
           "Melhor ΔN relativo: E22 (|err|≈6%, NSE=0.6758) — fingerprint+blend funcionam em eventos médios.",
           "Pior ΔN relativo: E25 (|err|≈136%, chuva≈48.765 mm) — eventos pequenos/úmidos superestimam a subida; revisar análogos e IC.",
           "Pior pico Q: E27 (|err|≈77%, chuva≈599.224 mm) — extremos secos→muito chuvosos pedem amortecimento / especialista de regime.",
-          "Calibração continua leave-one-out na biblioteca de eventos (9 marcados): não reajustar RNA; só parâmetros do gêmeo HEC/REC."
+          "Calibração continua leave-one-out na biblioteca de eventos (9 marcados): não reajustar RNA; só parâmetros do gêmeo Python HMS-like.",
+          "Self-fit médio da biblioteca (~0,87) NÃO é skill de previsão: use o NSE LOO (~0,27) e o erro de ΔN como métrica honesta.",
+          "Domínio calibrado = corredor até Muçum (~16 mil km²). G040 (~26,4 mil km²) é inventário espacial — Guaporé/Forqueta/Baixo ainda sem produto HEC."
         ]
       },
       "calibration_artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
-      "method_pt": "Leave-one-out nos eventos da biblioteca: chuva observada como proxy de QPF → gêmeo HEC → ΔN Muçum via curva oficial."
+      "method_pt": "Leave-one-out nos eventos da biblioteca: chuva observada como proxy de QPF → gêmeo Python HMS-like → ΔN Muçum via curva oficial. Self-fit ≠ skill de previsão."
     }
   },
   "spatial": {
@@ -17938,197 +18042,182 @@
   },
   "freshness": {
     "preferred_source": "live_eval",
-    "live_age_hours": 25.59,
-    "forward_age_hours": 25.59,
+    "live_age_hours": 28.03,
+    "forward_age_hours": 28.03,
     "stale_forward": true,
     "forward_max_delta_n_cm": 0.0,
     "note_pt": "Quando o forward está seco/stale, headline e hidrograma preferem o live eval."
   },
   "event_trace": {
-    "source": "live_eval_rebuild",
-    "note": "Traço reconstruído da forçante live-eval (mesmo ΔN do headline).",
+    "source": "forward_5d",
+    "note": "Sem série live; amostra do forward.",
     "series": [
       {
-        "t": "2026-09-10T03:00:00Z",
-        "n_cm": 190.05
-      },
-      {
-        "t": "2026-09-10T06:00:00Z",
-        "n_cm": 186.87
-      },
-      {
-        "t": "2026-09-10T09:00:00Z",
-        "n_cm": 180.08
-      },
-      {
-        "t": "2026-09-10T12:00:00Z",
-        "n_cm": 173.43
-      },
-      {
-        "t": "2026-09-10T15:00:00Z",
-        "n_cm": 167.47
-      },
-      {
-        "t": "2026-09-10T18:00:00Z",
-        "n_cm": 162.37
-      },
-      {
-        "t": "2026-09-10T21:00:00Z",
-        "n_cm": 158.0
-      },
-      {
-        "t": "2026-09-11T00:00:00Z",
-        "n_cm": 154.25
-      },
-      {
-        "t": "2026-09-11T03:00:00Z",
-        "n_cm": 151.12
-      },
-      {
-        "t": "2026-09-11T06:00:00Z",
-        "n_cm": 148.96
-      },
-      {
-        "t": "2026-09-11T09:00:00Z",
-        "n_cm": 148.04
-      },
-      {
-        "t": "2026-09-11T12:00:00Z",
-        "n_cm": 148.14
-      },
-      {
-        "t": "2026-09-11T15:00:00Z",
-        "n_cm": 157.97
-      },
-      {
-        "t": "2026-09-11T18:00:00Z",
-        "n_cm": 193.01
-      },
-      {
-        "t": "2026-09-11T21:00:00Z",
-        "n_cm": 264.29
-      },
-      {
         "t": "2026-09-12T00:00:00Z",
-        "n_cm": 347.39
+        "n_cm": 299.0
       },
       {
         "t": "2026-09-12T03:00:00Z",
-        "n_cm": 425.0
+        "n_cm": 289.84
       },
       {
         "t": "2026-09-12T06:00:00Z",
-        "n_cm": 472.5
+        "n_cm": 271.02
       },
       {
         "t": "2026-09-12T09:00:00Z",
-        "n_cm": 527.7
+        "n_cm": 254.17
       },
       {
         "t": "2026-09-12T12:00:00Z",
-        "n_cm": 579.64
+        "n_cm": 240.49
       },
       {
         "t": "2026-09-12T15:00:00Z",
-        "n_cm": 623.12
+        "n_cm": 229.78
       },
       {
         "t": "2026-09-12T18:00:00Z",
-        "n_cm": 656.83
+        "n_cm": 221.48
       },
       {
         "t": "2026-09-12T21:00:00Z",
-        "n_cm": 676.75
+        "n_cm": 215.0
       },
       {
         "t": "2026-09-13T00:00:00Z",
-        "n_cm": 677.03
+        "n_cm": 209.91
       },
       {
         "t": "2026-09-13T03:00:00Z",
-        "n_cm": 664.79
+        "n_cm": 205.86
       },
       {
         "t": "2026-09-13T06:00:00Z",
-        "n_cm": 645.87
+        "n_cm": 202.59
       },
       {
         "t": "2026-09-13T09:00:00Z",
-        "n_cm": 623.82
+        "n_cm": 199.85
       },
       {
         "t": "2026-09-13T12:00:00Z",
-        "n_cm": 600.74
+        "n_cm": 197.49
       },
       {
         "t": "2026-09-13T15:00:00Z",
-        "n_cm": 577.73
+        "n_cm": 195.44
       },
       {
         "t": "2026-09-13T18:00:00Z",
-        "n_cm": 557.39
+        "n_cm": 193.65
       },
       {
         "t": "2026-09-13T21:00:00Z",
-        "n_cm": 535.86
+        "n_cm": 192.1
       },
       {
         "t": "2026-09-14T00:00:00Z",
-        "n_cm": 516.61
+        "n_cm": 190.73
       },
       {
         "t": "2026-09-14T03:00:00Z",
-        "n_cm": 497.04
+        "n_cm": 189.49
       },
       {
         "t": "2026-09-14T06:00:00Z",
-        "n_cm": 483.28
+        "n_cm": 188.35
       },
       {
         "t": "2026-09-14T09:00:00Z",
-        "n_cm": 465.42
+        "n_cm": 187.29
       },
       {
         "t": "2026-09-14T12:00:00Z",
-        "n_cm": 455.29
+        "n_cm": 186.3
       },
       {
         "t": "2026-09-14T15:00:00Z",
-        "n_cm": 438.8
+        "n_cm": 185.35
       },
       {
         "t": "2026-09-14T18:00:00Z",
-        "n_cm": 423.12
+        "n_cm": 184.52
       },
       {
         "t": "2026-09-14T21:00:00Z",
-        "n_cm": 408.23
+        "n_cm": 183.9
       },
       {
         "t": "2026-09-15T00:00:00Z",
-        "n_cm": 394.07
+        "n_cm": 183.36
       },
       {
-        "t": "2026-09-15T02:00:00Z",
-        "n_cm": 410.58
+        "t": "2026-09-15T03:00:00Z",
+        "n_cm": 182.88
+      },
+      {
+        "t": "2026-09-15T06:00:00Z",
+        "n_cm": 182.42
+      },
+      {
+        "t": "2026-09-15T09:00:00Z",
+        "n_cm": 181.98
+      },
+      {
+        "t": "2026-09-15T12:00:00Z",
+        "n_cm": 181.56
+      },
+      {
+        "t": "2026-09-15T15:00:00Z",
+        "n_cm": 181.23
+      },
+      {
+        "t": "2026-09-15T18:00:00Z",
+        "n_cm": 181.03
+      },
+      {
+        "t": "2026-09-15T21:00:00Z",
+        "n_cm": 180.81
+      },
+      {
+        "t": "2026-09-16T00:00:00Z",
+        "n_cm": 180.56
+      },
+      {
+        "t": "2026-09-16T03:00:00Z",
+        "n_cm": 180.31
+      },
+      {
+        "t": "2026-09-16T06:00:00Z",
+        "n_cm": 180.06
+      },
+      {
+        "t": "2026-09-16T09:00:00Z",
+        "n_cm": 179.81
+      },
+      {
+        "t": "2026-09-16T12:00:00Z",
+        "n_cm": 179.56
+      },
+      {
+        "t": "2026-09-16T15:00:00Z",
+        "n_cm": 179.19
+      },
+      {
+        "t": "2026-09-16T18:00:00Z",
+        "n_cm": 178.62
+      },
+      {
+        "t": "2026-09-16T21:00:00Z",
+        "n_cm": 177.91
+      },
+      {
+        "t": "2026-09-16T23:00:00Z",
+        "n_cm": 177.39
       }
     ],
     "rain_mm": [
-      0.1,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.58,
-      1.07,
-      0.79,
-      0.21,
-      0.58,
-      5.15,
-      13.16,
-      6.72,
-      0.88,
       0.5,
       0.6,
       0.39,
@@ -18151,6 +18240,21 @@
       0.0,
       0.59,
       0.3,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.59,
+      0.69,
+      0.2,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
       0.0,
       0.0,
       0.0,
