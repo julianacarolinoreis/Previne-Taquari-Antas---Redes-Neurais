@@ -1,55 +1,200 @@
-# Planos de atuação — mestrado (multi-risco) e IC
+# Planos de trabalho dos bolsistas — FAPERGS 06/2024
 
-Rascunho em texto corrido para o coordenador incorporar no projeto. Não é alocação fechada de bolsista nem produto operacional. Serve para os avaliadores verem que a equipe tem noção do que cada perfil pode fazer, e que as etapas variam conforme dados, acesso institucional e duração da bolsa.
+Textos para colar no projeto. Ajustar no SigFapergs: nome do bolsista, CPF, vínculo, categoria PDTI e vigência restante do Termo de Outorga.
 
-O que já existe no PREVINE (previsão de nível, mapas-piloto em Santa Tereza e Muçum, vulnerabilidade social, movimentos de massa de 2024, serviços pontuais) entra como ponto de partida. O que ainda não está cruzado, validado em campo ou autorizado permanece proposto.
-
----
-
-## 1. Mestrado — abordagem multi-risco
-
-O plano de mestrado situa-se na abordagem multi-risco geo-hidrológico da Bacia Hidrográfica do Rio Taquari-Antas: inundação, enxurrada e movimentos de massa, lidos junto com exposição e vulnerabilidade social. O objetivo não é inventar um índice único de “risco total”, nem substituir o alerta oficial. É montar, documentar e testar um recorte de pesquisa em que perigo, exposição e vulnerabilidade permanecem camadas distintas, com proveniência, data e limitação explícitas, e só se cruzam onde houver base espacial compatível.
-
-A primeira etapa é recortar a pergunta e o território. O mestrado parte dos 18 municípios da bacia e usa Santa Tereza e Muçum como leituras-piloto, porque nelas o projeto já publicou previsão de nível, mancha experimental e fichas municipais. Nessa etapa o bolsista descreve o que cada ameaça representa no recorte, quais fontes oficiais e de pesquisa já existem, e o que continua desconhecido. A profundidade varia: se um município não tiver setorização de risco, MDT adequado ou mancha conferida, isso não é preenchido por analogia; fica registrado como lacuna.
-
-A segunda etapa trata do perigo. No hidrológico, o trabalho organiza cotas e séries de nível (ANA/SGB), confronta limiares por estação quando houver fonte, e usa as manchas experimentais já geradas por terreno (MDT/HAND) apenas como hipótese espacial — nível previsto não vira automaticamente profundidade de rua. No de encosta, parte dos pontos de iniciação e polígonos de deslizamento mapeados em 2024 e, onde existir, da setorização de risco do SGB (hoje publicada para Santa Tereza, sem extrapolação para o restante da bacia). Etapa variável: a comparação com modelagem hidrodinâmica, radar ou umidade do solo só entra se a base estiver disponível e auditável; caso contrário, o perigo permanece descritivo e local.
-
-A terceira etapa trata da exposição: população e domicílios (Censo IBGE 2022, setores e grade), equipamentos pontuais já recortados do IEDE-RS (saúde, escolas, bombeiros) e, quando o documento municipal existir, abrigos e eixos viários como inventário — não como ocupação ou travessia atuais. Ausência de ponto na camada significa “não localizado nesta fonte”, não inexistência do serviço.
-
-A quarta etapa trata da vulnerabilidade social e dos indicadores reutilizáveis. O projeto já reúne contagens de população, mulheres, crianças (0–4 e 5–9), idosos (60–69 e 70+), cor ou raça, água e esgoto em domicílios ocupados, renda do responsável, densidade, além de referências municipais de capacidade (ICM) e, com cobertura parcial, resiliência. O mestrado deve explicitar o que cada indicador mede, o denominador correto, o recorte (município inteiro versus setor na bacia) e o que não pode ser feito: valor omitido por sigilo não vira zero; indicador municipal não se soma com setorial; ICM e serviços pontuais não são mapa contínuo de perigo. A “noção de indicadores para o futuro” é justamente esse catálogo estável — o que se pode voltar a usar em outros recortes da bacia — e não um ranking improvisado.
-
-A quinta etapa é o cruzamento espacial, somente onde geometria, datum e data permitirem. O produto esperado é um conjunto de mapas e tabelas de cenário (por exemplo: setores com mais idosos ou crianças na área da mancha-piloto; equipamentos cadastrados próximos a cotas estudadas; cicatrizes de 2024 em relação a ocupação). Onde o cruzamento não for defensável, o texto diz isso. Nenhum cenário vira rota liberada, abrigo confirmado ou ordem de evacuação.
-
-A sexta etapa é a escrita e a validação de pesquisa: método, limitações, comparação com o que já existe em SIG multicritério e previsão baseada em impactos, e o que o recorte da Taquari-Antas acrescenta (dados locais, duas estações-piloto, distinção explícita entre pesquisa e operação). A defesa deve deixar claro o que é fundamentação da literatura e o que é funcionalidade proposta pelo projeto.
-
-Etapas variáveis, em uma frase: a ordem se mantém (pergunta → perigo → exposição → vulnerabilidade → cruzamento → escrita), mas a espessura de cada bloco depende de acesso a dados, qualidade do terreno, parceria municipal e tempo de bolsa. O que não couber no mestrado permanece como agenda, não como resultado fingido.
+| Campo | Conteúdo |
+|---|---|
+| Projeto | PREVINE Taquari-Antas — prevenção de desastres geo-hidrológicos na Bacia Hidrográfica do Rio Taquari-Antas |
+| Edital | FAPERGS 06/2024 — Programa de Pesquisa e Desenvolvimento Voltado a Desastres Climáticos |
+| Processo | 24/2551-0002124-8 |
+| Coordenador | Prof. Dr. Guilherme Garcia de Oliveira — UFRGS |
+| Instituição | Universidade Federal do Rio Grande do Sul (UFRGS) |
+| Recorte | 18 municípios da Bacia Hidrográfica do Rio Taquari-Antas/RS |
+| Leituras-piloto | Santa Tereza e Muçum |
 
 ---
 
-## 2. Iniciação científica — dados, consistência, mapas e scripts
+# PLANO DE TRABALHO — BOLSISTA DE MESTRADO
 
-O plano de IC é de apoio transversal a vários objetivos do projeto, em tarefas básicas e repetíveis: organizar dados hidrológicos e territoriais, conferir consistência, produzir mapas de pesquisa e auxiliar nos scripts da plataforma digital. Não se espera que a IC desenvolva sozinha o WebGIS nem tome decisão operacional. Espera-se trilha de dados auditável — baixar, documentar fonte e data, preparar a “papinha” que os demais eixos usam, e registrar quando algo falhou.
+**Categoria sugerida:** PDTI 4 (profissional de nível superior; aluno de mestrado, com anuência do orientador e do coordenador do curso, conforme Regulamento PDTI).  
+**Duração prevista:** 24 meses.  
+**Carga horária:** compatível com o regulamento da bolsa e com o curso de mestrado.  
+**Eixos do projeto a que se vincula:** (1) monitoramento, modelagem e mapeamento; (3) alerta e comunicação de risco.
 
-A primeira etapa é o inventário. O bolsista ajuda a listar, para cada base, origem, recorte espacial, período, CRS, licença e arquivo de fontes. No hidrológico: telemetria de nível e, quando houver, chuva; no territorial: limite da bacia, setores, municípios, MDT, manchas-piloto, movimentos de massa, serviços pontuais. Etapa variável: novas fontes (radar, setorização de outros municípios, planos de contingência) só entram depois de URL, data e recorte conferidos.
+## 1. Título do plano de trabalho
 
-A segunda etapa é baixar e preparar. O projeto já tem robôs em Python para previsão ao vivo, recorte de vulnerabilidade (IBGE) e serviços (IEDE-RS), publicados com `FONTES.md`. A IC reproduz esses fluxos, atualiza a documentação quando o dicionário da fonte muda, e não publica dado implausível (por exemplo recorte da bacia fora da faixa esperada). “Fazer papinha” aqui é: mesmo CRS, mesma data de referência, nulos preservados, nomes estáveis, JSON/GeoJSON que o site e o QGIS consigam ler.
+Abordagem multi-risco para a Bacia Hidrográfica do Rio Taquari-Antas: integração de perigo hidrológico, movimentos de massa, exposição e vulnerabilidade social.
 
-A terceira etapa é a análise de consistência, o núcleo formativo da IC. Exemplos concretos, todos variáveis conforme a série disponível: horários e fuso; estação certa; lacunas não interpoladas como se fossem zero; nível ANA confrontado com o boletim SACE sem misturar limiares de cidades diferentes; no censo, sigilo estatístico mantido como nulo; no mapa, bounding box de encostas não confundida com o divisor oficial da bacia. O produto é um registro curto do que conferiu, o que divergiu e o que ficou pendente — não um “dado limpo” sem ressalva.
+## 2. Articulação com o projeto
 
-A quarta etapa é a produção de mapas de pesquisa. A partir dos GeoPackage/Shapefile já publicados, a IC monta layouts simples (perigo-piloto, vulnerabilidade, serviços, cicatrizes de 2024) com legenda, fonte, data e a frase de limitação no próprio mapa. Mapas novos só saem se a camada de origem estiver no inventário. Não se desenha rota, abrigo “confirmado” ou alerta.
+O projeto PREVINE organiza-se em três eixos: monitoramento, modelagem e mapeamento; ciência cidadã; e alerta e comunicação de risco. Este plano de mestrado opera na interface entre o mapeamento de perigos geo-hidrológicos e o uso desses produtos para análise de exposição e de vulnerabilidade social. Contribui para o entendimento de riscos e impactos e para o desenho de medidas de prevenção e resposta, nos termos do Edital FAPERGS 06/2024, sem substituir sistemas oficiais de alerta (SACE/SGB) nem a competência da Defesa Civil.
 
-A quinta etapa é auxiliar nos códigos da plataforma digital: rodar os scripts existentes, ler logs dos robôs (previsão, bacia, vulnerabilidade, serviços), reportar falha com evidência, e, com supervisão, ajustar caminho, metadado ou teste de sanidade. Eventualmente pode ajudar a executar um modelo já treinado ou um replay já protocolado — não a inventar modelo novo. A contribuição para a plataforma é operacional e documental: alimentar as camadas, manter a trilha de auditoria e deixar o próximo bolsista repetir o procedimento.
+O recorte espacial é a bacia do Taquari-Antas. Santa Tereza e Muçum são adotadas como leituras-piloto, por disporem de previsão de nível, manchas experimentais e bases territoriais já organizadas pelo projeto. A abordagem é multi-risco (inundação, enxurrada e movimentos de massa) e mantém perigo, exposição e vulnerabilidade como camadas distintas até que o cruzamento espacial seja metodologicamente justificado.
 
-Etapas variáveis: se a telemetria atrasar, a IC documenta atraso em vez de completar série; se um serviço do IEDE sumir do catálogo, registra aviso e segue com os demais; se não houver MDT em um município, o mapa daquele recorte não é forçado. A IC atravessa os eixos do projeto justamente porque organização de dados, consistência e mapas são o chão comum da previsão, da vulnerabilidade e da plataforma.
+## 3. Objetivo geral
+
+Desenvolver e aplicar, em recorte da Bacia Hidrográfica do Rio Taquari-Antas, uma abordagem multi-risco em ambiente de Sistema de Informações Geográficas (SIG), associando perigo hidrológico e de movimentos de massa a indicadores de exposição e de vulnerabilidade social, com produtos de pesquisa replicáveis para os municípios da bacia.
+
+## 4. Objetivos específicos
+
+OE1. Caracterizar os perigos de inundação, enxurrada e movimentos de massa no recorte de estudo, a partir de séries hidrológicas, manchas experimentais, setorização de risco disponível e mapeamento de cicatrizes.
+
+OE2. Compilar, documentar e calcular indicadores de exposição e de vulnerabilidade social reutilizáveis (população, faixa etária, infraestrutura domiciliar, renda, densidade e capacidade municipal), com denominadores e recortes espaciais explícitos.
+
+OE3. Integrar, em SIG, as camadas de perigo, exposição e vulnerabilidade somente onde geometria, datum e data de referência forem compatíveis.
+
+OE4. Elaborar cenários espaciais de pesquisa para as leituras-piloto, identificando setores, grupos populacionais e equipamentos potencialmente afetados.
+
+OE5. Sistematizar incertezas, lacunas de dados e recomendações metodológicas para expansão da abordagem aos demais municípios da bacia.
+
+## 5. Metodologia e estratégia de ação
+
+A pesquisa será desenvolvida em SIG, com camadas vetoriais e raster já produzidas ou em produção pelo PREVINE, complementadas por fontes oficiais. O perigo hidrológico será tratado a partir de níveis observados (ANA/SGB), cotas de referência por estação e manchas experimentais derivadas de modelo digital do terreno e HAND, interpretadas como hipótese espacial e não como profundidade de via. O perigo de encosta utilizará pontos de iniciação e polígonos de deslizamento mapeados em 2024 e, quando existir, a setorização de risco do SGB; a cobertura hoje disponível para Santa Tereza não será extrapolada aos demais municípios.
+
+A exposição e a vulnerabilidade social utilizarão o Censo Demográfico 2022 (IBGE) em município, setor censitário e, quando pertinente, grade estatística, além de equipamentos pontuais do IEDE-RS e do Indicador de Capacidade Municipal (ICM/MIDR). Valores omitidos por sigilo estatístico permanecerão nulos. Indicadores municipais não serão somados a indicadores setoriais. Não se construirá um índice único de “risco total” sem método, pesos e validação documentados.
+
+O cruzamento espacial (sobreposição e consultas) será restrito às áreas em que as camadas forem compatíveis. Os cenários resultantes são produtos de pesquisa para apoio à análise territorial e à formação de recursos humanos; não constituem alerta, rota liberada, confirmação de abrigo ou despacho.
+
+## 6. Atividades
+
+A1. Revisar a literatura de análise multi-risco e de SIG aplicado a inundação e movimentos de massa, e delimitar a pergunta, o recorte e as unidades espaciais de análise.
+
+A2. Organizar o inventário de perigo: séries e cotas de nível, limiares por estação, manchas experimentais, setorização SGB disponível e cicatrizes de 2024, com metadados de fonte, data e CRS.
+
+A3. Qualificar as bases de exposição e de vulnerabilidade (IBGE, IEDE-RS, ICM), definir o dicionário de indicadores e os denominadores, e produzir as tabelas e camadas de trabalho.
+
+A4. Implementar o modelo de dados e as regras de cruzamento em SIG (compatibilidade geométrica, recorte da bacia, piloto Santa Tereza e Muçum).
+
+A5. Gerar mapas e tabelas de cenário, com legenda, fonte, data e limitações, identificando setores e equipamentos potencialmente afetados.
+
+A6. Validar internamente os produtos (consistência espacial, conferência amostral e registro de lacunas) e redigir o relatório técnico-científico, capítulos da dissertação e submissão de trabalho em evento ou periódico, com menção obrigatória à FAPERGS.
+
+## 7. Metas
+
+M1. Inventário documentado das camadas de perigo, exposição e vulnerabilidade do recorte, com metadados.
+
+M2. Catálogo de indicadores sociais e territoriais, com definição, fonte, recorte e regra de cálculo.
+
+M3. Base geoespacial integrada das leituras-piloto, em formato aberto (GeoPackage/Shapefile), acompanhada de README de proveniência.
+
+M4. Conjunto de mapas e tabelas de cenário multi-risco para Santa Tereza e Muçum.
+
+M5. Relatório técnico-científico do bolsista (a cada 12 meses e ao final, conforme Regulamento PDTI) e manuscrito ou resumo expandido para divulgação científica.
+
+## 8. Resultados e impactos esperados
+
+Espera-se um método replicável de leitura multi-risco para a Taquari-Antas, capaz de mostrar, com transparência de dados, onde o perigo se sobrepõe a população vulnerável e a equipamentos essenciais. O impacto pretendido é de apoio à prevenção e à resposta baseada em evidência, em linha com os objetivos do Edital 06/2024 e com os ODS 11 e 13. Os produtos permanecem no âmbito da pesquisa e da formação; a promoção a uso operacional depende de validação independente e de autorização institucional.
+
+## 9. Cronograma (24 meses)
+
+T1 a T8 correspondem a trimestres (T1 = meses 1–3).
+
+| Atividade | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| A1. Revisão e delimitações | X | X | | | | | | |
+| A2. Inventário de perigo | X | X | X | | | | | |
+| A3. Indicadores de exposição e vulnerabilidade | | X | X | X | | | | |
+| A4. Integração em SIG | | | X | X | X | | | |
+| A5. Cenários, mapas e tabelas | | | | X | X | X | | |
+| A6. Validação, dissertação e divulgação | | | | | | X | X | X |
+| Relatório técnico-científico | | | | X | | | | X |
+
+## 10. Riscos e dificuldades
+
+| Risco | Mitigação |
+|---|---|
+| Heterogeneidade de cobertura espacial (mancha, MDT ou setorização ausente em parte da bacia) | Manter o piloto Santa Tereza/Muçum; registrar lacuna; não extrapolar. |
+| Incompatibilidade de datum, escala ou data entre camadas | Cruzar somente camadas compatíveis; documentar recusa de sobreposição. |
+| Séries hidrológicas com falhas ou atraso | Não interpolar lacunas como zero; usar o período contínuo disponível. |
+| Interpretação dos cenários como alerta operacional | Explicitar no mapa e no relatório o caráter de pesquisa. |
 
 ---
 
-## Como colar no WhatsApp (texto corrido, sem markdown)
+# PLANO DE TRABALHO — BOLSISTA DE INICIAÇÃO CIENTÍFICA
 
-**Mestrado**
+**Categoria sugerida:** PDTI 5 (estudante de graduação matriculado em curso de área correlacionada ao projeto).  
+**Duração prevista:** 12 meses.  
+**Carga horária mínima de referência:** 12 horas semanais (parâmetro usual das bolsas de iniciação da FAPERGS).  
+**Eixos do projeto a que se vincula:** (1) monitoramento, modelagem e mapeamento; (3) alerta e comunicação de risco (plataforma digital).
 
-O mestrado fica na abordagem multi-risco da Taquari-Antas: inundação, enxurrada e movimento de massa, junto com exposição e vulnerabilidade social. A ideia é pesquisar essas camadas juntas sem virar um índice único de risco e sem substituir a Defesa Civil. Primeiro recorta a pergunta e o território, usando Santa Tereza e Muçum como piloto porque já temos previsão, mancha experimental e ficha municipal; onde faltar dado, fica lacuna. Depois organiza o perigo: séries e cotas de nível, mancha só como hipótese espacial, e encostas a partir do mapeamento de 2024 e da setorização do SGB onde ela existir (hoje Santa Tereza, sem extrapolar). Em seguida exposição (população, domicílios, serviços pontuais, inventário de abrigos/vias quando o documento municipal existir) e vulnerabilidade com os indicadores que já temos e que dão para reutilizar no futuro: crianças, idosos, água, esgoto, renda, densidade, ICM etc., sempre com denominador certo e sem transformar sigilo em zero. O cruzamento espacial só acontece onde geometria e data baterem; o produto é mapa e tabela de cenário, não rota liberada nem ordem de evacuação. Fecha com método, limitações e o que é literatura versus o que o projeto ainda propõe. A ordem das etapas se mantém; a espessura de cada uma varia com dado, terreno, município e tempo de bolsa.
+## 1. Título do plano de trabalho
 
-**IC**
+Organização, análise de consistência e espacialização de dados hidrológicos e territoriais para a plataforma digital do PREVINE Taquari-Antas.
 
-A IC é apoio básico e transversal: organizar dados hidrológicos, conferir consistência, produzir mapas de pesquisa e ajudar nos scripts da plataforma. Inventaria cada base (fonte, recorte, data, CRS). Baixa e prepara a papinha que os outros eixos usam, reproduzindo os robôs que já existem e atualizando as fontes. Faz consistência: horário, estação, lacuna sem interpolar, ANA versus SACE sem misturar cidade, sigilo do censo como nulo. Produz mapas simples com legenda, data e limitação. Nos códigos, roda script, lê log, reporta falha e, com supervisão, ajusta caminho ou documentação; eventualmente ajuda a rodar um modelo já existente, não a criar modelo novo. Se a série atrasar ou a camada sumir, documenta em vez de completar no chute. Isso serve a vários objetivos do projeto porque dado organizado é o chão da previsão, da vulnerabilidade e da plataforma.
+## 2. Articulação com o projeto
+
+A execução da plataforma digital e dos mapeamentos do PREVINE depende de bases hidrológicas e territoriais organizadas, documentadas e consistentes. Este plano de IC atravessa vários objetivos do projeto: abastece a modelagem e o mapeamento (eixo 1) e os scripts da plataforma digital (eixo 3). As atividades são de pesquisa e de desenvolvimento tecnológico — inventário, download, padronização, consistência, produção de mapas e apoio à execução de códigos já especificados pela equipe — e não incluem tarefas administrativas.
+
+## 3. Objetivo geral
+
+Organizar, conferir e espacializar bases hidrológicas e territoriais da Bacia Hidrográfica do Rio Taquari-Antas, produzindo camadas e mapas auditáveis e apoiando a execução dos scripts da plataforma digital do PREVINE.
+
+## 4. Objetivos específicos
+
+OE1. Inventariar as bases utilizadas pelo projeto (telemetria hidrológica, limite da bacia, censo, serviços, MDT, manchas experimentais e movimentos de massa), com fonte, recorte, período, CRS e licença.
+
+OE2. Baixar, recortar e padronizar as bases (mesmo sistema de referência, nulos preservados, nomes estáveis e formatos abertos).
+
+OE3. Realizar análises de consistência das séries hidrológicas e das camadas territoriais (estação, horário, fuso, lacunas, limiares por município e recorte da bacia).
+
+OE4. Produzir mapas de pesquisa com legenda, fonte, data e limitações.
+
+OE5. Auxiliar, sob supervisão, a execução e a documentação dos scripts da plataforma digital (reprodução de rotinas, leitura de logs, testes de sanidade e atualização de metadados).
+
+## 5. Metodologia e estratégia de ação
+
+O trabalho seguirá o fluxo: inventário → obtenção → padronização → consistência → publicação da camada → mapa. As fontes prioritárias são ANA/SGB (nível), IBGE (Censo 2022), IEDE-RS/SEMA (bacia e serviços), SGB (setorização disponível) e os produtos de terreno e mancha já gerados pelo projeto. Cada conjunto de dados receberá ficha de metadados (origem, URL ou identificador, data de extração, CRS, recorte e restrições de uso).
+
+A análise de consistência incluirá: identificação da estação; conferência de horário e fuso; registro de falhas sem preenchimento artificial; comparação, quando couber, entre telemetria ANA e boletins SACE, sem misturar limiares de municípios diferentes; preservação do sigilo estatístico do IBGE; distinção entre recorte oficial da bacia e envelopes aproximados.
+
+Os mapas serão elaborados em SIG (QGIS ou equivalente) a partir das camadas publicadas. Os scripts da plataforma serão executados no ambiente já utilizado pelo projeto (Python e fluxos automatizados), com supervisão do coordenador ou de membro da equipe. O bolsista não desenvolverá modelo hidrológico ou de inteligência artificial novo; poderá reproduzir rotinas e executar modelos já protocolados.
+
+## 6. Atividades
+
+A1. Elaborar o inventário das bases hidrológicas e territoriais e as fichas de metadados.
+
+A2. Obter, recortar e padronizar as bases (download, reprojeção, recorte da bacia, exportação em GeoJSON/GeoPackage/CSV).
+
+A3. Executar a análise de consistência das séries de nível e das camadas censitárias e de serviços; registrar divergências e pendências.
+
+A4. Produzir mapas de pesquisa (hidrologia/piloto, vulnerabilidade, serviços e movimentos de massa), com ficha técnica no layout.
+
+A5. Reproduzir e documentar os scripts da plataforma digital; reportar falhas com evidência; atualizar arquivos de fontes e procedimentos.
+
+A6. Redigir relatórios parciais e o relatório técnico-científico final, e apresentar os resultados em seminário interno ou evento de iniciação científica, com menção à FAPERGS.
+
+## 7. Metas
+
+M1. Catálogo de bases com metadados completos para o recorte da bacia.
+
+M2. Pacote de dados padronizados (tabelas e camadas) conferido por rotina de consistência.
+
+M3. Relatório de consistência hidrológica e territorial, com falhas, divergências e período válido.
+
+M4. Conjunto de mapas de pesquisa em PDF, com fonte e limitação visíveis.
+
+M5. Procedimento reproduzível dos scripts apoiados (passo a passo e registro de execução) e relatório técnico-científico do bolsista.
+
+## 8. Resultados e impactos esperados
+
+Espera-se uma base hidrológica e territorial rastreável, capaz de alimentar a plataforma digital e os mapeamentos do projeto sem perda de proveniência. O impacto é instrumental: reduzir retrabalho, tornar as camadas auditáveis e formar o bolsista em organização de dados, SIG e rotinas de pesquisa. Os mapas e scripts permanecem produtos de pesquisa.
+
+## 9. Cronograma (12 meses)
+
+| Atividade | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| A1. Inventário e metadados | X | X | X | | | | | | | | | |
+| A2. Download, recorte e padronização | | X | X | X | X | | | | | | | |
+| A3. Análise de consistência | | | X | X | X | X | | | | | | |
+| A4. Produção de mapas | | | | | X | X | X | X | | | | |
+| A5. Scripts da plataforma digital | | | | | | X | X | X | X | X | | |
+| A6. Relatórios e divulgação | | | | | | X | | | | X | X | X |
+
+## 10. Riscos e dificuldades
+
+| Risco | Mitigação |
+|---|---|
+| Interrupção ou atraso de telemetria | Registrar atraso; não completar série por interpolação. |
+| Alteração de dicionário ou URL da fonte (IBGE, IEDE) | Atualizar a ficha de fontes; repetir o recorte; versionar a extração. |
+| Camada de serviço ausente no catálogo | Seguir com as demais; documentar a ausência. |
+| MDT ou mancha indisponível em município | Não forçar o mapa daquele recorte. |
