@@ -469,8 +469,8 @@
 
   function axisTimeLabel(d,spanHours,crossDay){
     if(spanHours>72) return d.toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit'});
-    if(crossDay) return d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',',' ');
-    return d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'});
+    if(crossDay) return fmtWhen(d);
+    return fmtClock(d);
   }
 
   function observedPath(points,X,Y){

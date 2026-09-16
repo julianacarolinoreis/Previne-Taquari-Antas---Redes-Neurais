@@ -27,5 +27,7 @@ const alvo = fmt.fmtWhen('2026-09-16T00:00:00');
 assert.ok(!alvo.includes(':'), 'rótulo da meia-noite não usa 00:00');
 assert.ok(!alvo.includes('00h'), 'rótulo da meia-noite não usa 00h');
 check(`+2h · para ${alvo}`, '+2h · para 16/09 0h', 'título do cartão simples');
+check(fmt.fmtWhen(new Date('2026-09-16T00:00:00-03:00')), '16/09 0h', 'eixo 24h na meia-noite');
+check(fmt.fmtClock(new Date('2026-09-16T03:48:00-03:00')), '3h48', 'tick curto do eixo');
 
 console.log('OK fmt_quando: meia-noite em 0h, sem 00:00');
