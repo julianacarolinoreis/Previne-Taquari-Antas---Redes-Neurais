@@ -80,11 +80,20 @@ def validar_html(nome: str, esperado: dict[str, str]) -> None:
         "hydro-accessible",
     ):
         assert required in parser.ids, f"{nome}: falta #{required}"
-    assert "assets/previsao_panorama.css" in parser.stylesheets, f"{nome}: CSS do panorama ausente"
+    assert any(
+        href.split("?", 1)[0] == "assets/previsao_panorama.css"
+        for href in parser.stylesheets
+    ), f"{nome}: CSS do panorama ausente"
     assert any(
         script.split("?", 1)[0] == "assets/previsao_panorama.js"
         for script in parser.scripts
     ), f"{nome}: JS do panorama ausente"
+    assert any(
+        script.split("?", 1)[0] == "assets/js/fmt_quando.js"
+        for script in parser.scripts
+    ), f"{nome}: formatador de horário ausente"
+    assert ".q #s-hz{text-transform:none" in texto, f"{nome}: o horário-alvo ainda herda caixa alta do rótulo"
+    assert "m[4]}:${m[5]}" not in texto, f"{nome}: fmtWhen ainda imprime HH:MM com dois-pontos"
     assert esperado["history"] in texto, f"{nome}: histórico incorreto"
     assert f"const CONTORNOS_URL='{esperado['contour']}';" in texto, f"{nome}: contorno incorreto"
     assert esperado["target"] in texto, f"{nome}: estação-alvo incorreta"
@@ -173,6 +182,16 @@ def main() -> None:
     validar_geojson("assets/data/santa_tereza_inundacao/contornos_extravasamento.json")
     validar_geojson("assets/data/mucum_inundacao/contornos_extravasamento.json")
     validar_arquivos_protegidos()
+    proc = subprocess.run(
+        ["node", str(RAIZ / "scripts" / "test_fmt_quando.js")],
+        cwd=RAIZ,
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    assert proc.returncode == 0, f"fmt_quando: {proc.stdout}{proc.stderr}"
+    print((proc.stdout or "").strip() or "OK fmt_quando")
     print("VALIDAÇÃO DO PANORAMA: OK")
 
 

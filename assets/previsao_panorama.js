@@ -79,8 +79,9 @@
   }
 
   function fmtWhen(v){
-    const d=parseWhen(v);
-    return d?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',',' ·'):'—';
+    return (typeof PrevineFmtQuando==='object'&&PrevineFmtQuando.fmtWhen)
+      ?PrevineFmtQuando.fmtWhen(v)
+      :'—';
   }
 
   function fmtWhenWithZone(v){
@@ -93,20 +94,15 @@
   // publicou o arquivo.  Deixar esses campos separados evita que uma base
   // horaria valida pareca uma publicacao atrasada.
   function fmtClock(v){
-    const d=parseWhen(v);
-    if(!d) return '—';
-    const parts=new Intl.DateTimeFormat('pt-BR',{
-      timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'
-    }).formatToParts(d);
-    const hour=(parts.find(p=>p.type==='hour')||{}).value||'—';
-    const minute=(parts.find(p=>p.type==='minute')||{}).value||'00';
-    return minute==='00'?`${hour}h`:`${hour}h${minute}`;
+    return (typeof PrevineFmtQuando==='object'&&PrevineFmtQuando.fmtClock)
+      ?PrevineFmtQuando.fmtClock(v)
+      :'—';
   }
 
   function fmtClockDate(v){
-    const d=parseWhen(v);
-    if(!d) return '—';
-    return `${fmtWhen(v)} BRT`;
+    return (typeof PrevineFmtQuando==='object'&&PrevineFmtQuando.fmtClockDate)
+      ?PrevineFmtQuando.fmtClockDate(v)
+      :'—';
   }
 
   function ageText(v){
