@@ -12,7 +12,7 @@
   }
 
   function stampMs(data) {
-    const value = data && (data.consultado_em || data.gerado_em || data.hora_modelo);
+    const value = data && (data.consultado_em || data.gerado_em || data.atualizado_em || data.hora_modelo);
     if (!value) return NaN;
     const raw = String(value);
     return Date.parse(/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw) ? raw : raw + '-03:00');
@@ -34,9 +34,18 @@
     if (!file) return [];
     return [
       { label: 'arquivo publicado', url: file },
-      { label: 'API GitHub', url: 'https://api.github.com/repos/' + REPO + '/contents/' + file + '?ref=main', kind: 'github-api' },
-      { label: 'arquivo Raw', url: 'https://raw.githubusercontent.com/' + REPO + '/main/' + file }
+      { label: 'arquivo Raw', url: 'https://raw.githubusercontent.com/' + REPO + '/main/' + file },
+      { label: 'CDN jsDelivr', url: 'https://cdn.jsdelivr.net/gh/' + REPO + '@main/' + file },
+      { label: 'API GitHub', url: 'https://api.github.com/repos/' + REPO + '/contents/' + file + '?ref=main', kind: 'github-api' }
     ];
+  }
+
+  function primarySources(sources) {
+    return (sources || []).filter(function (src) { return src.kind !== 'github-api'; });
+  }
+
+  function apiSources(sources) {
+    return (sources || []).filter(function (src) { return src.kind === 'github-api'; });
   }
 
   async function fetchJson(url, timeoutMs) {
@@ -75,14 +84,23 @@
     return newest;
   }
 
-  function fetchLive(path) {
-    return fetchNewest(sourcesFor(path));
+  async function fetchLive(path) {
+    const sources = sourcesFor(path);
+    try {
+      return await fetchNewest(primarySources(sources));
+    } catch (primaryError) {
+      const fallback = apiSources(sources);
+      if (!fallback.length) throw primaryError;
+      return fetchNewest(fallback);
+    }
   }
 
   return {
     stampMs: stampMs,
     pickNewest: pickNewest,
     sourcesFor: sourcesFor,
+    primarySources: primarySources,
+    apiSources: apiSources,
     withCacheBust: withCacheBust,
     fetchNewest: fetchNewest,
     fetchLive: fetchLive

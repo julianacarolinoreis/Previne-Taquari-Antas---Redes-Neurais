@@ -182,7 +182,14 @@ def validar_deploy_pages() -> None:
     assert "Previsao ao vivo - Mucum" not in yml, "Pages ainda dispara no robô de 5 min de Muçum"
     assert "Chuvas horarias (ANA + INMET + CEMADEN)" not in yml, "Pages ainda dispara no robô horário de chuvas"
     assert "cancel-in-progress: true" in yml, "Pages ainda deixa um deploy waiting bloquear o grupo"
+    assert "group: github-pages-site" in yml, "Pages ainda usa o grupo concurrency preso em waiting"
+    assert "github.ref == 'refs/heads/main'" in yml, "Pages ainda publica fora do main"
+    assert "previsao_ao_vivo.json|previsao_ao_vivo_mucum.json" in yml, "Pages ainda copia o JSON do robô para o artefato"
     assert 'cron: "41 */2 * * *"' in yml, "Pages perdeu a cópia de contingência do JSON"
+    js = (RAIZ / "assets/js/live_feed.js").read_text(encoding="utf-8")
+    assert "cdn.jsdelivr.net/gh/" in js, "live_feed não lê o CDN quando o Pages 404"
+    assert "raw.githubusercontent.com" in js, "live_feed não lê o Raw do GitHub"
+    assert "kind !== 'github-api'" in js, "live_feed ainda gasta a cota da API em todo poll"
     print("OK Pages: robô de 5 min não enfileira deploy")
 
 
