@@ -207,6 +207,23 @@ svg.chart { width:100%; min-width:520px; height:280px; display:block; }
   border-radius:999px; padding:.35rem .8rem; font-size:.84rem; font-weight:650;
 }
 .foot { margin-top:1.1rem; color:var(--muted); font-size:.82rem; }
+.method-grid { display:grid; gap:.55rem; margin-top:.45rem; }
+@media (min-width:800px) { .method-grid { grid-template-columns:1.2fr 1fr; } }
+.method-grid .box {
+  border:1px solid var(--line); border-radius:12px; background:#fff; padding:.65rem .75rem;
+}
+.method-grid h3 { margin:0 0 .35rem; font-family:Fraunces, Georgia, serif; font-size:.95rem; }
+.method-grid ul { margin:.2rem 0 0; padding-left:1.1rem; color:var(--muted); }
+.method-grid li { margin:.15rem 0; }
+.contrast {
+  display:flex; flex-wrap:wrap; gap:.55rem 1rem; margin:.4rem 0 .15rem;
+  padding:.55rem .7rem; border-radius:10px; border:1px dashed #b9cfc2; background:#f4faf6;
+}
+.contrast strong { color:var(--live); }
+.badge-n1 {
+  display:inline-block; margin-left:.35rem; padding:.1rem .45rem; border-radius:999px;
+  border:1px solid #e0c08a; background:#fff8ee; color:#8a5a12; font-size:.72rem; font-weight:700;
+}
 ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
 
 .skill-table { width:100%; border-collapse:collapse; font-size:.84rem; margin-top:.55rem; }
@@ -276,6 +293,13 @@ svg.mini-chart { width:100%; height:168px; display:block; }
       <span>Âncoras produto: <strong>{{N_ANCHORS}}</strong></span>
     </div>
   </header>
+
+  <section class="card" style="margin-bottom:.9rem" id="methodCard">
+    <h2>Método · o que isto é (e o que não é)</h2>
+    <p class="muted" id="methodLede">Braço da família HEC/REC, domínio e validação — sem overclaim.</p>
+    <div class="contrast" id="skillContrast"></div>
+    <div class="method-grid" id="methodGrid"></div>
+  </section>
 
   <section class="grid metrics" style="margin-bottom:.9rem" id="basinMetrics">
     <article class="card metric">
@@ -365,14 +389,14 @@ svg.mini-chart { width:100%; height:168px; display:block; }
   </section>
 
   <section class="card" style="margin-bottom:.9rem" id="skillCard">
-    <h2>Calibração · erros LOO por evento</h2>
+    <h2>Validação · self-fit vs LOO por evento</h2>
     <p class="muted" id="skillVerdict">Hindcast leave-one-out: onde o gêmeo acerta e onde erra.</p>
     <div class="skill-summary" id="skillSummary"></div>
     <div style="overflow-x:auto">
       <table class="skill-table" id="skillTable">
         <thead>
           <tr>
-            <th>Evento</th><th>Chuva mm</th><th>NSE</th><th>|err| ΔN cm</th><th>err ΔN %</th><th>err pico Q %</th><th>Tag</th>
+            <th>Evento</th><th>Chuva mm</th><th>Self-fit</th><th>NSE LOO</th><th>|err| ΔN cm</th><th>err ΔN %</th><th>err pico Q %</th><th>Tag</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -394,10 +418,11 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <h2>Como o robô alimenta esta página</h2>
     <ol class="muted" id="robotSteps"></ol>
     <p class="foot">
-      Sujeito = bacia Taquari–Antas (G040, 7 UGs). Produto gêmeo = corredor até Muçum
-      (Alto+Prata+Carreiro+Médio). Guaporé/Forqueta/Baixo no mapa da bacia, fora do balanço
-      até Muçum. IFS do produto = proxy pontual (não máscara areal do e-mail ao Guilherme).
-      STZ sem curva N↔Q inventada. Pesquisa, não alerta.
+      Sujeito espacial = bacia Taquari–Antas (G040, 7 UGs). Produto = gêmeo Python HMS-like
+      no corredor até Muçum (Alto+Prata+Carreiro+Médio) — não HEC-HMS binário, não RAS, não CWMS,
+      e ainda não calibração da G040 inteira. Guaporé/Forqueta/Baixo no inventário, fora do balanço.
+      IFS = proxy pontual. Validação honesta = LOO (não self-fit). STZ sem curva N↔Q inventada.
+      Pesquisa, não alerta.
     </p>
   </section>
 </div>
@@ -509,7 +534,8 @@ const fwdEl = document.getElementById("fwdSummary");
 
 if (live.available !== false && (liveP.rise_cm != null || live.plain_pt)) {
   liveEl.innerHTML =
-    "<span class=\"mono\">" + (live.artifact || "live_eval") + "</span><br/>" +
+    "<span class=\"mono\">" + (live.artifact || "live_eval") + "</span>" +
+    "<span class=\"badge-n1\">verify n=1</span><br/>" +
     "ΔN " + fmt(liveP.rise_cm, 0) + " cm · N pico " + fmt(liveP.peak_anchored_cm, 0) + " cm<br/>" +
     "quando " + (liveP.peak_time_utc || "—") +
     (live.timing_error_h != null ? " · timing " + fmt(live.timing_error_h, 1) + " h" : "") + "<br/>" +
@@ -678,7 +704,7 @@ const basinLayer = L.layerGroup().addTo(map);
 const ugLayer = L.layerGroup().addTo(map);
 const fozLayer = L.layerGroup().addTo(map);
 const rainLayer = L.layerGroup().addTo(map);
-const networkLayer = L.layerGroup().addTo(map); // G040 inventory — on by default
+const networkLayer = L.layerGroup(); // G040 inventory — off by default (UG polygons first)
 const anchorLayer = L.layerGroup().addTo(map);
 const markers = {};
 
@@ -689,7 +715,7 @@ const markers = {};
   el.textContent =
     "Bacia: " + (fr.g040_label_pt || "G040") + " (~" + fmt(fr.g040_km2, 0) + " km², 7 UGs) · " +
     "produto gêmeo: corredor até Muçum (~" + fmt(fr.twin_domain_km2, 0) + " km²) · " +
-    "no mapa da bacia também: " + ((fr.excluded_ugs || []).join(", ") || "—");
+    "no mapa da bacia também: " + ((fr.excluded_ugs || []).join(", ") || "—") + " · rede G040 desligada por padrão (ligue no controle de camadas).";
 })();
 
 const legend = L.control({position:"bottomright"});
@@ -768,6 +794,47 @@ function renderNetwork() {
   });
 }
 
+
+function renderMethodology() {
+  const m = DATA.methodology || {};
+  const lede = document.getElementById("methodLede");
+  if (lede) {
+    lede.textContent = m.family_arm_pt
+      ? (m.family_arm_pt + " · " + (m.domain_pt || ""))
+      : "Braço da família HEC/REC, domínio e validação — sem overclaim.";
+  }
+  const grid = document.getElementById("methodGrid");
+  if (!grid) return;
+  const events = m.events || {};
+  const core = (events.core || []).join(", ") || "—";
+  const marginal = (events.marginal || []).join(", ") || "—";
+  const failed = (events.failed || []).join(", ") || "—";
+  const notList = (m.not_pt || []).map(function(x){ return "<li>" + x + "</li>"; }).join("");
+  const points = (m.forcing_point_map || []).map(function(p){
+    return "<li><span class=\"mono\">" + (p.subbasin_id || "") + "</span> → " +
+      (p.point_code || "—") + (p.label ? " (" + p.label + ")" : "") + "</li>";
+  }).join("");
+  grid.innerHTML =
+    "<div class=\"box\"><h3>Motor e forçante</h3><ul>" +
+      "<li><strong>Motor:</strong> " + (m.engine_name || "python HMS-like") +
+        (m.not_hec_hms_binary ? " · não binário HEC-HMS" : "") + "</li>" +
+      "<li><strong>Métodos:</strong> " + ((m.methods || []).join(" · ") || "—") + "</li>" +
+      "<li>" + (m.why_pt || "") + "</li>" +
+      "<li>" + (m.forcing_pt || "IFS pontual") + "</li>" +
+      "<li>" + (m.transfer_pt || "análogos LOO") + "</li>" +
+      "<li>" + (m.rating_pt || "curva oficial Muçum") + "</li>" +
+    "</ul></div>" +
+    "<div class=\"box\"><h3>Eventos e limites</h3><ul>" +
+      "<li><strong>Core:</strong> " + core + (events.core_rule_pt ? " <em>(" + events.core_rule_pt + ")</em>" : "") + "</li>" +
+      "<li><strong>Marginais:</strong> " + marginal + "</li>" +
+      "<li><strong>Falha:</strong> " + failed + "</li>" +
+      "<li>" + (m.live_verify_pt || "Live verify n=1") + "</li>" +
+    "</ul>" +
+    (notList ? "<p class=\"muted\" style=\"margin:.45rem 0 .2rem\">Isto não é</p><ul>" + notList + "</ul>" : "") +
+    (points ? "<h3 style=\"margin-top:.55rem\">Proxy IFS por sub-bacia</h3><ul>" + points + "</ul>" : "") +
+    "</div>";
+}
+
 function renderSkill() {
   const skill = ((DATA.products || {}).hindcast_skill) || {};
   const verdictEl = document.getElementById("skillVerdict");
@@ -783,10 +850,20 @@ function renderSkill() {
   }
   if (sumEl) {
     sumEl.innerHTML =
-      "<span><strong>" + fmt(summary.n_scored, 0) + "</strong> eventos</span>" +
+      "<span><strong>" + fmt(summary.n_scored, 0) + "</strong> eventos LOO</span>" +
+      "<span>self-fit médio <strong>" + fmt(summary.mean_self_fit_nse, 2) + "</strong></span>" +
+      "<span>NSE LOO médio <strong>" + fmt(summary.mean_nse_loo, 2) + "</strong></span>" +
       "<span>ΔN rel médio <strong>" + fmt((summary.mean_rise_n_rel_err || 0) * 100, 0) + "%</strong></span>" +
-      "<span>pico Q |err| médio <strong>" + fmt((summary.mean_peak_q_rel_err || 0) * 100, 0) + "%</strong></span>" +
-      "<span>NSE médio <strong>" + fmt(summary.mean_nse_loo, 2) + "</strong></span>";
+      "<span>pico Q |err| médio <strong>" + fmt((summary.mean_peak_q_rel_err || 0) * 100, 0) + "%</strong></span>";
+  }
+  const contrastEl = document.getElementById("skillContrast");
+  if (contrastEl) {
+    contrastEl.innerHTML =
+      "<span>Self-fit biblioteca <strong>" + fmt(summary.mean_self_fit_nse, 2) + "</strong></span>" +
+      "<span>≠</span>" +
+      "<span>NSE LOO transferência <strong>" + fmt(summary.mean_nse_loo, 2) + "</strong></span>" +
+      "<span class=\"muted\">" + (summary.contrast_pt || skill.method_pt ||
+        "Self-fit mede ajuste no próprio evento; LOO mede previsão por análogo.") + "</span>";
   }
   tbody.innerHTML = "";
   (skill.events || []).forEach(function(e) {
@@ -795,6 +872,7 @@ function renderSkill() {
     tr.innerHTML =
       "<td>" + (e.event_id || "—") + "</td>" +
       "<td>" + fmt(e.rain_mm_aw, 0) + "</td>" +
+      "<td>" + fmt(e.self_fit_nse, 2) + "</td>" +
       "<td>" + fmt(e.nse_loo, 2) + "</td>" +
       "<td>" + fmt(e.rise_n_abs_err_cm, 0) + "</td>" +
       "<td>" + fmt((e.rise_n_rel_err || 0) * 100, 0) + "%</td>" +
@@ -1078,6 +1156,7 @@ drawChart();
 renderChips();
 renderAnchors();
 renderNetwork();
+renderMethodology();
 renderSkill();
 renderUgInventory();
 renderUgDomainChips();
