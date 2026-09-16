@@ -139,6 +139,7 @@ def validar_componente_panorama() -> None:
     ):
         assert token in js, f"JS: falta proteção/componente {token}"
     assert "if(crossDay) return fmtWhen(d);" in js, "JS: eixo do panorama ainda usa 00:00"
+    assert "function publishedForecasts(items)" in js, "JS: +2 h publicado some do gráfico quando o alvo já passou"
     assert "return fmtClock(d);" in js, "JS: ticks curtos do eixo ainda usam HH:MM"
     assert "candidate.time.getTime()<anchor.time.getTime()" not in js, "JS: validade do alvo depende da última leitura atrasada"
     assert "let previous=anchor" not in js, "JS: horizontes ainda estão encadeados apesar de terem bases distintas"
