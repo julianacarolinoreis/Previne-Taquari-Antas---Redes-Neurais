@@ -529,21 +529,36 @@ async function fetchJsonWithTimeout(url){
     return await r.json();
   }finally{ clearTimeout(timer); }
 }
+function liveFeedStampMs(d){
+  const v=d&&(d.consultado_em||d.gerado_em||d.hora_modelo);
+  if(!v) return NaN;
+  const s=String(v);
+  return Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(s)?s:s+'-03:00');
+}
+async function fetchGithubLiveJson(){
+  const meta=await fetchJsonWithTimeout(LIVE_API_URL);
+  const b64=String(meta.content||'').replace(/\s/g,'');
+  if(!b64) throw new Error('conteúdo vazio');
+  return JSON.parse(decodeURIComponent(escape(atob(b64))));
+}
 async function fetchLiveJson(){
+  // O Pages pode ficar horas atrás do robô. Não aceitar o primeiro 200:
+  // comparar as três fontes e usar a consulta mais nova.
+  const labels=['arquivo publicado','API GitHub','arquivo Raw'];
+  const settled=await Promise.allSettled([
+    fetchJsonWithTimeout(LIVE_PAGE_URL),
+    fetchGithubLiveJson(),
+    fetchJsonWithTimeout(LIVE_RAW_URL)
+  ]);
+  const ok=[];
   const failures=[];
-  // O arquivo publicado no mesmo domínio evita a limitação de taxa da API e
-  // as falhas intermitentes do raw.githubusercontent.com.
-  try{ return await fetchJsonWithTimeout(LIVE_PAGE_URL); }
-  catch(e){ failures.push('arquivo publicado: '+(e&&e.message||'erro de rede')); }
-  try{
-    const meta=await fetchJsonWithTimeout(LIVE_API_URL);
-    const b64=String(meta.content||'').replace(/\s/g,'');
-    if(!b64) throw new Error('conteúdo vazio');
-    return JSON.parse(decodeURIComponent(escape(atob(b64))));
-  }catch(e){ failures.push('API GitHub: '+(e&&e.message||'erro de rede')); }
-  try{ return await fetchJsonWithTimeout(LIVE_RAW_URL); }
-  catch(e){ failures.push('arquivo Raw: '+(e&&e.message||'erro de rede')); }
-  throw new Error(failures.join(' · ')||'fontes indisponíveis');
+  settled.forEach((r,i)=>{
+    if(r.status==='fulfilled' && r.value) ok.push(r.value);
+    else failures.push(labels[i]+': '+(r.reason&&r.reason.message||'erro de rede'));
+  });
+  if(!ok.length) throw new Error(failures.join(' · ')||'fontes indisponíveis');
+  ok.sort((a,b)=>(liveFeedStampMs(b)||0)-(liveFeedStampMs(a)||0));
+  return ok[0];
 }
 function fmtWhen(s){ return PrevineFmtQuando.fmtWhen(s); }
 function fmtClock(s){ return PrevineFmtQuando.fmtClock(s); }
