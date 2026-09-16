@@ -26,9 +26,9 @@ def render_platform_html(feed: dict[str, Any]) -> str:
     status = _esc(feed.get("status") or "research")
 
     product = feed.get("product") or {}
-    product_name = _esc(product.get("name") or "Produto gêmeo · ΔN Muçum ~5d")
+    product_name = _esc(product.get("name") or "Multi-exutório G040 · pesquisa")
     product_horizon = _esc(product.get("horizon") or "~5 dias")
-    product_target = _esc(product.get("target") or "Muçum")
+    product_target = _esc(product.get("target") or "Bacia G040")
     product_mode = _esc(product.get("mode") or "pesquisa")
 
     summary = feed.get("summary") or {}
@@ -40,7 +40,7 @@ def render_platform_html(feed: dict[str, Any]) -> str:
 
     auto = feed.get("automation") or {}
     auto_name = _esc(
-        auto.get("workflow_name") or auto.get("workflow") or "HEC twin Muçum forward"
+        auto.get("workflow_name") or auto.get("workflow") or "HEC twin G040 multi-outlet"
     )
     auto_sched = _esc(auto.get("schedule_cron") or "12 */6 * * *")
     auto_owner = _esc(auto.get("commit_author") or "previne-hec-bot")
@@ -207,6 +207,23 @@ svg.chart { width:100%; min-width:520px; height:280px; display:block; }
   border-radius:999px; padding:.35rem .8rem; font-size:.84rem; font-weight:650;
 }
 .foot { margin-top:1.1rem; color:var(--muted); font-size:.82rem; }
+.method-grid { display:grid; gap:.55rem; margin-top:.45rem; }
+@media (min-width:800px) { .method-grid { grid-template-columns:1.2fr 1fr; } }
+.method-grid .box {
+  border:1px solid var(--line); border-radius:12px; background:#fff; padding:.65rem .75rem;
+}
+.method-grid h3 { margin:0 0 .35rem; font-family:Fraunces, Georgia, serif; font-size:.95rem; }
+.method-grid ul { margin:.2rem 0 0; padding-left:1.1rem; color:var(--muted); }
+.method-grid li { margin:.15rem 0; }
+.contrast {
+  display:flex; flex-wrap:wrap; gap:.55rem 1rem; margin:.4rem 0 .15rem;
+  padding:.55rem .7rem; border-radius:10px; border:1px dashed #b9cfc2; background:#f4faf6;
+}
+.contrast strong { color:var(--live); }
+.badge-n1 {
+  display:inline-block; margin-left:.35rem; padding:.1rem .45rem; border-radius:999px;
+  border:1px solid #e0c08a; background:#fff8ee; color:#8a5a12; font-size:.72rem; font-weight:700;
+}
 ol.muted { margin:.35rem 0 0; padding-left:1.15rem; }
 
 .skill-table { width:100%; border-collapse:collapse; font-size:.84rem; margin-top:.55rem; }
@@ -256,15 +273,16 @@ svg.mini-chart { width:100%; height:168px; display:block; }
       <span class="pill ok">G040 · {{BASIN_KM2}} km²</span>
       <span class="pill ok">7 UGs</span>
       <span class="pill">rede {{N_NETWORK}}</span>
-      <span class="pill">{{PRODUCT_NAME}}</span>
+      <span class="pill ok">{{PRODUCT_NAME}}</span>
+      <span class="pill">{{PRODUCT_TARGET}}</span>
     </div>
     <h1>Bacia Taquari–Antas <span>G040</span></h1>
     <p class="lede">
       Esta página é da <strong>bacia oficial inteira</strong>
-      (~{{BASIN_KM2}} km², {{N_UGS}} UGs: Alto, Prata, Carreiro, Médio, Guaporé, Forqueta e Baixo).
-      O <strong>produto gêmeo</strong> (ΔN em Muçum) é um produto <em>dentro</em> da bacia —
-      corredor aninhado ~16 mil km² — não o limite espacial. Guaporé/Forqueta/Baixo entram
-      no inventário e no mapa; não no balanço HEC até Muçum.
+      (~{{BASIN_KM2}} km², {{N_UGS}} UGs) — <strong>não é uma página do Muçum</strong>.
+      Multi-exutório G040: inventário das 7 UGs + braços com Q
+      (Muçum, Encantado, Mariante/tributários). Foz Guaporé/Forqueta e Taquari-nível
+      ainda gated — inventário + gate, sem ΔN inventado.
     </p>
     <div class="{{FRESH_CLS}}" id="freshnessBanner">
       <span>Atualização: <strong>{{GENERATED}}</strong> UTC</span>
@@ -272,10 +290,26 @@ svg.mini-chart { width:100%; height:168px; display:block; }
       <span>Live eval: <span class="mono">{{LIVE_AGE}}</span></span>
       <span>Forward: <span class="mono">{{FWD_AGE}}</span></span>
       <span>Rede G040: <strong>{{N_NETWORK}}</strong></span>
-      <span>fora do gêmeo: <strong>{{N_OUTSIDE}}</strong></span>
-      <span>Âncoras produto: <strong>{{N_ANCHORS}}</strong></span>
+      <span>fora do braço Muçum: <strong>{{N_OUTSIDE}}</strong></span>
+      <span>Âncoras (braço Muçum): <strong>{{N_ANCHORS}}</strong></span>
     </div>
   </header>
+
+  <section class="card" style="margin-bottom:.9rem" id="methodCard">
+    <h2>Método · o que isto é (e o que não é)</h2>
+    <p class="muted" id="methodLede">Braço da família HEC/REC na bacia G040 — multi-exutório, sem overclaim.</p>
+    <div class="contrast" id="skillContrast"></div>
+    <div class="method-grid" id="methodGrid"></div>
+  </section>
+
+  <section class="card" style="margin-bottom:.9rem" id="multiOutletCard">
+    <h2>Calibração G040 · multi-exutório</h2>
+    <p class="muted" id="multiOutletLede">Bacia G040: Muçum + Encantado calibrados; Mariante/tributários com Q; fozes gated.</p>
+    <div class="contrast" id="encantadoContrast"></div>
+    <div class="contrast" id="marianteContrast" style="margin-top:.45rem"></div>
+    <div class="ug-inventory" id="outletInventory"></div>
+    <ol class="lessons" id="multiOutletNext"></ol>
+  </section>
 
   <section class="grid metrics" style="margin-bottom:.9rem" id="basinMetrics">
     <article class="card metric">
@@ -291,12 +325,12 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <article class="card metric">
       <div class="label">Rede inventário</div>
       <div class="value">{{N_NETWORK}}</div>
-      <div class="hint">flu+chuva · {{N_OUTSIDE}} fora do gêmeo</div>
+      <div class="hint">flu+chuva · {{N_OUTSIDE}} fora do braço Muçum</div>
     </article>
     <article class="card metric">
-      <div class="label">Produto ΔN</div>
+      <div class="label">ΔN · um braço (Muçum)</div>
       <div class="value" style="font-size:1.15rem">{{PEAK_DN}}</div>
-      <div class="hint">Muçum · dentro da bacia</div>
+      <div class="hint">não resume a G040</div>
     </article>
   </section>
 
@@ -318,10 +352,10 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     </article>
     <article class="card">
       <h2>Inventário por UG</h2>
-      <p class="muted">7 UGs da G040. As 3 fora do gêmeo (Guaporé, Forqueta, Baixo) aparecem sem ΔN HEC inventado.</p>
+      <p class="muted">7 UGs da G040. Guaporé, Forqueta e Baixo no inventário; sem ΔN inventado onde ainda falta Q.</p>
       <div class="ug-inventory" id="ugInventory"></div>
-      <h2 style="margin-top:1rem">Pontos de amarração (produto)</h2>
-      <p class="muted">Âncoras curadas do gêmeo Muçum. Clique para focar e abrir a curva.</p>
+      <h2 style="margin-top:1rem">Âncoras do braço Muçum</h2>
+      <p class="muted">Um exutório dentro da G040 — não o assunto da página. Clique para focar e abrir a curva.</p>
       <div class="chips" id="roleChipsSide"></div>
       <div class="anchor-list" id="anchorList"></div>
       <div class="links" id="artifactLinks"></div>
@@ -329,8 +363,8 @@ svg.mini-chart { width:100%; height:168px; display:block; }
   </section>
 
   <section class="card" style="margin-bottom:.9rem" id="corridorCard">
-    <h2>Produto gêmeo · corredor até Muçum</h2>
-    <p class="muted" id="corridorNote">Produto dentro da bacia G040 · cinco sub-bacias aninhadas · análogos.</p>
+    <h2>Braço Muçum · um exutório da G040</h2>
+    <p class="muted" id="corridorNote">Não é a bacia inteira · corredor aninhado (~16 mil km²) dentro da G040.</p>
     <div class="chips" id="corridorChips"></div>
     <div class="chips" id="ugDomainChips" style="margin-top:.35rem"></div>
     <p class="muted mono" id="corridorMeta" style="margin-top:.55rem"></p>
@@ -338,41 +372,41 @@ svg.mini-chart { width:100%; height:168px; display:block; }
 
   <section class="grid metrics" style="margin-bottom:.9rem" id="productMetrics">
     <article class="card metric">
-      <div class="label">ΔN pico (live)</div>
+      <div class="label">ΔN pico · braço Muçum</div>
       <div class="value">{{PEAK_DN}}</div>
       <div class="hint">acima da âncora {{N_ANCHOR}}</div>
     </article>
     <article class="card metric">
-      <div class="label">N pico estimado</div>
+      <div class="label">N pico · Muçum</div>
       <div class="value">{{PEAK_N}}</div>
       <div class="hint">em {{PEAK_WHEN}}</div>
     </article>
     <article class="card metric">
       <div class="label">Timing vs obs</div>
       <div class="value">{{TIMING}}</div>
-      <div class="hint">erro de tempo do pico</div>
+      <div class="hint">erro de tempo do pico · Muçum</div>
     </article>
     <article class="card metric">
-      <div class="label">Robô HEC</div>
+      <div class="label">Robô HEC · G040</div>
       <div class="value" style="font-size:1.02rem">{{AUTO_NAME}}</div>
       <div class="hint mono">{{AUTO_SCHED}} · {{AUTO_OWNER}}</div>
     </article>
   </section>
 
   <section class="grid products" style="margin-bottom:.9rem">
-    <article class="card product-live"><h3>Live eval (evento)</h3><p class="muted" id="liveSummary">Carregando…</p></article>
-    <article class="card product-fwd"><h3>Forward ~5d (operacional)</h3><p class="muted" id="fwdSummary">Carregando…</p></article>
+    <article class="card product-live"><h3>Live eval · braço Muçum</h3><p class="muted" id="liveSummary">Carregando…</p></article>
+    <article class="card product-fwd"><h3>Forward ~5d · braço Muçum</h3><p class="muted" id="fwdSummary">Carregando…</p></article>
   </section>
 
   <section class="card" style="margin-bottom:.9rem" id="skillCard">
-    <h2>Calibração · erros LOO por evento</h2>
+    <h2>Validação · self-fit vs LOO por evento</h2>
     <p class="muted" id="skillVerdict">Hindcast leave-one-out: onde o gêmeo acerta e onde erra.</p>
     <div class="skill-summary" id="skillSummary"></div>
     <div style="overflow-x:auto">
       <table class="skill-table" id="skillTable">
         <thead>
           <tr>
-            <th>Evento</th><th>Chuva mm</th><th>NSE</th><th>|err| ΔN cm</th><th>err ΔN %</th><th>err pico Q %</th><th>Tag</th>
+            <th>Evento</th><th>Chuva mm</th><th>Self-fit</th><th>NSE LOO</th><th>|err| ΔN cm</th><th>err ΔN %</th><th>err pico Q %</th><th>Tag</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -394,10 +428,10 @@ svg.mini-chart { width:100%; height:168px; display:block; }
     <h2>Como o robô alimenta esta página</h2>
     <ol class="muted" id="robotSteps"></ol>
     <p class="foot">
-      Sujeito = bacia Taquari–Antas (G040, 7 UGs). Produto gêmeo = corredor até Muçum
-      (Alto+Prata+Carreiro+Médio). Guaporé/Forqueta/Baixo no mapa da bacia, fora do balanço
-      até Muçum. IFS do produto = proxy pontual (não máscara areal do e-mail ao Guilherme).
-      STZ sem curva N↔Q inventada. Pesquisa, não alerta.
+      Sujeito da página = bacia Taquari–Antas (G040, 7 UGs). Muçum é um braço do multi-exutório
+      (corredor Alto+Prata+Carreiro+Médio), não o assunto. Engine = gêmeo Python HMS-like —
+      não HEC-HMS binário, não RAS, não CWMS. Ainda não há balanço fechado da G040 inteira.
+      Guaporé/Forqueta/Baixo no inventário; fozes gated. Validação honesta = LOO. Pesquisa, não alerta.
     </p>
   </section>
 </div>
@@ -481,7 +515,7 @@ function renderUgDomainChips() {
     b.className = "chip";
     b.style.cursor = "default";
     b.style.borderColor = ugColor(ug);
-    b.textContent = ug.replace(" Taquari-Antas", "") + " · gêmeo";
+    b.textContent = ug.replace(" Taquari-Antas", "") + " · braço Muçum";
     el.appendChild(b);
   });
   excl.forEach(function(ug) {
@@ -490,7 +524,7 @@ function renderUgDomainChips() {
     b.style.cursor = "default";
     b.style.borderColor = ugColor(ug);
     b.textContent = ug.replace(" Taquari-Antas", "") + " · inventário";
-    b.title = "UG da bacia G040 · fora do balanço HEC até Muçum";
+    b.title = "UG da bacia G040 · fora do balanço HEC do braço Muçum";
     el.appendChild(b);
   });
 }
@@ -509,7 +543,8 @@ const fwdEl = document.getElementById("fwdSummary");
 
 if (live.available !== false && (liveP.rise_cm != null || live.plain_pt)) {
   liveEl.innerHTML =
-    "<span class=\"mono\">" + (live.artifact || "live_eval") + "</span><br/>" +
+    "<span class=\"mono\">" + (live.artifact || "live_eval") + "</span>" +
+    "<span class=\"badge-n1\">verify n=1</span><br/>" +
     "ΔN " + fmt(liveP.rise_cm, 0) + " cm · N pico " + fmt(liveP.peak_anchored_cm, 0) + " cm<br/>" +
     "quando " + (liveP.peak_time_utc || "—") +
     (live.timing_error_h != null ? " · timing " + fmt(live.timing_error_h, 1) + " h" : "") + "<br/>" +
@@ -544,7 +579,8 @@ const local = ((DATA.where_results_go || {}).local) || {};
   ["Verify", local.verify_html],
   ["Hindcast", local.hindcast_html],
   ["Feed JSON", local.platform_json],
-  ["Mapa UGs", local.mapa_subbacias]
+  ["Mapa UGs", local.mapa_subbacias],
+  ["Multi-exutório", local.multi_outlet_html]
 ].forEach(function(pair) {
   if (!pair[1]) return;
   const a = document.createElement("a");
@@ -614,7 +650,7 @@ function drawChart() {
   drawSeriesSvg(svg, series, rain, {W:960, H:280, mode:"level"});
   document.getElementById("chartCaption").textContent =
     "Fonte do traço: " + (trace.source || "—") + (trace.note ? " · " + trace.note : "");
-  note.textContent = "Linha = nível estimado em Muçum (cm). Barras = chuva proxy areal ponderada (mm).";
+  note.textContent = "Linha = nível estimado no braço Muçum (cm). Barras = chuva proxy da janela (mm). Um braço da G040 — não resume a bacia.";
 }
 
 function showInspector(anchor, kind) {
@@ -634,8 +670,8 @@ function showInspector(anchor, kind) {
   if (kind === "network") {
     meta.textContent = (anchor.kind === "rain" ? "chuva inventário" : "flu inventário") +
       (anchor.ug ? " · " + anchor.ug : "") + " · " + (anchor.code || "");
-    svg.innerHTML = "<text x=\"18\" y=\"84\" fill=\"#4a6356\" font-size=\"12\">Ponto de inventário — sem série do gêmeo neste build.</text>";
-    note.textContent = "Use as âncoras curadas para abrir hidrograma / hietograma do evento.";
+    svg.innerHTML = "<text x=\"18\" y=\"84\" fill=\"#4a6356\" font-size=\"12\">Ponto de inventário G040 — sem série HEC neste build.</text>";
+    note.textContent = "Use as âncoras do braço Muçum para abrir hidrograma / hietograma do evento.";
     return;
   }
   const role = anchor.role;
@@ -646,10 +682,10 @@ function showInspector(anchor, kind) {
     (rainWin != null ? " · chuva UG " + Number(rainWin).toFixed(1) + " mm" : "");
   if (role === "target") {
     drawSeriesSvg(svg, series, rain, {W:520, H:168, pad:{l:40,r:12,t:12,b:28}, mode:"level", stroke:"#0f5c45"});
-    note.textContent = "Curva do produto: N estimado em Muçum + chuva proxy da janela.";
+    note.textContent = "Exutório Muçum (um braço da G040): N estimado + chuva proxy da janela.";
   } else if (role === "level_control") {
     drawSeriesSvg(svg, series, rain, {W:520, H:168, pad:{l:40,r:12,t:12,b:28}, mode:"level", stroke:"#1d4f91"});
-    note.textContent = "STZ = controle de nível (sem curva N↔Q inventada). Traço exibido = produto Muçum da mesma janela, só para contexto temporal.";
+    note.textContent = "STZ = controle de nível (sem curva N↔Q inventada). Traço = série do braço Muçum na mesma janela (contexto).";
   } else if (role === "rain") {
     const rainSeries = rain.map(function(v, i) {
       return {t: (series[i] && series[i].t) || ("i"+i), n_cm: Number(v) || 0};
@@ -658,7 +694,7 @@ function showInspector(anchor, kind) {
     note.textContent = "Hietograma proxy da janela (IFS pontual por sub-bacia — ainda não máscara areal ECMWF/REC).";
   } else {
     drawSeriesSvg(svg, series, rain, {W:520, H:168, pad:{l:40,r:12,t:12,b:28}, mode:"level", stroke:"#5a6570"});
-    note.textContent = "Monitor de montante: série do produto Muçum na janela (contexto). Sem curva local inventada.";
+    note.textContent = "Monitor de montante: série do braço Muçum na janela (contexto). Sem curva local inventada.";
   }
 }
 
@@ -678,7 +714,7 @@ const basinLayer = L.layerGroup().addTo(map);
 const ugLayer = L.layerGroup().addTo(map);
 const fozLayer = L.layerGroup().addTo(map);
 const rainLayer = L.layerGroup().addTo(map);
-const networkLayer = L.layerGroup().addTo(map); // G040 inventory — on by default
+const networkLayer = L.layerGroup(); // G040 inventory — off by default (UG polygons first)
 const anchorLayer = L.layerGroup().addTo(map);
 const markers = {};
 
@@ -687,28 +723,29 @@ const markers = {};
   const el = document.getElementById("mapFramingNote");
   if (!el) return;
   el.textContent =
-    "Bacia: " + (fr.g040_label_pt || "G040") + " (~" + fmt(fr.g040_km2, 0) + " km², 7 UGs) · " +
-    "produto gêmeo: corredor até Muçum (~" + fmt(fr.twin_domain_km2, 0) + " km²) · " +
-    "no mapa da bacia também: " + ((fr.excluded_ugs || []).join(", ") || "—");
+    "Assunto do mapa: " + (fr.g040_label_pt || "G040") + " (~" + fmt(fr.g040_km2, 0) + " km², 7 UGs). " +
+    "Contorno interno = braço Muçum (~" + fmt(fr.twin_domain_km2, 0) + " km²) — um exutório, não a bacia. " +
+    "No inventário também: " + ((fr.excluded_ugs || []).join(", ") || "—") +
+    ". Rede G040 desligada por padrão (ligue no controle de camadas).";
 })();
 
 const legend = L.control({position:"bottomright"});
 legend.onAdd = function() {
   const d = L.DomUtil.create("div", "legend");
   d.innerHTML =
-    "<div><i style=\"background:#0f5c45\"></i>alvo Muçum</div>" +
+    "<div><i style=\"background:#0f5c45\"></i>exutório Muçum</div>" +
     "<div><i style=\"background:#1d4f91\"></i>nível / controle</div>" +
     "<div><i style=\"background:#9a6b2f\"></i>Guaporé</div>" +
     "<div><i style=\"background:#5a6e8a\"></i>Forqueta</div>" +
     "<div><i style=\"background:#6a7a8e\"></i>Baixo</div>" +
     "<div><i style=\"background:#b8892d\"></i>foz BHO6</div>" +
-    "<div style=\"margin-top:.25rem\">fill colorido = 7 UGs · contorno = produto gêmeo</div>";
+    "<div style=\"margin-top:.25rem\">fill = 7 UGs G040 · contorno = braço Muçum</div>";
   return d;
 };
 legend.addTo(map);
 L.control.layers(null, {
   "Bacia G040":basinLayer,
-  "Produto gêmeo":ugLayer,
+  "Braço Muçum":ugLayer,
   "Fozes BHO6":fozLayer,
   "Chuva IFS":rainLayer,
   "Rede G040":networkLayer,
@@ -761,11 +798,119 @@ function renderNetwork() {
       "<strong>" + (p.name || p.code) + "</strong><br/>" +
       (isRain ? "chuva inventário" : "flu inventário") +
       (p.ug ? " · " + p.ug : "") +
-      (inTwin ? " · corredor gêmeo" : " · bacia G040 (fora do gêmeo Muçum)") +
+      (inTwin ? " · braço Muçum" : " · bacia G040 (fora do braço Muçum)") +
       "<br/>" + (p.code || "")
     );
     m.addTo(networkLayer);
   });
+}
+
+
+
+function renderMultiOutlet() {
+  const mo = ((DATA.products || {}).g040_multi_outlet) || {};
+  const lede = document.getElementById("multiOutletLede");
+  if (lede && (mo.purpose_pt || mo.purpose_pt)) lede.textContent = mo.purpose_pt || mo.purpose_pt;
+  function skillOf(block) {
+    const s = (block || {}).summary || {};
+    return {
+      self: s.mean_self_fit_nse != null ? s.mean_self_fit_nse : s.mean_self_fit_nse,
+      loo: s.mean_nse_loo != null ? s.mean_nse_loo : s.mean_nse_loo,
+      plain: ((block || {}).verdict || {}).plain_pt || ((block || {}).verdict || {}).plain_pt || ""
+    };
+  }
+  const encS = skillOf(mo.encantado);
+  const contrast = document.getElementById("encantadoContrast");
+  if (contrast) {
+    contrast.innerHTML =
+      "<span>Encantado self-fit <strong>" + fmt(encS.self, 2) + "</strong></span>" +
+      "<span>≠</span>" +
+      "<span>NSE LOO <strong>" + fmt(encS.loo, 2) + "</strong></span>" +
+      "<span class=\"muted\">" + (encS.plain || "Muçum roteado + residual Guaporé vs Q ANA Encantado.") + "</span>";
+  }
+  const marS = skillOf(mo.mariante);
+  const mcontrast = document.getElementById("marianteContrast");
+  if (mcontrast && (marS.self != null || marS.loo != null)) {
+    mcontrast.innerHTML =
+      "<span>Mariante self-fit <strong>" + fmt(marS.self, 2) + "</strong></span>" +
+      "<span>≠</span>" +
+      "<span>NSE LOO <strong>" + fmt(marS.loo, 2) + "</strong></span>" +
+      "<span class=\"muted\">" + (marS.plain || "Encantado roteado + residual Forqueta vs Q ANA Mariante.") + "</span>";
+  }
+  const inv = document.getElementById("outletInventory");
+  if (inv) {
+    const outlets = mo.outlets || [];
+    inv.innerHTML = outlets.map(function(o) {
+      const st = o.status || "";
+      const ok = st.indexOf("calibrated") >= 0;
+      const fragile = st.indexOf("fragile") >= 0;
+      const cls = ok ? "twin" : "inventory";
+      const badge = ok ? "calibrado" : (fragile ? "frágil" : st);
+      const sk = o.skill || {};
+      const self = sk.mean_self_fit_nse != null ? sk.mean_self_fit_nse : sk.mean_self_fit_nse;
+      const loo = sk.mean_nse_loo != null ? sk.mean_nse_loo : sk.mean_nse_loo;
+      const skillTxt = (self != null) ? (" · self " + fmt(self, 2) + " / LOO " + fmt(loo, 2)) : "";
+      const label = o.label_pt || o.label_pt || o.outlet_id;
+      const code = o.station_code || o.station_code || "";
+      const note = o.note_pt || o.blocker_pt || o.note_pt || o.blocker_pt || "";
+      return "<div class=\"ug-row " + cls + "\">" +
+        "<div class=\"name\"><span>" + label +
+        " · <span class=\"mono\">" + code + "</span></span>" +
+        "<span class=\"meta\">" + badge + skillTxt + "</span></div>" +
+        "<div class=\"meta\">" + fmt(o.nested_area_km2, 0) + " km² · " +
+        ((o.ugs || []).join(", ")) + "</div>" +
+        "<div class=\"meta\">" + note + "</div></div>";
+    }).join("");
+  }
+  const next = document.getElementById("multiOutletNext");
+  if (next) {
+    next.innerHTML = "";
+    (mo.blocked_next || mo.blocked_next || []).forEach(function(line) {
+      const li = document.createElement("li");
+      li.textContent = line;
+      next.appendChild(li);
+    });
+  }
+}
+
+function renderMethodology() {
+  const m = DATA.methodology || {};
+  const lede = document.getElementById("methodLede");
+  if (lede) {
+    lede.textContent = m.family_arm_pt
+      ? (m.family_arm_pt + " · " + (m.domain_pt || ""))
+      : "Braço da família HEC/REC, domínio e validação — sem overclaim.";
+  }
+  const grid = document.getElementById("methodGrid");
+  if (!grid) return;
+  const events = m.events || {};
+  const core = (events.core || []).join(", ") || "—";
+  const marginal = (events.marginal || []).join(", ") || "—";
+  const failed = (events.failed || []).join(", ") || "—";
+  const notList = (m.not_pt || []).map(function(x){ return "<li>" + x + "</li>"; }).join("");
+  const points = (m.forcing_point_map || []).map(function(p){
+    return "<li><span class=\"mono\">" + (p.subbasin_id || "") + "</span> → " +
+      (p.point_code || "—") + (p.label ? " (" + p.label + ")" : "") + "</li>";
+  }).join("");
+  grid.innerHTML =
+    "<div class=\"box\"><h3>Motor e forçante</h3><ul>" +
+      "<li><strong>Motor:</strong> " + (m.engine_name || "python HMS-like") +
+        (m.not_hec_hms_binary ? " · não binário HEC-HMS" : "") + "</li>" +
+      "<li><strong>Métodos:</strong> " + ((m.methods || []).join(" · ") || "—") + "</li>" +
+      "<li>" + (m.why_pt || "") + "</li>" +
+      "<li>" + (m.forcing_pt || "IFS pontual") + "</li>" +
+      "<li>" + (m.transfer_pt || "análogos LOO") + "</li>" +
+      "<li>" + (m.rating_pt || "curva oficial Muçum") + "</li>" +
+    "</ul></div>" +
+    "<div class=\"box\"><h3>Eventos e limites</h3><ul>" +
+      "<li><strong>Core:</strong> " + core + (events.core_rule_pt ? " <em>(" + events.core_rule_pt + ")</em>" : "") + "</li>" +
+      "<li><strong>Marginais:</strong> " + marginal + "</li>" +
+      "<li><strong>Falha:</strong> " + failed + "</li>" +
+      "<li>" + (m.live_verify_pt || "Live verify n=1") + "</li>" +
+    "</ul>" +
+    (notList ? "<p class=\"muted\" style=\"margin:.45rem 0 .2rem\">Isto não é</p><ul>" + notList + "</ul>" : "") +
+    (points ? "<h3 style=\"margin-top:.55rem\">Proxy IFS por sub-bacia</h3><ul>" + points + "</ul>" : "") +
+    "</div>";
 }
 
 function renderSkill() {
@@ -783,10 +928,20 @@ function renderSkill() {
   }
   if (sumEl) {
     sumEl.innerHTML =
-      "<span><strong>" + fmt(summary.n_scored, 0) + "</strong> eventos</span>" +
+      "<span><strong>" + fmt(summary.n_scored, 0) + "</strong> eventos LOO</span>" +
+      "<span>self-fit médio <strong>" + fmt(summary.mean_self_fit_nse, 2) + "</strong></span>" +
+      "<span>NSE LOO médio <strong>" + fmt(summary.mean_nse_loo, 2) + "</strong></span>" +
       "<span>ΔN rel médio <strong>" + fmt((summary.mean_rise_n_rel_err || 0) * 100, 0) + "%</strong></span>" +
-      "<span>pico Q |err| médio <strong>" + fmt((summary.mean_peak_q_rel_err || 0) * 100, 0) + "%</strong></span>" +
-      "<span>NSE médio <strong>" + fmt(summary.mean_nse_loo, 2) + "</strong></span>";
+      "<span>pico Q |err| médio <strong>" + fmt((summary.mean_peak_q_rel_err || 0) * 100, 0) + "%</strong></span>";
+  }
+  const contrastEl = document.getElementById("skillContrast");
+  if (contrastEl) {
+    contrastEl.innerHTML =
+      "<span>Self-fit biblioteca <strong>" + fmt(summary.mean_self_fit_nse, 2) + "</strong></span>" +
+      "<span>≠</span>" +
+      "<span>NSE LOO transferência <strong>" + fmt(summary.mean_nse_loo, 2) + "</strong></span>" +
+      "<span class=\"muted\">" + (summary.contrast_pt || skill.method_pt ||
+        "Self-fit mede ajuste no próprio evento; LOO mede previsão por análogo.") + "</span>";
   }
   tbody.innerHTML = "";
   (skill.events || []).forEach(function(e) {
@@ -795,6 +950,7 @@ function renderSkill() {
     tr.innerHTML =
       "<td>" + (e.event_id || "—") + "</td>" +
       "<td>" + fmt(e.rain_mm_aw, 0) + "</td>" +
+      "<td>" + fmt(e.self_fit_nse, 2) + "</td>" +
       "<td>" + fmt(e.nse_loo, 2) + "</td>" +
       "<td>" + fmt(e.rise_n_abs_err_cm, 0) + "</td>" +
       "<td>" + fmt((e.rise_n_rel_err || 0) * 100, 0) + "%</td>" +
@@ -893,10 +1049,10 @@ function rainRadius(mm) {
 });
 
 function fozPositionPt(pos) {
-  if (pos === "upstream_or_at_antas") return "montante / na Antas (dentro do gêmeo)";
-  if (pos === "between_antas_and_santa_tereza") return "entre Antas e Santa Tereza (dentro do gêmeo)";
-  if (pos === "downstream_of_mucum") return "jusante de Muçum · fora do gêmeo";
-  return pos || "posição vs Muçum desconhecida";
+  if (pos === "upstream_or_at_antas") return "montante / na Antas (braço Muçum)";
+  if (pos === "between_antas_and_santa_tereza") return "entre Antas e Santa Tereza (braço Muçum)";
+  if (pos === "downstream_of_mucum") return "jusante de Muçum · ainda na G040, fora do braço";
+  return pos || "posição na G040 desconhecida";
 }
 
 async function loadFozes() {
@@ -924,8 +1080,8 @@ async function loadFozes() {
         lyr.bindPopup(
           "<strong>" + (p.label || p.name || "Foz BHO6") + "</strong><br/>" +
           fozPositionPt(p.position_vs_controls) +
-          (delta != null ? "<br/>Δ área vs Muçum: " + Number(delta).toFixed(0) + " km²" : "") +
-          "<br/><span style=\"opacity:.8\">marca topológica — não é âncora do gêmeo</span>"
+          (delta != null ? "<br/>Δ área vs exutório Muçum: " + Number(delta).toFixed(0) + " km²" : "") +
+          "<br/><span style=\"opacity:.8\">marca topológica da bacia — não é âncora HEC</span>"
         );
       }
     }).addTo(fozLayer);
@@ -978,17 +1134,17 @@ async function loadUgs() {
         const area = (feat.properties && feat.properties.area_km2_approx) || inv.area_km2_approx;
         lyr.bindPopup("<strong>" + name + "</strong><br/>" +
           (inTwin
-            ? "UG da bacia · também no produto gêmeo (corredor Muçum)"
-            : "UG da bacia G040 · inventário · sem forçante HEC até Muçum") +
+            ? "UG da bacia G040 · também no braço Muçum (HEC)"
+            : "UG da bacia G040 · inventário · fora do balanço HEC do braço Muçum") +
           (area != null ? "<br/>área ~" + Number(area).toFixed(0) + " km²" : "") +
           (inv.total != null ? "<br/>rede: flu " + inv.flu + " · chuva " + inv.rain + " · total " + inv.total : "") +
           (rainByUg[name] != null
             ? "<br/>chuva proxy produto: " + Number(rainByUg[name]).toFixed(1) + " mm"
-            : (inTwin ? "" : "<br/><em>sem ug_rain_mm HEC (fora do domínio)</em>")));
+            : (inTwin ? "" : "<br/><em>sem ug_rain_mm HEC (fora do braço Muçum)</em>")));
       }
     }).addTo(basinLayer);
 
-    // Secondary overlay: twin product domain outline.
+    // Secondary overlay: Muçum arm outline (one outlet inside G040).
     L.geoJSON(geo, {
       filter: function(feat) {
         const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "";
@@ -1001,7 +1157,7 @@ async function loadUgs() {
       onEachFeature: function(feat, lyr) {
         const name = (feat.properties && (feat.properties.sub_bacia || feat.properties.nome)) || "UG";
         const rain = rainByUg[name];
-        lyr.bindPopup("<strong>" + name + "</strong><br/>produto gêmeo · corredor até Muçum" +
+        lyr.bindPopup("<strong>" + name + "</strong><br/>braço Muçum · um exutório da G040" +
           (rain != null ? "<br/>chuva proxy: " + Number(rain).toFixed(1) + " mm" : ""));
       }
     }).addTo(ugLayer);
@@ -1040,9 +1196,9 @@ async function loadUgs() {
   const meta = document.getElementById("corridorMeta");
   if (!chips) return;
   if (note) {
-    note.textContent = (c.label_pt || "Produto gêmeo · corredor até Muçum") +
+    note.textContent = (c.label_pt || "Braço Muçum · um exutório da G040") +
       (c.nested_area_km2 != null ? (" · ~" + Number(c.nested_area_km2).toFixed(0) + " km²") : "") +
-      " · dentro da bacia G040 · não substitui a bacia inteira";
+      " · dentro da bacia G040 · não é o assunto da página";
   }
   const rainBySb = {};
   ((((DATA.spatial || {}).rain_geojson) || {}).features || []).forEach(function(f) {
@@ -1065,11 +1221,11 @@ async function loadUgs() {
     const counts = net.counts || {};
     const fr = ((DATA.spatial || {}).basin_framing) || {};
     meta.textContent =
-      "Bacia G040 · produto gêmeo UGs: " + ((fr.twin_domain_ugs || (DATA.spatial || {}).ug_twin_domain || []).join(", ")) +
+      "Bacia G040 · UGs do braço Muçum: " + ((fr.twin_domain_ugs || (DATA.spatial || {}).ug_twin_domain || []).join(", ")) +
       " · calibração: " + (c.calibration_method || "análogos") +
-      " · saída " + (c.outlet_pt || "Muçum") +
+      " · saída " + (c.outlet_pt || "Muçum (um exutório)") +
       " · no mapa também: " + ((c.excluded_pt || fr.excluded_ugs || []).join(", ") || "—") +
-      " · âncoras produto " + ((((DATA.spatial || {}).anchors) || []).length) +
+      " · âncoras braço " + ((((DATA.spatial || {}).anchors) || []).length) +
       " · rede G040 " + (counts.total != null ? counts.total : "—");
   }
 })();
@@ -1078,6 +1234,8 @@ drawChart();
 renderChips();
 renderAnchors();
 renderNetwork();
+renderMethodology();
+renderMultiOutlet();
 renderSkill();
 renderUgInventory();
 renderUgDomainChips();

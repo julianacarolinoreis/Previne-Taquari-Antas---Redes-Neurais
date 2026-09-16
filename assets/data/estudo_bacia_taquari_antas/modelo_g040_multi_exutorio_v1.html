@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"/>
+<title>G040 multi-exutório v4</title>
+<style>
+body{font:15px/1.45 system-ui,sans-serif;margin:1.5rem;max-width:960px;color:#12241c}
+table{border-collapse:collapse;width:100%} th,td{border-bottom:1px solid #c5d5cb;padding:.4rem;text-align:left}
+.muted{color:#4a6356} code{background:#eef3ef;padding:.1rem .35rem;border-radius:4px}
+</style></head><body>
+<h1>Gêmeo G040 multi-exutório v4</h1>
+<p class="muted">Calibração multi-exutório G040 v4: chuva preferida = ANA telemetria Chuva (média nos flu com Chuva na UG); fallback Open-Meteo areal. Muçum + Encantado + Mariante + tributários com Q. Foz Guaporé/Forqueta sondadas sem Vazao na telemetria; Taquari-nível gated.</p>
+<p>3 exutórios calibrados · pesquisa, não alerta.</p>
+<h2>Exutórios</h2>
+<ul><li><strong>Muçum</strong> (86510000) — <code>calibrated_eventwise_v1</code> · Corredor eventwise existente (self-fit ≠ LOO).</li>
+<li><strong>Encantado (após foz Guaporé)</strong> (86720000) — <code>calibrated_multi_outlet_v1</code> · Muçum Q roteada + residual Guaporé (Open-Meteo → Clark).</li>
+<li><strong>Passo Tainhas (Alto)</strong> (86160000) — <code>fragile_no_transfer</code> · Tributário Alto: Open-Meteo areal (pluvios UG) → IC+Clark vs Q ANA.</li>
+<li><strong>PCH Caçador montante (Carreiro)</strong> (86488000) — <code>fragile_self_fit_only</code> · Carreiro quase-foz: Open-Meteo areal → IC+Clark vs Q ANA.</li>
+<li><strong>Balsa do Prata (Prata)</strong> (86447000) — <code>fragile_self_fit_only</code> · Prata quase-foz: Open-Meteo areal → IC+Clark vs Q ANA.</li>
+<li><strong>PCH Capigui jusante (Guaporé parcial)</strong> (86520100) — <code>fragile_no_transfer</code> · Guaporé parcial (~684/2487 km²). PCH — Q pode ser regulada. Foz 86595000 sem Q.</li>
+<li><strong>PCH Rastro de Auto (Forqueta parcial)</strong> (86743700) — <code>fragile_self_fit_only</code> · Forqueta parcial (~564/2864 km²). PCH montante. Foz 86746000 sem Q.</li>
+<li><strong>Linha José Júlio (Médio aninhado)</strong> (86472000) — <code>fragile_no_transfer</code> · Tronco a montante de Muçum (~13 mil km²); lumped + chuva areal multi-UG.</li>
+<li><strong>Porto Mariante (Baixo aninhado)</strong> (86895000) — <code>calibrated_multi_outlet_v1</code> · Encantado Q roteada + residual Forqueta (ANA tele Chuva quando houver; senão Open-Meteo). Quase-G040.</li>
+<li><strong>Barra do Zeferino (foz Guaporé)</strong> (86595000) — <code>blocked_no_ana_q_series</code> · Foz sondada na telemetria ANA (janela 2024-04/05): Vazao=0. Proxy parcial calibrado em Capigui (86520100).</li>
+<li><strong>Rio Forqueta (Travesseiro)</strong> (86746000) — <code>blocked_no_ana_q_series</code> · Foz sondada na telemetria ANA (janela 2024-04/05): Vazao=0. Proxy parcial em Rastro (86743700); residual Forqueta também entra em Porto Mariante (chuva ANA tele quando disponível).</li>
+<li><strong>Taquari (nível · Baixo)</strong> (86950000) — <code>stage_only_no_q_curve</code> · Só nível. Q Baixo calibrado em Porto Mariante (86895000).</li></ul>
+<h2>Skill (self-fit vs LOO)</h2>
+<table><thead><tr><th>Outlet</th><th>Posto</th><th>n</th><th>Self-fit NSE</th><th>NSE LOO</th></tr></thead>
+<tbody><tr><td>Encantado</td><td>86720000</td><td>8</td><td>0.9205</td><td>0.7748</td></tr><tr><td>Passo Tainhas (Alto)</td><td>86160000</td><td>9</td><td>-2.8494</td><td>-75.7849</td></tr><tr><td>PCH Caçador montante (Carreiro)</td><td>86488000</td><td>8</td><td>0.6899</td><td>-1.25</td></tr><tr><td>Balsa do Prata (Prata)</td><td>86447000</td><td>6</td><td>0.5238</td><td>-17.0489</td></tr><tr><td>PCH Capigui jusante (Guaporé parcial)</td><td>86520100</td><td>7</td><td>-96.7422</td><td>-268.8516</td></tr><tr><td>PCH Rastro de Auto (Forqueta parcial)</td><td>86743700</td><td>7</td><td>0.3481</td><td>-13.6938</td></tr><tr><td>Linha José Júlio (Médio aninhado)</td><td>86472000</td><td>8</td><td>0.0504</td><td>-167.4087</td></tr><tr><td>Porto Mariante</td><td>86895000</td><td>7</td><td>0.5154</td><td>0.209</td></tr></tbody></table>
+<p class="muted">Gerado 2026-09-14T13:39:22Z</p>
+</body></html>

@@ -16,6 +16,39 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+
+def _load_pyc_module(name: str):
+    """Load a scripts/__pycache__ module when the .py source is absent."""
+    import importlib.util
+
+    cache = Path(__file__).resolve().parent / "__pycache__"
+    matches = sorted(cache.glob(f"{name}.cpython-*.pyc"))
+    if not matches:
+        raise ModuleNotFoundError(name)
+    spec = importlib.util.spec_from_file_location(name, matches[-1])
+    if spec is None or spec.loader is None:
+        raise ModuleNotFoundError(name)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+# Twin runtime sources may ship as bytecode-only in this environment.
+for _dep in (
+    "hec_twin_nested_v17",
+    "run_hec_twin_stz_mucum_calibrate",
+    "hec_twin_mucum_bacia_calibracao",
+    "build_hec_twin_ifs_forcing_5d",
+    "run_hec_twin_mucum_forward_5d",
+):
+    if _dep not in sys.modules:
+        try:
+            __import__(_dep)
+        except ModuleNotFoundError:
+            _load_pyc_module(_dep)
+
 import plataforma_hec_twin_mucum_ui as platform_ui  # noqa: E402
 import run_hec_twin_mucum_forward_5d as hec_fwd  # noqa: E402
 
@@ -355,7 +388,7 @@ def build_basin_network() -> dict[str, Any]:
         },
         "note_pt": (
             "Rede da bacia Taquari–Antas (G040, 7 UGs): inventário ANA/INMET/CEMADEN. "
-            "Inclui Guaporé, Forqueta e Baixo. Âncoras curadas = produto gêmeo Muçum; "
+            "Inclui Guaporé, Forqueta e Baixo. Âncoras curadas = braço Muçum (um exutório); "
             "esta camada mostra a bacia inteira."
         ),
     }
@@ -475,11 +508,13 @@ def compact_hindcast_events(hind: dict[str, Any] | None) -> list[dict[str, Any]]
             tag = "negative_nse"
         elif rel_err is not None and abs(float(rel_err)) <= 0.12:
             tag = "best_rel_dn"
+        self_fit = ev.get("self_fit_nse")
         rows.append(
             {
                 "event_id": ev.get("event_id"),
                 "rain_mm_aw": rain,
                 "nse_loo": nse,
+                "self_fit_nse": self_fit,
                 "peak_q_rel_err": peak_err,
                 "rise_n_abs_err_cm": abs_err,
                 "rise_n_rel_err": rel_err,
@@ -493,6 +528,138 @@ def compact_hindcast_events(hind: dict[str, Any] | None) -> list[dict[str, Any]]
         )
     rows.sort(key=lambda r: abs(float(r.get("rise_n_rel_err") or 99)))
     return rows
+
+
+def build_methodology(
+    eventwise: dict[str, Any] | None,
+    hind: dict[str, Any] | None,
+    force_live: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Honest method card: which HEC/REC arm, events, LOO vs self-fit."""
+    eng = (eventwise or {}).get("engine") or {}
+    lib = (eventwise or {}).get("params_library_eventwise") or []
+    self_fit_nses = [
+        float(x["nse"]) for x in lib if isinstance(x, dict) and x.get("nse") is not None
+    ]
+    mean_self = sum(self_fit_nses) / len(self_fit_nses) if self_fit_nses else None
+    hind_sum = (hind or {}).get("summary") or {}
+    mean_loo = hind_sum.get("mean_nse_loo")
+    point_map: list[dict[str, Any]] = []
+    meta = (force_live or {}).get("subbasin_meta") or {}
+    if isinstance(meta, dict):
+        for sb_id, row in meta.items():
+            if not isinstance(row, dict):
+                continue
+            point_map.append(
+                {
+                    "subbasin_id": sb_id,
+                    "point_code": row.get("point_code") or row.get("station_code"),
+                    "label": SUBBASIN_LABELS.get(str(sb_id), str(sb_id)),
+                }
+            )
+    if not point_map:
+        point_map = [
+            {"subbasin_id": "SB_PRATA_7868", "point_code": "86472000", "label": "Prata"},
+            {
+                "subbasin_id": "SB_ANTAS_RESIDUAL",
+                "point_code": "86472000",
+                "label": "Antas residual",
+            },
+            {
+                "subbasin_id": "SB_CARREIRO_7866",
+                "point_code": "86507000",
+                "label": "Carreiro",
+            },
+            {
+                "subbasin_id": "SB_STZ_RESIDUAL",
+                "point_code": "86472600",
+                "label": "Residual STZ",
+            },
+            {
+                "subbasin_id": "SB_INC_MUCUM",
+                "point_code": "86510000",
+                "label": "Incremento Muçum",
+            },
+        ]
+    marginal = [
+        m.get("event_id")
+        for m in ((eventwise or {}).get("marginal_events") or [])
+        if isinstance(m, dict)
+    ]
+    failed = [
+        m.get("event_id")
+        for m in ((eventwise or {}).get("excluded_events") or [])
+        if isinstance(m, dict)
+    ]
+    return {
+        "family_arm_pt": "Gêmeo Python HMS-like (não binário HEC-HMS)",
+        "engine_name": eng.get("name")
+        or "python_hms_twin_ic_clark_recession_muskingum",
+        "not_hec_hms_binary": bool(eng.get("not_hec_hms_binary", True)),
+        "not_hec_ras": True,
+        "not_cwms": True,
+        "methods": eng.get("methods") or eng.get("methods")
+        or ["Initial+Constant", "Clark", "Recession", "Muskingum"],
+        "why_pt": eng.get("why")
+        or (
+            "HEC-HMS 4.13 do projeto é Windows-only; no Linux/Pages roda o gêmeo "
+            "auditável em Python."
+        ),
+        "forcing_pt": (
+            "ECMWF IFS 0.25° via Open-Meteo — proxy pontual por sub-bacia "
+            "(não máscara areal ECMWF/REC)."
+        ),
+        "forcing_point_map": point_map,
+        "transfer_pt": (
+            "Biblioteca eventwise + transferência por análogo "
+            "(fingerprint AW + wetness blend LOO)."
+        ),
+        "rating_pt": (
+            "ΔN em Muçum via curva-chave oficial 86510000. "
+            "STZ = nível observado; sem curva N↔Q inventada."
+        ),
+        "domain_pt": (
+            "Corredor aninhado ~15.965 km² (Alto+Prata+Carreiro+Médio). "
+            "G040 (~26.430 km², 7 UGs) = inventário espacial; "
+            "Guaporé/Forqueta/Baixo fora do balanço."
+        ),
+        "events": {
+            "core": list((eventwise or {}).get("included_events") or []),
+            "marginal": marginal,
+            "failed": failed,
+            "core_rule_pt": "NSE≥0,75 no ajuste eventwise",
+        },
+        "skill": {
+            "mean_self_fit_nse": None if mean_self is None else round(mean_self, 4),
+            "mean_nse_loo": mean_loo,
+            "mean_rise_n_abs_err_cm": hind_sum.get("mean_rise_n_abs_err_cm"),
+            "mean_rise_n_rel_err": hind_sum.get("mean_rise_n_rel_err"),
+            "n_scored_loo": hind_sum.get("n_scored") or hind_sum.get("n_scored"),
+            "verdict_level": ((hind or {}).get("verdict") or {}).get("level"),
+            "contrast_pt": (
+                f"Self-fit médio da biblioteca ≈{mean_self:.2f} "
+                f"(ajuste no próprio evento). "
+                f"NSE LOO de transferência ≈{mean_loo:.2f} "
+                f"(métrica honesta de previsão). "
+                "Não confunda os dois."
+                if mean_self is not None and mean_loo is not None
+                else "Contraste self-fit vs LOO indisponível neste build."
+            ),
+        },
+        "live_verify_pt": (
+            "Verify ao vivo é n=1 — acerto pontual não valida calibração operacional."
+        ),
+        "not_pt": [
+            "Não é HEC-HMS 4.13 binário",
+            "Não é HEC-RAS / mancha",
+            "Não é CWMS",
+            "Não é calibração da G040 inteira",
+            "Não é máscara areal ECMWF/REC",
+            "Não é alerta oficial",
+            "Não toca a RNA de curto prazo",
+        ],
+        "label_honest": (eventwise or {}).get("label_honest"),
+    }
 
 
 def calibration_lessons(
@@ -530,7 +697,16 @@ def calibration_lessons(
         (
             "Calibração continua leave-one-out na biblioteca de eventos "
             f"({(summary or {}).get('n_scored', len(events))} marcados): "
-            "não reajustar RNA; só parâmetros do gêmeo HEC/REC."
+            "não reajustar RNA; só parâmetros do gêmeo Python HMS-like."
+        ),
+        (
+            "Self-fit médio da biblioteca (~0,87) NÃO é skill de previsão: "
+            "use o NSE LOO (~0,27) e o erro de ΔN como métrica honesta."
+        ),
+        (
+            "Domínio calibrado = corredor até Muçum (~16 mil km²). "
+            "G040 (~26,4 mil km²) é inventário espacial — Guaporé/Forqueta/Baixo "
+            "ainda sem produto HEC."
         ),
     ]
     return {
@@ -598,7 +774,7 @@ def build_spatial(
         "note_pt": (
             "Sujeito espacial: bacia Taquari–Antas (G040, ~26,4 mil km², 7 UGs) — "
             "Alto, Prata, Carreiro, Médio, Guaporé, Forqueta e Baixo. "
-            "Produto gêmeo HEC/REC (ΔN Muçum) usa só o corredor aninhado (~16 mil km²: "
+            "Braço Muçum do multi-exutório G040 (ΔN) usa o corredor aninhado (~16 mil km²: "
             "Alto+Prata+Carreiro+Médio); Guaporé/Forqueta/Baixo entram no mapa da bacia "
             "mas não no balanço do gêmeo até Muçum. Chuva IFS do produto = proxy pontual "
             "por sub-bacia do corredor (ainda não máscara areal ECMWF/REC). "
@@ -611,7 +787,7 @@ def build_spatial(
             "g040_km2": 26430,
             "g040_ugs": sorted(UG_G040),
             "g040_bbox_latlon": g040_bbox_latlon(),
-            "twin_domain_label_pt": "Produto gêmeo · corredor até Muçum",
+            "twin_domain_label_pt": "Braço Muçum · um exutório da G040",
             "twin_domain_km2": 15965.207,
             "twin_domain_ugs": sorted(UG_TWIN_DOMAIN),
             "excluded_ugs": sorted(UG_EXCLUDED_FROM_TWIN),
@@ -619,7 +795,7 @@ def build_spatial(
             "not_full_basin_model": True,
             "ifs_is_point_proxy_not_areal_ecmwf_mask": True,
             "click_shows_curve_pt": (
-                "Clique numa âncora do produto: Muçum mostra N+chuva; "
+                "Clique numa âncora do braço Muçum: o exutório mostra N+chuva; "
                 "STZ só nível/controle (sem N↔Q inventada); chuva mostra hietograma proxy."
             ),
         },
@@ -878,7 +1054,7 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
     spatial.setdefault("ug_geojson", spatial.get("ug_geojson") or "ugs_g040.geojson")
 
     auto = dict(feed.get("automation") or {})
-    auto.setdefault("workflow_name", "HEC twin Muçum forward ~5d")
+    auto.setdefault("workflow_name", "HEC twin G040 multi-outlet · pesquisa")
     auto.setdefault("schedule_cron", auto.get("schedule_cron") or auto.get("schedule_cron"))
     auto.setdefault("commit_author", "previne-hec-bot")
     auto.setdefault("pipeline", auto.get("steps_pt") or [])
@@ -886,12 +1062,12 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
 
     feed["schema_version"] = "plataforma_hec_twin_mucum_v2"
     feed["product"] = {
-        "name": "Produto gêmeo · ΔN Muçum ~5d",
+        "name": "Multi-exutório G040 · pesquisa",
         "horizon": "~5 dias",
-        "target": "Muçum (exutório N do produto)",
+        "target": "Bacia G040 (Muçum = um dos exutórios)",
         "mode": "pesquisa · REC bacia",
-        "domain_pt": "Prata + Antas residual + Carreiro + residual STZ + incremento Muçum",
-        "nested_inside_pt": "Dentro da bacia G040 · não é a bacia inteira",
+        "domain_pt": "G040 inteira no inventário; braço Muçum = Prata+Antas+Carreiro+STZ+Muçum",
+        "nested_inside_pt": "Sujeito = bacia G040 · Muçum é um braço, não o assunto da página",
     }
     feed["summary"] = {
         "peak_n_cm": primary.get("peak_anchored_cm"),
@@ -933,7 +1109,10 @@ def build_feed() -> dict[str, Any]:
     hind = load_json(OUT / "hec_twin_mucum_hindcast_skill_5d_latest.json")
     force_live = load_json(OUT / "hec_twin_ifs_forcing_live_eval_latest.json")
     force_fwd = load_json(OUT / "hec_twin_ifs_forcing_5d_latest.json")
+    eventwise = load_json(OUT / "modelo_mucum_eventwise_v1_fechado_latest.json")
+    multi = load_json(OUT / "modelo_g040_multi_exutorio_v1_latest.json")
     stations = station_index()
+    methodology = build_methodology(eventwise, hind, force_live)
 
     qs = (fwd or {}).get("quanto_sobe") or {}
     live_ans = (live or {}).get("answer_from_anchor") or {}
@@ -987,6 +1166,8 @@ def build_feed() -> dict[str, Any]:
         "forcing_live_json": "hec_twin_ifs_forcing_live_eval_latest.json",
         "forcing_forward_json": "hec_twin_ifs_forcing_5d_latest.json",
         "mapa_subbacias": "mapa_subbacias.html",
+        "multi_outlet_json": "modelo_g040_multi_exutorio_v1_latest.json",
+        "multi_outlet_html": "modelo_g040_multi_exutorio_v1.html",
     }
 
     return {
@@ -995,11 +1176,13 @@ def build_feed() -> dict[str, Any]:
         "status": "research_platform_ready",
         "label_pt": "Plataforma HEC/REC · bacia Taquari–Antas (G040)",
         "purpose_pt": (
-            "Mapa e inventário da bacia oficial Taquari–Antas (G040, ~26,4 mil km², "
-            "7 UGs). Dentro dela, o produto gêmeo HEC/REC estima ΔN em Muçum no corredor "
-            "aninhado (~16 mil km²). Guaporé/Forqueta/Baixo aparecem na bacia; não entram "
-            "no balanço do gêmeo até Muçum. STZ sem curva N↔Q inventada. Pesquisa."
+            "Página da bacia oficial Taquari–Antas (G040, ~26,4 mil km², 7 UGs) — "
+            "não é uma página do Muçum. Multi-exutório v4: chuva ANA tele quando há; "
+            "braços calibrados (Muçum, Encantado, Mariante) + tributários com Q. "
+            "Foz Guaporé/Forqueta sondadas sem Vazao; Taquari-nível gated. "
+            "Não é HEC-HMS binário. Pesquisa."
         ),
+        "methodology": methodology,
         "basin": {
             "label_pt": "Bacia Taquari–Antas (G040)",
             "area_km2": 26430,
@@ -1007,7 +1190,7 @@ def build_feed() -> dict[str, Any]:
             "spatial_subject": True,
         },
         "corridor": {
-            "label_pt": "Produto gêmeo · corredor até Muçum",
+            "label_pt": "Braço Muçum · um exutório da G040",
             "calibration_method": (
                 (live or {}).get("param_selection") or {}
             ).get("method")
@@ -1057,6 +1240,16 @@ def build_feed() -> dict[str, Any]:
             "corridor_not_full_g040": True,
             "basin_calibrated_analogs": True,
             "not_stz_mucum_only_shortcut": True,
+            "not_hec_hms_binary": True,
+            "not_full_g040_calibrated": True,
+            "corridor_analog_transfer": True,
+            "ifs_point_proxy": True,
+            "multi_outlet_encantado_calibrated": True,
+            "multi_outlet_mariante_attempted": True,
+            "tributary_areal_rain_v3": True,
+            "ana_tele_rain_preferred_v4": True,
+            "guapore_mouth_q_blocked": True,
+            "forqueta_mouth_q_blocked": True,
         },
         "where_results_go": {
             "pages_base": PAGES_BASE,
@@ -1065,7 +1258,7 @@ def build_feed() -> dict[str, Any]:
             "local": local,
             "pipeline_pt": [
                 "IFS QPF → forçante por sub-bacia (JSON)",
-                "Gêmeo HEC eventwise → Q Muçum → curva-chave → ΔN",
+                "Gêmeo Python HMS-like (IC+Clark+Muskingum) → Q Muçum → curva-chave → ΔN",
                 "Feed estável plataforma_hec_twin_mucum_latest.json",
                 "Página mapa plataforma_hec_twin_mucum.html (+ atalho raiz)",
                 "Deploy Pages quando paths do estudo / plataforma mudam",
@@ -1074,8 +1267,8 @@ def build_feed() -> dict[str, Any]:
         "headline": {
             "source": headline_source,
             "question_pt": (
-                "Com a chuva do corredor calibrado (Prata–Carreiro–Antas→STZ→Muçum), "
-                "quanto sobe o nível em Muçum?"
+                "Na bacia G040, com a chuva do braço Muçum (Prata–Carreiro–Antas→STZ→Muçum) "
+                "e transferência por análogos LOO, quanto sobe o nível nesse exutório?"
             ),
             "plain_pt": headline_plain,
             "primary": headline_primary,
@@ -1131,7 +1324,13 @@ def build_feed() -> dict[str, Any]:
             "hindcast_skill": {
                 "status": (hind or {}).get("status"),
                 "generated_at_utc": (hind or {}).get("generated_at_utc"),
-                "summary": (hind or {}).get("summary"),
+                "summary": {
+                    **((hind or {}).get("summary") or {}),
+                    "mean_self_fit_nse": (methodology.get("skill") or {}).get(
+                        "mean_self_fit_nse"
+                    ),
+                    "contrast_pt": (methodology.get("skill") or {}).get("contrast_pt"),
+                },
                 "verdict": (hind or {}).get("verdict"),
                 "events": compact_hindcast_events(hind),
                 "calibration": calibration_lessons(
@@ -1141,8 +1340,29 @@ def build_feed() -> dict[str, Any]:
                 "calibration_artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
                 "method_pt": (
                     "Leave-one-out nos eventos da biblioteca: chuva observada como "
-                    "proxy de QPF → gêmeo HEC → ΔN Muçum via curva oficial."
+                    "proxy de QPF → gêmeo Python HMS-like → ΔN Muçum via curva oficial. "
+                    "Self-fit ≠ skill de previsão."
                 ),
+            },
+            "g040_multi_outlet": {
+                "status": (multi or {}).get("status") or "research_multi_outlet",
+                "generated_at_utc": (multi or {}).get("generated_at_utc")
+                or (multi or {}).get("generated_at_utc"),
+                "purpose_pt": (multi or {}).get("purpose_pt")
+                or (multi or {}).get("purpose_pt"),
+                "outlets": (multi or {}).get("outlets") or [],
+                "encantado": ((multi or {}).get("encantado_calibration") or {}),
+                "mariante": ((multi or {}).get("mariante_calibration") or {}),
+                "tributaries": ((multi or {}).get("tributary_calibrations") or {}),
+                "areas_km2": (multi or {}).get("areas_km2")
+                or (multi or {}).get("areas_km2"),
+                "discipline": (multi or {}).get("discipline")
+                or (multi or {}).get("discipline"),
+                "blocked_next": (multi or {}).get("blocked_next")
+                or (multi or {}).get("blocked_next")
+                or [],
+                "artifact_html": "modelo_g040_multi_exutorio_v1.html",
+                "artifact_json": "modelo_g040_multi_exutorio_v1_latest.json",
             },
         },
         "spatial": build_spatial(force_live or force_fwd, stations),
@@ -1196,7 +1416,7 @@ def render_root_entry() -> str:
 <body>
 <main>
   <p><strong>PREVINE · Bacia Taquari–Antas (G040)</strong></p>
-  <p>Redirecionando para o mapa da bacia e o produto gêmeo ΔN Muçum…</p>
+  <p>Redirecionando para a plataforma da bacia (multi-exutório G040)…</p>
   <p><a href="assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html">Abrir plataforma da bacia</a>
      · <a href="mucum_previsao_inundacao.html">Plataforma RNA Muçum</a></p>
 </main>
