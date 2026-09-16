@@ -61,11 +61,33 @@
     return date ? fmtWhen(date) + ' BRT' : '—';
   }
 
+  // Duração (13 h 20 min) fica diferente do relógio (13h20 / 22h45).
+  function fmtDuration(minutes) {
+    if (minutes === null || minutes === undefined || minutes === '') return '—';
+    const mins = Math.round(Number(minutes));
+    if (!Number.isFinite(mins) || mins < 0) return '—';
+    const hours = Math.floor(mins / 60);
+    const rest = mins % 60;
+    if (hours > 0 && rest) return hours + ' h ' + rest + ' min';
+    if (hours > 0) return hours + ' h';
+    return rest + ' min';
+  }
+
+  function fmtAge(minutes) {
+    if (minutes === null || minutes === undefined) return 'idade indisponível';
+    const mins = Math.round(Number(minutes));
+    if (!Number.isFinite(mins) || mins < 0) return 'idade indisponível';
+    if (mins < 1) return 'agora';
+    return 'há ' + fmtDuration(mins);
+  }
+
   return {
     parseWhen: parseWhen,
     fmtClock: fmtClock,
     fmtWhen: fmtWhen,
     fmtWhenDate: fmtWhen,
-    fmtClockDate: fmtClockDate
+    fmtClockDate: fmtClockDate,
+    fmtDuration: fmtDuration,
+    fmtAge: fmtAge
   };
 });

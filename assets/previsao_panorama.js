@@ -107,12 +107,9 @@
 
   function ageText(v){
     const age=ageMinutes(v);
-    if(age===null) return 'idade indisponível';
-    if(age<1) return 'agora';
-    const mins=Math.round(age);
-    if(mins<60) return `há ${mins} min`;
-    const hours=Math.floor(mins/60), rest=mins%60;
-    return rest?`há ${hours}h${String(rest).padStart(2,'0')}`:`há ${hours} h`;
+    return (typeof PrevineFmtQuando==='object'&&PrevineFmtQuando.fmtAge)
+      ?PrevineFmtQuando.fmtAge(age)
+      :'idade indisponível';
   }
 
   function telemetryLabel(age){
