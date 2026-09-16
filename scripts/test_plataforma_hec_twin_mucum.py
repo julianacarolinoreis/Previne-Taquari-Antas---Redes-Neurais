@@ -191,5 +191,65 @@ class PlataformaHecTwinTests(unittest.TestCase):
         self.assertTrue("26.430" in hero or "26,430" in hero or "26430" in hero)
 
 
+    def test_methodology_is_honest(self) -> None:
+        meth = self.feed["methodology"]
+        self.assertTrue(meth.get("not_hec_hms_binary"))
+        self.assertTrue(meth.get("not_hec_ras"))
+        self.assertTrue(meth.get("not_cwms"))
+        self.assertGreaterEqual(len(meth.get("events", {}).get("core") or []), 9)
+        skill = meth.get("skill") or {}
+        self.assertIsNotNone(skill.get("mean_self_fit_nse"))
+        self.assertIsNotNone(skill.get("mean_nse_loo"))
+        self.assertIn("Self-fit", skill.get("contrast_pt") or "")
+        self.assertTrue(self.feed["discipline"].get("not_full_g040_calibrated"))
+
+    def test_hindcast_exposes_self_fit_vs_loo(self) -> None:
+        skill = self.feed["products"]["hindcast_skill"]
+        summary = skill["summary"]
+        self.assertIn("mean_self_fit_nse", summary)
+        self.assertIn("mean_nse_loo", summary)
+        ev0 = skill["events"][0]
+        self.assertIn("self_fit_nse", ev0)
+        self.assertIn("nse_loo", ev0)
+        html = (
+            Path(__file__).resolve().parents[1]
+            / "assets"
+            / "data"
+            / "estudo_bacia_taquari_antas"
+            / "plataforma_hec_twin_mucum.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("methodCard", html)
+        self.assertIn("Self-fit", html)
+        self.assertIn("NSE LOO", html)
+        self.assertIn("networkLayer = L.layerGroup();", html)
+        self.assertNotIn("networkLayer = L.layerGroup().addTo(map)", html)
+
+
+    def test_g040_multi_outlet_product(self) -> None:
+        mo = self.feed["products"]["g040_multi_outlet"]
+        outlets = {o["outlet_id"]: o for o in mo["outlets"]}
+        self.assertIn("mucum", outlets)
+        self.assertIn("encantado_guapore_join", outlets)
+        self.assertIn("guapore_mouth", outlets)
+        self.assertIn("forqueta_mouth", outlets)
+        self.assertTrue(str(outlets["mucum"]["status"]).startswith("calibrated"))
+        self.assertTrue(str(outlets["encantado_guapore_join"]["status"]).startswith("calibrated"))
+        self.assertIn("blocked", outlets["guapore_mouth"]["status"])
+        enc = mo["encantado"]["summary"]
+        self.assertGreaterEqual(enc["n_events_fitted"], 5)
+        self.assertGreater(enc["mean_self_fit_nse"], 0.5)
+        self.assertIsNotNone(enc["mean_nse_loo"])
+        self.assertTrue(self.feed["discipline"]["multi_outlet_encantado_calibrated"])
+        html = (
+            Path(__file__).resolve().parents[1]
+            / "assets"
+            / "data"
+            / "estudo_bacia_taquari_antas"
+            / "plataforma_hec_twin_mucum.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("multiOutletCard", html)
+        self.assertIn("renderMultiOutlet", html)
+
+
 if __name__ == "__main__":
     unittest.main()
