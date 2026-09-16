@@ -251,6 +251,7 @@ def cemaden_chuva_horaria(cod, inicio, fim):
     """Chuva CEMADEN exata: API autenticada profunda + grade publica recente."""
     token = os.environ.get("CEMADEN_TOKEN")
     serie = {}
+    publico_recente_ok = False
     if token:
         base = "https://sws.cemaden.gov.br/PED/rest/pcds/dados_pcd"
         ini_m = inicio.replace(day=1)
@@ -287,12 +288,13 @@ def cemaden_chuva_horaria(cod, inicio, fim):
             timeout=30,
             tentativas=2,
         )
+        publico_recente_ok = True
         recente = {hora: valor for hora, valor in recente.items() if inicio <= hora <= fim}
         serie.update(recente)
         print(f"[CEMADEN {cod}] publico recente +{len(recente)} horas")
     except Exception as e:
         print(f"[CEMADEN {cod}] publico recente erro: {e}")
-    return serie
+    return serie, publico_recente_ok
 
 
 # --------------------------------------------------------------------- main -
@@ -325,19 +327,22 @@ def main():
         series["chuva_inmet_A894"],
         inmet_chuva_horaria(INMET_ESTACAO, inicio, fim),
     )
-    mesclar_observacoes(
-        series["chuva_cemaden_4320404010A"],
-        cemaden_chuva_horaria(CEMADEN_ESTACAO, inicio, fim),
-    )
+    cemaden_serie, cemaden_publico_ok = cemaden_chuva_horaria(CEMADEN_ESTACAO, inicio, fim)
+    mesclar_observacoes(series["chuva_cemaden_4320404010A"], cemaden_serie)
 
     agora = dt.datetime.now(BRT).replace(tzinfo=None)
     if fim >= agora - dt.timedelta(days=1):
         ultima_cemaden = _ultima_hora(series["chuva_cemaden_4320404010A"])
         atraso_h = None if ultima_cemaden is None else (agora - ultima_cemaden).total_seconds() / 3600
         if atraso_h is None or atraso_h > 8:
-            raise SystemExit(
-                "QA FALHOU: CEMADEN 432040401A sem observacao nas ultimas 8 horas; "
-                "CSV anterior foi preservado e nao sera substituido"
+            if cemaden_publico_ok:
+                raise SystemExit(
+                    "QA FALHOU: CEMADEN 432040401A sem observacao nas ultimas 8 horas; "
+                    "CSV anterior foi preservado e nao sera substituido"
+                )
+            print(
+                "QA AVISO: CEMADEN 432040401A indisponivel no endpoint publico; "
+                "mantendo CSV anterior sem atualizar observacoes recentes"
             )
         ultima_a894 = _ultima_hora(series["chuva_inmet_A894"])
         print(
