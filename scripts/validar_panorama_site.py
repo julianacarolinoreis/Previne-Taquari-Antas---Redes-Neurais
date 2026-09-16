@@ -80,11 +80,31 @@ def validar_html(nome: str, esperado: dict[str, str]) -> None:
         "hydro-accessible",
     ):
         assert required in parser.ids, f"{nome}: falta #{required}"
-    assert "assets/previsao_panorama.css" in parser.stylesheets, f"{nome}: CSS do panorama ausente"
+    assert any(
+        href.split("?", 1)[0] == "assets/previsao_panorama.css"
+        for href in parser.stylesheets
+    ), f"{nome}: CSS do panorama ausente"
     assert any(
         script.split("?", 1)[0] == "assets/previsao_panorama.js"
         for script in parser.scripts
     ), f"{nome}: JS do panorama ausente"
+    assert any(
+        script.split("?", 1)[0] == "assets/js/fmt_quando.js"
+        for script in parser.scripts
+    ), f"{nome}: formatador de horário ausente"
+    assert any(
+        script.split("?", 1)[0] == "assets/js/live_feed.js"
+        for script in parser.scripts
+    ), f"{nome}: leitor do feed ao vivo ausente"
+    assert "PrevineLiveFeed.fetchLive" in texto, f"{nome}: o ao vivo ainda aceita o JSON velho do Pages"
+    assert "try{ return await fetchJsonWithTimeout(LIVE_PAGE_URL); }" not in texto, f"{nome}: fetchLiveJson ainda para no primeiro 200 do Pages"
+    assert ".q #s-hz{text-transform:none" in texto, f"{nome}: o horário-alvo ainda herda caixa alta do rótulo"
+    assert "m[4]}:${m[5]}" not in texto, f"{nome}: fmtWhen ainda imprime HH:MM com dois-pontos"
+    assert "live-bar-copy" in texto, f"{nome}: banner ao vivo ainda quebra AO VIVO em nós de texto anônimos"
+    assert "PrevineFmtQuando.fmtDuration" in texto, f"{nome}: duração do banner ainda cola hora e minuto"
+    assert "PrevineFmtQuando.fmtAge" in texto, f"{nome}: idade ainda usa 13h20 como se fosse relógio"
+    assert "${h}h${m}" not in texto, f"{nome}: durMin ainda imprime 13h20"
+    assert "h${String(r).padStart" not in texto, f"{nome}: ageText ainda imprime 13h20"
     assert esperado["history"] in texto, f"{nome}: histórico incorreto"
     assert f"const CONTORNOS_URL='{esperado['contour']}';" in texto, f"{nome}: contorno incorreto"
     assert esperado["target"] in texto, f"{nome}: estação-alvo incorreta"
@@ -129,6 +149,11 @@ def validar_componente_panorama() -> None:
         "candidate.time.getTime()<forecastReferenceMs-ACTIVE_FORECAST_GRACE_MINUTES*60000",
     ):
         assert token in js, f"JS: falta proteção/componente {token}"
+    assert "if(crossDay) return fmtWhen(d);" in js, "JS: eixo do panorama ainda usa 00:00"
+    assert "function publishedForecasts(items)" in js, "JS: +2 h publicado some do gráfico quando o alvo já passou"
+    assert "return fmtClock(d);" in js, "JS: ticks curtos do eixo ainda usam HH:MM"
+    assert "PrevineFmtQuando.fmtAge" in js, "JS: idade do panorama ainda usa 13h20"
+    assert "h${String(rest).padStart" not in js, "JS: ageText do panorama ainda cola hora e minuto"
     assert "candidate.time.getTime()<anchor.time.getTime()" not in js, "JS: validade do alvo depende da última leitura atrasada"
     assert "let previous=anchor" not in js, "JS: horizontes ainda estão encadeados apesar de terem bases distintas"
     assert "x1:px,y1:py,x2:x,y2:y" not in js, "JS: previsão ainda tem linha colorida entre base e ponto final"
@@ -149,6 +174,23 @@ def validar_geojson(relativo: str) -> None:
     assert all(f["properties"].get("interpretacao") for f in features)
     assert "proxy de extravasamento" in dados.get("metadata", {}).get("interpretacao", "")
     print(f"OK GEOJSON {relativo}: {esperado} níveis, HAND 0 excluído")
+
+
+def validar_deploy_pages() -> None:
+    yml = (RAIZ / ".github/workflows/deploy-pages.yml").read_text(encoding="utf-8")
+    assert "Previsao ao vivo - Santa Tereza" not in yml, "Pages ainda dispara no robô de 5 min de Santa Tereza"
+    assert "Previsao ao vivo - Mucum" not in yml, "Pages ainda dispara no robô de 5 min de Muçum"
+    assert "Chuvas horarias (ANA + INMET + CEMADEN)" not in yml, "Pages ainda dispara no robô horário de chuvas"
+    assert "cancel-in-progress: true" in yml, "Pages ainda deixa um deploy waiting bloquear o grupo"
+    assert "group: github-pages-site" in yml, "Pages ainda usa o grupo concurrency preso em waiting"
+    assert "github.ref == 'refs/heads/main'" in yml, "Pages ainda publica fora do main"
+    assert "previsao_ao_vivo.json|previsao_ao_vivo_mucum.json" in yml, "Pages ainda copia o JSON do robô para o artefato"
+    assert 'cron: "41 */2 * * *"' in yml, "Pages perdeu a cópia de contingência do JSON"
+    js = (RAIZ / "assets/js/live_feed.js").read_text(encoding="utf-8")
+    assert "cdn.jsdelivr.net/gh/" in js, "live_feed não lê o CDN quando o Pages 404"
+    assert "raw.githubusercontent.com" in js, "live_feed não lê o Raw do GitHub"
+    assert "kind !== 'github-api'" in js, "live_feed ainda gasta a cota da API em todo poll"
+    print("OK Pages: robô de 5 min não enfileira deploy")
 
 
 def validar_arquivos_protegidos() -> None:
@@ -173,6 +215,18 @@ def main() -> None:
     validar_geojson("assets/data/santa_tereza_inundacao/contornos_extravasamento.json")
     validar_geojson("assets/data/mucum_inundacao/contornos_extravasamento.json")
     validar_arquivos_protegidos()
+    validar_deploy_pages()
+    for teste in ("test_fmt_quando.js", "test_live_feed.js"):
+        proc = subprocess.run(
+            ["node", str(RAIZ / "scripts" / teste)],
+            cwd=RAIZ,
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        assert proc.returncode == 0, f"{teste}: {proc.stdout}{proc.stderr}"
+        print((proc.stdout or "").strip() or f"OK {teste}")
     print("VALIDAÇÃO DO PANORAMA: OK")
 
 

@@ -582,10 +582,16 @@
       return await response.json();
     } catch (_) { return null; }
   }
+  async function loadLive(url) {
+    if (typeof PrevineLiveFeed === 'object' && PrevineLiveFeed.fetchLive) {
+      try { return await PrevineLiveFeed.fetchLive(url); } catch (_) { return null; }
+    }
+    return loadJson(url);
+  }
   async function loadFeeds() {
     const pairs = Object.entries(stations);
     await Promise.all(pairs.map(async ([key, cfg]) => {
-      const [pattern, weather, live] = await Promise.all([loadJson(cfg.pattern), loadJson(cfg.weather), loadJson(cfg.live)]);
+      const [pattern, weather, live] = await Promise.all([loadJson(cfg.pattern), loadJson(cfg.weather), loadLive(cfg.live)]);
       state.feeds[key] = { pattern, weather, live };
     }));
     state.research = await loadJson(researchUrl);

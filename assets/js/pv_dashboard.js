@@ -219,7 +219,8 @@
   async function load(){
     if(state.loading)return;state.loading=true;const button=el('#pv-refresh');if(button){button.setAttribute('aria-busy','true');button.textContent='Atualizando…'}
     const get=url=>url?fetch(url+(url.includes('?')?'&':'?')+'cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null):Promise.resolve(null);
-    const [weather,basin,probability,live]=await Promise.all([get(weatherUrl),get(basinUrl||weatherUrl),get(probabilityUrl),get(liveUrl)]);
+    const getLive=url=>url&&typeof PrevineLiveFeed==='object'&&PrevineLiveFeed.fetchLive?PrevineLiveFeed.fetchLive(url).catch(()=>null):get(url);
+    const [weather,basin,probability,live]=await Promise.all([get(weatherUrl),get(basinUrl||weatherUrl),get(probabilityUrl),getLive(liveUrl)]);
     state.weather=normalizeWeather(weather);state.basin=normalizeBasin(basin||((station==='santa_tereza')?weather:null));state.probability=normalizeProbability(probability);state.live=normalizeLive(live);state.loadedAt=new Date();render();state.loading=false;if(button){button.removeAttribute('aria-busy');button.textContent='Atualizar dados'}
   }
   document.addEventListener('click',e=>{const mode=e.target.closest('[data-pv-mode]');if(mode&&root.contains(mode)){state.mode=mode.dataset.pvMode;root.classList.toggle('pv-mode-river',state.mode==='river');root.querySelectorAll('[data-pv-mode]').forEach(b=>{const active=b===mode;b.classList.toggle('active',active);b.setAttribute('aria-selected',active?'true':'false');b.setAttribute('aria-pressed',active?'true':'false');});render();}});
