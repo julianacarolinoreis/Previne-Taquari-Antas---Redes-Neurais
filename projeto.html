@@ -388,6 +388,7 @@ footer a:hover { text-decoration: underline; }
   </div>
 </footer>
 
+<script src="assets/js/live_feed.js?v=20260916-feed-fresco"></script>
 <script>
 (function(){
   function fmt(v) {
@@ -409,7 +410,10 @@ footer a:hover { text-decoration: underline; }
   function load(url) {
     return fetch(url, { cache: 'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
   }
-  Promise.all([load('previsao_ao_vivo.json'), load('previsao_ao_vivo_mucum.json')]).then(function(pair){
+  Promise.all([
+    (typeof PrevineLiveFeed==='object'&&PrevineLiveFeed.fetchLive?PrevineLiveFeed.fetchLive('previsao_ao_vivo.json'):load('previsao_ao_vivo.json')),
+    (typeof PrevineLiveFeed==='object'&&PrevineLiveFeed.fetchLive?PrevineLiveFeed.fetchLive('previsao_ao_vivo_mucum.json'):load('previsao_ao_vivo_mucum.json'))
+  ]).then(function(pair){
     line(document.getElementById('rna-st'), 'Santa Tereza', pair[0]);
     line(document.getElementById('rna-muc'), 'Muçum', pair[1]);
   });

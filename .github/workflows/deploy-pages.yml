@@ -35,21 +35,14 @@ on:
       - "assets/data/santa_tereza_eventwise_replay_rna_2h/**"
       - "assets/data/servicos/**"
       - "assets/data/vulnerabilidade/**"
-      # Os feeds operacionais abaixo mudam por robos e precisam disparar uma
-      # nova versao do Pages; sem estes caminhos o site podia ficar atrasado
-      # mesmo com o Raw atualizado.
-      - "previsao_ao_vivo.json"
-      - "historico_previsoes_ao_vivo.json"
-      - "previsao_ao_vivo_mucum.json"
-      - "historico_previsoes_ao_vivo_mucum.json"
-      - "assets/data/chuvas_horarias.csv"
       - ".github/workflows/deploy-pages.yml"
+  schedule:
+    # Cópia de contingência do JSON do robô. O site lê o GitHub Raw/API
+    # quando o Pages está atrasado; não republicar a cada 5 min.
+    - cron: "41 */2 * * *"
   workflow_dispatch:
   workflow_run:
     workflows:
-      - "Previsao ao vivo - Santa Tereza"
-      - "Previsao ao vivo - Mucum"
-      - "Chuvas horarias (ANA + INMET + CEMADEN)"
       - "Atualiza feed meteorológico de Santa Tereza"
       - "Atualiza feed meteorológico de Muçum"
       - "Contexto automático da pesquisa da bacia"
@@ -67,11 +60,9 @@ permissions:
 
 concurrency:
   group: github-pages
-  # Nao cancele um deploy que ja esta fazendo upload: os robos publicam em
-  # ciclos curtos e o cancelamento em cascata deixava o Pages sem chegar ao
-  # passo Deploy to GitHub Pages. O proximo commit fica pendente e substitui
-  # somente outro pendente, mantendo a versao mais recente.
-  cancel-in-progress: false
+  # Um deploy preso em "waiting" no environment ocupava o grupo 15 h e
+  # cancelava todo o restante. Só a publicação mais nova deve ficar.
+  cancel-in-progress: true
 
 jobs:
   deploy:

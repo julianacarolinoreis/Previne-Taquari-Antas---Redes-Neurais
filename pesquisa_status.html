@@ -308,6 +308,7 @@
   <nav aria-label="Navegação da pesquisa"><a href="index.html">Página inicial</a><a href="santa_tereza_previsao_inundacao.html">Monitoramento de Santa Tereza</a><a href="pesquisa_status_mucum.html">Pesquisa de Muçum</a><a href="mucum_previsao_inundacao.html">Monitoramento de Muçum</a><a href="mucum_inundacao.html">Histórico de Muçum</a></nav>
   <footer>PREVINE · pesquisa auditável · dados atrasados ou incompletos são exibidos como estado de qualidade, não como ausência de risco.</footer>
 </div>
+<script src="assets/js/live_feed.js?v=20260916-feed-fresco"></script>
 <script>
 (function(){
   [['.weather-panel','agora'],['.short-panel','previsoes']].forEach(([sel,id])=>{const n=document.querySelector(sel);if(n&&!n.id)n.id=id});
@@ -411,7 +412,7 @@
   // aparecer na saída pública nem contaminar as comparações atuais.
   const isLegacyCascade=x=>x&&['id','horizonte','tipo','modelo','rotulo'].some(k=>/cascata/i.test(String(x[k]||'')));
   Promise.all([
-    fetch('previsao_ao_vivo.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
+    (typeof PrevineLiveFeed==='object'&&PrevineLiveFeed.fetchLive?PrevineLiveFeed.fetchLive('previsao_ao_vivo.json'):fetch('previsao_ao_vivo.json?cb='+Date.now()).then(r=>r.ok?r.json():null)).catch(()=>null),
     fetch('historico_previsoes_ao_vivo.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch('assets/data/research_probability_santa_tereza_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch('assets/data/research_binary_decision_santa_tereza_latest.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)

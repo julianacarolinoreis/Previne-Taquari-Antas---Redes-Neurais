@@ -92,6 +92,12 @@ def validar_html(nome: str, esperado: dict[str, str]) -> None:
         script.split("?", 1)[0] == "assets/js/fmt_quando.js"
         for script in parser.scripts
     ), f"{nome}: formatador de horário ausente"
+    assert any(
+        script.split("?", 1)[0] == "assets/js/live_feed.js"
+        for script in parser.scripts
+    ), f"{nome}: leitor do feed ao vivo ausente"
+    assert "PrevineLiveFeed.fetchLive" in texto, f"{nome}: o ao vivo ainda aceita o JSON velho do Pages"
+    assert "try{ return await fetchJsonWithTimeout(LIVE_PAGE_URL); }" not in texto, f"{nome}: fetchLiveJson ainda para no primeiro 200 do Pages"
     assert ".q #s-hz{text-transform:none" in texto, f"{nome}: o horário-alvo ainda herda caixa alta do rótulo"
     assert "m[4]}:${m[5]}" not in texto, f"{nome}: fmtWhen ainda imprime HH:MM com dois-pontos"
     assert "live-bar-copy" in texto, f"{nome}: banner ao vivo ainda quebra AO VIVO em nós de texto anônimos"
@@ -99,9 +105,6 @@ def validar_html(nome: str, esperado: dict[str, str]) -> None:
     assert "PrevineFmtQuando.fmtAge" in texto, f"{nome}: idade ainda usa 13h20 como se fosse relógio"
     assert "${h}h${m}" not in texto, f"{nome}: durMin ainda imprime 13h20"
     assert "h${String(r).padStart" not in texto, f"{nome}: ageText ainda imprime 13h20"
-    assert "function liveFeedStampMs(d)" in texto, f"{nome}: o ao vivo ainda aceita o JSON velho do Pages"
-    assert "ok.sort((a,b)=>(liveFeedStampMs(b)||0)-(liveFeedStampMs(a)||0))" in texto, f"{nome}: fontes ao vivo não escolhem a consulta mais nova"
-    assert "try{ return await fetchJsonWithTimeout(LIVE_PAGE_URL); }" not in texto, f"{nome}: fetchLiveJson ainda para no primeiro 200 do Pages"
     assert esperado["history"] in texto, f"{nome}: histórico incorreto"
     assert f"const CONTORNOS_URL='{esperado['contour']}';" in texto, f"{nome}: contorno incorreto"
     assert esperado["target"] in texto, f"{nome}: estação-alvo incorreta"
@@ -173,6 +176,16 @@ def validar_geojson(relativo: str) -> None:
     print(f"OK GEOJSON {relativo}: {esperado} níveis, HAND 0 excluído")
 
 
+def validar_deploy_pages() -> None:
+    yml = (RAIZ / ".github/workflows/deploy-pages.yml").read_text(encoding="utf-8")
+    assert "Previsao ao vivo - Santa Tereza" not in yml, "Pages ainda dispara no robô de 5 min de Santa Tereza"
+    assert "Previsao ao vivo - Mucum" not in yml, "Pages ainda dispara no robô de 5 min de Muçum"
+    assert "Chuvas horarias (ANA + INMET + CEMADEN)" not in yml, "Pages ainda dispara no robô horário de chuvas"
+    assert "cancel-in-progress: true" in yml, "Pages ainda deixa um deploy waiting bloquear o grupo"
+    assert 'cron: "41 */2 * * *"' in yml, "Pages perdeu a cópia de contingência do JSON"
+    print("OK Pages: robô de 5 min não enfileira deploy")
+
+
 def validar_arquivos_protegidos() -> None:
     proc = subprocess.run(
         ["git", "status", "--porcelain"],
@@ -195,16 +208,18 @@ def main() -> None:
     validar_geojson("assets/data/santa_tereza_inundacao/contornos_extravasamento.json")
     validar_geojson("assets/data/mucum_inundacao/contornos_extravasamento.json")
     validar_arquivos_protegidos()
-    proc = subprocess.run(
-        ["node", str(RAIZ / "scripts" / "test_fmt_quando.js")],
-        cwd=RAIZ,
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-    )
-    assert proc.returncode == 0, f"fmt_quando: {proc.stdout}{proc.stderr}"
-    print((proc.stdout or "").strip() or "OK fmt_quando")
+    validar_deploy_pages()
+    for teste in ("test_fmt_quando.js", "test_live_feed.js"):
+        proc = subprocess.run(
+            ["node", str(RAIZ / "scripts" / teste)],
+            cwd=RAIZ,
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        assert proc.returncode == 0, f"{teste}: {proc.stdout}{proc.stderr}"
+        print((proc.stdout or "").strip() or f"OK {teste}")
     print("VALIDAÇÃO DO PANORAMA: OK")
 
 
