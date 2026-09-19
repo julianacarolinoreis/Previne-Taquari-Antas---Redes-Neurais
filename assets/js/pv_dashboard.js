@@ -65,7 +65,7 @@
     if(!d)return null;
     const hs=d.horizontes||{};
     const rows=Object.keys(hs).filter(k=>/^(2h|4h)/.test(k)).map(k=>({key:k,label:k==='2h_versao_b'?'2 h B':k==='4h'?'4 h':'2 h',level:safeNum(hs[k].nivel_previsto_cm),now:safeNum(hs[k].nivel_rio_agora_cm),delta:safeNum(hs[k].delta_previsto_cm),status:hs[k].status||'sem status',modelo:hs[k].modelo||hs[k].modelo_nome||'RNA ao vivo'})).filter(x=>x.level!=null);
-    return {raw:d,rows,generated:d.gerado_em||d.consultado_em,telemetry:d.telemetria_ultima_em};
+    return {raw:d,rows,generated:d.gerado_em||d.consultado_em,telemetry:d.telemetria_ultima_em||d.nivel_rio_agora_em,level:safeNum(d.telemetria_ultima_nivel_cm??d.nivel_rio_agora_cm),telemetryAge:safeNum(d.idade_telemetria_min)};
   }
   function setFeedState(){
     const node=el('#pv-feed-state'),chips=el('#pv-feed-chips');
@@ -221,7 +221,21 @@
     const get=url=>url?fetch(url+(url.includes('?')?'&':'?')+'cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null):Promise.resolve(null);
     const getLive=url=>url&&typeof PrevineLiveFeed==='object'&&PrevineLiveFeed.fetchLive?PrevineLiveFeed.fetchLive(url).catch(()=>null):get(url);
     const [weather,basin,probability,live]=await Promise.all([get(weatherUrl),get(basinUrl||weatherUrl),get(probabilityUrl),getLive(liveUrl)]);
-    state.weather=normalizeWeather(weather);state.basin=normalizeBasin(basin||((station==='santa_tereza')?weather:null));state.probability=normalizeProbability(probability);state.live=normalizeLive(live);state.loadedAt=new Date();render();state.loading=false;if(button){button.removeAttribute('aria-busy');button.textContent='Atualizar dados'}
+    state.weather=normalizeWeather(weather);state.basin=normalizeBasin(basin||((station==='santa_tereza')?weather:null));state.probability=normalizeProbability(probability);state.live=normalizeLive(live);
+    // A observação do feed meteorológico é um snapshot derivado e pode ficar mais velha
+    // que o JSON ao vivo. Para "Rio agora", sempre prevalece a telemetria ao vivo
+    // quando o timestamp é mais novo; isso evita chamar a ANA de atrasada por causa
+    // de um arquivo meteorológico que ainda não foi reconstruído.
+    if(state.weather&&state.live&&state.live.telemetry&&state.live.level!=null){
+      const liveTs=parseFeedDate(state.live.telemetry).getTime();
+      const weatherTs=parseFeedDate(state.weather.obs?.observed_at_utc||state.weather.obs?.timestamp_utc).getTime();
+      if(Number.isFinite(liveTs)&&(!Number.isFinite(weatherTs)||liveTs>=weatherTs)){
+        const age=Math.max(0,(Date.now()-liveTs)/60000);
+        state.weather.obs={...(state.weather.obs||{}),state:age<=90?'fresh':'unknown_or_stale',level_cm:state.live.level,observed_at_utc:new Date(liveTs).toISOString(),timestamp_utc:new Date(liveTs).toISOString(),age_minutes:age,source:'feed ao vivo ANA/SGB'};
+        state.weather.level=state.live.level;
+      }
+    }
+    state.loadedAt=new Date();render();state.loading=false;if(button){button.removeAttribute('aria-busy');button.textContent='Atualizar dados'}
   }
   document.addEventListener('click',e=>{const mode=e.target.closest('[data-pv-mode]');if(mode&&root.contains(mode)){state.mode=mode.dataset.pvMode;root.classList.toggle('pv-mode-river',state.mode==='river');root.querySelectorAll('[data-pv-mode]').forEach(b=>{const active=b===mode;b.classList.toggle('active',active);b.setAttribute('aria-selected',active?'true':'false');b.setAttribute('aria-pressed',active?'true':'false');});render();}});
   const refresh=el('#pv-refresh');if(refresh)refresh.addEventListener('click',load);

@@ -24,8 +24,8 @@
   <div class="sub">Nível da cheia: <span class="lv" id="nvtxt"></span></div>
   <input type="range" id="sld" min="0" max="100" value="0">
   <div class="sub">Velocidade da subida: <span class="lv" id="taxatxt"></span> cm/h <span id="taxacen" style="color:#7a5b00;font-size:11px"></span></div>
-  <input type="range" id="sldTaxa" min="10" max="120" value="40" step="5">
-  <div id="cont"></div>
+  <input type="range" id="sldTaxa" min="10" max="200" value="40" step="5">
+  <div class="sub" style="font-size:11px;color:#7a5b00;margin-top:4px">Faixa do cenário: 0–30 m. Cobertura espacial legada indicada no próprio dado; acima dela, ausência de cota é SEM DADO, não terreno seguro.</div><div id="cont"></div>
   <div class="leg" id="leg"></div>
   <div class="sub" style="margin-top:6px;font-size:11px;color:#7a5b00">Margem = tempo até a água − tempo de caminhada (idoso, 0,9 m/s) até o abrigo mais próximo. Cenário ilustrativo.</div>
 </div>
@@ -37,12 +37,12 @@ let taxaCmH=D.meta.taxa_cm_h;
 const map=L.map('map');
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}).addTo(map);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.9}).addTo(map);
-const CORES={alagada:'#1e5fbf',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84'};
-const ROT={alagada:'já na água',critica:'crítica — precisa de resgate',apertada:'apertada (<15 min)',atencao:'atenção (<1 h)',confortavel:'confortável (>1 h)',alto:'ponto alto (não alaga)'};
+const CORES={alagada:'#1e5fbf',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84',sem_dado:'#9aa3a0'};
+const ROT={alagada:'já na água',critica:'crítica — precisa de resgate',apertada:'apertada (<15 min)',atencao:'atenção (<1 h)',confortavel:'confortável (>1 h)',alto:'ponto alto',sem_dado:'sem dado espacial',sem_dado:'sem dado espacial'};
 const vel=D.meta.vel_idoso_ms;
 function classifica(i,nivel){
   const cota=D.cota_alaga_m[i];
-  if(cota===null||cota===undefined) return 'alto';
+  if(cota===null||cota===undefined) return 'sem_dado';
   if(cota<=nivel) return 'alagada';
   const taxa_m_min=taxaCmH/100/60;                  // subida atual (slider)
   const ttw=(cota-nivel)/taxa_m_min;               // min ate a agua
@@ -56,10 +56,10 @@ D.edges.forEach(([a,c])=>{const A=D.nos[a],C=D.nos[c];
   const pl=L.polyline([A,C],{weight:2.5,opacity:.8}).addTo(map); linhas.push([pl,a,c]); b.extend(A);b.extend(C);});
 D.abrigos.forEach(a=>L.marker([a.lat,a.lon]).addTo(map).bindPopup('<b>'+a.nome+'</b><br>abrigo / ponto de encontro'));
 const BB=b.pad(0.05); function aj(){map.invalidateSize();map.fitBounds(BB);} aj();setTimeout(aj,300);window.addEventListener('resize',aj);
-const ordem=['confortavel','atencao','apertada','critica','alagada','alto'];
+const ordem=['confortavel','atencao','apertada','critica','alagada','sem_dado'];
 function pior(x,y){return ordem.indexOf(x)>ordem.indexOf(y)?x:y;} // classe mais urgente
 function render(nivel){
-  const cnt={alagada:0,critica:0,apertada:0,atencao:0,confortavel:0,alto:0};
+  const cnt={alagada:0,critica:0,apertada:0,atencao:0,confortavel:0,alto:0,sem_dado:0};
   const cls=D.nos.map((_,i)=>classifica(i,nivel));
   cls.forEach(c=>cnt[c]++);
   linhas.forEach(([pl,a,c])=>{const k=pior(cls[a],cls[c]);pl.setStyle({color:CORES[k]});});
@@ -68,8 +68,8 @@ function render(nivel){
     `<div class="row"><span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${CORES[k]};margin-right:6px"></i>${ROT[k]}</span><b>${cnt[k]}</b></div>`).join('');
 }
 document.getElementById('leg').innerHTML='';
-const sld=document.getElementById('sld'), sldTaxa=document.getElementById('sldTaxa'), NVMAX=D.meta.nivel_max_m;
-function cenarioTaxa(t){return t<=25?'(cheia lenta)':t>=90?'(ritmo de recorde)':'';}
+const sld=document.getElementById('sld'), sldTaxa=document.getElementById('sldTaxa'), CAMADA_MAX=D.meta.nivel_max_m, NVMAX=30;
+function cenarioTaxa(t){return t<=25?'(subida lenta)':t<=100?'(subida moderada)':'(subida rápida · cenário)';}
 function redraw(){
   taxaCmH=+sldTaxa.value;
   document.getElementById('taxatxt').textContent=taxaCmH;

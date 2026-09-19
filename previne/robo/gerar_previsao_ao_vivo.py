@@ -2406,13 +2406,13 @@ def main():
                 and str(out.get("status") or "").startswith("ok")
             ):
                 out["status"] = (
-                    f"{out['status']} - atencao: hora-base {atraso_h:.1f}h atrasada "
-                    "para manter a grade horaria exata"
+                    f"{out['status']} - atencao: base da RNA {atraso_h:.1f}h anterior a telemetria recente; "
+                    "aguardando conjunto completo de entradas na mesma hora cheia"
                 )
             elif atraso_h >= 2.0 and out.get("status") == "ok":
                 out["status"] = (
-                    f"ok (base {atraso_h:.1f}h atrasada vs telemetria — "
-                    "inputs preenchidos com interpolacao em buracos ANA)"
+                    f"ok (base da RNA {atraso_h:.1f}h anterior a telemetria — "
+                    "inputs alinhados/preenchidos na grade do modelo; isso nao significa falha da ANA)"
                 )
     escrever_pacote(horizontes, historico, aviso)
     return

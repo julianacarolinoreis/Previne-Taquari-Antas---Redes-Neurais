@@ -115,9 +115,8 @@
   function telemetryLabel(age){
     if(age===null||age===undefined||!Number.isFinite(Number(age))) return 'telemetria sem idade válida';
     const mins=Number(age);
-    if(mins<=30) return 'telemetria recente';
-    if(mins<=60) return 'telemetria com atraso';
-    if(mins<=120) return 'telemetria atrasada';
+    if(mins<=90) return 'telemetria recente';
+    if(mins<=180) return 'telemetria com atraso';
     return 'telemetria muito atrasada';
   }
 
@@ -132,7 +131,7 @@
     const base=parseWhen(payload&&payload.hora_modelo);
     const telemetry=parseWhen(payload&&(payload.telemetria_ultima_em||payload.nivel_rio_agora_em));
     const status=String(payload&& (payload.status||payload.status_dados||'')).toLowerCase();
-    if(/hora[- ]base.*atrasad/.test(status)) return `este horizonte permanece na base ${fmtClock(base)} porque o conjunto completo e válido da próxima hora não foi disponibilizado a tempo; a RNA manteve a última base válida para preservar a grade horária exata`;
+    if(/hora[- ]base.*atrasad|base da rna.*anterior/.test(status)) return `este horizonte permanece na base ${fmtClock(base)} porque o conjunto completo e válido da próxima hora cheia ainda não estava disponível; a RNA manteve a última base válida. A leitura ANA mais recente é mostrada separadamente.`;
     if(!base) return 'a hora-base da RNA ainda não está disponível';
     if(!telemetry) return 'a ANA ainda não trouxe uma leitura válida para formar a próxima base';
     if(telemetry<=base) return `a ANA ainda não trouxe uma leitura posterior à base ${fmtClock(base)}`;
@@ -1016,11 +1015,11 @@
     const selected=state.selectedLive||state.live;
     const telemetryWhen=state.live.telemetria_ultima_em||state.live.nivel_rio_agora_em;
     const liveFresh=state.live._freshness||freshness(feedTimestamp(state.live),FRESHNESS.liveMinutes);
-    const telemetryFresh=telemetryWhen?freshness(telemetryWhen,60):null;
+    const telemetryFresh=telemetryWhen?freshness(telemetryWhen,180):null;
     const telemetryAge=telemetryFresh&&telemetryFresh.ageMinutes;
     label.textContent=liveFresh.stale
       ?'Publicação atualizada com atraso'
-      :(telemetryAge!==null&&telemetryAge>120?'Dados publicados · telemetria ANA muito atrasada':(telemetryAge!==null&&telemetryAge>60?'Dados publicados · telemetria ANA atrasada':(telemetryAge!==null&&telemetryAge>30?'Dados publicados · telemetria ANA com atraso':'Robô ao vivo ativo')));
+      :(telemetryAge!==null&&telemetryAge>180?'Dados publicados · telemetria ANA muito atrasada':(telemetryAge!==null&&telemetryAge>90?'Dados publicados · última leitura ANA com atraso':'Robô ao vivo ativo'));
     const longForecast=state.researchRisk&&state.researchRisk.feed_type==='meteorological_forecast';
     const ageText=liveFresh.ageMinutes===null?'consulta do robô com idade n/d':`robô consultado há ${nf0.format(liveFresh.ageMinutes)} min`;
     const telemetryText=telemetryFresh&&telemetryFresh.ageMinutes!==null
@@ -1057,7 +1056,7 @@
       const weatherStale=weatherFresh.stale;
       const experimentalRisk=!weatherStale&&horizons.some(h=>h.flood_probability!==null&&h.flood_probability!==undefined);
       const age=number(r.observation&&r.observation.age_minutes);
-      const freshness=age===null?'idade da leitura n/d':(age>120?`leitura atrasada (${nf1.format(age,0)} min)`:`leitura com ${nf1.format(age,0)} min`);
+      const freshness=age===null?'idade da leitura n/d':(age>180?`leitura atrasada (${nf1.format(age,0)} min)`:`leitura com ${nf1.format(age,0)} min`);
       const generated=r.generated_at_utc?`feed gerado ${fmtWhenWithZone(r.generated_at_utc)}`:'feed sem horário de geração';
       const staleText=weatherStale?' Feed meteorológico atrasado; a probabilidade foi ocultada até nova rodada.':'';
       label.textContent=weatherStale?'Chuva prevista · feed atrasado':(experimentalRisk?'Chuva prevista e risco experimental · 24–168 h':'Chuva prevista · 24–168 h');

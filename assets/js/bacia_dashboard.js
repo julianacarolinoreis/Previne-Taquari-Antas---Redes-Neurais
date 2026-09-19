@@ -344,7 +344,7 @@
     } else {
       setLayer('layer-previsao', snaps.map((s) => `${fmt(s.level, 0)} cm`).join(' · '), `horizonte +${hours} h · RNA de nível em sombra, não probabilidade de inundação`, '');
     }
-    const cota = state.station === 'mucum' ? '18,00 m / 1.800 cm' : state.station === 'santa' ? '15,00 m / 1.500 cm' : 'ST 15,00 m · Muçum 18,00 m';
+    const cota = state.station === 'mucum' ? 'limiar de referência 18,00 m / 1.800 cm' : state.station === 'santa' ? 'limiar de referência 15,00 m / 1.500 cm' : 'limiares de referência · ST 15,00 m · Muçum 18,00 m';
     const usableRisk = snaps.some((s) => s.risk != null);
     const staleRisk = snaps.some((s) => s.riskState === 'stale' || (s.risk == null && s.archivedRisk != null));
     if (staleRisk && !usableRisk) {
