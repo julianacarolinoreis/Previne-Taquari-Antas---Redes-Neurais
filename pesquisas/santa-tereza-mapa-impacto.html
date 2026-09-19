@@ -52,10 +52,10 @@ const cellCenters=D.cells.map(c=>centro(c.poly));
 let cotaCells=D.cells.map(c=>c.cota);
 const manchaLayer=L.layerGroup().addTo(map);
 function featureCenario(nivelRegua){if(!contornosOrdenados.length)return null;const h=Math.max(0,Math.min(CAMADA_MAX,nivelRegua-BANKFULL_M));let best=contornosOrdenados[0],bd=Infinity;contornosOrdenados.forEach(x=>{const d=Math.abs(x.nivel-h);if(d<bd){bd=d;best=x;}});return best&&best.feature;}
-function atualizaMancha(nivelRegua){manchaLayer.clearLayers();const f=featureCenario(nivelRegua);if(f)L.geoJSON(f,{style:{color:'#1e5fbf',weight:1.8,fillColor:'#1e5fbf',fillOpacity:.18},interactive:false}).addTo(manchaLayer);}
+function atualizaMancha(nivelRegua){manchaLayer.clearLayers();const f=featureCenario(nivelRegua);if(f)L.geoJSON(f,{style:{color:'#1e5fbf',weight:.8,fillColor:'#1e5fbf',fillOpacity:.14},interactive:false}).addTo(manchaLayer);}
 function classe(cota,dist,nivelRegua){const h=Math.max(0,nivelRegua-BANKFULL_M);if(cota==null)return 'sem_dado';if(cota<=h)return 'alagada';const ttw=(cota-h)/(taxaCmH/100/60),cam=dist/vel/60,m=ttw-cam;return m<0?'critica':m<15?'apertada':m<60?'atencao':'confortavel';}
 const boxes=D.cells.map((c,i)=>L.polygon(c.poly,{weight:.75,color:'#26332e',opacity:.78,fillColor:CORES.sem_dado,fillOpacity:.72}).addTo(map)
-  .bindPopup(()=>{const ct=cotaCells[i],nivel=BANKFULL_M+(sld.value/100)*CAMADA_MAX,k=classe(ct,c.dist_m,nivel),saida=CLASSES_SAIDA.has(k);return `<b>${c.pop} pessoas na célula da Grade IBGE</b><br><b>${saida?'Até '+c.pop+' pessoas a priorizar para saída neste cenário':'0 pessoas em prioridade de saída nesta classe'}</b><br><small>A cor preenche a célula como visualização de triagem; não significa que toda a superfície esteja fisicamente inundada.</small><br>classe: <b>${ROT[k]||k}</b><br>limiar HAND no centro: <b>${ct==null?'sem cobertura no intervalo':(BANKFULL_M+ct).toFixed(1)+' m na régua'}</b><br>a pé ao abrigo: ${(c.dist_m/1000).toFixed(2)} km`; }));
+  .bindPopup(()=>{const ct=cotaCells[i],nivel=Math.max(BANKFULL_M,Math.min(NVMAX,Number(sld.value)||BANKFULL_M)),k=classe(ct,c.dist_m,nivel),saida=CLASSES_SAIDA.has(k);return `<b>${c.pop} pessoas na célula da Grade IBGE</b><br><b>${saida?'Até '+c.pop+' pessoas a priorizar para saída neste cenário':'0 pessoas em prioridade de saída nesta classe'}</b><br><small>A cor preenche a célula como visualização de triagem; não significa que toda a superfície esteja fisicamente inundada.</small><br>classe: <b>${ROT[k]||k}</b><br>limiar HAND no centro: <b>${ct==null?'sem cobertura no intervalo':(BANKFULL_M+ct).toFixed(1)+' m na régua'}</b><br>a pé ao abrigo: ${(c.dist_m/1000).toFixed(2)} km`; }));
 const labels=D.cells.map((c,i)=>L.marker(cellCenters[i],{interactive:false,keyboard:false,icon:L.divIcon({className:'',iconSize:[36,22],iconAnchor:[18,11],html:`<div id="impact-poplbl-${i}" style="min-width:24px;color:#fff;text-align:center;font:900 12px/1.1 Arial,sans-serif;text-shadow:0 1px 3px #000,0 0 2px #000">?</div>`})}).addTo(map));
 D.abrigos.forEach(a=>L.marker([a.lat,a.lon]).addTo(map).bindPopup('<b>'+a.nome+'</b><br>abrigo'));
 const bb=L.latLngBounds();D.cells.forEach(c=>c.poly.forEach(p=>bb.extend(p)));const BB=bb.pad(0.08);function aj(){map.invalidateSize();map.fitBounds(BB);}aj();setTimeout(aj,300);window.addEventListener('resize',aj);
@@ -79,7 +79,7 @@ Promise.allSettled([
   contornosGeo=res[0].value;prepara(contornosGeo);
   cotaCells=D.cells.map(c=>c.cota);
  }
- if(res[1].status==='fulfilled'){prelimLayer=L.geoJSON(res[1].value,{style:{color:'#7d3cff',weight:2,dashArray:'6 5',fillColor:'#7d3cff',fillOpacity:.04}});prelimLayer.bindPopup('<b>Mancha preliminar legada</b><br>Prova de conceito antiga; não entra na classificação atual.');prelimControl=L.control.layers(null,{'Mancha preliminar legada · opcional':prelimLayer},{collapsed:true}).addTo(map);}
+ if(res[1].status==='fulfilled'){prelimLayer=L.geoJSON(res[1].value,{interactive:false,style:{color:'#7d3cff',weight:1.2,dashArray:'6 5',fillColor:'#7d3cff',fillOpacity:.04}});prelimLayer.bindPopup('<b>Mancha preliminar legada</b><br>Prova de conceito antiga; não entra na classificação atual.');prelimControl=L.control.layers(null,{'Mancha preliminar legada · opcional':prelimLayer},{collapsed:true}).addTo(map);}
  redraw();
 });
 
