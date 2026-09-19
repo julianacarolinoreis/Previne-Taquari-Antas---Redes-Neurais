@@ -37,7 +37,7 @@ CIDADES = {
     "santa_tereza": {
         "cod": "4317251",
         "municipio": "Santa Tereza",
-        "zero_regua_m": 4.0,
+        "zero_regua_m": 15.0,
         "contornos": RAIZ / "assets" / "data" / "santa_tereza_inundacao" / "contornos_mancha.json",
         "rf": RAIZ / "assets" / "data" / "rota_fuga" / "rota_fuga_ruas_santa_tereza.json",
         "casas": None,
