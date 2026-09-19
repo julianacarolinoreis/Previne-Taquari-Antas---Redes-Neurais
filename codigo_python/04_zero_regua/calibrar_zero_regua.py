@@ -76,8 +76,8 @@ def main():
           f"({bankfull/100:.1f} m) -> só várzea/beira, ainda NÃO a cidade")
     print(f"  cidade (HAND {H_cidade:.0f} m) só alaga na régua "
           f"{bankfull + 100*H_cidade:.0f} cm = cota de inundação 15 m  [ok, por construção]")
-    rec = 2582  # recorde mai/2024
-    print(f"  recorde mai/2024 {rec} cm -> altura sobre o rio = "
+    rec = 2582  # referência de mai/2024
+    print(f"  referência mai/2024 {rec} cm -> altura sobre o rio = "
           f"{(rec - bankfull)/100:.1f} m (catastrófico, esperado)")
     print()
     print("OBS.: valor sujeito a ±1-2 m do ANADEM. Definitivo requer a cota")
