@@ -54,6 +54,22 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
     """Validate the public-feed contract without writing a feed."""
     if not isinstance(data, dict):
         raise SystemExit("feed precisa ser objeto JSON")
+    serie_observada = data.get("serie_observada_ana")
+    if not isinstance(serie_observada, list) or len(serie_observada) < 2:
+        raise SystemExit("feed sem serie observada ANA suficiente para o panorama")
+    horas_observadas = [str(p.get("hora") or "") for p in serie_observada if isinstance(p, dict)]
+    niveis_observados = [p.get("nivel_cm") for p in serie_observada if isinstance(p, dict)]
+    if len(horas_observadas) != len(serie_observada) or horas_observadas != sorted(horas_observadas):
+        raise SystemExit("serie observada ANA invalida ou fora de ordem")
+    if any(v is None for v in niveis_observados):
+        raise SystemExit("serie observada ANA contem nivel ausente")
+    ultima_obs = serie_observada[-1]
+    ultima_feed = str(data.get("telemetria_ultima_em") or "")[:16]
+    if str(ultima_obs.get("hora") or "")[:16] != ultima_feed:
+        raise SystemExit("ultimo ponto da serie observada nao coincide com a ultima telemetria publicada")
+    if data.get("serie_observada_ana_n") != len(serie_observada):
+        raise SystemExit("contador da serie observada ANA inconsistente")
+
     horizons = data.get("horizontes")
     if not isinstance(horizons, dict):
         raise SystemExit("feed sem objeto horizontes")
