@@ -16,9 +16,17 @@ on:
     # O painel mostra a idade real da execução e da leitura ANA.
     - cron: '3-59/5 * * * *'
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Atualiza feed meteorológico de Muçum"
+      - "Chuvas horarias (ANA + INMET + CEMADEN)"
+      - "Contexto automático da pesquisa da bacia"
+    types:
+      - completed
 
 jobs:
   prever:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     concurrency:
