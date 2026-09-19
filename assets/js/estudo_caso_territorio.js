@@ -24,9 +24,9 @@
       floodMap: '../santa_tereza_previsao_inundacao.html',
       ficha: '../pesquisa_status.html',
       painel: 'santa-tereza-painel-evacuacao.html',
-      rotaCenario: '../santa_tereza_rota_fuga_ruas_cenario.html',
-      mesa: 'estudo-caso-resposta-santa-tereza.html',
-      resposta: 'estudo-caso-resposta-santa-tereza.html',
+      rotaCenario: 'santa-tereza-painel-evacuacao.html',
+      mesa: null,
+      resposta: 'santa-tereza-painel-evacuacao.html',
       impacto: 'santa-tereza-mapa-impacto.html',
       estudo: 'santa-tereza-estudo-caso.html',
       plan: null
@@ -600,8 +600,9 @@
     if (state.layers.flood) state.layers.flood.clearLayers();
     var rota = bundle.rota;
     var ruas = bundle.ruas;
-    var nos = (rota && rota.nos) || (ruas && ruas.nos);
-    var edges = (rota && rota.edges) || (ruas && ruas.edges);
+    var rotaAtual = rota && !(rota.meta && rota.meta.use_for_current_flood === false);
+    var nos = (rotaAtual && rota.nos) || (ruas && ruas.nos);
+    var edges = (rotaAtual && rota.edges) || (ruas && ruas.edges);
     if (!nos || !edges) return;
     var dry = [];
     var wet = [];
@@ -610,7 +611,7 @@
       var c = nos[e[1]];
       if (!a || !c) return;
       var seg = [a, c];
-      if (e[2] === 1) wet.push(seg);
+      if (rotaAtual && e[2] === 1) wet.push(seg);
       else dry.push(seg);
     });
     if (dry.length) {
@@ -636,7 +637,7 @@
 
   function buildStreetPriority(bundle) {
     var rota = bundle.rota;
-    if (!rota || !Array.isArray(rota.edges) || !Array.isArray(rota.nos)) return [];
+    if (!rota || (rota.meta && rota.meta.use_for_current_flood === false) || !Array.isArray(rota.edges) || !Array.isArray(rota.nos)) return [];
     var nos = rota.nos;
     var cells = rankedCells(bundle);
     var cellBounds = [];
@@ -701,7 +702,10 @@
     }
     if (!ol) return;
     if (!state.streetPriority.length) {
-      ol.innerHTML = '<li class="empty">Sem trecho prioritário.</li>';
+      var legado = bundle.rota && bundle.rota.meta && bundle.rota.meta.use_for_current_flood === false;
+      ol.innerHTML = legado
+        ? '<li class="empty">Cenário antigo de ruas desativado. Use o Painel de evacuação para o nível selecionado.</li>'
+        : '<li class="empty">Sem trecho prioritário.</li>';
       return;
     }
     ol.innerHTML = state.streetPriority.map(function (s, i) {
@@ -932,7 +936,7 @@
 
   function resolveRota(bundle, lat, lon) {
     var rota = bundle.rota;
-    if (!rota || !Array.isArray(rota.nos) || !Array.isArray(rota.prox)) return null;
+    if (!rota || (rota.meta && rota.meta.use_for_current_route === false) || !Array.isArray(rota.nos) || !Array.isArray(rota.prox)) return null;
     var i0 = nearestRotaNode(rota, lat, lon);
     if (i0 < 0) return null;
     var pts = followRotaPath(rota, i0);
@@ -1684,11 +1688,15 @@
     var rotaNote = $('rota-note');
     if (rotaNote && bundle.rota && bundle.rota.meta) {
       var rm = bundle.rota.meta;
-      var rotulo = (rm.nivel && rm.nivel.rotulo) ||
-        (rm.nivel_projeto_m != null ? 'cenário de projeto ' + rm.nivel_projeto_m + ' m' : 'cenário de ruas');
-      rotaNote.textContent = 'Grafo de rotas: ' + rotulo + ' · ' +
-        fmtInt((bundle.rota.nos || []).length) + ' nós · ' +
-        fmtInt((bundle.rota.abrigos || []).length) + ' abrigos. Clique no mapa no passo Rotas.';
+      if (rm.use_for_current_route === false || rm.use_for_current_flood === false) {
+        rotaNote.textContent = 'Cenário antigo de rota desativado por incompatibilidade de referência régua–HAND. Abra o Painel de evacuação para a leitura atual por nível e gargalo.';
+      } else {
+        var rotulo = (rm.nivel && rm.nivel.rotulo) ||
+          (rm.nivel_projeto_m != null ? 'cenário de projeto ' + rm.nivel_projeto_m + ' m' : 'cenário de ruas');
+        rotaNote.textContent = 'Grafo de rotas: ' + rotulo + ' · ' +
+          fmtInt((bundle.rota.nos || []).length) + ' nós · ' +
+          fmtInt((bundle.rota.abrigos || []).length) + ' abrigos. Clique no mapa no passo Rotas.';
+      }
     } else if (rotaNote) {
       rotaNote.textContent = bundle.errors && bundle.errors.some(function (e) { return e.indexOf('rota:') === 0; })
         ? 'Grafo de rotas não carregou neste município.'
