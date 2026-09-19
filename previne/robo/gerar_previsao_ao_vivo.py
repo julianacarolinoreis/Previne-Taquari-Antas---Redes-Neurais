@@ -1913,8 +1913,12 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
         "hora_modelo": (t.isoformat() if t else None),
         "hora_alvo": ((t + dt.timedelta(hours=cfg["horizonte_h"])).isoformat() if t else None),
         "consultado_em": consultado_em.isoformat(timespec="seconds"),
-        "telemetria_ultima_em": (raw_st[0].isoformat() if raw_st else None),
-        "telemetria_ultima_nivel_cm": (round(raw_st[1]) if raw_st else None),
+        "telemetria_ultima_em": (raw_st_valido[0].isoformat() if raw_st_valido else None),
+        "telemetria_ultima_nivel_cm": (round(raw_st_valido[1]) if raw_st_valido else None),
+        "telemetria_raw_rejeitada": (
+            {"hora": raw_st[0].isoformat(), "nivel_cm": round(raw_st[1]), "motivo": "fora_faixa_plausivel"}
+            if raw_st and not raw_st_valido else None
+        ),
         "idade_telemetria_min": idade_min,
         "status_dados": status_dados,
         "estacao": "86472600",
@@ -1943,8 +1947,14 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
         "input_grade": cfg.get("input_grade"),
         "bankfull_cm": BANKFULL_CM,
         "nivel_modelo_cm": (round(nivel_atual) if nivel_atual is not None else None),
-        "nivel_rio_agora_cm": (round(raw_st[1]) if raw_st else (round(nivel_atual) if nivel_atual is not None else None)),
-        "nivel_rio_agora_em": (raw_st[0].isoformat() if raw_st else (t.isoformat() if t else None)),
+        "nivel_rio_agora_cm": (
+            round(raw_st_valido[1]) if raw_st_valido
+            else (None if raw_st else (round(nivel_atual) if nivel_atual is not None else None))
+        ),
+        "nivel_rio_agora_em": (
+            raw_st_valido[0].isoformat() if raw_st_valido
+            else (None if raw_st else (t.isoformat() if t else None))
+        ),
         "nivel_atual_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_previsto_cm": (round(nivel_prev) if nivel_prev is not None else None),
         "inputs_total": cfg["inputs_total"],
