@@ -22,9 +22,9 @@
   <h1>Impacto · <span id="cid"></span></h1>
   <div class="sub">Quantas <b>pessoas</b> em cada faixa de margem, conforme a cheia sobe.</div>
   <div class="sub">Nível da cheia: <span class="lv" id="nvtxt"></span></div>
-  <input type="range" id="sld" min="0" max="100" value="0">
+  <input type="range" id="sld" min="0" max="100" value="0">\n  <div class="sub" style="font-size:11px;color:#6b756f">Faixa exploratória do controle: 0–30 m. Ausência de cota calculada permanece UNKNOWN.</div>
   <div class="sub">Velocidade da subida: <span class="lv" id="taxatxt"></span> cm/h <span id="taxacen" style="color:#7a5b00;font-size:11px"></span></div>
-  <input type="range" id="sldTaxa" min="10" max="120" value="40" step="5">
+  <input type="range" id="sldTaxa" min="10" max="200" value="40" step="5">
   <div id="cont" style="margin-top:6px"></div>
   <div class="big" id="resumo"></div>
   <div class="sub" style="font-size:11px;color:#7a5b00;margin-top:4px">Pop.: grade IBGE. Margem = tempo até a água − caminhada (idoso) ao abrigo. Cenário ilustrativo.</div>
@@ -60,8 +60,8 @@ function render(nivel){
   const emrisco=cnt.alagada+cnt.critica+cnt.apertada+cnt.atencao;
   document.getElementById('resumo').innerHTML=`<b>${emrisco.toLocaleString('pt-BR')}</b> pessoas precisam sair · de <b>${D.meta.pop_total.toLocaleString('pt-BR')}</b> no total`;
 }
-const sld=document.getElementById('sld'),sldTaxa=document.getElementById('sldTaxa'),NVMAX=D.meta.nivel_max_m;
-function cen(t){return t<=25?'(cheia lenta)':t>=90?'(ritmo de recorde)':'';}
+const sld=document.getElementById('sld'),sldTaxa=document.getElementById('sldTaxa'),NVMAX=30;
+function cen(t){return t<=25?'(cheia lenta)':t>=150?'(subida muito rápida)':t>=90?'(subida rápida)':'';}
 function redraw(){taxaCmH=+sldTaxa.value;document.getElementById('taxatxt').textContent=taxaCmH;document.getElementById('taxacen').textContent=cen(taxaCmH);render(sld.value/100*NVMAX);}
 sld.oninput=redraw;sldTaxa.oninput=redraw;redraw();
 </script></body></html>
