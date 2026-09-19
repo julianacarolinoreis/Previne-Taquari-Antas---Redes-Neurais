@@ -53,21 +53,23 @@ jobs:
           python - <<'PY'
           import json, re
           from pathlib import Path
-          for p in [
-              Path('pesquisas/mucum-mapa-impacto.html'),
-              Path('pesquisas/santa-tereza-mapa-impacto.html'),
-              Path('pesquisas/mucum-mapa-margem.html'),
-              Path('pesquisas/santa-tereza-mapa-margem.html'),
-              Path('pesquisas/mucum-painel-evacuacao.html'),
-              Path('pesquisas/santa-tereza-painel-evacuacao.html'),
-          ]:
+          expected = {
+              Path('pesquisas/mucum-mapa-impacto.html'): 30.0,
+              Path('pesquisas/santa-tereza-mapa-impacto.html'): 15.0,
+              Path('pesquisas/mucum-mapa-margem.html'): 30.0,
+              Path('pesquisas/santa-tereza-mapa-margem.html'): 15.0,
+              Path('pesquisas/mucum-painel-evacuacao.html'): 30.0,
+              Path('pesquisas/santa-tereza-painel-evacuacao.html'): 15.0,
+          }
+          for p, hand_max in expected.items():
               s=p.read_text(encoding='utf-8')
               m=re.search(r'const D=(\{[\s\S]*?\});\n',s)
               assert m, p
               d=json.loads(m.group(1))
-              assert float(d['meta']['nivel_max_m']) == 30.0, (p,d['meta'])
+              assert float(d['meta']['nivel_max_m']) == hand_max, (p,d['meta'])
+              assert float(d['meta']['cobertura_espacial_m']) == 30.0, (p,d['meta'])
               assert 'max="200"' in s, f'velocidade não chega a 200 em {p}'
-          print('OK: cenários 30 m e velocidade 200 cm/h')
+          print('OK: cobertura técnica 30 m; Santa Tereza visível 15–30 m na régua; velocidade 200 cm/h')
           PY
 
       - name: Publicar resultados
