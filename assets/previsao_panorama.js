@@ -5,7 +5,7 @@
   const state={config:null,history:null,live:null,selectedLive:null,liveStaleHorizons:[],auditCatalog:null,researchRisk:null,researchReview:null,historyError:null,auditCatalogError:null,liveError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null,errorWindowHours:168};
   // Os feeds da pesquisa são deliberadamente tratados como dados com idade.
   // Um valor velho continua auditável, mas não deve parecer uma previsão atual.
-  const FRESHNESS={liveMinutes:30,historyHours:24,researchWeatherHours:18,researchProbabilityHours:36,researchReviewHours:72};
+  const FRESHNESS={liveMinutes:90,historyHours:24,researchWeatherHours:18,researchProbabilityHours:36,researchReviewHours:72};
   // Uma previsão cujo alvo já passou não deve ocupar o papel de horizonte futuro.
   // Ela continua disponível no histórico e na ficha detalhada para auditoria.
   const ACTIVE_FORECAST_GRACE_MINUTES=30;
@@ -115,9 +115,8 @@
   function telemetryLabel(age){
     if(age===null||age===undefined||!Number.isFinite(Number(age))) return 'telemetria sem idade válida';
     const mins=Number(age);
-    if(mins<=30) return 'telemetria recente';
-    if(mins<=60) return 'telemetria com atraso';
-    if(mins<=120) return 'telemetria atrasada';
+    if(mins<=90) return 'telemetria recente';
+    if(mins<=180) return 'telemetria com atraso';
     return 'telemetria muito atrasada';
   }
 
