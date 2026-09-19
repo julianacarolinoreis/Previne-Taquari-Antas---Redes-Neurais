@@ -58,14 +58,17 @@ def load_areas() -> dict[str, float]:
     return areas
 
 
-def fetch_hourly_precip(lat: float, lon: float, hours: int) -> dict[str, Any]:
-    # forecast_days=6 keeps a full +120 h window after the current hour.
+def fetch_hourly_precip(
+    lat: float, lon: float, hours: int, *, start_utc: datetime
+) -> dict[str, Any]:
+    # Seven calendar days are requested because a +120 h window started late
+    # in the current UTC day can cross into the seventh calendar date.
     params = {
         "latitude": f"{lat:.4f}",
         "longitude": f"{lon:.4f}",
         "models": "ecmwf_ifs025",
         "hourly": "precipitation",
-        "forecast_days": 6,
+        "forecast_days": 7,
         "timezone": "UTC",
     }
     url = "https://api.open-meteo.com/v1/forecast?" + urlencode(params)
@@ -91,17 +94,49 @@ def fetch_hourly_precip(lat: float, lon: float, hours: int) -> dict[str, Any]:
     hourly = payload.get("hourly") or {}
     times = list(hourly.get("time") or [])
     precip = list(hourly.get("precipitation") or [])
-    if len(times) < hours or len(precip) < hours:
-        raise RuntimeError(f"IFS hourly incomplete at {lat},{lon}: {len(times)} steps")
+    if len(times) != len(precip):
+        raise RuntimeError(
+            f"IFS hourly time/precip length mismatch at {lat},{lon}: "
+            f"{len(times)} vs {len(precip)}"
+        )
+
+    start_hour = start_utc.astimezone(timezone.utc).replace(
+        minute=0, second=0, microsecond=0
+    )
+
+    def _parse_hour(raw: str) -> datetime:
+        text = str(raw)
+        if text.endswith("Z"):
+            return datetime.fromisoformat(text.replace("Z", "+00:00"))
+        return datetime.fromisoformat(text).replace(tzinfo=timezone.utc)
+
+    first = next(
+        (i for i, raw in enumerate(times) if _parse_hour(raw) >= start_hour),
+        None,
+    )
+    if first is None or len(times) - first < hours:
+        available = 0 if first is None else len(times) - first
+        raise RuntimeError(
+            f"IFS hourly incomplete after current UTC hour at {lat},{lon}: "
+            f"need {hours}, available {available}"
+        )
+
     series = []
-    for t, mm in zip(times[:hours], precip[:hours]):
-        series.append({"time_utc": f"{t}:00Z" if "Z" not in t else t, "precip_mm": float(mm or 0.0)})
-    return {"url": url, "series": series, "model": "ecmwf_ifs025"}
+    for t, mm in zip(times[first:first + hours], precip[first:first + hours]):
+        ts = _parse_hour(t).isoformat().replace("+00:00", "Z")
+        series.append({"time_utc": ts, "precip_mm": float(mm or 0.0)})
+    return {
+        "url": url,
+        "series": series,
+        "model": "ecmwf_ifs025",
+        "start_utc": series[0]["time_utc"] if series else None,
+    }
 
 
 def build_forcing(*, hours: int = HORIZON_HOURS) -> dict[str, Any]:
     points = load_points()
     areas = load_areas()
+    start_utc = utc_now().replace(minute=0, second=0, microsecond=0)
     missing = [sb for sb in SUBBASIN_POINT if sb not in areas]
     if missing:
         raise RuntimeError(f"subbasin areas missing: {missing}")
@@ -116,7 +151,12 @@ def build_forcing(*, hours: int = HORIZON_HOURS) -> dict[str, Any]:
         if not pt or pt.get("latitude") is None or pt.get("longitude") is None:
             raise RuntimeError(f"missing coordinates for station {code} ({sb})")
         if code not in by_station:
-            by_station[code] = fetch_hourly_precip(float(pt["latitude"]), float(pt["longitude"]), hours)
+            by_station[code] = fetch_hourly_precip(
+                float(pt["latitude"]),
+                float(pt["longitude"]),
+                hours,
+                start_utc=start_utc,
+            )
         fetched = by_station[code]
         series = fetched["series"]
         if times is None:
@@ -148,6 +188,13 @@ def build_forcing(*, hours: int = HORIZON_HOURS) -> dict[str, Any]:
         "purpose": "Forçante IFS horária (~5 dias) para o gêmeo HEC STZ–Muçum — pesquisa, não alerta.",
         "horizon_hours": hours,
         "model": "ecmwf_ifs025_open_meteo",
+        "now_utc": times[0] if times else start_utc.isoformat().replace("+00:00", "Z"),
+        "window": {
+            "now_utc": times[0] if times else start_utc.isoformat().replace("+00:00", "Z"),
+            "past_hours": 0,
+            "future_hours": hours,
+            "definition": "current_utc_hour_to_plus_120h",
+        },
         "discipline": {
             "point_proxy_not_areal_mask": True,
             "not_official_alert": True,
