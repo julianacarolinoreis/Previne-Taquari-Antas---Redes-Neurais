@@ -148,7 +148,7 @@
     <div id="sliders" class="hide">
       <div class="sub">Nível na régua: <span class="lv" id="nvtxt"></span></div>
       <input type="range" id="sld" min="5" max="30" value="5" step="0.1" aria-label="Nível da régua de Muçum, de 5 a 30 metros">
-      <div class="sub" style="font-size:11px;color:#7a5b00;margin-top:4px"><b>Muçum usa referência própria:</b> HAND 0 ≈ <b>5,0 m</b> na régua 86510000; a referência de inundação usada no projeto é <b>18,0 m</b>. O painel converte, para triagem, nível na régua → HAND por <b>HAND ≈ régua − 5 m</b>. A camada populacional legada tem cotas até HAND 15 m; ausência de cota continua <b>SEM DADO</b>.</div>
+      <div class="sub" style="font-size:11px;color:#7a5b00;margin-top:4px"><b>Muçum usa referência própria:</b> HAND 0 ≈ <b>5,0 m</b> na régua 86510000; a referência de inundação usada no projeto é <b>18,0 m</b>. O painel converte, para triagem, nível na régua → HAND por <b>HAND ≈ régua − 5 m</b>. O painel lê o <b>contorno HAND publicado</b> para desenhar a mancha; hoje ele chega a HAND 25 m (≈ 30 m na régua pela aproximação adotada). Cotas embutidas acima do máximo publicado são tratadas como <b>SEM DADO</b>, não como terreno seguro.</div>
       <div class="sub">Velocidade: <span class="lv" id="taxatxt"></span> cm/h <span id="taxacen" style="color:#7a5b00;font-size:11px"></span></div>
       <input type="range" id="sldTaxa" min="10" max="200" value="40" step="5">
     </div>
@@ -169,7 +169,31 @@ const CLASSES_SAIDA=new Set(['alagada','rota_comprometida','critica','apertada',
 const ROT={alagada:'atingida no cenário HAND',rota_comprometida:'gargalo da rota já atingido',critica:'margem negativa no modelo',apertada:'apertada (<15 min)',atencao:'atenção (<1 h)',confortavel:'confortável (>1 h)',alto:'ponto alto',sem_dado:'sem dado espacial'};
 const ordem=['alagada','rota_comprometida','critica','apertada','atencao','sem_dado','confortavel'];
 // camadas
+let HAND_PUBLISHED_MAX=25.0,contornosMucum=[],contornosDisplay=[];
 const manchaLayer=L.layerGroup(D.mancha.map(p=>L.polygon(p,{color:'#1e5fbf',weight:.8,fillColor:'#1e5fbf',fillOpacity:.12,interactive:false})));
+function cotaPublicada(v){return v!==null&&v!==undefined&&Number.isFinite(Number(v))&&Number(v)<=HAND_PUBLISHED_MAX+1e-9;}
+function preparaContornosMucum(fc){
+  contornosMucum=((fc&&fc.features)||[]).map(f=>({feature:f,nivel:Number(f.properties&&f.properties.nivel_m),area:Number(f.properties&&f.properties.area_ha)})).filter(x=>Number.isFinite(x.nivel)).sort((a,b)=>a.nivel-b.nivel);
+  if(!contornosMucum.length)return;
+  HAND_PUBLISHED_MAX=contornosMucum[contornosMucum.length-1].nivel;
+  let best=null,bestArea=-Infinity;
+  contornosDisplay=contornosMucum.map(x=>{if(!best||!Number.isFinite(x.area)||x.area>=bestArea){best=x;bestArea=Number.isFinite(x.area)?x.area:bestArea;}return {nivel:x.nivel,feature:(best||x).feature};});
+  if(typeof rotaInfo!=='undefined')rotaInfo=D.nos.map((_,i)=>infoRota(i));
+  atualizaMancha(nivelAtual());redraw();
+}
+function featureCenarioMucum(nivelRegua){
+  if(!contornosDisplay.length)return null;
+  const hand=Math.max(0,Math.min(HAND_PUBLISHED_MAX,nivelRegua-BANKFULL_M));
+  let best=contornosDisplay[0],bd=Infinity;
+  contornosDisplay.forEach(x=>{const d=Math.abs(x.nivel-hand);if(d<bd){bd=d;best=x;}});
+  return best&&best.feature;
+}
+function atualizaMancha(nivelRegua){
+  if(!contornosDisplay.length)return;
+  const f=featureCenarioMucum(nivelRegua);if(!f)return;
+  manchaLayer.clearLayers();
+  L.geoJSON(f,{interactive:false,style:{color:'#1e5fbf',weight:.8,fillColor:'#1e5fbf',fillOpacity:.14}}).eachLayer(l=>manchaLayer.addLayer(l));
+}
 const b=L.latLngBounds();
 const ruas=D.edges.map(([a,c,ag])=>{const A=D.nos[a],C=D.nos[c];b.extend(A);b.extend(C);
   return {pl:L.polyline([A,C],{weight:1.0,opacity:.60,interactive:false}),a,c,ag};});
@@ -177,7 +201,7 @@ const ruasLayer=L.layerGroup(ruas.map(r=>r.pl));
 function centro(poly){const pts=poly.length>1&&poly[0][0]===poly[poly.length-1][0]&&poly[0][1]===poly[poly.length-1][1]?poly.slice(0,-1):poly;return [pts.reduce((a,p)=>a+p[0],0)/pts.length,pts.reduce((a,p)=>a+p[1],0)/pts.length];}
 const cellCenters=D.cells.map(c=>centro(c.poly));
 const cellsPl=D.cells.map((c,idx)=>L.polygon(c.poly,{weight:.75,color:'#26332e',opacity:.78,fillColor:CORES.sem_dado,fillOpacity:.72})
-  .bindPopup(()=>{const ri=rotaInfo[cellNode[idx]]||{},nivel=nivelAtual(),k=classe(c.cota,ri.cota,c.dist_m,nivel),saida=CLASSES_SAIDA.has(k),local=c.cota==null?'sem dado':(BANKFULL_M+c.cota).toFixed(1)+' m na régua',garg=ri.cota==null?'sem cota suficiente':(BANKFULL_M+ri.cota).toFixed(1)+' m na régua';return `<b>${c.pop} pessoas na célula da Grade IBGE</b><br><b>${saida?'Até '+c.pop+' pessoas a priorizar para saída neste cenário':'0 pessoas em prioridade de saída nesta classe'}</b><br><small>A cor ocupa a célula inteira apenas como visualização de triagem da Grade IBGE; não significa que toda a superfície esteja fisicamente inundada.</small><br>classe: <b>${ROT[k]||k}</b><br>limiar local aproximado: <b>${local}</b><br>primeiro gargalo da rota: <b>${garg}</b><br>a pé ao abrigo: ${(c.dist_m/1000).toFixed(2)} km`; }));
+  .bindPopup(()=>{const ri=rotaInfo[cellNode[idx]]||{},nivel=nivelAtual(),k=classe(c.cota,ri.cota,c.dist_m,nivel),saida=CLASSES_SAIDA.has(k),local=!cotaPublicada(c.cota)?'fora da faixa HAND publicada':(BANKFULL_M+c.cota).toFixed(1)+' m na régua',garg=!cotaPublicada(ri.cota)?'sem cota publicada suficiente':(BANKFULL_M+ri.cota).toFixed(1)+' m na régua';return `<b>${c.pop} pessoas na célula da Grade IBGE</b><br><b>${saida?'Até '+c.pop+' pessoas a priorizar para saída neste cenário':'0 pessoas em prioridade de saída nesta classe'}</b><br><small>A cor ocupa a célula inteira apenas como visualização de triagem da Grade IBGE; não significa que toda a superfície esteja fisicamente inundada.</small><br>classe: <b>${ROT[k]||k}</b><br>limiar local aproximado: <b>${local}</b><br>primeiro gargalo da rota: <b>${garg}</b><br>a pé ao abrigo: ${(c.dist_m/1000).toFixed(2)} km`; }));
 const cellLabels=D.cells.map((c,idx)=>L.marker(cellCenters[idx],{interactive:false,keyboard:false,icon:L.divIcon({className:'',iconSize:[38,22],iconAnchor:[19,11],html:`<div id="muc-poplbl-${idx}" style="min-width:24px;color:#fff;text-align:center;font:900 12px/1.1 Arial,sans-serif;text-shadow:0 1px 3px #000,0 0 2px #000">?</div>`})}));
 const cellsLayer=L.layerGroup([...cellsPl,...cellLabels]);
 const abrigos=L.layerGroup(D.abrigos.map(a=>L.marker([a.lat,a.lon]).bindPopup('<b>'+a.nome+'</b><br>abrigo / ponto de encontro')));
@@ -319,8 +343,8 @@ function loadPlan(){
 const bc=L.latLngBounds();D.cells.forEach(c=>c.poly.forEach(p=>bc.extend(p)));const BBcells=bc.pad(0.03);
 function aj(){map.invalidateSize();map.fitBounds(modo==='impacto'?BBcells:BB);}
 function noMaisProximo(lat,lon){let best=0,bd=Infinity,clat=Math.cos(lat*Math.PI/180);for(let i=0;i<D.nos.length;i++){const dy=lat-D.nos[i][0],dx=(lon-D.nos[i][1])*clat,d=dy*dy+dx*dx;if(d<bd){bd=d;best=i;}}return best;}
-function infoRota(i){let cur=i,min=null,unknown=0,steps=0;const seen=new Set();while(cur>=0&&cur<D.nos.length&&!seen.has(cur)&&steps++<6000){seen.add(cur);const c=D.cota_no[cur];if(c===null||c===undefined)unknown++;else min=min===null?c:Math.min(min,c);const nx=D.prox[cur];if(nx===cur||nx===null||nx===undefined||nx<0)break;cur=nx;}return {cota:min,unknown,steps};}
-const rotaInfo=D.nos.map((_,i)=>infoRota(i));
+function infoRota(i){let cur=i,min=null,unknown=0,steps=0;const seen=new Set();while(cur>=0&&cur<D.nos.length&&!seen.has(cur)&&steps++<6000){seen.add(cur);const c=D.cota_no[cur];if(!cotaPublicada(c))unknown++;else min=min===null?c:Math.min(min,c);const nx=D.prox[cur];if(nx===cur||nx===null||nx===undefined||nx<0)break;cur=nx;}return {cota:min,unknown,steps};}
+let rotaInfo=D.nos.map((_,i)=>infoRota(i));
 const cellNode=cellCenters.map(c=>noMaisProximo(c[0],c[1]));
  function ajPlan(){
    fitPlanMap();
@@ -341,10 +365,10 @@ function renderPlanSelection(){
   else box.innerHTML=`<div class="plan-selection"><small>PONTE A CONFIRMAR</small><strong>${escPlan(p.nome)}</strong><span>${escPlan(p.rodovia)}</span><br><small>engenharia: ${escPlan(p.status_engenharia)} · operação: ${escPlan(p.status_operacional)}</small></div>`;
 }
 function classe(cotaLocal,cotaRota,dist,nivelRegua){
-  const nivelHand=Math.max(0,nivelRegua-BANKFULL_M);
-  if(cotaLocal!==null&&cotaLocal!==undefined&&cotaLocal<=nivelHand)return 'alagada';
-  if(cotaRota!==null&&cotaRota!==undefined&&cotaRota<=nivelHand)return 'rota_comprometida';
-  const vals=[cotaLocal,cotaRota].filter(v=>v!==null&&v!==undefined);
+  const nivelHand=Math.max(0,nivelRegua-BANKFULL_M),localOk=cotaPublicada(cotaLocal),rotaOk=cotaPublicada(cotaRota);
+  if(localOk&&cotaLocal<=nivelHand)return 'alagada';
+  if(rotaOk&&cotaRota<=nivelHand)return 'rota_comprometida';
+  const vals=[localOk?cotaLocal:null,rotaOk?cotaRota:null].filter(v=>v!==null);
   if(!vals.length)return 'sem_dado';
   const limiar=Math.min(...vals),m=(limiar-nivelHand)/(taxaCmH/100/60)-dist/vel/60;
   return m<0?'critica':m<15?'apertada':m<60?'atencao':'confortavel';
@@ -354,7 +378,7 @@ function pior(x,y){return ordem.indexOf(x)<ordem.indexOf(y)?x:y;}
 let modo='rotas';
 function nivelAtual(){return Math.max(BANKFULL_M,Math.min(NVMAX,Number(sld.value)||BANKFULL_M));}
 function renderRotas(){const nivel=nivelAtual(),h=Math.max(0,nivel-BANKFULL_M);
-  ruas.forEach(r=>{const a=D.cota_no[r.a],c=D.cota_no[r.c],wet=(a!=null&&a<=h)||(c!=null&&c<=h);r.pl.setStyle({color:wet?'#1e5fbf':'#8fa7b8',weight:wet?1.45:.9,opacity:wet?.78:.38});});
+  ruas.forEach(r=>{const a=D.cota_no[r.a],c=D.cota_no[r.c],wet=(cotaPublicada(a)&&a<=h)||(cotaPublicada(c)&&c<=h);r.pl.setStyle({color:wet?'#1e5fbf':'#8fa7b8',weight:wet?1.45:.9,opacity:wet?.78:.38});});
   document.getElementById('nvtxt').textContent=nivel.toFixed(1)+' m';
   document.getElementById('painel').innerHTML='<div class="sub"><b>Clique em qualquer ponto do mapa.</b> Linhas finas não bloqueiam o clique. O cenário usa, para triagem, HAND ≈ nível da régua − 5 m.</div><div class="rota" id="rota">Clique no mapa para calcular.</div>';
 }
@@ -370,12 +394,12 @@ function renderImpacto(){const nivel=nivelAtual(),cnt={alagada:0,rota_comprometi
   const risco=cnt.alagada+cnt.rota_comprometida+cnt.critica+cnt.apertada+cnt.atencao;
   document.getElementById('painel').innerHTML='<div class="sub"><b>Quadradinhos coloridos = células da Grade IBGE.</b> Todo o quadradinho recebe a cor da classe e o número mostra quantas pessoas entram na prioridade de saída; 0 = sem prioridade e ? = sem dado. A célula colorida é uma visualização de triagem, não a área física inundada.</div>'+ordem.map(k=>`<div class="row"><span><i style="background:${CORES[k]}"></i>${ROT[k]}</span><b>${cnt[k].toLocaleString('pt-BR')}</b></div>`).join('')+`<div class="big"><b>${risco.toLocaleString('pt-BR')}</b> pessoas a priorizar para saída neste cenário · de <b>${D.meta.pop_total.toLocaleString('pt-BR')}</b> no total.</div>`;
 }
-function redraw(){taxaCmH=+sldTaxa.value;document.getElementById('taxatxt').textContent=taxaCmH;document.getElementById('taxacen').textContent=taxaCmH<=25?'(lenta)':taxaCmH>100?'(subida rápida · cenário)':'';if(modo==='margem')renderMargem();else if(modo==='impacto')renderImpacto();else if(modo==='rotas')renderRotas();}
+function redraw(){taxaCmH=+sldTaxa.value;document.getElementById('taxatxt').textContent=taxaCmH;document.getElementById('taxacen').textContent=taxaCmH<=25?'(lenta)':taxaCmH>100?'(subida rápida · cenário)':'';atualizaMancha(nivelAtual());if(modo==='margem')renderMargem();else if(modo==='impacto')renderImpacto();else if(modo==='rotas')renderRotas();}
 // interacao rotas
 let cam=null,orig=null,safeMark=null,snapLine=null;
 function rotaIndices(inicio){const out=[],seen=new Set();let cur=inicio,g=0;while(cur>=0&&cur<D.nos.length&&!seen.has(cur)&&g++<6000){out.push(cur);seen.add(cur);const nx=D.prox[cur];if(nx===cur||nx===null||nx===undefined||nx<0)break;cur=nx;}return out;}
 function distTrecho(indices,ate){const a=Number(D.dist_m[indices[0]]),b=Number(D.dist_m[indices[ate]]);if(Number.isFinite(a)&&Number.isFinite(b)&&a>=b)return Math.max(0,a-b);let total=0;for(let j=1;j<=ate;j++){const p=D.nos[indices[j-1]],q=D.nos[indices[j]],lat=((p[0]+q[0])/2)*Math.PI/180,dy=(q[0]-p[0])*111320,dx=(q[1]-p[1])*111320*Math.cos(lat);total+=Math.hypot(dx,dy);}return total;}
-function saidaDaMancha(inicio,nivelRegua){const h=Math.max(0,nivelRegua-BANKFULL_M),inds=rotaIndices(inicio);let ultimo=-1;inds.forEach((idx,j)=>{const c=D.cota_no[idx];if(c!==null&&c!==undefined&&c<=h)ultimo=j;});if(ultimo<0)return {dist_m:0,node:inicio,status:'rota_seca'};if(ultimo>=inds.length-1)return {dist_m:null,node:null,status:'sem_saida_seca'};const pos=ultimo+1;return {dist_m:distTrecho(inds,pos),node:inds[pos],status:'trecho_seco_continuo'};}
+function saidaDaMancha(inicio,nivelRegua){const h=Math.max(0,nivelRegua-BANKFULL_M),inds=rotaIndices(inicio);let ultimo=-1;inds.forEach((idx,j)=>{const c=D.cota_no[idx];if(cotaPublicada(c)&&c<=h)ultimo=j;});if(ultimo<0)return {dist_m:0,node:inicio,status:'rota_seca'};if(ultimo>=inds.length-1)return {dist_m:null,node:null,status:'sem_saida_seca'};const pos=ultimo+1;return {dist_m:distTrecho(inds,pos),node:inds[pos],status:'trecho_seco_continuo'};}
 function fmtDist(m){if(m===null||m===undefined||!Number.isFinite(Number(m)))return 'não identificado';m=Math.max(0,Number(m));return m<1000?Math.round(m)+' m':(m/1000).toFixed(2)+' km';}
 map.on('click',e=>{if(modo!=='rotas')return;let best=-1,bd=1e18;for(let i=0;i<D.nos.length;i++){const dy=e.latlng.lat-D.nos[i][0],dx=(e.latlng.lng-D.nos[i][1])*Math.cos(e.latlng.lat*Math.PI/180),dd=dy*dy+dx*dx;if(dd<bd){bd=dd;best=i;}}
   const inds=rotaIndices(best),pts=inds.map(idx=>D.nos[idx]);if(cam)map.removeLayer(cam);if(orig)map.removeLayer(orig);if(safeMark)map.removeLayer(safeMark);if(snapLine)map.removeLayer(snapLine);
@@ -411,4 +435,5 @@ const sld=document.getElementById('sld'),sldTaxa=document.getElementById('sldTax
 sld.oninput=redraw;sld.onchange=redraw;sldTaxa.oninput=redraw;sldTaxa.onchange=redraw;
 document.getElementById('taxatxt').textContent=taxaCmH;
  setModo('plano'); loadPlan(); aj(); setTimeout(aj,300); window.addEventListener('resize',aj);
+fetch('../assets/data/mucum_inundacao/contornos_mancha.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('contornos '+r.status);return r.json();}).then(preparaContornosMucum).catch(()=>{});
 </script></body></html>
