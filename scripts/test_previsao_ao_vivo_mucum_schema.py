@@ -98,6 +98,19 @@ class MucumFeedContractTests(unittest.TestCase):
             dt.datetime(2026, 8, 28, 18, 0),
         )
 
+    def test_implausible_observed_level_is_rejected(self) -> None:
+        data = copy.deepcopy(self.data)
+        data["serie_observada_ana"][-1]["nivel_cm"] = 99999
+        data["telemetria_ultima_nivel_cm"] = 99999
+        with self.assertRaises(SystemExit):
+            validate_data(data)
+
+    def test_implausible_prediction_is_rejected(self) -> None:
+        data = copy.deepcopy(self.data)
+        data["horizontes"]["2h"]["nivel_previsto_cm"] = 99999
+        with self.assertRaises(SystemExit):
+            validate_data(data)
+
 
 if __name__ == "__main__":
     unittest.main()
