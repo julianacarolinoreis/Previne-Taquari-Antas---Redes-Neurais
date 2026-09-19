@@ -36,7 +36,7 @@
       <div class="sub">Nível da cheia: <span class="lv" id="nvtxt"></span></div>
       <input type="range" id="sld" min="0" max="100" value="0">
       <div class="sub">Velocidade: <span class="lv" id="taxatxt"></span> cm/h <span id="taxacen" style="color:#7a5b00;font-size:11px"></span></div>
-      <input type="range" id="sldTaxa" min="10" max="120" value="40" step="5">
+      <input type="range" id="sldTaxa" min="10" max="200" value="40" step="5">
     </div>
     <div id="painel"></div>
   </div>
@@ -49,9 +49,9 @@ let taxaCmH=D.meta.taxa_cm_h; const vel=D.meta.vel_idoso_ms, NVMAX=D.meta.nivel_
 const map=L.map('map');
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}).addTo(map);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.9}).addTo(map);
-const CORES={alagada:'#1e5fbf',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84'};
-const ROT={alagada:'já na água',critica:'crítica — resgate',apertada:'apertada (<15 min)',atencao:'atenção (<1 h)',confortavel:'confortável (>1 h)',alto:'ponto alto'};
-const ordem=['alagada','critica','apertada','atencao','confortavel','alto'];
+const CORES={alagada:'#1e5fbf',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84',sem_dado:'#9aa3a0'};
+const ROT={alagada:'já na água',critica:'crítica — resgate',apertada:'apertada (<15 min)',atencao:'atenção (<1 h)',confortavel:'confortável (>1 h)',alto:'ponto alto',sem_dado:'sem dado espacial'};
+const ordem=['alagada','critica','apertada','atencao','sem_dado','confortavel'];
 // camadas
 const manchaLayer=L.layerGroup(D.mancha.map(p=>L.polygon(p,{color:'#1e5fbf',weight:1,fillColor:'#1e5fbf',fillOpacity:.16})));
 const b=L.latLngBounds();
@@ -59,11 +59,11 @@ const ruas=D.edges.map(([a,c,ag])=>{const A=D.nos[a],C=D.nos[c];b.extend(A);b.ex
   return {pl:L.polyline([A,C],{weight:2,opacity:.8}),a,c,ag};});
 const ruasLayer=L.layerGroup(ruas.map(r=>r.pl));
 const cellsPl=D.cells.map(c=>L.polygon(c.poly,{weight:.6,color:'#2b3a34',fillOpacity:.7})
-  .bindPopup(()=>`<b>${c.pop} pessoas</b><br>alaga na cota ${c.cota==null?'—(alto)':c.cota+' m'}<br>a pé: ${(c.dist_m/1000).toFixed(2)} km`));
+  .bindPopup(()=>`<b>${c.pop} pessoas</b><br>alaga na cota ${c.cota==null?'— (sem dado espacial)':c.cota+' m'}<br>a pé: ${(c.dist_m/1000).toFixed(2)} km`));
 const cellsLayer=L.layerGroup(cellsPl);
 const abrigos=L.layerGroup(D.abrigos.map(a=>L.marker([a.lat,a.lon]).bindPopup('<b>'+a.nome+'</b><br>abrigo / ponto de encontro')));
 const BB=b.pad(0.06);function aj(){map.invalidateSize();map.fitBounds(BB);}
-function classe(cota,dist,nivel){ if(cota===null||cota===undefined)return 'alto'; if(cota<=nivel)return 'alagada';
+function classe(cota,dist,nivel){ if(cota===null||cota===undefined)return 'sem_dado'; if(cota<=nivel)return 'alagada';
   const m=(cota-nivel)/(taxaCmH/100/60)-dist/vel/60; return m<0?'critica':m<15?'apertada':m<60?'atencao':'confortavel';}
 function pior(x,y){return ordem.indexOf(x)<ordem.indexOf(y)?x:y;}
 // ---- render por modo ----
@@ -73,14 +73,14 @@ function renderRotas(){
   ruas.forEach(r=>r.pl.setStyle({color:r.ag?'#b3382c':'#8fa7b8',weight:r.ag?2.5:1.5,opacity:r.ag?.7:.5}));
   document.getElementById('painel').innerHTML='<div class="sub">Clique em qualquer ponto do mapa para ver a rota a pé até o abrigo mais próximo, evitando a mancha.</div><div class="rota" id="rota">—</div>';
 }
-function renderMargem(){const nivel=nivelAtual();const cnt={alagada:0,critica:0,apertada:0,atencao:0,confortavel:0,alto:0};
+function renderMargem(){const nivel=nivelAtual();const cnt={alagada:0,critica:0,apertada:0,atencao:0,confortavel:0,alto:0,sem_dado:0};
   const cl=D.nos.map((_,i)=>classe(D.cota_no[i],D.dist_m[i],nivel));cl.forEach(k=>cnt[k]++);
   ruas.forEach(r=>r.pl.setStyle({color:CORES[pior(cl[r.a],cl[r.c])],weight:2.5,opacity:.85}));
   document.getElementById('nvtxt').textContent=nivel.toFixed(1)+' m';
   document.getElementById('painel').innerHTML='<div class="sub">Ruas coloridas pela margem de fuga (quadras).</div>'+
     ordem.map(k=>`<div class="row"><span><i style="background:${CORES[k]}"></i>${ROT[k]}</span><b>${cnt[k]}</b></div>`).join('');
 }
-function renderImpacto(){const nivel=nivelAtual();const cnt={alagada:0,critica:0,apertada:0,atencao:0,confortavel:0,alto:0};
+function renderImpacto(){const nivel=nivelAtual();const cnt={alagada:0,critica:0,apertada:0,atencao:0,confortavel:0,alto:0,sem_dado:0};
   D.cells.forEach((c,i)=>{const k=classe(c.cota,c.dist_m,nivel);cnt[k]+=c.pop;cellsPl[i].setStyle({fillColor:CORES[k]});});
   document.getElementById('nvtxt').textContent=nivel.toFixed(1)+' m';
   const risco=cnt.alagada+cnt.critica+cnt.apertada+cnt.atencao;
@@ -88,7 +88,7 @@ function renderImpacto(){const nivel=nivelAtual();const cnt={alagada:0,critica:0
     `<div class="big"><b>${risco.toLocaleString('pt-BR')}</b> pessoas precisam sair · de <b>${D.meta.pop_total.toLocaleString('pt-BR')}</b></div>`;
 }
 function redraw(){taxaCmH=+sldTaxa.value;document.getElementById('taxatxt').textContent=taxaCmH;
-  document.getElementById('taxacen').textContent=taxaCmH<=25?'(lenta)':taxaCmH>=90?'(recorde)':'';
+  document.getElementById('taxacen').textContent=taxaCmH<=25?'(lenta)':taxaCmH>100?'(subida rápida · cenário)':'';
   if(modo==='margem')renderMargem(); else if(modo==='impacto')renderImpacto();}
 // interacao rotas
 let cam=null,orig=null;
