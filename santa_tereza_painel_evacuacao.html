@@ -1,4 +1,4 @@
-<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
+<!doctype html><html lang="pt-br"><head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Painel de evacuação</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -34,7 +34,7 @@
   <div class="bd">
     <div id="sliders" class="hide">
       <div class="sub">Nível na régua: <span class="lv" id="nvtxt"></span></div>
-      <input type="range" id="sld" min="0" max="100" value="0" aria-label="Nível da régua de 15 a 30 metros">
+      <input type="range" id="sld" min="15" max="30" value="15" step="0.1" aria-label="Nível da régua de 15 a 30 metros">
       <div class="sub" style="font-size:11px;color:#7a5b00;margin-top:4px"><b>15,0 m = início do extravasamento adotado.</b> A relação régua↔HAND abaixo é uma aproximação de triagem, não uma superfície d’água uniforme. Em tributários e setores locais (ex.: Marrecão), a mancha preliminar é usada como cheque de consistência e impede que uma área conhecida pela camada preliminar seja chamada de “confortável” sem reconciliação.</div>
       <div class="sub">Velocidade: <span class="lv" id="taxatxt"></span> cm/h <span id="taxacen" style="color:#7a5b00;font-size:11px"></span></div>
       <input type="range" id="sldTaxa" min="10" max="200" value="40" step="5">
@@ -63,7 +63,8 @@ function itemContem(item,lat,lon){if(!item)return false;const b=item.bbox;if(lon
 function cotaNoPonto(lat,lon){if(!contornosOrdenados.length)return null;let lo=0,hi=contornosOrdenados.length-1,ans=null;while(lo<=hi){const mid=(lo+hi)>>1,item=contornosOrdenados[mid];if(itemContem(item,lat,lon)){ans=item.nivel;hi=mid-1;}else lo=mid+1;}return ans;}
 function centro(poly){const pts=poly.length>1&&poly[0][0]===poly[poly.length-1][0]&&poly[0][1]===poly[poly.length-1][1]?poly.slice(0,-1):poly;return [pts.reduce((a,p)=>a+p[0],0)/pts.length,pts.reduce((a,p)=>a+p[1],0)/pts.length];}
 const cellCenters=D.cells.map(c=>centro(c.poly));
-let cotaNosAtuais=(D.cota_no||[]).slice(), cotaCellsAtuais=D.cells.map(c=>c.cota), rotaInfo=[];
+const cotaNosBase=(D.cota_no||[]).slice(), cotaCellsBase=D.cells.map(c=>c.cota);
+let cotaNosAtuais=cotaNosBase.slice(), cotaCellsAtuais=cotaCellsBase.slice(), rotaInfo=[];
 
 function infoRota(i){
   let cur=i,min=null,unknown=0,steps=0;const seen=new Set();
@@ -76,20 +77,11 @@ function infoRota(i){
   return {cota:min,unknown,steps};
 }
 function recalculaTerrenoAtual(){
-  if(!contornosOrdenados.length)return;
-  const novasNos=D.nos.map(p=>cotaNoPonto(p[0],p[1]));
-  const novasCells=cellCenters.map(p=>cotaNoPonto(p[0],p[1]));
-  const validCells=novasCells.filter(v=>v!==null&&v!==undefined).length;
-  const distinct=new Set(novasCells.filter(v=>v!==null&&v!==undefined).map(v=>Number(v).toFixed(1))).size;
-  // Proteção: se a leitura dinâmica dos contornos falhar ou colapsar, mantém
-  // as cotas pré-calculadas do próprio painel em vez de deixar tudo cinza/igual.
-  if(validCells>=Math.max(8,Math.floor(D.cells.length*.10))&&distinct>=2){
-    cotaNosAtuais=novasNos;
-    cotaCellsAtuais=novasCells;
-  } else {
-    cotaNosAtuais=(D.cota_no||[]).slice();
-    cotaCellsAtuais=D.cells.map(c=>c.cota);
-  }
+  // A grade colorida usa as cotas embutidas no painel. Elas são estáveis e
+  // variam com o nível da régua; o contorno carregado por fetch serve somente
+  // para desenhar a mancha azul do cenário.
+  cotaNosAtuais=cotaNosBase.slice();
+  cotaCellsAtuais=cotaCellsBase.slice();
   rotaInfo=D.nos.map((_,i)=>infoRota(i));
 }
 rotaInfo=D.nos.map((_,i)=>infoRota(i));
@@ -137,7 +129,7 @@ function pior(x,y){return ordem.indexOf(x)<ordem.indexOf(y)?x:y;}
 
 // ---- render por modo ----
 let modo='rotas';
-function nivelAtual(){return BANKFULL_M+(sld.value/100)*CAMADA_MAX;}
+function nivelAtual(){return Math.max(BANKFULL_M,Math.min(NVMAX,Number(sld.value)||BANKFULL_M));}
 function renderRotas(){const nivel=nivelAtual(),h=Math.max(0,nivel-BANKFULL_M);
   ruas.forEach(r=>{const a=cotaNosAtuais[r.a],c=cotaNosAtuais[r.c],wet=(a!=null&&a<=h)||(c!=null&&c<=h);r.pl.setStyle({color:wet?'#1e5fbf':'#8fa7b8',weight:wet?2.8:1.5,opacity:wet?.9:.5});});
   document.getElementById('nvtxt').textContent=nivel.toFixed(1)+' m';
@@ -155,7 +147,9 @@ function renderImpacto(){const nivel=nivelAtual(),h=Math.max(0,nivel-BANKFULL_M)
     const ri=rotaInfo[cellNode[i]]||{}, local=classeLocal(cotaCellsAtuais[i],c.dist_m,nivel), geral=classe(cotaCellsAtuais[i],ri.cota,c.dist_m,nivel);cnt[geral]+=c.pop;
     const rotaAtingida=ri.cota!=null&&ri.cota<=h;
     const borda=rotaAtingida?CORES.rota_comprometida:(geral==='critica'?CORES.critica:geral==='apertada'?CORES.apertada:'#ffffff');
-    cellBoxes[i].setStyle({fillColor:CORES[geral]||CORES.sem_dado,fillOpacity:geral==='sem_dado'?.40:.76,color:'#26332e',opacity:.78,weight:.75});
+    const cor=CORES[geral]||CORES.sem_dado,op=geral==='sem_dado'?.40:.76;
+    cellBoxes[i].setStyle({fillColor:cor,fillOpacity:op,color:'#26332e',opacity:.78,weight:.75});
+    const svg=cellBoxes[i].getElement(); if(svg){svg.setAttribute('fill',cor);svg.style.fill=cor;svg.style.fillOpacity=String(op);}
     const lbl=document.getElementById('poplbl-'+i); if(lbl) lbl.textContent=geral==='sem_dado'?'?':(CLASSES_SAIDA.has(geral)?c.pop:'0');
   });
   document.getElementById('nvtxt').textContent=nivel.toFixed(1)+' m';
