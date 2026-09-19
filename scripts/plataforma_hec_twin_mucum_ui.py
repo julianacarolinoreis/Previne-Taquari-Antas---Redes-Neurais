@@ -338,7 +338,7 @@ svg.mini-chart { width:100%; height:168px; display:block; }
 
   <section class="grid metrics" style="margin-bottom:.9rem" id="productMetrics">
     <article class="card metric">
-      <div class="label">ΔN pico (live)</div>
+      <div class="label">ΔN pico previsto</div>
       <div class="value">{{PEAK_DN}}</div>
       <div class="hint">acima da âncora {{N_ANCHOR}}</div>
     </article>
@@ -348,9 +348,9 @@ svg.mini-chart { width:100%; height:168px; display:block; }
       <div class="hint">em {{PEAK_WHEN}}</div>
     </article>
     <article class="card metric">
-      <div class="label">Timing vs obs</div>
-      <div class="value">{{TIMING}}</div>
-      <div class="hint">erro de tempo do pico</div>
+      <div class="label">Fonte do produto</div>
+      <div class="value" style="font-size:1.02rem">{{PREFERRED}}</div>
+      <div class="hint">replay histórico separado</div>
     </article>
     <article class="card metric">
       <div class="label">Robô HEC</div>
@@ -360,8 +360,8 @@ svg.mini-chart { width:100%; height:168px; display:block; }
   </section>
 
   <section class="grid products" style="margin-bottom:.9rem">
-    <article class="card product-live"><h3>Live eval (evento)</h3><p class="muted" id="liveSummary">Carregando…</p></article>
-    <article class="card product-fwd"><h3>Forward ~5d (operacional)</h3><p class="muted" id="fwdSummary">Carregando…</p></article>
+    <article class="card product-fwd"><h3>Previsão atual · HEC/REC ~5d</h3><p class="muted" id="fwdSummary">Carregando…</p></article>
+    <article class="card product-live"><h3>Validação histórica · replay</h3><p class="muted" id="liveSummary">Carregando…</p></article>
   </section>
 
   <section class="card" style="margin-bottom:.9rem" id="skillCard">
@@ -382,8 +382,8 @@ svg.mini-chart { width:100%; height:168px; display:block; }
   </section>
 
   <section class="card" style="margin-bottom:.9rem">
-    <h2>Traço do evento · hidrograma + chuva</h2>
-    <p class="muted" id="chartCaption">Série do live eval (quando disponível) ou amostra do forward.</p>
+    <h2>Previsão atual · hidrograma + chuva</h2>
+    <p class="muted" id="chartCaption">Somente o forward HEC/REC atual é mostrado aqui; replay fica na validação.</p>
     <div class="chart-wrap">
       <svg class="chart" id="eventChart" viewBox="0 0 960 280" role="img" aria-label="Hidrograma do evento"></svg>
     </div>
@@ -510,6 +510,7 @@ const fwdEl = document.getElementById("fwdSummary");
 if (live.available !== false && (liveP.rise_cm != null || live.plain_pt)) {
   liveEl.innerHTML =
     "<span class=\"mono\">" + (live.artifact || "live_eval") + "</span><br/>" +
+    "<strong>REPLAY / VALIDAÇÃO — não é previsão atual.</strong><br/>" +
     "ΔN " + fmt(liveP.rise_cm, 0) + " cm · N pico " + fmt(liveP.peak_anchored_cm, 0) + " cm<br/>" +
     "quando " + (liveP.peak_time_utc || "—") +
     (live.timing_error_h != null ? " · timing " + fmt(live.timing_error_h, 1) + " h" : "") + "<br/>" +
@@ -524,7 +525,7 @@ if (fwd.available !== false) {
     "ΔN " + fmt(fwdP.rise_cm, 0) + " cm · N pico " + fmt(fwdP.peak_anchored_cm, 0) + " cm<br/>" +
     "quando " + (fwdP.peak_time_utc || "—") + "<br/>" +
     "<span class=\"muted\">idade " + ageLabel(fwd.age_hours) +
-    (fwd.stale ? " · forward seco/stale — preferir live para o evento" : "") + "</span>";
+    (fwd.stale ? " · previsão vencida/sem âncora recente — não usar como atual" : " · previsão corrente") + "</span>";
 } else {
   fwdEl.textContent = "Forward ainda não gerado.";
 }
@@ -614,7 +615,9 @@ function drawChart() {
   drawSeriesSvg(svg, series, rain, {W:960, H:280, mode:"level"});
   document.getElementById("chartCaption").textContent =
     "Fonte do traço: " + (trace.source || "—") + (trace.note ? " · " + trace.note : "");
-  note.textContent = "Linha = nível estimado em Muçum (cm). Barras = chuva proxy areal ponderada (mm).";
+  note.textContent = trace.source === "current_forecast_unavailable"
+    ? "Sem previsão HEC/REC atual para desenhar. O replay histórico não é usado aqui."
+    : "Linha = nível previsto em Muçum (cm). Barras = chuva da forçante IFS do forward atual (mm).";
 }
 
 function showInspector(anchor, kind) {
@@ -646,7 +649,9 @@ function showInspector(anchor, kind) {
     (rainWin != null ? " · chuva UG " + Number(rainWin).toFixed(1) + " mm" : "");
   if (role === "target") {
     drawSeriesSvg(svg, series, rain, {W:520, H:168, pad:{l:40,r:12,t:12,b:28}, mode:"level", stroke:"#0f5c45"});
-    note.textContent = "Curva do produto: N estimado em Muçum + chuva proxy da janela.";
+    note.textContent = trace.source === "current_forecast_unavailable"
+      ? "Previsão atual indisponível; não exibimos a curva antiga como se fosse futura."
+      : "Curva da previsão HEC/REC atual: N estimado em Muçum + chuva da forçante da rodada.";
   } else if (role === "level_control") {
     drawSeriesSvg(svg, series, rain, {W:520, H:168, pad:{l:40,r:12,t:12,b:28}, mode:"level", stroke:"#1d4f91"});
     note.textContent = "STZ = controle de nível (sem curva N↔Q inventada). Traço exibido = produto Muçum da mesma janela, só para contexto temporal.";
