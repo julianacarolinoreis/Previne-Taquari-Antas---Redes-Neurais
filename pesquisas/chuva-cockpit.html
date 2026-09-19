@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="PREVINE · leitura de chuva prevista para Santa Tereza e Muçum. Pesquisa; não é alerta oficial.">
+  <title>PREVINE · Chuva</title>
+  <style>
+    :root{--ink:#112f35;--muted:#607a7e;--line:#d7e5e5;--surface:#fff;--soft:#f4f9f8;--teal:#087c6d;--blue:#146db2;--orange:#db752e;--gold:#a46b10;--gate:#7a2f28}
+    *{box-sizing:border-box} body{margin:0;background:#f6faf9;color:var(--ink);font:15px/1.5 "Segoe UI",Tahoma,Arial,sans-serif}
+    .wrap{max-width:1180px;margin:auto;padding:24px 22px 42px}.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
+    .eyebrow{margin:0;color:var(--teal);font-size:11px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}
+    h1{margin:5px 0 7px;font-size:clamp(30px,4vw,48px);line-height:1;letter-spacing:-.04em} .lede{max-width:760px;margin:0;color:var(--muted)}
+    .badge{padding:9px 11px;border:1px solid #e7c985;border-radius:12px;background:#fff7df;color:#76510f;font-size:11px;font-weight:850;max-width:260px}
+    .status{margin-top:16px;padding:11px 13px;border-left:4px solid var(--orange);background:#fff2e7;color:#75441e;font-size:13px}
+    .hero-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}
+    .hero-card,.panel{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:0 7px 18px rgba(24,62,65,.08)}
+    .hero-card{padding:14px}.hero-card span{display:block;color:var(--muted);font-size:10px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+    .hero-card b{display:block;margin-top:5px;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}.hero-card small{display:block;margin-top:7px;color:var(--muted)}
+    .panel{margin-top:14px;padding:17px} .panel h2{margin:0 0 3px;font-size:20px}.sub{margin:0 0 15px;color:var(--muted);font-size:13px}
+    .bars{display:grid;grid-template-columns:repeat(5,minmax(72px,1fr));gap:10px;align-items:end;min-height:255px}
+    .bar-col{display:grid;grid-template-rows:auto 155px auto;gap:6px;min-width:0}.bar-value{text-align:center;font-weight:900;font-variant-numeric:tabular-nums}
+    .track{height:155px;border:1px solid var(--line);border-radius:10px;background:var(--soft);display:flex;align-items:flex-end;overflow:hidden}
+    .fill{display:block;width:100%;min-height:3px;background:linear-gradient(180deg,#4c9fd5,#146db2)}
+    .bar-label{text-align:center;color:var(--muted);font-size:11px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .detail{padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}.detail b{display:block;margin-top:3px}
+    .foot{margin-top:14px;color:var(--muted);font-size:12px}.unknown{color:var(--gate)} a{color:var(--blue);font-weight:800}
+    @media(max-width:720px){.wrap{padding:16px 12px 30px}.top{display:block}.badge{margin-top:12px;max-width:none}.hero-grid{grid-template-columns:1fr}.bars{overflow-x:auto;grid-template-columns:repeat(5,96px)}.detail-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <div><p class="eyebrow">PREVINE · cockpit territorial</p><h1 id="title">Chuva</h1><p class="lede" id="lede">Carregando previsão meteorológica…</p></div>
+    <div class="badge">PESQUISA · não é alerta oficial<br>Chuva prevista não significa inundação prevista.</div>
+  </header>
+  <p class="status" id="status">Carregando feed meteorológico…</p>
+
+  <section class="hero-grid" aria-label="Resumo da chuva">
+    <div class="hero-card"><span>+24 h · ponto</span><b id="rain24">—</b><small>acumulado previsto</small></div>
+    <div class="hero-card"><span>+72 h · ponto</span><b id="rain72">—</b><small>acumulado previsto</small></div>
+    <div class="hero-card"><span>Rodada do modelo</span><b id="run">—</b><small id="provider">ECMWF IFS</small></div>
+  </section>
+
+  <section class="panel">
+    <h2>Acumulado previsto por horizonte</h2>
+    <p class="sub">Leitura do ponto da estação. Quando o feed traz proxy de montante, ele aparece nos detalhes abaixo e permanece separado.</p>
+    <div class="bars" id="bars" aria-label="Barras de chuva prevista"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Como ler</h2>
+    <p class="sub">As fontes meteorológicas têm escalas, grades e finalidades diferentes. O cockpit não transforma chuva em alerta binário.</p>
+    <div class="detail-grid">
+      <div class="detail"><span>Fonte</span><b id="source">—</b></div>
+      <div class="detail"><span>Estado do feed</span><b id="feedState">—</b></div>
+      <div class="detail"><span>Proxy de montante</span><b id="upstream">—</b></div>
+      <div class="detail"><span>Umidade do solo</span><b id="soil">—</b></div>
+    </div>
+    <p class="foot" id="note"></p>
+  </section>
+</main>
+<script>
+(function(){
+  var qs=new URLSearchParams(location.search), raw=(qs.get('cidade')||'santa-tereza').toLowerCase();
+  var muc=raw.indexOf('muc')>=0;
+  var cfg=muc
+    ? {name:'Muçum',file:'../assets/data/research_weather_mucum_latest.json'}
+    : {name:'Santa Tereza',file:'../assets/data/research_weather_santa_tereza_latest.json'};
+  function el(id){return document.getElementById(id)}
+  function mm(v){return v==null||isNaN(Number(v))?'—':Number(v).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mm'}
+  function dt(v){var d=new Date(v);return isNaN(d)?'—':d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
+  function horizons(d){
+    if(d.forecast&&Array.isArray(d.forecast.horizons)) return d.forecast.horizons.map(function(x){return {hours:x.horizon_hours,rain:x.target_santa_tereza_mm!=null?x.target_santa_tereza_mm:x.rain_point_mm,up:x.upstream_monitoring_proxy_mean_mm}});
+    if(Array.isArray(d.horizons)) return d.horizons.map(function(x){return {hours:x.hours,rain:x.rain_point_mm,up:x.rain_ifs_proxy_mm}});
+    if(d.ecmwf_direct&&Array.isArray(d.ecmwf_direct.horizons)) return d.ecmwf_direct.horizons.map(function(x){return {hours:x.hours,rain:x.rain_point_mm}});
+    return [];
+  }
+  fetch(cfg.file+'?cb='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(function(d){
+    document.title='PREVINE · Chuva · '+cfg.name; el('title').textContent='Chuva · '+cfg.name;
+    el('lede').textContent=d.current_forecast_message||'Previsão meteorológica usada como insumo de pesquisa.';
+    el('status').textContent='Atualizado '+dt(d.generated_at_utc)+' · '+(d.current_forecast_state||d.status||'estado não informado')+'. Pesquisa; não é alerta.';
+    var hs=horizons(d).filter(function(x){return x.hours!=null}).sort(function(a,b){return a.hours-b.hours});
+    function get(h){return hs.find(function(x){return Number(x.hours)===h})}
+    el('rain24').textContent=mm((get(24)||{}).rain); el('rain72').textContent=mm((get(72)||{}).rain);
+    var run=(d.forecast&&d.forecast.run_time_utc)||(d.ecmwf_direct&&d.ecmwf_direct.cycle_time_utc); el('run').textContent=dt(run);
+    el('provider').textContent=d.forecast_provider||((d.forecast&&d.forecast.source)||'ECMWF IFS');
+    var shown=hs.filter(function(x){return [24,48,72,120,168].indexOf(Number(x.hours))>=0});
+    var max=Math.max.apply(null,[1].concat(shown.map(function(x){return Number(x.rain)||0})));
+    el('bars').innerHTML=shown.map(function(x){var pct=Math.max(2,Math.min(100,(Number(x.rain||0)/max)*100));return '<div class="bar-col" tabindex="0" aria-label="+'+x.hours+' horas: '+mm(x.rain)+'"><div class="bar-value">'+mm(x.rain)+'</div><div class="track"><span class="fill" style="height:'+pct+'%"></span></div><div class="bar-label">+'+x.hours+' h</div></div>'}).join('')||'<p class="unknown">Sem horizontes disponíveis.</p>';
+    el('source').textContent=d.forecast_provider||d.forecast_model||'—'; el('feedState').textContent=d.current_forecast_state||d.status||'—';
+    var up=hs.map(function(x){return x.up}).filter(function(v){return v!=null}); el('upstream').textContent=up.length?'até '+mm(Math.max.apply(null,up)):'não disponível / não aplicável';
+    var soil=d.soil_moisture||{}; el('soil').textContent=soil.observation_available?'observação disponível':(soil.status==='modeled_proxy'?'proxy modelado, não medição local':'não disponível');
+    el('note').textContent=(d.basin_aggregation&&d.basin_aggregation.note)||soil.message||'A chuva é um insumo; interpretação hidrológica permanece separada.';
+  }).catch(function(err){el('status').className='status unknown';el('status').textContent='Não foi possível carregar o feed meteorológico: '+err.message;});
+})();
+</script>
+</body>
+</html>
