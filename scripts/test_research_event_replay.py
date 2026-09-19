@@ -41,8 +41,8 @@ def main() -> None:
     assert [item["cells_200m_touched"] for item in muc["scenarios"]] == [67, 70, 79]
     assert [item["population_upper_bound_whole_touched_cells"] for item in muc["scenarios"]] == [3153, 3351, 3581]
     stz = data["spatial_scenarios"]["santa_tereza"]
-    assert stz["published_level_range_m"] == [0.0, 15.0]
-    assert stz["higher_than_published_status"] == "not_published_in_current_contour_file"
+    assert stz["published_level_range_m"] == [0.0, 30.0]
+    assert stz["higher_than_published_status"] is None
     assert stz["scenarios"][0]["cells_200m_touched"] == 43
     assert data["response_inventory"]["mucum"]["capacity_reconciliation_status"]
     assert data["response_inventory"]["mucum"]["operational_gate"] == "blocked"
