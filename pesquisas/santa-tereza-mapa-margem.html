@@ -37,19 +37,21 @@ let taxaCmH=D.meta.taxa_cm_h; const BANKFULL_M=15.0, CAMADA_MAX=D.meta.nivel_max
 const map=L.map('map');
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}).addTo(map);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.9}).addTo(map);
-const CORES={alagada:'#1e5fbf',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84',sem_dado:'#9aa3a0'};
-const ROT={alagada:'já na água',critica:'crítica — precisa de resgate',apertada:'apertada (<15 min)',atencao:'atenção (<1 h)',confortavel:'confortável (>1 h)',alto:'ponto alto',sem_dado:'sem dado espacial',sem_dado:'sem dado espacial'};
+const CORES={alagada:'#1e5fbf',critica:'#b3382c',apertada:'#e8730c',preliminar:'#7d3cff',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84',sem_dado:'#9aa3a0'};
+const ROT={alagada:'atingida no cenário HAND',critica:'margem negativa no modelo',apertada:'margem <15 min no modelo',preliminar:'mancha preliminar — tempo não reconciliado',atencao:'margem <1 h no modelo',confortavel:'margem >1 h no modelo',alto:'ponto alto',sem_dado:'sem dado espacial'};
+let prelimGeo=null,prelimLayer=null;
+function pRing(lon,lat,r){let z=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const xi=r[i][0],yi=r[i][1],xj=r[j][0],yj=r[j][1];if(((yi>lat)!=(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi+1e-15)+xi))z=!z;}return z;}
+function pGeom(lon,lat,g){if(!g)return false;if(g.type==='Polygon'){if(!pRing(lon,lat,g.coordinates[0]))return false;for(let k=1;k<g.coordinates.length;k++)if(pRing(lon,lat,g.coordinates[k]))return false;return true;}if(g.type==='MultiPolygon')return g.coordinates.some(p=>{if(!pRing(lon,lat,p[0]))return false;for(let k=1;k<p.length;k++)if(pRing(lon,lat,p[k]))return false;return true;});return false;}
+function naPrelim(lat,lon){return !!(prelimGeo&&prelimGeo.features&&prelimGeo.features.some(f=>pGeom(lon,lat,f.geometry)));}
 const vel=D.meta.vel_idoso_ms;
 function classifica(i,nivelRegua){
-  const cota=D.cota_alaga_m[i];
-  if(cota===null||cota===undefined) return 'sem_dado';
-  const nivelHand=Math.max(0,nivelRegua-BANKFULL_M);
-  if(cota<=nivelHand) return 'alagada';
-  const taxa_m_min=taxaCmH/100/60;                  // subida atual (slider)
-  const ttw=(cota-nivelHand)/taxa_m_min;               // min ate a agua
-  const cam=D.dist_m[i]/vel/60;                     // min de caminhada
-  const m=ttw-cam;
-  if(m<0) return 'critica'; if(m<15) return 'apertada'; if(m<60) return 'atencao'; return 'confortavel';
+  const cota=D.cota_alaga_m[i], nivelHand=Math.max(0,nivelRegua-BANKFULL_M);
+  let base;
+  if(cota===null||cota===undefined) base='sem_dado';
+  else if(cota<=nivelHand) base='alagada';
+  else {const taxa_m_min=taxaCmH/100/60,ttw=(cota-nivelHand)/taxa_m_min,cam=D.dist_m[i]/vel/60,m=ttw-cam;base=m<0?'critica':m<15?'apertada':m<60?'atencao':'confortavel';}
+  if(naPrelim(D.nos[i][0],D.nos[i][1])&&(base==='confortavel'||base==='sem_dado')) return 'preliminar';
+  return base;
 }
 // desenha arestas; guarda p/ recolorir
 const linhas=[]; const b=L.latLngBounds();
@@ -57,10 +59,10 @@ D.edges.forEach(([a,c])=>{const A=D.nos[a],C=D.nos[c];
   const pl=L.polyline([A,C],{weight:2.5,opacity:.8}).addTo(map); linhas.push([pl,a,c]); b.extend(A);b.extend(C);});
 D.abrigos.forEach(a=>L.marker([a.lat,a.lon]).addTo(map).bindPopup('<b>'+a.nome+'</b><br>abrigo / ponto de encontro'));
 const BB=b.pad(0.05); function aj(){map.invalidateSize();map.fitBounds(BB);} aj();setTimeout(aj,300);window.addEventListener('resize',aj);
-const ordem=['confortavel','atencao','apertada','critica','alagada','sem_dado'];
+const ordem=['confortavel','sem_dado','atencao','preliminar','apertada','critica','alagada'];
 function pior(x,y){return ordem.indexOf(x)>ordem.indexOf(y)?x:y;} // classe mais urgente
 function render(nivel){
-  const cnt={alagada:0,critica:0,apertada:0,atencao:0,confortavel:0,alto:0,sem_dado:0};
+  const cnt={alagada:0,critica:0,apertada:0,preliminar:0,atencao:0,confortavel:0,alto:0,sem_dado:0};
   const cls=D.nos.map((_,i)=>classifica(i,nivel));
   cls.forEach(c=>cnt[c]++);
   linhas.forEach(([pl,a,c])=>{const k=pior(cls[a],cls[c]);pl.setStyle({color:CORES[k]});});
@@ -79,4 +81,5 @@ function redraw(){
 }
 sld.oninput=redraw; sldTaxa.oninput=redraw;
 redraw();
+fetch('../assets/data/santa_tereza_inundacao/mancha_preliminar_santa_tereza.geojson').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(g=>{prelimGeo=g;prelimLayer=L.geoJSON(g,{style:{color:'#7d3cff',weight:2,dashArray:'6 5',fillColor:'#7d3cff',fillOpacity:.08}}).addTo(map);redraw();}).catch(()=>{});
 </script></body></html>
