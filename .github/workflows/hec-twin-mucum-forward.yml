@@ -1,0 +1,101 @@
+name: HEC twin Muçum forward ~5d
+
+# Robô de pesquisa: IFS → gêmeo HEC → plataforma Pages.
+# Não toca RNA. Não é alerta oficial.
+
+on:
+  schedule:
+    # A cada 6 h, offset :12 (longe dos robôs RNA de 5 min).
+    - cron: "12 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hec-twin-mucum-forward
+  cancel-in-progress: true
+
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Configura Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: IFS forcing (Open-Meteo)
+        run: python -B scripts/build_hec_twin_ifs_forcing_5d.py
+
+      - name: Gêmeo HEC Muçum ~5d
+        run: python -B scripts/run_hec_twin_mucum_forward_5d.py
+
+      - name: Plataforma HEC/REC (mapa + feed)
+        run: python -B scripts/build_plataforma_hec_twin_mucum.py
+
+      - name: Smoke schema forward + plataforma
+        run: |
+          python -B -m unittest scripts.test_hec_twin_mucum_forward_5d scripts.test_plataforma_hec_twin_mucum -v
+
+      - name: Publica artefatos HEC
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-hec-bot"
+          git config user.email "previne-hec-bot@users.noreply.github.com"
+
+          git add -- \
+            assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_forcing_5d_latest.json \
+            assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json \
+            assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html \
+            assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d \
+            assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json \
+            assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html \
+            plataforma_hec_twin.html
+
+          if git diff --cached --quiet; then
+            echo "Sem mudança neste ciclo HEC."
+            exit 0
+          fi
+
+          git commit -m "bot: atualiza gêmeo HEC Muçum ~5d e plataforma [skip ci]"
+
+          # Outros robôs também publicam no main — rebase e tenta de novo.
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push ocupado; sincronizando (tentativa ${attempt}/5)."
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort || true
+              git reset --hard origin/main
+              python -B scripts/build_hec_twin_ifs_forcing_5d.py
+              python -B scripts/run_hec_twin_mucum_forward_5d.py
+              python -B scripts/build_plataforma_hec_twin_mucum.py
+              git add -- \
+                assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_forcing_5d_latest.json \
+                assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json \
+                assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html \
+                assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d \
+                assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json \
+                assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html \
+                plataforma_hec_twin.html
+              if git diff --cached --quiet; then
+                echo "Artefatos já publicados por outra execução."
+                exit 0
+              fi
+              git commit -m "bot: atualiza gêmeo HEC Muçum ~5d e plataforma [skip ci]"
+            fi
+            sleep $((attempt * 2))
+          done
+          echo "Não foi possível publicar após 5 tentativas."
+          exit 1
