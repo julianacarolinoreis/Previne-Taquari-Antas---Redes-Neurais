@@ -64,6 +64,12 @@ jobs:
           git config user.name "previne-hec-bot"
           git config user.email "previne-hec-bot@users.noreply.github.com"
 
+          # O smoke test do builder de decisão grava timestamp/README.
+          # Esses arquivos não pertencem a esta rodada HEC e deixavam o rebase sujo.
+          git restore -- \
+            assets/data/estudo_bacia_taquari_antas/decisao_previsao_nivel_multi_alvo_latest.json \
+            assets/data/estudo_bacia_taquari_antas/README.md || true
+
           git add -- \
             assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_forcing_5d_latest.json \
             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json \
