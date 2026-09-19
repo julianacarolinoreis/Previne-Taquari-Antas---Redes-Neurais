@@ -18,7 +18,7 @@
       replayKey: 'santa_tereza',
       levels: [15],
       defaultLevel: 15,
-      bankfullFallback: 400,
+      bankfullFallback: 1500,
       /* Centro urbano (não o envelope de todas as células HAND). */
       focus: { lat: -29.1701, lon: -51.7355, zoom: 15 },
       floodMap: '../santa_tereza_previsao_inundacao.html',
