@@ -44,7 +44,8 @@
     if(!data) return {id:'unknown',label:'indisponível'};
     var age=ageMinutes(data);
     if(!Number.isFinite(age)) return {id:'unknown',label:'horário incerto'};
-    if(age>180) return {id:'stale',label:'dado atrasado'};
+    if(age>180) return {id:'stale',label:'dado muito atrasado'};
+    if(age>90) return {id:'delayed',label:'dado com atraso'};
     return {id:'recent',label:'dado recente'};
   }
   function horizon(data,key){
