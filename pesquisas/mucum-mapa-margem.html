@@ -24,7 +24,7 @@
   <div class="sub">Nível da cheia: <span class="lv" id="nvtxt"></span></div>
   <input type="range" id="sld" min="0" max="100" value="0">
   <div class="sub">Velocidade da subida: <span class="lv" id="taxatxt"></span> cm/h <span id="taxacen" style="color:#7a5b00;font-size:11px"></span></div>
-  <input type="range" id="sldTaxa" min="10" max="120" value="40" step="5">
+  <input type="range" id="sldTaxa" min="10" max="200" value="40" step="5">
   <div id="cont"></div>
   <div class="leg" id="leg"></div>
   <div class="sub" style="margin-top:6px;font-size:11px;color:#7a5b00">Margem = tempo até a água − tempo de caminhada (idoso, 0,9 m/s) até o abrigo mais próximo. Cenário ilustrativo.</div>
@@ -69,7 +69,7 @@ function render(nivel){
 }
 document.getElementById('leg').innerHTML='';
 const sld=document.getElementById('sld'), sldTaxa=document.getElementById('sldTaxa'), NVMAX=D.meta.nivel_max_m;
-function cenarioTaxa(t){return t<=25?'(cheia lenta)':t>=90?'(ritmo de recorde)':'';}
+function cenarioTaxa(t){return t<=25?'(subida lenta · cenário)':t>=150?'(subida muito rápida · cenário)':'';}
 function redraw(){
   taxaCmH=+sldTaxa.value;
   document.getElementById('taxatxt').textContent=taxaCmH;
