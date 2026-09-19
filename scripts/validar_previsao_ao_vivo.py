@@ -63,6 +63,11 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
         raise SystemExit("serie observada ANA invalida ou fora de ordem")
     if any(v is None for v in niveis_observados):
         raise SystemExit("serie observada ANA contem nivel ausente")
+    if any(not (-500 <= float(v) <= 5000) for v in niveis_observados):
+        raise SystemExit("serie observada ANA contem nivel fora da faixa plausivel")
+    telemetria_publicada = data.get("telemetria_ultima_nivel_cm")
+    if telemetria_publicada is not None and not (-500 <= float(telemetria_publicada) <= 5000):
+        raise SystemExit("telemetria publicada fora da faixa plausivel")
     ultima_obs = serie_observada[-1]
     ultima_feed = str(data.get("telemetria_ultima_em") or "")[:16]
     if str(ultima_obs.get("hora") or "")[:16] != ultima_feed:
@@ -128,9 +133,13 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
             raise SystemExit(f"{key} sem contrato temporal hourly_exact_v1")
         audit = item.get("auditoria_inputs") or {}
         if item.get("nivel_previsto_cm") is None:
+            if item.get("disponivel") is not False:
+                raise SystemExit(f"{key} sem previsao precisa declarar disponivel=false")
             if audit.get("status") not in {"INVALIDO", "ATENCAO"}:
                 raise SystemExit(f"{key} indisponivel sem auditoria de inputs explicita")
             continue
+        if item.get("disponivel") is not True:
+            raise SystemExit(f"{key} com previsao precisa declarar disponivel=true")
         hora = str(item.get("hora_modelo") or "")
         minuto = int(hora[14:16]) if len(hora) >= 16 and hora[14:16].isdigit() else -1
         if minuto != 0:
