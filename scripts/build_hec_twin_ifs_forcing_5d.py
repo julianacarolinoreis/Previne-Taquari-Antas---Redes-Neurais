@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -69,8 +70,24 @@ def fetch_hourly_precip(lat: float, lon: float, hours: int) -> dict[str, Any]:
     }
     url = "https://api.open-meteo.com/v1/forecast?" + urlencode(params)
     req = Request(url, headers={"User-Agent": USER_AGENT})
-    with urlopen(req, timeout=45) as resp:
-        payload = json.load(resp)
+    last_exc: Exception | None = None
+    payload = None
+    for attempt in range(1, 5):
+        try:
+            # Open-Meteo occasionally resets/holds TLS on GitHub runners.
+            # Retry the same deterministic request instead of losing the HEC cycle.
+            with urlopen(req, timeout=45) as resp:
+                payload = json.load(resp)
+            break
+        except Exception as exc:  # noqa: BLE001
+            last_exc = exc
+            if attempt >= 4:
+                raise RuntimeError(
+                    f"IFS/Open-Meteo failed after {attempt} attempts at {lat},{lon}: {exc}"
+                ) from exc
+            time.sleep(attempt * 4)
+    if payload is None:
+        raise RuntimeError(f"IFS/Open-Meteo returned no payload at {lat},{lon}: {last_exc}")
     hourly = payload.get("hourly") or {}
     times = list(hourly.get("time") or [])
     precip = list(hourly.get("precipitation") or [])
