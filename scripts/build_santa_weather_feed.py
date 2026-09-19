@@ -20,6 +20,8 @@ from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from observed_rain import observed_accumulations
+
 try:
     from .ecmwf_direct import fetch_ecmwf_direct
 except ImportError:  # direct execution
@@ -290,6 +292,12 @@ def build_feed(
 
     cycle = direct.get("cycle_time_utc") if direct.get("status") == "available" else None
     observation = read_live(live_path, now)
+    observed_rain = observed_accumulations(
+        "chuva_86472600",
+        now=now,
+        source_label="ANA/SGB 86472600 · Santa Tereza",
+    )
+    observation.update(observed_rain)
     previous_risk = previous.get("risk_model") if isinstance(previous.get("risk_model"), dict) else {}
     return {
         "schema_version": 3,
