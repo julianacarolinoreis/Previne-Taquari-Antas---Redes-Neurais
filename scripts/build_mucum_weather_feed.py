@@ -94,14 +94,14 @@ def read_live(path: Path, now: datetime) -> dict:
             observed_at_utc = parse_hour(observed)
             age = max(0.0, (now - observed_at_utc).total_seconds() / 60.0)
         level = raw.get("telemetria_ultima_nivel_cm", raw.get("nivel_rio_agora_cm"))
-        fresh = age is not None and age <= 90
+        fresh = age is not None and age <= 180
         return {
             "state": "fresh" if fresh else "unknown_or_stale",
             "level_cm": level,
             "observed_at_utc": iso_utc(observed_at_utc) if observed_at_utc else None,
             "age_minutes": round(age, 1) if age is not None else None,
             "source": "robô ao vivo Muçum / estação ANA 86510000",
-            "message": "Leitura recente do robô ao vivo." if fresh else "Leitura atrasada; não usar como normalidade.",
+            "message": "Leitura disponível no último ciclo do robô." if fresh else "Leitura antiga no arquivo publicado; verificar a idade do robô e da fonte separadamente.",
         }
     except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
         return {"state": "unknown_or_stale", "message": f"Leitura não pôde ser validada: {exc}"}
