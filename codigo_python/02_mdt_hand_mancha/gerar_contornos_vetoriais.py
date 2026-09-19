@@ -3,7 +3,7 @@
 r"""
 Gera o CONTORNO VETORIAL da mancha de inundação (polígono real, não raster
 pintado pixel a pixel) a partir do HAND do mosaico de 2 m — um por nível de
-rio, faixa 0 a 25 m, passo 0,1 m (251 níveis — mesma precisão decimétrica
+rio, faixa 0 a 26 m, passo 0,1 m (261 níveis — mesma precisão decimétrica
 nativa do raster HAND e teto do PNG HAND; ver "PASSO 0,1 M" abaixo pro
 motivo de não ser 0,5 m). Os picos de Muçum (HAND ~17–21 m acima do nível
 normal) ficavam todos pinados em 15 m — mancha idêntica; por isso o teto
@@ -60,7 +60,7 @@ quando a diferença real existia). Pior: a faixa de incerteza (que soma só
 0,3-1,0 m ao previsto) também ficava distorcida pelo arredondamento —
 podia aparecer bem mais larga ou mais estreita que a incerteza real.
 Corrigido gerando na precisão decimétrica nativa do HAND (0,1 m, igual o
-raster já era). Faixa atual: 0–25 m (251 níveis). Custo: arquivo maior
+raster já era). Faixa atual: 0–26 m (261 níveis). O teto vetorial de 26 m permite representar até 30 m de régua em Santa Tereza (zero operacional 4 m) e cobre 30 m de régua em Muçum (zero 5 m). Custo: arquivo maior
 (Muçum ~8,5 MB), ainda buscado via fetch() assíncrono.
 
 Uso: python codigo_python/02_mdt_hand_mancha/gerar_contornos_vetoriais.py [mucum|santa_tereza]
@@ -81,12 +81,15 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gerar_mancha_mosaico import CIDADES, le, talvegue_anadem, talvegue_mosaico  # noqa: E402
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-# Alinhado a NIVEL_MAX_M=25 do PNG HAND (gerar_mancha_mosaico.py).
-# Teto antigo de 15 m fazia eventos de cheia alta (maio/2024, jul/2020) parecerem iguais.
-NIVEIS_M = [round(x, 1) for x in np.arange(0, 25.1, 0.1)]
+# O contorno vetorial é calculado diretamente do DEM/HAND em float, não do PNG
+# uint8; por isso pode ir a 26 m sem o limite de codificação 0..25,5 m do PNG.
+# 26 m de HAND corresponde a 30 m de régua em Santa Tereza (zero 4 m);
+# Muçum precisa de 25 m de HAND para chegar a 30 m de régua (zero 5 m).
+NIVEIS_M = [round(x, 1) for x in np.arange(0, 26.1, 0.1)]
 TOL_PX = 2.0
 SIGMA = 2.0
 PRECISAO_DECIMAIS = 6
+MIN_HOLE_PIXELS = 25  # remove apenas cavidades pequenas de rasterização; ilhas grandes permanecem
 
 OUT = {
     "mucum": os.path.join(RAIZ, "assets", "data", "mucum_inundacao", "contornos_mancha.json"),
@@ -114,9 +117,19 @@ def suaviza(poly, tol, sigma):
     if simp.is_empty:
         return None
 
+    # A simplificação do raster pode criar pequenas cavidades fechadas que
+    # aparecem como "buracos" no mapa. Filtramos apenas anéis menores que
+    # ~25 pixels; ilhas/topografias maiores continuam preservadas.
+    px_deg = tol / TOL_PX
+    min_hole_area = (px_deg * px_deg) * MIN_HOLE_PIXELS
+
     def proc(p):
         ext = smooth_ring(list(p.exterior.coords), sigma)
-        ints = [smooth_ring(list(r.coords), sigma) for r in p.interiors if len(r.coords) > 4]
+        ints = [
+            smooth_ring(list(r.coords), sigma)
+            for r in p.interiors
+            if len(r.coords) > 4 and Polygon(r).area >= min_hole_area
+        ]
         pol = Polygon(ext, ints)
         return pol if pol.is_valid else make_valid(pol)
 
