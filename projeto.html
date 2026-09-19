@@ -7,6 +7,7 @@
 <title>PREVINE Taquari-Antas</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/css/site_chrome.css">
+<link rel="stylesheet" href="assets/css/situacao_agora.css">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -175,10 +176,11 @@ footer a:hover { text-decoration: underline; }
 <nav class="site-nav" aria-label="PREVINE">
   <a class="site-wordmark" href="projeto.html">PREVINE</a>
   <div class="site-nav-links">
-    <a href="projeto.html" aria-current="page">Projeto</a>
-    <a href="pesquisas.html">Acervo</a>
+    <a href="#situacao-agora">Situação agora</a>
     <a href="dashboard_bacia.html">Bacia</a>
-    <a href="index.html">RNA</a>
+    <a href="pesquisas/estudo-caso-territorio.html">Território</a>
+    <a href="pesquisas.html">Pesquisa</a>
+    <a href="projeto.html" aria-current="page">Projeto</a>
   </div>
 </nav>
 
@@ -191,6 +193,79 @@ footer a:hover { text-decoration: underline; }
   <p class="hero-sub">Prevenção de desastres geo-hidrológicos na Bacia Hidrográfica do Taquari-Antas, Rio Grande do Sul. Este site reúne a pesquisa já publicada — previsão, mapas, vulnerabilidade e exercícios.</p>
   <p class="hero-meta">Projeto de pesquisa · Coordenação UFRGS · 2024–2026</p>
 </header>
+
+<section id="situacao-agora" aria-labelledby="situacao-title">
+  <div class="wrap">
+    <div class="situacao-head">
+      <div>
+        <p class="label">Situação agora</p>
+        <h2 class="statement" id="situacao-title">Entenda primeiro. Aprofunde depois.</h2>
+      </div>
+      <div>
+        <p class="lead">Leitura rápida dos feeds de pesquisa de Santa Tereza e Muçum. O primeiro nível mostra somente o essencial: observação mais recente, previsão curta, tendência e idade do dado.</p>
+        <p class="situacao-disclaimer"><strong>Pesquisa / protótipo.</strong> Estes resultados não são alerta oficial, ordem de evacuação, confirmação de via liberada ou despacho da Defesa Civil. Dados atrasados ou ausentes aparecem como tal e nunca como “sem risco”.</p>
+      </div>
+    </div>
+
+    <div class="entry-paths" aria-label="Escolha como entrar no PREVINE">
+      <a class="entry-path" href="#situacao-agora"><span><strong>Ver situação agora</strong><span>Rio e previsão curta em poucos segundos.</span></span><b aria-hidden="true">→</b></a>
+      <a class="entry-path" href="pesquisas/estudo-caso-territorio.html"><span><strong>Explorar território</strong><span>Mapas, inundação, impactos, vulnerabilidade e rotas em estudo.</span></span><b aria-hidden="true">→</b></a>
+      <a class="entry-path" href="pesquisas.html"><span><strong>Pesquisa e modelos</strong><span>Acervo, RNAs, auditorias, HEC-HMS, replays e dados.</span></span><b aria-hidden="true">→</b></a>
+    </div>
+
+    <div class="situation-grid">
+      <article class="situation-card" data-situation-card="santa" data-state="unknown">
+        <div class="situation-top">
+          <div><h3 class="situation-place">Santa Tereza</h3><p class="situation-station">Estação ANA/SGB 86472600</p></div>
+          <span class="state-chip" data-state="unknown">carregando</span>
+        </div>
+        <div class="situation-values" aria-label="Resumo de Santa Tereza">
+          <div class="situation-value"><span>Observado</span><strong id="sit-santa-now">—</strong><small>última leitura disponível</small></div>
+          <div class="situation-value"><span>Previsto +2 h</span><strong id="sit-santa-2h">—</strong><small>RNA · experimental</small></div>
+          <div class="situation-value"><span>Previsto +4 h</span><strong id="sit-santa-4h">—</strong><small>quando disponível</small></div>
+        </div>
+        <p class="situation-trend" id="sit-santa-trend">Carregando tendência…</p>
+        <p class="situation-meta" id="sit-santa-stamp">Carregando horário da observação…</p>
+        <p class="situation-meta" id="sit-santa-model">Carregando modelo…</p>
+        <div class="situation-actions">
+          <a class="primary" href="santa_tereza_previsao_inundacao.html">Ver mapa e aprofundar</a>
+          <a data-status-link href="pesquisa_status.html">Ver auditoria</a>
+          <button type="button" data-copy-situation="santa">Copiar resumo</button>
+        </div>
+        <p class="situation-message" aria-live="polite"></p>
+      </article>
+
+      <article class="situation-card" data-situation-card="mucum" data-state="unknown">
+        <div class="situation-top">
+          <div><h3 class="situation-place">Muçum</h3><p class="situation-station">Estação ANA/SGB 86510000</p></div>
+          <span class="state-chip" data-state="unknown">carregando</span>
+        </div>
+        <div class="situation-values" aria-label="Resumo de Muçum">
+          <div class="situation-value"><span>Observado</span><strong id="sit-mucum-now">—</strong><small>última leitura disponível</small></div>
+          <div class="situation-value"><span>Previsto +2 h</span><strong id="sit-mucum-2h">—</strong><small>RNA · experimental</small></div>
+          <div class="situation-value"><span>Previsto +4 h</span><strong id="sit-mucum-4h">—</strong><small>quando disponível</small></div>
+        </div>
+        <p class="situation-trend" id="sit-mucum-trend">Carregando tendência…</p>
+        <p class="situation-meta" id="sit-mucum-stamp">Carregando horário da observação…</p>
+        <p class="situation-meta" id="sit-mucum-model">Carregando modelo…</p>
+        <div class="situation-actions">
+          <a class="primary" href="mucum_previsao_inundacao.html">Ver mapa e aprofundar</a>
+          <a data-status-link href="pesquisa_status_mucum.html">Ver auditoria</a>
+          <button type="button" data-copy-situation="mucum">Copiar resumo</button>
+        </div>
+        <p class="situation-message" aria-live="polite"></p>
+      </article>
+    </div>
+
+    <div class="status-key" aria-label="Legenda dos estados">
+      <span class="observed"><i></i>observado</span>
+      <span class="forecast"><i></i>previsto</span>
+      <span class="experimental"><i></i>experimental</span>
+      <span class="stale"><i></i>dado atrasado</span>
+      <span class="unknown"><i></i>indisponível / UNKNOWN</span>
+    </div>
+  </div>
+</section>
 
 <section>
   <div class="wrap split">
@@ -389,6 +464,7 @@ footer a:hover { text-decoration: underline; }
 </footer>
 
 <script src="assets/js/live_feed.js?v=20260916-nunca-atrasado"></script>
+<script src="assets/js/situacao_agora.js?v=20260919"></script>
 <script>
 (function(){
   function fmt(v) {
