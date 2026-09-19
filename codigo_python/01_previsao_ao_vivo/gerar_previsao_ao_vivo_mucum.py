@@ -474,7 +474,7 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_ba
         "telemetria_ultima_em_utc": iso_utc(raw[0] if raw else None),
         "telemetria_ultima_nivel_cm": (round(raw[1]) if raw else None),
         "idade_telemetria_min": idade,
-        "status_dados": (None if idade is None else ("telemetria recente" if idade <= 30 else f"telemetria atrasada ({idade} min)")),
+        "status_dados": (None if idade is None else ("telemetria recente" if idade <= 90 else f"telemetria atrasada ({idade} min)")),
         "estacao": ALVO, "local": LOCAL,
         "horizonte": cfg["horizonte"], "rotulo": cfg["rotulo"], "horizonte_h": cfg["horizonte_h"],
         "tipo": cfg["tipo"], "modelo": cfg["modelo"], "combo": cfg["combo"], "bankfull_cm": BANKFULL_CM,
