@@ -91,9 +91,9 @@ const ruasLayer=L.layerGroup(ruas.map(r=>r.pl));
 
 // Grade IBGE: contorno discreto + ponto no centro. Não pintar o quadrado inteiro,
 // porque em área rural a célula pode ter ~1 km e a população não está localizada casa a casa.
-const cellBoxes=D.cells.map((c,idx)=>L.polygon(c.poly,{weight:.7,color:'#2b3a34',opacity:.65,fillColor:CORES.sem_dado,fillOpacity:.62})
+const cellBoxes=D.cells.map((c,idx)=>L.polygon(c.poly,{weight:.75,color:'#26332e',opacity:.78,fillColor:CORES.sem_dado,fillOpacity:.72})
   .bindPopup(()=>{const ri=rotaInfo[cellNode[idx]]||{},lc=cotaCellsAtuais[idx],local=lc==null?'sem cobertura no intervalo':(BANKFULL_M+lc).toFixed(1)+' m na régua',garg=ri.cota==null?'sem cota suficiente':(BANKFULL_M+ri.cota).toFixed(1)+' m na régua',nivel=nivelAtual(),geral=classe(lc,ri.cota,c.dist_m,nivel),saida=CLASSES_SAIDA.has(geral);return `<b>${c.pop} pessoas na célula da Grade IBGE</b><br><b>${saida?'Até '+c.pop+' pessoas a priorizar para saída neste cenário':'0 pessoas em prioridade de saída nesta classe'}</b><br><small>A cor preenche a célula da Grade IBGE como visualização de triagem; não significa que toda a superfície da célula esteja fisicamente inundada.</small><br>classe: <b>${ROT[geral]||geral}</b><br>limiar HAND no centro da célula: <b>${local}</b><br>primeiro gargalo HAND da rota: <b>${garg}</b><br>a pé: ${(c.dist_m/1000).toFixed(2)} km`; }));
-const cellLabels=D.cells.map((c,idx)=>L.marker(cellCenters[idx],{interactive:false,keyboard:false,icon:L.divIcon({className:'',iconSize:[36,22],iconAnchor:[18,11],html:`<div id="poplbl-${idx}" style="min-width:24px;padding:2px 4px;border-radius:4px;background:rgba(255,255,255,.88);color:#17211d;text-align:center;font:800 11px/1.2 Arial,sans-serif;box-shadow:0 1px 3px rgba(0,0,0,.28)">?</div>`})}));
+const cellLabels=D.cells.map((c,idx)=>L.marker(cellCenters[idx],{interactive:false,keyboard:false,icon:L.divIcon({className:'',iconSize:[36,22],iconAnchor:[18,11],html:`<div id="poplbl-${idx}" style="min-width:24px;color:#fff;text-align:center;font:900 12px/1.1 Arial,sans-serif;text-shadow:0 1px 3px #000,0 0 2px #000">?</div>`})}));
 const cellsLayer=L.layerGroup([...cellBoxes,...cellLabels]);
 const abrigos=L.layerGroup(D.abrigos.map(a=>L.marker([a.lat,a.lon]).bindPopup('<b>'+a.nome+'</b><br>abrigo / ponto de encontro')));
 const BB=b.pad(0.06);
@@ -139,12 +139,12 @@ function renderImpacto(){const nivel=nivelAtual(),h=Math.max(0,nivel-BANKFULL_M)
     const ri=rotaInfo[cellNode[i]]||{}, local=classeLocal(cotaCellsAtuais[i],c.dist_m,nivel), geral=classe(cotaCellsAtuais[i],ri.cota,c.dist_m,nivel);cnt[geral]+=c.pop;
     const rotaAtingida=ri.cota!=null&&ri.cota<=h;
     const borda=rotaAtingida?CORES.rota_comprometida:(geral==='critica'?CORES.critica:geral==='apertada'?CORES.apertada:'#ffffff');
-    cellBoxes[i].setStyle({fillColor:CORES[geral]||CORES.sem_dado,fillOpacity:geral==='sem_dado'?.35:.68,color:'#2b3a34',opacity:.65,weight:.7});
+    cellBoxes[i].setStyle({fillColor:CORES[geral]||CORES.sem_dado,fillOpacity:geral==='sem_dado'?.40:.76,color:'#26332e',opacity:.78,weight:.75});
     const lbl=document.getElementById('poplbl-'+i); if(lbl) lbl.textContent=geral==='sem_dado'?'?':(CLASSES_SAIDA.has(geral)?c.pop:'0');
   });
   document.getElementById('nvtxt').textContent=nivel.toFixed(1)+' m';
   const risco=cnt.alagada+cnt.rota_comprometida+cnt.critica+cnt.apertada+cnt.atencao;
-  document.getElementById('painel').innerHTML='<div class="sub"><b>Quadradinhos coloridos = células da Grade IBGE, como antes.</b> A célula inteira fica preenchida pela classe do cenário e o número mostra quantas pessoas entram na prioridade de saída; <b>0</b> = sem prioridade e <b>?</b> = sem dado. A cor é uma visualização de triagem da célula, não quer dizer que toda a superfície esteja fisicamente inundada.</div>'+
+  document.getElementById('painel').innerHTML='<div class="sub"><b>Quadradinhos coloridos = células da Grade IBGE, como antes.</b> <b>Todo o quadradinho fica preenchido pela cor da classe</b> e o número mostra quantas pessoas entram na prioridade de saída; <b>0</b> = sem prioridade e <b>?</b> = sem dado. A cor é uma visualização de triagem da célula, não quer dizer que toda a superfície esteja fisicamente inundada.</div>'+
     ordem.map(k=>`<div class="row"><span><i style="background:${CORES[k]}"></i>${ROT[k]}</span><b>${cnt[k].toLocaleString('pt-BR')}</b></div>`).join('')+
     `<div class="big"><b>${risco.toLocaleString('pt-BR')}</b> pessoas a priorizar para saída neste cenário, considerando célula inteira como limite superior de triagem.</div>`;
 }
