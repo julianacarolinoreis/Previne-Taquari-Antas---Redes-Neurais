@@ -47,6 +47,9 @@ ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos
 # demora enquanto o host www responde normalmente.
 ANA_ESPELHO = "https://www.ana.gov.br/telemetria1ws/ServiceANA.asmx/DadosHidrometeorologicos"
 ULTIMA_RAW = {}
+ULTIMA_RAW_REJEITADA = {}
+NIVEL_PLAUSIVEL_MIN_CM = -500.0
+NIVEL_PLAUSIVEL_MAX_CM = 5000.0
 ANA_TIMEOUT_NIVEL_S = 15
 ANA_TIMEOUT_CHUVA_S = 12
 ANA_RETRIES_NIVEL = 2
@@ -235,9 +238,13 @@ def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
                 req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
                 xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_NIVEL_S).read()
                 serie, nbytes, ultima_raw = _serie_de_xml(xml)
-                print(f"[ANA {cod}] tent={attempt+1} bytes={nbytes} linhas={len(serie)}")
-                if ultima_raw: ULTIMA_RAW[cod] = ultima_raw
-                if serie: return serie
+                serie = {hora: valor for hora, valor in serie.items() if nivel_plausivel(valor)}
+                print(f"[ANA {cod}] tent={attempt+1} bytes={nbytes} linhas_validas={len(serie)}")
+                if ultima_raw and not nivel_plausivel(ultima_raw[1]):
+                    ULTIMA_RAW_REJEITADA[cod] = ultima_raw
+                if serie:
+                    ULTIMA_RAW[cod] = max(serie.items(), key=lambda par: par[0])
+                    return serie
                 resposta_vazia = True
             except Exception as e:
                 print(f"[ANA {cod}] tent={attempt+1} erro: {e}")
@@ -250,9 +257,13 @@ def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
                     req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
                     xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_NIVEL_S).read()
                     serie, nbytes, ultima_raw = _serie_de_xml(xml)
-                    print(f"[ANA {cod}] tent={attempt+1} sem-data bytes={nbytes} linhas={len(serie)}")
-                    if ultima_raw: ULTIMA_RAW[cod] = ultima_raw
-                    if serie: return serie
+                    serie = {hora: valor for hora, valor in serie.items() if nivel_plausivel(valor)}
+                    print(f"[ANA {cod}] tent={attempt+1} sem-data bytes={nbytes} linhas_validas={len(serie)}")
+                    if ultima_raw and not nivel_plausivel(ultima_raw[1]):
+                        ULTIMA_RAW_REJEITADA[cod] = ultima_raw
+                    if serie:
+                        ULTIMA_RAW[cod] = max(serie.items(), key=lambda par: par[0])
+                        return serie
                 except Exception as e:
                     print(f"[ANA {cod}] tent={attempt+1} sem-data erro: {e}")
         if attempt < tentativas_rede - 1:
@@ -309,9 +320,20 @@ def buscar_series_paralelo(codigos, funcao, max_workers=8):
         resultados = list(executor.map(funcao, codigos))
     return dict(zip(codigos, resultados))
 
+def nivel_plausivel(valor):
+    try:
+        valor = float(valor)
+    except (TypeError, ValueError):
+        return False
+    return NIVEL_PLAUSIVEL_MIN_CM <= valor <= NIVEL_PLAUSIVEL_MAX_CM
+
+
 def nivel_exato(serie, t):
     """Nível observado exatamente em ``t``; não interpola nem usa vizinho."""
-    return None if not serie else serie.get(t)
+    if not serie:
+        return None
+    valor = serie.get(t)
+    return float(valor) if valor is not None and nivel_plausivel(valor) else None
 
 def observar_nivel(serie, alvo):
     """Observa apenas a leitura ANA exatamente na hora-alvo."""
@@ -523,6 +545,14 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_ba
             "contrato_temporal": f"{cfg['n_inputs']} inputs em hora cheia exata; níveis e chuva sem interpolação, vizinho ou preenchimento",
         },
         "status": status, "aviso": AVISO,
+        "telemetria_raw_rejeitada": (
+            {
+                "hora": ULTIMA_RAW_REJEITADA[ALVO][0].isoformat(),
+                "nivel_cm": round(ULTIMA_RAW_REJEITADA[ALVO][1]),
+                "motivo": "fora_faixa_plausivel",
+            }
+            if ALVO in ULTIMA_RAW_REJEITADA else None
+        ),
     }
     if input_values is not None:
         out["input_values_cm"] = [round(float(v), 6) for v in input_values]
@@ -544,7 +574,7 @@ def serie_observada_ana_publica(series, dias=7):
     return [
         {"hora": hora.isoformat(timespec="minutes"), "nivel_cm": round(float(valor), 3)}
         for hora, valor in sorted(serie.items())
-        if hora >= inicio
+        if hora >= inicio and nivel_plausivel(valor)
     ]
 
 
@@ -878,6 +908,15 @@ def main():
             variacao = prever(cfg["mat"], x)
             nivel_base = nivel_exato(series[ALVO], t)
             nivel_prev = nivel_base + variacao if cfg["tipo"].upper() == "ALT" else variacao
+            if not nivel_plausivel(nivel_prev):
+                horizontes[horizonte] = base_saida(
+                    cfg, nivel_agora, None, t,
+                    f"previsao rejeitada: {nivel_prev:.1f} cm fora da faixa plausivel",
+                    nivel_base=nivel_base,
+                    input_values=x,
+                )
+                print(f"[{horizonte}] {cfg['modelo']} rejeitado por faixa plausivel: {nivel_prev:.1f} cm")
+                continue
             out = base_saida(cfg, nivel_agora, nivel_prev, t, "ok", nivel_base=nivel_base, input_values=x)
             out["proxima_base_diagnostico"] = diagnosticar_proxima_base(cfg, series, t, limite_alvo)
             horizontes[horizonte] = out
