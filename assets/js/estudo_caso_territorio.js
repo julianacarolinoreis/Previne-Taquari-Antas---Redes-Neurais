@@ -10,6 +10,7 @@
       ibge: '4317251',
       station: '86472600',
       rna: '../previsao_ao_vivo.json',
+      weather: 'chuva-cockpit.html?cidade=santa-tereza',
       grade: '../assets/data/estudo_caso_territorio/grade_200m_santa_tereza.geojson',
       ruas: '../assets/data/estudo_caso_territorio/ruas_santa_tereza.json',
       mancha: '../assets/data/estudo_caso_territorio/mancha_santa_tereza.geojson',
@@ -25,6 +26,7 @@
       painel: 'santa-tereza-painel-evacuacao.html',
       rotaCenario: '../santa_tereza_rota_fuga_ruas_cenario.html',
       mesa: 'estudo-caso-resposta-santa-tereza.html',
+      resposta: 'estudo-caso-resposta-santa-tereza.html',
       impacto: 'santa-tereza-mapa-impacto.html',
       estudo: 'santa-tereza-estudo-caso.html',
       plan: null
@@ -35,6 +37,7 @@
       ibge: '4312609',
       station: '86510000',
       rna: '../previsao_ao_vivo_mucum.json',
+      weather: 'chuva-cockpit.html?cidade=mucum',
       grade: '../assets/data/estudo_caso_territorio/grade_200m_mucum.geojson',
       ruas: '../assets/data/estudo_caso_territorio/ruas_mucum.json',
       mancha: '../assets/data/estudo_caso_territorio/mancha_mucum.geojson',
@@ -49,6 +52,7 @@
       painel: 'mucum-painel-evacuacao.html',
       rotaCenario: '../mucum_rota_fuga_ruas_cenario.html',
       mesa: null,
+      resposta: 'mucum-painel-evacuacao.html',
       impacto: 'mucum-mapa-impacto.html',
       estudo: 'mucum-estudo-caso.html',
       plan: '../assets/data/mucum_contingencia_202607.json'
@@ -56,11 +60,11 @@
   };
 
   var MODULES = {
-    previsao: { label: 'Previsão', blurb: 'Régua ao vivo e até onde a água pode chegar' },
-    rotas: { label: 'Rotas', blurb: 'Caminho até o abrigo no cenário de ruas' },
-    painel: { label: 'Painel', blurb: 'Sala de evacuação: cenário, gente e margem' },
-    estudo: { label: 'Estudo', blurb: 'História curta do aviso antecipado' },
-    juntos: { label: 'Juntos', blurb: 'Régua + mancha + ruas + saída no mesmo mapa' }
+    rio: { label: 'Rio', blurb: 'Nível observado, RNA e leitura territorial integrada' },
+    chuva: { label: 'Chuva', blurb: 'Acumulados previstos e qualidade do insumo meteorológico' },
+    inundacao: { label: 'Inundação', blurb: 'Manchas e cenários espaciais publicados' },
+    impactos: { label: 'Impactos', blurb: 'Pessoas, células, vias e prioridades territoriais' },
+    resposta: { label: 'Resposta', blurb: 'Rotas, abrigos e exercício de decisão' }
   };
 
   var REPLAY_URL = '../assets/data/research_event_replay_latest.json';
@@ -96,7 +100,7 @@
     story: 'rotas',
     storyTimer: null,
     presenting: false,
-    module: 'juntos',
+    module: 'rio',
     cache: {},
     loadGen: 0,
     map: null,
@@ -197,10 +201,10 @@
 
   function moduleHref(key) {
     var c = city();
-    if (key === 'previsao') return c.floodMap;
-    if (key === 'rotas') return c.rotaCenario;
-    if (key === 'painel') return c.painel;
-    if (key === 'estudo') return c.estudo;
+    if (key === 'chuva') return c.weather;
+    if (key === 'inundacao') return c.floodMap;
+    if (key === 'impactos') return c.impacto;
+    if (key === 'resposta') return c.resposta || c.painel || c.rotaCenario;
     return null;
   }
 
@@ -209,24 +213,21 @@
     if (!grid) return;
     var c = city();
     var items = [
-      { key: 'previsao', href: c.floodMap, title: 'Previsão de inundação', copy: 'Régua e mancha — a página que você já usa.' },
-      { key: 'rotas', href: c.rotaCenario, title: 'Rotas no cenário', copy: 'Clique no mapa e veja o caminho até o abrigo.' },
-      { key: 'painel', href: c.painel, title: 'Painel de evacuação', copy: 'Cenário, pessoas, rotas e margem numa sala.' },
-      { key: 'estudo', href: c.estudo, title: 'Estudo de caso', copy: 'História curta do aviso antecipado.' },
-      { key: 'juntos', href: null, title: 'Mapa juntos', copy: 'Régua + mancha + ruas + saída acoplados.' }
+      { href: c.ficha, title: 'Ficha e auditoria do Rio', copy: 'Métricas, modelos, qualidade e evidências.' },
+      { href: c.rotaCenario, title: 'Rota de fuga · página técnica', copy: 'Grafo, cenário e caminho calculado.' },
+      { href: c.painel, title: 'Painel de evacuação', copy: 'Cenário, pessoas, rotas e margem.' },
+      { href: c.estudo, title: 'Estudo de caso', copy: 'Narrativa do aviso antecipado.' },
+      { href: 'sala-integrada-eventos.html', title: 'Replay histórico', copy: 'Evento, hidrograma e evidências no tempo.' }
     ];
+    if (c.mesa) items.splice(3, 0, { href: c.mesa, title: 'Mesa de exercício', copy: 'Checklist, contingências e registro de decisão.' });
     grid.innerHTML = items.map(function (it) {
-      if (it.key === 'juntos') {
-        return '<button type="button" class="sibling-card" data-module-jump="juntos">' +
-          '<strong>' + esc(it.title) + '</strong><span>' + esc(it.copy) + '</span></button>';
-      }
-      return '<a class="sibling-card" href="' + esc(it.href) + '" data-module-jump="' + esc(it.key) + '">' +
+      return '<a class="sibling-card" href="' + esc(it.href) + '">' +
         '<strong>' + esc(it.title) + '</strong><span>' + esc(it.copy) + '</span></a>';
     }).join('');
   }
 
   function setModule(key) {
-    if (!MODULES[key]) key = 'juntos';
+    if (!MODULES[key]) key = 'rio';
     state.module = key;
     var wrap = $('module-frame-wrap');
     var juntos = $('juntos-stage');
@@ -238,7 +239,7 @@
       btn.setAttribute('aria-selected', String(on));
       btn.setAttribute('aria-pressed', String(on));
     });
-    if (key === 'juntos') {
+    if (key === 'rio') {
       if (wrap) wrap.hidden = true;
       if (juntos) juntos.hidden = false;
       if (frame) frame.removeAttribute('src');
@@ -249,7 +250,7 @@
     }
     var href = moduleHref(key);
     if (!href) {
-      setModule('juntos');
+      setModule('rio');
       return;
     }
     if (juntos) juntos.hidden = true;
@@ -1645,7 +1646,7 @@
   }
 
   function render(bundle) {
-    document.title = 'PREVINE · sala de situação · ' + city().label;
+    document.title = 'PREVINE · cockpit territorial · ' + city().label;
     $('city-label').textContent = city().label;
     renderCityButtons();
     renderCaseButtons();
@@ -1654,7 +1655,7 @@
     renderRna(bundle);
     drawAll(bundle);
     renderSide(bundle);
-    setModule(state.module || 'juntos');
+    setModule(state.module || 'rio');
     var catalogs = (bundle.replay && bundle.replay.municipality_catalogs) || {};
     var catKey = state.city === 'mucum' ? 'mucum' : 'santa_tereza';
     var cat = catalogs[catKey] || catalogs[city().label] || null;
@@ -1742,7 +1743,7 @@
     if (caso && caso.mode === 'coupled' && caso.hand_m != null) state.level = caso.hand_m;
     renderCityButtons();
     setUrl();
-    setModule(state.module === 'juntos' ? 'juntos' : state.module);
+    setModule(state.module || 'rio');
     bootCity();
   }
 
@@ -1865,7 +1866,7 @@
       var btn = ev.target.closest('[data-case]');
       if (!btn) return;
       onCase(btn.getAttribute('data-case'));
-      setModule('juntos');
+      setModule('rio');
     });
   }
   if ($('module-tabs')) {
@@ -1875,21 +1876,7 @@
       setModule(btn.getAttribute('data-module'));
     });
   }
-  if ($('sibling-grid')) {
-    $('sibling-grid').addEventListener('click', function (ev) {
-      var jump = ev.target.closest('[data-module-jump]');
-      if (!jump) return;
-      var key = jump.getAttribute('data-module-jump');
-      if (key === 'juntos') {
-        ev.preventDefault();
-        setModule('juntos');
-        return;
-      }
-      if (jump.tagName === 'A' && (ev.metaKey || ev.ctrlKey)) return;
-      ev.preventDefault();
-      setModule(key);
-    });
-  }
+
   window.addEventListener('hashchange', function () {
     /* Sem cidade explícita no hash/query, não forçar Santa Tereza
        (hash vazio durante scroll/navegação não pode trocar o município). */
