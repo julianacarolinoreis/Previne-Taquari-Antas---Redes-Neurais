@@ -1865,17 +1865,22 @@ def escrever(nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes=None, e
         "gerado_em": (t.isoformat() if t else consultado_em.isoformat()),
         "hora_modelo": (t.isoformat() if t else None),
         "consultado_em": consultado_em.isoformat(timespec="seconds"),
-        "telemetria_ultima_em": (raw_st[0].isoformat() if raw_st else None),
-        "telemetria_ultima_nivel_cm": (round(raw_st[1]) if raw_st else None),
+        "telemetria_ultima_em": (raw_st_valido[0].isoformat() if raw_st_valido else None),
+        "telemetria_ultima_nivel_cm": (round(raw_st_valido[1]) if raw_st_valido else None),
+        "telemetria_raw_rejeitada": (
+            {"hora": raw_st[0].isoformat(), "nivel_cm": round(raw_st[1]), "motivo": "fora_faixa_plausivel"}
+            if raw_st and not raw_st_valido else None
+        ),
         "idade_telemetria_min": idade_min,
         "status_dados": status_dados,
         "estacao": "86472600", "local": "Santa Tereza",
         "horizonte": HORIZONTE, "modelo": COMBO, "bankfull_cm": BANKFULL_CM,
         "nivel_modelo_cm": (round(nivel_atual) if nivel_atual is not None else None),
-        "nivel_rio_agora_cm": (round(raw_st[1]) if raw_st else (round(nivel_atual) if nivel_atual is not None else None)),
-        "nivel_rio_agora_em": (raw_st[0].isoformat() if raw_st else (t.isoformat() if t else None)),
+        "nivel_rio_agora_cm": (round(raw_st_valido[1]) if raw_st_valido else (round(nivel_atual) if nivel_atual is not None else None)),
+        "nivel_rio_agora_em": (raw_st_valido[0].isoformat() if raw_st_valido else (t.isoformat() if t else None)),
         "nivel_atual_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_previsto_cm": (round(nivel_prev) if nivel_prev is not None else None),
+        "disponivel": nivel_prev is not None,
         "inputs_total": 15,
         "inputs_faltantes_n": len(inputs_faltantes or []),
         "inputs_faltantes": inputs_faltantes or [],
@@ -1890,15 +1895,18 @@ def escrever(nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes=None, e
 def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes=None, estacoes_status=None):
     consultado_em = agora_brt()
     raw_st = ULTIMA_RAW.get("86472600")
+    raw_st_valido = raw_st if raw_st and _nivel_plausivel(raw_st[1], "86472600") else None
     idade_min = None
     status_dados = None
-    if raw_st:
-        idade_min = round((consultado_em - raw_st[0]).total_seconds() / 60)
+    if raw_st_valido:
+        idade_min = round((consultado_em - raw_st_valido[0]).total_seconds() / 60)
         status_dados = (
             "telemetria recente"
             if idade_min <= TELEMETRY_WARN_MAX_AGE.total_seconds() / 60
             else f"telemetria atrasada ({idade_min} min)"
         )
+    elif raw_st:
+        status_dados = "telemetria rejeitada: nivel fora da faixa plausivel"
     return {
         "modo": "ao_vivo",
         "gerado_em": (t.isoformat() if t else consultado_em.isoformat()),
@@ -2119,7 +2127,7 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
             "sem hora valida: dependencias temporais atrasadas ou ausentes",
             aviso, [], estacoes_status,
         )
-        out["disponivel"] = True
+        out["disponivel"] = False
         if cfg.get("montador") == "4h_alt_v01_r10":
             qc_estacoes = [
                 {
@@ -2150,13 +2158,13 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         x, st0 = montar_inputs_modelo(cfg, series, t)
     except Exception as e:
         out = _base_saida(cfg, None, None, t, f"falha ao montar inputs: {e}", aviso, [], estacoes_status)
-        out["disponivel"] = True
+        out["disponivel"] = False
         return _anexar_fontes_chuva_8h(out, cfg, series)
     if st0 is None or any(v is None for v in x):
         faltando = sum(v is None for v in x)
         inputs_faltantes = diagnosticar_inputs_modelo(cfg, series, t, x)
         out = _base_saida(cfg, st0, None, t, f"inputs incompletos ({faltando}/{cfg['inputs_total']} faltando) - sem previsao nesta hora", aviso, inputs_faltantes, estacoes_status)
-        out["disponivel"] = True
+        out["disponivel"] = False
         if cfg.get("montador") == "4h_alt_v01_r10":
             out["auditoria_inputs"] = auditoria_inputs_4h_v01_r10(series, t, valores=x)
         elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
@@ -2208,7 +2216,7 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         return _anexar_fontes_chuva_8h(out, cfg, series)
     except Exception as e:
         out = _base_saida(cfg, st0, None, t, f"falha no modelo: {e}", aviso, [], estacoes_status)
-        out["disponivel"] = True
+        out["disponivel"] = False
         return _anexar_fontes_chuva_8h(out, cfg, series)
 
 def escolher_hora_modelo(cfg, series, horas_st):
@@ -2241,11 +2249,12 @@ def escolher_hora_modelo(cfg, series, horas_st):
                 audit = auditoria_inputs_4h_v01_r10(series, cand, valores=x)
                 if audit["status"] != "NORMAL":
                     continue
+            elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
+                audit = auditoria_inputs_8h(cfg, cand, x)
+                if audit["status"] != "NORMAL":
+                    continue
             return cand
     if cfg.get("input_grade") in ("hourly_exact", "quarter_hour_exact"):
-        if cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
-            horas_cheias = [hora for hora in horas_st if _eh_hora_cheia(hora)]
-            return horas_cheias[-1] if horas_cheias else None
         return None
     return horas_st[-1] if horas_st else None
 
@@ -2350,7 +2359,7 @@ def escrever_pacote_indisponivel(motivo, aviso):
     horizontes = {}
     for cfg in MODELOS:
         out = _base_saida(cfg, None, None, None, motivo, aviso, [], resumo_estacoes({}))
-        out["disponivel"] = True
+        out["disponivel"] = False
         out["auditoria_inputs"] = {
             "status": "INVALIDO",
             "motivo": motivo,
@@ -2376,14 +2385,19 @@ def preservar_saida_valida_em_falha(motivo, aviso):
     atual = carregar_saida_atual()
     if saida_respeita_contrato_horario_atual(atual):
         agora = agora_brt().isoformat(timespec="seconds")
-        atual["consultado_em"] = agora
+        # consultado_em é a hora da última consulta BEM-SUCEDIDA que gerou
+        # estes dados. Não avançá-la numa falha: isso mascararia um feed velho
+        # como se o robô tivesse acabado de publicar dados novos.
+        atual["ultima_tentativa_em"] = agora
+        atual["ultima_tentativa_status"] = "falha"
         atual["status"] = "aguardando nova telemetria"
         atual["status_dados"] = "consulta ANA instavel; exibindo ultima previsao valida"
         atual["erro_robo_ultima_consulta"] = motivo
         atual["aviso"] = aviso
         for hz, item in (atual.get("horizontes") or {}).items():
             if isinstance(item, dict) and item.get("nivel_previsto_cm") is not None:
-                item["consultado_em"] = agora
+                item["ultima_tentativa_em"] = agora
+                item["ultima_tentativa_status"] = "falha"
                 item["status"] = "aguardando nova telemetria"
                 item["status_dados"] = "consulta ANA instavel; exibindo ultima previsao valida"
                 item["erro_robo_ultima_consulta"] = motivo
