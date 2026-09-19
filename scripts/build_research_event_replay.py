@@ -211,6 +211,19 @@ def contour_scenario(grid_path: Path, contour_path: Path, level_m: float) -> dic
     }
 
 
+def contour_level_range(contour_path: Path) -> list[float]:
+    value = read_json(contour_path)
+    levels = [
+        number(feature.get("properties", {}).get("nivel_m"))
+        for feature in value.get("features", [])
+        if isinstance(feature, dict)
+    ]
+    levels = [float(level) for level in levels if level is not None]
+    if not levels:
+        return []
+    return [min(levels), max(levels)]
+
+
 def spatial_inventory() -> dict[str, Any]:
     muc_grid = ROOT / "assets" / "data" / "vulnerabilidade" / "grade" / "4312609.geojson"
     stz_grid = ROOT / "assets" / "data" / "vulnerabilidade" / "grade" / "4317251.geojson"
@@ -221,7 +234,7 @@ def spatial_inventory() -> dict[str, Any]:
             "grid_source": rel(muc_grid),
             "contour_source": rel(muc_contour),
             "stage_conversion_status": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
-            "published_level_range_m": [0.0, 25.0],
+            "published_level_range_m": contour_level_range(muc_contour),
             "scenarios": [contour_scenario(muc_grid, muc_contour, level) for level in (18.0, 20.0, 25.0)],
             "note": "HAND/contorno é cenário de triagem espacial; não é uma cota de régua automaticamente convertida nem define uma rota.",
         },
@@ -229,10 +242,10 @@ def spatial_inventory() -> dict[str, Any]:
             "grid_source": rel(stz_grid),
             "contour_source": rel(stz_contour),
             "stage_conversion_status": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
-            "published_level_range_m": [0.0, 15.0],
-            "higher_than_published_status": "not_published_in_current_contour_file",
+            "published_level_range_m": contour_level_range(stz_contour),
+            "higher_than_published_status": None,
             "scenarios": [contour_scenario(stz_grid, stz_contour, 15.0)],
-            "note": "O arquivo atual chega a 15 m; não há cenário espacial publicado acima disso nesta fonte.",
+            "note": "A faixa publicada é lida diretamente do arquivo de contornos; o cenário de replay permanece separado da conversão régua↔HAND.",
         },
     }
 
