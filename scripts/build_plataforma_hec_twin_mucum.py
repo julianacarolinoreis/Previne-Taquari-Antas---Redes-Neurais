@@ -897,6 +897,14 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
         "domain_pt": "Prata + Antas residual + Carreiro + residual STZ + incremento Muçum",
         "nested_inside_pt": "Dentro da bacia G040 · não é a bacia inteira",
     }
+    # Destaque operacional de +24 h, além do pico multi-dia.
+    qs = (fwd or {}).get("quanto_sobe") or {}
+    now_idx = int(qs.get("now_index") or 0)
+    fwd_times = list((fwd_series or {}).get("time_utc") or [])
+    fwd_n = list((fwd_series or {}).get("n_mucum_anchored_cm") or [])
+    fwd_dn = list((fwd_series or {}).get("delta_n_from_now_cm") or [])
+    i24 = min(now_idx + 24, len(fwd_times) - 1) if fwd_times else None
+
     feed["summary"] = {
         "peak_n_cm": primary.get("peak_anchored_cm"),
         "peak_delta_n_cm": primary.get("rise_cm"),
@@ -904,6 +912,19 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
         "timing_error_h": None,
         "n_anchor_cm": n_anchor,
         "source": (feed.get("headline") or {}).get("source"),
+        "n_plus_24h_cm": (
+            fwd_n[i24]
+            if (not stale_forward and i24 is not None and i24 < len(fwd_n))
+            else None
+        ),
+        "delta_plus_24h_cm": (
+            fwd_dn[i24]
+            if (not stale_forward and i24 is not None and i24 < len(fwd_dn))
+            else None
+        ),
+        "when_plus_24h_utc": (
+            fwd_times[i24] if (not stale_forward and i24 is not None) else None
+        ),
     }
     feed["freshness"] = {
         "preferred_source": "forward" if not stale_forward else "indisponivel_atual",
@@ -1096,22 +1117,11 @@ def build_feed() -> dict[str, Any]:
             "primary": headline_primary,
             "ensemble_rise_cm": headline_ensemble,
             "rain_mm_area_weighted": rain_total,
-            "verification_plain_pt": live_ver.get("plain_pt") or score.get("plain_pt"),
-            "scorecard": {
-                "verdict_level": score.get("verdict_level")
-                or live_ver.get("verdict_level"),
-                "peak_error_cm": score.get("peak_error_cm")
-                or live_ver.get("peak_error_cm"),
-                "timing_error_h": score.get("timing_error_h")
-                or live_ver.get("timing_error_h"),
-                "obs_peak_cm": score.get("obs_peak_cm") or live_ver.get("obs_peak_cm"),
-                "predicted_peak_anchored_cm": (
-                    ((verify or {}).get("forecast_ref") or {}).get(
-                        "predicted_peak_anchored_cm"
-                    )
-                    or (headline_primary or {}).get("peak_anchored_cm")
-                ),
-            },
+            # Validação de evento passado pertence a products.live_eval/verify;
+            # nunca misturar métricas de 12/09 com o headline da previsão atual.
+            "verification_plain_pt": None,
+            "scorecard": {},
+            "validation_ref": "products.live_eval",
         },
         "products": {
             "forward_5d": {
