@@ -337,16 +337,16 @@ def nivel_plausivel(valor, estacao=None):
     return NIVEL_PLAUSIVEL_MIN_CM <= valor <= maximo
 
 
-def nivel_exato(serie, t):
+def nivel_exato(serie, t, estacao=None):
     """Nível observado exatamente em ``t``; não interpola nem usa vizinho."""
     if not serie:
         return None
     valor = serie.get(t)
-    return float(valor) if valor is not None and nivel_plausivel(valor) else None
+    return float(valor) if valor is not None and nivel_plausivel(valor, estacao) else None
 
 def observar_nivel(serie, alvo):
     """Observa apenas a leitura ANA exatamente na hora-alvo."""
-    valor = nivel_exato(serie, alvo)
+    valor = nivel_exato(serie, alvo, ALVO)
     return (float(valor), alvo) if valor is not None else (None, None)
 
 
@@ -393,7 +393,7 @@ def montar_inputs(cfg, series, t):
        acel_nivel -> [n(t)-n(t-1h)] - [n(t-h)-n(t-(h+1)h)]."""
     def n(cod, h=0):
         s = series.get(str(cod))
-        return None if s is None else nivel_exato(s, t - dt.timedelta(hours=h))
+        return None if s is None else nivel_exato(s, t - dt.timedelta(hours=h), cod)
     x = []
     for inp in cfg["inputs"]:
         cod, tipo, h = inp["estacao"], inp["tipo"], inp["defasagem_h"]
@@ -887,7 +887,7 @@ def main():
     series = buscar_series_paralelo(estacoes, buscar_ana, max_workers=8)
     series["__chuva_postos__"] = buscar_series_paralelo(estacoes_chuva, buscar_ana_chuva, max_workers=6)
     horas_muc = sorted(series.get(ALVO, {}).keys())
-    nivel_agora = nivel_exato(series.get(ALVO, {}), horas_muc[-1]) if horas_muc else None
+    nivel_agora = nivel_exato(series.get(ALVO, {}), horas_muc[-1], ALVO) if horas_muc else None
 
     horizontes = {}
     raw_mucum = ULTIMA_RAW.get(ALVO)
@@ -915,7 +915,7 @@ def main():
         t, x = mh
         try:
             variacao = prever(cfg["mat"], x)
-            nivel_base = nivel_exato(series[ALVO], t)
+            nivel_base = nivel_exato(series[ALVO], t, ALVO)
             nivel_prev = nivel_base + variacao if cfg["tipo"].upper() == "ALT" else variacao
             if not nivel_plausivel(nivel_prev, ALVO):
                 horizontes[horizonte] = base_saida(
