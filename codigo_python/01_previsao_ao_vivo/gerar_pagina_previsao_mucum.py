@@ -107,7 +107,7 @@ def main():
     # 4) qualquer "Santa Tereza" remanescente em texto vira Muçum
     html = html.replace("em Santa Tereza", "em Muçum")
 
-    # fallback de evento ao vivo: ST usa mai24_2h; Muçum usa a cheia recorde tipada
+    # fallback de evento ao vivo: ST usa mai24_2h; Muçum usa o evento extremo tipado
     html = html.replace("liveFromEvent('mai24_2h','ALT')", "liveFromEvent('ev27_2h','ALT')")
     html = html.replace('liveFromEvent("mai24_2h","ALT")', 'liveFromEvent("ev27_2h","ALT")')
     html = html.replace("mai24_2h", "ev27_2h")
