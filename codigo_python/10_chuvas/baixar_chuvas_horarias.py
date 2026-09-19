@@ -335,9 +335,10 @@ def main():
         ultima_cemaden = _ultima_hora(series["chuva_cemaden_4320404010A"])
         atraso_h = None if ultima_cemaden is None else (agora - ultima_cemaden).total_seconds() / 3600
         if atraso_h is None or atraso_h > 8:
-            raise SystemExit(
-                "QA FALHOU: CEMADEN 432040401A sem observacao nas ultimas 8 horas; "
-                "CSV anterior foi preservado e nao sera substituido"
+            print(
+                "::warning::CEMADEN 432040401A sem observacao nas ultimas 8 horas; "
+                "os valores antigos serao preservados, mas ANA/INMET disponiveis "
+                "continuarao sendo publicados. Ausencia de uma fonte nao bloqueia as demais."
             )
         ultima_a894 = _ultima_hora(series["chuva_inmet_A894"])
         print(
