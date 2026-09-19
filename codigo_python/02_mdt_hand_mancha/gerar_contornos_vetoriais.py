@@ -82,7 +82,7 @@ from gerar_mancha_mosaico import CIDADES, le, talvegue_anadem, talvegue_mosaico 
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 # Alinhado a NIVEL_MAX_M=25 do PNG HAND (gerar_mancha_mosaico.py).
-# Teto antigo de 15 m fazia cheias grandes (maio/2024, jul/2020) parecerem iguais.
+# Teto antigo de 15 m fazia eventos de cheia alta (maio/2024, jul/2020) parecerem iguais.
 NIVEIS_M = [round(x, 1) for x in np.arange(0, 25.1, 0.1)]
 TOL_PX = 2.0
 SIGMA = 2.0
