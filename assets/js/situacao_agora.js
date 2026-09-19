@@ -35,17 +35,22 @@
     return d?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
   }
   function ageMinutes(data){
+    var d=parseDate(data&&(data.telemetria_ultima_em||data.nivel_rio_agora_em));
+    if(d) return Math.max(0,(Date.now()-d.getTime())/60000);
     var explicit=Number(data&&data.idade_telemetria_min);
-    if(Number.isFinite(explicit) && explicit>=0) return explicit;
-    var d=parseDate(data&&(data.telemetria_ultima_em||data.nivel_rio_agora_em||data.consultado_em));
+    return Number.isFinite(explicit)&&explicit>=0?explicit:NaN;
+  }
+  function robotAgeMinutes(data){
+    var d=parseDate(data&&data.consultado_em);
     return d?Math.max(0,(Date.now()-d.getTime())/60000):NaN;
   }
   function stateFor(data){
     if(!data) return {id:'unknown',label:'indisponível'};
-    var age=ageMinutes(data);
+    var age=ageMinutes(data), robotAge=robotAgeMinutes(data);
+    if(Number.isFinite(robotAge)&&robotAge>180) return {id:'stale',label:'robô desatualizado'};
     if(!Number.isFinite(age)) return {id:'unknown',label:'horário incerto'};
-    if(age>180) return {id:'stale',label:'dado atrasado'};
-    return {id:'recent',label:'dado recente'};
+    if(age>180) return {id:'stale',label:'leitura antiga'};
+    return {id:'recent',label:'dados disponíveis'};
   }
   function horizon(data,key){
     var hs=data&&data.horizontes;
@@ -68,7 +73,7 @@
     if(!card) return;
     var state=stateFor(data), now=data&&(data.telemetria_ultima_nivel_cm!=null?data.telemetria_ultima_nivel_cm:(data.nivel_rio_agora_cm!=null?data.nivel_rio_agora_cm:data.nivel_atual_cm));
     var h2=horizon(data,'2h'), h4=horizon(data,'4h');
-    var age=ageMinutes(data);
+    var age=ageMinutes(data), robotAge=robotAgeMinutes(data);
     card.dataset.state=state.id;
     var chip=card.querySelector('.state-chip');
     if(chip){ chip.dataset.state=state.id; chip.textContent=state.label; }
@@ -76,7 +81,7 @@
     setText('sit-'+id+'-2h',cm(h2));
     setText('sit-'+id+'-4h',cm(h4));
     setText('sit-'+id+'-trend',deltaText(now,h2,'até +2 h'));
-    setText('sit-'+id+'-stamp','Observação '+clock(data&&(data.telemetria_ultima_em||data.nivel_rio_agora_em))+(Number.isFinite(age)?' · idade '+Math.round(age)+' min':'')+' · pesquisa');
+    setText('sit-'+id+'-stamp','Observação '+clock(data&&(data.telemetria_ultima_em||data.nivel_rio_agora_em))+(Number.isFinite(age)?' · idade atual '+Math.round(age)+' min':'')+(Number.isFinite(robotAge)?' · robô consultou há '+Math.round(robotAge)+' min':'')+' · pesquisa');
     setText('sit-'+id+'-model',data&&data.modelo?'Modelo ativo: '+data.modelo:'Modelo: indisponível');
     var primary=card.querySelector('.primary');
     if(primary) primary.href=cfg.map;
