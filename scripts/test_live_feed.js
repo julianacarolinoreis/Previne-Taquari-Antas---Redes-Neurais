@@ -16,6 +16,14 @@ check(feed.pickNewest([pages, github]), github, 'escolhe o feed com consultado_e
 check(feed.pickNewest([github, pages, null]), github, 'ignora fonte vazia');
 check(feed.pickNewest([pages]), pages, 'uma fonte só');
 check(feed.pickNewest([]), null, 'nenhuma fonte');
+const staleCached = { consultado_em: '2026-09-16T19:37:50', status: 'ok' };
+const failedNewRevision = {
+  consultado_em: '2026-09-16T19:37:50',
+  ultima_tentativa_em: '2026-09-16T20:10:00',
+  ultima_tentativa_status: 'falha',
+  status: 'aguardando nova telemetria'
+};
+check(feed.pickNewest([staleCached, failedNewRevision]), failedNewRevision, 'revisão de falha mais nova vence cache com mesmo consultado_em');
 check(
   feed.pickNewest([{ atualizado_em: '2026-09-16T19:37:50' }, { consultado_em: '2026-09-15T23:54:34' }]).atualizado_em,
   '2026-09-16T19:37:50',
