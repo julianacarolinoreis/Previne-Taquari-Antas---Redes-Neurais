@@ -76,7 +76,23 @@ function infoRota(i){
   }
   return {cota:min,unknown,steps};
 }
-function recalculaTerrenoAtual(){if(!contornosOrdenados.length)return;cotaNosAtuais=D.nos.map(p=>cotaNoPonto(p[0],p[1]));cotaCellsAtuais=cellCenters.map(p=>cotaNoPonto(p[0],p[1]));rotaInfo=D.nos.map((_,i)=>infoRota(i));}
+function recalculaTerrenoAtual(){
+  if(!contornosOrdenados.length)return;
+  const novasNos=D.nos.map(p=>cotaNoPonto(p[0],p[1]));
+  const novasCells=cellCenters.map(p=>cotaNoPonto(p[0],p[1]));
+  const validCells=novasCells.filter(v=>v!==null&&v!==undefined).length;
+  const distinct=new Set(novasCells.filter(v=>v!==null&&v!==undefined).map(v=>Number(v).toFixed(1))).size;
+  // Proteção: se a leitura dinâmica dos contornos falhar ou colapsar, mantém
+  // as cotas pré-calculadas do próprio painel em vez de deixar tudo cinza/igual.
+  if(validCells>=Math.max(8,Math.floor(D.cells.length*.10))&&distinct>=2){
+    cotaNosAtuais=novasNos;
+    cotaCellsAtuais=novasCells;
+  } else {
+    cotaNosAtuais=(D.cota_no||[]).slice();
+    cotaCellsAtuais=D.cells.map(c=>c.cota);
+  }
+  rotaInfo=D.nos.map((_,i)=>infoRota(i));
+}
 rotaInfo=D.nos.map((_,i)=>infoRota(i));
 function noMaisProximo(lat,lon){let best=0,bd=Infinity,clat=Math.cos(lat*Math.PI/180);for(let i=0;i<D.nos.length;i++){const dy=lat-D.nos[i][0],dx=(lon-D.nos[i][1])*clat,d=dy*dy+dx*dx;if(d<bd){bd=d;best=i;}}return best;}
 const cellNode=cellCenters.map(c=>noMaisProximo(c[0],c[1]));
@@ -180,7 +196,7 @@ function setModo(m){modo=m;
 }
 document.querySelectorAll('.tabs button').forEach(x=>x.onclick=()=>setModo(x.dataset.m));
 const sld=document.getElementById('sld'),sldTaxa=document.getElementById('sldTaxa');
-sld.oninput=redraw;sldTaxa.oninput=redraw;
+sld.oninput=redraw;sld.onchange=redraw;sldTaxa.oninput=redraw;sldTaxa.onchange=redraw;
 document.getElementById('taxatxt').textContent=taxaCmH;
 setModo('rotas'); aj(); setTimeout(aj,300); window.addEventListener('resize',aj);
 Promise.allSettled([
