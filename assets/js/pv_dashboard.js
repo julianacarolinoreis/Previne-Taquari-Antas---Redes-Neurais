@@ -67,6 +67,40 @@
     const rows=Object.keys(hs).filter(k=>/^(2h|4h)/.test(k)).map(k=>({key:k,label:k==='2h_versao_b'?'2 h B':k==='4h'?'4 h':'2 h',level:safeNum(hs[k].nivel_previsto_cm),now:safeNum(hs[k].nivel_rio_agora_cm),delta:safeNum(hs[k].delta_previsto_cm),status:hs[k].status||'sem status',modelo:hs[k].modelo||hs[k].modelo_nome||'RNA ao vivo'})).filter(x=>x.level!=null);
     return {raw:d,rows,generated:d.gerado_em||d.consultado_em,telemetry:d.telemetria_ultima_em||d.nivel_rio_agora_em,level:safeNum(d.telemetria_ultima_nivel_cm??d.nivel_rio_agora_cm),telemetryAge:safeNum(d.idade_telemetria_min)};
   }
+  function currentObservation(){
+    const candidates=[];
+    const w=state.weather;
+    if(w&&w.level!=null){
+      const at=w.obs&&(w.obs.observed_at_utc||w.obs.timestamp_utc||w.obs.observed_at);
+      const ts=parseFeedDate(at).getTime();
+      candidates.push({
+        level:w.level,
+        at:at||null,
+        ts:Number.isFinite(ts)?ts:-Infinity,
+        age:w.obs?safeNum(w.obs.age_minutes):null,
+        state:w.obs&&w.obs.state,
+        source:w.obs&&w.obs.source||'snapshot do feed meteorológico'
+      });
+    }
+    const l=state.live;
+    if(l&&l.level!=null){
+      const ts=parseFeedDate(l.telemetry).getTime();
+      candidates.push({
+        level:l.level,
+        at:l.telemetry||null,
+        ts:Number.isFinite(ts)?ts:-Infinity,
+        age:l.telemetryAge,
+        state:null,
+        source:'feed ao vivo ANA/SGB'
+      });
+    }
+    if(!candidates.length)return {level:null,at:null,age:null,stale:true,source:'sem observação'};
+    candidates.sort((a,b)=>b.ts-a.ts);
+    const best=candidates[0];
+    const computedAge=best.at&&Number.isFinite(best.ts)?Math.max(0,(Date.now()-best.ts)/60000):best.age;
+    const age=Number.isFinite(computedAge)?computedAge:best.age;
+    return {...best,age,stale:best.state==='unknown_or_stale'||(age!=null&&age>180)};
+  }
   function setFeedState(){
     const node=el('#pv-feed-state'),chips=el('#pv-feed-chips');
     const feeds=[
@@ -85,12 +119,13 @@
     const h72=hs.find(h=>h.hours===72)||hs.find(h=>h.hours>=72)||hs[hs.length-1];
     const now=state.live?.rows?.find(x=>x.key==='2h')||state.live?.rows?.[0];
     const four=state.live?.rows?.find(x=>x.key==='4h');
+    const obs=currentObservation();
     if(state.mode==='river'){
       setHtml('#pv-kpis',[
-        ['Rio agora',cm(w?.level??now?.now),w?.obs?.age_minutes!=null?`observado · ${br.format(w.obs.age_minutes)} min`:'telemetria do robô'],
+        ['Rio agora',cm(obs.level??now?.now),obs.age!=null?`observado · ${br.format(obs.age)} min · ${obs.source}`:'telemetria do robô'],
         ['Previsão pontual · +2 h',cm(now?.level),now?`${now.modelo||'RNA ao vivo'} · Δ ${now.delta==null?'—':(now.delta>0?'+':'')+cm(now.delta)}`:'sem rodada'],
         ['Previsão pontual · +4 h',cm(four?.level),four?`${four.modelo||'RNA ao vivo'} · Δ ${four.delta==null?'—':(four.delta>0?'+':'')+cm(four.delta)}`:'sem rodada'],
-        ['Cota oficial da pesquisa',cm(threshold),w?.level!=null&&threshold?`${cm(threshold-w.level)} abaixo · não é previsão`:'limiar não disponível']
+        ['Cota oficial da pesquisa',cm(threshold),obs.level!=null&&threshold?`${cm(threshold-obs.level)} abaixo · não é previsão`:'limiar não disponível']
       ].map((x,i)=>`<article class="pv-kpi"><span class="pv-kpi-label">${x[0]}</span><strong class="pv-kpi-value ${i===0?'good':''}">${x[1]}</strong><span class="pv-kpi-note">${x[2]}</span></article>`).join(''));
       return;
     }
@@ -100,7 +135,7 @@
     const probLabel=latestProb&&probFresh?`${pct.format(latestProb.prob)}%*`:'UNKNOWN/STALE';
     const probNote=latestProb&&probFresh?`score experimental · ${state.probability?.calibrated?'calibração de pesquisa':'não calibrado'} · não é chance real`:'feed antigo ou sem valor atual';
     setHtml('#pv-kpis',[
-      ['Rio agora',cm(w?.level??now?.now),w?.obs?.state==='unknown_or_stale'?'leitura atrasada':'observado'],
+      ['Rio agora',cm(obs.level??now?.now),obs.stale?'leitura atrasada':'observado · fonte mais recente'],
       ['Chuva prevista · +24 h',mm(h24?.basin??h24?.rain),station==='mucum'?'ECMWF IFS no ponto':'ECMWF IFS no recorte'],
       ['Chuva prevista · +72 h',mm(h72?.basin??h72?.rain),station==='mucum'?'ponto de Muçum':'média espacial do recorte'],
       ['Score experimental · +168 h',probLabel,probNote]
@@ -182,7 +217,8 @@
     else if(rain>=100)signals.push(['Chuva prevista','volume elevado na janela longa','warn']);
     else if(rain>=40)signals.push(['Chuva prevista','volume moderado a alto','warn']);
     else signals.push(['Chuva prevista','volume baixo no feed atual','good']);
-    if(w?.level!=null&&threshold){const gap=threshold-w.level;signals.push(['Margem até a cota de pesquisa',`${cm(gap)} abaixo de ${cm(threshold)}`,'good']);}
+    const obs=currentObservation();
+    if(obs.level!=null&&threshold){const gap=threshold-obs.level;signals.push(['Margem até a cota de pesquisa',`${cm(gap)} abaixo de ${cm(threshold)} · ${obs.source}`,'good']);}
     if(soil!=null)signals.push(['Solo / umidade','proxy modelado: '+br.format(soil)+' m³/m³','warn']);
     else if(w?.soil?.message)signals.push(['Solo / umidade','sem sensor local; proxy indisponível','warn']);
     if(fresh&&prob?.prob!=null)signals.push(['Score experimental · +168 h',`${pct.format(prob.prob)}%* · não representa chance real`,'warn']);
