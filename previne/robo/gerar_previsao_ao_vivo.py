@@ -84,10 +84,10 @@ POSTOS_CHUVA_MAE_6H = (POSTO_CHUVA_INMET_A894, POSTO_CHUVA_CEMADEN_SERAFINA)
 CHUVAS_HORARIAS_CSV = "assets/data/chuvas_horarias.csv"
 HORIZONTE = "2h"
 COMBO = "009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21"
-BANKFULL_CM = 400           # zero da mancha (provisório): ancorado na cota de
-                            # inundação oficial (15 m) via ANADEM — ver
-                            # codigo_python/04_zero_regua/. Definitivo aguarda a
-                            # cota oficial do zero da régua (SGB/ANA).
+BANKFULL_CM = 1500          # referência operacional adotada para Santa Tereza:
+                            # 15,0 m na régua = início do extravasamento (HAND 0).
+                            # Portanto, um ponto HAND h é associado, no cenário
+                            # simplificado, a ~15,0 + h metros na régua.
 SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
 HISTORICO_SAIDA = "historico_previsoes_ao_vivo.json"
 # Guardrails operacionais: servem para sinalizar degradaÃ§Ã£o recente no painel;
