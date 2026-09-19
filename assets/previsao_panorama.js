@@ -5,7 +5,7 @@
   const state={config:null,history:null,live:null,selectedLive:null,liveStaleHorizons:[],auditCatalog:null,researchRisk:null,researchReview:null,historyError:null,auditCatalogError:null,liveError:null,historyTimer:null,researchTimer:null,resizeObserver:null,resizeTimer:null,errorWindowHours:168};
   // Os feeds da pesquisa são deliberadamente tratados como dados com idade.
   // Um valor velho continua auditável, mas não deve parecer uma previsão atual.
-  const FRESHNESS={liveMinutes:30,historyHours:24,researchWeatherHours:18,researchProbabilityHours:36,researchReviewHours:72};
+  const FRESHNESS={liveMinutes:180,historyHours:24,researchWeatherHours:18,researchProbabilityHours:36,researchReviewHours:72};
   // Uma previsão cujo alvo já passou não deve ocupar o papel de horizonte futuro.
   // Ela continua disponível no histórico e na ficha detalhada para auditoria.
   const ACTIVE_FORECAST_GRACE_MINUTES=30;
@@ -113,12 +113,11 @@
   }
 
   function telemetryLabel(age){
-    if(age===null||age===undefined||!Number.isFinite(Number(age))) return 'telemetria sem idade válida';
+    if(age===null||age===undefined||!Number.isFinite(Number(age))) return 'idade da leitura não disponível';
     const mins=Number(age);
-    if(mins<=30) return 'telemetria recente';
-    if(mins<=60) return 'telemetria com atraso';
-    if(mins<=120) return 'telemetria atrasada';
-    return 'telemetria muito atrasada';
+    if(mins<=90) return 'leitura ANA disponível';
+    if(mins<=180) return 'leitura ANA disponível, com maior defasagem';
+    return 'leitura ANA antiga';
   }
 
   function nextHourlyBase(payload){
@@ -131,11 +130,14 @@
   function baseLagReason(payload){
     const base=parseWhen(payload&&payload.hora_modelo);
     const telemetry=parseWhen(payload&&(payload.telemetria_ultima_em||payload.nivel_rio_agora_em));
+    const consulted=payload&&payload.consultado_em;
+    const robotAge=ageMinutes(consulted);
     const status=String(payload&& (payload.status||payload.status_dados||'')).toLowerCase();
+    if(robotAge!==null&&robotAge>90) return `o arquivo publicado ainda não recebeu um novo ciclo do robô do GitHub (última consulta há ${nf0.format(robotAge)} min). Isso é atraso da automação/publicação e não prova de atraso da ANA`;
     if(/hora[- ]base.*atrasad/.test(status)) return `este horizonte permanece na base ${fmtClock(base)} porque o conjunto completo e válido da próxima hora não foi disponibilizado a tempo; a RNA manteve a última base válida para preservar a grade horária exata`;
     if(!base) return 'a hora-base da RNA ainda não está disponível';
-    if(!telemetry) return 'a ANA ainda não trouxe uma leitura válida para formar a próxima base';
-    if(telemetry<=base) return `a ANA ainda não trouxe uma leitura posterior à base ${fmtClock(base)}`;
+    if(!telemetry) return 'na última execução, o robô não recebeu uma leitura ANA válida para formar a próxima base';
+    if(telemetry<=base) return `na última consulta do robô, a leitura ANA disponível ainda não era posterior à base ${fmtClock(base)}`;
     const candidate=nextHourlyBase(payload);
     const candidateLabel=fmtClock(candidate||new Date(base.getTime()+60*60*1000));
     return `a ANA já trouxe uma leitura às ${fmtClock(telemetry)}, mas a RNA só usa bases completas de hora cheia; a próxima base será ${candidateLabel} quando a hora estiver fechada`;
@@ -1016,22 +1018,24 @@
     const selected=state.selectedLive||state.live;
     const telemetryWhen=state.live.telemetria_ultima_em||state.live.nivel_rio_agora_em;
     const liveFresh=state.live._freshness||freshness(feedTimestamp(state.live),FRESHNESS.liveMinutes);
-    const telemetryFresh=telemetryWhen?freshness(telemetryWhen,60):null;
-    const telemetryAge=telemetryFresh&&telemetryFresh.ageMinutes;
-    label.textContent=liveFresh.stale
-      ?'Publicação atualizada com atraso'
-      :(telemetryAge!==null&&telemetryAge>120?'Dados publicados · telemetria ANA muito atrasada':(telemetryAge!==null&&telemetryAge>60?'Dados publicados · telemetria ANA atrasada':(telemetryAge!==null&&telemetryAge>30?'Dados publicados · telemetria ANA com atraso':'Robô ao vivo ativo')));
+    const telemetryFresh=telemetryWhen?freshness(telemetryWhen,180):null;
+    const robotAge=ageMinutes(state.live.consultado_em||feedTimestamp(state.live));
+    const sourceLag=Number.isFinite(Number(state.live.idade_telemetria_min))?Number(state.live.idade_telemetria_min):null;
+    label.textContent=robotAge!==null&&robotAge>180
+      ?'Robô/publicação desatualizados'
+      :(robotAge!==null&&robotAge>90?'Aguardando nova execução do robô':(sourceLag!==null&&sourceLag>180?'ANA com leitura antiga na última consulta':'Robô ativo · ANA respondeu'));
     const longForecast=state.researchRisk&&state.researchRisk.feed_type==='meteorological_forecast';
-    const ageText=liveFresh.ageMinutes===null?'consulta do robô com idade n/d':`robô consultado há ${nf0.format(liveFresh.ageMinutes)} min`;
+    const ageText=robotAge===null?'idade da última consulta do robô n/d':`robô consultou há ${nf0.format(robotAge)} min`;
     const telemetryText=telemetryFresh&&telemetryFresh.ageMinutes!==null
-      ?` leitura ANA há ${nf0.format(telemetryFresh.ageMinutes)} min · ${telemetryLabel(telemetryFresh.ageMinutes)}`
+      ?`observação disponível tem ${nf0.format(telemetryFresh.ageMinutes)} min agora · ${telemetryLabel(telemetryFresh.ageMinutes)}`
       :'';
+    const sourceLagText=sourceLag===null?'defasagem da fonte na consulta n/d':`na última consulta, a leitura ANA tinha ${nf0.format(sourceLag)} min de defasagem`;
     const liveHorizons=state.live&&state.live.horizontes?Object.keys(state.live.horizontes).filter(k=>/^(2h|4h|8h)/.test(k)).map(k=>k.replace('_versao_b',' — comparativa').replace('_v002',' — comparativa').replace('h',' h')).join(', '):'';
     const staleHorizons=Array.isArray(state.liveStaleHorizons)?state.liveStaleHorizons:[];
     const staleText=staleHorizons.length
       ?` ${staleHorizons.map(p=>`+${p.hours} h`).join(' e ')} ficou fora do panorama porque o horário-alvo já passou; permanece no histórico para auditoria.`
       :'';
-    detail.innerHTML=`${timingRowsHtml(selected)}<span class="live-timing-meta">${ageText}${liveFresh.stale?' · publicação marcada como atrasada':''}${telemetryText?` · ${telemetryText}`:''}. Atualização automática prevista a cada 5 minutos; a ANA pode chegar em :15/:30/:45, enquanto a RNA usa somente bases de hora cheia. O robô publica previsões experimentais de ${escapeHtml(liveHorizons||'nenhum horizonte')}.${escapeHtml(staleText)} ${longForecast?'A previsão meteorológica e o score experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a RNA continuam em validação de pesquisa; não são alerta oficial.'}</span>`;
+    detail.innerHTML=`${timingRowsHtml(selected)}<span class="live-timing-meta">${ageText}${liveFresh.stale?' · publicação do robô está fora da janela de 180 min':''}${telemetryText?` · ${telemetryText}`:''} · ${sourceLagText}. O GitHub Actions é agendado periodicamente, mas pode atrasar a execução; esse atraso é mostrado separado da idade da leitura ANA. A RNA usa somente bases de hora cheia. O robô publica previsões experimentais de ${escapeHtml(liveHorizons||'nenhum horizonte')}.${escapeHtml(staleText)} ${longForecast?'A previsão meteorológica e o score experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a RNA continuam em validação de pesquisa; não são alerta oficial.'}</span>`;
     const mapSummary=document.getElementById('map-accessible-summary');
     if(mapSummary){
       const current=state.live&&(state.live.nivel_rio_agora_cm??state.live.telemetria_ultima_nivel_cm);
