@@ -50,6 +50,14 @@ ULTIMA_RAW = {}
 ULTIMA_RAW_REJEITADA = {}
 NIVEL_PLAUSIVEL_MIN_CM = -500.0
 NIVEL_PLAUSIVEL_MAX_CM = 5000.0
+# Algumas estações montantes podem usar cota absoluta, não a mesma escala da
+# régua-alvo. Mantemos limites específicos conhecidos para que uma futura
+# promoção de modelo não transforme um valor válido em "dado ausente".
+NIVEL_PLAUSIVEL_MAX_POR_ESTACAO_CM = {
+    "86125500": 30000.0,
+    "86430900": 35000.0,
+    "86448000": 30000.0,
+}
 ANA_TIMEOUT_NIVEL_S = 15
 ANA_TIMEOUT_CHUVA_S = 12
 ANA_RETRIES_NIVEL = 2
@@ -238,9 +246,9 @@ def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
                 req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
                 xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_NIVEL_S).read()
                 serie, nbytes, ultima_raw = _serie_de_xml(xml)
-                serie = {hora: valor for hora, valor in serie.items() if nivel_plausivel(valor)}
+                serie = {hora: valor for hora, valor in serie.items() if nivel_plausivel(valor, cod)}
                 print(f"[ANA {cod}] tent={attempt+1} bytes={nbytes} linhas_validas={len(serie)}")
-                if ultima_raw and not nivel_plausivel(ultima_raw[1]):
+                if ultima_raw and not nivel_plausivel(ultima_raw[1], cod):
                     ULTIMA_RAW_REJEITADA[cod] = ultima_raw
                 if serie:
                     ULTIMA_RAW[cod] = max(serie.items(), key=lambda par: par[0])
@@ -257,9 +265,9 @@ def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
                     req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
                     xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_NIVEL_S).read()
                     serie, nbytes, ultima_raw = _serie_de_xml(xml)
-                    serie = {hora: valor for hora, valor in serie.items() if nivel_plausivel(valor)}
+                    serie = {hora: valor for hora, valor in serie.items() if nivel_plausivel(valor, cod)}
                     print(f"[ANA {cod}] tent={attempt+1} sem-data bytes={nbytes} linhas_validas={len(serie)}")
-                    if ultima_raw and not nivel_plausivel(ultima_raw[1]):
+                    if ultima_raw and not nivel_plausivel(ultima_raw[1], cod):
                         ULTIMA_RAW_REJEITADA[cod] = ultima_raw
                     if serie:
                         ULTIMA_RAW[cod] = max(serie.items(), key=lambda par: par[0])
@@ -320,12 +328,13 @@ def buscar_series_paralelo(codigos, funcao, max_workers=8):
         resultados = list(executor.map(funcao, codigos))
     return dict(zip(codigos, resultados))
 
-def nivel_plausivel(valor):
+def nivel_plausivel(valor, estacao=None):
     try:
         valor = float(valor)
     except (TypeError, ValueError):
         return False
-    return NIVEL_PLAUSIVEL_MIN_CM <= valor <= NIVEL_PLAUSIVEL_MAX_CM
+    maximo = NIVEL_PLAUSIVEL_MAX_POR_ESTACAO_CM.get(str(estacao), NIVEL_PLAUSIVEL_MAX_CM)
+    return NIVEL_PLAUSIVEL_MIN_CM <= valor <= maximo
 
 
 def nivel_exato(serie, t):
@@ -574,7 +583,7 @@ def serie_observada_ana_publica(series, dias=7):
     return [
         {"hora": hora.isoformat(timespec="minutes"), "nivel_cm": round(float(valor), 3)}
         for hora, valor in sorted(serie.items())
-        if hora >= inicio and nivel_plausivel(valor)
+        if hora >= inicio and nivel_plausivel(valor, ALVO)
     ]
 
 
@@ -908,7 +917,7 @@ def main():
             variacao = prever(cfg["mat"], x)
             nivel_base = nivel_exato(series[ALVO], t)
             nivel_prev = nivel_base + variacao if cfg["tipo"].upper() == "ALT" else variacao
-            if not nivel_plausivel(nivel_prev):
+            if not nivel_plausivel(nivel_prev, ALVO):
                 horizontes[horizonte] = base_saida(
                     cfg, nivel_agora, None, t,
                     f"previsao rejeitada: {nivel_prev:.1f} cm fora da faixa plausivel",
