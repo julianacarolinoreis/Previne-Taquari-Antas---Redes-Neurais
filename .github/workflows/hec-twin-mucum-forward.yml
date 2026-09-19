@@ -4,6 +4,18 @@ name: HEC twin Muçum forward ~5d
 # Não toca RNA. Não é alerta oficial.
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/hec-twin-mucum-forward.yml"
+      - "scripts/build_hec_twin_ifs_forcing_5d.py"
+      - "scripts/run_hec_twin_mucum_forward_5d.py"
+      - "scripts/hec_twin_nested_v17.py"
+      - "scripts/hec_twin_mucum_bacia_calibracao.py"
+      - "scripts/run_hec_twin_stz_mucum_calibrate.py"
+      - "scripts/build_plataforma_hec_twin_mucum.py"
+      - "scripts/plataforma_hec_twin_mucum_ui.py"
   schedule:
     # A cada 6 h, offset :12 (longe dos robôs RNA de 5 min).
     - cron: "12 */6 * * *"
