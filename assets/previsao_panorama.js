@@ -131,7 +131,7 @@
     const base=parseWhen(payload&&payload.hora_modelo);
     const telemetry=parseWhen(payload&&(payload.telemetria_ultima_em||payload.nivel_rio_agora_em));
     const status=String(payload&& (payload.status||payload.status_dados||'')).toLowerCase();
-    if(/hora[- ]base.*atrasad/.test(status)) return `este horizonte permanece na base ${fmtClock(base)} porque o conjunto completo e válido da próxima hora não foi disponibilizado a tempo; a RNA manteve a última base válida para preservar a grade horária exata`;
+    if(/hora[- ]base.*atrasad|base da rna.*anterior/.test(status)) return `este horizonte permanece na base ${fmtClock(base)} porque o conjunto completo e válido da próxima hora cheia ainda não estava disponível; a RNA manteve a última base válida. A leitura ANA mais recente é mostrada separadamente.`;
     if(!base) return 'a hora-base da RNA ainda não está disponível';
     if(!telemetry) return 'a ANA ainda não trouxe uma leitura válida para formar a próxima base';
     if(telemetry<=base) return `a ANA ainda não trouxe uma leitura posterior à base ${fmtClock(base)}`;
