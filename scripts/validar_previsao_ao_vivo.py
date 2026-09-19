@@ -140,6 +140,8 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
             continue
         if item.get("disponivel") is not True:
             raise SystemExit(f"{key} com previsao precisa declarar disponivel=true")
+        if not (-500 <= float(item["nivel_previsto_cm"]) <= 5000):
+            raise SystemExit(f"{key} publicou previsao fora da faixa plausivel")
         hora = str(item.get("hora_modelo") or "")
         minuto = int(hora[14:16]) if len(hora) >= 16 and hora[14:16].isdigit() else -1
         if minuto != 0:
