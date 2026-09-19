@@ -111,6 +111,10 @@ class MucumFeedContractTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             validate_data(data)
 
+    def test_station_specific_plausibility_keeps_absolute_stage_inputs(self) -> None:
+        self.assertTrue(LIVE.nivel_plausivel(25000, "86125500"))
+        self.assertFalse(LIVE.nivel_plausivel(25000, LIVE.ALVO))
+
 
 if __name__ == "__main__":
     unittest.main()
