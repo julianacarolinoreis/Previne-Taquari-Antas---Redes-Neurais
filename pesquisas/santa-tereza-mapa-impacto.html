@@ -69,12 +69,19 @@ function render(nivel){atualizaMancha(nivel);const cnt={alagada:0,critica:0,aper
 const sld=document.getElementById('sld'),sldTaxa=document.getElementById('sldTaxa');
 function cen(t){return t<=25?'(subida lenta)':t<=100?'(subida moderada)':'(subida rápida · cenário)';}
 function redraw(){taxaCmH=+sldTaxa.value;document.getElementById('taxatxt').textContent=taxaCmH;document.getElementById('taxacen').textContent=cen(taxaCmH);render(BANKFULL_M+(sld.value/100)*CAMADA_MAX);}
-sld.oninput=redraw;sldTaxa.oninput=redraw;redraw();
+sld.oninput=redraw;sld.onchange=redraw;sldTaxa.oninput=redraw;sldTaxa.onchange=redraw;redraw();
 Promise.allSettled([
  fetch('../assets/data/santa_tereza_inundacao/contornos_mancha.json').then(r=>{if(!r.ok)throw new Error('contornos '+r.status);return r.json();}),
  fetch('../assets/data/santa_tereza_inundacao/mancha_preliminar_santa_tereza.geojson').then(r=>{if(!r.ok)throw new Error('preliminar '+r.status);return r.json();})
 ]).then(res=>{
- if(res[0].status==='fulfilled'){contornosGeo=res[0].value;prepara(contornosGeo);cotaCells=cellCenters.map(p=>cotaNoPonto(p[0],p[1]));}
+ if(res[0].status==='fulfilled'){
+  contornosGeo=res[0].value;prepara(contornosGeo);
+  const novas=cellCenters.map(p=>cotaNoPonto(p[0],p[1]));
+  const valid=novas.filter(v=>v!==null&&v!==undefined).length;
+  const distinct=new Set(novas.filter(v=>v!==null&&v!==undefined).map(v=>Number(v).toFixed(1))).size;
+  if(valid>=Math.max(8,Math.floor(D.cells.length*.10))&&distinct>=2)cotaCells=novas;
+  else cotaCells=D.cells.map(c=>c.cota);
+ }
  if(res[1].status==='fulfilled'){prelimLayer=L.geoJSON(res[1].value,{style:{color:'#7d3cff',weight:2,dashArray:'6 5',fillColor:'#7d3cff',fillOpacity:.04}});prelimLayer.bindPopup('<b>Mancha preliminar legada</b><br>Prova de conceito antiga; não entra na classificação atual.');prelimControl=L.control.layers(null,{'Mancha preliminar legada · opcional':prelimLayer},{collapsed:true}).addTo(map);}
  redraw();
 });
