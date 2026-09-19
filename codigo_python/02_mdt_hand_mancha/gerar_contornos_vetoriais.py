@@ -48,6 +48,13 @@ MÉTODO
    grande do polígono — visivelmente mais suave no mesmo teste, e ainda por
    cima gera MENOS vértices (não duplica a cada iteração feito o Chaikin).
 
+5. GARANTIA DE ANINHAMENTO ENTRE NÍVEIS: a máscara raster original é
+   monotônica (a água de um nível menor não pode "sumir" no nível seguinte),
+   mas simplificação + suavização independentes podem introduzir pequenas
+   retrações artificiais no vetor. Por isso, depois da suavização/precisão,
+   cada nível é unido ao contorno publicado do nível anterior. Assim a mancha
+   vetorial nunca encolhe quando o HAND aumenta.
+
 PASSO 0,1 M (não 0,5 m) — achado depois de publicar com 0,5 m
 ---------------------------------------------------------------
 Nas páginas AO VIVO (previsao), o site mostra 3 níveis ao mesmo tempo
@@ -159,6 +166,7 @@ def gera(cidade):
     print(f"HAND pronto | talvegue {int(thal.sum())} cel")
 
     features = []
+    previous_geom = None
     for nivel in NIVEIS_M:
         lvl_m = nivel
         mask = hand <= lvl_m
@@ -174,8 +182,23 @@ def gera(cidade):
         out = suaviza(u, tol, SIGMA)
         if out is None or out.is_empty:
             continue
-        geom = arredonda_geom(mapping(out), PRECISAO_DECIMAIS)
-        area_ha = out.area * 111320 * 111320 * abs(np.cos(np.radians((b.bottom + b.top) / 2))) / 1e4
+        geom_obj = shape(arredonda_geom(mapping(out), PRECISAO_DECIMAIS))
+        # A máscara HAND é cumulativa. Simplificar/suavizar cada nível de forma
+        # independente pode fazer o vetor encolher alguns hectares por artefato
+        # geométrico. A união com o nível anterior restaura a propriedade física
+        # de aninhamento sem inventar área que não tivesse aparecido antes.
+        if previous_geom is not None:
+            geom_obj = unary_union([previous_geom, geom_obj])
+            if not geom_obj.is_valid:
+                geom_obj = make_valid(geom_obj)
+            geom_obj = set_precision(
+                geom_obj,
+                grid_size=10 ** (-PRECISAO_DECIMAIS),
+                mode="valid_output",
+            )
+        previous_geom = geom_obj
+        geom = mapping(geom_obj)
+        area_ha = geom_obj.area * 111320 * 111320 * abs(np.cos(np.radians((b.bottom + b.top) / 2))) / 1e4
         features.append({
             "type": "Feature",
             "properties": {"nivel_m": lvl_m, "area_ha": round(area_ha, 1)},
