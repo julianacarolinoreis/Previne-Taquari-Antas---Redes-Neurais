@@ -22,9 +22,9 @@
   <h1>Margem de fuga · <span id="cid"></span></h1>
   <div class="sub">Arraste o nível da cheia e veja a janela de fuga fechar.</div>
   <div class="sub">Nível da cheia: <span class="lv" id="nvtxt"></span></div>
-  <input type="range" id="sld" min="0" max="100" value="0">
+  <input type="range" id="sld" min="0" max="100" value="0">\n  <div class="sub" style="font-size:11px;color:#6b756f">Faixa exploratória do controle: 0–30 m. Ausência de cota calculada permanece UNKNOWN.</div>
   <div class="sub">Velocidade da subida: <span class="lv" id="taxatxt"></span> cm/h <span id="taxacen" style="color:#7a5b00;font-size:11px"></span></div>
-  <input type="range" id="sldTaxa" min="10" max="120" value="40" step="5">
+  <input type="range" id="sldTaxa" min="10" max="200" value="40" step="5">
   <div id="cont"></div>
   <div class="leg" id="leg"></div>
   <div class="sub" style="margin-top:6px;font-size:11px;color:#7a5b00">Margem = tempo até a água − tempo de caminhada (idoso, 0,9 m/s) até o abrigo mais próximo. Cenário ilustrativo.</div>
@@ -68,8 +68,8 @@ function render(nivel){
     `<div class="row"><span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${CORES[k]};margin-right:6px"></i>${ROT[k]}</span><b>${cnt[k]}</b></div>`).join('');
 }
 document.getElementById('leg').innerHTML='';
-const sld=document.getElementById('sld'), sldTaxa=document.getElementById('sldTaxa'), NVMAX=D.meta.nivel_max_m;
-function cenarioTaxa(t){return t<=25?'(cheia lenta)':t>=90?'(ritmo de recorde)':'';}
+const sld=document.getElementById('sld'), sldTaxa=document.getElementById('sldTaxa'), NVMAX=30;
+function cenarioTaxa(t){return t<=25?'(cheia lenta)':t>=150?'(subida muito rápida)':t>=90?'(subida rápida)':'';}
 function redraw(){
   taxaCmH=+sldTaxa.value;
   document.getElementById('taxatxt').textContent=taxaCmH;
