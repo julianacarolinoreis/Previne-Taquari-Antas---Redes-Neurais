@@ -16,9 +16,17 @@ on:
     # best-effort; o painel exibe a idade real da última execução.
     - cron: '2-59/5 * * * *'
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Atualiza feed meteorológico de Santa Tereza"
+      - "Chuvas horarias (ANA + INMET + CEMADEN)"
+      - "Contexto automático da pesquisa da bacia"
+    types:
+      - completed
 
 jobs:
   prever:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     # Uma consulta ANA presa não pode deixar o robô indefinidamente em execução.
     timeout-minutes: 8
