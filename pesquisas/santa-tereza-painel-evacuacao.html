@@ -93,9 +93,14 @@ const ruasLayer=L.layerGroup(ruas.map(r=>r.pl));
 // Grade IBGE: contorno discreto + ponto no centro. Não pintar o quadrado inteiro,
 // porque em área rural a célula pode ter ~1 km e a população não está localizada casa a casa.
 const cellBoxes=D.cells.map(c=>L.polygon(c.poly,{weight:.55,color:'#d7e0dd',opacity:.20,fillOpacity:0}));
-const cellDots=D.cells.map((c,idx)=>L.circleMarker(cellCenters[idx],{radius:Math.max(3,Math.min(9,3+Math.sqrt(Math.max(0,c.pop))*.35)),color:'#ffffff',weight:1.2,fillColor:'#9aa3a0',fillOpacity:.82})
-  .bindPopup(()=>{const ri=rotaInfo[cellNode[idx]]||{},lc=cotaCellsAtuais[idx],local=lc==null?'sem cobertura no intervalo':(BANKFULL_M+lc).toFixed(1)+' m na régua',garg=ri.cota==null?'sem cota suficiente':(BANKFULL_M+ri.cota).toFixed(1)+' m na régua';return `<b>${c.pop} pessoas na célula da Grade IBGE</b><br><small>O ponto representa a célula; não é a posição de uma casa. Em área rural a célula pode ter cerca de 1 km.</small><br>limiar HAND no centro da célula: <b>${local}</b><br>primeiro gargalo HAND da rota: <b>${garg}</b><br>a pé: ${(c.dist_m/1000).toFixed(2)} km`; }));
-const cellsLayer=L.layerGroup([...cellBoxes,...cellDots]);
+const CLASSES_SAIDA=new Set(['alagada','rota_comprometida','critica','apertada','atencao']);
+function iconQuadrado(classe,pop){
+  const saida=CLASSES_SAIDA.has(classe),txt=classe==='sem_dado'?'?':saida?String(pop):'0',cor=CORES[classe]||CORES.sem_dado;
+  return L.divIcon({className:'',iconSize:[32,32],iconAnchor:[16,16],html:`<div title="${saida?pop+' pessoas a priorizar para saída':'sem prioridade de saída nesta classe'}" style="width:30px;height:30px;box-sizing:border-box;border-radius:5px;border:2px solid rgba(255,255,255,.95);background:${cor};color:#fff;display:flex;align-items:center;justify-content:center;font:800 12px/1 Arial,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.45);text-shadow:0 1px 2px rgba(0,0,0,.45)">${txt}</div>`});
+}
+const cellSquares=D.cells.map((c,idx)=>L.marker(cellCenters[idx],{icon:iconQuadrado('sem_dado',c.pop),keyboard:true})
+  .bindPopup(()=>{const ri=rotaInfo[cellNode[idx]]||{},lc=cotaCellsAtuais[idx],local=lc==null?'sem cobertura no intervalo':(BANKFULL_M+lc).toFixed(1)+' m na régua',garg=ri.cota==null?'sem cota suficiente':(BANKFULL_M+ri.cota).toFixed(1)+' m na régua',nivel=nivelAtual(),geral=classe(lc,ri.cota,c.dist_m,nivel),saida=CLASSES_SAIDA.has(geral);return `<b>${c.pop} pessoas na célula da Grade IBGE</b><br><b>${saida?'Até '+c.pop+' pessoas a priorizar para saída neste cenário':'0 pessoas em prioridade de saída nesta classe'}</b><br><small>O quadradinho é um marcador da célula, não a área ocupada nem a posição de uma casa. Em área rural a célula pode ter cerca de 1 km.</small><br>classe: <b>${ROT[geral]||geral}</b><br>limiar HAND no centro: <b>${local}</b><br>primeiro gargalo HAND da rota: <b>${garg}</b><br>a pé: ${(c.dist_m/1000).toFixed(2)} km`; }));
+const cellsLayer=L.layerGroup([...cellBoxes,...cellSquares]);
 const abrigos=L.layerGroup(D.abrigos.map(a=>L.marker([a.lat,a.lon]).bindPopup('<b>'+a.nome+'</b><br>abrigo / ponto de encontro')));
 const BB=b.pad(0.06);function aj(){map.invalidateSize();map.fitBounds(BB);}
 
@@ -138,13 +143,13 @@ function renderImpacto(){const nivel=nivelAtual(),h=Math.max(0,nivel-BANKFULL_M)
     const rotaAtingida=ri.cota!=null&&ri.cota<=h;
     const borda=rotaAtingida?CORES.rota_comprometida:(geral==='critica'?CORES.critica:geral==='apertada'?CORES.apertada:'#ffffff');
     cellBoxes[i].setStyle({fillOpacity:0,color:local==='alagada'?CORES.alagada:'#d7e0dd',opacity:local==='alagada'?.6:.18,weight:local==='alagada'?1.2:.5});
-    cellDots[i].setStyle({fillColor:CORES[local]||CORES.sem_dado,color:borda,weight:rotaAtingida?3:(geral==='critica'||geral==='apertada'?2:1.2),fillOpacity:local==='sem_dado'?.35:.9});
+    cellSquares[i].setIcon(iconQuadrado(geral,c.pop));
   });
   document.getElementById('nvtxt').textContent=nivel.toFixed(1)+' m';
   const risco=cnt.alagada+cnt.rota_comprometida+cnt.critica+cnt.apertada+cnt.atencao;
-  document.getElementById('painel').innerHTML='<div class="sub"><b>Os quadrados são células da Grade Estatística do IBGE, não casas nem área inundada.</b> Em zona rural podem ter cerca de 1 km. Por isso deixei os quadrados sem preenchimento: o ponto colorido representa a célula/população agregada; a mancha azul é que representa o cenário HAND.</div>'+
+  document.getElementById('painel').innerHTML='<div class="sub"><b>Quadradinhos coloridos = células da Grade IBGE.</b> O número dentro mostra quantas pessoas daquela célula entram na prioridade de saída neste cenário; <b>0</b> = sem prioridade nesta classe e <b>?</b> = sem dado. O quadradinho é só um marcador: não pinta toda a área da célula nem indica a posição exata das casas.</div>'+
     ordem.map(k=>`<div class="row"><span><i style="background:${CORES[k]}"></i>${ROT[k]}</span><b>${cnt[k].toLocaleString('pt-BR')}</b></div>`).join('')+
-    `<div class="big"><b>${risco.toLocaleString('pt-BR')}</b> pessoas em células IBGE com local ou rota sob pressão — <b>limite superior de triagem</b>, não contagem de casas atingidas.</div>`;
+    `<div class="big"><b>${risco.toLocaleString('pt-BR')}</b> pessoas a priorizar para saída neste cenário, considerando célula inteira como limite superior de triagem.</div>`;
 }
 function redraw(){taxaCmH=+sldTaxa.value;document.getElementById('taxatxt').textContent=taxaCmH;
   document.getElementById('taxacen').textContent=taxaCmH<=25?'(lenta)':taxaCmH>100?'(subida rápida · cenário)':'';
