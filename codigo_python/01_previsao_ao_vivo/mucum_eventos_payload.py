@@ -62,11 +62,11 @@ def build_eventos_dict() -> dict:
                 "series": st_series,
             }
 
-    # Referência estática — pico recorde maio/2024 (ev27), como record_2024 do ST
+    # Referência estática — pico do evento de maio/2024 (ev27), sem afirmar recorde histórico
     pico27 = int(picos.get("27") or 2551)
     data27 = pico_data.get("27") or "2024-05-01"
     out["record_maio2024"] = {
-        "label": f"Pico recorde · {data27}",
+        "label": f"Pico do evento · {data27}",
         "evento": 27,
         "combo": "referência",
         "horizonte": "—",
