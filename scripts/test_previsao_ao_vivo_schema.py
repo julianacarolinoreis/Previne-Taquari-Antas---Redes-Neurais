@@ -53,6 +53,30 @@ class LiveFeedContractTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             validate_data(data, b_mat=B_MAT)
 
+    def test_missing_prediction_cannot_be_marked_available(self) -> None:
+        data = copy.deepcopy(self.data)
+        two = data["horizontes"]["2h"]
+        two["nivel_previsto_cm"] = None
+        two["disponivel"] = True
+        two["auditoria_inputs"] = {"status": "ATENCAO"}
+        with self.assertRaises(SystemExit):
+            validate_data(data, b_mat=B_MAT)
+
+    def test_implausible_prediction_is_rejected(self) -> None:
+        data = copy.deepcopy(self.data)
+        data["horizontes"]["2h"]["nivel_previsto_cm"] = 99999
+        with self.assertRaises(SystemExit):
+            validate_data(data, b_mat=B_MAT)
+
+    def test_robot_failure_does_not_fake_a_fresh_success_timestamp(self) -> None:
+        source = (ROOT / "previne" / "robo" / "gerar_previsao_ao_vivo.py").read_text(encoding="utf-8")
+        start = source.index("def preservar_saida_valida_em_falha")
+        end = source.index("def algum_horizonte_com_previsao", start)
+        block = source[start:end]
+        self.assertNotIn('atual["consultado_em"] = agora', block)
+        self.assertIn('atual["ultima_tentativa_em"] = agora', block)
+        self.assertIn('audit = auditoria_inputs_8h(cfg, cand, x)', source)
+
 
 if __name__ == "__main__":
     unittest.main()
