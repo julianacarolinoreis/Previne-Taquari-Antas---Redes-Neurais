@@ -24,6 +24,21 @@ EXPECTED_INPUTS = {"2h": 14, "4h": 30, "4h_versao_b": 15, "8h": 26, "8h_versao_b
 def validate_data(data: dict) -> None:
     if not isinstance(data, dict):
         raise SystemExit("feed Muçum precisa ser objeto JSON")
+    serie_observada = data.get("serie_observada_ana")
+    if not isinstance(serie_observada, list) or len(serie_observada) < 2:
+        raise SystemExit("feed Muçum sem série observada ANA suficiente")
+    horas_observadas = [str(p.get("hora") or "") for p in serie_observada if isinstance(p, dict)]
+    niveis_observados = [p.get("nivel_cm") for p in serie_observada if isinstance(p, dict)]
+    if len(horas_observadas) != len(serie_observada) or horas_observadas != sorted(horas_observadas):
+        raise SystemExit("série observada ANA de Muçum inválida ou fora de ordem")
+    if any(v is None for v in niveis_observados):
+        raise SystemExit("série observada ANA de Muçum contém nível ausente")
+    ultima_feed = str(data.get("telemetria_ultima_em") or "")[:16]
+    if str(serie_observada[-1].get("hora") or "")[:16] != ultima_feed:
+        raise SystemExit("último ponto observado de Muçum não coincide com a telemetria publicada")
+    if data.get("serie_observada_ana_n") != len(serie_observada):
+        raise SystemExit("contador da série observada ANA de Muçum inconsistente")
+
     horizons = data.get("horizontes")
     if not isinstance(horizons, dict) or set(horizons) != REQUIRED:
         raise SystemExit(f"horizontes inesperados: {sorted(horizons or {})}; esperado {sorted(REQUIRED)}")
