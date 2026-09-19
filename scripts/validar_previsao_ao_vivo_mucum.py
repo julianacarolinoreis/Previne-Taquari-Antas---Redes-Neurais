@@ -33,6 +33,11 @@ def validate_data(data: dict) -> None:
         raise SystemExit("série observada ANA de Muçum inválida ou fora de ordem")
     if any(v is None for v in niveis_observados):
         raise SystemExit("série observada ANA de Muçum contém nível ausente")
+    if any(not (-500 <= float(v) <= 5000) for v in niveis_observados):
+        raise SystemExit("série observada ANA de Muçum contém nível fora da faixa plausível")
+    telemetria_publicada = data.get("telemetria_ultima_nivel_cm")
+    if telemetria_publicada is not None and not (-500 <= float(telemetria_publicada) <= 5000):
+        raise SystemExit("telemetria publicada de Muçum fora da faixa plausível")
     ultima_feed = str(data.get("telemetria_ultima_em") or "")[:16]
     if str(serie_observada[-1].get("hora") or "")[:16] != ultima_feed:
         raise SystemExit("último ponto observado de Muçum não coincide com a telemetria publicada")
@@ -73,6 +78,8 @@ def validate_data(data: dict) -> None:
             continue
         if item.get("disponivel") is not True:
             raise SystemExit(f"{key} com previsão precisa declarar disponivel=true")
+        if not (-500 <= float(item["nivel_previsto_cm"]) <= 5000):
+            raise SystemExit(f"{key} publicou previsão fora da faixa plausível")
         hora = str(item.get("hora_modelo") or "")
         minuto = int(hora[14:16]) if len(hora) >= 16 and hora[14:16].isdigit() else -1
         if minuto != 0:
