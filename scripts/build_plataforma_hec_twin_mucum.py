@@ -731,21 +731,17 @@ def build_event_trace(
     force_fwd: dict[str, Any] | None,
     prefer_live: bool,
 ) -> dict[str, Any]:
-    live_delta = series_max_delta(live_series)
-    fwd_delta = series_max_delta(fwd_series)
-    use_live = prefer_live and live_series is not None and live_delta >= 5.0
-    if use_live:
-        series, force, source = live_series, force_live, "live_eval_rebuild"
-        note = "Traço reconstruído da forçante live-eval (mesmo ΔN do headline)."
-    elif fwd_series is not None and fwd_delta >= 5.0:
-        series, force, source = fwd_series, force_fwd, "forward_5d"
-        note = "Traço do forward operacional ~5d."
-    elif live_series is not None:
-        series, force, source = live_series, force_live, "live_eval_rebuild"
-        note = "Forward seco/stale — traço do live-eval."
+    # O gráfico principal nunca usa replay histórico como se fosse previsão atual.
+    # Uma previsão seca (ΔN≈0) continua sendo uma previsão válida; frescor é temporal.
+    if prefer_live and live_series is not None:
+        series, force, source = live_series, force_live, "validation_replay"
+        note = "Validação histórica/replay — não é a previsão atual."
+    elif fwd_series is not None:
+        series, force, source = fwd_series, force_fwd, "forward_5d_current"
+        note = "Previsão HEC/REC atual (~5d), ancorada na telemetria de Muçum."
     else:
-        series, force, source = fwd_series, force_fwd, "forward_5d"
-        note = "Sem série live; amostra do forward."
+        series, force, source = None, None, "current_forecast_unavailable"
+        note = "Previsão HEC/REC atual indisponível; replay histórico fica apenas na validação."
 
     times = list((series or {}).get("time_utc") or [])
     n_anch = list((series or {}).get("n_mucum_anchored_cm") or [])
@@ -780,19 +776,26 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
 
     live_series = rebuild_live_series(force_live)
     fwd_series = (fwd or {}).get("series_primary")
-    prefer_live = (feed.get("headline") or {}).get("source") == "live_eval"
-    fwd_delta = series_max_delta(fwd_series)
-    stale_forward = fwd_delta < 5.0
 
     live_age = age_hours((live or {}).get("generated_at_utc"))
     fwd_age = age_hours((fwd or {}).get("generated_at_utc"))
+    fwd_obs = ((fwd or {}).get("quanto_sobe") or {}).get("level_now") or {}
+    fwd_anchor_age = age_hours(fwd_obs.get("observed_at_utc"))
+
+    # Robô previsto a cada 6 h: >12 h = produto vencido. A âncora observada
+    # precisa estar <=6 h para o N absoluto ser tratado como atual.
+    stale_forward = bool(
+        fwd is None
+        or fwd_age is None
+        or fwd_age > 12.0
+        or fwd_anchor_age is None
+        or fwd_anchor_age > 6.0
+    )
+    prefer_live = False  # replay histórico nunca substitui a previsão corrente
 
     primary = (feed.get("headline") or {}).get("primary") or {}
     score = (feed.get("headline") or {}).get("scorecard") or {}
-    live_obs = ((live or {}).get("observations") or {}).get("level_now") or {}
-    n_anchor = live_obs.get("stage_cm")
-    if n_anchor is None:
-        n_anchor = LIVE_ANCHOR_CM
+    n_anchor = None if stale_forward else fwd_obs.get("stage_cm")
 
     products = dict(feed.get("products") or {})
     live_p = dict(products.get("live_eval") or {})
@@ -822,10 +825,11 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
             ),
             "age_hours": fwd_age,
             "stale": stale_forward,
+            "anchor_age_hours": fwd_anchor_age,
             "note": (
-                "Forward seco/stale — preferir live para o evento."
+                "Previsão atual vencida/sem âncora recente — não exibir como corrente."
                 if stale_forward
-                else "Produto operacional de pesquisa (~5d)."
+                else "Previsão HEC/REC corrente (~5d); chuva seca também é resultado válido."
             ),
             "peak_delta_n_cm": fwd_primary.get("rise_cm"),
             "peak_n_cm": fwd_primary.get("peak_anchored_cm"),
@@ -897,29 +901,30 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
         "peak_n_cm": primary.get("peak_anchored_cm"),
         "peak_delta_n_cm": primary.get("rise_cm"),
         "peak_when_utc": primary.get("peak_time_utc"),
-        "timing_error_h": score.get("timing_error_h"),
+        "timing_error_h": None,
         "n_anchor_cm": n_anchor,
         "source": (feed.get("headline") or {}).get("source"),
     }
     feed["freshness"] = {
-        "preferred_source": "live_eval" if prefer_live else "forward",
+        "preferred_source": "forward" if not stale_forward else "indisponivel_atual",
         "live_age_hours": live_age,
         "forward_age_hours": fwd_age,
+        "forward_anchor_age_hours": fwd_anchor_age,
         "stale_forward": stale_forward,
-        "forward_max_delta_n_cm": round(fwd_delta, 2),
+        "forward_max_delta_n_cm": round(series_max_delta(fwd_series), 2),
         "note_pt": (
-            "Quando o forward está seco/stale, headline e hidrograma preferem o live eval."
+            "Forward vencido ou sem âncora recente: o replay permanece só na validação."
             if stale_forward
-            else "Forward e live disponíveis."
+            else "Forward atual; replay separado como validação histórica."
         ),
     }
     feed["products"] = products
     feed["spatial"] = spatial
     feed["event_trace"] = build_event_trace(
         live_series=live_series,
-        fwd_series=fwd_series,
+        fwd_series=None if stale_forward else fwd_series,
         force_live=force_live,
-        force_fwd=force_fwd,
+        force_fwd=None if stale_forward else force_fwd,
         prefer_live=prefer_live,
     )
     feed["automation"] = auto
@@ -941,25 +946,35 @@ def build_feed() -> dict[str, Any]:
     score = (verify or {}).get("scorecard") or {}
 
     live_primary = compact_primary(live_ans.get("primary"))
-    use_live = live_primary is not None and live_primary.get("rise_cm") is not None
+    fwd_primary = compact_primary(qs.get("primary"))
+    fwd_age = age_hours((fwd or {}).get("generated_at_utc"))
+    fwd_obs = qs.get("level_now") or {}
+    fwd_anchor_age = age_hours(fwd_obs.get("observed_at_utc"))
+    fwd_fresh = bool(
+        fwd_primary is not None
+        and fwd_age is not None
+        and fwd_age <= 12.0
+        and fwd_anchor_age is not None
+        and fwd_anchor_age <= 6.0
+    )
 
-    if use_live:
-        headline_source = "live_eval"
-        headline_primary = live_primary
-        headline_ensemble = live_ans.get("ensemble_rise_cm")
-        headline_plain = live_ans.get("plain_pt") or (live or {}).get("plain_pt")
-        rain_ifs = (live or {}).get("rain_ifs") or {}
-        rain_total = rain_ifs.get("window_total_mm")
-        if rain_total is None:
-            rain_total = (rain_ifs.get("past_48h_mm") or 0) + (
-                rain_ifs.get("next_72h_mm") or 0
-            )
-    else:
+    # Headline operacional = somente forward fresco. O live_eval é validação
+    # histórica e nunca mais ocupa o lugar de uma previsão atual.
+    if fwd_fresh:
         headline_source = "forward"
-        headline_primary = compact_primary(qs.get("primary"))
+        headline_primary = fwd_primary
         headline_ensemble = qs.get("ensemble_rise_cm")
         headline_plain = qs.get("plain_pt")
         rain_total = qs.get("rain_forecast_mm_area_weighted")
+    else:
+        headline_source = "indisponivel_atual"
+        headline_primary = None
+        headline_ensemble = None
+        headline_plain = (
+            "Previsão HEC/REC atual indisponível ou vencida. "
+            "O replay histórico permanece apenas na seção de validação."
+        )
+        rain_total = None
 
     pages = {
         "platform_html": f"{PAGES_BASE}/{STUDY_REL}/plataforma_hec_twin_mucum.html",
