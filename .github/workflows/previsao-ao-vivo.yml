@@ -50,8 +50,9 @@ jobs:
             previne/robo/fontes_chuva_8h.py \
             previne/robo/gerar_previsao_ao_vivo.py \
             scripts/test_stz_8h_excel_mother_contract.py \
+            scripts/test_previsao_ao_vivo_schema.py \
             scripts/validar_previsao_ao_vivo.py
-          python -B -m unittest scripts.test_stz_8h_excel_mother_contract
+          python -B -m unittest scripts.test_stz_8h_excel_mother_contract scripts.test_previsao_ao_vivo_schema
           # O script local também tem timeout; este limite protege o runner remoto.
           timeout --signal=TERM --kill-after=20s 240s python previne/robo/gerar_previsao_ao_vivo.py
           python -B scripts/validar_previsao_ao_vivo.py
