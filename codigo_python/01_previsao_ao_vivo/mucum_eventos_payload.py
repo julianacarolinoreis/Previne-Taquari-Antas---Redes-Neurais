@@ -62,11 +62,11 @@ def build_eventos_dict() -> dict:
                 "series": st_series,
             }
 
-    # Referência estática — pico recorde maio/2024 (ev27), como record_2024 do ST
+    # Referência estática — pico histórico de referência maio/2024 (ev27), como record_2024 do ST
     pico27 = int(picos.get("27") or 2551)
     data27 = pico_data.get("27") or "2024-05-01"
     out["record_maio2024"] = {
-        "label": f"Pico recorde · {data27}",
+        "label": f"pico histórico de referência · {data27}",
         "evento": 27,
         "combo": "referência",
         "horizonte": "—",
@@ -75,7 +75,7 @@ def build_eventos_dict() -> dict:
         "pico_obs_cm": pico27,
         "ilustra": True,
         "estatico": True,
-        "series": [[f"pico recorde · {data27}", pico27, None, None]],
+        "series": [[f"pico histórico de referência · {data27}", pico27, None, None]],
     }
 
     # Referência estática — julho/2020 (Zenodo / cota ~2211 cm), se existir no catálogo
