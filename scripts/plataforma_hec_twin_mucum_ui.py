@@ -37,6 +37,9 @@ def render_platform_html(feed: dict[str, Any]) -> str:
     peak_when = _esc(summary.get("peak_when_utc") or "—")
     timing = summary.get("timing_error_h")
     n_anchor = summary.get("n_anchor_cm")
+    n_24h = summary.get("n_plus_24h_cm")
+    dn_24h = summary.get("delta_plus_24h_cm")
+    when_24h = _esc(summary.get("when_plus_24h_utc") or "—")
 
     auto = feed.get("automation") or {}
     auto_name = _esc(
@@ -60,6 +63,8 @@ def render_platform_html(feed: dict[str, Any]) -> str:
     peak_dn_txt = "—" if peak_dn is None else f"{float(peak_dn):+.0f} cm"
     timing_txt = "—" if timing is None else f"{float(timing):+.1f} h"
     n_anchor_txt = "—" if n_anchor is None else f"{float(n_anchor):.0f} cm"
+    n_24h_txt = "—" if n_24h is None else f"{float(n_24h):.0f} cm"
+    dn_24h_txt = "—" if dn_24h is None else f"{float(dn_24h):+.0f} cm"
 
     spatial = feed.get("spatial") or {}
     framing = spatial.get("basin_framing") or {}
@@ -88,6 +93,9 @@ def render_platform_html(feed: dict[str, Any]) -> str:
         "PEAK_WHEN": peak_when,
         "TIMING": timing_txt,
         "N_ANCHOR": n_anchor_txt,
+        "N_24H": n_24h_txt,
+        "DN_24H": dn_24h_txt,
+        "WHEN_24H": when_24h,
         "AUTO_NAME": auto_name,
         "AUTO_SCHED": auto_sched,
         "AUTO_OWNER": auto_owner,
@@ -348,9 +356,9 @@ svg.mini-chart { width:100%; height:168px; display:block; }
       <div class="hint">em {{PEAK_WHEN}}</div>
     </article>
     <article class="card metric">
-      <div class="label">Fonte do produto</div>
-      <div class="value" style="font-size:1.02rem">{{PREFERRED}}</div>
-      <div class="hint">replay histórico separado</div>
+      <div class="label">N previsto em +24 h</div>
+      <div class="value">{{N_24H}}</div>
+      <div class="hint">{{DN_24H}} vs agora · {{WHEN_24H}} UTC</div>
     </article>
     <article class="card metric">
       <div class="label">Robô HEC</div>
