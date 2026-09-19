@@ -2,8 +2,8 @@ name: Previsao ao vivo - Santa Tereza
 
 on:
   schedule:
-    # Plantao frequente de Santa Tereza: consulta curta a cada 5 min.
-    - cron: '2-59/5 * * * *'
+    # Consulta frequente, escalonada fora do início da hora para reduzir atrasos do scheduler do GitHub.
+    - cron: '8,23,38,53 * * * *'
   workflow_dispatch:
 
 jobs:
