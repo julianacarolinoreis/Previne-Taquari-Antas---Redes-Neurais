@@ -62,7 +62,7 @@ class CatalogStatusTests(unittest.TestCase):
     def test_spatial_and_response_are_not_operational(self) -> None:
         spatial = self.data["spatial"]["by_city"]
         self.assertEqual(spatial["mucum"]["published_level_range_m"], [0.0, 25.0])
-        self.assertEqual(spatial["santa_tereza"]["published_level_range_m"], [0.0, 15.0])
+        self.assertEqual(spatial["santa_tereza"]["published_level_range_m"], [0.0, 30.0])
         self.assertIn("pending", spatial["mucum"]["stage_conversion_status"])
         self.assertIn("pending", spatial["santa_tereza"]["stage_conversion_status"])
         self.assertEqual(self.data["events"]["operational_gate"]["status"], "blocked")
