@@ -27,6 +27,7 @@ SCENARIO_MAX_M = 30.0
 CITIES = {
     "mucum": {
         "contours": ROOT / "assets/data/mucum_inundacao/contornos_mancha.json",
+        "ui_hand_max_m": 30.0,
         "pages": [
             ROOT / "pesquisas/mucum-mapa-impacto.html",
             ROOT / "pesquisas/mucum-mapa-margem.html",
@@ -36,6 +37,9 @@ CITIES = {
     },
     "santa_tereza": {
         "contours": ROOT / "assets/data/santa_tereza_inundacao/contornos_mancha.json",
+        # Santa Tereza usa 15 m na régua como HAND 0. Logo, HAND 15 m
+        # corresponde ao teto visível pedido de 30 m na régua.
+        "ui_hand_max_m": 15.0,
         "pages": [
             ROOT / "pesquisas/santa-tereza-mapa-impacto.html",
             ROOT / "pesquisas/santa-tereza-mapa-margem.html",
@@ -100,9 +104,9 @@ def extract_payload(html: str):
     return match, json.loads(match.group(1))
 
 
-def update_payload(data: dict, levels):
+def update_payload(data: dict, levels, ui_hand_max_m: float):
     meta = data.setdefault("meta", {})
-    meta["nivel_max_m"] = SCENARIO_MAX_M
+    meta["nivel_max_m"] = float(ui_hand_max_m)
     meta["cobertura_espacial_m"] = SCENARIO_MAX_M
     meta["cobertura_espacial_nota"] = "contornos HAND recalculados até 30 m; None significa sem dado espacial"
 
@@ -133,10 +137,10 @@ def update_payload(data: dict, levels):
     return data
 
 
-def update_page(path: Path, levels):
+def update_page(path: Path, levels, ui_hand_max_m: float):
     html = path.read_text(encoding="utf-8")
     match, data = extract_payload(html)
-    data = update_payload(data, levels)
+    data = update_payload(data, levels, ui_hand_max_m)
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
     updated = html[: match.start(1)] + payload + html[match.end(1) :]
     path.write_text(updated, encoding="utf-8")
@@ -153,7 +157,7 @@ def main():
         print(f"{city}: {len(levels)} níveis, {levels[0][0]:.1f}–{levels[-1][0]:.1f} m")
         for page in cfg["pages"]:
             if page.exists():
-                update_page(page, levels)
+                update_page(page, levels, float(cfg["ui_hand_max_m"]))
     return 0
 
 
