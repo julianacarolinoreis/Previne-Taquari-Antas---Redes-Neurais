@@ -843,7 +843,7 @@ def enrich_feed(feed: dict[str, Any]) -> dict[str, Any]:
     products["forward_5d"] = fwd_p
 
     spatial = dict(feed.get("spatial") or {})
-    ug_rain = ug_rain_mm(force_live if prefer_live else (force_fwd or force_live))
+    ug_rain = ug_rain_mm(None if stale_forward else force_fwd)
     anchors = []
     for a in spatial.get("anchors") or []:
         row = dict(a)
