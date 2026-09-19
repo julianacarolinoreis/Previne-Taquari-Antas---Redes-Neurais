@@ -366,9 +366,14 @@ def _serie_chuva_de_xml(xml):
     return serie, len(xml), ultima_raw
 
 def buscar_ana(cod, dias=5):
-    """Retorna dict {timestamp_da_leitura: nivel_cm}. Usa uma janela de datas explícita
-    (a ANA responde ErrorTable quando as datas vêm em branco); mantém o modo
-    'datas em branco' apenas como reserva."""
+    """Retorna dict {timestamp_da_leitura: nivel_cm}. Usa uma janela de datas explícita.
+
+    A estação-alvo de Santa Tereza carrega 8 dias para o painel poder desenhar
+    a série observada ANA de 7 dias sem depender dos pontos de auditoria da RNA.
+    As demais estações continuam com a janela curta usada pelos modelos.
+    """
+    if cod == "86472600":
+        dias = max(int(dias or 0), 8)
     fim = agora_brt()
     ini = fim - dt.timedelta(days=dias)
     urls_com_data = [
@@ -1448,7 +1453,7 @@ def diagnosticar_inputs_faltantes(series, t, inputs):
             "horarios_necessarios": [h["hora"] for h in horarios],
             "horarios_faltantes": [h["hora"] for h in horarios if not h["disponivel"]],
             "horarios_fora_faixa": [h["hora"] for h in horarios if h["fora_faixa"]],
-            "limites_plausiveis_cm": list(_limites_plausiveis(cod)),
+            "limites_plausiveis_cm": list(_limites_plausiveis(cod_estacao)),
         })
     return faltantes
 
@@ -1778,6 +1783,28 @@ def resumo_estacoes(series):
             "limites_plausiveis_cm": list(_limites_plausiveis(cod)),
         })
     return resumo
+
+def serie_observada_ana_publica(series, dias=7):
+    """Série observada real da estação-alvo, separada da auditoria da RNA.
+
+    O panorama deve mostrar a telemetria disponível na ANA/SGB, inclusive
+    leituras de 15/30/45 min. Pontos usados para conferir previsões são outra
+    camada e não podem determinar onde a linha observada tem ou não tem dados.
+    """
+    serie = (series or {}).get("86472600", {}) or {}
+    if not serie:
+        return []
+    ultimo = max(serie)
+    inicio = ultimo - dt.timedelta(days=dias)
+    pontos = []
+    for hora, valor in sorted(serie.items()):
+        if hora < inicio or not _nivel_plausivel(valor, "86472600"):
+            continue
+        pontos.append({
+            "hora": hora.isoformat(timespec="minutes"),
+            "nivel_cm": round(float(valor), 3),
+        })
+    return pontos
 
 def prever(mat_path, x):
     """Forward pass da MLP (validado: reproduz Tctot1 do .mat com RMSE 0).
@@ -2222,10 +2249,58 @@ def escolher_hora_modelo(cfg, series, horas_st):
         return None
     return horas_st[-1] if horas_st else None
 
-def escrever_pacote(horizontes, historico, aviso):
+def diagnosticar_proxima_base(cfg, series, hora_modelo):
+    """Explica por que a próxima hora cheia ainda não virou base da RNA."""
+    if not hora_modelo or cfg.get("input_grade") != "hourly_exact":
+        return None
+    candidata = hora_modelo + dt.timedelta(hours=1)
+    try:
+        valores, st0 = montar_inputs_modelo(cfg, series, candidata)
+        faltantes = diagnosticar_inputs_modelo(cfg, series, candidata, valores)
+        audit = None
+        if cfg.get("montador") == "2h_alt_15inputs":
+            audit = auditoria_inputs_2h(series, candidata, valores=valores, grade=cfg.get("input_grade"))
+        elif cfg.get("montador") == "4h_alt_v01_26":
+            audit = auditoria_inputs_4h_v01_26(series, candidata, valores=valores)
+        elif cfg.get("montador") == "4h_alt_v01_r10":
+            audit = auditoria_inputs_4h_v01_r10(series, candidata, valores=valores)
+        elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
+            audit = auditoria_inputs_8h(cfg, candidata, valores)
+        pronta = (
+            st0 is not None
+            and all(v is not None for v in valores)
+            and (not audit or audit.get("status") == "NORMAL")
+        )
+        return {
+            "hora": candidata.isoformat(timespec="minutes"),
+            "pronta": bool(pronta),
+            "inputs_faltantes_n": len(faltantes),
+            "inputs_faltantes": faltantes[:12],
+            "auditoria_status": (audit or {}).get("status"),
+            "n_inputs_nao_exatos": (audit or {}).get("n_inputs_nao_exatos"),
+        }
+    except Exception as e:
+        return {
+            "hora": candidata.isoformat(timespec="minutes"),
+            "pronta": False,
+            "inputs_faltantes_n": None,
+            "inputs_faltantes": [],
+            "auditoria_status": "ERRO_DIAGNOSTICO",
+            "motivo": str(e),
+        }
+
+def escrever_pacote(horizontes, historico, aviso, series=None):
     principal = horizontes.get("2h") or next(iter(horizontes.values()))
     pacote = dict(principal)
     pacote["horizontes"] = horizontes
+    observada = serie_observada_ana_publica(series)
+    if observada:
+        pacote["serie_observada_ana"] = observada
+        pacote["serie_observada_ana_n"] = len(observada)
+        pacote["serie_observada_ana_fonte"] = (
+            "ANA/SGB Hidrotelemetria · estação 86472600 · série observada recente; "
+            "independente dos pares usados na auditoria da RNA"
+        )
     pacote["auditoria_historico"] = {
         hz: resumo_auditoria(historico, hz, item.get("modelo"))
         for hz, item in horizontes.items()
@@ -2347,7 +2422,9 @@ def main():
     horizontes = {}
     for cfg in MODELOS:
         t_modelo = escolher_hora_modelo(cfg, series, horas)
-        horizontes[cfg["horizonte"]] = gerar_saida_modelo(cfg, series, t_modelo, aviso, estacoes_status)
+        out = gerar_saida_modelo(cfg, series, t_modelo, aviso, estacoes_status)
+        out["proxima_base_diagnostico"] = diagnosticar_proxima_base(cfg, series, t_modelo)
+        horizontes[cfg["horizonte"]] = out
 
     if not algum_horizonte_com_previsao(horizontes):
         preservar_saida_valida_em_falha("inputs incompletos por consulta instavel das estacoes a montante", aviso)
@@ -2414,7 +2491,7 @@ def main():
                     f"ok (base da RNA {atraso_h:.1f}h anterior a telemetria — "
                     "inputs alinhados/preenchidos na grade do modelo; isso nao significa falha da ANA)"
                 )
-    escrever_pacote(horizontes, historico, aviso)
+    escrever_pacote(horizontes, historico, aviso, series)
     return
 
 if __name__ == "__main__":
