@@ -2173,7 +2173,24 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
     try:
         delta_bruto = prever(cfg["mat"], x)
         delta = delta_bruto
-        out = _base_saida(cfg, st0, st0 + delta, t, "ok", aviso, [], estacoes_status)
+        nivel_prev = st0 + delta
+        if not _nivel_plausivel(nivel_prev, "86472600"):
+            out = _base_saida(
+                cfg, st0, None, t,
+                f"previsao rejeitada: {nivel_prev:.1f} cm fora da faixa plausivel",
+                aviso, [], estacoes_status,
+            )
+            out["disponivel"] = False
+            out["delta_previsto_cm"] = round(delta, 1)
+            out["input_values_cm"] = [round(float(v), 3) for v in x]
+            out["auditoria_inputs"] = {
+                "status": "INVALIDO",
+                "motivo": "saida da RNA fora da faixa plausivel",
+                "n_inputs": cfg.get("inputs_total"),
+                "input_grade": cfg.get("input_grade"),
+            }
+            return _anexar_fontes_chuva_8h(out, cfg, series)
+        out = _base_saida(cfg, st0, nivel_prev, t, "ok", aviso, [], estacoes_status)
         out["disponivel"] = True
         out["delta_previsto_cm"] = round(delta, 1)
         out["input_values_cm"] = [round(float(v), 3) for v in x]
