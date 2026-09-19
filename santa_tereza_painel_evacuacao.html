@@ -51,6 +51,7 @@ const map=L.map('map');
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}).addTo(map);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.9}).addTo(map);
 const CORES={alagada:'#1e5fbf',rota_comprometida:'#6b2f5b',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84',sem_dado:'#9aa3a0'};
+const CLASSES_SAIDA=new Set(['alagada','rota_comprometida','critica','apertada','atencao']);
 const ROT={alagada:'local atingido no cenário HAND',rota_comprometida:'gargalo da rota já atingido',critica:'margem negativa',apertada:'margem <15 min',atencao:'margem <1 h',confortavel:'margem >1 h no modelo',alto:'ponto alto',sem_dado:'sem cobertura HAND no intervalo'};
 const ordem=['alagada','rota_comprometida','critica','apertada','atencao','sem_dado','confortavel'];
 let prelimGeo=null, prelimLayer=null, prelimControl=null, contornosGeo=null, contornosOrdenados=[];
