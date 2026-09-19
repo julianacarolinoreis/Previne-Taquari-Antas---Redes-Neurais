@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f6b4a">
-  <meta name="description" content="Sala de situação PREVINE: reúne previsão, rotas, painel e o mapa territorial no mesmo lugar. Pesquisa — não é alerta.">
-  <title>PREVINE · sala de situação</title>
+  <meta name="description" content="Cockpit territorial PREVINE: Rio, chuva, inundação, impactos e resposta no mesmo lugar. Pesquisa — não é alerta.">
+  <title>PREVINE · cockpit territorial</title>
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="../assets/css/estudo_caso_territorio.css">
@@ -19,8 +19,8 @@
         <a class="brand-mark" href="../projeto.html" aria-label="PREVINE"></a>
         <div>
           <p class="eyebrow">PREVINE · pesquisa</p>
-          <h1>Sala de <span>situação</span></h1>
-          <p class="lede">As páginas que você já usa — previsão, rotas, painel e o mapa territorial — no mesmo lugar.</p>
+          <h1>Cockpit <span>territorial</span></h1>
+          <p class="lede">Uma leitura por pergunta: Rio, Chuva, Inundação, Impactos e Resposta. Os módulos técnicos continuam por trás, sem obrigar o usuário a descobrir qual página abrir.</p>
         </div>
       </div>
       <div class="scope-badge">
@@ -30,11 +30,10 @@
     </header>
 
     <nav class="sala-nav" aria-label="Navegação">
-      <a href="../projeto.html">Início</a>
-      <a href="../pesquisas.html">Catálogo</a>
-      <a href="sala-integrada-eventos.html">Sala de evento</a>
-      <a href="../santa_tereza_previsao_inundacao.html">Previsão ST</a>
-      <a href="../mucum_previsao_inundacao.html">Previsão Muçum</a>
+      <a href="../projeto.html#situacao-agora">Situação agora</a>
+      <a href="../dashboard_bacia.html">Bacia</a>
+      <a href="sala-integrada-eventos.html">Replay de evento</a>
+      <a href="../pesquisas.html">Pesquisa</a>
     </nav>
 
     <section class="control-dock" aria-label="Controles da sala">
@@ -46,17 +45,17 @@
         </div>
       </div>
       <div class="control-field">
-        <span class="field-label">Momento (mapa juntos)</span>
+        <span class="field-label">Momento do Rio</span>
         <div class="case-row segmented" id="case-row" role="group" aria-label="Momento"></div>
       </div>
       <div class="control-field">
-        <span class="field-label">Abrir módulo</span>
-        <div class="module-tabs segmented" id="module-tabs" role="tablist" aria-label="Módulos da sala">
-          <button type="button" class="segment" role="tab" data-module="juntos" aria-selected="true" aria-pressed="true">Juntos</button>
-          <button type="button" class="segment" role="tab" data-module="previsao" aria-selected="false" aria-pressed="false">Previsão</button>
-          <button type="button" class="segment" role="tab" data-module="rotas" aria-selected="false" aria-pressed="false">Rotas</button>
-          <button type="button" class="segment" role="tab" data-module="painel" aria-selected="false" aria-pressed="false">Painel</button>
-          <button type="button" class="segment" role="tab" data-module="estudo" aria-selected="false" aria-pressed="false">Estudo</button>
+        <span class="field-label">Leitura</span>
+        <div class="module-tabs segmented cockpit-tabs" id="module-tabs" role="tablist" aria-label="Leituras do cockpit">
+          <button type="button" class="segment" role="tab" data-module="rio" aria-selected="true" aria-pressed="true">Rio</button>
+          <button type="button" class="segment" role="tab" data-module="chuva" aria-selected="false" aria-pressed="false">Chuva</button>
+          <button type="button" class="segment" role="tab" data-module="inundacao" aria-selected="false" aria-pressed="false">Inundação</button>
+          <button type="button" class="segment" role="tab" data-module="impactos" aria-selected="false" aria-pressed="false">Impactos</button>
+          <button type="button" class="segment" role="tab" data-module="resposta" aria-selected="false" aria-pressed="false">Resposta</button>
         </div>
       </div>
       <p class="load-status" id="load-status" aria-live="polite">carregando…</p>
@@ -71,7 +70,7 @@
       <!-- Módulo: páginas boas em iframe -->
       <div class="module-frame-wrap" id="module-frame-wrap" hidden>
         <div class="module-frame-bar">
-          <strong id="module-frame-title">Previsão</strong>
+          <strong id="module-frame-title">Módulo</strong>
           <a id="module-frame-open" href="#" target="_blank" rel="noopener">Abrir em página cheia ↗</a>
         </div>
         <iframe id="module-frame" title="Módulo da sala de situação" loading="lazy"></iframe>
@@ -82,7 +81,7 @@
         <div class="map-column">
           <div class="map-shell">
             <div id="map" role="application" aria-label="Mapa territorial acoplado"></div>
-            <p class="map-badge" id="story-caption">Rio · água nas ruas · saída até o abrigo</p>
+            <p class="map-badge" id="story-caption">Rio · inundação · pessoas · saída no mesmo território</p>
           </div>
           <div class="hud-leg map-legend-inline" id="map-legend" aria-label="Legenda">
             <div class="legend-scale">
@@ -179,11 +178,11 @@
       </div>
     </section>
 
-    <section class="sibling-cards" aria-label="Páginas reunidas nesta sala">
-      <h2>Páginas desta sala</h2>
-      <p>Mesmos módulos que você já conhece. Use as abas acima ou abra em tela cheia.</p>
+    <details class="sibling-cards technical-modules" aria-label="Módulos técnicos preservados">
+      <summary>Módulos técnicos e páginas completas</summary>
+      <p>Para auditoria, método e trabalho especializado. O cockpit acima é a entrada principal.</p>
       <div class="sibling-grid" id="sibling-grid"></div>
-    </section>
+    </details>
   </div>
 
   <!-- nós legados exigidos pelo JS / testes -->
@@ -238,6 +237,6 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="../assets/js/estudo_caso_territorio.js?v=20260911-reunida1"></script>
+  <script src="../assets/js/estudo_caso_territorio.js?v=20260919-cockpit2"></script>
 </body>
 </html>
