@@ -50,91 +50,100 @@ let taxaCmH=D.meta.taxa_cm_h; const vel=D.meta.vel_idoso_ms, BANKFULL_M=15.0, CA
 const map=L.map('map');
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}).addTo(map);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.9}).addTo(map);
-const CORES={alagada:'#1e5fbf',rota_comprometida:'#6b2f5b',critica:'#b3382c',apertada:'#e8730c',preliminar:'#7d3cff',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84',sem_dado:'#9aa3a0'};
-const ROT={alagada:'local atingido no cenário HAND',rota_comprometida:'gargalo HAND da rota já atingido',critica:'margem negativa até o primeiro gargalo',apertada:'margem <15 min até o primeiro gargalo',preliminar:'mancha preliminar — tempo não reconciliado',atencao:'margem <1 h até o primeiro gargalo',confortavel:'margem >1 h no modelo',alto:'ponto alto',sem_dado:'sem dado espacial'};
-const ordem=['alagada','rota_comprometida','critica','apertada','preliminar','atencao','sem_dado','confortavel'];
-let prelimGeo=null, prelimLayer=null, contornosGeo=null;
+const CORES={alagada:'#1e5fbf',rota_comprometida:'#6b2f5b',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',alto:'#7a8a84',sem_dado:'#9aa3a0'};
+const ROT={alagada:'local atingido no cenário HAND',rota_comprometida:'gargalo da rota já atingido',critica:'margem negativa',apertada:'margem <15 min',atencao:'margem <1 h',confortavel:'margem >1 h no modelo',alto:'ponto alto',sem_dado:'sem cobertura HAND no intervalo'};
+const ordem=['alagada','rota_comprometida','critica','apertada','atencao','sem_dado','confortavel'];
+let prelimGeo=null, prelimLayer=null, prelimControl=null, contornosGeo=null, contornosOrdenados=[];
+
 function pontoNoAnel(lon,lat,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];const hit=((yi>lat)!=(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi+1e-15)+xi);if(hit)inside=!inside;}return inside;}
 function pontoNaGeom(lon,lat,g){if(!g)return false;if(g.type==='Polygon'){if(!pontoNoAnel(lon,lat,g.coordinates[0]))return false;for(let k=1;k<g.coordinates.length;k++)if(pontoNoAnel(lon,lat,g.coordinates[k]))return false;return true;}if(g.type==='MultiPolygon')return g.coordinates.some(poly=>{if(!pontoNoAnel(lon,lat,poly[0]))return false;for(let k=1;k<poly.length;k++)if(pontoNoAnel(lon,lat,poly[k]))return false;return true;});return false;}
-function naManchaPreliminar(lat,lon){return !!(prelimGeo&&prelimGeo.features&&prelimGeo.features.some(f=>pontoNaGeom(lon,lat,f.geometry)));}
+function bboxGeom(g){let w=Infinity,e=-Infinity,s=Infinity,n=-Infinity;function walk(a){if(!Array.isArray(a))return;if(a.length>=2&&typeof a[0]==='number'&&typeof a[1]==='number'){w=Math.min(w,a[0]);e=Math.max(e,a[0]);s=Math.min(s,a[1]);n=Math.max(n,a[1]);return;}a.forEach(walk);}walk(g&&g.coordinates);return {w,e,s,n};}
+function preparaContornos(fc){contornosOrdenados=((fc&&fc.features)||[]).map(f=>({nivel:Number(f.properties&&f.properties.nivel_m),feature:f,geom:f.geometry,bbox:bboxGeom(f.geometry)})).filter(x=>Number.isFinite(x.nivel)&&x.nivel<=CAMADA_MAX+1e-9).sort((a,b)=>a.nivel-b.nivel);}
+function itemContem(item,lat,lon){if(!item)return false;const b=item.bbox;if(lon<b.w||lon>b.e||lat<b.s||lat>b.n)return false;return pontoNaGeom(lon,lat,item.geom);}
+function cotaNoPonto(lat,lon){if(!contornosOrdenados.length)return null;let lo=0,hi=contornosOrdenados.length-1,ans=null;while(lo<=hi){const mid=(lo+hi)>>1,item=contornosOrdenados[mid];if(itemContem(item,lat,lon)){ans=item.nivel;hi=mid-1;}else lo=mid+1;}return ans;}
 function centro(poly){const pts=poly.length>1&&poly[0][0]===poly[poly.length-1][0]&&poly[0][1]===poly[poly.length-1][1]?poly.slice(0,-1):poly;return [pts.reduce((a,p)=>a+p[0],0)/pts.length,pts.reduce((a,p)=>a+p[1],0)/pts.length];}
 const cellCenters=D.cells.map(c=>centro(c.poly));
+let cotaNosAtuais=(D.cota_no||[]).slice(), cotaCellsAtuais=D.cells.map(c=>c.cota), rotaInfo=[];
+
 function infoRota(i){
   let cur=i,min=null,unknown=0,steps=0;const seen=new Set();
   while(cur>=0&&cur<D.nos.length&&!seen.has(cur)&&steps++<6000){
     seen.add(cur);
-    const c=D.cota_no[cur];
+    const c=cotaNosAtuais[cur];
     if(c===null||c===undefined)unknown++; else min=min===null?c:Math.min(min,c);
     const nx=D.prox[cur]; if(nx===cur||nx===null||nx===undefined||nx<0)break; cur=nx;
   }
   return {cota:min,unknown,steps};
 }
-const rotaInfo=D.nos.map((_,i)=>infoRota(i));
-function noMaisProximo(lat,lon){
-  let best=0,bd=Infinity,clat=Math.cos(lat*Math.PI/180);
-  for(let i=0;i<D.nos.length;i++){const dy=lat-D.nos[i][0],dx=(lon-D.nos[i][1])*clat,d=dy*dy+dx*dx;if(d<bd){bd=d;best=i;}}
-  return best;
-}
+function recalculaTerrenoAtual(){if(!contornosOrdenados.length)return;cotaNosAtuais=D.nos.map(p=>cotaNoPonto(p[0],p[1]));cotaCellsAtuais=cellCenters.map(p=>cotaNoPonto(p[0],p[1]));rotaInfo=D.nos.map((_,i)=>infoRota(i));}
+rotaInfo=D.nos.map((_,i)=>infoRota(i));
+function noMaisProximo(lat,lon){let best=0,bd=Infinity,clat=Math.cos(lat*Math.PI/180);for(let i=0;i<D.nos.length;i++){const dy=lat-D.nos[i][0],dx=(lon-D.nos[i][1])*clat,d=dy*dy+dx*dx;if(d<bd){bd=d;best=i;}}return best;}
 const cellNode=cellCenters.map(c=>noMaisProximo(c[0],c[1]));
-// camadas
+
+// Mancha HAND atual: é a área física do cenário. A grade IBGE NÃO é mancha.
 const manchaLayer=L.layerGroup();
-function featureCenario(nivelRegua){
-  if(!contornosGeo||!contornosGeo.features||!contornosGeo.features.length)return null;
-  const hand=Math.max(0,Math.min(CAMADA_MAX,nivelRegua-BANKFULL_M));
-  let best=null,bd=Infinity;
-  contornosGeo.features.forEach(f=>{const n=Number(f.properties&&f.properties.nivel_m);if(!Number.isFinite(n))return;const d=Math.abs(n-hand);if(d<bd){bd=d;best=f;}});
-  return best;
-}
-function atualizaMancha(nivelRegua){
-  manchaLayer.clearLayers();
-  const f=featureCenario(nivelRegua);
-  if(!f)return;
-  L.geoJSON(f,{style:{color:'#1e5fbf',weight:1.5,fillColor:'#1e5fbf',fillOpacity:.16}}).eachLayer(l=>manchaLayer.addLayer(l));
-}
+function featureCenario(nivelRegua){if(!contornosOrdenados.length)return null;const hand=Math.max(0,Math.min(CAMADA_MAX,nivelRegua-BANKFULL_M));let best=contornosOrdenados[0],bd=Infinity;contornosOrdenados.forEach(x=>{const d=Math.abs(x.nivel-hand);if(d<bd){bd=d;best=x;}});return best&&best.feature;}
+function atualizaMancha(nivelRegua){manchaLayer.clearLayers();const f=featureCenario(nivelRegua);if(!f)return;L.geoJSON(f,{style:{color:'#1e5fbf',weight:1.8,fillColor:'#1e5fbf',fillOpacity:.18}}).eachLayer(l=>manchaLayer.addLayer(l));}
+
 const b=L.latLngBounds();
-const ruas=D.edges.map(([a,c,ag])=>{const A=D.nos[a],C=D.nos[c];b.extend(A);b.extend(C);
-  return {pl:L.polyline([A,C],{weight:2,opacity:.8}),a,c,ag};});
+const ruas=D.edges.map(([a,c,ag])=>{const A=D.nos[a],C=D.nos[c];b.extend(A);b.extend(C);return {pl:L.polyline([A,C],{weight:2,opacity:.8}),a,c,ag};});
 const ruasLayer=L.layerGroup(ruas.map(r=>r.pl));
-const cellsPl=D.cells.map((c,idx)=>L.polygon(c.poly,{weight:.6,color:'#2b3a34',fillOpacity:.7})
-  .bindPopup(()=>{const ri=rotaInfo[cellNode[idx]],local=c.cota==null?'—':(BANKFULL_M+c.cota).toFixed(1)+' m',garg=ri.cota==null?'—':(BANKFULL_M+ri.cota).toFixed(1)+' m';return `<b>${c.pop} pessoas</b><br>limiar local HAND: <b>${local}</b><br>primeiro gargalo HAND da rota: <b>${garg}</b><br>a pé: ${(c.dist_m/1000).toFixed(2)} km`; }));
-const cellsLayer=L.layerGroup(cellsPl);
+
+// Grade IBGE: contorno discreto + ponto no centro. Não pintar o quadrado inteiro,
+// porque em área rural a célula pode ter ~1 km e a população não está localizada casa a casa.
+const cellBoxes=D.cells.map(c=>L.polygon(c.poly,{weight:.55,color:'#d7e0dd',opacity:.20,fillOpacity:0}));
+const cellDots=D.cells.map((c,idx)=>L.circleMarker(cellCenters[idx],{radius:Math.max(3,Math.min(9,3+Math.sqrt(Math.max(0,c.pop))*.35)),color:'#ffffff',weight:1.2,fillColor:'#9aa3a0',fillOpacity:.82})
+  .bindPopup(()=>{const ri=rotaInfo[cellNode[idx]]||{},lc=cotaCellsAtuais[idx],local=lc==null?'sem cobertura no intervalo':(BANKFULL_M+lc).toFixed(1)+' m na régua',garg=ri.cota==null?'sem cota suficiente':(BANKFULL_M+ri.cota).toFixed(1)+' m na régua';return `<b>${c.pop} pessoas na célula da Grade IBGE</b><br><small>O ponto representa a célula; não é a posição de uma casa. Em área rural a célula pode ter cerca de 1 km.</small><br>limiar HAND no centro da célula: <b>${local}</b><br>primeiro gargalo HAND da rota: <b>${garg}</b><br>a pé: ${(c.dist_m/1000).toFixed(2)} km`; }));
+const cellsLayer=L.layerGroup([...cellBoxes,...cellDots]);
 const abrigos=L.layerGroup(D.abrigos.map(a=>L.marker([a.lat,a.lon]).bindPopup('<b>'+a.nome+'</b><br>abrigo / ponto de encontro')));
 const BB=b.pad(0.06);function aj(){map.invalidateSize();map.fitBounds(BB);}
-function classe(cotaLocal,cotaRota,dist,nivelRegua,lat,lon){
+
+function classeLocal(cotaLocal,dist,nivelRegua){
   const nivelHand=Math.max(0,nivelRegua-BANKFULL_M);
-  let base;
-  if(cotaLocal!==null&&cotaLocal!==undefined&&cotaLocal<=nivelHand) base='alagada';
-  else if(cotaRota!==null&&cotaRota!==undefined&&cotaRota<=nivelHand) base='rota_comprometida';
-  else {
-    const vals=[cotaLocal,cotaRota].filter(v=>v!==null&&v!==undefined);
-    if(!vals.length) base='sem_dado';
-    else {const limiar=Math.min(...vals),m=(limiar-nivelHand)/(taxaCmH/100/60)-dist/vel/60;base=m<0?'critica':m<15?'apertada':m<60?'atencao':'confortavel';}
-  }
-  if(naManchaPreliminar(lat,lon)&&(base==='confortavel'||base==='sem_dado')) return 'preliminar';
-  return base;
+  if(cotaLocal===null||cotaLocal===undefined)return 'sem_dado';
+  if(cotaLocal<=nivelHand)return 'alagada';
+  const m=(cotaLocal-nivelHand)/(taxaCmH/100/60)-dist/vel/60;
+  return m<0?'critica':m<15?'apertada':m<60?'atencao':'confortavel';
+}
+function classe(cotaLocal,cotaRota,dist,nivelRegua){
+  const nivelHand=Math.max(0,nivelRegua-BANKFULL_M);
+  if(cotaLocal!==null&&cotaLocal!==undefined&&cotaLocal<=nivelHand)return 'alagada';
+  if(cotaRota!==null&&cotaRota!==undefined&&cotaRota<=nivelHand)return 'rota_comprometida';
+  const vals=[cotaLocal,cotaRota].filter(v=>v!==null&&v!==undefined);
+  if(!vals.length)return 'sem_dado';
+  const limiar=Math.min(...vals),m=(limiar-nivelHand)/(taxaCmH/100/60)-dist/vel/60;
+  return m<0?'critica':m<15?'apertada':m<60?'atencao':'confortavel';
 }
 function pior(x,y){return ordem.indexOf(x)<ordem.indexOf(y)?x:y;}
+
 // ---- render por modo ----
 let modo='rotas';
 function nivelAtual(){return BANKFULL_M+(sld.value/100)*CAMADA_MAX;}
 function renderRotas(){const nivel=nivelAtual(),h=Math.max(0,nivel-BANKFULL_M);
-  ruas.forEach(r=>{const a=D.cota_no[r.a],c=D.cota_no[r.c],wet=(a!=null&&a<=h)||(c!=null&&c<=h),pre=naManchaPreliminar(D.nos[r.a][0],D.nos[r.a][1])||naManchaPreliminar(D.nos[r.c][0],D.nos[r.c][1]);r.pl.setStyle({color:wet?'#1e5fbf':pre?'#7d3cff':'#8fa7b8',weight:wet||pre?2.8:1.5,opacity:wet||pre?.9:.5});});
+  ruas.forEach(r=>{const a=cotaNosAtuais[r.a],c=cotaNosAtuais[r.c],wet=(a!=null&&a<=h)||(c!=null&&c<=h);r.pl.setStyle({color:wet?'#1e5fbf':'#8fa7b8',weight:wet?2.8:1.5,opacity:wet?.9:.5});});
   document.getElementById('nvtxt').textContent=nivel.toFixed(1)+' m';
-  document.getElementById('painel').innerHTML='<div class="sub"><b>Hipótese de rota do grafo no nível selecionado.</b> Azul = trecho local alcançado pelo HAND; roxo = referência da mancha preliminar. A segurança da rota depende do primeiro gargalo ao longo de todo o caminho, não só da cota no ponto clicado.</div><div class="rota" id="rota">—</div>';
+  document.getElementById('painel').innerHTML='<div class="sub"><b>Azul = trecho alcançado pelo HAND atual do mosaico 2 m.</b> A rota é avaliada pelo primeiro gargalo ao longo do caminho. A mancha preliminar antiga ficou desligada por padrão e não entra neste cálculo.</div><div class="rota" id="rota">—</div>';
 }
-function renderMargem(){const nivel=nivelAtual();const cnt={alagada:0,rota_comprometida:0,critica:0,apertada:0,preliminar:0,atencao:0,confortavel:0,alto:0,sem_dado:0};
-  const cl=D.nos.map((_,i)=>classe(D.cota_no[i],rotaInfo[i].cota,D.dist_m[i],nivel,D.nos[i][0],D.nos[i][1]));cl.forEach(k=>cnt[k]++);
+function renderMargem(){const nivel=nivelAtual();const cnt={alagada:0,rota_comprometida:0,critica:0,apertada:0,atencao:0,confortavel:0,alto:0,sem_dado:0};
+  const cl=D.nos.map((_,i)=>classe(cotaNosAtuais[i],rotaInfo[i]&&rotaInfo[i].cota,D.dist_m[i],nivel));cl.forEach(k=>cnt[k]++);
   ruas.forEach(r=>r.pl.setStyle({color:CORES[pior(cl[r.a],cl[r.c])],weight:2.5,opacity:.85}));
   document.getElementById('nvtxt').textContent=nivel.toFixed(1)+' m';
-  document.getElementById('painel').innerHTML='<div class="sub"><b>Margem até o primeiro gargalo da rota.</b> O cálculo agora percorre a rota inteira até o abrigo: um ponto alto não permanece “confortável” se precisa atravessar um trecho baixo já alcançado. Roxo continua sendo somente a mancha preliminar sem tempo reconciliado.</div>'+
+  document.getElementById('painel').innerHTML='<div class="sub"><b>Margem calculada com as cotas extraídas dos contornos HAND atualmente publicados.</b> O cálculo percorre a rota inteira: um ponto alto pode perder saída antes de ser inundado localmente.</div>'+
     ordem.map(k=>`<div class="row"><span><i style="background:${CORES[k]}"></i>${ROT[k]}</span><b>${cnt[k]}</b></div>`).join('');
 }
-function renderImpacto(){const nivel=nivelAtual();const cnt={alagada:0,rota_comprometida:0,critica:0,apertada:0,preliminar:0,atencao:0,confortavel:0,alto:0,sem_dado:0};
-  D.cells.forEach((c,i)=>{const cc=cellCenters[i],ri=rotaInfo[cellNode[i]],k=classe(c.cota,ri.cota,c.dist_m,nivel,cc[0],cc[1]);cnt[k]+=c.pop;cellsPl[i].setStyle({fillColor:CORES[k]});});
+function renderImpacto(){const nivel=nivelAtual(),h=Math.max(0,nivel-BANKFULL_M);const cnt={alagada:0,rota_comprometida:0,critica:0,apertada:0,atencao:0,confortavel:0,alto:0,sem_dado:0};
+  D.cells.forEach((c,i)=>{
+    const ri=rotaInfo[cellNode[i]]||{}, local=classeLocal(cotaCellsAtuais[i],c.dist_m,nivel), geral=classe(cotaCellsAtuais[i],ri.cota,c.dist_m,nivel);cnt[geral]+=c.pop;
+    const rotaAtingida=ri.cota!=null&&ri.cota<=h;
+    const borda=rotaAtingida?CORES.rota_comprometida:(geral==='critica'?CORES.critica:geral==='apertada'?CORES.apertada:'#ffffff');
+    cellBoxes[i].setStyle({fillOpacity:0,color:local==='alagada'?CORES.alagada:'#d7e0dd',opacity:local==='alagada'?.6:.18,weight:local==='alagada'?1.2:.5});
+    cellDots[i].setStyle({fillColor:CORES[local]||CORES.sem_dado,color:borda,weight:rotaAtingida?3:(geral==='critica'||geral==='apertada'?2:1.2),fillOpacity:local==='sem_dado'?.35:.9});
+  });
   document.getElementById('nvtxt').textContent=nivel.toFixed(1)+' m';
   const risco=cnt.alagada+cnt.rota_comprometida+cnt.critica+cnt.apertada+cnt.atencao;
-  document.getElementById('painel').innerHTML=ordem.map(k=>`<div class="row"><span><i style="background:${CORES[k]}"></i>${ROT[k]}</span><b>${cnt[k].toLocaleString('pt-BR')}</b></div>`).join('')+
-    `<div class="big"><b>${risco.toLocaleString('pt-BR')}</b> pessoas com local ou rota sob pressão no modelo · <b>${cnt.preliminar.toLocaleString('pt-BR')}</b> em área preliminar sem tempo reconciliado</div>`;
+  document.getElementById('painel').innerHTML='<div class="sub"><b>Os quadrados são células da Grade Estatística do IBGE, não casas nem área inundada.</b> Em zona rural podem ter cerca de 1 km. Por isso deixei os quadrados sem preenchimento: o ponto colorido representa a célula/população agregada; a mancha azul é que representa o cenário HAND.</div>'+
+    ordem.map(k=>`<div class="row"><span><i style="background:${CORES[k]}"></i>${ROT[k]}</span><b>${cnt[k].toLocaleString('pt-BR')}</b></div>`).join('')+
+    `<div class="big"><b>${risco.toLocaleString('pt-BR')}</b> pessoas em células IBGE com local ou rota sob pressão — <b>limite superior de triagem</b>, não contagem de casas atingidas.</div>`;
 }
 function redraw(){taxaCmH=+sldTaxa.value;document.getElementById('taxatxt').textContent=taxaCmH;
   document.getElementById('taxacen').textContent=taxaCmH<=25?'(lenta)':taxaCmH>100?'(subida rápida · cenário)':'';
@@ -159,9 +168,9 @@ map.on('click',e=>{ if(modo!=='rotas')return;
 function setModo(m){modo=m;
   document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x.dataset.m===m));
   document.getElementById('sliders').classList.remove('hide');
-  [manchaLayer,ruasLayer,cellsLayer].forEach(l=>map.removeLayer(l)); if(prelimLayer)map.removeLayer(prelimLayer);
+  [manchaLayer,ruasLayer,cellsLayer].forEach(l=>map.removeLayer(l));
   if(cam){map.removeLayer(cam);cam=null;} if(orig){map.removeLayer(orig);orig=null;}
-  manchaLayer.addTo(map); if(prelimLayer)prelimLayer.addTo(map); abrigos.addTo(map);
+  manchaLayer.addTo(map); abrigos.addTo(map);
   if(m==='impacto'){cellsLayer.addTo(map);renderImpacto();}
   else{ruasLayer.addTo(map); if(m==='margem')renderMargem(); else renderRotas();}
 }
@@ -170,8 +179,18 @@ const sld=document.getElementById('sld'),sldTaxa=document.getElementById('sldTax
 sld.oninput=redraw;sldTaxa.oninput=redraw;
 document.getElementById('taxatxt').textContent=taxaCmH;
 setModo('impacto'); aj(); setTimeout(aj,300); window.addEventListener('resize',aj);
-Promise.all([
+Promise.allSettled([
   fetch('assets/data/santa_tereza_inundacao/contornos_mancha.json').then(r=>{if(!r.ok)throw new Error('contornos '+r.status);return r.json();}),
   fetch('assets/data/santa_tereza_inundacao/mancha_preliminar_santa_tereza.geojson').then(r=>{if(!r.ok)throw new Error('preliminar '+r.status);return r.json();})
-]).then(([cg,pg])=>{contornosGeo=cg;prelimGeo=pg;prelimLayer=L.geoJSON(pg,{style:{color:'#7d3cff',weight:2,dashArray:'6 5',fillColor:'#7d3cff',fillOpacity:.05}});prelimLayer.addTo(map);redraw();}).catch(()=>{contornosGeo=null;prelimGeo=null;prelimLayer=null;redraw();});
+]).then(res=>{
+  if(res[0].status==='fulfilled'){contornosGeo=res[0].value;preparaContornos(contornosGeo);recalculaTerrenoAtual();}
+  else {contornosGeo=null;contornosOrdenados=[];}
+  if(res[1].status==='fulfilled'){
+    prelimGeo=res[1].value;
+    prelimLayer=L.geoJSON(prelimGeo,{style:{color:'#7d3cff',weight:2,dashArray:'6 5',fillColor:'#7d3cff',fillOpacity:.04}});
+    prelimLayer.bindPopup('<b>Mancha preliminar legada</b><br>Recorte de profundidade_inund_v02.tif (prova de conceito de 11/07/2026). Não entra na classificação atual do painel.');
+    prelimControl=L.control.layers(null,{'Mancha preliminar legada · opcional':prelimLayer},{collapsed:true}).addTo(map);
+  }
+  redraw();
+});
 </script></body></html>
