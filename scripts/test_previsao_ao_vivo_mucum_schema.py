@@ -26,6 +26,12 @@ LIVE_SPEC.loader.exec_module(LIVE)
 class MucumFeedContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.data = {
+            "telemetria_ultima_em": "2026-08-28T18:15:00",
+            "serie_observada_ana": [
+                {"hora": "2026-08-28T18:00", "nivel_cm": 100.0},
+                {"hora": "2026-08-28T18:15", "nivel_cm": 101.0},
+            ],
+            "serie_observada_ana_n": 2,
             "horizontes": {
                 key: self._item(key, hours, inputs, role, rank)
                 for key, hours, inputs, role, rank in (
