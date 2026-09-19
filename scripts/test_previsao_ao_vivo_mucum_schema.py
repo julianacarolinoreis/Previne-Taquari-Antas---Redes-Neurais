@@ -115,6 +115,14 @@ class MucumFeedContractTests(unittest.TestCase):
         self.assertTrue(LIVE.nivel_plausivel(25000, "86125500"))
         self.assertFalse(LIVE.nivel_plausivel(25000, LIVE.ALVO))
 
+    def test_failure_preservation_does_not_advance_success_timestamp(self) -> None:
+        source = LIVE_SCRIPT.read_text(encoding="utf-8")
+        start = source.index("def escrever(top, horizontes, max_stale_h=6):")
+        end = source.index("def escrever_pacote", start)
+        block = source[start:end]
+        self.assertNotIn('ant["consultado_em"] =', block)
+        self.assertIn('ant["ultima_tentativa_em"] = tentativa', block)
+
 
 if __name__ == "__main__":
     unittest.main()
