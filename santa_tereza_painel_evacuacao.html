@@ -96,7 +96,10 @@ const cellBoxes=D.cells.map((c,idx)=>L.polygon(c.poly,{weight:.7,color:'#2b3a34'
 const cellLabels=D.cells.map((c,idx)=>L.marker(cellCenters[idx],{interactive:false,keyboard:false,icon:L.divIcon({className:'',iconSize:[36,22],iconAnchor:[18,11],html:`<div id="poplbl-${idx}" style="min-width:24px;padding:2px 4px;border-radius:4px;background:rgba(255,255,255,.88);color:#17211d;text-align:center;font:800 11px/1.2 Arial,sans-serif;box-shadow:0 1px 3px rgba(0,0,0,.28)">?</div>`})}));
 const cellsLayer=L.layerGroup([...cellBoxes,...cellLabels]);
 const abrigos=L.layerGroup(D.abrigos.map(a=>L.marker([a.lat,a.lon]).bindPopup('<b>'+a.nome+'</b><br>abrigo / ponto de encontro')));
-const BB=b.pad(0.06);function aj(){map.invalidateSize();map.fitBounds(BB);}
+const BB=b.pad(0.06);
+const bc=L.latLngBounds();D.cells.forEach(c=>c.poly.forEach(p=>bc.extend(p)));
+const BBcells=bc.pad(0.03);
+function aj(){map.invalidateSize();map.fitBounds(modo==='impacto'?BBcells:BB);}
 
 function classeLocal(cotaLocal,dist,nivelRegua){
   const nivelHand=Math.max(0,nivelRegua-BANKFULL_M);
@@ -171,8 +174,8 @@ function setModo(m){modo=m;
   [manchaLayer,ruasLayer,cellsLayer].forEach(l=>map.removeLayer(l));
   if(cam){map.removeLayer(cam);cam=null;} if(orig){map.removeLayer(orig);orig=null;}
   manchaLayer.addTo(map); abrigos.addTo(map);
-  if(m==='impacto'){cellsLayer.addTo(map);renderImpacto();}
-  else{ruasLayer.addTo(map); if(m==='margem')renderMargem(); else renderRotas();}
+  if(m==='impacto'){cellsLayer.addTo(map);renderImpacto();setTimeout(aj,0);}
+  else{ruasLayer.addTo(map); if(m==='margem')renderMargem(); else renderRotas();setTimeout(aj,0);}
 }
 document.querySelectorAll('.tabs button').forEach(x=>x.onclick=()=>setModo(x.dataset.m));
 const sld=document.getElementById('sld'),sldTaxa=document.getElementById('sldTaxa');
