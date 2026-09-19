@@ -828,7 +828,22 @@ def escrever(top, horizontes, max_stale_h=6):
             if contrato_atual and _tem_previsao(ant) and hm:
                 idade_h = (agora_brt() - hm).total_seconds() / 3600
                 if idade_h <= max_stale_h:
-                    print(f"telemetria falhou neste ciclo; mantendo última previsão boa ({idade_h:.1f} h) — não sobrescreve")
+                    tentativa = agora_brt().isoformat(timespec="seconds")
+                    motivo = str(top.get("status") or "ciclo sem previsão válida")
+                    # Preserva a hora da última atualização BEM-SUCEDIDA; apenas
+                    # registra que houve uma tentativa nova com falha. Assim o
+                    # painel não apresenta dado velho como recém-atualizado.
+                    ant["ultima_tentativa_em"] = tentativa
+                    ant["ultima_tentativa_status"] = "falha"
+                    ant["erro_robo_ultima_consulta"] = motivo
+                    for item in (ant.get("horizontes") or {}).values():
+                        if isinstance(item, dict):
+                            item["ultima_tentativa_em"] = tentativa
+                            item["ultima_tentativa_status"] = "falha"
+                            item["erro_robo_ultima_consulta"] = motivo
+                    with open(SAIDA, "w", encoding="utf-8") as f:
+                        json.dump(ant, f, ensure_ascii=False, indent=1)
+                    print(f"telemetria falhou neste ciclo; mantendo última previsão boa ({idade_h:.1f} h) e registrando a falha")
                     return
         except Exception as e:
             print("não consegui ler JSON anterior:", e)
