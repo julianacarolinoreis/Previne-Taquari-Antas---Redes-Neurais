@@ -16,6 +16,8 @@ from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from observed_rain import observed_accumulations
+
 try:
     from .ecmwf_direct import fetch_ecmwf_direct
 except ImportError:  # direct execution: ``python scripts/build_mucum_weather_feed.py``
@@ -187,6 +189,12 @@ def build_feed(api: dict, source_url: str, live_path: Path) -> dict:
         )
 
     live = read_live(live_path, now)
+    observed_rain = observed_accumulations(
+        "chuva_86472000",
+        now=now,
+        source_label="ANA/SGB 86472000 · montante do Antas (proxy observado para Muçum)",
+    )
+    live.update(observed_rain)
     return {
         "schema_version": 1,
         "feed_type": "meteorological_forecast",
