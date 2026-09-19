@@ -147,6 +147,9 @@ def validar_componente_panorama() -> None:
         "ResizeObserver",
         "const forecastReferenceMs=Date.now();",
         "candidate.time.getTime()<forecastReferenceMs-ACTIVE_FORECAST_GRACE_MINUTES*60000",
+        "serie_observada_ana",
+        "proxima_base_diagnostico",
+        "liveMinutes:15",
     ):
         assert token in js, f"JS: falta proteção/componente {token}"
     assert "if(crossDay) return fmtWhen(d);" in js, "JS: eixo do panorama ainda usa 00:00"
@@ -158,7 +161,9 @@ def validar_componente_panorama() -> None:
     assert "let previous=anchor" not in js, "JS: horizontes ainda estão encadeados apesar de terem bases distintas"
     assert "x1:px,y1:py,x2:x,y2:y" not in js, "JS: previsão ainda tem linha colorida entre base e ponto final"
     assert "Nível do rio observado nas últimas 24 horas e previsões ativas da rede neural." not in js, "JS: tooltip global antigo ainda cobre o gráfico"
-    print("OK componente: cores por horizonte, rótulos sem colisão e janela semanal")
+    assert "Status do feed na publicação:" not in js, "JS: ainda mostra classificação velha gravada no snapshot"
+    assert "if(mins<=60) return 'telemetria recente';" in js, "JS: limiar de frescor diverge do robô"
+    print("OK componente: telemetria ANA contínua, frescor separado e janela semanal")
 
 
 def validar_geojson(relativo: str) -> None:
@@ -185,6 +190,8 @@ def validar_deploy_pages() -> None:
     assert "group: github-pages-site" in yml, "Pages ainda usa o grupo concurrency preso em waiting"
     assert "github.ref == 'refs/heads/main'" in yml, "Pages ainda publica fora do main"
     assert "previsao_ao_vivo.json|previsao_ao_vivo_mucum.json" in yml, "Pages ainda copia o JSON do robô para o artefato"
+    assert '"assets/previsao_panorama.js"' in yml, "Pages não redeploya quando o panorama JS muda"
+    assert '"assets/previsao_panorama.css"' in yml, "Pages não redeploya quando o panorama CSS muda"
     assert 'cron: "41 */2 * * *"' in yml, "Pages perdeu a cópia de contingência do JSON"
     js = (RAIZ / "assets/js/live_feed.js").read_text(encoding="utf-8")
     assert "cdn.jsdelivr.net/gh/" in js, "live_feed não lê o CDN quando o Pages 404"
