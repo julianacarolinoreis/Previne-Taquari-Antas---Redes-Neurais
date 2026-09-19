@@ -18,10 +18,11 @@
   nav.innerHTML =
     '<a class="site-wordmark" href="' + prefix + 'projeto.html">PREVINE</a>' +
     '<div class="site-nav-links">' +
-      '<a href="' + prefix + 'projeto.html"' + cur('projeto') + '>Projeto</a>' +
-      '<a href="' + prefix + 'pesquisas.html"' + cur('acervo') + '>Acervo</a>' +
+      '<a href="' + prefix + 'projeto.html#situacao-agora">Situação agora</a>' +
       '<a href="' + prefix + 'dashboard_bacia.html"' + cur('bacia') + '>Bacia</a>' +
-      '<a href="' + prefix + 'index.html"' + cur('rna') + '>RNA</a>' +
+      '<a href="' + prefix + 'pesquisas/estudo-caso-territorio.html">Território</a>' +
+      '<a href="' + prefix + 'pesquisas.html"' + cur('acervo') + '>Pesquisa</a>' +
+      '<a href="' + prefix + 'projeto.html"' + cur('projeto') + '>Projeto</a>' +
     '</div>';
   document.body.insertBefore(nav, document.body.firstChild);
   document.body.insertBefore(bar, nav);
