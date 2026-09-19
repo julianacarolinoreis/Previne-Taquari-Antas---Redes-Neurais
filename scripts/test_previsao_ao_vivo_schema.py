@@ -31,6 +31,7 @@ class LiveFeedContractTests(unittest.TestCase):
         data = copy.deepcopy(self.data)
         four = data["horizontes"]["4h"]
         four["nivel_previsto_cm"] = None
+        four["disponivel"] = False
         four["status"] = "inputs incompletos — sem previsão nesta hora"
         four["auditoria_inputs"] = {"status": "ATENCAO"}
         validate_data(data, b_mat=B_MAT)
