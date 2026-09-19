@@ -150,7 +150,7 @@
       <input type="range" id="sld" min="0" max="100" value="0" aria-label="Cota da camada exploratória, de 0 a 15 metros">
       <small class="scope-note">Rotas e impacto usam a camada populacional exploratória disponível até 15 m. Isso não é o limite físico do rio.</small>
       <div class="sub">Velocidade: <span class="lv" id="taxatxt"></span> cm/h <span id="taxacen" style="color:#7a5b00;font-size:11px"></span></div>
-      <input type="range" id="sldTaxa" min="10" max="120" value="40" step="5">
+      <input type="range" id="sldTaxa" min="10" max="200" value="40" step="5">
     </div>
     <div id="painel"></div>
     <div id="planPanel" class="hide" aria-live="polite"></div>
@@ -355,7 +355,7 @@ function renderImpacto(){const nivel=nivelAtual();const cnt={alagada:0,critica:0
     `<div class="big"><b>${risco.toLocaleString('pt-BR')}</b> pessoas precisam sair · de <b>${D.meta.pop_total.toLocaleString('pt-BR')}</b></div>`;
 }
 function redraw(){taxaCmH=+sldTaxa.value;document.getElementById('taxatxt').textContent=taxaCmH;
-  document.getElementById('taxacen').textContent=taxaCmH<=25?'(lenta)':taxaCmH>=90?'(recorde)':'';
+  document.getElementById('taxacen').textContent=taxaCmH<=25?'(lenta)':taxaCmH>=90?'(subida muito rápida · cenário)':'';
   if(modo==='margem')renderMargem(); else if(modo==='impacto')renderImpacto();}
 // interacao rotas
 let cam=null,orig=null;
