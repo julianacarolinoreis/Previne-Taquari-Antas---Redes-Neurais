@@ -22,10 +22,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout
+      - name: Checkout mínimo
         uses: actions/checkout@v4
         with:
-          lfs: true
+          fetch-depth: 1
+          lfs: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /codigo_python/02_mdt_hand_mancha/
+            /scripts/refresh_spatial_30m_pages.py
+            /assets/data/mucum_inundacao/
+            /assets/data/santa_tereza_inundacao/
+            /pesquisas/mucum-mapa-impacto.html
+            /pesquisas/santa-tereza-mapa-impacto.html
+            /pesquisas/mucum-mapa-margem.html
+            /pesquisas/santa-tereza-mapa-margem.html
+            /pesquisas/mucum-painel-evacuacao.html
+            /pesquisas/santa-tereza-painel-evacuacao.html
+            /mucum_painel_evacuacao.html
+            /santa_tereza_painel_evacuacao.html
 
       - name: Python 3.11
         uses: actions/setup-python@v5
