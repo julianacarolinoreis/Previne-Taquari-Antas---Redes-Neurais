@@ -35,7 +35,7 @@
     <div id="sliders" class="hide">
       <div class="sub">Nível na régua: <span class="lv" id="nvtxt"></span></div>
       <input type="range" id="sld" min="15" max="30" value="15" step="0.1" aria-label="Nível da régua de 15 a 30 metros">
-      <div class="sub" style="font-size:11px;color:#7a5b00;margin-top:4px"><b>15,0 m = início do extravasamento adotado.</b> A relação régua↔HAND abaixo é uma aproximação de triagem, não uma superfície d’água uniforme. Em tributários e setores locais (ex.: Marrecão), a mancha preliminar é usada como cheque de consistência e impede que uma área conhecida pela camada preliminar seja chamada de “confortável” sem reconciliação.</div>
+      <div class="sub" style="font-size:11px;color:#7a5b00;margin-top:4px"><b>15,0 m = início do extravasamento adotado.</b> A relação régua↔HAND é uma aproximação de triagem. A mancha preliminar antiga fica apenas como camada opcional de comparação e <b>não altera</b> as classes atuais.</div>
       <div class="sub">Velocidade: <span class="lv" id="taxatxt"></span> cm/h <span id="taxacen" style="color:#7a5b00;font-size:11px"></span></div>
       <input type="range" id="sldTaxa" min="10" max="200" value="40" step="5">
     </div>
@@ -92,10 +92,10 @@ const cellNode=cellCenters.map(c=>noMaisProximo(c[0],c[1]));
 // Mancha HAND atual: é a área física do cenário. A grade IBGE NÃO é mancha.
 const manchaLayer=L.layerGroup();
 function featureCenario(nivelRegua){if(!contornosOrdenados.length)return null;const hand=Math.max(0,Math.min(CAMADA_MAX,nivelRegua-BANKFULL_M));let best=contornosOrdenados[0],bd=Infinity;contornosOrdenados.forEach(x=>{const d=Math.abs(x.nivel-hand);if(d<bd){bd=d;best=x;}});return best&&best.feature;}
-function atualizaMancha(nivelRegua){manchaLayer.clearLayers();const f=featureCenario(nivelRegua);if(!f)return;L.geoJSON(f,{interactive:false,style:{color:'#1e5fbf',weight:1.4,fillColor:'#1e5fbf',fillOpacity:.18}}).eachLayer(l=>manchaLayer.addLayer(l));}
+function atualizaMancha(nivelRegua){manchaLayer.clearLayers();const f=featureCenario(nivelRegua);if(!f)return;L.geoJSON(f,{interactive:false,style:{color:'#1e5fbf',weight:.8,fillColor:'#1e5fbf',fillOpacity:.14}}).eachLayer(l=>manchaLayer.addLayer(l));}
 
 const b=L.latLngBounds();
-const ruas=D.edges.map(([a,c,ag])=>{const A=D.nos[a],C=D.nos[c];b.extend(A);b.extend(C);return {pl:L.polyline([A,C],{weight:1.25,opacity:.72,interactive:false}),a,c,ag};});
+const ruas=D.edges.map(([a,c,ag])=>{const A=D.nos[a],C=D.nos[c];b.extend(A);b.extend(C);return {pl:L.polyline([A,C],{weight:1.0,opacity:.60,interactive:false}),a,c,ag};});
 const ruasLayer=L.layerGroup(ruas.map(r=>r.pl));
 
 // Grade IBGE: contorno discreto + ponto no centro. Não pintar o quadrado inteiro,
@@ -132,7 +132,7 @@ function pior(x,y){return ordem.indexOf(x)<ordem.indexOf(y)?x:y;}
 let modo='rotas';
 function nivelAtual(){return Math.max(BANKFULL_M,Math.min(NVMAX,Number(sld.value)||BANKFULL_M));}
 function renderRotas(){const nivel=nivelAtual(),h=Math.max(0,nivel-BANKFULL_M);
-  ruas.forEach(r=>{const a=cotaNosAtuais[r.a],c=cotaNosAtuais[r.c],wet=(a!=null&&a<=h)||(c!=null&&c<=h);r.pl.setStyle({color:wet?'#1e5fbf':'#8fa7b8',weight:wet?1.8:1.0,opacity:wet?.82:.42});});
+  ruas.forEach(r=>{const a=cotaNosAtuais[r.a],c=cotaNosAtuais[r.c],wet=(a!=null&&a<=h)||(c!=null&&c<=h);r.pl.setStyle({color:wet?'#1e5fbf':'#8fa7b8',weight:wet?1.45:.9,opacity:wet?.78:.38});});
   document.getElementById('nvtxt').textContent=nivel.toFixed(1)+' m';
   document.getElementById('painel').innerHTML='<div class="sub"><b>Clique em qualquer ponto visível do mapa.</b> As linhas foram afinadas para não atrapalhar o clique. Azul = trecho alcançado pelo HAND atual; ao clicar eu mostro a distância até o abrigo e até o primeiro trecho que permanece seco pelo restante da rota.</div><div class="rota" id="rota">Clique no mapa para calcular.</div>';
 }
@@ -164,7 +164,7 @@ function redraw(){taxaCmH=+sldTaxa.value;document.getElementById('taxatxt').text
   atualizaMancha(nivelAtual());
   if(modo==='margem')renderMargem(); else if(modo==='impacto')renderImpacto(); else if(modo==='rotas')renderRotas();}
 // interacao rotas
-let cam=null,orig=null,safeMark=null;
+let cam=null,orig=null,safeMark=null,snapLine=null;
 function rotaIndices(inicio){
   const out=[],seen=new Set();let cur=inicio,g=0;
   while(cur>=0&&cur<D.nos.length&&!seen.has(cur)&&g++<6000){
@@ -203,10 +203,13 @@ map.getContainer().style.cursor='crosshair';
 map.on('click',e=>{ if(modo!=='rotas')return;
   let best=-1,bd=1e18;for(let i=0;i<D.nos.length;i++){const dy=e.latlng.lat-D.nos[i][0],dx=(e.latlng.lng-D.nos[i][1])*Math.cos(e.latlng.lat*Math.PI/180),dd=dy*dy+dx*dx;if(dd<bd){bd=dd;best=i;}}
   const inds=rotaIndices(best),pts=inds.map(idx=>D.nos[idx]);
-  if(cam)map.removeLayer(cam);if(orig)map.removeLayer(orig);if(safeMark)map.removeLayer(safeMark);
-  cam=L.polyline(pts,{color:'#0f8b46',weight:3,opacity:.95,interactive:false,lineCap:'round'}).addTo(map);
-  orig=L.circleMarker(D.nos[best],{radius:5,color:'#0f8b46',fillColor:'#fff',fillOpacity:1,weight:2,interactive:false}).addTo(map);
-  const ab=D.abrigos.find(x=>x.id===D.dest[best])||D.abrigos[0],dm=Number(D.dist_m[best]),ri=rotaInfo[best],nivel=nivelAtual(),h=Math.max(0,nivel-BANKFULL_M);
+  if(cam)map.removeLayer(cam);if(orig)map.removeLayer(orig);if(safeMark)map.removeLayer(safeMark);if(snapLine)map.removeLayer(snapLine);
+  const no0=D.nos[best],latm=((e.latlng.lat+no0[0])/2)*Math.PI/180;
+  const snapM=Math.hypot((e.latlng.lat-no0[0])*111320,(e.latlng.lng-no0[1])*111320*Math.cos(latm));
+  if(snapM>3)snapLine=L.polyline([[e.latlng.lat,e.latlng.lng],no0],{color:'#ffffff',weight:1.2,opacity:.8,dashArray:'4 4',interactive:false}).addTo(map);
+  cam=L.polyline(pts,{color:'#0f8b46',weight:2.3,opacity:.95,interactive:false,lineCap:'round'}).addTo(map);
+  orig=L.circleMarker(D.nos[best],{radius:4.5,color:'#0f8b46',fillColor:'#fff',fillOpacity:1,weight:2,interactive:false}).addTo(map);
+  const ab=D.abrigos.find(x=>x.id===D.dest[best])||D.abrigos[0],dmRede=Number(D.dist_m[best]),dm=Number.isFinite(dmRede)?dmRede+snapM:dmRede,ri=rotaInfo[best],nivel=nivelAtual(),h=Math.max(0,nivel-BANKFULL_M);
   const garg=ri.cota==null?null:BANKFULL_M+ri.cota,comp=ri.cota!=null&&ri.cota<=h,saida=saidaDaMancha(best,nivel);
   cam.setStyle({color:comp?'#b3382c':'#0f8b46'});
   let saidaTxt='';
@@ -214,12 +217,12 @@ map.on('click',e=>{ if(modo!=='rotas')return;
   else if(saida.status==='trecho_seco_continuo'){
     const p=D.nos[saida.node];
     safeMark=L.circleMarker(p,{radius:5,color:'#0f8b46',fillColor:'#a7f3d0',fillOpacity:1,weight:2,interactive:false}).addTo(map);
-    saidaTxt='<span style="color:#0f8b46"><b>Até trecho seco contínuo da rota:</b> '+fmtDist(saida.dist_m)+'</span>';
+    saidaTxt='<span style="color:#0f8b46"><b>Até trecho seco contínuo da rota:</b> '+fmtDist((saida.dist_m||0)+snapM)+'</span>';
   } else saidaTxt='<span style="color:#b3382c"><b>Trecho seco contínuo:</b> não foi identificado antes do fim desta rota neste cenário.</span>';
   const tempoAbrigo=Number.isFinite(dm)?Math.round(dm/vel/60):null;
   document.getElementById('rota').innerHTML=
     '<b>Do ponto clicado</b><br>'+
-    'Até abrigo <b>'+(ab?ab.nome:'')+': '+fmtDist(dm)+'</b>'+(tempoAbrigo!=null?' · ~'+tempoAbrigo+' min a pé':'')+'<br>'+
+    'Até abrigo <b>'+(ab?ab.nome:'')+': '+fmtDist(dm)+'</b>'+(tempoAbrigo!=null?' · ~'+tempoAbrigo+' min a pé':'')+'<br>'+'<span style="color:#66736d">Encaixe no nó viário mais próximo: '+fmtDist(snapM)+'.</span><br>'+
     saidaTxt+'<br>'+
     '<span style="color:#66736d">Cenário: <b>'+nivel.toFixed(1)+' m</b> na régua. “Trecho seco contínuo” é um proxy topográfico do HAND, não um ponto seguro oficialmente certificado.</span>'+
     (garg==null?'<br><span style="color:#7a8a84">Primeiro gargalo: sem cota suficiente para avaliar.</span>':comp?'<br><span style="color:#b3382c"><b>⚠ Gargalo HAND já atingido.</b> Primeiro limiar estimado: '+garg.toFixed(1)+' m na régua.</span>':'<br><span style="color:#0f8b46">Primeiro gargalo HAND estimado em <b>'+garg.toFixed(1)+' m</b> na régua.</span>')+
@@ -231,7 +234,7 @@ function setModo(m){modo=m;
   document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x.dataset.m===m));
   document.getElementById('sliders').classList.remove('hide');
   [manchaLayer,ruasLayer,cellsLayer].forEach(l=>map.removeLayer(l));
-  if(cam){map.removeLayer(cam);cam=null;} if(orig){map.removeLayer(orig);orig=null;} if(safeMark){map.removeLayer(safeMark);safeMark=null;}
+  if(cam){map.removeLayer(cam);cam=null;} if(orig){map.removeLayer(orig);orig=null;} if(safeMark){map.removeLayer(safeMark);safeMark=null;} if(snapLine){map.removeLayer(snapLine);snapLine=null;}
   manchaLayer.addTo(map); abrigos.addTo(map);
   if(m==='impacto'){map.getContainer().style.cursor='';cellsLayer.addTo(map);renderImpacto();setTimeout(aj,0);}
   else{ruasLayer.addTo(map); if(m==='margem'){map.getContainer().style.cursor='';renderMargem();} else {map.getContainer().style.cursor='crosshair';renderRotas();}setTimeout(aj,0);}
