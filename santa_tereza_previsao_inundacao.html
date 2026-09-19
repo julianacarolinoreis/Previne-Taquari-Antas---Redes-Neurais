@@ -581,24 +581,34 @@ function fmtWhen(s){ return PrevineFmtQuando.fmtWhen(s); }
 function fmtClock(s){ return PrevineFmtQuando.fmtClock(s); }
 function fmtClockDate(s){ return PrevineFmtQuando.fmtClockDate(s); }
 function ageText(s){ const ms=parseLocalWhen(s); if(!ms) return 'idade indisponível'; return PrevineFmtQuando.fmtAge(Math.max(0,Math.round((Date.now()-ms.getTime())/60000))); }
-function telemetryLabel(age){ if(age==null||!Number.isFinite(Number(age))) return 'telemetria sem idade válida'; const mins=Number(age); if(mins<=30)return 'telemetria recente'; if(mins<=60)return 'telemetria com atraso'; if(mins<=120)return 'telemetria atrasada'; return 'telemetria muito atrasada'; }
+function telemetryLabel(age){ if(age==null||!Number.isFinite(Number(age))) return 'telemetria sem idade válida'; const mins=Number(age); if(mins<=60)return 'telemetria recente'; if(mins<=120)return 'telemetria com atraso'; return 'telemetria muito atrasada'; }
 function baseLagReason(D){
   const base=parseLocalWhen(D&&D.hora_modelo);
   const telemetry=parseLocalWhen(D&&(D.telemetria_ultima_em||D.nivel_rio_agora_em));
-  const status=String(D&&(D.status||D.status_dados||'')).toLowerCase();
-  if(/hora[- ]base.*atrasad/.test(status)) return `este horizonte permanece na base ${fmtClock(base)} porque o conjunto completo e válido da próxima hora não foi disponibilizado a tempo; a RNA manteve a última base válida para preservar a grade horária exata`;
+  const diag=D&&D.proxima_base_diagnostico;
+  if(diag&&diag.hora&&diag.pronta===false){
+    const candidate=parseLocalWhen(diag.hora);
+    const missing=Array.isArray(diag.inputs_faltantes)?diag.inputs_faltantes:[];
+    const stations=[...new Set(missing.map(item=>item&&(item.estacao_nome||item.estacao)).filter(Boolean))];
+    const what=stations.length
+      ?` faltam leituras/horários válidos de ${stations.slice(0,3).join(', ')}${stations.length>3?' e outras dependências':''}`
+      :(diag.inputs_faltantes_n?` faltam ${diag.inputs_faltantes_n} entrada(s) exata(s)`:' nem todos os inputs passaram pela auditoria temporal');
+    return `a base ${fmtClock(candidate)} ainda não pode ser usada:${what}. A RNA mantém ${fmtClock(base)} até existir um conjunto completo e válido na mesma hora cheia`;
+  }
   if(!base) return 'a hora-base da RNA ainda não está disponível';
   if(!telemetry) return 'a ANA ainda não trouxe uma leitura válida para formar a próxima base';
   if(telemetry<=base) return `a ANA ainda não trouxe uma leitura posterior à base ${fmtClock(base)}`;
-  const next=new Date(base.getTime()+60*60*1000);
-  return `a ANA já trouxe uma leitura às ${fmtClock(telemetry)}, mas a RNA só usa bases completas de hora cheia; a próxima base será ${fmtClock(next)} quando a hora estiver fechada`;
+  return `há leitura ANA posterior à base ${fmtClock(base)}, mas a RNA exige todos os inputs exatamente na mesma hora cheia`;
 }
 function timingRowsHtml(D){
   const telemetry=D&&(D.telemetria_ultima_em||D.nivel_rio_agora_em);
   const base=D&&D.hora_modelo;
   const consulted=D&&D.consultado_em;
-  const publicationStatus=D&&D.status_dados;
-  return `<span class="live-timing-rows"><span><b>Última leitura ANA:</b> ${escLive(fmtClockDate(telemetry))} <small>(${escLive(ageText(telemetry))})</small></span><span><b>Hora-base dos dados da RNA:</b> ${escLive(fmtClockDate(base))}</span><span><b>Motivo:</b> ${escLive(baseLagReason(D))}</span>${consulted?`<span class="live-timing-meta"><b>Última consulta do robô:</b> ${escLive(fmtClockDate(consulted))}</span>`:''}${publicationStatus?`<span class="live-timing-meta"><b>Status do feed na publicação:</b> ${escLive(publicationStatus)}. A classificação acima é recalculada quando a página é aberta.</span>`:''}</span>`;
+  const robotAge=ageMin(consulted);
+  const telemetryAge=ageMin(telemetry);
+  const robotState=robotAge==null?'idade indisponível':(robotAge<=15?'atualizado':robotAge<=45?'com atraso':'muito atrasado');
+  const telemetryState=telemetryLabel(telemetryAge);
+  return `<span class="live-timing-rows"><span><b>Última atualização válida do robô:</b> ${escLive(fmtClockDate(consulted))} <small>(${escLive(robotState)}${robotAge==null?'':` · ${escLive(PrevineFmtQuando.fmtAge(robotAge))}`})</small></span><span><b>Última leitura ANA:</b> ${escLive(fmtClockDate(telemetry))} <small>(${escLive(telemetryState)}${telemetryAge==null?'':` · ${escLive(PrevineFmtQuando.fmtAge(telemetryAge))}`})</small></span><span><b>Hora-base dos dados da RNA:</b> ${escLive(fmtClockDate(base))}</span><span><b>Por que a base pode ficar atrás:</b> ${escLive(baseLagReason(D))}</span></span>`;
 }
 function firstNumber(){
   for(const v of arguments){
@@ -979,8 +989,8 @@ function liveFreshnessHtml(D){
   const partes=[];
   const idadeRobo=ageMin(D.consultado_em);
   const idadeAna=ageMin(D.telemetria_ultima_em);
-  if(idadeRobo!=null && idadeRobo>60) partes.push(`<b>robô sem publicar ${PrevineFmtQuando.fmtAge(idadeRobo)}</b>`);
-  if(idadeAna!=null && idadeAna>120) partes.push(`<b>ANA sem hora nova ${PrevineFmtQuando.fmtAge(idadeAna)}</b>`);
+  if(idadeRobo!=null && idadeRobo>15) partes.push(`<b>robô sem publicar ${PrevineFmtQuando.fmtAge(idadeRobo)}</b>`);
+  if(idadeAna!=null && idadeAna>60) partes.push(`<b>ANA sem hora nova ${PrevineFmtQuando.fmtAge(idadeAna)}</b>`);
   if(!partes.length && idadeAna!=null) partes.push(`<b>${telemetryLabel(idadeAna)}</b>`);
   else if(!partes.length && D.status_dados) partes.push(`<b>${escLive(D.status_dados)}</b>`);
   return partes;
@@ -1133,8 +1143,8 @@ function liveWhenText(D,P){
   const avisos=[];
   const idadeRobo=ageMin(D.consultado_em);
   const idadeAna=ageMin(D.telemetria_ultima_em);
-  if(idadeRobo!=null && idadeRobo>60) avisos.push(`robô sem publicar ${PrevineFmtQuando.fmtAge(idadeRobo)}`);
-  if(idadeAna!=null && idadeAna>120) avisos.push(`ANA sem hora nova ${PrevineFmtQuando.fmtAge(idadeAna)}`);
+  if(idadeRobo!=null && idadeRobo>15) avisos.push(`robô sem publicar ${PrevineFmtQuando.fmtAge(idadeRobo)}`);
+  if(idadeAna!=null && idadeAna>60) avisos.push(`ANA sem hora nova ${PrevineFmtQuando.fmtAge(idadeAna)}`);
   if(avisos.length){
     document.getElementById('live-bar').classList.add('stale');
     return base+'\n⚠ '+avisos.join('\n');
