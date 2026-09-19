@@ -44,6 +44,11 @@ except ImportError:  # importacao como modulo a partir da raiz do repositorio
         metadados_serie,
     )
 
+try:
+    from ana_hidroweb import buscar_telemetria_adotada
+except ImportError:
+    from previne.robo.ana_hidroweb import buscar_telemetria_adotada
+
 BRT = dt.timezone(dt.timedelta(hours=-3))
 
 def agora_brt():
@@ -366,9 +371,18 @@ def _serie_chuva_de_xml(xml):
     return serie, len(xml), ultima_raw
 
 def buscar_ana(cod, dias=5):
-    """Retorna dict {timestamp_da_leitura: nivel_cm}. Usa uma janela de datas explícita
+    """Retorna dict {timestamp_da_leitura: nivel_cm}. Prefere o HidroWebService
+    oficial quando há credenciais e mantém o WebService legado como contingência.
+    Usa uma janela de datas explícita
     (a ANA responde ErrorTable quando as datas vêm em branco); mantém o modo
     'datas em branco' apenas como reserva."""
+    novo = buscar_telemetria_adotada(cod, dias=dias)
+    if novo and novo.get("nivel"):
+        CHUVA_ANA_CACHE[cod] = dict(novo.get("chuva") or {})
+        if novo.get("ultima_nivel"): ULTIMA_RAW[cod] = novo["ultima_nivel"]
+        if novo.get("ultima_chuva"): ULTIMA_RAW[f"chuva_{cod}"] = novo["ultima_chuva"]
+        print(f"[ANA HidroWebService {cod}] linhas={len(novo['nivel'])} chuva_h={len(novo.get('chuva') or {})} qc={novo.get('qc')}")
+        return dict(novo["nivel"])
     fim = agora_brt()
     ini = fim - dt.timedelta(days=dias)
     urls_com_data = [
@@ -430,6 +444,11 @@ def buscar_ana_chuva(cod, dias=5):
         serie = dict(CHUVA_ANA_CACHE[cod])
         print(f"[ANA chuva {cod}] reaproveitada da consulta de nivel: horas={len(serie)}")
         return serie
+    novo = buscar_telemetria_adotada(cod, dias=dias)
+    if novo and novo.get("chuva"):
+        if novo.get("ultima_chuva"): ULTIMA_RAW[f"chuva_{cod}"] = novo["ultima_chuva"]
+        print(f"[ANA HidroWebService chuva {cod}] horas={len(novo['chuva'])} qc={novo.get('qc')}")
+        return dict(novo["chuva"])
     fim = agora_brt()
     ini = fim - dt.timedelta(days=dias)
     urls_com_data = [
