@@ -210,15 +210,15 @@ def _serie_chuva_de_xml(xml):
     return serie, len(xml), ultima_raw
 
 def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
-    """Telemetria da ANA. O endpoint às vezes devolve vazio/erro de forma
-    transitória, então tenta algumas vezes com backoff curto antes de desistir.
+    """Telemetria da ANA com janela ampliada na estação-alvo.
 
-    A consulta com datas preenchidas é tentada antes da consulta sem datas,
-    porque a segunda pode ser muito mais lenta no ServiceANA. O segundo host
-    é apenas um espelho de transporte; os dados e o parser continuam sendo os
-    mesmos.
+    Muçum carrega 8 dias para o painel poder desenhar 7 dias de nível
+    observado diretamente da ANA/SGB, sem depender dos pares usados na
+    auditoria das RNAs. As estações auxiliares mantêm a janela curta.
     """
     import time
+    if cod == ALVO:
+        dias = max(int(dias or 0), 8)
     fim = agora_brt(); ini = fim - dt.timedelta(days=dias)
     urls_com_data = [
         f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
@@ -474,7 +474,7 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_ba
         "telemetria_ultima_em_utc": iso_utc(raw[0] if raw else None),
         "telemetria_ultima_nivel_cm": (round(raw[1]) if raw else None),
         "idade_telemetria_min": idade,
-        "status_dados": (None if idade is None else ("telemetria recente" if idade <= 90 else f"telemetria atrasada ({idade} min)")),
+        "status_dados": (None if idade is None else ("telemetria recente" if idade <= 60 else f"telemetria atrasada ({idade} min)")),
         "estacao": ALVO, "local": LOCAL,
         "horizonte": cfg["horizonte"], "rotulo": cfg["rotulo"], "horizonte_h": cfg["horizonte_h"],
         "tipo": cfg["tipo"], "modelo": cfg["modelo"], "combo": cfg["combo"], "bankfull_cm": BANKFULL_CM,
@@ -533,6 +533,52 @@ def base_saida(cfg, nivel_agora, nivel_prev, t, status, faltantes=None, nivel_ba
         out["delta_previsto_cm"] = round(nivel_prev - delta_base, 1)
         out["passos"] = [[out["hora_modelo"], out["nivel_modelo_cm"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
     return out
+
+def serie_observada_ana_publica(series, dias=7):
+    """Série observada real de Muçum, independente da auditoria das RNAs."""
+    serie = (series or {}).get(ALVO, {}) or {}
+    if not serie:
+        return []
+    ultimo = max(serie)
+    inicio = ultimo - dt.timedelta(days=dias)
+    return [
+        {"hora": hora.isoformat(timespec="minutes"), "nivel_cm": round(float(valor), 3)}
+        for hora, valor in sorted(serie.items())
+        if hora >= inicio
+    ]
+
+
+def diagnosticar_proxima_base(cfg, series, hora_modelo, limite_alvo=None):
+    """Explica por que a próxima hora cheia ainda não virou base do modelo."""
+    if hora_modelo is None:
+        return None
+    candidata = hora_modelo + dt.timedelta(hours=1)
+    try:
+        x = montar_inputs(cfg, series, candidata)
+        faltantes = diagnosticar_inputs(cfg, x, series, candidata)
+        hora_alvo = candidata + dt.timedelta(hours=cfg["horizonte_h"])
+        alvo_ja_observado = bool(limite_alvo is not None and hora_alvo <= limite_alvo)
+        pronta = all(v is not None for v in x) and not alvo_ja_observado
+        return {
+            "hora": candidata.isoformat(timespec="minutes"),
+            "hora_alvo": hora_alvo.isoformat(timespec="minutes"),
+            "pronta": bool(pronta),
+            "inputs_faltantes_n": len(faltantes),
+            "inputs_faltantes": faltantes[:12],
+            "alvo_ja_observado": alvo_ja_observado,
+            "auditoria_status": "NORMAL" if all(v is not None for v in x) else "ATENCAO",
+            "n_inputs_nao_exatos": 0,
+        }
+    except Exception as e:
+        return {
+            "hora": candidata.isoformat(timespec="minutes"),
+            "pronta": False,
+            "inputs_faltantes_n": None,
+            "inputs_faltantes": [],
+            "auditoria_status": "ERRO_DIAGNOSTICO",
+            "motivo": str(e),
+        }
+
 
 def carregar_historico():
     if not os.path.exists(HISTORICO_SAIDA):
@@ -754,7 +800,7 @@ def escrever(top, horizontes, max_stale_h=6):
           "| horizontes:", hs, "|", top.get("status"))
 
 
-def escrever_pacote(horizontes, historico):
+def escrever_pacote(horizontes, historico, series=None):
     for hz, out in horizontes.items():
         out["auditoria"] = resumo_auditoria(historico, hz)
     principal = horizontes.get("2h") or next(iter(horizontes.values()))
@@ -763,6 +809,14 @@ def escrever_pacote(horizontes, historico):
     pacote["auditoria_historico"] = {
         hz: resumo_auditoria(historico, hz) for hz in horizontes.keys()
     }
+    observada = serie_observada_ana_publica(series)
+    if observada:
+        pacote["serie_observada_ana"] = observada
+        pacote["serie_observada_ana_n"] = len(observada)
+        pacote["serie_observada_ana_fonte"] = (
+            "ANA/SGB Hidrotelemetria · estação 86510000 · série observada recente; "
+            "independente dos pares usados na auditoria das RNAs"
+        )
     escrever(pacote, horizontes)
 
 
@@ -825,6 +879,7 @@ def main():
             nivel_base = nivel_exato(series[ALVO], t)
             nivel_prev = nivel_base + variacao if cfg["tipo"].upper() == "ALT" else variacao
             out = base_saida(cfg, nivel_agora, nivel_prev, t, "ok", nivel_base=nivel_base, input_values=x)
+            out["proxima_base_diagnostico"] = diagnosticar_proxima_base(cfg, series, t, limite_alvo)
             horizontes[horizonte] = out
             print(f"[{horizonte}] {cfg['modelo']} OK base={t.isoformat()} previsão={round(nivel_prev, 1)} cm")
         except Exception as e:
@@ -838,7 +893,7 @@ def main():
     historico = conferir_historico(historico, series)
     salvar_historico(historico)
 
-    escrever_pacote(horizontes, historico)
+    escrever_pacote(horizontes, historico, series)
 
 
 def validar(mat_path):
