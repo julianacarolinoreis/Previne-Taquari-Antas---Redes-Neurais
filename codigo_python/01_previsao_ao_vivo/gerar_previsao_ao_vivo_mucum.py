@@ -21,6 +21,12 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from scipy.io import loadmat
 
+try:
+    from previne.robo.ana_hidroweb import buscar_telemetria_adotada
+except ImportError:
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+    from previne.robo.ana_hidroweb import buscar_telemetria_adotada
+
 BRT = dt.timezone(dt.timedelta(hours=-3))
 def agora_brt(): return dt.datetime.now(BRT).replace(tzinfo=None)
 def iso_utc(value):
@@ -219,6 +225,11 @@ def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
     mesmos.
     """
     import time
+    novo = buscar_telemetria_adotada(cod, dias=dias)
+    if novo and novo.get("nivel"):
+        if novo.get("ultima_nivel"): ULTIMA_RAW[cod] = novo["ultima_nivel"]
+        print(f"[ANA HidroWebService {cod}] linhas={len(novo['nivel'])} qc={novo.get('qc')}")
+        return dict(novo["nivel"])
     fim = agora_brt(); ini = fim - dt.timedelta(days=dias)
     urls_com_data = [
         f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
@@ -262,6 +273,11 @@ def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
 
 def buscar_ana_chuva(cod, dias=6, tentativas_rede=ANA_RETRIES_CHUVA):
     """Busca chuva observada e devolve somente acumulados horários reais."""
+    novo = buscar_telemetria_adotada(cod, dias=dias)
+    if novo and novo.get("chuva"):
+        if novo.get("ultima_chuva"): ULTIMA_RAW[f"chuva_{cod}"] = novo["ultima_chuva"]
+        print(f"[ANA HidroWebService chuva {cod}] horas={len(novo['chuva'])} qc={novo.get('qc')}")
+        return dict(novo["chuva"])
     fim = agora_brt(); ini = fim - dt.timedelta(days=dias)
     urls_com_data = [
         f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
