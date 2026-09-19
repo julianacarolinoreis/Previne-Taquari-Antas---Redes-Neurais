@@ -647,7 +647,7 @@ AUDITORIA_VERSAO = "target_exact_v2"
 # mais de meia hora sem leitura na hora solicitada.
 INPUT_WARN_MAX_AGE = dt.timedelta(minutes=30)
 HOURLY_BASE_WARN_LAG = dt.timedelta(hours=1)
-TELEMETRY_WARN_MAX_AGE = dt.timedelta(minutes=60)
+TELEMETRY_WARN_MAX_AGE = dt.timedelta(minutes=90)
 # Guarda de plausibilidade para a telemetria de nível. A unidade publicada
 # pela ANA/SGB é cm; valores acima de 50 m não são aceitos como entrada de
 # nenhuma RNA sem revisão manual. O valor bruto continua preservado no status
