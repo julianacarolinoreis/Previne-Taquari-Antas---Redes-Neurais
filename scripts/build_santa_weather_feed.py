@@ -123,7 +123,7 @@ def read_live(path: Path, now: datetime) -> dict[str, Any]:
         observed_at = parse_hour(observed) if observed else None
         age = max(0.0, (now - observed_at).total_seconds() / 60.0) if observed_at else None
         level = raw.get("telemetria_ultima_nivel_cm", raw.get("nivel_rio_agora_cm"))
-        fresh = age is not None and age <= 90
+        fresh = age is not None and age <= 180
         return {
             "state": "fresh" if fresh else "unknown_or_stale",
             "level_cm": finite(level),
@@ -132,7 +132,7 @@ def read_live(path: Path, now: datetime) -> dict[str, Any]:
             "age_minutes": round(age, 1) if age is not None else None,
             "source": "robô ao vivo Santa Tereza / estação ANA-SGB 86472600",
             "quality": raw.get("status_dados"),
-            "message": "Leitura recente do robô ao vivo." if fresh else "Leitura atrasada; não usar como normalidade.",
+            "message": "Leitura disponível no último ciclo do robô." if fresh else "Leitura antiga no arquivo publicado; verificar a idade do robô e da fonte separadamente.",
         }
     except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
         return {"state": "unknown_or_stale", "message": f"Leitura não pôde ser validada: {exc}"}
