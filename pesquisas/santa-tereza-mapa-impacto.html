@@ -38,6 +38,7 @@ const map=L.map('map');
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}).addTo(map);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.9}).addTo(map);
 const CORES={alagada:'#1e5fbf',critica:'#b3382c',apertada:'#e8730c',atencao:'#e3b100',confortavel:'#1b7a5a',sem_dado:'#9aa3a0'};
+const CLASSES_SAIDA=new Set(['alagada','rota_comprometida','critica','apertada','atencao']);
 const ROT={alagada:'atingida no cenário HAND',critica:'margem negativa no modelo',apertada:'margem <15 min no modelo',atencao:'margem <1 h no modelo',confortavel:'margem >1 h no modelo',sem_dado:'sem cobertura HAND no intervalo'};
 let contornosGeo=null,contornosOrdenados=[],prelimLayer=null,prelimControl=null;
 function pRing(lon,lat,r){let z=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const xi=r[i][0],yi=r[i][1],xj=r[j][0],yj=r[j][1];if(((yi>lat)!=(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi+1e-15)+xi))z=!z;}return z;}
