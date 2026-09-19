@@ -1,10 +1,19 @@
 name: Previsao ao vivo - Mucum
 
 on:
+  push:
+    branches: [main]
+    paths:
+      # Mudanças no robô/panorama precisam produzir um snapshot novo
+      # imediatamente, sem esperar o scheduler best-effort.
+      - 'codigo_python/01_previsao_ao_vivo/gerar_previsao_ao_vivo_mucum.py'
+      - 'assets/previsao_panorama.js'
+      - 'scripts/validar_previsao_ao_vivo_mucum.py'
+      - 'scripts/test_previsao_ao_vivo_mucum_schema.py'
+      - '.github/workflows/previsao-ao-vivo-mucum.yml'
   schedule:
     # Plantao frequente de Mucum, deslocado 1 min de Santa Tereza.
-    # A agenda e a unica fonte automatica deste workflow; isso evita duas
-    # execucoes para o mesmo ciclo e cancelamentos desnecessarios no Pages.
+    # O painel mostra a idade real da execução e da leitura ANA.
     - cron: '3-59/5 * * * *'
   workflow_dispatch:
 
