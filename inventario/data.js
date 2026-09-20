@@ -3,7 +3,7 @@ window.INVENTORY = {
     title: "Painel de frentes PREVINE",
     subtitle: "Inventário auditável de pesquisas, código, MATLAB, documentos e publicações",
     snapshotDate: "2026-09-20",
-    version: "snapshot-2026-09-20-v2",
+    version: "snapshot-2026-09-20-v3",
     publicSafe: true,
     note: "A página é uma fotografia sanitizada. Ela não sincroniza automaticamente o computador, o Drive ou o histórico do Codex.",
     githubRepo: "julianacarolinoreis/Previne-taquari"
@@ -73,13 +73,13 @@ window.INVENTORY = {
       id: "rna-stz",
       title: "RNA Santa Tereza — 2 h, 4 h e 8 h",
       theme: "RNA e MATLAB",
-      status: "quase",
+      status: "concluido",
       confidence: "média",
       tags: ["RNA", "MATLAB", "Santa Tereza"],
       horizon: [2, 4, 8],
-      evidence: "Contrato metodológico congelado localmente em 20/09 a partir do manuscrito; alvo, estação, horizontes, eventos, métricas e baseline estão registrados, mas script original e estado de seed não foram arquivados.",
-      next: "Arquivar script/seed ou declarar reprodução apenas por pesos salvos; depois validar entradas ex-ante antes de publicar desempenho.",
-      boundary: "Resultados experimentais; não são alerta nem promoção operacional."
+      evidence: "Os resultados de 2 h, 4 h e 8 h já estão consolidados. Não há trabalho ativo de RNA Santa Tereza nesta rodada.",
+      next: "Nenhuma ação pendente no escopo atual; reabrir somente se a pesquisadora solicitar uma nova auditoria ou extensão.",
+      boundary: "Entrega experimental consolidada; não é promoção operacional nem alerta oficial."
     },
     {
       id: "rna-mucum",
@@ -145,13 +145,13 @@ window.INVENTORY = {
       id: "questionario",
       title: "Questionário de percepção de risco — Santa Tereza",
       theme: "Campo e documentos",
-      status: "quase",
+      status: "concluido",
       confidence: "alta",
       tags: ["questionário", "campo", "Google Docs"],
       horizon: [],
-      evidence: "59 perguntas em 11 seções auditadas; consentimento ainda está marcado como texto provisório e o rodapé identifica versão de trabalho.",
-      next: "Confirmar consentimento institucional, exportar a versão corrente para QA página a página e registrar a liberação antes do campo.",
-      boundary: "Instrumento editado; ainda não é instrumento de campo aprovado."
+      evidence: "Questionário aplicado com sucesso. A nossa parte de preparação e aplicação foi concluída; a continuidade ficou transferida para outra colega do laboratório.",
+      next: "Nenhuma ação pendente no escopo desta frente; manter apenas o registro da transferência de continuidade.",
+      boundary: "Concluído como entrega/aplicação da nossa parte; a custódia e a continuidade posterior não estão neste escopo."
     },
     {
       id: "hidrometria",
@@ -277,17 +277,14 @@ window.INVENTORY = {
   closureAudit: {
     date: "2026-09-20",
     package: "closure-status.json",
-    summary: "1 concluído, 1 parcial e 3 bloqueados após auditoria de evidências. Os dossiês individuais registram fontes e próximos gates."
+    summary: "3 concluídos e 2 bloqueados após atualização de escopo em 20/09. RNA Santa Tereza e questionário saíram da fila ativa."
   },
   finishQueue: [
     { priority: 1, title: "Fechar o registro Q77/Q82 de Muçum", reason: "Auditoria consolidada, mas Q77 está incompleto e Q82 tem divergências de partição, alvo no mesmo evento e pareceres que bloqueiam publicação.", doneWhen: "Reconciliar por modelo/horizonte, provar alvo t+H e obter pareceres independentes convergentes." },
-    { priority: 2, title: "Congelar o protocolo do artigo RNA Santa Tereza", reason: "Contrato metodológico congelado localmente; script original e estado de seed não foram recuperados.", doneWhen: "Arquivar script/seed ou declarar reprodução apenas por pesos salvos e validar entradas ex-ante." },
-    { priority: 3, title: "[FECHADO] Reconciliar catálogo 55 × 60", reason: "Snapshot corrente e lista HTML conferem em 58 entradas; 55 e 60 ficaram identificados como históricos.", doneWhen: "Recontar e versionar somente quando pesquisas.html mudar." },
-    { priority: 4, title: "Validar o circuito HEC-HMS", reason: "Topologia BHO6 auditada e replay E28 documentado; série intermediária, chuva e política hidráulica ainda bloqueiam validação.", doneWhen: "Reconciliar entradas, reproduzir eventos observados em múltiplos casos e documentar limites antes de qualquer promoção." },
-    { priority: 5, title: "Finalizar o questionário para o campo", reason: "59 perguntas/11 seções revisadas, mas consentimento provisório, versão de trabalho, QA visual e liberação institucional permanecem.", doneWhen: "Consentimento confirmado, PDF revisado página a página e instrumento institucionalmente liberado." },
-    { priority: 6, title: "Fechar hidrometria Tupinambás", reason: "O relatório tem base, mas ainda faltam evidências de campo que sustentem os resultados.", doneWhen: "Andorinhas, topografia, laboratório, fotos e nomes reconciliados no relatório." },
-    { priority: 7, title: "Revisar estudo de rotas de fuga", reason: "O experimento avançou, mas poucos eventos e a ausência de veredictos impedem promoção.", doneWhen: "Versão experimental congelada, limitações registradas e pareceres recebidos." },
-    { priority: 8, title: "Testar AtlasCampo em dispositivo real", reason: "O código passa nos testes locais, porém o uso de campo depende de permissões, sync e autenticação.", doneWhen: "Matriz de dispositivos, offline, GPS, sync, recuperação e segurança aprovada." }
+    { priority: 2, title: "Validar o circuito HEC-HMS", reason: "Topologia BHO6 auditada e replay E28 documentado; série intermediária, chuva e política hidráulica ainda bloqueiam validação.", doneWhen: "Reconciliar entradas, reproduzir eventos observados em múltiplos casos e documentar limites antes de qualquer promoção." },
+    { priority: 3, title: "Fechar hidrometria Tupinambás", reason: "O relatório tem base, mas ainda faltam evidências de campo que sustentem os resultados.", doneWhen: "Andorinhas, topografia, laboratório, fotos e nomes reconciliados no relatório." },
+    { priority: 4, title: "Revisar estudo de rotas de fuga", reason: "O experimento avançou, mas poucos eventos e a ausência de veredictos impedem promoção.", doneWhen: "Versão experimental congelada, limitações registradas e pareceres recebidos." },
+    { priority: 5, title: "Testar AtlasCampo em dispositivo real", reason: "O código passa nos testes locais, porém o uso de campo depende de permissões, sync e autenticação.", doneWhen: "Matriz de dispositivos, offline, GPS, sync, recuperação e segurança aprovada." }
   ],
   localInventory: {
     roots: [
