@@ -38,6 +38,7 @@
     a { color: var(--blue); text-decoration: none; }
     a:hover { text-decoration: underline; }
     button, input, select { font: inherit; }
+    :where(a, button, input, select):focus-visible { outline: 3px solid #2f6fed; outline-offset: 3px; }
     .shell { width: min(1320px, calc(100% - 36px)); margin: 0 auto; }
     .hero {
       position: relative;
@@ -71,6 +72,19 @@
     .section-heading { display: flex; justify-content: space-between; gap: 20px; align-items: end; margin: 28px 0 13px; }
     .section-heading h2 { margin: 0; font-size: 23px; letter-spacing: -.025em; }
     .section-heading p { margin: 0; color: var(--muted); font-size: 13px; }
+    .decision-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 16px; }
+    .decision-primary { border-color: #a9c8ef; background: linear-gradient(135deg, #ffffff, #f0f6ff); }
+    .decision-kicker { margin-bottom: 8px; color: var(--blue); font-size: 11px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .decision-primary h2 { margin-bottom: 8px; color: var(--navy); font-size: clamp(22px, 3vw, 31px); line-height: 1.12; letter-spacing: -.04em; }
+    .decision-primary p { margin-bottom: 13px; color: var(--muted); }
+    .decision-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 15px; }
+    .decision-meta span { padding: 5px 8px; border-radius: 8px; background: var(--blue-soft); color: #2751a7; font-size: 12px; font-weight: 800; }
+    .decision-link { cursor: pointer; padding: 9px 13px; border: 1px solid var(--navy); border-radius: 10px; background: var(--navy); color: #fff; font-weight: 800; }
+    .decision-link:hover { background: #234d70; }
+    .decision-status-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .decision-status { padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-soft); }
+    .decision-status strong { display: block; color: var(--navy); font-size: 19px; letter-spacing: -.03em; }
+    .decision-status span { display: block; margin-top: 1px; color: var(--muted); font-size: 11px; }
     .kpi-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
     .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
     .kpi { min-height: 142px; padding: 17px; }
@@ -108,6 +122,11 @@
     .view { display: none; }
     .view.active { display: block; }
     .filterbar { display: grid; grid-template-columns: minmax(220px, 1.6fr) repeat(3, minmax(150px, .7fr)); gap: 10px; margin-bottom: 15px; }
+    .filter-actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; margin: -5px 0 15px; }
+    .active-filters { display: flex; flex-wrap: wrap; gap: 6px; min-height: 27px; align-items: center; }
+    .filter-chip { padding: 5px 8px; border-radius: 8px; background: var(--blue-soft); color: #2751a7; font-size: 11px; }
+    .filter-chip strong { font-weight: 850; }
+    .clear-filters { cursor: pointer; padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--navy); font-size: 12px; font-weight: 800; }
     .field { display: flex; flex-direction: column; gap: 5px; }
     .field label { color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
     .field input, .field select { min-height: 42px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 11px; outline: none; background: var(--surface); color: var(--ink); }
@@ -117,14 +136,14 @@
     .front-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
     .front-card h3 { margin: 0; color: var(--navy); font-size: 16px; line-height: 1.25; letter-spacing: -.02em; }
     .theme { margin: 4px 0 12px; color: var(--muted); font-size: 12px; }
-    .badge { display: inline-flex; align-items: center; max-width: 215px; padding: 5px 8px; border-radius: 8px; font-size: 10px; font-weight: 850; line-height: 1.15; text-align: right; }
+    .badge { display: inline-flex; align-items: center; max-width: 215px; padding: 5px 8px; border-radius: 8px; font-size: 12px; font-weight: 850; line-height: 1.15; text-align: right; }
     .badge.concluido { background: var(--blue-soft); color: #2751a7; }
     .badge.publicado { background: var(--teal-soft); color: #08736d; }
     .badge.auditado { background: var(--purple-soft); color: #65489f; }
     .badge.quase { background: var(--gold-soft); color: #91600f; }
     .badge.andamento { background: #e5f2f5; color: #2b7182; }
     .badge.bloqueado { background: var(--red-soft); color: #9e3535; }
-    .confidence { display: inline-block; margin-bottom: 12px; color: var(--muted); font-size: 11px; }
+    .confidence { display: inline-block; margin-bottom: 12px; color: var(--muted); font-size: 12px; }
     .confidence::before { content: "Evidência "; font-weight: 800; }
     .front-copy { margin: 0; font-size: 13px; }
     .front-copy strong { color: var(--navy); }
@@ -166,7 +185,7 @@
     .footer strong { color: var(--navy); }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     @media (max-width: 1060px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .front-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 780px) { .shell { width: min(100% - 24px, 680px); } .hero { padding: 39px 0 31px; } .grid-2, .evidence-grid { grid-template-columns: 1fr; } .filterbar { grid-template-columns: 1fr 1fr; } .filterbar .field:first-child { grid-column: 1 / -1; } }
+    @media (max-width: 780px) { .shell { width: min(100% - 24px, 680px); } .hero { padding: 39px 0 31px; } .decision-grid, .grid-2, .evidence-grid { grid-template-columns: 1fr; } .filterbar { grid-template-columns: 1fr 1fr; } .filterbar .field:first-child { grid-column: 1 / -1; } }
     @media (max-width: 540px) { .kpi-grid, .front-grid { grid-template-columns: 1fr; } .kpi { min-height: auto; } .filterbar { grid-template-columns: 1fr; } .filterbar .field:first-child { grid-column: auto; } .bar-row { grid-template-columns: 120px minmax(50px,1fr) 24px; gap: 7px; } .bar-label { font-size: 11px; } .panel { padding: 16px; } }
   </style>
 </head>
@@ -185,11 +204,26 @@
   </header>
 
   <main class="shell">
+    <section class="section decision-grid" aria-labelledby="decision-title">
+      <article class="card panel decision-primary">
+        <div class="decision-kicker">Próximo fechamento sugerido</div>
+        <h2 id="decision-title">Fechar o registro prioritário</h2>
+        <p id="primary-action-reason">A fila de fechamento será carregada a partir do snapshot.</p>
+        <div id="primary-action-meta" class="decision-meta"></div>
+        <button class="decision-link" type="button" data-jump="finish">Abrir a fila de fechamento</button>
+      </article>
+      <article class="card panel">
+        <h3>Estado para decidir</h3>
+        <p class="panel-intro">A distribuição abaixo mostra onde há bloqueio, proximidade ou evidência de entrega entre as frentes catalogadas.</p>
+        <div id="decision-status-summary" class="decision-status-grid"></div>
+      </article>
+    </section>
+
     <section class="section" aria-labelledby="overview-title">
       <div class="section-heading">
         <div>
-          <h2 id="overview-title">Uma fotografia do que existe</h2>
-          <p>Contagens de artefatos, filas, tarefas e entregas não são somadas como se fossem a mesma coisa.</p>
+          <h2 id="overview-title">Inventário da evidência</h2>
+          <p>Esses números ajudam a localizar evidências; não medem progresso nem substituem uma decisão de fechamento.</p>
         </div>
       </div>
       <div id="kpi-grid" class="kpi-grid"></div>
@@ -197,8 +231,8 @@
 
     <section class="section grid-2">
       <article class="card panel">
-        <h3>Estado das 20 frentes catalogadas</h3>
-        <p class="panel-intro">O estado descreve a evidência disponível, não uma nota subjetiva de produtividade.</p>
+        <h3 id="status-title">Estado das frentes catalogadas</h3>
+        <p class="panel-intro">As barras usam o total de frentes como denominador; o número ao lado preserva o valor absoluto.</p>
         <div id="status-chart" class="status-chart"></div>
       </article>
       <article class="card panel">
@@ -216,14 +250,14 @@
       </div>
     </section>
 
-    <nav class="tabs" aria-label="seções do painel">
-      <button class="tab active" data-view="overview">Visão geral</button>
-      <button class="tab" data-view="fronts">Todas as frentes</button>
-      <button class="tab" data-view="evidence">Fontes e números</button>
-      <button class="tab" data-view="finish">O que falta fechar</button>
+    <nav class="tabs" role="tablist" aria-label="Seções do painel">
+      <button class="tab active" id="tab-overview" role="tab" aria-selected="true" aria-controls="view-overview" tabindex="0" data-view="overview">Visão geral</button>
+      <button class="tab" id="tab-fronts" role="tab" aria-selected="false" aria-controls="view-fronts" tabindex="-1" data-view="fronts">Todas as frentes</button>
+      <button class="tab" id="tab-evidence" role="tab" aria-selected="false" aria-controls="view-evidence" tabindex="-1" data-view="evidence">Fontes e números</button>
+      <button class="tab" id="tab-finish" role="tab" aria-selected="false" aria-controls="view-finish" tabindex="-1" data-view="finish">O que falta fechar</button>
     </nav>
 
-    <section id="view-overview" class="view active" aria-labelledby="overview-view-title">
+    <section id="view-overview" class="view active" role="tabpanel" aria-labelledby="tab-overview overview-view-title" aria-hidden="false" tabindex="0">
       <div class="section-heading">
         <div>
           <h2 id="overview-view-title">Mapa de continuidade</h2>
@@ -235,11 +269,11 @@
       <article class="card panel"><div id="timeline" class="timeline"></div></article>
     </section>
 
-    <section id="view-fronts" class="view" aria-labelledby="fronts-view-title">
+    <section id="view-fronts" class="view" role="tabpanel" aria-labelledby="tab-fronts fronts-view-title" aria-hidden="true" tabindex="0">
       <div class="section-heading">
         <div>
           <h2 id="fronts-view-title">Todas as frentes</h2>
-          <p id="front-count"></p>
+          <p id="front-count" role="status" aria-live="polite" aria-atomic="true"></p>
         </div>
       </div>
       <div class="filterbar" aria-label="filtros de frentes">
@@ -248,10 +282,14 @@
         <div class="field"><label for="theme-filter">Tema</label><select id="theme-filter"><option value="all">Todos os temas</option></select></div>
         <div class="field"><label for="horizon-filter">Horizonte</label><select id="horizon-filter"><option value="all">Todos</option><option value="2">2 h</option><option value="4">4 h</option><option value="8">8 h</option><option value="12">12 h</option></select></div>
       </div>
+      <div class="filter-actions">
+        <div id="active-filters" class="active-filters" aria-label="Filtros ativos"></div>
+        <button id="clear-filters" class="clear-filters" type="button" hidden>Limpar filtros</button>
+      </div>
       <div id="front-grid" class="front-grid"></div>
     </section>
 
-    <section id="view-evidence" class="view" aria-labelledby="evidence-view-title">
+    <section id="view-evidence" class="view" role="tabpanel" aria-labelledby="tab-evidence evidence-view-title" aria-hidden="true" tabindex="0">
       <div class="section-heading"><div><h2 id="evidence-view-title">Fontes, números e limites</h2><p>O que foi lido, o que foi contado e o que deliberadamente não foi publicado.</p></div></div>
       <div class="evidence-grid">
         <article class="card panel"><h3>Conversas acessíveis</h3><p class="panel-intro">A contagem é de itens listáveis nesta sessão, não de toda a conta.</p><div id="conversation-stats" class="mini-grid"></div></article>
@@ -260,10 +298,11 @@
         <article class="card panel"><h3>MATLAB e horizontes</h3><p class="panel-intro">A contagem de arquivo é diferente da contagem de execução. Cópias foram tratadas como cópias.</p><div id="matlab-stats" class="mini-grid"></div><div id="horizon-chart" class="status-chart" style="margin-top:16px"></div></article>
         <article class="card panel"><h3>Snapshots publicados/auditados</h3><p class="panel-intro">Há versões distintas do catálogo; o painel não inventa uma reconciliação.</p><div id="snapshots" class="source-list"></div></article>
         <article class="card panel"><h3>Como interpretar estados</h3><p class="panel-intro">As definições completas são deliberadamente curtas e operacionais.</p><ul id="definitions" class="definition-list"></ul></article>
+        <article class="card panel"><h3>Glossário rápido</h3><p class="panel-intro">Termos técnicos aparecem aqui com o significado usado neste snapshot.</p><ul id="glossary" class="definition-list"></ul></article>
       </div>
     </section>
 
-    <section id="view-finish" class="view" aria-labelledby="finish-view-title">
+    <section id="view-finish" class="view" role="tabpanel" aria-labelledby="tab-finish finish-view-title" aria-hidden="true" tabindex="0">
       <div class="section-heading"><div><h2 id="finish-view-title">O que falta fechar</h2><p>Fila prática para transformar material já existente em entregas realmente encerradas.</p></div></div>
       <div id="finish-queue" class="queue"></div>
     </section>
@@ -282,6 +321,7 @@
       const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
       const nf = new Intl.NumberFormat("pt-BR");
       const statusOrder = ["concluido", "publicado", "auditado", "quase", "andamento", "bloqueado"];
+      const decisionStatusOrder = ["bloqueado", "quase", "andamento", "concluido", "auditado", "publicado"];
       const statusColorClass = (status) => status;
 
       document.title = data.meta.title;
@@ -299,12 +339,20 @@
       `).join("");
 
       const counts = Object.fromEntries(statusOrder.map((status) => [status, data.fronts.filter((front) => front.status === status).length]));
-      const maxCount = Math.max(...Object.values(counts), 1);
+      const totalFronts = data.fronts.length;
+      const primaryAction = data.finishQueue[0];
+      if (primaryAction) {
+        $("#decision-title").textContent = primaryAction.title;
+        $("#primary-action-reason").textContent = primaryAction.reason;
+        $("#primary-action-meta").innerHTML = `<span>Prioridade ${esc(primaryAction.priority)}</span><span>Fechar quando: ${esc(primaryAction.doneWhen)}</span>`;
+      }
+      $("#decision-status-summary").innerHTML = decisionStatusOrder.map((status) => `<div class="decision-status"><strong>${nf.format(counts[status])}</strong><span>${esc(data.statusLabels[status])}</span></div>`).join("");
+      $("#status-title").textContent = `Estado das ${nf.format(totalFronts)} frentes catalogadas`;
       $("#status-chart").innerHTML = statusOrder.map((status) => `
         <div class="bar-row">
           <span class="bar-label">${esc(data.statusLabels[status])}</span>
-          <span class="bar-track"><span class="bar-fill ${statusColorClass(status)}" style="width:${(counts[status] / maxCount) * 100}%"></span></span>
-          <span class="bar-count">${counts[status]}</span>
+          <span class="bar-track"><span class="bar-fill ${statusColorClass(status)}" style="width:${totalFronts ? (counts[status] / totalFronts) * 100 : 0}%"></span></span>
+          <span class="bar-count" title="${counts[status]} de ${totalFronts}">${counts[status]}/${totalFronts}</span>
         </div>
       `).join("");
 
@@ -345,10 +393,28 @@
           const haystack = [front.title, front.theme, front.status, front.evidence, front.next, front.boundary, ...front.tags].join(" ").toLocaleLowerCase("pt-BR");
           return (!search || haystack.includes(search)) && (status === "all" || front.status === status) && (theme === "all" || front.theme === theme) && (horizon === "all" || front.horizon.includes(Number(horizon)));
         });
-        $("#front-count").textContent = `${filtered.length} de ${data.fronts.length} frentes visíveis com os filtros atuais.`;
+        const activeFilters = [];
+        if (search) activeFilters.push(["Busca", $("#search").value.trim()]);
+        if (status !== "all") activeFilters.push(["Estado", data.statusLabels[status]]);
+        if (theme !== "all") activeFilters.push(["Tema", theme]);
+        if (horizon !== "all") activeFilters.push(["Horizonte", `${horizon} h`]);
+        $("#active-filters").innerHTML = activeFilters.map(([label, value]) => `<span class="filter-chip"><strong>${esc(label)}:</strong> ${esc(value)}</span>`).join("");
+        $("#clear-filters").hidden = activeFilters.length === 0;
+        $("#front-count").textContent = `${nf.format(filtered.length)} de ${nf.format(data.fronts.length)} frentes visíveis com os filtros atuais.`;
         $("#front-grid").innerHTML = filtered.length ? filtered.map(frontCard).join("") : `<div class="empty">Nenhuma frente corresponde aos filtros. Remova um filtro ou procure por outro termo.</div>`;
       }
-      ["#search", "#status-filter", "#theme-filter", "#horizon-filter"].forEach((selector) => $(selector).addEventListener("input", renderFronts));
+      ["#search", "#status-filter", "#theme-filter", "#horizon-filter"].forEach((selector) => {
+        $(selector).addEventListener("input", renderFronts);
+        $(selector).addEventListener("change", renderFronts);
+      });
+      $("#clear-filters").addEventListener("click", () => {
+        $("#search").value = "";
+        statusFilter.value = "all";
+        themeFilter.value = "all";
+        $("#horizon-filter").value = "all";
+        renderFronts();
+        $("#search").focus();
+      });
       renderFronts();
 
       const conversations = data.conversationInventory;
@@ -381,13 +447,41 @@
 
       $("#snapshots").innerHTML = data.publishedSnapshots.map((item) => `<li class="source-item"><strong>${esc(item.label)} · ${esc(item.value)}</strong><span>${esc(item.note)}</span></li>`).join("");
       $("#definitions").innerHTML = statusOrder.map((status) => `<li class="definition-item"><strong>${esc(data.statusLabels[status])}</strong><span>${esc(data.statusDescriptions[status])}</span></li>`).join("");
+      $("#glossary").innerHTML = data.glossary.map((item) => `<li class="definition-item"><strong>${esc(item.term)}</strong><span>${esc(item.meaning)}</span></li>`).join("");
       $("#finish-queue").innerHTML = data.finishQueue.map((item) => `<article class="queue-item"><div class="priority">${esc(item.priority)}</div><div><strong>${esc(item.title)}</strong><p>${esc(item.reason)}</p><small>Fechar quando: ${esc(item.doneWhen)}</small></div></article>`).join("");
 
-      document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => {
-        document.querySelectorAll(".tab").forEach((other) => other.classList.toggle("active", other === tab));
-        document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === `view-${tab.dataset.view}`));
+      const tabs = [...document.querySelectorAll(".tab")];
+      const views = [...document.querySelectorAll(".view")];
+      function activateView(name, focusPanel = false) {
+        tabs.forEach((tab) => {
+          const active = tab.dataset.view === name;
+          tab.classList.toggle("active", active);
+          tab.setAttribute("aria-selected", String(active));
+          tab.tabIndex = active ? 0 : -1;
+        });
+        views.forEach((view) => {
+          const active = view.id === `view-${name}`;
+          view.classList.toggle("active", active);
+          view.hidden = !active;
+          view.setAttribute("aria-hidden", String(!active));
+        });
+        const activeView = document.querySelector(`#view-${name}`);
+        if (focusPanel && activeView) activeView.focus({ preventScroll: true });
         window.scrollTo({ top: document.querySelector(".tabs").offsetTop - 12, behavior: "smooth" });
-      }));
+      }
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => activateView(tab.dataset.view));
+        tab.addEventListener("keydown", (event) => {
+          const keys = ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End"];
+          if (!keys.includes(event.key)) return;
+          event.preventDefault();
+          const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1) + tabs.length) % tabs.length;
+          tabs[nextIndex].focus();
+          activateView(tabs[nextIndex].dataset.view);
+        });
+      });
+      document.querySelectorAll("[data-jump='finish']").forEach((button) => button.addEventListener("click", () => activateView("finish", true)));
+      activateView("overview");
     })();
   </script>
 </body>
