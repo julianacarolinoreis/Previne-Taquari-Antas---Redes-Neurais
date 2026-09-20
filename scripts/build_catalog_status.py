@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "assets" / "data" / "research_catalog_status_latest.json"
 INDEX = ROOT / "index.html"
 CATALOGUE = ROOT / "pesquisas.html"
+ACERVO = ROOT / "assets" / "data" / "acervo_pesquisas.json"
 ROUNDS = ROOT / "assets" / "data" / "rodadas_realizadas.json"
 EVENT_REPLAY = ROOT / "assets" / "data" / "research_event_replay_latest.json"
 QUALITY = ROOT / "assets" / "data" / "research_dashboard_validation_latest.json"
@@ -112,18 +113,16 @@ def round_summary() -> dict[str, Any]:
 
 
 def catalogue_summary() -> dict[str, Any]:
-    text = CATALOGUE.read_text(encoding="utf-8")
-    start = text.find("const entries = [")
-    end = text.find("\n    ];", start)
-    if start < 0 or end < 0:
-        raise ValueError("array de entradas do catálogo não encontrado")
-    entry_count = len(re.findall(r"\{\s*title\s*:", text[start:end]))
+    catalogue = read_json(ACERVO)
+    entries = catalogue.get("entries") if isinstance(catalogue.get("entries"), list) else []
+    entry_count = len(entries)
     html_count = sum(1 for path in ROOT.rglob("*.html") if path.is_file())
     return {
         "catalogue_entries": entry_count,
         "html_pages_in_worktree": html_count,
-        "source": rel(CATALOGUE),
-        "definition": "Entradas são páginas distintas indexadas pelo catálogo; a contagem não é a quantidade de modelos nem de rodadas.",
+        "source": rel(ACERVO),
+        "page_source": rel(CATALOGUE),
+        "definition": "Entradas são páginas distintas indexadas pelo acervo JSON carregado por pesquisas.html; a contagem não é a quantidade de modelos nem de rodadas.",
     }
 
 
@@ -262,6 +261,7 @@ def main() -> int:
         "sources": [
             rel(INDEX),
             rel(CATALOGUE),
+            rel(ACERVO),
             rel(ROUNDS),
             rel(EVENT_REPLAY),
             rel(QUALITY),

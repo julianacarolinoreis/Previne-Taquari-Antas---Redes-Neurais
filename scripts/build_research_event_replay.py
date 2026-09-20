@@ -130,6 +130,7 @@ def mucum_replays(q62_path: Path, audit_path: Path) -> tuple[list[dict[str, Any]
             "horizon_hours": horizon,
             "selection_basis": "highest published score_equilibrio among candidates with event 35|Teste",
             "candidate_count": len(candidates),
+            "availability_status": "available_audited_test_series" if selected else "pending_auditable_test_series",
             "selected_model": selected.get("name") if selected else None,
             "selected_model_metadata": {
                 "family": selected.get("family"),
@@ -157,7 +158,7 @@ def mucum_replays(q62_path: Path, audit_path: Path) -> tuple[list[dict[str, Any]
             "hours_before_peak": integer(event.get("horas_antes")),
             "hours_after_peak": integer(event.get("horas_depois")),
         },
-        "event_status": "usable_research_test_record",
+        "event_status": "usable_research_test_record; selected_8h_12h_series_pending",
         "independent_test_status": "test label available in audited series; exact release timestamp not reconciled",
         "horizons": horizons,
     }
@@ -236,14 +237,14 @@ def spatial_inventory() -> dict[str, Any]:
             "stage_conversion_status": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
             "published_level_range_m": contour_level_range(muc_contour),
             "scenarios": [contour_scenario(muc_grid, muc_contour, level) for level in (18.0, 20.0, 25.0)],
-            "note": "HAND/contorno é cenário de triagem espacial; não é uma cota de régua automaticamente convertida nem define uma rota.",
+            "note": "A faixa de geometria publicada é lida diretamente do arquivo de contornos; os resumos populacionais calculados nesta rodada cobrem 18, 20 e 25 m. HAND/contorno não é uma cota de régua automaticamente convertida nem define uma rota.",
         },
         "santa_tereza": {
             "grid_source": rel(stz_grid),
             "contour_source": rel(stz_contour),
             "stage_conversion_status": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
             "published_level_range_m": contour_level_range(stz_contour),
-            "higher_than_published_status": None,
+            "higher_than_published_status": "contornos_disponiveis_ate_30m; resumo_populacional_publicado_apenas_em_15m; conversao_regua_HAND_pendente",
             "scenarios": [contour_scenario(stz_grid, stz_contour, 15.0)],
             "note": "A faixa publicada é lida diretamente do arquivo de contornos; o cenário de replay permanece separado da conversão régua↔HAND.",
         },
@@ -425,7 +426,7 @@ def main() -> None:
     args.output.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {rel(args.output) if args.output.is_relative_to(ROOT) else args.output}")
     print(f"replay_cases={len(artifact['replay_cases'])}")
-    print("spatial_scenarios=Muçum:18,20,25m; Santa Tereza:15m")
+    print("spatial_scenarios=Muçum:18,20,25m; Santa Tereza:geometrias_0_30m; resumo_15m")
 
 
 if __name__ == "__main__":

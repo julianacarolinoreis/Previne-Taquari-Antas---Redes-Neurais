@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import re
 import unittest
+from collections import Counter
 from pathlib import Path
 
 
@@ -44,8 +45,10 @@ class CatalogStatusTests(unittest.TestCase):
         self.assertEqual(by_city["santa_tereza"]["qualified_models"], len(santa["models"]))
         self.assertEqual(by_city["mucum"]["qualified_models"], len(mucum["models"]))
         self.assertEqual(self.data["models"]["qualified_total"], len(santa["models"]) + len(mucum["models"]))
-        self.assertEqual(self.data["models"]["types"]["alt"], 237)
-        self.assertEqual(self.data["models"]["types"]["conv"], 67)
+        expected_types = Counter(str(item.get("tipo")) for item in santa["models"] + mucum["models"] if item.get("tipo"))
+        expected_horizons = Counter(str(item.get("horizonte")) for item in santa["models"] + mucum["models"] if item.get("horizonte"))
+        self.assertEqual(self.data["models"]["types"], dict(sorted(expected_types.items())))
+        self.assertEqual(self.data["models"]["horizons"], dict(sorted(expected_horizons.items())))
         self.assertEqual(set(self.data["models"]["horizons"]), {"2h", "4h", "8h", "12h"})
 
     def test_round_and_catalogue_counts_have_their_own_grain(self) -> None:
@@ -56,12 +59,12 @@ class CatalogStatusTests(unittest.TestCase):
         self.assertEqual(rounds["by_city"]["santa_tereza"]["round_folders"], 21)
 
         catalogue = self.data["catalogue"]
-        self.assertEqual(catalogue["catalogue_entries"], 58)
+        self.assertEqual(catalogue["catalogue_entries"], 60)
         self.assertGreaterEqual(catalogue["html_pages_in_worktree"], catalogue["catalogue_entries"])
 
     def test_spatial_and_response_are_not_operational(self) -> None:
         spatial = self.data["spatial"]["by_city"]
-        self.assertEqual(spatial["mucum"]["published_level_range_m"], [0.0, 25.0])
+        self.assertEqual(spatial["mucum"]["published_level_range_m"], [0, 30])
         self.assertEqual(spatial["santa_tereza"]["published_level_range_m"], [0.0, 30.0])
         self.assertIn("pending", spatial["mucum"]["stage_conversion_status"])
         self.assertIn("pending", spatial["santa_tereza"]["stage_conversion_status"])
@@ -95,8 +98,8 @@ class CatalogStatusTests(unittest.TestCase):
             "archiveStatusDetails",
         ):
             self.assertIn(f'id="{element_id}"', html)
-        self.assertIn("Contornos publicados: 15 m em Santa Tereza e 18/20/25 m em Muçum", html)
-        self.assertIn("A conversão cota–MDT ainda está pendente", html)
+        self.assertIn("geometrias de contorno disponíveis cobrem 0–30 m em Santa Tereza e Muçum", html)
+        self.assertIn("A conversão cota–MDT/HAND ainda está pendente", html)
         self.assertNotIn("Cota oficial: 15 m em ST, 18 m em Muçum", html)
 
 

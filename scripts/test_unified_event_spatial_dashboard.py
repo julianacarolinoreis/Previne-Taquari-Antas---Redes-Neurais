@@ -80,6 +80,8 @@ class DashboardDataContract(unittest.TestCase):
             published = {float(level) for level in city["published"]}
             available = {item["level"] for item in city["contours"]}
             self.assertTrue(published <= available, city["label"])
+            self.assertEqual(city["level_min"], min(available), city["label"])
+            self.assertEqual(city["level_max"], max(available), city["label"])
 
     def test_spatial_coordinates_intersect_declared_bounds(self) -> None:
         for key, city in self.spatial.items():
@@ -115,6 +117,7 @@ class DashboardDataContract(unittest.TestCase):
         self.assertIn('id="playReplay"', page)
         self.assertIn('id="snapshotFreshness"', page)
         self.assertIn('id="showGrid" type="checkbox"> Grade 200 m', page)
+        self.assertIn("geometrias de contorno até 30 m em Santa Tereza", page)
         self.assertIn('"spatial_generated_at_utc":"2026-', page)
         self.assertIn('"calibration_generated_at_utc":"2026-', page)
         parser = IdCollector()

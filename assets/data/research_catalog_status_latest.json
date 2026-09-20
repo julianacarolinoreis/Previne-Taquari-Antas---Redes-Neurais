@@ -1,20 +1,20 @@
 {
   "schema_version": "previne_research_catalog_status_v1",
-  "generated_at_utc": "2026-09-08T23:27:09+00:00",
+  "generated_at_utc": "2026-09-20T14:07:05+00:00",
   "research_only": true,
   "official_alert": false,
   "purpose": "Inventário consolidado do acervo de pesquisa do PREVINE; não é alerta, ordem de evacuação, rota liberada ou despacho.",
   "models": {
-    "qualified_total": 304,
+    "qualified_total": 296,
     "types": {
-      "alt": 237,
+      "alt": 229,
       "conv": 67
     },
     "horizons": {
-      "12h": 50,
-      "2h": 15,
-      "4h": 122,
-      "8h": 117
+      "12h": 47,
+      "2h": 13,
+      "4h": 123,
+      "8h": 113
     },
     "by_city": {
       "santa_tereza": {
@@ -34,18 +34,18 @@
         "source": "index.html#data"
       },
       "mucum": {
-        "qualified_models": 22,
-        "original_models": 32,
+        "qualified_models": 14,
+        "original_models": 14,
         "types": {
-          "alt": 22
+          "alt": 14
         },
         "horizons": {
-          "12h": 6,
-          "2h": 5,
-          "4h": 5,
-          "8h": 6
+          "12h": 3,
+          "2h": 3,
+          "4h": 6,
+          "8h": 2
         },
-        "qualification_rule": "PERS geral, treino, validação e teste positivos; depois, Top 5 por horizonte pelo score_equilibrio.",
+        "qualification_rule": "Catálogo de pesquisa com referências q79, candidatos q80 por PERS global e alternativas q80 de robustez por pior evento.",
         "source": "index.html#data-mucum"
       }
     },
@@ -70,10 +70,11 @@
     "definition": "Varredura de pastas de rodada em D:/PREVINE/redes_neurais (mucum + santa tereza). Conta como rodada real qualquer pasta terminada em _AAAA_MM_DD que tenha pelo menos um .mat ou um resultados*.csv com conteudo — pastas de preparacao/auditoria/relatorio/analise sem esse sinal nao contam. Metrica de ESFORCO/PROCESSO: cobre TODO o historico de treino, nao so os modelos qualificados/publicados no site."
   },
   "catalogue": {
-    "catalogue_entries": 58,
-    "html_pages_in_worktree": 70,
-    "source": "pesquisas.html",
-    "definition": "Entradas são páginas distintas indexadas pelo catálogo; a contagem não é a quantidade de modelos nem de rodadas."
+    "catalogue_entries": 60,
+    "html_pages_in_worktree": 104,
+    "source": "assets/data/acervo_pesquisas.json",
+    "page_source": "pesquisas.html",
+    "definition": "Entradas são páginas distintas indexadas pelo acervo JSON carregado por pesquisas.html; a contagem não é a quantidade de modelos nem de rodadas."
   },
   "events": {
     "published_replay_cases": 1,
@@ -101,13 +102,13 @@
     "by_city": {
       "mucum": {
         "published_level_range_m": [
-          0,
-          25
+          0.0,
+          30.0
         ],
         "scenario_levels_m": [
-          18,
-          20,
-          25
+          18.0,
+          20.0,
+          25.0
         ],
         "stage_conversion_status": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
         "higher_than_published_status": null,
@@ -115,14 +116,14 @@
       },
       "santa_tereza": {
         "published_level_range_m": [
-          0,
-          30
+          0.0,
+          30.0
         ],
         "scenario_levels_m": [
-          15
+          15.0
         ],
         "stage_conversion_status": "pending_vertical_datum_and_gauge_to_HAND_reconciliation",
-        "higher_than_published_status": null,
+        "higher_than_published_status": "contornos_disponiveis_ate_30m; resumo_populacional_publicado_apenas_em_15m; conversao_regua_HAND_pendente",
         "source": "assets/data/santa_tereza_inundacao/contornos_mancha.json"
       }
     },
@@ -130,7 +131,7 @@
   },
   "data_quality": {
     "status": "DEGRADED",
-    "checked_reference_utc": "2026-09-08T21:52:40Z",
+    "checked_reference_utc": "2026-09-20T12:23:20Z",
     "issues": [
       {
         "code": "score_uncalibrated",
@@ -146,7 +147,7 @@
       }
     ],
     "basin_screening_status": "research_screening_with_explicit_data_gates",
-    "basin_screening_generated_at_utc": "2026-09-08T23:16:39Z",
+    "basin_screening_generated_at_utc": "2026-09-20T12:23:35Z",
     "basin_gates": [
       {
         "id": "hydrologic_mask",
@@ -220,6 +221,7 @@
   "sources": [
     "index.html",
     "pesquisas.html",
+    "assets/data/acervo_pesquisas.json",
     "assets/data/rodadas_realizadas.json",
     "assets/data/research_event_replay_latest.json",
     "assets/data/research_dashboard_validation_latest.json",
