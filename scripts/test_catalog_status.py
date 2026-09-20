@@ -59,7 +59,7 @@ class CatalogStatusTests(unittest.TestCase):
         self.assertEqual(rounds["by_city"]["santa_tereza"]["round_folders"], 21)
 
         catalogue = self.data["catalogue"]
-        self.assertEqual(catalogue["catalogue_entries"], 60)
+        self.assertEqual(catalogue["catalogue_entries"], 61)
         self.assertGreaterEqual(catalogue["html_pages_in_worktree"], catalogue["catalogue_entries"])
 
     def test_spatial_and_response_are_not_operational(self) -> None:

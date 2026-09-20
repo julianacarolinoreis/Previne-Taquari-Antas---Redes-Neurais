@@ -115,63 +115,92 @@ def mucum_replays(q62_path: Path, audit_path: Path, candidate_path: Path) -> tup
     audit = read_json(audit_path)
     candidate_artifact = read_json(candidate_path)
     models = audit.get("models", [])
-    event = next(row for row in q62 if str(row.get("evento")) == "35")
-    event_number = integer(event["evento"])
-    peak = event["pico_data"]
-    window_hours = integer(event["horas_recorte"]) or 0
-    horizons: list[dict[str, Any]] = []
-    for horizon in (8, 12):
-        candidates = [
-            candidate
-            for candidate in candidate_artifact.get("candidates", [])
-            if int(candidate.get("horizon_hours", 0)) == horizon
-        ]
-        candidate_summaries = [
-            {
-                "model_id": candidate.get("model_id"),
-                "review_status": candidate.get("review", {}).get("status"),
-                "comparison_status": candidate.get("comparison_status"),
-                "event_metrics": candidate.get("event_metrics"),
-                "workbook": candidate.get("workbook"),
-            }
-            for candidate in candidates
-        ]
-        horizons.append({
-            "horizon_hours": horizon,
-            "selection_basis": "no selection; candidate series are exposed for comparison while the independent review gate remains closed",
-            "candidate_count": len(candidates),
-            "availability_status": "experimental_candidate_series_available_not_promoted" if candidates else "pending_auditable_test_series",
-            "selection_status": "blocked_by_independent_review_gate" if candidates else "pending_auditable_test_series",
-            "candidate_series_source": rel(candidate_path) if candidates else None,
-            "candidate_models": candidate_summaries,
-            "selected_model": None,
-            "selected_model_metadata": None,
-            "series": None,
-        })
-    replay = {
-        "municipality": "Muçum",
-        "code_ibge": "4312609",
-        "station_code": "86472600",
-        "event_id": "mucum-q62-35",
-        "event_number": event_number,
-        "peak_timestamp_local_without_offset": peak,
-        "peak_observed_cm": number(event.get("pico_cm_obs")),
-        "catalog_peak_cm": number(event.get("pico_cm_catalogo")),
-        "recorte": {
-            "start": event.get("inicio_recorte"),
-            "end": event.get("fim_recorte"),
-            "hours": window_hours,
-            "hours_before_peak": integer(event.get("horas_antes")),
-            "hours_after_peak": integer(event.get("horas_depois")),
-        },
-        "event_status": "usable_research_test_record; q62_candidate_series_available; selection_pending",
-        "independent_test_status": "test label and candidate series extracted from Q62 workbooks; release timestamp is represented as base plus horizon and no model is promoted",
-        "horizons": horizons,
+    event_by_number = {
+        integer(row.get("evento")): row
+        for row in q62
+        if integer(row.get("evento")) is not None
     }
-    return [replay], {
+    test_events = [
+        int(event_number)
+        for event_number in candidate_artifact.get("test_events", [])
+        if int(event_number) in event_by_number
+    ]
+    all_candidates = candidate_artifact.get("candidates", [])
+    replays: list[dict[str, Any]] = []
+    for event_number in test_events:
+        event = event_by_number[event_number]
+        peak = event["pico_data"]
+        window_hours = integer(event["horas_recorte"]) or 0
+        horizons: list[dict[str, Any]] = []
+        for horizon in (8, 12):
+            candidates = [
+                candidate
+                for candidate in all_candidates
+                if int(candidate.get("horizon_hours", 0)) == horizon
+            ]
+            candidate_summaries = [
+                {
+                    "model_id": candidate.get("model_id"),
+                    "review_status": candidate.get("review", {}).get("status"),
+                    "comparison_status": candidate.get("comparison_status"),
+                    "event_metrics": candidate.get("event_metrics_by_event", {}).get(str(event_number)),
+                    "workbook": candidate.get("workbook"),
+                }
+                for candidate in candidates
+            ]
+            horizons.append({
+                "horizon_hours": horizon,
+                "selection_basis": "no selection; candidate series are exposed for comparison while the independent review gate remains closed",
+                "candidate_count": len(candidates),
+                "availability_status": "experimental_candidate_series_available_not_promoted" if candidates else "pending_auditable_test_series",
+                "selection_status": "blocked_by_independent_review_gate" if candidates else "pending_auditable_test_series",
+                "candidate_series_source": rel(candidate_path) if candidates else None,
+                "candidate_models": candidate_summaries,
+                "selected_model": None,
+                "selected_model_metadata": None,
+                "series": None,
+            })
+        event_candidate = next(
+            (
+                candidate
+                for candidate in all_candidates
+                if str(event_number) in candidate.get("event_metrics_by_event", {})
+            ),
+            None,
+        )
+        event_metrics = (
+            event_candidate.get("event_metrics_by_event", {}).get(str(event_number), {})
+            if event_candidate
+            else {}
+        )
+        replay = {
+            "municipality": "Muçum",
+            "code_ibge": "4312609",
+            "station_code": "86472600",
+            "event_id": f"mucum-q62-{event_number}",
+            "event_number": event_number,
+            "peak_timestamp_local_without_offset": peak,
+            "peak_observed_cm": number(event.get("pico_cm_obs")),
+            "peak_observed_cm_in_test_recorte": event_metrics.get("observed_peak_cm"),
+            "catalog_peak_cm": number(event.get("pico_cm_catalogo")),
+            "recorte": {
+                "start": event.get("inicio_recorte"),
+                "end": event.get("fim_recorte"),
+                "hours": window_hours,
+                "hours_before_peak": integer(event.get("horas_antes")),
+                "hours_after_peak": integer(event.get("horas_depois")),
+            },
+            "event_status": "usable_research_test_record; q62_candidate_series_available; selection_pending",
+            "independent_test_status": "test label and candidate series extracted from Q62 workbooks; release timestamp is represented as base plus horizon and no model is promoted",
+            "horizons": horizons,
+        }
+        replays.append(replay)
+    return replays, {
         "q62_used_events": len(q62),
+        "q62_test_events": test_events,
         "audited_models": len(models),
-        "candidate_series": len(candidate_artifact.get("candidates", [])),
+        "candidate_models": len(all_candidates),
+        "candidate_series": len(all_candidates) * len(test_events),
     }
 
 

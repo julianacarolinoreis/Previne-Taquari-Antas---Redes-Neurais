@@ -19,20 +19,37 @@ def main() -> None:
     assert data["selection"]["selected_model"] is None
     assert data["selection"]["selection_status"] == "blocked_by_independent_review_gate"
     assert data["candidate_count"] == 10
+    assert data["test_events"] == [31, 33, 34, 35, 37]
+    assert data["event_count"] == 5
+    assert [(item["event_number"], item["candidate_series_count"]) for item in data["events"]] == [
+        (31, 10),
+        (33, 10),
+        (34, 10),
+        (35, 10),
+        (37, 10),
+    ]
     assert {item["horizon_hours"] for item in data["candidates"]} == {8, 12}
     for horizon in (8, 12):
         candidates = [item for item in data["candidates"] if item["horizon_hours"] == horizon]
         assert len(candidates) == 5
         for candidate in candidates:
             assert candidate["series_key"] == "35|Teste"
+            assert candidate["events_available"] == [31, 33, 34, 35, 37]
             assert candidate["unit"] == "cm"
             assert candidate["prediction_contract"]["target_and_prediction_excluded_from_inputs"] is True
-            assert candidate["checks"]["event_values"] == [35]
+            assert candidate["checks"]["event_values"] == [31, 33, 34, 35, 37]
             assert candidate["checks"]["partition"] == "Teste"
             assert candidate["checks"]["serie_values"] == [3]
             assert candidate["checks"]["formula_mismatch_count"] == 0
             assert candidate["checks"]["nonfinite_row_count"] == 0
             assert candidate["checks"]["duplicate_timestamp_count"] == 0
+            assert set(candidate["series_by_event"]) == {"31", "33", "34", "35", "37"}
+            assert set(candidate["event_metrics_by_event"]) == {"31", "33", "34", "35", "37"}
+            assert all(candidate["series_by_event"][event] for event in candidate["series_by_event"])
+            assert all(
+                candidate["event_metrics_by_event"][event]["points"] == len(candidate["series_by_event"][event])
+                for event in candidate["series_by_event"]
+            )
             assert candidate["event_metrics"]["points"] in {47, 48}
             assert candidate["event_metrics"]["observed_peak_target_timestamp"] == "2026-07-22 15:00"
             assert candidate["event_metrics"]["predicted_peak_target_timestamp"]

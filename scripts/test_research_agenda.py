@@ -21,6 +21,7 @@ INDEX = ROOT / "index.html"
 CATALOG = ROOT / "pesquisas.html"
 AGENDA_PAGE = ROOT / "pesquisas" / "agenda-avanco.html"
 AGENDA_JSON = ROOT / "assets" / "data" / "agenda_pesquisas.json"
+CATALOG_JSON = ROOT / "assets" / "data" / "acervo_pesquisas.json"
 
 
 def load_json(path: Path) -> dict:
@@ -82,13 +83,17 @@ def test_agenda_sources_exist() -> None:
 
 def test_catalog_entries_are_unique_and_local_links_exist() -> None:
     html = CATALOG.read_text(encoding="utf-8")
-    entries = re.findall(r'\{title:"([^"]+)"[^{}]*?href:"([^"]+)"', html)
-    assert len(entries) == 58, f"catálogo deveria ter 58 entradas, encontrou {len(entries)}"
-    titles = [title for title, _ in entries]
+    catalogue = load_json(CATALOG_JSON)
+    entries = catalogue.get("entries", [])
+    assert entries, "acervo_pesquisas.json sem entradas"
+    assert len(entries) == catalogue.get("count"), "contagem do acervo diferente das entradas"
+    titles = [item["title"] for item in entries]
     assert len(titles) == len(set(titles)), "títulos duplicados no catálogo"
-    for title, href in entries:
+    for item in entries:
+        title = item["title"]
+        href = item["href"]
         assert (ROOT / href).is_file(), f"Link local quebrado em {title}: {href}"
-    catalog_hrefs = {href for _, href in entries if href.startswith("pesquisas/") and href.endswith(".html")}
+    catalog_hrefs = {item["href"] for item in entries if item["href"].startswith("pesquisas/") and item["href"].endswith(".html")}
     research_pages = {path.relative_to(ROOT).as_posix() for path in (ROOT / "pesquisas").glob("*.html")}
     assert research_pages <= catalog_hrefs, "há páginas HTML de pesquisa fora do catálogo"
     assert "pesquisas/agenda-avanco.html" in html
@@ -197,7 +202,7 @@ def test_rendered_responsive_interactions_and_accessibility() -> None:
                 for width in (320, 360, 768, 1440):
                     catalog_page = browser.new_page(viewport={"width": width, "height": 900})
                     catalog_page.goto(catalog_url, wait_until="domcontentloaded")
-                    catalog_page.locator("#cards .card").first.wait_for()
+                    catalog_page.locator("#cards .row").first.wait_for()
                     catalog_page.locator("#archiveStatusGrid .status-card").first.wait_for()
                     dimensions = catalog_page.locator("body").evaluate(
                         "body => ({bodyWidth: body.scrollWidth, documentWidth: document.documentElement.scrollWidth, viewport: window.innerWidth})"
@@ -206,12 +211,13 @@ def test_rendered_responsive_interactions_and_accessibility() -> None:
                     assert max(dimensions["bodyWidth"], dimensions["documentWidth"]) <= width + 1, (
                         f"overflow horizontal no catálogo em {width}px: {dimensions}"
                     )
-                    assert catalog_page.locator(".catalog-maturity-item").count() == 4
+                    assert catalog_page.locator(".maturity article").count() == 4
                     assert catalog_page.locator("#archiveStatusGrid .status-card").count() == 6
                     status_text = catalog_page.locator("#situacao-acervo").inner_text()
-                    assert "304" in status_text
-                    assert "31 pastas" in status_text
-                    assert "5 replays" in status_text
+                    status_manifest = load_json(ROOT / "assets" / "data" / "research_catalog_status_latest.json")
+                    assert str(status_manifest["models"]["qualified_total"]) in status_text
+                    assert f'{status_manifest["rounds"]["round_folders"]} pastas' in status_text
+                    assert f'{status_manifest["events"]["published_replay_cases"]} replays' in status_text
                     assert "DEGRADED" in status_text
                     assert "convertida" in status_text
                     if width == 768:

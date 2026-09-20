@@ -24,18 +24,25 @@ def main() -> None:
     assert hec["published_research_pilot"]["status"] == "research_replay_only"
     assert hec["published_research_pilot"]["operational_gate"] == "blocked"
 
+    assert len(data["replay_cases"]) == 5
+    assert {item["event_number"] for item in data["replay_cases"]} == {31, 33, 34, 35, 37}
+    for case in data["replay_cases"]:
+        assert case["event_status"] == "usable_research_test_record; q62_candidate_series_available; selection_pending"
+        assert case["peak_observed_cm"] is not None
+        assert case["peak_observed_cm_in_test_recorte"] is not None
+        assert {item["horizon_hours"] for item in case["horizons"]} == {8, 12}
+        for item in case["horizons"]:
+            assert item["availability_status"] == "experimental_candidate_series_available_not_promoted"
+            assert item["selection_status"] == "blocked_by_independent_review_gate"
+            assert item["candidate_count"] == 5
+            assert len(item["candidate_models"]) == 5
+            assert item["candidate_series_source"].endswith("mucum_q62_replay_candidates.json")
+            assert item["selected_model"] is None
+            assert item["series"] is None
+
     case = next(item for item in data["replay_cases"] if item["event_id"] == "mucum-q62-35")
-    assert case["event_status"] == "usable_research_test_record; q62_candidate_series_available; selection_pending"
     assert case["peak_observed_cm"] == 1986.0
-    assert {item["horizon_hours"] for item in case["horizons"]} == {8, 12}
-    for item in case["horizons"]:
-        assert item["availability_status"] == "experimental_candidate_series_available_not_promoted"
-        assert item["selection_status"] == "blocked_by_independent_review_gate"
-        assert item["candidate_count"] == 5
-        assert len(item["candidate_models"]) == 5
-        assert item["candidate_series_source"].endswith("mucum_q62_replay_candidates.json")
-        assert item["selected_model"] is None
-        assert item["series"] is None
+    assert case["peak_observed_cm_in_test_recorte"] == 1986.0
 
     muc = data["spatial_scenarios"]["mucum"]
     assert muc["published_level_range_m"] == [0.0, 30.0]
