@@ -70,7 +70,7 @@ def load_levels(path: Path):
     levels = []
     for level in sorted(grouped):
         merged = unary_union(grouped[level]).buffer(0)
-        levels.append((level, prep(merged)))
+        levels.append((level, merged, prep(merged)))
     if levels[-1][0] < SCENARIO_MAX_M - 0.05:
         raise RuntimeError(
             f"{path} termina em {levels[-1][0]:.1f} m; regenere os contornos até {SCENARIO_MAX_M:.1f} m antes de atualizar as páginas"
@@ -79,13 +79,14 @@ def load_levels(path: Path):
 
 
 def first_level(point: Point, levels):
-    for level, prepared in levels:
+    """Primeiro nível HAND que cobre um ponto (nós viários)."""
+    for level, _merged, prepared in levels:
         if prepared.covers(point):
             return level
     return None
 
 
-def point_from_poly(poly):
+def geometry_from_poly(poly):
     if not poly:
         return None
     try:
@@ -94,7 +95,28 @@ def point_from_poly(poly):
         return None
     if geom.is_empty:
         return None
-    return geom.representative_point()
+    return geom
+
+
+def first_level_intersection(geom, levels):
+    """Primeiro nível HAND que intercepta área positiva da célula IBGE.
+
+    A lógica anterior usava apenas um ponto representativo da célula. Isso podia
+    marcar como None uma célula que de fato era parcialmente alcançada pela
+    mancha. Para triagem populacional usamos qualquer interseção de área
+    positiva e guardamos a fração espacial no primeiro nível atingido. A
+    população segue sendo limite superior da célula inteira, não contagem
+    individual de pessoas inundadas.
+    """
+    if geom is None or geom.is_empty or geom.area <= 0:
+        return None, 0.0
+    for level, merged, prepared in levels:
+        if not prepared.intersects(geom):
+            continue
+        inter = merged.intersection(geom)
+        if not inter.is_empty and inter.area > 0:
+            return level, max(0.0, min(1.0, inter.area / geom.area))
+    return None, 0.0
 
 
 def extract_payload(html: str):
@@ -108,7 +130,7 @@ def update_payload(data: dict, levels, ui_hand_max_m: float):
     meta = data.setdefault("meta", {})
     meta["nivel_max_m"] = float(ui_hand_max_m)
     meta["cobertura_espacial_m"] = SCENARIO_MAX_M
-    meta["cobertura_espacial_nota"] = "contornos HAND recalculados até 30 m; None significa sem dado espacial"
+    meta["cobertura_espacial_nota"] = "contornos HAND recalculados até 30 m; células usam interseção geométrica, não apenas centroide; None significa não atingida pelos contornos disponíveis ou sem cobertura suficiente e não deve ser lido como segurança"
 
     nodes = data.get("nos")
     if isinstance(nodes, list) and nodes:
@@ -127,13 +149,22 @@ def update_payload(data: dict, levels, ui_hand_max_m: float):
     cells = data.get("cells")
     if isinstance(cells, list):
         for cell in cells:
-            point = point_from_poly(cell.get("poly"))
-            if point is None and cell.get("lat") is not None and cell.get("lon") is not None:
-                try:
-                    point = Point(float(cell["lon"]), float(cell["lat"]))
-                except (TypeError, ValueError):
-                    point = None
-            cell["cota"] = first_level(point, levels) if point is not None else None
+            geom = geometry_from_poly(cell.get("poly"))
+            if geom is not None:
+                level, frac = first_level_intersection(geom, levels)
+                cell["cota"] = level
+                cell["frac_area_primeiro_nivel"] = round(frac, 4) if level is not None else 0.0
+                cell["cota_metodo"] = "intersecao_geometrica_celula_ibge"
+            else:
+                point = None
+                if cell.get("lat") is not None and cell.get("lon") is not None:
+                    try:
+                        point = Point(float(cell["lon"]), float(cell["lat"]))
+                    except (TypeError, ValueError):
+                        point = None
+                cell["cota"] = first_level(point, levels) if point is not None else None
+                cell["frac_area_primeiro_nivel"] = None
+                cell["cota_metodo"] = "ponto_fallback"
     return data
 
 
