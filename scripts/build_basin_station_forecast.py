@@ -95,6 +95,27 @@ OBSERVED_HOURS = 72
 BATCH_SIZE = 50
 BATCH_PAUSE_SECONDS = 10.0
 REFRESH_MINUTE_UTC = 17
+LEVEL_OBSERVED_HOURS = 72
+
+LEVEL_FORECAST_LABELS = {
+    "2h": "RNA 2h",
+    "2h_versao_b": "RNA 2h B",
+    "4h": "RNA 4h",
+    "4h_versao_b": "RNA 4h B",
+    "8h": "RNA 8h",
+    "8h_v002": "RNA 8h V002",
+    "8h_versao_b": "RNA 8h B",
+}
+
+LEVEL_FORECAST_COLORS = {
+    "2h": "#1769aa",
+    "2h_versao_b": "#7c3aed",
+    "4h": "#d97706",
+    "4h_versao_b": "#dc2626",
+    "8h": "#059669",
+    "8h_v002": "#9333ea",
+    "8h_versao_b": "#be123c",
+}
 
 # The CSV is intentionally not treated as a complete basin network. These
 # are the six columns that the existing ANA/INMET/CEMADEN robot publishes.
@@ -344,6 +365,15 @@ def _level_record(raw: dict[str, Any], code: str) -> dict[str, Any] | None:
     forecast = finite(
         raw.get("nivel_previsto_cm", raw.get("nivel_modelo_cm"))
     )
+    forecast_at = parse_iso(
+        raw.get("hora_alvo_utc")
+        or raw.get("hora_alvo")
+        or raw.get("nivel_previsto_em_utc")
+        or raw.get("nivel_previsto_em"),
+        default_timezone=BRT,
+    )
+    observed_series = _level_observed_series(raw)
+    forecast_series = _level_forecast_series(raw)
     if level is None and forecast is None and observed_at is None:
         return None
     return {
@@ -351,11 +381,82 @@ def _level_record(raw: dict[str, Any], code: str) -> dict[str, Any] | None:
         "current_cm": level,
         "observed_at_utc": iso_utc(observed_at),
         "forecast_cm": forecast,
+        "forecast_at_utc": iso_utc(forecast_at),
         "threshold_cm": finite(raw.get("bankfull_cm")),
+        "unit": "cm",
+        "series": observed_series,
+        "forecasts": forecast_series,
         "source": f"feed ao vivo · estação {code}",
         "quality": raw.get("status_dados"),
         "message": str(raw.get("aviso") or raw.get("status_dados") or "").strip(),
     }
+
+
+def _level_observed_series(
+    raw: dict[str, Any], *, hours: int = LEVEL_OBSERVED_HOURS
+) -> list[dict[str, Any]]:
+    """Normalize the published ANA/SGB level series to the last 72 hours."""
+
+    values: list[tuple[datetime, float]] = []
+    for item in raw.get("serie_observada_ana") or []:
+        if not isinstance(item, dict):
+            continue
+        timestamp = parse_iso(
+            item.get("hora") or item.get("time") or item.get("timestamp"),
+            default_timezone=BRT,
+        )
+        value = finite(item.get("nivel_cm", item.get("cm", item.get("value"))))
+        if timestamp is None or value is None:
+            continue
+        values.append((timestamp, value))
+    if not values:
+        return []
+    values.sort(key=lambda pair: pair[0])
+    start = values[-1][0] - timedelta(hours=hours)
+    return [
+        {"time": iso_utc(timestamp), "cm": value}
+        for timestamp, value in values
+        if timestamp >= start
+    ]
+
+
+def _level_forecast_series(raw: dict[str, Any]) -> list[dict[str, Any]]:
+    """Keep the live RNA level forecasts as separate, labelled points."""
+
+    horizons = raw.get("horizontes")
+    if not isinstance(horizons, dict):
+        horizons = {}
+    result: list[dict[str, Any]] = []
+    for horizon_id, item in horizons.items():
+        if not isinstance(item, dict):
+            continue
+        value = finite(item.get("nivel_previsto_cm", item.get("nivel_modelo_cm")))
+        target = parse_iso(
+            item.get("hora_alvo_utc")
+            or item.get("hora_alvo")
+            or item.get("hora_modelo_utc")
+            or item.get("hora_modelo"),
+            default_timezone=BRT,
+        )
+        if value is None or target is None:
+            continue
+        horizon_text = str(item.get("rotulo") or item.get("horizonte") or horizon_id)
+        result.append(
+            {
+                "id": "rna_" + str(horizon_id),
+                "label": LEVEL_FORECAST_LABELS.get(
+                    str(horizon_id), "RNA " + horizon_text
+                ),
+                "horizon_h": finite(item.get("horizonte_h")),
+                "time": iso_utc(target),
+                "cm": value,
+                "color": LEVEL_FORECAST_COLORS.get(str(horizon_id), "#64748b"),
+                "model": item.get("modelo"),
+                "source": "feed ao vivo · previsão experimental de nível",
+            }
+        )
+    result.sort(key=lambda item: (item.get("time") or "", item.get("id") or ""))
+    return result
 
 
 def _unavailable_level(code: str) -> dict[str, Any]:
@@ -364,7 +465,11 @@ def _unavailable_level(code: str) -> dict[str, Any]:
         "current_cm": None,
         "observed_at_utc": None,
         "forecast_cm": None,
+        "forecast_at_utc": None,
         "threshold_cm": None,
+        "unit": "cm",
+        "series": [],
+        "forecasts": [],
         "source": f"feed ao vivo · estação {code}",
         "quality": None,
         "message": "Telemetria de nível não publicada para esta estação.",
@@ -411,7 +516,11 @@ def load_level_snapshots(paths: tuple[Path, ...] = LIVE_FEEDS) -> dict[str, dict
                     "current_cm": level,
                     "observed_at_utc": iso_utc(observed_at),
                     "forecast_cm": None,
+                    "forecast_at_utc": None,
                     "threshold_cm": None,
+                    "unit": "cm",
+                    "series": [],
+                    "forecasts": [],
                     "source": f"telemetria ANA/SGB · estação {code}",
                     "quality": item.get("qc_status"),
                     "message": item.get("fonte") or "Leitura de nível publicada.",
@@ -627,6 +736,7 @@ def build_feed(
         "models": list(MODEL_SPECS),
         "metrics": [
             {"id": "precipitation", "label": "Chuva", "unit": "mm", "source_state": "forecast", "sampling": "horário do modelo, exibido a cada 3 h"},
+            {"id": "level_cm", "label": "Nível", "unit": "cm", "source_state": "observed_and_experimental_forecast", "sampling": "observação publicada em até 72 h; previsão RNA por horizonte"},
             {"id": "temperature_2m", "label": "Temperatura", "unit": "°C", "source_state": "forecast"},
             {"id": "relative_humidity_2m", "label": "Umidade relativa", "unit": "%", "source_state": "forecast"},
             {"id": "pressure_msl", "label": "Pressão ao nível do mar", "unit": "hPa", "source_state": "forecast"},

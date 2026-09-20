@@ -127,6 +127,44 @@ class BasinStationForecastTests(unittest.TestCase):
         now = datetime(2026, 9, 20, 2, 15, tzinfo=timezone.utc)
         self.assertEqual(feed.iso_utc(feed._next_cycle(now)), "2026-09-20T06:17Z")
 
+    def test_level_metric_keeps_observed_series_and_rna_forecasts(self):
+        raw = {
+            "telemetria_ultima_em": "2026-09-20T09:00:00",
+            "telemetria_ultima_nivel_cm": 350,
+            "nivel_previsto_cm": 348,
+            "hora_alvo": "2026-09-20T11:00:00",
+            "bankfull_cm": 1500,
+            "status_dados": "telemetria recente",
+            "serie_observada_ana": [
+                {"hora": "2026-09-17T09:00:00", "nivel_cm": 300},
+                {"hora": "2026-09-19T09:00:00", "nivel_cm": 340},
+                {"hora": "2026-09-20T09:00:00", "nivel_cm": 350},
+            ],
+            "horizontes": {
+                "2h": {
+                    "horizonte_h": 2,
+                    "hora_alvo": "2026-09-20T11:00:00",
+                    "nivel_previsto_cm": 348,
+                    "modelo": "RNA-2H",
+                },
+                "8h": {
+                    "horizonte_h": 8,
+                    "hora_alvo": "2026-09-20T17:00:00",
+                    "nivel_previsto_cm": 310,
+                    "modelo": "RNA-8H",
+                },
+            },
+        }
+
+        result = feed._level_record(raw, "86472600")
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result["state"], "available")
+        self.assertEqual(result["current_cm"], 350.0)
+        self.assertEqual(result["series"][-1], {"time": "2026-09-20T12:00Z", "cm": 350.0})
+        self.assertEqual([item["label"] for item in result["forecasts"]], ["RNA 2h", "RNA 8h"])
+        self.assertEqual(result["forecasts"][1]["cm"], 310.0)
+
     def test_partial_forecast_run_cannot_replace_complete_snapshot(self):
         partial = {
             "scope": {
