@@ -25,21 +25,17 @@ def main() -> None:
     assert hec["published_research_pilot"]["operational_gate"] == "blocked"
 
     case = next(item for item in data["replay_cases"] if item["event_id"] == "mucum-q62-35")
-    assert case["event_status"] == "usable_research_test_record; selected_8h_12h_series_pending"
+    assert case["event_status"] == "usable_research_test_record; q62_candidate_series_available; selection_pending"
     assert case["peak_observed_cm"] == 1986.0
     assert {item["horizon_hours"] for item in case["horizons"]} == {8, 12}
     for item in case["horizons"]:
-        assert item["availability_status"] in {"available_audited_test_series", "pending_auditable_test_series"}
-        if item["availability_status"] == "available_audited_test_series":
-            assert item["selected_model"]
-            assert item["series"]["set"] == "Teste"
-            assert item["series"]["points_published"] == 47
-            assert item["series"]["missing_hours_in_recorte"] == 10
-            assert item["series"]["forecast_target_timestamp"] == "2026-07-22 15:00"
-            assert item["series"]["timestamp_reconciliation_status"].endswith("release_timestamp_pending")
-        else:
-            assert item["selected_model"] is None
-            assert item["series"] is None
+        assert item["availability_status"] == "experimental_candidate_series_available_not_promoted"
+        assert item["selection_status"] == "blocked_by_independent_review_gate"
+        assert item["candidate_count"] == 5
+        assert len(item["candidate_models"]) == 5
+        assert item["candidate_series_source"].endswith("mucum_q62_replay_candidates.json")
+        assert item["selected_model"] is None
+        assert item["series"] is None
 
     muc = data["spatial_scenarios"]["mucum"]
     assert muc["published_level_range_m"] == [0.0, 30.0]

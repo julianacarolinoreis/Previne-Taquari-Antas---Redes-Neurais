@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_id": "research-event-replay-latest",
-  "generated_at_utc": "2026-09-20T13:59:49Z",
+  "generated_at_utc": "2026-09-20T19:36:34Z",
   "research_only": true,
   "official_alert": false,
   "operational_gate": {
@@ -28,7 +28,7 @@
   "forecast_sources": [
     {
       "id": "rna",
-      "status": "available_for_historical_replay",
+      "status": "experimental_candidate_series_available_not_promoted",
       "horizons_hours": [
         8,
         12
@@ -212,23 +212,211 @@
         "hours_before_peak": 24,
         "hours_after_peak": 32
       },
-      "event_status": "usable_research_test_record; selected_8h_12h_series_pending",
-      "independent_test_status": "test label available in audited series; exact release timestamp not reconciled",
+      "event_status": "usable_research_test_record; q62_candidate_series_available; selection_pending",
+      "independent_test_status": "test label and candidate series extracted from Q62 workbooks; release timestamp is represented as base plus horizon and no model is promoted",
       "horizons": [
         {
           "horizon_hours": 8,
-          "selection_basis": "highest published score_equilibrio among candidates with event 35|Teste",
-          "candidate_count": 0,
-          "availability_status": "pending_auditable_test_series",
+          "selection_basis": "no selection; candidate series are exposed for comparison while the independent review gate remains closed",
+          "candidate_count": 5,
+          "availability_status": "experimental_candidate_series_available_not_promoted",
+          "selection_status": "blocked_by_independent_review_gate",
+          "candidate_series_source": "assets/data/mucum_q62/mucum_q62_replay_candidates.json",
+          "candidate_models": [
+            {
+              "model_id": "031_alt_MUC_H08_V24_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21",
+              "review_status": "CONDICIONAL_NAO_PUBLICAR",
+              "comparison_status": "candidate_series_extracted_not_promoted",
+              "event_metrics": {
+                "points": 47,
+                "observed_peak_cm": 1986.0,
+                "observed_peak_base_timestamp": "2026-07-22 07:00",
+                "observed_peak_target_timestamp": "2026-07-22 15:00",
+                "predicted_peak_cm": 2045.517142,
+                "predicted_peak_base_timestamp": "2026-07-22 07:00",
+                "predicted_peak_target_timestamp": "2026-07-22 15:00",
+                "peak_error_cm": 59.517142,
+                "peak_lag_hours": 0.0,
+                "mae_cm": 124.970766
+              },
+              "workbook": "assets/audit_workbooks/8H_ALT__031_alt_MUC_H08_V24_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21.xlsx"
+            },
+            {
+              "model_id": "032_alt_MUC_H08_V24_RAIN24_UPSTREAM_R00_T31-33-34-35-37_V18-20-21",
+              "review_status": "CONDICIONAL_NAO_PUBLICAR",
+              "comparison_status": "candidate_series_extracted_not_promoted",
+              "event_metrics": {
+                "points": 47,
+                "observed_peak_cm": 1986.0,
+                "observed_peak_base_timestamp": "2026-07-22 07:00",
+                "observed_peak_target_timestamp": "2026-07-22 15:00",
+                "predicted_peak_cm": 2037.821318,
+                "predicted_peak_base_timestamp": "2026-07-22 07:00",
+                "predicted_peak_target_timestamp": "2026-07-22 15:00",
+                "peak_error_cm": 51.821318,
+                "peak_lag_hours": 0.0,
+                "mae_cm": 111.228093
+              },
+              "workbook": "assets/audit_workbooks/8H_ALT__032_alt_MUC_H08_V24_RAIN24_UPSTREAM_R00_T31-33-34-35-37_V18-20-21.xlsx"
+            },
+            {
+              "model_id": "033_alt_MUC_H08_V24_RAIN24_DIFF_R00_T31-33-34-35-37_V18-20-21",
+              "review_status": "CONDICIONAL_NAO_PUBLICAR",
+              "comparison_status": "candidate_series_extracted_not_promoted",
+              "event_metrics": {
+                "points": 47,
+                "observed_peak_cm": 1986.0,
+                "observed_peak_base_timestamp": "2026-07-22 07:00",
+                "observed_peak_target_timestamp": "2026-07-22 15:00",
+                "predicted_peak_cm": 2068.186666,
+                "predicted_peak_base_timestamp": "2026-07-22 09:00",
+                "predicted_peak_target_timestamp": "2026-07-22 17:00",
+                "peak_error_cm": 82.186666,
+                "peak_lag_hours": 2.0,
+                "mae_cm": 138.448908
+              },
+              "workbook": "assets/audit_workbooks/8H_ALT__033_alt_MUC_H08_V24_RAIN24_DIFF_R00_T31-33-34-35-37_V18-20-21.xlsx"
+            },
+            {
+              "model_id": "034_alt_MUC_H08_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21",
+              "review_status": "CONDICIONAL_NAO_PUBLICAR",
+              "comparison_status": "candidate_series_extracted_not_promoted",
+              "event_metrics": {
+                "points": 47,
+                "observed_peak_cm": 1986.0,
+                "observed_peak_base_timestamp": "2026-07-22 07:00",
+                "observed_peak_target_timestamp": "2026-07-22 15:00",
+                "predicted_peak_cm": 1994.434784,
+                "predicted_peak_base_timestamp": "2026-07-22 09:00",
+                "predicted_peak_target_timestamp": "2026-07-22 17:00",
+                "peak_error_cm": 8.434784,
+                "peak_lag_hours": 2.0,
+                "mae_cm": 122.136594
+              },
+              "workbook": "assets/audit_workbooks/8H_ALT__034_alt_MUC_H08_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21.xlsx"
+            },
+            {
+              "model_id": "035_alt_MUC_H08_V15_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21",
+              "review_status": "FAIL_DESEMPENHO_NAO_PUBLICAR",
+              "comparison_status": "candidate_series_extracted_not_promoted",
+              "event_metrics": {
+                "points": 48,
+                "observed_peak_cm": 1986.0,
+                "observed_peak_base_timestamp": "2026-07-22 07:00",
+                "observed_peak_target_timestamp": "2026-07-22 15:00",
+                "predicted_peak_cm": 2012.267658,
+                "predicted_peak_base_timestamp": "2026-07-22 07:00",
+                "predicted_peak_target_timestamp": "2026-07-22 15:00",
+                "peak_error_cm": 26.267658,
+                "peak_lag_hours": 0.0,
+                "mae_cm": 153.878644
+              },
+              "workbook": "assets/audit_workbooks/8H_ALT__035_alt_MUC_H08_V15_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21.xlsx"
+            }
+          ],
           "selected_model": null,
           "selected_model_metadata": null,
           "series": null
         },
         {
           "horizon_hours": 12,
-          "selection_basis": "highest published score_equilibrio among candidates with event 35|Teste",
-          "candidate_count": 0,
-          "availability_status": "pending_auditable_test_series",
+          "selection_basis": "no selection; candidate series are exposed for comparison while the independent review gate remains closed",
+          "candidate_count": 5,
+          "availability_status": "experimental_candidate_series_available_not_promoted",
+          "selection_status": "blocked_by_independent_review_gate",
+          "candidate_series_source": "assets/data/mucum_q62/mucum_q62_replay_candidates.json",
+          "candidate_models": [
+            {
+              "model_id": "036_alt_MUC_H12_V24_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21",
+              "review_status": "CONDICIONAL_NAO_PUBLICAR",
+              "comparison_status": "candidate_series_extracted_not_promoted",
+              "event_metrics": {
+                "points": 47,
+                "observed_peak_cm": 1986.0,
+                "observed_peak_base_timestamp": "2026-07-22 03:00",
+                "observed_peak_target_timestamp": "2026-07-22 15:00",
+                "predicted_peak_cm": 2100.025928,
+                "predicted_peak_base_timestamp": "2026-07-22 08:00",
+                "predicted_peak_target_timestamp": "2026-07-22 20:00",
+                "peak_error_cm": 114.025928,
+                "peak_lag_hours": 5.0,
+                "mae_cm": 241.527248
+              },
+              "workbook": "assets/audit_workbooks/12H_ALT__036_alt_MUC_H12_V24_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21.xlsx"
+            },
+            {
+              "model_id": "037_alt_MUC_H12_V24_RAIN24_UPSTREAM_R00_T31-33-34-35-37_V18-20-21",
+              "review_status": "CONDICIONAL_NAO_PUBLICAR",
+              "comparison_status": "candidate_series_extracted_not_promoted",
+              "event_metrics": {
+                "points": 47,
+                "observed_peak_cm": 1986.0,
+                "observed_peak_base_timestamp": "2026-07-22 03:00",
+                "observed_peak_target_timestamp": "2026-07-22 15:00",
+                "predicted_peak_cm": 2097.026241,
+                "predicted_peak_base_timestamp": "2026-07-22 08:00",
+                "predicted_peak_target_timestamp": "2026-07-22 20:00",
+                "peak_error_cm": 111.026241,
+                "peak_lag_hours": 5.0,
+                "mae_cm": 221.903348
+              },
+              "workbook": "assets/audit_workbooks/12H_ALT__037_alt_MUC_H12_V24_RAIN24_UPSTREAM_R00_T31-33-34-35-37_V18-20-21.xlsx"
+            },
+            {
+              "model_id": "038_alt_MUC_H12_V24_RAIN24_DIFF_R00_T31-33-34-35-37_V18-20-21",
+              "review_status": "CONDICIONAL_NAO_PUBLICAR",
+              "comparison_status": "candidate_series_extracted_not_promoted",
+              "event_metrics": {
+                "points": 47,
+                "observed_peak_cm": 1986.0,
+                "observed_peak_base_timestamp": "2026-07-22 03:00",
+                "observed_peak_target_timestamp": "2026-07-22 15:00",
+                "predicted_peak_cm": 2060.05915,
+                "predicted_peak_base_timestamp": "2026-07-22 07:00",
+                "predicted_peak_target_timestamp": "2026-07-22 19:00",
+                "peak_error_cm": 74.05915,
+                "peak_lag_hours": 4.0,
+                "mae_cm": 224.08503
+              },
+              "workbook": "assets/audit_workbooks/12H_ALT__038_alt_MUC_H12_V24_RAIN24_DIFF_R00_T31-33-34-35-37_V18-20-21.xlsx"
+            },
+            {
+              "model_id": "039_alt_MUC_H12_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21",
+              "review_status": "CONDICIONAL_NAO_PUBLICAR",
+              "comparison_status": "candidate_series_extracted_not_promoted",
+              "event_metrics": {
+                "points": 47,
+                "observed_peak_cm": 1986.0,
+                "observed_peak_base_timestamp": "2026-07-22 03:00",
+                "observed_peak_target_timestamp": "2026-07-22 15:00",
+                "predicted_peak_cm": 1956.351539,
+                "predicted_peak_base_timestamp": "2026-07-22 08:00",
+                "predicted_peak_target_timestamp": "2026-07-22 20:00",
+                "peak_error_cm": -29.648461,
+                "peak_lag_hours": 5.0,
+                "mae_cm": 175.811407
+              },
+              "workbook": "assets/audit_workbooks/12H_ALT__039_alt_MUC_H12_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21.xlsx"
+            },
+            {
+              "model_id": "040_alt_MUC_H12_V15_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21",
+              "review_status": "CONDICIONAL_NAO_PUBLICAR",
+              "comparison_status": "candidate_series_extracted_not_promoted",
+              "event_metrics": {
+                "points": 48,
+                "observed_peak_cm": 1986.0,
+                "observed_peak_base_timestamp": "2026-07-22 03:00",
+                "observed_peak_target_timestamp": "2026-07-22 15:00",
+                "predicted_peak_cm": 2057.43145,
+                "predicted_peak_base_timestamp": "2026-07-22 07:00",
+                "predicted_peak_target_timestamp": "2026-07-22 19:00",
+                "peak_error_cm": 71.43145,
+                "peak_lag_hours": 4.0,
+                "mae_cm": 198.574946
+              },
+              "workbook": "assets/audit_workbooks/12H_ALT__040_alt_MUC_H12_V15_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21.xlsx"
+            }
+          ],
           "selected_model": null,
           "selected_model_metadata": null,
           "series": null
@@ -1695,6 +1883,12 @@
       "role": "Muçum auditável model series",
       "status": "available",
       "sha256": "e2b46ba29444cddffaf7eabd7ee8f66cf0e677bdce309cec1b3ce5b00960d82b"
+    },
+    {
+      "path": "assets/data/mucum_q62/mucum_q62_replay_candidates.json",
+      "role": "Muçum Q62 candidate event series; not promoted",
+      "status": "available",
+      "sha256": "9f004da1de6886c066fb147f2ddd269775b6a040ef7a80d494faaf33a5aaecee"
     },
     {
       "path": "assets/data/mucum_eventos_analise.json",

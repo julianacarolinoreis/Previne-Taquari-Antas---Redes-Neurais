@@ -21,6 +21,7 @@ from shapely.geometry import shape
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "assets" / "data" / "research_event_replay_latest.json"
+Q62_CANDIDATES = ROOT / "assets" / "data" / "mucum_q62" / "mucum_q62_replay_candidates.json"
 
 
 def read_json(path: Path) -> Any:
@@ -109,9 +110,10 @@ def series_summary(model: dict[str, Any], event_number: int, peak: str, horizon:
     }
 
 
-def mucum_replays(q62_path: Path, audit_path: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def mucum_replays(q62_path: Path, audit_path: Path, candidate_path: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     q62 = parse_q62(q62_path)
     audit = read_json(audit_path)
+    candidate_artifact = read_json(candidate_path)
     models = audit.get("models", [])
     event = next(row for row in q62 if str(row.get("evento")) == "35")
     event_number = integer(event["evento"])
@@ -120,27 +122,31 @@ def mucum_replays(q62_path: Path, audit_path: Path) -> tuple[list[dict[str, Any]
     horizons: list[dict[str, Any]] = []
     for horizon in (8, 12):
         candidates = [
-            model for model in models
-            if str(model.get("horizon", "")).lower() == f"{horizon}h"
-            and f"{event_number}|Teste" in model.get("series", {})
+            candidate
+            for candidate in candidate_artifact.get("candidates", [])
+            if int(candidate.get("horizon_hours", 0)) == horizon
         ]
-        candidates.sort(key=lambda model: number(model.get("metrics", {}).get("score_equilibrio")) or -1, reverse=True)
-        selected = candidates[0] if candidates else None
+        candidate_summaries = [
+            {
+                "model_id": candidate.get("model_id"),
+                "review_status": candidate.get("review", {}).get("status"),
+                "comparison_status": candidate.get("comparison_status"),
+                "event_metrics": candidate.get("event_metrics"),
+                "workbook": candidate.get("workbook"),
+            }
+            for candidate in candidates
+        ]
         horizons.append({
             "horizon_hours": horizon,
-            "selection_basis": "highest published score_equilibrio among candidates with event 35|Teste",
+            "selection_basis": "no selection; candidate series are exposed for comparison while the independent review gate remains closed",
             "candidate_count": len(candidates),
-            "availability_status": "available_audited_test_series" if selected else "pending_auditable_test_series",
-            "selected_model": selected.get("name") if selected else None,
-            "selected_model_metadata": {
-                "family": selected.get("family"),
-                "combo_id": selected.get("combo_id"),
-                "rotation": selected.get("rotation"),
-                "score_equilibrio": selected.get("metrics", {}).get("score_equilibrio"),
-                "mae_teste_cm": selected.get("metrics", {}).get("MAE_teste_cm"),
-                "source_workbook": selected.get("workbookUrl"),
-            } if selected else None,
-            "series": series_summary(selected, event_number, peak, horizon, window_hours) if selected else None,
+            "availability_status": "experimental_candidate_series_available_not_promoted" if candidates else "pending_auditable_test_series",
+            "selection_status": "blocked_by_independent_review_gate" if candidates else "pending_auditable_test_series",
+            "candidate_series_source": rel(candidate_path) if candidates else None,
+            "candidate_models": candidate_summaries,
+            "selected_model": None,
+            "selected_model_metadata": None,
+            "series": None,
         })
     replay = {
         "municipality": "Muçum",
@@ -158,11 +164,15 @@ def mucum_replays(q62_path: Path, audit_path: Path) -> tuple[list[dict[str, Any]
             "hours_before_peak": integer(event.get("horas_antes")),
             "hours_after_peak": integer(event.get("horas_depois")),
         },
-        "event_status": "usable_research_test_record; selected_8h_12h_series_pending",
-        "independent_test_status": "test label available in audited series; exact release timestamp not reconciled",
+        "event_status": "usable_research_test_record; q62_candidate_series_available; selection_pending",
+        "independent_test_status": "test label and candidate series extracted from Q62 workbooks; release timestamp is represented as base plus horizon and no model is promoted",
         "horizons": horizons,
     }
-    return [replay], {"q62_used_events": len(q62), "audited_models": len(models)}
+    return [replay], {
+        "q62_used_events": len(q62),
+        "audited_models": len(models),
+        "candidate_series": len(candidate_artifact.get("candidates", [])),
+    }
 
 
 def contour_scenario(grid_path: Path, contour_path: Path, level_m: float) -> dict[str, Any]:
@@ -292,12 +302,13 @@ def response_inventory() -> dict[str, Any]:
 def build() -> dict[str, Any]:
     q62_path = ROOT / "assets" / "data" / "mucum_q62" / "mucum_q62_recorte_eventos.csv"
     audit_path = ROOT / "assets" / "data" / "mucum_auditaveis_series.json"
+    candidate_path = Q62_CANDIDATES
     muc_events_path = ROOT / "assets" / "data" / "mucum_eventos_analise.json"
     stz_events_path = ROOT / "assets" / "data" / "eventos_analise.json"
     stz_protocol_path = ROOT / "assets" / "data" / "santa_tereza_inundacao" / "protocolo_leave_one_event_out_estrangulamento.json"
     basin_path = ROOT / "assets" / "data" / "research_basin_screening_latest.json"
     hec_status_path = ROOT / "assets" / "data" / "hec_hms_integrated_taquari_antas" / "network_calibration_status_latest.json"
-    muc_replays, audit_counts = mucum_replays(q62_path, audit_path)
+    muc_replays, audit_counts = mucum_replays(q62_path, audit_path, candidate_path)
     muc_events = read_json(muc_events_path)
     stz_events = read_json(stz_events_path)
     stz_protocol = read_json(stz_protocol_path)
@@ -326,7 +337,7 @@ def build() -> dict[str, Any]:
             "model_rule": "séries publicadas permanecem separadas de uma emissão operacional; timestamp de liberação T− ainda não foi reconciliado",
         },
         "forecast_sources": [
-            {"id": "rna", "status": "available_for_historical_replay", "horizons_hours": [8, 12], "municipality_scope": ["Muçum"]},
+            {"id": "rna", "status": "experimental_candidate_series_available_not_promoted", "horizons_hours": [8, 12], "municipality_scope": ["Muçum"]},
             {"id": "rna_santa_tereza", "status": "available_as_catalog_and_experimental_short_horizon; 8h/12h replay pending", "horizons_hours": [2], "municipality_scope": ["Santa Tereza"]},
             {
                 "id": "hec_hms",
@@ -409,6 +420,7 @@ def build() -> dict[str, Any]:
         "sources": [
             source_ref(q62_path, "Muçum Q62 event recortes"),
             source_ref(audit_path, "Muçum auditável model series"),
+            source_ref(candidate_path, "Muçum Q62 candidate event series; not promoted"),
             source_ref(muc_events_path, "Muçum event catalog"),
             source_ref(stz_events_path, "Santa Tereza event catalog"),
             source_ref(basin_path, "basin research feed", "available_snapshot"),

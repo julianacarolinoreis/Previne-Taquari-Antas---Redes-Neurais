@@ -1,0 +1,3661 @@
+{
+  "schema_version": 1,
+  "artifact_id": "mucum-q62-replay-candidates",
+  "generated_at_utc": "2026-09-20T19:36:34Z",
+  "status": "research_candidates_only_not_promoted",
+  "research_only": true,
+  "official_alert": false,
+  "municipality": "Muçum",
+  "station_code": "86510000",
+  "event_number": 35,
+  "event_id": "mucum-q62-35",
+  "event_peak_timestamp": "2026-07-22 15:00:00",
+  "event_peak_observed_cm": 1986.0,
+  "recorte": {
+    "start": "2026-07-21 15:00:00",
+    "end": "2026-07-23 23:00:00",
+    "hours": 57.0
+  },
+  "selection": {
+    "selected_model": null,
+    "selection_status": "blocked_by_independent_review_gate",
+    "reason": "Q62 audit reconciles MAT/XLSX/CSV and test partitions, but the independent review marked candidates conditional/not publishable; model 035 failed the performance criterion."
+  },
+  "sources": {
+    "audit": "assets/data/mucum_q62_auditoria.json",
+    "event_catalogue": "assets/data/mucum_q62/mucum_q62_recorte_eventos.csv"
+  },
+  "candidate_count": 10,
+  "candidates_by_horizon": {
+    "8": [
+      "031_alt_MUC_H08_V24_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21",
+      "032_alt_MUC_H08_V24_RAIN24_UPSTREAM_R00_T31-33-34-35-37_V18-20-21",
+      "033_alt_MUC_H08_V24_RAIN24_DIFF_R00_T31-33-34-35-37_V18-20-21",
+      "034_alt_MUC_H08_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21",
+      "035_alt_MUC_H08_V15_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21"
+    ],
+    "12": [
+      "036_alt_MUC_H12_V24_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21",
+      "037_alt_MUC_H12_V24_RAIN24_UPSTREAM_R00_T31-33-34-35-37_V18-20-21",
+      "038_alt_MUC_H12_V24_RAIN24_DIFF_R00_T31-33-34-35-37_V18-20-21",
+      "039_alt_MUC_H12_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21",
+      "040_alt_MUC_H12_V15_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21"
+    ]
+  },
+  "candidates": [
+    {
+      "model_id": "031_alt_MUC_H08_V24_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21",
+      "horizon_hours": 8,
+      "family": "8H_ALT",
+      "output_column": "OUT08H_DIF",
+      "input_names": [
+        "nivel_86510000",
+        "difn1h_86510000",
+        "difn2h_86510000",
+        "difn4h_86510000",
+        "acel1h_86510000",
+        "acel2h_86510000",
+        "acel4h_86510000",
+        "acel8h_86510000",
+        "acel12h_86510000",
+        "nivel_86472000",
+        "difn1h_86472000",
+        "difn2h_86472000",
+        "difn4h_86472000",
+        "acel12h_86472000",
+        "acel20h_86472000",
+        "nivel_86298000",
+        "difn2h_86298000",
+        "difn4h_86298000",
+        "acel12h_86298000",
+        "acel20h_86298000",
+        "difn8h_86510000",
+        "acel20h_86510000",
+        "difn8h_86472000",
+        "acel4h_86472000",
+        "chuva_med_4est_acum_24h"
+      ],
+      "workbook": "assets/audit_workbooks/8H_ALT__031_alt_MUC_H08_V24_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21.xlsx",
+      "workbook_sha256": "7b0dd185becc40eded1642d8e1d3dc7b4975a717d3f839d4a24d5180bc99378d",
+      "review": {
+        "agent": "Mencius",
+        "status": "CONDICIONAL_NAO_PUBLICAR",
+        "finding": "Auditoria pré-correção encontrou workbook estático e RNA_FINAL vazio; verificação pós-correção confirmou RNA_FINAL preenchida a partir de Tctot1. Permanece sem CSV individual por modelo.",
+        "promotion_allowed": false
+      },
+      "comparison_status": "candidate_series_extracted_not_promoted",
+      "series_key": "35|Teste",
+      "unit": "cm",
+      "prediction_contract": {
+        "observed_column": "NIVEL_FUTURO",
+        "prediction_column": "RNA_FINAL",
+        "target_delta_column": "OUT08H_DIF",
+        "target_and_prediction_excluded_from_inputs": true
+      },
+      "checks": {
+        "required_columns_present": true,
+        "event_values": [
+          35
+        ],
+        "partition": "Teste",
+        "serie_values": [
+          3
+        ],
+        "formula_mismatch_count": 0,
+        "nonfinite_row_count": 0,
+        "duplicate_timestamp_count": 0,
+        "audit_effective_rows": 1229,
+        "audit_test_rows_all_events": 395
+      },
+      "event_metrics": {
+        "points": 47,
+        "observed_peak_cm": 1986.0,
+        "observed_peak_base_timestamp": "2026-07-22 07:00",
+        "observed_peak_target_timestamp": "2026-07-22 15:00",
+        "predicted_peak_cm": 2045.517142,
+        "predicted_peak_base_timestamp": "2026-07-22 07:00",
+        "predicted_peak_target_timestamp": "2026-07-22 15:00",
+        "peak_error_cm": 59.517142,
+        "peak_lag_hours": 0.0,
+        "mae_cm": 124.970766
+      },
+      "series": [
+        {
+          "base_timestamp": "2026-07-21 15:00",
+          "target_timestamp": "2026-07-21 23:00",
+          "observed_cm": 921.0,
+          "predicted_cm": 546.112414
+        },
+        {
+          "base_timestamp": "2026-07-21 16:00",
+          "target_timestamp": "2026-07-22 00:00",
+          "observed_cm": 1077.0,
+          "predicted_cm": 613.53616
+        },
+        {
+          "base_timestamp": "2026-07-21 17:00",
+          "target_timestamp": "2026-07-22 01:00",
+          "observed_cm": 1199.0,
+          "predicted_cm": 739.238867
+        },
+        {
+          "base_timestamp": "2026-07-21 18:00",
+          "target_timestamp": "2026-07-22 02:00",
+          "observed_cm": 1297.0,
+          "predicted_cm": 853.923745
+        },
+        {
+          "base_timestamp": "2026-07-21 19:00",
+          "target_timestamp": "2026-07-22 03:00",
+          "observed_cm": 1377.0,
+          "predicted_cm": 881.458254
+        },
+        {
+          "base_timestamp": "2026-07-21 20:00",
+          "target_timestamp": "2026-07-22 04:00",
+          "observed_cm": 1449.0,
+          "predicted_cm": 977.271066
+        },
+        {
+          "base_timestamp": "2026-07-21 21:00",
+          "target_timestamp": "2026-07-22 05:00",
+          "observed_cm": 1516.0,
+          "predicted_cm": 1142.989589
+        },
+        {
+          "base_timestamp": "2026-07-21 22:00",
+          "target_timestamp": "2026-07-22 06:00",
+          "observed_cm": 1581.0,
+          "predicted_cm": 1342.433443
+        },
+        {
+          "base_timestamp": "2026-07-21 23:00",
+          "target_timestamp": "2026-07-22 07:00",
+          "observed_cm": 1650.0,
+          "predicted_cm": 1488.331431
+        },
+        {
+          "base_timestamp": "2026-07-22 00:00",
+          "target_timestamp": "2026-07-22 08:00",
+          "observed_cm": 1716.0,
+          "predicted_cm": 1623.425389
+        },
+        {
+          "base_timestamp": "2026-07-22 01:00",
+          "target_timestamp": "2026-07-22 09:00",
+          "observed_cm": 1778.0,
+          "predicted_cm": 1705.965462
+        },
+        {
+          "base_timestamp": "2026-07-22 02:00",
+          "target_timestamp": "2026-07-22 10:00",
+          "observed_cm": 1837.0,
+          "predicted_cm": 1766.094616
+        },
+        {
+          "base_timestamp": "2026-07-22 03:00",
+          "target_timestamp": "2026-07-22 11:00",
+          "observed_cm": 1879.0,
+          "predicted_cm": 1817.501206
+        },
+        {
+          "base_timestamp": "2026-07-22 04:00",
+          "target_timestamp": "2026-07-22 12:00",
+          "observed_cm": 1902.0,
+          "predicted_cm": 1857.486215
+        },
+        {
+          "base_timestamp": "2026-07-22 05:00",
+          "target_timestamp": "2026-07-22 13:00",
+          "observed_cm": 1924.0,
+          "predicted_cm": 1900.386227
+        },
+        {
+          "base_timestamp": "2026-07-22 06:00",
+          "target_timestamp": "2026-07-22 14:00",
+          "observed_cm": 1926.0,
+          "predicted_cm": 1985.741869
+        },
+        {
+          "base_timestamp": "2026-07-22 07:00",
+          "target_timestamp": "2026-07-22 15:00",
+          "observed_cm": 1986.0,
+          "predicted_cm": 2045.517142
+        },
+        {
+          "base_timestamp": "2026-07-22 09:00",
+          "target_timestamp": "2026-07-22 17:00",
+          "observed_cm": 1895.0,
+          "predicted_cm": 2042.870667
+        },
+        {
+          "base_timestamp": "2026-07-22 10:00",
+          "target_timestamp": "2026-07-22 18:00",
+          "observed_cm": 1868.0,
+          "predicted_cm": 2014.20137
+        },
+        {
+          "base_timestamp": "2026-07-22 11:00",
+          "target_timestamp": "2026-07-22 19:00",
+          "observed_cm": 1843.0,
+          "predicted_cm": 1875.969179
+        },
+        {
+          "base_timestamp": "2026-07-22 12:00",
+          "target_timestamp": "2026-07-22 20:00",
+          "observed_cm": 1811.0,
+          "predicted_cm": 1730.039282
+        },
+        {
+          "base_timestamp": "2026-07-22 13:00",
+          "target_timestamp": "2026-07-22 21:00",
+          "observed_cm": 1779.0,
+          "predicted_cm": 1695.625995
+        },
+        {
+          "base_timestamp": "2026-07-22 14:00",
+          "target_timestamp": "2026-07-22 22:00",
+          "observed_cm": 1741.0,
+          "predicted_cm": 1639.319192
+        },
+        {
+          "base_timestamp": "2026-07-22 15:00",
+          "target_timestamp": "2026-07-22 23:00",
+          "observed_cm": 1704.0,
+          "predicted_cm": 1790.443173
+        },
+        {
+          "base_timestamp": "2026-07-22 19:00",
+          "target_timestamp": "2026-07-23 03:00",
+          "observed_cm": 1498.0,
+          "predicted_cm": 1550.308994
+        },
+        {
+          "base_timestamp": "2026-07-22 21:00",
+          "target_timestamp": "2026-07-23 05:00",
+          "observed_cm": 1407.0,
+          "predicted_cm": 1495.135885
+        },
+        {
+          "base_timestamp": "2026-07-22 22:00",
+          "target_timestamp": "2026-07-23 06:00",
+          "observed_cm": 1368.0,
+          "predicted_cm": 1446.241828
+        },
+        {
+          "base_timestamp": "2026-07-22 23:00",
+          "target_timestamp": "2026-07-23 07:00",
+          "observed_cm": 1332.0,
+          "predicted_cm": 1402.830937
+        },
+        {
+          "base_timestamp": "2026-07-23 01:00",
+          "target_timestamp": "2026-07-23 09:00",
+          "observed_cm": 1258.0,
+          "predicted_cm": 1296.085615
+        },
+        {
+          "base_timestamp": "2026-07-23 02:00",
+          "target_timestamp": "2026-07-23 10:00",
+          "observed_cm": 1223.0,
+          "predicted_cm": 1257.108867
+        },
+        {
+          "base_timestamp": "2026-07-23 03:00",
+          "target_timestamp": "2026-07-23 11:00",
+          "observed_cm": 1186.0,
+          "predicted_cm": 1229.156409
+        },
+        {
+          "base_timestamp": "2026-07-23 05:00",
+          "target_timestamp": "2026-07-23 13:00",
+          "observed_cm": 1120.0,
+          "predicted_cm": 1208.620321
+        },
+        {
+          "base_timestamp": "2026-07-23 06:00",
+          "target_timestamp": "2026-07-23 14:00",
+          "observed_cm": 1089.0,
+          "predicted_cm": 1176.24522
+        },
+        {
+          "base_timestamp": "2026-07-23 07:00",
+          "target_timestamp": "2026-07-23 15:00",
+          "observed_cm": 1055.0,
+          "predicted_cm": 1129.234146
+        },
+        {
+          "base_timestamp": "2026-07-23 09:00",
+          "target_timestamp": "2026-07-23 17:00",
+          "observed_cm": 986.0,
+          "predicted_cm": 1023.611564
+        },
+        {
+          "base_timestamp": "2026-07-23 10:00",
+          "target_timestamp": "2026-07-23 18:00",
+          "observed_cm": 971.0,
+          "predicted_cm": 1002.163225
+        },
+        {
+          "base_timestamp": "2026-07-23 11:00",
+          "target_timestamp": "2026-07-23 19:00",
+          "observed_cm": 960.0,
+          "predicted_cm": 978.773634
+        },
+        {
+          "base_timestamp": "2026-07-23 13:00",
+          "target_timestamp": "2026-07-23 21:00",
+          "observed_cm": 929.0,
+          "predicted_cm": 919.781698
+        },
+        {
+          "base_timestamp": "2026-07-23 14:00",
+          "target_timestamp": "2026-07-23 22:00",
+          "observed_cm": 908.0,
+          "predicted_cm": 855.532596
+        },
+        {
+          "base_timestamp": "2026-07-23 15:00",
+          "target_timestamp": "2026-07-23 23:00",
+          "observed_cm": 884.0,
+          "predicted_cm": 846.839243
+        },
+        {
+          "base_timestamp": "2026-07-23 17:00",
+          "target_timestamp": "2026-07-24 01:00",
+          "observed_cm": 835.0,
+          "predicted_cm": 903.18201
+        },
+        {
+          "base_timestamp": "2026-07-23 18:00",
+          "target_timestamp": "2026-07-24 02:00",
+          "observed_cm": 819.0,
+          "predicted_cm": 935.149662
+        },
+        {
+          "base_timestamp": "2026-07-23 19:00",
+          "target_timestamp": "2026-07-24 03:00",
+          "observed_cm": 806.0,
+          "predicted_cm": 907.456446
+        },
+        {
+          "base_timestamp": "2026-07-23 20:00",
+          "target_timestamp": "2026-07-24 04:00",
+          "observed_cm": 791.0,
+          "predicted_cm": 837.744547
+        },
+        {
+          "base_timestamp": "2026-07-23 21:00",
+          "target_timestamp": "2026-07-24 05:00",
+          "observed_cm": 774.0,
+          "predicted_cm": 768.083423
+        },
+        {
+          "base_timestamp": "2026-07-23 22:00",
+          "target_timestamp": "2026-07-24 06:00",
+          "observed_cm": 756.0,
+          "predicted_cm": 723.730388
+        },
+        {
+          "base_timestamp": "2026-07-23 23:00",
+          "target_timestamp": "2026-07-24 07:00",
+          "observed_cm": 739.0,
+          "predicted_cm": 723.06083
+        }
+      ]
+    },
+    {
+      "model_id": "032_alt_MUC_H08_V24_RAIN24_UPSTREAM_R00_T31-33-34-35-37_V18-20-21",
+      "horizon_hours": 8,
+      "family": "8H_ALT",
+      "output_column": "OUT08H_DIF",
+      "input_names": [
+        "nivel_86510000",
+        "difn1h_86510000",
+        "difn2h_86510000",
+        "difn4h_86510000",
+        "acel1h_86510000",
+        "acel2h_86510000",
+        "acel4h_86510000",
+        "acel8h_86510000",
+        "acel12h_86510000",
+        "nivel_86472000",
+        "difn1h_86472000",
+        "difn2h_86472000",
+        "difn4h_86472000",
+        "acel12h_86472000",
+        "acel20h_86472000",
+        "nivel_86298000",
+        "difn2h_86298000",
+        "difn4h_86298000",
+        "acel12h_86298000",
+        "acel20h_86298000",
+        "difn8h_86510000",
+        "acel20h_86510000",
+        "difn8h_86472000",
+        "acel4h_86472000",
+        "chuva_med_4est_acum_24h",
+        "chuva_upstream_2est_acum_24h"
+      ],
+      "workbook": "assets/audit_workbooks/8H_ALT__032_alt_MUC_H08_V24_RAIN24_UPSTREAM_R00_T31-33-34-35-37_V18-20-21.xlsx",
+      "workbook_sha256": "0df501458e9f7ebb3420d29b5197b2fa59506bd06018f2fd0da73e487f7fd1b8",
+      "review": {
+        "agent": "Mencius",
+        "status": "CONDICIONAL_NAO_PUBLICAR",
+        "finding": "Auditoria pré-correção encontrou workbook estático e RNA_FINAL vazio; verificação pós-correção confirmou RNA_FINAL preenchida a partir de Tctot1. Permanece sem CSV individual por modelo.",
+        "promotion_allowed": false
+      },
+      "comparison_status": "candidate_series_extracted_not_promoted",
+      "series_key": "35|Teste",
+      "unit": "cm",
+      "prediction_contract": {
+        "observed_column": "NIVEL_FUTURO",
+        "prediction_column": "RNA_FINAL",
+        "target_delta_column": "OUT08H_DIF",
+        "target_and_prediction_excluded_from_inputs": true
+      },
+      "checks": {
+        "required_columns_present": true,
+        "event_values": [
+          35
+        ],
+        "partition": "Teste",
+        "serie_values": [
+          3
+        ],
+        "formula_mismatch_count": 0,
+        "nonfinite_row_count": 0,
+        "duplicate_timestamp_count": 0,
+        "audit_effective_rows": 1173,
+        "audit_test_rows_all_events": 395
+      },
+      "event_metrics": {
+        "points": 47,
+        "observed_peak_cm": 1986.0,
+        "observed_peak_base_timestamp": "2026-07-22 07:00",
+        "observed_peak_target_timestamp": "2026-07-22 15:00",
+        "predicted_peak_cm": 2037.821318,
+        "predicted_peak_base_timestamp": "2026-07-22 07:00",
+        "predicted_peak_target_timestamp": "2026-07-22 15:00",
+        "peak_error_cm": 51.821318,
+        "peak_lag_hours": 0.0,
+        "mae_cm": 111.228093
+      },
+      "series": [
+        {
+          "base_timestamp": "2026-07-21 15:00",
+          "target_timestamp": "2026-07-21 23:00",
+          "observed_cm": 921.0,
+          "predicted_cm": 595.942869
+        },
+        {
+          "base_timestamp": "2026-07-21 16:00",
+          "target_timestamp": "2026-07-22 00:00",
+          "observed_cm": 1077.0,
+          "predicted_cm": 655.470821
+        },
+        {
+          "base_timestamp": "2026-07-21 17:00",
+          "target_timestamp": "2026-07-22 01:00",
+          "observed_cm": 1199.0,
+          "predicted_cm": 778.4151
+        },
+        {
+          "base_timestamp": "2026-07-21 18:00",
+          "target_timestamp": "2026-07-22 02:00",
+          "observed_cm": 1297.0,
+          "predicted_cm": 886.24657
+        },
+        {
+          "base_timestamp": "2026-07-21 19:00",
+          "target_timestamp": "2026-07-22 03:00",
+          "observed_cm": 1377.0,
+          "predicted_cm": 904.33134
+        },
+        {
+          "base_timestamp": "2026-07-21 20:00",
+          "target_timestamp": "2026-07-22 04:00",
+          "observed_cm": 1449.0,
+          "predicted_cm": 998.338672
+        },
+        {
+          "base_timestamp": "2026-07-21 21:00",
+          "target_timestamp": "2026-07-22 05:00",
+          "observed_cm": 1516.0,
+          "predicted_cm": 1156.796782
+        },
+        {
+          "base_timestamp": "2026-07-21 22:00",
+          "target_timestamp": "2026-07-22 06:00",
+          "observed_cm": 1581.0,
+          "predicted_cm": 1358.9477
+        },
+        {
+          "base_timestamp": "2026-07-21 23:00",
+          "target_timestamp": "2026-07-22 07:00",
+          "observed_cm": 1650.0,
+          "predicted_cm": 1527.886062
+        },
+        {
+          "base_timestamp": "2026-07-22 00:00",
+          "target_timestamp": "2026-07-22 08:00",
+          "observed_cm": 1716.0,
+          "predicted_cm": 1675.875803
+        },
+        {
+          "base_timestamp": "2026-07-22 01:00",
+          "target_timestamp": "2026-07-22 09:00",
+          "observed_cm": 1778.0,
+          "predicted_cm": 1770.192236
+        },
+        {
+          "base_timestamp": "2026-07-22 02:00",
+          "target_timestamp": "2026-07-22 10:00",
+          "observed_cm": 1837.0,
+          "predicted_cm": 1828.656377
+        },
+        {
+          "base_timestamp": "2026-07-22 03:00",
+          "target_timestamp": "2026-07-22 11:00",
+          "observed_cm": 1879.0,
+          "predicted_cm": 1868.203532
+        },
+        {
+          "base_timestamp": "2026-07-22 04:00",
+          "target_timestamp": "2026-07-22 12:00",
+          "observed_cm": 1902.0,
+          "predicted_cm": 1890.507736
+        },
+        {
+          "base_timestamp": "2026-07-22 05:00",
+          "target_timestamp": "2026-07-22 13:00",
+          "observed_cm": 1924.0,
+          "predicted_cm": 1904.663446
+        },
+        {
+          "base_timestamp": "2026-07-22 06:00",
+          "target_timestamp": "2026-07-22 14:00",
+          "observed_cm": 1926.0,
+          "predicted_cm": 1994.419588
+        },
+        {
+          "base_timestamp": "2026-07-22 07:00",
+          "target_timestamp": "2026-07-22 15:00",
+          "observed_cm": 1986.0,
+          "predicted_cm": 2037.821318
+        },
+        {
+          "base_timestamp": "2026-07-22 09:00",
+          "target_timestamp": "2026-07-22 17:00",
+          "observed_cm": 1895.0,
+          "predicted_cm": 1892.358286
+        },
+        {
+          "base_timestamp": "2026-07-22 10:00",
+          "target_timestamp": "2026-07-22 18:00",
+          "observed_cm": 1868.0,
+          "predicted_cm": 1859.768623
+        },
+        {
+          "base_timestamp": "2026-07-22 11:00",
+          "target_timestamp": "2026-07-22 19:00",
+          "observed_cm": 1843.0,
+          "predicted_cm": 1763.667587
+        },
+        {
+          "base_timestamp": "2026-07-22 12:00",
+          "target_timestamp": "2026-07-22 20:00",
+          "observed_cm": 1811.0,
+          "predicted_cm": 1723.917607
+        },
+        {
+          "base_timestamp": "2026-07-22 13:00",
+          "target_timestamp": "2026-07-22 21:00",
+          "observed_cm": 1779.0,
+          "predicted_cm": 1733.217025
+        },
+        {
+          "base_timestamp": "2026-07-22 14:00",
+          "target_timestamp": "2026-07-22 22:00",
+          "observed_cm": 1741.0,
+          "predicted_cm": 1685.883388
+        },
+        {
+          "base_timestamp": "2026-07-22 15:00",
+          "target_timestamp": "2026-07-22 23:00",
+          "observed_cm": 1704.0,
+          "predicted_cm": 1869.896041
+        },
+        {
+          "base_timestamp": "2026-07-22 19:00",
+          "target_timestamp": "2026-07-23 03:00",
+          "observed_cm": 1498.0,
+          "predicted_cm": 1591.543291
+        },
+        {
+          "base_timestamp": "2026-07-22 21:00",
+          "target_timestamp": "2026-07-23 05:00",
+          "observed_cm": 1407.0,
+          "predicted_cm": 1523.763617
+        },
+        {
+          "base_timestamp": "2026-07-22 22:00",
+          "target_timestamp": "2026-07-23 06:00",
+          "observed_cm": 1368.0,
+          "predicted_cm": 1466.333349
+        },
+        {
+          "base_timestamp": "2026-07-22 23:00",
+          "target_timestamp": "2026-07-23 07:00",
+          "observed_cm": 1332.0,
+          "predicted_cm": 1420.585125
+        },
+        {
+          "base_timestamp": "2026-07-23 01:00",
+          "target_timestamp": "2026-07-23 09:00",
+          "observed_cm": 1258.0,
+          "predicted_cm": 1309.586813
+        },
+        {
+          "base_timestamp": "2026-07-23 02:00",
+          "target_timestamp": "2026-07-23 10:00",
+          "observed_cm": 1223.0,
+          "predicted_cm": 1273.102599
+        },
+        {
+          "base_timestamp": "2026-07-23 03:00",
+          "target_timestamp": "2026-07-23 11:00",
+          "observed_cm": 1186.0,
+          "predicted_cm": 1246.335878
+        },
+        {
+          "base_timestamp": "2026-07-23 05:00",
+          "target_timestamp": "2026-07-23 13:00",
+          "observed_cm": 1120.0,
+          "predicted_cm": 1229.9246
+        },
+        {
+          "base_timestamp": "2026-07-23 06:00",
+          "target_timestamp": "2026-07-23 14:00",
+          "observed_cm": 1089.0,
+          "predicted_cm": 1191.453108
+        },
+        {
+          "base_timestamp": "2026-07-23 07:00",
+          "target_timestamp": "2026-07-23 15:00",
+          "observed_cm": 1055.0,
+          "predicted_cm": 1146.526177
+        },
+        {
+          "base_timestamp": "2026-07-23 09:00",
+          "target_timestamp": "2026-07-23 17:00",
+          "observed_cm": 986.0,
+          "predicted_cm": 1045.905948
+        },
+        {
+          "base_timestamp": "2026-07-23 10:00",
+          "target_timestamp": "2026-07-23 18:00",
+          "observed_cm": 971.0,
+          "predicted_cm": 1030.135631
+        },
+        {
+          "base_timestamp": "2026-07-23 11:00",
+          "target_timestamp": "2026-07-23 19:00",
+          "observed_cm": 960.0,
+          "predicted_cm": 1002.658607
+        },
+        {
+          "base_timestamp": "2026-07-23 13:00",
+          "target_timestamp": "2026-07-23 21:00",
+          "observed_cm": 929.0,
+          "predicted_cm": 941.534643
+        },
+        {
+          "base_timestamp": "2026-07-23 14:00",
+          "target_timestamp": "2026-07-23 22:00",
+          "observed_cm": 908.0,
+          "predicted_cm": 885.516977
+        },
+        {
+          "base_timestamp": "2026-07-23 15:00",
+          "target_timestamp": "2026-07-23 23:00",
+          "observed_cm": 884.0,
+          "predicted_cm": 884.634915
+        },
+        {
+          "base_timestamp": "2026-07-23 17:00",
+          "target_timestamp": "2026-07-24 01:00",
+          "observed_cm": 835.0,
+          "predicted_cm": 909.508591
+        },
+        {
+          "base_timestamp": "2026-07-23 18:00",
+          "target_timestamp": "2026-07-24 02:00",
+          "observed_cm": 819.0,
+          "predicted_cm": 908.092935
+        },
+        {
+          "base_timestamp": "2026-07-23 19:00",
+          "target_timestamp": "2026-07-24 03:00",
+          "observed_cm": 806.0,
+          "predicted_cm": 876.242204
+        },
+        {
+          "base_timestamp": "2026-07-23 20:00",
+          "target_timestamp": "2026-07-24 04:00",
+          "observed_cm": 791.0,
+          "predicted_cm": 830.575219
+        },
+        {
+          "base_timestamp": "2026-07-23 21:00",
+          "target_timestamp": "2026-07-24 05:00",
+          "observed_cm": 774.0,
+          "predicted_cm": 782.538714
+        },
+        {
+          "base_timestamp": "2026-07-23 22:00",
+          "target_timestamp": "2026-07-24 06:00",
+          "observed_cm": 756.0,
+          "predicted_cm": 750.464642
+        },
+        {
+          "base_timestamp": "2026-07-23 23:00",
+          "target_timestamp": "2026-07-24 07:00",
+          "observed_cm": 739.0,
+          "predicted_cm": 751.870623
+        }
+      ]
+    },
+    {
+      "model_id": "033_alt_MUC_H08_V24_RAIN24_DIFF_R00_T31-33-34-35-37_V18-20-21",
+      "horizon_hours": 8,
+      "family": "8H_ALT",
+      "output_column": "OUT08H_DIF",
+      "input_names": [
+        "nivel_86510000",
+        "difn1h_86510000",
+        "difn2h_86510000",
+        "difn4h_86510000",
+        "acel1h_86510000",
+        "acel2h_86510000",
+        "acel4h_86510000",
+        "acel8h_86510000",
+        "acel12h_86510000",
+        "nivel_86472000",
+        "difn1h_86472000",
+        "difn2h_86472000",
+        "difn4h_86472000",
+        "acel12h_86472000",
+        "acel20h_86472000",
+        "nivel_86298000",
+        "difn2h_86298000",
+        "difn4h_86298000",
+        "acel12h_86298000",
+        "acel20h_86298000",
+        "difn8h_86510000",
+        "acel20h_86510000",
+        "difn8h_86472000",
+        "acel4h_86472000",
+        "chuva_med_4est_acum_24h",
+        "chuva_dif_0_24_menos_24_48h"
+      ],
+      "workbook": "assets/audit_workbooks/8H_ALT__033_alt_MUC_H08_V24_RAIN24_DIFF_R00_T31-33-34-35-37_V18-20-21.xlsx",
+      "workbook_sha256": "620cc91a7673f2a1ab101e5737daebe5e4d14ed163b6c95466c5b0b6fe2679c3",
+      "review": {
+        "agent": "Mencius",
+        "status": "CONDICIONAL_NAO_PUBLICAR",
+        "finding": "Auditoria pré-correção encontrou workbook estático e RNA_FINAL vazio; verificação pós-correção confirmou RNA_FINAL preenchida a partir de Tctot1. Permanece sem CSV individual por modelo.",
+        "promotion_allowed": false
+      },
+      "comparison_status": "candidate_series_extracted_not_promoted",
+      "series_key": "35|Teste",
+      "unit": "cm",
+      "prediction_contract": {
+        "observed_column": "NIVEL_FUTURO",
+        "prediction_column": "RNA_FINAL",
+        "target_delta_column": "OUT08H_DIF",
+        "target_and_prediction_excluded_from_inputs": true
+      },
+      "checks": {
+        "required_columns_present": true,
+        "event_values": [
+          35
+        ],
+        "partition": "Teste",
+        "serie_values": [
+          3
+        ],
+        "formula_mismatch_count": 0,
+        "nonfinite_row_count": 0,
+        "duplicate_timestamp_count": 0,
+        "audit_effective_rows": 1190,
+        "audit_test_rows_all_events": 395
+      },
+      "event_metrics": {
+        "points": 47,
+        "observed_peak_cm": 1986.0,
+        "observed_peak_base_timestamp": "2026-07-22 07:00",
+        "observed_peak_target_timestamp": "2026-07-22 15:00",
+        "predicted_peak_cm": 2068.186666,
+        "predicted_peak_base_timestamp": "2026-07-22 09:00",
+        "predicted_peak_target_timestamp": "2026-07-22 17:00",
+        "peak_error_cm": 82.186666,
+        "peak_lag_hours": 2.0,
+        "mae_cm": 138.448908
+      },
+      "series": [
+        {
+          "base_timestamp": "2026-07-21 15:00",
+          "target_timestamp": "2026-07-21 23:00",
+          "observed_cm": 921.0,
+          "predicted_cm": 533.802374
+        },
+        {
+          "base_timestamp": "2026-07-21 16:00",
+          "target_timestamp": "2026-07-22 00:00",
+          "observed_cm": 1077.0,
+          "predicted_cm": 608.357229
+        },
+        {
+          "base_timestamp": "2026-07-21 17:00",
+          "target_timestamp": "2026-07-22 01:00",
+          "observed_cm": 1199.0,
+          "predicted_cm": 744.81517
+        },
+        {
+          "base_timestamp": "2026-07-21 18:00",
+          "target_timestamp": "2026-07-22 02:00",
+          "observed_cm": 1297.0,
+          "predicted_cm": 860.80444
+        },
+        {
+          "base_timestamp": "2026-07-21 19:00",
+          "target_timestamp": "2026-07-22 03:00",
+          "observed_cm": 1377.0,
+          "predicted_cm": 886.393135
+        },
+        {
+          "base_timestamp": "2026-07-21 20:00",
+          "target_timestamp": "2026-07-22 04:00",
+          "observed_cm": 1449.0,
+          "predicted_cm": 978.707355
+        },
+        {
+          "base_timestamp": "2026-07-21 21:00",
+          "target_timestamp": "2026-07-22 05:00",
+          "observed_cm": 1516.0,
+          "predicted_cm": 1136.943634
+        },
+        {
+          "base_timestamp": "2026-07-21 22:00",
+          "target_timestamp": "2026-07-22 06:00",
+          "observed_cm": 1581.0,
+          "predicted_cm": 1321.504473
+        },
+        {
+          "base_timestamp": "2026-07-21 23:00",
+          "target_timestamp": "2026-07-22 07:00",
+          "observed_cm": 1650.0,
+          "predicted_cm": 1449.639212
+        },
+        {
+          "base_timestamp": "2026-07-22 00:00",
+          "target_timestamp": "2026-07-22 08:00",
+          "observed_cm": 1716.0,
+          "predicted_cm": 1572.343418
+        },
+        {
+          "base_timestamp": "2026-07-22 01:00",
+          "target_timestamp": "2026-07-22 09:00",
+          "observed_cm": 1778.0,
+          "predicted_cm": 1650.487211
+        },
+        {
+          "base_timestamp": "2026-07-22 02:00",
+          "target_timestamp": "2026-07-22 10:00",
+          "observed_cm": 1837.0,
+          "predicted_cm": 1715.563964
+        },
+        {
+          "base_timestamp": "2026-07-22 03:00",
+          "target_timestamp": "2026-07-22 11:00",
+          "observed_cm": 1879.0,
+          "predicted_cm": 1772.327431
+        },
+        {
+          "base_timestamp": "2026-07-22 04:00",
+          "target_timestamp": "2026-07-22 12:00",
+          "observed_cm": 1902.0,
+          "predicted_cm": 1822.383827
+        },
+        {
+          "base_timestamp": "2026-07-22 05:00",
+          "target_timestamp": "2026-07-22 13:00",
+          "observed_cm": 1924.0,
+          "predicted_cm": 1876.752195
+        },
+        {
+          "base_timestamp": "2026-07-22 06:00",
+          "target_timestamp": "2026-07-22 14:00",
+          "observed_cm": 1926.0,
+          "predicted_cm": 1962.80976
+        },
+        {
+          "base_timestamp": "2026-07-22 07:00",
+          "target_timestamp": "2026-07-22 15:00",
+          "observed_cm": 1986.0,
+          "predicted_cm": 2032.457747
+        },
+        {
+          "base_timestamp": "2026-07-22 09:00",
+          "target_timestamp": "2026-07-22 17:00",
+          "observed_cm": 1895.0,
+          "predicted_cm": 2068.186666
+        },
+        {
+          "base_timestamp": "2026-07-22 10:00",
+          "target_timestamp": "2026-07-22 18:00",
+          "observed_cm": 1868.0,
+          "predicted_cm": 2045.34431
+        },
+        {
+          "base_timestamp": "2026-07-22 11:00",
+          "target_timestamp": "2026-07-22 19:00",
+          "observed_cm": 1843.0,
+          "predicted_cm": 1892.822815
+        },
+        {
+          "base_timestamp": "2026-07-22 12:00",
+          "target_timestamp": "2026-07-22 20:00",
+          "observed_cm": 1811.0,
+          "predicted_cm": 1724.164827
+        },
+        {
+          "base_timestamp": "2026-07-22 13:00",
+          "target_timestamp": "2026-07-22 21:00",
+          "observed_cm": 1779.0,
+          "predicted_cm": 1690.365382
+        },
+        {
+          "base_timestamp": "2026-07-22 14:00",
+          "target_timestamp": "2026-07-22 22:00",
+          "observed_cm": 1741.0,
+          "predicted_cm": 1634.053273
+        },
+        {
+          "base_timestamp": "2026-07-22 15:00",
+          "target_timestamp": "2026-07-22 23:00",
+          "observed_cm": 1704.0,
+          "predicted_cm": 1809.416415
+        },
+        {
+          "base_timestamp": "2026-07-22 19:00",
+          "target_timestamp": "2026-07-23 03:00",
+          "observed_cm": 1498.0,
+          "predicted_cm": 1562.147985
+        },
+        {
+          "base_timestamp": "2026-07-22 21:00",
+          "target_timestamp": "2026-07-23 05:00",
+          "observed_cm": 1407.0,
+          "predicted_cm": 1508.721081
+        },
+        {
+          "base_timestamp": "2026-07-22 22:00",
+          "target_timestamp": "2026-07-23 06:00",
+          "observed_cm": 1368.0,
+          "predicted_cm": 1462.378889
+        },
+        {
+          "base_timestamp": "2026-07-22 23:00",
+          "target_timestamp": "2026-07-23 07:00",
+          "observed_cm": 1332.0,
+          "predicted_cm": 1422.765792
+        },
+        {
+          "base_timestamp": "2026-07-23 01:00",
+          "target_timestamp": "2026-07-23 09:00",
+          "observed_cm": 1258.0,
+          "predicted_cm": 1316.220893
+        },
+        {
+          "base_timestamp": "2026-07-23 02:00",
+          "target_timestamp": "2026-07-23 10:00",
+          "observed_cm": 1223.0,
+          "predicted_cm": 1275.929356
+        },
+        {
+          "base_timestamp": "2026-07-23 03:00",
+          "target_timestamp": "2026-07-23 11:00",
+          "observed_cm": 1186.0,
+          "predicted_cm": 1243.59363
+        },
+        {
+          "base_timestamp": "2026-07-23 05:00",
+          "target_timestamp": "2026-07-23 13:00",
+          "observed_cm": 1120.0,
+          "predicted_cm": 1221.077571
+        },
+        {
+          "base_timestamp": "2026-07-23 06:00",
+          "target_timestamp": "2026-07-23 14:00",
+          "observed_cm": 1089.0,
+          "predicted_cm": 1191.891123
+        },
+        {
+          "base_timestamp": "2026-07-23 07:00",
+          "target_timestamp": "2026-07-23 15:00",
+          "observed_cm": 1055.0,
+          "predicted_cm": 1146.735355
+        },
+        {
+          "base_timestamp": "2026-07-23 09:00",
+          "target_timestamp": "2026-07-23 17:00",
+          "observed_cm": 986.0,
+          "predicted_cm": 1040.332198
+        },
+        {
+          "base_timestamp": "2026-07-23 10:00",
+          "target_timestamp": "2026-07-23 18:00",
+          "observed_cm": 971.0,
+          "predicted_cm": 1017.684351
+        },
+        {
+          "base_timestamp": "2026-07-23 11:00",
+          "target_timestamp": "2026-07-23 19:00",
+          "observed_cm": 960.0,
+          "predicted_cm": 993.184511
+        },
+        {
+          "base_timestamp": "2026-07-23 13:00",
+          "target_timestamp": "2026-07-23 21:00",
+          "observed_cm": 929.0,
+          "predicted_cm": 934.137259
+        },
+        {
+          "base_timestamp": "2026-07-23 14:00",
+          "target_timestamp": "2026-07-23 22:00",
+          "observed_cm": 908.0,
+          "predicted_cm": 870.039333
+        },
+        {
+          "base_timestamp": "2026-07-23 15:00",
+          "target_timestamp": "2026-07-23 23:00",
+          "observed_cm": 884.0,
+          "predicted_cm": 855.179689
+        },
+        {
+          "base_timestamp": "2026-07-23 17:00",
+          "target_timestamp": "2026-07-24 01:00",
+          "observed_cm": 835.0,
+          "predicted_cm": 906.017622
+        },
+        {
+          "base_timestamp": "2026-07-23 18:00",
+          "target_timestamp": "2026-07-24 02:00",
+          "observed_cm": 819.0,
+          "predicted_cm": 953.706741
+        },
+        {
+          "base_timestamp": "2026-07-23 19:00",
+          "target_timestamp": "2026-07-24 03:00",
+          "observed_cm": 806.0,
+          "predicted_cm": 929.074133
+        },
+        {
+          "base_timestamp": "2026-07-23 20:00",
+          "target_timestamp": "2026-07-24 04:00",
+          "observed_cm": 791.0,
+          "predicted_cm": 849.315246
+        },
+        {
+          "base_timestamp": "2026-07-23 21:00",
+          "target_timestamp": "2026-07-24 05:00",
+          "observed_cm": 774.0,
+          "predicted_cm": 772.912259
+        },
+        {
+          "base_timestamp": "2026-07-23 22:00",
+          "target_timestamp": "2026-07-24 06:00",
+          "observed_cm": 756.0,
+          "predicted_cm": 722.566963
+        },
+        {
+          "base_timestamp": "2026-07-23 23:00",
+          "target_timestamp": "2026-07-24 07:00",
+          "observed_cm": 739.0,
+          "predicted_cm": 718.745975
+        }
+      ]
+    },
+    {
+      "model_id": "034_alt_MUC_H08_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21",
+      "horizon_hours": 8,
+      "family": "8H_ALT",
+      "output_column": "OUT08H_DIF",
+      "input_names": [
+        "nivel_86510000",
+        "difn1h_86510000",
+        "difn2h_86510000",
+        "difn4h_86510000",
+        "acel1h_86510000",
+        "acel2h_86510000",
+        "acel4h_86510000",
+        "acel8h_86510000",
+        "acel12h_86510000",
+        "nivel_86472000",
+        "difn1h_86472000",
+        "difn2h_86472000",
+        "difn4h_86472000",
+        "acel12h_86472000",
+        "acel20h_86472000",
+        "nivel_86298000",
+        "difn2h_86298000",
+        "difn4h_86298000",
+        "acel12h_86298000",
+        "acel20h_86298000",
+        "difn8h_86510000",
+        "acel20h_86510000",
+        "difn8h_86472000",
+        "acel4h_86472000",
+        "chuva_med_4est_acum_18h",
+        "chuva_med_4est_acum_24h",
+        "chuva_med_4est_acum_48h",
+        "chuva_dif_0_24_menos_24_48h"
+      ],
+      "workbook": "assets/audit_workbooks/8H_ALT__034_alt_MUC_H08_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21.xlsx",
+      "workbook_sha256": "b36497b1a83b6fb3e55b321d7d14d1a35eb3ede82aa6895624bb0aec49bda9e6",
+      "review": {
+        "agent": "Mencius",
+        "status": "CONDICIONAL_NAO_PUBLICAR",
+        "finding": "Auditoria pré-correção encontrou workbook estático e RNA_FINAL vazio; verificação pós-correção confirmou RNA_FINAL preenchida a partir de Tctot1. Permanece sem CSV individual por modelo.",
+        "promotion_allowed": false
+      },
+      "comparison_status": "candidate_series_extracted_not_promoted",
+      "series_key": "35|Teste",
+      "unit": "cm",
+      "prediction_contract": {
+        "observed_column": "NIVEL_FUTURO",
+        "prediction_column": "RNA_FINAL",
+        "target_delta_column": "OUT08H_DIF",
+        "target_and_prediction_excluded_from_inputs": true
+      },
+      "checks": {
+        "required_columns_present": true,
+        "event_values": [
+          35
+        ],
+        "partition": "Teste",
+        "serie_values": [
+          3
+        ],
+        "formula_mismatch_count": 0,
+        "nonfinite_row_count": 0,
+        "duplicate_timestamp_count": 0,
+        "audit_effective_rows": 1190,
+        "audit_test_rows_all_events": 395
+      },
+      "event_metrics": {
+        "points": 47,
+        "observed_peak_cm": 1986.0,
+        "observed_peak_base_timestamp": "2026-07-22 07:00",
+        "observed_peak_target_timestamp": "2026-07-22 15:00",
+        "predicted_peak_cm": 1994.434784,
+        "predicted_peak_base_timestamp": "2026-07-22 09:00",
+        "predicted_peak_target_timestamp": "2026-07-22 17:00",
+        "peak_error_cm": 8.434784,
+        "peak_lag_hours": 2.0,
+        "mae_cm": 122.136594
+      },
+      "series": [
+        {
+          "base_timestamp": "2026-07-21 15:00",
+          "target_timestamp": "2026-07-21 23:00",
+          "observed_cm": 921.0,
+          "predicted_cm": 569.497754
+        },
+        {
+          "base_timestamp": "2026-07-21 16:00",
+          "target_timestamp": "2026-07-22 00:00",
+          "observed_cm": 1077.0,
+          "predicted_cm": 633.802231
+        },
+        {
+          "base_timestamp": "2026-07-21 17:00",
+          "target_timestamp": "2026-07-22 01:00",
+          "observed_cm": 1199.0,
+          "predicted_cm": 756.944715
+        },
+        {
+          "base_timestamp": "2026-07-21 18:00",
+          "target_timestamp": "2026-07-22 02:00",
+          "observed_cm": 1297.0,
+          "predicted_cm": 875.359541
+        },
+        {
+          "base_timestamp": "2026-07-21 19:00",
+          "target_timestamp": "2026-07-22 03:00",
+          "observed_cm": 1377.0,
+          "predicted_cm": 903.453541
+        },
+        {
+          "base_timestamp": "2026-07-21 20:00",
+          "target_timestamp": "2026-07-22 04:00",
+          "observed_cm": 1449.0,
+          "predicted_cm": 1004.303825
+        },
+        {
+          "base_timestamp": "2026-07-21 21:00",
+          "target_timestamp": "2026-07-22 05:00",
+          "observed_cm": 1516.0,
+          "predicted_cm": 1174.240616
+        },
+        {
+          "base_timestamp": "2026-07-21 22:00",
+          "target_timestamp": "2026-07-22 06:00",
+          "observed_cm": 1581.0,
+          "predicted_cm": 1374.840471
+        },
+        {
+          "base_timestamp": "2026-07-21 23:00",
+          "target_timestamp": "2026-07-22 07:00",
+          "observed_cm": 1650.0,
+          "predicted_cm": 1516.637517
+        },
+        {
+          "base_timestamp": "2026-07-22 00:00",
+          "target_timestamp": "2026-07-22 08:00",
+          "observed_cm": 1716.0,
+          "predicted_cm": 1641.04888
+        },
+        {
+          "base_timestamp": "2026-07-22 01:00",
+          "target_timestamp": "2026-07-22 09:00",
+          "observed_cm": 1778.0,
+          "predicted_cm": 1700.610705
+        },
+        {
+          "base_timestamp": "2026-07-22 02:00",
+          "target_timestamp": "2026-07-22 10:00",
+          "observed_cm": 1837.0,
+          "predicted_cm": 1734.329594
+        },
+        {
+          "base_timestamp": "2026-07-22 03:00",
+          "target_timestamp": "2026-07-22 11:00",
+          "observed_cm": 1879.0,
+          "predicted_cm": 1762.744146
+        },
+        {
+          "base_timestamp": "2026-07-22 04:00",
+          "target_timestamp": "2026-07-22 12:00",
+          "observed_cm": 1902.0,
+          "predicted_cm": 1789.643908
+        },
+        {
+          "base_timestamp": "2026-07-22 05:00",
+          "target_timestamp": "2026-07-22 13:00",
+          "observed_cm": 1924.0,
+          "predicted_cm": 1830.843705
+        },
+        {
+          "base_timestamp": "2026-07-22 06:00",
+          "target_timestamp": "2026-07-22 14:00",
+          "observed_cm": 1926.0,
+          "predicted_cm": 1924.196136
+        },
+        {
+          "base_timestamp": "2026-07-22 07:00",
+          "target_timestamp": "2026-07-22 15:00",
+          "observed_cm": 1986.0,
+          "predicted_cm": 1986.884079
+        },
+        {
+          "base_timestamp": "2026-07-22 09:00",
+          "target_timestamp": "2026-07-22 17:00",
+          "observed_cm": 1895.0,
+          "predicted_cm": 1994.434784
+        },
+        {
+          "base_timestamp": "2026-07-22 10:00",
+          "target_timestamp": "2026-07-22 18:00",
+          "observed_cm": 1868.0,
+          "predicted_cm": 1975.905963
+        },
+        {
+          "base_timestamp": "2026-07-22 11:00",
+          "target_timestamp": "2026-07-22 19:00",
+          "observed_cm": 1843.0,
+          "predicted_cm": 1855.79234
+        },
+        {
+          "base_timestamp": "2026-07-22 12:00",
+          "target_timestamp": "2026-07-22 20:00",
+          "observed_cm": 1811.0,
+          "predicted_cm": 1724.364017
+        },
+        {
+          "base_timestamp": "2026-07-22 13:00",
+          "target_timestamp": "2026-07-22 21:00",
+          "observed_cm": 1779.0,
+          "predicted_cm": 1693.695673
+        },
+        {
+          "base_timestamp": "2026-07-22 14:00",
+          "target_timestamp": "2026-07-22 22:00",
+          "observed_cm": 1741.0,
+          "predicted_cm": 1636.810717
+        },
+        {
+          "base_timestamp": "2026-07-22 15:00",
+          "target_timestamp": "2026-07-22 23:00",
+          "observed_cm": 1704.0,
+          "predicted_cm": 1802.213749
+        },
+        {
+          "base_timestamp": "2026-07-22 19:00",
+          "target_timestamp": "2026-07-23 03:00",
+          "observed_cm": 1498.0,
+          "predicted_cm": 1555.583181
+        },
+        {
+          "base_timestamp": "2026-07-22 21:00",
+          "target_timestamp": "2026-07-23 05:00",
+          "observed_cm": 1407.0,
+          "predicted_cm": 1505.711955
+        },
+        {
+          "base_timestamp": "2026-07-22 22:00",
+          "target_timestamp": "2026-07-23 06:00",
+          "observed_cm": 1368.0,
+          "predicted_cm": 1456.133834
+        },
+        {
+          "base_timestamp": "2026-07-22 23:00",
+          "target_timestamp": "2026-07-23 07:00",
+          "observed_cm": 1332.0,
+          "predicted_cm": 1413.75477
+        },
+        {
+          "base_timestamp": "2026-07-23 01:00",
+          "target_timestamp": "2026-07-23 09:00",
+          "observed_cm": 1258.0,
+          "predicted_cm": 1303.575235
+        },
+        {
+          "base_timestamp": "2026-07-23 02:00",
+          "target_timestamp": "2026-07-23 10:00",
+          "observed_cm": 1223.0,
+          "predicted_cm": 1266.548023
+        },
+        {
+          "base_timestamp": "2026-07-23 03:00",
+          "target_timestamp": "2026-07-23 11:00",
+          "observed_cm": 1186.0,
+          "predicted_cm": 1241.055558
+        },
+        {
+          "base_timestamp": "2026-07-23 05:00",
+          "target_timestamp": "2026-07-23 13:00",
+          "observed_cm": 1120.0,
+          "predicted_cm": 1220.942091
+        },
+        {
+          "base_timestamp": "2026-07-23 06:00",
+          "target_timestamp": "2026-07-23 14:00",
+          "observed_cm": 1089.0,
+          "predicted_cm": 1188.480967
+        },
+        {
+          "base_timestamp": "2026-07-23 07:00",
+          "target_timestamp": "2026-07-23 15:00",
+          "observed_cm": 1055.0,
+          "predicted_cm": 1141.253752
+        },
+        {
+          "base_timestamp": "2026-07-23 09:00",
+          "target_timestamp": "2026-07-23 17:00",
+          "observed_cm": 986.0,
+          "predicted_cm": 1031.491131
+        },
+        {
+          "base_timestamp": "2026-07-23 10:00",
+          "target_timestamp": "2026-07-23 18:00",
+          "observed_cm": 971.0,
+          "predicted_cm": 1007.278427
+        },
+        {
+          "base_timestamp": "2026-07-23 11:00",
+          "target_timestamp": "2026-07-23 19:00",
+          "observed_cm": 960.0,
+          "predicted_cm": 981.381017
+        },
+        {
+          "base_timestamp": "2026-07-23 13:00",
+          "target_timestamp": "2026-07-23 21:00",
+          "observed_cm": 929.0,
+          "predicted_cm": 921.320539
+        },
+        {
+          "base_timestamp": "2026-07-23 14:00",
+          "target_timestamp": "2026-07-23 22:00",
+          "observed_cm": 908.0,
+          "predicted_cm": 858.950112
+        },
+        {
+          "base_timestamp": "2026-07-23 15:00",
+          "target_timestamp": "2026-07-23 23:00",
+          "observed_cm": 884.0,
+          "predicted_cm": 847.360534
+        },
+        {
+          "base_timestamp": "2026-07-23 17:00",
+          "target_timestamp": "2026-07-24 01:00",
+          "observed_cm": 835.0,
+          "predicted_cm": 890.42826
+        },
+        {
+          "base_timestamp": "2026-07-23 18:00",
+          "target_timestamp": "2026-07-24 02:00",
+          "observed_cm": 819.0,
+          "predicted_cm": 925.184284
+        },
+        {
+          "base_timestamp": "2026-07-23 19:00",
+          "target_timestamp": "2026-07-24 03:00",
+          "observed_cm": 806.0,
+          "predicted_cm": 902.665977
+        },
+        {
+          "base_timestamp": "2026-07-23 20:00",
+          "target_timestamp": "2026-07-24 04:00",
+          "observed_cm": 791.0,
+          "predicted_cm": 836.904883
+        },
+        {
+          "base_timestamp": "2026-07-23 21:00",
+          "target_timestamp": "2026-07-24 05:00",
+          "observed_cm": 774.0,
+          "predicted_cm": 770.702115
+        },
+        {
+          "base_timestamp": "2026-07-23 22:00",
+          "target_timestamp": "2026-07-24 06:00",
+          "observed_cm": 756.0,
+          "predicted_cm": 725.482377
+        },
+        {
+          "base_timestamp": "2026-07-23 23:00",
+          "target_timestamp": "2026-07-24 07:00",
+          "observed_cm": 739.0,
+          "predicted_cm": 722.000969
+        }
+      ]
+    },
+    {
+      "model_id": "035_alt_MUC_H08_V15_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21",
+      "horizon_hours": 8,
+      "family": "8H_ALT",
+      "output_column": "OUT08H_DIF",
+      "input_names": [
+        "nivel_86510000",
+        "difn1h_86510000",
+        "difn2h_86510000",
+        "difn4h_86510000",
+        "acel1h_86510000",
+        "acel2h_86510000",
+        "acel4h_86510000",
+        "acel8h_86510000",
+        "acel12h_86510000",
+        "nivel_86472000",
+        "difn1h_86472000",
+        "difn2h_86472000",
+        "difn4h_86472000",
+        "acel12h_86472000",
+        "acel20h_86472000",
+        "chuva_med_4est_acum_24h"
+      ],
+      "workbook": "assets/audit_workbooks/8H_ALT__035_alt_MUC_H08_V15_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21.xlsx",
+      "workbook_sha256": "6cf87202e0e758e62bce4d7723bf44f5a1b00b24b49442d0a4d52ef05ef76b73",
+      "review": {
+        "agent": "Mencius",
+        "status": "FAIL_DESEMPENHO_NAO_PUBLICAR",
+        "finding": "PERS insuficiente para o critério independente; não recomendado para o painel.",
+        "promotion_allowed": false
+      },
+      "comparison_status": "candidate_series_extracted_not_promoted",
+      "series_key": "35|Teste",
+      "unit": "cm",
+      "prediction_contract": {
+        "observed_column": "NIVEL_FUTURO",
+        "prediction_column": "RNA_FINAL",
+        "target_delta_column": "OUT08H_DIF",
+        "target_and_prediction_excluded_from_inputs": true
+      },
+      "checks": {
+        "required_columns_present": true,
+        "event_values": [
+          35
+        ],
+        "partition": "Teste",
+        "serie_values": [
+          3
+        ],
+        "formula_mismatch_count": 0,
+        "nonfinite_row_count": 0,
+        "duplicate_timestamp_count": 0,
+        "audit_effective_rows": 1971,
+        "audit_test_rows_all_events": 405
+      },
+      "event_metrics": {
+        "points": 48,
+        "observed_peak_cm": 1986.0,
+        "observed_peak_base_timestamp": "2026-07-22 07:00",
+        "observed_peak_target_timestamp": "2026-07-22 15:00",
+        "predicted_peak_cm": 2012.267658,
+        "predicted_peak_base_timestamp": "2026-07-22 07:00",
+        "predicted_peak_target_timestamp": "2026-07-22 15:00",
+        "peak_error_cm": 26.267658,
+        "peak_lag_hours": 0.0,
+        "mae_cm": 153.878644
+      },
+      "series": [
+        {
+          "base_timestamp": "2026-07-21 15:00",
+          "target_timestamp": "2026-07-21 23:00",
+          "observed_cm": 921.0,
+          "predicted_cm": 473.59935
+        },
+        {
+          "base_timestamp": "2026-07-21 16:00",
+          "target_timestamp": "2026-07-22 00:00",
+          "observed_cm": 1077.0,
+          "predicted_cm": 538.003026
+        },
+        {
+          "base_timestamp": "2026-07-21 17:00",
+          "target_timestamp": "2026-07-22 01:00",
+          "observed_cm": 1199.0,
+          "predicted_cm": 671.360326
+        },
+        {
+          "base_timestamp": "2026-07-21 18:00",
+          "target_timestamp": "2026-07-22 02:00",
+          "observed_cm": 1297.0,
+          "predicted_cm": 740.477291
+        },
+        {
+          "base_timestamp": "2026-07-21 19:00",
+          "target_timestamp": "2026-07-22 03:00",
+          "observed_cm": 1377.0,
+          "predicted_cm": 763.075553
+        },
+        {
+          "base_timestamp": "2026-07-21 20:00",
+          "target_timestamp": "2026-07-22 04:00",
+          "observed_cm": 1449.0,
+          "predicted_cm": 831.304044
+        },
+        {
+          "base_timestamp": "2026-07-21 21:00",
+          "target_timestamp": "2026-07-22 05:00",
+          "observed_cm": 1516.0,
+          "predicted_cm": 965.204635
+        },
+        {
+          "base_timestamp": "2026-07-21 22:00",
+          "target_timestamp": "2026-07-22 06:00",
+          "observed_cm": 1581.0,
+          "predicted_cm": 1163.386878
+        },
+        {
+          "base_timestamp": "2026-07-21 23:00",
+          "target_timestamp": "2026-07-22 07:00",
+          "observed_cm": 1650.0,
+          "predicted_cm": 1345.621225
+        },
+        {
+          "base_timestamp": "2026-07-22 00:00",
+          "target_timestamp": "2026-07-22 08:00",
+          "observed_cm": 1716.0,
+          "predicted_cm": 1498.298153
+        },
+        {
+          "base_timestamp": "2026-07-22 01:00",
+          "target_timestamp": "2026-07-22 09:00",
+          "observed_cm": 1778.0,
+          "predicted_cm": 1602.048129
+        },
+        {
+          "base_timestamp": "2026-07-22 02:00",
+          "target_timestamp": "2026-07-22 10:00",
+          "observed_cm": 1837.0,
+          "predicted_cm": 1668.114235
+        },
+        {
+          "base_timestamp": "2026-07-22 03:00",
+          "target_timestamp": "2026-07-22 11:00",
+          "observed_cm": 1879.0,
+          "predicted_cm": 1724.94202
+        },
+        {
+          "base_timestamp": "2026-07-22 04:00",
+          "target_timestamp": "2026-07-22 12:00",
+          "observed_cm": 1902.0,
+          "predicted_cm": 1784.824764
+        },
+        {
+          "base_timestamp": "2026-07-22 05:00",
+          "target_timestamp": "2026-07-22 13:00",
+          "observed_cm": 1924.0,
+          "predicted_cm": 1836.119018
+        },
+        {
+          "base_timestamp": "2026-07-22 06:00",
+          "target_timestamp": "2026-07-22 14:00",
+          "observed_cm": 1926.0,
+          "predicted_cm": 1937.975394
+        },
+        {
+          "base_timestamp": "2026-07-22 07:00",
+          "target_timestamp": "2026-07-22 15:00",
+          "observed_cm": 1986.0,
+          "predicted_cm": 2012.267658
+        },
+        {
+          "base_timestamp": "2026-07-22 09:00",
+          "target_timestamp": "2026-07-22 17:00",
+          "observed_cm": 1895.0,
+          "predicted_cm": 1996.95114
+        },
+        {
+          "base_timestamp": "2026-07-22 10:00",
+          "target_timestamp": "2026-07-22 18:00",
+          "observed_cm": 1868.0,
+          "predicted_cm": 1988.887136
+        },
+        {
+          "base_timestamp": "2026-07-22 11:00",
+          "target_timestamp": "2026-07-22 19:00",
+          "observed_cm": 1843.0,
+          "predicted_cm": 1867.456704
+        },
+        {
+          "base_timestamp": "2026-07-22 12:00",
+          "target_timestamp": "2026-07-22 20:00",
+          "observed_cm": 1811.0,
+          "predicted_cm": 1780.393748
+        },
+        {
+          "base_timestamp": "2026-07-22 13:00",
+          "target_timestamp": "2026-07-22 21:00",
+          "observed_cm": 1779.0,
+          "predicted_cm": 1762.554945
+        },
+        {
+          "base_timestamp": "2026-07-22 14:00",
+          "target_timestamp": "2026-07-22 22:00",
+          "observed_cm": 1741.0,
+          "predicted_cm": 1697.788902
+        },
+        {
+          "base_timestamp": "2026-07-22 15:00",
+          "target_timestamp": "2026-07-22 23:00",
+          "observed_cm": 1704.0,
+          "predicted_cm": 1889.96419
+        },
+        {
+          "base_timestamp": "2026-07-22 19:00",
+          "target_timestamp": "2026-07-23 03:00",
+          "observed_cm": 1498.0,
+          "predicted_cm": 1587.774888
+        },
+        {
+          "base_timestamp": "2026-07-22 21:00",
+          "target_timestamp": "2026-07-23 05:00",
+          "observed_cm": 1407.0,
+          "predicted_cm": 1521.671152
+        },
+        {
+          "base_timestamp": "2026-07-22 22:00",
+          "target_timestamp": "2026-07-23 06:00",
+          "observed_cm": 1368.0,
+          "predicted_cm": 1479.140039
+        },
+        {
+          "base_timestamp": "2026-07-22 23:00",
+          "target_timestamp": "2026-07-23 07:00",
+          "observed_cm": 1332.0,
+          "predicted_cm": 1440.358529
+        },
+        {
+          "base_timestamp": "2026-07-23 01:00",
+          "target_timestamp": "2026-07-23 09:00",
+          "observed_cm": 1258.0,
+          "predicted_cm": 1340.038215
+        },
+        {
+          "base_timestamp": "2026-07-23 02:00",
+          "target_timestamp": "2026-07-23 10:00",
+          "observed_cm": 1223.0,
+          "predicted_cm": 1291.910384
+        },
+        {
+          "base_timestamp": "2026-07-23 03:00",
+          "target_timestamp": "2026-07-23 11:00",
+          "observed_cm": 1186.0,
+          "predicted_cm": 1246.011991
+        },
+        {
+          "base_timestamp": "2026-07-23 05:00",
+          "target_timestamp": "2026-07-23 13:00",
+          "observed_cm": 1120.0,
+          "predicted_cm": 1189.134394
+        },
+        {
+          "base_timestamp": "2026-07-23 06:00",
+          "target_timestamp": "2026-07-23 14:00",
+          "observed_cm": 1089.0,
+          "predicted_cm": 1150.005407
+        },
+        {
+          "base_timestamp": "2026-07-23 07:00",
+          "target_timestamp": "2026-07-23 15:00",
+          "observed_cm": 1055.0,
+          "predicted_cm": 1112.199844
+        },
+        {
+          "base_timestamp": "2026-07-23 09:00",
+          "target_timestamp": "2026-07-23 17:00",
+          "observed_cm": 986.0,
+          "predicted_cm": 1027.117085
+        },
+        {
+          "base_timestamp": "2026-07-23 10:00",
+          "target_timestamp": "2026-07-23 18:00",
+          "observed_cm": 971.0,
+          "predicted_cm": 1006.66935
+        },
+        {
+          "base_timestamp": "2026-07-23 11:00",
+          "target_timestamp": "2026-07-23 19:00",
+          "observed_cm": 960.0,
+          "predicted_cm": 978.124806
+        },
+        {
+          "base_timestamp": "2026-07-23 12:00",
+          "target_timestamp": "2026-07-23 20:00",
+          "observed_cm": 945.0,
+          "predicted_cm": 954.481406
+        },
+        {
+          "base_timestamp": "2026-07-23 13:00",
+          "target_timestamp": "2026-07-23 21:00",
+          "observed_cm": 929.0,
+          "predicted_cm": 917.220123
+        },
+        {
+          "base_timestamp": "2026-07-23 14:00",
+          "target_timestamp": "2026-07-23 22:00",
+          "observed_cm": 908.0,
+          "predicted_cm": 863.584517
+        },
+        {
+          "base_timestamp": "2026-07-23 15:00",
+          "target_timestamp": "2026-07-23 23:00",
+          "observed_cm": 884.0,
+          "predicted_cm": 855.073599
+        },
+        {
+          "base_timestamp": "2026-07-23 17:00",
+          "target_timestamp": "2026-07-24 01:00",
+          "observed_cm": 835.0,
+          "predicted_cm": 911.335944
+        },
+        {
+          "base_timestamp": "2026-07-23 18:00",
+          "target_timestamp": "2026-07-24 02:00",
+          "observed_cm": 819.0,
+          "predicted_cm": 914.212411
+        },
+        {
+          "base_timestamp": "2026-07-23 19:00",
+          "target_timestamp": "2026-07-24 03:00",
+          "observed_cm": 806.0,
+          "predicted_cm": 878.513219
+        },
+        {
+          "base_timestamp": "2026-07-23 20:00",
+          "target_timestamp": "2026-07-24 04:00",
+          "observed_cm": 791.0,
+          "predicted_cm": 835.310466
+        },
+        {
+          "base_timestamp": "2026-07-23 21:00",
+          "target_timestamp": "2026-07-24 05:00",
+          "observed_cm": 774.0,
+          "predicted_cm": 783.288867
+        },
+        {
+          "base_timestamp": "2026-07-23 22:00",
+          "target_timestamp": "2026-07-24 06:00",
+          "observed_cm": 756.0,
+          "predicted_cm": 750.870686
+        },
+        {
+          "base_timestamp": "2026-07-23 23:00",
+          "target_timestamp": "2026-07-24 07:00",
+          "observed_cm": 739.0,
+          "predicted_cm": 752.239473
+        }
+      ]
+    },
+    {
+      "model_id": "036_alt_MUC_H12_V24_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21",
+      "horizon_hours": 12,
+      "family": "12H_ALT",
+      "output_column": "OUT12H_DIF",
+      "input_names": [
+        "nivel_86510000",
+        "difn1h_86510000",
+        "difn2h_86510000",
+        "difn4h_86510000",
+        "acel1h_86510000",
+        "acel2h_86510000",
+        "acel4h_86510000",
+        "acel8h_86510000",
+        "acel12h_86510000",
+        "nivel_86472000",
+        "difn1h_86472000",
+        "difn2h_86472000",
+        "difn4h_86472000",
+        "acel12h_86472000",
+        "acel20h_86472000",
+        "nivel_86298000",
+        "difn2h_86298000",
+        "difn4h_86298000",
+        "acel12h_86298000",
+        "acel20h_86298000",
+        "difn8h_86510000",
+        "acel20h_86510000",
+        "difn8h_86472000",
+        "acel4h_86472000",
+        "chuva_med_4est_acum_24h"
+      ],
+      "workbook": "assets/audit_workbooks/12H_ALT__036_alt_MUC_H12_V24_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21.xlsx",
+      "workbook_sha256": "0b2a35ef6befe4d9a114a976c56c7bdffee883408b4aa3da3b302ec8607d4e9e",
+      "review": {
+        "agent": "Galileo",
+        "status": "CONDICIONAL_NAO_PUBLICAR",
+        "finding": "Auditoria pré-correção encontrou RNA_FINAL vazio; verificação pós-correção confirmou RNA_FINAL preenchida a partir de Tctot1. Permanecem evento 32 excluído e rand sem semente registrada.",
+        "promotion_allowed": false
+      },
+      "comparison_status": "candidate_series_extracted_not_promoted",
+      "series_key": "35|Teste",
+      "unit": "cm",
+      "prediction_contract": {
+        "observed_column": "NIVEL_FUTURO",
+        "prediction_column": "RNA_FINAL",
+        "target_delta_column": "OUT12H_DIF",
+        "target_and_prediction_excluded_from_inputs": true
+      },
+      "checks": {
+        "required_columns_present": true,
+        "event_values": [
+          35
+        ],
+        "partition": "Teste",
+        "serie_values": [
+          3
+        ],
+        "formula_mismatch_count": 0,
+        "nonfinite_row_count": 0,
+        "duplicate_timestamp_count": 0,
+        "audit_effective_rows": 1231,
+        "audit_test_rows_all_events": 395
+      },
+      "event_metrics": {
+        "points": 47,
+        "observed_peak_cm": 1986.0,
+        "observed_peak_base_timestamp": "2026-07-22 03:00",
+        "observed_peak_target_timestamp": "2026-07-22 15:00",
+        "predicted_peak_cm": 2100.025928,
+        "predicted_peak_base_timestamp": "2026-07-22 08:00",
+        "predicted_peak_target_timestamp": "2026-07-22 20:00",
+        "peak_error_cm": 114.025928,
+        "peak_lag_hours": 5.0,
+        "mae_cm": 241.527248
+      },
+      "series": [
+        {
+          "base_timestamp": "2026-07-21 15:00",
+          "target_timestamp": "2026-07-22 03:00",
+          "observed_cm": 1377.0,
+          "predicted_cm": 665.088437
+        },
+        {
+          "base_timestamp": "2026-07-21 16:00",
+          "target_timestamp": "2026-07-22 04:00",
+          "observed_cm": 1449.0,
+          "predicted_cm": 712.38476
+        },
+        {
+          "base_timestamp": "2026-07-21 17:00",
+          "target_timestamp": "2026-07-22 05:00",
+          "observed_cm": 1516.0,
+          "predicted_cm": 771.9296
+        },
+        {
+          "base_timestamp": "2026-07-21 18:00",
+          "target_timestamp": "2026-07-22 06:00",
+          "observed_cm": 1581.0,
+          "predicted_cm": 810.396578
+        },
+        {
+          "base_timestamp": "2026-07-21 19:00",
+          "target_timestamp": "2026-07-22 07:00",
+          "observed_cm": 1650.0,
+          "predicted_cm": 835.770869
+        },
+        {
+          "base_timestamp": "2026-07-21 20:00",
+          "target_timestamp": "2026-07-22 08:00",
+          "observed_cm": 1716.0,
+          "predicted_cm": 911.251262
+        },
+        {
+          "base_timestamp": "2026-07-21 21:00",
+          "target_timestamp": "2026-07-22 09:00",
+          "observed_cm": 1778.0,
+          "predicted_cm": 1062.091592
+        },
+        {
+          "base_timestamp": "2026-07-21 22:00",
+          "target_timestamp": "2026-07-22 10:00",
+          "observed_cm": 1837.0,
+          "predicted_cm": 1268.690653
+        },
+        {
+          "base_timestamp": "2026-07-21 23:00",
+          "target_timestamp": "2026-07-22 11:00",
+          "observed_cm": 1879.0,
+          "predicted_cm": 1435.974318
+        },
+        {
+          "base_timestamp": "2026-07-22 00:00",
+          "target_timestamp": "2026-07-22 12:00",
+          "observed_cm": 1902.0,
+          "predicted_cm": 1576.600814
+        },
+        {
+          "base_timestamp": "2026-07-22 01:00",
+          "target_timestamp": "2026-07-22 13:00",
+          "observed_cm": 1924.0,
+          "predicted_cm": 1684.488658
+        },
+        {
+          "base_timestamp": "2026-07-22 02:00",
+          "target_timestamp": "2026-07-22 14:00",
+          "observed_cm": 1926.0,
+          "predicted_cm": 1774.146878
+        },
+        {
+          "base_timestamp": "2026-07-22 03:00",
+          "target_timestamp": "2026-07-22 15:00",
+          "observed_cm": 1986.0,
+          "predicted_cm": 1844.184388
+        },
+        {
+          "base_timestamp": "2026-07-22 05:00",
+          "target_timestamp": "2026-07-22 17:00",
+          "observed_cm": 1895.0,
+          "predicted_cm": 1952.892794
+        },
+        {
+          "base_timestamp": "2026-07-22 06:00",
+          "target_timestamp": "2026-07-22 18:00",
+          "observed_cm": 1868.0,
+          "predicted_cm": 2019.404076
+        },
+        {
+          "base_timestamp": "2026-07-22 07:00",
+          "target_timestamp": "2026-07-22 19:00",
+          "observed_cm": 1843.0,
+          "predicted_cm": 2078.822193
+        },
+        {
+          "base_timestamp": "2026-07-22 08:00",
+          "target_timestamp": "2026-07-22 20:00",
+          "observed_cm": 1811.0,
+          "predicted_cm": 2100.025928
+        },
+        {
+          "base_timestamp": "2026-07-22 09:00",
+          "target_timestamp": "2026-07-22 21:00",
+          "observed_cm": 1779.0,
+          "predicted_cm": 2054.310584
+        },
+        {
+          "base_timestamp": "2026-07-22 10:00",
+          "target_timestamp": "2026-07-22 22:00",
+          "observed_cm": 1741.0,
+          "predicted_cm": 1996.362383
+        },
+        {
+          "base_timestamp": "2026-07-22 11:00",
+          "target_timestamp": "2026-07-22 23:00",
+          "observed_cm": 1704.0,
+          "predicted_cm": 1806.661543
+        },
+        {
+          "base_timestamp": "2026-07-22 12:00",
+          "target_timestamp": "2026-07-23 00:00",
+          "observed_cm": 1658.0,
+          "predicted_cm": 1620.286172
+        },
+        {
+          "base_timestamp": "2026-07-22 13:00",
+          "target_timestamp": "2026-07-23 01:00",
+          "observed_cm": 1607.0,
+          "predicted_cm": 1598.894087
+        },
+        {
+          "base_timestamp": "2026-07-22 14:00",
+          "target_timestamp": "2026-07-23 02:00",
+          "observed_cm": 1555.0,
+          "predicted_cm": 1569.837698
+        },
+        {
+          "base_timestamp": "2026-07-22 15:00",
+          "target_timestamp": "2026-07-23 03:00",
+          "observed_cm": 1498.0,
+          "predicted_cm": 1698.007394
+        },
+        {
+          "base_timestamp": "2026-07-22 19:00",
+          "target_timestamp": "2026-07-23 07:00",
+          "observed_cm": 1332.0,
+          "predicted_cm": 1494.92765
+        },
+        {
+          "base_timestamp": "2026-07-22 21:00",
+          "target_timestamp": "2026-07-23 09:00",
+          "observed_cm": 1258.0,
+          "predicted_cm": 1436.946675
+        },
+        {
+          "base_timestamp": "2026-07-22 22:00",
+          "target_timestamp": "2026-07-23 10:00",
+          "observed_cm": 1223.0,
+          "predicted_cm": 1394.163083
+        },
+        {
+          "base_timestamp": "2026-07-22 23:00",
+          "target_timestamp": "2026-07-23 11:00",
+          "observed_cm": 1186.0,
+          "predicted_cm": 1357.629539
+        },
+        {
+          "base_timestamp": "2026-07-23 01:00",
+          "target_timestamp": "2026-07-23 13:00",
+          "observed_cm": 1120.0,
+          "predicted_cm": 1255.36767
+        },
+        {
+          "base_timestamp": "2026-07-23 02:00",
+          "target_timestamp": "2026-07-23 14:00",
+          "observed_cm": 1089.0,
+          "predicted_cm": 1213.416622
+        },
+        {
+          "base_timestamp": "2026-07-23 03:00",
+          "target_timestamp": "2026-07-23 15:00",
+          "observed_cm": 1055.0,
+          "predicted_cm": 1177.827376
+        },
+        {
+          "base_timestamp": "2026-07-23 05:00",
+          "target_timestamp": "2026-07-23 17:00",
+          "observed_cm": 986.0,
+          "predicted_cm": 1174.281062
+        },
+        {
+          "base_timestamp": "2026-07-23 06:00",
+          "target_timestamp": "2026-07-23 18:00",
+          "observed_cm": 971.0,
+          "predicted_cm": 1153.231294
+        },
+        {
+          "base_timestamp": "2026-07-23 07:00",
+          "target_timestamp": "2026-07-23 19:00",
+          "observed_cm": 960.0,
+          "predicted_cm": 1115.532421
+        },
+        {
+          "base_timestamp": "2026-07-23 09:00",
+          "target_timestamp": "2026-07-23 21:00",
+          "observed_cm": 929.0,
+          "predicted_cm": 1010.085367
+        },
+        {
+          "base_timestamp": "2026-07-23 10:00",
+          "target_timestamp": "2026-07-23 22:00",
+          "observed_cm": 908.0,
+          "predicted_cm": 994.783238
+        },
+        {
+          "base_timestamp": "2026-07-23 11:00",
+          "target_timestamp": "2026-07-23 23:00",
+          "observed_cm": 884.0,
+          "predicted_cm": 973.874147
+        },
+        {
+          "base_timestamp": "2026-07-23 13:00",
+          "target_timestamp": "2026-07-24 01:00",
+          "observed_cm": 835.0,
+          "predicted_cm": 920.793728
+        },
+        {
+          "base_timestamp": "2026-07-23 14:00",
+          "target_timestamp": "2026-07-24 02:00",
+          "observed_cm": 819.0,
+          "predicted_cm": 858.812743
+        },
+        {
+          "base_timestamp": "2026-07-23 15:00",
+          "target_timestamp": "2026-07-24 03:00",
+          "observed_cm": 806.0,
+          "predicted_cm": 845.978012
+        },
+        {
+          "base_timestamp": "2026-07-23 17:00",
+          "target_timestamp": "2026-07-24 05:00",
+          "observed_cm": 774.0,
+          "predicted_cm": 877.114998
+        },
+        {
+          "base_timestamp": "2026-07-23 18:00",
+          "target_timestamp": "2026-07-24 06:00",
+          "observed_cm": 756.0,
+          "predicted_cm": 905.702609
+        },
+        {
+          "base_timestamp": "2026-07-23 19:00",
+          "target_timestamp": "2026-07-24 07:00",
+          "observed_cm": 739.0,
+          "predicted_cm": 884.805232
+        },
+        {
+          "base_timestamp": "2026-07-23 20:00",
+          "target_timestamp": "2026-07-24 08:00",
+          "observed_cm": 725.0,
+          "predicted_cm": 822.008592
+        },
+        {
+          "base_timestamp": "2026-07-23 21:00",
+          "target_timestamp": "2026-07-24 09:00",
+          "observed_cm": 718.0,
+          "predicted_cm": 757.988093
+        },
+        {
+          "base_timestamp": "2026-07-23 22:00",
+          "target_timestamp": "2026-07-24 10:00",
+          "observed_cm": 711.0,
+          "predicted_cm": 708.981184
+        },
+        {
+          "base_timestamp": "2026-07-23 23:00",
+          "target_timestamp": "2026-07-24 11:00",
+          "observed_cm": 702.0,
+          "predicted_cm": 703.346175
+        }
+      ]
+    },
+    {
+      "model_id": "037_alt_MUC_H12_V24_RAIN24_UPSTREAM_R00_T31-33-34-35-37_V18-20-21",
+      "horizon_hours": 12,
+      "family": "12H_ALT",
+      "output_column": "OUT12H_DIF",
+      "input_names": [
+        "nivel_86510000",
+        "difn1h_86510000",
+        "difn2h_86510000",
+        "difn4h_86510000",
+        "acel1h_86510000",
+        "acel2h_86510000",
+        "acel4h_86510000",
+        "acel8h_86510000",
+        "acel12h_86510000",
+        "nivel_86472000",
+        "difn1h_86472000",
+        "difn2h_86472000",
+        "difn4h_86472000",
+        "acel12h_86472000",
+        "acel20h_86472000",
+        "nivel_86298000",
+        "difn2h_86298000",
+        "difn4h_86298000",
+        "acel12h_86298000",
+        "acel20h_86298000",
+        "difn8h_86510000",
+        "acel20h_86510000",
+        "difn8h_86472000",
+        "acel4h_86472000",
+        "chuva_med_4est_acum_24h",
+        "chuva_upstream_2est_acum_24h"
+      ],
+      "workbook": "assets/audit_workbooks/12H_ALT__037_alt_MUC_H12_V24_RAIN24_UPSTREAM_R00_T31-33-34-35-37_V18-20-21.xlsx",
+      "workbook_sha256": "ea58c53083cc09c0334ff73d88041d4024454a7366c8a58cf55597d01aeba337",
+      "review": {
+        "agent": "Galileo",
+        "status": "CONDICIONAL_NAO_PUBLICAR",
+        "finding": "Auditoria pré-correção encontrou RNA_FINAL vazio; verificação pós-correção confirmou RNA_FINAL preenchida a partir de Tctot1. Permanecem evento 32 excluído e rand sem semente registrada.",
+        "promotion_allowed": false
+      },
+      "comparison_status": "candidate_series_extracted_not_promoted",
+      "series_key": "35|Teste",
+      "unit": "cm",
+      "prediction_contract": {
+        "observed_column": "NIVEL_FUTURO",
+        "prediction_column": "RNA_FINAL",
+        "target_delta_column": "OUT12H_DIF",
+        "target_and_prediction_excluded_from_inputs": true
+      },
+      "checks": {
+        "required_columns_present": true,
+        "event_values": [
+          35
+        ],
+        "partition": "Teste",
+        "serie_values": [
+          3
+        ],
+        "formula_mismatch_count": 0,
+        "nonfinite_row_count": 0,
+        "duplicate_timestamp_count": 0,
+        "audit_effective_rows": 1174,
+        "audit_test_rows_all_events": 395
+      },
+      "event_metrics": {
+        "points": 47,
+        "observed_peak_cm": 1986.0,
+        "observed_peak_base_timestamp": "2026-07-22 03:00",
+        "observed_peak_target_timestamp": "2026-07-22 15:00",
+        "predicted_peak_cm": 2097.026241,
+        "predicted_peak_base_timestamp": "2026-07-22 08:00",
+        "predicted_peak_target_timestamp": "2026-07-22 20:00",
+        "peak_error_cm": 111.026241,
+        "peak_lag_hours": 5.0,
+        "mae_cm": 221.903348
+      },
+      "series": [
+        {
+          "base_timestamp": "2026-07-21 15:00",
+          "target_timestamp": "2026-07-22 03:00",
+          "observed_cm": 1377.0,
+          "predicted_cm": 702.370581
+        },
+        {
+          "base_timestamp": "2026-07-21 16:00",
+          "target_timestamp": "2026-07-22 04:00",
+          "observed_cm": 1449.0,
+          "predicted_cm": 755.04574
+        },
+        {
+          "base_timestamp": "2026-07-21 17:00",
+          "target_timestamp": "2026-07-22 05:00",
+          "observed_cm": 1516.0,
+          "predicted_cm": 823.757854
+        },
+        {
+          "base_timestamp": "2026-07-21 18:00",
+          "target_timestamp": "2026-07-22 06:00",
+          "observed_cm": 1581.0,
+          "predicted_cm": 877.668668
+        },
+        {
+          "base_timestamp": "2026-07-21 19:00",
+          "target_timestamp": "2026-07-22 07:00",
+          "observed_cm": 1650.0,
+          "predicted_cm": 904.297336
+        },
+        {
+          "base_timestamp": "2026-07-21 20:00",
+          "target_timestamp": "2026-07-22 08:00",
+          "observed_cm": 1716.0,
+          "predicted_cm": 982.58775
+        },
+        {
+          "base_timestamp": "2026-07-21 21:00",
+          "target_timestamp": "2026-07-22 09:00",
+          "observed_cm": 1778.0,
+          "predicted_cm": 1131.601732
+        },
+        {
+          "base_timestamp": "2026-07-21 22:00",
+          "target_timestamp": "2026-07-22 10:00",
+          "observed_cm": 1837.0,
+          "predicted_cm": 1335.010121
+        },
+        {
+          "base_timestamp": "2026-07-21 23:00",
+          "target_timestamp": "2026-07-22 11:00",
+          "observed_cm": 1879.0,
+          "predicted_cm": 1507.110934
+        },
+        {
+          "base_timestamp": "2026-07-22 00:00",
+          "target_timestamp": "2026-07-22 12:00",
+          "observed_cm": 1902.0,
+          "predicted_cm": 1652.884387
+        },
+        {
+          "base_timestamp": "2026-07-22 01:00",
+          "target_timestamp": "2026-07-22 13:00",
+          "observed_cm": 1924.0,
+          "predicted_cm": 1760.523353
+        },
+        {
+          "base_timestamp": "2026-07-22 02:00",
+          "target_timestamp": "2026-07-22 14:00",
+          "observed_cm": 1926.0,
+          "predicted_cm": 1843.069637
+        },
+        {
+          "base_timestamp": "2026-07-22 03:00",
+          "target_timestamp": "2026-07-22 15:00",
+          "observed_cm": 1986.0,
+          "predicted_cm": 1903.530626
+        },
+        {
+          "base_timestamp": "2026-07-22 05:00",
+          "target_timestamp": "2026-07-22 17:00",
+          "observed_cm": 1895.0,
+          "predicted_cm": 1983.196445
+        },
+        {
+          "base_timestamp": "2026-07-22 06:00",
+          "target_timestamp": "2026-07-22 18:00",
+          "observed_cm": 1868.0,
+          "predicted_cm": 2045.585426
+        },
+        {
+          "base_timestamp": "2026-07-22 07:00",
+          "target_timestamp": "2026-07-22 19:00",
+          "observed_cm": 1843.0,
+          "predicted_cm": 2095.192038
+        },
+        {
+          "base_timestamp": "2026-07-22 08:00",
+          "target_timestamp": "2026-07-22 20:00",
+          "observed_cm": 1811.0,
+          "predicted_cm": 2097.026241
+        },
+        {
+          "base_timestamp": "2026-07-22 09:00",
+          "target_timestamp": "2026-07-22 21:00",
+          "observed_cm": 1779.0,
+          "predicted_cm": 2024.396694
+        },
+        {
+          "base_timestamp": "2026-07-22 10:00",
+          "target_timestamp": "2026-07-22 22:00",
+          "observed_cm": 1741.0,
+          "predicted_cm": 1947.476343
+        },
+        {
+          "base_timestamp": "2026-07-22 11:00",
+          "target_timestamp": "2026-07-22 23:00",
+          "observed_cm": 1704.0,
+          "predicted_cm": 1748.245774
+        },
+        {
+          "base_timestamp": "2026-07-22 12:00",
+          "target_timestamp": "2026-07-23 00:00",
+          "observed_cm": 1658.0,
+          "predicted_cm": 1613.154519
+        },
+        {
+          "base_timestamp": "2026-07-22 13:00",
+          "target_timestamp": "2026-07-23 01:00",
+          "observed_cm": 1607.0,
+          "predicted_cm": 1593.569317
+        },
+        {
+          "base_timestamp": "2026-07-22 14:00",
+          "target_timestamp": "2026-07-23 02:00",
+          "observed_cm": 1555.0,
+          "predicted_cm": 1554.133075
+        },
+        {
+          "base_timestamp": "2026-07-22 15:00",
+          "target_timestamp": "2026-07-23 03:00",
+          "observed_cm": 1498.0,
+          "predicted_cm": 1695.227316
+        },
+        {
+          "base_timestamp": "2026-07-22 19:00",
+          "target_timestamp": "2026-07-23 07:00",
+          "observed_cm": 1332.0,
+          "predicted_cm": 1471.785549
+        },
+        {
+          "base_timestamp": "2026-07-22 21:00",
+          "target_timestamp": "2026-07-23 09:00",
+          "observed_cm": 1258.0,
+          "predicted_cm": 1417.985469
+        },
+        {
+          "base_timestamp": "2026-07-22 22:00",
+          "target_timestamp": "2026-07-23 10:00",
+          "observed_cm": 1223.0,
+          "predicted_cm": 1372.439287
+        },
+        {
+          "base_timestamp": "2026-07-22 23:00",
+          "target_timestamp": "2026-07-23 11:00",
+          "observed_cm": 1186.0,
+          "predicted_cm": 1334.553499
+        },
+        {
+          "base_timestamp": "2026-07-23 01:00",
+          "target_timestamp": "2026-07-23 13:00",
+          "observed_cm": 1120.0,
+          "predicted_cm": 1232.273303
+        },
+        {
+          "base_timestamp": "2026-07-23 02:00",
+          "target_timestamp": "2026-07-23 14:00",
+          "observed_cm": 1089.0,
+          "predicted_cm": 1197.736871
+        },
+        {
+          "base_timestamp": "2026-07-23 03:00",
+          "target_timestamp": "2026-07-23 15:00",
+          "observed_cm": 1055.0,
+          "predicted_cm": 1176.592342
+        },
+        {
+          "base_timestamp": "2026-07-23 05:00",
+          "target_timestamp": "2026-07-23 17:00",
+          "observed_cm": 986.0,
+          "predicted_cm": 1195.324337
+        },
+        {
+          "base_timestamp": "2026-07-23 06:00",
+          "target_timestamp": "2026-07-23 18:00",
+          "observed_cm": 971.0,
+          "predicted_cm": 1174.434019
+        },
+        {
+          "base_timestamp": "2026-07-23 07:00",
+          "target_timestamp": "2026-07-23 19:00",
+          "observed_cm": 960.0,
+          "predicted_cm": 1133.389104
+        },
+        {
+          "base_timestamp": "2026-07-23 09:00",
+          "target_timestamp": "2026-07-23 21:00",
+          "observed_cm": 929.0,
+          "predicted_cm": 1027.637534
+        },
+        {
+          "base_timestamp": "2026-07-23 10:00",
+          "target_timestamp": "2026-07-23 22:00",
+          "observed_cm": 908.0,
+          "predicted_cm": 1011.953797
+        },
+        {
+          "base_timestamp": "2026-07-23 11:00",
+          "target_timestamp": "2026-07-23 23:00",
+          "observed_cm": 884.0,
+          "predicted_cm": 991.296427
+        },
+        {
+          "base_timestamp": "2026-07-23 13:00",
+          "target_timestamp": "2026-07-24 01:00",
+          "observed_cm": 835.0,
+          "predicted_cm": 933.866918
+        },
+        {
+          "base_timestamp": "2026-07-23 14:00",
+          "target_timestamp": "2026-07-24 02:00",
+          "observed_cm": 819.0,
+          "predicted_cm": 871.827464
+        },
+        {
+          "base_timestamp": "2026-07-23 15:00",
+          "target_timestamp": "2026-07-24 03:00",
+          "observed_cm": 806.0,
+          "predicted_cm": 855.850487
+        },
+        {
+          "base_timestamp": "2026-07-23 17:00",
+          "target_timestamp": "2026-07-24 05:00",
+          "observed_cm": 774.0,
+          "predicted_cm": 872.683928
+        },
+        {
+          "base_timestamp": "2026-07-23 18:00",
+          "target_timestamp": "2026-07-24 06:00",
+          "observed_cm": 756.0,
+          "predicted_cm": 899.628134
+        },
+        {
+          "base_timestamp": "2026-07-23 19:00",
+          "target_timestamp": "2026-07-24 07:00",
+          "observed_cm": 739.0,
+          "predicted_cm": 871.427998
+        },
+        {
+          "base_timestamp": "2026-07-23 20:00",
+          "target_timestamp": "2026-07-24 08:00",
+          "observed_cm": 725.0,
+          "predicted_cm": 807.146172
+        },
+        {
+          "base_timestamp": "2026-07-23 21:00",
+          "target_timestamp": "2026-07-24 09:00",
+          "observed_cm": 718.0,
+          "predicted_cm": 752.53758
+        },
+        {
+          "base_timestamp": "2026-07-23 22:00",
+          "target_timestamp": "2026-07-24 10:00",
+          "observed_cm": 711.0,
+          "predicted_cm": 712.200374
+        },
+        {
+          "base_timestamp": "2026-07-23 23:00",
+          "target_timestamp": "2026-07-24 11:00",
+          "observed_cm": 702.0,
+          "predicted_cm": 702.856102
+        }
+      ]
+    },
+    {
+      "model_id": "038_alt_MUC_H12_V24_RAIN24_DIFF_R00_T31-33-34-35-37_V18-20-21",
+      "horizon_hours": 12,
+      "family": "12H_ALT",
+      "output_column": "OUT12H_DIF",
+      "input_names": [
+        "nivel_86510000",
+        "difn1h_86510000",
+        "difn2h_86510000",
+        "difn4h_86510000",
+        "acel1h_86510000",
+        "acel2h_86510000",
+        "acel4h_86510000",
+        "acel8h_86510000",
+        "acel12h_86510000",
+        "nivel_86472000",
+        "difn1h_86472000",
+        "difn2h_86472000",
+        "difn4h_86472000",
+        "acel12h_86472000",
+        "acel20h_86472000",
+        "nivel_86298000",
+        "difn2h_86298000",
+        "difn4h_86298000",
+        "acel12h_86298000",
+        "acel20h_86298000",
+        "difn8h_86510000",
+        "acel20h_86510000",
+        "difn8h_86472000",
+        "acel4h_86472000",
+        "chuva_med_4est_acum_24h",
+        "chuva_dif_0_24_menos_24_48h"
+      ],
+      "workbook": "assets/audit_workbooks/12H_ALT__038_alt_MUC_H12_V24_RAIN24_DIFF_R00_T31-33-34-35-37_V18-20-21.xlsx",
+      "workbook_sha256": "8d8a6e33a4af20455a7491e1f006cb70f206e57420c9fbcf10827155ca3b11b6",
+      "review": {
+        "agent": "Galileo",
+        "status": "CONDICIONAL_NAO_PUBLICAR",
+        "finding": "Auditoria pré-correção encontrou RNA_FINAL vazio; verificação pós-correção confirmou RNA_FINAL preenchida a partir de Tctot1. Permanecem evento 32 excluído e rand sem semente registrada.",
+        "promotion_allowed": false
+      },
+      "comparison_status": "candidate_series_extracted_not_promoted",
+      "series_key": "35|Teste",
+      "unit": "cm",
+      "prediction_contract": {
+        "observed_column": "NIVEL_FUTURO",
+        "prediction_column": "RNA_FINAL",
+        "target_delta_column": "OUT12H_DIF",
+        "target_and_prediction_excluded_from_inputs": true
+      },
+      "checks": {
+        "required_columns_present": true,
+        "event_values": [
+          35
+        ],
+        "partition": "Teste",
+        "serie_values": [
+          3
+        ],
+        "formula_mismatch_count": 0,
+        "nonfinite_row_count": 0,
+        "duplicate_timestamp_count": 0,
+        "audit_effective_rows": 1192,
+        "audit_test_rows_all_events": 395
+      },
+      "event_metrics": {
+        "points": 47,
+        "observed_peak_cm": 1986.0,
+        "observed_peak_base_timestamp": "2026-07-22 03:00",
+        "observed_peak_target_timestamp": "2026-07-22 15:00",
+        "predicted_peak_cm": 2060.05915,
+        "predicted_peak_base_timestamp": "2026-07-22 07:00",
+        "predicted_peak_target_timestamp": "2026-07-22 19:00",
+        "peak_error_cm": 74.05915,
+        "peak_lag_hours": 4.0,
+        "mae_cm": 224.08503
+      },
+      "series": [
+        {
+          "base_timestamp": "2026-07-21 15:00",
+          "target_timestamp": "2026-07-22 03:00",
+          "observed_cm": 1377.0,
+          "predicted_cm": 763.539287
+        },
+        {
+          "base_timestamp": "2026-07-21 16:00",
+          "target_timestamp": "2026-07-22 04:00",
+          "observed_cm": 1449.0,
+          "predicted_cm": 817.091831
+        },
+        {
+          "base_timestamp": "2026-07-21 17:00",
+          "target_timestamp": "2026-07-22 05:00",
+          "observed_cm": 1516.0,
+          "predicted_cm": 883.452568
+        },
+        {
+          "base_timestamp": "2026-07-21 18:00",
+          "target_timestamp": "2026-07-22 06:00",
+          "observed_cm": 1581.0,
+          "predicted_cm": 916.440235
+        },
+        {
+          "base_timestamp": "2026-07-21 19:00",
+          "target_timestamp": "2026-07-22 07:00",
+          "observed_cm": 1650.0,
+          "predicted_cm": 937.333971
+        },
+        {
+          "base_timestamp": "2026-07-21 20:00",
+          "target_timestamp": "2026-07-22 08:00",
+          "observed_cm": 1716.0,
+          "predicted_cm": 1005.288869
+        },
+        {
+          "base_timestamp": "2026-07-21 21:00",
+          "target_timestamp": "2026-07-22 09:00",
+          "observed_cm": 1778.0,
+          "predicted_cm": 1144.205692
+        },
+        {
+          "base_timestamp": "2026-07-21 22:00",
+          "target_timestamp": "2026-07-22 10:00",
+          "observed_cm": 1837.0,
+          "predicted_cm": 1345.186545
+        },
+        {
+          "base_timestamp": "2026-07-21 23:00",
+          "target_timestamp": "2026-07-22 11:00",
+          "observed_cm": 1879.0,
+          "predicted_cm": 1524.322623
+        },
+        {
+          "base_timestamp": "2026-07-22 00:00",
+          "target_timestamp": "2026-07-22 12:00",
+          "observed_cm": 1902.0,
+          "predicted_cm": 1677.683954
+        },
+        {
+          "base_timestamp": "2026-07-22 01:00",
+          "target_timestamp": "2026-07-22 13:00",
+          "observed_cm": 1924.0,
+          "predicted_cm": 1790.987002
+        },
+        {
+          "base_timestamp": "2026-07-22 02:00",
+          "target_timestamp": "2026-07-22 14:00",
+          "observed_cm": 1926.0,
+          "predicted_cm": 1872.056369
+        },
+        {
+          "base_timestamp": "2026-07-22 03:00",
+          "target_timestamp": "2026-07-22 15:00",
+          "observed_cm": 1986.0,
+          "predicted_cm": 1922.672817
+        },
+        {
+          "base_timestamp": "2026-07-22 05:00",
+          "target_timestamp": "2026-07-22 17:00",
+          "observed_cm": 1895.0,
+          "predicted_cm": 1954.106451
+        },
+        {
+          "base_timestamp": "2026-07-22 06:00",
+          "target_timestamp": "2026-07-22 18:00",
+          "observed_cm": 1868.0,
+          "predicted_cm": 2023.708506
+        },
+        {
+          "base_timestamp": "2026-07-22 07:00",
+          "target_timestamp": "2026-07-22 19:00",
+          "observed_cm": 1843.0,
+          "predicted_cm": 2060.05915
+        },
+        {
+          "base_timestamp": "2026-07-22 08:00",
+          "target_timestamp": "2026-07-22 20:00",
+          "observed_cm": 1811.0,
+          "predicted_cm": 2007.349835
+        },
+        {
+          "base_timestamp": "2026-07-22 09:00",
+          "target_timestamp": "2026-07-22 21:00",
+          "observed_cm": 1779.0,
+          "predicted_cm": 1863.373511
+        },
+        {
+          "base_timestamp": "2026-07-22 10:00",
+          "target_timestamp": "2026-07-22 22:00",
+          "observed_cm": 1741.0,
+          "predicted_cm": 1788.611909
+        },
+        {
+          "base_timestamp": "2026-07-22 11:00",
+          "target_timestamp": "2026-07-22 23:00",
+          "observed_cm": 1704.0,
+          "predicted_cm": 1652.793984
+        },
+        {
+          "base_timestamp": "2026-07-22 12:00",
+          "target_timestamp": "2026-07-23 00:00",
+          "observed_cm": 1658.0,
+          "predicted_cm": 1586.662624
+        },
+        {
+          "base_timestamp": "2026-07-22 13:00",
+          "target_timestamp": "2026-07-23 01:00",
+          "observed_cm": 1607.0,
+          "predicted_cm": 1602.250659
+        },
+        {
+          "base_timestamp": "2026-07-22 14:00",
+          "target_timestamp": "2026-07-23 02:00",
+          "observed_cm": 1555.0,
+          "predicted_cm": 1593.52906
+        },
+        {
+          "base_timestamp": "2026-07-22 15:00",
+          "target_timestamp": "2026-07-23 03:00",
+          "observed_cm": 1498.0,
+          "predicted_cm": 1755.962364
+        },
+        {
+          "base_timestamp": "2026-07-22 19:00",
+          "target_timestamp": "2026-07-23 07:00",
+          "observed_cm": 1332.0,
+          "predicted_cm": 1535.627897
+        },
+        {
+          "base_timestamp": "2026-07-22 21:00",
+          "target_timestamp": "2026-07-23 09:00",
+          "observed_cm": 1258.0,
+          "predicted_cm": 1481.296542
+        },
+        {
+          "base_timestamp": "2026-07-22 22:00",
+          "target_timestamp": "2026-07-23 10:00",
+          "observed_cm": 1223.0,
+          "predicted_cm": 1433.77311
+        },
+        {
+          "base_timestamp": "2026-07-22 23:00",
+          "target_timestamp": "2026-07-23 11:00",
+          "observed_cm": 1186.0,
+          "predicted_cm": 1398.56756
+        },
+        {
+          "base_timestamp": "2026-07-23 01:00",
+          "target_timestamp": "2026-07-23 13:00",
+          "observed_cm": 1120.0,
+          "predicted_cm": 1290.637417
+        },
+        {
+          "base_timestamp": "2026-07-23 02:00",
+          "target_timestamp": "2026-07-23 14:00",
+          "observed_cm": 1089.0,
+          "predicted_cm": 1252.864082
+        },
+        {
+          "base_timestamp": "2026-07-23 03:00",
+          "target_timestamp": "2026-07-23 15:00",
+          "observed_cm": 1055.0,
+          "predicted_cm": 1222.462421
+        },
+        {
+          "base_timestamp": "2026-07-23 05:00",
+          "target_timestamp": "2026-07-23 17:00",
+          "observed_cm": 986.0,
+          "predicted_cm": 1248.416563
+        },
+        {
+          "base_timestamp": "2026-07-23 06:00",
+          "target_timestamp": "2026-07-23 18:00",
+          "observed_cm": 971.0,
+          "predicted_cm": 1227.963485
+        },
+        {
+          "base_timestamp": "2026-07-23 07:00",
+          "target_timestamp": "2026-07-23 19:00",
+          "observed_cm": 960.0,
+          "predicted_cm": 1182.811376
+        },
+        {
+          "base_timestamp": "2026-07-23 09:00",
+          "target_timestamp": "2026-07-23 21:00",
+          "observed_cm": 929.0,
+          "predicted_cm": 1049.486165
+        },
+        {
+          "base_timestamp": "2026-07-23 10:00",
+          "target_timestamp": "2026-07-23 22:00",
+          "observed_cm": 908.0,
+          "predicted_cm": 1033.588553
+        },
+        {
+          "base_timestamp": "2026-07-23 11:00",
+          "target_timestamp": "2026-07-23 23:00",
+          "observed_cm": 884.0,
+          "predicted_cm": 1006.444954
+        },
+        {
+          "base_timestamp": "2026-07-23 13:00",
+          "target_timestamp": "2026-07-24 01:00",
+          "observed_cm": 835.0,
+          "predicted_cm": 949.942968
+        },
+        {
+          "base_timestamp": "2026-07-23 14:00",
+          "target_timestamp": "2026-07-24 02:00",
+          "observed_cm": 819.0,
+          "predicted_cm": 887.969341
+        },
+        {
+          "base_timestamp": "2026-07-23 15:00",
+          "target_timestamp": "2026-07-24 03:00",
+          "observed_cm": 806.0,
+          "predicted_cm": 872.993708
+        },
+        {
+          "base_timestamp": "2026-07-23 17:00",
+          "target_timestamp": "2026-07-24 05:00",
+          "observed_cm": 774.0,
+          "predicted_cm": 911.376122
+        },
+        {
+          "base_timestamp": "2026-07-23 18:00",
+          "target_timestamp": "2026-07-24 06:00",
+          "observed_cm": 756.0,
+          "predicted_cm": 957.227997
+        },
+        {
+          "base_timestamp": "2026-07-23 19:00",
+          "target_timestamp": "2026-07-24 07:00",
+          "observed_cm": 739.0,
+          "predicted_cm": 928.129085
+        },
+        {
+          "base_timestamp": "2026-07-23 20:00",
+          "target_timestamp": "2026-07-24 08:00",
+          "observed_cm": 725.0,
+          "predicted_cm": 838.425426
+        },
+        {
+          "base_timestamp": "2026-07-23 21:00",
+          "target_timestamp": "2026-07-24 09:00",
+          "observed_cm": 718.0,
+          "predicted_cm": 757.403437
+        },
+        {
+          "base_timestamp": "2026-07-23 22:00",
+          "target_timestamp": "2026-07-24 10:00",
+          "observed_cm": 711.0,
+          "predicted_cm": 693.411717
+        },
+        {
+          "base_timestamp": "2026-07-23 23:00",
+          "target_timestamp": "2026-07-24 11:00",
+          "observed_cm": 702.0,
+          "predicted_cm": 686.731833
+        }
+      ]
+    },
+    {
+      "model_id": "039_alt_MUC_H12_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21",
+      "horizon_hours": 12,
+      "family": "12H_ALT",
+      "output_column": "OUT12H_DIF",
+      "input_names": [
+        "nivel_86510000",
+        "difn1h_86510000",
+        "difn2h_86510000",
+        "difn4h_86510000",
+        "acel1h_86510000",
+        "acel2h_86510000",
+        "acel4h_86510000",
+        "acel8h_86510000",
+        "acel12h_86510000",
+        "nivel_86472000",
+        "difn1h_86472000",
+        "difn2h_86472000",
+        "difn4h_86472000",
+        "acel12h_86472000",
+        "acel20h_86472000",
+        "nivel_86298000",
+        "difn2h_86298000",
+        "difn4h_86298000",
+        "acel12h_86298000",
+        "acel20h_86298000",
+        "difn8h_86510000",
+        "acel20h_86510000",
+        "difn8h_86472000",
+        "acel4h_86472000",
+        "chuva_med_4est_acum_18h",
+        "chuva_med_4est_acum_24h",
+        "chuva_med_4est_acum_48h",
+        "chuva_dif_0_24_menos_24_48h"
+      ],
+      "workbook": "assets/audit_workbooks/12H_ALT__039_alt_MUC_H12_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21.xlsx",
+      "workbook_sha256": "711e35bf93a67b22d8dc3f71b3c741d7ec98ed7593307508eb0b3fe5580998a8",
+      "review": {
+        "agent": "Galileo",
+        "status": "CONDICIONAL_NAO_PUBLICAR",
+        "finding": "Auditoria pré-correção encontrou RNA_FINAL vazio; verificação pós-correção confirmou RNA_FINAL preenchida a partir de Tctot1. Permanecem evento 32 excluído e rand sem semente registrada.",
+        "promotion_allowed": false
+      },
+      "comparison_status": "candidate_series_extracted_not_promoted",
+      "series_key": "35|Teste",
+      "unit": "cm",
+      "prediction_contract": {
+        "observed_column": "NIVEL_FUTURO",
+        "prediction_column": "RNA_FINAL",
+        "target_delta_column": "OUT12H_DIF",
+        "target_and_prediction_excluded_from_inputs": true
+      },
+      "checks": {
+        "required_columns_present": true,
+        "event_values": [
+          35
+        ],
+        "partition": "Teste",
+        "serie_values": [
+          3
+        ],
+        "formula_mismatch_count": 0,
+        "nonfinite_row_count": 0,
+        "duplicate_timestamp_count": 0,
+        "audit_effective_rows": 1192,
+        "audit_test_rows_all_events": 395
+      },
+      "event_metrics": {
+        "points": 47,
+        "observed_peak_cm": 1986.0,
+        "observed_peak_base_timestamp": "2026-07-22 03:00",
+        "observed_peak_target_timestamp": "2026-07-22 15:00",
+        "predicted_peak_cm": 1956.351539,
+        "predicted_peak_base_timestamp": "2026-07-22 08:00",
+        "predicted_peak_target_timestamp": "2026-07-22 20:00",
+        "peak_error_cm": -29.648461,
+        "peak_lag_hours": 5.0,
+        "mae_cm": 175.811407
+      },
+      "series": [
+        {
+          "base_timestamp": "2026-07-21 15:00",
+          "target_timestamp": "2026-07-22 03:00",
+          "observed_cm": 1377.0,
+          "predicted_cm": 725.606475
+        },
+        {
+          "base_timestamp": "2026-07-21 16:00",
+          "target_timestamp": "2026-07-22 04:00",
+          "observed_cm": 1449.0,
+          "predicted_cm": 802.30281
+        },
+        {
+          "base_timestamp": "2026-07-21 17:00",
+          "target_timestamp": "2026-07-22 05:00",
+          "observed_cm": 1516.0,
+          "predicted_cm": 929.527121
+        },
+        {
+          "base_timestamp": "2026-07-21 18:00",
+          "target_timestamp": "2026-07-22 06:00",
+          "observed_cm": 1581.0,
+          "predicted_cm": 1045.509436
+        },
+        {
+          "base_timestamp": "2026-07-21 19:00",
+          "target_timestamp": "2026-07-22 07:00",
+          "observed_cm": 1650.0,
+          "predicted_cm": 1070.011956
+        },
+        {
+          "base_timestamp": "2026-07-21 20:00",
+          "target_timestamp": "2026-07-22 08:00",
+          "observed_cm": 1716.0,
+          "predicted_cm": 1163.909398
+        },
+        {
+          "base_timestamp": "2026-07-21 21:00",
+          "target_timestamp": "2026-07-22 09:00",
+          "observed_cm": 1778.0,
+          "predicted_cm": 1326.547764
+        },
+        {
+          "base_timestamp": "2026-07-21 22:00",
+          "target_timestamp": "2026-07-22 10:00",
+          "observed_cm": 1837.0,
+          "predicted_cm": 1511.377503
+        },
+        {
+          "base_timestamp": "2026-07-21 23:00",
+          "target_timestamp": "2026-07-22 11:00",
+          "observed_cm": 1879.0,
+          "predicted_cm": 1642.534033
+        },
+        {
+          "base_timestamp": "2026-07-22 00:00",
+          "target_timestamp": "2026-07-22 12:00",
+          "observed_cm": 1902.0,
+          "predicted_cm": 1777.252335
+        },
+        {
+          "base_timestamp": "2026-07-22 01:00",
+          "target_timestamp": "2026-07-22 13:00",
+          "observed_cm": 1924.0,
+          "predicted_cm": 1849.713642
+        },
+        {
+          "base_timestamp": "2026-07-22 02:00",
+          "target_timestamp": "2026-07-22 14:00",
+          "observed_cm": 1926.0,
+          "predicted_cm": 1880.14707
+        },
+        {
+          "base_timestamp": "2026-07-22 03:00",
+          "target_timestamp": "2026-07-22 15:00",
+          "observed_cm": 1986.0,
+          "predicted_cm": 1881.827785
+        },
+        {
+          "base_timestamp": "2026-07-22 05:00",
+          "target_timestamp": "2026-07-22 17:00",
+          "observed_cm": 1895.0,
+          "predicted_cm": 1866.507801
+        },
+        {
+          "base_timestamp": "2026-07-22 06:00",
+          "target_timestamp": "2026-07-22 18:00",
+          "observed_cm": 1868.0,
+          "predicted_cm": 1926.441228
+        },
+        {
+          "base_timestamp": "2026-07-22 07:00",
+          "target_timestamp": "2026-07-22 19:00",
+          "observed_cm": 1843.0,
+          "predicted_cm": 1956.196315
+        },
+        {
+          "base_timestamp": "2026-07-22 08:00",
+          "target_timestamp": "2026-07-22 20:00",
+          "observed_cm": 1811.0,
+          "predicted_cm": 1956.351539
+        },
+        {
+          "base_timestamp": "2026-07-22 09:00",
+          "target_timestamp": "2026-07-22 21:00",
+          "observed_cm": 1779.0,
+          "predicted_cm": 1921.726993
+        },
+        {
+          "base_timestamp": "2026-07-22 10:00",
+          "target_timestamp": "2026-07-22 22:00",
+          "observed_cm": 1741.0,
+          "predicted_cm": 1879.669356
+        },
+        {
+          "base_timestamp": "2026-07-22 11:00",
+          "target_timestamp": "2026-07-22 23:00",
+          "observed_cm": 1704.0,
+          "predicted_cm": 1731.743355
+        },
+        {
+          "base_timestamp": "2026-07-22 12:00",
+          "target_timestamp": "2026-07-23 00:00",
+          "observed_cm": 1658.0,
+          "predicted_cm": 1578.5156
+        },
+        {
+          "base_timestamp": "2026-07-22 13:00",
+          "target_timestamp": "2026-07-23 01:00",
+          "observed_cm": 1607.0,
+          "predicted_cm": 1543.163743
+        },
+        {
+          "base_timestamp": "2026-07-22 14:00",
+          "target_timestamp": "2026-07-23 02:00",
+          "observed_cm": 1555.0,
+          "predicted_cm": 1494.027888
+        },
+        {
+          "base_timestamp": "2026-07-22 15:00",
+          "target_timestamp": "2026-07-23 03:00",
+          "observed_cm": 1498.0,
+          "predicted_cm": 1636.947596
+        },
+        {
+          "base_timestamp": "2026-07-22 19:00",
+          "target_timestamp": "2026-07-23 07:00",
+          "observed_cm": 1332.0,
+          "predicted_cm": 1436.132242
+        },
+        {
+          "base_timestamp": "2026-07-22 21:00",
+          "target_timestamp": "2026-07-23 09:00",
+          "observed_cm": 1258.0,
+          "predicted_cm": 1408.421412
+        },
+        {
+          "base_timestamp": "2026-07-22 22:00",
+          "target_timestamp": "2026-07-23 10:00",
+          "observed_cm": 1223.0,
+          "predicted_cm": 1362.890349
+        },
+        {
+          "base_timestamp": "2026-07-22 23:00",
+          "target_timestamp": "2026-07-23 11:00",
+          "observed_cm": 1186.0,
+          "predicted_cm": 1323.378794
+        },
+        {
+          "base_timestamp": "2026-07-23 01:00",
+          "target_timestamp": "2026-07-23 13:00",
+          "observed_cm": 1120.0,
+          "predicted_cm": 1221.188936
+        },
+        {
+          "base_timestamp": "2026-07-23 02:00",
+          "target_timestamp": "2026-07-23 14:00",
+          "observed_cm": 1089.0,
+          "predicted_cm": 1193.892055
+        },
+        {
+          "base_timestamp": "2026-07-23 03:00",
+          "target_timestamp": "2026-07-23 15:00",
+          "observed_cm": 1055.0,
+          "predicted_cm": 1183.959126
+        },
+        {
+          "base_timestamp": "2026-07-23 05:00",
+          "target_timestamp": "2026-07-23 17:00",
+          "observed_cm": 986.0,
+          "predicted_cm": 1191.82851
+        },
+        {
+          "base_timestamp": "2026-07-23 06:00",
+          "target_timestamp": "2026-07-23 18:00",
+          "observed_cm": 971.0,
+          "predicted_cm": 1166.491192
+        },
+        {
+          "base_timestamp": "2026-07-23 07:00",
+          "target_timestamp": "2026-07-23 19:00",
+          "observed_cm": 960.0,
+          "predicted_cm": 1121.88056
+        },
+        {
+          "base_timestamp": "2026-07-23 09:00",
+          "target_timestamp": "2026-07-23 21:00",
+          "observed_cm": 929.0,
+          "predicted_cm": 1001.890188
+        },
+        {
+          "base_timestamp": "2026-07-23 10:00",
+          "target_timestamp": "2026-07-23 22:00",
+          "observed_cm": 908.0,
+          "predicted_cm": 979.312229
+        },
+        {
+          "base_timestamp": "2026-07-23 11:00",
+          "target_timestamp": "2026-07-23 23:00",
+          "observed_cm": 884.0,
+          "predicted_cm": 961.250054
+        },
+        {
+          "base_timestamp": "2026-07-23 13:00",
+          "target_timestamp": "2026-07-24 01:00",
+          "observed_cm": 835.0,
+          "predicted_cm": 899.03462
+        },
+        {
+          "base_timestamp": "2026-07-23 14:00",
+          "target_timestamp": "2026-07-24 02:00",
+          "observed_cm": 819.0,
+          "predicted_cm": 820.92222
+        },
+        {
+          "base_timestamp": "2026-07-23 15:00",
+          "target_timestamp": "2026-07-24 03:00",
+          "observed_cm": 806.0,
+          "predicted_cm": 815.65876
+        },
+        {
+          "base_timestamp": "2026-07-23 17:00",
+          "target_timestamp": "2026-07-24 05:00",
+          "observed_cm": 774.0,
+          "predicted_cm": 885.761394
+        },
+        {
+          "base_timestamp": "2026-07-23 18:00",
+          "target_timestamp": "2026-07-24 06:00",
+          "observed_cm": 756.0,
+          "predicted_cm": 929.539515
+        },
+        {
+          "base_timestamp": "2026-07-23 19:00",
+          "target_timestamp": "2026-07-24 07:00",
+          "observed_cm": 739.0,
+          "predicted_cm": 903.986325
+        },
+        {
+          "base_timestamp": "2026-07-23 20:00",
+          "target_timestamp": "2026-07-24 08:00",
+          "observed_cm": 725.0,
+          "predicted_cm": 822.071593
+        },
+        {
+          "base_timestamp": "2026-07-23 21:00",
+          "target_timestamp": "2026-07-24 09:00",
+          "observed_cm": 718.0,
+          "predicted_cm": 736.428518
+        },
+        {
+          "base_timestamp": "2026-07-23 22:00",
+          "target_timestamp": "2026-07-24 10:00",
+          "observed_cm": 711.0,
+          "predicted_cm": 678.51616
+        },
+        {
+          "base_timestamp": "2026-07-23 23:00",
+          "target_timestamp": "2026-07-24 11:00",
+          "observed_cm": 702.0,
+          "predicted_cm": 676.860327
+        }
+      ]
+    },
+    {
+      "model_id": "040_alt_MUC_H12_V15_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21",
+      "horizon_hours": 12,
+      "family": "12H_ALT",
+      "output_column": "OUT12H_DIF",
+      "input_names": [
+        "nivel_86510000",
+        "difn1h_86510000",
+        "difn2h_86510000",
+        "difn4h_86510000",
+        "acel1h_86510000",
+        "acel2h_86510000",
+        "acel4h_86510000",
+        "acel8h_86510000",
+        "acel12h_86510000",
+        "nivel_86472000",
+        "difn1h_86472000",
+        "difn2h_86472000",
+        "difn4h_86472000",
+        "acel12h_86472000",
+        "acel20h_86472000",
+        "chuva_med_4est_acum_24h"
+      ],
+      "workbook": "assets/audit_workbooks/12H_ALT__040_alt_MUC_H12_V15_RAIN24_MEAN_R00_T31-33-34-35-37_V18-20-21.xlsx",
+      "workbook_sha256": "1e9e7aa5963298d6f039b918555965f2f2dd0de97c57471f3a2a02aaab130f38",
+      "review": {
+        "agent": "Galileo",
+        "status": "CONDICIONAL_NAO_PUBLICAR",
+        "finding": "Auditoria pré-correção encontrou RNA_FINAL vazio; verificação pós-correção confirmou RNA_FINAL preenchida a partir de Tctot1. Permanecem evento 32 excluído e rand sem semente registrada.",
+        "promotion_allowed": false
+      },
+      "comparison_status": "candidate_series_extracted_not_promoted",
+      "series_key": "35|Teste",
+      "unit": "cm",
+      "prediction_contract": {
+        "observed_column": "NIVEL_FUTURO",
+        "prediction_column": "RNA_FINAL",
+        "target_delta_column": "OUT12H_DIF",
+        "target_and_prediction_excluded_from_inputs": true
+      },
+      "checks": {
+        "required_columns_present": true,
+        "event_values": [
+          35
+        ],
+        "partition": "Teste",
+        "serie_values": [
+          3
+        ],
+        "formula_mismatch_count": 0,
+        "nonfinite_row_count": 0,
+        "duplicate_timestamp_count": 0,
+        "audit_effective_rows": 1969,
+        "audit_test_rows_all_events": 405
+      },
+      "event_metrics": {
+        "points": 48,
+        "observed_peak_cm": 1986.0,
+        "observed_peak_base_timestamp": "2026-07-22 03:00",
+        "observed_peak_target_timestamp": "2026-07-22 15:00",
+        "predicted_peak_cm": 2057.43145,
+        "predicted_peak_base_timestamp": "2026-07-22 07:00",
+        "predicted_peak_target_timestamp": "2026-07-22 19:00",
+        "peak_error_cm": 71.43145,
+        "peak_lag_hours": 4.0,
+        "mae_cm": 198.574946
+      },
+      "series": [
+        {
+          "base_timestamp": "2026-07-21 15:00",
+          "target_timestamp": "2026-07-22 03:00",
+          "observed_cm": 1377.0,
+          "predicted_cm": 619.587955
+        },
+        {
+          "base_timestamp": "2026-07-21 16:00",
+          "target_timestamp": "2026-07-22 04:00",
+          "observed_cm": 1449.0,
+          "predicted_cm": 690.99238
+        },
+        {
+          "base_timestamp": "2026-07-21 17:00",
+          "target_timestamp": "2026-07-22 05:00",
+          "observed_cm": 1516.0,
+          "predicted_cm": 832.311541
+        },
+        {
+          "base_timestamp": "2026-07-21 18:00",
+          "target_timestamp": "2026-07-22 06:00",
+          "observed_cm": 1581.0,
+          "predicted_cm": 926.699421
+        },
+        {
+          "base_timestamp": "2026-07-21 19:00",
+          "target_timestamp": "2026-07-22 07:00",
+          "observed_cm": 1650.0,
+          "predicted_cm": 945.111788
+        },
+        {
+          "base_timestamp": "2026-07-21 20:00",
+          "target_timestamp": "2026-07-22 08:00",
+          "observed_cm": 1716.0,
+          "predicted_cm": 1026.771485
+        },
+        {
+          "base_timestamp": "2026-07-21 21:00",
+          "target_timestamp": "2026-07-22 09:00",
+          "observed_cm": 1778.0,
+          "predicted_cm": 1180.777799
+        },
+        {
+          "base_timestamp": "2026-07-21 22:00",
+          "target_timestamp": "2026-07-22 10:00",
+          "observed_cm": 1837.0,
+          "predicted_cm": 1379.515399
+        },
+        {
+          "base_timestamp": "2026-07-21 23:00",
+          "target_timestamp": "2026-07-22 11:00",
+          "observed_cm": 1879.0,
+          "predicted_cm": 1508.066896
+        },
+        {
+          "base_timestamp": "2026-07-22 00:00",
+          "target_timestamp": "2026-07-22 12:00",
+          "observed_cm": 1902.0,
+          "predicted_cm": 1611.042769
+        },
+        {
+          "base_timestamp": "2026-07-22 01:00",
+          "target_timestamp": "2026-07-22 13:00",
+          "observed_cm": 1924.0,
+          "predicted_cm": 1681.315017
+        },
+        {
+          "base_timestamp": "2026-07-22 02:00",
+          "target_timestamp": "2026-07-22 14:00",
+          "observed_cm": 1926.0,
+          "predicted_cm": 1750.805613
+        },
+        {
+          "base_timestamp": "2026-07-22 03:00",
+          "target_timestamp": "2026-07-22 15:00",
+          "observed_cm": 1986.0,
+          "predicted_cm": 1812.193157
+        },
+        {
+          "base_timestamp": "2026-07-22 05:00",
+          "target_timestamp": "2026-07-22 17:00",
+          "observed_cm": 1895.0,
+          "predicted_cm": 1905.508967
+        },
+        {
+          "base_timestamp": "2026-07-22 06:00",
+          "target_timestamp": "2026-07-22 18:00",
+          "observed_cm": 1868.0,
+          "predicted_cm": 1998.458521
+        },
+        {
+          "base_timestamp": "2026-07-22 07:00",
+          "target_timestamp": "2026-07-22 19:00",
+          "observed_cm": 1843.0,
+          "predicted_cm": 2057.43145
+        },
+        {
+          "base_timestamp": "2026-07-22 08:00",
+          "target_timestamp": "2026-07-22 20:00",
+          "observed_cm": 1811.0,
+          "predicted_cm": 2019.000683
+        },
+        {
+          "base_timestamp": "2026-07-22 09:00",
+          "target_timestamp": "2026-07-22 21:00",
+          "observed_cm": 1779.0,
+          "predicted_cm": 1882.5454
+        },
+        {
+          "base_timestamp": "2026-07-22 10:00",
+          "target_timestamp": "2026-07-22 22:00",
+          "observed_cm": 1741.0,
+          "predicted_cm": 1853.949215
+        },
+        {
+          "base_timestamp": "2026-07-22 11:00",
+          "target_timestamp": "2026-07-22 23:00",
+          "observed_cm": 1704.0,
+          "predicted_cm": 1759.127471
+        },
+        {
+          "base_timestamp": "2026-07-22 12:00",
+          "target_timestamp": "2026-07-23 00:00",
+          "observed_cm": 1658.0,
+          "predicted_cm": 1694.464003
+        },
+        {
+          "base_timestamp": "2026-07-22 13:00",
+          "target_timestamp": "2026-07-23 01:00",
+          "observed_cm": 1607.0,
+          "predicted_cm": 1663.897867
+        },
+        {
+          "base_timestamp": "2026-07-22 14:00",
+          "target_timestamp": "2026-07-23 02:00",
+          "observed_cm": 1555.0,
+          "predicted_cm": 1586.115054
+        },
+        {
+          "base_timestamp": "2026-07-22 15:00",
+          "target_timestamp": "2026-07-23 03:00",
+          "observed_cm": 1498.0,
+          "predicted_cm": 1772.369832
+        },
+        {
+          "base_timestamp": "2026-07-22 19:00",
+          "target_timestamp": "2026-07-23 07:00",
+          "observed_cm": 1332.0,
+          "predicted_cm": 1471.885368
+        },
+        {
+          "base_timestamp": "2026-07-22 21:00",
+          "target_timestamp": "2026-07-23 09:00",
+          "observed_cm": 1258.0,
+          "predicted_cm": 1408.039673
+        },
+        {
+          "base_timestamp": "2026-07-22 22:00",
+          "target_timestamp": "2026-07-23 10:00",
+          "observed_cm": 1223.0,
+          "predicted_cm": 1364.563828
+        },
+        {
+          "base_timestamp": "2026-07-22 23:00",
+          "target_timestamp": "2026-07-23 11:00",
+          "observed_cm": 1186.0,
+          "predicted_cm": 1325.928796
+        },
+        {
+          "base_timestamp": "2026-07-23 01:00",
+          "target_timestamp": "2026-07-23 13:00",
+          "observed_cm": 1120.0,
+          "predicted_cm": 1225.900593
+        },
+        {
+          "base_timestamp": "2026-07-23 02:00",
+          "target_timestamp": "2026-07-23 14:00",
+          "observed_cm": 1089.0,
+          "predicted_cm": 1184.285364
+        },
+        {
+          "base_timestamp": "2026-07-23 03:00",
+          "target_timestamp": "2026-07-23 15:00",
+          "observed_cm": 1055.0,
+          "predicted_cm": 1147.926589
+        },
+        {
+          "base_timestamp": "2026-07-23 05:00",
+          "target_timestamp": "2026-07-23 17:00",
+          "observed_cm": 986.0,
+          "predicted_cm": 1101.874253
+        },
+        {
+          "base_timestamp": "2026-07-23 06:00",
+          "target_timestamp": "2026-07-23 18:00",
+          "observed_cm": 971.0,
+          "predicted_cm": 1065.11088
+        },
+        {
+          "base_timestamp": "2026-07-23 07:00",
+          "target_timestamp": "2026-07-23 19:00",
+          "observed_cm": 960.0,
+          "predicted_cm": 1031.36865
+        },
+        {
+          "base_timestamp": "2026-07-23 09:00",
+          "target_timestamp": "2026-07-23 21:00",
+          "observed_cm": 929.0,
+          "predicted_cm": 945.66072
+        },
+        {
+          "base_timestamp": "2026-07-23 10:00",
+          "target_timestamp": "2026-07-23 22:00",
+          "observed_cm": 908.0,
+          "predicted_cm": 934.611178
+        },
+        {
+          "base_timestamp": "2026-07-23 11:00",
+          "target_timestamp": "2026-07-23 23:00",
+          "observed_cm": 884.0,
+          "predicted_cm": 913.087813
+        },
+        {
+          "base_timestamp": "2026-07-23 12:00",
+          "target_timestamp": "2026-07-24 00:00",
+          "observed_cm": 858.0,
+          "predicted_cm": 895.488808
+        },
+        {
+          "base_timestamp": "2026-07-23 13:00",
+          "target_timestamp": "2026-07-24 01:00",
+          "observed_cm": 835.0,
+          "predicted_cm": 858.155089
+        },
+        {
+          "base_timestamp": "2026-07-23 14:00",
+          "target_timestamp": "2026-07-24 02:00",
+          "observed_cm": 819.0,
+          "predicted_cm": 792.176547
+        },
+        {
+          "base_timestamp": "2026-07-23 15:00",
+          "target_timestamp": "2026-07-24 03:00",
+          "observed_cm": 806.0,
+          "predicted_cm": 800.59559
+        },
+        {
+          "base_timestamp": "2026-07-23 17:00",
+          "target_timestamp": "2026-07-24 05:00",
+          "observed_cm": 774.0,
+          "predicted_cm": 879.189282
+        },
+        {
+          "base_timestamp": "2026-07-23 18:00",
+          "target_timestamp": "2026-07-24 06:00",
+          "observed_cm": 756.0,
+          "predicted_cm": 870.239326
+        },
+        {
+          "base_timestamp": "2026-07-23 19:00",
+          "target_timestamp": "2026-07-24 07:00",
+          "observed_cm": 739.0,
+          "predicted_cm": 833.151315
+        },
+        {
+          "base_timestamp": "2026-07-23 20:00",
+          "target_timestamp": "2026-07-24 08:00",
+          "observed_cm": 725.0,
+          "predicted_cm": 794.979467
+        },
+        {
+          "base_timestamp": "2026-07-23 21:00",
+          "target_timestamp": "2026-07-24 09:00",
+          "observed_cm": 718.0,
+          "predicted_cm": 744.107797
+        },
+        {
+          "base_timestamp": "2026-07-23 22:00",
+          "target_timestamp": "2026-07-24 10:00",
+          "observed_cm": 711.0,
+          "predicted_cm": 712.800994
+        },
+        {
+          "base_timestamp": "2026-07-23 23:00",
+          "target_timestamp": "2026-07-24 11:00",
+          "observed_cm": 702.0,
+          "predicted_cm": 720.336541
+        }
+      ]
+    }
+  ]
+}
