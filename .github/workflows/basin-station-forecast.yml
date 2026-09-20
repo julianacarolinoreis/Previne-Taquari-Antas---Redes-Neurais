@@ -1,0 +1,69 @@
+name: Atualiza mapa de estações da bacia
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: basin-station-forecast
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Configura Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Atualiza o feed multi-modelo da bacia
+        run: python -B scripts/build_basin_station_forecast.py
+
+      - name: Testa o contrato do feed
+        run: python -m unittest scripts.test_basin_station_forecast -v
+
+      - name: Publica somente o feed da bacia
+        shell: bash
+        run: |
+          git config user.name 'previne-basin-station-bot'
+          git config user.email 'previne-basin-station-bot@users.noreply.github.com'
+          git add assets/data/basin_station_forecast_latest.json
+          if git diff --cached --quiet; then
+            echo 'Nenhuma mudança no feed.'
+            exit 0
+          fi
+          git commit -m 'bot: atualiza feed multi-modelo das estações da bacia'
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push ocupado; reconstruindo sobre a main (tentativa \${attempt}/5)."
+            git fetch origin main
+            git rebase origin/main || {
+              git rebase --abort || true
+              git reset --keep origin/main
+              python -B scripts/build_basin_station_forecast.py
+              python -m unittest scripts.test_basin_station_forecast -v
+              git add assets/data/basin_station_forecast_latest.json
+              if git diff --cached --quiet; then
+                echo 'Feed já publicado por outra execução.'
+                exit 0
+              fi
+              git commit -m 'bot: atualiza feed multi-modelo das estações da bacia'
+            }
+            sleep $((attempt * 2))
+          done
+          echo 'Não foi possível publicar após 5 tentativas.'
+          exit 1
