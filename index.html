@@ -1608,6 +1608,12 @@
     if(Number.isNaN(d.getTime()))return String(value);
     return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'});
   };
+  const basinNextCycle=value=>{
+    if(!value)return 'não informado';
+    const d=new Date(value);
+    if(Number.isNaN(d.getTime()))return String(value);
+    return basinDate(value)+(d.getTime()<Date.now()?' · rodada pendente':'');
+  };
   const basinFormat=(value,metric)=>{
     const n=basinNumber(value);
     if(n===null)return 'indisponível';
@@ -1907,7 +1913,7 @@
     const wind=basinValueFromModels(st,'wind_speed_10m',1,'first');
     const selectedCount=BASIN_DETAIL_MODELS.length;
     const generated=BASIN_FEED&&BASIN_FEED.generated_at_utc?basinDate(BASIN_FEED.generated_at_utc):'snapshot local';
-    const next=BASIN_FEED&&BASIN_FEED.next_cycle_utc?basinDate(BASIN_FEED.next_cycle_utc):'próximo ciclo não informado';
+    const next=BASIN_FEED&&BASIN_FEED.next_cycle_utc?basinNextCycle(BASIN_FEED.next_cycle_utc):'próximo ciclo não informado';
     const code=st.code&&st.code!=='—'?'código '+st.code:'código não informado';
     const coordinate=basinCoord(st.latitude!==undefined?st.latitude:st.lat,'N','S')+' · '+basinCoord(st.longitude!==undefined?st.longitude:st.lon,'E','O');
     let html='<div class="station-detail-header"><div><h3 class="station-detail-title">'+basinEscape(st.name||'Estação')+'</h3><p class="station-detail-subtitle">'+basinEscape(st.papel||kind.label)+' · '+basinEscape(coordinate)+'</p><div class="station-detail-badges"><span class="station-detail-badge">'+basinEscape(code)+'</span><span class="station-detail-badge">'+basinEscape(st.network||'rede não informada')+'</span><span class="station-detail-badge">'+basinEscape(kind.label)+'</span><span class="station-detail-badge research">pesquisa · não é alerta oficial</span></div></div><div class="station-detail-update">Feed gerado: '+basinEscape(generated)+'<br>Próximo ciclo: '+basinEscape(next)+'</div></div>';
@@ -2066,7 +2072,7 @@
     const rain=scope.observed_rain_station_count||0;
     const coverage=forecast===total?'cobertura completa':'cobertura parcial · '+basinEscape(total-forecast)+' indisponíveis sinalizadas';
     status.innerHTML='<span><strong>'+basinEscape(total)+' estações G040</strong> · '+basinEscape(forecast)+' com previsão · '+basinEscape(rain)+' com chuva observada publicada · '+coverage+'</span>'+
-      '<span class="map-status-right">Atualizado '+basinEscape(basinDate(BASIN_FEED.generated_at_utc))+' · próximo '+basinEscape(basinDate(BASIN_FEED.next_cycle_utc))+'</span>';
+      '<span class="map-status-right">Atualizado '+basinEscape(basinDate(BASIN_FEED.generated_at_utc))+' · próximo '+basinEscape(basinNextCycle(BASIN_FEED.next_cycle_utc))+'</span>';
   }
   async function basinLoadFeed(){
     const url='assets/data/basin_station_forecast_latest.json?v='+Date.now();
