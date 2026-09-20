@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Inventário auditável das frentes PREVINE, pesquisas, MATLAB, documentos e publicações.">
+  <title>Painel de frentes PREVINE</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-soft: #eef3f7;
+      --ink: #172433;
+      --muted: #637386;
+      --line: #dbe4ec;
+      --navy: #17324d;
+      --blue: #2f6fed;
+      --blue-soft: #e8f0ff;
+      --teal: #078f87;
+      --teal-soft: #e2f6f3;
+      --gold: #b27412;
+      --gold-soft: #fff4dc;
+      --red: #b64242;
+      --red-soft: #fde9e9;
+      --purple: #7756b8;
+      --purple-soft: #f0eaff;
+      --shadow: 0 14px 34px rgba(23, 50, 77, .08);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button, input, select { font: inherit; }
+    .shell { width: min(1320px, calc(100% - 36px)); margin: 0 auto; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 54px 0 42px;
+      color: #f8fbff;
+      background: radial-gradient(circle at 85% 8%, rgba(73, 147, 255, .33), transparent 34%), linear-gradient(135deg, #102b45, #1b496f 62%, #176f73);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      right: -220px;
+      bottom: -330px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 50%;
+      box-shadow: 0 0 0 48px rgba(255,255,255,.035), 0 0 0 96px rgba(255,255,255,.025);
+    }
+    .eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; color: #b9d9ff; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 30px; height: 2px; background: #66d8d0; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 780px; margin-bottom: 12px; font-size: clamp(32px, 5vw, 58px); line-height: 1.04; letter-spacing: -.045em; }
+    .hero p { max-width: 760px; margin-bottom: 22px; color: #d5e7f6; font-size: 17px; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; color: #d5e7f6; font-size: 13px; }
+    .hero-meta a { color: #fff; font-weight: 700; }
+    .pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; border: 1px solid rgba(255,255,255,.2); border-radius: 99px; background: rgba(255,255,255,.09); }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #66d8d0; }
+    main { padding: 28px 0 60px; }
+    .section { margin-bottom: 26px; }
+    .section-heading { display: flex; justify-content: space-between; gap: 20px; align-items: end; margin: 28px 0 13px; }
+    .section-heading h2 { margin: 0; font-size: 23px; letter-spacing: -.025em; }
+    .section-heading p { margin: 0; color: var(--muted); font-size: 13px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .kpi { min-height: 142px; padding: 17px; }
+    .kpi-value { display: block; color: var(--navy); font-size: 29px; font-weight: 850; letter-spacing: -.05em; }
+    .kpi-label { display: block; margin-top: 4px; font-weight: 800; }
+    .kpi-note { display: block; margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.38; }
+    .grid-2 { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+    .panel { padding: 21px; }
+    .panel h3 { margin-bottom: 4px; font-size: 17px; letter-spacing: -.02em; }
+    .panel-intro { margin-bottom: 17px; color: var(--muted); font-size: 13px; }
+    .notice { display: flex; gap: 12px; align-items: flex-start; padding: 15px 17px; border: 1px solid #b7d6f7; border-radius: 15px; background: #edf6ff; color: #214c75; }
+    .notice strong { display: block; margin-bottom: 2px; color: var(--navy); }
+    .notice p { margin: 0; font-size: 13px; }
+    .notice-icon { flex: 0 0 auto; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #d3e9ff; color: var(--blue); font-weight: 900; }
+    .status-chart { display: grid; gap: 11px; }
+    .bar-row { display: grid; grid-template-columns: 158px minmax(80px, 1fr) 28px; gap: 10px; align-items: center; }
+    .bar-label { color: var(--muted); font-size: 12px; }
+    .bar-track { height: 10px; overflow: hidden; border-radius: 10px; background: #eaf0f4; }
+    .bar-fill { height: 100%; border-radius: inherit; background: var(--blue); }
+    .bar-fill.publicado { background: var(--teal); }
+    .bar-fill.auditado { background: var(--purple); }
+    .bar-fill.quase { background: var(--gold); }
+    .bar-fill.andamento { background: #4795a5; }
+    .bar-fill.bloqueado { background: var(--red); }
+    .bar-count { color: var(--navy); font-size: 13px; font-weight: 800; text-align: right; }
+    .mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .mini-stat { padding: 13px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-soft); }
+    .mini-stat strong { display: block; color: var(--navy); font-size: 20px; letter-spacing: -.04em; }
+    .mini-stat span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+    .mini-stat small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.35; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0 16px; }
+    .tab { cursor: pointer; padding: 9px 14px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); color: var(--muted); font-weight: 750; transition: .15s ease; }
+    .tab:hover { border-color: #9cb8d6; color: var(--navy); }
+    .tab.active { border-color: var(--navy); background: var(--navy); color: #fff; }
+    .view { display: none; }
+    .view.active { display: block; }
+    .filterbar { display: grid; grid-template-columns: minmax(220px, 1.6fr) repeat(3, minmax(150px, .7fr)); gap: 10px; margin-bottom: 15px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+    .field input, .field select { min-height: 42px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 11px; outline: none; background: var(--surface); color: var(--ink); }
+    .field input:focus, .field select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px #e6efff; }
+    .front-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .front-card { display: flex; flex-direction: column; min-height: 290px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 8px 20px rgba(23,50,77,.055); }
+    .front-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .front-card h3 { margin: 0; color: var(--navy); font-size: 16px; line-height: 1.25; letter-spacing: -.02em; }
+    .theme { margin: 4px 0 12px; color: var(--muted); font-size: 12px; }
+    .badge { display: inline-flex; align-items: center; max-width: 215px; padding: 5px 8px; border-radius: 8px; font-size: 10px; font-weight: 850; line-height: 1.15; text-align: right; }
+    .badge.concluido { background: var(--blue-soft); color: #2751a7; }
+    .badge.publicado { background: var(--teal-soft); color: #08736d; }
+    .badge.auditado { background: var(--purple-soft); color: #65489f; }
+    .badge.quase { background: var(--gold-soft); color: #91600f; }
+    .badge.andamento { background: #e5f2f5; color: #2b7182; }
+    .badge.bloqueado { background: var(--red-soft); color: #9e3535; }
+    .confidence { display: inline-block; margin-bottom: 12px; color: var(--muted); font-size: 11px; }
+    .confidence::before { content: "Evidência "; font-weight: 800; }
+    .front-copy { margin: 0; font-size: 13px; }
+    .front-copy strong { color: var(--navy); }
+    .front-next { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .front-next strong { color: var(--navy); }
+    .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; padding-top: 14px; }
+    .tag { padding: 4px 7px; border-radius: 7px; background: var(--surface-soft); color: var(--muted); font-size: 10px; }
+    .empty { padding: 28px; border: 1px dashed #b8c8d8; border-radius: 15px; color: var(--muted); text-align: center; }
+    .evidence-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+    .source-list, .definition-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .source-item, .definition-item { padding: 12px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-soft); }
+    .source-item strong, .definition-item strong { display: block; color: var(--navy); }
+    .source-item span, .definition-item span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.42; }
+    .drive-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .drive-table th, .drive-table td { padding: 9px 7px; border-bottom: 1px solid var(--line); text-align: left; }
+    .drive-table th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+    .drive-table td:last-child { color: var(--muted); font-size: 11px; }
+    .root-list { display: grid; gap: 10px; }
+    .root-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); }
+    .root-row:last-child { border-bottom: 0; }
+    .root-row strong { display: block; color: var(--navy); }
+    .root-row span { color: var(--muted); font-size: 12px; }
+    .root-count { color: var(--navy); font-weight: 850; text-align: right; }
+    .timeline { position: relative; display: grid; gap: 0; }
+    .timeline::before { content: ""; position: absolute; top: 10px; bottom: 10px; left: 10px; width: 1px; background: var(--line); }
+    .timeline-item { position: relative; display: grid; grid-template-columns: 82px 1fr; gap: 15px; padding-bottom: 17px; }
+    .timeline-item::before { content: ""; position: absolute; top: 5px; left: 6px; width: 9px; height: 9px; border: 3px solid var(--bg); border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 1px var(--teal); }
+    .timeline-date { padding-left: 26px; color: var(--muted); font-size: 11px; font-weight: 800; }
+    .timeline-content { padding: 0 0 10px 14px; }
+    .timeline-content strong { display: block; color: var(--navy); }
+    .timeline-content span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .queue { display: grid; gap: 10px; }
+    .queue-item { display: grid; grid-template-columns: 38px 1fr; gap: 13px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+    .priority { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; background: var(--navy); color: #fff; font-weight: 850; }
+    .queue-item strong { display: block; color: var(--navy); }
+    .queue-item p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .queue-item small { display: block; margin-top: 7px; color: #2f7180; font-size: 11px; font-weight: 800; }
+    .footer { padding: 24px 0 10px; color: var(--muted); font-size: 12px; }
+    .footer strong { color: var(--navy); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 1060px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .front-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 780px) { .shell { width: min(100% - 24px, 680px); } .hero { padding: 39px 0 31px; } .grid-2, .evidence-grid { grid-template-columns: 1fr; } .filterbar { grid-template-columns: 1fr 1fr; } .filterbar .field:first-child { grid-column: 1 / -1; } }
+    @media (max-width: 540px) { .kpi-grid, .front-grid { grid-template-columns: 1fr; } .kpi { min-height: auto; } .filterbar { grid-template-columns: 1fr; } .filterbar .field:first-child { grid-column: auto; } .bar-row { grid-template-columns: 120px minmax(50px,1fr) 24px; gap: 7px; } .bar-label { font-size: 11px; } .panel { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="shell">
+      <div class="eyebrow">Painel de continuidade</div>
+      <h1 id="page-title">Painel de frentes PREVINE</h1>
+      <p id="page-subtitle"></p>
+      <div class="hero-meta">
+        <span class="pill"><span class="dot"></span> snapshot <span id="snapshot-date"></span></span>
+        <span class="pill">evidência pública sanitizada</span>
+        <a class="pill" id="repo-link" target="_blank" rel="noreferrer" href="#">abrir repositório</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="section" aria-labelledby="overview-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="overview-title">Uma fotografia do que existe</h2>
+          <p>Contagens de artefatos, filas, tarefas e entregas não são somadas como se fossem a mesma coisa.</p>
+        </div>
+      </div>
+      <div id="kpi-grid" class="kpi-grid"></div>
+    </section>
+
+    <section class="section grid-2">
+      <article class="card panel">
+        <h3>Estado das 20 frentes catalogadas</h3>
+        <p class="panel-intro">O estado descreve a evidência disponível, não uma nota subjetiva de produtividade.</p>
+        <div id="status-chart" class="status-chart"></div>
+      </article>
+      <article class="card panel">
+        <h3>O que “terminado” significa aqui</h3>
+        <p class="panel-intro">A dashboard conserva as fronteiras que costumam se perder quando muitas frentes avançam ao mesmo tempo.</p>
+        <div id="definition-mini" class="mini-grid"></div>
+      </article>
+    </section>
+
+    <section class="section notice" aria-label="limite de escopo">
+      <div class="notice-icon">i</div>
+      <div>
+        <strong>Leitura segura do painel</strong>
+        <p>O painel não publica documentos privados, recibos, IDs do Drive, e-mail, caminhos pessoais ou credenciais. “Publicado” não quer dizer “aprovado”; “fila concluída” não quer dizer “modelo promovido”; e nenhuma frente de pesquisa é um alerta oficial.</p>
+      </div>
+    </section>
+
+    <nav class="tabs" aria-label="seções do painel">
+      <button class="tab active" data-view="overview">Visão geral</button>
+      <button class="tab" data-view="fronts">Todas as frentes</button>
+      <button class="tab" data-view="evidence">Fontes e números</button>
+      <button class="tab" data-view="finish">O que falta fechar</button>
+    </nav>
+
+    <section id="view-overview" class="view active" aria-labelledby="overview-view-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="overview-view-title">Mapa de continuidade</h2>
+          <p>As frentes abaixo são as unidades que você consegue abrir e decidir uma por uma.</p>
+        </div>
+      </div>
+      <div id="overview-fronts" class="front-grid"></div>
+      <div class="section-heading"><div><h2>Linha do tempo recente</h2><p>Eventos selecionados que ajudam a lembrar de onde veio cada pendência.</p></div></div>
+      <article class="card panel"><div id="timeline" class="timeline"></div></article>
+    </section>
+
+    <section id="view-fronts" class="view" aria-labelledby="fronts-view-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="fronts-view-title">Todas as frentes</h2>
+          <p id="front-count"></p>
+        </div>
+      </div>
+      <div class="filterbar" aria-label="filtros de frentes">
+        <div class="field"><label for="search">Buscar</label><input id="search" type="search" placeholder="RNA, hidrometria, artigo..." autocomplete="off"></div>
+        <div class="field"><label for="status-filter">Estado</label><select id="status-filter"><option value="all">Todos os estados</option></select></div>
+        <div class="field"><label for="theme-filter">Tema</label><select id="theme-filter"><option value="all">Todos os temas</option></select></div>
+        <div class="field"><label for="horizon-filter">Horizonte</label><select id="horizon-filter"><option value="all">Todos</option><option value="2">2 h</option><option value="4">4 h</option><option value="8">8 h</option><option value="12">12 h</option></select></div>
+      </div>
+      <div id="front-grid" class="front-grid"></div>
+    </section>
+
+    <section id="view-evidence" class="view" aria-labelledby="evidence-view-title">
+      <div class="section-heading"><div><h2 id="evidence-view-title">Fontes, números e limites</h2><p>O que foi lido, o que foi contado e o que deliberadamente não foi publicado.</p></div></div>
+      <div class="evidence-grid">
+        <article class="card panel"><h3>Conversas acessíveis</h3><p class="panel-intro">A contagem é de itens listáveis nesta sessão, não de toda a conta.</p><div id="conversation-stats" class="mini-grid"></div></article>
+        <article class="card panel"><h3>Busca de metadados no Drive</h3><p class="panel-intro">Palavra-chave encontra arquivos relacionados; não é contagem de pesquisas únicas.</p><div id="drive-table-wrap"></div></article>
+        <article class="card panel"><h3>Inventário local</h3><p class="panel-intro">Raízes de trabalho usadas no snapshot, com arquivos gerais e `.mat` separados.</p><div id="roots"></div></article>
+        <article class="card panel"><h3>MATLAB e horizontes</h3><p class="panel-intro">A contagem de arquivo é diferente da contagem de execução. Cópias foram tratadas como cópias.</p><div id="matlab-stats" class="mini-grid"></div><div id="horizon-chart" class="status-chart" style="margin-top:16px"></div></article>
+        <article class="card panel"><h3>Snapshots publicados/auditados</h3><p class="panel-intro">Há versões distintas do catálogo; o painel não inventa uma reconciliação.</p><div id="snapshots" class="source-list"></div></article>
+        <article class="card panel"><h3>Como interpretar estados</h3><p class="panel-intro">As definições completas são deliberadamente curtas e operacionais.</p><ul id="definitions" class="definition-list"></ul></article>
+      </div>
+    </section>
+
+    <section id="view-finish" class="view" aria-labelledby="finish-view-title">
+      <div class="section-heading"><div><h2 id="finish-view-title">O que falta fechar</h2><p>Fila prática para transformar material já existente em entregas realmente encerradas.</p></div></div>
+      <div id="finish-queue" class="queue"></div>
+    </section>
+
+    <footer class="footer">
+      <p><strong>Proveniência:</strong> snapshot consolidado de conversas acessíveis do Codex, inventários locais PREVINE, logs/artefatos MATLAB, buscas de metadados no Drive e repositórios GitHub acessíveis. A página preserva o princípio: evidência de existência não é prova de qualidade.</p>
+      <p>Se um número mudar, a alteração deve vir acompanhada da fonte, do escopo e da data. O código desta página é estático e pode ser atualizado com um novo snapshot auditado.</p>
+    </footer>
+  </main>
+
+  <script src="data.js"></script>
+  <script>
+    (() => {
+      const data = window.INVENTORY;
+      const $ = (selector) => document.querySelector(selector);
+      const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
+      const nf = new Intl.NumberFormat("pt-BR");
+      const statusOrder = ["concluido", "publicado", "auditado", "quase", "andamento", "bloqueado"];
+      const statusColorClass = (status) => status;
+
+      document.title = data.meta.title;
+      $("#page-title").textContent = data.meta.title;
+      $("#page-subtitle").textContent = data.meta.subtitle;
+      $("#snapshot-date").textContent = data.meta.snapshotDate;
+      $("#repo-link").href = `https://github.com/${data.meta.githubRepo}`;
+
+      $("#kpi-grid").innerHTML = data.kpis.map((kpi) => `
+        <article class="card kpi">
+          <span class="kpi-value">${esc(kpi.value)}</span>
+          <span class="kpi-label">${esc(kpi.label)}</span>
+          <span class="kpi-note">${esc(kpi.note)}</span>
+        </article>
+      `).join("");
+
+      const counts = Object.fromEntries(statusOrder.map((status) => [status, data.fronts.filter((front) => front.status === status).length]));
+      const maxCount = Math.max(...Object.values(counts), 1);
+      $("#status-chart").innerHTML = statusOrder.map((status) => `
+        <div class="bar-row">
+          <span class="bar-label">${esc(data.statusLabels[status])}</span>
+          <span class="bar-track"><span class="bar-fill ${statusColorClass(status)}" style="width:${(counts[status] / maxCount) * 100}%"></span></span>
+          <span class="bar-count">${counts[status]}</span>
+        </div>
+      `).join("");
+
+      const miniDefinitions = [
+        ["Concluído", "entrega existe e foi verificada"],
+        ["Auditado", "inspeção feita, limites preservados"],
+        ["Publicado", "cópia pública existe, não é aprovação"],
+        ["Bloqueado", "depende de evidência ou veredicto ausente"]
+      ];
+      $("#definition-mini").innerHTML = miniDefinitions.map(([title, text]) => `<div class="mini-stat"><strong>${esc(title)}</strong><span>${esc(text)}</span></div>`).join("");
+
+      function frontCard(front) {
+        const horizons = front.horizon.length ? `<span class="tag">${front.horizon.map((h) => `${h} h`).join(" · ")}</span>` : "";
+        return `<article class="front-card">
+          <div class="front-top"><div><h3>${esc(front.title)}</h3><div class="theme">${esc(front.theme)}</div></div><span class="badge ${front.status}">${esc(data.statusLabels[front.status])}</span></div>
+          <span class="confidence">${esc(front.confidence)}</span>
+          <p class="front-copy"><strong>Evidência:</strong> ${esc(front.evidence)}</p>
+          <p class="front-next"><strong>Próximo fechamento:</strong> ${esc(front.next)}<br><strong>Limite:</strong> ${esc(front.boundary)}</p>
+          <div class="tags">${front.tags.map((tag) => `<span class="tag">${esc(tag)}</span>`).join("")}${horizons}</div>
+        </article>`;
+      }
+
+      $("#overview-fronts").innerHTML = data.fronts.slice(0, 9).map(frontCard).join("");
+
+      $("#timeline").innerHTML = data.timeline.map((item) => `<div class="timeline-item"><div class="timeline-date">${esc(item.date)}</div><div class="timeline-content"><strong>${esc(item.title)}</strong><span>${esc(item.source)} · ${esc(item.outcome)}</span></div></div>`).join("");
+
+      const statusFilter = $("#status-filter");
+      statusOrder.forEach((status) => statusFilter.insertAdjacentHTML("beforeend", `<option value="${status}">${esc(data.statusLabels[status])}</option>`));
+      const themeFilter = $("#theme-filter");
+      [...new Set(data.fronts.map((front) => front.theme))].sort((a, b) => a.localeCompare(b, "pt-BR")).forEach((theme) => themeFilter.insertAdjacentHTML("beforeend", `<option value="${esc(theme)}">${esc(theme)}</option>`));
+
+      function renderFronts() {
+        const search = $("#search").value.trim().toLocaleLowerCase("pt-BR");
+        const status = statusFilter.value;
+        const theme = themeFilter.value;
+        const horizon = $("#horizon-filter").value;
+        const filtered = data.fronts.filter((front) => {
+          const haystack = [front.title, front.theme, front.status, front.evidence, front.next, front.boundary, ...front.tags].join(" ").toLocaleLowerCase("pt-BR");
+          return (!search || haystack.includes(search)) && (status === "all" || front.status === status) && (theme === "all" || front.theme === theme) && (horizon === "all" || front.horizon.includes(Number(horizon)));
+        });
+        $("#front-count").textContent = `${filtered.length} de ${data.fronts.length} frentes visíveis com os filtros atuais.`;
+        $("#front-grid").innerHTML = filtered.length ? filtered.map(frontCard).join("") : `<div class="empty">Nenhuma frente corresponde aos filtros. Remova um filtro ou procure por outro termo.</div>`;
+      }
+      ["#search", "#status-filter", "#theme-filter", "#horizon-filter"].forEach((selector) => $(selector).addEventListener("input", renderFronts));
+      renderFronts();
+
+      const conversations = data.conversationInventory;
+      $("#conversation-stats").innerHTML = [
+        [conversations.codexTotal, "tarefas Codex", "39 visíveis + 71 arquivadas"],
+        [conversations.chatgptVisible, "conversas ChatGPT", "visíveis na leitura atual"],
+        [data.fronts.length, "frentes curadas", "agrupamento editorial, não soma de arquivos"]
+      ].map(([value, label, note]) => `<div class="mini-stat"><strong>${esc(nf.format(value))}</strong><span>${esc(label)}</span><small>${esc(note)}</small></div>`).join("");
+
+      $("#drive-table-wrap").innerHTML = `<table class="drive-table"><thead><tr><th>Busca</th><th>Retorno</th><th>Leitura</th></tr></thead><tbody>${data.driveSignals.map((row) => `<tr><td>${esc(row.query)}</td><td>${esc(nf.format(row.count))}</td><td>${esc(row.certainty)}</td></tr>`).join("")}</tbody></table>`;
+
+      const bytesToGb = (bytes) => bytes == null ? "—" : `${(bytes / 1e9).toFixed(2).replace(".", ",")} GB`;
+      $("#roots").innerHTML = `<div class="root-list">${data.localInventory.roots.map((root) => `<div class="root-row"><div><strong>${esc(root.name)}</strong><span>${esc(root.scope)} · ${bytesToGb(root.bytes)}</span></div><div class="root-count">${nf.format(root.files)}<br><span>arquivos</span></div></div>`).join("")}</div>`;
+
+      const mat = data.localInventory.mat;
+      const matlab = data.localInventory.matlab;
+      $("#matlab-stats").innerHTML = [
+        [nf.format(mat.currentPhysicalFiles), ".mat físicos agora", "inclui worktrees"],
+        [nf.format(mat.uniqueSha256), "hashes SHA-256 únicos", "auditoria de 5.913 arquivos"],
+        [nf.format(mat.duplicateHashGroups), "grupos duplicados", "não são execuções novas"],
+        [nf.format(matlab.explicitQueueParents), "pastas de fila concluídas", "25 pais de log distintos"],
+        ["350", "marcadores .done", "sinal de conclusão, não total de modelos"],
+        ["3", "registros com contagem", "107, 105 e 11; não somar"],
+        ["16,37 h", "duração documentada", "uma fila de 24 itens"],
+        ["2 / 4 / 8 / 12 h", "famílias de horizonte", "contagem por nome de arquivo"]
+      ].map(([value, label, note]) => `<div class="mini-stat"><strong>${esc(value)}</strong><span>${esc(label)}</span><small>${esc(note)}</small></div>`).join("");
+
+      const maxHorizon = Math.max(...data.localInventory.horizonFiles.map((item) => item.value));
+      $("#horizon-chart").innerHTML = data.localInventory.horizonFiles.map((item) => `<div class="bar-row"><span class="bar-label">${esc(item.label)}</span><span class="bar-track"><span class="bar-fill andamento" style="width:${(item.value / maxHorizon) * 100}%"></span></span><span class="bar-count">${nf.format(item.value)}</span></div>`).join("");
+
+      $("#snapshots").innerHTML = data.publishedSnapshots.map((item) => `<li class="source-item"><strong>${esc(item.label)} · ${esc(item.value)}</strong><span>${esc(item.note)}</span></li>`).join("");
+      $("#definitions").innerHTML = statusOrder.map((status) => `<li class="definition-item"><strong>${esc(data.statusLabels[status])}</strong><span>${esc(data.statusDescriptions[status])}</span></li>`).join("");
+      $("#finish-queue").innerHTML = data.finishQueue.map((item) => `<article class="queue-item"><div class="priority">${esc(item.priority)}</div><div><strong>${esc(item.title)}</strong><p>${esc(item.reason)}</p><small>Fechar quando: ${esc(item.doneWhen)}</small></div></article>`).join("");
+
+      document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((other) => other.classList.toggle("active", other === tab));
+        document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === `view-${tab.dataset.view}`));
+        window.scrollTo({ top: document.querySelector(".tabs").offsetTop - 12, behavior: "smooth" });
+      }));
+    })();
+  </script>
+</body>
+</html>
+
