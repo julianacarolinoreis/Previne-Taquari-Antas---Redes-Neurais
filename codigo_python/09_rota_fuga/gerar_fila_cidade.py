@@ -64,6 +64,25 @@ def cota_de(ponto, U, niveis):
     return None
 
 
+def cota_de_celula(geom, U, niveis):
+    """Primeiro HAND com interseção de área positiva na célula IBGE.
+
+    Evita o falso "sem dado" gerado quando apenas o centroide ficava fora da
+    mancha embora parte da célula fosse atingida. Como a população é agregada
+    à célula, o total segue como limite superior de triagem.
+    """
+    if geom is None or geom.is_empty or geom.area <= 0:
+        return None, 0.0
+    for nv in niveis:
+        alvo = U[nv]
+        if not alvo.intersects(geom):
+            continue
+        inter = alvo.intersection(geom)
+        if not inter.is_empty and inter.area > 0:
+            return nv, max(0.0, min(1.0, inter.area / geom.area))
+    return None, 0.0
+
+
 def no_prox(nos, lat, lon):
     best, bd = 0, 1e18
     clat = math.cos(math.radians(lat))
@@ -158,12 +177,14 @@ def gerar(slug: str):
         g = shape(f["geometry"])
         c = g.centroid
         lat, lon = round(c.y, 6), round(c.x, 6)
-        cota = cota_de(Point(lon, lat), U, niveis)
+        cota, frac_area = cota_de_celula(g, U, niveis)
         i = no_prox(nos, lat, lon)
         ab = by_id.get(dest[i]) if i < len(dest) else None
         rec = {
             "pop": round(pop),
             "cota": cota,
+            "frac_area_primeiro_nivel": round(frac_area, 4) if cota is not None else 0.0,
+            "cota_metodo": "intersecao_geometrica_celula_ibge",
             "dist_m": round(distn[i]) if i < len(distn) else None,
             "min_idoso": round((distn[i] or 0) / VEL_IDOSO / 60) if i < len(distn) else None,
             "lat": lat,
