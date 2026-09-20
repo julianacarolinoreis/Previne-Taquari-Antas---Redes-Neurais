@@ -339,6 +339,15 @@ window.INVENTORY = {
     { label: "Scan do site RNA", value: "60 entradas", note: "snapshot posterior; não reconciliado com 55" },
     { label: "Repositórios GitHub acessíveis", value: "3", note: "um deles reservado para este painel" }
   ],
+  glossary: [
+    { term: "RNA", meaning: "Rede neural artificial; neste painel, aparece como pesquisa experimental, não como garantia de previsão válida." },
+    { term: "MATLAB", meaning: "Ambiente e linguagem usados em parte das execuções, filas e artefatos numéricos catalogados." },
+    { term: "HEC-HMS", meaning: "Modelo/ambiente hidrológico usado em circuitos de pesquisa; a presença de arquivos não fecha a validação." },
+    { term: "ECMWF / IFS", meaning: "Fonte/modelo meteorológico; dado modelado não deve ser lido como observação local direta." },
+    { term: "DSS", meaning: "Formato/base de séries usado em parte do circuito HEC-HMS e na troca de dados hidrológicos." },
+    { term: "PERS", meaning: "Métrica registrada nos experimentos de RNA; um resultado isolado não prova promoção do modelo." },
+    { term: "MAT / XLSX / CSV", meaning: "Extensões de arquivos; sua existência ou quantidade não equivale, sozinha, a uma execução ou pesquisa concluída." }
+  ],
   timeline: [
     { date: "2026-09-19", title: "Inventário transversal", source: "Codex + local + Drive + GitHub", outcome: "Painel sanitizado em construção; números separados por tipo de evidência." },
     { date: "2026-09-17", title: "Calibragem HEC-HMS", source: "Drive / local", outcome: "Artefatos encontrados; validação de circuito ainda aberta." },
