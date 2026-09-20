@@ -452,7 +452,7 @@
 
       const tabs = [...document.querySelectorAll(".tab")];
       const views = [...document.querySelectorAll(".view")];
-      function activateView(name, focusPanel = false) {
+      function activateView(name, focusPanel = false, shouldScroll = true) {
         tabs.forEach((tab) => {
           const active = tab.dataset.view === name;
           tab.classList.toggle("active", active);
@@ -467,7 +467,7 @@
         });
         const activeView = document.querySelector(`#view-${name}`);
         if (focusPanel && activeView) activeView.focus({ preventScroll: true });
-        window.scrollTo({ top: document.querySelector(".tabs").offsetTop - 12, behavior: "smooth" });
+        if (shouldScroll) window.scrollTo({ top: document.querySelector(".tabs").offsetTop - 12, behavior: "smooth" });
       }
       tabs.forEach((tab, index) => {
         tab.addEventListener("click", () => activateView(tab.dataset.view));
@@ -481,7 +481,7 @@
         });
       });
       document.querySelectorAll("[data-jump='finish']").forEach((button) => button.addEventListener("click", () => activateView("finish", true)));
-      activateView("overview");
+      activateView("overview", false, false);
     })();
   </script>
 </body>
