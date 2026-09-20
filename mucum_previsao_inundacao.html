@@ -113,29 +113,10 @@
   .live-timing-rows>span{display:block}
   .live-timing-rows .live-timing-meta{font-size:10px;color:#5d6b63}
   .live-timing-rows small{font-size:10px;color:#5d6b63}
-  /* pesquisa validada: painel separado do produto experimental ao vivo */
-  .research-panel{border:1px solid #b9d9ca;background:linear-gradient(180deg,#f5fbf7,#fff);border-radius:14px;padding:13px 14px;margin:0 0 14px;box-shadow:var(--shadow)}
-  .research-panel .rp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
-  .research-panel h2{font-size:13px;line-height:1.2;margin:0;color:#0f6b4a}
-  .research-panel .rp-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#5c6b63;font-weight:750;margin-bottom:3px}
-  .research-panel .rp-badge{font-size:9.5px;line-height:1.15;text-align:center;color:#7b5510;background:#fff4dc;border:1px solid #efd09a;border-radius:999px;padding:5px 7px;font-weight:800;white-space:nowrap}
-  .research-panel .rp-copy{font-size:11.5px;color:#405148;line-height:1.45;margin:0 0 10px}
-  .research-panel .rp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:8px 0 10px}
-  .research-panel .rp-stat{background:#fff;border:1px solid #dfeae2;border-radius:9px;padding:8px 9px;min-height:49px}
-  .research-panel .rp-stat b{display:block;font-size:17px;line-height:1.1;color:#132019;font-variant-numeric:tabular-nums}
-  .research-panel .rp-stat span{display:block;font-size:10px;color:#5c6b63;margin-top:3px;line-height:1.2}
-  .research-panel .rp-meta{border-top:1px solid #dfeae2;padding-top:8px;font-size:10.5px;color:#5c6b63;line-height:1.45}
-  .research-panel .rp-meta strong{color:#132019}
-  .research-panel .rp-next{margin:9px 0 0;padding:8px 9px;background:#eef6ff;border:1px solid #c9ddf4;border-radius:9px;color:#31516e;font-size:10.5px;line-height:1.4}
-  .research-panel .rp-next strong{color:#1e5fbf}
-  .research-panel .rp-status-link{display:inline-block;margin-top:6px;color:#0f6b4a;font-weight:750;text-decoration:underline}
-  .research-panel .rp-quality{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:9px 0 0}
-  .research-panel .rp-quality-item{border:1px solid #dfeae2;border-radius:9px;background:#fff;padding:7px 8px;line-height:1.25}
-  .research-panel .rp-quality-item b{display:block;font-size:10.5px;color:#132019}
-  .research-panel .rp-quality-item span{display:block;font-size:9.5px;color:#5c6b63;margin-top:2px}
-  .research-panel .rp-quality-item em{display:inline-block;font-size:9px;font-style:normal;font-weight:750;color:#8a5a12;background:#fff4dc;border-radius:999px;padding:2px 5px;margin-top:4px}
-  @media(max-width:900px){.research-panel .rp-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.research-panel .rp-stat{min-height:55px}}
-  @media(max-width:520px){.research-panel .rp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .research-separate-link{border:1px solid #c9ddf4;background:#f7fbff;border-radius:12px;padding:11px 13px;margin:0 0 14px;color:#31516e}
+  .research-separate-link h3{margin:0;color:#1e5fbf;font-size:13px}
+  .research-separate-link p{margin:5px 0 0;font-size:11px;line-height:1.4}
+  .research-separate-link a{display:inline-block;margin-top:7px;color:#0f6b4a;font-size:11px;font-weight:750;text-decoration:underline}
   .live-hz{display:none;gap:6px;margin:-2px 0 10px;flex-wrap:wrap}
   .live-hz button{flex:1 1 72px;border:1px solid #f3c0b8;background:#fff;color:#a5281c;border-radius:9px;padding:7px 8px;font-size:12px;font-weight:750;cursor:pointer}
   .live-hz button.on{background:#a5281c;color:#fff;border-color:#a5281c}
@@ -157,6 +138,12 @@
     main{grid-template-columns:1fr;height:auto}
     #map{height:56vh}
     aside{border-left:0;border-top:1px solid var(--line)}
+  }
+  @media(max-width:600px){
+    header{flex-wrap:wrap;padding:10px 12px}
+    header>div:not(.modes){min-width:0;flex:1}
+    .modes{width:100%;margin-left:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-radius:12px}
+    .modes button{white-space:normal;line-height:1.2;padding:8px 5px;font-size:11.5px}
   }
 </style>
 <link rel="stylesheet" href="assets/previsao_panorama.css?v=20260913-briefing-v1">
@@ -364,37 +351,11 @@
       </div>
       <p class="overview-note" id="window-compare-source">A tabela será preenchida somente com previsões e leituras auditáveis.</p>
     </section>
-    <section class="research-panel overview-research-panel" aria-labelledby="research-panel-title">
-      <div class="rp-head">
-        <div><div class="rp-kicker">Pesquisa PREVINE · Muçum</div><h2 id="research-panel-title">Previsão meteorológica e avaliação</h2></div>
-        <span class="rp-badge">SEM ALERTA AUTOMÁTICO</span>
-      </div>
-      <p class="rp-copy">Este painel fica abaixo do histórico de sete dias para separar o monitoramento do rio da previsão meteorológica. O robô ao vivo de +2 h, +4 h e +8 h publica os candidatos principal/comparativo separadamente; a chuva de 24–168 h continua sendo uma <b>estimativa experimental de pesquisa</b>, sem autoridade de alerta oficial.</p>
-      <div class="rp-grid" aria-label="Resumo da previsão de Muçum">
-        <div class="rp-stat"><b>86510000</b><span>estação Muçum</span></div>
-        <div class="rp-stat"><b>1.800 cm</b><span>cota oficial de inundação</span></div>
-        <div class="rp-stat"><b>24–168 h</b><span>chuva prevista no ponto (IFS)</span></div>
-        <div class="rp-stat"><b>experimental</b><span>score de pesquisa, não calibrado</span></div>
-      </div>
-      <div class="rp-meta"><strong>Observação:</strong> robô ANA 86510000 e previsão pontual de nível +2 h/+4 h/+8 h. <strong>Chuva:</strong> ECMWF IFS no ponto de Muçum; proxies GEFS/IFS da célula aparecem apenas como comparação. <strong>Solo:</strong> proxy modelado em m³/m³, não medição local de saturação. <strong>Score:</strong> estimativa experimental em escala 0–100, não chance real nem alerta.</div>
-      <div class="rp-quality" aria-label="Qualidade e disponibilidade das fontes">
-        <div class="rp-quality-item"><b>Observação do rio</b><span>robô ANA 86510000</span><em>monitorada</em></div>
-        <div class="rp-quality-item"><b>Chuva prevista</b><span>ECMWF IFS prospectivo</span><em>atualização horária</em></div>
-        <div class="rp-quality-item"><b>Umidade do solo</b><span>proxy modelado 0–7 cm</span><em>sem medição local</em></div>
-        <div class="rp-quality-item"><b>Risco 24–168 h</b><span id="rp-risk-state">modelo específico em pesquisa</span><em>experimental</em></div>
-      </div>
-      <div class="rp-next">
-        <strong id="overview-research-risk-label">Carregando previsão meteorológica…</strong>
-        <p id="overview-research-risk-detail" class="rp-copy" style="margin:6px 0 0">O feed meteorológico será carregado aqui.</p>
-        <div id="rp-risk-grid" class="rp-risk-grid" aria-live="polite"></div>
-        <a class="rp-status-link" href="pesquisa_status_mucum.html">Abrir pesquisa de transbordamento de Muçum&nbsp;→</a>
-       </div>
-       <div class="rp-next" aria-live="polite">
-         <strong>Revisão técnica: cinco papéis internos</strong>
-         <p id="rp-review-detail" class="rp-copy" style="margin:6px 0 0">Carregando revisão técnica...</p>
-         <div id="rp-review-grid" class="rp-risk-grid" aria-label="Resumo dos cinco revisores"></div>
-       </div>
-     </section>
+    <section class="research-separate-link" aria-labelledby="research-separate-title">
+      <h3 id="research-separate-title">Pesquisa “vai mudar ou não?” · 24 h ou mais</h3>
+      <p>Esta pesquisa não faz parte do “Até onde a água pode chegar?”. Ela tem uma página própria, com seus horizontes, fontes e estados experimentais separados.</p>
+      <a href="pesquisa_status_mucum.html">Abrir a pesquisa de Muçum →</a>
+    </section>
      <div class="overview-insights panorama-only">
       <article class="overview-insight">
         <h3>Velocidade do rio</h3>
@@ -409,10 +370,16 @@
       <article class="overview-insight">
         <h3>Robô especializado · Muçum</h3>
         <strong id="overview-robot-label">Robô ao vivo ativo</strong>
-        <p id="overview-robot-detail">A estação Muçum é atualizada automaticamente a cada 5 minutos e publica nível observado e previsão experimental de +2 h, +4 h e +8 h, com modelo principal e comparativo quando disponíveis. A chuva prevista de 24 a 168 h aparece no cartão ao lado; ainda não é probabilidade de inundação.</p>
+        <p id="overview-robot-detail">A estação Muçum é atualizada automaticamente a cada 5 minutos e publica nível observado e previsão experimental de +2 h, +4 h e +8 h, com modelo principal e comparativo quando disponíveis. A pesquisa “vai mudar ou não?” fica em página separada.</p>
+      </article>
+      <article class="overview-insight">
+        <h3>Pesquisa separada</h3>
+        <strong>“Vai mudar ou não?” · 24 h+</strong>
+        <p>Os resultados experimentais ficam na página própria de pesquisa, fora deste panorama de nível e mancha.</p>
+        <a href="pesquisa_status_mucum.html">Abrir pesquisa →</a>
       </article>
     </div>
-     <p class="overview-note">Os botões do ao vivo mostram 2 h, os dois candidatos 4 h e os dois candidatos 8 h quando cada saída tem todos os inputs exatos. O estado da saída identifica o papel da pesquisa; não é probabilidade nem garantia de acerto. A camada do mapa é um proxy de extravasamento relativo ao HAND 0 e não substitui alerta oficial.</p>
+     <p class="overview-note">Os botões do ao vivo mostram 2 h, os dois candidatos 4 h e os dois candidatos 8 h quando cada saída tem todos os inputs exatos. A pesquisa de 24 h ou mais fica separada e não é probabilidade operacional nem alerta oficial. A camada do mapa é um proxy de extravasamento relativo ao HAND 0 e não substitui alerta oficial.</p>
     <p class="sr-only" id="overview-accessible" aria-live="polite">Carregando panorama do rio.</p>
   </section>
 </main>
@@ -1061,7 +1028,7 @@ function renderLiveStep(){
     if(note){ note.style.display='';
       note.textContent='Estação de Muçum sem dado recente da ANA neste momento'
         + (q?(' (última leitura '+fmtWhen(q)+')'):'')
-        + ' — a previsão de 2h/4h volta assim que a telemetria retornar; o robô tenta a cada ~5 min.'; }
+        + ' — a previsão de 2h/4h/8h volta assim que a telemetria retornar; o robô tenta a cada ~5 min.'; }
     updateMapAccessibleSummary(liveData,'indisponível');
     // limpa a mancha e os números do cenário que ficaram na tela
     ['s-now','s-fore','s-drio','s-newarea','s-atot','s-conf','s-hz2','s-hz','s-falta-now','s-falta-fore'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='—'; });
@@ -1173,8 +1140,6 @@ async function init(){
       '034_alt_MUC_H08_V24_RAIN18_24_48_R00_T31-33-34-35-37_V18-20-21'
     ],
     cotaInundCm:COTA_INUND,
-    researchRiskUrl:'assets/data/research_weather_mucum_latest.json',
-    researchReviewUrl:'assets/data/research_specialist_review_summary_latest.json',
     stationCode:'86510000',
     stationLabel:'Muçum',
     onLayout:()=>{if(map)setTimeout(()=>map.invalidateSize(),50);}

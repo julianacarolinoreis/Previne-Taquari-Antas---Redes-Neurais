@@ -1037,7 +1037,6 @@
     label.textContent=liveFresh.stale
       ?'Robô de atualização com atraso'
       :(telemetryAge!==null&&telemetryAge>120?'Dados publicados · telemetria ANA muito atrasada':(telemetryAge!==null&&telemetryAge>60?'Dados publicados · última leitura ANA com atraso':'Robô ao vivo ativo'));
-    const longForecast=state.researchRisk&&state.researchRisk.feed_type==='meteorological_forecast';
     const ageText=liveFresh.ageMinutes===null?'consulta do robô com idade n/d':`robô consultado há ${nf0.format(liveFresh.ageMinutes)} min`;
     const telemetryText=telemetryFresh&&telemetryFresh.ageMinutes!==null
       ?` leitura ANA há ${nf0.format(telemetryFresh.ageMinutes)} min · ${telemetryLabel(telemetryFresh.ageMinutes)}`
@@ -1047,7 +1046,7 @@
     const staleText=staleHorizons.length
       ?` ${staleHorizons.map(p=>`+${p.hours} h`).join(' e ')} ficou fora do panorama porque o horário-alvo já passou; permanece no histórico para auditoria.`
       :'';
-    detail.innerHTML=`${timingRowsHtml(selected)}<span class="live-timing-meta">${ageText}${liveFresh.stale?' · publicação marcada como atrasada':''}${telemetryText?` · ${telemetryText}`:''}. O robô tenta atualizar a cada 5 minutos, mas o painel mede e mostra o atraso real da execução. A linha azul usa a série observada ANA/SGB; a auditoria da RNA fica separada. A ANA pode chegar em :15/:30/:45, enquanto a RNA usa somente bases de hora cheia. O robô publica previsões experimentais de ${escapeHtml(liveHorizons||'nenhum horizonte')}.${escapeHtml(staleText)} ${longForecast?'A previsão meteorológica e o score experimental de 24–168 h aparecem no cartão abaixo; não são alerta oficial.':'A chuva acumulada, o modelo europeu/GEFS e a RNA continuam em validação de pesquisa; não são alerta oficial.'}</span>`;
+    detail.innerHTML=`${timingRowsHtml(selected)}<span class="live-timing-meta">${ageText}${liveFresh.stale?' · publicação marcada como atrasada':''}${telemetryText?` · ${telemetryText}`:''}. O robô tenta atualizar a cada 5 minutos, mas o painel mede e mostra o atraso real da execução. A linha azul usa a série observada ANA/SGB; a auditoria da RNA fica separada. A ANA pode chegar em :15/:30/:45, enquanto a RNA usa somente bases de hora cheia. O robô publica previsões experimentais de ${escapeHtml(liveHorizons||'nenhum horizonte')}.${escapeHtml(staleText)} A pesquisa “vai mudar ou não?” de 24–168 h fica em página separada; este panorama não é alerta oficial.</span>`;
     const mapSummary=document.getElementById('map-accessible-summary');
     if(mapSummary){
       const current=state.live&&(state.live.nivel_rio_agora_cm??state.live.telemetria_ultima_nivel_cm);
