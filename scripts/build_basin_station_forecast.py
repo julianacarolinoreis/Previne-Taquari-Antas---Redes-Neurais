@@ -93,8 +93,8 @@ FORECAST_DAYS = 4
 FORECAST_STEP_HOURS = 3
 PRECIPITATION_WINDOW_HOURS = (3, 6, 24)
 OBSERVED_HOURS = 72
-BATCH_SIZE = 50
-BATCH_PAUSE_SECONDS = 10.0
+BATCH_SIZE = 100
+BATCH_PAUSE_SECONDS = 15.0
 REFRESH_MINUTE_UTC = 17
 LEVEL_OBSERVED_HOURS = 72
 
@@ -542,7 +542,22 @@ def build_open_meteo_url(stations: list[dict[str, Any]]) -> str:
     return "https://api.open-meteo.com/v1/forecast?" + urlencode(params)
 
 
-def fetch_json(url: str, *, attempts: int = 2, timeout: int = 20) -> Any:
+def _coordinate_key(station: dict[str, Any]) -> tuple[float, float]:
+    return (round(float(station["latitude"]), 6), round(float(station["longitude"]), 6))
+
+
+def _unique_forecast_locations(stations: list[dict[str, Any]]) -> list[dict[str, float]]:
+    locations: dict[tuple[float, float], dict[str, float]] = {}
+    for station in stations:
+        key = _coordinate_key(station)
+        locations.setdefault(
+            key,
+            {"latitude": key[0], "longitude": key[1]},
+        )
+    return list(locations.values())
+
+
+def fetch_json(url: str, *, attempts: int = 4, timeout: int = 20) -> Any:
     last_error: Exception | None = None
     for attempt in range(attempts):
         try:
@@ -562,10 +577,10 @@ def fetch_json(url: str, *, attempts: int = 2, timeout: int = 20) -> Any:
                 except (TypeError, ValueError):
                     pass
                 if "429" in str(exc):
-                    # Keep a scheduled GitHub run bounded when the public
-                    # endpoint rate-limits the runner. A later six-hour run
-                    # can replace the degraded snapshot after the limit lifts.
-                    delay = max(delay, 10.0 * (attempt + 1))
+                    # Open-Meteo can rate-limit a GitHub runner between large
+                    # multi-location requests. Give the provider time to
+                    # release the window before abandoning the whole batch.
+                    delay = max(delay, 30.0 * (attempt + 1))
                 delay = min(delay, 45.0)
                 time.sleep(delay)
     raise RuntimeError(f"Open-Meteo indisponível: {last_error}")
@@ -707,8 +722,10 @@ def build_feed(
         item["level"] = levels.get(item["code"], _unavailable_level(item["code"]))
         item["forecast"] = _unavailable_forecast("Aguardando a rodada meteorológica.")
 
-    for start in range(0, len(stations), batch_size):
-        batch = stations[start : start + batch_size]
+    forecast_locations = _unique_forecast_locations(stations)
+    forecasts_by_coordinate: dict[tuple[float, float], dict[str, Any]] = {}
+    for start in range(0, len(forecast_locations), batch_size):
+        batch = forecast_locations[start : start + batch_size]
         try:
             response = fetcher(build_open_meteo_url(batch))
             payloads = response if isinstance(response, list) else [response]
@@ -716,15 +733,21 @@ def build_feed(
                 raise ValueError(
                     f"Open-Meteo retornou {len(payloads)} locais para {len(batch)} pedidos"
                 )
-            for item, payload in zip(batch, payloads):
-                item["forecast"] = extract_forecast_payload(payload)
+            for location, payload in zip(batch, payloads):
+                forecasts_by_coordinate[_coordinate_key(location)] = extract_forecast_payload(payload)
         except Exception as exc:
             message = f"Rodada não disponível para este lote: {exc}"
-            for item in batch:
-                item["forecast"] = _unavailable_forecast(message)
-        if start + batch_size < len(stations):
+            for location in batch:
+                forecasts_by_coordinate[_coordinate_key(location)] = _unavailable_forecast(message)
+        if start + batch_size < len(forecast_locations):
             # Avoid bursting the public endpoint when the catalog is large.
             time.sleep(BATCH_PAUSE_SECONDS)
+
+    for item in stations:
+        item["forecast"] = forecasts_by_coordinate.get(
+            _coordinate_key(item),
+            _unavailable_forecast("A coordenada não retornou previsão nesta rodada."),
+        )
 
     available_forecasts = sum(item["forecast"]["state"] == "available" for item in stations)
     available_observations = sum(item["observed_rain"]["state"] == "available" for item in stations)
@@ -747,6 +770,7 @@ def build_feed(
         "scope": {
             "basin": "Taquari–Antas · G040",
             "station_count": len(stations),
+            "forecast_location_count": len(forecast_locations),
             "forecast_station_count": available_forecasts,
             "observed_rain_station_count": available_observations,
             "level_station_count": available_levels,

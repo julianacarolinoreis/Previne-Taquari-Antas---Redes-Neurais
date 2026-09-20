@@ -138,6 +138,21 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertTrue(all(source.startswith("assets/data/") for source in sources))
         self.assertTrue(all(":" not in source for source in sources))
 
+    def test_forecast_requests_deduplicate_station_coordinates(self):
+        stations = [
+            {"latitude": -29.1781, "longitude": -51.7322},
+            {"latitude": -29.1781, "longitude": -51.7322},
+            {"latitude": -29.2, "longitude": -51.8},
+        ]
+        locations = feed._unique_forecast_locations(stations)
+        self.assertEqual(
+            locations,
+            [
+                {"latitude": -29.1781, "longitude": -51.7322},
+                {"latitude": -29.2, "longitude": -51.8},
+            ],
+        )
+
     def test_cycle_is_next_six_hour_boundary(self):
         now = datetime(2026, 9, 20, 2, 15, tzinfo=timezone.utc)
         self.assertEqual(feed.iso_utc(feed._next_cycle(now)), "2026-09-20T06:17Z")

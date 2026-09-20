@@ -1755,6 +1755,7 @@
     basinRefreshSelection();
   }
   const basinForecastIndex=st=>{
+    if(basinFeedIsStale())return -1;
     const times=st&&st.forecast&&st.forecast.state==='available'&&Array.isArray(st.forecast.times)?st.forecast.times:[];
     const now=Date.now();
     return times.findIndex(value=>{
@@ -2063,12 +2064,13 @@
     const forecastRain3Stats=basinForecastWindowStats(st,3,forecastIndex);
     const forecastRain6Stats=basinForecastWindowStats(st,6,forecastIndex);
     const forecastRain24Stats=basinForecastWindowStats(st,24,forecastIndex);
+    const forecastUnavailableNote=basinFeedIsStale()?'snapshot expirado · aguardando nova rodada':'sem horário futuro no snapshot';
     const forecastRainNote=forecastTime
       ?'horário '+basinDate(forecastTime)+' · mediana de '+forecastRainStats.count+' modelo(s)'
-      :'sem horário futuro no snapshot';
+      :forecastUnavailableNote;
     const windowNote=stats=>stats.count
       ?'mediana · faixa '+basinFormat(stats.min,'precipitation')+'–'+basinFormat(stats.max,'precipitation')+' entre '+stats.count+' modelo(s)'
-      :'série horária completa não publicada nesta rodada';
+      :(basinFeedIsStale()?'snapshot expirado · aguardando nova rodada':'série horária completa não publicada nesta rodada');
     const forecastLevel=level&&basinNumber(level.forecast_cm)!==null?basinFormat(level.forecast_cm,'level_cm'):'indisponível';
     const tempStats=basinForecastStats(st,'temperature_2m',forecastIndex);
     const humidityStats=basinForecastStats(st,'relative_humidity_2m',forecastIndex);
@@ -2100,9 +2102,9 @@
       basinMetricCard('Chuva prevista · 24 h',forecastRain24Stats.value===null?'indisponível':basinFormat(forecastRain24Stats.value,'precipitation'),windowNote(forecastRain24Stats))+
       basinMetricCard('Nível observado',level&&level.state==='available'?basinFormat(level.current_cm,'level_cm'):'indisponível',level&&level.observed_at_utc?'observado em '+basinDate(level.observed_at_utc):'telemetria indisponível')+
       basinMetricCard('Nível previsto · RNA',forecastLevel,level&&level.forecast_at_utc?'alvo em '+basinDate(level.forecast_at_utc):'previsão experimental indisponível')+
-      basinMetricCard('Temperatura prevista',temp===null?'indisponível':basinFormat(temp,'temperature_2m'),forecastTime?'horário '+basinDate(forecastTime):'sem horário futuro')+
-      basinMetricCard('Umidade prevista',humidity===null?'indisponível':basinFormat(humidity,'relative_humidity_2m'),forecastTime?'horário '+basinDate(forecastTime):'sem horário futuro')+
-      basinMetricCard('Vento previsto',wind===null?'indisponível':basinFormat(wind,'wind_speed_10m'),forecastTime?'horário '+basinDate(forecastTime):'sem horário futuro')+
+      basinMetricCard('Temperatura prevista',temp===null?'indisponível':basinFormat(temp,'temperature_2m'),forecastTime?'horário '+basinDate(forecastTime):forecastUnavailableNote)+
+      basinMetricCard('Umidade prevista',humidity===null?'indisponível':basinFormat(humidity,'relative_humidity_2m'),forecastTime?'horário '+basinDate(forecastTime):forecastUnavailableNote)+
+      basinMetricCard('Vento previsto',wind===null?'indisponível':basinFormat(wind,'wind_speed_10m'),forecastTime?'horário '+basinDate(forecastTime):forecastUnavailableNote)+
       '</div>';
     const chartDef=basinMetricDef(BASIN_DETAIL_METRIC);
     const chartNote=BASIN_DETAIL_METRIC==='precipitation'
@@ -2111,12 +2113,14 @@
         ?'linha contínua = nível observado · tracejado = previsão experimental RNA por horizonte'
         :'linhas = previsão dos modelos selecionados · observação direta não publicada para esta métrica';
     html+='<div class="station-chart-wrap"><div class="station-chart-title"><span>'+basinEscape(chartDef.label)+' · '+basinEscape(chartDef.unit||'')+'</span><small>'+basinEscape(chartNote)+'</small></div><div class="station-chart" id="station-chart"></div><div class="station-chart-legend" id="station-chart-legend"></div></div>';
-    const forecastMessage=forecast&&forecast.state==='available'
+    const forecastMessage=basinFeedIsStale()
+      ?'O snapshot da previsão meteorológica expirou e não é usado como previsão atual; aguardando nova rodada.'
+      :forecast&&forecast.state==='available'
       ?'Previsão meteorológica disponível para '+selectedCount+' modelo(s) neste ponto.'+(forecastTime?' Primeiro horário futuro: '+basinDate(forecastTime)+'.':' Não há horário futuro no snapshot.')
       :(forecast&&forecast.message?forecast.message:'Previsão meteorológica indisponível para este ponto.');
     const rainMessage=st.observed_rain&&st.observed_rain.message?st.observed_rain.message:'Chuva observada não publicada para esta estação.';
     const levelMessage=level&&level.message?level.message:'Telemetria de nível não publicada para esta estação.';
-    const freshnessMessage=basinFeedIsStale()?' O snapshot está atrasado em relação ao contrato de seis horas; os valores permanecem identificados como pesquisa.':'';
+    const freshnessMessage=basinFeedIsStale()?' O snapshot está atrasado em relação ao contrato de seis horas; a previsão antiga foi retirada até a próxima rodada.':'';
     html+='<p class="station-detail-note"><strong>Leitura dos dados:</strong> '+basinEscape(forecastMessage)+' '+basinEscape(rainMessage)+' '+basinEscape(levelMessage)+basinEscape(freshnessMessage)+' Os pontos de chuva são mm da hora anterior; os acumulados de 3 h, 6 h e 24 h só aparecem quando a série horária completa foi publicada. Os horários do gráfico estão em horário local de Brasília quando exibidos; o feed mantém o horário UTC e é reconstruído a cada seis horas.</p>';
     panel.innerHTML=html;
     panel.querySelectorAll('[data-basin-model]').forEach(button=>button.addEventListener('click',()=>{
