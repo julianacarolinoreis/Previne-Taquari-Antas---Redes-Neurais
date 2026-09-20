@@ -16,8 +16,9 @@ vel_nivel D-Xh = n(t) - n(t-Xh). Cada .mat é validável com `--validar <mat>`
 (reproduz pred_target_tot com RMSE ~0) antes de confiar no ao vivo.
 EXPERIMENTAL — não é alerta oficial.
 """
-import sys, os, json, hashlib, datetime as dt, time, urllib.request, xml.etree.ElementTree as ET
+import sys, os, json, hashlib, datetime as dt, time, urllib.request, urllib.error, xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
+from threading import BoundedSemaphore, Lock
 import numpy as np
 from scipy.io import loadmat
 
@@ -48,6 +49,17 @@ ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos
 ANA_ESPELHO = "https://www.ana.gov.br/telemetria1ws/ServiceANA.asmx/DadosHidrometeorologicos"
 ULTIMA_RAW = {}
 ULTIMA_RAW_REJEITADA = {}
+# A ANA pode devolver HTTP 500 ou timeout quando várias estações são
+# consultadas ao mesmo tempo. O robô preserva a consulta paralela entre as
+# estações, mas limita as requisições que chegam simultaneamente ao serviço.
+# A consulta isolada responde rapidamente, mas o serviço apresentou timeout e
+# HTTP 500 quando duas estações foram solicitadas juntas no mesmo ciclo. Como
+# são no máximo nove estações e a janela normal é curta, a estabilidade vale
+# mais que paralelizar chamadas ao endpoint público.
+ANA_MAX_CONCORRENCIA = 1
+ANA_HTTP_SEMA = BoundedSemaphore(ANA_MAX_CONCORRENCIA)
+ANA_XML_CACHE = {}
+ANA_XML_CACHE_LOCK = Lock()
 NIVEL_PLAUSIVEL_MIN_CM = -500.0
 NIVEL_PLAUSIVEL_MAX_CM = 5000.0
 # Algumas estações montantes podem usar cota absoluta, não a mesma escala da
@@ -220,6 +232,75 @@ def _serie_chuva_de_xml(xml):
         except Exception: pass
     return serie, len(xml), ultima_raw
 
+def _obter_xml_ana(cod, dias, timeout_s, tentativas_rede, parser, prefixo):
+    """Obtém uma resposta ANA com cache de ciclo, limite e retry.
+
+    O endpoint devolve nível e chuva no mesmo XML. Muçum antes baixava a
+    mesma estação uma vez para nível e outra para chuva; quando o serviço
+    estava lento isso multiplicava timeouts e HTTP 500. O cache é válido só
+    durante este processo e só é reutilizado se contiver a série solicitada.
+    """
+    fim = agora_brt()
+    ini = fim - dt.timedelta(days=int(dias))
+    chave = (str(cod), int(dias), ini.date().isoformat(), fim.date().isoformat())
+    with ANA_XML_CACHE_LOCK:
+        cacheado = ANA_XML_CACHE.get(chave)
+    if cacheado is not None:
+        serie, _, _ = parser(cacheado)
+        if serie:
+            print(f"[{prefixo} {cod}] cache bytes={len(cacheado)} linhas_validas={len(serie)}")
+            return cacheado
+
+    urls_com_data = [
+        f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
+        f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
+    ]
+    urls_sem_data = [
+        f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
+        f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio=&dataFim=",
+    ]
+
+    def consultar(url, attempt, sem_data=False):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
+            with ANA_HTTP_SEMA:
+                xml = urllib.request.urlopen(req, timeout=timeout_s).read()
+            serie, nbytes, _ = parser(xml)
+            detalhe = " sem-data" if sem_data else ""
+            print(f"[{prefixo} {cod}] tent={attempt + 1}{detalhe} bytes={nbytes} linhas_validas={len(serie)}")
+            if serie:
+                with ANA_XML_CACHE_LOCK:
+                    ANA_XML_CACHE[chave] = xml
+                return xml, True
+            return None, True
+        except urllib.error.HTTPError as e:
+            print(f"[{prefixo} {cod}] tent={attempt + 1} erro: HTTP {e.code}: {e.reason}")
+        except Exception as e:
+            print(f"[{prefixo} {cod}] tent={attempt + 1} erro: {e}")
+        return None, False
+
+    for attempt in range(tentativas_rede):
+        resposta_vazia = False
+        for url in urls_com_data:
+            xml, respondeu = consultar(url, attempt)
+            if xml is not None:
+                return xml
+            resposta_vazia = resposta_vazia or respondeu
+        # Só usa a rota sem datas quando um host respondeu, mas sem uma série
+        # utilizável. Isso mantém a proteção contra uma segunda consulta longa
+        # depois de timeout no host principal.
+        if resposta_vazia:
+            for url in urls_sem_data:
+                xml, _ = consultar(url, attempt, sem_data=True)
+                if xml is not None:
+                    return xml
+        if attempt < tentativas_rede - 1:
+            # Backoff curto para que um HTTP 500 transitório não vire uma
+            # sequência imediata de novas requisições ao mesmo serviço.
+            time.sleep(min(4 * (2 ** attempt), 12))
+    return None
+
+
 def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
     """Telemetria da ANA com janela ampliada na estação-alvo.
 
@@ -227,100 +308,35 @@ def buscar_ana(cod, dias=6, tentativas_rede=ANA_RETRIES_NIVEL):
     observado diretamente da ANA/SGB, sem depender dos pares usados na
     auditoria das RNAs. As estações auxiliares mantêm a janela curta.
     """
-    import time
     if cod == ALVO:
         dias = max(int(dias or 0), 8)
-    fim = agora_brt(); ini = fim - dt.timedelta(days=dias)
-    urls_com_data = [
-        f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
-        f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
-    ]
-    urls_sem_data = [
-        f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
-        f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio=&dataFim=",
-    ]
-    for attempt in range(tentativas_rede):
-        resposta_vazia = False
-        for url in urls_com_data:
-            try:
-                req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
-                xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_NIVEL_S).read()
-                serie, nbytes, ultima_raw = _serie_de_xml(xml)
-                serie = {hora: valor for hora, valor in serie.items() if nivel_plausivel(valor, cod)}
-                print(f"[ANA {cod}] tent={attempt+1} bytes={nbytes} linhas_validas={len(serie)}")
-                if ultima_raw and not nivel_plausivel(ultima_raw[1], cod):
-                    ULTIMA_RAW_REJEITADA[cod] = ultima_raw
-                if serie:
-                    ULTIMA_RAW[cod] = max(serie.items(), key=lambda par: par[0])
-                    return serie
-                resposta_vazia = True
-            except Exception as e:
-                print(f"[ANA {cod}] tent={attempt+1} erro: {e}")
-        # So usa a rota historicamente mais lenta se algum host respondeu sem
-        # erro, mas sem leituras. Timeout nao deve encadear outra requisicao
-        # potencialmente longa no mesmo ciclo.
-        if resposta_vazia:
-            for url in urls_sem_data:
-                try:
-                    req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
-                    xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_NIVEL_S).read()
-                    serie, nbytes, ultima_raw = _serie_de_xml(xml)
-                    serie = {hora: valor for hora, valor in serie.items() if nivel_plausivel(valor, cod)}
-                    print(f"[ANA {cod}] tent={attempt+1} sem-data bytes={nbytes} linhas_validas={len(serie)}")
-                    if ultima_raw and not nivel_plausivel(ultima_raw[1], cod):
-                        ULTIMA_RAW_REJEITADA[cod] = ultima_raw
-                    if serie:
-                        ULTIMA_RAW[cod] = max(serie.items(), key=lambda par: par[0])
-                        return serie
-                except Exception as e:
-                    print(f"[ANA {cod}] tent={attempt+1} sem-data erro: {e}")
-        if attempt < tentativas_rede - 1:
-            time.sleep(4 * (attempt + 1))
-    return {}
+    xml = _obter_xml_ana(cod, dias, ANA_TIMEOUT_NIVEL_S, tentativas_rede, _serie_de_xml, "ANA")
+    if xml is None:
+        return {}
+    serie, _, ultima_raw = _serie_de_xml(xml)
+    serie = {hora: valor for hora, valor in serie.items() if nivel_plausivel(valor, cod)}
+    if ultima_raw and not nivel_plausivel(ultima_raw[1], cod):
+        ULTIMA_RAW_REJEITADA[cod] = ultima_raw
+    if serie:
+        ULTIMA_RAW[cod] = max(serie.items(), key=lambda par: par[0])
+    return serie
 
 
 def buscar_ana_chuva(cod, dias=6, tentativas_rede=ANA_RETRIES_CHUVA):
     """Busca chuva observada e devolve somente acumulados horários reais."""
-    fim = agora_brt(); ini = fim - dt.timedelta(days=dias)
-    urls_com_data = [
-        f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
-        f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
-    ]
-    urls_sem_data = [
-        f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
-        f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio=&dataFim=",
-    ]
-    for attempt in range(tentativas_rede):
-        resposta_vazia = False
-        for url in urls_com_data:
-            try:
-                req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
-                xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_CHUVA_S).read()
-                serie, nbytes, ultima_raw = _serie_chuva_de_xml(xml)
-                print(f"[ANA chuva {cod}] tent={attempt + 1} bytes={nbytes} horas={len(serie)}")
-                if ultima_raw: ULTIMA_RAW[f"chuva_{cod}"] = ultima_raw
-                if serie: return serie
-                resposta_vazia = True
-            except Exception as e:
-                print(f"[ANA chuva {cod}] tent={attempt + 1} erro: {e}")
-        if resposta_vazia:
-            for url in urls_sem_data:
-                try:
-                    req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
-                    xml = urllib.request.urlopen(req, timeout=ANA_TIMEOUT_CHUVA_S).read()
-                    serie, nbytes, ultima_raw = _serie_chuva_de_xml(xml)
-                    print(f"[ANA chuva {cod}] tent={attempt + 1} sem-data bytes={nbytes} horas={len(serie)}")
-                    if ultima_raw: ULTIMA_RAW[f"chuva_{cod}"] = ultima_raw
-                    if serie: return serie
-                except Exception as e:
-                    print(f"[ANA chuva {cod}] tent={attempt + 1} sem-data erro: {e}")
-        if attempt < tentativas_rede - 1:
-            time.sleep(2 * (attempt + 1))
-    return {}
+    if cod == ALVO:
+        dias = max(int(dias or 0), 8)
+    xml = _obter_xml_ana(cod, dias, ANA_TIMEOUT_CHUVA_S, tentativas_rede, _serie_chuva_de_xml, "ANA chuva")
+    if xml is None:
+        return {}
+    serie, _, ultima_raw = _serie_chuva_de_xml(xml)
+    if ultima_raw:
+        ULTIMA_RAW[f"chuva_{cod}"] = ultima_raw
+    return serie
 
 
-def buscar_series_paralelo(codigos, funcao, max_workers=8):
-    """Consulta estações independentes em paralelo para não estourar o ciclo."""
+def buscar_series_paralelo(codigos, funcao, max_workers=ANA_MAX_CONCORRENCIA):
+    """Consulta estações independentes com concorrência limitada pela ANA."""
     codigos = list(codigos)
     if not codigos: return {}
     workers = max(1, min(int(max_workers), len(codigos)))
@@ -899,8 +915,10 @@ def main():
 
     estacoes = sorted({e for c in modelos for e in c["estacoes"]})
     estacoes_chuva = sorted({e for c in modelos for e in c.get("estacoes_chuva", [])})
-    series = buscar_series_paralelo(estacoes, buscar_ana, max_workers=8)
-    series["__chuva_postos__"] = buscar_series_paralelo(estacoes_chuva, buscar_ana_chuva, max_workers=6)
+    series = buscar_series_paralelo(estacoes, buscar_ana, max_workers=ANA_MAX_CONCORRENCIA)
+    series["__chuva_postos__"] = buscar_series_paralelo(
+        estacoes_chuva, buscar_ana_chuva, max_workers=ANA_MAX_CONCORRENCIA
+    )
     horas_muc = sorted(series.get(ALVO, {}).keys())
     nivel_agora = nivel_exato(series.get(ALVO, {}), horas_muc[-1], ALVO) if horas_muc else None
 

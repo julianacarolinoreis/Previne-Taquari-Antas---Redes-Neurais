@@ -8,6 +8,7 @@ import importlib.util
 import json
 import unittest
 from pathlib import Path
+from unittest import mock
 
 try:
     from .validar_previsao_ao_vivo_mucum import validate_data
@@ -122,6 +123,30 @@ class MucumFeedContractTests(unittest.TestCase):
         block = source[start:end]
         self.assertNotIn('ant["consultado_em"] =', block)
         self.assertIn('ant["ultima_tentativa_em"] = tentativa', block)
+
+    def test_level_and_rain_reuse_one_ana_xml_response(self) -> None:
+        xml = b"""<?xml version=\"1.0\"?>
+        <root><row><DataHora>2026-09-20 08:00:00</DataHora>
+        <Nivel>100</Nivel><Chuva>1</Chuva></row></root>"""
+        calls = []
+
+        class FakeResponse:
+            def read(self):
+                return xml
+
+        def fake_urlopen(request, timeout):
+            calls.append((request.full_url, timeout))
+            return FakeResponse()
+
+        LIVE.ANA_XML_CACHE.clear()
+        LIVE.ULTIMA_RAW.clear()
+        with mock.patch.object(LIVE.urllib.request, "urlopen", side_effect=fake_urlopen):
+            levels = LIVE.buscar_ana("86472000", dias=6, tentativas_rede=1)
+            rain = LIVE.buscar_ana_chuva("86472000", dias=6, tentativas_rede=1)
+
+        self.assertEqual(len(calls), 1)
+        self.assertTrue(levels)
+        self.assertTrue(rain)
 
 
 if __name__ == "__main__":
