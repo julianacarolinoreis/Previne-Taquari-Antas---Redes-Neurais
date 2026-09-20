@@ -91,6 +91,7 @@ FORECAST_VARIABLES = (
 
 FORECAST_DAYS = 4
 FORECAST_STEP_HOURS = 3
+PRECIPITATION_WINDOW_HOURS = (3, 6, 24)
 OBSERVED_HOURS = 72
 BATCH_SIZE = 50
 BATCH_PAUSE_SECONDS = 10.0
@@ -579,6 +580,28 @@ def _sample_indices(times: list[Any], step_hours: int) -> list[int]:
     return indices
 
 
+def _forward_window_sums(
+    values: list[Any], indices: list[int], window_hours: int
+) -> list[float | None]:
+    """Sum complete hourly precipitation windows after each sampled time.
+
+    Open-Meteo's precipitation value at timestamp ``t`` is the preceding
+    hour. Starting at ``t + 1`` keeps a forward window from accidentally
+    including an hour that has already ended at the sampled timestamp.
+    Missing or incomplete windows remain unavailable instead of becoming zero.
+    """
+
+    result: list[float | None] = []
+    for index in indices:
+        window = values[index + 1 : index + 1 + window_hours]
+        if len(window) != window_hours:
+            result.append(None)
+            continue
+        numeric = [finite(value) for value in window]
+        result.append(sum(value for value in numeric if value is not None) if all(value is not None for value in numeric) else None)
+    return result
+
+
 def extract_forecast_payload(
     payload: dict[str, Any],
     *,
@@ -600,17 +623,25 @@ def extract_forecast_payload(
         if parsed is not None:
             times.append(iso_utc(parsed))
 
-    models: dict[str, dict[str, list[float | None]]] = {}
+    models: dict[str, dict[str, Any]] = {}
     for spec in MODEL_SPECS:
         model_id = spec["id"]
-        model_payload: dict[str, list[float | None]] = {}
+        model_payload: dict[str, Any] = {}
         for variable in FORECAST_VARIABLES:
             values = hourly.get(f"{variable}_{model_id}") or []
             model_payload[variable] = [
                 finite(values[index]) if index < len(values) else None
                 for index in indices
             ]
-        if any(any(value is not None for value in values) for values in model_payload.values()):
+        precipitation_values = hourly.get(f"precipitation_{model_id}") or []
+        model_payload["precipitation_windows"] = {
+            f"{hours}h": _forward_window_sums(precipitation_values, indices, hours)
+            for hours in PRECIPITATION_WINDOW_HOURS
+        }
+        if any(
+            any(value is not None for value in model_payload[variable])
+            for variable in FORECAST_VARIABLES
+        ):
             models[model_id] = model_payload
     if not times or not models:
         return {
@@ -735,7 +766,7 @@ def build_feed(
         },
         "models": list(MODEL_SPECS),
         "metrics": [
-            {"id": "precipitation", "label": "Chuva", "unit": "mm", "source_state": "forecast", "sampling": "horário do modelo, exibido a cada 3 h"},
+            {"id": "precipitation", "label": "Chuva", "unit": "mm", "source_state": "forecast", "sampling": "ponto horário do modelo exibido a cada 3 h; acumulados de 3 h, 6 h e 24 h somente com série horária completa"},
             {"id": "level_cm", "label": "Nível", "unit": "cm", "source_state": "observed_and_experimental_forecast", "sampling": "observação publicada em até 72 h; previsão RNA por horizonte"},
             {"id": "temperature_2m", "label": "Temperatura", "unit": "°C", "source_state": "forecast"},
             {"id": "relative_humidity_2m", "label": "Umidade relativa", "unit": "%", "source_state": "forecast"},

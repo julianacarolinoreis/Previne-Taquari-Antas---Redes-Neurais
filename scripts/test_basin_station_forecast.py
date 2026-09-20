@@ -42,6 +42,21 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertEqual(len(result["times"]), 2)
         self.assertEqual(set(result["models"]), {spec["id"] for spec in feed.MODEL_SPECS})
         self.assertEqual(result["models"]["gfs_seamless"]["precipitation"], [1.0, 4.0])
+        self.assertEqual(
+            result["models"]["gfs_seamless"]["precipitation_windows"]["3h"],
+            [9.0, None],
+        )
+        self.assertEqual(
+            result["models"]["gfs_seamless"]["precipitation_windows"]["24h"],
+            [None, None],
+        )
+
+    def test_forward_window_keeps_missing_hours_unavailable(self):
+        values = [1, None, 3, 4, 5]
+        self.assertEqual(
+            feed._forward_window_sums(values, [0, 1], 3),
+            [None, 12.0],
+        )
 
     def test_extract_forecast_marks_empty_response_unavailable(self):
         result = feed.extract_forecast_payload({"hourly": {"time": []}})
