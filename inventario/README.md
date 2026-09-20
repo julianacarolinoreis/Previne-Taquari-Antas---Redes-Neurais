@@ -6,6 +6,8 @@ Página pública desta versão: <https://julianacarolinoreis.github.io/Previne-T
 
 Esta rodada reorganiza a primeira leitura para mostrar o próximo fechamento sugerido antes do inventário, torna o tablist navegável por teclado, anuncia o contador de filtros, oferece limpeza explícita, torna as barras proporcionais ao total de frentes e inclui um glossário técnico. A página continua sendo uma camada pública sanitizada e somente leitura; ela ainda não é o registro privado canônico nem um sincronizador automático.
 
+O resumo público sanitizado das cinco prioridades desta rodada está em `closure-status.json`. Os dossiês completos de auditoria permanecem locais e privados.
+
 ## O que este snapshot é
 
 Este repositório contém uma fotografia sanitizada em `data.js` e a interface em `index.html`. A página permite filtrar as frentes por tema, estado, horizonte e texto. Ela foi montada a partir de quatro camadas de evidência:

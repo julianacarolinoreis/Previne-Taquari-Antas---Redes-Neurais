@@ -2,8 +2,8 @@ window.INVENTORY = {
   meta: {
     title: "Painel de frentes PREVINE",
     subtitle: "Inventário auditável de pesquisas, código, MATLAB, documentos e publicações",
-    snapshotDate: "2026-09-19",
-    version: "snapshot-2026-09-19-v1",
+    snapshotDate: "2026-09-20",
+    version: "snapshot-2026-09-20-v2",
     publicSafe: true,
     note: "A página é uma fotografia sanitizada. Ela não sincroniza automaticamente o computador, o Drive ou o histórico do Codex.",
     githubRepo: "julianacarolinoreis/Previne-taquari"
@@ -65,9 +65,9 @@ window.INVENTORY = {
       confidence: "alta",
       tags: ["catálogo", "pesquisas", "site"],
       horizon: [],
-      evidence: "Snapshot auditado com 55 entradas, 5 páginas e HTTP 200; outro scan encontrou 60 entradas.",
-      next: "Reconciliar o número 55 versus 60 e registrar a versão canônica do catálogo.",
-      boundary: "Os dois números são snapshots diferentes; não devem ser somados."
+      evidence: "Fechamento de 20/09: o snapshot corrente registra 58 entradas e a lista const entries de pesquisas.html também tem 58; 55 e 60 são snapshots históricos.",
+      next: "Manter 58 como contagem canônica deste snapshot e gerar nota de versão sempre que pesquisas.html mudar.",
+      boundary: "58 é contagem de entradas do catálogo; não é quantidade de modelos, rodadas ou arquivos .mat."
     },
     {
       id: "rna-stz",
@@ -77,8 +77,8 @@ window.INVENTORY = {
       confidence: "média",
       tags: ["RNA", "MATLAB", "Santa Tereza"],
       horizon: [2, 4, 8],
-      evidence: "Manuscrito e arquivos no Drive; métricas selecionadas e auditoria do site. A reprodução MATLAB ponta a ponta não foi fechada.",
-      next: "Congelar coorte, alvo, partição causal, entradas disponíveis ex-ante e baseline antes de publicar desempenho.",
+      evidence: "Contrato metodológico congelado localmente em 20/09 a partir do manuscrito; alvo, estação, horizontes, eventos, métricas e baseline estão registrados, mas script original e estado de seed não foram arquivados.",
+      next: "Arquivar script/seed ou declarar reprodução apenas por pesos salvos; depois validar entradas ex-ante antes de publicar desempenho.",
       boundary: "Resultados experimentais; não são alerta nem promoção operacional."
     },
     {
@@ -89,8 +89,8 @@ window.INVENTORY = {
       confidence: "média",
       tags: ["RNA", "MATLAB", "Muçum", "eventos"],
       horizon: [2, 4, 8, 12],
-      evidence: "23 pastas de fila Muçum com marcador de conclusão; Q82 aparece preparado sem MAT e Q77 tem apenas parte verificada.",
-      next: "Reconciliar manifesto, MAT, XLSX, CSV, logs, partições e gate de qualidade por fila.",
+      evidence: "Fechamento de 20/09: Q77 tem 4/20 modelos completos na comparação; Q82 tem 20/20 com divergência entre partição real e manifesto, linhas sem alvo exato t+H e pareceres independentes que não liberam publicação.",
+      next: "Reconciliar manifesto/MAT/XLSX/CSV por modelo e provar alvo no mesmo evento; manter Q77/Q82 fora de publicação e operação até convergir.",
       boundary: "Fila concluída não equivale a modelo reconciliado, aprovado ou live."
     },
     {
@@ -137,8 +137,8 @@ window.INVENTORY = {
       confidence: "média",
       tags: ["HEC-HMS", "ECMWF", "chuva", "DSS"],
       horizon: [],
-      evidence: "Contextos, DSS/GeoTIFF e resultados foram publicados; ligação da grade na interface e validação retrospectiva permanecem abertas.",
-      next: "Ligar Grid Data ao DSS correto e validar um evento observado antes de interpretar a saída.",
+      evidence: "Topologia BHO6 auditada; E28/candidate_033 tem replay pontuado (209 pares), mas está marcado replay_scored_not_promoted. Série de Santa Tereza, chuva e parametrização hidráulica ainda bloqueiam validação.",
+      next: "Reconciliar Santa Tereza, resolver lacunas de chuva e fechar seções/política hidráulica antes de repetir validação em múltiplos eventos.",
       boundary: "Cenário de pesquisa; não é previsão oficial nem prova de pico observado."
     },
     {
@@ -149,8 +149,8 @@ window.INVENTORY = {
       confidence: "alta",
       tags: ["questionário", "campo", "Google Docs"],
       horizon: [],
-      evidence: "59 perguntas em 11 seções, hierarquia e caminhos condicionais revisados; inspeção visual página a página e revisão institucional ainda faltam.",
-      next: "Fazer QA visual final, confirmar consentimento e obter a revisão institucional antes do campo.",
+      evidence: "59 perguntas em 11 seções auditadas; consentimento ainda está marcado como texto provisório e o rodapé identifica versão de trabalho.",
+      next: "Confirmar consentimento institucional, exportar a versão corrente para QA página a página e registrar a liberação antes do campo.",
       boundary: "Instrumento editado; ainda não é instrumento de campo aprovado."
     },
     {
@@ -274,12 +274,17 @@ window.INVENTORY = {
       boundary: "HTTP 200 e status ok não provam qualidade do modelo nem atualização do feed."
     }
   ],
+  closureAudit: {
+    date: "2026-09-20",
+    package: "closure-status.json",
+    summary: "1 concluído, 1 parcial e 3 bloqueados após auditoria de evidências. Os dossiês individuais registram fontes e próximos gates."
+  },
   finishQueue: [
-    { priority: 1, title: "Fechar o registro Q77/Q82 de Muçum", reason: "Há filas e artefatos, mas a reconciliação MAT–XLSX–CSV–manifesto e a promoção não estão fechadas.", doneWhen: "Um registro por modelo, com partição, horizonte, fonte, hash, métricas e gate de qualidade." },
-    { priority: 2, title: "Congelar o protocolo do artigo RNA Santa Tereza", reason: "O manuscrito existe, mas alvo, coorte, partição causal, entradas ex-ante e baseline precisam ser congelados.", doneWhen: "Cohort, target, inputs, splits, eventos, seeds, métricas e regra de promoção versionados." },
-    { priority: 3, title: "Reconciliar catálogo 55 × 60", reason: "São dois snapshots auditados; a divergência impede uma contagem única de pesquisas publicadas.", doneWhen: "Uma fonte canônica e uma nota de versão explicando entradas adicionadas/removidas." },
-    { priority: 4, title: "Validar o circuito HEC-HMS", reason: "Há DSS/contexto publicado, mas a ligação de grade e a validação retrospectiva ainda são abertas.", doneWhen: "Grade correta ligada, evento observado reproduzido e limites de previsão documentados." },
-    { priority: 5, title: "Finalizar o questionário para o campo", reason: "A estrutura está pronta, mas falta QA visual e revisão institucional do consentimento.", doneWhen: "PDF página a página revisado e instrumento institucionalmente liberado." },
+    { priority: 1, title: "Fechar o registro Q77/Q82 de Muçum", reason: "Auditoria consolidada, mas Q77 está incompleto e Q82 tem divergências de partição, alvo no mesmo evento e pareceres que bloqueiam publicação.", doneWhen: "Reconciliar por modelo/horizonte, provar alvo t+H e obter pareceres independentes convergentes." },
+    { priority: 2, title: "Congelar o protocolo do artigo RNA Santa Tereza", reason: "Contrato metodológico congelado localmente; script original e estado de seed não foram recuperados.", doneWhen: "Arquivar script/seed ou declarar reprodução apenas por pesos salvos e validar entradas ex-ante." },
+    { priority: 3, title: "[FECHADO] Reconciliar catálogo 55 × 60", reason: "Snapshot corrente e lista HTML conferem em 58 entradas; 55 e 60 ficaram identificados como históricos.", doneWhen: "Recontar e versionar somente quando pesquisas.html mudar." },
+    { priority: 4, title: "Validar o circuito HEC-HMS", reason: "Topologia BHO6 auditada e replay E28 documentado; série intermediária, chuva e política hidráulica ainda bloqueiam validação.", doneWhen: "Reconciliar entradas, reproduzir eventos observados em múltiplos casos e documentar limites antes de qualquer promoção." },
+    { priority: 5, title: "Finalizar o questionário para o campo", reason: "59 perguntas/11 seções revisadas, mas consentimento provisório, versão de trabalho, QA visual e liberação institucional permanecem.", doneWhen: "Consentimento confirmado, PDF revisado página a página e instrumento institucionalmente liberado." },
     { priority: 6, title: "Fechar hidrometria Tupinambás", reason: "O relatório tem base, mas ainda faltam evidências de campo que sustentem os resultados.", doneWhen: "Andorinhas, topografia, laboratório, fotos e nomes reconciliados no relatório." },
     { priority: 7, title: "Revisar estudo de rotas de fuga", reason: "O experimento avançou, mas poucos eventos e a ausência de veredictos impedem promoção.", doneWhen: "Versão experimental congelada, limitações registradas e pareceres recebidos." },
     { priority: 8, title: "Testar AtlasCampo em dispositivo real", reason: "O código passa nos testes locais, porém o uso de campo depende de permissões, sync e autenticação.", doneWhen: "Matriz de dispositivos, offline, GPS, sync, recuperação e segurança aprovada." }
