@@ -86,10 +86,10 @@ CHUVAS_HORARIAS_CSV = "assets/data/chuvas_horarias.csv"
 HORIZONTE = "2h"
 COMBO = "009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21"
 BANKFULL_CM = 1500          # cota oficial de inundação adotada para Santa Tereza.
-# O mapa de pesquisa tem outro contrato: o contorno HAND 0 começa no nível
-# normal/provisório da mancha, estimado em 4,0 m. Não usar a cota oficial como
-# zero HAND: são referências diferentes e misturá-las faz a mancha desaparecer.
-HAND_ZERO_CM = 400
+# Calibração de campo: régua em 1,60 m corresponde ao HAND 0.
+# A espacialização usa (RNA - 1,60 m); a leitura observada da régua continua
+# sendo publicada sem esse desconto.
+HAND_ZERO_CM = 160
 SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
 HISTORICO_SAIDA = "historico_previsoes_ao_vivo.json"
 # Guardrails operacionais: servem para sinalizar degradaÃ§Ã£o recente no painel;

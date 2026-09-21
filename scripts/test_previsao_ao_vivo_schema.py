@@ -31,9 +31,26 @@ class LiveFeedContractTests(unittest.TestCase):
 
     def test_hand_zero_is_separate_from_official_flood_level(self) -> None:
         self.assertEqual(self.data["bankfull_cm"], 1500)
-        self.assertEqual(self.data["hand_zero_cm"], 400)
+        self.assertEqual(self.data["hand_zero_cm"], 160)
         for horizon in ("2h", "4h", "8h"):
-            self.assertEqual(self.data["horizontes"][horizon]["hand_zero_cm"], 400)
+            self.assertEqual(self.data["horizontes"][horizon]["hand_zero_cm"], 160)
+
+    def test_page_uses_field_validated_hand_zero(self) -> None:
+        page = (ROOT / "santa_tereza_previsao_inundacao.html").read_text(encoding="utf-8")
+        self.assertIn("HAND_ZERO_DEFAULT_CM=160", page)
+        self.assertIn("let bankfull=160", page)
+        self.assertIn("régua 1,60 m = HAND 0", page)
+
+    def test_generated_hand_diagnostic_is_main_river_only(self) -> None:
+        diagnostic = json.loads(
+            (ROOT / "assets" / "data" / "santa_tereza_inundacao" / "hand_lidar_5m_diagnostic.json")
+            .read_text(encoding="utf-8")
+        )
+        self.assertEqual(diagnostic["hand_zero_cm"], 160)
+        self.assertEqual(diagnostic["flowacc_threshold_fine_cells"], 50_000_000)
+        self.assertEqual(diagnostic["componentes_mantidos"], 1)
+        self.assertGreater(diagnostic["celulas_rio_principal"], 0)
+        self.assertEqual(diagnostic["contornos_features"], 31)
 
     def test_explicit_4h_fallback_without_prediction_is_valid(self) -> None:
         data = copy.deepcopy(self.data)
