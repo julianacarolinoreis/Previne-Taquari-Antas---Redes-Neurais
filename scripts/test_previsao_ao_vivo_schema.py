@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Deterministic contract tests for the Santa Tereza live feed.
 
-These tests only read the current feed and MAT hash. They never invoke a
-robot and never write dynamic JSON, so they are safe to run in CI or locally.
+These tests read the current feed and MAT hash. The one network-path regression
+test uses a mocked ANA response, never reaches the network, and never writes
+dynamic JSON, so the suite is safe to run in CI or locally.
 """
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ import copy
 import json
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 try:
     from .validar_previsao_ao_vivo import B_MAT, validate_data
@@ -77,6 +79,42 @@ class LiveFeedContractTests(unittest.TestCase):
         self.assertNotIn('atual["consultado_em"] = agora', block)
         self.assertIn('atual["ultima_tentativa_em"] = agora', block)
         self.assertIn('audit = auditoria_inputs_8h(cfg, cand, x)', source)
+
+    def test_ana_reuses_one_xml_for_level_and_rain(self) -> None:
+        from previne.robo import gerar_previsao_ao_vivo as live
+
+        xml = b"""
+        <root><row>
+          <DataHora>2026-09-21T07:00:00</DataHora>
+          <Nivel>350</Nivel>
+          <Chuva>1.2</Chuva>
+        </row></root>
+        """
+        calls = []
+
+        class Response:
+            def read(self):
+                return xml
+
+        def fake_urlopen(request, timeout):
+            calls.append((request.full_url, timeout))
+            return Response()
+
+        live.ANA_XML_CACHE.clear()
+        live.CHUVA_ANA_CACHE.clear()
+        live.ULTIMA_RAW.clear()
+        try:
+            with patch.object(live.urllib.request, "urlopen", side_effect=fake_urlopen):
+                level = live.buscar_ana("86472000", dias=5, tentativas_rede=1)
+                rain = live.buscar_ana_chuva("86472000", dias=5, tentativas_rede=1)
+        finally:
+            live.ANA_XML_CACHE.clear()
+            live.CHUVA_ANA_CACHE.clear()
+            live.ULTIMA_RAW.clear()
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(list(level.values()), [350.0])
+        self.assertEqual(list(rain.values()), [1.2])
 
 
 if __name__ == "__main__":
