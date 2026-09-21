@@ -29,6 +29,12 @@ class LiveFeedContractTests(unittest.TestCase):
     def test_current_feed_schema_and_forward_metadata(self) -> None:
         validate_data(self.data, b_mat=B_MAT)
 
+    def test_hand_zero_is_separate_from_official_flood_level(self) -> None:
+        self.assertEqual(self.data["bankfull_cm"], 1500)
+        self.assertEqual(self.data["hand_zero_cm"], 400)
+        for horizon in ("2h", "4h", "8h"):
+            self.assertEqual(self.data["horizontes"][horizon]["hand_zero_cm"], 400)
+
     def test_explicit_4h_fallback_without_prediction_is_valid(self) -> None:
         data = copy.deepcopy(self.data)
         four = data["horizontes"]["4h"]

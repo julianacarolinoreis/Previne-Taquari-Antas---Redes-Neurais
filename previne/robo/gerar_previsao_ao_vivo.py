@@ -85,10 +85,11 @@ POSTOS_CHUVA_MAE_6H = (POSTO_CHUVA_INMET_A894, POSTO_CHUVA_CEMADEN_SERAFINA)
 CHUVAS_HORARIAS_CSV = "assets/data/chuvas_horarias.csv"
 HORIZONTE = "2h"
 COMBO = "009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21"
-BANKFULL_CM = 1500          # referência operacional adotada para Santa Tereza:
-                            # 15,0 m na régua = início do extravasamento (HAND 0).
-                            # Portanto, um ponto HAND h é associado, no cenário
-                            # simplificado, a ~15,0 + h metros na régua.
+BANKFULL_CM = 1500          # cota oficial de inundação adotada para Santa Tereza.
+# O mapa de pesquisa tem outro contrato: o contorno HAND 0 começa no nível
+# normal/provisório da mancha, estimado em 4,0 m. Não usar a cota oficial como
+# zero HAND: são referências diferentes e misturá-las faz a mancha desaparecer.
+HAND_ZERO_CM = 400
 SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
 HISTORICO_SAIDA = "historico_previsoes_ao_vivo.json"
 # Guardrails operacionais: servem para sinalizar degradaÃ§Ã£o recente no painel;
@@ -1874,6 +1875,7 @@ def escrever(nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes=None, e
         "status_dados": status_dados,
         "estacao": "86472600", "local": "Santa Tereza",
         "horizonte": HORIZONTE, "modelo": COMBO, "bankfull_cm": BANKFULL_CM,
+        "hand_zero_cm": HAND_ZERO_CM,
         "nivel_modelo_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_rio_agora_cm": (round(raw_st_valido[1]) if raw_st_valido else (round(nivel_atual) if nivel_atual is not None else None)),
         "nivel_rio_agora_em": (raw_st_valido[0].isoformat() if raw_st_valido else (t.isoformat() if t else None)),
@@ -1945,6 +1947,7 @@ def _base_saida(cfg, nivel_atual, nivel_prev, t, status, aviso, inputs_faltantes
         "referencia_formula_sha256": cfg.get("referencia_formula_sha256"),
         "input_grade": cfg.get("input_grade"),
         "bankfull_cm": BANKFULL_CM,
+        "hand_zero_cm": HAND_ZERO_CM,
         "nivel_modelo_cm": (round(nivel_atual) if nivel_atual is not None else None),
         "nivel_rio_agora_cm": (
             round(raw_st_valido[1]) if raw_st_valido

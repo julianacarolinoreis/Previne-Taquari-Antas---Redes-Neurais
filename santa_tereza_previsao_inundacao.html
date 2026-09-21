@@ -626,7 +626,29 @@ function loadElevation(){return fetch(ELEVATION_URL).then(r=>{
   img.src=new URL(meta.png,new URL(ELEVATION_URL,document.baseURI)).href;
 })).catch(e=>{console.error('falha ao carregar altitude',e);elevationMeta=null;elevationArr=null;});}
 
-function stageToHand(cm){return (cm-bankfull)/100;}
+const HAND_ZERO_DEFAULT_CM=400;
+function handZeroCm(D){
+  const v=Number(D&&D.hand_zero_cm);
+  return Number.isFinite(v)?v:HAND_ZERO_DEFAULT_CM;
+}
+function stageToHand(cm,zeroCm=bankfull){return (cm-zeroCm)/100;}
+function pointFloodStatus(pointHand,levelCm,zeroCm){
+  if(levelCm==null || !Number.isFinite(Number(levelCm))) return '<span>indisponível</span>';
+  const depth=(Number(levelCm)-zeroCm)/100-pointHand;
+  return depth>0.03
+    ? '<b class="pf">SIM · '+nf1.format(depth*100)+' cm de água fora do leito</b>'
+    : 'não neste proxy';
+}
+function mapForecastHorizons(){
+  const hs=liveData&&liveData.horizontes?liveData.horizontes:{};
+  const keys=['2h','4h','8h'];
+  const rows=keys.map(key=>({key,D:hs[key]}));
+  if(!rows.some(row=>row.D) && curS&&curS[3]!=null){
+    const ev=EVENTS[curEv]||{};
+    rows[0]={key:ev.horizonte||'horizonte selecionado',D:{nivel_previsto_cm:curS[3],hand_zero_cm:bankfull,disponivel:true}};
+  }
+  return rows;
+}
 function handAt(lat,lon){ // decimetros no ponto, ou null
   if(!handArr) return null;
   const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*COLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*ROWS);
@@ -821,7 +843,8 @@ function liveFromEvent(key, tipo){
     horizonte:E.horizonte,
     modelo:E.combo,
     tipo:tipo||'ALT',
-    bankfull_cm:liveData&&liveData.bankfull_cm?liveData.bankfull_cm:400,
+    bankfull_cm:liveData&&liveData.bankfull_cm?liveData.bankfull_cm:1500,
+    hand_zero_cm:HAND_ZERO_DEFAULT_CM,
     aviso:liveData&&liveData.aviso?liveData.aviso:'',
     passos:E.series.map(s=>[s[0],s[1],s[2],s[3]])
   };
@@ -1130,7 +1153,8 @@ function renderLiveStep(){
     const obs=(L.modo==='replay'&&P.length>3)?P[2]:(matched?matched.observado_cm:null);
     const prev=P.length>3?P[3]:P[2];
     EVENTS['__live__']={label:'AO VIVO',horizonte:L.horizonte||liveHz||'2h',combo:L.modelo||'—',pers:null,ilustra:false,estatico:false,n:1,pico_obs_cm:P[1],series:[[P[0],P[1],obs,prev]]};
-    bankfull=L.bankfull_cm||(liveData&&liveData.bankfull_cm)||400;
+    // bankfull_cm is the official cota; the HAND layer uses its own zero.
+    bankfull=handZeroCm(L);
     curEv='__live__'; tIdx=0;
     const hz=L.horizonte||liveHz||'2h';
     const hzTxt=L.rotulo||hzLabel(hz);
@@ -1155,7 +1179,8 @@ function renderLiveStep(){
   }
   const P=passosFallback[liveIdx%passosFallback.length]; // [datahora, nivel_atual_cm, nivel_previsto_cm]
   EVENTS['__live__']={label:'AO VIVO',horizonte:liveData.horizonte||'2h',combo:liveData.modelo||'—',pers:null,ilustra:false,estatico:false,n:1,pico_obs_cm:P[1],series:[[P[0],P[1],null,P[2]]]};
-  bankfull=liveData.bankfull_cm||400;
+  // bankfull_cm is the official cota; the HAND layer uses its own zero.
+  bankfull=handZeroCm(liveData);
   curEv='__live__'; tIdx=0;
   const hz=liveData.horizonte||'2h';
   const hzTxt=liveData.rotulo||hzLabel(hz);
@@ -1309,14 +1334,25 @@ async function init(){
       if(curS&&hd!=null){
         const pointHand=hd/10, ev=EVENTS[curEv];
         html+='<br>Altura acima do leito (HAND): '+nf1.format(pointHand)+' m';
+        const activeD=liveMode?activeLiveData():null;
+        const zeroCm=handZeroCm(activeD||liveData);
+        const nowCm=liveMode?liveNowCm(activeD):firstNumber(curS[1]);
+        html+='<br><b>Inundação estimada neste ponto (proxy HAND)</b>';
         if(pointHand<=0){
-          html+='<br>Mancha: dentro do contorno-base do leito; não classificado como inundação.';
+          html+='<br>Agora: dentro do contorno-base do leito; não classificado como inundação.';
+          mapForecastHorizons().forEach(row=>{
+            html+='<br>+'+row.key.replace(/^\+/,'')+': dentro do contorno-base do leito; não classificado como inundação.';
+          });
         }else{
-          const dNow=stageToHand(curS[1])-pointHand, dFore=curS[3]!=null?stageToHand(curS[3])-pointHand:null;
-          const fmt=d=>d>0.03?('<b class="pf">'+nf1.format(d*100)+' cm</b>'):'sem inundação prevista';
-          const hz=ev.horizonte==='—'?'':' (+'+ev.horizonte+')';
-          html+='<br>Agora: '+(dNow>0.03?nf1.format(dNow*100)+' cm de água fora do leito':'sem inundação estimada');
-          if(dFore!=null) html+='<br>RNA'+hz+': '+fmt(dFore);
+          const nowDepth=nowCm!=null?(Number(nowCm)-zeroCm)/100-pointHand:null;
+          html+='<br>Agora: '+(nowDepth!=null&&nowDepth>0.03?nf1.format(nowDepth*100)+' cm de água fora do leito':'sem inundação estimada');
+          mapForecastHorizons().forEach(row=>{
+            const D=row.D;
+            const available=!!D&&D.disponivel!==false;
+            const forecast=available?firstNumber(D.nivel_previsto_cm):null;
+            const rowZero=handZeroCm(D||activeD||liveData);
+            html+='<br>+'+row.key.replace(/^\+/,'')+': '+(available?pointFloodStatus(pointHand,forecast,rowZero):'<span>indisponível</span>');
+          });
         }
       }
       html+='<br><small>Coordenadas: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small>';
