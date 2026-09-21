@@ -189,6 +189,12 @@ def build_forcing(*, hours: int = HORIZON_HOURS) -> dict[str, Any]:
         "horizon_hours": hours,
         "model": "ecmwf_ifs025_open_meteo",
         "now_utc": times[0] if times else start_utc.isoformat().replace("+00:00", "Z"),
+        "simulation_cutoff_utc": times[0] if times else start_utc.isoformat().replace("+00:00", "Z"),
+        "ecmwf_cycle_utc": None,
+        "ecmwf_cycle_note": (
+            "Open-Meteo does not expose the originating IFS cycle in this builder. "
+            "The current/cutoff hour must not be labeled as the ECMWF model run."
+        ),
         "window": {
             "now_utc": times[0] if times else start_utc.isoformat().replace("+00:00", "Z"),
             "past_hours": 0,
