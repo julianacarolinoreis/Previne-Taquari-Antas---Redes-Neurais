@@ -2,7 +2,7 @@
 
 The public page is static, so the map reads one reviewed JSON snapshot instead
 of making one weather request per browser visitor. The snapshot is rebuilt by
-GitHub Actions every six hours.
+GitHub Actions every five minutes when the public scheduler starts the run.
 
 This is a research-screening surface. It keeps observed rain, forecast model
 output, river telemetry and experimental level forecasts in separate fields.
@@ -22,6 +22,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+
+try:
+    from scripts.basin_station_catalog import augment_station_catalog
+except ModuleNotFoundError:  # direct ``python scripts/build_...py`` execution
+    from basin_station_catalog import augment_station_catalog
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -102,7 +107,7 @@ OBSERVED_HOURS = 72
 OBSERVED_WINDOW_HOURS = (1, 3, 6, 12, 24, 48, 72)
 BATCH_SIZE = 100
 BATCH_PAUSE_SECONDS = 15.0
-REFRESH_MINUTE_UTC = 17
+REFRESH_INTERVAL_MINUTES = 5
 LEVEL_OBSERVED_HOURS = 72
 
 LEVEL_FORECAST_LABELS = {
@@ -218,7 +223,11 @@ def public_asset_path(path: Path) -> str:
 def load_station_catalog(
     flow_path: Path = FLOW_CATALOG,
     rain_path: Path = RAIN_CATALOG,
-) -> list[dict[str, Any]]:
+    *,
+    include_external: bool = False,
+    external_strict: bool = True,
+    return_metadata: bool = False,
+) -> list[dict[str, Any]] | tuple[list[dict[str, Any]], dict[str, Any]]:
     """Merge the G040 flow and rain inventories by network/code."""
 
     registry: dict[str, dict[str, Any]] = {}
@@ -257,6 +266,13 @@ def load_station_catalog(
                     "catalog_sources": [],
                     "drainage_area_km2": None,
                     "operating": None,
+                    "source_networks": [network],
+                    "source_roles": [
+                        "inventário ANA/HidroWeb"
+                        if network == "ANA"
+                        else f"inventário {network}"
+                    ],
+                    "source_observations": [],
                 }
                 registry[key] = item
             name = str(properties.get("nome") or "").strip()
@@ -279,6 +295,19 @@ def load_station_catalog(
     for item in stations:
         item["type_label"] = " + ".join(item["types"])
         item["upg_label"] = " · ".join(item["upgs"]) or "UPG não informada"
+    metadata = {
+        "basin_mask": None,
+        "sources": {},
+        "complete": True,
+        "message": "Catálogo base ANA/INMET carregado.",
+    }
+    if include_external:
+        stations, metadata = augment_station_catalog(
+            stations,
+            strict=external_strict,
+        )
+    if return_metadata:
+        return stations, metadata
     return stations
 
 
@@ -801,12 +830,11 @@ def _unavailable_forecast(message: str) -> dict[str, Any]:
 
 
 def _next_cycle(now: datetime) -> datetime:
-    candidate = now.astimezone(UTC).replace(
-        minute=REFRESH_MINUTE_UTC, second=0, microsecond=0
-    )
-    while candidate <= now or candidate.hour % 6:
-        candidate += timedelta(hours=1)
-        candidate = candidate.replace(minute=REFRESH_MINUTE_UTC)
+    current = now.astimezone(UTC)
+    candidate = current.replace(second=0, microsecond=0)
+    remainder = candidate.minute % REFRESH_INTERVAL_MINUTES
+    if remainder or candidate <= current:
+        candidate += timedelta(minutes=REFRESH_INTERVAL_MINUTES - remainder)
     return candidate
 
 
@@ -866,9 +894,15 @@ def build_feed(
     live_feeds: tuple[Path, ...] = LIVE_FEEDS,
     fetcher=fetch_json,
     batch_size: int = BATCH_SIZE,
+    include_external: bool = False,
 ) -> dict[str, Any]:
     now = (now or datetime.now(UTC)).astimezone(UTC)
-    stations = load_station_catalog(flow_catalog, rain_catalog)
+    stations, catalog_metadata = load_station_catalog(
+        flow_catalog,
+        rain_catalog,
+        include_external=include_external,
+        return_metadata=True,
+    )
     observed = load_observed_rain(observed_csv, now=now)
     levels = load_level_snapshots(live_feeds)
 
@@ -940,8 +974,8 @@ def build_feed(
         "generated_at_utc": iso_utc(now),
         "next_cycle_utc": iso_utc(_next_cycle(now)),
         "refresh_contract": {
-            "scheduled_every_hours": 6,
-            "schedule_note": "GitHub Actions programado para 00:17, 06:17, 12:17 e 18:17 UTC.",
+            "scheduled_every_minutes": 5,
+            "schedule_note": "GitHub Actions programado a cada cinco minutos; a execução pode sofrer atraso do agendador público.",
         },
         "scope": {
             "basin": "Taquari–Antas · G040",
@@ -954,7 +988,19 @@ def build_feed(
             "catalogs": [
                 "assets/data/estudo_bacia_taquari_antas/postos_g040.geojson",
                 "assets/data/estudo_bacia_taquari_antas/pluviometria_g040.geojson",
+                "assets/data/estudo_bacia_taquari_antas/ugs_g040.geojson",
+                "https://resources.cemaden.gov.br/dados/311_24.json",
+                "https://resources.cemaden.gov.br/dados/327mi_24.json",
+                "https://sace.sgb.gov.br/estacoes_mapa.php?bacia=taquari",
             ],
+        },
+        "catalog": catalog_metadata,
+        "source_counts": {
+            network: sum(
+                network in (station.get("source_networks") or [])
+                for station in stations
+            )
+            for network in ("ANA/HidroWeb", "INMET", "CEMADEN", "SGB/SACE")
         },
         "coverage": {
             "forecast_complete": complete_forecast,
@@ -1041,7 +1087,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
-    feed = build_feed()
+    feed = build_feed(include_external=True)
     validate_complete_feed(feed)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

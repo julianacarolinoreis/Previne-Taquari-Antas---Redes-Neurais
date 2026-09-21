@@ -3,14 +3,19 @@ name: Atualiza mapa de estações da bacia
 on:
   workflow_dispatch:
   schedule:
-    - cron: '17 */6 * * *'
+    # Atualiza o catálogo, as leituras publicadas e o snapshot multi-modelo
+    # a cada cinco minutos. O agendador público do GitHub pode atrasar uma
+    # execução; o horário gerado no feed continua sendo a fonte de verdade.
+    - cron: '*/5 * * * *'
 
 permissions:
   contents: write
 
 concurrency:
   group: basin-station-forecast
-  cancel-in-progress: true
+  # Não cancele uma rodada que já está consultando CEMADEN/SGB/Open-Meteo.
+  # Assim uma fila atrasada não cria lacunas deliberadas no feed.
+  cancel-in-progress: false
 
 jobs:
   refresh:
@@ -28,11 +33,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Atualiza o feed multi-modelo da bacia
+      - name: Atualiza o catálogo completo e o feed multi-modelo da bacia
         run: python -B scripts/build_basin_station_forecast.py
 
       - name: Testa o contrato do feed
-        run: python -m unittest scripts.test_basin_station_forecast -v
+        run: python -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog -v
 
       - name: Arquiva a rodada para avaliação futura dos modelos
         run: python -B scripts/archive_basin_station_forecast.py
@@ -61,7 +66,7 @@ jobs:
               git rebase --abort || true
               git reset --keep origin/main
               python -B scripts/build_basin_station_forecast.py
-              python -m unittest scripts.test_basin_station_forecast -v
+              python -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog -v
               git add assets/data/basin_station_forecast_latest.json assets/data/basin_station_forecast_archive
               if git diff --cached --quiet; then
                 echo 'Feed já publicado por outra execução.'

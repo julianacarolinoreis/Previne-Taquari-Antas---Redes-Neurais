@@ -170,9 +170,9 @@ class BasinStationForecastTests(unittest.TestCase):
             ],
         )
 
-    def test_cycle_is_next_six_hour_boundary(self):
+    def test_cycle_is_next_five_minute_boundary(self):
         now = datetime(2026, 9, 20, 2, 15, tzinfo=timezone.utc)
-        self.assertEqual(feed.iso_utc(feed._next_cycle(now)), "2026-09-20T06:17Z")
+        self.assertEqual(feed.iso_utc(feed._next_cycle(now)), "2026-09-20T02:20Z")
 
     def test_level_metric_keeps_observed_series_and_rna_forecasts(self):
         raw = {
