@@ -50,7 +50,7 @@ class LiveFeedContractTests(unittest.TestCase):
         self.assertEqual(diagnostic["flowacc_threshold_fine_cells"], 50_000_000)
         self.assertEqual(diagnostic["componentes_mantidos"], 1)
         self.assertGreater(diagnostic["celulas_rio_principal"], 0)
-        self.assertEqual(diagnostic["contornos_features"], 31)
+        self.assertEqual(diagnostic["contornos_features"], 151)
 
     def test_explicit_4h_fallback_without_prediction_is_valid(self) -> None:
         data = copy.deepcopy(self.data)

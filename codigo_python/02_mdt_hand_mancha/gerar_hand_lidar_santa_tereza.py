@@ -51,7 +51,7 @@ FACTOR = 5
 FLOWACC_THRESHOLD_FINE_CELLS = 50_000_000
 MAX_HAND_M = 25.0
 HAND_ZERO_CM = 160
-CONTOUR_LEVELS_M = [round(x, 1) for x in np.arange(0, 15.01, 0.5)]
+CONTOUR_LEVELS_M = [round(x, 1) for x in np.arange(0, 15.01, 0.1)]
 CONTOUR_FACTOR = 2
 
 
@@ -140,7 +140,7 @@ def write_contours(hand: np.ndarray, transform, crs, output: Path) -> dict:
             "flowacc_threshold_fine_cells": FLOWACC_THRESHOLD_FINE_CELLS,
             "hand_zero_cm": HAND_ZERO_CM,
             "resolucao_vetor_aprox_m": 10.0,
-            "passo_vetor_m": 0.5,
+            "passo_vetor_m": 0.1,
             "calibracao": "régua 1,60 m = HAND 0",
             "interpretacao": "proxy de pesquisa; não é alerta oficial nem cota absoluta validada",
         },
