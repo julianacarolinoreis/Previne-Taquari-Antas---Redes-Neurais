@@ -18,6 +18,24 @@ def read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def read_json_optional(path: Path, label: str) -> dict:
+    """Keep the status report renderable when an old diagnostic package is absent.
+
+    A missing parameter-search artifact is evidence of an unavailable branch,
+    not a zero score and not a completed calibration.  The status page should
+    expose that distinction instead of failing before it can show the other
+    audited gates.
+    """
+    if not path.exists():
+        return {
+            "status": "unavailable_missing_artifact",
+            "artifact": str(path.relative_to(ROOT)).replace("\\", "/"),
+            "label": label,
+            "research_only": True,
+        }
+    return read_json(path)
+
+
 def event_status(event_id: str, metric: dict) -> str:
     if event_id == "E19":
         return "pendente: atraso e forma do hidrograma ainda não explicados"
@@ -36,10 +54,10 @@ def main() -> int:
     audit = read_json(BASE / "network_audit_latest.json")
     terrain = read_json(BASE / "reach_terrain_metrics_latest.json")
     replay = read_json(BASE / "network_replay_eventwise_candidate_all_events" / "network_metrics_all_events.json")
-    e19_search = read_json(BASE / "parameter_search_E19" / "parameter_search_best.json")
-    e22_search = read_json(BASE / "parameter_search_E22" / "parameter_search_best.json")
-    e27_route = read_json(BASE / "routing_search_E27" / "routing_search_best.json")
-    e27_loss = read_json(BASE / "loss_search_E27" / "loss_search_best.json")
+    e19_search = read_json_optional(BASE / "parameter_search_E19" / "parameter_search_best.json", "E19")
+    e22_search = read_json_optional(BASE / "parameter_search_E22" / "parameter_search_best.json", "E22")
+    e27_route = read_json_optional(BASE / "routing_search_E27" / "routing_search_best.json", "E27 routing")
+    e27_loss = read_json_optional(BASE / "loss_search_E27" / "loss_search_best.json", "E27 losses")
     common_search = read_json(BASE / "network_common_calibration_search" / "common_search_report.json")
     recent_common_path = ROOT / "assets" / "data" / "hec_hms_calibration" / "mucum_common_ana86472000_search_20260907" / "multi_event_search_best.json"
     recent_common = read_json(recent_common_path) if recent_common_path.exists() else None

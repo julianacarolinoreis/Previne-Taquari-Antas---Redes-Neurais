@@ -196,6 +196,13 @@ def build() -> dict[str, Any]:
         "aggregate_metrics": event_metrics,
         "event_metrics": event_metrics,
         "fit_audit": fit_audit,
+        "uncertainty": {
+            "status": "not_calibrated_for_live_use",
+            "research_only": True,
+            "available": ["resíduos e erro do pico no evento E12", "mesmas 257 linhas comuns", "separação Treino/Verificacao"],
+            "not_available": ["intervalos de predição calibrados", "incerteza meteorológica", "incerteza MDT/HAND e nível→mancha", "vazão horária reconciliada e curva-chave"],
+            "interpretation": "A Verificacao de E12 é replay de nível em centímetros; não é intervalo de segurança nem calibração de vazão.",
+        },
         "audit": {
             "source_workbook_count": len(source),
             "eligible_workbook_count": len(eligible_ids),

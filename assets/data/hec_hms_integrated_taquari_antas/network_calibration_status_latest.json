@@ -1,6 +1,6 @@
 {
   "schema_version": "hec_hms_taquari_antas_calibration_status_v2",
-  "generated_at_utc": "2026-09-07T21:07:18.027168+00:00",
+  "generated_at_utc": "2026-09-21T01:30:02.788465+00:00",
   "purpose": "estudo de calibração e replay HEC-HMS; não é alerta, ordem de evacuação ou operação",
   "overall_status": "estrutura verificada; calibração comum ainda não concluída",
   "network": {
@@ -40,42 +40,58 @@
     }
   },
   "terrain": {
-    "status": "terrain_screening_complete; reach routing parameters still require channel evidence",
+    "status": "terrain_screening_complete_from_anadem_tiles; reach routing parameters still require channel evidence",
     "reaches": {
       "86472000_to_86472600": {
         "segment_count": 18,
         "length_km_bho6": 20.872,
-        "mdt_source": "assets/data/hec_hms_spatialized_mucum/srtm_mosaic_wgs84.tif",
-        "mdt_crs": "EPSG:4326",
+        "mdt_sources": [
+          "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_anadem_30m.tif"
+        ],
+        "mdt_crs": [
+          "EPSG:4326"
+        ],
         "sample_count": 264,
-        "start_terrain_elevation_m": 71.0,
-        "end_terrain_elevation_m": 60.0,
-        "terrain_drop_m": 11.0,
-        "mean_terrain_elevation_m": 68.18560606060606,
-        "min_terrain_elevation_m": 53.0,
-        "max_terrain_elevation_m": 109.0,
-        "approx_positive_slope_m_per_m": 0.0005270218474511307,
+        "sample_count_by_source": {
+          "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_anadem_30m.tif": 264
+        },
+        "start_terrain_elevation_m": 67.0,
+        "end_terrain_elevation_m": 53.5,
+        "terrain_drop_m": 13.5,
+        "mean_terrain_elevation_m": 60.13284090793494,
+        "min_terrain_elevation_m": 53.5,
+        "max_terrain_elevation_m": 69.33999633789062,
+        "approx_positive_slope_m_per_m": 0.0006467995400536604,
         "missing_bho6_geometry_fids": [],
         "routing_use": "diagnostic only; not a channel-bed slope or travel time"
       },
       "86472600_to_86510000": {
         "segment_count": 24,
         "length_km_bho6": 23.652,
-        "mdt_source": "assets/data/hec_hms_spatialized_mucum/srtm_mosaic_wgs84.tif",
-        "mdt_crs": "EPSG:4326",
-        "sample_count": 314,
-        "start_terrain_elevation_m": 67.0,
-        "end_terrain_elevation_m": 55.0,
-        "terrain_drop_m": 12.0,
-        "mean_terrain_elevation_m": 53.03503184713376,
-        "min_terrain_elevation_m": 28.0,
-        "max_terrain_elevation_m": 76.0,
-        "approx_positive_slope_m_per_m": 0.0005073566717402334,
+        "mdt_sources": [
+          "assets/data/mucum_inundacao/mdt/mdt_mucum_anadem_30m.tif",
+          "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_anadem_30m.tif"
+        ],
+        "mdt_crs": [
+          "EPSG:4326"
+        ],
+        "sample_count": 279,
+        "sample_count_by_source": {
+          "assets/data/mucum_inundacao/mdt/mdt_mucum_anadem_30m.tif": 177,
+          "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_anadem_30m.tif": 102
+        },
+        "start_terrain_elevation_m": 54.0,
+        "end_terrain_elevation_m": 38.0,
+        "terrain_drop_m": 16.0,
+        "mean_terrain_elevation_m": 46.499115236343876,
+        "min_terrain_elevation_m": 38.0,
+        "max_terrain_elevation_m": 54.630001068115234,
+        "approx_positive_slope_m_per_m": 0.0006764755623203111,
         "missing_bho6_geometry_fids": [],
         "routing_use": "diagnostic only; not a channel-bed slope or travel time"
       }
     },
-    "limitation": "SRTM/MDT e terreno amostrado, nao substitui secao hidraulica, cota d'agua, Manning ou nivelamento de calha"
+    "limitation": "ANADEM/MDT 30 m amostrado por tiles; nao substitui secao hidraulica, cota d'agua, Manning ou nivelamento de calha"
   },
   "event_replay": {
     "candidate_package": "network_replay_eventwise_candidate_all_events",
@@ -159,89 +175,37 @@
   "diagnostic_searches": {
     "E19": {
       "best_candidate": {
-        "k1": 1.0,
-        "k2": 1.0,
-        "initial_loss": 10.0,
-        "constant_loss": 1.0,
-        "tc": 30.0,
-        "storage": 60.0,
-        "recession": 0.9,
-        "initial_flow_ratio": 0.001,
-        "pairs": 53,
-        "mae_m3s": 161.7464822755,
-        "rmse_m3s": 205.9322944959,
-        "nse": -0.7023290142,
-        "observed_peak_m3s": 1408.375,
-        "simulated_peak_m3s": 1481.3887535899,
-        "peak_lag_hours": 28.0,
-        "peak_relative_error": 0.0518425516,
-        "status": "ok",
-        "candidate_dir": "D:\\PREVINE\\worktrees\\previne-catalogo-pesquisas-20260828\\assets\\data\\hec_hms_integrated_taquari_antas\\parameter_search_E19\\k1_1_k2_1_initial_loss_10_constant_loss_1_tc_30_storage_60_recession_0p9_initial_flow_ratio_0p001",
-        "research_score": -1.27269752452
+        "status": "unavailable_missing_artifact",
+        "artifact": "assets/data/hec_hms_integrated_taquari_antas/parameter_search_E19/parameter_search_best.json",
+        "label": "E19",
+        "research_only": true
       },
       "scope": "busca de K, tempo de concentração e armazenamento; chuva mantida"
     },
     "E22": {
       "best_candidate": {
-        "k1": 2.0,
-        "k2": 2.0,
-        "initial_loss": 1.0,
-        "constant_loss": 3.0,
-        "tc": 4.0,
-        "storage": 90.0,
-        "recession": 0.98,
-        "initial_flow_ratio": 0.005,
-        "pairs": 110,
-        "mae_m3s": 485.3320978376,
-        "rmse_m3s": 939.9544381441,
-        "nse": 0.6607097709,
-        "observed_peak_m3s": 10437.6669921875,
-        "simulated_peak_m3s": 5552.3083759189,
-        "peak_lag_hours": 0.0,
-        "peak_relative_error": 0.4680508221,
-        "status": "ok",
-        "candidate_dir": "D:\\PREVINE\\worktrees\\previne-catalogo-pesquisas-20260828\\assets\\data\\hec_hms_integrated_taquari_antas\\parameter_search_E22\\k1_2_k2_2_initial_loss_1_constant_loss_3_tc_4_storage_90_recession_0p98_initial_flow_ratio_0p005",
-        "research_score": 0.56709960648
+        "status": "unavailable_missing_artifact",
+        "artifact": "assets/data/hec_hms_integrated_taquari_antas/parameter_search_E22/parameter_search_best.json",
+        "label": "E22",
+        "research_only": true
       },
       "scope": "busca de K e perda constante; chuva mantida"
     },
     "E27_routing": {
       "best_candidate": {
-        "k1_hours": 0.25,
-        "k2_hours": 0.25,
-        "x": 0.2,
-        "pairs": 245,
-        "mae_m3s": 1404.5385586781,
-        "rmse_m3s": 1649.206032784,
-        "nse": 0.8312568505,
-        "observed_peak_m3s": 14525.224609375,
-        "simulated_peak_m3s": 12660.5346262907,
-        "peak_lag_hours": 0.0,
-        "peak_relative_error": 0.1283759827,
-        "status": "ok",
-        "candidate_dir": "D:\\PREVINE\\worktrees\\previne-catalogo-pesquisas-20260828\\assets\\data\\hec_hms_integrated_taquari_antas\\routing_search_E27\\k1_0p25_k2_0p25_x_0p2"
+        "status": "unavailable_missing_artifact",
+        "artifact": "assets/data/hec_hms_integrated_taquari_antas/routing_search_E27/routing_search_best.json",
+        "label": "E27 routing",
+        "research_only": true
       },
       "scope": "K dos dois trechos; zero atraso é métrica, não verdade física"
     },
     "E27_losses": {
       "best_candidate": {
-        "k1_hours": 0.25,
-        "k2_hours": 0.25,
-        "x": 0.2,
-        "initial_loss_mm": 0.0,
-        "constant_loss_mm_per_hour": 3.0,
-        "recession_factor": 0.98,
-        "initial_flow_area_ratio": 0.005,
-        "pairs": 245,
-        "mae_m3s": 1694.3946338256,
-        "rmse_m3s": 2088.6846729941,
-        "nse": 0.7293412443,
-        "observed_peak_m3s": 14525.224609375,
-        "simulated_peak_m3s": 14063.4595022506,
-        "peak_lag_hours": 0.0,
-        "peak_relative_error": 0.0317905657,
-        "status": "ok",
-        "candidate_dir": "D:\\PREVINE\\worktrees\\previne-catalogo-pesquisas-20260828\\assets\\data\\hec_hms_integrated_taquari_antas\\loss_search_E27\\k1_0p25_k2_0p25_x_0p2_il_0_cl_3_rec_0p98_if_0p005"
+        "status": "unavailable_missing_artifact",
+        "artifact": "assets/data/hec_hms_integrated_taquari_antas/loss_search_E27/loss_search_best.json",
+        "label": "E27 losses",
+        "research_only": true
       },
       "scope": "perdas; menor erro de pico pode piorar NSE"
     },

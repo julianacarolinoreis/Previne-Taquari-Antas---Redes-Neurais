@@ -165,6 +165,13 @@ def build() -> dict:
         "aggregate_metrics": sorted(aggregate, key=lambda item: (item["horizon_hours"], item["event_mae_mean_cm"])),
         "event_metrics": event_metrics,
         "skipped_models": [{"model": "LSTM/GRU", "status": "not_executed", "reason": "sem runtime temporal auditado neste contrato"}, {"model": "Transformer temporal", "status": "not_executed", "reason": "sem sequência temporal padronizada neste pacote"}, {"model": "Transformer-GNN", "status": "not_executed", "reason": "sem grafo hidrográfico multie estação validado"}],
+        "uncertainty": {
+            "status": "not_calibrated_for_live_use",
+            "research_only": True,
+            "available": ["resíduos e erro do pico no teste congelado", "ajuste escolhido em Validacao", "métricas por evento e horizonte"],
+            "not_available": ["intervalos de predição calibrados", "incerteza meteorológica", "incerteza MDT/HAND e nível→mancha", "incerteza de estação/vazão"],
+            "interpretation": "O ajuste de hiperparâmetros não transforma o replay em probabilidade ou faixa operacional.",
+        },
         "sources": ["assets/data/mucum_q62_auditoria.json", "assets/audit_workbooks/"],
     }
     OUTPUT_JSON.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

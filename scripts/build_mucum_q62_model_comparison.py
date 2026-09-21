@@ -341,6 +341,13 @@ def build() -> dict[str, Any]:
         "event_metrics": event_metrics,
         "fit_audit": fit_audit,
         "skipped_models": skipped,
+        "uncertainty": {
+            "status": "not_calibrated_for_live_use",
+            "research_only": True,
+            "available": ["resíduos e erro do pico no teste comum", "métricas por evento e horizonte", "separação temporal Treino/Teste"],
+            "not_available": ["intervalos de predição calibrados", "incerteza meteorológica", "incerteza MDT/HAND e nível→mancha", "incerteza de estação/vazão"],
+            "interpretation": "O erro observado no replay não é uma faixa de segurança nem uma probabilidade operacional.",
+        },
         "audit": {
             "source_workbook_count": len(source),
             "source_workbook_sha256": {item["model_id"]: item["sha256"] for item in source.values()},
