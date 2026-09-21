@@ -116,6 +116,8 @@ class DashboardDataContract(unittest.TestCase):
         self.assertIn('id="comparisonTitle"', page)
         self.assertIn('id="playReplay"', page)
         self.assertIn('id="snapshotFreshness"', page)
+        self.assertIn('id="stationReconciliationLink"', page)
+        self.assertIn("station_reconciliation_latest.json", page)
         self.assertIn('id="showGrid" type="checkbox"> Grade 200 m', page)
         self.assertIn("geometrias de contorno até 30 m em Santa Tereza", page)
         self.assertIn('"spatial_generated_at_utc":"2026-', page)

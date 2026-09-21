@@ -30,6 +30,7 @@ EVENT_REPLAY = ROOT / "assets" / "data" / "research_event_replay_latest.json"
 QUALITY = ROOT / "assets" / "data" / "research_dashboard_validation_latest.json"
 BASIN_SCREENING = ROOT / "assets" / "data" / "research_basin_screening_latest.json"
 HEC_STATUS = ROOT / "assets" / "data" / "hec_hms_integrated_taquari_antas" / "network_calibration_status_latest.json"
+STATION_RECONCILIATION = ROOT / "assets" / "data" / "hec_hms_integrated_taquari_antas" / "station_reconciliation_latest.json"
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -211,6 +212,7 @@ def quality_summary() -> dict[str, Any]:
 
 def hec_summary() -> dict[str, Any]:
     value = read_json(HEC_STATUS)
+    reconciliation = read_json(STATION_RECONCILIATION)
     event_replay = value.get("event_replay") if isinstance(value.get("event_replay"), dict) else {}
     events = event_replay.get("events") if isinstance(event_replay.get("events"), list) else []
     input_gate = value.get("calibration_input_gate") if isinstance(value.get("calibration_input_gate"), dict) else {}
@@ -227,6 +229,9 @@ def hec_summary() -> dict[str, Any]:
         "complete_three_incremental_area_events": complete,
         "operational_promotion_gate": gates.get("operational_promotion"),
         "source": rel(HEC_STATUS),
+        "station_reconciliation_source": rel(STATION_RECONCILIATION),
+        "station_reconciliation_status": reconciliation.get("status"),
+        "station_reconciliation_three_area_events": (reconciliation.get("summary") or {}).get("three_incremental_areas_complete_events", []),
         "definition": "Replay HEC-HMS diagnóstico no corredor BHO6; não é a discretização integral da bacia Taquari–Antas.",
     }
 
@@ -276,6 +281,7 @@ def main() -> int:
             rel(QUALITY),
             rel(BASIN_SCREENING),
             rel(HEC_STATUS),
+            rel(STATION_RECONCILIATION),
         ],
     }
     OUTPUT.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

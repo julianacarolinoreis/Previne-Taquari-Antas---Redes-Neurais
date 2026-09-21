@@ -75,6 +75,8 @@ class CatalogStatusTests(unittest.TestCase):
         hec = self.data["hec_hms"]
         self.assertEqual(hec["scored_event_count"], 5)
         self.assertEqual(hec["complete_three_incremental_area_events"], [28])
+        self.assertEqual(hec["station_reconciliation_three_area_events"], ["E28"])
+        self.assertEqual(hec["station_reconciliation_status"], "research_only_station_reconciliation")
         self.assertIn("bloqueado", hec["operational_promotion_gate"])
         self.assertIn("BHO6", hec["scope"])
 
