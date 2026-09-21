@@ -69,12 +69,21 @@ def model_summary() -> dict[str, Any]:
         total_types.update(types)
         total_horizons.update(horizons)
         filter_info = value.get("positivePersFilter") if isinstance(value.get("positivePersFilter"), dict) else {}
+        qualification_rule = filter_info.get("rule")
+        if not qualification_rule:
+            if value.get("q83") is True and value.get("notLive") is True:
+                qualification_rule = (
+                    "Feed q83 com notLive=true; conta todos os modelos embutidos "
+                    "com persistência positiva no próprio registro."
+                )
+            else:
+                qualification_rule = "Conta todos os modelos embutidos no feed desta cidade."
         by_city[city] = {
             "qualified_models": len(models),
             "original_models": filter_info.get("originalModelCount", len(models)),
             "types": dict(sorted(types.items())),
             "horizons": dict(sorted(horizons.items())),
-            "qualification_rule": filter_info.get("rule"),
+            "qualification_rule": qualification_rule,
             "source": f"{rel(INDEX)}#{'data-mucum' if city == 'mucum' else 'data'}",
         }
     return {
