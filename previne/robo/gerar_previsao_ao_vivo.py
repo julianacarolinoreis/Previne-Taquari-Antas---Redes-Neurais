@@ -131,8 +131,14 @@ POSTOS_CHUVA_36H = ["2851072"]
 # O painel é atualizado frequentemente e preserva a última previsão válida
 # quando a ANA está indisponível. Limites curtos evitam que uma API presa
 # consuma todo o intervalo entre ciclos.
-ANA_TIMEOUT_NIVEL_S = 12
-ANA_TIMEOUT_CHUVA_S = 8
+# O ciclo consulta várias estações em série para não sobrecarregar a ANA.
+# Com 12 s por rota, uma estação sem resposta podia consumir 24 s (endpoint
+# principal + espelho) e empurrar a rodada inteira para além do limite de
+# 240 s do workflow. O timeout menor mantém a tentativa no espelho, mas deixa
+# a rodada terminar e publicar o estado honesto de dado ausente quando uma
+# estação realmente não responde.
+ANA_TIMEOUT_NIVEL_S = 8
+ANA_TIMEOUT_CHUVA_S = 6
 ANA_RETRIES_NIVEL = 1
 ANA_RETRIES_CHUVA = 1
 ULTIMA_RAW = {}
