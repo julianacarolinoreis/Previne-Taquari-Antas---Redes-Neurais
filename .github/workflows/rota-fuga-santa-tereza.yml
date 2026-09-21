@@ -4,7 +4,8 @@ name: Rota de fuga - Santa Tereza
 # ao vivo da RNA e o tempo de caminhada ate o ponto seguro, gerando o mapa
 # santa_tereza_rota_fuga.html. Roda no GitHub Actions (sem custo em token).
 #
-# - versao AO VIVO: acompanha a previsao_ao_vivo.json (atualiza a cada 30 min)
+# - versao AO VIVO: acompanha a previsao_ao_vivo.json (apos cada rodada bem-sucedida;
+#   o schedule de 30 min permanece como recuperacao)
 # - versao CENARIO (subida de cheia ref. 22/07): gerada uma vez para demonstrar
 #   a margem; nao muda com o nivel do dia, entao roda so no disparo manual.
 
@@ -17,13 +18,23 @@ on:
         description: 'Tambem (re)gerar a versao de cenario de cheia (22/07)'
         type: boolean
         default: false
+  workflow_run:
+    workflows:
+      - "Previsao ao vivo - Santa Tereza"
+    types:
+      - completed
 
 jobs:
   rota-fuga:
+    # Em workflow_run, somente uma previsao publicada com sucesso deve
+    # atualizar o mapa. Agendamento e disparo manual continuam permitidos.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     concurrency:
       group: rota-fuga-santa-tereza
-      cancel-in-progress: true
+      # O mapa deve terminar a rodada atual mesmo quando outra atualizacao
+      # chega; a fila evita cancelar a publicacao anterior.
+      cancel-in-progress: false
     permissions:
       contents: write
 
