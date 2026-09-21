@@ -18,6 +18,9 @@ on:
         description: 'Tambem (re)gerar a versao de cenario de cheia (22/07)'
         type: boolean
         default: false
+  repository_dispatch:
+    types:
+      - previne-santa-live-complete
   workflow_run:
     workflows:
       - "Previsao ao vivo - Santa Tereza"
@@ -27,7 +30,8 @@ on:
 jobs:
   rota-fuga:
     # Em workflow_run, somente uma previsao publicada com sucesso deve
-    # atualizar o mapa. Agendamento e disparo manual continuam permitidos.
+    # atualizar o mapa. O repository_dispatch ja e emitido somente apos a
+    # publicacao; agendamento e disparo manual continuam permitidos.
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     concurrency:

@@ -100,6 +100,22 @@ jobs:
             fi
           fi
 
+      # Atualiza a camada derivada logo apos uma publicacao meteorologica
+      # bem-sucedida. O dispatch autenticado e aceito pelo GitHub e nao fica
+      # sujeito ao atraso do scheduler.
+      - name: Atualizar rota de fuga apos previsao publicada
+        if: ${{ success() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --data '{"event_type":"previne-santa-live-complete"}'
+
       # O schedule do GitHub pode ser atrasado ou descartado. O dispatch
       # autenticado com GITHUB_TOKEN cria a proxima execucao sem depender dele.
       - name: Encadear proximo ciclo
