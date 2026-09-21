@@ -2301,7 +2301,7 @@
     const rain=scope.observed_rain_station_count||0;
     const levels=scope.level_station_count||0;
     const uniqueLocations=scope.forecast_location_count||total;
-    const coverage=forecast===total?'cobertura completa':'cobertura parcial · '+basinEscape(total-forecast)+' indisponíveis sinalizadas';
+    const coverage=forecast===total?'cobertura de previsão completa':'cobertura de previsão parcial · '+basinEscape(total-forecast)+' indisponíveis sinalizadas';
     const freshness=basinFeedIsStale()?' · snapshot atrasado':'';
     status.innerHTML='<span><strong>'+basinEscape(total)+' estações G040</strong> · '+basinEscape(forecast)+' com previsão · '+basinEscape(rain)+' com chuva observada · '+basinEscape(levels)+' com nível · '+basinEscape(uniqueLocations)+' pontos meteorológicos únicos · '+coverage+'</span>'+
       '<span class="map-status-right">Atualizado '+basinEscape(basinDate(BASIN_FEED.generated_at_utc))+basinEscape(freshness)+' · próximo '+basinEscape(basinNextCycle(BASIN_FEED.next_cycle_utc))+'</span>';
