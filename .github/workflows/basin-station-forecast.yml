@@ -1,12 +1,23 @@
 name: Atualiza mapa de estações da bacia
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/build_basin_station_forecast.py'
+      - 'scripts/archive_basin_station_forecast.py'
+      - 'scripts/test_basin_station_forecast.py'
+      - 'scripts/test_basin_station_catalog.py'
+      - 'scripts/test_basin_station_forecast_archive.py'
+      - '.github/workflows/basin-station-forecast.yml'
   workflow_dispatch:
+  repository_dispatch:
+    types:
+      - previne-basin-station
   schedule:
-    # Atualiza o catálogo, as leituras publicadas e o snapshot multi-modelo
-    # a cada cinco minutos. O agendador público do GitHub pode atrasar uma
-    # execução; o horário gerado no feed continua sendo a fonte de verdade.
-    - cron: '*/5 * * * *'
+    # Bootstrap/recuperação. O ciclo nominal é encadeado por repository_dispatch
+    # para não depender do scheduler público do GitHub a cada 5 minutos.
+    - cron: '31 * * * *'
 
 permissions:
   contents: write
@@ -23,13 +34,13 @@ jobs:
     timeout-minutes: 12
     steps:
       - name: Checkout main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
 
       - name: Configura Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
@@ -78,3 +89,20 @@ jobs:
           done
           echo 'Não foi possível publicar após 5 tentativas.'
           exit 1
+
+      - name: Encadear próxima atualização do snapshot
+        if: ${{ success() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Mantém o snapshot meteorológico andando sem depender do cron de 5 min.
+          # O tempo de execução desta rodada + 120 s produz cadência prática
+          # próxima de 5 min sem sobrepor consultas ao Open-Meteo.
+          sleep 120
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --data '{"event_type":"previne-basin-station"}'
