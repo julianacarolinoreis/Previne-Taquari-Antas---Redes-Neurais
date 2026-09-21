@@ -152,7 +152,14 @@ jobs:
                 mkdir -p "_site/$(dirname "$file")"
                 cp -p -- "$file" "_site/$file"
                 ;;
+              assets/mat/2H_ALT__00[1-5]_MUC_H02_STZ_RECORTE_*.mat|assets/mat/4H_ALT__00[6-9]_MUC_H04_STZ_RECORTE_*.mat|assets/mat/4H_ALT__010_MUC_H04_STZ_RECORTE_*.mat|assets/mat/8H_ALT__01[1-5]_MUC_H08_STZ_RECORTE_*.mat|assets/mat/12H_ALT__01[6-9]_MUC_H12_STZ_RECORTE_*.mat|assets/mat/12H_ALT__020_MUC_H12_STZ_RECORTE_*.mat)
+                mkdir -p "_site/$(dirname "$file")"
+                cp -p -- "$file" "_site/$file"
+                ;;
               .github/*|scripts/*|*.tif|*.py|*.md|*.yml|*.yaml|Gemfile|Gemfile.lock)
+                continue
+                ;;
+              *.mat)
                 continue
                 ;;
               *)
