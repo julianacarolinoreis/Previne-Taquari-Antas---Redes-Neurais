@@ -16,10 +16,14 @@ on:
       - 'scripts/test_previsao_ao_vivo_schema.py'
       - '.github/workflows/previsao-ao-vivo.yml'
   schedule:
-    # Plantao frequente de Santa Tereza. O GitHub trata schedule como
-    # best-effort; o painel exibe a idade real da última execução.
-    - cron: '2-59/5 * * * *'
+    # Recuperacao/bootstrap. O GitHub trata schedule como best-effort;
+    # o encadeamento repository_dispatch mantem o ciclo depois que ele inicia.
+    # O deslocamento evita o minuto exato de virada da hora, mais congestionado.
+    - cron: '4-59/5 * * * *'
   workflow_dispatch:
+  repository_dispatch:
+    types:
+      - previne-santa-live
   workflow_run:
     workflows:
       - "Atualiza feed meteorológico de Santa Tereza"
@@ -33,7 +37,7 @@ jobs:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     # Uma consulta ANA presa não pode deixar o robô indefinidamente em execução.
-    timeout-minutes: 8
+    timeout-minutes: 12
     concurrency:
       group: previsao-ao-vivo-santa-tereza
       cancel-in-progress: true
@@ -91,3 +95,19 @@ jobs:
               exit 1
             fi
           fi
+
+      # O schedule do GitHub pode ser atrasado ou descartado. O dispatch
+      # autenticado com GITHUB_TOKEN cria a proxima execucao sem depender dele.
+      - name: Encadear proximo ciclo
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sleep 180
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --data '{"event_type":"previne-santa-live"}'
