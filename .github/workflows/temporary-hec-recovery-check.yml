@@ -1,0 +1,24 @@
+name: temporary-hec-recovery-check
+
+on:
+  push:
+    branches:
+      - chatgpt/hec-preroll-recovery-20260921
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Syntax
+        run: |
+          python -m py_compile \
+            scripts/melhorar_calibracao_hidrograma_20260921.py \
+            scripts/verificar_ajuste_hidrograma_20260921.py \
+            scripts/build_hec_twin_ifs_forcing_5d.py \
+            scripts/run_hec_twin_mucum_forward_5d.py
+      - name: HEC forward tests
+        run: python -m unittest scripts.test_hec_twin_mucum_forward_5d
