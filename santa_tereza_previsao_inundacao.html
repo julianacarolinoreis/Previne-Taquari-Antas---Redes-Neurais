@@ -250,7 +250,7 @@
           <div class="row2"><span class="sw b"></span><b>possível avanço fora do leito</b> (RNA, em laranja)</div>
           <div class="row2"><span class="sw u"></span>faixa de incerteza (a borda pode variar)</div>
         </div>
-        <div class="disc">A camada colorida exclui o contorno-base HAND 0, usado provisoriamente como aproximação do leito. Ela mostra somente a área adicional estimada fora desse contorno. A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata nem como alerta oficial. No controle de camadas, <b>“MDT refinado · pesquisa”</b> mostra uma visualização suavizada apenas para reduzir ruído isolado no talvegue; o original continua preservado. Na mancha desenhada, somente ilhas internas menores que <b>0,5 ha</b> são ocultadas; o contorno-base HAND 0 e as ilhas maiores permanecem preservados. O GeoJSON original e suas áreas não mudam.</div>
+        <div class="disc">A camada colorida exclui o contorno-base HAND 0, usado provisoriamente como aproximação do leito. Ela mostra somente a área adicional estimada fora desse contorno. A posição exata da borda pode variar — trate a mancha como <b>zona de atenção</b>, não como linha exata nem como alerta oficial. A antiga camada “MDT refinado · pesquisa” foi retirada desta página porque pertencia ao mosaico drone+ANADEM anterior e não era compatível com o HAND 5 m atual. A mancha agora é desenhada diretamente a partir do GeoJSON publicado, sem remover ilhas internas no navegador.</div>
       </div></details>
     </div>
 
@@ -414,10 +414,11 @@ const COTA_INUND=1500;
 const COLS=HAND.cols, ROWS=HAND.rows;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
 const CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_extravasamento.json';
-const ELEVATION_URL='assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m_refinado.json';
-const MDT_VISUAL_URL='assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_10m_refinado_visual.png';
+// IMPORTANTE: a antiga grade absoluta drone+ANADEM não pertence ao mesmo
+// terreno do HAND 5 m atual. Ela foi retirada daqui para não misturar
+// geometrias, cotas e extensões incompatíveis. A altitude absoluta só deve
+// voltar quando for regenerada a partir do mesmo FILL_CLIP_MOSAICO_LIDAR_RS.
 let contornos=null, nowLayer=null, foreLayer=null, foreOutlineLayer=null, uncLayer=null;
-let elevationMeta=null, elevationArr=null;
 const latC=(HAND.S+HAND.N)/2;
 // cellHa calculado do proprio raster (bounds/COLS/ROWS) -- antes era um
 // literal fixo (0,0835 ha, do tamanho de celula do ANADEM 30m antigo)
@@ -611,20 +612,7 @@ function ensureHand(){
 
 function loadContornos(){return fetch(CONTORNOS_URL).then(r=>r.json()).then(fc=>{contornos=fc;}).catch(e=>{console.error('falha ao carregar contornos', e); contornos=null;});}
 
-function loadElevation(){return fetch(ELEVATION_URL).then(r=>{
-  if(!r.ok) throw new Error('HTTP '+r.status);
-  return r.json();
-}).then(meta=>new Promise(resolve=>{
-  const img=new Image();
-  img.onload=()=>{
-    const c=document.createElement('canvas'); c.width=meta.cols; c.height=meta.rows;
-    const ctx=c.getContext('2d',{willReadFrequently:true}); ctx.drawImage(img,0,0);
-    elevationMeta=meta; elevationArr=ctx.getImageData(0,0,meta.cols,meta.rows).data;
-    resolve();
-  };
-  img.onerror=()=>{elevationMeta=null;elevationArr=null;resolve();};
-  img.src=new URL(meta.png,new URL(ELEVATION_URL,document.baseURI)).href;
-})).catch(e=>{console.error('falha ao carregar altitude',e);elevationMeta=null;elevationArr=null;});}
+
 
 // Validação de campo: régua = 1,60 m corresponde ao HAND 0.
 // O valor observado permanece bruto; a previsão espacializada usa RNA - 1,60 m.
@@ -658,15 +646,6 @@ function handAt(lat,lon){ // decimetros no ponto, ou null
   const value=handArr[fy*COLS+fx];
   return value===250?null:value;
 }
-function elevationAt(lat,lon){
-  if(!elevationMeta||!elevationArr) return null;
-  const m=elevationMeta;
-  const fx=Math.floor((lon-m.W)/(m.E-m.W)*m.cols), fy=Math.floor((m.N-lat)/(m.N-m.S)*m.rows);
-  if(fx<0||fx>=m.cols||fy<0||fy>=m.rows) return null;
-  const i=(fy*m.cols+fx)*4;
-  if(elevationArr[i+3]===0) return null;
-  return ((elevationArr[i]<<8)|elevationArr[i+1])*(m.escala||0.1);
-}
 function achaFeature(mLvl){
   if(!contornos||mLvl==null||!Number.isFinite(mLvl)||mLvl<=0) return null;
   if(contornos&&contornos._maxNivel==null) contornos._maxNivel=Math.max(0,...contornos.features.map(f=>f.properties.nivel_m));
@@ -677,34 +656,11 @@ function achaFeature(mLvl){
     return Math.abs(Number(f.properties.nivel_m)-alvo)<Math.abs(Number(best.properties.nivel_m)-alvo)?f:best;
   },null);
 }
-// Suprime apenas ilhas internas menores que 0,5 ha na camada desenhada. Os
-// anéis grandes e os GeoJSON originais permanecem intactos para auditoria.
-const MIN_VISUAL_HOLE_M2=5000;
-function ringAreaM2(ring){
-  if(!Array.isArray(ring)||ring.length<4) return 0;
-  let twice=0, lat=0, n=0;
-  for(let i=0;i<ring.length-1;i++){
-    const a=ring[i], b=ring[i+1];
-    if(!Array.isArray(a)||!Array.isArray(b)) continue;
-    twice += Number(a[0])*Number(b[1])-Number(b[0])*Number(a[1]);
-    lat += Number(a[1]); n++;
-  }
-  if(!n) return 0;
-  const mx=111320*Math.cos((lat/n)*Math.PI/180), my=111320;
-  return Math.abs(twice)*0.5*mx*my;
-}
-function visualGeometry(geom){
-  if(!geom||!geom.type) return geom;
-  const clean=poly=>Array.isArray(poly)&&poly.length ? [poly[0],...poly.slice(1).filter(r=>ringAreaM2(r)>=MIN_VISUAL_HOLE_M2)] : poly;
-  if(geom.type==='Polygon') return {...geom,coordinates:clean(geom.coordinates)};
-  if(geom.type==='MultiPolygon') return {...geom,coordinates:geom.coordinates.map(clean)};
-  return geom;
-}
-function visualFeature(feat){return feat?{...feat,geometry:visualGeometry(feat.geometry)}:feat;}
+// A geometria desenhada é exatamente a geometria publicada no GeoJSON.
 function setLayer(layer, mLvl){
   const feat=achaFeature(mLvl);
   layer.clearLayers();
-  if(feat) layer.addData(visualFeature(feat));
+  if(feat) layer.addData(feat);
   return feat?feat.properties.area_ha:0;
 }
 
@@ -1265,7 +1221,7 @@ async function init(){
   document.getElementById('live-btn').onclick=()=>liveMode?exitLive():enterLive();
   document.querySelectorAll('[data-live-hz]').forEach(b=>b.onclick=()=>setLiveHorizon(b.dataset.liveHz));
 
-  await Promise.all([loadContornos(), loadElevation()]);
+  await loadContornos();
   if(typeof L!=='undefined'){
     map=L.map('map',{scrollWheelZoom:true}).fitBounds(BOUNDS);
     const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'© Esri, Maxar'});
@@ -1274,10 +1230,9 @@ async function init(){
     sat.on('tileerror',()=>{if(!map.hasLayer(osm)&&!map.hasLayer(sat)) osm.addTo(map);});
     sat.addTo(map); labels.addTo(map);
     telemetryLayer=L.layerGroup().addTo(map);
-    const mdtVisual=L.imageOverlay(MDT_VISUAL_URL,BOUNDS,{opacity:.48,interactive:false,alt:'MDT refinado de Santa Tereza, visual de pesquisa'});
     const layerControl=L.control.layers(
       {'Satélite':sat,'Ruas':osm},
-      {'Rótulos':labels,'Estações hidrotelemétricas':telemetryLayer,'MDT refinado · pesquisa (visual)':mdtVisual},
+      {'Rótulos':labels,'Estações hidrotelemétricas':telemetryLayer},
       {position:'topright'}
     ).addTo(map);
     // A borda prevista fica sempre acima do azul para a RNA continuar visível,
@@ -1329,13 +1284,14 @@ async function init(){
     };
     stationControl.addTo(map);
     if(pt) L.circleMarker([pt.lat,pt.lon],{radius:6,color:'#fff',weight:2,fillColor:'#b04538',fillOpacity:.95}).addTo(map).bindPopup('<b>'+pt.label+'</b>');
-    // clique no mapa -> altitude do MDT e profundidade de água no ponto
+    // clique no mapa -> HAND/profundidade usando somente o terreno da mancha atual.
+    // A altitude absoluta fica indisponível até a grade ser regenerada da mesma fonte.
     map.on('click', async e=>{
       await ensureHand();
-      const hd=handAt(e.latlng.lat,e.latlng.lng), elev=elevationAt(e.latlng.lat,e.latlng.lng);
-      if(hd==null&&elev==null) return;
+      const hd=handAt(e.latlng.lat,e.latlng.lng);
+      if(hd==null) return;
       let html='<div class="pt-pop"><b>Neste ponto</b>';
-      html+='<br><b>Altitude do terreno (MDT): '+(elev!=null?nf1.format(elev)+' m':'indisponível')+'</b>';
+      html+='<br><span>Altitude absoluta do MDT: indisponível nesta versão (fonte antiga retirada para evitar mistura de terrenos).</span>';
       if(curS&&hd!=null){
         const pointHand=hd/10, ev=EVENTS[curEv];
         html+='<br>Altura acima do leito (HAND): '+nf1.format(pointHand)+' m';
