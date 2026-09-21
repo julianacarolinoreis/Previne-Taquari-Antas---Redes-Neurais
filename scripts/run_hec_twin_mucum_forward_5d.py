@@ -130,9 +130,16 @@ def infer_forcing_wetness(
             past_h = int(win.get("past_hours") or max(1, len(hourly) // 2))
             now_index = min(max(past_h - 1, 0), len(hourly) - 1)
         past_mm = float(sum(hourly[: now_index + 1]))
-    total = float(aw.get("total_mm") or sum(hourly) or 0.0)
+    # In a past+future forcing window, wetness uses the observed/replay past,
+    # while the forecast-rain input must describe only the future horizon.
+    # Legacy forcing files do not carry future_mm, so they retain old behavior.
+    forecast_mm = float(
+        aw.get("future_mm")
+        if aw.get("future_mm") is not None
+        else (aw.get("total_mm") or sum(hourly) or 0.0)
+    )
     return bacia.infer_wetness_state(
-        forecast_aw_mm=total,
+        forecast_aw_mm=forecast_mm,
         past_aw_mm=None if past_mm is None else float(past_mm),
         stage_cm=stage_cm,
         stage_rising=stage_rising,
@@ -512,7 +519,19 @@ def build_package(
         if sb not in areas:
             raise RuntimeError(f"area missing for {sb}")
     times = list(forcing["times_utc"])
-    forecast_total = float(forcing["area_weighted_mean_mm"]["total_mm"])
+    aw_rain = forcing["area_weighted_mean_mm"]
+    # Analog matching may use the whole event window (observed pre-roll + QPF),
+    # but the product sentence "chuva prevista" must never count past rain.
+    analog_total = float(
+        aw_rain.get("analog_total_mm")
+        if aw_rain.get("analog_total_mm") is not None
+        else aw_rain["total_mm"]
+    )
+    forecast_total = float(
+        aw_rain.get("future_mm")
+        if aw_rain.get("future_mm") is not None
+        else aw_rain["total_mm"]
+    )
     now_index = resolve_now_index(forcing, times)
 
     fingerprints = bacia.fingerprints_from_bacia_or_build(
@@ -557,7 +576,7 @@ def build_package(
                 "event_id": event_id,
                 "historical_aw_full_mm": fp.get("aw_full_mm"),
                 "historical_core_mean_mm": event_core_rain_mm(he_ev),
-                "forecast_aw_total_mm": forecast_total,
+                "forecast_aw_total_mm": analog_total,
                 "abs_mm_gap": None,
                 "distance": 0.0,
                 "nse": row.get("nse"),
@@ -568,7 +587,7 @@ def build_package(
         ]
     else:
         analogs = choose_analogs(
-            forecast_total,
+            analog_total,
             library,
             hec_events,
             top_k=5,
@@ -762,7 +781,10 @@ def build_package(
             "artifact": "hec_twin_ifs_forcing_5d_latest.json",
             "model": forcing.get("model"),
             "horizon_hours": forcing.get("horizon_hours"),
-            "area_weighted_total_mm": forecast_total,
+            "area_weighted_total_mm": float(aw_rain.get("total_mm") or 0.0),
+            "area_weighted_past_mm": aw_rain.get("past_mm"),
+            "area_weighted_future_mm": forecast_total,
+            "area_weighted_analog_total_mm": analog_total,
             "generated_at_utc": forcing.get("generated_at_utc"),
             "point_proxy_not_areal_mask": True,
         },
