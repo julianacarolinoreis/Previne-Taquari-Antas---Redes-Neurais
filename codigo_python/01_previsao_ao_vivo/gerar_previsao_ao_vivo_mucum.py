@@ -255,11 +255,6 @@ def _obter_xml_ana(cod, dias, timeout_s, tentativas_rede, parser, prefixo):
         f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
         f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
     ]
-    urls_sem_data = [
-        f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
-        f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio=&dataFim=",
-    ]
-
     def consultar(url, attempt, sem_data=False):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
@@ -280,20 +275,10 @@ def _obter_xml_ana(cod, dias, timeout_s, tentativas_rede, parser, prefixo):
         return None, False
 
     for attempt in range(tentativas_rede):
-        resposta_vazia = False
         for url in urls_com_data:
             xml, respondeu = consultar(url, attempt)
             if xml is not None:
                 return xml
-            resposta_vazia = resposta_vazia or respondeu
-        # Só usa a rota sem datas quando um host respondeu, mas sem uma série
-        # utilizável. Isso mantém a proteção contra uma segunda consulta longa
-        # depois de timeout no host principal.
-        if resposta_vazia:
-            for url in urls_sem_data:
-                xml, _ = consultar(url, attempt, sem_data=True)
-                if xml is not None:
-                    return xml
         if attempt < tentativas_rede - 1:
             # Backoff curto para que um HTTP 500 transitório não vire uma
             # sequência imediata de novas requisições ao mesmo serviço.

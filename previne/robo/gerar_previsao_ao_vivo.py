@@ -397,11 +397,6 @@ def _obter_xml_ana(cod, dias, timeout_s, tentativas_rede, parser, prefixo):
         f"{ANA}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
         f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio={ini:%d/%m/%Y}&dataFim={fim:%d/%m/%Y}",
     ]
-    urls_sem_data = [
-        f"{ANA}?codEstacao={cod}&dataInicio=&dataFim=",
-        f"{ANA_ESPELHO}?codEstacao={cod}&dataInicio=&dataFim=",
-    ]
-
     def consultar(url, tentativa, sem_data=False):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "previne-robo/1.0"})
@@ -425,19 +420,10 @@ def _obter_xml_ana(cod, dias, timeout_s, tentativas_rede, parser, prefixo):
         return None, False
 
     for tentativa in range(1, tentativas_rede + 1):
-        resposta_vazia = False
         for url in urls_com_data:
             xml, respondeu = consultar(url, tentativa)
             if xml is not None:
                 return xml
-            resposta_vazia = resposta_vazia or respondeu
-        # A rota sem datas só é tentada quando o host respondeu, mas entregou
-        # uma série vazia; depois de timeout ela só prolongaria o ciclo.
-        if resposta_vazia:
-            for url in urls_sem_data:
-                xml, _ = consultar(url, tentativa, sem_data=True)
-                if xml is not None:
-                    return xml
         if tentativa < tentativas_rede:
             time.sleep(min(4 * tentativa, 12))
     return None
