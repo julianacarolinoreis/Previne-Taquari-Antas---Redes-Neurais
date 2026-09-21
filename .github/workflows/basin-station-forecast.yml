@@ -34,12 +34,18 @@ jobs:
       - name: Testa o contrato do feed
         run: python -m unittest scripts.test_basin_station_forecast -v
 
+      - name: Arquiva a rodada para avaliação futura dos modelos
+        run: python -B scripts/archive_basin_station_forecast.py
+
+      - name: Testa o contrato do arquivo histórico
+        run: python -m unittest scripts.test_basin_station_forecast_archive -v
+
       - name: Publica somente o feed da bacia
         shell: bash
         run: |
           git config user.name 'previne-basin-station-bot'
           git config user.email 'previne-basin-station-bot@users.noreply.github.com'
-          git add assets/data/basin_station_forecast_latest.json
+          git add assets/data/basin_station_forecast_latest.json assets/data/basin_station_forecast_archive
           if git diff --cached --quiet; then
             echo 'Nenhuma mudança no feed.'
             exit 0
@@ -56,7 +62,7 @@ jobs:
               git reset --keep origin/main
               python -B scripts/build_basin_station_forecast.py
               python -m unittest scripts.test_basin_station_forecast -v
-              git add assets/data/basin_station_forecast_latest.json
+              git add assets/data/basin_station_forecast_latest.json assets/data/basin_station_forecast_archive
               if git diff --cached --quiet; then
                 echo 'Feed já publicado por outra execução.'
                 exit 0

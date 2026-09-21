@@ -86,6 +86,23 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertTrue(any(row["mm"] is None for row in rows))
         self.assertIn(4.5, [row["mm"] for row in rows])
 
+    def test_observed_windows_keep_coverage_and_missingness(self):
+        rows = [
+            (datetime(2026, 9, 20, 0, tzinfo=timezone.utc), 1.0),
+            (datetime(2026, 9, 20, 1, tzinfo=timezone.utc), None),
+            (datetime(2026, 9, 20, 2, tzinfo=timezone.utc), 3.0),
+        ]
+        windows = feed._observed_window_stats(
+            rows,
+            latest_observed=datetime(2026, 9, 20, 2, tzinfo=timezone.utc),
+            windows=(2,),
+        )
+        self.assertEqual(windows["2h"]["mm"], 4.0)
+        self.assertEqual(windows["2h"]["valid_points"], 2)
+        self.assertEqual(windows["2h"]["expected_points"], 3)
+        self.assertFalse(windows["2h"]["complete"])
+        self.assertAlmostEqual(windows["2h"]["coverage_ratio"], 2 / 3, places=3)
+
     def test_catalog_merges_flow_and_rain_records_by_network_and_code(self):
         with tempfile.TemporaryDirectory() as directory:
             flow_path = Path(directory) / "flow.json"
@@ -214,6 +231,56 @@ class BasinStationForecastTests(unittest.TestCase):
                 }
             }
         )
+
+    def test_complete_feed_contract_rejects_missing_model_or_required_series(self):
+        station = {
+            "id": "ANA:1",
+            "forecast": {
+                "state": "available",
+                "times": ["2026-09-20T00:00Z"],
+                "models": {
+                    spec["id"]: {
+                        variable: [1.0]
+                        for variable in feed.REQUIRED_FORECAST_VARIABLES
+                    }
+                    for spec in feed.MODEL_SPECS[:-1]
+                },
+            },
+        }
+        with self.assertRaisesRegex(RuntimeError, "Modelos ausentes"):
+            feed.validate_complete_feed(
+                {"scope": {"station_count": 1, "forecast_station_count": 1}, "stations": [station]}
+            )
+
+        station["forecast"]["models"] = {
+            spec["id"]: {
+                variable: [1.0]
+                for variable in feed.REQUIRED_FORECAST_VARIABLES
+            }
+            for spec in feed.MODEL_SPECS
+        }
+        station["forecast"]["models"][feed.MODEL_SPECS[0]["id"]]["precipitation"] = []
+        with self.assertRaisesRegex(RuntimeError, "Série inválida"):
+            feed.validate_complete_feed(
+                {"scope": {"station_count": 1, "forecast_station_count": 1}, "stations": [station]}
+            )
+
+    def test_level_snapshot_adds_age_and_trend(self):
+        level = {
+            "state": "available",
+            "current_cm": 350.0,
+            "observed_at_utc": "2026-09-20T01:00Z",
+            "series": [
+                {"time": "2026-09-20T00:00Z", "cm": 340.0},
+                {"time": "2026-09-20T01:00Z", "cm": 350.0},
+            ],
+        }
+        result = feed._decorate_level_snapshot(
+            level, now=datetime(2026, 9, 20, 2, tzinfo=timezone.utc)
+        )
+        self.assertEqual(result["observed_age_minutes"], 60.0)
+        self.assertEqual(result["trend_cm_per_hour"], 10.0)
+        self.assertEqual(result["trend_label"], "subindo")
 
     def test_missing_level_is_explicitly_unavailable(self):
         with tempfile.TemporaryDirectory() as directory:

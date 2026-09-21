@@ -88,11 +88,18 @@ FORECAST_VARIABLES = (
     "precipitation_probability",
     "soil_moisture_0_to_7cm",
 )
+REQUIRED_FORECAST_VARIABLES = (
+    "precipitation",
+    "temperature_2m",
+    "relative_humidity_2m",
+    "wind_speed_10m",
+)
 
 FORECAST_DAYS = 4
 FORECAST_STEP_HOURS = 3
-PRECIPITATION_WINDOW_HOURS = (3, 6, 24)
+PRECIPITATION_WINDOW_HOURS = (3, 6, 12, 24, 48, 72)
 OBSERVED_HOURS = 72
+OBSERVED_WINDOW_HOURS = (1, 3, 6, 12, 24, 48, 72)
 BATCH_SIZE = 100
 BATCH_PAUSE_SECONDS = 15.0
 REFRESH_MINUTE_UTC = 17
@@ -304,6 +311,12 @@ def load_observed_rain(
                 "source": "assets/data/chuvas_horarias.csv",
                 "unit": "mm",
                 "rows": [],
+                "available_points": 0,
+                "expected_points": 0,
+                "last_observed_at_utc": None,
+                "windows": _observed_window_stats(
+                    [], latest_observed=None, windows=OBSERVED_WINDOW_HOURS
+                ),
                 "message": "Arquivo de chuva observada não publicado.",
             }
             for code in OBSERVED_COLUMNS
@@ -336,6 +349,10 @@ def load_observed_rain(
             for timestamp in window
         ]
         known = [row["mm"] for row in selected if row["mm"] is not None]
+        latest_observed = max(
+            (timestamp for timestamp, value in rows if value is not None),
+            default=None,
+        )
         result[code] = {
             "state": "available" if known else "unavailable",
             "source": "ANA/INMET/CEMADEN · chuvas_horarias.csv",
@@ -343,11 +360,60 @@ def load_observed_rain(
             "timezone": "America/Sao_Paulo",
             "rows": selected,
             "available_points": len(known),
+            "expected_points": len(window),
+            "last_observed_at_utc": iso_utc(latest_observed),
+            "windows": _observed_window_stats(
+                rows,
+                latest_observed=latest_observed,
+                windows=OBSERVED_WINDOW_HOURS,
+            ),
             "message": (
                 "Série observada publicada pelo robô de chuva."
                 if known
                 else "Não há série observada publicada para este código."
             ),
+        }
+    return result
+
+
+def _observed_window_stats(
+    rows: list[tuple[datetime, float | None]],
+    *,
+    latest_observed: datetime | None,
+    windows: tuple[int, ...],
+) -> dict[str, dict[str, Any]]:
+    """Summarize trailing observed-rain windows without hiding gaps."""
+
+    if latest_observed is None:
+        return {
+            f"{hours}h": {
+                "mm": None,
+                "valid_points": 0,
+                "expected_points": hours + 1,
+                "coverage_ratio": 0.0,
+                "complete": False,
+            }
+            for hours in windows
+        }
+
+    by_time = {timestamp: value for timestamp, value in rows}
+    result: dict[str, dict[str, Any]] = {}
+    for hours in windows:
+        start = latest_observed - timedelta(hours=hours)
+        expected_points = hours + 1
+        selected = [
+            value
+            for timestamp, value in by_time.items()
+            if start <= timestamp <= latest_observed
+        ]
+        valid = [value for value in selected if value is not None]
+        coverage_ratio = len(valid) / expected_points
+        result[f"{hours}h"] = {
+            "mm": round(sum(valid), 3) if valid else None,
+            "valid_points": len(valid),
+            "expected_points": expected_points,
+            "coverage_ratio": round(coverage_ratio, 4),
+            "complete": len(valid) == expected_points,
         }
     return result
 
@@ -391,6 +457,45 @@ def _level_record(raw: dict[str, Any], code: str) -> dict[str, Any] | None:
         "quality": raw.get("status_dados"),
         "message": str(raw.get("aviso") or raw.get("status_dados") or "").strip(),
     }
+
+
+def _decorate_level_snapshot(
+    level: dict[str, Any], *, now: datetime
+) -> dict[str, Any]:
+    """Add freshness and trend diagnostics without changing the source values."""
+
+    observed_at = parse_iso(level.get("observed_at_utc"), default_timezone=UTC)
+    age_minutes = None
+    if observed_at is not None:
+        age_minutes = round(max(0.0, (now - observed_at).total_seconds() / 60.0), 1)
+
+    series = level.get("series") if isinstance(level.get("series"), list) else []
+    parsed_series = []
+    for item in series:
+        if not isinstance(item, dict):
+            continue
+        timestamp = parse_iso(item.get("time"), default_timezone=UTC)
+        value = finite(item.get("cm"))
+        if timestamp is not None and value is not None:
+            parsed_series.append((timestamp, value))
+    trend = None
+    if len(parsed_series) >= 2:
+        first_time, first_value = parsed_series[-2]
+        last_time, last_value = parsed_series[-1]
+        elapsed_hours = (last_time - first_time).total_seconds() / 3600.0
+        if elapsed_hours > 0:
+            trend = round((last_value - first_value) / elapsed_hours, 3)
+
+    level["observed_age_minutes"] = age_minutes
+    level["series_valid_points"] = len(parsed_series)
+    level["trend_cm_per_hour"] = trend
+    level["trend_label"] = (
+        "subindo" if trend is not None and trend > 0.01
+        else "descendo" if trend is not None and trend < -0.01
+        else "estável" if trend is not None
+        else None
+    )
+    return level
 
 
 def _level_observed_series(
@@ -621,6 +726,7 @@ def extract_forecast_payload(
     payload: dict[str, Any],
     *,
     step_hours: int = FORECAST_STEP_HOURS,
+    fetched_at_utc: str | None = None,
 ) -> dict[str, Any]:
     hourly = payload.get("hourly") if isinstance(payload, dict) else None
     if not isinstance(hourly, dict):
@@ -628,6 +734,7 @@ def extract_forecast_payload(
             "state": "unavailable",
             "times": [],
             "models": {},
+            "fetched_at_utc": fetched_at_utc,
             "message": "Resposta sem bloco hourly.",
         }
     raw_times = hourly.get("time") or []
@@ -663,12 +770,20 @@ def extract_forecast_payload(
             "state": "unavailable",
             "times": [],
             "models": {},
+            "fetched_at_utc": fetched_at_utc,
             "message": "Nenhum modelo retornou série utilizável.",
         }
     return {
         "state": "available",
         "times": times,
         "models": models,
+        "fetched_at_utc": fetched_at_utc,
+        "source_metadata": {
+            key: payload[key]
+            for key in ("timezone", "timezone_abbreviation", "utc_offset_seconds", "generationtime_ms")
+            if key in payload
+        },
+        "model_run_at_utc": None,
         "message": "Previsão horária amostrada para leitura comparativa.",
     }
 
@@ -678,6 +793,9 @@ def _unavailable_forecast(message: str) -> dict[str, Any]:
         "state": "unavailable",
         "times": [],
         "models": {},
+        "fetched_at_utc": None,
+        "source_metadata": {},
+        "model_run_at_utc": None,
         "message": message,
     }
 
@@ -690,6 +808,53 @@ def _next_cycle(now: datetime) -> datetime:
         candidate += timedelta(hours=1)
         candidate = candidate.replace(minute=REFRESH_MINUTE_UTC)
     return candidate
+
+
+def _metric_coverage(stations: list[dict[str, Any]]) -> dict[str, Any]:
+    """Count real values by metric, model and station for the public contract."""
+
+    coverage: dict[str, Any] = {}
+    for variable in FORECAST_VARIABLES:
+        by_model: dict[str, Any] = {}
+        for spec in MODEL_SPECS:
+            model_id = spec["id"]
+            station_count = 0
+            valid_points = 0
+            total_points = 0
+            for station in stations:
+                forecast = station.get("forecast") or {}
+                model = (forecast.get("models") or {}).get(model_id) or {}
+                values = model.get(variable)
+                if not isinstance(values, list):
+                    continue
+                total_points += len(values)
+                valid = sum(finite(value) is not None for value in values)
+                valid_points += valid
+                if valid:
+                    station_count += 1
+            by_model[model_id] = {
+                "station_count": station_count,
+                "valid_points": valid_points,
+                "total_points": total_points,
+                "coverage_ratio": round(valid_points / total_points, 4)
+                if total_points
+                else 0.0,
+            }
+        coverage[variable] = {"models": by_model}
+    return coverage
+
+
+def _coordinate_coverage(stations: list[dict[str, Any]]) -> dict[str, int]:
+    groups: dict[tuple[float, float], int] = {}
+    for station in stations:
+        key = _coordinate_key(station)
+        groups[key] = groups.get(key, 0) + 1
+    duplicated = [count for count in groups.values() if count > 1]
+    return {
+        "unique_location_count": len(groups),
+        "duplicate_location_group_count": len(duplicated),
+        "stations_in_duplicate_locations": sum(duplicated),
+    }
 
 
 def build_feed(
@@ -716,10 +881,18 @@ def build_feed(
                 "unit": "mm",
                 "rows": [],
                 "available_points": 0,
+                "expected_points": 0,
+                "last_observed_at_utc": None,
+                "windows": _observed_window_stats(
+                    [], latest_observed=None, windows=OBSERVED_WINDOW_HOURS
+                ),
                 "message": "Não há coluna observada publicada para esta estação.",
             },
         )
-        item["level"] = levels.get(item["code"], _unavailable_level(item["code"]))
+        item["level"] = _decorate_level_snapshot(
+            levels.get(item["code"], _unavailable_level(item["code"])),
+            now=now,
+        )
         item["forecast"] = _unavailable_forecast("Aguardando a rodada meteorológica.")
 
     forecast_locations = _unique_forecast_locations(stations)
@@ -734,7 +907,10 @@ def build_feed(
                     f"Open-Meteo retornou {len(payloads)} locais para {len(batch)} pedidos"
                 )
             for location, payload in zip(batch, payloads):
-                forecasts_by_coordinate[_coordinate_key(location)] = extract_forecast_payload(payload)
+                forecasts_by_coordinate[_coordinate_key(location)] = extract_forecast_payload(
+                    payload,
+                    fetched_at_utc=iso_utc(now),
+                )
         except Exception as exc:
             message = f"Rodada não disponível para este lote: {exc}"
             for location in batch:
@@ -774,6 +950,7 @@ def build_feed(
             "forecast_station_count": available_forecasts,
             "observed_rain_station_count": available_observations,
             "level_station_count": available_levels,
+            **_coordinate_coverage(stations),
             "catalogs": [
                 "assets/data/estudo_bacia_taquari_antas/postos_g040.geojson",
                 "assets/data/estudo_bacia_taquari_antas/pluviometria_g040.geojson",
@@ -789,6 +966,7 @@ def build_feed(
             ),
         },
         "models": list(MODEL_SPECS),
+        "metric_coverage": _metric_coverage(stations),
         "metrics": [
             {"id": "precipitation", "label": "Chuva", "unit": "mm", "source_state": "forecast", "sampling": "ponto horário do modelo exibido a cada 3 h; acumulados de 3 h, 6 h e 24 h somente com série horária completa"},
             {"id": "level_cm", "label": "Nível", "unit": "cm", "source_state": "observed_and_experimental_forecast", "sampling": "observação publicada em até 72 h; previsão RNA por horizonte"},
@@ -829,6 +1007,34 @@ def validate_complete_feed(feed: dict[str, Any]) -> None:
             f"Rodada incompleta: {forecast_count}/{station_count} estações com previsão; "
             "o snapshot anterior deve ser preservado."
         )
+
+    expected_models = {spec["id"] for spec in MODEL_SPECS}
+    for station in feed.get("stations") or []:
+        station_id = station.get("id") or station.get("code") or "estação"
+        forecast = station.get("forecast") or {}
+        if forecast.get("state") != "available":
+            raise RuntimeError(f"Previsão indisponível para {station_id}.")
+        times = forecast.get("times") or []
+        models = forecast.get("models") or {}
+        missing_models = expected_models.difference(models)
+        if missing_models:
+            raise RuntimeError(
+                f"Modelos ausentes para {station_id}: {', '.join(sorted(missing_models))}."
+            )
+        for model_id in expected_models:
+            model = models[model_id]
+            for variable in REQUIRED_FORECAST_VARIABLES:
+                values = model.get(variable)
+                if not isinstance(values, list) or len(values) != len(times):
+                    raise RuntimeError(
+                        f"Série inválida {station_id}/{model_id}/{variable}: "
+                        f"{len(values) if isinstance(values, list) else 'sem série'} "
+                        f"pontos para {len(times)} horários."
+                    )
+                if not any(finite(value) is not None for value in values):
+                    raise RuntimeError(
+                        f"Série vazia {station_id}/{model_id}/{variable}."
+                    )
 
 
 def main() -> int:
