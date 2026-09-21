@@ -90,6 +90,15 @@ jobs:
           sparse-checkout: |
             /*
             !*.mat
+            # The corrected Muçum q83 catalog exposes these 20 training
+            # artifacts as explicit downloads. Keep the remaining historical
+            # MAT files out of the Pages artifact.
+            assets/mat/2H_ALT__00[1-5]_MUC_H02_STZ_RECORTE_*.mat
+            assets/mat/4H_ALT__00[6-9]_MUC_H04_STZ_RECORTE_*.mat
+            assets/mat/4H_ALT__010_MUC_H04_STZ_RECORTE_*.mat
+            assets/mat/8H_ALT__01[1-5]_MUC_H08_STZ_RECORTE_*.mat
+            assets/mat/12H_ALT__01[6-9]_MUC_H12_STZ_RECORTE_*.mat
+            assets/mat/12H_ALT__020_MUC_H12_STZ_RECORTE_*.mat
             !*.tif
             !*.py
             !*.md
@@ -128,8 +137,9 @@ jobs:
           mkdir -p _site
 
           # Publica as páginas e os dados necessários para a pesquisa, mas não
-          # os binários pesados de treinamento (.mat) nem os rasters brutos
-          # (.tif), que não são consumidos pelo site estático.
+          # os binários históricos de treinamento nem os rasters brutos (.tif).
+          # Os 20 MAT q83 corrigidos permanecem disponíveis para download
+          # auditável junto dos respectivos Excels.
           while IFS= read -r -d '' file; do
             case "$file" in
               # O ao vivo lê GitHub Raw/CDN/API. Copiar o JSON do robô para o
@@ -142,7 +152,7 @@ jobs:
                 mkdir -p "_site/$(dirname "$file")"
                 cp -p -- "$file" "_site/$file"
                 ;;
-              .github/*|scripts/*|*.py|*.mat|*.tif|*.md|*.yml|*.yaml|Gemfile|Gemfile.lock)
+              .github/*|scripts/*|*.tif|*.py|*.md|*.yml|*.yaml|Gemfile|Gemfile.lock)
                 continue
                 ;;
               *)
