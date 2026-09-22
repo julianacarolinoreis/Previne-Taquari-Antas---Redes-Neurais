@@ -112,7 +112,7 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
     <div>
       <div class="eyebrow">bacia Taquari–Antas (G040) · pesquisa</div>
       <h1>Chuva na bacia, <span>Muçum</span> no foco.</h1>
-      <p>Visão integrada da bacia G040, do campo espacial ECMWF/IFS e do monitoramento em Muçum. A plataforma separa claramente <strong>chuva observada/prevista</strong>, <strong>telemetria do rio</strong>, <strong>calibração</strong> e <strong>saídas ainda experimentais</strong>.</p>
+      <p>Visão integrada da bacia G040 (26.430 km²), do campo espacial ECMWF/IFS e do monitoramento em Muçum. A plataforma separa claramente <strong>chuva observada/prevista</strong>, <strong>telemetria do rio</strong>, <strong>calibração</strong> e <strong>saídas ainda experimentais</strong>.</p>
     </div>
     <div class="status-stack">
       <div class="status"><span class="dot ok"></span><div><strong>Chuva espacial IFS</strong><span id="statusRain">carregando…</span></div></div>
