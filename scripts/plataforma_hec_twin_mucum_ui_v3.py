@@ -117,6 +117,18 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
 .hydro-node-label em{font-style:normal;color:#5b7065;font-weight:600}
 .node-legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px}
 .node-legend span{font-size:11px;color:var(--muted)}
+.model-chart{width:100%;height:330px;display:block;background:#fbfdfb;border:1px solid var(--line);border-radius:14px}
+.model-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800}
+.badge.warn{background:#fff2d6;color:#7a5416;border:1px solid #e8c982}
+.badge.ok{background:#eaf5ee;color:#18563f;border:1px solid #bdd8c8}
+.model-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.model-kpi{background:#f3f7f4;border:1px solid var(--line);border-radius:11px;padding:9px}
+.model-kpi span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.model-kpi b{display:block;font-size:18px;margin-top:2px;font-variant-numeric:tabular-nums}
+.chart-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--muted)}
+.chart-legend i{width:18px;height:3px;border-radius:2px;display:inline-block;vertical-align:3px;margin-right:5px}
+@media(max-width:700px){.model-kpis{grid-template-columns:1fr 1fr}.model-chart{height:290px}}
 
 @media(max-width:920px){.hero{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}.section-head{align-items:start;flex-direction:column}.section-head p{text-align:left}.nav{display:none}}
 @media(max-width:560px){.wrap{padding:10px 10px 34px}.topbar{top:6px}.metrics{grid-template-columns:1fr}.hero{padding-top:24px}#map{min-height:420px}.rain-summary{grid-template-columns:1fr}}
@@ -127,7 +139,7 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
   <div class="topbar">
     <div class="brand"><span class="brand-mark">P</span><span>PREVINE · HEC/REC</span></div>
     <nav class="nav">
-      <a href="#visao">Visão geral</a><a href="#mapa">Nós</a><a href="#chuva">Chuva</a><a href="#rio">Rio</a><a href="#calibracao">Calibração</a><a href="#dados">Dados</a>
+      <a href="#visao">Visão geral</a><a href="#modelo">Modelo chuva–vazão</a><a href="#mapa">Nós</a><a href="#chuva">Chuva</a><a href="#rio">Rio</a><a href="#calibracao">Calibração</a><a href="#dados">Dados</a>
     </nav>
   </div>
 
@@ -151,6 +163,34 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
     <article class="card metric"><div class="k">Nós hidrológicos</div><div class="v" id="mNodes">—</div><div class="s">telemetria / controle</div></article>
     <article class="card metric"><div class="k">Muçum · nível</div><div class="v" id="mMucLevel">—</div><div class="s">última leitura publicada</div></article>
     <article class="card metric"><div class="k">Muçum · vazão</div><div class="v" id="mMucQ">—</div><div class="s">m³/s · curva-chave</div></article>
+  </section>
+
+  <section class="section" id="modelo">
+    <div class="section-head"><h2>Resultado do modelo chuva–vazão</h2><p>Saída horária do gêmeo HEC para Muçum e controle Antas. O resultado aparece aqui mesmo quando a integração com a chuva espacial completa ainda está em desenvolvimento.</p></div>
+    <article class="card">
+      <div class="model-head">
+        <div>
+          <h3 class="panel-title" style="margin-bottom:3px">Hidrograma previsto · Muçum</h3>
+          <div style="font-size:12px;color:var(--muted)" id="modelGenerated">—</div>
+        </div>
+        <span class="badge warn" id="modelBadge">experimental</span>
+      </div>
+      <div class="model-kpis">
+        <div class="model-kpi"><span>Q atual pela curva-chave</span><b id="modelQobs">—</b></div>
+        <div class="model-kpi"><span>Q pico do gêmeo</span><b id="modelQpeak">—</b></div>
+        <div class="model-kpi"><span>Nível observado</span><b id="modelNobs">—</b></div>
+        <div class="model-kpi"><span>ΔN do gêmeo</span><b id="modelRise">—</b></div>
+      </div>
+      <svg id="modelChart" class="model-chart" viewBox="0 0 1000 330" preserveAspectRatio="none" aria-label="Hidrograma do modelo chuva-vazão"></svg>
+      <div class="chart-legend">
+        <span><i style="background:#176149"></i>Q Muçum · gêmeo HEC</span>
+        <span><i style="background:#225d8d"></i>Q Antas · nó 86472000</span>
+      </div>
+      <div class="callout" style="margin-top:10px">
+        <h3>Leitura correta deste gráfico</h3>
+        <p id="modelWarning">—</p>
+      </div>
+    </article>
   </section>
 
   <section class="section" id="mapa">
@@ -242,7 +282,7 @@ const $=id=>document.getElementById(id);
 function fmt(v,d=0){if(v===null||v===undefined||Number.isNaN(Number(v)))return"—";return Number(v).toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d})}
 function brt(ts){if(!ts)return"—";try{return new Date(ts).toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}catch(e){return ts}}
 function pct(v){return v==null?"—":fmt(Number(v)*100,0)+"%"}
-const sr=DATA.spatial_rain||{}, sum=DATA.summary||{}, basin=DATA.basin||{}, skill=((DATA.products||{}).hindcast_skill)||{}, inv=((DATA.spatial||{}).inventory_stats)||{}, hn=DATA.hydro_nodes||{}, nodes=hn.nodes||[];
+const sr=DATA.spatial_rain||{}, sum=DATA.summary||{}, basin=DATA.basin||{}, skill=((DATA.products||{}).hindcast_skill)||{}, inv=((DATA.spatial||{}).inventory_stats)||{}, hn=DATA.hydro_nodes||{}, nodes=hn.nodes||[], rr=DATA.rainfall_runoff_result||{};
 const muc=nodes.find(n=>n.code==="86510000")||{};
 $("mArea").textContent=fmt(basin.area_km2,0);
 $("mNodes").textContent=fmt(nodes.length,0);
@@ -258,6 +298,36 @@ $("updatedAt").textContent=brt(DATA.generated_at_utc);
 $("obsLevel").textContent=muc.level_cm!=null?fmt(muc.level_cm/100,2)+" m":(sum.observed_stage_cm!=null?fmt(sum.observed_stage_cm/100,2)+" m":"—");
 $("obsWhen").textContent=muc.level_at_local?("leitura "+muc.level_at_local+" BRT"):(sum.observed_at_utc?("observado em "+brt(sum.observed_at_utc)):"telemetria indisponível");
 $("obsQ").textContent=muc.discharge_m3s!=null?fmt(muc.discharge_m3s,0):"—";
+
+function maxFinite(arr){const xs=(arr||[]).map(Number).filter(Number.isFinite);return xs.length?Math.max(...xs):null}
+$("modelGenerated").textContent=rr.generated_at_utc?("rodada "+brt(rr.generated_at_utc)):"sem rodada";
+$("modelBadge").textContent=rr.available?"resultado disponível":"sem resultado";
+$("modelQobs").textContent=rr.current_observed_q_rating_m3s!=null?fmt(rr.current_observed_q_rating_m3s,0)+" m³/s":"—";
+$("modelQpeak").textContent=maxFinite(rr.q_mucum_m3s)!=null?fmt(maxFinite(rr.q_mucum_m3s),0)+" m³/s":"—";
+$("modelNobs").textContent=rr.current_observed_stage_cm!=null?fmt(rr.current_observed_stage_cm/100,2)+" m":"—";
+$("modelRise").textContent=(rr.primary&&rr.primary.rise_cm!=null)?fmt(rr.primary.rise_cm,0)+" cm":"—";
+$("modelWarning").textContent=rr.warning_pt||"Resultado experimental.";
+
+function drawHydrograph(){
+ const svg=$("modelChart"); if(!svg)return;
+ const q1=(rr.q_mucum_m3s||[]).map(Number), q2=(rr.q_antas_m3s||[]).map(Number), tt=rr.time_utc||[];
+ if(!tt.length||!q1.length){svg.innerHTML="<text x='40' y='55' fill='#607168' font-size='18'>Sem série do modelo disponível.</text>";return}
+ const W=1000,H=330,L=72,R=24,T=24,B=48;
+ const vals=[...q1,...q2].filter(Number.isFinite), ymin=Math.min(...vals), ymax=Math.max(...vals);
+ const span=(ymax-ymin)||1, lo=Math.max(0,ymin-span*.08), hi=ymax+span*.10;
+ const x=i=>L+(W-L-R)*(i/(Math.max(1,tt.length-1)));
+ const y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+ const path=arr=>arr.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join(" ");
+ let s="";
+ for(let k=0;k<=4;k++){const yy=T+(H-T-B)*k/4, val=hi-(hi-lo)*k/4;s+="<line x1='"+L+"' y1='"+yy+"' x2='"+(W-R)+"' y2='"+yy+"' stroke='#dce5df' stroke-width='1'/><text x='8' y='"+(yy+4)+"' fill='#607168' font-size='12'>"+fmt(val,0)+"</text>"}
+ const ticks=[0,Math.floor((tt.length-1)/3),Math.floor(2*(tt.length-1)/3),tt.length-1];
+ ticks.forEach(i=>{const xx=x(i);s+="<line x1='"+xx+"' y1='"+(H-B)+"' x2='"+xx+"' y2='"+(H-B+6)+"' stroke='#8b9a91'/><text x='"+xx+"' y='"+(H-15)+"' text-anchor='middle' fill='#607168' font-size='11'>"+brt(tt[i]).replace(", "," ")+"</text>"});
+ s+="<path d='"+path(q2)+"' fill='none' stroke='#225d8d' stroke-width='3' vector-effect='non-scaling-stroke'/>";
+ s+="<path d='"+path(q1)+"' fill='none' stroke='#176149' stroke-width='4' vector-effect='non-scaling-stroke'/>";
+ s+="<text x='"+L+"' y='16' fill='#607168' font-size='12'>vazão simulada (m³/s)</text>";
+ svg.innerHTML=s;
+}
+drawHydrograph();
 
 const wet=$("wetCells");(sr.wettest_cells||[]).forEach(c=>{const tr=document.createElement("tr");tr.innerHTML="<td>"+c.cell_id+"</td><td><b>"+fmt(c.total_120h_mm,1)+"</b></td><td>"+fmt(c.overlap_km2,0)+" km²</td><td>"+fmt(c.rain_volume_hm3,2)+" hm³</td>";wet.appendChild(tr)});
 const rainLinks=[["Mapa PNG",sr.png],["Células CSV",sr.cells_csv],["Horário CSV",sr.hourly_csv],["GeoJSON",sr.geojson]];
