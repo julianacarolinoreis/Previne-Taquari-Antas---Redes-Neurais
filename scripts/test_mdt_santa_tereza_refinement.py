@@ -44,42 +44,30 @@ class SantaTerezaMdtRefinementTests(unittest.TestCase):
             self.assertEqual(image.size, (refined_meta["cols"], refined_meta["rows"]))
             self.assertEqual(image.mode, "RGBA")
 
-    def test_santa_tereza_pages_use_refined_grade_and_expose_visual_layer(self) -> None:
-        for name in ("santa_tereza_inundacao.html", "santa_tereza_previsao_inundacao.html"):
-            text = (ROOT / name).read_text(encoding="utf-8")
-            self.assertIn("altitude_terreno_10m_refinado.json", text)
-            self.assertIn("mdt_santa_tereza_10m_refinado_visual.png", text)
-            self.assertIn("MDT refinado", text)
-            self.assertIn("MIN_VISUAL_HOLE_M2=5000", text)
-            self.assertNotIn("HIDE_ALL_VISUAL_HOLES", text)
-            self.assertIn("poly.slice(1).filter(r=>ringAreaM2(r)>=MIN_VISUAL_HOLE_M2)", text)
-            self.assertIn("visualFeature(feat)", text)
-            self.assertIn("GeoJSON original e suas áreas não mudam", text)
+    def test_live_page_rejects_legacy_mdt_and_preserves_geojson_geometry(self) -> None:
+        text = (ROOT / "santa_tereza_previsao_inundacao.html").read_text(encoding="utf-8")
+        self.assertNotIn("altitude_terreno_10m_refinado.json", text)
+        self.assertNotIn("mdt_santa_tereza_10m_refinado_visual.png", text)
+        self.assertNotIn("MIN_VISUAL_HOLE_M2", text)
+        self.assertNotIn("visualFeature(feat)", text)
+        self.assertIn("if(feat) layer.addData(feat);", text)
+        self.assertIn("const ELEVATION_URL=null; // same-source MDT only", text)
+        self.assertIn("meta.same_source_as_hand!==true", text)
+        self.assertIn("const mdtBounds=[[elevationMeta.S,elevationMeta.W],[elevationMeta.N,elevationMeta.E]]", text)
+        self.assertNotIn("L.imageOverlay(MDT_VISUAL_URL,BOUNDS", text)
 
-    def test_visual_geometry_javascript_keeps_large_hole(self) -> None:
-        node = shutil.which("node")
-        if not node:
-            self.skipTest("Node.js não disponível para executar a função JavaScript real")
-        for name in ("santa_tereza_inundacao.html", "santa_tereza_previsao_inundacao.html"):
-            text = (ROOT / name).read_text(encoding="utf-8")
-            start = text.index("const MIN_VISUAL_HOLE_M2=5000;")
-            end = text.index("function setLayer", start)
-            source = text[start:end] + r"""
-const outer=[[0,0],[0.02,0],[0.02,0.02],[0,0.02],[0,0]];
-const small=[[0.001,0.001],[0.0011,0.001],[0.0011,0.0011],[0.001,0.0011],[0.001,0.001]];
-const large=[[0.005,0.005],[0.015,0.005],[0.015,0.015],[0.005,0.015],[0.005,0.005]];
-const original={type:'Polygon',coordinates:[outer,small,large]};
-const result=visualGeometry(original);
-console.log(JSON.stringify({rendered:result.coordinates.length,raw:original.coordinates.length,keptArea:ringAreaM2(result.coordinates[1])}));
-"""
-            run = subprocess.run(
-                [node, "-"], input=source, text=True, capture_output=True, check=False
-            )
-            self.assertEqual(run.returncode, 0, f"{name}: {run.stderr}")
-            result = json.loads(run.stdout.strip())
-            self.assertEqual(result["raw"], 3, name)
-            self.assertEqual(result["rendered"], 2, name)
-            self.assertGreaterEqual(result["keptArea"], 5000, name)
+    def test_hand_generator_uses_flow_direction_not_nearest_river(self) -> None:
+        script = (
+            ROOT / "codigo_python" / "02_mdt_hand_mancha" / "gerar_hand_lidar_santa_tereza.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("FLOWDIR_CLIP_MOSAICO_LIDAR_RS.tif", script)
+        self.assertIn("compute_hand_flowpath", script)
+        self.assertIn("detect_d8_scheme", script)
+        self.assertIn('"hand_method": "D8 downstream routing to main river"', script)
+        self.assertNotIn("distance_transform_edt", script)
+        self.assertIn("altitude_terreno_lidar_10m.json", script)
+        self.assertIn("same_source_as_hand", script)
+        self.assertIn("activate_same_source_mdt", script)
 
     def test_controls_have_unique_ids_and_accessible_names(self) -> None:
         for name in ("santa_tereza_inundacao.html", "santa_tereza_previsao_inundacao.html"):
