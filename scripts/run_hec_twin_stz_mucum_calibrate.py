@@ -807,7 +807,17 @@ def run_network(
     n = len(next(iter(precip_by_sb.values())))
 
     antas_area = areas["SB_PRATA_7868"] + areas["SB_ANTAS_RESIDUAL"]
-    antas_precip = precip_by_sb.get("SB_ANTAS_RESIDUAL") or precip_by_sb["SB_PRATA_7868"]
+    # Preserve spatial rainfall differences between Prata and Antas residual,
+    # even though the calibrated upstream runoff unit is lumped. If the two
+    # series are identical (legacy forcing), this is exactly backward compatible.
+    p_prata = precip_by_sb.get("SB_PRATA_7868") or precip_by_sb["SB_ANTAS_RESIDUAL"]
+    p_antas = precip_by_sb.get("SB_ANTAS_RESIDUAL") or p_prata
+    a_prata = float(areas["SB_PRATA_7868"])
+    a_antas = float(areas["SB_ANTAS_RESIDUAL"])
+    antas_precip = [
+        (float(pp) * a_prata + float(pa) * a_antas) / antas_area
+        for pp, pa in zip(p_prata, p_antas)
+    ]
     antas_excess = apply_loss(antas_precip, np.up.initial_loss, np.up.constant_loss)
     antas_direct = excess_to_flow(antas_excess, antas_area, uh_up)
     antas_base = recession_baseflow(n, antas_area, np.up.initial_flow_ratio, np.up.recession)
