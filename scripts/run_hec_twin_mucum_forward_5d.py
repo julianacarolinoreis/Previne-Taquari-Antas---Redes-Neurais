@@ -595,6 +595,7 @@ def build_package(
         net = run_network(precip, areas, params, include_mucum_increment=True)
         q_mucum = net["at_mucum"]
         q_antas = net["at_antas"]
+        q_carreiro = net["at_carreiro"]
         q_stz = net["at_stz"]
         stages = [q_to_stage_cm(q, segments) for q in q_mucum]
         peak_i = max(range(len(q_mucum)), key=lambda i: q_mucum[i]) if q_mucum else 0
@@ -611,6 +612,7 @@ def build_package(
                     "time_utc": times,
                     "q_mucum_m3s": [round(float(x), 3) for x in q_mucum],
                     "q_antas_m3s": [round(float(x), 3) for x in q_antas],
+                    "q_carreiro_confluence_m3s": [round(float(x), 3) for x in q_carreiro],
                     "q_stz_diagnostic_m3s": [round(float(x), 3) for x in q_stz],
                     "n_mucum_cm": [s.get("stage_cm") for s in stages],
                     "n_mucum_meta": stages,
@@ -646,6 +648,15 @@ def build_package(
         # Blend Q for discharge series; blend N with SAME weights for ΔN product
         # (rating curve is nonlinear — Q-blend understates peak stage).
         q_blend = bacia.blend_series_with_weights(q_lists, weights)
+        q_antas_blend = bacia.blend_series_with_weights(
+            [m["series"]["q_antas_m3s"] for m in analog_members], weights
+        )
+        q_carreiro_blend = bacia.blend_series_with_weights(
+            [m["series"]["q_carreiro_confluence_m3s"] for m in analog_members], weights
+        )
+        q_stz_blend = bacia.blend_series_with_weights(
+            [m["series"]["q_stz_diagnostic_m3s"] for m in analog_members], weights
+        )
         n_lists = [m["series"]["n_mucum_cm"] for m in analog_members]
         n_blend = bacia.blend_series_with_weights(n_lists, weights)
         stages_b = [
@@ -677,8 +688,9 @@ def build_package(
             "series": {
                 "time_utc": times,
                 "q_mucum_m3s": [round(float(x), 3) for x in q_blend],
-                "q_antas_m3s": analog_members[0]["series"]["q_antas_m3s"],
-                "q_stz_diagnostic_m3s": analog_members[0]["series"]["q_stz_diagnostic_m3s"],
+                "q_antas_m3s": [round(float(x), 3) for x in q_antas_blend],
+                "q_carreiro_confluence_m3s": [round(float(x), 3) for x in q_carreiro_blend],
+                "q_stz_diagnostic_m3s": [round(float(x), 3) for x in q_stz_blend],
                 "n_mucum_cm": [s.get("stage_cm") for s in stages_b],
                 "n_mucum_meta": stages_b,
             },
@@ -849,6 +861,7 @@ def write_csv(package: dict[str, Any], path: Path) -> None:
                 "n_mucum_anchored_cm",
                 "delta_n_from_now_cm",
                 "q_antas_m3s",
+                "q_carreiro_confluence_m3s",
                 "q_stz_diagnostic_m3s",
             ]
         )
@@ -863,6 +876,7 @@ def write_csv(package: dict[str, Any], path: Path) -> None:
                     anchored[i],
                     delta[i],
                     series["q_antas_m3s"][i],
+                    (series.get("q_carreiro_confluence_m3s") or [None] * len(series["time_utc"]))[i],
                     series["q_stz_diagnostic_m3s"][i],
                 ]
             )
