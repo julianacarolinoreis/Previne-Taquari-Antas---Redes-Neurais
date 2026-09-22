@@ -95,6 +95,29 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
 .skill-table tr.good td:first-child{color:var(--green);font-weight:800}
 .links{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.links a{border:1px solid #cbdad1;background:#f7faf8;padding:6px 9px;border-radius:999px;font-size:11px;font-weight:700}
 .foot{color:var(--muted);font-size:11px;margin-top:14px}
+.node-list{display:grid;gap:8px;max-height:540px;overflow:auto;padding-right:3px}
+.node-row{border:1px solid var(--line);background:#fff;border-radius:13px;padding:10px 11px;cursor:pointer;transition:.15s ease}
+.node-row:hover{border-color:#8fb6a2;transform:translateY(-1px)}
+.node-row.active{border-color:var(--green);box-shadow:inset 0 0 0 1px rgba(23,97,73,.16)}
+.node-row .head{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.node-row .name{font-weight:800;font-size:12px}
+.node-row .code{font-size:10px;color:var(--muted);font-family:ui-monospace,monospace}
+.node-row .vals{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
+.node-row .vals span{font-size:11px;background:#f2f7f4;border-radius:8px;padding:4px 6px}
+.node-detail{border:1px solid #c8d9cf;background:linear-gradient(180deg,#f8fcf9,#eef6f1);border-radius:14px;padding:13px;margin-bottom:10px}
+.node-detail h3{margin:0 0 7px;font:700 1.05rem "Source Serif 4",Georgia,serif}
+.node-kpis{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.node-kpi{background:white;border:1px solid #dbe6df;border-radius:10px;padding:8px}
+.node-kpi b{display:block;font-size:17px}.node-kpi span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.hydro-node-icon{background:transparent!important;border:0!important}
+.hydro-node-wrap{display:flex;align-items:center;gap:5px;white-space:nowrap;transform:translate(-8px,-8px)}
+.hydro-node-dot{width:16px;height:16px;border-radius:50%;background:#176149;border:3px solid #fff;box-shadow:0 1px 7px rgba(0,0,0,.28);flex:0 0 auto}
+.hydro-node-dot.target{width:20px;height:20px;background:#0b4936}
+.hydro-node-label{background:rgba(255,255,255,.92);border:1px solid #cbd9d0;border-radius:8px;padding:3px 6px;font:700 10px Inter,sans-serif;color:#18362a;box-shadow:0 1px 5px rgba(0,0,0,.10)}
+.hydro-node-label em{font-style:normal;color:#5b7065;font-weight:600}
+.node-legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px}
+.node-legend span{font-size:11px;color:var(--muted)}
+
 @media(max-width:920px){.hero{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}.section-head{align-items:start;flex-direction:column}.section-head p{text-align:left}.nav{display:none}}
 @media(max-width:560px){.wrap{padding:10px 10px 34px}.topbar{top:6px}.metrics{grid-template-columns:1fr}.hero{padding-top:24px}#map{min-height:420px}.rain-summary{grid-template-columns:1fr}}
 </style>
@@ -104,7 +127,7 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
   <div class="topbar">
     <div class="brand"><span class="brand-mark">P</span><span>PREVINE · HEC/REC</span></div>
     <nav class="nav">
-      <a href="#visao">Visão geral</a><a href="#chuva">Chuva</a><a href="#rio">Rio</a><a href="#mapa">Mapa</a><a href="#calibracao">Calibração</a><a href="#dados">Dados</a>
+      <a href="#visao">Visão geral</a><a href="#mapa">Nós</a><a href="#chuva">Chuva</a><a href="#rio">Rio</a><a href="#calibracao">Calibração</a><a href="#dados">Dados</a>
     </nav>
   </div>
 
@@ -125,13 +148,32 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
 
   <section class="grid metrics" id="basinMetrics">
     <article class="card metric"><div class="k">Área G040</div><div class="v" id="mArea">—</div><div class="s">km² · 7 UGs</div></article>
-    <article class="card metric"><div class="k">Células IFS na bacia de Muçum</div><div class="v" id="mCells">—</div><div class="s">grade 0,25° preservada</div></article>
-    <article class="card metric"><div class="k">Chuva prevista por célula</div><div class="v" id="mRainRange">—</div><div class="s">mínimo–máximo em 120 h</div></article>
-    <article class="card metric"><div class="k">Volume de chuva na bacia</div><div class="v" id="mVolume">—</div><div class="s">hm³ em 120 h</div></article>
+    <article class="card metric"><div class="k">Nós hidrológicos</div><div class="v" id="mNodes">—</div><div class="s">telemetria / controle</div></article>
+    <article class="card metric"><div class="k">Muçum · nível</div><div class="v" id="mMucLevel">—</div><div class="s">última leitura publicada</div></article>
+    <article class="card metric"><div class="k">Muçum · vazão</div><div class="v" id="mMucQ">—</div><div class="s">m³/s · curva-chave</div></article>
+  </section>
+
+  <section class="section" id="mapa">
+    <div class="section-head"><h2>Nós hidrológicos · níveis e vazões</h2><p>Clique nos nós. O painel mostra nível, vazão quando existe conversão validada, idade da leitura, área de drenagem e origem do dado.</p></div>
+    <div class="grid two" id="basinMapSection">
+      <article class="card">
+        <div class="node-legend"><span>● nó principal/telemetria</span><span>□ chuva IFS no fundo</span><span>contorno = UGs</span></div>
+        <div id="map"></div>
+        <div class="inspector" id="pointInspector"><h3 id="inspectorTitle">Mapa hidrológico</h3><p id="inspectorText">Clique em um nó para abrir nível, vazão e metadados.</p></div>
+      </article>
+      <article class="card">
+        <div class="node-detail" id="nodeDetail">
+          <h3>Selecione um nó</h3>
+          <p style="margin:0;color:var(--muted);font-size:12px">Muçum, Santa Tereza, Linha José Júlio, Carreiro, Prata e demais controles aparecem no mapa.</p>
+        </div>
+        <h3 class="panel-title">Nós principais</h3>
+        <div class="node-list" id="hydroNodeList"></div>
+      </article>
+    </div>
   </section>
 
   <section class="section" id="chuva">
-    <div class="section-head"><h2>Chuva espacial · ECMWF/IFS</h2><p>Todas as células que interceptam a bacia contribuinte até Muçum são mantidas separadas. A profundidade equivalente da bacia é apenas uma conferência volumétrica.</p></div>
+    <div class="section-head"><h2>Chuva espacial · ECMWF/IFS</h2><p>O campo de chuva permanece célula a célula. Ele pode ser ligado/desligado no mapa sem esconder os nós hidrológicos.</p></div>
     <div class="grid two">
       <article class="card">
         <div class="rain-summary">
@@ -150,36 +192,14 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
   </section>
 
   <section class="section" id="rio">
-    <div class="section-head"><h2>Rio · Muçum</h2><p>Telemetria atual pode ser mostrada. A previsão futura de nível fica explicitamente bloqueada até a chuva espacial entrar no modelo chuva–vazão.</p></div>
+    <div class="section-head"><h2>Muçum · leitura atual e estado do modelo</h2><p>A vazão exibida no nó de Muçum vem da curva-chave aplicada ao nível observado. O hidrograma futuro espacial ainda não é publicado como válido.</p></div>
     <div class="grid metrics" id="productMetrics">
       <article class="card metric"><div class="k">Nível observado</div><div class="v" id="obsLevel">—</div><div class="s" id="obsWhen">telemetria</div></article>
-      <article class="card metric"><div class="k">Previsão ΔN</div><div class="v">bloqueada</div><div class="s">aguardando integração espacial</div></article>
-      <article class="card metric"><div class="k">Forçante espacial</div><div class="v" id="spatialGate">—</div><div class="s">campo IFS completo</div></article>
-      <article class="card metric"><div class="k">Atualização da plataforma</div><div class="v" style="font-size:18px" id="updatedAt">—</div><div class="s">horário de Brasília</div></article>
+      <article class="card metric"><div class="k">Vazão estimada</div><div class="v" id="obsQ">—</div><div class="s">m³/s · curva-chave de Muçum</div></article>
+      <article class="card metric"><div class="k">Chuva espacial</div><div class="v" id="spatialGate">—</div><div class="s">IFS 0,25° · campo completo</div></article>
+      <article class="card metric"><div class="k">Atualização</div><div class="v" style="font-size:18px" id="updatedAt">—</div><div class="s">horário de Brasília</div></article>
     </div>
-    <div class="callout" style="margin-top:14px">
-      <h3>Por que o hidrograma futuro não aparece como “válido”?</h3>
-      <p>O forward legado ainda usa chuva proxy em poucos pontos. Isso pode ignorar núcleos importantes nas cabeceiras. O resultado antigo fica disponível abaixo apenas como diagnóstico técnico, não como previsão espacial da bacia.</p>
-    </div>
-  </section>
-
-  <section class="section" id="mapa">
-    <div class="section-head"><h2>Mapa · bacia, chuva e rede</h2><p>Camada principal: campo espacial IFS. As 7 UGs, âncoras e Rede G040 podem ser ligadas/desligadas.</p></div>
-    <div class="grid two" id="basinMapSection">
-      <article class="card">
-        <div class="map-tools"><span class="chip"><strong>fill</strong> = chuva 120 h</span><span class="chip"><strong>contorno</strong> = UGs</span><span class="chip"><strong>pontos</strong> = monitoramento</span></div>
-        <div id="map"></div>
-        <div class="inspector" id="pointInspector"><h3 id="inspectorTitle">Detalhes</h3><p id="inspectorText">Clique em uma célula de chuva, UG ou ponto de monitoramento.</p></div>
-      </article>
-      <article class="card">
-        <h3 class="panel-title">Inventário por UG</h3>
-        <div class="side-list" id="ugInventory"></div>
-        <div id="corridorCard" style="margin-top:14px">
-          <h3 class="panel-title">Produto gêmeo · corredor até Muçum</h3>
-          <p style="margin:0;color:var(--muted);font-size:12px">Alto + Prata + Carreiro + Médio. Guaporé, Forqueta e Baixo permanecem no mapa da bacia, mas fora do balanço do gêmeo até Muçum.</p>
-        </div>
-      </article>
-    </div>
+    <div class="callout" style="margin-top:14px"><h3>Modelo futuro</h3><p>O ΔN legado fica no bloco de auditoria. Assim que o HEC consumir a chuva espacial, este painel poderá mostrar Q(t), N(t), pico e horário por nó sem misturar a vazão interna do gêmeo com a vazão estimada pela curva-chave.</p></div>
   </section>
 
   <section class="section" id="calibracao">
@@ -213,11 +233,12 @@ const $=id=>document.getElementById(id);
 function fmt(v,d=0){if(v===null||v===undefined||Number.isNaN(Number(v)))return"—";return Number(v).toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d})}
 function brt(ts){if(!ts)return"—";try{return new Date(ts).toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}catch(e){return ts}}
 function pct(v){return v==null?"—":fmt(Number(v)*100,0)+"%"}
-const sr=DATA.spatial_rain||{}, sum=DATA.summary||{}, basin=DATA.basin||{}, skill=((DATA.products||{}).hindcast_skill)||{}, inv=((DATA.spatial||{}).inventory_stats)||{};
+const sr=DATA.spatial_rain||{}, sum=DATA.summary||{}, basin=DATA.basin||{}, skill=((DATA.products||{}).hindcast_skill)||{}, inv=((DATA.spatial||{}).inventory_stats)||{}, hn=DATA.hydro_nodes||{}, nodes=hn.nodes||[];
+const muc=nodes.find(n=>n.code==="86510000")||{};
 $("mArea").textContent=fmt(basin.area_km2,0);
-$("mCells").textContent=fmt(sr.intersecting_cells,0);
-$("mRainRange").textContent=fmt(sr.cell_total_min_mm,1)+"–"+fmt(sr.cell_total_max_mm,1)+" mm";
-$("mVolume").textContent=fmt(sr.total_rain_volume_hm3,1);
+$("mNodes").textContent=fmt(nodes.length,0);
+$("mMucLevel").textContent=muc.level_cm!=null?fmt(muc.level_cm/100,2)+" m":"—";
+$("mMucQ").textContent=muc.discharge_m3s!=null?fmt(muc.discharge_m3s,0):"—";
 $("rMinMax").textContent=fmt(sr.cell_total_min_mm,1)+"–"+fmt(sr.cell_total_max_mm,1)+" mm";
 $("rMedian").textContent=fmt(sr.cell_total_median_mm,1)+" mm";
 $("rCoverage").textContent=pct(sr.coverage_ratio);
@@ -225,8 +246,9 @@ $("rWindow").textContent=(sr.window&&sr.window.start_utc?brt(sr.window.start_utc
 $("statusRain").textContent=sr.available?(fmt(sr.intersecting_cells,0)+" células · "+pct(sr.coverage_ratio)+" da bacia"):"indisponível";
 $("spatialGate").textContent=sr.available?"pronta":"indisponível";
 $("updatedAt").textContent=brt(DATA.generated_at_utc);
-$("obsLevel").textContent=sum.observed_stage_cm!=null?fmt(sum.observed_stage_cm/100,2)+" m":"—";
-$("obsWhen").textContent=sum.observed_at_utc?("observado em "+brt(sum.observed_at_utc)):"telemetria indisponível";
+$("obsLevel").textContent=muc.level_cm!=null?fmt(muc.level_cm/100,2)+" m":(sum.observed_stage_cm!=null?fmt(sum.observed_stage_cm/100,2)+" m":"—");
+$("obsWhen").textContent=muc.level_at_local?("leitura "+muc.level_at_local+" BRT"):(sum.observed_at_utc?("observado em "+brt(sum.observed_at_utc)):"telemetria indisponível");
+$("obsQ").textContent=muc.discharge_m3s!=null?fmt(muc.discharge_m3s,0):"—";
 
 const wet=$("wetCells");(sr.wettest_cells||[]).forEach(c=>{const tr=document.createElement("tr");tr.innerHTML="<td>"+c.cell_id+"</td><td><b>"+fmt(c.total_120h_mm,1)+"</b></td><td>"+fmt(c.overlap_km2,0)+" km²</td><td>"+fmt(c.rain_volume_hm3,2)+" hm³</td>";wet.appendChild(tr)});
 const rainLinks=[["Mapa PNG",sr.png],["Células CSV",sr.cells_csv],["Horário CSV",sr.hourly_csv],["GeoJSON",sr.geojson]];
@@ -242,7 +264,38 @@ function renderUgInventory(){
 }
 renderUgInventory();
 
+let activeNodeCode=null;
 function showInspector(title,text){$("inspectorTitle").textContent=title;$("inspectorText").textContent=text}
+function nodeLevel(n){return n.level_cm==null?"—":fmt(n.level_cm/100,2)+" m"}
+function nodeQ(n){return n.discharge_m3s==null?"—":fmt(n.discharge_m3s,0)+" m³/s"}
+function renderNodeDetail(n){
+ if(!n)return;
+ activeNodeCode=n.code;
+ $("nodeDetail").innerHTML=
+   "<h3>"+(n.name||n.code)+"</h3>"+
+   "<div class='node-kpis'>"+
+     "<div class='node-kpi'><span>Nível</span><b>"+nodeLevel(n)+"</b></div>"+
+     "<div class='node-kpi'><span>Vazão</span><b>"+nodeQ(n)+"</b></div>"+
+     "<div class='node-kpi'><span>Idade</span><b>"+(n.age_min!=null?fmt(n.age_min,0)+" min":"—")+"</b></div>"+
+     "<div class='node-kpi'><span>Área drenagem</span><b>"+(n.drainage_area_km2!=null?fmt(n.drainage_area_km2,0)+" km²":"—")+"</b></div>"+
+   "</div>"+
+   "<p style='margin:9px 0 0;color:var(--muted);font-size:11px'><b>"+(n.code||"")+"</b>"+
+   (n.ug?" · "+n.ug:"")+" · "+(n.role||"monitor")+
+   "<br>"+(n.level_at_local?"leitura "+n.level_at_local+" BRT · ":"")+(n.source||"")+
+   (n.discharge_note_pt?"<br>"+n.discharge_note_pt:"")+"</p>";
+ renderNodeList();
+ showInspector(n.name||n.code,"Nível "+nodeLevel(n)+" · vazão "+nodeQ(n)+(n.age_min!=null?" · idade "+fmt(n.age_min,0)+" min":""));
+}
+function renderNodeList(){
+ const el=$("hydroNodeList"); if(!el)return; el.innerHTML="";
+ nodes.forEach(n=>{const d=document.createElement("div");d.className="node-row"+(n.code===activeNodeCode?" active":"");
+ d.innerHTML="<div class='head'><span class='name'>"+(n.name||n.code)+"</span><span class='code'>"+n.code+"</span></div>"+
+ "<div class='vals'><span>N "+nodeLevel(n)+"</span><span>Q "+nodeQ(n)+"</span>"+(n.age_min!=null?"<span>"+fmt(n.age_min,0)+" min</span>":"")+"</div>";
+ d.onclick=()=>{renderNodeDetail(n); if(window.nodeMarkers&&window.nodeMarkers[n.code]){map.setView([n.lat,n.lon],11,{animate:true});window.nodeMarkers[n.code].openPopup();}};
+ el.appendChild(d);});
+}
+renderNodeList();
+if(muc.code)renderNodeDetail(muc);
 function renderSkill(){
  const s=skill.summary||{};
  $("skillSummary").innerHTML="<span>eventos <b>"+fmt(s.n_scored,0)+"</b></span><span>NSE médio <b>"+fmt(s.mean_nse_loo,2)+"</b></span><span>erro ΔN médio <b>"+fmt((s.mean_rise_n_rel_err||0)*100,0)+"%</b></span><span>erro pico Q médio <b>"+fmt((s.mean_peak_q_rel_err||0)*100,0)+"%</b></span>";
@@ -259,7 +312,7 @@ const local=((DATA.where_results_go||{}).local)||{};
 const bb=((((DATA.spatial||{}).basin_framing)||{}).g040_bbox_latlon)||[[-29.95,-52.64],[-28.18,-49.93]];
 const map=L.map("map",{scrollWheelZoom:true}).fitBounds(bb,{padding:[20,20]});
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,referrerPolicy:"strict-origin-when-cross-origin",attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
-const rainLayer=L.layerGroup().addTo(map), ugLayer=L.layerGroup().addTo(map), anchorLayer=L.layerGroup().addTo(map), networkLayer=L.layerGroup(), fozLayer=L.layerGroup();
+const rainLayer=L.layerGroup().addTo(map), ugLayer=L.layerGroup().addTo(map), nodeLayer=L.layerGroup().addTo(map), networkLayer=L.layerGroup(), fozLayer=L.layerGroup(); window.nodeMarkers={};
 
 function rainColor(mm,max){const x=max?Math.max(0,Math.min(1,Number(mm||0)/max)):0; if(x<.2)return"#dceee5";if(x<.4)return"#a9d5be";if(x<.6)return"#68ad88";if(x<.8)return"#2d805e";return"#0f523b"}
 async function loadSpatialRain(){
@@ -269,12 +322,21 @@ async function loadSpatialRain(){
 async function loadUgs(){
  const path=((DATA.spatial||{}).ug_geojson)||"ugs_g040.geojson";try{const res=await fetch(path);if(!res.ok)return;const gj=await res.json();L.geoJSON(gj,{style:{color:"#204f3c",weight:1.25,fillOpacity:0},onEachFeature:(f,l)=>{const p=f.properties||{},n=p.sub_bacia||p.nome||"UG";l.on("click",()=>showInspector(n,"Unidade de gestão da bacia G040 · área aproximada "+fmt(p.area_km2_approx,0)+" km²"));l.bindTooltip(n)}}).addTo(ugLayer)}catch(e){}
 }
-function loadAnchors(){(((DATA.spatial||{}).anchors)||[]).forEach(a=>{const c=a.role==="target"?"#0e5b42":a.role==="rain"?"#2a6f9d":"#6b7780";const m=L.circleMarker([a.lat,a.lon],{radius:a.role==="target"?5:3.5,color:"#fff",weight:1,fillColor:c,fillOpacity:.9}).on("click",()=>showInspector(a.label||a.name,(a.role_pt||a.role)+" · "+(a.code||"")+(a.ug?" · "+a.ug:"")));m.bindTooltip(a.label||a.name);m.addTo(anchorLayer)})}
+function loadHydroNodes(){
+ nodes.forEach(n=>{
+   const target=n.code==="86510000";
+   const label=(n.name||n.code)+(n.level_cm!=null?" · "+nodeLevel(n):"");
+   const icon=L.divIcon({className:"hydro-node-icon",html:"<div class='hydro-node-wrap'><span class='hydro-node-dot "+(target?"target":"")+"'></span><span class='hydro-node-label'>"+label+(n.discharge_m3s!=null?"<br><em>Q "+nodeQ(n)+"</em>":"")+"</span></div>",iconSize:[180,28],iconAnchor:[8,8]});
+   const m=L.marker([n.lat,n.lon],{icon,zIndexOffset:target?1200:900}).on("click",()=>renderNodeDetail(n));
+   m.bindPopup("<strong>"+(n.name||n.code)+"</strong><br>Nível: "+nodeLevel(n)+"<br>Vazão: "+nodeQ(n)+"<br>"+(n.code||"")+(n.age_min!=null?" · "+fmt(n.age_min,0)+" min":""));
+   m.addTo(nodeLayer); window.nodeMarkers[n.code]=m;
+ });
+}
 function loadNetwork(){const net=((DATA.spatial||{}).basin_network)||{};(net.features||[]).forEach(f=>{const p=f.properties||{},c=(f.geometry||{}).coordinates||[];if(c.length<2)return;L.circleMarker([c[1],c[0]],{radius:2,color:"#ffffff88",weight:.4,fillColor:p.kind==="rain"?"#3b7ca6":"#7b8b82",fillOpacity:.55}).on("click",()=>showInspector(p.name||p.code,(p.kind==="rain"?"chuva":"flu")+" · "+(p.ug||"")+" · "+(p.code||""))).addTo(networkLayer)})}
 async function loadFozes(){const path=(DATA.spatial||{}).fozes_geojson;if(!path)return;try{const res=await fetch(path);if(!res.ok)return;const gj=await res.json();L.geoJSON(gj,{pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:3.5,color:"#fff",weight:1,fillColor:"#a77a2d",fillOpacity:.8})}).addTo(fozLayer)}catch(e){}}
-loadSpatialRain();loadUgs();loadAnchors();loadNetwork();loadFozes();
-L.control.layers(null,{"Chuva IFS espacial":rainLayer,"UGs G040":ugLayer,"Âncoras":anchorLayer,"Rede G040":networkLayer,"Fozes BHO6":fozLayer},{collapsed:false}).addTo(map);
-const leg=L.control({position:"bottomright"});leg.onAdd=()=>{const d=L.DomUtil.create("div","legend");d.innerHTML="<div><i style='background:#dceee5'></i>menor chuva</div><div><i style='background:#68ad88'></i>chuva intermediária</div><div><i style='background:#0f523b'></i>maior chuva</div><div style='margin-top:4px'>IFS 0,25° · 120 h</div>";return d};leg.addTo(map);
+loadSpatialRain();loadUgs();loadHydroNodes();loadNetwork();loadFozes();
+L.control.layers(null,{"Nós hidrológicos":nodeLayer,"Chuva IFS espacial":rainLayer,"UGs G040":ugLayer,"Rede G040 completa":networkLayer,"Fozes BHO6":fozLayer},{collapsed:false}).addTo(map);
+const leg=L.control({position:"bottomright"});leg.onAdd=()=>{const d=L.DomUtil.create("div","legend");d.innerHTML="<div><i style='background:#176149;border-radius:50%'></i>nó hidrológico</div><div><i style='background:#dceee5'></i>menor chuva</div><div><i style='background:#68ad88'></i>chuva intermediária</div><div><i style='background:#0f523b'></i>maior chuva</div><div style='margin-top:4px'>clique no nó → nível / vazão / idade</div>";return d};leg.addTo(map);
 setTimeout(()=>map.invalidateSize(),180);
 </script>
 </body>
