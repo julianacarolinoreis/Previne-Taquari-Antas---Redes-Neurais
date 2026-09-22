@@ -16,6 +16,13 @@ também produz uma grade de altitude absoluta a ~10 m a partir do **mesmo**
 metadado declara `same_source_as_hand: true`, e posiciona a imagem usando os
 bounds do próprio MDT.
 
+**Estado transitório em 21/09/2026:** o payload HAND já embutido na página foi
+gerado antes da troca para roteamento D8 e está marcado no diagnóstico como
+`legacy_published_proxy_pending_d8_regeneration`. A camada MDT antiga foi
+removida imediatamente; a promoção do novo MDT/HAND depende de executar o
+gerador corrigido onde os três rasters locais (FILL, FLOWACC e FLOWDIR) estão
+disponíveis.
+
 ### MDT refinado antigo — legado, não usar na página ao vivo
 
 Os arquivos abaixo pertencem ao mosaico anterior drone + ANADEM e foram
