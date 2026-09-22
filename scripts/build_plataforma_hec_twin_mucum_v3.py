@@ -76,6 +76,119 @@ def spatial_summary(pkg: dict) -> dict:
     }
 
 
+
+def build_hydro_nodes(feed: dict) -> dict:
+    """Curated hydrologic nodes with the freshest values already published by PREVINE.
+
+    Never invent discharge. Q is exposed only where a validated/declared conversion exists.
+    """
+    stz_live = base.load_json(ROOT / "previsao_ao_vivo.json") or {}
+    muc_live = base.load_json(ROOT / "previsao_ao_vivo_mucum.json") or {}
+    fwd = base.load_json(OUT / "hec_twin_mucum_forward_5d_latest.json") or {}
+    q_rating = (((fwd.get("quanto_sobe") or {}).get("q_now_from_rating_m3s") or {}).get("q_m3s"))
+
+    anchors = {str(a.get("code")): a for a in (((feed.get("spatial") or {}).get("anchors")) or [])}
+    inventory = {}
+    for feat in ((((feed.get("spatial") or {}).get("basin_network")) or {}).get("features") or []):
+        p = feat.get("properties") or {}
+        g = feat.get("geometry") or {}
+        co = g.get("coordinates") or []
+        code = str(p.get("code") or "")
+        if code and len(co) >= 2:
+            inventory[code] = {
+                "lat": float(co[1]), "lon": float(co[0]),
+                "name": p.get("name"), "ug": p.get("ug"),
+                "area_km2": p.get("area_km2"), "kind": p.get("kind"),
+            }
+
+    rows = []
+    seen = set()
+
+    def coords_for(code: str, status: dict | None = None):
+        status = status or {}
+        lat, lon = status.get("latitude"), status.get("longitude")
+        if lat is not None and lon is not None:
+            return float(lat), float(lon)
+        a = anchors.get(code) or {}
+        if a.get("lat") is not None and a.get("lon") is not None:
+            return float(a["lat"]), float(a["lon"])
+        inv = inventory.get(code) or {}
+        if inv.get("lat") is not None and inv.get("lon") is not None:
+            return float(inv["lat"]), float(inv["lon"])
+        return None, None
+
+    for st in stz_live.get("estacoes_status") or []:
+        code = str(st.get("estacao") or "")
+        if not code or code in seen:
+            continue
+        lat, lon = coords_for(code, st)
+        if lat is None or lon is None:
+            continue
+        inv = inventory.get(code) or {}
+        a = anchors.get(code) or {}
+        rows.append({
+            "code": code,
+            "name": st.get("nome") or a.get("label") or inv.get("name") or code,
+            "lat": lat, "lon": lon,
+            "ug": a.get("ug") or inv.get("ug"),
+            "role": st.get("papel") or a.get("role_pt") or "monitor",
+            "level_cm": st.get("ultima_leitura_bruta_nivel_cm"),
+            "level_at_local": st.get("ultima_leitura_bruta"),
+            "age_min": st.get("idade_leitura_min"),
+            "qc_status": st.get("qc_status"),
+            "source": st.get("fonte") or "SGB/ANA",
+            "drainage_area_km2": inv.get("area_km2"),
+            "discharge_m3s": None,
+            "discharge_kind": None,
+            "discharge_note_pt": "Vazão não exibida sem curva-chave validada para este nó.",
+        })
+        seen.add(code)
+
+    # Muçum is produced by its own live robot and may not appear in STZ estacoes_status.
+    code = "86510000"
+    if code not in seen:
+        lat, lon = coords_for(code)
+        if lat is not None and lon is not None:
+            inv = inventory.get(code) or {}
+            rows.append({
+                "code": code,
+                "name": "Muçum",
+                "lat": lat, "lon": lon,
+                "ug": (anchors.get(code) or {}).get("ug") or inv.get("ug"),
+                "role": "alvo Muçum",
+                "level_cm": muc_live.get("telemetria_ultima_nivel_cm") or muc_live.get("nivel_rio_agora_cm"),
+                "level_at_local": muc_live.get("telemetria_ultima_em") or muc_live.get("nivel_rio_agora_em"),
+                "age_min": muc_live.get("idade_telemetria_min"),
+                "qc_status": "NORMAL" if muc_live.get("disponivel") else "ATENCAO",
+                "source": "SGB/ANA - Hidrotelemetria",
+                "drainage_area_km2": inv.get("area_km2"),
+                "discharge_m3s": q_rating,
+                "discharge_kind": "rating_curve_estimate",
+                "discharge_note_pt": (
+                    "Q estimada a partir do nível observado pela curva-chave de Muçum "
+                    "usada pelo gêmeo. Não confundir com a vazão interna do gêmeo HEC."
+                ),
+            })
+            seen.add(code)
+
+    # Highest-value curated nodes first.
+    priority = {
+        "86510000": 0, "86472600": 1, "86472000": 2, "86507000": 3,
+        "86125130": 4, "86125500": 5, "86298000": 6, "86306000": 7,
+        "86448000": 8, "86430900": 9, "86447000": 10, "86505500": 11,
+    }
+    rows.sort(key=lambda r: (priority.get(r["code"], 99), r["code"]))
+    return {
+        "generated_from": ["previsao_ao_vivo.json", "previsao_ao_vivo_mucum.json", "hec_twin_mucum_forward_5d_latest.json"],
+        "count": len(rows),
+        "nodes": rows,
+        "note_pt": (
+            "Nós hidrológicos curados. Nível = telemetria publicada pelo robô PREVINE. "
+            "Vazão só aparece quando existe conversão declarada; ausência de Q não significa vazão zero."
+        ),
+    }
+
+
 def build_feed_v3() -> dict:
     feed = base.enrich_feed(base.build_feed())
     spatial_pkg = load_spatial()
@@ -83,6 +196,7 @@ def build_feed_v3() -> dict:
     feed["schema_version"] = "plataforma_hec_twin_mucum_v3"
     feed["status"] = "spatial_rain_ready_hydrology_integration_pending"
     feed["spatial_rain"] = sr
+    feed["hydro_nodes"] = build_hydro_nodes(feed)
 
     discipline = dict(feed.get("discipline") or {})
     discipline.update({
