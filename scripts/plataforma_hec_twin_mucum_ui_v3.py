@@ -117,6 +117,12 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
 .hydro-node-label em{font-style:normal;color:#5b7065;font-weight:600}
 .model-node-icon{background:transparent!important;border:0!important}
 .model-node-wrap{display:flex;align-items:center;gap:5px;white-space:nowrap;transform:translate(-8px,-8px)}
+.model-node-dot{width:14px;height:14px;border-radius:3px;background:#98661d;border:3px solid #fff;box-shadow:0 1px 7px rgba(0,0,0,.28);flex:0 0 auto}
+.model-node-dot.outlet{width:19px;height:19px;background:#7b4017}
+.model-node-label{background:rgba(255,250,239,.95);border:1px solid #e1c78e;border-radius:8px;padding:3px 6px;font:700 10px Inter,sans-serif;color:#5c3e13;box-shadow:0 1px 5px rgba(0,0,0,.10)}
+.model-node-label em{font-style:normal;font-weight:600;color:#7b6338}
+.model-node-icon{background:transparent!important;border:0!important}
+.model-node-wrap{display:flex;align-items:center;gap:5px;white-space:nowrap;transform:translate(-8px,-8px)}
 .model-node-diamond{width:17px;height:17px;background:#a56a16;border:3px solid #fff;box-shadow:0 1px 7px rgba(0,0,0,.28);transform:rotate(45deg);flex:0 0 auto}
 .model-node-label{background:rgba(255,250,239,.95);border:1px solid #ddbd83;border-radius:8px;padding:3px 6px;font:700 10px Inter,sans-serif;color:#61420f;box-shadow:0 1px 5px rgba(0,0,0,.10)}
 .node-legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px}
@@ -181,14 +187,14 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
       </div>
       <div class="model-kpis">
         <div class="model-kpi"><span>Q atual pela curva-chave</span><b id="modelQobs">—</b></div>
-        <div class="model-kpi"><span>Q pico do gêmeo</span><b id="modelQpeak">—</b></div>
+        <div class="model-kpi"><span>Q pico HEC-HMS</span><b id="modelQpeak">—</b></div>
         <div class="model-kpi"><span>Nível observado</span><b id="modelNobs">—</b></div>
-        <div class="model-kpi"><span>ΔN do gêmeo</span><b id="modelRise">—</b></div>
+        <div class="model-kpi"><span>ΔN HEC-HMS</span><b id="modelRise">—</b></div>
       </div>
       <svg id="modelChart" class="model-chart" viewBox="0 0 1000 330" preserveAspectRatio="none" aria-label="Hidrograma do modelo chuva-vazão"></svg>
       <div class="chart-legend">
-        <span><i style="background:#176149"></i>Q Muçum · gêmeo HEC</span>
-        <span id="legendAntas"><i style="background:#225d8d"></i>Q Antas · quando disponível</span>
+        <span><i style="background:#176149"></i>Q Muçum · HEC-HMS</span>
+        <span id="legendAntas"><i style="background:#225d8d"></i>Zona Linha José Júlio</span><span id="legendIbi"><i style="background:#98661d"></i>Zona Ibiraiaras</span>
       </div>
       <div class="callout" style="margin-top:10px">
         <h3>Leitura do resultado</h3>
@@ -322,7 +328,8 @@ $("modelQpeak").textContent=maxFinite(rr.q_mucum_m3s)!=null?fmt(maxFinite(rr.q_m
 $("modelNobs").textContent=rr.current_observed_stage_cm!=null?fmt(rr.current_observed_stage_cm/100,2)+" m":"—";
 $("modelRise").textContent=(rr.primary&&rr.primary.rise_cm!=null)?fmt(rr.primary.rise_cm,0)+" cm":"—";
 $("modelWarning").textContent=rr.warning_pt||"Resultado experimental.";
-if($("legendAntas") && !(rr.q_antas_m3s||[]).length)$("legendAntas").style.display="none";
+if($("legendAntas") && !(rr.q_antas_m3s||[]).length && !(((rr.nodes_model||{})["Zona_86472000_LIVE"]||{}).q_m3s||[]).length)$("legendAntas").style.display="none";
+if($("legendIbi") && !((((rr.nodes_model||{})["Zona_02851072_LIVE"]||{}).q_m3s)||[]).length)$("legendIbi").style.display="none";
 const audit=$("modelRainAudit");
 if(audit){
  const rz=rr.rain_zones||{};
@@ -355,10 +362,13 @@ if(modelNodeRows){
 
 function drawHydrograph(){
  const svg=$("modelChart"); if(!svg)return;
- const q1=(rr.q_mucum_m3s||[]).map(Number), q2=(rr.q_antas_m3s||[]).map(Number), tt=rr.time_utc||[];
+ const q1=(rr.q_mucum_m3s||[]).map(Number), tt=rr.time_utc||[];
+ const mn=rr.nodes_model||{};
+ const q2=((rr.q_antas_m3s||[]).length?(rr.q_antas_m3s||[]):((mn["Zona_86472000_LIVE"]||{}).q_m3s||[])).map(Number);
+ const q3=((mn["Zona_02851072_LIVE"]||{}).q_m3s||[]).map(Number);
  if(!tt.length||!q1.length){svg.innerHTML="<text x='40' y='55' fill='#607168' font-size='18'>Sem série do modelo disponível.</text>";return}
  const W=1000,H=330,L=72,R=24,T=24,B=48;
- const vals=[...q1,...q2].filter(Number.isFinite), ymin=Math.min(...vals), ymax=Math.max(...vals);
+ const vals=[...q1,...q2,...q3].filter(Number.isFinite), ymin=Math.min(...vals), ymax=Math.max(...vals);
  const span=(ymax-ymin)||1, lo=Math.max(0,ymin-span*.08), hi=ymax+span*.10;
  const x=i=>L+(W-L-R)*(i/(Math.max(1,tt.length-1)));
  const y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
@@ -368,6 +378,7 @@ function drawHydrograph(){
  const ticks=[0,Math.floor((tt.length-1)/3),Math.floor(2*(tt.length-1)/3),tt.length-1];
  ticks.forEach(i=>{const xx=x(i);s+="<line x1='"+xx+"' y1='"+(H-B)+"' x2='"+xx+"' y2='"+(H-B+6)+"' stroke='#8b9a91'/><text x='"+xx+"' y='"+(H-15)+"' text-anchor='middle' fill='#607168' font-size='11'>"+brt(tt[i]).replace(", "," ")+"</text>"});
  if(q2.length)s+="<path d='"+path(q2)+"' fill='none' stroke='#225d8d' stroke-width='3' vector-effect='non-scaling-stroke'/>";
+ if(q3.length)s+="<path d='"+path(q3)+"' fill='none' stroke='#98661d' stroke-width='3' vector-effect='non-scaling-stroke'/>";
  s+="<path d='"+path(q1)+"' fill='none' stroke='#176149' stroke-width='4' vector-effect='non-scaling-stroke'/>";
  s+="<text x='"+L+"' y='16' fill='#607168' font-size='12'>vazão simulada (m³/s)</text>";
  svg.innerHTML=s;
@@ -456,6 +467,23 @@ function loadHydroNodes(){
    m.addTo(nodeLayer); window.nodeMarkers[n.code]=m;
  });
 }
+
+function loadModelNodes(){
+ const defs={
+   "Saida_LIVE":{name:"Saída HEC · Muçum",lat:-29.1672,lon:-51.8686,outlet:true},
+   "Zona_86472000_LIVE":{name:"HEC · Linha José Júlio",lat:-29.0978,lon:-51.6997,outlet:false},
+   "Zona_02851072_LIVE":{name:"HEC · Ibiraiaras",lat:-28.3811,lon:-51.6331,outlet:false}
+ };
+ const mn=rr.nodes_model||{};
+ Object.entries(mn).forEach(([key,v])=>{
+   const d=defs[key]; if(!d)return;
+   const icon=L.divIcon({className:"model-node-icon",html:"<div class='model-node-wrap'><span class='model-node-dot "+(d.outlet?"outlet":"")+"'></span><span class='model-node-label'>"+d.name+"<br><em>Q0 "+fmt(v.q0_m3s,0)+" · pico "+fmt(v.peak_q_m3s,0)+" m³/s</em></span></div>",iconSize:[210,32],iconAnchor:[8,8]});
+   const m=L.marker([d.lat,d.lon],{icon,zIndexOffset:d.outlet?1350:1100});
+   m.bindPopup("<strong>"+d.name+"</strong><br>Q inicial: "+fmt(v.q0_m3s,0)+" m³/s<br>Q pico: "+fmt(v.peak_q_m3s,0)+" m³/s<br>Pico: "+brt(v.peak_time_utc)+"<br><em>Saída do HEC-HMS 4.13</em>");
+   m.on("click",()=>showInspector(d.name,"HEC-HMS 4.13 · Q inicial "+fmt(v.q0_m3s,0)+" m³/s · Q pico "+fmt(v.peak_q_m3s,0)+" m³/s · pico "+brt(v.peak_time_utc)));
+   m.addTo(modelNodeLayer); window.modelNodeMarkers[key]=m;
+ });
+}
 function loadModelNodes(){
  corridorModelNodes.forEach(n=>{
    const icon=L.divIcon({className:"model-node-icon",html:"<div class='model-node-wrap'><span class='model-node-diamond'></span><span class='model-node-label'>"+(n.name||n.code)+"<br>Q "+fmt(n.q0_m3s,0)+" → pico "+fmt(n.peak_q_m3s,0)+" m³/s</span></div>",iconSize:[210,34],iconAnchor:[8,8]});
@@ -469,7 +497,7 @@ function loadNetwork(){const net=((DATA.spatial||{}).basin_network)||{};(net.fea
 async function loadFozes(){const path=(DATA.spatial||{}).fozes_geojson;if(!path)return;try{const res=await fetch(path);if(!res.ok)return;const gj=await res.json();L.geoJSON(gj,{pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:3.5,color:"#fff",weight:1,fillColor:"#a77a2d",fillOpacity:.8})}).addTo(fozLayer)}catch(e){}}
 loadSpatialRain();loadUgs();loadHydroNodes();loadModelNodes();loadNetwork();loadFozes();
 L.control.layers(null,{"Nós do modelo chuva–vazão":modelNodeLayer,"Telemetria":nodeLayer,"Chuva IFS espacial":rainLayer,"UGs G040":ugLayer,"Rede G040 completa":networkLayer,"Fozes BHO6":fozLayer},{collapsed:false}).addTo(map);
-const leg=L.control({position:"bottomright"});leg.onAdd=()=>{const d=L.DomUtil.create("div","legend");d.innerHTML="<div><i style='background:#176149;border-radius:50%'></i>nó hidrológico</div><div><i style='background:#dceee5'></i>menor chuva</div><div><i style='background:#68ad88'></i>chuva intermediária</div><div><i style='background:#0f523b'></i>maior chuva</div><div style='margin-top:4px'>clique no nó → nível / vazão / idade</div>";return d};leg.addTo(map);
+const leg=L.control({position:"bottomright"});leg.onAdd=()=>{const d=L.DomUtil.create("div","legend");d.innerHTML="<div><i style='background:#176149;border-radius:50%'></i>telemetria</div><div><i style='background:#98661d'></i>nó HEC-HMS</div><div><i style='background:#dceee5'></i>menor chuva</div><div><i style='background:#68ad88'></i>chuva intermediária</div><div><i style='background:#0f523b'></i>maior chuva</div><div style='margin-top:4px'>clique no nó → nível / vazão / idade</div>";return d};leg.addTo(map);
 setTimeout(()=>map.invalidateSize(),180);
 </script>
 </body>
