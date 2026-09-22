@@ -1,0 +1,55 @@
+name: Spatial IFS Muçum research run
+
+on:
+  push:
+    branches:
+      - chatgpt/spatial-ifs-mucum-20260922
+    paths:
+      - scripts/build_spatial_ifs_mucum.py
+      - .github/workflows/spatial-ifs-mucum-research.yml
+      - assets/data/hec_hms_spatialized_mucum/watershed_86510000_srtm.geojson
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  spatial-rain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install --disable-pip-version-check shapely pyproj matplotlib
+
+      - name: Build full spatial IFS field over Muçum catchment
+        run: python scripts/build_spatial_ifs_mucum.py
+
+      - name: Show summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum/spatial_ifs_mucum_latest.json")
+          j=json.loads(p.read_text())
+          print(json.dumps({
+            "generated_at_utc":j["generated_at_utc"],
+            "window":j["window"],
+            "grid":j["grid"],
+            "rainfall_120h":j["rainfall_120h"],
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload spatial forcing artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spatial-ifs-mucum
+          path: assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum/
+          retention-days: 7
