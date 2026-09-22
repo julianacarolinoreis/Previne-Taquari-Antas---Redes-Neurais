@@ -1,7 +1,7 @@
 {
-  "schema_version": "plataforma_hec_twin_mucum_v2",
-  "generated_at_utc": "2026-09-21T23:52:24Z",
-  "status": "research_platform_ready",
+  "schema_version": "plataforma_hec_twin_mucum_v3",
+  "generated_at_utc": "2026-09-22T00:29:28Z",
+  "status": "spatial_rain_ready_hydrology_integration_pending",
   "label_pt": "Plataforma HEC/REC · bacia Taquari–Antas (G040)",
   "purpose_pt": "Mapa e inventário da bacia oficial Taquari–Antas (G040, ~26,4 mil km², 7 UGs). Dentro dela, o produto gêmeo HEC/REC estima ΔN em Muçum no corredor aninhado (~16 mil km²). Guaporé/Forqueta/Baixo aparecem na bacia; não entram no balanço do gêmeo até Muçum. STZ sem curva N↔Q inventada. Pesquisa.",
   "basin": {
@@ -68,7 +68,11 @@
     "ifs_point_proxy_not_areal_mask": true,
     "corridor_not_full_g040": true,
     "basin_calibrated_analogs": true,
-    "not_stz_mucum_only_shortcut": true
+    "not_stz_mucum_only_shortcut": true,
+    "spatial_ifs_full_field_available": true,
+    "legacy_forward_uses_point_proxy": true,
+    "legacy_forward_not_valid_as_full_basin_spatial_forecast": true,
+    "do_not_publish_legacy_delta_n_as_current_forecast": true
   },
   "where_results_go": {
     "pages_base": "https://julianacarolinoreis.github.io/Previne-Taquari-Antas---Redes-Neurais",
@@ -108,55 +112,12 @@
     ]
   },
   "headline": {
-    "source": "forward",
-    "question_pt": "Com a chuva do corredor calibrado (Prata–Carreiro–Antas→STZ→Muçum), quanto sobe o nível em Muçum?",
-    "plain_pt": "Com ~6.8 mm de chuva prevista em 120 h e nível atual 1556 cm em Muçum, o gêmeo HEC indica subida de ~43 cm (banda 0–113 cm), pico ancorado ~1599 cm em 2026-09-23T01:00:00Z.",
-    "primary": {
-      "event_id": "BLEND",
-      "rise_cm": 43.27,
-      "peak_anchored_cm": 1599.27,
-      "peak_time_utc": "2026-09-23T01:00:00Z",
-      "peak_time_argmax_utc": "2026-09-23T03:00:00Z",
-      "peak_time_method": "first_reach_0.95_of_rise"
-    },
-    "ensemble_rise_cm": {
-      "min": 0.0,
-      "primary": 43.27,
-      "max": 112.53,
-      "by_event": [
-        {
-          "event_id": "BLEND",
-          "rise_cm": 43.27,
-          "peak_anchored_cm": 1599.27
-        },
-        {
-          "event_id": "E23",
-          "rise_cm": 112.53,
-          "peak_anchored_cm": 1668.53
-        },
-        {
-          "event_id": "E20",
-          "rise_cm": 10.91,
-          "peak_anchored_cm": 1566.91
-        },
-        {
-          "event_id": "E24",
-          "rise_cm": 0.0,
-          "peak_anchored_cm": 1556.0
-        },
-        {
-          "event_id": "E25",
-          "rise_cm": 0.0,
-          "peak_anchored_cm": 1556.0
-        },
-        {
-          "event_id": "E21",
-          "rise_cm": 0.0,
-          "peak_anchored_cm": 1556.0
-        }
-      ]
-    },
-    "rain_mm_area_weighted": 6.828,
+    "source": "spatial_ifs_full_field",
+    "question_pt": "O que toda a chuva prevista na bacia contribuinte pode produzir em Muçum?",
+    "plain_pt": "A chuva espacial IFS está atualizada e cobre toda a bacia contribuinte até Muçum. A previsão de nível permanece bloqueada nesta página até o modelo chuva–vazão consumir esse campo espacial, sem reduzir a bacia a proxies pontuais.",
+    "primary": null,
+    "ensemble_rise_cm": null,
+    "rain_mm_area_weighted": null,
     "verification_plain_pt": null,
     "scorecard": {},
     "validation_ref": "products.live_eval"
@@ -164,58 +125,58 @@
   "products": {
     "forward_5d": {
       "status": "research_forward_5d_ready",
-      "generated_at_utc": "2026-09-21T23:52:23Z",
-      "plain_pt": "Com ~6.8 mm de chuva prevista em 120 h e nível atual 1556 cm em Muçum, o gêmeo HEC indica subida de ~43 cm (banda 0–113 cm), pico ancorado ~1599 cm em 2026-09-23T01:00:00Z.",
+      "generated_at_utc": "2026-09-22T00:29:28Z",
+      "plain_pt": "Com ~3.7 mm de chuva prevista em 120 h e nível atual 1585 cm em Muçum, o gêmeo HEC indica subida de ~13 cm (banda 0–34 cm), pico ancorado ~1598 cm em 2026-09-22T00:00:00Z.",
       "primary": {
         "event_id": "BLEND",
-        "rise_cm": 43.27,
-        "peak_anchored_cm": 1599.27,
-        "peak_time_utc": "2026-09-23T01:00:00Z",
-        "peak_time_argmax_utc": "2026-09-23T03:00:00Z",
-        "peak_time_method": "first_reach_0.95_of_rise"
+        "rise_cm": 12.64,
+        "peak_anchored_cm": 1597.64,
+        "peak_time_utc": "2026-09-22T00:00:00Z",
+        "peak_time_argmax_utc": "2026-09-22T00:00:00Z",
+        "peak_time_method": "argmax_fallback"
       },
       "ensemble_rise_cm": {
         "min": 0.0,
-        "primary": 43.27,
-        "max": 112.53,
+        "primary": 12.64,
+        "max": 34.01,
         "by_event": [
           {
             "event_id": "BLEND",
-            "rise_cm": 43.27,
-            "peak_anchored_cm": 1599.27
+            "rise_cm": 12.64,
+            "peak_anchored_cm": 1597.64
           },
           {
             "event_id": "E23",
-            "rise_cm": 112.53,
-            "peak_anchored_cm": 1668.53
+            "rise_cm": 34.01,
+            "peak_anchored_cm": 1619.01
           },
           {
             "event_id": "E20",
-            "rise_cm": 10.91,
-            "peak_anchored_cm": 1566.91
+            "rise_cm": 0.0,
+            "peak_anchored_cm": 1585.0
           },
           {
             "event_id": "E24",
             "rise_cm": 0.0,
-            "peak_anchored_cm": 1556.0
+            "peak_anchored_cm": 1585.0
           },
           {
             "event_id": "E25",
             "rise_cm": 0.0,
-            "peak_anchored_cm": 1556.0
+            "peak_anchored_cm": 1585.0
           },
           {
-            "event_id": "E21",
-            "rise_cm": 0.0,
-            "peak_anchored_cm": 1556.0
+            "event_id": "E28",
+            "rise_cm": 4.5,
+            "peak_anchored_cm": 1589.5
           }
         ]
       },
-      "rain_forecast_mm": 6.828,
+      "rain_forecast_mm": 3.709,
       "level_now": {
         "ok": true,
-        "stage_cm": 1556.0,
-        "observed_at_utc": "2026-09-21T23:30:00Z",
+        "stage_cm": 1585.0,
+        "observed_at_utc": "2026-09-22T00:00:00Z",
         "source": "ANA_telemetria",
         "station": "86510000"
       },
@@ -224,11 +185,14 @@
       "artifact": "hec_twin_mucum_forward_5d.html",
       "age_hours": 0.0,
       "stale": false,
-      "anchor_age_hours": 0.37,
+      "anchor_age_hours": 0.49,
       "note": "Previsão HEC/REC corrente (~5d); chuva seca também é resultado válido.",
-      "peak_delta_n_cm": 43.27,
-      "peak_n_cm": 1599.27,
-      "peak_when_utc": "2026-09-23T01:00:00Z"
+      "peak_delta_n_cm": 12.64,
+      "peak_n_cm": 1597.64,
+      "peak_when_utc": "2026-09-22T00:00:00Z",
+      "valid_for_current_spatial_forecast": false,
+      "input_policy": "legacy_point_proxy",
+      "blocking_reason_pt": "O gêmeo HEC atual ainda usa proxies pontuais de chuva. O resultado de ΔN é mantido somente para auditoria e não é apresentado como previsão espacial da bacia."
     },
     "live_eval": {
       "status": "research_live_eval_replay_ready",
@@ -317,7 +281,7 @@
       },
       "available": true,
       "artifact": "hec_twin_mucum_live_eval.html",
-      "age_hours": 217.56,
+      "age_hours": 218.18,
       "timing_error_h": null,
       "note": "Replay do evento com âncora + verificação ANA.",
       "peak_delta_n_cm": 253.81,
@@ -773,7 +737,7 @@
         "coord_source": "basin_forecast_points",
         "id": "86510000",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "86509000",
@@ -786,7 +750,7 @@
         "coord_source": "postos_por_upg",
         "id": "86509000",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "86472600",
@@ -799,7 +763,7 @@
         "coord_source": "basin_forecast_points",
         "id": "86472600",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "86472000",
@@ -812,7 +776,7 @@
         "coord_source": "basin_forecast_points",
         "id": "86472000",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "86507000",
@@ -825,7 +789,7 @@
         "coord_source": "basin_forecast_points",
         "id": "86507000",
         "ug": "Carreiro",
-        "rain_mm_window": 7.0
+        "rain_mm_window": 3.8
       },
       {
         "code": "86125500",
@@ -838,7 +802,7 @@
         "coord_source": "postos_por_upg",
         "id": "86125500",
         "ug": "Prata",
-        "rain_mm_window": 7.0
+        "rain_mm_window": 3.8
       },
       {
         "code": "86448000",
@@ -851,7 +815,7 @@
         "coord_source": "postos_por_upg",
         "id": "86448000",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "86306000",
@@ -864,7 +828,7 @@
         "coord_source": "postos_por_upg",
         "id": "86306000",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "86298000",
@@ -877,7 +841,7 @@
         "coord_source": "basin_forecast_points",
         "id": "86298000",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "86430900",
@@ -890,7 +854,7 @@
         "coord_source": "postos_por_upg",
         "id": "86430900",
         "ug": "Prata",
-        "rain_mm_window": 7.0
+        "rain_mm_window": 3.8
       },
       {
         "code": "86447000",
@@ -903,7 +867,7 @@
         "coord_source": "postos_por_upg",
         "id": "86447000",
         "ug": "Prata",
-        "rain_mm_window": 7.0
+        "rain_mm_window": 3.8
       },
       {
         "code": "86470800",
@@ -916,7 +880,7 @@
         "coord_source": "postos_por_upg",
         "id": "86470800",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "86471000",
@@ -929,7 +893,7 @@
         "coord_source": "postos_por_upg",
         "id": "86471000",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "86329000",
@@ -942,7 +906,7 @@
         "coord_source": "postos_por_upg",
         "id": "86329000",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "86480000",
@@ -955,7 +919,7 @@
         "coord_source": "postos_por_upg",
         "id": "86480000",
         "ug": "Carreiro",
-        "rain_mm_window": 7.0
+        "rain_mm_window": 3.8
       },
       {
         "code": "86500000",
@@ -968,7 +932,7 @@
         "coord_source": "postos_por_upg",
         "id": "86500000",
         "ug": "Carreiro",
-        "rain_mm_window": 7.0
+        "rain_mm_window": 3.8
       },
       {
         "code": "86488000",
@@ -1046,7 +1010,7 @@
         "coord_source": "postos_por_upg",
         "id": "2851072",
         "ug": "Carreiro",
-        "rain_mm_window": 7.0
+        "rain_mm_window": 3.8
       },
       {
         "code": "2851044",
@@ -1059,7 +1023,7 @@
         "coord_source": "postos_por_upg",
         "id": "2851044",
         "ug": "Carreiro",
-        "rain_mm_window": 7.0
+        "rain_mm_window": 3.8
       },
       {
         "code": "A894",
@@ -1072,7 +1036,7 @@
         "coord_source": "pluviometria_g040",
         "id": "A894",
         "ug": "Carreiro",
-        "rain_mm_window": 7.0
+        "rain_mm_window": 3.8
       },
       {
         "code": "432040401A",
@@ -1085,7 +1049,7 @@
         "coord_source": "pluviometria_g040",
         "id": "432040401A",
         "ug": "Carreiro",
-        "rain_mm_window": 7.0
+        "rain_mm_window": 3.8
       },
       {
         "code": "B859",
@@ -1098,7 +1062,7 @@
         "coord_source": "pluviometria_g040",
         "id": "B859",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "A840",
@@ -1111,7 +1075,7 @@
         "coord_source": "pluviometria_g040",
         "id": "A840",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "A880",
@@ -1124,7 +1088,7 @@
         "coord_source": "pluviometria_g040",
         "id": "A880",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "B817",
@@ -1137,7 +1101,7 @@
         "coord_source": "pluviometria_g040",
         "id": "B817",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "B818",
@@ -1150,7 +1114,7 @@
         "coord_source": "pluviometria_g040",
         "id": "B818",
         "ug": "Médio Taquari-Antas",
-        "rain_mm_window": 3.2
+        "rain_mm_window": 1.8
       },
       {
         "code": "B858",
@@ -1163,7 +1127,7 @@
         "coord_source": "pluviometria_g040",
         "id": "B858",
         "ug": "Carreiro",
-        "rain_mm_window": 7.0
+        "rain_mm_window": 3.8
       }
     ],
     "anchor_count": 31,
@@ -17265,137 +17229,137 @@
     "ug_geojson": "ugs_g040.geojson",
     "fozes_geojson": "fozes_principais_bho6.geojson",
     "ug_rain_mm": {
-      "Prata": 7.0,
-      "Médio Taquari-Antas": 3.2,
-      "Carreiro": 7.0
+      "Prata": 3.8,
+      "Médio Taquari-Antas": 1.8,
+      "Carreiro": 3.8
     }
   },
   "hydrograph_sample_6h": [
     {
-      "time_utc": "2026-09-21T23:00:00Z",
-      "n_anchored_cm": 1556.0,
+      "time_utc": "2026-09-22T00:00:00Z",
+      "n_anchored_cm": 1585.0,
       "delta_n_cm": 0.0,
-      "q_mucum_m3s": 237.114
+      "q_mucum_m3s": 209.405
     },
     {
-      "time_utc": "2026-09-22T05:00:00Z",
-      "n_anchored_cm": 1534.17,
-      "delta_n_cm": -21.83,
-      "q_mucum_m3s": 207.466
+      "time_utc": "2026-09-22T06:00:00Z",
+      "n_anchored_cm": 1561.43,
+      "delta_n_cm": -23.57,
+      "q_mucum_m3s": 165.566
     },
     {
-      "time_utc": "2026-09-22T11:00:00Z",
-      "n_anchored_cm": 1545.12,
-      "delta_n_cm": -10.88,
-      "q_mucum_m3s": 222.725
+      "time_utc": "2026-09-22T12:00:00Z",
+      "n_anchored_cm": 1548.74,
+      "delta_n_cm": -36.26,
+      "q_mucum_m3s": 146.217
     },
     {
-      "time_utc": "2026-09-22T17:00:00Z",
-      "n_anchored_cm": 1572.12,
-      "delta_n_cm": 16.12,
-      "q_mucum_m3s": 260.352
+      "time_utc": "2026-09-22T18:00:00Z",
+      "n_anchored_cm": 1549.69,
+      "delta_n_cm": -35.31,
+      "q_mucum_m3s": 149.775
     },
     {
-      "time_utc": "2026-09-22T23:00:00Z",
-      "n_anchored_cm": 1595.13,
-      "delta_n_cm": 39.13,
-      "q_mucum_m3s": 293.574
+      "time_utc": "2026-09-23T00:00:00Z",
+      "n_anchored_cm": 1553.74,
+      "delta_n_cm": -31.26,
+      "q_mucum_m3s": 157.94
     },
     {
-      "time_utc": "2026-09-23T05:00:00Z",
-      "n_anchored_cm": 1596.05,
-      "delta_n_cm": 40.05,
-      "q_mucum_m3s": 295.932
+      "time_utc": "2026-09-23T06:00:00Z",
+      "n_anchored_cm": 1549.9,
+      "delta_n_cm": -35.1,
+      "q_mucum_m3s": 153.191
     },
     {
-      "time_utc": "2026-09-23T11:00:00Z",
-      "n_anchored_cm": 1573.93,
-      "delta_n_cm": 17.93,
-      "q_mucum_m3s": 266.027
+      "time_utc": "2026-09-23T12:00:00Z",
+      "n_anchored_cm": 1538.7,
+      "delta_n_cm": -46.3,
+      "q_mucum_m3s": 136.349
     },
     {
-      "time_utc": "2026-09-23T17:00:00Z",
-      "n_anchored_cm": 1547.0,
-      "delta_n_cm": -9.0,
-      "q_mucum_m3s": 229.645
+      "time_utc": "2026-09-23T18:00:00Z",
+      "n_anchored_cm": 1526.55,
+      "delta_n_cm": -58.45,
+      "q_mucum_m3s": 117.99
     },
     {
-      "time_utc": "2026-09-23T23:00:00Z",
-      "n_anchored_cm": 1521.32,
-      "delta_n_cm": -34.68,
-      "q_mucum_m3s": 196.325
+      "time_utc": "2026-09-24T00:00:00Z",
+      "n_anchored_cm": 1515.35,
+      "delta_n_cm": -69.65,
+      "q_mucum_m3s": 101.648
     },
     {
-      "time_utc": "2026-09-24T05:00:00Z",
-      "n_anchored_cm": 1498.24,
-      "delta_n_cm": -57.76,
-      "q_mucum_m3s": 167.866
+      "time_utc": "2026-09-24T06:00:00Z",
+      "n_anchored_cm": 1505.41,
+      "delta_n_cm": -79.59,
+      "q_mucum_m3s": 87.792
     },
     {
-      "time_utc": "2026-09-24T11:00:00Z",
-      "n_anchored_cm": 1477.76,
-      "delta_n_cm": -78.24,
-      "q_mucum_m3s": 143.879
+      "time_utc": "2026-09-24T12:00:00Z",
+      "n_anchored_cm": 1496.65,
+      "delta_n_cm": -88.35,
+      "q_mucum_m3s": 76.119
     },
     {
-      "time_utc": "2026-09-24T17:00:00Z",
-      "n_anchored_cm": 1459.58,
-      "delta_n_cm": -96.42,
-      "q_mucum_m3s": 123.637
+      "time_utc": "2026-09-24T18:00:00Z",
+      "n_anchored_cm": 1488.9,
+      "delta_n_cm": -96.1,
+      "q_mucum_m3s": 66.25
     },
     {
-      "time_utc": "2026-09-24T23:00:00Z",
-      "n_anchored_cm": 1443.39,
-      "delta_n_cm": -112.61,
-      "q_mucum_m3s": 106.486
+      "time_utc": "2026-09-25T00:00:00Z",
+      "n_anchored_cm": 1482.03,
+      "delta_n_cm": -102.97,
+      "q_mucum_m3s": 57.862
     },
     {
-      "time_utc": "2026-09-25T05:00:00Z",
-      "n_anchored_cm": 1428.92,
-      "delta_n_cm": -127.08,
-      "q_mucum_m3s": 91.891
+      "time_utc": "2026-09-25T06:00:00Z",
+      "n_anchored_cm": 1475.9,
+      "delta_n_cm": -109.1,
+      "q_mucum_m3s": 50.695
     },
     {
-      "time_utc": "2026-09-25T11:00:00Z",
-      "n_anchored_cm": 1415.94,
-      "delta_n_cm": -140.06,
-      "q_mucum_m3s": 79.425
+      "time_utc": "2026-09-25T12:00:00Z",
+      "n_anchored_cm": 1470.4,
+      "delta_n_cm": -114.6,
+      "q_mucum_m3s": 44.546
     },
     {
-      "time_utc": "2026-09-25T17:00:00Z",
-      "n_anchored_cm": 1404.26,
-      "delta_n_cm": -151.74,
-      "q_mucum_m3s": 68.746
+      "time_utc": "2026-09-25T18:00:00Z",
+      "n_anchored_cm": 1465.46,
+      "delta_n_cm": -119.54,
+      "q_mucum_m3s": 39.248
     },
     {
-      "time_utc": "2026-09-25T23:00:00Z",
-      "n_anchored_cm": 1393.71,
-      "delta_n_cm": -162.29,
-      "q_mucum_m3s": 59.572
+      "time_utc": "2026-09-26T00:00:00Z",
+      "n_anchored_cm": 1461.0,
+      "delta_n_cm": -124.0,
+      "q_mucum_m3s": 34.672
     },
     {
-      "time_utc": "2026-09-26T05:00:00Z",
-      "n_anchored_cm": 1383.89,
-      "delta_n_cm": -172.11,
-      "q_mucum_m3s": 51.561
+      "time_utc": "2026-09-26T06:00:00Z",
+      "n_anchored_cm": 1456.77,
+      "delta_n_cm": -128.23,
+      "q_mucum_m3s": 30.627
     },
     {
-      "time_utc": "2026-09-26T11:00:00Z",
-      "n_anchored_cm": 1375.02,
-      "delta_n_cm": -180.98,
-      "q_mucum_m3s": 44.68
+      "time_utc": "2026-09-26T12:00:00Z",
+      "n_anchored_cm": 1453.06,
+      "delta_n_cm": -131.94,
+      "q_mucum_m3s": 27.18
     },
     {
-      "time_utc": "2026-09-26T17:00:00Z",
-      "n_anchored_cm": 1367.4,
-      "delta_n_cm": -188.6,
-      "q_mucum_m3s": 38.939
+      "time_utc": "2026-09-26T18:00:00Z",
+      "n_anchored_cm": 1449.91,
+      "delta_n_cm": -135.09,
+      "q_mucum_m3s": 24.332
     },
     {
-      "time_utc": "2026-09-26T22:00:00Z",
-      "n_anchored_cm": 1361.99,
-      "delta_n_cm": -194.01,
-      "q_mucum_m3s": 35.089
+      "time_utc": "2026-09-26T23:00:00Z",
+      "n_anchored_cm": 1447.89,
+      "delta_n_cm": -137.11,
+      "q_mucum_m3s": 22.614
     }
   ],
   "param_selection": {
@@ -17407,11 +17371,11 @@
           "event_id": "E23",
           "historical_aw_full_mm": 81.117,
           "historical_core_mean_mm": 33.983,
-          "forecast_aw_total_mm": 6.828,
-          "abs_mm_gap": 74.289,
-          "distance": 0.6939,
+          "forecast_aw_total_mm": 3.709,
+          "abs_mm_gap": 77.408,
+          "distance": 0.7324,
           "distance_detail": {
-            "rain_gap": 0.9158,
+            "rain_gap": 0.9543,
             "eff_gap": 0.0,
             "loss_penalty": -0.35,
             "donor_penalty": 0.1,
@@ -17431,22 +17395,22 @@
           "wetness": {
             "is_wet": true,
             "past_aw_mm": 3.118,
-            "stage_cm": 1556.0,
+            "stage_cm": 1585.0,
             "stage_rising": true,
             "wet_by_rain": false,
             "wet_by_stage": true,
-            "forecast_aw_mm": 6.828
+            "forecast_aw_mm": 3.709
           }
         },
         {
           "event_id": "E20",
           "historical_aw_full_mm": 76.711,
           "historical_core_mean_mm": 31.133,
-          "forecast_aw_total_mm": 6.828,
-          "abs_mm_gap": 69.883,
-          "distance": 0.9214,
+          "forecast_aw_total_mm": 3.709,
+          "abs_mm_gap": 73.002,
+          "distance": 0.962,
           "distance_detail": {
-            "rain_gap": 0.911,
+            "rain_gap": 0.9516,
             "eff_gap": 0.0,
             "loss_penalty": 0.0,
             "donor_penalty": 0.0,
@@ -17466,22 +17430,22 @@
           "wetness": {
             "is_wet": true,
             "past_aw_mm": 3.118,
-            "stage_cm": 1556.0,
+            "stage_cm": 1585.0,
             "stage_rising": true,
             "wet_by_rain": false,
             "wet_by_stage": true,
-            "forecast_aw_mm": 6.828
+            "forecast_aw_mm": 3.709
           }
         },
         {
           "event_id": "E24",
           "historical_aw_full_mm": 207.8,
           "historical_core_mean_mm": 202.4,
-          "forecast_aw_total_mm": 6.828,
-          "abs_mm_gap": 200.972,
-          "distance": 1.1043,
+          "forecast_aw_total_mm": 3.709,
+          "abs_mm_gap": 204.091,
+          "distance": 1.1193,
           "distance_detail": {
-            "rain_gap": 0.9671,
+            "rain_gap": 0.9822,
             "eff_gap": 0.0,
             "loss_penalty": 0.0,
             "donor_penalty": 0.1,
@@ -17501,22 +17465,22 @@
           "wetness": {
             "is_wet": true,
             "past_aw_mm": 3.118,
-            "stage_cm": 1556.0,
+            "stage_cm": 1585.0,
             "stage_rising": true,
             "wet_by_rain": false,
             "wet_by_stage": true,
-            "forecast_aw_mm": 6.828
+            "forecast_aw_mm": 3.709
           }
         },
         {
           "event_id": "E25",
           "historical_aw_full_mm": 48.765,
           "historical_core_mean_mm": 6.175,
-          "forecast_aw_total_mm": 6.828,
-          "abs_mm_gap": 41.937,
-          "distance": 1.121,
+          "forecast_aw_total_mm": 3.709,
+          "abs_mm_gap": 45.056,
+          "distance": 1.185,
           "distance_detail": {
-            "rain_gap": 0.86,
+            "rain_gap": 0.9239,
             "eff_gap": 0.0,
             "loss_penalty": 0.25,
             "donor_penalty": 0.0,
@@ -17536,46 +17500,46 @@
           "wetness": {
             "is_wet": true,
             "past_aw_mm": 3.118,
-            "stage_cm": 1556.0,
+            "stage_cm": 1585.0,
             "stage_rising": true,
             "wet_by_rain": false,
             "wet_by_stage": true,
-            "forecast_aw_mm": 6.828
+            "forecast_aw_mm": 3.709
           }
         },
         {
-          "event_id": "E21",
-          "historical_aw_full_mm": 101.183,
-          "historical_core_mean_mm": 92.433,
-          "forecast_aw_total_mm": 6.828,
-          "abs_mm_gap": 94.355,
-          "distance": 1.3054,
+          "event_id": "E28",
+          "historical_aw_full_mm": 190.016,
+          "historical_core_mean_mm": 196.567,
+          "forecast_aw_total_mm": 3.709,
+          "abs_mm_gap": 186.307,
+          "distance": 1.3342,
           "distance_detail": {
-            "rain_gap": 0.9325,
+            "rain_gap": 0.9805,
             "eff_gap": 0.0,
             "loss_penalty": 0.25,
             "donor_penalty": 0.1,
-            "nse_term": 0.0229,
-            "loss_sum_mm": 7.0,
-            "constant_loss_sum_mm": 2.5,
-            "hist_peak_per_mm": 59.304,
+            "nse_term": 0.0037,
+            "loss_sum_mm": 6.25,
+            "constant_loss_sum_mm": 2.25,
+            "hist_peak_per_mm": 41.505,
             "is_light_specialist": false,
             "is_wet": true,
             "apply_light_dry_guards": false
           },
           "hist_rain_source": "aw_full_fingerprint",
           "regime_forecast": "light",
-          "regime_hist": "moderate",
-          "nse": 0.8473541435574965,
-          "research_score": 0.8291599739161672,
+          "regime_hist": "heavy",
+          "nse": 0.9750979641674853,
+          "research_score": 0.9750910812039111,
           "wetness": {
             "is_wet": true,
             "past_aw_mm": 3.118,
-            "stage_cm": 1556.0,
+            "stage_cm": 1585.0,
             "stage_rising": true,
             "wet_by_rain": false,
             "wet_by_stage": true,
-            "forecast_aw_mm": 6.828
+            "forecast_aw_mm": 3.709
           }
         }
       ],
@@ -17583,11 +17547,11 @@
       "wetness": {
         "is_wet": true,
         "past_aw_mm": 3.118,
-        "stage_cm": 1556.0,
+        "stage_cm": 1585.0,
         "stage_rising": true,
         "wet_by_rain": false,
         "wet_by_stage": true,
-        "forecast_aw_mm": 6.828
+        "forecast_aw_mm": 3.709
       },
       "basin_calibration": {
         "artifact": "modelo_mucum_bacia_calibrado_v1_latest.json",
@@ -17606,38 +17570,38 @@
           "weights": [
             {
               "event_id": "E23",
-              "weight": 0.363433,
-              "distance": 0.6939
+              "weight": 0.355977,
+              "distance": 0.7324
             },
             {
               "event_id": "E20",
-              "weight": 0.21706,
-              "distance": 0.9214
+              "weight": 0.216385,
+              "distance": 0.962
             },
             {
               "event_id": "E24",
-              "weight": 0.155193,
-              "distance": 1.1043
+              "weight": 0.163345,
+              "distance": 1.1193
             },
             {
               "event_id": "E25",
-              "weight": 0.150907,
-              "distance": 1.121
+              "weight": 0.146819,
+              "distance": 1.185
             },
             {
-              "event_id": "E21",
-              "weight": 0.113408,
-              "distance": 1.3054
+              "event_id": "E28",
+              "weight": 0.117474,
+              "distance": 1.3342
             }
           ],
           "member_rises_cm": [
-            112.53,
-            10.91,
+            34.01,
             0.0,
             0.0,
-            0.0
+            0.0,
+            4.5
           ],
-          "rise_blend_cm": 43.27,
+          "rise_blend_cm": 12.64,
           "note": "primary_rise_uses_weighted_member_rises_not_peak_of_blended_hydrograph"
         },
         "top_k": 5
@@ -17899,10 +17863,10 @@
     "schedule_cron": "12 */6 * * *",
     "schedule_pt": "a cada 6 horas (min :12) + disparo manual",
     "steps_pt": [
-      "Busca chuva IFS (Open-Meteo) por sub-bacia do corredor",
-      "Roda gêmeo HEC Muçum ~5d (âncora no nível ao vivo se houver)",
-      "Reconstrói plataforma_hec_twin_mucum (mapa + feed)",
-      "Publica no main → GitHub Pages atualiza"
+      "Atualiza o campo ECMWF/IFS 0,25° em todas as células que interceptam a bacia até Muçum",
+      "Mantém o gêmeo HEC legado separado para auditoria enquanto ele ainda usa chuva proxy",
+      "Reconstrói a plataforma com chuva espacial, telemetria, inventário e calibração",
+      "Publica no main e atualiza o GitHub Pages"
     ],
     "does_not_touch_rna": true,
     "research_not_alert": true,
@@ -17924,196 +17888,200 @@
     "nested_inside_pt": "Dentro da bacia G040 · não é a bacia inteira"
   },
   "summary": {
-    "peak_n_cm": 1599.27,
-    "peak_delta_n_cm": 43.27,
-    "peak_when_utc": "2026-09-23T01:00:00Z",
+    "peak_n_cm": null,
+    "peak_delta_n_cm": null,
+    "peak_when_utc": null,
     "timing_error_h": null,
-    "n_anchor_cm": 1556.0,
+    "n_anchor_cm": 1585.0,
     "source": "forward",
-    "n_plus_24h_cm": 1595.13,
-    "delta_plus_24h_cm": 39.13,
-    "when_plus_24h_utc": "2026-09-22T23:00:00Z"
+    "n_plus_24h_cm": null,
+    "delta_plus_24h_cm": null,
+    "when_plus_24h_utc": null,
+    "hydrology_status": "blocked_until_spatial_rain_is_integrated",
+    "observed_stage_cm": 1585.0,
+    "observed_at_utc": "2026-09-22T00:00:00Z",
+    "observed_source": "ANA_telemetria"
   },
   "freshness": {
-    "preferred_source": "forward",
-    "live_age_hours": 217.56,
+    "preferred_source": "spatial_ifs_full_field",
+    "live_age_hours": 218.18,
     "forward_age_hours": 0.0,
-    "forward_anchor_age_hours": 0.37,
+    "forward_anchor_age_hours": 0.49,
     "stale_forward": false,
-    "forward_max_delta_n_cm": 43.27,
-    "note_pt": "Forward atual; replay separado como validação histórica."
+    "forward_max_delta_n_cm": 0.0,
+    "note_pt": "Chuva espacial atualizada. O ΔN do forward legado não é promovido como previsão atual porque a entrada hidrológica ainda usa proxies pontuais."
   },
   "event_trace": {
     "source": "forward_5d_current",
-    "note": "Previsão HEC/REC atual (~5d), ancorada na telemetria de Muçum.",
+    "note": "Traço legado do gêmeo HEC com chuva proxy. Exibido somente como diagnóstico/auditoria; não é a previsão espacial atual.",
     "series": [
       {
-        "t": "2026-09-21T23:00:00Z",
-        "n_cm": 1556.0
+        "t": "2026-09-22T00:00:00Z",
+        "n_cm": 1585.0
       },
       {
-        "t": "2026-09-22T02:00:00Z",
-        "n_cm": 1545.58
+        "t": "2026-09-22T03:00:00Z",
+        "n_cm": 1576.29
       },
       {
-        "t": "2026-09-22T05:00:00Z",
-        "n_cm": 1534.17
+        "t": "2026-09-22T06:00:00Z",
+        "n_cm": 1561.43
       },
       {
-        "t": "2026-09-22T08:00:00Z",
-        "n_cm": 1535.59
+        "t": "2026-09-22T09:00:00Z",
+        "n_cm": 1552.56
       },
       {
-        "t": "2026-09-22T11:00:00Z",
-        "n_cm": 1545.12
+        "t": "2026-09-22T12:00:00Z",
+        "n_cm": 1548.74
       },
       {
-        "t": "2026-09-22T14:00:00Z",
-        "n_cm": 1558.06
+        "t": "2026-09-22T15:00:00Z",
+        "n_cm": 1548.27
       },
       {
-        "t": "2026-09-22T17:00:00Z",
-        "n_cm": 1572.12
+        "t": "2026-09-22T18:00:00Z",
+        "n_cm": 1549.69
       },
       {
-        "t": "2026-09-22T20:00:00Z",
-        "n_cm": 1585.41
+        "t": "2026-09-22T21:00:00Z",
+        "n_cm": 1552.08
       },
       {
-        "t": "2026-09-22T23:00:00Z",
-        "n_cm": 1595.13
+        "t": "2026-09-23T00:00:00Z",
+        "n_cm": 1553.74
       },
       {
-        "t": "2026-09-23T02:00:00Z",
-        "n_cm": 1598.97
+        "t": "2026-09-23T03:00:00Z",
+        "n_cm": 1553.33
       },
       {
-        "t": "2026-09-23T05:00:00Z",
-        "n_cm": 1596.05
+        "t": "2026-09-23T06:00:00Z",
+        "n_cm": 1549.9
       },
       {
-        "t": "2026-09-23T08:00:00Z",
-        "n_cm": 1586.22
+        "t": "2026-09-23T09:00:00Z",
+        "n_cm": 1544.61
       },
       {
-        "t": "2026-09-23T11:00:00Z",
-        "n_cm": 1573.93
+        "t": "2026-09-23T12:00:00Z",
+        "n_cm": 1538.7
       },
       {
-        "t": "2026-09-23T14:00:00Z",
-        "n_cm": 1560.52
+        "t": "2026-09-23T15:00:00Z",
+        "n_cm": 1532.57
       },
       {
-        "t": "2026-09-23T17:00:00Z",
-        "n_cm": 1547.0
+        "t": "2026-09-23T18:00:00Z",
+        "n_cm": 1526.55
       },
       {
-        "t": "2026-09-23T20:00:00Z",
-        "n_cm": 1533.86
+        "t": "2026-09-23T21:00:00Z",
+        "n_cm": 1520.79
       },
       {
-        "t": "2026-09-23T23:00:00Z",
-        "n_cm": 1521.32
+        "t": "2026-09-24T00:00:00Z",
+        "n_cm": 1515.35
       },
       {
-        "t": "2026-09-24T02:00:00Z",
-        "n_cm": 1509.44
+        "t": "2026-09-24T03:00:00Z",
+        "n_cm": 1510.22
       },
       {
-        "t": "2026-09-24T05:00:00Z",
-        "n_cm": 1498.24
+        "t": "2026-09-24T06:00:00Z",
+        "n_cm": 1505.41
       },
       {
-        "t": "2026-09-24T08:00:00Z",
-        "n_cm": 1487.7
+        "t": "2026-09-24T09:00:00Z",
+        "n_cm": 1500.89
       },
       {
-        "t": "2026-09-24T11:00:00Z",
-        "n_cm": 1477.76
+        "t": "2026-09-24T12:00:00Z",
+        "n_cm": 1496.65
       },
       {
-        "t": "2026-09-24T14:00:00Z",
-        "n_cm": 1468.4
+        "t": "2026-09-24T15:00:00Z",
+        "n_cm": 1492.66
       },
       {
-        "t": "2026-09-24T17:00:00Z",
-        "n_cm": 1459.58
+        "t": "2026-09-24T18:00:00Z",
+        "n_cm": 1488.9
       },
       {
-        "t": "2026-09-24T20:00:00Z",
-        "n_cm": 1451.25
+        "t": "2026-09-24T21:00:00Z",
+        "n_cm": 1485.37
       },
       {
-        "t": "2026-09-24T23:00:00Z",
-        "n_cm": 1443.39
+        "t": "2026-09-25T00:00:00Z",
+        "n_cm": 1482.03
       },
       {
-        "t": "2026-09-25T02:00:00Z",
-        "n_cm": 1435.95
+        "t": "2026-09-25T03:00:00Z",
+        "n_cm": 1478.88
       },
       {
-        "t": "2026-09-25T05:00:00Z",
-        "n_cm": 1428.92
+        "t": "2026-09-25T06:00:00Z",
+        "n_cm": 1475.9
       },
       {
-        "t": "2026-09-25T08:00:00Z",
-        "n_cm": 1422.25
+        "t": "2026-09-25T09:00:00Z",
+        "n_cm": 1473.07
       },
       {
-        "t": "2026-09-25T11:00:00Z",
-        "n_cm": 1415.94
+        "t": "2026-09-25T12:00:00Z",
+        "n_cm": 1470.4
       },
       {
-        "t": "2026-09-25T14:00:00Z",
-        "n_cm": 1409.94
+        "t": "2026-09-25T15:00:00Z",
+        "n_cm": 1467.87
       },
       {
-        "t": "2026-09-25T17:00:00Z",
-        "n_cm": 1404.26
+        "t": "2026-09-25T18:00:00Z",
+        "n_cm": 1465.46
       },
       {
-        "t": "2026-09-25T20:00:00Z",
-        "n_cm": 1398.85
+        "t": "2026-09-25T21:00:00Z",
+        "n_cm": 1463.17
       },
       {
-        "t": "2026-09-25T23:00:00Z",
-        "n_cm": 1393.71
+        "t": "2026-09-26T00:00:00Z",
+        "n_cm": 1461.0
       },
       {
-        "t": "2026-09-26T02:00:00Z",
-        "n_cm": 1388.83
+        "t": "2026-09-26T03:00:00Z",
+        "n_cm": 1458.93
       },
       {
-        "t": "2026-09-26T05:00:00Z",
-        "n_cm": 1383.89
+        "t": "2026-09-26T06:00:00Z",
+        "n_cm": 1456.77
       },
       {
-        "t": "2026-09-26T08:00:00Z",
-        "n_cm": 1379.18
+        "t": "2026-09-26T09:00:00Z",
+        "n_cm": 1454.82
       },
       {
-        "t": "2026-09-26T11:00:00Z",
-        "n_cm": 1375.02
+        "t": "2026-09-26T12:00:00Z",
+        "n_cm": 1453.06
       },
       {
-        "t": "2026-09-26T14:00:00Z",
-        "n_cm": 1371.1
+        "t": "2026-09-26T15:00:00Z",
+        "n_cm": 1451.42
       },
       {
-        "t": "2026-09-26T17:00:00Z",
-        "n_cm": 1367.4
+        "t": "2026-09-26T18:00:00Z",
+        "n_cm": 1449.91
       },
       {
-        "t": "2026-09-26T20:00:00Z",
-        "n_cm": 1364.04
+        "t": "2026-09-26T21:00:00Z",
+        "n_cm": 1448.63
       },
       {
-        "t": "2026-09-26T22:00:00Z",
-        "n_cm": 1361.99
+        "t": "2026-09-26T23:00:00Z",
+        "n_cm": 1447.89
       }
     ],
     "rain_mm": [
-      6.24,
+      3.12,
       0.0,
       0.0,
       0.0,
@@ -18148,13 +18116,177 @@
       0.0,
       0.0,
       0.0,
-      0.0,
-      0.2,
+      0.01,
       0.39,
+      0.19,
       0.0,
       0.0,
       0.0
     ],
-    "n_points": 41
+    "n_points": 41,
+    "legacy_point_proxy": true
+  },
+  "spatial_rain": {
+    "available": true,
+    "generated_at_utc": "2026-09-22T00:29:24.663147Z",
+    "window": {
+      "start_utc": "2026-09-22T00:00:00Z",
+      "end_utc": "2026-09-26T23:00:00Z",
+      "hours": 120
+    },
+    "model": "ECMWF IFS 0.25° via Open-Meteo",
+    "resolution_deg": 0.25,
+    "intersecting_cells": 40,
+    "basin_area_km2": 15690.722,
+    "coverage_ratio": 1.0,
+    "spatial_field_preserved": true,
+    "cell_total_min_mm": 0.8,
+    "cell_total_p25_mm": 5.25,
+    "cell_total_median_mm": 7.25,
+    "cell_total_p75_mm": 10.625,
+    "cell_total_max_mm": 15.5,
+    "total_rain_volume_hm3": 120.817,
+    "equivalent_basin_depth_mm_for_audit_only": 7.7,
+    "geojson": "spatial_ifs_mucum/spatial_ifs_mucum_cells_120h.geojson",
+    "png": "spatial_ifs_mucum/spatial_ifs_mucum_120h.png",
+    "cells_csv": "spatial_ifs_mucum/spatial_ifs_mucum_cells_120h.csv",
+    "hourly_csv": "spatial_ifs_mucum/spatial_ifs_mucum_hourly.csv",
+    "wettest_cells": [
+      {
+        "cell_id": "IFS_-028.75_-050.00",
+        "latitude": -28.75,
+        "longitude": -50.0,
+        "overlap_km2": 172.9456,
+        "total_120h_mm": 15.5,
+        "rain_volume_hm3": 2.680657
+      },
+      {
+        "cell_id": "IFS_-028.25_-051.50",
+        "latitude": -28.25,
+        "longitude": -51.5,
+        "overlap_km2": 219.7838,
+        "total_120h_mm": 15.0,
+        "rain_volume_hm3": 3.296758
+      },
+      {
+        "cell_id": "IFS_-028.50_-051.25",
+        "latitude": -28.5,
+        "longitude": -51.25,
+        "overlap_km2": 677.6218,
+        "total_120h_mm": 13.4,
+        "rain_volume_hm3": 9.080132
+      },
+      {
+        "cell_id": "IFS_-028.75_-050.50",
+        "latitude": -28.75,
+        "longitude": -50.5,
+        "overlap_km2": 625.3706,
+        "total_120h_mm": 13.0,
+        "rain_volume_hm3": 8.129818
+      },
+      {
+        "cell_id": "IFS_-028.25_-051.25",
+        "latitude": -28.25,
+        "longitude": -51.25,
+        "overlap_km2": 467.338,
+        "total_120h_mm": 12.3,
+        "rain_volume_hm3": 5.748258
+      },
+      {
+        "cell_id": "IFS_-028.50_-051.00",
+        "latitude": -28.5,
+        "longitude": -51.0,
+        "overlap_km2": 516.6686,
+        "total_120h_mm": 11.9,
+        "rain_volume_hm3": 6.148356
+      },
+      {
+        "cell_id": "IFS_-028.25_-051.00",
+        "latitude": -28.25,
+        "longitude": -51.0,
+        "overlap_km2": 176.883,
+        "total_120h_mm": 11.8,
+        "rain_volume_hm3": 2.08722
+      },
+      {
+        "cell_id": "IFS_-028.75_-050.25",
+        "latitude": -28.75,
+        "longitude": -50.25,
+        "overlap_km2": 469.0617,
+        "total_120h_mm": 11.6,
+        "rain_volume_hm3": 5.441116
+      },
+      {
+        "cell_id": "IFS_-028.50_-050.75",
+        "latitude": -28.5,
+        "longitude": -50.75,
+        "overlap_km2": 124.3942,
+        "total_120h_mm": 10.9,
+        "rain_volume_hm3": 1.355897
+      },
+      {
+        "cell_id": "IFS_-028.50_-050.50",
+        "latitude": -28.5,
+        "longitude": -50.5,
+        "overlap_km2": 4.1897,
+        "total_120h_mm": 10.7,
+        "rain_volume_hm3": 0.04483
+      }
+    ],
+    "note_pt": "Campo IFS 0,25° preservado célula a célula em toda a bacia contribuinte até Muçum. A profundidade equivalente da bacia aparece apenas para auditoria volumétrica; ela não substitui o campo espacial na modelagem."
+  },
+  "legacy_headline": {
+    "source": "forward",
+    "question_pt": "Com a chuva do corredor calibrado (Prata–Carreiro–Antas→STZ→Muçum), quanto sobe o nível em Muçum?",
+    "plain_pt": "Com ~3.7 mm de chuva prevista em 120 h e nível atual 1585 cm em Muçum, o gêmeo HEC indica subida de ~13 cm (banda 0–34 cm), pico ancorado ~1598 cm em 2026-09-22T00:00:00Z.",
+    "primary": {
+      "event_id": "BLEND",
+      "rise_cm": 12.64,
+      "peak_anchored_cm": 1597.64,
+      "peak_time_utc": "2026-09-22T00:00:00Z",
+      "peak_time_argmax_utc": "2026-09-22T00:00:00Z",
+      "peak_time_method": "argmax_fallback"
+    },
+    "ensemble_rise_cm": {
+      "min": 0.0,
+      "primary": 12.64,
+      "max": 34.01,
+      "by_event": [
+        {
+          "event_id": "BLEND",
+          "rise_cm": 12.64,
+          "peak_anchored_cm": 1597.64
+        },
+        {
+          "event_id": "E23",
+          "rise_cm": 34.01,
+          "peak_anchored_cm": 1619.01
+        },
+        {
+          "event_id": "E20",
+          "rise_cm": 0.0,
+          "peak_anchored_cm": 1585.0
+        },
+        {
+          "event_id": "E24",
+          "rise_cm": 0.0,
+          "peak_anchored_cm": 1585.0
+        },
+        {
+          "event_id": "E25",
+          "rise_cm": 0.0,
+          "peak_anchored_cm": 1585.0
+        },
+        {
+          "event_id": "E28",
+          "rise_cm": 4.5,
+          "peak_anchored_cm": 1589.5
+        }
+      ]
+    },
+    "rain_mm_area_weighted": 3.709,
+    "verification_plain_pt": null,
+    "scorecard": {},
+    "validation_ref": "products.live_eval"
   }
 }
