@@ -16,6 +16,7 @@ Set-Location $repoRoot
 
 $sourceDir = "D:\PREVINE\hand\santa tereza"
 $requiredRasters = @(
+    "CLIP_MOSAICO_LIDAR_RS.tif",
     "FILL_CLIP_MOSAICO_LIDAR_RS.tif",
     "FLOWACC_CLIP_MOSAICO_LIDAR_RS.tif",
     "FLOWDIR_CLIP_MOSAICO_LIDAR_RS.tif"
@@ -86,6 +87,18 @@ if ([double]$d.drained_fraction -lt 0.90) {
 }
 if ($d.terrain_modified_by_water_filter -ne $false) {
     throw "O filtro de agua alterou o terreno. Publicacao bloqueada."
+}
+if ($d.fill_usado_como_superficie_inundacao -ne $false) {
+    throw "O FILL apareceu como superficie de inundacao. Esperado: LiDAR bruto CLIP."
+}
+if ([string]$d.terreno_bruto_lidar -notmatch "CLIP_MOSAICO_LIDAR_RS\.tif$") {
+    throw "Diagnostico nao confirma CLIP_MOSAICO_LIDAR_RS.tif como terreno bruto."
+}
+if ([string]$d.terreno_roteamento_fill -notmatch "FILL_CLIP_MOSAICO_LIDAR_RS\.tif$") {
+    throw "Diagnostico nao confirma FILL apenas como superficie de roteamento."
+}
+if ([string]$d.hydraulic_hand_method -notmatch "raw-LiDAR barrier") {
+    throw "Limiar hidraulico por barreira no LiDAR bruto nao confirmado."
 }
 if ($d.water_connectivity_filter -notmatch "connected-to-main-river") {
     throw "Filtro de conectividade da agua nao confirmado."
