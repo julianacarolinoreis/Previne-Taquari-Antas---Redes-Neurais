@@ -334,41 +334,68 @@ def scale_params_to_q0(
     include_mucum_increment: bool = True,
     q0_index: int = 0,
 ) -> tuple[NestedParams, dict[str, Any]]:
-    """Scale initial_flow_ratio so simulated Q at ``q0_index`` matches observed Q0.
+    """Set forecast initial baseflow so simulated Q(now) matches observed Q0.
 
-    For past+future forcing windows, pass the index of "now" so IC matches the
-    live stage instead of the start of the past-rain pad.
+    The former implementation capped the scaling factor at 5, which could leave
+    a flood-state forecast thousands of m3/s below the observed river at t0.
+    Here we isolate the runoff-independent baseflow contribution with a zero-
+    baseflow run and solve the linear scaling exactly. Event calibration
+    parameters remain unchanged; only the live initial condition is adjusted.
     """
     if q0_m3s is None or q0_m3s != q0_m3s or q0_m3s <= 0:
         return params, {"applied": False, "reason": "invalid_q0"}
+
     net = run_network(precip, areas, params, include_mucum_increment=include_mucum_increment)
     q_series = net.get("at_mucum") or []
     if not q_series:
         return params, {"applied": False, "reason": "empty_sim"}
-    idx = int(q0_index) if q0_index is not None else 0
-    idx = min(max(idx, 0), len(q_series) - 1)
-    q_sim0 = float(q_series[idx])
-    if q_sim0 <= 1e-3:
+    idx = min(max(int(q0_index or 0), 0), len(q_series) - 1)
+    q_before = float(q_series[idx])
+
+    zero = NestedParams(
+        up=replace(params.up, initial_flow_ratio=0.0),
+        dn=replace(params.dn, initial_flow_ratio=0.0),
+        k1=params.k1, k2=params.k2, k3=params.k3, x=params.x,
+    )
+    q_zero_series = run_network(
+        precip, areas, zero, include_mucum_increment=include_mucum_increment
+    ).get("at_mucum") or []
+    q_direct = float(q_zero_series[idx]) if q_zero_series else 0.0
+    q_base = q_before - q_direct
+    target_base = float(q0_m3s) - q_direct
+
+    if q_base <= 1e-6:
         return params, {
             "applied": False,
-            "reason": "sim_q0_near_zero",
-            "q_sim0": q_sim0,
+            "reason": "baseflow_component_near_zero",
+            "q0_target_m3s": round(float(q0_m3s), 3),
+            "q_sim0_before_m3s": round(q_before, 3),
+            "q_direct0_m3s": round(q_direct, 3),
             "q0_index": idx,
         }
-    factor = min(max(float(q0_m3s) / q_sim0, 0.2), 5.0)
+
+    factor = max(target_base / q_base, 0.0)
+    # A very large factor is allowed because this is an observed live-state
+    # initialization, not a calibrated event parameter. Flag it for audit.
     scaled = NestedParams(
         up=replace(params.up, initial_flow_ratio=float(params.up.initial_flow_ratio) * factor),
         dn=replace(params.dn, initial_flow_ratio=float(params.dn.initial_flow_ratio) * factor),
-        k1=params.k1,
-        k2=params.k2,
-        k3=params.k3,
-        x=params.x,
+        k1=params.k1, k2=params.k2, k3=params.k3, x=params.x,
     )
+    q_after = (run_network(
+        precip, areas, scaled, include_mucum_increment=include_mucum_increment
+    ).get("at_mucum") or [None])[idx]
+
     return scaled, {
         "applied": True,
-        "factor": round(factor, 4),
+        "method": "solve_linear_baseflow_component_to_observed_q0",
+        "factor": round(float(factor), 6),
+        "large_factor_flag": bool(factor > 10.0),
         "q0_target_m3s": round(float(q0_m3s), 3),
-        "q_sim0_before_m3s": round(q_sim0, 3),
+        "q_sim0_before_m3s": round(q_before, 3),
+        "q_direct0_m3s": round(q_direct, 3),
+        "q_base0_before_m3s": round(q_base, 3),
+        "q_sim0_after_m3s": None if q_after is None else round(float(q_after), 3),
         "q0_index": idx,
     }
 
