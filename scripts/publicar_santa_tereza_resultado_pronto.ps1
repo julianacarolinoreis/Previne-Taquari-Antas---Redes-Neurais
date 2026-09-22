@@ -25,15 +25,18 @@ $newOutputs = @(
 )
 $allowed = @($trackedOutputs + $newOutputs) | ForEach-Object { $_.Replace("\","/") }
 
-# Garante que o worktree contem somente o produto gerado de Santa Tereza.
+# Alteracoes locais de outros projetos sao preservadas e NAO entram no commit.
+# O commit abaixo usa git add apenas nos arquivos de Santa Tereza.
 $dirty = @(& git status --porcelain=v1)
+$unrelated = @()
 foreach ($line in $dirty) {
     if (-not $line) { continue }
     $p = $line.Substring(3).Trim().Replace("\","/")
     if ($p -like "* -> *") { $p = ($p -split " -> ")[-1] }
-    if ($allowed -notcontains $p) {
-        throw "Alteracao local fora do pacote de Santa Tereza: $p. Publicacao abortada."
-    }
+    if ($allowed -notcontains $p) { $unrelated += $p }
+}
+if ($unrelated.Count -gt 0) {
+    Write-Host ("Aviso: preservando alteracoes locais de outros projetos (nao serao commitadas): {0}" -f ($unrelated -join ", ")) -ForegroundColor Yellow
 }
 
 Write-Host "1/5 Validando o resultado ja gerado..." -ForegroundColor Cyan
