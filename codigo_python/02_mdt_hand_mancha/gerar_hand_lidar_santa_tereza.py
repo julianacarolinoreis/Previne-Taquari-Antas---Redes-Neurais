@@ -416,18 +416,52 @@ def inject_payload(page: Path, payload: dict) -> None:
     page.write_text(html2, encoding="utf-8")
 
 
-def write_contours(hand: np.ndarray, transform, crs, output: Path) -> dict:
-    """Escreve contornos cumulativos do buffer do rio principal em WGS84."""
+def write_contours(hand: np.ndarray, main_river: np.ndarray, transform, crs, output: Path) -> dict:
+    """Escreve apenas a parcela hidraulicamente conectada ao rio principal.
+
+    O MDT/HAND não é alterado. A filtragem ocorre somente na máscara de água:
+    para cada nível, uma célula só entra no polígono se pertencer a um
+    componente contínuo que toca o canal principal. Isso remove bolsões baixos
+    isolados sem preencher ilhas reais do terreno.
+    """
     to_wgs84 = Transformer.from_crs(crs, "EPSG:4326", always_xy=True).transform
     # O HAND consultado no popup permanece em 5 m. Para o vetor desenhado no
     # mapa, 10 m é suficiente e reduz bastante o payload público.
     hand_vector = hand[::CONTOUR_FACTOR, ::CONTOUR_FACTOR]
     vector_transform = transform * transform.scale(CONTOUR_FACTOR, CONTOUR_FACTOR)
+
+    # O canal é estreito na grade HAND; dilata-se apenas a semente de
+    # conectividade antes da subamostragem para não "perder" o rio entre
+    # pixels. Isto NÃO altera o polígono final nem a elevação.
+    river_seed_full = ndimage.binary_dilation(
+        main_river,
+        structure=np.ones((3, 3), dtype=bool),
+        iterations=max(1, CONTOUR_FACTOR),
+    )
+    river_seed = river_seed_full[::CONTOUR_FACTOR, ::CONTOUR_FACTOR]
+    conn8 = np.ones((3, 3), dtype=np.uint8)
+
     features = []
+    connectivity_stats = []
     for level in CONTOUR_LEVELS_M:
-        mask = np.isfinite(hand_vector) & (hand_vector <= level)
-        if not mask.any():
+        candidate = np.isfinite(hand_vector) & (hand_vector <= level)
+        if not candidate.any():
             continue
+
+        labels, count = ndimage.label(candidate, structure=conn8)
+        touching = np.unique(labels[river_seed & candidate])
+        touching = touching[touching != 0]
+        if touching.size == 0:
+            continue
+        mask = np.isin(labels, touching)
+        removed = int(candidate.sum() - mask.sum())
+        connectivity_stats.append({
+            "nivel_m": level,
+            "candidate_cells": int(candidate.sum()),
+            "connected_cells": int(mask.sum()),
+            "removed_disconnected_cells": removed,
+        })
+
         polygons = [shape(geom) for geom, value in shapes(mask.astype(np.uint8), mask=mask, transform=vector_transform) if value]
         if not polygons:
             continue
@@ -464,10 +498,18 @@ def write_contours(hand: np.ndarray, transform, crs, output: Path) -> dict:
             "passo_vetor_m": 0.1,
             "calibracao": "régua 1,60 m = HAND 0",
             "interpretacao": "proxy de pesquisa; não é alerta oficial nem cota absoluta validada",
+            "filtro_conectividade": "8-vizinhos; mantém somente componentes HAND que tocam o rio principal",
+            "mdt_preservado": True,
         },
     }
     output.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    return {"contornos_features": len(features), "contornos_path": str(output)}
+    return {
+        "contornos_features": len(features),
+        "contornos_path": str(output),
+        "water_connectivity_filter": "8-neighbour connected-to-main-river only",
+        "water_connectivity_stats": connectivity_stats,
+        "terrain_modified_by_water_filter": False,
+    }
 
 
 def main() -> None:
@@ -519,7 +561,7 @@ def main() -> None:
     }
     inject_payload(args.page, payload)
     activate_same_source_mdt(args.page)
-    contour_summary = write_contours(hand, transform, crs, CONTOURS)
+    contour_summary = write_contours(hand, main_river, transform, crs, CONTOURS)
 
     # A página ao vivo consome contornos_extravasamento.json, não o contorno
     # HAND cumulativo bruto. Regenera somente Santa Tereza para não tocar Muçum.
