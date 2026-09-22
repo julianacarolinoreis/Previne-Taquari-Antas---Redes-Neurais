@@ -589,6 +589,18 @@ def main() -> None:
     if abs(source_resolution - routing_resolution) > 1e-6:
         raise RuntimeError("CLIP e FILL têm resoluções diferentes; não publique a mancha")
 
+    fill_delta = routing_dem - terrain_dem
+    fill_delta_valid = fill_delta[np.isfinite(fill_delta)]
+    fill_delta_summary = {
+        "fill_minus_raw_cells_gt_0_10m": int(np.sum(fill_delta_valid > 0.10)),
+        "fill_minus_raw_p95_m": (
+            float(np.percentile(fill_delta_valid, 95)) if fill_delta_valid.size else 0.0
+        ),
+        "fill_minus_raw_max_m": (
+            float(np.max(fill_delta_valid)) if fill_delta_valid.size else 0.0
+        ),
+    }
+
     with rasterio.open(acc_path) as ds:
         flowacc = read_flowacc(
             acc_path, terrain_dem.shape, transform, crs, ds.nodata
@@ -654,6 +666,7 @@ def main() -> None:
         "terreno_bruto_lidar": str(terrain_path),
         "terreno_roteamento_fill": str(routing_path),
         "fill_usado_como_superficie_inundacao": False,
+        **fill_delta_summary,
         "acumulacao": str(acc_path),
         "direcao_fluxo": str(dir_path),
         "resolucao_fonte_m": source_resolution,
