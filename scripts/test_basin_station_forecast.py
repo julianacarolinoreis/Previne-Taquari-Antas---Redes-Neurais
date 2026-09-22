@@ -97,11 +97,27 @@ class BasinStationForecastTests(unittest.TestCase):
             latest_observed=datetime(2026, 9, 20, 2, tzinfo=timezone.utc),
             windows=(2,),
         )
-        self.assertEqual(windows["2h"]["mm"], 4.0)
-        self.assertEqual(windows["2h"]["valid_points"], 2)
-        self.assertEqual(windows["2h"]["expected_points"], 3)
+        self.assertEqual(windows["2h"]["mm"], 3.0)
+        self.assertEqual(windows["2h"]["valid_points"], 1)
+        self.assertEqual(windows["2h"]["expected_points"], 2)
         self.assertFalse(windows["2h"]["complete"])
-        self.assertAlmostEqual(windows["2h"]["coverage_ratio"], 2 / 3, places=3)
+        self.assertAlmostEqual(windows["2h"]["coverage_ratio"], 0.5, places=3)
+
+    def test_observed_windows_use_exact_hour_count(self):
+        latest = datetime(2026, 9, 20, 23, tzinfo=timezone.utc)
+        rows = [
+            (latest.replace(hour=hour), 1.0)
+            for hour in range(24)
+        ]
+        windows = feed._observed_window_stats(
+            rows,
+            latest_observed=latest,
+            windows=(24,),
+        )
+        self.assertEqual(windows["24h"]["mm"], 24.0)
+        self.assertEqual(windows["24h"]["valid_points"], 24)
+        self.assertEqual(windows["24h"]["expected_points"], 24)
+        self.assertTrue(windows["24h"]["complete"])
 
     def test_catalog_merges_flow_and_rain_records_by_network_and_code(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -174,6 +190,14 @@ class BasinStationForecastTests(unittest.TestCase):
         now = datetime(2026, 9, 20, 2, 15, tzinfo=timezone.utc)
         self.assertEqual(feed.iso_utc(feed._next_cycle(now)), "2026-09-20T02:20Z")
 
+    def test_forecast_request_keeps_six_day_buffer_for_72h_window(self):
+        url = feed.build_open_meteo_url(
+            [{"latitude": -29.1781, "longitude": -51.7322}]
+        )
+        self.assertIn("forecast_days=6", url)
+        self.assertEqual(len(feed.MODEL_SPECS), 5)
+        self.assertIn(72, feed.PRECIPITATION_WINDOW_HOURS)
+
     def test_level_metric_keeps_observed_series_and_rna_forecasts(self):
         raw = {
             "telemetria_ultima_em": "2026-09-20T09:00:00",
@@ -211,6 +235,31 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertEqual(result["series"][-1], {"time": "2026-09-20T12:00Z", "cm": 350.0})
         self.assertEqual([item["label"] for item in result["forecasts"]], ["RNA 2h", "RNA 8h"])
         self.assertEqual(result["forecasts"][1]["cm"], 310.0)
+        self.assertTrue(result["forecast_applicable"])
+        self.assertEqual(result["forecast_status"], "available")
+
+    def test_level_station_without_rna_is_explicitly_not_applicable(self):
+        raw = {
+            "telemetria_ultima_em": "2026-09-20T09:00:00",
+            "telemetria_ultima_nivel_cm": 1766,
+            "status_dados": "NORMAL",
+        }
+        result = feed._level_record(raw, "86472000")
+        self.assertIsNotNone(result)
+        self.assertFalse(result["forecast_applicable"])
+        self.assertEqual(result["forecast_status"], "not_applicable")
+        self.assertIsNone(result["forecast_cm"])
+
+    def test_rna_target_without_current_forecast_is_explicitly_unavailable(self):
+        raw = {
+            "telemetria_ultima_em": "2026-09-20T09:00:00",
+            "telemetria_ultima_nivel_cm": 1375,
+            "status_dados": "NORMAL",
+        }
+        result = feed._level_record(raw, "86472600")
+        self.assertIsNotNone(result)
+        self.assertTrue(result["forecast_applicable"])
+        self.assertEqual(result["forecast_status"], "unavailable")
 
     def test_partial_forecast_run_cannot_replace_complete_snapshot(self):
         partial = {
@@ -265,6 +314,40 @@ class BasinStationForecastTests(unittest.TestCase):
                 {"scope": {"station_count": 1, "forecast_station_count": 1}, "stations": [station]}
             )
 
+    def test_complete_feed_contract_requires_72h_window_from_three_models(self):
+        times = ["2026-09-20T03:00Z"]
+        models = {}
+        for spec in feed.MODEL_SPECS:
+            model = {
+                variable: [1.0]
+                for variable in feed.REQUIRED_FORECAST_VARIABLES
+            }
+            model["precipitation_windows"] = {
+                f"{hours}h": [1.0]
+                for hours in feed.PRECIPITATION_WINDOW_HOURS
+            }
+            models[spec["id"]] = model
+        for spec in feed.MODEL_SPECS[:3]:
+            models[spec["id"]]["precipitation_windows"]["72h"] = [None]
+
+        with self.assertRaisesRegex(RuntimeError, "Janela 72 h insuficiente"):
+            feed.validate_complete_feed(
+                {
+                    "generated_at_utc": "2026-09-20T02:15Z",
+                    "scope": {"station_count": 1, "forecast_station_count": 1},
+                    "stations": [
+                        {
+                            "id": "ANA:86472000",
+                            "forecast": {
+                                "state": "available",
+                                "times": times,
+                                "models": models,
+                            },
+                        }
+                    ],
+                }
+            )
+
     def test_level_snapshot_adds_age_and_trend(self):
         level = {
             "state": "available",
@@ -317,6 +400,8 @@ class BasinStationForecastTests(unittest.TestCase):
         level = result["stations"][0]["level"]
         self.assertEqual(level["state"], "unavailable")
         self.assertIsNone(level["current_cm"])
+        self.assertTrue(level["forecast_applicable"])
+        self.assertEqual(level["forecast_status"], "unavailable")
         self.assertEqual(result["scope"]["level_station_count"], 0)
 
 

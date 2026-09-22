@@ -100,15 +100,21 @@ REQUIRED_FORECAST_VARIABLES = (
     "wind_speed_10m",
 )
 
-FORECAST_DAYS = 4
+# Six calendar days leave enough buffer for a complete +72 h window even
+# when the first usable forecast timestamp is late in the current UTC day.
+FORECAST_DAYS = 6
 FORECAST_STEP_HOURS = 3
 PRECIPITATION_WINDOW_HOURS = (3, 6, 12, 24, 48, 72)
+MIN_PRECIPITATION_WINDOW_MODELS = 3
 OBSERVED_HOURS = 72
 OBSERVED_WINDOW_HOURS = (1, 3, 6, 12, 24, 48, 72)
 BATCH_SIZE = 100
 BATCH_PAUSE_SECONDS = 15.0
 REFRESH_INTERVAL_MINUTES = 5
 LEVEL_OBSERVED_HOURS = 72
+# Live RNA products are currently published only for the two response targets.
+# Other river stations may have observed level but no RNA product by design.
+RNA_LEVEL_STATIONS = {"86472600", "86510000"}
 
 LEVEL_FORECAST_LABELS = {
     "2h": "RNA 2h",
@@ -418,7 +424,7 @@ def _observed_window_stats(
             f"{hours}h": {
                 "mm": None,
                 "valid_points": 0,
-                "expected_points": hours + 1,
+                "expected_points": hours,
                 "coverage_ratio": 0.0,
                 "complete": False,
             }
@@ -428,8 +434,10 @@ def _observed_window_stats(
     by_time = {timestamp: value for timestamp, value in rows}
     result: dict[str, dict[str, Any]] = {}
     for hours in windows:
-        start = latest_observed - timedelta(hours=hours)
-        expected_points = hours + 1
+        # Each row is one hourly accumulation. A 24 h window therefore has
+        # exactly 24 hourly intervals (and a 72 h window exactly 72).
+        start = latest_observed - timedelta(hours=max(0, hours - 1))
+        expected_points = hours
         selected = [
             value
             for timestamp, value in by_time.items()
@@ -470,6 +478,8 @@ def _level_record(raw: dict[str, Any], code: str) -> dict[str, Any] | None:
     )
     observed_series = _level_observed_series(raw)
     forecast_series = _level_forecast_series(raw)
+    forecast_applicable = station_code(code) in RNA_LEVEL_STATIONS
+    forecast_available = forecast is not None or bool(forecast_series)
     if level is None and forecast is None and observed_at is None:
         return None
     return {
@@ -478,6 +488,14 @@ def _level_record(raw: dict[str, Any], code: str) -> dict[str, Any] | None:
         "observed_at_utc": iso_utc(observed_at),
         "forecast_cm": forecast,
         "forecast_at_utc": iso_utc(forecast_at),
+        "forecast_applicable": forecast_applicable,
+        "forecast_status": (
+            "available"
+            if forecast_available
+            else "unavailable"
+            if forecast_applicable
+            else "not_applicable"
+        ),
         "threshold_cm": finite(raw.get("bankfull_cm")),
         "unit": "cm",
         "series": observed_series,
@@ -601,6 +619,12 @@ def _unavailable_level(code: str) -> dict[str, Any]:
         "observed_at_utc": None,
         "forecast_cm": None,
         "forecast_at_utc": None,
+        "forecast_applicable": station_code(code) in RNA_LEVEL_STATIONS,
+        "forecast_status": (
+            "unavailable"
+            if station_code(code) in RNA_LEVEL_STATIONS
+            else "not_applicable"
+        ),
         "threshold_cm": None,
         "unit": "cm",
         "series": [],
@@ -652,6 +676,10 @@ def load_level_snapshots(paths: tuple[Path, ...] = LIVE_FEEDS) -> dict[str, dict
                     "observed_at_utc": iso_utc(observed_at),
                     "forecast_cm": None,
                     "forecast_at_utc": None,
+                    "forecast_applicable": code in RNA_LEVEL_STATIONS,
+                    "forecast_status": (
+                        "unavailable" if code in RNA_LEVEL_STATIONS else "not_applicable"
+                    ),
                     "threshold_cm": None,
                     "unit": "cm",
                     "series": [],
@@ -1014,7 +1042,7 @@ def build_feed(
         "models": list(MODEL_SPECS),
         "metric_coverage": _metric_coverage(stations),
         "metrics": [
-            {"id": "precipitation", "label": "Chuva", "unit": "mm", "source_state": "forecast", "sampling": "ponto horário do modelo exibido a cada 3 h; acumulados de 3 h, 6 h e 24 h somente com série horária completa"},
+            {"id": "precipitation", "label": "Chuva", "unit": "mm", "source_state": "forecast", "sampling": "ponto horário do modelo exibido a cada 3 h; acumulados de 3 h, 6 h, 12 h, 24 h, 48 h e 72 h somente com série horária completa"},
             {"id": "level_cm", "label": "Nível", "unit": "cm", "source_state": "observed_and_experimental_forecast", "sampling": "observação publicada em até 72 h; previsão RNA por horizonte"},
             {"id": "temperature_2m", "label": "Temperatura", "unit": "°C", "source_state": "forecast"},
             {"id": "relative_humidity_2m", "label": "Umidade relativa", "unit": "%", "source_state": "forecast"},
@@ -1055,6 +1083,7 @@ def validate_complete_feed(feed: dict[str, Any]) -> None:
         )
 
     expected_models = {spec["id"] for spec in MODEL_SPECS}
+    generated_at = parse_iso(feed.get("generated_at_utc"), default_timezone=UTC)
     for station in feed.get("stations") or []:
         station_id = station.get("id") or station.get("code") or "estação"
         forecast = station.get("forecast") or {}
@@ -1082,6 +1111,50 @@ def validate_complete_feed(feed: dict[str, Any]) -> None:
                         f"Série vazia {station_id}/{model_id}/{variable}."
                     )
 
+        # The public dashboard exposes forward accumulated windows through 72 h.
+        # Do not publish a new snapshot if the first future timestamp cannot
+        # support those cards with at least three independent model families.
+        if generated_at is not None:
+            future_index = next(
+                (
+                    index
+                    for index, raw_time in enumerate(times)
+                    if (parsed := parse_iso(raw_time, default_timezone=UTC)) is not None
+                    and parsed >= generated_at
+                ),
+                None,
+            )
+            if future_index is None:
+                raise RuntimeError(
+                    f"Rodada sem horário futuro para {station_id}; "
+                    "o snapshot anterior deve ser preservado."
+                )
+            for hours in PRECIPITATION_WINDOW_HOURS:
+                valid_models = 0
+                for model_id in expected_models:
+                    windows = models[model_id].get("precipitation_windows")
+                    series = (
+                        windows.get(f"{hours}h")
+                        if isinstance(windows, dict)
+                        else None
+                    )
+                    if not isinstance(series, list) or len(series) != len(times):
+                        raise RuntimeError(
+                            f"Janela {hours} h inválida para "
+                            f"{station_id}/{model_id}."
+                        )
+                    if finite(series[future_index]) is not None:
+                        valid_models += 1
+                required = min(
+                    MIN_PRECIPITATION_WINDOW_MODELS,
+                    len(expected_models),
+                )
+                if valid_models < required:
+                    raise RuntimeError(
+                        f"Janela {hours} h insuficiente para {station_id}: "
+                        f"{valid_models}/{len(expected_models)} modelos com série completa; "
+                        f"mínimo exigido {required}."
+                    )
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
