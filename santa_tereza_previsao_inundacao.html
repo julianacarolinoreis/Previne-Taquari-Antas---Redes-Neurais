@@ -674,7 +674,7 @@ function pointFloodStatus(pointHand,levelCm,zeroCm){
   const spatialHand=stageToSpatialHand(levelCm,zeroCm);
   const depth=spatialHand-pointHand;
   return depth>0.03
-    ? '<b class="pf">SIM · '+nf1.format(depth*100)+' cm de lâmina relativa estimada</b>'
+    ? '<b class="pf">SIM · '+nf1.format(depth*100)+' cm acima do limiar hidráulico</b>'
     : 'não neste proxy';
 }
 function mapForecastHorizons(){
@@ -1410,7 +1410,7 @@ async function init(){
         const activeD=liveMode?activeLiveData():null;
         const zeroCm=handZeroCm(activeD||liveData);
         const nowCm=liveMode?liveNowCm(activeD):firstNumber(curS[1]);
-        html+='<br><b>Inundação estimada neste ponto (proxy HAND)</b>';
+        html+='<br><b>Alcance hidráulico estimado neste ponto</b>';
         if(pointHand<=0){
           html+='<br>Agora: dentro do contorno-base HAND 0; não classificado como extravasamento.';
           mapForecastHorizons().forEach(row=>{
@@ -1418,7 +1418,7 @@ async function init(){
           });
         }else{
           const nowDepth=nowCm!=null?stageToSpatialHand(nowCm,zeroCm)-pointHand:null;
-          html+='<br>Agora: '+(nowDepth!=null&&nowDepth>0.03?nf1.format(nowDepth*100)+' cm de lâmina relativa estimada':'sem inundação estimada neste proxy');
+          html+='<br>Agora: '+(nowDepth!=null&&nowDepth>0.03?nf1.format(nowDepth*100)+' cm acima do limiar hidráulico':'sem inundação estimada neste proxy');
           mapForecastHorizons().forEach(row=>{
             const D=row.D;
             const available=!!D&&D.disponivel!==false;
