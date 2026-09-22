@@ -198,6 +198,41 @@ def build_feed_v3() -> dict:
     feed["spatial_rain"] = sr
     feed["hydro_nodes"] = build_hydro_nodes(feed)
 
+    # Always expose the currently executable rainfall-runoff result to the UI.
+    # It remains explicitly labelled as legacy/proxy until the full spatial IFS
+    # field is wired into the runoff model.
+    forward_pkg = base.load_json(OUT / "hec_twin_mucum_forward_5d_latest.json") or {}
+    s = forward_pkg.get("series_primary") or {}
+    qs = forward_pkg.get("quanto_sobe") or {}
+    feed["rainfall_runoff_result"] = {
+        "available": bool(s.get("time_utc") and s.get("q_mucum_m3s")),
+        "generated_at_utc": forward_pkg.get("generated_at_utc"),
+        "status": "experimental_legacy_point_proxy",
+        "label_pt": "Resultado do modelo chuva–vazão disponível",
+        "warning_pt": (
+            "Esta série é a saída executável do gêmeo HEC atual. A chuva que gerou esta saída "
+            "ainda é a forçante proxy antiga, não o campo IFS espacial completo. Mostrar para "
+            "diagnóstico; não misturar com a chuva espacial como se já estivesse acoplada."
+        ),
+        "time_utc": s.get("time_utc") or [],
+        "q_mucum_m3s": s.get("q_mucum_m3s") or [],
+        "q_antas_m3s": s.get("q_antas_m3s") or [],
+        "q_stz_diagnostic_m3s": s.get("q_stz_diagnostic_m3s") or [],
+        "n_mucum_anchored_cm": s.get("n_mucum_anchored_cm") or [],
+        "delta_n_from_now_cm": s.get("delta_n_from_now_cm") or [],
+        "current_observed_stage_cm": ((qs.get("level_now") or {}).get("stage_cm")),
+        "current_observed_q_rating_m3s": ((qs.get("q_now_from_rating_m3s") or {}).get("q_m3s")),
+        "primary": qs.get("primary") or {},
+        "ensemble_rise_cm": qs.get("ensemble_rise_cm") or {},
+        "forcing_rain_mm_legacy": qs.get("rain_forecast_mm_area_weighted"),
+        "horizon_hours": qs.get("horizon_hours"),
+        "plain_pt": qs.get("plain_pt"),
+        "q_note_pt": (
+            "Q(t) do gráfico é a vazão interna simulada do gêmeo HEC. "
+            "A vazão observada/estimada pela curva-chave de Muçum é mostrada separadamente."
+        ),
+    }
+
     discipline = dict(feed.get("discipline") or {})
     discipline.update({
         "spatial_ifs_full_field_available": bool(sr.get("available")),
