@@ -191,7 +191,9 @@ def compute_hand_flowpath(
     jusante sem reinterpretar um passo de 1 m como um passo exato de 5 m.
     """
     main_river = flowacc >= FLOWACC_THRESHOLD_FINE_CELLS
-    labels, n_components = ndimage.label(main_river)
+    # O rio pode atravessar células na diagonal; conectividade 4-neighbours
+    # fragmentava artificialmente um canal contínuo.
+    labels, n_components = ndimage.label(main_river, structure=np.ones((3, 3), dtype=np.uint8))
     if n_components == 0:
         raise RuntimeError("nenhum trecho do rio principal atingiu o limiar de acumulação")
     if n_components > 1:
@@ -221,33 +223,58 @@ def compute_hand_flowpath(
 
     flat_index = np.arange(n, dtype=np.int32).reshape(dem.shape)
     receiver = flat_index.copy()
-    best_acc = np.full(dem.shape, -1.0, dtype="float32")
     valid = np.isfinite(dem)
 
-    # A direção agregada funciona como setor de ±45°. A acumulação decide qual
-    # vizinho desse setor é efetivamente a jusante na grade ~5 m.
-    for cand_idx, (dr, dc) in enumerate(dirs):
-        src, dst = offset_slices(dem.shape, dr, dc)
-        pref = pref_idx[src].astype(np.int16)
-        circular = np.abs(((pref - cand_idx + 4) % 8) - 4)
-        dst_acc = flowacc[dst]
-        src_acc = flowacc[src]
-        candidate = (
-            valid[src]
-            & valid[dst]
-            & (pref >= 0)
-            & (circular <= 1)
-            & (dst_acc > src_acc)
-            & (dem[dst] <= dem[src] + 5.0)
-            & (dst_acc > best_acc[src])
-        )
-        if not candidate.any():
-            continue
-        rec_view = receiver[src]
-        best_view = best_acc[src]
-        target_idx = flat_index[dst]
-        rec_view[candidate] = target_idx[candidate]
-        best_view[candidate] = dst_acc[candidate]
+    # Regra principal na grade ~5 m: acumulação precisa crescer a jusante.
+    # O D8 agregado serve como preferência, não como bloqueio duro. Primeiro
+    # busca-se até ±90° da direção modal; se não houver saída, usa-se qualquer
+    # vizinho de FLOWACC maior. Isso preserva conectividade que a moda 5 m pode
+    # perder sem voltar ao erro de usar distância euclidiana ao rio.
+    best_score = np.full(dem.shape, -np.inf, dtype="float32")
+    assigned_primary = np.zeros(dem.shape, dtype=bool)
+
+    for pass_all_directions in (False, True):
+        for cand_idx, (dr, dc) in enumerate(dirs):
+            src, dst = offset_slices(dem.shape, dr, dc)
+            pref = pref_idx[src].astype(np.int16)
+            circular = np.abs(((pref - cand_idx + 4) % 8) - 4)
+            dst_acc = flowacc[dst]
+            src_acc = flowacc[src]
+            dst_dem = dem[dst]
+            src_dem = dem[src]
+
+            base = (
+                valid[src]
+                & valid[dst]
+                & (dst_acc > src_acc)
+            )
+            if not pass_all_directions:
+                base &= (pref >= 0) & (circular <= 2)
+            else:
+                # Fallback somente para células que não encontraram saída no
+                # setor preferencial.
+                base &= ~assigned_primary[src]
+
+            # FLOWACC domina a decisão. A direção e o relevo só desempatarão
+            # candidatos de magnitude semelhante.
+            score = (
+                np.log1p(dst_acc).astype("float32")
+                - 0.20 * circular.astype("float32")
+                + 0.02 * np.clip(src_dem - dst_dem, -10.0, 10.0).astype("float32")
+            )
+            better = base & (score > best_score[src])
+            if not better.any():
+                continue
+            rec_view = receiver[src]
+            score_view = best_score[src]
+            target_idx = flat_index[dst]
+            rec_view[better] = target_idx[better]
+            score_view[better] = score[better]
+            if not pass_all_directions:
+                assigned_view = assigned_primary[src]
+                assigned_view[better] = True
+
+    assigned_receivers = receiver != flat_index
 
     # Células do rio principal são destinos finais.
     receiver[main_river] = flat_index[main_river]
@@ -279,8 +306,10 @@ def compute_hand_flowpath(
         "d8_scheme": scheme_name,
         "d8_scheme_scores": scheme_scores,
         "flowdir_source_resolution_m": 1.0,
-        "flowdir_coarse_method": "mode + D8 sector ±45deg + strictly increasing FLOWACC",
+        "flowdir_coarse_method": "mode D8 preference + FLOWACC-increasing 8-neighbour routing with fallback",
         "pointer_jumping_iterations": iterations,
+        "receiver_cells_assigned": int(assigned_receivers.sum()),
+        "receiver_fraction_assigned": float(assigned_receivers.sum() / max(1, valid.sum())),
         "unresolved_cells": int(unresolved.sum()),
         "valid_terrain_cells": int(valid.sum()),
         "cells_draining_to_main_river": int(np.isfinite(hand).sum()),
@@ -290,6 +319,14 @@ def compute_hand_flowpath(
         "celulas_rio_principal": int(main_river.sum()),
         "hand_method": "coarse drainage routing guided by source D8 and FLOWACC",
     }
+    print(
+        "DIAGNOSTICO ROTEAMENTO: "
+        f"D8={scheme_name}; rio={int(main_river.sum())} células; "
+        f"receptores={assigned_receivers.sum()}/{valid.sum()} "
+        f"({assigned_receivers.sum()/max(1,valid.sum()):.1%}); "
+        f"drena_ao_rio={np.isfinite(hand).sum()}/{valid.sum()} "
+        f"({drained_fraction:.1%})"
+    )
     if drained_fraction < 0.05:
         raise RuntimeError(
             f"Só {drained_fraction:.1%} do terreno drenou ao rio principal; "
