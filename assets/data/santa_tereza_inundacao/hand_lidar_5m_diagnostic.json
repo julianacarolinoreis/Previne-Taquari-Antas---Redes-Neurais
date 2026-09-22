@@ -1,22 +1,51 @@
 {
   "produto": "hand_lidar_santa_tereza",
-  "status": "legacy_published_proxy_pending_d8_regeneration",
+  "status": "gerado_localmente_requer_validacao_cartografica",
   "fonte_dir": "D:\\PREVINE\\hand\\santa tereza",
   "terreno": "D:\\PREVINE\\hand\\santa tereza\\FILL_CLIP_MOSAICO_LIDAR_RS.tif",
   "acumulacao": "D:\\PREVINE\\hand\\santa tereza\\FLOWACC_CLIP_MOSAICO_LIDAR_RS.tif",
-  "resolucao_fonte_m": 1,
+  "direcao_fluxo": "D:\\PREVINE\\hand\\santa tereza\\FLOWDIR_CLIP_MOSAICO_LIDAR_RS.tif",
+  "resolucao_fonte_m": 1.0,
   "fator_payload": 5,
-  "resolucao_payload_aprox_m": 5,
+  "resolucao_payload_aprox_m": 5.0,
   "shape_payload": [
     3886,
     2598
   ],
   "flowacc_threshold_fine_cells": 50000000,
+  "d8_scheme": "esri",
+  "d8_scheme_scores": {
+    "esri": {
+      "good": 5095663,
+      "total": 5500019,
+      "score": 0.9264809812475193
+    },
+    "whitebox": {
+      "good": 3672433,
+      "total": 5498495,
+      "score": 0.6678978520486061
+    },
+    "ordinal": {
+      "good": 1597996,
+      "total": 2669459,
+      "score": 0.5986216682855965
+    }
+  },
+  "flowdir_source_resolution_m": 1.0,
+  "flowdir_coarse_method": "mode D8 preference + FLOWACC-increasing 8-neighbour routing with fallback",
+  "pointer_jumping_iterations": 14,
+  "receiver_cells_assigned": 5502226,
+  "receiver_fraction_assigned": 0.9997699642336175,
+  "unresolved_cells": 0,
+  "valid_terrain_cells": 5503492,
+  "cells_draining_to_main_river": 5334553,
+  "drained_fraction": 0.9693033077907627,
   "componentes_detectados": 1,
   "componentes_mantidos": 1,
   "celulas_rio_principal": 4376,
+  "hand_method": "coarse drainage routing guided by source D8 and FLOWACC",
   "hand_zero_cm": 160,
-  "hand_max_payload_m": 25,
+  "hand_max_payload_m": 25.0,
   "crs": "COMPD_CS[\"SIRGAS 2000 / UTM zone 22S + unknown\",PROJCS[\"SIRGAS 2000 / UTM zone 22S\",GEOGCS[\"SIRGAS 2000\",DATUM[\"Sistema_de_Referencia_Geocentrico_para_las_AmericaS_2000\",SPHEROID[\"GRS 1980\",6378137,298.257222101004,AUTHORITY[\"EPSG\",\"7019\"]],AUTHORITY[\"EPSG\",\"6674\"]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AUTHORITY[\"EPSG\",\"4674\"]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",-51],PARAMETER[\"scale_factor\",0.9996],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",10000000],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH],AUTHORITY[\"EPSG\",\"31982\"]],VERT_CS[\"unknown\",VERT_DATUM[\"unknown\",2005],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Up\",UP]]]",
   "bounds_lonlat": {
     "south": -29.23013567251588,
@@ -24,11 +53,927 @@
     "north": -29.054105788482968,
     "east": -51.64412175926724
   },
-  "observacao": "O valor da régua é publicado bruto; a espacialização usa RNA menos 1,60 m.",
+  "observacao": "O valor da régua é publicado bruto; a espacialização usa RNA menos 1,60 m. O HAND segue o FLOWDIR até o rio principal; não usa distância euclidiana.",
+  "elevation_meta": "D:\\PREVINE\\worktrees\\santa-tereza-mdt-fix-20260921\\assets\\data\\santa_tereza_inundacao\\mdt\\altitude_terreno_lidar_10m.json",
+  "elevation_png": "D:\\PREVINE\\worktrees\\santa-tereza-mdt-fix-20260921\\assets\\data\\santa_tereza_inundacao\\mdt\\altitude_terreno_lidar_10m.png",
+  "elevation_visual_png": "D:\\PREVINE\\worktrees\\santa-tereza-mdt-fix-20260921\\assets\\data\\santa_tereza_inundacao\\mdt\\mdt_santa_tereza_lidar_10m_visual.png",
+  "elevation_bounds": {
+    "west": -51.778849451346346,
+    "south": -29.23013567251588,
+    "east": -51.64412175926724,
+    "north": -29.054105788482968
+  },
   "contornos_features": 151,
-  "contornos_path": "D:\\PREVINE\\worktrees\\water-horizons-fix-20260921\\assets\\data\\santa_tereza_inundacao\\contornos_mancha.json",
-  "hand_method": "legacy_nearest_river_euclidean",
-  "regeneration_required": true,
-  "regeneration_target": "D8 downstream routing with FLOWDIR_CLIP_MOSAICO_LIDAR_RS.tif",
-  "regeneration_note": "O gerador foi corrigido em 21/09/2026 para seguir o FLOWDIR e produzir MDT absoluto da mesma fonte. Este diagnóstico permanece associado ao payload já publicado antes dessa regeneração."
+  "contornos_path": "D:\\PREVINE\\worktrees\\santa-tereza-mdt-fix-20260921\\assets\\data\\santa_tereza_inundacao\\contornos_mancha.json",
+  "water_connectivity_filter": "8-neighbour connected-to-main-river only",
+  "water_connectivity_stats": [
+    {
+      "nivel_m": 0.0,
+      "candidate_cells": 16950,
+      "connected_cells": 16933,
+      "removed_disconnected_cells": 17
+    },
+    {
+      "nivel_m": 0.1,
+      "candidate_cells": 19971,
+      "connected_cells": 19942,
+      "removed_disconnected_cells": 29
+    },
+    {
+      "nivel_m": 0.2,
+      "candidate_cells": 20919,
+      "connected_cells": 20904,
+      "removed_disconnected_cells": 15
+    },
+    {
+      "nivel_m": 0.3,
+      "candidate_cells": 21655,
+      "connected_cells": 21639,
+      "removed_disconnected_cells": 16
+    },
+    {
+      "nivel_m": 0.4,
+      "candidate_cells": 22250,
+      "connected_cells": 22244,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 0.5,
+      "candidate_cells": 22717,
+      "connected_cells": 22713,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 0.6,
+      "candidate_cells": 23136,
+      "connected_cells": 23136,
+      "removed_disconnected_cells": 0
+    },
+    {
+      "nivel_m": 0.7,
+      "candidate_cells": 23479,
+      "connected_cells": 23462,
+      "removed_disconnected_cells": 17
+    },
+    {
+      "nivel_m": 0.8,
+      "candidate_cells": 23775,
+      "connected_cells": 23774,
+      "removed_disconnected_cells": 1
+    },
+    {
+      "nivel_m": 0.9,
+      "candidate_cells": 24027,
+      "connected_cells": 24025,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 1.0,
+      "candidate_cells": 24261,
+      "connected_cells": 24259,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 1.1,
+      "candidate_cells": 26715,
+      "connected_cells": 26713,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 1.2,
+      "candidate_cells": 27061,
+      "connected_cells": 27059,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 1.3,
+      "candidate_cells": 27367,
+      "connected_cells": 27363,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 1.4,
+      "candidate_cells": 27590,
+      "connected_cells": 27588,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 1.5,
+      "candidate_cells": 27776,
+      "connected_cells": 27773,
+      "removed_disconnected_cells": 3
+    },
+    {
+      "nivel_m": 1.6,
+      "candidate_cells": 27964,
+      "connected_cells": 27962,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 1.7,
+      "candidate_cells": 28200,
+      "connected_cells": 28198,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 1.8,
+      "candidate_cells": 28384,
+      "connected_cells": 28383,
+      "removed_disconnected_cells": 1
+    },
+    {
+      "nivel_m": 1.9,
+      "candidate_cells": 28557,
+      "connected_cells": 28554,
+      "removed_disconnected_cells": 3
+    },
+    {
+      "nivel_m": 2.0,
+      "candidate_cells": 28697,
+      "connected_cells": 28696,
+      "removed_disconnected_cells": 1
+    },
+    {
+      "nivel_m": 2.1,
+      "candidate_cells": 28857,
+      "connected_cells": 28855,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 2.2,
+      "candidate_cells": 28977,
+      "connected_cells": 28974,
+      "removed_disconnected_cells": 3
+    },
+    {
+      "nivel_m": 2.3,
+      "candidate_cells": 29108,
+      "connected_cells": 29097,
+      "removed_disconnected_cells": 11
+    },
+    {
+      "nivel_m": 2.4,
+      "candidate_cells": 29237,
+      "connected_cells": 29227,
+      "removed_disconnected_cells": 10
+    },
+    {
+      "nivel_m": 2.5,
+      "candidate_cells": 29355,
+      "connected_cells": 29351,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 2.6,
+      "candidate_cells": 29540,
+      "connected_cells": 29537,
+      "removed_disconnected_cells": 3
+    },
+    {
+      "nivel_m": 2.7,
+      "candidate_cells": 29694,
+      "connected_cells": 29691,
+      "removed_disconnected_cells": 3
+    },
+    {
+      "nivel_m": 2.8,
+      "candidate_cells": 29843,
+      "connected_cells": 29841,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 2.9,
+      "candidate_cells": 30341,
+      "connected_cells": 30333,
+      "removed_disconnected_cells": 8
+    },
+    {
+      "nivel_m": 3.0,
+      "candidate_cells": 30572,
+      "connected_cells": 30551,
+      "removed_disconnected_cells": 21
+    },
+    {
+      "nivel_m": 3.1,
+      "candidate_cells": 30809,
+      "connected_cells": 30799,
+      "removed_disconnected_cells": 10
+    },
+    {
+      "nivel_m": 3.2,
+      "candidate_cells": 31175,
+      "connected_cells": 31166,
+      "removed_disconnected_cells": 9
+    },
+    {
+      "nivel_m": 3.3,
+      "candidate_cells": 31329,
+      "connected_cells": 31324,
+      "removed_disconnected_cells": 5
+    },
+    {
+      "nivel_m": 3.4,
+      "candidate_cells": 31458,
+      "connected_cells": 31450,
+      "removed_disconnected_cells": 8
+    },
+    {
+      "nivel_m": 3.5,
+      "candidate_cells": 31586,
+      "connected_cells": 31578,
+      "removed_disconnected_cells": 8
+    },
+    {
+      "nivel_m": 3.6,
+      "candidate_cells": 31702,
+      "connected_cells": 31691,
+      "removed_disconnected_cells": 11
+    },
+    {
+      "nivel_m": 3.7,
+      "candidate_cells": 31842,
+      "connected_cells": 31824,
+      "removed_disconnected_cells": 18
+    },
+    {
+      "nivel_m": 3.8,
+      "candidate_cells": 31968,
+      "connected_cells": 31961,
+      "removed_disconnected_cells": 7
+    },
+    {
+      "nivel_m": 3.9,
+      "candidate_cells": 32092,
+      "connected_cells": 32087,
+      "removed_disconnected_cells": 5
+    },
+    {
+      "nivel_m": 4.0,
+      "candidate_cells": 32215,
+      "connected_cells": 32207,
+      "removed_disconnected_cells": 8
+    },
+    {
+      "nivel_m": 4.1,
+      "candidate_cells": 32342,
+      "connected_cells": 32336,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 4.2,
+      "candidate_cells": 32462,
+      "connected_cells": 32459,
+      "removed_disconnected_cells": 3
+    },
+    {
+      "nivel_m": 4.3,
+      "candidate_cells": 32587,
+      "connected_cells": 32582,
+      "removed_disconnected_cells": 5
+    },
+    {
+      "nivel_m": 4.4,
+      "candidate_cells": 32724,
+      "connected_cells": 32717,
+      "removed_disconnected_cells": 7
+    },
+    {
+      "nivel_m": 4.5,
+      "candidate_cells": 32858,
+      "connected_cells": 32853,
+      "removed_disconnected_cells": 5
+    },
+    {
+      "nivel_m": 4.6,
+      "candidate_cells": 32987,
+      "connected_cells": 32983,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 4.7,
+      "candidate_cells": 33112,
+      "connected_cells": 33112,
+      "removed_disconnected_cells": 0
+    },
+    {
+      "nivel_m": 4.8,
+      "candidate_cells": 33239,
+      "connected_cells": 33237,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 4.9,
+      "candidate_cells": 33445,
+      "connected_cells": 33440,
+      "removed_disconnected_cells": 5
+    },
+    {
+      "nivel_m": 5.0,
+      "candidate_cells": 33703,
+      "connected_cells": 33701,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 5.1,
+      "candidate_cells": 35555,
+      "connected_cells": 35548,
+      "removed_disconnected_cells": 7
+    },
+    {
+      "nivel_m": 5.2,
+      "candidate_cells": 35733,
+      "connected_cells": 35722,
+      "removed_disconnected_cells": 11
+    },
+    {
+      "nivel_m": 5.3,
+      "candidate_cells": 35900,
+      "connected_cells": 35889,
+      "removed_disconnected_cells": 11
+    },
+    {
+      "nivel_m": 5.4,
+      "candidate_cells": 36043,
+      "connected_cells": 36037,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 5.5,
+      "candidate_cells": 36185,
+      "connected_cells": 36175,
+      "removed_disconnected_cells": 10
+    },
+    {
+      "nivel_m": 5.6,
+      "candidate_cells": 36322,
+      "connected_cells": 36315,
+      "removed_disconnected_cells": 7
+    },
+    {
+      "nivel_m": 5.7,
+      "candidate_cells": 41381,
+      "connected_cells": 36448,
+      "removed_disconnected_cells": 4933
+    },
+    {
+      "nivel_m": 5.8,
+      "candidate_cells": 41642,
+      "connected_cells": 36566,
+      "removed_disconnected_cells": 5076
+    },
+    {
+      "nivel_m": 5.9,
+      "candidate_cells": 41889,
+      "connected_cells": 41883,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 6.0,
+      "candidate_cells": 42139,
+      "connected_cells": 42131,
+      "removed_disconnected_cells": 8
+    },
+    {
+      "nivel_m": 6.1,
+      "candidate_cells": 42416,
+      "connected_cells": 42412,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 6.2,
+      "candidate_cells": 42656,
+      "connected_cells": 42624,
+      "removed_disconnected_cells": 32
+    },
+    {
+      "nivel_m": 6.3,
+      "candidate_cells": 42864,
+      "connected_cells": 42858,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 6.4,
+      "candidate_cells": 43081,
+      "connected_cells": 43072,
+      "removed_disconnected_cells": 9
+    },
+    {
+      "nivel_m": 6.5,
+      "candidate_cells": 43297,
+      "connected_cells": 43289,
+      "removed_disconnected_cells": 8
+    },
+    {
+      "nivel_m": 6.6,
+      "candidate_cells": 43706,
+      "connected_cells": 43467,
+      "removed_disconnected_cells": 239
+    },
+    {
+      "nivel_m": 6.7,
+      "candidate_cells": 43933,
+      "connected_cells": 43921,
+      "removed_disconnected_cells": 12
+    },
+    {
+      "nivel_m": 6.8,
+      "candidate_cells": 44139,
+      "connected_cells": 44134,
+      "removed_disconnected_cells": 5
+    },
+    {
+      "nivel_m": 6.9,
+      "candidate_cells": 44346,
+      "connected_cells": 44342,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 7.0,
+      "candidate_cells": 44549,
+      "connected_cells": 44545,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 7.1,
+      "candidate_cells": 44735,
+      "connected_cells": 44729,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 7.2,
+      "candidate_cells": 44911,
+      "connected_cells": 44906,
+      "removed_disconnected_cells": 5
+    },
+    {
+      "nivel_m": 7.3,
+      "candidate_cells": 45117,
+      "connected_cells": 45112,
+      "removed_disconnected_cells": 5
+    },
+    {
+      "nivel_m": 7.4,
+      "candidate_cells": 45347,
+      "connected_cells": 45335,
+      "removed_disconnected_cells": 12
+    },
+    {
+      "nivel_m": 7.5,
+      "candidate_cells": 45549,
+      "connected_cells": 45542,
+      "removed_disconnected_cells": 7
+    },
+    {
+      "nivel_m": 7.6,
+      "candidate_cells": 46124,
+      "connected_cells": 46118,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 7.7,
+      "candidate_cells": 46482,
+      "connected_cells": 46477,
+      "removed_disconnected_cells": 5
+    },
+    {
+      "nivel_m": 7.8,
+      "candidate_cells": 46735,
+      "connected_cells": 46731,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 7.9,
+      "candidate_cells": 49095,
+      "connected_cells": 49085,
+      "removed_disconnected_cells": 10
+    },
+    {
+      "nivel_m": 8.0,
+      "candidate_cells": 49396,
+      "connected_cells": 49378,
+      "removed_disconnected_cells": 18
+    },
+    {
+      "nivel_m": 8.1,
+      "candidate_cells": 49675,
+      "connected_cells": 49668,
+      "removed_disconnected_cells": 7
+    },
+    {
+      "nivel_m": 8.2,
+      "candidate_cells": 49930,
+      "connected_cells": 49925,
+      "removed_disconnected_cells": 5
+    },
+    {
+      "nivel_m": 8.3,
+      "candidate_cells": 50174,
+      "connected_cells": 50169,
+      "removed_disconnected_cells": 5
+    },
+    {
+      "nivel_m": 8.4,
+      "candidate_cells": 50566,
+      "connected_cells": 50558,
+      "removed_disconnected_cells": 8
+    },
+    {
+      "nivel_m": 8.5,
+      "candidate_cells": 50797,
+      "connected_cells": 50791,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 8.6,
+      "candidate_cells": 51026,
+      "connected_cells": 51020,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 8.7,
+      "candidate_cells": 51443,
+      "connected_cells": 51435,
+      "removed_disconnected_cells": 8
+    },
+    {
+      "nivel_m": 8.8,
+      "candidate_cells": 51694,
+      "connected_cells": 51677,
+      "removed_disconnected_cells": 17
+    },
+    {
+      "nivel_m": 8.9,
+      "candidate_cells": 51917,
+      "connected_cells": 51897,
+      "removed_disconnected_cells": 20
+    },
+    {
+      "nivel_m": 9.0,
+      "candidate_cells": 52131,
+      "connected_cells": 52126,
+      "removed_disconnected_cells": 5
+    },
+    {
+      "nivel_m": 9.1,
+      "candidate_cells": 52351,
+      "connected_cells": 52341,
+      "removed_disconnected_cells": 10
+    },
+    {
+      "nivel_m": 9.2,
+      "candidate_cells": 52766,
+      "connected_cells": 52757,
+      "removed_disconnected_cells": 9
+    },
+    {
+      "nivel_m": 9.3,
+      "candidate_cells": 53002,
+      "connected_cells": 52993,
+      "removed_disconnected_cells": 9
+    },
+    {
+      "nivel_m": 9.4,
+      "candidate_cells": 53195,
+      "connected_cells": 53187,
+      "removed_disconnected_cells": 8
+    },
+    {
+      "nivel_m": 9.5,
+      "candidate_cells": 53377,
+      "connected_cells": 53373,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 9.6,
+      "candidate_cells": 53572,
+      "connected_cells": 53566,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 9.7,
+      "candidate_cells": 53779,
+      "connected_cells": 53773,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 9.8,
+      "candidate_cells": 54082,
+      "connected_cells": 54072,
+      "removed_disconnected_cells": 10
+    },
+    {
+      "nivel_m": 9.9,
+      "candidate_cells": 54312,
+      "connected_cells": 54294,
+      "removed_disconnected_cells": 18
+    },
+    {
+      "nivel_m": 10.0,
+      "candidate_cells": 54545,
+      "connected_cells": 54539,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 10.1,
+      "candidate_cells": 54778,
+      "connected_cells": 54771,
+      "removed_disconnected_cells": 7
+    },
+    {
+      "nivel_m": 10.2,
+      "candidate_cells": 55026,
+      "connected_cells": 55015,
+      "removed_disconnected_cells": 11
+    },
+    {
+      "nivel_m": 10.3,
+      "candidate_cells": 55259,
+      "connected_cells": 55249,
+      "removed_disconnected_cells": 10
+    },
+    {
+      "nivel_m": 10.4,
+      "candidate_cells": 55497,
+      "connected_cells": 55489,
+      "removed_disconnected_cells": 8
+    },
+    {
+      "nivel_m": 10.5,
+      "candidate_cells": 55731,
+      "connected_cells": 55722,
+      "removed_disconnected_cells": 9
+    },
+    {
+      "nivel_m": 10.6,
+      "candidate_cells": 55967,
+      "connected_cells": 55947,
+      "removed_disconnected_cells": 20
+    },
+    {
+      "nivel_m": 10.7,
+      "candidate_cells": 56248,
+      "connected_cells": 56221,
+      "removed_disconnected_cells": 27
+    },
+    {
+      "nivel_m": 10.8,
+      "candidate_cells": 56531,
+      "connected_cells": 56514,
+      "removed_disconnected_cells": 17
+    },
+    {
+      "nivel_m": 10.9,
+      "candidate_cells": 56782,
+      "connected_cells": 56768,
+      "removed_disconnected_cells": 14
+    },
+    {
+      "nivel_m": 11.0,
+      "candidate_cells": 57120,
+      "connected_cells": 57083,
+      "removed_disconnected_cells": 37
+    },
+    {
+      "nivel_m": 11.1,
+      "candidate_cells": 57368,
+      "connected_cells": 57355,
+      "removed_disconnected_cells": 13
+    },
+    {
+      "nivel_m": 11.2,
+      "candidate_cells": 57662,
+      "connected_cells": 57656,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 11.3,
+      "candidate_cells": 57948,
+      "connected_cells": 57941,
+      "removed_disconnected_cells": 7
+    },
+    {
+      "nivel_m": 11.4,
+      "candidate_cells": 58206,
+      "connected_cells": 58200,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 11.5,
+      "candidate_cells": 58491,
+      "connected_cells": 58488,
+      "removed_disconnected_cells": 3
+    },
+    {
+      "nivel_m": 11.6,
+      "candidate_cells": 58783,
+      "connected_cells": 58779,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 11.7,
+      "candidate_cells": 59068,
+      "connected_cells": 59061,
+      "removed_disconnected_cells": 7
+    },
+    {
+      "nivel_m": 11.8,
+      "candidate_cells": 59388,
+      "connected_cells": 59385,
+      "removed_disconnected_cells": 3
+    },
+    {
+      "nivel_m": 11.9,
+      "candidate_cells": 59674,
+      "connected_cells": 59674,
+      "removed_disconnected_cells": 0
+    },
+    {
+      "nivel_m": 12.0,
+      "candidate_cells": 59952,
+      "connected_cells": 59950,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 12.1,
+      "candidate_cells": 60240,
+      "connected_cells": 60238,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 12.2,
+      "candidate_cells": 60538,
+      "connected_cells": 60536,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 12.3,
+      "candidate_cells": 60864,
+      "connected_cells": 60863,
+      "removed_disconnected_cells": 1
+    },
+    {
+      "nivel_m": 12.4,
+      "candidate_cells": 61149,
+      "connected_cells": 61149,
+      "removed_disconnected_cells": 0
+    },
+    {
+      "nivel_m": 12.5,
+      "candidate_cells": 61434,
+      "connected_cells": 61434,
+      "removed_disconnected_cells": 0
+    },
+    {
+      "nivel_m": 12.6,
+      "candidate_cells": 61752,
+      "connected_cells": 61752,
+      "removed_disconnected_cells": 0
+    },
+    {
+      "nivel_m": 12.7,
+      "candidate_cells": 62089,
+      "connected_cells": 62088,
+      "removed_disconnected_cells": 1
+    },
+    {
+      "nivel_m": 12.8,
+      "candidate_cells": 62372,
+      "connected_cells": 62369,
+      "removed_disconnected_cells": 3
+    },
+    {
+      "nivel_m": 12.9,
+      "candidate_cells": 62686,
+      "connected_cells": 62684,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 13.0,
+      "candidate_cells": 62973,
+      "connected_cells": 62971,
+      "removed_disconnected_cells": 2
+    },
+    {
+      "nivel_m": 13.1,
+      "candidate_cells": 63272,
+      "connected_cells": 63268,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 13.2,
+      "candidate_cells": 63600,
+      "connected_cells": 63596,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 13.3,
+      "candidate_cells": 63900,
+      "connected_cells": 63896,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 13.4,
+      "candidate_cells": 64274,
+      "connected_cells": 64267,
+      "removed_disconnected_cells": 7
+    },
+    {
+      "nivel_m": 13.5,
+      "candidate_cells": 64641,
+      "connected_cells": 64637,
+      "removed_disconnected_cells": 4
+    },
+    {
+      "nivel_m": 13.6,
+      "candidate_cells": 64968,
+      "connected_cells": 64965,
+      "removed_disconnected_cells": 3
+    },
+    {
+      "nivel_m": 13.7,
+      "candidate_cells": 65290,
+      "connected_cells": 65284,
+      "removed_disconnected_cells": 6
+    },
+    {
+      "nivel_m": 13.8,
+      "candidate_cells": 65636,
+      "connected_cells": 65624,
+      "removed_disconnected_cells": 12
+    },
+    {
+      "nivel_m": 13.9,
+      "candidate_cells": 65948,
+      "connected_cells": 65932,
+      "removed_disconnected_cells": 16
+    },
+    {
+      "nivel_m": 14.0,
+      "candidate_cells": 66285,
+      "connected_cells": 66263,
+      "removed_disconnected_cells": 22
+    },
+    {
+      "nivel_m": 14.1,
+      "candidate_cells": 66610,
+      "connected_cells": 66592,
+      "removed_disconnected_cells": 18
+    },
+    {
+      "nivel_m": 14.2,
+      "candidate_cells": 66952,
+      "connected_cells": 66925,
+      "removed_disconnected_cells": 27
+    },
+    {
+      "nivel_m": 14.3,
+      "candidate_cells": 67336,
+      "connected_cells": 67291,
+      "removed_disconnected_cells": 45
+    },
+    {
+      "nivel_m": 14.4,
+      "candidate_cells": 67711,
+      "connected_cells": 67654,
+      "removed_disconnected_cells": 57
+    },
+    {
+      "nivel_m": 14.5,
+      "candidate_cells": 68084,
+      "connected_cells": 68023,
+      "removed_disconnected_cells": 61
+    },
+    {
+      "nivel_m": 14.6,
+      "candidate_cells": 68476,
+      "connected_cells": 68411,
+      "removed_disconnected_cells": 65
+    },
+    {
+      "nivel_m": 14.7,
+      "candidate_cells": 68887,
+      "connected_cells": 68816,
+      "removed_disconnected_cells": 71
+    },
+    {
+      "nivel_m": 14.8,
+      "candidate_cells": 69356,
+      "connected_cells": 69342,
+      "removed_disconnected_cells": 14
+    },
+    {
+      "nivel_m": 14.9,
+      "candidate_cells": 69786,
+      "connected_cells": 69768,
+      "removed_disconnected_cells": 18
+    },
+    {
+      "nivel_m": 15.0,
+      "candidate_cells": 70248,
+      "connected_cells": 70232,
+      "removed_disconnected_cells": 16
+    }
+  ],
+  "terrain_modified_by_water_filter": false,
+  "contornos_extravasamento_path": "D:\\PREVINE\\worktrees\\santa-tereza-mdt-fix-20260921\\assets\\data\\santa_tereza_inundacao\\contornos_extravasamento.json"
 }
