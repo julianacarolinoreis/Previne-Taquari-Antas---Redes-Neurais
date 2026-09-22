@@ -189,6 +189,73 @@ def build_hydro_nodes(feed: dict) -> dict:
     }
 
 
+
+def build_corridor_model_nodes(feed: dict, forward_pkg: dict) -> dict:
+    """Summarize the spatial 5-zone twin Q(t) at hydrologic controls."""
+    forcing = forward_pkg.get("forcing") or {}
+    s = forward_pkg.get("series_primary") or {}
+    times = list(s.get("time_utc") or [])
+    if not times or not bool(forcing.get("spatial_field_full")):
+        return {"available": False, "nodes": [], "reason": "spatial_5zone_twin_not_ready"}
+
+    live_by_code = {
+        str(n.get("code")): n
+        for n in ((feed.get("hydro_nodes") or {}).get("nodes") or [])
+        if n.get("code")
+    }
+
+    def loc(code: str, fallback=None):
+        n = live_by_code.get(code) or {}
+        if n.get("lat") is not None and n.get("lon") is not None:
+            return float(n["lat"]), float(n["lon"])
+        return fallback or (None, None)
+
+    def summarize(code: str, name: str, series, fallback=None, role="controle do modelo"):
+        vals = [float(v) for v in (series or []) if v is not None]
+        lat, lon = loc(code, fallback)
+        if not vals or lat is None or lon is None:
+            return None
+        peak_i = max(range(min(len(series), len(times))), key=lambda i: float(series[i]))
+        return {
+            "code": code,
+            "name": name,
+            "role": role,
+            "lat": lat,
+            "lon": lon,
+            "q0_m3s": round(float(series[0]), 3),
+            "peak_q_m3s": round(float(series[peak_i]), 3),
+            "peak_time_utc": times[peak_i],
+            "end_q_m3s": round(float(series[min(len(series), len(times))-1]), 3),
+            "n_hours": min(len(series), len(times)),
+            "engine": "gêmeo HEC/Python · 5 zonas",
+            "forcing": "ECMWF/IFS espacial por interseção célula-zona",
+        }
+
+    rows = [
+        summarize("86472000", "Antas · Linha José Júlio", s.get("q_antas_m3s"), role="J_ANTAS_86472000"),
+        summarize(
+            "J_CARREIRO_CONFLUENCE",
+            "Confluência do Rio Carreiro",
+            s.get("q_carreiro_confluence_m3s"),
+            fallback=(-29.0901686, -51.7133474),
+            role="J_CARREIRO_CONFLUENCE",
+        ),
+        summarize("86472600", "Santa Tereza", s.get("q_stz_diagnostic_m3s"), role="J_STZ_86472600"),
+        summarize("86510000", "Muçum", s.get("q_mucum_m3s"), role="J_MUCUM_86510000"),
+    ]
+    rows = [r for r in rows if r]
+    return {
+        "available": bool(rows),
+        "nodes": rows,
+        "generated_at_utc": forward_pkg.get("generated_at_utc"),
+        "forcing_artifact": forcing.get("artifact"),
+        "note_pt": (
+            "Nós do gêmeo espacial de 5 zonas. São saídas modeladas Q(t), separadas da telemetria. "
+            "Muçum continua tendo como produto principal o HEC-HMS 4.13 espacial executado no mesmo ciclo."
+        ),
+    }
+
+
 def build_feed_v3() -> dict:
     feed = base.enrich_feed(base.build_feed())
     spatial_pkg = load_spatial()
@@ -203,6 +270,7 @@ def build_feed_v3() -> dict:
     spatial_hec = base.load_json(OUT / "hec_hms_spatial_forecast_mucum_latest.json") or {}
     spatial_ready = spatial_hec.get("status") == "hec_hms_4_13_spatial_ifs_ready"
     forward_pkg = base.load_json(OUT / "hec_twin_mucum_forward_5d_latest.json") or {}
+    corridor_nodes = build_corridor_model_nodes(feed, forward_pkg)
 
     if spatial_ready:
         ss = spatial_hec.get("series") or {}
@@ -248,6 +316,7 @@ def build_feed_v3() -> dict:
             "initial_state": spatial_hec.get("initial_state"),
             "parameter_source": spatial_hec.get("parameter_source"),
             "nodes_model": spatial_hec.get("nodes") or {},
+            "corridor_nodes": corridor_nodes,
             "plain_pt": (
                 f"HEC-HMS 4.13 executado com {rain.get('spatial_cells') or '?'} células IFS "
                 f"espacializadas. Q inicial {sm.get('q_model_initial_m3s')} m³/s; "
@@ -294,6 +363,7 @@ def build_feed_v3() -> dict:
             "horizon_hours": qs.get("horizon_hours"),
             "plain_pt": qs.get("plain_pt"),
             "q_note_pt": "Fallback do gêmeo de pesquisa; não é o HEC-HMS espacial preferencial.",
+            "corridor_nodes": corridor_nodes,
         }
 
     discipline = dict(feed.get("discipline") or {})
