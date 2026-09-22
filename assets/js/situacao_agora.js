@@ -35,16 +35,19 @@
     return d?d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
   }
   function ageMinutes(data){
-    var explicit=Number(data&&data.idade_telemetria_min);
-    if(Number.isFinite(explicit) && explicit>=0) return explicit;
+    // A idade gravada no JSON vale apenas para o instante em que o robô
+    // publicou o arquivo. Recalcule sempre a partir do timestamp real para
+    // que um feed congelado não continue aparecendo como recente.
     var d=parseDate(data&&(data.telemetria_ultima_em||data.nivel_rio_agora_em||data.consultado_em));
-    return d?Math.max(0,(Date.now()-d.getTime())/60000):NaN;
+    if(d) return Math.max(0,(Date.now()-d.getTime())/60000);
+    var explicit=Number(data&&data.idade_telemetria_min);
+    return Number.isFinite(explicit)&&explicit>=0?explicit:NaN;
   }
   function stateFor(data){
     if(!data) return {id:'unknown',label:'indisponível'};
     var age=ageMinutes(data);
     if(!Number.isFinite(age)) return {id:'unknown',label:'horário incerto'};
-    if(age>180) return {id:'stale',label:'dado atrasado'};
+    if(age>60) return {id:'stale',label:'dado atrasado'};
     return {id:'recent',label:'dado recente'};
   }
   function horizon(data,key){
