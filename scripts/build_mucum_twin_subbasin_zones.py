@@ -91,14 +91,25 @@ def delineate_all(dem):
  wbt.fill_depressions_wang_and_liu(str(dem),str(filled))
  wbt.d8_pointer(str(filled),str(ptr))
  wbt.d8_flow_accumulation(str(filled),str(acc),out_type="cells")
- out={}
+ out={}; selection={}
+ # Nearby controls 86472000 and the Carreiro confluence are only ~1-2 km apart.
+ # A fixed 3-km snap can jump across the confluence. Test several radii and
+ # choose the delineation whose area is closest to the model/ANA nested area.
  for code,o in OUTLETS.items():
-  raw=wb/f"raw_{code}.shp"; snap=wb/f"snap_{code}.shp"; ws=wb/f"ws_{code}.tif"
+  raw=wb/f"raw_{code}.shp"
   gpd.GeoDataFrame([{"station":code}],geometry=[Point(o["lon"],o["lat"])],crs="EPSG:4326").to_crs(TARGET_CRS).to_file(raw)
-  wbt.snap_pour_points(str(raw),str(acc),str(snap),snap_dist=3000.0)
-  wbt.watershed(str(ptr),str(snap),str(ws))
-  out[code]=raster_polygon(ws)
- return out
+  candidates=[]
+  for dist in (150.0,300.0,500.0,750.0,1000.0,1500.0,2500.0):
+   snap=wb/f"snap_{code}_{int(dist)}.shp"; ws=wb/f"ws_{code}_{int(dist)}.tif"
+   wbt.snap_pour_points(str(raw),str(acc),str(snap),snap_dist=dist)
+   wbt.watershed(str(ptr),str(snap),str(ws))
+   g=raster_polygon(ws); area=g.area/1e6
+   candidates.append((abs(area-float(o["target_area_km2"])),dist,area,g))
+  candidates.sort(key=lambda x:x[0])
+  _,dist,area,g=candidates[0]
+  out[code]=g
+  selection[code]={"selected_snap_m":dist,"area_km2":round(area,3),"target_km2":o["target_area_km2"],"candidates":[{"snap_m":d,"area_km2":round(a,3)} for _,d,a,_ in candidates]}
+ return out,selection
 
 def find_ug(gdf, needle):
  needle=needle.casefold()
@@ -115,7 +126,7 @@ def clean(g):
 def main():
  WORK.mkdir(parents=True,exist_ok=True)
  dem=prepare_dem(download_tiles())
- ws=delineate_all(dem)
+ ws,snap_selection=delineate_all(dem)
  antas=clean(ws["86472000"]); stz=clean(ws["86472600"]); muc=clean(ws["86510000"])
  ugs=gpd.read_file(UGS).to_crs(TARGET_CRS)
  prata=clean(find_ug(ugs,"prata").intersection(antas))
@@ -130,7 +141,7 @@ def main():
   "SB_STZ_RESIDUAL":stz_res,
   "SB_INC_MUCUM":muc_inc,
  }
- features=[]; report={"schema_version":"mucum_twin_subbasin_zones_v1","method":"nested SRTM watersheds + official G040 UG Prata/Carreiro","outlets":{},"zones":{}}
+ features=[]; report={"schema_version":"mucum_twin_subbasin_zones_v1","method":"nested SRTM watersheds + official G040 UG Prata/Carreiro","snap_selection":snap_selection,"outlets":{},"zones":{}}
  for code,g in ws.items():
   area=g.area/1e6; target=OUTLETS[code]["target_area_km2"]
   report["outlets"][code]={"area_srtm_km2":round(area,3),"target_model_km2":target,"ratio":round(area/target,5)}
@@ -139,7 +150,7 @@ def main():
   report["zones"][zid]={"area_geometry_km2":round(area,3),"area_model_km2":target,"ratio":round(area/target,5)}
   gw=gpd.GeoSeries([g],crs=TARGET_CRS).to_crs("EPSG:4326").iloc[0]
   features.append({"type":"Feature","properties":{"subbasin_id":zid,"area_geometry_km2":round(area,3),"area_model_km2":target,"area_ratio":round(area/target,5)},"geometry":mapping(gw.simplify(0.00015,preserve_topology=True))})
- # Hard gate only for gross topology failure; area differences from DEM/inventory are reported, never forced.
+ print(json.dumps(report,ensure_ascii=False))\n # Hard gate only for gross topology failure; area differences from DEM/inventory are reported, never forced.
  for code,item in report["outlets"].items():
   if not 0.80 <= item["ratio"] <= 1.20: raise RuntimeError(f"nested watershed gross area mismatch {code}: {item}")
  for zid,item in report["zones"].items():
