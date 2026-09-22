@@ -131,7 +131,7 @@ for ($attempt = 1; $attempt -le 5; $attempt++) {
 
     if (-not $remoteAlreadyIncluded) {
         Write-Host "   A main avancou de novo; reaplicando o commit sobre a versao atual (tentativa $attempt/5)..." -ForegroundColor Yellow
-        & git rebase origin/main
+        & git rebase --autostash origin/main
         if ($LASTEXITCODE -ne 0) {
             & git rebase --abort 2>$null
             throw "Conflito real com a main. Publicacao abortada sem force push."
