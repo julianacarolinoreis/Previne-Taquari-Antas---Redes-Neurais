@@ -38,8 +38,6 @@ ARQUIVOS = {
 }
 GRADE_GRAUS = 1e-6
 PARA_UTM_22S = Transformer.from_crs("EPSG:4326", "EPSG:31982", always_xy=True).transform
-SANTA_COTA_INUND_CM = 1500
-SANTA_HAND_ZERO_DEFAULT_CM = 160
 
 
 def somente_poligonos(geom):
@@ -69,16 +67,15 @@ def gerar(cidade: str, origem: Path, destino: Path) -> None:
     if 0.0 not in por_nivel:
         raise RuntimeError(f"{origem} não contém o contorno HAND 0")
 
-    # A geometria-base é o HAND 0 (canal/vale drenante). Em Santa Tereza,
-    # a cota oficial de 15,00 m NÃO é convertida para 13,40 m de HAND.
-    # A régua tem datum próprio: o que entra no mapa é somente o EXCESSO
-    # acima de 15,00 m. Ex.: 15,13 m -> HAND de extravasamento 0,13 m.
+    # Produto derivado opcional: remove apenas o contorno HAND 0 da extensão
+    # total. O nivel_m permanece na mesma referência espacial do HAND (zero de
+    # campo 1,60 m para Santa Tereza). A página principal usa contornos_mancha.
     base_key = 0.0
     min_output_level = 0.0
     if cidade == "santa_tereza":
         base_interpretacao = (
-            "HAND 0 como contorno-base; o nivel_m da feicao representa o excesso "
-            f"acima da cota de inundacao de {SANTA_COTA_INUND_CM/100:.2f} m na regua"
+            "HAND 0 removido apenas para visualização derivada; nivel_m segue "
+            "a referência espacial régua - 1,60 m"
         )
     else:
         base_interpretacao = "contorno HAND 0 legado"
@@ -125,8 +122,8 @@ def gerar(cidade: str, origem: Path, destino: Path) -> None:
             "base_interpretacao": base_interpretacao,
             "area": "calculada em SIRGAS 2000 / UTM 22S (EPSG:31982)",
             "interpretacao": (
-                "Santa Tereza: nivel_m representa o excesso da régua acima de 15,00 m; "
-                "HAND 0 é removido da mancha e a cota da régua não é tratada como altura do terreno"
+                "Santa Tereza: produto derivado; nivel_m usa a referência espacial régua - 1,60 m; "
+                "a página principal usa a mancha total"
                 if cidade == "santa_tereza"
                 else "proxy legado relativo ao HAND 0"
             ),
