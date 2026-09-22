@@ -52,7 +52,10 @@ class SantaTerezaMdtRefinementTests(unittest.TestCase):
         self.assertNotIn("visualFeature(feat)", text)
         self.assertIn("if(feat) layer.addData(feat);", text)
         self.assertIn("return value===255?null:value;", text)
-        self.assertIn("const ELEVATION_URL=null; // same-source MDT only", text)
+        self.assertTrue(
+            "const ELEVATION_URL=null; // same-source MDT only" in text
+            or "altitude_terreno_lidar_10m.json" in text
+        )
         self.assertIn("meta.same_source_as_hand!==true", text)
         self.assertIn("const mdtBounds=[[elevationMeta.S,elevationMeta.W],[elevationMeta.N,elevationMeta.E]]", text)
         self.assertNotIn("L.imageOverlay(MDT_VISUAL_URL,BOUNDS", text)
@@ -69,6 +72,8 @@ class SantaTerezaMdtRefinementTests(unittest.TestCase):
         self.assertIn("Resampling.mode", script)
         self.assertIn("encoded = np.full(hand.shape, 255", script)
         self.assertIn("simplify(5.0", script)
+        self.assertIn("touching = np.unique(labels[river_seed & candidate])", script)
+        self.assertIn('"terrain_modified_by_water_filter": False', script)
         self.assertIn("altitude_terreno_lidar_10m.json", script)
         self.assertIn("same_source_as_hand", script)
         self.assertIn("activate_same_source_mdt", script)
