@@ -8,7 +8,7 @@
   const FRESHNESS={liveMinutes:15,historyHours:24,researchWeatherHours:18,researchProbabilityHours:36,researchReviewHours:72};
   // Uma previsão cujo alvo já passou não deve ocupar o papel de horizonte futuro.
   // Ela continua disponível no histórico e na ficha detalhada para auditoria.
-  const ACTIVE_FORECAST_GRACE_MINUTES=30;
+  const ACTIVE_FORECAST_GRACE_MINUTES=0;
   // Fallback auditável quando o JSON do cartão ainda não foi publicado no Pages.
   // É replay histórico, não previsão atual nem alerta oficial.
   const RESEARCH_CARD_FALLBACK={
@@ -362,7 +362,7 @@
         return 0;
       });
       const candidate=candidates[0];
-      const staleTarget=candidate.time.getTime()<forecastReferenceMs-ACTIVE_FORECAST_GRACE_MINUTES*60000;
+      const staleTarget=candidate.time.getTime()<=forecastReferenceMs-ACTIVE_FORECAST_GRACE_MINUTES*60000;
       if(staleTarget){
         candidate.stale=true;
         stale.push(candidate);
@@ -373,11 +373,6 @@
     const result=Array.from(picked.values()).sort((a,b)=>a.hours-b.hours);
     result.stale=stale.sort((a,b)=>a.hours-b.hours);
     return result;
-  }
-
-  function publishedForecasts(items){
-    const stale=Array.isArray(items&&items.stale)?items.stale:[];
-    return [...(items||[]),...stale].sort((a,b)=>a.hours-b.hours);
   }
 
   function pointBefore(points,targetMs){
@@ -1230,7 +1225,10 @@
     const current=allPoints.length?allPoints[allPoints.length-1]:null;
     const items=forecasts(state.live,current);
     state.liveStaleHorizons=items.stale||[];
-    const published=publishedForecasts(items);
+    // O panorama principal mostra somente horizontes cujo horário-alvo ainda
+    // está no futuro. Saídas vencidas continuam em liveStaleHorizons e no
+    // histórico/auditoria, mas não são desenhadas como previsão atual.
+    const published=items;
     const previous24=previousForecastPoints(state.history,state.live,current,24);
     const previousWeek=previousForecastPoints(state.history,state.live,current,168);
     const trend=trendInfo(points);
