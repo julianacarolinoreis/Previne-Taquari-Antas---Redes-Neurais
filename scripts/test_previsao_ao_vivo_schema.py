@@ -35,11 +35,13 @@ class LiveFeedContractTests(unittest.TestCase):
         for horizon in ("2h", "4h", "8h"):
             self.assertEqual(self.data["horizontes"][horizon]["hand_zero_cm"], 160)
 
-    def test_page_uses_field_validated_hand_zero(self) -> None:
+    def test_page_separates_field_reference_from_flood_mapping(self) -> None:
         page = (ROOT / "santa_tereza_previsao_inundacao.html").read_text(encoding="utf-8")
         self.assertIn("HAND_ZERO_DEFAULT_CM=160", page)
-        self.assertIn("let bankfull=160", page)
-        self.assertIn("régua 1,60 m = HAND 0", page)
+        self.assertIn("const COTA_INUND=1500", page)
+        self.assertIn("function stageToOverflowHand(cm)", page)
+        self.assertIn("return (Number(cm)-COTA_INUND)/100", page)
+        self.assertNotIn("stageToHand(foreCm)*10", page)
 
     def test_generated_hand_diagnostic_is_main_river_only(self) -> None:
         diagnostic = json.loads(
