@@ -888,13 +888,24 @@ function horizonUnavailableReason(D){
   if(status && /sem hora valida|sem hora válida|sem previsao|sem previsão|inputs incompletos|indisponivel|indisponível/.test(status.toLowerCase())) falt.push(status);
   return falt.join('; ')||'conjunto incompleto';
 }
+const LIVE_HZ_LABELS={
+  '2h':'2 h',
+  '2h_versao_b':'2 h — comparativa',
+  '4h':'4 h',
+  '8h':'8 h V1',
+  '8h_v002':'8 h — comparativa'
+};
 function updateLiveHzButtons(){
   const hs=liveData&&liveData.horizontes?liveData.horizontes:{};
   document.querySelectorAll('[data-live-hz]').forEach(b=>{
-    const D=hs[b.dataset.liveHz];
-    const ok=liveHorizonReady(b.dataset.liveHz,D);
+    const key=b.dataset.liveHz;
+    const D=hs[key];
+    const ok=liveHorizonReady(key,D);
     b.style.display=ok?'':'none';
-    const active=b.dataset.liveHz===liveHz;b.classList.toggle('on',active);b.setAttribute('aria-pressed',active?'true':'false');
+    const cm=firstNumber(D&&D.nivel_previsto_cm);
+    b.textContent=LIVE_HZ_LABELS[key]+(cm!=null?' · '+fmtNivel(cm):'');
+    b.title=cm!=null?('Previsão '+fmtNivel(cm)+' · '+(D&&D.hora_alvo?fmtWhen(D.hora_alvo):'horário-alvo indisponível')):'Previsão indisponível';
+    const active=key===liveHz;b.classList.toggle('on',active);b.setAttribute('aria-pressed',active?'true':'false');
   });
   const status=document.getElementById('live-horizon-status');
   if(status){
