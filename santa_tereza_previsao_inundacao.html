@@ -414,11 +414,11 @@ const COTA_INUND=1500;
 const COLS=HAND.cols, ROWS=HAND.rows;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
 const CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_extravasamento.json';
-// IMPORTANTE: a antiga grade absoluta drone+ANADEM não pertence ao mesmo
-// terreno do HAND 5 m atual. Ela foi retirada daqui para não misturar
-// geometrias, cotas e extensões incompatíveis. A altitude absoluta só deve
-// voltar quando for regenerada a partir do mesmo FILL_CLIP_MOSAICO_LIDAR_RS.
+// A grade absoluta só é habilitada quando é gerada da MESMA fonte do HAND.
+// O gerador local troca null pelo JSON same-source após concluir e validar a geração.
+const ELEVATION_URL=null; // same-source MDT only
 let contornos=null, nowLayer=null, foreLayer=null, foreOutlineLayer=null, uncLayer=null;
+let elevationMeta=null, elevationArr=null;
 const latC=(HAND.S+HAND.N)/2;
 // cellHa calculado do proprio raster (bounds/COLS/ROWS) -- antes era um
 // literal fixo (0,0835 ha, do tamanho de celula do ANADEM 30m antigo)
@@ -612,6 +612,27 @@ function ensureHand(){
 
 function loadContornos(){return fetch(CONTORNOS_URL).then(r=>r.json()).then(fc=>{contornos=fc;}).catch(e=>{console.error('falha ao carregar contornos', e); contornos=null;});}
 
+function loadElevation(){
+  if(!ELEVATION_URL){ elevationMeta=null; elevationArr=null; return Promise.resolve(); }
+  return fetch(ELEVATION_URL).then(r=>{
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(meta=>{
+    if(meta.same_source_as_hand!==true) throw new Error('MDT rejeitado: fonte não declarada como a mesma do HAND');
+    return new Promise(resolve=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas'); canvas.width=meta.cols; canvas.height=meta.rows;
+        const ctx=canvas.getContext('2d',{willReadFrequently:true}); ctx.drawImage(img,0,0);
+        elevationMeta=meta; elevationArr=ctx.getImageData(0,0,meta.cols,meta.rows).data;
+        resolve();
+      };
+      img.onerror=()=>{elevationMeta=null;elevationArr=null;resolve();};
+      img.src=new URL(meta.png,new URL(ELEVATION_URL,document.baseURI)).href;
+    });
+  }).catch(e=>{console.error('falha ao carregar MDT same-source',e);elevationMeta=null;elevationArr=null;});
+}
+
 
 
 // Validação de campo: régua = 1,60 m corresponde ao HAND 0.
@@ -645,6 +666,15 @@ function handAt(lat,lon){ // decimetros no ponto, ou null
   if(fx<0||fx>=COLS||fy<0||fy>=ROWS) return null;
   const value=handArr[fy*COLS+fx];
   return value===250?null:value;
+}
+function elevationAt(lat,lon){
+  if(!elevationMeta||!elevationArr) return null;
+  const m=elevationMeta;
+  const fx=Math.floor((lon-m.W)/(m.E-m.W)*m.cols), fy=Math.floor((m.N-lat)/(m.N-m.S)*m.rows);
+  if(fx<0||fx>=m.cols||fy<0||fy>=m.rows) return null;
+  const i=(fy*m.cols+fx)*4;
+  if(elevationArr[i+3]===0) return null;
+  return ((elevationArr[i]<<8)|elevationArr[i+1])*(m.escala||0.1);
 }
 function achaFeature(mLvl){
   if(!contornos||mLvl==null||!Number.isFinite(mLvl)||mLvl<=0) return null;
@@ -1221,7 +1251,7 @@ async function init(){
   document.getElementById('live-btn').onclick=()=>liveMode?exitLive():enterLive();
   document.querySelectorAll('[data-live-hz]').forEach(b=>b.onclick=()=>setLiveHorizon(b.dataset.liveHz));
 
-  await loadContornos();
+  await Promise.all([loadContornos(), loadElevation()]);
   if(typeof L!=='undefined'){
     map=L.map('map',{scrollWheelZoom:true}).fitBounds(BOUNDS);
     const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'© Esri, Maxar'});
@@ -1235,6 +1265,12 @@ async function init(){
       {'Rótulos':labels,'Estações hidrotelemétricas':telemetryLayer},
       {position:'topright'}
     ).addTo(map);
+    if(elevationMeta&&elevationMeta.visual_png){
+      const mdtBounds=[[elevationMeta.S,elevationMeta.W],[elevationMeta.N,elevationMeta.E]];
+      const mdtVisualUrl=new URL(elevationMeta.visual_png,new URL(ELEVATION_URL,document.baseURI)).href;
+      const mdtVisual=L.imageOverlay(mdtVisualUrl,mdtBounds,{opacity:.48,interactive:false,alt:'MDT de Santa Tereza da mesma fonte do HAND'});
+      layerControl.addOverlay(mdtVisual,'MDT atual · mesma fonte do HAND');
+    }
     // A borda prevista fica sempre acima do azul para a RNA continuar visível,
     // mesmo quando a mancha futura coincide com a atual ou fica contida nela.
     map.createPane('predictionUncertaintyPane').style.zIndex=410;
@@ -1284,14 +1320,13 @@ async function init(){
     };
     stationControl.addTo(map);
     if(pt) L.circleMarker([pt.lat,pt.lon],{radius:6,color:'#fff',weight:2,fillColor:'#b04538',fillOpacity:.95}).addTo(map).bindPopup('<b>'+pt.label+'</b>');
-    // clique no mapa -> HAND/profundidade usando somente o terreno da mancha atual.
-    // A altitude absoluta fica indisponível até a grade ser regenerada da mesma fonte.
+    // clique no mapa -> HAND/profundidade e, quando disponível, altitude same-source.
     map.on('click', async e=>{
       await ensureHand();
-      const hd=handAt(e.latlng.lat,e.latlng.lng);
-      if(hd==null) return;
+      const hd=handAt(e.latlng.lat,e.latlng.lng), elev=elevationAt(e.latlng.lat,e.latlng.lng);
+      if(hd==null&&elev==null) return;
       let html='<div class="pt-pop"><b>Neste ponto</b>';
-      html+='<br><span>Altitude absoluta do MDT: indisponível nesta versão (fonte antiga retirada para evitar mistura de terrenos).</span>';
+      html+='<br><b>Altitude absoluta do MDT: '+(elev!=null?nf1.format(elev)+' m':'indisponível até a regeneração same-source')+'</b>';
       if(curS&&hd!=null){
         const pointHand=hd/10, ev=EVENTS[curEv];
         html+='<br>Altura acima do leito (HAND): '+nf1.format(pointHand)+' m';
