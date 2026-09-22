@@ -478,16 +478,32 @@ def _level_record(raw: dict[str, Any], code: str) -> dict[str, Any] | None:
     )
     observed_series = _level_observed_series(raw)
     forecast_series = _level_forecast_series(raw)
+    # Uma previsão de nível só é "prevista" enquanto o horário-alvo ainda
+    # estiver à frente da última observação publicada. Horizontes vencidos
+    # continuam no feed RNA original para auditoria, mas não entram no
+    # snapshot atual nem no gráfico público como se fossem futuros.
+    if observed_at is not None:
+        forecast_series = [
+            item
+            for item in forecast_series
+            if (target := parse_iso(item.get("time"), default_timezone=UTC)) is not None
+            and target > observed_at
+        ]
+    top_forecast_current = (
+        forecast is not None
+        and forecast_at is not None
+        and (observed_at is None or forecast_at > observed_at)
+    )
     forecast_applicable = station_code(code) in RNA_LEVEL_STATIONS
-    forecast_available = forecast is not None or bool(forecast_series)
+    forecast_available = top_forecast_current or bool(forecast_series)
     if level is None and forecast is None and observed_at is None:
         return None
     return {
         "state": "available" if level is not None else "partial",
         "current_cm": level,
         "observed_at_utc": iso_utc(observed_at),
-        "forecast_cm": forecast,
-        "forecast_at_utc": iso_utc(forecast_at),
+        "forecast_cm": forecast if top_forecast_current else None,
+        "forecast_at_utc": iso_utc(forecast_at) if top_forecast_current else None,
         "forecast_applicable": forecast_applicable,
         "forecast_status": (
             "available"
