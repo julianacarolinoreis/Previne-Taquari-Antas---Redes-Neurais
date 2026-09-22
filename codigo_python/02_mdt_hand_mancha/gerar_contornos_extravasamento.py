@@ -38,6 +38,8 @@ ARQUIVOS = {
 }
 GRADE_GRAUS = 1e-6
 PARA_UTM_22S = Transformer.from_crs("EPSG:4326", "EPSG:31982", always_xy=True).transform
+SANTA_COTA_INUND_CM = 1500
+SANTA_HAND_ZERO_DEFAULT_CM = 160
 
 
 def somente_poligonos(geom):
@@ -67,14 +69,45 @@ def gerar(cidade: str, origem: Path, destino: Path) -> None:
     if 0.0 not in por_nivel:
         raise RuntimeError(f"{origem} não contém o contorno HAND 0")
 
-    base_feature = por_nivel[0.0]
+    # Santa Tereza: "extravasamento" começa na cota oficial de 15,00 m,
+    # e não no HAND 0 (leito). Com HAND 0 calibrado em 1,60 m, a base de
+    # extravasamento corresponde a 13,40 m de HAND. Assim o rio permanente
+    # deixa de ser pintado como inundação.
+    if cidade == "santa_tereza":
+        diag_path = origem.parent / "hand_lidar_5m_diagnostic.json"
+        hand_zero_cm = SANTA_HAND_ZERO_DEFAULT_CM
+        if diag_path.exists():
+            try:
+                diag = json.loads(diag_path.read_text(encoding="utf-8"))
+                hand_zero_cm = int(diag.get("hand_zero_cm", hand_zero_cm))
+            except Exception:
+                pass
+        base_level = round((SANTA_COTA_INUND_CM - hand_zero_cm) / 100.0, 1)
+        base_key = min(por_nivel, key=lambda n: abs(n - base_level))
+        if abs(base_key - base_level) > 0.051:
+            raise RuntimeError(
+                f"contorno da cota de inundação ausente: HAND {base_level:.1f} m"
+            )
+        min_output_level = base_key
+        base_interpretacao = (
+            f"faixa ocupada até a cota de inundação de {SANTA_COTA_INUND_CM/100:.2f} m "
+            f"na régua; HAND zero={hand_zero_cm/100:.2f} m"
+        )
+    else:
+        # Mantém o contrato legado das outras cidades; esta mudança não promove
+        # automaticamente uma nova calibração fora de Santa Tereza.
+        base_key = 0.0
+        min_output_level = 0.0
+        base_interpretacao = "contorno HAND 0 legado"
+
+    base_feature = por_nivel[base_key]
     base = valida(shape(base_feature["geometry"]))
     if base is None:
-        raise RuntimeError(f"contorno HAND 0 inválido em {origem}")
+        raise RuntimeError(f"contorno-base inválido em {origem}")
     base_ha = area_ha(base)
 
     saida = []
-    for nivel in sorted(n for n in por_nivel if n > 0):
+    for nivel in sorted(n for n in por_nivel if n > min_output_level):
         feature = por_nivel[nivel]
         total = valida(shape(feature["geometry"]))
         if total is None:
@@ -88,7 +121,13 @@ def gerar(cidade: str, origem: Path, destino: Path) -> None:
             area_total_hand_ha=props.get("area_ha"),
             area_base_hand_ha=round(base_ha, 1),
             area_ha=round(extra_ha, 1),
-            interpretacao="proxy de extravasamento relativo ao contorno HAND 0",
+            nivel_base_hand_m=round(float(base_key), 1),
+            excesso_base_hand_m=round(float(nivel - base_key), 1),
+            interpretacao=(
+                "proxy de extravasamento acima da cota de inundação"
+                if cidade == "santa_tereza"
+                else "proxy de extravasamento relativo ao contorno HAND 0"
+            ),
         )
         saida.append({"type": "Feature", "properties": props, "geometry": mapping(extra)})
 
@@ -98,9 +137,16 @@ def gerar(cidade: str, origem: Path, destino: Path) -> None:
         "metadata": {
             "cidade": cidade,
             "fonte": str(origem.relative_to(RAIZ)).replace("\\", "/"),
-            "metodo": "diferenca vetorial contorno_HAND_nivel menos contorno_HAND_0",
+            "metodo": "diferenca vetorial entre o contorno HAND do nivel e a base de extravasamento",
+            "nivel_base_hand_m": round(float(base_key), 1),
+            "base_interpretacao": base_interpretacao,
             "area": "calculada em SIRGAS 2000 / UTM 22S (EPSG:31982)",
-            "interpretacao": "proxy de extravasamento; o HAND 0 aproxima o leito e ainda requer validação com máscara observada",
+            "interpretacao": (
+                "Santa Tereza: extravasamento somente acima da cota de inundação de 15,00 m; "
+                "o leito/faixa até essa cota não é pintado como inundação"
+                if cidade == "santa_tereza"
+                else "proxy legado relativo ao HAND 0"
+            ),
             "nao_confundir_com": "cota oficial de inundação ou probabilidade de inundação",
         },
     }
