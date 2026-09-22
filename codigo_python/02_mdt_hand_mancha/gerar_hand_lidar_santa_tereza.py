@@ -19,9 +19,17 @@ terreno e interrompe a geração se a convenção não puder ser identificada co
 segurança. O terreno é reamostrado para 5 m apenas para o payload leve do
 navegador; a calibração vertical permanece separada: régua 1,60 m = HAND 0.
 
-O mesmo processo também gera uma grade de altitude absoluta a ~10 m derivada
-do MESMO FILL_CLIP_MOSAICO_LIDAR_RS usado no HAND. Essa é a única grade que
-deve ser usada para altitude/visualização junto com este HAND.
+A superfície física da inundação usa o LiDAR bruto CLIP_MOSAICO_LIDAR_RS.tif.
+O raster FILL_CLIP_MOSAICO_LIDAR_RS.tif é usado somente para orientar o
+roteamento hidrológico (FLOWDIR/FLOWACC), nunca como cota final do terreno.
+
+Além do HAND vertical, a mancha usa um limiar hidráulico de conectividade:
+para cada célula é considerada a maior cota do LiDAR bruto encontrada no
+caminho D8 até o rio principal. Assim a água não "salta" aterros, ruas ou
+divisores apenas porque existe uma área baixa atrás deles.
+
+O mesmo processo gera a grade de altitude absoluta a ~10 m diretamente do
+CLIP_MOSAICO_LIDAR_RS.tif bruto.
 
 Uso:
   python gerar_hand_lidar_santa_tereza.py
@@ -177,23 +185,30 @@ def detect_d8_scheme(flowdir: np.ndarray, flowacc: np.ndarray, dem: np.ndarray) 
 
 
 def compute_hand_flowpath(
-    dem: np.ndarray,
+    terrain_dem: np.ndarray,
+    routing_dem: np.ndarray,
     flowdir: np.ndarray,
     flowacc: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray, dict]:
-    """Calcula HAND numa rede grossa guiada por D8 + acumulação.
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
+    """Calcula HAND e limiar hidráulico numa rede guiada por D8 + FLOWACC.
 
-    O FLOWDIR original é de 1 m. Depois da agregação para ~5 m, um código D8
-    não pode ser tratado como um salto exato de cinco metros. Em vez disso,
-    ele define a direção preferencial; entre o vizinho preferido e os dois
-    vizinhos adjacentes (±45°), escolhe-se aquele com maior acumulação
-    estritamente crescente. Assim o caminho continua hidrologicamente a
-    jusante sem reinterpretar um passo de 1 m como um passo exato de 5 m.
+    terrain_dem é o LiDAR bruto e fornece todas as cotas usadas para altitude,
+    HAND e barreiras da inundação. routing_dem é o DEM preenchido (FILL) e
+    serve apenas para escolher caminhos coerentes com FLOWDIR/FLOWACC.
+
+    O hand clássico mede a diferença vertical entre cada célula e a célula do
+    rio principal onde seu caminho termina. hydraulic_hand é mais conservador:
+    mede a maior cota do LiDAR bruto encontrada ao longo de todo o caminho D8
+    até o rio. Assim uma depressão baixa atrás de rua/aterro alto só entra na
+    mancha quando o nível supera essa barreira física.
     """
+    if terrain_dem.shape != routing_dem.shape:
+        raise RuntimeError("LiDAR bruto e FILL não têm a mesma grade")
+
     main_river = flowacc >= FLOWACC_THRESHOLD_FINE_CELLS
-    # O rio pode atravessar células na diagonal; conectividade 4-neighbours
-    # fragmentava artificialmente um canal contínuo.
-    labels, n_components = ndimage.label(main_river, structure=np.ones((3, 3), dtype=np.uint8))
+    labels, n_components = ndimage.label(
+        main_river, structure=np.ones((3, 3), dtype=np.uint8)
+    )
     if n_components == 0:
         raise RuntimeError("nenhum trecho do rio principal atingiu o limiar de acumulação")
     if n_components > 1:
@@ -204,14 +219,14 @@ def compute_hand_flowpath(
     else:
         n_components_kept = n_components
 
-    scheme_name, mapping, scheme_scores = detect_d8_scheme(flowdir, flowacc, dem)
+    scheme_name, mapping, scheme_scores = detect_d8_scheme(
+        flowdir, flowacc, routing_dem
+    )
 
-    rows, cols = dem.shape
-    n = dem.size
+    n = terrain_dem.size
     if n >= np.iinfo(np.int32).max:
         raise RuntimeError("grade grande demais para índices int32")
 
-    # Ordem angular: E, SE, S, SW, W, NW, N, NE.
     dirs = [(0, 1), (1, 1), (1, 0), (1, -1),
             (0, -1), (-1, -1), (-1, 0), (-1, 1)]
     dir_to_idx = {offset: i for i, offset in enumerate(dirs)}
@@ -221,46 +236,33 @@ def compute_hand_flowpath(
     for code, idx in code_to_idx.items():
         pref_idx[flowdir == code] = idx
 
-    flat_index = np.arange(n, dtype=np.int32).reshape(dem.shape)
+    flat_index = np.arange(n, dtype=np.int32).reshape(terrain_dem.shape)
     receiver = flat_index.copy()
-    valid = np.isfinite(dem)
+    valid = np.isfinite(terrain_dem) & np.isfinite(routing_dem)
 
-    # Regra principal na grade ~5 m: acumulação precisa crescer a jusante.
-    # O D8 agregado serve como preferência, não como bloqueio duro. Primeiro
-    # busca-se até ±90° da direção modal; se não houver saída, usa-se qualquer
-    # vizinho de FLOWACC maior. Isso preserva conectividade que a moda 5 m pode
-    # perder sem voltar ao erro de usar distância euclidiana ao rio.
-    best_score = np.full(dem.shape, -np.inf, dtype="float32")
-    assigned_primary = np.zeros(dem.shape, dtype=bool)
+    best_score = np.full(terrain_dem.shape, -np.inf, dtype="float32")
+    assigned_primary = np.zeros(terrain_dem.shape, dtype=bool)
 
     for pass_all_directions in (False, True):
         for cand_idx, (dr, dc) in enumerate(dirs):
-            src, dst = offset_slices(dem.shape, dr, dc)
+            src, dst = offset_slices(terrain_dem.shape, dr, dc)
             pref = pref_idx[src].astype(np.int16)
             circular = np.abs(((pref - cand_idx + 4) % 8) - 4)
             dst_acc = flowacc[dst]
             src_acc = flowacc[src]
-            dst_dem = dem[dst]
-            src_dem = dem[src]
+            dst_route = routing_dem[dst]
+            src_route = routing_dem[src]
 
-            base = (
-                valid[src]
-                & valid[dst]
-                & (dst_acc > src_acc)
-            )
+            base = valid[src] & valid[dst] & (dst_acc > src_acc)
             if not pass_all_directions:
                 base &= (pref >= 0) & (circular <= 2)
             else:
-                # Fallback somente para células que não encontraram saída no
-                # setor preferencial.
                 base &= ~assigned_primary[src]
 
-            # FLOWACC domina a decisão. A direção e o relevo só desempatarão
-            # candidatos de magnitude semelhante.
             score = (
                 np.log1p(dst_acc).astype("float32")
                 - 0.20 * circular.astype("float32")
-                + 0.02 * np.clip(src_dem - dst_dem, -10.0, 10.0).astype("float32")
+                + 0.02 * np.clip(src_route - dst_route, -10.0, 10.0).astype("float32")
             )
             better = base & (score > best_score[src])
             if not better.any():
@@ -275,11 +277,10 @@ def compute_hand_flowpath(
                 assigned_view[better] = True
 
     assigned_receivers = receiver != flat_index
-
-    # Células do rio principal são destinos finais.
     receiver[main_river] = flat_index[main_river]
+    receiver_flat = receiver.ravel().copy()
 
-    parent = receiver.ravel()
+    parent = receiver_flat.copy()
     iterations = 0
     for iterations in range(1, 33):
         jumped = parent[parent]
@@ -290,49 +291,87 @@ def compute_hand_flowpath(
 
     unresolved = parent[parent] != parent
     river_flat = main_river.ravel()
-    dem_flat = dem.ravel()
+    terrain_flat = terrain_dem.ravel()
     valid_flat = valid.ravel()
     drains_to_main = valid_flat & (~unresolved) & river_flat[parent]
 
     hand_flat = np.full(n, np.nan, dtype="float32")
     positions = np.flatnonzero(drains_to_main)
-    values = dem_flat[positions] - dem_flat[parent[positions]]
+    values = terrain_flat[positions] - terrain_flat[parent[positions]]
     acceptable = values >= -0.5
-    hand_flat[positions[acceptable]] = np.maximum(values[acceptable], 0.0)
-    hand = hand_flat.reshape(dem.shape)
+    accepted_positions = positions[acceptable]
+    hand_flat[accepted_positions] = np.maximum(values[acceptable], 0.0)
+    hand = hand_flat.reshape(terrain_dem.shape)
 
-    drained_fraction = float(np.isfinite(hand).sum() / max(1, valid.sum()))
+    barrier_elev = terrain_flat.astype("float32", copy=True)
+    barrier_elev[~valid_flat] = np.nan
+    jump = receiver_flat.copy()
+    barrier_iterations = 0
+    for barrier_iterations in range(1, 33):
+        downstream_barrier = barrier_elev[jump]
+        barrier_elev = np.fmax(barrier_elev, downstream_barrier)
+        jumped = jump[jump]
+        if np.array_equal(jumped, jump):
+            jump = jumped
+            break
+        jump = jumped
+
+    hydraulic_flat = np.full(n, np.nan, dtype="float32")
+    barrier_values = (
+        barrier_elev[accepted_positions]
+        - terrain_flat[parent[accepted_positions]]
+    )
+    hydraulic_flat[accepted_positions] = np.maximum(barrier_values, 0.0)
+    hydraulic_hand = hydraulic_flat.reshape(terrain_dem.shape)
+
+    delta = hydraulic_flat - hand_flat
+    delta_valid = delta[np.isfinite(delta)]
+    drained_fraction = float(
+        np.isfinite(hydraulic_hand).sum() / max(1, valid.sum())
+    )
     diagnostics = {
         "d8_scheme": scheme_name,
         "d8_scheme_scores": scheme_scores,
         "flowdir_source_resolution_m": 1.0,
         "flowdir_coarse_method": "mode D8 preference + FLOWACC-increasing 8-neighbour routing with fallback",
         "pointer_jumping_iterations": iterations,
+        "barrier_pointer_jumping_iterations": barrier_iterations,
         "receiver_cells_assigned": int(assigned_receivers.sum()),
-        "receiver_fraction_assigned": float(assigned_receivers.sum() / max(1, valid.sum())),
+        "receiver_fraction_assigned": float(
+            assigned_receivers.sum() / max(1, valid.sum())
+        ),
         "unresolved_cells": int(unresolved.sum()),
         "valid_terrain_cells": int(valid.sum()),
-        "cells_draining_to_main_river": int(np.isfinite(hand).sum()),
+        "cells_draining_to_main_river": int(np.isfinite(hydraulic_hand).sum()),
         "drained_fraction": drained_fraction,
         "componentes_detectados": int(n_components),
         "componentes_mantidos": int(n_components_kept),
         "celulas_rio_principal": int(main_river.sum()),
-        "hand_method": "coarse drainage routing guided by source D8 and FLOWACC",
+        "hand_method": "raw LiDAR elevation relative to D8-connected main-river cell",
+        "hydraulic_hand_method": "maximum raw-LiDAR barrier along D8 path to main river",
+        "hydraulic_barrier_cells_gt_0_10m": int(np.sum(delta_valid > 0.10)),
+        "hydraulic_barrier_added_p95_m": (
+            float(np.percentile(delta_valid, 95)) if delta_valid.size else 0.0
+        ),
+        "hydraulic_barrier_added_max_m": (
+            float(np.max(delta_valid)) if delta_valid.size else 0.0
+        ),
     }
     print(
         "DIAGNOSTICO ROTEAMENTO: "
         f"D8={scheme_name}; rio={int(main_river.sum())} células; "
         f"receptores={assigned_receivers.sum()}/{valid.sum()} "
         f"({assigned_receivers.sum()/max(1,valid.sum()):.1%}); "
-        f"drena_ao_rio={np.isfinite(hand).sum()}/{valid.sum()} "
-        f"({drained_fraction:.1%})"
+        f"drena_ao_rio={np.isfinite(hydraulic_hand).sum()}/{valid.sum()} "
+        f"({drained_fraction:.1%}); "
+        f"barreiras>10cm={diagnostics['hydraulic_barrier_cells_gt_0_10m']}"
     )
     if drained_fraction < 0.05:
         raise RuntimeError(
             f"Só {drained_fraction:.1%} do terreno drenou ao rio principal; "
             "a agregação D8/FLOWACC ainda não é confiável. Geração abortada."
         )
-    return hand, main_river, diagnostics
+    return hand, hydraulic_hand, main_river, diagnostics
 
 
 def write_same_source_elevation(dem: np.ndarray, transform, crs) -> dict:
@@ -379,8 +418,10 @@ def write_same_source_elevation(dem: np.ndarray, transform, crs) -> dict:
         "codificacao": "uint16_decimetros_em_rg",
         "resolucao_aproximada_m": float(FACTOR * step),
         "crs": "EPSG:4326",
-        "fonte": "FILL_CLIP_MOSAICO_LIDAR_RS.tif",
+        "fonte": "CLIP_MOSAICO_LIDAR_RS.tif",
+        "fonte_roteamento": "FILL_CLIP_MOSAICO_LIDAR_RS.tif",
         "same_source_as_hand": True,
+        "terrain_surface": "raw_lidar_unfilled",
         "png": png.name,
         "visual_png": visual_png.name,
         "status": "same_source_mdt_ready",
@@ -417,12 +458,12 @@ def inject_payload(page: Path, payload: dict) -> None:
 
 
 def write_contours(hand: np.ndarray, main_river: np.ndarray, transform, crs, output: Path) -> dict:
-    """Escreve apenas a parcela hidraulicamente conectada ao rio principal.
+    """Vetoriza o HAND hidráulico calculado sobre o LiDAR bruto.
 
-    O MDT/HAND não é alterado. A filtragem ocorre somente na máscara de água:
-    para cada nível, uma célula só entra no polígono se pertencer a um
-    componente contínuo que toca o canal principal. Isso remove bolsões baixos
-    isolados sem preencher ilhas reais do terreno.
+    O array já incorpora a maior barreira física encontrada no caminho D8 até
+    o rio principal. A checagem 8-vizinhos é apenas uma segunda trava para
+    remover fragmentos desconectados da semente do rio. O terreno não é
+    preenchido nem alterado nesta etapa.
     """
     to_wgs84 = Transformer.from_crs(crs, "EPSG:4326", always_xy=True).transform
     # O HAND consultado no popup permanece em 5 m. Para o vetor desenhado no
@@ -498,7 +539,12 @@ def write_contours(hand: np.ndarray, main_river: np.ndarray, transform, crs, out
             "passo_vetor_m": 0.1,
             "calibracao": "régua 1,60 m = HAND 0",
             "interpretacao": "proxy de pesquisa; não é alerta oficial nem cota absoluta validada",
-            "filtro_conectividade": "8-vizinhos; mantém somente componentes HAND que tocam o rio principal",
+            "filtro_conectividade": (
+                "barreira máxima no LiDAR bruto ao longo do caminho D8 + "
+                "checagem 8-vizinhos conectada ao rio principal"
+            ),
+            "superficie_inundacao": "CLIP_MOSAICO_LIDAR_RS.tif (LiDAR bruto)",
+            "superficie_roteamento": "FILL_CLIP_MOSAICO_LIDAR_RS.tif",
             "mdt_preservado": True,
         },
     }
@@ -506,7 +552,7 @@ def write_contours(hand: np.ndarray, main_river: np.ndarray, transform, crs, out
     return {
         "contornos_features": len(features),
         "contornos_path": str(output),
-        "water_connectivity_filter": "8-neighbour connected-to-main-river only",
+        "water_connectivity_filter": "D8 path max-barrier on raw LiDAR + 8-neighbour main-river check",
         "water_connectivity_stats": connectivity_stats,
         "terrain_modified_by_water_filter": False,
     }
@@ -519,29 +565,55 @@ def main() -> None:
     parser.add_argument("--diagnostic", type=Path, default=DIAGNOSTIC)
     args = parser.parse_args()
 
-    dem_path = args.source_dir / "FILL_CLIP_MOSAICO_LIDAR_RS.tif"
+    terrain_path = args.source_dir / "CLIP_MOSAICO_LIDAR_RS.tif"
+    routing_path = args.source_dir / "FILL_CLIP_MOSAICO_LIDAR_RS.tif"
     acc_path = args.source_dir / "FLOWACC_CLIP_MOSAICO_LIDAR_RS.tif"
     dir_path = args.source_dir / "FLOWDIR_CLIP_MOSAICO_LIDAR_RS.tif"
-    missing = [path for path in (dem_path, acc_path, dir_path) if not path.exists()]
+    missing = [
+        path for path in (terrain_path, routing_path, acc_path, dir_path)
+        if not path.exists()
+    ]
     if missing:
         raise FileNotFoundError("insumos ausentes: " + " / ".join(str(path) for path in missing))
 
-    dem, transform, crs, source_bounds, source_resolution = read_dem(dem_path)
+    terrain_dem, transform, crs, source_bounds, source_resolution = read_dem(
+        terrain_path
+    )
+    routing_dem, routing_transform, routing_crs, _, routing_resolution = read_dem(
+        routing_path
+    )
+    if terrain_dem.shape != routing_dem.shape:
+        raise RuntimeError("CLIP e FILL têm dimensões diferentes; não publique a mancha")
+    if crs != routing_crs or not transform.almost_equals(routing_transform):
+        raise RuntimeError("CLIP e FILL não estão na mesma grade/CRS; não publique a mancha")
+    if abs(source_resolution - routing_resolution) > 1e-6:
+        raise RuntimeError("CLIP e FILL têm resoluções diferentes; não publique a mancha")
+
     with rasterio.open(acc_path) as ds:
-        flowacc = read_flowacc(acc_path, dem.shape, transform, crs, ds.nodata)
-    flowdir = read_flowdir(dir_path, dem.shape, transform, crs)
+        flowacc = read_flowacc(
+            acc_path, terrain_dem.shape, transform, crs, ds.nodata
+        )
+    flowdir = read_flowdir(dir_path, terrain_dem.shape, transform, crs)
 
-    hand, main_river, hand_diag = compute_hand_flowpath(dem, flowdir, flowacc)
-    elevation_summary = write_same_source_elevation(dem, transform, crs)
+    hand, hydraulic_hand, main_river, hand_diag = compute_hand_flowpath(
+        terrain_dem, routing_dem, flowdir, flowacc
+    )
+    elevation_summary = write_same_source_elevation(terrain_dem, transform, crs)
 
-    # 255 é reservado como NoData; 25,0 m continua sendo um valor válido (=250).
-    encoded = np.full(hand.shape, 255, dtype=np.uint8)
-    valid = np.isfinite(hand)
-    encoded[valid] = np.clip(np.rint(hand[valid] * 10), 0, int(MAX_HAND_M * 10)).astype(np.uint8)
+    # O navegador usa o mesmo limiar hidráulico dos contornos.
+    encoded = np.full(hydraulic_hand.shape, 255, dtype=np.uint8)
+    valid = np.isfinite(hydraulic_hand)
+    encoded[valid] = np.clip(
+        np.rint(hydraulic_hand[valid] * 10),
+        0,
+        int(MAX_HAND_M * 10),
+    ).astype(np.uint8)
     buf = io.BytesIO()
     Image.fromarray(encoded, mode="L").save(buf, format="PNG", optimize=True)
 
-    west, south, east, north = transform_bounds(crs, "EPSG:4326", *array_bounds(*dem.shape, transform))
+    west, south, east, north = transform_bounds(
+        crs, "EPSG:4326", *array_bounds(*terrain_dem.shape, transform)
+    )
     payload = {
         "cols": int(encoded.shape[1]),
         "rows": int(encoded.shape[0]),
@@ -553,15 +625,17 @@ def main() -> None:
         "ponte": {"lat": -29.0908727, "lon": -51.713269, "label": "Ponte Santa Barbara"},
         "hand_zero_cm": HAND_ZERO_CM,
         "fonte": (
-            "HAND 5 m derivado dos rasters novos de campo em D:/PREVINE/hand/santa tereza; "
-            "roteamento D8 pelo FLOWDIR até o rio principal, FLOWACC >= 50000000 células finas; "
+            "HAND hidráulico 5 m: cotas e barreiras do CLIP_MOSAICO_LIDAR_RS.tif bruto; "
+            "FILL/FLOWDIR/FLOWACC usados somente para roteamento até o rio principal; "
             "régua 1,60 m = HAND 0; produto de pesquisa, não é alerta oficial."
         ),
         "hand_png_b64": base64.b64encode(buf.getvalue()).decode("ascii"),
     }
     inject_payload(args.page, payload)
     activate_same_source_mdt(args.page)
-    contour_summary = write_contours(hand, main_river, transform, crs, CONTOURS)
+    contour_summary = write_contours(
+        hydraulic_hand, main_river, transform, crs, CONTOURS
+    )
 
     # A página ao vivo consome contornos_extravasamento.json, não o contorno
     # HAND cumulativo bruto. Regenera somente Santa Tereza para não tocar Muçum.
@@ -576,7 +650,10 @@ def main() -> None:
         "produto": "hand_lidar_santa_tereza",
         "status": "gerado_localmente_requer_validacao_cartografica",
         "fonte_dir": str(args.source_dir),
-        "terreno": str(dem_path),
+        "terreno": str(terrain_path),
+        "terreno_bruto_lidar": str(terrain_path),
+        "terreno_roteamento_fill": str(routing_path),
+        "fill_usado_como_superficie_inundacao": False,
         "acumulacao": str(acc_path),
         "direcao_fluxo": str(dir_path),
         "resolucao_fonte_m": source_resolution,
@@ -591,7 +668,12 @@ def main() -> None:
         "spatialization_rule": "nivel_regua_m - 1.60 m",
         "crs": str(crs),
         "bounds_lonlat": {"south": float(south), "west": float(west), "north": float(north), "east": float(east)},
-        "observacao": "O valor da régua é publicado bruto; a espacialização usa RNA menos 1,60 m. O HAND segue o FLOWDIR até o rio principal; não usa distância euclidiana.",
+        "observacao": (
+            "O valor da régua é publicado bruto; a espacialização usa RNA menos 1,60 m. "
+            "As cotas e barreiras da mancha vêm do LiDAR bruto CLIP_MOSAICO_LIDAR_RS.tif; "
+            "o FILL é usado somente no roteamento D8. O limiar hidráulico considera a "
+            "maior barreira do terreno ao longo do caminho até o rio principal."
+        ),
         **elevation_summary,
         **contour_summary,
         "contornos_extravasamento_path": str(
