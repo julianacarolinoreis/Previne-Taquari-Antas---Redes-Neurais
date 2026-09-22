@@ -1,6 +1,7 @@
 name: HEC twin Muçum forward ~5d
 
-# Robô de pesquisa: IFS → gêmeo HEC → plataforma Pages.
+# Robô de pesquisa: campo IFS espacial + gêmeo HEC legado + plataforma Pages.
+# O ΔN legado não é promovido como previsão espacial enquanto o modelo ainda usa proxies pontuais.
 # Não toca RNA. Não é alerta oficial.
 
 on:
@@ -9,15 +10,17 @@ on:
       - main
     paths:
       - ".github/workflows/hec-twin-mucum-forward.yml"
+      - "scripts/build_spatial_ifs_mucum.py"
       - "scripts/build_hec_twin_ifs_forcing_5d.py"
       - "scripts/run_hec_twin_mucum_forward_5d.py"
       - "scripts/hec_twin_nested_v17.py"
       - "scripts/hec_twin_mucum_bacia_calibracao.py"
       - "scripts/run_hec_twin_stz_mucum_calibrate.py"
       - "scripts/build_plataforma_hec_twin_mucum.py"
+      - "scripts/build_plataforma_hec_twin_mucum_v3.py"
       - "scripts/plataforma_hec_twin_mucum_ui.py"
+      - "scripts/plataforma_hec_twin_mucum_ui_v3.py"
   schedule:
-    # A cada 6 h, offset :12 (longe dos robôs RNA de 5 min).
     - cron: "12 */6 * * *"
   workflow_dispatch:
 
@@ -31,7 +34,7 @@ concurrency:
 jobs:
   forecast:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -44,14 +47,20 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: IFS forcing (Open-Meteo)
+      - name: Dependências do campo espacial
+        run: pip install --disable-pip-version-check shapely pyproj matplotlib
+
+      - name: IFS espacial · bacia contribuinte até Muçum
+        run: python -B scripts/build_spatial_ifs_mucum.py
+
+      - name: IFS forcing legado · gêmeo HEC
         run: python -B scripts/build_hec_twin_ifs_forcing_5d.py
 
-      - name: Gêmeo HEC Muçum ~5d
+      - name: Gêmeo HEC Muçum ~5d · diagnóstico legado
         run: python -B scripts/run_hec_twin_mucum_forward_5d.py
 
-      - name: Plataforma HEC/REC (mapa + feed)
-        run: python -B scripts/build_plataforma_hec_twin_mucum.py
+      - name: Plataforma HEC/REC v3
+        run: python -B scripts/build_plataforma_hec_twin_mucum_v3.py
 
       - name: Smoke schema forward + plataforma
         run: |
@@ -64,29 +73,17 @@ jobs:
           git config user.name "previne-hec-bot"
           git config user.email "previne-hec-bot@users.noreply.github.com"
 
-          # O smoke test do builder de decisão grava timestamp/README.
-          # Esses arquivos não pertencem a esta rodada HEC e deixavam o rebase sujo.
-          git restore -- \
-            assets/data/estudo_bacia_taquari_antas/decisao_previsao_nivel_multi_alvo_latest.json \
-            assets/data/estudo_bacia_taquari_antas/README.md || true
+          git restore --             assets/data/estudo_bacia_taquari_antas/decisao_previsao_nivel_multi_alvo_latest.json             assets/data/estudo_bacia_taquari_antas/README.md || true
 
-          git add -- \
-            assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_forcing_5d_latest.json \
-            assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json \
-            assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html \
-            assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d \
-            assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json \
-            assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html \
-            plataforma_hec_twin.html
+          git add --             assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum             assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_forcing_5d_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d             assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json             assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html             plataforma_hec_twin.html
 
           if git diff --cached --quiet; then
             echo "Sem mudança neste ciclo HEC."
             exit 0
           fi
 
-          git commit -m "bot: atualiza gêmeo HEC Muçum ~5d e plataforma [skip ci]"
+          git commit -m "bot: chuva espacial + plataforma HEC Muçum v3 [skip ci]"
 
-          # Outros robôs também publicam no main — rebase e tenta de novo.
           for attempt in 1 2 3 4 5; do
             if git push origin HEAD:main; then
               exit 0
@@ -96,22 +93,17 @@ jobs:
             if ! git rebase origin/main; then
               git rebase --abort || true
               git reset --hard origin/main
+              pip install --disable-pip-version-check shapely pyproj matplotlib
+              python -B scripts/build_spatial_ifs_mucum.py
               python -B scripts/build_hec_twin_ifs_forcing_5d.py
               python -B scripts/run_hec_twin_mucum_forward_5d.py
-              python -B scripts/build_plataforma_hec_twin_mucum.py
-              git add -- \
-                assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_forcing_5d_latest.json \
-                assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json \
-                assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html \
-                assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d \
-                assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json \
-                assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html \
-                plataforma_hec_twin.html
+              python -B scripts/build_plataforma_hec_twin_mucum_v3.py
+              git add --                 assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum                 assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_forcing_5d_latest.json                 assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json                 assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html                 assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d                 assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json                 assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html                 plataforma_hec_twin.html
               if git diff --cached --quiet; then
                 echo "Artefatos já publicados por outra execução."
                 exit 0
               fi
-              git commit -m "bot: atualiza gêmeo HEC Muçum ~5d e plataforma [skip ci]"
+              git commit -m "bot: chuva espacial + plataforma HEC Muçum v3 [skip ci]"
             fi
             sleep $((attempt * 2))
           done
