@@ -413,7 +413,8 @@ const EVENTS=JSON.parse(document.getElementById('event-data').textContent);
 const COTA_INUND=1500;
 const COLS=HAND.cols, ROWS=HAND.rows;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
-const CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_mancha.json';
+const CONTORNOS_VERSION='hand25-zero160-20260922-v1';
+const CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_mancha.json?v='+CONTORNOS_VERSION;
 // A grade absoluta só é habilitada quando é gerada da MESMA fonte do HAND.
 // O gerador local troca null pelo JSON same-source após concluir e validar a geração.
 const ELEVATION_URL='assets/data/santa_tereza_inundacao/mdt/altitude_terreno_lidar_10m.json'; // same-source MDT only
@@ -621,7 +622,18 @@ function ensureHand(){
   return handLoadPromise;
 }
 
-function loadContornos(){return fetch(CONTORNOS_URL).then(r=>r.json()).then(fc=>{contornos=fc;}).catch(e=>{console.error('falha ao carregar contornos', e); contornos=null;});}
+function loadContornos(){return fetch(CONTORNOS_URL,{cache:'no-store'}).then(r=>{
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}).then(fc=>{
+  const maxNivel=Math.max(...(fc.features||[]).map(f=>Number(f.properties&&f.properties.nivel_m)));
+  if(!Number.isFinite(maxNivel)||maxNivel<24.9){
+    throw new Error('contornos desatualizados: máximo '+maxNivel+' m; esperado 25,0 m');
+  }
+  contornos=fc;
+  contornos._maxNivel=maxNivel;
+  console.info('contornos Santa Tereza carregados', {version:CONTORNOS_VERSION,maxNivel,features:fc.features.length});
+}).catch(e=>{console.error('falha ao carregar contornos', e); contornos=null;});}
 
 function loadElevation(){
   if(!ELEVATION_URL){ elevationMeta=null; elevationArr=null; return Promise.resolve(); }
@@ -739,6 +751,9 @@ function renderFrame(){
   if(uncLayer) setLayer(uncLayer, hasFore?uMaxDm/10:-1);
   const areaFore=foreLayer?setLayer(foreLayer, hasFore?foreDm/10:-1):0;
   const areaNow=nowLayer?setLayer(nowLayer, hasNow?nowDm/10:-1):0;
+  if(hasFore && foreDm/10>15 && areaFore>0 && areaFore<800){
+    console.warn('Possível contorno antigo/cacheado', {foreHand:foreDm/10,areaFore,maxNivel:contornos&&contornos._maxNivel});
+  }
   if(foreOutlineLayer) setLayer(foreOutlineLayer, hasFore?foreDm/10:-1);
 
   // TP/FP/FN vs observado ainda precisa do raster (comparacao ponto a ponto
