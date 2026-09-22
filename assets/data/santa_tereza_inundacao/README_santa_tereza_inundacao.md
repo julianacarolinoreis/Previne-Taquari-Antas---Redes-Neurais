@@ -4,34 +4,32 @@ Atualizado em: 2026-09-01.
 
 ## Produção atual (site)
 
-A mancha publicada em `santa_tereza_inundacao.html` e
-`santa_tereza_previsao_inundacao.html` usa **HAND do mosaico 2 m**:
-drone (0,5 m, ortométrico via geoide IBGE) no centro urbano + ANADEM 30 m
-nas bordas. Ver `codigo_python/02_mdt_hand_mancha/gerar_mosaico_mdt.py` e
-`gerar_mancha_mosaico.py`. Contornos vetoriais:
-`contornos_mancha.json` / `contornos_extravasamento.json`.
+A página ao vivo `santa_tereza_previsao_inundacao.html` usa o **HAND 5 m**
+gerado a partir dos rasters de campo em `D:\\PREVINE\\hand\\santa tereza`.
+O rio principal é definido por `FLOWACC >= 50.000.000` células finas e o
+gerador atual segue o `FLOWDIR` D8 até o rio principal. A calibração vertical
+permanece separada: **1,60 m na régua = HAND 0**.
 
-Diagnóstico do talvegue do drone:
-`diagnostico_talvegue_drone.json`.
+O gerador `codigo_python/02_mdt_hand_mancha/gerar_hand_lidar_santa_tereza.py`
+também produz uma grade de altitude absoluta a ~10 m a partir do **mesmo**
+`FILL_CLIP_MOSAICO_LIDAR_RS.tif`. A página só aceita essa grade quando o
+metadado declara `same_source_as_hand: true`, e posiciona a imagem usando os
+bounds do próprio MDT.
 
-### MDT refinado (pesquisa, visual)
+### MDT refinado antigo — legado, não usar na página ao vivo
 
-As duas páginas também oferecem a camada opcional **“MDT refinado · pesquisa
-(visual)”**. Ela é derivada do mosaico 2 m, mas só substitui desvios isolados
-de pelo menos 1,5 m pela mediana local 5x5 dentro de um corredor de 40 m
-ancorado no talvegue ANADEM. O mosaico e a grade originais continuam
-preservados; não há interpolação fora da máscara nem promoção para uso
-hidrológico. Artefatos e critérios auditáveis:
+Os arquivos abaixo pertencem ao mosaico anterior drone + ANADEM e foram
+retirados da página ao vivo em 21/09/2026 porque não são espacialmente
+compatíveis com o HAND 5 m atual:
 
-- `mdt_refinamento_santa_tereza.json` — contagem, hashes e limites;
-- `mdt/altitude_terreno_10m_refinado.json` — grade usada nas consultas de
-  altitude do site;
-- `mdt/mdt_santa_tereza_10m_refinado_visual.png` — visualização colorida;
-- `codigo_python/02_mdt_hand_mancha/refinar_mdt_santa_tereza.py` — regeneração
-  reprodutível.
+- `mdt_refinamento_santa_tereza.json`;
+- `mdt/altitude_terreno_10m_refinado.json`;
+- `mdt/mdt_santa_tereza_10m_refinado_visual.png`;
+- `codigo_python/02_mdt_hand_mancha/refinar_mdt_santa_tereza.py`.
 
-O status permanece `visualization_only` até validação independente com máscara
-de água/ocupação do leito e referências de campo.
+Eles permanecem apenas para rastreabilidade histórica. Não devem ser usados
+para consulta de altitude, sobreposição visual ou cálculo junto com o HAND
+atual.
 
 ## Camadas preliminares legadas
 
