@@ -11,9 +11,17 @@ de entrada são insumos hidrológicos, não um HAND pronto:
   FLOWACC_CLIP_MOSAICO_LIDAR_RS.tif
 
 O rio principal é extraído por acumulação de fluxo >= 50.000.000 células finas
-(aproximadamente 50 km² de área contribuinte no raster de 1 m). O terreno é
-reamostrado para 5 m apenas para o payload leve do navegador; a calibração
-vertical permanece separada: régua 1,60 m = HAND 0.
+(aproximadamente 50 km² de área contribuinte no raster de 1 m). O HAND é
+calculado seguindo a direção D8 do escoamento até esse rio principal — nunca
+pela distância euclidiana ao canal. O código autodetecta a convenção D8
+(ESRI/Whitebox/ordinal) comparando a direção proposta com a acumulação e o
+terreno e interrompe a geração se a convenção não puder ser identificada com
+segurança. O terreno é reamostrado para 5 m apenas para o payload leve do
+navegador; a calibração vertical permanece separada: régua 1,60 m = HAND 0.
+
+O mesmo processo também gera uma grade de altitude absoluta a ~10 m derivada
+do MESMO FILL_CLIP_MOSAICO_LIDAR_RS usado no HAND. Essa é a única grade que
+deve ser usada para altitude/visualização junto com este HAND.
 
 Uso:
   python gerar_hand_lidar_santa_tereza.py
@@ -66,6 +74,7 @@ def read_dem(path: Path) -> tuple[np.ndarray, rasterio.Affine, object, rasterio.
 
 
 def read_flowacc(path: Path, shape: tuple[int, int], transform, crs, nodata: float | None) -> np.ndarray:
+    """Reamostra a acumulação na mesma grade do HAND preservando o valor local."""
     flowacc = np.zeros(shape, dtype="float32")
     with rasterio.open(path) as ds:
         reproject(
@@ -75,12 +84,239 @@ def read_flowacc(path: Path, shape: tuple[int, int], transform, crs, nodata: flo
             src_crs=ds.crs,
             dst_transform=transform,
             dst_crs=crs,
-            resampling=Resampling.max,
+            resampling=Resampling.nearest,
             src_nodata=nodata if nodata is not None else ds.nodata,
             dst_nodata=0,
         )
-    flowacc[~np.isfinite(flowacc) | (flowacc > 1e20)] = 0
+    flowacc[~np.isfinite(flowacc) | (flowacc > 1e20) | (flowacc < 0)] = 0
     return flowacc
+
+
+def read_flowdir(path: Path, shape: tuple[int, int], transform, crs) -> np.ndarray:
+    """Lê o D8 na grade do HAND sem interpolar os códigos de direção."""
+    flowdir = np.zeros(shape, dtype="int16")
+    with rasterio.open(path) as ds:
+        tmp = np.zeros(shape, dtype="float32")
+        reproject(
+            rasterio.band(ds, 1),
+            tmp,
+            src_transform=ds.transform,
+            src_crs=ds.crs,
+            dst_transform=transform,
+            dst_crs=crs,
+            resampling=Resampling.nearest,
+            src_nodata=ds.nodata,
+            dst_nodata=0,
+        )
+    tmp[~np.isfinite(tmp) | (tmp < 0) | (tmp > 255)] = 0
+    flowdir[:] = np.rint(tmp).astype("int16")
+    return flowdir
+
+
+D8_SCHEMES = {
+    # ArcGIS/ESRI D8: E, SE, S, SW, W, NW, N, NE.
+    "esri": {
+        1: (0, 1), 2: (1, 1), 4: (1, 0), 8: (1, -1),
+        16: (0, -1), 32: (-1, -1), 64: (-1, 0), 128: (-1, 1),
+    },
+    # Whitebox native pointer: NE, E, SE, S, SW, W, NW, N.
+    "whitebox": {
+        1: (-1, 1), 2: (0, 1), 4: (1, 1), 8: (1, 0),
+        16: (1, -1), 32: (0, -1), 64: (-1, -1), 128: (-1, 0),
+    },
+    # Algumas exportações usam 1..8 em sentido horário a partir do leste.
+    "ordinal": {
+        1: (0, 1), 2: (1, 1), 3: (1, 0), 4: (1, -1),
+        5: (0, -1), 6: (-1, -1), 7: (-1, 0), 8: (-1, 1),
+    },
+}
+
+
+def offset_slices(shape: tuple[int, int], dr: int, dc: int):
+    rows, cols = shape
+    src_r = slice(max(0, -dr), min(rows, rows - dr))
+    dst_r = slice(max(0, dr), min(rows, rows + dr))
+    src_c = slice(max(0, -dc), min(cols, cols - dc))
+    dst_c = slice(max(0, dc), min(cols, cols + dc))
+    return (src_r, src_c), (dst_r, dst_c)
+
+
+def detect_d8_scheme(flowdir: np.ndarray, flowacc: np.ndarray, dem: np.ndarray) -> tuple[str, dict[int, tuple[int, int]], dict]:
+    """Escolhe a convenção D8 que melhor aponta para maior acumulação/menor cota."""
+    scores: dict[str, dict[str, float | int]] = {}
+    for name, mapping in D8_SCHEMES.items():
+        good = 0
+        total = 0
+        for code, (dr, dc) in mapping.items():
+            src, dst = offset_slices(flowdir.shape, dr, dc)
+            mask = (
+                (flowdir[src] == code)
+                & np.isfinite(dem[src])
+                & np.isfinite(dem[dst])
+                & (flowacc[src] > 0)
+                & (flowacc[dst] > 0)
+            )
+            n = int(mask.sum())
+            if not n:
+                continue
+            plausible = (flowacc[dst] >= flowacc[src]) & (dem[dst] <= dem[src] + 2.0)
+            good += int((mask & plausible).sum())
+            total += n
+        scores[name] = {"good": good, "total": total, "score": (good / total if total else 0.0)}
+
+    best_name = max(scores, key=lambda k: float(scores[k]["score"]))
+    best = scores[best_name]
+    if int(best["total"]) < 1000 or float(best["score"]) < 0.55:
+        raise RuntimeError(
+            "Não foi possível identificar com segurança a convenção do FLOWDIR. "
+            f"Scores: {scores}. Não publique o HAND até conferir o raster de direção."
+        )
+    return best_name, D8_SCHEMES[best_name], scores
+
+
+def compute_hand_flowpath(
+    dem: np.ndarray,
+    flowdir: np.ndarray,
+    flowacc: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, dict]:
+    """Calcula HAND pela rota D8 até o rio principal usando pointer jumping."""
+    main_river = flowacc >= FLOWACC_THRESHOLD_FINE_CELLS
+    labels, n_components = ndimage.label(main_river)
+    if n_components == 0:
+        raise RuntimeError("nenhum trecho do rio principal atingiu o limiar de acumulação")
+    if n_components > 1:
+        sizes = np.bincount(labels.ravel())
+        sizes[0] = 0
+        main_river = labels == int(sizes.argmax())
+        n_components_kept = 1
+    else:
+        n_components_kept = n_components
+
+    scheme_name, mapping, scheme_scores = detect_d8_scheme(flowdir, flowacc, dem)
+
+    rows, cols = dem.shape
+    n = dem.size
+    if n >= np.iinfo(np.int32).max:
+        raise RuntimeError("grade grande demais para índices int32")
+    flat_index = np.arange(n, dtype=np.int32).reshape(dem.shape)
+    receiver = flat_index.copy()
+    valid = np.isfinite(dem)
+
+    for code, (dr, dc) in mapping.items():
+        src, dst = offset_slices(dem.shape, dr, dc)
+        src_view = receiver[src]
+        target_idx = flat_index[dst]
+        mask = (
+            (flowdir[src] == code)
+            & valid[src]
+            & valid[dst]
+            & (flowacc[dst] >= flowacc[src])
+            & (dem[dst] <= dem[src] + 2.0)
+        )
+        src_view[mask] = target_idx[mask]
+
+    # O rio principal é o destino final: qualquer caminho que o alcance para aqui.
+    receiver[main_river] = flat_index[main_river]
+
+    parent = receiver.ravel()
+    iterations = 0
+    for iterations in range(1, 33):
+        jumped = parent[parent]
+        if np.array_equal(jumped, parent):
+            parent = jumped
+            break
+        parent = jumped
+
+    unresolved = parent[parent] != parent
+    river_flat = main_river.ravel()
+    dem_flat = dem.ravel()
+    valid_flat = valid.ravel()
+    drains_to_main = valid_flat & (~unresolved) & river_flat[parent]
+
+    hand_flat = np.full(n, np.nan, dtype="float32")
+    values = dem_flat[drains_to_main] - dem_flat[parent[drains_to_main]]
+    # Pequenas diferenças negativas podem surgir por reamostragem; erros grandes
+    # indicam um caminho inconsistente e são descartados em vez de zerados.
+    acceptable = values >= -0.5
+    target_positions = np.flatnonzero(drains_to_main)
+    hand_flat[target_positions[acceptable]] = np.maximum(values[acceptable], 0.0)
+    hand = hand_flat.reshape(dem.shape)
+
+    drained_fraction = float(np.isfinite(hand).sum() / max(1, valid.sum()))
+    diagnostics = {
+        "d8_scheme": scheme_name,
+        "d8_scheme_scores": scheme_scores,
+        "pointer_jumping_iterations": iterations,
+        "unresolved_cells": int(unresolved.sum()),
+        "valid_terrain_cells": int(valid.sum()),
+        "cells_draining_to_main_river": int(np.isfinite(hand).sum()),
+        "drained_fraction": drained_fraction,
+        "componentes_detectados": int(n_components),
+        "componentes_mantidos": int(n_components_kept),
+        "celulas_rio_principal": int(main_river.sum()),
+        "hand_method": "D8 downstream routing to main river",
+    }
+    if drained_fraction < 0.05:
+        raise RuntimeError(
+            f"Só {drained_fraction:.1%} do terreno drenou ao rio principal; "
+            "isso indica FLOWDIR incompatível/reprojeção inadequada. Geração abortada."
+        )
+    return hand, main_river, diagnostics
+
+
+def write_same_source_elevation(dem: np.ndarray, transform, crs) -> dict:
+    """Gera altitude absoluta ~10 m da mesma fonte do HAND, com bounds próprios."""
+    out_dir = ROOT / "assets" / "data" / "santa_tereza_inundacao" / "mdt"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    step = 2  # dem já está a ~5 m
+    elev = dem[::step, ::step]
+    elev_transform = transform * transform.scale(step, step)
+    valid = np.isfinite(elev)
+
+    rgba = np.zeros((*elev.shape, 4), dtype=np.uint8)
+    dm = np.zeros(elev.shape, dtype=np.uint16)
+    dm[valid] = np.clip(np.rint(elev[valid] * 10.0), 0, 65535).astype(np.uint16)
+    rgba[..., 0] = (dm >> 8).astype(np.uint8)
+    rgba[..., 1] = (dm & 255).astype(np.uint8)
+    rgba[..., 3] = np.where(valid, 255, 0).astype(np.uint8)
+
+    png = out_dir / "altitude_terreno_lidar_10m.png"
+    Image.fromarray(rgba, mode="RGBA").save(png, optimize=True)
+
+    visual = np.zeros((*elev.shape, 4), dtype=np.uint8)
+    if valid.any():
+        lo, hi = np.nanpercentile(elev[valid], [2, 98])
+        norm = np.clip((elev - lo) / max(float(hi - lo), 1e-6), 0, 1)
+        shade = np.nan_to_num(norm * 255.0, nan=0.0).astype(np.uint8)
+        visual[..., 0] = shade
+        visual[..., 1] = shade
+        visual[..., 2] = shade
+        visual[..., 3] = np.where(valid, 180, 0).astype(np.uint8)
+    visual_png = out_dir / "mdt_santa_tereza_lidar_10m_visual.png"
+    Image.fromarray(visual, mode="RGBA").save(visual_png, optimize=True)
+
+    west, south, east, north = transform_bounds(
+        crs, "EPSG:4326", *array_bounds(*elev.shape, elev_transform)
+    )
+    meta = {
+        "cols": int(elev.shape[1]),
+        "rows": int(elev.shape[0]),
+        "W": float(west), "S": float(south), "E": float(east), "N": float(north),
+        "bounds": {"west": float(west), "south": float(south), "east": float(east), "north": float(north)},
+        "unidade": "m",
+        "escala": 0.1,
+        "codificacao": "uint16_decimetros_em_rg",
+        "resolucao_aproximada_m": float(FACTOR * step),
+        "crs": "EPSG:4326",
+        "fonte": "FILL_CLIP_MOSAICO_LIDAR_RS.tif",
+        "same_source_as_hand": True,
+        "png": png.name,
+        "visual_png": visual_png.name,
+        "status": "same_source_mdt_ready",
+    }
+    meta_path = out_dir / "altitude_terreno_lidar_10m.json"
+    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {"elevation_meta": str(meta_path), "elevation_png": str(png), "elevation_visual_png": str(visual_png), "elevation_bounds": meta["bounds"]}
 
 
 def inject_payload(page: Path, payload: dict) -> None:
@@ -158,31 +394,18 @@ def main() -> None:
 
     dem_path = args.source_dir / "FILL_CLIP_MOSAICO_LIDAR_RS.tif"
     acc_path = args.source_dir / "FLOWACC_CLIP_MOSAICO_LIDAR_RS.tif"
-    if not dem_path.exists() or not acc_path.exists():
-        raise FileNotFoundError(f"insumos ausentes: {dem_path} / {acc_path}")
+    dir_path = args.source_dir / "FLOWDIR_CLIP_MOSAICO_LIDAR_RS.tif"
+    missing = [path for path in (dem_path, acc_path, dir_path) if not path.exists()]
+    if missing:
+        raise FileNotFoundError("insumos ausentes: " + " / ".join(str(path) for path in missing))
 
     dem, transform, crs, source_bounds, source_resolution = read_dem(dem_path)
     with rasterio.open(acc_path) as ds:
         flowacc = read_flowacc(acc_path, dem.shape, transform, crs, ds.nodata)
+    flowdir = read_flowdir(dir_path, dem.shape, transform, crs)
 
-    main_river = flowacc >= FLOWACC_THRESHOLD_FINE_CELLS
-    labels, n_components = ndimage.label(main_river)
-    if n_components == 0:
-        raise RuntimeError("nenhum trecho do rio principal atingiu o limiar de acumulação")
-    # O limiar observado produz uma única rede em Santa Tereza; se a fonte
-    # mudar e fragmentar a rede, conserva-se o maior componente conectado.
-    if n_components > 1:
-        sizes = np.bincount(labels.ravel())
-        sizes[0] = 0
-        main_river = labels == int(sizes.argmax())
-        n_components_kept = 1
-    else:
-        n_components_kept = n_components
-
-    _, (river_rows, river_cols) = ndimage.distance_transform_edt(~main_river, return_indices=True)
-    hand = dem - dem[river_rows, river_cols]
-    hand[~np.isfinite(hand)] = np.nan
-    hand[hand < 0] = 0
+    hand, main_river, hand_diag = compute_hand_flowpath(dem, flowdir, flowacc)
+    elevation_summary = write_same_source_elevation(dem, transform, crs)
 
     # 250 é reservado como NoData no contrato do navegador.
     encoded = np.full(hand.shape, 250, dtype=np.uint8)
@@ -204,7 +427,7 @@ def main() -> None:
         "hand_zero_cm": HAND_ZERO_CM,
         "fonte": (
             "HAND 5 m derivado dos rasters novos de campo em D:/PREVINE/hand/santa tereza; "
-            "rio principal somente, FLOWACC >= 50000000 células finas; "
+            "roteamento D8 pelo FLOWDIR até o rio principal, FLOWACC >= 50000000 células finas; "
             "régua 1,60 m = HAND 0; produto de pesquisa, não é alerta oficial."
         ),
         "hand_png_b64": base64.b64encode(buf.getvalue()).decode("ascii"),
@@ -214,23 +437,23 @@ def main() -> None:
 
     diag = {
         "produto": "hand_lidar_santa_tereza",
-        "status": "gerado_localmente_nao_promovido",
+        "status": "gerado_localmente_requer_validacao_cartografica",
         "fonte_dir": str(args.source_dir),
         "terreno": str(dem_path),
         "acumulacao": str(acc_path),
+        "direcao_fluxo": str(dir_path),
         "resolucao_fonte_m": source_resolution,
         "fator_payload": FACTOR,
         "resolucao_payload_aprox_m": FACTOR * source_resolution,
         "shape_payload": [int(encoded.shape[0]), int(encoded.shape[1])],
         "flowacc_threshold_fine_cells": FLOWACC_THRESHOLD_FINE_CELLS,
-        "componentes_detectados": int(n_components),
-        "componentes_mantidos": int(n_components_kept),
-        "celulas_rio_principal": int(main_river.sum()),
+        **hand_diag,
         "hand_zero_cm": HAND_ZERO_CM,
         "hand_max_payload_m": MAX_HAND_M,
         "crs": str(crs),
         "bounds_lonlat": {"south": float(south), "west": float(west), "north": float(north), "east": float(east)},
-        "observacao": "O valor da régua é publicado bruto; a espacialização usa RNA menos 1,60 m.",
+        "observacao": "O valor da régua é publicado bruto; a espacialização usa RNA menos 1,60 m. O HAND segue o FLOWDIR até o rio principal; não usa distância euclidiana.",
+        **elevation_summary,
         **contour_summary,
     }
     args.diagnostic.parent.mkdir(parents=True, exist_ok=True)
