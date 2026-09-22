@@ -1966,6 +1966,26 @@
     return rows.filter(row=>row&&row.time&&basinFinite(row.mm)).slice(-6).map(row=>({time:row.time,value:Number(row.mm),unit:'mm'}));
   };
   const basinTimelineForecastRows=(st,metric,limit)=>{
+    if(metric==='level_cm'){
+      const level=st&&st.level;
+      const raw=level&&Array.isArray(level.forecasts)?level.forecasts:[];
+      const observed=level&&Array.isArray(level.series)?level.series:[];
+      const lastObservedMs=observed.length?Date.parse(observed[observed.length-1]&&observed[observed.length-1].time):NaN;
+      const floorMs=Math.max(Date.now(),Number.isFinite(lastObservedMs)?lastObservedMs:0);
+      const groups={};
+      raw.forEach(item=>{
+        const ms=Date.parse(item&&item.time);
+        const value=basinNumber(item&&item.cm);
+        if(!Number.isFinite(ms)||ms<=floorMs||value===null)return;
+        const key=new Date(ms).toISOString();
+        if(!groups[key])groups[key]=[];
+        groups[key].push({value:value,label:item&&item.label||'RNA'});
+      });
+      return Object.keys(groups).sort().slice(0,limit||6).map(time=>{
+        const items=groups[time],values=items.map(item=>item.value);
+        return {time:time,value:basinMedian(values),min:Math.min.apply(null,values),max:Math.max.apply(null,values),count:values.length,total:values.length,unit:'cm',labels:items.map(item=>item.label)};
+      });
+    }
     const start=basinForecastIndex(st);
     const forecast=st&&st.forecast;
     const times=forecast&&forecast.state==='available'&&Array.isArray(forecast.times)?forecast.times:[];
@@ -1978,7 +1998,7 @@
         const series=forecast.models&&forecast.models[modelId]&&forecast.models[modelId][metric];
         return Array.isArray(series)?series[index]:null;
       }).filter(basinFinite).map(Number);
-      rows.push({time:time,value:values.length?basinMedian(values):null,min:values.length?Math.min.apply(null,values):null,max:values.length?Math.max.apply(null,values):null,count:values.length,total:models.length,unit:metric==='level_cm'?'cm':'mm'});
+      rows.push({time:time,value:values.length?basinMedian(values):null,min:values.length?Math.min.apply(null,values):null,max:values.length?Math.max.apply(null,values):null,count:values.length,total:models.length,unit:'mm'});
     });
     return rows;
   };
@@ -2002,9 +2022,11 @@
       ?basinFormat(forecastRows[0].value,isLevel?'level_cm':'precipitation')
       :'indisponível';
     const forecastNote=forecastRows.length
-      ?'primeiro horário '+basinDateTime(forecastRows[0].time)+' · '+forecastRows[0].count+'/'+forecastRows[0].total+' modelo(s)'
+      ?(isLevel
+        ?'primeiro alvo '+basinDateTime(forecastRows[0].time)+' · '+forecastRows[0].count+' RNA(s) atual(is)'
+        :'primeiro horário '+basinDateTime(forecastRows[0].time)+' · '+forecastRows[0].count+'/'+forecastRows[0].total+' modelo(s)')
       :'não há horário futuro válido no snapshot';
-    const rangeText=row=>row.value===null?'indisponível':basinFormat(row.value,isLevel?'level_cm':'precipitation')+(row.count?' · '+row.count+'/'+row.total+' modelo(s)':'');
+    const rangeText=row=>row.value===null?'indisponível':basinFormat(row.value,isLevel?'level_cm':'precipitation')+(row.count?(isLevel?' · '+row.count+' RNA(s)':' · '+row.count+'/'+row.total+' modelo(s)'):'');
     let html='<div class="station-timeline"><div class="station-timeline-heading"><span>Linha do tempo · '+basinEscape(basinTimelineDetail(metric))+'</span><small>datas e horários em Brasília (BRT)</small></div>';
     html+='<div class="station-timeline-summary"><div class="station-timeline-card observed"><span class="station-timeline-card-label">Observado</span><strong class="station-timeline-card-value">'+basinEscape(observedValue)+'</strong><span class="station-timeline-card-note">último valor válido · '+basinEscape(observedRows.length?basinDateTime(observedRows[observedRows.length-1].time):'sem horário válido')+'<br>'+basinEscape(observedNote)+'</span></div>';
     html+='<div class="station-timeline-card forecast"><span class="station-timeline-card-label">Previsto</span><strong class="station-timeline-card-value">'+basinEscape(forecastValue)+'</strong><span class="station-timeline-card-note">'+basinEscape(forecastNote)+'<br>'+basinEscape(forecastRows.length?'próximos '+forecastRows.length+' horários exibidos · último '+basinDateTime(forecastRows[forecastRows.length-1].time):'')+'</span></div></div>';
@@ -2032,12 +2054,20 @@
       time:row&&row.time,
       value:basinNumber(row&&row.cm)
     })).filter(row=>row.value!==null&&basinChartTime(row.time)):[];
+    const levelForecastFloor=Math.max(
+      Date.now(),
+      observed.length&&Number.isFinite(Date.parse(observed[observed.length-1].time))
+        ?Date.parse(observed[observed.length-1].time):0
+    );
     const forecasts=level&&Array.isArray(level.forecasts)?level.forecasts.map(item=>({
       time:item&&item.time,
       value:basinNumber(item&&item.cm),
       label:item&&item.label||'RNA',
       color:item&&item.color||'#64748b'
-    })).filter(item=>item.value!==null&&basinChartTime(item.time)):[];
+    })).filter(item=>{
+      const ms=Date.parse(item.time);
+      return item.value!==null&&basinChartTime(item.time)&&Number.isFinite(ms)&&ms>levelForecastFloor;
+    }).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time)):[];
     if(!observed.length&&!forecasts.length){
       const empty=document.createElement('div');
       empty.className='station-empty';
@@ -2095,7 +2125,9 @@
     });
     const labels=[];
     if(observed.length)labels.push(observed[0]);
-    if(lastObserved)labels.push(lastObserved);
+    // A linha vertical já marca o último observado como "agora". Não repetir
+    // o mesmo horário no eixo quando o primeiro alvo RNA está muito próximo.
+    if(!forecasts.length&&lastObserved)labels.push(lastObserved);
     if(forecasts.length)labels.push(forecasts[forecasts.length-1]);
     const seen=new Set();
     labels.forEach(item=>{
@@ -2365,15 +2397,24 @@
       const values=forecast&&forecast.models&&forecast.models[modelId]&&forecast.models[modelId][BASIN_DETAIL_METRIC];
       return Array.isArray(values)&&values.some(basinFinite);
     }).length;
-    const chartCoverage=chartModelCount+'/'+selectedCount+' modelo(s) selecionado(s) com valor nesta estação';
+    const currentRnas=level&&Array.isArray(level.forecasts)?level.forecasts.filter(item=>{
+      const ms=Date.parse(item&&item.time);
+      return basinFinite(item&&item.cm)&&Number.isFinite(ms)&&ms>Date.now();
+    }):[];
+    const chartCoverage=BASIN_DETAIL_METRIC==='level_cm'
+      ?currentRnas.length+' RNA(s) com alvo futuro nesta estação'
+      :chartModelCount+'/'+selectedCount+' modelo(s) selecionado(s) com valor nesta estação';
     const chartNote=BASIN_DETAIL_METRIC==='precipitation'
       ?'barras = observado · linhas = previsto; datas e horários completos estão na linha do tempo abaixo · '+chartCoverage
       :BASIN_DETAIL_METRIC==='level_cm'
-        ?'linha contínua = observado · tracejado = previsto; datas e horários completos estão na linha do tempo abaixo'
+        ?'linha contínua = observado · tracejado = somente RNA com alvo ainda futuro; previsões vencidas não são desenhadas'
         :'linhas = previsão dos modelos selecionados · '+chartCoverage+' · observação direta não publicada para esta métrica';
+    const coverageTail=BASIN_DETAIL_METRIC==='level_cm'
+      ?' Os modelos meteorológicos não controlam este gráfico; aqui entram apenas telemetria e RNAs de nível.'
+      :' A previsão usa '+String((BASIN_FEED&&BASIN_FEED.scope&&BASIN_FEED.scope.forecast_location_count)||'—')+' pontos meteorológicos únicos para '+String((BASIN_FEED&&BASIN_FEED.scope&&BASIN_FEED.scope.station_count)||'—')+' registros de estação.';
     html+=basinRenderTimeline(st,BASIN_DETAIL_METRIC);
     html+='<div class="station-chart-wrap"><div class="station-chart-title"><span>'+basinEscape(chartDef.label)+' · '+basinEscape(chartDef.unit||'')+'</span><small>'+basinEscape(chartNote)+'</small></div><div class="station-chart" id="station-chart"></div><div class="station-chart-legend" id="station-chart-legend"></div></div>';
-    html+='<div class="station-coverage-note"><strong>Cobertura desta leitura:</strong> '+basinEscape(basinMetricGlobalCoverageText(BASIN_DETAIL_METRIC))+' · nesta estação, '+basinEscape(chartCoverage)+'. A previsão usa '+basinEscape(String((BASIN_FEED&&BASIN_FEED.scope&&BASIN_FEED.scope.forecast_location_count)||'—'))+' pontos meteorológicos únicos para '+basinEscape(String((BASIN_FEED&&BASIN_FEED.scope&&BASIN_FEED.scope.station_count)||'—'))+' registros de estação.</div>';
+    html+='<div class="station-coverage-note"><strong>Cobertura desta leitura:</strong> '+basinEscape(basinMetricGlobalCoverageText(BASIN_DETAIL_METRIC))+' · nesta estação, '+basinEscape(chartCoverage)+'.'+basinEscape(coverageTail)+'</div>';
     const forecastMessage=basinFeedIsStale()
       ?'O snapshot da previsão meteorológica expirou e não é usado como previsão atual; aguardando nova rodada.'
       :forecast&&forecast.state==='available'
