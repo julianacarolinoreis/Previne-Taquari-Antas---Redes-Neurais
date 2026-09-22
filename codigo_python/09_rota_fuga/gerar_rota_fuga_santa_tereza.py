@@ -53,7 +53,7 @@ def caminhos_saida(cenario):
             os.path.join(RAIZ, "assets", "data", "rota_fuga_santa_tereza_cenario.json"))
 
 # ------------------------------------------------------------------ parâmetros
-ZERO_REGUA_M = 15.0         # 15 m na régua = início do extravasamento adotado (HAND 0)
+ZERO_REGUA_M = 1.60         # calibração de campo: 1,60 m na régua = HAND 0
 BLOCO_M = 30.0              # tamanho da "quadra" na Etapa 1
 HAND_MAX_HABITAVEL = 12.0   # ignora encostas altas (não é área urbana de risco)
 VEL_IDOSO_MS = 0.9          # caminhada de idoso/criança (m/s) — conservador
