@@ -22,21 +22,44 @@ def load_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def q_to_stage(q_m3s: float, segments: list[dict]) -> dict:
+def q_to_stage(q_m3s: float, segments: list[dict], preferred_segment: int | None = None) -> dict:
+    """Invert the published piecewise curve while preserving the active branch.
+
+    The Muçum fitted segments overlap in Q and are not continuous if inversion
+    jumps between equations by discharge alone. During a forecast that starts
+    on segment 3, stay on that segment while its computed stage remains inside
+    the segment's declared stage range; only then move to an adjacent branch.
+    """
+    ordered = list(segments)
+    if preferred_segment is not None:
+        ordered.sort(key=lambda seg: 0 if int(seg.get("segment_number") or -1) == int(preferred_segment) else 1)
+
     candidates = []
-    for seg in segments:
+    for seg in ordered:
         a = float(seg["a"]); h0 = float(seg["h0_m"]); n = float(seg["n"])
         if a <= 0 or n <= 0:
             continue
         h = h0 + (max(float(q_m3s), 0.0) / a) ** (1.0 / n)
         stage_cm = h * 100.0
         lo, hi = float(seg["stage_min_cm"]), float(seg["stage_max_cm"])
-        candidates.append({
+        row = {
             "stage_cm": stage_cm,
             "inside": lo - 1e-6 <= stage_cm <= hi + 1e-6,
             "segment_number": seg.get("segment_number"),
             "lo": lo, "hi": hi,
-        })
+        }
+        candidates.append(row)
+        if row["inside"] and (
+            preferred_segment is None
+            or int(seg.get("segment_number") or -1) == int(preferred_segment)
+        ):
+            return {
+                "ok": True,
+                "stage_cm": round(float(stage_cm), 2),
+                "segment_number": seg.get("segment_number"),
+                "extrapolated": False,
+            }
+
     inside = [x for x in candidates if x["inside"]]
     if inside:
         p = inside[0]
@@ -87,7 +110,8 @@ def main():
 
     curve = load_json(CURVE)
     segs = (((curve.get("neighbors_official_curves_NOT_for_STZ") or {}).get("86510000") or {}).get("segments") or [])
-    stages_raw = [q_to_stage(v, segs) for v in q]
+    preferred_segment = int((inp.get("initial_state") or {}).get("rating_segment") or 3)
+    stages_raw = [q_to_stage(v, segs, preferred_segment=preferred_segment) for v in q]
     n_abs = [x["stage_cm"] for x in stages_raw]
     n0_obs = float((inp.get("initial_state") or {})["stage_cm"])
     q0_obs = float((inp.get("initial_state") or {})["q_m3s"])
