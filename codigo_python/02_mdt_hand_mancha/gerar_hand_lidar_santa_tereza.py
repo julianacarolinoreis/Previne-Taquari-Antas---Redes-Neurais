@@ -61,7 +61,7 @@ FACTOR = 5
 FLOWACC_THRESHOLD_FINE_CELLS = 50_000_000
 MAX_HAND_M = 25.0
 HAND_ZERO_CM = 160
-CONTOUR_LEVELS_M = [round(x, 1) for x in np.arange(0, 15.01, 0.1)]
+CONTOUR_LEVELS_M = [round(x, 1) for x in np.arange(0, MAX_HAND_M + 0.01, 0.1)]
 CONTOUR_FACTOR = 2
 
 
@@ -587,6 +587,8 @@ def main() -> None:
         **hand_diag,
         "hand_zero_cm": HAND_ZERO_CM,
         "hand_max_payload_m": MAX_HAND_M,
+        "contour_max_m": MAX_HAND_M,
+        "spatialization_rule": "nivel_regua_m - 1.60 m",
         "crs": str(crs),
         "bounds_lonlat": {"south": float(south), "west": float(west), "north": float(north), "east": float(east)},
         "observacao": "O valor da régua é publicado bruto; a espacialização usa RNA menos 1,60 m. O HAND segue o FLOWDIR até o rio principal; não usa distância euclidiana.",
