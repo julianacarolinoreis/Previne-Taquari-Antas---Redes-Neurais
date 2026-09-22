@@ -40,15 +40,18 @@ $newOutputs = @(
 )
 $allowed = @($trackedOutputs + $newOutputs) | ForEach-Object { $_.Replace("\","/") }
 
-# Nao mistura a publicacao com outros trabalhos locais.
+# Alteracoes locais de outros projetos sao preservadas e NAO entram no commit.
+# O script adiciona explicitamente apenas os arquivos do pacote de Santa Tereza.
 $dirty = @(& git status --porcelain=v1)
+$unrelated = @()
 foreach ($line in $dirty) {
     if (-not $line) { continue }
     $p = $line.Substring(3).Trim().Replace("\","/")
     if ($p -like "* -> *") { $p = ($p -split " -> ")[-1] }
-    if ($allowed -notcontains $p) {
-        throw "Ha alteracao local fora do pacote de Santa Tereza: $p. Publicacao abortada para nao misturar trabalhos."
-    }
+    if ($allowed -notcontains $p) { $unrelated += $p }
+}
+if ($unrelated.Count -gt 0) {
+    Write-Host ("Aviso: preservando alteracoes locais de outros projetos (nao serao commitadas): {0}" -f ($unrelated -join ", ")) -ForegroundColor Yellow
 }
 
 Write-Host "1/6 Atualizando a base..." -ForegroundColor Cyan
