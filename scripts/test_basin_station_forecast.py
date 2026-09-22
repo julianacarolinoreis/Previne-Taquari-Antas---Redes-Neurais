@@ -218,6 +218,12 @@ class BasinStationForecastTests(unittest.TestCase):
                     "nivel_previsto_cm": 348,
                     "modelo": "RNA-2H",
                 },
+                "4h_vencida": {
+                    "horizonte_h": 4,
+                    "hora_alvo": "2026-09-20T08:00:00",
+                    "nivel_previsto_cm": 420,
+                    "modelo": "RNA-4H-ANTIGA",
+                },
                 "8h": {
                     "horizonte_h": 8,
                     "hora_alvo": "2026-09-20T17:00:00",
