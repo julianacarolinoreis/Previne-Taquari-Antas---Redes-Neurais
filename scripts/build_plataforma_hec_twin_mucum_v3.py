@@ -204,16 +204,23 @@ def build_feed_v3() -> dict:
     forward_pkg = base.load_json(OUT / "hec_twin_mucum_forward_5d_latest.json") or {}
     s = forward_pkg.get("series_primary") or {}
     qs = forward_pkg.get("quanto_sobe") or {}
+    forcing_used = forward_pkg.get("forcing") or {}
+    is_spatial = bool(forcing_used.get("spatial_field_full")) and not bool(forcing_used.get("point_proxy_not_areal_mask", True))
     feed["rainfall_runoff_result"] = {
         "available": bool(s.get("time_utc") and s.get("q_mucum_m3s")),
         "generated_at_utc": forward_pkg.get("generated_at_utc"),
-        "status": "experimental_legacy_point_proxy",
-        "label_pt": "Resultado do modelo chuva–vazão disponível",
+        "status": "spatial_ifs_rainfall_runoff_ready" if is_spatial else "experimental_legacy_point_proxy",
+        "label_pt": "Resultado chuva–vazão com IFS espacial" if is_spatial else "Resultado do modelo chuva–vazão disponível",
         "warning_pt": (
+            "Esta rodada usa o campo IFS espacial completo, agregado separadamente dentro de cada "
+            "zona hidrológica do gêmeo. É um resultado de pesquisa do gêmeo HEC, não alerta oficial."
+            if is_spatial else
             "Esta série é a saída executável do gêmeo HEC atual. A chuva que gerou esta saída "
             "ainda é a forçante proxy antiga, não o campo IFS espacial completo. Mostrar para "
             "diagnóstico; não misturar com a chuva espacial como se já estivesse acoplada."
         ),
+        "forcing_spatial": is_spatial,
+        "forcing": forcing_used,
         "time_utc": s.get("time_utc") or [],
         "q_mucum_m3s": s.get("q_mucum_m3s") or [],
         "q_antas_m3s": s.get("q_antas_m3s") or [],
