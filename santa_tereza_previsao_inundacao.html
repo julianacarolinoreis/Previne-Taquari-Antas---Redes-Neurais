@@ -665,7 +665,7 @@ function handAt(lat,lon){ // decimetros no ponto, ou null
   const fx=Math.floor((lon-HAND.W)/(HAND.E-HAND.W)*COLS), fy=Math.floor((HAND.N-lat)/(HAND.N-HAND.S)*ROWS);
   if(fx<0||fx>=COLS||fy<0||fy>=ROWS) return null;
   const value=handArr[fy*COLS+fx];
-  return value===250?null:value;
+  return value===255?null:value;
 }
 function elevationAt(lat,lon){
   if(!elevationMeta||!elevationArr) return null;
