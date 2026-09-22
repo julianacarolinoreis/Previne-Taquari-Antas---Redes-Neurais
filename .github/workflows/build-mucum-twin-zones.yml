@@ -1,0 +1,52 @@
+name: Build Muçum twin spatial zones
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_mucum_twin_subbasin_zones.py"
+      - ".github/workflows/build-mucum-twin-zones.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mucum-twin-zones
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install geospatial dependencies
+        run: pip install --disable-pip-version-check geopandas rasterio whitebox pyproj shapely numpy
+      - name: Delineate nested model zones
+        run: python -B scripts/build_mucum_twin_subbasin_zones.py
+      - name: Publish small reusable zone artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-hec-bot"
+          git config user.email "previne-hec-bot@users.noreply.github.com"
+          git add assets/data/estudo_bacia_taquari_antas/mucum_twin_subbasin_zones.geojson                   assets/data/estudo_bacia_taquari_antas/mucum_twin_subbasin_zones_report.json
+          if git diff --cached --quiet; then
+            echo "No zone changes."
+            exit 0
+          fi
+          git commit -m "bot: build Muçum twin spatial zones [skip ci]"
+          for attempt in 1 2 3 4; do
+            if git push origin HEAD:main; then exit 0; fi
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort || true; git reset --hard origin/main; exit 1; }
+            sleep $((attempt*2))
+          done
+          exit 1
