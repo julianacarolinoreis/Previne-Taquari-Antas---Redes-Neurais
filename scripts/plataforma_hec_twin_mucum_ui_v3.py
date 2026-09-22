@@ -168,6 +168,10 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
         </div>
         <h3 class="panel-title">Nós principais</h3>
         <div class="node-list" id="hydroNodeList"></div>
+        <details style="margin-top:14px">
+          <summary style="cursor:pointer;font-weight:700;font-size:12px">Inventário por UG</summary>
+          <div class="side-list" id="ugInventory" style="margin-top:8px;max-height:260px"></div>
+        </details>
       </article>
     </div>
   </section>
