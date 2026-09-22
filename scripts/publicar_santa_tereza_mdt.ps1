@@ -119,11 +119,17 @@ if ($page -notmatch "stageToSpatialHand\(cm,zeroCm=HAND_ZERO_DEFAULT_CM\)") {
 
 Write-Host ("   D8={0}; receptores={1:P2}; drena_ao_rio={2:P2}; contornos={3}" -f $d.d8_scheme,[double]$d.receiver_fraction_assigned,[double]$d.drained_fraction,[int]$d.contornos_features) -ForegroundColor Green
 
-Write-Host "4/6 Conferindo se a main nao mudou durante o processamento..." -ForegroundColor Cyan
+Write-Host "4/6 Conferindo atualizacoes da main durante o processamento..." -ForegroundColor Cyan
 Invoke-Git fetch origin
 $latest = (& git rev-parse origin/main).Trim()
 if ($latest -ne $base) {
-    throw "A origin/main mudou enquanto o raster era processado. Rode o mesmo comando novamente para regenerar sobre a versao mais nova."
+    $remoteChanged = @(& git diff --name-only "$base..$latest") | ForEach-Object { $_.Trim().Replace("\\","/") } | Where-Object { $_ }
+    $overlap = @($remoteChanged | Where-Object { $allowed -contains $_ })
+    if ($overlap.Count -gt 0) {
+        throw "A main mudou em arquivos do proprio produto durante o processamento: $($overlap -join ', '). Rode novamente para evitar sobrescrever mudancas reais."
+    }
+    Write-Host ("   A main avancou apenas em arquivos independentes: {0}" -f ($remoteChanged -join ", ")) -ForegroundColor Yellow
+    Invoke-Git merge --ff-only origin/main
 }
 
 Write-Host "5/6 Criando commit somente com o produto de Santa Tereza..." -ForegroundColor Cyan
@@ -142,9 +148,27 @@ if ($LASTEXITCODE -eq 0) {
 Invoke-Git commit -m "publish(st): atualiza MDT LiDAR, HAND e agua conectada"
 
 Write-Host "6/6 Publicando na main..." -ForegroundColor Cyan
-& git push origin HEAD:main
-if ($LASTEXITCODE -ne 0) {
-    throw "O push foi recusado (provavelmente a main avancou). Rode este mesmo script novamente; nao use force push."
+$published = $false
+for ($attempt = 1; $attempt -le 5; $attempt++) {
+    Invoke-Git fetch origin
+    $remote = (& git rev-parse origin/main).Trim()
+    $head = (& git rev-parse HEAD).Trim()
+    & git merge-base --is-ancestor $remote $head
+    $remoteAlreadyIncluded = ($LASTEXITCODE -eq 0)
+    if (-not $remoteAlreadyIncluded) {
+        Write-Host "   A main avancou novamente; reaplicando o commit sobre a versao atual (tentativa $attempt/5)..." -ForegroundColor Yellow
+        & git rebase origin/main
+        if ($LASTEXITCODE -ne 0) {
+            & git rebase --abort 2>$null
+            throw "Conflito real com a main. Publicacao abortada sem force push."
+        }
+    }
+    & git push origin HEAD:main
+    if ($LASTEXITCODE -eq 0) { $published = $true; break }
+    Start-Sleep -Seconds 2
+}
+if (-not $published) {
+    throw "A main mudou repetidamente e o push nao estabilizou apos 5 tentativas. Nada foi forcado."
 }
 
 Write-Host ""
