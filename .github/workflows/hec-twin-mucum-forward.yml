@@ -12,6 +12,9 @@ on:
       - ".github/workflows/hec-twin-mucum-forward.yml"
       - "scripts/build_spatial_ifs_mucum.py"
       - "scripts/build_hec_twin_ifs_forcing_5d.py"
+      - "scripts/build_hec_twin_ifs_spatial_forcing_5d.py"
+      - "scripts/build_mucum_twin_subbasin_zones.py"
+      - "assets/data/estudo_bacia_taquari_antas/mucum_twin_subbasin_zones.geojson"
       - "scripts/build_hec_hms_spatial_forecast_mucum.py"
       - "scripts/postprocess_hec_hms_spatial_forecast_mucum.py"
       - "scripts/run_hec_twin_mucum_forward_5d.py"
@@ -55,11 +58,11 @@ jobs:
       - name: IFS espacial · bacia contribuinte até Muçum
         run: python -B scripts/build_spatial_ifs_mucum.py
 
-      - name: IFS forcing legado · gêmeo HEC
-        run: python -B scripts/build_hec_twin_ifs_forcing_5d.py
+      - name: IFS forcing espacial · sub-bacias do gêmeo HEC
+        run: python -B scripts/build_hec_twin_ifs_spatial_forcing_5d.py
 
-      - name: Gêmeo HEC Muçum ~5d · diagnóstico legado
-        run: python -B scripts/run_hec_twin_mucum_forward_5d.py
+      - name: Gêmeo HEC Muçum ~5d · chuva espacial
+        run: python -B scripts/run_hec_twin_mucum_forward_5d.py --forcing assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_spatial_forcing_5d_latest.json
 
       - name: Monta projeto HEC-HMS espacial · IFS completo
         run: python -B scripts/build_hec_hms_spatial_forecast_mucum.py
@@ -138,8 +141,9 @@ jobs:
               git reset --hard origin/main
               pip install --disable-pip-version-check shapely pyproj matplotlib
               python -B scripts/build_spatial_ifs_mucum.py
-              python -B scripts/build_hec_twin_ifs_forcing_5d.py
-              python -B scripts/run_hec_twin_mucum_forward_5d.py
+              python -B scripts/build_spatial_ifs_mucum.py
+              python -B scripts/build_hec_twin_ifs_spatial_forcing_5d.py
+              python -B scripts/run_hec_twin_mucum_forward_5d.py --forcing assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_spatial_forcing_5d_latest.json
               python -B scripts/build_hec_hms_spatial_forecast_mucum.py
               HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
               chmod +x "$HEC_SH"
