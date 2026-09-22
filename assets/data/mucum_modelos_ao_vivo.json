@@ -1,12 +1,20 @@
 {
-  "gerado_em": "2026-08-28",
-  "status": "selecionado_para_ao_vivo_comparativo",
+  "gerado_em": "2026-09-21",
+  "status": "4h_q83_006_promovido_ao_vivo",
   "fonte_selecao": "assets/data/mucum_top10_q59_manifest.json",
   "fonte_pontos_detalhados": "assets/data/mucum_auditaveis_series.json",
   "criterio_selecao": "Top 5 por horizonte por score_equilibrio = min(PERS_treino, PERS_validacao, PERS_teste), após reconciliação MAT–Excel–CSV. Aqui são publicados os ranks 1 e 2 como principal e comparativo; isto não transforma a RNA experimental em alerta oficial.",
   "contrato_chuva": {
-    "estacoes_media_4": ["86510000", "86720000", "86472000", "86160000"],
-    "estacoes_montante_2": ["86510000", "86472000"],
+    "estacoes_media_4": [
+      "86510000",
+      "86720000",
+      "86472000",
+      "86160000"
+    ],
+    "estacoes_montante_2": [
+      "86510000",
+      "86472000"
+    ],
     "regra": "media_horaria_4est_min2_sem_preenchimento;acumulo_estrito",
     "sem_interpolacao": true,
     "sem_preenchimento": true,
@@ -14,65 +22,153 @@
   },
   "modelos": [
     {
-      "modelo_id": "020_alt_MUC_H04_V30_LJJ_CA_CHUVA_AUDITADO_SEM32_R05_T33_V18-20-21",
-      "combo_id": "020_alt_MUC_H04_V30_LJJ_CA_CHUVA",
+      "modelo_id": "006_MUC_H04_STZ_RECORTE_CONTROLE_15INPUTS_NH32_S06",
+      "combo_id": "006_MUC_H04_STZ_RECORTE_CONTROLE_15INPUTS_NH32_S06",
       "horizonte_h": 4,
       "chave_feed": "4h",
-      "rotulo": "4h principal · rank 1",
+      "rotulo": "4h principal · q83 rank 1",
       "papel": "principal",
       "selection_rank": 1,
-      "versao": "q59_rank1",
+      "versao": "q83_rank1_20260919",
       "tipo_modelo": "ALT",
-      "fonte_rodada": "59_FILA_MATLAB_MUCUM_HIDRO_AUDITADA_15_20260824",
-      "arquivo_mat": "assets/mat/4H_ALT__020_alt_MUC_H04_V30_LJJ_CA_CHUVA_AUDITADO_SEM32_R05_T33_V18-20-21.mat",
-      "modelo_sha256": "BDECC64CABAC5766CB2CD2BE4AFD3B19D4D82154EBE1A79FEED821B98135CAE8",
-      "arquivo_excel": "assets/audit_workbooks/4H_ALT__020_alt_MUC_H04_V30_LJJ_CA_CHUVA_AUDITADO_SEM32_R05_T33_V18-20-21.xlsx",
-      "arquivo_excel_sha256": "1E36EB8621B51D1400A7D636309719F25BDB0FD71D7A8BC84B9B81E714D2DD89",
-      "referencia_auditavel": "assets/audit_workbooks/4H_ALT__020_alt_MUC_H04_V30_LJJ_CA_CHUVA_AUDITADO_SEM32_R05_T33_V18-20-21.xlsx",
-      "referencia_auditavel_sha256": "1E36EB8621B51D1400A7D636309719F25BDB0FD71D7A8BC84B9B81E714D2DD89",
-      "pontos_detalhados": "assets/data/mucum_auditaveis_series.json",
+      "fonte_rodada": "Q82_STZ_EARLY_RECESSION_CAP12 · EXATO_TMA_REBUILD_20260919",
+      "arquivo_mat": "assets/mat/4H_ALT__006_MUC_H04_STZ_RECORTE_CONTROLE_15INPUTS_NH32_S06.mat",
+      "arquivo_excel": "assets/audit_workbooks/4H_ALT__006_MUC_H04_STZ_RECORTE_CONTROLE_15INPUTS_NH32_S06.xlsx",
+      "referencia_auditavel": "assets/audit_workbooks/4H_ALT__006_MUC_H04_STZ_RECORTE_CONTROLE_15INPUTS_NH32_S06.xlsx",
+      "pontos_detalhados": "assets/data/mucum_q83/mucum_q83_event_metrics.csv",
+      "criterio_selecao": "q83: score_equilibrio = min(PERS_treino, PERS_validacao, PERS_teste); promovido ao vivo em 2026-09-21.",
       "metricas_auditoria": {
-        "score_equilibrio": 0.8362946417,
-        "PERS_treino": 0.8362946417,
-        "PERS_validacao": 0.8919877252,
-        "PERS_teste": 0.8456785252,
-        "MAE_teste_cm": 12.4572321697,
-        "N_teste": 29,
-        "test_events": [33],
-        "validation_events": [18, 20, 21]
+        "score_equilibrio": 0.8295183947,
+        "PERS_geral": 0.8487475519,
+        "PERS_treino": 0.8295183947,
+        "PERS_validacao": 0.8483507206,
+        "PERS_teste": 0.9011146594,
+        "MAE_teste_cm": 35.6711845093,
+        "MAE_validacao_cm": 96.0978948711,
+        "RMSE_teste_cm": 42.3948439045,
+        "E95_teste_cm": 80.942971186,
+        "N_geral": 627,
+        "N_treino": 482,
+        "N_validacao": 24,
+        "N_teste": 121,
+        "test_events": [
+          31,
+          34,
+          37
+        ],
+        "validation_events": [
+          35
+        ]
       },
-      "contrato_chuva": "chuva observada ANA horária exata; acumulado estrito de 12 h por posto; sem interpolação ou preenchimento",
+      "contrato_chuva": "não se aplica; todos os 15 inputs são níveis/derivadas ANA em hora cheia exata",
+      "input_contract_version": "hourly_exact_v1",
+      "input_grade": "hourly_exact",
       "inputs": [
-        {"ordem": 1, "nome": "nivel_86510000", "estacao": "86510000", "tipo": "nivel", "defasagem_h": 0},
-        {"ordem": 2, "nome": "difn1h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 1},
-        {"ordem": 3, "nome": "difn2h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 2},
-        {"ordem": 4, "nome": "difn4h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 4},
-        {"ordem": 5, "nome": "acel1h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 1},
-        {"ordem": 6, "nome": "acel2h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 2},
-        {"ordem": 7, "nome": "acel4h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 4},
-        {"ordem": 8, "nome": "acel8h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 8},
-        {"ordem": 9, "nome": "acel12h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 12},
-        {"ordem": 10, "nome": "nivel_86472000", "estacao": "86472000", "tipo": "nivel", "defasagem_h": 0},
-        {"ordem": 11, "nome": "difn1h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 1},
-        {"ordem": 12, "nome": "difn2h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 2},
-        {"ordem": 13, "nome": "difn4h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 4},
-        {"ordem": 14, "nome": "acel12h_86472000", "estacao": "86472000", "tipo": "acel_nivel", "defasagem_h": 12},
-        {"ordem": 15, "nome": "acel20h_86472000", "estacao": "86472000", "tipo": "acel_nivel", "defasagem_h": 20},
-        {"ordem": 16, "nome": "nivel_86298000", "estacao": "86298000", "tipo": "nivel", "defasagem_h": 0},
-        {"ordem": 17, "nome": "difn2h_86298000", "estacao": "86298000", "tipo": "vel_nivel", "defasagem_h": 2},
-        {"ordem": 18, "nome": "difn4h_86298000", "estacao": "86298000", "tipo": "vel_nivel", "defasagem_h": 4},
-        {"ordem": 19, "nome": "acel12h_86298000", "estacao": "86298000", "tipo": "acel_nivel", "defasagem_h": 12},
-        {"ordem": 20, "nome": "acel20h_86298000", "estacao": "86298000", "tipo": "acel_nivel", "defasagem_h": 20},
-        {"ordem": 21, "nome": "difn8h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 8},
-        {"ordem": 22, "nome": "acel20h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 20},
-        {"ordem": 23, "nome": "difn8h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 8},
-        {"ordem": 24, "nome": "acel4h_86472000", "estacao": "86472000", "tipo": "acel_nivel", "defasagem_h": 4},
-        {"ordem": 25, "nome": "chuva_ac12h_2851072", "estacao": "2851072", "tipo": "chuva_acum", "defasagem_h": 0, "janela_h": 12, "estacoes": ["2851072"], "agregacao": "soma", "estrito": true},
-        {"ordem": 26, "nome": "chuva_ac12h_86160000", "estacao": "86160000", "tipo": "chuva_acum", "defasagem_h": 0, "janela_h": 12, "estacoes": ["86160000"], "agregacao": "soma", "estrito": true},
-        {"ordem": 27, "nome": "nivel_86125130", "estacao": "86125130", "tipo": "nivel", "defasagem_h": 0},
-        {"ordem": 28, "nome": "difn4h_86125130", "estacao": "86125130", "tipo": "vel_nivel", "defasagem_h": 4},
-        {"ordem": 29, "nome": "acel12h_86125130", "estacao": "86125130", "tipo": "acel_nivel", "defasagem_h": 12},
-        {"ordem": 30, "nome": "chuva_ac12h_86510000", "estacao": "86510000", "tipo": "chuva_acum", "defasagem_h": 0, "janela_h": 12, "estacoes": ["86510000"], "agregacao": "soma", "estrito": true}
+        {
+          "ordem": 1,
+          "nome": "nivel_86510000",
+          "estacao": "86510000",
+          "tipo": "nivel",
+          "defasagem_h": 0
+        },
+        {
+          "ordem": 2,
+          "nome": "difn1h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 1
+        },
+        {
+          "ordem": 3,
+          "nome": "difn2h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 4,
+          "nome": "difn4h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 5,
+          "nome": "acel1h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 1
+        },
+        {
+          "ordem": 6,
+          "nome": "acel2h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 7,
+          "nome": "acel4h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 8,
+          "nome": "acel8h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 8
+        },
+        {
+          "ordem": 9,
+          "nome": "acel12h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 12
+        },
+        {
+          "ordem": 10,
+          "nome": "nivel_86472000",
+          "estacao": "86472000",
+          "tipo": "nivel",
+          "defasagem_h": 0
+        },
+        {
+          "ordem": 11,
+          "nome": "difn1h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 1
+        },
+        {
+          "ordem": 12,
+          "nome": "difn2h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 13,
+          "nome": "difn4h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 14,
+          "nome": "acel12h_86472000",
+          "estacao": "86472000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 12
+        },
+        {
+          "ordem": 15,
+          "nome": "acel20h_86472000",
+          "estacao": "86472000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 20
+        }
       ]
     },
     {
@@ -100,26 +196,123 @@
         "PERS_teste": 0.8913267777,
         "MAE_teste_cm": 17.443582875,
         "N_teste": 196,
-        "test_events": [8, 21],
-        "validation_events": [11, 18, 31]
+        "test_events": [
+          8,
+          21
+        ],
+        "validation_events": [
+          11,
+          18,
+          31
+        ]
       },
       "contrato_chuva": "não se aplica; todos os 15 inputs são níveis/derivadas ANA em hora cheia exata",
       "inputs": [
-        {"ordem": 1, "nome": "nivel_86510000", "estacao": "86510000", "tipo": "nivel", "defasagem_h": 0},
-        {"ordem": 2, "nome": "difn1h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 1},
-        {"ordem": 3, "nome": "difn2h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 2},
-        {"ordem": 4, "nome": "difn4h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 4},
-        {"ordem": 5, "nome": "acel1h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 1},
-        {"ordem": 6, "nome": "acel2h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 2},
-        {"ordem": 7, "nome": "acel4h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 4},
-        {"ordem": 8, "nome": "acel8h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 8},
-        {"ordem": 9, "nome": "acel12h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 12},
-        {"ordem": 10, "nome": "nivel_86472000", "estacao": "86472000", "tipo": "nivel", "defasagem_h": 0},
-        {"ordem": 11, "nome": "difn1h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 1},
-        {"ordem": 12, "nome": "difn2h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 2},
-        {"ordem": 13, "nome": "difn4h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 4},
-        {"ordem": 14, "nome": "acel12h_86472000", "estacao": "86472000", "tipo": "acel_nivel", "defasagem_h": 12},
-        {"ordem": 15, "nome": "acel20h_86472000", "estacao": "86472000", "tipo": "acel_nivel", "defasagem_h": 20}
+        {
+          "ordem": 1,
+          "nome": "nivel_86510000",
+          "estacao": "86510000",
+          "tipo": "nivel",
+          "defasagem_h": 0
+        },
+        {
+          "ordem": 2,
+          "nome": "difn1h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 1
+        },
+        {
+          "ordem": 3,
+          "nome": "difn2h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 4,
+          "nome": "difn4h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 5,
+          "nome": "acel1h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 1
+        },
+        {
+          "ordem": 6,
+          "nome": "acel2h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 7,
+          "nome": "acel4h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 8,
+          "nome": "acel8h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 8
+        },
+        {
+          "ordem": 9,
+          "nome": "acel12h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 12
+        },
+        {
+          "ordem": 10,
+          "nome": "nivel_86472000",
+          "estacao": "86472000",
+          "tipo": "nivel",
+          "defasagem_h": 0
+        },
+        {
+          "ordem": 11,
+          "nome": "difn1h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 1
+        },
+        {
+          "ordem": 12,
+          "nome": "difn2h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 13,
+          "nome": "difn4h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 14,
+          "nome": "acel12h_86472000",
+          "estacao": "86472000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 12
+        },
+        {
+          "ordem": 15,
+          "nome": "acel20h_86472000",
+          "estacao": "86472000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 20
+        }
       ]
     },
     {
@@ -149,37 +342,221 @@
         "NASH_teste": 0.9557118788,
         "CORR_teste": 0.9779324143,
         "N_teste": 395,
-        "test_events": [31, 33, 34, 35, 37],
-        "validation_events": [18, 20, 21]
+        "test_events": [
+          31,
+          33,
+          34,
+          35,
+          37
+        ],
+        "validation_events": [
+          18,
+          20,
+          21
+        ]
       },
       "contrato_chuva": "media horária de 4 estações; mínimo de 2 presentes por hora; sem preenchimento; acumulado estrito de 24 h; montante = Muçum + Linha José Júlio",
       "inputs": [
-        {"ordem": 1, "nome": "nivel_86510000", "estacao": "86510000", "tipo": "nivel", "defasagem_h": 0},
-        {"ordem": 2, "nome": "difn1h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 1},
-        {"ordem": 3, "nome": "difn2h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 2},
-        {"ordem": 4, "nome": "difn4h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 4},
-        {"ordem": 5, "nome": "acel1h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 1},
-        {"ordem": 6, "nome": "acel2h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 2},
-        {"ordem": 7, "nome": "acel4h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 4},
-        {"ordem": 8, "nome": "acel8h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 8},
-        {"ordem": 9, "nome": "acel12h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 12},
-        {"ordem": 10, "nome": "nivel_86472000", "estacao": "86472000", "tipo": "nivel", "defasagem_h": 0},
-        {"ordem": 11, "nome": "difn1h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 1},
-        {"ordem": 12, "nome": "difn2h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 2},
-        {"ordem": 13, "nome": "difn4h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 4},
-        {"ordem": 14, "nome": "acel12h_86472000", "estacao": "86472000", "tipo": "acel_nivel", "defasagem_h": 12},
-        {"ordem": 15, "nome": "acel20h_86472000", "estacao": "86472000", "tipo": "acel_nivel", "defasagem_h": 20},
-        {"ordem": 16, "nome": "nivel_86298000", "estacao": "86298000", "tipo": "nivel", "defasagem_h": 0},
-        {"ordem": 17, "nome": "difn2h_86298000", "estacao": "86298000", "tipo": "vel_nivel", "defasagem_h": 2},
-        {"ordem": 18, "nome": "difn4h_86298000", "estacao": "86298000", "tipo": "vel_nivel", "defasagem_h": 4},
-        {"ordem": 19, "nome": "acel12h_86298000", "estacao": "86298000", "tipo": "acel_nivel", "defasagem_h": 12},
-        {"ordem": 20, "nome": "acel20h_86298000", "estacao": "86298000", "tipo": "acel_nivel", "defasagem_h": 20},
-        {"ordem": 21, "nome": "difn8h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 8},
-        {"ordem": 22, "nome": "acel20h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 20},
-        {"ordem": 23, "nome": "difn8h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 8},
-        {"ordem": 24, "nome": "acel4h_86472000", "estacao": "86472000", "tipo": "acel_nivel", "defasagem_h": 4},
-        {"ordem": 25, "nome": "chuva_med_4est_acum_24h", "estacao": "86510000", "tipo": "chuva_acum", "defasagem_h": 0, "janela_h": 24, "estacoes": ["86510000", "86720000", "86472000", "86160000"], "agregacao": "media_horaria_min2", "min_estacoes_hora": 2, "estrito": true},
-        {"ordem": 26, "nome": "chuva_upstream_2est_acum_24h", "estacao": "86510000", "tipo": "chuva_acum", "defasagem_h": 0, "janela_h": 24, "estacoes": ["86510000", "86472000"], "agregacao": "media_horaria_min2", "min_estacoes_hora": 2, "estrito": true}
+        {
+          "ordem": 1,
+          "nome": "nivel_86510000",
+          "estacao": "86510000",
+          "tipo": "nivel",
+          "defasagem_h": 0
+        },
+        {
+          "ordem": 2,
+          "nome": "difn1h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 1
+        },
+        {
+          "ordem": 3,
+          "nome": "difn2h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 4,
+          "nome": "difn4h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 5,
+          "nome": "acel1h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 1
+        },
+        {
+          "ordem": 6,
+          "nome": "acel2h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 7,
+          "nome": "acel4h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 8,
+          "nome": "acel8h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 8
+        },
+        {
+          "ordem": 9,
+          "nome": "acel12h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 12
+        },
+        {
+          "ordem": 10,
+          "nome": "nivel_86472000",
+          "estacao": "86472000",
+          "tipo": "nivel",
+          "defasagem_h": 0
+        },
+        {
+          "ordem": 11,
+          "nome": "difn1h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 1
+        },
+        {
+          "ordem": 12,
+          "nome": "difn2h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 13,
+          "nome": "difn4h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 14,
+          "nome": "acel12h_86472000",
+          "estacao": "86472000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 12
+        },
+        {
+          "ordem": 15,
+          "nome": "acel20h_86472000",
+          "estacao": "86472000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 20
+        },
+        {
+          "ordem": 16,
+          "nome": "nivel_86298000",
+          "estacao": "86298000",
+          "tipo": "nivel",
+          "defasagem_h": 0
+        },
+        {
+          "ordem": 17,
+          "nome": "difn2h_86298000",
+          "estacao": "86298000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 18,
+          "nome": "difn4h_86298000",
+          "estacao": "86298000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 19,
+          "nome": "acel12h_86298000",
+          "estacao": "86298000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 12
+        },
+        {
+          "ordem": 20,
+          "nome": "acel20h_86298000",
+          "estacao": "86298000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 20
+        },
+        {
+          "ordem": 21,
+          "nome": "difn8h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 8
+        },
+        {
+          "ordem": 22,
+          "nome": "acel20h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 20
+        },
+        {
+          "ordem": 23,
+          "nome": "difn8h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 8
+        },
+        {
+          "ordem": 24,
+          "nome": "acel4h_86472000",
+          "estacao": "86472000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 25,
+          "nome": "chuva_med_4est_acum_24h",
+          "estacao": "86510000",
+          "tipo": "chuva_acum",
+          "defasagem_h": 0,
+          "janela_h": 24,
+          "estacoes": [
+            "86510000",
+            "86720000",
+            "86472000",
+            "86160000"
+          ],
+          "agregacao": "media_horaria_min2",
+          "min_estacoes_hora": 2,
+          "estrito": true
+        },
+        {
+          "ordem": 26,
+          "nome": "chuva_upstream_2est_acum_24h",
+          "estacao": "86510000",
+          "tipo": "chuva_acum",
+          "defasagem_h": 0,
+          "janela_h": 24,
+          "estacoes": [
+            "86510000",
+            "86472000"
+          ],
+          "agregacao": "media_horaria_min2",
+          "min_estacoes_hora": 2,
+          "estrito": true
+        }
       ]
     },
     {
@@ -209,40 +586,261 @@
         "NASH_teste": 0.9537636719,
         "CORR_teste": 0.9769020705,
         "N_teste": 395,
-        "test_events": [31, 33, 34, 35, 37],
-        "validation_events": [18, 20, 21]
+        "test_events": [
+          31,
+          33,
+          34,
+          35,
+          37
+        ],
+        "validation_events": [
+          18,
+          20,
+          21
+        ]
       },
       "contrato_chuva": "media horária de 4 estações; mínimo de 2 presentes por hora; sem preenchimento; acumulados estritos de 18/24/48 h; diferença 0–24 menos 24–48 h",
       "inputs": [
-        {"ordem": 1, "nome": "nivel_86510000", "estacao": "86510000", "tipo": "nivel", "defasagem_h": 0},
-        {"ordem": 2, "nome": "difn1h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 1},
-        {"ordem": 3, "nome": "difn2h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 2},
-        {"ordem": 4, "nome": "difn4h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 4},
-        {"ordem": 5, "nome": "acel1h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 1},
-        {"ordem": 6, "nome": "acel2h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 2},
-        {"ordem": 7, "nome": "acel4h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 4},
-        {"ordem": 8, "nome": "acel8h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 8},
-        {"ordem": 9, "nome": "acel12h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 12},
-        {"ordem": 10, "nome": "nivel_86472000", "estacao": "86472000", "tipo": "nivel", "defasagem_h": 0},
-        {"ordem": 11, "nome": "difn1h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 1},
-        {"ordem": 12, "nome": "difn2h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 2},
-        {"ordem": 13, "nome": "difn4h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 4},
-        {"ordem": 14, "nome": "acel12h_86472000", "estacao": "86472000", "tipo": "acel_nivel", "defasagem_h": 12},
-        {"ordem": 15, "nome": "acel20h_86472000", "estacao": "86472000", "tipo": "acel_nivel", "defasagem_h": 20},
-        {"ordem": 16, "nome": "nivel_86298000", "estacao": "86298000", "tipo": "nivel", "defasagem_h": 0},
-        {"ordem": 17, "nome": "difn2h_86298000", "estacao": "86298000", "tipo": "vel_nivel", "defasagem_h": 2},
-        {"ordem": 18, "nome": "difn4h_86298000", "estacao": "86298000", "tipo": "vel_nivel", "defasagem_h": 4},
-        {"ordem": 19, "nome": "acel12h_86298000", "estacao": "86298000", "tipo": "acel_nivel", "defasagem_h": 12},
-        {"ordem": 20, "nome": "acel20h_86298000", "estacao": "86298000", "tipo": "acel_nivel", "defasagem_h": 20},
-        {"ordem": 21, "nome": "difn8h_86510000", "estacao": "86510000", "tipo": "vel_nivel", "defasagem_h": 8},
-        {"ordem": 22, "nome": "acel20h_86510000", "estacao": "86510000", "tipo": "acel_nivel", "defasagem_h": 20},
-        {"ordem": 23, "nome": "difn8h_86472000", "estacao": "86472000", "tipo": "vel_nivel", "defasagem_h": 8},
-        {"ordem": 24, "nome": "acel4h_86472000", "estacao": "86472000", "tipo": "acel_nivel", "defasagem_h": 4},
-        {"ordem": 25, "nome": "chuva_med_4est_acum_18h", "estacao": "86510000", "tipo": "chuva_acum", "defasagem_h": 0, "janela_h": 18, "estacoes": ["86510000", "86720000", "86472000", "86160000"], "agregacao": "media_horaria_min2", "min_estacoes_hora": 2, "estrito": true},
-        {"ordem": 26, "nome": "chuva_med_4est_acum_24h", "estacao": "86510000", "tipo": "chuva_acum", "defasagem_h": 0, "janela_h": 24, "estacoes": ["86510000", "86720000", "86472000", "86160000"], "agregacao": "media_horaria_min2", "min_estacoes_hora": 2, "estrito": true},
-        {"ordem": 27, "nome": "chuva_med_4est_acum_48h", "estacao": "86510000", "tipo": "chuva_acum", "defasagem_h": 0, "janela_h": 48, "estacoes": ["86510000", "86720000", "86472000", "86160000"], "agregacao": "media_horaria_min2", "min_estacoes_hora": 2, "estrito": true},
-        {"ordem": 28, "nome": "chuva_dif_0_24_menos_24_48h", "estacao": "86510000", "tipo": "chuva_diferenca", "defasagem_h": 0, "janela_h": 24, "estacoes": ["86510000", "86720000", "86472000", "86160000"], "agregacao": "media_horaria_min2", "min_estacoes_hora": 2, "janela_anterior_h": 24, "estrito": true}
+        {
+          "ordem": 1,
+          "nome": "nivel_86510000",
+          "estacao": "86510000",
+          "tipo": "nivel",
+          "defasagem_h": 0
+        },
+        {
+          "ordem": 2,
+          "nome": "difn1h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 1
+        },
+        {
+          "ordem": 3,
+          "nome": "difn2h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 4,
+          "nome": "difn4h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 5,
+          "nome": "acel1h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 1
+        },
+        {
+          "ordem": 6,
+          "nome": "acel2h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 7,
+          "nome": "acel4h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 8,
+          "nome": "acel8h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 8
+        },
+        {
+          "ordem": 9,
+          "nome": "acel12h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 12
+        },
+        {
+          "ordem": 10,
+          "nome": "nivel_86472000",
+          "estacao": "86472000",
+          "tipo": "nivel",
+          "defasagem_h": 0
+        },
+        {
+          "ordem": 11,
+          "nome": "difn1h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 1
+        },
+        {
+          "ordem": 12,
+          "nome": "difn2h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 13,
+          "nome": "difn4h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 14,
+          "nome": "acel12h_86472000",
+          "estacao": "86472000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 12
+        },
+        {
+          "ordem": 15,
+          "nome": "acel20h_86472000",
+          "estacao": "86472000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 20
+        },
+        {
+          "ordem": 16,
+          "nome": "nivel_86298000",
+          "estacao": "86298000",
+          "tipo": "nivel",
+          "defasagem_h": 0
+        },
+        {
+          "ordem": 17,
+          "nome": "difn2h_86298000",
+          "estacao": "86298000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 2
+        },
+        {
+          "ordem": 18,
+          "nome": "difn4h_86298000",
+          "estacao": "86298000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 19,
+          "nome": "acel12h_86298000",
+          "estacao": "86298000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 12
+        },
+        {
+          "ordem": 20,
+          "nome": "acel20h_86298000",
+          "estacao": "86298000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 20
+        },
+        {
+          "ordem": 21,
+          "nome": "difn8h_86510000",
+          "estacao": "86510000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 8
+        },
+        {
+          "ordem": 22,
+          "nome": "acel20h_86510000",
+          "estacao": "86510000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 20
+        },
+        {
+          "ordem": 23,
+          "nome": "difn8h_86472000",
+          "estacao": "86472000",
+          "tipo": "vel_nivel",
+          "defasagem_h": 8
+        },
+        {
+          "ordem": 24,
+          "nome": "acel4h_86472000",
+          "estacao": "86472000",
+          "tipo": "acel_nivel",
+          "defasagem_h": 4
+        },
+        {
+          "ordem": 25,
+          "nome": "chuva_med_4est_acum_18h",
+          "estacao": "86510000",
+          "tipo": "chuva_acum",
+          "defasagem_h": 0,
+          "janela_h": 18,
+          "estacoes": [
+            "86510000",
+            "86720000",
+            "86472000",
+            "86160000"
+          ],
+          "agregacao": "media_horaria_min2",
+          "min_estacoes_hora": 2,
+          "estrito": true
+        },
+        {
+          "ordem": 26,
+          "nome": "chuva_med_4est_acum_24h",
+          "estacao": "86510000",
+          "tipo": "chuva_acum",
+          "defasagem_h": 0,
+          "janela_h": 24,
+          "estacoes": [
+            "86510000",
+            "86720000",
+            "86472000",
+            "86160000"
+          ],
+          "agregacao": "media_horaria_min2",
+          "min_estacoes_hora": 2,
+          "estrito": true
+        },
+        {
+          "ordem": 27,
+          "nome": "chuva_med_4est_acum_48h",
+          "estacao": "86510000",
+          "tipo": "chuva_acum",
+          "defasagem_h": 0,
+          "janela_h": 48,
+          "estacoes": [
+            "86510000",
+            "86720000",
+            "86472000",
+            "86160000"
+          ],
+          "agregacao": "media_horaria_min2",
+          "min_estacoes_hora": 2,
+          "estrito": true
+        },
+        {
+          "ordem": 28,
+          "nome": "chuva_dif_0_24_menos_24_48h",
+          "estacao": "86510000",
+          "tipo": "chuva_diferenca",
+          "defasagem_h": 0,
+          "janela_h": 24,
+          "estacoes": [
+            "86510000",
+            "86720000",
+            "86472000",
+            "86160000"
+          ],
+          "agregacao": "media_horaria_min2",
+          "min_estacoes_hora": 2,
+          "janela_anterior_h": 24,
+          "estrito": true
+        }
       ]
     }
-  ]
+  ],
+  "fonte_selecao_4h": "assets/data/mucum_q83/mucum_q83_metricas_completas.csv",
+  "nota_4h": "4h principal trocado para a candidata q83 006 em 2026-09-21; 15 inputs de nível/derivadas, sem chuva, mantendo 015 como comparativo."
 }
