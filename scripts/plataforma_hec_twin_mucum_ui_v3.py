@@ -258,7 +258,7 @@ const local=((DATA.where_results_go||{}).local)||{};
 
 const bb=((((DATA.spatial||{}).basin_framing)||{}).g040_bbox_latlon)||[[-29.95,-52.64],[-28.18,-49.93]];
 const map=L.map("map",{scrollWheelZoom:true}).fitBounds(bb,{padding:[20,20]});
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,referrerPolicy:"strict-origin-when-cross-origin",attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
 const rainLayer=L.layerGroup().addTo(map), ugLayer=L.layerGroup().addTo(map), anchorLayer=L.layerGroup().addTo(map), networkLayer=L.layerGroup(), fozLayer=L.layerGroup();
 
 function rainColor(mm,max){const x=max?Math.max(0,Math.min(1,Number(mm||0)/max)):0; if(x<.2)return"#dceee5";if(x<.4)return"#a9d5be";if(x<.6)return"#68ad88";if(x<.8)return"#2d805e";return"#0f523b"}
