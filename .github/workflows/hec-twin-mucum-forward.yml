@@ -12,6 +12,8 @@ on:
       - ".github/workflows/hec-twin-mucum-forward.yml"
       - "scripts/build_spatial_ifs_mucum.py"
       - "scripts/build_hec_twin_ifs_forcing_5d.py"
+      - "scripts/build_hec_hms_spatial_forecast_mucum.py"
+      - "scripts/postprocess_hec_hms_spatial_forecast_mucum.py"
       - "scripts/run_hec_twin_mucum_forward_5d.py"
       - "scripts/hec_twin_nested_v17.py"
       - "scripts/hec_twin_mucum_bacia_calibracao.py"
@@ -34,7 +36,7 @@ concurrency:
 jobs:
   forecast:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -59,6 +61,47 @@ jobs:
       - name: Gêmeo HEC Muçum ~5d · diagnóstico legado
         run: python -B scripts/run_hec_twin_mucum_forward_5d.py
 
+      - name: Monta projeto HEC-HMS espacial · IFS completo
+        run: python -B scripts/build_hec_hms_spatial_forecast_mucum.py
+
+      - name: Cache HEC-HMS 4.13
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Baixa HEC-HMS 4.13 oficial
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4 \
+            -o /tmp/HEC-HMS-4.13-linux64.tar.gz \
+            https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+          find .hec -maxdepth 3 -type f -name 'hec-hms.sh' -print
+
+      - name: Executa HEC-HMS 4.13 · chuva espacial
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          if [ -z "$HEC_SH" ]; then
+            echo "hec-hms.sh não encontrado"
+            find .hec -maxdepth 3 -type f | head -100
+            exit 1
+          fi
+          chmod +x "$HEC_SH"
+          SCRIPT="$PWD/assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project/run_forecast.script"
+          echo "HEC=$HEC_SH"
+          "$HEC_SH" -s "$SCRIPT" 2>&1 | tee /tmp/hec-spatial-live.log
+          test -s assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/hec_output_values.csv
+
+      - name: Pós-processa HEC-HMS espacial
+        run: python -B scripts/postprocess_hec_hms_spatial_forecast_mucum.py
+
       - name: Plataforma HEC/REC v3
         run: python -B scripts/build_plataforma_hec_twin_mucum_v3.py
 
@@ -75,7 +118,7 @@ jobs:
 
           git restore --             assets/data/estudo_bacia_taquari_antas/decisao_previsao_nivel_multi_alvo_latest.json             assets/data/estudo_bacia_taquari_antas/README.md || true
 
-          git add --             assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum             assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_forcing_5d_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d             assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json             assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html             plataforma_hec_twin.html
+          git add --             assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum             assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum             assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_forcing_5d_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d             assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json             assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html             plataforma_hec_twin.html
 
           if git diff --cached --quiet; then
             echo "Sem mudança neste ciclo HEC."
@@ -97,6 +140,11 @@ jobs:
               python -B scripts/build_spatial_ifs_mucum.py
               python -B scripts/build_hec_twin_ifs_forcing_5d.py
               python -B scripts/run_hec_twin_mucum_forward_5d.py
+              python -B scripts/build_hec_hms_spatial_forecast_mucum.py
+              HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+              chmod +x "$HEC_SH"
+              "$HEC_SH" -s "$PWD/assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project/run_forecast.script"
+              python -B scripts/postprocess_hec_hms_spatial_forecast_mucum.py
               python -B scripts/build_plataforma_hec_twin_mucum_v3.py
               git add --                 assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum                 assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_forcing_5d_latest.json                 assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json                 assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html                 assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d                 assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json                 assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html                 plataforma_hec_twin.html
               if git diff --cached --quiet; then
