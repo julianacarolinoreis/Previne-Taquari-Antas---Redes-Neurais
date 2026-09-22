@@ -14,6 +14,7 @@ Uso:
 
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
@@ -108,7 +109,16 @@ def gerar(cidade: str, origem: Path, destino: Path) -> None:
 
 
 def main() -> None:
-    for cidade, (origem, destino) in ARQUIVOS.items():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--cidade",
+        choices=sorted(ARQUIVOS),
+        help="Regenera somente a cidade informada; sem opção, regenera todas.",
+    )
+    args = parser.parse_args()
+    cidades = [args.cidade] if args.cidade else list(ARQUIVOS)
+    for cidade in cidades:
+        origem, destino = ARQUIVOS[cidade]
         gerar(cidade, origem, destino)
 
 
