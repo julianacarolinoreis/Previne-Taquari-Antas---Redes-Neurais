@@ -759,12 +759,15 @@ def build_package(
             ],
         },
         "forcing": {
-            "artifact": "hec_twin_ifs_forcing_5d_latest.json",
+            "artifact": forcing.get("artifact_name") or "hec_twin_ifs_forcing_5d_latest.json",
             "model": forcing.get("model"),
             "horizon_hours": forcing.get("horizon_hours"),
             "area_weighted_total_mm": forecast_total,
             "generated_at_utc": forcing.get("generated_at_utc"),
-            "point_proxy_not_areal_mask": True,
+            "point_proxy_not_areal_mask": bool(forcing.get("point_proxy_not_areal_mask", True)),
+            "spatial_field_full": bool(forcing.get("spatial_field_full", False)),
+            "zone_artifact": forcing.get("zone_artifact"),
+            "subbasin_overlap_audit": forcing.get("subbasin_overlap_audit"),
         },
         "param_selection": {
             "method": "analog_basin_calibrated_aw_fingerprint_wetness_blend_v4" if event_id is None else "forced_event_id",
