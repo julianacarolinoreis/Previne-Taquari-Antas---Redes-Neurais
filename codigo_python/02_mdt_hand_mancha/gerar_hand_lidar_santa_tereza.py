@@ -76,7 +76,7 @@ def read_dem(path: Path) -> tuple[np.ndarray, rasterio.Affine, object, rasterio.
 
 
 def read_flowacc(path: Path, shape: tuple[int, int], transform, crs, nodata: float | None) -> np.ndarray:
-    """Reamostra a acumulação na mesma grade do HAND preservando o valor local."""
+    """Agrega a acumulação 1 m preservando o maior valor de cada célula ~5 m."""
     flowacc = np.zeros(shape, dtype="float32")
     with rasterio.open(path) as ds:
         reproject(
@@ -86,7 +86,7 @@ def read_flowacc(path: Path, shape: tuple[int, int], transform, crs, nodata: flo
             src_crs=ds.crs,
             dst_transform=transform,
             dst_crs=crs,
-            resampling=Resampling.nearest,
+            resampling=Resampling.max,
             src_nodata=nodata if nodata is not None else ds.nodata,
             dst_nodata=0,
         )
@@ -95,7 +95,7 @@ def read_flowacc(path: Path, shape: tuple[int, int], transform, crs, nodata: flo
 
 
 def read_flowdir(path: Path, shape: tuple[int, int], transform, crs) -> np.ndarray:
-    """Lê o D8 na grade do HAND sem interpolar os códigos de direção."""
+    """Agrega o D8 1 m por moda; nunca interpola códigos de direção."""
     flowdir = np.zeros(shape, dtype="int16")
     with rasterio.open(path) as ds:
         tmp = np.zeros(shape, dtype="float32")
@@ -106,7 +106,7 @@ def read_flowdir(path: Path, shape: tuple[int, int], transform, crs) -> np.ndarr
             src_crs=ds.crs,
             dst_transform=transform,
             dst_crs=crs,
-            resampling=Resampling.nearest,
+            resampling=Resampling.mode,
             src_nodata=ds.nodata,
             dst_nodata=0,
         )
@@ -181,7 +181,15 @@ def compute_hand_flowpath(
     flowdir: np.ndarray,
     flowacc: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, dict]:
-    """Calcula HAND pela rota D8 até o rio principal usando pointer jumping."""
+    """Calcula HAND numa rede grossa guiada por D8 + acumulação.
+
+    O FLOWDIR original é de 1 m. Depois da agregação para ~5 m, um código D8
+    não pode ser tratado como um salto exato de cinco metros. Em vez disso,
+    ele define a direção preferencial; entre o vizinho preferido e os dois
+    vizinhos adjacentes (±45°), escolhe-se aquele com maior acumulação
+    estritamente crescente. Assim o caminho continua hidrologicamente a
+    jusante sem reinterpretar um passo de 1 m como um passo exato de 5 m.
+    """
     main_river = flowacc >= FLOWACC_THRESHOLD_FINE_CELLS
     labels, n_components = ndimage.label(main_river)
     if n_components == 0:
@@ -200,24 +208,48 @@ def compute_hand_flowpath(
     n = dem.size
     if n >= np.iinfo(np.int32).max:
         raise RuntimeError("grade grande demais para índices int32")
+
+    # Ordem angular: E, SE, S, SW, W, NW, N, NE.
+    dirs = [(0, 1), (1, 1), (1, 0), (1, -1),
+            (0, -1), (-1, -1), (-1, 0), (-1, 1)]
+    dir_to_idx = {offset: i for i, offset in enumerate(dirs)}
+    code_to_idx = {code: dir_to_idx[offset] for code, offset in mapping.items()}
+
+    pref_idx = np.full(flowdir.shape, -99, dtype=np.int8)
+    for code, idx in code_to_idx.items():
+        pref_idx[flowdir == code] = idx
+
     flat_index = np.arange(n, dtype=np.int32).reshape(dem.shape)
     receiver = flat_index.copy()
+    best_acc = np.full(dem.shape, -1.0, dtype="float32")
     valid = np.isfinite(dem)
 
-    for code, (dr, dc) in mapping.items():
+    # A direção agregada funciona como setor de ±45°. A acumulação decide qual
+    # vizinho desse setor é efetivamente a jusante na grade ~5 m.
+    for cand_idx, (dr, dc) in enumerate(dirs):
         src, dst = offset_slices(dem.shape, dr, dc)
-        src_view = receiver[src]
-        target_idx = flat_index[dst]
-        mask = (
-            (flowdir[src] == code)
-            & valid[src]
+        pref = pref_idx[src].astype(np.int16)
+        circular = np.abs(((pref - cand_idx + 4) % 8) - 4)
+        dst_acc = flowacc[dst]
+        src_acc = flowacc[src]
+        candidate = (
+            valid[src]
             & valid[dst]
-            & (flowacc[dst] >= flowacc[src])
-            & (dem[dst] <= dem[src] + 2.0)
+            & (pref >= 0)
+            & (circular <= 1)
+            & (dst_acc > src_acc)
+            & (dem[dst] <= dem[src] + 5.0)
+            & (dst_acc > best_acc[src])
         )
-        src_view[mask] = target_idx[mask]
+        if not candidate.any():
+            continue
+        rec_view = receiver[src]
+        best_view = best_acc[src]
+        target_idx = flat_index[dst]
+        rec_view[candidate] = target_idx[candidate]
+        best_view[candidate] = dst_acc[candidate]
 
-    # O rio principal é o destino final: qualquer caminho que o alcance para aqui.
+    # Células do rio principal são destinos finais.
     receiver[main_river] = flat_index[main_river]
 
     parent = receiver.ravel()
@@ -236,18 +268,18 @@ def compute_hand_flowpath(
     drains_to_main = valid_flat & (~unresolved) & river_flat[parent]
 
     hand_flat = np.full(n, np.nan, dtype="float32")
-    values = dem_flat[drains_to_main] - dem_flat[parent[drains_to_main]]
-    # Pequenas diferenças negativas podem surgir por reamostragem; erros grandes
-    # indicam um caminho inconsistente e são descartados em vez de zerados.
+    positions = np.flatnonzero(drains_to_main)
+    values = dem_flat[positions] - dem_flat[parent[positions]]
     acceptable = values >= -0.5
-    target_positions = np.flatnonzero(drains_to_main)
-    hand_flat[target_positions[acceptable]] = np.maximum(values[acceptable], 0.0)
+    hand_flat[positions[acceptable]] = np.maximum(values[acceptable], 0.0)
     hand = hand_flat.reshape(dem.shape)
 
     drained_fraction = float(np.isfinite(hand).sum() / max(1, valid.sum()))
     diagnostics = {
         "d8_scheme": scheme_name,
         "d8_scheme_scores": scheme_scores,
+        "flowdir_source_resolution_m": 1.0,
+        "flowdir_coarse_method": "mode + D8 sector ±45deg + strictly increasing FLOWACC",
         "pointer_jumping_iterations": iterations,
         "unresolved_cells": int(unresolved.sum()),
         "valid_terrain_cells": int(valid.sum()),
@@ -256,12 +288,12 @@ def compute_hand_flowpath(
         "componentes_detectados": int(n_components),
         "componentes_mantidos": int(n_components_kept),
         "celulas_rio_principal": int(main_river.sum()),
-        "hand_method": "D8 downstream routing to main river",
+        "hand_method": "coarse drainage routing guided by source D8 and FLOWACC",
     }
     if drained_fraction < 0.05:
         raise RuntimeError(
             f"Só {drained_fraction:.1%} do terreno drenou ao rio principal; "
-            "isso indica FLOWDIR incompatível/reprojeção inadequada. Geração abortada."
+            "a agregação D8/FLOWACC ainda não é confiável. Geração abortada."
         )
     return hand, main_river, diagnostics
 
@@ -365,9 +397,9 @@ def write_contours(hand: np.ndarray, transform, crs, output: Path) -> dict:
         geom_utm = unary_union(polygons).buffer(0)
         if geom_utm.is_empty:
             continue
-        # O vetor é uma camada de visualização; a tolerância de 30 m remove o
-        # serrilhado de pixel sem prometer uma precisão cartográfica inexistente.
-        geom_utm = geom_utm.simplify(30.0, preserve_topology=True)
+        # Mantém detalhe compatível com a grade vetorial ~10 m. A antiga
+        # simplificação de 30 m deslocava bordas demais perto de ruas/casas.
+        geom_utm = geom_utm.simplify(5.0, preserve_topology=True)
         if not geom_utm.is_valid:
             geom_utm = make_valid(geom_utm)
         geom_wgs84 = transform_geometry(to_wgs84, geom_utm)
@@ -423,8 +455,8 @@ def main() -> None:
     hand, main_river, hand_diag = compute_hand_flowpath(dem, flowdir, flowacc)
     elevation_summary = write_same_source_elevation(dem, transform, crs)
 
-    # 250 é reservado como NoData no contrato do navegador.
-    encoded = np.full(hand.shape, 250, dtype=np.uint8)
+    # 255 é reservado como NoData; 25,0 m continua sendo um valor válido (=250).
+    encoded = np.full(hand.shape, 255, dtype=np.uint8)
     valid = np.isfinite(hand)
     encoded[valid] = np.clip(np.rint(hand[valid] * 10), 0, int(MAX_HAND_M * 10)).astype(np.uint8)
     buf = io.BytesIO()
