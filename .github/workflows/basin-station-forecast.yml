@@ -91,14 +91,20 @@ jobs:
           exit 1
 
       - name: Encadear próxima atualização do snapshot
-        if: ${{ success() }}
+        # Uma falha transitória de SGB/CEMADEN/Open-Meteo não pode interromper
+        # definitivamente o encadeamento. Em falha, tenta novamente com
+        # backoff maior; em sucesso, mantém a cadência nominal.
+        if: ${{ always() && !cancelled() }}
         env:
           GH_TOKEN: ${{ github.token }}
+          PREVIOUS_JOB_STATUS: ${{ job.status }}
         run: |
-          # Mantém o snapshot meteorológico andando sem depender do cron de 5 min.
-          # O tempo de execução desta rodada + 120 s produz cadência prática
-          # próxima de 5 min sem sobrepor consultas ao Open-Meteo.
-          sleep 120
+          if [ "${PREVIOUS_JOB_STATUS}" = "success" ]; then
+            sleep 120
+          else
+            echo "rodada anterior falhou; nova tentativa com backoff de 5 min"
+            sleep 300
+          fi
           curl --fail-with-body --silent --show-error \
             --request POST \
             --url "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" \
