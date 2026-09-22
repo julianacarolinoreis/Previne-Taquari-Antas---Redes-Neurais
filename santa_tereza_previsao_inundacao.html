@@ -638,6 +638,7 @@ function loadElevation(){
 // Validação de campo: régua = 1,60 m corresponde ao HAND 0.
 // O valor observado permanece bruto; a previsão espacializada usa RNA - 1,60 m.
 const HAND_ZERO_DEFAULT_CM=160;
+const BANKFULL_HAND_M=(COTA_INUND-HAND_ZERO_DEFAULT_CM)/100;
 function handZeroCm(D){
   const v=Number(D&&D.hand_zero_cm);
   return Number.isFinite(v)?v:HAND_ZERO_DEFAULT_CM;
@@ -646,6 +647,7 @@ function stageToHand(cm,zeroCm=bankfull){return (cm-zeroCm)/100;}
 function pointFloodStatus(pointHand,levelCm,zeroCm){
   if(levelCm==null || !Number.isFinite(Number(levelCm))) return '<span>indisponível</span>';
   if(Number(levelCm)<COTA_INUND) return 'não · nível abaixo da cota de inundação';
+  if(pointHand<=BANKFULL_HAND_M) return 'dentro da faixa ocupada pelo rio até a cota de inundação; não classificado como extravasamento';
   const depth=(Number(levelCm)-zeroCm)/100-pointHand;
   return depth>0.03
     ? '<b class="pf">SIM · '+nf1.format(depth*100)+' cm de água fora da faixa de bankfull</b>'
@@ -711,7 +713,7 @@ function renderFrame(){
   const nowDm=hasNow?stageToHand(nowCm)*10:-1;
   const hasFore=foreCm!=null, foreDm=hasFore?stageToHand(foreCm)*10:-1;
   const hasObs=obsCm!=null, obsDm=hasObs?stageToHand(obsCm)*10:-1;
-  const bankfullHandDm=stageToHand(COTA_INUND,HAND_ZERO_DEFAULT_CM)*10;
+  const bankfullHandDm=BANKFULL_HAND_M*10;
   const activeKey=(activeD&&activeD.horizonte)||ev.horizonte;
   const uDm=(UNCERT[activeKey]||0)*10, uMaxDm=foreDm+uDm; // borda de incerteza
 
@@ -1340,10 +1342,10 @@ async function init(){
         const zeroCm=handZeroCm(activeD||liveData);
         const nowCm=liveMode?liveNowCm(activeD):firstNumber(curS[1]);
         html+='<br><b>Inundação estimada neste ponto (proxy HAND)</b>';
-        if(pointHand<=0){
-          html+='<br>Agora: dentro do contorno-base do leito; não classificado como inundação.';
+        if(pointHand<=BANKFULL_HAND_M){
+          html+='<br>Agora: dentro da faixa ocupada pelo rio até a cota de inundação; não classificado como extravasamento.';
           mapForecastHorizons().forEach(row=>{
-            html+='<br>+'+row.key.replace(/^\+/,'')+': dentro do contorno-base do leito; não classificado como inundação.';
+            html+='<br>+'+row.key.replace(/^\+/,'')+': dentro da faixa de bankfull; não classificado como extravasamento.';
           });
         }else{
           const nowDepth=(nowCm!=null&&Number(nowCm)>=COTA_INUND)?(Number(nowCm)-zeroCm)/100-pointHand:null;
