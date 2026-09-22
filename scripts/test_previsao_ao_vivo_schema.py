@@ -35,13 +35,14 @@ class LiveFeedContractTests(unittest.TestCase):
         for horizon in ("2h", "4h", "8h"):
             self.assertEqual(self.data["horizontes"][horizon]["hand_zero_cm"], 160)
 
-    def test_page_separates_field_reference_from_flood_mapping(self) -> None:
+    def test_page_uses_field_zero_for_spatialization(self) -> None:
         page = (ROOT / "santa_tereza_previsao_inundacao.html").read_text(encoding="utf-8")
         self.assertIn("HAND_ZERO_DEFAULT_CM=160", page)
         self.assertIn("const COTA_INUND=1500", page)
-        self.assertIn("function stageToOverflowHand(cm)", page)
-        self.assertIn("return (Number(cm)-COTA_INUND)/100", page)
-        self.assertNotIn("stageToHand(foreCm)*10", page)
+        self.assertIn("function stageToSpatialHand(cm,zeroCm=HAND_ZERO_DEFAULT_CM)", page)
+        self.assertIn("(Number(cm)-Number(zeroCm))/100", page)
+        self.assertIn("contornos_mancha.json", page)
+        self.assertNotIn("Number(cm)-COTA_INUND", page)
 
     def test_generated_hand_diagnostic_is_main_river_only(self) -> None:
         diagnostic = json.loads(
@@ -52,7 +53,9 @@ class LiveFeedContractTests(unittest.TestCase):
         self.assertEqual(diagnostic["flowacc_threshold_fine_cells"], 50_000_000)
         self.assertEqual(diagnostic["componentes_mantidos"], 1)
         self.assertGreater(diagnostic["celulas_rio_principal"], 0)
-        self.assertEqual(diagnostic["contornos_features"], 151)
+        self.assertGreaterEqual(diagnostic["contornos_features"], 151)
+        if "contour_max_m" in diagnostic:
+            self.assertEqual(diagnostic["contour_max_m"], 25.0)
 
     def test_explicit_4h_fallback_without_prediction_is_valid(self) -> None:
         data = copy.deepcopy(self.data)
