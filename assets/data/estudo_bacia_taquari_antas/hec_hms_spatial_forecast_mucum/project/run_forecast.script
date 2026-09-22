@@ -1,0 +1,67 @@
+from hms.model.JythonHms import *
+from hec.heclib.dss import HecDss
+from hec.heclib.util import HecTime
+from hec.io import TimeSeriesContainer
+import csv
+import os
+
+project_dir = r"/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project"
+rain_csv = r"/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/zone_hourly.csv"
+rain_dss_path = project_dir + "/spatial_rain.dss"
+output_csv = r"/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/hec_output_values.csv"
+months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+
+with open(rain_csv, "rb") as handle:
+    rows = list(csv.DictReader(handle))
+if not rows:
+    raise ValueError("empty zone rainfall CSV")
+
+def put_rain(dss, station, field):
+    first = rows[0]["time_local"]
+    year, month, day = [int(x) for x in first[:10].split("-")]
+    hour = int(first[11:13]) * 100
+    current = HecTime("%02d%s%04d" % (day, months[month-1], year), "%04d" % hour)
+    values = []
+    times = []
+    for row in rows:
+        values.append(float(row[field]))
+        times.append(current.value())
+        current.add(60)
+    c = TimeSeriesContainer()
+    c.fullName = "/MUCUM/IFS_%s/PRECIP-INC/01Sep2026/1Hour/FORECAST/" % station
+    c.interval = 60
+    c.times = times
+    c.values = values
+    c.numberValues = len(values)
+    c.units = "MM"
+    c.type = "PER-CUM"
+    dss.put(c)
+
+dss = HecDss.open(rain_dss_path)
+put_rain(dss, "86472000", "rain_86472000_mm")
+put_rain(dss, "02851072", "rain_02851072_mm")
+dss.close()
+print("SPATIAL_RAIN_DSS_WRITTEN|" + rain_dss_path)
+
+OpenProject("mucum_spatial_live", project_dir)
+Compute("Forecast")
+
+dss = HecDss.open(project_dir + "/output.dss")
+catalog = list(dss.getCatalogedPathnames())
+flow_paths = [p for p in catalog if "/FLOW/" in p and "/1Hour/RUN:Forecast/" in p]
+print("FLOW_PATHS|" + "|".join(flow_paths))
+
+with open(output_csv, "wb") as handle:
+    w = csv.writer(handle)
+    w.writerow(["element","time_value","q_m3s","pathname"])
+    for pathname in flow_paths:
+        series = dss.get(pathname)
+        parts = pathname.split("/")
+        element = parts[2] if len(parts) > 2 else ""
+        for i in range(series.numberValues):
+            value = float(series.values[i])
+            if value > -1.0e20:
+                w.writerow([element, int(series.times[i]), value, pathname])
+dss.close()
+print("SPATIAL_FORECAST_OUTPUT|" + output_csv)
+Exit(1)
