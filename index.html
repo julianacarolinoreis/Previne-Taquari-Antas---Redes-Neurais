@@ -544,6 +544,8 @@
   .pill.rev{background:var(--warn-bg);color:#8a6100}
   :root[data-theme="light"] .pill.rev{color:#8a6100}
   .pill.nao{background:var(--off-bg);color:var(--off)}
+  .pill.candidate{background:var(--good-bg);color:var(--good)}
+  .pill.diag{background:var(--off-bg);color:var(--off)}
   .hdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:baseline}
   .neg{color:#c23a3a}
   :root[data-theme="light"] .neg{color:#c23a3a}
@@ -957,10 +959,10 @@
     <section class="sec">
       <span class="kicker">redes corrigidas — Muçum</span>
       <h2>Desempenho por família</h2>
-      <p class="sec-sub">Vinte modelos q83 reconstruídos com alvo temporal exato, separados por evento inteiro e ordenados por <strong>PERS de teste</strong> e <strong>score de equilíbrio</strong>. <strong>Clique em qualquer modelo</strong> para abrir a ficha completa, os downloads, a dispersão e os eventos.</p>
+      <p class="sec-sub">O catálogo completo mantém as 20 variantes q83 para auditoria. Os cartões abaixo destacam apenas candidatas com <strong>score de equilíbrio ≥ 0,75</strong>; variantes abaixo do corte permanecem na tabela completa como diagnóstico, não como recomendação. Elas têm alvo temporal exato, separação por evento inteiro e ficha com <strong>PERS de teste</strong>, downloads, dispersão e eventos.</p>
       <div class="tabs" id="mucum-lb-tabs" role="tablist"></div>
       <div class="lb-groups" id="mucum-lb"></div>
-      <p class="lb-note">A barra mostra o valor da métrica selecionada em relação ao melhor da família.</p>
+      <p class="lb-note">A barra mostra o valor da métrica selecionada em relação ao melhor da família. Nos cartões, só aparecem candidatas com score de equilíbrio ≥ 0,75; as 20 variantes continuam disponíveis na tabela auditável.</p>
     </section>
 
     <section class="sec">
@@ -3506,6 +3508,14 @@
   };
 
   /* ---------------- leaderboard ---------------- */
+  const EQUILIBRIUM_CUTOFF=0.75;
+  const equilibriumStatus=m=>{
+    const v=Number(m.score_equilibrio);
+    if(!Number.isFinite(v)) return {label:'sem score', ok:false};
+    return v>=EQUILIBRIUM_CUTOFF
+      ? {label:'candidata ≥ 0,75', ok:true}
+      : {label:'abaixo do corte — diagnóstico', ok:false};
+  };
   const METRICS=[
     {k:'PERS_geral', tab:'Geral'}, {k:'PERS_treino', tab:'Treino'},
     {k:'PERS_validacao', tab:'Validação'}, {k:'PERS_teste', tab:'Teste'},
@@ -3530,14 +3540,19 @@
       const pool=MODELS.filter(m=>m.familia===f && m[lbMetric]!=null);
       if(!pool.length) return;
       const h=pool[0].horizonte;
-      const sorted=[...pool].sort((a,b)=>b[lbMetric]-a[lbMetric]);
+      const eligible=pool.filter(m=>Number(m.score_equilibrio)>=EQUILIBRIUM_CUTOFF);
+      const rankingPool=eligible.length?eligible:pool;
+      const sorted=[...rankingPool].sort((a,b)=>b[lbMetric]-a[lbMetric]);
       const top=sorted.slice(0,5);
+      if(!top.length) return;
       const max=Math.max(top[0][lbMetric], 0.0001);
       const group=document.createElement('div'); group.className='lb-group';
       const gh=document.createElement('div'); gh.className='g-head';
       const dot=document.createElement('span'); dot.className='dot'; dot.style.background=HCOLOR[h];
       const gn=document.createElement('span'); gn.className='g-n';
-      gn.textContent=top.length+' de '+pool.length+' selecionados';
+      gn.textContent=eligible.length
+        ? top.length+' candidatas de '+pool.length+' auditadas'
+        : '0 candidatas · '+pool.length+' auditadas';
       gh.append(dot, document.createTextNode(FAMFULL(f)), gn);
       const list=document.createElement('ol'); list.className='lb';
       top.forEach((m,i)=>{
@@ -3552,7 +3567,7 @@
         fill.style.background=HCOLOR[m.horizonte];
         track.appendChild(fill);
         const meta=document.createElement('span'); meta.className='lb-meta'; meta.style.gridColumn='2';
-        meta.append(document.createTextNode(mLabel+' · MAE teste '+fmt1(m.MAE_teste_cm)+' cm'));
+        meta.append(document.createTextNode(mLabel+' · MAE teste '+fmt1(m.MAE_teste_cm)+' cm · '+equilibriumStatus(m).label));
         btn.append(rk,nm,val,track,meta);
         btn.addEventListener('click',()=>openModal(m, MUCUM_CTX));
         li.appendChild(btn); list.appendChild(li);
@@ -3661,6 +3676,7 @@
   const COLS=[
     {k:'modelo', label:'Modelo'},
     {k:'familia', label:'Família'},
+    {k:'_status', label:'Situação', sort:false},
     {k:'PERS_geral', label:'PERS geral', num:true, f:fmt},
     {k:'PERS_validacao', label:'PERS val.', num:true, f:fmt},
     {k:'PERS_teste', label:'PERS teste', num:true, f:fmt},
@@ -3674,13 +3690,15 @@
   const theadRow=document.getElementById('mucum-thead-row');
   COLS.forEach(c=>{
     const th=document.createElement('th');
-    th.className='sortable'+(c.num?' num':''); th.tabIndex=0;
+    th.className=(c.sort===false?'':'sortable')+(c.num?' num':''); th.tabIndex=c.sort===false?-1:0;
     th.setAttribute('role','columnheader');
     const s=document.createElement('span'); s.textContent=c.label; th.appendChild(s);
     const a=document.createElement('span'); a.className='arr'; th.appendChild(a);
-    const act=()=>{ if(state.sortKey===c.k) state.sortDir*=-1; else {state.sortKey=c.k; state.sortDir=c.num?-1:1;} renderTable(); };
-    th.addEventListener('click',act);
-    th.addEventListener('keydown',ev=>{ if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();act();} });
+    if(c.sort!==false){
+      const act=()=>{ if(state.sortKey===c.k) state.sortDir*=-1; else {state.sortKey=c.k; state.sortDir=c.num?-1:1;} renderTable(); };
+      th.addEventListener('click',act);
+      th.addEventListener('keydown',ev=>{ if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();act();} });
+    }
     theadRow.appendChild(th);
   });
   function renderTable(){
@@ -3715,6 +3733,11 @@
         } else if(c.k==='familia'){
           const d=document.createElement('span'); d.className='hdot'; d.style.background=HCOLOR[m.horizonte];
           td.append(d, document.createTextNode(FAMLABEL(m.familia)));
+        } else if(c.k==='_status'){
+          const status=equilibriumStatus(m);
+          const badge=document.createElement('span'); badge.className='pill '+(status.ok?'candidate':'diag'); badge.textContent=status.ok?'Candidata':'Diagnóstica';
+          badge.title=status.ok?'Score de equilíbrio ≥ 0,75':'Score de equilíbrio abaixo de 0,75; mantida para auditoria';
+          td.appendChild(badge);
         } else {
           const v=m[c.k];
           td.textContent=c.f?c.f(v):v;
