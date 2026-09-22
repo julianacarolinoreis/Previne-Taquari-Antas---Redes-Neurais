@@ -177,7 +177,8 @@ def validar_geojson(relativo: str) -> None:
     dados = json.loads(caminho.read_text(encoding="utf-8"))
     features = dados.get("features") or []
     niveis = [round(float(f["properties"]["nivel_m"]), 1) for f in features]
-    esperado = 250 if "/mucum_inundacao/" in relativo.replace("\\", "/") else 150
+    # As duas camadas publicadas agora cobrem 0,1–25,0 m HAND (250 níveis).
+    esperado = 250
     nivel_final = esperado / 10
     assert len(features) == esperado, f"{relativo}: esperados {esperado} níveis, vieram {len(features)}"
     assert niveis[0] == 0.1 and niveis[-1] == nivel_final and 0.0 not in niveis
