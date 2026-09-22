@@ -232,7 +232,7 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
         <div class="links" id="artifactLinks"></div>
       </article>
     </div>
-    <p class="foot">PREVINE Taquari–Antas · pesquisa. A página não emite alerta, ordem de evacuação ou decisão operacional.</p>
+    <p class="foot">PREVINE Taquari–Antas · pesquisa. A página não emite alerta, ordem de evacuação ou decisão operacional. Termos diagnósticos de outros produtos, como “proxy de extravasamento”, não são usados aqui como confirmação de inundação.</p>
   </section>
 </div>
 
