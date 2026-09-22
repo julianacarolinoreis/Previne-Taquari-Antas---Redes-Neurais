@@ -92,8 +92,14 @@ foreach ($p in $newOutputs) {
 }
 
 Write-Host "3/5 Criando commit do produto validado..." -ForegroundColor Cyan
-Invoke-Git add -- $trackedOutputs
-Invoke-Git add -- $newOutputs
+foreach ($p in $trackedOutputs) {
+    & git add -- $p
+    if ($LASTEXITCODE -ne 0) { throw "git add falhou para: $p" }
+}
+foreach ($p in $newOutputs) {
+    & git add -- $p
+    if ($LASTEXITCODE -ne 0) { throw "git add falhou para: $p" }
+}
 & git diff --cached --quiet
 if ($LASTEXITCODE -eq 0) { throw "Nenhuma alteracao para publicar." }
 Invoke-Git commit -m "publish(st): MDT LiDAR, HAND e agua conectada"
