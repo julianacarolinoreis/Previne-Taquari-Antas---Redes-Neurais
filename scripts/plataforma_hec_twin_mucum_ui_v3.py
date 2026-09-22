@@ -176,6 +176,11 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
     </div>
   </section>
 
+  <section class="card" id="corridorCard" style="margin-top:14px">
+    <h3 class="panel-title">Corredor do gêmeo até Muçum</h3>
+    <p style="margin:0;color:var(--muted);font-size:12px">Alto + Prata + Carreiro + Médio Taquari-Antas. O mapa mostra também Guaporé, Forqueta e Baixo como inventário da G040, sem inventar vazão ou ΔN para esses setores.</p>
+  </section>
+
   <section class="section" id="chuva">
     <div class="section-head"><h2>Chuva espacial · ECMWF/IFS</h2><p>O campo de chuva permanece célula a célula. Ele pode ser ligado/desligado no mapa sem esconder os nós hidrológicos.</p></div>
     <div class="grid two">
