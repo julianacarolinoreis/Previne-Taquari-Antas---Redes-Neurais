@@ -293,7 +293,7 @@
       <h4>Calibração · nível normal ↔ terreno</h4>
       <p class="disc" style="margin-top:2px"><b>Leitura da régua</b>: o valor em metros é a altura lida na estação Santa Tereza/SGB-ANA, não a profundidade total do rio. <b>Zero operacional do HAND</b>: a validação de campo fixou <b>1,60 m na régua = HAND 0</b>. A previsão espacializada usa RNA − 1,60 m; a leitura observada permanece bruta. Atual: <b id="bfval">—</b> · registrado: <b id="bfevent">—</b></p>
       <label class="sr-only" for="bankfull">Zero operacional da régua usado na calibração visual do HAND</label><input type="range" id="bankfull" min="100" max="700" step="10" value="160" aria-describedby="bankfull-hint" aria-valuetext="1,6 m" style="width:100%"><span class="sr-only" id="bankfull-hint">Ajuste visual de pesquisa, em centímetros; não é a cota oficial de inundação.</span>
-      <div class="disc"><b>Validação de campo — pesquisa, não alerta oficial.</b> O HAND espacial considera somente o rio principal. A referência calibrada é <b>1,60 m na régua = HAND 0</b>; valores da RNA são convertidos por RNA − 1,60 m antes da espacialização. A cota oficial de inundação permanece <b>15 m</b> (SGB/SACE). O HAND novo foi gerado a partir dos rasters de terreno, preenchimento, direção e acumulação fornecidos em <code>D:\PREVINE\hand\santa tereza</code>, com limiar de acumulação de <b>50.000.000 células finas</b> para restringir a camada ao rio principal; os contornos publicados usam passo de <b>0,1 m</b>. Segue como produto de pesquisa e precisa de validação cartográfica antes de qualquer uso operacional.</div>
+      <div class="disc"><b>Validação de campo — pesquisa, não alerta oficial.</b> O HAND espacial considera somente o rio principal. A referência calibrada é <b>1,60 m na régua = HAND 0</b>; valores da RNA são convertidos por RNA − 1,60 m antes da espacialização. A cota oficial de inundação permanece <b>15 m</b> (SGB/SACE). O terreno físico e as barreiras da mancha vêm do <b>LiDAR bruto CLIP_MOSAICO_LIDAR_RS.tif</b>. O <b>FILL_CLIP_MOSAICO_LIDAR_RS.tif</b> é usado somente para o roteamento hidrológico junto com FLOWDIR/FLOWACC; ele não substitui a cota real do terreno. O limiar hidráulico considera a maior barreira do LiDAR bruto ao longo do caminho D8 até o rio principal. O limiar de acumulação é de <b>50.000.000 células finas</b> e os contornos publicados usam passo de <b>0,1 m</b>. Segue como produto de pesquisa e precisa de validação cartográfica antes de qualquer uso operacional.</div>
     </div>
   </aside>
 
@@ -1406,7 +1406,7 @@ async function init(){
       html+='<br><b>Altitude absoluta do MDT: '+(elev!=null?nf1.format(elev)+' m':'indisponível até a regeneração same-source')+'</b>';
       if(curS&&hd!=null){
         const pointHand=hd/10, ev=EVENTS[curEv];
-        html+='<br>Altura acima do leito (HAND): '+nf1.format(pointHand)+' m';
+        html+='<br>Limiar hidráulico HAND (inclui a maior barreira do terreno no caminho até o rio): '+nf1.format(pointHand)+' m';
         const activeD=liveMode?activeLiveData():null;
         const zeroCm=handZeroCm(activeD||liveData);
         const nowCm=liveMode?liveNowCm(activeD):firstNumber(curS[1]);
@@ -1429,7 +1429,7 @@ async function init(){
         }
       }
       html+='<br><small>Coordenadas: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small>';
-      html+='<br><small>Espacialização operacional: HAND = nível da régua − 1,60 m (ex.: 23,57 m → 21,97 m). A cota de 15,00 m continua sendo o limiar de transbordamento, não o zero do HAND. O MDT LiDAR permanece inalterado.</small>';
+      html+='<br><small>Espacialização operacional: HAND = nível da régua − 1,60 m. A mancha respeita as barreiras do LiDAR bruto ao longo do caminho D8 até o rio; o FILL é usado apenas no roteamento. A cota de 15,00 m continua sendo o limiar de transbordamento.</small>';
       html+='</div>';
       L.popup({closeButton:true}).setLatLng(e.latlng).setContent(html).openOn(map);
     });
