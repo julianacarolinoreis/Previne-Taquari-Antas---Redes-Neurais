@@ -151,12 +151,12 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
     </div>
     <div class="status-stack">
       <div class="status"><span class="dot ok"></span><div><strong>Chuva espacial IFS</strong><span id="statusRain">carregando…</span></div></div>
-      <div class="status"><span class="dot wait"></span><div><strong>Chuva → vazão</strong><span>integração espacial completa ainda pendente no gêmeo HEC</span></div></div>
+      <div class="status"><span class="dot ok" id="hydroDot"></span><div><strong>Chuva → vazão</strong><span id="statusHydro">carregando resultado…</span></div></div>
       <div class="status"><span class="dot ok"></span><div><strong>Escopo</strong><span>pesquisa · não é alerta oficial</span></div></div>
     </div>
   </header>
 
-  <div class="notice"><strong>Importante:</strong> o antigo ΔN do gêmeo HEC baseado em poucos pontos de chuva não é mais mostrado como previsão atual. Ele permanece apenas para auditoria até que o modelo chuva–vazão consuma o campo espacial completo da bacia.</div>
+  <div class="notice" id="mainNotice"><strong>Modelo:</strong> carregando a rodada chuva–vazão espacial…</div>
 
   <section class="grid metrics" id="basinMetrics">
     <article class="card metric"><div class="k">Área G040</div><div class="v" id="mArea">—</div><div class="s">km² · 7 UGs</div></article>
@@ -166,14 +166,14 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
   </section>
 
   <section class="section" id="modelo">
-    <div class="section-head"><h2>Resultado do modelo chuva–vazão</h2><p>Saída horária do gêmeo HEC para Muçum e controle Antas. O resultado aparece aqui mesmo quando a integração com a chuva espacial completa ainda está em desenvolvimento.</p></div>
+    <div class="section-head"><h2>Resultado do modelo chuva–vazão</h2><p id="modelSubtitle">HEC-HMS 4.13 com o campo ECMWF/IFS espacializado sobre a bacia contribuinte até Muçum.</p></div>
     <article class="card">
       <div class="model-head">
         <div>
           <h3 class="panel-title" style="margin-bottom:3px">Hidrograma previsto · Muçum</h3>
           <div style="font-size:12px;color:var(--muted)" id="modelGenerated">—</div>
         </div>
-        <span class="badge warn" id="modelBadge">experimental</span>
+        <span class="badge warn" id="modelBadge">carregando</span>
       </div>
       <div class="model-kpis">
         <div class="model-kpi"><span>Q atual pela curva-chave</span><b id="modelQobs">—</b></div>
@@ -184,11 +184,15 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
       <svg id="modelChart" class="model-chart" viewBox="0 0 1000 330" preserveAspectRatio="none" aria-label="Hidrograma do modelo chuva-vazão"></svg>
       <div class="chart-legend">
         <span><i style="background:#176149"></i>Q Muçum · gêmeo HEC</span>
-        <span><i style="background:#225d8d"></i>Q Antas · nó 86472000</span>
+        <span id="legendAntas"><i style="background:#225d8d"></i>Q Antas · quando disponível</span>
       </div>
       <div class="callout" style="margin-top:10px">
-        <h3>Leitura correta deste gráfico</h3>
+        <h3>Leitura do resultado</h3>
         <p id="modelWarning">—</p>
+      </div>
+      <div class="kpi-line" id="modelRainAudit"></div>
+      <div class="table-wrap" style="margin-top:10px">
+        <table><thead><tr><th>Nó/elemento HEC</th><th>Q inicial</th><th>Q pico</th><th>horário do pico</th></tr></thead><tbody id="modelNodeRows"></tbody></table>
       </div>
     </article>
   </section>
@@ -241,14 +245,14 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
   </section>
 
   <section class="section" id="rio">
-    <div class="section-head"><h2>Muçum · leitura atual e estado do modelo</h2><p>A vazão exibida no nó de Muçum vem da curva-chave aplicada ao nível observado. O hidrograma futuro espacial ainda não é publicado como válido.</p></div>
+    <div class="section-head"><h2>Muçum · leitura atual e modelo</h2><p>A telemetria e a curva-chave inicializam a rodada; o hidrograma acima é calculado separadamente pelo HEC-HMS.</p></div>
     <div class="grid metrics" id="productMetrics">
       <article class="card metric"><div class="k">Nível observado</div><div class="v" id="obsLevel">—</div><div class="s" id="obsWhen">telemetria</div></article>
       <article class="card metric"><div class="k">Vazão estimada</div><div class="v" id="obsQ">—</div><div class="s">m³/s · curva-chave de Muçum</div></article>
       <article class="card metric"><div class="k">Chuva espacial</div><div class="v" id="spatialGate">—</div><div class="s">IFS 0,25° · campo completo</div></article>
       <article class="card metric"><div class="k">Atualização</div><div class="v" style="font-size:18px" id="updatedAt">—</div><div class="s">horário de Brasília</div></article>
     </div>
-    <div class="callout" style="margin-top:14px"><h3>Modelo futuro</h3><p>O ΔN legado fica no bloco de auditoria. Assim que o HEC consumir a chuva espacial, este painel poderá mostrar Q(t), N(t), pico e horário por nó sem misturar a vazão interna do gêmeo com a vazão estimada pela curva-chave.</p></div>
+    <div class="callout" style="margin-top:14px"><h3>Separação dos dados</h3><p>“Observado” vem da telemetria/curva-chave. “Modelo” vem do HEC-HMS 4.13. O produto legado por proxies permanece somente na auditoria.</p></div>
   </section>
 
   <section class="section" id="calibracao">
@@ -301,12 +305,40 @@ $("obsQ").textContent=muc.discharge_m3s!=null?fmt(muc.discharge_m3s,0):"—";
 
 function maxFinite(arr){const xs=(arr||[]).map(Number).filter(Number.isFinite);return xs.length?Math.max(...xs):null}
 $("modelGenerated").textContent=rr.generated_at_utc?("rodada "+brt(rr.generated_at_utc)):"sem rodada";
-$("modelBadge").textContent=rr.available?"resultado disponível":"sem resultado";
+const hecSpatial=rr.status==="hec_hms_4_13_spatial_ifs_ready";
+$("modelBadge").textContent=hecSpatial?"HEC-HMS 4.13 · IFS espacial":(rr.available?"resultado experimental":"sem resultado");
+$("modelBadge").className="badge "+(hecSpatial?"ok":"warn");
+$("statusHydro").textContent=hecSpatial?"HEC-HMS 4.13 executado · IFS espacial":(rr.available?"resultado experimental disponível":"sem resultado");
+$("hydroDot").className="dot "+(hecSpatial?"ok":"wait");
+$("mainNotice").innerHTML=hecSpatial
+ ? "<strong>Rodada espacial concluída:</strong> o hidrograma abaixo foi executado no HEC-HMS 4.13 com o campo IFS espacial. O produto por proxies ficou apenas na auditoria."
+ : "<strong>Atenção:</strong> a execução HEC-HMS espacial não está disponível neste ciclo; o que houver abaixo é experimental.";
 $("modelQobs").textContent=rr.current_observed_q_rating_m3s!=null?fmt(rr.current_observed_q_rating_m3s,0)+" m³/s":"—";
 $("modelQpeak").textContent=maxFinite(rr.q_mucum_m3s)!=null?fmt(maxFinite(rr.q_mucum_m3s),0)+" m³/s":"—";
 $("modelNobs").textContent=rr.current_observed_stage_cm!=null?fmt(rr.current_observed_stage_cm/100,2)+" m":"—";
 $("modelRise").textContent=(rr.primary&&rr.primary.rise_cm!=null)?fmt(rr.primary.rise_cm,0)+" cm":"—";
 $("modelWarning").textContent=rr.warning_pt||"Resultado experimental.";
+if($("legendAntas") && !(rr.q_antas_m3s||[]).length)$("legendAntas").style.display="none";
+const audit=$("modelRainAudit");
+if(audit){
+ const rz=rr.rain_zones||{};
+ const parts=[
+   rr.spatial_cells!=null?("IFS <b>"+fmt(rr.spatial_cells,0)+" células</b>"):null,
+   rr.forcing_rain_mm!=null?("chuva equivalente <b>"+fmt(rr.forcing_rain_mm,2)+" mm/120 h</b>"):null,
+   rz["86472000"]?("Linha José Júlio <b>"+fmt(rz["86472000"].total_mm,2)+" mm</b>"):null,
+   rz["02851072"]?("Ibiraiaras <b>"+fmt(rz["02851072"].total_mm,2)+" mm</b>"):null
+ ].filter(Boolean);
+ audit.innerHTML=parts.map(x=>"<span>"+x+"</span>").join("");
+}
+const modelNodeRows=$("modelNodeRows");
+if(modelNodeRows){
+ const mn=rr.nodes_model||{};
+ Object.entries(mn).forEach(([name,v])=>{
+   const tr=document.createElement("tr");
+   tr.innerHTML="<td><b>"+name+"</b></td><td>"+fmt(v.q0_m3s,0)+" m³/s</td><td>"+fmt(v.peak_q_m3s,0)+" m³/s</td><td>"+brt(v.peak_time_utc)+"</td>";
+   modelNodeRows.appendChild(tr);
+ });
+}
 
 function drawHydrograph(){
  const svg=$("modelChart"); if(!svg)return;
@@ -322,7 +354,7 @@ function drawHydrograph(){
  for(let k=0;k<=4;k++){const yy=T+(H-T-B)*k/4, val=hi-(hi-lo)*k/4;s+="<line x1='"+L+"' y1='"+yy+"' x2='"+(W-R)+"' y2='"+yy+"' stroke='#dce5df' stroke-width='1'/><text x='8' y='"+(yy+4)+"' fill='#607168' font-size='12'>"+fmt(val,0)+"</text>"}
  const ticks=[0,Math.floor((tt.length-1)/3),Math.floor(2*(tt.length-1)/3),tt.length-1];
  ticks.forEach(i=>{const xx=x(i);s+="<line x1='"+xx+"' y1='"+(H-B)+"' x2='"+xx+"' y2='"+(H-B+6)+"' stroke='#8b9a91'/><text x='"+xx+"' y='"+(H-15)+"' text-anchor='middle' fill='#607168' font-size='11'>"+brt(tt[i]).replace(", "," ")+"</text>"});
- s+="<path d='"+path(q2)+"' fill='none' stroke='#225d8d' stroke-width='3' vector-effect='non-scaling-stroke'/>";
+ if(q2.length)s+="<path d='"+path(q2)+"' fill='none' stroke='#225d8d' stroke-width='3' vector-effect='non-scaling-stroke'/>";
  s+="<path d='"+path(q1)+"' fill='none' stroke='#176149' stroke-width='4' vector-effect='non-scaling-stroke'/>";
  s+="<text x='"+L+"' y='16' fill='#607168' font-size='12'>vazão simulada (m³/s)</text>";
  svg.innerHTML=s;
