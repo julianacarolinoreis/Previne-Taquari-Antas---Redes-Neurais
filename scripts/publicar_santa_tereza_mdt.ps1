@@ -87,8 +87,14 @@ if ($d.terrain_modified_by_water_filter -ne $false) {
 if ($d.water_connectivity_filter -notmatch "connected-to-main-river") {
     throw "Filtro de conectividade da agua nao confirmado."
 }
-if ([int]$d.contornos_features -lt 100) {
-    throw "Poucos contornos gerados: $($d.contornos_features)."
+if ([int]$d.contornos_features -lt 251) {
+    throw "Contornos insuficientes: $($d.contornos_features). Esperado: pelo menos 251 (0 a 25 m em passos de 0,1 m)."
+}
+if ([double]$d.contour_max_m -lt 25.0) {
+    throw "HAND maximo de contorno insuficiente: $($d.contour_max_m) m."
+}
+if ($d.spatialization_rule -ne "nivel_regua_m - 1.60 m") {
+    throw "Regra de espacializacao inesperada: $($d.spatialization_rule)."
 }
 
 foreach ($p in $newOutputs) {
@@ -103,6 +109,12 @@ if ($page -match "altitude_terreno_10m_refinado\.json|mdt_santa_tereza_10m_refin
 }
 if ($page -notmatch "value===255\?null:value") {
     throw "Contrato NoData 255 nao encontrado na pagina."
+}
+if ($page -notmatch "contornos_mancha\.json") {
+    throw "A pagina nao esta usando a mancha total HAND."
+}
+if ($page -notmatch "stageToSpatialHand\(cm,zeroCm=HAND_ZERO_DEFAULT_CM\)") {
+    throw "A pagina nao confirmou a espacializacao pelo zero de 1,60 m."
 }
 
 Write-Host ("   D8={0}; receptores={1:P2}; drena_ao_rio={2:P2}; contornos={3}" -f $d.d8_scheme,[double]$d.receiver_fraction_assigned,[double]$d.drained_fraction,[int]$d.contornos_features) -ForegroundColor Green
