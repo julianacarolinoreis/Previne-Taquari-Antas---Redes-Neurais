@@ -34,6 +34,8 @@ import base64
 import io
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -450,6 +452,15 @@ def main() -> None:
     activate_same_source_mdt(args.page)
     contour_summary = write_contours(hand, transform, crs, CONTOURS)
 
+    # A página ao vivo consome contornos_extravasamento.json, não o contorno
+    # HAND cumulativo bruto. Regenera somente Santa Tereza para não tocar Muçum.
+    overflow_script = ROOT / "codigo_python" / "02_mdt_hand_mancha" / "gerar_contornos_extravasamento.py"
+    subprocess.run(
+        [sys.executable, str(overflow_script), "--cidade", "santa_tereza"],
+        cwd=ROOT,
+        check=True,
+    )
+
     diag = {
         "produto": "hand_lidar_santa_tereza",
         "status": "gerado_localmente_requer_validacao_cartografica",
@@ -470,6 +481,9 @@ def main() -> None:
         "observacao": "O valor da régua é publicado bruto; a espacialização usa RNA menos 1,60 m. O HAND segue o FLOWDIR até o rio principal; não usa distância euclidiana.",
         **elevation_summary,
         **contour_summary,
+        "contornos_extravasamento_path": str(
+            ROOT / "assets" / "data" / "santa_tereza_inundacao" / "contornos_extravasamento.json"
+        ),
     }
     args.diagnostic.parent.mkdir(parents=True, exist_ok=True)
     args.diagnostic.write_text(json.dumps(diag, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
