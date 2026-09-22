@@ -91,25 +91,22 @@ def delineate_all(dem):
  wbt.fill_depressions_wang_and_liu(str(dem),str(filled))
  wbt.d8_pointer(str(filled),str(ptr))
  wbt.d8_flow_accumulation(str(filled),str(acc),out_type="cells")
+ # The Antas control sits close to the Carreiro confluence, so its snap radius
+ # must stay tight. Muçum uses the already-audited 3-km radius from the SRTM
+ # watershed preparation. Three delineations keep this one-time build fast.
+ snap_by_code={"86472000":500.0,"86472600":1200.0,"86510000":3000.0}
  out={}; selection={}
- # Nearby controls 86472000 and the Carreiro confluence are only ~1-2 km apart.
- # A fixed 3-km snap can jump across the confluence. Test several radii and
- # choose the delineation whose area is closest to the model/ANA nested area.
  for code,o in OUTLETS.items():
-  raw=wb/f"raw_{code}.shp"
+  raw=wb/f"raw_{code}.shp"; dist=snap_by_code[code]
+  snap=wb/f"snap_{code}.shp"; ws=wb/f"ws_{code}.tif"
   gpd.GeoDataFrame([{"station":code}],geometry=[Point(o["lon"],o["lat"])],crs="EPSG:4326").to_crs(TARGET_CRS).to_file(raw)
-  candidates=[]
-  for dist in (150.0,300.0,500.0,750.0,1000.0,1500.0,2500.0):
-   snap=wb/f"snap_{code}_{int(dist)}.shp"; ws=wb/f"ws_{code}_{int(dist)}.tif"
-   wbt.snap_pour_points(str(raw),str(acc),str(snap),snap_dist=dist)
-   wbt.watershed(str(ptr),str(snap),str(ws))
-   g=raster_polygon(ws); area=g.area/1e6
-   candidates.append((abs(area-float(o["target_area_km2"])),dist,area,g))
-  candidates.sort(key=lambda x:x[0])
-  _,dist,area,g=candidates[0]
+  wbt.snap_pour_points(str(raw),str(acc),str(snap),snap_dist=dist)
+  wbt.watershed(str(ptr),str(snap),str(ws))
+  g=raster_polygon(ws); area=g.area/1e6
   out[code]=g
-  selection[code]={"selected_snap_m":dist,"area_km2":round(area,3),"target_km2":o["target_area_km2"],"candidates":[{"snap_m":d,"area_km2":round(a,3)} for _,d,a,_ in candidates]}
+  selection[code]={"selected_snap_m":dist,"area_km2":round(area,3),"target_km2":o["target_area_km2"]}
  return out,selection
+
 
 def find_ug(gdf, needle):
  needle=needle.casefold()
