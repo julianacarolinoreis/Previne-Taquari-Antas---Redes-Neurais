@@ -454,7 +454,6 @@ print("SPATIAL_RAIN_DSS_WRITTEN|" + rain_dss_path)
 
 OpenProject("mucum_spatial_live", project_dir)
 Compute("Forecast")
-CloseProject()
 
 dss = HecDss.open(project_dir + "/output.dss")
 catalog = list(dss.getCatalogedPathnames())
