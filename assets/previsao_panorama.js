@@ -446,21 +446,24 @@
   }
 
   function placePointLabel(entry,index,occupied,bounds){
-    const width=clamp(entry.text.length*6.25+16,82,138),height=22;
-    const lanes=[-30,32,-56,58,-82,84];
-    const ordered=[...lanes.slice(index%lanes.length),...lanes.slice(0,index%lanes.length)];
-    const shifts=[0,-width*.42,width*.42];
+    const width=clamp(entry.text.length*5.9+18,76,146),height=24;
+    const generic=[
+      [0,-36],[0,38],[-.48,-38],[.48,-38],[-.48,40],[.48,40],
+      [-.58,-66],[.58,-66],[-.58,68],[.58,68],[0,-92],[0,94]
+    ];
+    const preferred=Array.isArray(entry.preferred)?entry.preferred:[];
+    const ordered=[...preferred,...generic.slice(index%generic.length),...generic.slice(0,index%generic.length)];
     let fallback=null;
-    for(const offset of ordered){
-      for(const shift of shifts){
-        const cx=clamp(entry.x+shift,bounds.left+width/2,bounds.right-width/2);
-        const cy=clamp(entry.y+offset,bounds.top+height/2,bounds.bottom-height/2);
-        const box={left:cx-width/2,right:cx+width/2,top:cy-height/2,bottom:cy+height/2,cx,cy,width,height};
-        fallback=box;
-        if(!occupied.some(other=>boxesOverlap(box,other))){
-          occupied.push(box);
-          return box;
-        }
+    for(const candidate of ordered){
+      const dx=Number(candidate&&candidate[0])||0;
+      const dy=Number(candidate&&candidate[1])||0;
+      const cx=clamp(entry.x+dx*width,bounds.left+width/2,bounds.right-width/2);
+      const cy=clamp(entry.y+dy,bounds.top+height/2,bounds.bottom-height/2);
+      const box={left:cx-width/2,right:cx+width/2,top:cy-height/2,bottom:cy+height/2,cx,cy,width,height};
+      fallback=box;
+      if(!occupied.some(other=>boxesOverlap(box,other))){
+        occupied.push(box);
+        return box;
       }
     }
     occupied.push(fallback);
@@ -469,10 +472,22 @@
 
   function drawPointLabel(svg,entry,index,occupied,bounds){
     const box=placePointLabel(entry,index,occupied,bounds);
-    const edgeY=box.cy>entry.y?box.top:box.bottom;
-    svg.appendChild(svgNode('line',{x1:entry.x,y1:entry.y,x2:box.cx,y2:edgeY,stroke:entry.color,'stroke-width':1.2,opacity:.72}));
-    svg.appendChild(svgNode('rect',{x:box.left,y:box.top,width:box.width,height:box.height,rx:5,fill:'var(--panel, #fff)',stroke:entry.color,'stroke-width':1.4}));
-    svg.appendChild(svgNode('text',{x:box.cx,y:box.cy+4,'text-anchor':'middle','font-size':11,'font-weight':700,fill:'var(--ink, #1b2c24)'},entry.text));
+    const dx=box.cx-entry.x,dy=box.cy-entry.y;
+    const vertical=Math.abs(dy)>=Math.abs(dx);
+    const edgeX=vertical?box.cx:(dx>0?box.left:box.right);
+    const edgeY=vertical?(dy>0?box.top:box.bottom):box.cy;
+    svg.appendChild(svgNode('line',{
+      x1:entry.x,y1:entry.y,x2:edgeX,y2:edgeY,
+      stroke:entry.color,'stroke-width':1.05,opacity:.58,'stroke-linecap':'round'
+    }));
+    svg.appendChild(svgNode('rect',{
+      x:box.left,y:box.top,width:box.width,height:box.height,rx:6,
+      fill:'var(--panel, #fff)',stroke:entry.color,'stroke-width':1.25
+    }));
+    svg.appendChild(svgNode('text',{
+      x:box.cx,y:box.cy+3.8,'text-anchor':'middle','font-size':10.5,
+      'font-weight':750,fill:'var(--ink, #1b2c24)'
+    },entry.text));
   }
 
   function forecastMark(point,x,y,color){
@@ -515,8 +530,8 @@
     if(empty) empty.classList.remove('show');
 
     const measuredWidth=svg.getBoundingClientRect().width;
-    const W=clamp(Math.round(measuredWidth||960),360,960),H=320;
-    const compact=W<560,m={l:compact?56:68,r:compact?68:82,t:30,b:50};
+    const W=clamp(Math.round(measuredWidth||960),360,960),H=360;
+    const compact=W<560,m={l:compact?54:66,r:compact?56:68,t:38,b:52};
     const tickCount=compact?4:opts.tickCount;
     svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
     const bases=items
@@ -527,6 +542,12 @@
     let xMin=opts.windowHours&&anchor?anchor.time.getTime()-opts.windowHours*36e5:Math.min(...times);
     let xMax=Math.max(...times);
     if(xMax<=xMin) xMax=xMin+4*36e5;
+    // Deixa respiro à direita para o último horizonte não ficar colado na borda
+    // e para o rótulo poder se posicionar sem cobrir os demais.
+    if(items.length){
+      const span=Math.max(4*36e5,xMax-xMin);
+      xMax+=Math.min(70*60*1000,Math.max(35*60*1000,span*.025));
+    }
     let vals=all.map(p=>p.cm).filter(Number.isFinite);
     let rawMin=Math.min(...vals),rawMax=Math.max(...vals),rawSpan=Math.max(80,rawMax-rawMin);
     const showThreshold=cota>=rawMin-rawSpan*.25&&cota<=rawMax+rawSpan*1.25;
@@ -544,6 +565,7 @@
       :`Nível do rio observado nas ${opts.periodLabel}, em linha azul. A cinza tracejada mostra previsões anteriores da RNA. Lacunas de telemetria não são ligadas por linhas.`;
     const desc=svgNode('desc',{},descText);
     svg.append(desc);
+    const occupied=[];
 
     for(let i=0;i<5;i++){
       const v=yMin+(yMax-yMin)*i/4,y=Y(v);
@@ -559,8 +581,24 @@
 
     if(showThreshold){
       const y=Y(cota);
-      svg.appendChild(svgNode('line',{x1:m.l,y1:y,x2:W-m.r,y2:y,stroke:'var(--panorama-threshold, #c0392b)','stroke-width':1.5,'stroke-dasharray':'3 5'}));
-      svg.appendChild(svgNode('text',{x:W-m.r,y:y-7,'text-anchor':'end','font-size':11,'font-weight':700,fill:'var(--panorama-threshold, #a12d25)'},'cota oficial '+fmtLevel(cota)));
+      const thresholdColor=cssValue('--panorama-threshold','#c0392b');
+      svg.appendChild(svgNode('line',{
+        x1:m.l,y1:y,x2:W-m.r,y2:y,stroke:thresholdColor,
+        'stroke-width':1.35,'stroke-dasharray':'4 6',opacity:.9
+      }));
+      const thresholdText='Cota oficial · '+fmtLevel(cota);
+      const tw=clamp(thresholdText.length*5.65+18,112,148),th=22;
+      const tx=m.l+10,ty=clamp(y-28,m.t+3,H-m.b-th-3);
+      const tbox={left:tx,right:tx+tw,top:ty,bottom:ty+th,cx:tx+tw/2,cy:ty+th/2,width:tw,height:th};
+      occupied.push(tbox);
+      svg.appendChild(svgNode('rect',{
+        x:tbox.left,y:tbox.top,width:tbox.width,height:tbox.height,rx:5,
+        fill:'var(--panel, #fff)',stroke:thresholdColor,'stroke-width':1
+      }));
+      svg.appendChild(svgNode('text',{
+        x:tbox.cx,y:tbox.cy+3.6,'text-anchor':'middle','font-size':10,
+        'font-weight':700,fill:thresholdColor
+      },thresholdText));
     }
 
     // Previsões anteriores da RNA (atrás do observado e dos horizontes ativos).
@@ -597,7 +635,11 @@
       const dot=svgNode('circle',{cx:x,cy:y,r:5.5,fill:observedColor,stroke:'var(--panel, #fff)','stroke-width':2});
       dot.appendChild(svgNode('title',{},`${observedLabel[0].toUpperCase()+observedLabel.slice(1)}: ${fmtLevel(anchor.cm)} em ${fmtWhen(anchor.time)}`));
       svg.appendChild(dot);
-      labels.push({x,y,color:observedColor,text:`${observedLabel} · ${fmtLevel(anchor.cm)}`});
+      labels.push({
+        x,y,color:observedColor,
+        text:`${observedLabel==='agora'?'Agora':'Leitura'} · ${fmtLevel(anchor.cm)}`,
+        preferred:[[-.52,-40],[-.62,-68],[.42,-40],[-.38,42]]
+      });
     }
 
     if(items.length){
@@ -607,11 +649,18 @@
         const mark=forecastMark(p,x,y,style.color);
         if(p.stale) mark.setAttribute('opacity','0.72');
         svg.appendChild(mark);
-        labels.push({x,y,color:style.color,text:`+${p.hours} h · ${fmtLevel(p.cm)}`});
+        const preferred=p.hours===2
+          ?[[.42,42],[.54,70],[-.38,42],[.42,-42]]
+          :p.hours===4
+            ?[[-.52,-42],[-.62,-70],[.34,-42],[-.42,42]]
+            :p.hours===8
+              ?[[.50,-44],[.58,-72],[.42,44],[-.46,-44]]
+              :[[.46,44],[.56,72],[-.42,44],[.38,-44]];
+        labels.push({x,y,color:style.color,text:`+${p.hours} h · ${fmtLevel(p.cm)}`,preferred});
+
       });
     }
-    const occupied=[];
-    labels.forEach((entry,index)=>drawPointLabel(svg,entry,index,occupied,{left:m.l,right:W-m.r,top:m.t,bottom:H-m.b}));
+    labels.forEach((entry,index)=>drawPointLabel(svg,entry,index,occupied,{left:m.l+2,right:W-m.r-2,top:m.t+2,bottom:H-m.b-2}));
   }
 
   function legendEntry(label,className,kind='line'){
