@@ -929,6 +929,10 @@ def build_feed(
         flow_catalog,
         rain_catalog,
         include_external=include_external,
+        # O catálogo SGB/CEMADEN é complementar. Uma indisponibilidade
+        # transitória dele deve ficar registrada em catalog.sources, mas não
+        # pode congelar toda a rodada meteorológica nem o nível já publicado.
+        external_strict=False if include_external else True,
         return_metadata=True,
     )
     observed = load_observed_rain(observed_csv, now=now)
