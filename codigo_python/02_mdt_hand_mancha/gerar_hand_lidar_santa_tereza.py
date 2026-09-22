@@ -319,6 +319,20 @@ def write_same_source_elevation(dem: np.ndarray, transform, crs) -> dict:
     return {"elevation_meta": str(meta_path), "elevation_png": str(png), "elevation_visual_png": str(visual_png), "elevation_bounds": meta["bounds"]}
 
 
+def activate_same_source_mdt(page: Path) -> None:
+    """Aponta a página para o MDT absoluto gerado da mesma fonte do HAND."""
+    html = page.read_text(encoding="utf-8")
+    pattern = r"const ELEVATION_URL=.*?; // same-source MDT only"
+    replacement = (
+        "const ELEVATION_URL='assets/data/santa_tereza_inundacao/mdt/"
+        "altitude_terreno_lidar_10m.json'; // same-source MDT only"
+    )
+    html2, count = re.subn(pattern, replacement, html, count=1)
+    if count != 1:
+        raise RuntimeError("marcador ELEVATION_URL same-source não encontrado na página")
+    page.write_text(html2, encoding="utf-8")
+
+
 def inject_payload(page: Path, payload: dict) -> None:
     html = page.read_text(encoding="utf-8")
     pattern = r'<script id="hand-data" type="application/json">.*?</script>'
@@ -433,6 +447,7 @@ def main() -> None:
         "hand_png_b64": base64.b64encode(buf.getvalue()).decode("ascii"),
     }
     inject_payload(args.page, payload)
+    activate_same_source_mdt(args.page)
     contour_summary = write_contours(hand, transform, crs, CONTOURS)
 
     diag = {
