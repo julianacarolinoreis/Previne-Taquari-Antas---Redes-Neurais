@@ -396,7 +396,7 @@
         <a href="pesquisa_status.html">Abrir pesquisa →</a>
       </article>
     </div>
-    <p class="overview-note">O robô ao vivo acompanha +2 h, +4 h e +8 h quando publicados no arquivo ao vivo. A pesquisa separada de “vai mudar ou não” usa horizontes de 24 h ou mais. O estado da saída identifica o papel da pesquisa; não é probabilidade nem garantia de acerto. A camada do mapa é um proxy de extravasamento relativo ao HAND 0 e não substitui alerta oficial.</p>
+    <p class="overview-note">O robô ao vivo acompanha +2 h, +4 h e +8 h quando publicados no arquivo ao vivo. A pesquisa separada de “vai mudar ou não” usa horizontes de 24 h ou mais. O estado da saída identifica o papel da pesquisa; não é probabilidade nem garantia de acerto. A camada do mapa mostra apenas o extravasamento acima da cota de inundação de 15,00 m; o leito permanente não é classificado como inundação. É um produto de pesquisa e não substitui alerta oficial.</p>
     <p class="sr-only" id="overview-accessible" aria-live="polite">Carregando panorama do rio.</p>
   </section>
 </main>
@@ -598,7 +598,7 @@ function loadHand(){return new Promise(res=>{
     const c=document.createElement('canvas'); c.width=COLS;c.height=ROWS; const x=c.getContext('2d'); x.drawImage(img,0,0);
     const d=x.getImageData(0,0,COLS,ROWS).data;
     handArr=new Uint8Array(COLS*ROWS);
-    for(let i=0;i<COLS*ROWS;i++) handArr[i]=d[i*4]===255?250:d[i*4];
+    for(let i=0;i<COLS*ROWS;i++) handArr[i]=d[i*4];
     res();
   };
   img.onerror=()=>{handArr=null;res();};
@@ -645,9 +645,10 @@ function handZeroCm(D){
 function stageToHand(cm,zeroCm=bankfull){return (cm-zeroCm)/100;}
 function pointFloodStatus(pointHand,levelCm,zeroCm){
   if(levelCm==null || !Number.isFinite(Number(levelCm))) return '<span>indisponível</span>';
+  if(Number(levelCm)<COTA_INUND) return 'não · nível abaixo da cota de inundação';
   const depth=(Number(levelCm)-zeroCm)/100-pointHand;
   return depth>0.03
-    ? '<b class="pf">SIM · '+nf1.format(depth*100)+' cm de água fora do leito</b>'
+    ? '<b class="pf">SIM · '+nf1.format(depth*100)+' cm de água fora da faixa de bankfull</b>'
     : 'não neste proxy';
 }
 function mapForecastHorizons(){
@@ -677,10 +678,13 @@ function elevationAt(lat,lon){
   return ((elevationArr[i]<<8)|elevationArr[i+1])*(m.escala||0.1);
 }
 function achaFeature(mLvl){
-  if(!contornos||mLvl==null||!Number.isFinite(mLvl)||mLvl<=0) return null;
-  if(contornos&&contornos._maxNivel==null) contornos._maxNivel=Math.max(0,...contornos.features.map(f=>f.properties.nivel_m));
-  const teto=contornos&&contornos._maxNivel!=null?contornos._maxNivel:25;
-  const alvo=Math.round(Math.max(0,Math.min(teto,mLvl))*10)/10;
+  if(!contornos||mLvl==null||!Number.isFinite(mLvl)||mLvl<=0||!contornos.features.length) return null;
+  if(contornos._minNivel==null) contornos._minNivel=Math.min(...contornos.features.map(f=>Number(f.properties.nivel_m)));
+  if(contornos._maxNivel==null) contornos._maxNivel=Math.max(...contornos.features.map(f=>Number(f.properties.nivel_m)));
+  // contornos_extravasamento começa apenas acima da cota de inundação.
+  // Abaixo do primeiro nível publicado não há extravasamento a desenhar.
+  if(mLvl < contornos._minNivel-0.049) return null;
+  const alvo=Math.round(Math.min(contornos._maxNivel,mLvl)*10)/10;
   return contornos.features.reduce((best,f)=>{
     if(!best) return f;
     return Math.abs(Number(f.properties.nivel_m)-alvo)<Math.abs(Number(best.properties.nivel_m)-alvo)?f:best;
@@ -707,6 +711,7 @@ function renderFrame(){
   const nowDm=hasNow?stageToHand(nowCm)*10:-1;
   const hasFore=foreCm!=null, foreDm=hasFore?stageToHand(foreCm)*10:-1;
   const hasObs=obsCm!=null, obsDm=hasObs?stageToHand(obsCm)*10:-1;
+  const bankfullHandDm=stageToHand(COTA_INUND,HAND_ZERO_DEFAULT_CM)*10;
   const activeKey=(activeD&&activeD.horizonte)||ev.horizonte;
   const uDm=(UNCERT[activeKey]||0)*10, uMaxDm=foreDm+uDm; // borda de incerteza
 
@@ -725,7 +730,8 @@ function renderFrame(){
   if(hasObs&&handArr){
     for(let i=0;i<COLS*ROWS;i++){
       const hd=handArr[i];
-      const inFore=hasFore&&hd>0&&hd<=foreDm, inObs=hd>0&&hd<=obsDm;
+      const inFore=hasFore&&foreCm>=COTA_INUND&&hd>bankfullHandDm&&hd<=foreDm;
+      const inObs=hasObs&&obsCm>=COTA_INUND&&hd>bankfullHandDm&&hd<=obsDm;
       if(inFore&&inObs)TP++; else if(inFore&&!inObs)FP++; else if(!inFore&&inObs)FN++;
     }
   }
@@ -1340,8 +1346,8 @@ async function init(){
             html+='<br>+'+row.key.replace(/^\+/,'')+': dentro do contorno-base do leito; não classificado como inundação.';
           });
         }else{
-          const nowDepth=nowCm!=null?(Number(nowCm)-zeroCm)/100-pointHand:null;
-          html+='<br>Agora: '+(nowDepth!=null&&nowDepth>0.03?nf1.format(nowDepth*100)+' cm de água fora do leito':'sem inundação estimada');
+          const nowDepth=(nowCm!=null&&Number(nowCm)>=COTA_INUND)?(Number(nowCm)-zeroCm)/100-pointHand:null;
+          html+='<br>Agora: '+(nowDepth!=null&&nowDepth>0.03?nf1.format(nowDepth*100)+' cm de água fora da faixa de bankfull':(nowCm!=null&&Number(nowCm)<COTA_INUND?'nível abaixo da cota de inundação':'sem inundação estimada'));
           mapForecastHorizons().forEach(row=>{
             const D=row.D;
             const available=!!D&&D.disponivel!==false;
@@ -1352,7 +1358,7 @@ async function init(){
         }
       }
       html+='<br><small>Coordenadas: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small>';
-      html+='<br><small>Mancha relativa ao HAND 0; calibração de campo: régua 1,60 m = HAND 0. Não é uma cota absoluta de água validada.</small>';
+      html+='<br><small>HAND 0 calibrado em 1,60 m; a mancha de extravasamento só começa acima da cota de inundação de 15,00 m. O MDT LiDAR não é alterado pelo filtro de água.</small>';
       html+='</div>';
       L.popup({closeButton:true}).setLatLng(e.latlng).setContent(html).openOn(map);
     });
