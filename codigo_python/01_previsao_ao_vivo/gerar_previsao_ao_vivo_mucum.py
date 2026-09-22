@@ -898,8 +898,21 @@ def main():
         horizontes = {c["horizonte"]: base_saida(c, None, None, None, "nenhum .mat disponível no repo") for c in modelos}
         escrever_pacote(horizontes, []); return
 
-    estacoes = sorted({e for c in modelos for e in c["estacoes"]})
-    estacoes_chuva = sorted({e for c in modelos for e in c.get("estacoes_chuva", [])})
+    # Prioriza a estação-alvo e, em seguida, as estações do modelo principal
+    # de 2 h. Assim uma auxiliar lenta de 4 h/8 h não impede a obtenção do
+    # nível atual de Muçum nem atrasa desnecessariamente o horizonte curto.
+    todas_estacoes = {e for c in modelos for e in c["estacoes"]}
+    estacoes_2h = set(modelos[0]["estacoes"]) if modelos else set()
+    estacoes = (
+        ([ALVO] if ALVO in todas_estacoes else [])
+        + sorted(estacoes_2h - {ALVO})
+        + sorted(todas_estacoes - estacoes_2h - {ALVO})
+    )
+    todas_chuvas = {e for c in modelos for e in c.get("estacoes_chuva", [])}
+    estacoes_chuva = (
+        ([ALVO] if ALVO in todas_chuvas else [])
+        + sorted(todas_chuvas - {ALVO})
+    )
     series = buscar_series_paralelo(estacoes, buscar_ana, max_workers=ANA_MAX_CONCORRENCIA)
     series["__chuva_postos__"] = buscar_series_paralelo(
         estacoes_chuva, buscar_ana_chuva, max_workers=ANA_MAX_CONCORRENCIA
