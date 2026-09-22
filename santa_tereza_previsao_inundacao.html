@@ -413,8 +413,7 @@ const EVENTS=JSON.parse(document.getElementById('event-data').textContent);
 const COTA_INUND=1500;
 const COLS=HAND.cols, ROWS=HAND.rows;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
-const CONTORNOS_VERSION='hand25-zero160-20260922-v1';
-const CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_mancha.json?v='+CONTORNOS_VERSION;
+const CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_extravasamento.json';
 // A grade absoluta só é habilitada quando é gerada da MESMA fonte do HAND.
 // O gerador local troca null pelo JSON same-source após concluir e validar a geração.
 const ELEVATION_URL='assets/data/santa_tereza_inundacao/mdt/altitude_terreno_lidar_10m.json'; // same-source MDT only
@@ -708,7 +707,7 @@ function achaFeature(mLvl){
   if(!contornos||mLvl==null||!Number.isFinite(mLvl)||mLvl<=0||!contornos.features.length) return null;
   if(contornos._minNivel==null) contornos._minNivel=Math.min(...contornos.features.map(f=>Number(f.properties.nivel_m)));
   if(contornos._maxNivel==null) contornos._maxNivel=Math.max(...contornos.features.map(f=>Number(f.properties.nivel_m)));
-  // A camada contém a extensão total da água para cada nível HAND.
+  // A camada contém apenas o extravasamento publicado para cada nível HAND.
   if(mLvl < contornos._minNivel-0.049) return null;
   const alvo=Math.round(Math.min(contornos._maxNivel,mLvl)*10)/10;
   return contornos.features.reduce((best,f)=>{
