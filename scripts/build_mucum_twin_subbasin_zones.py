@@ -150,7 +150,8 @@ def main():
   report["zones"][zid]={"area_geometry_km2":round(area,3),"area_model_km2":target,"ratio":round(area/target,5)}
   gw=gpd.GeoSeries([g],crs=TARGET_CRS).to_crs("EPSG:4326").iloc[0]
   features.append({"type":"Feature","properties":{"subbasin_id":zid,"area_geometry_km2":round(area,3),"area_model_km2":target,"area_ratio":round(area/target,5)},"geometry":mapping(gw.simplify(0.00015,preserve_topology=True))})
- print(json.dumps(report,ensure_ascii=False))\n # Hard gate only for gross topology failure; area differences from DEM/inventory are reported, never forced.
+ print(json.dumps(report,ensure_ascii=False))
+ # Hard gate only for gross topology failure; area differences from DEM/inventory are reported, never forced.
  for code,item in report["outlets"].items():
   if not 0.80 <= item["ratio"] <= 1.20: raise RuntimeError(f"nested watershed gross area mismatch {code}: {item}")
  for zid,item in report["zones"].items():
