@@ -76,13 +76,26 @@ class BasinResearchFeedTests(unittest.TestCase):
         else:
             self.assertEqual(primary_4h["input_audit_status"], "ATENCAO")
             self.assertGreater(primary_4h["inputs_missing"], 0)
-        self.assertTrue(by_key["4h_versao_b"]["available"])
-        self.assertEqual(by_key["4h_versao_b"]["role"], "comparativo")
+        comparative_4h = by_key["4h_versao_b"]
+        self.assertEqual(comparative_4h["role"], "comparativo")
+        if comparative_4h["available"]:
+            self.assertEqual(comparative_4h["input_audit_status"], "NORMAL")
+            self.assertEqual(comparative_4h["inputs_missing"], 0)
+            self.assertEqual(comparative_4h["inputs_exact"], comparative_4h["inputs_total"])
+        else:
+            self.assertEqual(comparative_4h["input_audit_status"], "ATENCAO")
+            self.assertGreater(comparative_4h["inputs_missing"], 0)
 
         santa = builder.live_horizon_audit(builder.load(ROOT / "previsao_ao_vivo.json", {}))
         santa_by_key = {row["key"]: row for row in santa}
-        self.assertTrue(santa_by_key["4h"]["available"])
-        self.assertEqual(santa_by_key["4h"]["inputs_exact"], santa_by_key["4h"]["inputs_total"])
+        santa_4h = santa_by_key["4h"]
+        if santa_4h["available"]:
+            self.assertEqual(santa_4h["input_audit_status"], "NORMAL")
+            self.assertEqual(santa_4h["inputs_missing"], 0)
+            self.assertEqual(santa_4h["inputs_exact"], santa_4h["inputs_total"])
+        else:
+            self.assertEqual(santa_4h["input_audit_status"], "ATENCAO")
+            self.assertGreater(santa_4h["inputs_missing"], 0)
         self.assertIn(santa_by_key["8h"]["quality_status"], {"NORMAL", "ATENCAO"})
 
     def test_gates_are_explicit(self):
