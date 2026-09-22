@@ -18,7 +18,7 @@ HISTORY = ROOT / "historico_previsoes_ao_vivo_mucum.json"
 REQUIRED = {"2h", "4h", "4h_versao_b", "8h", "8h_versao_b"}
 REQUIRED_FIELDS = {"horizonte", "horizonte_h", "modelo", "tipo", "status", "modelo_papel", "disponivel"}
 EXPECTED_HOURS = {"2h": 2, "4h": 4, "4h_versao_b": 4, "8h": 8, "8h_versao_b": 8}
-EXPECTED_INPUTS = {"2h": 14, "4h": 30, "4h_versao_b": 15, "8h": 26, "8h_versao_b": 28}
+EXPECTED_INPUTS = {"2h": 14, "4h": 15, "4h_versao_b": 15, "8h": 26, "8h_versao_b": 28}
 
 
 def validate_data(data: dict) -> None:

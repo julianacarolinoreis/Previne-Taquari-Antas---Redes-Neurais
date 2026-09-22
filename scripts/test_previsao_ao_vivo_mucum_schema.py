@@ -37,7 +37,7 @@ class MucumFeedContractTests(unittest.TestCase):
                 key: self._item(key, hours, inputs, role, rank)
                 for key, hours, inputs, role, rank in (
                     ("2h", 2, 14, "principal", None),
-                    ("4h", 4, 30, "principal", 1),
+                    ("4h", 4, 15, "principal", 1),
                     ("4h_versao_b", 4, 15, "comparativo", 2),
                     ("8h", 8, 26, "principal", 1),
                     ("8h_versao_b", 8, 28, "comparativo", 2),
