@@ -413,7 +413,7 @@ const EVENTS=JSON.parse(document.getElementById('event-data').textContent);
 const COTA_INUND=1500;
 const COLS=HAND.cols, ROWS=HAND.rows;
 const BOUNDS=[[HAND.S,HAND.W],[HAND.N,HAND.E]];
-const CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_extravasamento.json';
+const CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_mancha.json';
 // A grade absoluta só é habilitada quando é gerada da MESMA fonte do HAND.
 // O gerador local troca null pelo JSON same-source após concluir e validar a geração.
 const ELEVATION_URL='assets/data/santa_tereza_inundacao/mdt/altitude_terreno_lidar_10m.json'; // same-source MDT only
@@ -600,9 +600,9 @@ function updateTelemetryMarkers(D){
     if(marker) marker.bindPopup(telemetryReadingHtml(meta,rows.get(meta.code)||null,D&&D.consultado_em));
   });
 }
-// handArr fica so pra consulta pontual (clique no mapa) e TP/FP/FN vs
-// observado -- a mancha em si agora e o contorno vetorial que exclui o HAND 0
-// (contornos_extravasamento.json), nao mais um raster pintado pixel a pixel.
+// handArr fica para consulta pontual e TP/FP/FN. A mancha principal usa
+// contornos_mancha.json (extensão total HAND), preservando o canal preenchido;
+// o nível espacializado é régua - 1,60 m.
 function loadHand(){return new Promise(res=>{
   const img=new Image();
   img.onload=()=>{
@@ -654,17 +654,16 @@ function handZeroCm(D){
   return Number.isFinite(v)?v:HAND_ZERO_DEFAULT_CM;
 }
 function stageToHand(cm,zeroCm=bankfull){return (cm-zeroCm)/100;}
-function stageToOverflowHand(cm){
-  if(cm==null||!Number.isFinite(Number(cm))||Number(cm)<COTA_INUND) return -1;
-  return (Number(cm)-COTA_INUND)/100;
+function stageToSpatialHand(cm,zeroCm=HAND_ZERO_DEFAULT_CM){
+  if(cm==null||!Number.isFinite(Number(cm))) return -1;
+  return Math.max(0,(Number(cm)-Number(zeroCm))/100);
 }
 function pointFloodStatus(pointHand,levelCm,zeroCm){
   if(levelCm==null || !Number.isFinite(Number(levelCm))) return '<span>indisponível</span>';
-  if(Number(levelCm)<COTA_INUND) return 'não · nível abaixo da cota de inundação';
-  if(pointHand<=0) return 'dentro do contorno-base HAND 0; não classificado como extravasamento';
-  const depth=stageToOverflowHand(levelCm)-pointHand;
+  const spatialHand=stageToSpatialHand(levelCm,zeroCm);
+  const depth=spatialHand-pointHand;
   return depth>0.03
-    ? '<b class="pf">SIM · '+nf1.format(depth*100)+' cm de água fora da faixa de bankfull</b>'
+    ? '<b class="pf">SIM · '+nf1.format(depth*100)+' cm de lâmina relativa estimada</b>'
     : 'não neste proxy';
 }
 function mapForecastHorizons(){
@@ -697,8 +696,7 @@ function achaFeature(mLvl){
   if(!contornos||mLvl==null||!Number.isFinite(mLvl)||mLvl<=0||!contornos.features.length) return null;
   if(contornos._minNivel==null) contornos._minNivel=Math.min(...contornos.features.map(f=>Number(f.properties.nivel_m)));
   if(contornos._maxNivel==null) contornos._maxNivel=Math.max(...contornos.features.map(f=>Number(f.properties.nivel_m)));
-  // contornos_extravasamento começa apenas acima da cota de inundação.
-  // Abaixo do primeiro nível publicado não há extravasamento a desenhar.
+  // A camada contém a extensão total da água para cada nível HAND.
   if(mLvl < contornos._minNivel-0.049) return null;
   const alvo=Math.round(Math.min(contornos._maxNivel,mLvl)*10)/10;
   return contornos.features.reduce((best,f)=>{
@@ -724,11 +722,13 @@ function renderFrame(){
   const activeD=liveMode?activeLiveData():null;
   const nowCm=liveMode&&activeD?firstNumber(activeD.nivel_rio_agora_cm,activeD.telemetria_ultima_nivel_cm,activeD.nivel_atual_cm,rawNowCm):rawNowCm;
   const hasNow=nowCm!=null&&Number.isFinite(Number(nowCm));
-  // A régua e o MDT não compartilham datum vertical. Para a mancha, usa-se
-  // somente o excesso acima da cota oficial de inundação (15,00 m).
-  const nowDm=hasNow?stageToOverflowHand(nowCm)*10:-1;
-  const hasFore=foreCm!=null, foreDm=hasFore?stageToOverflowHand(foreCm)*10:-1;
-  const hasObs=obsCm!=null, obsDm=hasObs?stageToOverflowHand(obsCm)*10:-1;
+  // Espacialização operacional validada em campo: régua 1,60 m = HAND 0.
+  // A cota de 15,00 m permanece como limiar de transbordamento/estado, mas
+  // NÃO é subtraída da altura usada na mancha.
+  const zeroCm=handZeroCm(activeD||liveData);
+  const nowDm=hasNow?stageToSpatialHand(nowCm,zeroCm)*10:-1;
+  const hasFore=foreCm!=null, foreDm=hasFore?stageToSpatialHand(foreCm,zeroCm)*10:-1;
+  const hasObs=obsCm!=null, obsDm=hasObs?stageToSpatialHand(obsCm,zeroCm)*10:-1;
   const activeKey=(activeD&&activeD.horizonte)||ev.horizonte;
   const uDm=(UNCERT[activeKey]||0)*10, uMaxDm=foreDm+uDm; // borda de incerteza
 
@@ -1396,8 +1396,8 @@ async function init(){
             html+='<br>+'+row.key.replace(/^\+/,'')+': dentro do contorno-base HAND 0; não classificado como extravasamento.';
           });
         }else{
-          const nowDepth=(nowCm!=null&&Number(nowCm)>=COTA_INUND)?stageToOverflowHand(nowCm)-pointHand:null;
-          html+='<br>Agora: '+(nowDepth!=null&&nowDepth>0.03?nf1.format(nowDepth*100)+' cm de extravasamento estimado':(nowCm!=null&&Number(nowCm)<COTA_INUND?'nível abaixo da cota de inundação':'sem inundação estimada'));
+          const nowDepth=nowCm!=null?stageToSpatialHand(nowCm,zeroCm)-pointHand:null;
+          html+='<br>Agora: '+(nowDepth!=null&&nowDepth>0.03?nf1.format(nowDepth*100)+' cm de lâmina relativa estimada':'sem inundação estimada neste proxy');
           mapForecastHorizons().forEach(row=>{
             const D=row.D;
             const available=!!D&&D.disponivel!==false;
@@ -1408,7 +1408,7 @@ async function init(){
         }
       }
       html+='<br><small>Coordenadas: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small>';
-      html+='<br><small>A mancha usa somente o excesso da régua acima de 15,00 m (ex.: 15,13 m → 0,13 m de HAND). O datum da régua não é tratado como altura do terreno. O MDT LiDAR permanece inalterado.</small>';
+      html+='<br><small>Espacialização operacional: HAND = nível da régua − 1,60 m (ex.: 23,57 m → 21,97 m). A cota de 15,00 m continua sendo o limiar de transbordamento, não o zero do HAND. O MDT LiDAR permanece inalterado.</small>';
       html+='</div>';
       L.popup({closeButton:true}).setLatLng(e.latlng).setContent(html).openOn(map);
     });
