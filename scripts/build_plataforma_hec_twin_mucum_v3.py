@@ -194,51 +194,107 @@ def build_feed_v3() -> dict:
     spatial_pkg = load_spatial()
     sr = spatial_summary(spatial_pkg)
     feed["schema_version"] = "plataforma_hec_twin_mucum_v3"
-    feed["status"] = "spatial_rain_ready_hydrology_integration_pending"
+    feed["status"] = "hec_hms_spatial_ready" if (OUT / "hec_hms_spatial_forecast_mucum_latest.json").exists() else "spatial_rain_ready_hydrology_integration_pending"
     feed["spatial_rain"] = sr
     feed["hydro_nodes"] = build_hydro_nodes(feed)
 
-    # Always expose the currently executable rainfall-runoff result to the UI.
-    # It remains explicitly labelled as legacy/proxy until the full spatial IFS
-    # field is wired into the runoff model.
+    # Prefer the real HEC-HMS 4.13 spatial run. Fall back to the Python twin
+    # only when the HEC spatial artifact is unavailable.
+    spatial_hec = base.load_json(OUT / "hec_hms_spatial_forecast_mucum_latest.json") or {}
+    spatial_ready = spatial_hec.get("status") == "hec_hms_4_13_spatial_ifs_ready"
     forward_pkg = base.load_json(OUT / "hec_twin_mucum_forward_5d_latest.json") or {}
-    s = forward_pkg.get("series_primary") or {}
-    qs = forward_pkg.get("quanto_sobe") or {}
-    forcing_used = forward_pkg.get("forcing") or {}
-    is_spatial = bool(forcing_used.get("spatial_field_full")) and not bool(forcing_used.get("point_proxy_not_areal_mask", True))
-    feed["rainfall_runoff_result"] = {
-        "available": bool(s.get("time_utc") and s.get("q_mucum_m3s")),
-        "generated_at_utc": forward_pkg.get("generated_at_utc"),
-        "status": "spatial_ifs_rainfall_runoff_ready" if is_spatial else "experimental_legacy_point_proxy",
-        "label_pt": "Resultado chuva–vazão com IFS espacial" if is_spatial else "Resultado do modelo chuva–vazão disponível",
-        "warning_pt": (
-            "Esta rodada usa o campo IFS espacial completo, agregado separadamente dentro de cada "
-            "zona hidrológica do gêmeo. É um resultado de pesquisa do gêmeo HEC, não alerta oficial."
-            if is_spatial else
-            "Esta série é a saída executável do gêmeo HEC atual. A chuva que gerou esta saída "
-            "ainda é a forçante proxy antiga, não o campo IFS espacial completo. Mostrar para "
-            "diagnóstico; não misturar com a chuva espacial como se já estivesse acoplada."
-        ),
-        "forcing_spatial": is_spatial,
-        "forcing": forcing_used,
-        "time_utc": s.get("time_utc") or [],
-        "q_mucum_m3s": s.get("q_mucum_m3s") or [],
-        "q_antas_m3s": s.get("q_antas_m3s") or [],
-        "q_stz_diagnostic_m3s": s.get("q_stz_diagnostic_m3s") or [],
-        "n_mucum_anchored_cm": s.get("n_mucum_anchored_cm") or [],
-        "delta_n_from_now_cm": s.get("delta_n_from_now_cm") or [],
-        "current_observed_stage_cm": ((qs.get("level_now") or {}).get("stage_cm")),
-        "current_observed_q_rating_m3s": ((qs.get("q_now_from_rating_m3s") or {}).get("q_m3s")),
-        "primary": qs.get("primary") or {},
-        "ensemble_rise_cm": qs.get("ensemble_rise_cm") or {},
-        "forcing_rain_mm_legacy": qs.get("rain_forecast_mm_area_weighted"),
-        "horizon_hours": qs.get("horizon_hours"),
-        "plain_pt": qs.get("plain_pt"),
-        "q_note_pt": (
-            "Q(t) do gráfico é a vazão interna simulada do gêmeo HEC. "
-            "A vazão observada/estimada pela curva-chave de Muçum é mostrada separadamente."
-        ),
-    }
+
+    if spatial_ready:
+        ss = spatial_hec.get("series") or {}
+        sm = spatial_hec.get("summary") or {}
+        rain = spatial_hec.get("rain") or {}
+        zones = rain.get("zones") or {}
+        feed["rainfall_runoff_result"] = {
+            "available": bool(spatial_hec.get("times_utc") and ss.get("q_mucum_m3s")),
+            "generated_at_utc": spatial_hec.get("generated_at_utc"),
+            "status": "hec_hms_4_13_spatial_ifs_ready",
+            "label_pt": "HEC-HMS 4.13 · chuva IFS espacial",
+            "warning_pt": spatial_hec.get("warning_pt"),
+            "forcing_spatial": True,
+            "engine": "HEC-HMS 4.13",
+            "mode": spatial_hec.get("mode"),
+            "time_utc": spatial_hec.get("times_utc") or [],
+            "q_mucum_m3s": ss.get("q_mucum_m3s") or [],
+            "q_antas_m3s": [],
+            "q_stz_diagnostic_m3s": [],
+            "n_mucum_anchored_cm": ss.get("n_mucum_anchored_cm") or [],
+            "delta_n_from_now_cm": ss.get("delta_n_from_now_cm") or [],
+            "current_observed_stage_cm": sm.get("level_now_observed_cm"),
+            "current_observed_q_rating_m3s": sm.get("q_now_observed_rating_m3s"),
+            "primary": {
+                "event_id": "HEC-HMS-SPATIAL",
+                "rise_cm": sm.get("rise_from_now_cm"),
+                "peak_time_utc": sm.get("peak_time_utc"),
+                "peak_anchored_cm": sm.get("peak_level_anchored_cm"),
+                "peak_q_m3s": sm.get("peak_q_m3s"),
+            },
+            "horizon_hours": len(spatial_hec.get("times_utc") or []),
+            "forcing_rain_mm": rain.get("basin_equivalent_forecast_mm_for_audit"),
+            "spatial_cells": rain.get("spatial_cells"),
+            "rain_zones": {
+                sid: {
+                    "name": z.get("name"),
+                    "total_mm": z.get("total_mm"),
+                    "n_cells_touching": z.get("n_cells_touching"),
+                    "coverage_ratio": z.get("coverage_ratio"),
+                }
+                for sid, z in zones.items()
+            },
+            "initial_state": spatial_hec.get("initial_state"),
+            "parameter_source": spatial_hec.get("parameter_source"),
+            "nodes_model": spatial_hec.get("nodes") or {},
+            "plain_pt": (
+                f"HEC-HMS 4.13 executado com {rain.get('spatial_cells') or '?'} células IFS "
+                f"espacializadas. Q inicial {sm.get('q_model_initial_m3s')} m³/s; "
+                f"pico {sm.get('peak_q_m3s')} m³/s; ΔN {sm.get('rise_from_now_cm')} cm."
+            ),
+            "q_note_pt": (
+                "Q(t) é a saída do HEC-HMS 4.13. O estado inicial foi reconciliado com a "
+                "vazão derivada da curva-chave de Muçum; a chuva é espacializada por interseção "
+                "das células IFS com as zonas do piloto HEC."
+            ),
+            "artifact_json": "hec_hms_spatial_forecast_mucum_latest.json",
+            "series_csv": "hec_hms_spatial_forecast_mucum/primary_series.csv",
+        }
+    else:
+        s = forward_pkg.get("series_primary") or {}
+        qs = forward_pkg.get("quanto_sobe") or {}
+        forcing_used = forward_pkg.get("forcing") or {}
+        is_spatial = bool(forcing_used.get("spatial_field_full")) and not bool(forcing_used.get("point_proxy_not_areal_mask", True))
+        feed["rainfall_runoff_result"] = {
+            "available": bool(s.get("time_utc") and s.get("q_mucum_m3s")),
+            "generated_at_utc": forward_pkg.get("generated_at_utc"),
+            "status": "spatial_ifs_rainfall_runoff_ready" if is_spatial else "experimental_legacy_point_proxy",
+            "label_pt": "Resultado chuva–vazão com IFS espacial" if is_spatial else "Resultado do modelo chuva–vazão disponível",
+            "warning_pt": (
+                "Esta rodada usa o campo IFS espacial completo, agregado separadamente dentro de cada "
+                "zona hidrológica do gêmeo. É um resultado de pesquisa do gêmeo HEC, não alerta oficial."
+                if is_spatial else
+                "Esta série é a saída executável do gêmeo HEC atual. A chuva que gerou esta saída "
+                "ainda é a forçante proxy antiga, não o campo IFS espacial completo."
+            ),
+            "forcing_spatial": is_spatial,
+            "forcing": forcing_used,
+            "time_utc": s.get("time_utc") or [],
+            "q_mucum_m3s": s.get("q_mucum_m3s") or [],
+            "q_antas_m3s": s.get("q_antas_m3s") or [],
+            "q_stz_diagnostic_m3s": s.get("q_stz_diagnostic_m3s") or [],
+            "n_mucum_anchored_cm": s.get("n_mucum_anchored_cm") or [],
+            "delta_n_from_now_cm": s.get("delta_n_from_now_cm") or [],
+            "current_observed_stage_cm": ((qs.get("level_now") or {}).get("stage_cm")),
+            "current_observed_q_rating_m3s": ((qs.get("q_now_from_rating_m3s") or {}).get("q_m3s")),
+            "primary": qs.get("primary") or {},
+            "ensemble_rise_cm": qs.get("ensemble_rise_cm") or {},
+            "forcing_rain_mm": qs.get("rain_forecast_mm_area_weighted"),
+            "horizon_hours": qs.get("horizon_hours"),
+            "plain_pt": qs.get("plain_pt"),
+            "q_note_pt": "Fallback do gêmeo de pesquisa; não é o HEC-HMS espacial preferencial.",
+        }
 
     discipline = dict(feed.get("discipline") or {})
     discipline.update({
@@ -269,21 +325,35 @@ def build_feed_v3() -> dict:
     products["forward_5d"] = fwd
     feed["products"] = products
 
-    feed["headline"] = {
-        "source": "spatial_ifs_full_field",
-        "question_pt": "O que toda a chuva prevista na bacia contribuinte pode produzir em Muçum?",
-        "plain_pt": (
-            "A chuva espacial IFS está atualizada e cobre toda a bacia contribuinte até Muçum. "
-            "A previsão de nível permanece bloqueada nesta página até o modelo chuva–vazão "
-            "consumir esse campo espacial, sem reduzir a bacia a proxies pontuais."
-        ),
-        "primary": None,
-        "ensemble_rise_cm": None,
-        "rain_mm_area_weighted": None,
-        "verification_plain_pt": None,
-        "scorecard": {},
-        "validation_ref": "products.live_eval",
-    }
+    if spatial_ready:
+        hsm = spatial_hec.get("summary") or {}
+        feed["headline"] = {
+            "source": "hec_hms_4_13_spatial_ifs",
+            "question_pt": "O que toda a chuva prevista na bacia contribuinte produz no modelo chuva–vazão de Muçum?",
+            "plain_pt": (
+                f"HEC-HMS 4.13 executado com o campo IFS espacial. "
+                f"Q atual modelada {hsm.get('q_model_initial_m3s')} m³/s, "
+                f"pico {hsm.get('peak_q_m3s')} m³/s e ΔN {hsm.get('rise_from_now_cm')} cm."
+            ),
+            "primary": feed["rainfall_runoff_result"].get("primary"),
+            "rain_mm_area_weighted": (spatial_hec.get("rain") or {}).get("basin_equivalent_forecast_mm_for_audit"),
+            "validation_ref": "hec_hms_spatial_forecast_mucum_latest.json",
+        }
+    else:
+        feed["headline"] = {
+            "source": "spatial_ifs_full_field",
+            "question_pt": "O que toda a chuva prevista na bacia contribuinte pode produzir em Muçum?",
+            "plain_pt": (
+                "A chuva espacial IFS está atualizada, mas o HEC-HMS espacial ainda não publicou "
+                "uma execução válida neste ciclo."
+            ),
+            "primary": None,
+            "ensemble_rise_cm": None,
+            "rain_mm_area_weighted": None,
+            "verification_plain_pt": None,
+            "scorecard": {},
+            "validation_ref": "products.live_eval",
+        }
 
     summary = dict(feed.get("summary") or {})
     summary.update({
@@ -298,6 +368,15 @@ def build_feed_v3() -> dict:
         "observed_at_utc": level_now.get("observed_at_utc"),
         "observed_source": level_now.get("source"),
     })
+    if spatial_ready:
+        hsm = spatial_hec.get("summary") or {}
+        summary.update({
+            "peak_n_cm": hsm.get("peak_level_anchored_cm"),
+            "peak_delta_n_cm": hsm.get("rise_from_now_cm"),
+            "peak_when_utc": hsm.get("peak_time_utc"),
+            "hydrology_status": "hec_hms_4_13_spatial_ifs_ready",
+            "observed_stage_cm": hsm.get("level_now_observed_cm"),
+        })
     feed["summary"] = summary
 
     freshness = dict(feed.get("freshness") or {})
