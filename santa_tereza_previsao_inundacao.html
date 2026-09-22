@@ -396,7 +396,7 @@
         <a href="pesquisa_status.html">Abrir pesquisa →</a>
       </article>
     </div>
-    <p class="overview-note">O robô ao vivo acompanha +2 h, +4 h e +8 h quando publicados no arquivo ao vivo. A pesquisa separada de “vai mudar ou não” usa horizontes de 24 h ou mais. O estado da saída identifica o papel da pesquisa; não é probabilidade nem garantia de acerto. A camada do mapa mostra apenas o extravasamento acima da cota de inundação de 15,00 m; o leito permanente não é classificado como inundação. É um produto de pesquisa e não substitui alerta oficial.</p>
+    <p class="overview-note">O robô ao vivo acompanha +2 h, +4 h e +8 h quando publicados no arquivo ao vivo. A pesquisa separada de “vai mudar ou não” usa horizontes de 24 h ou mais. O estado da saída identifica o papel da pesquisa; não é probabilidade nem garantia de acerto. A camada do mapa usa somente o excesso do nível acima da cota de inundação de 15,00 m como altura HAND de extravasamento; o datum da régua não é convertido diretamente em altura do terreno. É um produto de pesquisa e não substitui alerta oficial.</p>
     <p class="sr-only" id="overview-accessible" aria-live="polite">Carregando panorama do rio.</p>
   </section>
 </main>
@@ -638,17 +638,20 @@ function loadElevation(){
 // Validação de campo: régua = 1,60 m corresponde ao HAND 0.
 // O valor observado permanece bruto; a previsão espacializada usa RNA - 1,60 m.
 const HAND_ZERO_DEFAULT_CM=160;
-const BANKFULL_HAND_M=(COTA_INUND-HAND_ZERO_DEFAULT_CM)/100;
 function handZeroCm(D){
   const v=Number(D&&D.hand_zero_cm);
   return Number.isFinite(v)?v:HAND_ZERO_DEFAULT_CM;
 }
 function stageToHand(cm,zeroCm=bankfull){return (cm-zeroCm)/100;}
+function stageToOverflowHand(cm){
+  if(cm==null||!Number.isFinite(Number(cm))||Number(cm)<COTA_INUND) return -1;
+  return (Number(cm)-COTA_INUND)/100;
+}
 function pointFloodStatus(pointHand,levelCm,zeroCm){
   if(levelCm==null || !Number.isFinite(Number(levelCm))) return '<span>indisponível</span>';
   if(Number(levelCm)<COTA_INUND) return 'não · nível abaixo da cota de inundação';
-  if(pointHand<=BANKFULL_HAND_M) return 'dentro da faixa ocupada pelo rio até a cota de inundação; não classificado como extravasamento';
-  const depth=(Number(levelCm)-zeroCm)/100-pointHand;
+  if(pointHand<=0) return 'dentro do contorno-base HAND 0; não classificado como extravasamento';
+  const depth=stageToOverflowHand(levelCm)-pointHand;
   return depth>0.03
     ? '<b class="pf">SIM · '+nf1.format(depth*100)+' cm de água fora da faixa de bankfull</b>'
     : 'não neste proxy';
@@ -710,10 +713,11 @@ function renderFrame(){
   const activeD=liveMode?activeLiveData():null;
   const nowCm=liveMode&&activeD?firstNumber(activeD.nivel_rio_agora_cm,activeD.telemetria_ultima_nivel_cm,activeD.nivel_atual_cm,rawNowCm):rawNowCm;
   const hasNow=nowCm!=null&&Number.isFinite(Number(nowCm));
-  const nowDm=hasNow?stageToHand(nowCm)*10:-1;
-  const hasFore=foreCm!=null, foreDm=hasFore?stageToHand(foreCm)*10:-1;
-  const hasObs=obsCm!=null, obsDm=hasObs?stageToHand(obsCm)*10:-1;
-  const bankfullHandDm=BANKFULL_HAND_M*10;
+  // A régua e o MDT não compartilham datum vertical. Para a mancha, usa-se
+  // somente o excesso acima da cota oficial de inundação (15,00 m).
+  const nowDm=hasNow?stageToOverflowHand(nowCm)*10:-1;
+  const hasFore=foreCm!=null, foreDm=hasFore?stageToOverflowHand(foreCm)*10:-1;
+  const hasObs=obsCm!=null, obsDm=hasObs?stageToOverflowHand(obsCm)*10:-1;
   const activeKey=(activeD&&activeD.horizonte)||ev.horizonte;
   const uDm=(UNCERT[activeKey]||0)*10, uMaxDm=foreDm+uDm; // borda de incerteza
 
@@ -732,8 +736,8 @@ function renderFrame(){
   if(hasObs&&handArr){
     for(let i=0;i<COLS*ROWS;i++){
       const hd=handArr[i];
-      const inFore=hasFore&&foreCm>=COTA_INUND&&hd>bankfullHandDm&&hd<=foreDm;
-      const inObs=hasObs&&obsCm>=COTA_INUND&&hd>bankfullHandDm&&hd<=obsDm;
+      const inFore=hasFore&&foreDm>=0&&hd>0&&hd<=foreDm;
+      const inObs=hasObs&&obsDm>=0&&hd>0&&hd<=obsDm;
       if(inFore&&inObs)TP++; else if(inFore&&!inObs)FP++; else if(!inFore&&inObs)FN++;
     }
   }
@@ -1342,14 +1346,14 @@ async function init(){
         const zeroCm=handZeroCm(activeD||liveData);
         const nowCm=liveMode?liveNowCm(activeD):firstNumber(curS[1]);
         html+='<br><b>Inundação estimada neste ponto (proxy HAND)</b>';
-        if(pointHand<=BANKFULL_HAND_M){
-          html+='<br>Agora: dentro da faixa ocupada pelo rio até a cota de inundação; não classificado como extravasamento.';
+        if(pointHand<=0){
+          html+='<br>Agora: dentro do contorno-base HAND 0; não classificado como extravasamento.';
           mapForecastHorizons().forEach(row=>{
-            html+='<br>+'+row.key.replace(/^\+/,'')+': dentro da faixa de bankfull; não classificado como extravasamento.';
+            html+='<br>+'+row.key.replace(/^\+/,'')+': dentro do contorno-base HAND 0; não classificado como extravasamento.';
           });
         }else{
-          const nowDepth=(nowCm!=null&&Number(nowCm)>=COTA_INUND)?(Number(nowCm)-zeroCm)/100-pointHand:null;
-          html+='<br>Agora: '+(nowDepth!=null&&nowDepth>0.03?nf1.format(nowDepth*100)+' cm de água fora da faixa de bankfull':(nowCm!=null&&Number(nowCm)<COTA_INUND?'nível abaixo da cota de inundação':'sem inundação estimada'));
+          const nowDepth=(nowCm!=null&&Number(nowCm)>=COTA_INUND)?stageToOverflowHand(nowCm)-pointHand:null;
+          html+='<br>Agora: '+(nowDepth!=null&&nowDepth>0.03?nf1.format(nowDepth*100)+' cm de extravasamento estimado':(nowCm!=null&&Number(nowCm)<COTA_INUND?'nível abaixo da cota de inundação':'sem inundação estimada'));
           mapForecastHorizons().forEach(row=>{
             const D=row.D;
             const available=!!D&&D.disponivel!==false;
@@ -1360,7 +1364,7 @@ async function init(){
         }
       }
       html+='<br><small>Coordenadas: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small>';
-      html+='<br><small>HAND 0 calibrado em 1,60 m; a mancha de extravasamento só começa acima da cota de inundação de 15,00 m. O MDT LiDAR não é alterado pelo filtro de água.</small>';
+      html+='<br><small>A mancha usa somente o excesso da régua acima de 15,00 m (ex.: 15,13 m → 0,13 m de HAND). O datum da régua não é tratado como altura do terreno. O MDT LiDAR permanece inalterado.</small>';
       html+='</div>';
       L.popup({closeButton:true}).setLatLng(e.latlng).setContent(html).openOn(map);
     });
