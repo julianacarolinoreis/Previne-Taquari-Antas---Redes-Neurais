@@ -150,14 +150,16 @@ def validar_componente_panorama() -> None:
         "renderWeekCoverage",
         "ResizeObserver",
         "const forecastReferenceMs=Date.now();",
-        "candidate.time.getTime()<forecastReferenceMs-ACTIVE_FORECAST_GRACE_MINUTES*60000",
+        "candidate.time.getTime()<=forecastReferenceMs-ACTIVE_FORECAST_GRACE_MINUTES*60000",
+        "ACTIVE_FORECAST_GRACE_MINUTES=0",
+        "const published=items;",
         "serie_observada_ana",
         "proxima_base_diagnostico",
         "liveMinutes:15",
     ):
         assert token in js, f"JS: falta proteção/componente {token}"
     assert "if(crossDay) return fmtWhen(d);" in js, "JS: eixo do panorama ainda usa 00:00"
-    assert "function publishedForecasts(items)" in js, "JS: +2 h publicado some do gráfico quando o alvo já passou"
+    assert "function publishedForecasts(items)" not in js, "JS: horizonte vencido ainda é reinserido no gráfico atual"
     assert "return fmtClock(d);" in js, "JS: ticks curtos do eixo ainda usam HH:MM"
     assert "PrevineFmtQuando.fmtAge" in js, "JS: idade do panorama ainda usa 13h20"
     assert "h${String(rest).padStart" not in js, "JS: ageText do panorama ainda cola hora e minuto"
