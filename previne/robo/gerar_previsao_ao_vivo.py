@@ -85,12 +85,14 @@ POSTOS_CHUVA_MAE_6H = (POSTO_CHUVA_INMET_A894, POSTO_CHUVA_CEMADEN_SERAFINA)
 CHUVAS_HORARIAS_CSV = "assets/data/chuvas_horarias.csv"
 HORIZONTE = "2h"
 COMBO = "009_alt_STZ_2H_R09_T10-15-16_V1-5-12-17-21"
-BANKFULL_CM = 1500          # cota oficial de inundação adotada para Santa Tereza.
-# Referência de campo preservada no feed: régua em 1,60 m associada ao zero
-# do HAND do canal. IMPORTANTE: ela NÃO define a mancha de extravasamento.
-# Para o mapa de inundação, a convenção do projeto é:
-#   HAND_extravasamento = max(0, nivel_regua_cm - BANKFULL_CM) / 100
-# Ex.: 19,14 m na régua -> 4,14 m de HAND acima do limiar de 15,00 m.
+BANKFULL_CM = 1500          # cota/limiar de transbordamento adotado para Santa Tereza.
+# Calibração operacional de campo para ESPACIALIZAÇÃO:
+# régua em 1,60 m corresponde ao HAND 0.
+# Portanto:
+#   HAND_espacial_m = max(0, nivel_regua_cm - 160) / 100
+# Exemplos: 15,00 m -> 13,40 m HAND; 19,14 m -> 17,54 m;
+#           23,57 m -> 21,97 m.
+# BANKFULL_CM continua separado: é limiar de estado, não zero vertical da mancha.
 HAND_ZERO_CM = 160
 SAIDA = "previsao_ao_vivo.json"   # na RAIZ: é onde o simulador publicado lê
 HISTORICO_SAIDA = "historico_previsoes_ao_vivo.json"
