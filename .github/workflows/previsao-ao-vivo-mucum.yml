@@ -37,7 +37,7 @@ jobs:
   prever:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     concurrency:
       group: previsao-ao-vivo-mucum
       # Uma nova rodada nunca pode cancelar uma consulta em andamento. O
@@ -61,7 +61,7 @@ jobs:
           git pull --rebase --autostash origin main
           python -B -m py_compile codigo_python/01_previsao_ao_vivo/gerar_previsao_ao_vivo_mucum.py scripts/validar_previsao_ao_vivo_mucum.py scripts/test_previsao_ao_vivo_mucum_schema.py
           python -B -m unittest scripts.test_previsao_ao_vivo_mucum_schema
-          timeout --signal=TERM --kill-after=20s 240s python -B codigo_python/01_previsao_ao_vivo/gerar_previsao_ao_vivo_mucum.py
+          timeout --signal=TERM --kill-after=20s 600s python -B codigo_python/01_previsao_ao_vivo/gerar_previsao_ao_vivo_mucum.py
           python -B scripts/validar_previsao_ao_vivo_mucum.py
           git add previsao_ao_vivo_mucum.json historico_previsoes_ao_vivo_mucum.json
           if git diff --staged --quiet; then
