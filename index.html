@@ -2629,9 +2629,15 @@
           if(!response.ok)throw new Error('HTTP '+response.status);
           const candidate=await response.json();
           if(!candidate||!Array.isArray(candidate.stations)||!candidate.stations.length||!Number.isFinite(Date.parse(candidate.generated_at_utc)))throw new Error('snapshot inválido');
-          data=candidate;
-          source=name;
-          break;
+          // Raw e Pages podem ter caches em instantes diferentes. Use o
+          // snapshot mais novo, sem trocar uma leitura recente por outra velha.
+          if(!data||Date.parse(candidate.generated_at_utc)>Date.parse(data.generated_at_utc)){
+            data=candidate;
+            source=name;
+          }
+          // O feed completo é grande: evite baixar a cópia do Pages quando
+          // Raw já entregou uma rodada recente. Consulte-a se Raw atrasar.
+          if(name==='raw'&&Date.now()-Date.parse(candidate.generated_at_utc)<8*60*1000)break;
         }catch(error){lastError=error;}
         finally{clearTimeout(timeout);}
       }
