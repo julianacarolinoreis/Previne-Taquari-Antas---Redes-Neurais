@@ -42,6 +42,17 @@ class StationReconciliationTests(unittest.TestCase):
         e28 = next(row for row in self.data["events"] if row["event_id"] == "E28")
         self.assertTrue(e28["three_incremental_areas_complete"])
 
+    def test_santa_tereza_score_windows_preserve_missing_hours(self) -> None:
+        rows = {row["event_id"]: row["stations"]["86472600"]["rain"] for row in self.data["events"]}
+        self.assertEqual((rows["E24"]["expected_hours"], rows["E24"]["hourly_hours"]), (240, 239))
+        self.assertEqual(rows["E24"]["first_missing"], "2023-11-24 20:00:00")
+        self.assertEqual((rows["E27"]["expected_hours"], rows["E27"]["hourly_hours"]), (245, 244))
+        self.assertEqual(rows["E27"]["first_missing"], "2024-05-09 19:00:00")
+        self.assertFalse(rows["E24"]["written_to_dss"])
+        self.assertFalse(rows["E27"]["written_to_dss"])
+        self.assertEqual(rows["E28"]["missing_hours_in_score_window"], 0)
+        self.assertTrue(rows["E28"]["written_to_dss"])
+
 
 if __name__ == "__main__":
     unittest.main()

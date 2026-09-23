@@ -48,6 +48,10 @@ Os artefatos estão em [`hybrid_e28_search_report.json`](network_hybrid_e28_cali
 
 ## O que ainda falta para chamar de calibração
 
+### Correção de integridade da chuva horária (23/09/2026)
+
+A auditoria do exportador DSS encontrou uma falha de alinhamento: depois de uma hora sem registro, o script antigo atribuía à próxima medida a hora anterior. A série bruta de Santa Tereza tem uma hora ausente em **E24 (24/11/2023, 20h)** e uma em **E27 (09/05/2024, 19h)**. O DSS antigo `mucum_santa_tereza_raw_rain_events.dss` não deve ser usado para simular chuva local desses dois eventos. Seus CSVs preservam a hora observada; o exportador corrigido só grava **E28**, que é contínuo, em `mucum_santa_tereza_raw_rain_complete_v2.dss`. A matriz `station_reconciliation_latest.json` agora mede a cobertura na janela de avaliação de cada evento e mostra a hora exata da lacuna. Os resultados anteriores baseados em chuva-proxy de montante continuam sendo replays diagnósticos; esta correção não os transforma em calibração comum.
+
 1. Fechar a série observada de Santa Tereza e sua curva cota–vazão, para que Santa Tereza seja um ponto de validação real e não apenas um nó geométrico.
 2. Repetir a busca espacializada em E24 e E27 depois de obter a hora faltante ou uma fonte independente auditada; não preencher a lacuna. E28 agora tem o teste híbrido por posto local, mas isso ainda é uma hipótese específica do evento.
 3. Fechar a espacialização da chuva para todos os eventos: quais estações representam cada área incremental, pesos, falhas e unidade; E24/E27 têm lacunas internas na chuva local e não receberam preenchimento silencioso.

@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 HEC_CMD = Path(r"D:\PREVINE\tools\hec-hms-4.13\portable\HEC-HMS-4.13\HEC-HMS.cmd")
 BASE = ROOT / "assets" / "data" / "hec_hms_integrated_taquari_antas" / "network_replay_all_events"
-RAIN_DSS = ROOT / "assets" / "data" / "hec_hms_calibration" / "mucum_santa_tereza_raw_rain_events.dss"
+RAIN_DSS = ROOT / "assets" / "data" / "hec_hms_calibration" / "mucum_santa_tereza_raw_rain_complete_v2.dss"
 AUDIT = ROOT / "assets" / "data" / "hec_hms_audit" / "santa_tereza_event_input_audit_latest.json"
 RAW_DSS_REPORT = ROOT / "assets" / "data" / "hec_hms_audit" / "derived" / "santa_tereza_raw_rain_dss_report.json"
 DEFAULT_OUT = ROOT / "assets" / "data" / "hec_hms_integrated_taquari_antas" / "network_replay_station_distributed_all_events"
@@ -122,7 +122,7 @@ def audited_stz_events() -> set[str]:
     source_report = json.loads(AUDIT.read_text(encoding="utf-8"))
     dss_report = json.loads(RAW_DSS_REPORT.read_text(encoding="utf-8"))
     available = {item["event_id"] for item in source_report["events"] if item.get("rain_numeric_records", 0) > 0}
-    complete = {event_id for event_id, item in dss_report["events"].items() if item.get("hours", 0) > 0 and item.get("missing_hours_inside", 1) == 0}
+    complete = {event_id for event_id, item in dss_report["events"].items() if item.get("written_to_dss") and item.get("hours", 0) > 0 and item.get("missing_hours_inside", 1) == 0}
     return available & complete
 
 

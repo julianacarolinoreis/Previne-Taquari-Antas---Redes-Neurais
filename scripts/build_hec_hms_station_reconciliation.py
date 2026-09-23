@@ -10,8 +10,9 @@ calibration or a spatial surrogate is attempted.
 from __future__ import annotations
 
 import hashlib
+import csv
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GATE = ROOT / "assets" / "data" / "hec_hms_audit" / "calibration_input_gate_latest.json"
 STZ_AUDIT = ROOT / "assets" / "data" / "hec_hms_audit" / "santa_tereza_event_input_audit_latest.json"
 STZ_DSS = ROOT / "assets" / "data" / "hec_hms_audit" / "derived" / "santa_tereza_raw_rain_dss_report.json"
+STZ_CSV = ROOT / "assets" / "data" / "hec_hms_audit" / "derived" / "santa_tereza_raw_rain_hourly.csv"
 OUTPUT = ROOT / "assets" / "data" / "hec_hms_integrated_taquari_antas" / "station_reconciliation_latest.json"
 
 
@@ -71,10 +73,15 @@ def availability(input_block: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
-def stz_availability(block: dict[str, Any] | None) -> dict[str, Any]:
+def stz_availability(block: dict[str, Any] | None, window: dict[str, str],
+                     timestamps: set[datetime], dss: dict[str, Any]) -> dict[str, Any]:
     value = block or {}
-    expected = int(value.get("expected_hours") or 0)
-    numeric = int(value.get("hourly_hours") or 0)
+    start = datetime.fromisoformat(window["start"])
+    end = datetime.fromisoformat(window["end"])
+    expected = int((end - start).total_seconds() // 3600) + 1
+    missing = [start + timedelta(hours=index) for index in range(expected)
+               if start + timedelta(hours=index) not in timestamps]
+    numeric = expected - len(missing)
     return {
         "station": value.get("station", "86472600"),
         "raw_rows": int(value.get("raw_rows") or 0),
@@ -82,8 +89,12 @@ def stz_availability(block: dict[str, Any] | None) -> dict[str, Any]:
         "expected_hours": expected,
         "hourly_hours": numeric,
         "missing_hours_inside_input": int(value.get("missing_hours_inside_input") or 0),
+        "missing_hours_in_score_window": len(missing),
+        "first_missing": missing[0].isoformat(" ") if missing else None,
+        "last_missing": missing[-1].isoformat(" ") if missing else None,
+        "written_to_dss": bool(dss.get("written_to_dss")),
         "rain_available": bool(value.get("rain_available")),
-        "complete": bool(value.get("complete_hourly_input")),
+        "complete": len(missing) == 0,
         "status": value.get("status"),
         "coverage_ratio": round(numeric / expected, 6) if expected else None,
     }
@@ -94,6 +105,11 @@ def main() -> None:
     stz_audit = read_json(STZ_AUDIT)
     stz_by_event = {item["event_id"]: item for item in stz_audit.get("events", [])}
     dss = read_json(STZ_DSS)
+    stz_timestamps: dict[str, set[datetime]] = {}
+    with STZ_CSV.open(encoding="utf-8", newline="") as handle:
+        for item in csv.DictReader(handle):
+            if item["rain_mm"].strip():
+                stz_timestamps.setdefault(item["event_id"], set()).add(datetime.fromisoformat(item["timestamp_label"]))
 
     event_rows: list[dict[str, Any]] = []
     target_complete: list[str] = []
@@ -105,13 +121,14 @@ def main() -> None:
         event_id = f"E{int(source['event_id'])}"
         inputs = source.get("hourly_inputs", {})
         upstream = availability(inputs.get("rain_86472000"))
-        stz = stz_availability(source.get("santa_tereza_86472600"))
+        dss_row = dss.get("events", {}).get(event_id, {})
+        stz = stz_availability(source.get("santa_tereza_86472600"), source["score_window"],
+                               stz_timestamps.get(event_id, set()), dss_row)
         downstream_rain = availability(inputs.get("rain_86510000"))
         downstream_flow = availability(inputs.get("flow_86510000"))
         target_ok = bool(source.get("target_rain_and_flow_complete"))
-        three_area_ok = bool(source.get("three_incremental_areas_rainfall_and_target_flow_complete"))
+        three_area_ok = target_ok and upstream["complete"] and stz["complete"] and downstream_rain["complete"]
         stz_raw = stz_by_event.get(event_id, {})
-        dss_row = dss.get("events", {}).get(event_id, {})
 
         if target_ok:
             target_complete.append(event_id)
@@ -192,6 +209,8 @@ def main() -> None:
             "santa_tereza_event_audit_sha256": sha256(STZ_AUDIT),
             "santa_tereza_dss_report": str(STZ_DSS.relative_to(ROOT)).replace("\\", "/"),
             "santa_tereza_dss_report_sha256": sha256(STZ_DSS),
+            "santa_tereza_hourly_csv": str(STZ_CSV.relative_to(ROOT)).replace("\\", "/"),
+            "santa_tereza_hourly_csv_sha256": sha256(STZ_CSV),
         },
         "limits": [
             "Não preencher ou interpolar lacunas para liberar um evento.",
