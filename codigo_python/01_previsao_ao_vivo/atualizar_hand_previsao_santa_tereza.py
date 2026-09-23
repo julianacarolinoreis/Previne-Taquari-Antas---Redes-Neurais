@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 r"""
-Copia o payload <script id="hand-data"> de santa_tereza_inundacao.html
-(mosaico 2m, drone corrigido de datum + ANADEM — ver gerar_mancha_mosaico.py)
-para santa_tereza_previsao_inundacao.html (a página "ao vivo").
+Propaga o payload <script id="hand-data"> da página operacional
+santa_tereza_previsao_inundacao.html para santa_tereza_inundacao.html.
 
-santa_tereza_previsao_inundacao.html não tem gerador próprio — foi montada
-manualmente em algum momento e ficou parada no ANADEM 30m puro enquanto
-santa_tereza_inundacao.html evoluiu (correção de datum, mosaico, contorno
-vetorial). Esse script fecha essa defasagem copiando o payload já correto.
+A fonte é o HAND hidráulico de LiDAR calibrado em campo: régua 1,60 m =
+HAND 0, exclusivamente para o rio principal. A página operacional recebe
+esse payload do gerador de LiDAR; a página de cenários deve usar exatamente
+o mesmo raster, geometria e metadados. O sentido inverso é proibido: o
+arquivo histórico da página de cenários não pode sobrescrever a calibração
+de campo nem o georreferenciamento atual.
 
 O schema das duas páginas é idêntico (cols/rows/S/W/N/E/station/ponte/
 fonte/hand_png_b64), então é cópia direta — sem transformação.
@@ -19,8 +20,8 @@ import os
 import re
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-FONTE = os.path.join(RAIZ, "santa_tereza_inundacao.html")
-ALVO = os.path.join(RAIZ, "santa_tereza_previsao_inundacao.html")
+FONTE = os.path.join(RAIZ, "santa_tereza_previsao_inundacao.html")
+ALVO = os.path.join(RAIZ, "santa_tereza_inundacao.html")
 
 
 def main():
@@ -39,7 +40,7 @@ def main():
     if n != 1:
         raise SystemExit(f"ERRO: hand-data não encontrado em {ALVO}")
     open(ALVO, "w", encoding="utf-8").write(alvo_html2)
-    print(f"copiado hand-data de {os.path.basename(FONTE)} para {os.path.basename(ALVO)} ({len(payload)} chars)")
+    print(f"copiado hand-data calibrado de {os.path.basename(FONTE)} para {os.path.basename(ALVO)} ({len(payload)} chars)")
 
 
 if __name__ == "__main__":
