@@ -83,8 +83,25 @@ class BasinStationForecastTests(unittest.TestCase):
 
         rows = result["86472600"]["rows"]
         self.assertEqual(result["86472600"]["state"], "available")
+        self.assertEqual(result["86472600"]["observed_age_minutes"], 0)
         self.assertTrue(any(row["mm"] is None for row in rows))
         self.assertIn(4.5, [row["mm"] for row in rows])
+
+    def test_cemaden_24h_observation_is_not_an_hourly_series(self):
+        station = {"source_observations": [{
+            "source": "CEMADEN",
+            "metric": "chuva_acumulada_24h_mm",
+            "source_status": 0,
+            "value": 0,
+        }]}
+        self.assertTrue(feed.has_cemaden_rain_24h(station))
+        station["source_observations"][0]["value"] = None
+        self.assertFalse(feed.has_cemaden_rain_24h(station))
+        station["source_observations"][0]["value"] = -1
+        self.assertFalse(feed.has_cemaden_rain_24h(station))
+        station["source_observations"][0]["value"] = 2.5
+        station["source_observations"][0]["source_status"] = 1
+        self.assertFalse(feed.has_cemaden_rain_24h(station))
 
     def test_observed_windows_keep_coverage_and_missingness(self):
         rows = [

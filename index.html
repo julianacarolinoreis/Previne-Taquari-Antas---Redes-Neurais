@@ -708,7 +708,7 @@
             <button class="station-filter" type="button" aria-pressed="false" data-filter="inmet">INMET</button>
             <button class="station-filter" type="button" aria-pressed="false" data-filter="telemetry">Hidrotelemetria</button>
             <button class="station-filter" type="button" aria-pressed="false" data-filter="forecast">Com previsão</button>
-            <button class="station-filter" type="button" aria-pressed="false" data-filter="observed">Chuva observada</button>
+            <button class="station-filter" type="button" aria-pressed="false" data-filter="observed">Chuva observada (série ou 24h)</button>
             <button class="station-filter" type="button" aria-pressed="false" data-filter="level">Nível observado</button>
             <button class="station-filter" type="button" aria-pressed="false" data-filter="flow">Tipo: nível</button>
             <button class="station-filter" type="button" aria-pressed="false" data-filter="rain">Tipo: chuva</button>
@@ -1709,6 +1709,11 @@
     const items=Array.isArray(st&&st.source_observations)?st.source_observations:[];
     return items.find(item=>item&&item.metric===metric)||null;
   };
+  const basinCemadenRain24=st=>{
+    const item=basinSourceObservation(st,'chuva_acumulada_24h_mm');
+    return item&&String(item.source_status)==='0'&&basinFinite(item.value)&&Number(item.value)>=0?item:null;
+  };
+  const basinHasObservedRain=st=>!!(st&&st.observed_rain&&st.observed_rain.state==='available')||!!basinCemadenRain24(st);
   const basinObservedWindowNote=window=>{
     if(!window)return 'janela observada não publicada';
     const coverage=Math.round(Number(window.coverage_ratio||0)*100);
@@ -1735,6 +1740,8 @@
     if(st.forecast&&st.forecast.state==='available')bits.push('previsão: '+Object.keys(st.forecast.models||{}).length+' modelos');
     else if(st.forecast)bits.push('previsão indisponível');
     if(st.observed_rain&&st.observed_rain.state==='available')bits.push('chuva observada · '+basinMinutesNote(st.observed_rain.observed_age_minutes));
+    const cemaden=basinCemadenRain24(st);
+    if(cemaden)bits.push('CEMADEN 24h: '+basinFormat(cemaden.value,'precipitation')+' · horário da leitura não informado');
     if(st.level&&st.level.state==='available')bits.push('nível: '+basinFormat(st.level.current_cm,'level_cm'));
     return bits.join(' · ')||'sem série observada no feed atual';
   };
@@ -1749,7 +1756,7 @@
     if(BASIN_FILTER==='flow'&&!kind.isLevel)return false;
     if(BASIN_FILTER==='rain'&&!kind.isRain)return false;
     if(BASIN_FILTER==='forecast'&&!(st.forecast&&st.forecast.state==='available'))return false;
-    if(BASIN_FILTER==='observed'&&!(st.observed_rain&&st.observed_rain.state==='available'))return false;
+    if(BASIN_FILTER==='observed'&&!basinHasObservedRain(st))return false;
     if(BASIN_FILTER==='level'&&!(st.level&&st.level.state==='available'))return false;
     if(BASIN_FILTER==='data'&&!basinHasData(st))return false;
     if(!BASIN_QUERY)return true;
@@ -2016,12 +2023,15 @@
     const observedSource=isLevel?(st&&st.level&&Array.isArray(st.level.series)?st.level.series:[]):(st&&st.observed_rain&&Array.isArray(st.observed_rain.rows)?st.observed_rain.rows:[]);
     const observedRows=basinTimelineObservedRows(st,metric);
     const forecastRows=basinTimelineForecastRows(st,metric,6);
+    const cemadenRain=isRain?basinCemadenRain24(st):null;
+    const cemadenPanelTime=cemadenRain&&cemadenRain.updated_at_utc?String(cemadenRain.updated_at_utc).replace(' UTC','Z').replace(' ','T'):null;
     const observedValid=observedSource.filter(row=>row&&basinFinite(isLevel?row.cm:row.mm));
     const observedUnit=isLevel?'cm':'mm';
-    const observedValue=observedRows.length?basinFormat(observedRows[observedRows.length-1].value,isLevel?'level_cm':'precipitation'):'não publicado';
+    const observedValue=observedRows.length?basinFormat(observedRows[observedRows.length-1].value,isLevel?'level_cm':'precipitation'):(cemadenRain?basinFormat(cemadenRain.value,'precipitation'):'não publicado');
     const observedNote=observedSource.length
       ?basinTimelinePeriod(observedSource)+' · '+observedValid.length+'/'+observedSource.length+' horários válidos'
-      :'nenhum horário observado publicado para esta estação';
+      :(cemadenRain?'acumulado CEMADEN de 24h · horário individual da leitura não informado':'nenhum horário observado publicado para esta estação');
+    const observedTimeNote=observedRows.length?'último valor horário válido · '+basinDateTime(observedRows[observedRows.length-1].time):(cemadenRain?'painel CEMADEN atualizado '+basinDateTime(cemadenPanelTime):'sem horário válido');
     const forecastValue=forecastRows.length&&forecastRows[0].value!==null
       ?basinFormat(forecastRows[0].value,isLevel?'level_cm':'precipitation')
       :'indisponível';
@@ -2032,9 +2042,9 @@
       :'não há horário futuro válido no snapshot';
     const rangeText=row=>row.value===null?'indisponível':basinFormat(row.value,isLevel?'level_cm':'precipitation')+(row.count?(isLevel?' · '+row.count+' RNA(s)':' · '+row.count+'/'+row.total+' modelo(s)'):'');
     let html='<div class="station-timeline"><div class="station-timeline-heading"><span>Linha do tempo · '+basinEscape(basinTimelineDetail(metric))+'</span><small>datas e horários em Brasília (BRT)</small></div>';
-    html+='<div class="station-timeline-summary"><div class="station-timeline-card observed"><span class="station-timeline-card-label">Observado</span><strong class="station-timeline-card-value">'+basinEscape(observedValue)+'</strong><span class="station-timeline-card-note">último valor válido · '+basinEscape(observedRows.length?basinDateTime(observedRows[observedRows.length-1].time):'sem horário válido')+'<br>'+basinEscape(observedNote)+'</span></div>';
+    html+='<div class="station-timeline-summary"><div class="station-timeline-card observed"><span class="station-timeline-card-label">Observado'+(observedRows.length?' · horário':(cemadenRain?' · 24h':''))+'</span><strong class="station-timeline-card-value">'+basinEscape(observedValue)+'</strong><span class="station-timeline-card-note">'+basinEscape(observedTimeNote)+'<br>'+basinEscape(observedNote)+'</span></div>';
     html+='<div class="station-timeline-card forecast"><span class="station-timeline-card-label">Previsto</span><strong class="station-timeline-card-value">'+basinEscape(forecastValue)+'</strong><span class="station-timeline-card-note">'+basinEscape(forecastNote)+'<br>'+basinEscape(forecastRows.length?'próximos '+forecastRows.length+' horários exibidos · último '+basinDateTime(forecastRows[forecastRows.length-1].time):'')+'</span></div></div>';
-    if(!observedRows.length&&!forecastRows.length){
+    if(!observedRows.length&&!cemadenRain&&!forecastRows.length){
       html+='<div class="station-timeline-empty">Não há valores observados ou previstos válidos para esta métrica no snapshot atual.</div></div>';
       return html;
     }
@@ -2042,11 +2052,14 @@
     observedRows.forEach(row=>{
       html+='<tr><td>'+basinEscape(basinDateTime(row.time))+'</td><td><span class="station-timeline-type observed">OBSERVADO</span></td><td>'+basinEscape(basinFormat(row.value,isLevel?'level_cm':'precipitation'))+'</td><td>'+basinEscape(isLevel?'telemetria publicada':'chuva observada publicada')+'</td></tr>';
     });
+    if(cemadenRain){
+      html+='<tr><td>painel '+basinEscape(basinDateTime(cemadenPanelTime))+'; leitura sem hora</td><td><span class="station-timeline-type observed">OBSERVADO · 24H</span></td><td>'+basinEscape(basinFormat(cemadenRain.value,'precipitation'))+'</td><td>CEMADEN · acumulado de 24h, não série horária</td></tr>';
+    }
     forecastRows.forEach(row=>{
       const detail=row.value===null?'sem valor válido nesta hora':rangeText(row)+(row.min!==null&&row.max!==null?' · faixa '+basinFormat(row.min,isLevel?'level_cm':'precipitation')+'–'+basinFormat(row.max,isLevel?'level_cm':'precipitation'):'');
       html+='<tr><td>'+basinEscape(basinDateTime(row.time))+'</td><td><span class="station-timeline-type forecast">PREVISTO</span></td><td>'+basinEscape(row.value===null?'indisponível':basinFormat(row.value,isLevel?'level_cm':'precipitation'))+'</td><td>'+basinEscape(detail)+'</td></tr>';
     });
-    html+='</tbody></table></div><p class="station-timeline-note">Observado e previsto não são a mesma coisa: “observado” é a leitura publicada pela fonte; “previsto” é o valor do modelo para o horário futuro. Valores ausentes permanecem como indisponíveis, não como zero. Unidade: '+basinEscape(observedUnit)+'.</p></div>';
+    html+='</tbody></table></div><p class="station-timeline-note">Observado e previsto não são a mesma coisa: “observado” é a leitura publicada pela fonte; “previsto” é o valor do modelo para o horário futuro. O acumulado CEMADEN de 24h não é uma leitura horária e o horário do painel não é o horário individual do sensor. Valores ausentes permanecem como indisponíveis, não como zero. Unidade: '+basinEscape(observedUnit)+'.</p></div>';
     return html;
   }
   const basinModelModelsForChart=st=>basinModelSpecs().filter(spec=>st&&st.forecast&&st.forecast.models&&st.forecast.models[spec.id]);
@@ -2295,10 +2308,10 @@
 
     const cemadenRain=basinSourceObservation(st,'chuva_acumulada_24h_mm');
     const cemadenApplicable=!!cemadenRain||basinHasSource(st,'CEMADEN');
-    const cemadenHasValue=cemadenRain&&basinFinite(cemadenRain.value);
+    const cemadenHasValue=!!basinCemadenRain24(st);
     const cemadenRainValue=cemadenHasValue?basinFormat(cemadenRain.value,'precipitation'):(cemadenApplicable?'indisponível':'—');
     const cemadenRainNote=cemadenHasValue
-      ?'publicado '+(cemadenRain.updated_at_utc?String(cemadenRain.updated_at_utc).replace(' UTC','')+' UTC':'pela fonte CEMADEN')
+      ?'painel atualizado '+(cemadenRain.updated_at_utc?String(cemadenRain.updated_at_utc).replace(' UTC','')+' UTC':'sem horário')+' · horário da leitura não informado'
       :(cemadenApplicable?'CEMADEN não publicou valor para este ponto':'sem sensor CEMADEN neste ponto');
     const cemadenStatus=cemadenHasValue?'complete':cemadenApplicable?'unavailable':'na';
 
@@ -2375,7 +2388,7 @@
 
     html+='<div class="station-summary">'+
       basinMetricCard('Chuva observada · 24h',observedRain24&&basinFinite(observedRain24.mm)?basinFormat(observedRain24.mm,'precipitation'):'indisponível',basinObservedWindowNote(observedRain24),observedStatus(observedRain24))+
-      basinMetricCard('CEMADEN · acumulado publicado',cemadenRainValue,cemadenRainNote,cemadenStatus)+
+      basinMetricCard('CEMADEN · acumulado observado 24h',cemadenRainValue,cemadenRainNote,cemadenStatus)+
       basinMetricCard('Chuva observada · 72h',rainValue,rain.count?basinObservedWindowNote(observedRain72):'sem pontos válidos',observedStatus(observedRain72))+
       basinMetricCard('Chuva prevista · próximo horário',forecastRain===null?'indisponível':basinFormat(forecastRain,'precipitation'),forecastRainNote,basinStatsStatus(forecastRainStats))+
       basinMetricCard('Chuva prevista · 3 h',forecastRain3Stats.value===null?'indisponível':basinFormat(forecastRain3Stats.value,'precipitation'),windowNote(forecastRain3Stats,3),basinStatsStatus(forecastRain3Stats))+
@@ -2427,7 +2440,7 @@
     const rainMessage=st.observed_rain&&st.observed_rain.message?st.observed_rain.message:'Chuva observada não publicada para esta estação.';
     const levelMessage=level&&level.message?level.message:'Telemetria de nível não publicada para esta estação.';
     const freshnessMessage=basinFeedIsStale()?' O snapshot está atrasado em relação ao contrato de cinco minutos; a previsão antiga foi retirada até a próxima rodada.':'';
-    html+='<p class="station-detail-note"><strong>Leitura dos dados:</strong> '+basinEscape(forecastMessage)+' '+basinEscape(rainMessage)+' '+basinEscape(levelMessage)+basinEscape(freshnessMessage)+' Os pontos de chuva são mm da hora anterior; cada acumulado previsto mostra explicitamente o início e o fim da janela. Ausência de dado nunca é convertida em zero. O CEMADEN só aparece como aplicável quando há sensor/fonte CEMADEN associada ao ponto. A umidade do solo é proxy modelado, não sensor local. Os horários estão em Brasília (BRT) na interface; o feed mantém UTC e é reconstruído a cada cinco minutos.</p>';
+     html+='<p class="station-detail-note"><strong>Leitura dos dados:</strong> '+basinEscape(forecastMessage)+' '+basinEscape(rainMessage)+' '+basinEscape(levelMessage)+basinEscape(freshnessMessage)+' A série horária observada e o acumulado CEMADEN de 24h são produtos diferentes; o horário de atualização do painel CEMADEN não comprova o horário da última leitura de cada sensor. Os pontos horários de chuva são mm da hora anterior; cada acumulado previsto mostra explicitamente o início e o fim da janela. Zero previsto é saída dos modelos consultados, não confirmação de ausência de chuva ou risco. Ausência de dado nunca é convertida em zero. A umidade do solo é proxy modelado, não sensor local. Os horários estão em Brasília (BRT) na interface; o feed mantém UTC e é reconstruído a cada cinco minutos.</p>';
     panel.innerHTML=html;
     panel.querySelectorAll('[data-basin-model]').forEach(button=>button.addEventListener('click',()=>{
       const id=button.getAttribute('data-basin-model');
@@ -2585,6 +2598,11 @@
     const total=scope.station_count||BASIN_STATIONS.length;
     const forecast=scope.forecast_station_count||0;
     const rain=scope.observed_rain_station_count||0;
+    const hourlyRain=scope.observed_rain_hourly_station_count;
+    const cemadenRain=scope.observed_rain_cemaden_24h_station_count;
+    const rainCoverage=Number.isFinite(hourlyRain)&&Number.isFinite(cemadenRain)
+      ?basinEscape(rain)+' com algum dado de chuva observada ('+basinEscape(hourlyRain)+' com série horária; '+basinEscape(cemadenRain)+' com acumulado CEMADEN 24h)'
+      :basinEscape(rain)+' com série horária de chuva observada';
     const levels=scope.level_station_count||0;
     const uniqueLocations=scope.forecast_location_count||total;
     const coverage=forecast===total?'cobertura de previsão completa':'cobertura de previsão parcial · '+basinEscape(total-forecast)+' indisponíveis sinalizadas';
@@ -2593,7 +2611,7 @@
     const sources=['ANA/HidroWeb','SGB/SACE','CEMADEN','INMET'].filter(key=>sourceCounts[key]!==undefined).map(key=>key+' '+sourceCounts[key]).join(' · ');
     const catalogState=BASIN_FEED.catalog&&BASIN_FEED.catalog.complete===false?' · catálogo complementar incompleto':'';
     const feedSource=BASIN_FEED_SOURCE==='pages'?' · cópia do Pages (contingência)':'';
-    status.innerHTML='<span><strong>'+basinEscape(total)+' estações G040</strong> · '+basinEscape(sources)+' · '+basinEscape(forecast)+' com previsão · '+basinEscape(rain)+' com chuva observada · '+basinEscape(levels)+' com nível · '+basinEscape(uniqueLocations)+' pontos meteorológicos únicos · '+coverage+basinEscape(catalogState)+'</span>'+
+    status.innerHTML='<span><strong>'+basinEscape(total)+' estações G040</strong> · '+basinEscape(sources)+' · '+basinEscape(forecast)+' com previsão · '+rainCoverage+' · '+basinEscape(levels)+' com nível · '+basinEscape(uniqueLocations)+' pontos meteorológicos únicos · '+coverage+basinEscape(catalogState)+'</span>'+
       '<span class="map-status-right">Atualizado '+basinEscape(basinDate(BASIN_FEED.generated_at_utc))+basinEscape(freshness)+feedSource+' · próximo '+basinEscape(basinNextCycle(BASIN_FEED.next_cycle_utc))+'</span>';
   }
   async function basinLoadFeed(){

@@ -349,6 +349,7 @@ def load_observed_rain(
                 "available_points": 0,
                 "expected_points": 0,
                 "last_observed_at_utc": None,
+                "observed_age_minutes": None,
                 "windows": _observed_window_stats(
                     [], latest_observed=None, windows=OBSERVED_WINDOW_HOURS
                 ),
@@ -397,6 +398,7 @@ def load_observed_rain(
             "available_points": len(known),
             "expected_points": len(window),
             "last_observed_at_utc": iso_utc(latest_observed),
+            "observed_age_minutes": round((now - latest_observed).total_seconds() / 60) if latest_observed else None,
             "windows": _observed_window_stats(
                 rows,
                 latest_observed=latest_observed,
@@ -409,6 +411,19 @@ def load_observed_rain(
             ),
         }
     return result
+
+
+def has_cemaden_rain_24h(station: dict[str, Any]) -> bool:
+    """A CEMADEN 24 h total is an observation, not an hourly rain series."""
+    return any(
+        item.get("source") == "CEMADEN"
+        and item.get("metric") == "chuva_acumulada_24h_mm"
+        and item.get("source_status") in (0, "0")
+        and (value := finite(item.get("value"))) is not None
+        and value >= 0
+        for item in station.get("source_observations", [])
+        if isinstance(item, dict)
+    )
 
 
 def _observed_window_stats(
@@ -965,6 +980,7 @@ def build_feed(
                 "available_points": 0,
                 "expected_points": 0,
                 "last_observed_at_utc": None,
+                "observed_age_minutes": None,
                 "windows": _observed_window_stats(
                     [], latest_observed=None, windows=OBSERVED_WINDOW_HOURS
                 ),
@@ -1008,7 +1024,12 @@ def build_feed(
         )
 
     available_forecasts = sum(item["forecast"]["state"] == "available" for item in stations)
-    available_observations = sum(item["observed_rain"]["state"] == "available" for item in stations)
+    available_hourly_observations = sum(item["observed_rain"]["state"] == "available" for item in stations)
+    available_cemaden_24h = sum(has_cemaden_rain_24h(item) for item in stations)
+    available_observations = sum(
+        item["observed_rain"]["state"] == "available" or has_cemaden_rain_24h(item)
+        for item in stations
+    )
     available_levels = sum(
         item["level"]["state"] in {"available", "partial"} for item in stations
     )
@@ -1031,6 +1052,8 @@ def build_feed(
             "forecast_location_count": len(forecast_locations),
             "forecast_station_count": available_forecasts,
             "observed_rain_station_count": available_observations,
+            "observed_rain_hourly_station_count": available_hourly_observations,
+            "observed_rain_cemaden_24h_station_count": available_cemaden_24h,
             "level_station_count": available_levels,
             **_coordinate_coverage(stations),
             "catalogs": [
