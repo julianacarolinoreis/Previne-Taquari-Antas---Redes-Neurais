@@ -1597,6 +1597,10 @@
   ];
   let BASIN_STATIONS=BASIN_STATIC_STATIONS.slice();
   let BASIN_FEED=null;
+  let BASIN_FEED_SOURCE='';
+  let BASIN_LOADING=false;
+  const BASIN_FEED_RAW_URL='https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/basin_station_forecast_latest.json';
+  const BASIN_FEED_PAGES_URL='assets/data/basin_station_forecast_latest.json';
   let BASIN_MAP=null;
   const BASIN_MARKERS={};
   let BASIN_SELECTED=null;
@@ -2494,7 +2498,7 @@
     return positions;
   }
 
-  function basinRenderMarkers(){
+  function basinRenderMarkers(fit=true){
     if(!BASIN_MAP||!window.L)return;
     Object.keys(BASIN_MARKERS).forEach(id=>{
       BASIN_MAP.removeLayer(BASIN_MARKERS[id]);
@@ -2523,7 +2527,7 @@
       marker.on('click',()=>basinSelectStation(st,false));
       BASIN_MARKERS[basinStationId(st)]=marker;
     });
-    if(bounds.length)BASIN_MAP.fitBounds(bounds,{padding:[18,18],maxZoom:10});
+    if(bounds.length&&fit)BASIN_MAP.fitBounds(bounds,{padding:[18,18],maxZoom:10});
     const selected=BASIN_SELECTED&&BASIN_MARKERS[basinStationId(BASIN_SELECTED)];
     if(selected)selected.openPopup();
   }
@@ -2588,29 +2592,62 @@
     const sourceCounts=BASIN_FEED.source_counts||{};
     const sources=['ANA/HidroWeb','SGB/SACE','CEMADEN','INMET'].filter(key=>sourceCounts[key]!==undefined).map(key=>key+' '+sourceCounts[key]).join(' · ');
     const catalogState=BASIN_FEED.catalog&&BASIN_FEED.catalog.complete===false?' · catálogo complementar incompleto':'';
+    const feedSource=BASIN_FEED_SOURCE==='pages'?' · cópia do Pages (contingência)':'';
     status.innerHTML='<span><strong>'+basinEscape(total)+' estações G040</strong> · '+basinEscape(sources)+' · '+basinEscape(forecast)+' com previsão · '+basinEscape(rain)+' com chuva observada · '+basinEscape(levels)+' com nível · '+basinEscape(uniqueLocations)+' pontos meteorológicos únicos · '+coverage+basinEscape(catalogState)+'</span>'+
-      '<span class="map-status-right">Atualizado '+basinEscape(basinDate(BASIN_FEED.generated_at_utc))+basinEscape(freshness)+' · próximo '+basinEscape(basinNextCycle(BASIN_FEED.next_cycle_utc))+'</span>';
+      '<span class="map-status-right">Atualizado '+basinEscape(basinDate(BASIN_FEED.generated_at_utc))+basinEscape(freshness)+feedSource+' · próximo '+basinEscape(basinNextCycle(BASIN_FEED.next_cycle_utc))+'</span>';
   }
   async function basinLoadFeed(){
-    const url='assets/data/basin_station_forecast_latest.json?v='+Date.now();
+    if(BASIN_LOADING)return;
+    BASIN_LOADING=true;
     try{
-      const response=await fetch(url,{cache:'no-store'});
-      if(!response.ok)throw new Error('HTTP '+response.status);
-      const data=await response.json();
-      if(!data||!Array.isArray(data.stations)||!data.stations.length)throw new Error('snapshot sem estações');
+      let data=null;
+      let source='';
+      let lastError=null;
+      for(const [name,baseUrl] of [['raw',BASIN_FEED_RAW_URL],['pages',BASIN_FEED_PAGES_URL]]){
+        const controller=new AbortController();
+        const timeout=setTimeout(()=>controller.abort(),15000);
+        try{
+          const response=await fetch(baseUrl+'?v='+Date.now(),{cache:'no-store',signal:controller.signal});
+          if(!response.ok)throw new Error('HTTP '+response.status);
+          const candidate=await response.json();
+          if(!candidate||!Array.isArray(candidate.stations)||!candidate.stations.length||!Number.isFinite(Date.parse(candidate.generated_at_utc)))throw new Error('snapshot inválido');
+          data=candidate;
+          source=name;
+          break;
+        }catch(error){lastError=error;}
+        finally{clearTimeout(timeout);}
+      }
+      if(!data)throw lastError||new Error('feed indisponível');
+      if(BASIN_FEED&&Date.parse(data.generated_at_utc)<Date.parse(BASIN_FEED.generated_at_utc)){
+        basinUpdateStatus();
+        return;
+      }
+      if(BASIN_FEED&&data.generated_at_utc===BASIN_FEED.generated_at_utc){
+        BASIN_FEED_SOURCE=source;
+        basinUpdateStatus();
+        return;
+      }
+      const selectedId=BASIN_SELECTED&&basinStationId(BASIN_SELECTED);
+      const firstLoad=!BASIN_FEED;
       BASIN_FEED=data;
+      BASIN_FEED_SOURCE=source;
       BASIN_STATIONS=data.stations;
-      BASIN_DETAIL_MODELS=[];
       basinUpdateStatus();
+      const target=BASIN_STATIONS.find(st=>basinStationId(st)===selectedId)||BASIN_STATIONS.find(st=>st.code==='86472600')||BASIN_STATIONS.find(st=>st.level&&st.level.state==='available')||BASIN_STATIONS[0];
+      BASIN_SELECTED=target||null;
       basinRenderStationList();
-      basinRenderMarkers();
-      const target=BASIN_STATIONS.find(st=>st.code==='86472600')||BASIN_STATIONS.find(st=>st.level&&st.level.state==='available')||BASIN_STATIONS[0];
-      if(target)basinSelectStation(target,false);
+      basinRenderMarkers(firstLoad);
+      basinRefreshSelection();
+      basinRenderDetail(target);
     }catch(error){
       basinUpdateStatus();
-      basinRenderStationList();
-      const status=basinById('map-status');
-      if(status)status.innerHTML='<span><strong>Feed da bacia indisponível neste carregamento</strong> · lista estática de contingência preservada.</span><span class="map-status-right">Detalhes: '+basinEscape(error.message)+'</span>';
+      if(!BASIN_FEED){
+        basinRenderStationList();
+        const status=basinById('map-status');
+        if(status)status.innerHTML='<span><strong>Feed da bacia indisponível neste carregamento</strong> · lista estática de contingência preservada.</span><span class="map-status-right">Detalhes: '+basinEscape(error.message)+'</span>';
+      }
+    }finally{
+      BASIN_LOADING=false;
     }
   }
   (function initBasinStationMap(){
@@ -2633,6 +2670,8 @@
     basinRenderStationList();
     basinInitMap();
     basinLoadFeed();
+    setInterval(basinLoadFeed,5*60*1000);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)basinLoadFeed();});
   })();
 
   /* ---------------- base auditável (séries ponto a ponto) ---------------- */
