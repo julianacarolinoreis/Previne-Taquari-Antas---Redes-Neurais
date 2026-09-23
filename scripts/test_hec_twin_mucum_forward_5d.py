@@ -85,6 +85,37 @@ class Forward5dTests(unittest.TestCase):
         self.assertIn("Resposta:", html)
         self.assertIn(str(int(qs["primary"]["rise_cm"])), html.replace(".", "").replace(",", "") or html)
 
+    def test_past_future_forcing_does_not_label_past_rain_as_forecast(self) -> None:
+        sys.path.insert(0, str(SCRIPTS))
+        import run_hec_twin_mucum_forward_5d as fwd
+
+        forcing = _synthetic_forcing(48)
+        now_index = 12
+        forcing["now_utc"] = forcing["times_utc"][now_index]
+        forcing["window"] = {
+            "now_utc": forcing["times_utc"][now_index],
+            "past_hours": now_index,
+            "future_hours": len(forcing["times_utc"]) - now_index,
+            "definition": "synthetic_past_plus_future",
+        }
+        hourly = forcing["area_weighted_mean_mm"]["hourly"]
+        past_mm = float(sum(hourly[:now_index]))
+        future_mm = float(sum(hourly[now_index:]))
+        forcing["area_weighted_mean_mm"]["past_mm"] = past_mm
+        forcing["area_weighted_mean_mm"]["future_mm"] = future_mm
+        forcing["area_weighted_mean_mm"]["analog_total_mm"] = past_mm + future_mm
+
+        package = fwd.build_package(forcing, allow_network=False)
+        self.assertEqual(package["param_selection"]["basin_calibration"]["now_index"], now_index)
+        self.assertAlmostEqual(
+            package["quanto_sobe"]["rain_forecast_mm_area_weighted"], future_mm, places=6
+        )
+        self.assertAlmostEqual(package["forcing"]["area_weighted_past_mm"], past_mm, places=6)
+        self.assertAlmostEqual(package["forcing"]["area_weighted_future_mm"], future_mm, places=6)
+        self.assertAlmostEqual(
+            package["forcing"]["area_weighted_analog_total_mm"], past_mm + future_mm, places=6
+        )
+
     def test_decision_builder(self) -> None:
         subprocess.run(
             [sys.executable, str(SCRIPTS / "build_estudo_decisao_hec_5d_evacuacao.py")],
