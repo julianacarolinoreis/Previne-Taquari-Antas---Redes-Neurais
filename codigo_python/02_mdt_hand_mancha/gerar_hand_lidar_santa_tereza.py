@@ -51,7 +51,7 @@ import rasterio
 from PIL import Image
 from rasterio.enums import Resampling
 from rasterio.features import shapes
-from rasterio.transform import array_bounds
+from rasterio.transform import array_bounds, from_bounds
 from rasterio.warp import reproject, transform_bounds
 from pyproj import Transformer
 from scipy import ndimage
@@ -374,18 +374,50 @@ def compute_hand_flowpath(
     return hand, hydraulic_hand, main_river, diagnostics
 
 
+def lonlat_grid(transform, crs, shape: tuple[int, int]):
+    """Grade regular WGS84 compatível com o índice linear usado no navegador.
+
+    Transformar somente os quatro limites de uma imagem UTM não transforma os
+    pixels.  O navegador lê PNG por índice a partir de longitude/latitude; por
+    isso cada derivado precisa ser reamostrado para uma grade EPSG:4326 antes
+    de ser publicado.
+    """
+    west, south, east, north = transform_bounds(
+        crs, "EPSG:4326", *array_bounds(*shape, transform)
+    )
+    rounded = tuple(round(float(v), 6) for v in (west, south, east, north))
+    return from_bounds(*rounded, shape[1], shape[0]), rounded
+
+
 def write_same_source_elevation(dem: np.ndarray, transform, crs) -> dict:
-    """Gera altitude absoluta ~10 m da mesma fonte do HAND, com bounds próprios."""
+    """Gera altitude absoluta ~10 m, reprojetada para a grade WGS84 publicada."""
     out_dir = ROOT / "assets" / "data" / "santa_tereza_inundacao" / "mdt"
     out_dir.mkdir(parents=True, exist_ok=True)
     step = 2  # dem já está a ~5 m
     elev = dem[::step, ::step]
     elev_transform = transform * transform.scale(step, step)
-    valid = np.isfinite(elev)
+    native_valid = np.isfinite(elev)
+    source = np.where(native_valid, elev, -9999.0).astype("float32")
+    geo_transform, (west, south, east, north) = lonlat_grid(
+        elev_transform, crs, elev.shape
+    )
+    elev_geo = np.full(elev.shape, -9999.0, dtype="float32")
+    reproject(
+        source,
+        elev_geo,
+        src_transform=elev_transform,
+        src_crs=crs,
+        dst_transform=geo_transform,
+        dst_crs="EPSG:4326",
+        src_nodata=-9999.0,
+        dst_nodata=-9999.0,
+        resampling=Resampling.nearest,
+    )
+    valid = elev_geo != -9999.0
 
     rgba = np.zeros((*elev.shape, 4), dtype=np.uint8)
     dm = np.zeros(elev.shape, dtype=np.uint16)
-    dm[valid] = np.clip(np.rint(elev[valid] * 10.0), 0, 65535).astype(np.uint16)
+    dm[valid] = np.clip(np.rint(elev_geo[valid] * 10.0), 0, 65535).astype(np.uint16)
     rgba[..., 0] = (dm >> 8).astype(np.uint8)
     rgba[..., 1] = (dm & 255).astype(np.uint8)
     rgba[..., 3] = np.where(valid, 255, 0).astype(np.uint8)
@@ -395,8 +427,8 @@ def write_same_source_elevation(dem: np.ndarray, transform, crs) -> dict:
 
     visual = np.zeros((*elev.shape, 4), dtype=np.uint8)
     if valid.any():
-        lo, hi = np.nanpercentile(elev[valid], [2, 98])
-        norm = np.clip((elev - lo) / max(float(hi - lo), 1e-6), 0, 1)
+        lo, hi = np.nanpercentile(elev_geo[valid], [2, 98])
+        norm = np.clip((elev_geo - lo) / max(float(hi - lo), 1e-6), 0, 1)
         shade = np.nan_to_num(norm * 255.0, nan=0.0).astype(np.uint8)
         visual[..., 0] = shade
         visual[..., 1] = shade
@@ -405,9 +437,6 @@ def write_same_source_elevation(dem: np.ndarray, transform, crs) -> dict:
     visual_png = out_dir / "mdt_santa_tereza_lidar_10m_visual.png"
     Image.fromarray(visual, mode="RGBA").save(visual_png, optimize=True)
 
-    west, south, east, north = transform_bounds(
-        crs, "EPSG:4326", *array_bounds(*elev.shape, elev_transform)
-    )
     meta = {
         "cols": int(elev.shape[1]),
         "rows": int(elev.shape[0]),
@@ -418,6 +447,7 @@ def write_same_source_elevation(dem: np.ndarray, transform, crs) -> dict:
         "codificacao": "uint16_decimetros_em_rg",
         "resolucao_aproximada_m": float(FACTOR * step),
         "crs": "EPSG:4326",
+        "georeferencing": "reprojected_nearest_from_source_utm",
         "fonte": "CLIP_MOSAICO_LIDAR_RS.tif",
         "fonte_roteamento": "FILL_CLIP_MOSAICO_LIDAR_RS.tif",
         "same_source_as_hand": True,
@@ -612,7 +642,9 @@ def main() -> None:
     )
     elevation_summary = write_same_source_elevation(terrain_dem, transform, crs)
 
-    # O navegador usa o mesmo limiar hidráulico dos contornos.
+    # O navegador usa o mesmo limiar hidráulico dos contornos. Como a
+    # interface consulta em latitude/longitude, reprojeta a grade antes de
+    # compactá-la como PNG; transformar somente os bounds deslocaria o clique.
     encoded = np.full(hydraulic_hand.shape, 255, dtype=np.uint8)
     valid = np.isfinite(hydraulic_hand)
     encoded[valid] = np.clip(
@@ -620,12 +652,23 @@ def main() -> None:
         0,
         int(MAX_HAND_M * 10),
     ).astype(np.uint8)
-    buf = io.BytesIO()
-    Image.fromarray(encoded, mode="L").save(buf, format="PNG", optimize=True)
-
-    west, south, east, north = transform_bounds(
-        crs, "EPSG:4326", *array_bounds(*terrain_dem.shape, transform)
+    geo_transform, (west, south, east, north) = lonlat_grid(
+        transform, crs, terrain_dem.shape
     )
+    encoded_geo = np.full(encoded.shape, 255, dtype=np.uint8)
+    reproject(
+        encoded,
+        encoded_geo,
+        src_transform=transform,
+        src_crs=crs,
+        dst_transform=geo_transform,
+        dst_crs="EPSG:4326",
+        src_nodata=255,
+        dst_nodata=255,
+        resampling=Resampling.nearest,
+    )
+    buf = io.BytesIO()
+    Image.fromarray(encoded_geo, mode="L").save(buf, format="PNG", optimize=True)
     payload = {
         "cols": int(encoded.shape[1]),
         "rows": int(encoded.shape[0]),
@@ -636,6 +679,11 @@ def main() -> None:
         "station": {"lat": -29.1781, "lon": -51.7322, "code": "86472600"},
         "ponte": {"lat": -29.0908727, "lon": -51.713269, "label": "Ponte Santa Barbara"},
         "hand_zero_cm": HAND_ZERO_CM,
+        "nodata": 255,
+        "saturated_value": int(MAX_HAND_M * 10),
+        "max_hand_m": MAX_HAND_M,
+        "crs": "EPSG:4326",
+        "georeferencing": "reprojected_nearest_from_source_utm",
         "fonte": (
             "HAND hidráulico 5 m: cotas e barreiras do CLIP_MOSAICO_LIDAR_RS.tif bruto; "
             "FILL/FLOWDIR/FLOWACC usados somente para roteamento até o rio principal; "
@@ -672,7 +720,7 @@ def main() -> None:
         "resolucao_fonte_m": source_resolution,
         "fator_payload": FACTOR,
         "resolucao_payload_aprox_m": FACTOR * source_resolution,
-        "shape_payload": [int(encoded.shape[0]), int(encoded.shape[1])],
+        "shape_payload": [int(encoded_geo.shape[0]), int(encoded_geo.shape[1])],
         "flowacc_threshold_fine_cells": FLOWACC_THRESHOLD_FINE_CELLS,
         **hand_diag,
         "hand_zero_cm": HAND_ZERO_CM,
