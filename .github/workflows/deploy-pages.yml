@@ -66,10 +66,10 @@ permissions:
   id-token: write
 
 concurrency:
-  # Nome novo de propósito: o grupo github-pages ficou ocupado por um
-  # job waiting sem revisor desde 2026-09-16T03:07Z e cancelava o resto.
+  # Robôs podem solicitar outro deploy antes do atual terminar. Deixe o
+  # deploy em curso concluir; o próximo checkout lê a ponta atual de main.
   group: github-pages-site
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
