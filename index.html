@@ -1724,10 +1724,10 @@
     return n===null?'idade não informada':(n<60?n.toFixed(0)+' min':(n/60).toFixed(1)+' h')+' desde a leitura';
   };
   const basinStationKind=st=>{
-    const text=basinFold([st.type_label,st.types,st.papel,st.grp,st.name].join(' '));
+    const text=basinFold([st.type_label,st.types,st.papel,st.grp].join(' '));
     const isHydro=/hidrolog/.test(text)&&!/pluviometr/.test(text);
-    const isLevel=st.grp==='alvo'||st.grp==='alt'||!!st.level||/fluviometr|telemetr|nivel|rio/.test(text)||isHydro;
-    const isRain=!!st.observed_rain||/pluviometr|chuva|rain/.test(text);
+    const isLevel=st.grp==='alvo'||st.grp==='alt'||(st.level&&st.level.state==='available')||/fluviometr|telemetr|nivel|hidrolog/.test(text);
+    const isRain=(st.observed_rain&&st.observed_rain.state==='available')||!!basinCemadenRain24(st)||/pluviometr|chuva|rain/.test(text);
     const target=st.code==='86472600'||st.grp==='alvo';
     if(target)return {category:'target',label:'alvo/nível',color:'#e8a317',isLevel:true,isRain:isRain};
     if(isHydro)return {category:'hydro',label:'hidrológica',color:'#7c3aed',isLevel:true,isRain:false};
@@ -1813,7 +1813,7 @@
       quality.className='st-quality';
       const observedAge=st.observed_rain&&st.observed_rain.state==='available'
         ?'chuva '+basinMinutesNote(st.observed_rain.observed_age_minutes)
-        :'chuva observada indisponível';
+        :'série horária de chuva indisponível';
       const levelAge=st.level&&st.level.state==='available'
         ?'nível '+basinMinutesNote(st.level.observed_age_minutes)
         :'nível indisponível';
@@ -2387,9 +2387,9 @@
     html+='</div></div></div>';
 
     html+='<div class="station-summary">'+
-      basinMetricCard('Chuva observada · 24h',observedRain24&&basinFinite(observedRain24.mm)?basinFormat(observedRain24.mm,'precipitation'):'indisponível',basinObservedWindowNote(observedRain24),observedStatus(observedRain24))+
+      basinMetricCard('Chuva observada · 24h (série horária)',observedRain24&&basinFinite(observedRain24.mm)?basinFormat(observedRain24.mm,'precipitation'):'indisponível',basinObservedWindowNote(observedRain24),observedStatus(observedRain24))+
       basinMetricCard('CEMADEN · acumulado observado 24h',cemadenRainValue,cemadenRainNote,cemadenStatus)+
-      basinMetricCard('Chuva observada · 72h',rainValue,rain.count?basinObservedWindowNote(observedRain72):'sem pontos válidos',observedStatus(observedRain72))+
+      basinMetricCard('Chuva observada · 72h (série horária)',rainValue,rain.count?basinObservedWindowNote(observedRain72):'sem pontos válidos',observedStatus(observedRain72))+
       basinMetricCard('Chuva prevista · próximo horário',forecastRain===null?'indisponível':basinFormat(forecastRain,'precipitation'),forecastRainNote,basinStatsStatus(forecastRainStats))+
       basinMetricCard('Chuva prevista · 3 h',forecastRain3Stats.value===null?'indisponível':basinFormat(forecastRain3Stats.value,'precipitation'),windowNote(forecastRain3Stats,3),basinStatsStatus(forecastRain3Stats))+
       basinMetricCard('Chuva prevista · 6 h',forecastRain6Stats.value===null?'indisponível':basinFormat(forecastRain6Stats.value,'precipitation'),windowNote(forecastRain6Stats,6),basinStatsStatus(forecastRain6Stats))+
