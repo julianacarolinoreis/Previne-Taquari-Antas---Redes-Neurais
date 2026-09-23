@@ -1,0 +1,253 @@
+Basin: Bacia Taquari Antas E24 15965.207km2
+     Description: Rede aninhada ANA BHO6: Rio das Antas -> Santa Tereza -> Mucum
+     Last Modified Date: 3 September 2026
+     Last Modified Time: 24:00:00
+     Version: 4.13
+     Filepath Separator: \
+     Unit System: Metric
+     Missing Flow To Zero: No
+     Enable Flow Ratio: No
+     Compute Local Flow At Junctions: No
+     Unregulated Output Required: No
+
+     Enable Sediment Routing: No
+End:
+
+Subbasin: SB_ANTAS_E24
+     Description: Area incremental acima de Linha Jose Julio; ancora BHO6 86472000
+     Last Modified Date: 3 September 2026
+     Last Modified Time: 24:00:00
+     Canvas X: 120.0
+     Canvas Y: 80.0
+     Label X: 16.0
+     Label Y: 0.0
+     Area: 12918.656
+     Downstream: R_ANTAS_STZ_E24
+
+     Discretization: None
+     File: bacia_E24.sqlite
+
+     Canopy: None
+     Allow Simultaneous Precip Et: No
+     Plant Uptake Method: None
+
+     Surface: None
+
+     LossRate: Initial+Constant
+     Percent Impervious Area: 0.0
+     Initial Loss: 2.500
+     Constant Loss Rate: 2.000
+
+     Transform: Clark
+     Clark Method: Specified
+     Time of Concentration: 25.000
+     Storage Coefficient: 25.000
+     Time Area Method: Default
+
+     Baseflow: Recession
+     Recession Factor: 0.800
+     Initial Flow/Area Ratio: 0.103
+     Threshold Flow to Peak Ratio: 0.1
+End:
+
+Reach: R_ANTAS_STZ_E24
+     Description: Trecho BHO6 Linha Jose Julio -> Santa Tereza
+     Last Modified Date: 3 September 2026
+     Last Modified Time: 24:00:00
+     Canvas X: 520.0
+     Canvas Y: 260.0
+     From Canvas X: 330.0
+     From Canvas Y: 110.0
+     Label X: -20.0
+     Label Y: 0.0
+     Downstream: J_STZ_E24
+
+     Route: Muskingum
+     Initial Variable: Combined Inflow
+     Muskingum K: 1.000
+     Muskingum x: 0.2
+     Muskingum Steps: 1
+     Channel Loss: None
+End:
+
+Subbasin: SB_INC_STZ_E24
+     Description: Area incremental BHO6 entre Linha Jose Julio e Santa Tereza
+     Last Modified Date: 3 September 2026
+     Last Modified Time: 24:00:00
+     Canvas X: 400.0
+     Canvas Y: 80.0
+     Label X: 16.0
+     Label Y: 0.0
+     Area: 2856.530
+     Downstream: J_STZ_E24
+
+     Discretization: None
+     File: bacia_E24.sqlite
+
+     Canopy: None
+     Allow Simultaneous Precip Et: No
+     Plant Uptake Method: None
+
+     Surface: None
+
+     LossRate: Initial+Constant
+     Percent Impervious Area: 0.0
+     Initial Loss: 2.500
+     Constant Loss Rate: 2.000
+
+     Transform: Clark
+     Clark Method: Specified
+     Time of Concentration: 25.000
+     Storage Coefficient: 25.000
+     Time Area Method: Default
+
+     Baseflow: Recession
+     Recession Factor: 0.800
+     Initial Flow/Area Ratio: 0.103
+     Threshold Flow to Peak Ratio: 0.1
+End:
+
+Junction: J_STZ_E24
+     Description: Ponto de controle intermediario; ancora BHO6 86472600
+     Last Modified Date: 3 September 2026
+     Last Modified Time: 24:00:00
+     Canvas X: 520.0
+     Canvas Y: 260.0
+     Label X: 16.0
+     Label Y: 0.0
+     Downstream: R_STZ_MUCUM_E24
+End:
+
+Reach: R_STZ_MUCUM_E24
+     Description: Trecho BHO6 Santa Tereza -> Mucum
+     Last Modified Date: 3 September 2026
+     Last Modified Time: 24:00:00
+     Canvas X: 960.0
+     Canvas Y: 460.0
+     From Canvas X: 520.0
+     From Canvas Y: 260.0
+     Label X: -20.0
+     Label Y: 0.0
+     Downstream: J_MUCUM_E24
+
+     Route: Muskingum
+     Initial Variable: Combined Inflow
+     Muskingum K: 1.000
+     Muskingum x: 0.2
+     Muskingum Steps: 1
+     Channel Loss: None
+End:
+
+Subbasin: SB_INC_MUCUM_E24
+     Description: Area incremental BHO6 entre Santa Tereza e Mucum
+     Last Modified Date: 3 September 2026
+     Last Modified Time: 24:00:00
+     Canvas X: 820.0
+     Canvas Y: 260.0
+     Label X: 16.0
+     Label Y: 0.0
+     Area: 190.021
+     Downstream: J_MUCUM_E24
+
+     Discretization: None
+     File: bacia_E24.sqlite
+
+     Canopy: None
+     Allow Simultaneous Precip Et: No
+     Plant Uptake Method: None
+
+     Surface: None
+
+     LossRate: Initial+Constant
+     Percent Impervious Area: 0.0
+     Initial Loss: 2.500
+     Constant Loss Rate: 2.000
+
+     Transform: Clark
+     Clark Method: Specified
+     Time of Concentration: 25.000
+     Storage Coefficient: 25.000
+     Time Area Method: Default
+
+     Baseflow: Recession
+     Recession Factor: 0.800
+     Initial Flow/Area Ratio: 0.103
+     Threshold Flow to Peak Ratio: 0.1
+End:
+
+Junction: J_MUCUM_E24
+     Description: Exutorio e ponto de comparacao ANA 86510000
+     Last Modified Date: 3 September 2026
+     Last Modified Time: 24:00:00
+     Canvas X: 960.0
+     Canvas Y: 460.0
+     Label X: 16.0
+     Label Y: 0.0
+     Computation Point: Yes
+     Observed Hydrograph Gage: Q_E24
+End:
+
+Basin Layer Properties:
+     Element Layer:
+          Name: Icons
+          Layer shown: Yes
+     End Layer:
+End:
+
+Basin Spatial Properties:
+End:
+
+Basin Schematic Properties:
+     Last View N: 460.0
+     Last View S: 80.0
+     Last View W: 120.0
+     Last View E: 960.0
+     Maximum View N: 460.0
+     Maximum View S: 80.0
+     Maximum View W: 120.0
+     Maximum View E: 960.0
+     Extent Method: Elements
+     Buffer: 0
+     Draw Icons: Yes
+     Draw Icon Labels: Name
+     Draw Map Objects: No
+     Draw Gridlines: No
+     Draw Flow Direction: No
+     Draw HillShade Layer: Yes
+     Draw Elevation Layer: Yes
+     Elevation Layer Color Palette: Gray Scale
+     Ignore Elevation Color Ramp Scale: No
+     Use Interpolated Color Ramp for Elevation Layer: Yes
+     Color Ramp Opacity Level for Elevation Layer: 33.0
+     Fix Element Locations: No
+     Fix Hydrologic Order: No
+End:
+
+Computation Point: J_MUCUM_E24
+     Parameter Set: 1
+     End Parameter Set:
+     Parameter Set: 2
+     End Parameter Set:
+     Parameter Set: 3
+     End Parameter Set:
+     Parameter Set: 4
+     End Parameter Set:
+     Parameter Set: 5
+     End Parameter Set:
+
+     Graph Definition: 
+     End Graph Definition: 
+
+     Graph Definition: 
+     End Graph Definition: 
+
+     Graph Definition: 
+     End Graph Definition: 
+
+     Graph Definition: 
+     End Graph Definition: 
+
+     Graph Definition: 
+     End Graph Definition: 
+
+End Computation Point: 

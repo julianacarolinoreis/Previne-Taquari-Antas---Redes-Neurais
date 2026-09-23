@@ -1,0 +1,104 @@
+{
+  "generated_at_utc": "2026-09-23T17:52:11.335318+00:00",
+  "status": "censored_independent_event_transfer_not_promoted",
+  "research_only": true,
+  "event": "E24",
+  "score_window": {
+    "start": "2023-11-16 00:00:00",
+    "end": "2023-11-24 19:00:00",
+    "hours": 212
+  },
+  "full_event_coverage": "incomplete; tail after 24 Nov 19 excluded explicitly",
+  "model_domain": "Three nested incremental subbasins ending at ANA 86510000; not the reconstructed full-basin model",
+  "source_base_project": "D:\\PREVINE\\worktrees\\previne-catalogo-pesquisas-20260828\\assets\\data\\hec_hms_integrated_taquari_antas\\network_replay_all_events",
+  "input_sha256": {
+    "base_project_hms": "4338e7f48174537d83687787ad1f65b12ed69145d3b191f0bddcd714be55a690",
+    "base_project_basin": "3703324c8abc96b0e0be1a257a8fecee128d85a32b2aaed9a701c33d6f2d8285",
+    "base_observed_pairs": "caed8748235362f41b550e7a4a93db9f19384a65111b15cda0a501a613ca5b5a",
+    "upstream_rain_dss": "a63963237dcec61b77221b03b1e1c9616d9bffdb80e2980b57b90df93737fc0f",
+    "santa_tereza_raw_xml": "5cfe12b67efa38cf2848739349072124c8c3de27819b28e3a739a5252bd7d51f",
+    "mucum_raw_xml": "bc6e7a3f2f1ddef6c4dc573e2bd0d182bca0910045dbe8616e52ae8efea3fedf"
+  },
+  "rainfall": {
+    "upstream": "D:\\PREVINE\\worktrees\\previne-hms-rain-publish-20260923\\assets\\data\\hec_hms_calibration\\mucum_santa_tereza_raw_rain_events.dss",
+    "local_csv": "D:\\PREVINE\\worktrees\\previne-hms-rain-publish-20260923\\assets\\data\\hec_hms_integrated_taquari_antas\\network_replay_e24_censored_transfer\\rain_e24_prefix.csv",
+    "local_dss": "D:\\PREVINE\\worktrees\\previne-hms-rain-publish-20260923\\assets\\data\\hec_hms_integrated_taquari_antas\\network_replay_e24_censored_transfer\\rain_e24_prefix.dss",
+    "totals_mm": {
+      "86472600": 206.8,
+      "86510000": 231.4
+    }
+  },
+  "parameters": {
+    "initial_loss": 2.5,
+    "constant_loss": 2.0,
+    "tc": 25.0,
+    "storage": 25.0,
+    "recession": 0.8,
+    "initial_flow_ratio": 0.10272024353783042,
+    "k": 1.0
+  },
+  "selection": "E28 hybrid candidate physical parameters transferred unchanged; E24 initial flow state from first observed hour; numerical Muskingum steps corrected from 3 to 1 in both cases after inherited WARNING 41169",
+  "paired_series": "assets\\data\\hec_hms_integrated_taquari_antas\\network_replay_e24_censored_transfer\\e24_censored_transfer_series.csv",
+  "comparison": {
+    "mae_reduction_m3s": 37.91728831379362,
+    "rmse_reduction_m3s": 126.63717007748573,
+    "nse_increase": 0.03409989680637515,
+    "peak_absolute_error_increase_m3s": 536.7962423729477,
+    "peak_lag_unchanged_hours": 2.0,
+    "interpretation": "Distributed rainfall improves whole-series fit but worsens peak magnitude; neither case removes the 2 h peak lag."
+  },
+  "cases": [
+    {
+      "case": "proxy_upstream",
+      "run": {
+        "event_id": "E24",
+        "returncode": 0,
+        "ok_marker": true
+      },
+      "compute_warning_count": 0,
+      "muskingum_steps_per_reach": 1,
+      "metrics": {
+        "event_id": "E24",
+        "pairs": 212,
+        "mae_m3s": 845.0390889988504,
+        "rmse_m3s": 1253.9818271262495,
+        "nse": 0.8221903155921645,
+        "observed_peak_m3s": 11434.9501953125,
+        "simulated_peak_m3s": 11459.34690914116,
+        "peak_lag_hours": 2.0,
+        "peak_relative_error": 0.002133521651774365,
+        "status": "replay_scored_not_promoted"
+      },
+      "manifest": "assets\\data\\hec_hms_integrated_taquari_antas\\network_replay_e24_censored_transfer\\proxy_upstream\\E24\\event_network_manifest.json"
+    },
+    {
+      "case": "three_station",
+      "run": {
+        "event_id": "E24",
+        "returncode": 0,
+        "ok_marker": true
+      },
+      "compute_warning_count": 0,
+      "muskingum_steps_per_reach": 1,
+      "metrics": {
+        "event_id": "E24",
+        "pairs": 212,
+        "mae_m3s": 807.1218006850568,
+        "rmse_m3s": 1127.3446570487638,
+        "nse": 0.8562902123985396,
+        "observed_peak_m3s": 11434.9501953125,
+        "simulated_peak_m3s": 11996.143151514108,
+        "peak_lag_hours": 2.0,
+        "peak_relative_error": 0.04907699173291169,
+        "status": "replay_scored_not_promoted"
+      },
+      "manifest": "assets\\data\\hec_hms_integrated_taquari_antas\\network_replay_e24_censored_transfer\\three_station\\E24\\event_network_manifest.json"
+    }
+  ],
+  "limits": [
+    "Censored window does not validate the full E24 tail.",
+    "Rainfall at the gauges is a spatial proxy for incremental areas.",
+    "Santa Tereza observed discharge remains unavailable.",
+    "No operational promotion or flood extent is implied."
+  ]
+}
