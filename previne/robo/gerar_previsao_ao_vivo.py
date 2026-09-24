@@ -295,6 +295,70 @@ MODELOS = [
     },
 ]
 
+# Fallbacks operacionais: usados somente quando o modelo preferencial perde a
+# base recente por indisponibilidade de uma dependencia. Mantem o mesmo
+# horizonte publico com contrato horario exato, sem reutilizar dado velho.
+FALLBACKS_HORIZONTE = {
+    "4h": {
+        "horizonte": "4h",
+        "horizonte_h": 4,
+        "tipo": "ALT",
+        "modelo": "4H_ALT__V08_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000",
+        "mat": "assets/mat/4H_ALT__V08_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.mat",
+        "inputs_total": 14,
+        "montador": "4h_st_ljj_14",
+        "principal": True,
+        "ativo_ao_vivo": True,
+        "versao": "fallback V08 R10",
+        "status_publicacao": "fallback_operacional_experimental",
+        "input_contract_version": "hourly_exact_v1",
+        "input_grade": "hourly_exact",
+        "referencia_auditavel": "assets/audit_workbooks/4H_ALT__V08_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.xlsx",
+        "referencia_auditavel_sha256": "713BC8A4580B189FF3C65F660DB833D87B7FF4CDAF3D276A367995AC8B37767D",
+        "proveniencia_nota": (
+            "Fallback operacional de 14 sinais: Santa Tereza + Linha Jose Julio, "
+            "sem dependencia das estacoes 86125500/86298000. Ativado apenas se "
+            "o 4h preferencial nao possui alvo futuro/base recente."
+        ),
+        "input_labels": [
+            "Santa Tereza - nivel atual (D0h)", "Santa Tereza - D-1h",
+            "Santa Tereza - D-2h", "Santa Tereza - D-4h",
+            "Santa Tereza - aceleracao A-1h", "Santa Tereza - aceleracao A-4h",
+            "Santa Tereza - aceleracao A-12h", "Linha Jose Julio - nivel atual",
+            "Linha Jose Julio - D-1h", "Linha Jose Julio - D-2h",
+            "Linha Jose Julio - D-4h", "Linha Jose Julio - aceleracao A-2h",
+            "Linha Jose Julio - aceleracao A-8h", "Linha Jose Julio - aceleracao A-16h",
+        ],
+    },
+    "8h": {
+        "horizonte": "8h",
+        "rotulo": "8h fallback C0217",
+        "horizonte_h": 8,
+        "tipo": "ALT",
+        "modelo": "T2_V1_3_NH_075_06_8h_alt_8H_ALT_C0217",
+        "mat": "assets/mat/T2_V1_3_NH_075_06_8h_alt_8H_ALT_C0217.mat",
+        "inputs_total": 10,
+        "montador": "8h_alt_c0217",
+        "principal": False,
+        "ativo_ao_vivo": True,
+        "versao": "fallback C0217 / T2_V1_3_NH_075",
+        "status_publicacao": "fallback_operacional_experimental",
+        "input_contract_version": "hourly_exact_v1",
+        "input_grade": "hourly_exact",
+        "proveniencia_nota": (
+            "Fallback operacional 8h C0217, sem dependencia da estacao 86298000. "
+            "Selecionado apenas quando o V001 preferencial nao possui alvo futuro/base recente."
+        ),
+        "input_labels": [
+            "Santa Tereza - nivel atual", "Santa Tereza - D-1h",
+            "Chuva media acumulada 36h", "Nova Roma do Sul - nivel atual",
+            "Nova Roma do Sul - D-12h", "Linha Jose Julio - nivel atual",
+            "Linha Jose Julio - D-2h", "Linha Jose Julio - curvatura A-14h",
+            "Ituim - nivel atual", "Ituim - D-11h",
+        ],
+    },
+}
+
 def _local(tag):                          # remove {namespace} do nome da tag
     return tag.rsplit("}", 1)[-1]
 
@@ -837,6 +901,18 @@ def _D_exato(series, cod, t, h):
     return None if None in (a, b) else a - b
 
 
+def _A_exato(series, cod, t, h):
+    vals = [_n_exato(series, cod, t, k) for k in (0, 1, h, h + 1)]
+    return None if any(v is None for v in vals) else (vals[0] - vals[1]) - (vals[2] - vals[3])
+
+
+def _A_curv_exato(series, cod, t, h):
+    if h < 1:
+        return None
+    vals = [_n_exato(series, cod, t, k) for k in (h - 1, h, h + 1)]
+    return None if any(v is None for v in vals) else vals[0] - 2 * vals[1] + vals[2]
+
+
 def _D(series, cod, t, h):
     a, b = _n(series, cod, t, 0), _n(series, cod, t, h)
     return None if None in (a, b) else a - b
@@ -984,6 +1060,28 @@ def montar_inputs_4h_v01_26(series, t):
         D("86125500", 10), D("86125500", 14),
         n("86298000", 0), D("86298000", 2), D("86298000", 6),
         D("86298000", 10), A("86298000", 2), A("86298000", 8), A("86298000", 16),
+    ]
+    return inputs, st0
+
+
+def montar_inputs_4h_st_ljj_14(series, t):
+    """14 sinais do V08 R10 somente com Santa Tereza e Linha Jose Julio."""
+    st0 = _n_exato(series, "86472600", t, 0)
+    inputs = [
+        st0,
+        _D_exato(series, "86472600", t, 1),
+        _D_exato(series, "86472600", t, 2),
+        _D_exato(series, "86472600", t, 4),
+        _A_exato(series, "86472600", t, 1),
+        _A_exato(series, "86472600", t, 4),
+        _A_exato(series, "86472600", t, 12),
+        _n_exato(series, "86472000", t, 0),
+        _D_exato(series, "86472000", t, 1),
+        _D_exato(series, "86472000", t, 2),
+        _D_exato(series, "86472000", t, 4),
+        _A_exato(series, "86472000", t, 2),
+        _A_exato(series, "86472000", t, 8),
+        _A_exato(series, "86472000", t, 16),
     ]
     return inputs, st0
 
@@ -1139,6 +1237,71 @@ def auditoria_inputs_4h_v01_26(series, t, valores=None):
     out["contrato_temporal"] = "26 inputs em grade horaria exata, todos na mesma hora-base; interpolacao/vizinho nao entra na selecao do modelo"
     out["input_grade"] = "hourly_exact"
     return out
+
+
+def auditoria_inputs_4h_st_ljj_14(series, t, valores=None):
+    specs = [
+        ("nivel", "86472600", 0),
+        ("dif", "86472600", 1), ("dif", "86472600", 2), ("dif", "86472600", 4),
+        ("acel", "86472600", 1), ("acel", "86472600", 4), ("acel", "86472600", 12),
+        ("nivel", "86472000", 0),
+        ("dif", "86472000", 1), ("dif", "86472000", 2), ("dif", "86472000", 4),
+        ("acel", "86472000", 2), ("acel", "86472000", 8), ("acel", "86472000", 16),
+    ]
+    cfg = FALLBACKS_HORIZONTE["4h"]
+    out = auditoria_inputs_4h_v01_r10(
+        series, t, valores=valores, specs_override=specs,
+        labels_override=cfg.get("input_labels") or [],
+    )
+    out["n_inputs"] = 14
+    out["contrato_temporal"] = (
+        "14 inputs do fallback 4h em hora cheia exata; somente Santa Tereza e "
+        "Linha Jose Julio; sem interpolacao, vizinho ou 86298000"
+    )
+    out["input_grade"] = "hourly_exact"
+    return out
+
+
+def auditoria_inputs_8h_c0217(series, t, valores=None):
+    """Audita o C0217: niveis exatos e janela de chuva 36 h completa."""
+    calculados, _ = montar_inputs_8h_alt_c0217(series, t)
+    faltantes = sum(v is None for v in calculados)
+    formula_ok = True
+    if valores is not None:
+        if len(valores) != len(calculados):
+            formula_ok = False
+        else:
+            for esperado, recebido in zip(calculados, valores):
+                if esperado is None or recebido is None:
+                    if esperado != recebido:
+                        formula_ok = False
+                elif abs(float(esperado) - float(recebido)) > 1e-9:
+                    formula_ok = False
+    chuva_ok = calculados[2] is not None if len(calculados) >= 3 else False
+    status = "NORMAL" if faltantes == 0 and formula_ok else "INVALIDO"
+    return {
+        "status": status,
+        "formula_conferida_com_montador": bool(formula_ok),
+        "n_inputs": 10,
+        "n_exatos": 10 - faltantes,
+        "n_interpolados": 0,
+        "n_vizinhos_mais_proximos": 0,
+        "n_inputs_nao_exatos": 0,
+        "n_inputs_atrasados": 0,
+        "n_inputs_ausentes": faltantes,
+        "n_inputs_fora_faixa": 0,
+        "idade_max_input_min": 0.0 if faltantes == 0 else None,
+        "input_grade": "hourly_exact",
+        "contrato_temporal": (
+            "10 inputs do fallback 8h C0217 em hora cheia exata; nivel sem "
+            "interpolacao/vizinho e chuva 36h com janela completa"
+        ),
+        "usa_interpolacao_nivel": False,
+        "usa_vizinho_nivel": False,
+        "ausencia_chuva_vira_zero": False,
+        "janela_incompleta_vira_ausente": True,
+        "chuva_36h_completa": bool(chuva_ok),
+    }
 
 
 def auditoria_inputs_2h(series, t, valores=None, grade=None):
@@ -1341,19 +1504,19 @@ def auditoria_inputs_8h(cfg, t, valores):
 
 
 def montar_inputs_8h_alt_c0217(series, t):
-    """10 inputs do modelo 8h ALT C0217, conforme planilha auditavel."""
-    st0 = _n(series, "86472600", t, 0)
+    """10 inputs do modelo 8h ALT C0217, em hora cheia exata."""
+    st0 = _n_exato(series, "86472600", t, 0)
     inputs = [
-        st0,                                   # inp01 ST nivel atual
-        _D(series, "86472600", t, 1),          # inp02 ST D-1h
-        chuva_media_acum_36h(series, t),       # inp03 chuva media acum 36h
-        _n(series, "86306000", t, 0),          # inp04 Nova Roma / Antas nivel
-        _D(series, "86306000", t, 12),         # inp05 Nova Roma / Antas D-12h
-        _n(series, "86472000", t, 0),          # inp06 Linha Jose Julio nivel
-        _D(series, "86472000", t, 2),          # inp07 Linha Jose Julio D-2h
-        _A_curv(series, "86472000", t, 14),    # inp08 Linha Jose Julio A-14h
-        _n(series, "86125130", t, 0),          # inp09 Ituim nivel
-        _D(series, "86125130", t, 11),         # inp10 Ituim D-11h
+        st0,
+        _D_exato(series, "86472600", t, 1),
+        chuva_media_acum_36h(series, t),
+        _n_exato(series, "86306000", t, 0),
+        _D_exato(series, "86306000", t, 12),
+        _n_exato(series, "86472000", t, 0),
+        _D_exato(series, "86472000", t, 2),
+        _A_curv_exato(series, "86472000", t, 14),
+        _n_exato(series, "86125130", t, 0),
+        _D_exato(series, "86125130", t, 11),
     ]
     return inputs, st0
 
@@ -1381,6 +1544,8 @@ def montar_inputs_modelo(cfg, series, t):
         return montar_inputs(series, t)
     if cfg["montador"] == "4h_alt_v01_26":
         return montar_inputs_4h_v01_26(series, t)
+    if cfg["montador"] == "4h_st_ljj_14":
+        return montar_inputs_4h_st_ljj_14(series, t)
     if cfg["montador"] == "4h_alt_v01_r10":
         return montar_inputs_4h_v01_r10(series, t)
     if cfg["montador"] == "4h_alt_prio_12478":
@@ -1721,6 +1886,23 @@ def diagnosticar_inputs_faltantes_4h_v01_26(series, t, inputs):
 
 
 def diagnosticar_inputs_modelo(cfg, series, t, inputs):
+    if cfg["montador"] == "4h_st_ljj_14":
+        return diagnosticar_inputs_por_especificacoes(series, t, inputs, [
+            ("inp01", "Santa Tereza - nivel atual", "86472600", [0]),
+            ("inp02", "Santa Tereza - D-1h", "86472600", [0, 1]),
+            ("inp03", "Santa Tereza - D-2h", "86472600", [0, 2]),
+            ("inp04", "Santa Tereza - D-4h", "86472600", [0, 4]),
+            ("inp05", "Santa Tereza - A-1h", "86472600", [0, 1, 2]),
+            ("inp06", "Santa Tereza - A-4h", "86472600", [0, 1, 4, 5]),
+            ("inp07", "Santa Tereza - A-12h", "86472600", [0, 1, 12, 13]),
+            ("inp08", "Linha Jose Julio - nivel atual", "86472000", [0]),
+            ("inp09", "Linha Jose Julio - D-1h", "86472000", [0, 1]),
+            ("inp10", "Linha Jose Julio - D-2h", "86472000", [0, 2]),
+            ("inp11", "Linha Jose Julio - D-4h", "86472000", [0, 4]),
+            ("inp12", "Linha Jose Julio - A-2h", "86472000", [0, 1, 2, 3]),
+            ("inp13", "Linha Jose Julio - A-8h", "86472000", [0, 1, 8, 9]),
+            ("inp14", "Linha Jose Julio - A-16h", "86472000", [0, 1, 16, 17]),
+        ])
     if cfg["montador"] == "4h_alt_v01_26":
         return diagnosticar_inputs_faltantes_4h_v01_26(series, t, inputs)
     if cfg["montador"] == "4h_alt_v01_r10":
@@ -2175,8 +2357,12 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         out["disponivel"] = False
         if cfg.get("montador") == "4h_alt_v01_r10":
             out["auditoria_inputs"] = auditoria_inputs_4h_v01_r10(series, t, valores=x)
+        elif cfg.get("montador") == "4h_st_ljj_14":
+            out["auditoria_inputs"] = auditoria_inputs_4h_st_ljj_14(series, t, valores=x)
         elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
             out["auditoria_inputs"] = auditoria_inputs_8h(cfg, t, x)
+        elif cfg.get("montador") == "8h_alt_c0217":
+            out["auditoria_inputs"] = auditoria_inputs_8h_c0217(series, t, valores=x)
         return _anexar_fontes_chuva_8h(out, cfg, series)
     try:
         delta_bruto = prever(cfg["mat"], x)
@@ -2234,9 +2420,13 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
                     f"({auditoria_inputs['n_inputs_atrasados']} input(s), "
                     f"idade maxima {auditoria_inputs['idade_max_input_min']:.0f} min)"
                 )
+        elif cfg.get("montador") == "4h_st_ljj_14":
+            out["auditoria_inputs"] = auditoria_inputs_4h_st_ljj_14(series, t, valores=x)
         elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
             out["auditoria_inputs"] = auditoria_inputs_8h(cfg, t, x)
             _anexar_fontes_chuva_8h(out, cfg, series)
+        elif cfg.get("montador") == "8h_alt_c0217":
+            out["auditoria_inputs"] = auditoria_inputs_8h_c0217(series, t, valores=x)
         out["passos"] = [[out["hora_modelo"], out["nivel_rio_agora_cm"], out["nivel_previsto_cm"]]]
         return _anexar_fontes_chuva_8h(out, cfg, series)
     except Exception as e:
@@ -2274,8 +2464,16 @@ def escolher_hora_modelo(cfg, series, horas_st):
                 audit = auditoria_inputs_4h_v01_r10(series, cand, valores=x)
                 if audit["status"] != "NORMAL":
                     continue
+            elif cfg.get("montador") == "4h_st_ljj_14":
+                audit = auditoria_inputs_4h_st_ljj_14(series, cand, valores=x)
+                if audit["status"] != "NORMAL":
+                    continue
             elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
                 audit = auditoria_inputs_8h(cfg, cand, x)
+                if audit["status"] != "NORMAL":
+                    continue
+            elif cfg.get("montador") == "8h_alt_c0217":
+                audit = auditoria_inputs_8h_c0217(series, cand, valores=x)
                 if audit["status"] != "NORMAL":
                     continue
             return cand
@@ -2298,8 +2496,12 @@ def diagnosticar_proxima_base(cfg, series, hora_modelo):
             audit = auditoria_inputs_4h_v01_26(series, candidata, valores=valores)
         elif cfg.get("montador") == "4h_alt_v01_r10":
             audit = auditoria_inputs_4h_v01_r10(series, candidata, valores=valores)
+        elif cfg.get("montador") == "4h_st_ljj_14":
+            audit = auditoria_inputs_4h_st_ljj_14(series, candidata, valores=valores)
         elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
             audit = auditoria_inputs_8h(cfg, candidata, valores)
+        elif cfg.get("montador") == "8h_alt_c0217":
+            audit = auditoria_inputs_8h_c0217(series, candidata, valores=valores)
         pronta = (
             st0 is not None
             and all(v is not None for v in valores)
@@ -2438,6 +2640,48 @@ def algum_horizonte_com_previsao(horizontes):
         for item in (horizontes or {}).values()
     )
 
+
+def _alvo_futuro(out, agora=None):
+    if not isinstance(out, dict) or out.get("nivel_previsto_cm") is None:
+        return False
+    alvo = _parse_hora(out.get("hora_alvo") or "")
+    return bool(alvo and alvo > (agora or agora_brt()))
+
+
+def _precisa_fallback(out):
+    if not _alvo_futuro(out):
+        return True
+    hm = _parse_hora((out or {}).get("hora_modelo") or "")
+    tel = ULTIMA_RAW.get("86472600")
+    return bool(tel and hm and (tel[0] - hm) >= dt.timedelta(hours=2))
+
+
+def aplicar_fallback_operacional(cfg, preferencial, series, horas, aviso, estacoes_status):
+    fallback = FALLBACKS_HORIZONTE.get(cfg.get("horizonte"))
+    if not fallback or not _precisa_fallback(preferencial):
+        return preferencial
+    t_fb = escolher_hora_modelo(fallback, series, horas)
+    alternativo = gerar_saida_modelo(fallback, series, t_fb, aviso, estacoes_status)
+    alternativo["proxima_base_diagnostico"] = diagnosticar_proxima_base(fallback, series, t_fb)
+    if not _alvo_futuro(alternativo):
+        return preferencial
+    alternativo["fallback_ativo"] = True
+    alternativo["modelo_preferencial"] = cfg.get("modelo")
+    alternativo["motivo_fallback"] = (
+        "modelo preferencial sem alvo futuro/base recente; dependencia montante "
+        "ausente ou atrasada. Fallback usa somente entradas exatas e retorna "
+        "automaticamente ao preferencial quando a base normaliza."
+    )
+    alternativo["modelo_preferencial_diagnostico"] = {
+        "modelo": preferencial.get("modelo"),
+        "hora_modelo": preferencial.get("hora_modelo"),
+        "hora_alvo": preferencial.get("hora_alvo"),
+        "status": preferencial.get("status"),
+        "inputs_faltantes_n": preferencial.get("inputs_faltantes_n"),
+    }
+    return alternativo
+
+
 def main():
     aviso = "EXPERIMENTAL - nao e alerta oficial. Teste interno da previsao de RNA (2h principal, 2h versao B em sombra, 4h, 8h V001 e 8h V002), em paralelo ao SGB/SACE. A versao B e o 8h V002 sao comparativos."
     try:
@@ -2466,6 +2710,7 @@ def main():
         t_modelo = escolher_hora_modelo(cfg, series, horas)
         out = gerar_saida_modelo(cfg, series, t_modelo, aviso, estacoes_status)
         out["proxima_base_diagnostico"] = diagnosticar_proxima_base(cfg, series, t_modelo)
+        out = aplicar_fallback_operacional(cfg, out, series, horas, aviso, estacoes_status)
         horizontes[cfg["horizonte"]] = out
 
     if not algum_horizonte_com_previsao(horizontes):
@@ -2501,7 +2746,9 @@ def main():
                 f"{out['status']} - atencao: erro recente do modelo ativo acima do guardrail"
             )
         else:
-            if out.get("nivel_previsto_cm") is None and (out.get("auditoria_inputs") or {}).get("status") == "INVALIDO":
+            if out.get("fallback_ativo"):
+                qualidade_status = "FALLBACK_OPERACIONAL"
+            elif out.get("nivel_previsto_cm") is None and (out.get("auditoria_inputs") or {}).get("status") == "INVALIDO":
                 qualidade_status = "DADO_INVALIDO_REVISAR"
             else:
                 qualidade_status = (
