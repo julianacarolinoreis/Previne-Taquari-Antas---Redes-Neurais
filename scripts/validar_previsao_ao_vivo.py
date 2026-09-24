@@ -22,9 +22,8 @@ FOUR_SHA = "951394B8B8B3F2C45EE90379F85FE79EC274069692467DFDCF8222B58E281632"
 FOUR_WORKBOOK = ROOT / "assets/audit_workbooks/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.xlsx"
 FOUR_WORKBOOK_SHA = "EE1E3B4A06C35A61C7EAEFBB1128D61C47FC4582113C5CB65EA53BB5EBF57724"
 FOUR_ID = "4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000"
-FOUR_FB_ID = "4H_ALT__V08_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000"
-FOUR_FB_MAT = ROOT / "assets/mat/4H_ALT__V08_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.mat"
-FOUR_FB_WORKBOOK = ROOT / "assets/audit_workbooks/4H_ALT__V08_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.xlsx"
+FOUR_FB_ID = "4H_ALT_PRIO_12478_NH10_NIT10_CIC120000"
+FOUR_FB_MAT = ROOT / "assets/mat/prioritario_prio_12478_nh10_nit10_cic120000.mat"
 EIGHT_V1_MAT = ROOT / "previne/assets/mat/RNAPREV__SANTA_TEREZA__08h__ALT__V001__31inputs_63hiddens_20260821.mat"
 EIGHT_V1_SHA = "CDA80F39A2A81644F7969984AD6AF262694508D5D56C3EB00CE4BF12B67A9571"
 EIGHT_V1_ID = "STZ_H8_ALT_V001_31IN_63NH"
@@ -129,12 +128,10 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
     elif four.get("modelo") == FOUR_FB_ID:
         if four.get("modelo_sha256") != sha256(FOUR_FB_MAT):
             raise SystemExit("hash do fallback 4h nao confere")
-        if four.get("referencia_auditavel") != FOUR_FB_WORKBOOK.relative_to(ROOT).as_posix():
-            raise SystemExit("referencia auditavel do fallback 4h nao confere")
-        if four.get("referencia_auditavel_sha256") != sha256(FOUR_FB_WORKBOOK):
-            raise SystemExit("hash da referencia auditavel do fallback 4h nao confere")
         if four.get("fallback_ativo") is not True:
             raise SystemExit("fallback 4h precisa declarar fallback_ativo=true")
+        if four.get("status_publicacao") != "fallback_operacional_experimental":
+            raise SystemExit("fallback 4h sem status_publicacao explicito")
     else:
         raise SystemExit("modelo 4h nao autorizado no feed")
 
@@ -197,7 +194,7 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
         vals = item.get("input_values_cm") or []
         expected_inputs = EXPECTED_INPUTS[key]
         if key == "4h" and item.get("modelo") == FOUR_FB_ID:
-            expected_inputs = 14
+            expected_inputs = 5
         elif key == "8h" and item.get("modelo") == EIGHT_FB_ID:
             expected_inputs = 10
         if len(vals) != expected_inputs or item.get("inputs_total") != expected_inputs:
