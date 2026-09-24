@@ -113,14 +113,20 @@ class LiveFeedContractTests(unittest.TestCase):
 
         four = live.FALLBACKS_HORIZONTE["4h"]
         eight = live.FALLBACKS_HORIZONTE["8h"]
+        eight_v2 = live.FALLBACKS_HORIZONTE["8h_v002"]
         self.assertEqual(four["inputs_total"], 5)
         self.assertEqual(eight["inputs_total"], 10)
+        self.assertEqual(eight_v2["inputs_total"], 10)
         self.assertEqual(four["input_grade"], "hourly_exact")
         self.assertEqual(eight["input_grade"], "hourly_exact")
+        self.assertEqual(eight_v2["input_grade"], "hourly_exact")
         self.assertNotIn("86298000", " ".join(four.get("input_labels") or []))
         self.assertNotIn("86125500", " ".join(four.get("input_labels") or []))
         self.assertIn("Ituim", str(four.get("proveniencia_nota") or "") + " " + " ".join(four.get("input_labels") or []))
         self.assertNotIn("86298000", " ".join(eight.get("input_labels") or []))
+        self.assertNotIn("86298000", " ".join(eight_v2.get("input_labels") or []))
+        self.assertTrue(eight_v2["shadow_only"])
+        self.assertNotEqual(eight["modelo"], eight_v2["modelo"])
 
     def test_expired_primary_requests_fallback(self) -> None:
         from previne.robo import gerar_previsao_ao_vivo as live
