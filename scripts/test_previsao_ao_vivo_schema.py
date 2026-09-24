@@ -113,11 +113,13 @@ class LiveFeedContractTests(unittest.TestCase):
 
         four = live.FALLBACKS_HORIZONTE["4h"]
         eight = live.FALLBACKS_HORIZONTE["8h"]
-        self.assertEqual(four["inputs_total"], 14)
+        self.assertEqual(four["inputs_total"], 5)
         self.assertEqual(eight["inputs_total"], 10)
         self.assertEqual(four["input_grade"], "hourly_exact")
         self.assertEqual(eight["input_grade"], "hourly_exact")
         self.assertNotIn("86298000", " ".join(four.get("input_labels") or []))
+        self.assertNotIn("86125500", " ".join(four.get("input_labels") or []))
+        self.assertIn("86125130", str(four.get("proveniencia_nota") or "") + " " + " ".join(four.get("input_labels") or []))
         self.assertNotIn("86298000", " ".join(eight.get("input_labels") or []))
 
     def test_expired_primary_requests_fallback(self) -> None:
