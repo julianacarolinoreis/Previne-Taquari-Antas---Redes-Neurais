@@ -25,8 +25,9 @@ on:
       - "assets/data/research_*.json"
       - "assets/data/acervo_pesquisas.json"
       - "assets/data/basin_forecast_points.json"
-      # O mapa de estações lê Raw primeiro e Pages como contingência. Manter
-      # esta cópia sincronizada evita esconder as previsões se o Raw falhar.
+      # O mapa lê Raw primeiro e Pages como contingência. Manter esta cópia
+      # sincronizada reduz a dependência do cache do Raw e preserva o feed
+      # quando o endpoint externo oscila.
       - "assets/data/basin_station_forecast_latest.json"
       - "assets/data/agenda_pesquisas.json"
       - "scripts/validate_osm_tiles.py"
