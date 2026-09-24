@@ -2642,6 +2642,17 @@ def aplicar_fallback_operacional(cfg, preferencial, series, horas, aviso, estaco
     alternativo = gerar_saida_modelo(fallback, series, t_fb, aviso, estacoes_status)
     alternativo["proxima_base_diagnostico"] = diagnosticar_proxima_base(fallback, series, t_fb)
     if not _alvo_futuro(alternativo):
+        preferencial["fallback_tentativa"] = {
+            "modelo": fallback.get("modelo"),
+            "hora_modelo": alternativo.get("hora_modelo"),
+            "hora_alvo": alternativo.get("hora_alvo"),
+            "nivel_previsto_cm": alternativo.get("nivel_previsto_cm"),
+            "status": alternativo.get("status"),
+            "auditoria_inputs": alternativo.get("auditoria_inputs"),
+            "inputs_faltantes_n": alternativo.get("inputs_faltantes_n"),
+            "inputs_faltantes": (alternativo.get("inputs_faltantes") or [])[:8],
+            "proxima_base_diagnostico": alternativo.get("proxima_base_diagnostico"),
+        }
         return preferencial
     alternativo["fallback_ativo"] = True
     alternativo["modelo_preferencial"] = cfg.get("modelo")
