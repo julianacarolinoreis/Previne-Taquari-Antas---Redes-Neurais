@@ -108,6 +108,28 @@ class LiveFeedContractTests(unittest.TestCase):
         self.assertIn('atual["ultima_tentativa_em"] = agora', block)
         self.assertIn('audit = auditoria_inputs_8h(cfg, cand, x)', source)
 
+    def test_operational_fallbacks_are_explicit_and_drop_86298000_dependency(self) -> None:
+        from previne.robo import gerar_previsao_ao_vivo as live
+
+        four = live.FALLBACKS_HORIZONTE["4h"]
+        eight = live.FALLBACKS_HORIZONTE["8h"]
+        self.assertEqual(four["inputs_total"], 14)
+        self.assertEqual(eight["inputs_total"], 10)
+        self.assertEqual(four["input_grade"], "hourly_exact")
+        self.assertEqual(eight["input_grade"], "hourly_exact")
+        self.assertNotIn("86298000", " ".join(four.get("input_labels") or []))
+        self.assertNotIn("86298000", " ".join(eight.get("input_labels") or []))
+
+    def test_expired_primary_requests_fallback(self) -> None:
+        from previne.robo import gerar_previsao_ao_vivo as live
+
+        expired = {
+            "nivel_previsto_cm": 500,
+            "hora_modelo": "2026-09-21T19:00:00",
+            "hora_alvo": "2026-09-21T23:00:00",
+        }
+        self.assertTrue(live._precisa_fallback(expired))
+
     def test_ana_reuses_one_xml_for_level_and_rain(self) -> None:
         from previne.robo import gerar_previsao_ao_vivo as live
 
