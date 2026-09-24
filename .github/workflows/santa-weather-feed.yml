@@ -2,6 +2,17 @@ name: Atualiza feed meteorológico de Santa Tereza
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/build_santa_weather_feed.py'
+      - 'scripts/test_santa_weather_feed.py'
+      - 'scripts/build_basin_research_feed.py'
+      - 'scripts/test_basin_research_feed.py'
+      - 'scripts/build_binary_research_decision.py'
+      - 'scripts/build_visual_research_patterns.py'
+      - 'scripts/validate_research_dashboard.py'
+      - '.github/workflows/santa-weather-feed.yml'
   schedule:
     - cron: '7 * * * *'
 
