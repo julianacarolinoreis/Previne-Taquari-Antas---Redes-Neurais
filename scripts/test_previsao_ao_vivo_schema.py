@@ -119,7 +119,7 @@ class LiveFeedContractTests(unittest.TestCase):
         self.assertEqual(eight["input_grade"], "hourly_exact")
         self.assertNotIn("86298000", " ".join(four.get("input_labels") or []))
         self.assertNotIn("86125500", " ".join(four.get("input_labels") or []))
-        self.assertIn("86125130", str(four.get("proveniencia_nota") or "") + " " + " ".join(four.get("input_labels") or []))
+        self.assertIn("Ituim", str(four.get("proveniencia_nota") or "") + " " + " ".join(four.get("input_labels") or []))
         self.assertNotIn("86298000", " ".join(eight.get("input_labels") or []))
 
     def test_expired_primary_requests_fallback(self) -> None:
