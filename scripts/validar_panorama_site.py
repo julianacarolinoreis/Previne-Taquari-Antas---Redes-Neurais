@@ -198,6 +198,7 @@ def validar_deploy_pages() -> None:
     assert "previsao_ao_vivo.json|previsao_ao_vivo_mucum.json" in yml, "Pages ainda copia o JSON do robô para o artefato"
     assert '"assets/previsao_panorama.js"' in yml, "Pages não redeploya quando o panorama JS muda"
     assert '"assets/previsao_panorama.css"' in yml, "Pages não redeploya quando o panorama CSS muda"
+    assert '"assets/data/basin_station_forecast_latest.json"' in yml, "Pages não sincroniza a contingência do feed multi-modelo da bacia"
     assert 'cron: "41 */2 * * *"' in yml, "Pages perdeu a cópia de contingência do JSON"
     js = (RAIZ / "assets/js/live_feed.js").read_text(encoding="utf-8")
     assert "cdn.jsdelivr.net/gh/" in js, "live_feed não lê o CDN quando o Pages 404"
