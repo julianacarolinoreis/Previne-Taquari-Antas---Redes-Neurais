@@ -1,0 +1,52 @@
+name: Recupera atualização do mapa da bacia
+
+on:
+  # O GitHub pode atrasar um cron isolado. Este watchdog é deliberadamente
+  # pequeno e só dispara o construtor quando não há rodada ativa.
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: basin-station-watchdog
+  cancel-in-progress: true
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verifica a última rodada e recupera se necessário
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/basin-station-forecast.yml/runs?per_page=20")"
+          active="$(jq '[.workflow_runs[] | select(.status == "queued" or .status == "in_progress")] | length' <<<"${runs}")"
+          last_success="$(jq -r '[.workflow_runs[] | select(.conclusion == "success")] | sort_by(.updated_at) | last | .updated_at // empty' <<<"${runs}")"
+          now="$(date -u +%s)"
+          stale=1
+          if [[ -n "${last_success}" ]]; then
+            last_success_epoch="$(date -d "${last_success}" +%s)"
+            if (( now - last_success_epoch < 420 )); then
+              stale=0
+            fi
+          fi
+
+          if (( active > 0 )); then
+            echo "Rodada da bacia já está ativa; nenhuma recuperação necessária."
+            exit 0
+          fi
+          if (( stale == 0 )); then
+            echo "Último sucesso ainda está dentro da janela de sete minutos."
+            exit 0
+          fi
+
+          echo "Feed sem sucesso recente; disparando previne-basin-station."
+          gh api "repos/${GITHUB_REPOSITORY}/dispatches" \
+            --method POST \
+            --field event_type=previne-basin-station

@@ -31,7 +31,10 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    # O catálogo completo consulta até 463 coordenadas em lotes de modelos.
+    # A rodada normal costuma terminar antes disso, mas uma resposta lenta do
+    # provedor não pode cancelar o job antes que ele publique ou se recupere.
+    timeout-minutes: 20
     steps:
       - name: Checkout main
         uses: actions/checkout@v7
