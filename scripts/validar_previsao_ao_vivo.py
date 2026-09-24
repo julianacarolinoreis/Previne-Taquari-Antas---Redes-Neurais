@@ -21,8 +21,15 @@ FOUR_MAT = ROOT / "assets/mat/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.mat"
 FOUR_SHA = "951394B8B8B3F2C45EE90379F85FE79EC274069692467DFDCF8222B58E281632"
 FOUR_WORKBOOK = ROOT / "assets/audit_workbooks/4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000.xlsx"
 FOUR_WORKBOOK_SHA = "EE1E3B4A06C35A61C7EAEFBB1128D61C47FC4582113C5CB65EA53BB5EBF57724"
+FOUR_ID = "4H_ALT__V01_R00_BASELINE_nh52_nit10_cic100000"
+FOUR_FB_ID = "4H_ALT__V08_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000"
+FOUR_FB_MAT = ROOT / "assets/mat/4H_ALT__V08_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.mat"
+FOUR_FB_WORKBOOK = ROOT / "assets/audit_workbooks/4H_ALT__V08_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.xlsx"
 EIGHT_V1_MAT = ROOT / "previne/assets/mat/RNAPREV__SANTA_TEREZA__08h__ALT__V001__31inputs_63hiddens_20260821.mat"
 EIGHT_V1_SHA = "CDA80F39A2A81644F7969984AD6AF262694508D5D56C3EB00CE4BF12B67A9571"
+EIGHT_V1_ID = "STZ_H8_ALT_V001_31IN_63NH"
+EIGHT_FB_ID = "T2_V1_3_NH_075_06_8h_alt_8H_ALT_C0217"
+EIGHT_FB_MAT = ROOT / "assets/mat/T2_V1_3_NH_075_06_8h_alt_8H_ALT_C0217.mat"
 EIGHT_V2_MAT = ROOT / "previne/assets/mat/RNAPREV__SANTA_TEREZA__08h__ALT__V002__28inputs_57hiddens_20260821.mat"
 EIGHT_V2_SHA = "53424025359CED9A70DCCEEB4080B917992CF2DD3C8A2CBECB8CBB55AC2C1663"
 EIGHT_FORMULA_CONTRACT = "stz_8h_excel_mae_20260825_v2"
@@ -99,8 +106,6 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
     for key, mat, mat_sha, workbook, workbook_sha, label in (
         ("2h", P_MAT, P_SHA, P_WORKBOOK, P_WORKBOOK_SHA, "modelo 2h principal"),
         ("2h_versao_b", b_mat, B_SHA, B_WORKBOOK, B_WORKBOOK_SHA, "versao B"),
-        ("4h", FOUR_MAT, FOUR_SHA, FOUR_WORKBOOK, FOUR_WORKBOOK_SHA, "modelo 4h"),
-        ("8h", EIGHT_V1_MAT, EIGHT_V1_SHA, None, None, "modelo 8h V001"),
         ("8h_v002", EIGHT_V2_MAT, EIGHT_V2_SHA, None, None, "modelo 8h V002"),
     ):
         item = horizons[key]
@@ -112,6 +117,39 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
                 raise SystemExit(f"referencia auditavel do {label} nao confere")
             if item.get("referencia_auditavel_sha256") != workbook_sha or sha256(workbook) != workbook_sha:
                 raise SystemExit(f"hash da referencia auditavel do {label} nao confere")
+
+    four = horizons["4h"]
+    if four.get("modelo") == FOUR_ID:
+        if four.get("modelo_sha256") != FOUR_SHA or sha256(FOUR_MAT) != FOUR_SHA:
+            raise SystemExit("hash do modelo 4h preferencial nao confere")
+        if four.get("referencia_auditavel") != FOUR_WORKBOOK.relative_to(ROOT).as_posix():
+            raise SystemExit("referencia auditavel do 4h preferencial nao confere")
+        if four.get("referencia_auditavel_sha256") != FOUR_WORKBOOK_SHA or sha256(FOUR_WORKBOOK) != FOUR_WORKBOOK_SHA:
+            raise SystemExit("hash da referencia auditavel do 4h preferencial nao confere")
+    elif four.get("modelo") == FOUR_FB_ID:
+        if four.get("modelo_sha256") != sha256(FOUR_FB_MAT):
+            raise SystemExit("hash do fallback 4h nao confere")
+        if four.get("referencia_auditavel") != FOUR_FB_WORKBOOK.relative_to(ROOT).as_posix():
+            raise SystemExit("referencia auditavel do fallback 4h nao confere")
+        if four.get("referencia_auditavel_sha256") != sha256(FOUR_FB_WORKBOOK):
+            raise SystemExit("hash da referencia auditavel do fallback 4h nao confere")
+        if four.get("fallback_ativo") is not True:
+            raise SystemExit("fallback 4h precisa declarar fallback_ativo=true")
+    else:
+        raise SystemExit("modelo 4h nao autorizado no feed")
+
+    eight = horizons["8h"]
+    if eight.get("modelo") == EIGHT_V1_ID:
+        if eight.get("modelo_sha256") != EIGHT_V1_SHA or sha256(EIGHT_V1_MAT) != EIGHT_V1_SHA:
+            raise SystemExit("hash do modelo 8h V001 nao confere")
+    elif eight.get("modelo") == EIGHT_FB_ID:
+        if eight.get("modelo_sha256") != sha256(EIGHT_FB_MAT):
+            raise SystemExit("hash do fallback 8h nao confere")
+        if eight.get("fallback_ativo") is not True:
+            raise SystemExit("fallback 8h precisa declarar fallback_ativo=true")
+    else:
+        raise SystemExit("modelo 8h nao autorizado no feed")
+
     for key in REQUIRED:
         item = horizons[key]
         if not isinstance(item, dict) or not REQUIRED_FIELDS.issubset(item):
@@ -157,8 +195,13 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
         if audit.get("n_inputs_nao_exatos", 0) != 0:
             raise SystemExit(f"{key} publicou inputs interpolados/vizinhos")
         vals = item.get("input_values_cm") or []
-        if len(vals) != EXPECTED_INPUTS[key] or item.get("inputs_total") != EXPECTED_INPUTS[key]:
-            raise SystemExit(f"{key} precisa publicar exatamente {EXPECTED_INPUTS[key]} inputs")
+        expected_inputs = EXPECTED_INPUTS[key]
+        if key == "4h" and item.get("modelo") == FOUR_FB_ID:
+            expected_inputs = 14
+        elif key == "8h" and item.get("modelo") == EIGHT_FB_ID:
+            expected_inputs = 10
+        if len(vals) != expected_inputs or item.get("inputs_total") != expected_inputs:
+            raise SystemExit(f"{key} precisa publicar exatamente {expected_inputs} inputs")
         if key.startswith("8h") and (
             audit.get("usa_interpolacao_nivel") is not False
             or audit.get("usa_vizinho_nivel") is not False
@@ -167,6 +210,17 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
     for key, (formula, formula_sha) in EIGHT_FORMULAS.items():
         item = horizons[key]
         audit = item.get("auditoria_inputs") or {}
+        if key == "8h" and item.get("modelo") == EIGHT_FB_ID:
+            if item.get("status_publicacao") != "fallback_operacional_experimental":
+                raise SystemExit("fallback 8h sem status_publicacao explicito")
+            if (
+                audit.get("usa_interpolacao_nivel") is not False
+                or audit.get("usa_vizinho_nivel") is not False
+                or audit.get("ausencia_chuva_vira_zero") is not False
+                or audit.get("janela_incompleta_vira_ausente") is not True
+            ):
+                raise SystemExit("fallback 8h sem contrato seguro de entradas")
+            continue
         if item.get("formula_contract_version") != EIGHT_FORMULA_CONTRACT:
             raise SystemExit(f"{key} sem contrato das formulas do Excel-mae")
         if item.get("referencia_formula") != formula:
