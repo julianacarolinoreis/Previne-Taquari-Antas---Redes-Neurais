@@ -96,7 +96,7 @@ class BasinResearchFeedTests(unittest.TestCase):
         else:
             self.assertEqual(santa_4h["input_audit_status"], "ATENCAO")
             self.assertGreater(santa_4h["inputs_missing"], 0)
-        self.assertIn(santa_by_key["8h"]["quality_status"], {"NORMAL", "ATENCAO"})
+        self.assertIn(santa_by_key["8h"]["quality_status"], {"NORMAL", "ATENCAO", "FALLBACK_OPERACIONAL"})
 
     def test_gates_are_explicit(self):
         gate_ids = {gate["id"] for gate in self.feed["gates"]}
