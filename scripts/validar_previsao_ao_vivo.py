@@ -31,6 +31,9 @@ EIGHT_FB_ID = "T2_V1_3_NH_075_06_8h_alt_8H_ALT_C0217"
 EIGHT_FB_MAT = ROOT / "assets/mat/T2_V1_3_NH_075_06_8h_alt_8H_ALT_C0217.mat"
 EIGHT_V2_MAT = ROOT / "previne/assets/mat/RNAPREV__SANTA_TEREZA__08h__ALT__V002__28inputs_57hiddens_20260821.mat"
 EIGHT_V2_SHA = "53424025359CED9A70DCCEEB4080B917992CF2DD3C8A2CBECB8CBB55AC2C1663"
+EIGHT_V2_ID = "STZ_H8_ALT_V002_28IN_57NH"
+EIGHT_V2_FB_ID = "T3_V1_2_NH_075_06_8h_alt_8H_ALT_C0217"
+EIGHT_V2_FB_MAT = ROOT / "assets/mat/T3_V1_2_NH_075_06_8h_alt_8H_ALT_C0217.mat"
 EIGHT_FORMULA_CONTRACT = "stz_8h_excel_mae_20260825_v2"
 EIGHT_FORMULAS = {
     "8h": (
@@ -105,7 +108,6 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
     for key, mat, mat_sha, workbook, workbook_sha, label in (
         ("2h", P_MAT, P_SHA, P_WORKBOOK, P_WORKBOOK_SHA, "modelo 2h principal"),
         ("2h_versao_b", b_mat, B_SHA, B_WORKBOOK, B_WORKBOOK_SHA, "versao B"),
-        ("8h_v002", EIGHT_V2_MAT, EIGHT_V2_SHA, None, None, "modelo 8h V002"),
     ):
         item = horizons[key]
         if item.get("modelo_sha256") != mat_sha or sha256(mat) != mat_sha:
@@ -146,6 +148,20 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
             raise SystemExit("fallback 8h precisa declarar fallback_ativo=true")
     else:
         raise SystemExit("modelo 8h nao autorizado no feed")
+
+    eight_v2 = horizons["8h_v002"]
+    if eight_v2.get("modelo") == EIGHT_V2_ID:
+        if eight_v2.get("modelo_sha256") != EIGHT_V2_SHA or sha256(EIGHT_V2_MAT) != EIGHT_V2_SHA:
+            raise SystemExit("hash do modelo 8h V002 nao confere")
+    elif eight_v2.get("modelo") == EIGHT_V2_FB_ID:
+        if eight_v2.get("modelo_sha256") != sha256(EIGHT_V2_FB_MAT):
+            raise SystemExit("hash do fallback 8h V002 nao confere")
+        if eight_v2.get("fallback_ativo") is not True:
+            raise SystemExit("fallback 8h V002 precisa declarar fallback_ativo=true")
+        if eight_v2.get("shadow_only") is not True:
+            raise SystemExit("fallback 8h V002 precisa permanecer em sombra")
+    else:
+        raise SystemExit("modelo 8h V002 nao autorizado no feed")
 
     for key in REQUIRED:
         item = horizons[key]
@@ -197,6 +213,8 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
             expected_inputs = 5
         elif key == "8h" and item.get("modelo") == EIGHT_FB_ID:
             expected_inputs = 10
+        elif key == "8h_v002" and item.get("modelo") == EIGHT_V2_FB_ID:
+            expected_inputs = 10
         if len(vals) != expected_inputs or item.get("inputs_total") != expected_inputs:
             raise SystemExit(f"{key} precisa publicar exatamente {expected_inputs} inputs")
         if key.startswith("8h") and (
@@ -207,16 +225,19 @@ def validate_data(data: dict, *, b_mat: Path = B_MAT) -> None:
     for key, (formula, formula_sha) in EIGHT_FORMULAS.items():
         item = horizons[key]
         audit = item.get("auditoria_inputs") or {}
-        if key == "8h" and item.get("modelo") == EIGHT_FB_ID:
+        if (
+            (key == "8h" and item.get("modelo") == EIGHT_FB_ID)
+            or (key == "8h_v002" and item.get("modelo") == EIGHT_V2_FB_ID)
+        ):
             if item.get("status_publicacao") != "fallback_operacional_experimental":
-                raise SystemExit("fallback 8h sem status_publicacao explicito")
+                raise SystemExit(f"fallback {key} sem status_publicacao explicito")
             if (
                 audit.get("usa_interpolacao_nivel") is not False
                 or audit.get("usa_vizinho_nivel") is not False
                 or audit.get("ausencia_chuva_vira_zero") is not False
                 or audit.get("janela_incompleta_vira_ausente") is not True
             ):
-                raise SystemExit("fallback 8h sem contrato seguro de entradas")
+                raise SystemExit(f"fallback {key} sem contrato seguro de entradas")
             continue
         if item.get("formula_contract_version") != EIGHT_FORMULA_CONTRACT:
             raise SystemExit(f"{key} sem contrato das formulas do Excel-mae")
