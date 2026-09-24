@@ -337,6 +337,7 @@ FALLBACKS_HORIZONTE = {
         "montador": "8h_alt_c0217",
         "principal": False,
         "ativo_ao_vivo": True,
+        "shadow_only": False,
         "versao": "fallback C0217 / T2_V1_3_NH_075",
         "status_publicacao": "fallback_operacional_experimental",
         "input_contract_version": "hourly_exact_v1",
@@ -344,6 +345,35 @@ FALLBACKS_HORIZONTE = {
         "proveniencia_nota": (
             "Fallback operacional 8h C0217, sem dependencia da estacao 86298000. "
             "Selecionado apenas quando o V001 preferencial nao possui alvo futuro/base recente."
+        ),
+        "input_labels": [
+            "Santa Tereza - nivel atual", "Santa Tereza - D-1h",
+            "Chuva media acumulada 36h", "Nova Roma do Sul - nivel atual",
+            "Nova Roma do Sul - D-12h", "Linha Jose Julio - nivel atual",
+            "Linha Jose Julio - D-2h", "Linha Jose Julio - curvatura A-14h",
+            "Ituim - nivel atual", "Ituim - D-11h",
+        ],
+    },
+    "8h_v002": {
+        "horizonte": "8h_v002",
+        "rotulo": "8h V002 fallback C0217-B",
+        "horizonte_h": 8,
+        "tipo": "ALT",
+        "modelo": "T3_V1_2_NH_075_06_8h_alt_8H_ALT_C0217",
+        "mat": "assets/mat/T3_V1_2_NH_075_06_8h_alt_8H_ALT_C0217.mat",
+        "inputs_total": 10,
+        "montador": "8h_alt_c0217",
+        "principal": False,
+        "ativo_ao_vivo": True,
+        "shadow_only": True,
+        "versao": "fallback comparativo C0217 / T3_V1_2_NH_075",
+        "status_publicacao": "fallback_operacional_experimental",
+        "input_contract_version": "hourly_exact_v1",
+        "input_grade": "hourly_exact",
+        "proveniencia_nota": (
+            "Fallback comparativo do 8h V002, independente da estacao 86298000. "
+            "Usa uma segunda RNA C0217 com o mesmo contrato de 10 entradas exatas "
+            "e retorna automaticamente ao V002 quando a base preferencial normaliza."
         ),
         "input_labels": [
             "Santa Tereza - nivel atual", "Santa Tereza - D-1h",
