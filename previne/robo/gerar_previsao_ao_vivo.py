@@ -303,31 +303,27 @@ FALLBACKS_HORIZONTE = {
         "horizonte": "4h",
         "horizonte_h": 4,
         "tipo": "ALT",
-        "modelo": "4H_ALT__V08_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000",
-        "mat": "assets/mat/4H_ALT__V08_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.mat",
-        "inputs_total": 14,
-        "montador": "4h_st_ljj_14",
+        "modelo": "4H_ALT_PRIO_12478_NH10_NIT10_CIC120000",
+        "mat": "assets/mat/prioritario_prio_12478_nh10_nit10_cic120000.mat",
+        "inputs_total": 5,
+        "montador": "4h_prio_12478_exato",
         "principal": True,
         "ativo_ao_vivo": True,
-        "versao": "fallback V08 R10",
+        "versao": "fallback prio_12478",
         "status_publicacao": "fallback_operacional_experimental",
         "input_contract_version": "hourly_exact_v1",
         "input_grade": "hourly_exact",
-        "referencia_auditavel": "assets/audit_workbooks/4H_ALT__V08_R10_T19-21_V1-3-5-15-17_nh48_nit10_cic100000.xlsx",
-        "referencia_auditavel_sha256": "713BC8A4580B189FF3C65F660DB833D87B7FF4CDAF3D276A367995AC8B37767D",
         "proveniencia_nota": (
-            "Fallback operacional de 14 sinais: Santa Tereza + Linha Jose Julio, "
-            "sem dependencia das estacoes 86125500/86298000. Ativado apenas se "
-            "o 4h preferencial nao possui alvo futuro/base recente."
+            "Fallback operacional 4h prio_12478, treinado com cinco sinais "
+            "de Santa Tereza, Ituim e Linha Jose Julio. Nao depende de 86125500/86298000 "
+            "e so e ativado se o 4h preferencial nao possui alvo futuro/base recente."
         ),
         "input_labels": [
-            "Santa Tereza - nivel atual (D0h)", "Santa Tereza - D-1h",
-            "Santa Tereza - D-2h", "Santa Tereza - D-4h",
-            "Santa Tereza - aceleracao A-1h", "Santa Tereza - aceleracao A-4h",
-            "Santa Tereza - aceleracao A-12h", "Linha Jose Julio - nivel atual",
-            "Linha Jose Julio - D-1h", "Linha Jose Julio - D-2h",
-            "Linha Jose Julio - D-4h", "Linha Jose Julio - aceleracao A-2h",
-            "Linha Jose Julio - aceleracao A-8h", "Linha Jose Julio - aceleracao A-16h",
+            "Santa Tereza - nivel atual",
+            "Santa Tereza - D-1h",
+            "Santa Tereza - aceleracao A-12h",
+            "Ituim - D-12h",
+            "Linha Jose Julio - D-4h",
         ],
     },
     "8h": {
@@ -1064,24 +1060,15 @@ def montar_inputs_4h_v01_26(series, t):
     return inputs, st0
 
 
-def montar_inputs_4h_st_ljj_14(series, t):
-    """14 sinais do V08 R10 somente com Santa Tereza e Linha Jose Julio."""
+def montar_inputs_4h_prio_12478_exato(series, t):
+    """Cinco sinais do prio_12478, todos em hora cheia exata."""
     st0 = _n_exato(series, "86472600", t, 0)
     inputs = [
         st0,
         _D_exato(series, "86472600", t, 1),
-        _D_exato(series, "86472600", t, 2),
-        _D_exato(series, "86472600", t, 4),
-        _A_exato(series, "86472600", t, 1),
-        _A_exato(series, "86472600", t, 4),
         _A_exato(series, "86472600", t, 12),
-        _n_exato(series, "86472000", t, 0),
-        _D_exato(series, "86472000", t, 1),
-        _D_exato(series, "86472000", t, 2),
+        _D_exato(series, "86125130", t, 12),
         _D_exato(series, "86472000", t, 4),
-        _A_exato(series, "86472000", t, 2),
-        _A_exato(series, "86472000", t, 8),
-        _A_exato(series, "86472000", t, 16),
     ]
     return inputs, st0
 
@@ -1239,24 +1226,24 @@ def auditoria_inputs_4h_v01_26(series, t, valores=None):
     return out
 
 
-def auditoria_inputs_4h_st_ljj_14(series, t, valores=None):
+def auditoria_inputs_4h_prio_12478_exato(series, t, valores=None):
     specs = [
         ("nivel", "86472600", 0),
-        ("dif", "86472600", 1), ("dif", "86472600", 2), ("dif", "86472600", 4),
-        ("acel", "86472600", 1), ("acel", "86472600", 4), ("acel", "86472600", 12),
-        ("nivel", "86472000", 0),
-        ("dif", "86472000", 1), ("dif", "86472000", 2), ("dif", "86472000", 4),
-        ("acel", "86472000", 2), ("acel", "86472000", 8), ("acel", "86472000", 16),
+        ("dif", "86472600", 1),
+        ("acel", "86472600", 12),
+        ("dif", "86125130", 12),
+        ("dif", "86472000", 4),
     ]
     cfg = FALLBACKS_HORIZONTE["4h"]
     out = auditoria_inputs_4h_v01_r10(
         series, t, valores=valores, specs_override=specs,
         labels_override=cfg.get("input_labels") or [],
     )
-    out["n_inputs"] = 14
+    out["n_inputs"] = 5
     out["contrato_temporal"] = (
-        "14 inputs do fallback 4h em hora cheia exata; somente Santa Tereza e "
-        "Linha Jose Julio; sem interpolacao, vizinho ou 86298000"
+        "5 inputs do fallback 4h prio_12478 em hora cheia exata; "
+        "Santa Tereza, Ituim e Linha Jose Julio; sem interpolacao/vizinho "
+        "e sem dependencia das estacoes 86125500/86298000"
     )
     out["input_grade"] = "hourly_exact"
     return out
@@ -1544,8 +1531,8 @@ def montar_inputs_modelo(cfg, series, t):
         return montar_inputs(series, t)
     if cfg["montador"] == "4h_alt_v01_26":
         return montar_inputs_4h_v01_26(series, t)
-    if cfg["montador"] == "4h_st_ljj_14":
-        return montar_inputs_4h_st_ljj_14(series, t)
+    if cfg["montador"] == "4h_prio_12478_exato":
+        return montar_inputs_4h_prio_12478_exato(series, t)
     if cfg["montador"] == "4h_alt_v01_r10":
         return montar_inputs_4h_v01_r10(series, t)
     if cfg["montador"] == "4h_alt_prio_12478":
@@ -1886,22 +1873,13 @@ def diagnosticar_inputs_faltantes_4h_v01_26(series, t, inputs):
 
 
 def diagnosticar_inputs_modelo(cfg, series, t, inputs):
-    if cfg["montador"] == "4h_st_ljj_14":
+    if cfg["montador"] == "4h_prio_12478_exato":
         return diagnosticar_inputs_por_especificacoes(series, t, inputs, [
             ("inp01", "Santa Tereza - nivel atual", "86472600", [0]),
             ("inp02", "Santa Tereza - D-1h", "86472600", [0, 1]),
-            ("inp03", "Santa Tereza - D-2h", "86472600", [0, 2]),
-            ("inp04", "Santa Tereza - D-4h", "86472600", [0, 4]),
-            ("inp05", "Santa Tereza - A-1h", "86472600", [0, 1, 2]),
-            ("inp06", "Santa Tereza - A-4h", "86472600", [0, 1, 4, 5]),
-            ("inp07", "Santa Tereza - A-12h", "86472600", [0, 1, 12, 13]),
-            ("inp08", "Linha Jose Julio - nivel atual", "86472000", [0]),
-            ("inp09", "Linha Jose Julio - D-1h", "86472000", [0, 1]),
-            ("inp10", "Linha Jose Julio - D-2h", "86472000", [0, 2]),
-            ("inp11", "Linha Jose Julio - D-4h", "86472000", [0, 4]),
-            ("inp12", "Linha Jose Julio - A-2h", "86472000", [0, 1, 2, 3]),
-            ("inp13", "Linha Jose Julio - A-8h", "86472000", [0, 1, 8, 9]),
-            ("inp14", "Linha Jose Julio - A-16h", "86472000", [0, 1, 16, 17]),
+            ("inp03", "Santa Tereza - A-12h", "86472600", [0, 1, 12, 13]),
+            ("inp04", "Ituim - D-12h", "86125130", [0, 12]),
+            ("inp05", "Linha Jose Julio - D-4h", "86472000", [0, 4]),
         ])
     if cfg["montador"] == "4h_alt_v01_26":
         return diagnosticar_inputs_faltantes_4h_v01_26(series, t, inputs)
@@ -2357,8 +2335,8 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
         out["disponivel"] = False
         if cfg.get("montador") == "4h_alt_v01_r10":
             out["auditoria_inputs"] = auditoria_inputs_4h_v01_r10(series, t, valores=x)
-        elif cfg.get("montador") == "4h_st_ljj_14":
-            out["auditoria_inputs"] = auditoria_inputs_4h_st_ljj_14(series, t, valores=x)
+        elif cfg.get("montador") == "4h_prio_12478_exato":
+            out["auditoria_inputs"] = auditoria_inputs_4h_prio_12478_exato(series, t, valores=x)
         elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
             out["auditoria_inputs"] = auditoria_inputs_8h(cfg, t, x)
         elif cfg.get("montador") == "8h_alt_c0217":
@@ -2420,8 +2398,8 @@ def gerar_saida_modelo(cfg, series, t, aviso, estacoes_status):
                     f"({auditoria_inputs['n_inputs_atrasados']} input(s), "
                     f"idade maxima {auditoria_inputs['idade_max_input_min']:.0f} min)"
                 )
-        elif cfg.get("montador") == "4h_st_ljj_14":
-            out["auditoria_inputs"] = auditoria_inputs_4h_st_ljj_14(series, t, valores=x)
+        elif cfg.get("montador") == "4h_prio_12478_exato":
+            out["auditoria_inputs"] = auditoria_inputs_4h_prio_12478_exato(series, t, valores=x)
         elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
             out["auditoria_inputs"] = auditoria_inputs_8h(cfg, t, x)
             _anexar_fontes_chuva_8h(out, cfg, series)
@@ -2464,8 +2442,8 @@ def escolher_hora_modelo(cfg, series, horas_st):
                 audit = auditoria_inputs_4h_v01_r10(series, cand, valores=x)
                 if audit["status"] != "NORMAL":
                     continue
-            elif cfg.get("montador") == "4h_st_ljj_14":
-                audit = auditoria_inputs_4h_st_ljj_14(series, cand, valores=x)
+            elif cfg.get("montador") == "4h_prio_12478_exato":
+                audit = auditoria_inputs_4h_prio_12478_exato(series, cand, valores=x)
                 if audit["status"] != "NORMAL":
                     continue
             elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
@@ -2496,8 +2474,8 @@ def diagnosticar_proxima_base(cfg, series, hora_modelo):
             audit = auditoria_inputs_4h_v01_26(series, candidata, valores=valores)
         elif cfg.get("montador") == "4h_alt_v01_r10":
             audit = auditoria_inputs_4h_v01_r10(series, candidata, valores=valores)
-        elif cfg.get("montador") == "4h_st_ljj_14":
-            audit = auditoria_inputs_4h_st_ljj_14(series, candidata, valores=valores)
+        elif cfg.get("montador") == "4h_prio_12478_exato":
+            audit = auditoria_inputs_4h_prio_12478_exato(series, candidata, valores=valores)
         elif cfg.get("montador") in ("8h_alt_v001", "8h_alt_v002"):
             audit = auditoria_inputs_8h(cfg, candidata, valores)
         elif cfg.get("montador") == "8h_alt_c0217":
