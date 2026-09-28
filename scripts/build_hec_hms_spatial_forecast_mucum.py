@@ -396,22 +396,34 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
     for sid in ZONE_IDS:
         warm_values = [observed[sid][t] for t in warm_hours]
         obs_partial = observed[sid].get(ifs0_local)
-        if obs_partial is None:
-            raise RuntimeError(
-                f"current-hour observed rainfall unavailable for {sid} at {ifs0_local}; forecast blocked"
-            )
         ifs_values = list(zr["zones"][sid]["hourly_mm"])
-        current_blend = float(obs_partial) + (1.0 - elapsed) * float(ifs_values[0])
+        if obs_partial is None:
+            # A ausência do parcial da hora corrente não pode virar "0 mm
+            # observado". Como o estado atual do rio é assimilado no timestamp
+            # exato, usamos somente o IFS para esta hora e registramos a
+            # degradação. As 48 h de warm-up continuam obrigatoriamente
+            # observadas e já foram validadas acima.
+            current_blend = float(ifs_values[0])
+            current_source = "ifs_full_hour_fallback_no_observed_partial"
+            observed_total = round(sum(warm_values), 3)
+            observed_partial_audit = None
+        else:
+            current_blend = float(obs_partial) + (1.0 - elapsed) * float(ifs_values[0])
+            current_source = "observed_partial_plus_remaining_ifs"
+            observed_total = round(sum(warm_values) + float(obs_partial), 3)
+            observed_partial_audit = round(float(obs_partial), 3)
         values = warm_values + [current_blend] + [float(v) for v in ifs_values[1:]]
         meta = dict(zr["zones"][sid])
         meta["hourly_mm"] = values
         meta["run_total_mm"] = sum(values)
         run_zones[sid] = meta
-        audit["observed_totals_mm"][sid] = round(sum(warm_values) + float(obs_partial), 3)
+        audit["observed_totals_mm"][sid] = observed_total
         audit.setdefault("current_hour", {})[sid] = {
-            "observed_partial_mm": round(float(obs_partial), 3),
+            "observed_partial_mm": observed_partial_audit,
             "ifs_full_hour_mm": round(float(ifs_values[0]), 3),
             "combined_hour_mm": round(current_blend, 3),
+            "source": current_source,
+            "degraded": obs_partial is None,
         }
 
     return {"times_utc": run_times_utc, "zones": run_zones}, audit
