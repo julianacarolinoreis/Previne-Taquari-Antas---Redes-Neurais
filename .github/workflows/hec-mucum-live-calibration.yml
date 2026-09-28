@@ -22,7 +22,7 @@ permissions:
 
 concurrency:
   group: hec-mucum-live-event-calibration
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   calibrate:
@@ -108,6 +108,9 @@ jobs:
             if git push origin HEAD:main; then
               exit 0
             fi
+            # Os HECs geram arquivos diagnósticos fora do conjunto dedicado.
+            # Eles não podem impedir o rebase dos quatro artefatos já commitados.
+            git reset --hard HEAD
             git fetch origin main
             if git rebase origin/main; then
               continue
