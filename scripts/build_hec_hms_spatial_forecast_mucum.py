@@ -94,7 +94,25 @@ PRESET_PARAMS = {
 PARAM_EVENT = os.environ.get("HEC_PARAM_EVENT", "E27").upper()
 if PARAM_EVENT not in PRESET_PARAMS:
     raise RuntimeError(f"unsupported HEC_PARAM_EVENT={PARAM_EVENT}; use {sorted(PRESET_PARAMS)}")
-PARAMS = PRESET_PARAMS[PARAM_EVENT]
+PARAMS = dict(PRESET_PARAMS[PARAM_EVENT])
+
+# Optional live-event calibration overrides. These alter only the current
+# research HEC run; the historical preset library remains unchanged.
+_LIVE_PARAM_ENV = {
+    "initial_loss_mm": "HEC_INITIAL_LOSS_MM",
+    "constant_loss_mm_h": "HEC_CONSTANT_LOSS_MM_H",
+    "tc_h": "HEC_TC_H",
+    "storage_h": "HEC_STORAGE_H",
+    "recession_constant_daily": "HEC_RECESSION_DAILY",
+    "threshold_ratio_to_peak": "HEC_THRESHOLD_RATIO",
+}
+for _key, _env in _LIVE_PARAM_ENV.items():
+    if os.environ.get(_env) not in (None, ""):
+        PARAMS[_key] = float(os.environ[_env])
+if any(os.environ.get(v) not in (None, "") for v in _LIVE_PARAM_ENV.values()):
+    PARAMS["source_event"] = f"{PARAM_EVENT}_LIVE_EVENT_CAL"
+    PARAMS["live_event_calibration"] = True
+
 ZONE_IDS = ("86472000", "02851072")
 EVENT_START_LOCAL = datetime(2026, 9, 26, 0, 0)
 ZONE_OBS_FIELDS = {"86472000": "zone_86472000_mm", "02851072": "zone_02851072_mm"}
