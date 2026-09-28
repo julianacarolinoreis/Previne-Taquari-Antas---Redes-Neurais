@@ -30,6 +30,7 @@ RESULT = OUT / "hec_hms_spatial_forecast_mucum_latest.json"
 SELECTION = OUT / "hec_hms_spatial_forecast_mucum_selection_latest.json"
 CAL_JSON = OUT / "hec_hms_live_event_calibration_latest.json"
 CAL_CSV = OUT / "hec_hms_live_event_calibration_candidates.csv"
+CAL_FORECAST = OUT / "hec_hms_live_event_calibrated_forecast_latest.json"
 SCRIPT = RUNTIME / "project/run_forecast.script"
 
 PRESETS = {
@@ -224,6 +225,7 @@ def main() -> int:
         "observed_rain_source": "all valid upstream observed stations assembled in mucum_observed_multistation_latest.json",
     }
     RESULT.write_text(json.dumps(pkg, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    CAL_FORECAST.write_text(json.dumps(pkg, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     clean_rows = [{k:v for k,v in r.items() if k != "_pkg"} for r in rows]
     fieldnames = sorted({k for r in clean_rows for k in r.keys() if k != "blocking_reasons_pt"})
@@ -247,6 +249,7 @@ def main() -> int:
         "top10": sorted(clean_rows, key=lambda r:fnum(r.get("score")))[:10],
         "artifacts": {
             "result": str(RESULT.relative_to(ROOT)),
+            "calibrated_forecast": str(CAL_FORECAST.relative_to(ROOT)),
             "candidates_csv": str(CAL_CSV.relative_to(ROOT)),
         },
     }
