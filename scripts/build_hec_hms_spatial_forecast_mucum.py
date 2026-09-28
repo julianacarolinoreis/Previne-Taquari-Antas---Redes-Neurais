@@ -41,6 +41,9 @@ ZONES = ROOT / "assets/data/hec_hms_spatialized_mucum/thiessen_zones_86510000.ge
 LIVE = ROOT / "previsao_ao_vivo_mucum.json"
 OBS_MULTI = OUT / "mucum_observed_multistation_latest.json"
 CURVE = OUT / "curva_chave_86472600/curva_chave_hunt_86472600_latest.json"
+# Muçum curve coefficients use h and h0 in metres. The curve artifact was
+# corrected on 2026-09-28 so h0_m is not divided by 100; this is checked
+# against ANA telemetric Q before interpreting HEC discharge as stage.
 RUNTIME = OUT / "hec_hms_spatial_forecast_mucum"
 PROJECT = RUNTIME / "project"
 
