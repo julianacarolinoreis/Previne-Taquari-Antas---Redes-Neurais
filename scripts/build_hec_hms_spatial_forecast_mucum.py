@@ -21,6 +21,9 @@ from __future__ import annotations
 import csv
 import json
 import math
+import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -57,6 +60,8 @@ PARAMS = {
 ZONE_IDS = ("86472000", "02851072")
 WARMUP_HOURS = 48
 RAIN_COLUMNS = {"86472000": "chuva_86472000", "02851072": "chuva_02851072"}
+ANA_RAIN_CODES = {"86472000": "86472000", "02851072": "2851072"}
+ANA_URL = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
 
 
 def load_json(path: Path):
@@ -229,8 +234,65 @@ def live_context():
     return {"current": current, "warmup_start": warm}
 
 
-def _load_observed_rain(start_local: datetime, end_local: datetime) -> dict:
-    """Read exact observed hourly rain. Missing hours are not converted to zero."""
+def _xml_local(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def _parse_ana_time(value: str):
+    value = (value or "").strip().replace("T", " ")
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%d/%m/%Y %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            return datetime.strptime(value[:19], fmt)
+        except ValueError:
+            pass
+    return None
+
+
+def _fetch_ana_rain(station_code: str, start_local: datetime, end_local: datetime) -> dict:
+    params = urllib.parse.urlencode({
+        "codEstacao": station_code,
+        "dataInicio": start_local.strftime("%d/%m/%Y"),
+        "dataFim": end_local.strftime("%d/%m/%Y"),
+    })
+    req = urllib.request.Request(
+        f"{ANA_URL}?{params}",
+        headers={"User-Agent": "previne-hec-warmup/1.0"},
+    )
+    raw = urllib.request.urlopen(req, timeout=30).read()
+    root = ET.fromstring(raw)
+    roots = [root]
+    if (root.text or "").strip().startswith("<"):
+        try:
+            roots.append(ET.fromstring(root.text))
+        except Exception:
+            pass
+    series = {}
+    for rt in roots:
+        for row in rt.iter():
+            fields = {_xml_local(ch.tag): (ch.text or "") for ch in row}
+            stamp = fields.get("DataHora") or fields.get("Data_Hora")
+            rain = fields.get("Chuva") or fields.get("chuva") or fields.get("Precipitacao")
+            if not stamp or rain in (None, ""):
+                continue
+            t = _parse_ana_time(stamp)
+            if t is None or t < start_local or t > end_local:
+                continue
+            try:
+                value = float(str(rain).replace(",", "."))
+            except ValueError:
+                continue
+            hour = t.replace(minute=0, second=0, microsecond=0)
+            series[hour] = series.get(hour, 0.0) + value
+    return series
+
+
+def _load_observed_rain(start_local: datetime, end_local: datetime) -> tuple[dict, dict]:
+    """Read stored hourly rain and refresh the live window directly from ANA.
+
+    The direct query is especially important for the partially elapsed current
+    hour. Failure of ANA does not create zeros: the stored value is kept, and
+    completeness guards decide whether the HEC run can be published.
+    """
     if not CHUVAS.exists():
         raise RuntimeError(f"missing observed rainfall file: {CHUVAS}")
     out = {sid: {} for sid in ZONE_IDS}
@@ -253,7 +315,24 @@ def _load_observed_rain(start_local: datetime, end_local: datetime) -> dict:
                     out[sid][t] = float(str(raw).replace(",", "."))
                 except ValueError:
                     pass
-    return out
+
+    refresh = {}
+    for sid in ZONE_IDS:
+        try:
+            live = _fetch_ana_rain(ANA_RAIN_CODES[sid], start_local, end_local)
+            out[sid].update(live)
+            refresh[sid] = {
+                "ok": True,
+                "hours_refreshed": len(live),
+                "latest_hour_local": max(live).isoformat(timespec="minutes") if live else None,
+            }
+        except Exception as exc:
+            refresh[sid] = {
+                "ok": False,
+                "error": str(exc),
+                "fallback": "assets/data/chuvas_horarias.csv",
+            }
+    return out, refresh
 
 
 def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
@@ -276,7 +355,7 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
         )
 
     warm_start_local = ifs0_local - timedelta(hours=WARMUP_HOURS)
-    observed = _load_observed_rain(warm_start_local, ifs0_local)
+    observed, observed_refresh = _load_observed_rain(warm_start_local, current_local)
     warm_hours = [warm_start_local + timedelta(hours=i) for i in range(WARMUP_HOURS)]
 
     missing = {}
@@ -312,6 +391,7 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
             "+ remaining fraction of ECMWF/IFS hour; future = ECMWF/IFS"
         ),
         "observed_totals_mm": {},
+        "ana_live_refresh": observed_refresh,
     }
     for sid in ZONE_IDS:
         warm_values = [observed[sid][t] for t in warm_hours]
