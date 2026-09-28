@@ -90,6 +90,12 @@
     if(typeof PrevineLiveFeed==='object'&&PrevineLiveFeed.fetchLive) return PrevineLiveFeed.fetchLive(path).catch(function(){return null;});
     return fetch(path+'?cb='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).catch(function(){return null});
   }
+  function refreshSituation(){
+    return Promise.all([load(cards.santa.file),load(cards.mucum.file)]).then(function(pair){
+      render('santa',pair[0]);
+      render('mucum',pair[1]);
+    });
+  }
   function copySituation(id){
     var cfg=cards[id], card=document.querySelector('[data-situation-card="'+id+'"]');
     if(!card) return;
@@ -108,8 +114,13 @@
   document.querySelectorAll('[data-copy-situation]').forEach(function(btn){
     btn.addEventListener('click',function(){copySituation(btn.getAttribute('data-copy-situation'));});
   });
-  Promise.all([load(cards.santa.file),load(cards.mucum.file)]).then(function(pair){
-    render('santa',pair[0]);
-    render('mucum',pair[1]);
+
+  // Atualiza os cartões sem exigir recarregar a página. O backend publica
+  // aproximadamente a cada 5 min; o navegador repesca a cada 60 s e também
+  // imediatamente quando a aba volta a ficar visível.
+  refreshSituation();
+  setInterval(refreshSituation,60000);
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible') refreshSituation();
   });
 })();
