@@ -1,7 +1,8 @@
 name: HEC Muçum live-event calibration
 
 # Calibração de pesquisa do evento em curso.
-# Guardas operacionais estritas v2: rede integral + t0 fresco + forma da onda. Revisão full-basin + fast-limb 28/09. Mantém-se separada do robô
+# Guardas operacionais estritas v2: rede integral + t0 fresco + forma da onda.
+# Busca focalizada v3 para cheia em ascensão rápida. Revisão full-basin + fast-limb 28/09. Mantém-se separada do robô
 # operacional de 10 min para que uma busca multiparâmetro não seja cancelada.
 on:
   push:
@@ -18,7 +19,7 @@ permissions:
 
 concurrency:
   group: hec-mucum-live-event-calibration
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   calibrate:
