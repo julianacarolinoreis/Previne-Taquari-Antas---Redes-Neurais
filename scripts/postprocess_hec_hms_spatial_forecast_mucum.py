@@ -201,11 +201,10 @@ def main():
                 f"de {model_trend_1h:.1f} cm na próxima hora"
             )
 
-    reasons.append(
-        "reinicialização/assimilação dos estados internos do HEC-HMS no t0 observado "
-        "ainda não implementada; rodada mantida diagnóstica"
-    )
-    publishable = False
+    # No visual anchoring is allowed. A candidate may only be published when
+    # the observed-rain warm-up itself reaches a state consistent with the
+    # observed t0. In that case no artificial state shift is needed.
+    publishable = len(reasons) == 0
     candidate_peak_i = max(range(len(n_rating)), key=lambda i: n_rating[i])
     candidate_peak_n = n_rating[candidate_peak_i]
     candidate_peak_q = q_forecast[candidate_peak_i]
@@ -271,6 +270,8 @@ def main():
             "observed_trend_last_1h_cm": None if obs_trend_1h is None else round(obs_trend_1h, 2),
             "model_trend_next_1h_cm": round(model_trend_1h, 2),
             "state_assimilation_applied": False,
+            "visual_stage_anchor_applied": False,
+            "warmup_state_matches_observation": publishable,
             "forecast_validation_timestamp_is_exact_observation_time": True,
         },
         "summary": {
@@ -302,9 +303,10 @@ def main():
         "warning_pt": (
             "HEC-HMS 4.13 com 48 h de chuva observada para aquecimento e ECMWF/IFS "
             "espacial no futuro. O último nível de Muçum é usado no timestamp real para validar "
-            "o estado aquecido; nenhuma correção visual de nível é tratada como assimilação. "
-            "Sem reinicialização real dos estados internos no t0 observado, a rodada permanece "
-            "diagnóstica e não publicável. Continua sendo o piloto de duas zonas, não alerta oficial."
+            "o estado aquecido; nenhuma correção visual de nível é aplicada. A rodada só é "
+            "publicável quando o próprio aquecimento observado fecha com o estado atual dentro "
+            "das guardas de nível, vazão e tendência. Continua sendo o piloto de duas zonas, "
+            "não alerta oficial."
         ),
         "artifacts": {
             "input": str(INPUT.relative_to(ROOT)),
