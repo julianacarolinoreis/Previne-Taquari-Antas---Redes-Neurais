@@ -159,35 +159,21 @@ def main() -> int:
     # timing jointly with stronger Initial+Constant losses so timing and
     # magnitude can be reconciled instead of trading one error for the other.
     timing_pairs = [
-        # Explicit fast-limb candidates for the ongoing 28/09 rise.
-        (2.0, 2.0), (3.0, 3.0), (4.0, 4.0), (5.0, 3.0),
+        # Focused on the current fast rising limb. The previous 320-candidate
+        # grid was too slow operationally and spent most runs in clearly
+        # incompatible slow-response regions.
         (5.0, 5.0), (5.0, 8.0), (8.0, 5.0), (8.0, 8.0),
         (8.0, 12.0), (10.0, 8.0), (10.0, 10.0), (10.0, 15.0),
-        (10.0, 20.0), (15.0, 10.0), (15.0, 15.0), (15.0, 20.0),
-        (20.0, 10.0), (20.0, 15.0), (20.0, 20.0), (20.0, 30.0),
-        (25.0, 20.0), (25.0, 25.0), (30.0, 20.0), (30.0, 30.0),
-        (40.0, 40.0), (50.0, 50.0), (60.0, 60.0),
+        (12.0, 8.0), (12.0, 12.0), (15.0, 10.0), (15.0, 15.0),
+        (20.0, 10.0), (20.0, 15.0), (25.0, 20.0),
     ]
     loss_profiles = [
-        (0.0, 1.0, 0.90),
         (10.0, 2.0, 0.90),
-        (20.0, 2.0, 0.90),
         (20.0, 3.0, 0.90),
         (30.0, 3.0, 0.90),
         (30.0, 4.0, 0.90),
         (40.0, 4.0, 0.90),
-        (40.0, 5.0, 0.90),
         (50.0, 5.0, 0.90),
-        (50.0, 6.0, 0.90),
-        (60.0, 6.0, 0.90),
-        # High-loss profiles permit a fast Clark response without exploding
-        # event volume, which is necessary to reproduce the observed limb.
-        (60.0, 8.0, 0.90),
-        (80.0, 6.0, 0.90),
-        (80.0, 8.0, 0.90),
-        (100.0, 8.0, 0.90),
-        (100.0, 10.0, 0.90),
-        (20.0, 4.0, 0.80),
     ]
 
     candidates = []
@@ -213,13 +199,12 @@ def main() -> int:
                 f"broad_t{i:02d}_l{j:02d}",
             ))
 
-    # Deduplicate. Keep a larger deterministic live-event grid: the previous
-    # 64-candidate cap systematically omitted high-loss/fast-response
-    # combinations that are necessary for the current flood.
+    # Deduplicate. Keep the search operationally bounded; the focused grid
+    # already covers the fast-response/high-loss combinations relevant now.
     uniq = {}
     for event, p, label in candidates:
         uniq[(event,) + key(p)] = (event, p, label)
-    candidates = list(uniq.values())[:320]
+    candidates = list(uniq.values())[:96]
 
     rows = []
     for event, p, label in candidates:
@@ -254,7 +239,7 @@ def main() -> int:
 
     for sidx, r in enumerate(state_seeds, 1):
         base = {k: r[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}
-        for mult in (0.10, 0.20, 0.35, 0.55, 0.75, 1.25, 1.5, 1.8):
+        for mult in (0.35, 0.55, 0.75, 0.90, 1.10, 1.25):
             p = dict(base)
             p["initial_flow_multiplier"] = mult
             p = rounded_params(p)
@@ -276,15 +261,15 @@ def main() -> int:
     perturb = {
         "initial_loss_mm": (-5.0, 5.0),
         "constant_loss_mm_h": (-0.5, 0.5),
-        "tc_h": (-8.0, -3.0, 3.0, 8.0),
-        "storage_h": (-8.0, -3.0, 3.0, 8.0),
+        "tc_h": (-4.0, -2.0, 2.0, 4.0),
+        "storage_h": (-4.0, -2.0, 2.0, 4.0),
         "recession": (-0.03, 0.03),
         "initial_flow_multiplier": (-0.25, -0.1, 0.1, 0.25),
     }
     for name, ds in perturb.items():
         for d in ds:
             p = dict(bp); p[name] = p[name] + d; fine.append(rounded_params(p))
-    for dt, ds in ((-10,-10),(-8,-3),(-3,-8),(-5,5),(5,-5),(5,5),(10,10)):
+    for dt, ds in ((-4,-4),(-3,-1),(-1,-3),(-2,2),(2,-2),(2,2),(4,4)):
         p = dict(bp); p["tc_h"] += dt; p["storage_h"] += ds; fine.append(rounded_params(p))
 
     seen = {key({k:r[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}): True for r in valid}
