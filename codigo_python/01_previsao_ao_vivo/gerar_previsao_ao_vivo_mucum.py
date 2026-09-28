@@ -933,7 +933,21 @@ def main():
             continue
         mh = melhor_hora(cfg, series, horas_muc, limite_alvo)
         if mh is None:
-            t_diag = horas_muc[-1]
+            # Diagnósticos dos modelos horários devem ser ancorados em hora cheia.
+            # Usar a última telemetria de 15/30/45 min faz os acumulados de chuva
+            # procurarem artificialmente horários como 14:15/14:30 e reportarem
+            # uma janela inteira como ausente, embora a chuva seja agregada em :00.
+            t_diag = next(
+                (h for h in reversed(horas_muc) if h.minute == 0 and h.second == 0),
+                None,
+            )
+            if t_diag is None:
+                horizontes[horizonte] = base_saida(
+                    cfg, nivel_agora, None, None,
+                    "sem hora cheia observada para diagnosticar os inputs do modelo",
+                    [])
+                print(f"[{horizonte}] {cfg['modelo']} sem hora cheia para diagnóstico")
+                continue
             x = montar_inputs(cfg, series, t_diag)
             faltantes = diagnosticar_inputs(cfg, x, series, t_diag)
             falt = len([v for v in x if v is None])
