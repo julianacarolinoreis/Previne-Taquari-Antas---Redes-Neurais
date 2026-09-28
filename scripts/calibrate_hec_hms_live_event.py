@@ -74,8 +74,10 @@ def objective(pkg: dict) -> tuple[float, dict]:
     rmse = fnum(fit.get("rmse_cm"))
     lag = abs(fnum(fit.get("peak_time_error_h"), 999.0))
     nse = fnum(fit.get("nse"), -999.0)
-    # Current flood: event shape dominates; current state/trend still matter.
-    score = rmse / 80.0 + stage / 60.0 + qerr / 35.0 + trend / 45.0 + lag / 24.0
+    # Current flood: preserve the whole-event fit, but strongly constrain the
+    # present state and rising-limb speed because those control the forecast
+    # launched at t0.
+    score = rmse / 120.0 + stage / 30.0 + qerr / 25.0 + trend / 20.0 + lag / 24.0
     if nse < -20:
         score += 5.0
     metrics = {
@@ -142,48 +144,69 @@ def main() -> int:
         raise SystemExit(f"HEC executable not found: {hec_sh}")
 
     sel = load(SELECTION) if SELECTION.exists() else {}
-    seed_event = str(sel.get("selected_event") or "E28")
-    if seed_event not in PRESETS:
-        seed_event = "E28"
-    base = PRESETS[seed_event]
+    selected_seed = str(sel.get("selected_event") or "E28")
+    if selected_seed not in PRESETS:
+        selected_seed = "E28"
+
+    # Broad deterministic search. We explicitly include fast Clark responses;
+    # the historical presets alone were too slow for the observed +81 cm/h
+    # rising limb in the 28/09 event.
+    timing_pairs = [
+        (3.0, 3.0), (5.0, 5.0), (5.0, 10.0), (10.0, 5.0),
+        (10.0, 10.0), (10.0, 20.0), (15.0, 10.0), (15.0, 15.0),
+        (20.0, 10.0), (20.0, 20.0), (20.0, 30.0), (30.0, 20.0),
+        (30.0, 30.0), (45.0, 45.0), (60.0, 60.0),
+    ]
+    loss_profiles = [
+        (0.0, 0.5, 0.90),
+        (0.0, 1.0, 0.90),
+        (5.0, 1.0, 0.98),
+        (10.0, 1.0, 0.90),
+        (10.0, 2.0, 0.90),
+        (20.0, 2.0, 0.80),
+    ]
 
     candidates = []
-    # Coarse response-focused neighborhood. Include the original seed.
-    for il in sorted(set([base["initial_loss_mm"], max(0.0, base["initial_loss_mm"]-10), base["initial_loss_mm"]+10])):
-        for cl in sorted(set([max(0.25, base["constant_loss_mm_h"]-1), base["constant_loss_mm_h"], base["constant_loss_mm_h"]+1])):
-            for tc, st in (
-                (max(5, base["tc_h"]-20), max(5, base["storage_h"]-20)),
-                (max(5, base["tc_h"]-15), max(5, base["storage_h"]-10)),
-                (max(5, base["tc_h"]-10), max(5, base["storage_h"]-15)),
-                (max(5, base["tc_h"]-10), base["storage_h"]),
-                (base["tc_h"], max(5, base["storage_h"]-10)),
-                (base["tc_h"], base["storage_h"]),
-            ):
-                candidates.append(rounded_params({
+    # Always include the four original HEC-HMS replay presets.
+    for event, p0 in PRESETS.items():
+        candidates.append((event, rounded_params(p0), f"preset_{event}"))
+
+    # Cross timing response with representative loss/recession regimes.
+    # Use E28 as the structural seed for env overrides; only the explicit
+    # parameter values matter in these live-event candidates.
+    for i, (tc, st) in enumerate(timing_pairs):
+        for j, (il, cl, rec) in enumerate(loss_profiles):
+            candidates.append((
+                "E28",
+                rounded_params({
                     "initial_loss_mm": il,
                     "constant_loss_mm_h": cl,
                     "tc_h": tc,
                     "storage_h": st,
-                    "recession": base["recession"],
-                }))
+                    "recession": rec,
+                }),
+                f"broad_t{i:02d}_l{j:02d}",
+            ))
 
-    # Deduplicate and cap coarse search to the most useful 30 configurations.
+    # Deduplicate and cap at 64 broad configurations, retaining the full
+    # timing range and all historical presets.
     uniq = {}
-    for p in candidates:
-        uniq[key(p)] = p
-    candidates = list(uniq.values())[:30]
+    for event, p, label in candidates:
+        uniq[(event,) + key(p)] = (event, p, label)
+    candidates = list(uniq.values())[:64]
 
     rows = []
-    for i, p in enumerate(candidates, 1):
+    for event, p, label in candidates:
         try:
-            rows.append(run_one(hec_sh, seed_event, p, f"coarse_{i:02d}"))
+            rows.append(run_one(hec_sh, event, p, label))
         except Exception as exc:
-            rows.append({"label": f"coarse_{i:02d}", "seed_event": seed_event, **p, "score": 1e9, "error": str(exc)})
+            rows.append({"label": label, "seed_event": event, **p, "score": 1e9, "error": str(exc)})
 
     valid = [r for r in rows if fnum(r.get("score")) < 1e8]
     if not valid:
         raise RuntimeError("all coarse live-event HEC calibration candidates failed")
     best = min(valid, key=lambda r: fnum(r.get("score")))
+    seed_event = str(best.get("seed_event") or selected_seed)
     bp = {k: best[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession")}
 
     # Fine coordinate search around coarse winner, plus coupled timing moves.
@@ -191,14 +214,14 @@ def main() -> int:
     perturb = {
         "initial_loss_mm": (-5.0, 5.0),
         "constant_loss_mm_h": (-0.5, 0.5),
-        "tc_h": (-5.0, 5.0),
-        "storage_h": (-5.0, 5.0),
+        "tc_h": (-8.0, -3.0, 3.0, 8.0),
+        "storage_h": (-8.0, -3.0, 3.0, 8.0),
         "recession": (-0.03, 0.03),
     }
     for name, ds in perturb.items():
         for d in ds:
             p = dict(bp); p[name] = p[name] + d; fine.append(rounded_params(p))
-    for dt, ds in ((-5,-5),(-5,5),(5,-5),(5,5),(-10,-5),(-5,-10)):
+    for dt, ds in ((-10,-10),(-8,-3),(-3,-8),(-5,5),(5,-5),(5,5),(10,10)):
         p = dict(bp); p["tc_h"] += dt; p["storage_h"] += ds; fine.append(rounded_params(p))
 
     seen = {key({k:r[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession")}): True for r in valid}
