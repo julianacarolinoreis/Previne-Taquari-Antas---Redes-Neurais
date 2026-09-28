@@ -106,7 +106,12 @@ def main():
     qraw = [x[1] for x in by[outlet]]
     if len(qraw) < len(times):
         raise RuntimeError(f"HEC outlet series too short: {len(qraw)} < {len(times)}")
-    q = qraw[:len(times)]
+    # output.dss can contain records from previous scheduled runs. The current
+    # forecast is the newest window, so take the newest len(times) values.
+    # The former prefix selection silently paired stale HEC values with the
+    # current IFS timestamps.
+    stale_outlet_points = max(0, len(qraw) - len(times))
+    q = qraw[-len(times):]
 
     curve = load_json(CURVE)
     segs = (((curve.get("neighbors_official_curves_NOT_for_STZ") or {}).get("86510000") or {}).get("segments") or [])
@@ -131,7 +136,7 @@ def main():
 
     node_series = {}
     for el, vals in by.items():
-        v = [x[1] for x in vals[:len(times)]]
+        v = [x[1] for x in vals[-len(times):]]
         if not v:
             continue
         node_series[el] = {
@@ -176,6 +181,7 @@ def main():
             "rise_from_now_cm": None if rise is None else round(rise, 2),
             "min_q_m3s": round(min(q), 3),
             "end_q_m3s": round(q[-1], 3),
+            "stale_outlet_points_discarded": stale_outlet_points,
         },
         "nodes": node_series,
         "hec_output": {
