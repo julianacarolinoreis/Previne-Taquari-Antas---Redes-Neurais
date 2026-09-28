@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Postprocess the warmed HEC-HMS 4.13 Muçum forecast.
 
-The HEC run contains a 48 h observed-rain warm-up.  The latest observed river
-level is assimilated at its real timestamp (including 15/30/45 min), not moved
-back to the previous full hour.  A consistency gate blocks publication when
-the warmed model state or immediate trend contradicts the observed flood.
+The HEC run contains a 48 h observed-rain warm-up. The latest observed river
+level is retained at its real timestamp (including 15/30/45 min), not moved
+back to the previous full hour. The warmed HEC state is interpolated to that
+timestamp for validation only. No visual stage offset is promoted as state
+assimilation or as a forecast. Until a true HEC-HMS state restart/assimilation
+at t0 is implemented, this product remains diagnostic and non-publishable.
 """
 
 from __future__ import annotations
@@ -157,24 +159,20 @@ def main():
     q_model_t0 = interp(run_dt, q_full, t0)
     n_model_t0 = interp(run_dt, n_full, t0)
 
-    # The warm-up carries hydrologic memory. Assimilation at the exact current
-    # timestamp is a bias correction of stage only; it does not reset Clark or
-    # baseflow states.
-    offset = n_obs - n_model_t0
-
+    # Keep the HEC-HMS output physically unshifted. The observation at t0 is
+    # a validation target, not a visual anchor. A future operational product
+    # must restart/assimilate the internal HEC states themselves.
     future_idx = [i for i, t in enumerate(run_dt) if t > t0]
     forecast_times = [t0.isoformat().replace("+00:00", "Z")] + [run_times[i] for i in future_idx]
     q_forecast = [q_model_t0] + [q_full[i] for i in future_idx]
-    n_rating = [n_model_t0] + [n_full[i] for i in future_idx]
-    n_anchor = [n_obs] + [float(n_full[i]) + offset for i in future_idx]
-    n_anchor = [round(v, 2) for v in n_anchor]
-    n_rating = [round(float(v), 2) for v in n_rating]
-    delta = [round(v - n_obs, 2) for v in n_anchor]
+    n_rating = [round(float(n_model_t0), 2)] + [round(float(n_full[i]), 2) for i in future_idx]
+    observed_t0 = [round(n_obs, 2)] + [None for _ in future_idx]
+    delta_from_model_t0 = [round(float(v) - float(n_model_t0), 2) for v in n_rating]
 
-    # Compare observed 1 h trend with warmed HEC state over the next hour.
+    # Compare observed 1 h trend with the unshifted warmed HEC state.
     obs_trend_1h = current.get("trend_1h_cm")
-    model_n_plus_1h = interp(run_dt, n_full, t0 + timedelta(hours=1)) + offset
-    model_trend_1h = float(model_n_plus_1h) - n_obs
+    model_n_plus_1h = interp(run_dt, n_full, t0 + timedelta(hours=1))
+    model_trend_1h = float(model_n_plus_1h) - float(n_model_t0)
     state_error_cm = float(n_model_t0) - n_obs
     q_error_pct = 100.0 * (q_model_t0 - q_obs) / q_obs if q_obs else None
 
@@ -203,12 +201,16 @@ def main():
                 f"de {model_trend_1h:.1f} cm na próxima hora"
             )
 
-    publishable = len(reasons) == 0
-    candidate_peak_i = max(range(len(n_anchor)), key=lambda i: n_anchor[i])
-    candidate_peak_n = n_anchor[candidate_peak_i]
+    reasons.append(
+        "reinicialização/assimilação dos estados internos do HEC-HMS no t0 observado "
+        "ainda não implementada; rodada mantida diagnóstica"
+    )
+    publishable = False
+    candidate_peak_i = max(range(len(n_rating)), key=lambda i: n_rating[i])
+    candidate_peak_n = n_rating[candidate_peak_i]
     candidate_peak_q = q_forecast[candidate_peak_i]
     candidate_peak_time = forecast_times[candidate_peak_i]
-    candidate_rise = candidate_peak_n - n_obs
+    candidate_rise = candidate_peak_n - n_model_t0
 
     node_series = {}
     for el, vals in by.items():
@@ -255,21 +257,21 @@ def main():
         "series": {
             "q_mucum_m3s": [round(float(v), 3) for v in q_forecast],
             "n_mucum_rating_cm": n_rating,
-            "n_mucum_anchored_cm": n_anchor,
-            "delta_n_from_now_cm": delta,
+            "n_mucum_observed_t0_cm": observed_t0,
+            "delta_n_from_model_t0_cm": delta_from_model_t0,
         },
         "validation": {
             "publishable": publishable,
             "blocking_reasons_pt": reasons,
             "raw_warmed_stage_at_current_cm": round(n_model_t0, 2),
-            "stage_error_before_assimilation_cm": round(state_error_cm, 2),
+            "stage_error_at_t0_cm": round(state_error_cm, 2),
             "raw_warmed_q_at_current_m3s": round(q_model_t0, 3),
             "observed_rating_q_at_current_m3s": round(q_obs, 3),
             "q_error_pct": None if q_error_pct is None else round(q_error_pct, 2),
             "observed_trend_last_1h_cm": None if obs_trend_1h is None else round(obs_trend_1h, 2),
             "model_trend_next_1h_cm": round(model_trend_1h, 2),
-            "assimilation_offset_cm": round(offset, 2),
-            "forecast_start_is_exact_observation_time": True,
+            "state_assimilation_applied": False,
+            "forecast_validation_timestamp_is_exact_observation_time": True,
         },
         "summary": {
             "q_now_observed_rating_m3s": round(q_obs, 3),
@@ -283,12 +285,12 @@ def main():
             "blocking_reasons_pt": reasons,
             "peak_q_m3s": round(candidate_peak_q, 3) if publishable else None,
             "peak_time_utc": candidate_peak_time if publishable else None,
-            "peak_level_anchored_cm": round(candidate_peak_n, 2) if publishable else None,
-            "rise_from_now_cm": round(candidate_rise, 2) if publishable else None,
+            "peak_level_rating_cm": round(candidate_peak_n, 2) if publishable else None,
+            "rise_from_model_t0_cm": round(candidate_rise, 2) if publishable else None,
             "candidate_peak_q_m3s": round(candidate_peak_q, 3),
             "candidate_peak_time_utc": candidate_peak_time,
-            "candidate_peak_level_anchored_cm": round(candidate_peak_n, 2),
-            "candidate_rise_from_now_cm": round(candidate_rise, 2),
+            "candidate_peak_level_rating_cm": round(candidate_peak_n, 2),
+            "candidate_rise_from_model_t0_cm": round(candidate_rise, 2),
             "stale_outlet_points_discarded": stale_outlet_points,
         },
         "nodes": node_series,
@@ -299,9 +301,10 @@ def main():
         },
         "warning_pt": (
             "HEC-HMS 4.13 com 48 h de chuva observada para aquecimento e ECMWF/IFS "
-            "espacial no futuro. O último nível de Muçum é assimilado em seu timestamp real. "
-            "A previsão só é publicável se o estado aquecido e a tendência passarem nas guardas. "
-            "Continua sendo o piloto de duas zonas, não alerta oficial."
+            "espacial no futuro. O último nível de Muçum é usado no timestamp real para validar "
+            "o estado aquecido; nenhuma correção visual de nível é tratada como assimilação. "
+            "Sem reinicialização real dos estados internos no t0 observado, a rodada permanece "
+            "diagnóstica e não publicável. Continua sendo o piloto de duas zonas, não alerta oficial."
         ),
         "artifacts": {
             "input": str(INPUT.relative_to(ROOT)),
@@ -317,12 +320,12 @@ def main():
         w = csv.writer(fh)
         w.writerow([
             "time_utc", "q_mucum_m3s", "n_mucum_rating_cm",
-            "n_mucum_anchored_cm", "delta_n_from_now_cm", "publishable"
+            "n_mucum_observed_t0_cm", "delta_n_from_model_t0_cm", "publishable"
         ])
         for i, t in enumerate(forecast_times):
             w.writerow([
                 t, round(q_forecast[i], 3), n_rating[i],
-                n_anchor[i], delta[i], publishable
+                observed_t0[i], delta_from_model_t0[i], publishable
             ])
 
     print(json.dumps({
@@ -332,7 +335,7 @@ def main():
         "observed_at_utc": current.get("observed_at_utc"),
         "observed_trend_1h_cm": obs_trend_1h,
         "model_trend_next_1h_cm": round(model_trend_1h, 2),
-        "state_error_before_assimilation_cm": round(state_error_cm, 2),
+        "state_error_at_t0_cm": round(state_error_cm, 2),
         "q_error_pct": None if q_error_pct is None else round(q_error_pct, 2),
         "candidate_peak_level_cm": round(candidate_peak_n, 2),
         "blocking_reasons": reasons,
