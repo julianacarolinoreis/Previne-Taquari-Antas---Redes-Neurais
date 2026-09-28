@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Postprocess the warmed HEC-HMS 4.13 Muçum forecast.
+"""Postprocess the event-warmed HEC-HMS 4.13 Muçum forecast.
 
-The HEC run contains a 48 h observed-rain warm-up. The latest observed river
+The HEC run contains observed-rain warm-up from 26/09 00:00 local. The latest observed river
 level is retained at its real timestamp (including 15/30/45 min), not moved
 back to the previous full hour. The warmed HEC state is interpolated to that
 timestamp for validation only. No visual stage offset is promoted as state
@@ -22,6 +22,9 @@ RUNTIME = OUT / "hec_hms_spatial_forecast_mucum"
 INPUT = RUNTIME / "forecast_input.json"
 HEC_CSV = RUNTIME / "hec_output_values.csv"
 CURVE = OUT / "curva_chave_86472600/curva_chave_hunt_86472600_latest.json"
+LIVE = ROOT / "previsao_ao_vivo_mucum.json"
+BRT = timezone(timedelta(hours=-3))
+EVENT_START_LOCAL = datetime(2026, 9, 26, 0, 0)
 RESULT = OUT / "hec_hms_spatial_forecast_mucum_latest.json"
 SERIES = RUNTIME / "primary_series.csv"
 
@@ -123,6 +126,63 @@ def interp(times_dt, values, target):
     raise RuntimeError("target outside interpolation grid")
 
 
+def event_hydrograph_metrics(run_dt, n_full, t0):
+    live = load_json(LIVE)
+    start_utc = EVENT_START_LOCAL.replace(tzinfo=BRT).astimezone(timezone.utc)
+    pairs = []
+    for row in live.get("serie_observada_ana") or []:
+        raw_t = row.get("hora")
+        raw_n = row.get("nivel_cm")
+        if raw_t is None or raw_n is None:
+            continue
+        try:
+            local = datetime.fromisoformat(str(raw_t))
+        except ValueError:
+            continue
+        obs_t = local.replace(tzinfo=BRT).astimezone(timezone.utc)
+        if obs_t < start_utc or obs_t > t0:
+            continue
+        if obs_t < run_dt[0] or obs_t > run_dt[-1]:
+            continue
+        model_n = interp(run_dt, n_full, obs_t)
+        pairs.append((obs_t, float(raw_n), float(model_n)))
+    if len(pairs) < 4:
+        return {
+            "n_points": len(pairs),
+            "rmse_cm": None,
+            "mae_cm": None,
+            "bias_cm": None,
+            "nse": None,
+            "observed_peak_cm": None,
+            "model_peak_cm": None,
+            "peak_time_error_h": None,
+        }
+    errors = [m - o for _, o, m in pairs]
+    rmse = (sum(e * e for e in errors) / len(errors)) ** 0.5
+    mae = sum(abs(e) for e in errors) / len(errors)
+    bias = sum(errors) / len(errors)
+    obs_mean = sum(o for _, o, _ in pairs) / len(pairs)
+    denom = sum((o - obs_mean) ** 2 for _, o, _ in pairs)
+    nse = None if denom <= 0 else 1.0 - sum((m - o) ** 2 for _, o, m in pairs) / denom
+    obs_peak = max(pairs, key=lambda x: x[1])
+    mod_peak = max(pairs, key=lambda x: x[2])
+    lag_h = (mod_peak[0] - obs_peak[0]).total_seconds() / 3600.0
+    return {
+        "n_points": len(pairs),
+        "start_utc": pairs[0][0].isoformat().replace("+00:00", "Z"),
+        "end_utc": pairs[-1][0].isoformat().replace("+00:00", "Z"),
+        "rmse_cm": round(rmse, 3),
+        "mae_cm": round(mae, 3),
+        "bias_cm": round(bias, 3),
+        "nse": None if nse is None else round(nse, 5),
+        "observed_peak_cm": round(obs_peak[1], 2),
+        "observed_peak_time_utc": obs_peak[0].isoformat().replace("+00:00", "Z"),
+        "model_peak_cm_on_obs_times": round(mod_peak[2], 2),
+        "model_peak_time_utc": mod_peak[0].isoformat().replace("+00:00", "Z"),
+        "peak_time_error_h": round(lag_h, 3),
+    }
+
+
 def main():
     inp = load_json(INPUT)
     by = read_hec()
@@ -158,6 +218,7 @@ def main():
     q_obs = float(current["q_m3s"])
     q_model_t0 = interp(run_dt, q_full, t0)
     n_model_t0 = interp(run_dt, n_full, t0)
+    event_fit = event_hydrograph_metrics(run_dt, n_full, t0)
 
     # Keep the HEC-HMS output physically unshifted. The observation at t0 is
     # a validation target, not a visual anchor. A future operational product
@@ -187,6 +248,10 @@ def main():
     if q_error_pct is not None and abs(q_error_pct) > 40.0:
         reasons.append(
             f"vazão do estado aquecido difere {q_error_pct:+.1f}% da vazão derivada do observado"
+        )
+    if event_fit.get("rmse_cm") is not None and float(event_fit["rmse_cm"]) > 100.0:
+        reasons.append(
+            f"RMSE do hidrograma observado desde 26/09 = {event_fit['rmse_cm']:.1f} cm"
         )
     if obs_trend_1h is not None:
         obs_trend_1h = float(obs_trend_1h)
@@ -236,7 +301,7 @@ def main():
         "status": status,
         "publishable": publishable,
         "model": "HEC-HMS 4.13",
-        "mode": "two_zone_spatial_forecast_with_48h_observed_rain_warmup",
+        "mode": "two_zone_spatial_forecast_with_event_warmup_since_20260926",
         "research_only": True,
         "not_official_alert": True,
         "rain": {
@@ -273,6 +338,7 @@ def main():
             "visual_stage_anchor_applied": False,
             "warmup_state_matches_observation": publishable,
             "forecast_validation_timestamp_is_exact_observation_time": True,
+            "event_hydrograph_since_20260926": event_fit,
         },
         "summary": {
             "q_now_observed_rating_m3s": round(q_obs, 3),
@@ -293,6 +359,7 @@ def main():
             "candidate_peak_level_rating_cm": round(candidate_peak_n, 2),
             "candidate_rise_from_model_t0_cm": round(candidate_rise, 2),
             "stale_outlet_points_discarded": stale_outlet_points,
+            "event_hydrograph_since_20260926": event_fit,
         },
         "nodes": node_series,
         "hec_output": {
@@ -301,7 +368,7 @@ def main():
             "n_flow_paths": len(by),
         },
         "warning_pt": (
-            "HEC-HMS 4.13 com 48 h de chuva observada para aquecimento e ECMWF/IFS "
+            "HEC-HMS 4.13 com chuva observada multirrede desde 26/09 para aquecimento e ECMWF/IFS "
             "espacial no futuro. O último nível de Muçum é usado no timestamp real para validar "
             "o estado aquecido; nenhuma correção visual de nível é aplicada. A rodada só é "
             "publicável quando o próprio aquecimento observado fecha com o estado atual dentro "
@@ -340,6 +407,9 @@ def main():
         "state_error_at_t0_cm": round(state_error_cm, 2),
         "q_error_pct": None if q_error_pct is None else round(q_error_pct, 2),
         "candidate_peak_level_cm": round(candidate_peak_n, 2),
+        "event_rmse_cm": event_fit.get("rmse_cm"),
+        "event_nse": event_fit.get("nse"),
+        "event_peak_time_error_h": event_fit.get("peak_time_error_h"),
         "blocking_reasons": reasons,
     }, ensure_ascii=False))
 
