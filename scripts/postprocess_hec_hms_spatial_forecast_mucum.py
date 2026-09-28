@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""Postprocess the HEC-HMS 4.13 spatial Muçum forecast into platform artifacts."""
+"""Postprocess the warmed HEC-HMS 4.13 Muçum forecast.
+
+The HEC run contains a 48 h observed-rain warm-up.  The latest observed river
+level is assimilated at its real timestamp (including 15/30/45 min), not moved
+back to the previous full hour.  A consistency gate blocks publication when
+the warmed model state or immediate trend contradicts the observed flood.
+"""
 
 from __future__ import annotations
 
 import csv
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,18 +28,18 @@ def load_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def q_to_stage(q_m3s: float, segments: list[dict], preferred_segment: int | None = None) -> dict:
-    """Invert the published piecewise curve while preserving the active branch.
+def iso_utc(s: str) -> datetime:
+    return datetime.fromisoformat(str(s).replace("Z", "+00:00")).astimezone(timezone.utc)
 
-    The Muçum fitted segments overlap in Q and are not continuous if inversion
-    jumps between equations by discharge alone. During a forecast that starts
-    on segment 3, stay on that segment while its computed stage remains inside
-    the segment's declared stage range; only then move to an adjacent branch.
-    """
+
+def q_to_stage(q_m3s: float, segments: list[dict], preferred_segment: int | None = None) -> dict:
     ordered = list(segments)
     if preferred_segment is not None:
-        ordered.sort(key=lambda seg: 0 if int(seg.get("segment_number") or -1) == int(preferred_segment) else 1)
-
+        ordered.sort(
+            key=lambda seg: 0
+            if int(seg.get("segment_number") or -1) == int(preferred_segment)
+            else 1
+        )
     candidates = []
     for seg in ordered:
         a = float(seg["a"]); h0 = float(seg["h0_m"]); n = float(seg["n"])
@@ -59,7 +65,6 @@ def q_to_stage(q_m3s: float, segments: list[dict], preferred_segment: int | None
                 "segment_number": seg.get("segment_number"),
                 "extrapolated": False,
             }
-
     inside = [x for x in candidates if x["inside"]]
     if inside:
         p = inside[0]
@@ -80,7 +85,9 @@ def read_hec():
     with HEC_CSV.open(encoding="utf-8", newline="") as f:
         for row in csv.DictReader(f):
             el = row["element"]
-            by.setdefault(el, []).append((int(row["time_value"]), float(row["q_m3s"]), row["pathname"]))
+            by.setdefault(el, []).append(
+                (int(row["time_value"]), float(row["q_m3s"]), row["pathname"])
+            )
     for el in by:
         by[el].sort(key=lambda x: x[0])
     return by
@@ -98,60 +105,137 @@ def choose_outlet(by):
     return max(by, key=lambda k: len(by[k]))
 
 
+def interp(times_dt, values, target):
+    if not times_dt or len(times_dt) != len(values):
+        raise RuntimeError("invalid interpolation arrays")
+    if target <= times_dt[0]:
+        return float(values[0])
+    if target >= times_dt[-1]:
+        return float(values[-1])
+    for i in range(len(times_dt) - 1):
+        a, b = times_dt[i], times_dt[i + 1]
+        if a <= target <= b:
+            span = (b - a).total_seconds()
+            frac = 0.0 if span <= 0 else (target - a).total_seconds() / span
+            return float(values[i]) + frac * (float(values[i + 1]) - float(values[i]))
+    raise RuntimeError("target outside interpolation grid")
+
+
 def main():
     inp = load_json(INPUT)
     by = read_hec()
     outlet = choose_outlet(by)
-    times = list(inp["times_utc"])
+
+    run_times = list(inp["times_utc"])
+    run_dt = [iso_utc(t) for t in run_times]
     qraw = [x[1] for x in by[outlet]]
-    if len(qraw) < len(times):
-        raise RuntimeError(f"HEC outlet series too short: {len(qraw)} < {len(times)}")
-    # output.dss can contain records from previous scheduled runs. The current
-    # forecast is the newest window, so take the newest len(times) values.
-    # The former prefix selection silently paired stale HEC values with the
-    # current IFS timestamps.
-    stale_outlet_points = max(0, len(qraw) - len(times))
-    q = qraw[-len(times):]
+    if len(qraw) < len(run_times):
+        raise RuntimeError(f"HEC outlet series too short: {len(qraw)} < {len(run_times)}")
+    stale_outlet_points = max(0, len(qraw) - len(run_times))
+    q_full = qraw[-len(run_times):]
 
     curve = load_json(CURVE)
-    segs = (((curve.get("neighbors_official_curves_NOT_for_STZ") or {}).get("86510000") or {}).get("segments") or [])
-    preferred_segment = int((inp.get("initial_state") or {}).get("rating_segment") or 3)
-    stages_raw = [q_to_stage(v, segs, preferred_segment=preferred_segment) for v in q]
-    n_abs = [x["stage_cm"] for x in stages_raw]
-    n0_obs = float((inp.get("initial_state") or {})["stage_cm"])
-    q0_obs = float((inp.get("initial_state") or {})["q_m3s"])
+    segs = (
+        ((curve.get("neighbors_official_curves_NOT_for_STZ") or {}).get("86510000") or {})
+        .get("segments") or []
+    )
+    current = inp.get("current_state") or {}
+    if not current.get("observed_at_utc"):
+        raise RuntimeError("forecast input lacks exact current observed timestamp")
 
-    # The HEC run is initialized from observed Q0, so absolute curve stage should
-    # already agree. Anchor tiny initialization/numerical differences to the
-    # observed stage without altering the hydrograph shape.
-    first = n_abs[0] if n_abs and n_abs[0] is not None else n0_obs
-    offset = n0_obs - float(first)
-    n_anchor = [None if v is None else round(float(v) + offset, 2) for v in n_abs]
-    delta = [None if v is None else round(float(v) - n0_obs, 2) for v in n_anchor]
+    preferred_segment = int(current.get("rating_segment") or 2)
+    stage_meta_full = [
+        q_to_stage(v, segs, preferred_segment=preferred_segment) for v in q_full
+    ]
+    n_full = [x["stage_cm"] for x in stage_meta_full]
+    if any(v is None for v in n_full):
+        raise RuntimeError("rating conversion produced missing stage")
 
-    peak_i = max(range(len(q)), key=lambda i: q[i])
-    peak_q = q[peak_i]
-    peak_n = n_anchor[peak_i]
-    rise = None if peak_n is None else peak_n - n0_obs
+    t0 = iso_utc(current["observed_at_utc"])
+    n_obs = float(current["stage_cm"])
+    q_obs = float(current["q_m3s"])
+    q_model_t0 = interp(run_dt, q_full, t0)
+    n_model_t0 = interp(run_dt, n_full, t0)
+
+    # The warm-up carries hydrologic memory. Assimilation at the exact current
+    # timestamp is a bias correction of stage only; it does not reset Clark or
+    # baseflow states.
+    offset = n_obs - n_model_t0
+
+    future_idx = [i for i, t in enumerate(run_dt) if t > t0]
+    forecast_times = [t0.isoformat().replace("+00:00", "Z")] + [run_times[i] for i in future_idx]
+    q_forecast = [q_model_t0] + [q_full[i] for i in future_idx]
+    n_rating = [n_model_t0] + [n_full[i] for i in future_idx]
+    n_anchor = [n_obs] + [float(n_full[i]) + offset for i in future_idx]
+    n_anchor = [round(v, 2) for v in n_anchor]
+    n_rating = [round(float(v), 2) for v in n_rating]
+    delta = [round(v - n_obs, 2) for v in n_anchor]
+
+    # Compare observed 1 h trend with warmed HEC state over the next hour.
+    obs_trend_1h = current.get("trend_1h_cm")
+    model_n_plus_1h = interp(run_dt, n_full, t0 + timedelta(hours=1)) + offset
+    model_trend_1h = float(model_n_plus_1h) - n_obs
+    state_error_cm = float(n_model_t0) - n_obs
+    q_error_pct = 100.0 * (q_model_t0 - q_obs) / q_obs if q_obs else None
+
+    reasons = []
+    warm = inp.get("warmup") or {}
+    if not warm.get("complete"):
+        reasons.append("warm-up de chuva observada incompleto")
+    if abs(state_error_cm) > 75.0:
+        reasons.append(
+            f"estado aquecido difere {state_error_cm:+.1f} cm do nível observado atual"
+        )
+    if q_error_pct is not None and abs(q_error_pct) > 40.0:
+        reasons.append(
+            f"vazão do estado aquecido difere {q_error_pct:+.1f}% da vazão derivada do observado"
+        )
+    if obs_trend_1h is not None:
+        obs_trend_1h = float(obs_trend_1h)
+        if obs_trend_1h >= 20.0 and model_trend_1h < -2.0:
+            reasons.append(
+                f"observado sobe {obs_trend_1h:.1f} cm/h, mas HEC aquecido indica queda "
+                f"de {abs(model_trend_1h):.1f} cm na próxima hora"
+            )
+        if obs_trend_1h <= -20.0 and model_trend_1h > 2.0:
+            reasons.append(
+                f"observado cai {abs(obs_trend_1h):.1f} cm/h, mas HEC aquecido indica subida "
+                f"de {model_trend_1h:.1f} cm na próxima hora"
+            )
+
+    publishable = len(reasons) == 0
+    candidate_peak_i = max(range(len(n_anchor)), key=lambda i: n_anchor[i])
+    candidate_peak_n = n_anchor[candidate_peak_i]
+    candidate_peak_q = q_forecast[candidate_peak_i]
+    candidate_peak_time = forecast_times[candidate_peak_i]
+    candidate_rise = candidate_peak_n - n_obs
 
     node_series = {}
     for el, vals in by.items():
-        v = [x[1] for x in vals[-len(times):]]
-        if not v:
+        full = [x[1] for x in vals[-len(run_times):]]
+        if len(full) != len(run_times):
             continue
+        v0 = interp(run_dt, full, t0)
+        vf = [v0] + [full[i] for i in future_idx]
         node_series[el] = {
-            "q_m3s": [round(x, 3) for x in v],
-            "q0_m3s": round(v[0], 3),
-            "peak_q_m3s": round(max(v), 3),
-            "peak_time_utc": times[max(range(len(v)), key=lambda i: v[i])] if len(v) <= len(times) else None,
+            "q_m3s": [round(float(x), 3) for x in vf],
+            "q_at_observed_time_m3s": round(float(v0), 3),
+            "peak_q_m3s": round(max(vf), 3),
+            "peak_time_utc": forecast_times[max(range(len(vf)), key=lambda i: vf[i])],
         }
 
+    status = (
+        "hec_hms_4_13_spatial_ifs_warmup_ready"
+        if publishable
+        else "hec_hms_4_13_blocked_inconsistent_state"
+    )
     result = {
-        "schema_version": "hec_hms_spatial_forecast_mucum_v1",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
-        "status": "hec_hms_4_13_spatial_ifs_ready",
+        "schema_version": "hec_hms_spatial_forecast_mucum_v2_warmup",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "status": status,
+        "publishable": publishable,
         "model": "HEC-HMS 4.13",
-        "mode": "two_zone_spatial_forecast_with_observed_q0_initialization",
+        "mode": "two_zone_spatial_forecast_with_48h_observed_rain_warmup",
         "research_only": True,
         "not_official_alert": True,
         "rain": {
@@ -159,41 +243,65 @@ def main():
             "all_spatial_cells_used": inp.get("all_spatial_cells_used"),
             "spatial_cells": inp.get("spatial_cells"),
             "zones": inp.get("zones"),
-            "basin_equivalent_forecast_mm_for_audit": inp.get("basin_equivalent_forecast_mm_for_audit"),
+            "basin_equivalent_forecast_mm_for_audit": inp.get(
+                "basin_equivalent_forecast_mm_for_audit"
+            ),
         },
+        "warmup": inp.get("warmup"),
         "initial_state": inp.get("initial_state"),
+        "current_state": current,
         "parameter_source": inp.get("parameter_source"),
-        "times_utc": times,
+        "times_utc": forecast_times,
         "series": {
-            "q_mucum_m3s": [round(v, 3) for v in q],
-            "n_mucum_rating_cm": n_abs,
+            "q_mucum_m3s": [round(float(v), 3) for v in q_forecast],
+            "n_mucum_rating_cm": n_rating,
             "n_mucum_anchored_cm": n_anchor,
             "delta_n_from_now_cm": delta,
         },
+        "validation": {
+            "publishable": publishable,
+            "blocking_reasons_pt": reasons,
+            "raw_warmed_stage_at_current_cm": round(n_model_t0, 2),
+            "stage_error_before_assimilation_cm": round(state_error_cm, 2),
+            "raw_warmed_q_at_current_m3s": round(q_model_t0, 3),
+            "observed_rating_q_at_current_m3s": round(q_obs, 3),
+            "q_error_pct": None if q_error_pct is None else round(q_error_pct, 2),
+            "observed_trend_last_1h_cm": None if obs_trend_1h is None else round(obs_trend_1h, 2),
+            "model_trend_next_1h_cm": round(model_trend_1h, 2),
+            "assimilation_offset_cm": round(offset, 2),
+            "forecast_start_is_exact_observation_time": True,
+        },
         "summary": {
-            "q_now_observed_rating_m3s": round(q0_obs, 3),
-            "q_model_initial_m3s": round(q[0], 3),
-            "q_initial_error_pct": round(100.0 * (q[0] - q0_obs) / q0_obs, 3) if q0_obs else None,
-            "level_now_observed_cm": round(n0_obs, 2),
-            "peak_q_m3s": round(peak_q, 3),
-            "peak_time_utc": times[peak_i],
-            "peak_level_anchored_cm": None if peak_n is None else round(peak_n, 2),
-            "rise_from_now_cm": None if rise is None else round(rise, 2),
-            "min_q_m3s": round(min(q), 3),
-            "end_q_m3s": round(q[-1], 3),
+            "q_now_observed_rating_m3s": round(q_obs, 3),
+            "q_model_at_observed_time_m3s": round(q_model_t0, 3),
+            "q_current_error_pct": None if q_error_pct is None else round(q_error_pct, 3),
+            "level_now_observed_cm": round(n_obs, 2),
+            "observed_at_utc": current.get("observed_at_utc"),
+            "observed_trend_1h_cm": None if obs_trend_1h is None else round(obs_trend_1h, 2),
+            "model_trend_next_1h_cm": round(model_trend_1h, 2),
+            "publishable": publishable,
+            "blocking_reasons_pt": reasons,
+            "peak_q_m3s": round(candidate_peak_q, 3) if publishable else None,
+            "peak_time_utc": candidate_peak_time if publishable else None,
+            "peak_level_anchored_cm": round(candidate_peak_n, 2) if publishable else None,
+            "rise_from_now_cm": round(candidate_rise, 2) if publishable else None,
+            "candidate_peak_q_m3s": round(candidate_peak_q, 3),
+            "candidate_peak_time_utc": candidate_peak_time,
+            "candidate_peak_level_anchored_cm": round(candidate_peak_n, 2),
+            "candidate_rise_from_now_cm": round(candidate_rise, 2),
             "stale_outlet_points_discarded": stale_outlet_points,
         },
         "nodes": node_series,
         "hec_output": {
             "outlet_element": outlet,
             "flow_elements": sorted(by),
-            "n_flow_paths": sum(1 for _ in by),
+            "n_flow_paths": len(by),
         },
         "warning_pt": (
-            "Resultado executado no HEC-HMS 4.13 com chuva IFS espacializada nas duas zonas "
-            "Thiessen do piloto existente e vazão observada de Muçum assimilada como condição "
-            "inicial. Não é o projeto original de 145 sub-bacias e não deve ser tratado como "
-            "alerta oficial."
+            "HEC-HMS 4.13 com 48 h de chuva observada para aquecimento e ECMWF/IFS "
+            "espacial no futuro. O último nível de Muçum é assimilado em seu timestamp real. "
+            "A previsão só é publicável se o estado aquecido e a tendência passarem nas guardas. "
+            "Continua sendo o piloto de duas zonas, não alerta oficial."
         ),
         "artifacts": {
             "input": str(INPUT.relative_to(ROOT)),
@@ -201,23 +309,33 @@ def main():
             "runtime_dir": str(RUNTIME.relative_to(ROOT)),
         },
     }
-    RESULT.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    RESULT.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
-    with SERIES.open("w", encoding="utf-8", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["time_utc","q_mucum_m3s","n_mucum_rating_cm","n_mucum_anchored_cm","delta_n_from_now_cm"])
-        for i,t in enumerate(times):
-            w.writerow([t, round(q[i],3), n_abs[i], n_anchor[i], delta[i]])
+    with SERIES.open("w", encoding="utf-8", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow([
+            "time_utc", "q_mucum_m3s", "n_mucum_rating_cm",
+            "n_mucum_anchored_cm", "delta_n_from_now_cm", "publishable"
+        ])
+        for i, t in enumerate(forecast_times):
+            w.writerow([
+                t, round(q_forecast[i], 3), n_rating[i],
+                n_anchor[i], delta[i], publishable
+            ])
 
     print(json.dumps({
-        "status": result["status"],
-        "q0_obs": result["summary"]["q_now_observed_rating_m3s"],
-        "q0_model": result["summary"]["q_model_initial_m3s"],
-        "peak_q": result["summary"]["peak_q_m3s"],
-        "peak_level_cm": result["summary"]["peak_level_anchored_cm"],
-        "rise_cm": result["summary"]["rise_from_now_cm"],
-        "peak_time_utc": result["summary"]["peak_time_utc"],
-        "elements": result["hec_output"]["flow_elements"],
+        "status": status,
+        "publishable": publishable,
+        "observed_stage_cm": n_obs,
+        "observed_at_utc": current.get("observed_at_utc"),
+        "observed_trend_1h_cm": obs_trend_1h,
+        "model_trend_next_1h_cm": round(model_trend_1h, 2),
+        "state_error_before_assimilation_cm": round(state_error_cm, 2),
+        "q_error_pct": None if q_error_pct is None else round(q_error_pct, 2),
+        "candidate_peak_level_cm": round(candidate_peak_n, 2),
+        "blocking_reasons": reasons,
     }, ensure_ascii=False))
 
 
