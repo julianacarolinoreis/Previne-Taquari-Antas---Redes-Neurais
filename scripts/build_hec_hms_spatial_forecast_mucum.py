@@ -39,7 +39,7 @@ OUT = ROOT / "assets/data/estudo_bacia_taquari_antas"
 SPATIAL = OUT / "spatial_ifs_mucum/spatial_ifs_mucum_latest.json"
 ZONES = ROOT / "assets/data/hec_hms_spatialized_mucum/thiessen_zones_86510000.geojson"
 LIVE = ROOT / "previsao_ao_vivo_mucum.json"
-CHUVAS = ROOT / "assets/data/chuvas_horarias.csv"
+OBS_MULTI = OUT / "mucum_observed_multistation_latest.json"
 CURVE = OUT / "curva_chave_86472600/curva_chave_hunt_86472600_latest.json"
 RUNTIME = OUT / "hec_hms_spatial_forecast_mucum"
 PROJECT = RUNTIME / "project"
@@ -96,10 +96,8 @@ if PARAM_EVENT not in PRESET_PARAMS:
     raise RuntimeError(f"unsupported HEC_PARAM_EVENT={PARAM_EVENT}; use {sorted(PRESET_PARAMS)}")
 PARAMS = PRESET_PARAMS[PARAM_EVENT]
 ZONE_IDS = ("86472000", "02851072")
-WARMUP_HOURS = 48
-RAIN_COLUMNS = {"86472000": "chuva_86472000", "02851072": "chuva_02851072"}
-ANA_RAIN_CODES = {"86472000": "86472000", "02851072": "2851072"}
-ANA_URL = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
+EVENT_START_LOCAL = datetime(2026, 9, 26, 0, 0)
+ZONE_OBS_FIELDS = {"86472000": "zone_86472000_mm", "02851072": "zone_02851072_mm"}
 
 
 def load_json(path: Path):
@@ -224,7 +222,7 @@ def _stage_state(stage_cm: float, observed_at_utc: str, source: str) -> dict:
 
 
 def live_context():
-    """Current observed state plus an observed state 48 h earlier for warm-up."""
+    """Current observed state plus the observed state at the 26/09 event start."""
     live = load_json(LIVE)
     stage = live.get("telemetria_ultima_nivel_cm")
     when = live.get("telemetria_ultima_em_utc") or live.get("nivel_rio_agora_em_utc")
@@ -236,10 +234,10 @@ def live_context():
         "ANA/SGB Hidrotelemetria via previsao_ao_vivo_mucum.json",
     )
     current_dt = iso_utc(when)
-    # HEC warm-up starts on the full-hour rainfall grid. Use the observed
-    # river state at that same full hour 48 h earlier; do not shift a :15/:30
-    # state backwards to the top of the hour.
-    target_warm = current_dt.replace(minute=0, second=0, microsecond=0) - timedelta(hours=WARMUP_HOURS)
+    # This flood is warmed from the explicit event start requested for the
+    # current operation: 26/09 00:00 local. Do not shorten it to a moving 48 h
+    # window while the event is evolving.
+    target_warm = EVENT_START_LOCAL.replace(tzinfo=BRT).astimezone(timezone.utc)
 
     obs = []
     for row in (live.get("serie_observada_ana") or []):
@@ -255,10 +253,10 @@ def live_context():
 
     warm_dt, warm_stage = min(obs, key=lambda x: abs((x[0] - target_warm).total_seconds()))
     if abs((warm_dt - target_warm).total_seconds()) > 1800:
-        raise RuntimeError("no Muçum observation within 30 min of 48 h warm-up start")
+        raise RuntimeError("no Muçum observation within 30 min of 26/09 event start")
     warm = _stage_state(
         warm_stage, warm_dt.isoformat().replace("+00:00", "Z"),
-        "ANA/SGB observed stage at warm-up start",
+        "ANA/SGB observed stage at 26/09 event start",
     )
 
     target_1h = current_dt - timedelta(hours=1)
@@ -325,62 +323,51 @@ def _fetch_ana_rain(station_code: str, start_local: datetime, end_local: datetim
 
 
 def _load_observed_rain(start_local: datetime, end_local: datetime) -> tuple[dict, dict]:
-    """Read stored hourly rain and refresh the live window directly from ANA.
-
-    The direct query is especially important for the partially elapsed current
-    hour. Failure of ANA does not create zeros: the stored value is kept, and
-    completeness guards decide whether the HEC run can be published.
-    """
-    if not CHUVAS.exists():
-        raise RuntimeError(f"missing observed rainfall file: {CHUVAS}")
+    """Read all-station areal rainfall built for the Muçum upstream basin."""
+    if not OBS_MULTI.exists():
+        raise RuntimeError(
+            f"missing all-station observed package: {OBS_MULTI}; "
+            "run build_mucum_observed_multistation.py first"
+        )
+    pkg = load_json(OBS_MULTI)
+    rain = pkg.get("rain") or {}
+    rows = rain.get("hourly_areal") or []
     out = {sid: {} for sid in ZONE_IDS}
-    with CHUVAS.open(encoding="utf-8-sig", newline="") as fh:
-        for row in csv.DictReader(fh):
-            cod = str(row.get("COD_SEQUENCIAL") or "")
-            if len(cod) != 12:
+    coverage = {}
+    for row in rows:
+        raw_t = row.get("time_local")
+        if not raw_t:
+            continue
+        try:
+            t = datetime.fromisoformat(str(raw_t))
+        except ValueError:
+            continue
+        if t < start_local or t > end_local:
+            continue
+        coverage[t] = int(row.get("valid_station_count") or 0)
+        for sid in ZONE_IDS:
+            raw = row.get(ZONE_OBS_FIELDS[sid])
+            if raw is None:
                 continue
             try:
-                t = datetime.strptime(cod, "%Y%m%d%H%M")
-            except ValueError:
-                continue
-            if t < start_local or t > end_local:
-                continue
-            for sid in ZONE_IDS:
-                raw = row.get(RAIN_COLUMNS[sid])
-                if raw in (None, ""):
-                    continue
-                try:
-                    out[sid][t] = float(str(raw).replace(",", "."))
-                except ValueError:
-                    pass
-
-    refresh = {}
-    for sid in ZONE_IDS:
-        try:
-            live = _fetch_ana_rain(ANA_RAIN_CODES[sid], start_local, end_local)
-            out[sid].update(live)
-            refresh[sid] = {
-                "ok": True,
-                "hours_refreshed": len(live),
-                "latest_hour_local": max(live).isoformat(timespec="minutes") if live else None,
-            }
-        except Exception as exc:
-            refresh[sid] = {
-                "ok": False,
-                "error": str(exc),
-                "fallback": "assets/data/chuvas_horarias.csv",
-            }
-    return out, refresh
+                out[sid][t.replace(minute=0, second=0, microsecond=0)] = float(raw)
+            except (TypeError, ValueError):
+                pass
+    audit = {
+        "source": str(OBS_MULTI.relative_to(ROOT)),
+        "inventory_count_inside": rain.get("inventory_count_inside"),
+        "valid_station_count": rain.get("valid_station_count"),
+        "valid_by_network": rain.get("valid_by_network"),
+        "spatial_method": rain.get("spatial_method"),
+        "min_hourly_station_count": min(coverage.values()) if coverage else 0,
+        "max_hourly_station_count": max(coverage.values()) if coverage else 0,
+        "event_window": pkg.get("event_window"),
+    }
+    return out, audit
 
 
 def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
-    """Prepend 48 h observed rain and blend the partially elapsed current hour.
-
-    HEC remains hourly. The current river observation is kept at its exact
-    timestamp and the HEC state is interpolated to that timestamp only for
-    validation. This avoids pretending that a 14:15 observation occurred at
-    14:00 and avoids calling a visual bias shift "state assimilation".
-    """
+    """Warm the HEC run from 26/09 with all valid upstream rain stations."""
     if not zr["times_utc"]:
         raise RuntimeError("empty IFS forecast")
     ifs0_utc = iso_utc(zr["times_utc"][0])
@@ -392,19 +379,28 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
             f"latest observation {current_local} is not inside first IFS hour {ifs0_local}"
         )
 
-    warm_start_local = ifs0_local - timedelta(hours=WARMUP_HOURS)
-    observed, observed_refresh = _load_observed_rain(warm_start_local, current_local)
-    warm_hours = [warm_start_local + timedelta(hours=i) for i in range(WARMUP_HOURS)]
+    warm_start_local = EVENT_START_LOCAL
+    if ifs0_local <= warm_start_local:
+        raise RuntimeError("IFS start is not after 26/09 event start")
+    observed, observed_audit = _load_observed_rain(warm_start_local, current_local)
+    warm_hours = []
+    t = warm_start_local
+    while t < ifs0_local:
+        warm_hours.append(t)
+        t += timedelta(hours=1)
 
-    missing = {}
-    for sid in ZONE_IDS:
-        missing[sid] = [t for t in warm_hours if t not in observed[sid]]
+    missing = {
+        sid: [t for t in warm_hours if t not in observed[sid]]
+        for sid in ZONE_IDS
+    }
     if any(missing[sid] for sid in ZONE_IDS):
         detail = "; ".join(
             f"{sid}: {len(missing[sid])} faltantes"
             for sid in ZONE_IDS if missing[sid]
         )
-        raise RuntimeError(f"warm-up rainfall incomplete ({detail}); forecast blocked")
+        raise RuntimeError(
+            f"event rainfall incomplete since 26/09 ({detail}); forecast blocked"
+        )
 
     elapsed = max(0.0, min(1.0, (current_local - ifs0_local).total_seconds() / 3600.0))
     run_times_local = list(warm_hours) + [
@@ -417,7 +413,7 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
 
     run_zones = {}
     audit = {
-        "hours": WARMUP_HOURS,
+        "hours": len(warm_hours),
         "start_local": warm_start_local.isoformat(timespec="minutes"),
         "end_at_current_hour_local": ifs0_local.isoformat(timespec="minutes"),
         "current_observation_local": current_local.isoformat(timespec="minutes"),
@@ -425,29 +421,25 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
         "missing_hours": {sid: len(missing[sid]) for sid in ZONE_IDS},
         "complete": True,
         "method": (
-            "48 h observed ANA rainfall; current partial hour = observed partial "
-            "+ remaining fraction of ECMWF/IFS hour; future = ECMWF/IFS"
+            "26/09->t0 observed all-station rainfall (ANA+INMET+CEMADEN, valid gauges "
+            "inside Muçum watershed, IDW^2 by HEC zone); current partial hour blended "
+            "with remaining ECMWF/IFS fraction; future = ECMWF/IFS spatial field"
         ),
         "observed_totals_mm": {},
-        "ana_live_refresh": observed_refresh,
+        "observed_network": observed_audit,
     }
     for sid in ZONE_IDS:
         warm_values = [observed[sid][t] for t in warm_hours]
         obs_partial = observed[sid].get(ifs0_local)
         ifs_values = list(zr["zones"][sid]["hourly_mm"])
         if obs_partial is None:
-            # A ausência do parcial da hora corrente não pode virar "0 mm
-            # observado". Como o estado atual do rio é validado no timestamp
-            # exato, usamos somente o IFS para esta hora e registramos a
-            # degradação. As 48 h de warm-up continuam obrigatoriamente
-            # observadas e já foram validadas acima.
             current_blend = float(ifs_values[0])
             current_source = "ifs_full_hour_fallback_no_observed_partial"
             observed_total = round(sum(warm_values), 3)
             observed_partial_audit = None
         else:
             current_blend = float(obs_partial) + (1.0 - elapsed) * float(ifs_values[0])
-            current_source = "observed_partial_plus_remaining_ifs"
+            current_source = "all_station_observed_partial_plus_remaining_ifs"
             observed_total = round(sum(warm_values) + float(obs_partial), 3)
             observed_partial_audit = round(float(obs_partial), 3)
         values = warm_values + [current_blend] + [float(v) for v in ifs_values[1:]]
@@ -504,7 +496,7 @@ End:
 
 """)
     return f"""Basin: Bacia Spatial LIVE 15690.7km2
-     Description: Muçum spatial IFS forecast with 48 h observed-rain warm-up; 2-zone HEC-HMS pilot
+     Description: Muçum spatial IFS forecast warmed from 26/09 with all valid upstream rain gauges; 2-zone HEC-HMS pilot
      Last Modified Date: 21 September 2026
      Last Modified Time: 22:00:00
      Version: 4.13
@@ -553,7 +545,7 @@ End:
 
 def met_text():
     return """Meteorology: Chuva Spatial LIVE
-     Description: 48 h observed ANA warm-up + ECMWF IFS future rainfall by two Thiessen zones
+     Description: observed all-station rain since 26/09 + ECMWF IFS future rainfall by two HEC zones
      Last Modified Date: 21 September 2026
      Last Modified Time: 22:00:00
      Version: 4.13
@@ -661,7 +653,7 @@ End:
 
 def control_text(start_local: datetime, end_local: datetime):
     return f"""Control: Evento Spatial LIVE
-     Description: 48 h observed warm-up plus ECMWF IFS forecast window
+     Description: observed event warm-up since 26/09 plus ECMWF IFS forecast window
      Last Modified Date: 21 September 2026
      Last Modified Time: 22:00
      Version: 4.13
@@ -809,7 +801,7 @@ def main():
 
     initial = {
         **ctx["warmup_start"],
-        "method": "observed Muçum Q at 48 h warm-up start as HEC-HMS Recession initial flow/area ratio",
+        "method": "observed Muçum Q at 26/09 event start as HEC-HMS Recession initial flow/area ratio",
         "initial_flow_area_ratio_m3s_per_km2": round(
             ctx["warmup_start"]["q_m3s"] / total_area, 9
         ),
@@ -828,7 +820,7 @@ def main():
         "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
         "model": "HEC-HMS 4.13 two-zone spatial pilot",
         "parameter_source": PARAMS,
-        "rain_source": "48 h ANA observed warm-up + ECMWF IFS 0.25 degree full field forecast",
+        "rain_source": "26/09->t0 all valid upstream gauges (ANA+INMET+CEMADEN; IDW^2 by HEC zone) + ECMWF IFS 0.25 degree full field forecast",
         "all_spatial_cells_used": True,
         "spatial_cells": (spatial.get("grid") or {}).get("intersecting_cells"),
         "times_utc": times,
@@ -852,10 +844,10 @@ def main():
             "jython_script": str(script.relative_to(ROOT)),
             "time_interval_minutes": 60,
         },
-        "status": "input_ready_for_hec_hms_4_13_with_48h_warmup",
+        "status": "input_ready_for_hec_hms_4_13_event_warmup_since_20260926",
         "warning_pt": (
-            "Pesquisa. O HEC usa 48 h de chuva observada para aquecimento e compara o estado "
-            "modelado com o último nível observado em seu timestamp real. A saída não é ancorada "
+            "Pesquisa. O HEC usa chuva observada espacial de todos os postos válidos desde 26/09 "
+            "para aquecimento e compara o estado modelado com o último nível observado. A saída não é ancorada "
             "por correção visual; sem assimilação real dos estados internos em t0, a rodada fica "
             "diagnóstica. Continua sendo o piloto de duas zonas, não o projeto completo de 145 sub-bacias."
         ),
@@ -867,7 +859,7 @@ def main():
         "status": prep["status"],
         "spatial_cells": prep["spatial_cells"],
         "forecast_rain_mm": round(basin_total,3),
-        "warmup_hours": WARMUP_HOURS,
+        "warmup_hours": warmup_audit["hours"],
         "warmup_stage_cm": initial["stage_cm"],
         "current_stage_cm": current["stage_cm"],
         "current_time_utc": current["observed_at_utc"],
