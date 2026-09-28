@@ -31,6 +31,8 @@ SELECTION = OUT / "hec_hms_spatial_forecast_mucum_selection_latest.json"
 CAL_JSON = OUT / "hec_hms_live_event_calibration_latest.json"
 CAL_CSV = OUT / "hec_hms_live_event_calibration_candidates.csv"
 CAL_FORECAST = OUT / "hec_hms_live_event_calibrated_forecast_latest.json"
+OBS_MULTI = OUT / "mucum_observed_multistation_latest.json"
+CAL_OBS = OUT / "mucum_observed_multistation_calibration_snapshot.json"
 SCRIPT = RUNTIME / "project/run_forecast.script"
 
 PRESETS = {
@@ -226,6 +228,8 @@ def main() -> int:
     }
     RESULT.write_text(json.dumps(pkg, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     CAL_FORECAST.write_text(json.dumps(pkg, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if OBS_MULTI.exists():
+        shutil.copy2(OBS_MULTI, CAL_OBS)
 
     clean_rows = [{k:v for k,v in r.items() if k != "_pkg"} for r in rows]
     fieldnames = sorted({k for r in clean_rows for k in r.keys() if k != "blocking_reasons_pt"})
@@ -250,6 +254,7 @@ def main() -> int:
         "artifacts": {
             "result": str(RESULT.relative_to(ROOT)),
             "calibrated_forecast": str(CAL_FORECAST.relative_to(ROOT)),
+            "observed_snapshot": str(CAL_OBS.relative_to(ROOT)) if CAL_OBS.exists() else None,
             "candidates_csv": str(CAL_CSV.relative_to(ROOT)),
         },
     }
