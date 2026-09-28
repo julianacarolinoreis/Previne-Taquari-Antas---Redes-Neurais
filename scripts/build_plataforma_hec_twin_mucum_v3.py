@@ -268,7 +268,9 @@ def build_feed_v3() -> dict:
     # Prefer the real HEC-HMS 4.13 spatial run. Fall back to the Python twin
     # only when the HEC spatial artifact is unavailable.
     spatial_hec = base.load_json(OUT / "hec_hms_spatial_forecast_mucum_latest.json") or {}
-    spatial_ready = spatial_hec.get("status") == "hec_hms_4_13_spatial_ifs_ready"
+    spatial_available = bool(spatial_hec)
+    spatial_ready = bool(spatial_hec.get("publishable")) and spatial_hec.get("status") == "hec_hms_4_13_spatial_ifs_warmup_ready"
+    spatial_blocked = spatial_available and not spatial_ready
     forward_pkg = base.load_json(OUT / "hec_twin_mucum_forward_5d_latest.json") or {}
     corridor_nodes = build_corridor_model_nodes(feed, forward_pkg)
 
@@ -280,8 +282,8 @@ def build_feed_v3() -> dict:
         feed["rainfall_runoff_result"] = {
             "available": bool(spatial_hec.get("times_utc") and ss.get("q_mucum_m3s")),
             "generated_at_utc": spatial_hec.get("generated_at_utc"),
-            "status": "hec_hms_4_13_spatial_ifs_ready",
-            "label_pt": "HEC-HMS 4.13 · chuva IFS espacial",
+            "status": "hec_hms_4_13_spatial_ifs_warmup_ready",
+            "label_pt": "HEC-HMS 4.13 · aquecimento observado + IFS espacial",
             "warning_pt": spatial_hec.get("warning_pt"),
             "forcing_spatial": True,
             "engine": "HEC-HMS 4.13",
@@ -314,18 +316,52 @@ def build_feed_v3() -> dict:
                 for sid, z in zones.items()
             },
             "initial_state": spatial_hec.get("initial_state"),
+            "current_state": spatial_hec.get("current_state"),
+            "validation": spatial_hec.get("validation"),
+            "warmup": spatial_hec.get("warmup"),
             "parameter_source": spatial_hec.get("parameter_source"),
             "nodes_model": spatial_hec.get("nodes") or {},
             "corridor_nodes": corridor_nodes,
             "plain_pt": (
                 f"HEC-HMS 4.13 executado com {rain.get('spatial_cells') or '?'} células IFS "
-                f"espacializadas. Q inicial {sm.get('q_model_initial_m3s')} m³/s; "
-                f"pico {sm.get('peak_q_m3s')} m³/s; ΔN {sm.get('rise_from_now_cm')} cm."
+                f"espacializadas, com 48 h de aquecimento observado. "
+                f"Nível atual {sm.get('level_now_observed_cm')} cm no timestamp real; "
+                f"pico {sm.get('peak_level_anchored_cm')} cm; ΔN {sm.get('rise_from_now_cm')} cm."
             ),
             "q_note_pt": (
-                "Q(t) é a saída do HEC-HMS 4.13. O estado inicial foi reconciliado com a "
-                "vazão derivada da curva-chave de Muçum; a chuva é espacializada por interseção "
-                "das células IFS com as zonas do piloto HEC."
+                "Q(t) é a saída do HEC-HMS 4.13 após 48 h de aquecimento com chuva observada. "
+                "O último nível de Muçum é assimilado no timestamp real e a rodada só é promovida "
+                "se as guardas de estado e tendência forem satisfeitas."
+            ),
+            "artifact_json": "hec_hms_spatial_forecast_mucum_latest.json",
+            "series_csv": "hec_hms_spatial_forecast_mucum/primary_series.csv",
+        }
+    elif spatial_blocked:
+        sm = spatial_hec.get("summary") or {}
+        validation = spatial_hec.get("validation") or {}
+        rain = spatial_hec.get("rain") or {}
+        feed["rainfall_runoff_result"] = {
+            "available": False,
+            "generated_at_utc": spatial_hec.get("generated_at_utc"),
+            "status": spatial_hec.get("status"),
+            "label_pt": "HEC-HMS 4.13 · rodada bloqueada pela validação",
+            "warning_pt": spatial_hec.get("warning_pt"),
+            "forcing_spatial": True,
+            "engine": "HEC-HMS 4.13",
+            "mode": spatial_hec.get("mode"),
+            "time_utc": [],
+            "q_mucum_m3s": [],
+            "n_mucum_anchored_cm": [],
+            "delta_n_from_now_cm": [],
+            "current_observed_stage_cm": sm.get("level_now_observed_cm"),
+            "current_observed_q_rating_m3s": sm.get("q_now_observed_rating_m3s"),
+            "primary": None,
+            "forcing_rain_mm": rain.get("basin_equivalent_forecast_mm_for_audit"),
+            "validation": validation,
+            "blocking_reasons_pt": validation.get("blocking_reasons_pt") or sm.get("blocking_reasons_pt") or [],
+            "plain_pt": (
+                "A rodada HEC foi executada, mas não foi publicada como previsão porque o estado "
+                "hidrológico aquecido ou a tendência imediata não é consistente com a telemetria."
             ),
             "artifact_json": "hec_hms_spatial_forecast_mucum_latest.json",
             "series_csv": "hec_hms_spatial_forecast_mucum/primary_series.csv",
@@ -372,6 +408,8 @@ def build_feed_v3() -> dict:
         "legacy_forward_uses_point_proxy": True,
         "legacy_forward_not_valid_as_full_basin_spatial_forecast": True,
         "do_not_publish_legacy_delta_n_as_current_forecast": True,
+        "hec_requires_warmup_and_live_trend_validation": True,
+        "do_not_publish_blocked_hec_peak": True,
     })
     feed["discipline"] = discipline
 
@@ -402,10 +440,25 @@ def build_feed_v3() -> dict:
             "question_pt": "O que toda a chuva prevista na bacia contribuinte produz no modelo chuva–vazão de Muçum?",
             "plain_pt": (
                 f"HEC-HMS 4.13 executado com o campo IFS espacial. "
-                f"Q atual modelada {hsm.get('q_model_initial_m3s')} m³/s, "
-                f"pico {hsm.get('peak_q_m3s')} m³/s e ΔN {hsm.get('rise_from_now_cm')} cm."
+                f"Nível observado atual {hsm.get('level_now_observed_cm')} cm, "
+                f"pico HEC {hsm.get('peak_level_anchored_cm')} cm e ΔN {hsm.get('rise_from_now_cm')} cm, "
+                "após aquecimento de 48 h e validação de tendência."
             ),
             "primary": feed["rainfall_runoff_result"].get("primary"),
+            "rain_mm_area_weighted": (spatial_hec.get("rain") or {}).get("basin_equivalent_forecast_mm_for_audit"),
+            "validation_ref": "hec_hms_spatial_forecast_mucum_latest.json",
+        }
+    elif spatial_blocked:
+        validation = spatial_hec.get("validation") or {}
+        reasons = validation.get("blocking_reasons_pt") or []
+        feed["headline"] = {
+            "source": "hec_hms_4_13_spatial_blocked",
+            "question_pt": "Qual é a previsão HEC-HMS válida para Muçum agora?",
+            "plain_pt": (
+                "A rodada HEC-HMS foi bloqueada e não há pico publicado neste ciclo. "
+                + (" Motivo: " + "; ".join(reasons) if reasons else "")
+            ),
+            "primary": None,
             "rain_mm_area_weighted": (spatial_hec.get("rain") or {}).get("basin_equivalent_forecast_mm_for_audit"),
             "validation_ref": "hec_hms_spatial_forecast_mucum_latest.json",
         }
@@ -444,8 +497,19 @@ def build_feed_v3() -> dict:
             "peak_n_cm": hsm.get("peak_level_anchored_cm"),
             "peak_delta_n_cm": hsm.get("rise_from_now_cm"),
             "peak_when_utc": hsm.get("peak_time_utc"),
-            "hydrology_status": "hec_hms_4_13_spatial_ifs_ready",
+            "hydrology_status": "hec_hms_4_13_spatial_ifs_warmup_ready",
             "observed_stage_cm": hsm.get("level_now_observed_cm"),
+        })
+    elif spatial_blocked:
+        hsm = spatial_hec.get("summary") or {}
+        summary.update({
+            "peak_n_cm": None,
+            "peak_delta_n_cm": None,
+            "peak_when_utc": None,
+            "hydrology_status": spatial_hec.get("status"),
+            "observed_stage_cm": hsm.get("level_now_observed_cm"),
+            "observed_at_utc": hsm.get("observed_at_utc"),
+            "blocking_reasons_pt": hsm.get("blocking_reasons_pt") or [],
         })
     feed["summary"] = summary
 
