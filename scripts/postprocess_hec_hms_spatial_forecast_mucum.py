@@ -265,6 +265,16 @@ def main():
                 f"observado cai {abs(obs_trend_1h):.1f} cm/h, mas HEC aquecido indica subida "
                 f"de {model_trend_1h:.1f} cm na próxima hora"
             )
+        # Sign agreement alone is not enough during a fast flood rise/fall.
+        # Require the HEC launch slope to be of comparable magnitude; otherwise
+        # a slow hydrograph can match t0 accidentally and still miss the crest.
+        if abs(obs_trend_1h) >= 20.0:
+            trend_tolerance = max(20.0, 0.55 * abs(obs_trend_1h))
+            if abs(model_trend_1h - obs_trend_1h) > trend_tolerance:
+                reasons.append(
+                    f"tendência HEC {model_trend_1h:+.1f} cm/h incompatível com "
+                    f"observado {obs_trend_1h:+.1f} cm/h"
+                )
 
     # No visual anchoring is allowed. A candidate may only be published when
     # the observed-rain warm-up itself reaches a state consistent with the
