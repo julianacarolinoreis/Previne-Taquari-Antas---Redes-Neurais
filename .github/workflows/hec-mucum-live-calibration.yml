@@ -40,8 +40,8 @@ jobs:
       - name: Dependências
         run: pip install --disable-pip-version-check shapely pyproj matplotlib numpy
 
-      - name: Observado multirrede · chuva + vazão desde 26/09
-        run: python -B scripts/build_mucum_observed_multistation.py
+      - name: Observado multirrede · histórico 26/09 + atualização recente
+        run: OBS_FAST_MODE=1 python -B scripts/build_mucum_observed_multistation.py
 
       - name: IFS espacial · bacia contribuinte até Muçum
         run: python -B scripts/build_spatial_ifs_mucum.py
