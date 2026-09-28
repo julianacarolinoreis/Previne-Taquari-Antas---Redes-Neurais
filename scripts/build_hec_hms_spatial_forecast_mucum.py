@@ -98,6 +98,7 @@ PARAM_EVENT = os.environ.get("HEC_PARAM_EVENT", "E27").upper()
 if PARAM_EVENT not in PRESET_PARAMS:
     raise RuntimeError(f"unsupported HEC_PARAM_EVENT={PARAM_EVENT}; use {sorted(PRESET_PARAMS)}")
 PARAMS = dict(PRESET_PARAMS[PARAM_EVENT])
+PARAMS.setdefault("initial_flow_multiplier", 1.0)
 
 # Optional live-event calibration overrides. These alter only the current
 # research HEC run; the historical preset library remains unchanged.
@@ -108,6 +109,7 @@ _LIVE_PARAM_ENV = {
     "storage_h": "HEC_STORAGE_H",
     "recession_constant_daily": "HEC_RECESSION_DAILY",
     "threshold_ratio_to_peak": "HEC_THRESHOLD_RATIO",
+    "initial_flow_multiplier": "HEC_INITIAL_FLOW_MULTIPLIER",
 }
 for _key, _env in _LIVE_PARAM_ENV.items():
     if os.environ.get(_env) not in (None, ""):
@@ -482,7 +484,11 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
 
 def basin_text(zone_rain: dict, state: dict) -> str:
     total_area = sum(zone_rain["zones"][sid]["area_declared_km2"] for sid in ZONE_IDS)
-    q_ratio = state["q_m3s"] / total_area
+    # Calibratable HEC-HMS internal state: scale the Recession initial
+    # flow/area ratio itself, never the plotted stage. This gives the live-event
+    # calibration freedom to reconcile baseflow state and a fast Clark response
+    # without applying any visual/post-processing level shift.
+    q_ratio = (state["q_m3s"] / total_area) * float(PARAMS.get("initial_flow_multiplier", 1.0))
     blocks = []
     for sid in ZONE_IDS:
         area = zone_rain["zones"][sid]["area_declared_km2"]
@@ -822,9 +828,13 @@ def main():
 
     initial = {
         **ctx["warmup_start"],
-        "method": "observed Muçum Q at 26/09 event start as HEC-HMS Recession initial flow/area ratio",
-        "initial_flow_area_ratio_m3s_per_km2": round(
+        "method": "observed Muçum Q at 26/09 event start as HEC-HMS Recession initial flow/area ratio, internally calibrated by multiplier",
+        "initial_flow_multiplier": round(float(PARAMS.get("initial_flow_multiplier", 1.0)), 6),
+        "initial_flow_area_ratio_raw_m3s_per_km2": round(
             ctx["warmup_start"]["q_m3s"] / total_area, 9
+        ),
+        "initial_flow_area_ratio_m3s_per_km2": round(
+            (ctx["warmup_start"]["q_m3s"] / total_area) * float(PARAMS.get("initial_flow_multiplier", 1.0)), 9
         ),
     }
     current = {
