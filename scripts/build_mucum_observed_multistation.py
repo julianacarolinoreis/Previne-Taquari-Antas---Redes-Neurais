@@ -203,7 +203,11 @@ def grid(geom):
     return pts
 def idw(g,stations,vals,k=6):
     use=[s for s in stations if vals.get(s["code"]) is not None]
-    if len(use)<2 or not g:return None
+    # One observed gauge is still evidence. For rare hours with only one valid
+    # station, use that value uniformly rather than inventing zero or blocking
+    # the entire warm-up. The hourly valid_station_count keeps this degradation
+    # explicit for audit; zero stations still remain missing.
+    if not use or not g:return None
     sx=np.asarray([s["lon"] for s in use]);sy=np.asarray([s["lat"] for s in use]);sv=np.asarray([vals[s["code"]] for s in use],dtype=float)
     total=aw=0.0
     for gx,gy,a in g:
