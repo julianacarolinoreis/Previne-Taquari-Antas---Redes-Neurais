@@ -269,11 +269,24 @@ def main():
         # Require the HEC launch slope to be of comparable magnitude; otherwise
         # a slow hydrograph can match t0 accidentally and still miss the crest.
         if abs(obs_trend_1h) >= 20.0:
-            trend_tolerance = max(20.0, 0.55 * abs(obs_trend_1h))
-            if abs(model_trend_1h - obs_trend_1h) > trend_tolerance:
+            # Fast flood limbs require comparable magnitude, not merely the
+            # same sign. A model rising at half the observed speed cannot be
+            # released just because it happens to intersect the current stage.
+            trend_tolerance = max(15.0, 0.35 * abs(obs_trend_1h))
+            trend_ratio = (
+                abs(model_trend_1h) / abs(obs_trend_1h)
+                if abs(obs_trend_1h) > 1e-9 else None
+            )
+            if (
+                abs(model_trend_1h - obs_trend_1h) > trend_tolerance
+                or trend_ratio is None
+                or trend_ratio < 0.65
+                or trend_ratio > 1.55
+            ):
                 reasons.append(
                     f"tendência HEC {model_trend_1h:+.1f} cm/h incompatível com "
-                    f"observado {obs_trend_1h:+.1f} cm/h"
+                    f"observado {obs_trend_1h:+.1f} cm/h "
+                    f"(razão={trend_ratio:.2f})"
                 )
 
     # No visual anchoring is allowed. A candidate may only be published when
