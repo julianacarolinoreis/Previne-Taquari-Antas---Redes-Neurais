@@ -193,7 +193,10 @@ def live_context():
         "ANA/SGB Hidrotelemetria via previsao_ao_vivo_mucum.json",
     )
     current_dt = iso_utc(when)
-    target_warm = current_dt - timedelta(hours=WARMUP_HOURS)
+    # HEC warm-up starts on the full-hour rainfall grid. Use the observed
+    # river state at that same full hour 48 h earlier; do not shift a :15/:30
+    # state backwards to the top of the hour.
+    target_warm = current_dt.replace(minute=0, second=0, microsecond=0) - timedelta(hours=WARMUP_HOURS)
 
     obs = []
     for row in (live.get("serie_observada_ana") or []):
