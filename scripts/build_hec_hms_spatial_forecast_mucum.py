@@ -8,10 +8,12 @@ Inputs
 * Live Muçum stage, 48 h observed rainfall, and the published Muçum rating curve.
 
 The full IFS field is intersected cell-by-cell with each Thiessen zone.  No
-single basin-wide rain series is used as forcing.  The run is warmed for 48 h with observed rainfall and an observed Muçum
-state at the warm-up start. The latest river level is then assimilated at
-its exact timestamp during postprocessing; a consistency gate blocks
-publication when the warmed HEC state contradicts the observed flood trend.
+single basin-wide rain series is used as forcing. The run is warmed for 48 h with
+observed rainfall and an observed Muçum state at the warm-up start. The latest
+river level is kept at its exact telemetry timestamp for state validation.
+No postprocessing bias shift is treated as HEC-HMS state assimilation: until a
+true model-state restart/assimilation exists at t0, the HEC run is diagnostic
+and publication as a forecast is blocked.
 
 This is a research forecast, not an official alert.
 """
@@ -338,10 +340,10 @@ def _load_observed_rain(start_local: datetime, end_local: datetime) -> tuple[dic
 def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
     """Prepend 48 h observed rain and blend the partially elapsed current hour.
 
-    HEC remains hourly. The current river observation is later assimilated at
-    its exact timestamp by the postprocessor, using interpolation of the HEC
-    state inside the current hour. This avoids pretending that a 14:15
-    observation occurred at 14:00.
+    HEC remains hourly. The current river observation is kept at its exact
+    timestamp and the HEC state is interpolated to that timestamp only for
+    validation. This avoids pretending that a 14:15 observation occurred at
+    14:00 and avoids calling a visual bias shift "state assimilation".
     """
     if not zr["times_utc"]:
         raise RuntimeError("empty IFS forecast")
@@ -399,7 +401,7 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
         ifs_values = list(zr["zones"][sid]["hourly_mm"])
         if obs_partial is None:
             # A ausência do parcial da hora corrente não pode virar "0 mm
-            # observado". Como o estado atual do rio é assimilado no timestamp
+            # observado". Como o estado atual do rio é validado no timestamp
             # exato, usamos somente o IFS para esta hora e registramos a
             # degradação. As 48 h de warm-up continuam obrigatoriamente
             # observadas e já foram validadas acima.
@@ -778,9 +780,10 @@ def main():
     }
     current = {
         **ctx["current"],
-        "assimilation_method": (
-            "exact observed timestamp; HEC state interpolated within hourly step; "
-            "future stage bias-corrected to observed current level only after warm-up"
+        "state_handling": (
+            "exact observed timestamp retained for validation; HEC state interpolated "
+            "within the hourly step for comparison only; no stage bias correction and "
+            "no internal HEC-HMS state assimilation is claimed"
         ),
     }
 
@@ -815,9 +818,10 @@ def main():
         },
         "status": "input_ready_for_hec_hms_4_13_with_48h_warmup",
         "warning_pt": (
-            "Pesquisa. O HEC usa 48 h de chuva observada para aquecimento e ancora a saída "
-            "no último nível observado em seu timestamp real. Continua sendo o piloto de duas "
-            "zonas, não o projeto completo de 145 sub-bacias."
+            "Pesquisa. O HEC usa 48 h de chuva observada para aquecimento e compara o estado "
+            "modelado com o último nível observado em seu timestamp real. A saída não é ancorada "
+            "por correção visual; sem assimilação real dos estados internos em t0, a rodada fica "
+            "diagnóstica. Continua sendo o piloto de duas zonas, não o projeto completo de 145 sub-bacias."
         ),
     }
     (RUNTIME / "forecast_input.json").write_text(
