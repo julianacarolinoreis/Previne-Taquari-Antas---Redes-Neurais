@@ -36,10 +36,10 @@ CAL_OBS = OUT / "mucum_observed_multistation_calibration_snapshot.json"
 SCRIPT = RUNTIME / "project/run_forecast.script"
 
 PRESETS = {
-    "E19": dict(initial_loss_mm=10.0, constant_loss_mm_h=1.0, tc_h=60.0, storage_h=60.0, recession=0.9),
-    "E22": dict(initial_loss_mm=1.0, constant_loss_mm_h=4.0, tc_h=4.0, storage_h=90.0, recession=0.98),
-    "E27": dict(initial_loss_mm=2.5, constant_loss_mm_h=2.0, tc_h=10.0, storage_h=45.0, recession=0.8),
-    "E28": dict(initial_loss_mm=20.0, constant_loss_mm_h=2.0, tc_h=30.0, storage_h=30.0, recession=0.9),
+    "E19": dict(initial_loss_mm=10.0, constant_loss_mm_h=1.0, tc_h=60.0, storage_h=60.0, recession=0.9, initial_flow_multiplier=1.0),
+    "E22": dict(initial_loss_mm=1.0, constant_loss_mm_h=4.0, tc_h=4.0, storage_h=90.0, recession=0.98, initial_flow_multiplier=1.0),
+    "E27": dict(initial_loss_mm=2.5, constant_loss_mm_h=2.0, tc_h=10.0, storage_h=45.0, recession=0.8, initial_flow_multiplier=1.0),
+    "E28": dict(initial_loss_mm=20.0, constant_loss_mm_h=2.0, tc_h=30.0, storage_h=30.0, recession=0.9, initial_flow_multiplier=1.0),
 }
 
 ENV_KEYS = {
@@ -48,6 +48,7 @@ ENV_KEYS = {
     "tc_h": "HEC_TC_H",
     "storage_h": "HEC_STORAGE_H",
     "recession": "HEC_RECESSION_DAILY",
+    "initial_flow_multiplier": "HEC_INITIAL_FLOW_MULTIPLIER",
 }
 
 
@@ -77,7 +78,7 @@ def objective(pkg: dict) -> tuple[float, dict]:
     # Current flood: preserve the whole-event fit, but strongly constrain the
     # present state and rising-limb speed because those control the forecast
     # launched at t0.
-    score = rmse / 120.0 + stage / 30.0 + qerr / 25.0 + trend / 20.0 + lag / 24.0
+    score = rmse / 120.0 + stage / 30.0 + qerr / 25.0 + trend / 15.0 + lag / 24.0
     if nse < -20:
         score += 5.0
     metrics = {
@@ -128,12 +129,13 @@ def rounded_params(p: dict) -> dict:
         "tc_h": max(1.0, round(float(p["tc_h"]), 3)),
         "storage_h": max(1.0, round(float(p["storage_h"]), 3)),
         "recession": min(0.995, max(0.5, round(float(p["recession"]), 4))),
+        "initial_flow_multiplier": min(3.0, max(0.1, round(float(p.get("initial_flow_multiplier", 1.0)), 4))),
     }
 
 
 def key(p: dict) -> tuple:
     q = rounded_params(p)
-    return tuple(q[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession"))
+    return tuple(q[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier"))
 
 
 def main() -> int:
@@ -184,6 +186,7 @@ def main() -> int:
                     "tc_h": tc,
                     "storage_h": st,
                     "recession": rec,
+                    "initial_flow_multiplier": 1.0,
                 }),
                 f"broad_t{i:02d}_l{j:02d}",
             ))
@@ -205,11 +208,46 @@ def main() -> int:
     valid = [r for r in rows if fnum(r.get("score")) < 1e8]
     if not valid:
         raise RuntimeError("all coarse live-event HEC calibration candidates failed")
+
+    # The two-zone pilot previously had one hidden constraint: initial recession
+    # flow was fixed to the 26/09 observed Q. That made fast Clark candidates
+    # miss t0 badly, so the optimizer preferred unrealistically slow responses.
+    # Explore the HEC internal initial-flow state independently for a diverse
+    # set of promising timing/shape candidates. This is a real HEC parameter
+    # change, not a stage shift after simulation.
+    def trend_gap(r):
+        return abs(fnum(r.get("model_trend_cm_h")) - fnum(r.get("observed_trend_cm_h")))
+
+    state_seeds = []
+    for ranked in (
+        sorted(valid, key=lambda r: fnum(r.get("score")))[:3],
+        sorted(valid, key=trend_gap)[:3],
+        sorted(valid, key=lambda r: fnum(r.get("event_rmse_cm")))[:2],
+    ):
+        for r in ranked:
+            sig = (r.get("seed_event"),) + key(r)
+            if not any((z.get("seed_event"),) + key(z) == sig for z in state_seeds):
+                state_seeds.append(r)
+
+    for sidx, r in enumerate(state_seeds, 1):
+        base = {k: r[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}
+        for mult in (0.35, 0.55, 0.75, 1.25, 1.5):
+            p = dict(base)
+            p["initial_flow_multiplier"] = mult
+            p = rounded_params(p)
+            if any(key(p) == key(z) for z in rows if fnum(z.get("score")) < 1e8):
+                continue
+            try:
+                rows.append(run_one(hec_sh, str(r.get("seed_event") or selected_seed), p, f"state_{sidx:02d}_m{mult:.2f}"))
+            except Exception as exc:
+                rows.append({"label": f"state_{sidx:02d}_m{mult:.2f}", "seed_event": r.get("seed_event"), **p, "score": 1e9, "error": str(exc)})
+
+    valid = [r for r in rows if fnum(r.get("score")) < 1e8]
     best = min(valid, key=lambda r: fnum(r.get("score")))
     seed_event = str(best.get("seed_event") or selected_seed)
-    bp = {k: best[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession")}
+    bp = {k: best[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}
 
-    # Fine coordinate search around coarse winner, plus coupled timing moves.
+    # Fine coordinate search around coarse/state winner, plus coupled timing moves.
     fine = [rounded_params(bp)]
     perturb = {
         "initial_loss_mm": (-5.0, 5.0),
@@ -217,6 +255,7 @@ def main() -> int:
         "tc_h": (-8.0, -3.0, 3.0, 8.0),
         "storage_h": (-8.0, -3.0, 3.0, 8.0),
         "recession": (-0.03, 0.03),
+        "initial_flow_multiplier": (-0.25, -0.1, 0.1, 0.25),
     }
     for name, ds in perturb.items():
         for d in ds:
@@ -224,7 +263,7 @@ def main() -> int:
     for dt, ds in ((-10,-10),(-8,-3),(-3,-8),(-5,5),(5,-5),(5,5),(10,10)):
         p = dict(bp); p["tc_h"] += dt; p["storage_h"] += ds; fine.append(rounded_params(p))
 
-    seen = {key({k:r[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession")}): True for r in valid}
+    seen = {key({k:r[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}): True for r in valid}
     fine = [p for p in fine if key(p) not in seen]
     for i, p in enumerate(fine, 1):
         try:
@@ -234,7 +273,7 @@ def main() -> int:
 
     valid = [r for r in rows if fnum(r.get("score")) < 1e8]
     best = min(valid, key=lambda r: fnum(r.get("score")))
-    best_params = {k: best[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession")}
+    best_params = {k: best[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}
 
     # Rerun the winner last so all generic files correspond to the selected calibration.
     final = run_one(hec_sh, seed_event, best_params, "selected_live_event_calibration")
