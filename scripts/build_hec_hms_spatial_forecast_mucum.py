@@ -5,12 +5,13 @@ Inputs
 ------
 * Full 0.25° ECMWF/IFS field already clipped to the Muçum catchment.
 * The existing two-zone Thiessen HEC-HMS spatial pilot.
-* Live Muçum stage and the published Muçum rating curve.
+* Live Muçum stage, 48 h observed rainfall, and the published Muçum rating curve.
 
 The full IFS field is intersected cell-by-cell with each Thiessen zone.  No
-single basin-wide rain series is used as forcing.  The current observed
-discharge is assimilated as the initial Recession baseflow, which HEC-HMS
-explicitly supports as an initial condition.
+single basin-wide rain series is used as forcing.  The run is warmed for 48 h with observed rainfall and an observed Muçum
+state at the warm-up start. The latest river level is then assimilated at
+its exact timestamp during postprocessing; a consistency gate blocks
+publication when the warmed HEC state contradicts the observed flood trend.
 
 This is a research forecast, not an official alert.
 """
@@ -32,6 +33,7 @@ OUT = ROOT / "assets/data/estudo_bacia_taquari_antas"
 SPATIAL = OUT / "spatial_ifs_mucum/spatial_ifs_mucum_latest.json"
 ZONES = ROOT / "assets/data/hec_hms_spatialized_mucum/thiessen_zones_86510000.geojson"
 LIVE = ROOT / "previsao_ao_vivo_mucum.json"
+CHUVAS = ROOT / "assets/data/chuvas_horarias.csv"
 CURVE = OUT / "curva_chave_86472600/curva_chave_hunt_86472600_latest.json"
 RUNTIME = OUT / "hec_hms_spatial_forecast_mucum"
 PROJECT = RUNTIME / "project"
@@ -53,6 +55,8 @@ PARAMS = {
     "threshold_ratio_to_peak": 0.1,
 }
 ZONE_IDS = ("86472000", "02851072")
+WARMUP_HOURS = 48
+RAIN_COLUMNS = {"86472000": "chuva_86472000", "02851072": "chuva_02851072"}
 
 
 def load_json(path: Path):
@@ -158,25 +162,176 @@ def spatial_rain_to_zones(spatial: dict, zones: dict) -> dict:
     return {"times_utc": times, "zones": out}
 
 
-def live_state():
-    live = load_json(LIVE)
-    stage = live.get("telemetria_ultima_nivel_cm")
-    if stage is None:
-        stage = live.get("nivel_rio_agora_cm")
-    if stage is None:
-        raise RuntimeError("Muçum live stage unavailable")
+def _curve_segments():
     curve = load_json(CURVE)
-    segs = (((curve.get("neighbors_official_curves_NOT_for_STZ") or {}).get("86510000") or {}).get("segments") or [])
-    q = stage_to_q(float(stage), segs)
+    return (((curve.get("neighbors_official_curves_NOT_for_STZ") or {}).get("86510000") or {}).get("segments") or [])
+
+
+def _stage_state(stage_cm: float, observed_at_utc: str, source: str) -> dict:
+    q = stage_to_q(float(stage_cm), _curve_segments())
     if not q["ok"]:
-        raise RuntimeError(f"Muçum stage {stage} cm outside rating curve")
+        raise RuntimeError(f"Muçum stage {stage_cm} cm outside rating curve")
     return {
-        "stage_cm": float(stage),
+        "stage_cm": float(stage_cm),
         "q_m3s": float(q["q_m3s"]),
         "rating_segment": q.get("segment_number"),
-        "observed_at_utc": live.get("telemetria_ultima_em_utc") or live.get("nivel_rio_agora_em_utc"),
-        "source": "ANA/SGB Hidrotelemetria via previsao_ao_vivo_mucum.json",
+        "observed_at_utc": observed_at_utc,
+        "source": source,
     }
+
+
+def live_context():
+    """Current observed state plus an observed state 48 h earlier for warm-up."""
+    live = load_json(LIVE)
+    stage = live.get("telemetria_ultima_nivel_cm")
+    when = live.get("telemetria_ultima_em_utc") or live.get("nivel_rio_agora_em_utc")
+    if stage is None or not when:
+        raise RuntimeError("Muçum live stage/time unavailable")
+
+    current = _stage_state(
+        float(stage), when,
+        "ANA/SGB Hidrotelemetria via previsao_ao_vivo_mucum.json",
+    )
+    current_dt = iso_utc(when)
+    target_warm = current_dt - timedelta(hours=WARMUP_HOURS)
+
+    obs = []
+    for row in (live.get("serie_observada_ana") or []):
+        h = row.get("hora"); n = row.get("nivel_cm")
+        if h is None or n is None:
+            continue
+        dt_local = datetime.fromisoformat(str(h))
+        dt_utc = dt_local.replace(tzinfo=BRT).astimezone(timezone.utc)
+        obs.append((dt_utc, float(n)))
+    if not obs:
+        raise RuntimeError("Muçum observed series unavailable for warm-up")
+    obs.sort(key=lambda x: x[0])
+
+    warm_dt, warm_stage = min(obs, key=lambda x: abs((x[0] - target_warm).total_seconds()))
+    if abs((warm_dt - target_warm).total_seconds()) > 1800:
+        raise RuntimeError("no Muçum observation within 30 min of 48 h warm-up start")
+    warm = _stage_state(
+        warm_stage, warm_dt.isoformat().replace("+00:00", "Z"),
+        "ANA/SGB observed stage at warm-up start",
+    )
+
+    target_1h = current_dt - timedelta(hours=1)
+    prev_dt, prev_stage = min(obs, key=lambda x: abs((x[0] - target_1h).total_seconds()))
+    trend_1h = None
+    if abs((prev_dt - target_1h).total_seconds()) <= 1800:
+        trend_1h = float(stage) - float(prev_stage)
+
+    current["trend_1h_cm"] = None if trend_1h is None else round(trend_1h, 2)
+    current["trend_reference_utc"] = prev_dt.isoformat().replace("+00:00", "Z")
+    return {"current": current, "warmup_start": warm}
+
+
+def _load_observed_rain(start_local: datetime, end_local: datetime) -> dict:
+    """Read exact observed hourly rain. Missing hours are not converted to zero."""
+    if not CHUVAS.exists():
+        raise RuntimeError(f"missing observed rainfall file: {CHUVAS}")
+    out = {sid: {} for sid in ZONE_IDS}
+    with CHUVAS.open(encoding="utf-8-sig", newline="") as fh:
+        for row in csv.DictReader(fh):
+            cod = str(row.get("COD_SEQUENCIAL") or "")
+            if len(cod) != 12:
+                continue
+            try:
+                t = datetime.strptime(cod, "%Y%m%d%H%M")
+            except ValueError:
+                continue
+            if t < start_local or t > end_local:
+                continue
+            for sid in ZONE_IDS:
+                raw = row.get(RAIN_COLUMNS[sid])
+                if raw in (None, ""):
+                    continue
+                try:
+                    out[sid][t] = float(str(raw).replace(",", "."))
+                except ValueError:
+                    pass
+    return out
+
+
+def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
+    """Prepend 48 h observed rain and blend the partially elapsed current hour.
+
+    HEC remains hourly. The current river observation is later assimilated at
+    its exact timestamp by the postprocessor, using interpolation of the HEC
+    state inside the current hour. This avoids pretending that a 14:15
+    observation occurred at 14:00.
+    """
+    if not zr["times_utc"]:
+        raise RuntimeError("empty IFS forecast")
+    ifs0_utc = iso_utc(zr["times_utc"][0])
+    ifs0_local = ifs0_utc.astimezone(BRT).replace(tzinfo=None)
+    current_utc = iso_utc(ctx["current"]["observed_at_utc"])
+    current_local = current_utc.astimezone(BRT).replace(tzinfo=None)
+    if not (ifs0_local <= current_local < ifs0_local + timedelta(hours=1)):
+        raise RuntimeError(
+            f"latest observation {current_local} is not inside first IFS hour {ifs0_local}"
+        )
+
+    warm_start_local = ifs0_local - timedelta(hours=WARMUP_HOURS)
+    observed = _load_observed_rain(warm_start_local, ifs0_local)
+    warm_hours = [warm_start_local + timedelta(hours=i) for i in range(WARMUP_HOURS)]
+
+    missing = {}
+    for sid in ZONE_IDS:
+        missing[sid] = [t for t in warm_hours if t not in observed[sid]]
+    if any(missing[sid] for sid in ZONE_IDS):
+        detail = "; ".join(
+            f"{sid}: {len(missing[sid])} faltantes"
+            for sid in ZONE_IDS if missing[sid]
+        )
+        raise RuntimeError(f"warm-up rainfall incomplete ({detail}); forecast blocked")
+
+    elapsed = max(0.0, min(1.0, (current_local - ifs0_local).total_seconds() / 3600.0))
+    run_times_local = list(warm_hours) + [
+        iso_utc(t).astimezone(BRT).replace(tzinfo=None) for t in zr["times_utc"]
+    ]
+    run_times_utc = [
+        t.replace(tzinfo=BRT).astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        for t in run_times_local
+    ]
+
+    run_zones = {}
+    audit = {
+        "hours": WARMUP_HOURS,
+        "start_local": warm_start_local.isoformat(timespec="minutes"),
+        "end_at_current_hour_local": ifs0_local.isoformat(timespec="minutes"),
+        "current_observation_local": current_local.isoformat(timespec="minutes"),
+        "current_hour_elapsed_fraction": round(elapsed, 4),
+        "missing_hours": {sid: len(missing[sid]) for sid in ZONE_IDS},
+        "complete": True,
+        "method": (
+            "48 h observed ANA rainfall; current partial hour = observed partial "
+            "+ remaining fraction of ECMWF/IFS hour; future = ECMWF/IFS"
+        ),
+        "observed_totals_mm": {},
+    }
+    for sid in ZONE_IDS:
+        warm_values = [observed[sid][t] for t in warm_hours]
+        obs_partial = observed[sid].get(ifs0_local)
+        if obs_partial is None:
+            raise RuntimeError(
+                f"current-hour observed rainfall unavailable for {sid} at {ifs0_local}; forecast blocked"
+            )
+        ifs_values = list(zr["zones"][sid]["hourly_mm"])
+        current_blend = float(obs_partial) + (1.0 - elapsed) * float(ifs_values[0])
+        values = warm_values + [current_blend] + [float(v) for v in ifs_values[1:]]
+        meta = dict(zr["zones"][sid])
+        meta["hourly_mm"] = values
+        meta["run_total_mm"] = sum(values)
+        run_zones[sid] = meta
+        audit["observed_totals_mm"][sid] = round(sum(warm_values) + float(obs_partial), 3)
+        audit.setdefault("current_hour", {})[sid] = {
+            "observed_partial_mm": round(float(obs_partial), 3),
+            "ifs_full_hour_mm": round(float(ifs_values[0]), 3),
+            "combined_hour_mm": round(current_blend, 3),
+        }
+
+    return {"times_utc": run_times_utc, "zones": run_zones}, audit
 
 
 def basin_text(zone_rain: dict, state: dict) -> str:
@@ -216,7 +371,7 @@ End:
 
 """)
     return f"""Basin: Bacia Spatial LIVE 15690.7km2
-     Description: Muçum spatial IFS forecast; 2-zone HEC-HMS pilot; observed Q assimilated as initial recession flow
+     Description: Muçum spatial IFS forecast with 48 h observed-rain warm-up; 2-zone HEC-HMS pilot
      Last Modified Date: 21 September 2026
      Last Modified Time: 22:00:00
      Version: 4.13
@@ -265,7 +420,7 @@ End:
 
 def met_text():
     return """Meteorology: Chuva Spatial LIVE
-     Description: ECMWF IFS 0.25 degree cell-overlap rainfall by two Thiessen zones
+     Description: 48 h observed ANA warm-up + ECMWF IFS future rainfall by two Thiessen zones
      Last Modified Date: 21 September 2026
      Last Modified Time: 22:00:00
      Version: 4.13
@@ -306,7 +461,7 @@ def gage_text(start_local: datetime, end_local: datetime):
         blocks.append(f"""Gage: Chuva_{sid}_LIVE
      Gage: Chuva_{sid}_LIVE
      Gage Type: Precipitation
-     Description: IFS spatial overlap over Thiessen zone {sid}
+     Description: observed warm-up plus IFS spatial forecast over zone {sid}
      Last Modified Date: 21 September 2026
      Last Modified Time: 22:00:00
      Reference Height Units: Meters
@@ -373,7 +528,7 @@ End:
 
 def control_text(start_local: datetime, end_local: datetime):
     return f"""Control: Evento Spatial LIVE
-     Description: 120 h ECMWF IFS forecast window
+     Description: 48 h observed warm-up plus ECMWF IFS forecast window
      Last Modified Date: 21 September 2026
      Last Modified Time: 22:00
      Version: 4.13
@@ -488,72 +643,100 @@ Exit(1)
 def main():
     spatial = load_json(SPATIAL)
     zones = load_zone_geometries()
-    zr = spatial_rain_to_zones(spatial, zones)
-    state = live_state()
-    times = zr["times_utc"]
+    zr_forecast = spatial_rain_to_zones(spatial, zones)
+    ctx = live_context()
+    zr_run, warmup_audit = build_run_rain(zr_forecast, ctx)
+
+    times = zr_run["times_utc"]
     start_local = iso_utc(times[0]).astimezone(BRT)
     end_local = iso_utc(times[-1]).astimezone(BRT)
 
     PROJECT.mkdir(parents=True, exist_ok=True)
-    zone_csv = write_zone_csv(zr)
+    zone_csv = write_zone_csv(zr_run)
 
     (PROJECT / "mucum_spatial_live.hms").write_text(project_text(), encoding="utf-8")
     (PROJECT / "mucum_spatial_live.run").write_text(run_text(), encoding="utf-8")
-    (PROJECT / "bacia_spatial_live.basin").write_text(basin_text(zr, state), encoding="utf-8")
+    (PROJECT / "bacia_spatial_live.basin").write_text(
+        basin_text(zr_run, ctx["warmup_start"]), encoding="utf-8"
+    )
     (PROJECT / "chuva_spatial_live.met").write_text(met_text(), encoding="utf-8")
-    (PROJECT / "evento_spatial_live.control").write_text(control_text(start_local, end_local), encoding="utf-8")
-    (PROJECT / "mucum_spatial_live.gage").write_text(gage_text(start_local, end_local), encoding="utf-8")
+    (PROJECT / "evento_spatial_live.control").write_text(
+        control_text(start_local, end_local), encoding="utf-8"
+    )
+    (PROJECT / "mucum_spatial_live.gage").write_text(
+        gage_text(start_local, end_local), encoding="utf-8"
+    )
     script = write_jython(zone_csv, start_local)
 
-    total_area = sum(zr["zones"][s]["area_declared_km2"] for s in ZONE_IDS)
+    total_area = sum(zr_forecast["zones"][s]["area_declared_km2"] for s in ZONE_IDS)
     basin_total = sum(
-        zr["zones"][s]["total_mm"] * zr["zones"][s]["area_declared_km2"] for s in ZONE_IDS
+        zr_forecast["zones"][s]["total_mm"] * zr_forecast["zones"][s]["area_declared_km2"]
+        for s in ZONE_IDS
     ) / total_area
+
+    initial = {
+        **ctx["warmup_start"],
+        "method": "observed Muçum Q at 48 h warm-up start as HEC-HMS Recession initial flow/area ratio",
+        "initial_flow_area_ratio_m3s_per_km2": round(
+            ctx["warmup_start"]["q_m3s"] / total_area, 9
+        ),
+    }
+    current = {
+        **ctx["current"],
+        "assimilation_method": (
+            "exact observed timestamp; HEC state interpolated within hourly step; "
+            "future stage bias-corrected to observed current level only after warm-up"
+        ),
+    }
+
     prep = {
-        "schema_version": "hec_hms_spatial_forecast_mucum_input_v1",
+        "schema_version": "hec_hms_spatial_forecast_mucum_input_v2_warmup",
         "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
         "model": "HEC-HMS 4.13 two-zone spatial pilot",
         "parameter_source": PARAMS,
-        "rain_source": "ECMWF IFS 0.25 degree full field; cell-zone overlap weighting",
+        "rain_source": "48 h ANA observed warm-up + ECMWF IFS 0.25 degree full field forecast",
         "all_spatial_cells_used": True,
         "spatial_cells": (spatial.get("grid") or {}).get("intersecting_cells"),
         "times_utc": times,
+        "forecast_times_utc": zr_forecast["times_utc"],
+        "forecast_start_utc": current["observed_at_utc"],
         "zones": {
             sid: {
                 k: (round(v, 6) if isinstance(v, float) else v)
-                for k, v in zr["zones"][sid].items() if k != "hourly_mm"
-            } | {"hourly_mm": [round(v,6) for v in zr["zones"][sid]["hourly_mm"]]}
+                for k, v in zr_forecast["zones"][sid].items() if k != "hourly_mm"
+            } | {"hourly_mm": [round(v,6) for v in zr_forecast["zones"][sid]["hourly_mm"]]}
             for sid in ZONE_IDS
         },
         "basin_equivalent_forecast_mm_for_audit": round(basin_total, 6),
-        "initial_state": {
-            **state,
-            "method": "observed Muçum Q distributed by zone area as HEC-HMS Recession initial flow/area ratio",
-            "initial_flow_area_ratio_m3s_per_km2": round(state["q_m3s"] / total_area, 9),
-        },
+        "warmup": warmup_audit,
+        "initial_state": initial,
+        "current_state": current,
         "runtime": {
             "project_dir": str(PROJECT.relative_to(ROOT)),
             "project": "mucum_spatial_live",
             "run": "Forecast",
             "jython_script": str(script.relative_to(ROOT)),
+            "time_interval_minutes": 60,
         },
-        "status": "input_ready_for_hec_hms_4_13",
+        "status": "input_ready_for_hec_hms_4_13_with_48h_warmup",
         "warning_pt": (
-            "Pesquisa. O projeto usa a espacialização HEC de duas zonas disponível no repositório; "
-            "não é o projeto original de 145 sub-bacias. A chuva, porém, vem do campo IFS completo "
-            "intersectado célula a célula com as zonas."
+            "Pesquisa. O HEC usa 48 h de chuva observada para aquecimento e ancora a saída "
+            "no último nível observado em seu timestamp real. Continua sendo o piloto de duas "
+            "zonas, não o projeto completo de 145 sub-bacias."
         ),
     }
-    (RUNTIME / "forecast_input.json").write_text(json.dumps(prep,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    (RUNTIME / "forecast_input.json").write_text(
+        json.dumps(prep,ensure_ascii=False,indent=2)+"\n", encoding="utf-8"
+    )
     print(json.dumps({
         "status": prep["status"],
         "spatial_cells": prep["spatial_cells"],
-        "zone_86472000_mm": round(zr["zones"]["86472000"]["total_mm"],3),
-        "zone_02851072_mm": round(zr["zones"]["02851072"]["total_mm"],3),
-        "basin_equiv_mm": round(basin_total,3),
-        "stage0_cm": state["stage_cm"],
-        "q0_m3s": round(state["q_m3s"],3),
-        "initial_flow_area_ratio": prep["initial_state"]["initial_flow_area_ratio_m3s_per_km2"],
+        "forecast_rain_mm": round(basin_total,3),
+        "warmup_hours": WARMUP_HOURS,
+        "warmup_stage_cm": initial["stage_cm"],
+        "current_stage_cm": current["stage_cm"],
+        "current_time_utc": current["observed_at_utc"],
+        "trend_1h_cm": current.get("trend_1h_cm"),
     }, ensure_ascii=False))
 
 
