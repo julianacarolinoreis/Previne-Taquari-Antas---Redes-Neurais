@@ -17,12 +17,14 @@ ZONES_PATH=ROOT/"assets/data/hec_hms_spatialized_mucum/thiessen_zones_86510000.g
 JSON_OUT=OUT/"mucum_observed_multistation_latest.json"
 RAIN_CSV=OUT/"mucum_observed_multistation_rain_hourly.csv"
 FLOW_CSV=OUT/"mucum_observed_multistation_flow_hourly.csv"
+LOCAL_RAIN_CSV=ROOT/"assets/data/chuvas_horarias.csv"
 BRT=timezone(timedelta(hours=-3)); UTC=timezone.utc
 EVENT_START_LOCAL=datetime(2026,9,26,0,0)
 ANA_URL="https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
 INMET_URL="https://apitempo.inmet.gov.br/estacao/{start}/{end}/{code}"
 CEMADEN_URL="https://mapservices.cemaden.gov.br/MapaInterativoWS/resources/horario/{station_id}/167"
 CEMADEN_IDS={"432040401A":"8928","4320404010A":"8928"}
+LOCAL_RAIN_COLUMNS={"86472600":"chuva_86472600","86472000":"chuva_86472000","2851044":"chuva_02851044","02851044":"chuva_02851044","2851072":"chuva_02851072","02851072":"chuva_02851072","A894":"chuva_inmet_A894","432040401A":"chuva_cemaden_4320404010A","4320404010A":"chuva_cemaden_4320404010A"}
 MAX_WORKERS=int(os.environ.get("OBS_FETCH_WORKERS","14"))
 GRID_STEP=float(os.environ.get("OBS_GRID_STEP_DEG","0.05"))
 
@@ -60,7 +62,12 @@ def fetch_ana(code,start,end):
 def parse_inmet_time(row):
     d=str(row.get("DT_MEDICAO") or "").strip(); h=str(row.get("HR_MEDICAO") or "").strip()
     if not d:return None
-    try:return datetime.strptime(d+(h.zfill(4)[:4] if h else "0000"),"%Y-%m-%d%H%M")
+    try:
+        # INMET hourly timestamps are UTC and CHUVA is the accumulation ending
+        # at the stamped hour. Convert to BRT and label the beginning of the
+        # one-hour interval, matching ANA/CEMADEN and chuvas_horarias.csv.
+        t_utc=datetime.strptime(d+(h.zfill(4)[:4] if h else "0000"),"%Y-%m-%d%H%M")
+        return t_utc-timedelta(hours=4)
     except ValueError:return None
 def fetch_inmet(code,start,end):
     url=INMET_URL.format(start=start.strftime("%Y-%m-%d"),end=end.strftime("%Y-%m-%d"),code=urllib.parse.quote(code))
@@ -77,17 +84,76 @@ def fetch_cemaden(code,start,end):
     sid=CEMADEN_IDS.get(code)
     if not sid:return {"rows":[],"source":"CEMADEN","error":"station id not mapped"}
     payload=json.loads(request(CEMADEN_URL.format(station_id=sid)).decode("utf-8",errors="replace") or "{}")
-    rows=[]; dates=payload.get("datas") if isinstance(payload,dict) else None
-    vals=(payload.get("chuvas") or payload.get("valores") or payload.get("precipitacoes") or []) if isinstance(payload,dict) else []
-    if isinstance(dates,list):
-        for i,raw_t in enumerate(dates):
-            txt=str(raw_t).replace("T"," ").replace("Z",""); dt=None
-            for fmt in ("%Y-%m-%d %H:%M:%S","%d/%m/%Y %H:%M:%S","%Y-%m-%d %H:%M"):
-                try:dt=datetime.strptime(txt[:19],fmt);break
-                except ValueError:pass
-            if dt is None or dt<start or dt>end:continue
-            rows.append({"time_local":dt,"rain_mm":finite(vals[i]) if i<len(vals) else None,"flow_m3s":None,"level":None})
+    rows=[]
+    if isinstance(payload,dict):
+        station=payload.get("estacao") or {}
+        returned=str(station.get("codEstacao") or "")
+        if returned and returned not in {code,"432040401A","4320404010A"}:
+            raise ValueError(f"CEMADEN returned station {returned}, expected {code}")
+        horarios=payload.get("horarios") or []
+        datas=payload.get("datas") or []
+        acumulados=payload.get("acumulados") or []
+        for di,data_txt in enumerate(datas):
+            if di>=len(acumulados) or not isinstance(acumulados[di],list):continue
+            try:data_utc=datetime.strptime(str(data_txt),"%d/%m/%Y")
+            except ValueError:continue
+            for hi,val in enumerate(acumulados[di][:len(horarios)]):
+                chuva=finite(val)
+                if chuva is None:continue
+                hora_txt=str(horarios[hi]).lower().split("h",1)[0]
+                try:t_local=data_utc+timedelta(hours=int(hora_txt))-timedelta(hours=3)
+                except ValueError:continue
+                if t_local<start or t_local>end:continue
+                rows.append({"time_local":t_local,"rain_mm":chuva,"flow_m3s":None,"level":None})
     return {"rows":rows,"source":"CEMADEN horário 167h"}
+def load_local_rain_fallback(start,end):
+    """Load the already-published multi-source hourly rain as a resilient fallback.
+
+    Direct APIs remain preferred. The CSV is used only where the live fetch did
+    not return a numeric observation; missing cells stay missing and never
+    become zero.
+    """
+    series={code:{} for code in LOCAL_RAIN_COLUMNS}
+    if not LOCAL_RAIN_CSV.exists():return series
+    with LOCAL_RAIN_CSV.open(encoding="utf-8-sig",newline="") as fh:
+        for row in csv.DictReader(fh):
+            raw=str(row.get("COD_SEQUENCIAL") or "")
+            try:t=datetime.strptime(raw,"%Y%m%d%H%M")
+            except ValueError:continue
+            if t<start or t>end:continue
+            for code,column in LOCAL_RAIN_COLUMNS.items():
+                value=finite(row.get(column))
+                if value is not None and value>=0:
+                    series[code][t.replace(minute=0,second=0,microsecond=0)]=value
+    return series
+
+def merge_local_rain_fallback(results,raincat,start,end):
+    fallback=load_local_rain_fallback(start,end)
+    merged={}
+    for st in raincat:
+        key=(st["network"],st["code"])
+        res=results.get(key) or {"rows":[],"hourly":{},"source":st["network"],"ok":False}
+        hourly=dict(res.get("hourly") or {})
+        aliases=[st["code"]]
+        if st["network"]=="ANA":
+            aliases.extend([st["code"].lstrip("0"),st["code"].zfill(8)])
+        fb={}
+        for alias in aliases:
+            if alias in fallback:fb.update(fallback[alias])
+        used=0
+        for t,value in fb.items():
+            cell=hourly.setdefault(t,{"rain_mm":None,"flow_m3s":None,"level":None})
+            if cell.get("rain_mm") is None:
+                cell["rain_mm"]=float(value);used+=1
+        if used:
+            res["hourly"]=hourly
+            res["ok"]=True
+            res["fallback_hours"]=used
+            res["source"]=(str(res.get("source") or st["network"])+" + chuvas_horarias.csv fallback")
+        results[key]=res
+        if used:merged[f"{st['network']}:{st['code']}"]=used
+    return merged
+
 def aggregate(rows):
     b={}
     for r in rows:
@@ -161,6 +227,7 @@ def main():
         for fut in as_completed(futs):
             try:results[futs[fut]]=fut.result()
             except Exception as e:results[futs[fut]]={"ok":False,"rows":[],"hourly":{},"error":str(e)}
+    fallback_merged=merge_local_rain_fallback(results,raincat,start,end)
     rains=[]
     for st in raincat:
         r=results.get((st["network"],st["code"])) or {};n=sum(v.get("rain_mm") is not None for v in (r.get("hourly") or {}).values())
@@ -189,7 +256,7 @@ def main():
             for h,v in sorted((e["result"].get("hourly") or {}).items()):
                 if v.get("flow_m3s") is None and v.get("level") is None:continue
                 w.writerow({"code":st["code"],"name":st["name"],"upg":st.get("upg"),"time_local":isots(h),"flow_m3s":"" if v.get("flow_m3s") is None else round(v["flow_m3s"],4),"level":"" if v.get("level") is None else round(v["level"],4)})
-    payload={"schema_version":"mucum_observed_multistation_v1","generated_at_utc":datetime.now(UTC).isoformat().replace("+00:00","Z"),"event_window":{"start_local":isots(start),"end_local":isots(end),"timezone":"America/Sao_Paulo"},"watershed":{"outlet_station":"86510000","scope":"bacia contribuinte até Muçum; postos a jusante excluídos"},"rain":{"inventory_count_inside":len(raincat),"valid_station_count":len(rains),"valid_by_network":{n:sum(e["station"]["network"]==n for e in rains) for n in ("ANA","INMET","CEMADEN")},"spatial_method":"IDW^2 em grade 0.05°; até 6 vizinhos; somente observações válidas; ausências não viram zero","hourly_areal":[{k:None if v is None else round(v,4) if isinstance(v,float) else v for k,v in row.items()} for row in areal],"stations":[{**e["station"],"source":e["result"].get("source"),"valid_hours":e["valid_hours"],"series":[{"time_local":isots(h),"mm":round(v["rain_mm"],4)} for h,v in sorted((e["result"].get("hourly") or {}).items()) if v.get("rain_mm") is not None]} for e in rains]},"flow":{"inventory_count_inside":len(flowcat),"stations_with_flow_or_level":len(flows),"stations_with_flow":sum(e["valid_flow_hours"]>0 for e in flows),"stations_with_level":sum(e["valid_level_hours"]>0 for e in flows),"stations":[{**e["station"],"source":e["result"].get("source"),"valid_flow_hours":e["valid_flow_hours"],"valid_level_hours":e["valid_level_hours"],"series":[{"time_local":isots(h),"flow_m3s":None if v.get("flow_m3s") is None else round(v["flow_m3s"],4),"level":None if v.get("level") is None else round(v["level"],4)} for h,v in sorted((e["result"].get("hourly") or {}).items()) if v.get("flow_m3s") is not None or v.get("level") is not None]} for e in flows]},"fetch_audit":{"requested_unique_station_count":len(all_items),"failed_count":sum(not bool(r.get("ok")) for r in results.values()),"failures":[{"network":k[0],"code":k[1],"error":r.get("error")} for k,r in results.items() if not r.get("ok")][:100]},"artifacts":{"rain_csv":str(RAIN_CSV.relative_to(ROOT)),"flow_csv":str(FLOW_CSV.relative_to(ROOT))},"research_only":True}
+    payload={"schema_version":"mucum_observed_multistation_v1","generated_at_utc":datetime.now(UTC).isoformat().replace("+00:00","Z"),"event_window":{"start_local":isots(start),"end_local":isots(end),"timezone":"America/Sao_Paulo"},"watershed":{"outlet_station":"86510000","scope":"bacia contribuinte até Muçum; postos a jusante excluídos"},"rain":{"inventory_count_inside":len(raincat),"valid_station_count":len(rains),"valid_by_network":{n:sum(e["station"]["network"]==n for e in rains) for n in ("ANA","INMET","CEMADEN")},"spatial_method":"IDW^2 em grade 0.05°; até 6 vizinhos; somente observações válidas; ausências não viram zero","hourly_areal":[{k:None if v is None else round(v,4) if isinstance(v,float) else v for k,v in row.items()} for row in areal],"stations":[{**e["station"],"source":e["result"].get("source"),"valid_hours":e["valid_hours"],"series":[{"time_local":isots(h),"mm":round(v["rain_mm"],4)} for h,v in sorted((e["result"].get("hourly") or {}).items()) if v.get("rain_mm") is not None]} for e in rains]},"flow":{"inventory_count_inside":len(flowcat),"stations_with_flow_or_level":len(flows),"stations_with_flow":sum(e["valid_flow_hours"]>0 for e in flows),"stations_with_level":sum(e["valid_level_hours"]>0 for e in flows),"stations":[{**e["station"],"source":e["result"].get("source"),"valid_flow_hours":e["valid_flow_hours"],"valid_level_hours":e["valid_level_hours"],"series":[{"time_local":isots(h),"flow_m3s":None if v.get("flow_m3s") is None else round(v["flow_m3s"],4),"level":None if v.get("level") is None else round(v["level"],4)} for h,v in sorted((e["result"].get("hourly") or {}).items()) if v.get("flow_m3s") is not None or v.get("level") is not None]} for e in flows]},"fetch_audit":{"requested_unique_station_count":len(all_items),"failed_count":sum(not bool(r.get("ok")) for r in results.values()),"fallback_merged_hours":fallback_merged,"failures":[{"network":k[0],"code":k[1],"error":r.get("error")} for k,r in results.items() if not r.get("ok")][:100]},"artifacts":{"rain_csv":str(RAIN_CSV.relative_to(ROOT)),"flow_csv":str(FLOW_CSV.relative_to(ROOT))},"research_only":True}
     JSON_OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps({"rain_inventory_inside":len(raincat),"rain_valid":len(rains),"rain_valid_by_network":payload["rain"]["valid_by_network"],"flow_inventory_inside":len(flowcat),"flow_stations_valid":len(flows),"flow_stations_with_q":payload["flow"]["stations_with_flow"],"failures":payload["fetch_audit"]["failed_count"],"event_start":payload["event_window"]["start_local"],"event_end":payload["event_window"]["end_local"]},ensure_ascii=False))
 if __name__=="__main__":main()
