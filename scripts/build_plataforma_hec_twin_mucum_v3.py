@@ -298,15 +298,18 @@ def build_feed_v3() -> dict:
             "q_mucum_m3s": ss.get("q_mucum_m3s") or [],
             "q_antas_m3s": [],
             "q_stz_diagnostic_m3s": [],
-            "n_mucum_anchored_cm": ss.get("n_mucum_anchored_cm") or [],
-            "delta_n_from_now_cm": ss.get("delta_n_from_now_cm") or [],
+            # Compatibility field names kept for the current UI, but the values
+            # are now the raw rating-curve stage from HEC-HMS with no visual anchor.
+            "n_mucum_anchored_cm": ss.get("n_mucum_rating_cm") or [],
+            "delta_n_from_now_cm": ss.get("delta_n_from_model_t0_cm") or [],
+            "stage_series_kind": "raw_rating_no_visual_anchor",
             "current_observed_stage_cm": sm.get("level_now_observed_cm"),
             "current_observed_q_rating_m3s": sm.get("q_now_observed_rating_m3s"),
             "primary": {
                 "event_id": "HEC-HMS-SPATIAL",
-                "rise_cm": sm.get("rise_from_now_cm"),
+                "rise_cm": sm.get("rise_from_model_t0_cm"),
                 "peak_time_utc": sm.get("peak_time_utc"),
-                "peak_anchored_cm": sm.get("peak_level_anchored_cm"),
+                "peak_anchored_cm": sm.get("peak_level_rating_cm"),
                 "peak_q_m3s": sm.get("peak_q_m3s"),
             },
             "horizon_hours": len(spatial_hec.get("times_utc") or []),
@@ -331,14 +334,15 @@ def build_feed_v3() -> dict:
             "plain_pt": (
                 f"HEC-HMS 4.13 executado com {rain.get('spatial_cells') or '?'} células IFS "
                 f"espacializadas, com 48 h de aquecimento observado. "
-                f"Nível atual {sm.get('level_now_observed_cm')} cm no timestamp real; "
-                f"pico {sm.get('peak_level_anchored_cm')} cm; ΔN {sm.get('rise_from_now_cm')} cm."
+                f"Nível observado {sm.get('level_now_observed_cm')} cm no timestamp real; "
+                f"pico HEC sem deslocamento {sm.get('peak_level_rating_cm')} cm; "
+                f"ΔN desde o estado HEC em t0 {sm.get('rise_from_model_t0_cm')} cm."
             ),
             "q_note_pt": (
                 "Q(t) é a saída do HEC-HMS 4.13 após 48 h de aquecimento com chuva observada. "
                 "O último nível de Muçum é comparado no timestamp real com o estado aquecido. "
-                "Nenhuma correção visual é tratada como assimilação; a rodada HEC permanece "
-                "bloqueada até existir reinicialização real dos estados internos no t0 observado."
+                "Nenhuma correção visual de nível é aplicada. A rodada só é promovida quando "
+                "o próprio aquecimento observado fecha com o t0 dentro das guardas."
             ),
             "artifact_json": "hec_hms_spatial_forecast_mucum_latest.json",
             "series_csv": "hec_hms_spatial_forecast_mucum/primary_series.csv",
@@ -367,10 +371,9 @@ def build_feed_v3() -> dict:
             "validation": validation,
             "blocking_reasons_pt": validation.get("blocking_reasons_pt") or sm.get("blocking_reasons_pt") or [],
             "plain_pt": (
-                "A rodada HEC foi executada, mas não foi publicada como previsão. O estado "
-                "hidrológico aquecido é comparado com a telemetria no timestamp real e, sem "
-                "reinicialização/assimilação real dos estados internos no t0 observado, a saída "
-                "permanece diagnóstica."
+                "A rodada HEC foi executada, mas não foi publicada como previsão porque nenhum "
+                "candidato fechou o estado hidrológico observado dentro das guardas. Nenhuma "
+                "correção visual de nível é aplicada; a saída permanece diagnóstica."
             ),
             "artifact_json": "hec_hms_spatial_forecast_mucum_latest.json",
             "series_csv": "hec_hms_spatial_forecast_mucum/primary_series.csv",
