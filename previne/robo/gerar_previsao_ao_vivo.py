@@ -2801,6 +2801,16 @@ def main():
                     f"indisponivel: base da RNA {atraso_h:.1f}h anterior a telemetria recente; "
                     "aguardando conjunto completo de entradas na mesma hora cheia"
                 )
+                # O validador exige uma auditoria explícita para todo horizonte
+                # indisponível. Mantemos todos os campos de contrato do modelo e
+                # mudamos apenas o estado da auditoria para refletir que a base,
+                # embora completa/exata, ficou velha demais para publicação ao vivo.
+                auditoria_inputs = dict(out.get("auditoria_inputs") or {})
+                auditoria_inputs["status"] = "ATENCAO"
+                auditoria_inputs["motivo_publicacao"] = (
+                    f"base horaria {atraso_h:.1f}h anterior a telemetria recente"
+                )
+                out["auditoria_inputs"] = auditoria_inputs
                 out.setdefault("qualidade_ao_vivo", {})["status"] = "BASE_DESATUALIZADA"
             elif (
                 out.get("input_grade") == "hourly_exact"
