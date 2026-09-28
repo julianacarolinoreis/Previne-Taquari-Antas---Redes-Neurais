@@ -1,282 +1,699 @@
 #!/usr/bin/env python3
+"""Observed rain + flow package for the current Muçum flood.
+
+Window: 26/09/2026 00:00 America/Sao_Paulo -> now.
+- Rain: every upstream station that has an actual valid observed series in the
+  operational PREVINE CSV, plus rain returned by active upstream ANA telemetry
+  and live INMET/CEMADEN sources when available.
+- Flow/level: active upstream ANA/SGB telemetric stations used by the live robot,
+  plus Muçum (86510000).
+- Missing observations remain missing and are never converted to zero.
+- Areal rain is IDW^2 from all valid gauges for each hour, clipped to the exact
+  HEC-HMS two-zone geometry.
+"""
 from __future__ import annotations
-import csv,json,math,os,urllib.parse,urllib.request,xml.etree.ElementTree as ET
-from concurrent.futures import ThreadPoolExecutor,as_completed
-from datetime import datetime,timedelta,timezone
+
+import csv
+import json
+import math
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-import numpy as np
-from shapely.geometry import Point,shape
+from typing import Any
+
+from shapely.geometry import Point, shape
 from shapely.ops import unary_union
 
-ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/"assets/data/estudo_bacia_taquari_antas"
-RAIN_CATALOG=OUT/"pluviometria_g040.geojson"
-FLOW_CATALOG=OUT/"postos_g040.geojson"
-BASIN_PATH=ROOT/"assets/data/hec_hms_spatialized_mucum/watershed_86510000_srtm.geojson"
-ZONES_PATH=ROOT/"assets/data/hec_hms_spatialized_mucum/thiessen_zones_86510000.geojson"
-JSON_OUT=OUT/"mucum_observed_multistation_latest.json"
-RAIN_CSV=OUT/"mucum_observed_multistation_rain_hourly.csv"
-FLOW_CSV=OUT/"mucum_observed_multistation_flow_hourly.csv"
-LOCAL_RAIN_CSV=ROOT/"assets/data/chuvas_horarias.csv"
-BRT=timezone(timedelta(hours=-3)); UTC=timezone.utc
-EVENT_START_LOCAL=datetime(2026,9,26,0,0)
-ANA_URL="https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
-INMET_URL="https://apitempo.inmet.gov.br/estacao/{start}/{end}/{code}"
-CEMADEN_URL="https://mapservices.cemaden.gov.br/MapaInterativoWS/resources/horario/{station_id}/167"
-CEMADEN_IDS={"432040401A":"8928","4320404010A":"8928"}
-LOCAL_RAIN_COLUMNS={"86472600":"chuva_86472600","86472000":"chuva_86472000","2851044":"chuva_02851044","02851044":"chuva_02851044","2851072":"chuva_02851072","02851072":"chuva_02851072","A894":"chuva_inmet_A894","432040401A":"chuva_cemaden_4320404010A","4320404010A":"chuva_cemaden_4320404010A"}
-MAX_WORKERS=int(os.environ.get("OBS_FETCH_WORKERS","14"))
-GRID_STEP=float(os.environ.get("OBS_GRID_STEP_DEG","0.05"))
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "assets/data/estudo_bacia_taquari_antas"
+RAIN_CATALOG = OUT / "pluviometria_g040.geojson"
+FLOW_CATALOG = OUT / "postos_g040.geojson"
+BASIN_PATH = ROOT / "assets/data/hec_hms_spatialized_mucum/watershed_86510000_srtm.geojson"
+ZONES_PATH = ROOT / "assets/data/hec_hms_spatialized_mucum/thiessen_zones_86510000.geojson"
+CHUVAS = ROOT / "assets/data/chuvas_horarias.csv"
+LIVE_STZ = ROOT / "previsao_ao_vivo.json"
+LIVE_MUC = ROOT / "previsao_ao_vivo_mucum.json"
 
-def load(path): return json.loads(path.read_text(encoding="utf-8"))
-def finite(v):
-    try:x=float(str(v).replace(",","."))
-    except (TypeError,ValueError):return None
+JSON_OUT = OUT / "mucum_observed_multistation_latest.json"
+RAIN_CSV = OUT / "mucum_observed_multistation_rain_hourly.csv"
+FLOW_CSV = OUT / "mucum_observed_multistation_flow_hourly.csv"
+
+BRT = timezone(timedelta(hours=-3))
+UTC = timezone.utc
+EVENT_START_LOCAL = datetime(2026, 9, 26, 0, 0)
+
+ANA_PRIMARY = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
+ANA_MIRROR = "https://www.ana.gov.br/telemetria1ws/ServiceANA.asmx/DadosHidrometeorologicos"
+INMET_URL = "https://apitempo.inmet.gov.br/estacao/{start}/{end}/{code}"
+CEMADEN_URL = "https://mapservices.cemaden.gov.br/MapaInterativoWS/resources/horario/{station_id}/167"
+CEMADEN_IDS = {"432040401A": "8928", "4320404010A": "8928"}
+
+# Existing operational observed-rain archive. Canonical code -> CSV column.
+CSV_RAIN_COLUMNS = {
+    "86472600": "chuva_86472600",
+    "86472000": "chuva_86472000",
+    "2851044": "chuva_02851044",
+    "2851072": "chuva_02851072",
+    "A894": "chuva_inmet_A894",
+    "432040401A": "chuva_cemaden_4320404010A",
+}
+# Extra upstream rain candidates used by current research/live models.
+EXTRA_RAIN_CODES = {"86510000", "86160000"}
+
+ANA_TIMEOUT = 12
+ANA_RETRIES = 2
+GRID_STEP = 0.05
+ANA_CACHE: dict[str, dict[str, Any]] = {}
+
+
+def load(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def finite(v: Any) -> float | None:
+    try:
+        x = float(str(v).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
     return x if math.isfinite(x) else None
-def lname(tag):return tag.rsplit("}",1)[-1]
-def parse_ana_time(v):
-    v=(v or "").strip().replace("T"," ")
-    for fmt in ("%Y-%m-%d %H:%M:%S","%d/%m/%Y %H:%M:%S","%Y-%m-%d %H:%M"):
-        try:return datetime.strptime(v[:19],fmt)
-        except ValueError:pass
+
+
+def lname(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def parse_ana_time(value: Any) -> datetime | None:
+    text = str(value or "").strip().replace("T", " ")
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%d/%m/%Y %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            return datetime.strptime(text[:19], fmt)
+        except ValueError:
+            pass
     return None
-def request(url,timeout=35):
-    req=urllib.request.Request(url,headers={"User-Agent":"PREVINE-Mucum-multistation/1.0","Accept":"application/json,text/xml,application/xml,*/*;q=0.8"})
-    with urllib.request.urlopen(req,timeout=timeout) as r:return r.read()
-def fetch_ana(code,start,end):
-    params=urllib.parse.urlencode({"codEstacao":code,"dataInicio":start.strftime("%d/%m/%Y"),"dataFim":end.strftime("%d/%m/%Y")})
-    root=ET.fromstring(request(f"{ANA_URL}?{params}")); roots=[root]
+
+
+def request_bytes(url: str, timeout: int = ANA_TIMEOUT) -> bytes:
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "previne-mucum-event/2.0",
+            "Accept": "application/json,text/xml,application/xml,*/*;q=0.8",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        return response.read()
+
+
+def parse_ana_xml(raw: bytes, start: datetime, end: datetime) -> list[dict[str, Any]]:
+    root = ET.fromstring(raw)
+    roots = [root]
     if (root.text or "").strip().startswith("<"):
-        try:roots.append(ET.fromstring(root.text))
-        except Exception:pass
-    rows=[]
+        try:
+            roots.append(ET.fromstring(root.text))
+        except Exception:
+            pass
+    rows: list[dict[str, Any]] = []
+    seen = set()
     for rt in roots:
         for node in rt.iter():
-            f={lname(ch.tag):(ch.text or "") for ch in node}
-            stamp=f.get("DataHora") or f.get("Data_Hora")
-            if not stamp:continue
-            dt=parse_ana_time(stamp)
-            if dt is None or dt<start or dt>end:continue
-            rows.append({"time_local":dt,"rain_mm":finite(f.get("Chuva") or f.get("chuva") or f.get("Precipitacao")),"flow_m3s":finite(f.get("Vazao") or f.get("vazao")),"level":finite(f.get("Nivel") or f.get("nivel"))})
-    return {"rows":rows,"source":"ANA DadosHidrometeorologicos"}
-def parse_inmet_time(row):
-    d=str(row.get("DT_MEDICAO") or "").strip(); h=str(row.get("HR_MEDICAO") or "").strip()
-    if not d:return None
-    try:
-        # INMET hourly timestamps are UTC and CHUVA is the accumulation ending
-        # at the stamped hour. Convert to BRT and label the beginning of the
-        # one-hour interval, matching ANA/CEMADEN and chuvas_horarias.csv.
-        t_utc=datetime.strptime(d+(h.zfill(4)[:4] if h else "0000"),"%Y-%m-%d%H%M")
-        return t_utc-timedelta(hours=4)
-    except ValueError:return None
-def fetch_inmet(code,start,end):
-    url=INMET_URL.format(start=start.strftime("%Y-%m-%d"),end=end.strftime("%Y-%m-%d"),code=urllib.parse.quote(code))
-    data=json.loads(request(url).decode("utf-8",errors="replace") or "[]")
-    if not isinstance(data,list):data=[]
-    rows=[]
-    for item in data:
-        if not isinstance(item,dict):continue
-        dt=parse_inmet_time(item)
-        if dt is None or dt<start or dt>end:continue
-        rows.append({"time_local":dt,"rain_mm":finite(item.get("CHUVA") if item.get("CHUVA") not in (None,"") else item.get("PRECIPITACAO_TOTAL_HORARIO_MM")),"flow_m3s":None,"level":None})
-    return {"rows":rows,"source":"INMET API Tempo"}
-def fetch_cemaden(code,start,end):
-    sid=CEMADEN_IDS.get(code)
-    if not sid:return {"rows":[],"source":"CEMADEN","error":"station id not mapped"}
-    payload=json.loads(request(CEMADEN_URL.format(station_id=sid)).decode("utf-8",errors="replace") or "{}")
-    rows=[]
-    if isinstance(payload,dict):
-        station=payload.get("estacao") or {}
-        returned=str(station.get("codEstacao") or "")
-        if returned and returned not in {code,"432040401A","4320404010A"}:
-            raise ValueError(f"CEMADEN returned station {returned}, expected {code}")
-        horarios=payload.get("horarios") or []
-        datas=payload.get("datas") or []
-        acumulados=payload.get("acumulados") or []
-        for di,data_txt in enumerate(datas):
-            if di>=len(acumulados) or not isinstance(acumulados[di],list):continue
-            try:data_utc=datetime.strptime(str(data_txt),"%d/%m/%Y")
-            except ValueError:continue
-            for hi,val in enumerate(acumulados[di][:len(horarios)]):
-                chuva=finite(val)
-                if chuva is None:continue
-                hora_txt=str(horarios[hi]).lower().split("h",1)[0]
-                try:t_local=data_utc+timedelta(hours=int(hora_txt))-timedelta(hours=3)
-                except ValueError:continue
-                if t_local<start or t_local>end:continue
-                rows.append({"time_local":t_local,"rain_mm":chuva,"flow_m3s":None,"level":None})
-    return {"rows":rows,"source":"CEMADEN horário 167h"}
-def load_local_rain_fallback(start,end):
-    """Load the already-published multi-source hourly rain as a resilient fallback.
+            fields = {lname(ch.tag): (ch.text or "") for ch in node}
+            stamp = fields.get("DataHora") or fields.get("Data_Hora")
+            if not stamp:
+                continue
+            dt = parse_ana_time(stamp)
+            if dt is None or dt < start or dt > end:
+                continue
+            key = (dt, fields.get("Chuva"), fields.get("Vazao"), fields.get("Nivel"))
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append(
+                {
+                    "time_local": dt,
+                    "rain_mm": finite(fields.get("Chuva") or fields.get("chuva") or fields.get("Precipitacao")),
+                    "flow_m3s": finite(fields.get("Vazao") or fields.get("vazao")),
+                    "level": finite(fields.get("Nivel") or fields.get("nivel")),
+                }
+            )
+    return rows
 
-    Direct APIs remain preferred. The CSV is used only where the live fetch did
-    not return a numeric observation; missing cells stay missing and never
-    become zero.
-    """
-    series={code:{} for code in LOCAL_RAIN_COLUMNS}
-    if not LOCAL_RAIN_CSV.exists():return series
-    with LOCAL_RAIN_CSV.open(encoding="utf-8-sig",newline="") as fh:
+
+def fetch_ana(code: str, start: datetime, end: datetime) -> dict[str, Any]:
+    """Same stable policy as the live robot: serial, primary+mirror, retry."""
+    code = str(code).lstrip("0") if str(code).startswith("0") and len(str(code)) == 8 else str(code)
+    if code in ANA_CACHE:
+        return ANA_CACHE[code]
+    params = urllib.parse.urlencode(
+        {
+            "codEstacao": code,
+            "dataInicio": start.strftime("%d/%m/%Y"),
+            "dataFim": end.strftime("%d/%m/%Y"),
+        }
+    )
+    errors = []
+    for attempt in range(ANA_RETRIES):
+        for base in (ANA_PRIMARY, ANA_MIRROR):
+            url = f"{base}?{params}"
+            try:
+                raw = request_bytes(url)
+                rows = parse_ana_xml(raw, start, end)
+                if rows:
+                    result = {
+                        "ok": True,
+                        "rows": rows,
+                        "source": "ANA/SGB DadosHidrometeorologicos",
+                        "endpoint": base,
+                    }
+                    ANA_CACHE[code] = result
+                    return result
+                errors.append(f"{base}: resposta sem série válida")
+            except urllib.error.HTTPError as exc:
+                errors.append(f"{base}: HTTP {exc.code}")
+            except Exception as exc:
+                errors.append(f"{base}: {exc}")
+        if attempt < ANA_RETRIES - 1:
+            time.sleep(3)
+    result = {"ok": False, "rows": [], "source": "ANA/SGB", "error": " | ".join(errors[-4:])}
+    ANA_CACHE[code] = result
+    return result
+
+
+def parse_inmet_time(row: dict[str, Any]) -> datetime | None:
+    d = str(row.get("DT_MEDICAO") or "").strip()
+    h = str(row.get("HR_MEDICAO") or "").strip()
+    if not d:
+        return None
+    try:
+        return datetime.strptime(d + (h.zfill(4)[:4] if h else "0000"), "%Y-%m-%d%H%M")
+    except ValueError:
+        return None
+
+
+def fetch_inmet(code: str, start: datetime, end: datetime) -> dict[str, Any]:
+    try:
+        url = INMET_URL.format(
+            start=start.strftime("%Y-%m-%d"),
+            end=end.strftime("%Y-%m-%d"),
+            code=urllib.parse.quote(code),
+        )
+        data = json.loads(request_bytes(url, timeout=15).decode("utf-8", errors="replace") or "[]")
+        if not isinstance(data, list):
+            data = []
+        rows = []
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            dt = parse_inmet_time(item)
+            if dt is None or dt < start or dt > end:
+                continue
+            rain = finite(
+                item.get("CHUVA")
+                if item.get("CHUVA") not in (None, "")
+                else item.get("PRECIPITACAO_TOTAL_HORARIO_MM")
+            )
+            rows.append({"time_local": dt, "rain_mm": rain, "flow_m3s": None, "level": None})
+        return {"ok": bool(rows), "rows": rows, "source": "INMET API Tempo"}
+    except Exception as exc:
+        return {"ok": False, "rows": [], "source": "INMET", "error": str(exc)}
+
+
+def fetch_cemaden(code: str, start: datetime, end: datetime) -> dict[str, Any]:
+    sid = CEMADEN_IDS.get(code)
+    if not sid:
+        return {"ok": False, "rows": [], "source": "CEMADEN", "error": "id CEMADEN não mapeado"}
+    try:
+        payload = json.loads(
+            request_bytes(CEMADEN_URL.format(station_id=sid), timeout=15).decode("utf-8", errors="replace")
+            or "{}"
+        )
+        dates = payload.get("datas") if isinstance(payload, dict) else None
+        vals = (
+            payload.get("chuvas")
+            or payload.get("valores")
+            or payload.get("precipitacoes")
+            or []
+        ) if isinstance(payload, dict) else []
+        rows = []
+        if isinstance(dates, list):
+            for i, raw_t in enumerate(dates):
+                text = str(raw_t).replace("T", " ").replace("Z", "")
+                dt = None
+                for fmt in ("%Y-%m-%d %H:%M:%S", "%d/%m/%Y %H:%M:%S", "%Y-%m-%d %H:%M"):
+                    try:
+                        dt = datetime.strptime(text[:19], fmt)
+                        break
+                    except ValueError:
+                        pass
+                if dt is None or dt < start or dt > end:
+                    continue
+                rows.append(
+                    {
+                        "time_local": dt,
+                        "rain_mm": finite(vals[i]) if i < len(vals) else None,
+                        "flow_m3s": None,
+                        "level": None,
+                    }
+                )
+        return {"ok": bool(rows), "rows": rows, "source": "CEMADEN horário 167h"}
+    except Exception as exc:
+        return {"ok": False, "rows": [], "source": "CEMADEN", "error": str(exc)}
+
+
+def aggregate_hourly(rows: list[dict[str, Any]]) -> dict[datetime, dict[str, float | None]]:
+    buckets: dict[datetime, dict[str, list[float]]] = {}
+    for row in rows:
+        t = row["time_local"].replace(minute=0, second=0, microsecond=0)
+        b = buckets.setdefault(t, {"rain": [], "flow": [], "level": []})
+        if row.get("rain_mm") is not None and float(row["rain_mm"]) >= 0:
+            b["rain"].append(float(row["rain_mm"]))
+        if row.get("flow_m3s") is not None and float(row["flow_m3s"]) >= 0:
+            b["flow"].append(float(row["flow_m3s"]))
+        if row.get("level") is not None:
+            b["level"].append(float(row["level"]))
+    return {
+        t: {
+            "rain_mm": sum(b["rain"]) if b["rain"] else None,
+            "flow_m3s": sum(b["flow"]) / len(b["flow"]) if b["flow"] else None,
+            "level": sum(b["level"]) / len(b["level"]) if b["level"] else None,
+        }
+        for t, b in buckets.items()
+    }
+
+
+def basin_and_zones():
+    basin = unary_union(
+        [shape(f["geometry"]) for f in load(BASIN_PATH).get("features") or [] if f.get("geometry")]
+    )
+    zones = {}
+    for feat in load(ZONES_PATH).get("features") or []:
+        props = feat.get("properties") or {}
+        if props.get("feature_type") == "thiessen_zone" and props.get("station"):
+            zones[str(props["station"])] = shape(feat["geometry"]).intersection(basin)
+    return basin, zones
+
+
+def catalog_map(path: Path, basin) -> dict[str, dict[str, Any]]:
+    out = {}
+    for feat in load(path).get("features") or []:
+        props = feat.get("properties") or {}
+        coords = (feat.get("geometry") or {}).get("coordinates") or []
+        if len(coords) < 2:
+            continue
+        lon, lat = finite(coords[0]), finite(coords[1])
+        code = str(props.get("codigo") or "").strip()
+        if not code or lon is None or lat is None or not basin.covers(Point(lon, lat)):
+            continue
+        out[code] = {
+            "code": code,
+            "name": props.get("nome") or code,
+            "network": str(props.get("rede") or "ANA").upper(),
+            "lat": float(lat),
+            "lon": float(lon),
+            "upg": props.get("upg"),
+            "in_previne_rain": bool(props.get("in_previne_rain")),
+            "operating_flag": props.get("situacao") if props.get("situacao") is not None else props.get("operando"),
+        }
+    return out
+
+
+def csv_observed_rain(start: datetime, end: datetime) -> dict[str, dict[datetime, float]]:
+    series = {code: {} for code in CSV_RAIN_COLUMNS}
+    if not CHUVAS.exists():
+        return series
+    with CHUVAS.open(encoding="utf-8-sig", newline="") as fh:
         for row in csv.DictReader(fh):
-            raw=str(row.get("COD_SEQUENCIAL") or "")
-            try:t=datetime.strptime(raw,"%Y%m%d%H%M")
-            except ValueError:continue
-            if t<start or t>end:continue
-            for code,column in LOCAL_RAIN_COLUMNS.items():
-                value=finite(row.get(column))
-                if value is not None and value>=0:
-                    series[code][t.replace(minute=0,second=0,microsecond=0)]=value
+            raw = str(row.get("COD_SEQUENCIAL") or "").strip()
+            try:
+                t = datetime.strptime(raw, "%Y%m%d%H%M")
+            except ValueError:
+                continue
+            if t < start or t > end:
+                continue
+            for code, col in CSV_RAIN_COLUMNS.items():
+                v = finite(row.get(col))
+                if v is not None and v >= 0:
+                    series[code][t.replace(minute=0, second=0, microsecond=0)] = float(v)
     return series
 
-def merge_local_rain_fallback(results,raincat,start,end):
-    fallback=load_local_rain_fallback(start,end)
-    merged={}
-    for st in raincat:
-        key=(st["network"],st["code"])
-        res=results.get(key) or {"rows":[],"hourly":{},"source":st["network"],"ok":False}
-        hourly=dict(res.get("hourly") or {})
-        aliases=[st["code"]]
-        if st["network"]=="ANA":
-            aliases.extend([st["code"].lstrip("0"),st["code"].zfill(8)])
-        fb={}
-        for alias in aliases:
-            if alias in fallback:fb.update(fallback[alias])
-        used=0
-        for t,value in fb.items():
-            cell=hourly.setdefault(t,{"rain_mm":None,"flow_m3s":None,"level":None})
-            if cell.get("rain_mm") is None:
-                cell["rain_mm"]=float(value);used+=1
-        if used:
-            res["hourly"]=hourly
-            res["ok"]=True
-            res["fallback_hours"]=used
-            res["source"]=(str(res.get("source") or st["network"])+" + chuvas_horarias.csv fallback")
-        results[key]=res
-        if used:merged[f"{st['network']}:{st['code']}"]=used
-    return merged
 
-def aggregate(rows):
-    b={}
-    for r in rows:
-        t=r["time_local"].replace(minute=0,second=0,microsecond=0); x=b.setdefault(t,{"rain":[],"flow":[],"level":[]})
-        if r.get("rain_mm") is not None and r["rain_mm"]>=0:x["rain"].append(float(r["rain_mm"]))
-        if r.get("flow_m3s") is not None and r["flow_m3s"]>=0:x["flow"].append(float(r["flow_m3s"]))
-        if r.get("level") is not None:x["level"].append(float(r["level"]))
-    return {t:{"rain_mm":sum(x["rain"]) if x["rain"] else None,"flow_m3s":sum(x["flow"])/len(x["flow"]) if x["flow"] else None,"level":sum(x["level"])/len(x["level"]) if x["level"] else None} for t,x in b.items()}
-def catalogs(path,basin,rain):
-    raw=load(path); out=[]
-    for feat in raw.get("features") or []:
-        p=feat.get("properties") or {}; c=(feat.get("geometry") or {}).get("coordinates") or []
-        lon=finite(c[0]) if len(c)>=2 else finite(p.get("lon")); lat=finite(c[1]) if len(c)>=2 else finite(p.get("lat"))
-        if lon is None or lat is None or not basin.covers(Point(lon,lat)):continue
-        if rain:
-            net=str(p.get("rede") or "ANA").upper()
-            if net not in {"ANA","INMET","CEMADEN"}:continue
-        else:
-            if str(p.get("tipo") or "").lower()!="fluviometrica":continue
-            net="ANA"
-        code=str(p.get("codigo") or "").strip()
-        if code:out.append({"code":code,"name":p.get("nome") or code,"network":net,"lat":float(lat),"lon":float(lon),"upg":p.get("upg"),"operating_flag":p.get("situacao") if rain else p.get("operando")})
-    return out
-def fetch_item(item,start,end):
-    try:
-        if item["network"]=="ANA":res=fetch_ana(item["code"].lstrip("0") if len(item["code"])==8 and item["code"].startswith("0") else item["code"],start,end)
-        elif item["network"]=="INMET":res=fetch_inmet(item["code"],start,end)
-        else:res=fetch_cemaden(item["code"],start,end)
-        res["ok"]=True
-    except Exception as e:res={"rows":[],"source":item["network"],"ok":False,"error":str(e)}
-    res["hourly"]=aggregate(res["rows"]);res["station"]=item;return res
-def geometries():
-    basin=unary_union([shape(f["geometry"]) for f in load(BASIN_PATH).get("features") or [] if f.get("geometry")])
-    zones={}
-    for feat in load(ZONES_PATH).get("features") or []:
-        p=feat.get("properties") or {}
-        if p.get("feature_type")=="thiessen_zone" and p.get("station"):zones[str(p["station"])]=shape(feat["geometry"]).intersection(basin)
-    return basin,zones
-def grid(geom):
-    minx,miny,maxx,maxy=geom.bounds; pts=[]; y=math.floor(miny/GRID_STEP)*GRID_STEP+GRID_STEP/2
-    while y<=maxy:
-        x=math.floor(minx/GRID_STEP)*GRID_STEP+GRID_STEP/2
-        while x<=maxx:
-            if geom.covers(Point(x,y)):pts.append((x,y,math.cos(math.radians(y))))
-            x+=GRID_STEP
-        y+=GRID_STEP
-    return pts
-def idw(g,stations,vals,k=6):
-    use=[s for s in stations if vals.get(s["code"]) is not None]
-    # One observed gauge is still evidence. For rare hours with only one valid
-    # station, use that value uniformly rather than inventing zero or blocking
-    # the entire warm-up. The hourly valid_station_count keeps this degradation
-    # explicit for audit; zero stations still remain missing.
-    if not use or not g:return None
-    sx=np.asarray([s["lon"] for s in use]);sy=np.asarray([s["lat"] for s in use]);sv=np.asarray([vals[s["code"]] for s in use],dtype=float)
-    total=aw=0.0
-    for gx,gy,a in g:
-        d2=((sx-gx)*math.cos(math.radians(gy)))**2+(sy-gy)**2
-        if np.any(d2<1e-12):v=float(sv[int(np.argmin(d2))])
-        else:
-            idx=np.argpartition(d2,min(k,len(d2))-1)[:min(k,len(d2))];w=1.0/d2[idx];v=float(np.sum(w*sv[idx])/np.sum(w))
-        total+=v*a;aw+=a
-    return total/aw if aw else None
-def isots(t):return t.isoformat(timespec="minutes")
-def main():
-    start=EVENT_START_LOCAL;end=datetime.now(BRT).replace(tzinfo=None);basin,zones=geometries()
-    rain_inventory=catalogs(RAIN_CATALOG,basin,True)
-    flowcat=catalogs(FLOW_CATALOG,basin,False)
+def active_flow_codes() -> set[str]:
+    codes = {"86510000"}
+    if LIVE_STZ.exists():
+        live = load(LIVE_STZ)
+        for item in live.get("estacoes_status") or []:
+            if not isinstance(item, dict):
+                continue
+            if item.get("ultima_leitura_bruta") and item.get("estacao"):
+                codes.add(str(item["estacao"]))
+    return codes
 
-    # ANA fluviometric stations may also publish a real-time Chuva field.
-    # They therefore belong to the observed-rain candidate network even when
-    # the inventory classifies the station as fluviometric rather than
-    # pluviometric. This is how stations such as 86472000/86510000 can
-    # contribute observed rain without being mislabeled as rain-only gauges.
-    raincat=[]
-    rain_seen=set()
-    for item in rain_inventory + flowcat:
-        key=(item["network"],item["code"])
-        if key in rain_seen:
+
+def fetch_network(station: dict[str, Any], start: datetime, end: datetime) -> dict[str, Any]:
+    network = station.get("network", "ANA")
+    if network == "INMET":
+        return fetch_inmet(station["code"], start, end)
+    if network == "CEMADEN":
+        return fetch_cemaden(station["code"], start, end)
+    return fetch_ana(station["code"], start, end)
+
+
+def grid(geom) -> list[tuple[float, float, float]]:
+    minx, miny, maxx, maxy = geom.bounds
+    points = []
+    y = math.floor(miny / GRID_STEP) * GRID_STEP + GRID_STEP / 2
+    while y <= maxy:
+        x = math.floor(minx / GRID_STEP) * GRID_STEP + GRID_STEP / 2
+        while x <= maxx:
+            if geom.covers(Point(x, y)):
+                points.append((x, y, max(0.1, math.cos(math.radians(y)))))
+            x += GRID_STEP
+        y += GRID_STEP
+    return points
+
+
+def idw_mean(
+    points: list[tuple[float, float, float]],
+    stations: list[dict[str, Any]],
+    values: dict[str, float],
+    k: int = 6,
+) -> float | None:
+    usable = [s for s in stations if values.get(s["code"]) is not None]
+    if not usable or not points:
+        return None
+    total = 0.0
+    total_area = 0.0
+    for gx, gy, area_weight in points:
+        distances = []
+        for s in usable:
+            dx = (float(s["lon"]) - gx) * math.cos(math.radians(gy))
+            dy = float(s["lat"]) - gy
+            d2 = dx * dx + dy * dy
+            distances.append((d2, float(values[s["code"]])))
+        distances.sort(key=lambda x: x[0])
+        nearest = distances[: min(k, len(distances))]
+        if nearest[0][0] < 1e-12:
+            value = nearest[0][1]
+        else:
+            ws = [1.0 / d2 for d2, _ in nearest]
+            value = sum(w * v for w, (_, v) in zip(ws, nearest)) / sum(ws)
+        total += value * area_weight
+        total_area += area_weight
+    return total / total_area if total_area else None
+
+
+def iso(t: datetime) -> str:
+    return t.isoformat(timespec="minutes")
+
+
+def main() -> int:
+    start = EVENT_START_LOCAL
+    end = datetime.now(BRT).replace(tzinfo=None)
+    basin, zones = basin_and_zones()
+    rain_catalog = catalog_map(RAIN_CATALOG, basin)
+    flow_catalog = catalog_map(FLOW_CATALOG, basin)
+
+    # 1) Operational archived rain is the non-negotiable baseline.
+    csv_rain = csv_observed_rain(start, end)
+    rain_series: dict[str, dict[datetime, float]] = {
+        code: dict(series) for code, series in csv_rain.items() if series
+    }
+    rain_sources: dict[str, str] = {
+        code: "PREVINE chuvas_horarias.csv" for code in rain_series
+    }
+
+    # Metadata for CSV rain stations can live in either rain or flow inventory.
+    rain_meta: dict[str, dict[str, Any]] = {}
+    for code in CSV_RAIN_COLUMNS:
+        st = rain_catalog.get(code) or flow_catalog.get(code)
+        if st:
+            rain_meta[code] = dict(st)
+
+    # 2) Query all active upstream flow stations from the live robot once.
+    flow_codes = active_flow_codes()
+    active_flow_meta = {
+        code: flow_catalog[code]
+        for code in flow_codes
+        if code in flow_catalog
+    }
+
+    # 3) Add upstream rainfall candidates actually used by PREVINE/current models.
+    rain_candidate_codes = {
+        code for code, st in rain_catalog.items() if st.get("in_previne_rain")
+    }
+    rain_candidate_codes |= EXTRA_RAIN_CODES
+    rain_candidate_codes |= set(active_flow_meta)
+    rain_query_meta: dict[str, dict[str, Any]] = {}
+    for code in sorted(rain_candidate_codes):
+        st = rain_catalog.get(code) or flow_catalog.get(code)
+        if st:
+            rain_query_meta[code] = dict(st)
+
+    # Fetch serially on purpose: this mirrors the stable policy of the live robot.
+    fetched: dict[str, dict[str, Any]] = {}
+    all_query_meta = dict(active_flow_meta)
+    all_query_meta.update(rain_query_meta)
+    for code, st in all_query_meta.items():
+        fetched[code] = fetch_network(st, start, end)
+        # Short courtesy pause prevents a burst against ANA public telemetry.
+        if st.get("network", "ANA") == "ANA":
+            time.sleep(0.15)
+
+    # Merge actual rainfall returned by active telemetry. CSV wins on overlap
+    # because it is the operational archived source already used by PREVINE.
+    for code, st in rain_query_meta.items():
+        result = fetched.get(code) or {}
+        hourly = aggregate_hourly(result.get("rows") or [])
+        network_rain = {
+            t: float(v["rain_mm"])
+            for t, v in hourly.items()
+            if v.get("rain_mm") is not None
+        }
+        if network_rain:
+            rain_meta[code] = dict(st)
+            rain_sources.setdefault(code, result.get("source") or st.get("network") or "telemetria")
+            target = rain_series.setdefault(code, {})
+            for t, v in network_rain.items():
+                target.setdefault(t, v)
+
+    # Keep only gauges with at least one real observed value since 26/09.
+    rain_series = {code: series for code, series in rain_series.items() if series}
+    rain_stations = []
+    for code in sorted(rain_series):
+        st = rain_meta.get(code) or rain_catalog.get(code) or flow_catalog.get(code)
+        if not st:
             continue
-        rain_seen.add(key)
-        raincat.append(dict(item))
+        item = dict(st)
+        item["source"] = rain_sources.get(code)
+        item["valid_hours"] = len(rain_series[code])
+        rain_stations.append(item)
 
-    all_items=[];seen=set()
-    for item in raincat+flowcat:
-        key=(item["network"],item["code"])
-        if key not in seen:seen.add(key);all_items.append(item)
-    results={}
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
-        futs={ex.submit(fetch_item,item,start,end):(item["network"],item["code"]) for item in all_items}
-        for fut in as_completed(futs):
-            try:results[futs[fut]]=fut.result()
-            except Exception as e:results[futs[fut]]={"ok":False,"rows":[],"hourly":{},"error":str(e)}
-    fallback_merged=merge_local_rain_fallback(results,raincat,start,end)
-    rains=[]
-    for st in raincat:
-        r=results.get((st["network"],st["code"])) or {};n=sum(v.get("rain_mm") is not None for v in (r.get("hourly") or {}).values())
-        if n:rains.append({"station":st,"result":r,"valid_hours":n})
-    flows=[]
-    for st in flowcat:
-        r=results.get((st["network"],st["code"])) or {};h=r.get("hourly") or {};nq=sum(v.get("flow_m3s") is not None for v in h.values());nl=sum(v.get("level") is not None for v in h.values())
-        if nq or nl:flows.append({"station":st,"result":r,"valid_flow_hours":nq,"valid_level_hours":nl})
-    hours=[];t=start
-    while t<=end.replace(minute=0,second=0,microsecond=0):hours.append(t);t+=timedelta(hours=1)
-    metas=[x["station"] for x in rains];grids={"basin":grid(basin),**{c:grid(g) for c,g in zones.items()}}
-    areal=[]
-    for h in hours:
-        vals={e["station"]["code"]:(e["result"].get("hourly") or {}).get(h,{}).get("rain_mm") for e in rains}
-        vals={k:float(v) for k,v in vals.items() if v is not None}
-        row={"time_local":isots(h),"valid_station_count":len(vals),"basin_mean_mm":idw(grids["basin"],metas,vals)}
-        for c in zones:row[f"zone_{c}_mm"]=idw(grids[c],metas,vals)
-        areal.append(row)
-    with RAIN_CSV.open("w",encoding="utf-8",newline="") as fh:
-        fields=["time_local","valid_station_count","basin_mean_mm"]+[f"zone_{c}_mm" for c in zones];w=csv.DictWriter(fh,fieldnames=fields);w.writeheader()
-        for row in areal:w.writerow({k:"" if v is None else round(v,4) if isinstance(v,float) else v for k,v in row.items()})
-    with FLOW_CSV.open("w",encoding="utf-8",newline="") as fh:
-        fields=["code","name","upg","time_local","flow_m3s","level"];w=csv.DictWriter(fh,fieldnames=fields);w.writeheader()
-        for e in flows:
-            st=e["station"]
-            for h,v in sorted((e["result"].get("hourly") or {}).items()):
-                if v.get("flow_m3s") is None and v.get("level") is None:continue
-                w.writerow({"code":st["code"],"name":st["name"],"upg":st.get("upg"),"time_local":isots(h),"flow_m3s":"" if v.get("flow_m3s") is None else round(v["flow_m3s"],4),"level":"" if v.get("level") is None else round(v["level"],4)})
-    payload={"schema_version":"mucum_observed_multistation_v1","generated_at_utc":datetime.now(UTC).isoformat().replace("+00:00","Z"),"event_window":{"start_local":isots(start),"end_local":isots(end),"timezone":"America/Sao_Paulo"},"watershed":{"outlet_station":"86510000","scope":"bacia contribuinte até Muçum; postos a jusante excluídos"},"rain":{"inventory_count_inside":len(raincat),"pluviometric_inventory_count_inside":len(rain_inventory),"candidate_policy":"pluviometric inventory + all upstream ANA fluviometric stations that actually publish Chuva; INMET/CEMADEN retained","valid_station_count":len(rains),"valid_by_network":{n:sum(e["station"]["network"]==n for e in rains) for n in ("ANA","INMET","CEMADEN")},"spatial_method":"IDW^2 em grade 0.05°; até 6 vizinhos; somente observações válidas; ausências não viram zero","hourly_areal":[{k:None if v is None else round(v,4) if isinstance(v,float) else v for k,v in row.items()} for row in areal],"stations":[{**e["station"],"source":e["result"].get("source"),"valid_hours":e["valid_hours"],"series":[{"time_local":isots(h),"mm":round(v["rain_mm"],4)} for h,v in sorted((e["result"].get("hourly") or {}).items()) if v.get("rain_mm") is not None]} for e in rains]},"flow":{"inventory_count_inside":len(flowcat),"stations_with_flow_or_level":len(flows),"stations_with_flow":sum(e["valid_flow_hours"]>0 for e in flows),"stations_with_level":sum(e["valid_level_hours"]>0 for e in flows),"stations":[{**e["station"],"source":e["result"].get("source"),"valid_flow_hours":e["valid_flow_hours"],"valid_level_hours":e["valid_level_hours"],"series":[{"time_local":isots(h),"flow_m3s":None if v.get("flow_m3s") is None else round(v["flow_m3s"],4),"level":None if v.get("level") is None else round(v["level"],4)} for h,v in sorted((e["result"].get("hourly") or {}).items()) if v.get("flow_m3s") is not None or v.get("level") is not None]} for e in flows]},"fetch_audit":{"requested_unique_station_count":len(all_items),"failed_count":sum(not bool(r.get("ok")) for r in results.values()),"fallback_merged_hours":fallback_merged,"failures":[{"network":k[0],"code":k[1],"error":r.get("error")} for k,r in results.items() if not r.get("ok")][:100]},"artifacts":{"rain_csv":str(RAIN_CSV.relative_to(ROOT)),"flow_csv":str(FLOW_CSV.relative_to(ROOT))},"research_only":True}
-    JSON_OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-    print(json.dumps({"rain_inventory_inside":len(raincat),"rain_pluviometric_inventory_inside":len(rain_inventory),"rain_candidates_include_fluviometric_chuva_field":True,"rain_valid":len(rains),"rain_valid_by_network":payload["rain"]["valid_by_network"],"flow_inventory_inside":len(flowcat),"flow_stations_valid":len(flows),"flow_stations_with_q":payload["flow"]["stations_with_flow"],"failures":payload["fetch_audit"]["failed_count"],"event_start":payload["event_window"]["start_local"],"event_end":payload["event_window"]["end_local"]},ensure_ascii=False))
-if __name__=="__main__":main()
+    # Flow/level: active upstream stations only, including Muçum.
+    flow_stations = []
+    flow_hourly: dict[str, dict[datetime, dict[str, float | None]]] = {}
+    for code, st in active_flow_meta.items():
+        result = fetched.get(code) or {}
+        hourly = aggregate_hourly(result.get("rows") or [])
+        nq = sum(v.get("flow_m3s") is not None for v in hourly.values())
+        nl = sum(v.get("level") is not None for v in hourly.values())
+        if not nq and not nl:
+            continue
+        flow_hourly[code] = hourly
+        item = dict(st)
+        item.update(
+            {
+                "source": result.get("source"),
+                "valid_flow_hours": nq,
+                "valid_level_hours": nl,
+            }
+        )
+        flow_stations.append(item)
+
+    # Hourly areal rainfall by exact HEC zones.
+    grids = {"basin": grid(basin), **{code: grid(geom) for code, geom in zones.items()}}
+    hours = []
+    t = start
+    while t <= end.replace(minute=0, second=0, microsecond=0):
+        hours.append(t)
+        t += timedelta(hours=1)
+
+    areal_rows = []
+    for hour in hours:
+        values = {
+            code: series[hour]
+            for code, series in rain_series.items()
+            if hour in series
+        }
+        row: dict[str, Any] = {
+            "time_local": iso(hour),
+            "valid_station_count": len(values),
+            "valid_station_codes": sorted(values),
+            "basin_mean_mm": idw_mean(grids["basin"], rain_stations, values),
+        }
+        for code in zones:
+            row[f"zone_{code}_mm"] = idw_mean(grids[code], rain_stations, values)
+        areal_rows.append(row)
+
+    with RAIN_CSV.open("w", encoding="utf-8", newline="") as fh:
+        fields = [
+            "time_local",
+            "valid_station_count",
+            "valid_station_codes",
+            "basin_mean_mm",
+            *[f"zone_{code}_mm" for code in zones],
+        ]
+        writer = csv.DictWriter(fh, fieldnames=fields)
+        writer.writeheader()
+        for row in areal_rows:
+            writer.writerow(
+                {
+                    k: (
+                        ";".join(v)
+                        if isinstance(v, list)
+                        else ""
+                        if v is None
+                        else round(v, 4)
+                        if isinstance(v, float)
+                        else v
+                    )
+                    for k, v in row.items()
+                }
+            )
+
+    with FLOW_CSV.open("w", encoding="utf-8", newline="") as fh:
+        fields = ["code", "name", "upg", "time_local", "flow_m3s", "level"]
+        writer = csv.DictWriter(fh, fieldnames=fields)
+        writer.writeheader()
+        for st in flow_stations:
+            for hour, values in sorted(flow_hourly[st["code"]].items()):
+                if values.get("flow_m3s") is None and values.get("level") is None:
+                    continue
+                writer.writerow(
+                    {
+                        "code": st["code"],
+                        "name": st["name"],
+                        "upg": st.get("upg"),
+                        "time_local": iso(hour),
+                        "flow_m3s": "" if values.get("flow_m3s") is None else round(float(values["flow_m3s"]), 4),
+                        "level": "" if values.get("level") is None else round(float(values["level"]), 4),
+                    }
+                )
+
+    rain_payload = []
+    for st in rain_stations:
+        code = st["code"]
+        rain_payload.append(
+            {
+                **st,
+                "series": [
+                    {"time_local": iso(t), "mm": round(v, 4)}
+                    for t, v in sorted(rain_series[code].items())
+                ],
+            }
+        )
+
+    flow_payload = []
+    for st in flow_stations:
+        code = st["code"]
+        flow_payload.append(
+            {
+                **st,
+                "series": [
+                    {
+                        "time_local": iso(t),
+                        "flow_m3s": None if v.get("flow_m3s") is None else round(float(v["flow_m3s"]), 4),
+                        "level": None if v.get("level") is None else round(float(v["level"]), 4),
+                    }
+                    for t, v in sorted(flow_hourly[code].items())
+                    if v.get("flow_m3s") is not None or v.get("level") is not None
+                ],
+            }
+        )
+
+    failures = [
+        {"code": code, "network": st.get("network"), "error": (fetched.get(code) or {}).get("error")}
+        for code, st in all_query_meta.items()
+        if not (fetched.get(code) or {}).get("ok")
+    ]
+
+    payload = {
+        "schema_version": "mucum_observed_multistation_v2",
+        "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "event_window": {
+            "start_local": iso(start),
+            "end_local": iso(end),
+            "timezone": "America/Sao_Paulo",
+        },
+        "watershed": {
+            "outlet_station": "86510000",
+            "scope": "bacia contribuinte até Muçum; estações a jusante excluídas",
+        },
+        "rain": {
+            "inventory_count_inside": len(rain_catalog),
+            "valid_station_count": len(rain_stations),
+            "valid_station_codes": [st["code"] for st in rain_stations],
+            "valid_by_network": {
+                net: sum(st.get("network") == net for st in rain_stations)
+                for net in ("ANA", "INMET", "CEMADEN")
+            },
+            "spatial_method": (
+                "IDW^2 por hora em grade 0.05° sobre a bacia e zonas HEC; "
+                "usa todos os postos com observação válida; ausência permanece ausente, nunca zero"
+            ),
+            "hourly_areal": [
+                {
+                    k: (None if v is None else round(v, 4) if isinstance(v, float) else v)
+                    for k, v in row.items()
+                }
+                for row in areal_rows
+            ],
+            "stations": rain_payload,
+        },
+        "flow": {
+            "active_candidate_codes": sorted(active_flow_meta),
+            "stations_with_flow_or_level": len(flow_stations),
+            "stations_with_flow": sum(st["valid_flow_hours"] > 0 for st in flow_stations),
+            "stations_with_level": sum(st["valid_level_hours"] > 0 for st in flow_stations),
+            "stations": flow_payload,
+        },
+        "fetch_audit": {
+            "queried_station_count": len(all_query_meta),
+            "failed_count": len(failures),
+            "failures": failures,
+            "policy": "serial ANA queries; primary+mirror; 2 retries; operational CSV retained as rainfall baseline",
+        },
+        "artifacts": {
+            "rain_csv": str(RAIN_CSV.relative_to(ROOT)),
+            "flow_csv": str(FLOW_CSV.relative_to(ROOT)),
+        },
+        "research_only": True,
+    }
+    JSON_OUT.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(
+        json.dumps(
+            {
+                "rain_inventory_inside": len(rain_catalog),
+                "rain_valid": len(rain_stations),
+                "rain_codes": [st["code"] for st in rain_stations],
+                "rain_valid_by_network": payload["rain"]["valid_by_network"],
+                "flow_active_candidates": len(active_flow_meta),
+                "flow_valid": len(flow_stations),
+                "flow_with_q": payload["flow"]["stations_with_flow"],
+                "failures": len(failures),
+                "event_start": payload["event_window"]["start_local"],
+                "event_end": payload["event_window"]["end_local"],
+            },
+            ensure_ascii=False,
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
