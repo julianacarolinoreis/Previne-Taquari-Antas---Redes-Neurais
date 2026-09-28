@@ -99,6 +99,11 @@ jobs:
             exit 0
           fi
           git commit -m "bot: calibração HEC Muçum evento 26-09 [skip ci]"
+          # A calibração também reescreve artefatos temporários do HEC que não
+          # pertencem a este commit. Limpe-os antes de rebase/push para evitar
+          # falha por "unstaged changes" quando outro robô publica em paralelo.
+          git restore --worktree . || true
+          git clean -fd -- assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum || true
           for attempt in 1 2 3 4 5; do
             if git push origin HEAD:main; then
               exit 0
