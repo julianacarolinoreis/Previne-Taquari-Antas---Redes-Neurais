@@ -23,6 +23,7 @@ from __future__ import annotations
 import csv
 import json
 import math
+import os
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -48,17 +49,52 @@ HALF = GRID_DEG / 2.0
 BRT = timezone(timedelta(hours=-3))
 PROJECT_CRS = Transformer.from_crs("EPSG:4326", "EPSG:31982", always_xy=True).transform
 
-# Best actual HEC-HMS 4.13 two-zone candidate currently available among the
-# stored spatialized runs: E27 (NSE 0.8567; peak error 6.14%; lag +5 h).
-PARAMS = {
-    "source_event": "E27",
-    "initial_loss_mm": 2.5,
-    "constant_loss_mm_h": 2.0,
-    "tc_h": 10.0,
-    "storage_h": 45.0,
-    "recession_constant_daily": 0.8,
-    "threshold_ratio_to_peak": 0.1,
+# HEC-HMS 4.13 candidates already executed in the semidistributed replay
+# package. Live operation must not assume that a single historical event
+# transfers to every flood. The workflow can run all candidates and select
+# against the observed warm-up state at t0.
+PRESET_PARAMS = {
+    "E19": {
+        "source_event": "E19",
+        "initial_loss_mm": 10.0,
+        "constant_loss_mm_h": 1.0,
+        "tc_h": 60.0,
+        "storage_h": 60.0,
+        "recession_constant_daily": 0.9,
+        "threshold_ratio_to_peak": 0.1,
+    },
+    "E22": {
+        "source_event": "E22",
+        "initial_loss_mm": 1.0,
+        "constant_loss_mm_h": 4.0,
+        "tc_h": 4.0,
+        "storage_h": 90.0,
+        "recession_constant_daily": 0.98,
+        "threshold_ratio_to_peak": 0.1,
+    },
+    "E27": {
+        "source_event": "E27",
+        "initial_loss_mm": 2.5,
+        "constant_loss_mm_h": 2.0,
+        "tc_h": 10.0,
+        "storage_h": 45.0,
+        "recession_constant_daily": 0.8,
+        "threshold_ratio_to_peak": 0.1,
+    },
+    "E28": {
+        "source_event": "E28",
+        "initial_loss_mm": 20.0,
+        "constant_loss_mm_h": 2.0,
+        "tc_h": 30.0,
+        "storage_h": 30.0,
+        "recession_constant_daily": 0.9,
+        "threshold_ratio_to_peak": 0.1,
+    },
 }
+PARAM_EVENT = os.environ.get("HEC_PARAM_EVENT", "E27").upper()
+if PARAM_EVENT not in PRESET_PARAMS:
+    raise RuntimeError(f"unsupported HEC_PARAM_EVENT={PARAM_EVENT}; use {sorted(PRESET_PARAMS)}")
+PARAMS = PRESET_PARAMS[PARAM_EVENT]
 ZONE_IDS = ("86472000", "02851072")
 WARMUP_HOURS = 48
 RAIN_COLUMNS = {"86472000": "chuva_86472000", "02851072": "chuva_02851072"}
