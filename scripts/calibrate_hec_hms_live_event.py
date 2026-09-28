@@ -78,7 +78,7 @@ def objective(pkg: dict) -> tuple[float, dict]:
     # Current flood: preserve the whole-event fit, but strongly constrain the
     # present state and rising-limb speed because those control the forecast
     # launched at t0.
-    score = rmse / 120.0 + stage / 30.0 + qerr / 25.0 + trend / 15.0 + lag / 24.0
+    score = rmse / 120.0 + stage / 30.0 + qerr / 25.0 + trend / 8.0 + lag / 24.0
     if nse < -20:
         score += 5.0
     metrics = {
@@ -159,8 +159,11 @@ def main() -> int:
     # timing jointly with stronger Initial+Constant losses so timing and
     # magnitude can be reconciled instead of trading one error for the other.
     timing_pairs = [
-        (10.0, 10.0), (10.0, 15.0), (10.0, 20.0),
-        (15.0, 10.0), (15.0, 15.0), (15.0, 20.0),
+        # Explicit fast-limb candidates for the ongoing 28/09 rise.
+        (2.0, 2.0), (3.0, 3.0), (4.0, 4.0), (5.0, 3.0),
+        (5.0, 5.0), (5.0, 8.0), (8.0, 5.0), (8.0, 8.0),
+        (8.0, 12.0), (10.0, 8.0), (10.0, 10.0), (10.0, 15.0),
+        (10.0, 20.0), (15.0, 10.0), (15.0, 15.0), (15.0, 20.0),
         (20.0, 10.0), (20.0, 15.0), (20.0, 20.0), (20.0, 30.0),
         (25.0, 20.0), (25.0, 25.0), (30.0, 20.0), (30.0, 30.0),
         (40.0, 40.0), (50.0, 50.0), (60.0, 60.0),
@@ -177,6 +180,13 @@ def main() -> int:
         (50.0, 5.0, 0.90),
         (50.0, 6.0, 0.90),
         (60.0, 6.0, 0.90),
+        # High-loss profiles permit a fast Clark response without exploding
+        # event volume, which is necessary to reproduce the observed limb.
+        (60.0, 8.0, 0.90),
+        (80.0, 6.0, 0.90),
+        (80.0, 8.0, 0.90),
+        (100.0, 8.0, 0.90),
+        (100.0, 10.0, 0.90),
         (20.0, 4.0, 0.80),
     ]
 
@@ -209,7 +219,7 @@ def main() -> int:
     uniq = {}
     for event, p, label in candidates:
         uniq[(event,) + key(p)] = (event, p, label)
-    candidates = list(uniq.values())[:180]
+    candidates = list(uniq.values())[:320]
 
     rows = []
     for event, p, label in candidates:
@@ -256,7 +266,8 @@ def main() -> int:
                 rows.append({"label": f"state_{sidx:02d}_m{mult:.2f}", "seed_event": r.get("seed_event"), **p, "score": 1e9, "error": str(exc)})
 
     valid = [r for r in rows if fnum(r.get("score")) < 1e8]
-    best = min(valid, key=lambda r: fnum(r.get("score")))
+    preferred = [r for r in valid if bool(r.get("publishable"))]
+    best = min(preferred or valid, key=lambda r: fnum(r.get("score")))
     seed_event = str(best.get("seed_event") or selected_seed)
     bp = {k: best[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}
 
@@ -285,7 +296,8 @@ def main() -> int:
             rows.append({"label": f"fine_{i:02d}", "seed_event": seed_event, **p, "score": 1e9, "error": str(exc)})
 
     valid = [r for r in rows if fnum(r.get("score")) < 1e8]
-    best = min(valid, key=lambda r: fnum(r.get("score")))
+    preferred = [r for r in valid if bool(r.get("publishable"))]
+    best = min(preferred or valid, key=lambda r: fnum(r.get("score")))
     best_params = {k: best[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}
 
     # Rerun the winner last so all generic files correspond to the selected calibration.
