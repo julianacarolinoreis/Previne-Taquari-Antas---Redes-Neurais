@@ -17,6 +17,7 @@ on:
       - "scripts/build_hec_twin_ifs_spatial_forcing_5d.py"
       - "scripts/build_mucum_twin_subbasin_zones.py"
       - "assets/data/estudo_bacia_taquari_antas/mucum_twin_subbasin_zones.geojson"
+      - "scripts/build_mucum_observed_multistation.py"
       - "scripts/build_hec_hms_spatial_forecast_mucum.py"
       - "scripts/postprocess_hec_hms_spatial_forecast_mucum.py"
       - "scripts/select_hec_hms_live_candidate.py"
@@ -58,6 +59,9 @@ jobs:
 
       - name: Dependências do campo espacial
         run: pip install --disable-pip-version-check shapely pyproj matplotlib
+
+      - name: Observado multirrede · chuva + vazão desde 26/09
+        run: python -B scripts/build_mucum_observed_multistation.py
 
       - name: IFS espacial · bacia contribuinte até Muçum
         run: python -B scripts/build_spatial_ifs_mucum.py
@@ -115,7 +119,7 @@ jobs:
 
           git restore --             assets/data/estudo_bacia_taquari_antas/decisao_previsao_nivel_multi_alvo_latest.json             assets/data/estudo_bacia_taquari_antas/README.md || true
 
-          git add --             assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum             assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum             assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_latest.json             assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_selection_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_spatial_forcing_5d_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d             assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json             assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html             plataforma_hec_twin.html
+          git add --             assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_latest.json             assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_rain_hourly.csv             assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_flow_hourly.csv             assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum             assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum             assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_latest.json             assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_selection_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_spatial_forcing_5d_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d_latest.json             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d.html             assets/data/estudo_bacia_taquari_antas/hec_twin_mucum_forward_5d             assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum_latest.json             assets/data/estudo_bacia_taquari_antas/plataforma_hec_twin_mucum.html             plataforma_hec_twin.html
 
           if git diff --cached --quiet; then
             echo "Sem mudança neste ciclo HEC."
@@ -134,6 +138,7 @@ jobs:
               git rebase --abort || true
               git reset --hard origin/main
               pip install --disable-pip-version-check shapely pyproj matplotlib
+              python -B scripts/build_mucum_observed_multistation.py
               python -B scripts/build_spatial_ifs_mucum.py
               python -B scripts/build_spatial_ifs_mucum.py
               python -B scripts/build_hec_twin_ifs_spatial_forcing_5d.py
