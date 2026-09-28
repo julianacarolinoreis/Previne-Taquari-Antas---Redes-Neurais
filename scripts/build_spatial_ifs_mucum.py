@@ -32,6 +32,7 @@ from shapely.ops import transform, unary_union
 ROOT = Path(__file__).resolve().parents[1]
 WATERSHED = ROOT / "assets/data/hec_hms_spatialized_mucum/watershed_86510000_srtm.geojson"
 OUT = ROOT / "assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum"
+LIVE = ROOT / "previsao_ao_vivo_mucum.json"
 HORIZON_HOURS = 120
 GRID_DEG = 0.25
 HALF = GRID_DEG / 2.0
@@ -105,6 +106,27 @@ def _parse_hour(raw: str) -> datetime:
         return datetime.fromisoformat(raw.replace("Z", "+00:00"))
     dt = datetime.fromisoformat(raw)
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def forecast_start_hour() -> datetime:
+    """Anchor the IFS grid to the latest live Muçum observation hour.
+
+    The telemetric level can legitimately arrive 15/30/45 min behind wall-clock
+    time. Starting the IFS field at the wall-clock hour can then put the latest
+    observation *before* the first forecast hour and make the HEC assimilation
+    fail. Using the observation's own hour keeps the first IFS hour aligned
+    with the state being assimilated. If the live artifact is unavailable,
+    retain the previous wall-clock fallback.
+    """
+    try:
+        live = json.loads(LIVE.read_text(encoding="utf-8"))
+        raw = live.get("telemetria_ultima_em_utc") or live.get("nivel_rio_agora_em_utc")
+        if raw:
+            observed = _parse_hour(raw).astimezone(timezone.utc)
+            return observed.replace(minute=0, second=0, microsecond=0)
+    except Exception:
+        pass
+    return utc_now_hour()
 
 
 def fetch_batch(points: list[dict], start_utc: datetime) -> list[dict]:
@@ -332,7 +354,7 @@ def write_outputs(basin, cells, basin_area, overlap_sum, start_utc):
 def main():
     basin = load_basin()
     cells, basin_area, overlap_sum = build_cells(basin)
-    start = utc_now_hour()
+    start = forecast_start_hour()
     fetched = fetch_all(cells, start)
     write_outputs(basin, fetched, basin_area, overlap_sum, start)
 
