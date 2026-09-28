@@ -1,6 +1,6 @@
 {
   "schema_version": "hec_hms_spatial_forecast_mucum_v2_warmup",
-  "generated_at_utc": "2026-09-28T20:59:06.522701Z",
+  "generated_at_utc": "2026-09-28T21:00:33.289895Z",
   "status": "hec_hms_4_13_blocked_inconsistent_state",
   "publishable": false,
   "model": "HEC-HMS 4.13",
@@ -964,8 +964,7 @@
     "publishable": false,
     "blocking_reasons_pt": [
       "estado aquecido difere +703.4 cm do nível observado atual",
-      "vazão do estado aquecido difere +214.4% da vazão derivada do observado",
-      "reinicialização/assimilação dos estados internos do HEC-HMS no t0 observado ainda não implementada; rodada mantida diagnóstica"
+      "vazão do estado aquecido difere +214.4% da vazão derivada do observado"
     ],
     "raw_warmed_stage_at_current_cm": 1521.36,
     "stage_error_at_t0_cm": 703.36,
@@ -975,6 +974,8 @@
     "observed_trend_last_1h_cm": 78.0,
     "model_trend_next_1h_cm": 12.36,
     "state_assimilation_applied": false,
+    "visual_stage_anchor_applied": false,
+    "warmup_state_matches_observation": false,
     "forecast_validation_timestamp_is_exact_observation_time": true
   },
   "summary": {
@@ -988,8 +989,7 @@
     "publishable": false,
     "blocking_reasons_pt": [
       "estado aquecido difere +703.4 cm do nível observado atual",
-      "vazão do estado aquecido difere +214.4% da vazão derivada do observado",
-      "reinicialização/assimilação dos estados internos do HEC-HMS no t0 observado ainda não implementada; rodada mantida diagnóstica"
+      "vazão do estado aquecido difere +214.4% da vazão derivada do observado"
     ],
     "peak_q_m3s": null,
     "peak_time_utc": null,
@@ -1393,7 +1393,7 @@
     ],
     "n_flow_paths": 3
   },
-  "warning_pt": "HEC-HMS 4.13 com 48 h de chuva observada para aquecimento e ECMWF/IFS espacial no futuro. O último nível de Muçum é usado no timestamp real para validar o estado aquecido; nenhuma correção visual de nível é tratada como assimilação. Sem reinicialização real dos estados internos no t0 observado, a rodada permanece diagnóstica e não publicável. Continua sendo o piloto de duas zonas, não alerta oficial.",
+  "warning_pt": "HEC-HMS 4.13 com 48 h de chuva observada para aquecimento e ECMWF/IFS espacial no futuro. O último nível de Muçum é usado no timestamp real para validar o estado aquecido; nenhuma correção visual de nível é aplicada. A rodada só é publicável quando o próprio aquecimento observado fecha com o estado atual dentro das guardas de nível, vazão e tendência. Continua sendo o piloto de duas zonas, não alerta oficial.",
   "artifacts": {
     "input": "assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/forecast_input.json",
     "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/primary_series.csv",
