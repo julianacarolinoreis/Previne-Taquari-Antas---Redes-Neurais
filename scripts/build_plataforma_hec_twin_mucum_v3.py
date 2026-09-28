@@ -271,6 +271,12 @@ def build_feed_v3() -> dict:
     spatial_available = bool(spatial_hec)
     spatial_ready = bool(spatial_hec.get("publishable")) and spatial_hec.get("status") == "hec_hms_4_13_spatial_ifs_warmup_ready"
     spatial_blocked = spatial_available and not spatial_ready
+    if spatial_ready:
+        feed["status"] = "hec_hms_spatial_ready"
+    elif spatial_blocked:
+        feed["status"] = "hec_hms_spatial_blocked"
+    else:
+        feed["status"] = "spatial_rain_ready_hydrology_integration_pending"
     forward_pkg = base.load_json(OUT / "hec_twin_mucum_forward_5d_latest.json") or {}
     corridor_nodes = build_corridor_model_nodes(feed, forward_pkg)
 
