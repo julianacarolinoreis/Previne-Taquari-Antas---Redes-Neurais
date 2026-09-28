@@ -21,6 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -68,6 +69,32 @@ ANA_TIMEOUT = 12
 ANA_RETRIES = 2
 GRID_STEP = 0.05
 ANA_CACHE: dict[str, dict[str, Any]] = {}
+MAX_FETCH_WORKERS = 8
+MAX_FLOW_M3S = 50000.0
+MAX_RAIN_MM_H = 250.0
+FRESH_FLOW_MINUTES = 120.0
+
+def inventory_operational(st: dict[str, Any]) -> bool:
+    """Inventory-driven eligibility; no hand-picked station list."""
+    flag = str(st.get("operating_flag") or "").strip().lower()
+    network = str(st.get("network") or "ANA").upper()
+    if network == "CEMADEN":
+        return True
+    if network == "INMET":
+        return flag not in {"pane", "inoperante", "0", "false", "não", "nao"}
+    return flag not in {"0", "false", "inoperante", "desativada", "desativado"}
+
+def qc_flow(v: Any) -> float | None:
+    x = finite(v)
+    if x is None or x < 0 or x > MAX_FLOW_M3S:
+        return None
+    return x
+
+def qc_rain(v: Any) -> float | None:
+    x = finite(v)
+    if x is None or x < 0 or x > MAX_RAIN_MM_H:
+        return None
+    return x
 
 
 def load(path: Path) -> dict[str, Any]:
@@ -268,10 +295,12 @@ def aggregate_hourly(rows: list[dict[str, Any]]) -> dict[datetime, dict[str, flo
     for row in rows:
         t = row["time_local"].replace(minute=0, second=0, microsecond=0)
         b = buckets.setdefault(t, {"rain": [], "flow": [], "level": []})
-        if row.get("rain_mm") is not None and float(row["rain_mm"]) >= 0:
-            b["rain"].append(float(row["rain_mm"]))
-        if row.get("flow_m3s") is not None and float(row["flow_m3s"]) >= 0:
-            b["flow"].append(float(row["flow_m3s"]))
+        rv = qc_rain(row.get("rain_mm"))
+        qv = qc_flow(row.get("flow_m3s"))
+        if rv is not None:
+            b["rain"].append(rv)
+        if qv is not None:
+            b["flow"].append(qv)
         if row.get("level") is not None:
             b["level"].append(float(row["level"]))
     return {
@@ -311,6 +340,7 @@ def catalog_map(path: Path, basin) -> dict[str, dict[str, Any]]:
             "code": code,
             "name": props.get("nome") or code,
             "network": str(props.get("rede") or "ANA").upper(),
+            "station_type": str(props.get("tipo") or ""),
             "lat": float(lat),
             "lon": float(lon),
             "upg": props.get("upg"),
@@ -441,35 +471,41 @@ def main() -> int:
         if st:
             rain_meta[code] = dict(st)
 
-    # 2) Query all active upstream flow stations from the live robot once.
-    flow_codes = active_flow_codes()
+    # 2) Basin-complete dynamic inventory.
+    # No station is selected because it appears in a PREVINE hand list.
+    # Every operational gauge inside the watershed is a candidate. A station
+    # only disappears from the effective network when it has no valid data.
     active_flow_meta = {
-        code: flow_catalog[code]
-        for code in flow_codes
-        if code in flow_catalog
+        code: dict(st)
+        for code, st in flow_catalog.items()
+        if inventory_operational(st)
     }
-
-    # 3) Add upstream rainfall candidates actually used by PREVINE/current models.
-    rain_candidate_codes = {
-        code for code, st in rain_catalog.items() if st.get("in_previne_rain")
-    }
-    rain_candidate_codes |= EXTRA_RAIN_CODES
-    rain_candidate_codes |= set(active_flow_meta)
     rain_query_meta: dict[str, dict[str, Any]] = {}
-    for code in sorted(rain_candidate_codes):
-        st = rain_catalog.get(code) or flow_catalog.get(code)
-        if st:
-            rain_query_meta[code] = dict(st)
+    for source in (rain_catalog, flow_catalog):
+        for code, st in source.items():
+            if inventory_operational(st):
+                rain_query_meta.setdefault(code, dict(st))
 
-    # Fetch serially on purpose: this mirrors the stable policy of the live robot.
+    # Query the complete eligible basin inventory with bounded concurrency.
+    # Historical values already published are merged below, so transient source
+    # failures never erase the event history.
     fetched: dict[str, dict[str, Any]] = {}
     all_query_meta = dict(active_flow_meta)
     all_query_meta.update(rain_query_meta)
-    for code, st in all_query_meta.items():
-        fetched[code] = fetch_network(st, start, end)
-        # Short courtesy pause prevents a burst against ANA public telemetry.
-        if st.get("network", "ANA") == "ANA":
-            time.sleep(0.15)
+    with ThreadPoolExecutor(max_workers=MAX_FETCH_WORKERS) as pool:
+        futures = {
+            pool.submit(fetch_network, st, start, end): code
+            for code, st in all_query_meta.items()
+        }
+        for fut in as_completed(futures):
+            code = futures[fut]
+            try:
+                fetched[code] = fut.result()
+            except Exception as exc:
+                fetched[code] = {
+                    "ok": False, "rows": [], "source": all_query_meta[code].get("network"),
+                    "error": str(exc),
+                }
 
     # Merge actual rainfall returned by active telemetry. CSV wins on overlap
     # because it is the operational archived source already used by PREVINE.
@@ -477,9 +513,9 @@ def main() -> int:
         result = fetched.get(code) or {}
         hourly = aggregate_hourly(result.get("rows") or [])
         network_rain = {
-            t: float(v["rain_mm"])
+            t: qc_rain(v.get("rain_mm"))
             for t, v in hourly.items()
-            if v.get("rain_mm") is not None
+            if qc_rain(v.get("rain_mm")) is not None
         }
         if network_rain:
             rain_meta[code] = dict(st)
@@ -577,7 +613,7 @@ def main() -> int:
             target.setdefault(
                 key,
                 {
-                    "flow_m3s": finite(row.get("flow_m3s")),
+                    "flow_m3s": qc_flow(row.get("flow_m3s")),
                     "level": finite(row.get("level")),
                     "rain_mm": None,
                 },
@@ -585,7 +621,7 @@ def main() -> int:
             # Fill individual missing variables without replacing fresher ones.
             cur = target[key]
             if cur.get("flow_m3s") is None and row.get("flow_m3s") is not None:
-                cur["flow_m3s"] = finite(row.get("flow_m3s"))
+                cur["flow_m3s"] = qc_flow(row.get("flow_m3s"))
             if cur.get("level") is None and row.get("level") is not None:
                 cur["level"] = finite(row.get("level"))
         if len(target) > before:
@@ -602,11 +638,20 @@ def main() -> int:
         if not nq and not nl:
             continue
         item = dict(st)
+        latest_times = [
+            t for t, v in hourly.items()
+            if v.get("flow_m3s") is not None or v.get("level") is not None
+        ]
+        latest_t = max(latest_times) if latest_times else None
+        age_min = None if latest_t is None else max(0.0, (end - latest_t).total_seconds() / 60.0)
         item.update(
             {
                 "source": flow_sources.get(code),
                 "valid_flow_hours": nq,
                 "valid_level_hours": nl,
+                "latest_observation_local": None if latest_t is None else iso(latest_t),
+                "latest_age_minutes": None if age_min is None else round(age_min, 1),
+                "fresh_for_current_state": bool(age_min is not None and age_min <= FRESH_FLOW_MINUTES),
             }
         )
         flow_stations.append(item)
@@ -719,7 +764,7 @@ def main() -> int:
     ]
 
     payload = {
-        "schema_version": "mucum_observed_multistation_v2",
+        "schema_version": "mucum_observed_multistation_v3_full_basin_inventory",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "event_window": {
             "start_local": iso(start),
@@ -732,6 +777,8 @@ def main() -> int:
         },
         "rain": {
             "inventory_count_inside": len(rain_catalog),
+            "candidate_count_operational_inventory": len(rain_query_meta),
+            "selection_policy": "inventário completo dentro da bacia; nenhuma lista manual de postos; entra na média horária todo posto candidato que retornou observação válida",
             "valid_station_count": len(rain_stations),
             "valid_station_codes": [st["code"] for st in rain_stations],
             "valid_by_network": {
@@ -752,7 +799,10 @@ def main() -> int:
             "stations": rain_payload,
         },
         "flow": {
+            "inventory_count_inside": len(flow_catalog),
+            "candidate_count_operational_inventory": len(active_flow_meta),
             "active_candidate_codes": sorted(active_flow_meta),
+            "selection_policy": "todos os postos hidrométricos operacionais do inventário dentro da bacia; QC automático; sem escolha manual",
             "stations_with_flow_or_level": len(flow_stations),
             "stations_with_flow": sum(st["valid_flow_hours"] > 0 for st in flow_stations),
             "stations_with_level": sum(st["valid_level_hours"] > 0 for st in flow_stations),
@@ -762,7 +812,7 @@ def main() -> int:
             "queried_station_count": len(all_query_meta),
             "failed_count": len(failures),
             "failures": failures,
-            "policy": "serial ANA queries; primary+mirror; 2 retries; operational CSV baseline; last published valid event observations persist through transient API outages",
+            "policy": "inventário completo da bacia; consultas concorrentes limitadas; ANA primário+espelho; CSV operacional e histórico publicado usados apenas como persistência; ausência não vira zero; vazão > 50000 m3/s e chuva > 250 mm/h são rejeitadas por QC",
             "rain_fallback_station_codes": sorted(set(rain_fallback_codes)),
             "flow_fallback_station_codes": sorted(set(flow_fallback_codes)),
         },
