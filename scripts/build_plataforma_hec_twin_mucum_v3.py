@@ -336,8 +336,9 @@ def build_feed_v3() -> dict:
             ),
             "q_note_pt": (
                 "Q(t) é a saída do HEC-HMS 4.13 após 48 h de aquecimento com chuva observada. "
-                "O último nível de Muçum é assimilado no timestamp real e a rodada só é promovida "
-                "se as guardas de estado e tendência forem satisfeitas."
+                "O último nível de Muçum é comparado no timestamp real com o estado aquecido. "
+                "Nenhuma correção visual é tratada como assimilação; a rodada HEC permanece "
+                "bloqueada até existir reinicialização real dos estados internos no t0 observado."
             ),
             "artifact_json": "hec_hms_spatial_forecast_mucum_latest.json",
             "series_csv": "hec_hms_spatial_forecast_mucum/primary_series.csv",
@@ -366,8 +367,10 @@ def build_feed_v3() -> dict:
             "validation": validation,
             "blocking_reasons_pt": validation.get("blocking_reasons_pt") or sm.get("blocking_reasons_pt") or [],
             "plain_pt": (
-                "A rodada HEC foi executada, mas não foi publicada como previsão porque o estado "
-                "hidrológico aquecido ou a tendência imediata não é consistente com a telemetria."
+                "A rodada HEC foi executada, mas não foi publicada como previsão. O estado "
+                "hidrológico aquecido é comparado com a telemetria no timestamp real e, sem "
+                "reinicialização/assimilação real dos estados internos no t0 observado, a saída "
+                "permanece diagnóstica."
             ),
             "artifact_json": "hec_hms_spatial_forecast_mucum_latest.json",
             "series_csv": "hec_hms_spatial_forecast_mucum/primary_series.csv",
