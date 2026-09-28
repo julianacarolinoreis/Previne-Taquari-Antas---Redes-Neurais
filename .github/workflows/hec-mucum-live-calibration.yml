@@ -1,0 +1,114 @@
+name: HEC Muçum live-event calibration
+
+# Calibração de pesquisa do evento em curso. Mantém-se separada do robô
+# operacional de 10 min para que uma busca multiparâmetro não seja cancelada.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/hec-mucum-live-calibration.yml"
+      - "scripts/calibrate_hec_hms_live_event.py"
+      - "scripts/build_mucum_observed_multistation.py"
+      - "scripts/build_hec_hms_spatial_forecast_mucum.py"
+      - "scripts/postprocess_hec_hms_spatial_forecast_mucum.py"
+      - "scripts/run_hec_hms_live_candidates.sh"
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hec-mucum-live-event-calibration
+  cancel-in-progress: false
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Configura Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependências
+        run: pip install --disable-pip-version-check shapely pyproj matplotlib numpy
+
+      - name: Observado multirrede · chuva + vazão desde 26/09
+        run: python -B scripts/build_mucum_observed_multistation.py
+
+      - name: IFS espacial · bacia contribuinte até Muçum
+        run: python -B scripts/build_spatial_ifs_mucum.py
+
+      - name: Cache HEC-HMS 4.13
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Baixa HEC-HMS 4.13 oficial
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4 \
+            -o /tmp/HEC-HMS-4.13-linux64.tar.gz \
+            https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Candidatos históricos HEC-HMS · evento atual
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          bash scripts/run_hec_hms_live_candidates.sh "$HEC_SH"
+
+      - name: Calibra HEC-HMS · hidrograma completo desde 26/09
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          python -B scripts/calibrate_hec_hms_live_event.py "$HEC_SH"
+
+      - name: Publica somente artefatos dedicados da calibração
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-hec-calibration-bot"
+          git config user.email "previne-hec-calibration-bot@users.noreply.github.com"
+          git add -- \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_live_event_calibration_latest.json \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_live_event_calibration_candidates.csv \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_live_event_calibrated_forecast_latest.json \
+            assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_calibration_snapshot.json
+          if git diff --cached --quiet; then
+            echo "Sem mudança na calibração."
+            exit 0
+          fi
+          git commit -m "bot: calibração HEC Muçum evento 26-09 [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            git fetch origin main
+            if git rebase origin/main; then
+              continue
+            fi
+            git rebase --abort || true
+            echo "Conflito de publicação; preservando execução sem sobrescrever artefatos concorrentes."
+            exit 1
+          done
+          exit 1
