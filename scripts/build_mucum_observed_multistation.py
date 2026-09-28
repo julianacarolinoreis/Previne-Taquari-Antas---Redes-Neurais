@@ -2,11 +2,10 @@
 """Observed rain + flow package for the current Muçum flood.
 
 Window: 26/09/2026 00:00 America/Sao_Paulo -> now.
-- Rain: every upstream station that has an actual valid observed series in the
-  operational PREVINE CSV, plus rain returned by active upstream ANA telemetry
-  and live INMET/CEMADEN sources when available.
-- Flow/level: active upstream ANA/SGB telemetric stations used by the live robot,
-  plus Muçum (86510000).
+- Rain: every operational station in the basin inventory is queried; any station
+  returning valid rain can contribute for that hour.
+- Flow/level: every operational hydrometric station in the basin inventory is
+  queried; valid observations are retained after QC.
 - Missing observations remain missing and are never converted to zero.
 - Areal rain is IDW^2 from all valid gauges for each hour, clipped to the exact
   HEC-HMS two-zone geometry.
@@ -16,6 +15,7 @@ from __future__ import annotations
 import csv
 import json
 import math
+import os
 import time
 import urllib.error
 import urllib.parse
@@ -65,11 +65,12 @@ CSV_RAIN_COLUMNS = {
 # Extra upstream rain candidates used by current research/live models.
 EXTRA_RAIN_CODES = {"86510000", "86160000"}
 
-ANA_TIMEOUT = 12
-ANA_RETRIES = 2
+FAST_MODE = os.environ.get("OBS_FAST_MODE", "0").strip().lower() in {"1","true","yes"}
+ANA_TIMEOUT = int(os.environ.get("OBS_ANA_TIMEOUT", "7" if FAST_MODE else "12"))
+ANA_RETRIES = int(os.environ.get("OBS_ANA_RETRIES", "1" if FAST_MODE else "2"))
 GRID_STEP = 0.05
 ANA_CACHE: dict[str, dict[str, Any]] = {}
-MAX_FETCH_WORKERS = 8
+MAX_FETCH_WORKERS = int(os.environ.get("OBS_FETCH_WORKERS", "12" if FAST_MODE else "8"))
 MAX_FLOW_M3S = 50000.0
 MAX_RAIN_MM_H = 250.0
 FRESH_FLOW_MINUTES = 120.0
@@ -451,6 +452,12 @@ def main() -> int:
             previous = load(JSON_OUT)
         except Exception:
             previous = {}
+    # Fast cycles query only recent telemetry and merge it with the already
+    # validated event history. Full calibration still queries 26/09->now.
+    query_start = start
+    if FAST_MODE and previous:
+        query_start = max(start, end - timedelta(hours=8))
+
     basin, zones = basin_and_zones()
     rain_catalog = catalog_map(RAIN_CATALOG, basin)
     flow_catalog = catalog_map(FLOW_CATALOG, basin)
@@ -494,7 +501,7 @@ def main() -> int:
     all_query_meta.update(rain_query_meta)
     with ThreadPoolExecutor(max_workers=MAX_FETCH_WORKERS) as pool:
         futures = {
-            pool.submit(fetch_network, st, start, end): code
+            pool.submit(fetch_network, st, query_start, end): code
             for code, st in all_query_meta.items()
         }
         for fut in as_completed(futures):
@@ -878,6 +885,8 @@ def main() -> int:
             "failed_count": len(failures),
             "failures": failures,
             "policy": "inventário completo da bacia; consultas concorrentes limitadas; ANA primário+espelho; CSV operacional e histórico publicado usados apenas como persistência; ausência não vira zero; vazão > 50000 m3/s e chuva > 250 mm/h são rejeitadas por QC",
+            "fast_mode": FAST_MODE,
+            "query_start_local": iso(query_start),
             "rain_fallback_station_codes": sorted(set(rain_fallback_codes)),
             "flow_fallback_station_codes": sorted(set(flow_fallback_codes)),
         },
