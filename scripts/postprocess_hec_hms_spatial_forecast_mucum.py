@@ -241,17 +241,44 @@ def main():
     warm = inp.get("warmup") or {}
     if not warm.get("complete"):
         reasons.append("warm-up de chuva observada incompleto")
-    if abs(state_error_cm) > 75.0:
+    # Operational release guards are intentionally strict. A candidate that
+    # only intersects the current hydrograph by chance must not be promoted.
+    if abs(state_error_cm) > 30.0:
         reasons.append(
-            f"estado aquecido difere {state_error_cm:+.1f} cm do nível observado atual"
+            f"estado aquecido difere {state_error_cm:+.1f} cm do nível observado atual (>30 cm)"
         )
-    if q_error_pct is not None and abs(q_error_pct) > 40.0:
+    if q_error_pct is not None and abs(q_error_pct) > 10.0:
         reasons.append(
-            f"vazão do estado aquecido difere {q_error_pct:+.1f}% da vazão derivada do observado"
+            f"vazão do estado aquecido difere {q_error_pct:+.1f}% da vazão derivada do observado (>10%)"
         )
-    if event_fit.get("rmse_cm") is not None and float(event_fit["rmse_cm"]) > 100.0:
+    if event_fit.get("rmse_cm") is not None and float(event_fit["rmse_cm"]) > 60.0:
         reasons.append(
-            f"RMSE do hidrograma observado desde 26/09 = {event_fit['rmse_cm']:.1f} cm"
+            f"RMSE do hidrograma observado desde 26/09 = {event_fit['rmse_cm']:.1f} cm (>60 cm)"
+        )
+    if event_fit.get("nse") is not None and float(event_fit["nse"]) < 0.75:
+        reasons.append(
+            f"NSE do hidrograma observado desde 26/09 = {event_fit['nse']:.3f} (<0,75)"
+        )
+    if event_fit.get("bias_cm") is not None and abs(float(event_fit["bias_cm"])) > 30.0:
+        reasons.append(
+            f"viés do hidrograma observado desde 26/09 = {event_fit['bias_cm']:+.1f} cm (>30 cm)"
+        )
+
+    # Do not release a forecast whose observation snapshot became stale while
+    # the run was executing.
+    obs_age_min = (
+        datetime.now(timezone.utc) - t0
+    ).total_seconds() / 60.0
+    if obs_age_min > 45.0:
+        reasons.append(
+            f"estado observado de Muçum está defasado {obs_age_min:.0f} min (>45 min)"
+        )
+
+    observed_network = warm.get("observed_network") or {}
+    min_hourly_gauges = observed_network.get("min_hourly_station_count")
+    if min_hourly_gauges is not None and int(min_hourly_gauges) < 8:
+        reasons.append(
+            f"cobertura mínima de chuva no aquecimento = {int(min_hourly_gauges)} postos/h (<8)"
         )
     if obs_trend_1h is not None:
         obs_trend_1h = float(obs_trend_1h)
@@ -272,7 +299,7 @@ def main():
             # Fast flood limbs require comparable magnitude, not merely the
             # same sign. A model rising at half the observed speed cannot be
             # released just because it happens to intersect the current stage.
-            trend_tolerance = max(15.0, 0.35 * abs(obs_trend_1h))
+            trend_tolerance = max(12.0, 0.25 * abs(obs_trend_1h))
             trend_ratio = (
                 abs(model_trend_1h) / abs(obs_trend_1h)
                 if abs(obs_trend_1h) > 1e-9 else None
@@ -280,8 +307,8 @@ def main():
             if (
                 abs(model_trend_1h - obs_trend_1h) > trend_tolerance
                 or trend_ratio is None
-                or trend_ratio < 0.65
-                or trend_ratio > 1.55
+                or trend_ratio < 0.75
+                or trend_ratio > 1.35
             ):
                 reasons.append(
                     f"tendência HEC {model_trend_1h:+.1f} cm/h incompatível com "
@@ -361,6 +388,7 @@ def main():
             "visual_stage_anchor_applied": False,
             "warmup_state_matches_observation": publishable,
             "forecast_validation_timestamp_is_exact_observation_time": True,
+            "observation_age_at_postprocess_minutes": round(obs_age_min, 1),
             "event_hydrograph_since_20260926": event_fit,
         },
         "summary": {
@@ -373,6 +401,7 @@ def main():
             "model_trend_next_1h_cm": round(model_trend_1h, 2),
             "publishable": publishable,
             "blocking_reasons_pt": reasons,
+            "observation_age_at_postprocess_minutes": round(obs_age_min, 1),
             "peak_q_m3s": round(candidate_peak_q, 3) if publishable else None,
             "peak_time_utc": candidate_peak_time if publishable else None,
             "peak_level_rating_cm": round(candidate_peak_n, 2) if publishable else None,
