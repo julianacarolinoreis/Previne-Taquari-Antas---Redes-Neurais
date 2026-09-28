@@ -763,6 +763,68 @@ def main() -> int:
         if not (fetched.get(code) or {}).get("ok")
     ]
 
+    # Full-inventory audit: every station inside the watershed is accounted for.
+    # This prevents a future regression to hidden hand-picked subsets.
+    rain_inventory_union = dict(flow_catalog)
+    rain_inventory_union.update(rain_catalog)
+    rain_inventory_audit = []
+    for code, st in sorted(rain_inventory_union.items()):
+        eligible = inventory_operational(st)
+        valid = code in rain_series and bool(rain_series.get(code))
+        latest = max(rain_series[code]) if valid else None
+        if valid:
+            reason = "used_valid_rain"
+        elif not eligible:
+            reason = "inventory_inactive_or_inoperable"
+        elif code in all_query_meta and not (fetched.get(code) or {}).get("ok"):
+            reason = "source_query_failed"
+        else:
+            reason = "no_valid_rain_returned"
+        rain_inventory_audit.append({
+            "code": code,
+            "name": st.get("name"),
+            "network": st.get("network"),
+            "station_type": st.get("station_type"),
+            "operating_flag": st.get("operating_flag"),
+            "eligible": eligible,
+            "used": valid,
+            "latest_observation_local": None if latest is None else iso(latest),
+            "reason": reason,
+        })
+
+    flow_inventory_audit = []
+    for code, st in sorted(flow_catalog.items()):
+        eligible = inventory_operational(st)
+        hourly = flow_hourly.get(code) or {}
+        valid = any(
+            v.get("flow_m3s") is not None or v.get("level") is not None
+            for v in hourly.values()
+        )
+        latest_times = [
+            t for t, v in hourly.items()
+            if v.get("flow_m3s") is not None or v.get("level") is not None
+        ]
+        latest = max(latest_times) if latest_times else None
+        if valid:
+            reason = "used_valid_hydrometry"
+        elif not eligible:
+            reason = "inventory_inactive_or_inoperable"
+        elif code in all_query_meta and not (fetched.get(code) or {}).get("ok"):
+            reason = "source_query_failed"
+        else:
+            reason = "no_valid_flow_or_level_returned"
+        flow_inventory_audit.append({
+            "code": code,
+            "name": st.get("name"),
+            "network": st.get("network"),
+            "station_type": st.get("station_type"),
+            "operating_flag": st.get("operating_flag"),
+            "eligible": eligible,
+            "used": valid,
+            "latest_observation_local": None if latest is None else iso(latest),
+            "reason": reason,
+        })
+
     payload = {
         "schema_version": "mucum_observed_multistation_v3_full_basin_inventory",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
@@ -776,7 +838,8 @@ def main() -> int:
             "scope": "bacia contribuinte até Muçum; estações a jusante excluídas",
         },
         "rain": {
-            "inventory_count_inside": len(rain_catalog),
+            "inventory_count_inside": len(rain_inventory_union),
+            "pluviometric_inventory_count_inside": len(rain_catalog),
             "candidate_count_operational_inventory": len(rain_query_meta),
             "selection_policy": "inventário completo dentro da bacia; nenhuma lista manual de postos; entra na média horária todo posto candidato que retornou observação válida",
             "valid_station_count": len(rain_stations),
@@ -797,6 +860,7 @@ def main() -> int:
                 for row in areal_rows
             ],
             "stations": rain_payload,
+            "inventory_audit": rain_inventory_audit,
         },
         "flow": {
             "inventory_count_inside": len(flow_catalog),
@@ -807,6 +871,7 @@ def main() -> int:
             "stations_with_flow": sum(st["valid_flow_hours"] > 0 for st in flow_stations),
             "stations_with_level": sum(st["valid_level_hours"] > 0 for st in flow_stations),
             "stations": flow_payload,
+            "inventory_audit": flow_inventory_audit,
         },
         "fetch_audit": {
             "queried_station_count": len(all_query_meta),
@@ -829,7 +894,7 @@ def main() -> int:
     print(
         json.dumps(
             {
-                "rain_inventory_inside": len(rain_catalog),
+                "rain_inventory_inside": len(rain_inventory_union),
                 "rain_valid": len(rain_stations),
                 "rain_codes": [st["code"] for st in rain_stations],
                 "rain_valid_by_network": payload["rain"]["valid_by_network"],
