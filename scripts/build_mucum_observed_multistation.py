@@ -412,6 +412,15 @@ def iso(t: datetime) -> str:
 def main() -> int:
     start = EVENT_START_LOCAL
     end = datetime.now(BRT).replace(tzinfo=None)
+    # Preserve the last successfully published event observations. Public ANA
+    # telemetry is intermittently unavailable; a transient API failure must
+    # never erase observations already collected for this same flood.
+    previous = {}
+    if JSON_OUT.exists():
+        try:
+            previous = load(JSON_OUT)
+        except Exception:
+            previous = {}
     basin, zones = basin_and_zones()
     rain_catalog = catalog_map(RAIN_CATALOG, basin)
     flow_catalog = catalog_map(FLOW_CATALOG, basin)
@@ -479,6 +488,46 @@ def main() -> int:
             for t, v in network_rain.items():
                 target.setdefault(t, v)
 
+    # Merge the last published valid station histories as a persistence
+    # fallback. Fresh CSV/API values win on overlap; prior values only fill
+    # holes caused by transient source outages.
+    rain_fallback_codes = []
+    for prev_st in ((previous.get("rain") or {}).get("stations") or []):
+        if not isinstance(prev_st, dict):
+            continue
+        code = str(prev_st.get("code") or "").strip()
+        if not code:
+            continue
+        st = rain_catalog.get(code) or flow_catalog.get(code)
+        if st is None:
+            st = {
+                "code": code,
+                "name": prev_st.get("name") or code,
+                "network": prev_st.get("network") or "ANA",
+                "lat": prev_st.get("lat"),
+                "lon": prev_st.get("lon"),
+                "upg": prev_st.get("upg"),
+                "in_previne_rain": bool(prev_st.get("in_previne_rain")),
+                "operating_flag": prev_st.get("operating_flag"),
+            }
+        if st.get("lat") is None or st.get("lon") is None:
+            continue
+        target = rain_series.setdefault(code, {})
+        before = len(target)
+        for row in prev_st.get("series") or []:
+            if not isinstance(row, dict) or row.get("mm") is None:
+                continue
+            try:
+                t = datetime.fromisoformat(str(row.get("time_local")))
+            except (TypeError, ValueError):
+                continue
+            if start <= t <= end:
+                target.setdefault(t.replace(minute=0, second=0, microsecond=0), float(row["mm"]))
+        if len(target) > before:
+            rain_fallback_codes.append(code)
+            rain_meta.setdefault(code, dict(st))
+            rain_sources.setdefault(code, "última observação válida publicada + fontes atuais")
+
     # Keep only gauges with at least one real observed value since 26/09.
     rain_series = {code: series for code, series in rain_series.items() if series}
     rain_stations = []
@@ -491,21 +540,71 @@ def main() -> int:
         item["valid_hours"] = len(rain_series[code])
         rain_stations.append(item)
 
-    # Flow/level: active upstream stations only, including Muçum.
-    flow_stations = []
+    # Flow/level: active upstream stations only, including Muçum. Start
+    # from fresh telemetry, then fill missing historical hours from the last
+    # published valid event package.
     flow_hourly: dict[str, dict[datetime, dict[str, float | None]]] = {}
+    flow_sources: dict[str, str] = {}
     for code, st in active_flow_meta.items():
         result = fetched.get(code) or {}
         hourly = aggregate_hourly(result.get("rows") or [])
+        if any(v.get("flow_m3s") is not None or v.get("level") is not None for v in hourly.values()):
+            flow_hourly[code] = hourly
+            flow_sources[code] = result.get("source") or "ANA/SGB"
+
+    flow_fallback_codes = []
+    for prev_st in ((previous.get("flow") or {}).get("stations") or []):
+        if not isinstance(prev_st, dict):
+            continue
+        code = str(prev_st.get("code") or "").strip()
+        if not code or code not in active_flow_meta:
+            continue
+        target = flow_hourly.setdefault(code, {})
+        before = len(target)
+        for row in prev_st.get("series") or []:
+            if not isinstance(row, dict):
+                continue
+            if row.get("flow_m3s") is None and row.get("level") is None:
+                continue
+            try:
+                t = datetime.fromisoformat(str(row.get("time_local")))
+            except (TypeError, ValueError):
+                continue
+            if not (start <= t <= end):
+                continue
+            key = t.replace(minute=0, second=0, microsecond=0)
+            old = target.get(key) or {}
+            target.setdefault(
+                key,
+                {
+                    "flow_m3s": finite(row.get("flow_m3s")),
+                    "level": finite(row.get("level")),
+                    "rain_mm": None,
+                },
+            )
+            # Fill individual missing variables without replacing fresher ones.
+            cur = target[key]
+            if cur.get("flow_m3s") is None and row.get("flow_m3s") is not None:
+                cur["flow_m3s"] = finite(row.get("flow_m3s"))
+            if cur.get("level") is None and row.get("level") is not None:
+                cur["level"] = finite(row.get("level"))
+        if len(target) > before:
+            flow_fallback_codes.append(code)
+            flow_sources.setdefault(code, "última observação válida publicada + fontes atuais")
+
+    flow_stations = []
+    for code, hourly in sorted(flow_hourly.items()):
+        st = active_flow_meta.get(code)
+        if st is None:
+            continue
         nq = sum(v.get("flow_m3s") is not None for v in hourly.values())
         nl = sum(v.get("level") is not None for v in hourly.values())
         if not nq and not nl:
             continue
-        flow_hourly[code] = hourly
         item = dict(st)
         item.update(
             {
-                "source": result.get("source"),
+                "source": flow_sources.get(code),
                 "valid_flow_hours": nq,
                 "valid_level_hours": nl,
             }
@@ -663,7 +762,9 @@ def main() -> int:
             "queried_station_count": len(all_query_meta),
             "failed_count": len(failures),
             "failures": failures,
-            "policy": "serial ANA queries; primary+mirror; 2 retries; operational CSV retained as rainfall baseline",
+            "policy": "serial ANA queries; primary+mirror; 2 retries; operational CSV baseline; last published valid event observations persist through transient API outages",
+            "rain_fallback_station_codes": sorted(set(rain_fallback_codes)),
+            "flow_fallback_station_codes": sorted(set(flow_fallback_codes)),
         },
         "artifacts": {
             "rain_csv": str(RAIN_CSV.relative_to(ROOT)),
