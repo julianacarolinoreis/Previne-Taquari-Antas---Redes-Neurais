@@ -48,14 +48,18 @@ def metrics(pkg: dict) -> dict:
     stage = abs(finite(v.get("stage_error_at_t0_cm")))
     qerr = abs(finite(v.get("q_error_pct")))
     trend = abs(mod_trend - obs_trend)
-    # Normalize by the operational consistency gates so the terms have
-    # comparable scale. Lower is better.
-    score = stage / 75.0 + qerr / 40.0 + trend / 50.0
+    fit = v.get("event_hydrograph_since_20260926") or {}
+    rmse = finite(fit.get("rmse_cm"))
+    # Score the whole observed event, not only the final point.
+    score = stage / 75.0 + qerr / 40.0 + trend / 50.0 + rmse / 100.0
     return {
         "publishable": bool(pkg.get("publishable")),
         "stage_abs_error_cm": round(stage, 3),
         "q_abs_error_pct": round(qerr, 3),
         "trend_abs_error_cm_h": round(trend, 3),
+        "event_rmse_cm": None if rmse >= 1e8 else round(rmse, 3),
+        "event_nse": fit.get("nse"),
+        "event_peak_time_error_h": fit.get("peak_time_error_h"),
         "selection_score": round(score, 6),
         "observed_stage_cm": (pkg.get("summary") or {}).get("level_now_observed_cm"),
         "observed_at_utc": (pkg.get("summary") or {}).get("observed_at_utc"),
@@ -102,8 +106,8 @@ def main():
         "candidates": rows,
         "rule_pt": (
             "Executar os quatro conjuntos HEC-HMS 4.13 já validados em replay e "
-            "selecionar pelo menor erro normalizado de nível, vazão e tendência no "
-            "t0 observado. Se houver candidato que passa as guardas, candidatos "
+            "selecionar pelo menor erro normalizado do hidrograma desde 26/09, nível, "
+            "vazão e tendência no t0 observado. Se houver candidato que passa as guardas, candidatos "
             "bloqueados não podem ser escolhidos."
         ),
     }
