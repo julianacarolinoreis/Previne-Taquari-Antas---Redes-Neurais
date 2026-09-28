@@ -153,19 +153,31 @@ def main() -> int:
     # Broad deterministic search. We explicitly include fast Clark responses;
     # the historical presets alone were too slow for the observed +81 cm/h
     # rising limb in the 28/09 event.
+    # Prior live searches showed the 28/09 rising limb needs a materially
+    # faster rainfall-runoff response than E19/E22, but the low-loss fast
+    # candidates produced far too much volume. Search fast/moderate Clark
+    # timing jointly with stronger Initial+Constant losses so timing and
+    # magnitude can be reconciled instead of trading one error for the other.
     timing_pairs = [
-        (3.0, 3.0), (5.0, 5.0), (5.0, 10.0), (10.0, 5.0),
-        (10.0, 10.0), (10.0, 20.0), (15.0, 10.0), (15.0, 15.0),
-        (20.0, 10.0), (20.0, 20.0), (20.0, 30.0), (30.0, 20.0),
-        (30.0, 30.0), (45.0, 45.0), (60.0, 60.0),
+        (10.0, 10.0), (10.0, 15.0), (10.0, 20.0),
+        (15.0, 10.0), (15.0, 15.0), (15.0, 20.0),
+        (20.0, 10.0), (20.0, 15.0), (20.0, 20.0), (20.0, 30.0),
+        (25.0, 20.0), (25.0, 25.0), (30.0, 20.0), (30.0, 30.0),
+        (40.0, 40.0), (50.0, 50.0), (60.0, 60.0),
     ]
     loss_profiles = [
-        (0.0, 0.5, 0.90),
         (0.0, 1.0, 0.90),
-        (5.0, 1.0, 0.98),
-        (10.0, 1.0, 0.90),
         (10.0, 2.0, 0.90),
-        (20.0, 2.0, 0.80),
+        (20.0, 2.0, 0.90),
+        (20.0, 3.0, 0.90),
+        (30.0, 3.0, 0.90),
+        (30.0, 4.0, 0.90),
+        (40.0, 4.0, 0.90),
+        (40.0, 5.0, 0.90),
+        (50.0, 5.0, 0.90),
+        (50.0, 6.0, 0.90),
+        (60.0, 6.0, 0.90),
+        (20.0, 4.0, 0.80),
     ]
 
     candidates = []
@@ -191,12 +203,13 @@ def main() -> int:
                 f"broad_t{i:02d}_l{j:02d}",
             ))
 
-    # Deduplicate and cap at 64 broad configurations, retaining the full
-    # timing range and all historical presets.
+    # Deduplicate. Keep a larger deterministic live-event grid: the previous
+    # 64-candidate cap systematically omitted high-loss/fast-response
+    # combinations that are necessary for the current flood.
     uniq = {}
     for event, p, label in candidates:
         uniq[(event,) + key(p)] = (event, p, label)
-    candidates = list(uniq.values())[:64]
+    candidates = list(uniq.values())[:180]
 
     rows = []
     for event, p, label in candidates:
@@ -231,7 +244,7 @@ def main() -> int:
 
     for sidx, r in enumerate(state_seeds, 1):
         base = {k: r[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}
-        for mult in (0.35, 0.55, 0.75, 1.25, 1.5):
+        for mult in (0.10, 0.20, 0.35, 0.55, 0.75, 1.25, 1.5, 1.8):
             p = dict(base)
             p["initial_flow_multiplier"] = mult
             p = rounded_params(p)
