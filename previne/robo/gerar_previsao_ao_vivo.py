@@ -2785,7 +2785,24 @@ def main():
         hm = _parse_hora(out.get("hora_modelo") or "")
         if tel and hm and out.get("nivel_previsto_cm") is not None:
             atraso_h = (tel[0] - hm).total_seconds() / 3600.0
-            if (
+            # Uma previsão horária com base >=2 h atrás da telemetria recente
+            # pode até ser útil para auditoria posterior, mas não deve continuar
+            # sendo publicada como previsão "disponível" no painel ao vivo.
+            # Preservamos o valor como candidato auditável e retiramos a curva
+            # operacional até que uma base completa mais recente exista.
+            if out.get("input_grade") == "hourly_exact" and atraso_h >= 2.0:
+                out["previsao_stale_candidata_cm"] = out.get("nivel_previsto_cm")
+                if out.get("passos"):
+                    out["passos_stale_candidatos"] = out.get("passos")
+                out["nivel_previsto_cm"] = None
+                out["passos"] = []
+                out["disponivel"] = False
+                out["status"] = (
+                    f"indisponivel: base da RNA {atraso_h:.1f}h anterior a telemetria recente; "
+                    "aguardando conjunto completo de entradas na mesma hora cheia"
+                )
+                out.setdefault("qualidade_ao_vivo", {})["status"] = "BASE_DESATUALIZADA"
+            elif (
                 out.get("input_grade") == "hourly_exact"
                 and atraso_h >= HOURLY_BASE_WARN_LAG.total_seconds() / 3600.0
                 and str(out.get("status") or "").startswith("ok")
@@ -2793,11 +2810,6 @@ def main():
                 out["status"] = (
                     f"{out['status']} - atencao: base da RNA {atraso_h:.1f}h anterior a telemetria recente; "
                     "aguardando conjunto completo de entradas na mesma hora cheia"
-                )
-            elif atraso_h >= 2.0 and out.get("status") == "ok":
-                out["status"] = (
-                    f"ok (base da RNA {atraso_h:.1f}h anterior a telemetria — "
-                    "inputs alinhados/preenchidos na grade do modelo; isso nao significa falha da ANA)"
                 )
     escrever_pacote(horizontes, historico, aviso, series)
     return
