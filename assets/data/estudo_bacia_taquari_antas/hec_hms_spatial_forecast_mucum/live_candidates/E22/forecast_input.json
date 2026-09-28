@@ -1,6 +1,6 @@
 {
   "schema_version": "hec_hms_spatial_forecast_mucum_input_v2_warmup",
-  "generated_at_utc": "2026-09-28T21:07:26.884073Z",
+  "generated_at_utc": "2026-09-28T21:35:14.800295Z",
   "model": "HEC-HMS 4.13 two-zone spatial pilot",
   "parameter_source": {
     "source_event": "E22",
@@ -11,10 +11,27 @@
     "recession_constant_daily": 0.98,
     "threshold_ratio_to_peak": 0.1
   },
-  "rain_source": "48 h ANA observed warm-up + ECMWF IFS 0.25 degree full field forecast",
+  "rain_source": "26/09->t0 all valid upstream gauges (ANA+INMET+CEMADEN; IDW^2 by HEC zone) + ECMWF IFS 0.25 degree full field forecast",
   "all_spatial_cells_used": true,
   "spatial_cells": 40,
   "times_utc": [
+    "2026-09-26T03:00:00Z",
+    "2026-09-26T04:00:00Z",
+    "2026-09-26T05:00:00Z",
+    "2026-09-26T06:00:00Z",
+    "2026-09-26T07:00:00Z",
+    "2026-09-26T08:00:00Z",
+    "2026-09-26T09:00:00Z",
+    "2026-09-26T10:00:00Z",
+    "2026-09-26T11:00:00Z",
+    "2026-09-26T12:00:00Z",
+    "2026-09-26T13:00:00Z",
+    "2026-09-26T14:00:00Z",
+    "2026-09-26T15:00:00Z",
+    "2026-09-26T16:00:00Z",
+    "2026-09-26T17:00:00Z",
+    "2026-09-26T18:00:00Z",
+    "2026-09-26T19:00:00Z",
     "2026-09-26T20:00:00Z",
     "2026-09-26T21:00:00Z",
     "2026-09-26T22:00:00Z",
@@ -182,10 +199,10 @@
     "2026-10-03T16:00:00Z",
     "2026-10-03T17:00:00Z",
     "2026-10-03T18:00:00Z",
-    "2026-10-03T19:00:00Z"
+    "2026-10-03T19:00:00Z",
+    "2026-10-03T20:00:00Z"
   ],
   "forecast_times_utc": [
-    "2026-09-28T20:00:00Z",
     "2026-09-28T21:00:00Z",
     "2026-09-28T22:00:00Z",
     "2026-09-28T23:00:00Z",
@@ -304,9 +321,10 @@
     "2026-10-03T16:00:00Z",
     "2026-10-03T17:00:00Z",
     "2026-10-03T18:00:00Z",
-    "2026-10-03T19:00:00Z"
+    "2026-10-03T19:00:00Z",
+    "2026-10-03T20:00:00Z"
   ],
-  "forecast_start_utc": "2026-09-28T20:45:00Z",
+  "forecast_start_utc": "2026-09-28T21:00:00Z",
   "zones": {
     "86472000": {
       "name": "Linha José Júlio",
@@ -314,10 +332,9 @@
       "area_declared_km2": 8550.193672,
       "coverage_ratio": 0.999986,
       "n_cells_touching": 28,
-      "total_mm": 41.319176,
+      "total_mm": 40.288057,
       "hourly_mm": [
         1.067029,
-        1.067029,
         0.082772,
         0.082772,
         0.082772,
@@ -435,6 +452,7 @@
         0.0,
         0.0,
         0.0,
+        0.035909,
         0.035909
       ]
     },
@@ -444,10 +462,9 @@
       "area_declared_km2": 7140.528728,
       "coverage_ratio": 0.999957,
       "n_cells_touching": 21,
-      "total_mm": 33.738193,
+      "total_mm": 32.981947,
       "hourly_mm": [
         0.808351,
-        0.808351,
         0.395487,
         0.395487,
         0.395487,
@@ -565,73 +582,80 @@
         0.0,
         0.0,
         0.0,
+        0.052105,
         0.052105
       ]
     }
   },
-  "basin_equivalent_forecast_mm_for_audit": 37.869225,
+  "basin_equivalent_forecast_mm_for_audit": 36.963195,
   "warmup": {
-    "hours": 48,
-    "start_local": "2026-09-26T17:00",
-    "end_at_current_hour_local": "2026-09-28T17:00",
-    "current_observation_local": "2026-09-28T17:45",
-    "current_hour_elapsed_fraction": 0.75,
+    "hours": 66,
+    "start_local": "2026-09-26T00:00",
+    "end_at_current_hour_local": "2026-09-28T18:00",
+    "current_observation_local": "2026-09-28T18:00",
+    "current_hour_elapsed_fraction": 0.0,
     "missing_hours": {
       "86472000": 0,
       "02851072": 0
     },
     "complete": true,
-    "method": "48 h observed ANA rainfall; current partial hour = observed partial + remaining fraction of ECMWF/IFS hour; future = ECMWF/IFS",
+    "method": "26/09->t0 observed all-station rainfall (ANA+INMET+CEMADEN, valid gauges inside Muçum watershed, IDW^2 by HEC zone); current partial hour blended with remaining ECMWF/IFS fraction; future = ECMWF/IFS spatial field",
     "observed_totals_mm": {
-      "86472000": 87.0,
-      "02851072": 109.2
+      "86472000": 66.328,
+      "02851072": 56.924
     },
-    "ana_live_refresh": {
-      "86472000": {
-        "ok": true,
-        "hours_refreshed": 49,
-        "latest_hour_local": "2026-09-28T17:00"
+    "observed_network": {
+      "source": "assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_latest.json",
+      "inventory_count_inside": 275,
+      "valid_station_count": 6,
+      "valid_by_network": {
+        "ANA": 5,
+        "INMET": 0,
+        "CEMADEN": 1
       },
-      "02851072": {
-        "ok": true,
-        "hours_refreshed": 49,
-        "latest_hour_local": "2026-09-28T17:00"
+      "spatial_method": "IDW^2 em grade 0.05°; até 6 vizinhos; somente observações válidas; ausências não viram zero",
+      "min_hourly_station_count": 2,
+      "max_hourly_station_count": 6,
+      "event_window": {
+        "start_local": "2026-09-26T00:00",
+        "end_local": "2026-09-28T18:34",
+        "timezone": "America/Sao_Paulo"
       }
     },
     "current_hour": {
       "86472000": {
-        "observed_partial_mm": 0.2,
+        "observed_partial_mm": 0.0,
         "ifs_full_hour_mm": 1.067,
-        "combined_hour_mm": 0.467,
-        "source": "observed_partial_plus_remaining_ifs",
+        "combined_hour_mm": 1.067,
+        "source": "all_station_observed_partial_plus_remaining_ifs",
         "degraded": false
       },
       "02851072": {
-        "observed_partial_mm": 0.2,
+        "observed_partial_mm": 0.0,
         "ifs_full_hour_mm": 0.808,
-        "combined_hour_mm": 0.402,
-        "source": "observed_partial_plus_remaining_ifs",
+        "combined_hour_mm": 0.808,
+        "source": "all_station_observed_partial_plus_remaining_ifs",
         "degraded": false
       }
     }
   },
   "initial_state": {
-    "stage_cm": 332.0,
-    "q_m3s": 673.3318639548914,
+    "stage_cm": 485.0,
+    "q_m3s": 1243.057711672673,
     "rating_segment": 2,
-    "observed_at_utc": "2026-09-26T20:00:00Z",
-    "source": "ANA/SGB observed stage at warm-up start",
-    "method": "observed Muçum Q at 48 h warm-up start as HEC-HMS Recession initial flow/area ratio",
-    "initial_flow_area_ratio_m3s_per_km2": 0.042912738
+    "observed_at_utc": "2026-09-26T03:00:00Z",
+    "source": "ANA/SGB observed stage at 26/09 event start",
+    "method": "observed Muçum Q at 26/09 event start as HEC-HMS Recession initial flow/area ratio",
+    "initial_flow_area_ratio_m3s_per_km2": 0.079222465
   },
   "current_state": {
-    "stage_cm": 838.0,
-    "q_m3s": 1571.1658542366833,
+    "stage_cm": 859.0,
+    "q_m3s": 1644.5645473313912,
     "rating_segment": 3,
-    "observed_at_utc": "2026-09-28T20:45:00Z",
+    "observed_at_utc": "2026-09-28T21:00:00Z",
     "source": "ANA/SGB Hidrotelemetria via previsao_ao_vivo_mucum.json",
-    "trend_1h_cm": 77.0,
-    "trend_reference_utc": "2026-09-28T19:45:00Z",
+    "trend_1h_cm": 81.0,
+    "trend_reference_utc": "2026-09-28T20:00:00Z",
     "state_handling": "exact observed timestamp retained for validation; HEC state interpolated within the hourly step for comparison only; no stage bias correction and no internal HEC-HMS state assimilation is claimed"
   },
   "runtime": {
@@ -641,6 +665,6 @@
     "jython_script": "assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project/run_forecast.script",
     "time_interval_minutes": 60
   },
-  "status": "input_ready_for_hec_hms_4_13_with_48h_warmup",
-  "warning_pt": "Pesquisa. O HEC usa 48 h de chuva observada para aquecimento e compara o estado modelado com o último nível observado em seu timestamp real. A saída não é ancorada por correção visual; sem assimilação real dos estados internos em t0, a rodada fica diagnóstica. Continua sendo o piloto de duas zonas, não o projeto completo de 145 sub-bacias."
+  "status": "input_ready_for_hec_hms_4_13_event_warmup_since_20260926",
+  "warning_pt": "Pesquisa. O HEC usa chuva observada espacial de todos os postos válidos desde 26/09 para aquecimento e compara o estado modelado com o último nível observado. A saída não é ancorada por correção visual; sem assimilação real dos estados internos em t0, a rodada fica diagnóstica. Continua sendo o piloto de duas zonas, não o projeto completo de 145 sub-bacias."
 }
