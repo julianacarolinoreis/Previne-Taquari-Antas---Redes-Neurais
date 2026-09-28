@@ -452,6 +452,13 @@ put_rain(dss, "02851072", "rain_02851072_mm")
 dss.close()
 print("SPATIAL_RAIN_DSS_WRITTEN|" + rain_dss_path)
 
+# Never reuse a DSS file containing previous scheduled forecast windows.
+# Otherwise the extractor sees old and current records in the same catalog.
+output_dss_path = project_dir + "/output.dss"
+if os.path.exists(output_dss_path):
+    os.remove(output_dss_path)
+    print("REMOVED_STALE_OUTPUT_DSS|" + output_dss_path)
+
 OpenProject("mucum_spatial_live", project_dir)
 Compute("Forecast")
 
