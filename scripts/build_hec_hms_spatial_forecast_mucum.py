@@ -119,7 +119,11 @@ if any(os.environ.get(v) not in (None, "") for v in _LIVE_PARAM_ENV.values()):
     PARAMS["live_event_calibration"] = True
 
 ZONE_IDS = ("86472000", "02851072")
-EVENT_START_LOCAL = datetime(2026, 9, 26, 0, 0)
+_WARM_ENV = os.environ.get("HEC_WARM_START_LOCAL", "").strip()
+if _WARM_ENV:
+    EVENT_START_LOCAL = datetime.fromisoformat(_WARM_ENV)
+else:
+    EVENT_START_LOCAL = datetime(2026, 9, 26, 0, 0)
 ZONE_OBS_FIELDS = {"86472000": "zone_86472000_mm", "02851072": "zone_02851072_mm"}
 RAIN_SCENARIO = os.environ.get("HEC_RAIN_SCENARIO", "baseline").strip().lower()
 CONSERVATIVE_HOURS = int(os.environ.get("HEC_CONSERVATIVE_HOURS", "3"))
@@ -248,7 +252,7 @@ def _stage_state(stage_cm: float, observed_at_utc: str, source: str) -> dict:
 
 
 def live_context():
-    """Current observed state plus the observed state at the 26/09 event start."""
+    """Current observed state plus the observed state at the configured warm-up start."""
     live = load_json(LIVE)
     stage = live.get("telemetria_ultima_nivel_cm")
     when = live.get("telemetria_ultima_em_utc") or live.get("nivel_rio_agora_em_utc")
@@ -282,9 +286,9 @@ def live_context():
         "ANA/SGB Hidrotelemetria via previsao_ao_vivo_mucum.json",
     )
     current_dt = iso_utc(when)
-    # This flood is warmed from the explicit event start requested for the
-    # current operation: 26/09 00:00 local. Do not shorten it to a moving 48 h
-    # window while the event is evolving.
+    # Warm-up start can be overridden for an operational restart experiment.
+    # The full antecedent accumulation is still audited separately; this only
+    # changes the HEC dynamic state-reconstruction window.
     target_warm = EVENT_START_LOCAL.replace(tzinfo=BRT).astimezone(timezone.utc)
 
     obs = []
@@ -301,7 +305,7 @@ def live_context():
 
     warm_dt, warm_stage = min(obs, key=lambda x: abs((x[0] - target_warm).total_seconds()))
     if abs((warm_dt - target_warm).total_seconds()) > 1800:
-        raise RuntimeError("no Muçum observation within 30 min of 26/09 event start")
+        raise RuntimeError(f"no Muçum observation within 30 min of warm-up start {EVENT_START_LOCAL}")
     warm = _stage_state(
         warm_stage, warm_dt.isoformat().replace("+00:00", "Z"),
         "ANA/SGB observed stage at 26/09 event start",
