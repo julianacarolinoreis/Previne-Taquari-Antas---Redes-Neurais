@@ -119,7 +119,7 @@ jobs:
           }
           out=root/"hec_mucum_reference_1900_rerun_latest.json"
           out.write_text(json.dumps(d,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-          shutil.copyfile(Path("/tmp/hec_ref_grid")/f"series_{mult}.csv",
+          shutil.copyfile(Path("/tmp/hec_ref_grid")/f"series_{mult:.2f}.csv",
                           root/"hec_mucum_reference_1900_rerun_primary_series.csv")
           print(json.dumps({
             "selected_initial_flow_multiplier":mult,
