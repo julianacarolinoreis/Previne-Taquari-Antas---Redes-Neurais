@@ -74,14 +74,23 @@ def station_rows(pkg, code):
     if not rows: raise RuntimeError(f"no observed flow for {code}")
     return rows
 
-def network_branch_stats(pkg, upg, boundary_code, exclude_codes=()):
+def network_branch_stats(pkg, upg, boundary_code, exclude_codes=(), max_age_h=2.5):
     """Robust current branch trend from every fresh observed-Q station in the UPG.
 
     Stations are NOT summed. Their relative hour-to-hour changes are used as
     state diagnostics because many gauges are nested along the same river.
     """
+    all_stations=(pkg.get("flow") or {}).get("stations") or []
+    ref_times=[]
+    for st0 in all_stations:
+        for x0 in reversed(st0.get("series") or []):
+            if x0.get("flow_m3s") is not None or x0.get("level") is not None:
+                try: ref_times.append(datetime.fromisoformat(str(x0["time_local"])))
+                except Exception: pass
+                break
+    reference_time=max(ref_times) if ref_times else None
     rows=[]
-    for st in (pkg.get("flow") or {}).get("stations") or []:
+    for st in all_stations:
         if str(st.get("upg") or "") != str(upg):
             continue
         if str(st.get("code")) in set(str(x) for x in exclude_codes):
@@ -97,7 +106,8 @@ def network_branch_stats(pkg, upg, boundary_code, exclude_codes=()):
         except Exception:
             continue
         dh=(tb-ta).total_seconds()/3600.0
-        if dh<=0 or dh>3 or qa<=0:
+        age_h=((reference_time-tb).total_seconds()/3600.0) if reference_time is not None else 0.0
+        if dh<=0 or dh>3 or qa<=0 or age_h>float(max_age_h):
             continue
         rel_per_h=(qb/qa-1.0)/dh
         if abs(rel_per_h)>0.50:
@@ -129,6 +139,8 @@ def network_branch_stats(pkg, upg, boundary_code, exclude_codes=()):
     return {
         "upg":upg,"boundary_code":str(boundary_code),
         "fresh_q_station_count":len(rows),"stations":rows,
+        "reference_time_local":None if reference_time is None else reference_time.isoformat(timespec="minutes"),
+        "max_age_h":float(max_age_h),
         "median_relative_change_per_h":None if median_rel is None else round(median_rel,5),
         "boundary_direct_slope_m3s_h":None if direct_slope is None else round(direct_slope,3),
         "network_equivalent_slope_m3s_h":None if network_slope is None else round(network_slope,3),
@@ -564,18 +576,26 @@ def main():
     rmse=(sum(e*e for e in errs)/len(errs))**0.5 if errs else None
     bias=sum(errs)/len(errs) if errs else None
 
-    # Operational state assimilation: the forecast starts at the exact observed Muçum stage.
-    # This is explicit hydrologic state updating, not a hidden visual shift.
-    conditioned=[obs_n+(float(n)-model_now) for n in stages]
-    future=[(t,n,q) for t,n,q in zip(times,conditioned,vals) if t>=obs_t]
-    peak=max(future,key=lambda z:z[1])
     state_error=model_now-obs_n
-    # Raw fit is retained as a diagnostic; conditioned forecast is publishable only
-    # if the recent shape is credible after the short observed-boundary warmup.
     adjusted_errs=[(e-state_error) for e in errs]
     adj_rmse=(sum(e*e for e in adjusted_errs)/len(adjusted_errs))**0.5 if adjusted_errs else None
     adj_bias=sum(adjusted_errs)/len(adjusted_errs) if adjusted_errs else None
-    publishable=(adj_rmse is None or adj_rmse<=45)
+
+    # Prefer the native HEC state whenever it already reaches the observation.
+    # Only use explicit stage conditioning when the HEC state is materially off.
+    if abs(state_error) <= 10.0:
+        operational_stage=[float(n) for n in stages]
+        state_mode="native_hec_state_matches_observed"
+        state_assimilation_applied=False
+        publishable=(rmse is None or rmse<=60.0)
+    else:
+        operational_stage=[obs_n+(float(n)-model_now) for n in stages]
+        state_mode="explicit_observed_stage_conditioning"
+        state_assimilation_applied=True
+        publishable=(adj_rmse is None or adj_rmse<=45.0)
+
+    future=[(t,n,q) for t,n,q in zip(times,operational_stage,vals) if t>=obs_t]
+    peak=max(future,key=lambda z:z[1])
 
     out={
       "schema_version":"hec_hms_mucum_dual_observed_boundary_v1",
@@ -607,7 +627,9 @@ def main():
       "recent_fit_6h":{"n":len(errs),"raw_rmse_cm":None if rmse is None else round(rmse,2),
           "raw_bias_cm":None if bias is None else round(bias,2),
           "conditioned_rmse_cm":None if adj_rmse is None else round(adj_rmse,2),
-          "conditioned_bias_cm":None if adj_bias is None else round(adj_bias,2)},
+          "conditioned_bias_cm":None if adj_bias is None else round(adj_bias,2),
+          "operational_state_mode":state_mode,
+          "state_assimilation_applied":state_assimilation_applied},
       "peak":{"time_local":peak[0].isoformat(timespec="minutes"),"stage_cm":round(peak[1],2),"q_m3s":round(peak[2],2),
           "rise_from_observed_cm":round(peak[1]-obs_n,2)},
       "publishable":publishable,
@@ -619,7 +641,7 @@ def main():
       "times_local":[t.isoformat(timespec="minutes") for t in times],
       "q_m3s":[round(x,3) for x in vals],
       "stage_cm_raw":[round(x,2) for x in stages],
-      "stage_cm_conditioned":[round(x,2) for x in conditioned],
+      "stage_cm_operational":[round(x,2) for x in operational_stage],
       "q_ljj_boundary_m3s":[round(x,3) for x in q_ljj],
       "q_carreiro_boundary_m3s":[round(x,3) for x in q_carr],
       "ljj_source":lsource,"carreiro_source":csource,
@@ -629,7 +651,7 @@ def main():
     RT.mkdir(parents=True,exist_ok=True)
     with SERIES.open("w",newline="",encoding="utf-8") as f:
         w=csv.writer(f); w.writerow(["time_local","q_m3s","stage_cm","q_ljj_boundary_m3s","q_carreiro_boundary_m3s"])
-        for t,q,n,ql,qc in zip(times,vals,conditioned,q_ljj,q_carr):
+        for t,q,n,ql,qc in zip(times,vals,operational_stage,q_ljj,q_carr):
             w.writerow([t.isoformat(timespec="minutes"),q,n,ql,qc])
     print("DUAL_BOUNDARY_RESULT="+json.dumps({
       "current":out["current"],"recent_fit_6h":out["recent_fit_6h"],"peak":out["peak"],
