@@ -9,6 +9,10 @@ RESULT=OUT/"hec_hms_dual_boundary_mucum_latest.json"
 SCRIPT=ROOT/"scripts/run_hec_hms_mucum_dual_boundary.py"
 
 CANDIDATES=[
+    (0.75,0.75,0.75),
+    (0.75,1.00,0.75),
+    (1.00,0.75,0.75),
+    (1.00,1.00,0.75),
     (1.00,1.00,1.00),
     (1.25,1.25,1.00),
     (1.50,1.25,1.00),
@@ -29,8 +33,8 @@ def score(pkg):
     cur=pkg.get("current") or {}
     fit=pkg.get("recent_fit_6h") or {}
     e=abs(float(cur.get("stage_error_cm") or 999))
-    rmse=float(fit.get("rmse_cm") or 999)
-    bias=abs(float(fit.get("bias_cm") or 999))
+    rmse=float(fit.get("raw_rmse_cm") or fit.get("rmse_cm") or 999)
+    bias=abs(float(fit.get("raw_bias_cm") or fit.get("bias_cm") or 999))
     # State match dominates; recent hydrograph shape is secondary.
     return e + 0.55*rmse + 0.20*bias
 
