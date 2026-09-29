@@ -67,20 +67,39 @@ def fnum(v, default=1e9):
 def objective(pkg: dict) -> tuple[float, dict]:
     v = pkg.get("validation") or {}
     fit = v.get("event_hydrograph_since_20260926") or {}
+    fit12 = v.get("recent_hydrograph_12h") or {}
+    fit6 = v.get("recent_hydrograph_6h") or {}
     stage = abs(fnum(v.get("stage_error_at_t0_cm")))
     qerr = abs(fnum(v.get("q_error_pct")))
     obs_tr = fnum(v.get("observed_trend_last_1h_cm"))
     mod_tr = fnum(v.get("model_trend_next_1h_cm"))
     trend = abs(mod_tr - obs_tr)
+
     rmse = fnum(fit.get("rmse_cm"))
-    lag = abs(fnum(fit.get("peak_time_error_h"), 999.0))
+    rmse12 = fnum(fit12.get("rmse_cm"), rmse)
+    rmse6 = fnum(fit6.get("rmse_cm"), rmse12)
+    lag12 = abs(fnum(fit12.get("peak_time_error_h"), 24.0))
+    lag6 = abs(fnum(fit6.get("peak_time_error_h"), 12.0))
     nse = fnum(fit.get("nse"), -999.0)
-    # Current flood: preserve the whole-event fit, but strongly constrain the
-    # present state and rising-limb speed because those control the forecast
-    # launched at t0.
-    score = rmse / 120.0 + stage / 30.0 + qerr / 25.0 + trend / 8.0 + lag / 24.0
+    nse12 = fnum(fit12.get("nse"), -999.0)
+
+    # Operational flood calibration: the last 6-12 h and the current state
+    # dominate. The whole event remains a regularizer so the optimizer cannot
+    # obtain a good launch state by destroying the event hydrograph.
+    score = (
+        rmse / 300.0
+        + rmse12 / 90.0
+        + rmse6 / 70.0
+        + stage / 25.0
+        + qerr / 20.0
+        + trend / 7.0
+        + lag12 / 10.0
+        + lag6 / 6.0
+    )
     if nse < -20:
-        score += 5.0
+        score += 3.0
+    if nse12 < -5:
+        score += 3.0
     metrics = {
         "score": round(score, 6),
         "event_rmse_cm": None if rmse >= 1e8 else round(rmse, 3),
@@ -88,6 +107,12 @@ def objective(pkg: dict) -> tuple[float, dict]:
         "event_mae_cm": fit.get("mae_cm"),
         "event_bias_cm": fit.get("bias_cm"),
         "event_peak_time_error_h": fit.get("peak_time_error_h"),
+        "recent_12h_rmse_cm": fit12.get("rmse_cm"),
+        "recent_12h_nse": fit12.get("nse"),
+        "recent_12h_peak_time_error_h": fit12.get("peak_time_error_h"),
+        "recent_6h_rmse_cm": fit6.get("rmse_cm"),
+        "recent_6h_nse": fit6.get("nse"),
+        "recent_6h_peak_time_error_h": fit6.get("peak_time_error_h"),
         "stage_error_at_t0_cm": v.get("stage_error_at_t0_cm"),
         "q_error_pct": v.get("q_error_pct"),
         "observed_trend_cm_h": v.get("observed_trend_last_1h_cm"),
@@ -168,7 +193,13 @@ def main() -> int:
         (20.0, 10.0), (20.0, 15.0), (25.0, 20.0),
     ]
     loss_profiles = [
+        # Wet/saturated-basin candidates are essential after large recent
+        # accumulations; high constant losses can suppress the second rise.
+        (5.0, 0.8, 0.90),
+        (10.0, 1.0, 0.90),
+        (20.0, 1.5, 0.90),
         (10.0, 2.0, 0.90),
+        (20.0, 2.0, 0.90),
         (20.0, 3.0, 0.90),
         (30.0, 3.0, 0.90),
         (30.0, 4.0, 0.90),
@@ -204,7 +235,7 @@ def main() -> int:
     uniq = {}
     for event, p, label in candidates:
         uniq[(event,) + key(p)] = (event, p, label)
-    candidates = list(uniq.values())[:96]
+    candidates = list(uniq.values())[:132]
 
     rows = []
     for event, p, label in candidates:
@@ -292,7 +323,7 @@ def main() -> int:
         "method": "coarse_plus_coordinate_fine_search_since_20260926",
         "seed_event": seed_event,
         "selected_parameters": best_params,
-        "objective": "event RMSE + t0 stage + t0 Q + current trend + peak timing; no visual stage anchoring",
+        "objective": "recent 6h/12h hydrograph + t0 stage/Q + current trend, with whole-event regularization and no visual stage anchoring",
         "selected_score": final["score"],
         "candidate_count": len(rows),
         "selected_metrics": {k:v for k,v in final.items() if k not in {"label","seed_event",*best_params.keys()}},
