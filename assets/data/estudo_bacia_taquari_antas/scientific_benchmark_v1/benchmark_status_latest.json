@@ -1,0 +1,110 @@
+{
+  "schema_version": "mucum_scientific_benchmark_v1",
+  "generated_at_utc": "2026-09-29T10:46:12.342184Z",
+  "research_question": "Does event-conditioned selection plus online recalibration improve flood forecasting at Muçum versus a fixed parameterization without using future observations?",
+  "protocol": "docs/metodologia_previsao_adaptativa_mucum.md",
+  "evidence_now": {
+    "fixed_common": {
+      "label": "fixed_common_parameterization",
+      "role": "historical_baseline",
+      "holdout_e27_nse": -1.0618435642181185,
+      "loo_mean_test_nse": 0.3450982037542933,
+      "external_mean_nse": -0.45273092863849157,
+      "promotion_blocked": true,
+      "note": "existing repository evidence shows weak transfer of one common parameter set; these metrics are not yet the same pseudo-operational cutoff experiment as the adaptive arms"
+    },
+    "eventwise_diagnostic_upper_bound": {
+      "label": "eventwise_full_event_calibration",
+      "role": "diagnostic_upper_bound_not_forecast_validation",
+      "n_events": 9,
+      "events": [
+        "E20",
+        "E21",
+        "E22",
+        "E23",
+        "E24",
+        "E25",
+        "E27",
+        "E28",
+        "E31"
+      ],
+      "mean_nse": 0.8657,
+      "median_nse": 0.8768,
+      "median_abs_peak_lag_h": null,
+      "median_abs_peak_error_pct": null,
+      "leakage_warning": "each eventwise parameterization was fitted with its own full event and cannot be treated as a forecast score"
+    },
+    "prospective_20260928": {
+      "label": "adaptive_select_plus_online_recalibration",
+      "role": "prospective_real_case",
+      "event_id": "LIVE_20260928",
+      "issue_local": "2026-09-28T19:00:00-03:00",
+      "selected_family": "E28",
+      "forecast_peak_stage_m": 11.9058,
+      "observed_peak_stage_m": 11.42,
+      "peak_stage_error_cm": 48.58,
+      "forecast_peak_time_local": "2026-09-29T05:00:00-03:00",
+      "observed_peak_time_local": "2026-09-29T04:45:00-03:00",
+      "peak_time_error_minutes": 15,
+      "lookback_nse": 0.78103,
+      "lookback_rmse_m": 0.52414,
+      "no_future_observations_in_calibration": true
+    }
+  },
+  "arms": [
+    {
+      "arm": "A",
+      "name": "fixed_common",
+      "status": "baseline_available_but_not_cutoff_matched",
+      "selection_data": "none",
+      "online_recalibration": false
+    },
+    {
+      "arm": "B",
+      "name": "rain_analog_only",
+      "status": "protocol_defined_not_yet_replayed",
+      "selection_data": "past/forecast rainfall fingerprint only",
+      "online_recalibration": false
+    },
+    {
+      "arm": "C",
+      "name": "lookback_compatibility",
+      "status": "implemented_operationally_for_2026_case_not_yet_historical_crossvalidated",
+      "selection_data": "observed level/discharge/trend/hydrograph up to t0",
+      "online_recalibration": false
+    },
+    {
+      "arm": "D",
+      "name": "lookback_plus_online_recalibration",
+      "status": "prospective_case_available_historical_replay_pending",
+      "selection_data": "same as C, then local parameter search using observations only up to t0",
+      "online_recalibration": true
+    }
+  ],
+  "current_conclusion": "promising_but_not_yet_validated",
+  "why_not_validated": "historical arms A-D still need matched pseudo-operational replay at frozen t0 values with target event excluded from the candidate library",
+  "next_required_experiment": {
+    "events_priority": [
+      "E24",
+      "E27",
+      "E28"
+    ],
+    "cutoffs": [
+      "~12h_before_observed_peak",
+      "~6h_before_observed_peak",
+      "rising_limb_trigger"
+    ],
+    "strict_rule": "target event excluded; in strict chronology only older events may be candidate families",
+    "forcing_scenarios": [
+      "P1_real_forecast_available_at_t0",
+      "P2_perfect_future_observed_rain"
+    ],
+    "primary_metrics": [
+      "peak_stage_error_cm",
+      "peak_time_error_h",
+      "RMSE_future",
+      "MAE_future",
+      "error_2h_4h_8h_12h_24h"
+    ]
+  }
+}
