@@ -15,12 +15,21 @@ CANDIDATES=[
     (1.00,1.00,0.75),
     (1.00,1.00,1.00),
     (1.25,1.25,1.00),
+    (1.25,1.25,1.25),
+    (1.25,1.25,1.50),
     (1.50,1.25,1.00),
+    (1.50,1.25,1.25),
+    (1.50,1.25,1.50),
     (1.50,1.50,1.00),
     (1.50,1.50,1.25),
+    (1.50,1.50,1.50),
     (1.75,1.50,1.00),
+    (1.75,1.50,1.25),
+    (1.75,1.50,1.50),
     (1.75,1.75,1.00),
     (1.75,1.75,1.25),
+    (1.75,1.75,1.50),
+    (2.00,1.75,1.50),
     (2.00,1.75,1.00),
     (2.00,2.00,1.00),
     (2.00,2.00,1.25),
@@ -35,8 +44,10 @@ def score(pkg):
     e=abs(float(cur.get("stage_error_cm") or 999))
     rmse=float(fit.get("raw_rmse_cm") or fit.get("rmse_cm") or 999)
     bias=abs(float(fit.get("raw_bias_cm") or fit.get("bias_cm") or 999))
-    # State match dominates; recent hydrograph shape is secondary.
-    return e + 0.55*rmse + 0.20*bias
+    slope=abs(float(cur.get("slope_error_cm_h") or 999))
+    # Match both current level and current rising/falling rate. A candidate that
+    # only crosses the observed point but has the wrong slope is rejected.
+    return e + 0.45*rmse + 0.15*bias + 0.80*slope
 
 def run_one(hec,k1,k2,k3):
     env=dict(os.environ)
@@ -78,7 +89,7 @@ def main():
     if cp.returncode!=0: raise SystemExit(cp.returncode)
     pkg=json.loads(RESULT.read_text(encoding="utf-8"))
     pkg["routing_sweep"]={
-        "selection_rule":"min |t0 stage error| + 0.55*RMSE6h + 0.20*|bias6h| using current-event observed hydrograph",
+        "selection_rule":"min |t0 stage error| + 0.45*RMSE6h + 0.15*|bias6h| + 0.80*|current slope error| using current-event observations",
         "candidates":rows,
         "selected":{"k1_h":best["k1"],"k2_h":best["k2"],"k3_h":best["k3"],"x":0.2,"score":best["score"]},
         "note":"Only routing is recalibrated; observed rain and observed discharge states are unchanged."
