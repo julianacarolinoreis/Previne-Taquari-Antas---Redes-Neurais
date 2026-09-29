@@ -168,11 +168,121 @@ def current_score(m, hours, flow, sim):
     return nse - 0.65*end_pen - 0.20*trend_pen
 
 
+
+def parse_rain_csv_time(row):
+    try:
+        y=int(float(row.get("ANO") or 0)); m=int(float(row.get("MES") or 0)); d=int(float(row.get("DIA") or 0))
+        raw=str(row.get("HORA") or "0").strip()
+        if ":" in raw:
+            hh=int(raw.split(":")[0])
+        else:
+            n=int(float(raw))
+            hh=n//100 if n>=100 else n
+        return datetime(y,m,d,hh).strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        code=str(row.get("COD_SEQUENCIAL") or "").strip()
+        if len(code)>=10 and code[:10].isdigit():
+            return datetime.strptime(code[:10],"%Y%m%d%H").strftime("%Y-%m-%d %H:%M:%S")
+    return None
+
+
+def fcsv(v):
+    s=str(v or "").strip().replace(",",".")
+    if not s or s.lower() in {"nan","none","null","na"}:
+        return None
+    try:
+        x=float(s)
+        return x if math.isfinite(x) else None
+    except Exception:
+        return None
+
+
+def historical_csv_forcing(event_id, librow):
+    """Fallback using the operational audited rain CSV with hourly masks.
+
+    No missing value is converted to zero. At each hour, another observed gauge
+    is used only when it actually has a value. If all available gauges are
+    missing in the same hour, the experiment is blocked.
+    """
+    rain_path=ROOT/"assets/data/chuvas_horarias.csv"
+    series_path=ROOT/f"assets/data/estudo_bacia_taquari_antas/hec_twin_stz_mucum_v1/mucum_{event_id}_best_series.csv"
+    if not rain_path.exists() or not series_path.exists():
+        return None, {"runnable":False,"blocked_reason":"fallback rain/series file missing"}, [], {}, 0, []
+    start_s,end_s=twin.EVENTS[event_id]
+    core_start=datetime.strptime(start_s,"%Y-%m-%d %H:%M:%S")
+    core_end=datetime.strptime(end_s,"%Y-%m-%d %H:%M:%S")
+    pad=int(librow.get("pad_hours_selected") or 0)
+    from datetime import timedelta
+    sim_start=core_start-timedelta(hours=pad)
+    hours=[]
+    t=sim_start
+    while t<=core_end:
+        hours.append(t.strftime("%Y-%m-%d %H:%M:%S")); t+=timedelta(hours=1)
+    wanted=set(hours)
+    rr={}
+    with rain_path.open(newline="",encoding="utf-8",errors="replace") as fh:
+        for row in csv.DictReader(fh):
+            ts=parse_rain_csv_time(row)
+            if ts not in wanted: continue
+            rr[ts]={
+                "86472000":fcsv(row.get("chuva_86472000")),
+                "86472600":fcsv(row.get("chuva_86472600")),
+                "2851072":fcsv(row.get("chuva_02851072")),
+            }
+    precip={sb:[] for sb in SUBBASINS}
+    missing=[]
+    used={"up_mean_86472000_2851072":0,"carreiro_2851072":0,"stz_86472600":0,"mucum_proxy":0}
+    for h in hours:
+        r=rr.get(h,{})
+        up=[v for v in (r.get("86472000"),r.get("2851072")) if v is not None]
+        if not up:
+            missing.append(h); continue
+        upv=sum(up)/len(up); used["up_mean_86472000_2851072"]+=1
+        cv=r.get("2851072")
+        if cv is None: cv=r.get("86472000")
+        if cv is None: missing.append(h); continue
+        used["carreiro_2851072"]+=1
+        sv=r.get("86472600")
+        if sv is None:
+            vals=[v for v in (r.get("86472000"),r.get("2851072")) if v is not None]
+            sv=sum(vals)/len(vals) if vals else None
+        if sv is None: missing.append(h); continue
+        used["stz_86472600"]+=1
+        mv=r.get("86472600")
+        if mv is None: mv=r.get("86472000")
+        if mv is None: mv=r.get("2851072")
+        if mv is None: missing.append(h); continue
+        used["mucum_proxy"]+=1
+        precip["SB_PRATA_7868"].append(upv)
+        precip["SB_ANTAS_RESIDUAL"].append(upv)
+        precip["SB_CARREIRO_7866"].append(cv)
+        precip["SB_STZ_RESIDUAL"].append(sv)
+        precip["SB_INC_MUCUM"].append(mv)
+    if missing:
+        return None, {"runnable":False,"blocked_reason":f"{len(missing)} hours with no observed fallback rain","missing_hours":missing[:20]}, hours, {}, pad, []
+    flow={}
+    with series_path.open(newline="",encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            ts=str(row.get("timestamp") or "")
+            val=fcsv(row.get("obs_m3s"))
+            if val is not None:
+                flow[ts]=val
+    core_hours=[]
+    t=core_start
+    while t<=core_end:
+        core_hours.append(t.strftime("%Y-%m-%d %H:%M:%S")); t+=timedelta(hours=1)
+    meta={"runnable":True,"source":"assets/data/chuvas_horarias.csv masked hourly fallback","no_missing_as_zero":True,"used_counts":used,"pad_h":pad}
+    return precip,meta,hours,flow,pad,core_hours
+
+
 def historical_case(event_id, librow):
     pad = int(librow.get("pad_hours_selected") or 0)
     precip, meta, hours, flow, flow_antas, core_offset, core_hours = twin.prepare_event_forcing(event_id, SUBBASINS, pad)
     if precip is None:
-        return {"event_id": event_id, "status": "blocked_no_precip", "rain_meta": meta}
+        precip, meta2, hours, flow, core_offset, core_hours = historical_csv_forcing(event_id, librow)
+        meta = {"strict_raw": meta, "masked_csv_fallback": meta2}
+        if precip is None:
+            return {"event_id": event_id, "status": "blocked_no_precip", "rain_meta": meta}
     base = nparams(librow["params"])
     bm, _ = metrics_for(precip, hours, flow, base, core_offset, core_hours)
     route_free = best_routing(precip, hours, flow, base, core_offset=core_offset, core_hours=core_hours, constrained=False)
