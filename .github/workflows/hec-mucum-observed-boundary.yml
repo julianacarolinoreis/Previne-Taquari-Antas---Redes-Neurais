@@ -60,13 +60,13 @@ jobs:
       - name: Build full-event rain timeline
         run: python -B scripts/build_hec_hms_spatial_forecast_mucum.py
 
-      - name: Run HEC with two observed discharge boundaries
+      - name: Run HEC with two observed discharge boundaries + current-event routing sweep
         shell: bash
         run: |
           set -euo pipefail
           HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
           test -n "$HEC_SH"
-          python -B scripts/run_hec_hms_mucum_dual_boundary.py "$HEC_SH"
+          python -B scripts/run_hec_hms_mucum_dual_route_sweep.py "$HEC_SH"
 
       - name: Publish result
         shell: bash
