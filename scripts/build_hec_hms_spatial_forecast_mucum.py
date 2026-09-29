@@ -255,6 +255,28 @@ def live_context():
     if stage is None or not when:
         raise RuntimeError("Muçum live stage/time unavailable")
 
+    # The summary fields can lag one 15-minute telemetry cycle behind the
+    # embedded ANA series. Always promote the newest valid observed point.
+    series_obs = []
+    for row in (live.get("serie_observada_ana") or []):
+        h = row.get("hora")
+        n = row.get("nivel_cm")
+        if h is None or n is None:
+            continue
+        try:
+            dt_local = datetime.fromisoformat(str(h))
+            dt_utc = dt_local.replace(tzinfo=BRT).astimezone(timezone.utc)
+            series_obs.append((dt_utc, float(n)))
+        except (TypeError, ValueError):
+            continue
+    if series_obs:
+        series_obs.sort(key=lambda x: x[0])
+        newest_dt, newest_stage = series_obs[-1]
+        summary_dt = iso_utc(when)
+        if newest_dt > summary_dt:
+            stage = newest_stage
+            when = newest_dt.isoformat().replace("+00:00", "Z")
+
     current = _stage_state(
         float(stage), when,
         "ANA/SGB Hidrotelemetria via previsao_ao_vivo_mucum.json",
