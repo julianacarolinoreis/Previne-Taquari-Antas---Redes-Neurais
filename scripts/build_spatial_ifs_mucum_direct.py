@@ -22,7 +22,7 @@ from build_spatial_ifs_mucum import ROOT, OUT, LIVE, load_basin, build_cells
 from ecmwf_direct import _find_cycle, _request, _find_tp_entry
 
 USER_AGENT = "PREVINE-spatial-ifs-direct/1.0"
-MAX_STEP_H = 120
+MAX_STEP_H = 48
 
 
 def _parse_utc(value: str) -> datetime:
@@ -44,7 +44,7 @@ def _latest_cycle(now: datetime):
     # Probe all integer lead times; unavailable files are skipped later.
     steps = {
         h: f"{cycle:%Y%m%d%H}0000-{h}h-oper-fc.grib2"
-        for h in range(1, MAX_STEP_H + 1)
+        for h in range(3, MAX_STEP_H + 1, 3)
     }
     return cycle, prefix, steps
 
@@ -156,7 +156,7 @@ def _write(cycle, basin_area, overlap_sum, cells):
     total_volume = sum(sum(c["precip_mm"]) * c["overlap_km2"] * 0.001 for c in cells)
     equivalent = total_volume / basin_area * 1000.0 if basin_area else None
     summary = {
-        "schema_version": "spatial_ifs_mucum_v2_ecmwf_direct",
+        "schema_version": "spatial_ifs_mucum_v2_ecmwf_direct_48h",
         "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "status": "spatial_rain_field_ready",
         "purpose": "Campo espacial direto da rodada ECMWF IFS Open Data mais recente sobre a bacia contribuinte até Muçum.",
@@ -164,7 +164,7 @@ def _write(cycle, basin_area, overlap_sum, cells):
             "model": "ECMWF IFS Open Data 0.25° DIRECT",
             "cycle_time_utc": cycle.isoformat().replace("+00:00", "Z"),
             "variable": "tp",
-            "temporal_processing": "diferenca de acumulados entre passos; desagregacao uniforme apenas quando o IFS nao fornece passo horario",
+            "temporal_processing": "diferenca de acumulados entre passos de 3 h; desagregacao uniforme dentro de cada bloco de 3 h",
         },
         "window": {
             "start_utc": times[0].isoformat().replace("+00:00", "Z"),
