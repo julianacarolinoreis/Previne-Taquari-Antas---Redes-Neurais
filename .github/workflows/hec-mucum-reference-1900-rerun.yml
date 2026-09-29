@@ -1,4 +1,4 @@
-# refresh chat 2026-09-29 10:08 BRT — throttled ECMWF 06Z direct 48h
+# refresh chat 2026-09-29 10:10 BRT — provisional 06Z spatial intensity ratio
 name: HEC Mucum reference 28-09 19h rerun
 
 on:
@@ -39,8 +39,38 @@ jobs:
       - name: Observado multirrede atualizado
         run: OBS_FAST_MODE=1 python -B scripts/build_mucum_observed_multistation.py
 
-      - name: ECMWF IFS 06Z espacial direto
-        run: python -B scripts/build_spatial_ifs_mucum_direct.py
+      - name: Campo espacial IFS atual
+        run: python -B scripts/build_spatial_ifs_mucum.py
+
+      - name: Ajusta campo espacial para a intensidade da ECMWF IFS 06Z direta
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum/spatial_ifs_mucum_latest.json")
+          d=json.loads(p.read_text(encoding="utf-8"))
+          # ECMWF direto no ponto Muçum: 00Z +24h = 63.69 mm; 06Z +24h = 47.90 mm
+          # Razão = 0.7520803894. Aplicada apenas ao forcing FUTURO espacial.
+          factor=47.90/63.69
+          for cell in d.get("cells",[]):
+              vals=[round(float(v)*factor,4) for v in cell.get("precip_mm",[])]
+              cell["precip_mm"]=vals
+              if "total_120h_mm" in cell:
+                  cell["total_120h_mm"]=round(sum(vals),3)
+              if "rain_volume_hm3" in cell:
+                  cell["rain_volume_hm3"]=round(float(cell["rain_volume_hm3"])*factor,6)
+          d["generated_at_utc"]="2026-09-29T13:10:00Z"
+          d["source_06z_adjustment"]={
+              "status":"provisional_spatial_intensity_adjustment",
+              "ecmwf_cycle_time_utc":"2026-09-29T06:00:00Z",
+              "factor":factor,
+              "basis":"ECMWF Open Data direct point Muçum: 47.90 mm/24h at 06Z versus 63.69 mm/24h at 00Z",
+              "note":"Preserva o padrão espacial/temporal do campo IFS; ajusta apenas a intensidade até a extração espacial direta da 06Z ficar disponível."
+          }
+          p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          print(json.dumps(d["source_06z_adjustment"],ensure_ascii=False))
+          PY
 
       - name: Cache HEC-HMS
         id: cache-hec
