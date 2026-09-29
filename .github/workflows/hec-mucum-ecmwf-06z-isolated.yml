@@ -1,0 +1,159 @@
+name: HEC Muçum ECMWF 06Z isolated audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/hec-mucum-ecmwf-06z-isolated.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hec-mucum-ecmwf-06z-isolated
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libeccodes-dev
+          python -m pip install --disable-pip-version-check eccodes shapely pyproj matplotlib numpy
+
+      - name: Refresh observed multinet basin rainfall
+        run: OBS_FAST_MODE=1 python -B scripts/build_mucum_observed_multistation.py
+
+      - name: Build direct ECMWF IFS 06Z spatial field
+        env:
+          IFS_CYCLE_UTC: "2026-09-29T06:00:00Z"
+          IFS_MAX_STEP_H: "120"
+        run: python -B scripts/build_spatial_ifs_mucum_ecmwf_direct_cycle.py
+
+      - name: Snapshot forcing and observed
+        run: |
+          cp assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum/spatial_ifs_mucum_direct_06z_latest.json assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum_ecmwf_20260929_06z.json
+          cp assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_latest.json assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_20260929_06z_snapshot.json
+          cp assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_rain_hourly.csv assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_rain_20260929_06z_snapshot.csv
+
+      - name: Cache HEC-HMS
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Download HEC-HMS 4.13
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4 -o /tmp/HEC-HMS-4.13-linux64.tar.gz https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Run fixed structural calibration with state-only candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          mkdir -p assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_06z_candidates
+          for M in 0.45 0.475 0.50 0.525 0.55; do
+            export HEC_PARAM_EVENT=E28
+            export HEC_INITIAL_LOSS_MM=20
+            export HEC_CONSTANT_LOSS_MM_H=3
+            export HEC_TC_H=25
+            export HEC_STORAGE_H=20
+            export HEC_RECESSION_DAILY=0.90
+            export HEC_INITIAL_FLOW_MULTIPLIER="$M"
+            python -B scripts/build_hec_hms_spatial_forecast_mucum.py
+            rm -f assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/hec_output_values.csv
+            "$HEC_SH" -s assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project/run_forecast.script
+            python -B scripts/postprocess_hec_hms_spatial_forecast_mucum.py
+            TAG="$(echo "$M" | tr '.' '_')"
+            cp assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_latest.json "assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_06z_candidates/state_$TAG.json"
+            cp assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/primary_series.csv "assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_06z_candidates/state_$TAG.csv"
+          done
+
+      - name: Select state closest to observed t0
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, shutil
+          from pathlib import Path
+          root=Path("assets/data/estudo_bacia_taquari_antas")
+          cand=root/"hec_hms_fixed_06z_candidates"
+          rows=[]
+          for p in sorted(cand.glob("state_*.json")):
+              j=json.loads(p.read_text(encoding="utf-8"))
+              v=j.get("validation") or {}
+              ps=j.get("parameter_source") or {}
+              eh=v.get("event_hydrograph_since_20260926") or {}
+              rows.append({
+                  "file":p.name,
+                  "initial_flow_multiplier":ps.get("initial_flow_multiplier"),
+                  "stage_error_at_t0_cm":v.get("stage_error_at_t0_cm"),
+                  "q_error_pct":v.get("q_error_pct"),
+                  "event_rmse_cm":eh.get("rmse_cm"),
+                  "event_mae_cm":eh.get("mae_cm"),
+                  "event_bias_cm":eh.get("bias_cm"),
+                  "event_nse":eh.get("nse"),
+                  "peak_time_error_h":eh.get("peak_time_error_h"),
+              })
+          def score(r):
+              e=r["stage_error_at_t0_cm"]
+              q=r["q_error_pct"]
+              return (abs(float(e)) if e is not None else 1e9, abs(float(q)) if q is not None else 1e9)
+          best=min(rows,key=score)
+          src=cand/best["file"]
+          shutil.copy2(src,root/"hec_hms_fixed_06z_latest.json")
+          shutil.copy2(src.with_suffix(".csv"),root/"hec_hms_fixed_06z_series.csv")
+          manifest={
+              "schema_version":"hec_hms_fixed_06z_state_selection_v1",
+              "ecmwf_cycle_time_utc":"2026-09-29T06:00:00Z",
+              "structural_parameters":{"initial_loss_mm":20.0,"constant_loss_mm_h":3.0,"tc_h":25.0,"storage_h":20.0,"recession":0.90},
+              "state_parameter_varied_only":"initial_flow_multiplier",
+              "selection_rule":"minimum absolute HEC warmed-state stage error at exact latest observed t0; q error tie-break",
+              "selected":best,
+              "candidates":rows,
+              "visual_stage_shift_applied":False
+          }
+          (root/"hec_hms_fixed_06z_state_selection.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          print(json.dumps(manifest,ensure_ascii=False,indent=2))
+          PY
+
+      - name: Restore canonical Open-Meteo spatial file before publishing
+        run: git checkout HEAD -- assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum/spatial_ifs_mucum_latest.json || true
+
+      - name: Publish isolated audit outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-hec-audit-bot"
+          git config user.email "previne-hec-audit-bot@users.noreply.github.com"
+          git add -- assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum_ecmwf_20260929_06z.json assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_20260929_06z_snapshot.json assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_rain_20260929_06z_snapshot.csv assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_06z_latest.json assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_06z_series.csv assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_06z_state_selection.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "audit: Muçum HEC fixed calibration with ECMWF 20260929 06Z [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then exit 0; fi
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort || true; exit 1; }
+            sleep $((attempt * 2))
+          done
+          exit 1
