@@ -1,0 +1,91 @@
+name: Mucum 06Z upstream assimilated
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/mucum-06z-upstream-assimilated.yml"
+      - "scripts/run_mucum_06z_upstream_assimilated.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mucum-06z-upstream-assimilated
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libeccodes-dev
+          python -m pip install --disable-pip-version-check shapely pyproj matplotlib numpy attrs cffi findlibs
+          python -m pip install --disable-pip-version-check --no-deps eccodes==2.48.0
+
+      - name: Latest observed multistation
+        run: OBS_FAST_MODE=1 python -B scripts/build_mucum_observed_multistation.py
+
+      - name: Patch live t0 from latest Muçum hourly observation
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path(".")
+          obs=json.loads((root/"assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_latest.json").read_text(encoding="utf-8"))
+          s=next(x for x in obs["flow"]["stations"] if str(x["code"])=="86510000")
+          rows=[r for r in s["series"] if r.get("level") is not None]
+          rows.sort(key=lambda r:r["time_local"])
+          r=rows[-1]
+          live=json.loads((root/"previsao_ao_vivo_mucum.json").read_text(encoding="utf-8"))
+          local=r["time_local"]
+          from datetime import datetime, timezone, timedelta
+          dt=datetime.fromisoformat(local).replace(tzinfo=timezone(timedelta(hours=-3)))
+          utc=dt.astimezone(timezone.utc).isoformat().replace("+00:00","Z")
+          live["telemetria_ultima_em"]=local
+          live["telemetria_ultima_em_utc"]=utc
+          live["telemetria_ultima_nivel_cm"]=int(round(float(r["level"])))
+          live["nivel_rio_agora_em"]=local
+          live["nivel_rio_agora_em_utc"]=utc
+          live["nivel_rio_agora_cm"]=int(round(float(r["level"])))
+          live["nivel_atual_cm"]=int(round(float(r["level"])))
+          (root/"previsao_ao_vivo_mucum.json").write_text(json.dumps(live,ensure_ascii=False,indent=1)+"\n",encoding="utf-8")
+          print({"t0_local":local,"t0_utc":utc,"stage_cm":r["level"],"q_m3s":r.get("flow_m3s")})
+          PY
+
+      - name: Exact ECMWF IFS 06Z spatial field through +48h
+        env:
+          IFS_CYCLE_UTC: "2026-09-29T06:00:00Z"
+          IFS_MAX_STEP_H: "48"
+        run: python -B scripts/build_spatial_ifs_mucum_ecmwf_direct_cycle.py
+
+      - name: Convert direct IFS cells to hydrologic twin subbasins
+        run: python -B scripts/build_hec_twin_ifs_spatial_forcing_5d.py
+
+      - name: Assimilate Antas + Carreiro states and forecast Muçum
+        run: python -B scripts/run_mucum_06z_upstream_assimilated.py
+
+      - name: Save artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mucum-06z-upstream-assimilated
+          path: |
+            assets/data/estudo_bacia_taquari_antas/mucum_06z_upstream_assimilated_latest.json
+            assets/data/estudo_bacia_taquari_antas/mucum_06z_upstream_assimilated_series.csv
+            assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_latest.json
+            assets/data/estudo_bacia_taquari_antas/hec_twin_ifs_spatial_forcing_5d_latest.json
+            assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum/spatial_ifs_mucum_direct_06z_latest.json
