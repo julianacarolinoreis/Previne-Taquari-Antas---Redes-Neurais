@@ -1,5 +1,6 @@
 name: HEC Muçum observed boundary
 # rerun stage conversion fix
+# selected routing K1=1.0 K2=1.5 after current-state sweep
 
 on:
   push:
@@ -55,6 +56,10 @@ jobs:
           test -s assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/hec_output_values.csv
       - name: Run observed-boundary HEC
         shell: bash
+        env:
+          BOUNDARY_K1_H: "1.0"
+          BOUNDARY_K2_H: "1.5"
+          BOUNDARY_X: "0.2"
         run: |
           set -euo pipefail
           HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
