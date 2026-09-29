@@ -371,7 +371,7 @@ def main():
     vals=vals[-len(times):]
     if len(vals)!=len(times): raise RuntimeError(f"MUCUM output {len(vals)} != {len(times)}")
     seg=mucum_curve_segments()
-    stages=[q_to_stage_cm(q,seg) for q in vals]
+    stages=[q_to_stage_cm(q,seg)["stage_cm"] for q in vals]
     # exact current Muçum state from live package; compare with hourly interpolation.
     live=loadj(ROOT/"previsao_ao_vivo_mucum.json")
     obs_t=datetime.fromisoformat(live["telemetria_ultima_em"])
