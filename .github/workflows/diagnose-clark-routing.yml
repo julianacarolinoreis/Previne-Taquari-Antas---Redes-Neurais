@@ -1,0 +1,63 @@
+name: Diagnóstico Clark x routing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/diagnose_clark_routing_separation.py"
+      - ".github/workflows/diagnose-clark-routing.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: diagnose-clark-routing
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run controlled separation diagnostic
+        run: python -B scripts/diagnose_clark_routing_separation.py
+
+      - name: Validate outputs
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("assets/data/estudo_bacia_taquari_antas/clark_routing_separation/clark_routing_separation_latest.json")
+          d=json.loads(p.read_text(encoding="utf-8"))
+          assert len(d["summary"])==3
+          print(json.dumps(d["summary"],ensure_ascii=False,indent=2))
+          PY
+
+      - name: Publish diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-routing-diagnostic-bot"
+          git config user.email "previne-routing-diagnostic-bot@users.noreply.github.com"
+          git add -- assets/data/estudo_bacia_taquari_antas/clark_routing_separation
+          if git diff --cached --quiet; then
+            echo "Sem mudanças."
+            exit 0
+          fi
+          git commit -m "exp: resultados separação Clark x routing [skip ci]"
+          for i in 1 2 3 4 5; do
+            git push origin HEAD:main && exit 0
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort || true; exit 1; }
+          done
+          exit 1
