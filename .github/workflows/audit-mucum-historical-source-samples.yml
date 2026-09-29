@@ -28,6 +28,7 @@ jobs:
             scripts/audit_mucum_historical_source_samples.py
             assets/data/chuvas_horarias.csv
             assets/data/hec_hms_audit/raw/ana/supplemental
+            assets/data/hec_hms_audit/mucum_historical_source_spotcheck
           sparse-checkout-cone-mode: false
 
       - uses: actions/setup-python@v5
@@ -65,7 +66,7 @@ jobs:
           set -euo pipefail
           git config user.name "previne-source-audit-bot"
           git config user.email "previne-source-audit-bot@users.noreply.github.com"
-          git add -- assets/data/hec_hms_audit/mucum_historical_source_spotcheck
+          git add --sparse -- assets/data/hec_hms_audit/mucum_historical_source_spotcheck
           git diff --cached --quiet && exit 0
           git commit -m "audit: resultado histórico Muçum x ANA [skip ci]"
           git pull --rebase origin main
