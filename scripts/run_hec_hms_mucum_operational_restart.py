@@ -150,7 +150,7 @@ def main() -> int:
     base = {k: coarse[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}
 
     # Refine only the internal initial-flow state around the best dynamic shape.
-    for mult in (0.45,0.55,0.65,0.70,0.75,0.85,1.15):
+    for mult in (0.45,0.55,0.65,0.70,0.75,0.85,0.95,0.98,1.00,1.01,1.02,1.025,1.03,1.04,1.05,1.08,1.10,1.15):
         p = dict(base)
         p["initial_flow_multiplier"] = mult
         p = cal.rounded_params(p)
