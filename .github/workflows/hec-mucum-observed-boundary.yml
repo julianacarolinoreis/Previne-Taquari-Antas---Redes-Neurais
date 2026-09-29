@@ -1,6 +1,6 @@
 # short restart 2026-09-29 19:36 BRT
 name: HEC Muçum observed boundary
-# dual observed branches: LJJ + Carreiro · expanded routing sweep 2026-09-29 19:37 BRT
+# dual observed branches: all observed gauges + native t0 match
 
 on:
   push:
@@ -77,20 +77,23 @@ jobs:
           set -euo pipefail
           git config user.name "previne-hec-observed-boundary-bot"
           git config user.email "previne-hec-observed-boundary-bot@users.noreply.github.com"
-          git add -- \
-            assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum_latest.json \
-            assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/primary_series.csv
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "bot: HEC Muçum dual observed branches [skip ci]"
-          git restore --worktree . || true
-          git clean -fd -- assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/project || true
+
+          RESULT_JSON="assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum_latest.json"
+          RESULT_CSV="assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/primary_series.csv"
+          cp "$RESULT_JSON" /tmp/hec_hms_dual_boundary_mucum_latest.json
+          cp "$RESULT_CSV" /tmp/hec_hms_dual_boundary_primary_series.csv
+
           for attempt in 1 2 3 4 5; do
-            if git push origin HEAD:main; then exit 0; fi
-            git reset --hard HEAD
             git fetch origin main
-            if git rebase origin/main; then continue; fi
-            git rebase --abort || true
-            exit 1
+            git reset --hard origin/main
+            mkdir -p "$(dirname "$RESULT_CSV")"
+            cp /tmp/hec_hms_dual_boundary_mucum_latest.json "$RESULT_JSON"
+            cp /tmp/hec_hms_dual_boundary_primary_series.csv "$RESULT_CSV"
+            git add -- "$RESULT_JSON" "$RESULT_CSV"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "bot: HEC Muçum dual observed branches [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt * 2))
           done
           exit 1
 
