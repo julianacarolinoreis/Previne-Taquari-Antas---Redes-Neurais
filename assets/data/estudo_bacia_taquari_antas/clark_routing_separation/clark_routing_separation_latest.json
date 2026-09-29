@@ -1,0 +1,484 @@
+{
+  "schema_version": "clark_routing_separation_v1",
+  "generated_at_utc": "2026-09-29T00:26:30.598984Z",
+  "purpose": "diagnosticar se o erro temporal melhora ao separar resposta Clark de routing do canal; sem alterar modelo operacional",
+  "engine": "Python audit twin: Initial+Constant + Clark + Recession + Muskingum",
+  "operational_model_modified": false,
+  "routing_search": {
+    "unconstrained_k_h": [
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      4.0,
+      5.5
+    ],
+    "diagnostic_constrained_k_h": [
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      4.0,
+      5.5
+    ],
+    "x": [
+      0.1,
+      0.2,
+      0.3
+    ]
+  },
+  "cases": [
+    {
+      "event_id": "E27",
+      "status": "blocked_no_precip",
+      "rain_meta": {
+        "stations_mm_sum": {},
+        "stations_mm_sum_core": {},
+        "subbasin_sources": {},
+        "fallback_notes": [],
+        "runnable": false,
+        "blocked_reason": "rain incomplete for SB_PRATA_7868 (no station covers all hours without gaps)",
+        "contract": "hec_event_ana_raw_ana_only",
+        "warm_up": {
+          "requested_hours": 12,
+          "applied": false,
+          "reason": "pad_rain_incomplete"
+        }
+      }
+    },
+    {
+      "event_id": "E28",
+      "status": "blocked_no_precip",
+      "rain_meta": {
+        "stations_mm_sum": {},
+        "stations_mm_sum_core": {},
+        "subbasin_sources": {},
+        "fallback_notes": [],
+        "runnable": false,
+        "blocked_reason": "rain incomplete for SB_PRATA_7868 (no station covers all hours without gaps)",
+        "contract": "hec_event_ana_raw_ana_only",
+        "warm_up": {
+          "requested_hours": 12,
+          "applied": false,
+          "reason": "pad_rain_incomplete"
+        }
+      }
+    },
+    {
+      "event_id": "LIVE_20260926_28",
+      "status": "ok_rising_limb_censored",
+      "hours": 69,
+      "start": "2026-09-26 00:00:00",
+      "end": "2026-09-28 20:00:00",
+      "state_scale_for_initial_flow_ratio": 32.0,
+      "state_pre_rise_rmse_m3s": 83.49514528733675,
+      "baseline": {
+        "params": {
+          "upstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 0.25,
+            "tc": 23.0,
+            "storage": 25.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.032
+          },
+          "downstream": {
+            "initial_loss": 1.5,
+            "constant_loss": 2.0,
+            "tc": 20.0,
+            "storage": 25.0,
+            "recession": 0.995,
+            "initial_flow_ratio": 0.16
+          },
+          "k1": 2.5,
+          "k2": 2.5,
+          "k3": 1.0,
+          "x": 0.2
+        },
+        "metrics": {
+          "pairs": 69.0,
+          "nse": -0.7137879380624266,
+          "rmse_m3s": 763.6952708832011,
+          "mae_m3s": 457.96542248685654,
+          "peak_lag_hours": 0.0,
+          "peak_relative_error": 0.6273231165601255,
+          "observed_peak_m3s": 3360.085,
+          "simulated_peak_m3s": 5467.9439941069295,
+          "research_score": -1.4979418337625834
+        },
+        "terminal": {
+          "end_obs_m3s": 3360.085,
+          "end_sim_m3s": 5467.9439941069295,
+          "end_error_m3s": 2107.8589941069295,
+          "trend_obs_m3s_h": 326.0,
+          "trend_sim_m3s_h": 378.0116787382637
+        },
+        "objective": -1.1534569691874061
+      },
+      "routing_only_unconstrained": {
+        "params": {
+          "upstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 0.25,
+            "tc": 23.0,
+            "storage": 25.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.032
+          },
+          "downstream": {
+            "initial_loss": 1.5,
+            "constant_loss": 2.0,
+            "tc": 20.0,
+            "storage": 25.0,
+            "recession": 0.995,
+            "initial_flow_ratio": 0.16
+          },
+          "k1": 4.0,
+          "k2": 5.5,
+          "k3": 3.0,
+          "x": 0.3
+        },
+        "metrics": {
+          "pairs": 69.0,
+          "nse": 0.875789833356313,
+          "rmse_m3s": 205.59859030187502,
+          "mae_m3s": 165.18369115041114,
+          "peak_lag_hours": 0.0,
+          "peak_relative_error": 0.005851498066615788,
+          "observed_peak_m3s": 3360.085,
+          "simulated_peak_m3s": 3340.4234691188353,
+          "research_score": 0.8684754607730433
+        },
+        "objective": 0.8566122864039195,
+        "terminal": {
+          "end_obs_m3s": 3360.085,
+          "end_sim_m3s": 3340.4234691188353,
+          "end_error_m3s": -19.66153088116471,
+          "trend_obs_m3s_h": 326.0,
+          "trend_sim_m3s_h": 300.94026066917803
+        }
+      },
+      "routing_only_k_ge_1h": {
+        "params": {
+          "upstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 0.25,
+            "tc": 23.0,
+            "storage": 25.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.032
+          },
+          "downstream": {
+            "initial_loss": 1.5,
+            "constant_loss": 2.0,
+            "tc": 20.0,
+            "storage": 25.0,
+            "recession": 0.995,
+            "initial_flow_ratio": 0.16
+          },
+          "k1": 4.0,
+          "k2": 5.5,
+          "k3": 3.0,
+          "x": 0.3
+        },
+        "metrics": {
+          "pairs": 69.0,
+          "nse": 0.875789833356313,
+          "rmse_m3s": 205.59859030187502,
+          "mae_m3s": 165.18369115041114,
+          "peak_lag_hours": 0.0,
+          "peak_relative_error": 0.005851498066615788,
+          "observed_peak_m3s": 3360.085,
+          "simulated_peak_m3s": 3340.4234691188353,
+          "research_score": 0.8684754607730433
+        },
+        "objective": 0.8566122864039195,
+        "terminal": {
+          "end_obs_m3s": 3360.085,
+          "end_sim_m3s": 3340.4234691188353,
+          "end_error_m3s": -19.66153088116471,
+          "trend_obs_m3s_h": 326.0,
+          "trend_sim_m3s_h": 300.94026066917803
+        }
+      },
+      "clark_only": {
+        "params": {
+          "upstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 0.25,
+            "tc": 28.0,
+            "storage": 45.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.032
+          },
+          "downstream": {
+            "initial_loss": 1.5,
+            "constant_loss": 2.0,
+            "tc": 15.0,
+            "storage": 45.0,
+            "recession": 0.995,
+            "initial_flow_ratio": 0.16
+          },
+          "k1": 2.5,
+          "k2": 2.5,
+          "k3": 1.0,
+          "x": 0.2
+        },
+        "metrics": {
+          "pairs": 69.0,
+          "nse": 0.8344504330171925,
+          "rmse_m3s": 237.35893512369117,
+          "mae_m3s": 180.06371259648495,
+          "peak_lag_hours": 0.0,
+          "peak_relative_error": 0.018267006243900295,
+          "observed_peak_m3s": 3360.085,
+          "simulated_peak_m3s": 3298.7063063249643,
+          "research_score": 0.8116166752123171
+        },
+        "objective": 0.7630697286234783,
+        "terminal": {
+          "end_obs_m3s": 3360.085,
+          "end_sim_m3s": 3298.7063063249643,
+          "end_error_m3s": -61.37869367503572,
+          "trend_obs_m3s_h": 326.0,
+          "trend_sim_m3s_h": 229.00334495365829
+        }
+      },
+      "sequential_clark_routing_k_ge_1h": {
+        "params": {
+          "upstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 0.25,
+            "tc": 23.0,
+            "storage": 25.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.032
+          },
+          "downstream": {
+            "initial_loss": 1.5,
+            "constant_loss": 2.0,
+            "tc": 20.0,
+            "storage": 25.0,
+            "recession": 0.995,
+            "initial_flow_ratio": 0.16
+          },
+          "k1": 4.0,
+          "k2": 5.5,
+          "k3": 3.0,
+          "x": 0.3
+        },
+        "metrics": {
+          "pairs": 69.0,
+          "nse": 0.875789833356313,
+          "rmse_m3s": 205.59859030187502,
+          "mae_m3s": 165.18369115041114,
+          "peak_lag_hours": 0.0,
+          "peak_relative_error": 0.005851498066615788,
+          "observed_peak_m3s": 3360.085,
+          "simulated_peak_m3s": 3340.4234691188353,
+          "research_score": 0.8684754607730433
+        },
+        "objective": 0.8566122864039195,
+        "terminal": {
+          "end_obs_m3s": 3360.085,
+          "end_sim_m3s": 3340.4234691188353,
+          "end_error_m3s": -19.66153088116471,
+          "trend_obs_m3s_h": 326.0,
+          "trend_sim_m3s_h": 300.94026066917803
+        }
+      },
+      "rain_source_audit": {
+        "SB_PRATA_7868": {
+          "86472000": 68,
+          "2851072": 68,
+          "86507000": 68
+        },
+        "SB_ANTAS_RESIDUAL": {
+          "86472000": 68,
+          "2851072": 68,
+          "86507000": 68
+        },
+        "SB_CARREIRO_7866": {
+          "86507000": 68,
+          "86472000": 68,
+          "86510000": 69,
+          "2851072": 68
+        },
+        "SB_STZ_RESIDUAL": {
+          "86472600": 68,
+          "86472000": 68,
+          "86510000": 69,
+          "2851072": 68
+        },
+        "SB_INC_MUCUM": {
+          "86510000": 69,
+          "86472600": 68,
+          "86472000": 68
+        }
+      },
+      "observed_timing": {
+        "86472000": {
+          "last": [
+            "2026-09-28T19:00",
+            1100.0
+          ],
+          "max_hourly_rise": [
+            103.5,
+            "2026-09-28T17:00"
+          ],
+          "observed_peak_so_far": [
+            "2026-09-28T19:00",
+            1100.0
+          ],
+          "censored_rising_limb": true
+        },
+        "86472600": {
+          "last": [
+            "2026-09-28T19:00",
+            907.0
+          ],
+          "max_hourly_rise": [
+            89.0,
+            "2026-09-28T17:00"
+          ],
+          "observed_peak_so_far": [
+            "2026-09-28T19:00",
+            907.0
+          ],
+          "censored_rising_limb": true
+        },
+        "86510000": {
+          "last": [
+            "2026-09-28T20:00",
+            1023.5
+          ],
+          "max_hourly_rise": [
+            83.5,
+            "2026-09-28T16:00"
+          ],
+          "observed_peak_so_far": [
+            "2026-09-28T20:00",
+            1023.5
+          ],
+          "censored_rising_limb": true
+        }
+      },
+      "note": "current event is still rising/censored; peak timing is not used in the current objective"
+    }
+  ],
+  "summary": [
+    {
+      "event_id": "E27",
+      "status": "blocked_no_precip"
+    },
+    {
+      "event_id": "E28",
+      "status": "blocked_no_precip"
+    },
+    {
+      "event_id": "LIVE_20260926_28",
+      "status": "ok_rising_limb_censored",
+      "baseline": {
+        "nse": -0.7138,
+        "rmse_m3s": 763.7,
+        "peak_lag_h": null,
+        "peak_error_pct": null,
+        "objective": -1.1535,
+        "k1": 2.5,
+        "k2": 2.5,
+        "k3": 1.0,
+        "x": 0.2,
+        "up_tc": 23.0,
+        "up_storage": 25.0,
+        "dn_tc": 20.0,
+        "dn_storage": 25.0,
+        "end_error_m3s": 2107.9,
+        "trend_obs_m3s_h": 326.0,
+        "trend_sim_m3s_h": 378.0
+      },
+      "routing_only_unconstrained": {
+        "nse": 0.8758,
+        "rmse_m3s": 205.6,
+        "peak_lag_h": null,
+        "peak_error_pct": null,
+        "objective": 0.8566,
+        "k1": 4.0,
+        "k2": 5.5,
+        "k3": 3.0,
+        "x": 0.3,
+        "up_tc": 23.0,
+        "up_storage": 25.0,
+        "dn_tc": 20.0,
+        "dn_storage": 25.0,
+        "end_error_m3s": -19.7,
+        "trend_obs_m3s_h": 326.0,
+        "trend_sim_m3s_h": 300.9
+      },
+      "routing_only_k_ge_1h": {
+        "nse": 0.8758,
+        "rmse_m3s": 205.6,
+        "peak_lag_h": null,
+        "peak_error_pct": null,
+        "objective": 0.8566,
+        "k1": 4.0,
+        "k2": 5.5,
+        "k3": 3.0,
+        "x": 0.3,
+        "up_tc": 23.0,
+        "up_storage": 25.0,
+        "dn_tc": 20.0,
+        "dn_storage": 25.0,
+        "end_error_m3s": -19.7,
+        "trend_obs_m3s_h": 326.0,
+        "trend_sim_m3s_h": 300.9
+      },
+      "clark_only": {
+        "nse": 0.8345,
+        "rmse_m3s": 237.4,
+        "peak_lag_h": null,
+        "peak_error_pct": null,
+        "objective": 0.7631,
+        "k1": 2.5,
+        "k2": 2.5,
+        "k3": 1.0,
+        "x": 0.2,
+        "up_tc": 28.0,
+        "up_storage": 45.0,
+        "dn_tc": 15.0,
+        "dn_storage": 45.0,
+        "end_error_m3s": -61.4,
+        "trend_obs_m3s_h": 326.0,
+        "trend_sim_m3s_h": 229.0
+      },
+      "sequential_clark_routing_k_ge_1h": {
+        "nse": 0.8758,
+        "rmse_m3s": 205.6,
+        "peak_lag_h": null,
+        "peak_error_pct": null,
+        "objective": 0.8566,
+        "k1": 4.0,
+        "k2": 5.5,
+        "k3": 3.0,
+        "x": 0.3,
+        "up_tc": 23.0,
+        "up_storage": 25.0,
+        "dn_tc": 20.0,
+        "dn_storage": 25.0,
+        "end_error_m3s": -19.7,
+        "trend_obs_m3s_h": 326.0,
+        "trend_sim_m3s_h": 300.9
+      }
+    }
+  ],
+  "interpretation_rules": [
+    "Ganho que só aparece com K<1 h é tratado como sinal de compensação entre Clark e routing, não como parâmetro físico validado.",
+    "K>=1 h é apenas uma guarda diagnóstica; valor físico final depende de seções, declividade hidráulica e/ou tempo de onda observado.",
+    "Evento atual é censurado porque a onda ainda estava subindo no último dado; não se usa horário de pico futuro como verdade observada.",
+    "Nenhum resultado deste experimento é promovido automaticamente ao HEC operacional."
+  ]
+}
