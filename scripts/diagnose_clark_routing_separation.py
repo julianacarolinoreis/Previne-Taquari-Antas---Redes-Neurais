@@ -97,45 +97,91 @@ def metrics_for(precip, hours, flow, p, core_offset=0, core_hours=None):
 
 
 def best_routing(precip, hours, flow, base, *, core_offset=0, core_hours=None, constrained=False, current=False):
-    kvals = K_CONSTRAINED if constrained else K_ALL
-    best = None
-    for k1 in kvals:
-        for k2 in kvals:
-            for k3 in kvals:
-                for x in X_ALL:
-                    p = NestedParams(up=base.up, dn=base.dn, k1=k1, k2=k2, k3=k3, x=x)
-                    m, net = metrics_for(precip, hours, flow, p, core_offset, core_hours)
-                    score = current_score(m, hours, flow, net["at_mucum"]) if current else m["research_score"]
-                    row = {"params": p.to_dict(), "metrics": m, "objective": score}
-                    if best is None or score > best["objective"]:
-                        best = row
-    return best
+    """Multi-start coordinate search of Muskingum routing.
 
+    Much faster than a full k1×k2×k3 Cartesian grid while still testing each
+    allowed K and x repeatedly from several starting points.
+    """
+    kvals = K_CONSTRAINED if constrained else K_ALL
+    def evaluate(p):
+        m, net = metrics_for(precip, hours, flow, p, core_offset, core_hours)
+        score = current_score(m, hours, flow, net["at_mucum"]) if current else m["research_score"]
+        return {"params":p.to_dict(),"metrics":m,"objective":score}
+    starts=[
+        NestedParams(up=base.up,dn=base.dn,k1=base.k1,k2=base.k2,k3=base.k3,x=base.x),
+        NestedParams(up=base.up,dn=base.dn,k1=1.0,k2=1.0,k3=1.0,x=0.2),
+        NestedParams(up=base.up,dn=base.dn,k1=2.0,k2=2.0,k3=2.0,x=0.2),
+        NestedParams(up=base.up,dn=base.dn,k1=4.0,k2=4.0,k3=3.0,x=0.3),
+    ]
+    if constrained:
+        starts=[NestedParams(up=s.up,dn=s.dn,k1=max(1.0,s.k1),k2=max(1.0,s.k2),k3=max(1.0,s.k3),x=s.x) for s in starts]
+    global_best=None
+    for seed in starts:
+        p=seed
+        best=evaluate(p)
+        for _ in range(3):
+            changed=False
+            for field in ("k1","k2","k3"):
+                local=best
+                for v in kvals:
+                    kw=dict(k1=p.k1,k2=p.k2,k3=p.k3,x=p.x); kw[field]=v
+                    cand=NestedParams(up=base.up,dn=base.dn,**kw)
+                    row=evaluate(cand)
+                    if row["objective"]>local["objective"]:
+                        local=row
+                if local["objective"]>best["objective"]:
+                    best=local; p=nparams(local["params"]); changed=True
+            local=best
+            for x in X_ALL:
+                cand=NestedParams(up=base.up,dn=base.dn,k1=p.k1,k2=p.k2,k3=p.k3,x=x)
+                row=evaluate(cand)
+                if row["objective"]>local["objective"]:
+                    local=row
+            if local["objective"]>best["objective"]:
+                best=local; p=nparams(local["params"]); changed=True
+            if not changed:
+                break
+        if global_best is None or best["objective"]>global_best["objective"]:
+            global_best=best
+    return global_best
 
 def candidates_around(v, deltas, lower):
     return sorted({round(max(lower, float(v)+d), 3) for d in deltas})
 
 
 def best_clark(precip, hours, flow, base, *, core_offset=0, core_hours=None, current=False):
-    up_tcs = candidates_around(base.up.tc, (-10,-5,0,5,10), 1.0)
-    up_sts = candidates_around(base.up.storage, (-20,-10,0,10,20), 1.0)
-    dn_tcs = candidates_around(base.dn.tc, (-10,-5,0,5,10), 1.0)
-    dn_sts = candidates_around(base.dn.storage, (-20,-10,0,10,20), 1.0)
-    best = None
-    for utc in up_tcs:
-        for ust in up_sts:
-            up = ZoneParams(base.up.initial_loss, base.up.constant_loss, utc, ust, base.up.recession, base.up.initial_flow_ratio)
-            for dtc in dn_tcs:
-                for dst in dn_sts:
-                    dn = ZoneParams(base.dn.initial_loss, base.dn.constant_loss, dtc, dst, base.dn.recession, base.dn.initial_flow_ratio)
-                    p = NestedParams(up=up, dn=dn, k1=base.k1, k2=base.k2, k3=base.k3, x=base.x)
-                    m, net = metrics_for(precip, hours, flow, p, core_offset, core_hours)
-                    score = current_score(m, hours, flow, net["at_mucum"]) if current else m["research_score"]
-                    row = {"params": p.to_dict(), "metrics": m, "objective": score}
-                    if best is None or score > best["objective"]:
-                        best = row
+    """Coordinate search of Clark Tc/storage with losses/baseflow fixed."""
+    def evaluate(p):
+        m, net=metrics_for(precip,hours,flow,p,core_offset,core_hours)
+        score=current_score(m,hours,flow,net["at_mucum"]) if current else m["research_score"]
+        return {"params":p.to_dict(),"metrics":m,"objective":score}
+    p=base
+    best=evaluate(p)
+    for _ in range(3):
+        changed=False
+        for zone,field,deltas,lower in (
+            ("up","tc",(-10,-5,0,5,10),1.0),
+            ("up","storage",(-20,-10,0,10,20),1.0),
+            ("dn","tc",(-10,-5,0,5,10),1.0),
+            ("dn","storage",(-20,-10,0,10,20),1.0),
+        ):
+            z=p.up if zone=="up" else p.dn
+            current_v=float(getattr(z,field))
+            vals=candidates_around(current_v,deltas,lower)
+            local=best
+            for v in vals:
+                up=deepcopy(p.up); dn=deepcopy(p.dn)
+                target=up if zone=="up" else dn
+                setattr(target,field,v)
+                cand=NestedParams(up=up,dn=dn,k1=p.k1,k2=p.k2,k3=p.k3,x=p.x)
+                row=evaluate(cand)
+                if row["objective"]>local["objective"]:
+                    local=row
+            if local["objective"]>best["objective"]:
+                best=local; p=nparams(local["params"]); changed=True
+        if not changed:
+            break
     return best
-
 
 def terminal_metrics(hours, flow, sim):
     pairs = [(i, flow[h]) for i,h in enumerate(hours) if h in flow and i < len(sim)]
