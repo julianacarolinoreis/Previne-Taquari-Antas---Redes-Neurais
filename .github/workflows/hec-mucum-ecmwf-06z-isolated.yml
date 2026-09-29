@@ -1,4 +1,5 @@
-# retry after ECMWF rate-limit fix 2026-09-29T13:09Z\nname: HEC Muçum ECMWF 06Z isolated audit
+# refresh chat 2026-09-29 10:12 BRT — exact ECMWF 06Z, direct 48h
+name: HEC Muçum ECMWF 06Z isolated audit
 
 on:
   push:
@@ -34,7 +35,8 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq libeccodes-dev
-          python -m pip install --disable-pip-version-check eccodes shapely pyproj matplotlib numpy
+          python -m pip install --disable-pip-version-check shapely pyproj matplotlib numpy attrs cffi findlibs
+          python -m pip install --disable-pip-version-check --no-deps eccodes==2.48.0
 
       - name: Refresh observed multinet basin rainfall
         run: OBS_FAST_MODE=1 python -B scripts/build_mucum_observed_multistation.py
@@ -42,7 +44,7 @@ jobs:
       - name: Build direct ECMWF IFS 06Z spatial field
         env:
           IFS_CYCLE_UTC: "2026-09-29T06:00:00Z"
-          IFS_MAX_STEP_H: "120"
+          IFS_MAX_STEP_H: "48"
         run: python -B scripts/build_spatial_ifs_mucum_ecmwf_direct_cycle.py
 
       - name: Snapshot forcing and observed
