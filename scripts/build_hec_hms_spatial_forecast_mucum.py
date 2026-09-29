@@ -128,6 +128,9 @@ ZONE_OBS_FIELDS = {"86472000": "zone_86472000_mm", "02851072": "zone_02851072_mm
 RAIN_SCENARIO = os.environ.get("HEC_RAIN_SCENARIO", "baseline").strip().lower()
 CONSERVATIVE_HOURS = int(os.environ.get("HEC_CONSERVATIVE_HOURS", "3"))
 CONSERVATIVE_LOOKBACK_HOURS = int(os.environ.get("HEC_CONSERVATIVE_LOOKBACK_HOURS", "3"))
+ROUTE_K1_H = float(os.environ.get("HEC_ROUTE_K1_H", "1.0"))
+ROUTE_K2_H = float(os.environ.get("HEC_ROUTE_K2_H", "1.0"))
+ROUTE_X = float(os.environ.get("HEC_ROUTE_X", "0.2"))
 
 
 def load_json(path: Path):
@@ -632,19 +635,16 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
 
 def basin_text(zone_rain: dict, state: dict) -> str:
     total_area = sum(zone_rain["zones"][sid]["area_declared_km2"] for sid in ZONE_IDS)
-    # Calibratable HEC-HMS internal state: scale the Recession initial
-    # flow/area ratio itself, never the plotted stage. This gives the live-event
-    # calibration freedom to reconcile baseflow state and a fast Clark response
-    # without applying any visual/post-processing level shift.
     q_ratio = (state["q_m3s"] / total_area) * float(PARAMS.get("initial_flow_multiplier", 1.0))
-    blocks = []
-    for sid in ZONE_IDS:
-        area = zone_rain["zones"][sid]["area_declared_km2"]
-        blocks.append(f"""Subbasin: Zona_{sid}_LIVE
+    a_up = zone_rain["zones"]["86472000"]["area_declared_km2"]
+    a_dn = zone_rain["zones"]["02851072"]["area_declared_km2"]
+
+    def sb(sid, area, downstream):
+        return f"""Subbasin: Zona_{sid}_LIVE
      Last Modified Date: 21 September 2026
      Last Modified Time: 22:00:00
      Area: {area:.6f}
-     Downstream: Saida_LIVE
+     Downstream: {downstream}
 
      Canopy: None
      Allow Simultaneous Precip Et: No
@@ -669,13 +669,14 @@ def basin_text(zone_rain: dict, state: dict) -> str:
      Threshold Flow to Peak Ratio: {PARAMS['threshold_ratio_to_peak']:.6f}
 End:
 
-""")
+"""
+
     return f"""Basin: Bacia Spatial LIVE 15690.7km2
-     Description: Muçum spatial IFS forecast warmed from 26/09 with all valid upstream rain gauges; 2-zone HEC-HMS pilot
-     Last Modified Date: 21 September 2026
-     Last Modified Time: 22:00:00
+     Description: Muçum spatial forecast with full-basin observed rain since 26/09 and explicit Muskingum channel routing
+     Last Modified Date: 29 September 2026
+     Last Modified Time: 18:55:00
      Version: 4.13
-     Filepath Separator: \\
+     Filepath Separator: \
      Unit System: Metric
      Missing Flow To Zero: No
      Enable Flow Ratio: No
@@ -684,11 +685,45 @@ End:
      Enable Sediment Routing: No
 End:
 
-{''.join(blocks)}Junction: Saida_LIVE
-     Last Modified Date: 21 September 2026
-     Last Modified Time: 22:00:00
-     Canvas X: 431912.619
-     Canvas Y: 6780976.72
+{sb("86472000", a_up, "R_ANTAS_JOIN_LIVE")}
+Reach: R_ANTAS_JOIN_LIVE
+     Description: Propagacao principal montante -> confluencia intermediaria
+     Last Modified Date: 29 September 2026
+     Last Modified Time: 18:55:00
+     Downstream: J_JOIN_LIVE
+
+     Route: Muskingum
+     Initial Variable: Combined Inflow
+     Muskingum K: {ROUTE_K1_H:.6f}
+     Muskingum x: {ROUTE_X:.6f}
+     Muskingum Steps: 1
+     Channel Loss: None
+End:
+
+{sb("02851072", a_dn, "J_JOIN_LIVE")}
+Junction: J_JOIN_LIVE
+     Last Modified Date: 29 September 2026
+     Last Modified Time: 18:55:00
+     Downstream: R_JOIN_MUCUM_LIVE
+End:
+
+Reach: R_JOIN_MUCUM_LIVE
+     Description: Propagacao final ate Mucum; K total calibrado pelo atraso observado da cheia atual
+     Last Modified Date: 29 September 2026
+     Last Modified Time: 18:55:00
+     Downstream: Saida_LIVE
+
+     Route: Muskingum
+     Initial Variable: Combined Inflow
+     Muskingum K: {ROUTE_K2_H:.6f}
+     Muskingum x: {ROUTE_X:.6f}
+     Muskingum Steps: 1
+     Channel Loss: None
+End:
+
+Junction: Saida_LIVE
+     Last Modified Date: 29 September 2026
+     Last Modified Time: 18:55:00
      Computation Point: Yes
 End:
 
