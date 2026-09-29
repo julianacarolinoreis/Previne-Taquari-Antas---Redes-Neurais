@@ -576,6 +576,21 @@ def main():
     rmse=(sum(e*e for e in errs)/len(errs))**0.5 if errs else None
     bias=sum(errs)/len(errs) if errs else None
 
+    # Current observed slope is a hard operational diagnostic: a candidate that
+    # reaches the right level but is climbing much faster/slower is not accepted.
+    slope_window_h=0.5
+    slope_t0=obs_t-timedelta(hours=slope_window_h)
+    obs_prev=[(t,n) for t,n in live_series if t<=slope_t0]
+    if obs_prev:
+        t_prev,n_prev=obs_prev[-1]
+        dh=(obs_t-t_prev).total_seconds()/3600.0
+        observed_slope_cm_h=(obs_n-n_prev)/dh if dh>0 else None
+    else:
+        observed_slope_cm_h=None
+    model_prev=interp(times,stages,slope_t0)
+    model_slope_cm_h=(model_now-model_prev)/slope_window_h
+    slope_error_cm_h=None if observed_slope_cm_h is None else model_slope_cm_h-observed_slope_cm_h
+
     state_error=model_now-obs_n
     adjusted_errs=[(e-state_error) for e in errs]
     adj_rmse=(sum(e*e for e in adjusted_errs)/len(adjusted_errs))**0.5 if adjusted_errs else None
@@ -587,12 +602,12 @@ def main():
         operational_stage=[float(n) for n in stages]
         state_mode="native_hec_state_matches_observed"
         state_assimilation_applied=False
-        publishable=(rmse is None or rmse<=60.0)
+        publishable=(rmse is None or rmse<=60.0) and (slope_error_cm_h is None or abs(slope_error_cm_h)<=20.0)
     else:
         operational_stage=[obs_n+(float(n)-model_now) for n in stages]
         state_mode="explicit_observed_stage_conditioning"
         state_assimilation_applied=True
-        publishable=(adj_rmse is None or adj_rmse<=45.0)
+        publishable=(adj_rmse is None or adj_rmse<=45.0) and (slope_error_cm_h is None or abs(slope_error_cm_h)<=20.0)
 
     future=[(t,n,q) for t,n,q in zip(times,operational_stage,vals) if t>=obs_t]
     peak=max(future,key=lambda z:z[1])
@@ -623,7 +638,10 @@ def main():
           "observed_event_lag":lag_audit},
       "current":{"observed_time_local":obs_t.isoformat(timespec="minutes"),"observed_stage_cm":obs_n,
           "model_stage_cm":round(model_now,2),"stage_error_cm":round(state_error,2),
-          "model_q_m3s":round(q_now,2)},
+          "model_q_m3s":round(q_now,2),
+          "observed_slope_cm_h":None if observed_slope_cm_h is None else round(observed_slope_cm_h,2),
+          "model_slope_cm_h":round(model_slope_cm_h,2),
+          "slope_error_cm_h":None if slope_error_cm_h is None else round(slope_error_cm_h,2)},
       "recent_fit_6h":{"n":len(errs),"raw_rmse_cm":None if rmse is None else round(rmse,2),
           "raw_bias_cm":None if bias is None else round(bias,2),
           "conditioned_rmse_cm":None if adj_rmse is None else round(adj_rmse,2),
