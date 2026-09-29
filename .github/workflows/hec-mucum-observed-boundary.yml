@@ -9,6 +9,7 @@ on:
       - ".github/workflows/hec-mucum-observed-boundary.yml"
       - "scripts/run_hec_hms_mucum_dual_boundary.py"
       - "scripts/run_hec_hms_mucum_dual_route_sweep.py"
+      - "scripts/run_hec_hms_mucum_state_routing_sweep.py"
   workflow_dispatch:
 
 permissions:
@@ -63,13 +64,13 @@ jobs:
       - name: Build full-event rain timeline
         run: python -B scripts/build_hec_hms_spatial_forecast_mucum.py
 
-      - name: Run HEC with two observed discharge boundaries + current-event routing sweep
+      - name: Run HEC with observed boundaries + routing/state sweep
         shell: bash
         run: |
           set -euo pipefail
           HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
           test -n "$HEC_SH"
-          python -B scripts/run_hec_hms_mucum_dual_route_sweep.py "$HEC_SH"
+          python -B scripts/run_hec_hms_mucum_state_routing_sweep.py "$HEC_SH"
 
       - name: Publish result
         shell: bash
@@ -97,4 +98,4 @@ jobs:
           done
           exit 1
 
-# rerun: 2026-09-29 20:10 BRT · recalibrar nível + inclinação atual
+# rerun: 2026-09-29 20:14 BRT · routing + warmup state sweep
