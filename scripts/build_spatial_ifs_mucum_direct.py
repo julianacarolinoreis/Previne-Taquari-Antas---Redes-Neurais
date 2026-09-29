@@ -53,10 +53,15 @@ def _latest_cycle(now: datetime):
                 h = int(m.group(2))
                 if 0 <= h <= MAX_STEP_H:
                     steps[h] = name
-            # Need a usable short-range cycle through +120 h.
-            if 24 in steps and 48 in steps and 72 in steps and 120 in steps:
+            # 06Z/18Z Open Data may expose a shorter control horizon than
+            # 00Z/12Z.  Do not reject an explicitly current cycle merely
+            # because +120 h is absent: for the live HEC update we require
+            # the full short range through +90 h, which covers the requested
+            # 24 h rainfall and the event-response window.
+            if 24 in steps and 90 in steps:
                 return cycle, prefix, steps
-            errors.append(f"{cycle:%Y-%m-%d %Hz}: incomplete to +120 h")
+            max_step = max(steps) if steps else None
+            errors.append(f"{cycle:%Y-%m-%d %Hz}: incomplete short range (max={max_step})")
         except Exception as exc:
             errors.append(f"{cycle:%Y-%m-%d %Hz}: {exc}")
     raise RuntimeError("; ".join(errors[:8]) or "no ECMWF cycle available")
@@ -117,8 +122,11 @@ def _fetch_cumulative(prefix: str, steps: dict[int, str], cells: list[dict]) -> 
         length = int(entry["_length"])
         payload = _request(file_url, byte_range=(offset, offset + length - 1))
         out[h] = _decode_points(payload, cells)
-    if 120 not in out:
-        raise RuntimeError("latest ECMWF cycle did not yield tp at +120 h")
+    max_step = max(out) if out else 0
+    if 24 not in out or max_step < 90:
+        raise RuntimeError(
+            f"latest ECMWF cycle did not yield a complete short range through +90 h (max={max_step})"
+        )
     return out
 
 
@@ -204,6 +212,9 @@ def _write(cycle, basin_area, overlap_sum, cells):
             "overlap_km2": round(c["overlap_km2"], 4),
             "overlap_fraction": round(c["overlap_fraction"], 6),
             "precip_mm": c["precip_mm"],
+            "total_forecast_mm": c["total_forecast_mm"],
+            # Backward-compatible alias; when a 06Z/18Z cycle ends before
+            # +120 h this value is the total over the actual window above.
             "total_120h_mm": c["total_forecast_mm"],
         } for c in cells],
     }
