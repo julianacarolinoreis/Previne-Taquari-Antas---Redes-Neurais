@@ -1,6 +1,6 @@
 {
   "schema_version": "clark_routing_separation_v1",
-  "generated_at_utc": "2026-09-29T00:27:29.732794Z",
+  "generated_at_utc": "2026-09-29T00:29:17.193489Z",
   "purpose": "diagnosticar se o erro temporal melhora ao separar resposta Clark de routing do canal; sem alterar modelo operacional",
   "engine": "Python audit twin: Initial+Constant + Clark + Recession + Muskingum",
   "operational_model_modified": false,
@@ -35,37 +35,427 @@
   "cases": [
     {
       "event_id": "E27",
-      "status": "blocked_no_precip",
+      "status": "ok",
+      "pad_h": 12,
+      "baseline": {
+        "params": {
+          "upstream": {
+            "initial_loss": 5.5,
+            "constant_loss": 4.25,
+            "tc": 4.0,
+            "storage": 25.0,
+            "recession": 0.85,
+            "initial_flow_ratio": 0.001
+          },
+          "downstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 4.0,
+            "tc": 45.0,
+            "storage": 110.0,
+            "recession": 0.7,
+            "initial_flow_ratio": 0.001
+          },
+          "k1": 0.25,
+          "k2": 1.25,
+          "k3": 4.0,
+          "x": 0.2
+        },
+        "metrics": {
+          "pairs": 245.0,
+          "nse": 0.4360235453869785,
+          "rmse_m3s": 3015.03480448185,
+          "mae_m3s": 2472.553694889039,
+          "peak_lag_hours": 5.0,
+          "peak_relative_error": 0.33262585376572107,
+          "observed_peak_m3s": 14525.225,
+          "simulated_peak_m3s": 9693.759633235804,
+          "research_score": -0.07975877182017277
+        },
+        "objective": -0.07975877182017277
+      },
+      "routing_only_unconstrained": {
+        "params": {
+          "upstream": {
+            "initial_loss": 5.5,
+            "constant_loss": 4.25,
+            "tc": 4.0,
+            "storage": 25.0,
+            "recession": 0.85,
+            "initial_flow_ratio": 0.001
+          },
+          "downstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 4.0,
+            "tc": 45.0,
+            "storage": 110.0,
+            "recession": 0.7,
+            "initial_flow_ratio": 0.001
+          },
+          "k1": 0.5,
+          "k2": 0.25,
+          "k3": 0.25,
+          "x": 0.3
+        },
+        "metrics": {
+          "pairs": 245.0,
+          "nse": 0.4206829408724728,
+          "rmse_m3s": 3055.765349737647,
+          "mae_m3s": 2501.451590807654,
+          "peak_lag_hours": 0.0,
+          "peak_relative_error": 0.28988721297357467,
+          "observed_peak_m3s": 14525.225,
+          "simulated_peak_m3s": 10314.54800693591,
+          "research_score": 0.05832392465550451
+        },
+        "objective": 0.05832392465550451
+      },
+      "routing_only_k_ge_1h": {
+        "params": {
+          "upstream": {
+            "initial_loss": 5.5,
+            "constant_loss": 4.25,
+            "tc": 4.0,
+            "storage": 25.0,
+            "recession": 0.85,
+            "initial_flow_ratio": 0.001
+          },
+          "downstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 4.0,
+            "tc": 45.0,
+            "storage": 110.0,
+            "recession": 0.7,
+            "initial_flow_ratio": 0.001
+          },
+          "k1": 1.0,
+          "k2": 1.0,
+          "k3": 1.0,
+          "x": 0.3
+        },
+        "metrics": {
+          "pairs": 245.0,
+          "nse": 0.4350837568090926,
+          "rmse_m3s": 3017.5458276138593,
+          "mae_m3s": 2483.901543632543,
+          "peak_lag_hours": 2.0,
+          "peak_relative_error": 0.3012267237548997,
+          "observed_peak_m3s": 14525.225,
+          "simulated_peak_m3s": 10149.839061447237,
+          "research_score": 0.018550352115468016
+        },
+        "objective": 0.018550352115468016
+      },
+      "clark_only": {
+        "params": {
+          "upstream": {
+            "initial_loss": 5.5,
+            "constant_loss": 4.25,
+            "tc": 1.0,
+            "storage": 15.0,
+            "recession": 0.85,
+            "initial_flow_ratio": 0.001
+          },
+          "downstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 4.0,
+            "tc": 35.0,
+            "storage": 90.0,
+            "recession": 0.7,
+            "initial_flow_ratio": 0.001
+          },
+          "k1": 0.25,
+          "k2": 1.25,
+          "k3": 4.0,
+          "x": 0.2
+        },
+        "metrics": {
+          "pairs": 245.0,
+          "nse": 0.44721740439613766,
+          "rmse_m3s": 2984.963491409499,
+          "mae_m3s": 2492.154143227559,
+          "peak_lag_hours": 2.0,
+          "peak_relative_error": 0.18742303651263406,
+          "observed_peak_m3s": 14525.225,
+          "simulated_peak_m3s": 11802.863224470775,
+          "research_score": 0.1729386087553451
+        },
+        "objective": 0.1729386087553451
+      },
+      "sequential_clark_routing_k_ge_1h": {
+        "params": {
+          "upstream": {
+            "initial_loss": 5.5,
+            "constant_loss": 4.25,
+            "tc": 1.0,
+            "storage": 15.0,
+            "recession": 0.85,
+            "initial_flow_ratio": 0.001
+          },
+          "downstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 4.0,
+            "tc": 35.0,
+            "storage": 90.0,
+            "recession": 0.7,
+            "initial_flow_ratio": 0.001
+          },
+          "k1": 1.5,
+          "k2": 1.0,
+          "k3": 1.0,
+          "x": 0.3
+        },
+        "metrics": {
+          "pairs": 245.0,
+          "nse": 0.4071839820958295,
+          "rmse_m3s": 3091.1623008655392,
+          "mae_m3s": 2525.3283207879253,
+          "peak_lag_hours": 0.0,
+          "peak_relative_error": 0.1439310214479643,
+          "observed_peak_m3s": 14525.225,
+          "simulated_peak_m3s": 12434.594528988493,
+          "research_score": 0.22727020528587413
+        },
+        "objective": 0.22727020528587413
+      },
       "rain_meta": {
-        "stations_mm_sum": {},
-        "stations_mm_sum_core": {},
-        "subbasin_sources": {},
-        "fallback_notes": [],
-        "runnable": false,
-        "blocked_reason": "rain incomplete for SB_PRATA_7868 (no station covers all hours without gaps)",
-        "contract": "hec_event_ana_raw_ana_only",
-        "warm_up": {
-          "requested_hours": 12,
-          "applied": false,
-          "reason": "pad_rain_incomplete"
+        "strict_raw": {
+          "stations_mm_sum": {},
+          "stations_mm_sum_core": {},
+          "subbasin_sources": {},
+          "fallback_notes": [],
+          "runnable": false,
+          "blocked_reason": "rain incomplete for SB_PRATA_7868 (no station covers all hours without gaps)",
+          "contract": "hec_event_ana_raw_ana_only",
+          "warm_up": {
+            "requested_hours": 12,
+            "applied": false,
+            "reason": "pad_rain_incomplete"
+          }
+        },
+        "masked_csv_fallback": {
+          "runnable": true,
+          "source": "assets/data/chuvas_horarias.csv masked hourly fallback",
+          "no_missing_as_zero": true,
+          "used_counts": {
+            "up_mean_86472000_2851072": 257,
+            "carreiro_2851072": 257,
+            "stz_86472600": 257,
+            "mucum_proxy": 257
+          },
+          "pad_h": 12
         }
       }
     },
     {
       "event_id": "E28",
-      "status": "blocked_no_precip",
+      "status": "ok",
+      "pad_h": 12,
+      "baseline": {
+        "params": {
+          "upstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 0.25,
+            "tc": 23.0,
+            "storage": 25.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.001
+          },
+          "downstream": {
+            "initial_loss": 1.5,
+            "constant_loss": 2.0,
+            "tc": 20.0,
+            "storage": 25.0,
+            "recession": 0.995,
+            "initial_flow_ratio": 0.005
+          },
+          "k1": 2.5,
+          "k2": 2.5,
+          "k3": 1.0,
+          "x": 0.2
+        },
+        "metrics": {
+          "pairs": 209.0,
+          "nse": 0.8011694728490703,
+          "rmse_m3s": 795.608977485398,
+          "mae_m3s": 699.9587830476219,
+          "peak_lag_hours": 2.0,
+          "peak_relative_error": 0.11470839377217863,
+          "observed_peak_m3s": 7886.724999999999,
+          "simulated_peak_m3s": 6982.051443127114,
+          "research_score": 0.617783980633847
+        },
+        "objective": 0.617783980633847
+      },
+      "routing_only_unconstrained": {
+        "params": {
+          "upstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 0.25,
+            "tc": 23.0,
+            "storage": 25.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.001
+          },
+          "downstream": {
+            "initial_loss": 1.5,
+            "constant_loss": 2.0,
+            "tc": 20.0,
+            "storage": 25.0,
+            "recession": 0.995,
+            "initial_flow_ratio": 0.005
+          },
+          "k1": 0.5,
+          "k2": 1.5,
+          "k3": 1.5,
+          "x": 0.3
+        },
+        "metrics": {
+          "pairs": 209.0,
+          "nse": 0.8224101320494543,
+          "rmse_m3s": 751.9123795611755,
+          "mae_m3s": 660.1292797227433,
+          "peak_lag_hours": 0.0,
+          "peak_relative_error": 0.09636258113570348,
+          "observed_peak_m3s": 7886.724999999999,
+          "simulated_peak_m3s": 7126.7398222925185,
+          "research_score": 0.7019569056298249
+        },
+        "objective": 0.7019569056298249
+      },
+      "routing_only_k_ge_1h": {
+        "params": {
+          "upstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 0.25,
+            "tc": 23.0,
+            "storage": 25.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.001
+          },
+          "downstream": {
+            "initial_loss": 1.5,
+            "constant_loss": 2.0,
+            "tc": 20.0,
+            "storage": 25.0,
+            "recession": 0.995,
+            "initial_flow_ratio": 0.005
+          },
+          "k1": 1.0,
+          "k2": 1.0,
+          "k3": 1.5,
+          "x": 0.3
+        },
+        "metrics": {
+          "pairs": 209.0,
+          "nse": 0.8222060896511527,
+          "rmse_m3s": 752.3442115222023,
+          "mae_m3s": 660.404258184232,
+          "peak_lag_hours": 0.0,
+          "peak_relative_error": 0.09636859363291546,
+          "observed_peak_m3s": 7886.724999999999,
+          "simulated_peak_m3s": 7126.692403380444,
+          "research_score": 0.7017453476100084
+        },
+        "objective": 0.7017453476100084
+      },
+      "clark_only": {
+        "params": {
+          "upstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 0.25,
+            "tc": 28.0,
+            "storage": 15.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.001
+          },
+          "downstream": {
+            "initial_loss": 1.5,
+            "constant_loss": 2.0,
+            "tc": 10.0,
+            "storage": 45.0,
+            "recession": 0.995,
+            "initial_flow_ratio": 0.005
+          },
+          "k1": 2.5,
+          "k2": 2.5,
+          "k3": 1.0,
+          "x": 0.2
+        },
+        "metrics": {
+          "pairs": 209.0,
+          "nse": 0.8545548767651632,
+          "rmse_m3s": 680.468028658176,
+          "mae_m3s": 615.3611697097621,
+          "peak_lag_hours": 3.0,
+          "peak_relative_error": 0.01680848389420658,
+          "observed_peak_m3s": 7886.724999999999,
+          "simulated_peak_m3s": 8019.288890140536,
+          "research_score": 0.7735442718974049
+        },
+        "objective": 0.7735442718974049
+      },
+      "sequential_clark_routing_k_ge_1h": {
+        "params": {
+          "upstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 0.25,
+            "tc": 28.0,
+            "storage": 15.0,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.001
+          },
+          "downstream": {
+            "initial_loss": 1.5,
+            "constant_loss": 2.0,
+            "tc": 10.0,
+            "storage": 45.0,
+            "recession": 0.995,
+            "initial_flow_ratio": 0.005
+          },
+          "k1": 1.0,
+          "k2": 1.0,
+          "k3": 1.0,
+          "x": 0.1
+        },
+        "metrics": {
+          "pairs": 209.0,
+          "nse": 0.8514745295982464,
+          "rmse_m3s": 687.6360093559211,
+          "mae_m3s": 627.042581969402,
+          "peak_lag_hours": 0.0,
+          "peak_relative_error": 0.030565660545478025,
+          "observed_peak_m3s": 7886.724999999999,
+          "simulated_peak_m3s": 8127.787959165535,
+          "research_score": 0.8132674539163989
+        },
+        "objective": 0.8132674539163989
+      },
       "rain_meta": {
-        "stations_mm_sum": {},
-        "stations_mm_sum_core": {},
-        "subbasin_sources": {},
-        "fallback_notes": [],
-        "runnable": false,
-        "blocked_reason": "rain incomplete for SB_PRATA_7868 (no station covers all hours without gaps)",
-        "contract": "hec_event_ana_raw_ana_only",
-        "warm_up": {
-          "requested_hours": 12,
-          "applied": false,
-          "reason": "pad_rain_incomplete"
+        "strict_raw": {
+          "stations_mm_sum": {},
+          "stations_mm_sum_core": {},
+          "subbasin_sources": {},
+          "fallback_notes": [],
+          "runnable": false,
+          "blocked_reason": "rain incomplete for SB_PRATA_7868 (no station covers all hours without gaps)",
+          "contract": "hec_event_ana_raw_ana_only",
+          "warm_up": {
+            "requested_hours": 12,
+            "applied": false,
+            "reason": "pad_rain_incomplete"
+          }
+        },
+        "masked_csv_fallback": {
+          "runnable": true,
+          "source": "assets/data/chuvas_horarias.csv masked hourly fallback",
+          "no_missing_as_zero": true,
+          "used_counts": {
+            "up_mean_86472000_2851072": 221,
+            "carreiro_2851072": 221,
+            "stz_86472600": 221,
+            "mucum_proxy": 221
+          },
+          "pad_h": 12
         }
       }
     },
@@ -374,11 +764,161 @@
   "summary": [
     {
       "event_id": "E27",
-      "status": "blocked_no_precip"
+      "status": "ok",
+      "baseline": {
+        "nse": 0.436,
+        "rmse_m3s": 3015.0,
+        "peak_lag_h": 5.0,
+        "peak_error_pct": 33.26,
+        "objective": -0.0798,
+        "k1": 0.25,
+        "k2": 1.25,
+        "k3": 4.0,
+        "x": 0.2,
+        "up_tc": 4.0,
+        "up_storage": 25.0,
+        "dn_tc": 45.0,
+        "dn_storage": 110.0
+      },
+      "routing_only_unconstrained": {
+        "nse": 0.4207,
+        "rmse_m3s": 3055.8,
+        "peak_lag_h": 0.0,
+        "peak_error_pct": 28.99,
+        "objective": 0.0583,
+        "k1": 0.5,
+        "k2": 0.25,
+        "k3": 0.25,
+        "x": 0.3,
+        "up_tc": 4.0,
+        "up_storage": 25.0,
+        "dn_tc": 45.0,
+        "dn_storage": 110.0
+      },
+      "routing_only_k_ge_1h": {
+        "nse": 0.4351,
+        "rmse_m3s": 3017.5,
+        "peak_lag_h": 2.0,
+        "peak_error_pct": 30.12,
+        "objective": 0.0186,
+        "k1": 1.0,
+        "k2": 1.0,
+        "k3": 1.0,
+        "x": 0.3,
+        "up_tc": 4.0,
+        "up_storage": 25.0,
+        "dn_tc": 45.0,
+        "dn_storage": 110.0
+      },
+      "clark_only": {
+        "nse": 0.4472,
+        "rmse_m3s": 2985.0,
+        "peak_lag_h": 2.0,
+        "peak_error_pct": 18.74,
+        "objective": 0.1729,
+        "k1": 0.25,
+        "k2": 1.25,
+        "k3": 4.0,
+        "x": 0.2,
+        "up_tc": 1.0,
+        "up_storage": 15.0,
+        "dn_tc": 35.0,
+        "dn_storage": 90.0
+      },
+      "sequential_clark_routing_k_ge_1h": {
+        "nse": 0.4072,
+        "rmse_m3s": 3091.2,
+        "peak_lag_h": 0.0,
+        "peak_error_pct": 14.39,
+        "objective": 0.2273,
+        "k1": 1.5,
+        "k2": 1.0,
+        "k3": 1.0,
+        "x": 0.3,
+        "up_tc": 1.0,
+        "up_storage": 15.0,
+        "dn_tc": 35.0,
+        "dn_storage": 90.0
+      }
     },
     {
       "event_id": "E28",
-      "status": "blocked_no_precip"
+      "status": "ok",
+      "baseline": {
+        "nse": 0.8012,
+        "rmse_m3s": 795.6,
+        "peak_lag_h": 2.0,
+        "peak_error_pct": 11.47,
+        "objective": 0.6178,
+        "k1": 2.5,
+        "k2": 2.5,
+        "k3": 1.0,
+        "x": 0.2,
+        "up_tc": 23.0,
+        "up_storage": 25.0,
+        "dn_tc": 20.0,
+        "dn_storage": 25.0
+      },
+      "routing_only_unconstrained": {
+        "nse": 0.8224,
+        "rmse_m3s": 751.9,
+        "peak_lag_h": 0.0,
+        "peak_error_pct": 9.64,
+        "objective": 0.702,
+        "k1": 0.5,
+        "k2": 1.5,
+        "k3": 1.5,
+        "x": 0.3,
+        "up_tc": 23.0,
+        "up_storage": 25.0,
+        "dn_tc": 20.0,
+        "dn_storage": 25.0
+      },
+      "routing_only_k_ge_1h": {
+        "nse": 0.8222,
+        "rmse_m3s": 752.3,
+        "peak_lag_h": 0.0,
+        "peak_error_pct": 9.64,
+        "objective": 0.7017,
+        "k1": 1.0,
+        "k2": 1.0,
+        "k3": 1.5,
+        "x": 0.3,
+        "up_tc": 23.0,
+        "up_storage": 25.0,
+        "dn_tc": 20.0,
+        "dn_storage": 25.0
+      },
+      "clark_only": {
+        "nse": 0.8546,
+        "rmse_m3s": 680.5,
+        "peak_lag_h": 3.0,
+        "peak_error_pct": 1.68,
+        "objective": 0.7735,
+        "k1": 2.5,
+        "k2": 2.5,
+        "k3": 1.0,
+        "x": 0.2,
+        "up_tc": 28.0,
+        "up_storage": 15.0,
+        "dn_tc": 10.0,
+        "dn_storage": 45.0
+      },
+      "sequential_clark_routing_k_ge_1h": {
+        "nse": 0.8515,
+        "rmse_m3s": 687.6,
+        "peak_lag_h": 0.0,
+        "peak_error_pct": 3.06,
+        "objective": 0.8133,
+        "k1": 1.0,
+        "k2": 1.0,
+        "k3": 1.0,
+        "x": 0.1,
+        "up_tc": 28.0,
+        "up_storage": 15.0,
+        "dn_tc": 10.0,
+        "dn_storage": 45.0
+      }
     },
     {
       "event_id": "LIVE_20260926_28",
