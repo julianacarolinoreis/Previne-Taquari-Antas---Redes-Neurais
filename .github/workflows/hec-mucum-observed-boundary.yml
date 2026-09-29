@@ -1,6 +1,5 @@
 name: HEC Muçum observed boundary
-# rerun stage conversion fix
-# selected routing K1=1.0 K2=1.5 after current-state sweep
+# dual observed branches: Linha Jose Julio + Passo Carreiro
 
 on:
   push:
@@ -9,10 +8,13 @@ on:
       - ".github/workflows/hec-mucum-observed-boundary.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,42 +27,66 @@ jobs:
             assets/data/hec_hms_spatialized_mucum
             previsao_ao_vivo_mucum.json
           sparse-checkout-cone-mode: false
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install --disable-pip-version-check shapely pyproj numpy
+
+      - run: pip install --disable-pip-version-check shapely pyproj numpy matplotlib
+
+      - name: Refresh observed state
+        run: OBS_FAST_MODE=1 python -B scripts/build_mucum_observed_multistation.py
+
+      - name: Refresh ECMWF spatial forcing
+        run: |
+          python -B scripts/build_spatial_ifs_mucum.py
+          python -B scripts/build_hec_twin_ifs_spatial_forcing_5d.py
+
       - uses: actions/cache@v4
         id: cache-hec
         with:
           path: .hec
           key: hec-hms-4.13-linux64-v1
-      - name: Build upstream HEC continuation
+
+      - name: Download HEC-HMS 4.13 if needed
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4 \
+            -o /tmp/HEC-HMS-4.13-linux64.tar.gz \
+            https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Build full-event rain timeline
+        run: python -B scripts/build_hec_hms_spatial_forecast_mucum.py
+
+      - name: Run HEC with two observed discharge boundaries
         shell: bash
-        env:
-          HEC_PARAM_EVENT: E28
-          HEC_INITIAL_LOSS_MM: "25"
-          HEC_CONSTANT_LOSS_MM_H: "1.5"
-          HEC_TC_H: "20"
-          HEC_STORAGE_H: "20"
-          HEC_RECESSION_DAILY: "0.9"
-          HEC_INITIAL_FLOW_MULTIPLIER: "1.0"
-          HEC_ROUTE_K1_H: "1.0"
-          HEC_ROUTE_K2_H: "1.0"
-          HEC_ROUTE_X: "0.2"
         run: |
           set -euo pipefail
-          python -B scripts/build_hec_hms_spatial_forecast_mucum.py
           HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
           test -n "$HEC_SH"
-          "$HEC_SH" -s assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project/run_forecast.script >/dev/null
-          test -s assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/hec_output_values.csv
-      - name: Run observed-boundary HEC
+          python -B scripts/run_hec_hms_mucum_dual_boundary.py "$HEC_SH"
+
+      - name: Publish result
         shell: bash
-        env:
-          BOUNDARY_K1_H: "1.0"
-          BOUNDARY_K2_H: "1.5"
-          BOUNDARY_X: "0.2"
         run: |
           set -euo pipefail
-          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
-          python -B scripts/run_hec_hms_mucum_observed_boundary.py "$HEC_SH"
+          git config user.name "previne-hec-observed-boundary-bot"
+          git config user.email "previne-hec-observed-boundary-bot@users.noreply.github.com"
+          git add -- \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum_latest.json \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/primary_series.csv
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "bot: HEC Muçum dual observed branches [skip ci]"
+          git restore --worktree . || true
+          git clean -fd -- assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/project || true
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then exit 0; fi
+            git reset --hard HEAD
+            git fetch origin main
+            if git rebase origin/main; then continue; fi
+            git rebase --abort || true
+            exit 1
+          done
+          exit 1
