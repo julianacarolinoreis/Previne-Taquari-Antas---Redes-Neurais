@@ -39,7 +39,7 @@ def _current_hour() -> datetime:
 
 def _latest_cycle(now: datetime):
     errors = []
-    pat = re.compile(r"^(\d{12})-(\d+)h-oper-fc\.grib2$")
+    pat = re.compile(r"^(\d{14})-(\d+)h-oper-fc\.grib2$")
     for cycle in _cycle_candidates(now):
         prefix = _cycle_prefix(cycle)
         try:
