@@ -1,0 +1,41 @@
+name: HEC Muçum route sweep
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/hec-mucum-route-sweep.yml"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            scripts
+            assets/data/estudo_bacia_taquari_antas
+            assets/data/hec_hms_spatialized_mucum
+            previsao_ao_vivo_mucum.json
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install --disable-pip-version-check shapely pyproj numpy
+      - uses: actions/cache@v4
+        id: cache-hec
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+      - name: Route sweep
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          python -B scripts/run_hec_hms_mucum_route_sweep.py "$HEC_SH"
