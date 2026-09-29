@@ -87,14 +87,14 @@ def objective(pkg: dict) -> tuple[float, dict]:
     # dominate. The whole event remains a regularizer so the optimizer cannot
     # obtain a good launch state by destroying the event hydrograph.
     score = (
-        rmse / 300.0
-        + rmse12 / 90.0
-        + rmse6 / 70.0
-        + stage / 25.0
-        + qerr / 20.0
-        + trend / 7.0
-        + lag12 / 10.0
-        + lag6 / 6.0
+        rmse / 500.0
+        + rmse12 / 110.0
+        + rmse6 / 45.0
+        + stage / 18.0
+        + qerr / 14.0
+        + trend / 4.0
+        + lag12 / 12.0
+        + lag6 / 4.0
     )
     if nse < -20:
         score += 3.0
@@ -187,7 +187,9 @@ def main() -> int:
         # Focused on the current fast rising limb. The previous 320-candidate
         # grid was too slow operationally and spent most runs in clearly
         # incompatible slow-response regions.
-        (5.0, 5.0), (5.0, 8.0), (8.0, 5.0), (8.0, 8.0),
+        (1.0, 1.0), (1.0, 2.0), (2.0, 1.0), (2.0, 2.0),
+        (2.0, 3.0), (3.0, 2.0), (3.0, 3.0), (4.0, 3.0),
+        (4.0, 4.0), (5.0, 5.0), (5.0, 8.0), (8.0, 5.0), (8.0, 8.0),
         (8.0, 12.0), (10.0, 8.0), (10.0, 10.0), (10.0, 15.0),
         (12.0, 8.0), (12.0, 12.0), (15.0, 10.0), (15.0, 15.0),
         (20.0, 10.0), (20.0, 15.0), (25.0, 20.0),
