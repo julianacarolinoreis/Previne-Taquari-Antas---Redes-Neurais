@@ -75,28 +75,11 @@ jobs:
           cp assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_latest.json              assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_reference_rerun_latest.json
           cp assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/primary_series.csv              assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_reference_rerun_series.csv
 
-      - name: Publica resultado dedicado
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "previne-hec-reference-bot"
-          git config user.email "previne-hec-reference-bot@users.noreply.github.com"
-          git add -- \
-            assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_reference_rerun_latest.json \
+      - name: Salva serie completa como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: hec-mucum-fixed-reference
+          path: |
+            assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_reference_rerun_latest.json
             assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_reference_rerun_series.csv
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git commit -m "bot: rerun Muçum fixed 28-09 reference [skip ci]"
-          for attempt in 1 2 3 4 5; do
-            if git push origin HEAD:main; then
-              exit 0
-            fi
-            git fetch origin main
-            if git rebase origin/main; then
-              continue
-            fi
-            git rebase --abort || true
-            exit 1
-          done
-          exit 1
+          retention-days: 3
