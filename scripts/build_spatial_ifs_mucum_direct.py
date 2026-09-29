@@ -19,7 +19,7 @@ from urllib.request import Request, urlopen
 import eccodes
 
 from build_spatial_ifs_mucum import ROOT, OUT, LIVE, load_basin, build_cells
-from ecmwf_direct import _cycle_candidates, _cycle_prefix, _request, _find_tp_entry
+from ecmwf_direct import _find_cycle, _request, _find_tp_entry
 
 USER_AGENT = "PREVINE-spatial-ifs-direct/1.0"
 MAX_STEP_H = 120
@@ -38,34 +38,15 @@ def _current_hour() -> datetime:
 
 
 def _latest_cycle(now: datetime):
-    errors = []
-    pat = re.compile(r"^(\d{14})-(\d+)h-oper-fc\.grib2$")
-    for cycle in _cycle_candidates(now):
-        prefix = _cycle_prefix(cycle)
-        try:
-            listing = json.loads(_request(prefix + "/", accept="application/json").decode("utf-8"))
-            names = [str(x.get("name")) for x in listing if x.get("name")]
-            steps = {}
-            for name in names:
-                m = pat.match(name)
-                if not m:
-                    continue
-                h = int(m.group(2))
-                if 0 <= h <= MAX_STEP_H:
-                    steps[h] = name
-            # 06Z/18Z Open Data may expose a shorter control horizon than
-            # 00Z/12Z.  Do not reject an explicitly current cycle merely
-            # because +120 h is absent: for the live HEC update we require
-            # the full short range through +90 h, which covers the requested
-            # 24 h rainfall and the event-response window.
-            if 24 in steps and 90 in steps:
-                return cycle, prefix, steps
-            max_step = max(steps) if steps else None
-            errors.append(f"{cycle:%Y-%m-%d %Hz}: incomplete short range (max={max_step})")
-        except Exception as exc:
-            errors.append(f"{cycle:%Y-%m-%d %Hz}: {exc}")
-    raise RuntimeError("; ".join(errors[:8]) or "no ECMWF cycle available")
-
+    # Reuse the independently audited selector. It already confirms the newest
+    # cycle with +24/+48/+72/+120 h available, including 06Z/18Z.
+    cycle, prefix, _ = _find_cycle(now)
+    # Probe all integer lead times; unavailable files are skipped later.
+    steps = {
+        h: f"{cycle:%Y%m%d%H}0000-{h}h-oper-fc.grib2"
+        for h in range(1, MAX_STEP_H + 1)
+    }
+    return cycle, prefix, steps
 
 def _decode_points(payload: bytes, cells: list[dict]) -> dict[str, float]:
     handle = eccodes.codes_new_from_message(payload)
