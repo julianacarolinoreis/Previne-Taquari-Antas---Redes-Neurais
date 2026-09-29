@@ -1,6 +1,6 @@
 {
   "schema_version": "hec_hms_mucum_dual_observed_boundary_v1",
-  "generated_at_utc": "2026-09-29T23:11:59.981262Z",
+  "generated_at_utc": "2026-09-29T23:12:14.696229Z",
   "model": "HEC-HMS 4.13",
   "method": "two observed discharge boundaries (LJJ 86472000 + Passo Carreiro 86500000) + residual rainfall-runoff + E28 routing",
   "topology": {
@@ -1373,14 +1373,14 @@
   "research_only": true,
   "not_official_alert": true,
   "routing_sweep": {
-    "selection_rule": "min |t0 stage error| + 0.55*RMSE6h + 0.20*|bias6h| using current-event observed hydrograph",
+    "selection_rule": "min |t0 stage error| + 0.45*RMSE6h + 0.15*|bias6h| + 0.80*|current slope error| using current-event observations",
     "candidates": [
       {
         "k1": 0.75,
         "k2": 0.75,
         "k3": 0.75,
         "ok": true,
-        "score": 108.9555,
+        "score": 102.6535,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1412,7 +1412,7 @@
         "k2": 1.0,
         "k3": 0.75,
         "ok": true,
-        "score": 92.5395,
+        "score": 90.37,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1444,7 +1444,7 @@
         "k2": 0.75,
         "k3": 0.75,
         "ok": true,
-        "score": 92.2225,
+        "score": 89.691,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1476,7 +1476,7 @@
         "k2": 1.0,
         "k3": 0.75,
         "ok": true,
-        "score": 76.2115,
+        "score": 77.43350000000001,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1508,7 +1508,7 @@
         "k2": 1.0,
         "k3": 1.0,
         "ok": true,
-        "score": 61.657000000000004,
+        "score": 65.9895,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1540,7 +1540,7 @@
         "k2": 1.25,
         "k3": 1.0,
         "ok": true,
-        "score": 47.911,
+        "score": 53.6565,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1568,11 +1568,75 @@
         }
       },
       {
+        "k1": 1.25,
+        "k2": 1.25,
+        "k3": 1.25,
+        "ok": true,
+        "score": 50.051,
+        "current": {
+          "observed_time_local": "2026-09-29T19:45",
+          "observed_stage_cm": 1512.0,
+          "model_stage_cm": 1527.61,
+          "stage_error_cm": 15.61,
+          "model_q_m3s": 6243.2,
+          "observed_slope_cm_h": 30.0,
+          "model_slope_cm_h": 44.03,
+          "slope_error_cm_h": 14.03
+        },
+        "recent_fit_6h": {
+          "n": 25,
+          "raw_rmse_cm": 40.77,
+          "raw_bias_cm": -32.47,
+          "conditioned_rmse_cm": 54.04,
+          "conditioned_bias_cm": -48.09,
+          "operational_state_mode": "explicit_observed_stage_conditioning",
+          "state_assimilation_applied": true
+        },
+        "peak": {
+          "time_local": "2026-09-30T01:00",
+          "stage_cm": 1607.9,
+          "q_m3s": 6882.11,
+          "rise_from_observed_cm": 95.9
+        }
+      },
+      {
+        "k1": 1.25,
+        "k2": 1.25,
+        "k3": 1.5,
+        "ok": true,
+        "score": 46.299499999999995,
+        "current": {
+          "observed_time_local": "2026-09-29T19:45",
+          "observed_stage_cm": 1512.0,
+          "model_stage_cm": 1516.37,
+          "stage_error_cm": 4.37,
+          "model_q_m3s": 6170.13,
+          "observed_slope_cm_h": 30.0,
+          "model_slope_cm_h": 45.39,
+          "slope_error_cm_h": 15.39
+        },
+        "recent_fit_6h": {
+          "n": 25,
+          "raw_rmse_cm": 50.94,
+          "raw_bias_cm": -44.63,
+          "conditioned_rmse_cm": 54.81,
+          "conditioned_bias_cm": -49.0,
+          "operational_state_mode": "native_hec_state_matches_observed",
+          "state_assimilation_applied": false
+        },
+        "peak": {
+          "time_local": "2026-09-30T02:00",
+          "stage_cm": 1622.09,
+          "q_m3s": 6872.45,
+          "rise_from_observed_cm": 110.09
+        }
+      },
+      {
         "k1": 1.5,
         "k2": 1.25,
         "k3": 1.0,
         "ok": true,
-        "score": 43.593999999999994,
+        "score": 48.96450000000001,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1601,10 +1665,74 @@
       },
       {
         "k1": 1.5,
+        "k2": 1.25,
+        "k3": 1.25,
+        "ok": true,
+        "score": 45.489,
+        "current": {
+          "observed_time_local": "2026-09-29T19:45",
+          "observed_stage_cm": 1512.0,
+          "model_stage_cm": 1516.39,
+          "stage_error_cm": 4.39,
+          "model_q_m3s": 6170.28,
+          "observed_slope_cm_h": 30.0,
+          "model_slope_cm_h": 45.1,
+          "slope_error_cm_h": 15.1
+        },
+        "recent_fit_6h": {
+          "n": 25,
+          "raw_rmse_cm": 49.91,
+          "raw_bias_cm": -43.73,
+          "conditioned_rmse_cm": 53.81,
+          "conditioned_bias_cm": -48.13,
+          "operational_state_mode": "native_hec_state_matches_observed",
+          "state_assimilation_applied": false
+        },
+        "peak": {
+          "time_local": "2026-09-30T02:00",
+          "stage_cm": 1621.89,
+          "q_m3s": 6871.09,
+          "rise_from_observed_cm": 109.89
+        }
+      },
+      {
+        "k1": 1.5,
+        "k2": 1.25,
+        "k3": 1.5,
+        "ok": true,
+        "score": 55.599500000000006,
+        "current": {
+          "observed_time_local": "2026-09-29T19:45",
+          "observed_stage_cm": 1512.0,
+          "model_stage_cm": 1505.0,
+          "stage_error_cm": -7.0,
+          "model_q_m3s": 6096.62,
+          "observed_slope_cm_h": 30.0,
+          "model_slope_cm_h": 46.28,
+          "slope_error_cm_h": 16.28
+        },
+        "recent_fit_6h": {
+          "n": 25,
+          "raw_rmse_cm": 60.51,
+          "raw_bias_cm": -55.64,
+          "conditioned_rmse_cm": 54.14,
+          "conditioned_bias_cm": -48.64,
+          "operational_state_mode": "native_hec_state_matches_observed",
+          "state_assimilation_applied": false
+        },
+        "peak": {
+          "time_local": "2026-09-30T02:00",
+          "stage_cm": 1621.12,
+          "q_m3s": 6865.79,
+          "rise_from_observed_cm": 109.12
+        }
+      },
+      {
+        "k1": 1.5,
         "k2": 1.5,
         "k3": 1.0,
         "ok": true,
-        "score": 40.44050000000001,
+        "score": 45.32,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1636,7 +1764,7 @@
         "k2": 1.5,
         "k3": 1.25,
         "ok": true,
-        "score": 51.2935,
+        "score": 55.50149999999999,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1664,11 +1792,43 @@
         }
       },
       {
+        "k1": 1.5,
+        "k2": 1.5,
+        "k3": 1.5,
+        "ok": true,
+        "score": 74.514,
+        "current": {
+          "observed_time_local": "2026-09-29T19:45",
+          "observed_stage_cm": 1512.0,
+          "model_stage_cm": 1493.47,
+          "stage_error_cm": -18.53,
+          "model_q_m3s": 6022.56,
+          "observed_slope_cm_h": 30.0,
+          "model_slope_cm_h": 47.3,
+          "slope_error_cm_h": 17.3
+        },
+        "recent_fit_6h": {
+          "n": 25,
+          "raw_rmse_cm": 71.22,
+          "raw_bias_cm": -67.3,
+          "conditioned_rmse_cm": 54.06,
+          "conditioned_bias_cm": -48.78,
+          "operational_state_mode": "explicit_observed_stage_conditioning",
+          "state_assimilation_applied": true
+        },
+        "peak": {
+          "time_local": "2026-09-30T02:00",
+          "stage_cm": 1638.55,
+          "q_m3s": 6858.31,
+          "rise_from_observed_cm": 126.55
+        }
+      },
+      {
         "k1": 1.75,
         "k2": 1.5,
         "k3": 1.0,
         "ok": true,
-        "score": 50.09000000000001,
+        "score": 54.166999999999994,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1697,10 +1857,74 @@
       },
       {
         "k1": 1.75,
+        "k2": 1.5,
+        "k3": 1.25,
+        "ok": true,
+        "score": 73.254,
+        "current": {
+          "observed_time_local": "2026-09-29T19:45",
+          "observed_stage_cm": 1512.0,
+          "model_stage_cm": 1493.65,
+          "stage_error_cm": -18.35,
+          "model_q_m3s": 6023.71,
+          "observed_slope_cm_h": 30.0,
+          "model_slope_cm_h": 46.94,
+          "slope_error_cm_h": 16.94
+        },
+        "recent_fit_6h": {
+          "n": 25,
+          "raw_rmse_cm": 69.87,
+          "raw_bias_cm": -66.07,
+          "conditioned_rmse_cm": 52.86,
+          "conditioned_bias_cm": -47.72,
+          "operational_state_mode": "explicit_observed_stage_conditioning",
+          "state_assimilation_applied": true
+        },
+        "peak": {
+          "time_local": "2026-09-30T02:00",
+          "stage_cm": 1637.88,
+          "q_m3s": 6855.03,
+          "rise_from_observed_cm": 125.88
+        }
+      },
+      {
+        "k1": 1.75,
+        "k2": 1.5,
+        "k3": 1.5,
+        "ok": true,
+        "score": 92.143,
+        "current": {
+          "observed_time_local": "2026-09-29T19:45",
+          "observed_stage_cm": 1512.0,
+          "model_stage_cm": 1482.0,
+          "stage_error_cm": -30.0,
+          "model_q_m3s": 5949.19,
+          "observed_slope_cm_h": 30.0,
+          "model_slope_cm_h": 47.81,
+          "slope_error_cm_h": 17.81
+        },
+        "recent_fit_6h": {
+          "n": 25,
+          "raw_rmse_cm": 80.6,
+          "raw_bias_cm": -77.5,
+          "conditioned_rmse_cm": 52.4,
+          "conditioned_bias_cm": -47.49,
+          "operational_state_mode": "explicit_observed_stage_conditioning",
+          "state_assimilation_applied": true
+        },
+        "peak": {
+          "time_local": "2026-09-30T02:00",
+          "stage_cm": 1648.01,
+          "q_m3s": 6844.63,
+          "rise_from_observed_cm": 136.01
+        }
+      },
+      {
+        "k1": 1.75,
         "k2": 1.75,
         "k3": 1.0,
         "ok": true,
-        "score": 69.4555,
+        "score": 72.708,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1732,7 +1956,7 @@
         "k2": 1.75,
         "k3": 1.25,
         "ok": true,
-        "score": 89.46950000000001,
+        "score": 91.7885,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1760,11 +1984,75 @@
         }
       },
       {
+        "k1": 1.75,
+        "k2": 1.75,
+        "k3": 1.5,
+        "ok": true,
+        "score": 110.5805,
+        "current": {
+          "observed_time_local": "2026-09-29T19:45",
+          "observed_stage_cm": 1512.0,
+          "model_stage_cm": 1470.36,
+          "stage_error_cm": -41.64,
+          "model_q_m3s": 5875.2,
+          "observed_slope_cm_h": 30.0,
+          "model_slope_cm_h": 48.46,
+          "slope_error_cm_h": 18.46
+        },
+        "recent_fit_6h": {
+          "n": 25,
+          "raw_rmse_cm": 90.92,
+          "raw_bias_cm": -88.39,
+          "conditioned_rmse_cm": 51.38,
+          "conditioned_bias_cm": -46.74,
+          "operational_state_mode": "explicit_observed_stage_conditioning",
+          "state_assimilation_applied": true
+        },
+        "peak": {
+          "time_local": "2026-09-30T03:00",
+          "stage_cm": 1658.47,
+          "q_m3s": 6836.62,
+          "rise_from_observed_cm": 146.47
+        }
+      },
+      {
+        "k1": 2.0,
+        "k2": 1.75,
+        "k3": 1.5,
+        "ok": true,
+        "score": 127.4345,
+        "current": {
+          "observed_time_local": "2026-09-29T19:45",
+          "observed_stage_cm": 1512.0,
+          "model_stage_cm": 1459.01,
+          "stage_error_cm": -52.99,
+          "model_q_m3s": 5803.48,
+          "observed_slope_cm_h": 30.0,
+          "model_slope_cm_h": 48.65,
+          "slope_error_cm_h": 18.65
+        },
+        "recent_fit_6h": {
+          "n": 25,
+          "raw_rmse_cm": 99.71,
+          "raw_bias_cm": -97.7,
+          "conditioned_rmse_cm": 48.96,
+          "conditioned_bias_cm": -44.7,
+          "operational_state_mode": "explicit_observed_stage_conditioning",
+          "state_assimilation_applied": true
+        },
+        "peak": {
+          "time_local": "2026-09-30T03:00",
+          "stage_cm": 1668.3,
+          "q_m3s": 6826.28,
+          "rise_from_observed_cm": 156.3
+        }
+      },
+      {
         "k1": 2.0,
         "k2": 1.75,
         "k3": 1.0,
         "ok": true,
-        "score": 87.7655,
+        "score": 89.97,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1796,7 +2084,7 @@
         "k2": 2.0,
         "k3": 1.0,
         "ok": true,
-        "score": 106.808,
+        "score": 107.9925,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1828,7 +2116,7 @@
         "k2": 2.0,
         "k3": 1.25,
         "ok": true,
-        "score": 126.69000000000001,
+        "score": 126.764,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1860,7 +2148,7 @@
         "k2": 2.0,
         "k3": 1.0,
         "ok": true,
-        "score": 124.45550000000001,
+        "score": 124.4495,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1892,7 +2180,7 @@
         "k2": 2.25,
         "k3": 1.0,
         "ok": true,
-        "score": 142.861,
+        "score": 141.6925,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1924,7 +2212,7 @@
         "k2": 2.5,
         "k3": 1.0,
         "ok": true,
-        "score": 177.20049999999998,
+        "score": 173.479,
         "current": {
           "observed_time_local": "2026-09-29T19:45",
           "observed_stage_cm": 1512.0,
@@ -1957,7 +2245,7 @@
       "k2_h": 1.5,
       "k3_h": 1.0,
       "x": 0.2,
-      "score": 40.44050000000001
+      "score": 45.32
     },
     "note": "Only routing is recalibrated; observed rain and observed discharge states are unchanged."
   }
