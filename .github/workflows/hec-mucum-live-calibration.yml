@@ -1,6 +1,6 @@
 name: HEC Muçum live-event calibration
 
-# Refresh requested from chat: 2026-09-29 07:40 BRT · nova chuva noturna + novo observado/previsto
+# Refresh requested from chat: 2026-09-29 13:55 BRT · acumulados 3h/6h + foco na subida recente
 
 # Calibração de pesquisa do evento em curso.
 # Guardas operacionais estritas v2: rede integral + t0 fresco + forma da onda.
@@ -12,6 +12,10 @@ on:
       - main
     paths:
       - ".github/workflows/hec-mucum-live-calibration.yml"
+      - "scripts/build_hec_hms_spatial_forecast_mucum.py"
+      - "scripts/postprocess_hec_hms_spatial_forecast_mucum.py"
+      - "scripts/calibrate_hec_hms_live_event.py"
+      - "scripts/build_mucum_observed_multistation.py"
   schedule:
     - cron: "17 * * * *"
   workflow_dispatch:
