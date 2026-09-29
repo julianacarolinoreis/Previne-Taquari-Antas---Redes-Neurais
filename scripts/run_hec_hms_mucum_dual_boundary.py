@@ -45,6 +45,7 @@ K1=float(os.environ.get("DUAL_K1_H","2.5"))
 K2=float(os.environ.get("DUAL_K2_H","2.5"))
 K3=float(os.environ.get("DUAL_K3_H","1.0"))
 X=float(os.environ.get("DUAL_X","0.2"))
+WARMUP_H=float(os.environ.get("DUAL_WARMUP_H","12"))
 
 def loadj(p): return json.loads(Path(p).read_text(encoding="utf-8"))
 
@@ -509,7 +510,7 @@ def main():
     rows_all,times_all=read_zone()
     live=loadj(LIVE)
     obs_t=datetime.fromisoformat(live["telemetria_ultima_em"])
-    warm_start=obs_t.replace(minute=0,second=0,microsecond=0)-timedelta(hours=12)
+    warm_start=obs_t.replace(minute=0,second=0,microsecond=0)-timedelta(hours=WARMUP_H)
     keep=[i for i,t in enumerate(times_all) if t>=warm_start]
     rows=[rows_all[i] for i in keep]
     times=[times_all[i] for i in keep]
@@ -620,7 +621,7 @@ def main():
       "topology":{
         "areas_km2":{"LJJ_upstream":AREA_LJJ,"Carreiro":AREA_CARR,"STZ_residual":AREA_STZ_RES,"Mucum_increment":AREA_MUC_INC},
         "routing":{"k1_h":K1,"k2_h":K2,"k3_h":K3,"x":X},
-        "calibration_event":"E28","calibration_nse":row.get("nse"),
+        "calibration_event":"E28","calibration_nse":row.get("nse"),"warmup_h":WARMUP_H,
       },
       "observed_network_audit":{
         "rain_valid_station_count":(obs.get("rain") or {}).get("valid_station_count"),
