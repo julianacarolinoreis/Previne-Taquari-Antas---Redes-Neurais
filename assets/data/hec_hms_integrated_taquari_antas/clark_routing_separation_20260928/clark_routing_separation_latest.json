@@ -1,0 +1,285 @@
+{
+  "schema_version": "clark_routing_separation_v1",
+  "generated_at_utc": "2026-09-29T00:33:37.953551+00:00",
+  "purpose": "separate rainfall-runoff timing (Clark Tc/Storage) from channel propagation (Muskingum) without changing operational model",
+  "historical_engine": "auditable Python twin of Initial+Constant/Clark/Recession/Muskingum, fresh ANA event telemetry",
+  "historical": [
+    {
+      "event": "E27",
+      "rain_sources": {
+        "SB_PRATA_7868": "86472000+2851072+86507000",
+        "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+        "SB_CARREIRO_7866": "86507000",
+        "SB_STZ_RESIDUAL": "86472000",
+        "SB_INC_MUCUM": "86472000"
+      },
+      "baseline": {
+        "params": {
+          "upstream": {
+            "initial_loss": 5.5,
+            "constant_loss": 4.25,
+            "tc": 4,
+            "storage": 25,
+            "recession": 0.85,
+            "initial_flow_ratio": 0.001
+          },
+          "downstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 4,
+            "tc": 45,
+            "storage": 110,
+            "recession": 0.7,
+            "initial_flow_ratio": 0.001
+          },
+          "k1": 0.25,
+          "k2": 1.25,
+          "k3": 4,
+          "x": 0.2
+        },
+        "pairs": 245,
+        "nse": 0.8768225712733823,
+        "rmse_m3s": 1409.04290327511,
+        "mae_m3s": 1065.097936090515,
+        "peak_lag_hours": 5,
+        "peak_relative_error": 0.060871925212381425,
+        "observed_peak_m3s": 14525.224999999999,
+        "simulated_peak_m3s": 15409.403409893011,
+        "research_score": 0.7007326647579055
+      },
+      "best_routing_only": {
+        "mode": "routing_only",
+        "k1": 0.25,
+        "k2": 0.25,
+        "k3": 6,
+        "x": 0.1,
+        "pairs": 245,
+        "nse": 0.8758961583416704,
+        "rmse_m3s": 1414.3316578141807,
+        "mae_m3s": 1071.3345721579856,
+        "peak_lag_hours": 5,
+        "peak_relative_error": 0.021644188273178593,
+        "observed_peak_m3s": 14525.224999999999,
+        "simulated_peak_m3s": 14839.611704610279,
+        "research_score": 0.7488409230001972
+      },
+      "best_clark_only": {
+        "mode": "clark_only",
+        "up_tc": 3,
+        "up_storage": 25,
+        "dn_tc": 67.5,
+        "dn_storage": 165,
+        "pairs": 245,
+        "nse": 0.8564482105826219,
+        "rmse_m3s": 1521.1181735736873,
+        "mae_m3s": 1153.2593038414907,
+        "peak_lag_hours": 4,
+        "peak_relative_error": 0.014777739261018538,
+        "observed_peak_m3s": 14525.224999999999,
+        "simulated_peak_m3s": 14739.874987757627,
+        "research_score": 0.7579760365063487
+      },
+      "best_joint": {
+        "mode": "joint",
+        "up_tc": 4,
+        "up_storage": 31.25,
+        "dn_tc": 22.5,
+        "dn_storage": 110,
+        "k1": 0.25,
+        "k2": 0.25,
+        "k3": 4,
+        "x": 0.1,
+        "pairs": 245,
+        "nse": 0.8852037725134441,
+        "rmse_m3s": 1360.2616620455676,
+        "mae_m3s": 1042.626047570491,
+        "peak_lag_hours": 4,
+        "peak_relative_error": 0.002078202991937134,
+        "observed_peak_m3s": 14525.224999999999,
+        "simulated_peak_m3s": 14555.411366053559,
+        "research_score": 0.8026060187735227
+      },
+      "candidate_counts": {
+        "routing": 1536,
+        "clark": 121,
+        "joint": 64
+      }
+    },
+    {
+      "event": "E28",
+      "rain_sources": {
+        "SB_PRATA_7868": "86472000+2851072+86507000",
+        "SB_ANTAS_RESIDUAL": "86472000+2851072+86507000",
+        "SB_CARREIRO_7866": "86510000",
+        "SB_STZ_RESIDUAL": "86472600",
+        "SB_INC_MUCUM": "86510000"
+      },
+      "baseline": {
+        "params": {
+          "upstream": {
+            "initial_loss": 2.5,
+            "constant_loss": 0.25,
+            "tc": 23,
+            "storage": 25,
+            "recession": 0.98,
+            "initial_flow_ratio": 0.001
+          },
+          "downstream": {
+            "initial_loss": 1.5,
+            "constant_loss": 2,
+            "tc": 20,
+            "storage": 25,
+            "recession": 0.995,
+            "initial_flow_ratio": 0.005
+          },
+          "k1": 2.5,
+          "k2": 2.5,
+          "k3": 1,
+          "x": 0.2
+        },
+        "pairs": 209,
+        "nse": 0.9750898312137927,
+        "rmse_m3s": 281.6202866214499,
+        "mae_m3s": 219.49624381379604,
+        "peak_lag_hours": 0,
+        "peak_relative_error": 0.000005506370859459057,
+        "observed_peak_m3s": 7886.725,
+        "simulated_peak_m3s": 7886.768427232717,
+        "research_score": 0.9750829482502184
+      },
+      "best_routing_only": {
+        "mode": "routing_only",
+        "k1": 4,
+        "k2": 0.5,
+        "k3": 2,
+        "x": 0.3,
+        "pairs": 209,
+        "nse": 0.97602319736792,
+        "rmse_m3s": 276.2938608865395,
+        "mae_m3s": 211.51693162747281,
+        "peak_lag_hours": 0,
+        "peak_relative_error": 0.0003204855014043051,
+        "observed_peak_m3s": 7886.725,
+        "simulated_peak_m3s": 7889.252581016063,
+        "research_score": 0.9756225904911646
+      },
+      "best_clark_only": {
+        "mode": "clark_only",
+        "up_tc": 23,
+        "up_storage": 25,
+        "dn_tc": 20,
+        "dn_storage": 25,
+        "pairs": 209,
+        "nse": 0.9750898312137927,
+        "rmse_m3s": 281.6202866214499,
+        "mae_m3s": 219.49624381379604,
+        "peak_lag_hours": 0,
+        "peak_relative_error": 0.000005506370859459057,
+        "observed_peak_m3s": 7886.725,
+        "simulated_peak_m3s": 7886.768427232717,
+        "research_score": 0.9750829482502184
+      },
+      "best_joint": {
+        "mode": "joint",
+        "up_tc": 23,
+        "up_storage": 25,
+        "dn_tc": 20,
+        "dn_storage": 25,
+        "k1": 4,
+        "k2": 0.5,
+        "k3": 2,
+        "x": 0.3,
+        "pairs": 209,
+        "nse": 0.97602319736792,
+        "rmse_m3s": 276.2938608865395,
+        "mae_m3s": 211.51693162747281,
+        "peak_lag_hours": 0,
+        "peak_relative_error": 0.0003204855014043051,
+        "observed_peak_m3s": 7886.725,
+        "simulated_peak_m3s": 7889.252581016063,
+        "research_score": 0.9756225904911646
+      },
+      "candidate_counts": {
+        "routing": 1536,
+        "clark": 121,
+        "joint": 64
+      }
+    }
+  ],
+  "current": {
+    "event": "CURRENT_2026_09_26",
+    "engine": "HEC-HMS 4.13 frozen committed two-zone forcing; Muskingum is diagnostic post-routing after outlet, not promoted reach",
+    "frozen_baseline_clark": {
+      "tc_h": 25,
+      "storage_h": 20
+    },
+    "baseline_selected": {
+      "mode": "clark_only",
+      "tc_h": 25,
+      "storage_h": 20,
+      "routing_k_h": 0,
+      "routing_x": 0,
+      "pairs": 69,
+      "nse": 0.918639350832189,
+      "rmse_m3s": 166.39825320886882,
+      "mae_m3s": 137.55475262233978,
+      "peak_lag_hours": 0,
+      "peak_relative_error": 0.06076367939223239,
+      "observed_peak_m3s": 3360.085,
+      "simulated_peak_m3s": 3155.913872329351,
+      "current_q_error_m3s": -204.17112767064918,
+      "observed_last_trend_m3s_h": 240.41750000000002,
+      "model_last_trend_m3s_h": 219.7725263915513,
+      "trend_error_m3s_h": -20.64497360844871,
+      "live_score": 0.8635200204181135
+    },
+    "best_clark_only": {
+      "mode": "clark_only",
+      "tc_h": 25,
+      "storage_h": 20,
+      "routing_k_h": 0,
+      "routing_x": 0,
+      "pairs": 69,
+      "nse": 0.918639350832189,
+      "rmse_m3s": 166.39825320886882,
+      "mae_m3s": 137.55475262233978,
+      "peak_lag_hours": 0,
+      "peak_relative_error": 0.06076367939223239,
+      "observed_peak_m3s": 3360.085,
+      "simulated_peak_m3s": 3155.913872329351,
+      "current_q_error_m3s": -204.17112767064918,
+      "observed_last_trend_m3s_h": 240.41750000000002,
+      "model_last_trend_m3s_h": 219.7725263915513,
+      "trend_error_m3s_h": -20.64497360844871,
+      "live_score": 0.8635200204181135
+    },
+    "best_clark_plus_postrouting": {
+      "mode": "clark_plus_postrouting",
+      "tc_h": 15,
+      "storage_h": 20,
+      "routing_k_h": 6,
+      "routing_x": 0.1,
+      "pairs": 69,
+      "nse": 0.941923158698649,
+      "rmse_m3s": 140.58631718500993,
+      "mae_m3s": 117.35102164438715,
+      "peak_lag_hours": 0,
+      "peak_relative_error": 0.03886578005867129,
+      "observed_peak_m3s": 3360.085,
+      "simulated_peak_m3s": 3229.4926754115595,
+      "current_q_error_m3s": -130.59232458844053,
+      "observed_last_trend_m3s_h": 240.41750000000002,
+      "model_last_trend_m3s_h": 280.5628049480638,
+      "trend_error_m3s_h": 40.14530494806377,
+      "live_score": 0.8857574478567987
+    },
+    "candidate_count": 264,
+    "note": "Observed window is still rising; no completed-peak lag is used in the live score. Frozen checkout prevents concurrent ANA/IFS timestamp mixing."
+  },
+  "operational_changes": false,
+  "interpretation": [
+    "Historical E27/E28 results use the audit twin because exact archived HEC-HMS network projects are not committed.",
+    "Current event Clark candidates are actual HEC-HMS 4.13 runs; the added routing is a diagnostic post-routing sensitivity, not an HEC reach promotion.",
+    "No routing parameter from this experiment is automatically operational."
+  ],
+  "publication_note": "Resultados recuperados da execução validada do GitHub Actions run 36503494960; o push automático original colidiu com atualizações concorrentes do robô ao vivo, então este JSON foi publicado separadamente sem alterar artefatos operacionais."
+}
