@@ -1,4 +1,4 @@
-# refresh chat 2026-09-29 09:56 BRT — rerun ECMWF 06Z direct after filename fix
+# refresh chat 2026-09-29 09:58 BRT — 06Z short-range valid + publish rain audit
 name: HEC Mucum reference 28-09 19h rerun
 
 on:
@@ -142,6 +142,8 @@ jobs:
           git config user.name "previne-hec-reference-bot"
           git config user.email "previne-hec-reference-bot@users.noreply.github.com"
           git add -- \
+            assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_latest.json \
+            assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum/spatial_ifs_mucum_latest.json \
             assets/data/estudo_bacia_taquari_antas/hec_mucum_reference_1900_rerun_latest.json \
             assets/data/estudo_bacia_taquari_antas/hec_mucum_reference_1900_rerun_primary_series.csv
           if git diff --cached --quiet; then exit 0; fi
