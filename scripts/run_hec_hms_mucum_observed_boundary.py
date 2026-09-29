@@ -9,7 +9,7 @@ HEC-HMS Source/Discharge Gage, adds downstream incremental rainfall-runoff,
 and routes the combined hydrograph to Muçum with two Muskingum reaches.
 """
 from __future__ import annotations
-import csv, json, math, subprocess, sys
+import csv, json, math, subprocess, sys, os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -31,9 +31,9 @@ SERIES=RT/"primary_series.csv"
 UP_AREA=12918.656
 TOTAL_AREA=15690.7
 INC_AREA=TOTAL_AREA-UP_AREA
-K1=1.0
-K2=1.0
-X=0.2
+K1=float(os.environ.get("BOUNDARY_K1_H","1.0"))
+K2=float(os.environ.get("BOUNDARY_K2_H","1.0"))
+X=float(os.environ.get("BOUNDARY_X","0.2"))
 
 def loadj(p): return json.loads(Path(p).read_text(encoding="utf-8"))
 
@@ -401,6 +401,7 @@ def main():
       "current":{"observed_time_local":obs_t.isoformat(timespec="minutes"),"observed_stage_cm":obs_n,
           "model_stage_cm":round(model_now,2),"error_cm":round(model_now-obs_n,2)},
       "peak":{"time_local":peak[0].isoformat(timespec="minutes"),"stage_cm":round(peak[1],2),"q_m3s":round(peak[2],2)},
+      "routing":{"k1_h":K1,"k2_h":K2,"x":X},
       "times_local":[t.isoformat(timespec="minutes") for t in times],
       "q_m3s":[round(x,3) for x in vals],
       "stage_cm":[round(x,2) for x in stages],
