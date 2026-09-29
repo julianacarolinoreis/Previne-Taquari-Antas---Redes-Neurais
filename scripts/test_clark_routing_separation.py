@@ -125,9 +125,17 @@ def hist_forcing(event, pad_h):
 
 
 def get_areas():
-    st=load(STRUCT)
-    elems=st.get("elements") or []
-    return {e["id"]:float(e["area_km2"]) for e in elems if e.get("type")=="subbasin"}
+    st = load(STRUCT)
+    elems = ((st.get("models") or {}).get("mucum") or {}).get("elements") or []
+    areas = {
+        e["id"]: float(e["area_km2"])
+        for e in elems
+        if isinstance(e, dict) and e.get("type") == "subbasin" and e.get("area_km2") is not None
+    }
+    required = {"SB_PRATA_7868", "SB_ANTAS_RESIDUAL", "SB_CARREIRO_7866", "SB_STZ_RESIDUAL", "SB_INC_MUCUM"}
+    if not required.issubset(areas):
+        raise RuntimeError("estrutura_stz_mucum sem todas as áreas de sub-bacia: " + str(sorted(required - set(areas))))
+    return areas
 
 
 def p_from_record(rec):
