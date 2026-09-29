@@ -1,0 +1,1455 @@
+{
+  "schema_version": "mucum_pseudo_operational_p2_v1",
+  "generated_at_utc": "2026-09-29T10:51:18.618100Z",
+  "status": "research_replay_perfect_future_rain",
+  "forcing_scenario": "P2: fresh ANA observed rainfall used after t0 as perfect rainfall forecast; isolates hydrologic/model-selection error",
+  "strict_no_target_leakage": true,
+  "chronology_rule": "only eventwise families whose event starts before the target event are eligible",
+  "state_initialization": "all arms receive the same privilege: one scalar initial-flow-ratio adjustment against target discharge at event start",
+  "online_recalibration_rule": "D changes losses and Clark Tc/storage only using lookback; recession and routing K/x remain inherited from C seed",
+  "targets": [
+    "E24",
+    "E27",
+    "E28"
+  ],
+  "aggregate": {
+    "A_fixed_prior_median": {
+      "n_cases": 6,
+      "median_abs_peak_q_error_pct": 39.409,
+      "median_abs_peak_time_error_h": 4.25,
+      "median_rmse_q": 1787.599,
+      "median_nse_future": 0.0194,
+      "median_abs_peak_stage_error_cm": 586.15
+    },
+    "B_rain_analog": {
+      "n_cases": 6,
+      "median_abs_peak_q_error_pct": 31.63,
+      "median_abs_peak_time_error_h": 4.5,
+      "median_rmse_q": 1902.114,
+      "median_nse_future": 0.0475,
+      "median_abs_peak_stage_error_cm": 334.35
+    },
+    "C_lookback_select": {
+      "n_cases": 6,
+      "median_abs_peak_q_error_pct": 34.238,
+      "median_abs_peak_time_error_h": 7.25,
+      "median_rmse_q": 1791.071,
+      "median_nse_future": -0.0126,
+      "median_abs_peak_stage_error_cm": 334.62
+    },
+    "D_lookback_online_recal": {
+      "n_cases": 6,
+      "median_abs_peak_q_error_pct": 25.646,
+      "median_abs_peak_time_error_h": 5.25,
+      "median_rmse_q": 1393.342,
+      "median_nse_future": 0.4425,
+      "median_abs_peak_stage_error_cm": 161.27
+    }
+  },
+  "events": [
+    {
+      "event": "E24",
+      "observed_peak_q_time": "2023-11-18 23:45:00",
+      "observed_peak_q": 11465.6,
+      "prior_library": [
+        "E20",
+        "E21",
+        "E22",
+        "E23"
+      ],
+      "target_rain_fingerprint": {
+        "total": 202.39999999999998,
+        "max6": 68.80000000000001,
+        "max24": 144.8,
+        "duration_h": 240
+      },
+      "rain_analog": "E22",
+      "cutoffs": [
+        {
+          "t0": "2023-11-18 11:00:00",
+          "hours_before_observed_peak_nominal": 12,
+          "arms": [
+            {
+              "arm": "A_fixed_prior_median",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.75,
+                  "constant_loss": 1.0,
+                  "tc": 21.5,
+                  "storage": 32.5,
+                  "recession": 0.98,
+                  "initial_flow_ratio": 0.04
+                },
+                "downstream": {
+                  "initial_loss": 1.5,
+                  "constant_loss": 1.25,
+                  "tc": 20.0,
+                  "storage": 47.5,
+                  "recession": 0.725,
+                  "initial_flow_ratio": 0.048
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 3.25,
+                "x": 0.2
+              },
+              "ic_scale": 16,
+              "lookback_score": null,
+              "selection": null,
+              "future_metrics": {
+                "n_future": 179,
+                "rmse_q": 1679.3954256717805,
+                "mae_q": 1040.9070575040414,
+                "nse_future": 0.7264779596266908,
+                "obs_peak_q": 11465.6,
+                "obs_peak_q_time": "2023-11-18 23:45:00",
+                "sim_peak_q": 7153.630878646951,
+                "sim_peak_q_time": "2023-11-19 04:00:00",
+                "peak_q_error_pct": -37.607880279732846,
+                "peak_time_error_h": 4.25,
+                "obs_peak_level_cm": 2302.0,
+                "obs_peak_level_time": "2023-11-18 23:45:00",
+                "sim_peak_stage_cm": 1662.9837033175197,
+                "peak_stage_error_cm": -639.0162966824803,
+                "stage_error_2h_cm": -666.6612319503952,
+                "stage_error_4h_cm": -652.9283330369663,
+                "stage_error_8h_cm": -688.2653404443101,
+                "stage_error_12h_cm": -670.671753704986,
+                "stage_error_24h_cm": -420.3556806020106
+              }
+            },
+            {
+              "arm": "B_rain_analog",
+              "params": {
+                "upstream": {
+                  "initial_loss": 6.5,
+                  "constant_loss": 0.5,
+                  "tc": 18.0,
+                  "storage": 15.0,
+                  "recession": 0.98,
+                  "initial_flow_ratio": 0.04
+                },
+                "downstream": {
+                  "initial_loss": 2.5,
+                  "constant_loss": 4.25,
+                  "tc": 15.0,
+                  "storage": 110.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.016
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 5.5,
+                "x": 0.2
+              },
+              "ic_scale": 16,
+              "lookback_score": null,
+              "selection": {
+                "selected_event": "E22",
+                "rain_distance": 2.3233333333333355
+              },
+              "future_metrics": {
+                "n_future": 179,
+                "rmse_q": 1398.294515811646,
+                "mae_q": 1276.9291475734165,
+                "nse_future": 0.81038019121636,
+                "obs_peak_q": 11465.6,
+                "obs_peak_q_time": "2023-11-18 23:45:00",
+                "sim_peak_q": 9722.739994698311,
+                "sim_peak_q_time": "2023-11-19 01:00:00",
+                "peak_q_error_pct": -15.200774536890252,
+                "peak_time_error_h": 1.25,
+                "obs_peak_level_cm": 2302.0,
+                "obs_peak_level_time": "2023-11-18 23:45:00",
+                "sim_peak_stage_cm": 2007.026322543842,
+                "peak_stage_error_cm": -294.97367745615793,
+                "stage_error_2h_cm": -312.77752677291164,
+                "stage_error_4h_cm": -282.5284991476194,
+                "stage_error_8h_cm": -293.8627665056872,
+                "stage_error_12h_cm": -296.6909873316772,
+                "stage_error_24h_cm": -320.166180375626
+              }
+            },
+            {
+              "arm": "C_lookback_select",
+              "params": {
+                "upstream": {
+                  "initial_loss": 6.5,
+                  "constant_loss": 0.5,
+                  "tc": 18.0,
+                  "storage": 15.0,
+                  "recession": 0.98,
+                  "initial_flow_ratio": 0.04
+                },
+                "downstream": {
+                  "initial_loss": 2.5,
+                  "constant_loss": 4.25,
+                  "tc": 15.0,
+                  "storage": 110.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.016
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 5.5,
+                "x": 0.2
+              },
+              "ic_scale": 16,
+              "lookback_score": 0.6274023452881767,
+              "selection": {
+                "selected_event": "E22",
+                "n": 60,
+                "rmse": 1165.8778655138985,
+                "nse": 0.6163997097726112,
+                "q_now_obs": 8943.1,
+                "q_now_sim": 6431.704751785051,
+                "trend_obs": 364.7333333333336,
+                "trend_sim": 362.0962042052779
+              },
+              "future_metrics": {
+                "n_future": 179,
+                "rmse_q": 1398.294515811646,
+                "mae_q": 1276.9291475734165,
+                "nse_future": 0.81038019121636,
+                "obs_peak_q": 11465.6,
+                "obs_peak_q_time": "2023-11-18 23:45:00",
+                "sim_peak_q": 9722.739994698311,
+                "sim_peak_q_time": "2023-11-19 01:00:00",
+                "peak_q_error_pct": -15.200774536890252,
+                "peak_time_error_h": 1.25,
+                "obs_peak_level_cm": 2302.0,
+                "obs_peak_level_time": "2023-11-18 23:45:00",
+                "sim_peak_stage_cm": 2007.026322543842,
+                "peak_stage_error_cm": -294.97367745615793,
+                "stage_error_2h_cm": -312.77752677291164,
+                "stage_error_4h_cm": -282.5284991476194,
+                "stage_error_8h_cm": -293.8627665056872,
+                "stage_error_12h_cm": -296.6909873316772,
+                "stage_error_24h_cm": -320.166180375626
+              }
+            },
+            {
+              "arm": "D_lookback_online_recal",
+              "params": {
+                "upstream": {
+                  "initial_loss": 10.5,
+                  "constant_loss": 0.0,
+                  "tc": 13.0,
+                  "storage": 15.0,
+                  "recession": 0.98,
+                  "initial_flow_ratio": 0.16
+                },
+                "downstream": {
+                  "initial_loss": 4.5,
+                  "constant_loss": 6.25,
+                  "tc": 25.0,
+                  "storage": 130.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.064
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 5.5,
+                "x": 0.2
+              },
+              "ic_scale": 1,
+              "lookback_score": 0.27073095271259057,
+              "selection": {
+                "seed_event": "E22",
+                "n": 60,
+                "rmse": 757.8810356592126,
+                "nse": 0.8379030316157797,
+                "q_now_obs": 8943.1,
+                "q_now_sim": 8674.114590469095,
+                "trend_obs": 364.7333333333336,
+                "trend_sim": 377.64973130544814
+              },
+              "future_metrics": {
+                "n_future": 179,
+                "rmse_q": 1292.3914497041867,
+                "mae_q": 1170.1776155729306,
+                "nse_future": 0.8380150941261146,
+                "obs_peak_q": 11465.6,
+                "obs_peak_q_time": "2023-11-18 23:45:00",
+                "sim_peak_q": 11815.248035446843,
+                "sim_peak_q_time": "2023-11-18 22:00:00",
+                "peak_q_error_pct": 3.0495398012039683,
+                "peak_time_error_h": -1.75,
+                "obs_peak_level_cm": 2302.0,
+                "obs_peak_level_time": "2023-11-18 23:45:00",
+                "sim_peak_stage_cm": 2257.149117136066,
+                "peak_stage_error_cm": -44.8508828639342,
+                "stage_error_2h_cm": 3.2860576079062866,
+                "stage_error_4h_cm": 30.169399952844287,
+                "stage_error_8h_cm": -7.279062323561902,
+                "stage_error_12h_cm": -48.22747737227337,
+                "stage_error_24h_cm": -299.6255589073826
+              }
+            }
+          ]
+        },
+        {
+          "t0": "2023-11-18 17:00:00",
+          "hours_before_observed_peak_nominal": 6,
+          "arms": [
+            {
+              "arm": "A_fixed_prior_median",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.75,
+                  "constant_loss": 1.0,
+                  "tc": 21.5,
+                  "storage": 32.5,
+                  "recession": 0.98,
+                  "initial_flow_ratio": 0.04
+                },
+                "downstream": {
+                  "initial_loss": 1.5,
+                  "constant_loss": 1.25,
+                  "tc": 20.0,
+                  "storage": 47.5,
+                  "recession": 0.725,
+                  "initial_flow_ratio": 0.048
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 3.25,
+                "x": 0.2
+              },
+              "ic_scale": 16,
+              "lookback_score": null,
+              "selection": null,
+              "future_metrics": {
+                "n_future": 173,
+                "rmse_q": 1495.362986859745,
+                "mae_q": 923.2226505729055,
+                "nse_future": 0.7621827955533453,
+                "obs_peak_q": 11465.6,
+                "obs_peak_q_time": "2023-11-18 23:45:00",
+                "sim_peak_q": 7153.630878646951,
+                "sim_peak_q_time": "2023-11-19 04:00:00",
+                "peak_q_error_pct": -37.607880279732846,
+                "peak_time_error_h": 4.25,
+                "obs_peak_level_cm": 2302.0,
+                "obs_peak_level_time": "2023-11-18 23:45:00",
+                "sim_peak_stage_cm": 1662.9837033175197,
+                "peak_stage_error_cm": -639.0162966824803,
+                "stage_error_2h_cm": -688.2653404443101,
+                "stage_error_4h_cm": -685.2048792398894,
+                "stage_error_8h_cm": -638.6914262294451,
+                "stage_error_12h_cm": -553.8818573970523,
+                "stage_error_24h_cm": -261.1991761092838
+              }
+            },
+            {
+              "arm": "B_rain_analog",
+              "params": {
+                "upstream": {
+                  "initial_loss": 6.5,
+                  "constant_loss": 0.5,
+                  "tc": 18.0,
+                  "storage": 15.0,
+                  "recession": 0.98,
+                  "initial_flow_ratio": 0.04
+                },
+                "downstream": {
+                  "initial_loss": 2.5,
+                  "constant_loss": 4.25,
+                  "tc": 15.0,
+                  "storage": 110.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.016
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 5.5,
+                "x": 0.2
+              },
+              "ic_scale": 16,
+              "lookback_score": null,
+              "selection": {
+                "selected_event": "E22",
+                "rain_distance": 2.3233333333333355
+              },
+              "future_metrics": {
+                "n_future": 173,
+                "rmse_q": 1365.8527916181797,
+                "mae_q": 1247.7988978662302,
+                "nse_future": 0.8015926277299175,
+                "obs_peak_q": 11465.6,
+                "obs_peak_q_time": "2023-11-18 23:45:00",
+                "sim_peak_q": 9722.739994698311,
+                "sim_peak_q_time": "2023-11-19 01:00:00",
+                "peak_q_error_pct": -15.200774536890252,
+                "peak_time_error_h": 1.25,
+                "obs_peak_level_cm": 2302.0,
+                "obs_peak_level_time": "2023-11-18 23:45:00",
+                "sim_peak_stage_cm": 2007.026322543842,
+                "peak_stage_error_cm": -294.97367745615793,
+                "stage_error_2h_cm": -293.8627665056872,
+                "stage_error_4h_cm": -296.2020875031451,
+                "stage_error_8h_cm": -280.97367745615793,
+                "stage_error_12h_cm": -276.29296334119135,
+                "stage_error_24h_cm": -324.53684415046655
+              }
+            },
+            {
+              "arm": "C_lookback_select",
+              "params": {
+                "upstream": {
+                  "initial_loss": 6.5,
+                  "constant_loss": 0.5,
+                  "tc": 18.0,
+                  "storage": 15.0,
+                  "recession": 0.98,
+                  "initial_flow_ratio": 0.04
+                },
+                "downstream": {
+                  "initial_loss": 2.5,
+                  "constant_loss": 4.25,
+                  "tc": 15.0,
+                  "storage": 110.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.016
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 5.5,
+                "x": 0.2
+              },
+              "ic_scale": 16,
+              "lookback_score": 0.5812957221715127,
+              "selection": {
+                "selected_event": "E22",
+                "n": 66,
+                "rmse": 1266.3786329529353,
+                "nse": 0.7551282977918136,
+                "q_now_obs": 10418.575,
+                "q_now_sim": 8587.974656565997,
+                "trend_obs": 289.9416666666669,
+                "trend_sim": 340.3831163471432
+              },
+              "future_metrics": {
+                "n_future": 173,
+                "rmse_q": 1365.8527916181797,
+                "mae_q": 1247.7988978662302,
+                "nse_future": 0.8015926277299175,
+                "obs_peak_q": 11465.6,
+                "obs_peak_q_time": "2023-11-18 23:45:00",
+                "sim_peak_q": 9722.739994698311,
+                "sim_peak_q_time": "2023-11-19 01:00:00",
+                "peak_q_error_pct": -15.200774536890252,
+                "peak_time_error_h": 1.25,
+                "obs_peak_level_cm": 2302.0,
+                "obs_peak_level_time": "2023-11-18 23:45:00",
+                "sim_peak_stage_cm": 2007.026322543842,
+                "peak_stage_error_cm": -294.97367745615793,
+                "stage_error_2h_cm": -293.8627665056872,
+                "stage_error_4h_cm": -296.2020875031451,
+                "stage_error_8h_cm": -280.97367745615793,
+                "stage_error_12h_cm": -276.29296334119135,
+                "stage_error_24h_cm": -324.53684415046655
+              }
+            },
+            {
+              "arm": "D_lookback_online_recal",
+              "params": {
+                "upstream": {
+                  "initial_loss": 9.5,
+                  "constant_loss": 0.0,
+                  "tc": 18.0,
+                  "storage": 15.0,
+                  "recession": 0.98,
+                  "initial_flow_ratio": 0.16
+                },
+                "downstream": {
+                  "initial_loss": 6.5,
+                  "constant_loss": 2.75,
+                  "tc": 5.0,
+                  "storage": 100.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.064
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 5.5,
+                "x": 0.2
+              },
+              "ic_scale": 1,
+              "lookback_score": 0.2791710333334201,
+              "selection": {
+                "seed_event": "E22",
+                "n": 66,
+                "rmse": 637.1871661527666,
+                "nse": 0.9380065948842998,
+                "q_now_obs": 10418.575,
+                "q_now_sim": 10422.01785301941,
+                "trend_obs": 289.9416666666669,
+                "trend_sim": 358.6766237962535
+              },
+              "future_metrics": {
+                "n_future": 173,
+                "rmse_q": 940.0998793714964,
+                "mae_q": 861.2919556311547,
+                "nse_future": 0.9060064592286725,
+                "obs_peak_q": 11465.6,
+                "obs_peak_q_time": "2023-11-18 23:45:00",
+                "sim_peak_q": 11584.448163528508,
+                "sim_peak_q_time": "2023-11-19 00:00:00",
+                "peak_q_error_pct": 1.0365629668618122,
+                "peak_time_error_h": 0.25,
+                "obs_peak_level_cm": 2302.0,
+                "obs_peak_level_time": "2023-11-18 23:45:00",
+                "sim_peak_stage_cm": 2230.619938751089,
+                "peak_stage_error_cm": -71.3800612489108,
+                "stage_error_2h_cm": -64.57649614472712,
+                "stage_error_4h_cm": -68.8149957653427,
+                "stage_error_8h_cm": -57.656815668777654,
+                "stage_error_12h_cm": -56.985407244120324,
+                "stage_error_24h_cm": -132.5412831405788
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "event": "E27",
+      "observed_peak_q_time": "2024-05-02 07:30:00",
+      "observed_peak_q": 14568.5,
+      "prior_library": [
+        "E20",
+        "E21",
+        "E22",
+        "E23",
+        "E24",
+        "E25"
+      ],
+      "target_rain_fingerprint": {
+        "total": 616.6,
+        "max6": 103.60000000000001,
+        "max24": 267.6,
+        "duration_h": 245
+      },
+      "rain_analog": "E24",
+      "cutoffs": [
+        {
+          "t0": "2024-05-01 19:00:00",
+          "hours_before_observed_peak_nominal": 12,
+          "arms": [
+            {
+              "arm": "A_fixed_prior_median",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.75,
+                  "constant_loss": 1.4375,
+                  "tc": 23.5,
+                  "storage": 32.5,
+                  "recession": 0.9299999999999999,
+                  "initial_flow_ratio": 0.04
+                },
+                "downstream": {
+                  "initial_loss": 0.25,
+                  "constant_loss": 2.0,
+                  "tc": 20.0,
+                  "storage": 60.0,
+                  "recession": 0.725,
+                  "initial_flow_ratio": 0.032
+                },
+                "k1": 0.25,
+                "k2": 0.875,
+                "k3": 2.0,
+                "x": 0.2
+              },
+              "ic_scale": 16,
+              "lookback_score": null,
+              "selection": null,
+              "future_metrics": {
+                "n_future": 194,
+                "rmse_q": 4126.2261828536075,
+                "mae_q": 2879.888751757634,
+                "nse_future": 0.03367165287893259,
+                "obs_peak_q": 14568.5,
+                "obs_peak_q_time": "2024-05-02 07:30:00",
+                "sim_peak_q": 20309.857886495774,
+                "sim_peak_q_time": "2024-05-02 23:00:00",
+                "peak_q_error_pct": 39.40939620754212,
+                "peak_time_error_h": 15.5,
+                "obs_peak_level_cm": 2557.0,
+                "obs_peak_level_time": "2024-05-02 07:30:00",
+                "sim_peak_stage_cm": null,
+                "peak_stage_error_cm": null,
+                "stage_error_2h_cm": -64.79556543416356,
+                "stage_error_4h_cm": 55.2695347334502,
+                "stage_error_8h_cm": 212.60507095962112,
+                "stage_error_12h_cm": null,
+                "stage_error_24h_cm": null
+              }
+            },
+            {
+              "arm": "B_rain_analog",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 1.875,
+                  "tc": 22.0,
+                  "storage": 15.0,
+                  "recession": 0.85,
+                  "initial_flow_ratio": 0.08
+                },
+                "downstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 2.0,
+                  "tc": 35.0,
+                  "storage": 60.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.016
+                },
+                "k1": 0.25,
+                "k2": 0.25,
+                "k3": 2.0,
+                "x": 0.2
+              },
+              "ic_scale": 16,
+              "lookback_score": null,
+              "selection": {
+                "selected_event": "E24",
+                "rain_distance": 7.624166666666667
+              },
+              "future_metrics": {
+                "n_future": 194,
+                "rmse_q": 4027.3984868366197,
+                "mae_q": 2655.999417907439,
+                "nse_future": 0.07940658568288428,
+                "obs_peak_q": 14568.5,
+                "obs_peak_q_time": "2024-05-02 07:30:00",
+                "sim_peak_q": 23765.119606228738,
+                "sim_peak_q_time": "2024-05-02 12:00:00",
+                "peak_q_error_pct": 63.12674335881346,
+                "peak_time_error_h": 4.5,
+                "obs_peak_level_cm": 2557.0,
+                "obs_peak_level_time": "2024-05-02 07:30:00",
+                "sim_peak_stage_cm": null,
+                "peak_stage_error_cm": null,
+                "stage_error_2h_cm": null,
+                "stage_error_4h_cm": null,
+                "stage_error_8h_cm": null,
+                "stage_error_12h_cm": null,
+                "stage_error_24h_cm": null
+              }
+            },
+            {
+              "arm": "C_lookback_select",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.5,
+                  "constant_loss": 1.0,
+                  "tc": 27.0,
+                  "storage": 45.0,
+                  "recession": 0.85,
+                  "initial_flow_ratio": 0.04
+                },
+                "downstream": {
+                  "initial_loss": 0.5,
+                  "constant_loss": 2.0,
+                  "tc": 27.0,
+                  "storage": 25.0,
+                  "recession": 0.75,
+                  "initial_flow_ratio": 0.08
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 0.5,
+                "x": 0.2
+              },
+              "ic_scale": 16,
+              "lookback_score": 0.4391512980946065,
+              "selection": {
+                "selected_event": "E20",
+                "n": 52,
+                "rmse": 974.4853414854012,
+                "nse": 0.9135992327308913,
+                "q_now_obs": 12734.349999999999,
+                "q_now_sim": 11688.915569175097,
+                "trend_obs": 283.3749999999994,
+                "trend_sim": 373.0405547504076
+              },
+              "future_metrics": {
+                "n_future": 194,
+                "rmse_q": 4517.475308360252,
+                "mae_q": 3441.942741470877,
+                "nse_future": -0.15827113509741153,
+                "obs_peak_q": 14568.5,
+                "obs_peak_q_time": "2024-05-02 07:30:00",
+                "sim_peak_q": 19946.95074524355,
+                "sim_peak_q_time": "2024-05-02 23:00:00",
+                "peak_q_error_pct": 36.91835635270309,
+                "peak_time_error_h": 15.5,
+                "obs_peak_level_cm": 2557.0,
+                "obs_peak_level_time": "2024-05-02 07:30:00",
+                "sim_peak_stage_cm": null,
+                "peak_stage_error_cm": null,
+                "stage_error_2h_cm": -61.810467938520105,
+                "stage_error_4h_cm": 34.59758812487007,
+                "stage_error_8h_cm": 163.79871288014738,
+                "stage_error_12h_cm": null,
+                "stage_error_24h_cm": null
+              }
+            },
+            {
+              "arm": "D_lookback_online_recal",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 0.5,
+                  "tc": 29.0,
+                  "storage": 50.0,
+                  "recession": 0.85,
+                  "initial_flow_ratio": 0.10125
+                },
+                "downstream": {
+                  "initial_loss": 0.5,
+                  "constant_loss": 0.5,
+                  "tc": 27.0,
+                  "storage": 25.0,
+                  "recession": 0.75,
+                  "initial_flow_ratio": 0.2025
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 0.5,
+                "x": 0.2
+              },
+              "ic_scale": 1.5,
+              "lookback_score": 0.40315091728117275,
+              "selection": {
+                "seed_event": "E20",
+                "n": 52,
+                "rmse": 1130.3861790699643,
+                "nse": 0.8837425867727716,
+                "q_now_obs": 12734.349999999999,
+                "q_now_sim": 12477.47246058175,
+                "trend_obs": 283.3749999999994,
+                "trend_sim": 369.7031687028854
+              },
+              "future_metrics": {
+                "n_future": 194,
+                "rmse_q": 5708.743373280561,
+                "mae_q": 4683.181199781259,
+                "nse_future": -0.8496931983948963,
+                "obs_peak_q": 14568.5,
+                "obs_peak_q_time": "2024-05-02 07:30:00",
+                "sim_peak_q": 21221.386517310777,
+                "sim_peak_q_time": "2024-05-03 01:00:00",
+                "peak_q_error_pct": 45.666242353782316,
+                "peak_time_error_h": 17.5,
+                "obs_peak_level_cm": 2557.0,
+                "obs_peak_level_time": "2024-05-02 07:30:00",
+                "sim_peak_stage_cm": null,
+                "peak_stage_error_cm": null,
+                "stage_error_2h_cm": 24.589349673321067,
+                "stage_error_4h_cm": 115.22422631792915,
+                "stage_error_8h_cm": 234.2822525164479,
+                "stage_error_12h_cm": null,
+                "stage_error_24h_cm": null
+              }
+            }
+          ]
+        },
+        {
+          "t0": "2024-05-02 01:00:00",
+          "hours_before_observed_peak_nominal": 6,
+          "arms": [
+            {
+              "arm": "A_fixed_prior_median",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.75,
+                  "constant_loss": 1.4375,
+                  "tc": 23.5,
+                  "storage": 32.5,
+                  "recession": 0.9299999999999999,
+                  "initial_flow_ratio": 0.04
+                },
+                "downstream": {
+                  "initial_loss": 0.25,
+                  "constant_loss": 2.0,
+                  "tc": 20.0,
+                  "storage": 60.0,
+                  "recession": 0.725,
+                  "initial_flow_ratio": 0.032
+                },
+                "k1": 0.25,
+                "k2": 0.875,
+                "k3": 2.0,
+                "x": 0.2
+              },
+              "ic_scale": 16,
+              "lookback_score": null,
+              "selection": null,
+              "future_metrics": {
+                "n_future": 188,
+                "rmse_q": 4188.7405261467675,
+                "mae_q": 2947.7835040734753,
+                "nse_future": -0.06740468665681121,
+                "obs_peak_q": 14568.5,
+                "obs_peak_q_time": "2024-05-02 07:30:00",
+                "sim_peak_q": 20309.857886495774,
+                "sim_peak_q_time": "2024-05-02 23:00:00",
+                "peak_q_error_pct": 39.40939620754212,
+                "peak_time_error_h": 15.5,
+                "obs_peak_level_cm": 2557.0,
+                "obs_peak_level_time": "2024-05-02 07:30:00",
+                "sim_peak_stage_cm": null,
+                "peak_stage_error_cm": null,
+                "stage_error_2h_cm": 212.60507095962112,
+                "stage_error_4h_cm": null,
+                "stage_error_8h_cm": null,
+                "stage_error_12h_cm": null,
+                "stage_error_24h_cm": null
+              }
+            },
+            {
+              "arm": "B_rain_analog",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 1.875,
+                  "tc": 22.0,
+                  "storage": 15.0,
+                  "recession": 0.85,
+                  "initial_flow_ratio": 0.08
+                },
+                "downstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 2.0,
+                  "tc": 35.0,
+                  "storage": 60.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.016
+                },
+                "k1": 0.25,
+                "k2": 0.25,
+                "k3": 2.0,
+                "x": 0.2
+              },
+              "ic_scale": 16,
+              "lookback_score": null,
+              "selection": {
+                "selected_event": "E24",
+                "rain_distance": 7.624166666666667
+              },
+              "future_metrics": {
+                "n_future": 188,
+                "rmse_q": 4022.684579030722,
+                "mae_q": 2612.2701126884817,
+                "nse_future": 0.015548898084937979,
+                "obs_peak_q": 14568.5,
+                "obs_peak_q_time": "2024-05-02 07:30:00",
+                "sim_peak_q": 23765.119606228738,
+                "sim_peak_q_time": "2024-05-02 12:00:00",
+                "peak_q_error_pct": 63.12674335881346,
+                "peak_time_error_h": 4.5,
+                "obs_peak_level_cm": 2557.0,
+                "obs_peak_level_time": "2024-05-02 07:30:00",
+                "sim_peak_stage_cm": null,
+                "peak_stage_error_cm": null,
+                "stage_error_2h_cm": null,
+                "stage_error_4h_cm": null,
+                "stage_error_8h_cm": null,
+                "stage_error_12h_cm": null,
+                "stage_error_24h_cm": null
+              }
+            },
+            {
+              "arm": "C_lookback_select",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.5,
+                  "constant_loss": 1.0,
+                  "tc": 27.0,
+                  "storage": 45.0,
+                  "recession": 0.85,
+                  "initial_flow_ratio": 0.04
+                },
+                "downstream": {
+                  "initial_loss": 0.5,
+                  "constant_loss": 2.0,
+                  "tc": 27.0,
+                  "storage": 25.0,
+                  "recession": 0.75,
+                  "initial_flow_ratio": 0.08
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 0.5,
+                "x": 0.2
+              },
+              "ic_scale": 16,
+              "lookback_score": 1.3541896348377227,
+              "selection": {
+                "selected_event": "E20",
+                "n": 58,
+                "rmse": 951.6857441286733,
+                "nse": 0.9416943374378768,
+                "q_now_obs": 12520.325,
+                "q_now_sim": 13687.865162070622,
+                "trend_obs": -102.28333333333285,
+                "trend_sim": 335.4248192081159
+              },
+              "future_metrics": {
+                "n_future": 188,
+                "rmse_q": 4587.326867169788,
+                "mae_q": 3532.060675388938,
+                "nse_future": -0.2802110204314927,
+                "obs_peak_q": 14568.5,
+                "obs_peak_q_time": "2024-05-02 07:30:00",
+                "sim_peak_q": 19946.95074524355,
+                "sim_peak_q_time": "2024-05-02 23:00:00",
+                "peak_q_error_pct": 36.91835635270309,
+                "peak_time_error_h": 15.5,
+                "obs_peak_level_cm": 2557.0,
+                "obs_peak_level_time": "2024-05-02 07:30:00",
+                "sim_peak_stage_cm": null,
+                "peak_stage_error_cm": null,
+                "stage_error_2h_cm": 163.79871288014738,
+                "stage_error_4h_cm": 153.43371476644552,
+                "stage_error_8h_cm": null,
+                "stage_error_12h_cm": null,
+                "stage_error_24h_cm": null
+              }
+            },
+            {
+              "arm": "D_lookback_online_recal",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 2.0,
+                  "tc": 30.0,
+                  "storage": 40.0,
+                  "recession": 0.85,
+                  "initial_flow_ratio": 0.81
+                },
+                "downstream": {
+                  "initial_loss": 0.5,
+                  "constant_loss": 2.5,
+                  "tc": 32.0,
+                  "storage": 5.0,
+                  "recession": 0.75,
+                  "initial_flow_ratio": 1.62
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 0.5,
+                "x": 0.2
+              },
+              "ic_scale": 0.75,
+              "lookback_score": 0.8700358773682672,
+              "selection": {
+                "seed_event": "E20",
+                "n": 58,
+                "rmse": 789.2616545113887,
+                "nse": 0.9598980386237934,
+                "q_now_obs": 12520.325,
+                "q_now_sim": 12902.986326228092,
+                "trend_obs": -102.28333333333285,
+                "trend_sim": 178.21672663002514
+              },
+              "future_metrics": {
+                "n_future": 188,
+                "rmse_q": 2959.278490644015,
+                "mae_q": 1904.008873315946,
+                "nse_future": 0.46723723627579106,
+                "obs_peak_q": 14568.5,
+                "obs_peak_q_time": "2024-05-02 07:30:00",
+                "sim_peak_q": 18857.741271540104,
+                "sim_peak_q_time": "2024-05-02 18:00:00",
+                "peak_q_error_pct": 29.4418867525147,
+                "peak_time_error_h": 10.5,
+                "obs_peak_level_cm": 2557.0,
+                "obs_peak_level_time": "2024-05-02 07:30:00",
+                "sim_peak_stage_cm": null,
+                "peak_stage_error_cm": null,
+                "stage_error_2h_cm": 60.72255177353509,
+                "stage_error_4h_cm": 50.99623457466714,
+                "stage_error_8h_cm": null,
+                "stage_error_12h_cm": null,
+                "stage_error_24h_cm": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "event": "E28",
+      "observed_peak_q_time": "2024-06-17 13:15:00",
+      "observed_peak_q": 7906.7,
+      "prior_library": [
+        "E20",
+        "E21",
+        "E22",
+        "E23",
+        "E24",
+        "E25",
+        "E27"
+      ],
+      "target_rain_fingerprint": {
+        "total": 228.1,
+        "max6": 78.2,
+        "max24": 105.20000000000003,
+        "duration_h": 209
+      },
+      "rain_analog": "E24",
+      "cutoffs": [
+        {
+          "t0": "2024-06-17 01:00:00",
+          "hours_before_observed_peak_nominal": 12,
+          "arms": [
+            {
+              "arm": "A_fixed_prior_median",
+              "params": {
+                "upstream": {
+                  "initial_loss": 1.0,
+                  "constant_loss": 1.875,
+                  "tc": 22.0,
+                  "storage": 25.0,
+                  "recession": 0.88,
+                  "initial_flow_ratio": 0.000625
+                },
+                "downstream": {
+                  "initial_loss": 0.5,
+                  "constant_loss": 2.0,
+                  "tc": 25.0,
+                  "storage": 60.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.00025
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 2.0,
+                "x": 0.2
+              },
+              "ic_scale": 0.25,
+              "lookback_score": null,
+              "selection": null,
+              "future_metrics": {
+                "n_future": 194,
+                "rmse_q": 1784.8235338665836,
+                "mae_q": 1654.227621904131,
+                "nse_future": 0.005099990929365084,
+                "obs_peak_q": 7906.7,
+                "obs_peak_q_time": "2024-06-17 13:15:00",
+                "sim_peak_q": 4474.201743289138,
+                "sim_peak_q_time": "2024-06-17 09:00:00",
+                "peak_q_error_pct": -43.412526802722525,
+                "peak_time_error_h": -4.25,
+                "obs_peak_level_cm": 1769.0,
+                "obs_peak_level_time": "2024-06-17 13:15:00",
+                "sim_peak_stage_cm": 1235.717781818659,
+                "peak_stage_error_cm": -533.282218181341,
+                "stage_error_2h_cm": -265.80297296998515,
+                "stage_error_4h_cm": -297.4545793542163,
+                "stage_error_8h_cm": -439.282218181341,
+                "stage_error_12h_cm": -555.4812835168245,
+                "stage_error_24h_cm": -548.5909488225234
+              }
+            },
+            {
+              "arm": "B_rain_analog",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 1.875,
+                  "tc": 22.0,
+                  "storage": 15.0,
+                  "recession": 0.85,
+                  "initial_flow_ratio": 0.00125
+                },
+                "downstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 2.0,
+                  "tc": 35.0,
+                  "storage": 60.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.00025
+                },
+                "k1": 0.25,
+                "k2": 0.25,
+                "k3": 2.0,
+                "x": 0.2
+              },
+              "ic_scale": 0.25,
+              "lookback_score": null,
+              "selection": {
+                "selected_event": "E24",
+                "rain_distance": 1.309583333333333
+              },
+              "future_metrics": {
+                "n_future": 194,
+                "rmse_q": 1888.2373983417751,
+                "mae_q": 1730.1568458638926,
+                "nse_future": -0.11353034709141374,
+                "obs_peak_q": 7906.7,
+                "obs_peak_q_time": "2024-06-17 13:15:00",
+                "sim_peak_q": 5407.439911940748,
+                "sim_peak_q_time": "2024-06-17 06:00:00",
+                "peak_q_error_pct": -31.60939567783338,
+                "peak_time_error_h": -7.25,
+                "obs_peak_level_cm": 1769.0,
+                "obs_peak_level_time": "2024-06-17 13:15:00",
+                "sim_peak_stage_cm": 1395.2775140162446,
+                "peak_stage_error_cm": -373.7224859837554,
+                "stage_error_2h_cm": -55.210970473184034,
+                "stage_error_4h_cm": -104.0235775446572,
+                "stage_error_8h_cm": -299.4965412232352,
+                "stage_error_12h_cm": -486.7388533877049,
+                "stage_error_24h_cm": -634.7421695769801
+              }
+            },
+            {
+              "arm": "C_lookback_select",
+              "params": {
+                "upstream": {
+                  "initial_loss": 1.0,
+                  "constant_loss": 2.0,
+                  "tc": 18.0,
+                  "storage": 25.0,
+                  "recession": 0.98,
+                  "initial_flow_ratio": 0.00125
+                },
+                "downstream": {
+                  "initial_loss": 3.5,
+                  "constant_loss": 0.5,
+                  "tc": 10.0,
+                  "storage": 60.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.00125
+                },
+                "k1": 0.25,
+                "k2": 0.5,
+                "k3": 2.0,
+                "x": 0.2
+              },
+              "ic_scale": 0.25,
+              "lookback_score": 0.4639312970861458,
+              "selection": {
+                "selected_event": "E21",
+                "n": 16,
+                "rmse": 776.1578718953833,
+                "nse": 0.7895601049362331,
+                "q_now_obs": 5008.775,
+                "q_now_sim": 4751.730706222525,
+                "trend_obs": 216.07499999999982,
+                "trend_sim": 171.81118486773417
+              },
+              "future_metrics": {
+                "n_future": 194,
+                "rmse_q": 1666.1521811237847,
+                "mae_q": 1480.262170637044,
+                "nse_future": 0.1330017929790972,
+                "obs_peak_q": 7906.7,
+                "obs_peak_q_time": "2024-06-17 13:15:00",
+                "sim_peak_q": 4995.115812465615,
+                "sim_peak_q_time": "2024-06-17 05:00:00",
+                "peak_q_error_pct": -36.824265338692314,
+                "peak_time_error_h": -8.25,
+                "obs_peak_level_cm": 1769.0,
+                "obs_peak_level_time": "2024-06-17 13:15:00",
+                "sim_peak_stage_cm": 1326.4819394470267,
+                "peak_stage_error_cm": -442.51806055297334,
+                "stage_error_2h_cm": -100.74936240841271,
+                "stage_error_4h_cm": -166.26806055297334,
+                "stage_error_8h_cm": -386.700638507451,
+                "stage_error_12h_cm": -572.6797584204335,
+                "stage_error_24h_cm": -571.1069788721296
+              }
+            },
+            {
+              "arm": "D_lookback_online_recal",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 2.0,
+                  "tc": 18.0,
+                  "storage": 25.0,
+                  "recession": 0.98,
+                  "initial_flow_ratio": 7.275957614183426e-14
+                },
+                "downstream": {
+                  "initial_loss": 7.5,
+                  "constant_loss": 0.0,
+                  "tc": 17.0,
+                  "storage": 40.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 7.275957614183426e-14
+                },
+                "k1": 0.25,
+                "k2": 0.5,
+                "k3": 2.0,
+                "x": 0.2
+              },
+              "ic_scale": 0.25,
+              "lookback_score": 0.36601859525237646,
+              "selection": {
+                "seed_event": "E21",
+                "n": 16,
+                "rmse": 825.9067397020534,
+                "nse": 0.7617186983745464,
+                "q_now_obs": 5008.775,
+                "q_now_sim": 5045.678351481845,
+                "trend_obs": 216.07499999999982,
+                "trend_sim": 203.72261036304766
+              },
+              "future_metrics": {
+                "n_future": 194,
+                "rmse_q": 1452.7534597453964,
+                "mae_q": 1291.9439892017613,
+                "nse_future": 0.34086753319175567,
+                "obs_peak_q": 7906.7,
+                "obs_peak_q_time": "2024-06-17 13:15:00",
+                "sim_peak_q": 5473.443391828919,
+                "sim_peak_q_time": "2024-06-17 06:00:00",
+                "peak_q_error_pct": -30.774616567861198,
+                "peak_time_error_h": -7.25,
+                "obs_peak_level_cm": 1769.0,
+                "obs_peak_level_time": "2024-06-17 13:15:00",
+                "sim_peak_stage_cm": 1406.0630956351,
+                "peak_stage_error_cm": -362.9369043649001,
+                "stage_error_2h_cm": -37.490140781857235,
+                "stage_error_4h_cm": -89.75952349009071,
+                "stage_error_8h_cm": -293.2236591533756,
+                "stage_error_12h_cm": -477.9909375031575,
+                "stage_error_24h_cm": -495.08435817164514
+              }
+            }
+          ]
+        },
+        {
+          "t0": "2024-06-17 07:00:00",
+          "hours_before_observed_peak_nominal": 6,
+          "arms": [
+            {
+              "arm": "A_fixed_prior_median",
+              "params": {
+                "upstream": {
+                  "initial_loss": 1.0,
+                  "constant_loss": 1.875,
+                  "tc": 22.0,
+                  "storage": 25.0,
+                  "recession": 0.88,
+                  "initial_flow_ratio": 0.000625
+                },
+                "downstream": {
+                  "initial_loss": 0.5,
+                  "constant_loss": 2.0,
+                  "tc": 25.0,
+                  "storage": 60.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.00025
+                },
+                "k1": 0.25,
+                "k2": 1.0,
+                "k3": 2.0,
+                "x": 0.2
+              },
+              "ic_scale": 0.25,
+              "lookback_score": null,
+              "selection": null,
+              "future_metrics": {
+                "n_future": 188,
+                "rmse_q": 1790.375025966108,
+                "mae_q": 1656.4271575204689,
+                "nse_future": -0.048839493234204,
+                "obs_peak_q": 7906.7,
+                "obs_peak_q_time": "2024-06-17 13:15:00",
+                "sim_peak_q": 4474.201743289138,
+                "sim_peak_q_time": "2024-06-17 09:00:00",
+                "peak_q_error_pct": -43.412526802722525,
+                "peak_time_error_h": -4.25,
+                "obs_peak_level_cm": 1769.0,
+                "obs_peak_level_time": "2024-06-17 13:15:00",
+                "sim_peak_stage_cm": 1235.717781818659,
+                "peak_stage_error_cm": -533.282218181341,
+                "stage_error_2h_cm": -439.282218181341,
+                "stage_error_4h_cm": -507.4275478320883,
+                "stage_error_8h_cm": -582.8842500078899,
+                "stage_error_12h_cm": -588.0761159770507,
+                "stage_error_24h_cm": -463.08246352001356
+              }
+            },
+            {
+              "arm": "B_rain_analog",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 1.875,
+                  "tc": 22.0,
+                  "storage": 15.0,
+                  "recession": 0.85,
+                  "initial_flow_ratio": 0.00125
+                },
+                "downstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 2.0,
+                  "tc": 35.0,
+                  "storage": 60.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.00025
+                },
+                "k1": 0.25,
+                "k2": 0.25,
+                "k3": 2.0,
+                "x": 0.2
+              },
+              "ic_scale": 0.25,
+              "lookback_score": null,
+              "selection": {
+                "selected_event": "E24",
+                "rain_distance": 1.309583333333333
+              },
+              "future_metrics": {
+                "n_future": 188,
+                "rmse_q": 1915.9906043373824,
+                "mae_q": 1771.9806557472643,
+                "nse_future": -0.2011790795070425,
+                "obs_peak_q": 7906.7,
+                "obs_peak_q_time": "2024-06-17 13:15:00",
+                "sim_peak_q": 5404.170323025158,
+                "sim_peak_q_time": "2024-06-17 07:00:00",
+                "peak_q_error_pct": -31.65074780850218,
+                "peak_time_error_h": -6.25,
+                "obs_peak_level_cm": 1769.0,
+                "obs_peak_level_time": "2024-06-17 13:15:00",
+                "sim_peak_stage_cm": 1394.7416648703568,
+                "peak_stage_error_cm": -374.2583351296432,
+                "stage_error_2h_cm": -299.4965412232352,
+                "stage_error_4h_cm": -400.1416186593517,
+                "stage_error_8h_cm": -552.6893461184043,
+                "stage_error_12h_cm": -618.4887431626732,
+                "stage_error_24h_cm": -573.1523148758648
+              }
+            },
+            {
+              "arm": "C_lookback_select",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 1.875,
+                  "tc": 22.0,
+                  "storage": 15.0,
+                  "recession": 0.85,
+                  "initial_flow_ratio": 0.00125
+                },
+                "downstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 2.0,
+                  "tc": 35.0,
+                  "storage": 60.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 0.00025
+                },
+                "k1": 0.25,
+                "k2": 0.25,
+                "k3": 2.0,
+                "x": 0.2
+              },
+              "ic_scale": 0.25,
+              "lookback_score": 0.8601286895327016,
+              "selection": {
+                "selected_event": "E24",
+                "n": 22,
+                "rmse": 824.5019737532638,
+                "nse": 0.8471549052000433,
+                "q_now_obs": 6602.1,
+                "q_now_sim": 5404.170323025158,
+                "trend_obs": 278.4916666666668,
+                "trend_sim": 34.23105265054983
+              },
+              "future_metrics": {
+                "n_future": 188,
+                "rmse_q": 1915.9906043373824,
+                "mae_q": 1771.9806557472643,
+                "nse_future": -0.2011790795070425,
+                "obs_peak_q": 7906.7,
+                "obs_peak_q_time": "2024-06-17 13:15:00",
+                "sim_peak_q": 5404.170323025158,
+                "sim_peak_q_time": "2024-06-17 07:00:00",
+                "peak_q_error_pct": -31.65074780850218,
+                "peak_time_error_h": -6.25,
+                "obs_peak_level_cm": 1769.0,
+                "obs_peak_level_time": "2024-06-17 13:15:00",
+                "sim_peak_stage_cm": 1394.7416648703568,
+                "peak_stage_error_cm": -374.2583351296432,
+                "stage_error_2h_cm": -299.4965412232352,
+                "stage_error_4h_cm": -400.1416186593517,
+                "stage_error_8h_cm": -552.6893461184043,
+                "stage_error_12h_cm": -618.4887431626732,
+                "stage_error_24h_cm": -573.1523148758648
+              }
+            },
+            {
+              "arm": "D_lookback_online_recal",
+              "params": {
+                "upstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 1.875,
+                  "tc": 26.0,
+                  "storage": 15.0,
+                  "recession": 0.85,
+                  "initial_flow_ratio": 7.275957614183426e-14
+                },
+                "downstream": {
+                  "initial_loss": 0.0,
+                  "constant_loss": 0.0,
+                  "tc": 25.0,
+                  "storage": 40.0,
+                  "recession": 0.7,
+                  "initial_flow_ratio": 1.4551915228366852e-14
+                },
+                "k1": 0.25,
+                "k2": 0.25,
+                "k3": 2.0,
+                "x": 0.2
+              },
+              "ic_scale": 0.25,
+              "lookback_score": 0.6539450902257189,
+              "selection": {
+                "seed_event": "E24",
+                "n": 22,
+                "rmse": 833.6369150063115,
+                "nse": 0.8437492963154326,
+                "q_now_obs": 6602.1,
+                "q_now_sim": 6074.191673852609,
+                "trend_obs": 278.4916666666668,
+                "trend_sim": 94.0277229293418
+              },
+              "future_metrics": {
+                "n_future": 188,
+                "rmse_q": 1333.9303740331782,
+                "mae_q": 1253.4013485815497,
+                "nse_future": 0.4177797144411005,
+                "obs_peak_q": 7906.7,
+                "obs_peak_q_time": "2024-06-17 13:15:00",
+                "sim_peak_q": 6178.998657406804,
+                "sim_peak_q_time": "2024-06-17 10:00:00",
+                "peak_q_error_pct": -21.851105297952312,
+                "peak_time_error_h": -3.25,
+                "obs_peak_level_cm": 1769.0,
+                "obs_peak_level_time": "2024-06-17 13:15:00",
+                "sim_peak_stage_cm": 1517.830193754149,
+                "peak_stage_error_cm": -251.16980624585108,
+                "stage_error_2h_cm": -159.161015588817,
+                "stage_error_4h_cm": -224.99541388431794,
+                "stage_error_8h_cm": -307.1461127351115,
+                "stage_error_12h_cm": -353.89504652644746,
+                "stage_error_24h_cm": -367.10622018304923
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "interpretation_warning": "P2 is not a weather-forecast skill test. It measures hydrologic transfer/selection skill under perfect future rain."
+}
