@@ -1,0 +1,64 @@
+name: Replay científico Muçum P2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/benchmark_mucum_pseudo_operational_p2.py"
+      - ".github/workflows/mucum-pseudo-operational-p2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mucum-pseudo-operational-p2
+  cancel-in-progress: true
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: |
+            scripts
+            assets/data/estudo_bacia_taquari_antas/modelo_mucum_eventwise_v1_fechado_latest.json
+            assets/data/estudo_bacia_taquari_antas/estrutura_stz_mucum_latest.json
+            assets/data/estudo_bacia_taquari_antas/curva_chave_86472600/curva_chave_hunt_86472600_latest.json
+            assets/data/estudo_bacia_taquari_antas/scientific_benchmark_v1
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run pseudo-operational P2 benchmark
+        run: python -B scripts/benchmark_mucum_pseudo_operational_p2.py
+
+      - name: Validate
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("assets/data/estudo_bacia_taquari_antas/scientific_benchmark_v1/pseudo_operational_p2/pseudo_operational_p2_latest.json")
+          d=json.loads(p.read_text())
+          assert d["strict_no_target_leakage"] is True
+          assert len(d["targets"])==3
+          print(json.dumps(d["aggregate"],ensure_ascii=False,indent=2))
+          PY
+
+      - name: Publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-science-replay-bot"
+          git config user.email "previne-science-replay-bot@users.noreply.github.com"
+          git add --sparse -- assets/data/estudo_bacia_taquari_antas/scientific_benchmark_v1/pseudo_operational_p2
+          git diff --cached --quiet && exit 0
+          git commit -m "exp: replay pseudo-operacional Muçum P2 [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
