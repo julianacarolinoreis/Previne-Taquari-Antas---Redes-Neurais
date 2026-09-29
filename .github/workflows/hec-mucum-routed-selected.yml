@@ -1,0 +1,70 @@
+name: HEC Muçum routed selected
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/hec-mucum-routed-selected.yml"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            scripts
+            assets/data/estudo_bacia_taquari_antas
+            assets/data/hec_hms_spatialized_mucum
+            previsao_ao_vivo_mucum.json
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install --disable-pip-version-check shapely pyproj numpy
+      - uses: actions/cache@v4
+        id: cache-hec
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+      - name: Run selected routed HEC
+        shell: bash
+        env:
+          HEC_PARAM_EVENT: E28
+          HEC_INITIAL_LOSS_MM: "25"
+          HEC_CONSTANT_LOSS_MM_H: "1.5"
+          HEC_TC_H: "20"
+          HEC_STORAGE_H: "20"
+          HEC_RECESSION_DAILY: "0.9"
+          HEC_INITIAL_FLOW_MULTIPLIER: "1.0"
+          HEC_ROUTE_K1_H: "1.0"
+          HEC_ROUTE_K2_H: "1.0"
+          HEC_ROUTE_X: "0.2"
+        run: |
+          set -euo pipefail
+          python -B scripts/build_hec_hms_spatial_forecast_mucum.py
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          "$HEC_SH" -s assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project/run_forecast.script >/dev/null
+          python -B scripts/postprocess_hec_hms_spatial_forecast_mucum.py >/dev/null
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_latest.json")
+          j=json.loads(p.read_text())
+          print("ROUTED_RESULT_SUMMARY="+json.dumps(j.get("summary",{}),ensure_ascii=False))
+          s=j.get("series",{})
+          print("ROUTED_SERIES="+json.dumps({
+            "times_utc":s.get("times_utc") or s.get("time_utc"),
+            "q_mucum_m3s":s.get("q_mucum_m3s"),
+            "n_mucum_rating_cm":s.get("n_mucum_rating_cm")
+          },ensure_ascii=False))
+          PY
+          echo "PRIMARY_SERIES_BEGIN"
+          cat assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/primary_series.csv
+          echo "PRIMARY_SERIES_END"
