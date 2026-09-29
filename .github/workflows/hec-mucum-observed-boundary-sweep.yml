@@ -1,0 +1,83 @@
+name: HEC Muçum observed-boundary routing sweep
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/hec-mucum-observed-boundary-sweep.yml"
+  workflow_dispatch:
+
+jobs:
+  sweep:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: k075_100
+            k1: "0.75"
+            k2: "1.00"
+          - id: k100_100
+            k1: "1.00"
+            k2: "1.00"
+          - id: k100_125
+            k1: "1.00"
+            k2: "1.25"
+          - id: k100_150
+            k1: "1.00"
+            k2: "1.50"
+          - id: k125_125
+            k1: "1.25"
+            k2: "1.25"
+          - id: k150_150
+            k1: "1.50"
+            k2: "1.50"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            scripts
+            assets/data/estudo_bacia_taquari_antas
+            assets/data/hec_hms_spatialized_mucum
+            previsao_ao_vivo_mucum.json
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install --disable-pip-version-check shapely pyproj numpy
+      - uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+      - name: Build upstream continuation
+        shell: bash
+        env:
+          HEC_PARAM_EVENT: E28
+          HEC_INITIAL_LOSS_MM: "25"
+          HEC_CONSTANT_LOSS_MM_H: "1.5"
+          HEC_TC_H: "20"
+          HEC_STORAGE_H: "20"
+          HEC_RECESSION_DAILY: "0.9"
+          HEC_INITIAL_FLOW_MULTIPLIER: "1.0"
+          HEC_ROUTE_K1_H: "1.0"
+          HEC_ROUTE_K2_H: "1.0"
+          HEC_ROUTE_X: "0.2"
+        run: |
+          set -euo pipefail
+          python -B scripts/build_hec_hms_spatial_forecast_mucum.py
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          "$HEC_SH" -s assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project/run_forecast.script >/dev/null
+      - name: Run observed-boundary candidate
+        shell: bash
+        env:
+          BOUNDARY_K1_H: ${{ matrix.k1 }}
+          BOUNDARY_K2_H: ${{ matrix.k2 }}
+          BOUNDARY_X: "0.2"
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          python -B scripts/run_hec_hms_mucum_observed_boundary.py "$HEC_SH" | grep -E '^OBS_BOUNDARY_RESULT='
