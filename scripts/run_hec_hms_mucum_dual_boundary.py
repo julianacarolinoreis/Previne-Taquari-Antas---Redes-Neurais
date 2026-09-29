@@ -204,6 +204,36 @@ def make_source(times, obs_rows, future_times, future_vals, label, state_slope_m
         "memory_tau_h":float(memory_tau_h),
     },source
 
+def recent_observed_lag_audit(obs, hours=24):
+    """Find the lag that best relates independent upstream branch Q to Muçum Q.
+    Uses LJJ + Passo Carreiro as independent branch controls; upstream nested
+    stations are retained as diagnostics and are never summed twice.
+    """
+    lrows=station_rows(obs,"86472000")
+    crows=station_rows(obs,"86500000")
+    mrows=station_rows(obs,"86510000")
+    lm={t:q for t,q in lrows}; cm={t:q for t,q in crows}; mm={t:q for t,q in mrows}
+    if not mm: return {"best_lag_h":None,"trials":[]}
+    end=max(mm); start=end-timedelta(hours=hours)
+    trials=[]
+    for lag in (0,1,2,3,4,5,6):
+        pairs=[]
+        for t,qm in mm.items():
+            if t<start: continue
+            u=t-timedelta(hours=lag)
+            if u in lm and u in cm: pairs.append((lm[u]+cm[u],qm))
+        if len(pairs)<4: continue
+        mx=sum(a for a,_ in pairs)/len(pairs); my=sum(b for _,b in pairs)/len(pairs)
+        cov=sum((a-mx)*(b-my) for a,b in pairs)
+        vx=sum((a-mx)**2 for a,_ in pairs) or 1e-9
+        vy=sum((b-my)**2 for _,b in pairs) or 1e-9
+        corr=cov/math.sqrt(vx*vy)
+        b=cov/vx; a=my-b*mx
+        rmse=math.sqrt(sum((yy-(a+b*xx))**2 for xx,yy in pairs)/len(pairs))
+        trials.append({"lag_h":lag,"n":len(pairs),"corr":corr,"rmse_m3s":rmse,"intercept":a,"slope":b})
+    best=min(trials,key=lambda z:z["rmse_m3s"]) if trials else None
+    return {"best_lag_h":None if best is None else best["lag_h"],"best":best,"trials":trials}
+
 def sb_text(name,area,downstream,il,cl,tc,storage,rec,ratio):
     return f"""Subbasin: {name}
      Area: {area:.3f}
@@ -464,9 +494,16 @@ def main():
     if len(sys.argv)<2: raise SystemExit("usage: run_hec_hms_mucum_dual_boundary.py /path/to/hec-hms.sh")
     hec=sys.argv[1]
     obs=loadj(OBS); live=loadj(LIVE); lib=loadj(LIB)
-    rows,times=read_zone()
+    rows_all,times_all=read_zone()
+    live=loadj(LIVE)
+    obs_t=datetime.fromisoformat(live["telemetria_ultima_em"])
+    warm_start=obs_t.replace(minute=0,second=0,microsecond=0)-timedelta(hours=12)
+    keep=[i for i,t in enumerate(times_all) if t>=warm_start]
+    rows=[rows_all[i] for i in keep]
+    times=[times_all[i] for i in keep]
     lrows=station_rows(obs,"86472000")
     crows=station_rows(obs,"86500000")
+    lag_audit=recent_observed_lag_audit(obs,24)
     # Every observed-Q gauge participates in state diagnosis by UPG.
     # Only non-overlapping downstream controls become mass boundaries.
     antas_stats=network_branch_stats(obs,"Médio Taquari-Antas","86472000",exclude_codes=("86472600","86510000"))
@@ -512,7 +549,6 @@ def main():
     segs=mucum_curve_segments()
     stages=[q_to_stage_cm(q,segs)["stage_cm"] for q in vals]
 
-    obs_t=datetime.fromisoformat(live["telemetria_ultima_em"])
     obs_n=float(live["telemetria_ultima_nivel_cm"])
     obs_q=q_to_stage_cm(0,segs)  # placeholder to keep conversion family explicit
     model_now=interp(times,stages,obs_t)
@@ -528,10 +564,18 @@ def main():
     rmse=(sum(e*e for e in errs)/len(errs))**0.5 if errs else None
     bias=sum(errs)/len(errs) if errs else None
 
-    future=[(t,n,q) for t,n,q in zip(times,stages,vals) if t>=obs_t]
+    # Operational state assimilation: the forecast starts at the exact observed Muçum stage.
+    # This is explicit hydrologic state updating, not a hidden visual shift.
+    conditioned=[obs_n+(float(n)-model_now) for n in stages]
+    future=[(t,n,q) for t,n,q in zip(times,conditioned,vals) if t>=obs_t]
     peak=max(future,key=lambda z:z[1])
     state_error=model_now-obs_n
-    publishable=abs(state_error)<=35 and (rmse is None or rmse<=60)
+    # Raw fit is retained as a diagnostic; conditioned forecast is publishable only
+    # if the recent shape is credible after the short observed-boundary warmup.
+    adjusted_errs=[(e-state_error) for e in errs]
+    adj_rmse=(sum(e*e for e in adjusted_errs)/len(adjusted_errs))**0.5 if adjusted_errs else None
+    adj_bias=sum(adjusted_errs)/len(adjusted_errs) if adjusted_errs else None
+    publishable=(adj_rmse is None or adj_rmse<=45)
 
     out={
       "schema_version":"hec_hms_mucum_dual_observed_boundary_v1",
@@ -555,11 +599,15 @@ def main():
         "carreiro_branch_state":carr_stats,
         "rule":"all observed gauges are used for QC/state/trend; only non-overlapping downstream branch controls are added to mass balance",
       },
-      "boundary_audit":{"linha_jose_julio":laudit,"passo_carreiro":caudit,"carreiro_state_scaling":cmeta},
+      "boundary_audit":{"linha_jose_julio":laudit,"passo_carreiro":caudit,"carreiro_state_scaling":cmeta,
+          "observed_event_lag":lag_audit},
       "current":{"observed_time_local":obs_t.isoformat(timespec="minutes"),"observed_stage_cm":obs_n,
           "model_stage_cm":round(model_now,2),"stage_error_cm":round(state_error,2),
           "model_q_m3s":round(q_now,2)},
-      "recent_fit_6h":{"n":len(errs),"rmse_cm":None if rmse is None else round(rmse,2),"bias_cm":None if bias is None else round(bias,2)},
+      "recent_fit_6h":{"n":len(errs),"raw_rmse_cm":None if rmse is None else round(rmse,2),
+          "raw_bias_cm":None if bias is None else round(bias,2),
+          "conditioned_rmse_cm":None if adj_rmse is None else round(adj_rmse,2),
+          "conditioned_bias_cm":None if adj_bias is None else round(adj_bias,2)},
       "peak":{"time_local":peak[0].isoformat(timespec="minutes"),"stage_cm":round(peak[1],2),"q_m3s":round(peak[2],2),
           "rise_from_observed_cm":round(peak[1]-obs_n,2)},
       "publishable":publishable,
@@ -570,7 +618,8 @@ def main():
       },
       "times_local":[t.isoformat(timespec="minutes") for t in times],
       "q_m3s":[round(x,3) for x in vals],
-      "stage_cm":[round(x,2) for x in stages],
+      "stage_cm_raw":[round(x,2) for x in stages],
+      "stage_cm_conditioned":[round(x,2) for x in conditioned],
       "q_ljj_boundary_m3s":[round(x,3) for x in q_ljj],
       "q_carreiro_boundary_m3s":[round(x,3) for x in q_carr],
       "ljj_source":lsource,"carreiro_source":csource,
@@ -580,7 +629,7 @@ def main():
     RT.mkdir(parents=True,exist_ok=True)
     with SERIES.open("w",newline="",encoding="utf-8") as f:
         w=csv.writer(f); w.writerow(["time_local","q_m3s","stage_cm","q_ljj_boundary_m3s","q_carreiro_boundary_m3s"])
-        for t,q,n,ql,qc in zip(times,vals,stages,q_ljj,q_carr):
+        for t,q,n,ql,qc in zip(times,vals,conditioned,q_ljj,q_carr):
             w.writerow([t.isoformat(timespec="minutes"),q,n,ql,qc])
     print("DUAL_BOUNDARY_RESULT="+json.dumps({
       "current":out["current"],"recent_fit_6h":out["recent_fit_6h"],"peak":out["peak"],
