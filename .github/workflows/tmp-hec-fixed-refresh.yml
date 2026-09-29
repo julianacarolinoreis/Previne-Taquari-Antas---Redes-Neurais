@@ -13,7 +13,7 @@ permissions:
 jobs:
   forecast:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
@@ -51,7 +51,7 @@ jobs:
           curl -L --fail --retry 3 --retry-delay 4             -o /tmp/HEC-HMS-4.13-linux64.tar.gz             https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
           tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
 
-      - name: Run HEC-HMS with validated 19h calibration and newest IFS
+      - name: Refit only HEC internal initial state with newest IFS
         shell: bash
         env:
           HEC_PARAM_EVENT: E28
@@ -60,17 +60,54 @@ jobs:
           HEC_TC_H: "25"
           HEC_STORAGE_H: "20"
           HEC_RECESSION_DAILY: "0.9"
-          HEC_INITIAL_FLOW_MULTIPLIER: "0.75"
         run: |
           set -euo pipefail
           HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
           test -n "$HEC_SH"
-          python -B scripts/build_hec_hms_spatial_forecast_mucum.py
-          rm -f assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/hec_output_values.csv
-          "$HEC_SH" -s "$PWD/assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project/run_forecast.script"
-          python -B scripts/postprocess_hec_hms_spatial_forecast_mucum.py
-          cp assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_latest.json              assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_calib_new_ifs_20260928_2148.json
-          cp assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/forecast_input.json              assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_calib_new_ifs_20260928_2148_input.json
+          for M in 0.75 0.80 0.85 0.90 0.95 1.00; do
+            export HEC_INITIAL_FLOW_MULTIPLIER="$M"
+            python -B scripts/build_hec_hms_spatial_forecast_mucum.py
+            rm -f assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/hec_output_values.csv
+            "$HEC_SH" -s "$PWD/assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project/run_forecast.script" >"/tmp/hec_fixed_${M}.log" 2>&1
+            python -B scripts/postprocess_hec_hms_spatial_forecast_mucum.py
+            cp assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_latest.json "/tmp/hec_fixed_${M}.json"
+          done
+          python - <<'PY'
+          import glob, json
+          rows=[]
+          for p in sorted(glob.glob("/tmp/hec_fixed_*.json")):
+              d=json.load(open(p,encoding="utf-8"))
+              v=d.get("validation") or {}
+              f=v.get("event_hydrograph_since_20260926") or {}
+              stage=abs(float(v.get("stage_error_at_t0_cm") or 9999))
+              qerr=abs(float(v.get("q_error_pct") or 9999))
+              trend=abs(float(v.get("model_trend_next_1h_cm") or 9999)-float(v.get("observed_trend_last_1h_cm") or 0))
+              nse=float(f.get("nse") or -999)
+              rmse=float(f.get("rmse_cm") or 9999)
+              mult=float((d.get("parameter_source") or {}).get("initial_flow_multiplier") or 0)
+              eligible=(nse>=0.75 and qerr<=10 and trend<=10)
+              score=stage + 0.25*qerr + 0.5*trend + max(0,0.75-nse)*100 + max(0,rmse-60)*0.2
+              rows.append((eligible,score,stage,qerr,trend,nse,rmse,mult,p,d))
+          pool=[r for r in rows if r[0]] or rows
+          best=min(pool,key=lambda r:(r[1],r[2]))
+          d=best[-1]
+          d["temporary_initial_state_search"]={
+              "method":"fixed validated rainfall-runoff parameters; searched only HEC initial-flow multiplier",
+              "tested_multipliers":[r[7] for r in rows],
+              "selected_multiplier":best[7],
+              "selection_score":round(best[1],4),
+              "selected_state_error_cm":round(best[2],3),
+              "selected_q_error_pct":round(best[3],3),
+              "selected_trend_gap_cm_h":round(best[4],3),
+              "selected_event_nse":round(best[5],5),
+              "selected_event_rmse_cm":round(best[6],3)
+          }
+          out="assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_calib_new_ifs_20260928_2148.json"
+          with open(out,"w",encoding="utf-8") as f:
+              json.dump(d,f,ensure_ascii=False,indent=2)
+              f.write("\n")
+          print(json.dumps(d["temporary_initial_state_search"],ensure_ascii=False))
+          PY
 
       - name: Commit temporary result to branch
         shell: bash
@@ -78,6 +115,6 @@ jobs:
           set -euo pipefail
           git config user.name "previne-hec-bot"
           git config user.email "previne-hec-bot@users.noreply.github.com"
-          git add assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_calib_new_ifs_20260928_2148.json                   assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_calib_new_ifs_20260928_2148_input.json
-          git commit -m "tmp: fixed calibration HEC with newest IFS [skip ci]"
+          git add assets/data/estudo_bacia_taquari_antas/hec_hms_fixed_calib_new_ifs_20260928_2148.json
+          git commit -m "tmp: refit HEC initial state with newest IFS [skip ci]"
           git push origin HEAD:tmp-hec-ifs-20260928-2148
