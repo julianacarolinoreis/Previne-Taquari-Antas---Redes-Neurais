@@ -67,13 +67,19 @@ def _find_cycle(now: datetime) -> tuple[datetime, str, dict[str, str]]:
         try:
             listing = json.loads(_request(prefix + "/", accept="application/json").decode("utf-8"))
             names = {str(item.get("name")): item for item in listing if item.get("name")}
-            files = {
+            requested = {
                 str(hours): f"{cycle:%Y%m%d%H}0000-{hours}h-oper-fc.grib2"
                 for hours in HORIZONS
             }
-            if all(name in names for name in files.values()):
+            # Para selecionar a rodada mais recente usada pelo HEC, exigimos
+            # apenas os horizontes até +120 h. Rodadas 06Z/18Z podem não
+            # disponibilizar +168 h; exigir esse arquivo fazia o auditor
+            # rejeitar uma 06Z válida e cair indevidamente para 00Z/12Z.
+            required = ("24", "48", "72", "120")
+            if all(requested[h] in names for h in required):
+                files = {h: name for h, name in requested.items() if name in names}
                 return cycle, prefix, files
-            errors.append(f"{cycle:%Y-%m-%d %Hz}: horizontes incompletos")
+            errors.append(f"{cycle:%Y-%m-%d %Hz}: horizontes 24–120 h incompletos")
         except (HTTPError, URLError, OSError, ValueError, TypeError, RuntimeError) as exc:
             errors.append(f"{cycle:%Y-%m-%d %Hz}: {exc}")
     raise RuntimeError("; ".join(errors[-6:]) or "nenhuma rodada IFS disponível")
@@ -173,7 +179,9 @@ def fetch_ecmwf_direct(
         cycle, prefix, files = _find_cycle(now)
         horizons: list[dict[str, Any]] = []
         for hours in HORIZONS:
-            filename = files[str(hours)]
+            filename = files.get(str(hours))
+            if not filename:
+                continue
             file_url = f"{prefix}/{filename}"
             index_url = file_url.replace(".grib2", ".index")
             entry = _find_tp_entry(_request(index_url).decode("utf-8"), hours)
