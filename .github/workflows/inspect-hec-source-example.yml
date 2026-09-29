@@ -1,0 +1,34 @@
+name: Inspect official HEC source example
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-hec-source-example.yml"
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download official example and show Source syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://www.hec.usace.army.mil/confluence/hmsdocs/hmsguides/files/86908319/187670347/3/1777745740949/Tuttle_Creek_Final.zip'
+          curl -L --fail --retry 3 -A 'Mozilla/5.0' "$URL" -o /tmp/m.zip
+          mkdir -p /tmp/m
+          unzip -q /tmp/m.zip -d /tmp/m
+          echo BASIN_FILES
+          find /tmp/m -type f -name '*.basin' -print
+          echo GAGE_FILES
+          find /tmp/m -type f -name '*.gage' -print
+          echo SOURCE_BLOCKS
+          for f in $(find /tmp/m -type f -name '*.basin'); do
+            awk '/^Source:/{p=1} p{print} p && /^End:/{p=0}' "$f" || true
+          done
+          echo FLOW_GAGES
+          for f in $(find /tmp/m -type f -name '*.gage'); do
+            awk '/Gage Type: Flow/{for(i=NR-2;i<=NR+14;i++) want[i]=1} {a[NR]=$0} END{for(i=1;i<=NR;i++) if(want[i]) print a[i]}' "$f" || cat "$f"
+          done
