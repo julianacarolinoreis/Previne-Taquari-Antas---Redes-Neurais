@@ -41,10 +41,10 @@ AREA_LJJ=12918.656
 AREA_CARR=2564.190
 AREA_STZ_RES=292.340
 AREA_MUC_INC=190.021
-K1=2.5
-K2=2.5
-K3=1.0
-X=0.2
+K1=float(os.environ.get("DUAL_K1_H","2.5"))
+K2=float(os.environ.get("DUAL_K2_H","2.5"))
+K3=float(os.environ.get("DUAL_K3_H","1.0"))
+X=float(os.environ.get("DUAL_X","0.2"))
 
 def loadj(p): return json.loads(Path(p).read_text(encoding="utf-8"))
 
