@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import json
 import os
+import time
+from urllib.error import HTTPError
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
