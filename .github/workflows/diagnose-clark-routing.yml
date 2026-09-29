@@ -24,6 +24,12 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
+          sparse-checkout: |
+            scripts
+            assets/data/estudo_bacia_taquari_antas
+            assets/data/hec_hms_audit/raw/ana
+            assets/data/hec_hms_carreiro_split/raw_ana
+          sparse-checkout-cone-mode: true
 
       - uses: actions/setup-python@v5
         with:
