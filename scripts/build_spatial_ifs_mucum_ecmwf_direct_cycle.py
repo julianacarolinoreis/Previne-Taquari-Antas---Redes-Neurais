@@ -49,13 +49,34 @@ def file_url(cycle: datetime, step: int) -> str:
     return f"{prefix}/{cycle:%Y%m%d%H}0000-{step}h-oper-fc.grib2"
 
 
+def polite_request(url: str, *, byte_range=None) -> bytes:
+    last = None
+    for attempt in range(1, 8):
+        try:
+            # ECMWF Open Data rate-limits bursts. Keep this audit deliberately slow.
+            time.sleep(1.25 if byte_range is None else 1.75)
+            return _request(url, byte_range=byte_range)
+        except HTTPError as exc:
+            last = exc
+            if exc.code != 429 or attempt == 7:
+                raise
+            retry_after = exc.headers.get("Retry-After") if exc.headers else None
+            try:
+                pause = max(float(retry_after), attempt * 6.0) if retry_after else attempt * 6.0
+            except Exception:
+                pause = attempt * 6.0
+            print(f"ECMWF 429 em {url}; nova tentativa {attempt}/7 após {pause:.1f}s", flush=True)
+            time.sleep(pause)
+    raise RuntimeError(f"ECMWF request failed: {last}")
+
+
 def read_cumulative(cycle: datetime, step: int, cells: list[dict]) -> dict[str, float]:
     url = file_url(cycle, step)
     idx_url = url.replace(".grib2", ".index")
-    idx = _request(idx_url).decode("utf-8")
+    idx = polite_request(idx_url).decode("utf-8")
     entry = _find_tp_entry(idx, step)
     offset, length = int(entry["_offset"]), int(entry["_length"])
-    payload = _request(url, byte_range=(offset, offset + length - 1))
+    payload = polite_request(url, byte_range=(offset, offset + length - 1))
     values = {}
     for cell in cells:
         p = _decode_point(payload, latitude=float(cell["latitude"]), longitude=float(cell["longitude"]))
