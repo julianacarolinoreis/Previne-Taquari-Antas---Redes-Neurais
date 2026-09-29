@@ -379,6 +379,43 @@ def _load_observed_rain(start_local: datetime, end_local: datetime) -> tuple[dic
                 out[sid][t.replace(minute=0, second=0, microsecond=0)] = float(raw)
             except (TypeError, ValueError):
                 pass
+    ordered_hours = sorted(coverage)
+    # Rolling accumulations must use only hours with representative basin
+    # coverage. A partial current hour with only a small subset of gauges is
+    # never allowed to masquerade as a near-zero basin rainfall.
+    recent_cov = [coverage[t] for t in ordered_hours[-6:]]
+    reference_cov = int(round(sum(recent_cov) / len(recent_cov))) if recent_cov else 0
+    min_representative = max(20, int(round(0.60 * reference_cov))) if reference_cov else 20
+
+    representative_hours = [
+        t for t in ordered_hours if coverage[t] >= min_representative
+    ]
+    def _accum_for(field_sid: str | None, hours: int) -> dict:
+        selected = representative_hours[-hours:]
+        if field_sid is None:
+            # basin mean comes from the package rows rather than the two HEC zones
+            row_by_t = {}
+            for row in rows:
+                try:
+                    tt = datetime.fromisoformat(str(row.get("time_local")))
+                except Exception:
+                    continue
+                row_by_t[tt] = row
+            vals = [
+                float((row_by_t.get(t) or {}).get("basin_mean_mm") or 0.0)
+                for t in selected
+            ]
+        else:
+            vals = [float(out[field_sid].get(t, 0.0)) for t in selected]
+        return {
+            "hours_requested": hours,
+            "hours_used": len(selected),
+            "start_local": selected[0].isoformat(timespec="minutes") if selected else None,
+            "end_local": selected[-1].isoformat(timespec="minutes") if selected else None,
+            "accum_mm": round(sum(vals), 3),
+            "mean_rate_mm_h": round(sum(vals) / len(vals), 3) if vals else None,
+        }
+
     audit = {
         "source": str(OBS_MULTI.relative_to(ROOT)),
         "inventory_count_inside": rain.get("inventory_count_inside"),
@@ -387,6 +424,18 @@ def _load_observed_rain(start_local: datetime, end_local: datetime) -> tuple[dic
         "spatial_method": rain.get("spatial_method"),
         "min_hourly_station_count": min(coverage.values()) if coverage else 0,
         "max_hourly_station_count": max(coverage.values()) if coverage else 0,
+        "reference_recent_station_count": reference_cov,
+        "min_representative_station_count": min_representative,
+        "coverage_by_hour": {
+            t.isoformat(timespec="minutes"): coverage[t] for t in ordered_hours[-12:]
+        },
+        "rolling_accumulations_basin": {
+            str(h): _accum_for(None, h) for h in (1, 3, 6, 12, 24)
+        },
+        "rolling_accumulations_by_zone": {
+            sid: {str(h): _accum_for(sid, h) for h in (1, 3, 6, 12, 24)}
+            for sid in ZONE_IDS
+        },
         "event_window": pkg.get("event_window"),
     }
     return out, audit
@@ -460,15 +509,18 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
         ifs_values = [float(v) for v in zr["zones"][sid]["hourly_mm"]]
 
         persistence_rate = None
+        recent_rate_3h = None
+        recent_rate_6h = None
         adjusted_future = list(ifs_values)
-        if RAIN_SCENARIO == "recent3h_persistence":
-            recent_n = max(1, min(CONSERVATIVE_LOOKBACK_HOURS, len(warm_hours)))
-            recent_hours = warm_hours[-recent_n:]
-            recent_vals = [float(observed[sid][t]) for t in recent_hours]
-            persistence_rate = sum(recent_vals) / len(recent_vals)
-            # Conservative stress test: for the next N complete forecast hours,
-            # do not allow the forecast areal rain rate to fall below the mean
-            # of the last N complete observed hours in that HEC zone.
+        if RAIN_SCENARIO in ("recent3h_persistence", "recent_accum_guard"):
+            # Use accumulated observed rainfall, not only the last bucket.
+            # The 6 h window protects the hydrograph memory after a wet night,
+            # while the 3 h window keeps sensitivity to an intensifying burst.
+            vals3 = [float(observed[sid][t]) for t in warm_hours[-min(3, len(warm_hours)):]]
+            vals6 = [float(observed[sid][t]) for t in warm_hours[-min(6, len(warm_hours)):]]
+            recent_rate_3h = sum(vals3) / len(vals3) if vals3 else 0.0
+            recent_rate_6h = sum(vals6) / len(vals6) if vals6 else recent_rate_3h
+            persistence_rate = max(recent_rate_3h, recent_rate_6h)
             for j in range(1, min(1 + CONSERVATIVE_HOURS, len(adjusted_future))):
                 adjusted_future[j] = max(adjusted_future[j], persistence_rate)
             remaining_rate = max(adjusted_future[0], persistence_rate)
@@ -477,21 +529,29 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
         else:
             raise RuntimeError(f"unsupported HEC_RAIN_SCENARIO={RAIN_SCENARIO}")
 
-        if obs_partial is None:
+        coverage_by_hour = observed_audit.get("coverage_by_hour") or {}
+        current_cov = int(coverage_by_hour.get(ifs0_local.isoformat(timespec="minutes")) or 0)
+        min_rep = int(observed_audit.get("min_representative_station_count") or 20)
+        current_hour_representative = current_cov >= min_rep
+
+        # A partial hour with poor station coverage is not interpreted as
+        # basin-wide low rainfall. In that case, use the IFS/rolling-accumulation
+        # guard for the whole current hour and keep the partial value only for audit.
+        if obs_partial is None or not current_hour_representative:
             current_blend = float(remaining_rate)
             current_source = (
-                "ifs_full_hour_fallback_no_observed_partial"
+                "ifs_full_hour_fallback_no_representative_observed_partial"
                 if RAIN_SCENARIO in ("", "baseline")
-                else "conservative_persistence_full_hour_fallback_no_observed_partial"
+                else "rolling_accumulation_guard_low_current_coverage"
             )
             observed_total = round(sum(warm_values), 3)
-            observed_partial_audit = None
+            observed_partial_audit = None if obs_partial is None else round(float(obs_partial), 3)
         else:
             current_blend = float(obs_partial) + (1.0 - elapsed) * float(remaining_rate)
             current_source = (
                 "all_station_observed_partial_plus_remaining_ifs"
                 if RAIN_SCENARIO in ("", "baseline")
-                else "all_station_observed_partial_plus_conservative_recent3h_persistence"
+                else "all_station_observed_partial_plus_rolling_accumulation_guard"
             )
             observed_total = round(sum(warm_values) + float(obs_partial), 3)
             observed_partial_audit = round(float(obs_partial), 3)
@@ -512,21 +572,32 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
             "ifs_full_hour_mm": round(float(ifs_values[0]), 3),
             "combined_hour_mm": round(current_blend, 3),
             "source": current_source,
-            "degraded": obs_partial is None,
+            "degraded": obs_partial is None or not current_hour_representative,
+            "current_station_count": current_cov,
+            "min_representative_station_count": min_rep,
+            "current_hour_representative": current_hour_representative,
             "rain_scenario": RAIN_SCENARIO or "baseline",
+            "recent_3h_mean_rate_mm_h": (
+                None if recent_rate_3h is None else round(recent_rate_3h, 4)
+            ),
+            "recent_6h_mean_rate_mm_h": (
+                None if recent_rate_6h is None else round(recent_rate_6h, 4)
+            ),
             "conservative_persistence_rate_mm_h": (
                 None if persistence_rate is None else round(persistence_rate, 4)
             ),
         }
+    guarded = RAIN_SCENARIO in ("recent3h_persistence", "recent_accum_guard")
     audit["rain_scenario"] = {
         "name": RAIN_SCENARIO or "baseline",
-        "conservative_hours": CONSERVATIVE_HOURS if RAIN_SCENARIO == "recent3h_persistence" else 0,
-        "lookback_hours": CONSERVATIVE_LOOKBACK_HOURS if RAIN_SCENARIO == "recent3h_persistence" else 0,
+        "conservative_hours": CONSERVATIVE_HOURS if guarded else 0,
+        "lookback_hours": CONSERVATIVE_LOOKBACK_HOURS if guarded else 0,
         "description": (
-            "Stress test: mantém, por 3 horas futuras, pelo menos a taxa média zonal observada "
-            "nas 3 horas completas anteriores; depois retorna ao ECMWF/IFS."
-            if RAIN_SCENARIO == "recent3h_persistence"
-            else "ECMWF/IFS operacional sem reforço conservador."
+            "Cenário de estresse por acumulados: usa as janelas observadas de 3 h e 6 h, "
+            "adota a maior taxa média como piso nas próximas horas e rejeita a hora corrente "
+            "como representativa quando a cobertura de postos cai abaixo do limiar dinâmico."
+            if guarded
+            else "ECMWF/IFS operacional; hora corrente com baixa cobertura não é usada como chuva areal observada."
         ),
     }
 
