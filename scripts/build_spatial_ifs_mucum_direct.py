@@ -12,6 +12,8 @@ from __future__ import annotations
 import json
 import math
 import re
+import time
+from urllib.error import HTTPError
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -87,6 +89,18 @@ def _decode_points(payload: bytes, cells: list[dict]) -> dict[str, float]:
         eccodes.codes_release(handle)
 
 
+def _request_with_backoff(url: str, *, byte_range=None) -> bytes:
+    """Retry ECMWF throttling without silently changing forecast cycle."""
+    for attempt in range(5):
+        try:
+            return _request(url, byte_range=byte_range)
+        except HTTPError as exc:
+            if exc.code != 429 or attempt == 4:
+                raise
+            time.sleep(5 * (attempt + 1))
+    raise RuntimeError("ECMWF request retry exhausted")
+
+
 def _fetch_cumulative(prefix: str, steps: dict[int, str], cells: list[dict]) -> dict[int, dict[str, float]]:
     out = {0: {c["cell_id"]: 0.0 for c in cells}}
     # Use all available steps. For 06Z/18Z, resolution may vary with lead time.
@@ -95,14 +109,16 @@ def _fetch_cumulative(prefix: str, steps: dict[int, str], cells: list[dict]) -> 
         file_url = f"{prefix}/{filename}"
         index_url = file_url.replace(".grib2", ".index")
         try:
-            entry = _find_tp_entry(_request(index_url).decode("utf-8"), h)
+            entry = _find_tp_entry(_request_with_backoff(index_url).decode("utf-8"), h)
         except Exception:
             # Skip files whose index does not expose tp for this exact step.
             continue
         offset = int(entry["_offset"])
         length = int(entry["_length"])
-        payload = _request(file_url, byte_range=(offset, offset + length - 1))
+        payload = _request_with_backoff(file_url, byte_range=(offset, offset + length - 1))
         out[h] = _decode_points(payload, cells)
+        # Be polite to the public endpoint and stay below burst throttles.
+        time.sleep(1.0)
     max_step = max(out) if out else 0
     if 24 not in out or max_step < 90:
         raise RuntimeError(
