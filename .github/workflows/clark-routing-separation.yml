@@ -1,0 +1,78 @@
+name: Clark x routing · Muçum
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/clark-routing-separation.yml"
+      - "scripts/test_clark_routing_separation.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clark-routing-separation
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Cache HEC-HMS 4.13
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+      - name: Baixa HEC-HMS 4.13
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4             -o /tmp/hec.tar.gz             https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/hec.tar.gz -C .hec
+      - name: Executa separação Clark x routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          python -B scripts/test_clark_routing_separation.py "$HEC_SH"
+      - name: Valida relatório
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("assets/data/hec_hms_integrated_taquari_antas/clark_routing_separation_20260928/clark_routing_separation_latest.json")
+          d=json.loads(p.read_text(encoding="utf-8"))
+          assert len(d["historical"])==2
+          assert d["current"]["candidate_count"]>20
+          print(json.dumps(d, ensure_ascii=False, indent=2))
+          PY
+      - name: Publica somente artefatos experimentais
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-clark-routing-bot"
+          git config user.email "previne-clark-routing-bot@users.noreply.github.com"
+          git add -- assets/data/hec_hms_integrated_taquari_antas/clark_routing_separation_20260928
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "exp: resultados separação Clark x routing [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push origin HEAD:main; then exit 0; fi
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort || true; exit 1; }
+          done
+          exit 1
