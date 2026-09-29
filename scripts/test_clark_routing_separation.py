@@ -10,7 +10,7 @@ Research only. Does not modify/promote operational parameters.
 """
 
 from __future__ import annotations
-import csv, json, math, os, sys, urllib.parse, urllib.request, xml.etree.ElementTree as ET
+import csv, json, math, os, re, subprocess, sys, urllib.parse, urllib.request, xml.etree.ElementTree as ET
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -20,7 +20,6 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from hec_twin_nested_v17 import NestedParams, ZoneParams
 from run_hec_twin_stz_mucum_calibrate import run_network, metrics, research_score, muskingum
-from calibrate_hec_hms_live_event import run_one as run_live_hec
 
 OUT = ROOT / "assets/data/hec_hms_integrated_taquari_antas/clark_routing_separation_20260928"
 MODEL = ROOT / "assets/data/estudo_bacia_taquari_antas/modelo_mucum_eventwise_v1_fechado_latest.json"
@@ -28,6 +27,8 @@ STRUCT = ROOT / "assets/data/estudo_bacia_taquari_antas/estrutura_stz_mucum_late
 LIVE_OBS = ROOT / "assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_latest.json"
 LIVE_CAL = ROOT / "assets/data/estudo_bacia_taquari_antas/hec_hms_live_event_calibration_latest.json"
 LIVE_RUNTIME = ROOT / "assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum"
+LIVE_BASIN = LIVE_RUNTIME / "project/bacia_spatial_live.basin"
+LIVE_SCRIPT = LIVE_RUNTIME / "project/run_forecast.script"
 ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos"
 ANA2 = "https://www.ana.gov.br/telemetria1ws/ServiceANA.asmx/DadosHidrometeorologicos"
 
@@ -227,30 +228,83 @@ def live_metrics(times,q,obs):
     return {**m,"current_q_error_m3s":last_err,"observed_last_trend_m3s_h":otr,"model_last_trend_m3s_h":strend,"trend_error_m3s_h":trerr,"live_score":score}
 
 
+def frozen_hec_clark_run(hec_sh, tc_h, storage_h, base_basin_text):
+    """Run the committed/frozen HEC forcing while changing only Clark timing."""
+    text = re.sub(
+        r"(?m)^(\\s*Time of Concentration:\\s*)[-+0-9.eE]+$",
+        lambda m: m.group(1) + f"{float(tc_h):.6f}",
+        base_basin_text,
+    )
+    text = re.sub(
+        r"(?m)^(\\s*Storage Coefficient:\\s*)[-+0-9.eE]+$",
+        lambda m: m.group(1) + f"{float(storage_h):.6f}",
+        text,
+    )
+    LIVE_BASIN.write_text(text, encoding="utf-8")
+    out_csv = LIVE_RUNTIME / "hec_output_values.csv"
+    if out_csv.exists():
+        out_csv.unlink()
+    subprocess.run(
+        [hec_sh, "-s", str(LIVE_SCRIPT)],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
+    )
+    return read_live_q()
+
+
 def live_event(hec_sh):
-    cal=load(LIVE_CAL); sel=cal["selected_parameters"]
-    obs=live_obs_map()
-    timing=[(5,5),(8,8),(10,10),(12,12),(15,15),(20,15),(20,20),(25,20),(25,25),(15,20),(10,15),(15,10)]
-    timing.append((float(sel["tc_h"]),float(sel["storage_h"])))
-    seen=set(); timing=[x for x in timing if not (x in seen or seen.add(x))]
+    # Freeze the exact HEC project/forcing committed at workflow checkout.
+    # This avoids mixing a newer ANA observation with an older IFS first hour
+    # while the live robot is updating concurrently.
+    base_text = LIVE_BASIN.read_text(encoding="utf-8")
+    tc_vals = [float(x) for x in re.findall(r"(?m)^\\s*Time of Concentration:\\s*([-+0-9.eE]+)$", base_text)]
+    st_vals = [float(x) for x in re.findall(r"(?m)^\\s*Storage Coefficient:\\s*([-+0-9.eE]+)$", base_text)]
+    if not tc_vals or not st_vals:
+        raise RuntimeError("Clark parameters not found in frozen live basin")
+    baseline_tc = tc_vals[0]
+    baseline_storage = st_vals[0]
+
+    obs = live_obs_map()
+    timing = [(5,5),(8,8),(10,10),(12,12),(15,15),(20,15),(20,20),(25,20),(25,25),(15,20),(10,15),(15,10),(baseline_tc,baseline_storage)]
+    seen=set()
+    timing=[x for x in timing if not (x in seen or seen.add(x))]
     rows=[]
-    for tc,st in timing:
-        p=dict(sel); p["tc_h"]=tc; p["storage_h"]=st
-        rr=run_live_hec(hec_sh,"E28",p,f"sep_tc{tc}_st{st}")
-        times,q=read_live_q()
-        m0=live_metrics(times,q,obs)
-        rows.append({"mode":"clark_only","tc_h":tc,"storage_h":st,"routing_k_h":0.0,"routing_x":0.0,**m0})
-        for k in (.25,.5,1.,2.,3.,4.,6.):
-            for x in (.1,.2,.3):
-                qr=muskingum(q,k,x)
-                mm=live_metrics(times,qr,obs)
-                rows.append({"mode":"clark_plus_postrouting","tc_h":tc,"storage_h":st,"routing_k_h":k,"routing_x":x,**mm})
-    # restore selected HEC result in this isolated runner
-    run_live_hec(hec_sh,"E28",sel,"restore_selected")
-    base=min((r for r in rows if r["routing_k_h"]==0 and r["tc_h"]==float(sel["tc_h"]) and r["storage_h"]==float(sel["storage_h"])),key=lambda z:abs(z["live_score"]),default=None)
+    try:
+        for tc,st in timing:
+            times,q=frozen_hec_clark_run(hec_sh,tc,st,base_text)
+            m0=live_metrics(times,q,obs)
+            rows.append({"mode":"clark_only","tc_h":tc,"storage_h":st,"routing_k_h":0.0,"routing_x":0.0,**m0})
+            for k in (.25,.5,1.,2.,3.,4.,6.):
+                for x in (.1,.2,.3):
+                    qr=muskingum(q,k,x)
+                    mm=live_metrics(times,qr,obs)
+                    rows.append({"mode":"clark_plus_postrouting","tc_h":tc,"storage_h":st,"routing_k_h":k,"routing_x":x,**mm})
+    finally:
+        LIVE_BASIN.write_text(base_text, encoding="utf-8")
+        # Restore the frozen baseline HEC output in the ephemeral runner.
+        try:
+            frozen_hec_clark_run(hec_sh,baseline_tc,baseline_storage,base_text)
+        finally:
+            LIVE_BASIN.write_text(base_text, encoding="utf-8")
+
+    baseline = next(
+        r for r in rows
+        if r["routing_k_h"]==0 and r["tc_h"]==baseline_tc and r["storage_h"]==baseline_storage
+    )
     best_c=max((r for r in rows if r["routing_k_h"]==0),key=lambda z:z["live_score"])
     best_j=max(rows,key=lambda z:z["live_score"])
-    return {"event":"CURRENT_2026_09_26","engine":"HEC-HMS 4.13 two-zone; Muskingum is diagnostic post-routing after outlet, not promoted reach","baseline_selected":base,"best_clark_only":best_c,"best_clark_plus_postrouting":best_j,"candidate_count":len(rows),"note":"Observed window is still rising; no completed-peak lag is used in the live score."}, rows
+    return {
+        "event":"CURRENT_2026_09_26",
+        "engine":"HEC-HMS 4.13 frozen committed two-zone forcing; Muskingum is diagnostic post-routing after outlet, not promoted reach",
+        "frozen_baseline_clark":{"tc_h":baseline_tc,"storage_h":baseline_storage},
+        "baseline_selected":baseline,
+        "best_clark_only":best_c,
+        "best_clark_plus_postrouting":best_j,
+        "candidate_count":len(rows),
+        "note":"Observed window is still rising; no completed-peak lag is used in the live score. Frozen checkout prevents concurrent ANA/IFS timestamp mixing."
+    }, rows
 
 
 def main():
