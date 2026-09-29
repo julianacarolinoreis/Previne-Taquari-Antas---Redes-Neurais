@@ -1,4 +1,4 @@
-# refresh chat 2026-09-29 10:12 BRT — FINAL DIRECT ECMWF IFS 06Z spatial throttled 3h
+# refresh chat 2026-09-29 10:17 BRT — FINAL direct 06Z 48h + internal-state grid
 name: HEC Mucum reference 28-09 19h rerun
 
 on:
@@ -81,7 +81,7 @@ jobs:
           HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
           test -n "$HEC_SH"
           mkdir -p /tmp/hec_ref_grid
-          for M in 0.60; do
+          for M in 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90; do
             echo "=== initial_flow_multiplier=$M ==="
             export HEC_PARAM_EVENT=E28
             export HEC_INITIAL_LOSS_MM=20
@@ -129,7 +129,7 @@ jobs:
                   "recession_constant_daily":0.9
               },
               "state_only_assimilation":{
-                  "method":"estado inicial selecionado em 0.60: menor ajuste que passou as guardas de validacao mantendo a calibracao estrutural congelada",
+                  "method":"grade de multiplicadores do fluxo inicial; selecionado o menor erro absoluto de nivel em t0 mantendo toda a calibracao estrutural congelada",
                   "selected_initial_flow_multiplier":mult,
                   "stage_error_at_t0_cm":err,
                   "visual_stage_shift":False
