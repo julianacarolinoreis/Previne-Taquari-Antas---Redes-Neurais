@@ -27,6 +27,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Dependências espaciais
+        run: pip install --disable-pip-version-check shapely pyproj matplotlib
+
       - name: Cache HEC-HMS 4.13
         id: cache-hec
         uses: actions/cache@v4
