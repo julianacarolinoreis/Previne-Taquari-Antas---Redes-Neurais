@@ -1,4 +1,4 @@
-# refresh chat 2026-09-29 09:36 BRT — latest ECMWF/IFS spatial field
+# refresh chat 2026-09-29 09:49 BRT — ECMWF IFS 06Z DIRECT spatial
 name: HEC Mucum reference 28-09 19h rerun
 
 on:
@@ -30,13 +30,16 @@ jobs:
           python-version: "3.11"
 
       - name: Dependencias
-        run: pip install --disable-pip-version-check shapely pyproj matplotlib numpy
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libeccodes-dev
+          pip install --disable-pip-version-check shapely pyproj matplotlib numpy eccodes
 
       - name: Observado multirrede atualizado
         run: OBS_FAST_MODE=1 python -B scripts/build_mucum_observed_multistation.py
 
-      - name: ECMWF IFS espacial atualizado
-        run: python -B scripts/build_spatial_ifs_mucum.py
+      - name: ECMWF IFS 06Z espacial direto
+        run: python -B scripts/build_spatial_ifs_mucum_direct.py
 
       - name: Cache HEC-HMS
         id: cache-hec
