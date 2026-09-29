@@ -1,0 +1,49 @@
+name: Holdout científico Muçum E31 P2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/benchmark_mucum_holdout_e31_p2.py"
+      - ".github/workflows/mucum-holdout-e31-p2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mucum-holdout-e31-p2
+  cancel-in-progress: true
+
+jobs:
+  holdout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: |
+            scripts
+            assets/data/estudo_bacia_taquari_antas/modelo_mucum_eventwise_v1_fechado_latest.json
+            assets/data/estudo_bacia_taquari_antas/estrutura_stz_mucum_latest.json
+            assets/data/estudo_bacia_taquari_antas/curva_chave_86472600/curva_chave_hunt_86472600_latest.json
+            assets/data/estudo_bacia_taquari_antas/scientific_benchmark_v1
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run blind E31 holdout
+        run: python -B scripts/benchmark_mucum_holdout_e31_p2.py
+      - name: Publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-science-holdout-bot"
+          git config user.email "previne-science-holdout-bot@users.noreply.github.com"
+          git add --sparse -- assets/data/estudo_bacia_taquari_antas/scientific_benchmark_v1/holdout_e31_p2
+          git diff --cached --quiet && exit 0
+          git commit -m "exp: holdout E31 Muçum P2 [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
