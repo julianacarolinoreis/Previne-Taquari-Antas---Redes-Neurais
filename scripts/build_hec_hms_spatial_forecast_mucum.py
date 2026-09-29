@@ -121,6 +121,9 @@ if any(os.environ.get(v) not in (None, "") for v in _LIVE_PARAM_ENV.values()):
 ZONE_IDS = ("86472000", "02851072")
 EVENT_START_LOCAL = datetime(2026, 9, 26, 0, 0)
 ZONE_OBS_FIELDS = {"86472000": "zone_86472000_mm", "02851072": "zone_02851072_mm"}
+RAIN_SCENARIO = os.environ.get("HEC_RAIN_SCENARIO", "baseline").strip().lower()
+CONSERVATIVE_HOURS = int(os.environ.get("HEC_CONSERVATIVE_HOURS", "3"))
+CONSERVATIVE_LOOKBACK_HOURS = int(os.environ.get("HEC_CONSERVATIVE_LOOKBACK_HOURS", "3"))
 
 
 def load_json(path: Path):
@@ -454,21 +457,54 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
     for sid in ZONE_IDS:
         warm_values = [observed[sid][t] for t in warm_hours]
         obs_partial = observed[sid].get(ifs0_local)
-        ifs_values = list(zr["zones"][sid]["hourly_mm"])
+        ifs_values = [float(v) for v in zr["zones"][sid]["hourly_mm"]]
+
+        persistence_rate = None
+        adjusted_future = list(ifs_values)
+        if RAIN_SCENARIO == "recent3h_persistence":
+            recent_n = max(1, min(CONSERVATIVE_LOOKBACK_HOURS, len(warm_hours)))
+            recent_hours = warm_hours[-recent_n:]
+            recent_vals = [float(observed[sid][t]) for t in recent_hours]
+            persistence_rate = sum(recent_vals) / len(recent_vals)
+            # Conservative stress test: for the next N complete forecast hours,
+            # do not allow the forecast areal rain rate to fall below the mean
+            # of the last N complete observed hours in that HEC zone.
+            for j in range(1, min(1 + CONSERVATIVE_HOURS, len(adjusted_future))):
+                adjusted_future[j] = max(adjusted_future[j], persistence_rate)
+            remaining_rate = max(adjusted_future[0], persistence_rate)
+        elif RAIN_SCENARIO in ("", "baseline"):
+            remaining_rate = adjusted_future[0]
+        else:
+            raise RuntimeError(f"unsupported HEC_RAIN_SCENARIO={RAIN_SCENARIO}")
+
         if obs_partial is None:
-            current_blend = float(ifs_values[0])
-            current_source = "ifs_full_hour_fallback_no_observed_partial"
+            current_blend = float(remaining_rate)
+            current_source = (
+                "ifs_full_hour_fallback_no_observed_partial"
+                if RAIN_SCENARIO in ("", "baseline")
+                else "conservative_persistence_full_hour_fallback_no_observed_partial"
+            )
             observed_total = round(sum(warm_values), 3)
             observed_partial_audit = None
         else:
-            current_blend = float(obs_partial) + (1.0 - elapsed) * float(ifs_values[0])
-            current_source = "all_station_observed_partial_plus_remaining_ifs"
+            current_blend = float(obs_partial) + (1.0 - elapsed) * float(remaining_rate)
+            current_source = (
+                "all_station_observed_partial_plus_remaining_ifs"
+                if RAIN_SCENARIO in ("", "baseline")
+                else "all_station_observed_partial_plus_conservative_recent3h_persistence"
+            )
             observed_total = round(sum(warm_values) + float(obs_partial), 3)
             observed_partial_audit = round(float(obs_partial), 3)
-        values = warm_values + [current_blend] + [float(v) for v in ifs_values[1:]]
+
+        values = warm_values + [current_blend] + adjusted_future[1:]
         meta = dict(zr["zones"][sid])
         meta["hourly_mm"] = values
         meta["run_total_mm"] = sum(values)
+        meta["rain_scenario"] = RAIN_SCENARIO or "baseline"
+        if persistence_rate is not None:
+            meta["conservative_persistence_rate_mm_h"] = round(persistence_rate, 4)
+            meta["conservative_hours"] = CONSERVATIVE_HOURS
+            meta["conservative_lookback_hours"] = CONSERVATIVE_LOOKBACK_HOURS
         run_zones[sid] = meta
         audit["observed_totals_mm"][sid] = observed_total
         audit.setdefault("current_hour", {})[sid] = {
@@ -477,7 +513,22 @@ def build_run_rain(zr: dict, ctx: dict) -> tuple[dict, dict]:
             "combined_hour_mm": round(current_blend, 3),
             "source": current_source,
             "degraded": obs_partial is None,
+            "rain_scenario": RAIN_SCENARIO or "baseline",
+            "conservative_persistence_rate_mm_h": (
+                None if persistence_rate is None else round(persistence_rate, 4)
+            ),
         }
+    audit["rain_scenario"] = {
+        "name": RAIN_SCENARIO or "baseline",
+        "conservative_hours": CONSERVATIVE_HOURS if RAIN_SCENARIO == "recent3h_persistence" else 0,
+        "lookback_hours": CONSERVATIVE_LOOKBACK_HOURS if RAIN_SCENARIO == "recent3h_persistence" else 0,
+        "description": (
+            "Stress test: mantém, por 3 horas futuras, pelo menos a taxa média zonal observada "
+            "nas 3 horas completas anteriores; depois retorna ao ECMWF/IFS."
+            if RAIN_SCENARIO == "recent3h_persistence"
+            else "ECMWF/IFS operacional sem reforço conservador."
+        ),
+    }
 
     return {"times_utc": run_times_utc, "zones": run_zones}, audit
 
