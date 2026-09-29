@@ -1,0 +1,60 @@
+name: HEC Muçum observed boundary
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/hec-mucum-observed-boundary.yml"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            scripts
+            assets/data/estudo_bacia_taquari_antas
+            assets/data/hec_hms_spatialized_mucum
+            previsao_ao_vivo_mucum.json
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install --disable-pip-version-check shapely pyproj numpy
+      - uses: actions/cache@v4
+        id: cache-hec
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+      - name: Build upstream HEC continuation
+        shell: bash
+        env:
+          HEC_PARAM_EVENT: E28
+          HEC_INITIAL_LOSS_MM: "25"
+          HEC_CONSTANT_LOSS_MM_H: "1.5"
+          HEC_TC_H: "20"
+          HEC_STORAGE_H: "20"
+          HEC_RECESSION_DAILY: "0.9"
+          HEC_INITIAL_FLOW_MULTIPLIER: "1.0"
+          HEC_ROUTE_K1_H: "1.0"
+          HEC_ROUTE_K2_H: "1.0"
+          HEC_ROUTE_X: "0.2"
+        run: |
+          set -euo pipefail
+          python -B scripts/build_hec_hms_spatial_forecast_mucum.py
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          "$HEC_SH" -s assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project/run_forecast.script >/dev/null
+          test -s assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/hec_output_values.csv
+      - name: Run observed-boundary HEC
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          python -B scripts/run_hec_hms_mucum_observed_boundary.py "$HEC_SH"
