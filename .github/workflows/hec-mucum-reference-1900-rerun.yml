@@ -1,0 +1,153 @@
+name: HEC Mucum reference 28-09 19h rerun
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/hec-mucum-reference-1900-rerun.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hec-mucum-reference-1900-rerun
+  cancel-in-progress: true
+
+jobs:
+  rerun:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencias
+        run: pip install --disable-pip-version-check shapely pyproj matplotlib numpy
+
+      - name: Chuva observada multirrede atualizada
+        run: OBS_FAST_MODE=1 python -B scripts/build_mucum_observed_multistation.py
+
+      - name: ECMWF IFS espacial mais recente
+        run: python -B scripts/build_spatial_ifs_mucum.py
+
+      - name: Cache HEC-HMS 4.13
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Baixa HEC-HMS 4.13 oficial
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4 \
+            -o /tmp/HEC-HMS-4.13-linux64.tar.gz \
+            https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Monta HEC com a calibracao de referencia que acertou o pico
+        env:
+          HEC_PARAM_EVENT: E28
+          HEC_INITIAL_LOSS_MM: "20"
+          HEC_CONSTANT_LOSS_MM_H: "3"
+          HEC_TC_H: "25"
+          HEC_STORAGE_H: "20"
+          HEC_RECESSION_DAILY: "0.9"
+          HEC_INITIAL_FLOW_MULTIPLIER: "0.75"
+        run: python -B scripts/build_hec_hms_spatial_forecast_mucum.py
+
+      - name: Executa HEC-HMS
+        shell: bash
+        env:
+          HEC_PARAM_EVENT: E28
+          HEC_INITIAL_LOSS_MM: "20"
+          HEC_CONSTANT_LOSS_MM_H: "3"
+          HEC_TC_H: "25"
+          HEC_STORAGE_H: "20"
+          HEC_RECESSION_DAILY: "0.9"
+          HEC_INITIAL_FLOW_MULTIPLIER: "0.75"
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          rm -f assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/hec_output_values.csv
+          "$HEC_SH" -s assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project/run_forecast.script
+          test -s assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/hec_output_values.csv
+
+      - name: Pos-processa sem deslocamento visual
+        env:
+          HEC_PARAM_EVENT: E28
+          HEC_INITIAL_LOSS_MM: "20"
+          HEC_CONSTANT_LOSS_MM_H: "3"
+          HEC_TC_H: "25"
+          HEC_STORAGE_H: "20"
+          HEC_RECESSION_DAILY: "0.9"
+          HEC_INITIAL_FLOW_MULTIPLIER: "0.75"
+        run: python -B scripts/postprocess_hec_hms_spatial_forecast_mucum.py
+
+      - name: Cria artefato dedicado da rodada de referencia
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, shutil
+          from pathlib import Path
+          root=Path("assets/data/estudo_bacia_taquari_antas")
+          src=root/"hec_hms_spatial_forecast_mucum_latest.json"
+          out=root/"hec_mucum_reference_1900_rerun_latest.json"
+          d=json.loads(src.read_text(encoding="utf-8"))
+          d["rerun_reference"]={
+              "reference":"rodada 28/09 19h que apresentou NSE 0.78103 e RMSE 0.52414 m",
+              "frozen_parameters":{
+                  "seed_event":"E28",
+                  "initial_loss_mm":20.0,
+                  "constant_loss_mm_h":3.0,
+                  "tc_h":25.0,
+                  "storage_h":20.0,
+                  "recession_constant_daily":0.9,
+                  "initial_flow_multiplier":0.75
+              },
+              "forcing":"chuva observada multirrede ate t0 + ECMWF/IFS mais recente apos t0",
+              "visual_shift":False
+          }
+          out.write_text(json.dumps(d,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          shutil.copyfile(root/"hec_hms_spatial_forecast_mucum/primary_series.csv",
+                          root/"hec_mucum_reference_1900_rerun_primary_series.csv")
+          PY
+
+      - name: Publica somente a rodada de referencia
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-hec-reference-bot"
+          git config user.email "previne-hec-reference-bot@users.noreply.github.com"
+          git add -- \
+            assets/data/estudo_bacia_taquari_antas/hec_mucum_reference_1900_rerun_latest.json \
+            assets/data/estudo_bacia_taquari_antas/hec_mucum_reference_1900_rerun_primary_series.csv
+          if git diff --cached --quiet; then
+            echo "Sem mudanca na rodada de referencia."
+            exit 0
+          fi
+          git commit -m "bot: HEC Mucum referencia 28-09 19h com observado + ECMWF [skip ci]"
+          git restore --worktree . || true
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then exit 0; fi
+            git reset --hard HEAD
+            git fetch origin main
+            if git rebase origin/main; then continue; fi
+            git rebase --abort || true
+            exit 1
+          done
+          exit 1
