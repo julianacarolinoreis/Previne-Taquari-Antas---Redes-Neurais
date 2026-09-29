@@ -832,6 +832,53 @@ def main() -> int:
             "reason": reason,
         })
 
+    # Explicit cumulative-rain audit. HEC forcing remains spatial (IDW by hour),
+    # but operations also need the observed accumulated totals to diagnose
+    # antecedent wetness and verify that no large rainfall episode was lost.
+    station_observed_accumulations = []
+    for st in rain_stations:
+        code = st["code"]
+        vals = list((rain_series.get(code) or {}).items())
+        if not vals:
+            continue
+        vals.sort(key=lambda x: x[0])
+        station_observed_accumulations.append({
+            "code": code,
+            "name": st.get("name"),
+            "network": st.get("network"),
+            "upg": st.get("upg"),
+            "valid_hours": len(vals),
+            "start_local": iso(vals[0][0]),
+            "end_local": iso(vals[-1][0]),
+            "accum_mm": round(sum(float(v) for _, v in vals), 3),
+        })
+
+    event_basin_accum = sum(
+        float(row.get("basin_mean_mm") or 0.0)
+        for row in areal_rows if row.get("basin_mean_mm") is not None
+    )
+    event_zone_accum = {
+        code: round(sum(
+            float(row.get(f"zone_{code}_mm") or 0.0)
+            for row in areal_rows if row.get(f"zone_{code}_mm") is not None
+        ), 3)
+        for code in zones
+    }
+    continuous = [x for x in station_observed_accumulations if x["valid_hours"] >= 80]
+    continuous_vals = sorted(float(x["accum_mm"]) for x in continuous)
+    accum_audit = {
+        "event_basin_areal_mm": round(event_basin_accum, 3),
+        "event_by_zone_mm": event_zone_accum,
+        "station_observed_accumulations": station_observed_accumulations,
+        "continuous_station_count": len(continuous),
+        "continuous_station_sum_mm_audit_only": round(sum(continuous_vals), 3) if continuous_vals else None,
+        "continuous_station_mean_mm": round(sum(continuous_vals)/len(continuous_vals), 3) if continuous_vals else None,
+        "continuous_station_median_mm": continuous_vals[len(continuous_vals)//2] if continuous_vals else None,
+        "continuous_station_min_mm": continuous_vals[0] if continuous_vals else None,
+        "continuous_station_max_mm": continuous_vals[-1] if continuous_vals else None,
+        "note": "Soma de mm entre postos é auditoria das observações, não lâmina física. O HEC usa o campo espacial IDW por hora e por zona.",
+    }
+
     payload = {
         "schema_version": "mucum_observed_multistation_v3_full_basin_inventory",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
@@ -859,6 +906,7 @@ def main() -> int:
                 "IDW^2 por hora em grade 0.05° sobre a bacia e zonas HEC; "
                 "usa todos os postos com observação válida; ausência permanece ausente, nunca zero"
             ),
+            "accumulations": accum_audit,
             "hourly_areal": [
                 {
                     k: (None if v is None else round(v, 4) if isinstance(v, float) else v)
