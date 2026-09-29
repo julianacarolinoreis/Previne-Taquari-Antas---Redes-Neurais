@@ -120,9 +120,9 @@ def _fetch_cumulative(prefix: str, steps: dict[int, str], cells: list[dict]) -> 
         # Be polite to the public endpoint and stay below burst throttles.
         time.sleep(1.0)
     max_step = max(out) if out else 0
-    if 24 not in out or max_step < 90:
+    if 24 not in out or 48 not in out:
         raise RuntimeError(
-            f"latest ECMWF cycle did not yield a complete short range through +90 h (max={max_step})"
+            f"latest ECMWF cycle did not yield direct +24 h and +48 h forcing (max={max_step})"
         )
     return out
 
