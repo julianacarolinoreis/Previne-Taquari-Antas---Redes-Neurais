@@ -231,12 +231,12 @@ def live_metrics(times,q,obs):
 def frozen_hec_clark_run(hec_sh, tc_h, storage_h, base_basin_text):
     """Run the committed/frozen HEC forcing while changing only Clark timing."""
     text = re.sub(
-        r"(?m)^(\s*Time of Concentration:\s*)[-+0-9.eE]+$",
+        r"(?m)^(\\s*Time of Concentration:\\s*)[-+0-9.eE]+\\s*$",
         lambda m: m.group(1) + f"{float(tc_h):.6f}",
         base_basin_text,
     )
     text = re.sub(
-        r"(?m)^(\s*Storage Coefficient:\s*)[-+0-9.eE]+$",
+        r"(?m)^(\\s*Storage Coefficient:\\s*)[-+0-9.eE]+\\s*$",
         lambda m: m.group(1) + f"{float(storage_h):.6f}",
         text,
     )
@@ -259,8 +259,9 @@ def live_event(hec_sh):
     # This avoids mixing a newer ANA observation with an older IFS first hour
     # while the live robot is updating concurrently.
     base_text = LIVE_BASIN.read_text(encoding="utf-8")
-    tc_vals = [float(x) for x in re.findall(r"(?m)^\s*Time of Concentration:\s*([-+0-9.eE]+)$", base_text)]
-    st_vals = [float(x) for x in re.findall(r"(?m)^\s*Storage Coefficient:\s*([-+0-9.eE]+)$", base_text)]
+    # HEC basin files may use CRLF. Permit trailing whitespace/CR explicitly.
+    tc_vals = [float(x) for x in re.findall(r"(?m)^\\s*Time of Concentration:\\s*([-+0-9.eE]+)\\s*$", base_text)]
+    st_vals = [float(x) for x in re.findall(r"(?m)^\\s*Storage Coefficient:\\s*([-+0-9.eE]+)\\s*$", base_text)]
     if not tc_vals or not st_vals:
         raise RuntimeError("Clark parameters not found in frozen live basin")
     baseline_tc = tc_vals[0]
