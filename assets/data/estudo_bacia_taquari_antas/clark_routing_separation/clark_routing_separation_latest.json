@@ -1,6 +1,6 @@
 {
   "schema_version": "clark_routing_separation_v1",
-  "generated_at_utc": "2026-09-29T00:30:38.204775Z",
+  "generated_at_utc": "2026-09-29T00:31:06.867945Z",
   "purpose": "diagnosticar se o erro temporal melhora ao separar resposta Clark de routing do canal; sem alterar modelo operacional",
   "engine": "Python audit twin: Initial+Constant + Clark + Recession + Muskingum",
   "operational_model_modified": false,
@@ -158,8 +158,8 @@
           "downstream": {
             "initial_loss": 2.5,
             "constant_loss": 4.0,
-            "tc": 35.0,
-            "storage": 90.0,
+            "tc": 15.0,
+            "storage": 50.0,
             "recession": 0.7,
             "initial_flow_ratio": 0.001
           },
@@ -170,16 +170,16 @@
         },
         "metrics": {
           "pairs": 245.0,
-          "nse": 0.44721740439613766,
-          "rmse_m3s": 2984.963491409499,
-          "mae_m3s": 2492.154143227559,
+          "nse": 0.49751604585224574,
+          "rmse_m3s": 2845.921668247005,
+          "mae_m3s": 2417.5057469643266,
           "peak_lag_hours": 2.0,
-          "peak_relative_error": 0.18742303651263406,
+          "peak_relative_error": 0.1471833700691341,
           "observed_peak_m3s": 14525.225,
-          "simulated_peak_m3s": 11802.863224470775,
-          "research_score": 0.1729386087553451
+          "simulated_peak_m3s": 12387.353433487562,
+          "research_score": 0.2735368332658281
         },
-        "objective": 0.1729386087553451
+        "objective": 0.2735368332658281
       },
       "sequential_clark_routing_k_ge_1h": {
         "params": {
@@ -194,8 +194,8 @@
           "downstream": {
             "initial_loss": 2.5,
             "constant_loss": 4.0,
-            "tc": 35.0,
-            "storage": 90.0,
+            "tc": 15.0,
+            "storage": 50.0,
             "recession": 0.7,
             "initial_flow_ratio": 0.001
           },
@@ -206,16 +206,16 @@
         },
         "metrics": {
           "pairs": 245.0,
-          "nse": 0.4071839820958295,
-          "rmse_m3s": 3091.1623008655392,
-          "mae_m3s": 2525.3283207879253,
+          "nse": 0.45339726750769405,
+          "rmse_m3s": 2968.231314500189,
+          "mae_m3s": 2455.904799654315,
           "peak_lag_hours": 0.0,
-          "peak_relative_error": 0.1439310214479643,
+          "peak_relative_error": 0.1017160252735518,
           "observed_peak_m3s": 14525.225,
-          "simulated_peak_m3s": 12434.594528988493,
-          "research_score": 0.22727020528587413
+          "simulated_peak_m3s": 13047.776846795974,
+          "research_score": 0.3262522359157543
         },
-        "objective": 0.22727020528587413
+        "objective": 0.3262522359157543
       },
       "rain_meta": {
         "strict_raw": {
@@ -304,23 +304,23 @@
             "recession": 0.995,
             "initial_flow_ratio": 0.005
           },
-          "k1": 0.5,
+          "k1": 0.25,
           "k2": 1.5,
-          "k3": 1.5,
+          "k3": 2.0,
           "x": 0.3
         },
         "metrics": {
           "pairs": 209.0,
-          "nse": 0.8224101320494543,
-          "rmse_m3s": 751.9123795611755,
-          "mae_m3s": 660.1292797227433,
+          "nse": 0.8224560656224127,
+          "rmse_m3s": 751.8151323022386,
+          "mae_m3s": 659.4677054984321,
           "peak_lag_hours": 0.0,
-          "peak_relative_error": 0.09636258113570348,
+          "peak_relative_error": 0.09712680189170027,
           "observed_peak_m3s": 7886.724999999999,
-          "simulated_peak_m3s": 7126.7398222925185,
-          "research_score": 0.7019569056298249
+          "simulated_peak_m3s": 7120.71262335068,
+          "research_score": 0.7010475632577874
         },
-        "objective": 0.7019569056298249
+        "objective": 0.7010475632577874
       },
       "routing_only_k_ge_1h": {
         "params": {
@@ -363,16 +363,16 @@
           "upstream": {
             "initial_loss": 2.5,
             "constant_loss": 0.25,
-            "tc": 28.0,
-            "storage": 15.0,
+            "tc": 18.0,
+            "storage": 25.0,
             "recession": 0.98,
             "initial_flow_ratio": 0.001
           },
           "downstream": {
             "initial_loss": 1.5,
             "constant_loss": 2.0,
-            "tc": 10.0,
-            "storage": 45.0,
+            "tc": 25.0,
+            "storage": 15.0,
             "recession": 0.995,
             "initial_flow_ratio": 0.005
           },
@@ -383,52 +383,52 @@
         },
         "metrics": {
           "pairs": 209.0,
-          "nse": 0.8545548767651632,
-          "rmse_m3s": 680.468028658176,
-          "mae_m3s": 615.3611697097621,
-          "peak_lag_hours": 3.0,
-          "peak_relative_error": 0.01680848389420658,
+          "nse": 0.8132499878811972,
+          "rmse_m3s": 771.0605119646509,
+          "mae_m3s": 674.9924900239239,
+          "peak_lag_hours": -2.0,
+          "peak_relative_error": 0.05238075627834666,
           "observed_peak_m3s": 7886.724999999999,
-          "simulated_peak_m3s": 8019.288890140536,
-          "research_score": 0.7735442718974049
+          "simulated_peak_m3s": 7473.612379940656,
+          "research_score": 0.7077740425332638
         },
-        "objective": 0.7735442718974049
+        "objective": 0.7077740425332638
       },
       "sequential_clark_routing_k_ge_1h": {
         "params": {
           "upstream": {
             "initial_loss": 2.5,
             "constant_loss": 0.25,
-            "tc": 28.0,
-            "storage": 15.0,
+            "tc": 18.0,
+            "storage": 25.0,
             "recession": 0.98,
             "initial_flow_ratio": 0.001
           },
           "downstream": {
             "initial_loss": 1.5,
             "constant_loss": 2.0,
-            "tc": 10.0,
-            "storage": 45.0,
+            "tc": 25.0,
+            "storage": 15.0,
             "recession": 0.995,
             "initial_flow_ratio": 0.005
           },
-          "k1": 1.0,
-          "k2": 1.0,
-          "k3": 1.0,
-          "x": 0.1
+          "k1": 2.5,
+          "k2": 3.0,
+          "k3": 2.0,
+          "x": 0.3
         },
         "metrics": {
           "pairs": 209.0,
-          "nse": 0.8514745295982464,
-          "rmse_m3s": 687.6360093559211,
-          "mae_m3s": 627.042581969402,
+          "nse": 0.8097250986894889,
+          "rmse_m3s": 778.3033426861542,
+          "mae_m3s": 668.2499133234902,
           "peak_lag_hours": 0.0,
-          "peak_relative_error": 0.030565660545478025,
+          "peak_relative_error": 0.05197921162129352,
           "observed_peak_m3s": 7886.724999999999,
-          "simulated_peak_m3s": 8127.787959165535,
-          "research_score": 0.8132674539163989
+          "simulated_peak_m3s": 7476.779252226053,
+          "research_score": 0.7447510841628721
         },
-        "objective": 0.8132674539163989
+        "objective": 0.7447510841628721
       },
       "rain_meta": {
         "strict_raw": {
@@ -528,29 +528,29 @@
             "recession": 0.995,
             "initial_flow_ratio": 0.16
           },
-          "k1": 4.0,
-          "k2": 5.5,
+          "k1": 5.5,
+          "k2": 4.0,
           "k3": 3.0,
           "x": 0.3
         },
         "metrics": {
           "pairs": 69.0,
-          "nse": 0.875789833356313,
-          "rmse_m3s": 205.59859030187502,
-          "mae_m3s": 165.18369115041114,
+          "nse": 0.8693705860706461,
+          "rmse_m3s": 210.84438972767944,
+          "mae_m3s": 168.71024961705555,
           "peak_lag_hours": 0.0,
-          "peak_relative_error": 0.005851498066615788,
+          "peak_relative_error": 0.011711515787210485,
           "observed_peak_m3s": 3360.085,
-          "simulated_peak_m3s": 3340.4234691188353,
-          "research_score": 0.8684754607730433
+          "simulated_peak_m3s": 3399.436688523869,
+          "research_score": 0.854731191336633
         },
-        "objective": 0.8566122864039195,
+        "objective": 0.8477296627225794,
         "terminal": {
           "end_obs_m3s": 3360.085,
-          "end_sim_m3s": 3340.4234691188353,
-          "end_error_m3s": -19.66153088116471,
+          "end_sim_m3s": 3399.436688523869,
+          "end_error_m3s": 39.35168852386914,
           "trend_obs_m3s_h": 326.0,
-          "trend_sim_m3s_h": 300.94026066917803
+          "trend_sim_m3s_h": 303.1336459192007
         }
       },
       "routing_only_k_ge_1h": {
@@ -571,29 +571,29 @@
             "recession": 0.995,
             "initial_flow_ratio": 0.16
           },
-          "k1": 4.0,
-          "k2": 5.5,
+          "k1": 5.5,
+          "k2": 4.0,
           "k3": 3.0,
           "x": 0.3
         },
         "metrics": {
           "pairs": 69.0,
-          "nse": 0.875789833356313,
-          "rmse_m3s": 205.59859030187502,
-          "mae_m3s": 165.18369115041114,
+          "nse": 0.8693705860706461,
+          "rmse_m3s": 210.84438972767944,
+          "mae_m3s": 168.71024961705555,
           "peak_lag_hours": 0.0,
-          "peak_relative_error": 0.005851498066615788,
+          "peak_relative_error": 0.011711515787210485,
           "observed_peak_m3s": 3360.085,
-          "simulated_peak_m3s": 3340.4234691188353,
-          "research_score": 0.8684754607730433
+          "simulated_peak_m3s": 3399.436688523869,
+          "research_score": 0.854731191336633
         },
-        "objective": 0.8566122864039195,
+        "objective": 0.8477296627225794,
         "terminal": {
           "end_obs_m3s": 3360.085,
-          "end_sim_m3s": 3340.4234691188353,
-          "end_error_m3s": -19.66153088116471,
+          "end_sim_m3s": 3399.436688523869,
+          "end_error_m3s": 39.35168852386914,
           "trend_obs_m3s_h": 326.0,
-          "trend_sim_m3s_h": 300.94026066917803
+          "trend_sim_m3s_h": 303.1336459192007
         }
       },
       "clark_only": {
@@ -601,7 +601,7 @@
           "upstream": {
             "initial_loss": 2.5,
             "constant_loss": 0.25,
-            "tc": 28.0,
+            "tc": 33.0,
             "storage": 45.0,
             "recession": 0.98,
             "initial_flow_ratio": 0.032
@@ -610,7 +610,7 @@
             "initial_loss": 1.5,
             "constant_loss": 2.0,
             "tc": 15.0,
-            "storage": 45.0,
+            "storage": 25.0,
             "recession": 0.995,
             "initial_flow_ratio": 0.16
           },
@@ -621,22 +621,22 @@
         },
         "metrics": {
           "pairs": 69.0,
-          "nse": 0.8344504330171925,
-          "rmse_m3s": 237.35893512369117,
-          "mae_m3s": 180.06371259648495,
+          "nse": 0.8241274303574688,
+          "rmse_m3s": 244.6474057597847,
+          "mae_m3s": 183.38162840187786,
           "peak_lag_hours": 0.0,
-          "peak_relative_error": 0.018267006243900295,
+          "peak_relative_error": 0.01392404849726287,
           "observed_peak_m3s": 3360.085,
-          "simulated_peak_m3s": 3298.7063063249643,
-          "research_score": 0.8116166752123171
+          "simulated_peak_m3s": 3313.2990135050745,
+          "research_score": 0.8067223697358903
         },
-        "objective": 0.7630697286234783,
+        "objective": 0.750687956681718,
         "terminal": {
           "end_obs_m3s": 3360.085,
-          "end_sim_m3s": 3298.7063063249643,
-          "end_error_m3s": -61.37869367503572,
+          "end_sim_m3s": 3313.2990135050745,
+          "end_error_m3s": -46.78598649492551,
           "trend_obs_m3s_h": 326.0,
-          "trend_sim_m3s_h": 229.00334495365829
+          "trend_sim_m3s_h": 221.04618729137596
         }
       },
       "sequential_clark_routing_k_ge_1h": {
@@ -652,34 +652,34 @@
           "downstream": {
             "initial_loss": 1.5,
             "constant_loss": 2.0,
-            "tc": 20.0,
+            "tc": 25.0,
             "storage": 25.0,
             "recession": 0.995,
             "initial_flow_ratio": 0.16
           },
-          "k1": 4.0,
-          "k2": 5.5,
+          "k1": 5.5,
+          "k2": 4.0,
           "k3": 3.0,
           "x": 0.3
         },
         "metrics": {
           "pairs": 69.0,
-          "nse": 0.875789833356313,
-          "rmse_m3s": 205.59859030187502,
-          "mae_m3s": 165.18369115041114,
+          "nse": 0.8797957990562922,
+          "rmse_m3s": 202.25598569173252,
+          "mae_m3s": 163.59644870172227,
           "peak_lag_hours": 0.0,
-          "peak_relative_error": 0.005851498066615788,
+          "peak_relative_error": 0.01899094260913525,
           "observed_peak_m3s": 3360.085,
-          "simulated_peak_m3s": 3340.4234691188353,
-          "research_score": 0.8684754607730433
+          "simulated_peak_m3s": 3296.273818603184,
+          "research_score": 0.8560571207948732
         },
-        "objective": 0.8566122864039195,
+        "objective": 0.848344563083771,
         "terminal": {
           "end_obs_m3s": 3360.085,
-          "end_sim_m3s": 3340.4234691188353,
-          "end_error_m3s": -19.66153088116471,
+          "end_sim_m3s": 3296.273818603184,
+          "end_error_m3s": -63.81118139681621,
           "trend_obs_m3s_h": 326.0,
-          "trend_sim_m3s_h": 300.94026066917803
+          "trend_sim_m3s_h": 294.8553890591693
         }
       },
       "rain_source_audit": {
@@ -811,34 +811,34 @@
         "dn_storage": 110.0
       },
       "clark_only": {
-        "nse": 0.4472,
-        "rmse_m3s": 2985.0,
+        "nse": 0.4975,
+        "rmse_m3s": 2845.9,
         "peak_lag_h": 2.0,
-        "peak_error_pct": 18.74,
-        "objective": 0.1729,
+        "peak_error_pct": 14.72,
+        "objective": 0.2735,
         "k1": 0.25,
         "k2": 1.25,
         "k3": 4.0,
         "x": 0.2,
         "up_tc": 1.0,
         "up_storage": 15.0,
-        "dn_tc": 35.0,
-        "dn_storage": 90.0
+        "dn_tc": 15.0,
+        "dn_storage": 50.0
       },
       "sequential_clark_routing_k_ge_1h": {
-        "nse": 0.4072,
-        "rmse_m3s": 3091.2,
+        "nse": 0.4534,
+        "rmse_m3s": 2968.2,
         "peak_lag_h": 0.0,
-        "peak_error_pct": 14.39,
-        "objective": 0.2273,
+        "peak_error_pct": 10.17,
+        "objective": 0.3263,
         "k1": 1.5,
         "k2": 1.0,
         "k3": 1.0,
         "x": 0.3,
         "up_tc": 1.0,
         "up_storage": 15.0,
-        "dn_tc": 35.0,
-        "dn_storage": 90.0
+        "dn_tc": 15.0,
+        "dn_storage": 50.0
       }
     },
     {
@@ -860,14 +860,14 @@
         "dn_storage": 25.0
       },
       "routing_only_unconstrained": {
-        "nse": 0.8224,
-        "rmse_m3s": 751.9,
+        "nse": 0.8225,
+        "rmse_m3s": 751.8,
         "peak_lag_h": 0.0,
-        "peak_error_pct": 9.64,
-        "objective": 0.702,
-        "k1": 0.5,
+        "peak_error_pct": 9.71,
+        "objective": 0.701,
+        "k1": 0.25,
         "k2": 1.5,
-        "k3": 1.5,
+        "k3": 2.0,
         "x": 0.3,
         "up_tc": 23.0,
         "up_storage": 25.0,
@@ -890,34 +890,34 @@
         "dn_storage": 25.0
       },
       "clark_only": {
-        "nse": 0.8546,
-        "rmse_m3s": 680.5,
-        "peak_lag_h": 3.0,
-        "peak_error_pct": 1.68,
-        "objective": 0.7735,
+        "nse": 0.8132,
+        "rmse_m3s": 771.1,
+        "peak_lag_h": -2.0,
+        "peak_error_pct": 5.24,
+        "objective": 0.7078,
         "k1": 2.5,
         "k2": 2.5,
         "k3": 1.0,
         "x": 0.2,
-        "up_tc": 28.0,
-        "up_storage": 15.0,
-        "dn_tc": 10.0,
-        "dn_storage": 45.0
+        "up_tc": 18.0,
+        "up_storage": 25.0,
+        "dn_tc": 25.0,
+        "dn_storage": 15.0
       },
       "sequential_clark_routing_k_ge_1h": {
-        "nse": 0.8515,
-        "rmse_m3s": 687.6,
+        "nse": 0.8097,
+        "rmse_m3s": 778.3,
         "peak_lag_h": 0.0,
-        "peak_error_pct": 3.06,
-        "objective": 0.8133,
-        "k1": 1.0,
-        "k2": 1.0,
-        "k3": 1.0,
-        "x": 0.1,
-        "up_tc": 28.0,
-        "up_storage": 15.0,
-        "dn_tc": 10.0,
-        "dn_storage": 45.0
+        "peak_error_pct": 5.2,
+        "objective": 0.7448,
+        "k1": 2.5,
+        "k2": 3.0,
+        "k3": 2.0,
+        "x": 0.3,
+        "up_tc": 18.0,
+        "up_storage": 25.0,
+        "dn_tc": 25.0,
+        "dn_storage": 15.0
       }
     },
     {
@@ -942,76 +942,76 @@
         "trend_sim_m3s_h": 378.0
       },
       "routing_only_unconstrained": {
-        "nse": 0.8758,
-        "rmse_m3s": 205.6,
+        "nse": 0.8694,
+        "rmse_m3s": 210.8,
         "peak_lag_h": null,
         "peak_error_pct": null,
-        "objective": 0.8566,
-        "k1": 4.0,
-        "k2": 5.5,
+        "objective": 0.8477,
+        "k1": 5.5,
+        "k2": 4.0,
         "k3": 3.0,
         "x": 0.3,
         "up_tc": 23.0,
         "up_storage": 25.0,
         "dn_tc": 20.0,
         "dn_storage": 25.0,
-        "end_error_m3s": -19.7,
+        "end_error_m3s": 39.4,
         "trend_obs_m3s_h": 326.0,
-        "trend_sim_m3s_h": 300.9
+        "trend_sim_m3s_h": 303.1
       },
       "routing_only_k_ge_1h": {
-        "nse": 0.8758,
-        "rmse_m3s": 205.6,
+        "nse": 0.8694,
+        "rmse_m3s": 210.8,
         "peak_lag_h": null,
         "peak_error_pct": null,
-        "objective": 0.8566,
-        "k1": 4.0,
-        "k2": 5.5,
+        "objective": 0.8477,
+        "k1": 5.5,
+        "k2": 4.0,
         "k3": 3.0,
         "x": 0.3,
         "up_tc": 23.0,
         "up_storage": 25.0,
         "dn_tc": 20.0,
         "dn_storage": 25.0,
-        "end_error_m3s": -19.7,
+        "end_error_m3s": 39.4,
         "trend_obs_m3s_h": 326.0,
-        "trend_sim_m3s_h": 300.9
+        "trend_sim_m3s_h": 303.1
       },
       "clark_only": {
-        "nse": 0.8345,
-        "rmse_m3s": 237.4,
+        "nse": 0.8241,
+        "rmse_m3s": 244.6,
         "peak_lag_h": null,
         "peak_error_pct": null,
-        "objective": 0.7631,
+        "objective": 0.7507,
         "k1": 2.5,
         "k2": 2.5,
         "k3": 1.0,
         "x": 0.2,
-        "up_tc": 28.0,
+        "up_tc": 33.0,
         "up_storage": 45.0,
         "dn_tc": 15.0,
-        "dn_storage": 45.0,
-        "end_error_m3s": -61.4,
+        "dn_storage": 25.0,
+        "end_error_m3s": -46.8,
         "trend_obs_m3s_h": 326.0,
-        "trend_sim_m3s_h": 229.0
+        "trend_sim_m3s_h": 221.0
       },
       "sequential_clark_routing_k_ge_1h": {
-        "nse": 0.8758,
-        "rmse_m3s": 205.6,
+        "nse": 0.8798,
+        "rmse_m3s": 202.3,
         "peak_lag_h": null,
         "peak_error_pct": null,
-        "objective": 0.8566,
-        "k1": 4.0,
-        "k2": 5.5,
+        "objective": 0.8483,
+        "k1": 5.5,
+        "k2": 4.0,
         "k3": 3.0,
         "x": 0.3,
         "up_tc": 23.0,
         "up_storage": 25.0,
-        "dn_tc": 20.0,
+        "dn_tc": 25.0,
         "dn_storage": 25.0,
-        "end_error_m3s": -19.7,
+        "end_error_m3s": -63.8,
         "trend_obs_m3s_h": 326.0,
-        "trend_sim_m3s_h": 300.9
+        "trend_sim_m3s_h": 294.9
       }
     }
   ],
