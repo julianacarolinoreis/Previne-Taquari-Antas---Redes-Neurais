@@ -1,0 +1,68 @@
+name: HEC Muçum restart fast cached inputs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/hec-mucum-restart-fast.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hec-mucum-restart-fast
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      HEC_WARM_START_LOCAL: "2026-09-29T06:00"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencies
+        run: pip install --disable-pip-version-check shapely pyproj matplotlib numpy
+
+      - name: Cache HEC-HMS 4.13
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Download HEC-HMS 4.13
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4             -o /tmp/HEC-HMS-4.13-linux64.tar.gz             https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Extended restart search with cached full-basin observations
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          python -B scripts/run_hec_hms_mucum_operational_restart.py "$HEC_SH"
+
+      - name: Publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-hec-restart-fast-bot"
+          git config user.email "previne-hec-restart-fast-bot@users.noreply.github.com"
+          git add --             assets/data/estudo_bacia_taquari_antas/hec_hms_operational_restart_latest.json             assets/data/estudo_bacia_taquari_antas/hec_hms_operational_restart_candidates.csv             assets/data/estudo_bacia_taquari_antas/hec_hms_operational_restart_series.csv
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "bot: HEC Muçum extended operational restart [skip ci]"
+          git pull --rebase --autostash origin main
+          git push origin HEAD:main
