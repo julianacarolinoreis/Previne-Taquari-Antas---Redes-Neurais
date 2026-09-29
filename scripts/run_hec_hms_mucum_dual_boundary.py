@@ -74,6 +74,69 @@ def station_rows(pkg, code):
     if not rows: raise RuntimeError(f"no observed flow for {code}")
     return rows
 
+def network_branch_stats(pkg, upg, boundary_code, exclude_codes=()):
+    """Robust current branch trend from every fresh observed-Q station in the UPG.
+
+    Stations are NOT summed. Their relative hour-to-hour changes are used as
+    state diagnostics because many gauges are nested along the same river.
+    """
+    rows=[]
+    for st in (pkg.get("flow") or {}).get("stations") or []:
+        if str(st.get("upg") or "") != str(upg):
+            continue
+        if str(st.get("code")) in set(str(x) for x in exclude_codes):
+            continue
+        q=[x for x in (st.get("series") or []) if x.get("flow_m3s") is not None]
+        if len(q)<2:
+            continue
+        a,b=q[-2],q[-1]
+        try:
+            ta=datetime.fromisoformat(str(a["time_local"]))
+            tb=datetime.fromisoformat(str(b["time_local"]))
+            qa=float(a["flow_m3s"]); qb=float(b["flow_m3s"])
+        except Exception:
+            continue
+        dh=(tb-ta).total_seconds()/3600.0
+        if dh<=0 or dh>3 or qa<=0:
+            continue
+        rel_per_h=(qb/qa-1.0)/dh
+        if abs(rel_per_h)>0.50:
+            # keep extreme local jumps visible in station audit, but do not let
+            # a single plant/gauge dominate the robust branch-state estimate.
+            continue
+        rows.append({
+            "code":str(st.get("code")),"name":st.get("name"),
+            "time_local":str(b.get("time_local")),"q_m3s":round(qb,3),
+            "relative_change_per_h":rel_per_h,
+        })
+    vals=sorted(x["relative_change_per_h"] for x in rows)
+    median_rel=vals[len(vals)//2] if vals else None
+
+    bst=next((st for st in (pkg.get("flow") or {}).get("stations") or []
+              if str(st.get("code"))==str(boundary_code)),None)
+    bq=[x for x in ((bst or {}).get("series") or []) if x.get("flow_m3s") is not None]
+    direct_slope=None; q0=None
+    if len(bq)>=2:
+        a,b=bq[-2],bq[-1]
+        ta=datetime.fromisoformat(str(a["time_local"])); tb=datetime.fromisoformat(str(b["time_local"]))
+        dh=(tb-ta).total_seconds()/3600.0
+        if dh>0:
+            q0=float(b["flow_m3s"])
+            direct_slope=(float(b["flow_m3s"])-float(a["flow_m3s"]))/dh
+    network_slope=(q0*median_rel) if (q0 is not None and median_rel is not None) else None
+    slopes=[x for x in (direct_slope,network_slope) if x is not None]
+    state_slope=sum(slopes)/len(slopes) if slopes else 0.0
+    return {
+        "upg":upg,"boundary_code":str(boundary_code),
+        "fresh_q_station_count":len(rows),"stations":rows,
+        "median_relative_change_per_h":None if median_rel is None else round(median_rel,5),
+        "boundary_direct_slope_m3s_h":None if direct_slope is None else round(direct_slope,3),
+        "network_equivalent_slope_m3s_h":None if network_slope is None else round(network_slope,3),
+        "state_slope_m3s_h":round(state_slope,3),
+        "note":"all fresh Q gauges constrain branch trend; nested gauges are diagnostics, never added as independent flows",
+    }
+
+
 def observed_at_hour(rows, t):
     exact={x:y for x,y in rows}
     if t in exact: return exact[t]
@@ -113,7 +176,7 @@ def carreiro_future_model(obs_q0):
     branch=[max(0.0,float(a)-float(b)) for a,b in zip(net["at_carreiro"],routed)]
     return times,branch,meta
 
-def make_source(times, obs_rows, future_times, future_vals, label):
+def make_source(times, obs_rows, future_times, future_vals, label, state_slope_m3s_h=0.0, memory_tau_h=3.0):
     last_t,last_q=obs_rows[-1]
     # Model change is used, never its absolute modeled Q.
     anchor_t=max(future_times[0], min(last_t, future_times[-1]))
@@ -124,13 +187,21 @@ def make_source(times, obs_rows, future_times, future_vals, label):
             out.append(observed_at_hour(obs_rows,t)); source.append(f"observed_{label}")
         else:
             m=interp(future_times,future_vals,t)
-            out.append(max(0.0,last_q+(m-anchor_model))); source.append(f"modeled_increment_anchored_{label}")
+            h=max(0.0,(t-last_t).total_seconds()/3600.0)
+            # A short observed-state memory term carries the measured rising/falling
+            # wave into the forecast without inventing any current Q. It decays back
+            # toward the rainfall-runoff forecast and is estimated from the complete
+            # fresh gauge network in the same UPG.
+            memory=float(state_slope_m3s_h)*h*math.exp(-h/max(float(memory_tau_h),0.25))
+            out.append(max(0.0,last_q+(m-anchor_model)+memory)); source.append(f"modeled_increment_plus_observed_network_memory_{label}")
     return out,{
         "station":label,
         "last_observed_local":last_t.isoformat(timespec="minutes"),
         "last_observed_q_m3s":round(last_q,3),
         "model_anchor_local":anchor_t.isoformat(timespec="minutes"),
         "model_anchor_q_m3s":round(anchor_model,3),
+        "observed_network_state_slope_m3s_h":round(float(state_slope_m3s_h),3),
+        "memory_tau_h":float(memory_tau_h),
     },source
 
 def sb_text(name,area,downstream,il,cl,tc,storage,rec,ratio):
@@ -396,6 +467,10 @@ def main():
     rows,times=read_zone()
     lrows=station_rows(obs,"86472000")
     crows=station_rows(obs,"86500000")
+    # Every observed-Q gauge participates in state diagnosis by UPG.
+    # Only non-overlapping downstream controls become mass boundaries.
+    antas_stats=network_branch_stats(obs,"Médio Taquari-Antas","86472000",exclude_codes=("86472600","86510000"))
+    carr_stats=network_branch_stats(obs,"Carreiro","86500000")
 
     lft,lfq=l_julio_future_model()
     forcing=loadj(FORCING)
@@ -403,8 +478,14 @@ def main():
     cq0=observed_at_hour(crows,fstart)
     cft,cfq,cmeta=carreiro_future_model(cq0)
 
-    q_ljj,laudit,lsource=make_source(times,lrows,lft,lfq,"86472000")
-    q_carr,caudit,csource=make_source(times,crows,cft,cfq,"86500000")
+    q_ljj,laudit,lsource=make_source(
+        times,lrows,lft,lfq,"86472000",
+        state_slope_m3s_h=float(antas_stats["state_slope_m3s_h"]),memory_tau_h=3.0
+    )
+    q_carr,caudit,csource=make_source(
+        times,crows,cft,cfq,"86500000",
+        state_slope_m3s_h=float(carr_stats["state_slope_m3s_h"]),memory_tau_h=3.0
+    )
     rain=[float(r["rain_02851072_mm"]) for r in rows]
 
     row=next(r for r in lib["params_library_eventwise"] if r["event_id"]=="E28")
@@ -461,6 +542,18 @@ def main():
         "areas_km2":{"LJJ_upstream":AREA_LJJ,"Carreiro":AREA_CARR,"STZ_residual":AREA_STZ_RES,"Mucum_increment":AREA_MUC_INC},
         "routing":{"k1_h":K1,"k2_h":K2,"k3_h":K3,"x":X},
         "calibration_event":"E28","calibration_nse":row.get("nse"),
+      },
+      "observed_network_audit":{
+        "rain_valid_station_count":(obs.get("rain") or {}).get("valid_station_count"),
+        "rain_spatial_method":(obs.get("rain") or {}).get("spatial_method"),
+        "rain_event_basin_areal_mm":((obs.get("rain") or {}).get("accumulations") or {}).get("event_basin_areal_mm"),
+        "rain_event_by_zone_mm":((obs.get("rain") or {}).get("accumulations") or {}).get("event_by_zone_mm"),
+        "flow_station_count":len((obs.get("flow") or {}).get("stations") or []),
+        "flow_stations_with_q":(obs.get("flow") or {}).get("stations_with_flow"),
+        "flow_stations_with_level":(obs.get("flow") or {}).get("stations_with_level"),
+        "antas_branch_state":antas_stats,
+        "carreiro_branch_state":carr_stats,
+        "rule":"all observed gauges are used for QC/state/trend; only non-overlapping downstream branch controls are added to mass balance",
       },
       "boundary_audit":{"linha_jose_julio":laudit,"passo_carreiro":caudit,"carreiro_state_scaling":cmeta},
       "current":{"observed_time_local":obs_t.isoformat(timespec="minutes"),"observed_stage_cm":obs_n,
