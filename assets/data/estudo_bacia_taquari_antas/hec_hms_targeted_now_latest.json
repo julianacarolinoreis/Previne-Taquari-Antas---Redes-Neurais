@@ -1,6 +1,6 @@
 {
   "schema_version": "hec_hms_spatial_forecast_mucum_v2_warmup",
-  "generated_at_utc": "2026-09-29T21:39:13.305622Z",
+  "generated_at_utc": "2026-09-29T21:40:02.124294Z",
   "status": "hec_hms_4_13_blocked_inconsistent_state",
   "publishable": false,
   "model": "HEC-HMS 4.13",
@@ -457,37 +457,37 @@
       "86472000": {
         "observed_partial_mm": 0.0,
         "ifs_full_hour_mm": 0.246,
-        "combined_hour_mm": 0.529,
-        "source": "rolling_accumulation_guard_low_current_coverage",
+        "combined_hour_mm": 0.246,
+        "source": "ifs_full_hour_fallback_no_representative_observed_partial",
         "degraded": true,
         "current_station_count": 23,
         "min_representative_station_count": 31,
         "current_hour_representative": false,
-        "rain_scenario": "recent_accum_guard",
-        "recent_3h_mean_rate_mm_h": 0.0827,
-        "recent_6h_mean_rate_mm_h": 0.5295,
-        "conservative_persistence_rate_mm_h": 0.5295
+        "rain_scenario": "baseline",
+        "recent_3h_mean_rate_mm_h": null,
+        "recent_6h_mean_rate_mm_h": null,
+        "conservative_persistence_rate_mm_h": null
       },
       "02851072": {
         "observed_partial_mm": 0.0,
         "ifs_full_hour_mm": 0.052,
-        "combined_hour_mm": 0.504,
-        "source": "rolling_accumulation_guard_low_current_coverage",
+        "combined_hour_mm": 0.052,
+        "source": "ifs_full_hour_fallback_no_representative_observed_partial",
         "degraded": true,
         "current_station_count": 23,
         "min_representative_station_count": 31,
         "current_hour_representative": false,
-        "rain_scenario": "recent_accum_guard",
-        "recent_3h_mean_rate_mm_h": 0.0261,
-        "recent_6h_mean_rate_mm_h": 0.504,
-        "conservative_persistence_rate_mm_h": 0.504
+        "rain_scenario": "baseline",
+        "recent_3h_mean_rate_mm_h": null,
+        "recent_6h_mean_rate_mm_h": null,
+        "conservative_persistence_rate_mm_h": null
       }
     },
     "rain_scenario": {
-      "name": "recent_accum_guard",
-      "conservative_hours": 4,
-      "lookback_hours": 6,
-      "description": "Cenário de estresse por acumulados: usa as janelas observadas de 3 h e 6 h, adota a maior taxa média como piso nas próximas horas e rejeita a hora corrente como representativa quando a cobertura de postos cai abaixo do limiar dinâmico."
+      "name": "baseline",
+      "conservative_hours": 0,
+      "lookback_hours": 0,
+      "description": "ECMWF/IFS operacional; hora corrente com baixa cobertura não é usada como chuva areal observada."
     }
   },
   "initial_state": {
@@ -1153,7 +1153,7 @@
     "visual_stage_anchor_applied": false,
     "warmup_state_matches_observation": false,
     "forecast_validation_timestamp_is_exact_observation_time": true,
-    "observation_age_at_postprocess_minutes": 24.2,
+    "observation_age_at_postprocess_minutes": 25.0,
     "event_hydrograph_since_20260926": {
       "n_points": 362,
       "start_utc": "2026-09-26T03:00:00Z",
@@ -1212,7 +1212,7 @@
       "viés do hidrograma observado desde 26/09 = +31.8 cm (>30 cm)",
       "tendência HEC +5.0 cm/h incompatível com observado +34.0 cm/h (razão=0.15)"
     ],
-    "observation_age_at_postprocess_minutes": 24.2,
+    "observation_age_at_postprocess_minutes": 25.0,
     "peak_q_m3s": null,
     "peak_time_utc": null,
     "peak_level_rating_cm": null,
@@ -1663,10 +1663,9 @@
     "series_csv": "assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/primary_series.csv",
     "runtime_dir": "assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum"
   },
-  "operational_cycle": {
-    "mode": "latest_observed_state_plus_latest_accepted_calibration",
-    "calibration_generated_at_utc": "2026-09-29T21:01:16.353056Z",
-    "calibration_parameters": {
+  "targeted_live_search": {
+    "method": "focused_fast_response_high_loss_search",
+    "selected_parameters": {
       "initial_loss_mm": 25.0,
       "constant_loss_mm_h": 2.0,
       "tc_h": 15.0,
@@ -1674,10 +1673,42 @@
       "recession": 0.9,
       "initial_flow_multiplier": 0.35
     },
-    "seed_event": "E28",
-    "recalibration_performed_this_cycle": false,
-    "visual_stage_anchor_applied": false
-  },
-  "scenario_label": "conservative_recent_accum_guard",
-  "scenario_note_pt": "Cenário de estresse por acumulados: calcula janelas observadas de 3 h e 6 h, usa a maior taxa média como piso nas próximas 4 horas e ignora a hora corrente como chuva areal quando a cobertura de postos não é representativa."
+    "selected_metrics": {
+      "label": "targeted_selected",
+      "seed_event": "E28",
+      "initial_loss_mm": 25.0,
+      "constant_loss_mm_h": 2.0,
+      "tc_h": 15.0,
+      "storage_h": 15.0,
+      "recession": 0.9,
+      "initial_flow_multiplier": 0.35,
+      "score": 6.745674,
+      "event_rmse_cm": 246.138,
+      "event_nse": 0.50424,
+      "event_mae_cm": 179.016,
+      "event_bias_cm": 31.797,
+      "event_peak_time_error_h": -21.25,
+      "recent_12h_rmse_cm": 47.007,
+      "recent_12h_nse": 0.83988,
+      "recent_12h_peak_time_error_h": 0.0,
+      "recent_6h_rmse_cm": 33.71,
+      "recent_6h_nse": 0.83691,
+      "recent_6h_peak_time_error_h": 0.0,
+      "stage_error_at_t0_cm": -17.28,
+      "q_error_pct": -1.86,
+      "observed_trend_cm_h": 34.0,
+      "model_trend_cm_h": 5.04,
+      "publishable": false,
+      "blocking_reasons_pt": [
+        "RMSE do hidrograma observado desde 26/09 = 246.1 cm (>60 cm)",
+        "NSE do hidrograma observado desde 26/09 = 0.504 (<0,75)",
+        "viés do hidrograma observado desde 26/09 = +31.8 cm (>30 cm)",
+        "tendência HEC +5.0 cm/h incompatível com observado +34.0 cm/h (razão=0.15)"
+      ]
+    },
+    "candidate_count": 12,
+    "objective": "current state + current trend + recent 6h/12h fit; full-basin observed-rain warm-up retained",
+    "visual_stage_shift": false,
+    "research_only": true
+  }
 }
