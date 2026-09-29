@@ -1,0 +1,92 @@
+name: HEC Muçum dual observed boundary
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/hec-mucum-dual-observed-boundary.yml"
+      - "scripts/run_hec_hms_mucum_dual_boundary.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hec-mucum-dual-observed-boundary
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencies
+        run: pip install --disable-pip-version-check shapely pyproj matplotlib numpy
+
+      - name: Refresh observed multistation
+        run: OBS_FAST_MODE=1 python -B scripts/build_mucum_observed_multistation.py
+
+      - name: Refresh ECMWF IFS spatial field
+        run: python -B scripts/build_spatial_ifs_mucum.py
+
+      - name: Refresh five-subbasin IFS forcing
+        run: python -B scripts/build_hec_twin_ifs_spatial_forcing_5d.py
+
+      - name: Refresh HEC observed-rain/future-rain timeline
+        run: python -B scripts/build_hec_hms_spatial_forecast_mucum.py
+
+      - name: Cache HEC-HMS 4.13
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Download HEC-HMS 4.13
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4 \
+            -o /tmp/HEC-HMS-4.13-linux64.tar.gz \
+            https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Run dual observed-boundary HEC
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          test -n "$HEC_SH"
+          python -B scripts/run_hec_hms_mucum_dual_boundary.py "$HEC_SH"
+
+      - name: Publish dual-boundary result
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-hec-dual-boundary-bot"
+          git config user.email "previne-hec-dual-boundary-bot@users.noreply.github.com"
+          git add -- \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum_latest.json \
+            assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/primary_series.csv
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "bot: HEC Muçum dual observed boundary [skip ci]"
+          git restore --worktree . || true
+          git clean -fd -- assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/project || true
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then exit 0; fi
+            git reset --hard HEAD
+            git fetch origin main
+            if git rebase origin/main; then continue; fi
+            git rebase --abort || true
+            exit 1
+          done
+          exit 1
