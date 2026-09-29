@@ -1,0 +1,144 @@
+name: HEC Mucum ECMWF 06Z quick 24h
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/hec-mucum-ecmwf-06z-quick.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: hec-mucum-ecmwf-06z-quick
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libeccodes-dev
+          python -m pip install --disable-pip-version-check shapely pyproj matplotlib numpy attrs cffi findlibs
+          python -m pip install --disable-pip-version-check --no-deps eccodes==2.48.0
+
+      - name: Refresh observed basin data
+        run: OBS_FAST_MODE=1 python -B scripts/build_mucum_observed_multistation.py
+
+      - name: Exact ECMWF IFS 06Z spatial forcing, next 24h
+        env:
+          IFS_CYCLE_UTC: "2026-09-29T06:00:00Z"
+          IFS_MAX_STEP_H: "24"
+        run: python -B scripts/build_spatial_ifs_mucum_ecmwf_direct_cycle.py
+
+      - name: Cache HEC-HMS
+        id: cache-hec
+        uses: actions/cache@v4
+        with:
+          path: .hec
+          key: hec-hms-4.13-linux64-v1
+
+      - name: Download HEC-HMS 4.13
+        if: steps.cache-hec.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .hec
+          curl -L --fail --retry 3 --retry-delay 4 -o /tmp/HEC-HMS-4.13-linux64.tar.gz https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
+          tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
+
+      - name: Run fixed calibration with state-only candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
+          mkdir -p /tmp/hec06
+          for M in 0.55 0.60 0.65 0.70 0.75; do
+            export HEC_PARAM_EVENT=E28
+            export HEC_INITIAL_LOSS_MM=20
+            export HEC_CONSTANT_LOSS_MM_H=3
+            export HEC_TC_H=25
+            export HEC_STORAGE_H=20
+            export HEC_RECESSION_DAILY=0.90
+            export HEC_INITIAL_FLOW_MULTIPLIER="$M"
+            python -B scripts/build_hec_hms_spatial_forecast_mucum.py
+            rm -f assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/hec_output_values.csv
+            "$HEC_SH" -s assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/project/run_forecast.script
+            python -B scripts/postprocess_hec_hms_spatial_forecast_mucum.py
+            TAG="$(echo "$M" | tr '.' '_')"
+            cp assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum_latest.json "/tmp/hec06/state_$TAG.json"
+            cp assets/data/estudo_bacia_taquari_antas/hec_hms_spatial_forecast_mucum/primary_series.csv "/tmp/hec06/state_$TAG.csv"
+          done
+
+      - name: Select state closest to current observation
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, shutil
+          from pathlib import Path
+          rows=[]
+          for p in sorted(Path("/tmp/hec06").glob("state_*.json")):
+              j=json.loads(p.read_text(encoding="utf-8"))
+              v=j.get("validation") or {}
+              ps=j.get("parameter_source") or {}
+              s=j.get("summary") or {}
+              rows.append((abs(float(v.get("stage_error_at_t0_cm",1e9))),p,j,{
+                  "initial_flow_multiplier":ps.get("initial_flow_multiplier"),
+                  "stage_error_at_t0_cm":v.get("stage_error_at_t0_cm"),
+                  "q_error_pct":v.get("q_error_pct"),
+                  "publishable":v.get("publishable"),
+                  "peak_level_cm":s.get("candidate_peak_level_rating_cm"),
+                  "peak_time_utc":s.get("candidate_peak_time_utc")
+              }))
+          rows.sort(key=lambda x:x[0])
+          _,p,j,sel=rows[0]
+          root=Path("assets/data/estudo_bacia_taquari_antas")
+          shutil.copy2(p,root/"hec_hms_ecmwf_06z_quick_latest.json")
+          shutil.copy2(p.with_suffix(".csv"),root/"hec_hms_ecmwf_06z_quick_series.csv")
+          forcing=json.loads((root/"spatial_ifs_mucum/spatial_ifs_mucum_direct_06z_latest.json").read_text(encoding="utf-8"))
+          manifest={
+            "ecmwf_cycle_time_utc":"2026-09-29T06:00:00Z",
+            "forcing_24h_basin_mm":(forcing.get("rainfall_24h") or {}).get("equivalent_basin_depth_mm"),
+            "selected":sel,
+            "current_state":j.get("current_state"),
+            "summary":j.get("summary"),
+            "validation":j.get("validation")
+          }
+          (root/"hec_hms_ecmwf_06z_quick_manifest.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          print(json.dumps(manifest,ensure_ascii=False))
+          PY
+
+      - name: Save artifact first
+        uses: actions/upload-artifact@v4
+        with:
+          name: mucum-ecmwf-06z-quick-24h
+          path: |
+            assets/data/estudo_bacia_taquari_antas/hec_hms_ecmwf_06z_quick_latest.json
+            assets/data/estudo_bacia_taquari_antas/hec_hms_ecmwf_06z_quick_series.csv
+            assets/data/estudo_bacia_taquari_antas/hec_hms_ecmwf_06z_quick_manifest.json
+            assets/data/estudo_bacia_taquari_antas/spatial_ifs_mucum/spatial_ifs_mucum_direct_06z_latest.json
+            assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_latest.json
+            assets/data/estudo_bacia_taquari_antas/mucum_observed_multistation_rain_hourly.csv
+
+      - name: Publish if possible
+        shell: bash
+        run: |
+          git config user.name "previne-hec-audit-bot"
+          git config user.email "previne-hec-audit-bot@users.noreply.github.com"
+          git add --             assets/data/estudo_bacia_taquari_antas/hec_hms_ecmwf_06z_quick_latest.json             assets/data/estudo_bacia_taquari_antas/hec_hms_ecmwf_06z_quick_series.csv             assets/data/estudo_bacia_taquari_antas/hec_hms_ecmwf_06z_quick_manifest.json
+          git commit -m "audit: Mucum HEC ECMWF 06Z quick 24h [skip ci]" || exit 0
+          git push origin HEAD:main || true
