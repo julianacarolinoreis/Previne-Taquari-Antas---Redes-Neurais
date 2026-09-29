@@ -126,9 +126,13 @@ def interp(times_dt, values, target):
     raise RuntimeError("target outside interpolation grid")
 
 
-def event_hydrograph_metrics(run_dt, n_full, t0):
+def event_hydrograph_metrics(run_dt, n_full, t0, start_utc_override=None):
     live = load_json(LIVE)
-    start_utc = EVENT_START_LOCAL.replace(tzinfo=BRT).astimezone(timezone.utc)
+    start_utc = (
+        start_utc_override
+        if start_utc_override is not None
+        else EVENT_START_LOCAL.replace(tzinfo=BRT).astimezone(timezone.utc)
+    )
     pairs = []
     for row in live.get("serie_observada_ana") or []:
         raw_t = row.get("hora")
@@ -219,6 +223,12 @@ def main():
     q_model_t0 = interp(run_dt, q_full, t0)
     n_model_t0 = interp(run_dt, n_full, t0)
     event_fit = event_hydrograph_metrics(run_dt, n_full, t0)
+    recent_fit_12h = event_hydrograph_metrics(
+        run_dt, n_full, t0, start_utc_override=t0 - timedelta(hours=12)
+    )
+    recent_fit_6h = event_hydrograph_metrics(
+        run_dt, n_full, t0, start_utc_override=t0 - timedelta(hours=6)
+    )
 
     # Keep the HEC-HMS output physically unshifted. The observation at t0 is
     # a validation target, not a visual anchor. A future operational product
@@ -390,6 +400,8 @@ def main():
             "forecast_validation_timestamp_is_exact_observation_time": True,
             "observation_age_at_postprocess_minutes": round(obs_age_min, 1),
             "event_hydrograph_since_20260926": event_fit,
+            "recent_hydrograph_12h": recent_fit_12h,
+            "recent_hydrograph_6h": recent_fit_6h,
         },
         "summary": {
             "q_now_observed_rating_m3s": round(q_obs, 3),
@@ -412,6 +424,8 @@ def main():
             "candidate_rise_from_model_t0_cm": round(candidate_rise, 2),
             "stale_outlet_points_discarded": stale_outlet_points,
             "event_hydrograph_since_20260926": event_fit,
+            "recent_hydrograph_12h": recent_fit_12h,
+            "recent_hydrograph_6h": recent_fit_6h,
         },
         "nodes": node_series,
         "hec_output": {
@@ -462,6 +476,10 @@ def main():
         "event_rmse_cm": event_fit.get("rmse_cm"),
         "event_nse": event_fit.get("nse"),
         "event_peak_time_error_h": event_fit.get("peak_time_error_h"),
+        "recent_12h_rmse_cm": recent_fit_12h.get("rmse_cm"),
+        "recent_12h_nse": recent_fit_12h.get("nse"),
+        "recent_6h_rmse_cm": recent_fit_6h.get("rmse_cm"),
+        "recent_6h_nse": recent_fit_6h.get("nse"),
         "blocking_reasons": reasons,
     }, ensure_ascii=False))
 
