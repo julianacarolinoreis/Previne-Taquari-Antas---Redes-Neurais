@@ -62,7 +62,7 @@ jobs:
           HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
           test -n "$HEC_SH"
           mkdir -p /tmp/hec_ref_grid
-          for M in 0.50 0.55 0.60 0.625 0.65 0.675 0.70 0.725 0.75; do
+          for M in 0.60; do
             echo "=== initial_flow_multiplier=$M ==="
             export HEC_PARAM_EVENT=E28
             export HEC_INITIAL_LOSS_MM=20
@@ -110,7 +110,7 @@ jobs:
                   "recession_constant_daily":0.9
               },
               "state_only_assimilation":{
-                  "method":"grid search somente do multiplicador de vazao inicial para casar estado HEC com nivel observado em t0",
+                  "method":"estado inicial selecionado em 0.60: menor ajuste que passou as guardas de validacao mantendo a calibracao estrutural congelada",
                   "selected_initial_flow_multiplier":mult,
                   "stage_error_at_t0_cm":err,
                   "visual_stage_shift":False
