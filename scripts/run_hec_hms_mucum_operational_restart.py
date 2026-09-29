@@ -121,8 +121,8 @@ def main() -> int:
         raise SystemExit("usage: run_hec_hms_mucum_operational_restart.py /path/to/hec-hms.sh")
     hec_sh = sys.argv[1]
 
-    timing_pairs = [(4.0,4.0),(6.0,6.0),(8.0,8.0),(10.0,10.0),(12.0,12.0)]
-    loss_profiles = [(0.0,0.25),(1.0,0.5),(2.0,0.8),(5.0,1.0)]
+    timing_pairs = [(12.0,12.0),(14.0,14.0),(16.0,16.0),(18.0,18.0),(20.0,20.0),(14.0,16.0),(16.0,14.0)]
+    loss_profiles = [(5.0,1.0),(8.0,1.0),(10.0,1.2),(12.0,1.5)]
     rows = []
     for tc,storage in timing_pairs:
         for il,cl in loss_profiles:
@@ -150,7 +150,7 @@ def main() -> int:
     base = {k: coarse[k] for k in ("initial_loss_mm","constant_loss_mm_h","tc_h","storage_h","recession","initial_flow_multiplier")}
 
     # Refine only the internal initial-flow state around the best dynamic shape.
-    for mult in (0.70,0.85,1.15,1.30):
+    for mult in (0.45,0.55,0.65,0.70,0.75,0.85,1.15):
         p = dict(base)
         p["initial_flow_multiplier"] = mult
         p = cal.rounded_params(p)
