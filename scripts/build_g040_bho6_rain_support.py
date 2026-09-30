@@ -183,7 +183,7 @@ def main():
         "version":next((str(x.get("dsversao")) for x in segs if x.get("dsversao")),None)},
       "intervals":summaries,"total_support_points":len(rows),
       "total_gross_support_area_km2":round(total,6),
-      "expected_total_mainstem_area_gain_km2":round(float(budget["total_mainstem_area_gain_km2"]),6),
+      "expected_total_mainstem_area_gain_km2":round(sum(float(x["gross_increment_km2"]) for x in budget["intervals"]),6),
       "all_intervals_close":True,
       "usage_contract":{"observed":"IDW field sampled at support points after scenario filtering",
         "forecast":"ECMWF field sampled at same points after scenario filtering",
