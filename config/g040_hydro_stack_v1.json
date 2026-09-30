@@ -37,14 +37,57 @@
         48,
         72
       ],
-      "missing_policy": "missing is never coerced to zero"
+      "missing_policy": "missing is never coerced to zero",
+      "current_full_grid_archive": {
+        "method": "ANA observed rainfall spatialized by IDW over all 600 grid cells",
+        "observed_bands": 83,
+        "missing_policy": "missing observations remain missing during source QC; final DSS validation requires zero missing grid records"
+      }
     },
     "forecast_rain": {
       "preferred_source": "ECMWF/IFS",
       "preserve_cycle": true,
       "preserve_lead_time": true,
       "preserve_member": true,
-      "transition_observed_to_forecast_must_be_explicit": true
+      "transition_observed_to_forecast_must_be_explicit": true,
+      "status": "forcing_contract_recovered",
+      "full_grid": {
+        "rows": 30,
+        "cols": 20,
+        "cells": 600,
+        "resolution_deg": 0.1,
+        "spatial_extent": "Taquari-Antas G040 full grid"
+      },
+      "hec_dss_archive": {
+        "hourly_bands_total": 203,
+        "observed_bands": 83,
+        "forecast_bands": 120,
+        "interval_minutes": 60,
+        "validation": {
+          "path_count": 203,
+          "total_missing": 0,
+          "records_with_missing": 0,
+          "bad_dimensions": 0
+        },
+        "hec_settings": {
+          "time_shift_hours": 3,
+          "transpose": false,
+          "replace_missing": "Abort Compute"
+        }
+      },
+      "hec_subbasin_point_sampling": {
+        "points": 145,
+        "direct_grid_cell": 141,
+        "one_cell_edge_fallback": 4,
+        "fallback_subbasins": [
+          25,
+          34,
+          107,
+          136
+        ],
+        "source": "archived ECMWF point table used for Bacia1..Bacia145",
+        "persistence_status": "source workbook recovered; compact repo table pending"
+      }
     },
     "potential_et": {
       "required_for_continuous_sma": true,
