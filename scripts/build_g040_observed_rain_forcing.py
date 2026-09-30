@@ -45,6 +45,7 @@ SUPPORT_META=BASE/"whole_basin_rain_support_latest.json"
 MASK=STUDY/"sub_bacias_q040_enquadramento.geojson"
 RAIN_CATALOG=STUDY/"pluviometria_g040.geojson"
 FLOW_CATALOG=STUDY/"postos_g040.geojson"
+SCENARIOS=BASE/"whole_basin_boundary_scenarios_latest.json"
 OUT=BASE/"whole_basin_observed_rain_latest.json"
 OUTCSV=BASE/"whole_basin_observed_rain_hourly.csv"
 
@@ -101,8 +102,8 @@ def read_support():
                 "lon":float(r["lon"]),
                 "lat":float(r["lat"]),
                 "local_area_km2":float(r["local_area_km2"]),
-                "weight":float(r["weight"]),
                 "fid":int(r["fid"]),
+                "tributary_boundary_code":str(r.get("tributary_boundary_code") or "").strip(),
             })
     if not rows:
         raise RuntimeError("BHO6 rainfall support mesh is empty")
@@ -173,8 +174,15 @@ def main() -> int:
     if not SUPPORT.exists() or not SUPPORT_META.exists():
         raise RuntimeError("rain support mesh has not been built")
     support_meta=loadj(SUPPORT_META)
-    if support_meta.get("status")!="RAIN_SUPPORT_READY":
-        raise RuntimeError("rain support mesh is not ready")
+    if support_meta.get("status")!="RAIN_SUPPORT_READY_DYNAMIC_SCENARIO":
+        raise RuntimeError("scenario-aware rain support mesh is not ready")
+    scenarios=loadj(SCENARIOS)
+    current=scenarios.get("current") or {}
+    active_boundary_codes={str(x) for x in current.get("active_boundary_codes") or []}
+    expected_area={
+        str(x["interval_id"]):float(x["effective_rainfall_runoff_area_km2"])
+        for x in current.get("intervals") or []
+    }
 
     end=datetime.now(BRT).replace(tzinfo=None)
     start=end-timedelta(hours=WINDOW_HOURS-1)
@@ -215,9 +223,20 @@ def main() -> int:
     points=read_support()
     intervals=sorted({p["interval_id"] for p in points})
     group_indices={
-        iid:np.array([i for i,p in enumerate(points) if p["interval_id"]==iid],dtype=int)
+        iid:np.array([
+            i for i,p in enumerate(points)
+            if p["interval_id"]==iid
+            and p.get("tributary_boundary_code","") not in active_boundary_codes
+        ],dtype=int)
         for iid in intervals
     }
+    for iid,idx in group_indices.items():
+        got=float(sum(points[int(i)]["local_area_km2"] for i in idx))
+        exp=expected_area.get(iid)
+        if exp is None:
+            raise RuntimeError(f"{iid}: no effective area in current boundary scenario")
+        if abs(got-exp)>max(0.05,0.0005*exp):
+            raise RuntimeError(f"{iid}: scenario support area {got:.6f} != effective area {exp:.6f}")
     point_area=np.array([p["local_area_km2"] for p in points],dtype=float)
 
     hours=hourly_axis(start,end)
@@ -313,6 +332,13 @@ def main() -> int:
             "integration":"BHO6 local drainage area weighted mean per HEC incremental interval",
             "missing_policy":"missing remains missing; never zero-filled",
             "support_reference":str(SUPPORT.relative_to(ROOT)),
+            "boundary_scenario":scenarios.get("current_scenario"),
+            "active_observed_boundary_codes":sorted(active_boundary_codes),
+        },
+        "boundary_scenario":{
+            "name":scenarios.get("current_scenario"),
+            "active_boundary_codes":sorted(active_boundary_codes),
+            "effective_rainfall_runoff_area_km2":current.get("effective_rainfall_runoff_area_km2"),
         },
         "network":{
             "eligible_station_count":len(candidates),
