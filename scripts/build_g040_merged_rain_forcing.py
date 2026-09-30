@@ -47,6 +47,14 @@ def main() -> int:
     if fc.get("status")!="IFS_INTERVAL_FORCING_READY":
         raise RuntimeError(f"IFS forcing not ready: {fc.get('status')}")
 
+    obs_scenario=(obs.get("boundary_scenario") or {}).get("name")
+    fc_scenario=(fc.get("boundary_scenario") or {}).get("name")
+    obs_active=sorted(str(x) for x in (obs.get("boundary_scenario") or {}).get("active_boundary_codes") or [])
+    fc_active=sorted(str(x) for x in (fc.get("boundary_scenario") or {}).get("active_boundary_codes") or [])
+    if obs_scenario!=fc_scenario or obs_active!=fc_active:
+        raise RuntimeError(
+            f"observed/IFS boundary scenario mismatch: {obs_scenario}/{obs_active} vs {fc_scenario}/{fc_active}"
+        )
     forecast_start=parse_utc(fc["window"]["start_utc"])
     obs_by={x["interval_id"]:x for x in obs.get("intervals") or []}
     fc_by={x["interval_id"]:x for x in fc.get("intervals") or []}
@@ -139,6 +147,10 @@ def main() -> int:
         "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
         "research_only":True,
         "status":status,
+        "boundary_scenario":{
+            "name":obs_scenario,
+            "active_boundary_codes":obs_active,
+        },
         "transition":{
             "forecast_start_utc":forecast_start.isoformat().replace("+00:00","Z"),
             "rule":"observed strictly before forecast_start; ECMWF IFS from forecast_start onward",
@@ -150,6 +162,7 @@ def main() -> int:
             "all_intervals_present":len(ids)==8,
             "at_least_24_observed_hours_each":obs_complete_before_t0,
             "120h_forecast_complete_each":forecast_complete,
+            "observed_forecast_scenario_match":True,
         },
         "intervals":interval_payload,
         "artifacts":{"hourly_csv":str(OUTCSV.relative_to(ROOT))},
