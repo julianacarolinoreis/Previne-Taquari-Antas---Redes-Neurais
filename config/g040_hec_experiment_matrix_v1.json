@@ -1,0 +1,251 @@
+{
+  "schema_version": "g040_hec_experiment_matrix_v1",
+  "generated_at_utc": "2026-09-30T18:55:00Z",
+  "research_only": true,
+  "purpose": "Controlled full-basin HEC-HMS experiments for G040. Change one process family at a time so improvements can be attributed physically.",
+  "computational_target": {
+    "subbasins": 145,
+    "reaches": 72,
+    "outlet": "Taquari-Jacuí confluence"
+  },
+  "forcing": {
+    "observed": "hourly accumulated precipitation; all valid gauges; missing never zero; spatial field preserved",
+    "forecast": "ECMWF/IFS full spatial field; cycle and lead time preserved",
+    "current_full_grid_contract": {
+      "rows": 30,
+      "cols": 20,
+      "cells": 600,
+      "resolution_deg": 0.1,
+      "transition_observed_forecast": "explicit",
+      "missing_policy": "abort compute"
+    }
+  },
+  "branch_control_candidates": {
+    "Alto Taquari-Antas": [
+      {
+        "station": "86095000",
+        "name": "RIO DAS ANTAS (Jaquirana)",
+        "role": "branch validation candidate"
+      },
+      {
+        "station": "86118000",
+        "name": "PCH SERRA DOS CAVALINHOS I BARRAMENTO",
+        "role": "branch state/validation candidate"
+      }
+    ],
+    "Prata": [
+      {
+        "station": "86447000",
+        "name": "UHE MONTE CLARO BALSA DO PRATA",
+        "role": "downstream branch boundary candidate"
+      },
+      {
+        "station": "86125500",
+        "name": "PCH JARARACA BARRAMENTO",
+        "role": "upstream validation candidate"
+      }
+    ],
+    "Carreiro": [
+      {
+        "station": "86500000",
+        "name": "PASSO CARREIRO",
+        "role": "observed boundary already tested in Muçum architecture"
+      },
+      {
+        "station": "86507000",
+        "name": "PCH COTIPORÃ JUSANTE",
+        "role": "downstream branch validation candidate"
+      }
+    ],
+    "Guaporé": [
+      {
+        "station": "86595000",
+        "name": "BARRA DO ZEFERINO",
+        "role": "downstream branch validation/boundary candidate"
+      },
+      {
+        "station": "86555800",
+        "name": "RIO GUAPORÉ (Guaporé)",
+        "role": "upstream branch validation candidate"
+      }
+    ],
+    "Forqueta": [
+      {
+        "station": "86746000",
+        "name": "RIO FORQUETA (Travesseiro)",
+        "role": "downstream branch validation/boundary candidate"
+      },
+      {
+        "station": "86780000",
+        "name": "BARRA DO FÃO",
+        "role": "upstream validation candidate"
+      }
+    ],
+    "Médio Taquari-Antas": [
+      {
+        "station": "86472000",
+        "name": "LINHA JOSÉ JÚLIO",
+        "role": "observed upstream boundary validated in Muçum architecture"
+      },
+      {
+        "station": "86472600",
+        "name": "SANTA TEREZA",
+        "role": "internal state/validation control"
+      },
+      {
+        "station": "86510000",
+        "name": "MUÇUM",
+        "role": "internal control; validated current-event target"
+      }
+    ],
+    "Baixo Taquari-Antas": [
+      {
+        "station": "86718000",
+        "name": "RIO TAQUARI (Roca Sales)",
+        "role": "trunk validation candidate"
+      },
+      {
+        "station": "86743000",
+        "name": "ARROIO DO MEIO",
+        "role": "trunk validation candidate"
+      },
+      {
+        "station": "86879300",
+        "name": "ESTRELA",
+        "role": "historic HEC control Rio 64"
+      },
+      {
+        "station": "86895000",
+        "name": "PORTO MARIANTE",
+        "role": "lower-trunk validation candidate"
+      },
+      {
+        "station": "86950000",
+        "name": "TAQUARI",
+        "role": "lower-trunk validation candidate"
+      },
+      {
+        "station": "86996000",
+        "name": "RIO TAQUARI (Triunfo)",
+        "role": "near-outlet validation; hydraulic backwater sensitivity required"
+      }
+    ]
+  },
+  "experiments": [
+    {
+      "id": "G040_E0",
+      "name": "Legacy reference reproduction",
+      "loss": "SCS Curve Number",
+      "transform": "SCS Unit Hydrograph",
+      "baseflow": "as original project once recovered",
+      "routing": "Muskingum-Cunge",
+      "state_update": "none beyond documented original initialization",
+      "mode": "event",
+      "objective": "Reproduce the July-2026 145-subbasin/72-reach baseline before changing physics.",
+      "promotion_gate": "native geometry/topology recovered or independently reconstructed and verified"
+    },
+    {
+      "id": "G040_E1",
+      "name": "Legacy physics plus observed branch state",
+      "loss": "SCS Curve Number",
+      "transform": "SCS Unit Hydrograph",
+      "routing": "Muskingum-Cunge",
+      "state_update": "documented observed non-overlapping branch boundaries/state controls",
+      "mode": "event/restart",
+      "objective": "Isolate the benefit of state/boundary information without changing rainfall-runoff formulation.",
+      "promotion_gate": "no visual stage shifting; native model state must pass branch-wise checks"
+    },
+    {
+      "id": "G040_E2",
+      "name": "Continuous SMA plus Clark",
+      "loss": "Soil Moisture Accounting",
+      "transform": "Clark Unit Hydrograph",
+      "baseflow": "Recession or sourced groundwater formulation selected by validation",
+      "routing": "Muskingum-Cunge",
+      "state_update": "continuous warm-up plus observed boundary updates where justified",
+      "mode": "continuous",
+      "objective": "Test whether explicit antecedent soil/groundwater state improves volume, rise, recession and transfer across events.",
+      "requirements": [
+        "potential ET",
+        "sourced SMA parameters",
+        "warm-up study",
+        "independent validation"
+      ]
+    },
+    {
+      "id": "G040_E3",
+      "name": "Continuous SMA plus ModClark",
+      "loss": "Soil Moisture Accounting",
+      "transform": "ModClark",
+      "baseflow": "same selected formulation as E2 for controlled comparison",
+      "routing": "Muskingum-Cunge",
+      "state_update": "same as E2",
+      "mode": "continuous_gridded",
+      "objective": "Test added value of preserving within-subbasin spatial rainfall/runoff timing from the gridded forcing.",
+      "requirements": [
+        "verified 145 geometries",
+        "gridded precipitation",
+        "ModClark travel-time/grid parameters with provenance"
+      ]
+    },
+    {
+      "id": "G040_E4",
+      "name": "Selected HEC-HMS 2D diffusion-wave transform pilots",
+      "loss": "selected best continuous loss from E2/E3",
+      "transform": "2D Diffusion Wave only in selected verified domains",
+      "routing": "retain verified network elsewhere",
+      "mode": "targeted_spatial_pilot",
+      "objective": "Test whether explicit 2D runoff routing adds skill in selected flood-prone/complex subbasins; not a blanket basin-wide replacement.",
+      "requirements": [
+        "high-resolution terrain",
+        "mesh sensitivity",
+        "computational benchmark",
+        "independent validation"
+      ]
+    },
+    {
+      "id": "G040_E5",
+      "name": "Hydrologic-hydrodynamic coupling",
+      "hydrology": "best validated HEC-HMS G040 member",
+      "hydraulics": "HEC-RAS 1D/2D",
+      "equation_comparison": [
+        "Diffusion Wave",
+        "SWE where momentum/inertia/backwater matters"
+      ],
+      "objective": "Convert branch/trunk hydrographs to stage, velocity, depth and inundation, especially in the lower Taquari.",
+      "requirements": [
+        "terrain/channel geometry",
+        "structures",
+        "upstream hydrographs",
+        "downstream boundary including Jacuí/Guaíba backwater when relevant"
+      ]
+    }
+  ],
+  "evaluation": {
+    "branchwise_required": true,
+    "whole_basin_required": true,
+    "metrics": [
+      "NSE",
+      "KGE",
+      "PBIAS",
+      "RMSE",
+      "MAE",
+      "volume_error",
+      "peak_error",
+      "peak_timing_error",
+      "rise_skill",
+      "recession_skill"
+    ],
+    "independent_validation": true,
+    "pseudo_operational_replay": true,
+    "acceptance_rule": "No variant is promoted from a single event or a single control station."
+  },
+  "interpretation_order": [
+    "E0 must reproduce the legacy model",
+    "E1 tests state/observations only",
+    "E2 tests continuous soil-moisture state",
+    "E3 tests added gridded transform detail",
+    "E4 tests 2D diffusion only where justified",
+    "E5 adds hydraulic stage/inundation after hydrologic skill is established"
+  ]
+}
