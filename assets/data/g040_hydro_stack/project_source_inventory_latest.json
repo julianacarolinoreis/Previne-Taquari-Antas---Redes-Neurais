@@ -1,0 +1,185 @@
+{
+  "schema_version": "g040_project_source_inventory_v1",
+  "generated_at_utc": "2026-09-30T20:15:00Z",
+  "research_only": true,
+  "policy": "Inventory records existence and compatibility only. Presence does not imply parameter readiness or validation.",
+  "sources": [
+    {
+      "id": "hec145_current_report",
+      "category": "legacy_hec_evidence",
+      "title": "Calibragem_HMS / Modelagem Hidrológica com HEC-HMS na Bacia do Rio Taquari-Antas",
+      "status": "AVAILABLE_REPORT_ONLY",
+      "supports": [
+        "145-subbasin inventory",
+        "72-reach inventory",
+        "legacy SCS-CN/SCS-UH parameters",
+        "Muçum and Estrela control points"
+      ],
+      "limitations": [
+        "native .hms/.basin/.dss project not recovered"
+      ]
+    },
+    {
+      "id": "hec145_old_monique_report",
+      "category": "legacy_hec_evidence",
+      "title": "Relatório HMS - Monique",
+      "status": "AVAILABLE_REPORT_ONLY",
+      "supports": [
+        "labeled HEC network figures",
+        "historical basin-to-rain-station assignment for three events"
+      ],
+      "limitations": [
+        "assignment has 144/145 rows; Bacia 99 absent",
+        "native HEC files not present in recovered archive"
+      ]
+    },
+    {
+      "id": "bho6_trecho",
+      "category": "hydrography",
+      "title": "ANA/SNIRH BHO6 geoft_bho_trecho_drenagem",
+      "status": "IN_USE_AND_TOPOLOGY_VERIFIED",
+      "version": "6.2.4 / repository service reports 2022-10-11 data version",
+      "supports": [
+        "directed network",
+        "incremental area budget",
+        "station snapping",
+        "whole-basin branch topology"
+      ]
+    },
+    {
+      "id": "bho6_area_drenagem",
+      "category": "hydrography_geometry",
+      "title": "ANA/SNIRH BHO6 geoft_bho_area_drenagem.gpkg",
+      "status": "PUBLIC_SOURCE_CONFIRMED_NOT_YET_MATERIALIZED_IN_REPO",
+      "public_source": "https://metadados.snirh.gov.br/files/32e309da-a8c1-443f-90ac-0cd79ce6a33d/geoft_bho_area_drenagem.gpkg",
+      "supports": [
+        "version-compatible ottobasin polygons for BHO6 drainage reaches"
+      ],
+      "limitations": [
+        "national GeoPackage must be subset/clipped efficiently before CI use"
+      ],
+      "replaces_bad_crosswalk": "BHO2017 exact COBACIA crosswalk"
+    },
+    {
+      "id": "soil_ibge_2023",
+      "category": "soil",
+      "title": "IBGE 2023 pedology base 1:250,000 (project archive)",
+      "status": "AVAILABLE_SOURCE_CANDIDATE",
+      "supports": [
+        "soil spatial classes for SMA/MGB initialization"
+      ],
+      "limitations": [
+        "hydrologic parameter translation/calibration still required"
+      ]
+    },
+    {
+      "id": "soil_embrapa_2011",
+      "category": "soil",
+      "title": "Embrapa Mapa de Solos do Brasil 2011 shapefile (project archive)",
+      "status": "AVAILABLE_SOURCE_CANDIDATE",
+      "supports": [
+        "independent soil spatial reference"
+      ],
+      "limitations": [
+        "1:5,000,000 scale is coarse for local hydraulic/hydrologic parameterization"
+      ]
+    },
+    {
+      "id": "soil_permeability_measurements",
+      "category": "soil",
+      "title": "Dados Permeabilidade do Solo.xlsx",
+      "status": "AVAILABLE_LOCAL_MEASUREMENTS",
+      "supports": [
+        "local permeability evidence"
+      ],
+      "limitations": [
+        "sparse measurements; cannot be extrapolated to all 145 HEC units without method/validation"
+      ]
+    },
+    {
+      "id": "mapbiomas_crosswalk",
+      "category": "land_cover",
+      "title": "tabela_cruzamentos_bacias_map_biomas.xlsx",
+      "status": "AVAILABLE_BUT_DIFFERENT_DISCRETIZATION",
+      "supports": [
+        "land-cover evidence and historical class summaries"
+      ],
+      "limitations": [
+        "subbasin IDs belong to an alternate ~166-unit discretization; do not map directly to HEC145"
+      ]
+    },
+    {
+      "id": "mde_tc_legacy",
+      "category": "terrain_legacy",
+      "title": "Tempo de concentração - Taquari.xlsx / cotas - bacias.xlsx",
+      "status": "AVAILABLE_BUT_DIFFERENT_DISCRETIZATION",
+      "supports": [
+        "legacy terrain/channel diagnostics"
+      ],
+      "limitations": [
+        "166-unit/alternate channel segmentation; not a verified HEC145 crosswalk"
+      ]
+    },
+    {
+      "id": "bathymetry_dnit_2024",
+      "category": "hydraulic_geometry",
+      "title": "DNIT batimetry 2024 - Plantas batimetria Porto a Barragem",
+      "status": "AVAILABLE_SOURCE_CANDIDATE",
+      "formats_seen": [
+        "DWG",
+        "PDF",
+        "XYZ folder"
+      ],
+      "supports": [
+        "HEC-RAS channel geometry candidate"
+      ],
+      "limitations": [
+        "spatial coverage, vertical datum and cross-section extraction still require audit"
+      ]
+    },
+    {
+      "id": "bathymetry_dnit_2025",
+      "category": "hydraulic_geometry",
+      "title": "DNIT batimetry 2025 - Plantas batimetricas Porto de Estrela a BRS",
+      "status": "AVAILABLE_SOURCE_CANDIDATE",
+      "supports": [
+        "HEC-RAS lower/central Taquari geometry candidate"
+      ],
+      "limitations": [
+        "spatial coverage, vertical datum and usable geometry files still require audit"
+      ]
+    },
+    {
+      "id": "evapotranspiration_satellite_folder",
+      "category": "potential_et",
+      "title": "EVAPOTRANSPIRACAO_SATELITE",
+      "status": "FOLDER_FOUND_NO_INDEXED_FILES",
+      "supports": [],
+      "limitations": [
+        "cannot be selected as SMA PET forcing until actual files, timestamps, units and coverage are verified"
+      ]
+    },
+    {
+      "id": "precipitation_chirps",
+      "category": "precipitation",
+      "title": "RecChirpsTaquari project archive",
+      "status": "AVAILABLE_SOURCE_CANDIDATE",
+      "supports": [
+        "independent precipitation comparison/hindcast"
+      ],
+      "limitations": [
+        "not a substitute for current hourly observed grid without temporal-resolution evaluation"
+      ]
+    }
+  ],
+  "readiness_updates": {
+    "soil_source_candidate_found": true,
+    "land_cover_source_candidate_found": true,
+    "hydraulic_bathymetry_candidate_found": true,
+    "potential_et_ready": false,
+    "mgb_ready": false,
+    "hec_ras_ready": false,
+    "native_hec145_ready": false,
+    "bho6_polygon_geometry_source_confirmed": true
+  }
+}
