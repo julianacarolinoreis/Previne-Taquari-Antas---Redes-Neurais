@@ -119,12 +119,23 @@ def main():
                 "sample_error":sample_error,
             })
     candidates.sort(key=lambda x:(-int(x["score"]),str(x.get("item_title")),int(x.get("layer_id") or 0)))
+    def version_evidence(x):
+        txt=" ".join([
+            str(x.get("item_title") or ""),
+            str(x.get("layer_name") or ""),
+            str(x.get("sample_g040") or ""),
+        ]).lower()
+        return (
+            ("bho6" in txt or "versão 6" in txt or "versao 6" in txt or "v_06" in txt or "6.2" in txt)
+            and "2017" not in txt
+        )
+
     accepted=[
         x for x in candidates
         if x["geometry_type"]=="esriGeometryPolygon"
         and CORE <= {f.lower() for f in x["fields"]}
         and x.get("sample_g040")
-        and "2017" not in (" ".join([str(x.get("item_title")),str(x.get("layer_name")),str(x.get("sample_g040"))]).lower())
+        and version_evidence(x)
     ]
     payload={
         "schema_version":"g040_arcgis_bho6_polygon_probe_v1",
