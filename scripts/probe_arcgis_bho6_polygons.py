@@ -18,13 +18,17 @@ import requests
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/"assets/data/hec_hms_g040_full_basin/arcgis_bho6_polygon_probe_latest.json"
 SEARCH="https://www.arcgis.com/sharing/rest/search"
-UA={"User-Agent":"PREVINE-G040-BHO6-polygon-probe/1.0"}
+ITEM="https://www.arcgis.com/sharing/rest/content/items"
+UA={"User-Agent":"PREVINE-G040-BHO6-polygon-probe/2.0"}
+KNOWN_BHO6_TRECHO_ITEM="b3039bebd0b941b09f3825193e4c99dc"
 
-QUERIES=[
-    'owner:hidrografiaana BHO',
-    'owner:hidrografiaana "area de drenagem"',
-    'owner:hidrografiaana "área de drenagem"',
-    '"Base Hidrográfica Ottocodificada" "area de drenagem"',
+BASE_QUERIES=[
+    "BHO6",
+    '"Base Hidrográfica Ottocodificada"',
+    '"Base Hidrografica Ottocodificada"',
+    '"área de drenagem"',
+    '"area de drenagem"',
+    "ottocodificada drenagem",
 ]
 CORE={"cobacia","cotrecho","nuareacont"}
 
@@ -55,7 +59,27 @@ def sample_layer(url, fields):
 def main():
     items={}
     errors=[]
-    for q in QUERIES:
+    anchors=[]
+    owner=None
+    try:
+        anchor=get_json(f"{ITEM}/{KNOWN_BHO6_TRECHO_ITEM}",{"f":"json"})
+        if anchor.get("id"):
+            anchors.append(anchor)
+            items[str(anchor.get("id"))]=anchor
+            owner=str(anchor.get("owner") or "").strip() or None
+    except Exception as exc:
+        errors.append({"known_item":KNOWN_BHO6_TRECHO_ITEM,"error":str(exc)})
+
+    queries=list(BASE_QUERIES)
+    if owner:
+        queries.extend([
+            f"owner:{owner} BHO",
+            f"owner:{owner} drenagem",
+            f'owner:{owner} "area de drenagem"',
+            f'owner:{owner} "área de drenagem"',
+        ])
+
+    for q in queries:
         try:
             p=get_json(SEARCH,{"f":"json","q":q,"num":100})
             for x in p.get("results") or []:
@@ -66,7 +90,12 @@ def main():
     for item in items.values():
         url=item.get("url")
         typ=str(item.get("type") or "")
-        if not url or "Service" not in typ:
+        searchable_text=" ".join([
+            str(item.get("title") or ""),str(item.get("description") or ""),
+            " ".join(item.get("tags") or []),
+        ]).lower()
+        relevant=("bho" in searchable_text or "ottocod" in searchable_text or "drenagem" in searchable_text)
+        if not relevant or not url or "Service" not in typ:
             continue
         try:
             svc=get_json(url,{"f":"json"})
@@ -141,7 +170,10 @@ def main():
         "schema_version":"g040_arcgis_bho6_polygon_probe_v1",
         "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
         "research_only":True,
-        "query_count":len(QUERIES),
+        "known_anchor_items":anchors,
+        "derived_owner":owner,
+        "queries":queries,
+        "query_count":len(queries),
         "item_count":len(items),
         "candidate_count":len(candidates),
         "accepted_candidate_count":len(accepted),
