@@ -25,6 +25,7 @@ SUPPORT=BASE/"whole_basin_rain_support_points.csv"
 SUPPORT_META=BASE/"whole_basin_rain_support_latest.json"
 OUT=BASE/"whole_basin_ifs_forecast_latest.json"
 OUTCSV=BASE/"whole_basin_ifs_forecast_hourly.csv"
+SCENARIOS=BASE/"whole_basin_boundary_scenarios_latest.json"
 
 GRID_DEG=0.25
 HORIZON_HOURS=120
@@ -51,6 +52,7 @@ def load_support():
                 "lon":float(r["lon"]),
                 "lat":float(r["lat"]),
                 "area_km2":float(r["local_area_km2"]),
+                "tributary_boundary_code":str(r.get("tributary_boundary_code") or "").strip(),
             })
     if not rows:
         raise RuntimeError("G040 rain support mesh is empty")
@@ -59,10 +61,12 @@ def load_support():
 def cell_id(lat: float,lon: float) -> str:
     return f"IFS_{lat:+07.2f}_{lon:+07.2f}"
 
-def build_cell_weights(points):
+def build_cell_weights(points, active_boundary_codes):
     by_interval={}
     all_cells={}
     for p in points:
+        if p.get("tributary_boundary_code","") in active_boundary_codes:
+            continue
         lat=grid_center(p["lat"])
         lon=grid_center(p["lon"])
         cid=cell_id(lat,lon)
@@ -163,10 +167,24 @@ def rolling(series,n):
 
 def main() -> int:
     meta=json.loads(SUPPORT_META.read_text(encoding="utf-8"))
-    if meta.get("status")!="RAIN_SUPPORT_READY":
-        raise RuntimeError("BHO6 rain support not ready")
+    if meta.get("status")!="RAIN_SUPPORT_READY_DYNAMIC_SCENARIO":
+        raise RuntimeError("scenario-aware BHO6 rain support not ready")
+    scenarios=json.loads(SCENARIOS.read_text(encoding="utf-8"))
+    current=scenarios.get("current") or {}
+    active_boundary_codes={str(x) for x in current.get("active_boundary_codes") or []}
+    expected_area={
+        str(x["interval_id"]):float(x["effective_rainfall_runoff_area_km2"])
+        for x in current.get("intervals") or []
+    }
     points=load_support()
-    cells,weights=build_cell_weights(points)
+    cells,weights=build_cell_weights(points,active_boundary_codes)
+    for iid,info in weights.items():
+        exp=expected_area.get(iid)
+        if exp is None:
+            raise RuntimeError(f"{iid}: no effective area in current boundary scenario")
+        got=float(info["total_area_km2"])
+        if abs(got-exp)>max(0.05,0.0005*exp):
+            raise RuntimeError(f"{iid}: scenario IFS support area {got:.6f} != effective area {exp:.6f}")
     start=start_hour()
     fetched=fetch_all(cells,start)
     by_cell={x["cell_id"]:x for x in fetched}
@@ -235,6 +253,11 @@ def main() -> int:
             "start_utc":times[0],
             "end_utc":times[-1],
             "hours":len(times),
+        },
+        "boundary_scenario":{
+            "name":scenarios.get("current_scenario"),
+            "active_boundary_codes":sorted(active_boundary_codes),
+            "effective_rainfall_runoff_area_km2":current.get("effective_rainfall_runoff_area_km2"),
         },
         "spatial_method":{
             "support":"BHO6 reach-midpoint drainage support mesh",
