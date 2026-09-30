@@ -16,12 +16,21 @@
     "rain_station_inventory": "assets/data/estudo_bacia_taquari_antas/pluviometria_g040.geojson",
     "flow_station_inventory": "assets/data/estudo_bacia_taquari_antas/postos_g040.geojson",
     "management_polygons": "assets/data/estudo_bacia_taquari_antas/sub_bacias_q040_enquadramento.geojson",
-    "current_live_rain": "assets/data/chuvas_horarias.csv"
+    "current_live_rain": "assets/data/chuvas_horarias.csv",
+    "legacy_meteorologic_assignment": "assets/data/hec_hms_g040_full_basin/original_145_meteorologic_assignment_latest.csv",
+    "legacy_meteorologic_assignment_audit": "assets/data/hec_hms_g040_full_basin/original_145_meteorologic_assignment_audit_latest.json",
+    "project_source_inventory": "assets/data/g040_hydro_stack/project_source_inventory_latest.json"
   },
   "geometry_policy": {
     "management_32": "audit/grouping and forcing-support layer only; not HEC computational sub-basins",
     "hec_145": "target inventory recovered from the July 2026 report; native HEC geometry/topology files still required before executable network generation",
-    "no_topology_inference_from_32": true
+    "no_topology_inference_from_32": true,
+    "bho6_incremental_polygon_source": {
+      "preferred": "ANA/SNIRH BHO6 geoft_bho_area_drenagem.gpkg",
+      "public_source": "https://metadados.snirh.gov.br/files/32e309da-a8c1-443f-90ac-0cd79ce6a33d/geoft_bho_area_drenagem.gpkg",
+      "status": "source_confirmed_subset_strategy_pending",
+      "rejected_crosswalk": "BHO2017 exact COBACIA match because BHO6 and BHO2017 codes are not version-compatible"
+    }
   },
   "forcing_contract": {
     "observed_rain": {
@@ -93,7 +102,8 @@
       "required_for_continuous_sma": true,
       "source": null,
       "method": null,
-      "status": "pending_source_selection"
+      "status": "project_candidate_folder_found_but_no_validated_ET_file_selected",
+      "evidence": "EVAPOTRANSPIRACAO_SATELITE folder exists but no indexed data files were available during audit"
     },
     "soil_moisture_external": {
       "role": "independent diagnostic or assimilation source, not direct parameter replacement",
@@ -129,7 +139,18 @@
     "warmup_days": null,
     "routing_method": null,
     "transform_method": null,
-    "baseflow_method": null
+    "baseflow_method": null,
+    "source_candidates": {
+      "soil": [
+        "IBGE 2023 pedology 1:250,000",
+        "Embrapa 2011 soils",
+        "local permeability measurements"
+      ],
+      "land_cover": [
+        "MapBiomas crosswalk workbook (alternate discretization; raw classes/reference only)"
+      ],
+      "pet": "pending actual ET time-series source"
+    }
   },
   "mgb": {
     "status": "scaffold",
@@ -150,7 +171,24 @@
       "observed_discharge_for_calibration_validation"
     ],
     "discretization_policy": "derive MGB mini-basins/HRUs independently; neither the 32 management polygons nor the 145 HEC inventory is assumed to be the final MGB discretization",
-    "calibration_policy": "multi-period/event with independent validation"
+    "calibration_policy": "multi-period/event with independent validation",
+    "source_candidates": {
+      "soil": [
+        "IBGE 2023 pedology 1:250,000",
+        "Embrapa 2011 soils"
+      ],
+      "land_cover": [
+        "MapBiomas project workbook; discretization crosswalk required"
+      ],
+      "dem": [
+        "project MDE archive; final hydrologically consistent DEM still to be selected"
+      ],
+      "precipitation": [
+        "current observed/IFS grid",
+        "CHIRPS archive for independent comparison"
+      ],
+      "meteorology": "still incomplete for full MGB forcing"
+    }
   },
   "hec_ras": {
     "status": "scaffold",
@@ -203,7 +241,18 @@
       "urban_multidirectional_flow",
       "backwater_or_strong_momentum_effects"
     ],
-    "downstream_note": "lower Taquari may require downstream hydraulic boundary representation of Jacui/Guaiba backwater"
+    "downstream_note": "lower Taquari may require downstream hydraulic boundary representation of Jacui/Guaiba backwater",
+    "source_candidates": {
+      "bathymetry": [
+        "DNIT 2024 Porto-to-Barragem plants (DWG/PDF/XYZ structure)",
+        "DNIT 2025 Porto de Estrela-to-BRS plants"
+      ],
+      "existing_pilots": [
+        "Santa Tereza terrain/HAND assets",
+        "Muçum terrain/inundation assets"
+      ],
+      "status": "candidate_sources_found_vertical_datum_and_coverage_audit_pending"
+    }
   },
   "assimilation": {
     "status": "partial_existing_mucum_to_be_generalized",
