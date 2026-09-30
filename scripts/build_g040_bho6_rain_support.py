@@ -144,7 +144,8 @@ def main():
                  "downstream_station":item["downstream_station"],"fid":fid,
                  "cobacia":str(by_fid[fid].get("cobacia") or ""),"lon":round(lon,7),
                  "lat":round(lat,7),"local_area_km2":a,
-                 "gross_weight":a/local_sum,"tributary_boundary_code":tag}
+                 "gross_weight":a/local_sum,"tributary_boundary_code":tag,
+                 "component_id":("BRANCH_"+tag) if tag else ("CORE_"+iid)}
             ir.append(row); rows.append(row)
         expected_br={str(x["station_code"]):float(x["boundary_area_km2_bho6"])
                      for x in item.get("entering_observed_boundaries") or []}
@@ -165,7 +166,7 @@ def main():
         raise RuntimeError("scenario-aware support mesh failed closure")
 
     fields=["interval_id","upstream_station","downstream_station","fid","cobacia",
-            "lon","lat","local_area_km2","gross_weight","tributary_boundary_code"]
+            "lon","lat","local_area_km2","gross_weight","tributary_boundary_code","component_id"]
     with OUTCSV.open("w",encoding="utf-8",newline="") as fh:
         w=csv.DictWriter(fh,fieldnames=fields); w.writeheader()
         for row in rows: w.writerow({k:row[k] for k in fields})
