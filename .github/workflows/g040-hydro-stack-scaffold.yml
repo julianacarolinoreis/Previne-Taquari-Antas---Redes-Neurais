@@ -1,0 +1,39 @@
+name: G040 hydro stack scaffold
+
+on:
+  pull_request:
+    paths:
+      - "config/g040_hydro_stack_v1.json"
+      - "docs/arquitetura_g040_sma_mgb_ras.md"
+      - "scripts/build_g040_hydro_stack_scaffold.py"
+      - "scripts/test_g040_hydro_stack_scaffold.py"
+      - ".github/workflows/g040-hydro-stack-scaffold.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-scaffold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Unit tests
+        run: python -B scripts/test_g040_hydro_stack_scaffold.py
+
+      - name: Check persisted full-basin dependency
+        shell: bash
+        run: |
+          if [ -f assets/data/hec_hms_g040_full_basin/full_basin_architecture_latest.json ]; then
+            python -B scripts/build_g040_hydro_stack_scaffold.py
+            echo "Full G040 scaffold generated."
+          else
+            echo "::warning::G040 full-basin architecture is not persisted on this ref yet."
+            echo "Run the HEC G040 full-basin architecture workflow first; scaffold generation is correctly blocked until then."
+          fi
