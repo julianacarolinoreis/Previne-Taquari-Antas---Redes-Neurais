@@ -21,6 +21,12 @@ UA={"User-Agent":"PREVINE-SNIRH-BHO-discovery/1.0"}
 
 KEYWORDS=("bho","otto","hidrograf","area_dren","aredren","drenagem")
 FIELD_KEYS={"cobacia","cotrecho","nuareacont"}
+BHO6_METADATA_UUID="32e309da-a8c1-443f-90ac-0cd79ce6a33d"
+BHO6_FILE_BASE=f"https://metadados.snirh.gov.br/files/{BHO6_METADATA_UUID}"
+BHO6_AREA_GPKG_CANDIDATES=[
+    f"{BHO6_FILE_BASE}/geoft_bho_area_drenagem.gpkg",
+    f"{BHO6_FILE_BASE}/GEOFT_BHO_AREA_DRENAGEM.gpkg",
+]
 
 def get(url,params=None,timeout=45):
     r=requests.get(url,params=params or {"f":"pjson"},headers=UA,timeout=timeout)
@@ -33,6 +39,32 @@ def get(url,params=None,timeout=45):
 def relevant(name):
     s=str(name or "").lower()
     return any(k in s for k in KEYWORDS)
+
+def probe_remote_gpkg(url):
+    out={"url":url}
+    try:
+        h=requests.head(url,headers=UA,timeout=30,allow_redirects=True)
+        out["head_status"]=h.status_code
+        out["content_length"]=h.headers.get("Content-Length")
+        out["accept_ranges"]=h.headers.get("Accept-Ranges")
+        out["content_type"]=h.headers.get("Content-Type")
+        out["final_url"]=h.url
+    except Exception as exc:
+        out["head_error"]=str(exc)
+    try:
+        g=requests.get(url,headers={**UA,"Range":"bytes=0-4095"},timeout=45,allow_redirects=True,stream=True)
+        raw=next(g.iter_content(chunk_size=4096),b"")
+        out["range_status"]=g.status_code
+        out["content_range"]=g.headers.get("Content-Range")
+        out["range_content_length"]=g.headers.get("Content-Length")
+        out["sqlite_header"]=raw[:16].decode("latin1",errors="replace")
+        out["first_bytes_hex"]=raw[:16].hex()
+        out["range_supported"]=bool(g.status_code==206 and str(g.headers.get("Content-Range") or "").lower().startswith("bytes "))
+        g.close()
+    except Exception as exc:
+        out["range_error"]=str(exc)
+        out["range_supported"]=False
+    return out
 
 def list_services(folder=""):
     url=ROOT_URL + ("/"+folder if folder else "")
@@ -109,8 +141,10 @@ def main():
             errors.append({"service":s["name"],"error":str(exc)})
 
     candidates.sort(key=lambda x:(-int(x["score"]),str(x["service_name"]),str(x["name"])))
+    gpkg_probes=[probe_remote_gpkg(u) for u in BHO6_AREA_GPKG_CANDIDATES]
+
     payload={
-      "schema_version":"snirh_bho_polygon_service_discovery_v1",
+      "schema_version":"snirh_bho_polygon_service_discovery_v2",
       "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
       "research_only":True,
       "catalog_root":ROOT_URL,
@@ -118,6 +152,7 @@ def main():
       "relevant_services_inspected":len(services),
       "candidate_count":len(candidates),
       "candidates":candidates,
+      "bho6_area_gpkg_probes":gpkg_probes,
       "errors":errors[:100],
       "policy":"discovery only; a polygon service must be version/crosswalk validated against BHO6 before use",
     }
@@ -127,6 +162,7 @@ def main():
       "folders_scanned":payload["folders_scanned"],
       "services":payload["relevant_services_inspected"],
       "candidate_count":payload["candidate_count"],
+      "gpkg_probes":gpkg_probes,
       "top":[{"service":x["service_name"],"layer":x["name"],"score":x["score"],"url":x["url"]} for x in candidates[:10]]
     },ensure_ascii=False))
     return 0
