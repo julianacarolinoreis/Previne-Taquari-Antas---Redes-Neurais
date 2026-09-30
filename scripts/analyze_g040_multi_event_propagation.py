@@ -55,6 +55,28 @@ def peak_info(s):
     t,q=max(s.items(),key=lambda z:z[1])
     return {"time_utc":t.isoformat().replace("+00:00","Z"),"q_m3s":q}
 
+def coverage_stats(s, expected_hours):
+    if not s:
+        return {"hours":0,"coverage":0.0,"longest_contiguous_h":0,"max_gap_h":None,
+                "peak_near_record_edge":True}
+    ts=sorted(s)
+    gaps=[(b-a).total_seconds()/3600 for a,b in zip(ts,ts[1:])]
+    longest=1; cur=1
+    for g in gaps:
+        if abs(g-1.0)<1e-6:
+            cur+=1; longest=max(longest,cur)
+        else:
+            cur=1
+    pt=max(s.items(),key=lambda z:z[1])[0]
+    edge=min((pt-ts[0]).total_seconds()/3600,(ts[-1]-pt).total_seconds()/3600)
+    return {
+      "hours":len(ts),
+      "coverage":round(len(ts)/max(expected_hours,1),5),
+      "longest_contiguous_h":longest,
+      "max_gap_h":None if not gaps else round(max(gaps),3),
+      "peak_near_record_edge":edge<6,
+    }
+
 def main():
     mf=json.loads(MANIFEST.read_text(encoding="utf-8"))
     event_results=[]
@@ -64,7 +86,14 @@ def main():
         p=ROOT/e["path"]
         j=json.loads(p.read_text(encoding="utf-8"))
         by={str(s["code"]):s for s in j["stations"]}
-        er={"event_id":e["event_id"],"pairs":[]}
+        w=j.get("window_local") or {}
+        try:
+            ws=datetime.fromisoformat(str(w["start"])).replace(tzinfo=timezone(timedelta(hours=-3)))
+            we=datetime.fromisoformat(str(w["end"])).replace(tzinfo=timezone(timedelta(hours=-3)))
+            expected_hours=max(1,int((we-ws).total_seconds()/3600)+1)
+        except Exception:
+            expected_hours=max([len(series(s)) for s in j["stations"]] or [1])
+        er={"event_id":e["event_id"],"expected_hours":expected_hours,"pairs":[]}
         for up,dn,label,l0,l1 in PAIRS:
             su=series(by.get(up,{}) ); sd=series(by.get(dn,{}))
             trials=[]
@@ -83,11 +112,28 @@ def main():
                 tu=datetime.fromisoformat(pu["time_utc"].replace("Z","+00:00"))
                 td=datetime.fromisoformat(pd["time_utc"].replace("Z","+00:00"))
                 peak_lag=(td-tu).total_seconds()/3600
+            us=coverage_stats(su,expected_hours); ds=coverage_stats(sd,expected_hours)
+            fit_quality="none"
+            if best:
+                if best["n"]>=48 and best["corr"]>=0.90 and us["coverage"]>=0.60 and ds["coverage"]>=0.60:
+                    fit_quality="high"
+                elif best["n"]>=24 and best["corr"]>=0.80 and us["coverage"]>=0.35 and ds["coverage"]>=0.35:
+                    fit_quality="medium"
+                else:
+                    fit_quality="low"
+            peak_reliable=bool(
+              peak_lag is not None and
+              us["coverage"]>=0.80 and ds["coverage"]>=0.80 and
+              not us["peak_near_record_edge"] and not ds["peak_near_record_edge"]
+            )
             rec={
               "upstream":up,"downstream":dn,"label":label,
               "upstream_hours":len(su),"downstream_hours":len(sd),
+              "upstream_coverage":us,"downstream_coverage":ds,
               "best":None if best is None else {k:(round(v,5) if isinstance(v,float) else v) for k,v in best.items()},
+              "fit_quality":fit_quality,
               "observed_peak_lag_h":None if peak_lag is None else round(peak_lag,3),
+              "observed_peak_lag_reliable":peak_reliable,
               "upstream_peak":pu,"downstream_peak":pd,
               "trials":[{k:(round(v,5) if isinstance(v,float) else v) for k,v in x.items()} for x in trials],
             }
@@ -96,28 +142,32 @@ def main():
                 pair_pool[label].append({
                   "event_id":e["event_id"],"best_lag_h":best["lag_h"],
                   "corr":best["corr"],"nrmse":best["nrmse"],"n":best["n"],
+                  "fit_quality":fit_quality,
                   "observed_peak_lag_h":peak_lag,
+                  "observed_peak_lag_reliable":peak_reliable,
                 })
         event_results.append(er)
 
     summaries=[]
     for up,dn,label,l0,l1 in PAIRS:
         rows=pair_pool[label]
-        if rows:
-            # Weighted-median-like robust center: sort by lag, weight number of pairs.
+        usable=[r for r in rows if r.get("fit_quality") in {"high","medium"}]
+        if usable:
+            # Weighted robust center from only medium/high quality fits.
             expanded=[]
-            for r in rows:
+            for r in usable:
                 expanded.extend([int(r["best_lag_h"])]*max(1,int(r["n"]//12)))
             expanded.sort()
             robust=expanded[len(expanded)//2]
-            lag_min=min(r["best_lag_h"] for r in rows)
-            lag_max=max(r["best_lag_h"] for r in rows)
-            strong=[r for r in rows if r["corr"]>=0.8]
+            lag_min=min(r["best_lag_h"] for r in usable)
+            lag_max=max(r["best_lag_h"] for r in usable)
+            strong=[r for r in usable if r["corr"]>=0.8]
         else:
             robust=lag_min=lag_max=None; strong=[]
         summaries.append({
           "upstream":up,"downstream":dn,"label":label,
           "events_with_fit":len(rows),
+          "events_usable_medium_or_high":len(usable),
           "events_corr_ge_0_8":len(strong),
           "diagnostic_lag_center_h":robust,
           "diagnostic_lag_range_h":None if lag_min is None else [lag_min,lag_max],
@@ -139,7 +189,7 @@ def main():
       "method":"hourly observed Q, integer lag scan, affine transfer fit; best by correlation then normalized RMSE",
       "limitations":[
         "tributary inflows between gauges can change hydrograph magnitude/shape",
-        "partial station records can bias event-specific fit",
+        "partial station records can bias event-specific fit; medium/high quality gates are used for routing windows",
         "best statistical lag is not Muskingum K",
         "routing parameters still require HEC multi-event hydrograph calibration",
       ],
