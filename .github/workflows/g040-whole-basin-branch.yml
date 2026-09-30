@@ -9,6 +9,7 @@ on:
       - "scripts/build_g040_incremental_area_budget.py"
       - "scripts/build_g040_live_hydro_controls.py"
       - "scripts/build_g040_incremental_geometries.py"
+      - "scripts/build_g040_bho6_rain_support.py"
       - "scripts/build_g040_boundary_scenarios.py"
       - "scripts/analyze_g040_observed_travel_times.py"
       - "scripts/discover_snirh_bho_polygon_services.py"
@@ -58,6 +59,9 @@ jobs:
       - name: Build residual catchment geometries
         run: python -B scripts/build_g040_incremental_geometries.py
 
+      - name: Build BHO6 rainfall support mesh
+        run: python -B scripts/build_g040_bho6_rain_support.py
+
       - name: Refresh live hydrometric controls
         run: python -B scripts/build_g040_live_hydro_controls.py
 
@@ -97,6 +101,8 @@ jobs:
           cp "$BASE/snirh_bho_polygon_service_discovery_latest.json" /tmp/
           cp "$BASE/whole_basin_incremental_geometry_latest.json" /tmp/
           cp "$BASE/whole_basin_incremental_catchments.geojson" /tmp/
+          cp "$BASE/whole_basin_rain_support_latest.json" /tmp/
+          cp "$BASE/whole_basin_rain_support_points.csv" /tmp/
           cp "$BASE/whole_basin_live_hydro_controls_latest.json" /tmp/
           cp "$BASE/whole_basin_boundary_scenarios_latest.json" /tmp/
           cp "$BASE/whole_basin_observed_travel_time_diagnostics_latest.json" /tmp/
@@ -112,10 +118,12 @@ jobs:
             cp /tmp/snirh_bho_polygon_service_discovery_latest.json "$BASE/"
             cp /tmp/whole_basin_incremental_geometry_latest.json "$BASE/"
             cp /tmp/whole_basin_incremental_catchments.geojson "$BASE/"
+            cp /tmp/whole_basin_rain_support_latest.json "$BASE/"
+            cp /tmp/whole_basin_rain_support_points.csv "$BASE/"
             cp /tmp/whole_basin_live_hydro_controls_latest.json "$BASE/"
             cp /tmp/whole_basin_boundary_scenarios_latest.json "$BASE/"
             cp /tmp/whole_basin_observed_travel_time_diagnostics_latest.json "$BASE/"
-            git add -- "$BASE/whole_basin_branch_model_latest.json" "$BASE/whole_basin_branch_controls.csv" "$BASE/whole_basin_bho6_topology_latest.json" "$BASE/whole_basin_bho6_network.geojson" "$BASE/whole_basin_incremental_area_budget_latest.json" "$BASE/whole_basin_incremental_area_budget.csv" "$BASE/snirh_bho_polygon_service_discovery_latest.json" "$BASE/whole_basin_incremental_geometry_latest.json" "$BASE/whole_basin_incremental_catchments.geojson" "$BASE/whole_basin_live_hydro_controls_latest.json" "$BASE/whole_basin_boundary_scenarios_latest.json" "$BASE/whole_basin_observed_travel_time_diagnostics_latest.json"
+            git add -- "$BASE/whole_basin_branch_model_latest.json" "$BASE/whole_basin_branch_controls.csv" "$BASE/whole_basin_bho6_topology_latest.json" "$BASE/whole_basin_bho6_network.geojson" "$BASE/whole_basin_incremental_area_budget_latest.json" "$BASE/whole_basin_incremental_area_budget.csv" "$BASE/snirh_bho_polygon_service_discovery_latest.json" "$BASE/whole_basin_incremental_geometry_latest.json" "$BASE/whole_basin_incremental_catchments.geojson" "$BASE/whole_basin_rain_support_latest.json" "$BASE/whole_basin_rain_support_points.csv" "$BASE/whole_basin_live_hydro_controls_latest.json" "$BASE/whole_basin_boundary_scenarios_latest.json" "$BASE/whole_basin_observed_travel_time_diagnostics_latest.json"
             if git diff --cached --quiet; then exit 0; fi
             git commit -m "bot: update G040 whole-basin observed-branch architecture [skip ci]"
             if git push origin HEAD:main; then exit 0; fi
