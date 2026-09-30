@@ -12,6 +12,7 @@ on:
       - "scripts/build_g040_boundary_scenarios.py"
       - "scripts/analyze_g040_observed_travel_times.py"
       - "scripts/discover_snirh_bho_polygon_services.py"
+      - "scripts/probe_arcgis_bho6_polygons.py"
       - ".github/workflows/g040-whole-basin-branch.yml"
       - "assets/data/hec_hms_g040_full_basin/full_basin_station_matrix.csv"
       - "assets/data/hec_hms_g040_full_basin/original_145_report_inventory_latest.json"
@@ -95,6 +96,7 @@ jobs:
           cp "$BASE/whole_basin_incremental_area_budget_latest.json" /tmp/
           cp "$BASE/whole_basin_incremental_area_budget.csv" /tmp/
           cp "$BASE/snirh_bho_polygon_service_discovery_latest.json" /tmp/
+          cp "$BASE/arcgis_bho6_polygon_probe_latest.json" /tmp/
           cp "$BASE/whole_basin_incremental_geometry_latest.json" /tmp/
           cp "$BASE/whole_basin_incremental_catchments.geojson" /tmp/
           cp "$BASE/whole_basin_live_hydro_controls_latest.json" /tmp/
@@ -110,12 +112,13 @@ jobs:
             cp /tmp/whole_basin_incremental_area_budget_latest.json "$BASE/"
             cp /tmp/whole_basin_incremental_area_budget.csv "$BASE/"
             cp /tmp/snirh_bho_polygon_service_discovery_latest.json "$BASE/"
+            cp /tmp/arcgis_bho6_polygon_probe_latest.json "$BASE/"
             cp /tmp/whole_basin_incremental_geometry_latest.json "$BASE/"
             cp /tmp/whole_basin_incremental_catchments.geojson "$BASE/"
             cp /tmp/whole_basin_live_hydro_controls_latest.json "$BASE/"
             cp /tmp/whole_basin_boundary_scenarios_latest.json "$BASE/"
             cp /tmp/whole_basin_observed_travel_time_diagnostics_latest.json "$BASE/"
-            git add -- "$BASE/whole_basin_branch_model_latest.json" "$BASE/whole_basin_branch_controls.csv" "$BASE/whole_basin_bho6_topology_latest.json" "$BASE/whole_basin_bho6_network.geojson" "$BASE/whole_basin_incremental_area_budget_latest.json" "$BASE/whole_basin_incremental_area_budget.csv" "$BASE/snirh_bho_polygon_service_discovery_latest.json" "$BASE/whole_basin_incremental_geometry_latest.json" "$BASE/whole_basin_incremental_catchments.geojson" "$BASE/whole_basin_live_hydro_controls_latest.json" "$BASE/whole_basin_boundary_scenarios_latest.json" "$BASE/whole_basin_observed_travel_time_diagnostics_latest.json"
+            git add -- "$BASE/whole_basin_branch_model_latest.json" "$BASE/whole_basin_branch_controls.csv" "$BASE/whole_basin_bho6_topology_latest.json" "$BASE/whole_basin_bho6_network.geojson" "$BASE/whole_basin_incremental_area_budget_latest.json" "$BASE/whole_basin_incremental_area_budget.csv" "$BASE/snirh_bho_polygon_service_discovery_latest.json" "$BASE/arcgis_bho6_polygon_probe_latest.json" "$BASE/whole_basin_incremental_geometry_latest.json" "$BASE/whole_basin_incremental_catchments.geojson" "$BASE/whole_basin_live_hydro_controls_latest.json" "$BASE/whole_basin_boundary_scenarios_latest.json" "$BASE/whole_basin_observed_travel_time_diagnostics_latest.json"
             if git diff --cached --quiet; then exit 0; fi
             git commit -m "bot: update G040 whole-basin observed-branch architecture [skip ci]"
             if git push origin HEAD:main; then exit 0; fi
