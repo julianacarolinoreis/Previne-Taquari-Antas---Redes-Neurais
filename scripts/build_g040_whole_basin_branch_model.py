@@ -30,11 +30,11 @@ OUTCSV = BASE / "whole_basin_branch_controls.csv"
 # Controls chosen to maximize branch independence and preserve downstream checks.
 # They are verified against the repository station inventory at build time.
 BRANCH_CONTROLS = [
-    {"role":"upper_antas","code":"86472000","label":"Linha José Júlio","branch":"Antas/Taquari principal","kind":"boundary"},
-    {"role":"prata","code":"86447000","label":"UHE Monte Claro Balsa do Prata","branch":"Prata","kind":"tributary_boundary"},
-    {"role":"carreiro","code":"86500000","label":"Passo Carreiro","branch":"Carreiro","kind":"tributary_boundary"},
-    {"role":"guapore","code":"86595000","label":"Barra do Zeferino","branch":"Guaporé","kind":"tributary_boundary"},
-    {"role":"forqueta","code":"86746000","label":"Rio Forqueta (Travesseiro)","branch":"Forqueta","kind":"tributary_boundary"},
+    {"role":"upper_antas","code":"86472000","label":"Linha José Júlio","branch":"Antas/Taquari principal","kind":"boundary","mass_balance":true},
+    {"role":"prata","code":"86447000","label":"UHE Monte Claro Balsa do Prata","branch":"Prata","kind":"upstream_state_diagnostic","mass_balance":false},
+    {"role":"carreiro","code":"86500000","label":"Passo Carreiro","branch":"Carreiro","kind":"tributary_boundary","mass_balance":true},
+    {"role":"guapore","code":"86595000","label":"Barra do Zeferino","branch":"Guaporé","kind":"tributary_boundary","mass_balance":true},
+    {"role":"forqueta","code":"86746000","label":"Rio Forqueta (Travesseiro)","branch":"Forqueta","kind":"tributary_boundary","mass_balance":true},
 ]
 
 MAINSTEM_CHECKPOINTS = [
@@ -113,6 +113,7 @@ def main():
             "not_a_replacement_for_145":True,
             "management_32_are_not_computational_subbasins":True,
             "nested_gauges_rule":"nested gauges are state/QC constraints; only non-overlapping branch controls enter mass balance",
+            "prata_note":"Prata is upstream of Linha José Júlio and is therefore diagnostic only whenever Linha José Júlio is used as the Antas boundary; never add both as independent flows",
         },
         "major_branch_controls":branches,
         "mainstem_checkpoints":mainstem,
