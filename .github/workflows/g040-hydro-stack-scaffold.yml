@@ -5,8 +5,12 @@ on:
     paths:
       - "config/g040_hydro_stack_v1.json"
       - "docs/arquitetura_g040_sma_mgb_ras.md"
+      - "assets/data/g040_hydro_stack/project_source_inventory_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/original_145_meteorologic_assignment_latest.csv"
+      - "assets/data/hec_hms_g040_full_basin/original_145_meteorologic_assignment_audit_latest.json"
       - "scripts/build_g040_hydro_stack_scaffold.py"
       - "scripts/test_g040_hydro_stack_scaffold.py"
+      - "scripts/test_g040_legacy_meteorologic_assignment.py"
       - ".github/workflows/g040-hydro-stack-scaffold.yml"
   workflow_dispatch:
 
@@ -24,8 +28,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Unit tests
+      - name: Hydro stack unit tests
         run: python -B scripts/test_g040_hydro_stack_scaffold.py
+
+      - name: Legacy meteorologic assignment audit
+        run: python -B scripts/test_g040_legacy_meteorologic_assignment.py
 
       - name: Check persisted full-basin dependency
         shell: bash
@@ -35,5 +42,5 @@ jobs:
             echo "Full G040 scaffold generated."
           else
             echo "::warning::G040 full-basin architecture is not persisted on this ref yet."
-            echo "Run the HEC G040 full-basin architecture workflow first; scaffold generation is correctly blocked until then."
+            echo "Run the HEC G040 management-layer audit workflow first; scaffold generation is correctly blocked until then."
           fi
