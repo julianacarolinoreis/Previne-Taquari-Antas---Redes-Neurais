@@ -608,7 +608,9 @@ def main():
         operational_stage=[obs_n+(float(n)-model_now) for n in stages]
         state_mode="explicit_observed_stage_conditioning"
         state_assimilation_applied=True
-        publishable=(adj_rmse is None or adj_rmse<=45.0) and (slope_error_cm_h is None or abs(slope_error_cm_h)<=20.0)
+        # Conditioning is retained only as a diagnostic delta trajectory.
+        # It must never promote a HEC run whose native internal state misses t0.
+        publishable=False
 
     future=[(t,n,q) for t,n,q in zip(times,operational_stage,vals) if t>=obs_t]
     peak=max(future,key=lambda z:z[1])
