@@ -9,7 +9,7 @@ No candidate is promoted automatically. The report records service/layer URL,
 field names, extent, description and any version-like metadata for audit.
 """
 from __future__ import annotations
-import json, re, requests
+import json, os, re, requests
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -92,25 +92,27 @@ def inspect_layer(service_name,service_type,layer_id):
     }
 
 def main():
-    root=list_services()
-    folders=[""]+[str(x) for x in root.get("folders") or []]
+    fast_mode=os.environ.get("SNIRH_DISCOVERY_FAST","0").strip().lower() in {"1","true","yes","on"}
     services=[]
     errors=[]
-    for folder in folders:
-        try:
-            p=list_services(folder)
-        except Exception as exc:
-            errors.append({"folder":folder,"error":str(exc)})
-            continue
-        for s in p.get("services") or []:
-            name=str(s.get("name") or "")
-            typ=str(s.get("type") or "")
-            if typ not in {"FeatureServer","MapServer"}: continue
-            if relevant(name):
-                services.append({"name":name,"type":typ})
-    # dedupe
-    uniq={(x["name"],x["type"]):x for x in services}
-    services=list(uniq.values())
+    folders=[]
+    if not fast_mode:
+        root=list_services()
+        folders=[""]+[str(x) for x in root.get("folders") or []]
+        for folder in folders:
+            try:
+                p=list_services(folder)
+            except Exception as exc:
+                errors.append({"folder":folder,"error":str(exc)})
+                continue
+            for s in p.get("services") or []:
+                name=str(s.get("name") or "")
+                typ=str(s.get("type") or "")
+                if typ not in {"FeatureServer","MapServer"}: continue
+                if relevant(name):
+                    services.append({"name":name,"type":typ})
+        uniq={(x["name"],x["type"]):x for x in services}
+        services=list(uniq.values())
 
     candidates=[]
     inspected=[]
@@ -148,6 +150,7 @@ def main():
       "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
       "research_only":True,
       "catalog_root":ROOT_URL,
+      "fast_mode":fast_mode,
       "folders_scanned":len(folders),
       "relevant_services_inspected":len(services),
       "candidate_count":len(candidates),
