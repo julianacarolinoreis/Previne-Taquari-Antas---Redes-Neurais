@@ -10,6 +10,7 @@ on:
       - "scripts/run_hec_hms_mucum_dual_boundary.py"
       - "scripts/run_hec_hms_mucum_dual_route_sweep.py"
       - "scripts/run_hec_hms_mucum_state_routing_sweep.py"
+      - "scripts/run_hec_hms_mucum_iterative_validation.py"
   workflow_dispatch:
 
 permissions:
@@ -64,13 +65,28 @@ jobs:
       - name: Build full-event rain timeline
         run: python -B scripts/build_hec_hms_spatial_forecast_mucum.py
 
-      - name: Run HEC with observed boundaries + routing/state sweep
+      - name: Run iterative HEC calibration and validation
         shell: bash
         run: |
           set -euo pipefail
           HEC_SH="$(find "$PWD/.hec" -type f -name 'hec-hms.sh' | head -n 1)"
           test -n "$HEC_SH"
-          python -B scripts/run_hec_hms_mucum_state_routing_sweep.py "$HEC_SH"
+          python -B scripts/run_hec_hms_mucum_iterative_validation.py "$HEC_SH"
+
+      - name: Show operational validation status
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          p="assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum_latest.json"
+          o=json.load(open(p,encoding="utf-8"))
+          v=o.get("operational_validation") or {}
+          print("STATUS:",v.get("status"))
+          print("CHECKS:",json.dumps(v.get("checks"),ensure_ascii=False))
+          print("VALUES:",json.dumps(v.get("values"),ensure_ascii=False))
+          print("SELECTED:",json.dumps(v.get("selected"),ensure_ascii=False))
+          print("PEAK:",json.dumps(o.get("peak"),ensure_ascii=False))
+          PY
 
       - name: Publish result
         shell: bash
@@ -98,4 +114,4 @@ jobs:
           done
           exit 1
 
-# rerun: 2026-09-29 20:14 BRT · routing + warmup state sweep
+# rerun: 2026-09-29 21:12 BRT · iterative validation protocol
