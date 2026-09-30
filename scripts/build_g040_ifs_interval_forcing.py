@@ -25,6 +25,7 @@ SUPPORT=BASE/"whole_basin_rain_support_points.csv"
 SUPPORT_META=BASE/"whole_basin_rain_support_latest.json"
 OUT=BASE/"whole_basin_ifs_forecast_latest.json"
 OUTCSV=BASE/"whole_basin_ifs_forecast_hourly.csv"
+OUTCOMP=BASE/"whole_basin_ifs_forecast_components_hourly.csv"
 SCENARIOS=BASE/"whole_basin_boundary_scenarios_latest.json"
 
 GRID_DEG=0.25
@@ -53,6 +54,7 @@ def load_support():
                 "lat":float(r["lat"]),
                 "area_km2":float(r["local_area_km2"]),
                 "tributary_boundary_code":str(r.get("tributary_boundary_code") or "").strip(),
+                "component_id":str(r.get("component_id") or "").strip(),
             })
     if not rows:
         raise RuntimeError("G040 rain support mesh is empty")
@@ -87,6 +89,29 @@ def build_cell_weights(points, active_boundary_codes):
                 }
                 for cid,a in sorted(cells.items())
             },
+        }
+    return list(all_cells.values()),summaries
+
+def build_component_weights(points):
+    by_component={}
+    all_cells={}
+    for p in points:
+        cid_component=p.get("component_id")
+        if not cid_component:
+            continue
+        lat=grid_center(p["lat"]); lon=grid_center(p["lon"])
+        cid=cell_id(lat,lon)
+        all_cells[cid]={"cell_id":cid,"latitude":lat,"longitude":lon}
+        bucket=by_component.setdefault(cid_component,{})
+        bucket[cid]=bucket.get(cid,0.0)+float(p["area_km2"])
+    summaries={}
+    for comp,cells in by_component.items():
+        total=sum(cells.values())
+        if total<=0:
+            raise RuntimeError(f"{comp}: non-positive support area")
+        summaries[comp]={
+            "total_area_km2":total,
+            "cells":{cid:{"area_km2":a,"weight":a/total} for cid,a in sorted(cells.items())},
         }
     return list(all_cells.values()),summaries
 
@@ -177,7 +202,10 @@ def main() -> int:
         for x in current.get("intervals") or []
     }
     points=load_support()
-    cells,weights=build_cell_weights(points,active_boundary_codes)
+    cells_all,_gross_weights=build_cell_weights(points,set())
+    _component_cells,component_weights=build_component_weights(points)
+    cells=cells_all
+    _scenario_cells,weights=build_cell_weights(points,active_boundary_codes)
     for iid,info in weights.items():
         exp=expected_area.get(iid)
         if exp is None:
@@ -201,6 +229,32 @@ def main() -> int:
                 total+=float(by_cell[cid]["precip_mm"][h])*float(w["weight"])
             series.append({"time_utc":t,"mm":round(total,4)})
         interval_series[iid]=series
+
+    components=[]
+    component_series={}
+    for comp,info in component_weights.items():
+        series=[]
+        for h,t in enumerate(times):
+            total=0.0
+            for cid,w in info["cells"].items():
+                total+=float(by_cell[cid]["precip_mm"][h])*float(w["weight"])
+            series.append({"time_utc":t,"mm":round(total,4)})
+        component_series[comp]=series
+        branch_code=comp.replace("BRANCH_","",1) if comp.startswith("BRANCH_") else None
+        components.append({
+            "component_id":comp,
+            "component_type":"tributary_branch" if branch_code else "mainstem_core_increment",
+            "tributary_boundary_code":branch_code,
+            "used_as_rainfall_runoff_in_current_scenario":not branch_code or branch_code not in active_boundary_codes,
+            "support_area_km2":round(info["total_area_km2"],6),
+            "ifs_cell_count":len(info["cells"]),
+            "forecast_accumulations":{
+                "6h_mm":rolling(series,6),"12h_mm":rolling(series,12),
+                "24h_mm":rolling(series,24),"48h_mm":rolling(series,48),
+                "72h_mm":rolling(series,72),"120h_mm":rolling(series,120),
+            },
+            "series":series,
+        })
 
     intervals=[]
     for iid in sorted(interval_series):
@@ -237,6 +291,17 @@ def main() -> int:
             row={"time_utc":t}
             for iid in interval_ids:
                 row[iid]=interval_series[iid][h]["mm"]
+            w.writerow(row)
+
+    with OUTCOMP.open("w",encoding="utf-8",newline="") as fh:
+        component_ids=sorted(component_series)
+        fields=["time_utc",*component_ids]
+        w=csv.DictWriter(fh,fieldnames=fields)
+        w.writeheader()
+        for h,t in enumerate(times):
+            row={"time_utc":t}
+            for cid in component_ids:
+                row[cid]=component_series[cid][h]["mm"]
             w.writerow(row)
 
     payload={
@@ -276,7 +341,11 @@ def main() -> int:
             } for c in fetched],
         },
         "intervals":intervals,
-        "artifacts":{"hourly_csv":str(OUTCSV.relative_to(ROOT))},
+        "components":components,
+        "artifacts":{
+            "hourly_interval_csv":str(OUTCSV.relative_to(ROOT)),
+            "hourly_component_csv":str(OUTCOMP.relative_to(ROOT)),
+        },
         "next_step":"merge observed interval rainfall through the last complete observed hour with IFS interval rainfall from the forecast transition hour",
     }
     OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
