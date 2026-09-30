@@ -1,0 +1,31 @@
+name: G040 rainfall forcing contract
+
+on:
+  pull_request:
+    paths:
+      - "scripts/g040_rain_grid.py"
+      - "scripts/build_g040_observed_rain_forcing.py"
+      - "scripts/build_g040_ifs_interval_forcing.py"
+      - "scripts/build_g040_merged_rain_forcing.py"
+      - "scripts/test_g040_rain_forcing_contract.py"
+      - ".github/workflows/g040-rain-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Dependencies
+        run: pip install --disable-pip-version-check numpy shapely
+      - name: Rain forcing contract tests
+        run: python -B scripts/test_g040_rain_forcing_contract.py
+      - name: Compile modified builders
+        run: python -m py_compile scripts/g040_rain_grid.py scripts/build_g040_observed_rain_forcing.py scripts/build_g040_ifs_interval_forcing.py scripts/build_g040_merged_rain_forcing.py
