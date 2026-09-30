@@ -50,7 +50,9 @@ jobs:
       - name: Close incremental area mass balance
         run: python -B scripts/build_g040_incremental_area_budget.py
 
-      - name: Discover compatible SNIRH BHO polygon services
+      - name: Probe compatible SNIRH BHO6 polygon source
+        env:
+          SNIRH_DISCOVERY_FAST: "1"
         run: python -B scripts/discover_snirh_bho_polygon_services.py
 
       - name: Build residual catchment geometries
