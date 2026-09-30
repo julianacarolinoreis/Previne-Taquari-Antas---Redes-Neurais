@@ -456,6 +456,18 @@ def read_output_csv(path):
             by.setdefault(r["element"],[]).append(float(r["q_m3s"]))
     return by
 
+def _corr(a,b):
+    if len(a)<2: return None
+    ma=sum(a)/len(a); mb=sum(b)/len(b)
+    da=[x-ma for x in a]; db=[x-mb for x in b]
+    den=math.sqrt(sum(x*x for x in da)*sum(x*x for x in db))
+    return None if den<=0 else sum(x*y for x,y in zip(da,db))/den
+
+def _sd(a):
+    if len(a)<2: return 0.0
+    m=sum(a)/len(a)
+    return math.sqrt(sum((x-m)**2 for x in a)/(len(a)-1))
+
 def score_outputs(out_by,hydro,times):
     result={}
     for code in MAIN_CHECKPOINTS:
@@ -465,19 +477,49 @@ def score_outputs(out_by,hydro,times):
         pairs=[]
         for i,t in enumerate(times[:len(sim)]):
             qo=obsmap.get(t)
-            if qo is not None and math.isfinite(sim[i]): pairs.append((float(qo),float(sim[i])))
+            if qo is not None and math.isfinite(sim[i]):
+                pairs.append((t,float(qo),float(sim[i])))
         if len(pairs)<4:
             result[code]={"pairs":len(pairs),"status":"insufficient_observed_Q"}
             continue
-        obs=[a for a,b in pairs]; ss=[b for a,b in pairs]
-        mean=sum(obs)/len(obs)
-        sse=sum((a-b)**2 for a,b in pairs); den=sum((a-mean)**2 for a in obs)
-        rmse=math.sqrt(sse/len(obs)); mae=sum(abs(a-b) for a,b in pairs)/len(obs)
+        tt=[x[0] for x in pairs]; obs=[x[1] for x in pairs]; ss=[x[2] for x in pairs]
+        mo=sum(obs)/len(obs); ms=sum(ss)/len(ss)
+        sse=sum((a-b)**2 for a,b in zip(obs,ss)); den=sum((a-mo)**2 for a in obs)
+        rmse=math.sqrt(sse/len(obs)); mae=sum(abs(a-b) for a,b in zip(obs,ss))/len(obs)
         nse=None if den<=0 else 1-sse/den
-        pbias=100*sum(b-a for a,b in pairs)/sum(obs) if sum(obs) else None
-        result[code]={"pairs":len(pairs),"rmse_m3s":rmse,"mae_m3s":mae,"nse":nse,"pbias_pct":pbias,
-                      "observed_last_m3s":obs[-1],"simulated_last_m3s":ss[-1],
-                      "last_error_pct":100*(ss[-1]-obs[-1])/obs[-1] if obs[-1] else None}
+        pbias=100*sum(b-a for a,b in zip(obs,ss))/sum(obs) if sum(obs) else None
+        r=_corr(obs,ss); so=_sd(obs); sm=_sd(ss)
+        alpha=None if so<=0 else sm/so
+        beta=None if mo==0 else ms/mo
+        kge=None
+        if r is not None and alpha is not None and beta is not None:
+            kge=1-math.sqrt((r-1)**2+(alpha-1)**2+(beta-1)**2)
+        oi=max(range(len(obs)),key=lambda i:obs[i]); si=max(range(len(ss)),key=lambda i:ss[i])
+        peak_obs=obs[oi]; peak_sim=ss[si]
+        peak_err=100*(peak_sim-peak_obs)/peak_obs if peak_obs else None
+        peak_lag=(tt[si]-tt[oi]).total_seconds()/3600
+        volume_obs=sum(obs)*3600.0; volume_sim=sum(ss)*3600.0
+        volume_err=100*(volume_sim-volume_obs)/volume_obs if volume_obs else None
+        do=[obs[i]-obs[i-1] for i in range(1,len(obs))]
+        ds=[ss[i]-ss[i-1] for i in range(1,len(ss))]
+        derivative_rmse=math.sqrt(sum((a-b)**2 for a,b in zip(do,ds))/len(do)) if do else None
+        sign_hits=sum((a==0 and b==0) or (a*b>0) for a,b in zip(do,ds))
+        rise_fall_skill=sign_hits/len(do) if do else None
+        result[code]={
+            "pairs":len(pairs),"mean_observed_m3s":mo,"mean_simulated_m3s":ms,
+            "rmse_m3s":rmse,"normalized_rmse":None if mo==0 else rmse/mo,
+            "mae_m3s":mae,"nse":nse,"kge":kge,"correlation":r,
+            "pbias_pct":pbias,"volume_error_pct":volume_err,
+            "observed_peak_m3s":peak_obs,"simulated_peak_m3s":peak_sim,
+            "peak_error_pct":peak_err,
+            "observed_peak_time_utc":tt[oi].isoformat().replace("+00:00","Z"),
+            "simulated_peak_time_utc":tt[si].isoformat().replace("+00:00","Z"),
+            "peak_timing_error_h":peak_lag,
+            "derivative_rmse_m3s_h":derivative_rmse,
+            "rise_fall_sign_skill":rise_fall_skill,
+            "observed_last_m3s":obs[-1],"simulated_last_m3s":ss[-1],
+            "last_error_pct":100*(ss[-1]-obs[-1])/obs[-1] if obs[-1] else None,
+        }
     return result
 
 def main():
