@@ -7,6 +7,12 @@ on:
       - "docs/arquitetura_g040_sma_mgb_ras.md"
       - "scripts/build_g040_hydro_stack_scaffold.py"
       - "scripts/test_g040_hydro_stack_scaffold.py"
+      - "scripts/g040_rain_grid.py"
+      - "scripts/build_mucum_observed_multistation.py"
+      - "scripts/build_g040_observed_rain_forcing.py"
+      - "scripts/build_g040_ifs_interval_forcing.py"
+      - "scripts/build_g040_merged_rain_forcing.py"
+      - "scripts/test_g040_rain_forcing_contract.py"
       - ".github/workflows/g040-hydro-stack-scaffold.yml"
   workflow_dispatch:
 
@@ -24,8 +30,17 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Unit tests
+      - name: Test dependencies
+        run: pip install --disable-pip-version-check numpy shapely
+
+      - name: Hydro stack unit tests
         run: python -B scripts/test_g040_hydro_stack_scaffold.py
+
+      - name: Rain forcing contract tests
+        run: python -B scripts/test_g040_rain_forcing_contract.py
+
+      - name: Compile rain builders
+        run: python -m py_compile scripts/g040_rain_grid.py scripts/build_mucum_observed_multistation.py scripts/build_g040_observed_rain_forcing.py scripts/build_g040_ifs_interval_forcing.py scripts/build_g040_merged_rain_forcing.py
 
       - name: Check persisted full-basin dependency
         shell: bash
