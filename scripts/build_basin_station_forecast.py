@@ -150,6 +150,15 @@ OBSERVED_COLUMNS = {
     "4320404010A": "chuva_cemaden_4320404010A",
 }
 
+OBSERVED_SOURCE_LABELS = {
+    "chuva_86472600": "ANA · telemetria horária",
+    "chuva_86472000": "ANA · telemetria horária",
+    "chuva_02851044": "ANA · coluna legada (não é entrada ativa do robô)",
+    "chuva_02851072": "ANA · telemetria horária",
+    "chuva_inmet_A894": "INMET · estação A894",
+    "chuva_cemaden_4320404010A": "CEMADEN · estação 432040401A",
+}
+
 
 def finite(value: Any) -> float | None:
     try:
@@ -183,6 +192,14 @@ def station_code(value: Any) -> str:
     if text.endswith(".0"):
         text = text[:-2]
     return text
+
+
+def observed_rain_source(code: Any) -> str:
+    """Describe the specific network behind the existing hourly-rain column."""
+
+    column = OBSERVED_COLUMNS.get(station_code(code))
+    label = OBSERVED_SOURCE_LABELS.get(column, "rede não identificada")
+    return f"{label} · assets/data/chuvas_horarias.csv"
 
 
 def json_load(path: Path) -> dict[str, Any]:
@@ -343,7 +360,7 @@ def load_observed_rain(
         return {
             code: {
                 "state": "unavailable",
-                "source": "assets/data/chuvas_horarias.csv",
+                "source": observed_rain_source(code),
                 "unit": "mm",
                 "rows": [],
                 "available_points": 0,
@@ -391,7 +408,7 @@ def load_observed_rain(
         )
         result[code] = {
             "state": "available" if known else "unavailable",
-            "source": "ANA/INMET/CEMADEN · chuvas_horarias.csv",
+            "source": observed_rain_source(code),
             "unit": "mm",
             "timezone": "America/Sao_Paulo",
             "rows": selected,
@@ -442,6 +459,8 @@ def _observed_window_stats(
                 "expected_points": hours,
                 "coverage_ratio": 0.0,
                 "complete": False,
+                "start_utc": None,
+                "end_utc": None,
             }
             for hours in windows
         }
@@ -466,6 +485,10 @@ def _observed_window_stats(
             "expected_points": expected_points,
             "coverage_ratio": round(coverage_ratio, 4),
             "complete": len(valid) == expected_points,
+            # A sample labelled 14:00 measures rain in 13:00–14:00.
+            # Publish the physical accumulation interval, not just its labels.
+            "start_utc": iso_utc(latest_observed - timedelta(hours=hours)),
+            "end_utc": iso_utc(latest_observed),
         }
     return result
 
@@ -974,7 +997,7 @@ def build_feed(
             item["code"],
             {
                 "state": "unavailable",
-                "source": "ANA/INMET/CEMADEN · chuvas_horarias.csv",
+                "source": "chuva horária sem coluna associada · assets/data/chuvas_horarias.csv",
                 "unit": "mm",
                 "rows": [],
                 "available_points": 0,

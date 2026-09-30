@@ -2,7 +2,7 @@ import csv
 import json
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from scripts import build_basin_station_forecast as feed
@@ -84,8 +84,56 @@ class BasinStationForecastTests(unittest.TestCase):
         rows = result["86472600"]["rows"]
         self.assertEqual(result["86472600"]["state"], "available")
         self.assertEqual(result["86472600"]["observed_age_minutes"], 0)
+        self.assertEqual(
+            result["86472600"]["source"],
+            "ANA · telemetria horária · assets/data/chuvas_horarias.csv",
+        )
         self.assertTrue(any(row["mm"] is None for row in rows))
         self.assertIn(4.5, [row["mm"] for row in rows])
+
+    def test_observed_rain_source_names_network_and_marks_legacy_column(self):
+        self.assertIn("ANA · telemetria horária", feed.observed_rain_source("86472600"))
+        self.assertIn("INMET · estação A894", feed.observed_rain_source("A894"))
+        self.assertIn("CEMADEN · estação 432040401A", feed.observed_rain_source("432040401A"))
+        self.assertIn("coluna legada", feed.observed_rain_source("02851044"))
+        self.assertIn("rede não identificada", feed.observed_rain_source("unknown"))
+
+    def test_complete_72h_window_discloses_age_when_snapshot_has_newer_gaps(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "rain.csv"
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(
+                    handle,
+                    fieldnames=["COD_SEQUENCIAL", "chuva_86472600"],
+                )
+                writer.writeheader()
+                local_start = datetime(2026, 9, 20, 0)
+                for hour in range(78):
+                    local_time = local_start + timedelta(hours=hour)
+                    writer.writerow({
+                        "COD_SEQUENCIAL": local_time.strftime("%Y%m%d%H%M"),
+                        "chuva_86472600": 1.0 if hour <= 72 else "",
+                    })
+
+            result = feed.load_observed_rain(
+                path,
+                now=datetime(2026, 9, 23, 8, 0, tzinfo=timezone.utc),
+                hours=72,
+            )["86472600"]
+
+        window = result["windows"]["72h"]
+        self.assertTrue(window["complete"])
+        self.assertEqual(window["valid_points"], 72)
+        self.assertEqual(window["start_utc"], "2026-09-20T03:00Z")
+        self.assertEqual(window["end_utc"], "2026-09-23T03:00Z")
+        self.assertEqual(result["observed_age_minutes"], 300)
+        self.assertEqual(result["rows"][-5:], [
+            {"time": "2026-09-23T04:00Z", "mm": None},
+            {"time": "2026-09-23T05:00Z", "mm": None},
+            {"time": "2026-09-23T06:00Z", "mm": None},
+            {"time": "2026-09-23T07:00Z", "mm": None},
+            {"time": "2026-09-23T08:00Z", "mm": None},
+        ])
 
     def test_cemaden_24h_observation_is_not_an_hourly_series(self):
         station = {"source_observations": [{
@@ -119,6 +167,8 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertEqual(windows["2h"]["expected_points"], 2)
         self.assertFalse(windows["2h"]["complete"])
         self.assertAlmostEqual(windows["2h"]["coverage_ratio"], 0.5, places=3)
+        self.assertEqual(windows["2h"]["start_utc"], "2026-09-20T00:00Z")
+        self.assertEqual(windows["2h"]["end_utc"], "2026-09-20T02:00Z")
 
     def test_observed_windows_use_exact_hour_count(self):
         latest = datetime(2026, 9, 20, 23, tzinfo=timezone.utc)
@@ -135,6 +185,8 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertEqual(windows["24h"]["valid_points"], 24)
         self.assertEqual(windows["24h"]["expected_points"], 24)
         self.assertTrue(windows["24h"]["complete"])
+        self.assertEqual(windows["24h"]["start_utc"], "2026-09-19T23:00Z")
+        self.assertEqual(windows["24h"]["end_utc"], "2026-09-20T23:00Z")
 
     def test_catalog_merges_flow_and_rain_records_by_network_and_code(self):
         with tempfile.TemporaryDirectory() as directory:
