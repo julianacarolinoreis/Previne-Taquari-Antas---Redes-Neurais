@@ -1,0 +1,27 @@
+name: G040 BHO6 polygon probe
+
+on:
+  pull_request:
+    paths:
+      - "scripts/probe_arcgis_bho6_polygons.py"
+      - ".github/workflows/g040-bho6-polygon-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install requests
+        run: pip install --disable-pip-version-check requests
+      - name: Probe public ArcGIS services
+        run: python -B scripts/probe_arcgis_bho6_polygons.py
+      - name: Show discovery result
+        run: cat assets/data/hec_hms_g040_full_basin/arcgis_bho6_polygon_probe_latest.json
