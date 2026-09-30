@@ -209,22 +209,45 @@
   .m-soon{border:1.5px dashed var(--baseline);border-radius:8px;padding:10px 14px;color:var(--muted);font-size:12.5px;margin-top:18px;line-height:1.5}
 
   /* ---------- mapa das estações ---------- */
-  .map-grid{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(300px,.9fr);gap:16px;align-items:start}
-  @media (max-width:1020px){ .map-grid{grid-template-columns:minmax(0,1.45fr) minmax(280px,1fr)} }
-  @media (max-width:820px){ .map-grid{grid-template-columns:1fr} }
+  .map-grid{display:grid;grid-template-columns:minmax(0,2.15fr) minmax(310px,.85fr);gap:18px;align-items:start}
+  @media (max-width:1120px){ .map-grid{grid-template-columns:minmax(0,1.6fr) minmax(290px,1fr)} }
+  @media (max-width:820px){ .map-grid{grid-template-columns:1fr;gap:12px} }
   .map-stage{min-width:0}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-  #mapa{height:650px;border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow);background:var(--surface-2);overflow:hidden}
-  @media (max-width:820px){#mapa{height:560px}}
+  #mapa{height:min(72vh,720px);min-height:590px;border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow);background:var(--surface-2);overflow:hidden}
+  @media (max-width:820px){#mapa{height:62vh;min-height:470px;max-height:620px;border-radius:14px}}
+  @media (max-width:520px){#mapa{height:58vh;min-height:440px}}
   .map-fallback{display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:13px;padding:24px;min-height:100%}
-  .map-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px;font-size:11.5px;color:var(--muted);line-height:1.45}
-  .map-status strong{color:var(--ink);font-weight:700}
-  .map-status .map-status-right{text-align:right}
+  .map-status{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 14px;align-items:start;margin:0 0 9px;font-size:11px;color:var(--muted);line-height:1.4}
+  .map-status strong{color:var(--ink);font-weight:750}
+  .map-status-main{display:flex;flex-wrap:wrap;align-items:center;gap:5px 7px}
+  .map-status-chip{display:inline-flex;align-items:center;white-space:nowrap;padding:3px 7px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--ink-2);font-size:10px;font-weight:650}
+  .map-status-chip.muted{color:var(--muted);font-weight:550}
+  .map-status .map-status-right{text-align:right;max-width:300px}
+  .map-status .map-status-right.is-late{color:#9a3412;font-weight:650}
   .map-legend{display:flex;flex-wrap:wrap;align-items:center;gap:7px 14px;margin:8px 2px 0;color:var(--muted);font-size:11px}
   .map-legend-item{display:inline-flex;align-items:center;gap:5px}
   .map-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;border:1px solid rgba(255,255,255,.75)}
-  .map-legend-dot.flow{background:#1b7a5a}.map-legend-dot.rain{background:#2878c8}.map-legend-dot.target{background:#e8a317}.map-legend-dot.hydro{background:#7c3aed}
+  .map-legend-dot.flow{background:#1b7a5a}.map-legend-dot.rain{background:#2878c8}.map-legend-dot.hydro{background:#7c3aed}
+  .map-legend-dash{width:13px;height:13px;border-radius:50%;display:inline-block;border:2px dashed #7f8b84;background:rgba(127,139,132,.12)}
+  .map-legend-cluster{min-width:21px;height:21px;padding:0 5px;border-radius:999px;display:inline-grid;place-items:center;background:#17324d;color:#fff;font-style:normal;font-size:9px;font-weight:800;box-shadow:0 0 0 3px rgba(255,255,255,.84)}
+  .basin-cluster-icon{background:transparent!important;border:0!important}
+  .basin-cluster-bubble{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#17324d;color:#fff;font-size:12px;font-weight:850;border:3px solid rgba(255,255,255,.92);box-shadow:0 4px 15px rgba(23,50,77,.22)}
+  .basin-cluster-bubble.large{width:48px;height:48px;font-size:13px}
+  .leaflet-tooltip.basin-station-tip{border:1px solid rgba(23,50,77,.14);border-radius:8px;box-shadow:0 6px 18px rgba(23,50,77,.12);font:600 11px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#172433}
+  .basin-popup{min-width:190px;line-height:1.35}
+  .basin-popup strong{display:block;font-size:13px;margin-bottom:3px}
+  .basin-popup span{display:block;color:#5f6f67;font-size:10.5px;margin-top:2px}
+  .basin-popup .basin-popup-state{color:#263a31;font-weight:650;margin-top:5px}
   .station-side{display:flex;flex-direction:column;gap:10px;min-width:0}
+  @media (min-width:821px){.station-side{position:sticky;top:82px;max-height:calc(100vh - 96px)}.stations{max-height:calc(100vh - 275px)!important}}
+  @media (max-width:820px){
+    .map-status{grid-template-columns:1fr}
+    .map-status .map-status-right{text-align:left;max-width:none}
+    .map-legend{gap:7px 11px}
+    .station-filters{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+    .station-filter{flex:0 0 auto}
+  }
   .station-toolbar{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:11px 12px;box-shadow:var(--shadow)}
   .station-toolbar-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
   .station-toolbar-title{font-size:13px;font-weight:750;color:var(--ink)}
@@ -675,20 +698,20 @@
   <section class="sec">
     <span class="kicker">a bacia</span>
     <h2>Onde ficam as estações</h2>
-    <p class="sec-sub">A estação-alvo em Santa Tereza, a estação de montante e as estações/municípios de apoio usados nas rodadas de modelagem. Quando a identificação ou a coordenada ainda precisa ser confirmada, o cartão indica isso e abre o HidroWeb para conferência.</p>
+    <p class="sec-sub">Mapa da <strong>rede completa de monitoramento da G040</strong>. Todas as estações catalogadas aparecem no mesmo universo cartográfico; use zoom, busca e filtros apenas para explorar a rede. Pontos próximos são agrupados automaticamente em escalas menores e se abrem à medida que você aproxima.</p>
     <div class="map-grid">
       <div class="map-stage">
         <div class="map-status" id="map-status" role="status">
-          <span><strong>Catálogo completo da bacia</strong> · carregando ANA, SGB, CEMADEN e INMET…</span>
-          <span class="map-status-right">Feed multi-modelo · pesquisa</span>
+          <span><strong>Rede completa da G040</strong> · carregando ANA, SGB, CEMADEN e INMET…</span>
+          <span class="map-status-right">Todas as estações · pesquisa</span>
         </div>
         <div id="mapa"><div class="map-fallback">Carregando o mapa…</div></div>
         <div class="map-legend" aria-label="Legenda do mapa">
-          <span class="map-legend-item"><i class="map-legend-dot target"></i> alvo/nível</span>
-          <span class="map-legend-item"><i class="map-legend-dot flow"></i> fluviométrica</span>
+          <span class="map-legend-item"><i class="map-legend-dot flow"></i> fluviométrica / nível</span>
           <span class="map-legend-item"><i class="map-legend-dot rain"></i> pluviométrica</span>
           <span class="map-legend-item"><i class="map-legend-dot hydro"></i> hidrológica CEMADEN</span>
-          <span class="map-legend-item">Clique num ponto para abrir as métricas</span>
+          <span class="map-legend-item"><i class="map-legend-dash"></i> sem dado atual</span>
+          <span class="map-legend-item"><i class="map-legend-cluster">12</i> grupo de estações — aproxime para separar</span>
         </div>
       </div>
       <div class="station-side">
@@ -1602,6 +1625,7 @@
   const BASIN_FEED_RAW_URL='https://raw.githubusercontent.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/main/assets/data/basin_station_forecast_latest.json';
   const BASIN_FEED_PAGES_URL='assets/data/basin_station_forecast_latest.json';
   let BASIN_MAP=null;
+  let BASIN_MARKER_LAYER=null;
   const BASIN_MARKERS={};
   let BASIN_SELECTED=null;
   let BASIN_FILTER='all';
@@ -1624,11 +1648,23 @@
     if(Number.isNaN(d.getTime()))return String(value);
     return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'});
   };
+  const basinRelativeAge=value=>{
+    const t=Date.parse(value);
+    if(!Number.isFinite(t))return '';
+    const minutes=Math.max(0,Math.round((Date.now()-t)/60000));
+    if(minutes<1)return 'agora';
+    if(minutes<60)return 'há '+minutes+' min';
+    const hours=minutes/60;
+    if(hours<24)return 'há '+hours.toLocaleString('pt-BR',{maximumFractionDigits:1})+' h';
+    return 'há '+Math.round(hours/24)+' d';
+  };
   const basinNextCycle=value=>{
-    if(!value)return 'não informado';
+    if(!value)return 'próxima rodada não informada';
     const d=new Date(value);
     if(Number.isNaN(d.getTime()))return String(value);
-    return basinDate(value)+(d.getTime()<Date.now()?' · rodada pendente':'');
+    return d.getTime()<Date.now()
+      ?'rodada esperada '+basinDate(value)+' ainda não concluída'
+      :'próxima rodada '+basinDate(value);
   };
   const basinFeedAgeHours=()=>{
     const generated=BASIN_FEED&&BASIN_FEED.generated_at_utc?Date.parse(BASIN_FEED.generated_at_utc):NaN;
@@ -1728,8 +1764,6 @@
     const isHydro=/hidrolog/.test(text)&&!/pluviometr/.test(text);
     const isLevel=st.grp==='alvo'||st.grp==='alt'||(st.level&&st.level.state==='available')||/fluviometr|telemetr|nivel|hidrolog/.test(text);
     const isRain=(st.observed_rain&&st.observed_rain.state==='available')||!!basinCemadenRain24(st)||/pluviometr|chuva|rain/.test(text);
-    const target=st.code==='86472600'||st.grp==='alvo';
-    if(target)return {category:'target',label:'alvo/nível',color:'#e8a317',isLevel:true,isRain:isRain};
     if(isHydro)return {category:'hydro',label:'hidrológica',color:'#7c3aed',isLevel:true,isRain:false};
     if(isLevel)return {category:'flow',label:'fluviométrica',color:'#1b7a5a',isLevel:true,isRain:isRain};
     return {category:'rain',label:'pluviométrica',color:'#2878c8',isLevel:false,isRain:true};
@@ -2463,12 +2497,22 @@
     BASIN_SELECTED=st;
     basinRefreshSelection();
     basinRenderDetail(st);
-    const marker=BASIN_MARKERS[basinStationId(st)];
     const lat=st.latitude!==undefined?st.latitude:st.lat;
     const lon=st.longitude!==undefined?st.longitude:st.lon;
-    if(BASIN_MAP&&marker&&basinFinite(lat)&&basinFinite(lon)){
-      BASIN_MAP.flyTo([Number(lat),Number(lon)],basinStationKind(st).category==='target'?12:11,{duration:.6});
-      marker.openPopup();
+    if(BASIN_MAP&&basinFinite(lat)&&basinFinite(lon)){
+      const openSelected=()=>{
+        const marker=BASIN_MARKERS[basinStationId(st)];
+        if(marker)marker.openPopup();
+      };
+      const currentZoom=BASIN_MAP.getZoom();
+      const marker=BASIN_MARKERS[basinStationId(st)];
+      if(marker){
+        BASIN_MAP.flyTo([Number(lat),Number(lon)],Math.max(currentZoom,11),{duration:.45});
+        setTimeout(openSelected,480);
+      }else{
+        BASIN_MAP.once('moveend',()=>{basinRenderMarkers(false);setTimeout(openSelected,30);});
+        BASIN_MAP.flyTo([Number(lat),Number(lon)],Math.max(currentZoom,12),{duration:.5});
+      }
     }
     if(center){
       const panel=basinById('station-detail');
@@ -2477,11 +2521,15 @@
   }
   const basinPopup=st=>{
     const kind=basinStationKind(st);
-    const code=st.code&&st.code!=='—'?'Código: '+st.code:'Código não informado';
+    const code=st.code&&st.code!=='—'?'Código '+st.code:'código não informado';
     const forecast=st.forecast&&st.forecast.state==='available'?'previsão disponível':'previsão indisponível';
-    const sources=basinSourceLabel(st);
-    const visualNote=(st._basin_visual_offset?' · posição deslocada só para separar pontos coincidentes':'');
-    return '<strong>'+basinEscape(st.name||'Estação')+'</strong><br><small>'+basinEscape(kind.label)+' · '+basinEscape(code)+'</small><br><small>'+basinEscape(sources)+'</small><br><small>'+basinEscape(forecast)+' · clique para abrir as métricas'+basinEscape(visualNote)+'</small>';
+    const level=st.level&&st.level.state==='available'?('nível '+basinFormat(st.level.current_cm,'level_cm')+' · '+basinMinutesNote(st.level.observed_age_minutes)):'nível indisponível';
+    const rain=st.observed_rain&&st.observed_rain.state==='available'?('chuva observada · '+basinMinutesNote(st.observed_rain.observed_age_minutes)):'chuva horária indisponível';
+    return '<div class="basin-popup"><strong>'+basinEscape(st.name||'Estação')+'</strong>'+
+      '<span>'+basinEscape(kind.label)+' · '+basinEscape(code)+'</span>'+
+      '<span>'+basinEscape(basinSourceLabel(st))+'</span>'+
+      '<span class="basin-popup-state">'+basinEscape(level)+'</span>'+
+      '<span>'+basinEscape(rain)+' · '+basinEscape(forecast)+'</span></div>';
   };
 
   function basinMarkerPositions(){
@@ -2513,34 +2561,79 @@
 
   function basinRenderMarkers(fit=true){
     if(!BASIN_MAP||!window.L)return;
-    Object.keys(BASIN_MARKERS).forEach(id=>{
-      BASIN_MAP.removeLayer(BASIN_MARKERS[id]);
-      delete BASIN_MARKERS[id];
-    });
-    const bounds=[];
+    if(!BASIN_MARKER_LAYER)BASIN_MARKER_LAYER=L.layerGroup().addTo(BASIN_MAP);
+    BASIN_MARKER_LAYER.clearLayers();
+    Object.keys(BASIN_MARKERS).forEach(id=>delete BASIN_MARKERS[id]);
+
     const positions=basinMarkerPositions();
+    const visible=[];
+    const bounds=[];
     BASIN_STATIONS.forEach(st=>{
       if(!basinMatches(st))return;
       const lat=basinNumber(st.latitude!==undefined?st.latitude:st.lat);
       const lon=basinNumber(st.longitude!==undefined?st.longitude:st.lon);
       if(lat===null||lon===null)return;
-      const kind=basinStationKind(st);
-      bounds.push([lat,lon]);
-      const hasData=basinHasData(st);
       const position=positions[basinStationId(st)]||[lat,lon];
-      const marker=L.circleMarker(position,{
-        radius:kind.category==='target'?8:kind.category==='flow'?5.5:kind.category==='hydro'?5.5:4.5,
-        color:'#fff',
-        weight:1.4,
+      visible.push({st,lat,lon,position});
+      bounds.push([lat,lon]);
+    });
+
+    if(bounds.length&&fit)BASIN_MAP.fitBounds(bounds,{padding:[22,22],maxZoom:10});
+    if(!visible.length)return;
+
+    const zoom=BASIN_MAP.getZoom();
+    const cellSize=zoom<=8?82:zoom===9?66:zoom===10?54:zoom===11?44:0;
+    const groups={};
+    visible.forEach(item=>{
+      if(!cellSize){
+        groups['station:'+basinStationId(item.st)]=[item];
+        return;
+      }
+      const point=BASIN_MAP.project(L.latLng(item.position[0],item.position[1]),zoom);
+      const key=Math.floor(point.x/cellSize)+':'+Math.floor(point.y/cellSize);
+      (groups[key]||(groups[key]=[])).push(item);
+    });
+
+    Object.values(groups).forEach(group=>{
+      if(group.length>1){
+        const lat=group.reduce((sum,item)=>sum+item.position[0],0)/group.length;
+        const lon=group.reduce((sum,item)=>sum+item.position[1],0)/group.length;
+        const icon=L.divIcon({
+          className:'basin-cluster-icon',
+          html:'<span class="basin-cluster-bubble'+(group.length>=50?' large':'')+'">'+group.length+'</span>',
+          iconSize:[48,48],
+          iconAnchor:[24,24]
+        });
+        const marker=L.marker([lat,lon],{icon,keyboard:true,title:group.length+' estações nesta área'}).addTo(BASIN_MARKER_LAYER);
+        marker.bindTooltip(group.length+' estações · clique para aproximar',{direction:'top',className:'basin-station-tip'});
+        marker.on('click',()=>{
+          const groupBounds=L.latLngBounds(group.map(item=>item.position));
+          const ne=groupBounds.getNorthEast(), sw=groupBounds.getSouthWest();
+          if(ne.equals(sw))BASIN_MAP.setView([lat,lon],Math.min(13,zoom+2));
+          else BASIN_MAP.fitBounds(groupBounds,{padding:[34,34],maxZoom:Math.min(13,zoom+3)});
+        });
+        return;
+      }
+      const item=group[0];
+      const st=item.st;
+      const kind=basinStationKind(st);
+      const hasData=basinHasData(st);
+      const marker=L.circleMarker(item.position,{
+        radius:zoom>=12?6.2:5.2,
+        color:hasData?'#fff':'#7f8b84',
+        weight:hasData?1.5:1.7,
+        dashArray:hasData?null:'3 3',
         fillColor:kind.color,
-        fillOpacity:hasData?.88:.46,
-        opacity:hasData?1:.72
-      }).addTo(BASIN_MAP);
-      marker.bindPopup(basinPopup(st),{maxWidth:260});
+        fillOpacity:hasData?.90:.30,
+        opacity:hasData?1:.78
+      }).addTo(BASIN_MARKER_LAYER);
+      marker.bindPopup(basinPopup(st),{maxWidth:235,minWidth:190,autoPanPadding:[18,18]});
+      const code=st.code&&st.code!=='—'?' · '+st.code:'';
+      marker.bindTooltip((st.name||'Estação')+code+' · '+kind.label,{direction:'top',className:'basin-station-tip',sticky:true});
       marker.on('click',()=>basinSelectStation(st,false));
       BASIN_MARKERS[basinStationId(st)]=marker;
     });
-    if(bounds.length&&fit)BASIN_MAP.fitBounds(bounds,{padding:[18,18],maxZoom:10});
+
     const selected=BASIN_SELECTED&&BASIN_MARKERS[basinStationId(BASIN_SELECTED)];
     if(selected)selected.openPopup();
   }
@@ -2549,14 +2642,29 @@
     if(!box||!window.L)return;
     try{
       box.replaceChildren();
-      BASIN_MAP=L.map(box,{scrollWheelZoom:false,preferCanvas:true}).setView([-28.95,-51.45],9);
+      BASIN_MAP=L.map(box,{scrollWheelZoom:false,preferCanvas:true,zoomSnap:1}).setView([-28.95,-51.45],9);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
         maxZoom:17,
         referrerPolicy:'strict-origin-when-cross-origin',
         attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(BASIN_MAP);
+      BASIN_MARKER_LAYER=L.layerGroup().addTo(BASIN_MAP);
       L.control.scale({imperial:false}).addTo(BASIN_MAP);
-      basinRenderMarkers();
+      const fitControl=L.control({position:'topleft'});
+      fitControl.onAdd=()=>{
+        const div=L.DomUtil.create('div','leaflet-bar');
+        const a=L.DomUtil.create('a','',div);
+        a.href='#';
+        a.title='Enquadrar todas as estações visíveis';
+        a.setAttribute('aria-label',a.title);
+        a.innerHTML='&#8634;';
+        a.style.fontSize='18px';
+        a.onclick=e=>{e.preventDefault();L.DomEvent.stopPropagation(e);basinRenderMarkers(true);};
+        return div;
+      };
+      fitControl.addTo(BASIN_MAP);
+      BASIN_MAP.on('zoomend',()=>basinRenderMarkers(false));
+      basinRenderMarkers(true);
       setTimeout(()=>BASIN_MAP&&BASIN_MAP.invalidateSize(),80);
     }catch(error){
       box.replaceChildren();
@@ -2591,28 +2699,32 @@
     const status=basinById('map-status');
     if(!status)return;
     if(!BASIN_FEED){
-      status.innerHTML='<span><strong>Catálogo local</strong> · carregando ou usando a lista de contingência.</span><span class="map-status-right">Feed multi-modelo · pesquisa</span>';
+      status.innerHTML='<span class="map-status-main"><strong>Rede completa da G040</strong><span class="map-status-chip muted">carregando catálogo</span></span><span class="map-status-right">Todas as estações · pesquisa</span>';
       return;
     }
     const scope=BASIN_FEED.scope||{};
     const total=scope.station_count||BASIN_STATIONS.length;
     const forecast=scope.forecast_station_count||0;
     const rain=scope.observed_rain_station_count||0;
-    const hourlyRain=scope.observed_rain_hourly_station_count;
-    const cemadenRain=scope.observed_rain_cemaden_24h_station_count;
-    const rainCoverage=Number.isFinite(hourlyRain)&&Number.isFinite(cemadenRain)
-      ?basinEscape(rain)+' com algum dado de chuva observada ('+basinEscape(hourlyRain)+' com série horária; '+basinEscape(cemadenRain)+' com acumulado CEMADEN 24h)'
-      :basinEscape(rain)+' com série horária de chuva observada';
     const levels=scope.level_station_count||0;
-    const uniqueLocations=scope.forecast_location_count||total;
-    const coverage=forecast===total?'cobertura de previsão completa':'cobertura de previsão parcial · '+basinEscape(total-forecast)+' indisponíveis sinalizadas';
-    const freshness=basinFeedIsStale()?' · snapshot atrasado':'';
     const sourceCounts=BASIN_FEED.source_counts||{};
-    const sources=['ANA/HidroWeb','SGB/SACE','CEMADEN','INMET'].filter(key=>sourceCounts[key]!==undefined).map(key=>key+' '+sourceCounts[key]).join(' · ');
-    const catalogState=BASIN_FEED.catalog&&BASIN_FEED.catalog.complete===false?' · catálogo complementar incompleto':'';
-    const feedSource=BASIN_FEED_SOURCE==='pages'?' · cópia do Pages (contingência)':'';
-    status.innerHTML='<span><strong>'+basinEscape(total)+' estações G040</strong> · '+basinEscape(sources)+' · '+basinEscape(forecast)+' com previsão · '+rainCoverage+' · '+basinEscape(levels)+' com nível · '+basinEscape(uniqueLocations)+' pontos meteorológicos únicos · '+coverage+basinEscape(catalogState)+'</span>'+
-      '<span class="map-status-right">Atualizado '+basinEscape(basinDate(BASIN_FEED.generated_at_utc))+basinEscape(freshness)+feedSource+' · próximo '+basinEscape(basinNextCycle(BASIN_FEED.next_cycle_utc))+'</span>';
+    const sourceBits=['ANA/HidroWeb','SGB/SACE','CEMADEN','INMET']
+      .filter(key=>sourceCounts[key]!==undefined)
+      .map(key=>'<span class="map-status-chip">'+basinEscape(key)+' '+basinEscape(sourceCounts[key])+'</span>')
+      .join('');
+    const generated=BASIN_FEED.generated_at_utc;
+    const generatedAge=basinRelativeAge(generated);
+    const nextRaw=BASIN_FEED.next_cycle_utc;
+    const nextMs=nextRaw?Date.parse(nextRaw):NaN;
+    const late=Number.isFinite(nextMs)&&nextMs<Date.now();
+    const feedSource=BASIN_FEED_SOURCE==='pages'?' · contingência Pages':'';
+    status.innerHTML='<span class="map-status-main"><strong>'+basinEscape(total)+' estações G040</strong>'+
+      sourceBits+
+      '<span class="map-status-chip muted">'+basinEscape(forecast)+' com previsão</span>'+
+      '<span class="map-status-chip muted">'+basinEscape(rain)+' com chuva observada</span>'+
+      '<span class="map-status-chip muted">'+basinEscape(levels)+' com nível</span></span>'+
+      '<span class="map-status-right'+(late?' is-late':'')+'">Atualizado '+basinEscape(basinDate(generated))+
+      (generatedAge?' · '+basinEscape(generatedAge):'')+basinEscape(feedSource)+' · '+basinEscape(basinNextCycle(nextRaw))+'</span>';
   }
   async function basinLoadFeed(){
     if(BASIN_LOADING)return;
