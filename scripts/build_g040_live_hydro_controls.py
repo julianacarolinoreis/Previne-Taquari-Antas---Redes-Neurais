@@ -32,6 +32,14 @@ FRESH_MINUTES=180
 TIMEOUT=12
 RETRIES=2
 
+# Upstream alternatives are diagnostics until topology/area is reconciled.
+# They are never silently substituted for the preferred boundary.
+FALLBACK_CANDIDATES = [
+    {"code":"86555800","label":"Rio Guaporé (Guaporé)","branch_role":"guapore","drainage_area_km2":2042.0},
+    {"code":"86560000","label":"Linha Colombo","branch_role":"guapore","drainage_area_km2":2030.0},
+    {"code":"86780000","label":"Barra do Fão","branch_role":"forqueta","drainage_area_km2":2077.0},
+]
+
 def finite(v):
     try:
         x=float(str(v).replace(",","."))
@@ -160,6 +168,20 @@ def main():
           **s,
         })
 
+    fallback_controls=[]
+    for spec in FALLBACK_CANDIDATES:
+        f=fetch_station(str(spec["code"]),start,now)
+        s=summarize(f.get("rows") or [],now)
+        fallback_controls.append({
+          **spec,
+          "group":"fallback_candidate",
+          "source":f.get("source"),
+          "endpoint":f.get("endpoint"),
+          "fetch_ok":bool(f.get("ok")),
+          "fetch_error":f.get("error"),
+          **s,
+        })
+
     boundaries=[x for x in controls if x.get("group")=="branch" and x.get("mass_balance")]
     payload={
       "schema_version":"g040_whole_basin_live_hydro_controls_v1",
@@ -169,18 +191,21 @@ def main():
       "window_hours":72,
       "freshness_gate_minutes":FRESH_MINUTES,
       "controls":controls,
+      "fallback_candidates":fallback_controls,
       "summary":{
         "control_count":len(controls),
         "fetch_ok_count":sum(x["fetch_ok"] for x in controls),
         "fresh_state_count":sum(x["fresh_for_state"] for x in controls),
         "mass_balance_boundary_count":len(boundaries),
         "fresh_flow_boundary_count":sum(x["fresh_flow_boundary"] for x in boundaries),
+        "fresh_fallback_candidate_count":sum(x["fresh_flow_boundary"] for x in fallback_controls),
       },
       "policy":{
         "flow":"use directly only when ANA provides Vazao and freshness gate passes",
         "level":"retained in source units; no cross-station datum equivalence assumed",
         "missing":"missing stays missing; no interpolation or zero fill",
         "rating_curve":"no rating curve is invented in this collector",
+        "fallback":"candidate stations are diagnostics only until BHO topology and incremental area are explicitly recalculated; no silent substitution",
       },
     }
     OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
