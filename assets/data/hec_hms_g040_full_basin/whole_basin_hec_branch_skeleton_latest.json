@@ -1,0 +1,563 @@
+{
+  "schema_version": "g040_hec_branch_skeleton_v1",
+  "generated_at_utc": "2026-09-30T20:24:18.490267Z",
+  "research_only": true,
+  "status": "STRUCTURAL_SKELETON_READY_GEOMETRY_FORCING_AND_ROUTING_PENDING",
+  "scope": {
+    "model": "G040 intermediate observed-branch HEC-HMS",
+    "final_target": "145 subbasins + 72 reaches",
+    "skeleton_outlet_checkpoint": "86996000",
+    "final_basin_outlet": "Taquari-Jacui confluence"
+  },
+  "current_boundary_scenario": "live_available_boundaries",
+  "elements": [
+    {
+      "id": "SRC_86472000",
+      "type": "Source",
+      "station_code": "86472000",
+      "name": "Linha Jose Julio",
+      "role": "primary_observed_upstream_boundary",
+      "required_for_all_scenarios": true
+    },
+    {
+      "id": "J_86510000",
+      "type": "Junction",
+      "station_code": "86510000",
+      "role": "observed_mainstem_checkpoint",
+      "observed_for_validation": true
+    },
+    {
+      "id": "SB_INC_86472000_86510000",
+      "type": "Subbasin",
+      "area_km2_preferred": 1230.192,
+      "role": "incremental_rainfall_runoff",
+      "geometry_status": "pending_BHO6_compatible_polygon_or_DEM_delineation",
+      "downstream": "J_86510000"
+    },
+    {
+      "id": "SRC_86500000",
+      "type": "Source",
+      "station_code": "86500000",
+      "branch": "Carreiro",
+      "role": "optional_observed_tributary_boundary",
+      "active_in_current_live_scenario": true,
+      "preferred_boundary_area_km2": 1816.359,
+      "inactive_policy": "area returns to interval rainfall-runoff subbasin"
+    },
+    {
+      "id": "J_JOIN_86500000",
+      "type": "Junction",
+      "role": "verified_BHO6_tributary_confluence",
+      "tributary_station_code": "86500000",
+      "mainstem_join_fid": 646130
+    },
+    {
+      "id": "R_86472000_TO_JOIN_86500000",
+      "type": "Reach",
+      "length_km": 2.557,
+      "routing_method_candidate": "Muskingum_or_Muskingum-Cunge",
+      "routing_parameters_status": "UNSET_REQUIRES_MULTI_EVENT_CALIBRATION"
+    },
+    {
+      "id": "R_JOIN_86500000_TO_86510000",
+      "type": "Reach",
+      "length_km": 41.418,
+      "routing_method_candidate": "Muskingum_or_Muskingum-Cunge",
+      "routing_parameters_status": "UNSET_REQUIRES_MULTI_EVENT_CALIBRATION"
+    },
+    {
+      "id": "J_86720000",
+      "type": "Junction",
+      "station_code": "86720000",
+      "role": "observed_mainstem_checkpoint",
+      "observed_for_validation": true
+    },
+    {
+      "id": "SB_INC_86510000_86720000",
+      "type": "Subbasin",
+      "area_km2_preferred": 652.97,
+      "role": "incremental_rainfall_runoff",
+      "geometry_status": "pending_BHO6_compatible_polygon_or_DEM_delineation",
+      "downstream": "J_86720000"
+    },
+    {
+      "id": "SRC_86595000",
+      "type": "Source",
+      "station_code": "86595000",
+      "branch": "Guaporé",
+      "role": "optional_observed_tributary_boundary",
+      "active_in_current_live_scenario": false,
+      "preferred_boundary_area_km2": 2431.975,
+      "inactive_policy": "area returns to interval rainfall-runoff subbasin"
+    },
+    {
+      "id": "J_JOIN_86595000",
+      "type": "Junction",
+      "role": "verified_BHO6_tributary_confluence",
+      "tributary_station_code": "86595000",
+      "mainstem_join_fid": 1105415
+    },
+    {
+      "id": "R_86510000_TO_JOIN_86595000",
+      "type": "Reach",
+      "length_km": 5.108,
+      "routing_method_candidate": "Muskingum_or_Muskingum-Cunge",
+      "routing_parameters_status": "UNSET_REQUIRES_MULTI_EVENT_CALIBRATION"
+    },
+    {
+      "id": "R_JOIN_86595000_TO_86720000",
+      "type": "Reach",
+      "length_km": 12.666,
+      "routing_method_candidate": "Muskingum_or_Muskingum-Cunge",
+      "routing_parameters_status": "UNSET_REQUIRES_MULTI_EVENT_CALIBRATION"
+    },
+    {
+      "id": "J_86743000",
+      "type": "Junction",
+      "station_code": "86743000",
+      "role": "observed_mainstem_checkpoint",
+      "observed_for_validation": true
+    },
+    {
+      "id": "SB_INC_86720000_86743000",
+      "type": "Subbasin",
+      "area_km2_preferred": 515.674,
+      "role": "incremental_rainfall_runoff",
+      "geometry_status": "pending_BHO6_compatible_polygon_or_DEM_delineation",
+      "downstream": "J_86743000"
+    },
+    {
+      "id": "R_86720000_TO_86743000",
+      "type": "Reach",
+      "length_km": 35.113,
+      "routing_method_candidate": "Muskingum_or_Muskingum-Cunge",
+      "routing_parameters_status": "UNSET_REQUIRES_MULTI_EVENT_CALIBRATION"
+    },
+    {
+      "id": "J_86879000",
+      "type": "Junction",
+      "station_code": "86879000",
+      "role": "observed_mainstem_checkpoint",
+      "observed_for_validation": true
+    },
+    {
+      "id": "SB_INC_86743000_86879000",
+      "type": "Subbasin",
+      "area_km2_preferred": 749.492,
+      "role": "incremental_rainfall_runoff",
+      "geometry_status": "pending_BHO6_compatible_polygon_or_DEM_delineation",
+      "downstream": "J_86879000"
+    },
+    {
+      "id": "SRC_86746000",
+      "type": "Source",
+      "station_code": "86746000",
+      "branch": "Forqueta",
+      "role": "optional_observed_tributary_boundary",
+      "active_in_current_live_scenario": false,
+      "preferred_boundary_area_km2": 2226.742,
+      "inactive_policy": "area returns to interval rainfall-runoff subbasin"
+    },
+    {
+      "id": "J_JOIN_86746000",
+      "type": "Junction",
+      "role": "verified_BHO6_tributary_confluence",
+      "tributary_station_code": "86746000",
+      "mainstem_join_fid": 5265785
+    },
+    {
+      "id": "R_86743000_TO_JOIN_86746000",
+      "type": "Reach",
+      "length_km": 5.139,
+      "routing_method_candidate": "Muskingum_or_Muskingum-Cunge",
+      "routing_parameters_status": "UNSET_REQUIRES_MULTI_EVENT_CALIBRATION"
+    },
+    {
+      "id": "R_JOIN_86746000_TO_86879000",
+      "type": "Reach",
+      "length_km": 10.85,
+      "routing_method_candidate": "Muskingum_or_Muskingum-Cunge",
+      "routing_parameters_status": "UNSET_REQUIRES_MULTI_EVENT_CALIBRATION"
+    },
+    {
+      "id": "J_86879300",
+      "type": "Junction",
+      "station_code": "86879300",
+      "role": "observed_mainstem_checkpoint",
+      "observed_for_validation": true
+    },
+    {
+      "id": "SB_INC_86879000_86879300",
+      "type": "Subbasin",
+      "area_km2_preferred": 579.543,
+      "role": "incremental_rainfall_runoff",
+      "geometry_status": "pending_BHO6_compatible_polygon_or_DEM_delineation",
+      "downstream": "J_86879300"
+    },
+    {
+      "id": "R_86879000_TO_86879300",
+      "type": "Reach",
+      "length_km": 1.472,
+      "routing_method_candidate": "Muskingum_or_Muskingum-Cunge",
+      "routing_parameters_status": "UNSET_REQUIRES_MULTI_EVENT_CALIBRATION"
+    },
+    {
+      "id": "J_86895000",
+      "type": "Junction",
+      "station_code": "86895000",
+      "role": "observed_mainstem_checkpoint",
+      "observed_for_validation": true
+    },
+    {
+      "id": "SB_INC_86879300_86895000",
+      "type": "Subbasin",
+      "area_km2_preferred": 1410.921,
+      "role": "incremental_rainfall_runoff",
+      "geometry_status": "pending_BHO6_compatible_polygon_or_DEM_delineation",
+      "downstream": "J_86895000"
+    },
+    {
+      "id": "R_86879300_TO_86895000",
+      "type": "Reach",
+      "length_km": 37.183,
+      "routing_method_candidate": "Muskingum_or_Muskingum-Cunge",
+      "routing_parameters_status": "UNSET_REQUIRES_MULTI_EVENT_CALIBRATION"
+    },
+    {
+      "id": "J_86950000",
+      "type": "Junction",
+      "station_code": "86950000",
+      "role": "observed_mainstem_checkpoint",
+      "observed_for_validation": true
+    },
+    {
+      "id": "SB_INC_86895000_86950000",
+      "type": "Subbasin",
+      "area_km2_preferred": 1217.731,
+      "role": "incremental_rainfall_runoff",
+      "geometry_status": "pending_BHO6_compatible_polygon_or_DEM_delineation",
+      "downstream": "J_86950000"
+    },
+    {
+      "id": "R_86895000_TO_86950000",
+      "type": "Reach",
+      "length_km": 23.523,
+      "routing_method_candidate": "Muskingum_or_Muskingum-Cunge",
+      "routing_parameters_status": "UNSET_REQUIRES_MULTI_EVENT_CALIBRATION"
+    },
+    {
+      "id": "J_86996000",
+      "type": "Junction",
+      "station_code": "86996000",
+      "role": "observed_mainstem_checkpoint",
+      "observed_for_validation": true
+    },
+    {
+      "id": "SB_INC_86950000_86996000",
+      "type": "Subbasin",
+      "area_km2_preferred": 624.799,
+      "role": "incremental_rainfall_runoff",
+      "geometry_status": "pending_BHO6_compatible_polygon_or_DEM_delineation",
+      "downstream": "J_86996000"
+    },
+    {
+      "id": "R_86950000_TO_86996000",
+      "type": "Reach",
+      "length_km": 29.624,
+      "routing_method_candidate": "Muskingum_or_Muskingum-Cunge",
+      "routing_parameters_status": "UNSET_REQUIRES_MULTI_EVENT_CALIBRATION"
+    }
+  ],
+  "edges": [
+    {
+      "from": "SB_INC_86472000_86510000",
+      "to": "J_86510000",
+      "kind": "runoff_to_checkpoint",
+      "area_km2": 1230.192
+    },
+    {
+      "from": "SRC_86500000",
+      "to": "J_JOIN_86500000",
+      "kind": "observed_tributary_inflow",
+      "preferred_area_km2": 1816.359
+    },
+    {
+      "from": "SRC_86472000",
+      "to": "R_86472000_TO_JOIN_86500000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "R_86472000_TO_JOIN_86500000",
+      "to": "J_JOIN_86500000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "J_JOIN_86500000",
+      "to": "R_JOIN_86500000_TO_86510000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "R_JOIN_86500000_TO_86510000",
+      "to": "J_86510000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "SB_INC_86510000_86720000",
+      "to": "J_86720000",
+      "kind": "runoff_to_checkpoint",
+      "area_km2": 652.97
+    },
+    {
+      "from": "SRC_86595000",
+      "to": "J_JOIN_86595000",
+      "kind": "observed_tributary_inflow",
+      "preferred_area_km2": 2431.975
+    },
+    {
+      "from": "J_86510000",
+      "to": "R_86510000_TO_JOIN_86595000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "R_86510000_TO_JOIN_86595000",
+      "to": "J_JOIN_86595000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "J_JOIN_86595000",
+      "to": "R_JOIN_86595000_TO_86720000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "R_JOIN_86595000_TO_86720000",
+      "to": "J_86720000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "SB_INC_86720000_86743000",
+      "to": "J_86743000",
+      "kind": "runoff_to_checkpoint",
+      "area_km2": 515.674
+    },
+    {
+      "from": "J_86720000",
+      "to": "R_86720000_TO_86743000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "R_86720000_TO_86743000",
+      "to": "J_86743000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "SB_INC_86743000_86879000",
+      "to": "J_86879000",
+      "kind": "runoff_to_checkpoint",
+      "area_km2": 749.492
+    },
+    {
+      "from": "SRC_86746000",
+      "to": "J_JOIN_86746000",
+      "kind": "observed_tributary_inflow",
+      "preferred_area_km2": 2226.742
+    },
+    {
+      "from": "J_86743000",
+      "to": "R_86743000_TO_JOIN_86746000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "R_86743000_TO_JOIN_86746000",
+      "to": "J_JOIN_86746000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "J_JOIN_86746000",
+      "to": "R_JOIN_86746000_TO_86879000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "R_JOIN_86746000_TO_86879000",
+      "to": "J_86879000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "SB_INC_86879000_86879300",
+      "to": "J_86879300",
+      "kind": "runoff_to_checkpoint",
+      "area_km2": 579.543
+    },
+    {
+      "from": "J_86879000",
+      "to": "R_86879000_TO_86879300",
+      "kind": "mainstem"
+    },
+    {
+      "from": "R_86879000_TO_86879300",
+      "to": "J_86879300",
+      "kind": "mainstem"
+    },
+    {
+      "from": "SB_INC_86879300_86895000",
+      "to": "J_86895000",
+      "kind": "runoff_to_checkpoint",
+      "area_km2": 1410.921
+    },
+    {
+      "from": "J_86879300",
+      "to": "R_86879300_TO_86895000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "R_86879300_TO_86895000",
+      "to": "J_86895000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "SB_INC_86895000_86950000",
+      "to": "J_86950000",
+      "kind": "runoff_to_checkpoint",
+      "area_km2": 1217.731
+    },
+    {
+      "from": "J_86895000",
+      "to": "R_86895000_TO_86950000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "R_86895000_TO_86950000",
+      "to": "J_86950000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "SB_INC_86950000_86996000",
+      "to": "J_86996000",
+      "kind": "runoff_to_checkpoint",
+      "area_km2": 624.799
+    },
+    {
+      "from": "J_86950000",
+      "to": "R_86950000_TO_86996000",
+      "kind": "mainstem"
+    },
+    {
+      "from": "R_86950000_TO_86996000",
+      "to": "J_86996000",
+      "kind": "mainstem"
+    }
+  ],
+  "scenario_effective_subbasin_areas_km2": {
+    "preferred_all_boundaries": {
+      "INC_86472000_86510000": 1230.192,
+      "INC_86510000_86720000": 652.97,
+      "INC_86720000_86743000": 515.674,
+      "INC_86743000_86879000": 749.492,
+      "INC_86879000_86879300": 579.543,
+      "INC_86879300_86895000": 1410.921,
+      "INC_86895000_86950000": 1217.731,
+      "INC_86950000_86996000": 624.799
+    },
+    "live_available_boundaries": {
+      "INC_86472000_86510000": 1230.192,
+      "INC_86510000_86720000": 3084.945,
+      "INC_86720000_86743000": 515.674,
+      "INC_86743000_86879000": 2976.234,
+      "INC_86879000_86879300": 579.543,
+      "INC_86879300_86895000": 1410.921,
+      "INC_86895000_86950000": 1217.731,
+      "INC_86950000_86996000": 624.799
+    },
+    "ljj_only": {
+      "INC_86472000_86510000": 3046.551,
+      "INC_86510000_86720000": 3084.945,
+      "INC_86720000_86743000": 515.674,
+      "INC_86743000_86879000": 2976.234,
+      "INC_86879000_86879300": 579.543,
+      "INC_86879300_86895000": 1410.921,
+      "INC_86895000_86950000": 1217.731,
+      "INC_86950000_86996000": 624.799
+    }
+  },
+  "audits": {
+    "reach_length_closure": [
+      {
+        "interval": "86472000_to_86510000",
+        "expected_km": 43.975,
+        "skeleton_km": 43.975,
+        "difference_km": 0.0,
+        "pass": true
+      },
+      {
+        "interval": "86510000_to_86720000",
+        "expected_km": 17.774,
+        "skeleton_km": 17.774,
+        "difference_km": 0.0,
+        "pass": true
+      },
+      {
+        "interval": "86720000_to_86743000",
+        "expected_km": 35.113,
+        "skeleton_km": 35.113,
+        "difference_km": 0.0,
+        "pass": true
+      },
+      {
+        "interval": "86743000_to_86879000",
+        "expected_km": 15.989,
+        "skeleton_km": 15.989,
+        "difference_km": 0.0,
+        "pass": true
+      },
+      {
+        "interval": "86879000_to_86879300",
+        "expected_km": 1.472,
+        "skeleton_km": 1.472,
+        "difference_km": 0.0,
+        "pass": true
+      },
+      {
+        "interval": "86879300_to_86895000",
+        "expected_km": 37.183,
+        "skeleton_km": 37.183,
+        "difference_km": 0.0,
+        "pass": true
+      },
+      {
+        "interval": "86895000_to_86950000",
+        "expected_km": 23.523,
+        "skeleton_km": 23.523,
+        "difference_km": 0.0,
+        "pass": true
+      },
+      {
+        "interval": "86950000_to_86996000",
+        "expected_km": 29.624,
+        "skeleton_km": 29.624,
+        "difference_km": 0.0,
+        "pass": true
+      }
+    ],
+    "all_reach_lengths_close": true,
+    "area_budget_closed": true,
+    "topology_passed": true
+  },
+  "counts": {
+    "sources": 4,
+    "subbasins": 8,
+    "reaches": 11,
+    "junctions": 11,
+    "mainstem_checkpoints": 8
+  },
+  "gates_before_executable_hec": {
+    "incremental_geometry": "PENDING",
+    "hourly_observed_and_IFS_forcing_per_effective_subbasin": "PENDING",
+    "source_gage_time_series": "PARTIAL_LIVE_EXISTS",
+    "routing_K_X": "PENDING_MULTI_EVENT_CALIBRATION",
+    "loss_transform_parameters": "PENDING_EXPERIMENT_CHOICE_E0_E1_FIRST"
+  },
+  "policy": {
+    "routing": "no basin-wide copy of Muçum K=1.25 h; calibrate reach-wise/multi-event",
+    "checkpoint_observations": "validation/state diagnostics, not silently imposed as downstream sources",
+    "inactive_source": "return its contributing area to rainfall-runoff via scenario area contract"
+  }
+}
