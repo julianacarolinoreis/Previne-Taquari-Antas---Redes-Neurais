@@ -1,6 +1,6 @@
 {
   "schema_version": "g040_whole_basin_observed_branch_architecture_v1",
-  "generated_at_utc": "2026-09-30T19:07:23.792569Z",
+  "generated_at_utc": "2026-09-30T19:10:40.637688Z",
   "research_only": true,
   "status": "WHOLE_BASIN_BRANCH_ARCHITECTURE_READY_FOR_BHO6_TOPOLOGY_AND_LIVE_FORCING",
   "scope": {
@@ -15,7 +15,8 @@
     "why_this_layer": "generalize the validated Muçum dual-boundary concept to the whole basin before native 145 geometry is recovered/reconstructed",
     "not_a_replacement_for_145": true,
     "management_32_are_not_computational_subbasins": true,
-    "nested_gauges_rule": "nested gauges are state/QC constraints; only non-overlapping branch controls enter mass balance"
+    "nested_gauges_rule": "nested gauges are state/QC constraints; only non-overlapping branch controls enter mass balance",
+    "prata_note": "Prata is upstream of Linha José Júlio and is therefore diagnostic only whenever Linha José Júlio is used as the Antas boundary; never add both as independent flows"
   },
   "major_branch_controls": [
     {
@@ -24,6 +25,7 @@
       "label": "Linha José Júlio",
       "branch": "Antas/Taquari principal",
       "kind": "boundary",
+      "mass_balance": true,
       "station": {
         "code": "86472000",
         "name": "LINHA JOSÉ JÚLIO",
@@ -41,7 +43,8 @@
       "code": "86447000",
       "label": "UHE Monte Claro Balsa do Prata",
       "branch": "Prata",
-      "kind": "tributary_boundary",
+      "kind": "upstream_state_diagnostic",
+      "mass_balance": false,
       "station": {
         "code": "86447000",
         "name": "UHE MONTE CLARO BALSA DO PRATA",
@@ -60,6 +63,7 @@
       "label": "Passo Carreiro",
       "branch": "Carreiro",
       "kind": "tributary_boundary",
+      "mass_balance": true,
       "station": {
         "code": "86500000",
         "name": "PASSO CARREIRO",
@@ -78,6 +82,7 @@
       "label": "Barra do Zeferino",
       "branch": "Guaporé",
       "kind": "tributary_boundary",
+      "mass_balance": true,
       "station": {
         "code": "86595000",
         "name": "BARRA DO ZEFERINO",
@@ -96,6 +101,7 @@
       "label": "Rio Forqueta (Travesseiro)",
       "branch": "Forqueta",
       "kind": "tributary_boundary",
+      "mass_balance": true,
       "station": {
         "code": "86746000",
         "name": "RIO FORQUETA (Travesseiro)",
