@@ -1,0 +1,348 @@
+#!/usr/bin/env python3
+"""Build observed hourly rainfall forcing for the G040 HEC branch model.
+
+The rainfall field is not collapsed to one basin-wide series. For each hour:
+1. query every eligible ANA/INMET/CEMADEN station inside the G040 basin;
+2. aggregate each station to hourly accumulated precipitation;
+3. spatially interpolate the observed field with IDW^2;
+4. sample that field at the fixed BHO6 support points;
+5. integrate each incremental HEC area with official BHO6 local-area weights.
+
+Missing rainfall is never converted to zero. The resulting interval series are
+research forcing for the intermediate whole-basin branch model.
+"""
+from __future__ import annotations
+
+import csv
+import json
+import math
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+from shapely.geometry import shape
+from shapely.ops import unary_union
+
+try:
+    from scripts.build_mucum_observed_multistation import (
+        BRT, UTC, aggregate_hourly, fetch_network, inventory_operational,
+        finite, qc_rain,
+    )
+except ModuleNotFoundError:
+    from build_mucum_observed_multistation import (
+        BRT, UTC, aggregate_hourly, fetch_network, inventory_operational,
+        finite, qc_rain,
+    )
+
+ROOT=Path(__file__).resolve().parents[1]
+BASE=ROOT/"assets/data/hec_hms_g040_full_basin"
+STUDY=ROOT/"assets/data/estudo_bacia_taquari_antas"
+SUPPORT=BASE/"whole_basin_rain_support_points.csv"
+SUPPORT_META=BASE/"whole_basin_rain_support_latest.json"
+MASK=STUDY/"sub_bacias_q040_enquadramento.geojson"
+RAIN_CATALOG=STUDY/"pluviometria_g040.geojson"
+FLOW_CATALOG=STUDY/"postos_g040.geojson"
+OUT=BASE/"whole_basin_observed_rain_latest.json"
+OUTCSV=BASE/"whole_basin_observed_rain_hourly.csv"
+
+WINDOW_HOURS=max(24,min(240,int(os.environ.get("G040_OBS_RAIN_HOURS","120"))))
+MAX_WORKERS=max(2,min(24,int(os.environ.get("G040_OBS_RAIN_WORKERS","12"))))
+IDW_K=max(1,min(12,int(os.environ.get("G040_OBS_RAIN_IDW_K","6"))))
+ROLLING=(1,3,6,12,24,48,72,120)
+
+def loadj(path: Path) -> dict[str,Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+def basin_mask():
+    raw=loadj(MASK)
+    geoms=[shape(f["geometry"]) for f in raw.get("features") or [] if f.get("geometry")]
+    if not geoms:
+        raise RuntimeError("G040 management mask has no geometry")
+    return unary_union(geoms)
+
+def catalog(path: Path, basin) -> dict[str,dict[str,Any]]:
+    out={}
+    raw=loadj(path)
+    for f in raw.get("features") or []:
+        p=f.get("properties") or {}
+        g=f.get("geometry") or {}
+        coords=g.get("coordinates") or []
+        if len(coords)<2:
+            continue
+        lon=finite(coords[0]); lat=finite(coords[1])
+        code=str(p.get("codigo") or "").strip()
+        if not code or lon is None or lat is None:
+            continue
+        from shapely.geometry import Point
+        if not basin.covers(Point(float(lon),float(lat))):
+            continue
+        item={
+            "code":code,
+            "name":p.get("nome") or code,
+            "network":str(p.get("rede") or "ANA").upper(),
+            "lat":float(lat),
+            "lon":float(lon),
+            "upg":p.get("upg"),
+            "station_type":p.get("tipo"),
+            "operating_flag":p.get("situacao") if p.get("situacao") is not None else p.get("operando"),
+        }
+        out[code]=item
+    return out
+
+def read_support():
+    rows=[]
+    with SUPPORT.open(encoding="utf-8",newline="") as fh:
+        for r in csv.DictReader(fh):
+            rows.append({
+                "interval_id":r["interval_id"],
+                "lon":float(r["lon"]),
+                "lat":float(r["lat"]),
+                "local_area_km2":float(r["local_area_km2"]),
+                "weight":float(r["weight"]),
+                "fid":int(r["fid"]),
+            })
+    if not rows:
+        raise RuntimeError("BHO6 rainfall support mesh is empty")
+    return rows
+
+def hourly_axis(start: datetime,end: datetime) -> list[datetime]:
+    a=start.replace(minute=0,second=0,microsecond=0)
+    b=end.replace(minute=0,second=0,microsecond=0)
+    out=[]
+    t=a
+    while t<=b:
+        out.append(t)
+        t+=timedelta(hours=1)
+    return out
+
+def vectorized_idw_matrix(
+    points: list[dict[str,Any]],
+    stations: list[dict[str,Any]],
+) -> np.ndarray:
+    plon=np.array([p["lon"] for p in points],dtype=float)[:,None]
+    plat=np.array([p["lat"] for p in points],dtype=float)[:,None]
+    slon=np.array([s["lon"] for s in stations],dtype=float)[None,:]
+    slat=np.array([s["lat"] for s in stations],dtype=float)[None,:]
+    dx=(slon-plon)*np.cos(np.deg2rad(plat))
+    dy=slat-plat
+    return dx*dx+dy*dy
+
+def interpolate_points(d2: np.ndarray, station_values: np.ndarray, k: int) -> np.ndarray:
+    valid=np.isfinite(station_values)
+    if not valid.any():
+        return np.full(d2.shape[0],np.nan,dtype=float)
+    dd=d2[:,valid]
+    vv=station_values[valid]
+    kk=min(k,dd.shape[1])
+    if dd.shape[1]==kk:
+        idx=np.tile(np.arange(kk),(dd.shape[0],1))
+    else:
+        idx=np.argpartition(dd,kk-1,axis=1)[:,:kk]
+    nearest_d=np.take_along_axis(dd,idx,axis=1)
+    nearest_v=vv[idx]
+    exact=nearest_d[:,0] < 1e-12
+    safe=np.maximum(nearest_d,1e-12)
+    w=1.0/safe
+    pred=np.sum(w*nearest_v,axis=1)/np.sum(w,axis=1)
+    if exact.any():
+        exact_idx=np.argmin(dd[exact],axis=1)
+        pred[exact]=vv[exact_idx]
+    return pred
+
+def rolling_summary(series: list[dict[str,Any]]) -> dict[str,Any]:
+    out={}
+    for n in ROLLING:
+        sub=series[-n:] if len(series)>=n else list(series)
+        vals=[x["mm"] for x in sub if x.get("mm") is not None]
+        complete=len(sub)==n and len(vals)==n
+        out[f"{n}h"]={
+            "mm":round(sum(float(v) for v in vals),4) if complete else None,
+            "available_hours":len(vals),
+            "required_hours":n,
+            "complete":complete,
+        }
+    return out
+
+def iso(t: datetime) -> str:
+    return t.isoformat(timespec="minutes")
+
+def main() -> int:
+    if not SUPPORT.exists() or not SUPPORT_META.exists():
+        raise RuntimeError("rain support mesh has not been built")
+    support_meta=loadj(SUPPORT_META)
+    if support_meta.get("status")!="RAIN_SUPPORT_READY":
+        raise RuntimeError("rain support mesh is not ready")
+
+    end=datetime.now(BRT).replace(tzinfo=None)
+    start=end-timedelta(hours=WINDOW_HOURS-1)
+    basin=basin_mask()
+    rain_catalog=catalog(RAIN_CATALOG,basin)
+    flow_catalog=catalog(FLOW_CATALOG,basin)
+
+    candidates={}
+    for src in (rain_catalog,flow_catalog):
+        for code,st in src.items():
+            if inventory_operational(st):
+                candidates.setdefault(code,st)
+
+    fetched={}
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+        futures={pool.submit(fetch_network,st,start,end):code for code,st in candidates.items()}
+        for fut in as_completed(futures):
+            code=futures[fut]
+            try:
+                fetched[code]=fut.result()
+            except Exception as exc:
+                fetched[code]={"ok":False,"rows":[],"source":candidates[code].get("network"),"error":str(exc)}
+
+    rain_series={}
+    rain_stations=[]
+    for code,st in candidates.items():
+        hourly=aggregate_hourly((fetched.get(code) or {}).get("rows") or [])
+        s={}
+        for t,v in hourly.items():
+            rv=qc_rain(v.get("rain_mm"))
+            if rv is not None:
+                s[t.replace(minute=0,second=0,microsecond=0)]=float(rv)
+        if not s:
+            continue
+        rain_series[code]=s
+        rain_stations.append({**st,"source":(fetched.get(code) or {}).get("source"),"valid_hours":len(s)})
+
+    points=read_support()
+    intervals=sorted({p["interval_id"] for p in points})
+    group_indices={
+        iid:np.array([i for i,p in enumerate(points) if p["interval_id"]==iid],dtype=int)
+        for iid in intervals
+    }
+    point_area=np.array([p["local_area_km2"] for p in points],dtype=float)
+
+    hours=hourly_axis(start,end)
+    station_codes=[s["code"] for s in rain_stations]
+    if rain_stations:
+        d2=vectorized_idw_matrix(points,rain_stations)
+    else:
+        d2=np.empty((len(points),0),dtype=float)
+
+    interval_series={iid:[] for iid in intervals}
+    hourly_rows=[]
+    for hour in hours:
+        vals=np.array([
+            rain_series.get(code,{}).get(hour,np.nan)
+            for code in station_codes
+        ],dtype=float)
+        valid_count=int(np.isfinite(vals).sum())
+        if valid_count:
+            point_rain=interpolate_points(d2,vals,IDW_K)
+        else:
+            point_rain=np.full(len(points),np.nan,dtype=float)
+
+        row={"time_local":iso(hour),"valid_station_count":valid_count}
+        for iid in intervals:
+            idx=group_indices[iid]
+            pv=point_rain[idx]
+            aa=point_area[idx]
+            good=np.isfinite(pv) & np.isfinite(aa) & (aa>0)
+            if not good.any():
+                mm=None
+            else:
+                mm=float(np.sum(pv[good]*aa[good])/np.sum(aa[good]))
+            interval_series[iid].append({"time_local":iso(hour),"mm":None if mm is None else round(mm,4),"valid_station_count":valid_count})
+            row[iid]=None if mm is None else round(mm,4)
+        hourly_rows.append(row)
+
+    with OUTCSV.open("w",encoding="utf-8",newline="") as fh:
+        fields=["time_local","valid_station_count",*intervals]
+        w=csv.DictWriter(fh,fieldnames=fields)
+        w.writeheader()
+        for row in hourly_rows:
+            w.writerow({k:"" if row.get(k) is None else row.get(k) for k in fields})
+
+    failures=[
+        {"code":code,"network":st.get("network"),"error":(fetched.get(code) or {}).get("error")}
+        for code,st in candidates.items()
+        if not (fetched.get(code) or {}).get("ok")
+    ]
+
+    interval_payload=[]
+    for iid in intervals:
+        series=interval_series[iid]
+        available=sum(x.get("mm") is not None for x in series)
+        interval_payload.append({
+            "interval_id":iid,
+            "support_points":len(group_indices[iid]),
+            "support_area_km2":round(float(point_area[group_indices[iid]].sum()),6),
+            "available_hours":available,
+            "expected_hours":len(hours),
+            "coverage_ratio":round(available/len(hours),4) if hours else 0.0,
+            "rolling_accumulations":rolling_summary(series),
+            "series":series,
+        })
+
+    station_payload=[]
+    for st in rain_stations:
+        code=st["code"]
+        s=rain_series[code]
+        station_payload.append({
+            **st,
+            "first_observation_local":iso(min(s)),
+            "last_observation_local":iso(max(s)),
+            "accum_mm":round(sum(s.values()),3),
+            "series":[{"time_local":iso(t),"mm":round(v,4)} for t,v in sorted(s.items())],
+        })
+
+    status="OBSERVED_RAIN_READY" if rain_stations and all(x["available_hours"]>0 for x in interval_payload) else "OBSERVED_RAIN_PARTIAL"
+    payload={
+        "schema_version":"g040_observed_rain_forcing_v1",
+        "generated_at_utc":datetime.now(UTC).isoformat().replace("+00:00","Z"),
+        "research_only":True,
+        "status":status,
+        "window":{
+            "start_local":iso(start),
+            "end_local":iso(end),
+            "timezone":"America/Sao_Paulo",
+            "hours":len(hours),
+        },
+        "method":{
+            "station_temporal_semantics":"hourly accumulated precipitation",
+            "spatial_interpolation":"IDW^2 using the nearest valid stations at each BHO6 support point",
+            "idw_k":IDW_K,
+            "integration":"BHO6 local drainage area weighted mean per HEC incremental interval",
+            "missing_policy":"missing remains missing; never zero-filled",
+            "support_reference":str(SUPPORT.relative_to(ROOT)),
+        },
+        "network":{
+            "eligible_station_count":len(candidates),
+            "valid_rain_station_count":len(rain_stations),
+            "valid_by_network":{
+                net:sum(str(s.get("network") or "").upper()==net for s in rain_stations)
+                for net in ("ANA","INMET","CEMADEN")
+            },
+        },
+        "intervals":interval_payload,
+        "stations":station_payload,
+        "fetch_audit":{
+            "queried":len(candidates),
+            "successful_with_any_response":sum(bool((fetched.get(c) or {}).get("ok")) for c in candidates),
+            "failed_count":len(failures),
+            "failures":failures,
+        },
+        "artifacts":{"hourly_csv":str(OUTCSV.relative_to(ROOT))},
+        "next_step":"merge with spatial ECMWF/IFS forecast after the latest observed forcing hour and run branch-wise HEC calibration/replay",
+    }
+    OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    print(json.dumps({
+        "status":status,
+        "valid_rain_stations":len(rain_stations),
+        "valid_by_network":payload["network"]["valid_by_network"],
+        "intervals":len(intervals),
+        "hours":len(hours),
+        "failed_queries":len(failures),
+    },ensure_ascii=False))
+    return 0
+
+if __name__=="__main__":
+    raise SystemExit(main())
