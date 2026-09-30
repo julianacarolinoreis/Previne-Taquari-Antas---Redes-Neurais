@@ -1,0 +1,153 @@
+{
+  "schema_version": "g040_routing_search_contract_v1",
+  "generated_at_utc": "2026-09-30T20:23:21.159402Z",
+  "research_only": true,
+  "constraints": [
+    {
+      "label": "Linha Jose Julio -> Mucum",
+      "intervals": [
+        "86472000_to_86510000"
+      ],
+      "usable_events": 4,
+      "diagnostic_lag_center_h": 4,
+      "diagnostic_lag_range_h": [
+        2,
+        4
+      ],
+      "aggregate_K_search_h": [
+        1.0,
+        6.0
+      ],
+      "confidence": "high",
+      "constraint_type": "aggregate search window, not direct K assignment",
+      "calibration_objective": [
+        "NSE",
+        "KGE",
+        "PBIAS",
+        "RMSE",
+        "volume_error",
+        "peak_error",
+        "peak_timing_error",
+        "rise_fall_skill"
+      ]
+    },
+    {
+      "label": "Mucum -> Encantado",
+      "intervals": [
+        "86510000_to_86720000"
+      ],
+      "usable_events": 4,
+      "diagnostic_lag_center_h": 0,
+      "diagnostic_lag_range_h": [
+        0,
+        1
+      ],
+      "aggregate_K_search_h": [
+        0.25,
+        3.0
+      ],
+      "confidence": "high",
+      "constraint_type": "aggregate search window, not direct K assignment",
+      "calibration_objective": [
+        "NSE",
+        "KGE",
+        "PBIAS",
+        "RMSE",
+        "volume_error",
+        "peak_error",
+        "peak_timing_error",
+        "rise_fall_skill"
+      ]
+    },
+    {
+      "label": "Encantado -> Estrela composite",
+      "intervals": [
+        "86720000_to_86743000",
+        "86743000_to_86879000",
+        "86879000_to_86879300"
+      ],
+      "usable_events": 3,
+      "diagnostic_lag_center_h": 6,
+      "diagnostic_lag_range_h": [
+        1,
+        6
+      ],
+      "aggregate_K_search_h": [
+        0.5,
+        10.0
+      ],
+      "confidence": "medium",
+      "constraint_type": "aggregate search window, not direct K assignment",
+      "calibration_objective": [
+        "NSE",
+        "KGE",
+        "PBIAS",
+        "RMSE",
+        "volume_error",
+        "peak_error",
+        "peak_timing_error",
+        "rise_fall_skill"
+      ]
+    },
+    {
+      "label": "Estrela -> Porto Mariante",
+      "intervals": [
+        "86879300_to_86895000"
+      ],
+      "usable_events": 2,
+      "diagnostic_lag_center_h": 6,
+      "diagnostic_lag_range_h": [
+        0,
+        6
+      ],
+      "aggregate_K_search_h": [
+        0.5,
+        12.0
+      ],
+      "confidence": "low",
+      "constraint_type": "aggregate search window, not direct K assignment",
+      "calibration_objective": [
+        "NSE",
+        "KGE",
+        "PBIAS",
+        "RMSE",
+        "volume_error",
+        "peak_error",
+        "peak_timing_error",
+        "rise_fall_skill"
+      ]
+    },
+    {
+      "label": "Porto Mariante -> Taquari",
+      "intervals": [
+        "86895000_to_86950000"
+      ],
+      "usable_events": 0,
+      "evidence": "NO_DOWNSTREAM_Q_IN_CURRENT_ARCHIVE",
+      "aggregate_K_search_h": null,
+      "confidence": "none",
+      "note": "Taquari has stage but no discharge in the ANA responses used; use hydraulic/level timing evidence only after datum/time audit."
+    },
+    {
+      "label": "Taquari -> Triunfo",
+      "intervals": [
+        "86950000_to_86996000"
+      ],
+      "usable_events": 0,
+      "evidence": "NO_PAIR_Q",
+      "aggregate_K_search_h": null,
+      "confidence": "none",
+      "note": "lower Taquari routing may require HEC-RAS/backwater representation before stage validation."
+    }
+  ],
+  "rules": {
+    "observed_lag": "constraint for aggregate routing search only",
+    "muskingum_K": "must be optimized in HEC; never copied from statistical lag",
+    "muskingum_X": "search physically admissible range and validate sensitivity",
+    "split_reaches": "when a tributary join splits an interval, the aggregate constraint applies to the sum/effective travel behavior, not equal K on both pieces",
+    "event_use": "calibration and independent validation partitions must remain separated before promotion",
+    "current_Mucum_K_1_25h": "local current-event result; not transferable basin-wide without multi-event evidence"
+  },
+  "topology_reference": "whole_basin_bho6_topology_latest.json",
+  "diagnostic_reference": "whole_basin_multi_event_propagation_diagnostics_latest.json"
+}
