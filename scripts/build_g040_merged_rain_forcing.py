@@ -44,8 +44,14 @@ def main() -> int:
     obs=loadj(OBS); fc=loadj(FCST)
     if obs.get("status") not in {"OBSERVED_RAIN_READY","OBSERVED_RAIN_PARTIAL"}:
         raise RuntimeError(f"observed forcing not usable: {obs.get('status')}")
-    if fc.get("status")!="IFS_INTERVAL_FORCING_READY":
-        raise RuntimeError(f"IFS forcing not ready: {fc.get('status')}")
+    if fc.get("status") not in {"IFS_FULLGRID_FORCING_READY","IFS_FULLGRID_FORCING_READY_CYCLE_ID_UNVERIFIED"}:
+        raise RuntimeError(f"IFS full-grid forcing not ready: {fc.get('status')}")
+
+    og=obs.get("grid") or {}
+    fg=fc.get("grid") or {}
+    for key in ("resolution_deg","rows_latitude","cols_longitude","cells","edge_bounds"):
+        if og.get(key)!=fg.get(key):
+            raise RuntimeError(f"observed/forecast grid contract mismatch for {key}: {og.get(key)} != {fg.get(key)}")
 
     forecast_start=parse_utc(fc["window"]["start_utc"])
     obs_by={x["interval_id"]:x for x in obs.get("intervals") or []}
@@ -73,7 +79,7 @@ def main() -> int:
             {
                 "time_utc":r["time_utc"],
                 "mm":r.get("mm"),
-                "source":"ecmwf_ifs025",
+                "source":"ecmwf_ifs_fullgrid_0p1_sampling",
                 "valid_station_count":None,
             }
             for r in fc_by[iid].get("series") or []
@@ -115,7 +121,7 @@ def main() -> int:
     for iid in ids:
         rows=combined[iid]
         obs_rows=[x for x in rows if x["source"]=="observed"]
-        fc_rows=[x for x in rows if x["source"]=="ecmwf_ifs025"]
+        fc_rows=[x for x in rows if x["source"]=="ecmwf_ifs_fullgrid_0p1_sampling"]
         interval_payload.append({
             "interval_id":iid,
             "observed_hours":len(obs_rows),
@@ -132,16 +138,23 @@ def main() -> int:
         x["forecast_available_hours"]==x["forecast_hours"] and x["forecast_hours"]>=120
         for x in interval_payload
     )
-    status="MERGED_RAIN_FORCING_READY" if obs_complete_before_t0 and forecast_complete else "MERGED_RAIN_FORCING_REVIEW"
+    exact_cycle=bool((fc.get("gates") or {}).get("exact_cycle_id_available"))
+    base_ready=obs_complete_before_t0 and forecast_complete
+    if base_ready and exact_cycle:
+        status="MERGED_RAIN_FORCING_READY"
+    elif base_ready:
+        status="MERGED_RAIN_FORCING_READY_RESEARCH_CYCLE_ID_UNVERIFIED"
+    else:
+        status="MERGED_RAIN_FORCING_REVIEW"
 
     payload={
-        "schema_version":"g040_merged_interval_rain_forcing_v1",
+        "schema_version":"g040_merged_interval_rain_forcing_v2",
         "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
         "research_only":True,
         "status":status,
         "transition":{
             "forecast_start_utc":forecast_start.isoformat().replace("+00:00","Z"),
-            "rule":"observed strictly before forecast_start; ECMWF IFS from forecast_start onward",
+            "rule":"observed 600-cell ANA/INMET/CEMADEN IDW^2 field strictly before forecast_start; ECMWF IFS 600-cell sampling field from forecast_start onward",
             "overlap_averaged":False,
             "missing_zero_filled":False,
         },
@@ -150,10 +163,14 @@ def main() -> int:
             "all_intervals_present":len(ids)==8,
             "at_least_24_observed_hours_each":obs_complete_before_t0,
             "120h_forecast_complete_each":forecast_complete,
+            "observed_forecast_grid_contract_identical":True,
+            "exact_ecmwf_cycle_id_available":exact_cycle,
+            "operational_promotion_allowed":bool(base_ready and exact_cycle),
         },
         "intervals":interval_payload,
         "artifacts":{"hourly_csv":str(OUTCSV.relative_to(ROOT))},
-        "next_step":"translate the merged interval forcing and observed Source hydrographs into HEC-HMS time-series inputs for the branch-model replay",
+        "grid_contract":{k:og.get(k) for k in ("resolution_deg","rows_latitude","cols_longitude","cells","edge_bounds","crs")},
+        "next_step":"translate the merged interval forcing and observed Source hydrographs into HEC-HMS branch-model inputs; keep research-only until exact ECMWF cycle provenance is attached",
     }
     OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps({
