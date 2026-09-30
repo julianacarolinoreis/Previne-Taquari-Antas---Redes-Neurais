@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Build an auditable full-basin HEC-HMS research architecture for G040.
+"""Build an auditable G040 management-layer/topology diagnostic.
 
 Scope:
 - entire Taquari-Antas basin (G040), not only the Antas->Santa Tereza->Muçum corridor;
-- 32 official IEDE framing sub-basins grouped in 7 UGs;
-- ANA BHO6 drainage family 786 used to infer directed connectivity to the basin outlet;
-- existing G040 rain/flow station inventories spatially assigned to the 32 units.
+- 32 official IEDE framing/management sub-basins grouped in 7 UGs;
+- ANA BHO6 drainage family 786 used to audit coarse inter-unit connectivity;
+- existing G040 rain/flow station inventories spatially assigned to the 32 management units.
 
-This script does NOT calibrate HEC-HMS and does NOT invent routing parameters,
-rating curves or cross sections. It creates the source-backed topology and
-station/forcing matrix required before a full-basin HEC project is generated.
+IMPORTANT: the 32 polygons are NOT the HEC-HMS computational discretization.
+The research target preserves the original 145 HEC sub-basins and 72 reaches.
+This script is a territorial/station audit and must not be used to replace
+the native 145-unit model.
 
 Research only; not an official warning system.
 """
@@ -394,8 +395,9 @@ def write_outputs(subbasins, edges, topology, segments, unassigned_segments, sta
             "area_km2_epsg31982": round(sb["area_km2"], 3),
             "downstream_subbasin": None if d is None else subbasins[d]["name"],
             **stsum[i],
-            "hec_role": "subbasin_response_unit",
-            "routing_status": "topology_ready_parameters_pending",
+            "hec_role": "management_enquadramento_unit",
+            "not_hec_computational_unit": True,
+            "routing_status": "coarse_connectivity_audit_only",
         }
         units.append(unit)
         geo_features.append({
@@ -439,8 +441,11 @@ def write_outputs(subbasins, edges, topology, segments, unassigned_segments, sta
             "basin": "Taquari-Antas G040",
             "outlet": "Rio Taquari na confluência com o Rio Jacuí",
             "official_area_km2": OFFICIAL_AREA_KM2,
-            "modeling_units": 32,
+            "management_polygons": 32,
             "management_units": 7,
+            "hec_target_subbasins": 145,
+            "hec_target_reaches": 72,
+            "important_note_2": "The 32 IEDE polygons are audit/grouping units only; they are not HEC computational sub-basins.",
             "important_note": "Muçum is an internal control point, not the basin outlet.",
         },
         "area_audit": {
