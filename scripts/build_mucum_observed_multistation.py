@@ -410,31 +410,29 @@ def idw_mean(
     points: list[tuple[float, float, float]],
     stations: list[dict[str, Any]],
     values: dict[str, float],
-    k: int = 6,
 ) -> float | None:
-    usable = [s for s in stations if values.get(s["code"]) is not None]
+    """Area-weighted IDW^2 field using every station valid for the hour."""
+    usable=[s for s in stations if values.get(s["code"]) is not None]
     if not usable or not points:
         return None
-    total = 0.0
-    total_area = 0.0
-    for gx, gy, area_weight in points:
-        distances = []
-        for s in usable:
-            dx = (float(s["lon"]) - gx) * math.cos(math.radians(gy))
-            dy = float(s["lat"]) - gy
-            d2 = dx * dx + dy * dy
-            distances.append((d2, float(values[s["code"]])))
-        distances.sort(key=lambda x: x[0])
-        nearest = distances[: min(k, len(distances))]
-        if nearest[0][0] < 1e-12:
-            value = nearest[0][1]
+    total=0.0
+    total_area=0.0
+    for gx,gy,area_weight in points:
+        distances=[]
+        for st in usable:
+            dx=(float(st["lon"])-gx)*math.cos(math.radians(gy))
+            dy=float(st["lat"])-gy
+            d2=dx*dx+dy*dy
+            distances.append((d2,float(values[st["code"]])))
+        exact=next((v for d2,v in distances if d2<1e-12),None)
+        if exact is not None:
+            value=exact
         else:
-            ws = [1.0 / d2 for d2, _ in nearest]
-            value = sum(w * v for w, (_, v) in zip(ws, nearest)) / sum(ws)
-        total += value * area_weight
-        total_area += area_weight
-    return total / total_area if total_area else None
-
+            weights=[1.0/d2 for d2,_ in distances]
+            value=sum(w*v for w,(_,v) in zip(weights,distances))/sum(weights)
+        total+=value*area_weight
+        total_area+=area_weight
+    return total/total_area if total_area else None
 
 def iso(t: datetime) -> str:
     return t.isoformat(timespec="minutes")

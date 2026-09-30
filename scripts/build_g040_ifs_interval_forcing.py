@@ -19,6 +19,17 @@ from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+try:
+    from scripts.g040_rain_grid import (
+        GRID_CELL_COUNT, GRID_STEP_DEG, build_grid_cells, grid_contract,
+        point_to_grid_index,
+    )
+except ModuleNotFoundError:
+    from g040_rain_grid import (
+        GRID_CELL_COUNT, GRID_STEP_DEG, build_grid_cells, grid_contract,
+        point_to_grid_index,
+    )
+
 ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/"assets/data/hec_hms_g040_full_basin"
 SUPPORT=BASE/"whole_basin_rain_support_points.csv"
@@ -26,53 +37,20 @@ SUPPORT_META=BASE/"whole_basin_rain_support_latest.json"
 OUT=BASE/"whole_basin_ifs_forecast_latest.json"
 OUTCSV=BASE/"whole_basin_ifs_forecast_hourly.csv"
 OUTCOMP=BASE/"whole_basin_ifs_forecast_components_hourly.csv"
+OUTGRID=BASE/"whole_basin_ifs_fullgrid_hourly.csv"
 SCENARIOS=BASE/"whole_basin_boundary_scenarios_latest.json"
 
-GRID_DEG=0.25
 HORIZON_HOURS=120
 BATCH_SIZE=40
 USER_AGENT="PREVINE-G040-IFS-research/1.0"
 
-def grid_center(v: float) -> float:
-    return round(math.floor(v/GRID_DEG+0.5)*GRID_DEG,6)
-
-def parse_hour(raw: str) -> datetime:
-    text=str(raw)
-    dt=datetime.fromisoformat(text.replace("Z","+00:00"))
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
-
-def start_hour() -> datetime:
-    return datetime.now(timezone.utc).replace(minute=0,second=0,microsecond=0)
-
-def load_support():
-    rows=[]
-    with SUPPORT.open(encoding="utf-8",newline="") as fh:
-        for r in csv.DictReader(fh):
-            rows.append({
-                "interval_id":r["interval_id"],
-                "lon":float(r["lon"]),
-                "lat":float(r["lat"]),
-                "area_km2":float(r["local_area_km2"]),
-                "tributary_boundary_code":str(r.get("tributary_boundary_code") or "").strip(),
-                "component_id":str(r.get("component_id") or "").strip(),
-            })
-    if not rows:
-        raise RuntimeError("G040 rain support mesh is empty")
-    return rows
-
-def cell_id(lat: float,lon: float) -> str:
-    return f"IFS_{lat:+07.2f}_{lon:+07.2f}"
-
-def build_cell_weights(points, active_boundary_codes):
+def build_cell_weights(points, active_boundary_codes, grid_cells):
     by_interval={}
-    all_cells={}
     for p in points:
         if p.get("tributary_boundary_code","") in active_boundary_codes:
             continue
-        lat=grid_center(p["lat"])
-        lon=grid_center(p["lon"])
-        cid=cell_id(lat,lon)
-        all_cells[cid]={"cell_id":cid,"latitude":lat,"longitude":lon}
+        cell=grid_cells[point_to_grid_index(p["lon"],p["lat"])]
+        cid=cell["cell_id"]
         bucket=by_interval.setdefault(p["interval_id"],{})
         bucket[cid]=bucket.get(cid,0.0)+float(p["area_km2"])
     summaries={}
@@ -83,26 +61,21 @@ def build_cell_weights(points, active_boundary_codes):
         summaries[iid]={
             "total_area_km2":total,
             "cells":{
-                cid:{
-                    "area_km2":a,
-                    "weight":a/total,
-                }
-                for cid,a in sorted(cells.items())
+                cid:{"area_km2":area,"weight":area/total}
+                for cid,area in sorted(cells.items())
             },
         }
-    return list(all_cells.values()),summaries
+    return grid_cells,summaries
 
-def build_component_weights(points):
+def build_component_weights(points, grid_cells):
     by_component={}
-    all_cells={}
     for p in points:
-        cid_component=p.get("component_id")
-        if not cid_component:
+        comp=p.get("component_id")
+        if not comp:
             continue
-        lat=grid_center(p["lat"]); lon=grid_center(p["lon"])
-        cid=cell_id(lat,lon)
-        all_cells[cid]={"cell_id":cid,"latitude":lat,"longitude":lon}
-        bucket=by_component.setdefault(cid_component,{})
+        cell=grid_cells[point_to_grid_index(p["lon"],p["lat"])]
+        cid=cell["cell_id"]
+        bucket=by_component.setdefault(comp,{})
         bucket[cid]=bucket.get(cid,0.0)+float(p["area_km2"])
     summaries={}
     for comp,cells in by_component.items():
@@ -111,9 +84,12 @@ def build_component_weights(points):
             raise RuntimeError(f"{comp}: non-positive support area")
         summaries[comp]={
             "total_area_km2":total,
-            "cells":{cid:{"area_km2":a,"weight":a/total} for cid,a in sorted(cells.items())},
+            "cells":{
+                cid:{"area_km2":area,"weight":area/total}
+                for cid,area in sorted(cells.items())
+            },
         }
-    return list(all_cells.values()),summaries
+    return grid_cells,summaries
 
 def fetch_batch(points,start_utc):
     params={
@@ -171,6 +147,8 @@ def fetch_batch(points,start_utc):
             raise RuntimeError(f"{point['cell_id']}: missing IFS precipitation; aborting instead of zero-filling")
         out.append({
             **point,
+            "response_latitude":item.get("latitude"),
+            "response_longitude":item.get("longitude"),
             "times_utc":[t.isoformat().replace("+00:00","Z") for t,_ in rows],
             "precip_mm":[round(float(v),4) for _,v in rows],
         })
@@ -180,6 +158,8 @@ def fetch_all(cells,start_utc):
     out=[]
     for i in range(0,len(cells),BATCH_SIZE):
         out.extend(fetch_batch(cells[i:i+BATCH_SIZE],start_utc))
+        if i+BATCH_SIZE < len(cells):
+            time.sleep(0.25)
     return out
 
 def rolling(series,n):
@@ -202,10 +182,13 @@ def main() -> int:
         for x in current.get("intervals") or []
     }
     points=load_support()
-    cells_all,_gross_weights=build_cell_weights(points,set())
-    _component_cells,component_weights=build_component_weights(points)
+    grid_cells=build_grid_cells()
+    if len(grid_cells)!=GRID_CELL_COUNT:
+        raise RuntimeError(f"fixed G040 forecast grid must contain {GRID_CELL_COUNT} cells")
+    cells_all,_gross_weights=build_cell_weights(points,set(),grid_cells)
+    _component_cells,component_weights=build_component_weights(points,grid_cells)
     cells=cells_all
-    _scenario_cells,weights=build_cell_weights(points,active_boundary_codes)
+    _scenario_cells,weights=build_cell_weights(points,active_boundary_codes,grid_cells)
     for iid,info in weights.items():
         exp=expected_area.get(iid)
         if exp is None:
@@ -215,8 +198,14 @@ def main() -> int:
             raise RuntimeError(f"{iid}: scenario IFS support area {got:.6f} != effective area {exp:.6f}")
     start=start_hour()
     fetched=fetch_all(cells,start)
+    if len(fetched)!=GRID_CELL_COUNT:
+        raise RuntimeError(f"forecast grid incomplete: expected {GRID_CELL_COUNT}, got {len(fetched)}")
     by_cell={x["cell_id"]:x for x in fetched}
+    if len(by_cell)!=GRID_CELL_COUNT:
+        raise RuntimeError("duplicate or missing fixed-grid cell identifiers")
     times=fetched[0]["times_utc"]
+    if len(times)!=HORIZON_HOURS:
+        raise RuntimeError(f"expected {HORIZON_HOURS} forecast hours, found {len(times)}")
     if any(x["times_utc"]!=times for x in fetched):
         raise RuntimeError("IFS cell time axes differ")
 
@@ -304,15 +293,43 @@ def main() -> int:
                 row[cid]=component_series[cid][h]["mm"]
             w.writerow(row)
 
+    grid_cell_ids=[c["cell_id"] for c in grid_cells]
+    with OUTGRID.open("w",encoding="utf-8",newline="") as fh:
+        fields=["time_utc",*grid_cell_ids]
+        w=csv.DictWriter(fh,fieldnames=fields)
+        w.writeheader()
+        for h,t in enumerate(times):
+            row={"time_utc":t}
+            for cid in grid_cell_ids:
+                row[cid]=by_cell[cid]["precip_mm"][h]
+            w.writerow(row)
+
+    response_native_coords={
+        (round(float(x["response_latitude"]),4),round(float(x["response_longitude"]),4))
+        for x in fetched
+        if x.get("response_latitude") is not None and x.get("response_longitude") is not None
+    }
+    support_used_cells={
+        cid for info in _gross_weights.values() for cid in info["cells"]
+    }
+
     payload={
-        "schema_version":"g040_ifs_interval_forcing_v1",
+        "schema_version":"g040_ifs_interval_forcing_v2",
         "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
         "research_only":True,
-        "status":"IFS_INTERVAL_FORCING_READY",
+        "status":"IFS_FULLGRID_FORCING_READY_CYCLE_ID_UNVERIFIED",
         "source":{
-            "model":"ECMWF IFS 0.25° via Open-Meteo",
+            "provider":"Open-Meteo ECMWF endpoint",
+            "model":"ECMWF IFS",
+            "model_query":"ecmwf_ifs025",
+            "native_model_resolution_deg":0.25,
+            "sampling_grid_resolution_deg":GRID_STEP_DEG,
             "variable":"hourly precipitation",
+            "exact_ecmwf_cycle_id":None,
+            "cycle_provenance_gate":False,
+            "cycle_note":"this endpoint does not expose an exact ECMWF cycle identifier; retrieval time is not relabeled as model cycle",
             "missing_policy":"abort instead of replacing missing forecast precipitation with zero",
+            "neighbor_fill_used":False,
         },
         "window":{
             "start_utc":times[0],
@@ -326,32 +343,51 @@ def main() -> int:
         },
         "spatial_method":{
             "support":"BHO6 reach-midpoint drainage support mesh",
-            "grid_assignment":"nearest native 0.25-degree IFS cell center",
+            "forecast_field":"complete fixed 0.1-degree HEC sampling grid",
+            "support_to_grid":"containing fixed-grid cell",
             "integration":"BHO6 local-area weighted mean per incremental HEC interval",
             "collapsed_to_single_basin_series":False,
         },
         "grid":{
-            "unique_cells":len(fetched),
-            "resolution_deg":GRID_DEG,
-            "cells":[{
+            **grid_contract(),
+            "requested_cells":len(fetched),
+            "support_used_cells":len(support_used_cells),
+            "response_native_coordinate_count":len(response_native_coords),
+            "all_cells_120h_complete":all(len(x["precip_mm"])==HORIZON_HOURS for x in fetched),
+            "cell_metadata":[{
                 "cell_id":c["cell_id"],
+                "row":c["row"],
+                "col":c["col"],
                 "latitude":c["latitude"],
                 "longitude":c["longitude"],
+                "response_latitude":c.get("response_latitude"),
+                "response_longitude":c.get("response_longitude"),
                 "total_120h_mm":round(sum(c["precip_mm"]),3),
             } for c in fetched],
+        },
+        "gates":{
+            "full_600_cell_grid":len(fetched)==GRID_CELL_COUNT,
+            "120h_each_cell":all(len(x["precip_mm"])==HORIZON_HOURS for x in fetched),
+            "zero_missing_or_nodata":all(all(v is not None for v in x["precip_mm"]) for x in fetched),
+            "neighbor_fill_used":False,
+            "exact_cycle_id_available":False,
+            "operational_promotion_allowed":False,
         },
         "intervals":intervals,
         "components":components,
         "artifacts":{
             "hourly_interval_csv":str(OUTCSV.relative_to(ROOT)),
             "hourly_component_csv":str(OUTCOMP.relative_to(ROOT)),
+            "full_grid_hourly_csv":str(OUTGRID.relative_to(ROOT)),
         },
-        "next_step":"merge observed interval rainfall through the last complete observed hour with IFS interval rainfall from the forecast transition hour",
+        "next_step":"merge with the matching observed 600-cell field; keep research-only until exact ECMWF cycle provenance is attached",
     }
     OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps({
         "status":payload["status"],
-        "unique_ifs_cells":len(fetched),
+        "grid_cells":len(fetched),
+        "response_native_coordinates":len(response_native_coords),
+        "exact_cycle_id_available":False,
         "intervals":len(intervals),
         "start_utc":times[0],
         "end_utc":times[-1],
