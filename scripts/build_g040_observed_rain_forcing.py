@@ -48,6 +48,7 @@ FLOW_CATALOG=STUDY/"postos_g040.geojson"
 SCENARIOS=BASE/"whole_basin_boundary_scenarios_latest.json"
 OUT=BASE/"whole_basin_observed_rain_latest.json"
 OUTCSV=BASE/"whole_basin_observed_rain_hourly.csv"
+OUTCOMP=BASE/"whole_basin_observed_rain_components_hourly.csv"
 
 WINDOW_HOURS=max(24,min(240,int(os.environ.get("G040_OBS_RAIN_HOURS","120"))))
 MAX_WORKERS=max(2,min(24,int(os.environ.get("G040_OBS_RAIN_WORKERS","12"))))
@@ -104,6 +105,7 @@ def read_support():
                 "local_area_km2":float(r["local_area_km2"]),
                 "fid":int(r["fid"]),
                 "tributary_boundary_code":str(r.get("tributary_boundary_code") or "").strip(),
+                "component_id":str(r.get("component_id") or "").strip(),
             })
     if not rows:
         raise RuntimeError("BHO6 rainfall support mesh is empty")
@@ -238,6 +240,22 @@ def main() -> int:
         if abs(got-exp)>max(0.05,0.0005*exp):
             raise RuntimeError(f"{iid}: scenario support area {got:.6f} != effective area {exp:.6f}")
     point_area=np.array([p["local_area_km2"] for p in points],dtype=float)
+    component_ids=sorted({p["component_id"] for p in points if p.get("component_id")})
+    component_indices={
+        cid:np.array([i for i,p in enumerate(points) if p.get("component_id")==cid],dtype=int)
+        for cid in component_ids
+    }
+    component_area={cid:float(point_area[idx].sum()) for cid,idx in component_indices.items()}
+    used_component={
+        cid:(not cid.startswith("BRANCH_") or cid.replace("BRANCH_","",1) not in active_boundary_codes)
+        for cid in component_ids
+    }
+    used_component_area=sum(component_area[cid] for cid in component_ids if used_component[cid])
+    scenario_total=float(current.get("effective_rainfall_runoff_area_km2") or 0.0)
+    if abs(used_component_area-scenario_total)>max(0.05,0.0005*scenario_total):
+        raise RuntimeError(
+            f"scenario component area {used_component_area:.6f} != effective rainfall-runoff area {scenario_total:.6f}"
+        )
 
     hours=hourly_axis(start,end)
     station_codes=[s["code"] for s in rain_stations]
@@ -247,7 +265,9 @@ def main() -> int:
         d2=np.empty((len(points),0),dtype=float)
 
     interval_series={iid:[] for iid in intervals}
+    component_series={cid:[] for cid in component_ids}
     hourly_rows=[]
+    component_rows=[]
     for hour in hours:
         vals=np.array([
             rain_series.get(code,{}).get(hour,np.nan)
@@ -272,12 +292,33 @@ def main() -> int:
             interval_series[iid].append({"time_local":iso(hour),"mm":None if mm is None else round(mm,4),"valid_station_count":valid_count})
             row[iid]=None if mm is None else round(mm,4)
         hourly_rows.append(row)
+        crow={"time_local":iso(hour),"valid_station_count":valid_count}
+        for cid in component_ids:
+            idx=component_indices[cid]
+            pv=point_rain[idx]
+            aa=point_area[idx]
+            good=np.isfinite(pv) & np.isfinite(aa) & (aa>0)
+            mm=None if not good.any() else float(np.sum(pv[good]*aa[good])/np.sum(aa[good]))
+            component_series[cid].append({
+                "time_local":iso(hour),
+                "mm":None if mm is None else round(mm,4),
+                "valid_station_count":valid_count,
+            })
+            crow[cid]=None if mm is None else round(mm,4)
+        component_rows.append(crow)
 
     with OUTCSV.open("w",encoding="utf-8",newline="") as fh:
         fields=["time_local","valid_station_count",*intervals]
         w=csv.DictWriter(fh,fieldnames=fields)
         w.writeheader()
         for row in hourly_rows:
+            w.writerow({k:"" if row.get(k) is None else row.get(k) for k in fields})
+
+    with OUTCOMP.open("w",encoding="utf-8",newline="") as fh:
+        fields=["time_local","valid_station_count",*component_ids]
+        w=csv.DictWriter(fh,fieldnames=fields)
+        w.writeheader()
+        for row in component_rows:
             w.writerow({k:"" if row.get(k) is None else row.get(k) for k in fields})
 
     failures=[
@@ -297,6 +338,23 @@ def main() -> int:
             "available_hours":available,
             "expected_hours":len(hours),
             "coverage_ratio":round(available/len(hours),4) if hours else 0.0,
+            "rolling_accumulations":rolling_summary(series),
+            "series":series,
+        })
+
+    component_payload=[]
+    for cid in component_ids:
+        series=component_series[cid]
+        branch_code=cid.replace("BRANCH_","",1) if cid.startswith("BRANCH_") else None
+        component_payload.append({
+            "component_id":cid,
+            "component_type":"tributary_branch" if branch_code else "mainstem_core_increment",
+            "tributary_boundary_code":branch_code,
+            "used_as_rainfall_runoff_in_current_scenario":used_component[cid],
+            "support_points":len(component_indices[cid]),
+            "support_area_km2":round(component_area[cid],6),
+            "available_hours":sum(x.get("mm") is not None for x in series),
+            "expected_hours":len(hours),
             "rolling_accumulations":rolling_summary(series),
             "series":series,
         })
@@ -349,6 +407,13 @@ def main() -> int:
             },
         },
         "intervals":interval_payload,
+        "components":component_payload,
+        "component_area_gate":{
+            "used_component_area_km2":round(used_component_area,6),
+            "scenario_effective_rainfall_runoff_area_km2":round(scenario_total,6),
+            "error_km2":round(used_component_area-scenario_total,6),
+            "pass":True,
+        },
         "stations":station_payload,
         "fetch_audit":{
             "queried":len(candidates),
@@ -356,7 +421,10 @@ def main() -> int:
             "failed_count":len(failures),
             "failures":failures,
         },
-        "artifacts":{"hourly_csv":str(OUTCSV.relative_to(ROOT))},
+        "artifacts":{
+            "hourly_interval_csv":str(OUTCSV.relative_to(ROOT)),
+            "hourly_component_csv":str(OUTCOMP.relative_to(ROOT)),
+        },
         "next_step":"merge with spatial ECMWF/IFS forecast after the latest observed forcing hour and run branch-wise HEC calibration/replay",
     }
     OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
