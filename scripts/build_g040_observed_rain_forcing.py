@@ -28,13 +28,22 @@ from shapely.ops import unary_union
 
 try:
     from scripts.build_mucum_observed_multistation import (
-        BRT, UTC, aggregate_hourly, fetch_network, inventory_operational,
-        finite, qc_rain,
+        BRT, UTC, aggregate_hourly, csv_observed_rain, fetch_network,
+        inventory_operational, finite, qc_rain,
     )
 except ModuleNotFoundError:
     from build_mucum_observed_multistation import (
-        BRT, UTC, aggregate_hourly, fetch_network, inventory_operational,
-        finite, qc_rain,
+        BRT, UTC, aggregate_hourly, csv_observed_rain, fetch_network,
+        inventory_operational, finite, qc_rain,
+    )
+
+try:
+    from scripts.g040_rain_grid import (
+        GRID_CELL_COUNT, build_grid_cells, grid_contract, point_to_grid_index,
+    )
+except ModuleNotFoundError:
+    from g040_rain_grid import (
+        GRID_CELL_COUNT, build_grid_cells, grid_contract, point_to_grid_index,
     )
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -49,10 +58,10 @@ SCENARIOS=BASE/"whole_basin_boundary_scenarios_latest.json"
 OUT=BASE/"whole_basin_observed_rain_latest.json"
 OUTCSV=BASE/"whole_basin_observed_rain_hourly.csv"
 OUTCOMP=BASE/"whole_basin_observed_rain_components_hourly.csv"
+OUTGRID=BASE/"whole_basin_observed_rain_fullgrid_hourly.csv"
 
 WINDOW_HOURS=max(24,min(240,int(os.environ.get("G040_OBS_RAIN_HOURS","120"))))
 MAX_WORKERS=max(2,min(24,int(os.environ.get("G040_OBS_RAIN_WORKERS","12"))))
-IDW_K=max(1,min(12,int(os.environ.get("G040_OBS_RAIN_IDW_K","6"))))
 ROLLING=(1,3,6,12,24,48,72,120)
 
 def loadj(path: Path) -> dict[str,Any]:
@@ -133,26 +142,21 @@ def vectorized_idw_matrix(
     dy=slat-plat
     return dx*dx+dy*dy
 
-def interpolate_points(d2: np.ndarray, station_values: np.ndarray, k: int) -> np.ndarray:
+def interpolate_points(d2: np.ndarray, station_values: np.ndarray) -> np.ndarray:
+    """IDW^2 using every station with a finite value in the current hour."""
     valid=np.isfinite(station_values)
     if not valid.any():
         return np.full(d2.shape[0],np.nan,dtype=float)
     dd=d2[:,valid]
     vv=station_values[valid]
-    kk=min(k,dd.shape[1])
-    if dd.shape[1]==kk:
-        idx=np.tile(np.arange(kk),(dd.shape[0],1))
-    else:
-        idx=np.argpartition(dd,kk-1,axis=1)[:,:kk]
-    nearest_d=np.take_along_axis(dd,idx,axis=1)
-    nearest_v=vv[idx]
-    exact=nearest_d[:,0] < 1e-12
-    safe=np.maximum(nearest_d,1e-12)
-    w=1.0/safe
-    pred=np.sum(w*nearest_v,axis=1)/np.sum(w,axis=1)
+    nearest_idx=np.argmin(dd,axis=1)
+    nearest_d=dd[np.arange(dd.shape[0]),nearest_idx]
+    exact=nearest_d < 1e-12
+    safe=np.maximum(dd,1e-12)
+    weights=1.0/safe
+    pred=(weights @ vv)/np.sum(weights,axis=1)
     if exact.any():
-        exact_idx=np.argmin(dd[exact],axis=1)
-        pred[exact]=vv[exact_idx]
+        pred[exact]=vv[nearest_idx[exact]]
     return pred
 
 def rolling_summary(series: list[dict[str,Any]]) -> dict[str,Any]:
@@ -208,19 +212,25 @@ def main() -> int:
             except Exception as exc:
                 fetched[code]={"ok":False,"rows":[],"source":candidates[code].get("network"),"error":str(exc)}
 
+    archived=csv_observed_rain(start,end)
     rain_series={}
     rain_stations=[]
     for code,st in candidates.items():
+        series=dict(archived.get(code) or {})
         hourly=aggregate_hourly((fetched.get(code) or {}).get("rows") or [])
-        s={}
         for t,v in hourly.items():
             rv=qc_rain(v.get("rain_mm"))
             if rv is not None:
-                s[t.replace(minute=0,second=0,microsecond=0)]=float(rv)
-        if not s:
+                series[t.replace(minute=0,second=0,microsecond=0)]=float(rv)
+        if not series:
             continue
-        rain_series[code]=s
-        rain_stations.append({**st,"source":(fetched.get(code) or {}).get("source"),"valid_hours":len(s)})
+        rain_series[code]=series
+        rain_stations.append({
+            **st,
+            "source":(fetched.get(code) or {}).get("source"),
+            "valid_hours":len(series),
+            "archive_contributed":bool(archived.get(code)),
+        })
 
     points=read_support()
     intervals=sorted({p["interval_id"] for p in points})
@@ -257,17 +267,25 @@ def main() -> int:
             f"scenario component area {used_component_area:.6f} != effective rainfall-runoff area {scenario_total:.6f}"
         )
 
+    grid_cells=build_grid_cells()
+    if len(grid_cells)!=GRID_CELL_COUNT:
+        raise RuntimeError("fixed G040 rainfall grid is incomplete")
+    grid_points=[{"lon":c["longitude"],"lat":c["latitude"]} for c in grid_cells]
+    support_grid_idx=np.array([point_to_grid_index(p["lon"],p["lat"]) for p in points],dtype=int)
+
     hours=hourly_axis(start,end)
     station_codes=[s["code"] for s in rain_stations]
     if rain_stations:
-        d2=vectorized_idw_matrix(points,rain_stations)
+        d2=vectorized_idw_matrix(grid_points,rain_stations)
     else:
-        d2=np.empty((len(points),0),dtype=float)
+        d2=np.empty((GRID_CELL_COUNT,0),dtype=float)
 
     interval_series={iid:[] for iid in intervals}
     component_series={cid:[] for cid in component_ids}
     hourly_rows=[]
     component_rows=[]
+    grid_rows=[]
+    grid_cell_ids=[c["cell_id"] for c in grid_cells]
     for hour in hours:
         vals=np.array([
             rain_series.get(code,{}).get(hour,np.nan)
@@ -275,9 +293,15 @@ def main() -> int:
         ],dtype=float)
         valid_count=int(np.isfinite(vals).sum())
         if valid_count:
-            point_rain=interpolate_points(d2,vals,IDW_K)
+            grid_rain=interpolate_points(d2,vals)
         else:
-            point_rain=np.full(len(points),np.nan,dtype=float)
+            grid_rain=np.full(GRID_CELL_COUNT,np.nan,dtype=float)
+        point_rain=grid_rain[support_grid_idx]
+
+        grow={"time_local":iso(hour),"valid_station_count":valid_count}
+        for gi,cid in enumerate(grid_cell_ids):
+            grow[cid]=None if not np.isfinite(grid_rain[gi]) else round(float(grid_rain[gi]),4)
+        grid_rows.append(grow)
 
         row={"time_local":iso(hour),"valid_station_count":valid_count}
         for iid in intervals:
@@ -319,6 +343,13 @@ def main() -> int:
         w=csv.DictWriter(fh,fieldnames=fields)
         w.writeheader()
         for row in component_rows:
+            w.writerow({k:"" if row.get(k) is None else row.get(k) for k in fields})
+
+    with OUTGRID.open("w",encoding="utf-8",newline="") as fh:
+        fields=["time_local","valid_station_count",*grid_cell_ids]
+        w=csv.DictWriter(fh,fieldnames=fields)
+        w.writeheader()
+        for row in grid_rows:
             w.writerow({k:"" if row.get(k) is None else row.get(k) for k in fields})
 
     failures=[
@@ -373,7 +404,7 @@ def main() -> int:
 
     status="OBSERVED_RAIN_READY" if rain_stations and all(x["available_hours"]>0 for x in interval_payload) else "OBSERVED_RAIN_PARTIAL"
     payload={
-        "schema_version":"g040_observed_rain_forcing_v1",
+        "schema_version":"g040_observed_rain_forcing_v2",
         "generated_at_utc":datetime.now(UTC).isoformat().replace("+00:00","Z"),
         "research_only":True,
         "status":status,
@@ -384,14 +415,25 @@ def main() -> int:
             "hours":len(hours),
         },
         "method":{
-            "station_temporal_semantics":"hourly accumulated precipitation",
-            "spatial_interpolation":"IDW^2 using the nearest valid stations at each BHO6 support point",
-            "idw_k":IDW_K,
-            "integration":"BHO6 local drainage area weighted mean per HEC incremental interval",
+            "station_temporal_semantics":"hourly accumulated precipitation per station",
+            "spatial_interpolation":"IDW^2 using every station with a valid value in each hour",
+            "station_scope":"all_valid_stations_each_hour",
+            "cross_station_sum":False,
+            "full_grid_preserved":True,
+            "integration":"sample fixed 0.1-degree grid at BHO6 support points, then BHO6 local-area weighted mean per HEC incremental interval",
             "missing_policy":"missing remains missing; never zero-filled",
             "support_reference":str(SUPPORT.relative_to(ROOT)),
             "boundary_scenario":scenarios.get("current_scenario"),
             "active_observed_boundary_codes":sorted(active_boundary_codes),
+        },
+        "grid":{
+            **grid_contract(),
+            "complete_grid_hours":sum(
+                1 for row in grid_rows
+                if all(row[cid] is not None for cid in grid_cell_ids)
+            ),
+            "expected_hours":len(hours),
+            "missing_cell_policy":"no zero fill; an hour with no valid stations remains missing on all 600 cells",
         },
         "boundary_scenario":{
             "name":scenarios.get("current_scenario"),
@@ -424,6 +466,7 @@ def main() -> int:
         "artifacts":{
             "hourly_interval_csv":str(OUTCSV.relative_to(ROOT)),
             "hourly_component_csv":str(OUTCOMP.relative_to(ROOT)),
+            "full_grid_hourly_csv":str(OUTGRID.relative_to(ROOT)),
         },
         "next_step":"merge with spatial ECMWF/IFS forecast after the latest observed forcing hour and run branch-wise HEC calibration/replay",
     }
