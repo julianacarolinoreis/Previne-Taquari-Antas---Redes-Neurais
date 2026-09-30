@@ -30,11 +30,11 @@ OUTCSV = BASE / "whole_basin_branch_controls.csv"
 # Controls chosen to maximize branch independence and preserve downstream checks.
 # They are verified against the repository station inventory at build time.
 BRANCH_CONTROLS = [
-    {"role":"upper_antas","code":"86472000","label":"Linha José Júlio","branch":"Antas/Taquari principal","kind":"boundary","mass_balance":true},
-    {"role":"prata","code":"86447000","label":"UHE Monte Claro Balsa do Prata","branch":"Prata","kind":"upstream_state_diagnostic","mass_balance":false},
-    {"role":"carreiro","code":"86500000","label":"Passo Carreiro","branch":"Carreiro","kind":"tributary_boundary","mass_balance":true},
-    {"role":"guapore","code":"86595000","label":"Barra do Zeferino","branch":"Guaporé","kind":"tributary_boundary","mass_balance":true},
-    {"role":"forqueta","code":"86746000","label":"Rio Forqueta (Travesseiro)","branch":"Forqueta","kind":"tributary_boundary","mass_balance":true},
+    {"role":"upper_antas","code":"86472000","label":"Linha José Júlio","branch":"Antas/Taquari principal","kind":"boundary","mass_balance":True},
+    {"role":"prata","code":"86447000","label":"UHE Monte Claro Balsa do Prata","branch":"Prata","kind":"upstream_state_diagnostic","mass_balance":False},
+    {"role":"carreiro","code":"86500000","label":"Passo Carreiro","branch":"Carreiro","kind":"tributary_boundary","mass_balance":True},
+    {"role":"guapore","code":"86595000","label":"Barra do Zeferino","branch":"Guaporé","kind":"tributary_boundary","mass_balance":True},
+    {"role":"forqueta","code":"86746000","label":"Rio Forqueta (Travesseiro)","branch":"Forqueta","kind":"tributary_boundary","mass_balance":True},
 ]
 
 MAINSTEM_CHECKPOINTS = [
