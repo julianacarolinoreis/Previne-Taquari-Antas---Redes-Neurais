@@ -30,38 +30,36 @@ LIMITS={
     "max_boundary_age_h": 2.0,
 }
 
-# Stage 1: physically plausible neighborhood around current best.
-STAGES=[
-    [
-      (1.00,1.00,0.75,w) for w in (4,6,8,10,12)
-    ] + [
-      (1.00,1.00,1.00,w) for w in (4,6,8,10,12)
-    ] + [
-      (1.25,1.25,1.00,w) for w in (4,6,8,10,12)
-    ] + [
-      (1.25,1.25,1.25,w) for w in (4,6,8,10,12)
-    ] + [
-      (1.50,1.50,1.00,w) for w in (4,6,8,10,12)
-    ],
-    # Stage 2: finer routing around plausible current-event travel times.
-    [
-      (k1,k2,k3,w)
-      for k1 in (1.10,1.25,1.40,1.50,1.60,1.75)
-      for k2 in (1.10,1.25,1.40,1.50,1.60,1.75)
-      for k3 in (0.75,0.90,1.00,1.10,1.25)
-      for w in (5,6,7,8)
-      if abs(k1-k2)<=0.35
-    ],
-    # Stage 3: expanded but still hydrologically bounded search.
-    [
-      (k1,k2,k3,w)
-      for k1 in (0.90,1.10,1.30,1.50,1.70,1.90)
-      for k2 in (0.90,1.10,1.30,1.50,1.70,1.90)
-      for k3 in (0.60,0.80,1.00,1.20,1.40)
-      for w in (3,4,5,6,7,8,9,10)
-      if abs(k1-k2)<=0.45
-    ],
+# Stage 1: physically plausible coarse neighborhood around the current event.
+BASE_STAGE=[
+  (1.00,1.00,0.75,w) for w in (4,6,8,10,12)
+] + [
+  (1.00,1.00,1.00,w) for w in (4,6,8,10,12)
+] + [
+  (1.25,1.25,1.00,w) for w in (4,6,8,10,12)
+] + [
+  (1.25,1.25,1.25,w) for w in (4,6,8,10,12)
+] + [
+  (1.50,1.50,1.00,w) for w in (4,6,8,10,12)
 ]
+
+def adaptive_candidates(best, k_step, warm_step):
+    """Refine deterministically around the best executed candidate."""
+    if not best:
+        return []
+    ks1=[round(max(0.6,best["k1"]+d),2) for d in (-k_step,0,k_step)]
+    ks2=[round(max(0.6,best["k2"]+d),2) for d in (-k_step,0,k_step)]
+    ks3=[round(max(0.5,best["k3"]+d),2) for d in (-k_step,0,k_step)]
+    warms=sorted(set(max(3,min(12,int(round(best["warmup_h"]+d)))) for d in (-warm_step,0,warm_step)))
+    out=[]
+    for k1 in ks1:
+        for k2 in ks2:
+            if abs(k1-k2)>0.45:
+                continue
+            for k3 in ks3:
+                for warm in warms:
+                    out.append((k1,k2,k3,warm))
+    return out
 
 def val(x, default=999.0):
     try:
@@ -157,8 +155,9 @@ def main():
     all_rows=[]
     accepted=[]
     seen=set()
+    candidates=BASE_STAGE
 
-    for stage_i,candidates in enumerate(STAGES, start=1):
+    for stage_i in (1,2,3):
         stage_rows=[]
         for cand in candidates:
             if cand in seen: continue
@@ -169,16 +168,21 @@ def main():
             if row.get("accepted"):
                 accepted.append(row)
 
-        # Do not continue expanding the parameter space once objective criteria pass.
         if accepted:
             break
 
-        # If no candidate passes, keep iterating into the next bounded stage.
+        executed=[x for x in all_rows if x.get("ok")]
+        best_so_far=min(executed,key=lambda x:x["score"],default=None)
         print("CALIBRATION_STAGE_INCOMPLETE="+json.dumps({
           "stage":stage_i,
-          "best":min((x for x in stage_rows if x.get("ok")),key=lambda x:x["score"],default=None),
-          "next_action":"expand_internal_state_and_routing_search"
+          "best":best_so_far,
+          "next_action":"refine_internal_state_and_routing_around_best"
         },ensure_ascii=False))
+
+        if stage_i==1:
+            candidates=adaptive_candidates(best_so_far,0.15,1)
+        elif stage_i==2:
+            candidates=adaptive_candidates(best_so_far,0.08,1)
 
     valid=[x for x in all_rows if x.get("ok")]
     if not valid: raise SystemExit("all calibration candidates failed to execute")
