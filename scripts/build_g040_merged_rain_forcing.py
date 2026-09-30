@@ -26,6 +26,9 @@ FCST=BASE/"whole_basin_ifs_forecast_latest.json"
 OUT=BASE/"whole_basin_rain_forcing_latest.json"
 OUTCSV=BASE/"whole_basin_rain_forcing_hourly.csv"
 OUTCOMP=BASE/"whole_basin_rain_forcing_components_hourly.csv"
+OBS_GRID=BASE/"whole_basin_observed_rain_fullgrid_hourly.csv"
+FCST_GRID=BASE/"whole_basin_ifs_fullgrid_hourly.csv"
+OUTGRID=BASE/"whole_basin_rain_forcing_fullgrid_hourly.csv"
 BRT=timezone(timedelta(hours=-3))
 
 def loadj(p: Path) -> dict[str,Any]:
@@ -41,12 +44,77 @@ def parse_local(s: str) -> datetime:
         d=d.replace(tzinfo=BRT)
     return d.astimezone(timezone.utc)
 
+def merge_full_grid(forecast_start: datetime) -> dict[str,Any]:
+    if not OBS_GRID.exists() or not FCST_GRID.exists():
+        raise RuntimeError("observed/forecast full-grid CSV artifacts are required")
+    with OBS_GRID.open(encoding="utf-8",newline="") as fh:
+        ro=csv.DictReader(fh)
+        obs_fields=list(ro.fieldnames or [])
+        obs_cells=[x for x in obs_fields if x not in {"time_local","valid_station_count"}]
+        obs_rows=[]
+        for row in ro:
+            t=parse_local(row["time_local"])
+            if t < forecast_start:
+                obs_rows.append({
+                    "time_utc":t.isoformat().replace("+00:00","Z"),
+                    "phase":"observed",
+                    "valid_station_count":row.get("valid_station_count"),
+                    **{cid:row.get(cid,"") for cid in obs_cells},
+                })
+    with FCST_GRID.open(encoding="utf-8",newline="") as fh:
+        rf=csv.DictReader(fh)
+        fc_fields=list(rf.fieldnames or [])
+        fc_cells=[x for x in fc_fields if x!="time_utc"]
+        fc_rows=[]
+        for row in rf:
+            t=parse_utc(row["time_utc"])
+            if t >= forecast_start:
+                fc_rows.append({
+                    "time_utc":t.isoformat().replace("+00:00","Z"),
+                    "phase":"ecmwf_ifs_fullgrid_0p1_sampling",
+                    "valid_station_count":"",
+                    **{cid:row.get(cid,"") for cid in fc_cells},
+                })
+    if obs_cells!=fc_cells:
+        raise RuntimeError(
+            f"observed/forecast full-grid cell headers differ: {len(obs_cells)} vs {len(fc_cells)}"
+        )
+    if len(obs_cells)!=600:
+        raise RuntimeError(f"expected 600 full-grid cells, found {len(obs_cells)}")
+    rows=obs_rows+fc_rows
+    rows.sort(key=lambda x:parse_utc(x["time_utc"]))
+    with OUTGRID.open("w",encoding="utf-8",newline="") as fh:
+        fields=["time_utc","phase","valid_station_count",*obs_cells]
+        w=csv.DictWriter(fh,fieldnames=fields)
+        w.writeheader()
+        for row in rows:
+            w.writerow({k:row.get(k,"") for k in fields})
+    forecast_complete=all(
+        all(str(row.get(cid,"")).strip()!="" for cid in obs_cells)
+        for row in fc_rows
+    )
+    return {
+        "cell_count":len(obs_cells),
+        "observed_rows":len(obs_rows),
+        "forecast_rows":len(fc_rows),
+        "forecast_all_cells_complete":forecast_complete,
+        "output":str(OUTGRID.relative_to(ROOT)),
+    }
+
 def main() -> int:
     obs=loadj(OBS); fc=loadj(FCST)
     if obs.get("status") not in {"OBSERVED_RAIN_READY","OBSERVED_RAIN_PARTIAL"}:
         raise RuntimeError(f"observed forcing not usable: {obs.get('status')}")
-    if fc.get("status")!="IFS_INTERVAL_FORCING_READY":
-        raise RuntimeError(f"IFS forcing not ready: {fc.get('status')}")
+    if fc.get("status") not in {"IFS_FULLGRID_FORCING_READY","IFS_FULLGRID_FORCING_READY_CYCLE_ID_UNVERIFIED"}:
+        raise RuntimeError(f"IFS full-grid forcing not ready: {fc.get('status')}")
+
+    og=obs.get("grid") or {}
+    fg=fc.get("grid") or {}
+    for key in ("resolution_deg","rows_latitude","cols_longitude","cells","edge_bounds","crs"):
+        if og.get(key)!=fg.get(key):
+            raise RuntimeError(
+                f"observed/forecast grid contract mismatch for {key}: {og.get(key)} != {fg.get(key)}"
+            )
 
     obs_scenario=(obs.get("boundary_scenario") or {}).get("name")
     fc_scenario=(fc.get("boundary_scenario") or {}).get("name")
@@ -57,6 +125,7 @@ def main() -> int:
             f"observed/IFS boundary scenario mismatch: {obs_scenario}/{obs_active} vs {fc_scenario}/{fc_active}"
         )
     forecast_start=parse_utc(fc["window"]["start_utc"])
+    full_grid_merge=merge_full_grid(forecast_start)
     obs_by={x["interval_id"]:x for x in obs.get("intervals") or []}
     fc_by={x["interval_id"]:x for x in fc.get("intervals") or []}
     ids=sorted(set(obs_by)&set(fc_by))
@@ -82,7 +151,7 @@ def main() -> int:
             {
                 "time_utc":r["time_utc"],
                 "mm":r.get("mm"),
-                "source":"ecmwf_ifs025",
+                "source":"ecmwf_ifs_fullgrid_0p1_sampling",
                 "valid_station_count":None,
             }
             for r in fc_by[iid].get("series") or []
@@ -125,7 +194,7 @@ def main() -> int:
                 })
         fseries=[{
             "time_utc":rr["time_utc"],"mm":rr.get("mm"),
-            "source":"ecmwf_ifs025","valid_station_count":None,
+            "source":"ecmwf_ifs_fullgrid_0p1_sampling","valid_station_count":None,
         } for rr in fc_comp[cid].get("series") or [] if parse_utc(rr["time_utc"])>=forecast_start]
         rows=oseries+fseries
         rows.sort(key=lambda x:parse_utc(x["time_utc"]))
@@ -186,7 +255,7 @@ def main() -> int:
     for iid in ids:
         rows=combined[iid]
         obs_rows=[x for x in rows if x["source"]=="observed"]
-        fc_rows=[x for x in rows if x["source"]=="ecmwf_ifs025"]
+        fc_rows=[x for x in rows if x["source"]=="ecmwf_ifs_fullgrid_0p1_sampling"]
         interval_payload.append({
             "interval_id":iid,
             "observed_hours":len(obs_rows),
@@ -208,12 +277,21 @@ def main() -> int:
         x["forecast_available_hours"]==x["forecast_hours"] and x["forecast_hours"]>=120
         for x in component_payload
     )
-    status="MERGED_RAIN_FORCING_READY" if (
-        obs_complete_before_t0 and forecast_complete and component_obs_complete and component_forecast_complete
-    ) else "MERGED_RAIN_FORCING_REVIEW"
+    exact_cycle=bool((fc.get("gates") or {}).get("exact_cycle_id_available"))
+    base_ready=(
+        obs_complete_before_t0 and forecast_complete
+        and component_obs_complete and component_forecast_complete
+        and full_grid_merge["forecast_all_cells_complete"]
+    )
+    if base_ready and exact_cycle:
+        status="MERGED_RAIN_FORCING_READY"
+    elif base_ready:
+        status="MERGED_RAIN_FORCING_READY_RESEARCH_CYCLE_ID_UNVERIFIED"
+    else:
+        status="MERGED_RAIN_FORCING_REVIEW"
 
     payload={
-        "schema_version":"g040_merged_interval_rain_forcing_v1",
+        "schema_version":"g040_merged_interval_rain_forcing_v2",
         "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
         "research_only":True,
         "status":status,
@@ -223,7 +301,7 @@ def main() -> int:
         },
         "transition":{
             "forecast_start_utc":forecast_start.isoformat().replace("+00:00","Z"),
-            "rule":"observed strictly before forecast_start; ECMWF IFS from forecast_start onward",
+            "rule":"observed 600-cell IDW^2 field strictly before forecast_start; ECMWF IFS 600-cell sampling field from forecast_start onward",
             "overlap_averaged":False,
             "missing_zero_filled":False,
         },
@@ -237,14 +315,22 @@ def main() -> int:
             "all_11_components_present":len(component_ids)==11,
             "at_least_24_observed_hours_each_component":component_obs_complete,
             "120h_forecast_complete_each_component":component_forecast_complete,
+            "observed_forecast_grid_contract_identical":True,
+            "merged_full_grid_cells":full_grid_merge["cell_count"],
+            "merged_full_grid_forecast_complete":full_grid_merge["forecast_all_cells_complete"],
+            "exact_ecmwf_cycle_id_available":exact_cycle,
+            "operational_promotion_allowed":bool(base_ready and exact_cycle),
         },
+        "grid_contract":{k:og.get(k) for k in ("resolution_deg","rows_latitude","cols_longitude","cells","edge_bounds","crs")},
+        "full_grid_merge":full_grid_merge,
         "intervals":interval_payload,
         "components":component_payload,
         "artifacts":{
             "hourly_interval_csv":str(OUTCSV.relative_to(ROOT)),
             "hourly_component_csv":str(OUTCOMP.relative_to(ROOT)),
+            "full_grid_hourly_csv":str(OUTGRID.relative_to(ROOT)),
         },
-        "next_step":"translate the merged interval forcing and observed Source hydrographs into HEC-HMS time-series inputs for the branch-model replay",
+        "next_step":"translate the merged full-grid and component forcing into HEC-HMS branch-model inputs; retain research-only status until exact ECMWF cycle provenance is attached",
     }
     OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps({
