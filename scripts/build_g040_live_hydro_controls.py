@@ -120,8 +120,10 @@ def summarize(rows,now):
     n=nrows[-1] if nrows else None
     last=max([x["time_utc"] for x in (qrows+nrows)],default=None)
     age=(now-last).total_seconds()/60 if last else None
+    # Preserve the complete 72 h query window for HEC warm-up/hindcast.
+    # The previous 96-sample cap kept only ~24 h at 15-minute telemetry.
     recent=[]
-    for r in rows[-96:]:
+    for r in rows:
         recent.append({
           "time_utc":r["time_utc"].isoformat().replace("+00:00","Z"),
           "flow_m3s":r["flow_m3s"],
@@ -137,6 +139,7 @@ def summarize(rows,now):
       "fresh_for_state":bool(last and age<=FRESH_MINUTES),
       "fresh_flow_boundary":bool(q and (now-q["time_utc"]).total_seconds()/60<=FRESH_MINUTES),
       "recent_rows":recent,
+      "retained_series_hours":72,
     }
 
 def main():
