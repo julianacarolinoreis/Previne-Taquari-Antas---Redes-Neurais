@@ -75,7 +75,7 @@ jobs:
           cat assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/run.log
           echo "$RC" > assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/exit_code.txt
 
-      - name: Publish dual-boundary result
+      - name: Publish dual-boundary diagnostic log
         shell: bash
         run: |
           set -euo pipefail
@@ -83,11 +83,8 @@ jobs:
           git config user.email "previne-hec-dual-boundary-bot@users.noreply.github.com"
 
           BASE="assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum"
-          RESULT_JSON="assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum_latest.json"
           cp "$BASE/run.log" /tmp/hec_dual_run.log
           cp "$BASE/exit_code.txt" /tmp/hec_dual_exit_code.txt
-          test -f "$RESULT_JSON" && cp "$RESULT_JSON" /tmp/hec_dual_latest.json
-          test -f "$BASE/primary_series.csv" && cp "$BASE/primary_series.csv" /tmp/hec_dual_primary_series.csv
 
           for attempt in 1 2 3 4 5; do
             git fetch origin main
@@ -95,14 +92,11 @@ jobs:
             mkdir -p "$BASE"
             cp /tmp/hec_dual_run.log "$BASE/run.log"
             cp /tmp/hec_dual_exit_code.txt "$BASE/exit_code.txt"
-            test -f /tmp/hec_dual_latest.json && cp /tmp/hec_dual_latest.json "$RESULT_JSON"
-            test -f /tmp/hec_dual_primary_series.csv && cp /tmp/hec_dual_primary_series.csv "$BASE/primary_series.csv"
             git add -- "$BASE/run.log" "$BASE/exit_code.txt"
-            test -f "$RESULT_JSON" && git add -- "$RESULT_JSON"
-            test -f "$BASE/primary_series.csv" && git add -- "$BASE/primary_series.csv"
             if git diff --cached --quiet; then exit 0; fi
-            git commit -m "bot: HEC Muçum dual observed boundary [skip ci]"
+            git commit -m "bot: HEC Muçum dual-boundary diagnostic [skip ci]"
             if git push origin HEAD:main; then exit 0; fi
             sleep $((attempt * 2))
           done
           exit 1
+
