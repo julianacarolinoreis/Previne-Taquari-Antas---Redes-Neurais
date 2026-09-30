@@ -523,7 +523,7 @@ def main():
     (proj/"g040_e1_hindcast.hms").write_text(build_project(),encoding="utf-8")
     (proj/"g040_e1_hindcast.run").write_text(build_run(),encoding="utf-8")
     (proj/"e1.control").write_text(build_control(start,end),encoding="utf-8")
-    (proj/"e1.gage").write_text(build_gage(start,end,active,used),encoding="utf-8")
+    (proj/"g040_e1_hindcast.gage").write_text(build_gage(start,end,active,used),encoding="utf-8")
     (proj/"e1.met").write_text(build_met(used),encoding="utf-8")
     (proj/"e1.basin").write_text(build_basin(rain,active,args),encoding="utf-8")
     script=write_jython(proj,times,source_values,rain_values)
