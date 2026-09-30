@@ -17,6 +17,8 @@ from typing import Any
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/"assets/data/hec_hms_g040_full_basin/snirh_bho_polygon_service_discovery_latest.json"
 ROOT_URL="https://portal1.snirh.gov.br/server/rest/services"
+BHO6_METADATA="https://metadados.snirh.gov.br/geonetwork/srv/api/records/32e309da-a8c1-443f-90ac-0cd79ce6a33d"
+BHO6_AREA_GPKG="https://metadados.snirh.gov.br/files/32e309da-a8c1-443f-90ac-0cd79ce6a33d/geoft_bho_area_drenagem.gpkg"
 UA={"User-Agent":"PREVINE-SNIRH-BHO-discovery/1.0"}
 
 KEYWORDS=("bho","otto","hidrograf","area_dren","aredren","drenagem")
@@ -114,6 +116,14 @@ def main():
       "generated_at_utc":datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
       "research_only":True,
       "catalog_root":ROOT_URL,
+      "known_file_sources":[{
+        "name":"BHO6 GEOFT_BHO_AREA_DRENAGEM.gpkg",
+        "metadata_record":BHO6_METADATA,
+        "download":BHO6_AREA_GPKG,
+        "role":"preferred same-version polygon source for BHO6 drainage reaches",
+        "use_policy":"clip locally to G040 before model workflow; do not silently substitute BHO2017",
+      }],
+      "recommended_polygon_source":"BHO6 GEOFT_BHO_AREA_DRENAGEM.gpkg",
       "folders_scanned":len(folders),
       "relevant_services_inspected":len(services),
       "candidate_count":len(candidates),
