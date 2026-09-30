@@ -6,6 +6,8 @@ on:
     paths:
       - "scripts/build_g040_whole_basin_branch_model.py"
       - "scripts/build_g040_whole_basin_bho6_topology.py"
+      - "scripts/build_g040_incremental_area_budget.py"
+      - "scripts/build_g040_live_hydro_controls.py"
       - ".github/workflows/g040-whole-basin-branch.yml"
       - "assets/data/hec_hms_g040_full_basin/full_basin_station_matrix.csv"
       - "assets/data/hec_hms_g040_full_basin/original_145_report_inventory_latest.json"
@@ -41,6 +43,12 @@ jobs:
       - name: Recover BHO6 topology
         run: python -B scripts/build_g040_whole_basin_bho6_topology.py
 
+      - name: Close incremental area mass balance
+        run: python -B scripts/build_g040_incremental_area_budget.py
+
+      - name: Refresh live hydrometric controls
+        run: python -B scripts/build_g040_live_hydro_controls.py
+
       - name: Audit architecture
         shell: bash
         run: |
@@ -66,6 +74,9 @@ jobs:
           cp "$BASE/whole_basin_branch_controls.csv" /tmp/
           cp "$BASE/whole_basin_bho6_topology_latest.json" /tmp/
           cp "$BASE/whole_basin_bho6_network.geojson" /tmp/
+          cp "$BASE/whole_basin_incremental_area_budget_latest.json" /tmp/
+          cp "$BASE/whole_basin_incremental_area_budget.csv" /tmp/
+          cp "$BASE/whole_basin_live_hydro_controls_latest.json" /tmp/
           for attempt in 1 2 3 4 5; do
             git fetch origin main
             git reset --hard origin/main
@@ -73,7 +84,10 @@ jobs:
             cp /tmp/whole_basin_branch_controls.csv "$BASE/"
             cp /tmp/whole_basin_bho6_topology_latest.json "$BASE/"
             cp /tmp/whole_basin_bho6_network.geojson "$BASE/"
-            git add -- "$BASE/whole_basin_branch_model_latest.json" "$BASE/whole_basin_branch_controls.csv" "$BASE/whole_basin_bho6_topology_latest.json" "$BASE/whole_basin_bho6_network.geojson"
+            cp /tmp/whole_basin_incremental_area_budget_latest.json "$BASE/"
+            cp /tmp/whole_basin_incremental_area_budget.csv "$BASE/"
+            cp /tmp/whole_basin_live_hydro_controls_latest.json "$BASE/"
+            git add -- "$BASE/whole_basin_branch_model_latest.json" "$BASE/whole_basin_branch_controls.csv" "$BASE/whole_basin_bho6_topology_latest.json" "$BASE/whole_basin_bho6_network.geojson" "$BASE/whole_basin_incremental_area_budget_latest.json" "$BASE/whole_basin_incremental_area_budget.csv" "$BASE/whole_basin_live_hydro_controls_latest.json"
             if git diff --cached --quiet; then exit 0; fi
             git commit -m "bot: update G040 whole-basin observed-branch architecture [skip ci]"
             if git push origin HEAD:main; then exit 0; fi
