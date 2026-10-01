@@ -10,6 +10,10 @@ on:
       - 'assets/data/santa_tereza_inundacao/painel_evacuacao_hand_campo_diagnostic.json'
       - 'assets/data/estudo_caso_territorio/grade_200m_santa_tereza.geojson'
       - 'assets/data/estudo_caso_territorio/ruas_santa_tereza.json'
+      - 'pesquisas/estudo-caso-territorio.html'
+      - 'assets/js/estudo_caso_territorio.js'
+      - 'assets/css/estudo_caso_territorio.css'
+      - 'assets/data/estudo_caso_territorio/casos_acoplados.json'
       - '.github/workflows/santa-tereza-historical-spatial.yml'
   workflow_dispatch:
 
@@ -40,6 +44,10 @@ jobs:
             /assets/data/estudo_caso_territorio/grade_200m_santa_tereza.geojson
             /assets/data/estudo_caso_territorio/ruas_santa_tereza.json
             /assets/data/estudo_caso_territorio/santa_tereza_event_spatial.json
+            /assets/data/estudo_caso_territorio/casos_acoplados.json
+            /assets/js/estudo_caso_territorio.js
+            /assets/css/estudo_caso_territorio.css
+            /pesquisas/estudo-caso-territorio.html
 
       - name: Python
         uses: actions/setup-python@v5
@@ -68,8 +76,21 @@ jobs:
           assert d['calibration']['d8_scheme']=='esri'
           assert all(x['scenario']['cells_200m_touched']>0 for x in rows.values())
           assert all(x['scenario']['road_centerline_edges_total']>0 for x in rows.values())
+          cases=json.loads(Path('assets/data/estudo_caso_territorio/casos_acoplados.json').read_text(encoding='utf-8'))
+          by_id={x['id']:x for x in cases['cases']}
+          assert by_id['st-e4-set2023']['hand_m']==22.4
+          assert by_id['st-e6-nov2023']['hand_m']==20.0
+          assert by_id['st-e9-mai2024']['hand_m']==20.8
+          html=Path('pesquisas/estudo-caso-territorio.html').read_text(encoding='utf-8')
+          assert '20261001-case5' in html
+          js=Path('assets/js/estudo_caso_territorio.js').read_text(encoding='utf-8')
+          assert 'historicalSpatialEvent' in js
+          assert 'road_centerline_edges_touched' in js
           print('OK: três espacializações históricas distintas e auditáveis')
           PY
+
+      - name: Validar sintaxe JavaScript
+        run: node --check assets/js/estudo_caso_territorio.js
 
       - name: Publicar artefato
         shell: bash
