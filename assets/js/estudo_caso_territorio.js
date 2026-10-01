@@ -580,7 +580,7 @@
       });
       layer.bindTooltip(
         esc(p.event_label || p.case_id || 'evento') +
-        ' · régua ' + esc(fmtOne(p.gauge_peak_m, ' m')) +
+        ' · régua ' + esc(fmtPrecise(p.gauge_peak_m, 2, ' m')) +
         ' · HAND ' + esc(fmtOne(p.contour_level_m, ' m')),
         { sticky: true }
       );
@@ -1413,6 +1413,15 @@
     return n.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + (suffix || '');
   }
 
+  function fmtPrecise(v, digits, suffix) {
+    var n = num(v);
+    if (n == null) return '—';
+    return n.toLocaleString('pt-BR', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    }) + (suffix || '');
+  }
+
   function peakError(caso) {
     var p = caso && caso.rna && caso.rna.peak;
     if (!p || num(p.observed_cm) == null || num(p.rna_cm) == null) return null;
@@ -1499,7 +1508,7 @@
         var e = events.find(function (x) { return x.case_id === c.id; });
         var sc = e && e.scenario || {};
         return '<div class="spatial-event-card"><b>' + esc(c.short || c.label) + '</b>' +
-          '<span>régua ' + esc(e ? fmtOne(e.gauge_peak_m, ' m') : '—') + ' → HAND ' + esc(e ? fmtOne(e.contour_level_m, ' m') : '—') + '</span>' +
+          '<span>régua ' + esc(e ? fmtPrecise(e.gauge_peak_m, 2, ' m') : '—') + ' → HAND ' + esc(e ? fmtPrecise(e.contour_level_m, 1, ' m') : '—') + '</span>' +
           '<strong>' + esc(sc.contour_area_ha == null ? '—' : fmtOne(sc.contour_area_ha, ' ha')) + '</strong>' +
           '<small>' + esc(fmtInt(sc.cells_200m_touched)) + ' células · proxy pop. ' + esc(fmtOne(sc.population_area_weighted_proxy, '')) +
           ' · ' + esc(fmtInt(sc.road_centerline_edges_touched)) + ' segmentos OSM</small></div>';
@@ -1592,7 +1601,7 @@
       row('HAND reconstruído / contorno', function (c) {
         var hs = bundle && bundle.historicalSpatial;
         var e = hs && (hs.events || []).find(function (x) { return x.case_id === c.id; });
-        return cell('<strong>' + esc(e ? fmtOne(e.hand_exact_m, ' m') + ' → ' + fmtOne(e.contour_level_m, ' m') : '—') + '</strong>', 'contornos em passos de 0,1 m');
+        return cell('<strong>' + esc(e ? fmtPrecise(e.hand_exact_m, 2, ' m') + ' → ' + fmtPrecise(e.contour_level_m, 1, ' m') : '—') + '</strong>', 'contornos em passos de 0,1 m');
       }) +
       row('Área da reconstrução', function (c) {
         var hs = bundle && bundle.historicalSpatial;
