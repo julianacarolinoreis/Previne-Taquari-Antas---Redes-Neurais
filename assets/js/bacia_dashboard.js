@@ -377,7 +377,7 @@
     if (!networkHasVariable(item, state.networkVariable)) return false;
     if (state.networkModel !== 'all') {
       const model = item.forecast && item.forecast.models && item.forecast.models[state.networkModel];
-      if (!model || model.available !== true) return false;
+      if (!model || model.available !== true || model.precipitation_state === 'unavailable') return false;
     }
     return true;
   }
@@ -463,6 +463,15 @@
     ).join('');
   }
 
+  function networkForecastCoverageSummary(status) {
+    const precipitation = status && status.metric_coverage && status.metric_coverage.precipitation;
+    const models = precipitation && precipitation.models && typeof precipitation.models === 'object' ? precipitation.models : {};
+    return Object.entries(models).map(([modelId, row]) => {
+      const ratio = num(row && row.coverage_ratio);
+      return '<span class="' + (ratio != null && ratio < .999 ? 'is-partial' : '') + '"><b>' + esc(networkModelLabel(modelId)) + '</b> ' + (ratio == null ? '—' : fmt(ratio * 100, 1) + '%') + '</span>';
+    }).join('');
+  }
+
   function networkUpgRows() {
     const groups = new Map();
     networkStations().forEach((item) => {
@@ -542,10 +551,12 @@
       ['Sem observado', rows.length ? fmt(none, 0) : '—', 'catálogo/previsão apenas', 'none']
     ];
     const sourceSummary = networkSourceSummary(status);
+    const forecastCoverageSummary = networkForecastCoverageSummary(status);
     host.innerHTML = '<div class="network-summary-grid">' + items.map((row) =>
       '<div class="network-summary-card is-' + esc(row[3]) + '"><span>' + esc(row[0]) + '</span><strong>' + esc(row[1]) + '</strong><small>' + esc(row[2]) + '</small></div>'
     ).join('') + '</div>' +
       '<div class="network-source-strip"><span class="network-source-title">Catálogo integrado por fonte</span>' + (sourceSummary || '<span>fontes não resumidas</span>') + '</div>' +
+      '<div class="network-model-coverage-strip"><span class="network-source-title">Cobertura de pontos previstos · precipitação</span>' + (forecastCoverageSummary || '<span>cobertura não resumida</span>') + '</div>' +
       '<p class="network-summary-note">' +
       (rows.length ? fmt(visible, 0) + ' pontos visíveis no filtro · algum observado ' + (observedAny == null ? '—' : fmt(observedAny, 0) + '/' + fmt(total, 0)) + ' · ' + (maxAge != null ? 'maior idade com relógio ' + ageLabel(maxAge) + ' · ' : '') : 'Resumo geral disponível; snapshot por estação ainda em atualização · ') +
       (status.generated_at_utc ? 'snapshot ' + when(status.generated_at_utc) + ' BRT · ' + ageLabel(ageHours(status.generated_at_utc)) : 'snapshot sem horário') + '.</p>';
@@ -590,7 +601,10 @@
       const windows = model && model.precipitation_windows_mm || {};
       const h24 = num(windows['24h']);
       const h72 = num(windows['72h']);
-      return '<div class="network-model-row"><strong>' + esc(networkModelLabel(modelId)) + '</strong><span>' + (model && model.available ? 'disponível' : 'indisponível') + '</span><small>+24 h ' + (h24 == null ? '—' : fmt(h24, 1) + ' mm') + ' · +72 h ' + (h72 == null ? '—' : fmt(h72, 1) + ' mm') + '</small></div>';
+      const pState = model && model.precipitation_state ? model.precipitation_state : (model && model.available ? 'available' : 'unavailable');
+      const stateLabel = pState === 'complete' ? 'precipitação completa' : pState === 'partial' ? 'precipitação parcial' : pState === 'unavailable' ? 'precipitação indisponível' : 'modelo disponível';
+      const stateClass = pState === 'partial' ? ' is-partial' : pState === 'unavailable' ? ' is-unavailable' : '';
+      return '<div class="network-model-row' + stateClass + '"><strong>' + esc(networkModelLabel(modelId)) + '</strong><span>' + esc(stateLabel) + '</span><small>+24 h ' + (h24 == null ? '—' : fmt(h24, 1) + ' mm') + ' · +72 h ' + (h72 == null ? '—' : fmt(h72, 1) + ' mm') + '</small></div>';
     }).join('');
     let rnaRows = Array.isArray(level.forecasts) ? level.forecasts.slice() : [];
     if (!rnaRows.length && num(level.forecast_cm) != null) rnaRows = [{ label: 'RNA', cm: level.forecast_cm, time: level.forecast_at_utc }];
