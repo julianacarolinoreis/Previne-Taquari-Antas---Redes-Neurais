@@ -513,6 +513,14 @@ class BasinStationForecastTests(unittest.TestCase):
         )
         self.assertTrue(compact["forecast"]["models"]["ecmwf_ifs025"]["available"])
         self.assertEqual(
+            compact["forecast"]["models"]["ecmwf_ifs025"]["precipitation_state"],
+            "complete",
+        )
+        self.assertEqual(
+            compact["forecast"]["models"]["ecmwf_ifs025"]["precipitation_valid_window_count"],
+            len(feed.PRECIPITATION_WINDOW_HOURS),
+        )
+        self.assertEqual(
             compact["forecast"]["models"]["ecmwf_ifs025"]["precipitation_windows_mm"]["24h"],
             25.0,
         )
@@ -532,6 +540,8 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertIn("function renderUpgHealth()", js)
         self.assertIn("function findNetworkStation(query)", js)
         self.assertIn("function clearNetworkFilters()", js)
+        self.assertIn("function networkForecastCoverageSummary(status)", js)
+        self.assertIn("precipitation_state", js)
         self.assertIn("RASTREABILIDADE DA ESTAÇÃO", js)
         self.assertIn("measurement_classification", js)
 
