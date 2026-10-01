@@ -239,7 +239,7 @@
   function shortForecastRows(key) {
     return liveRowsFor(key)
       .filter((row) => row.available && num(row.level_forecast_cm) != null && row.hours <= 12)
-      .sort((a, b) => a.hours - b.hours || (a.role === 'comparativo' ? 1 : -1) || a.key.localeCompare(b.key));
+      .sort((a, b) => a.hours - b.hours || (Number(a.role === 'comparativo') - Number(b.role === 'comparativo')) || a.key.localeCompare(b.key));
   }
   function renderNowStations() {
     const host = $('now-stations');
@@ -309,10 +309,13 @@
       host.innerHTML = '<div class="empty-block">Geometria da bacia sem coordenadas utilizáveis.</div>';
       return;
     }
-    const meanLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    let minLat = Infinity, maxLat = -Infinity;
+    lats.forEach((lat) => { if (lat < minLat) minLat = lat; if (lat > maxLat) maxLat = lat; });
+    const meanLat = (minLat + maxLat) / 2;
     const cosLat = Math.cos(meanLat * Math.PI / 180);
-    const xs = lons.map((lon) => lon * cosLat);
-    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...lats), maxY = Math.max(...lats);
+    let minX = Infinity, maxX = -Infinity;
+    lons.forEach((lon) => { const x = lon * cosLat; if (x < minX) minX = x; if (x > maxX) maxX = x; });
+    const minY = minLat, maxY = maxLat;
     const width = 720, height = 390, pad = 24;
     const project = (lon, lat) => {
       const x = pad + ((lon * cosLat - minX) / Math.max(.000001, maxX - minX)) * (width - pad * 2);
