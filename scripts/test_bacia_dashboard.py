@@ -41,6 +41,23 @@ class BasinDashboardTests(unittest.TestCase):
         parser.feed(self.text)
         self.assertEqual(len(parser.ids), len(set(parser.ids)))
 
+    def test_g040_network_health_map_is_wired(self) -> None:
+        for token in (
+            'id="basin-network-summary"',
+            'data-network-mode="health"',
+            'data-network-filter="none"',
+            'id="basin-source-filter"',
+            'id="basin-variable-filter"',
+            'id="basin-model-filter"',
+            'id="basin-station-detail"',
+        ):
+            self.assertIn(token, self.text)
+        script = (ROOT / "assets/js/bacia_dashboard.js").read_text(encoding="utf-8")
+        self.assertIn("basin_station_status_latest.json", script)
+        self.assertIn("function networkObservation", script)
+        self.assertIn("cota_or_incompatible_scale", script)
+        self.assertIn("networkStatusLabel", script)
+
     def test_public_semantics_are_explicit(self) -> None:
         self.assertIn("não é a mesma coisa que probabilidade de inundação", self.text)
         self.assertIn("sem alerta automático", self.text)
