@@ -978,9 +978,13 @@
     $('kpi-rain').textContent = missingRain ? 'UNKNOWN' : (rain || 'UNKNOWN');
     $('kpi-rain').className = `kpi-value${missingRain ? ' is-unknown' : ''}`;
     $('kpi-rain-note').textContent = `horizonte +${hours} h · fonte principal de cada estação`;
-    $('kpi-risk').textContent = missingRisk ? 'UNKNOWN' : (risk || 'UNKNOWN');
+    $('kpi-risk').textContent = missingRisk ? 'SEM VALOR ATUAL' : (risk || 'SEM VALOR ATUAL');
     $('kpi-risk').className = `kpi-value${missingRisk ? ' is-unknown' : ''}`;
-    $('kpi-risk-note').textContent = snaps.some((s) => s.risk == null && s.archivedRisk != null) ? 'score atrasado ocultado; arquivo preservado para auditoria' : 'estimativa experimental; não calibrada; sem VAI/NÃO VAI';
+    $('kpi-risk-note').textContent = snaps.some((s) => s.risk == null && s.archivedRisk != null)
+      ? 'probabilidade experimental indisponível; resultado arquivado ocultado da leitura atual'
+      : missingRisk
+        ? 'nenhuma probabilidade experimental utilizável nesta rodada'
+        : 'estimativa experimental; não calibrada; sem VAI/NÃO VAI';
     $('kpi-freshness').textContent = worst.label;
     $('kpi-freshness').className = `kpi-value ${worst.className}${worst.className === 'unknown' ? ' is-unknown' : ''}`;
     $('kpi-freshness-note').textContent = `${qualities.map((q, i) => `${stations[keys[i]].label}: ${q.label.toLowerCase()}`).join(' · ')}`;
@@ -990,9 +994,17 @@
     const html = Object.keys(stations).map((key) => {
       const s = stationSnapshot(key, state.horizon); const rain = displayRain(s); const q = qualityFor(s);
       const coverage = s.coverage == null ? 'cobertura não informada' : `${fmt(s.coverage, 0)}/${state.horizon} h de cobertura`;
+      const levelValue = s.level == null ? 'Sem dado' : `${fmt(s.level, 0)} cm`;
+      const rainValue = rain.value == null ? 'Sem dado' : `${fmt(rain.value, 2)} mm`;
+      const riskValue = s.riskUsable && s.risk != null ? pct(s.risk) : 'Sem valor atual';
+      const riskNote = s.riskUsable && s.risk != null
+        ? 'estimativa experimental de cruzar a cota'
+        : s.archivedRisk != null
+          ? 'resultado arquivado ocultado; não usar como leitura atual'
+          : 'probabilidade experimental indisponível nesta rodada';
       return `<article class="station-card ${state.station === key ? 'selected' : ''}">
         <div class="station-card-head"><div><h3>${esc(s.station.label)}</h3><span class="station-code">ANA/SGB ${esc(s.station.code)} · cota ${fmt(s.station.threshold / 100, 2)} m</span></div><span class="station-decision ${scoreStateClass(s)}">${esc(scoreStateLabel(s))}</span></div>
-        <div class="station-card-main"><div class="station-mini"><strong>${fmt(s.level, 0)} cm</strong><span>nível observado · ${ageLabel(s.observedAge)}</span></div><div class="station-mini"><strong>${fmt(rain.value, 2)} mm</strong><span>${esc(rain.label)} · +${state.horizon} h</span></div><div class="station-mini"><strong>${pct(s.risk)}</strong><span>estimativa experimental de cruzar a cota${s.riskUsable ? '' : ' · score arquivado ocultado'}</span></div></div>
+        <div class="station-card-main"><div class="station-mini ${s.level == null ? 'is-unavailable' : ''}"><strong>${levelValue}</strong><span>nível observado · ${ageLabel(s.observedAge)}</span></div><div class="station-mini ${rain.value == null ? 'is-unavailable' : ''}"><strong>${rainValue}</strong><span>${esc(rain.label)} · +${state.horizon} h</span></div><div class="station-mini ${s.riskUsable && s.risk != null ? '' : 'is-unavailable'}"><strong>${riskValue}</strong><span>${esc(riskNote)}</span></div></div>
         <p class="station-foot"><b>${esc(q.label)}</b> · ${coverage} · emissão ${when(sourceGenerated(s))} · <a href="${esc(s.station.status)}">abrir estação →</a></p>
       </article>`;
     }).join('');
