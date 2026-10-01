@@ -181,6 +181,10 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         self.assertIn("module-tabs", html)
         self.assertIn("module-frame", html)
         self.assertIn("juntos-stage", html)
+        self.assertIn("historical-comparison", html)
+        self.assertIn("comparison-event-grid", html)
+        self.assertIn("comparison-table-body", html)
+        self.assertIn("renderHistoricalComparison", js)
         self.assertIn("hud-cockpit", html)
         self.assertIn("sit-threat", html)
         self.assertIn(".hud-cockpit", css)
@@ -211,9 +215,22 @@ class EstudoCasoTerritorioTests(unittest.TestCase):
         ids = {c["id"] for c in doc["cases"]}
         self.assertIn("live", ids)
         self.assertIn("st-e4-set2023", ids)
+        self.assertIn("st-e6-nov2023", ids)
         self.assertIn("st-e9-mai2024", ids)
         self.assertIn("mucum-e27-mai2024-hotel", ids)
         self.assertIn("mucum-e35-jul2026", ids)
+        comparative_analysis = doc.get("comparative_analysis")
+        self.assertIsInstance(comparative_analysis, dict)
+        self.assertEqual(
+            comparative_analysis.get("event_ids"),
+            ["st-e4-set2023", "st-e6-nov2023", "st-e9-mai2024"],
+        )
+        nov = next(c for c in doc["cases"] if c["id"] == "st-e6-nov2023")
+        self.assertEqual(nov["rna"]["catalog_event"], 6)
+        self.assertEqual(nov["dataset_role"], "treino")
+        self.assertAlmostEqual(
+            nov["raw_event_telemetry"]["rain_24h_before_raw_peak_mm"], 119.6
+        )
         hotel = next(c for c in doc["cases"] if c["id"] == "mucum-e27-mai2024-hotel")
         self.assertEqual(hotel["mode"], "coupled")
         self.assertEqual(hotel["hand_m"], 25)
