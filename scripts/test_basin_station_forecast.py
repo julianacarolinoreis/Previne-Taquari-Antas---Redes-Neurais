@@ -268,6 +268,27 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertTrue(result["forecast_applicable"])
         self.assertEqual(result["forecast_status"], "available")
 
+    def test_implausible_vertical_value_is_not_river_stage(self):
+        result = feed.normalize_level_measurement(
+            {
+                "state": "available",
+                "current_cm": 24907,
+                "observed_at_utc": "2026-10-01T13:00Z",
+                "quality": "NORMAL",
+            }
+        )
+        self.assertEqual(result["state"], "suspect_scale")
+        self.assertIsNone(result["current_cm"])
+        self.assertEqual(result["raw_current_cm"], 24907.0)
+        self.assertEqual(result["measurement_classification"], "cota_or_incompatible_scale")
+        self.assertEqual(result["quality"], "SUSPECT_SCALE")
+
+        negative = feed.normalize_level_measurement(
+            {"state": "available", "current_cm": -332}
+        )
+        self.assertIsNone(negative["current_cm"])
+        self.assertEqual(negative["raw_current_cm"], -332.0)
+
     def test_level_station_without_rna_is_explicitly_not_applicable(self):
         raw = {
             "telemetria_ultima_em": "2026-09-20T09:00:00",
