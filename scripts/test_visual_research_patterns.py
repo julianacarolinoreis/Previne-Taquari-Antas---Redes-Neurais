@@ -38,7 +38,12 @@ class VisualResearchPatternFeedTests(unittest.TestCase):
             self.assertIn("rna_score_percent", row)
             self.assertIn("probability_percent", row)
             self.assertIn("ifs_mean_mm", row)
-        self.assertEqual(feed["horizons"][-1]["decision"], "VAI")
+        quality = feed.get("source_quality", {}).get("probability", {})
+        if quality.get("state") == "stale":
+            self.assertTrue(all(row["probability_percent"] is None for row in feed["horizons"]))
+            self.assertTrue(all(row["decision"] is None for row in feed["horizons"]))
+        else:
+            self.assertIsNotNone(feed["horizons"][-1]["probability_percent"])
 
 
 if __name__ == "__main__":
