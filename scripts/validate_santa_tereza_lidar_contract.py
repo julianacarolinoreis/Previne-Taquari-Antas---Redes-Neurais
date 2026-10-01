@@ -27,12 +27,16 @@ LEGACY_MOSAIC = ROOT / "codigo_python/02_mdt_hand_mancha/gerar_mosaico_mdt.py"
 LEGACY_HAND = ROOT / "codigo_python/02_mdt_hand_mancha/gerar_mancha_mosaico.py"
 LEGACY_CONTOURS = ROOT / "codigo_python/02_mdt_hand_mancha/gerar_contornos_vetoriais.py"
 ROUTE = ROOT / "codigo_python/09_rota_fuga/gerar_rota_fuga_santa_tereza.py"
+UNIFIED = ROOT / "pesquisas/replay-hidrologico-espacial.html"
+LEGACY_REFINER = ROOT / "codigo_python/02_mdt_hand_mancha/refinar_mdt_santa_tereza.py"
 
 EXPECTED_ELEVATION = "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_lidar_10m.json"
 FORBIDDEN_ACTIVE = (
     "mdt_santa_tereza_mosaico_2m.tif",
     "altitude_terreno_10m_refinado.json",
     "mdt_santa_tereza_10m_refinado_visual.png",
+    "mdt_santa_tereza_anadem_30m.tif",
+    "mdt_santa_tereza_drone_1m_ortho.tif",
 )
 
 
@@ -88,6 +92,14 @@ for key in keys:
     if live.get(key) != hist.get(key):
         fail(f"página ao vivo e histórica divergiram no campo {key}")
 
+unified_html = read(UNIFIED)
+for required in ("LiDAR bruto", "0–25 m", "HAND = max(0, régua − 1,60 m)"):
+    if required not in unified_html:
+        fail(f"sala/replay integrado não confirma contrato atual de Santa Tereza: {required}")
+for token in FORBIDDEN_ACTIVE:
+    if token in unified_html:
+        fail(f"sala/replay integrado voltou a referenciar ativo legado: {token}")
+
 diag = json.loads(read(DIAG))
 if str(diag.get("terreno_bruto_lidar", "")).replace("\\", "/").split("/")[-1] != "CLIP_MOSAICO_LIDAR_RS.tif":
     fail("diagnóstico não confirma CLIP_MOSAICO_LIDAR_RS.tif como terreno")
@@ -139,6 +151,12 @@ if 'def gera(cidade):\n    if cidade == "santa_tereza":' not in legacy_contours:
 route = read(ROUTE)
 if 'PAGINA_HAND = os.path.join(RAIZ, "santa_tereza_previsao_inundacao.html")' not in route:
     fail("rota de fuga não lê a página LiDAR autoritativa")
+
+legacy_refiner = read(LEGACY_REFINER)
+if 'LEGACY_AUDIT_FLAG = "--legacy-audit-only"' not in legacy_refiner:
+    fail("refinador drone+ANADEM legado não exige flag explícita de auditoria")
+if "Execução bloqueada: este refinamento drone + ANADEM é legado" not in legacy_refiner:
+    fail("refinador drone+ANADEM legado não está bloqueado por padrão")
 
 print(
     "OK contrato LiDAR Santa Tereza: "
