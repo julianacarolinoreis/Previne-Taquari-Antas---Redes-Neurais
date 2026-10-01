@@ -456,5 +456,76 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertEqual(result["scope"]["level_station_count"], 0)
 
 
+    def test_status_snapshot_keeps_compact_station_contract(self):
+        generated = datetime(2026, 10, 1, 13, 0, tzinfo=timezone.utc)
+        models = {}
+        for spec in feed.MODEL_SPECS:
+            models[spec["id"]] = {
+                "precipitation_windows": {
+                    f"{hours}h": [float(hours), float(hours) + 1.0]
+                    for hours in feed.PRECIPITATION_WINDOW_HOURS
+                }
+            }
+        station = {
+            "id": "ANA:86125500",
+            "code": "86125500",
+            "name": "PCH JARARACA BARRAMENTO",
+            "network": "ANA",
+            "latitude": -28.9381,
+            "longitude": -51.4656,
+            "source_networks": ["ANA/HidroWeb", "SGB/SACE"],
+            "source_roles": ["inventário ANA/HidroWeb", "hidrotelemetria SGB/SACE"],
+            "source_observations": [],
+            "observed_rain": {
+                "state": "unavailable",
+                "source": "ANA/INMET/CEMADEN · chuvas_horarias.csv",
+                "unit": "mm",
+                "windows": {},
+            },
+            "level": feed.normalize_level_measurement({
+                "state": "available",
+                "current_cm": 24907,
+                "observed_at_utc": "2026-10-01T12:55Z",
+                "forecast_applicable": False,
+                "forecast_status": "not_applicable",
+                "forecasts": [],
+            }),
+            "forecast": {
+                "state": "available",
+                "times": ["2026-10-01T12:00Z", "2026-10-01T15:00Z"],
+                "fetched_at_utc": "2026-10-01T13:00Z",
+                "models": models,
+            },
+        }
+        status = feed._status_snapshot({
+            "generated_at_utc": "2026-10-01T13:00Z",
+            "scope": {"station_count": 1, "forecast_station_count": 1},
+            "stations": [station],
+        })
+        self.assertEqual(status["schema_version"], 2)
+        self.assertEqual(len(status["stations"]), 1)
+        compact = status["stations"][0]
+        self.assertIsNone(compact["level"]["current_cm"])
+        self.assertEqual(compact["level"]["raw_current_cm"], 24907.0)
+        self.assertEqual(
+            compact["level"]["measurement_classification"],
+            "cota_or_incompatible_scale",
+        )
+        self.assertTrue(compact["forecast"]["models"]["ecmwf_ifs025"]["available"])
+        self.assertEqual(
+            compact["forecast"]["models"]["ecmwf_ifs025"]["precipitation_windows_mm"]["24h"],
+            25.0,
+        )
+
+    def test_dashboard_contract_includes_g040_health_and_no_current_filter(self):
+        html = (feed.ROOT / "dashboard_bacia.html").read_text(encoding="utf-8")
+        js = (feed.ROOT / "assets/js/bacia_dashboard.js").read_text(encoding="utf-8")
+        self.assertIn('id="basin-network-summary"', html)
+        self.assertIn('data-network-filter="no-current"', html)
+        self.assertIn("basin_station_status_latest.json", js)
+        self.assertIn("state.networkFilter === 'no-current'", js)
+        self.assertIn("measurement_classification", js)
+
+
 if __name__ == "__main__":
     unittest.main()
