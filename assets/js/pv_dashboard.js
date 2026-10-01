@@ -103,14 +103,15 @@
   }
   function setFeedState(){
     const node=el('#pv-feed-state'),chips=el('#pv-feed-chips');
+    const ageText=h=>!Number.isFinite(h)?'sem horário':h<1?'há menos de 1 h':h>=48?`há ${br.format(h/24)} dias`:`há ${br.format(h)} h`;
     const feeds=[
-      {key:'weather',label:'previsão',value:state.weather,limit:30},
-      {key:'probability',label:'score',value:state.probability,limit:36},
+      {key:'weather',label:'previsão meteorológica',value:state.weather,limit:30},
+      {key:'probability',label:'score experimental',value:state.probability,limit:36},
       {key:'live',label:'robô ao vivo',value:state.live,limit:.5}
     ].map(f=>{const age=f.value?ageHours(f.value.generated):Infinity;const status=!f.value||!Number.isFinite(age)?'unknown':age<=f.limit?'fresh':'stale';return {...f,age,status};});
     const overall=feeds.some(f=>f.status==='unknown')?'unknown':feeds.some(f=>f.status==='stale')?'stale':'fresh';
-    if(node){node.className=`pv-feed-state ${overall}`;node.textContent=overall==='fresh'?'Feeds atualizados':overall==='stale'?'Há feed atrasado':'Há feed sem horário';node.title=feeds.map(f=>`${f.label}: ${f.status==='fresh'?(f.age<1?'há menos de 1 h':`há ${br.format(f.age)} h`):f.status==='stale'?`atrasado (${br.format(f.age)} h)`:'indisponível'}`).join(' · ');}
-    if(chips)chips.innerHTML=feeds.map(f=>{const text=f.status==='fresh'?(f.age<1?'há menos de 1 h':`há ${br.format(f.age)} h`):f.status==='stale'?`atrasado · ${br.format(f.age)} h`:'indisponível';return `<span class="pv-feed-chip ${f.status}"><b>${f.label}</b><span>${text}</span></span>`;}).join('');
+    if(node){node.className=`pv-feed-state ${overall}`;node.textContent=overall==='fresh'?'Fontes atualizadas':overall==='stale'?'Há fonte desatualizada':'Há fonte indisponível';node.title=feeds.map(f=>`${f.label}: ${f.status==='fresh'?ageText(f.age):f.status==='stale'?`desatualizada · ${ageText(f.age)}`:'indisponível'}`).join(' · ');}
+    if(chips)chips.innerHTML=feeds.map(f=>{const text=f.status==='fresh'?ageText(f.age):f.status==='stale'?`desatualizada · ${ageText(f.age)}`:'indisponível';return `<span class="pv-feed-chip ${f.status}"><b>${f.label}</b><span>${text}</span></span>`;}).join('');
   }
   function rainFor(h){return state.mode==='rain'?(h.basin??h.rain):(null)}
   function renderKpis(){
