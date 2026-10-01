@@ -1272,10 +1272,144 @@ def validate_complete_feed(feed: dict[str, Any]) -> None:
                         f"mínimo exigido {required}."
                     )
 
-def _status_snapshot(feed: dict[str, Any]) -> dict[str, Any]:
-    """Small audit-friendly summary of the large station feed."""
+
+def _compact_station_status(
+    station: dict[str, Any], *, generated_at: datetime | None
+) -> dict[str, Any]:
+    """Return the lightweight per-station contract used by the public G040 map.
+
+    The large forecast arrays stay in the full basin forecast JSON. This
+    snapshot exposes only current forward accumulations plus observed-data
+    metadata so the browser can render all stations without the meteorological
+    cube on every refresh.
+    """
+
+    forecast = station.get("forecast") if isinstance(station.get("forecast"), dict) else {}
+    times = forecast.get("times") if isinstance(forecast.get("times"), list) else []
+    future_index = 0
+    if generated_at is not None and times:
+        future_index = next(
+            (
+                index
+                for index, raw_time in enumerate(times)
+                if (parsed := parse_iso(raw_time, default_timezone=UTC)) is not None
+                and parsed >= generated_at
+            ),
+            0,
+        )
+
+    model_summary: dict[str, Any] = {}
+    raw_models = forecast.get("models") if isinstance(forecast.get("models"), dict) else {}
+    for spec in MODEL_SPECS:
+        model_id = spec["id"]
+        model = raw_models.get(model_id)
+        windows_out: dict[str, float | None] = {}
+        if isinstance(model, dict):
+            windows = model.get("precipitation_windows")
+            windows = windows if isinstance(windows, dict) else {}
+            for hours in PRECIPITATION_WINDOW_HOURS:
+                series = windows.get(f"{hours}h")
+                value = (
+                    finite(series[future_index])
+                    if isinstance(series, list) and future_index < len(series)
+                    else None
+                )
+                windows_out[f"{hours}h"] = round(value, 3) if value is not None else None
+        else:
+            windows_out = {f"{hours}h": None for hours in PRECIPITATION_WINDOW_HOURS}
+        model_summary[model_id] = {
+            "available": isinstance(model, dict),
+            "precipitation_windows_mm": windows_out,
+        }
+
+    observed_rain = station.get("observed_rain")
+    observed_rain = observed_rain if isinstance(observed_rain, dict) else {}
+    level = station.get("level")
+    level = level if isinstance(level, dict) else {}
+
+    source_observations = []
+    for item in station.get("source_observations") or []:
+        if not isinstance(item, dict):
+            continue
+        source_observations.append(
+            {
+                key: item.get(key)
+                for key in (
+                    "source",
+                    "source_url",
+                    "updated_at_utc",
+                    "catalog_code",
+                    "metric",
+                    "value",
+                    "unit",
+                    "source_status",
+                )
+            }
+        )
+
+    observed_windows = {}
+    for key, value in (observed_rain.get("windows") or {}).items():
+        if isinstance(value, dict):
+            observed_windows[str(key)] = {
+                "mm": finite(value.get("mm")),
+                "valid_points": value.get("valid_points"),
+                "expected_points": value.get("expected_points"),
+                "coverage_ratio": finite(value.get("coverage_ratio")),
+                "complete": bool(value.get("complete")),
+            }
+
     return {
-        "schema_version": 1,
+        "id": station.get("id"),
+        "code": station.get("code"),
+        "name": station.get("name"),
+        "network": station.get("network"),
+        "latitude": finite(station.get("latitude")),
+        "longitude": finite(station.get("longitude")),
+        "type_label": station.get("type_label"),
+        "upg_label": station.get("upg_label"),
+        "drainage_area_km2": finite(station.get("drainage_area_km2")),
+        "operating": station.get("operating"),
+        "source_networks": list(station.get("source_networks") or []),
+        "source_roles": list(station.get("source_roles") or []),
+        "source_observations": source_observations,
+        "observed_rain": {
+            "state": observed_rain.get("state"),
+            "source": observed_rain.get("source"),
+            "unit": observed_rain.get("unit"),
+            "last_observed_at_utc": observed_rain.get("last_observed_at_utc"),
+            "observed_age_minutes": finite(observed_rain.get("observed_age_minutes")),
+            "windows": observed_windows,
+            "message": observed_rain.get("message"),
+        },
+        "level": {
+            "state": level.get("state"),
+            "current_cm": finite(level.get("current_cm")),
+            "observed_at_utc": level.get("observed_at_utc"),
+            "observed_age_minutes": finite(level.get("observed_age_minutes")),
+            "forecast_applicable": bool(level.get("forecast_applicable")),
+            "forecast_status": level.get("forecast_status"),
+            "forecast_cm": finite(level.get("forecast_cm")),
+            "forecast_at_utc": level.get("forecast_at_utc"),
+            "threshold_cm": finite(level.get("threshold_cm")),
+            "unit": level.get("unit"),
+            "forecasts": list(level.get("forecasts") or []),
+            "source": level.get("source"),
+            "quality": level.get("quality"),
+            "message": level.get("message"),
+        },
+        "forecast": {
+            "state": forecast.get("state"),
+            "fetched_at_utc": forecast.get("fetched_at_utc"),
+            "models": model_summary,
+        },
+    }
+
+
+def _status_snapshot(feed: dict[str, Any]) -> dict[str, Any]:
+    """Audit-friendly summary plus a lightweight per-station map contract."""
+    generated_at = parse_iso(feed.get("generated_at_utc"), default_timezone=UTC)
+    return {
+        "schema_version": 2,
         "feed_type": "basin_station_status",
         "generated_at_utc": feed.get("generated_at_utc"),
         "next_cycle_utc": feed.get("next_cycle_utc"),
@@ -1290,6 +1424,10 @@ def _status_snapshot(feed: dict[str, Any]) -> dict[str, Any]:
         "models": feed.get("models") or [],
         "metric_coverage": feed.get("metric_coverage") or {},
         "refresh_contract": feed.get("refresh_contract") or {},
+        "stations": [
+            _compact_station_status(station, generated_at=generated_at)
+            for station in feed.get("stations") or []
+        ],
     }
 
 
