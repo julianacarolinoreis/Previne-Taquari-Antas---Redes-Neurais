@@ -30,6 +30,7 @@ foreach ($name in $requiredRasters) {
 
 $trackedOutputs = @(
     "santa_tereza_previsao_inundacao.html",
+    "santa_tereza_inundacao.html",
     "assets/data/santa_tereza_inundacao/contornos_mancha.json",
     "assets/data/santa_tereza_inundacao/contornos_extravasamento.json",
     "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json"
@@ -70,6 +71,10 @@ Write-Host "2/6 Regenerando HAND + MDT LiDAR + agua conectada..." -ForegroundCol
 & python "codigo_python/02_mdt_hand_mancha/gerar_hand_lidar_santa_tereza.py"
 if ($LASTEXITCODE -ne 0) {
     throw "Gerador de Santa Tereza falhou. Nada sera publicado."
+}
+& python "codigo_python/01_previsao_ao_vivo/atualizar_hand_previsao_santa_tereza.py"
+if ($LASTEXITCODE -ne 0) {
+    throw "Falha ao sincronizar o HAND LiDAR da pagina ao vivo com a pagina historica."
 }
 
 Write-Host "3/6 Validando diagnostico..." -ForegroundColor Cyan
