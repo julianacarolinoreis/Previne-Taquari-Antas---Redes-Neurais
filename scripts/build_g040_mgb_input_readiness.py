@@ -15,6 +15,7 @@ ROOT=Path(__file__).resolve().parents[1]
 STACK=ROOT/"assets/data/g040_hydro_stack"
 BASE=ROOT/"assets/data/hec_hms_g040_full_basin"
 SRC=STACK/"project_source_inventory_latest.json"
+MET=STACK/"met_forcing_source_contract_latest.json"
 OBS=BASE/"whole_basin_observed_rain_latest.json"
 EVENTS=BASE/"whole_basin_historical_hydro_events_latest.json"
 OUT=STACK/"mgb_input_readiness_latest.json"
@@ -24,6 +25,7 @@ def load(p):
 
 def main():
     src=load(SRC)
+    met=load(MET)
     sources={x.get("id"):x for x in src.get("sources") or []}
     obs=load(OBS)
     events=load(EVENTS)
@@ -35,6 +37,7 @@ def main():
         "land_cover_candidate_available":bool(sources.get("mapbiomas_crosswalk")),
         "current_precipitation_available":str(obs.get("status","")).startswith("OBSERVED_RAIN_READY"),
         "historical_discharge_events_available":len(events.get("events") or [])>=6,
+        "historical_met_source_selected":bool((met.get("historical_hindcast") or {}).get("preferred_source")),
         "temperature_forcing_ready":False,
         "relative_humidity_forcing_ready":False,
         "wind_forcing_ready":False,
@@ -62,6 +65,8 @@ def main():
             "soil":"IBGE 2023 1:250k is a primary candidate; Embrapa 2011 is an independent but coarse reference",
             "land_cover":"MapBiomas exists; the alternate ~166-unit workbook must not be treated as the MGB or HEC145 discretization",
             "precipitation":"current G040 observed field can support contemporary replay once stable; historical forcing still needs event-period source audit",
+            "historical_meteorology":(met.get("historical_hindcast") or {}),
+            "near_real_time_station_candidates":(met.get("near_real_time_observation_candidates") or {}),
             "discharge":"six historical/live benchmark events exist, but station-specific QC remains mandatory",
         },
         "preprocessing_plan":[
