@@ -284,6 +284,7 @@
     }).join('');
   }
 
+
   function geoRings(data) {
     if (!data) return [];
     const geometries = data.type === 'FeatureCollection'
@@ -297,70 +298,260 @@
     });
     return rings.filter((ring) => Array.isArray(ring) && ring.length > 2);
   }
+
+  function networkStations() {
+    const rows = state.networkStatus && Array.isArray(state.networkStatus.stations) ? state.networkStatus.stations : [];
+    return rows.filter((item) => item && num(item.latitude) != null && num(item.longitude) != null);
+  }
+  function networkSourceObservations(item) {
+    return Array.isArray(item && item.source_observations) ? item.source_observations.filter((row) => row && typeof row === 'object') : [];
+  }
+  function networkLevelInfo(item) {
+    const level = item && item.level && typeof item.level === 'object' ? item.level : {};
+    const cm = num(level.current_cm);
+    const plausible = cm != null && cm >= 0 && cm <= 5000;
+    return { level, cm, plausible, metres: plausible ? cm / 100 : null };
+  }
+  function networkObservation(item) {
+    const dated = [];
+    let hasValue = false;
+    const levelInfo = networkLevelInfo(item);
+    if (levelInfo.cm != null && levelInfo.plausible) {
+      hasValue = true;
+      if (parseDate(levelInfo.level.observed_at_utc)) dated.push(levelInfo.level.observed_at_utc);
+    }
+    const rain = item && item.observed_rain && typeof item.observed_rain === 'object' ? item.observed_rain : {};
+    if (rain.state === 'available') {
+      hasValue = true;
+      if (parseDate(rain.last_observed_at_utc)) dated.push(rain.last_observed_at_utc);
+    }
+    networkSourceObservations(item).forEach((row) => {
+      const sourceOk = row.source_status == null || String(row.source_status) === '0';
+      if (num(row.value) == null || !sourceOk) return;
+      hasValue = true;
+      if (row.source !== 'CEMADEN' && parseDate(row.updated_at_utc)) dated.push(row.updated_at_utc);
+    });
+    if (!dated.length) return hasValue
+      ? { status: 'no-time', ageHours: null, latestAt: null, hasValue: true }
+      : { status: 'none', ageHours: null, latestAt: null, hasValue: false };
+    dated.sort((a, b) => (parseDate(b)?.getTime() || 0) - (parseDate(a)?.getTime() || 0));
+    const latestAt = dated[0];
+    const age = ageHours(latestAt);
+    if (age == null) return { status: 'no-time', ageHours: null, latestAt, hasValue: true };
+    if (age <= .5) return { status: 'current', ageHours: age, latestAt, hasValue: true };
+    if (age <= 1) return { status: 'attention', ageHours: age, latestAt, hasValue: true };
+    if (age <= 3) return { status: 'delayed', ageHours: age, latestAt, hasValue: true };
+    return { status: 'very-delayed', ageHours: age, latestAt, hasValue: true };
+  }
+  function networkStatusLabel(status) {
+    if (status === 'current') return 'ATUAL · ≤30 min';
+    if (status === 'attention') return 'ATENÇÃO · 30–60 min';
+    if (status === 'delayed') return 'ATRASADO · 1–3 h';
+    if (status === 'very-delayed') return 'MUITO ATRASADO · >3 h';
+    if (status === 'no-time') return 'OBSERVADO · SEM HORA INDIVIDUAL';
+    return 'SEM OBSERVADO';
+  }
+  function networkHasVariable(item, variable) {
+    if (variable === 'all') return true;
+    if (variable === 'level') {
+      if (networkLevelInfo(item).cm != null) return true;
+      return networkSourceObservations(item).some((row) => /nivel/i.test(String(row.metric || '')) && num(row.value) != null);
+    }
+    if (variable === 'rain') {
+      if (item.observed_rain && item.observed_rain.state === 'available') return true;
+      return networkSourceObservations(item).some((row) => /chuva/i.test(String(row.metric || '')) && num(row.value) != null);
+    }
+    if (variable === 'rna') return !!(item.level && item.level.forecast_applicable);
+    return true;
+  }
+  function networkMatchesFilter(item) {
+    const observed = networkObservation(item);
+    if (state.networkFilter === 'le1h' && !['current', 'attention'].includes(observed.status)) return false;
+    if (state.networkFilter === '1to3' && observed.status !== 'delayed') return false;
+    if (state.networkFilter === 'over3' && observed.status !== 'very-delayed') return false;
+    if (state.networkFilter === 'none' && observed.status !== 'none') return false;
+    if (state.networkSource !== 'all' && !(item.source_networks || []).includes(state.networkSource)) return false;
+    if (!networkHasVariable(item, state.networkVariable)) return false;
+    if (state.networkModel !== 'all') {
+      const model = item.forecast && item.forecast.models && item.forecast.models[state.networkModel];
+      if (!model || model.available !== true) return false;
+    }
+    return true;
+  }
+  function networkRainWindow(item, hours) {
+    const windows = item && item.observed_rain && item.observed_rain.windows ? item.observed_rain.windows : {};
+    return windows[String(hours) + 'h'] || {};
+  }
+  function networkCemadenRain(item) {
+    return networkSourceObservations(item).find((row) =>
+      row.source === 'CEMADEN' && row.metric === 'chuva_acumulada_24h_mm' &&
+      num(row.value) != null && (row.source_status == null || String(row.source_status) === '0')
+    ) || null;
+  }
+  function networkFlow(item) {
+    return networkSourceObservations(item).find((row) => /vazao|vazão/i.test(String(row.metric || '')) && num(row.value) != null) || null;
+  }
+  function networkModelLabel(modelId) {
+    const rows = state.networkStatus && Array.isArray(state.networkStatus.models) ? state.networkStatus.models : [];
+    const found = rows.find((row) => row.id === modelId);
+    return found && found.label ? found.label : modelId;
+  }
+
+  function renderNetworkSummary() {
+    const host = $('basin-network-summary');
+    const note = $('basin-network-note');
+    if (!host) return;
+    const status = state.networkStatus || {};
+    const scope = status.scope || {};
+    const rows = networkStations();
+    const total = num(scope.station_count) ?? rows.length;
+    const forecast = num(scope.forecast_station_count);
+    const observedAny = num(scope.observed_any_station_count);
+    const observedStates = rows.map(networkObservation);
+    const current = observedStates.filter((row) => row.status === 'current' || row.status === 'attention').length;
+    const delayed = observedStates.filter((row) => row.status === 'delayed' || row.status === 'very-delayed').length;
+    const noTime = observedStates.filter((row) => row.status === 'no-time').length;
+    const none = observedAny == null ? observedStates.filter((row) => row.status === 'none').length : Math.max(0, total - observedAny);
+    const ages = observedStates.map((row) => row.ageHours).filter((value) => value != null);
+    const maxAge = ages.length ? Math.max(...ages) : null;
+    const visible = rows.filter(networkMatchesFilter).length;
+    const items = [
+      ['G040', total == null ? '—' : fmt(total, 0), 'estações no catálogo'],
+      ['Previsto', forecast == null ? '—' : fmt(forecast, 0) + '/' + fmt(total, 0), status.coverage && status.coverage.forecast_complete ? 'rodada completa' : 'cobertura parcial'],
+      ['Algum observado', observedAny == null ? '—' : fmt(observedAny, 0) + '/' + fmt(total, 0), 'não implica tempo real'],
+      ['Atual ≤1 h', rows.length ? fmt(current, 0) : '—', 'com relógio individual'],
+      ['Atrasado >1 h', rows.length ? fmt(delayed, 0) : '—', 'com relógio individual'],
+      ['Sem observado', total == null ? '—' : fmt(none, 0), 'catálogo/previsão apenas']
+    ];
+    host.innerHTML = '<div class="network-summary-grid">' + items.map((row) =>
+      '<div class="network-summary-card"><span>' + esc(row[0]) + '</span><strong>' + esc(row[1]) + '</strong><small>' + esc(row[2]) + '</small></div>'
+    ).join('') + '</div><p class="network-summary-note">' +
+      (rows.length ? fmt(visible, 0) + ' pontos visíveis no filtro · ' + (noTime ? fmt(noTime, 0) + ' com observado sem hora individual · ' : '') + (maxAge != null ? 'maior idade com relógio ' + ageLabel(maxAge) + ' · ' : '') : 'Resumo geral disponível; snapshot por estação ainda em atualização · ') +
+      (status.generated_at_utc ? 'snapshot ' + when(status.generated_at_utc) + ' BRT' : 'snapshot sem horário') + '.</p>';
+    if (note) note.textContent = rows.length ? fmt(visible, 0) + ' de ' + fmt(total, 0) + ' estações visíveis · cor = idade do observado' : 'aguardando snapshot compacto por estação';
+  }
+
+  function renderNetworkStationDetail() {
+    const host = $('basin-station-detail');
+    if (!host) return;
+    const rows = networkStations();
+    if (!rows.length) {
+      host.innerHTML = '<div class="loading-block">O resumo da G040 está disponível; o snapshot compacto por estação ainda está sendo publicado.</div>';
+      return;
+    }
+    let item = rows.find((row) => String(row.id) === String(state.selectedNetworkStationId));
+    if (!item) item = rows.find((row) => String(row.code) === '86472600') || rows[0];
+    state.selectedNetworkStationId = item.id;
+    const observed = networkObservation(item);
+    const levelInfo = networkLevelInfo(item);
+    const level = levelInfo.level;
+    const flow = networkFlow(item);
+    const rain = item.observed_rain || {};
+    const cemaden = networkCemadenRain(item);
+    const sources = (item.source_networks || []).join(' · ') || item.network || 'fonte não informada';
+    const levelValue = levelInfo.cm == null ? '—' : levelInfo.plausible ? fmt(levelInfo.metres, 2) + ' m' : 'não exibido';
+    const levelNote = levelInfo.cm == null ? 'nível observado indisponível' :
+      levelInfo.plausible ? fmt(levelInfo.cm, 0) + ' cm · ' + (level.observed_at_utc ? when(level.observed_at_utc) + ' BRT' : 'sem horário') :
+      'valor recebido ' + fmt(levelInfo.cm / 100, 2) + ' m classificado como cota/escala incompatível; não exibido como nível do rio';
+    const flowValue = flow ? fmt(flow.value, 2) + ' ' + (flow.unit || 'm³/s') : '—';
+    const flowNote = flow ? (flow.source || 'fonte') + ' · ' + (flow.updated_at_utc ? when(flow.updated_at_utc) + ' BRT' : 'sem horário') : 'vazão não publicada neste feed';
+    const lastObserved = observed.status === 'none' ? 'nenhuma observação válida' : observed.status === 'no-time' ? 'observação sem hora individual' : when(observed.latestAt) + ' BRT · ' + ageLabel(observed.ageHours);
+    const rainHtml = [1,3,6,12,24,48,72].map((hours) => {
+      const row = networkRainWindow(item, hours);
+      const mm = num(row.mm);
+      const cov = num(row.coverage_ratio);
+      const small = mm == null ? 'indisponível' : row.complete ? 'janela completa' : fmt((cov || 0) * 100, 0) + '% da janela';
+      return '<div class="network-rain-cell"><span>' + hours + ' h</span><strong>' + (mm == null ? '—' : fmt(mm, 1) + ' mm') + '</strong><small>' + esc(small) + '</small></div>';
+    }).join('');
+    const modelHtml = Object.entries(item.forecast && item.forecast.models || {}).map(([modelId, model]) => {
+      const windows = model && model.precipitation_windows_mm || {};
+      const h24 = num(windows['24h']);
+      const h72 = num(windows['72h']);
+      return '<div class="network-model-row"><strong>' + esc(networkModelLabel(modelId)) + '</strong><span>' + (model && model.available ? 'disponível' : 'indisponível') + '</span><small>+24 h ' + (h24 == null ? '—' : fmt(h24, 1) + ' mm') + ' · +72 h ' + (h72 == null ? '—' : fmt(h72, 1) + ' mm') + '</small></div>';
+    }).join('');
+    let rnaRows = Array.isArray(level.forecasts) ? level.forecasts.slice() : [];
+    if (!rnaRows.length && num(level.forecast_cm) != null) rnaRows = [{ label: 'RNA', cm: level.forecast_cm, time: level.forecast_at_utc }];
+    const rnaHtml = level.forecast_applicable
+      ? (rnaRows.length ? '<div class="network-rna-grid">' + rnaRows.map((row) =>
+          '<div><span>' + esc(row.label || row.id || 'RNA') + '</span><strong>' + (num(row.cm) == null ? '—' : fmt(num(row.cm) / 100, 2) + ' m') + '</strong><small>' + (row.time ? when(row.time) + ' BRT' : 'horário não publicado') + '</small></div>'
+        ).join('') + '</div>' : '<p class="network-detail-empty">RNA aplicável, mas sem previsão futura válida nesta rodada.</p>')
+      : '<p class="network-detail-empty">RNA de nível não publicada para esta estação. A previsão meteorológica continua independente.</p>';
+    const cemadenHtml = cemaden ? '<div class="network-cemaden-note"><strong>CEMADEN 24 h:</strong> ' + fmt(cemaden.value, 1) + ' mm <span>· horário é da atualização do painel, não do relógio individual do sensor' + (cemaden.updated_at_utc ? ' · painel ' + when(cemaden.updated_at_utc) + ' BRT' : '') + '</span></div>' : '';
+    host.innerHTML =
+      '<article class="network-detail-card"><div class="network-detail-head"><div><span class="network-detail-kicker">' + esc(item.upg_label || 'G040') + '</span><h4>' + esc(item.name || 'Estação') + ' <small>' + esc(item.code || '') + '</small></h4><p>' + esc(sources) + (item.type_label ? ' · ' + esc(item.type_label) : '') + '</p></div><span class="network-status-pill ' + esc(observed.status) + '">' + esc(networkStatusLabel(observed.status)) + '</span></div>' +
+      '<div class="network-detail-primary"><div><span>NÍVEL OBSERVADO</span><strong>' + levelValue + '</strong><small>' + esc(levelNote) + '</small></div><div><span>VAZÃO OBSERVADA</span><strong>' + flowValue + '</strong><small>' + esc(flowNote) + '</small></div><div><span>ÚLTIMA EVIDÊNCIA OBSERVADA</span><strong>' + (observed.status === 'none' ? '—' : observed.status === 'no-time' ? 'sem hora individual' : ageLabel(observed.ageHours)) + '</strong><small>' + esc(lastObserved) + '</small></div></div>' +
+      '<div class="network-detail-section"><div class="network-detail-title"><strong>CHUVA OBSERVADA</strong><span>' + (rain.state === 'available' ? esc(rain.source || 'série horária') : 'série horária indisponível') + '</span></div><div class="network-rain-grid">' + rainHtml + '</div>' + cemadenHtml + '</div>' +
+      '<div class="network-detail-split"><div class="network-detail-section"><div class="network-detail-title"><strong>PREVISÃO METEOROLÓGICA</strong><span>separada do observado</span></div><div class="network-model-grid">' + (modelHtml || '<p class="network-detail-empty">Sem resumo de modelos.</p>') + '</div></div><div class="network-detail-section"><div class="network-detail-title"><strong>RNA DE NÍVEL</strong><span>' + (level.forecast_applicable ? 'modelo específico da estação' : 'não aplicável') + '</span></div>' + rnaHtml + '</div></div></article>';
+  }
+
   function renderBasinMap() {
     const host = $('basin-map');
     if (!host) return;
+    renderNetworkSummary();
     const rings = geoRings(state.basinGeometry);
+    const all = networkStations();
     if (!rings.length) {
-      host.innerHTML = '<div class="empty-block">Limite da bacia indisponível.</div>';
+      host.innerHTML = '<div class="empty-block">Limite da G040 indisponível.</div>';
+      renderNetworkStationDetail();
+      return;
+    }
+    if (!all.length) {
+      host.innerHTML = '<div class="empty-block">Limite da G040 carregado; snapshot compacto por estação ainda em atualização.</div>';
+      renderNetworkStationDetail();
       return;
     }
     const coords = rings.flat();
     const lons = coords.map((p) => Number(p[0])).filter(Number.isFinite);
     const lats = coords.map((p) => Number(p[1])).filter(Number.isFinite);
-    if (!lons.length || !lats.length) {
-      host.innerHTML = '<div class="empty-block">Geometria da bacia sem coordenadas utilizáveis.</div>';
-      return;
-    }
-    let minLat = Infinity, maxLat = -Infinity;
-    lats.forEach((lat) => { if (lat < minLat) minLat = lat; if (lat > maxLat) maxLat = lat; });
-    const meanLat = (minLat + maxLat) / 2;
-    const cosLat = Math.cos(meanLat * Math.PI / 180);
-    let minX = Infinity, maxX = -Infinity;
-    lons.forEach((lon) => { const x = lon * cosLat; if (x < minX) minX = x; if (x > maxX) maxX = x; });
-    const minY = minLat, maxY = maxLat;
-    const width = 720, height = 390, pad = 24;
-    const project = (lon, lat) => {
-      const x = pad + ((lon * cosLat - minX) / Math.max(.000001, maxX - minX)) * (width - pad * 2);
-      const y = pad + ((maxY - lat) / Math.max(.000001, maxY - minY)) * (height - pad * 2);
-      return [x, y];
-    };
+    let minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const cosLat = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
+    const xs = lons.map((lon) => lon * cosLat);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const width = 760, height = 430, pad = 26;
+    const project = (lon, lat) => [
+      pad + ((lon * cosLat - minX) / Math.max(.000001, maxX - minX)) * (width - pad * 2),
+      pad + ((maxLat - lat) / Math.max(.000001, maxLat - minLat)) * (height - pad * 2)
+    ];
     const paths = rings.map((ring) => {
       const step = Math.max(1, Math.ceil(ring.length / 1200));
       const pts = ring.filter((_, i) => i % step === 0 || i === ring.length - 1).map((p) => project(Number(p[0]), Number(p[1])));
-      return pts.length ? 'M' + pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('L') + 'Z' : '';
-    }).filter(Boolean).map((d) => `<path class="basin-shape" d="${d}"></path>`).join('');
-
-    const targets = ['santa', 'mucum'].map((key) => {
-      const weather = stationFeed(key).weather || {};
-      const point = weather.coordinates || {};
-      const lat = num(point.latitude), lon = num(point.longitude);
-      if (lat == null || lon == null) return null;
-      return { key, name: stations[key].label, code: stations[key].code, lat, lon, level: stationSnapshot(key).level };
-    }).filter(Boolean);
-    const targetCodes = new Set(targets.map((p) => p.code));
-    const upstream = [];
-    ['santa', 'mucum'].forEach((key) => {
-      const rows = Array.isArray(stationFeed(key).live && stationFeed(key).live.estacoes_status) ? stationFeed(key).live.estacoes_status : [];
-      rows.forEach((row) => {
-        const lat = num(row.latitude), lon = num(row.longitude), code = String(row.estacao || '');
-        if (lat == null || lon == null || targetCodes.has(code)) return;
-        if (upstream.some((p) => p.code === code)) return;
-        upstream.push({ code, name: row.nome || code, lat, lon, level: num(row.ultima_hora_modelo_nivel_cm) });
+      return pts.length ? 'M' + pts.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L') + 'Z' : '';
+    }).filter(Boolean).map((d) => '<path class="basin-shape" d="' + d + '"></path>').join('');
+    const visible = all.filter(networkMatchesFilter);
+    let selected = visible.find((item) => String(item.id) === String(state.selectedNetworkStationId));
+    if (!state.selectedNetworkStationId) {
+      selected = visible.find((item) => String(item.code) === '86472600') || visible[0] || null;
+      if (selected) state.selectedNetworkStationId = selected.id;
+    }
+    const ordered = visible.slice().sort((a, b) => (String(a.id) === String(state.selectedNetworkStationId) ? 1 : 0) - (String(b.id) === String(state.selectedNetworkStationId) ? 1 : 0));
+    const points = ordered.map((item) => {
+      const xy = project(Number(item.longitude), Number(item.latitude));
+      const observed = networkObservation(item);
+      const isSelected = String(item.id) === String(state.selectedNetworkStationId);
+      const cls = state.networkMode === 'catalog' ? 'is-catalog' : 'is-' + observed.status;
+      const title = (item.name || 'Estação') + ' · ' + (item.code || '') + ' · ' + networkStatusLabel(observed.status) + ' · ' + ((item.source_networks || []).join('/') || item.network || 'fonte não informada');
+      return '<circle class="network-point ' + cls + (isSelected ? ' is-selected' : '') + '" data-network-id="' + esc(item.id || item.code || '') + '" cx="' + xy[0].toFixed(1) + '" cy="' + xy[1].toFixed(1) + '" r="' + (isSelected ? '5.7' : '3.25') + '" tabindex="0" role="button" aria-label="' + esc(title) + '"><title>' + esc(title) + '</title></circle>';
+    }).join('');
+    let label = '';
+    if (selected) {
+      const xy = project(Number(selected.longitude), Number(selected.latitude));
+      const anchor = xy[0] > width * .72 ? 'end' : 'start';
+      const dx = anchor === 'end' ? -9 : 9;
+      label = '<text class="map-label" x="' + (xy[0] + dx).toFixed(1) + '" y="' + (xy[1] - 8).toFixed(1) + '" text-anchor="' + anchor + '">' + esc(selected.name || selected.code) + '</text>';
+    }
+    host.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Rede hidrometeorológica da G040 com ' + visible.length + ' estações visíveis de ' + all.length + '">' + paths + points + label + '</svg>' +
+      '<div class="basin-map-legend"><span><i class="health-current"></i>≤30 min</span><span><i class="health-attention"></i>30–60 min</span><span><i class="health-delayed"></i>1–3 h</span><span><i class="health-very-delayed"></i>&gt;3 h</span><span><i class="health-no-time"></i>observado sem hora individual</span><span><i class="health-none"></i>sem observado</span></div>';
+    host.querySelectorAll('[data-network-id]').forEach((point) => {
+      const activate = () => {
+        state.selectedNetworkStationId = point.getAttribute('data-network-id');
+        renderBasinMap();
+      };
+      point.addEventListener('click', activate);
+      point.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(); }
       });
     });
-    const upstreamSvg = upstream.map((p) => {
-      const [x, y] = project(p.lon, p.lat);
-      const title = `${p.name} · ${p.level == null ? 'nível não publicado' : fmt(p.level, 0) + ' cm'}`;
-      return `<circle class="upstream-point" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.2"><title>${esc(title)}</title></circle>`;
-    }).join('');
-    const targetSvg = targets.map((p) => {
-      const [x, y] = project(p.lon, p.lat);
-      const anchor = p.key === 'mucum' ? 'end' : 'start';
-      const dx = p.key === 'mucum' ? -9 : 9;
-      return `<g><circle class="target-point ${p.key}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6.5"><title>${esc(p.name)} · ${p.level == null ? 'nível —' : fmt(p.level, 0) + ' cm'}</title></circle><text class="map-label" x="${(x + dx).toFixed(1)}" y="${(y - 9).toFixed(1)}" text-anchor="${anchor}">${esc(p.name)}</text></g>`;
-    }).join('');
-    host.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Limite de referência da bacia Taquari–Antas, estações alvo e pontos a montante com coordenadas publicadas">${paths}${upstreamSvg}${targetSvg}</svg><div class="basin-map-legend"><span><i class="santa"></i>Santa Tereza</span><span><i class="mucum"></i>Muçum</span><span><i></i>montante com coordenadas no feed</span></div>`;
+    renderNetworkStationDetail();
   }
   function renderNowOverview() {
     renderNowStations();
