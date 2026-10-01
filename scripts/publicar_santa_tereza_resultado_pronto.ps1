@@ -54,8 +54,8 @@ if ([double]$d.drained_fraction -lt 0.90) {
 if ($d.terrain_modified_by_water_filter -ne $false) {
     throw "O filtro de agua alterou o MDT. Publicacao bloqueada."
 }
-if ($d.water_connectivity_filter -notmatch "connected-to-main-river") {
-    throw "Filtro de conectividade da agua nao confirmado."
+if (([string]$d.water_connectivity_filter -notmatch "main-river") -or ([string]$d.water_connectivity_filter -notmatch "raw LiDAR")) {
+    throw "Filtro de conectividade da agua nao confirmou D8/barreira no LiDAR bruto ate o rio principal."
 }
 if ([int]$d.contornos_features -lt 251) {
     throw "Contornos insuficientes: $($d.contornos_features). Regere o HAND ate 25 m antes de publicar."
@@ -79,8 +79,8 @@ if ($page -match "altitude_terreno_10m_refinado\.json|mdt_santa_tereza_10m_refin
 if ($page -notmatch "value===255\?null:value") {
     throw "Contrato NoData 255 ausente."
 }
-if ($page -notmatch "contornos_mancha\.json") {
-    throw "A pagina nao usa a mancha total HAND."
+if ($page -notmatch "CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_extravasamento\.json'") {
+    throw "A pagina ao vivo nao usa o contorno de extravasamento derivado do HAND LiDAR."
 }
 if ($page -notmatch "stageToSpatialHand\(cm,zeroCm=HAND_ZERO_DEFAULT_CM\)") {
     throw "A pagina nao confirmou a espacializacao pelo zero de 1,60 m."
