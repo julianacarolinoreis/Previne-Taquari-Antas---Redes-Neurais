@@ -131,15 +131,30 @@
     }
     const h168=hs.find(h=>h.hours===168)||hs[hs.length-1];
     const latestProb=(state.probability?.rows||[]).find(x=>x.hours===168);
-    const probFresh=state.probability&&ageHours(state.probability.generated)<=36;
-    const probLabel=latestProb&&probFresh?`${pct.format(latestProb.prob)}%*`:'UNKNOWN/STALE';
-    const probNote=latestProb&&probFresh?`score experimental · ${state.probability?.calibrated?'calibração de pesquisa':'não calibrado'} · não é chance real`:'feed antigo ou sem valor atual';
+    const probAge=state.probability?ageHours(state.probability.generated):Infinity;
+    const probFresh=Number.isFinite(probAge)&&probAge<=36;
+    const probValue=latestProb?Number(latestProb.prob):NaN;
+    const probUsable=probFresh&&Number.isFinite(probValue);
+    let probLabel,probNote;
+    if(probUsable){
+      probLabel=`${pct.format(probValue)}%*`;
+      probNote=`score experimental · ${state.probability?.calibrated?'calibração de pesquisa':'não calibrado'} · não é chance real`;
+    }else if(state.probability&&!probFresh){
+      probLabel='DADO DESATUALIZADO';
+      probNote=`STALE · rodada com ${Number.isFinite(probAge)?br.format(probAge)+' h':'idade desconhecida'} · score antigo ocultado`;
+    }else if(state.probability&&probFresh&&!Number.isFinite(probValue)){
+      probLabel='SEM SCORE +168 H';
+      probNote='rodada atual sem valor válido para este horizonte';
+    }else{
+      probLabel='SEM SCORE ATUAL';
+      probNote='feed experimental indisponível no momento';
+    }
     setHtml('#pv-kpis',[
       ['Rio agora',cm(obs.level??now?.now),obs.stale?'leitura atrasada':'observado · fonte mais recente'],
       ['Chuva prevista · +24 h',mm(h24?.basin??h24?.rain),station==='mucum'?'ECMWF IFS no ponto':'ECMWF IFS no recorte'],
       ['Chuva prevista · +72 h',mm(h72?.basin??h72?.rain),station==='mucum'?'ponto de Muçum':'média espacial do recorte'],
       ['Score experimental · +168 h',probLabel,probNote]
-    ].map((x,i)=>`<article class="pv-kpi"><span class="pv-kpi-label">${x[0]}</span><strong class="pv-kpi-value ${i===3?(probFresh?'warn':'unknown'):i===0?'good':''}">${x[1]}</strong><span class="pv-kpi-note">${x[2]}</span></article>`).join(''));
+    ].map((x,i)=>`<article class="pv-kpi"><span class="pv-kpi-label">${x[0]}</span><strong class="pv-kpi-value ${i===3?(probUsable?'warn':'unknown'):i===0?'good':''}">${x[1]}</strong><span class="pv-kpi-note ${i===3&&!probUsable?'quality-note':''}">${x[2]}</span></article>`).join(''));
   }
   function renderBars(){
     const w=state.weather, hs=w?.horizons||[], node=el('#pv-bars');
