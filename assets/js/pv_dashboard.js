@@ -8,7 +8,17 @@
   const threshold=Number(root.dataset.threshold||0);
   const br=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   const pct=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
-  const state={weather:null,basin:null,probability:null,live:null,mode:'rain',loadedAt:null,loading:false};
+  const mobileFirst=window.matchMedia&&window.matchMedia('(max-width: 640px)').matches;
+  const state={weather:null,basin:null,probability:null,live:null,mode:mobileFirst?'river':'rain',loadedAt:null,loading:false};
+  if(mobileFirst){
+    root.classList.add('pv-mode-river');
+    root.querySelectorAll('[data-pv-mode]').forEach(b=>{
+      const active=b.dataset.pvMode==='river';
+      b.classList.toggle('active',active);
+      b.setAttribute('aria-selected',active?'true':'false');
+      b.setAttribute('aria-pressed',active?'true':'false');
+    });
+  }
   const el=(sel)=>qs(sel);
   const safeNum=v=>v==null||!Number.isFinite(Number(v))?null:Number(v);
   const parseFeedDate=v=>{
@@ -142,7 +152,7 @@
       probNote=`score experimental · ${state.probability?.calibrated?'calibração de pesquisa':'não calibrado'} · não é chance real`;
     }else if(state.probability&&!probFresh){
       probLabel='DADO DESATUALIZADO';
-      probNote=`STALE · rodada com ${Number.isFinite(probAge)?br.format(probAge)+' h':'idade desconhecida'} · score antigo ocultado`;
+      probNote=`fonte desatualizada · ${Number.isFinite(probAge)?(probAge>=48?br.format(probAge/24)+' dias':br.format(probAge)+' h'):'idade desconhecida'} · score antigo ocultado`;
     }else if(state.probability&&probFresh&&!Number.isFinite(probValue)){
       probLabel='SEM SCORE +168 H';
       probNote='rodada atual sem valor válido para este horizonte';
