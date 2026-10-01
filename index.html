@@ -763,6 +763,7 @@
             <button class="station-filter" type="button" aria-pressed="false" data-filter="flow">Tipo: nível</button>
             <button class="station-filter" type="button" aria-pressed="false" data-filter="rain">Tipo: chuva</button>
             <button class="station-filter" type="button" aria-pressed="false" data-filter="observed-any">Algum observado</button>
+            <button class="station-filter" type="button" aria-pressed="false" data-filter="observed-missing">Sem observado atual</button>
           </div>
         </div>
         <div class="stations" id="stations"></div>
@@ -1842,6 +1843,7 @@
     if(BASIN_FILTER==='observed'&&!basinHasObservedRain(st))return false;
     if(BASIN_FILTER==='level'&&!(st.level&&['available','partial'].includes(st.level.state)))return false;
     if(BASIN_FILTER==='observed-any'&&!basinHasAnyObserved(st))return false;
+    if(BASIN_FILTER==='observed-missing'&&basinHasAnyObserved(st))return false;
     if(!BASIN_QUERY)return true;
     const text=basinFold([st.name,st.code,st.network,st.source_networks,st.source_roles,st.type_label,st.upg_label,st.upgs,st.papel].join(' '));
     return text.includes(basinFold(BASIN_QUERY));
