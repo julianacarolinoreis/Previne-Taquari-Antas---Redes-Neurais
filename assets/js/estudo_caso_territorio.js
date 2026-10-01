@@ -1053,16 +1053,23 @@
     var d = (bundle && bundle.rna) || {};
     var now = d.nivel_rio_agora_cm != null ? d.nivel_rio_agora_cm : d.nivel_atual_cm;
     rnaEl.textContent = fmtCm(now);
-    if (handEl) handEl.textContent = 'HAND ' + state.level + ' m';
+    var hist = historicalSpatialEvent(bundle);
+    if (handEl) handEl.textContent = hist
+      ? ('HAND histórico ' + Number(hist.contour_level_m).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' m')
+      : ('HAND ' + state.level + ' m');
     var meta = bundle && bundle.rota && bundle.rota.meta;
     if (rotaEl) {
-      if (meta && meta.nivel_projeto_m != null) {
+      if (hist) {
+        rotaEl.textContent = 'rota operacional não inferida';
+      } else if (meta && meta.nivel_projeto_m != null) {
         rotaEl.textContent = 'rota @ HAND ' + meta.nivel_projeto_m + ' m';
       } else {
         rotaEl.textContent = 'rota = cenário fixo';
       }
     }
-    if (convEl) convEl.textContent = 'sem conversão';
+    if (convEl) convEl.textContent = hist
+      ? 'régua → HAND: −1,60 m (campo)'
+      : 'sem conversão automática';
   }
 
   function drawRota(bundle, lat, lon, opts) {
@@ -1393,7 +1400,7 @@
     return rainForComparison(caso, 24);
   }
 
-  function renderComparisonBars(cases) {
+  function renderComparisonBars(cases, bundle) {
     var host = $('comparison-bars');
     if (!host) return;
     function group(title, unit, getter) {
@@ -1409,10 +1416,18 @@
             '<span class="bar-value">' + (n == null ? '—' : esc(fmtOne(n, unit === 'cm/h' ? '' : ''))) + '</span></div>';
         }).join('') + '</div>';
     }
+    function spatialMetric(caso, key) {
+      var hs = bundle && bundle.historicalSpatial;
+      var e = hs && (hs.events || []).find(function (x) { return x.case_id === caso.id; });
+      return e && e.scenario ? e.scenario[key] : null;
+    }
     host.innerHTML =
       group('Pico observado no replay', 'cm', function (c) { return c.rna && c.rna.peak && c.rna.peak.observed_cm; }) +
       group('Maior subida horária na série', 'cm/h', function (c) { return c.dynamics && c.dynamics.max_hourly_rise_cm_h; }) +
-      group('Chuva antecedente 24 h', 'mm', function (c) { return rain24ForComparison(c).value; });
+      group('Chuva antecedente 24 h', 'mm', function (c) { return rain24ForComparison(c).value; }) +
+      group('Área reconstruída LiDAR/HAND', 'ha', function (c) { return spatialMetric(c, 'contour_area_ha'); }) +
+      group('População proxy por área', 'pessoas', function (c) { return spatialMetric(c, 'population_area_weighted_proxy'); }) +
+      group('Segmentos OSM tocados', 'trechos', function (c) { return spatialMetric(c, 'road_centerline_edges_touched'); });
   }
 
   function comparisonEvidence(caso) {
@@ -1597,13 +1612,31 @@
         '</article>';
       }).join('');
     }
-    renderComparisonBars(cases);
+    renderComparisonBars(cases, bundle);
     renderSpatialComparison(cases, bundle);
     renderComparisonTable(cases, bundle);
     var findings = $('comparison-findings');
     var notes = state.casesDoc.comparative_analysis.interpretation_notes || [];
     if (findings) {
-      findings.innerHTML = notes.map(function (n, i) {
+      var renderedNotes = notes.slice();
+      var hs = bundle && bundle.historicalSpatial;
+      if (hs && Array.isArray(hs.events)) {
+        var byId = {};
+        hs.events.forEach(function (e) { byId[e.case_id] = e; });
+        var sep = byId['st-e4-set2023'], nov = byId['st-e6-nov2023'], may = byId['st-e9-mai2024'];
+        if (sep && nov && may) {
+          renderedNotes.push(
+            'Diferença espacial na mesma base LiDAR/HAND: setembro cobre ' +
+            fmtOne(sep.scenario.contour_area_ha - nov.scenario.contour_area_ha, ' ha') +
+            ' a mais que novembro e ' +
+            fmtOne(sep.scenario.contour_area_ha - may.scenario.contour_area_ha, ' ha') +
+            ' a mais que maio; maio cobre ' +
+            fmtOne(may.scenario.contour_area_ha - nov.scenario.contour_area_ha, ' ha') +
+            ' a mais que novembro.'
+          );
+        }
+      }
+      findings.innerHTML = renderedNotes.map(function (n, i) {
         return '<div class="finding-card"><strong>' + (i + 1) + '.</strong> ' + esc(n) + '</div>';
       }).join('');
     }
