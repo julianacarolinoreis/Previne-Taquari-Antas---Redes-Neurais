@@ -1,0 +1,128 @@
+{
+  "schema_version": "g040_met_forcing_source_contract_v1",
+  "generated_at_utc": "2026-10-01T13:50:00Z",
+  "research_only": true,
+  "historical_hindcast": {
+    "preferred_source": "ERA5-Land hourly",
+    "purpose": [
+      "continuous warm-up",
+      "SMA historical PET",
+      "MGB meteorological preprocessing",
+      "independent soil-moisture state diagnostic"
+    ],
+    "variables": [
+      "potential evaporation",
+      "2m temperature",
+      "2m dewpoint temperature",
+      "surface pressure",
+      "10m u-component of wind",
+      "10m v-component of wind",
+      "surface solar radiation downwards",
+      "volumetric soil water layers 1-4"
+    ],
+    "operational_role": false,
+    "note": "Use official CDS retrieval with timestamp/version provenance; do not extrapolate stale reanalysis into forecast time."
+  },
+  "near_real_time_observation_candidates": {
+    "source": "INMET station network documented in project Drive; data availability must be checked per station/hour",
+    "station_candidates": [
+      {
+        "code": "A840",
+        "name": "Bento Gonçalves"
+      },
+      {
+        "code": "A897",
+        "name": "Cambará do Sul"
+      },
+      {
+        "code": "A879",
+        "name": "Canela"
+      },
+      {
+        "code": "B818",
+        "name": "Caxias do Sul Aeroporto"
+      },
+      {
+        "code": "B817",
+        "name": "Caxias do Sul Criúva"
+      },
+      {
+        "code": "A883",
+        "name": "Ibirubá"
+      },
+      {
+        "code": "A844",
+        "name": "Lagoa Vermelha"
+      },
+      {
+        "code": "B814",
+        "name": "Montenegro"
+      },
+      {
+        "code": "A839",
+        "name": "Passo Fundo"
+      },
+      {
+        "code": "A813",
+        "name": "Rio Pardo"
+      },
+      {
+        "code": "B820",
+        "name": "São Francisco de Paula"
+      },
+      {
+        "code": "A829",
+        "name": "São José dos Ausentes"
+      },
+      {
+        "code": "A894",
+        "name": "Serafina Corrêa"
+      },
+      {
+        "code": "A837",
+        "name": "Soledade"
+      },
+      {
+        "code": "A880",
+        "name": "Vacaria"
+      }
+    ],
+    "variables_documented": [
+      "hourly total precipitation",
+      "station pressure",
+      "sea-level pressure",
+      "global radiation",
+      "dry-bulb air temperature",
+      "dew-point temperature",
+      "hourly max/min air temperature",
+      "relative humidity"
+    ],
+    "coverage_document_window": {
+      "start": "2010-01-01",
+      "end": "2025-11-25"
+    },
+    "readiness": "CANDIDATE_ONLY_NOT_AUDITED_FOR_CURRENT_COMPLETENESS"
+  },
+  "forecast_candidates": {
+    "atmospheric_source": "ECMWF/IFS with explicit cycle/member provenance when available",
+    "pet_methods": [
+      "external Penman-Monteith",
+      "Priestley-Taylor",
+      "Hargreaves fallback only if justified"
+    ],
+    "rule": "Forecast PET method must be replayed with the same data semantics before pseudo-operational use."
+  },
+  "gates": {
+    "historical_source_selected": true,
+    "official_historical_data_materialized": false,
+    "current_inmet_station_completeness_audited": false,
+    "near_real_time_pet_pipeline_ready": false,
+    "forecast_pet_pipeline_ready": false
+  },
+  "prohibited": [
+    "implicit zero PET in continuous SMA",
+    "forward-fill stale ET/PET as forecast",
+    "assume every listed INMET station reports every variable every hour",
+    "mix ERA5-Land potential evaporation and a different live PET method without overlap/replay evaluation"
+  ]
+}
