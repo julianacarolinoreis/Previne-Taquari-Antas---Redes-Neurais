@@ -33,6 +33,8 @@ class E1ContractTests(unittest.TestCase):
         g=m.build_gage(start,end,active,used)
         self.assertIn("Gage: Q_86472000",g)
         self.assertIn("Gage: Q_86500000",g)
+        self.assertIn("/G040/86472000/FLOW/01Sep2026/1Hour/FORECAST/",g)
+        self.assertNotIn("/G040/86472000/FLOW/01Sep2026/1Hour/OBS/",g)
 
     def test_preflight_rejects_missing_primary_gage(self):
         start=m.utc("2026-09-28T00:00:00Z")
@@ -47,6 +49,12 @@ class E1ContractTests(unittest.TestCase):
         ])
         with self.assertRaises(RuntimeError):
             m.validate_project_contract(g,met,basin,active,used)
+
+    def test_jython_writer_has_exact_dss_readback_preflight(self):
+        src=MOD.read_text(encoding="utf-8")
+        self.assertIn("DSS_PREFLIGHT|%s|%d",src)
+        self.assertIn('1Hour/FORECAST/',src)
+        self.assertIn('raise RuntimeError("DSS preflight failed',src)
 
 if __name__=="__main__":
     unittest.main()

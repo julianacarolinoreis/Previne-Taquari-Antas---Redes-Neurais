@@ -29,6 +29,14 @@ class Stage2MasterTests(unittest.TestCase):
         self.assertFalse(payload["gates"]["native_hec145"]["pass"])
         self.assertFalse(payload["gates"]["sma_branch_parameters"]["pass"])
         self.assertFalse(payload["gates"]["sma_145_transfer"]["pass"])
+        self.assertTrue(payload["gates"]["dynamic_boundary_mass_balance"]["pass"])
+        self.assertTrue(payload["gates"]["rain_support"]["pass"])
+        self.assertTrue(payload["gates"]["observed_full_grid"]["pass"])
+        self.assertTrue(payload["gates"]["ifs_full_grid"]["pass"])
+        self.assertTrue(payload["gates"]["merged_rain"]["pass"])
+        # Exact ECMWF cycle provenance is still intentionally unavailable,
+        # so operational promotion must remain blocked despite research forcing readiness.
+        self.assertFalse(payload["gates"]["merged_rain"]["detail"]["operational_promotion_allowed"])
 
     def test_benchmark_is_fixed_before_results(self):
         bench=json.loads((ROOT/"assets/data/g040_hydro_stack/benchmark_matrix_latest.json").read_text(encoding="utf-8"))
