@@ -394,6 +394,9 @@ const dualBoundary=rr.status==="hec_hms_4_13_dual_boundary_validated";
 const hecSpatial=rr.status==="hec_hms_4_13_spatial_ifs_warmup_ready"||dualBoundary;
 const hecBlocked=/blocked/i.test(String(rr.status||""));
 const blockers=rr.blocking_reasons_pt||((rr.validation||{}).blocking_reasons_pt)||[];
+if($("modelSubtitle"))$("modelSubtitle").textContent=dualBoundary
+ ? "HEC-HMS 4.13 com Linha José Júlio e Passo Carreiro como fronteiras observadas; ECMWF/IFS entra no futuro e nas áreas residuais."
+ : "HEC-HMS 4.13 com o campo ECMWF/IFS espacializado sobre a bacia contribuinte até Muçum.";
 $("modelBadge").textContent=dualBoundary?"HEC-HMS · LJJ + Carreiro observados":(hecSpatial?"HEC-HMS 4.13 · IFS espacial":(hecBlocked?"RODADA BLOQUEADA":(rr.available?"resultado experimental":"sem execução válida")));
 $("modelBadge").className="badge "+(hecSpatial?"ok":"warn");
 $("statusHydro").textContent=dualBoundary?"HEC-HMS validado · fronteiras observadas":(hecSpatial?"HEC-HMS 4.13 executado · IFS espacial":(hecBlocked?"HEC-HMS executado · saída bloqueada na validação":(rr.available?"resultado experimental disponível":"sem execução válida")));
