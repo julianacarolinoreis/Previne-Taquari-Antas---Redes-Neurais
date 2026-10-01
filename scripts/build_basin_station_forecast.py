@@ -1210,6 +1210,22 @@ def main() -> int:
         json.dumps(feed, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    rain_ages = [
+        finite((item.get("observed_rain") or {}).get("observed_age_minutes"))
+        for item in feed.get("stations", [])
+        if (item.get("observed_rain") or {}).get("state") == "available"
+    ]
+    rain_ages = [value for value in rain_ages if value is not None]
+    level_ages = [
+        finite((item.get("level") or {}).get("observed_age_minutes"))
+        for item in feed.get("stations", [])
+        if (item.get("level") or {}).get("state") in {"available", "partial"}
+    ]
+    level_ages = [value for value in level_ages if value is not None]
+    source_states = {
+        key: (value or {}).get("state")
+        for key, value in ((feed.get("catalog") or {}).get("sources") or {}).items()
+    }
     print(
         "feed written:",
         args.output,
@@ -1217,6 +1233,30 @@ def main() -> int:
         feed["scope"]["station_count"],
         "forecast=",
         feed["scope"]["forecast_station_count"],
+        "observed_total=",
+        feed["scope"]["observed_rain_station_count"],
+        "observed_hourly=",
+        feed["scope"]["observed_rain_hourly_station_count"],
+        "cemaden_24h=",
+        feed["scope"]["observed_rain_cemaden_24h_station_count"],
+        "levels=",
+        feed["scope"]["level_station_count"],
+        "unique_locations=",
+        feed["scope"].get("forecast_location_count"),
+        "rain_age_max_min=",
+        max(rain_ages) if rain_ages else None,
+        "rain_over_60min=",
+        sum(value > 60 for value in rain_ages),
+        "level_age_max_min=",
+        max(level_ages) if level_ages else None,
+        "level_over_60min=",
+        sum(value > 60 for value in level_ages),
+        "sources=",
+        feed.get("source_counts"),
+        "catalog_sources=",
+        source_states,
+        "catalog_complete=",
+        (feed.get("catalog") or {}).get("complete"),
     )
     return 0
 
