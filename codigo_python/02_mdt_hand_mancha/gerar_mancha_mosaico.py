@@ -221,18 +221,18 @@ def injeta_santa_tereza(payload_extra):
 
 
 def main():
-    alvo = sys.argv[1] if len(sys.argv) > 1 else None
-    injetores = {"mucum": injeta_mucum, "santa_tereza": injeta_santa_tereza}
-    for cidade in ([alvo] if alvo else CIDADES.keys()):
-        payload_extra = processa(cidade)
-        injetores[cidade](payload_extra)
-        print()
-
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "santa_tereza":
+    alvo = sys.argv[1] if len(sys.argv) > 1 else "mucum"
+    if alvo == "santa_tereza":
         raise SystemExit(
             "BLOQUEADO: Santa Tereza usa exclusivamente o LiDAR/HAND hidráulico. "
             "Use gerar_hand_lidar_santa_tereza.py."
         )
+    if alvo not in CIDADES:
+        raise SystemExit(f"cidade inválida: {alvo}")
+    payload_extra = processa(alvo)
+    {"mucum": injeta_mucum}[alvo](payload_extra)
+    print()
+
+
+if __name__ == "__main__":
     main()
