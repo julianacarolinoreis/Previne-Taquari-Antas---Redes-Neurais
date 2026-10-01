@@ -50,6 +50,24 @@ class BasinResearchFeedTests(unittest.TestCase):
         self.assertEqual(geometry["hydrologic_delineation"]["status"], "not_validated")
         self.assertGreaterEqual(len(geometry["upstream_gauges"]["stations"]), 2)
 
+    def test_santa_tereza_terrain_inventory_uses_current_lidar(self):
+        assets = {row["path"] for row in self.feed["basin"]["mdt"]["assets"]}
+        required = {
+            "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json",
+            "assets/data/santa_tereza_inundacao/contornos_mancha.json",
+            "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_lidar_10m.json",
+            "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_lidar_10m.png",
+            "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_lidar_10m_visual.png",
+        }
+        self.assertTrue(required <= assets)
+        forbidden = {
+            "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m.json",
+            "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_anadem_30m.tif",
+            "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_drone_1m.tif",
+            "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_drone_1m_ortho.tif",
+        }
+        self.assertTrue(assets.isdisjoint(forbidden))
+
     def test_current_level_prefers_the_newer_live_robot(self):
         for key in ("santa_tereza", "mucum"):
             raw = builder.load(ROOT / builder.STATIONS[key]["live"], {})
