@@ -942,12 +942,18 @@
         const [pattern, weather, live] = await Promise.all([loadJson(cfg.pattern), loadJson(cfg.weather), loadLive(cfg.live)]);
         state.feeds[key] = { pattern, weather, live };
       }));
-      const [research, basin] = await Promise.all([
+      const [research, basin, networkStatus] = await Promise.all([
         loadJson(researchUrl),
-        state.basinGeometry ? Promise.resolve(state.basinGeometry) : loadJson(basinUrl)
+        state.basinGeometry ? Promise.resolve(state.basinGeometry) : loadJson(basinUrl),
+        loadJson(basinStatusUrl)
       ]);
       state.research = research;
       state.basinGeometry = basin;
+      state.networkStatus = networkStatus;
+      if (!state.selectedNetworkStationId && networkStatus && Array.isArray(networkStatus.stations)) {
+        const initial = networkStatus.stations.find((row) => String(row.code) === '86472600') || networkStatus.stations[0];
+        state.selectedNetworkStationId = initial ? initial.id : null;
+      }
       state.lastLoadedAt = new Date().toISOString();
       const available = pairs.filter(([key]) => stationFeed(key).pattern || stationFeed(key).weather || stationFeed(key).live).length;
       $('control-status').textContent = available ? `Feeds carregados às ${when(state.lastLoadedAt)} · atualização automática a cada 5 min` : 'Feeds indisponíveis no momento · tente atualizar a página';
@@ -987,6 +993,27 @@
       render();
     });
   });
+  root.querySelectorAll('[data-network-filter]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.networkFilter = button.dataset.networkFilter || 'all';
+      root.querySelectorAll('[data-network-filter]').forEach((b) => { b.classList.toggle('is-active', b === button); b.setAttribute('aria-pressed', b === button ? 'true' : 'false'); });
+      renderBasinMap();
+    });
+  });
+  root.querySelectorAll('[data-network-mode]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.networkMode = button.dataset.networkMode || 'health';
+      root.querySelectorAll('[data-network-mode]').forEach((b) => { b.classList.toggle('is-active', b === button); b.setAttribute('aria-pressed', b === button ? 'true' : 'false'); });
+      renderBasinMap();
+    });
+  });
+  const sourceFilter = $('basin-source-filter');
+  if (sourceFilter) sourceFilter.addEventListener('change', () => { state.networkSource = sourceFilter.value || 'all'; renderBasinMap(); });
+  const variableFilter = $('basin-variable-filter');
+  if (variableFilter) variableFilter.addEventListener('change', () => { state.networkVariable = variableFilter.value || 'all'; renderBasinMap(); });
+  const modelFilter = $('basin-model-filter');
+  if (modelFilter) modelFilter.addEventListener('change', () => { state.networkModel = modelFilter.value || 'all'; renderBasinMap(); });
+
   loadFeeds();
   window.setInterval(() => {
     if (document.visibilityState === 'visible') loadFeeds();
