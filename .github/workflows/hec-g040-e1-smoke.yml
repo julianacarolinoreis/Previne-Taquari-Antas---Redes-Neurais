@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - "config/g040_e1_smoke_request.json"
+      - "scripts/run_hec_hms_g040_e1_hindcast.py"
+      - "scripts/test_g040_e1_contract.py"
+      - ".github/workflows/hec-g040-e1-smoke.yml"
   workflow_dispatch:
 
 permissions:
@@ -60,6 +63,9 @@ jobs:
           assert (rain.get("component_area_gate") or {}).get("pass") is True
           PY
 
+      - name: Validate E1 generation contract
+        run: python -B scripts/test_g040_e1_contract.py
+
       - name: Run source-backed smoke candidate
         shell: bash
         run: |
@@ -92,6 +98,9 @@ jobs:
           mkdir -p /tmp/g040-smoke
           cp "$BASE/result.json" /tmp/g040-smoke/
           cp "$BASE/run.log" /tmp/g040-smoke/
+          for F in g040_e1_hindcast.gage e1.basin e1.met e1.control g040_e1_hindcast.run g040_e1_hindcast.hms run.script; do
+            test ! -f "$BASE/project/$F" || cp "$BASE/project/$F" "/tmp/g040-smoke/$F"
+          done
           if [ -f "$BASE/project/hec_output_values.csv" ]; then
             cp "$BASE/project/hec_output_values.csv" /tmp/g040-smoke/
           fi
@@ -106,6 +115,10 @@ jobs:
             mkdir -p "$BASE"
             cp /tmp/g040-smoke/result.json "$BASE/"
             cp /tmp/g040-smoke/run.log "$BASE/"
+            mkdir -p "$BASE/project"
+            for F in g040_e1_hindcast.gage e1.basin e1.met e1.control g040_e1_hindcast.run g040_e1_hindcast.hms run.script; do
+              test ! -f "/tmp/g040-smoke/$F" || cp "/tmp/g040-smoke/$F" "$BASE/project/$F"
+            done
             test ! -f /tmp/g040-smoke/hec_output_values.csv || cp /tmp/g040-smoke/hec_output_values.csv "$BASE/"
             cp /tmp/g040-smoke/stdout.txt "$BASE/"
             cp /tmp/g040-smoke/exit_code.txt "$BASE/"
@@ -116,3 +129,16 @@ jobs:
             sleep $((attempt * 2))
           done
           exit 1
+
+      - name: Smoke compute gate
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          p="assets/data/hec_hms_g040_full_basin/g040_e1_hindcast/SMOKE_E1/result.json"
+          j=json.load(open(p,encoding="utf-8"))
+          print("COMPUTE_OK",j.get("compute_ok"),"RETURNCODE",j.get("returncode"))
+          print("PREFLIGHT",j.get("preflight_contract"))
+          if not j.get("compute_ok"):
+              raise SystemExit("G040 E1 HEC smoke did not compute; diagnostics were published")
+          PY

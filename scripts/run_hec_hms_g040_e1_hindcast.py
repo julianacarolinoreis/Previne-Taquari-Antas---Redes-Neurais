@@ -177,6 +177,22 @@ def target_hourly(hydro,code,times):
 def safe(s):
     return "".join(ch if ch.isalnum() else "_" for ch in str(s))
 
+def hec_subbasin_name(cid):
+    cid=str(cid)
+    if cid.startswith("CORE_INC_"):
+        parts=cid.split("_")
+        if len(parts)>=4:
+            name=f"SB_C_{parts[-2]}_{parts[-1]}"
+        else:
+            name="SB_C_"+safe(cid)[9:]
+    elif cid.startswith("BRANCH_"):
+        name="SB_B_"+cid.replace("BRANCH_","",1)
+    else:
+        name="SB_"+safe(cid)
+    if len(name)>28:
+        raise RuntimeError(f"HEC element name exceeds 28 chars after normalization: {name}")
+    return name
+
 def subbasin_block(name,area,downstream,cn,lag_min):
     return f"""Subbasin: {name}
      Area: {area:.6f}
@@ -255,7 +271,7 @@ End:
         parts.append(source_block("86500000","J_JOIN_86500000",1816.359))
     else:
         cid="BRANCH_86500000"
-        parts.append(subbasin_block("SB_"+cid,rain[cid]["area_km2"],"J_JOIN_86500000",args.cn,args.lag_min))
+        parts.append(subbasin_block(hec_subbasin_name(cid),rain[cid]["area_km2"],"J_JOIN_86500000",args.cn,args.lag_min))
     parts.append(junction_block("J_JOIN_86500000","R_JOIN_86500000_86510000"))
 
     # Muçum checkpoint
@@ -265,7 +281,7 @@ End:
         parts.append(source_block("86595000","J_JOIN_86595000",2431.975))
     else:
         cid="BRANCH_86595000"
-        parts.append(subbasin_block("SB_"+cid,rain[cid]["area_km2"],"J_JOIN_86595000",args.cn,args.lag_min))
+        parts.append(subbasin_block(hec_subbasin_name(cid),rain[cid]["area_km2"],"J_JOIN_86595000",args.cn,args.lag_min))
     parts.append(junction_block("J_JOIN_86595000","R_JOIN_86595000_86720000"))
     parts.append(junction_block("J_86720000","R_86720000_86743000",True))
     parts.append(junction_block("J_86743000","R_86743000_JOIN_86746000",True))
@@ -274,7 +290,7 @@ End:
         parts.append(source_block("86746000","J_JOIN_86746000",2226.742))
     else:
         cid="BRANCH_86746000"
-        parts.append(subbasin_block("SB_"+cid,rain[cid]["area_km2"],"J_JOIN_86746000",args.cn,args.lag_min))
+        parts.append(subbasin_block(hec_subbasin_name(cid),rain[cid]["area_km2"],"J_JOIN_86746000",args.cn,args.lag_min))
     parts.append(junction_block("J_JOIN_86746000","R_JOIN_86746000_86879000"))
     parts.append(junction_block("J_86879000","R_86879000_86879300",True))
     parts.append(junction_block("J_86879300","R_86879300_86895000",True))
@@ -283,7 +299,7 @@ End:
     # Core runoff subbasins.
     for cid,down in CORE_TO_CHECKPOINT.items():
         if cid not in rain: raise RuntimeError(f"missing rain component {cid}")
-        parts.append(subbasin_block("SB_"+cid,rain[cid]["area_km2"],down,args.cn,args.lag_min))
+        parts.append(subbasin_block(hec_subbasin_name(cid),rain[cid]["area_km2"],down,args.cn,args.lag_min))
 
     for name,up,down,l,g in REACHES:
         parts.append(reach_block(name,down,route_k(l,g,args),args.x))
@@ -311,7 +327,7 @@ Precip Method Parameters: Specified Average
 End:
 """]
     for cid in used_components:
-        lines.append(f"""Subbasin: SB_{cid}
+        lines.append(f"""Subbasin: {hec_subbasin_name(cid)}
      Gage: RAIN_{safe(cid)}
 End:
 """)
@@ -396,6 +412,26 @@ End:
     for cid in used_components:
         lines.append(gage_block(f"RAIN_{safe(cid)}","Precipitation",f"/G040/{safe(cid)}/PRECIP-INC/{dp}/1Hour/OBS/",start,end))
     return "\n".join(lines)
+
+def validate_project_contract(gage_text, met_text, basin_text, active, used_components):
+    required_sources=[SOURCE_PRIMARY,*active]
+    missing_q=[code for code in required_sources if f"Gage: Q_{code}" not in gage_text]
+    if missing_q:
+        raise RuntimeError(f"missing flow gages in generated gage manager: {missing_q}")
+    missing_source_refs=[code for code in required_sources if f"Flow Gage: Q_{code}" not in basin_text]
+    if missing_source_refs:
+        raise RuntimeError(f"missing source flow-gage references in basin: {missing_source_refs}")
+    missing_rain=[cid for cid in used_components if f"Gage: RAIN_{safe(cid)}" not in gage_text]
+    if missing_rain:
+        raise RuntimeError(f"missing rain gages: {missing_rain}")
+    missing_met=[cid for cid in used_components if f"Subbasin: {hec_subbasin_name(cid)}" not in met_text]
+    if missing_met:
+        raise RuntimeError(f"missing meteorologic subbasin mappings: {missing_met}")
+    return {
+        "flow_gages":required_sources,
+        "rain_gages":list(used_components),
+        "hec_subbasin_names":{cid:hec_subbasin_name(cid) for cid in used_components},
+    }
 
 def write_jython(project_dir,times,source_values,rain_values):
     local_times=[local_naive(t).strftime("%Y-%m-%d %H:%M:%S") for t in times]
@@ -562,12 +598,20 @@ def main():
     rt=OUTROOT/safe(args.candidate_id)
     rt.mkdir(parents=True,exist_ok=True)
     proj=rt/"project"; proj.mkdir(parents=True,exist_ok=True)
-    (proj/"g040_e1_hindcast.hms").write_text(build_project(),encoding="utf-8")
-    (proj/"g040_e1_hindcast.run").write_text(build_run(),encoding="utf-8")
-    (proj/"e1.control").write_text(build_control(start,end),encoding="utf-8")
-    (proj/"g040_e1_hindcast.gage").write_text(build_gage(start,end,active,used),encoding="utf-8")
-    (proj/"e1.met").write_text(build_met(used),encoding="utf-8")
-    (proj/"e1.basin").write_text(build_basin(rain,active,args),encoding="utf-8")
+    project_text=build_project()
+    run_text=build_run()
+    control_text=build_control(start,end)
+    gage_text=build_gage(start,end,active,used)
+    met_text=build_met(used)
+    basin_text=build_basin(rain,active,args)
+    preflight=validate_project_contract(gage_text,met_text,basin_text,active,used)
+
+    (proj/"g040_e1_hindcast.hms").write_text(project_text,encoding="utf-8")
+    (proj/"g040_e1_hindcast.run").write_text(run_text,encoding="utf-8")
+    (proj/"e1.control").write_text(control_text,encoding="utf-8")
+    (proj/"g040_e1_hindcast.gage").write_text(gage_text,encoding="utf-8")
+    (proj/"e1.met").write_text(met_text,encoding="utf-8")
+    (proj/"e1.basin").write_text(basin_text,encoding="utf-8")
     script=write_jython(proj,times,source_values,rain_values)
 
     proc=subprocess.run([str(Path(args.hec_hms_sh).resolve()),"-s",str(script.resolve())],
@@ -584,6 +628,7 @@ def main():
                 "end_utc":end.isoformat().replace("+00:00","Z"),"hours":len(times)},
       "boundary_scenario":scenarios.get("current_scenario"),"active_boundary_codes":active,
       "rainfall_runoff_components":used,
+      "preflight_contract":preflight,
       "parameters":{"cn":args.cn,"lag_min":args.lag_min,"baseflow":"None",
         "k_group_h":{"g1":args.k_g1,"g2":args.k_g2,"g3":args.k_g3,"g4":args.k_g4},
         "x":args.x,

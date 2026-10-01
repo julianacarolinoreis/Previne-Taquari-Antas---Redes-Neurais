@@ -44,6 +44,13 @@ HORIZON_HOURS=120
 BATCH_SIZE=40
 USER_AGENT="PREVINE-G040-IFS-research/1.0"
 
+def parse_hour(raw: str) -> datetime:
+    dt=datetime.fromisoformat(str(raw).replace("Z","+00:00"))
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+def start_hour() -> datetime:
+    return datetime.now(timezone.utc).replace(minute=0,second=0,microsecond=0)
+
 def load_support():
     rows=[]
     with SUPPORT.open(encoding="utf-8",newline="") as fh:

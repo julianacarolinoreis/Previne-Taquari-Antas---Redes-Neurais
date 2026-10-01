@@ -18,8 +18,9 @@ import build_mucum_observed_multistation as mucum_obs
 
 
 class G040RainContractTests(unittest.TestCase):
-    def test_forecast_support_loader_exists(self):
-        self.assertTrue(callable(getattr(g040_fc,"load_support",None)))
+    def test_forecast_helpers_exist(self):
+        for name in ("load_support","parse_hour","start_hour"):
+            self.assertTrue(callable(getattr(g040_fc,name,None)),name)
 
     def test_fixed_grid_contract(self):
         cells=grid.build_grid_cells()
