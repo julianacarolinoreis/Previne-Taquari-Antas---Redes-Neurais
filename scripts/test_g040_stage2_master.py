@@ -30,6 +30,13 @@ class Stage2MasterTests(unittest.TestCase):
         self.assertFalse(payload["gates"]["sma_branch_parameters"]["pass"])
         self.assertFalse(payload["gates"]["sma_145_transfer"]["pass"])
 
+    def test_zero_closure_and_dynamic_rain_support_pass(self):
+        payload=m.build_master()
+        self.assertTrue(payload["gates"]["dynamic_boundary_mass_balance"]["pass"])
+        self.assertTrue(payload["gates"]["rain_support"]["pass"])
+        self.assertNotIn("blocker",payload["gates"]["dynamic_boundary_mass_balance"])
+        self.assertNotIn("blocker",payload["gates"]["rain_support"])
+
     def test_benchmark_is_fixed_before_results(self):
         bench=json.loads((ROOT/"assets/data/g040_hydro_stack/benchmark_matrix_latest.json").read_text(encoding="utf-8"))
         ids=[x["event_id"] for x in bench["events"]]
