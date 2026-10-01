@@ -38,6 +38,7 @@ LIVE_FEEDS = (
     ROOT / "previsao_ao_vivo_mucum.json",
 )
 DEFAULT_OUTPUT = ROOT / "assets/data/basin_station_forecast_latest.json"
+DEFAULT_STATUS_OUTPUT = ROOT / "assets/data/basin_station_status_latest.json"
 
 BRT = timezone(timedelta(hours=-3))
 UTC = timezone.utc
@@ -1271,15 +1272,43 @@ def validate_complete_feed(feed: dict[str, Any]) -> None:
                         f"mínimo exigido {required}."
                     )
 
+def _status_snapshot(feed: dict[str, Any]) -> dict[str, Any]:
+    """Small audit-friendly summary of the large station feed."""
+    return {
+        "schema_version": 1,
+        "feed_type": "basin_station_status",
+        "generated_at_utc": feed.get("generated_at_utc"),
+        "next_cycle_utc": feed.get("next_cycle_utc"),
+        "status": feed.get("status"),
+        "research_only": feed.get("research_only"),
+        "official_alert": feed.get("official_alert"),
+        "scope": feed.get("scope") or {},
+        "source_counts": feed.get("source_counts") or {},
+        "coverage": feed.get("coverage") or {},
+        "freshness": feed.get("freshness") or {},
+        "catalog": feed.get("catalog") or {},
+        "models": feed.get("models") or [],
+        "metric_coverage": feed.get("metric_coverage") or {},
+        "refresh_contract": feed.get("refresh_contract") or {},
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--status-output", type=Path, default=DEFAULT_STATUS_OUTPUT)
     args = parser.parse_args()
     feed = build_feed(include_external=True)
     validate_complete_feed(feed)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(feed, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    status_snapshot = _status_snapshot(feed)
+    args.status_output.parent.mkdir(parents=True, exist_ok=True)
+    args.status_output.write_text(
+        json.dumps(status_snapshot, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     rain_ages = [
@@ -1301,6 +1330,8 @@ def main() -> int:
     print(
         "feed written:",
         args.output,
+        "status=",
+        args.status_output,
         "stations=",
         feed["scope"]["station_count"],
         "forecast=",
