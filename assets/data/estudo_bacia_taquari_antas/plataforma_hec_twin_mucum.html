@@ -122,7 +122,8 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
 .map-toolbar .node-legend{margin:0;gap:6px;align-items:center}
 .map-toolbar .node-legend span{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #dbe5df;border-radius:999px;background:#f8fbf9;color:#52665c;font-size:10px;font-weight:650}
 .legend-symbol{display:inline-block;flex:0 0 auto}
-.legend-symbol.telemetry{width:9px;height:9px;border-radius:50%;background:#176149}
+.legend-symbol.telemetry{width:9px;height:9px;border-radius:50%;background:#176149;box-shadow:0 0 0 2px #d9ece3}
+.legend-symbol.telemetry::after{content:"";display:block}
 .legend-symbol.model{width:9px;height:9px;background:#98661d;transform:rotate(45deg);border-radius:1px}
 .legend-symbol.ug{width:14px;height:0;border-top:2px solid #204f3c}
 .legend-symbol.rain{width:18px;height:7px;border-radius:3px;background:linear-gradient(90deg,#dceee5,#68ad88,#0f523b)}
@@ -149,6 +150,12 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
 .node-list-head{display:flex;align-items:center;justify-content:space-between;gap:9px;margin:0 0 8px}
 .node-list-head h3{margin:0}
 .node-list-head small{display:block;margin-top:2px;color:var(--muted);font-size:9px}
+.node-health-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 9px}
+.node-health-summary span{display:block;padding:7px 8px;border:1px solid #d9e3dd;border-radius:9px;background:#f8fbf9;color:var(--muted);font-size:8.5px;line-height:1.2}
+.node-health-summary b{display:block;margin-bottom:2px;color:var(--ink);font-size:13px;font-variant-numeric:tabular-nums}
+.node-health-summary .fresh{border-color:#c5decf;background:#eef8f2}
+.node-health-summary .delayed{border-color:#ead8a8;background:#fff9ea}
+.node-health-summary .missing{border-color:#e3d7d5;background:#faf6f5}
 .node-search{width:150px;min-width:0;border:1px solid #cfdcd5;background:#fff;border-radius:9px;padding:7px 9px;color:var(--ink);font:500 10px Inter,sans-serif;outline:none}
 .node-search:focus{border-color:#73a58d;box-shadow:0 0 0 3px rgba(23,97,73,.08)}
 .node-list{display:grid;gap:6px;max-height:470px;overflow:auto;padding-right:3px}
@@ -165,6 +172,11 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
 .node-row .vals .age-unknown{color:#64736c;background:#eef2ef}
 .hydro-node-wrap,.model-node-wrap{display:grid;place-items:center;width:22px;height:22px;transform:none}
 .hydro-node-dot{width:13px;height:13px;border-radius:50%;background:#176149;border:2px solid #fff;box-shadow:0 1px 7px rgba(0,0,0,.28)}
+.hydro-node-dot.age-current{background:#16875d}
+.hydro-node-dot.age-attention{background:#c99218}
+.hydro-node-dot.age-delayed{background:#d97706}
+.hydro-node-dot.age-stale{background:#b9443d}
+.hydro-node-dot.age-unknown{background:#829188}
 .hydro-node-dot.target{width:18px;height:18px;background:#0b4936;box-shadow:0 0 0 3px rgba(255,255,255,.85),0 2px 9px rgba(0,0,0,.3)}
 .model-node-diamond{width:13px;height:13px;background:#98661d;border:2px solid #fff;box-shadow:0 1px 7px rgba(0,0,0,.28);transform:rotate(45deg)}
 .leaflet-control-layers{border:1px solid #cfdcd5!important;border-radius:10px!important;box-shadow:0 4px 14px rgba(22,48,37,.13)!important}
@@ -252,7 +264,7 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
   <section class="section" id="mapa">
     <div class="section-head map-section-head">
       <div><div class="eyebrow map-eyebrow">rede observacional + modelo</div><h2>Rede hidrológica da G040</h2></div>
-      <p>Todos os pontos permanecem disponíveis. Nomes aparecem só ao passar o mouse ou selecionar; telemetria, HEC-HMS, chuva IFS e UGs ficam em camadas separadas.</p>
+      <p>Todos os pontos permanecem disponíveis. O mapa abre limpo: telemetria + HEC-HMS + UGs; a chuva IFS fica disponível nas camadas sem cobrir a rede por padrão. A cor da telemetria indica a idade da leitura.</p>
     </div>
     <div class="grid two" id="basinMapSection">
       <article class="card map-card">
@@ -277,6 +289,7 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
           <div><h3 class="panel-title">Telemetria</h3><small id="nodeListCount">carregando nós…</small></div>
           <input class="node-search" id="nodeSearch" type="search" placeholder="Buscar nome ou código" aria-label="Buscar nó hidrológico"/>
         </div>
+        <div class="node-health-summary" id="nodeHealthSummary" aria-live="polite"></div>
         <div class="node-list" id="hydroNodeList"></div>
         <details style="margin-top:12px">
           <summary style="cursor:pointer;font-weight:700;font-size:11px">Inventário das UGs</summary>
@@ -356,7 +369,7 @@ const sr=DATA.spatial_rain||{}, sum=DATA.summary||{}, basin=DATA.basin||{}, skil
 const muc=nodes.find(n=>n.code==="86510000")||{};
 $("mArea").textContent=fmt(basin.area_km2,0);
 $("mNodes").textContent=fmt(nodes.length,0);
-$("mMucLevel").textContent=muc.level_cm!=null?fmt(muc.level_cm/100,2)+" m":"—";
+$("mMucLevel").textContent=plausibleNodeLevel(muc)?fmt(muc.level_cm/100,2)+" m":"—";
 $("mMucQ").textContent=muc.discharge_m3s!=null?fmt(muc.discharge_m3s,0):"—";
 $("rMinMax").textContent=fmt(sr.cell_total_min_mm,1)+"–"+fmt(sr.cell_total_max_mm,1)+" mm";
 $("rMedian").textContent=fmt(sr.cell_total_median_mm,1)+" mm";
@@ -365,7 +378,7 @@ $("rWindow").textContent=(sr.window&&sr.window.start_utc?brt(sr.window.start_utc
 $("statusRain").textContent=sr.available?(fmt(sr.intersecting_cells,0)+" células · "+pct(sr.coverage_ratio)+" da bacia"):"indisponível";
 $("spatialGate").textContent=sr.available?"pronta":"indisponível";
 $("updatedAt").textContent=brt(DATA.generated_at_utc);
-$("obsLevel").textContent=muc.level_cm!=null?fmt(muc.level_cm/100,2)+" m":(sum.observed_stage_cm!=null?fmt(sum.observed_stage_cm/100,2)+" m":"—");
+$("obsLevel").textContent=plausibleNodeLevel(muc)?fmt(muc.level_cm/100,2)+" m":(sum.observed_stage_cm!=null&&Number(sum.observed_stage_cm)>=0&&Number(sum.observed_stage_cm)<=5000?fmt(sum.observed_stage_cm/100,2)+" m":"—");
 $("obsWhen").textContent=muc.level_at_local?("leitura "+muc.level_at_local+" BRT"):(sum.observed_at_utc?("observado em "+brt(sum.observed_at_utc)):"telemetria indisponível");
 $("obsQ").textContent=muc.discharge_m3s!=null?fmt(muc.discharge_m3s,0):"—";
 
@@ -465,7 +478,14 @@ function nodeLevel(n){return plausibleNodeLevel(n)?fmt(Number(n.level_cm)/100,2)
 function nodeQ(n){return n.discharge_m3s==null?"—":fmt(n.discharge_m3s,0)+" m³/s"}
 function nodeAgeClass(n){
  if(n.age_min==null)return"age-unknown";
- const a=Number(n.age_min); if(a<=30)return"age-current"; if(a<=60)return"age-attention"; return"age-stale";
+ const a=Number(n.age_min); if(a<=30)return"age-current"; if(a<=60)return"age-attention"; if(a<=180)return"age-delayed"; return"age-stale";
+}
+function renderNodeHealthSummary(){
+ const host=$("nodeHealthSummary"); if(!host)return;
+ const fresh=nodes.filter(n=>n.age_min!=null&&Number(n.age_min)<=60).length;
+ const delayed=nodes.filter(n=>n.age_min!=null&&Number(n.age_min)>60).length;
+ const missing=nodes.filter(n=>!plausibleNodeLevel(n)).length;
+ host.innerHTML="<span class='fresh'><b>"+fresh+"</b>leitura ≤ 1 h</span><span class='delayed'><b>"+delayed+"</b>leitura > 1 h</span><span class='missing'><b>"+missing+"</b>sem nível compatível</span>";
 }
 function renderNodeDetail(n){
  if(!n)return;
@@ -488,8 +508,17 @@ function renderNodeDetail(n){
 function renderNodeList(){
  const el=$("hydroNodeList"); if(!el)return; el.innerHTML="";
  const q=(($("nodeSearch")&&$("nodeSearch").value)||"").trim().toLocaleLowerCase("pt-BR");
- const visible=nodes.filter(n=>!q||[(n.name||""),(n.code||""),(n.ug||"")].join(" ").toLocaleLowerCase("pt-BR").includes(q));
- if($("nodeListCount"))$("nodeListCount").textContent=visible.length+" de "+nodes.length+" nós";
+ const visible=nodes.filter(n=>!q||[(n.name||""),(n.code||""),(n.ug||"")].join(" ").toLocaleLowerCase("pt-BR").includes(q))
+   .sort((a,b)=>{
+     const pa=a.code==="86510000"?-1000:(a.code==="86472600"?-900:0);
+     const pb=b.code==="86510000"?-1000:(b.code==="86472600"?-900:0);
+     if(pa!==pb)return pa-pb;
+     const aa=a.age_min==null?1e9:Number(a.age_min), ab=b.age_min==null?1e9:Number(b.age_min);
+     if(aa!==ab)return aa-ab;
+     return String(a.name||a.code).localeCompare(String(b.name||b.code),"pt-BR");
+   });
+ if($("nodeListCount"))$("nodeListCount").textContent=visible.length+" de "+nodes.length+" nós · ordenados por prioridade e atualização";
+ renderNodeHealthSummary();
  visible.forEach(n=>{const d=document.createElement("div");d.className="node-row"+(n.code===activeNodeCode?" active":"");
  const levelOk=plausibleNodeLevel(n), qOk=n.discharge_m3s!=null;
  d.innerHTML="<div class='head'><span class='name'>"+(n.name||n.code)+"</span><span class='code'>"+n.code+"</span></div>"+
@@ -517,7 +546,7 @@ const local=((DATA.where_results_go||{}).local)||{};
 const bb=((((DATA.spatial||{}).basin_framing)||{}).g040_bbox_latlon)||[[-29.95,-52.64],[-28.18,-49.93]];
 const map=L.map("map",{scrollWheelZoom:true,zoomControl:true}).fitBounds(bb,{padding:[18,18]});
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,referrerPolicy:"strict-origin-when-cross-origin",attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
-const rainLayer=L.layerGroup().addTo(map), ugLayer=L.layerGroup().addTo(map), nodeLayer=L.layerGroup().addTo(map), modelNodeLayer=L.layerGroup().addTo(map), networkLayer=L.layerGroup(), fozLayer=L.layerGroup(); window.nodeMarkers={}; window.modelNodeMarkers={}; let basinBounds=null;
+const rainLayer=L.layerGroup(), ugLayer=L.layerGroup().addTo(map), nodeLayer=L.layerGroup().addTo(map), modelNodeLayer=L.layerGroup().addTo(map), networkLayer=L.layerGroup(), fozLayer=L.layerGroup(); window.nodeMarkers={}; window.modelNodeMarkers={}; let basinBounds=null;
 
 function rainColor(mm,max){const x=max?Math.max(0,Math.min(1,Number(mm||0)/max)):0; if(x<.2)return"#dceee5";if(x<.4)return"#a9d5be";if(x<.6)return"#68ad88";if(x<.8)return"#2d805e";return"#0f523b"}
 async function loadSpatialRain(){
@@ -530,7 +559,8 @@ async function loadUgs(){
 function loadHydroNodes(){
  nodes.forEach(n=>{
    const target=n.code==="86510000";
-   const icon=L.divIcon({className:"hydro-node-icon",html:"<div class='hydro-node-wrap'><span class='hydro-node-dot "+(target?"target":"")+"'></span></div>",iconSize:[22,22],iconAnchor:[11,11]});
+   const ageClass=nodeAgeClass(n);
+   const icon=L.divIcon({className:"hydro-node-icon",html:"<div class='hydro-node-wrap'><span class='hydro-node-dot "+ageClass+" "+(target?"target":"")+"'></span></div>",iconSize:[22,22],iconAnchor:[11,11]});
    const m=L.marker([n.lat,n.lon],{icon,zIndexOffset:target?1200:900}).on("click",()=>renderNodeDetail(n));
    const tip=(n.name||n.code)+" · "+(plausibleNodeLevel(n)?nodeLevel(n):"nível sem escala válida")+(n.age_min!=null?" · "+fmt(n.age_min,0)+" min":"");
    m.bindTooltip(tip,{direction:"top",offset:[0,-8],opacity:.96,sticky:true});
@@ -552,7 +582,7 @@ function loadModelNodes(){
 function loadNetwork(){const net=((DATA.spatial||{}).basin_network)||{};(net.features||[]).forEach(f=>{const p=f.properties||{},c=(f.geometry||{}).coordinates||[];if(c.length<2)return;L.circleMarker([c[1],c[0]],{radius:2,color:"#ffffff88",weight:.4,fillColor:p.kind==="rain"?"#3b7ca6":"#7b8b82",fillOpacity:.55}).on("click",()=>showInspector(p.name||p.code,(p.kind==="rain"?"chuva":"flu")+" · "+(p.ug||"")+" · "+(p.code||""))).addTo(networkLayer)})}
 async function loadFozes(){const path=(DATA.spatial||{}).fozes_geojson;if(!path)return;try{const res=await fetch(path);if(!res.ok)return;const gj=await res.json();L.geoJSON(gj,{pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:3.5,color:"#fff",weight:1,fillColor:"#a77a2d",fillOpacity:.8})}).addTo(fozLayer)}catch(e){}}
 loadSpatialRain();loadUgs();loadHydroNodes();loadModelNodes();loadNetwork();loadFozes();
-L.control.layers(null,{"Nós HEC-HMS":modelNodeLayer,"Telemetria selecionada":nodeLayer,"Chuva IFS espacial":rainLayer,"UGs G040":ugLayer,"Rede G040 completa":networkLayer,"Fozes BHO6":fozLayer},{collapsed:true,position:"topright"}).addTo(map);
+L.control.layers(null,{"Nós HEC-HMS":modelNodeLayer,"Telemetria observada":nodeLayer,"Chuva IFS espacial":rainLayer,"UGs G040":ugLayer,"Rede G040 completa":networkLayer,"Fozes BHO6":fozLayer},{collapsed:true,position:"topright"}).addTo(map);
 if($("fitBasin"))$("fitBasin").addEventListener("click",()=>{if(basinBounds&&basinBounds.isValid())map.fitBounds(basinBounds,{padding:[18,18]});else map.fitBounds(bb,{padding:[18,18]})});
 if($("focusMucum"))$("focusMucum").addEventListener("click",()=>{if(muc.lat!=null&&muc.lon!=null){map.setView([muc.lat,muc.lon],11,{animate:true});if(window.nodeMarkers[muc.code])window.nodeMarkers[muc.code].openPopup();renderNodeDetail(muc)}});
 setTimeout(()=>map.invalidateSize(),180);
