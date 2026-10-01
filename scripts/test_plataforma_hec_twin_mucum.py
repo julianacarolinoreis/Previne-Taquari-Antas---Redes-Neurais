@@ -148,6 +148,15 @@ class PlataformaHecTwinTests(unittest.TestCase):
             (net.get("counts") or {}).get("outside_twin_domain", 0), 50
         )
 
+    def test_hec_feed_exposes_unanchored_state_diagnostics(self) -> None:
+        rr = self.feed.get("rainfall_runoff_result") or {}
+        if rr.get("available"):
+            self.assertEqual(rr.get("stage_series_kind"), "raw_rating_no_visual_anchor")
+            self.assertIn("n_mucum_rating_cm", rr)
+            self.assertIn("model_stage_t0_cm", rr)
+            self.assertIn("stage_error_at_t0_cm", rr)
+            self.assertNotIn("48 h de aquecimento", str(rr.get("plain_pt") or ""))
+
     def test_operational_hec_is_public_source(self) -> None:
         rr = self.feed.get("rainfall_runoff_result") or {}
         self.assertEqual(
