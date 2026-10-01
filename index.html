@@ -223,6 +223,8 @@
   .map-status-main{display:flex;flex-wrap:wrap;align-items:center;gap:5px 7px}
   .map-status-chip{display:inline-flex;align-items:center;white-space:nowrap;padding:3px 7px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--ink-2);font-size:10px;font-weight:650}
   .map-status-chip.muted{color:var(--muted);font-weight:550}
+  .map-status-chip.fresh{color:#087a55;border-color:#acd9c7;background:#eef9f4}
+  .map-status-chip.stale{color:#9a3412;border-color:#f3c3a5;background:#fff1e8}
   .map-status .map-status-right{text-align:right;max-width:300px}
   .map-status .map-status-right.is-late{color:#9a3412;font-weight:650}
   .map-legend{display:flex;flex-wrap:wrap;align-items:center;gap:7px 14px;margin:8px 2px 0;color:var(--muted);font-size:11px}
@@ -2840,6 +2842,12 @@
     const cemadenHydro=scope.cemaden_hydro_station_count||0;
     const observedAny=scope.observed_any_station_count||0;
     const sourceCounts=BASIN_FEED.source_counts||{};
+    const freshness=BASIN_FEED.freshness||{};
+    const rainAge=basinNumber(freshness.hourly_rain_max_age_minutes);
+    const rainOld=Number(freshness.hourly_rain_over_60min_count||0);
+    const levelAge=basinNumber(freshness.level_max_age_minutes);
+    const levelOld=Number(freshness.level_over_60min_count||0);
+    const ageShort=value=>value===null?'idade n/d':(value<60?Math.round(value)+' min':(value/60).toLocaleString('pt-BR',{maximumFractionDigits:1})+' h');
     const sourceBits=['ANA/HidroWeb','SGB/SACE','CEMADEN','INMET']
       .filter(key=>sourceCounts[key]!==undefined)
       .map(key=>'<span class="map-status-chip">'+basinEscape(key)+' '+basinEscape(sourceCounts[key])+'</span>')
@@ -2855,8 +2863,10 @@
       '<span class="map-status-chip muted">Previsto '+basinEscape(forecast)+'/'+basinEscape(total)+'</span>'+
       '<span class="map-status-chip muted">Chuva observada '+basinEscape(rain)+'</span>'+
       '<span class="map-status-chip muted">série horária '+basinEscape(hourlyRain)+'</span>'+
+      (hourlyRain?'<span class="map-status-chip '+(rainOld?'stale':'fresh')+'">chuva: máx '+basinEscape(ageShort(rainAge))+(rainOld?' · '+basinEscape(rainOld)+' &gt;1h':'')+'</span>':'')+
       '<span class="map-status-chip muted">CEMADEN 24h '+basinEscape(cemaden24)+'</span>'+
       '<span class="map-status-chip muted">nível live '+basinEscape(levels)+'</span>'+
+      (levels?'<span class="map-status-chip '+(levelOld?'stale':'fresh')+'">níveis: máx '+basinEscape(ageShort(levelAge))+(levelOld?' · '+basinEscape(levelOld)+' &gt;1h':'')+'</span>':'')+
       (cemadenHydro?'<span class="map-status-chip muted">nível CEMADEN '+basinEscape(cemadenHydro)+'</span>':'')+
       (observedAny?'<span class="map-status-chip muted">algum observado '+basinEscape(observedAny)+'/'+basinEscape(total)+'</span>':'')+
       '</span>'+
