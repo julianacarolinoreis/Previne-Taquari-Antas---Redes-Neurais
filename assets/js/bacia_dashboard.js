@@ -9,9 +9,10 @@
   if (!root) return;
 
   const $ = (id) => document.getElementById(id);
-  const state = { station: 'basin', horizon: 72, feeds: {}, research: null, basinGeometry: null, lastLoadedAt: null, loading: false };
+  const state = { station: 'basin', horizon: 72, feeds: {}, research: null, basinGeometry: null, networkStatus: null, networkFilter: 'all', networkSource: 'all', networkVariable: 'all', networkModel: 'all', networkMode: 'health', selectedNetworkStationId: null, lastLoadedAt: null, loading: false };
   const researchUrl = 'assets/data/research_basin_screening_latest.json';
-  const basinUrl = 'assets/data/vulnerabilidade/bacia.geojson';
+  const basinStatusUrl = 'assets/data/basin_station_status_latest.json';
+  const basinUrl = 'assets/data/estudo_bacia_taquari_antas/ugs_g040.geojson';
   const AUTO_REFRESH_MS = 5 * 60 * 1000;
   const stations = {
     santa: {
@@ -67,7 +68,9 @@
   }
   function parseDate(value) {
     if (value == null || value === '') return null;
-    let s = String(value).trim().replace(' ', 'T');
+    let s = String(value).trim();
+    if (/\s+UTC$/i.test(s)) s = s.replace(/\s+UTC$/i, 'Z');
+    s = s.replace(' ', 'T');
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) s += 'T00:00:00';
     // Older feeds used local BRT without an offset. Treat that explicitly as
     // BRT instead of letting the browser interpret it in an unknown zone.
