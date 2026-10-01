@@ -1020,10 +1020,27 @@
     $('timeline-note').textContent = events.length ? `${events.length} picos no recorte visual · Santa Tereza usa 5 eventos no cartão de validação` : 'Sem eventos publicados';
     $('event-timeline').innerHTML = events.length ? events.map((e) => {
       const confirmed = /confirm|cota de pesquisa|acima da cota/i.test(String(e.status || ''));
-      const rain = [e.rain_24h_mm, e.rain_72h_mm, e.rain_168h_mm];
-      const hasRain = rain.some((v) => num(v) != null);
-      const rainHtml = hasRain ? `<div class="event-rain"><div><b>${fmt(e.rain_24h_mm, 1)}</b><span>chuva 24 h · mm</span></div><div><b>${fmt(e.rain_72h_mm, 1)}</b><span>chuva 72 h · mm</span></div><div><b>${fmt(e.rain_168h_mm, 1)}</b><span>chuva 168 h · mm</span></div></div>` : '<div class="event-rain"><div><b>—</b><span>chuva por evento</span></div><div><b>—</b><span>ainda não ligada</span></div><div><b>—</b><span>base em integração</span></div></div>';
-      return `<article class="event-card ${confirmed ? 'confirmed' : ''}"><span class="event-date">${esc(e.sourceLabel)} · ${esc(shortDate(e.date))}</span><h3>${esc(e.id || 'Evento catalogado')}</h3><div class="event-peak">${fmt(e.peak_cm, 0)} <span>cm no pico observado</span></div><span class="event-status">${esc(e.status || 'status não informado')}</span>${rainHtml}</article>`;
+      const metrics = [];
+      const addMetric = (value, label, digits = 1) => { if (num(value) != null) metrics.push({ value, label, digits }); };
+      if (num(e.rain_24h_mm) != null) addMetric(e.rain_24h_mm, 'chuva 24 h · mm');
+      else if (num(e.proxy_rain_24h_mm) != null) addMetric(e.proxy_rain_24h_mm, 'proxy Muçum 24 h · mm');
+      addMetric(e.rain_48h_mm, 'chuva 48 h · mm');
+      addMetric(e.rain_72h_mm, 'chuva 72 h · mm');
+      addMetric(e.rain_168h_mm, 'chuva 168 h · mm');
+      addMetric(e.max_hourly_rise_cm_h, 'subida máx. · cm/h', 0);
+      addMetric(e.total_rise_cm, 'elevação até pico · cm', 0);
+      addMetric(e.rain_coverage_pct, 'cobertura da chuva · %');
+      addMetric(e.model_count, 'modelos avaliados', 0);
+      if (num(e.difficulty) != null) addMetric(Number(e.difficulty) * 100, 'dificuldade do evento · %');
+      const threshold = stations[e.sourceKey] ? num(stations[e.sourceKey].threshold) : null;
+      if (threshold != null && num(e.peak_cm) != null && Number(e.peak_cm) > threshold) addMetric(Number(e.peak_cm) - threshold, 'acima da cota · cm', 0);
+      const rainHtml = `<div class="event-rain">${metrics.slice(0, 3).map((m) => `<div><b>${fmt(m.value, m.digits)}</b><span>${esc(m.label)}</span></div>`).join('')}</div>`;
+      const contextHtml = e.rain_source_kind === 'downstream_proxy'
+        ? `<p class="event-context-note is-proxy">Chuva antecedente local indisponível. O valor mostrado é proxy da estação ${esc(e.rain_station || '86510000')} em Muçum${num(e.rain_coverage_pct) != null ? ` · cobertura ${fmt(e.rain_coverage_pct, 1)}%` : ''}; não é chuva local de Santa Tereza.</p>`
+        : e.rain_source_kind === 'local_station'
+          ? `<p class="event-context-note">Chuva local auditada · estação ${esc(e.rain_station || '')}${num(e.rain_coverage_pct) != null ? ` · cobertura ${fmt(e.rain_coverage_pct, 1)}% em 72 h` : ''}.</p>`
+          : `<p class="event-context-note">Chuva antecedente auditada ainda não publicada para este evento; o cartão mostra somente evidências disponíveis.</p>`;
+      return `<article class="event-card ${confirmed ? 'confirmed' : ''}"><span class="event-date">${esc(e.sourceLabel)} · ${esc(shortDate(e.date))}</span><h3>${esc(e.id || 'Evento catalogado')}</h3><div class="event-peak">${fmt(e.peak_cm, 0)} <span>cm no pico observado</span></div><span class="event-status">${esc(e.status || 'status não informado')}</span>${rainHtml}${contextHtml}</article>`;
     }).join('') : '<div class="empty-block">Os eventos históricos ainda não estão disponíveis neste feed.</div>';
   }
 
