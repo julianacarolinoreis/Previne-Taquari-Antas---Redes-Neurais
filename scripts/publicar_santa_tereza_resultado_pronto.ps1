@@ -14,6 +14,7 @@ Set-Location $repoRoot
 
 $trackedOutputs = @(
     "santa_tereza_previsao_inundacao.html",
+    "santa_tereza_inundacao.html",
     "assets/data/santa_tereza_inundacao/contornos_mancha.json",
     "assets/data/santa_tereza_inundacao/contornos_extravasamento.json",
     "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json"
@@ -39,7 +40,11 @@ if ($unrelated.Count -gt 0) {
     Write-Host ("Aviso: preservando alteracoes locais de outros projetos (nao serao commitadas): {0}" -f ($unrelated -join ", ")) -ForegroundColor Yellow
 }
 
-Write-Host "1/5 Validando o resultado ja gerado..." -ForegroundColor Cyan
+Write-Host "1/5 Sincronizando e validando o resultado ja gerado..." -ForegroundColor Cyan
+& python "codigo_python/01_previsao_ao_vivo/atualizar_hand_previsao_santa_tereza.py"
+if ($LASTEXITCODE -ne 0) {
+    throw "Falha ao sincronizar o HAND LiDAR da pagina ao vivo com a pagina historica."
+}
 $diagPath = "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json"
 if (-not (Test-Path $diagPath)) { throw "Diagnostico ausente: $diagPath" }
 $d = Get-Content $diagPath -Raw | ConvertFrom-Json
