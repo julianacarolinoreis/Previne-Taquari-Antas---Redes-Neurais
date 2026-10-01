@@ -2360,7 +2360,10 @@
     if (rotaNote && bundle.rota && bundle.rota.meta) {
       var rm = bundle.rota.meta;
       if (rm.use_for_current_route === false || rm.use_for_current_flood === false) {
-        rotaNote.textContent = 'Cenário antigo de rota desativado por incompatibilidade de referência régua–HAND. Abra o Painel de evacuação para a leitura atual por nível e gargalo.';
+        var histRoute = historicalSpatialEvent(bundle);
+        rotaNote.textContent = histRoute
+          ? 'A reconstrução histórica não infere rota segura. Os segmentos laranja são apenas eixos OSM que intersectam a mancha LiDAR/HAND; não significam bloqueio nem condição de trafegabilidade.'
+          : 'Cenário antigo de rota desativado por incompatibilidade de referência régua–HAND. Abra o Painel de evacuação para a leitura atual por nível e gargalo.';
       } else {
         var rotulo = (rm.nivel && rm.nivel.rotulo) ||
           (rm.nivel_projeto_m != null ? 'cenário de projeto ' + rm.nivel_projeto_m + ' m' : 'cenário de ruas');
@@ -2382,6 +2385,7 @@
       '<a href="' + city().painel + '">Painel de ruas (protótipo)</a>' +
       (city().mesa ? '<a href="' + city().mesa + '">Mesa V002</a>' : '') +
       '<a href="' + city().impacto + '">Mapa de impacto</a>' +
+      (city().historicalSpatial ? '<a href="' + city().historicalSpatial + '">Contrato espacial histórico LiDAR/HAND</a>' : '') +
       '<a href="sala-integrada-eventos.html">Sala de replay histórico</a>';
     renderLedger(bundle);
     var casoCap = currentCase();
