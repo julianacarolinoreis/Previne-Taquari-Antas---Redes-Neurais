@@ -2170,3 +2170,327 @@ body.territorio.sala-reunida #map{
   body.territorio.sala-reunida .event-hydrograph svg{min-height:190px}
   body.territorio.sala-reunida #map{height:430px!important}
 }
+
+
+/* —— Comparação histórica Santa Tereza · 2026-10-01 —— */
+body.territorio.sala-reunida .historical-comparison{
+  margin:0 0 16px;
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(244,249,248,.96));
+  box-shadow:var(--shadow);
+}
+body.territorio.sala-reunida .historical-comparison[hidden]{display:none!important}
+body.territorio.sala-reunida .comparison-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  margin-bottom:14px;
+}
+body.territorio.sala-reunida .comparison-head h2{
+  margin:0;
+  font-size:clamp(24px,3vw,34px);
+  letter-spacing:-.04em;
+}
+body.territorio.sala-reunida .comparison-head > div > p:last-child{
+  max-width:850px;
+  margin:7px 0 0;
+  color:var(--muted);
+  font-size:13.5px;
+  line-height:1.45;
+}
+body.territorio.sala-reunida .comparison-scope{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  min-height:32px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid #c5dff2;
+  background:var(--blue-soft);
+  color:var(--blue);
+  font-size:10.5px;
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+body.territorio.sala-reunida .comparison-event-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin-bottom:12px;
+}
+body.territorio.sala-reunida .comparison-event-card{
+  position:relative;
+  overflow:hidden;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:#fff;
+  box-shadow:var(--shadow-small);
+}
+body.territorio.sala-reunida .comparison-event-card:before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:4px;
+  background:var(--teal);
+}
+body.territorio.sala-reunida .comparison-event-card:nth-child(2):before{background:var(--orange)}
+body.territorio.sala-reunida .comparison-event-card:nth-child(3):before{background:var(--blue)}
+body.territorio.sala-reunida .comparison-event-card .event-name{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:8px;
+}
+body.territorio.sala-reunida .comparison-event-card h3{
+  margin:0;
+  font-size:18px;
+  letter-spacing:-.025em;
+}
+body.territorio.sala-reunida .comparison-event-card .role-chip{
+  padding:4px 7px;
+  border-radius:999px;
+  background:#f0f5f4;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+body.territorio.sala-reunida .event-card-metrics{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  margin-top:11px;
+}
+body.territorio.sala-reunida .event-card-metric{
+  padding:8px 9px;
+  border-radius:10px;
+  background:var(--surface-soft);
+  border:1px solid #e0ecea;
+}
+body.territorio.sala-reunida .event-card-metric span{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.055em;
+  text-transform:uppercase;
+}
+body.territorio.sala-reunida .event-card-metric b{
+  display:block;
+  margin-top:3px;
+  color:var(--ink);
+  font-size:16px;
+  line-height:1.1;
+  font-variant-numeric:tabular-nums;
+}
+body.territorio.sala-reunida .event-card-foot{
+  margin:9px 0 0;
+  color:var(--muted);
+  font-size:10.5px;
+  line-height:1.38;
+}
+body.territorio.sala-reunida .comparison-analysis-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);
+  gap:10px;
+}
+body.territorio.sala-reunida .comparison-panel,
+body.territorio.sala-reunida .comparison-table-wrap{
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:#fff;
+}
+body.territorio.sala-reunida .comparison-panel-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:10px;
+}
+body.territorio.sala-reunida .comparison-panel-head h3{
+  margin:0;
+  font-size:18px;
+  letter-spacing:-.025em;
+}
+body.territorio.sala-reunida .comparison-bars{
+  display:grid;
+  gap:12px;
+}
+body.territorio.sala-reunida .bar-group{
+  display:grid;
+  gap:5px;
+}
+body.territorio.sala-reunida .bar-group-title{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  color:var(--ink-soft);
+  font-size:11px;
+  font-weight:850;
+}
+body.territorio.sala-reunida .bar-row{
+  display:grid;
+  grid-template-columns:72px minmax(0,1fr) 70px;
+  align-items:center;
+  gap:8px;
+  font-size:11px;
+}
+body.territorio.sala-reunida .bar-row > span:first-child{
+  color:var(--muted);
+  font-weight:800;
+}
+body.territorio.sala-reunida .bar-track{
+  position:relative;
+  height:9px;
+  border-radius:999px;
+  overflow:hidden;
+  background:#e8efee;
+}
+body.territorio.sala-reunida .bar-fill{
+  height:100%;
+  border-radius:999px;
+  background:var(--teal);
+}
+body.territorio.sala-reunida .bar-row:nth-child(2) .bar-fill{background:var(--orange)}
+body.territorio.sala-reunida .bar-row:nth-child(3) .bar-fill{background:var(--blue)}
+body.territorio.sala-reunida .bar-value{
+  text-align:right;
+  font-weight:900;
+  color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+body.territorio.sala-reunida .comparison-note{
+  margin:11px 0 0;
+  padding:9px 10px;
+  border-radius:10px;
+  background:var(--gold-soft);
+  border:1px solid #ead49a;
+  color:#76510f;
+  font-size:10.5px;
+  line-height:1.4;
+}
+body.territorio.sala-reunida .spatial-warning{
+  padding:11px 12px;
+  border-radius:12px;
+  border:1px solid #f0caa9;
+  background:#fff5ec;
+  color:#7b4d25;
+  font-size:12px;
+  line-height:1.45;
+}
+body.territorio.sala-reunida .spatial-kpis{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:7px;
+  margin:9px 0;
+}
+body.territorio.sala-reunida .spatial-kpi{
+  padding:9px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--surface-soft);
+}
+body.territorio.sala-reunida .spatial-kpi b{
+  display:block;
+  font-size:17px;
+}
+body.territorio.sala-reunida .spatial-kpi span{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:9.5px;
+  line-height:1.25;
+}
+body.territorio.sala-reunida .spatial-evidence-list{
+  display:grid;
+  gap:7px;
+  margin-top:10px;
+}
+body.territorio.sala-reunida .spatial-evidence-item{
+  padding:9px 10px;
+  border-left:3px solid var(--teal);
+  border-radius:0 9px 9px 0;
+  background:#f7fbfa;
+  color:var(--ink-soft);
+  font-size:11px;
+  line-height:1.4;
+}
+body.territorio.sala-reunida .spatial-evidence-item:nth-child(2){border-left-color:var(--orange)}
+body.territorio.sala-reunida .spatial-evidence-item:nth-child(3){border-left-color:var(--blue)}
+body.territorio.sala-reunida .comparison-table-wrap{margin-top:10px}
+body.territorio.sala-reunida .comparison-table-scroll{
+  overflow-x:auto;
+  border:1px solid var(--line);
+  border-radius:11px;
+}
+body.territorio.sala-reunida .comparison-table{
+  width:100%;
+  min-width:760px;
+  border-collapse:collapse;
+  background:#fff;
+  font-size:11.5px;
+}
+body.territorio.sala-reunida .comparison-table th,
+body.territorio.sala-reunida .comparison-table td{
+  padding:9px 10px;
+  border-bottom:1px solid var(--line);
+  vertical-align:top;
+  text-align:left;
+}
+body.territorio.sala-reunida .comparison-table th{
+  background:var(--surface-soft);
+  color:var(--ink-soft);
+  font-size:10px;
+  letter-spacing:.055em;
+  text-transform:uppercase;
+}
+body.territorio.sala-reunida .comparison-table tbody tr:last-child td{border-bottom:0}
+body.territorio.sala-reunida .comparison-table td:first-child{
+  width:190px;
+  color:var(--muted);
+  font-weight:850;
+}
+body.territorio.sala-reunida .comparison-table strong{
+  color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+body.territorio.sala-reunida .comparison-table small{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  line-height:1.35;
+}
+body.territorio.sala-reunida .comparison-findings{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+body.territorio.sala-reunida .finding-card{
+  padding:11px 12px;
+  border-radius:12px;
+  background:linear-gradient(135deg,#eef8f3,#f6fbff);
+  border:1px solid #c9dfd8;
+  color:var(--ink-soft);
+  font-size:11.5px;
+  line-height:1.45;
+}
+body.territorio.sala-reunida .finding-card strong{color:var(--ink)}
+@media(max-width:1000px){
+  body.territorio.sala-reunida .comparison-event-grid{grid-template-columns:1fr}
+  body.territorio.sala-reunida .comparison-analysis-grid{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  body.territorio.sala-reunida .historical-comparison{padding:14px}
+  body.territorio.sala-reunida .comparison-head{display:block}
+  body.territorio.sala-reunida .comparison-scope{margin-top:9px}
+  body.territorio.sala-reunida .comparison-findings{grid-template-columns:1fr}
+  body.territorio.sala-reunida .spatial-kpis{grid-template-columns:1fr}
+}
