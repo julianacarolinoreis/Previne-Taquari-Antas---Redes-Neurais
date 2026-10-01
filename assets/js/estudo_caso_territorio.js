@@ -15,8 +15,9 @@
       ruas: '../assets/data/estudo_caso_territorio/ruas_santa_tereza.json',
       mancha: '../assets/data/estudo_caso_territorio/mancha_santa_tereza.geojson',
       rota: '../assets/data/estudo_caso_territorio/rota_cenario_santa_tereza.json',
+      historicalSpatial: '../assets/data/estudo_caso_territorio/santa_tereza_event_spatial.json',
       replayKey: 'santa_tereza',
-      levels: [15],
+      levels: [15, 20, 20.8, 22.4],
       defaultLevel: 15,
       bankfullFallback: 1500,
       /* Centro urbano (não o envelope de todas as células HAND). */
@@ -350,6 +351,7 @@
       rota: c.rota,
       replay: REPLAY_URL
     };
+    if (c.historicalSpatial) needed.historicalSpatial = c.historicalSpatial;
     if (c.plan) needed.plan = c.plan;
     var jobs = {};
     Object.keys(needed).forEach(function (k) {
@@ -379,7 +381,33 @@
     });
   }
 
+  function historicalSpatialEvent(bundle, opts) {
+    opts = opts || {};
+    var hs = bundle && bundle.historicalSpatial;
+    if (state.city !== 'santa_tereza' || !hs || !Array.isArray(hs.events)) return null;
+    var caso = currentCase();
+    if (!opts.byLevel && caso && caso.mode === 'coupled') {
+      var byCase = hs.events.find(function (e) { return e.case_id === caso.id; });
+      if (byCase) return byCase;
+    }
+    var level = Number(state.level);
+    return hs.events.find(function (e) {
+      return Math.abs(Number(e.contour_level_m) - level) < 1e-9;
+    }) || null;
+  }
+
   function scenario(bundle) {
+    var hist = historicalSpatialEvent(bundle, { byLevel: true });
+    if (hist && hist.scenario) {
+      var sc = Object.assign({}, hist.scenario);
+      sc.level_m = hist.contour_level_m;
+      sc.event_label = hist.event_label;
+      sc.case_id = hist.case_id;
+      sc.gauge_peak_m = hist.gauge_peak_m;
+      sc.hand_exact_m = hist.hand_exact_m;
+      sc.reconstruction = true;
+      return sc;
+    }
     var spatial = bundle.replay && bundle.replay.spatial_scenarios
       && bundle.replay.spatial_scenarios[city().replayKey];
     if (!spatial || !Array.isArray(spatial.scenarios)) return null;
@@ -489,8 +517,17 @@
   }
 
   function manchaFeature(bundle) {
-    var feats = (bundle.mancha && bundle.mancha.features) || [];
     var level = Number(state.level);
+    var hsFeatures = bundle.historicalSpatial && bundle.historicalSpatial.event_contours
+      && bundle.historicalSpatial.event_contours.features;
+    if (state.city === 'santa_tereza' && Array.isArray(hsFeatures)) {
+      var hist = hsFeatures.find(function (f) {
+        var p = f.properties || {};
+        return Math.abs(Number(p.contour_level_m != null ? p.contour_level_m : p.nivel_m) - level) < 1e-9;
+      });
+      if (hist) return hist;
+    }
+    var feats = (bundle.mancha && bundle.mancha.features) || [];
     return feats.find(function (f) {
       return Number(f.properties && f.properties.nivel_m) === level;
     }) || null;
@@ -600,18 +637,20 @@
     if (state.layers.flood) state.layers.flood.clearLayers();
     var rota = bundle.rota;
     var ruas = bundle.ruas;
-    var rotaAtual = rota && !(rota.meta && rota.meta.use_for_current_flood === false);
+    var sc = scenario(bundle);
+    var eventWetIds = sc && Array.isArray(sc.wet_edge_ids) ? new Set(sc.wet_edge_ids.map(Number)) : null;
+    var rotaAtual = rota && !(rota.meta && rota.meta.use_for_current_flood === false) && !eventWetIds;
     var nos = (rotaAtual && rota.nos) || (ruas && ruas.nos);
     var edges = (rotaAtual && rota.edges) || (ruas && ruas.edges);
     if (!nos || !edges) return;
     var dry = [];
     var wet = [];
-    edges.forEach(function (e) {
+    edges.forEach(function (e, idx) {
       var a = nos[e[0]];
       var c = nos[e[1]];
       if (!a || !c) return;
       var seg = [a, c];
-      if (rotaAtual && e[2] === 1) wet.push(seg);
+      if ((eventWetIds && eventWetIds.has(idx)) || (rotaAtual && e[2] === 1)) wet.push(seg);
       else dry.push(seg);
     });
     if (dry.length) {
@@ -636,9 +675,14 @@
   }
 
   function buildStreetPriority(bundle) {
+    var sc = scenario(bundle);
+    var ruas = bundle.ruas;
+    var eventWet = sc && Array.isArray(sc.wet_edge_ids) ? sc.wet_edge_ids.map(Number) : null;
     var rota = bundle.rota;
-    if (!rota || (rota.meta && rota.meta.use_for_current_flood === false) || !Array.isArray(rota.edges) || !Array.isArray(rota.nos)) return [];
-    var nos = rota.nos;
+    var useHistorical = eventWet && ruas && Array.isArray(ruas.edges) && Array.isArray(ruas.nos);
+    if (!useHistorical && (!rota || (rota.meta && rota.meta.use_for_current_flood === false) || !Array.isArray(rota.edges) || !Array.isArray(rota.nos))) return [];
+    var source = useHistorical ? ruas : rota;
+    var nos = source.nos;
     var cells = rankedCells(bundle);
     var cellBounds = [];
     if (state._gradeLayer) {
@@ -649,10 +693,19 @@
         cellBounds.push({ cell: cell, bounds: layer.getBounds() });
       });
     }
+    var wetSet = useHistorical ? new Set(eventWet) : null;
+    var shelters = (ruas && ruas.abrigos) || [];
+    var shelter = shelters[0] || null;
+    function approxDist(lat, lon) {
+      if (!shelter) return null;
+      var dy = (lat - shelter.lat) * 111320;
+      var dx = (lon - shelter.lon) * 111320 * Math.cos(lat * Math.PI / 180);
+      return Math.sqrt(dx * dx + dy * dy);
+    }
     var seen = Object.create(null);
     var list = [];
-    rota.edges.forEach(function (e, idx) {
-      if (e[2] !== 1) return;
+    source.edges.forEach(function (e, idx) {
+      if (useHistorical ? !wetSet.has(idx) : e[2] !== 1) return;
       var a = nos[e[0]];
       var b = nos[e[1]];
       if (!a || !b) return;
@@ -661,8 +714,8 @@
       var bucket = midLat.toFixed(3) + ':' + midLon.toFixed(3);
       if (seen[bucket]) return;
       seen[bucket] = true;
-      var agua = ((num(rota.agua_m[e[0]]) || 0) + (num(rota.agua_m[e[1]]) || 0)) / 2;
-      var dist = ((num(rota.dist_m[e[0]]) || 0) + (num(rota.dist_m[e[1]]) || 0)) / 2;
+      var agua = useHistorical ? null : (((num(rota.agua_m[e[0]]) || 0) + (num(rota.agua_m[e[1]]) || 0)) / 2);
+      var dist = useHistorical ? approxDist(midLat, midLon) : (((num(rota.dist_m[e[0]]) || 0) + (num(rota.dist_m[e[1]]) || 0)) / 2);
       var popNear = 0;
       for (var i = 0; i < cellBounds.length; i++) {
         if (cellBounds[i].bounds.contains([midLat, midLon])) {
@@ -671,55 +724,56 @@
       }
       list.push({
         id: 's' + idx,
+        edgeIndex: idx,
         midLat: midLat,
         midLon: midLon,
         agua: agua,
         dist: dist,
         popNear: popNear,
-        score: popNear * 2 + agua + Math.max(0, 2500 - dist) * 0.05
+        historical: useHistorical,
+        score: popNear * 2 + (agua || 0) + Math.max(0, 2500 - (dist || 2500)) * 0.05
       });
     });
     list.sort(function (x, y) {
-      return (y.score - x.score) || (y.agua - x.agua) || (x.dist - y.dist);
+      return (y.score - x.score) || ((y.agua || 0) - (x.agua || 0)) || ((x.dist || 1e9) - (y.dist || 1e9));
     });
     return list.slice(0, 3);
   }
-
   function renderStreetPriority(bundle) {
     var ol = $('street-priority');
     var count = $('street-count');
+    var sc = scenario(bundle);
     state.streetPriority = buildStreetPriority(bundle);
-    var nFlood = 0;
-    if (bundle.rota && bundle.rota.edges) {
+    var historical = !!(sc && sc.reconstruction && Array.isArray(sc.wet_edge_ids));
+    var nFlood = historical ? Number(sc.road_centerline_edges_touched || sc.wet_edge_ids.length || 0) : 0;
+    if (!historical && bundle.rota && bundle.rota.edges && !(bundle.rota.meta && bundle.rota.meta.use_for_current_flood === false)) {
       bundle.rota.edges.forEach(function (e) { if (e[2] === 1) nFlood += 1; });
     }
     var sitRuas = $('sit-ruas');
     if (sitRuas) sitRuas.textContent = nFlood ? fmtInt(nFlood) : '0';
     if (count) {
-      count.textContent = nFlood
-        ? ('Trocar trecho · ' + nFlood + ' com água')
-        : 'Sem rua com água neste momento';
+      count.textContent = historical
+        ? (fmtInt(nFlood) + ' segmentos OSM tocados pela reconstrução · não implica bloqueio')
+        : (nFlood ? ('Trocar trecho · ' + nFlood + ' com água') : 'Sem trecho classificado neste cenário');
     }
     if (!ol) return;
     if (!state.streetPriority.length) {
-      var legado = bundle.rota && bundle.rota.meta && bundle.rota.meta.use_for_current_flood === false;
-      ol.innerHTML = legado
-        ? '<li class="empty">Cenário antigo de ruas desativado. Use o Painel de evacuação para o nível selecionado.</li>'
+      ol.innerHTML = historical
+        ? '<li class="empty">Nenhum segmento prioritário foi selecionado para este recorte histórico.</li>'
         : '<li class="empty">Sem trecho prioritário.</li>';
       return;
     }
     ol.innerHTML = state.streetPriority.map(function (s, i) {
       var km = s.dist != null ? (s.dist / 1000).toFixed(1).replace('.', ',') + ' km' : '—';
-      var titulo = i === 0 ? 'Mais perto' : ('Opção ' + (i + 1));
+      var titulo = s.historical ? ('Trecho reconstruído ' + (i + 1)) : (i === 0 ? 'Mais perto' : ('Opção ' + (i + 1)));
       return '<li><button type="button" class="street-btn' + (state.selectedStreet === s.id ? ' is-active' : '') +
-        '" data-street="' + esc(s.id) + '" aria-pressed="' +
-        String(state.selectedStreet === s.id) + '">' +
+        '" data-street="' + esc(s.id) + '" aria-pressed="' + String(state.selectedStreet === s.id) + '">' +
         '<span class="rank">' + String(i + 1).padStart(2, '0') + '</span>' +
-        '<span class="body"><b>' + esc(titulo) + '</b><small>' + esc(km) + '</small></span>' +
-        '</button></li>';
+        '<span class="body"><b>' + esc(titulo) + '</b><small>' +
+        esc(s.historical ? ('centro do segmento · abrigo a ~' + km + ' em linha reta') : km) +
+        '</small></span></button></li>';
     }).join('');
   }
-
   function selectStreet(bundle, streetId) {
     var s = (state.streetPriority || []).find(function (x) { return x.id === streetId; });
     if (!s || !state.map) return;
@@ -731,7 +785,7 @@
       radius: 7, color: '#c45c26', fillColor: '#fff', fillOpacity: 1, weight: 3
     }).addTo(state.map);
     focusOnPoint(s.midLat, s.midLon, { zoom: 16, maxZoom: 17 });
-    var rotaInfo = drawRota(bundle, s.midLat, s.midLon, { fit: true });
+    var rotaInfo = s.historical ? null : drawRota(bundle, s.midLat, s.midLon, { fit: true });
     var cell = nearestTouchedCell(bundle, s.midLat, s.midLon);
     if (cell) {
       state.selectedId = cell.id;
@@ -741,9 +795,9 @@
     var cap = $('story-caption');
     if (cap) {
       var casoStory = currentCase();
-      cap.textContent = (casoStory && casoStory.story)
-        ? casoStory.story
-        : 'Toque a rua laranja → caminho até o abrigo seco';
+      cap.textContent = s.historical
+        ? 'Trecho tocado pela reconstrução histórica · não é rota bloqueada nem rota operacional'
+        : ((casoStory && casoStory.story) ? casoStory.story : 'Toque a rua laranja → caminho até o abrigo seco');
     }
     pulseMap();
     applyStoryLayers();
@@ -1268,15 +1322,26 @@
       reading = 'Replay histórico com série observada e resposta da RNA no mesmo eixo temporal.';
     }
     if ($('event-reading')) $('event-reading').textContent = reading;
-    if ($('event-caveat')) $('event-caveat').textContent =
-      'Importante: o HAND ' + (caso.hand_m != null ? caso.hand_m + ' m' : 'selecionado') +
-      ' é um cenário espacial de referência. Esta página não converte automaticamente centímetros da régua em cota HAND.';
+    if ($('event-caveat')) {
+      if (state.city === 'santa_tereza' && caso.reconstruction) {
+        $('event-caveat').textContent =
+          'Espacialização histórica de pesquisa: ' + Number(caso.reconstruction.gauge_peak_m).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) +
+          ' m na régua → HAND exato ' + Number(caso.reconstruction.hand_exact_m).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) +
+          ' m → contorno LiDAR/D8 ' + Number(caso.reconstruction.contour_level_m).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) +
+          ' m. Calibração de campo: 1,60 m na régua = HAND 0. Não é polígono observado nem simulação hidrodinâmica 2-D.';
+      } else {
+        $('event-caveat').textContent =
+          'O HAND ' + (caso.hand_m != null ? caso.hand_m + ' m' : 'selecionado') +
+          ' permanece separado da leitura de régua quando não há calibração específica documentada.';
+      }
+    }
     if ($('event-provenance')) {
       var source = rna.source || 'fonte do pacote';
       var eid = rna.event_id || ('evento ' + (rna.catalog_event || ''));
       $('event-provenance').textContent =
         'Proveniência: ' + eid + ' · ' + source +
         (caso.dataset_role ? ' · papel na modelagem: ' + caso.dataset_role : '') +
+        (caso.reconstruction && caso.reconstruction.source ? ' · espacial: ' + caso.reconstruction.source : '') +
         '. Uso de pesquisa; não é alerta nem ordem operacional.';
     }
     renderEventHydrograph(caso);
@@ -1356,32 +1421,43 @@
     return ev || null;
   }
 
-  function renderSpatialComparison(cases) {
+  function renderSpatialComparison(cases, bundle) {
     var host = $('spatial-comparison');
     if (!host) return;
     var cmp = state.casesDoc && state.casesDoc.comparative_analysis;
     var sp = cmp && cmp.spatial_reference;
+    var hs = bundle && bundle.historicalSpatial;
     if (!sp) {
       host.innerHTML = '<p class="comparison-note">Resumo espacial comparativo indisponível.</p>';
       return;
     }
+    var events = hs && Array.isArray(hs.events) ? hs.events : [];
     host.innerHTML =
-      '<div class="spatial-warning"><strong>Não são três manchas observadas.</strong> ' + esc(sp.warning || '') + '</div>' +
-      '<div class="spatial-kpis">' +
-        '<div class="spatial-kpi"><b>' + esc(fmtInt(sp.cells_200m_touched)) + '</b><span>células 200 m tocadas pelo HAND ' + esc(sp.hand_m) + ' m</span></div>' +
-        '<div class="spatial-kpi"><b>' + esc(fmtInt(sp.population_upper_bound_whole_touched_cells)) + '</b><span>pessoas · limite superior nas células inteiras</span></div>' +
-        '<div class="spatial-kpi"><b>' + esc(fmtOne(sp.population_area_weighted_proxy, '')) + '</b><span>proxy populacional ponderado por área</span></div>' +
+      '<div class="spatial-warning"><strong>Reconstruções comparáveis, não manchas observadas.</strong> ' + esc(sp.warning || '') + '</div>' +
+      '<div class="spatial-event-metrics">' +
+      cases.map(function (c) {
+        var e = events.find(function (x) { return x.case_id === c.id; });
+        var sc = e && e.scenario || {};
+        return '<div class="spatial-event-card"><b>' + esc(c.short || c.label) + '</b>' +
+          '<span>régua ' + esc(e ? fmtOne(e.gauge_peak_m, ' m') : '—') + ' → HAND ' + esc(e ? fmtOne(e.contour_level_m, ' m') : '—') + '</span>' +
+          '<strong>' + esc(sc.contour_area_ha == null ? '—' : fmtOne(sc.contour_area_ha, ' ha')) + '</strong>' +
+          '<small>' + esc(fmtInt(sc.cells_200m_touched)) + ' células · proxy pop. ' + esc(fmtOne(sc.population_area_weighted_proxy, '')) +
+          ' · ' + esc(fmtInt(sc.road_centerline_edges_touched)) + ' segmentos OSM</small></div>';
+      }).join('') +
       '</div>' +
       '<div class="spatial-evidence-list">' +
       cases.map(function (c) {
         var ev = comparisonEvidence(c);
+        var links = (c.external_evidence || []).map(function (src) {
+          return '<a href="' + esc(src.url) + '" target="_blank" rel="noopener">' + esc(src.label) + '</a>';
+        }).join(' · ');
         return '<div class="spatial-evidence-item"><strong>' + esc(c.short || c.label) + '.</strong> ' +
-          esc(ev && ev.evidence ? ev.evidence : 'Sem evidência espacial específica registrada no pacote comparativo.') + '</div>';
+          esc(ev && ev.evidence ? ev.evidence : 'Sem evidência específica registrada.') +
+          (links ? '<div class="evidence-links">' + links + '</div>' : '') + '</div>';
       }).join('') +
       '</div>';
   }
-
-  function renderComparisonTable(cases) {
+  function renderComparisonTable(cases, bundle) {
     var body = $('comparison-table-body');
     if (!body) return;
     function cell(html, note) {
@@ -1448,6 +1524,38 @@
         var ev = comparisonEvidence(c);
         return cell('<strong>' + esc(ev && ev.status ? ev.status.replace(/_/g, ' ') : '—') + '</strong>', ev && ev.evidence ? ev.evidence : '');
       }) +
+      row('Nível de régua usado na espacialização', function (c) {
+        var hs = bundle && bundle.historicalSpatial;
+        var e = hs && (hs.events || []).find(function (x) { return x.case_id === c.id; });
+        return cell('<strong>' + esc(e ? fmtOne(e.gauge_peak_m, ' m') : '—') + '</strong>', e ? e.gauge_basis : '');
+      }) +
+      row('HAND reconstruído / contorno', function (c) {
+        var hs = bundle && bundle.historicalSpatial;
+        var e = hs && (hs.events || []).find(function (x) { return x.case_id === c.id; });
+        return cell('<strong>' + esc(e ? fmtOne(e.hand_exact_m, ' m') + ' → ' + fmtOne(e.contour_level_m, ' m') : '—') + '</strong>', 'contornos em passos de 0,1 m');
+      }) +
+      row('Área da reconstrução', function (c) {
+        var hs = bundle && bundle.historicalSpatial;
+        var e = hs && (hs.events || []).find(function (x) { return x.case_id === c.id; });
+        return cell('<strong>' + esc(e && e.scenario ? fmtOne(e.scenario.contour_area_ha, ' ha') : '—') + '</strong>', 'LiDAR/D8 · limite do contorno escolhido');
+      }) +
+      row('Células 200 m tocadas', function (c) {
+        var hs = bundle && bundle.historicalSpatial;
+        var e = hs && (hs.events || []).find(function (x) { return x.case_id === c.id; });
+        return cell('<strong>' + esc(e && e.scenario ? fmtInt(e.scenario.cells_200m_touched) : '—') + '</strong>', 'interseção geométrica com área positiva');
+      }) +
+      row('População · limite superior / proxy área', function (c) {
+        var hs = bundle && bundle.historicalSpatial;
+        var e = hs && (hs.events || []).find(function (x) { return x.case_id === c.id; });
+        var sc = e && e.scenario;
+        return cell('<strong>' + esc(sc ? fmtInt(sc.population_upper_bound_whole_touched_cells) + ' / ' + fmtOne(sc.population_area_weighted_proxy, '') : '—') + '</strong>', 'Censo 2022; não é população evacuada');
+      }) +
+      row('Segmentos OSM tocados', function (c) {
+        var hs = bundle && bundle.historicalSpatial;
+        var e = hs && (hs.events || []).find(function (x) { return x.case_id === c.id; });
+        var sc = e && e.scenario;
+        return cell('<strong>' + esc(sc ? fmtInt(sc.road_centerline_edges_touched) : '—') + '</strong>', 'interseção de eixo viário; não implica bloqueio');
+      }) +
       row('Papel no modelo', function (c) {
         return cell('<strong>' + esc(c.dataset_role || '—') + '</strong>', 'não é validação independente');
       });
@@ -1490,8 +1598,8 @@
       }).join('');
     }
     renderComparisonBars(cases);
-    renderSpatialComparison(cases);
-    renderComparisonTable(cases);
+    renderSpatialComparison(cases, bundle);
+    renderComparisonTable(cases, bundle);
     var findings = $('comparison-findings');
     var notes = state.casesDoc.comparative_analysis.interpretation_notes || [];
     if (findings) {
@@ -1624,7 +1732,19 @@
   function renderLevels() {
     var row = $('level-row');
     if (!row) return;
-    row.innerHTML = city().levels.map(function (lv) {
+    var caso = currentCase();
+    if (state.city === 'santa_tereza' && caso && caso.mode === 'coupled' && caso.reconstruction) {
+      var rec = caso.reconstruction;
+      var sensitivity = rec.sensitivity && num(rec.sensitivity.contour_level_m) != null
+        ? ' · sensibilidade ' + Number(rec.sensitivity.contour_level_m).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '–' +
+          Number(rec.contour_level_m).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' m'
+        : '';
+      row.innerHTML = '<button type="button" data-level="' + esc(rec.contour_level_m) + '" aria-pressed="true">' +
+        esc((caso.short || caso.label) + ' · HAND ' + Number(rec.contour_level_m).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' m' + sensitivity) +
+        '</button>';
+      return;
+    }
+    row.innerHTML = city().levels.filter(function (lv) { return state.city !== 'santa_tereza' || Number(lv) === 15; }).map(function (lv) {
       return '<button type="button" data-level="' + lv + '" aria-pressed="' +
         (Number(lv) === Number(state.level)) + '">Cenário ' + lv + ' m</button>';
     }).join('');
@@ -1681,7 +1801,13 @@
         status.textContent = 'pronto';
       }
     }
-    if ($('meta-line')) $('meta-line').textContent = 'cenário de inundação no mapa: ' + state.level + ' m (publicado)';
+    if ($('meta-line')) {
+      var histEv = historicalSpatialEvent(bundle);
+      $('meta-line').textContent = histEv
+        ? ('reconstrução histórica: régua ' + Number(histEv.gauge_peak_m).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) +
+          ' m → HAND ' + Number(histEv.contour_level_m).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' m · LiDAR/D8')
+        : ('cenário de inundação no mapa: ' + state.level + ' m (publicado)');
+    }
     if ($('stat-cells')) $('stat-cells').textContent = sc ? fmtInt(sc.cells_200m_touched) : fmtInt(ranked.length);
     if ($('stat-pop')) $('stat-pop').textContent = sc ? fmtInt(sc.population_upper_bound_whole_touched_cells) : '—';
     if ($('stat-proxy')) {
@@ -1689,7 +1815,9 @@
         ? Math.round(sc.population_area_weighted_proxy).toLocaleString('pt-BR')
         : '—';
     }
-    if ($('stat-ruas')) $('stat-ruas').textContent = bundle.ruas && bundle.ruas.edges ? fmtInt(bundle.ruas.edges.length) : '—';
+    if ($('stat-ruas')) $('stat-ruas').textContent = sc && sc.reconstruction
+      ? fmtInt(sc.road_centerline_edges_touched)
+      : (bundle.ruas && bundle.ruas.edges ? fmtInt(bundle.ruas.edges.length) : '—');
     if ($('stat-abrigos')) $('stat-abrigos').textContent = fmtInt(abrigosOf(bundle).length);
 
     var list = $('cell-list');
@@ -2122,10 +2250,17 @@
           'Muçum: ' + fmtInt(eventCount || 32) + ' eventos no catálogo · replay publicado ' +
           (cityCases[0].event_id || '') +
           ' (pico ~' + fmtCm(cityCases[0].peak_observed_cm) + '). A mancha no mapa ainda é cenário HAND fixo — não o pico da régua convertido.';
+      } else if (state.city === 'santa_tereza' && currentCase() && currentCase().mode === 'coupled' && currentCase().reconstruction) {
+        var rec = currentCase().reconstruction;
+        eventNote.textContent =
+          'Santa Tereza: reconstrução histórica específica do evento · régua ' +
+          Number(rec.gauge_peak_m).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' m → HAND ' +
+          Number(rec.contour_level_m).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) +
+          ' m pela calibração de campo 1,60 m = HAND 0. LiDAR/D8; não é mancha observada.';
       } else if (eventCount) {
         eventNote.textContent =
           city().label + ': ' + fmtInt(eventCount) +
-          ' eventos no catálogo de análise da RNA. A mancha no mapa é cenário HAND publicado; conversão régua ↔ HAND pendente.';
+          ' eventos no catálogo de análise da RNA. O cenário espacial permanece separado quando não há reconstrução específica.';
       } else {
         eventNote.textContent =
           'Catálogos de eventos RNA e manchas HAND publicados alimentam o estudo de caso. Conversão régua ↔ HAND continua pendente.';
