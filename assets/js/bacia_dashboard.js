@@ -9,7 +9,7 @@
   if (!root) return;
 
   const $ = (id) => document.getElementById(id);
-  const state = { station: 'basin', horizon: 72, feeds: {}, research: null, basinGeometry: null, networkStatus: null, networkFilter: 'all', networkSource: 'all', networkVariable: 'all', networkModel: 'all', networkMode: 'health', selectedNetworkStationId: null, lastLoadedAt: null, loading: false };
+  const state = { station: 'basin', horizon: 72, feeds: {}, research: null, basinGeometry: null, networkStatus: null, networkFilter: 'all', networkSource: 'all', networkUpg: 'all', networkVariable: 'all', networkModel: 'all', networkMode: 'health', selectedNetworkStationId: null, lastLoadedAt: null, loading: false };
   const researchUrl = 'assets/data/research_basin_screening_latest.json';
   const basinStatusUrl = 'assets/data/basin_station_status_latest.json';
   const basinUrl = 'assets/data/estudo_bacia_taquari_antas/ugs_g040.geojson';
@@ -373,6 +373,7 @@
     if (state.networkFilter === 'no-current' && ['current', 'attention'].includes(observed.status)) return false;
     if (state.networkFilter === 'none' && observed.status !== 'none') return false;
     if (state.networkSource !== 'all' && !(item.source_networks || []).includes(state.networkSource)) return false;
+    if (state.networkUpg !== 'all' && String(item.upg_label || 'UPG não informada') !== state.networkUpg) return false;
     if (!networkHasVariable(item, state.networkVariable)) return false;
     if (state.networkModel !== 'all') {
       const model = item.forecast && item.forecast.models && item.forecast.models[state.networkModel];
@@ -399,6 +400,75 @@
     return found && found.label ? found.label : modelId;
   }
 
+  function populateNetworkUpgFilter() {
+    const select = $('basin-upg-filter');
+    if (!select) return;
+    const values = [...new Set(networkStations().map((item) => String(item.upg_label || 'UPG não informada')).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const current = state.networkUpg;
+    select.innerHTML = '<option value="all">Todas as UPGs</option>' + values.map((value) =>
+      '<option value="' + esc(value) + '">' + esc(value) + '</option>'
+    ).join('');
+    select.value = values.includes(current) ? current : 'all';
+    if (select.value === 'all') state.networkUpg = 'all';
+  }
+
+  function networkSourceSummary(status) {
+    const counts = status && status.source_counts && typeof status.source_counts === 'object' ? status.source_counts : {};
+    const order = ['ANA/HidroWeb', 'SGB/SACE', 'CEMADEN', 'INMET'];
+    return order.filter((key) => num(counts[key]) != null).map((key) =>
+      '<span><b>' + esc(key) + '</b> ' + fmt(counts[key], 0) + '</span>'
+    ).join('');
+  }
+
+  function networkUpgRows() {
+    const groups = new Map();
+    networkStations().forEach((item) => {
+      const key = String(item.upg_label || 'UPG não informada');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(item);
+    });
+    return [...groups.entries()].map(([label, rows]) => {
+      const states = rows.map(networkObservation);
+      const current30 = states.filter((row) => row.status === 'current').length;
+      const attention = states.filter((row) => row.status === 'attention').length;
+      const delayed = states.filter((row) => row.status === 'delayed').length;
+      const veryDelayed = states.filter((row) => row.status === 'very-delayed').length;
+      const noTime = states.filter((row) => row.status === 'no-time').length;
+      const none = states.filter((row) => row.status === 'none').length;
+      const current60 = current30 + attention;
+      const observed = rows.length - none;
+      return {
+        label, total: rows.length, current30, attention, current60, delayed,
+        veryDelayed, noTime, none, observed,
+        currentRatio: rows.length ? current60 / rows.length : 0,
+        observedRatio: rows.length ? observed / rows.length : 0
+      };
+    }).sort((a, b) => a.currentRatio - b.currentRatio || b.total - a.total || a.label.localeCompare(b.label, 'pt-BR'));
+  }
+
+  function renderUpgHealth() {
+    const host = $('basin-upg-health');
+    if (!host) return;
+    const groups = networkUpgRows();
+    if (!groups.length) {
+      host.innerHTML = '<div class="empty-block">Sem UPGs disponíveis no snapshot atual.</div>';
+      return;
+    }
+    host.innerHTML = '<div class="upg-health-head"><div><span class="now-eyebrow">Cobertura observacional por UPG</span><h4>Onde a rede está mais cega agora?</h4></div><span>ordenado pela menor proporção de estações ≤1 h</span></div>' +
+      '<div class="upg-health-table-wrap"><table class="upg-health-table"><thead><tr><th>UPG</th><th>Estações</th><th>≤30 min</th><th>30–60 min</th><th>1–3 h</th><th>&gt;3 h</th><th>Sem hora</th><th>Sem observado</th><th>≤1 h</th></tr></thead><tbody>' +
+      groups.map((row) => '<tr data-upg-row="' + esc(row.label) + '"><td><button type="button" class="upg-link" data-upg-select="' + esc(row.label) + '">' + esc(row.label) + '</button></td><td>' + fmt(row.total, 0) + '</td><td>' + fmt(row.current30, 0) + '</td><td>' + fmt(row.attention, 0) + '</td><td>' + fmt(row.delayed, 0) + '</td><td>' + fmt(row.veryDelayed, 0) + '</td><td>' + fmt(row.noTime, 0) + '</td><td>' + fmt(row.none, 0) + '</td><td><strong>' + fmt(row.currentRatio * 100, 0) + '%</strong></td></tr>').join('') +
+      '</tbody></table></div><p class="upg-health-note">Esta é cobertura da rede observacional publicada no snapshot, não risco de inundação. “Sem hora” significa que há valor observado, mas a fonte não fornece relógio individual utilizável para classificar frescor.</p>';
+    host.querySelectorAll('[data-upg-select]').forEach((button) => {
+      button.addEventListener('click', () => {
+        state.networkUpg = button.getAttribute('data-upg-select') || 'all';
+        const select = $('basin-upg-filter');
+        if (select) select.value = state.networkUpg;
+        renderBasinMap();
+      });
+    });
+  }
+
   function renderNetworkSummary() {
     const host = $('basin-network-summary');
     const note = $('basin-network-note');
@@ -410,25 +480,32 @@
     const forecast = num(scope.forecast_station_count);
     const observedAny = num(scope.observed_any_station_count);
     const observedStates = rows.map(networkObservation);
-    const current = observedStates.filter((row) => row.status === 'current' || row.status === 'attention').length;
-    const delayed = observedStates.filter((row) => row.status === 'delayed' || row.status === 'very-delayed').length;
+    const current30 = observedStates.filter((row) => row.status === 'current').length;
+    const attention = observedStates.filter((row) => row.status === 'attention').length;
+    const delayed = observedStates.filter((row) => row.status === 'delayed').length;
+    const veryDelayed = observedStates.filter((row) => row.status === 'very-delayed').length;
     const noTime = observedStates.filter((row) => row.status === 'no-time').length;
-    const none = observedAny == null ? observedStates.filter((row) => row.status === 'none').length : Math.max(0, total - observedAny);
+    const none = observedStates.filter((row) => row.status === 'none').length;
     const ages = observedStates.map((row) => row.ageHours).filter((value) => value != null);
     const maxAge = ages.length ? Math.max(...ages) : null;
     const visible = rows.filter(networkMatchesFilter).length;
     const items = [
-      ['G040', total == null ? '—' : fmt(total, 0), 'estações no catálogo'],
-      ['Previsto', forecast == null ? '—' : fmt(forecast, 0) + '/' + fmt(total, 0), status.coverage && status.coverage.forecast_complete ? 'rodada completa' : 'cobertura parcial'],
-      ['Algum observado', observedAny == null ? '—' : fmt(observedAny, 0) + '/' + fmt(total, 0), 'não implica tempo real'],
-      ['Atual ≤1 h', rows.length ? fmt(current, 0) : '—', 'com relógio individual'],
-      ['Atrasado >1 h', rows.length ? fmt(delayed, 0) : '—', 'com relógio individual'],
-      ['Sem observado', total == null ? '—' : fmt(none, 0), 'catálogo/previsão apenas']
+      ['G040', total == null ? '—' : fmt(total, 0), 'estações no catálogo', 'catalog'],
+      ['Previsto', forecast == null ? '—' : fmt(forecast, 0) + '/' + fmt(total, 0), status.coverage && status.coverage.forecast_complete ? 'rodada completa' : 'cobertura parcial', 'forecast'],
+      ['≤30 min', rows.length ? fmt(current30, 0) : '—', 'observação atual', 'current'],
+      ['30–60 min', rows.length ? fmt(attention, 0) : '—', 'atenção à idade', 'attention'],
+      ['1–3 h', rows.length ? fmt(delayed, 0) : '—', 'observação atrasada', 'delayed'],
+      ['>3 h', rows.length ? fmt(veryDelayed, 0) : '—', 'muito atrasada', 'very-delayed'],
+      ['Sem hora', rows.length ? fmt(noTime, 0) : '—', 'valor sem relógio individual', 'no-time'],
+      ['Sem observado', rows.length ? fmt(none, 0) : '—', 'catálogo/previsão apenas', 'none']
     ];
+    const sourceSummary = networkSourceSummary(status);
     host.innerHTML = '<div class="network-summary-grid">' + items.map((row) =>
-      '<div class="network-summary-card"><span>' + esc(row[0]) + '</span><strong>' + esc(row[1]) + '</strong><small>' + esc(row[2]) + '</small></div>'
-    ).join('') + '</div><p class="network-summary-note">' +
-      (rows.length ? fmt(visible, 0) + ' pontos visíveis no filtro · ' + (noTime ? fmt(noTime, 0) + ' com observado sem hora individual · ' : '') + (maxAge != null ? 'maior idade com relógio ' + ageLabel(maxAge) + ' · ' : '') : 'Resumo geral disponível; snapshot por estação ainda em atualização · ') +
+      '<div class="network-summary-card is-' + esc(row[3]) + '"><span>' + esc(row[0]) + '</span><strong>' + esc(row[1]) + '</strong><small>' + esc(row[2]) + '</small></div>'
+    ).join('') + '</div>' +
+      '<div class="network-source-strip"><span class="network-source-title">Catálogo integrado por fonte</span>' + (sourceSummary || '<span>fontes não resumidas</span>') + '</div>' +
+      '<p class="network-summary-note">' +
+      (rows.length ? fmt(visible, 0) + ' pontos visíveis no filtro · algum observado ' + (observedAny == null ? '—' : fmt(observedAny, 0) + '/' + fmt(total, 0)) + ' · ' + (maxAge != null ? 'maior idade com relógio ' + ageLabel(maxAge) + ' · ' : '') : 'Resumo geral disponível; snapshot por estação ainda em atualização · ') +
       (status.generated_at_utc ? 'snapshot ' + when(status.generated_at_utc) + ' BRT' : 'snapshot sem horário') + '.</p>';
     if (note) note.textContent = rows.length ? fmt(visible, 0) + ' de ' + fmt(total, 0) + ' estações visíveis · cor = idade do observado' : 'aguardando snapshot compacto por estação';
   }
@@ -481,17 +558,27 @@
         ).join('') + '</div>' : '<p class="network-detail-empty">RNA aplicável, mas sem previsão futura válida nesta rodada.</p>')
       : '<p class="network-detail-empty">RNA de nível não publicada para esta estação. A previsão meteorológica continua independente.</p>';
     const cemadenHtml = cemaden ? '<div class="network-cemaden-note"><strong>CEMADEN 24 h:</strong> ' + fmt(cemaden.value, 1) + ' mm <span>· horário é da atualização do painel, não do relógio individual do sensor' + (cemaden.updated_at_utc ? ' · painel ' + when(cemaden.updated_at_utc) + ' BRT' : '') + '</span></div>' : '';
+    const traceRows = networkSourceObservations(item).map((row) => {
+      const value = num(row.value);
+      const metric = String(row.metric || 'observação').replace(/_/g, ' ');
+      const unit = row.unit ? ' ' + row.unit : '';
+      return '<div class="network-trace-row"><div><strong>' + esc(row.source || 'fonte') + '</strong><span>' + esc(metric) + '</span></div><b>' + (value == null ? '—' : esc(fmt(value, 2) + unit)) + '</b><small>' + (row.updated_at_utc ? esc(when(row.updated_at_utc) + ' BRT') : 'sem horário publicado') + '</small></div>';
+    }).join('');
+    const traceHtml = '<div class="network-detail-section"><div class="network-detail-title"><strong>RASTREABILIDADE DA ESTAÇÃO</strong><span>fonte · variável · valor · horário publicado</span></div><div class="network-trace-grid">' +
+      (traceRows || '<p class="network-detail-empty">Sem observações auxiliares publicadas para esta estação.</p>') +
+      '</div><p class="network-trace-note">O horário acima é preservado conforme a fonte. Quando o CEMADEN fornece apenas horário de atualização do painel, ele não é usado como relógio individual do sensor.</p></div>';
     host.innerHTML =
       '<article class="network-detail-card"><div class="network-detail-head"><div><span class="network-detail-kicker">' + esc(item.upg_label || 'G040') + '</span><h4>' + esc(item.name || 'Estação') + ' <small>' + esc(item.code || '') + '</small></h4><p>' + esc(sources) + (item.type_label ? ' · ' + esc(item.type_label) : '') + '</p></div><span class="network-status-pill ' + esc(observed.status) + '">' + esc(networkStatusLabel(observed.status)) + '</span></div>' +
       '<div class="network-detail-primary"><div><span>NÍVEL OBSERVADO</span><strong>' + levelValue + '</strong><small>' + esc(levelNote) + '</small></div><div><span>VAZÃO OBSERVADA</span><strong>' + flowValue + '</strong><small>' + esc(flowNote) + '</small></div><div><span>ÚLTIMA EVIDÊNCIA OBSERVADA</span><strong>' + (observed.status === 'none' ? '—' : observed.status === 'no-time' ? 'sem hora individual' : ageLabel(observed.ageHours)) + '</strong><small>' + esc(lastObserved) + '</small></div></div>' +
       '<div class="network-detail-section"><div class="network-detail-title"><strong>CHUVA OBSERVADA</strong><span>' + (rain.state === 'available' ? esc(rain.source || 'série horária') : 'série horária indisponível') + '</span></div><div class="network-rain-grid">' + rainHtml + '</div>' + cemadenHtml + '</div>' +
-      '<div class="network-detail-split"><div class="network-detail-section"><div class="network-detail-title"><strong>PREVISÃO METEOROLÓGICA</strong><span>separada do observado</span></div><div class="network-model-grid">' + (modelHtml || '<p class="network-detail-empty">Sem resumo de modelos.</p>') + '</div></div><div class="network-detail-section"><div class="network-detail-title"><strong>RNA DE NÍVEL</strong><span>' + (level.forecast_applicable ? 'modelo específico da estação' : 'não aplicável') + '</span></div>' + rnaHtml + '</div></div></article>';
+      '<div class="network-detail-split"><div class="network-detail-section"><div class="network-detail-title"><strong>PREVISÃO METEOROLÓGICA</strong><span>separada do observado</span></div><div class="network-model-grid">' + (modelHtml || '<p class="network-detail-empty">Sem resumo de modelos.</p>') + '</div></div><div class="network-detail-section"><div class="network-detail-title"><strong>RNA DE NÍVEL</strong><span>' + (level.forecast_applicable ? 'modelo específico da estação' : 'não aplicável') + '</span></div>' + rnaHtml + '</div></div>' + traceHtml + '</article>';
   }
 
   function renderBasinMap() {
     const host = $('basin-map');
     if (!host) return;
     renderNetworkSummary();
+    renderUpgHealth();
     const rings = geoRings(state.basinGeometry);
     const all = networkStations();
     if (!rings.length) {
@@ -954,6 +1041,7 @@
       state.research = research;
       state.basinGeometry = basin;
       state.networkStatus = networkStatus;
+      populateNetworkUpgFilter();
       if (!state.selectedNetworkStationId && networkStatus && Array.isArray(networkStatus.stations)) {
         const initial = networkStatus.stations.find((row) => String(row.code) === '86472600') || networkStatus.stations[0];
         state.selectedNetworkStationId = initial ? initial.id : null;
@@ -1013,6 +1101,8 @@
   });
   const sourceFilter = $('basin-source-filter');
   if (sourceFilter) sourceFilter.addEventListener('change', () => { state.networkSource = sourceFilter.value || 'all'; renderBasinMap(); });
+  const upgFilter = $('basin-upg-filter');
+  if (upgFilter) upgFilter.addEventListener('change', () => { state.networkUpg = upgFilter.value || 'all'; renderBasinMap(); });
   const variableFilter = $('basin-variable-filter');
   if (variableFilter) variableFilter.addEventListener('change', () => { state.networkVariable = variableFilter.value || 'all'; renderBasinMap(); });
   const modelFilter = $('basin-model-filter');
