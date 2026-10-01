@@ -351,6 +351,8 @@ def build_feed_v3() -> dict:
         sm = spatial_hec.get("summary") or {}
         validation = spatial_hec.get("validation") or {}
         rain = spatial_hec.get("rain") or {}
+        blocked_series = spatial_hec.get("series") or {}
+        blocked_times = spatial_hec.get("times_utc") or []
         feed["rainfall_runoff_result"] = {
             "available": False,
             "generated_at_utc": spatial_hec.get("generated_at_utc"),
@@ -370,6 +372,17 @@ def build_feed_v3() -> dict:
             "forcing_rain_mm": rain.get("basin_equivalent_forecast_mm_for_audit"),
             "validation": validation,
             "blocking_reasons_pt": validation.get("blocking_reasons_pt") or sm.get("blocking_reasons_pt") or [],
+            "diagnostic_candidate": {
+                "available": bool(blocked_times and blocked_series.get("n_mucum_rating_cm")),
+                "time_utc": blocked_times,
+                "q_mucum_m3s": blocked_series.get("q_mucum_m3s") or [],
+                "n_mucum_rating_cm": blocked_series.get("n_mucum_rating_cm") or [],
+                "peak_q_m3s": sm.get("candidate_peak_q_m3s"),
+                "peak_time_utc": sm.get("candidate_peak_time_utc"),
+                "peak_level_cm": sm.get("candidate_peak_level_rating_cm"),
+                "rise_from_model_t0_cm": sm.get("candidate_rise_from_model_t0_cm"),
+                "label_pt": "candidato HEC rejeitado pelas guardas; diagnóstico apenas, não previsão",
+            },
             "plain_pt": (
                 "A rodada HEC foi executada, mas não foi publicada como previsão porque nenhum "
                 "candidato fechou o estado hidrológico observado dentro das guardas. Nenhuma "
