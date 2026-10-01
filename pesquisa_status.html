@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PREVINE · Estado da pesquisa — Santa Tereza</title>
+<title>PREVINE · Pesquisa de transbordamento — Santa Tereza</title>
+<meta name="description" content="Painel auditável da pesquisa PREVINE em Santa Tereza: nível observado, chuva na bacia, previsões de curto prazo, scores experimentais e estado de validação.">
+<meta name="theme-color" content="#0b4f3a">
 <style>
   :root{--bg:#eef3f1;--panel:#fff;--ink:#132019;--muted:#5c6b63;--line:#dfe8e1;--brand:#0f6b4a;--blue:#1e5fbf;--warn:#8a5a12;--warn-bg:#fff5df;--bad:#9b2c22;--bad-bg:#fff0ee;--good:#176b46;--good-bg:#eaf7ef;--shadow:0 8px 28px rgba(20,40,30,.07)}
   *{box-sizing:border-box}
@@ -111,16 +113,72 @@
   .research-status{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 14px}.research-status>div{background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 11px}.research-status strong{display:block;font-size:11px;line-height:1.2}.research-status span{display:block;color:var(--muted);font-size:10px;margin-top:4px}.research-status .open{border-color:#b7dec4;background:var(--good-bg)}.research-status .open strong{color:var(--good)}.research-status .off{border-color:#edcf91;background:var(--warn-bg)}.research-status .off strong{color:var(--warn)}.research-status .review{border-color:#b7d5ef;background:#f4fbff}.research-status .review strong{color:var(--blue)}
   .table-scroll{overflow-x:auto;max-width:100%}.table-scroll table{min-width:680px}
   @media(max-width:520px){.quick-nav{margin-left:-12px;margin-right:-12px;border-radius:0;border-left:0;border-right:0}.quick-nav-label{font-size:9px}.quick-nav a{font-size:10px}.research-status{grid-template-columns:1fr}.anchor-target{scroll-margin-top:58px}}
+  /* revisão visual 2026-10: leitura em camadas, foco operacional e auditoria */
+  html{scroll-behavior:smooth}
+  body{background:
+    radial-gradient(circle at 12% -8%,rgba(15,107,74,.10),transparent 31rem),
+    radial-gradient(circle at 92% 8%,rgba(30,95,191,.08),transparent 28rem),
+    var(--bg)}
+  .wrap{max-width:1180px}
+  .page-header{position:relative;overflow:hidden;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;padding:22px 24px;margin-bottom:14px;border-radius:22px;color:#fff;background:linear-gradient(125deg,#0b4f3a 0%,#0f6b4a 58%,#155ea2 100%);box-shadow:0 16px 44px rgba(15,70,52,.18)}
+  .page-header:after{content:"";position:absolute;right:-70px;top:-90px;width:250px;height:250px;border-radius:50%;border:44px solid rgba(255,255,255,.07);pointer-events:none}
+  .page-header .mark{width:46px;height:46px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);display:grid;place-items:center;font-weight:900;color:#fff;box-shadow:inset 0 0 0 7px rgba(255,255,255,.06)}
+  .page-header .mark:before{content:"P";font-size:18px}
+  .page-header .kicker,.page-header .subtitle{color:rgba(255,255,255,.78)}
+  .page-header h1{font-size:31px;margin-top:4px}
+  .header-side{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+  .page-header .badge{margin:0;color:#603c08;background:#fff3cf;border-color:#f0d890}
+  .header-feed{max-width:300px;font-size:10px;line-height:1.35;text-align:right;color:rgba(255,255,255,.78)}
+  .station-nav{padding:0;margin:0 0 12px;gap:7px}
+  .station-nav::before{content:'Abrir:'}
+  .station-nav a{background:rgba(255,255,255,.78);backdrop-filter:blur(8px)}
+  .quick-nav{top:8px;border-radius:14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .quick-nav a[aria-current="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+  .research-status{gap:10px}
+  .research-status>div{position:relative;padding:13px 14px 13px 40px;min-height:72px}
+  .research-status>div:before{position:absolute;left:14px;top:15px;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:900}
+  .research-status .review:before{content:"i";background:#dcecff;color:var(--blue)}
+  .research-status .off:before{content:"!";background:#ffe8ad;color:var(--warn)}
+  .hero{padding:20px 22px;border-radius:18px;background:rgba(255,255,255,.88);backdrop-filter:blur(8px)}
+  .hero h2{font-size:20px}
+  .hero p{max-width:970px;font-size:13.5px}
+  .read-first{margin:16px 0 18px}
+  .read-first-head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:10px}
+  .read-first-head h2{margin:0;font-size:18px}
+  .read-first-head p{margin:0;color:var(--muted);font-size:11px;text-align:right}
+  .read-first-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .read-card{display:flex;flex-direction:column;gap:7px;min-height:150px;padding:15px;border-radius:15px;background:#fff;border:1px solid var(--line);text-decoration:none;color:var(--ink);box-shadow:0 5px 18px rgba(20,40,30,.05);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+  .read-card:hover,.read-card:focus-visible{transform:translateY(-2px);box-shadow:0 10px 24px rgba(20,40,30,.09);border-color:#a8d0b9;outline:none}
+  .read-card .step{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;background:#eaf7ef;color:var(--brand);font-size:11px;font-weight:900}
+  .read-card strong{font-size:13px}
+  .read-card span{font-size:10.5px;color:var(--muted);line-height:1.45}
+  .read-card em{margin-top:auto;font-style:normal;font-size:10px;font-weight:800;color:var(--brand)}
+  .scope-note{display:flex;gap:9px;align-items:flex-start;margin-top:10px;padding:10px 12px;border-radius:12px;background:#fff9ec;border:1px solid #ecd9a8;color:#66522c;font-size:10.5px}
+  .scope-note b{color:#634411;white-space:nowrap}
+  .pv-dashboard,.pattern-dashboard,.weather-panel,.short-panel,.shadow,.card{scroll-margin-top:88px}
+  .section{margin-top:24px}
+  .section>h2{font-size:20px;letter-spacing:-.01em}
+  .section>p{max-width:900px}
+  .card{border-radius:16px}
+  table{border-radius:14px}
+  .architecture article,.flow article,.event{transition:border-color .18s ease,transform .18s ease}
+  .architecture article:hover,.flow article:hover,.event:hover{border-color:#b8d8c5;transform:translateY(-1px)}
+  .back-top{position:fixed;right:18px;bottom:18px;z-index:50;width:42px;height:42px;border-radius:50%;border:1px solid #b8d5c3;background:rgba(255,255,255,.92);color:var(--brand);font-weight:900;box-shadow:0 8px 24px rgba(20,40,30,.12);cursor:pointer;opacity:0;pointer-events:none;transform:translateY(8px);transition:.2s}
+  .back-top.show{opacity:1;pointer-events:auto;transform:none}
+  .back-top:focus-visible{outline:3px solid rgba(30,95,191,.25)}
+  @media(max-width:900px){.read-first-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.page-header{grid-template-columns:auto 1fr}.header-side{grid-column:1/-1;align-items:flex-start}.header-feed{text-align:left;max-width:none}}
+  @media(max-width:560px){.page-header{grid-template-columns:1fr;padding:18px;border-radius:16px}.page-header .mark{display:none}.page-header h1{font-size:26px}.read-first-head{display:block}.read-first-head p{text-align:left;margin-top:4px}.read-first-grid{grid-template-columns:1fr}.read-card{min-height:0}.back-top{right:12px;bottom:12px}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.read-card,.architecture article,.flow article,.event,.back-top{transition:none}}
 </style>
 <link rel="stylesheet" href="assets/css/pv_dashboard.css">
 <link rel="stylesheet" href="assets/css/gestor_chrome.css">
 </head>
 <body>
 <div class="wrap">
-  <header>
+  <header class="page-header">
     <span class="mark" aria-hidden="true"></span>
-    <div><div class="kicker">PREVINE · pesquisa de transbordamento</div><h1>Estado da pesquisa</h1><p class="subtitle">Santa Tereza · estação ANA/SGB 86472600 · bacia Taquari-Antas</p></div>
-    <span class="badge">SEM ALERTA AUTOMÁTICO</span>
+    <div><div class="kicker">PREVINE · pesquisa auditável de transbordamento</div><h1>Santa Tereza · estado da pesquisa</h1><p class="subtitle">Estação ANA/SGB 86472600 · bacia Taquari-Antas · dados observados + previsões + auditoria</p></div>
+    <div class="header-side"><span class="badge">SEM ALERTA AUTOMÁTICO</span><span class="header-feed" id="header-feed">Sincronizando o estado dos feeds…</span></div>
   </header>
 
   <nav class="station-nav" aria-label="Selecionar estação">
@@ -131,12 +189,23 @@
     <a href="pesquisas/estudo-caso-territorio.html">Estudo territorial</a>
     <a href="pesquisas/estudo-caso-resposta-santa-tereza.html">Mesa de exercício</a>
   </nav>
-  <nav class="quick-nav" aria-label="Índice desta página"><span class="quick-nav-label">Você está aqui:</span><a href="#painel-visual">Painel visual</a><a href="#padroes">Padrões</a><a href="#agora">Agora</a><a href="#probabilidade">Probabilidade</a><a href="#previsoes">2 h / 4 h</a><a href="#cenarios">Cenários</a><a href="#base">Base e auditoria</a></nav>
-  <section class="research-status" aria-label="Estado de liberação da pesquisa"><div class="review"><strong>PESQUISA · PROTÓTIPO</strong><span>Dados e cenários experimentais para consulta. Publicado no site não é validação.</span></div><div class="off"><strong>ALERTA AUTOMÁTICO DESATIVADO</strong><span>Isso não bloqueia a pesquisa; apenas impede envio oficial.</span></div><div class="review"><strong>REVISÃO TÉCNICA PENDENTE</strong><span>Calibração operacional, mais eventos e validação por tempestade.</span></div></section>
+  <nav class="quick-nav" aria-label="Índice desta página"><span class="quick-nav-label">Navegar:</span><a href="#painel-visual">Agora</a><a href="#previsoes">2 h / 4 h</a><a href="#padroes">Eventos &amp; modelos</a><a href="#probabilidade">Scores</a><a href="#cenarios">Cenários</a><a href="#base">Validação &amp; auditoria</a></nav>
+  <section class="research-status" aria-label="Estado de liberação da pesquisa"><div class="review"><strong>PROTÓTIPO DE PESQUISA</strong><span>Resultados públicos para inspeção e auditoria; publicação não equivale a validação operacional.</span></div><div class="off"><strong>SEM ALERTA AUTOMÁTICO</strong><span>O sistema não emite alerta oficial. SGB/ANA/SACE e Defesa Civil seguem como referências operacionais.</span></div><div class="review"><strong>VALIDAÇÃO EM ANDAMENTO</strong><span>Mais eventos independentes, calibração e revisão técnica ainda são gates para promoção.</span></div></section>
 
   <section class="hero" aria-labelledby="hero-title">
-    <h2 id="hero-title">O que esta página responde</h2>
-    <p>Mostramos o que já foi validado e o resultado da primeira rodada de RNA experimental. A pergunta “vai ou não vai transbordar?” só recebe <strong>0/1 quando há uma decisão recente, nível observado e chuva prevista causalmente alinhada</strong>. <strong>UNKNOWN/STALE não significa que não haverá inundação</strong>; significa que faltam dados atuais confiáveis para afirmar qualquer classe.</p>
+    <h2 id="hero-title">Como interpretar esta página</h2>
+    <p>Primeiro veja <strong>nível observado, chuva e idade dos feeds</strong>. Depois compare as previsões de nível de <strong>2 h e 4 h</strong>. Os horizontes de 24–168 h são <strong>scores experimentais de pesquisa</strong>, e não probabilidades calibradas nem alertas. <strong>UNKNOWN/STALE nunca significa ausência de risco</strong>; significa que a evidência atual não é suficiente para sustentar uma leitura.</p>
+  </section>
+
+  <section class="read-first" aria-labelledby="read-first-title">
+    <div class="read-first-head"><div><div class="kicker">ROTEIRO DE LEITURA</div><h2 id="read-first-title">Entenda o painel em quatro passos</h2></div><p>Do dado mais próximo da operação para a evidência científica.</p></div>
+    <div class="read-first-grid">
+      <a class="read-card" href="#painel-visual"><span class="step">1</span><strong>O que está acontecendo agora?</strong><span>Nível observado, tendência, chuva prevista e estado de cada fonte. Feeds antigos ficam marcados como indisponíveis ou desatualizados.</span><em>Abrir situação atual ↓</em></a>
+      <a class="read-card" href="#previsoes"><span class="step">2</span><strong>O que a RNA prevê em poucas horas?</strong><span>Previsões de nível para 2 h e 4 h, com comparação contra observado e auditoria das previsões já conferidas.</span><em>Ver curto prazo ↓</em></a>
+      <a class="read-card" href="#probabilidade"><span class="step">3</span><strong>Há sinal experimental de transbordamento?</strong><span>Scores por horizonte, sempre acompanhados de fonte, idade da rodada e limitações de calibração.</span><em>Ver scores ↓</em></a>
+      <a class="read-card" href="#base"><span class="step">4</span><strong>O que já foi realmente validado?</strong><span>Contrato científico, eventos independentes, gates, baselines e critérios que ainda bloqueiam uso operacional.</span><em>Ver auditoria ↓</em></a>
+    </div>
+    <div class="scope-note"><b>Escopo:</b><span>esta página integra pesquisa e feeds ao vivo para inspeção técnica. Ela não substitui monitoramento oficial nem deve transformar dado ausente em “não haverá inundação”.</span></div>
   </section>
 
   <section class="pv-dashboard anchor-target" id="painel-visual" data-pv-dashboard data-station="santa_tereza" data-threshold="1500" data-weather-feed="assets/data/research_weather_santa_tereza_latest.json" data-basin-feed="assets/data/research_weather_santa_tereza_latest.json" data-prob-feed="assets/data/research_probability_santa_tereza_latest.json" data-live-feed="previsao_ao_vivo.json" aria-labelledby="pv-title-santa">
@@ -308,6 +377,7 @@
   <nav aria-label="Navegação da pesquisa"><a href="index.html">Página inicial</a><a href="santa_tereza_previsao_inundacao.html">Monitoramento de Santa Tereza</a><a href="pesquisa_status_mucum.html">Pesquisa de Muçum</a><a href="mucum_previsao_inundacao.html">Monitoramento de Muçum</a><a href="mucum_inundacao.html">Histórico de Muçum</a></nav>
   <footer>PREVINE · pesquisa auditável · dados atrasados ou incompletos são exibidos como estado de qualidade, não como ausência de risco.</footer>
 </div>
+<button class="back-top" id="back-top" type="button" aria-label="Voltar ao topo" title="Voltar ao topo">↑</button>
 <script src="assets/js/live_feed.js?v=20260916-nunca-atrasado"></script>
 <script>
 (function(){
@@ -423,6 +493,37 @@
     el('short-charts').innerHTML=chartFor(records,'2h')+chartFor(records,'4h');
     el('short-chart-meta').innerHTML=records.length?`<span class="blue">observado</span> · <span class="orange">RNA principal</span> · <span class="purple">versão B sombra</span> · histórico carregado: ${records.length} registros${rawRecords.length-records.length?' (legado 4h_cascata excluído)':''}; somente alvos conferidos na janela móvel de 24 h.`:'Histórico de previsões indisponível.';
   }).catch(()=>{el('short-grid').innerHTML='<div class="short-card"><b>UNKNOWN</b><span>dados indisponíveis</span></div>';el('short-charts').innerHTML='<div class="short-chart-card"><h3>Histórico indisponível</h3></div>';el('binary-current').innerHTML='<div class="binary-card unknown is-unknown"><b>UNKNOWN</b><span>dados indisponíveis</span><small>ausência ≠ “não vai inundar”</small></div>';el('binary-evaluation').innerHTML='<summary><h3 style="display:inline">Auditoria indisponível</h3></summary><p>Avaliação retrospectiva não carregou.</p>';el('current-probability-values').innerHTML='<strong>UNKNOWN: feed experimental indisponível.</strong>';});
+})();
+</script>
+<script>
+(function(){
+  const topBtn=document.getElementById('back-top');
+  const headerFeed=document.getElementById('header-feed');
+  const pvUpdated=document.getElementById('pv-updated');
+  const navLinks=[...document.querySelectorAll('.quick-nav a[href^="#"]')];
+
+  const syncHeader=()=>{
+    const txt=(pvUpdated&&pvUpdated.textContent||'').trim();
+    if(headerFeed) headerFeed.textContent=txt && !/—/.test(txt) ? txt : 'Estado dos feeds disponível no painel abaixo.';
+  };
+  syncHeader();
+  if(pvUpdated&&window.MutationObserver)new MutationObserver(syncHeader).observe(pvUpdated,{childList:true,subtree:true,characterData:true});
+
+  const onScroll=()=>{if(topBtn) topBtn.classList.toggle('show',window.scrollY>650);};
+  addEventListener('scroll',onScroll,{passive:true}); onScroll();
+  if(topBtn)topBtn.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
+
+  const targets=navLinks.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(entries=>{
+      const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
+      if(!visible)return;
+      navLinks.forEach(a=>a.removeAttribute('aria-current'));
+      const active=navLinks.find(a=>a.getAttribute('href')==='#'+visible.target.id);
+      if(active)active.setAttribute('aria-current','true');
+    },{rootMargin:'-20% 0px -65% 0px',threshold:[0,.15,.35]});
+    targets.forEach(t=>io.observe(t));
+  }
 })();
 </script>
 <script src="assets/js/research_patterns_dashboard.js"></script>
