@@ -27,6 +27,20 @@ def now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def age_hours(timestamp: Any, reference: datetime | None = None) -> float | None:
+    if not timestamp:
+        return None
+    try:
+        raw = str(timestamp).strip().replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(raw)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        ref = reference or datetime.now(timezone.utc)
+        return max(0.0, (ref - parsed.astimezone(timezone.utc)).total_seconds() / 3600.0)
+    except (TypeError, ValueError):
+        return None
+
+
 def number(value: Any) -> float | None:
     try:
         return None if value is None else float(value)
@@ -132,6 +146,11 @@ def build_santa() -> dict[str, Any]:
     probability = load("assets/data/research_probability_santa_tereza_latest.json")
     weather = load("assets/data/research_weather_santa_tereza_latest.json")
     binary = load("assets/data/research_binary_decision_santa_tereza_latest.json")
+    reference_time = datetime.now(timezone.utc)
+    probability_age = age_hours(probability.get("generated_at_utc"), reference_time)
+    probability_fresh = probability_age is not None and probability_age <= 36.0
+    weather_age = age_hours(weather.get("generated_at_utc"), reference_time)
+    weather_fresh = weather_age is not None and weather_age <= 30.0
     threshold = number(card.get("threshold_cm")) or 1500.0
     event_rows = []
     for event in catalog.get("eventos", []):
@@ -166,8 +185,12 @@ def build_santa() -> dict[str, Any]:
                 "ifs_max_mm": w.get("basin_max_mm"),
                 "point_mm": w.get("rain_point_mm"),
                 "rna_score_percent": None if rna_scores.get(key) is None else number(rna_scores.get(key)) * 100.0,
-                "probability_percent": number(p.get("probability")) * 100.0 if p.get("probability") is not None else row.get("probability_percent"),
-                "decision": row.get("decision"),
+                "probability_percent": (
+                    number(p.get("probability")) * 100.0
+                    if probability_fresh and p.get("probability") is not None
+                    else (row.get("probability_percent") if probability_fresh else None)
+                ),
+                "decision": row.get("decision") if probability_fresh else None,
                 "screening_threshold_mm": w.get("screening_threshold_mm"),
             }
         )
@@ -190,10 +213,24 @@ def build_santa() -> dict[str, Any]:
         "models": [
             {"name": "ECMWF IFS", "kind": "rain", "unit": "mm", "description": "chuva média e máxima na bacia"},
             {"name": "RNA do feed IFS", "kind": "risk", "unit": "%", "description": "score MLP do feed meteorológico"},
-            {"name": "Probabilidade GEFS", "kind": "risk", "unit": "%", "description": "probabilidade experimental do modelo GEFS"},
+            {"name": "Score GEFS experimental", "kind": "risk", "unit": "%", "description": "score experimental; ocultado quando a fonte tem mais de 36 h"},
             {"name": "Modelos de nível", "kind": "level", "unit": "NSE", "description": "desempenho histórico por evento"},
         ],
         "evaluation": binary.get("evaluation"),
+        "source_quality": {
+            "probability": {
+                "state": "fresh" if probability_fresh else ("stale" if probability_age is not None else "unknown"),
+                "generated_at_utc": probability.get("generated_at_utc"),
+                "age_hours": probability_age,
+                "max_age_hours": 36.0,
+            },
+            "weather": {
+                "state": "fresh" if weather_fresh else ("stale" if weather_age is not None else "unknown"),
+                "generated_at_utc": weather.get("generated_at_utc"),
+                "age_hours": weather_age,
+                "max_age_hours": 30.0,
+            },
+        },
         "sources": {
             "events": "assets/data/eventos_analise.json",
             "model_card": "assets/data/research_card_santa_tereza_20260811.json",
