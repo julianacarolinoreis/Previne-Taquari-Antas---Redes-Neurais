@@ -198,6 +198,10 @@ def injeta_mucum(payload_extra):
 
 
 def injeta_santa_tereza(payload_extra):
+    raise RuntimeError(
+        "BLOQUEADO: este injetor legado drone+ANADEM não pode alterar Santa Tereza. "
+        "Use gerar_hand_lidar_santa_tereza.py e depois atualizar_hand_previsao_santa_tereza.py."
+    )
     pagina = CIDADES["santa_tereza"]["pagina"]
     html = open(pagina, encoding="utf-8").read()
     m = re.search(r'<script id="hand-data" type="application/json">(.*?)</script>', html, re.DOTALL)
