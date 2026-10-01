@@ -519,9 +519,9 @@
     }).filter(Boolean).map((d) => '<path class="basin-shape" d="' + d + '"></path>').join('');
     const visible = all.filter(networkMatchesFilter);
     let selected = visible.find((item) => String(item.id) === String(state.selectedNetworkStationId));
-    if (!state.selectedNetworkStationId) {
-      selected = visible.find((item) => String(item.code) === '86472600') || visible[0] || null;
-      if (selected) state.selectedNetworkStationId = selected.id;
+    if (!selected && visible.length) {
+      selected = visible.find((item) => String(item.code) === '86472600') || visible[0];
+      state.selectedNetworkStationId = selected.id;
     }
     const ordered = visible.slice().sort((a, b) => (String(a.id) === String(state.selectedNetworkStationId) ? 1 : 0) - (String(b.id) === String(state.selectedNetworkStationId) ? 1 : 0));
     const points = ordered.map((item) => {
