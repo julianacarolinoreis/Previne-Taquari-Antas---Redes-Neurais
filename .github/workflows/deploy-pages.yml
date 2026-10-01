@@ -79,9 +79,9 @@ permissions:
   id-token: write
 
 concurrency:
-  # Robôs podem solicitar outro deploy antes do atual terminar. Deixe o
-  # deploy em curso concluir; o próximo checkout lê a ponta atual de main.
-  group: github-pages-site
+  # Separar push de workflow_run evita que a fila frequente dos robôs cancele
+  # uma publicação manual de interface antes mesmo de o job começar.
+  group: github-pages-site-${{ github.event_name }}
   cancel-in-progress: false
 
 jobs:
