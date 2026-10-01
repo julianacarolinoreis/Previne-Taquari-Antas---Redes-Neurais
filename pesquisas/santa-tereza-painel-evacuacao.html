@@ -55,7 +55,7 @@ const CORES={alagada:'#1e5fbf',rota_comprometida:'#6b2f5b',critica:'#b3382c',ape
 const CLASSES_SAIDA=new Set(['alagada','rota_comprometida','critica','apertada','atencao']);
 const ROT={alagada:'local atingido no cenário HAND',rota_comprometida:'gargalo da rota já atingido',critica:'margem negativa',apertada:'margem <15 min',atencao:'margem <1 h',confortavel:'margem >1 h no modelo',alto:'ponto alto',sem_dado:'sem cobertura HAND no intervalo'};
 const ordem=['alagada','rota_comprometida','critica','apertada','atencao','sem_dado','confortavel'];
-let prelimGeo=null, prelimLayer=null, prelimControl=null, contornosGeo=null, contornosOrdenados=[];
+let contornosGeo=null, contornosOrdenados=[];
 
 function pontoNoAnel(lon,lat,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];const hit=((yi>lat)!=(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi+1e-15)+xi);if(hit)inside=!inside;}return inside;}
 function pontoNaGeom(lon,lat,g){if(!g)return false;if(g.type==='Polygon'){if(!pontoNoAnel(lon,lat,g.coordinates[0]))return false;for(let k=1;k<g.coordinates.length;k++)if(pontoNoAnel(lon,lat,g.coordinates[k]))return false;return true;}if(g.type==='MultiPolygon')return g.coordinates.some(poly=>{if(!pontoNoAnel(lon,lat,poly[0]))return false;for(let k=1;k<poly.length;k++)if(pontoNoAnel(lon,lat,poly[k]))return false;return true;});return false;}
@@ -227,8 +227,7 @@ map.on('click',e=>{ if(modo!=='rotas')return;
     saidaTxt+'<br>'+
     '<span style="color:#66736d">Cenário: <b>'+nivel.toFixed(1)+' m</b> na régua. “Trecho seco contínuo” é um proxy topográfico do HAND, não um ponto seguro oficialmente certificado.</span>'+
     (garg==null?'<br><span style="color:#7a8a84">Primeiro gargalo: sem cota suficiente para avaliar.</span>':comp?'<br><span style="color:#b3382c"><b>⚠ Gargalo HAND já atingido.</b> Primeiro limiar estimado: '+garg.toFixed(1)+' m na régua.</span>':'<br><span style="color:#0f8b46">Primeiro gargalo HAND estimado em <b>'+garg.toFixed(1)+' m</b> na régua.</span>')+
-    (ri.unknown?'<br><span style="color:#7a5b00">Há '+ri.unknown+' nó(s) sem cota espacial nesta rota.</span>':'')+
-    (naManchaPreliminar(D.nos[best][0],D.nos[best][1])?'<br><span style="color:#7d3cff"><b>⚠ Origem dentro da mancha preliminar legada.</b></span>':'');
+    (ri.unknown?'<br><span style="color:#7a5b00">Há '+ri.unknown+' nó(s) sem cota espacial nesta rota.</span>':'');
 });
 // troca de aba
 function setModo(m){modo=m;
