@@ -303,13 +303,18 @@ def build_feed_v3() -> dict:
             "q_mucum_m3s": ss.get("q_mucum_m3s") or [],
             "q_antas_m3s": [],
             "q_stz_diagnostic_m3s": [],
-            # Compatibility field names kept for the current UI, but the values
-            # are now the raw rating-curve stage from HEC-HMS with no visual anchor.
+            # Canonical stage field is the raw rating-curve conversion from HEC.
+            # Keep the old compatibility alias temporarily for existing clients.
+            "n_mucum_rating_cm": ss.get("n_mucum_rating_cm") or [],
             "n_mucum_anchored_cm": ss.get("n_mucum_rating_cm") or [],
             "delta_n_from_now_cm": ss.get("delta_n_from_model_t0_cm") or [],
             "stage_series_kind": "raw_rating_no_visual_anchor",
             "current_observed_stage_cm": sm.get("level_now_observed_cm"),
             "current_observed_q_rating_m3s": sm.get("q_now_observed_rating_m3s"),
+            "model_stage_t0_cm": (spatial_hec.get("validation") or {}).get("raw_warmed_stage_at_current_cm"),
+            "stage_error_at_t0_cm": (spatial_hec.get("validation") or {}).get("stage_error_at_t0_cm"),
+            "q_error_pct": (spatial_hec.get("validation") or {}).get("q_error_pct"),
+            "diagnostic_warnings_pt": (spatial_hec.get("validation") or {}).get("diagnostic_warnings_pt") or [],
             "primary": {
                 "event_id": "HEC-HMS-SPATIAL",
                 "rise_cm": sm.get("rise_from_model_t0_cm"),
@@ -338,16 +343,17 @@ def build_feed_v3() -> dict:
             "corridor_nodes": corridor_nodes,
             "plain_pt": (
                 f"HEC-HMS 4.13 executado com {rain.get('spatial_cells') or '?'} células IFS "
-                f"espacializadas, com 48 h de aquecimento observado. "
+                f"espacializadas e {(spatial_hec.get('warmup') or {}).get('hours') or '?'} h de aquecimento observado. "
                 f"Nível observado {sm.get('level_now_observed_cm')} cm no timestamp real; "
+                f"estado HEC em t0 {(spatial_hec.get('validation') or {}).get('raw_warmed_stage_at_current_cm')} cm; "
                 f"pico HEC sem deslocamento {sm.get('peak_level_rating_cm')} cm; "
-                f"ΔN desde o estado HEC em t0 {sm.get('rise_from_model_t0_cm')} cm."
+                f"ΔN futuro desde o estado HEC em t0 {sm.get('rise_from_model_t0_cm')} cm."
             ),
             "q_note_pt": (
-                "Q(t) é a saída do HEC-HMS 4.13 após 48 h de aquecimento com chuva observada. "
-                "O último nível de Muçum é comparado no timestamp real com o estado aquecido. "
-                "Nenhuma correção visual de nível é aplicada. A rodada só é promovida quando "
-                "o próprio aquecimento observado fecha com o t0 dentro das guardas."
+                f"Q(t) é a saída do HEC-HMS 4.13 após {(spatial_hec.get('warmup') or {}).get('hours') or '?'} h "
+                "de aquecimento com chuva observada multirrede. O último nível de Muçum é comparado "
+                "no timestamp real com o estado aquecido. Nenhuma correção visual de nível é aplicada; "
+                "a rodada só é promovida quando t0 e o hidrograma recente passam pelas guardas."
             ),
             "artifact_json": "hec_hms_operational_forecast_latest.json",
             "series_csv": "hec_hms_spatial_forecast_mucum/primary_series.csv",
