@@ -614,6 +614,16 @@ def _level_forecast_series(raw: dict[str, Any]) -> list[dict[str, Any]]:
     for horizon_id, item in horizons.items():
         if not isinstance(item, dict):
             continue
+        # Alguns robôs preservam o último valor numérico mesmo quando a rodada
+        # corrente está explicitamente indisponível (por base atrasada ou inputs
+        # incompletos). Esses números continuam úteis no feed original para
+        # auditoria, mas não podem aparecer no mapa como previsão futura válida.
+        status_text = str(item.get("status") or item.get("estado") or "").strip().casefold()
+        if status_text and any(
+            token in status_text
+            for token in ("indispon", "incomplet", "sem previs", "aguardando", "falha")
+        ):
+            continue
         value = finite(item.get("nivel_previsto_cm", item.get("nivel_modelo_cm")))
         target = parse_iso(
             item.get("hora_alvo_utc")
