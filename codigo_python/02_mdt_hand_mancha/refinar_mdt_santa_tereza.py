@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Refina ruído visual isolado do MDT de Santa Tereza.
+"""LEGADO: refinamento visual drone + ANADEM de Santa Tereza.
+
+Este script é preservado somente para rastreabilidade histórica. Ele NÃO faz
+parte da cadeia LiDAR/HAND publicada e recusa execução acidental sem uma flag
+explícita de auditoria.
 
 O produto original nunca é sobrescrito. O refinamento é deliberadamente
 conservador: somente células do drone próximas ao talvegue ANADEM que
@@ -15,14 +19,15 @@ Saídas:
   - PNG colorido opcional para inspeção visual no mapa;
   - relatório JSON com hashes, critérios e contagem de células alteradas.
 
-Uso:
-  python refinar_mdt_santa_tereza.py
+Uso histórico/auditoria:
+  python refinar_mdt_santa_tereza.py --legacy-audit-only
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import shutil
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -52,6 +57,7 @@ MEDIAN_SIZE = 5
 MAX_COMPONENT_CELLS = 64
 CORRIDOR_DILATION_M = 40.0
 MOSAIC_RES_M = 2.0
+LEGACY_AUDIT_FLAG = "--legacy-audit-only"
 
 
 def sha256(path: Path) -> str:
@@ -113,6 +119,13 @@ def visual_png_from_rg(source_png: Path, target_png: Path) -> tuple[float, float
 
 
 def main() -> None:
+    if LEGACY_AUDIT_FLAG not in sys.argv[1:]:
+        raise SystemExit(
+            "Execução bloqueada: este refinamento drone + ANADEM é legado e não pode alimentar "
+            "o produto publicado de Santa Tereza. Para auditoria histórica explícita, use "
+            f"{LEGACY_AUDIT_FLAG}."
+        )
+
     for path in (MOSAIC, ANADEM, DRONE):
         if not path.exists():
             raise FileNotFoundError(
