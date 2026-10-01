@@ -408,9 +408,9 @@ def build_gage(start,end,active,used_components):
 End:
 """]
     for code in [SOURCE_PRIMARY,*active]:
-        lines.append(gage_block(f"Q_{code}","Flow",f"/G040/{code}/FLOW/{dp}/1Hour/OBS/",start,end))
+        lines.append(gage_block(f"Q_{code}","Flow",f"/G040/{code}/FLOW/{dp}/1Hour/FORECAST/",start,end))
     for cid in used_components:
-        lines.append(gage_block(f"RAIN_{safe(cid)}","Precipitation",f"/G040/{safe(cid)}/PRECIP-INC/{dp}/1Hour/OBS/",start,end))
+        lines.append(gage_block(f"RAIN_{safe(cid)}","Precipitation",f"/G040/{safe(cid)}/PRECIP-INC/{dp}/1Hour/FORECAST/",start,end))
     return "\n".join(lines)
 
 def validate_project_contract(gage_text, met_text, basin_text, active, used_components):
@@ -462,10 +462,28 @@ def put(path,values,units,typ):
 
 dss=HecDss.open(project_dir+"/input.dss")
 for code,vals in source_values.items():
-    put("/G040/%s/FLOW/%s/1Hour/OBS/"%(code,dp),vals,"M3/S","INST-VAL")
+    put("/G040/%s/FLOW/%s/1Hour/FORECAST/"%(code,dp),vals,"M3/S","INST-VAL")
 for cid,vals in rain_values.items():
-    put("/G040/%s/PRECIP-INC/%s/1Hour/OBS/"%(cid,dp),vals,"MM","PER-CUM")
+    put("/G040/%s/PRECIP-INC/%s/1Hour/FORECAST/"%(cid,dp),vals,"MM","PER-CUM")
 dss.close()
+
+# Read back the exact records HEC-HMS gages will request.  This separates
+# DSS-writing/path problems from HEC gage-manager problems.
+dss=HecDss.open(project_dir+"/input.dss")
+required=[]
+for code in source_values.keys():
+    required.append("/G040/%s/FLOW/%s/1Hour/FORECAST/"%(code,dp))
+for cid in rain_values.keys():
+    required.append("/G040/%s/PRECIP-INC/%s/1Hour/FORECAST/"%(cid,dp))
+for path in required:
+    series=dss.get(path)
+    n=int(getattr(series,"numberValues",0) or 0)
+    print("DSS_PREFLIGHT|%s|%d"%(path,n))
+    if n != len(times):
+        dss.close()
+        raise RuntimeError("DSS preflight failed for %s: %d values != %d"%(path,n,len(times)))
+dss.close()
+
 if os.path.exists(project_dir+"/output.dss"): os.remove(project_dir+"/output.dss")
 OpenProject("g040_e1_hindcast",project_dir)
 Compute("Hindcast")

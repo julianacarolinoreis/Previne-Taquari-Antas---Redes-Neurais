@@ -294,7 +294,7 @@ def build_master():
             "repair BHO6 branch skeleton/audits" if not sk_audits.get("topology_passed") else None,
         ),
         "dynamic_boundary_mass_balance":gate(
-            abs(float(current.get("closure_error_km2") or 999)) < 1e-6,
+            (current.get("closure_error_km2") is not None and abs(float(current.get("closure_error_km2"))) < 1e-6),
             {
                 "scenario":current.get("name"),
                 "active_boundary_codes":current.get("active_boundary_codes") or [],
@@ -304,11 +304,11 @@ def build_master():
             "boundary area budget does not close",
         ),
         "rain_support":gate(
-            support.get("status")=="RAIN_SUPPORT_READY",
+            str(support.get("status","")).startswith("RAIN_SUPPORT_READY"),
             {
                 "status":support.get("status"),
-                "support_point_count":support.get("support_point_count"),
-                "total_support_area_km2":support.get("total_support_area_km2"),
+                "support_point_count":support.get("support_point_count") or support.get("point_count") or len(support.get("support_points") or []),
+                "total_support_area_km2":support.get("total_support_area_km2") or support.get("effective_rainfall_runoff_area_km2") or ((support.get("boundary_scenario") or {}).get("effective_rainfall_runoff_area_km2")),
             },
             "build BHO6 rain support mesh",
         ),
