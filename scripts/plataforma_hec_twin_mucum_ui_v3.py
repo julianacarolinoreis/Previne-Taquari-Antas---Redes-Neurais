@@ -404,14 +404,17 @@ $("obsQ").textContent=muc.discharge_m3s!=null?fmt(muc.discharge_m3s,0):"—";
 
 function maxFinite(arr){const xs=(arr||[]).map(Number).filter(Number.isFinite);return xs.length?Math.max(...xs):null}
 $("modelGenerated").textContent=rr.generated_at_utc?("rodada "+brt(rr.generated_at_utc)):"sem rodada";
-const hecSpatial=rr.status==="hec_hms_4_13_spatial_ifs_warmup_ready";
+const dualBoundary=rr.status==="hec_hms_4_13_dual_boundary_validated";
+const hecSpatial=rr.status==="hec_hms_4_13_spatial_ifs_warmup_ready"||dualBoundary;
 const hecBlocked=/blocked/i.test(String(rr.status||""));
 const blockers=rr.blocking_reasons_pt||((rr.validation||{}).blocking_reasons_pt)||[];
-$("modelBadge").textContent=hecSpatial?"HEC-HMS 4.13 · IFS espacial":(hecBlocked?"RODADA BLOQUEADA":(rr.available?"resultado experimental":"sem execução válida"));
+$("modelBadge").textContent=dualBoundary?"HEC-HMS · LJJ + Carreiro observados":(hecSpatial?"HEC-HMS 4.13 · IFS espacial":(hecBlocked?"RODADA BLOQUEADA":(rr.available?"resultado experimental":"sem execução válida")));
 $("modelBadge").className="badge "+(hecSpatial?"ok":"warn");
-$("statusHydro").textContent=hecSpatial?"HEC-HMS 4.13 executado · IFS espacial":(hecBlocked?"HEC-HMS executado · saída bloqueada na validação":(rr.available?"resultado experimental disponível":"sem execução válida"));
+$("statusHydro").textContent=dualBoundary?"HEC-HMS validado · fronteiras observadas":(hecSpatial?"HEC-HMS 4.13 executado · IFS espacial":(hecBlocked?"HEC-HMS executado · saída bloqueada na validação":(rr.available?"resultado experimental disponível":"sem execução válida")));
 $("hydroDot").className="dot "+(hecSpatial?"ok":"wait");
-$("mainNotice").innerHTML=hecSpatial
+$("mainNotice").innerHTML=dualBoundary
+ ? "<strong>Rodada preferencial validada:</strong> Linha José Júlio e Passo Carreiro entram como fronteiras observadas no HEC-HMS; a chuva prevista atua no futuro e nas áreas residuais. Todas as guardas iterativas passaram."
+ : hecSpatial
  ? "<strong>Rodada espacial validada:</strong> o hidrograma abaixo foi executado no HEC-HMS 4.13 com o campo IFS espacial e passou pelas guardas do estado atual."
  : hecBlocked
    ? "<strong>Rodada executada, mas não publicável:</strong> o HEC-HMS rodou; a previsão foi bloqueada porque o estado aquecido não reproduziu o observado atual dentro das guardas. O gráfico abaixo mostra somente o candidato rejeitado para diagnóstico."
@@ -448,8 +451,12 @@ $("modelWarning").innerHTML=hecBlocked
      ((rr.primary&&rr.primary.rise_cm===0)?"O maior nível do horizonte ocorre no próprio t0; não há novo máximo acima do estado HEC inicial nesta rodada.":"")+"</p>"+
      (diagWarnings.length?"<details style='margin-top:8px'><summary>Diagnóstico do evento completo</summary><ul style='margin:6px 0 0;padding-left:18px'>"+diagWarnings.map(x=>"<li>"+x+"</li>").join("")+"</ul></details>":"")
    : "<p style='margin:0'>"+(rr.warning_pt||"Resultado experimental.")+"</p>";
+if(dualBoundary){
+ if($("legendAntas"))$("legendAntas").innerHTML="<i style='background:#225d8d'></i>Linha José Júlio · fronteira observada";
+ if($("legendIbi"))$("legendIbi").innerHTML="<i style='background:#98661d'></i>Passo Carreiro · fronteira observada";
+}
 if($("legendAntas") && !(rr.q_antas_m3s||[]).length && !(((rr.nodes_model||{})["Zona_86472000_LIVE"]||{}).q_m3s||[]).length)$("legendAntas").style.display="none";
-if($("legendIbi") && !((((rr.nodes_model||{})["Zona_02851072_LIVE"]||{}).q_m3s)||[]).length)$("legendIbi").style.display="none";
+if($("legendIbi") && !(rr.q_carreiro_m3s||[]).length && !((((rr.nodes_model||{})["Zona_02851072_LIVE"]||{}).q_m3s)||[]).length)$("legendIbi").style.display="none";
 const audit=$("modelRainAudit");
 if(audit){
  const rz=rr.rain_zones||{};
@@ -485,7 +492,7 @@ function drawHydrograph(){
  const q1=(rr.q_mucum_m3s||[]).map(Number), tt=rr.time_utc||[];
  const mn=rr.nodes_model||{};
  const q2=((rr.q_antas_m3s||[]).length?(rr.q_antas_m3s||[]):((mn["Zona_86472000_LIVE"]||{}).q_m3s||[])).map(Number);
- const q3=((mn["Zona_02851072_LIVE"]||{}).q_m3s||[]).map(Number);
+ const q3=((rr.q_carreiro_m3s||[]).length?(rr.q_carreiro_m3s||[]):((mn["Zona_02851072_LIVE"]||{}).q_m3s||[])).map(Number);
  if((!tt.length||!q1.length)&&hecBlocked){
    const dc=rr.diagnostic_candidate||{}, nt=dc.time_utc||[], nn=(dc.n_mucum_rating_cm||[]).map(Number);
    const obs=Number(rr.current_observed_stage_cm), warmed=Number((rr.validation||{}).raw_warmed_stage_at_current_cm);
