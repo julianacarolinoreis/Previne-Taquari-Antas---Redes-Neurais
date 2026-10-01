@@ -8,6 +8,7 @@ research scores.
 
 from __future__ import annotations
 
+import csv
 import json
 import statistics
 from datetime import datetime, timezone
@@ -21,6 +22,11 @@ OUT = ROOT / "assets" / "data"
 
 def load(path: str) -> dict[str, Any]:
     return json.loads((ROOT / path).read_text(encoding="utf-8"))
+
+
+def load_csv(path: str) -> list[dict[str, str]]:
+    with (ROOT / path).open("r", encoding="utf-8-sig", newline="") as handle:
+        return list(csv.DictReader(handle))
 
 
 def now() -> str:
@@ -82,6 +88,8 @@ def build_mucum() -> dict[str, Any]:
                 "rain_336h_mm": rain.get("rain_336h_mm"),
                 "api_72h_mm": rain.get("api_72h_mm"),
                 "soil_status": rain.get("soil_status"),
+                "rain_source_kind": "research_antecedent",
+                "context_source": "assets/data/research_mucum_evidence_latest.json",
             }
         )
     horizons = []
@@ -192,6 +200,43 @@ def build_santa() -> dict[str, Any]:
             ),
             "context_source": raw.get("source") or coupled_cases.get("generated_for"),
         }
+    replay_metrics = load_csv("assets/data/santa_tereza_eventwise_replay_rna_2h/events_metrics.csv")
+    replay_series = load_csv("assets/data/santa_tereza_eventwise_replay_rna_2h/series_hourly.csv")
+    max_rise_by_event: dict[str, float] = {}
+    previous_by_event: dict[str, tuple[datetime, float]] = {}
+    for sample in replay_series:
+        event_no = str(sample.get("evento") or "")
+        observed = number(sample.get("nivel_observado_cm"))
+        timestamp = sample.get("timestamp_local")
+        if not event_no or observed is None or not timestamp:
+            continue
+        try:
+            current_time = datetime.fromisoformat(timestamp)
+        except ValueError:
+            continue
+        previous = previous_by_event.get(event_no)
+        if previous and (current_time - previous[0]).total_seconds() == 3600:
+            max_rise_by_event[event_no] = max(max_rise_by_event.get(event_no, 0.0), observed - previous[1])
+        previous_by_event[event_no] = (current_time, observed)
+
+    replay_by_peak_date: dict[str, dict[str, Any]] = {}
+    for metric in replay_metrics:
+        peak_at = str(metric.get("hora_pico_observado") or "")
+        if len(peak_at) < 10:
+            continue
+        event_no = str(metric.get("evento") or "")
+        replay_by_peak_date[peak_at[:10]] = {
+            "replay_event": event_no or None,
+            "replay_role": metric.get("conjunto"),
+            "replay_peak_at": peak_at,
+            "total_rise_cm": number(metric.get("subida_observada_cm")),
+            "max_hourly_rise_cm_h": max_rise_by_event.get(event_no),
+            "rna_peak_error_cm": number(metric.get("erro_pico_abs_cm")),
+            "rna_mae_cm": number(metric.get("mae_cm")),
+            "rna_max_error_cm": number(metric.get("erro_maximo_abs_cm")),
+            "context_source": "assets/data/santa_tereza_eventwise_replay_rna_2h/events_metrics.csv",
+        }
+
     reference_time = datetime.now(timezone.utc)
     probability_age = age_hours(probability.get("generated_at_utc"), reference_time)
     probability_fresh = probability_age is not None and probability_age <= 36.0
@@ -213,7 +258,12 @@ def build_santa() -> dict[str, Any]:
             "nse_validation": event.get("nse_validacao"),
             "difficulty": event.get("dificuldade_nse_pers"),
         }
-        row.update(antecedent_by_date.get(str(event.get("pico_data")), {}))
+        event_date = str(event.get("pico_data"))
+        row.update(antecedent_by_date.get(event_date, {}))
+        replay_context = replay_by_peak_date.get(event_date, {})
+        for key, value in replay_context.items():
+            if row.get(key) is None:
+                row[key] = value
         event_rows.append(row)
     probability_by_h = probability.get("horizons", {})
     weather_by_h = {str(row.get("hours")): row for row in weather.get("horizons", [])}
