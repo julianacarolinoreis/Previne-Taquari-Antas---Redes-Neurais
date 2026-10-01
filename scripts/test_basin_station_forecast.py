@@ -247,6 +247,13 @@ class BasinStationForecastTests(unittest.TestCase):
                     "nivel_previsto_cm": 310,
                     "modelo": "RNA-8H",
                 },
+                "8h_indisponivel": {
+                    "horizonte_h": 8,
+                    "hora_alvo": "2026-09-20T19:00:00",
+                    "nivel_previsto_cm": 999,
+                    "status": "indisponivel: base atrasada; aguardando inputs completos",
+                    "modelo": "RNA-8H-STALE",
+                },
             },
         }
 
