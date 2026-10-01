@@ -267,7 +267,12 @@ def build_feed_v3() -> dict:
 
     # Prefer the real HEC-HMS 4.13 spatial run. Fall back to the Python twin
     # only when the HEC spatial artifact is unavailable.
-    spatial_hec = base.load_json(OUT / "hec_hms_spatial_forecast_mucum_latest.json") or {}
+    operational_hec = base.load_json(OUT / "hec_hms_operational_forecast_latest.json") or {}
+    generic_hec = base.load_json(OUT / "hec_hms_spatial_forecast_mucum_latest.json") or {}
+    # Prefer the operational baseline. The generic artifact is also touched by
+    # calibration/diagnostic utilities and must not silently replace the
+    # operational run shown to users.
+    spatial_hec = operational_hec or generic_hec
     spatial_available = bool(spatial_hec)
     spatial_ready = bool(spatial_hec.get("publishable")) and spatial_hec.get("status") == "hec_hms_4_13_spatial_ifs_warmup_ready"
     spatial_blocked = spatial_available and not spatial_ready
@@ -344,7 +349,7 @@ def build_feed_v3() -> dict:
                 "Nenhuma correção visual de nível é aplicada. A rodada só é promovida quando "
                 "o próprio aquecimento observado fecha com o t0 dentro das guardas."
             ),
-            "artifact_json": "hec_hms_spatial_forecast_mucum_latest.json",
+            "artifact_json": "hec_hms_operational_forecast_latest.json",
             "series_csv": "hec_hms_spatial_forecast_mucum/primary_series.csv",
         }
     elif spatial_blocked:
@@ -388,7 +393,7 @@ def build_feed_v3() -> dict:
                 "candidato fechou o estado hidrológico observado dentro das guardas. Nenhuma "
                 "correção visual de nível é aplicada; a saída permanece diagnóstica."
             ),
-            "artifact_json": "hec_hms_spatial_forecast_mucum_latest.json",
+            "artifact_json": "hec_hms_operational_forecast_latest.json",
             "series_csv": "hec_hms_spatial_forecast_mucum/primary_series.csv",
         }
     else:
