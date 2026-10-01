@@ -99,7 +99,7 @@ def count_sma_branch_rows():
 
 def gate(passed: bool, detail: Any, blocker: str|None=None):
     out={"pass":bool(passed),"detail":detail}
-    if blocker:
+    if blocker and not passed:
         out["blocker"]=blocker
     return out
 
@@ -294,7 +294,8 @@ def build_master():
             "repair BHO6 branch skeleton/audits" if not sk_audits.get("topology_passed") else None,
         ),
         "dynamic_boundary_mass_balance":gate(
-            abs(float(current.get("closure_error_km2") or 999)) < 1e-6,
+            current.get("closure_error_km2") is not None
+            and abs(float(current.get("closure_error_km2"))) < 1e-6,
             {
                 "scenario":current.get("name"),
                 "active_boundary_codes":current.get("active_boundary_codes") or [],
@@ -304,13 +305,15 @@ def build_master():
             "boundary area budget does not close",
         ),
         "rain_support":gate(
-            support.get("status")=="RAIN_SUPPORT_READY",
+            str(support.get("status") or "").startswith("RAIN_SUPPORT_READY")
+            and bool(support.get("all_intervals_close")),
             {
                 "status":support.get("status"),
-                "support_point_count":support.get("support_point_count"),
-                "total_support_area_km2":support.get("total_support_area_km2"),
+                "support_point_count":support.get("total_support_points"),
+                "total_support_area_km2":support.get("total_gross_support_area_km2"),
+                "all_intervals_close":support.get("all_intervals_close"),
             },
-            "build BHO6 rain support mesh",
+            "build/validate BHO6 rain support mesh",
         ),
         "observed_full_grid":gate(
             str(obs.get("status","")).startswith("OBSERVED_RAIN_READY")
