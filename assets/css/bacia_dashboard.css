@@ -545,11 +545,23 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
 /* G040 network health map */
 .now-overview { grid-template-columns: minmax(560px, 1.35fr) minmax(330px, .65fr); }
 .basin-network-summary { margin-top: 12px; }
-.network-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.network-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
 .network-summary-card { min-width: 0; padding: 9px 10px; border: 1px solid #d3e3da; border-radius: 11px; background: rgba(255,255,255,.82); }
 .network-summary-card span, .network-summary-card small { display: block; color: var(--muted); font-size: 9px; line-height: 1.2; }
 .network-summary-card span { font-weight: 850; letter-spacing: .055em; text-transform: uppercase; }
 .network-summary-card strong { display: block; margin: 3px 0 2px; color: var(--ink); font-size: 18px; line-height: 1; font-variant-numeric: tabular-nums; }
+.network-summary-card.is-current { border-top: 3px solid #16875d; }
+.network-summary-card.is-attention { border-top: 3px solid #d4a72c; }
+.network-summary-card.is-delayed { border-top: 3px solid #d97706; }
+.network-summary-card.is-very-delayed { border-top: 3px solid #b9443d; }
+.network-summary-card.is-no-time { border-top: 3px solid #76659a; }
+.network-summary-card.is-none { border-top: 3px solid #9ba9a2; }
+.network-summary-card.is-forecast { border-top: 3px solid var(--amber); }
+.network-summary-card.is-catalog { border-top: 3px solid #4b7891; }
+.network-source-strip { display: flex; flex-wrap: wrap; gap: 5px 11px; align-items: center; margin-top: 7px; padding: 7px 9px; border-radius: 9px; background: #f7faf8; color: var(--muted); font-size: 8.5px; }
+.network-source-strip span { white-space: nowrap; }
+.network-source-strip b { color: var(--ink-soft); }
+.network-source-title { font-weight: 850; letter-spacing: .045em; text-transform: uppercase; }
 .network-summary-note { margin: 7px 1px 0; color: var(--muted); font-size: 9.5px; line-height: 1.35; }
 .network-summary-empty { color: var(--muted); font-size: 11px; }
 
@@ -559,7 +571,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
 .network-chip { min-height: 29px; padding: 4px 9px; border: 1px solid #c6d9cf; border-radius: 999px; color: var(--ink-soft); background: #fff; cursor: pointer; font-size: 10px; font-weight: 750; }
 .network-chip:hover { background: #f0f7f3; }
 .network-chip.is-active, .network-chip[aria-pressed="true"] { color: #fff; border-color: var(--green); background: var(--green); }
-.network-select-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.network-select-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
 .network-select-row label { display: grid; gap: 3px; color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
 .network-select-row select { width: 100%; min-width: 0; padding: 7px 8px; border: 1px solid #cbded4; border-radius: 9px; color: var(--ink); background: #fff; font-size: 10.5px; font-weight: 650; text-transform: none; letter-spacing: 0; }
 
@@ -622,6 +634,29 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
 .network-rna-grid span, .network-rna-grid small { display: block; color: var(--muted); font-size: 8px; }
 .network-rna-grid strong { display: block; margin: 2px 0; color: var(--purple); font-size: 13px; }
 .network-detail-empty { margin: 7px 0 0; color: var(--muted); font-size: 9px; line-height: 1.35; }
+.network-trace-grid { display: grid; gap: 5px; margin-top: 7px; }
+.network-trace-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 7px 8px; border: 1px solid #dde8e2; border-radius: 8px; background: #fbfdfc; }
+.network-trace-row div { min-width: 0; }
+.network-trace-row strong, .network-trace-row span { display: block; }
+.network-trace-row strong { font-size: 9px; }
+.network-trace-row span, .network-trace-row small { color: var(--muted); font-size: 8px; }
+.network-trace-row b { color: var(--ink); font-size: 9.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.network-trace-row small { white-space: nowrap; }
+.network-trace-note { margin: 6px 0 0; color: var(--muted); font-size: 8px; line-height: 1.35; }
+
+.basin-upg-health { margin-top: 11px; padding: 11px; border: 1px solid #d8e5dd; border-radius: 12px; background: rgba(255,255,255,.75); }
+.upg-health-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-end; }
+.upg-health-head h4 { margin: 2px 0 0; font-size: 14px; }
+.upg-health-head > span { color: var(--muted); font-size: 8.5px; text-align: right; }
+.upg-health-table-wrap { margin-top: 8px; overflow-x: auto; }
+.upg-health-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 8.5px; }
+.upg-health-table th, .upg-health-table td { padding: 6px 7px; border-bottom: 1px solid #e3ece7; text-align: right; white-space: nowrap; }
+.upg-health-table th:first-child, .upg-health-table td:first-child { text-align: left; }
+.upg-health-table th { color: var(--muted); font-size: 7.5px; letter-spacing: .045em; text-transform: uppercase; }
+.upg-health-table tbody tr:hover { background: #f6faf8; }
+.upg-link { padding: 0; border: 0; color: var(--green); background: transparent; cursor: pointer; font: inherit; font-weight: 800; text-align: left; }
+.upg-link:hover, .upg-link:focus-visible { text-decoration: underline; }
+.upg-health-note { margin: 7px 0 0; color: var(--muted); font-size: 8px; line-height: 1.35; }
 
 @media (max-width: 1100px) {
   .now-overview { grid-template-columns: 1fr; }
@@ -629,6 +664,10 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
 @media (max-width: 760px) {
   .network-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .network-select-row { grid-template-columns: 1fr; }
+  .network-trace-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .network-trace-row small { grid-column: 1 / -1; }
+  .upg-health-head { align-items: flex-start; flex-direction: column; }
+  .upg-health-head > span { text-align: left; }
   .network-detail-primary { grid-template-columns: 1fr; }
   .network-rain-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .network-detail-split { grid-template-columns: 1fr; }
