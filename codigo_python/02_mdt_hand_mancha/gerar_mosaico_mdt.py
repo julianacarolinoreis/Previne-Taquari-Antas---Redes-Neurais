@@ -49,6 +49,11 @@ CIDADES = {
 
 
 def monta(cidade):
+    if cidade == "santa_tereza":
+        raise RuntimeError(
+            "BLOQUEADO: Santa Tereza usa exclusivamente o LiDAR/HAND hidráulico. "
+            "Este gerador legado drone+ANADEM não pode gerar produtos para Santa Tereza."
+        )
     cfg = CIDADES[cidade]
     print(f"=== {cidade} ===")
     with rasterio.open(cfg["anadem"]) as ad:
