@@ -157,6 +157,19 @@ class PlataformaHecTwinTests(unittest.TestCase):
             self.assertIn("stage_error_at_t0_cm", rr)
             self.assertNotIn("48 h de aquecimento", str(rr.get("plain_pt") or ""))
 
+    def test_dual_boundary_nodes_exist_when_dual_is_selected(self) -> None:
+        rr = self.feed.get("rainfall_runoff_result") or {}
+        if rr.get("status") != "hec_hms_4_13_dual_boundary_validated":
+            return
+        codes = {str(n.get("code")) for n in ((self.feed.get("hydro_nodes") or {}).get("nodes") or [])}
+        self.assertIn("86472000", codes)
+        self.assertIn("86500000", codes)
+        self.assertIn("86510000", codes)
+        model_codes = {str(n.get("code")) for n in (((rr.get("corridor_nodes") or {}).get("nodes")) or [])}
+        self.assertIn("86472000", model_codes)
+        self.assertIn("86500000", model_codes)
+        self.assertIn("86510000", model_codes)
+
     def test_operational_hec_is_public_source(self) -> None:
         rr = self.feed.get("rainfall_runoff_result") or {}
         self.assertIn(
