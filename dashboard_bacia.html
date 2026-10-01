@@ -82,12 +82,14 @@
             <div class="network-toolbar-row"><span class="network-toolbar-label">Observação</span><button type="button" class="network-chip is-active" data-network-filter="all" aria-pressed="true">Todas</button><button type="button" class="network-chip" data-network-filter="le1h" aria-pressed="false">≤ 1 h</button><button type="button" class="network-chip" data-network-filter="1to3" aria-pressed="false">1–3 h</button><button type="button" class="network-chip" data-network-filter="over3" aria-pressed="false">&gt; 3 h</button><button type="button" class="network-chip" data-network-filter="no-current" aria-pressed="false">Sem observado atual</button><button type="button" class="network-chip" data-network-filter="none" aria-pressed="false">Sem observado</button></div>
             <div class="network-select-row">
               <label>Fonte<select id="basin-source-filter"><option value="all">Todas</option><option value="ANA/HidroWeb">ANA/HidroWeb</option><option value="SGB/SACE">SGB/SACE</option><option value="CEMADEN">CEMADEN</option><option value="INMET">INMET</option></select></label>
+              <label>UPG / sub-bacia<select id="basin-upg-filter"><option value="all">Todas as UPGs</option></select></label>
               <label>Dado<select id="basin-variable-filter"><option value="all">Todos</option><option value="level">Nível</option><option value="rain">Chuva observada</option><option value="rna">RNA de nível</option></select></label>
               <label>Modelo previsto<select id="basin-model-filter"><option value="all">Todos</option><option value="ecmwf_ifs025">ECMWF IFS</option><option value="gfs_seamless">GFS</option><option value="icon_seamless">ICON</option><option value="gem_seamless">GEM</option><option value="meteofrance_seamless">Météo-France</option></select></label>
             </div>
           </div>
           <div id="basin-map" class="basin-map" aria-live="polite"><div class="loading-block">Carregando limite da G040 e snapshot das estações…</div></div>
           <div id="basin-station-detail" class="basin-station-detail" aria-live="polite"><div class="loading-block">Clique em uma estação para abrir nível, chuva, previsão e RNA.</div></div>
+          <div id="basin-upg-health" class="basin-upg-health" aria-live="polite"><div class="loading-block">Calculando cobertura observacional por UPG…</div></div>
           <p class="basin-map-foot">A cor do ponto representa a idade da evidência observada, não o risco hidrológico. Previsão meteorológica, observação e RNA permanecem em campos independentes. Ausência de dado nunca é convertida em zero.</p>
         </div>
         <div id="now-stations" class="now-stations" aria-live="polite"><div class="loading-block">Carregando telemetria e previsões curtas…</div></div>
@@ -228,7 +230,7 @@
     </footer>
   </main>
   <script src="assets/js/live_feed.js?v=20260916-nunca-atrasado"></script>
-  <script src="assets/js/bacia_dashboard.js?v=20260909-modelview2-20261001-network3" defer></script>
+  <script src="assets/js/bacia_dashboard.js?v=20260909-modelview2-20261001-network4" defer></script>
   <script src="assets/js/gestor_chrome.js" data-page="agora" data-place="bacia"></script>
   <script src="assets/js/site_chrome.js" data-page="bacia"></script>
 </body>
