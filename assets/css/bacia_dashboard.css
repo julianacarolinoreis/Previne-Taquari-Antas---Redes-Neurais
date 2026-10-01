@@ -34,7 +34,7 @@ button, a { font: inherit; }
 a { color: var(--green); }
 a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offset: 3px; }
 
-.bacia-shell { max-width: 1240px; margin: 0 auto; padding: 26px 24px 56px; }
+.bacia-shell { max-width: 1320px; margin: 0 auto; padding: 26px 24px 56px; }
 .bacia-header {
   display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center;
   padding: 24px 26px; color: #fff; border-radius: 24px;
@@ -297,7 +297,200 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
 .bacia-footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 18px; color: var(--muted); font-size: 11px; }
 .bacia-footer strong { color: var(--red); font-weight: 750; }
 
+
+/* Executive "now" view: observed telemetry and short RNA forecasts. */
+.now-panel {
+  background:
+    radial-gradient(circle at 88% 6%, rgba(30,101,189,.07), transparent 28%),
+    linear-gradient(145deg, #ffffff 0%, #f7fbf9 100%);
+}
+.now-heading { margin-bottom: 13px; }
+.now-overview {
+  display: grid;
+  grid-template-columns: minmax(360px, .9fr) minmax(0, 1.1fr);
+  gap: 13px;
+  align-items: stretch;
+}
+.basin-map-card {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid #cfe0d7;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #f7fbff, #f4faf6);
+}
+.now-subhead {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+.now-subhead h3 { margin: 2px 0 0; font-size: 17px; }
+.now-eyebrow {
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.now-map-note { color: var(--muted); font-size: 10px; text-align: right; }
+.basin-map {
+  min-height: 300px;
+  margin-top: 10px;
+  border: 1px solid #dce9e2;
+  border-radius: 13px;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(255,255,255,.68), rgba(255,255,255,.68)),
+    repeating-linear-gradient(0deg, transparent, transparent 33px, rgba(8,118,78,.045) 34px),
+    repeating-linear-gradient(90deg, transparent, transparent 33px, rgba(8,118,78,.045) 34px);
+}
+.basin-map svg { display: block; width: 100%; height: auto; min-height: 300px; }
+.basin-map .basin-shape { fill: #dcefe5; stroke: #4b8d70; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.basin-map .upstream-point { fill: #6f8f80; stroke: #fff; stroke-width: 1.6; vector-effect: non-scaling-stroke; opacity: .86; }
+.basin-map .target-point { fill: var(--blue); stroke: #fff; stroke-width: 2.6; vector-effect: non-scaling-stroke; }
+.basin-map .target-point.mucum { fill: var(--amber); }
+.basin-map .map-label {
+  fill: #173c2e;
+  paint-order: stroke;
+  stroke: rgba(255,255,255,.96);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  font-size: 12px;
+  font-weight: 850;
+}
+.basin-map .map-small-label {
+  fill: #546b61;
+  paint-order: stroke;
+  stroke: rgba(255,255,255,.95);
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+  font-size: 9px;
+  font-weight: 700;
+}
+.basin-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  padding: 9px 10px 10px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.basin-map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.basin-map-legend i { width: 9px; height: 9px; border-radius: 50%; background: #6f8f80; }
+.basin-map-legend i.santa { background: var(--blue); }
+.basin-map-legend i.mucum { background: var(--amber); }
+.basin-map-foot { margin: 9px 1px 0; color: var(--muted); font-size: 10px; line-height: 1.4; }
+
+.now-stations { display: grid; gap: 10px; min-width: 0; }
+.now-station-card {
+  padding: 15px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(15,56,39,.045);
+}
+.now-station-card.is-attention { border-color: #e4c991; background: #fffdf7; }
+.now-station-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.now-station-name { display: flex; flex-wrap: wrap; gap: 7px 9px; align-items: baseline; }
+.now-station-name h3 { margin: 0; font-size: 19px; }
+.now-station-name span { color: var(--muted); font-size: 10.5px; }
+.now-freshness {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: var(--green);
+  background: var(--green-soft);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .04em;
+}
+.now-freshness.warn { color: var(--amber); background: var(--amber-soft); }
+.now-freshness.stale { color: var(--red); background: var(--red-soft); }
+.now-primary-grid {
+  display: grid;
+  grid-template-columns: minmax(145px, .72fr) minmax(0, 1.28fr);
+  gap: 14px;
+  margin-top: 13px;
+  align-items: center;
+}
+.now-level strong {
+  display: block;
+  font-size: clamp(31px, 4vw, 42px);
+  line-height: .95;
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+}
+.now-level strong span { font-size: 15px; letter-spacing: 0; color: var(--muted); font-weight: 700; }
+.now-level small { display: block; margin-top: 7px; color: var(--muted); font-size: 10.5px; }
+.now-threshold { min-width: 0; }
+.now-threshold-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.now-threshold-row strong { color: var(--ink-soft); font-size: 11px; }
+.now-level-track {
+  position: relative;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #dff1e7 0%, #f6e8bf 78%, #f0cbc5 100%);
+}
+.now-level-track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #1f7f5a, #53a97e);
+}
+.now-level-track.is-over i { background: linear-gradient(90deg, #bd682a, #b13f37); }
+.now-threshold-note { margin: 6px 0 0; color: var(--ink-soft); font-size: 10.5px; }
+.now-short-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 800;
+}
+.now-short-title span { color: var(--muted); font-size: 9.5px; font-weight: 600; }
+.now-forecast-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.now-forecast-chip {
+  min-width: 86px;
+  padding: 7px 9px;
+  border: 1px solid #ccddeb;
+  border-radius: 10px;
+  background: #f6faff;
+}
+.now-forecast-chip.comparative { border-style: dashed; background: #faf8ff; }
+.now-forecast-chip b, .now-forecast-chip span { display: block; }
+.now-forecast-chip b { color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; }
+.now-forecast-chip span { margin-top: 1px; color: var(--muted); font-size: 9px; }
+.now-station-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 9.5px;
+}
+.now-station-foot strong { color: var(--ink-soft); }
+
+
 @media (max-width: 980px) {
+  .now-overview { grid-template-columns: 1fr; }
+  .basin-map { min-height: 260px; }
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .model-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .model-station-layout { grid-template-columns: 1fr; }
@@ -308,6 +501,8 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
   .research-source-list { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
+  .now-primary-grid { grid-template-columns: 1fr; gap: 10px; }
+  .now-station-head { align-items: center; }
   .bacia-shell { padding: 13px 12px 35px; }
   .bacia-header { grid-template-columns: auto 1fr; padding: 19px; border-radius: 19px; }
   .research-badge { grid-column: 1 / -1; justify-self: start; }
@@ -328,6 +523,11 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
   .model-station-summary { grid-template-columns: 1fr; }
 }
 @media (max-width: 500px) {
+  .basin-map-card, .now-station-card { padding: 12px; }
+  .basin-map { min-height: 220px; }
+  .basin-map svg { min-height: 220px; }
+  .now-level strong { font-size: 34px; }
+  .now-forecast-chip { min-width: calc(50% - 4px); }
   body { font-size: 14px; }
   .bacia-header h1 { font-size: 27px; }
   .brand-mark { width: 46px; height: 46px; border-radius: 14px; }
