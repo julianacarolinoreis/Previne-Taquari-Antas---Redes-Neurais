@@ -44,6 +44,22 @@ HORIZON_HOURS=120
 BATCH_SIZE=40
 USER_AGENT="PREVINE-G040-IFS-research/1.0"
 
+def load_support():
+    rows=[]
+    with SUPPORT.open(encoding="utf-8",newline="") as fh:
+        for r in csv.DictReader(fh):
+            rows.append({
+                "interval_id":r["interval_id"],
+                "lon":float(r["lon"]),
+                "lat":float(r["lat"]),
+                "area_km2":float(r["local_area_km2"]),
+                "tributary_boundary_code":str(r.get("tributary_boundary_code") or "").strip(),
+                "component_id":str(r.get("component_id") or "").strip(),
+            })
+    if not rows:
+        raise RuntimeError("G040 rain support mesh is empty")
+    return rows
+
 def build_cell_weights(points, active_boundary_codes, grid_cells):
     by_interval={}
     for p in points:

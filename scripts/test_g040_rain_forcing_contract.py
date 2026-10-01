@@ -13,10 +13,14 @@ sys.path.insert(0,str(ROOT/"scripts"))
 
 import g040_rain_grid as grid
 import build_g040_observed_rain_forcing as g040_obs
+import build_g040_ifs_interval_forcing as g040_fc
 import build_mucum_observed_multistation as mucum_obs
 
 
 class G040RainContractTests(unittest.TestCase):
+    def test_forecast_support_loader_exists(self):
+        self.assertTrue(callable(getattr(g040_fc,"load_support",None)))
+
     def test_fixed_grid_contract(self):
         cells=grid.build_grid_cells()
         self.assertEqual(grid.GRID_ROWS,20)
