@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Atualiza as cotas espaciais dos painéis de impacto/margem até HAND 30 m.
+"""Atualiza as cotas espaciais dos painéis de Muçum até HAND 30 m.
 
-Os HTMLs antigos embutiam cotas derivadas de contornos que terminavam em 15 m.
-Este script NÃO estica esses dados: ele lê os contornos HAND regenerados até
-30 m e recalcula a primeira cota que alcança cada nó/célula. Assim, o slider
-0–30 m usa cobertura espacial real do conjunto publicado; ausência continua
-sendo None/SEM DADO, nunca "ponto alto".
+Santa Tereza não entra neste pipeline: usa exclusivamente o HAND hidráulico
+LiDAR e seus próprios scripts de publicação/recálculo. Este script lê apenas
+os contornos de Muçum regenerados até 30 m e recalcula a primeira cota que
+alcança cada nó/célula.
 
 Uso:
   python scripts/refresh_spatial_30m_pages.py
@@ -34,18 +33,6 @@ CITIES = {
             ROOT / "pesquisas/mucum-mapa-margem.html",
             ROOT / "pesquisas/mucum-painel-evacuacao.html",
             ROOT / "mucum_painel_evacuacao.html",
-        ],
-    },
-    "santa_tereza": {
-        "contours": ROOT / "assets/data/santa_tereza_inundacao/contornos_mancha.json",
-        # Santa Tereza usa 15 m na régua como HAND 0. Logo, HAND 15 m
-        # corresponde ao teto visível pedido de 30 m na régua.
-        "ui_hand_max_m": 15.0,
-        "pages": [
-            ROOT / "pesquisas/santa-tereza-mapa-impacto.html",
-            ROOT / "pesquisas/santa-tereza-mapa-margem.html",
-            ROOT / "pesquisas/santa-tereza-painel-evacuacao.html",
-            ROOT / "santa_tereza_painel_evacuacao.html",
         ],
     },
 }
