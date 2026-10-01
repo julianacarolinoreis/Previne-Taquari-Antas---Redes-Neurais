@@ -768,8 +768,8 @@
     </div>
     <div class="station-detail-panel" id="station-detail" hidden aria-live="polite"></div>
     <p class="map-note">O inventário reúne as estações catalogadas na bacia Taquari–Antas (G040): ANA/HidroWeb, hidrotelemetria SGB/SACE, CEMADEN e INMET. Observação, telemetria e previsão
-      aparecem separadas; <strong>indisponível</strong> não significa zero. O ciclo automático tenta atualizar a cada cinco minutos e esta interface
-      é de pesquisa — <strong>não é alerta oficial</strong>, ordem de evacuação ou confirmação de inundação.</p>
+      aparecem separadas; <strong>indisponível</strong> não significa zero. O ciclo é automático e encadeado: a nova publicação ocorre quando a rodada completa da rede termina, por isso o intervalo real pode ser maior que cinco minutos.
+      Esta interface é de pesquisa — <strong>não é alerta oficial</strong>, ordem de evacuação ou confirmação de inundação.</p>
     <a class="mancha-link" href="vulnerabilidade.html">
       <span class="ml-ico" aria-hidden="true">👥</span>
       <span class="ml-txt"><strong>Vulnerabilidade social da bacia <span style="font-size:11px;font-weight:600;color:#8a5a12">(beta)</span></strong>
@@ -1687,12 +1687,12 @@
     return 'há '+Math.round(hours/24)+' d';
   };
   const basinNextCycle=value=>{
-    if(!value)return 'próxima rodada não informada';
+    if(!value)return 'ciclo automático ativo';
     const d=new Date(value);
-    if(Number.isNaN(d.getTime()))return String(value);
+    if(Number.isNaN(d.getTime()))return 'ciclo automático ativo';
     return d.getTime()<Date.now()
-      ?'rodada esperada '+basinDate(value)+' ainda não concluída'
-      :'próxima rodada '+basinDate(value);
+      ?'nova rodada em processamento'
+      :'próxima janela automática '+basinDate(value);
   };
   const basinFeedAgeHours=()=>{
     const generated=BASIN_FEED&&BASIN_FEED.generated_at_utc?Date.parse(BASIN_FEED.generated_at_utc):NaN;
@@ -2540,7 +2540,7 @@
     const rainMessage=st.observed_rain&&st.observed_rain.message?st.observed_rain.message:'Chuva observada não publicada para esta estação.';
     const levelMessage=level&&level.message?level.message:'Telemetria de nível não publicada para esta estação.';
     const freshnessMessage=basinFeedIsStale()?' O snapshot está atrasado em relação ao contrato de cinco minutos; a previsão antiga foi retirada até a próxima rodada.':'';
-     html+='<p class="station-detail-note"><strong>Leitura dos dados:</strong> '+basinEscape(forecastMessage)+' '+basinEscape(rainMessage)+' '+basinEscape(levelMessage)+basinEscape(freshnessMessage)+' A série horária observada e o acumulado CEMADEN de 24h são produtos diferentes; o horário de atualização do painel CEMADEN não comprova o horário da última leitura de cada sensor. Os pontos horários de chuva são mm da hora anterior; cada acumulado previsto mostra explicitamente o início e o fim da janela. Zero previsto é saída dos modelos consultados, não confirmação de ausência de chuva ou risco. Ausência de dado nunca é convertida em zero. A umidade do solo é proxy modelado, não sensor local. Os horários estão em Brasília (BRT) na interface; o feed mantém UTC e é reconstruído a cada cinco minutos.</p>';
+     html+='<p class="station-detail-note"><strong>Leitura dos dados:</strong> '+basinEscape(forecastMessage)+' '+basinEscape(rainMessage)+' '+basinEscape(levelMessage)+basinEscape(freshnessMessage)+' A série horária observada e o acumulado CEMADEN de 24h são produtos diferentes; o horário de atualização do painel CEMADEN não comprova o horário da última leitura de cada sensor. Os pontos horários de chuva são mm da hora anterior; cada acumulado previsto mostra explicitamente o início e o fim da janela. Zero previsto é saída dos modelos consultados, não confirmação de ausência de chuva ou risco. Ausência de dado nunca é convertida em zero. A umidade do solo é proxy modelado, não sensor local. Os horários estão em Brasília (BRT) na interface; o feed mantém UTC. A atualização é automática e encadeada, mas a publicação depende do tempo necessário para consultar e validar toda a rede.</p>';
     panel.innerHTML=html;
     panel.querySelectorAll('[data-basin-model]').forEach(button=>button.addEventListener('click',()=>{
       const id=button.getAttribute('data-basin-model');
