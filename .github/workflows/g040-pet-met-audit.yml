@@ -1,0 +1,68 @@
+name: G040 PET and MGB met audit
+
+on:
+  pull_request:
+    paths:
+      - "config/g040_pet_strategy_v1.json"
+      - "scripts/audit_g040_nasa_power_met.py"
+      - "scripts/test_g040_pet_met_contract.py"
+      - ".github/workflows/g040-pet-met-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "config/g040_pet_strategy_v1.json"
+      - "scripts/audit_g040_nasa_power_met.py"
+      - "scripts/test_g040_pet_met_contract.py"
+      - ".github/workflows/g040-pet-met-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-pet-met-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Contract tests
+        run: python -B scripts/test_g040_pet_met_contract.py
+
+      - name: NASA POWER independent meteorology audit
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python -B scripts/audit_g040_nasa_power_met.py --start 20240501 --end 20240502 --max-points 3
+          else
+            python -B scripts/audit_g040_nasa_power_met.py --start 20240501 --end 20240503 --max-points 13
+          fi
+
+      - name: Show audit
+        run: cat assets/data/g040_hydro_stack/mgb_met_nasa_power_audit_latest.json
+
+      - name: Publish audit on main
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          P="assets/data/g040_hydro_stack/mgb_met_nasa_power_audit_latest.json"
+          cp "$P" /tmp/mgb_met_nasa_power_audit_latest.json
+          git config user.name "previne-met-audit-bot"
+          git config user.email "previne-met-audit-bot@users.noreply.github.com"
+          git fetch origin main
+          git reset --hard origin/main
+          cp /tmp/mgb_met_nasa_power_audit_latest.json "$P"
+          git add -- "$P"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "audit: update G040 independent meteorology source [skip ci]"
+          git push origin HEAD:main

@@ -1,0 +1,65 @@
+{
+  "schema_version": "g040_pet_strategy_v1",
+  "research_only": true,
+  "status": "EXPERIMENT_MATRIX_READY_NO_METHOD_PROMOTED",
+  "purpose": "continuous HEC-HMS SMA PET strategy and independent MGB meteorological source audit",
+  "hec_hms": {
+    "required_for_sma_continuous": true,
+    "candidates": [
+      {
+        "id": "specified_era5_land",
+        "method": "Specified Evapotranspiration",
+        "role": "preferred historical reference candidate",
+        "source": "ERA5-Land official CDS",
+        "status": "SOURCE_CONTRACT_DEFINED_RETRIEVAL_NOT_MATERIALIZED",
+        "advantages": [
+          "source-backed gridded historical forcing",
+          "consistent warm-up forcing"
+        ],
+        "blockers": [
+          "official CDS retrieval/version provenance not materialized in repo"
+        ]
+      },
+      {
+        "id": "hargreaves_temperature",
+        "method": "Hargreaves",
+        "role": "low-input continuous-SMA experiment",
+        "source": "source-backed temperature forcing",
+        "status": "EXPERIMENT_CANDIDATE_NOT_SELECTED",
+        "advantages": [
+          "temperature-only HEC-HMS method",
+          "allows early continuous-SMA sensitivity experiment"
+        ],
+        "blockers": [
+          "temperature forcing must be source-audited",
+          "must be compared on fixed benchmark before selection"
+        ]
+      },
+      {
+        "id": "penman_monteith",
+        "method": "Penman Monteith",
+        "role": "physically based comparison candidate",
+        "source": "temperature + humidity/dewpoint + wind + radiation + pressure as required",
+        "status": "FULL_MET_FORCING_INCOMPLETE",
+        "blockers": [
+          "full meteorological forcing not yet closed"
+        ]
+      }
+    ],
+    "selection_rule": "No PET method becomes canonical until continuous warm-up and the fixed benchmark show acceptable water-balance, peak and timing performance without degrading independent validation.",
+    "zero_pet_forbidden_as_default": true
+  },
+  "mgb": {
+    "preferred_historical_source": "ERA5-Land official CDS",
+    "independent_audit_source": "NASA POWER hourly",
+    "independent_audit_role": "verify availability/continuity of temperature, relative humidity, wind, solar radiation and pressure at representative G040 controls; not an automatic replacement for ERA5-Land",
+    "variables": [
+      "T2M",
+      "RH2M",
+      "WS10M",
+      "ALLSKY_SFC_SW_DWN",
+      "PS"
+    ]
+  },
+  "promotion_allowed": false
+}
