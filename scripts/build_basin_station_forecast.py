@@ -1343,8 +1343,19 @@ def _compact_station_status(
                 windows_out[f"{hours}h"] = round(value, 3) if value is not None else None
         else:
             windows_out = {f"{hours}h": None for hours in PRECIPITATION_WINDOW_HOURS}
+        valid_window_count = sum(value is not None for value in windows_out.values())
+        window_state = (
+            "complete"
+            if valid_window_count == len(PRECIPITATION_WINDOW_HOURS)
+            else "partial"
+            if valid_window_count
+            else "unavailable"
+        )
         model_summary[model_id] = {
             "available": isinstance(model, dict),
+            "precipitation_state": window_state,
+            "precipitation_valid_window_count": valid_window_count,
+            "precipitation_expected_window_count": len(PRECIPITATION_WINDOW_HOURS),
             "precipitation_windows_mm": windows_out,
         }
 
