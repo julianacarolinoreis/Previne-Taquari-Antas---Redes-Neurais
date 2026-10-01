@@ -704,15 +704,30 @@
         ).join('') + '</div>' : '<p class="network-detail-empty">RNA aplicável, mas sem previsão futura válida nesta rodada.</p>')
       : '<p class="network-detail-empty">RNA de nível não publicada para esta estação. A previsão meteorológica continua independente.</p>';
     const cemadenHtml = cemaden ? '<div class="network-cemaden-note"><strong>CEMADEN 24 h:</strong> ' + fmt(cemaden.value, 1) + ' mm <span>· horário é da atualização do painel, não do relógio individual do sensor' + (cemaden.updated_at_utc ? ' · painel ' + when(cemaden.updated_at_utc) + ' BRT' : '') + '</span></div>' : '';
-    const traceRows = networkSourceObservations(item).map((row) => {
+    const traceParts = [];
+    if (levelInfo.cm != null && levelInfo.plausible) {
+      traceParts.push('<div class="network-trace-row"><div><strong>' + esc(level.source || 'telemetria de nível') + '</strong><span>nível observado</span></div><b>' + esc(fmt(levelInfo.cm, 0) + ' cm') + '</b><small>' + (level.observed_at_utc ? esc(when(level.observed_at_utc) + ' BRT') : 'sem horário publicado') + '</small></div>');
+    } else if (levelInfo.rawCm != null) {
+      traceParts.push('<div class="network-trace-row is-suspect"><div><strong>' + esc(level.source || 'telemetria de nível') + '</strong><span>valor vertical bruto bloqueado como nível</span></div><b>' + esc(fmt(levelInfo.rawCm, 0) + ' cm') + '</b><small>' + (level.observed_at_utc ? esc(when(level.observed_at_utc) + ' BRT') : 'sem horário publicado') + '</small></div>');
+    }
+    if (rain.state === 'available') {
+      const rain1h = networkRainWindow(item, 1);
+      const rainValue = num(rain1h.mm);
+      traceParts.push('<div class="network-trace-row"><div><strong>' + esc(rain.source || 'série horária de chuva') + '</strong><span>chuva observada · última janela 1 h</span></div><b>' + (rainValue == null ? 'série disponível' : esc(fmt(rainValue, 1) + ' mm')) + '</b><small>' + (rain.last_observed_at_utc ? esc(when(rain.last_observed_at_utc) + ' BRT') : 'sem horário publicado') + '</small></div>');
+    }
+    networkSourceObservations(item).forEach((row) => {
       const value = num(row.value);
       const metric = String(row.metric || 'observação').replace(/_/g, ' ');
       const unit = row.unit ? ' ' + row.unit : '';
-      return '<div class="network-trace-row"><div><strong>' + esc(row.source || 'fonte') + '</strong><span>' + esc(metric) + '</span></div><b>' + (value == null ? '—' : esc(fmt(value, 2) + unit)) + '</b><small>' + (row.updated_at_utc ? esc(when(row.updated_at_utc) + ' BRT') : 'sem horário publicado') + '</small></div>';
-    }).join('');
+      traceParts.push('<div class="network-trace-row"><div><strong>' + esc(row.source || 'fonte') + '</strong><span>' + esc(metric) + '</span></div><b>' + (value == null ? '—' : esc(fmt(value, 2) + unit)) + '</b><small>' + (row.updated_at_utc ? esc(when(row.updated_at_utc) + ' BRT') : 'sem horário publicado') + '</small></div>');
+    });
+    if (item.forecast && item.forecast.state === 'available') {
+      traceParts.push('<div class="network-trace-row is-forecast"><div><strong>Previsão meteorológica multi-modelo</strong><span>ECMWF · GFS · ICON · GEM · Météo-France</span></div><b>previsto</b><small>' + (item.forecast.fetched_at_utc ? esc(when(item.forecast.fetched_at_utc) + ' BRT') : 'sem horário de coleta') + '</small></div>');
+    }
+    const traceRows = traceParts.join('');
     const traceHtml = '<div class="network-detail-section"><div class="network-detail-title"><strong>RASTREABILIDADE DA ESTAÇÃO</strong><span>fonte · variável · valor · horário publicado</span></div><div class="network-trace-grid">' +
-      (traceRows || '<p class="network-detail-empty">Sem observações auxiliares publicadas para esta estação.</p>') +
-      '</div><p class="network-trace-note">O horário acima é preservado conforme a fonte. Quando o CEMADEN fornece apenas horário de atualização do painel, ele não é usado como relógio individual do sensor.</p></div>';
+      (traceRows || '<p class="network-detail-empty">Sem dados rastreáveis publicados para esta estação.</p>') +
+      '</div><p class="network-trace-note">O horário é preservado conforme cada fonte. Horário de atualização de painel não é tratado como relógio individual do sensor. Valores verticais incompatíveis permanecem auditáveis, mas não são exibidos como nível do rio.</p></div>';
     host.innerHTML =
       '<article class="network-detail-card"><div class="network-detail-head"><div><span class="network-detail-kicker">' + esc(item.upg_label || 'G040') + '</span><h4>' + esc(item.name || 'Estação') + ' <small>' + esc(item.code || '') + '</small></h4><p>' + esc(sources) + (item.type_label ? ' · ' + esc(item.type_label) : '') + '</p></div><span class="network-status-pill ' + esc(observed.status) + '">' + esc(networkStatusLabel(observed.status)) + '</span></div>' +
       '<div class="network-detail-primary"><div><span>NÍVEL OBSERVADO</span><strong>' + levelValue + '</strong><small>' + esc(levelNote) + '</small></div><div><span>VAZÃO OBSERVADA</span><strong>' + flowValue + '</strong><small>' + esc(flowNote) + '</small></div><div><span>ÚLTIMA EVIDÊNCIA OBSERVADA</span><strong>' + (observed.status === 'none' ? '—' : observed.status === 'no-time' ? 'sem hora individual' : ageLabel(observed.ageHours)) + '</strong><small>' + esc(lastObserved) + '</small></div></div>' +
