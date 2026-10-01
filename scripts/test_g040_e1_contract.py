@@ -52,9 +52,24 @@ class E1ContractTests(unittest.TestCase):
 
     def test_jython_writer_has_exact_dss_readback_preflight(self):
         src=MOD.read_text(encoding="utf-8")
-        self.assertIn("DSS_PREFLIGHT|%s|%d",src)
+        self.assertIn("DSS_PREFLIGHT_BLOCK|%s|%d",src)
+        self.assertIn("DSS_PREFLIGHT_TOTAL|%s|%s|%d|expected=%d",src)
         self.assertIn('1Hour/FORECAST/',src)
         self.assertIn('raise RuntimeError("DSS preflight failed',src)
+
+    def test_generated_hec_headers_keep_filepath_separator_line(self):
+        start=m.utc("2026-09-28T00:00:00Z")
+        end=m.utc("2026-10-01T00:00:00Z")
+        g=m.build_gage(start,end,["86500000"],["CORE_INC_86472000_86510000"])
+        self.assertIn("Filepath Separator: \\\nEnd:",g)
+        self.assertNotIn("Filepath Separator: End:",g)
+
+    def test_jython_preflight_handles_month_blocks(self):
+        src=MOD.read_text(encoding="utf-8")
+        self.assertIn("DSS_PREFLIGHT_BLOCK",src)
+        self.assertIn("DSS_PREFLIGHT_TOTAL",src)
+        self.assertIn('month_tokens=[]',src)
+        self.assertIn('token="01%s%04d"',src)
 
 if __name__=="__main__":
     unittest.main()

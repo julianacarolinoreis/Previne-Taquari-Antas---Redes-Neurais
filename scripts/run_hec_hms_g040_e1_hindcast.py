@@ -247,7 +247,7 @@ def build_basin(rain,active,args):
      Last Modified Date: 30 September 2026
      Last Modified Time: 19:00:00
      Version: 4.13
-     Filepath Separator: \
+     Filepath Separator: \\
      Unit System: Metric
      Missing Flow To Zero: No
      Enable Flow Ratio: No
@@ -337,7 +337,7 @@ def build_project():
     return """Project: g040_e1_hindcast
      Description: PREVINE G040 E1 whole-basin research hindcast
      Version: 4.13
-     Filepath Separator: \
+     Filepath Separator: \\
      DSS File Name: input.dss
      Time Zone ID: America/Sao_Paulo
 End:
@@ -404,7 +404,7 @@ def build_gage(start,end,active,used_components):
     dp=dpart(local_naive(start))
     lines=["""Gage Manager: G040 E1 Hindcast
      Version: 4.13
-     Filepath Separator: \
+     Filepath Separator: \\
 End:
 """]
     for code in [SOURCE_PRIMARY,*active]:
@@ -467,21 +467,38 @@ for cid,vals in rain_values.items():
     put("/G040/%s/PRECIP-INC/%s/1Hour/FORECAST/"%(cid,dp),vals,"MM","PER-CUM")
 dss.close()
 
-# Read back the exact records HEC-HMS gages will request.  This separates
-# DSS-writing/path problems from HEC gage-manager problems.
+# Read back every monthly DSS block that HEC-DSS creates for a regular
+# time series. A multi-day hindcast can cross a month boundary.
 dss=HecDss.open(project_dir+"/input.dss")
+month_names=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+month_tokens=[]
+for stamp in times:
+    y=int(stamp[0:4]); m=int(stamp[5:7])
+    token="01%s%04d"%(month_names[m-1],y)
+    if token not in month_tokens:
+        month_tokens.append(token)
+
 required=[]
 for code in source_values.keys():
-    required.append("/G040/%s/FLOW/%s/1Hour/FORECAST/"%(code,dp))
+    required.append(("FLOW",code))
 for cid in rain_values.keys():
-    required.append("/G040/%s/PRECIP-INC/%s/1Hour/FORECAST/"%(cid,dp))
-for path in required:
-    series=dss.get(path)
-    n=int(getattr(series,"numberValues",0) or 0)
-    print("DSS_PREFLIGHT|%s|%d"%(path,n))
-    if n != len(times):
+    required.append(("PRECIP-INC",cid))
+
+for kind,name in required:
+    total=0
+    for block in month_tokens:
+        if kind=="FLOW":
+            path="/G040/%s/FLOW/%s/1Hour/FORECAST/"%(name,block)
+        else:
+            path="/G040/%s/PRECIP-INC/%s/1Hour/FORECAST/"%(name,block)
+        series=dss.get(path)
+        n=int(getattr(series,"numberValues",0) or 0)
+        print("DSS_PREFLIGHT_BLOCK|%s|%d"%(path,n))
+        total+=n
+    print("DSS_PREFLIGHT_TOTAL|%s|%s|%d|expected=%d"%(kind,name,total,len(times)))
+    if total != len(times):
         dss.close()
-        raise RuntimeError("DSS preflight failed for %s: %d values != %d"%(path,n,len(times)))
+        raise RuntimeError("DSS preflight failed for %s %s: %d values != %d"%(kind,name,total,len(times)))
 dss.close()
 
 if os.path.exists(project_dir+"/output.dss"): os.remove(project_dir+"/output.dss")
