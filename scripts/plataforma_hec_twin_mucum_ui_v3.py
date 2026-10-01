@@ -266,7 +266,7 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
       </div>
       <div class="callout" style="margin-top:10px">
         <h3>Leitura do resultado</h3>
-        <p id="modelWarning">—</p>
+        <div id="modelWarning">—</div>
       </div>
       <div class="kpi-line" id="modelRainAudit"></div>
       <div class="table-wrap" style="margin-top:10px">
@@ -374,7 +374,12 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
 </div>
 
 <script>
-const DATA=__DATA__;
+let DATA=__DATA__;
+(async function boot(){
+try{
+  const latest=await fetch("plataforma_hec_twin_mucum_latest.json?ts="+Date.now(),{cache:"no-store"});
+  if(latest.ok)DATA=await latest.json();
+}catch(e){}
 const $=id=>document.getElementById(id);
 function fmt(v,d=0){if(v===null||v===undefined||Number.isNaN(Number(v)))return"—";return Number(v).toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d})}
 function brt(ts){if(!ts)return"—";try{return new Date(ts).toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}catch(e){return ts}}
@@ -398,19 +403,26 @@ $("obsQ").textContent=muc.discharge_m3s!=null?fmt(muc.discharge_m3s,0):"—";
 
 function maxFinite(arr){const xs=(arr||[]).map(Number).filter(Number.isFinite);return xs.length?Math.max(...xs):null}
 $("modelGenerated").textContent=rr.generated_at_utc?("rodada "+brt(rr.generated_at_utc)):"sem rodada";
-const hecSpatial=rr.status==="hec_hms_4_13_spatial_ifs_ready";
-$("modelBadge").textContent=hecSpatial?"HEC-HMS 4.13 · IFS espacial":(rr.available?"resultado experimental":"sem resultado");
+const hecSpatial=rr.status==="hec_hms_4_13_spatial_ifs_warmup_ready";
+const hecBlocked=/blocked/i.test(String(rr.status||""));
+const blockers=rr.blocking_reasons_pt||((rr.validation||{}).blocking_reasons_pt)||[];
+$("modelBadge").textContent=hecSpatial?"HEC-HMS 4.13 · IFS espacial":(hecBlocked?"RODADA BLOQUEADA":(rr.available?"resultado experimental":"sem execução válida"));
 $("modelBadge").className="badge "+(hecSpatial?"ok":"warn");
-$("statusHydro").textContent=hecSpatial?"HEC-HMS 4.13 executado · IFS espacial":(rr.available?"resultado experimental disponível":"sem resultado");
+$("statusHydro").textContent=hecSpatial?"HEC-HMS 4.13 executado · IFS espacial":(hecBlocked?"HEC-HMS executado · saída bloqueada na validação":(rr.available?"resultado experimental disponível":"sem execução válida"));
 $("hydroDot").className="dot "+(hecSpatial?"ok":"wait");
 $("mainNotice").innerHTML=hecSpatial
- ? "<strong>Rodada espacial concluída:</strong> o hidrograma abaixo foi executado no HEC-HMS 4.13 com o campo IFS espacial. O produto por proxies ficou apenas na auditoria."
- : "<strong>Atenção:</strong> a execução HEC-HMS espacial não está disponível neste ciclo; o que houver abaixo é experimental.";
+ ? "<strong>Rodada espacial validada:</strong> o hidrograma abaixo foi executado no HEC-HMS 4.13 com o campo IFS espacial e passou pelas guardas do estado atual."
+ : hecBlocked
+   ? "<strong>Rodada executada, mas não publicável:</strong> o HEC-HMS rodou; a previsão foi bloqueada porque o estado aquecido não reproduziu o observado atual dentro das guardas. O gráfico abaixo mostra somente o candidato rejeitado para diagnóstico."
+   : "<strong>Atenção:</strong> não há execução HEC-HMS espacial válida neste ciclo.";
 $("modelQobs").textContent=rr.current_observed_q_rating_m3s!=null?fmt(rr.current_observed_q_rating_m3s,0)+" m³/s":"—";
-$("modelQpeak").textContent=maxFinite(rr.q_mucum_m3s)!=null?fmt(maxFinite(rr.q_mucum_m3s),0)+" m³/s":"—";
+$("modelQpeak").textContent=hecBlocked?"bloqueado":(maxFinite(rr.q_mucum_m3s)!=null?fmt(maxFinite(rr.q_mucum_m3s),0)+" m³/s":"—");
 $("modelNobs").textContent=rr.current_observed_stage_cm!=null?fmt(rr.current_observed_stage_cm/100,2)+" m":"—";
-$("modelRise").textContent=(rr.primary&&rr.primary.rise_cm!=null)?fmt(rr.primary.rise_cm,0)+" cm":"—";
-$("modelWarning").textContent=rr.warning_pt||"Resultado experimental.";
+$("modelRise").textContent=hecBlocked?"bloqueado":((rr.primary&&rr.primary.rise_cm!=null)?fmt(rr.primary.rise_cm,0)+" cm":"—");
+$("modelWarning").innerHTML=hecBlocked
+ ? "<p style='margin:0 0 7px'><strong>Não é ausência de cálculo.</strong> É uma rodada rejeitada pela validação do estado inicial; por isso pico e ΔN não são publicados como previsão.</p>"+
+   (blockers.length?"<ul style='margin:0;padding-left:18px'>"+blockers.slice(0,4).map(x=>"<li>"+x+"</li>").join("")+"</ul>":"")
+ : "<p style='margin:0'>"+(rr.warning_pt||"Resultado experimental.")+"</p>";
 if($("legendAntas") && !(rr.q_antas_m3s||[]).length && !(((rr.nodes_model||{})["Zona_86472000_LIVE"]||{}).q_m3s||[]).length)$("legendAntas").style.display="none";
 if($("legendIbi") && !((((rr.nodes_model||{})["Zona_02851072_LIVE"]||{}).q_m3s)||[]).length)$("legendIbi").style.display="none";
 const audit=$("modelRainAudit");
@@ -449,7 +461,27 @@ function drawHydrograph(){
  const mn=rr.nodes_model||{};
  const q2=((rr.q_antas_m3s||[]).length?(rr.q_antas_m3s||[]):((mn["Zona_86472000_LIVE"]||{}).q_m3s||[])).map(Number);
  const q3=((mn["Zona_02851072_LIVE"]||{}).q_m3s||[]).map(Number);
- if(!tt.length||!q1.length){svg.innerHTML="<text x='40' y='55' fill='#607168' font-size='18'>Sem série do modelo disponível.</text>";return}
+ if((!tt.length||!q1.length)&&hecBlocked){
+   const dc=rr.diagnostic_candidate||{}, nt=dc.time_utc||[], nn=(dc.n_mucum_rating_cm||[]).map(Number);
+   const obs=Number(rr.current_observed_stage_cm), warmed=Number((rr.validation||{}).raw_warmed_stage_at_current_cm);
+   if(nt.length&&nn.length){
+     const W=1000,H=330,L=72,R=24,T=38,B=48;
+     const vals=[...nn,obs].filter(Number.isFinite), ymin=Math.min(...vals), ymax=Math.max(...vals);
+     const span=(ymax-ymin)||100,lo=Math.max(0,ymin-span*.08),hi=ymax+span*.10;
+     const x=i=>L+(W-L-R)*(i/(Math.max(1,nt.length-1))),y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+     const path=nn.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join(" ");
+     let s="<rect x='"+L+"' y='"+T+"' width='"+(W-L-R)+"' height='"+(H-T-B)+"' fill='#fffaf0' opacity='.55'/>";
+     for(let k=0;k<=4;k++){const yy=T+(H-T-B)*k/4,val=hi-(hi-lo)*k/4;s+="<line x1='"+L+"' y1='"+yy+"' x2='"+(W-R)+"' y2='"+yy+"' stroke='#e5ddd0'/><text x='10' y='"+(yy+4)+"' fill='#6d746f' font-size='12'>"+fmt(val/100,2)+" m</text>"}
+     if(Number.isFinite(obs)){const yo=y(obs);s+="<line x1='"+L+"' y1='"+yo+"' x2='"+(W-R)+"' y2='"+yo+"' stroke='#176149' stroke-width='2' stroke-dasharray='7 5'/><text x='"+(W-R-4)+"' y='"+(yo-7)+"' text-anchor='end' fill='#176149' font-size='12' font-weight='700'>observado t0 "+fmt(obs/100,2)+" m</text>"}
+     s+="<path d='"+path+"' fill='none' stroke='#b7791f' stroke-width='3' stroke-dasharray='9 6' vector-effect='non-scaling-stroke'/>";
+     if(Number.isFinite(warmed)){s+="<circle cx='"+x(0)+"' cy='"+y(warmed)+"' r='5' fill='#b7791f'/><text x='"+(x(0)+10)+"' y='"+(y(warmed)-8)+"' fill='#8a5a16' font-size='12'>HEC aquecido "+fmt(warmed/100,2)+" m</text>"}
+     const ticks=[0,Math.floor((nt.length-1)/3),Math.floor(2*(nt.length-1)/3),nt.length-1];ticks.forEach(i=>{const xx=x(i);s+="<text x='"+xx+"' y='"+(H-15)+"' text-anchor='middle' fill='#607168' font-size='11'>"+brt(nt[i]).replace(", "," ")+"</text>"});
+     s+="<text x='"+L+"' y='20' fill='#8a5a16' font-size='13' font-weight='800'>CANDIDATO REJEITADO · diagnóstico do estado, não previsão publicada</text>";
+     svg.innerHTML=s;return;
+   }
+   svg.innerHTML="<text x='40' y='55' fill='#8a5a16' font-size='17' font-weight='700'>Rodada HEC executada, porém bloqueada na validação.</text><text x='40' y='84' fill='#607168' font-size='14'>Sem série diagnóstica compacta neste feed; consulte os motivos abaixo.</text>";return;
+ }
+ if(!tt.length||!q1.length){svg.innerHTML="<text x='40' y='55' fill='#607168' font-size='18'>Sem execução válida do modelo neste ciclo.</text>";return}
  const W=1000,H=330,L=72,R=24,T=24,B=48;
  const vals=[...q1,...q2,...q3].filter(Number.isFinite), ymin=Math.min(...vals), ymax=Math.max(...vals);
  const span=(ymax-ymin)||1, lo=Math.max(0,ymin-span*.08), hi=ymax+span*.10;
@@ -600,6 +632,7 @@ L.control.layers(null,{"Nós HEC-HMS":modelNodeLayer,"Telemetria observada":node
 if($("fitBasin"))$("fitBasin").addEventListener("click",()=>{if(basinBounds&&basinBounds.isValid())map.fitBounds(basinBounds,{padding:[18,18]});else map.fitBounds(bb,{padding:[18,18]})});
 if($("focusMucum"))$("focusMucum").addEventListener("click",()=>{if(muc.lat!=null&&muc.lon!=null){map.setView([muc.lat,muc.lon],11,{animate:true});if(window.nodeMarkers[muc.code])window.nodeMarkers[muc.code].openPopup();renderNodeDetail(muc)}});
 setTimeout(()=>map.invalidateSize(),180);
+})();
 </script>
 </body>
 </html>
