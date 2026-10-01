@@ -236,13 +236,24 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
 .model-status-pill.is-alert { color: var(--red); background: var(--red-soft); }
 .model-status-pill.is-stale { color: var(--amber); background: var(--amber-soft); }
 .model-status-pill.is-proxy { color: var(--amber); background: var(--amber-soft); }
-.threshold-scale { position: relative; height: 17px; margin: 24px 0 7px; border-radius: 999px; background: linear-gradient(90deg, #caead7, #f6e9c5 75%, #f4d2cb); }
-.threshold-scale::after { content: ""; position: absolute; top: -5px; right: 0; bottom: -5px; width: 2px; border-radius: 2px; background: #53605a; }
+.threshold-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 13px; }
+.threshold-stats > div { min-width: 0; padding: 8px 9px; border: 1px solid #dbe8e1; border-radius: 10px; background: #f8fbf9; }
+.threshold-stats span, .threshold-stats strong { display: block; }
+.threshold-stats span { color: var(--muted); font-size: 8.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.threshold-stats strong { margin-top: 3px; color: var(--ink); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.threshold-scale { position: relative; height: 13px; margin: 24px 4px 7px; border-radius: 999px; background: linear-gradient(90deg, #caead7, #f6e9c5 75%, #f4d2cb); }
+.threshold-scale::after { content: ""; position: absolute; top: -4px; right: 0; bottom: -4px; width: 2px; border-radius: 2px; background: #53605a; }
 .threshold-scale i { display: block; height: 100%; border-radius: inherit; background: var(--green); }
-.threshold-scale b { position: absolute; top: -21px; transform: translateX(-50%); color: var(--ink); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.threshold-labels { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 10px; }
+.threshold-scale b { position: absolute; top: -21px; transform: translateX(-50%); padding: 1px 4px; border-radius: 5px; color: var(--ink); background: rgba(255,255,255,.92); font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .model-takeaway { margin: 11px 0 0; color: var(--ink-soft); font-size: 10.5px; line-height: 1.4; }
+.model-threshold-card.is-unavailable, .model-soil-card.is-unavailable { border-style: dashed; background: #fafcfb; }
 .model-risk-card.is-stale { border-color: #e3cda3; background: #fffaf0; }
+.model-availability { margin-top: 12px; padding: 10px 11px; border: 1px dashed #d6ded9; border-radius: 10px; background: rgba(255,255,255,.66); }
+.model-availability strong, .model-availability span { display: block; }
+.model-availability strong { color: var(--ink); font-size: 13px; }
+.model-availability span { margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.35; }
+.model-risk-card.is-stale .model-availability { border-color: #ead5aa; background: rgba(255,255,255,.7); }
+.model-archive-note { display: block; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #eadfc8; color: var(--muted); font-size: 9.5px; line-height: 1.4; }
 .model-risk-value { display: flex; align-items: baseline; gap: 7px; margin-top: 13px; color: var(--purple); font-size: 25px; font-weight: 850; font-variant-numeric: tabular-nums; }
 .model-risk-value span { color: var(--muted); font-size: 10px; font-weight: 600; }
 .model-risk-card p, .model-soil-card p { margin: 8px 0 0; color: var(--ink-soft); font-size: 10.5px; line-height: 1.4; }
@@ -586,6 +597,9 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
   .research-gates-list { grid-template-columns: 1fr; }
   .research-source-list { grid-template-columns: 1fr; }
   .model-station-summary { grid-template-columns: 1fr; }
+  .threshold-stats { grid-template-columns: 1fr; }
+  .threshold-stats > div { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 8px; }
+  .threshold-stats strong { margin-top: 0; }
 }
 @media (max-width: 500px) {
   .basin-map-card, .now-station-card { padding: 12px; }
