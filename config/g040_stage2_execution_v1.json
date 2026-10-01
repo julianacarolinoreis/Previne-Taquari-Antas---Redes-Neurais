@@ -45,7 +45,26 @@
       ],
       "pseudo_operational_holdout": [
         "E2026_JUL"
-      ]
+      ],
+      "pet_strategy": {
+        "hindcast_warmup": {
+          "source": "ERA5-Land hourly",
+          "method": "prefer supplied potential evaporation as external PET first; retain component atmospheric variables for independent sensitivity/alternative ET methods",
+          "purpose": "historical warm-up, continuous state reconstruction, calibration and validation",
+          "operational_role": false
+        },
+        "near_real_time": {
+          "status": "SOURCE_PIPELINE_PENDING",
+          "requirement": "fresh atmospheric forcing with timestamp/provenance; do not extend stale ERA5-Land values forward",
+          "candidate_methods": [
+            "externally calculated Penman-Monteith",
+            "Priestley-Taylor",
+            "Hargreaves where only reliable temperature is available"
+          ],
+          "preferred_rule": "use the same documented method across replay and pseudo-operational evaluation before promotion"
+        },
+        "hec_hms_rule": "continuous SMA must not run with implicit zero PET"
+      }
     },
     "mgb": {
       "status": "INPUT_PREPARATION",
@@ -68,6 +87,12 @@
         ],
         "meteorology": [
           "PET/temperature/humidity/wind/radiation/pressure forcing still to be closed"
+        ],
+        "historical_meteorology": [
+          "ERA5-Land hourly temperature/dewpoint/surface pressure/10m wind/solar radiation variables for hindcast preprocessing"
+        ],
+        "historical_land_state": [
+          "ERA5-Land volumetric soil water layers as independent state diagnostic/assimilation research input, not direct MGB parameter replacement"
         ]
       },
       "outputs_required": [
