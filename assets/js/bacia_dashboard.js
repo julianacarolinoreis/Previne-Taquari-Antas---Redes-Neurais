@@ -407,7 +407,7 @@
     const values = [...new Set(networkStations().map((item) => String(item.upg_label || 'UPG não informada')).filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const current = state.networkUpg;
-    select.innerHTML = '<option value="all">Todas as UPGs</option>' + values.map((value) =>
+    select.innerHTML = '<option value="all">Todas as sub-bacias</option>' + values.map((value) =>
       '<option value="' + esc(value) + '">' + esc(value) + '</option>'
     ).join('');
     select.value = values.includes(current) ? current : 'all';
@@ -504,10 +504,11 @@
     if (!host) return;
     const groups = networkUpgRows();
     if (!groups.length) {
-      host.innerHTML = '<div class="empty-block">Sem UPGs disponíveis no snapshot atual.</div>';
+      host.innerHTML = '<div class="empty-block">Sem sub-bacias disponíveis no snapshot atual.</div>';
       return;
     }
-    host.innerHTML = '<div class="upg-health-head"><div><span class="now-eyebrow">Cobertura observacional por UPG</span><h4>Onde a rede está mais cega agora?</h4></div><span>ordenado pela menor proporção de estações ≤1 h</span></div>' +
+    const lowest = groups[0];
+    host.innerHTML = '<div class="upg-health-head"><div><span class="now-eyebrow">Cobertura observacional por sub-bacia</span><h4>Lacunas de atualização da rede G040</h4></div><span>' + (lowest ? esc(lowest.label) + ': ' + fmt(lowest.current60, 0) + '/' + fmt(lowest.total, 0) + ' estações ≤1 h' : 'ordenado pela menor cobertura ≤1 h') + '</span></div>' +
       '<div class="upg-health-table-wrap"><table class="upg-health-table"><thead><tr><th>UPG</th><th>Estações</th><th>≤30 min</th><th>30–60 min</th><th>1–3 h</th><th>&gt;3 h</th><th>Sem hora</th><th>Sem observado</th><th>≤1 h</th></tr></thead><tbody>' +
       groups.map((row) => '<tr data-upg-row="' + esc(row.label) + '"><td><button type="button" class="upg-link" data-upg-select="' + esc(row.label) + '">' + esc(row.label) + '</button></td><td>' + fmt(row.total, 0) + '</td><td>' + fmt(row.current30, 0) + '</td><td>' + fmt(row.attention, 0) + '</td><td>' + fmt(row.delayed, 0) + '</td><td>' + fmt(row.veryDelayed, 0) + '</td><td>' + fmt(row.noTime, 0) + '</td><td>' + fmt(row.none, 0) + '</td><td><strong>' + fmt(row.currentRatio * 100, 0) + '%</strong></td></tr>').join('') +
       '</tbody></table></div><p class="upg-health-note">Esta é cobertura da rede observacional publicada no snapshot, não risco de inundação. “Sem hora” significa que há valor observado, mas a fonte não fornece relógio individual utilizável para classificar frescor.</p>';
