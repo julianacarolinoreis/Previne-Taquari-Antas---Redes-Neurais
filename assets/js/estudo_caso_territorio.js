@@ -1282,6 +1282,197 @@
     renderEventHydrograph(caso);
   }
 
+  function comparisonCases() {
+    var cmp = state.casesDoc && state.casesDoc.comparative_analysis;
+    if (!cmp || !Array.isArray(cmp.event_ids)) return [];
+    return cmp.event_ids.map(function (id) {
+      return (state.casesDoc.cases || []).find(function (x) { return x.id === id; });
+    }).filter(Boolean);
+  }
+
+  function fmtOne(v, suffix) {
+    var n = num(v);
+    if (n == null) return '—';
+    return n.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + (suffix || '');
+  }
+
+  function peakError(caso) {
+    var p = caso && caso.rna && caso.rna.peak;
+    if (!p || num(p.observed_cm) == null || num(p.rna_cm) == null) return null;
+    return Math.abs(num(p.rna_cm) - num(p.observed_cm));
+  }
+
+  function rain24ForComparison(caso) {
+    var raw = caso && caso.raw_event_telemetry;
+    if (!raw) return { value: null, label: 'sem dado', note: '' };
+    if (num(raw.rain_24h_before_raw_peak_mm) != null) {
+      return {
+        value: num(raw.rain_24h_before_raw_peak_mm),
+        label: 'local 86472600',
+        note: '24 h antes do pico bruto auditado'
+      };
+    }
+    if (num(raw.proxy_rain_24h_before_replay_peak_mm) != null) {
+      return {
+        value: num(raw.proxy_rain_24h_before_replay_peak_mm),
+        label: 'proxy 86510000',
+        note: 'proxy jusante; não é chuva local'
+      };
+    }
+    return { value: null, label: 'sem dado', note: raw.note || '' };
+  }
+
+  function renderComparisonBars(cases) {
+    var host = $('comparison-bars');
+    if (!host) return;
+    function group(title, unit, getter) {
+      var vals = cases.map(getter);
+      var max = Math.max.apply(null, vals.map(function (x) { return num(x); }).filter(function (x) { return x != null; }).concat([1]));
+      return '<div class="bar-group"><div class="bar-group-title"><span>' + esc(title) + '</span><span>' + esc(unit) + '</span></div>' +
+        cases.map(function (c, i) {
+          var v = vals[i];
+          var n = num(v);
+          var w = n == null ? 0 : Math.max(3, (n / max) * 100);
+          return '<div class="bar-row"><span>' + esc(c.short || c.label) + '</span>' +
+            '<div class="bar-track"><div class="bar-fill" style="width:' + w.toFixed(1) + '%"></div></div>' +
+            '<span class="bar-value">' + (n == null ? '—' : esc(fmtOne(n, unit === 'cm/h' ? '' : ''))) + '</span></div>';
+        }).join('') + '</div>';
+    }
+    host.innerHTML =
+      group('Pico observado no replay', 'cm', function (c) { return c.rna && c.rna.peak && c.rna.peak.observed_cm; }) +
+      group('Maior subida horária na série', 'cm/h', function (c) { return c.dynamics && c.dynamics.max_hourly_rise_cm_h; }) +
+      group('Chuva antecedente 24 h', 'mm', function (c) { return rain24ForComparison(c).value; });
+  }
+
+  function comparisonEvidence(caso) {
+    var cmp = state.casesDoc && state.casesDoc.comparative_analysis;
+    var ev = cmp && cmp.event_specific_spatial_evidence && cmp.event_specific_spatial_evidence[caso.id];
+    return ev || null;
+  }
+
+  function renderSpatialComparison(cases) {
+    var host = $('spatial-comparison');
+    if (!host) return;
+    var cmp = state.casesDoc && state.casesDoc.comparative_analysis;
+    var sp = cmp && cmp.spatial_reference;
+    if (!sp) {
+      host.innerHTML = '<p class="comparison-note">Resumo espacial comparativo indisponível.</p>';
+      return;
+    }
+    host.innerHTML =
+      '<div class="spatial-warning"><strong>Não são três manchas observadas.</strong> ' + esc(sp.warning || '') + '</div>' +
+      '<div class="spatial-kpis">' +
+        '<div class="spatial-kpi"><b>' + esc(fmtInt(sp.cells_200m_touched)) + '</b><span>células 200 m tocadas pelo HAND ' + esc(sp.hand_m) + ' m</span></div>' +
+        '<div class="spatial-kpi"><b>' + esc(fmtInt(sp.population_upper_bound_whole_touched_cells)) + '</b><span>pessoas · limite superior nas células inteiras</span></div>' +
+        '<div class="spatial-kpi"><b>' + esc(fmtOne(sp.population_area_weighted_proxy, '')) + '</b><span>proxy populacional ponderado por área</span></div>' +
+      '</div>' +
+      '<div class="spatial-evidence-list">' +
+      cases.map(function (c) {
+        var ev = comparisonEvidence(c);
+        return '<div class="spatial-evidence-item"><strong>' + esc(c.short || c.label) + '.</strong> ' +
+          esc(ev && ev.evidence ? ev.evidence : 'Sem evidência espacial específica registrada no pacote comparativo.') + '</div>';
+      }).join('') +
+      '</div>';
+  }
+
+  function renderComparisonTable(cases) {
+    var body = $('comparison-table-body');
+    if (!body) return;
+    function cell(html, note) {
+      return '<td>' + html + (note ? '<small>' + esc(note) + '</small>' : '') + '</td>';
+    }
+    function row(label, maker) {
+      return '<tr><td>' + esc(label) + '</td>' + cases.map(maker).join('') + '</tr>';
+    }
+    body.innerHTML =
+      row('Pico observado no replay RNA', function (c) {
+        var p = c.rna && c.rna.peak;
+        return cell('<strong>' + esc(fmtCm(p && p.observed_cm)) + '</strong>', p && p.observed_at ? fmtCaseTime(p.observed_at) : '');
+      }) +
+      row('Pico previsto pela RNA', function (c) {
+        var p = c.rna && c.rna.peak;
+        return cell('<strong>' + esc(fmtCm(p && p.rna_cm)) + '</strong>', 'erro abs. ' + fmtOne(peakError(c), ' cm'));
+      }) +
+      row('MAE do replay', function (c) {
+        var p = c.rna && c.rna.peak;
+        return cell('<strong>' + esc(fmtOne(p && p.mae_cm, ' cm')) + '</strong>', 'replay do conjunto ' + (c.dataset_role || '—'));
+      }) +
+      row('Subida total no evento RNA', function (c) {
+        var d = c.dynamics || {};
+        return cell('<strong>' + esc(fmtOne(d.total_rise_cm, ' cm')) + '</strong>', '');
+      }) +
+      row('Maior taxa horária observada', function (c) {
+        var d = c.dynamics || {};
+        return cell('<strong>' + esc(fmtOne(d.max_hourly_rise_cm_h, ' cm/h')) + '</strong>', d.max_hourly_rise_at ? fmtCaseTime(d.max_hourly_rise_at) : '');
+      }) +
+      row('Chuva antecedente 24 h', function (c) {
+        var r = rain24ForComparison(c);
+        return cell('<strong>' + esc(r.value == null ? '—' : fmtOne(r.value, ' mm')) + '</strong>', r.label + (r.note ? ' · ' + r.note : ''));
+      }) +
+      row('Máximo na telemetria bruta do evento', function (c) {
+        var raw = c.raw_event_telemetry || {};
+        if (num(raw.max_level_cm) != null) {
+          return cell('<strong>' + esc(fmtCm(raw.max_level_cm)) + '</strong>', raw.max_level_at ? fmtCaseTime(raw.max_level_at) : '');
+        }
+        return cell('<strong>não disponível</strong>', raw.note || 'sem telemetria local no pacote');
+      }) +
+      row('Cenário espacial usado no cockpit', function (c) {
+        return cell('<strong>HAND ' + esc(c.hand_m != null ? c.hand_m + ' m' : '—') + '</strong>', 'referência comum; não é mancha observada do evento');
+      }) +
+      row('Evidência espacial específica', function (c) {
+        var ev = comparisonEvidence(c);
+        return cell('<strong>' + esc(ev && ev.status ? ev.status.replace(/_/g, ' ') : '—') + '</strong>', ev && ev.evidence ? ev.evidence : '');
+      }) +
+      row('Papel no modelo', function (c) {
+        return cell('<strong>' + esc(c.dataset_role || '—') + '</strong>', 'não é validação independente');
+      });
+  }
+
+  function renderHistoricalComparison(bundle) {
+    var wrap = $('historical-comparison');
+    if (!wrap) return;
+    if (state.city !== 'santa_tereza' || !state.casesDoc || !state.casesDoc.comparative_analysis) {
+      wrap.hidden = true;
+      return;
+    }
+    var cases = comparisonCases();
+    if (cases.length < 3) {
+      wrap.hidden = true;
+      return;
+    }
+    wrap.hidden = false;
+    var grid = $('comparison-event-grid');
+    if (grid) {
+      grid.innerHTML = cases.map(function (c) {
+        var p = c.rna && c.rna.peak || {};
+        var d = c.dynamics || {};
+        var rain = rain24ForComparison(c);
+        var raw = c.raw_event_telemetry || {};
+        var foot = raw.note || (rain.note ? rain.note : 'Replay histórico auditável.');
+        return '<article class="comparison-event-card">' +
+          '<div class="event-name"><h3>' + esc(c.short || c.label) + '</h3><span class="role-chip">' + esc(c.dataset_role || 'replay') + '</span></div>' +
+          '<div class="event-card-metrics">' +
+            '<div class="event-card-metric"><span>Pico replay</span><b>' + esc(fmtCm(p.observed_cm)) + '</b></div>' +
+            '<div class="event-card-metric"><span>Erro pico RNA</span><b>' + esc(fmtOne(peakError(c), ' cm')) + '</b></div>' +
+            '<div class="event-card-metric"><span>Subida máx.</span><b>' + esc(fmtOne(d.max_hourly_rise_cm_h, ' cm/h')) + '</b></div>' +
+            '<div class="event-card-metric"><span>Chuva 24 h</span><b>' + esc(rain.value == null ? '—' : fmtOne(rain.value, ' mm')) + '</b></div>' +
+          '</div>' +
+          '<p class="event-card-foot">' + esc(foot) + '</p>' +
+        '</article>';
+      }).join('');
+    }
+    renderComparisonBars(cases);
+    renderSpatialComparison(cases);
+    renderComparisonTable(cases);
+    var findings = $('comparison-findings');
+    var notes = state.casesDoc.comparative_analysis.interpretation_notes || [];
+    if (findings) {
+      findings.innerHTML = notes.map(function (n, i) {
+        return '<div class="finding-card"><strong>' + (i + 1) + '.</strong> ' + esc(n) + '</div>';
+      }).join('');
+    }
+  }
+
   function renderGauge(now, fore, bank, horizonLabel) {
     var max = Math.max(bank || 0, now || 0, fore || 0, 1);
     function pct(v) {
@@ -1883,6 +2074,7 @@
     renderLevels();
     renderRna(bundle);
     renderEventEvidence(bundle);
+    renderHistoricalComparison(bundle);
     drawAll(bundle);
     renderSide(bundle);
     setModule(state.module || 'rio');
