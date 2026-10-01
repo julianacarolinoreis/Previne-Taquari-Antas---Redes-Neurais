@@ -170,7 +170,7 @@
   @media(max-width:560px){.page-header{grid-template-columns:1fr;padding:18px;border-radius:16px}.page-header .mark{display:none}.page-header h1{font-size:26px}.read-first-head{display:block}.read-first-head p{text-align:left;margin-top:4px}.read-first-grid{grid-template-columns:1fr}.read-card{min-height:0}.back-top{right:12px;bottom:12px}}
   @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.read-card,.architecture article,.flow article,.event,.back-top{transition:none}}
 </style>
-<link rel="stylesheet" href="assets/css/pv_dashboard.css?v=20261001b">
+<link rel="stylesheet" href="assets/css/pv_dashboard.css?v=20261001c">
 <link rel="stylesheet" href="assets/css/gestor_chrome.css?v=20261001b">
 </head>
 <body>
@@ -437,23 +437,38 @@
   }
   function renderBinary(binary){
     const decisions=Array.isArray(binary&&binary.decisions)?binary.decisions:[];
-    if(!decisions.length){el('binary-current').innerHTML='<div class="binary-card unknown is-unknown"><b>UNKNOWN</b><span>sem evidência neste horizonte</span><small>ausência ≠ “não vai inundar”</small></div>';el('binary-source').textContent='Não foi possível carregar a rodada binária.';return;}
-    const source=binary.source||{};const sourceState=String(source.source_state||'').toLowerCase();
-    const stale=sourceState==='stale'||sourceState==='unknown';
-    el('binary-current').innerHTML=decisions.map(d=>{
-      const prob=d.probability_percent;
-      if(stale||d.decision==='UNKNOWN'||prob==null){
-        return `<div class="binary-card unknown is-unknown"><b>UNKNOWN</b><span>até ${d.hours} h</span><small>sem evidência utilizável · não interpretar como “não vai”</small></div>`;
-      }
-      return `<div class="binary-card score"><b>score ${pct.format(Number(prob))}%</b><span>até ${d.hours} h · experimental</span><small>não é probabilidade calibrada · corte 50% fora da leitura pública</small></div>`;
-    }).join('');
-    const age=Number(source.source_age_hours_at_generation);const state=source.source_state||'—';
-    el('binary-source').textContent=`Rodada de probabilidade gerada em ${time(source.source_generated_at_utc)} · fonte: ${source.forecast_source||'—'} · idade no cálculo: ${Number.isFinite(age)?pct.format(age)+' h':'—'} · estado da fonte: ${state} · calibração: ${source.calibration_status||'—'}.`;
-    const ev=binary.evaluation||{};const verdict=ev.model_verdict||'SEM_AVALIACAO';const bad=verdict==='NAO_FUNCIONA_DE_FORMA_CONFIAVEL';const partial=verdict!=='SEM_AVALIACAO'&&!bad;const box=el('binary-evaluation');box.className=`binary-evaluation ${bad?'bad':partial?'partial':''}`;
-    const title=bad?'Auditoria: ainda não funciona de forma confiável.':verdict==='SEM_AVALIACAO'?'Auditoria: ainda sem avaliação suficiente.':'Auditoria: sinal parcial; precisa de validação.';
+    const source=binary&&binary.source||{};
+    const sourceState=String(source.source_state||'').toLowerCase();
+    const age=Number(source.source_age_hours_at_generation);
+    const stale=sourceState==='stale'||sourceState==='unknown'||(Number.isFinite(age)&&age>36);
+    const ageLabel=Number.isFinite(age)?(age>=48?`${pct.format(age/24)} dias`:`${pct.format(age)} h`):'idade desconhecida';
+
+    if(!binary||!decisions.length){
+      el('binary-current').className='binary-grid binary-grid-status';
+      el('binary-current').innerHTML='<div class="binary-status unavailable"><div><span class="binary-status-kicker">SCORE EXPERIMENTAL</span><b>Sem rodada atual disponível</b><small>O feed de decisão não entregou evidência utilizável. Isso não significa ausência de risco.</small></div></div>';
+      el('binary-source').textContent='Fonte experimental indisponível no momento.';
+    }else if(stale){
+      el('binary-current').className='binary-grid binary-grid-status';
+      el('binary-current').innerHTML=`<div class="binary-status stale"><div><span class="binary-status-kicker">QUALIDADE DA FONTE</span><b>Rodada desatualizada — scores atuais ocultados</b><small>A última rodada tem ${ageLabel}. Os cinco horizontes não são exibidos porque todos dependem da mesma fonte antiga.</small></div><span class="binary-status-tag">STALE</span></div>`;
+      el('binary-source').textContent=`Última rodada arquivada: ${time(source.source_generated_at_utc)} · fonte: ${source.forecast_source||'—'} · idade: ${ageLabel}. A auditoria abaixo é histórica e permanece disponível para avaliação do método.`;
+    }else{
+      el('binary-current').className='binary-grid';
+      el('binary-current').innerHTML=decisions.map(d=>{
+        const prob=Number(d.probability_percent);
+        if(d.decision==='UNKNOWN'||!Number.isFinite(prob)){
+          return `<div class="binary-card no-score"><b>Sem score</b><span>até ${d.hours} h</span><small>rodada atual sem valor utilizável neste horizonte</small></div>`;
+        }
+        return `<div class="binary-card score"><b>${pct.format(prob)}%*</b><span>até ${d.hours} h · score experimental</span><small>não é probabilidade calibrada nem alerta</small></div>`;
+      }).join('');
+      const calibrated=String(source.calibration_status||'').toLowerCase().includes('true')?'registro de calibração presente':'calibração não confirmada';
+      el('binary-source').textContent=`Rodada atual: ${time(source.source_generated_at_utc)} · fonte: ${source.forecast_source||'—'} · idade: ${ageLabel} · ${calibrated}.`;
+    }
+
+    const ev=binary&&binary.evaluation||{};const verdict=ev.model_verdict||'SEM_AVALIACAO';const bad=verdict==='NAO_FUNCIONA_DE_FORMA_CONFIAVEL';const partial=verdict!=='SEM_AVALIACAO'&&!bad;const box=el('binary-evaluation');box.className=`binary-evaluation ${bad?'bad':partial?'partial':''}`;
+    const title=bad?'Auditoria retrospectiva: desempenho ainda insuficiente.':verdict==='SEM_AVALIACAO'?'Auditoria retrospectiva: evidência ainda insuficiente.':'Auditoria retrospectiva: sinal parcial; precisa de validação.';
     const rows=Array.isArray(ev.by_horizon)?ev.by_horizon:[];
     const table=rows.length?`<table><thead><tr><th>Horizonte</th><th>Detecção / recall em 0,5 (arquivo)</th><th>Sensibilidade</th><th>Leitura</th></tr></thead><tbody>${rows.map(r=>{const detected=r.detected_at_score_0_5==null?(r.sensitivity_percent==null?'—':pct.format(r.sensitivity_percent)+'% recall'):`${r.detected_at_score_0_5}/${r.held_out_events}`;return `<tr><td>${r.hours} h</td><td>${detected}</td><td>${r.sensitivity_percent==null?'—':pct.format(r.sensitivity_percent)+'%'}</td><td>${r.result||'—'}</td></tr>`}).join('')}</tbody></table>`:'';
-    box.innerHTML=`<summary><h3 style="display:inline">${title}</h3></summary><p>O teste retrospectivo usa eventos positivos separados por episódio. O limiar 0,5 permanece só nesta auditoria; não é a resposta pública. ${ev.false_positive_metrics||'Não há métricas de controle falso publicadas para esta rodada.'}</p>${table}`;
+    box.innerHTML=`<summary><h3 style="display:inline">${title}</h3></summary><p>Esta avaliação é retrospectiva e não representa o estado atual do rio. O limiar 0,5 permanece apenas como referência de auditoria. ${ev.false_positive_metrics||'Ainda não há métricas completas de falsos positivos publicadas para esta rodada.'}</p>${table}`;
   }
   function renderShort(live){
     const hs=live&&live.horizontes||{};
