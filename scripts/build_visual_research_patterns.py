@@ -146,6 +146,52 @@ def build_santa() -> dict[str, Any]:
     probability = load("assets/data/research_probability_santa_tereza_latest.json")
     weather = load("assets/data/research_weather_santa_tereza_latest.json")
     binary = load("assets/data/research_binary_decision_santa_tereza_latest.json")
+    coupled_cases = load("assets/data/estudo_caso_territorio/casos_acoplados.json")
+    coupled_by_id = {row.get("id"): row for row in coupled_cases.get("cases", []) if row.get("id")}
+    # These catalog dates identify the same historical episodes represented in
+    # the coupled case-study package.  Keep this mapping explicit so a later
+    # event cannot be joined merely because its date is "close".
+    coupled_case_by_catalog_date = {
+        "2023-09-04": "st-e4-set2023",
+        "2023-11-18": "st-e6-nov2023",
+        "2024-04-29": "st-e9-mai2024",
+    }
+    antecedent_by_date: dict[str, dict[str, Any]] = {}
+    for catalog_date, case_id in coupled_case_by_catalog_date.items():
+        case = coupled_by_id.get(case_id, {})
+        raw = case.get("raw_event_telemetry") or {}
+        dynamics = case.get("dynamics") or {}
+        peak = ((case.get("rna") or {}).get("peak") or {})
+        local_rain = raw.get("status") != "local_rain_unavailable"
+        observed_peak = number(peak.get("observed_cm"))
+        rna_peak = number(peak.get("rna_cm"))
+        antecedent_by_date[catalog_date] = {
+            "rain_24h_mm": raw.get("rain_24h_before_raw_peak_mm") if local_rain else None,
+            "rain_48h_mm": raw.get("rain_48h_before_raw_peak_mm") if local_rain else None,
+            "rain_72h_mm": raw.get("rain_72h_before_raw_peak_mm") if local_rain else None,
+            "event_rain_sum_mm": raw.get("event_rain_sum_mm") if local_rain else None,
+            "rain_coverage_pct": (
+                raw.get("rain_72h_coverage_pct")
+                if local_rain
+                else raw.get("proxy_rain_24h_coverage_pct")
+            ),
+            "rain_source_kind": "local_station" if local_rain else "downstream_proxy",
+            "rain_station": raw.get("station") if local_rain else raw.get("proxy_station"),
+            "proxy_rain_24h_mm": raw.get("proxy_rain_24h_before_replay_peak_mm") if not local_rain else None,
+            "total_rise_cm": dynamics.get("total_rise_cm"),
+            "max_hourly_rise_cm_h": dynamics.get("max_hourly_rise_cm_h"),
+            "rna_peak_error_cm": (
+                abs(rna_peak - observed_peak)
+                if rna_peak is not None and observed_peak is not None
+                else None
+            ),
+            "context_note": (
+                raw.get("note")
+                if local_rain
+                else raw.get("proxy_note") or raw.get("note")
+            ),
+            "context_source": raw.get("source") or coupled_cases.get("generated_for"),
+        }
     reference_time = datetime.now(timezone.utc)
     probability_age = age_hours(probability.get("generated_at_utc"), reference_time)
     probability_fresh = probability_age is not None and probability_age <= 36.0
@@ -157,18 +203,18 @@ def build_santa() -> dict[str, Any]:
         peak = number(event.get("pico_cm"))
         if peak is None or peak < threshold:
             continue
-        event_rows.append(
-            {
-                "id": f"SANTA-{event.get('pico_data')}",
-                "date": event.get("pico_data"),
-                "peak_cm": event.get("pico_cm"),
-                "status": "pico acima da cota de pesquisa",
-                "model_count": event.get("n_modelos"),
-                "nse_test": event.get("nse_teste"),
-                "nse_validation": event.get("nse_validacao"),
-                "difficulty": event.get("dificuldade_nse_pers"),
-            }
-        )
+        row = {
+            "id": f"SANTA-{event.get('pico_data')}",
+            "date": event.get("pico_data"),
+            "peak_cm": event.get("pico_cm"),
+            "status": "pico acima da cota de pesquisa",
+            "model_count": event.get("n_modelos"),
+            "nse_test": event.get("nse_teste"),
+            "nse_validation": event.get("nse_validacao"),
+            "difficulty": event.get("dificuldade_nse_pers"),
+        }
+        row.update(antecedent_by_date.get(str(event.get("pico_data")), {}))
+        event_rows.append(row)
     probability_by_h = probability.get("horizons", {})
     weather_by_h = {str(row.get("hours")): row for row in weather.get("horizons", [])}
     binary_by_h = {str(row.get("hours")): row for row in binary.get("decisions", [])}
@@ -206,7 +252,7 @@ def build_santa() -> dict[str, Any]:
             "model_card_event_count": card.get("event_count"),
             "peak_max_cm": max((x for x in peaks if x is not None), default=None),
             "peak_min_cm": min((x for x in peaks if x is not None), default=None),
-            "pattern_text": "A série pública já permite comparar os picos e o desempenho dos modelos; a chuva antecedente por evento ainda não está ligada a este painel.",
+            "pattern_text": "Nov/2023 e mai/2024 já têm chuva local antecedente auditada; set/2023 usa somente um proxy jusante explicitamente marcado. Eventos sem chuva auditada mostram outras evidências disponíveis, sem preencher lacunas com valores inventados.",
         },
         "events": event_rows,
         "horizons": horizons,
@@ -233,6 +279,7 @@ def build_santa() -> dict[str, Any]:
         },
         "sources": {
             "events": "assets/data/eventos_analise.json",
+            "historical_context": "assets/data/estudo_caso_territorio/casos_acoplados.json",
             "model_card": "assets/data/research_card_santa_tereza_20260811.json",
             "probability": "assets/data/research_probability_santa_tereza_latest.json",
             "weather": "assets/data/research_weather_santa_tereza_latest.json",
