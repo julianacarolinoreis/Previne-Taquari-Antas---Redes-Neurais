@@ -1,0 +1,120 @@
+name: G040 ECMWF exact-cycle audit
+
+on:
+  pull_request:
+    paths:
+      - "scripts/build_g040_ifs_direct_cycle.py"
+      - "scripts/test_g040_ifs_direct_cycle_contract.py"
+      - ".github/workflows/g040-ecmwf-direct-cycle-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_g040_ifs_direct_cycle.py"
+      - "scripts/test_g040_ifs_direct_cycle_contract.py"
+      - ".github/workflows/g040-ecmwf-direct-cycle-audit.yml"
+  workflow_dispatch:
+    inputs:
+      cycle_utc:
+        description: "Exact IFS cycle, e.g. 2026-10-01T06:00:00Z; blank selects latest complete cycle"
+        required: false
+        type: string
+      max_step_h:
+        description: "Forecast horizon; multiple of 3"
+        required: false
+        default: "120"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-ecmwf-exact-cycle
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libeccodes-dev
+          python -m pip install --disable-pip-version-check numpy attrs cffi findlibs
+          python -m pip install --disable-pip-version-check --no-deps eccodes==2.48.0
+
+      - name: Contract tests
+        run: python -B scripts/test_g040_ifs_direct_cycle_contract.py
+
+      - name: Build exact-cycle full-grid audit
+        env:
+          IFS_CYCLE_UTC: ${{ github.event.inputs.cycle_utc || '' }}
+          IFS_MAX_STEP_H: ${{ github.event_name == 'pull_request' && '12' || github.event.inputs.max_step_h || '120' }}
+        run: python -B scripts/build_g040_ifs_direct_cycle.py
+
+      - name: Verify audit gates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("assets/data/hec_hms_g040_full_basin/whole_basin_ifs_direct_cycle_latest.json")
+          j=json.loads(p.read_text(encoding="utf-8"))
+          g=j["gates"]
+          print(json.dumps({
+              "status":j["status"],
+              "cycle":j["source"]["cycle_time_utc"],
+              "hours":j["window"]["hours"],
+              "cells":j["grid"]["complete_cells"],
+              "interval_count":j["interval_count"],
+              "component_count":j["component_count"],
+              "gates":g,
+          },ensure_ascii=False,indent=2))
+          assert j["status"]=="EXACT_CYCLE_FULLGRID_READY"
+          assert g["full_600_cell_grid"]
+          assert g["all_hours_complete"]
+          assert g["exact_cycle_id_available"]
+          assert g["cycle_locked"]
+          assert not g["fallback_used"]
+          assert j["interval_count"]==8
+          assert j["component_count"]==11
+          PY
+
+      - name: Upload audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: g040-ecmwf-exact-cycle-audit
+          retention-days: 5
+          path: |
+            assets/data/hec_hms_g040_full_basin/whole_basin_ifs_direct_cycle_latest.json
+            assets/data/hec_hms_g040_full_basin/whole_basin_ifs_direct_cycle_fullgrid_hourly.csv
+            assets/data/hec_hms_g040_full_basin/whole_basin_ifs_direct_cycle_intervals_hourly.csv
+            assets/data/hec_hms_g040_full_basin/whole_basin_ifs_direct_cycle_components_hourly.csv
+
+      - name: Publish audit on main
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-ecmwf-audit-bot"
+          git config user.email "previne-ecmwf-audit-bot@users.noreply.github.com"
+          BASE="assets/data/hec_hms_g040_full_basin"
+          mkdir -p /tmp/g040-direct-cycle
+          cp "$BASE/whole_basin_ifs_direct_cycle_latest.json" /tmp/g040-direct-cycle/
+          cp "$BASE/whole_basin_ifs_direct_cycle_fullgrid_hourly.csv" /tmp/g040-direct-cycle/
+          cp "$BASE/whole_basin_ifs_direct_cycle_intervals_hourly.csv" /tmp/g040-direct-cycle/
+          cp "$BASE/whole_basin_ifs_direct_cycle_components_hourly.csv" /tmp/g040-direct-cycle/
+          git fetch origin main
+          git reset --hard origin/main
+          cp /tmp/g040-direct-cycle/* "$BASE/"
+          git add -- "$BASE/whole_basin_ifs_direct_cycle_latest.json" "$BASE/whole_basin_ifs_direct_cycle_fullgrid_hourly.csv" "$BASE/whole_basin_ifs_direct_cycle_intervals_hourly.csv" "$BASE/whole_basin_ifs_direct_cycle_components_hourly.csv"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "audit: update G040 exact-cycle ECMWF field [skip ci]"
+          git push origin HEAD:main
