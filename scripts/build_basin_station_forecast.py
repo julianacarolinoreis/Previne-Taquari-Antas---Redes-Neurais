@@ -1043,8 +1043,14 @@ def build_feed(
         "generated_at_utc": iso_utc(now),
         "next_cycle_utc": iso_utc(_next_cycle(now)),
         "refresh_contract": {
-            "scheduled_every_minutes": 5,
-            "schedule_note": "GitHub Actions programado a cada cinco minutos; a execução pode sofrer atraso do agendador público.",
+            "mode": "chained_repository_dispatch",
+            "nominal_backoff_after_success_minutes": 2,
+            "bootstrap_cron_minute": 31,
+            "schedule_note": (
+                "A atualização é encadeada: após uma rodada bem-sucedida há espera nominal de 2 min "
+                "antes de disparar a próxima. O intervalo real entre publicações inclui checkout, "
+                "consulta das fontes, previsão das 530 estações, testes e push, portanto pode ser maior."
+            ),
         },
         "scope": {
             "basin": "Taquari–Antas · G040",
