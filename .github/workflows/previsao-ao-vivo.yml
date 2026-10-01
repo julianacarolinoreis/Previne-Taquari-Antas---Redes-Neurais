@@ -76,7 +76,7 @@ jobs:
           python -B -m unittest scripts.test_stz_8h_excel_mother_contract
           # Gera primeiro o schema corrente; assim uma futura migração de schema
           # não fica bloqueada por um JSON antigo ainda presente no repositório.
-          timeout --signal=TERM --kill-after=20s 240s python previne/robo/gerar_previsao_ao_vivo.py
+          timeout --signal=TERM --kill-after=20s 180s python previne/robo/gerar_previsao_ao_vivo.py
           python -B scripts/validar_previsao_ao_vivo.py
           python -B -m unittest scripts.test_previsao_ao_vivo_schema
 
@@ -119,9 +119,9 @@ jobs:
       # O schedule do GitHub pode ser atrasado ou descartado. O dispatch
       # autenticado com GITHUB_TOKEN cria a proxima execucao sem depender dele.
       - name: Encadear proximo ciclo
-        # Em caso de falha, deixe o bootstrap horario recuperar o robo; nao
-        # crie uma tempestade de execucoes falhas a cada 3 minutos.
-        if: ${{ success() }}
+        # Mesmo se a consulta externa travar e a rodada falhar, agenda uma
+        # unica nova tentativa. O sleep impede loop agressivo de falhas.
+        if: ${{ always() }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
