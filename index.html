@@ -737,7 +737,7 @@
           <span class="map-legend-item"><i class="map-legend-dot rain"></i> pluviométrica</span>
           <span class="map-legend-item"><i class="map-legend-dot hydro"></i> hidrológica CEMADEN</span>
           <span class="map-legend-item"><i class="map-legend-boundary"></i> sub-bacias G040</span>
-          <span class="map-legend-item"><i class="map-legend-dash"></i> sem dado atual</span>
+          <span class="map-legend-item"><i class="map-legend-dash"></i> sem observado atual</span>
           <span class="map-legend-item"><i class="map-legend-cluster">12</i> grupo de estações — aproxime para separar</span>
         </div>
       </div>
@@ -2666,6 +2666,7 @@
       if(group.length>1){
         const lat=group.reduce((sum,item)=>sum+item.position[0],0)/group.length;
         const lon=group.reduce((sum,item)=>sum+item.position[1],0)/group.length;
+        const observedCount=group.filter(item=>basinHasAnyObserved(item.st)).length;
         const icon=L.divIcon({
           className:'basin-cluster-icon',
           html:'<span class="basin-cluster-bubble'+(group.length>=50?' large':'')+'">'+group.length+'</span>',
@@ -2673,7 +2674,7 @@
           iconAnchor:[24,24]
         });
         const marker=L.marker([lat,lon],{icon,keyboard:true,title:group.length+' estações nesta área'}).addTo(BASIN_MARKER_LAYER);
-        marker.bindTooltip(group.length+' estações · clique para aproximar',{direction:'top',className:'basin-station-tip'});
+        marker.bindTooltip(group.length+' estações · '+observedCount+' com observado · clique para aproximar',{direction:'top',className:'basin-station-tip'});
         marker.on('click',()=>{
           const groupBounds=L.latLngBounds(group.map(item=>item.position));
           const ne=groupBounds.getNorthEast(), sw=groupBounds.getSouthWest();
@@ -2685,15 +2686,15 @@
       const item=group[0];
       const st=item.st;
       const kind=basinStationKind(st);
-      const hasData=basinHasData(st);
+      const hasObserved=basinHasAnyObserved(st);
       const marker=L.circleMarker(item.position,{
         radius:zoom>=12?6.2:5.2,
-        color:hasData?'#fff':'#7f8b84',
-        weight:hasData?1.5:1.7,
-        dashArray:hasData?null:'3 3',
+        color:hasObserved?'#fff':'#7f8b84',
+        weight:hasObserved?1.5:1.7,
+        dashArray:hasObserved?null:'3 3',
         fillColor:kind.color,
-        fillOpacity:hasData?.90:.30,
-        opacity:hasData?1:.78
+        fillOpacity:hasObserved?.90:.34,
+        opacity:hasObserved?1:.82
       }).addTo(BASIN_MARKER_LAYER);
       marker.bindPopup(basinPopup(st),{maxWidth:235,minWidth:190,autoPanPadding:[18,18]});
       const code=st.code&&st.code!=='—'?' · '+st.code:'';
