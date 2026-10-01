@@ -1033,6 +1033,35 @@ def build_feed(
     available_levels = sum(
         item["level"]["state"] in {"available", "partial"} for item in stations
     )
+    available_cemaden_hydro = sum(
+        any(
+            source.get("source") == "CEMADEN"
+            and source.get("metric") == "nivel_cemaden"
+            and source.get("source_status") in (0, "0")
+            and finite(source.get("value")) is not None
+            for source in item.get("source_observations", [])
+            if isinstance(source, dict)
+        )
+        for item in stations
+    )
+    available_source_observation_stations = sum(
+        any(
+            finite(source.get("value")) is not None
+            for source in item.get("source_observations", [])
+            if isinstance(source, dict)
+        )
+        for item in stations
+    )
+    available_any_observed = sum(
+        item["observed_rain"]["state"] == "available"
+        or item["level"]["state"] in {"available", "partial"}
+        or any(
+            finite(source.get("value")) is not None
+            for source in item.get("source_observations", [])
+            if isinstance(source, dict)
+        )
+        for item in stations
+    )
     complete_forecast = available_forecasts == len(stations)
     return {
         "schema_version": 1,
@@ -1061,6 +1090,9 @@ def build_feed(
             "observed_rain_hourly_station_count": available_hourly_observations,
             "observed_rain_cemaden_24h_station_count": available_cemaden_24h,
             "level_station_count": available_levels,
+            "cemaden_hydro_station_count": available_cemaden_hydro,
+            "source_observation_station_count": available_source_observation_stations,
+            "observed_any_station_count": available_any_observed,
             **_coordinate_coverage(stations),
             "catalogs": [
                 "assets/data/estudo_bacia_taquari_antas/postos_g040.geojson",
@@ -1247,6 +1279,12 @@ def main() -> int:
         feed["scope"]["observed_rain_cemaden_24h_station_count"],
         "levels=",
         feed["scope"]["level_station_count"],
+        "cemaden_hydro=",
+        feed["scope"].get("cemaden_hydro_station_count"),
+        "observed_any=",
+        feed["scope"].get("observed_any_station_count"),
+        "source_observed_stations=",
+        feed["scope"].get("source_observation_station_count"),
         "unique_locations=",
         feed["scope"].get("forecast_location_count"),
         "rain_age_max_min=",
