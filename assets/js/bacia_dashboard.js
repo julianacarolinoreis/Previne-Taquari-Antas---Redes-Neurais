@@ -1076,23 +1076,36 @@
     const threshold = num(snap.station.threshold);
     const reference = [current, liveMax].filter((value) => value != null);
     const peak = reference.length ? Math.max(...reference) : null;
-    const ratio = peak != null && threshold ? Math.max(0, Math.min(100, peak / threshold * 100)) : 0;
     const hasReading = peak != null && threshold != null;
+    const ratio = hasReading && threshold ? Math.max(0, Math.min(100, peak / threshold * 100)) : 0;
+    const markerRatio = Math.max(4, Math.min(96, ratio));
     const status = !hasReading
       ? 'sem leitura de cota utilizável'
       : peak < threshold ? 'nenhum cenário curto cruza a cota da pesquisa' : 'há cenário curto acima da cota da pesquisa';
     const statusClass = !hasReading ? '' : peak >= threshold ? 'is-alert' : 'is-ok';
     const statusLabel = !hasReading ? 'sem leitura' : peak >= threshold ? 'acima' : 'abaixo';
-    return `<article class="model-threshold-card"><div class="model-subhead"><div><span class="model-eyebrow">Nível × cota</span><h3>O rio se aproxima da cota?</h3></div><span class="model-status-pill ${statusClass}">${statusLabel}</span></div><div class="threshold-scale"><i style="width:${ratio.toFixed(1)}%"></i><b style="left:${ratio.toFixed(1)}%">${peak == null ? '—' : `${fmt(peak, 0)} cm`}</b></div><div class="threshold-labels"><span>agora ${current == null ? '—' : `${fmt(current, 0)} cm`}</span><span>cota ${threshold == null ? '—' : `${fmt(threshold, 0)} cm`}</span></div><p class="model-takeaway">${esc(status)}. A previsão curta é uma altura do rio; não é uma probabilidade de inundação.</p></article>`;
+
+    if (!hasReading) {
+      return `<article class="model-threshold-card is-unavailable"><div class="model-subhead"><div><span class="model-eyebrow">Nível × cota</span><h3>O rio se aproxima da cota?</h3></div><span class="model-status-pill">sem leitura</span></div><div class="model-availability"><strong>Sem comparação atual</strong><span>Nível observado ou cota de pesquisa indisponível nesta rodada.</span></div><p class="model-takeaway">A previsão curta é uma altura do rio; não é uma probabilidade de inundação.</p></article>`;
+    }
+
+    return `<article class="model-threshold-card"><div class="model-subhead"><div><span class="model-eyebrow">Nível × cota</span><h3>O rio se aproxima da cota?</h3></div><span class="model-status-pill ${statusClass}">${statusLabel}</span></div><div class="threshold-stats"><div><span>Agora</span><strong>${current == null ? '—' : `${fmt(current, 0)} cm`}</strong></div><div><span>Máx. curto</span><strong>${liveMax == null ? '—' : `${fmt(liveMax, 0)} cm`}</strong></div><div><span>Cota pesquisa</span><strong>${fmt(threshold, 0)} cm</strong></div></div><div class="threshold-scale" aria-label="Maior nível observado ou previsto em relação à cota de pesquisa"><i style="width:${ratio.toFixed(1)}%"></i><b style="left:${markerRatio.toFixed(1)}%">${fmt(peak, 0)} cm</b></div><p class="model-takeaway">${esc(status)}. A previsão curta é uma altura do rio; não é uma probabilidade de inundação.</p></article>`;
   }
   function modelRiskVisual(snap) {
     const usable = snap.riskUsable && snap.risk != null;
-    const archived = snap.archivedRisk == null ? '' : `Arquivo: ${pct(snap.archivedRisk)} · não usar como valor atual.`;
-    return `<article class="model-risk-card ${usable ? '' : 'is-stale'}"><div class="model-subhead"><div><span class="model-eyebrow">Risco de pesquisa</span><h3>Probabilidade de cruzar a cota</h3></div><span class="model-status-pill ${usable ? 'is-ok' : 'is-stale'}">${usable ? 'utilizável' : 'indisponível'}</span></div><div class="model-risk-value">${usable ? pct(snap.risk) : '—'}<span>${usable ? 'estimativa experimental' : 'rodada atrasada / sem valor atual'}</span></div><p>${esc(usable ? 'Estimativa experimental de cruzamento; não é alerta oficial.' : `Não há probabilidade atual utilizável (${researchStateLabel(snap.riskState)}).`)} ${esc(archived)}</p><span class="model-source">PROBABILIDADE · experimental · ${esc(snap.station.label)}</span></article>`;
+    if (!usable) {
+      const stateLabel = researchStateLabel(snap.riskState);
+      const archiveNote = snap.archivedRisk == null ? '' : '<span class="model-archive-note">Existe resultado arquivado, mas ele foi ocultado da leitura atual por estar desatualizado.</span>';
+      return `<article class="model-risk-card is-stale"><div class="model-subhead"><div><span class="model-eyebrow">Risco de pesquisa</span><h3>Probabilidade de cruzar a cota</h3></div><span class="model-status-pill is-stale">indisponível</span></div><div class="model-availability"><strong>Sem valor atual</strong><span>rodada atrasada · ${esc(stateLabel)}</span></div><p>Não há probabilidade atual utilizável. Resultado antigo não é reutilizado como se fosse vigente.</p>${archiveNote}<span class="model-source">PROBABILIDADE · experimental · ${esc(snap.station.label)}</span></article>`;
+    }
+    return `<article class="model-risk-card"><div class="model-subhead"><div><span class="model-eyebrow">Risco de pesquisa</span><h3>Probabilidade de cruzar a cota</h3></div><span class="model-status-pill is-ok">utilizável</span></div><div class="model-risk-value">${pct(snap.risk)}<span>estimativa experimental</span></div><p>Estimativa experimental de cruzamento; não é alerta oficial.</p><span class="model-source">PROBABILIDADE · experimental · ${esc(snap.station.label)}</span></article>`;
   }
   function modelSoilVisual(snap) {
     const soil = num(snap.soil);
-    return `<article class="model-soil-card"><div class="model-subhead"><div><span class="model-eyebrow">Umidade</span><h3>Solo modelado</h3></div><span class="model-status-pill is-proxy">proxy</span></div><div class="model-soil-value">${soil == null ? '—' : fmt(soil, 2)}<span>m³/m³</span></div><div class="soil-meter" aria-hidden="true"><i style="width:${soil == null ? 0 : Math.max(0, Math.min(100, soil / .6 * 100))}%"></i></div><p>Memória hídrica modelada. Não é sensor local de saturação.</p></article>`;
+    if (soil == null) {
+      return `<article class="model-soil-card is-unavailable"><div class="model-subhead"><div><span class="model-eyebrow">Umidade</span><h3>Solo modelado</h3></div><span class="model-status-pill">indisponível</span></div><div class="model-availability"><strong>Sem valor modelado</strong><span>Nenhuma estimativa válida de umidade nesta rodada.</span></div><p>Ausência de valor não é interpretada como solo seco.</p></article>`;
+    }
+    return `<article class="model-soil-card"><div class="model-subhead"><div><span class="model-eyebrow">Umidade</span><h3>Solo modelado</h3></div><span class="model-status-pill is-proxy">proxy</span></div><div class="model-soil-value">${fmt(soil, 2)}<span>m³/m³</span></div><div class="soil-meter" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, soil / .6 * 100))}%"></i></div><p>Memória hídrica modelada. Não é sensor local de saturação.</p><span class="model-source">SOLO · modelado · proxy</span></article>`;
   }
   function renderModels() {
     const keys = state.station === 'basin' ? ['santa', 'mucum'] : [state.station];
