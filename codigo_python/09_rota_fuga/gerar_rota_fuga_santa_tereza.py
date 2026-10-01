@@ -6,7 +6,7 @@ ROBÔ — Rota de fuga de Santa Tereza (Etapa 1: prova de conceito por quadra).
 Cruza três coisas que já existem no projeto, SEM custo em token (roda no
 GitHub Actions):
 
-  1. TERRENO  -> HAND embutido em santa_tereza_inundacao.html (a mesma fonte
+  1. TERRENO  -> HAND embutido em santa_tereza_previsao_inundacao.html (fonte autoritativa
      que o popup do mapa usa). Para cada célula do terreno, a cota de régua
      em que ela começa a alagar é  ZERO_REGUA + HAND.
   2. PREVISÃO -> previsao_ao_vivo.json (nível atual + trajetória da RNA de 2h/4h).
@@ -41,7 +41,7 @@ import numpy as np
 from PIL import Image
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-PAGINA_HAND = os.path.join(RAIZ, "santa_tereza_inundacao.html")
+PAGINA_HAND = os.path.join(RAIZ, "santa_tereza_previsao_inundacao.html")
 FORECAST = os.path.join(RAIZ, "previsao_ao_vivo.json")
 
 
