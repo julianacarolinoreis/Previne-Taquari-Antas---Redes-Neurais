@@ -85,6 +85,7 @@ def build_hydro_nodes(feed: dict) -> dict:
     """
     stz_live = base.load_json(ROOT / "previsao_ao_vivo.json") or {}
     muc_live = base.load_json(ROOT / "previsao_ao_vivo_mucum.json") or {}
+    obs_multi = base.load_json(OUT / "mucum_observed_multistation_latest.json") or {}
     fwd = base.load_json(OUT / "hec_twin_mucum_forward_5d_latest.json") or {}
     q_rating = (((fwd.get("quanto_sobe") or {}).get("q_now_from_rating_m3s") or {}).get("q_m3s"))
 
@@ -171,6 +172,71 @@ def build_hydro_nodes(feed: dict) -> dict:
                 ),
             })
             seen.add(code)
+
+    # Complete the map with every station that currently has observed Q in the
+    # full-basin multistation product. Existing level nodes are enriched with Q;
+    # additional stations are added as flow-only nodes so a raw elevation/cota
+    # can never be mislabelled as river stage.
+    by_code = {str(r.get("code")): r for r in rows}
+    ref_local = None
+    try:
+        ref_local = datetime.fromisoformat(str(((obs_multi.get("event_window") or {}).get("end_local"))))
+    except Exception:
+        ref_local = None
+    for st in ((obs_multi.get("flow") or {}).get("stations") or []):
+        code = str(st.get("code") or "").strip()
+        if not code:
+            continue
+        qrows = [x for x in (st.get("series") or []) if x.get("flow_m3s") is not None]
+        if not qrows:
+            continue
+        last = qrows[-1]
+        try:
+            q = float(last.get("flow_m3s"))
+        except Exception:
+            continue
+        age_min = None
+        try:
+            when = datetime.fromisoformat(str(last.get("time_local")))
+            if ref_local is not None:
+                age_min = max(0.0, (ref_local - when).total_seconds() / 60.0)
+        except Exception:
+            pass
+        existing = by_code.get(code)
+        if existing is not None:
+            existing["discharge_m3s"] = q
+            existing["discharge_kind"] = "observed_telemetry"
+            existing["discharge_note_pt"] = "Vazão observada na rede multirrede; não é vazão simulada."
+            if existing.get("age_min") is None and age_min is not None:
+                existing["age_min"] = round(age_min, 1)
+            continue
+        lat = st.get("lat")
+        lon = st.get("lon")
+        if lat is None or lon is None:
+            inv = inventory.get(code) or {}
+            lat, lon = inv.get("lat"), inv.get("lon")
+        if lat is None or lon is None:
+            continue
+        inv = inventory.get(code) or {}
+        row = {
+            "code": code,
+            "name": st.get("name") or inv.get("name") or code,
+            "lat": float(lat), "lon": float(lon),
+            "ug": st.get("upg") or inv.get("ug"),
+            "role": "posto de vazão observado",
+            "level_cm": None,
+            "measurement_classification": "flow_only_network",
+            "level_at_local": None,
+            "age_min": None if age_min is None else round(age_min, 1),
+            "qc_status": "OBSERVED_FLOW",
+            "source": st.get("network") or "ANA/SGB multirrede",
+            "drainage_area_km2": st.get("area_km2") or inv.get("area_km2"),
+            "discharge_m3s": q,
+            "discharge_kind": "observed_telemetry",
+            "discharge_note_pt": "Vazão observada na rede multirrede; nível omitido porque a escala bruta não é assumida como nível local.",
+        }
+        rows.append(row)
+        by_code[code] = row
 
     # Highest-value curated nodes first.
     priority = {
