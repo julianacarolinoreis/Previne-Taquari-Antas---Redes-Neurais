@@ -1412,41 +1412,37 @@ async function init(){
     };
     stationControl.addTo(map);
     if(pt) L.circleMarker([pt.lat,pt.lon],{radius:6,color:'#fff',weight:2,fillColor:'#b04538',fillOpacity:.95}).addTo(map).bindPopup('<b>'+pt.label+'</b>');
-    // clique no mapa -> HAND/profundidade e, quando disponível, altitude same-source.
+    // Clique no terreno: mostrar só o que ajuda a ler o ponto rapidamente.
     map.on('click', async e=>{
       await ensureHand();
       const hd=handAt(e.latlng.lat,e.latlng.lng), elev=elevationAt(e.latlng.lat,e.latlng.lng);
       if(hd==null&&elev==null) return;
-      let html='<div class="pt-pop"><b>Neste ponto</b>';
-      html+='<br><b>Altitude absoluta do MDT: '+(elev!=null?nf1.format(elev)+' m':'indisponível até a regeneração same-source')+'</b>';
-      if(curS&&hd!=null){
-        const pointHand=hd.dm/10, ev=EVENTS[curEv];
-        html+='<br>Limiar hidráulico HAND (inclui a maior barreira do terreno no caminho até o rio): '+(hd.saturated?'≥ ':'')+nf1.format(pointHand)+' m';
-        const activeD=liveMode?activeLiveData():null;
-        const zeroCm=handZeroCm(activeD&&activeD.hand_zero_cm!=null?activeD:liveData);
-        const nowCm=liveMode?firstNumber(liveNowCm(liveData),liveNowCm(activeD)):firstNumber(curS[1]);
-        html+='<br><b>Alcance hidráulico estimado neste ponto</b>';
-        if(pointHand<=0){
-          html+='<br>Agora: dentro do contorno-base HAND 0; não classificado como extravasamento.';
-          mapForecastHorizons().forEach(row=>{
-            html+='<br>+'+row.key.replace(/^\+/,'')+': '+(row.ready?'dentro do contorno-base HAND 0; não classificado como extravasamento.':'<span>indisponível · '+horizonUnavailableReason(row.D)+'</span>');
-          });
-        }else{
-          const nowDepth=!hd.saturated&&nowCm!=null?stageToSpatialHand(nowCm,zeroCm)-pointHand:null;
-          html+='<br>Agora: '+(hd.saturated?'limiar hidráulico acima ou igual à faixa quantitativa do proxy':(nowDepth!=null&&nowDepth>0.03?nf1.format(nowDepth*100)+' cm acima do limiar hidráulico':'sem inundação estimada neste proxy'));
-          mapForecastHorizons().forEach(row=>{
-            const D=row.D;
-            const available=row.ready;
-            const forecast=available?firstNumber(D.nivel_previsto_cm):null;
-            const rowZero=handZeroCm(D||activeD||liveData);
-            html+='<br>+'+row.key.replace(/^\+/,'')+': '+(available?pointFloodStatus(hd,forecast,rowZero):'<span>indisponível · '+horizonUnavailableReason(D)+'</span>');
-          });
-        }
-      }
-      html+='<br><small>Coordenadas: '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small>';
-      html+='<br><small>Espacialização operacional: HAND = nível da régua − 1,60 m. A mancha respeita as barreiras do LiDAR bruto ao longo do caminho D8 até o rio; o FILL é usado apenas no roteamento. A cota de 15,00 m continua sendo o limiar de transbordamento.</small>';
+
+      const floodSimple=(row)=>{
+        if(!row||!row.ready||!hd||hd.saturated) return 'Indisponível';
+        const forecast=firstNumber(row.D&&row.D.nivel_previsto_cm);
+        if(forecast==null) return 'Indisponível';
+        const pointHand=hd.dm/10;
+        const rowZero=handZeroCm(row.D||activeLiveData()||liveData);
+        const spatialHand=stageToSpatialHand(forecast,rowZero);
+        return spatialHand>pointHand+0.03?'SIM':'NÃO';
+      };
+
+      const horizons=new Map(mapForecastHorizons().map(row=>[row.key,row]));
+      const statusClass=value=>value==='SIM'?'color:#b42318':(value==='NÃO'?'color:#087f5b':'color:#6b7280');
+      const rows=['2h','4h','8h'].map(key=>{
+        const value=floodSimple(horizons.get(key));
+        return '<div style="display:flex;justify-content:space-between;gap:18px;padding:5px 0;border-top:1px solid #edf1ee"><span>Água em +'+key.replace('h',' h')+'</span><b style="'+statusClass(value)+'">'+value+'</b></div>';
+      }).join('');
+
+      let html='<div class="pt-pop" style="min-width:220px;line-height:1.35">';
+      html+='<b>Neste ponto</b>';
+      html+='<div style="margin-top:7px"><b>MDT:</b> '+(elev!=null?nf1.format(elev)+' m':'indisponível')+'</div>';
+      html+='<div><b>Latitude:</b> '+e.latlng.lat.toFixed(5)+'</div>';
+      html+='<div><b>Longitude:</b> '+e.latlng.lng.toFixed(5)+'</div>';
+      html+='<div style="margin-top:8px">'+rows+'</div>';
       html+='</div>';
-      L.popup({closeButton:true}).setLatLng(e.latlng).setContent(html).openOn(map);
+      L.popup({closeButton:true,maxWidth:280}).setLatLng(e.latlng).setContent(html).openOn(map);
     });
   } else {
     const box=document.getElementById('map');
