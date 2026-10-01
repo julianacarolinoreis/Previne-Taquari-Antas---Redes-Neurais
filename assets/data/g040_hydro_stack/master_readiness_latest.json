@@ -1,12 +1,12 @@
 {
   "schema_version": "g040_stage2_master_readiness_v1",
-  "generated_at_utc": "2026-10-01T13:52:36.162893Z",
+  "generated_at_utc": "2026-10-01T14:07:30.669942Z",
   "research_only": true,
   "status": {
-    "foundation_ready": false,
+    "foundation_ready": true,
     "branch_model_calibratable": false,
     "operational_ready": false,
-    "overall": "FOUNDATION_INCOMPLETE"
+    "overall": "FOUNDATION_READY_COMPUTE_BLOCKED"
   },
   "gates": {
     "bho6_branch_topology": {
@@ -85,7 +85,7 @@
       }
     },
     "dynamic_boundary_mass_balance": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "scenario": "live_available_boundaries",
         "active_boundary_codes": [
@@ -97,255 +97,38 @@
       "blocker": "boundary area budget does not close"
     },
     "rain_support": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "status": "RAIN_SUPPORT_READY_DYNAMIC_SCENARIO",
-        "support_point_count": null,
+        "support_point_count": 0,
         "total_support_area_km2": null
       },
       "blocker": "build BHO6 rain support mesh"
     },
     "observed_full_grid": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "status": "OBSERVED_RAIN_READY",
-        "grid_cells": null,
-        "valid_rain_station_count": 81
+        "grid_cells": 600,
+        "valid_rain_station_count": 69
       },
       "blocker": "publish observed 600-cell field with all-valid-station IDW2"
     },
     "ifs_full_grid": {
-      "pass": false,
+      "pass": true,
       "detail": {
-        "status": "IFS_INTERVAL_FORCING_READY",
-        "grid_cells": [
-          {
-            "cell_id": "IFS_-028.75_-052.00",
-            "latitude": -28.75,
-            "longitude": -52.0,
-            "total_120h_mm": 80.7
-          },
-          {
-            "cell_id": "IFS_-028.50_-052.00",
-            "latitude": -28.5,
-            "longitude": -52.0,
-            "total_120h_mm": 89.1
-          },
-          {
-            "cell_id": "IFS_-029.00_-051.75",
-            "latitude": -29.0,
-            "longitude": -51.75,
-            "total_120h_mm": 90.9
-          },
-          {
-            "cell_id": "IFS_-028.75_-051.75",
-            "latitude": -28.75,
-            "longitude": -51.75,
-            "total_120h_mm": 84.6
-          },
-          {
-            "cell_id": "IFS_-028.50_-051.75",
-            "latitude": -28.5,
-            "longitude": -51.75,
-            "total_120h_mm": 71.4
-          },
-          {
-            "cell_id": "IFS_-029.25_-051.75",
-            "latitude": -29.25,
-            "longitude": -51.75,
-            "total_120h_mm": 76.8
-          },
-          {
-            "cell_id": "IFS_-028.25_-051.75",
-            "latitude": -28.25,
-            "longitude": -51.75,
-            "total_120h_mm": 45.6
-          },
-          {
-            "cell_id": "IFS_-028.75_-051.50",
-            "latitude": -28.75,
-            "longitude": -51.5,
-            "total_120h_mm": 67.5
-          },
-          {
-            "cell_id": "IFS_-029.25_-051.50",
-            "latitude": -29.25,
-            "longitude": -51.5,
-            "total_120h_mm": 82.2
-          },
-          {
-            "cell_id": "IFS_-028.25_-051.50",
-            "latitude": -28.25,
-            "longitude": -51.5,
-            "total_120h_mm": 51.6
-          },
-          {
-            "cell_id": "IFS_-029.00_-052.00",
-            "latitude": -29.0,
-            "longitude": -52.0,
-            "total_120h_mm": 81.6
-          },
-          {
-            "cell_id": "IFS_-028.25_-052.00",
-            "latitude": -28.25,
-            "longitude": -52.0,
-            "total_120h_mm": 62.4
-          },
-          {
-            "cell_id": "IFS_-028.50_-051.50",
-            "latitude": -28.5,
-            "longitude": -51.5,
-            "total_120h_mm": 55.8
-          },
-          {
-            "cell_id": "IFS_-029.00_-051.50",
-            "latitude": -29.0,
-            "longitude": -51.5,
-            "total_120h_mm": 86.7
-          },
-          {
-            "cell_id": "IFS_-029.25_-052.00",
-            "latitude": -29.25,
-            "longitude": -52.0,
-            "total_120h_mm": 79.5
-          },
-          {
-            "cell_id": "IFS_-028.50_-052.25",
-            "latitude": -28.5,
-            "longitude": -52.25,
-            "total_120h_mm": 90.0
-          },
-          {
-            "cell_id": "IFS_-029.00_-052.25",
-            "latitude": -29.0,
-            "longitude": -52.25,
-            "total_120h_mm": 85.2
-          },
-          {
-            "cell_id": "IFS_-028.75_-052.25",
-            "latitude": -28.75,
-            "longitude": -52.25,
-            "total_120h_mm": 85.8
-          },
-          {
-            "cell_id": "IFS_-028.25_-052.25",
-            "latitude": -28.25,
-            "longitude": -52.25,
-            "total_120h_mm": 75.6
-          },
-          {
-            "cell_id": "IFS_-029.25_-052.25",
-            "latitude": -29.25,
-            "longitude": -52.25,
-            "total_120h_mm": 77.4
-          },
-          {
-            "cell_id": "IFS_-029.50_-051.75",
-            "latitude": -29.5,
-            "longitude": -51.75,
-            "total_120h_mm": 88.2
-          },
-          {
-            "cell_id": "IFS_-029.50_-052.00",
-            "latitude": -29.5,
-            "longitude": -52.0,
-            "total_120h_mm": 92.1
-          },
-          {
-            "cell_id": "IFS_-029.25_-052.50",
-            "latitude": -29.25,
-            "longitude": -52.5,
-            "total_120h_mm": 81.3
-          },
-          {
-            "cell_id": "IFS_-028.75_-052.50",
-            "latitude": -28.75,
-            "longitude": -52.5,
-            "total_120h_mm": 81.6
-          },
-          {
-            "cell_id": "IFS_-029.00_-052.50",
-            "latitude": -29.0,
-            "longitude": -52.5,
-            "total_120h_mm": 84.3
-          },
-          {
-            "cell_id": "IFS_-029.50_-052.25",
-            "latitude": -29.5,
-            "longitude": -52.25,
-            "total_120h_mm": 73.8
-          },
-          {
-            "cell_id": "IFS_-029.00_-052.75",
-            "latitude": -29.0,
-            "longitude": -52.75,
-            "total_120h_mm": 79.2
-          },
-          {
-            "cell_id": "IFS_-029.50_-051.50",
-            "latitude": -29.5,
-            "longitude": -51.5,
-            "total_120h_mm": 84.0
-          },
-          {
-            "cell_id": "IFS_-029.75_-052.00",
-            "latitude": -29.75,
-            "longitude": -52.0,
-            "total_120h_mm": 54.0
-          },
-          {
-            "cell_id": "IFS_-029.75_-052.25",
-            "latitude": -29.75,
-            "longitude": -52.25,
-            "total_120h_mm": 56.7
-          },
-          {
-            "cell_id": "IFS_-029.50_-052.50",
-            "latitude": -29.5,
-            "longitude": -52.5,
-            "total_120h_mm": 78.0
-          },
-          {
-            "cell_id": "IFS_-029.75_-051.75",
-            "latitude": -29.75,
-            "longitude": -51.75,
-            "total_120h_mm": 64.5
-          },
-          {
-            "cell_id": "IFS_-029.75_-052.50",
-            "latitude": -29.75,
-            "longitude": -52.5,
-            "total_120h_mm": 57.6
-          },
-          {
-            "cell_id": "IFS_-030.00_-051.75",
-            "latitude": -30.0,
-            "longitude": -51.75,
-            "total_120h_mm": 47.4
-          },
-          {
-            "cell_id": "IFS_-029.75_-051.50",
-            "latitude": -29.75,
-            "longitude": -51.5,
-            "total_120h_mm": 65.7
-          },
-          {
-            "cell_id": "IFS_-030.00_-052.00",
-            "latitude": -30.0,
-            "longitude": -52.0,
-            "total_120h_mm": 49.2
-          }
-        ],
-        "exact_cycle_id_available": null
+        "status": "IFS_FULLGRID_FORCING_READY_CYCLE_ID_UNVERIFIED",
+        "grid_cells": 600,
+        "exact_cycle_id_available": false
       },
       "blocker": "complete 600-cell ECMWF field and attach exact cycle provenance for operational promotion"
     },
     "merged_rain": {
-      "pass": false,
+      "pass": true,
       "detail": {
-        "status": "MERGED_RAIN_FORCING_READY",
-        "grid_cells": null,
-        "operational_promotion_allowed": null
+        "status": "MERGED_RAIN_FORCING_READY_RESEARCH_CYCLE_ID_UNVERIFIED",
+        "grid_cells": 600,
+        "operational_promotion_allowed": false
       },
       "blocker": "merge observed and forecast full-grid fields"
     },
@@ -462,7 +245,7 @@
         "summary": {
           "control_count": 13,
           "stage1_boundary_update_count": 2,
-          "diagnostic_checkpoint_count": 8,
+          "diagnostic_checkpoint_count": 7,
           "internal_state_update_count": 0
         },
         "stage1_contract": {
@@ -655,11 +438,6 @@
     }
   },
   "blockers": [
-    "dynamic_boundary_mass_balance",
-    "rain_support",
-    "observed_full_grid",
-    "ifs_full_grid",
-    "merged_rain",
     "hec_branch_compute",
     "native_hec145",
     "sma_branch_parameters",
