@@ -362,6 +362,7 @@
       if (item.observed_rain && item.observed_rain.state === 'available') return true;
       return networkSourceObservations(item).some((row) => /chuva/i.test(String(row.metric || '')) && num(row.value) != null);
     }
+    if (variable === 'flow') return !!networkFlow(item);
     if (variable === 'rna') return !!(item.level && item.level.forecast_applicable);
     return true;
   }
@@ -522,6 +523,93 @@
     });
   }
 
+  function networkVariableCoverage() {
+    const rows = networkStations();
+    const hourlyRain = rows.filter((item) => item.observed_rain && item.observed_rain.state === 'available').length;
+    const cemaden24 = rows.filter((item) => !!networkCemadenRain(item)).length;
+    const level = rows.filter((item) => networkHasVariable(item, 'level')).length;
+    const flow = rows.filter((item) => networkHasVariable(item, 'flow')).length;
+    const rnaApplicable = rows.filter((item) => item.level && item.level.forecast_applicable).length;
+    const rnaAvailable = rows.filter((item) => item.level && item.level.forecast_status === 'available').length;
+    const observedAny = rows.filter((item) => networkObservation(item).hasValue).length;
+    return { total: rows.length, hourlyRain, cemaden24, level, flow, rnaApplicable, rnaAvailable, observedAny };
+  }
+
+  function renderGapDiagnostics() {
+    const host = $('basin-gap-diagnostics');
+    if (!host) return;
+    const rows = networkStations();
+    if (!rows.length) {
+      host.innerHTML = '<div class="empty-block">Snapshot por estação ainda indisponível para diagnosticar lacunas.</div>';
+      return;
+    }
+    const coverage = networkVariableCoverage();
+    const stale = rows.map((item) => ({ item, observed: networkObservation(item) }))
+      .filter((row) => ['delayed', 'very-delayed'].includes(row.observed.status) && row.observed.ageHours != null)
+      .sort((a, b) => b.observed.ageHours - a.observed.ageHours)
+      .slice(0, 8);
+    const blindSubBasins = networkUpgRows().slice()
+      .sort((a, b) => (b.none / Math.max(1, b.total)) - (a.none / Math.max(1, a.total)) || b.none - a.none)
+      .slice(0, 4);
+    const noTime = rows.filter((item) => networkObservation(item).status === 'no-time').length;
+    const cards = [
+      ['Chuva horária', coverage.hourlyRain, coverage.total, 'rain', 'série observada com relógio'],
+      ['CEMADEN 24 h', coverage.cemaden24, coverage.total, 'rain', 'acumulado observado'],
+      ['Nível', coverage.level, coverage.total, 'level', 'valor hidrológico válido'],
+      ['Vazão', coverage.flow, coverage.total, 'flow', 'vazão observada publicada'],
+      ['RNA de nível', coverage.rnaAvailable, coverage.rnaApplicable, 'rna', 'disponível / aplicável']
+    ];
+    const staleHtml = stale.length ? stale.map((row) =>
+      '<button type="button" class="gap-station-row" data-gap-station="' + esc(row.item.id || row.item.code || '') + '">' +
+        '<span><strong>' + esc(row.item.name || 'Estação') + '</strong><small>' + esc(row.item.code || '') + ' · ' + esc(row.item.upg_label || 'sub-bacia não informada') + '</small></span>' +
+        '<b>' + esc(ageLabel(row.observed.ageHours)) + '</b>' +
+      '</button>'
+    ).join('') : '<p class="network-detail-empty">Nenhuma estação com observação datada acima de 1 h neste snapshot.</p>';
+    const blindHtml = blindSubBasins.map((row) => {
+      const ratio = row.total ? row.none / row.total : 0;
+      return '<button type="button" class="gap-subbasin-row" data-gap-subbasin="' + esc(row.label) + '">' +
+        '<span><strong>' + esc(row.label) + '</strong><small>' + fmt(row.none, 0) + ' de ' + fmt(row.total, 0) + ' sem observado</small></span>' +
+        '<b>' + fmt(ratio * 100, 0) + '%</b>' +
+      '</button>';
+    }).join('');
+    host.innerHTML =
+      '<div class="gap-diagnostics-head"><div><span class="now-eyebrow">Diagnóstico da rede</span><h4>Cobertura por variável e lacunas de atualização</h4></div><span>' + fmt(coverage.observedAny, 0) + '/' + fmt(coverage.total, 0) + ' com algum observado · ' + fmt(noTime, 0) + ' sem hora individual</span></div>' +
+      '<div class="gap-coverage-grid">' + cards.map((row) => {
+        const denominator = Number(row[2]) || 0;
+        const numerator = Number(row[1]) || 0;
+        const pct = denominator ? numerator / denominator * 100 : 0;
+        return '<button type="button" class="gap-coverage-card" data-gap-variable="' + esc(row[3]) + '"><span>' + esc(row[0]) + '</span><strong>' + fmt(numerator, 0) + '<small>/' + fmt(denominator, 0) + '</small></strong><i><em style="width:' + Math.max(0, Math.min(100, pct)).toFixed(1) + '%"></em></i><small>' + esc(row[4]) + ' · ' + fmt(pct, 0) + '%</small></button>';
+      }).join('') + '</div>' +
+      '<div class="gap-diagnostics-split"><section><div class="network-detail-title"><strong>MAIORES ATRASOS COM HORÁRIO</strong><span>idade da última evidência observada</span></div><div class="gap-list">' + staleHtml + '</div></section>' +
+      '<section><div class="network-detail-title"><strong>MAIOR PROPORÇÃO SEM OBSERVADO</strong><span>por sub-bacia G040</span></div><div class="gap-list">' + (blindHtml || '<p class="network-detail-empty">Sem sub-bacias calculáveis.</p>') + '</div></section></div>' +
+      '<p class="gap-diagnostics-note">Este bloco mede cobertura e frescor da rede publicada. Não representa perigo, severidade da chuva, probabilidade de inundação ou prioridade de evacuação.</p>';
+
+    host.querySelectorAll('[data-gap-variable]').forEach((button) => {
+      button.addEventListener('click', () => {
+        state.networkVariable = button.getAttribute('data-gap-variable') || 'all';
+        const select = $('basin-variable-filter');
+        if (select) select.value = state.networkVariable;
+        renderBasinMap();
+      });
+    });
+    host.querySelectorAll('[data-gap-station]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const id = button.getAttribute('data-gap-station');
+        clearNetworkFilters();
+        state.selectedNetworkStationId = id;
+        renderBasinMap();
+      });
+    });
+    host.querySelectorAll('[data-gap-subbasin]').forEach((button) => {
+      button.addEventListener('click', () => {
+        state.networkUpg = button.getAttribute('data-gap-subbasin') || 'all';
+        const select = $('basin-upg-filter');
+        if (select) select.value = state.networkUpg;
+        renderBasinMap();
+      });
+    });
+  }
+
   function renderNetworkSummary() {
     const host = $('basin-network-summary');
     const note = $('basin-network-note');
@@ -636,6 +724,7 @@
     const host = $('basin-map');
     if (!host) return;
     renderNetworkSummary();
+    renderGapDiagnostics();
     renderUpgHealth();
     const rings = geoRings(state.basinGeometry);
     const all = networkStations();
