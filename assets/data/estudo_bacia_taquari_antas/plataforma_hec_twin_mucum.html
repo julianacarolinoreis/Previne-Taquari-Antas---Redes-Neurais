@@ -240,11 +240,12 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
         <span class="badge warn" id="modelBadge">carregando</span>
       </div>
       <div class="model-kpis">
-        <div class="model-kpi"><span>Q atual pela curva-chave</span><b id="modelQobs">—</b></div>
-        <div class="model-kpi"><span>Q pico HEC-HMS</span><b id="modelQpeak">—</b></div>
+        <div class="model-kpi"><span>Q observado · curva-chave</span><b id="modelQobs">—</b></div>
+        <div class="model-kpi"><span>Q máximo HEC-HMS</span><b id="modelQpeak">—</b></div>
         <div class="model-kpi"><span>Nível observado</span><b id="modelNobs">—</b></div>
-        <div class="model-kpi"><span>ΔN HEC-HMS</span><b id="modelRise">—</b></div>
+        <div class="model-kpi"><span>ΔN máximo futuro</span><b id="modelRise">—</b></div>
       </div>
+      <div class="kpi-line" id="modelValidationAudit"></div>
       <svg id="modelChart" class="model-chart" viewBox="0 0 1000 330" preserveAspectRatio="none" aria-label="Hidrograma do modelo chuva-vazão"></svg>
       <div class="chart-legend">
         <span><i style="background:#176149"></i>Q Muçum · HEC-HMS</span>
@@ -405,10 +406,34 @@ $("modelQobs").textContent=rr.current_observed_q_rating_m3s!=null?fmt(rr.current
 $("modelQpeak").textContent=hecBlocked?"bloqueado":(maxFinite(rr.q_mucum_m3s)!=null?fmt(maxFinite(rr.q_mucum_m3s),0)+" m³/s":"—");
 $("modelNobs").textContent=rr.current_observed_stage_cm!=null?fmt(rr.current_observed_stage_cm/100,2)+" m":"—";
 $("modelRise").textContent=hecBlocked?"bloqueado":((rr.primary&&rr.primary.rise_cm!=null)?fmt(rr.primary.rise_cm,0)+" cm":"—");
+const vv=rr.validation||{}, fit6=vv.recent_hydrograph_6h||{}, fit12=vv.recent_hydrograph_12h||{};
+const modelT0=rr.model_stage_t0_cm!=null?Number(rr.model_stage_t0_cm):Number(vv.raw_warmed_stage_at_current_cm);
+const stageErr=rr.stage_error_at_t0_cm!=null?Number(rr.stage_error_at_t0_cm):Number(vv.stage_error_at_t0_cm);
+const qErr=rr.q_error_pct!=null?Number(rr.q_error_pct):Number(vv.q_error_pct);
+const obsTrend=Number(vv.observed_trend_last_1h_cm), modelTrend=Number(vv.model_trend_next_1h_cm);
+const validationAudit=$("modelValidationAudit");
+if(validationAudit){
+ const parts=[
+   Number.isFinite(modelT0)?("HEC em t0 <b>"+fmt(modelT0/100,2)+" m</b>"):null,
+   Number.isFinite(stageErr)?("erro t0 <b>"+(stageErr>=0?"+":"")+fmt(stageErr,1)+" cm</b>"):null,
+   Number.isFinite(qErr)?("erro Q <b>"+(qErr>=0?"+":"")+fmt(qErr,1)+"%</b>"):null,
+   Number.isFinite(obsTrend)&&Number.isFinite(modelTrend)?("tendência obs/HEC <b>"+fmt(obsTrend,1)+" / "+fmt(modelTrend,1)+" cm/h</b>"):null,
+   fit6.nse!=null?("NSE 6 h <b>"+fmt(fit6.nse,3)+"</b>"):null,
+   fit12.nse!=null?("NSE 12 h <b>"+fmt(fit12.nse,3)+"</b>"):null
+ ].filter(Boolean);
+ validationAudit.innerHTML=parts.map(x=>"<span>"+x+"</span>").join("");
+}
+const diagWarnings=rr.diagnostic_warnings_pt||vv.diagnostic_warnings_pt||[];
 $("modelWarning").innerHTML=hecBlocked
- ? "<p style='margin:0 0 7px'><strong>Não é ausência de cálculo.</strong> É uma rodada rejeitada pela validação do estado inicial; por isso pico e ΔN não são publicados como previsão.</p>"+
-   (blockers.length?"<ul style='margin:0;padding-left:18px'>"+blockers.slice(0,4).map(x=>"<li>"+x+"</li>").join("")+"</ul>":"")
- : "<p style='margin:0'>"+(rr.warning_pt||"Resultado experimental.")+"</p>";
+ ? "<p style='margin:0 0 7px'><strong>Não é ausência de cálculo.</strong> É uma rodada rejeitada pela validação do estado inicial ou do ajuste recente; por isso pico e ΔN não são publicados como previsão.</p>"+
+   (blockers.length?"<ul style='margin:0;padding-left:18px'>"+blockers.slice(0,6).map(x=>"<li>"+x+"</li>").join("")+"</ul>":"")
+ : hecSpatial
+   ? "<p style='margin:0'><strong>Estado de lançamento validado.</strong> O gráfico parte do estado produzido pelo próprio HEC, sem deslocamento visual. "+
+     (Number.isFinite(stageErr)?"Erro de nível em t0: "+(stageErr>=0?"+":"")+fmt(stageErr,1)+" cm. ":"")+
+     (Number.isFinite(qErr)?"Erro de Q: "+(qErr>=0?"+":"")+fmt(qErr,1)+"%. ":"")+
+     ((rr.primary&&rr.primary.rise_cm===0)?"O maior nível do horizonte ocorre no próprio t0; não há novo máximo acima do estado HEC inicial nesta rodada.":"")+"</p>"+
+     (diagWarnings.length?"<details style='margin-top:8px'><summary>Diagnóstico do evento completo</summary><ul style='margin:6px 0 0;padding-left:18px'>"+diagWarnings.map(x=>"<li>"+x+"</li>").join("")+"</ul></details>":"")
+   : "<p style='margin:0'>"+(rr.warning_pt||"Resultado experimental.")+"</p>";
 if($("legendAntas") && !(rr.q_antas_m3s||[]).length && !(((rr.nodes_model||{})["Zona_86472000_LIVE"]||{}).q_m3s||[]).length)$("legendAntas").style.display="none";
 if($("legendIbi") && !((((rr.nodes_model||{})["Zona_02851072_LIVE"]||{}).q_m3s)||[]).length)$("legendIbi").style.display="none";
 const audit=$("modelRainAudit");
@@ -481,6 +506,11 @@ function drawHydrograph(){
  if(q2.length)s+="<path d='"+path(q2)+"' fill='none' stroke='#225d8d' stroke-width='3' vector-effect='non-scaling-stroke'/>";
  if(q3.length)s+="<path d='"+path(q3)+"' fill='none' stroke='#98661d' stroke-width='3' vector-effect='non-scaling-stroke'/>";
  s+="<path d='"+path(q1)+"' fill='none' stroke='#176149' stroke-width='4' vector-effect='non-scaling-stroke'/>";
+ const qObs=Number(rr.current_observed_q_rating_m3s);
+ if(Number.isFinite(qObs)){
+   const yo=y(qObs);
+   s+="<circle cx='"+x(0)+"' cy='"+yo+"' r='6' fill='#fff' stroke='#111f19' stroke-width='2'/><text x='"+(x(0)+12)+"' y='"+(yo-9)+"' fill='#263b32' font-size='12' font-weight='700'>Q observado "+fmt(qObs,0)+"</text>";
+ }
  s+="<text x='"+L+"' y='16' fill='#607168' font-size='12'>vazão simulada (m³/s)</text>";
  svg.innerHTML=s;
 }
