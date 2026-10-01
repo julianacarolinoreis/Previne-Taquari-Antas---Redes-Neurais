@@ -2837,6 +2837,8 @@
     const hourlyRain=scope.observed_rain_hourly_station_count||0;
     const cemaden24=scope.observed_rain_cemaden_24h_station_count||0;
     const levels=scope.level_station_count||0;
+    const cemadenHydro=scope.cemaden_hydro_station_count||0;
+    const observedAny=scope.observed_any_station_count||0;
     const sourceCounts=BASIN_FEED.source_counts||{};
     const sourceBits=['ANA/HidroWeb','SGB/SACE','CEMADEN','INMET']
       .filter(key=>sourceCounts[key]!==undefined)
@@ -2854,7 +2856,10 @@
       '<span class="map-status-chip muted">Chuva observada '+basinEscape(rain)+'</span>'+
       '<span class="map-status-chip muted">série horária '+basinEscape(hourlyRain)+'</span>'+
       '<span class="map-status-chip muted">CEMADEN 24h '+basinEscape(cemaden24)+'</span>'+
-      '<span class="map-status-chip muted">nível observado '+basinEscape(levels)+'</span></span>'+
+      '<span class="map-status-chip muted">nível live '+basinEscape(levels)+'</span>'+
+      (cemadenHydro?'<span class="map-status-chip muted">nível CEMADEN '+basinEscape(cemadenHydro)+'</span>':'')+
+      (observedAny?'<span class="map-status-chip muted">algum observado '+basinEscape(observedAny)+'/'+basinEscape(total)+'</span>':'')+
+      '</span>'+
       '<span class="map-status-right'+(late?' is-late':'')+'">Atualizado '+basinEscape(basinDate(generated))+
       (generatedAge?' · '+basinEscape(generatedAge):'')+basinEscape(feedSource)+' · '+basinEscape(basinNextCycle(nextRaw))+'</span>';
   }
