@@ -1072,6 +1072,18 @@ def build_feed(
         )
         for item in stations
     )
+    rain_ages = [
+        finite(item["observed_rain"].get("observed_age_minutes"))
+        for item in stations
+        if item["observed_rain"]["state"] == "available"
+    ]
+    rain_ages = [value for value in rain_ages if value is not None]
+    level_ages = [
+        finite(item["level"].get("observed_age_minutes"))
+        for item in stations
+        if item["level"]["state"] in {"available", "partial"}
+    ]
+    level_ages = [value for value in level_ages if value is not None]
     complete_forecast = available_forecasts == len(stations)
     return {
         "schema_version": 1,
@@ -1128,6 +1140,18 @@ def build_feed(
                 "Cobertura completa da rodada meteorológica."
                 if complete_forecast
                 else "Cobertura parcial: estações sem resposta permanecem como indisponíveis."
+            ),
+        },
+        "freshness": {
+            "hourly_rain_max_age_minutes": max(rain_ages) if rain_ages else None,
+            "hourly_rain_over_60min_count": sum(value > 60 for value in rain_ages),
+            "hourly_rain_age_count": len(rain_ages),
+            "level_max_age_minutes": max(level_ages) if level_ages else None,
+            "level_over_60min_count": sum(value > 60 for value in level_ages),
+            "level_age_count": len(level_ages),
+            "note": (
+                "Frescor calculado somente quando a fonte publica horário individual da observação. "
+                "O acumulado CEMADEN 24h mantém separadamente o horário de atualização do painel."
             ),
         },
         "models": list(MODEL_SPECS),
