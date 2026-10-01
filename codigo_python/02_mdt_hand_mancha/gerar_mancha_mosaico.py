@@ -35,7 +35,7 @@ encontra mínimo de ~27,1 m, ainda abaixo da faixa do talvegue ANADEM ali
 o refinamento visual adicional é gerado separadamente por
 refinar_mdt_santa_tereza.py e não altera o HAND publicado.
 
-Uso: python codigo_python/02_mdt_hand_mancha/gerar_mancha_mosaico.py [mucum|santa_tereza]
+Uso: python codigo_python/02_mdt_hand_mancha/gerar_mancha_mosaico.py mucum\n\nSanta Tereza foi bloqueada neste pipeline legado: usa exclusivamente o LiDAR/HAND hidráulico.
 """
 import os
 import re
@@ -109,6 +109,11 @@ def talvegue_mosaico(dem, transform_f, crs_f, thal_a, transform_a, crs_a, pct=50
 
 
 def processa(cidade):
+    if cidade == "santa_tereza":
+        raise RuntimeError(
+            "BLOQUEADO: Santa Tereza usa exclusivamente o LiDAR/HAND hidráulico; "
+            "este gerador drone+ANADEM não pode publicar Santa Tereza."
+        )
     cfg = CIDADES[cidade]
     print(f"=== {cidade} ===")
     dem_a, transform_a, crs_a, _ = le(cfg["anadem"])
@@ -225,4 +230,9 @@ def main():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "santa_tereza":
+        raise SystemExit(
+            "BLOQUEADO: Santa Tereza usa exclusivamente o LiDAR/HAND hidráulico. "
+            "Use gerar_hand_lidar_santa_tereza.py."
+        )
     main()
