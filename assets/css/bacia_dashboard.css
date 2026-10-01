@@ -261,6 +261,14 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
 .event-peak span { color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: 0; }
 .event-card .event-status { display: inline-block; margin-top: 8px; padding: 4px 7px; border-radius: 999px; color: var(--amber); background: var(--amber-soft); font-size: 10px; font-weight: 750; }
 .event-card.confirmed .event-status { color: var(--green); background: var(--green-soft); }
+.event-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 2px 0 14px; }
+.event-summary-item { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--panel) 92%, var(--green-soft)); }
+.event-summary-item span, .event-summary-item small { display: block; color: var(--muted); }
+.event-summary-item span { font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .04em; }
+.event-summary-item strong { display: block; margin-top: 3px; font-size: 18px; line-height: 1.05; }
+.event-summary-item small { margin-top: 3px; font-size: 9px; }
+@media (max-width: 900px) { .event-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .event-summary { grid-template-columns: 1fr; } }
 .event-rain { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 12px; padding-top: 9px; border-top: 1px solid var(--line); }
 .event-rain b, .event-rain span { display: block; }
 .event-rain b { font-size: 13px; }
