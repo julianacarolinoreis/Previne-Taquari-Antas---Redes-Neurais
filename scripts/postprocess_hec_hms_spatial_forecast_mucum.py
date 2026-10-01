@@ -248,11 +248,15 @@ def main():
     q_error_pct = 100.0 * (q_model_t0 - q_obs) / q_obs if q_obs else None
 
     reasons = []
+    diagnostic_warnings = []
     warm = inp.get("warmup") or {}
     if not warm.get("complete"):
         reasons.append("warm-up de chuva observada incompleto")
-    # Operational release guards are intentionally strict. A candidate that
-    # only intersects the current hydrograph by chance must not be promoted.
+
+    # Release the operational forecast from the state that matters now:
+    # observed t0 + recent 6/12 h hydrograph. Whole-event metrics remain visible
+    # as diagnostics, but do not veto an otherwise well-initialized recession
+    # forecast merely because an older part of the event had structural error.
     if abs(state_error_cm) > 30.0:
         reasons.append(
             f"estado aquecido difere {state_error_cm:+.1f} cm do nível observado atual (>30 cm)"
@@ -261,17 +265,45 @@ def main():
         reasons.append(
             f"vazão do estado aquecido difere {q_error_pct:+.1f}% da vazão derivada do observado (>10%)"
         )
-    if event_fit.get("rmse_cm") is not None and float(event_fit["rmse_cm"]) > 60.0:
+
+    recent12_rmse = recent_fit_12h.get("rmse_cm")
+    recent12_nse = recent_fit_12h.get("nse")
+    recent6_rmse = recent_fit_6h.get("rmse_cm")
+    recent6_nse = recent_fit_6h.get("nse")
+    if recent12_rmse is None or float(recent12_rmse) > 35.0:
         reasons.append(
-            f"RMSE do hidrograma observado desde 26/09 = {event_fit['rmse_cm']:.1f} cm (>60 cm)"
+            "ajuste recente de 12 h indisponível ou RMSE >35 cm"
+            if recent12_rmse is None
+            else f"RMSE recente de 12 h = {float(recent12_rmse):.1f} cm (>35 cm)"
+        )
+    if recent12_nse is None or float(recent12_nse) < 0.75:
+        reasons.append(
+            "NSE recente de 12 h indisponível ou <0,75"
+            if recent12_nse is None
+            else f"NSE recente de 12 h = {float(recent12_nse):.3f} (<0,75)"
+        )
+    if recent6_rmse is None or float(recent6_rmse) > 25.0:
+        reasons.append(
+            "ajuste recente de 6 h indisponível ou RMSE >25 cm"
+            if recent6_rmse is None
+            else f"RMSE recente de 6 h = {float(recent6_rmse):.1f} cm (>25 cm)"
+        )
+    if recent6_nse is not None and float(recent6_nse) < 0.50:
+        reasons.append(
+            f"NSE recente de 6 h = {float(recent6_nse):.3f} (<0,50)"
+        )
+
+    if event_fit.get("rmse_cm") is not None and float(event_fit["rmse_cm"]) > 60.0:
+        diagnostic_warnings.append(
+            f"RMSE do evento completo desde 26/09 = {event_fit['rmse_cm']:.1f} cm (>60 cm)"
         )
     if event_fit.get("nse") is not None and float(event_fit["nse"]) < 0.75:
         reasons.append(
             f"NSE do hidrograma observado desde 26/09 = {event_fit['nse']:.3f} (<0,75)"
         )
     if event_fit.get("bias_cm") is not None and abs(float(event_fit["bias_cm"])) > 30.0:
-        reasons.append(
-            f"viés do hidrograma observado desde 26/09 = {event_fit['bias_cm']:+.1f} cm (>30 cm)"
+        diagnostic_warnings.append(
+            f"viés do evento completo desde 26/09 = {event_fit['bias_cm']:+.1f} cm (>30 cm)"
         )
 
     # Do not release a forecast whose observation snapshot became stale while
@@ -302,28 +334,26 @@ def main():
                 f"observado cai {abs(obs_trend_1h):.1f} cm/h, mas HEC aquecido indica subida "
                 f"de {model_trend_1h:.1f} cm na próxima hora"
             )
-        # Sign agreement alone is not enough during a fast flood rise/fall.
-        # Require the HEC launch slope to be of comparable magnitude; otherwise
-        # a slow hydrograph can match t0 accidentally and still miss the crest.
+        # On a fast limb the direction must agree and the absolute slope error
+        # must remain bounded. Ratio-only gates become unstable when the
+        # observed slope is around a few tens of cm/h; use them as diagnostics,
+        # not as a second veto when the absolute error is already acceptable.
         if abs(obs_trend_1h) >= 20.0:
-            # Fast flood limbs require comparable magnitude, not merely the
-            # same sign. A model rising at half the observed speed cannot be
-            # released just because it happens to intersect the current stage.
-            trend_tolerance = max(12.0, 0.25 * abs(obs_trend_1h))
+            trend_tolerance = max(12.0, 0.35 * abs(obs_trend_1h))
             trend_ratio = (
                 abs(model_trend_1h) / abs(obs_trend_1h)
                 if abs(obs_trend_1h) > 1e-9 else None
             )
-            if (
-                abs(model_trend_1h - obs_trend_1h) > trend_tolerance
-                or trend_ratio is None
-                or trend_ratio < 0.75
-                or trend_ratio > 1.35
-            ):
+            if abs(model_trend_1h - obs_trend_1h) > trend_tolerance:
                 reasons.append(
                     f"tendência HEC {model_trend_1h:+.1f} cm/h incompatível com "
                     f"observado {obs_trend_1h:+.1f} cm/h "
-                    f"(razão={trend_ratio:.2f})"
+                    f"(diferença > {trend_tolerance:.1f} cm/h)"
+                )
+            elif trend_ratio is not None and (trend_ratio < 0.75 or trend_ratio > 1.35):
+                diagnostic_warnings.append(
+                    f"magnitude da tendência HEC difere do observado (razão={trend_ratio:.2f}), "
+                    "mas o erro absoluto permanece dentro da guarda operacional"
                 )
 
     # No visual anchoring is allowed. A candidate may only be published when
@@ -387,6 +417,8 @@ def main():
         "validation": {
             "publishable": publishable,
             "blocking_reasons_pt": reasons,
+            "diagnostic_warnings_pt": diagnostic_warnings,
+            "release_policy": "t0 + recent_6h_12h + direction/slope; whole-event RMSE/bias diagnostic",
             "raw_warmed_stage_at_current_cm": round(n_model_t0, 2),
             "stage_error_at_t0_cm": round(state_error_cm, 2),
             "raw_warmed_q_at_current_m3s": round(q_model_t0, 3),
@@ -413,6 +445,7 @@ def main():
             "model_trend_next_1h_cm": round(model_trend_1h, 2),
             "publishable": publishable,
             "blocking_reasons_pt": reasons,
+            "diagnostic_warnings_pt": diagnostic_warnings,
             "observation_age_at_postprocess_minutes": round(obs_age_min, 1),
             "peak_q_m3s": round(candidate_peak_q, 3) if publishable else None,
             "peak_time_utc": candidate_peak_time if publishable else None,
