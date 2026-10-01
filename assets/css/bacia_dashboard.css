@@ -198,9 +198,12 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
 .model-card p { min-height: 42px; margin: 10px 0 0; color: var(--ink-soft); font-size: 11px; }
 .model-card .model-source { display: block; margin-top: 9px; color: var(--muted); font-size: 10px; }
 .model-card.experimental-card { border-color: #d7c8f0; background: #fbf9ff; }
-.scale-note { display: flex; flex-wrap: wrap; gap: 7px 15px; align-items: center; margin-top: 14px; color: var(--muted); font-size: 11px; }
-.bar-key { width: 24px; height: 6px; display: inline-block; border-radius: 999px; }
-.rain-key { background: var(--amber); } .risk-key { background: var(--purple); } .soil-key { background: #4d9b79; }
+.scale-note { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10.5px; }
+.scale-item { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.scale-item b { color: var(--ink-soft); font-weight: 800; }
+.scale-note-text { flex: 1 1 100%; color: var(--muted); line-height: 1.4; }
+.bar-key { width: 22px; height: 6px; display: inline-block; flex: 0 0 auto; border-radius: 999px; }
+.rain-key { background: var(--amber); } .level-key { background: #4f8297; } .risk-key { background: var(--purple); } .soil-key { background: #4d9b79; }
 
 /* Visual comparison: keep rain, river level and risk on separate scales. */
 .model-station-view { padding: 15px; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(145deg, #fbfefc, #f3faf6); }
@@ -615,7 +618,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offs
   .intro-card, .panel, .sources-card { padding: 16px; }
   .intro-card h2, .panel-heading h2 { font-size: 19px; }
   .kpi-grid, .model-grid, .zone-grid, .event-timeline { grid-template-columns: 1fr; }
-  .station-card-main { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .station-card-main { grid-template-columns: 1fr; }
   .station-mini strong { font-size: 18px; }
   .event-card { min-height: 0; }
   .evaluation-table { min-width: 420px; }
