@@ -9,8 +9,10 @@
   if (!root) return;
 
   const $ = (id) => document.getElementById(id);
-  const state = { station: 'basin', horizon: 72, feeds: {}, research: null, lastLoadedAt: null };
+  const state = { station: 'basin', horizon: 72, feeds: {}, research: null, basinGeometry: null, lastLoadedAt: null, loading: false };
   const researchUrl = 'assets/data/research_basin_screening_latest.json';
+  const basinUrl = 'assets/data/vulnerabilidade/bacia.geojson';
+  const AUTO_REFRESH_MS = 5 * 60 * 1000;
   const stations = {
     santa: {
       key: 'santa', label: 'Santa Tereza', code: '86472600', threshold: 1500,
@@ -134,11 +136,15 @@
     return { key, horizon: hours, station: s, pattern: f.pattern, weather: f.weather, live, p, w, obs, level, levelAt, pointRain, basinMean, basinMax, meanRain, maxRain, directRain, ifsProxyRain, gefsProxyRain, soil, risk, archivedRisk, riskUsable, riskState: integratedRisk.state || 'unknown', riskGenerated: integratedRisk.generated_at_utc, riskCalibration: integratedRisk.calibration_status, score, decision, archivedDecision, generated, forecastAge, observedAge, coverage };
   }
   function qualityFor(snapshot) {
-    const obsGood = snapshot.level != null && (snapshot.observedAge == null || snapshot.observedAge <= 3);
-    const forecastGood = snapshot.meanRain != null && (snapshot.forecastAge == null || snapshot.forecastAge <= 72);
+    const hasObs = snapshot.level != null;
+    const hasForecast = snapshot.meanRain != null || snapshot.directRain != null;
+    const obsGood = hasObs && (snapshot.observedAge == null || snapshot.observedAge <= 1.5);
+    const obsUsable = hasObs && (snapshot.observedAge == null || snapshot.observedAge <= 3);
+    const forecastGood = hasForecast && (snapshot.forecastAge == null || snapshot.forecastAge <= 18);
+    const forecastUsable = hasForecast && (snapshot.forecastAge == null || snapshot.forecastAge <= 36);
     const partial = snapshot.coverage != null && snapshot.coverage < snapshot.horizon;
-    if (!obsGood && !forecastGood) return { label: 'UNKNOWN', className: 'unknown' };
-    if (partial || !obsGood) return { label: 'STALE / PARCIAL', className: 'warn' };
+    if (!hasObs && !hasForecast) return { label: 'UNKNOWN', className: 'unknown' };
+    if (partial || !obsUsable || !forecastUsable || !obsGood || !forecastGood) return { label: 'STALE / PARCIAL', className: 'warn' };
     return { label: 'FEEDS ATUALIZADOS', className: '' };
   }
   function scoreStateLabel(snap) {
@@ -223,6 +229,138 @@
     if (value === 'integrated') return 'INTEGRADA E VALIDADA';
     return String(value || 'SEM STATUS').replace(/_/g, ' ').toUpperCase();
   }
+
+  function nowFreshness(snapshot) {
+    if (snapshot.level == null) return { label: 'SEM LEITURA', className: 'stale' };
+    if (snapshot.observedAge == null || snapshot.observedAge <= 1.5) return { label: 'TELEMETRIA RECENTE', className: '' };
+    if (snapshot.observedAge <= 3) return { label: 'ATENÇÃO À IDADE', className: 'warn' };
+    return { label: 'TELEMETRIA ATRASADA', className: 'stale' };
+  }
+  function shortForecastRows(key) {
+    return liveRowsFor(key)
+      .filter((row) => row.available && num(row.level_forecast_cm) != null && row.hours <= 12)
+      .sort((a, b) => a.hours - b.hours || (a.role === 'comparativo' ? 1 : -1) || a.key.localeCompare(b.key));
+  }
+  function renderNowStations() {
+    const host = $('now-stations');
+    if (!host) return;
+    host.innerHTML = ['santa', 'mucum'].map((key) => {
+      const snap = stationSnapshot(key);
+      const fresh = nowFreshness(snap);
+      const threshold = num(snap.station.threshold);
+      const level = num(snap.level);
+      const ratio = level != null && threshold ? Math.max(0, Math.min(100, level / threshold * 100)) : 0;
+      const gap = level != null && threshold != null ? threshold - level : null;
+      const gapText = gap == null
+        ? 'sem distância calculável até a cota'
+        : gap > 0
+          ? `${fmt(gap / 100, 2)} m abaixo da cota de pesquisa`
+          : gap < 0
+            ? `${fmt(Math.abs(gap) / 100, 2)} m acima da cota de pesquisa`
+            : 'na cota de pesquisa';
+      const rows = shortForecastRows(key);
+      const forecasts = rows.length ? rows.map((row) => {
+        const comparative = row.role === 'comparativo' || row.role === 'sombra_experimental';
+        return `<span class="now-forecast-chip ${comparative ? 'comparative' : ''}"><b>+${esc(row.hours)} h · ${fmt(row.level_forecast_cm / 100, 2)} m</b><span>${comparative ? 'comparativo' : 'principal'}${row.quality_status && row.quality_status !== 'NORMAL' ? ` · ${esc(row.quality_status)}` : ''}</span></span>`;
+      }).join('') : '<span class="empty-block">Sem RNA curta publicada neste feed.</span>';
+      const live = snap.live || {};
+      const audit = live.auditoria_inputs || {};
+      const missing = num(audit.n_inputs_ausentes ?? live.inputs_faltantes_n);
+      const auditLabel = audit.status || (missing === 0 ? 'NORMAL' : 'ATENÇÃO');
+      const issued = liveGeneratedFor(key);
+      return `<article class="now-station-card ${fresh.className ? 'is-attention' : ''}">
+        <div class="now-station-head"><div class="now-station-name"><h3>${esc(snap.station.label)}</h3><span>ANA/SGB ${esc(snap.station.code)}</span></div><span class="now-freshness ${fresh.className}">${esc(fresh.label)}</span></div>
+        <div class="now-primary-grid">
+          <div class="now-level"><strong>${level == null ? '—' : fmt(level / 100, 2)} <span>m</span></strong><small>${level == null ? 'sem nível observado' : `${fmt(level, 0)} cm · ${ageLabel(snap.observedAge)}`}</small></div>
+          <div class="now-threshold"><div class="now-threshold-row"><strong>Cota de pesquisa</strong><span>${threshold == null ? '—' : `${fmt(threshold / 100, 2)} m`}</span></div><div class="now-level-track ${gap != null && gap <= 0 ? 'is-over' : ''}" aria-label="${esc(gapText)}"><i style="width:${ratio.toFixed(1)}%"></i></div><p class="now-threshold-note">${esc(gapText)}.</p></div>
+        </div>
+        <div class="now-short-title"><strong>RNA de nível · curto prazo</strong><span>centímetros convertidos para metros · cenários separados</span></div>
+        <div class="now-forecast-row">${forecasts}</div>
+        <div class="now-station-foot"><span><strong>Observado:</strong> ${esc(when(snap.levelAt))} BRT</span><span><strong>Rodada RNA:</strong> ${esc(when(issued))} BRT</span><span><strong>Inputs:</strong> ${esc(auditLabel)}${missing != null ? ` · ${fmt(missing, 0)} ausentes` : ''}</span><span><strong>Atualização automática:</strong> 5 min</span></div>
+      </article>`;
+    }).join('');
+  }
+
+  function geoRings(data) {
+    if (!data) return [];
+    const geometries = data.type === 'FeatureCollection'
+      ? (data.features || []).map((f) => f && f.geometry).filter(Boolean)
+      : data.type === 'Feature' ? [data.geometry] : [data];
+    const rings = [];
+    geometries.forEach((geometry) => {
+      if (!geometry) return;
+      if (geometry.type === 'Polygon') (geometry.coordinates || []).forEach((ring) => rings.push(ring));
+      if (geometry.type === 'MultiPolygon') (geometry.coordinates || []).forEach((polygon) => (polygon || []).forEach((ring) => rings.push(ring)));
+    });
+    return rings.filter((ring) => Array.isArray(ring) && ring.length > 2);
+  }
+  function renderBasinMap() {
+    const host = $('basin-map');
+    if (!host) return;
+    const rings = geoRings(state.basinGeometry);
+    if (!rings.length) {
+      host.innerHTML = '<div class="empty-block">Limite da bacia indisponível.</div>';
+      return;
+    }
+    const coords = rings.flat();
+    const lons = coords.map((p) => Number(p[0])).filter(Number.isFinite);
+    const lats = coords.map((p) => Number(p[1])).filter(Number.isFinite);
+    if (!lons.length || !lats.length) {
+      host.innerHTML = '<div class="empty-block">Geometria da bacia sem coordenadas utilizáveis.</div>';
+      return;
+    }
+    const meanLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const cosLat = Math.cos(meanLat * Math.PI / 180);
+    const xs = lons.map((lon) => lon * cosLat);
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...lats), maxY = Math.max(...lats);
+    const width = 720, height = 390, pad = 24;
+    const project = (lon, lat) => {
+      const x = pad + ((lon * cosLat - minX) / Math.max(.000001, maxX - minX)) * (width - pad * 2);
+      const y = pad + ((maxY - lat) / Math.max(.000001, maxY - minY)) * (height - pad * 2);
+      return [x, y];
+    };
+    const paths = rings.map((ring) => {
+      const step = Math.max(1, Math.ceil(ring.length / 1200));
+      const pts = ring.filter((_, i) => i % step === 0 || i === ring.length - 1).map((p) => project(Number(p[0]), Number(p[1])));
+      return pts.length ? 'M' + pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('L') + 'Z' : '';
+    }).filter(Boolean).map((d) => `<path class="basin-shape" d="${d}"></path>`).join('');
+
+    const targets = ['santa', 'mucum'].map((key) => {
+      const weather = stationFeed(key).weather || {};
+      const point = weather.coordinates || {};
+      const lat = num(point.latitude), lon = num(point.longitude);
+      if (lat == null || lon == null) return null;
+      return { key, name: stations[key].label, code: stations[key].code, lat, lon, level: stationSnapshot(key).level };
+    }).filter(Boolean);
+    const targetCodes = new Set(targets.map((p) => p.code));
+    const upstream = [];
+    ['santa', 'mucum'].forEach((key) => {
+      const rows = Array.isArray(stationFeed(key).live && stationFeed(key).live.estacoes_status) ? stationFeed(key).live.estacoes_status : [];
+      rows.forEach((row) => {
+        const lat = num(row.latitude), lon = num(row.longitude), code = String(row.estacao || '');
+        if (lat == null || lon == null || targetCodes.has(code)) return;
+        if (upstream.some((p) => p.code === code)) return;
+        upstream.push({ code, name: row.nome || code, lat, lon, level: num(row.ultima_hora_modelo_nivel_cm) });
+      });
+    });
+    const upstreamSvg = upstream.map((p) => {
+      const [x, y] = project(p.lon, p.lat);
+      const title = `${p.name} · ${p.level == null ? 'nível não publicado' : fmt(p.level, 0) + ' cm'}`;
+      return `<circle class="upstream-point" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.2"><title>${esc(title)}</title></circle>`;
+    }).join('');
+    const targetSvg = targets.map((p) => {
+      const [x, y] = project(p.lon, p.lat);
+      const anchor = p.key === 'mucum' ? 'end' : 'start';
+      const dx = p.key === 'mucum' ? -9 : 9;
+      return `<g><circle class="target-point ${p.key}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6.5"><title>${esc(p.name)} · ${p.level == null ? 'nível —' : fmt(p.level, 0) + ' cm'}</title></circle><text class="map-label" x="${(x + dx).toFixed(1)}" y="${(y - 9).toFixed(1)}" text-anchor="${anchor}">${esc(p.name)}</text></g>`;
+    }).join('');
+    host.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Limite de referência da bacia Taquari–Antas, estações alvo e pontos a montante com coordenadas publicadas">${paths}${upstreamSvg}${targetSvg}</svg><div class="basin-map-legend"><span><i class="santa"></i>Santa Tereza</span><span><i class="mucum"></i>Muçum</span><span><i></i>montante com coordenadas no feed</span></div>`;
+  }
+  function renderNowOverview() {
+    renderNowStations();
+    renderBasinMap();
+  }
+
   function renderResearchSources(registry) {
     const sources = registry && Array.isArray(registry.sources) ? registry.sources : [];
     if (!sources.length) return '<div class="empty-block">O registro de fontes ainda não foi publicado.</div>';
@@ -252,6 +390,13 @@
     const h = state.horizon;
     grid.innerHTML = keys.map((key) => {
       const item = researchStation(key) || {}; const row = researchRow(key, h) || {}; const rain = row.rain || {}; const head = rain.headwater || {}; const risk = row.risk || {}; const current = item.current || {};
+      const directKey = key === 'santa_tereza' ? 'santa' : 'mucum';
+      const directSnap = stationSnapshot(directKey, h);
+      const currentLevel = directSnap.level != null ? directSnap.level : current.level_cm;
+      const currentAt = directSnap.levelAt || current.observed_at_utc;
+      const currentState = directSnap.level != null
+        ? (directSnap.observedAge == null || directSnap.observedAge <= 1.5 ? 'fresh' : directSnap.observedAge <= 3 ? 'attention' : 'stale')
+        : current.state;
       // The integrated research feed is a reproducible snapshot, but the
       // station JSON is the direct owner of the current short-horizon robot.
       // Prefer the direct feed when it exists so this card cannot show an old
@@ -277,7 +422,7 @@
       return `<article class="research-context-card ${quality.status === 'DEGRADED' ? 'is-degraded' : ''}">
         <div class="research-context-card-head"><div><span class="research-station-kicker">${esc(labels[key] || key)}</span><h3>${esc(item.station_code || 'estação')}</h3></div><span class="research-quality ${quality.status === 'DEGRADED' ? 'warn' : ''}">${esc(quality.status || 'SEM STATUS')}</span></div>
         <div class="research-metrics">
-          ${researchMetric('Nível observado', current.level_cm == null ? '—' : `${fmt(current.level_cm, 0)} cm`, `${researchStateLabel(current.state)} · ${when(current.observed_at_utc)}`, 'observed')}
+          ${researchMetric('Nível observado', currentLevel == null ? '—' : `${fmt(currentLevel, 0)} cm`, `${researchStateLabel(currentState)} · ${when(currentAt)} · feed direto quando disponível`, 'observed')}
           ${researchMetric('Pontos a montante · proxy', headValue, headNote, head.status === 'shared_santa_reference' ? 'proxy' : 'forecast')}
           ${researchMetric('Chuva no ponto', point, `acumulado previsto · +${h} h`, 'forecast')}
           ${researchMetric('Cruzamento da cota', prob, probNote, 'risk')}
@@ -304,8 +449,11 @@
       const a = stationSnapshot('santa', hours); const b = stationSnapshot('mucum', hours);
       const ar = displayRain(a); const br = displayRain(b);
       answerTitle.textContent = `Na bacia, os modelos não contam uma história única em +${hours} h`;
-      const riskNote = ((a.risk == null || b.risk == null) && (a.archivedRisk != null || b.archivedRisk != null)) ? ' Os scores antigos foram ocultados porque estão atrasados; permanecem nos JSONs para auditoria.' : '';
-      answerText.textContent = `Santa Tereza: ${fmt(ar.value, 2)} mm (${ar.label}); Muçum: ${fmt(br.value, 2)} mm (${br.label}). As estimativas experimentais utilizáveis de cruzar a cota são ${pct(a.risk)} e ${pct(b.risk)}, respectivamente. Não há probabilidade conjunta publicada.${riskNote}`;
+      const usableScores = [a, b].filter((s) => s.risk != null);
+      const riskNote = usableScores.length
+        ? ` Scores experimentais atuais utilizáveis: ${usableScores.map((s) => `${s.station.label} ${pct(s.risk)}`).join(' · ')}.`
+        : ' Nenhum score experimental atual está utilizável; valores antigos permanecem apenas nos JSONs para auditoria.';
+      answerText.textContent = `Santa Tereza: ${fmt(ar.value, 2)} mm (${ar.label}); Muçum: ${fmt(br.value, 2)} mm (${br.label}).${riskNote} Não há probabilidade conjunta publicada.`;
       answerState.textContent = 'COMPARAÇÃO'; answerState.className = 'answer-state warn';
       return;
     }
@@ -572,7 +720,7 @@
     $('control-status').textContent = `${keys.map((key) => { const s = stationSnapshot(key, state.horizon); return `${stations[key].label}: feed ${ageLabel(s.forecastAge)} · observação ${ageLabel(s.observedAge)}`; }).join(' · ')} · horário em BRT${loaded}`;
   }
   function render() {
-    renderAnswer(); renderLayers(); renderResearchContext(); renderKpis(); renderStationComparison(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
+    renderNowOverview(); renderAnswer(); renderLayers(); renderResearchContext(); renderKpis(); renderStationComparison(); renderZones(); renderModels(); renderEvents(); renderEvaluation(); renderProvenance(); renderStatus();
   }
 
   async function loadJson(url) {
@@ -589,16 +737,27 @@
     return loadJson(url);
   }
   async function loadFeeds() {
+    if (state.loading) return;
+    state.loading = true;
     const pairs = Object.entries(stations);
-    await Promise.all(pairs.map(async ([key, cfg]) => {
-      const [pattern, weather, live] = await Promise.all([loadJson(cfg.pattern), loadJson(cfg.weather), loadLive(cfg.live)]);
-      state.feeds[key] = { pattern, weather, live };
-    }));
-    state.research = await loadJson(researchUrl);
-    state.lastLoadedAt = new Date().toISOString();
-    const available = pairs.filter(([key]) => stationFeed(key).pattern || stationFeed(key).weather).length;
-    $('control-status').textContent = available ? `Feeds publicados carregados às ${when(state.lastLoadedAt)} · escolha local e horizonte` : 'Feeds indisponíveis no momento · tente atualizar a página';
-    render();
+    try {
+      await Promise.all(pairs.map(async ([key, cfg]) => {
+        const [pattern, weather, live] = await Promise.all([loadJson(cfg.pattern), loadJson(cfg.weather), loadLive(cfg.live)]);
+        state.feeds[key] = { pattern, weather, live };
+      }));
+      const [research, basin] = await Promise.all([
+        loadJson(researchUrl),
+        state.basinGeometry ? Promise.resolve(state.basinGeometry) : loadJson(basinUrl)
+      ]);
+      state.research = research;
+      state.basinGeometry = basin;
+      state.lastLoadedAt = new Date().toISOString();
+      const available = pairs.filter(([key]) => stationFeed(key).pattern || stationFeed(key).weather || stationFeed(key).live).length;
+      $('control-status').textContent = available ? `Feeds carregados às ${when(state.lastLoadedAt)} · atualização automática a cada 5 min` : 'Feeds indisponíveis no momento · tente atualizar a página';
+      render();
+    } finally {
+      state.loading = false;
+    }
   }
 
   const refresh = $('refresh-feeds');
@@ -632,4 +791,7 @@
     });
   });
   loadFeeds();
+  window.setInterval(() => {
+    if (document.visibilityState === 'visible') loadFeeds();
+  }, AUTO_REFRESH_MS);
 })();
