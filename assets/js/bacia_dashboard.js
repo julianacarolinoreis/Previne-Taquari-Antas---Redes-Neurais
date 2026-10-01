@@ -1020,6 +1020,27 @@
   function renderEvents() {
     const events = allEvents();
     $('timeline-note').textContent = events.length ? `${events.length} picos no recorte visual · Santa Tereza usa 5 eventos no cartão de validação` : 'Sem eventos publicados';
+    const summaryHost = $('event-summary');
+    if (summaryHost) {
+      const withPeak = events.filter((e) => num(e.peak_cm) != null);
+      const withRain24 = events.filter((e) => num(e.rain_24h_mm) != null);
+      const withRain72 = events.filter((e) => num(e.rain_72h_mm) != null);
+      const withRise = events.filter((e) => num(e.max_hourly_rise_cm_h) != null);
+      const best = (rows, key) => rows.length ? rows.reduce((a, b) => Number(b[key]) > Number(a[key]) ? b : a) : null;
+      const peakEvent = best(withPeak, 'peak_cm');
+      const rain24Event = best(withRain24, 'rain_24h_mm');
+      const rain72Event = best(withRain72, 'rain_72h_mm');
+      const riseEvent = best(withRise, 'max_hourly_rise_cm_h');
+      const summaryItems = [
+        peakEvent ? ['Maior pico', `${fmt(peakEvent.peak_cm, 0)} cm`, `${peakEvent.sourceLabel} · ${shortDate(peakEvent.date)}`] : null,
+        rain24Event ? ['Maior chuva local 24 h', `${fmt(rain24Event.rain_24h_mm, 1)} mm`, `${rain24Event.sourceLabel} · ${shortDate(rain24Event.date)}`] : null,
+        rain72Event ? ['Maior chuva local 72 h', `${fmt(rain72Event.rain_72h_mm, 1)} mm`, `${rain72Event.sourceLabel} · ${shortDate(rain72Event.date)}`] : null,
+        riseEvent ? ['Subida mais rápida publicada', `${fmt(riseEvent.max_hourly_rise_cm_h, 0)} cm/h`, `${riseEvent.sourceLabel} · ${shortDate(riseEvent.date)}`] : null
+      ].filter(Boolean);
+      summaryHost.innerHTML = summaryItems.length
+        ? summaryItems.map((item) => `<div class="event-summary-item"><span>${esc(item[0])}</span><strong>${esc(item[1])}</strong><small>${esc(item[2])}</small></div>`).join('')
+        : '';
+    }
     $('event-timeline').innerHTML = events.length ? events.map((e) => {
       const confirmed = /confirm|cota de pesquisa|acima da cota/i.test(String(e.status || ''));
       const metrics = [];
