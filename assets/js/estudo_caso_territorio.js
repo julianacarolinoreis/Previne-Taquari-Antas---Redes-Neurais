@@ -1302,24 +1302,30 @@
     return Math.abs(num(p.rna_cm) - num(p.observed_cm));
   }
 
-  function rain24ForComparison(caso) {
+  function rainForComparison(caso, hours) {
     var raw = caso && caso.raw_event_telemetry;
     if (!raw) return { value: null, label: 'sem dado', note: '' };
-    if (num(raw.rain_24h_before_raw_peak_mm) != null) {
+    var localKey = 'rain_' + hours + 'h_before_raw_peak_mm';
+    var proxyKey = 'proxy_rain_' + hours + 'h_before_replay_peak_mm';
+    if (num(raw[localKey]) != null) {
       return {
-        value: num(raw.rain_24h_before_raw_peak_mm),
+        value: num(raw[localKey]),
         label: 'local 86472600',
-        note: '24 h antes do pico bruto auditado'
+        note: hours + ' h antes do pico bruto auditado'
       };
     }
-    if (num(raw.proxy_rain_24h_before_replay_peak_mm) != null) {
+    if (num(raw[proxyKey]) != null) {
       return {
-        value: num(raw.proxy_rain_24h_before_replay_peak_mm),
+        value: num(raw[proxyKey]),
         label: 'proxy 86510000',
         note: 'proxy jusante; não é chuva local'
       };
     }
     return { value: null, label: 'sem dado', note: raw.note || '' };
+  }
+
+  function rain24ForComparison(caso) {
+    return rainForComparison(caso, 24);
   }
 
   function renderComparisonBars(cases) {
@@ -1403,11 +1409,30 @@
       }) +
       row('Maior taxa horária observada', function (c) {
         var d = c.dynamics || {};
-        return cell('<strong>' + esc(fmtOne(d.max_hourly_rise_cm_h, ' cm/h')) + '</strong>', d.max_hourly_rise_at ? fmtCaseTime(d.max_hourly_rise_at) : '');
+        var note = d.max_hourly_rise_at ? fmtCaseTime(d.max_hourly_rise_at) : '';
+        if (d.note) note += (note ? ' · ' : '') + d.note;
+        return cell('<strong>' + esc(fmtOne(d.max_hourly_rise_cm_h, ' cm/h')) + '</strong>', note);
       }) +
       row('Chuva antecedente 24 h', function (c) {
-        var r = rain24ForComparison(c);
+        var r = rainForComparison(c, 24);
         return cell('<strong>' + esc(r.value == null ? '—' : fmtOne(r.value, ' mm')) + '</strong>', r.label + (r.note ? ' · ' + r.note : ''));
+      }) +
+      row('Chuva antecedente 48 h', function (c) {
+        var r = rainForComparison(c, 48);
+        return cell('<strong>' + esc(r.value == null ? '—' : fmtOne(r.value, ' mm')) + '</strong>', r.value == null ? 'sem janela local comparável no pacote' : r.label);
+      }) +
+      row('Chuva antecedente 72 h', function (c) {
+        var r = rainForComparison(c, 72);
+        var raw = c.raw_event_telemetry || {};
+        var cov = num(raw.rain_72h_coverage_pct);
+        var note = r.value == null ? 'sem janela local comparável no pacote' : r.label;
+        if (cov != null) note += ' · cobertura ' + fmtOne(cov, ' %');
+        return cell('<strong>' + esc(r.value == null ? '—' : fmtOne(r.value, ' mm')) + '</strong>', note);
+      }) +
+      row('Chuva acumulada na janela auditada do evento', function (c) {
+        var raw = c.raw_event_telemetry || {};
+        return cell('<strong>' + esc(num(raw.event_rain_sum_mm) == null ? '—' : fmtOne(raw.event_rain_sum_mm, ' mm')) + '</strong>',
+          num(raw.event_rain_sum_mm) == null ? 'sem chuva local 86472600 nesta janela' : 'soma da telemetria local no recorte auditado');
       }) +
       row('Máximo na telemetria bruta do evento', function (c) {
         var raw = c.raw_event_telemetry || {};
@@ -1448,7 +1473,10 @@
         var d = c.dynamics || {};
         var rain = rain24ForComparison(c);
         var raw = c.raw_event_telemetry || {};
-        var foot = raw.note || (rain.note ? rain.note : 'Replay histórico auditável.');
+        var footParts = [];
+        if (rain.label) footParts.push('Chuva: ' + rain.label + (rain.note ? ' · ' + rain.note : ''));
+        if (raw.note) footParts.push(raw.note);
+        var foot = footParts.join(' ') || 'Replay histórico auditável.';
         return '<article class="comparison-event-card">' +
           '<div class="event-name"><h3>' + esc(c.short || c.label) + '</h3><span class="role-chip">' + esc(c.dataset_role || 'replay') + '</span></div>' +
           '<div class="event-card-metrics">' +
