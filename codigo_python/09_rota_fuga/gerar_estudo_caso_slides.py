@@ -37,6 +37,7 @@ RF = RAIZ / "assets" / "data" / "rota_fuga" / "rota_fuga_ruas_mucum_cenario.json
 CONTORNOS = RAIZ / "assets" / "data" / "mucum_inundacao" / "contornos_mancha.json"
 PREVISAO = RAIZ / "mucum_previsao_inundacao.html"
 SAIDA_HTML = RAIZ / "mucum_estudo_caso_slides.html"
+SAIDA_PESQUISAS = RAIZ / "pesquisas" / "mucum-estudo-caso-slides.html"
 OUT = RAIZ / "outputs"
 COPY = Path(r"D:\PREVINE\repo_site_stz4h_pro_20260812\outputs")
 ZERO_REGUA = 5.0
@@ -706,8 +707,12 @@ def main():
         "casas": casas,
         "serie": serie,
     }
-    SAIDA_HTML.write_text(build_html(doc), encoding="utf-8")
+    html = build_html(doc)
+    SAIDA_HTML.write_text(html, encoding="utf-8")
+    SAIDA_PESQUISAS.parent.mkdir(parents=True, exist_ok=True)
+    SAIDA_PESQUISAS.write_text(html, encoding="utf-8")
     print("->", SAIDA_HTML)
+    print("->", SAIDA_PESQUISAS)
     fila_path = RAIZ / "assets" / "data" / "rota_fuga" / "fila_evacuacao_mucum.json"
     fila_path.parent.mkdir(parents=True, exist_ok=True)
     fila_path.write_text(json.dumps({
