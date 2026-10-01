@@ -309,8 +309,9 @@
   function networkLevelInfo(item) {
     const level = item && item.level && typeof item.level === 'object' ? item.level : {};
     const cm = num(level.current_cm);
-    const plausible = cm != null && cm >= 0 && cm <= 5000;
-    return { level, cm, plausible, metres: plausible ? cm / 100 : null };
+    const rawCm = num(level.raw_current_cm);
+    const plausible = cm != null && cm >= 0 && cm <= 5000 && level.measurement_classification !== 'cota_or_incompatible_scale';
+    return { level, cm, rawCm, plausible, metres: plausible ? cm / 100 : null };
   }
   function networkObservation(item) {
     const dated = [];
@@ -449,10 +450,12 @@
     const rain = item.observed_rain || {};
     const cemaden = networkCemadenRain(item);
     const sources = (item.source_networks || []).join(' · ') || item.network || 'fonte não informada';
-    const levelValue = levelInfo.cm == null ? '—' : levelInfo.plausible ? fmt(levelInfo.metres, 2) + ' m' : 'não exibido';
-    const levelNote = levelInfo.cm == null ? 'nível observado indisponível' :
-      levelInfo.plausible ? fmt(levelInfo.cm, 0) + ' cm · ' + (level.observed_at_utc ? when(level.observed_at_utc) + ' BRT' : 'sem horário') :
-      'valor recebido ' + fmt(levelInfo.cm / 100, 2) + ' m classificado como cota/escala incompatível; não exibido como nível do rio';
+    const levelValue = levelInfo.plausible ? fmt(levelInfo.metres, 2) + ' m' : levelInfo.rawCm != null ? 'não exibido' : '—';
+    const levelNote = levelInfo.plausible
+      ? fmt(levelInfo.cm, 0) + ' cm · ' + (level.observed_at_utc ? when(level.observed_at_utc) + ' BRT' : 'sem horário')
+      : levelInfo.rawCm != null
+        ? 'valor bruto ' + fmt(levelInfo.rawCm / 100, 2) + ' m separado como cota/escala incompatível; não usado como nível do rio'
+        : 'nível observado indisponível';
     const flowValue = flow ? fmt(flow.value, 2) + ' ' + (flow.unit || 'm³/s') : '—';
     const flowNote = flow ? (flow.source || 'fonte') + ' · ' + (flow.updated_at_utc ? when(flow.updated_at_utc) + ' BRT' : 'sem horário') : 'vazão não publicada neste feed';
     const lastObserved = observed.status === 'none' ? 'nenhuma observação válida' : observed.status === 'no-time' ? 'observação sem hora individual' : when(observed.latestAt) + ' BRT · ' + ageLabel(observed.ageHours);
