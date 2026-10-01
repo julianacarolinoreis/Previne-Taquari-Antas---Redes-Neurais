@@ -1175,10 +1175,10 @@
       return '<polyline class="rna-line" points="' + pts.join(' ') + '"></polyline>';
     }).join('');
 
-    var mid = new Date((t0 + t1) / 2);
+    var midRow = rows[Math.floor(rows.length / 2)];
     var labels =
       '<text class="axis-text" x="' + P.l + '" y="' + (H - 10) + '" text-anchor="start">' + esc(fmtCaseTime(rows[0].rawT)) + '</text>' +
-      '<text class="axis-text" x="' + (P.l + iw / 2).toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle">' + esc(fmtCaseTime(mid.toISOString().slice(0,16).replace('T',' '))) + '</text>' +
+      '<text class="axis-text" x="' + (P.l + iw / 2).toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle">' + esc(fmtCaseTime(midRow.rawT)) + '</text>' +
       '<text class="axis-text" x="' + (W - P.r) + '" y="' + (H - 10) + '" text-anchor="end">' + esc(fmtCaseTime(rows[rows.length - 1].rawT)) + '</text>' +
       '<text class="axis-text" x="12" y="15">cm</text>';
 
@@ -1232,9 +1232,9 @@
     if ($('event-role')) $('event-role').textContent = role;
     if ($('event-horizon')) $('event-horizon').textContent = 'Horizonte ' + horizon;
     if ($('event-period')) {
-      var p = rna.period || {};
-      $('event-period').textContent = p.start && p.end
-        ? (fmtCaseTime(p.start) + ' → ' + fmtCaseTime(p.end))
+      var shown = eventSeriesStats(rna.series).rows;
+      $('event-period').textContent = shown.length
+        ? ('série exibida · ' + fmtCaseTime(shown[0].rawT) + ' → ' + fmtCaseTime(shown[shown.length - 1].rawT))
         : 'período do replay';
     }
 
@@ -1352,25 +1352,26 @@
       var n = num(now);
       var f = num(fore);
       var b = num(bank);
+      var replayMode = !!(caso && caso.mode === 'coupled');
       var line;
       var tone = 'idle';
-      var threatTxt = 'SEM LEITURA';
+      var threatTxt = replayMode ? 'REPLAY' : 'SEM LEITURA';
       if (n == null || f == null) {
-        line = 'Sem altura do rio neste momento.';
+        line = replayMode ? 'Replay sem leitura suficiente neste instante.' : 'Sem altura do rio neste momento.';
       } else if (f > n + 5) {
-        line = 'Rio sobe ' + Math.round(f - n) + ' cm em ' + hz + '.';
+        line = (replayMode ? 'No replay, a RNA indica subida de ' : 'Rio sobe ') + Math.round(f - n) + ' cm em ' + hz + '.';
         tone = 'up';
-        threatTxt = 'RIO SOBE';
+        threatTxt = replayMode ? 'REPLAY · SUBIDA' : 'RIO SOBE';
       } else if (f < n - 5) {
-        line = 'Rio desce ' + Math.round(n - f) + ' cm em ' + hz + '.';
+        line = (replayMode ? 'No replay, a RNA indica descida de ' : 'Rio desce ') + Math.round(n - f) + ' cm em ' + hz + '.';
         tone = 'down';
-        threatTxt = 'RIO DESCE';
+        threatTxt = replayMode ? 'REPLAY · DESCIDA' : 'RIO DESCE';
       } else {
-        line = 'Rio estável em ' + hz + '.';
+        line = replayMode ? ('No replay, a RNA fica estável em ' + hz + '.') : ('Rio estável em ' + hz + '.');
         tone = 'flat';
-        threatTxt = 'RIO ESTÁVEL';
+        threatTxt = replayMode ? 'REPLAY · ESTÁVEL' : 'RIO ESTÁVEL';
       }
-      if (b != null && f != null) {
+      if (!replayMode && b != null && f != null) {
         if (f >= b) {
           line += ' Acima da referência.';
           if (tone === 'up') {
@@ -1392,6 +1393,8 @@
         threat.setAttribute('data-tone', tone);
       }
     }
+    var nowLabel = document.querySelector('.rna-hours > div:nth-child(1) > span');
+    if (nowLabel) nowLabel.textContent = (caso && caso.mode === 'coupled') ? 'Instante base' : 'Agora';
     var prevLabel = document.querySelector('.rna-hours > div:nth-child(2) > span');
     if (prevLabel) prevLabel.textContent = (caso && caso.mode === 'coupled') ? hz : '+2 horas';
     renderGauge(now, fore, bank, hz);
