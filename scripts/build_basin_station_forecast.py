@@ -113,6 +113,7 @@ BATCH_SIZE = 100
 BATCH_PAUSE_SECONDS = 15.0
 REFRESH_INTERVAL_MINUTES = 5
 LEVEL_OBSERVED_HOURS = 72
+MAX_PLAUSIBLE_RIVER_LEVEL_CM = 5000
 # Live RNA products are currently published only for the two response targets.
 # Other river stations may have observed level but no RNA product by design.
 RNA_LEVEL_STATIONS = {"86472600", "86510000"}
@@ -734,6 +735,29 @@ def load_level_snapshots(paths: tuple[Path, ...] = LIVE_FEEDS) -> dict[str, dict
     return result
 
 
+
+def normalize_level_measurement(level: dict[str, Any]) -> dict[str, Any]:
+    """Separate river stage from values that are clearly another vertical datum."""
+
+    raw = finite(level.get("current_cm"))
+    if raw is None:
+        level["measurement_classification"] = "unavailable"
+        return level
+    if 0 <= raw <= MAX_PLAUSIBLE_RIVER_LEVEL_CM:
+        level["measurement_classification"] = "river_stage"
+        return level
+
+    level["raw_current_cm"] = raw
+    level["current_cm"] = None
+    level["state"] = "suspect_scale"
+    level["measurement_classification"] = "cota_or_incompatible_scale"
+    level["quality"] = "SUSPECT_SCALE"
+    level["message"] = (
+        f"Valor bruto {raw / 100:.2f} m preservado para auditoria, "
+        "mas excluído do nível hidrométrico por escala/cota incompatível."
+    )
+    return level
+
 def build_open_meteo_url(stations: list[dict[str, Any]]) -> str:
     params = {
         "latitude": ",".join(str(item["latitude"]) for item in stations),
@@ -998,9 +1022,11 @@ def build_feed(
                 "message": "Não há coluna observada publicada para esta estação.",
             },
         )
-        item["level"] = _decorate_level_snapshot(
-            levels.get(item["code"], _unavailable_level(item["code"])),
-            now=now,
+        item["level"] = normalize_level_measurement(
+            _decorate_level_snapshot(
+                levels.get(item["code"], _unavailable_level(item["code"])),
+                now=now,
+            )
         )
         item["forecast"] = _unavailable_forecast("Aguardando a rodada meteorológica.")
 
@@ -1384,6 +1410,8 @@ def _compact_station_status(
         "level": {
             "state": level.get("state"),
             "current_cm": finite(level.get("current_cm")),
+            "raw_current_cm": finite(level.get("raw_current_cm")),
+            "measurement_classification": level.get("measurement_classification"),
             "observed_at_utc": level.get("observed_at_utc"),
             "observed_age_minutes": finite(level.get("observed_age_minutes")),
             "forecast_applicable": bool(level.get("forecast_applicable")),
