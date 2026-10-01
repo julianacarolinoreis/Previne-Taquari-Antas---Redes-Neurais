@@ -1067,7 +1067,222 @@
     });
   }
 
-  function renderGauge(now, fore, bank) {
+  function caseTime(value) {
+    if (!value) return null;
+    var d = new Date(String(value).replace(' ', 'T'));
+    return Number.isFinite(d.getTime()) ? d : null;
+  }
+
+  function fmtCaseTime(value) {
+    var d = caseTime(value);
+    if (!d) return value || '—';
+    var dd = String(d.getDate()).padStart(2, '0');
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var hh = String(d.getHours()).padStart(2, '0');
+    var mi = String(d.getMinutes()).padStart(2, '0');
+    return dd + '/' + mm + ' ' + hh + ':' + mi;
+  }
+
+  function eventSeriesStats(series) {
+    var rows = (series || []).map(function (r) {
+      return {
+        t: caseTime(r.t),
+        rawT: r.t,
+        obs: num(r.obs_cm),
+        rna: num(r.rna_cm)
+      };
+    }).filter(function (r) { return r.t && (r.obs != null || r.rna != null); })
+      .sort(function (a, b) { return a.t - b.t; });
+    var maxGapH = 0;
+    for (var i = 1; i < rows.length; i++) {
+      var gap = (rows[i].t - rows[i - 1].t) / 3600000;
+      if (gap > maxGapH) maxGapH = gap;
+    }
+    return { rows: rows, maxGapH: maxGapH };
+  }
+
+  function eventPolylineSegments(rows, key, xOf, yOf) {
+    var segments = [];
+    var current = [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (r[key] == null) {
+        if (current.length > 1) segments.push(current);
+        current = [];
+        continue;
+      }
+      if (current.length) {
+        var prev = rows[i - 1];
+        var gapH = prev && prev.t ? (r.t - prev.t) / 3600000 : 0;
+        if (gapH > 3) {
+          if (current.length > 1) segments.push(current);
+          current = [];
+        }
+      }
+      current.push(xOf(r.t) + ',' + yOf(r[key]));
+    }
+    if (current.length > 1) segments.push(current);
+    return segments;
+  }
+
+  function renderEventHydrograph(caso) {
+    var host = $('event-hydrograph');
+    var gapEl = $('event-gap');
+    if (!host || !caso || !caso.rna) return;
+    var stats = eventSeriesStats(caso.rna.series);
+    var rows = stats.rows;
+    if (rows.length < 2) {
+      host.innerHTML = '<div class="empty">Série horária não disponível neste pacote.</div>';
+      if (gapEl) gapEl.hidden = true;
+      return;
+    }
+
+    var values = [];
+    rows.forEach(function (r) {
+      if (r.obs != null) values.push(r.obs);
+      if (r.rna != null) values.push(r.rna);
+    });
+    var minV = Math.min.apply(null, values);
+    var maxV = Math.max.apply(null, values);
+    var span = Math.max(50, maxV - minV);
+    var yMin = Math.max(0, minV - span * 0.08);
+    var yMax = maxV + span * 0.08;
+    var t0 = rows[0].t.getTime();
+    var t1 = rows[rows.length - 1].t.getTime();
+    if (t1 <= t0) t1 = t0 + 3600000;
+
+    var W = 760, H = 250;
+    var P = { l: 58, r: 18, t: 16, b: 38 };
+    var iw = W - P.l - P.r;
+    var ih = H - P.t - P.b;
+    function xOf(t) { return (P.l + ((t.getTime() - t0) / (t1 - t0)) * iw).toFixed(1); }
+    function yOf(v) { return (P.t + (1 - (v - yMin) / (yMax - yMin)) * ih).toFixed(1); }
+
+    var grid = '';
+    for (var g = 0; g <= 4; g++) {
+      var yy = P.t + (g / 4) * ih;
+      var val = yMax - (g / 4) * (yMax - yMin);
+      grid += '<line class="grid" x1="' + P.l + '" y1="' + yy.toFixed(1) + '" x2="' + (W - P.r) + '" y2="' + yy.toFixed(1) + '"></line>' +
+        '<text class="axis-text" x="' + (P.l - 8) + '" y="' + (yy + 4).toFixed(1) + '" text-anchor="end">' +
+        esc(Math.round(val).toLocaleString('pt-BR')) + '</text>';
+    }
+
+    var obsSegs = eventPolylineSegments(rows, 'obs', xOf, yOf);
+    var rnaSegs = eventPolylineSegments(rows, 'rna', xOf, yOf);
+    var lines = obsSegs.map(function (pts) {
+      return '<polyline class="obs-line" points="' + pts.join(' ') + '"></polyline>';
+    }).join('') + rnaSegs.map(function (pts) {
+      return '<polyline class="rna-line" points="' + pts.join(' ') + '"></polyline>';
+    }).join('');
+
+    var mid = new Date((t0 + t1) / 2);
+    var labels =
+      '<text class="axis-text" x="' + P.l + '" y="' + (H - 10) + '" text-anchor="start">' + esc(fmtCaseTime(rows[0].rawT)) + '</text>' +
+      '<text class="axis-text" x="' + (P.l + iw / 2).toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle">' + esc(fmtCaseTime(mid.toISOString().slice(0,16).replace('T',' '))) + '</text>' +
+      '<text class="axis-text" x="' + (W - P.r) + '" y="' + (H - 10) + '" text-anchor="end">' + esc(fmtCaseTime(rows[rows.length - 1].rawT)) + '</text>' +
+      '<text class="axis-text" x="12" y="15">cm</text>';
+
+    var decision = '';
+    var fr = caso.rna.decision_frame;
+    if (fr && fr.t) {
+      var dt = caseTime(fr.t);
+      if (dt && dt.getTime() >= t0 && dt.getTime() <= t1) {
+        var dx = xOf(dt);
+        decision = '<line class="decision-line" x1="' + dx + '" y1="' + P.t + '" x2="' + dx + '" y2="' + (H - P.b) + '"></line>';
+        if (num(fr.now_obs_cm) != null) {
+          decision += '<circle class="decision-dot" cx="' + dx + '" cy="' + yOf(fr.now_obs_cm) + '" r="4"></circle>';
+        }
+      }
+    }
+
+    host.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">' +
+      grid + lines + decision + labels + '</svg>';
+
+    if (gapEl) {
+      if (stats.maxGapH > 3.01) {
+        gapEl.hidden = false;
+        gapEl.textContent = 'Lacuna preservada na série: intervalo máximo de ' +
+          Math.round(stats.maxGapH) + ' h sem ligar os pontos artificialmente.';
+      } else {
+        gapEl.hidden = true;
+        gapEl.textContent = '';
+      }
+    }
+  }
+
+  function renderEventEvidence(bundle) {
+    var wrap = $('event-evidence');
+    if (!wrap) return;
+    var caso = currentCase();
+    if (!caso || caso.mode !== 'coupled' || !caso.rna) {
+      wrap.hidden = true;
+      return;
+    }
+    wrap.hidden = false;
+    var rna = caso.rna;
+    var peak = rna.peak || {};
+    var fr = rna.decision_frame || {};
+    var horizon = fr.horizon_label || ('+' + (rna.horizon_h || 2) + ' h');
+    var role = caso.dataset_role ? ('Amostra: ' + caso.dataset_role) : 'Replay histórico';
+
+    if ($('event-title')) $('event-title').textContent = caso.label || caso.short || 'Replay histórico';
+    if ($('event-summary')) $('event-summary').textContent =
+      (caso.summary || caso.one_liner || '') +
+      ' A curva abaixo mantém régua/RNA em centímetros e o cenário espacial HAND separado.';
+    if ($('event-role')) $('event-role').textContent = role;
+    if ($('event-horizon')) $('event-horizon').textContent = 'Horizonte ' + horizon;
+    if ($('event-period')) {
+      var p = rna.period || {};
+      $('event-period').textContent = p.start && p.end
+        ? (fmtCaseTime(p.start) + ' → ' + fmtCaseTime(p.end))
+        : 'período do replay';
+    }
+
+    var peakErr = num(peak.observed_cm) != null && num(peak.rna_cm) != null
+      ? Math.abs(num(peak.rna_cm) - num(peak.observed_cm)) : null;
+    var lag = num(peak.lag_h);
+    var metrics = [
+      ['Pico observado', fmtCm(peak.observed_cm)],
+      ['Pico RNA', fmtCm(peak.rna_cm)],
+      ['Erro no pico', peakErr != null ? Math.round(peakErr).toLocaleString('pt-BR') + ' cm' : '—'],
+      ['MAE do recorte', num(peak.mae_cm) != null ? Number(peak.mae_cm).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' cm' : '—'],
+      ['Defasagem do pico', lag != null ? Number(lag).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' h' : '—'],
+      ['Cenário espacial', caso.hand_m != null ? 'HAND ' + caso.hand_m + ' m' : '—']
+    ];
+    if ($('event-metrics')) {
+      $('event-metrics').innerHTML = metrics.map(function (m) {
+        return '<div class="event-metric"><span>' + esc(m[0]) + '</span><b>' + esc(m[1]) + '</b></div>';
+      }).join('');
+    }
+
+    var reading = '';
+    if (fr.t && num(fr.now_obs_cm) != null && num(fr.plus_2h_rna_cm) != null) {
+      reading = 'Em ' + fmtCaseTime(fr.t) + ', o nível observado era ' + fmtCm(fr.now_obs_cm) +
+        '. Para ' + horizon + ', a RNA indicou ' + fmtCm(fr.plus_2h_rna_cm) + '.';
+      if (num(fr.plus_2h_obs_cm) != null) {
+        var err = Math.abs(num(fr.plus_2h_rna_cm) - num(fr.plus_2h_obs_cm));
+        reading += ' O observado nesse horizonte foi ' + fmtCm(fr.plus_2h_obs_cm) +
+          ', diferença de ' + Math.round(err).toLocaleString('pt-BR') + ' cm.';
+      }
+    } else {
+      reading = 'Replay histórico com série observada e resposta da RNA no mesmo eixo temporal.';
+    }
+    if ($('event-reading')) $('event-reading').textContent = reading;
+    if ($('event-caveat')) $('event-caveat').textContent =
+      'Importante: o HAND ' + (caso.hand_m != null ? caso.hand_m + ' m' : 'selecionado') +
+      ' é um cenário espacial de referência. Esta página não converte automaticamente centímetros da régua em cota HAND.';
+    if ($('event-provenance')) {
+      var source = rna.source || 'fonte do pacote';
+      var eid = rna.event_id || ('evento ' + (rna.catalog_event || ''));
+      $('event-provenance').textContent =
+        'Proveniência: ' + eid + ' · ' + source +
+        (caso.dataset_role ? ' · papel na modelagem: ' + caso.dataset_role : '') +
+        '. Uso de pesquisa; não é alerta nem ordem operacional.';
+    }
+    renderEventHydrograph(caso);
+  }
+
+  function renderGauge(now, fore, bank, horizonLabel) {
     var max = Math.max(bank || 0, now || 0, fore || 0, 1);
     function pct(v) {
       var n = num(v);
@@ -1086,7 +1301,7 @@
         deltaEl.textContent = 'Δ —';
       } else {
         var d = Math.round(fore - now);
-        deltaEl.textContent = 'Δ ' + (d > 0 ? '+' : '') + d + ' cm em +2 h';
+        deltaEl.textContent = 'Δ ' + (d > 0 ? '+' : '') + d + ' cm em ' + (horizonLabel || '+2 h');
       }
     }
     var prevVal = $('rna-prev');
@@ -1179,7 +1394,7 @@
     }
     var prevLabel = document.querySelector('.rna-hours > div:nth-child(2) > span');
     if (prevLabel) prevLabel.textContent = (caso && caso.mode === 'coupled') ? hz : '+2 horas';
-    renderGauge(now, fore, bank);
+    renderGauge(now, fore, bank, hz);
     renderLedger(bundle);
     setChain('rna');
   }
@@ -1520,7 +1735,14 @@
   function updateStoryCaption(step) {
     var el = $('story-caption');
     if (!el) return;
-    el.textContent = STORY_CAPTION[step] || '';
+    var text = STORY_CAPTION[step] || '';
+    if (step === 'rna') {
+      var caso = currentCase();
+      if (caso && caso.mode === 'coupled' && caso.rna) {
+        text = 'Régua e RNA no replay histórico · horizonte +' + (caso.rna.horizon_h || 2) + ' h';
+      }
+    }
+    el.textContent = text;
     el.setAttribute('data-step', step || '');
   }
 
@@ -1657,6 +1879,7 @@
     renderSiblingCards();
     renderLevels();
     renderRna(bundle);
+    renderEventEvidence(bundle);
     drawAll(bundle);
     renderSide(bundle);
     setModule(state.module || 'rio');
