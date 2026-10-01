@@ -522,8 +522,13 @@ class BasinStationForecastTests(unittest.TestCase):
         js = (feed.ROOT / "assets/js/bacia_dashboard.js").read_text(encoding="utf-8")
         self.assertIn('id="basin-network-summary"', html)
         self.assertIn('data-network-filter="no-current"', html)
+        self.assertIn('id="basin-upg-filter"', html)
+        self.assertIn('id="basin-upg-health"', html)
         self.assertIn("basin_station_status_latest.json", js)
         self.assertIn("state.networkFilter === 'no-current'", js)
+        self.assertIn("state.networkUpg", js)
+        self.assertIn("function renderUpgHealth()", js)
+        self.assertIn("RASTREABILIDADE DA ESTAÇÃO", js)
         self.assertIn("measurement_classification", js)
 
 
