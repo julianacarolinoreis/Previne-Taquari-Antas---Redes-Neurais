@@ -482,7 +482,7 @@
     state.layers.highlight = L.layerGroup().addTo(state.map);
     state.layers.rota = L.layerGroup().addTo(state.map);
     state.layers.marks = L.layerGroup().addTo(state.map);
-    state.layers.compare = L.layerGroup().addTo(state.map);
+    state.layers.compare = L.featureGroup().addTo(state.map);
     state.map.on('click', onMapClick);
     return state.map;
   }
