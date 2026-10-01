@@ -1123,52 +1123,164 @@
   }
   function renderEvents() {
     const events = allEvents();
-    $('timeline-note').textContent = events.length ? `${events.length} picos no recorte visual · Santa Tereza usa 5 eventos no cartão de validação` : 'Sem eventos publicados';
+    const summaryByStation = state.station === 'basin'
+      ? 'Santa Tereza + Muçum'
+      : stations[state.station] ? stations[state.station].label : 'recorte selecionado';
+    const cardCount = state.station === 'santa'
+      ? ((stationFeed('santa').pattern || {}).summary || {}).model_card_event_count
+      : null;
+    $('timeline-note').textContent = events.length
+      ? `${events.length} eventos no recorte · ${summaryByStation}${cardCount ? ` · ${cardCount} no cartão de validação` : ''}`
+      : 'Sem eventos publicados';
+
+    const statusLabel = (value) => {
+      const raw = String(value || '').trim();
+      if (/requires ANA\/SACE review/i.test(raw)) return 'requer revisão ANA/SACE';
+      if (/SACE crossing confirmed for research only/i.test(raw)) return 'cruzamento SACE confirmado · pesquisa';
+      if (/pico acima da cota de pesquisa/i.test(raw)) return 'pico acima da cota de pesquisa';
+      return raw || 'status não informado';
+    };
+    const soilLabel = (value) => {
+      const raw = String(value || '');
+      if (/saturation not demonstrated/i.test(raw)) return 'proxy de umidade; saturação não demonstrada';
+      if (/likely very wet/i.test(raw)) return 'proxy indica condição antecedente muito úmida';
+      if (/strong antecedent memory/i.test(raw)) return 'proxy indica forte memória antecedente';
+      if (/recent rain signal/i.test(raw)) return 'sinal recente de chuva; saturação desconhecida';
+      return raw;
+    };
+    const sourceLabel = (e) => {
+      if (e.rain_source_kind === 'local_station') return `chuva local auditada · ANA ${e.rain_station || ''}`;
+      if (e.rain_source_kind === 'downstream_proxy') return `proxy jusante · Muçum ${e.rain_station || '86510000'}`;
+      if (e.rain_source_kind === 'research_antecedent') return 'chuva antecedente · pacote de pesquisa';
+      return 'chuva antecedente não auditada neste feed';
+    };
+    const safeAssetPath = (value) => {
+      const raw = String(value || '').trim();
+      return /^(?:assets|pesquisas|docs)\/[A-Za-z0-9_.\/-]+$/.test(raw) ? raw : '';
+    };
+    const best = (rows, key) => rows.length
+      ? rows.reduce((a, b) => Number(b[key]) > Number(a[key]) ? b : a)
+      : null;
+
+    const withPeak = events.filter((e) => num(e.peak_cm) != null);
+    const withRain24 = events.filter((e) => num(e.rain_24h_mm) != null);
+    const withRain72 = events.filter((e) => num(e.rain_72h_mm) != null);
+    const withRise = events.filter((e) => num(e.max_hourly_rise_cm_h) != null);
+    const withApi = events.filter((e) => num(e.api_72h_mm) != null);
+    const peakEvent = best(withPeak, 'peak_cm');
+    const rain24Event = best(withRain24, 'rain_24h_mm');
+    const rain72Event = best(withRain72, 'rain_72h_mm');
+    const riseEvent = best(withRise, 'max_hourly_rise_cm_h');
+    const apiEvent = best(withApi, 'api_72h_mm');
+
     const summaryHost = $('event-summary');
     if (summaryHost) {
-      const withPeak = events.filter((e) => num(e.peak_cm) != null);
-      const withRain24 = events.filter((e) => num(e.rain_24h_mm) != null);
-      const withRain72 = events.filter((e) => num(e.rain_72h_mm) != null);
-      const withRise = events.filter((e) => num(e.max_hourly_rise_cm_h) != null);
-      const best = (rows, key) => rows.length ? rows.reduce((a, b) => Number(b[key]) > Number(a[key]) ? b : a) : null;
-      const peakEvent = best(withPeak, 'peak_cm');
-      const rain24Event = best(withRain24, 'rain_24h_mm');
-      const rain72Event = best(withRain72, 'rain_72h_mm');
-      const riseEvent = best(withRise, 'max_hourly_rise_cm_h');
       const summaryItems = [
         peakEvent ? ['Maior pico', `${fmt(peakEvent.peak_cm, 0)} cm`, `${peakEvent.sourceLabel} · ${shortDate(peakEvent.date)}`] : null,
-        rain24Event ? ['Maior chuva local 24 h', `${fmt(rain24Event.rain_24h_mm, 1)} mm`, `${rain24Event.sourceLabel} · ${shortDate(rain24Event.date)}`] : null,
-        rain72Event ? ['Maior chuva local 72 h', `${fmt(rain72Event.rain_72h_mm, 1)} mm`, `${rain72Event.sourceLabel} · ${shortDate(rain72Event.date)}`] : null,
-        riseEvent ? ['Subida mais rápida publicada', `${fmt(riseEvent.max_hourly_rise_cm_h, 0)} cm/h`, `${riseEvent.sourceLabel} · ${shortDate(riseEvent.date)}`] : null
+        rain24Event ? ['Maior chuva antecedente 24 h', `${fmt(rain24Event.rain_24h_mm, 1)} mm`, `${rain24Event.sourceLabel} · ${shortDate(rain24Event.date)}`] : null,
+        rain72Event ? ['Maior chuva antecedente 72 h', `${fmt(rain72Event.rain_72h_mm, 1)} mm`, `${rain72Event.sourceLabel} · ${shortDate(rain72Event.date)}`] : null,
+        riseEvent ? ['Subida mais rápida', `${fmt(riseEvent.max_hourly_rise_cm_h, 0)} cm/h`, `${riseEvent.sourceLabel} · ${shortDate(riseEvent.date)}`] : null
       ].filter(Boolean);
       summaryHost.innerHTML = summaryItems.length
         ? summaryItems.map((item) => `<div class="event-summary-item"><span>${esc(item[0])}</span><strong>${esc(item[1])}</strong><small>${esc(item[2])}</small></div>`).join('')
         : '';
     }
+
+    const insightHost = $('event-insight');
+    if (insightHost) {
+      const insights = [];
+      if (peakEvent) insights.push(`O maior pico deste recorte é ${peakEvent.sourceLabel}, em ${shortDate(peakEvent.date)}: ${fmt(peakEvent.peak_cm, 0)} cm.`);
+      if (rain72Event) insights.push(`O maior acumulado antecedente de 72 h publicado é ${fmt(rain72Event.rain_72h_mm, 1)} mm em ${rain72Event.sourceLabel} (${shortDate(rain72Event.date)}).`);
+      if (riseEvent) insights.push(`A subida horária mais rápida disponível é ${fmt(riseEvent.max_hourly_rise_cm_h, 0)} cm/h em ${riseEvent.sourceLabel} (${shortDate(riseEvent.date)}).`);
+      if (apiEvent) insights.push(`A maior memória antecedente API 72 h publicada é ${fmt(apiEvent.api_72h_mm, 1)} mm-eq. em ${apiEvent.sourceLabel} (${shortDate(apiEvent.date)}).`);
+      const proxyCount = events.filter((e) => e.rain_source_kind === 'downstream_proxy').length;
+      insightHost.innerHTML = insights.length
+        ? `<div class="event-insight-head"><div><span class="now-eyebrow">Leitura comparativa</span><h3>O que diferencia esses eventos?</h3></div><span>${events.length} eventos · fontes preservadas</span></div><div class="event-insight-grid">${insights.slice(0, 4).map((item) => `<p>${esc(item)}</p>`).join('')}</div>${proxyCount ? `<p class="event-insight-warning">${proxyCount} evento(s) usa(m) proxy espacial de chuva; esses valores não são tratados como chuva local equivalente.</p>` : ''}`
+        : '';
+    }
+
     $('event-timeline').innerHTML = events.length ? events.map((e) => {
       const confirmed = /confirm|cota de pesquisa|acima da cota/i.test(String(e.status || ''));
       const metrics = [];
-      const addMetric = (value, label, digits = 1) => { if (num(value) != null) metrics.push({ value, label, digits }); };
-      if (num(e.rain_24h_mm) != null) addMetric(e.rain_24h_mm, 'chuva 24 h · mm');
-      else if (num(e.proxy_rain_24h_mm) != null) addMetric(e.proxy_rain_24h_mm, 'proxy Muçum 24 h · mm');
-      addMetric(e.rain_48h_mm, 'chuva 48 h · mm');
-      addMetric(e.rain_72h_mm, 'chuva 72 h · mm');
-      addMetric(e.rain_168h_mm, 'chuva 168 h · mm');
-      addMetric(e.max_hourly_rise_cm_h, 'subida máx. · cm/h', 0);
-      addMetric(e.total_rise_cm, 'elevação até pico · cm', 0);
-      addMetric(e.rain_coverage_pct, 'cobertura da chuva · %');
-      addMetric(e.model_count, 'modelos avaliados', 0);
-      if (num(e.difficulty) != null) addMetric(Number(e.difficulty) * 100, 'dificuldade do evento · %');
+      const addMetric = (value, label, digits = 1, kind = '') => {
+        if (num(value) != null) metrics.push({ value, label, digits, kind });
+      };
+      if (e.rain_source_kind === 'downstream_proxy') {
+        addMetric(e.proxy_rain_24h_mm, 'proxy Muçum 24 h · mm', 1, 'proxy');
+        addMetric(e.max_hourly_rise_cm_h, 'subida máx. · cm/h', 0, 'level');
+        addMetric(e.total_rise_cm, 'elevação até pico · cm', 0, 'level');
+      } else if (num(e.rain_24h_mm) != null) {
+        addMetric(e.rain_24h_mm, 'chuva 24 h · mm', 1, 'rain');
+        addMetric(e.rain_72h_mm, 'chuva 72 h · mm', 1, 'rain');
+        if (num(e.api_72h_mm) != null) addMetric(e.api_72h_mm, 'API 72 h · mm-eq.', 1, 'memory');
+        else if (num(e.max_hourly_rise_cm_h) != null) addMetric(e.max_hourly_rise_cm_h, 'subida máx. · cm/h', 0, 'level');
+        else addMetric(e.rain_168h_mm, 'chuva 168 h · mm', 1, 'rain');
+      } else {
+        addMetric(e.max_hourly_rise_cm_h, 'subida máx. · cm/h', 0, 'level');
+        addMetric(e.total_rise_cm, 'elevação até pico · cm', 0, 'level');
+        addMetric(e.rna_peak_error_cm, 'erro no pico RNA · cm', 1, 'model');
+        addMetric(e.model_count, 'modelos avaliados', 0, 'model');
+      }
       const threshold = stations[e.sourceKey] ? num(stations[e.sourceKey].threshold) : null;
-      if (threshold != null && num(e.peak_cm) != null && Number(e.peak_cm) > threshold) addMetric(Number(e.peak_cm) - threshold, 'acima da cota · cm', 0);
-      const rainHtml = `<div class="event-rain">${metrics.slice(0, 3).map((m) => `<div><b>${fmt(m.value, m.digits)}</b><span>${esc(m.label)}</span></div>`).join('')}</div>`;
-      const contextHtml = e.rain_source_kind === 'downstream_proxy'
-        ? `<p class="event-context-note is-proxy">Chuva antecedente local indisponível. O valor mostrado é proxy da estação ${esc(e.rain_station || '86510000')} em Muçum${num(e.rain_coverage_pct) != null ? ` · cobertura ${fmt(e.rain_coverage_pct, 1)}%` : ''}; não é chuva local de Santa Tereza.</p>`
+      const exceed = threshold != null && num(e.peak_cm) != null ? Number(e.peak_cm) - threshold : null;
+      const scaleMax = threshold != null ? threshold * 1.55 : num(e.peak_cm);
+      const peakWidth = scaleMax && num(e.peak_cm) != null ? Math.max(0, Math.min(100, Number(e.peak_cm) / scaleMax * 100)) : 0;
+      const thresholdWidth = scaleMax && threshold != null ? Math.max(0, Math.min(100, threshold / scaleMax * 100)) : 0;
+      const sourcePath = safeAssetPath(e.context_source || ((stationFeed(e.sourceKey).pattern || {}).sources || {}).events);
+      const sourceLink = sourcePath ? `<a href="${esc(sourcePath)}">abrir fonte →</a>` : '';
+      const replayBits = [];
+      if (e.replay_role) replayBits.push(`replay: ${String(e.replay_role).toLocaleLowerCase('pt-BR')}`);
+      if (num(e.rna_mae_cm) != null) replayBits.push(`MAE ${fmt(e.rna_mae_cm, 1)} cm`);
+      if (num(e.rna_peak_error_cm) != null) replayBits.push(`erro pico ${fmt(e.rna_peak_error_cm, 1)} cm`);
+      const contextual = e.rain_source_kind === 'downstream_proxy'
+        ? `Chuva local de Santa Tereza indisponível neste evento. O acumulado de 24 h é um proxy jusante de Muçum${num(e.rain_coverage_pct) != null ? ` com ${fmt(e.rain_coverage_pct, 1)}% de cobertura` : ''}.`
         : e.rain_source_kind === 'local_station'
-          ? `<p class="event-context-note">Chuva local auditada · estação ${esc(e.rain_station || '')}${num(e.rain_coverage_pct) != null ? ` · cobertura ${fmt(e.rain_coverage_pct, 1)}% em 72 h` : ''}.</p>`
-          : `<p class="event-context-note">Chuva antecedente auditada ainda não publicada para este evento; o cartão mostra somente evidências disponíveis.</p>`;
-      return `<article class="event-card ${confirmed ? 'confirmed' : ''}"><span class="event-date">${esc(e.sourceLabel)} · ${esc(shortDate(e.date))}</span><h3>${esc(e.id || 'Evento catalogado')}</h3><div class="event-peak">${fmt(e.peak_cm, 0)} <span>cm no pico observado</span></div><span class="event-status">${esc(e.status || 'status não informado')}</span>${rainHtml}${contextHtml}</article>`;
+          ? `Chuva local auditada na estação ${e.rain_station || ''}${num(e.rain_coverage_pct) != null ? ` · cobertura ${fmt(e.rain_coverage_pct, 1)}% em 72 h` : ''}.`
+          : e.rain_source_kind === 'research_antecedent'
+            ? `${soilLabel(e.soil_status) || 'Condições antecedentes publicadas no pacote de pesquisa.'}`
+            : 'Chuva antecedente auditada ainda não publicada; o cartão usa dinâmica do nível e replay, sem preencher a lacuna com zero.';
+      return `<article class="event-card ${confirmed ? 'confirmed' : ''}">
+        <div class="event-card-head"><span class="event-date">${esc(e.sourceLabel)} · ${esc(shortDate(e.date))}</span><span class="event-source-kind ${esc(e.rain_source_kind || 'unknown')}">${esc(sourceLabel(e))}</span></div>
+        <h3>${esc(e.id || 'Evento catalogado')}</h3>
+        <div class="event-peak">${fmt(e.peak_cm, 0)} <span>cm no pico observado</span></div>
+        <div class="event-threshold"><div class="event-threshold-track"><i style="width:${peakWidth.toFixed(1)}%"></i><b style="left:${thresholdWidth.toFixed(1)}%"></b></div><span>${exceed == null ? 'cota não informada' : exceed >= 0 ? `+${fmt(exceed, 0)} cm acima da cota de pesquisa` : `${fmt(Math.abs(exceed), 0)} cm abaixo da cota`}</span></div>
+        <span class="event-status">${esc(statusLabel(e.status))}</span>
+        <div class="event-rain">${metrics.slice(0, 3).map((m) => `<div class="is-${esc(m.kind)}"><b>${fmt(m.value, m.digits)}</b><span>${esc(m.label)}</span></div>`).join('')}</div>
+        <p class="event-context-note ${e.rain_source_kind === 'downstream_proxy' ? 'is-proxy' : ''}">${esc(contextual)}</p>
+        ${replayBits.length || sourceLink ? `<div class="event-card-foot"><span>${esc(replayBits.join(' · '))}</span>${sourceLink}</div>` : ''}
+      </article>`;
     }).join('') : '<div class="empty-block">Os eventos históricos ainda não estão disponíveis neste feed.</div>';
+
+    const comparisonHost = $('event-comparison');
+    if (comparisonHost) {
+      const rainCell = (e, key, proxyKey = null) => {
+        if (num(e[key]) != null) return `${fmt(e[key], 1)}`;
+        if (proxyKey && num(e[proxyKey]) != null) return `${fmt(e[proxyKey], 1)}*`;
+        return 'não auditada';
+      };
+      comparisonHost.innerHTML = events.length
+        ? `<div class="event-comparison-head"><div><span class="now-eyebrow">Comparação direta</span><h3>Evento por evento</h3></div><span>* proxy espacial, não chuva local equivalente</span></div>
+          <div class="table-scroll"><table class="event-comparison-table">
+            <thead><tr><th>Local / data</th><th>Pico</th><th>Acima da cota</th><th>Chuva 24 h</th><th>Chuva 72 h</th><th>Chuva 168 h</th><th>API 72 h</th><th>Subida máx.</th><th>Replay</th></tr></thead>
+            <tbody>${events.map((e) => {
+              const threshold = stations[e.sourceKey] ? num(stations[e.sourceKey].threshold) : null;
+              const exceed = threshold != null && num(e.peak_cm) != null ? Number(e.peak_cm) - threshold : null;
+              const replay = e.replay_role ? `${e.replay_role}${num(e.rna_mae_cm) != null ? ` · MAE ${fmt(e.rna_mae_cm, 1)} cm` : ''}` : '—';
+              return `<tr>
+                <td><strong>${esc(e.sourceLabel)}</strong><small>${esc(shortDate(e.date))}</small></td>
+                <td class="num">${fmt(e.peak_cm, 0)} cm</td>
+                <td class="num">${exceed == null ? '—' : `${exceed >= 0 ? '+' : ''}${fmt(exceed, 0)} cm`}</td>
+                <td class="num">${rainCell(e, 'rain_24h_mm', 'proxy_rain_24h_mm')} mm</td>
+                <td class="num">${rainCell(e, 'rain_72h_mm')} ${num(e.rain_72h_mm) != null ? 'mm' : ''}</td>
+                <td class="num">${rainCell(e, 'rain_168h_mm')} ${num(e.rain_168h_mm) != null ? 'mm' : ''}</td>
+                <td class="num">${num(e.api_72h_mm) != null ? `${fmt(e.api_72h_mm, 1)} mm-eq.` : '—'}</td>
+                <td class="num">${num(e.max_hourly_rise_cm_h) != null ? `${fmt(e.max_hourly_rise_cm_h, 0)} cm/h` : '—'}</td>
+                <td>${esc(replay)}</td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table></div>`
+        : '';
+    }
   }
 
   function evaluationBlock(key) {
