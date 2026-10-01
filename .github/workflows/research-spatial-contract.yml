@@ -41,6 +41,15 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
+          filter: blob:none
+          # O contrato espacial usa JSON/CSV/HTML/PNG e código; os rasters e
+          # matrizes históricas gigantes não entram nesta reconstrução.
+          sparse-checkout: |
+            /*
+            !*.mat
+            !*.tif
+            !*.tiff
+          sparse-checkout-cone-mode: false
 
       - name: Configura Python
         uses: actions/setup-python@v5
