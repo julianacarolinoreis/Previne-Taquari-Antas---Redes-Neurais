@@ -1,0 +1,436 @@
+{
+  "schema_version": 1,
+  "feed_type": "basin_station_status",
+  "generated_at_utc": "2026-10-01T13:33Z",
+  "next_cycle_utc": "2026-10-01T13:35Z",
+  "status": "RESEARCH_SCREENING",
+  "research_only": true,
+  "official_alert": false,
+  "scope": {
+    "basin": "Taquari–Antas · G040",
+    "station_count": 530,
+    "forecast_location_count": 464,
+    "forecast_station_count": 530,
+    "observed_rain_station_count": 106,
+    "observed_rain_hourly_station_count": 4,
+    "observed_rain_cemaden_24h_station_count": 103,
+    "level_station_count": 11,
+    "cemaden_hydro_station_count": 0,
+    "source_observation_station_count": 103,
+    "observed_any_station_count": 115,
+    "unique_location_count": 464,
+    "duplicate_location_group_count": 61,
+    "stations_in_duplicate_locations": 127,
+    "catalogs": [
+      "assets/data/estudo_bacia_taquari_antas/postos_g040.geojson",
+      "assets/data/estudo_bacia_taquari_antas/pluviometria_g040.geojson",
+      "assets/data/estudo_bacia_taquari_antas/ugs_g040.geojson",
+      "https://resources.cemaden.gov.br/dados/311_24.json",
+      "https://resources.cemaden.gov.br/dados/327mi_24.json",
+      "https://sace.sgb.gov.br/estacoes_mapa.php?bacia=taquari"
+    ]
+  },
+  "source_counts": {
+    "ANA/HidroWeb": 405,
+    "INMET": 14,
+    "CEMADEN": 110,
+    "SGB/SACE": 16
+  },
+  "coverage": {
+    "forecast_complete": true,
+    "forecast_missing_station_count": 0,
+    "message": "Cobertura completa da rodada meteorológica."
+  },
+  "freshness": {
+    "hourly_rain_max_age_minutes": 94.0,
+    "hourly_rain_over_60min_count": 3,
+    "hourly_rain_age_count": 4,
+    "level_max_age_minutes": 273.6,
+    "level_over_60min_count": 8,
+    "level_age_count": 11,
+    "note": "Frescor calculado somente quando a fonte publica horário individual da observação. O acumulado CEMADEN 24h mantém separadamente o horário de atualização do painel."
+  },
+  "catalog": {
+    "basin_mask": "assets/data/estudo_bacia_taquari_antas/ugs_g040.geojson",
+    "sources": {
+      "cemaden_rain": {
+        "state": "available",
+        "url": "https://resources.cemaden.gov.br/dados/311_24.json",
+        "updated_at_utc": "2026-10-01 13:32:44 UTC",
+        "total_station_count": 5818,
+        "inside_basin_count": 110,
+        "added_station_count": 109,
+        "merged_station_count": 1
+      },
+      "cemaden_hydro": {
+        "state": "available",
+        "url": "https://resources.cemaden.gov.br/dados/327mi_24.json",
+        "updated_at_utc": null,
+        "total_station_count": 193,
+        "inside_basin_count": 1,
+        "added_station_count": 0,
+        "merged_station_count": 1
+      },
+      "sgb_hydrotelemetry": {
+        "state": "available",
+        "url": "https://sace.sgb.gov.br/estacoes_mapa.php?bacia=taquari",
+        "station_count": 16,
+        "added_station_count": 1,
+        "merged_station_count": 15
+      }
+    },
+    "complete": true,
+    "message": "Catálogos ANA/INMET, CEMADEN e SGB/SACE integrados; ANA e SGB foram deduplicadas por código."
+  },
+  "models": [
+    {
+      "id": "ecmwf_ifs025",
+      "label": "ECMWF IFS",
+      "provider": "ECMWF",
+      "resolution": "0,25°",
+      "color": "#1769aa"
+    },
+    {
+      "id": "gfs_seamless",
+      "label": "GFS",
+      "provider": "NOAA",
+      "resolution": "global seamless",
+      "color": "#d97706"
+    },
+    {
+      "id": "icon_seamless",
+      "label": "ICON",
+      "provider": "DWD",
+      "resolution": "global seamless",
+      "color": "#7c3aed"
+    },
+    {
+      "id": "gem_seamless",
+      "label": "GEM",
+      "provider": "Environment Canada",
+      "resolution": "global seamless",
+      "color": "#059669"
+    },
+    {
+      "id": "meteofrance_seamless",
+      "label": "Météo-France",
+      "provider": "Météo-France",
+      "resolution": "global seamless",
+      "color": "#dc2626"
+    }
+  ],
+  "metric_coverage": {
+    "precipitation": {
+      "models": {
+        "ecmwf_ifs025": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gfs_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "icon_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gem_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "meteofrance_seamless": {
+          "station_count": 530,
+          "valid_points": 19610,
+          "total_points": 25970,
+          "coverage_ratio": 0.7551
+        }
+      }
+    },
+    "temperature_2m": {
+      "models": {
+        "ecmwf_ifs025": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gfs_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "icon_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gem_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "meteofrance_seamless": {
+          "station_count": 530,
+          "valid_points": 19610,
+          "total_points": 25970,
+          "coverage_ratio": 0.7551
+        }
+      }
+    },
+    "relative_humidity_2m": {
+      "models": {
+        "ecmwf_ifs025": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gfs_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "icon_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gem_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "meteofrance_seamless": {
+          "station_count": 530,
+          "valid_points": 19610,
+          "total_points": 25970,
+          "coverage_ratio": 0.7551
+        }
+      }
+    },
+    "pressure_msl": {
+      "models": {
+        "ecmwf_ifs025": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gfs_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "icon_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gem_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "meteofrance_seamless": {
+          "station_count": 530,
+          "valid_points": 19610,
+          "total_points": 25970,
+          "coverage_ratio": 0.7551
+        }
+      }
+    },
+    "wind_speed_10m": {
+      "models": {
+        "ecmwf_ifs025": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gfs_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "icon_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gem_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "meteofrance_seamless": {
+          "station_count": 530,
+          "valid_points": 19610,
+          "total_points": 25970,
+          "coverage_ratio": 0.7551
+        }
+      }
+    },
+    "wind_gusts_10m": {
+      "models": {
+        "ecmwf_ifs025": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gfs_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "icon_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gem_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "meteofrance_seamless": {
+          "station_count": 530,
+          "valid_points": 19610,
+          "total_points": 25970,
+          "coverage_ratio": 0.7551
+        }
+      }
+    },
+    "cloud_cover": {
+      "models": {
+        "ecmwf_ifs025": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gfs_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "icon_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gem_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "meteofrance_seamless": {
+          "station_count": 530,
+          "valid_points": 19610,
+          "total_points": 25970,
+          "coverage_ratio": 0.7551
+        }
+      }
+    },
+    "precipitation_probability": {
+      "models": {
+        "ecmwf_ifs025": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gfs_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "icon_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gem_seamless": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "meteofrance_seamless": {
+          "station_count": 0,
+          "valid_points": 0,
+          "total_points": 25970,
+          "coverage_ratio": 0.0
+        }
+      }
+    },
+    "soil_moisture_0_to_7cm": {
+      "models": {
+        "ecmwf_ifs025": {
+          "station_count": 530,
+          "valid_points": 25970,
+          "total_points": 25970,
+          "coverage_ratio": 1.0
+        },
+        "gfs_seamless": {
+          "station_count": 0,
+          "valid_points": 0,
+          "total_points": 25970,
+          "coverage_ratio": 0.0
+        },
+        "icon_seamless": {
+          "station_count": 0,
+          "valid_points": 0,
+          "total_points": 25970,
+          "coverage_ratio": 0.0
+        },
+        "gem_seamless": {
+          "station_count": 0,
+          "valid_points": 0,
+          "total_points": 25970,
+          "coverage_ratio": 0.0
+        },
+        "meteofrance_seamless": {
+          "station_count": 0,
+          "valid_points": 0,
+          "total_points": 25970,
+          "coverage_ratio": 0.0
+        }
+      }
+    }
+  },
+  "refresh_contract": {
+    "mode": "chained_repository_dispatch",
+    "nominal_backoff_after_success_minutes": 2,
+    "bootstrap_cron_minute": 31,
+    "schedule_note": "A atualização é encadeada: após uma rodada bem-sucedida há espera nominal de 2 min antes de disparar a próxima. O intervalo real entre publicações inclui checkout, consulta das fontes, previsão das 530 estações, testes e push, portanto pode ser maior."
+  }
+}
