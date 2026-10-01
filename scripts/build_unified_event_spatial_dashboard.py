@@ -259,7 +259,7 @@ def spatial_data() -> dict[str, object]:
         (ROOT / "assets/data/mucum_inundacao/mdt/altitude_terreno_10m.json").read_text(encoding="utf-8")
     )["bounds"]
     santa_bounds = json.loads(
-        (ROOT / "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m_refinado.json").read_text(encoding="utf-8")
+        (ROOT / "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_lidar_10m.json").read_text(encoding="utf-8")
     )["bounds"]
     mucum_grid_all = compact_grid(ROOT / "assets/data/vulnerabilidade/grade/4312609.geojson")
     santa_grid_all = compact_grid(ROOT / "assets/data/vulnerabilidade/grade/4317251.geojson")
@@ -303,8 +303,8 @@ def spatial_data() -> dict[str, object]:
         },
         "santa_tereza": {
             "label": "Santa Tereza",
-            "background": "../assets/data/santa_tereza_inundacao/mdt/altitude_terreno_10m_refinado.png",
-            "background_label": "MDT visual refinado 10 m · corredor do talvegue",
+            "background": "../assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_lidar_10m_visual.png",
+            "background_label": "LiDAR bruto · visualização same-source ~10 m",
             "bounds": santa_bounds,
             "crs": "EPSG:4326",
             "level_min": int(santa["published_level_range_m"][0]),
