@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
 
 from shapely.geometry import Point, Polygon, shape
@@ -183,7 +184,16 @@ def update_page(path: Path, levels, ui_hand_max_m: float):
 
 
 def main():
-    for city, cfg in CITIES.items():
+    requested = sys.argv[1:]
+    if requested:
+        invalid = [city for city in requested if city not in CITIES]
+        if invalid:
+            raise SystemExit(f"cidade(s) inválida(s): {', '.join(invalid)}")
+        selected = requested
+    else:
+        selected = list(CITIES)
+    for city in selected:
+        cfg = CITIES[city]
         levels = load_levels(cfg["contours"])
         print(f"{city}: {len(levels)} níveis, {levels[0][0]:.1f}–{levels[-1][0]:.1f} m")
         for page in cfg["pages"]:
