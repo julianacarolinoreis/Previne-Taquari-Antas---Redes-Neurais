@@ -101,6 +101,7 @@
     story: 'rotas',
     storyTimer: null,
     presenting: false,
+    compareFloods: false,
     module: 'rio',
     cache: {},
     loadGen: 0,
@@ -115,7 +116,8 @@
       abrigos: null,
       highlight: null,
       rota: null,
-      marks: null
+      marks: null,
+      compare: null
     },
     canvas: null,
     streetHits: 0,
@@ -480,6 +482,7 @@
     state.layers.highlight = L.layerGroup().addTo(state.map);
     state.layers.rota = L.layerGroup().addTo(state.map);
     state.layers.marks = L.layerGroup().addTo(state.map);
+    state.layers.compare = L.layerGroup().addTo(state.map);
     state.map.on('click', onMapClick);
     return state.map;
   }
@@ -547,6 +550,48 @@
       },
       interactive: false
     }).addTo(state.layers.mancha);
+  }
+
+  function drawHistoricalComparisonOverlay(bundle, opts) {
+    opts = opts || {};
+    if (!state.layers.compare) return;
+    state.layers.compare.clearLayers();
+    if (!state.compareFloods || state.city !== 'santa_tereza') return;
+    var hs = bundle && bundle.historicalSpatial;
+    var feats = hs && hs.event_contours && hs.event_contours.features;
+    if (!Array.isArray(feats) || !feats.length) return;
+    var colors = {
+      'st-e4-set2023': '#c45c26',
+      'st-e6-nov2023': '#087c70',
+      'st-e9-mai2024': '#0878b9'
+    };
+    feats.forEach(function (feat) {
+      var p = feat.properties || {};
+      var color = colors[p.case_id] || '#6b7280';
+      var layer = L.geoJSON(feat, {
+        style: {
+          color: color,
+          weight: 3,
+          dashArray: p.case_id === 'st-e6-nov2023' ? '7 5' : null,
+          fillColor: color,
+          fillOpacity: 0.045,
+          opacity: 0.95
+        }
+      });
+      layer.bindTooltip(
+        esc(p.event_label || p.case_id || 'evento') +
+        ' · régua ' + esc(fmtOne(p.gauge_peak_m, ' m')) +
+        ' · HAND ' + esc(fmtOne(p.contour_level_m, ' m')),
+        { sticky: true }
+      );
+      layer.addTo(state.layers.compare);
+    });
+    if (opts.fit && state.map && state.layers.compare.getBounds) {
+      try {
+        var b = state.layers.compare.getBounds();
+        if (b && b.isValid()) state.map.fitBounds(b, { padding: [24, 24], maxZoom: 15, animate: true });
+      } catch (e) {}
+    }
   }
 
   function drawMarks() {
@@ -1589,6 +1634,8 @@
       return;
     }
     wrap.hidden = false;
+    var mapToggle = $('comparison-map-toggle');
+    if (mapToggle) mapToggle.setAttribute('aria-pressed', String(!!state.compareFloods));
     var grid = $('comparison-event-grid');
     if (grid) {
       grid.innerHTML = cases.map(function (c) {
@@ -2228,6 +2275,7 @@
     if (state.layers.highlight) state.layers.highlight.clearLayers();
     clearRota();
     drawMancha(bundle);
+    drawHistoricalComparisonOverlay(bundle);
     drawMarks();
     drawStreets(bundle);
     drawGrade(bundle);
@@ -2357,6 +2405,7 @@
   function onCity(id) {
     if (id === state.city) return;
     state.city = id;
+    if (state.city !== 'santa_tereza') state.compareFloods = false;
     state.level = city().defaultLevel;
     state.selectedId = null;
     /* Sempre abre a história mais clara da cidade (Muçum → Hotel; ST → set/2023). */
@@ -2489,6 +2538,15 @@
       if (!btn) return;
       onCase(btn.getAttribute('data-case'));
       setModule('rio');
+    });
+  }
+  if ($('comparison-map-toggle')) {
+    $('comparison-map-toggle').addEventListener('click', function () {
+      state.compareFloods = !state.compareFloods;
+      var btn = $('comparison-map-toggle');
+      if (btn) btn.setAttribute('aria-pressed', String(state.compareFloods));
+      var bundle = state.cache[state.city];
+      if (bundle) drawHistoricalComparisonOverlay(bundle, { fit: state.compareFloods });
     });
   }
   if ($('module-tabs')) {
