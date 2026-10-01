@@ -159,14 +159,28 @@ class PlataformaHecTwinTests(unittest.TestCase):
 
     def test_operational_hec_is_public_source(self) -> None:
         rr = self.feed.get("rainfall_runoff_result") or {}
-        self.assertEqual(
+        self.assertIn(
             rr.get("artifact_json"),
-            "hec_hms_operational_forecast_latest.json",
+            {
+                "hec_hms_operational_forecast_latest.json",
+                "hec_hms_dual_boundary_mucum_latest.json",
+            },
         )
         self.assertNotIn("targeted_now", str(rr.get("artifact_json") or ""))
         if rr.get("available"):
-            self.assertEqual(rr.get("status"), "hec_hms_4_13_spatial_ifs_warmup_ready")
-            self.assertEqual(rr.get("blocking_reasons_pt") or [], [])
+            self.assertIn(
+                rr.get("status"),
+                {
+                    "hec_hms_4_13_spatial_ifs_warmup_ready",
+                    "hec_hms_4_13_dual_boundary_validated",
+                },
+            )
+            self.assertEqual((rr.get("validation") or {}).get("blocking_reasons_pt") or [], [])
+            if rr.get("status") == "hec_hms_4_13_dual_boundary_validated":
+                self.assertEqual(
+                    (rr.get("dual_boundary_validation") or {}).get("status"),
+                    "VALIDATED",
+                )
 
     def test_hindcast_skill_events(self) -> None:
         skill = self.feed["products"]["hindcast_skill"]
