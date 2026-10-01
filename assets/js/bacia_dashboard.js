@@ -413,6 +413,48 @@
     if (select.value === 'all') state.networkUpg = 'all';
   }
 
+  function populateNetworkStationSearch() {
+    const list = $('basin-station-options');
+    if (!list) return;
+    list.innerHTML = networkStations().slice()
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
+      .map((item) => '<option value="' + esc((item.code || '') + ' · ' + (item.name || 'Estação')) + '"></option>')
+      .join('');
+  }
+
+  function findNetworkStation(query) {
+    const raw = String(query || '').trim().toLocaleLowerCase('pt-BR');
+    if (!raw) return null;
+    const codeToken = raw.split('·')[0].trim();
+    const rows = networkStations();
+    return rows.find((item) => String(item.code || '').toLocaleLowerCase('pt-BR') === codeToken) ||
+      rows.find((item) => String(item.name || '').toLocaleLowerCase('pt-BR') === raw) ||
+      rows.find((item) => (String(item.code || '') + ' · ' + String(item.name || '')).toLocaleLowerCase('pt-BR') === raw) ||
+      rows.find((item) => String(item.code || '').toLocaleLowerCase('pt-BR').includes(raw) || String(item.name || '').toLocaleLowerCase('pt-BR').includes(raw)) ||
+      null;
+  }
+
+  function clearNetworkFilters() {
+    state.networkFilter = 'all';
+    state.networkSource = 'all';
+    state.networkUpg = 'all';
+    state.networkVariable = 'all';
+    state.networkModel = 'all';
+    root.querySelectorAll('[data-network-filter]').forEach((button) => {
+      const active = button.dataset.networkFilter === 'all';
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    ['basin-source-filter', 'basin-upg-filter', 'basin-variable-filter', 'basin-model-filter'].forEach((id) => {
+      const select = $(id);
+      if (select) select.value = 'all';
+    });
+    const search = $('basin-station-search');
+    if (search) search.value = '';
+    const status = $('basin-search-status');
+    if (status) status.textContent = '';
+  }
+
   function networkSourceSummary(status) {
     const counts = status && status.source_counts && typeof status.source_counts === 'object' ? status.source_counts : {};
     const order = ['ANA/HidroWeb', 'SGB/SACE', 'CEMADEN', 'INMET'];
@@ -506,7 +548,7 @@
       '<div class="network-source-strip"><span class="network-source-title">Catálogo integrado por fonte</span>' + (sourceSummary || '<span>fontes não resumidas</span>') + '</div>' +
       '<p class="network-summary-note">' +
       (rows.length ? fmt(visible, 0) + ' pontos visíveis no filtro · algum observado ' + (observedAny == null ? '—' : fmt(observedAny, 0) + '/' + fmt(total, 0)) + ' · ' + (maxAge != null ? 'maior idade com relógio ' + ageLabel(maxAge) + ' · ' : '') : 'Resumo geral disponível; snapshot por estação ainda em atualização · ') +
-      (status.generated_at_utc ? 'snapshot ' + when(status.generated_at_utc) + ' BRT' : 'snapshot sem horário') + '.</p>';
+      (status.generated_at_utc ? 'snapshot ' + when(status.generated_at_utc) + ' BRT · ' + ageLabel(ageHours(status.generated_at_utc)) : 'snapshot sem horário') + '.</p>';
     if (note) note.textContent = rows.length ? fmt(visible, 0) + ' de ' + fmt(total, 0) + ' estações visíveis · cor = idade do observado' : 'aguardando snapshot compacto por estação';
   }
 
@@ -1042,6 +1084,7 @@
       state.basinGeometry = basin;
       state.networkStatus = networkStatus;
       populateNetworkUpgFilter();
+      populateNetworkStationSearch();
       if (!state.selectedNetworkStationId && networkStatus && Array.isArray(networkStatus.stations)) {
         const initial = networkStatus.stations.find((row) => String(row.code) === '86472600') || networkStatus.stations[0];
         state.selectedNetworkStationId = initial ? initial.id : null;
@@ -1107,6 +1150,28 @@
   if (variableFilter) variableFilter.addEventListener('change', () => { state.networkVariable = variableFilter.value || 'all'; renderBasinMap(); });
   const modelFilter = $('basin-model-filter');
   if (modelFilter) modelFilter.addEventListener('change', () => { state.networkModel = modelFilter.value || 'all'; renderBasinMap(); });
+  const stationSearch = $('basin-station-search');
+  if (stationSearch) {
+    const activateSearch = () => {
+      const found = findNetworkStation(stationSearch.value);
+      const status = $('basin-search-status');
+      if (!found) {
+        if (status) status.textContent = stationSearch.value.trim() ? 'Estação não encontrada no snapshot atual.' : '';
+        return;
+      }
+      clearNetworkFilters();
+      stationSearch.value = (found.code || '') + ' · ' + (found.name || 'Estação');
+      state.selectedNetworkStationId = found.id;
+      if (status) status.textContent = 'Selecionada: ' + (found.name || found.code) + ' · ' + (found.code || '');
+      renderBasinMap();
+    };
+    stationSearch.addEventListener('change', activateSearch);
+    stationSearch.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') { event.preventDefault(); activateSearch(); }
+    });
+  }
+  const clearFilters = $('basin-clear-filters');
+  if (clearFilters) clearFilters.addEventListener('click', () => { clearNetworkFilters(); renderBasinMap(); });
 
   loadFeeds();
   window.setInterval(() => {
