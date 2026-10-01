@@ -471,7 +471,7 @@ def build_feed_v3() -> dict:
             "plain_pt": (
                 f"HEC-HMS 4.13 executado com o campo IFS espacial. "
                 f"Nível observado atual {hsm.get('level_now_observed_cm')} cm, "
-                f"pico HEC {hsm.get('peak_level_anchored_cm')} cm e ΔN {hsm.get('rise_from_now_cm')} cm, "
+                f"pico HEC {hsm.get('peak_level_rating_cm')} cm e ΔN {hsm.get('rise_from_model_t0_cm')} cm, "
                 "após aquecimento de 48 h e validação de tendência."
             ),
             "primary": feed["rainfall_runoff_result"].get("primary"),
@@ -524,8 +524,8 @@ def build_feed_v3() -> dict:
     if spatial_ready:
         hsm = spatial_hec.get("summary") or {}
         summary.update({
-            "peak_n_cm": hsm.get("peak_level_anchored_cm"),
-            "peak_delta_n_cm": hsm.get("rise_from_now_cm"),
+            "peak_n_cm": hsm.get("peak_level_rating_cm"),
+            "peak_delta_n_cm": hsm.get("rise_from_model_t0_cm"),
             "peak_when_utc": hsm.get("peak_time_utc"),
             "hydrology_status": "hec_hms_4_13_spatial_ifs_warmup_ready",
             "observed_stage_cm": hsm.get("level_now_observed_cm"),
