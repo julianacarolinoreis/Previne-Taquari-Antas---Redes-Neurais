@@ -18,7 +18,10 @@
   var color=function(kind){return kind==='gefs'?'gefs':kind==='risk'?'risk':kind==='rna'?'rna':'';};
   var fill=function(value,max,kind){var x=finite(Number(value))&&max>0?Math.max(0,Math.min(100,Number(value)/max*100)):0;return '<div class="pattern-model-track"><div class="pattern-model-fill '+color(kind)+'" style="width:'+x.toFixed(1)+'%"></div></div>';};
   var bar=function(label,value,max,kind,unit,decimals){return '<div class="pattern-bar-row"><span>'+esc(label)+'</span><div class="pattern-bar-track"><div class="pattern-bar-fill '+(kind||'')+'" style="width:'+(finite(Number(value))&&max>0?Math.max(0,Math.min(100,Number(value)/max*100)):0).toFixed(1)+'%"></div></div><b>'+n(value,decimals==null?1:decimals)+' '+esc(unit||'')+'</b></div>';};
-  var scoreLabel=function(v){var n=Number(v);return Number.isFinite(n)?p2.format(n)+'% exp.':'UNKNOWN';};
+  var scoreLabel=function(v){var n=Number(v);return Number.isFinite(n)?p2.format(n)+'% exp.':'sem score atual';};
+  var sourceState=function(d,key){return ((d.source_quality||{})[key]||{}).state||'unknown';};
+  var sourceAge=function(d,key){var x=Number(((d.source_quality||{})[key]||{}).age_hours);return Number.isFinite(x)?x:null;};
+  var ageText=function(h){return h==null?'idade desconhecida':h>=48?p1.format(h/24)+' dias':p1.format(h)+' h';};
   var setText=function(sel,html){var el=q(sel);if(el)el.innerHTML=html;};
   function renderKpis(d){
     var s=d.summary||{}, events=Array.isArray(d.events)?d.events:[], hs=Array.isArray(d.horizons)?d.horizons:[], loc=d.location;
@@ -30,11 +33,15 @@
       cards.push('<div class="pattern-kpi purple"><strong>'+n(s.api_72h_median_mm,1)+' mm-eq.</strong><span>mediana de memória da bacia (API 72 h)</span></div>');
     }else{
       cards.push('<div class="pattern-kpi accent"><strong>'+n(s.model_card_event_count||events.length)+'</strong><span>eventos no cartão de validação</span></div>');
-      var latest=hs.length?hs[hs.length-1]:{};
-      cards.push('<div class="pattern-kpi purple"><strong>'+pct(latest.probability_percent)+'</strong><span>estimativa GEFS no horizonte de '+n(latest.hours)+' h</span></div>');
+      var latest=hs.length?hs[hs.length-1]:{}, pstate=sourceState(d,'probability'), page=sourceAge(d,'probability');
+      if(pstate==='fresh'){
+        cards.push('<div class="pattern-kpi purple"><strong>'+pct(latest.probability_percent)+'</strong><span>score GEFS experimental no horizonte de '+n(latest.hours)+' h</span></div>');
+      }else{
+        cards.push('<div class="pattern-kpi purple"><strong>desatualizado</strong><span>score GEFS ocultado · última fonte há '+esc(ageText(page))+'</span></div>');
+      }
     }
     setText('#pattern-kpis',cards.join(''));
-    var upd=q('.pattern-updated');if(upd)upd.textContent='Feed visual · '+date(d.generated_at_utc)+' UTC';
+    var upd=q('.pattern-updated');if(upd){var ps=sourceState(d,'probability'),pa=sourceAge(d,'probability');upd.textContent='Feed visual · '+date(d.generated_at_utc)+' UTC'+(ps==='stale'?' · GEFS antigo ocultado ('+ageText(pa)+')':'');}
   }
   function renderMucumEvents(events){
     var max=0;events.forEach(function(e){['rain_24h_mm','rain_72h_mm','rain_168h_mm','api_72h_mm'].forEach(function(k){if(finite(Number(e[k])))max=Math.max(max,Number(e[k]));});});
@@ -51,8 +58,9 @@
     }).join(''));
   }
   function row(label,value,max,kind,unit,decimals){return '<div class="pattern-model-row"><span>'+esc(label)+'</span>'+fill(value,max,kind)+'<strong>'+n(value,decimals==null?1:decimals)+' '+esc(unit||'')+'</strong></div>';}
+  function statusRow(label,text){return '<div class="pattern-model-row"><span>'+esc(label)+'</span><div class="pattern-model-track"></div><strong>'+esc(text)+'</strong></div>';
   function renderModels(d){
-    var hs=Array.isArray(d.horizons)?d.horizons:[],loc=d.location;
+    var hs=Array.isArray(d.horizons)?d.horizons:[],loc=d.location,probState=sourceState(d,'probability'),probAge=sourceAge(d,'probability');
     if(!hs.length){setText('#pattern-models','<div class="pattern-empty">Nenhuma rodada de modelos disponível.</div>');return;}
     var html=hs.map(function(h){
       var rows=[];
@@ -69,13 +77,14 @@
         rows.push(row('IFS máximo',h.ifs_max_mm,rainMax,'gefs','mm',1));
         rows.push(row('IFS ponto',h.point_mm,rainMax,'','mm',1));
         rows.push(row('RNA IFS',h.rna_score_percent,100,'rna','%',2));
-        rows.push(row('Prob. GEFS',h.probability_percent,100,'risk','%',2));
+        rows.push(probState==='fresh'?row('Score GEFS',h.probability_percent,100,'risk','%',2):statusRow('Score GEFS','desatualizado'));
       }
-      var score=scoreLabel(h.probability_percent);var dc=Number.isFinite(Number(h.probability_percent))?'risk':'';
-      return '<div class="pattern-horizon"><div class="pattern-horizon-head"><strong>+'+n(h.hours)+' h</strong><span class="'+dc+'">'+esc(score)+' · '+(loc==='mucum'?'pesquisa':'estimativa')+'</span></div>'+rows.join('')+'</div>';
+      var hasScore=Number.isFinite(Number(h.probability_percent)),score=scoreLabel(h.probability_percent),dc=hasScore?'risk':'';
+      var scoreText=hasScore?score+' · experimental':(probState==='stale'?'GEFS desatualizado':'sem score GEFS atual');
+      return '<div class="pattern-horizon"><div class="pattern-horizon-head"><strong>+'+n(h.hours)+' h</strong><span class="'+dc+'">'+esc(scoreText)+'</span></div>'+rows.join('')+'</div>';
     }).join('');
     setText('#pattern-models',html);
-    var legend=loc==='mucum'?'<span>Chuva IFS</span><span class="gefs">GEFS</span><span class="risk">Risco logístico</span><span class="rna">Solo modelado</span>':'<span>Chuva IFS</span><span class="gefs">IFS máximo</span><span class="risk">Probabilidade GEFS</span><span class="rna">RNA do feed</span>';
+    var legend=loc==='mucum'?'<span>Chuva IFS</span><span class="gefs">GEFS</span><span class="risk">Risco logístico</span><span class="rna">Solo modelado</span>':'<span>Chuva IFS</span><span class="gefs">IFS máximo</span><span class="risk">Score GEFS experimental</span><span class="rna">RNA do feed</span>';
     setText('#pattern-model-legend',legend);
   }
   function render(d){
@@ -84,7 +93,8 @@
     if(loc==='mucum')renderMucumEvents(events);else renderSantaEvents(events);
     renderModels(d);
     setText('#pattern-insight','<strong>O padrão encontrado:</strong> '+esc(summary.pattern_text||'O feed ainda não tem síntese textual.')+' <span>Os valores mostram sinais e divergências entre fontes; não transformam proxy em certeza de inundação.</span>');
-    setText('#pattern-source','Fonte atualizada em '+esc(date(d.generated_at_utc))+' UTC · modelos: '+esc((d.models||[]).map(function(x){return x.name;}).join(' · '))+' · feed visual gerado automaticamente.');
+    var ps=sourceState(d,'probability'),pa=sourceAge(d,'probability');
+    setText('#pattern-source','Feed visual gerado em '+esc(date(d.generated_at_utc))+' UTC · '+(ps==='stale'?'score GEFS experimental ocultado porque a fonte tem '+esc(ageText(pa)):'fontes atuais dentro da janela definida')+' · modelos: '+esc((d.models||[]).map(function(x){return x.name;}).join(' · '))+'.');
   }
   function fail(){setText('#pattern-kpis','<div class="pattern-empty">Feed visual indisponível no momento.</div>');setText('#pattern-events','');setText('#pattern-models','');setText('#pattern-insight','<strong>Sem leitura atual:</strong> o feed de padrões não carregou. Isso não significa “não vai inundar”.');}
   fetch(feed+'?cb='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw Error('feed');return r.json();}).then(render).catch(fail);
