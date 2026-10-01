@@ -370,6 +370,7 @@
     if (state.networkFilter === 'le1h' && !['current', 'attention'].includes(observed.status)) return false;
     if (state.networkFilter === '1to3' && observed.status !== 'delayed') return false;
     if (state.networkFilter === 'over3' && observed.status !== 'very-delayed') return false;
+    if (state.networkFilter === 'no-time' && observed.status !== 'no-time') return false;
     if (state.networkFilter === 'no-current' && ['current', 'attention'].includes(observed.status)) return false;
     if (state.networkFilter === 'none' && observed.status !== 'none') return false;
     if (state.networkSource !== 'all' && !(item.source_networks || []).includes(state.networkSource)) return false;
