@@ -3,12 +3,12 @@
   "generated_at_utc": "2026-10-01T14:08:52Z",
   "location": "santa_tereza",
   "station_name": "Santa Tereza",
-  "threshold_cm": 1500.0,
+  "threshold_cm": 1500,
   "summary": {
     "event_count": 4,
     "model_card_event_count": 5,
-    "peak_max_cm": 2365.0,
-    "peak_min_cm": 1746.0,
+    "peak_max_cm": 2365,
+    "peak_min_cm": 1746,
     "pattern_text": "A série pública já permite comparar os picos e o desempenho dos modelos; a chuva antecedente por evento ainda não está ligada a este painel."
   },
   "events": [
@@ -56,22 +56,22 @@
   "horizons": [
     {
       "hours": 24,
-      "ifs_mean_mm": 0.0,
-      "ifs_max_mm": 0.0,
-      "point_mm": 0.0,
+      "ifs_mean_mm": 0,
+      "ifs_max_mm": 0,
+      "point_mm": 0,
       "rna_score_percent": null,
-      "probability_percent": 3.2881,
-      "decision": "NAO_VAI",
-      "screening_threshold_mm": 40.0
+      "probability_percent": null,
+      "decision": null,
+      "screening_threshold_mm": 40
     },
     {
       "hours": 48,
-      "ifs_mean_mm": 0.0,
-      "ifs_max_mm": 0.0,
-      "point_mm": 0.0,
+      "ifs_mean_mm": 0,
+      "ifs_max_mm": 0,
+      "point_mm": 0,
       "rna_score_percent": null,
-      "probability_percent": 18.0375,
-      "decision": "NAO_VAI",
+      "probability_percent": null,
+      "decision": null,
       "screening_threshold_mm": null
     },
     {
@@ -80,9 +80,9 @@
       "ifs_max_mm": 30.6,
       "point_mm": 18.3,
       "rna_score_percent": null,
-      "probability_percent": 32.9834,
-      "decision": "NAO_VAI",
-      "screening_threshold_mm": 80.0
+      "probability_percent": null,
+      "decision": null,
+      "screening_threshold_mm": 80
     },
     {
       "hours": 120,
@@ -90,8 +90,8 @@
       "ifs_max_mm": 88.5,
       "point_mm": 63.3,
       "rna_score_percent": null,
-      "probability_percent": 47.7028,
-      "decision": "NAO_VAI",
+      "probability_percent": null,
+      "decision": null,
       "screening_threshold_mm": null
     },
     {
@@ -100,9 +100,9 @@
       "ifs_max_mm": 92.8,
       "point_mm": 70.7,
       "rna_score_percent": null,
-      "probability_percent": 61.31490000000001,
-      "decision": "VAI",
-      "screening_threshold_mm": 120.0
+      "probability_percent": null,
+      "decision": null,
+      "screening_threshold_mm": 120
     }
   ],
   "models": [
@@ -119,10 +119,10 @@
       "description": "score MLP do feed meteorológico"
     },
     {
-      "name": "Probabilidade GEFS",
+      "name": "Score GEFS experimental",
       "kind": "risk",
       "unit": "%",
-      "description": "probabilidade experimental do modelo GEFS"
+      "description": "score experimental; ocultado quando a fonte tem mais de 36 h"
     },
     {
       "name": "Modelos de nível",
@@ -140,50 +140,50 @@
         "held_out_events": 5,
         "detected_at_score_0_5": null,
         "sensitivity": 0.75,
-        "sensitivity_percent": 75.0,
+        "sensitivity_percent": 75,
         "result": "PARCIAL",
         "evaluation_threshold": "score >= 25%",
-        "false_control_rate_percent": 0.0
+        "false_control_rate_percent": 0
       },
       {
         "hours": 48,
         "held_out_events": 5,
         "detected_at_score_0_5": null,
         "sensitivity": 0.5,
-        "sensitivity_percent": 50.0,
+        "sensitivity_percent": 50,
         "result": "PARCIAL",
         "evaluation_threshold": "score >= 25%",
-        "false_control_rate_percent": 0.0
+        "false_control_rate_percent": 0
       },
       {
         "hours": 72,
         "held_out_events": 5,
         "detected_at_score_0_5": null,
         "sensitivity": 0.75,
-        "sensitivity_percent": 75.0,
+        "sensitivity_percent": 75,
         "result": "PARCIAL",
         "evaluation_threshold": "score >= 25%",
-        "false_control_rate_percent": 0.0
+        "false_control_rate_percent": 0
       },
       {
         "hours": 120,
         "held_out_events": 5,
         "detected_at_score_0_5": null,
         "sensitivity": 0.75,
-        "sensitivity_percent": 75.0,
+        "sensitivity_percent": 75,
         "result": "PARCIAL",
         "evaluation_threshold": "score >= 25%",
-        "false_control_rate_percent": 0.0
+        "false_control_rate_percent": 0
       },
       {
         "hours": 168,
         "held_out_events": 5,
         "detected_at_score_0_5": null,
         "sensitivity": 0.8,
-        "sensitivity_percent": 80.0,
+        "sensitivity_percent": 80,
         "result": "FORTE",
         "evaluation_threshold": "score >= 25%",
-        "false_control_rate_percent": 0.0
+        "false_control_rate_percent": 0
       }
     ],
     "false_positive_metrics": "taxa de falso controle no model card (limiar de 25%): 0.0%, 0.0%, 0.0%, 0.0%, 0.0%",
@@ -196,5 +196,19 @@
     "probability": "assets/data/research_probability_santa_tereza_latest.json",
     "weather": "assets/data/research_weather_santa_tereza_latest.json",
     "binary": "assets/data/research_binary_decision_santa_tereza_latest.json"
+  },
+  "source_quality": {
+    "probability": {
+      "state": "stale",
+      "generated_at_utc": "2026-08-27T12:30:06.236870+00:00",
+      "age_hours": 841.6460455555556,
+      "max_age_hours": 36
+    },
+    "weather": {
+      "state": "fresh",
+      "generated_at_utc": "2026-10-01T07:43:33Z",
+      "age_hours": 6.421944444444445,
+      "max_age_hours": 30
+    }
   }
 }
