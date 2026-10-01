@@ -11,8 +11,9 @@ gerador atual segue o `FLOWDIR` D8 até o rio principal. A calibração vertical
 permanece separada: **1,60 m na régua = HAND 0**.
 
 O gerador `codigo_python/02_mdt_hand_mancha/gerar_hand_lidar_santa_tereza.py`
-também produz uma grade de altitude absoluta a ~10 m a partir do **mesmo**
-`FILL_CLIP_MOSAICO_LIDAR_RS.tif`. A página só aceita essa grade quando o
+também produz uma grade de altitude absoluta a ~10 m a partir do **LiDAR bruto**
+`CLIP_MOSAICO_LIDAR_RS.tif`. O `FILL_CLIP_MOSAICO_LIDAR_RS.tif` é usado apenas
+no roteamento. A página só aceita essa grade quando o
 metadado declara `same_source_as_hand: true`, e posiciona a imagem usando os
 bounds do próprio MDT.
 
