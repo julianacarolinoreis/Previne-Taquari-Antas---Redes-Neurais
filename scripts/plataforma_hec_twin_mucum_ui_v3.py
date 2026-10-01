@@ -306,7 +306,7 @@ th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute
         <div class="node-health-summary" id="nodeHealthSummary" aria-live="polite"></div>
         <div class="node-list" id="hydroNodeList"></div>
         <details style="margin-top:12px">
-          <summary style="cursor:pointer;font-weight:700;font-size:11px">Inventário das UGs</summary>
+          <summary style="cursor:pointer;font-weight:700;font-size:11px">Inventário por UG</summary>
           <div class="side-list" id="ugInventory" style="margin-top:8px;max-height:260px"></div>
         </details>
       </article>
