@@ -19,7 +19,7 @@ Método:
      degrau na costura. Longe da borda: 100% drone dentro, 100% ANADEM
      fora.
 
-Uso: python codigo_python/02_mdt_hand_mancha/gerar_mosaico_mdt.py [mucum|santa_tereza]
+Uso: python codigo_python/02_mdt_hand_mancha/gerar_mosaico_mdt.py mucum\n\nSanta Tereza foi bloqueada neste pipeline legado: usa exclusivamente o LiDAR/HAND hidráulico.
 """
 import os
 import sys
@@ -127,6 +127,12 @@ def monta(cidade):
 
 
 if __name__ == "__main__":
-    alvo = sys.argv[1] if len(sys.argv) > 1 else None
-    for cidade in ([alvo] if alvo else CIDADES.keys()):
-        monta(cidade)
+    alvo = sys.argv[1] if len(sys.argv) > 1 else "mucum"
+    if alvo == "santa_tereza":
+        raise SystemExit(
+            "BLOQUEADO: Santa Tereza usa exclusivamente o LiDAR/HAND hidráulico. "
+            "Execute gerar_hand_lidar_santa_tereza.py no ambiente com os rasters LiDAR."
+        )
+    if alvo not in CIDADES:
+        raise SystemExit(f"cidade inválida: {alvo}")
+    monta(alvo)
