@@ -12,6 +12,23 @@ class BasinStationCatalogTests(unittest.TestCase):
         self.assertTrue(catalog._point_in_polygon_coordinates(-51.5, -28.5, polygon))
         self.assertFalse(catalog._point_in_polygon_coordinates(-50.5, -28.5, polygon))
 
+    def test_sub_basin_name_is_resolved_from_g040_polygon(self):
+        features = [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[[-52.0, -29.0], [-51.0, -29.0], [-51.0, -28.0], [-52.0, -28.0], [-52.0, -29.0]]],
+                },
+                "properties": {"sub_bacia": "Médio Taquari-Antas"},
+            }
+        ]
+        self.assertEqual(
+            catalog._g040_sub_basin(-51.5, -28.5, features),
+            "Médio Taquari-Antas",
+        )
+        self.assertIsNone(catalog._g040_sub_basin(-50.5, -28.5, features))
+
     def test_cemaden_jsonp_is_unwrapped(self):
         payload = catalog._jsonp_payload(
             'estacoes([{"atualizado":"2026-09-21 17:00:00 UTC","estacao":[]}])'
@@ -44,7 +61,7 @@ class BasinStationCatalogTests(unittest.TestCase):
                                     "type": "Polygon",
                                     "coordinates": [[[-52, -29], [-51, -29], [-51, -28], [-52, -28], [-52, -29]]],
                                 },
-                                "properties": {},
+                                "properties": {"sub_bacia": "Teste"},
                             }
                         ],
                     }
@@ -88,6 +105,11 @@ class BasinStationCatalogTests(unittest.TestCase):
         self.assertIn("SGB/SACE", ana["source_networks"])
         self.assertEqual(metadata["sources"]["cemaden_rain"]["added_station_count"], 1)
         self.assertEqual(metadata["sources"]["cemaden_hydro"]["added_station_count"], 1)
+        self.assertEqual(metadata["sources"]["cemaden_rain"]["assigned_sub_basin_count"], 1)
+        self.assertEqual(metadata["sources"]["cemaden_hydro"]["assigned_sub_basin_count"], 1)
+        cemaden = [item for item in result if item["network"] == "CEMADEN"]
+        self.assertTrue(cemaden)
+        self.assertTrue(all(item["upg_label"] == "Teste" for item in cemaden))
         self.assertTrue(metadata["complete"])
 
 
