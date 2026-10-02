@@ -199,13 +199,60 @@
       </div>
     </section>
 
+
+    <section id="auto-training" class="auto-training-section" aria-labelledby="auto-training-title">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">Treinamento automático</p>
+          <h2 id="auto-training-title">Experimentos → candidatos → modo sombra</h2>
+        </div>
+        <span id="auto-training-status" class="pill neutral">carregando</span>
+      </div>
+      <p class="training-intro">O motor usa somente entradas auditadas, separa eventos em ordem causal, compara todos os candidatos com persistência e publica um leaderboard reproduzível. Nenhum modelo é promovido automaticamente para operação.</p>
+      <div class="training-summary-grid">
+        <article><span>Experimento</span><strong id="training-experiment">—</strong><small id="training-target">—</small></article>
+        <article><span>Linhas válidas</span><strong id="training-rows">—</strong><small id="training-features">—</small></article>
+        <article><span>Dobras causais</span><strong id="training-folds">—</strong><small>eventos futuros ficam fora do treino</small></article>
+        <article><span>Candidatos sombra</span><strong id="training-shadow-count">—</strong><small>passaram aos gates básicos</small></article>
+      </div>
+      <div class="training-layout">
+        <article class="training-config">
+          <p class="section-kicker">Pedido atual</p>
+          <h3 id="training-request">Selecione um ponto e horizonte</h3>
+          <p>Fase 1 executável: Persistência, Ridge, Elastic Net, SVR, MLP, Random Forest, Extra Trees, HistGradientBoosting e XGBoost quando disponível.</p>
+          <div class="family-cloud" aria-label="Famílias em execução">
+            <span>baseline</span><span>linear</span><span>kernel</span><span>MLP</span><span>árvores</span><span>boosting</span>
+          </div>
+          <p class="phase-note"><strong>Fase 2:</strong> LSTM, GRU, TCN e Transformers entram com contrato sequencial próprio; não são marcados como treinados antes disso.</p>
+        </article>
+        <article class="training-results">
+          <div class="training-results-head">
+            <div><p class="section-kicker">Última rodada concluída</p><h3>Leaderboard auditável</h3></div>
+            <span id="training-generated" class="muted">—</span>
+          </div>
+          <div class="model-table-wrap training-table-wrap">
+            <table class="model-table training-table">
+              <thead><tr><th>#</th><th>modelo</th><th>MAE med.</th><th>RMSE med.</th><th>NSE med.</th><th>erro pico</th><th>atraso pico</th><th>gate</th></tr></thead>
+              <tbody id="training-table-body"><tr><td colspan="8" class="empty-cell">Aguardando primeira rodada.</td></tr></tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+      <div class="training-actions">
+        <a class="primary-link" href="https://github.com/julianacarolinoreis/Previne-Taquari-Antas---Redes-Neurais/actions/workflows/ai-lab-auto-train.yml" target="_blank" rel="noopener">Executar / abrir fila no GitHub</a>
+        <a class="secondary-link" href="assets/data/ai_lab/auto_training_latest.json">JSON auditável</a>
+        <a class="secondary-link" href="assets/data/ai_lab/auto_training_leaderboard.csv">CSV do leaderboard</a>
+      </div>
+      <p id="training-message" class="training-message" aria-live="polite">Carregando o estado do treinamento automático…</p>
+    </section>
+
     <section class="factory-grid" aria-label="Fábrica de modelos">
       <article class="factory-card">
         <p class="section-kicker">Treinamento automático</p>
         <h2>Fábrica de candidatos</h2>
-        <p>O motor futuro recebe objetivo, ponto e horizonte; descobre dados, testa famílias de modelos e entrega candidatos reproduzíveis.</p>
+        <p>O motor executável recebe um contrato de experimento, audita as entradas, cria dobras causais por evento, treina candidatos e publica métricas para modo sombra.</p>
         <div class="family-cloud" aria-label="Famílias previstas">
-          <span>MLP</span><span>NARX</span><span>LSTM</span><span>GRU</span><span>TCN</span><span>XGBoost</span><span>Transformer</span><span>Híbridos</span>
+          <span>Ridge</span><span>Elastic Net</span><span>SVR</span><span>MLP</span><span>Random Forest</span><span>Extra Trees</span><span>HistGB</span><span>XGBoost</span>
         </div>
       </article>
       <article class="factory-card">
