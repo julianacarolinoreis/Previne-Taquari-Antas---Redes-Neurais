@@ -1,0 +1,113 @@
+name: G040 full-basin operational spine
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */3 * * *"
+  push:
+    branches: [main]
+    paths:
+      - "config/g040_full_basin_operational_contract_v1.json"
+      - "scripts/build_g040_spatial_domain.py"
+      - "scripts/build_g040_buffered_ecmwf_field.py"
+      - "scripts/build_g040_basin_snapshot.py"
+      - "scripts/test_g040_full_basin_contract.py"
+      - "assets/data/estudo_bacia_taquari_antas/sub_bacias_q040_enquadramento.geojson"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_rain_forcing_latest.json"
+      - "assets/data/hec_hms_g040_full_basin/whole_basin_live_hydro_controls_latest.json"
+      - "assets/data/g040_hydro_stack/master_readiness_latest.json"
+      - "assets/data/basin_station_status_latest.json"
+  pull_request:
+    paths:
+      - "config/g040_full_basin_operational_contract_v1.json"
+      - "scripts/build_g040_spatial_domain.py"
+      - "scripts/build_g040_buffered_ecmwf_field.py"
+      - "scripts/build_g040_basin_snapshot.py"
+      - "scripts/test_g040_full_basin_contract.py"
+      - ".github/workflows/g040-full-basin-spine.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: g040-full-basin-spine-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencies
+        run: pip install --disable-pip-version-check shapely pyproj
+
+      - name: Contract tests
+        run: python -B scripts/test_g040_full_basin_contract.py
+
+      - name: Build basin mask and acquisition buffer
+        env:
+          G040_ACQUISITION_BUFFER_KM: "50"
+        run: python -B scripts/build_g040_spatial_domain.py
+
+      - name: Download ECMWF field for G040 plus buffer
+        if: github.event_name != 'pull_request'
+        env:
+          G040_MET_GRID_STEP_DEG: "0.1"
+          G040_ECMWF_HORIZON_HOURS: "120"
+        run: python -B scripts/build_g040_buffered_ecmwf_field.py
+
+      - name: Build single full-basin snapshot
+        run: python -B scripts/build_g040_basin_snapshot.py
+
+      - name: Publish generated full-basin artifacts
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "previne-g040-spine-bot"
+          git config user.email "previne-g040-spine-bot@users.noreply.github.com"
+          BASE="assets/data/hec_hms_g040_full_basin"
+
+          cp "$BASE/g040_basin_mask.geojson" /tmp/
+          cp "$BASE/g040_download_buffer.geojson" /tmp/
+          cp "$BASE/g040_domain_contract_latest.json" /tmp/
+          cp "$BASE/g040_ecmwf_buffer_grid_latest.json" /tmp/
+          cp "$BASE/g040_ecmwf_buffer_hourly.csv" /tmp/
+          cp "$BASE/g040_basin_snapshot_latest.json" /tmp/
+          cp "$BASE/g040_basin_controls_latest.csv" /tmp/
+          cp "$BASE/g040_basin_network_latest.csv" /tmp/
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            cp /tmp/g040_basin_mask.geojson "$BASE/"
+            cp /tmp/g040_download_buffer.geojson "$BASE/"
+            cp /tmp/g040_domain_contract_latest.json "$BASE/"
+            cp /tmp/g040_ecmwf_buffer_grid_latest.json "$BASE/"
+            cp /tmp/g040_ecmwf_buffer_hourly.csv "$BASE/"
+            cp /tmp/g040_basin_snapshot_latest.json "$BASE/"
+            cp /tmp/g040_basin_controls_latest.csv "$BASE/"
+            cp /tmp/g040_basin_network_latest.csv "$BASE/"
+
+            git add --               "$BASE/g040_basin_mask.geojson"               "$BASE/g040_download_buffer.geojson"               "$BASE/g040_domain_contract_latest.json"               "$BASE/g040_ecmwf_buffer_grid_latest.json"               "$BASE/g040_ecmwf_buffer_hourly.csv"               "$BASE/g040_basin_snapshot_latest.json"               "$BASE/g040_basin_controls_latest.csv"               "$BASE/g040_basin_network_latest.csv"
+
+            if git diff --cached --quiet; then
+              exit 0
+            fi
+
+            git commit -m "bot: update G040 full-basin domain and meteorological field [skip ci]"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          exit 1
