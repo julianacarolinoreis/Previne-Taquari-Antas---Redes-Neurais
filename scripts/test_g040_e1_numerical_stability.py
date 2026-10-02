@@ -43,9 +43,15 @@ class TestNumerics(unittest.TestCase):
         self.assertLessEqual(2*ks*0.2-1e-12,dt)
         self.assertLessEqual(dt,2*ks*(1-0.2)+1e-12)
 
-    def test_hourly_sampling(self):
-        vals=list(range(121))
-        self.assertEqual(m.hourly_simulation_values(vals,3),[0,20,40])
+    def test_dss_time_conversion_preserves_project_timezone(self):
+        from datetime import datetime, timezone
+        # 2023-09-01 00:00 local BRT must become 03:00 UTC.
+        local=datetime(2023,9,1,0,0)
+        minutes=int((local-m.DSS_EPOCH).total_seconds()/60)
+        self.assertEqual(
+            m.dss_time_to_utc(minutes),
+            datetime(2023,9,1,3,0,tzinfo=timezone.utc),
+        )
 
 if __name__=="__main__":
     unittest.main()
