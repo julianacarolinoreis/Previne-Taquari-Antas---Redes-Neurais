@@ -1,0 +1,61 @@
+name: Vulnerabilidade spatial audit
+
+on:
+  push:
+    branches:
+      - analysis-vulnerabilidade-spatial-main-20261001
+    paths:
+      - "scripts/analyze_vulnerabilidade_spatial_full.py"
+      - "scripts/test_vulnerabilidade_spatial_ui.py"
+      - "vulnerabilidade.html"
+      - ".github/workflows/vulnerabilidade-spatial-audit.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install spatial statistics stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install geopandas libpysal esda pyproj shapely pandas numpy scipy
+
+      - name: Run full-basin vulnerability spatial analysis
+        run: |
+          python scripts/analyze_vulnerabilidade_spatial_full.py
+
+      - name: Publish web analysis assets on analysis branch
+        run: |
+          mkdir -p assets/data/vulnerabilidade/analises_spaciais
+          cp artifacts/vulnerabilidade_spatial_audit/analysis_vulnerabilidade_spatial_full.json assets/data/vulnerabilidade/analises_spaciais/analysis_vulnerabilidade_spatial_full.json
+          cp artifacts/vulnerabilidade_spatial_audit/lisa_setores_bacia.geojson assets/data/vulnerabilidade/analises_spaciais/lisa_setores_bacia.geojson
+          cp artifacts/vulnerabilidade_spatial_audit/lisa_classificacao_setores.json assets/data/vulnerabilidade/analises_spaciais/lisa_classificacao_setores.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/data/vulnerabilidade/analises_spaciais/
+          if ! git diff --cached --quiet; then
+            git commit -m "data: publish vulnerability spatial analysis assets"
+            git push
+          fi
+
+      - name: Validate published vulnerability contract
+        run: |
+          python scripts/validate_vulnerabilidade_publicacao.py
+          python scripts/test_vulnerabilidade_spatial_ui.py
+
+      - name: Upload analysis artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerabilidade-spatial-audit
+          path: artifacts/vulnerabilidade_spatial_audit/
+          if-no-files-found: error
