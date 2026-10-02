@@ -494,16 +494,12 @@ for cid,vals in rain_values.items():
     put("/G040/%s/PRECIP-INC/%s/1Hour/FORECAST/"%(cid,dp),vals,"MM","PER-CUM")
 dss.close()
 
-# Read back every monthly DSS block that HEC-DSS creates for a regular
-# time series. A multi-day hindcast can cross a month boundary.
+# Read back every cataloged DSS block belonging to each regular series.
+# HEC-DSS can place a value at 00:00 on the first day of a month in the
+# previous monthly block (interval-ending convention). Never infer D-parts
+# from the simulation timestamps; discover the actual blocks written.
 dss=HecDss.open(project_dir+"/input.dss")
-month_names=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-month_tokens=[]
-for stamp in times:
-    y=int(stamp[0:4]); m=int(stamp[5:7])
-    token="01%s%04d"%(month_names[m-1],y)
-    if token not in month_tokens:
-        month_tokens.append(token)
+catalog=list(dss.getCatalogedPathnames())
 
 required=[]
 for code in source_values.keys():
@@ -513,11 +509,14 @@ for cid in rain_values.keys():
 
 for kind,name in required:
     total=0
-    for block in month_tokens:
-        if kind=="FLOW":
-            path="/G040/%s/FLOW/%s/1Hour/FORECAST/"%(name,block)
-        else:
-            path="/G040/%s/PRECIP-INC/%s/1Hour/FORECAST/"%(name,block)
+    if kind=="FLOW":
+        prefix="/G040/%s/FLOW/"%name
+    else:
+        prefix="/G040/%s/PRECIP-INC/"%name
+    suffix="/1Hour/FORECAST/"
+    blocks=[path for path in catalog if path.startswith(prefix) and path.endswith(suffix)]
+    blocks.sort()
+    for path in blocks:
         series=dss.get(path)
         n=int(getattr(series,"numberValues",0) or 0)
         print("DSS_PREFLIGHT_BLOCK|%s|%d"%(path,n))

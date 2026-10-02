@@ -64,12 +64,14 @@ class E1ContractTests(unittest.TestCase):
         self.assertIn("Filepath Separator: \\\nEnd:",g)
         self.assertNotIn("Filepath Separator: End:",g)
 
-    def test_jython_preflight_handles_month_blocks(self):
+    def test_jython_preflight_discovers_actual_month_blocks(self):
         src=MOD.read_text(encoding="utf-8")
         self.assertIn("DSS_PREFLIGHT_BLOCK",src)
         self.assertIn("DSS_PREFLIGHT_TOTAL",src)
-        self.assertIn('month_tokens=[]',src)
-        self.assertIn('token="01%s%04d"',src)
+        self.assertIn("getCatalogedPathnames",src)
+        self.assertIn("path.startswith(prefix)",src)
+        self.assertIn("path.endswith(suffix)",src)
+        self.assertNotIn("month_tokens=[]",src)
 
 if __name__=="__main__":
     unittest.main()
