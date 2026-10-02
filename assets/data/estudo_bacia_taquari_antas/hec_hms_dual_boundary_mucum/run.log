@@ -5,14 +5,15 @@ Unable to revert mtime: /usr/share/fonts/truetype/dejavu
 Unable to revert mtime: /usr/share/fonts/truetype/lato
 Unable to revert mtime: /usr/share/fonts/truetype/liberation
 Unable to revert mtime: /usr/share/fonts/truetype/noto
-Oct 02, 2026 4:56:53 PM hms.model.JythonHms runScript
-WARNING: SystemExit: 1
+Oct 02, 2026 5:23:35 PM hms.model.JythonHms runScript
+WARNING: ValueError: Simulation run "Forecast" failed.
 Traceback (most recent call last):
-  File "/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/project/run.script", line 44, in <module>
-    fo.close(); dss.close(); Exit(1)
-SystemExit: 1
+  File "/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/project/run.script", line 33, in <module>
+    Compute("Forecast")
+ValueError: Simulation run "Forecast" failed.
 
-	at hms.model.JythonHms.Exit(Unknown Source)
+	at hms.model.JythonHms.ComputeRun(Unknown Source)
+	at hms.model.JythonHms.Compute(Unknown Source)
 	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
 	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(Unknown Source)
 	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(Unknown Source)
@@ -31,6 +32,10 @@ SystemExit: 1
 	at hms.model.JythonHms.runScript(Unknown Source)
 	at hms.Hms.main(Unknown Source)
 
+Traceback (most recent call last):
+  File "/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/project/run.script", line 33, in <module>
+    Compute("Forecast")
+ValueError: Simulation run "Forecast" failed.
 
 HEC-HMS found at:  /home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/.hec/HEC-HMS-4.13
 
@@ -39,29 +44,29 @@ WARNING : Virtual display server is not running.
 
 /home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/.hec/HEC-HMS-4.13/bin/taudem:/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/.hec/HEC-HMS-4.13/bin/migrate-to-dss-7/bin:/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/.hec/HEC-HMS-4.13/bin/mpi:/opt/hostedtoolcache/Python/3.11.16/x64/bin:/opt/hostedtoolcache/Python/3.11.16/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
  
-16:56:53.400      -----DSS---zopen   Existing file opened,  File: /home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/project/input.dss
-16:56:53.400                         Handle 150;  Process: 2208;  DSS Versions - Software: 7-IU, File:  7-IU
-16:56:53.400                         Single-user advisory access mode
-16:56:53.400 -----DSS--- zread   Handle 150;  Version 762:  /MUCUM/LJJ/FLOW/01Oct2026/1Hour/FORECAST/
-16:56:53.400 -----DSS--- zwrite  Handle 150;  Version 763:  /MUCUM/LJJ/FLOW/01Oct2026/1Hour/FORECAST/
-16:56:53.402 -----DSS--- zread   Handle 150;  Version 762:  /MUCUM/CARR/FLOW/01Oct2026/1Hour/FORECAST/
-16:56:53.402 -----DSS--- zwrite  Handle 150;  Version 763:  /MUCUM/CARR/FLOW/01Oct2026/1Hour/FORECAST/
-16:56:53.404 -----DSS--- zread   Handle 150;  Version 762:  /MUCUM/RESIDUAL/PRECIP-INC/01Oct2026/1Hour/FORECAST/
-16:56:53.404 -----DSS--- zwrite  Handle 150;  Version 763:  /MUCUM/RESIDUAL/PRECIP-INC/01Oct2026/1Hour/FORECAST/
-16:56:53.404      -----DSS---zclose  Handle 150;  Process: 2208;  File: /home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/project/input.dss
-16:56:53.404                         Number records:         3
-16:56:53.404                         File size:              16491  64-bit words
-16:56:53.404                         File size:              128 Kb;  0 Mb
-16:56:53.404                         Dead space:             469
-16:56:53.404                         Hash range:             8192
-16:56:53.404                         Number hash used:       3
-16:56:53.404                         Max paths for hash:     1
-16:56:53.404                         Corresponding hash:     4178
-16:56:53.404                         Number non unique hash: 0
-16:56:53.404                         Number bins used:       3
-16:56:53.404                         Number overflow bins:   0
-16:56:53.404                         Number physical reads:  46
-16:56:53.404                         Number physical writes: 19
-16:56:53.404                         Number denied locks:    0
+ERROR 12550:  Error executing script: "/home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/project/run.script"
+17:23:34.733      -----DSS---zopen   Existing file opened,  File: /home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/project/input.dss
+17:23:34.733                         Handle 150;  Process: 2533;  DSS Versions - Software: 7-IU, File:  7-IU
+17:23:34.733                         Single-user advisory access mode
+17:23:34.733 -----DSS--- zread   Handle 150;  Version 762:  /MUCUM/LJJ/FLOW/01Oct2026/1Hour/FORECAST/
+17:23:34.733 -----DSS--- zwrite  Handle 150;  Version 763:  /MUCUM/LJJ/FLOW/01Oct2026/1Hour/FORECAST/
+17:23:34.737 -----DSS--- zread   Handle 150;  Version 762:  /MUCUM/CARR/FLOW/01Oct2026/1Hour/FORECAST/
+17:23:34.737 -----DSS--- zwrite  Handle 150;  Version 763:  /MUCUM/CARR/FLOW/01Oct2026/1Hour/FORECAST/
+17:23:34.740 -----DSS--- zread   Handle 150;  Version 762:  /MUCUM/RESIDUAL/PRECIP-INC/01Oct2026/1Hour/FORECAST/
+17:23:34.740 -----DSS--- zwrite  Handle 150;  Version 763:  /MUCUM/RESIDUAL/PRECIP-INC/01Oct2026/1Hour/FORECAST/
+17:23:34.740      -----DSS---zclose  Handle 150;  Process: 2533;  File: /home/runner/work/Previne-Taquari-Antas---Redes-Neurais/Previne-Taquari-Antas---Redes-Neurais/assets/data/estudo_bacia_taquari_antas/hec_hms_dual_boundary_mucum/project/input.dss
+17:23:34.740                         Number records:         3
+17:23:34.740                         File size:              16491  64-bit words
+17:23:34.740                         File size:              128 Kb;  0 Mb
+17:23:34.740                         Dead space:             469
+17:23:34.740                         Hash range:             8192
+17:23:34.740                         Number hash used:       3
+17:23:34.740                         Max paths for hash:     1
+17:23:34.740                         Corresponding hash:     4178
+17:23:34.740                         Number non unique hash: 0
+17:23:34.740                         Number bins used:       3
+17:23:34.740                         Number overflow bins:   0
+17:23:34.740                         Number physical reads:  46
+17:23:34.740                         Number physical writes: 19
+17:23:34.740                         Number denied locks:    0
 
-DUAL_BOUNDARY_RESULT={"current": {"observed_time_local": "2026-10-02T13:30", "observed_stage_cm": 579.0, "model_stage_cm": 515.15, "stage_error_cm": -63.85, "model_q_m3s": 1108.34, "observed_slope_cm_h": -4.0, "model_slope_cm_h": -3.92, "slope_error_cm_h": 0.08}, "recent_fit_6h": {"n": 25, "raw_rmse_cm": 63.76, "raw_bias_cm": -63.75, "nse": -77.1874, "conditioned_rmse_cm": 0.67, "conditioned_bias_cm": 0.1, "operational_state_mode": "explicit_observed_stage_conditioning", "state_assimilation_applied": true}, "peak": {"time_local": "2026-10-06T14:00", "stage_cm": 1016.93, "q_m3s": 3022.82, "rise_from_observed_cm": 437.93}, "publishable": false, "boundary_audit": {"linha_jose_julio": {"station": "86472000", "last_observed_local": "2026-10-02T13:00", "last_observed_q_m3s": 874.683, "model_anchor_local": "2026-10-02T13:00", "model_anchor_q_m3s": 630.937, "observed_network_state_slope_m3s_h": -12.82, "memory_tau_h": 3.0}, "passo_carreiro": {"station": "86500000", "last_observed_local": "2026-10-02T13:00", "last_observed_q_m3s": 137.48, "model_anchor_local": "2026-10-02T13:00", "model_anchor_q_m3s": 137.48, "observed_network_state_slope_m3s_h": -1.946, "memory_tau_h": 3.0}, "carreiro_state_scaling": {"q_before": 12.82095, "q_direct": 0.0, "target": 137.48, "factor": 10.723074343164898}, "observed_event_lag": {"best_lag_h": 3, "best": {"lag_h": 3, "n": 25, "corr": 0.9881378128609991, "rmse_m3s": 37.167113062176355, "intercept": 217.51058317768434, "slope": 1.0945392376589853}, "trials": [{"lag_h": 0, "n": 25, "corr": 0.8662681899199856, "rmse_m3s": 120.90871032776232, "intercept": 422.53472416402155, "slope": 0.9944095927618548}, {"lag_h": 1, "n": 25, "corr": 0.9173470049423045, "rmse_m3s": 96.34581569517304, "intercept": 342.4569383150988, "slope": 1.0378051370393035}, {"lag_h": 2, "n": 25, "corr": 0.9665547948017502, "rmse_m3s": 62.06877281035144, "intercept": 263.8426005123556, "slope": 1.0787904521560006}, {"lag_h": 3, "n": 25, "corr": 0.9881378128609991, "rmse_m3s": 37.167113062176355, "intercept": 217.51058317768434, "slope": 1.0945392376589853}, {"lag_h": 4, "n": 25, "corr": 0.9739717268819952, "rmse_m3s": 54.858804880255, "intercept": 223.08959010687067, "slope": 1.0714358942514053}, {"lag_h": 5, "n": 25, "corr": 0.9364931302654093, "rmse_m3s": 84.87338710691692, "intercept": 273.8045808532229, "slope": 1.0154854140327991}, {"lag_h": 6, "n": 25, "corr": 0.8931642694166008, "rmse_m3s": 108.84428034202745, "intercept": 387.5837631718607, "slope": 0.912800855010093}]}}}
