@@ -36,6 +36,7 @@ CONFLUENCES = ROOT / "assets/data/estudo_bacia_taquari_antas/subbacias_e_fozes_l
 SOURCE_INVENTORY = ROOT / "assets/data/g040_hydro_stack/project_source_inventory_latest.json"
 OUT = ROOT / "assets/data/g040_hydro_stack/mucum_ras_prep"
 SGB_LST = OUT / "mucum_sgb_lst_evidence_latest.json"
+ALL_SECTION_EVIDENCE = OUT / "all_sections_hydraulic_evidence_latest.json"
 
 WGS84 = "EPSG:4326"
 UTM22S = "EPSG:31982"
@@ -382,6 +383,13 @@ def write_hydrograph_candidate():
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
 
+    evidence_registry = load_json(ALL_SECTION_EVIDENCE) if ALL_SECTION_EVIDENCE.exists() else {}
+    evidence_by_section = {
+        str(x.get("section_id")): x
+        for x in (evidence_registry.get("sections") or [])
+        if x.get("section_id")
+    }
+
     audit, idmap, river_named = load_network()
     p1_ids = audit["topology"]["paths"]["86472000_to_86472600"]["segments"]
     p2_ids = audit["topology"]["paths"]["86472600_to_86510000"]["segments"]
@@ -460,6 +468,15 @@ def main():
             "channel_bed_source": "SGB_MEASURED_LST_EVIDENCE_PROFILE_NOT_YET_DIGITIZED" if sgb_lst else "MISSING_AUDITED_BATHYMETRY",
             "hydraulic_use": "NOT_COMPUTE_READY",
         }
+        ev = evidence_by_section.get(sid) or {}
+        summary.update({
+            "evidence_registry_loaded": bool(ev),
+            "evidence_measured_channel_profile": bool(ev.get("measured_channel_profile")),
+            "evidence_rating_curve": bool(ev.get("rating_curve")),
+            "evidence_absolute_vertical_datum_reconciled": bool(ev.get("absolute_vertical_datum_reconciled")),
+            "evidence_channel_geometry_use": ev.get("channel_geometry_use"),
+            "evidence_compute_ready_channel": bool(ev.get("compute_ready_channel")),
+        })
         summaries.append(summary)
 
         section_features.append({
@@ -483,6 +500,28 @@ def main():
         w = csv.DictWriter(fh, fieldnames=fields)
         w.writeheader()
         w.writerows(summaries)
+
+    evidence_rows = []
+    for s in summaries:
+        ev = evidence_by_section.get(s["section_id"]) or {}
+        evidence_rows.append({
+            "section_id": s["section_id"],
+            "location": ev.get("location"),
+            "terrain_source": s.get("terrain_source"),
+            "terrain_resolution_m": s.get("nominal_resolution_m"),
+            "measured_channel_profile": bool(ev.get("measured_channel_profile")),
+            "rating_curve": bool(ev.get("rating_curve")),
+            "flood_stage_constraints_n": len(ev.get("flood_stage_constraints") or []),
+            "absolute_vertical_datum_reconciled": bool(ev.get("absolute_vertical_datum_reconciled")),
+            "channel_geometry_use": ev.get("channel_geometry_use"),
+            "compute_ready_channel": bool(ev.get("compute_ready_channel")),
+        })
+    if evidence_rows:
+        with (OUT / "cross_section_evidence.csv").open("w", newline="", encoding="utf-8") as fh:
+            fields = list(evidence_rows[0].keys())
+            w = csv.DictWriter(fh, fieldnames=fields)
+            w.writeheader()
+            w.writerows(evidence_rows)
 
     (OUT / "cross_sections.geojson").write_text(
         json.dumps({
@@ -518,6 +557,11 @@ def main():
             "placement_audit": placement_audit,
         },
         "sections": summaries,
+        "all_sections_hydraulic_evidence": {
+            "path": str(ALL_SECTION_EVIDENCE.relative_to(ROOT)).replace("\\", "/"),
+            "loaded": bool(evidence_registry),
+            "overall": evidence_registry.get("overall"),
+        },
         "terrain_policy": {
             "priority": [x["id"] for x in TERRAIN],
             "sample_step_m": SAMPLE_STEP_M,
@@ -539,6 +583,8 @@ def main():
             "channel_bathymetry_audited": bool(materialized_bathy),
             "measured_s09_cross_section_evidence_found": SGB_LST.exists(),
             "measured_s09_full_numeric_profile_recovered": False,
+            "all_sections_evidence_registry_loaded": bool(evidence_registry),
+            "all_sections_compute_ready_channel": bool(evidence_registry) and all(bool((evidence_by_section.get(sid) or {}).get("compute_ready_channel")) for sid in [f"S{i:02d}" for i in range(1,10)]),
             "bridges_and_contractions_audited": False,
             "manning_calibrated": False,
             "santa_tereza_upstream_hydrograph_validated": False,
@@ -554,6 +600,8 @@ def main():
             "cross_sections.geojson",
             "cross_section_profiles.csv",
             "cross_section_summary.csv",
+            "cross_section_evidence.csv",
+            "all_sections_hydraulic_evidence_latest.json",
             "stz_to_mucum_hydrograph_candidate.csv",
             "mucum_sgb_lst_evidence_latest.json",
             "mucum_hydraulic_geometry_prep_latest.json",
