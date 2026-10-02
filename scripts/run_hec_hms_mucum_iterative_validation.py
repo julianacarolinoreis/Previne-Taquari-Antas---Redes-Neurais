@@ -66,7 +66,12 @@ def norm(c):
     for k in ("dn_initial_loss_scale","dn_constant_loss_scale","dn_tc_scale","dn_storage_scale"):
         x[k]=round(clamp(x[k],0.45,1.80),3)
     x["dn_recession_scale"]=round(clamp(x["dn_recession_scale"],0.75,1.20),3)
-    x["dn_flow_ratio_scale"]=round(clamp(x["dn_flow_ratio_scale"],0.40,1.80),3)
+    # Initial residual flow is an event-state variable, not a fixed historical
+    # calibration coefficient. During a wet/flood recession, the observed
+    # ungauged incremental contribution can be tens of times the dry-event
+    # library seed (0.005 m3/s/km2). Allow the optimizer to represent that
+    # stored water explicitly instead of compensating with a vertical stage shift.
+    x["dn_flow_ratio_scale"]=round(clamp(x["dn_flow_ratio_scale"],0.20,80.0),3)
     return x
 
 PARAM_KEYS=tuple(DEFAULT.keys())
@@ -245,6 +250,23 @@ def memory_x_candidates(best):
       q=dict(b);q["x"]=x;q["memory_tau_h"]=tau;out.append(norm(q))
     return out
 
+def residual_state_candidates(best):
+    """Search the live residual/baseflow state before retuning event physics.
+
+    The current Muçum residual is diagnosed from past observations as a nearly
+    constant missing discharge while the hydrograph slope is already correct.
+    Therefore initial residual flow is searched over a broad wet-state range
+    before changing losses/Clark timing.
+    """
+    if not best:return []
+    b=norm(best);out=[]
+    for fr in (3,5,8,12,16,20,25,30,35,40,45,50,55,60,70):
+      q=dict(b);q["dn_flow_ratio_scale"]=fr;out.append(norm(q))
+    # Recession controls how quickly that assimilated stored-water state decays.
+    for fr,rec in ((20,0.90),(30,0.95),(40,0.98),(45,1.0),(50,1.0),(55,1.0),(60,1.0),(50,1.03),(50,1.06)):
+      q=dict(b);q["dn_flow_ratio_scale"]=fr;q["dn_recession_scale"]=rec;out.append(norm(q))
+    return out
+
 def residual_coordinate_candidates(best):
     if not best:return []
     b=norm(best);out=[]
@@ -254,7 +276,7 @@ def residual_coordinate_candidates(best):
       "dn_tc_scale":(0.65,0.80,1.0,1.20,1.40),
       "dn_storage_scale":(0.65,0.80,1.0,1.20,1.40),
       "dn_recession_scale":(0.85,0.95,1.0,1.05,1.12),
-      "dn_flow_ratio_scale":(0.60,0.80,1.0,1.20,1.50),
+      "dn_flow_ratio_scale":(10,20,30,40,45,50,55,60,70),
     }
     for name,vals in choices.items():
       for v in vals:
@@ -273,7 +295,7 @@ def residual_mixed_candidates(best):
     ]
     for il,cl,tc,st in combos:
       q=dict(b);q.update(dn_initial_loss_scale=il,dn_constant_loss_scale=cl,dn_tc_scale=tc,dn_storage_scale=st);out.append(norm(q))
-    for fr,rec in ((0.65,0.90),(0.80,0.95),(1.20,1.05),(1.45,1.08)):
+    for fr,rec in ((20,0.90),(30,0.95),(40,0.98),(45,1.0),(50,1.0),(55,1.0),(60,1.02),(70,1.05)):
       q=dict(b);q["dn_flow_ratio_scale"]=fr;q["dn_recession_scale"]=rec;out.append(norm(q))
     return out
 
@@ -287,7 +309,7 @@ def fine_candidates(best):
       "dn_constant_loss_scale":(-0.10,0.10),
       "dn_tc_scale":(-0.10,0.10),
       "dn_storage_scale":(-0.10,0.10),
-      "dn_flow_ratio_scale":(-0.10,0.10),
+      "dn_flow_ratio_scale":(-5.0,-2.0,2.0,5.0),
     }
     for name,ds in perturb.items():
       for d in ds:
@@ -305,6 +327,7 @@ def main():
 
     stage_builders=[
       lambda best: base_candidates(),
+      residual_state_candidates,
       lambda best: route_refine(best,0.15),
       memory_x_candidates,
       residual_coordinate_candidates,
