@@ -1678,6 +1678,10 @@
   const basinById=id=>document.getElementById(id);
   const basinFinite=value=>value!==null && value!=='' && Number.isFinite(Number(value));
   const basinNumber=value=>basinFinite(value)?Number(value):null;
+  // Research quality gate, also applied to legacy snapshots before the new
+  // producer is deployed. Unknown vertical datums are not converted to stage.
+  const basinLevelNumber=value=>{const n=basinNumber(value);return n!==null&&n>=0&&n<=5000?n:null;};
+  const basinSourceObservationUsable=item=>!!(item&&String(item.source_status)==='0'&&basinFinite(item.value)&&(item.metric!=='chuva_acumulada_24h_mm'||Number(item.value)>=0));
   const basinFold=value=>String(value==null?'':value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   const basinEscape=value=>String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const basinStationId=st=>String(st.id || ((st.network || 'ANA')+':'+(st.code&&st.code!=='—'?st.code:[st.name||'station',st.latitude??st.lat,st.longitude??st.lon].join('|'))));
@@ -1808,8 +1812,8 @@
   const basinHasAnyObserved=st=>{
     if(!st)return false;
     if(st.observed_rain&&st.observed_rain.state==='available')return true;
-    if(st.level&&['available','partial'].includes(st.level.state))return true;
-    return Array.isArray(st.source_observations)&&st.source_observations.some(item=>item&&basinFinite(item.value));
+    if(st.level&&basinLevelNumber(st.level.current_cm)!==null&&['available','partial'].includes(st.level.state))return true;
+    return Array.isArray(st.source_observations)&&st.source_observations.some(basinSourceObservationUsable);
   };
   const basinSourceObservationLabel=metric=>({
     chuva_acumulada_24h_mm:'Chuva acumulada observada · 24h',
@@ -1818,7 +1822,8 @@
   const basinSourceObservationValue=item=>{
     if(!item||!basinFinite(item.value))return 'indisponível';
     const value=Number(item.value).toLocaleString('pt-BR',{maximumFractionDigits:3});
-    return value+(item.unit?' '+item.unit:'');
+    const measured=value+(item.unit?' '+item.unit:'');
+    return basinSourceObservationUsable(item)?measured:'indisponível · valor bruto '+measured+' (não utilizável)';
   };
   const basinObservedWindowNote=(window,obs)=>{
     if(!window)return 'janela observada não publicada · intervalo não publicado · '+basinObservedRainAge(obs);
@@ -1841,7 +1846,7 @@
     if(isLevel)return {category:'flow',label:'fluviométrica',color:'#1b7a5a',isLevel:true,isRain:isRain};
     return {category:'rain',label:'pluviométrica',color:'#2878c8',isLevel:false,isRain:true};
   };
-  const basinHasData=st=>(st.forecast&&st.forecast.state==='available')||(st.observed_rain&&st.observed_rain.state==='available')||(st.level&&st.level.state==='available')||(Array.isArray(st.source_observations)&&st.source_observations.some(item=>basinFinite(item&&item.value)));
+  const basinHasData=st=>(st.forecast&&st.forecast.state==='available')||basinHasAnyObserved(st);
   const basinStateSummary=st=>{
     const bits=[];
     if(st.forecast&&st.forecast.state==='available')bits.push('previsão: '+Object.keys(st.forecast.models||{}).length+' modelos');
@@ -1849,9 +1854,9 @@
     if(st.observed_rain&&st.observed_rain.state==='available')bits.push('chuva observada · '+basinObservedRainAge(st.observed_rain));
     const cemaden=basinCemadenRain24(st);
     if(cemaden)bits.push('CEMADEN 24h: '+basinFormat(cemaden.value,'precipitation')+' · horário da leitura não informado');
-    if(st.level&&st.level.state==='available')bits.push('nível: '+basinFormat(st.level.current_cm,'level_cm'));
+    if(st.level&&st.level.state==='available'&&basinLevelNumber(st.level.current_cm)!==null)bits.push('nível: '+basinFormat(st.level.current_cm,'level_cm'));
     const extraObserved=Array.isArray(st.source_observations)
-      ?st.source_observations.filter(item=>item&&basinFinite(item.value)&&item.metric!=='chuva_acumulada_24h_mm')
+      ?st.source_observations.filter(item=>basinSourceObservationUsable(item)&&item.metric!=='chuva_acumulada_24h_mm')
       :[];
     if(extraObserved.length)bits.push(extraObserved.slice(0,2).map(item=>basinSourceObservationLabel(item.metric)+': '+basinSourceObservationValue(item)).join(' · '));
     return bits.join(' · ')||'sem série observada no feed atual';
@@ -2086,7 +2091,7 @@
   const basinTimelineObservedRows=(st,metric)=>{
     if(metric==='level_cm'){
       const rows=st&&st.level&&Array.isArray(st.level.series)?st.level.series:[];
-      return rows.filter(row=>row&&Number.isFinite(Date.parse(row.time))&&basinFinite(row.cm)).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time)).slice(-6).map(row=>({time:row.time,value:Number(row.cm),unit:'cm'}));
+      return rows.filter(row=>row&&Number.isFinite(Date.parse(row.time))&&basinLevelNumber(row.cm)!==null).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time)).slice(-6).map(row=>({time:row.time,value:basinLevelNumber(row.cm),unit:'cm'}));
     }
     if(metric!=='precipitation')return [];
     const rows=st&&st.observed_rain&&Array.isArray(st.observed_rain.rows)?st.observed_rain.rows:[];
@@ -2100,13 +2105,13 @@
       const level=st&&st.level;
       const raw=level&&Array.isArray(level.forecasts)?level.forecasts:[];
       const observed=level&&Array.isArray(level.series)?level.series:[];
-      const validTimes=observed.filter(row=>row&&basinFinite(row.cm)).map(row=>Date.parse(row.time)).filter(Number.isFinite);
+      const validTimes=observed.filter(row=>row&&basinLevelNumber(row.cm)!==null).map(row=>Date.parse(row.time)).filter(Number.isFinite);
       const lastObservedMs=validTimes.length?Math.max.apply(null,validTimes):NaN;
       const floorMs=Math.max(Date.now(),Number.isFinite(lastObservedMs)?lastObservedMs:0);
       const groups={};
       raw.forEach(item=>{
         const ms=Date.parse(item&&item.time);
-        const value=basinNumber(item&&item.cm);
+        const value=basinLevelNumber(item&&item.cm);
         if(!Number.isFinite(ms)||ms<=floorMs||value===null)return;
         const key=new Date(ms).toISOString();
         if(!groups[key])groups[key]=[];
@@ -2145,7 +2150,7 @@
     const forecastRows=basinTimelineForecastRows(st,metric,6);
     const cemadenRain=isRain?basinCemadenRain24(st):null;
     const cemadenPanelTime=cemadenRain&&cemadenRain.updated_at_utc?String(cemadenRain.updated_at_utc).replace(' UTC','Z').replace(' ','T'):null;
-    const observedValid=observedSource.filter(row=>row&&basinFinite(isLevel?row.cm:row.mm));
+    const observedValid=observedSource.filter(row=>row&&(isLevel?basinLevelNumber(row.cm)!==null:basinFinite(row.mm)));
     const observedUnit=basinMetricDef(metric).unit||'';
     const lastObserved=observedRows[observedRows.length-1];
     const observedValue=lastObserved?basinFormat(lastObserved.value,metric):(cemadenRain?basinFormat(cemadenRain.value,'precipitation'):'não publicado');
@@ -2237,7 +2242,7 @@
     const level=st&&st.level;
     const observedSeries=level&&Array.isArray(level.series)?level.series.map(row=>({
       time:row&&row.time,
-      value:basinNumber(row&&row.cm)
+      value:basinLevelNumber(row&&row.cm)
     })).filter(row=>Number.isFinite(Date.parse(row.time))).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time)):[];
     const observed=observedSeries.filter(row=>row.value!==null);
     const levelForecastFloor=Math.max(
@@ -2247,7 +2252,7 @@
     );
     const forecasts=level&&Array.isArray(level.forecasts)?level.forecasts.map(item=>({
       time:item&&item.time,
-      value:basinNumber(item&&item.cm),
+      value:basinLevelNumber(item&&item.cm),
       label:item&&item.label||'RNA',
       color:item&&item.color||'#64748b'
     })).filter(item=>{
@@ -2497,9 +2502,9 @@
     const rnaFallbackApplicable=['86472600','86510000'].includes(String(st.code||''));
     const rnaApplicable=level&&typeof level.forecast_applicable==='boolean'?level.forecast_applicable:rnaFallbackApplicable;
     const rnaForecasts=level&&Array.isArray(level.forecasts)?level.forecasts:[];
-    const rnaFallback=rnaForecasts.filter(item=>item&&basinFinite(item.cm)&&Date.parse(item.time)>Date.now()).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time))[0]||null;
-    const topRnaCurrent=level&&basinNumber(level.forecast_cm)!==null&&Date.parse(level.forecast_at_utc)>Date.now();
-    const rnaValue=topRnaCurrent?basinNumber(level.forecast_cm):(rnaFallback?basinNumber(rnaFallback.cm):null);
+    const rnaFallback=rnaForecasts.filter(item=>item&&basinLevelNumber(item.cm)!==null&&Date.parse(item.time)>Date.now()).sort((a,b)=>Date.parse(a.time)-Date.parse(b.time))[0]||null;
+    const topRnaCurrent=level&&basinLevelNumber(level.forecast_cm)!==null&&Date.parse(level.forecast_at_utc)>Date.now();
+    const rnaValue=topRnaCurrent?basinLevelNumber(level.forecast_cm):(rnaFallback?basinLevelNumber(rnaFallback.cm):null);
     const rnaTime=topRnaCurrent?level.forecast_at_utc:(rnaFallback&&rnaFallback.time||null);
     const rnaAvailable=rnaValue!==null;
     const forecastLevel=rnaAvailable?basinFormat(rnaValue,'level_cm'):(rnaApplicable?'indisponível':'—');
@@ -2523,7 +2528,8 @@
     const pressure=pressureStats.value;
     const probability=probabilityStats.value;
     const soil=soilStats.value;
-    const levelNote=level&&level.state==='available'
+    const observedLevelUsable=level&&level.state==='available'&&basinLevelNumber(level.current_cm)!==null;
+    const levelNote=observedLevelUsable
       ?(level.observed_at_utc?'observado em '+basinDate(level.observed_at_utc)+' · '+basinMinutesNote(level.observed_age_minutes):'idade não informada')
       :'telemetria indisponível';
     const selectedCount=basinModelIdsForSelection().length;
@@ -2559,7 +2565,7 @@
       basinMetricCard('Chuva prevista · 48 h',forecastRain48Stats.value===null?'indisponível':basinFormat(forecastRain48Stats.value,'precipitation'),windowNote(forecastRain48Stats,48),basinStatsStatus(forecastRain48Stats))+
       basinMetricCard('Chuva prevista · 72 h',forecastRain72Stats.value===null?'indisponível':basinFormat(forecastRain72Stats.value,'precipitation'),windowNote(forecastRain72Stats,72),basinStatsStatus(forecastRain72Stats))+
       basinMetricCard('Probabilidade de chuva',probability===null?'indisponível':basinFormat(probability,'precipitation_probability'),currentMetricNote(probabilityStats,''),basinStatsStatus(probabilityStats))+
-      basinMetricCard('Nível observado',level&&level.state==='available'?basinFormat(level.current_cm,'level_cm'):'indisponível',levelNote+(level&&level.trend_label?' · '+level.trend_label:'')+(level&&level.trend_cm_per_hour!==null&&level.trend_cm_per_hour!==undefined?' · '+basinFormat(level.trend_cm_per_hour,'level_cm')+'/h':''),level&&level.state==='available'?'complete':'unavailable')+
+      basinMetricCard('Nível observado',observedLevelUsable?basinFormat(level.current_cm,'level_cm'):'indisponível',levelNote+(observedLevelUsable&&level.trend_label?' · '+level.trend_label:'')+(observedLevelUsable&&level.trend_cm_per_hour!==null&&level.trend_cm_per_hour!==undefined?' · '+basinFormat(level.trend_cm_per_hour,'level_cm')+'/h':''),observedLevelUsable?'complete':'unavailable')+
       basinMetricCard('Nível previsto · RNA',forecastLevel,rnaNote,rnaStatus)+
       basinMetricCard('Temperatura prevista',temp===null?'indisponível':basinFormat(temp,'temperature_2m'),currentMetricNote(tempStats,''),basinStatsStatus(tempStats))+
       basinMetricCard('Umidade prevista',humidity===null?'indisponível':basinFormat(humidity,'relative_humidity_2m'),currentMetricNote(humidityStats,''),basinStatsStatus(humidityStats))+
@@ -2577,7 +2583,7 @@
         '<p>Valores trazidos diretamente dos painéis/fontes complementares da estação. O horário abaixo é o horário de atualização informado pela fonte; quando a fonte não publica o instante individual da medição, isso é mantido explícito.</p>'+
         '<div class="station-source-table-wrap"><table class="station-source-table"><thead><tr><th>Fonte</th><th>Variável</th><th>Valor</th><th>Atualização da fonte</th><th>Estado</th></tr></thead><tbody>';
       sourceObservations.forEach(item=>{
-        const ok=String(item.source_status)==='0'&&basinFinite(item.value);
+        const ok=basinSourceObservationUsable(item);
         const updated=item.updated_at_utc?String(item.updated_at_utc).replace(' UTC','')+' UTC':'não informado';
         html+='<tr><td>'+basinEscape(item.source||'fonte não informada')+'</td>'+
           '<td>'+basinEscape(basinSourceObservationLabel(item.metric))+'</td>'+
@@ -2596,7 +2602,7 @@
     }).length;
     const currentRnas=level&&Array.isArray(level.forecasts)?level.forecasts.filter(item=>{
       const ms=Date.parse(item&&item.time);
-      return basinFinite(item&&item.cm)&&Number.isFinite(ms)&&ms>Date.now();
+      return basinLevelNumber(item&&item.cm)!==null&&Number.isFinite(ms)&&ms>Date.now();
     }):[];
     const chartCoverage=BASIN_DETAIL_METRIC==='level_cm'
       ?currentRnas.length+' RNA(s) com alvo futuro nesta estação'
@@ -2674,7 +2680,7 @@
     const kind=basinStationKind(st);
     const code=st.code&&st.code!=='—'?'Código '+st.code:'código não informado';
     const forecast=st.forecast&&st.forecast.state==='available'?'previsão disponível':'previsão indisponível';
-    const level=st.level&&st.level.state==='available'?('nível '+basinFormat(st.level.current_cm,'level_cm')+' · '+basinMinutesNote(st.level.observed_age_minutes)):'nível indisponível';
+    const level=st.level&&st.level.state==='available'&&basinLevelNumber(st.level.current_cm)!==null?('nível '+basinFormat(st.level.current_cm,'level_cm')+' · '+basinMinutesNote(st.level.observed_age_minutes)):'nível indisponível';
     const rain=st.observed_rain&&st.observed_rain.state==='available'?('chuva observada · '+basinObservedRainAge(st.observed_rain)):'chuva horária indisponível';
     return '<div class="basin-popup"><strong>'+basinEscape(st.name||'Estação')+'</strong>'+
       '<span>'+basinEscape(kind.label)+' · '+basinEscape(code)+'</span>'+
@@ -2758,11 +2764,32 @@
         });
         const marker=L.marker([lat,lon],{icon,keyboard:true,title:group.length+' estações nesta área'}).addTo(BASIN_MARKER_LAYER);
         marker.bindTooltip(group.length+' estações · '+observedCount+' com observado · clique para aproximar',{direction:'top',className:'basin-station-tip'});
-        marker.on('click',()=>{
+        const zoomCluster=fromKeyboard=>{
+          if(fromKeyboard)BASIN_MAP.once('moveend',()=>requestAnimationFrame(()=>{
+            const container=BASIN_MAP.getContainer(), bounds=container.getBoundingClientRect();
+            const icons=Array.from(container.querySelectorAll('.basin-cluster-icon')).filter(node=>{
+              const rect=node.getBoundingClientRect();
+              return rect.right>bounds.left&&rect.left<bounds.right&&rect.bottom>bounds.top&&rect.top<bounds.bottom;
+            });
+            const distance=node=>(Number(node.dataset.clusterLat)-lat)**2+(Number(node.dataset.clusterLon)-lon)**2;
+            icons.sort((a,b)=>distance(a)-distance(b));
+            (icons[0]||container).focus({preventScroll:true});
+          }));
           const groupBounds=L.latLngBounds(group.map(item=>item.position));
           const ne=groupBounds.getNorthEast(), sw=groupBounds.getSouthWest();
           if(ne.equals(sw))BASIN_MAP.setView([lat,lon],Math.min(13,zoom+2));
           else BASIN_MAP.fitBounds(groupBounds,{padding:[34,34],maxZoom:Math.min(13,zoom+3)});
+          if(BASIN_MAP.getZoom()<=zoom&&zoom<13)BASIN_MAP.setView([lat,lon],zoom+1);
+        };
+        marker.on('click',()=>zoomCluster(false));
+        const clusterNode=marker.getElement();
+        clusterNode.dataset.clusterLat=String(lat);
+        clusterNode.dataset.clusterLon=String(lon);
+        clusterNode.setAttribute('aria-label',group.length+' estações nesta área; Enter ou espaço para aproximar');
+        L.DomEvent.on(clusterNode,'keydown',event=>{
+          if(event.key!=='Enter'&&event.key!==' '&&event.key!=='Spacebar')return;
+          L.DomEvent.stop(event);
+          if(!event.repeat)zoomCluster(true);
         });
         return;
       }

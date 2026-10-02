@@ -499,6 +499,16 @@ def has_cemaden_rain_24h(station: dict[str, Any]) -> bool:
     )
 
 
+def has_valid_source_observation(station: dict[str, Any]) -> bool:
+    return any(
+        item.get("source_status") in (0, "0")
+        and (value := finite(item.get("value"))) is not None
+        and (item.get("metric") != "chuva_acumulada_24h_mm" or value >= 0)
+        for item in station.get("source_observations", [])
+        if isinstance(item, dict)
+    )
+
+
 def _observed_window_stats(
     rows: list[tuple[datetime, float | None]],
     *,
@@ -632,6 +642,13 @@ def _decorate_level_snapshot(
     if observed_at is not None:
         age_minutes = round(max(0.0, (now - observed_at).total_seconds() / 60.0), 1)
 
+    _level_series_diagnostics(level)
+    level["observed_age_minutes"] = age_minutes
+    return level
+
+
+def _level_series_diagnostics(level: dict[str, Any]) -> None:
+    """Count and derive trends only from usable stage measurements."""
     series = level.get("series") if isinstance(level.get("series"), list) else []
     parsed_series = []
     for item in series:
@@ -639,17 +656,17 @@ def _decorate_level_snapshot(
             continue
         timestamp = parse_iso(item.get("time"), default_timezone=UTC)
         value = finite(item.get("cm"))
-        if timestamp is not None and value is not None:
+        if timestamp is not None and value is not None and 0 <= value <= MAX_PLAUSIBLE_RIVER_LEVEL_CM:
             parsed_series.append((timestamp, value))
     trend = None
-    if len(parsed_series) >= 2:
+    current = finite(level.get("current_cm"))
+    if len(parsed_series) >= 2 and current is not None and 0 <= current <= MAX_PLAUSIBLE_RIVER_LEVEL_CM:
         first_time, first_value = parsed_series[-2]
         last_time, last_value = parsed_series[-1]
         elapsed_hours = (last_time - first_time).total_seconds() / 3600.0
         if elapsed_hours > 0:
             trend = round((last_value - first_value) / elapsed_hours, 3)
 
-    level["observed_age_minutes"] = age_minutes
     level["series_valid_points"] = len(parsed_series)
     level["trend_cm_per_hour"] = trend
     level["trend_label"] = (
@@ -658,7 +675,6 @@ def _decorate_level_snapshot(
         else "estável" if trend is not None
         else None
     )
-    return level
 
 
 def _level_observed_series(
@@ -822,9 +838,34 @@ def load_level_snapshots(paths: tuple[Path, ...] = LIVE_FEEDS) -> dict[str, dict
 def normalize_level_measurement(level: dict[str, Any]) -> dict[str, Any]:
     """Separate river stage from values that are clearly another vertical datum."""
 
+    # Apply the same scale gate to every plotted point, not just the card's
+    # latest value. Preserve the original measurement rather than converting
+    # an unknown vertical reference or replacing it with a fabricated zero.
+    for key in ("series", "forecasts"):
+        rows = level.get(key)
+        if not isinstance(rows, list):
+            continue
+        normalized = []
+        for row in rows:
+            if isinstance(row, dict):
+                value = finite(row.get("cm"))
+                if value is not None and not 0 <= value <= MAX_PLAUSIBLE_RIVER_LEVEL_CM:
+                    row = dict(row)
+                    row.update(cm=None, raw_cm=value, quality="SUSPECT_SCALE",
+                               measurement_classification="cota_or_incompatible_scale")
+            normalized.append(row)
+        level[key] = normalized
+    predicted = finite(level.get("forecast_cm"))
+    if predicted is not None and not 0 <= predicted <= MAX_PLAUSIBLE_RIVER_LEVEL_CM:
+        level["raw_forecast_cm"] = predicted
+        level["forecast_cm"] = None
+        if not any(isinstance(row, dict) and finite(row.get("cm")) is not None
+                   for row in level.get("forecasts") or []):
+            level["forecast_status"] = "unavailable" if level.get("forecast_applicable") else "not_applicable"
+    _level_series_diagnostics(level)
     raw = finite(level.get("current_cm"))
     if raw is None:
-        level["measurement_classification"] = "unavailable"
+        level.setdefault("measurement_classification", "unavailable")
         return level
     if 0 <= raw <= MAX_PLAUSIBLE_RIVER_LEVEL_CM:
         level["measurement_classification"] = "river_stage"
@@ -1154,7 +1195,8 @@ def build_feed(
         for item in stations
     )
     available_levels = sum(
-        item["level"]["state"] in {"available", "partial"} for item in stations
+        item["level"]["state"] in {"available", "partial"}
+        and finite(item["level"].get("current_cm")) is not None for item in stations
     )
     available_cemaden_hydro = sum(
         any(
@@ -1168,21 +1210,13 @@ def build_feed(
         for item in stations
     )
     available_source_observation_stations = sum(
-        any(
-            finite(source.get("value")) is not None
-            for source in item.get("source_observations", [])
-            if isinstance(source, dict)
-        )
-        for item in stations
+        has_valid_source_observation(item) for item in stations
     )
     available_any_observed = sum(
         item["observed_rain"]["state"] == "available"
-        or item["level"]["state"] in {"available", "partial"}
-        or any(
-            finite(source.get("value")) is not None
-            for source in item.get("source_observations", [])
-            if isinstance(source, dict)
-        )
+        or (item["level"]["state"] in {"available", "partial"}
+            and finite(item["level"].get("current_cm")) is not None)
+        or has_valid_source_observation(item)
         for item in stations
     )
     rain_ages = [
@@ -1524,6 +1558,7 @@ def _compact_station_status(
             "forecast_applicable": bool(level.get("forecast_applicable")),
             "forecast_status": level.get("forecast_status"),
             "forecast_cm": finite(level.get("forecast_cm")),
+            "raw_forecast_cm": finite(level.get("raw_forecast_cm")),
             "forecast_at_utc": level.get("forecast_at_utc"),
             "threshold_cm": finite(level.get("threshold_cm")),
             "unit": level.get("unit"),

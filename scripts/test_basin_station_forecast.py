@@ -697,6 +697,51 @@ class BasinStationForecastTests(unittest.TestCase):
         self.assertEqual(expired['precipitation_state'], 'unavailable')
         self.assertTrue(all(value is None for value in expired['precipitation_windows_mm'].values()))
 
+    def test_suspect_level_points_are_blocked_but_preserved(self):
+        source = {"state": "available", "current_cm": 24907,
+                  "forecast_cm": 24908, "forecast_applicable": True,
+                  "trend_cm_per_hour": 68, "trend_label": "subindo",
+                  "series": [{"time": "2026-10-02T12:00Z", "cm": 350},
+                             {"time": "2026-10-02T13:00Z", "cm": 24907}],
+                  "forecasts": [{"time": "2026-10-02T19:00Z", "cm": 24908}]}
+        normalized = feed.normalize_level_measurement(source)
+        self.assertIsNone(normalized["current_cm"])
+        self.assertEqual(normalized["raw_current_cm"], 24907)
+        self.assertEqual(normalized["series"][0]["cm"], 350)
+        self.assertIsNone(normalized["series"][1]["cm"])
+        self.assertEqual(normalized["series"][1]["raw_cm"], 24907)
+        self.assertIsNone(normalized["forecasts"][0]["cm"])
+        self.assertEqual(normalized["forecasts"][0]["raw_cm"], 24908)
+        self.assertIsNone(normalized["forecast_cm"])
+        self.assertEqual(normalized["raw_forecast_cm"], 24908)
+        self.assertEqual(normalized["forecast_status"], "unavailable")
+        self.assertIsNone(normalized["trend_cm_per_hour"])
+        self.assertIsNone(normalized["trend_label"])
+        self.assertEqual(normalized["series_valid_points"], 1)
+        snapshot = json.loads(json.dumps(normalized))
+        self.assertEqual(feed.normalize_level_measurement(normalized), snapshot)
+
+    def test_unavailable_raw_source_values_do_not_count_as_observations(self):
+        observation = {"value": 250, "source_status": 1}
+        station = {"source_observations": [observation]}
+        self.assertFalse(feed.has_valid_source_observation(station))
+        observation["source_status"] = "0"
+        self.assertTrue(feed.has_valid_source_observation(station))
+        observation.update(metric="chuva_acumulada_24h_mm", value=-1)
+        self.assertFalse(feed.has_valid_source_observation(station))
+        observation["value"] = 0
+        self.assertTrue(feed.has_valid_source_observation(station))
+
+    def test_level_series_gate_applies_without_a_latest_measurement(self):
+        normalized = feed.normalize_level_measurement({
+            "state": "unavailable", "current_cm": None,
+            "series": [{"cm": -1}, {"cm": 0}, {"cm": 5000}, {"cm": 5001}],
+            "forecasts": [],
+        })
+        self.assertEqual([row["cm"] for row in normalized["series"]], [None, 0, 5000, None])
+        self.assertEqual(normalized["series"][0]["raw_cm"], -1)
+        self.assertEqual(normalized["series"][3]["raw_cm"], 5001)
+
     def test_dashboard_contract_includes_g040_health_and_no_current_filter(self):
         html = (feed.ROOT / "dashboard_bacia.html").read_text(encoding="utf-8")
         js = (feed.ROOT / "assets/js/bacia_dashboard.js").read_text(encoding="utf-8")

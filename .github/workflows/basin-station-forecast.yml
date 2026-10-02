@@ -4,12 +4,14 @@ on:
   push:
     branches: [main]
     paths:
+      - '.gitattributes'
       - 'scripts/build_basin_station_forecast.py'
       - 'scripts/archive_basin_station_forecast.py'
       - 'scripts/test_basin_station_forecast.py'
       - 'scripts/test_basin_station_catalog.py'
       - 'scripts/test_basin_station_forecast_archive.py'
       - 'scripts/test_rain_observation_provenance.py'
+      - 'scripts/test_rain_workflow_publication.py'
       - 'codigo_python/10_chuvas/baixar_chuvas_horarias.py'
       - 'previne/robo/fontes_chuva_8h.py'
       - '.github/workflows/basin-station-forecast.yml'
@@ -54,6 +56,9 @@ jobs:
           # Somente os insumos desta rodada; o arquivo histórico permanece
           # no Git sem baixar milhares de snapshots antigos a cada consulta.
           sparse-checkout: |
+            /.gitattributes
+            /.github/workflows/basin-station-forecast.yml
+            /.github/workflows/chuvas-horarias.yml
             /scripts/
             /previne/
             /codigo_python/10_chuvas/
@@ -85,7 +90,7 @@ jobs:
         run: python -B scripts/build_basin_station_forecast.py
 
       - name: Testa o contrato do feed
-        run: python -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog scripts.test_rain_observation_provenance -v
+        run: python -B -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog scripts.test_rain_observation_provenance scripts.test_rain_workflow_publication -v
 
       - name: Arquiva a rodada para avaliação futura dos modelos
         run: python -B scripts/archive_basin_station_forecast.py
@@ -98,6 +103,7 @@ jobs:
         run: |
           git config user.name 'previne-basin-station-bot'
           git config user.email 'previne-basin-station-bot@users.noreply.github.com'
+          python -B scripts/test_rain_workflow_publication.py --validate-pair --allow-legacy-unchanged
           git add --sparse assets/data/chuvas_horarias.csv assets/data/basin_station_forecast_latest.json assets/data/basin_station_status_latest.json assets/data/basin_station_forecast_archive
           if [ -f assets/data/chuvas_horarias.csv.provenance.json ]; then
             git add --sparse assets/data/chuvas_horarias.csv.provenance.json
@@ -108,28 +114,31 @@ jobs:
           fi
           git commit -m 'bot: atualiza observações e feed multi-modelo da bacia'
           for attempt in 1 2 3 4 5; do
+            python -B scripts/test_rain_workflow_publication.py --validate-pair --git-ref HEAD --allow-legacy-unchanged
             if git push origin HEAD:main; then
               exit 0
             fi
-            echo "Push ocupado; reconstruindo sobre a main (tentativa \${attempt}/5)."
+            if [ "$attempt" -eq 5 ]; then break; fi
+            echo "Push ocupado; reconstruindo sobre a main (tentativa ${attempt}/5)."
             git fetch origin main
-            git rebase origin/main || {
-              git rebase --abort || true
-              git reset --keep origin/main
-              timeout 120s python -B codigo_python/10_chuvas/baixar_chuvas_horarias.py || echo 'Coleta indisponível; preservando a série observada anterior.'
-              python -B scripts/build_basin_station_forecast.py
-              python -B scripts/archive_basin_station_forecast.py
-              python -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog scripts.test_basin_station_forecast_archive scripts.test_rain_observation_provenance -v
-              git add --sparse assets/data/chuvas_horarias.csv assets/data/basin_station_forecast_latest.json assets/data/basin_station_status_latest.json assets/data/basin_station_forecast_archive
-              if [ -f assets/data/chuvas_horarias.csv.provenance.json ]; then
-                git add --sparse assets/data/chuvas_horarias.csv.provenance.json
-              fi
-              if git diff --cached --quiet; then
-                echo 'Feed já publicado por outra execução.'
-                exit 0
-              fi
-              git commit -m 'bot: atualiza observações e feed multi-modelo da bacia'
-            }
+            # Runner descartável: o par e o feed nunca passam por automerge.
+            # reset --keep preserva alterações locais inesperadas recusando
+            # sobrescrevê-las; os snapshots já em origin/main são mantidos.
+            git reset --keep origin/main
+            timeout 120s python -B codigo_python/10_chuvas/baixar_chuvas_horarias.py || echo 'Coleta indisponível; preservando a série observada anterior.'
+            python -B scripts/build_basin_station_forecast.py
+            python -B scripts/archive_basin_station_forecast.py
+            python -B -m unittest scripts.test_basin_station_forecast scripts.test_basin_station_catalog scripts.test_basin_station_forecast_archive scripts.test_rain_observation_provenance scripts.test_rain_workflow_publication -v
+            python -B scripts/test_rain_workflow_publication.py --validate-pair --allow-legacy-unchanged
+            git add --sparse assets/data/chuvas_horarias.csv assets/data/basin_station_forecast_latest.json assets/data/basin_station_status_latest.json assets/data/basin_station_forecast_archive
+            if [ -f assets/data/chuvas_horarias.csv.provenance.json ]; then
+              git add --sparse assets/data/chuvas_horarias.csv.provenance.json
+            fi
+            if git diff --cached --quiet; then
+              echo 'Feed já publicado por outra execução.'
+              exit 0
+            fi
+            git commit -m 'bot: atualiza observações e feed multi-modelo da bacia'
             sleep $((attempt * 2))
           done
           echo 'Não foi possível publicar após 5 tentativas.'
