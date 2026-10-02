@@ -12,6 +12,15 @@ on:
       - "scripts/run_hec_hms_g040_e1_hindcast.py"
       - "scripts/test_g040_multievent_calibration_contract.py"
       - ".github/workflows/hec-g040-e1-multievent-calibration.yml"
+  pull_request:
+    paths:
+      - "config/g040_e1_multievent_calibration_request.json"
+      - "config/g040_stage2_execution_v1.json"
+      - "scripts/build_g040_historical_calibration_forcing.py"
+      - "scripts/calibrate_hec_hms_g040_e1_multievent.py"
+      - "scripts/run_hec_hms_g040_e1_hindcast.py"
+      - "scripts/test_g040_multievent_calibration_contract.py"
+      - ".github/workflows/hec-g040-e1-multievent-calibration.yml"
 
 permissions:
   contents: write
@@ -41,6 +50,7 @@ jobs:
         run: python -B scripts/test_g040_multievent_calibration_contract.py
 
       - name: Cache HEC-HMS 4.13
+        if: github.event_name != 'pull_request'
         id: cache-hec
         uses: actions/cache@v4
         with:
@@ -55,10 +65,12 @@ jobs:
           tar -xzf /tmp/HEC-HMS-4.13-linux64.tar.gz -C .hec
 
       - name: Build fixed historical calibration forcing
+        if: github.event_name != 'pull_request'
         run: |
           python -B scripts/build_g040_historical_calibration_forcing.py             --events E22_SEP2023,E24_NOV2023             --max-workers 12
 
       - name: Verify calibration forcing gates
+        if: github.event_name != 'pull_request'
         run: |
           python - <<'PY'
           import json
@@ -77,6 +89,7 @@ jobs:
           PY
 
       - name: Run initial multi-event calibration search
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
@@ -92,6 +105,7 @@ jobs:
           test -f assets/data/hec_hms_g040_full_basin/g040_e1_multievent_calibration_candidates.csv
 
       - name: Publish calibration evidence
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
