@@ -8,6 +8,20 @@ function Invoke-Git {
     }
 }
 
+function Assert-ProductOnlyStaged {
+    param([string[]]$Allowed, [string]$Phase)
+    # --no-renames exposes both sides of a staged rename, including a foreign
+    # source moved into an allowed destination. This is a read-only index check.
+    $staged = @(& git -c core.quotepath=false diff --cached --name-only --no-renames)
+    if ($LASTEXITCODE -ne 0) {
+        throw "Nao foi possivel verificar o indice antes de $Phase. Publicacao bloqueada."
+    }
+    $foreign = @($staged | Where-Object { $_ -and $Allowed -notcontains $_.Replace("\", "/") })
+    if ($foreign.Count -gt 0) {
+        throw "Indice contem staged alheio antes de ${Phase}: $($foreign -join ', '). Nenhuma entrada foi removida; publicacao bloqueada."
+    }
+}
+
 $repoRoot = (& git rev-parse --show-toplevel 2>$null).Trim()
 if (-not $repoRoot) {
     throw "Execute este script dentro do repositorio PREVINE."
@@ -31,9 +45,17 @@ foreach ($name in $requiredRasters) {
 $trackedOutputs = @(
     "santa_tereza_previsao_inundacao.html",
     "santa_tereza_inundacao.html",
+    "santa_tereza_painel_evacuacao.html",
+    "pesquisas/santa-tereza-painel-evacuacao.html",
+    "pesquisas/santa-tereza-mapa-impacto.html",
+    "pesquisas/santa-tereza-mapa-margem.html",
+    "pesquisas/santa-tereza-rota-fuga-ruas.html",
+    "santa_tereza_rota_fuga_ruas_cenario.html",
+    "pesquisas/santa-tereza-rota-fuga-ruas-cenario.html",
     "assets/data/santa_tereza_inundacao/contornos_mancha.json",
     "assets/data/santa_tereza_inundacao/contornos_extravasamento.json",
-    "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json"
+    "assets/data/santa_tereza_inundacao/hand_lidar_5m_diagnostic.json",
+    "assets/data/santa_tereza_inundacao/painel_evacuacao_hand_campo_diagnostic.json"
 )
 $newOutputs = @(
     "assets/data/santa_tereza_inundacao/mdt/altitude_terreno_lidar_10m.json",
@@ -41,28 +63,27 @@ $newOutputs = @(
     "assets/data/santa_tereza_inundacao/mdt/mdt_santa_tereza_lidar_10m_visual.png"
 )
 $allowed = @($trackedOutputs + $newOutputs) | ForEach-Object { $_.Replace("\","/") }
+Assert-ProductOnlyStaged -Allowed $allowed -Phase "fetch/geracao"
 
 # Alteracoes locais de outros projetos sao preservadas e NAO entram no commit.
 # O script adiciona explicitamente apenas os arquivos do pacote de Santa Tereza.
 $dirty = @(& git status --porcelain=v1)
 $unrelated = @()
+$productDirty = @()
 foreach ($line in $dirty) {
     if (-not $line) { continue }
     $p = $line.Substring(3).Trim().Replace("\","/")
     if ($p -like "* -> *") { $p = ($p -split " -> ")[-1] }
-    if ($allowed -notcontains $p) { $unrelated += $p }
+    if ($allowed -notcontains $p) { $unrelated += $p } else { $productDirty += $p }
+}
+if ($productDirty.Count -gt 0) {
+    throw "Edicoes locais do produto foram preservadas. Commit/revise antes de regenerar: $($productDirty -join ', '). Nenhum arquivo foi restaurado ou removido."
 }
 if ($unrelated.Count -gt 0) {
     Write-Host ("Aviso: preservando alteracoes locais de outros projetos (nao serao commitadas): {0}" -f ($unrelated -join ", ")) -ForegroundColor Yellow
 }
 
 Write-Host "1/6 Atualizando a base..." -ForegroundColor Cyan
-foreach ($p in $trackedOutputs) {
-    & git restore --worktree -- $p 2>$null
-}
-foreach ($p in $newOutputs) {
-    if (Test-Path $p) { Remove-Item -Force $p }
-}
 Invoke-Git fetch origin
 Invoke-Git merge --ff-only origin/main
 $base = (& git rev-parse HEAD).Trim()
@@ -75,6 +96,10 @@ if ($LASTEXITCODE -ne 0) {
 & python "codigo_python/01_previsao_ao_vivo/atualizar_hand_previsao_santa_tereza.py"
 if ($LASTEXITCODE -ne 0) {
     throw "Falha ao sincronizar o HAND LiDAR da pagina ao vivo com a pagina historica."
+}
+& python "scripts/recalcular_painel_evacuacao_hand_campo.py"
+if ($LASTEXITCODE -ne 0) {
+    throw "Contrato/recálculo dos consumidores de campo falhou. Nada sera publicado."
 }
 
 Write-Host "3/6 Validando diagnostico..." -ForegroundColor Cyan
@@ -128,7 +153,7 @@ if ($page -notmatch "altitude_terreno_lidar_10m\.json") {
 if ($page -match "altitude_terreno_10m_refinado\.json|mdt_santa_tereza_10m_refinado_visual\.png") {
     throw "A pagina voltou a referenciar o MDT legado. Publicacao bloqueada."
 }
-if ($page -notmatch "value===255\?null:value") {
+if ($page -notmatch "if\(value===255\) return null" -or $page -notmatch "saturated:value===Number\(HAND.saturated_value\)") {
     throw "Contrato NoData 255 nao encontrado na pagina."
 }
 if ($page -notmatch "CONTORNOS_URL='assets/data/santa_tereza_inundacao/contornos_extravasamento\.json'") {
@@ -141,6 +166,7 @@ if ($page -notmatch "stageToSpatialHand\(cm,zeroCm=HAND_ZERO_DEFAULT_CM\)") {
 Write-Host ("   D8={0}; receptores={1:P2}; drena_ao_rio={2:P2}; contornos={3}" -f $d.d8_scheme,[double]$d.receiver_fraction_assigned,[double]$d.drained_fraction,[int]$d.contornos_features) -ForegroundColor Green
 
 Write-Host "4/6 Conferindo atualizacoes da main durante o processamento..." -ForegroundColor Cyan
+Assert-ProductOnlyStaged -Allowed $allowed -Phase "segundo fetch"
 Invoke-Git fetch origin
 $latest = (& git rev-parse origin/main).Trim()
 if ($latest -ne $base) {
@@ -154,6 +180,7 @@ if ($latest -ne $base) {
 }
 
 Write-Host "5/6 Criando commit somente com o produto de Santa Tereza..." -ForegroundColor Cyan
+Assert-ProductOnlyStaged -Allowed $allowed -Phase "git add"
 foreach ($p in $trackedOutputs) {
     & git add -- $p
     if ($LASTEXITCODE -ne 0) { throw "git add falhou para: $p" }
@@ -166,11 +193,16 @@ foreach ($p in $newOutputs) {
 if ($LASTEXITCODE -eq 0) {
     throw "Nenhuma alteracao foi gerada."
 }
+if ($LASTEXITCODE -ne 1) {
+    throw "Falha ao verificar diferencas staged. Publicacao bloqueada."
+}
+Assert-ProductOnlyStaged -Allowed $allowed -Phase "commit"
 Invoke-Git commit -m "publish(st): atualiza MDT LiDAR, HAND e agua conectada"
 
 Write-Host "6/6 Publicando na main..." -ForegroundColor Cyan
 $published = $false
 for ($attempt = 1; $attempt -le 5; $attempt++) {
+    Assert-ProductOnlyStaged -Allowed $allowed -Phase "fetch de publicacao"
     Invoke-Git fetch origin
     $remote = (& git rev-parse origin/main).Trim()
     $head = (& git rev-parse HEAD).Trim()

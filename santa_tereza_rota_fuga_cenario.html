@@ -1,6 +1,6 @@
 <!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rota de fuga — Santa Tereza (prova de conceito)</title>
+<title>Cenário histórico de rota · Santa Tereza · exercício</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
  body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#12211b}
@@ -19,11 +19,12 @@
 </style></head><body>
 <div id="map"></div>
 <div class="hud">
-  <h1>Rota de fuga · Santa Tereza</h1>
-  <div class="sub">Prova de conceito (Etapa 1) — <b>cenário de cheia (subida ~40 cm/h, referência 22/07)</b></div>
+  <h1>Rota histórica · Santa Tereza · exercício</h1>
+  <div class="sub">Cenário congelado (Etapa 1) — <b>hipótese de subida ~40 cm/h, referência 22/07</b></div>
   <div class="sub">Nível: <span class="lv">4.24 m</span></div>
   <div class="sub">Gerado: 2026-08-04 04:29</div>
-  <div class="aviso">⚠ Ponto seguro é PLACEHOLDER — confirmar com a Defesa Civil. Mapa é prova de conceito (Etapa 1, grade de 30 m, linha reta). Não usar para orientar evacuação real.</div>
+  <div class="aviso"><strong>Legado: zero da régua 4,0 m.</strong> Snapshot de 04/08/2026, preservado para exercício. Grade de 30 m, linha reta e destino placeholder; abertura, capacidade e segurança não confirmadas. Não é água observada, alerta oficial ou ordem de evacuação.</div>
+  <div class="aviso">Referência atual de campo: régua 1,60 m = HAND 0, somente rio principal; contornos LiDAR até HAND 25 m. <a href="pesquisas/santa-tereza-painel-evacuacao.html">Abrir painel atual de pesquisa</a>.</div>
 </div>
 <div class="leg" id="leg"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -34,22 +35,22 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/
  {maxZoom:19,attribution:'Esri World Imagery'}).addTo(map);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
  {maxZoom:19,opacity:.9}).addTo(map);
-const ROT={alagada:'já na água',critica:'crítica — precisa de resgate',apertada:'apertada — sair agora',
- atencao:'atenção',confortavel:'confortável'};
+const ROT={alagada:'limiar atingido no cenário',critica:'margem simulada crítica',apertada:'margem simulada apertada',
+ atencao:'atenção no exercício',confortavel:'margem simulada ampla, sem validação de segurança'};
 const b=L.latLngBounds();
 D.quadras.forEach(q=>{
   const dy=D.dlat/2, dx=D.dlon/2;
   const rect=L.rectangle([[q.lat-dy,q.lon-dx],[q.lat+dy,q.lon+dx]],
     {stroke:false,fillColor:D.cores[q.classe],fillOpacity:q.classe==='alagada'?.55:.72});
-  rect.bindPopup(`<b>Quadra</b><br>Água chega em <b>${q.min_ate_agua<=0?'já alagada':q.min_ate_agua+' min'}</b><br>`+
-    `Caminhada ao ponto seguro (idoso): <b>${q.min_caminhada_idoso} min</b> · ${q.dist_m} m<br>`+
-    `Margem: <b>${q.margem_min} min</b> — ${ROT[q.classe]}<br>`+
-    `<span style="color:#5b6b62">cota que alaga: ${q.cota_alaga_m} m · HAND ${q.hand_m} m</span>`);
+  rect.bindPopup(`<b>Quadra do cenário histórico</b><br>Limiar simulado: <b>${q.min_ate_agua<=0?'atingido no início':q.min_ate_agua+' min'}</b><br>`+
+    `Caminhada assumida até o placeholder (idoso): <b>${q.min_caminhada_idoso} min</b> · ${q.dist_m} m<br>`+
+    `Margem simulada: <b>${q.margem_min} min</b> — ${ROT[q.classe]}<br>`+
+    `<span style="color:#5b6b62">cota histórica: ${q.cota_alaga_m} m · HAND ${q.hand_m} m · zero legado 4,0 m</span>`);
   rect.addTo(map); b.extend([q.lat,q.lon]);
 });
 // ponto seguro
 const seg=L.marker([D.seguro.lat,D.seguro.lon]).addTo(map);
-seg.bindPopup('<b>'+D.seguro.nome+'</b>'); b.extend([D.seguro.lat,D.seguro.lon]);
+seg.bindPopup('<b>'+D.seguro.nome+'</b><br>destino do exercício; acesso, abertura, capacidade e segurança não confirmados'); b.extend([D.seguro.lat,D.seguro.lon]);
 L.circleMarker([D.estacao.lat,D.estacao.lon],{radius:6,color:'#1e5fbf',fillColor:'#1e5fbf',fillOpacity:1})
   .bindPopup('Estação '+D.estacao.code).addTo(map);
 if(D.ponte) L.circleMarker([D.ponte.lat,D.ponte.lon],{radius:5,color:'#555',fillColor:'#999',fillOpacity:1})
@@ -57,6 +58,6 @@ if(D.ponte) L.circleMarker([D.ponte.lat,D.ponte.lon],{radius:5,color:'#555',fill
 map.fitBounds(b.pad(0.15));
 // legenda
 const ordem=['confortavel','atencao','apertada','critica','alagada'];
-document.getElementById('leg').innerHTML='<b>Margem de tempo</b><br>'+ordem.map(c=>
+document.getElementById('leg').innerHTML='<b>Margem simulada · cenário histórico</b><br>'+ordem.map(c=>
  `<i style="background:${D.cores[c]}"></i>${ROT[c]} <span style="color:#5b6b62">(${RES[c]||0})</span>`).join('<br>');
 </script></body></html>

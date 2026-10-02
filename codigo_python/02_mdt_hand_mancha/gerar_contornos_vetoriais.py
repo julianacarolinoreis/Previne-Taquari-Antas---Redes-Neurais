@@ -70,7 +70,11 @@ Corrigido gerando na precisão decimétrica nativa do HAND (0,1 m, igual o
 raster já era). Faixa vetorial atual: 0–30 m (301 níveis). Custo: arquivo maior
 (Muçum ~8,5 MB), ainda buscado via fetch() assíncrono.
 
-Uso: python codigo_python/02_mdt_hand_mancha/gerar_contornos_vetoriais.py mucum\n\nSanta Tereza foi bloqueada neste gerador legado; os contornos são produzidos pelo gerador LiDAR.
+Uso: python codigo_python/02_mdt_hand_mancha/gerar_contornos_vetoriais.py mucum
+
+Santa Tereza está bloqueada neste gerador legado. A fonte canônica
+de campo é gerada por gerar_hand_lidar_santa_tereza.py e usa a
+calibração régua 1,60 m = HAND 0 somente no rio principal.
 """
 import os
 import sys
@@ -98,7 +102,7 @@ PRECISAO_DECIMAIS = 6
 
 OUT = {
     "mucum": os.path.join(RAIZ, "assets", "data", "mucum_inundacao", "contornos_mancha.json"),
-    "santa_tereza": os.path.join(RAIZ, "assets", "data", "santa_tereza_inundacao", "contornos_mancha.json"),
+    "santa_tereza": os.path.join(RAIZ, "assets", "data", "santa_tereza_inundacao", "contornos_mancha_mosaico_anadem_legacy.json"),
 }
 
 
@@ -214,6 +218,13 @@ def gera(cidade):
     fc = {"type": "FeatureCollection", "features": features,
           "metadata": {"fonte": "HAND do mosaico 2m (drone corrigido + ANADEM), contorno vetorial "
                                  f"(rasterio.features.shapes + simplify ~{TOL_PX}px + suavização gaussiana sigma={SIGMA})"}}
+    if cidade == "santa_tereza":
+        fc["metadata"].update({
+            "cidade": cidade,
+            "status": "legacy_mosaic_not_field_calibrated",
+            "calibracao_de_campo_aplicada": False,
+            "interpretacao": "produto legado do mosaico ANADEM; não usar como o HAND LiDAR atual de Santa Tereza",
+        })
     out_path = OUT[cidade]
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:

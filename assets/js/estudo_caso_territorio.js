@@ -202,6 +202,19 @@
   }
   function city() { return CITIES[state.city]; }
 
+  function stzLegacyRoute(bundle) {
+    var meta = bundle && bundle.rota && bundle.rota.meta;
+    if (state.city !== 'santa_tereza' || !meta) return false;
+    var legacyZero = meta.legacy_zero_gauge_m != null ? meta.legacy_zero_gauge_m : meta.zero_regua_m;
+    var spatial = scenario(bundle);
+    return Number(legacyZero) === 4 && !(spatial && spatial.reconstruction) &&
+      (meta.current_use === 'blocked' || meta.use_for_current_route === false || meta.use_for_current_flood === false);
+  }
+
+  function stzLegacyRouteCopy() {
+    return 'Rota legada de zero 4,0 m indisponível para uso atual. <a href="santa-tereza-painel-evacuacao.html">Abrir painel atual de pesquisa</a>: régua 1,60 m = HAND 0, somente rio principal; contornos LiDAR até HAND 25 m. Sem garantia de acesso ou abrigo seguro.';
+  }
+
   function moduleHref(key) {
     var c = city();
     if (key === 'chuva') return c.weather;
@@ -799,13 +812,15 @@
     if (count) {
       count.textContent = historical
         ? (fmtInt(nFlood) + ' segmentos OSM tocados pela reconstrução · não implica bloqueio')
-        : (nFlood ? ('Trocar trecho · ' + nFlood + ' com água') : 'Sem trecho classificado neste cenário');
+        : (stzLegacyRoute(bundle) ? 'Fixture de rota STZ de zero 4,0 m bloqueado; ausência de trechos não comprova segurança'
+          : (nFlood ? ('Trocar trecho · ' + nFlood + ' com água') : 'Sem trecho classificado neste cenário'));
     }
     if (!ol) return;
     if (!state.streetPriority.length) {
       ol.innerHTML = historical
         ? '<li class="empty">Nenhum segmento prioritário foi selecionado para este recorte histórico.</li>'
-        : '<li class="empty">Sem trecho prioritário.</li>';
+        : (stzLegacyRoute(bundle) ? '<li class="empty">' + stzLegacyRouteCopy() + '</li>'
+          : '<li class="empty">Sem trecho prioritário.</li>');
       return;
     }
     ol.innerHTML = state.streetPriority.map(function (s, i) {
@@ -842,7 +857,8 @@
       var casoStory = currentCase();
       cap.textContent = s.historical
         ? 'Trecho tocado pela reconstrução histórica · não é rota bloqueada nem rota operacional'
-        : ((casoStory && casoStory.story) ? casoStory.story : 'Toque a rua laranja → caminho até o abrigo seco');
+        : (stzLegacyRoute(bundle) ? 'Fixture de rota STZ de zero 4,0 m bloqueado · consulte o painel atual de pesquisa'
+          : ((casoStory && casoStory.story) ? casoStory.story : 'Toque a rua laranja → caminho até o abrigo seco'));
     }
     pulseMap();
     applyStoryLayers();
@@ -1994,7 +2010,15 @@
     rotaInfo = rotaInfo || state.lastRota;
     var titleText;
     var copyHtml;
-    if (rotaInfo && rotaInfo.abrigo) {
+    var spatial = scenario(bundle);
+    if (state.city === 'santa_tereza' && spatial && spatial.reconstruction) {
+      titleText = 'Santa Tereza · reconstrução histórica do evento';
+      copyHtml = (cell && cell.pop > 0 ? ('Até ' + fmtInt(cell.pop) + ' pessoas no quadrado do recorte. ') : '') +
+        'Segmentos OSM tocados pela reconstrução LiDAR/HAND; isso não implica bloqueio ou trafegabilidade. O fixture antigo de rota de zero 4,0 m continua desativado; não há rota operacional inferida.';
+    } else if (stzLegacyRoute(bundle)) {
+      titleText = 'Santa Tereza · rota legada bloqueada';
+      copyHtml = stzLegacyRouteCopy();
+    } else if (rotaInfo && rotaInfo.abrigo) {
       var km = rotaInfo.distM != null ? (rotaInfo.distM / 1000).toFixed(1).replace('.', ',') + ' km' : '—';
       var aguaBit = '';
       if (rotaInfo.aguaM != null && rotaInfo.aguaM > 0) {
@@ -2181,6 +2205,12 @@
         text = 'Régua e RNA no replay histórico · horizonte +' + (caso.rna.horizon_h || 2) + ' h';
       }
     }
+    if (step === 'rotas' && stzLegacyRoute(state.cache[state.city])) {
+      text = 'Santa Tereza · fixture de rota de zero 4,0 m bloqueado; consulte o painel atual de pesquisa';
+    } else if (step === 'rotas' && state.city === 'santa_tereza') {
+      var spatial = scenario(state.cache[state.city] || {});
+      if (spatial && spatial.reconstruction) text = 'Reconstrução histórica · segmentos OSM tocados; rota operacional não inferida';
+    }
     el.textContent = text;
     el.setAttribute('data-step', step || '');
   }
@@ -2314,6 +2344,13 @@
   function render(bundle) {
     document.title = 'PREVINE · cockpit territorial · ' + city().label;
     $('city-label').textContent = city().label;
+    var fieldContext = $('stz-field-context');
+    if (fieldContext) {
+      fieldContext.hidden = state.city !== 'santa_tereza';
+      if (state.city === 'santa_tereza') {
+        fieldContext.innerHTML = '<strong>Santa Tereza · referência de campo:</strong> régua 1,60 m = HAND 0, somente rio principal; contornos LiDAR até HAND 25 m. As reconstruções históricas específicas usam essa referência; o fixture antigo de rota de zero 4,0 m permanece bloqueado. <a href="santa-tereza-painel-evacuacao.html">Abrir painel atual de pesquisa</a>. Não é mancha observada, alerta ou rota liberada.';
+      }
+    }
     renderCityButtons();
     renderCaseButtons();
     renderSiblingCards();
@@ -2347,6 +2384,8 @@
           Number(rec.gauge_peak_m).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' m → HAND ' +
           Number(rec.contour_level_m).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) +
           ' m pela calibração de campo 1,60 m = HAND 0. LiDAR/D8; não é mancha observada.';
+      } else if (state.city === 'santa_tereza') {
+        eventNote.textContent = 'Santa Tereza: referência de campo régua 1,60 m = HAND 0, somente rio principal; contornos LiDAR até HAND 25 m. O fixture antigo de rota de zero 4,0 m permanece bloqueado. O cenário espacial deste recorte fica separado quando não há reconstrução específica.';
       } else if (eventCount) {
         eventNote.textContent =
           city().label + ': ' + fmtInt(eventCount) +
@@ -2361,9 +2400,9 @@
       var rm = bundle.rota.meta;
       if (rm.use_for_current_route === false || rm.use_for_current_flood === false) {
         var histRoute = historicalSpatialEvent(bundle);
-        rotaNote.textContent = histRoute
-          ? 'A reconstrução histórica não infere rota segura. Os segmentos laranja são apenas eixos OSM que intersectam a mancha LiDAR/HAND; não significam bloqueio nem condição de trafegabilidade.'
-          : 'Cenário antigo de rota desativado por incompatibilidade de referência régua–HAND. Abra o Painel de evacuação para a leitura atual por nível e gargalo.';
+        if (histRoute) rotaNote.textContent = 'A reconstrução histórica não infere rota segura. Os segmentos laranja são apenas eixos OSM que intersectam a mancha LiDAR/HAND; não significam bloqueio nem condição de trafegabilidade. O fixture antigo de rota de zero 4,0 m permanece desativado.';
+        else if (stzLegacyRoute(bundle)) rotaNote.innerHTML = stzLegacyRouteCopy();
+        else rotaNote.textContent = 'Cenário antigo de rota desativado por incompatibilidade de referência régua–HAND. Abra o Painel de evacuação para a leitura atual por nível e gargalo.';
       } else {
         var rotulo = (rm.nivel && rm.nivel.rotulo) ||
           (rm.nivel_projeto_m != null ? 'cenário de projeto ' + rm.nivel_projeto_m + ' m' : 'cenário de ruas');
@@ -2379,7 +2418,7 @@
 
     var extra = $('city-links');
     extra.innerHTML =
-      '<a href="' + city().rotaCenario + '">Página irmã: rota de fuga (mesmo grafo)</a>' +
+      '<a href="' + city().rotaCenario + '">' + (state.city === 'santa_tereza' ? 'Painel atual de pesquisa · referência de campo' : 'Página irmã: rota de fuga (mesmo grafo)') + '</a>' +
       '<a href="' + city().floodMap + '">Mapa de inundação (satélite + HAND)</a>' +
       '<a href="' + city().ficha + '">Ficha do município</a>' +
       '<a href="' + city().painel + '">Painel de ruas (protótipo)</a>' +

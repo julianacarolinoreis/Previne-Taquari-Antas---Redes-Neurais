@@ -1,6 +1,6 @@
 <!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Estudo de caso — a água chega em 4h · Santa Tereza</title>
+<title>Estudo de caso histórico · Santa Tereza · exercício</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
  html,body{height:100%;margin:0}
@@ -27,17 +27,18 @@
 </style></head><body>
 <div id="map"></div>
 <div class="card">
-  <h1>Se a água chega em 4 horas…</h1>
+  <h1>Exercício histórico: hipótese de água em 4 horas</h1>
   <div class="body">
-    <div class="muted">Santa Tereza · cenário de cheia (rio subindo <b id="taxa"></b> cm/h, ritmo de jul/2024). Previsão de nível pela RNA do PREVINE.</div>
-    <div class="step"><div class="ic">🏠</div><div>Uma casa na parte baixa (cota que alaga: <b id="cota"></b> m).<br>
-      <span class="muted">A água chega aqui em <b id="tagua"></b> — daqui a <b id="magua"></b>.</span></div></div>
-    <div class="step"><div class="ic">🚶</div><div>A pé até o <b id="abrigo"></b>: <b id="dist"></b>, <b id="tid"></b> (idoso) / <b id="tad"></b> (adulto).<br>
+    <div class="aviso"><strong>Legado: zero da régua 4,0 m.</strong> Valores e geometria preservados para exercício. Referência atual de campo: régua 1,60 m = HAND 0, somente rio principal; contornos LiDAR até HAND 25 m. <a href="pesquisas/santa-tereza-painel-evacuacao.html">Abrir painel atual de pesquisa</a>.</div>
+    <div class="muted">Santa Tereza · hipótese didática de subida de <b id="taxa"></b> cm/h, ritmo de jul/2024. Este cenário não é previsão atual.</div>
+    <div class="step"><div class="ic">🏠</div><div>Casa do exemplo (cota do cenário histórico: <b id="cota"></b> m).<br>
+      <span class="muted">Horário simulado do limiar: <b id="tagua"></b> — intervalo de <b id="magua"></b>.</span></div></div>
+    <div class="step"><div class="ic">🚶</div><div>Hipótese de caminhada até o ponto <b id="abrigo"></b>: <b id="dist"></b>, <b id="tid"></b> (idoso) / <b id="tad"></b> (adulto).<br>
       <span class="muted" id="aguatxt"></span></div></div>
     <div class="tl" id="tl"></div>
     <div class="muted" style="text-align:right" id="tllab"></div>
     <div class="rec" id="rec"></div>
-    <div class="aviso">Cenário ilustrativo (nível inicial calibrado p/ a água chegar em ~4 h) — mostra o valor do aviso antecipado. Mancha na cota oficial; abrigo confirmado pela Defesa Civil. Não substitui orientação oficial em emergência.</div>
+    <div class="aviso">Mancha do cenário histórico, sem confirmação de água observada. O Ginásio é ponto de referência: abertura, capacidade, acessibilidade e segurança não confirmadas. Os tempos não demonstram chegada segura. Não é alerta oficial, ordem de evacuação ou orientação de deslocamento.</div>
   </div>
 </div>
 <div class="leg" id="leg"></div>
@@ -51,10 +52,10 @@ C.mancha.forEach(p=>L.polygon(p,{color:'#1e5fbf',weight:1,fillColor:'#1e5fbf',fi
 // rota
 const rota=L.polyline(C.fuga.rota,{color:'#0f8b46',weight:6,opacity:.95}).addTo(map);
 // abrigo
-L.marker([C.abrigo_pt.lat,C.abrigo_pt.lon]).addTo(map).bindPopup('<b>'+C.abrigo_pt.nome+'</b><br>ponto de encontro / abrigo');
+L.marker([C.abrigo_pt.lat,C.abrigo_pt.lon]).addTo(map).bindPopup('<b>'+C.abrigo_pt.nome+'</b><br>ponto de referência do exercício · abertura, capacidade e segurança não confirmadas');
 // casa (marcador pulsante)
 const casaIcon=L.divIcon({className:'',html:'<div style="position:relative"><div style="position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;background:#e8730c;animation:pulse 1.6s infinite"></div><div style="position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;background:#b3382c;border:2px solid #fff">🏠</div></div>',iconSize:[0,0]});
-L.marker([C.casa.lat,C.casa.lon],{icon:casaIcon}).addTo(map).bindPopup('<b>Casa (exemplo)</b><br>HAND '+C.casa.hand_m+' m · alaga na cota '+C.casa.cota_alaga_m+' m');
+L.marker([C.casa.lat,C.casa.lon],{icon:casaIcon}).addTo(map).bindPopup('<b>Casa (exemplo histórico)</b><br>HAND '+C.casa.hand_m+' m · cota do cenário '+C.casa.cota_alaga_m+' m · zero legado 4,0 m');
 map.fitBounds(rota.getBounds().pad(0.35));
 setTimeout(()=>{map.invalidateSize();map.fitBounds(rota.getBounds().pad(0.35));},300);
 // preenche textos
@@ -65,22 +66,22 @@ tagua.textContent=CE.hora_agua; magua.textContent=fm(CE.min_ate_agua);
 abrigo.textContent=F.abrigo; dist.textContent=(F.dist_m/1000).toFixed(2)+' km';
 tid.textContent=fm(F.min_idoso); tad.textContent=fm(F.min_adulto);
 document.getElementById('aguatxt').innerHTML = F.agua_m>0
-  ? '⚠ '+F.agua_m+' m da rota passam por área que alaga — por isso sair cedo importa.'
-  : 'Rota inteira fora da mancha de inundação.';
+  ? 'No cenário histórico, '+F.agua_m+' m do traçado intersectam a mancha simulada; acesso não validado.'
+  : 'Traçado fora da mancha deste cenário; isso não comprova segurança ou acesso.';
 // linha do tempo: barra = min_ate_agua; caminhada ocupa o inicio; folga = resto
 const tot=CE.min_ate_agua, cam=F.min_idoso, folga=Math.max(0,tot-cam);
 document.getElementById('tl').innerHTML=
   '<div class="agua" style="width:100%"></div>'+
   '<div class="cam" style="left:0;width:'+(100*cam/tot).toFixed(1)+'%"></div>'+
-  '<div class="lab" style="left:'+(100*cam/tot).toFixed(1)+'%">🚶 chega ('+fm(cam)+')</div>'+
+  '<div class="lab" style="left:'+(100*cam/tot).toFixed(1)+'%">🚶 hipótese ('+fm(cam)+')</div>'+
   '<div class="lab" style="left:99%">💧 '+fm(tot)+'</div>';
-document.getElementById('tllab').textContent='barra = tempo até a água · verde = caminhada';
+document.getElementById('tllab').textContent='barra = limiar simulado · verde = tempo de caminhada assumido';
 const rec=document.getElementById('rec');
-if(F.margem_min>=60){rec.innerHTML='✅ <b>Margem de '+fm(F.margem_min)+'.</b> Dá para caminhar ao '+F.abrigo+
-  ' com calma — tempo de pegar documentos e ajudar vizinhos. Saindo até <b>'+F.hora_saida_limite+'</b> ainda se chega no seco.';}
-else if(F.margem_min>=0){rec.className='rec alerta';rec.innerHTML='⚠ <b>Margem apertada ('+fm(F.margem_min)+').</b> Sair AGORA, a pé, direto ao '+F.abrigo+'.';}
-else{rec.className='rec alerta';rec.innerHTML='🚨 <b>Sem margem a pé.</b> Não dá para sair sozinho a tempo — acionar resgate.';}
-rec.innerHTML+='<br><span class="muted">Sem o aviso, quem só reage quando a água entra em casa tem margem <b>zero</b>. O ganho da previsão são estas <b>'+fm(CE.min_ate_agua)+'</b> de antecedência.</span>';
-document.getElementById('leg').innerHTML='<b>Mapa</b><br><i style="background:#0f8b46"></i>rota a pé até o abrigo<br>'+
- '<i style="background:#b3382c"></i>a casa (exemplo)<br><i style="background:#1e5fbf;opacity:.4"></i>área de inundação';
+if(F.margem_min>=60){rec.innerHTML='<b>Margem simulada de '+fm(F.margem_min)+'.</b> O exercício assume caminhada até '+F.abrigo+
+  ' e horário limite de <b>'+F.hora_saida_limite+'</b>; estes valores não validam deslocamento ou chegada segura.';}
+else if(F.margem_min>=0){rec.className='rec alerta';rec.innerHTML='<b>Margem simulada apertada ('+fm(F.margem_min)+').</b> Hipótese de estudo; não orienta saída até '+F.abrigo+'.';}
+else{rec.className='rec alerta';rec.innerHTML='<b>Margem simulada insuficiente a pé.</b> O exercício registra uma hipótese de necessidade de apoio, sem acionamento real.';}
+rec.innerHTML+='<br><span class="muted">Intervalo assumido no exemplo: <b>'+fm(CE.min_ate_agua)+'</b>. Não é antecedência de uma previsão atual nem ordem de evacuação.</span>';
+document.getElementById('leg').innerHTML='<b>Mapa histórico · exercício</b><br><i style="background:#0f8b46"></i>traçado de caminhada sem validação de acesso<br>'+
+ '<i style="background:#b3382c"></i>casa do exemplo<br><i style="background:#1e5fbf;opacity:.4"></i>mancha do cenário, não água observada';
 </script></body></html>

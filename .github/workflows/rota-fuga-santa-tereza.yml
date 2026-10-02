@@ -6,8 +6,8 @@ name: Rota de fuga - Santa Tereza
 #
 # - versao AO VIVO: acompanha a previsao_ao_vivo.json (apos cada rodada bem-sucedida;
 #   o schedule de 30 min permanece como recuperacao)
-# - versao CENARIO (subida de cheia ref. 22/07): gerada uma vez para demonstrar
-#   a margem; nao muda com o nivel do dia, entao roda so no disparo manual.
+# - CENARIO SINTETICO (+40 cm/h): opcional no disparo manual, em arquivos
+#   separados. Os produtos historicos congelados nao entram na geracao/staging.
 
 on:
   schedule:
@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       gerar_cenario:
-        description: 'Tambem (re)gerar a versao de cenario de cheia (22/07)'
+        description: 'Tambem gerar cenario sintetico (+40 cm/h) em arquivos separados'
         type: boolean
         default: false
   repository_dispatch:
@@ -55,18 +55,20 @@ jobs:
         run: pip install numpy pillow
 
       - name: Gerar mapa de rota de fuga (ao vivo)
+        shell: bash
         run: |
           git config user.name  "previne-robo"
           git config user.email "previne-robo@users.noreply.github.com"
           git pull --rebase --autostash origin main
 
           python codigo_python/09_rota_fuga/gerar_rota_fuga_santa_tereza.py --cenario ao_vivo
+          arquivos=(santa_tereza_rota_fuga.html assets/data/rota_fuga_santa_tereza.json)
           if [ "${{ github.event.inputs.gerar_cenario }}" = "true" ]; then
-            python codigo_python/09_rota_fuga/gerar_rota_fuga_santa_tereza.py --cenario 22jul
+            python codigo_python/09_rota_fuga/gerar_rota_fuga_santa_tereza.py --cenario sintetico
+            arquivos+=(santa_tereza_rota_fuga_cenario_sintetico.html assets/data/rota_fuga_santa_tereza_cenario_sintetico.json)
           fi
 
-          git add santa_tereza_rota_fuga.html assets/data/rota_fuga_santa_tereza.json \
-                  santa_tereza_rota_fuga_cenario.html assets/data/rota_fuga_santa_tereza_cenario.json 2>/dev/null || true
+          git add -- "${arquivos[@]}"
           if git diff --staged --quiet; then
             echo "sem mudanca neste ciclo"
           else

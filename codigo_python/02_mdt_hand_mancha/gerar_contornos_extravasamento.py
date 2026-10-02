@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from pyproj import Transformer
@@ -26,6 +27,8 @@ from shapely.validation import make_valid
 
 
 RAIZ = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(RAIZ / "scripts"))
+from santa_tereza_hand_field_contract import validate_field_contours  # noqa: E402
 ARQUIVOS = {
     "santa_tereza": (
         RAIZ / "assets/data/santa_tereza_inundacao/contornos_mancha.json",
@@ -63,13 +66,16 @@ def area_ha(geom) -> float:
 
 def gerar(cidade: str, origem: Path, destino: Path) -> None:
     dados = json.loads(origem.read_text(encoding="utf-8"))
+    field_provenance = None
+    if cidade == "santa_tereza":
+        _, _, field_provenance = validate_field_contours(dados)
     por_nivel = {round(float(f["properties"]["nivel_m"]), 1): f for f in dados["features"]}
     if 0.0 not in por_nivel:
         raise RuntimeError(f"{origem} não contém o contorno HAND 0")
 
     # Produto derivado opcional: remove apenas o contorno HAND 0 da extensão
     # total. O nivel_m permanece na mesma referência espacial do HAND (zero de
-    # campo 1,60 m para Santa Tereza). A página principal usa contornos_mancha.
+    # campo 1,60 m para Santa Tereza). A página principal usa este derivado.
     base_key = 0.0
     min_output_level = 0.0
     if cidade == "santa_tereza":
@@ -104,7 +110,7 @@ def gerar(cidade: str, origem: Path, destino: Path) -> None:
             nivel_base_hand_m=round(float(base_key), 1),
             excesso_base_hand_m=round(float(nivel), 1),
             interpretacao=(
-                "proxy de extravasamento acima da cota de inundação"
+                "proxy de área adicional ao contorno-base HAND 0 do rio principal"
                 if cidade == "santa_tereza"
                 else "proxy de extravasamento relativo ao contorno HAND 0"
             ),
@@ -115,6 +121,7 @@ def gerar(cidade: str, origem: Path, destino: Path) -> None:
         "type": "FeatureCollection",
         "features": saida,
         "metadata": {
+            **({"hand_source": field_provenance, "hand_zero_cm": 160, "rio": "somente rio principal"} if field_provenance else {}),
             "cidade": cidade,
             "fonte": str(origem.relative_to(RAIZ)).replace("\\", "/"),
             "metodo": "diferenca vetorial entre o contorno HAND do nivel e a base de extravasamento",
@@ -123,7 +130,7 @@ def gerar(cidade: str, origem: Path, destino: Path) -> None:
             "area": "calculada em SIRGAS 2000 / UTM 22S (EPSG:31982)",
             "interpretacao": (
                 "Santa Tereza: produto derivado; nivel_m usa a referência espacial régua - 1,60 m; "
-                "a página principal usa a mancha total"
+                "a página principal usa este derivado, excluindo o contorno-base HAND 0"
                 if cidade == "santa_tereza"
                 else "proxy legado relativo ao HAND 0"
             ),

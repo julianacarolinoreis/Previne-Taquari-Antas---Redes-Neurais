@@ -547,6 +547,11 @@
       <div class="mode-badge"><i></i>ações registradas apenas no exercício</div>
     </section>
 
+    <section class="panel" id="legacySpatialNotice" aria-label="Referência espacial histórica" style="padding:16px;margin-bottom:16px">
+      <p><strong>Cenário histórico congelado · zero da régua 4,0 m.</strong> A grade de 04/08/2026 conserva seus valores, tempos e geometrias para exercício. Seu uso como inundação ou rota atual permanece bloqueado.</p>
+      <p>Referência atual de campo: <strong>régua 1,60 m = HAND 0, somente rio principal; contornos LiDAR até HAND 25 m</strong>. <a href="santa-tereza-painel-evacuacao.html">Abrir painel atual de pesquisa</a>. Este exercício não é alerta oficial, ordem de evacuação ou confirmação de abrigo seguro.</p>
+    </section>
+
     <section class="model-strip" aria-label="Sinal da rede neural e pergunta do plantão">
       <div class="panel model-panel">
         <div class="panel-head">
@@ -573,7 +578,7 @@
           <span>contrato de entrada: <strong id="inputContract">hourly_exact_v1</strong> · sem interpolação · grade 22/07 independente</span>
           <span>cota de referência do feed: <strong id="bankfull">—</strong></span>
         </div>
-        <div class="coverage-note"><span class="coverage-label">limite de interpretação</span><span>V001 e V002 informam a estação em 8h. A grade espacial começa em 4,24 m e sobe 40 cm/h como hipótese didática independente; não é uma conversão da RNA nem uma previsão adicional para T+12h.</span></div>
+        <div class="coverage-note"><span class="coverage-label">limite de interpretação</span><span>V001 e V002 são snapshots da estação em 8h. A grade histórica adota zero 4,0 m, começa em 4,24 m e sobe 40 cm/h como hipótese didática independente; não é conversão da RNA, referência de campo atual ou previsão adicional para T+12h.</span></div>
       </div>
       <aside class="panel decision-teaser">
         <div class="teaser-kicker">exercício · próximo passo pré-preparado</div>
@@ -604,7 +609,7 @@
         <span class="brief-badge">V002 · exercício</span>
       </div>
       <div class="brief-grid">
-        <div class="brief-item"><span>identificador</span><strong>stz-22jul-scenario</strong><small>fixture controlado · não é evento em curso</small></div>
+        <div class="brief-item"><span>identificador</span><strong>stz-22jul-scenario</strong><small>fixture histórico congelado · zero 4,0 m · uso atual bloqueado</small></div>
         <div class="brief-item"><span>frescor do snapshot</span><strong id="freshnessStatus">UNKNOWN</strong><small id="freshnessNote">checando idade da última observação...</small></div>
         <div class="brief-item"><span>cobertura espacial</span><strong>T+00:00 → T+05:54</strong><small>258 células · linha reta · CRS desconhecido</small></div>
         <div class="brief-item"><span>destino cadastrado</span><strong>capacidade —</strong><small>Ginásio · abrir, lotação e acesso pendentes</small></div>
@@ -958,7 +963,7 @@
           </div>
           <div class="source-box">
             <h3>Evento espacial</h3>
-            <p>Grade de 30 m do protótipo <code>rota_fuga_santa_tereza_cenario.json</code>. A chegada da água e a margem vêm do cenário de cheia com subida aproximada de 40 cm/h, referência 22/07.</p>
+            <p>Grade histórica de 30 m de <code>rota_fuga_santa_tereza_cenario.json</code>, gerada em 04/08/2026 com zero da régua 4,0 m. Os tempos e margens simulados vêm da hipótese de subida de 40 cm/h, referência 22/07. A referência atual de campo não foi aplicada a estes valores congelados.</p>
           </div>
           <div class="source-box">
             <h3>Moradores e vulnerabilidade</h3>
@@ -1592,8 +1597,8 @@
       if(waterCrossed){
         tag="exercício · resgate prioritário";
         title="Exercício: a água já chegou a esta área.";
-        body="O cenário indica que a água já chegou ao ponto de referência. Não conduza moradores por conta própria: peça reconhecimento/resgate, bloqueie o acesso baixo e localize quem precisa de apoio.";
-        callout="Primeiro movimento: acionar a equipe responsável e comunicar a liderança local. O abrigo só vira destino depois de confirmar o caminho.";
+        body="O cenário histórico indica limiar atingido no ponto de referência. A mesa registra hipóteses de reconhecimento, apoio e acesso; nenhuma orientação a moradores ou solicitação real de resgate é emitida.";
+        callout="Ensaio: registrar quais confirmações de equipe, comunicação, caminho e abrigo faltam.";
         actionText="Registrar resgate prioritário";
         owner="Bombeiros / resgate";
         destination="Abrigo após validar acesso";
@@ -1601,7 +1606,7 @@
       }else if(routeClosed){
         tag="exercício · rota bloqueada";
         title="Replanejar antes de orientar a saída.";
-        body="O exercício marcou o corredor principal como fechado. Não orientar a população por essa linha: registrar a interdição, acionar reconhecimento e confirmar um corredor alternativo antes de retirar pessoas.";
+        body="O exercício marcou o corredor principal como fechado. A mesa registra a hipótese de interdição e as confirmações necessárias para estudar uma alternativa; não orienta deslocamento real.";
         callout="Contingência ativa: a rota principal está fechada somente neste exercício. Um caminho alternativo precisa ser confirmado em campo.";
         actionText="Registrar replanejamento";
         owner="Defesa Civil + reconhecimento";
@@ -1642,15 +1647,15 @@
       if(destination===SERVICE.shelter.name) destination+=shelterReady() ? " · confirmado no exercício" : " · validar antes";
       else if(destination.indexOf(SERVICE.shelter.name)!==-1 && !shelterReady()) destination+=" · validar antes";
       if(waterCrossed){
-        messageDraft=zone.id+": o cenário indica água no ponto de referência. Não caminhar; aguardar orientação oficial e apoio de resgate. Abrigo somente após confirmar acesso.";
+        messageDraft=zone.id+": exercício histórico com limiar atingido no ponto de referência. Hipóteses de apoio, acesso e abrigo pendentes de confirmação; sem orientação de deslocamento.";
       }else if(routeClosed){
-        messageDraft=zone.id+": corredor principal fechado no exercício. Não orientar a saída por esta linha; confirmar rota alternativa, equipe e comunicação antes de deslocar.";
+        messageDraft=zone.id+": corredor principal fechado no exercício. Registro de pendências: rota alternativa, equipe e comunicação; sem orientação de saída.";
       }else if(plan.safeMargin<=0){
-        messageDraft=zone.id+": a margem a pé ficou insuficiente no exercício. Priorizar transporte assistido, confirmar acesso e aguardar a equipe responsável.";
+        messageDraft=zone.id+": margem a pé insuficiente no exercício. Hipótese de transporte assistido; acesso e equipe permanecem pendentes.";
       }else if(remaining<=120 || plan.safeMargin<30){
-        messageDraft=zone.id+": preparar saída prioritária. Água estimada em "+fmtMinutes(remaining)+"; não entrar em área baixa. Corredor e abrigo precisam de confirmação antes da orientação.";
+        messageDraft=zone.id+": janela simulada de "+fmtMinutes(remaining)+" no cenário histórico. A mesa registra prioridade de confirmação de corredor e abrigo, sem ordem de saída.";
       }else{
-        messageDraft=zone.id+": preparar comunicação, transporte e abrigo. A água está estimada em "+fmtMinutes(remaining)+"; aguardar confirmação do corredor antes de deslocar.";
+        messageDraft=zone.id+": janela simulada de "+fmtMinutes(remaining)+" no cenário histórico. Comunicação, transporte, abrigo e corredor são hipóteses do exercício, sem deslocamento real.";
       }
       messageDraft="RASCUNHO — NÃO É ALERTA · "+messageDraft;
       setText("phaseBadge",step.phase);
@@ -2074,12 +2079,13 @@
         timezone:"America/Sao_Paulo",
         operator:(el("observer").value||"").trim() || null,
         mode:state.operatingMode,
-        artifact:{name:"estudo-caso-resposta-santa-tereza.html",version:"0.3",revision:"UI hardening · 2026-08-31",contract:"assets/data/estudo_caso_resposta_v002.json",validation:"exercício local; não operacional",operational_gate:"blocked"},
+        artifact:{name:"estudo-caso-resposta-santa-tereza.html",version:"0.3",revision:"Comunicação de legado · 2026-10-02",contract:"assets/data/estudo_caso_resposta_v002.json",validation:"exercício local; não operacional",operational_gate:"blocked"},
+        spatial_reference:{status:"legacy_spatial_fixture",current_use:"blocked",use_for_current_flood:false,use_for_current_route:false,zero_gauge_m:ROUTE.zero_gauge_m,source_as_of:"2026-08-04 04:29",superseded_by:"pesquisas/santa-tereza-painel-evacuacao.html",current_field_reference:"Régua 1,60 m = HAND 0, somente rio principal; contornos LiDAR até HAND 25 m"},
         source_provenance:{
           acquisition:"snapshots incorporados na página; sem conexão externa",
           files:[
-            {path:"assets/data/estudo_caso_resposta_v002.json",role:"contrato do exercício",sha256:"17E262DB027AEA61B0AA6348DB7507EF6D7EFD52F83F390E32704E3AAF6ACE26"},
-            {path:"assets/data/rota_fuga_santa_tereza_cenario.json",role:"grade espacial preliminar",sha256:"307DE181FA430376CB67D827B047A4AB0E28BFE3B07FF4F3B245B6BD0EA405A7"},
+            {path:"assets/data/estudo_caso_resposta_v002.json",role:"contrato do exercício histórico",sha256:"77C140C0EB8090F10BCFDB5CDBE7891C1C1F818BD8E0B571055D42630638E3C7"},
+            {path:"assets/data/rota_fuga_santa_tereza_cenario.json",role:"grade histórica congelada · uso atual bloqueado",sha256:"6A09FE7A700384BA8FBAE62FC48238EE7CD4B98C94ABB0C8839403DE81B906B4"},
             {path:"previsao_ao_vivo.json",role:"fonte do snapshot da RNA",sha256:"8AEA4D870A6A23A678319F224239B853F061A5F410052559890CCB788C9F0A84",snapshot:LIVE.snapshot}
           ]
         },

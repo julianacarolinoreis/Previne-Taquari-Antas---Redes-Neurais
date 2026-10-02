@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import io
 import json
 import re
@@ -55,12 +56,15 @@ from rasterio.transform import array_bounds, from_bounds
 from rasterio.warp import reproject, transform_bounds
 from pyproj import Transformer
 from scipy import ndimage
+from shapely import set_precision
 from shapely.geometry import mapping, shape
 from shapely.ops import transform as transform_geometry, unary_union
 from shapely.validation import make_valid
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
+from santa_tereza_hand_field_contract import FIELD_SOURCE_ID, FIELD_SCOPE, SURFACE_RAW, SURFACE_ROUTING, validate_field_contours, validate_raster_payload  # noqa: E402
 SOURCE_DIR = Path(r"D:\PREVINE\hand\santa tereza")
 PAGE = ROOT / "santa_tereza_previsao_inundacao.html"
 DIAGNOSTIC = ROOT / "assets" / "data" / "santa_tereza_inundacao" / "hand_lidar_5m_diagnostic.json"
@@ -496,6 +500,7 @@ def write_contours(hand: np.ndarray, main_river: np.ndarray, transform, crs, out
     preenchido nem alterado nesta etapa.
     """
     to_wgs84 = Transformer.from_crs(crs, "EPSG:4326", always_xy=True).transform
+    to_native = Transformer.from_crs("EPSG:4326", crs, always_xy=True).transform
     # O HAND consultado no popup permanece em 5 m. Para o vetor desenhado no
     # mapa, 10 m é suficiente e reduz bastante o payload público.
     hand_vector = hand[::CONTOUR_FACTOR, ::CONTOUR_FACTOR]
@@ -514,6 +519,7 @@ def write_contours(hand: np.ndarray, main_river: np.ndarray, transform, crs, out
 
     features = []
     connectivity_stats = []
+    previous_geometry = None
     for level in CONTOUR_LEVELS_M:
         candidate = np.isfinite(hand_vector) & (hand_vector <= level)
         if not candidate.any():
@@ -544,12 +550,19 @@ def write_contours(hand: np.ndarray, main_river: np.ndarray, transform, crs, out
         geom_utm = geom_utm.simplify(5.0, preserve_topology=True)
         if not geom_utm.is_valid:
             geom_utm = make_valid(geom_utm)
-        geom_wgs84 = transform_geometry(to_wgs84, geom_utm)
+        # A simplificação de cada máscara pode retrair bordas. O vetor
+        # publicado deve manter todo o contorno do nível anterior.
+        geom_wgs84 = set_precision(transform_geometry(to_wgs84, geom_utm), grid_size=1e-6, mode="valid_output")
+        geom_wgs84 = set_precision(geom_wgs84, grid_size=0)
+        if previous_geometry is not None:
+            geom_wgs84 = unary_union([previous_geometry, geom_wgs84])
+        previous_geometry = geom_wgs84
+        published_area_m2 = transform_geometry(to_native, geom_wgs84).area
         features.append({
             "type": "Feature",
             "properties": {
                 "nivel_m": level,
-                "area_ha": round(float(geom_utm.area / 10000.0), 1),
+                "area_ha": round(float(published_area_m2 / 10000.0), 1),
                 "interpretacao": "proxy cumulativo relativo ao HAND 0 do rio principal",
             },
             "geometry": mapping(geom_wgs84),
@@ -560,6 +573,7 @@ def write_contours(hand: np.ndarray, main_river: np.ndarray, transform, crs, out
         "type": "FeatureCollection",
         "features": features,
         "metadata": {
+            "source_id": FIELD_SOURCE_ID,
             "cidade": "santa_tereza",
             "fonte": "HAND 5 m derivado dos rasters novos de campo",
             "rio": "somente rio principal",
@@ -576,8 +590,11 @@ def write_contours(hand: np.ndarray, main_river: np.ndarray, transform, crs, out
             "superficie_inundacao": "CLIP_MOSAICO_LIDAR_RS.tif (LiDAR bruto)",
             "superficie_roteamento": "FILL_CLIP_MOSAICO_LIDAR_RS.tif",
             "mdt_preservado": True,
+            "aninhamento_vetorial": "união cumulativa após simplificação; não modifica o raster LiDAR",
+            "precisao_vetorial_entrada_graus": 1e-6,
         },
     }
+    validate_field_contours(payload)
     output.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     return {
         "contornos_features": len(features),
@@ -679,6 +696,12 @@ def main() -> None:
         "station": {"lat": -29.1781, "lon": -51.7322, "code": "86472600"},
         "ponte": {"lat": -29.0908727, "lon": -51.713269, "label": "Ponte Santa Barbara"},
         "hand_zero_cm": HAND_ZERO_CM,
+        "source_id": FIELD_SOURCE_ID,
+        "cidade": "santa_tereza",
+        "rio": FIELD_SCOPE,
+        "superficie_inundacao": SURFACE_RAW,
+        "superficie_roteamento": SURFACE_ROUTING,
+        "hand_png_sha256": hashlib.sha256(buf.getvalue()).hexdigest(),
         "nodata": 255,
         "saturated_value": int(MAX_HAND_M * 10),
         "max_hand_m": MAX_HAND_M,
@@ -691,14 +714,19 @@ def main() -> None:
         ),
         "hand_png_b64": base64.b64encode(buf.getvalue()).decode("ascii"),
     }
-    inject_payload(args.page, payload)
-    activate_same_source_mdt(args.page)
+    validate_raster_payload(payload)
+    pages_to_update = [args.page]
+    if args.page.resolve() == PAGE.resolve():
+        pages_to_update.append(ROOT / "santa_tereza_inundacao.html")
+    for page in pages_to_update:
+        inject_payload(page, payload)
+        activate_same_source_mdt(page)
     contour_summary = write_contours(
         hydraulic_hand, main_river, transform, crs, CONTOURS
     )
 
-    # A página ao vivo consome contornos_extravasamento.json, não o contorno
-    # HAND cumulativo bruto. Regenera somente Santa Tereza para não tocar Muçum.
+    # A página principal usa o contorno total. Mantém também o derivado
+    # opcional sem HAND 0, sem tocar nos dados de Muçum.
     overflow_script = ROOT / "codigo_python" / "02_mdt_hand_mancha" / "gerar_contornos_extravasamento.py"
     subprocess.run(
         [sys.executable, str(overflow_script), "--cidade", "santa_tereza"],

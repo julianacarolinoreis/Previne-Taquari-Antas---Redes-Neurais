@@ -8,8 +8,10 @@ desempenho hidrológico; esses continuam sendo gates externos ao protótipo.
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
+import math
 from pathlib import Path
 
 
@@ -19,6 +21,7 @@ CONTRACT = ROOT / "assets" / "data" / "estudo_caso_resposta_v002.json"
 ROUTE = ROOT / "assets" / "data" / "rota_fuga_santa_tereza_cenario.json"
 SHELTERS = ROOT / "assets" / "data" / "servicos" / "abrigos.geojson"
 LIVE = ROOT / "previsao_ao_vivo.json"
+FIELD_CONTOURS = ROOT / "assets" / "data" / "santa_tereza_inundacao" / "contornos_mancha.json"
 
 
 def load_json(path: Path) -> dict:
@@ -45,6 +48,15 @@ def test_contract_and_sources() -> None:
     assert contract["event"]["valid_until"] is None
 
     spatial = contract["spatial"]
+    assert spatial["zero_gauge_m"] == route["meta"]["zero_regua_m"] == 4.0
+    for metadata in (spatial, route["meta"]):
+        assert metadata["status"] == "legacy_spatial_fixture"
+        assert metadata["current_use"] == "blocked"
+        assert metadata["use_for_current_flood"] is False
+        assert metadata["use_for_current_route"] is False
+        assert metadata["superseded_by"] == "pesquisas/santa-tereza-painel-evacuacao.html"
+        assert (ROOT / metadata["superseded_by"]).is_file()
+    assert spatial["source_sha256"] == hashlib.sha256(ROUTE.read_bytes()).hexdigest().upper()
     assert spatial["cell_count"] == len(route["quadras"]) == 258
     assert spatial["level_cm"] == route["meta"]["nivel_atual_cm"]
     assert spatial["grid_m"] == route["meta"]["bloco_m"]
@@ -79,17 +91,30 @@ def test_contract_and_sources() -> None:
     assert live["modo"] == "ao_vivo"
     assert live["input_contract_version"] == "hourly_exact_v1"
     assert live["estacao"] == contract["forecast"]["station"]
-    assert live["bankfull_cm"] == contract["forecast"]["bankfull_cm"]
+    # O snapshot de agosto mantém o limiar histórico de 400 cm; o contrato
+    # atual adota 1500 cm. HAND 0 (160 cm) é uma referência espacial distinta.
+    assert contract["forecast"]["bankfull_cm"] == 400
+    assert live["bankfull_cm"] == 1500
+    assert live["hand_zero_cm"] == 160
+    field = load_json(FIELD_CONTOURS)
+    assert field["metadata"]["hand_zero_cm"] == live["hand_zero_cm"]
+    assert field["metadata"]["rio"] == "somente rio principal"
+    levels = [feature["properties"]["nivel_m"] for feature in field["features"]]
+    assert min(levels) == 0 and max(levels) == 25
+    assert spatial["zero_gauge_m"] * 100 != field["metadata"]["hand_zero_cm"]
     # O feed é uma fonte viva pertencente ao robô e pode avançar depois da
     # captura do estudo. A fotografia auditada do caso fica registrada no
     # contrato; aqui verificamos somente a compatibilidade do feed atual.
     assert isinstance(live["gerado_em"], str) and live["gerado_em"]
     assert {"8h", "8h_v002"}.issubset(live["horizontes"])
-    assert all(
-        isinstance(live["horizontes"][key].get("modelo"), str)
-        and isinstance(live["horizontes"][key].get("nivel_previsto_cm"), (int, float))
-        for key in ("8h", "8h_v002")
-    )
+    for key in ("8h", "8h_v002"):
+        horizon = live["horizontes"][key]
+        assert isinstance(horizon.get("modelo"), str)
+        level = horizon.get("nivel_previsto_cm")
+        if horizon.get("disponivel") is False:
+            assert level is None, "horizonte indisponível não pode fabricar nível"
+        else:
+            assert not isinstance(level, bool) and isinstance(level, (int, float)) and math.isfinite(level)
     assert contract["forecast"]["source_snapshot"] == "2026-08-28T20:00:00-03:00"
     assert contract["forecast"]["source_snapshot"].endswith("-03:00")
     assert "não declara offset" in contract["forecast"]["timestamp_note"]
@@ -159,6 +184,22 @@ def test_page_embeds_the_audited_snapshot_and_guardrails() -> None:
     assert embedded["snapshot"] == contract["forecast"]["source_snapshot"]
     assert embedded["snapshot_raw"] == contract["forecast"]["source_snapshot_raw"]
     assert embedded["observed_cm"] == contract["forecast"]["observed_level_cm"]
+    assert embedded["bankfull_cm"] == contract["forecast"]["bankfull_cm"] == 400
+    route_match = re.search(r"const ROUTE = (\{.*?\});\s*\n", html, flags=re.S)
+    assert route_match, "grade histórica ROUTE ausente da página"
+    embedded_route = json.loads(route_match.group(1))
+    route = load_json(ROUTE)
+    assert embedded_route["zero_gauge_m"] == contract["spatial"]["zero_gauge_m"] == 4.0
+    assert embedded_route["grid"] == [
+        {"lat": point["lat"], "lon": point["lon"], "hand": point["hand_m"],
+         "cota": point["cota_alaga_m"], "arrival": point["min_ate_agua"]}
+        for point in route["quadras"]
+    ]
+    for source in (CONTRACT, ROUTE):
+        relative = source.relative_to(ROOT).as_posix()
+        source_hash = re.search(r'path:"' + re.escape(relative) + r'",role:"[^"]*",sha256:"([A-Fa-f0-9]{64})"', html)
+        assert source_hash, f"hash ausente: {relative}"
+        assert source_hash.group(1).upper() == hashlib.sha256(source.read_bytes()).hexdigest().upper(), relative
     assert embedded["v001"]["forecast_cm"] == 284.0
     assert embedded["v002"]["forecast_cm"] == 320.0
     assert "V002 · exercício" in html
@@ -223,6 +264,13 @@ def test_rendered_responsive_interactions() -> None:
                 assert page.locator("#validationChecklist [data-validation]").count() == 7
                 assert page.locator("#scoreboard .score-item").count() == 9
                 assert page.locator("#gateStatus").inner_text().lower() == "bloqueado"
+                notice = page.locator("#legacySpatialNotice")
+                assert notice.is_visible()
+                assert "zero da régua 4,0 m" in notice.inner_text()
+                assert "régua 1,60 m = HAND 0" in notice.inner_text()
+                assert "somente rio principal" in notice.inner_text()
+                assert "HAND 25 m" in notice.inner_text()
+                assert notice.locator("a").get_attribute("href") == "santa-tereza-painel-evacuacao.html"
                 if page.locator("#freshnessStatus").inner_text() in {"UNKNOWN", "STALE"}:
                     assert "sinal" in page.locator("#gateNote").inner_text().lower()
                 assert page.locator("#metricFirstDecision").inner_text() == "—"
@@ -283,6 +331,14 @@ def test_rendered_responsive_interactions() -> None:
             assert "previne-exercicio-z-01" in download.suggested_filename
             exported = json.loads(Path(download.path()).read_text(encoding="utf-8"))
             assert exported["artifact"]["operational_gate"] == "blocked"
+            spatial_reference = exported["spatial_reference"]
+            assert spatial_reference["status"] == "legacy_spatial_fixture"
+            assert spatial_reference["current_use"] == "blocked"
+            assert spatial_reference["use_for_current_flood"] is False
+            assert spatial_reference["use_for_current_route"] is False
+            assert spatial_reference["zero_gauge_m"] == 4.0
+            for source in exported["source_provenance"]["files"][:2]:
+                assert source["sha256"] == hashlib.sha256((ROOT / source["path"]).read_bytes()).hexdigest().upper()
             assert exported["export_schema_version"] == "exercise_record_v2"
             assert exported["timezone"] == "America/Sao_Paulo"
             assert exported["source_provenance"]["files"][0]["path"] == "assets/data/estudo_caso_resposta_v002.json"

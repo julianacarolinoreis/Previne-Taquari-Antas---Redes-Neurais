@@ -14,6 +14,7 @@ import unittest
 from pathlib import Path
 
 from PIL import Image
+from shapely.geometry import Polygon, shape
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -51,7 +52,8 @@ class SantaTerezaMdtRefinementTests(unittest.TestCase):
         self.assertNotIn("MIN_VISUAL_HOLE_M2", text)
         self.assertNotIn("visualFeature(feat)", text)
         self.assertIn("if(feat) layer.addData(feat);", text)
-        self.assertIn("return value===255?null:value;", text)
+        self.assertIn("if(value===255) return null;", text)
+        self.assertIn("return {dm:value,saturated:value===Number(HAND.saturated_value)};", text)
         self.assertTrue(
             "const ELEVATION_URL=null; // same-source MDT only" in text
             or "altitude_terreno_lidar_10m.json" in text
@@ -59,6 +61,14 @@ class SantaTerezaMdtRefinementTests(unittest.TestCase):
         self.assertIn("meta.same_source_as_hand!==true", text)
         self.assertIn("const mdtBounds=[[elevationMeta.S,elevationMeta.W],[elevationMeta.N,elevationMeta.E]]", text)
         self.assertNotIn("L.imageOverlay(MDT_VISUAL_URL,BOUNDS", text)
+        self.assertIn("A camada colorida exclui o contorno-base HAND 0", text)
+        self.assertIn("contornos_extravasamento.json", text)
+        self.assertNotIn("contorno total estimado", text)
+        self.assertIn("sem cobertura HAND no intervalo", text)
+        simulation = (ROOT / "santa_tereza_inundacao.html").read_text(encoding="utf-8")
+        self.assertNotIn("MIN_VISUAL_HOLE_M2", simulation)
+        self.assertNotIn("visualFeature(feat)", simulation)
+        self.assertIn("if(feat) layer.addData(feat);", simulation)
 
     def test_legacy_refiner_is_blocked_by_default(self) -> None:
         script = (
@@ -127,9 +137,11 @@ class SantaTerezaMdtRefinementTests(unittest.TestCase):
                 visual_area_m2 = 0.0
                 for polygon in polygons(feature["geometry"]):
                     outer = ring_area_m2(polygon[0])
-                    large_holes = [ring_area_m2(ring) for ring in polygon[1:] if ring_area_m2(ring) >= 5000]
+                    all_holes = [ring_area_m2(ring) for ring in polygon[1:]]
+                    large_holes = [area for area in all_holes if area >= 5000]
                     retained_large_holes += len(large_holes)
-                    visual_area_m2 += outer - sum(large_holes)
+                    # O GeoJSON real é desenhado sem eliminar buracos pequenos.
+                    visual_area_m2 += outer - sum(all_holes)
                 declared_ha = float(feature["properties"]["area_ha"])
                 if declared_ha >= 50:
                     relative_error = abs(visual_area_m2 / 10000 - declared_ha) / declared_ha
@@ -139,7 +151,12 @@ class SantaTerezaMdtRefinementTests(unittest.TestCase):
         overflow = json.loads((data_dir / "contornos_extravasamento.json").read_text(encoding="utf-8"))
         level_71 = next(f for f in overflow["features"] if abs(float(f["properties"]["nivel_m"]) - 7.1) < 0.01)
         large_holes = [ring_area_m2(ring) for polygon in polygons(level_71["geometry"]) for ring in polygon[1:] if ring_area_m2(ring) >= 5000]
-        self.assertGreater(max(large_holes), 3_000_000)
+        # O antigo limiar de 3 km² era do mosaico legado, não do LiDAR atual.
+        self.assertGreater(max(large_holes), 5000)
+        geometry = shape(level_71["geometry"])
+        parts = [geometry] if geometry.geom_type == "Polygon" else list(geometry.geoms)
+        hole = max((Polygon(ring) for part in parts for ring in part.interiors), key=lambda item: item.area)
+        self.assertFalse(geometry.covers(hole.representative_point()), "o maior buraco deve permanecer não pintado")
 
 
 if __name__ == "__main__":

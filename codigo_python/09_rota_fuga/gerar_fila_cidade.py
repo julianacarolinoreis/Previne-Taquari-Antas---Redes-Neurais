@@ -15,12 +15,15 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
 
 from shapely.geometry import Point, shape
 from shapely.ops import unary_union
 
 RAIZ = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(RAIZ / "scripts"))
+from santa_tereza_hand_field_contract import validate_field_contours  # noqa: E402
 PASSO = 0.5
 VEL_IDOSO = 0.9
 
@@ -48,6 +51,9 @@ CIDADES = {
 
 def unioes(contornos_path: Path):
     dc = json.loads(contornos_path.read_text(encoding="utf-8"))
+    if dc.get("metadata", {}).get("cidade") == "santa_tereza" or contornos_path.parent.name == "santa_tereza_inundacao":
+        levels, geometries, _ = validate_field_contours(dc)
+        return dict(zip(levels, geometries)), levels
     porn = {}
     for f in dc["features"]:
         nv = round(float(f["properties"]["nivel_m"]), 1)
@@ -159,6 +165,11 @@ def casas_st(cells):
 
 def gerar(slug: str):
     cfg = CIDADES[slug]
+    field_provenance = None
+    if slug == "santa_tereza":
+        _, _, field_provenance = validate_field_contours(json.loads(cfg["contornos"].read_text(encoding="utf-8")))
+        if not cfg["rf"].exists():
+            raise RuntimeError("fila Santa Tereza não regenerada: fonte de rota necessária ausente; legado permanece bloqueado")
     grade_path = RAIZ / "assets" / "data" / "vulnerabilidade" / "grade" / f"{cfg['cod']}.geojson"
     rf = json.loads(cfg["rf"].read_text(encoding="utf-8"))
     nos, distn, dest = rf["nos"], rf["dist_m"], rf["dest"]
@@ -185,6 +196,7 @@ def gerar(slug: str):
             "cota": cota,
             "frac_area_primeiro_nivel": round(frac_area, 4) if cota is not None else 0.0,
             "cota_metodo": "intersecao_geometrica_celula_ibge",
+            "cobertura_status": "limiar_identificado" if cota is not None else "sem limiar identificado no intervalo",
             "dist_m": round(distn[i]) if i < len(distn) else None,
             "min_idoso": round((distn[i] or 0) / VEL_IDOSO / 60) if i < len(distn) else None,
             "lat": lat,
@@ -217,6 +229,7 @@ def gerar(slug: str):
             "pop_total": round(pop_total),
             "pop_risco": round(pop_risco),
             "celulas": len(cells),
+            **({"hand_source": field_provenance, "status": "pesquisa_exercicio_nao_operacional", "limite": "Ausência de limiar HAND não significa segurança; rota e ponto de referência não confirmados."} if field_provenance else {}),
         },
         "abrigos": [{"lat": a["lat"], "lon": a["lon"], "nome": a["nome"]} for a in abrigos],
         "cells": cells,

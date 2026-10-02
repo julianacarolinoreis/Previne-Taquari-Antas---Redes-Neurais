@@ -7,6 +7,10 @@ LiDAR e seus próprios scripts de publicação/recálculo. Este script lê apena
 os contornos de Muçum regenerados até 30 m e recalcula a primeira cota que
 alcança cada nó/célula.
 
+Santa Tereza usa a fonte LiDAR de campo, com cobertura HAND até 25 m e
+régua 1,60 m = HAND 0. Suas páginas são atualizadas exclusivamente pelo
+recalcular_painel_evacuacao_hand_campo.py; este refresh de mosaico não as altera.
+
 Uso:
   python scripts/refresh_spatial_30m_pages.py
 """

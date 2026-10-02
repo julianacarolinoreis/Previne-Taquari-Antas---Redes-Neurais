@@ -18,10 +18,14 @@ Uso: python codigo_python/01_previsao_ao_vivo/atualizar_hand_previsao_santa_tere
 """
 import os
 import re
+import sys
+import json
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 FONTE = os.path.join(RAIZ, "santa_tereza_previsao_inundacao.html")
 ALVO = os.path.join(RAIZ, "santa_tereza_inundacao.html")
+sys.path.insert(0, os.path.join(RAIZ, "scripts"))
+from santa_tereza_hand_field_contract import validate_raster_payload
 
 
 def main():
@@ -30,6 +34,7 @@ def main():
     if not m:
         raise SystemExit(f"ERRO: hand-data não encontrado em {FONTE}")
     payload = m.group(1)
+    validate_raster_payload(json.loads(payload))
 
     alvo_html = open(ALVO, encoding="utf-8").read()
     alvo_html2, n = re.subn(
