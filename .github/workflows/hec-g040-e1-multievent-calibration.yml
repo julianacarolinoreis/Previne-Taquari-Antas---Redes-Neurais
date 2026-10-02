@@ -58,7 +58,7 @@ jobs:
           key: hec-hms-4.13-linux64-v1
 
       - name: Download HEC-HMS 4.13
-        if: steps.cache-hec.outputs.cache-hit != 'true'
+        if: github.event_name != 'pull_request' && steps.cache-hec.outputs.cache-hit != 'true'
         run: |
           mkdir -p .hec
           curl -L --fail --retry 3 --retry-delay 4             -o /tmp/HEC-HMS-4.13-linux64.tar.gz             https://github.com/HydrologicEngineeringCenter/hec-downloads/releases/download/1.0.38/HEC-HMS-4.13-linux64.tar.gz
