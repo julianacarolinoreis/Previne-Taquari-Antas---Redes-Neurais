@@ -24,6 +24,7 @@ from build_hec_hms_spatial_forecast_mucum import BRT, fmt_hec_date, fmt_hec_time
 from run_hec_twin_mucum_forward_5d import q_to_stage_cm, mucum_curve_segments, load_areas, params_from_library_row
 from run_hec_twin_stz_mucum_calibrate import run_network, muskingum
 from run_mucum_06z_upstream_assimilated import solve_dn_ratio
+from hec_twin_nested_v17 import NestedParams, ZoneParams
 
 OUT=ROOT/"assets/data/estudo_bacia_taquari_antas"
 OBS=OUT/"mucum_observed_multistation_latest.json"
@@ -46,6 +47,13 @@ K2=float(os.environ.get("DUAL_K2_H","2.5"))
 K3=float(os.environ.get("DUAL_K3_H","1.0"))
 X=float(os.environ.get("DUAL_X","0.2"))
 WARMUP_H=float(os.environ.get("DUAL_WARMUP_H","12"))
+MEMORY_TAU_H=float(os.environ.get("DUAL_MEMORY_TAU_H","3.0"))
+DN_INITIAL_LOSS_SCALE=float(os.environ.get("DUAL_DN_INITIAL_LOSS_SCALE","1.0"))
+DN_CONSTANT_LOSS_SCALE=float(os.environ.get("DUAL_DN_CONSTANT_LOSS_SCALE","1.0"))
+DN_TC_SCALE=float(os.environ.get("DUAL_DN_TC_SCALE","1.0"))
+DN_STORAGE_SCALE=float(os.environ.get("DUAL_DN_STORAGE_SCALE","1.0"))
+DN_RECESSION_SCALE=float(os.environ.get("DUAL_DN_RECESSION_SCALE","1.0"))
+DN_FLOW_RATIO_SCALE=float(os.environ.get("DUAL_DN_FLOW_RATIO_SCALE","1.0"))
 
 def loadj(p): return json.loads(Path(p).read_text(encoding="utf-8"))
 
@@ -530,16 +538,34 @@ def main():
 
     q_ljj,laudit,lsource=make_source(
         times,lrows,lft,lfq,"86472000",
-        state_slope_m3s_h=float(antas_stats["state_slope_m3s_h"]),memory_tau_h=3.0
+        state_slope_m3s_h=float(antas_stats["state_slope_m3s_h"]),memory_tau_h=MEMORY_TAU_H
     )
     q_carr,caudit,csource=make_source(
         times,crows,cft,cfq,"86500000",
-        state_slope_m3s_h=float(carr_stats["state_slope_m3s_h"]),memory_tau_h=3.0
+        state_slope_m3s_h=float(carr_stats["state_slope_m3s_h"]),memory_tau_h=MEMORY_TAU_H
     )
     rain=[float(r["rain_02851072_mm"]) for r in rows]
 
     row=next(r for r in lib["params_library_eventwise"] if r["event_id"]=="E28")
     params=params_from_library_row(row)
+
+    # Live-event residual calibration. These are true HEC-HMS basin parameters,
+    # not a visual shift of the resulting stage curve. The iterative controller
+    # may vary them when routing/warm-up alone cannot reproduce the observed
+    # 6 h / 12 h hydrograph.
+    dn0=params.dn
+    params=NestedParams(
+        up=params.up,
+        dn=ZoneParams(
+            initial_loss=max(0.0,dn0.initial_loss*DN_INITIAL_LOSS_SCALE),
+            constant_loss=max(0.0,dn0.constant_loss*DN_CONSTANT_LOSS_SCALE),
+            tc=max(0.5,dn0.tc*DN_TC_SCALE),
+            storage=max(0.5,dn0.storage*DN_STORAGE_SCALE),
+            recession=min(0.995,max(0.50,dn0.recession*DN_RECESSION_SCALE)),
+            initial_flow_ratio=max(0.0,dn0.initial_flow_ratio*DN_FLOW_RATIO_SCALE),
+        ),
+        k1=params.k1,k2=params.k2,k3=params.k3,x=params.x,
+    )
 
     PROJ.mkdir(parents=True,exist_ok=True)
     start=times[0].replace(tzinfo=BRT); end=times[-1].replace(tzinfo=BRT)
@@ -567,15 +593,34 @@ def main():
     model_now=interp(times,stages,obs_t)
     q_now=interp(times,vals,obs_t)
 
-    # Recent fit against the 15-min live Muçum series.
+    # Recent fit against the 15-min live Muçum series. Keep both 6 h and 12 h
+    # metrics because the platform must optimize a rejected candidate instead of
+    # simply stopping at the first failed validation.
     live_series=[]
     for r in live.get("serie_observada_ana") or []:
         try: live_series.append((datetime.fromisoformat(r["hora"]),float(r["nivel_cm"])))
         except Exception: pass
+
+    def fit_window(hours):
+        recent=[(t,n) for t,n in live_series if t<=obs_t and t>=obs_t-timedelta(hours=hours)]
+        pairs=[(interp(times,stages,t),n) for t,n in recent if times[0]<=t<=times[-1]]
+        if not pairs:
+            return {"n":0,"rmse_cm":None,"bias_cm":None,"nse":None}
+        errs=[m-o for m,o in pairs]
+        rmse=(sum(e*e for e in errs)/len(errs))**0.5
+        bias=sum(errs)/len(errs)
+        obs_vals=[o for _,o in pairs]
+        om=sum(obs_vals)/len(obs_vals)
+        den=sum((o-om)**2 for o in obs_vals)
+        nse=None if den<=1e-9 else 1.0-sum((m-o)**2 for m,o in pairs)/den
+        return {"n":len(pairs),"rmse_cm":rmse,"bias_cm":bias,"nse":nse}
+
+    fit6=fit_window(6)
+    fit12=fit_window(12)
+    rmse=fit6["rmse_cm"]
+    bias=fit6["bias_cm"]
     recent=[(t,n) for t,n in live_series if t<=obs_t and t>=obs_t-timedelta(hours=6)]
     errs=[interp(times,stages,t)-n for t,n in recent if times[0]<=t<=times[-1]]
-    rmse=(sum(e*e for e in errs)/len(errs))**0.5 if errs else None
-    bias=sum(errs)/len(errs) if errs else None
 
     # Current observed slope is a hard operational diagnostic: a candidate that
     # reaches the right level but is climbing much faster/slower is not accepted.
@@ -623,6 +668,15 @@ def main():
       "topology":{
         "areas_km2":{"LJJ_upstream":AREA_LJJ,"Carreiro":AREA_CARR,"STZ_residual":AREA_STZ_RES,"Mucum_increment":AREA_MUC_INC},
         "routing":{"k1_h":K1,"k2_h":K2,"k3_h":K3,"x":X},
+        "live_calibration_controls":{
+          "warmup_h":WARMUP_H,"memory_tau_h":MEMORY_TAU_H,
+          "dn_initial_loss_scale":DN_INITIAL_LOSS_SCALE,
+          "dn_constant_loss_scale":DN_CONSTANT_LOSS_SCALE,
+          "dn_tc_scale":DN_TC_SCALE,
+          "dn_storage_scale":DN_STORAGE_SCALE,
+          "dn_recession_scale":DN_RECESSION_SCALE,
+          "dn_flow_ratio_scale":DN_FLOW_RATIO_SCALE,
+        },
         "calibration_event":"E28","calibration_nse":row.get("nse"),"warmup_h":WARMUP_H,
       },
       "observed_network_audit":{
@@ -645,12 +699,16 @@ def main():
           "observed_slope_cm_h":None if observed_slope_cm_h is None else round(observed_slope_cm_h,2),
           "model_slope_cm_h":round(model_slope_cm_h,2),
           "slope_error_cm_h":None if slope_error_cm_h is None else round(slope_error_cm_h,2)},
-      "recent_fit_6h":{"n":len(errs),"raw_rmse_cm":None if rmse is None else round(rmse,2),
-          "raw_bias_cm":None if bias is None else round(bias,2),
+      "recent_fit_6h":{"n":fit6["n"],"raw_rmse_cm":None if fit6["rmse_cm"] is None else round(fit6["rmse_cm"],2),
+          "raw_bias_cm":None if fit6["bias_cm"] is None else round(fit6["bias_cm"],2),
+          "nse":None if fit6["nse"] is None else round(fit6["nse"],4),
           "conditioned_rmse_cm":None if adj_rmse is None else round(adj_rmse,2),
           "conditioned_bias_cm":None if adj_bias is None else round(adj_bias,2),
           "operational_state_mode":state_mode,
           "state_assimilation_applied":state_assimilation_applied},
+      "recent_fit_12h":{"n":fit12["n"],"raw_rmse_cm":None if fit12["rmse_cm"] is None else round(fit12["rmse_cm"],2),
+          "raw_bias_cm":None if fit12["bias_cm"] is None else round(fit12["bias_cm"],2),
+          "nse":None if fit12["nse"] is None else round(fit12["nse"],4)},
       "peak":{"time_local":peak[0].isoformat(timespec="minutes"),"stage_cm":round(peak[1],2),"q_m3s":round(peak[2],2),
           "rise_from_observed_cm":round(peak[1]-obs_n,2)},
       "publishable":publishable,
